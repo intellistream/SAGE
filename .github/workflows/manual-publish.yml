@@ -1,79 +1,82 @@
-name: Publish to PyPI
+name: Manual Publish to PyPI
+
+# 这个工作流专门用于手动触发版本升级和PyPI发布
+# 不会自动运行，不影响主CI/CD流程的成功/失败状态
+# 适用场景：main-dev合并到main后，需要手动决定是否发布新版本
 
 on:
-  push:
-    branches:
-      - main      # 主分支: patch 版本自增 -> PyPI
-      # main-dev 不再自动触发，避免频繁 version bump 导致 feature 分支 rebase 冲突
-    paths-ignore:
-      - 'docs/**'
-      - 'docs-public/**'
-      - 'examples/**'
-      - 'README.md'
-      - 'CONTRIBUTING.md'
-      - 'LICENSE'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE/**'
-      # 不再忽略 .github/workflows/ 目录下的任何文件
-
-  # 当 PR 被 merge 到 main 时触发（作为 push 事件的补充）
-  # 注意: 仅 main 分支的 PR，且不是从 main-dev 合并的 PR 才自动触发
-  pull_request:
-    types: [closed]
-    branches:
-      - main
-
   workflow_dispatch:
     inputs:
+      target_branch:
+        description: 'Target branch to publish from'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - main-dev
       repository:
         description: 'Target repository (testpypi or pypi)'
-        required: false
-        default: 'testpypi'
+        required: true
+        default: 'pypi'
         type: choice
         options:
           - testpypi
           - pypi
       version_bump:
         description: 'Version bump type'
-        required: false
-        default: 'none'  # 默认改为 none，需要手动选择
+        required: true
+        default: 'patch'
         type: choice
         options:
-          - none    # Keep current version (default for main-dev testing)
-          - auto    # Based on branch
+          - none    # Keep current version
           - patch   # 0.1.6.2 -> 0.1.6.3
           - micro   # 0.1.6.2 -> 0.1.7.0
           - minor   # 0.1.6.2 -> 0.2.0.0
           - major   # 0.1.6.2 -> 1.0.0.0
+      create_release:
+        description: 'Create GitHub Release (only for pypi)'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
-  publish:
+  manual-publish:
+    name: Manual Publish
     runs-on: ubuntu-latest
-    # 运行条件:
-    # 1. push 事件 && commit message 不包含 [version bump]
-    # 2. PR merge 事件 && PR 已成功 merge && PR 来源分支不是 main-dev (防止 main-dev->main PR 自动触发)
-    # 3. workflow_dispatch 手动触发
-    if: |
-      (github.event_name == 'push' && !contains(github.event.head_commit.message, '[version bump]')) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.ref != 'main-dev') ||
-      github.event_name == 'workflow_dispatch'
+    timeout-minutes: 60
 
     steps:
-      - name: Determine target branch
-        id: branch
+      - name: Validate inputs
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR merge: checkout 目标分支（main 或 main-dev）
-            echo "ref=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
-          else
-            # push 或 workflow_dispatch: checkout 当前分支
-            echo "ref=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "📋 Validating workflow inputs..."
+          echo "- Target Branch: ${{ inputs.target_branch }}"
+          echo "- Repository: ${{ inputs.repository }}"
+          echo "- Version Bump: ${{ inputs.version_bump }}"
+          echo "- Create Release: ${{ inputs.create_release }}"
+
+          # 验证：发布到PyPI时必须从main分支
+          if [ "${{ inputs.repository }}" = "pypi" ] && [ "${{ inputs.target_branch }}" != "main" ]; then
+            echo "❌ Error: Publishing to PyPI requires 'main' branch"
+            exit 1
           fi
+
+          # 验证：创建Release时必须bump版本
+          if [ "${{ inputs.create_release }}" = "true" ] && [ "${{ inputs.version_bump }}" = "none" ]; then
+            echo "❌ Error: Cannot create release without version bump"
+            exit 1
+          fi
+
+          echo "✅ Input validation passed"
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.branch.outputs.ref }}
+          ref: ${{ inputs.target_branch }}
           fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN }}
 
@@ -95,50 +98,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Determine version bump and repository
-        id: config
-        run: |
-          # 确定版本升级类型
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 手动触发：使用用户选择
-            VERSION_BUMP="${{ inputs.version_bump }}"
-            REPOSITORY="${{ inputs.repository }}"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR merge 触发：根据目标分支决定
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
-            if [ "$TARGET_BRANCH" = "main" ]; then
-              VERSION_BUMP="patch"
-              REPOSITORY="pypi"
-            else  # main-dev
-              VERSION_BUMP="patch"
-              REPOSITORY="testpypi"
-            fi
-          else
-            # push 事件：根据分支决定
-            if [ "${{ github.ref_name }}" = "main" ]; then
-              VERSION_BUMP="patch"
-              REPOSITORY="pypi"
-            else  # main-dev
-              VERSION_BUMP="patch"
-              REPOSITORY="testpypi"
-            fi
-          fi
-
-          # 如果是 auto，转换为实际类型
-          if [ "$VERSION_BUMP" = "auto" ]; then
-            if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
-              VERSION_BUMP="patch"
-            else
-              VERSION_BUMP="patch"
-            fi
-          fi
-
-          echo "version_bump=$VERSION_BUMP" >> $GITHUB_OUTPUT
-          echo "repository=$REPOSITORY" >> $GITHUB_OUTPUT
-          echo "::notice::Version bump: $VERSION_BUMP, Repository: $REPOSITORY"
-
       - name: Bump version
-        if: steps.config.outputs.version_bump != 'none'
+        if: inputs.version_bump != 'none'
         id: bump_version
         run: |
           # Get current version from any package's _version.py
@@ -152,8 +113,8 @@ jobs:
           micro="${version_parts[2]}"
           patch="${version_parts[3]:-0}"
 
-          # Bump based on config
-          case "${{ steps.config.outputs.version_bump }}" in
+          # Bump based on input
+          case "${{ inputs.version_bump }}" in
             patch)
               patch=$((patch + 1))
               ;;
@@ -182,14 +143,16 @@ jobs:
           # Update version using sage-dev
           sage-dev package version set "$NEW_VERSION"
 
-          # Commit version bump (without [skip ci] to allow CI badges to update)
-          # Use [version bump] marker to prevent workflow from re-triggering itself
+          # Commit version bump
           git add -A
           git commit -m "chore: bump version to $NEW_VERSION [version bump]"
 
           # Pull latest changes with rebase to avoid conflicts
-          BRANCH="${{ steps.branch.outputs.ref }}"
-          git pull --rebase origin $BRANCH
+          BRANCH="${{ inputs.target_branch }}"
+          git pull --rebase origin $BRANCH || {
+            echo "❌ Failed to rebase. Please resolve conflicts manually."
+            exit 1
+          }
 
           # Push with retry logic
           max_retries=3
@@ -197,7 +160,7 @@ jobs:
           until git push origin $BRANCH; do
             retry_count=$((retry_count + 1))
             if [ $retry_count -ge $max_retries ]; then
-              echo "Failed to push after $max_retries attempts"
+              echo "❌ Failed to push after $max_retries attempts"
               exit 1
             fi
             echo "Push failed, retrying (attempt $retry_count/$max_retries)..."
@@ -205,19 +168,27 @@ jobs:
             git pull --rebase origin $BRANCH
           done
 
+          echo "✅ Version bumped and pushed successfully"
+
+      - name: Get current version for summary
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(python -c "import sys; sys.path.insert(0, 'packages/sage/src'); from sage._version import __version__; print(__version__)")
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
       - name: Build and publish packages
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ steps.config.outputs.repository == 'pypi' && secrets.PYPI_API_TOKEN || secrets.TEST_PYPI_API_TOKEN }}
-          TWINE_REPOSITORY: ${{ steps.config.outputs.repository }}
+          TWINE_PASSWORD: ${{ inputs.repository == 'pypi' && secrets.PYPI_API_TOKEN || secrets.TEST_PYPI_API_TOKEN }}
+          TWINE_REPOSITORY: ${{ inputs.repository }}
         run: |
           # Configure repository URL
-          if [ "${{ steps.config.outputs.repository }}" = "testpypi" ]; then
+          if [ "${{ inputs.repository }}" = "testpypi" ]; then
             export TWINE_REPOSITORY_URL="https://test.pypi.org/legacy/"
           fi
 
           # Build and publish all packages
-          sage-dev package pypi publish-sage --no-dry-run -r ${{ steps.config.outputs.repository }}
+          sage-dev package pypi publish-sage --no-dry-run -r ${{ inputs.repository }}
 
       # 构建预编译 wheels（针对 sage-middleware）
       - name: Build precompiled wheels for sage-middleware
@@ -241,33 +212,26 @@ jobs:
           ls -lh ../../dist-wheels/
 
       # 上传预编译 wheels 到 PyPI
-      - name: Upload precompiled wheels to PyPI
-        if: steps.config.outputs.repository == 'pypi'
+      - name: Upload precompiled wheels
         run: |
-          echo "📦 Uploading precompiled wheels to PyPI..."
+          echo "📦 Uploading precompiled wheels to ${{ inputs.repository }}..."
           python -m pip install twine
 
-          twine upload --skip-existing dist-wheels/*.whl \
-            --username __token__ \
-            --password ${{ secrets.PYPI_API_TOKEN }}
+          if [ "${{ inputs.repository }}" = "pypi" ]; then
+            twine upload --skip-existing dist-wheels/*.whl \
+              --username __token__ \
+              --password ${{ secrets.PYPI_API_TOKEN }}
+          else
+            twine upload --skip-existing dist-wheels/*.whl \
+              --repository-url https://test.pypi.org/legacy/ \
+              --username __token__ \
+              --password ${{ secrets.TEST_PYPI_API_TOKEN }}
+          fi
 
           echo "✅ Precompiled wheels uploaded"
 
-      - name: Upload precompiled wheels to TestPyPI
-        if: steps.config.outputs.repository == 'testpypi'
-        run: |
-          echo "📦 Uploading precompiled wheels to TestPyPI..."
-          python -m pip install twine
-
-          twine upload --skip-existing dist-wheels/*.whl \
-            --repository-url https://test.pypi.org/legacy/ \
-            --username __token__ \
-            --password ${{ secrets.TEST_PYPI_API_TOKEN }}
-
-          echo "✅ Precompiled wheels uploaded to TestPyPI"
-
       - name: Create GitHub Release
-        if: steps.config.outputs.repository == 'pypi' && steps.config.outputs.version_bump != 'none'
+        if: inputs.create_release && inputs.repository == 'pypi' && inputs.version_bump != 'none'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.bump_version.outputs.new_version }}
@@ -275,7 +239,8 @@ jobs:
           body: |
             ## SAGE v${{ steps.bump_version.outputs.new_version }}
 
-            **Released from**: `${{ github.ref_name }}` branch
+            **Released from**: `${{ inputs.target_branch }}` branch
+            **Triggered by**: @${{ github.actor }} (Manual Release)
             **Commit**: ${{ github.sha }}
 
             ### Published Packages
@@ -299,32 +264,35 @@ jobs:
             ### PyPI Links
             - [isage on PyPI](https://pypi.org/project/isage/${{ steps.bump_version.outputs.new_version }}/)
 
-            ### Changes
-            ${{ github.event.head_commit.message }}
+            ---
+            *This release was manually triggered via GitHub Actions workflow.*
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Summary
+        if: success()
         run: |
-          echo "## 📦 Publication Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Manual Publication Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ steps.branch.outputs.ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Repository**: ${{ steps.config.outputs.repository }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version Bump**: ${{ steps.config.outputs.version_bump }}" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.config.outputs.version_bump }}" != "none" ]; then
+          echo "- **Triggered by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ inputs.target_branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository**: ${{ inputs.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Bump**: ${{ inputs.version_bump }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Current Version**: ${{ steps.current_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.version_bump }}" != "none" ]; then
             echo "- **New Version**: ${{ steps.bump_version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "- **Packages**: 11 packages published" >> $GITHUB_STEP_SUMMARY
+          echo "- **Packages Published**: 11 packages" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: ${{ inputs.create_release && inputs.repository == 'pypi' && 'Yes' || 'No' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ steps.config.outputs.repository }}" = "pypi" ]; then
+          if [ "${{ inputs.repository }}" = "pypi" ]; then
             echo "### 🎉 Published to PyPI" >> $GITHUB_STEP_SUMMARY
             echo "Users can now install with:" >> $GITHUB_STEP_SUMMARY
             echo '```bash' >> $GITHUB_STEP_SUMMARY
-            echo "pip install isage" >> $GITHUB_STEP_SUMMARY
+            echo "pip install isage==${{ steps.current_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
             echo "### 🧪 Published to TestPyPI" >> $GITHUB_STEP_SUMMARY
@@ -333,3 +301,16 @@ jobs:
             echo "pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ isage" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Failure Summary
+        if: failure()
+        run: |
+          echo "## ❌ Publication Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The manual publication workflow encountered an error." >> $GITHUB_STEP_SUMMARY
+          echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Inputs**:" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ inputs.target_branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: ${{ inputs.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Version Bump: ${{ inputs.version_bump }}" >> $GITHUB_STEP_SUMMARY
