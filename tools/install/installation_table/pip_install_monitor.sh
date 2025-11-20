@@ -41,10 +41,23 @@ analyze_pip_log() {
     echo -e "${BLUE}🔍 检查 pip 安装日志：${log_file}${NC}"
     echo ""
 
+    # DEBUG: 打印环境信息
+    echo -e "${BLUE}🐛 DEBUG - 环境信息：${NC}"
+    echo "   日志文件: ${log_file}"
+    echo "   文件大小: $(wc -c < "$log_file" 2>/dev/null || echo "N/A") bytes"
+    echo "   文件行数: $(wc -l < "$log_file" 2>/dev/null || echo "N/A") lines"
+    echo "   CI 环境: ${CI:-false} (GITHUB_ACTIONS=${GITHUB_ACTIONS:-false})"
+    echo ""
+
     if [ ! -f "$log_file" ]; then
         echo -e "${RED}❌ 日志文件不存在：${log_file}${NC}"
         return 1
     fi
+
+    # DEBUG: 显示待检测的包列表
+    echo -e "${BLUE}🐛 DEBUG - 待检测的本地包：${NC}"
+    printf '   • %s\n' "${LOCAL_PACKAGES[@]}"
+    echo ""
 
     # 检测是否从 PyPI 下载了本地包
     for package in "${LOCAL_PACKAGES[@]}"; do
@@ -53,25 +66,45 @@ analyze_pip_log() {
         # 2. "Collecting isage-xxx" (从 PyPI)
         # 3. "Downloading https://files.pythonhosted.org/.../isage-xxx"
 
-        if grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -vE "(editable|file://|/packages/)" | grep -q .; then
+        echo -e "${BLUE}🐛 DEBUG - 检查包: ${package}${NC}"
+
+        # 显示所有匹配行（包括被排除的）
+        local all_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" || true)
+        local excluded_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -E "(editable|file://|/packages/)" || true)
+        local violation_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -vE "(editable|file://|/packages/)" || true)
+
+        if [ -n "$all_matches" ]; then
+            echo -e "${YELLOW}   所有匹配（$(echo "$all_matches" | wc -l) 行）：${NC}"
+            echo "$all_matches" | head -n 3 | sed 's/^/     /'
+            if [ $(echo "$all_matches" | wc -l) -gt 3 ]; then
+                echo "     ... (省略 $(($(echo "$all_matches" | wc -l) - 3)) 行)"
+            fi
+        fi
+
+        if [ -n "$excluded_matches" ]; then
+            echo -e "${GREEN}   排除的匹配（$(echo "$excluded_matches" | wc -l) 行 - editable/file:// 等）：${NC}"
+            echo "$excluded_matches" | head -n 2 | sed 's/^/     /'
+        fi
+
+        if [ -n "$violation_matches" ]; then
             found_downloads=true
-
-            echo -e "${RED}⚠️  检测到从 PyPI 下载：${package}${NC}"
-            echo -e "${YELLOW}   匹配的日志行：${NC}"
-
-            # 显示相关日志行
-            grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | \
-                grep -vE "(editable|file://|/packages/)" | \
-                sed 's/^/     /' || true
-
+            echo -e "${RED}   ⚠️  违规匹配（$(echo "$violation_matches" | wc -l) 行 - 从 PyPI 下载）：${NC}"
+            echo "$violation_matches" | sed 's/^/     /'
             echo ""
             violations+=("${package}")
+        else
+            echo -e "${GREEN}   ✓ 通过检查${NC}"
         fi
+        echo ""
     done
 
     # 额外检查：从 PyPI 下载任何 sage/isage 相关包
     echo -e "${BLUE}📊 所有下载记录（包括合法的外部依赖）：${NC}"
-    if grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | head -n 20; then
+    local download_count=$(grep -cE "Downloading.*\.(whl|tar\.gz)" "$log_file" || echo "0")
+    echo "   总下载数: $download_count"
+    if [ "$download_count" -gt 0 ]; then
+        echo "   前 20 条下载："
+        grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | head -n 20 | sed 's/^/     /'
         echo ""
     else
         echo -e "${GREEN}   （没有下载记录或文件为空）${NC}"
@@ -80,12 +113,25 @@ analyze_pip_log() {
 
     # 检查 editable 安装（应该有）
     echo -e "${BLUE}📦 Editable 安装记录（应该存在）：${NC}"
-    if grep -E "(Installing|Preparing|Building).*editable" "$log_file" | head -n 10; then
+    local editable_count=$(grep -cE "(Installing|Preparing|Building).*editable" "$log_file" || echo "0")
+    echo "   Editable 安装数: $editable_count"
+    if [ "$editable_count" -gt 0 ]; then
+        echo "   前 10 条记录："
+        grep -E "(Installing|Preparing|Building).*editable" "$log_file" | head -n 10 | sed 's/^/     /'
         echo ""
     else
         echo -e "${YELLOW}   ⚠️  没有找到 editable 安装记录${NC}"
         echo ""
     fi
+
+    # DEBUG: 显示日志文件的关键统计
+    echo -e "${BLUE}🐛 DEBUG - 日志文件统计：${NC}"
+    echo "   'Downloading' 出现次数: $(grep -c "Downloading" "$log_file" || echo "0")"
+    echo "   'Collecting' 出现次数: $(grep -c "Collecting" "$log_file" || echo "0")"
+    echo "   'Installing' 出现次数: $(grep -c "Installing" "$log_file" || echo "0")"
+    echo "   'editable' 出现次数: $(grep -c "editable" "$log_file" || echo "0")"
+    echo "   包含 'sage' 的行数: $(grep -ci "sage" "$log_file" || echo "0")"
+    echo ""
 
     # 返回结果
     if [ ${#violations[@]} -gt 0 ]; then
@@ -97,6 +143,21 @@ analyze_pip_log() {
         echo -e "${YELLOW}违规的包：${NC}"
         printf '   • %s\n' "${violations[@]}"
         echo ""
+
+        echo -e "${YELLOW}🐛 DEBUG - 详细诊断信息：${NC}"
+        echo "   日志文件: ${log_file}"
+        echo "   检测模式: grep -E \"(Downloading|Collecting).*PACKAGE[-_]\" | grep -vE \"(editable|file://|/packages/)\""
+        echo ""
+
+        echo -e "${YELLOW}🔍 原始匹配详情（每个违规包）：${NC}"
+        for pkg in "${violations[@]}"; do
+            echo "   === ${pkg} ==="
+            grep -E "(Downloading|Collecting).*${pkg}[-_]" "$log_file" | \
+                grep -vE "(editable|file://|/packages/)" | \
+                sed 's/^/     /' || echo "     （无法重现匹配，可能是并发问题）"
+            echo ""
+        done
+
         echo -e "${YELLOW}💡 可能的原因：${NC}"
         echo "   1. pyproject.toml 中声明了不必要的本地包依赖"
         echo "   2. 安装顺序错误，后安装的包依赖先安装的包"
