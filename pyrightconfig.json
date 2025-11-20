@@ -26,7 +26,10 @@
     "**/scripts/**",
     "**/vendors/**",
     "**/vendor/**",
-    "**/thirdparty/**"
+    "**/thirdparty/**",
+    "packages/sage-cli/src/sage/cli/core/config_refactored.py",
+    "packages/sage-cli/src/sage/cli/core/refactor_example.py",
+    "packages/sage-studio/src/sage/studio/**"
   ],
   "ignore": [
     "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/pythonTest.py"

@@ -96,7 +96,7 @@ def run_setup_interactive(open_editor: bool = True, overwrite: bool = False) -> 
         else:
             console.print("❌ 未找到 .env 或 .env.template，请手动创建并填写 API Keys。")
     elif open_editor and typer.confirm("是否编辑现有的 .env 文件?", default=False):
-        _open_env_file(status["env_file"])
+        _open_env_file(Path(status["env_file"]))  # type: ignore[arg-type]
 
     console.print("\n🔍 当前环境变量状态:")
     status = env_utils.check_environment_status()

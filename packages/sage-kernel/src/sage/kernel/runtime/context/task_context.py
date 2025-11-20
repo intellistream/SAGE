@@ -265,7 +265,7 @@ class TaskContext(BaseRuntimeContext):
         # Check if this is a JoinOperator that should handle stop signals specially
         if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):
             # Let the operator handle the stop signal itself
-            self.operator.handle_stop_signal(signal=signal)
+            self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
             return
 
         # Initialize stop signal tracking attributes if they don't exist

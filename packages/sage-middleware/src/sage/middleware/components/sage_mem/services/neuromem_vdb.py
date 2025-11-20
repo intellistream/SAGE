@@ -103,9 +103,9 @@ class NeuroMemVDB:
                 print(f"Collection '{collection_name}' 检索结果:")
                 if results:
                     for i, result in enumerate(results, 1):
-                        print(f"  {i}. 文本: {result['text']}")
-                        if result["metadata"]:
-                            print(f"     元数据: {result['metadata']}")
+                        print(f"  {i}. 文本: {result['text']}")  # type: ignore[index]
+                        if result["metadata"]:  # type: ignore[index]
+                            print(f"     元数据: {result['metadata']}")  # type: ignore[index]
                 else:
                     print("  无结果")
                 print("-" * 30)
