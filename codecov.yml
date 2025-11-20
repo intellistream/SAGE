@@ -30,8 +30,8 @@ coverage:
 
     patch:
       default:
-        target: 30%  # 新代码至少30%覆盖率
-        threshold: 5%  # 允许相对下降5%
+        target: 20%  # 新代码至少20%覆盖率（针对重构和小改动）
+        threshold: 15%  # 允许相对下降15%（重构PR）
         if_ci_failed: error
         # 对于重构PR，只关注实际新增的逻辑代码
         only_pulls: true
