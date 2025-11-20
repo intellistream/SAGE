@@ -79,15 +79,12 @@ update_gitmodules_branch() {
 
 # 设置 submodule 的上游追踪分支
 # 解决浅克隆导致的 VS Code "Publish Branch" 显示问题
+# 注意：此函数假设当前已经在子模块目录内
 setup_upstream_tracking() {
-    local submodule_path="$1"
-    local target_branch="$2"
-
-    cd "$submodule_path"
+    local target_branch="$1"
 
     # 检查是否已有上游追踪
     if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-        cd - > /dev/null
         return 0
     fi
 
@@ -102,7 +99,6 @@ setup_upstream_tracking() {
         git branch -u "origin/$target_branch" "$target_branch" >/dev/null 2>&1 || true
     fi
 
-    cd - > /dev/null
     return 0
 }
 
@@ -179,7 +175,8 @@ switch_submodule_branch() {
     fi
 
     # 设置上游追踪分支（修复 VS Code "Publish Branch" 问题）
-    setup_upstream_tracking "$submodule_path" "$target_branch"
+    # 注意：当前已在子模块目录内
+    setup_upstream_tracking "$target_branch"
 
     # 拉取最新代码
     echo -e "${DIM}  正在拉取最新代码...${NC}"
