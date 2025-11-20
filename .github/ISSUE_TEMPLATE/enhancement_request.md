@@ -1,22 +1,31 @@
-______________________________________________________________________
+---
+name: Enhancement Request
+about: Request an improvement or optimization to existing functionality
+title: '[Enhancement] '
+labels: 'enhancement'
+assignees: ''
+---
 
-name: Enhancement Request about: Request an improvement or optimization title: '[Enhancement] '
-labels: enhancement assignees: ''
+## Enhancement Description
 
-______________________________________________________________________
+<!-- Describe the improvement or optimization you're requesting -->
 
-**Summary**
+## Current Behavior
 
-Describe the enhancement you're requesting.
+<!-- How does the current feature/functionality work? -->
 
-**Why This is Needed**
+## Proposed Improvement
 
-Explain why this improvement would be valuable for the project.
+<!-- How should it work after the enhancement? -->
 
-**Suggested Solution**
+## Benefits
 
-Describe the potential solution or approach for this enhancement.
+<!-- Why would this improvement be valuable? -->
 
-**Additional Context**
+## Suggested Approach
 
-Add any other information, screenshots, or context that might be useful.
+<!-- Optional: Your ideas on how to implement this -->
+
+## Additional Context
+
+<!-- Add any other information, code examples, or screenshots -->

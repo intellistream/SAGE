@@ -1,33 +1,42 @@
-______________________________________________________________________
+---
+name: Bug Report
+about: Report a bug to help us improve SAGE
+title: '[Bug] '
+labels: 'bug'
+assignees: ''
+---
 
-name: Bug report about: Create a report to help us improve title: '' labels: '' assignees: ''
+## Bug Description
 
-______________________________________________________________________
+<!-- A clear and concise description of what the bug is -->
 
-**Describe the bug** A clear and concise description of what the bug is.
+## Steps to Reproduce
 
-**To Reproduce** Steps to reproduce the behavior:
+<!-- Steps to reproduce the behavior -->
 
-1. Go to '...'
-1. Click on '....'
-1. Scroll down to '....'
-1. See error
+1. Step one
+2. Step two
+3. Step three
 
-**Expected behavior** A clear and concise description of what you expected to happen.
+## Expected Behavior
 
-**Screenshots** If applicable, add screenshots to help explain your problem.
+<!-- What you expected to happen -->
 
-**Desktop (please complete the following information):**
+## Actual Behavior
 
-- OS: [e.g. iOS]
-- Browser [e.g. chrome, safari]
-- Version [e.g. 22]
+<!-- What actually happened -->
 
-**Smartphone (please complete the following information):**
+## Environment
 
-- Device: [e.g. iPhone6]
-- OS: [e.g. iOS8.1]
-- Browser [e.g. stock browser, safari]
-- Version [e.g. 22]
+- OS: <!-- e.g., Ubuntu 22.04, macOS 14, Windows 11 -->
+- Python version: <!-- e.g., 3.10.12 -->
+- SAGE version: <!-- e.g., 0.1.0 -->
+- Installation method: <!-- pip, conda, source -->
 
-**Additional context** Add any other context about the problem here.
+## Additional Context
+
+<!-- Add any other context, logs, or screenshots about the problem here -->
+
+## Possible Solution
+
+<!-- Optional: Suggest a fix or reason for the bug -->

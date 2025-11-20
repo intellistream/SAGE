@@ -1,14 +1,23 @@
-______________________________________________________________________
-
-name: Question about: Ask a question about the project title: '[Question] ' labels: question
+---
+name: Question
+about: Ask a question about SAGE
+title: '[Question] '
+labels: 'question'
 assignees: ''
+---
 
-______________________________________________________________________
+## Question
 
-**Question**
+<!-- Describe your question clearly and specifically -->
 
-Describe your question in detail. Be specific to help us provide a clear answer.
+## Context
 
-**Additional Context**
+<!-- Provide any relevant code, configuration, or background information -->
 
-Provide any relevant code, links, or context that could help clarify the question.
+## What I've Tried
+
+<!-- Optional: What have you already attempted or researched? -->
+
+## Additional Information
+
+<!-- Any other details that might help answer your question -->
