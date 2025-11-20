@@ -245,6 +245,7 @@ jobs:
             "packages/sage-benchmark"
             "packages/sage-studio"
             "packages/sage-tools"
+            "packages/sage-gateway"
             "packages/sage-cli"
             "packages/sage"
           )
@@ -421,9 +422,10 @@ jobs:
             packages+=("packages/sage-studio")
           fi
 
-          # 只有 dev 模式需要 sage-tools
+          # 只有 dev 模式需要 sage-tools 和 sage-gateway
           if [ "${{ matrix.install-mode }}" = "dev" ]; then
             packages+=("packages/sage-tools")
+            packages+=("packages/sage-gateway")
           fi
 
           for package_dir in "${packages[@]}"; do
@@ -708,6 +710,7 @@ jobs:
             "packages/sage-benchmark"
             "packages/sage-studio"
             "packages/sage-tools"
+            "packages/sage-gateway"
             "packages/sage-cli"
             "packages/sage"
           )
