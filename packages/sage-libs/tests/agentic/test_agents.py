@@ -81,7 +81,10 @@ class TestBaseAgent:
         """测试使用配置初始化Agent"""
         from sage.libs.agentic.agents.agent import BaseAgent
 
-        config = {"search_api_key": "test_key", "max_steps": 5}  # pragma: allowlist secret
+        config = {
+            "search_api_key": "test_key",  # pragma: allowlist secret
+            "max_steps": 5,
+        }
         mock_model = Mock()  # Must provide model parameter
 
         agent = BaseAgent(config=config, model=mock_model)
