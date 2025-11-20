@@ -27,7 +27,7 @@ class TestSource(SourceFunction):
 
         if self.counter > 10:
             self.logger.info("TestSource: finished")
-            from sage.kernel.runtime.communication.router.packet import StopSignal
+            from sage.kernel.runtime.communication.packet import StopSignal
 
             return StopSignal("TestSource-completed")
 

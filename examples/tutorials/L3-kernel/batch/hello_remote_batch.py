@@ -15,7 +15,7 @@ import time
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")

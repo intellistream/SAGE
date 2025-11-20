@@ -28,7 +28,7 @@ try:  # pragma: no cover - allow running directly from source tree
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
-    from sage.kernel.runtime.communication.router.packet import StopSignal
+    from sage.kernel.runtime.communication.packet import StopSignal
     from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator, QAPromptor
 except ModuleNotFoundError:  # pragma: no cover - local convenience path
     here = Path(__file__).resolve()
@@ -57,7 +57,7 @@ except ModuleNotFoundError:  # pragma: no cover - local convenience path
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
-    from sage.kernel.runtime.communication.router.packet import StopSignal
+    from sage.kernel.runtime.communication.packet import StopSignal
     from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator, QAPromptor
 
 from pipeline_bridge import PipelineBridge
