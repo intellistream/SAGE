@@ -34,6 +34,9 @@ license = {text = "MIT"}
 
 # 核心依赖 - 只包含外部依赖
 dependencies = [
+    # SAGE 内部必需依赖
+    "isage-common>=0.1.0",  # sage-tools 直接使用 sage-common (必需，有10+处导入)
+
     # Tools-specific dependencies
     "click>=8.0.0",
     "jinja2>=2.11.1",
@@ -64,10 +67,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# SAGE 内部依赖
+# SAGE 其他内部依赖（可选）
 sage-deps = [
-    "isage-common>=0.1.0",  # sage-tools 只直接使用 sage-common
-    # 注意：不依赖 isage-kernel, isage-middleware, isage-libs - sage-tools 不直接使用它们
+    # 注意：isage-common 已移至 dependencies（必需）
+    # 不依赖 isage-kernel, isage-middleware, isage-libs - sage-tools 不直接使用它们
     # 这些依赖会通过 isage 元包在开发模式安装时自动安装
 ]
 # 完整依赖（开发和 PyPI 发布时使用）

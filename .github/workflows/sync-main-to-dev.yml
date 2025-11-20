@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:  # 支持手动触发
 
 # Permissions for the workflow
 permissions:
@@ -13,19 +14,22 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # Skip if it's a merge from main-dev to avoid loops, or if it's a version bump commit
+    # 跳过以下情况:
+    # 1. 版本升级 commit (会在手动发布时同步)
+    # 2. 从 main-dev merge 来的 PR (避免循环)
+    # 3. 已经包含 [skip ci] 或 [sync] 标记的 commit
     if: |
-      ${{
-        !contains(github.event.head_commit.message, '[version bump]') &&
-        (!contains(github.event.head_commit.message, 'Merge pull request') || !contains(github.event.head_commit.message, 'main-dev'))
-      }}
+      !contains(github.event.head_commit.message, '[version bump]') &&
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      !contains(github.event.head_commit.message, '[sync]') &&
+      !startsWith(github.event.head_commit.message, 'Main dev (#')
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
+          fetch-depth: 0  # 获取完整历史以便 rebase
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Configure git
@@ -33,58 +37,104 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge main into main-dev
+      - name: Sync main to main-dev (fast-forward merge)
         run: |
+          echo "🔄 Starting sync from main to main-dev..."
+
           # Fetch latest main-dev
-          git fetch origin main-dev:main-dev
+          git fetch origin main-dev
 
           # Checkout main-dev
           git checkout main-dev
 
-          # Merge main into main-dev
-          # If there are conflicts, this will fail and we'll handle them
-          if ! git merge main --no-edit -m "chore: sync main to main-dev [skip ci]"; then
-            echo "Merge conflicts detected, attempting to resolve automatically..."
+          # 检查 main-dev 是否已经包含 main 的所有 commits
+          BEHIND=$(git rev-list --count main-dev..main)
+          AHEAD=$(git rev-list --count main..main-dev)
 
-            # For _version.py files, always use the version from main branch (ours in this merge)
-            git status --porcelain | grep '^UU' | grep '_version.py' | awk '{print $2}' | while read file; do
-              echo "Resolving conflict in $file by accepting main branch version"
-              git checkout --theirs "$file"
-              git add "$file"
-            done
+          echo "main-dev is $BEHIND commits behind main"
+          echo "main-dev is $AHEAD commits ahead of main"
 
-            # Check if all conflicts are resolved
-            if git diff --name-only --diff-filter=U | grep -q .; then
-              echo "❌ There are still unresolved conflicts besides _version.py files"
-              git diff --name-only --diff-filter=U
-              exit 1
-            fi
-
-            # Complete the merge
-            git commit --no-edit -m "chore: sync main to main-dev [skip ci]"
+          if [ "$BEHIND" -eq 0 ]; then
+            echo "✅ main-dev is already up to date with main"
+            exit 0
           fi
 
-          # Push changes
-          git push origin main-dev
+          # 使用 rebase 而不是 merge，保持线性历史
+          echo "📝 Rebasing main-dev onto main..."
+          if git rebase main; then
+            echo "✅ Rebase successful"
+          else
+            echo "⚠️ Rebase has conflicts, attempting auto-resolution..."
+
+            # 对于 _version.py 文件，使用 main 的版本（因为 main 是正式版本）
+            git status --porcelain | grep '^UU' | awk '{print $2}' | while read file; do
+              if [[ "$file" == *"_version.py" ]]; then
+                echo "  📌 Resolving $file: using main version"
+                git checkout --ours "$file"  # ours = main (rebase 的目标)
+                git add "$file"
+              fi
+            done
+
+            # 检查是否还有未解决的冲突
+            if git diff --name-only --diff-filter=U | grep -q .; then
+              echo "❌ Unresolved conflicts remain:"
+              git diff --name-only --diff-filter=U
+              echo ""
+              echo "Aborting rebase and switching to merge strategy..."
+              git rebase --abort
+
+              # 尝试使用 merge 策略
+              if git merge main -m "chore: sync main to main-dev [sync]"; then
+                echo "✅ Merge successful"
+              else
+                echo "❌ Both rebase and merge failed. Manual intervention required."
+                exit 1
+              fi
+            else
+              # 所有冲突已解决，继续 rebase
+              git rebase --continue || true
+            fi
+          fi
+
+          # 推送到远程
+          echo "🚀 Pushing to main-dev..."
+          git push origin main-dev --force-with-lease
+
+          echo "✅ Sync completed successfully"
 
       - name: Summary
         if: success()
         run: |
-          echo "✅ Successfully synced main to main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Successfully synced main to main-dev" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Source branch**: main" >> $GITHUB_STEP_SUMMARY
           echo "- **Target branch**: main-dev" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit message**: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "main-dev is now up to date with main! 🎉" >> $GITHUB_STEP_SUMMARY
 
       - name: Notify on failure
         if: failure()
         run: |
-          echo "❌ Failed to sync main to main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "## ❌ Failed to sync main to main-dev" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please manually resolve conflicts:" >> $GITHUB_STEP_SUMMARY
+          echo "**Automatic sync failed due to conflicts.**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Manual Resolution Steps:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
           echo "git checkout main-dev" >> $GITHUB_STEP_SUMMARY
-          echo "git pull origin main" >> $GITHUB_STEP_SUMMARY
-          echo "# Resolve conflicts if any" >> $GITHUB_STEP_SUMMARY
-          echo "git push origin main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "git fetch origin main" >> $GITHUB_STEP_SUMMARY
+          echo "git rebase origin/main  # 或使用 git merge origin/main" >> $GITHUB_STEP_SUMMARY
+          echo "# 解决冲突后:" >> $GITHUB_STEP_SUMMARY
+          echo "git add ." >> $GITHUB_STEP_SUMMARY
+          echo "git rebase --continue  # 或 git commit (如果使用 merge)" >> $GITHUB_STEP_SUMMARY
+          echo "git push origin main-dev --force-with-lease" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Quick Fix (使用 main 的版本覆盖):" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "git checkout main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "git reset --hard origin/main" >> $GITHUB_STEP_SUMMARY
+          echo "git push origin main-dev --force" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
