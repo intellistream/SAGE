@@ -1,3 +1,24 @@
+# 运行时参数配置
+runtime:
+  dataset: "locomo"  # 数据集名称
+  # task_id: "conv-26"  # 任务ID，可通过命令行 --task_id 覆盖
+
+# 服务配置
+services:
+  short_term_memory:
+    max_dialog: 3  # 短期记忆窗口大小（轮次）
+
+# Operator 配置
+operators:
+  pre_insert:
+    action: "none"  # 插入前操作: none, validate, transform
+  pre_retrieval:
+    action: "none"  # 检索前操作: none, optimize, validate
+  post_insert:
+    action: "none"  # 插入后操作
+  post_retrieval:
+    action: "none"  # 检索后操作
+
 source:
   questions:
   - "我经常晚上十点以后才去健身房，又常常加班到很晚，结果早上起不来，还总是失眠，你觉得我该怎么调整生活习惯？"
