@@ -19,7 +19,7 @@ app = typer.Typer(name="env", help="🌱 环境变量与 .env 文件管理")
 def _render_status(status: dict) -> None:
     """Pretty print environment status information."""
 
-    project_root: Path = status["project_root"]
+    project_root: Path = Path(str(status["project_root"]))  # type: ignore[arg-type]
     console.print(f"📁 项目根目录: [cyan]{project_root}[/cyan]")
     console.print(f"python-dotenv 可用: {'✅' if status['dotenv_available'] else '⚠️'}")
     console.print(
@@ -75,7 +75,7 @@ def run_setup_interactive(open_editor: bool = True, overwrite: bool = False) -> 
     """Shared implementation used by the CLI and legacy script wrapper."""
 
     status = env_utils.check_environment_status()
-    project_root: Path = status["project_root"]
+    project_root: Path = Path(str(status["project_root"]))  # type: ignore[arg-type]
 
     console.print("🔧 [bold]SAGE 环境配置向导[/bold]")
     console.rule()
