@@ -30,10 +30,9 @@ coverage:
 
     patch:
       default:
-        target: auto  # 自动适应基准分支的覆盖率
-        threshold: 10%  # 允许覆盖率下降最多10%
-        if_ci_failed: ignore  # 不让patch覆盖率失败导致CI失败
-        informational: true  # 仅作为信息提示
+        target: 30%  # 新代码至少30%覆盖率
+        threshold: 5%  # 允许相对下降5%
+        if_ci_failed: error
         # 对于重构PR，只关注实际新增的逻辑代码
         only_pulls: true
 
