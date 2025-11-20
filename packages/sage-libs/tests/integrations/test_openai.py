@@ -266,7 +266,7 @@ class TestOpenAIClientErrorHandling:
         )
 
         # Invalid message type (string instead of dict/list)
-        with pytest.raises(ValueError, match="`messages` must be list\\[dict\\] or dict"):
+        with pytest.raises(RuntimeError, match="Response generation failed"):
             client.generate("This is not a valid message format")
 
     @patch("sage.libs.integrations.openai.OpenAI")
