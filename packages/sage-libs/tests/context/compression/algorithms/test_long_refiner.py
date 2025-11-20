@@ -21,12 +21,14 @@ pytestmark = pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm is required for
 class TestLongRefinerInit:
     """Test LongRefiner initialization"""
 
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.LLM")
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
     @patch(
-        "sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
     )
-    def test_init_with_defaults(self, mock_score_model, mock_tokenizer, mock_llm):
+    @patch(
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer"
+    )
+    @patch("sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.LLM")
+    def test_init_with_defaults(self, mock_llm, mock_tokenizer, mock_score_model):
         """Test initialization with default parameters"""
         from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
             LongRefiner,
@@ -53,12 +55,14 @@ class TestLongRefinerInit:
         assert refiner.model == mock_llm_instance
         mock_llm.assert_called_once()
 
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.LLM")
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
     @patch(
-        "sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
     )
-    def test_init_with_custom_gpu(self, mock_score_model, mock_tokenizer, mock_llm):
+    @patch(
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer"
+    )
+    @patch("sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.LLM")
+    def test_init_with_custom_gpu(self, mock_llm, mock_tokenizer, mock_score_model):
         """Test initialization with custom GPU settings"""
         from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
             LongRefiner,
@@ -188,7 +192,9 @@ class TestLongRefinerScoring:
 class TestLongRefinerLoadModel:
     """Test model loading methods"""
 
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
+    @patch(
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer"
+    )
     def test_load_score_model_bm25(self, mock_tokenizer):
         """Test loading BM25 scorer"""
         from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
@@ -204,10 +210,12 @@ class TestLongRefinerLoadModel:
             assert refiner.local_score_func == refiner._cal_score_bm25
 
     @patch(
-        "sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer"
     )
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
-    def test_load_score_model_reranker(self, mock_tokenizer, mock_model):
+    @patch(
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoModelForSequenceClassification"
+    )
+    def test_load_score_model_reranker(self, mock_model, mock_tokenizer):
         """Test loading reranker model"""
         from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
             LongRefiner,
@@ -225,9 +233,13 @@ class TestLongRefinerLoadModel:
             assert refiner.score_model == mock_model_instance
             assert refiner.score_tokenizer == mock_tokenizer_instance
 
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoModel")
-    @patch("sage.libs.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer")
-    def test_load_score_model_sbert(self, mock_tokenizer, mock_model):
+    @patch(
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoTokenizer"
+    )
+    @patch(
+        "sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner.AutoModel"
+    )
+    def test_load_score_model_sbert(self, mock_model, mock_tokenizer):
         """Test loading SBERT model"""
         from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.refiner import (
             LongRefiner,

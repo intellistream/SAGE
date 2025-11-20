@@ -28,6 +28,7 @@ LOCAL_PACKAGES=(
     "isage-cli"
     "isage-studio"
     "isage-tools"
+    "sage-gateway"
     "isage"
 )
 
