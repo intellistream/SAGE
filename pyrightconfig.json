@@ -29,7 +29,8 @@
     "**/thirdparty/**",
     "packages/sage-cli/src/sage/cli/core/config_refactored.py",
     "packages/sage-cli/src/sage/cli/core/refactor_example.py",
-    "packages/sage-studio/src/sage/studio/**"
+    "packages/sage-studio/src/sage/studio/**",
+    "packages/sage-tools/src/sage/tools/dev/issues/**"
   ],
   "ignore": [
     "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/pythonTest.py"
