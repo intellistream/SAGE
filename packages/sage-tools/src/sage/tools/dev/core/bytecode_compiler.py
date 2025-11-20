@@ -74,7 +74,9 @@ class BytecodeCompiler:
         self.compiled_path = self.temp_dir / self.package_path.name
         console.print(f"📁 复制项目结构到: {self.compiled_path}")
         try:
-            shutil.copytree(self.package_path, self.compiled_path)
+            # symlinks=True: 复制符号链接本身，而不是跟随链接复制文件
+            # 这样可以避免符号链接指向外部路径时的问题
+            shutil.copytree(self.package_path, self.compiled_path, symlinks=True)
         except Exception as e:
             console.print(f"❌ 复制项目结构失败: {e}", style="red")
             import traceback
