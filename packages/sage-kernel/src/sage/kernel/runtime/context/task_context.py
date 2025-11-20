@@ -263,7 +263,7 @@ class TaskContext(BaseRuntimeContext):
         self.logger.info(f"Task {self.name} received stop signal from {source_node}")
 
         # Check if this is a JoinOperator that should handle stop signals specially
-        if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):
+        if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):  # type: ignore[attr-defined]
             # Let the operator handle the stop signal itself
             self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
             return

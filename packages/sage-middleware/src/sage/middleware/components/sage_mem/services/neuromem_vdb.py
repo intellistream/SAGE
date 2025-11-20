@@ -27,7 +27,7 @@ class NeuroMemVDB:
             # 正常连接并注册到online_register_collection
             collection = self.manager.get_collection(collection_name)
             if collection:
-                self.online_register_collection[collection_name] = collection
+                self.online_register_collection[collection_name] = collection  # type: ignore[assignment]
                 print(f"成功连接已存在的collection: {collection_name}")
         else:
             if config is not None:
@@ -35,29 +35,30 @@ class NeuroMemVDB:
                 embedding_model = config.get("embedding_model")
                 dim = config.get("dim")
                 description = config.get("description", f"VDB collection: {collection_name}")
-                collection = self.manager.create_collection(
-                    name=collection_name,
-                    backend_type="VDB",
-                    description=description,
-                    embedding_model=embedding_model,
-                    dim=dim,
-                )
+                collection_config = {  # type: ignore[dict-item]
+                    "name": collection_name,
+                    "backend_type": "VDB",
+                    "description": description,
+                    "embedding_model": embedding_model,
+                    "dim": dim,
+                }
+                collection = self.manager.create_collection(collection_config)
                 if collection:
-                    self.online_register_collection[collection_name] = collection
+                    self.online_register_collection[collection_name] = collection  # type: ignore[assignment]
                     print(f"成功创建新collection: {collection_name}")
             else:
                 # 警告 用默认参数创建一个collection并注册到online_register_collection
                 print(
                     f"警告: Collection '{collection_name}' 不存在且未提供config，使用默认参数创建"
                 )
-                default_config = {
+                default_config = {  # type: ignore[dict-item]
                     "name": collection_name,
                     "backend_type": "VDB",
                     "description": f"Default VDB collection: {collection_name}",
                 }
                 collection = self.manager.create_collection(default_config)
-                if collection:
-                    self.online_register_collection[collection_name] = collection
+                if collection:  # type: ignore[assignment]
+                    self.online_register_collection[collection_name] = collection  # type: ignore[assignment]
                     print(f"成功创建默认collection: {collection_name}")
 
     def insert(self, raw_data: Any, metadata: dict[str, Any] | None = None):
