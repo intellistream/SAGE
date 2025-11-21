@@ -11,6 +11,7 @@ try:
     HAS_PYTEST = True
 except ImportError:
     HAS_PYTEST = False
+
     # Create a dummy fixture decorator
     def pytest_fixture(func):
         return func
@@ -86,9 +87,7 @@ def test_graph_collection_persistence(cleanup_data):
     collection.create_index({"name": "main_index"})
 
     # Add nodes with metadata
-    collection.add_node(
-        "alice", "Alice is a researcher", metadata={"role": "researcher"}
-    )
+    collection.add_node("alice", "Alice is a researcher", metadata={"role": "researcher"})
     collection.add_node("bob", "Bob is a developer", metadata={"role": "developer"})
     collection.add_node("charlie", "Charlie is a manager", metadata={"role": "manager"})
 
@@ -271,9 +270,7 @@ def test_graph_metadata(cleanup_data):
     collection.add_node(
         "doc2", "Python best practices", metadata={"language": "python", "type": "tips"}
     )
-    collection.add_node(
-        "doc3", "Java tutorial", metadata={"language": "java", "type": "guide"}
-    )
+    collection.add_node("doc3", "Java tutorial", metadata={"language": "java", "type": "guide"})
 
     # Retrieve with metadata
     results = collection.retrieve(with_metadata=True)
@@ -289,7 +286,9 @@ def test_graph_metadata(cleanup_data):
 
 if __name__ == "__main__":
     # Run tests manually
-    cleanup = type("Cleanup", (), {"__enter__": lambda self: None, "__exit__": lambda *args: None})()
+    cleanup = type(
+        "Cleanup", (), {"__enter__": lambda self: None, "__exit__": lambda *args: None}
+    )()
 
     print("\n=== Running Graph Collection Tests ===\n")
 

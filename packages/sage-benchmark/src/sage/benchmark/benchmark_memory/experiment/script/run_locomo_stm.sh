@@ -44,15 +44,15 @@ cd "$PROJECT_ROOT"
 for i in "${!TASK_IDS[@]}"; do
   TASK_ID="${TASK_IDS[$i]}"
   TASK_NUM=$((i + 1))
-  
+
   echo "--------------------------------------------------------------------"
   echo "🚀 开始运行任务 [$TASK_NUM/${#TASK_IDS[@]}]: $TASK_ID"
   echo "--------------------------------------------------------------------"
   echo ""
-  
+
   # 运行实验
   python "$PYTHON_SCRIPT" --config "$CONFIG_FILE" --task_id "$TASK_ID"
-  
+
   echo ""
   echo "✅ 任务 $TASK_ID 完成 [$TASK_NUM/${#TASK_IDS[@]}]"
   echo ""

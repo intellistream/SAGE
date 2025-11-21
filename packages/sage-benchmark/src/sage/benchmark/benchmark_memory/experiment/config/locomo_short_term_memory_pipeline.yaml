@@ -9,12 +9,12 @@ runtime:
   # Prompt 模板配置
   prompt_template: |
     You are a helpful assistant. Answer the user's question based on the conversation history.
-    
+
     Conversation History:
     {history}
-    
+
     User Question: {question}
-    
+
     Provide a brief and accurate answer in 2-3 sentences maximum:
 
   # LLM Generator 配置
