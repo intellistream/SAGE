@@ -7,6 +7,8 @@ SAGE Pipeline Builder - Embedding Integration 示例
 @test:allow-demo
 """
 
+import os
+
 from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     get_default_knowledge_base,
@@ -191,13 +193,18 @@ if __name__ == "__main__":
         ("后备机制", example_6_fallback_mechanism),
     ]
 
+    # 检查是否在测试模式
+    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+
     for title, example_func in examples:
         try:
             example_func()
         except Exception as e:
             print(f"❌ 示例失败: {e}")
 
-        input("\n按 Enter 继续下一个示例...")
+        # 在测试模式下不等待用户输入
+        if not is_test_mode:
+            input("\n按 Enter 继续下一个示例...")
         print("\n")
 
     print("=" * 80)

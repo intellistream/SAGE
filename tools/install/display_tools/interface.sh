@@ -336,7 +336,8 @@ create_vscode_conda_config() {
     "\${workspaceFolder}/packages/sage-apps/src",
     "\${workspaceFolder}/packages/sage-studio/src",
     "\${workspaceFolder}/packages/sage-tools/src",
-    "\${workspaceFolder}/packages/sage-cli/src"
+    "\${workspaceFolder}/packages/sage-cli/src",
+    "\${workspaceFolder}/packages/sage-gateway/src"
   ]
 }
 EOF

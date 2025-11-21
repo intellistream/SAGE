@@ -247,7 +247,7 @@ class SageTSDB:
 
         # Use C++ backend if available
         if HAS_CPP_BACKEND:
-            self._db = _sage_tsdb.TimeSeriesDB()
+            self._db = _sage_tsdb.TimeSeriesDB()  # type: ignore[attr-defined]
             self._backend = "cpp"
         else:
             # Fallback to pure Python implementation

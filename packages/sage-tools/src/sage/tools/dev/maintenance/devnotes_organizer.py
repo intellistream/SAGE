@@ -147,7 +147,7 @@ class DevNotesOrganizer:
 
         # 返回得分最高的分类
         if scores:
-            return max(scores, key=scores.get)
+            return max(scores, key=scores.get)  # type: ignore[arg-type,return-value]
         return "migration"  # 默认归为迁移类
 
     def analyze_all(self) -> list[dict]:

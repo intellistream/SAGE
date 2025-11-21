@@ -250,7 +250,7 @@ class ClassDependencyChecker:
                     "line": node.lineno,
                     "args": [arg.arg for arg in node.args.args],
                     "decorators": [
-                        d.id if isinstance(d, ast.Name) else self._get_attribute_name(d)
+                        d.id if isinstance(d, ast.Name) else self._get_attribute_name(d)  # type: ignore[arg-type]
                         for d in node.decorator_list
                     ],
                 }
@@ -286,7 +286,7 @@ class ClassDependencyChecker:
         """Analyze an import AST node."""
         import_info = {
             "importing_module": module_name,
-            "line": import_node.lineno,
+            "line": import_node.lineno,  # type: ignore[attr-defined]
             "type": "import" if isinstance(import_node, ast.Import) else "from_import",
         }
 

@@ -73,7 +73,16 @@ class BytecodeCompiler:
         # 复制项目结构
         self.compiled_path = self.temp_dir / self.package_path.name
         console.print(f"📁 复制项目结构到: {self.compiled_path}")
-        shutil.copytree(self.package_path, self.compiled_path)
+        try:
+            # symlinks=True: 复制符号链接本身，而不是跟随链接复制文件
+            # 这样可以避免符号链接指向外部路径时的问题
+            shutil.copytree(self.package_path, self.compiled_path, symlinks=True)
+        except Exception as e:
+            console.print(f"❌ 复制项目结构失败: {e}", style="red")
+            import traceback
+
+            traceback.print_exc()
+            raise
 
         # 编译Python文件
         self._compile_python_files()
@@ -677,7 +686,12 @@ def compile_multiple_packages(
             # compiler.cleanup_temp_dir()
 
         except Exception as e:
-            console.print(f"❌ 处理包失败 {package_path.name}: {e}", style="red")
+            console.print("❌ 处理失败", style="bold red")
+            console.print(f"错误: {e}", style="red")
+            # 打印完整的异常堆栈
+            import traceback
+
+            traceback.print_exc()
             results[package_path.name] = False
 
     # 显示汇总结果

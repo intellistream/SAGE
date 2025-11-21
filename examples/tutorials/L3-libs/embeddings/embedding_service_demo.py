@@ -8,6 +8,7 @@ Embedding Service Demo - 展示如何使用统一的 EmbeddingService
 4. 如何使用缓存优化性能
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -390,32 +391,45 @@ def main():
         ("性能对比", demo_performance_comparison),
     ]
 
-    print("\n可用示例:")
-    for i, (name, _) in enumerate(demos, 1):
-        print(f"  {i}. {name}")
+    # 检查是否在测试模式
+    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
 
-    print("\n选择要运行的示例 (1-5, 或 'all' 运行全部, 'q' 退出):")
-    choice = input("> ").strip().lower()
-
-    if choice == "q":
-        return
-    elif choice == "all":
+    if is_test_mode:
+        # 测试模式：运行所有示例
+        print("\n🧪 测试模式：自动运行所有示例\n")
         for name, demo_func in demos:
             try:
                 demo_func()
             except Exception as e:
                 print(f"\n❌ {name} 失败: {e}")
-    elif choice.isdigit() and 1 <= int(choice) <= len(demos):
-        name, demo_func = demos[int(choice) - 1]
-        try:
-            demo_func()
-        except Exception as e:
-            print(f"\n❌ {name} 失败: {e}")
-            import traceback
-
-            traceback.print_exc()
     else:
-        print("无效选择")
+        # 交互模式：让用户选择
+        print("\n可用示例:")
+        for i, (name, _) in enumerate(demos, 1):
+            print(f"  {i}. {name}")
+
+        print("\n选择要运行的示例 (1-5, 或 'all' 运行全部, 'q' 退出):")
+        choice = input("> ").strip().lower()
+
+        if choice == "q":
+            return
+        elif choice == "all":
+            for name, demo_func in demos:
+                try:
+                    demo_func()
+                except Exception as e:
+                    print(f"\n❌ {name} 失败: {e}")
+        elif choice.isdigit() and 1 <= int(choice) <= len(demos):
+            name, demo_func = demos[int(choice) - 1]
+            try:
+                demo_func()
+            except Exception as e:
+                print(f"\n❌ {name} 失败: {e}")
+                import traceback
+
+                traceback.print_exc()
+        else:
+            print("无效选择")
 
     print("\n" + "=" * 60)
     print("示例结束")

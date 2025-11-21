@@ -30,10 +30,9 @@ coverage:
 
     patch:
       default:
-        target: 20%  # 降低目标以适应重构PR（文件移动导致大量代码被视为新增）
+        target: auto
         threshold: 5%
         if_ci_failed: error
-        # 对于重构PR，只关注实际新增的逻辑代码
         only_pulls: true
 
   # 包级别覆盖率要求
@@ -78,6 +77,9 @@ ignore:
 - "**/*.egg-info/**"
 - "**/temp_*.py"
 - "**/update_*.py"
+- "examples/**"  # 示例代码不需要测试覆盖
+- "tutorials/**"  # 教程代码不需要测试覆盖
+- "**/benchmark_memory/experiment/**"  # 实验性 benchmark 代码
 
 # 标记不同的测试类型
 flag_management:

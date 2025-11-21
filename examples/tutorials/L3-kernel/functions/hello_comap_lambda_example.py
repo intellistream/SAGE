@@ -28,7 +28,7 @@ from typing import Any
 from sage.common.core.functions.comap_function import BaseCoMapFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 # 设置日志级别为ERROR减少输出
 os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
