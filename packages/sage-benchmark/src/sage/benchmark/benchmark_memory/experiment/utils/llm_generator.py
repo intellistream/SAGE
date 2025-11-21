@@ -27,7 +27,7 @@ class LLMGenerator:
         **kwargs: Any,
     ):
         """初始化 LLM 生成器
-        
+
         Args:
             api_key: API 密钥
             base_url: API 基础 URL
@@ -46,14 +46,14 @@ class LLMGenerator:
 
     def generate(self, prompt: str, **override_params: Any) -> str:
         """调用 OpenAI-compatible API 生成回答
-        
+
         Args:
             prompt: 输入的 Prompt
             **override_params: 覆盖默认参数的临时参数
-        
+
         Returns:
             生成的回答文本
-        
+
         Raises:
             Exception: API 调用失败时抛出异常
         """
@@ -64,22 +64,22 @@ class LLMGenerator:
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
         }
-        
+
         # 添加可选参数
         if self.seed is not None:
             request_params["seed"] = self.seed
-        
+
         # 添加初始化时的额外参数
         request_params.update(self.extra_params)
-        
+
         # 添加本次调用的覆盖参数
         request_params.update(override_params)
-        
+
         # 调用 API
         response = self.client.chat.completions.create(**request_params)
-        
+
         # 提取回答
         if response.choices and len(response.choices) > 0:
             return response.choices[0].message.content or ""
-        
+
         return ""
