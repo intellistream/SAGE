@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from sage.kernel.api.operator.base_operator import BaseOperator
 from sage.kernel.runtime.communication.packet import Packet
+from sage.kernel.runtime.communication.router.packet import StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
 
 if TYPE_CHECKING:
@@ -75,6 +76,16 @@ class MapOperator(BaseOperator):
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
             else:
+                # 检查是否是 StopSignal
+                if isinstance(packet.payload, StopSignal):
+                    # 传递给 function 处理(例如打印统计信息)
+                    result = self.function.execute(packet.payload)
+                    # 继续传播 StopSignal
+                    result_packet = packet.inherit_partition_info(result)
+                    if result_packet is not None:
+                        self.router.send(result_packet)
+                    return
+                
                 # 执行前记录时间
                 start_time = time.time()
 

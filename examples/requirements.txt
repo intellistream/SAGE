@@ -10,7 +10,7 @@
 opencv-python>=4.5.0  # Video processing (examples/video/)
 torch>=2.0.0  # PyTorch for models
 torchvision>=0.15.0  # Vision models
-transformers>=4.30.0  # CLIP and other transformers
+transformers==4.51.1  # CLIP and other transformers
 Pillow>=9.0.0  # Image processing
 
 # Common dependencies (mostly covered by main SAGE packages)

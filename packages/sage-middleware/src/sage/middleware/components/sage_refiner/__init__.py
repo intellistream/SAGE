@@ -43,6 +43,11 @@ from sage.middleware.components.sage_refiner.python.context_service import (
     ContextService,
 )
 from sage.middleware.components.sage_refiner.python.service import RefinerService
+from sage.middleware.components.sage_refiner.python.algorithms.reform import (
+    REFORMCompressor,
+    REFORMRefinerOperator,
+    AttentionHookExtractor,
+)
 
 __all__ = [
     # 基础类
@@ -60,6 +65,10 @@ __all__ = [
     # 算法
     "LongRefinerAlgorithm",
     "SimpleRefiner",
+    # REFORM算法
+    "REFORMCompressor",
+    "REFORMRefinerOperator",
+    "AttentionHookExtractor",
 ]
 
 __version__ = "0.1.0"

@@ -20,16 +20,16 @@ class BatchOperator(BaseOperator):
             result = self.function.execute()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
 
-            # 如果结果是None，表示批处理完成，发送停止信号
-            if result is None:
+            # 如果结果是None或StopSignal,表示批处理完成,发送停止信号
+            if result is None or isinstance(result, StopSignal):
                 self.logger.info(f"Batch Operator {self.name} completed, sending stop signal")
 
-                # 源节点完成时，先通知JobManager该节点完成
-                self.ctx.send_stop_signal_back(self.name)
-
-                # 然后向下游发送停止信号
-                stop_signal = StopSignal(self.name)
+                # 创建StopSignal并发送给下游
+                stop_signal = result if isinstance(result, StopSignal) else StopSignal(self.name)
                 self.router.send_stop_signal(stop_signal)
+
+                # 源节点完成时,通知JobManager该节点完成
+                self.ctx.send_stop_signal_back(self.name)
 
                 # 通过ctx停止task
                 self.ctx.set_stop_signal()

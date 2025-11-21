@@ -2,6 +2,7 @@ import json
 import os
 
 from sage.common.core import BatchFunction
+from sage.kernel.runtime.communication.router.packet import StopSignal
 
 try:
     from datasets import load_dataset
@@ -41,8 +42,16 @@ class HFDatasetBatch(BatchFunction):
         self.hf_name = config["hf_dataset_name"]
         self.hf_config = config.get("hf_dataset_config")
         self.hf_split = config.get("hf_split", "train")
+        self.max_samples = config.get("max_samples", None)  # Support limiting samples
         self._iter = None
         self._dataset_exhausted = False
+        self._sample_count = 0  # Track number of samples yielded
+        
+        # Log max_samples configuration
+        if self.max_samples is not None:
+            self.logger.info(f"HFDatasetBatch configured with max_samples={self.max_samples}")
+        else:
+            self.logger.info("HFDatasetBatch: no max_samples limit")
 
     def _build_iter(self):
         """构建数据集迭代器"""
@@ -60,23 +69,39 @@ class HFDatasetBatch(BatchFunction):
         执行批处理函数逻辑
 
         Returns:
-            dict: 包含query和references的数据字典，数据集结束时返回None
+            dict: 包含query和references的数据字典
+            StopSignal: 数据集结束时返回StopSignal
         """
         if self._dataset_exhausted:
-            return None
+            return StopSignal("HFDatasetBatch-exhausted")
+        
+        # Check if we've reached max_samples limit
+        if self.max_samples is not None and self._sample_count >= self.max_samples:
+            self.logger.info(
+                f"Reached max_samples limit ({self.max_samples}), stopping batch processing"
+            )
+            self._dataset_exhausted = True
+            return StopSignal(f"HFDatasetBatch-max_samples-{self.max_samples}")
 
         if self._iter is None:
             self.logger.debug(f"Initializing HF dataset batch source: {self.hf_name}")
+            if self.max_samples:
+                self.logger.info(f"Will process up to {self.max_samples} samples")
             self._iter = self._build_iter()
 
         try:
             data = next(self._iter)
-            self.logger.debug(f"Yielding batch data: {data}")
+            self._sample_count += 1
+            self.logger.debug(
+                f"Yielding batch data ({self._sample_count}"
+                + (f"/{self.max_samples}" if self.max_samples else "")
+                + f"): {data}"
+            )
             return data
         except StopIteration:
             self.logger.info(f"HF dataset batch processing completed for: {self.hf_name}")
             self._dataset_exhausted = True
-            return None
+            return StopSignal("HFDatasetBatch-completed")
 
 
 class JSONLBatch(BatchFunction):
@@ -118,10 +143,11 @@ class JSONLBatch(BatchFunction):
         执行批处理函数逻辑
 
         Returns:
-            dict: 包含query和其他字段的数据字典，文件结束时返回None
+            dict: 包含query和其他字段的数据字典
+            StopSignal: 文件结束时返回StopSignal
         """
         if self._file_exhausted:
-            return None
+            return StopSignal("JSONLBatch-exhausted")
 
         if self._file_handle is None:
             self.logger.debug(f"Initializing JSONL batch source: {self.file_path}")
@@ -136,7 +162,7 @@ class JSONLBatch(BatchFunction):
                 self.logger.info(f"JSONL file batch processing completed for: {self.file_path}")
                 self._file_handle.close()
                 self._file_exhausted = True
-                return None
+                return StopSignal("JSONLBatch-completed")
 
             # 解析JSON行
             line = line.strip()
@@ -164,7 +190,7 @@ class JSONLBatch(BatchFunction):
             if self._file_handle:
                 self._file_handle.close()
             self._file_exhausted = True
-            return None
+            return StopSignal(f"JSONLBatch-error-{str(e)}")
 
     def __del__(self):
         """析构函数，确保文件句柄被正确关闭"""
