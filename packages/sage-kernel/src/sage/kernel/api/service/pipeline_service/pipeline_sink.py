@@ -38,9 +38,9 @@ class PipelineServiceSink(SinkFunction):
         """处理数据并返回结果
 
         Args:
-            data: 上游传递的数据，应包含：
-                - payload: 处理结果
-                - response_queue: 用于返回结果的队列
+            data: 上游传递的纯数据字典（由 PipelineServiceSource 解包）
+                - 包含业务数据字段
+                - _response_queue: 用于返回结果的队列（由 Source 附加）
                 或者是 StopSignal
         """
         if not data:
@@ -51,13 +51,15 @@ class PipelineServiceSink(SinkFunction):
             self.logger.info("Received stop signal, pipeline will stop")
             return
 
-        # 提取结果和响应队列
-        resp = data["payload"] if isinstance(data, dict) and "payload" in data else data
-        resp_q = (
-            data["response_queue"]
-            if isinstance(data, dict) and "response_queue" in data
-            else getattr(data, "response_queue", None)
-        )
+        # 从解包后的数据中提取 response_queue
+        if isinstance(data, dict):
+            resp_q = data.pop("_response_queue", None)
+            # 剩余的就是业务结果
+            resp = data
+        else:
+            # 兼容性：如果不是字典，尝试获取属性
+            resp_q = getattr(data, "response_queue", None)
+            resp = data
 
         if resp_q:
             resp_q.put(resp)
