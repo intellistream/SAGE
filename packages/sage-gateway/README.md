@@ -20,7 +20,7 @@ know, without learning new protocols.
 
 ```bash
 # From PyPI (when published)
-pip install sage-gateway
+pip install isage-gateway
 
 # From source (development)
 cd packages/sage-gateway
@@ -29,7 +29,7 @@ pip install -e .
 
 ## Quick Start
 
-### Start the Gateway Server
+### Standalone Usage
 
 ```bash
 # Using the CLI
@@ -37,6 +37,24 @@ sage-gateway --host 0.0.0.0 --port 8000
 
 # Or with Python
 python -m sage.gateway.server
+```
+
+### Integration with SAGE Studio
+
+Gateway is designed to work with SAGE Studio's Chat mode. To use the full Chat + Canvas dual-mode
+interface:
+
+```bash
+# Terminal 1: Start Gateway (backend for Chat mode)
+sage-gateway --host 0.0.0.0 --port 8000
+
+# Terminal 2: Build and start Studio (first time only)
+sage studio build        # Only needed once to install frontend deps
+sage studio start --host 0.0.0.0
+
+# Access Studio at http://localhost:5173 (dev) or http://localhost:3000 (prod)
+# - Chat Mode: Conversational interface powered by Gateway + RAG
+# - Canvas Mode: Visual pipeline builder
 ```
 
 ### Call with OpenAI SDK

@@ -62,10 +62,56 @@
 ## 下一步建议
 
 1. **测试验证**: 运行 `sage-dev project test` 确保没有破坏现有功能
-1. **功能测试**: 启动 sage-studio 验证 Chat 和 Canvas 模式切换
+1. **功能测试**: 启动 sage-studio 验证 Chat 和 Canvas 模式切换（见下方启动步骤）
 1. **推送分支**: `git push origin feat/unified-chat-canvas-rebased`
 1. **创建 PR**: 将 `feat/unified-chat-canvas-rebased` merge 到 `main-dev`
 1. **清理**: 删除旧的 `feat/unified-chat-canvas` 分支（如果需要）
+
+## 如何启动和使用
+
+### 首次启动（完整步骤）
+
+```bash
+# 1. 构建 Studio 前端（仅首次需要）
+sage studio build
+
+# 2. 启动 Gateway 服务（在新终端窗口）
+sage-gateway --host 0.0.0.0 --port 8000
+
+# 3. 启动 Studio 服务（在另一个终端窗口）
+sage studio start --host 0.0.0.0
+
+# 4. 在浏览器中访问
+# Studio 默认地址: http://localhost:5173 (dev模式) 或 http://localhost:3000 (prod模式)
+```
+
+### 后续启动（跳过 build）
+
+```bash
+# 终端 1: 启动 Gateway
+sage-gateway --host 0.0.0.0 --port 8000
+
+# 终端 2: 启动 Studio
+sage studio start --host 0.0.0.0
+```
+
+### 使用双模式 UI
+
+1. **Canvas 模式**（可视化 Pipeline 构建）:
+   - 拖拽节点创建 Pipeline
+   - 配置操作符参数
+   - 可视化执行流程
+
+2. **Chat 模式**（对话界面 + RAG）:
+   - 点击工具栏切换到 Chat 模式
+   - 与 Gateway 后端的 RAG Pipeline 对话
+   - 支持 Markdown 渲染和数学公式
+
+### 配置要求
+
+- Gateway 依赖：需要安装 `isage-gateway` 包
+- 环境变量：配置 `~/.sage/.env.json` 包含 API keys（用于 LLM 调用）
+- 前端依赖：首次需要运行 `sage studio build` 安装 npm 依赖
 
 ## 命令参考
 
