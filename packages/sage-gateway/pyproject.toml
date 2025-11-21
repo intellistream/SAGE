@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sage-gateway"
-version = "0.1.0"
+name = "isage-gateway"
+dynamic = ["version"]
 description = "SAGE API Gateway - OpenAI/Anthropic compatible protocol adapter"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -63,6 +63,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["sage*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.gateway._version.__version__"}
 
 [tool.black]
 line-length = 100
