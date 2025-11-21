@@ -18,17 +18,14 @@ class PostInsert(MapFunction):
     注：短期记忆通常不需要此步骤
     """
 
-    def __init__(self, action: str = "none"):
+    def __init__(self, config):
         """初始化 PostInsert
 
         Args:
-            action: 操作模式
-                - 'none': 不执行任何操作，直接透传（默认）
-                - 'log': 记录日志
-                - 'stats': 统计分析
+            config: RuntimeConfig 对象，从中获取 operators.post_insert.action
         """
         super().__init__()
-        self.action = action
+        self.action = config.get("operators.post_insert.action", "none")
 
     def execute(self, data):
         """执行后处理

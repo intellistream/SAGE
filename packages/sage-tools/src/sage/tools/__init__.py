@@ -44,5 +44,5 @@ __all__ = [
     "__version__",
     "cli",
     "dev",
-    "finetune",
+    "finetune",  # type: ignore[attr-defined]
 ]

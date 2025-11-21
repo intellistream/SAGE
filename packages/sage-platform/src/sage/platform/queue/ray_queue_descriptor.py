@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from sage.common.utils.logging.custom_logger import CustomLogger
 
 # 使用 SAGE 的 CustomLogger，输出到统一的日志目录
-_logger: "CustomLogger" = None
+_logger: "CustomLogger | None" = None
 
 
 def _get_logger() -> "CustomLogger":

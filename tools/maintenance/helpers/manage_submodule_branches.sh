@@ -1,12 +1,14 @@
 #!/bin/bash
 # 🔄 SAGE Submodule 分支管理脚本
-# 功能：根据当前 SAGE 分支自动切换 submodule 到对应分支
+# 功能：根据当前 SAGE 分支自动切换 submodule 到对应分支并拉取最新代码
 # - main 分支 → submodules 的 main 分支
 # - 其他分支 → submodules 的 main-dev 分支
+# - 自动 fetch 远程分支并 pull 最新代码
 #
 # 注意事项：
 # - 支持浅克隆(shallow clone)的 submodules
 # - 浅克隆时会自动 fetch 目标分支或 unshallow（如果需要）
+# - 切换分支后自动拉取最新代码
 # - 修复了 quickstart.sh 中 --depth 1 导致的分支切换问题
 
 set -e
@@ -77,15 +79,12 @@ update_gitmodules_branch() {
 
 # 设置 submodule 的上游追踪分支
 # 解决浅克隆导致的 VS Code "Publish Branch" 显示问题
+# 注意：此函数假设当前已经在子模块目录内
 setup_upstream_tracking() {
-    local submodule_path="$1"
-    local target_branch="$2"
-
-    cd "$submodule_path"
+    local target_branch="$1"
 
     # 检查是否已有上游追踪
     if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-        cd - > /dev/null
         return 0
     fi
 
@@ -100,11 +99,10 @@ setup_upstream_tracking() {
         git branch -u "origin/$target_branch" "$target_branch" >/dev/null 2>&1 || true
     fi
 
-    cd - > /dev/null
     return 0
 }
 
-# 切换 submodule 到指定分支
+# 切换 submodule 到指定分支并拉取最新代码
 switch_submodule_branch() {
     local submodule_path="$1"
     local target_branch="$2"
@@ -116,17 +114,6 @@ switch_submodule_branch() {
     fi
 
     cd "$submodule_path"
-
-    # 首先检查当前是否已经在目标分支上
-    local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-    if [ "$current_branch" = "$target_branch" ]; then
-        echo -e "${GREEN}  ${CHECK} 已在 ${target_branch} 分支${NC}"
-        cd - > /dev/null
-
-        # 即使已在目标分支，也要确保上游追踪已设置（修复旧安装）
-        setup_upstream_tracking "$submodule_path" "$target_branch"
-        return 0
-    fi
 
     # 检查是否是浅克隆仓库
     # 注意：submodule 的 .git 是文件不是目录，需要用 git rev-parse --git-dir 获取实际路径
@@ -152,33 +139,63 @@ switch_submodule_branch() {
         git fetch origin >/dev/null 2>&1 || true
     fi
 
+    # 首先检查当前是否已经在目标分支上
+    local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    local already_on_branch=false
+    if [ "$current_branch" = "$target_branch" ]; then
+        already_on_branch=true
+        echo -e "${GREEN}  ${CHECK} 已在 ${target_branch} 分支${NC}"
+    fi
+
     # 确定目标引用（优先使用 origin/分支，其次使用本地分支）
+    # 注意：如果已在目标分支上，不需要切换，只需要pull
     local target_ref=""
-    if git show-ref --verify --quiet "refs/remotes/origin/$target_branch"; then
-        target_ref="origin/$target_branch"
-    elif git show-ref --verify --quiet "refs/heads/$target_branch"; then
-        target_ref="$target_branch"
-    else
-        echo -e "${RED}  ${CROSS} 未找到 ${target_branch} 对应的远程或本地分支${NC}"
-        echo -e "${DIM}  提示: 请确认远程仓库中存在 ${target_branch} 分支${NC}"
-        cd - > /dev/null
-        return 1
+    if [ "$already_on_branch" = false ]; then
+        if git show-ref --verify --quiet "refs/remotes/origin/$target_branch"; then
+            target_ref="origin/$target_branch"
+        elif git show-ref --verify --quiet "refs/heads/$target_branch"; then
+            target_ref="$target_branch"
+        else
+            echo -e "${RED}  ${CROSS} 未找到 ${target_branch} 对应的远程或本地分支${NC}"
+            echo -e "${DIM}  提示: 请确认远程仓库中存在 ${target_branch} 分支${NC}"
+            cd - > /dev/null
+            return 1
+        fi
     fi
 
-    # 切换分支
-    echo -e "${DIM}  切换到 ${target_branch} 分支...${NC}"
-    if git checkout -B "$target_branch" "$target_ref" >/dev/null 2>&1; then
+    # 切换分支（如果尚未在目标分支上）
+    if [ "$already_on_branch" = false ]; then
+        echo -e "${DIM}  切换到 ${target_branch} 分支...${NC}"
+        if ! git checkout -B "$target_branch" "$target_ref" >/dev/null 2>&1; then
+            echo -e "${RED}  ${CROSS} 无法切换到 ${target_branch}${NC}"
+            cd - > /dev/null
+            return 1
+        fi
         echo -e "${GREEN}  ${CHECK} 已切换到 ${target_branch}${NC}"
-        cd - > /dev/null
-
-        # 设置上游追踪分支（修复 VS Code "Publish Branch" 问题）
-        setup_upstream_tracking "$submodule_path" "$target_branch"
-        return 0
-    else
-        echo -e "${RED}  ${CROSS} 无法切换到 ${target_branch}${NC}"
-        cd - > /dev/null
-        return 1
     fi
+
+    # 设置上游追踪分支（修复 VS Code "Publish Branch" 问题）
+    # 注意：当前已在子模块目录内
+    setup_upstream_tracking "$target_branch"
+
+    # 拉取最新代码
+    echo -e "${DIM}  正在拉取最新代码...${NC}"
+    local old_commit=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+
+    if git pull origin "$target_branch" >/dev/null 2>&1; then
+        local new_commit=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+        if [ "$old_commit" != "$new_commit" ]; then
+            local commit_short=$(echo "$new_commit" | cut -c1-7)
+            echo -e "${GREEN}  ${CHECK} 已更新到最新 (${commit_short})${NC}"
+        else
+            echo -e "${GREEN}  ${CHECK} 已是最新${NC}"
+        fi
+    else
+        echo -e "${YELLOW}  ⚠️  无法拉取最新代码，继续使用当前版本${NC}"
+    fi
+
+    cd - > /dev/null
+    return 0
 }
 
 # 检查 submodules 是否已初始化
@@ -322,9 +339,10 @@ show_help() {
     echo -e "  $0 [命令] [选项]"
     echo ""
     echo -e "${BOLD}命令:${NC}"
-    echo -e "  ${GREEN}switch${NC}            根据当前 SAGE 分支切换 submodules 到对应分支"
+    echo -e "  ${GREEN}switch${NC}            根据当前 SAGE 分支切换 submodules 到对应分支并拉取最新代码"
     echo -e "                    - main 分支 → submodules 的 main 分支"
     echo -e "                    - 其他分支 → submodules 的 main-dev 分支"
+    echo -e "                    - 自动 fetch 远程并 pull 最新代码"
     echo -e "  ${GREEN}status${NC}            显示当前 submodule 分支状态"
     echo -e "  ${GREEN}help${NC}              显示此帮助信息"
     echo ""

@@ -349,7 +349,7 @@ def _copy_python_artifacts(ext_name: str, ext_dir: Path) -> None:
     try:
         # 在CI环境中使用用户site-packages（匹配pip install --user的行为）
         if _is_ci_environment():
-            platlib = Path(site.USER_SITE)
+            platlib = Path(site.USER_SITE) if site.USER_SITE else Path.cwd() / ".local"
         else:
             platlib = Path(sysconfig.get_paths()["platlib"])
     except Exception as exc:

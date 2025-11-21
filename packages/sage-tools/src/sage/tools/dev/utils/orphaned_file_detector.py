@@ -206,11 +206,12 @@ class OrphanedFileDetector:
 
 def format_file_size(size_bytes: int) -> str:
     """格式化文件大小"""
+    size_float = float(size_bytes)
     for unit in ["B", "KB", "MB"]:
-        if size_bytes < 1024:
-            return f"{size_bytes:.1f}{unit}"
-        size_bytes /= 1024
-    return f"{size_bytes:.1f}GB"
+        if size_float < 1024:
+            return f"{size_float:.1f}{unit}"
+        size_float /= 1024
+    return f"{size_float:.1f}GB"
 
 
 def analyze_orphaned_files(

@@ -45,7 +45,7 @@ def __getattr__(name):
 
 __all__ = [
     # 核心训练类（延迟导入）
-    "LoRATrainer",
+    "LoRATrainer",  # type: ignore[attr-defined]
     # 配置类（轻量级，直接导入）
     "TrainingConfig",
     "LoRAConfig",

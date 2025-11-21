@@ -98,7 +98,7 @@ class DependencyAnalyzer:
                 return analysis
 
             elif output_format == "markdown":
-                return self._generate_markdown_report(analysis)
+                return self._generate_markdown_report(analysis)  # type: ignore[return-value]
 
             elif output_format == "summary":
                 return self._generate_summary_report(analysis)

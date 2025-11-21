@@ -82,14 +82,24 @@ class ArxivSource(BatchFunction):
 
         for entry in root.findall("atom:entry", ns):
             try:
-                article_id = entry.find("atom:id", ns).text.split("/")[-1]
-                title = entry.find("atom:title", ns).text.strip()
-                abstract = entry.find("atom:summary", ns).text.strip()
-                published = entry.find("atom:published", ns).text
-                url = entry.find("atom:id", ns).text
+                id_elem = entry.find("atom:id", ns)
+                title_elem = entry.find("atom:title", ns)
+                abstract_elem = entry.find("atom:summary", ns)
+                published_elem = entry.find("atom:published", ns)
+
+                if not all([id_elem, title_elem, abstract_elem, published_elem]):
+                    continue
+
+                article_id = id_elem.text.split("/")[-1]  # type: ignore
+                title = title_elem.text.strip()  # type: ignore
+                abstract = abstract_elem.text.strip()  # type: ignore
+                published = published_elem.text  # type: ignore
+                url = id_elem.text  # type: ignore
 
                 authors = [
-                    author.find("atom:name", ns).text for author in entry.findall("atom:author", ns)
+                    author.find("atom:name", ns).text  # type: ignore
+                    for author in entry.findall("atom:author", ns)
+                    if author.find("atom:name", ns) is not None
                 ]
 
                 categories = [cat.attrib["term"] for cat in entry.findall("atom:category", ns)]

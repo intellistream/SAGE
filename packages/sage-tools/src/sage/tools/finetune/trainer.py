@@ -101,11 +101,11 @@ class LoRATrainer:
             lora_alpha=self.config.lora.lora_alpha,
             target_modules=self.config.lora.target_modules,
             lora_dropout=self.config.lora.lora_dropout,
-            bias=self.config.lora.bias,
+            bias=self.config.lora.bias,  # type: ignore[arg-type]
             task_type=self.config.lora.task_type,
         )
 
-        self.model = get_peft_model(self.model, lora_config)
+        self.model = get_peft_model(self.model, lora_config)  # type: ignore[arg-type]
         self.model.print_trainable_parameters()
         print()
 
@@ -154,16 +154,18 @@ class LoRATrainer:
             model=self.model,
             args=training_args,
             train_dataset=self.dataset,
-            data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False),
+            data_collator=DataCollatorForLanguageModeling(self.tokenizer, mlm=False),  # type: ignore[arg-type]
         )
 
         print("✅ 训练器配置完成")
         print(f"   • 有效 batch size: {self.config.effective_batch_size}")
-        print(f"   • 总样本数: {len(self.dataset)}")
+        dataset_len = len(self.dataset) if self.dataset else 0  # type: ignore[arg-type]
+        print(f"   • 总样本数: {dataset_len}")
         print(f"   • 训练轮数: {self.config.num_train_epochs}")
-        print(
-            f"   • 预计步数: ~{len(self.dataset) // self.config.effective_batch_size * self.config.num_train_epochs}"
+        estimated_steps = (
+            dataset_len // self.config.effective_batch_size * self.config.num_train_epochs
         )
+        print(f"   • 预计步数: ~{estimated_steps}")
         print()
 
     def train(self):

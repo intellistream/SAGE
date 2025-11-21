@@ -116,7 +116,7 @@ class ToolkitConfig:
             logs_dir=project_sage_dir / "logs",  # Use ~/.sage/ for logs
             temp_dir=project_sage_dir / "temp",  # Use ~/.sage/ for temp files
             config_data=config_data,
-            environment=environment,
+            environment=environment or "development",
         )
 
     @staticmethod

@@ -191,13 +191,13 @@ class OutOfOrderStreamJoin(TimeSeriesAlgorithm):
         # Build hash table for right stream
         right_hash: dict[str, list[TimeSeriesData]] = defaultdict(list)
         for right in right_data:
-            key_value = right.tags.get(self.join_key)
+            key_value = right.tags.get(self.join_key) if self.join_key else None
             if key_value:
                 right_hash[key_value].append(right)
 
         # Probe with left stream
         for left in left_data:
-            key_value = left.tags.get(self.join_key)
+            key_value = left.tags.get(self.join_key) if self.join_key else None
             if key_value and key_value in right_hash:
                 for right in right_hash[key_value]:
                     # Check window condition

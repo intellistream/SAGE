@@ -93,9 +93,9 @@ class ProjectStatusChecker:
 
         # 检查关键环境变量
         env_vars = ["PATH", "PYTHONPATH", "SAGE_HOME"]
-        env_info["environment_variables"] = {}
+        env_info["environment_variables"] = {}  # type: ignore[assignment]
         for var in env_vars:
-            env_info["environment_variables"][var] = os.environ.get(var, "Not set")
+            env_info["environment_variables"][var] = os.environ.get(var, "Not set")  # type: ignore[index]
 
         return env_info
 

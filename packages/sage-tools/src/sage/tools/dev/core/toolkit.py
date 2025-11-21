@@ -154,6 +154,9 @@ class SAGEDevToolkit:
 
             try:
                 spec = importlib.util.spec_from_file_location(module_name, module_path)
+                if spec is None or spec.loader is None:
+                    self.logger.warning(f"Failed to create spec for {module_name}")
+                    continue
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
@@ -219,15 +222,6 @@ class SAGEDevToolkit:
 
             # Save results
             output_file = self._save_results("test_execution", results)
-
-            self.logger.info(f"📄 Test results saved to: {output_file}")
-            self.logger.info(f"⏱️  Test execution time: {execution_time:.2f}s")
-
-            return results
-
-        except Exception as e:
-            raise TestExecutionError(f"Test execution failed: {e}") from e
-            output_file = self._save_results("test_results", results)
 
             self.logger.info(f"📄 Test results saved to: {output_file}")
             self.logger.info(f"⏱️  Test execution time: {execution_time:.2f}s")
@@ -635,8 +629,8 @@ class SAGEDevToolkit:
 
             # Add metadata
             execution_time = time.time() - start_time
-            analysis["execution_time"] = execution_time
-            analysis["timestamp"] = datetime.now().isoformat()
+            analysis["execution_time"] = execution_time  # type: ignore[assignment]
+            analysis["timestamp"] = datetime.now().isoformat()  # type: ignore[assignment]
 
             self.logger.info(f"📄 Project analysis completed in {execution_time:.2f}s")
             return analysis

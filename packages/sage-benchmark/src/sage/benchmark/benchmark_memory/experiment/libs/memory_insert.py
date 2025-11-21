@@ -12,14 +12,19 @@ class MemoryInsert(MapFunction):
     3. 返回存储状态
     """
 
-    def __init__(self):
+    def __init__(self, config=None):
+        """初始化 MemoryInsert
+
+        Args:
+            config: RuntimeConfig 对象（可选，当前不使用）
+        """
         super().__init__()
 
     def execute(self, data):
         """执行记忆插入
 
         Args:
-            data: PipelineRequest 对象或字典
+            data: 纯数据字典（已由 PipelineServiceSource 解包）
 
         Returns:
             原始数据（透传，供后续处理使用）
@@ -27,10 +32,7 @@ class MemoryInsert(MapFunction):
         if not data:
             return None
 
-        # 提取 payload（如果是 PipelineRequest）
-        payload = data.payload if hasattr(data, "payload") else data
-
-        dialogs = payload.get("dialogs", [])
+        dialogs = data.get("dialogs", [])
 
         # 调用短期记忆服务存储对话
         # 注意：insert() 方法直接接收 dialog 列表，不需要包装在字典中
