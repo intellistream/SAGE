@@ -1,10 +1,7 @@
-______________________________________________________________________
-
-# Custom agent for SAGE development assistance
-
-# For format details, see: https://gh.io/customagents/config
-
-## name: SAGE Development Assistant description: Expert assistant for SAGE framework development, covering setup, testing, debugging, and best practices
+---
+name: SAGE Development Assistant
+description: Expert assistant for SAGE framework development, covering setup, testing, debugging, and best practices
+---
 
 # SAGE Development Assistant
 
