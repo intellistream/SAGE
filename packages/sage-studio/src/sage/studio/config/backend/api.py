@@ -17,6 +17,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from sage.studio.services.chat_pipeline_recommender import generate_pipeline_recommendation
+
 
 def _convert_pipeline_to_job(
     pipeline_data: dict, pipeline_id: str, file_path: Path | None = None
@@ -979,6 +981,59 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     )
 
 
+def _parse_execution_results(results, pipeline, execution_time):
+    """
+    解析执行结果,生成输出和步骤
+
+    Args:
+        results: Sink 收集的结果列表
+        pipeline: VisualPipeline 定义
+        execution_time: 执行时间
+
+    Returns:
+        tuple: (output_text, agent_steps)
+    """
+    from datetime import datetime
+
+    agent_steps = []
+    output_parts = []
+
+    # 为每个节点生成步骤
+    step_time = int(execution_time * 1000 / len(pipeline.nodes)) if pipeline.nodes else 0
+
+    for idx, node in enumerate(pipeline.nodes, start=1):
+        # 查找该节点的输出
+        node_output = None
+        if results and idx <= len(results):
+            node_output = results[idx - 1]
+
+        # 生成步骤
+        agent_steps.append(
+            AgentStep(
+                step=idx,
+                type="tool_call",
+                content=f"✓ {node.label}",
+                timestamp=datetime.now().isoformat(),
+                duration=step_time,
+                toolName=node.label,
+                toolInput={"config": node.config},
+                toolOutput={"result": str(node_output) if node_output else "完成"},
+            )
+        )
+
+        # 收集输出
+        if node_output:
+            output_parts.append(f"## {node.label}\n{node_output}\n")
+
+    # 生成最终输出
+    if output_parts:
+        output_text = "\n".join(output_parts)
+    else:
+        output_text = f"Pipeline 执行成功！\n\n总耗时: {execution_time:.2f}秒"
+
+    return output_text, agent_steps
+
+
 class PlaygroundExecuteRequest(BaseModel):
     """Playground 执行请求"""
 
@@ -1011,117 +1066,83 @@ class PlaygroundExecuteResponse(BaseModel):
 
 @app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
 async def execute_playground(request: PlaygroundExecuteRequest):
-    """执行 Playground Flow - 使用真实的 SAGE Pipeline"""
+    """执行 Playground Flow - 使用增强的 PipelineBuilder"""
     try:
-        from datetime import datetime
+        import sys
+        import time
+        from pathlib import Path
 
-        print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
-        print(f"📝 Input: {request.input}")
+        # 添加 sage-studio 到 Python 路径
+        studio_path = Path(__file__).parent.parent.parent.parent
+        if str(studio_path) not in sys.path:
+            sys.path.insert(0, str(studio_path))
+
+        from sage.studio.models import PipelineStatus
+        from sage.studio.services import get_pipeline_builder
+
+        print(f"\n{'=' * 60}")
+        print("🎯 Playground 执行开始")
+        print(f"   Flow ID: {request.flowId}")
+        print(f"   Session: {request.sessionId}")
+        print(f"   Input: {request.input[:100]}...")
+        print(f"{'=' * 60}\n")
 
         # 1. 加载 Flow 定义
         flow_data = _load_flow_data(request.flowId)
         if not flow_data:
             raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
 
-        nodes_config = flow_data.get("nodes", [])
-        if not nodes_config:
-            return PlaygroundExecuteResponse(
-                output="❌ 请先在画布中创建节点",
-                status="error",
-                agentSteps=None,
-            )
+        # 2. 转换为 VisualPipeline
+        visual_pipeline = _convert_to_flow_definition(flow_data, request.flowId)
+        print(f"📊 Pipeline 节点数: {len(visual_pipeline.nodes)}")
 
-        # 2. 准备操作符配置
-        operator_configs = []
-        for node in nodes_config:
-            node_data = node.get("data", {})
-            node_type = node_data.get("nodeId", node_data.get("type", "Unknown"))
-            node_config = node_data.get("config", {})
+        # 3. 🆕 使用增强的 PipelineBuilder (传入用户输入)
+        builder = get_pipeline_builder()
+        sage_env = builder.build(visual_pipeline, user_input=request.input)
 
-            operator_configs.append({"type": node_type, "config": node_config})
+        # 4. 执行并收集结果
+        start_time = time.time()
+        print("⚙️ 开始执行...")
 
-            print(f"📦 节点配置: {node_type} - {node_config}")
+        # 提交作业并等待完成
+        sage_env.submit(autostop=True)
 
-        # 3. 使用 PlaygroundExecutor 执行
-        try:
-            from sage.studio.services.playground_executor import get_playground_executor
+        execution_time = time.time() - start_time
+        print(f"✅ 执行完成,耗时: {execution_time:.2f}秒\n")
 
-            executor = get_playground_executor()
-            execution_result = executor.execute_simple_query(
-                user_input=request.input,
-                operator_configs=operator_configs,
-                flow_id=request.flowId,  # 传递 flow_id 用于日志
-            )
+        # 5. 🆕 收集执行结果
+        from sage.libs.io.sink import RetriveSink
 
-            # 4. 生成执行步骤
-            agent_steps = []
-            for idx, op_config in enumerate(operator_configs, start=1):
-                agent_steps.append(
-                    AgentStep(
-                        step=idx,
-                        type="tool_call",
-                        content=f"执行节点: {op_config['type']}",
-                        timestamp=datetime.now().isoformat(),
-                        toolName=op_config["type"],
-                        toolInput=op_config["config"],
-                        toolOutput={"status": "completed"},
-                    )
-                )
+        results = []
+        if hasattr(RetriveSink, "get_results"):
+            results = RetriveSink.get_results()
 
-            # 5. 添加日志步骤（如果有日志）
-            if execution_result.get("logs"):
-                for log in execution_result["logs"][-5:]:  # 最后5条日志
-                    agent_steps.append(
-                        AgentStep(
-                            step=len(agent_steps) + 1,
-                            type="reasoning",
-                            content=f"[{log['level']}] {log['message']}",
-                            timestamp=log["timestamp"],
-                        )
-                    )
+        # 6. 🆕 解析结果并生成步骤
+        output_text, agent_steps = _parse_execution_results(
+            results, visual_pipeline, execution_time
+        )
 
-            response = PlaygroundExecuteResponse(
-                output=execution_result["output"],
-                status=execution_result["status"],
-                agentSteps=agent_steps if agent_steps else None,
-            )
+        print(f"📤 输出长度: {len(output_text)} 字符")
+        print(f"📋 步骤数: {len(agent_steps)}")
+        print(f"{'=' * 60}\n")
 
-            # 调试日志：打印返回的数据
-            print("✅ API Response prepared:")
-            print(f"   - Status: {response.status}")
-            print(f"   - Output length: {len(response.output) if response.output else 0}")
-            print(f"   - Output preview: {response.output[:200] if response.output else 'EMPTY'}")
-            print(f"   - Agent steps: {len(response.agentSteps) if response.agentSteps else 0}")
-
-            return response
-
-        except ImportError as e:
-            return PlaygroundExecuteResponse(
-                output=f"""❌ SAGE 模块导入失败: {str(e)}
-
-请确保已安装所有依赖:
-  pip install -e packages/sage-kernel
-  pip install -e packages/sage-common
-  pip install -e packages/sage-middleware
-
-或使用 Python 脚本测试:
-  python /home/gyy/SAGE/run_rag_test.py
-""",
-                status="error",
-                agentSteps=None,
-            )
+        return PlaygroundExecuteResponse(
+            output=output_text,
+            status=PipelineStatus.COMPLETED.value,
+            agentSteps=agent_steps if agent_steps else None,
+        )
 
     except HTTPException:
         raise
     except Exception as e:
         import traceback
 
-        print(f"❌ Error executing playground: {e}")
+        print("\n❌ 执行出错:")
         print(traceback.format_exc())
+        print(f"{'=' * 60}\n")
 
-        # 返回友好的错误信息
         return PlaygroundExecuteResponse(
-            output=f"执行出错: {str(e)}", status="error", agentSteps=None
+            output=f"执行出错: {str(e)}", status="failed", agentSteps=None
         )
 
 
@@ -1322,6 +1343,230 @@ async def get_logs(flow_id: str, last_id: int = 0):
         return {"logs": logs, "last_id": last_id + len(logs)}
     except Exception as e:
         raise HTTPException(500, f"获取日志失败: {str(e)}")
+
+
+# ==================== Chat Mode API (新增) ====================
+
+
+class ChatRequest(BaseModel):
+    """Chat 模式请求"""
+
+    message: str
+    session_id: str | None = None
+    model: str = "sage-default"
+    stream: bool = False
+
+
+class ChatResponse(BaseModel):
+    """Chat 模式响应"""
+
+    content: str
+    session_id: str
+    timestamp: str
+
+
+class ChatSessionSummary(BaseModel):
+    """Chat 会话摘要"""
+
+    id: str
+    title: str
+    created_at: str
+    last_active: str
+    message_count: int
+
+
+class ChatSessionDetail(ChatSessionSummary):
+    messages: list[dict]
+    metadata: dict | None = None
+
+
+class ChatSessionCreateRequest(BaseModel):
+    title: str | None = None
+
+
+class ChatSessionTitleUpdate(BaseModel):
+    title: str
+
+
+@app.post("/api/chat/message", response_model=ChatResponse)
+async def send_chat_message(request: ChatRequest):
+    """
+    发送聊天消息（调用 sage-gateway）
+
+    注意：需要 sage-gateway 服务运行在 localhost:8000
+    """
+    from datetime import datetime
+
+    import httpx
+
+    try:
+        # 调用 sage-gateway 的 OpenAI 兼容接口
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            gateway_response = await client.post(
+                "http://localhost:8000/v1/chat/completions",
+                json={
+                    "model": request.model,
+                    "messages": [{"role": "user", "content": request.message}],
+                    "stream": False,
+                    "session_id": request.session_id,
+                },
+            )
+
+            if gateway_response.status_code != 200:
+                raise HTTPException(
+                    status_code=gateway_response.status_code,
+                    detail=f"Gateway error: {gateway_response.text}",
+                )
+
+            data = gateway_response.json()
+
+            # 提取响应内容
+            assistant_message = data["choices"][0]["message"]["content"]
+            session_id = data.get("id", request.session_id or "default")
+
+            return ChatResponse(
+                content=assistant_message,
+                session_id=session_id,
+                timestamp=datetime.now().isoformat(),
+            )
+
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="无法连接到 SAGE Gateway (localhost:8000)。请确保 gateway 服务已启动。",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat 请求失败: {str(e)}")
+
+
+@app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
+async def list_chat_sessions():
+    """获取所有聊天会话"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get("http://localhost:8000/sessions")
+            data = response.json()
+            return data.get("sessions", [])
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="无法连接到 SAGE Gateway",
+        )
+
+
+@app.post("/api/chat/sessions", response_model=ChatSessionDetail)
+async def create_chat_session(payload: ChatSessionCreateRequest):
+    """创建新的聊天会话"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                "http://localhost:8000/sessions", json=payload.model_dump()
+            )
+            if response.status_code >= 400:
+                raise HTTPException(status_code=response.status_code, detail=response.text)
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
+async def get_chat_session(session_id: str):
+    """获取单个会话详情"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在")
+            response.raise_for_status()
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.post("/api/chat/sessions/{session_id}/clear")
+async def clear_chat_session(session_id: str):
+    """清空会话历史"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(f"http://localhost:8000/sessions/{session_id}/clear")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在")
+            response.raise_for_status()
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.patch("/api/chat/sessions/{session_id}/title", response_model=ChatSessionSummary)
+async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUpdate):
+    """更新会话标题"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.patch(
+                f"http://localhost:8000/sessions/{session_id}/title",
+                json=payload.model_dump(),
+            )
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在")
+            response.raise_for_status()
+            # 更新后重新获取一次会话摘要，避免缺字段
+            detail_resp = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            detail_resp.raise_for_status()
+            detail = detail_resp.json()
+            return ChatSessionSummary(
+                id=detail["id"],
+                title=detail.get("metadata", {}).get("title", payload.title),
+                created_at=detail.get("created_at"),
+                last_active=detail.get("last_active"),
+                message_count=len(detail.get("messages", [])),
+            )
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+@app.delete("/api/chat/sessions/{session_id}")
+async def delete_chat_session(session_id: str):
+    """删除聊天会话"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.delete(f"http://localhost:8000/sessions/{session_id}")
+            return response.json()
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="无法连接到 SAGE Gateway",
+        )
+
+
+@app.post("/api/chat/sessions/{session_id}/convert")
+async def convert_chat_session(session_id: str):
+    """根据聊天记录生成 Pipeline 建议"""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            if response.status_code == 404:
+                raise HTTPException(status_code=404, detail="会话不存在，无法转换")
+            response.raise_for_status()
+            session = response.json()
+
+        recommendation = generate_pipeline_recommendation(session)
+        return recommendation
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
 
 
 if __name__ == "__main__":

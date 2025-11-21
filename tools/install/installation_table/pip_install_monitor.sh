@@ -25,6 +25,7 @@ LOCAL_PACKAGES=(
     "isage-middleware"
     "isage-apps"
     "isage-benchmark"
+    "isage-gateway"
     "isage-cli"
     "isage-studio"
     "isage-tools"

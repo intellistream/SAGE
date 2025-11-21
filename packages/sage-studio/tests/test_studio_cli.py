@@ -58,6 +58,10 @@ class FakeStudioManager:
     def clean(self):
         return True
 
+    def run_npm_command(self, args):
+        self._last_npm = args
+        return True
+
 
 @pytest.fixture
 def mock_studio_manager():
@@ -114,3 +118,11 @@ def test_studio_help_command():
     result = runner.invoke(sage_app, ["studio", "--help"])
     assert result.exit_code == 0
     assert "Studio" in result.stdout or "studio" in result.stdout
+
+
+def test_studio_npm_command(mock_studio_manager):
+    """Test that 'sage studio npm install' command works."""
+    with patch("sage.cli.commands.apps.studio.studio_manager", mock_studio_manager):
+        result = runner.invoke(sage_app, ["studio", "npm", "install"])
+        assert result.exit_code == 0
+        assert getattr(mock_studio_manager, "_last_npm", None) == ["install"]

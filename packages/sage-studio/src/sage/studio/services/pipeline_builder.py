@@ -22,7 +22,6 @@ from sage.kernel.api.base_environment import BaseEnvironment
 from sage.libs.io.sink import (
     FileSink,
     MemWriteSink,
-    PrintSink,
     RetriveSink,
     TerminalSink,
 )
@@ -54,13 +53,16 @@ class PipelineBuilder:
     def __init__(self):
         # 使用全局节点注册表
         self.registry = get_node_registry()
+        self._user_input = None  # Playground/Chat 模式的用户输入
+        self._env_config = {}  # 缓存环境配置
 
-    def build(self, pipeline: VisualPipeline) -> BaseEnvironment:
+    def build(self, pipeline: VisualPipeline, user_input: str = None) -> BaseEnvironment:
         """
         从 VisualPipeline 构建 SAGE Pipeline
 
         Args:
             pipeline: Studio 的可视化 Pipeline 模型
+            user_input: Playground/Chat 模式的用户输入 (可选)
 
         Returns:
             配置好的 SAGE 执行环境
@@ -68,6 +70,12 @@ class PipelineBuilder:
         Raises:
             ValueError: 如果 Pipeline 结构无效
         """
+        # 🆕 加载环境变量
+        self._load_environment_variables()
+
+        # 🆕 保存用户输入
+        self._user_input = user_input
+
         # 1. 验证 Pipeline
         self._validate_pipeline(pipeline)
 
@@ -91,8 +99,11 @@ class PipelineBuilder:
                     source_class, *source_args, name=node.label, **source_kwargs
                 )
             else:
+                # 🆕 增强配置
+                enhanced_config = self._enhance_operator_config(operator_class, node.config)
+
                 # 后续节点 - 添加 transformation
-                stream = stream.map(operator_class, config=node.config, name=node.label)
+                stream = stream.map(operator_class, config=enhanced_config, name=node.label)
 
             node_outputs[node.id] = stream
 
@@ -174,6 +185,123 @@ class PipelineBuilder:
             )
 
         return sorted_nodes
+
+    def _load_environment_variables(self) -> None:
+        """
+        从 ~/.sage/.env.json 加载环境变量
+
+        支持的变量:
+        - DASHSCOPE_API_KEY: 阿里云 DashScope API
+        - OPENAI_API_KEY: OpenAI API
+        - 其他自定义环境变量
+        """
+        import json
+        import os
+        from pathlib import Path
+
+        env_file = Path.home() / ".sage" / ".env.json"
+        if env_file.exists():
+            try:
+                with open(env_file) as f:
+                    env_vars = json.load(f)
+                    self._env_config = env_vars  # 缓存配置
+                    for key, value in env_vars.items():
+                        os.environ[key] = value
+                print(f"✅ 已加载环境变量: {', '.join(env_vars.keys())}")
+            except Exception as e:
+                print(f"⚠️ 加载环境变量失败: {e}")
+        else:
+            print(f"ℹ️ 环境变量文件不存在: {env_file}")
+
+    def _load_env_from_config(self) -> dict:
+        """从缓存的配置中读取环境变量"""
+        return self._env_config
+
+    def _enhance_operator_config(self, operator_class, config: dict) -> dict:
+        """
+        增强 operator 配置
+
+        功能:
+        1. OpenAIGenerator: 智能 Qwen/GPT API key 选择
+        2. ChromaRetriever: 默认 ChromaDB 路径和参数
+        3. 其他: 保持原配置
+        """
+        import os
+        from pathlib import Path
+
+        enhanced = config.copy()
+        operator_name = operator_class.__name__
+
+        # OpenAIGenerator: 智能 API key 配置
+        if operator_name == "OpenAIGenerator":
+            model = config.get("model", config.get("model_name", ""))
+
+            # 确保 model_name 字段存在
+            if "model_name" not in enhanced and model:
+                enhanced["model_name"] = model
+
+            # 确保总是有 api_key 字段（即使为 None）
+            if "api_key" not in enhanced:
+                # Qwen 模型 → DashScope
+                if "qwen" in model.lower():
+                    api_key = os.environ.get(
+                        "DASHSCOPE_API_KEY"
+                    ) or self._load_env_from_config().get("DASHSCOPE_API_KEY")
+                    if api_key:
+                        enhanced["api_key"] = api_key
+                        if "base_url" not in enhanced:
+                            enhanced["base_url"] = (
+                                "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                            )
+                        print(f"  ✓ Qwen 模型 '{model}' → DashScope API")
+                    else:
+                        enhanced["api_key"] = None
+                        print("  ⚠️ 缺少 DASHSCOPE_API_KEY")
+
+                # GPT 模型 → OpenAI
+                elif "gpt" in model.lower():
+                    api_key = os.environ.get("OPENAI_API_KEY")
+                    if api_key:
+                        enhanced["api_key"] = api_key
+                        if "base_url" not in enhanced:
+                            enhanced["base_url"] = "https://api.openai.com/v1"
+                        print(f"  ✓ GPT 模型 '{model}' → OpenAI API")
+                    else:
+                        enhanced["api_key"] = None
+                        print("  ⚠️ 缺少 OPENAI_API_KEY")
+
+                # 其他模型：尝试从环境变量或配置文件获取
+                else:
+                    enhanced["api_key"] = (
+                        os.environ.get("OPENAI_API_KEY")
+                        or os.environ.get("DASHSCOPE_API_KEY")
+                        or self._load_env_from_config().get("DASHSCOPE_API_KEY")
+                        or None
+                    )
+
+            # 确保 base_url 字段存在（如果还没有）
+            if "base_url" not in enhanced:
+                # 根据模型推断 base_url
+                if "qwen" in model.lower():
+                    enhanced["base_url"] = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                else:
+                    enhanced["base_url"] = "https://api.openai.com/v1"
+
+        # ChromaRetriever: 默认 ChromaDB 配置
+        elif operator_name == "ChromaRetriever":
+            if "persist_directory" not in enhanced:
+                chroma_path = Path.home() / ".sage" / "vector_db"
+                enhanced["persist_directory"] = str(chroma_path)
+
+            if "collection_name" not in enhanced:
+                enhanced["collection_name"] = "sage_docs"
+
+            if "top_k" not in enhanced:
+                enhanced["top_k"] = 5
+
+            print(f"  ✓ ChromaRetriever: {enhanced['collection_name']} (top_k={enhanced['top_k']})")
+
+        return enhanced
 
     def _get_operator_class(self, node_type: str):
         """获取节点类型对应的 Operator 类"""
@@ -261,7 +389,12 @@ class PipelineBuilder:
                     """Execute the source function"""
                     return self.data
 
-            initial_data = node.config.get("data", [{"input": "test data"}])
+            # 🆕 优先使用外部输入
+            if hasattr(self, "_user_input") and self._user_input:
+                initial_data = [{"input": self._user_input}]
+                print(f"  ✓ 使用输入: {self._user_input[:50]}...")
+            else:
+                initial_data = node.config.get("data", [{"input": "test data"}])
             return SimpleListSource, (initial_data,), {}
 
     def _create_sink(self, pipeline: VisualPipeline):
@@ -280,8 +413,8 @@ class PipelineBuilder:
         """
 
         # 从 pipeline 的 execution_mode 或其他配置中获取 sink 类型
-        # 注意：VisualPipeline 可能没有直接的 sink 配置，这里使用默认值
-        sink_type = getattr(pipeline, "sink_type", "print")
+        # 🆕 Playground/Chat 模式默认使用 retrieve 收集结果
+        sink_type = getattr(pipeline, "sink_type", "retrieve")
 
         if sink_type == "terminal":
             return TerminalSink
@@ -292,8 +425,8 @@ class PipelineBuilder:
         elif sink_type == "retrieve":
             return RetriveSink
         else:
-            # 默认使用 PrintSink
-            return PrintSink
+            # 默认使用 RetriveSink (Playground/Chat 模式)
+            return RetriveSink
 
 
 # 全局 Builder 实例

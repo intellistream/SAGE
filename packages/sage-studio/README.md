@@ -87,11 +87,11 @@ python -c "from sage.studio.studio_manager import StudioManager; print('✓ Stud
 ### 🎯 方式一：使用 SAGE CLI（推荐）
 
 ```bash
-# 启动 Studio（前端 + 后端）- 开发模式（推荐）
-sage studio start --dev
-
-# 或者生产模式（需要先构建）
+# 启动 Studio（前端 + 后端）
 sage studio start
+
+# 或使用生产模式（需要先构建）
+sage studio start --prod
 
 # 查看运行状态
 sage studio status
@@ -105,6 +105,10 @@ sage studio logs --backend # 后端日志
 
 # 停止服务
 sage studio stop
+
+# 管理前端依赖
+sage studio npm install    # 安装/更新 npm 依赖
+sage studio npm run lint   # 运行前端脚本
 ```
 
 **访问地址**：
@@ -124,8 +128,8 @@ python -m sage.studio.config.backend.api
 
 # 终端 2: 启动前端
 cd packages/sage-studio/src/sage/studio/frontend
-npm install  # 首次运行
-npm run dev
+sage studio npm install
+sage studio npm run dev
 # 前端运行在: http://localhost:5173
 ```
 
@@ -243,15 +247,15 @@ FileSource → SimpleRetriever → BGEReranker → QAPromptor → OpenAIGenerato
 cd src/sage/studio/frontend
 
 # 开发模式
-npm run dev          # 启动 Vite dev server (localhost:5173)
+sage studio npm run dev          # 启动 Vite dev server (localhost:5173)
 
 # 生产构建
-npm run build        # 构建到 dist/
-npm run preview      # 预览构建结果
+sage studio npm run build        # 构建到 dist/
+sage studio npm run preview      # 预览构建结果
 
 # 代码质量
-npm run lint         # ESLint 检查
-npm run format       # Prettier 格式化
+sage studio npm run lint         # ESLint 检查
+sage studio npm run format       # Prettier 格式化
 ```
 
 ### 5. 后端开发
@@ -368,7 +372,7 @@ sage-studio/
     "retriever": ChromaRetriever,      # sage-middleware
     "reranker": BGEReranker,          # sage-middleware
     "promptor": QAPromptor,           # sage-middleware
-    "chunker": CharacterSplitter,     # sage-middleware
+    "chunker": CharacterSplitter,     # sage-libs
     "evaluator": F1Evaluate,          # sage-middleware
 }
 ```
@@ -564,7 +568,7 @@ rm -rf ~/.sage/states/*
 # 5. 重新安装依赖
 cd src/sage/studio/frontend
 rm -rf node_modules package-lock.json
-npm install
+sage studio npm install
 
 # 6. Python 调试
 python -m pdb -m sage.studio.config.backend.api
@@ -605,8 +609,8 @@ ruff check src/
 
 # 前端代码格式化
 cd src/sage/studio/frontend
-npm run format
-npm run lint
+sage studio npm run format
+sage studio npm run lint
 ```
 
 ## 📋 依赖关系
@@ -693,10 +697,10 @@ cd src/sage/studio/frontend
 rm -rf node_modules package-lock.json .vite
 
 # 重新安装
-npm install
+sage studio npm install
 
 # 启动
-npm run dev
+sage studio npm run dev
 ```
 
 **可能原因**:
@@ -792,7 +796,7 @@ rm -rf /tmp/sage-studio-*.log
 # 3. 重新安装前端依赖
 cd packages/sage-studio/src/sage/studio/frontend
 rm -rf node_modules package-lock.json .vite
-npm install
+sage studio npm install
 
 # 4. 重新安装 Python 包
 cd packages/sage-studio
