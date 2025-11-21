@@ -178,7 +178,9 @@ def example_2_semantic_search():
                 print(
                     f"     类别: {result['metadata']['category']}, 年份: {result['metadata']['year']}"
                 )
-                print(f"     相似度: {result.get('score', 'N/A'):.4f}")
+                score = result.get("score", "N/A")
+                score_str = f"{score:.4f}" if isinstance(score, (int, float)) else score
+                print(f"     相似度: {score_str}")
         else:
             print("  未找到相关结果")
 
