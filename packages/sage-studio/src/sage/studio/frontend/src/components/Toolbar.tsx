@@ -429,6 +429,24 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                         disabled={!canRedo}
                                     />
                                 </Tooltip>
+
+                                <div className="h-6 w-px bg-gray-300 mx-2" />
+
+                                <Tooltip title="放大">
+                                    <Button
+                                        icon={<ZoomIn size={16} />}
+                                        onClick={() => reactFlowInstance?.zoomIn()}
+                                    />
+                                </Tooltip>
+
+                                <Tooltip title="缩小">
+                                    <Button
+                                        icon={<ZoomOut size={16} />}
+                                        onClick={() => reactFlowInstance?.zoomOut()}
+                                    />
+                                </Tooltip>
+
+                                <div className="h-6 w-px bg-gray-300 mx-2" />
                             </>
                         ) : (
                             // Chat 模式: 显示提示信息

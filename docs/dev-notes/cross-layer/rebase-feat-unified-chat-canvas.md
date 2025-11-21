@@ -115,10 +115,28 @@ sage studio stop
 sage studio stop --gateway
 ```
 
+### 🚀 一键启动（推荐 - 自动化）
+
+```bash
+# 首次启动或依赖/构建缺失时会自动提示确认
+sage studio start --host 0.0.0.0
+
+# 自动功能：
+# 1. 自动启动 Gateway（如未运行）
+# 2. 自动安装依赖（如缺少 node_modules，提示确认）
+# 3. 自动构建（生产模式下如缺少 dist/，提示确认）
+
+# 禁用自动安装和构建（需要手动执行 sage studio install/build）
+sage studio start --no-auto-install --no-auto-build
+
+# 禁用 Gateway 自动启动
+sage studio start --no-gateway
+```
+
 ### 首次启动（完整步骤 - 已过时，保留参考）
 
 <details>
-<summary>展开查看手动启动的详细步骤（不推荐）</summary>
+<summary>展开查看手动启动的详细步骤（不推荐，仅供参考）</summary>
 
 ```bash
 # 1. 构建 Studio 前端（仅首次需要）
@@ -128,7 +146,7 @@ sage studio build
 sage-gateway --host 0.0.0.0 --port 8000
 
 # 3. 启动 Studio 服务（在另一个终端窗口）
-sage studio start --host 0.0.0.0
+sage studio start --host 0.0.0.0 --no-auto-install --no-auto-build
 
 # 4. 在浏览器中访问
 # Studio 默认地址: http://localhost:5173 (dev模式) 或 http://localhost:3000 (prod模式)
@@ -136,18 +154,21 @@ sage studio start --host 0.0.0.0
 
 </details>
 
-### 后续启动（简化）
+### 工作流对比
 
+**旧流程（手动）**:
 ```bash
-# 一键启动（自动检测并启动 Gateway）
-sage studio start --host 0.0.0.0
-
-# 查看状态
-sage studio status
-
-# 停止
-sage studio stop
+sage studio install      # 安装依赖
+sage studio build        # 构建前端
+sage-gateway ...         # 启动 Gateway
+sage studio start        # 启动 Studio
 ```
+
+**新流程（自动化）**:
+```bash
+sage studio start        # 一键启动（自动检测并提示执行缺失步骤）
+```
+
 
 ### 使用双模式 UI
 

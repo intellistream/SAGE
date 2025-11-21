@@ -806,6 +806,8 @@ if __name__ == "__main__":
         dev: bool = True,
         backend_port: int | None = None,
         auto_gateway: bool = True,  # 新增：是否自动启动 gateway
+        auto_install: bool = True,  # 新增：是否自动安装依赖
+        auto_build: bool = True,  # 新增：是否自动构建（生产模式）
     ) -> bool:
         """启动 Studio（前端和后端）"""
         # 检查并启动 Gateway（如果需要 Chat 模式）
@@ -838,9 +840,36 @@ if __name__ == "__main__":
         # 检查并安装 npm 依赖
         node_modules = self.frontend_dir / "node_modules"
         if not node_modules.exists():
-            console.print("[blue]检测到未安装依赖，开始安装...[/blue]")
-            if not self.install_dependencies():
-                console.print("[red]依赖安装失败[/red]")
+            if auto_install:
+                console.print("[blue]📦 检测到未安装前端依赖[/blue]")
+                console.print("[yellow]是否立即安装？这可能需要几分钟时间...[/yellow]")
+
+                # 交互式确认
+                try:
+                    from rich.prompt import Confirm
+
+                    if Confirm.ask("[cyan]开始安装依赖?[/cyan]", default=True):
+                        console.print("[blue]开始安装依赖...[/blue]")
+                        if not self.install_dependencies():
+                            console.print("[red]依赖安装失败[/red]")
+                            self.stop_backend()
+                            return False
+                    else:
+                        console.print(
+                            "[yellow]跳过安装，请稍后手动运行: sage studio install[/yellow]"
+                        )
+                        self.stop_backend()
+                        return False
+                except ImportError:
+                    # 如果没有 rich.prompt，直接安装
+                    console.print("[blue]开始安装依赖...[/blue]")
+                    if not self.install_dependencies():
+                        console.print("[red]依赖安装失败[/red]")
+                        self.stop_backend()
+                        return False
+            else:
+                console.print("[yellow]未安装依赖，请先运行: sage studio install[/yellow]")
+                self.stop_backend()
                 return False
 
         # 使用提供的参数或配置文件中的默认值
@@ -872,11 +901,36 @@ if __name__ == "__main__":
             else:
                 # 生产模式：使用 Vite preview 或 serve
                 # 首先确保有构建输出
-                if not self.dist_dir.exists():
-                    console.print("[blue]检测到无构建输出，开始构建...[/blue]")
-                    if not self.build():
-                        console.print("[red]构建失败，无法启动生产模式[/red]")
-                        # 如果前端启动失败，也停止后端
+                if not self.dist_dir.exists() or not list(self.dist_dir.glob("*")):
+                    if auto_build:
+                        console.print("[blue]🏗️  检测到无构建输出[/blue]")
+                        console.print("[yellow]是否立即构建？这可能需要几分钟时间...[/yellow]")
+
+                        # 交互式确认
+                        try:
+                            from rich.prompt import Confirm
+
+                            if Confirm.ask("[cyan]开始构建?[/cyan]", default=True):
+                                console.print("[blue]开始构建...[/blue]")
+                                if not self.build():
+                                    console.print("[red]构建失败，无法启动生产模式[/red]")
+                                    self.stop_backend()
+                                    return False
+                            else:
+                                console.print(
+                                    "[yellow]跳过构建，请稍后手动运行: sage studio build[/yellow]"
+                                )
+                                self.stop_backend()
+                                return False
+                        except ImportError:
+                            # 如果没有 rich.prompt，直接构建
+                            console.print("[blue]开始构建...[/blue]")
+                            if not self.build():
+                                console.print("[red]构建失败，无法启动生产模式[/red]")
+                                self.stop_backend()
+                                return False
+                    else:
+                        console.print("[yellow]未构建，请先运行: sage studio build[/yellow]")
                         self.stop_backend()
                         return False
 

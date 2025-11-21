@@ -47,15 +47,32 @@ interface:
 **Simplified startup (recommended):**
 
 ```bash
-# One-time: Build Studio frontend
+# First time: Build Studio frontend
 sage studio build
 
-# Start everything with one command (auto-starts Gateway)
+# Start everything with one command
+# 自动功能（可通过选项禁用）：
+# - 自动启动 Gateway（如未运行）
+# - 自动安装前端依赖（如缺少 node_modules，会提示确认）
+# - 自动构建生产包（生产模式下如缺少构建，会提示确认）
 sage studio start --host 0.0.0.0
 
 # Access Studio at http://localhost:5173 (dev) or http://localhost:3000 (prod)
 # - Chat Mode: Conversational interface powered by Gateway + RAG
 # - Canvas Mode: Visual pipeline builder
+```
+
+**Auto-install and auto-build:**
+
+When you run `sage studio start` for the first time:
+
+- If `node_modules` is missing, it will ask: "开始安装依赖?" (Default: yes)
+- If production mode (`--prod`) and `dist/` is missing, it will ask: "开始构建?" (Default: yes)
+
+To disable these auto-features:
+
+```bash
+sage studio start --no-auto-install --no-auto-build
 ```
 
 **Manual control (advanced):**

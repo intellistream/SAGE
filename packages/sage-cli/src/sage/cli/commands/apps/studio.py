@@ -19,8 +19,22 @@ def start(
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
     no_gateway: bool = typer.Option(False, "--no-gateway", help="不自动启动 Gateway"),
+    no_auto_install: bool = typer.Option(
+        False, "--no-auto-install", help="禁用自动安装依赖（如缺少依赖会提示失败）"
+    ),
+    no_auto_build: bool = typer.Option(
+        False, "--no-auto-build", help="禁用自动构建（生产模式下如缺少构建会提示失败）"
+    ),
 ):
-    """启动 SAGE Studio"""
+    """启动 SAGE Studio
+
+    自动化功能（可通过选项禁用）：
+    - 自动启动 Gateway 服务（如未运行）
+    - 自动安装前端依赖（如缺少 node_modules）
+    - 自动构建生产包（如生产模式且缺少构建输出）
+
+    所有自动操作都会先征求确认。
+    """
     console.print("[blue]🚀 启动 SAGE Studio...[/blue]")
 
     try:
@@ -33,7 +47,14 @@ def start(
             console.print(f"[blue]🌐 访问地址: {url}[/blue]")
             return
 
-        success = studio_manager.start(port=port, host=host, dev=dev, auto_gateway=not no_gateway)
+        success = studio_manager.start(
+            port=port,
+            host=host,
+            dev=dev,
+            auto_gateway=not no_gateway,
+            auto_install=not no_auto_install,
+            auto_build=not no_auto_build,
+        )
         if success:
             console.print("[green]✅ Studio 启动成功[/green]")
             console.print("\n[cyan]💡 提示：[/cyan]")
