@@ -56,8 +56,8 @@ class BaseOperator(ABC):
 
         try:
             # Set the current packet key for keyed state support
-            if hasattr(packet, "partition_key"):
-                self.ctx.set_current_key(packet.partition_key)
+            # Packet always has partition_key attribute, but it may be None
+            self.ctx.set_current_key(packet.partition_key)
 
             # Process the packet
             self.process_packet(packet)

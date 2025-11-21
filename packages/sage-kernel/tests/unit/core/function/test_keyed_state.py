@@ -179,12 +179,14 @@ class TestKeyedStateSupport:
                 )
                 assert result["session"]["action_count"] == i + 1, f"Action count should be {i + 1}"
 
-            # Verify total value is cumulative (10 + 15 + 0 = 25)
-            last_alice = alice_results[-1]
-            expected_value = 10 + 15 + 0  # login + click + logout
+            # Verify total value is cumulative
+            # Alice's events from KeyedStateTestSource: login(10), click(15), logout(0)
+            alice_event_values = [10, 15, 0]  # Values from source definition
             if len(alice_results) == 3:
-                assert last_alice["session"]["total_value"] == expected_value, (
-                    f"Total value should be {expected_value}"
+                last_alice = alice_results[-1]
+                expected_total = sum(alice_event_values)
+                assert last_alice["session"]["total_value"] == expected_total, (
+                    f"Total value should be {expected_total} (sum of {alice_event_values})"
                 )
 
         # Check Bob's sessions (2 events)
