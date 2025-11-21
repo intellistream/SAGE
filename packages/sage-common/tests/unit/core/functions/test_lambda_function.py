@@ -589,3 +589,32 @@ class TestLambdaFunctionIntegration:
             sink_func.execute(value)
 
         assert results == [1, 2, 3]
+
+
+class TestDetectLambdaTypeAnnotations:
+    """Tests for detect_lambda_type function type annotations to achieve 100% coverage"""
+
+    def test_detect_filter_with_bool_annotation(self):
+        """Test detection of filter function with explicit bool return annotation (line 133)"""
+
+        def bool_func(x: int) -> bool:
+            return x > 0
+
+        assert detect_lambda_type(bool_func) == "filter"
+
+    def test_detect_flatmap_with_list_annotation(self):
+        """Test detection of flatmap function with List return annotation (line 135)"""
+        from typing import List
+
+        def list_func(x: int) -> List[int]:
+            return [x, x * 2]
+
+        assert detect_lambda_type(list_func) == "flatmap"
+
+    def test_detect_sink_with_none_annotation(self):
+        """Test detection of sink function with None return annotation (line 137)"""
+
+        def none_func(x: int) -> None:
+            print(x)
+
+        assert detect_lambda_type(none_func) == "sink"
