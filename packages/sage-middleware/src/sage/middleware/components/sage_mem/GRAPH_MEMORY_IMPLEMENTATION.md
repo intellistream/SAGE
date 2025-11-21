@@ -1,10 +1,13 @@
 # Graph Memory Collection Implementation
 
-This directory contains the implementation for issue #648: Graph-based memory collection for neuromem.
+This directory contains the implementation for issue #648: Graph-based memory collection for
+neuromem.
 
 ## Overview
 
-The GraphMemoryCollection provides graph-based memory management for RAG applications, allowing users to:
+The GraphMemoryCollection provides graph-based memory management for RAG applications, allowing
+users to:
+
 - Store information as nodes in a graph
 - Define relationships (edges) between memory items
 - Retrieve information through graph traversal
@@ -15,12 +18,14 @@ The GraphMemoryCollection provides graph-based memory management for RAG applica
 ### Core Components
 
 1. **SimpleGraphIndex** (`memory_collection/graph_collection.py`)
+
    - In-memory graph implementation using adjacency lists
    - Supports weighted directed edges
    - Provides efficient neighbor lookups
    - Includes persistence (JSON-based)
 
-2. **GraphMemoryCollection** (`memory_collection/graph_collection.py`)
+1. **GraphMemoryCollection** (`memory_collection/graph_collection.py`)
+
    - Extends BaseMemoryCollection
    - Manages multiple graph indexes
    - Provides high-level graph operations
@@ -65,25 +70,30 @@ loaded = GraphMemoryCollection.load("knowledge_graph")
 ## Files Modified
 
 ### In neuromem submodule:
+
 - `memory_collection/graph_collection.py` - Main implementation
 - `memory_collection/__init__.py` - Export SimpleGraphIndex
 - `__init__.py` - Export GraphMemoryCollection and SimpleGraphIndex
 - `memory_manager.py` - Updated TODO comment
 
 ### In main SAGE repository:
+
 - `packages/sage-middleware/src/sage/middleware/components/sage_mem/__init__.py` - Export updates
-- `packages/sage-middleware/tests/components/sage_mem/test_graph_collection.py` - Comprehensive tests
+- `packages/sage-middleware/tests/components/sage_mem/test_graph_collection.py` - Comprehensive
+  tests
 - `examples/tutorials/L4-middleware/memory_service/graph_memory_example.py` - Usage examples
 
 ## Testing
 
 Run tests:
+
 ```bash
 cd /home/runner/work/SAGE/SAGE
 pytest packages/sage-middleware/tests/components/sage_mem/test_graph_collection.py -v
 ```
 
 Or run the example:
+
 ```bash
 python examples/tutorials/L4-middleware/memory_service/graph_memory_example.py
 ```
@@ -115,15 +125,18 @@ python examples/tutorials/L4-middleware/memory_service/graph_memory_example.py
 
 ## Design Decisions
 
-1. **No External Dependencies**: Implemented using Python built-ins to avoid adding NetworkX or similar graph libraries
-2. **Adjacency List**: Chosen for efficient neighbor lookups, common in RAG scenarios
-3. **Weighted Edges**: Allows representing relationship strength
-4. **Directed Graphs**: Provides maximum flexibility; undirected can be simulated with bidirectional edges
-5. **JSON Persistence**: Simple, human-readable format matching other neuromem components
+1. **No External Dependencies**: Implemented using Python built-ins to avoid adding NetworkX or
+   similar graph libraries
+1. **Adjacency List**: Chosen for efficient neighbor lookups, common in RAG scenarios
+1. **Weighted Edges**: Allows representing relationship strength
+1. **Directed Graphs**: Provides maximum flexibility; undirected can be simulated with bidirectional
+   edges
+1. **JSON Persistence**: Simple, human-readable format matching other neuromem components
 
 ## Future Enhancements
 
 Possible future improvements:
+
 - Graph algorithms (PageRank, centrality measures, shortest path)
 - Graph database integration (Neo4j, ArangoDB)
 - Undirected graph support
@@ -138,6 +151,9 @@ Possible future improvements:
 
 ## Notes for neuromem Submodule
 
-The changes to the neuromem submodule are currently uncommitted. When this submodule is next synced with its upstream repository (https://github.com/intellistream/neuromem), these changes should be committed there with an appropriate message.
+The changes to the neuromem submodule are currently uncommitted. When this submodule is next synced
+with its upstream repository (https://github.com/intellistream/neuromem), these changes should be
+committed there with an appropriate message.
 
-The implementation is fully functional and tested, ready for production use within the SAGE framework.
+The implementation is fully functional and tested, ready for production use within the SAGE
+framework.

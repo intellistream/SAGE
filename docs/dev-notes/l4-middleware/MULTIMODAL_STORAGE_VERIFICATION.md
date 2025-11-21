@@ -173,7 +173,7 @@ db = create_audio_visual_db(dimension=1024, index_type="IVF_FLAT")
 
 1. **模态类型可扩展**: 通过 `CUSTOM` 类型支持自定义模态
 2. **融合策略可扩展**: 支持 7 种预定义策略 + 自定义策略
-3. **后端可切换**: 
+3. **后端可切换**:
    - C++ 扩展后端（高性能）
    - Python Mock 后端（开发测试）
 
