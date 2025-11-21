@@ -57,7 +57,7 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
 
 from pipeline_bridge import PipelineBridge, PipelinePayload
 
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 ORDERS: list[dict[str, str | float]] = [
     {"order_id": "o-1001", "user_id": "user-001", "amount": 129.9},

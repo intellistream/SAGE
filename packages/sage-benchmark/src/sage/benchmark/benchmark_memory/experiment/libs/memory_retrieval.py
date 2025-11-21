@@ -12,7 +12,12 @@ class MemoryRetrieval(MapFunction):
     3. 返回对话历史文本
     """
 
-    def __init__(self):
+    def __init__(self, config=None):
+        """初始化 MemoryRetrieval
+
+        Args:
+            config: RuntimeConfig 对象（可选，当前不使用）
+        """
         super().__init__()
 
     def execute(self, data):

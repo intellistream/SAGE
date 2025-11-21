@@ -160,7 +160,7 @@ def clean():
     console.print("[blue]🧹 清理 Studio 缓存...[/blue]")
 
     try:
-        success = studio_manager.clean()
+        success = studio_manager.clean()  # type: ignore[attr-defined]
         if success:
             console.print("[green]✅ 清理完成[/green]")
         else:

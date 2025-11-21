@@ -128,9 +128,10 @@ install_core_packages() {
         [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
     fi
 
-    # dev 模式需要 sage-tools
+    # dev 模式需要 sage-tools 和 sage-gateway
     if [ "$install_mode" = "dev" ]; then
         [ -d "packages/sage-tools" ] && required_packages+=("packages/sage-tools")
+        [ -d "packages/sage-gateway" ] && required_packages+=("packages/sage-gateway")
     fi
 
     required_packages+=("packages/sage")
@@ -428,7 +429,7 @@ install_core_packages() {
             fi
 
             log_info "安装成功: packages/sage-gateway" "INSTALL"
-            log_pip_package_info "sage-gateway" "INSTALL"
+            log_pip_package_info "isage-gateway" "INSTALL"
             echo -e "${CHECK} sage-gateway 安装完成"
         fi
     fi
@@ -486,7 +487,7 @@ if install_mode != 'core':
 if install_mode in ['full', 'dev']:
     package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
 if install_mode == 'dev':
-    package_dirs.append('packages/sage-tools')
+    package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
     if not pyproject.exists(): continue

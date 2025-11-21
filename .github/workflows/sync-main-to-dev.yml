@@ -33,6 +33,7 @@ jobs:
           ref: main
           fetch-depth: 0  # 获取完整历史以便 rebase
           token: ${{ secrets.PAT_TOKEN }}
+          submodules: 'recursive'  # 同步 submodules
 
       - name: Configure git
         run: |

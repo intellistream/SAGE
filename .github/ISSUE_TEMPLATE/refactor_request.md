@@ -1,22 +1,27 @@
 ______________________________________________________________________
 
-name: Refactor Request about: Suggest a refactoring to improve code quality title: '[Refactor] '
-labels: refactor assignees: ''
+## name: Refactor Request about: Suggest code refactoring or architectural improvements title: '[Refactor] ' labels: 'refactor' assignees: ''
 
-______________________________________________________________________
+## Refactoring Goal
 
-**Area to Refactor**
+<!-- What code or component needs refactoring? -->
 
-Specify the code or component that requires refactoring.
+## Current Issues
 
-**Reason for Refactoring**
+<!-- What problems exist with the current implementation? -->
 
-Explain why this refactor is needed (e.g., to improve readability, reduce complexity).
+## Proposed Changes
 
-**Suggested Approach**
+<!-- How should the code be refactored? -->
 
-If possible, describe how the code could be refactored.
+## Benefits
 
-**Additional Context**
+<!-- What improvements will this refactoring bring? (e.g., maintainability, performance) -->
 
-Add any context or links to related code.
+## Affected Components
+
+<!-- Which parts of the codebase will be affected? -->
+
+## Additional Context
+
+<!-- Add any other context, code examples, or references -->

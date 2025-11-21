@@ -37,14 +37,14 @@ class TaskContext(BaseRuntimeContext):
         graph_node: "TaskNode",
         transformation: "BaseTransformation",
         env: "BaseEnvironment",
-        execution_graph: "ExecutionGraph" = None,
+        execution_graph: "ExecutionGraph | None" = None,
     ):
         super().__init__()  # Initialize base context
 
         self.name: str = graph_node.name
 
         self.env_name = env.name
-        self.env_base_dir: str = env.env_base_dir
+        self.env_base_dir: str | None = env.env_base_dir
         self.env_uuid = getattr(env, "uuid", None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
 
@@ -55,6 +55,7 @@ class TaskContext(BaseRuntimeContext):
         self.parallelism: int = graph_node.parallelism
 
         self._logger: Optional[CustomLogger] = None
+        self.dispatcher: Optional[Any] = None  # Will be set by Dispatcher
 
         self.is_spout = transformation.is_spout
 
@@ -81,8 +82,8 @@ class TaskContext(BaseRuntimeContext):
         # 服务相关 - service_manager已在BaseRuntimeContext中定义
         self._service_names: Optional[dict[str, str]] = None  # 只保存服务名称映射而不是实例
 
-        # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
-        self.input_qd: BaseQueueDescriptor = graph_node.input_qd
+        # 队列描述符管理 - 在构造时从 graph_node 和 execution_graph 获取
+        self.input_qd: BaseQueueDescriptor | None = graph_node.input_qd
         self.response_qd: BaseQueueDescriptor = graph_node.service_response_qd
 
         # 从execution_graph的提取好的映射表获取service队列描述符 - 简化逻辑
@@ -140,6 +141,7 @@ class TaskContext(BaseRuntimeContext):
     def logger(self) -> CustomLogger:
         """懒加载logger"""
         if self._logger is None:
+            base_dir = self.env_base_dir or "."  # 如果为 None 则使用当前目录
             self._logger = CustomLogger(
                 [
                     (
@@ -147,12 +149,12 @@ class TaskContext(BaseRuntimeContext):
                         self.env_console_log_level,
                     ),  # 使用环境设置的控制台日志等级
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_debug.log"),
+                        os.path.join(base_dir, f"{self.name}_debug.log"),
                         "DEBUG",
                     ),  # 详细日志
-                    (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
+                    (os.path.join(base_dir, "Error.log"), "ERROR"),  # 错误日志
                     (
-                        os.path.join(self.env_base_dir, f"{self.name}_info.log"),
+                        os.path.join(base_dir, f"{self.name}_info.log"),
                         "INFO",
                     ),  # 错误日志
                 ],
@@ -183,7 +185,7 @@ class TaskContext(BaseRuntimeContext):
             )
 
         # 通过service_manager获取实际的服务实例
-        return self.service_manager.get_service(service_name)
+        return self.service_manager.get_service(service_name)  # type: ignore
 
     @property
     def stop_event(self) -> threading.Event:
@@ -242,7 +244,7 @@ class TaskContext(BaseRuntimeContext):
 
             # 创建客户端并发送停止信号
             client = JobManagerClient(host=self.jobmanager_host, port=self.jobmanager_port)
-            response = client.receive_node_stop_signal(self.env_uuid, node_name)
+            response = client.receive_node_stop_signal(self.env_uuid or "", node_name)
 
             if response.get("status") == "success":
                 self.logger.debug(f"Successfully sent stop signal for node {node_name}")
@@ -261,9 +263,9 @@ class TaskContext(BaseRuntimeContext):
         self.logger.info(f"Task {self.name} received stop signal from {source_node}")
 
         # Check if this is a JoinOperator that should handle stop signals specially
-        if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):
+        if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):  # type: ignore[attr-defined]
             # Let the operator handle the stop signal itself
-            self.operator.handle_stop_signal(signal=signal)
+            self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
             return
 
         # Initialize stop signal tracking attributes if they don't exist

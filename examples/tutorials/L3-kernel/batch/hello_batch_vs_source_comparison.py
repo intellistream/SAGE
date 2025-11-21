@@ -8,7 +8,7 @@ from typing import Any, Iterator
 
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 
 class SimpleBatchFunction(BatchFunction):

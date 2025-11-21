@@ -21,7 +21,7 @@ class SimpleSource(SourceFunction):
 
     def execute(self, data=None):
         if self.count >= self.max_count:
-            from sage.kernel.runtime.communication.router.packet import StopSignal
+            from sage.kernel.runtime.communication.packet import StopSignal
 
             return StopSignal("SimpleSource completed")
 
