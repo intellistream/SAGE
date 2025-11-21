@@ -9,6 +9,26 @@ from typing import Any
 
 import numpy as np
 
+try:
+    import torch
+    from PIL import Image as PILImage
+    from transformers import (
+        AutoImageProcessor,
+        AutoModel,
+        CLIPModel,
+        CLIPProcessor,
+    )
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
+    PILImage = None
+    AutoImageProcessor = None
+    AutoModel = None
+    CLIPModel = None
+    CLIPProcessor = None
+
 
 @dataclass
 class ImageFeatures:
