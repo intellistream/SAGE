@@ -73,55 +73,26 @@ env = LocalEnvironment("rag_pipeline")
 env.submit()
 ```
 
-### Try It Now
-
-Run a simple example to get started:
+**Try it yourself:**
 
 ```bash
-# Clone the repository
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
-
-# Switch to development branch
+git clone https://github.com/intellistream/SAGE.git && cd SAGE
 git checkout main-dev
-
-# Bootstrap submodules & install hooks (init + branch switch)
-./manage.sh
-
-# Install with quickstart (recommended)
-./quickstart.sh --dev --yes      # 开发模式下会自动同步 submodules 并安装 hooks
-
-# Run hello world example
+./quickstart.sh --dev --yes
 python examples/tutorials/hello_world.py
-
-# Check system status
-sage doctor
 ```
-
-### Why This Matters
-
-**Flexibility**: Modify pipeline structure without touching execution logic. Swap components, add
-monitoring, or change deployment targets effortlessly.
-
-**Transparency**: See exactly what's happening at each step with built-in observability and
-debugging tools.
-
-**Performance**: Automatic optimization, parallelization, and resource management based on dataflow
-analysis.
-
-**Reliability**: Built-in fault tolerance, checkpointing, and error recovery mechanisms.
 
 ## Architecture Excellence
 
 ### System Architecture
 
-SAGE is built on a **layered modular architecture** with 10 independent packages organized across 6
+SAGE is built on a **layered modular architecture** with 11 independent packages organized across 6
 layers:
 
 ```
 L6: sage-studio, sage-cli, sage-tools    # User Interfaces & Dev Tools
 L5: sage-apps, sage-benchmark             # Applications & Benchmarks
-L4: sage-middleware                       # Domain Operators & Components
+L4: sage-middleware, sage-gateway         # Domain Operators & API Gateway
 L3: sage-kernel, sage-libs                # Core Engine & Algorithm Library
 L2: sage-platform                         # Platform Services (Queue, Storage)
 L1: sage-common                           # Foundation & Utilities
@@ -139,222 +110,63 @@ Detailed package descriptions, dependency rules, and design principles
 
 ### Modular Design
 
-**10 Independent Packages**, each with clear responsibilities:
+**11 Independent Packages**, each with clear responsibilities:
 
 - **sage-common** (L1): Foundation utilities, configuration, logging
 - **sage-platform** (L2): Platform services - queue, storage abstractions
 - **sage-kernel** (L3): Distributed execution engine and runtime
 - **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
 - **sage-middleware** (L4): Domain operators and middleware components
+- **sage-gateway** (L4): API gateway and service mesh
 - **sage-apps** (L5): Pre-built applications (video, medical diagnosis)
 - **sage-benchmark** (L5): Performance benchmarks and examples
 - **sage-studio** (L6): Web-based visualization interface
 - **sage-cli** (L6): Unified command-line interface
 - **sage-tools** (L6): Development tools and testing framework
 
-### Production-Ready Features
+### Production Features
 
-Built for real-world deployments with enterprise requirements:
-
-- **Distributed Execution**: Scale across multiple nodes with automatic load balancing
-- **Fault Tolerance**: Comprehensive error handling and recovery mechanisms
-- **Observability**: Detailed metrics, logging, and performance monitoring
-- **Security**: Authentication, authorization, and data encryption support
-- **Integration**: Native connectors for popular databases, message queues, and AI services
+- **Distributed Execution** with automatic load balancing
+- **Fault Tolerance** and error recovery
+- **Observability** with metrics and monitoring
+- **Extensible Integration** for databases, queues, and AI services
 
 ## Installation
 
-We offer an interactive installer and explicit command flags. Developer mode is recommended when
-contributing.
-
-**Clone & Interactive Mode**
+**Quickstart (Recommended)**
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
-./quickstart.sh            # Opens interactive menu
+git clone https://github.com/intellistream/SAGE.git && cd SAGE
+./quickstart.sh --dev --yes    # Interactive mode: ./quickstart.sh
 ```
 
-### Recommended Environment Isolation 🛡️
-
-To avoid polluting your system Python and make future cleanup easy, we strongly recommend using a
-virtual environment (Conda or `venv`) for SAGE:
-
-- **Default behaviour**: `quickstart.sh` will detect whether you're already in a virtual env.
-
-- **System Python only**: you'll see a warning explaining the risks and suggested options.
-
-- You can control the strictness via environment variable:
-
-  - `SAGE_VENV_POLICY=warning` (default) – show a warning, let you choose to continue
-  - `SAGE_VENV_POLICY=error` – refuse to install outside a virtual env
-  - `SAGE_VENV_POLICY=ignore` – skip the check (not recommended)
-
-Common patterns:
+**PyPI Install**
 
 ```bash
-# 1) Let SAGE create an isolated environment automatically (recommended for new users)
-./quickstart.sh --auto-venv --dev --yes
-
-# 2) Explicitly use Conda
-./quickstart.sh --dev --conda --yes
-
-# 3) Use an existing venv you created manually
-python3 -m venv .sage/venv
-source .sage/venv/bin/activate
-./quickstart.sh --dev --pip --yes
-
-If the system `python3 -m venv` command fails because the distribution omits `ensurepip`, `./quickstart.sh --auto-venv` will automatically fall back to installing the `virtualenv` module into your user site via `pip install --user --break-system-packages virtualenv` before creating `.sage/venv`. If your environment still enforces PEP 668 restrictions, install the `python3-venv` package (for example `sudo apt install python3.12-venv` on Debian/Ubuntu) or manually run `python3 -m venv .sage/venv` before rerunning `--auto-venv`.
+pip install isage[standard]    # Recommended
+pip install isage[core]        # Minimal runtime
+pip install isage[full]        # Full features + Web UI
+pip install isage[dev]         # Development tools
 ```
 
-**Common Non-Interactive Modes**
+**Verification & Troubleshooting**
 
 ```bash
-# Developer installation (auto-sync submodules & hooks)
-./quickstart.sh --dev --yes
-
-# Core runtime only
-./quickstart.sh --core --yes
-
-# Standard + vLLM support (explicit submodule sync)
-./quickstart.sh --standard --sync-submodules --vllm --yes
-
-# Use system Python instead of conda
-./quickstart.sh --core --pip --yes
-
-# View all flags
-./quickstart.sh --help
+sage doctor                    # Check installation
+./quickstart.sh --doctor       # Diagnose issues
 ```
 
-**Installation Verification**
-
-After installation, verify that everything is working correctly:
-
-```bash
-# Quick verification (built-in)
-sage doctor
-
-# Comprehensive verification test (recommended)
-bash tools/install/tests/verify_installation.sh
-```
-
-The verification script will check:
-
-- 📖 **[Installation Validation Guide](./docs/INSTALLATION_VALIDATION.md)** - For detailed validation
-  steps and troubleshooting.
-- ✅ Python environment and dependencies
-- ✅ SAGE core packages and version consistency
-- ✅ CLI tools availability
-- ✅ Optional components (vLLM, CUDA)
-- ✅ Configuration files and API keys
-- ✅ Quick example run
-
-**Troubleshooting Installation**
-
-If you encounter issues during installation:
-
-```bash
-# Run diagnostic tool
-./quickstart.sh --doctor
-
-# Auto-fix common issues
-./quickstart.sh --doctor --fix
-
-# View diagnostic logs
-cat .sage/logs/environment_doctor.log
-```
-
-Common issues and solutions:
-
-- **Disk space**: SAGE needs 10GB+ (20GB+ recommended for full installation)
-- **Network issues**: Use mirror sources or check proxy settings
-- **Python version**: Use Python 3.10-3.12 (3.11 recommended)
-- **GPU/CUDA**: Optional for core functionality, required for vLLM
-
-📖 **For detailed troubleshooting**: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
-
-### Uninstall & Cleanup
-
-SAGE records the packages it installs under `.sage/installed_packages.txt` along with metadata in
-`.sage/install_info.json`. You can use the provided cleanup tools for safe removal:
-
-```bash
-# Show what was installed and basic install info
-bash tools/cleanup/track_install.sh show
-
-# Interactive uninstall and optional environment cleanup
-bash tools/cleanup/uninstall_sage.sh
-```
-
-The uninstall script will:
-
-- Uninstall SAGE-related Python packages based on the recorded list (or fall back to
-  `tools/install/examination_tools/sage_check.sh` if missing).
-- Offer to remove the dedicated venv (e.g. `.sage/venv`) or Conda environment that was used for the
-  installation.
-- Leave your Git checkout and source code untouched.
-
-**Quick PyPI Install**
-
-```bash
-# Core installation (基础框架)
-pip install isage[core]        # L1-L4: common, platform, kernel, libs, middleware
-
-# Standard installation (推荐) ✅
-pip install isage[standard]    # Core + CLI + 应用包 (apps, benchmark)
-
-# Full installation (完整功能)
-pip install isage[full]        # Standard + Web UI (studio)
-
-# Development installation (开发者)
-pip install isage[dev]         # Full + 开发工具 (sage-dev, pytest, pre-commit)
-```
-
-> **See [Installation Guide](docs/INSTALLATION_GUIDE.md) for detailed comparison and use cases.**
-
-> Note: PyPI install may not include all system dependencies; use quickstart.sh for complete
-> environment setup.
-
-**Key Installation Features**
-
-- 🎯 Interactive menu for first-time users
-- 🤖 vLLM integration with `--vllm`
-- 🐍 Supports conda or system Python via `--pip`
-- ⚡ Three modes: minimal / standard / dev
+📖 **Detailed guides**: [Installation Guide](docs/INSTALLATION_GUIDE.md) |
+[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md)
 
 ## Environment Configuration
 
-After installation, configure your API keys and environment settings:
-
-**Quick Setup**
-
 ```bash
-# Run the interactive environment setup
-python -m sage.tools.cli.main config env setup
+cp .env.template .env    # Copy template
+# Edit .env and add your API keys (OPENAI_API_KEY, HF_TOKEN, etc.)
 ```
 
-**Manual Setup**
-
-```bash
-# Copy the environment template
-cp .env.template .env
-```
-
-Edit `.env` and add your API keys (required for most examples):
-
-- `OPENAI_API_KEY`: Required for GPT models and most LLM examples
-- `HF_TOKEN`: Required for Hugging Face model downloads
-- `SILICONCLOUD_API_KEY`: For alternative LLM services
-- `JINA_API_KEY`: For embedding services
-- `ALIBABA_API_KEY`: For DashScope models
-- `SAGE_TEST_MODE`: Enable test mode for examples
-
-**API Key Sources**
-
-- Get OpenAI API key: https://platform.openai.com/api-keys
-- Get Hugging Face token: https://huggingface.co/settings/tokens
-
-The `.env` file is automatically ignored by git to keep your keys secure.
+📖 **API key setup**: See [.env.template](./.env.template) for all available options
 
 ## Use Cases
 
@@ -374,108 +186,46 @@ data modalities for enhanced AI understanding and generation.
 **Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load
 balancing and fault tolerance.
 
-> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
-
 ## Documentation & Resources
 
-- **Documentation Site**:
+- **Documentation**:
   [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
-- **Examples**: [examples/](./examples/) (tutorials, rag, service, memory, etc.)
-- **Configurations**: [examples/config/](./examples/config/) sample pipeline configs
+- **Examples**: [examples/](./examples/) - Tutorials, RAG, services, benchmarks
 - **Quick Reference**: [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)
-- **Contribution Guide**: [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Changelog (planned)**: Add a `CHANGELOG.md` (see suggestions below)
+- **Architecture**:
+  [docs-public/docs_src/dev-notes/package-architecture.md](./docs-public/docs_src/dev-notes/package-architecture.md)
 
 ## Contributing
 
-We welcome contributions! Please review the updated guidelines before opening a Pull Request.
-
-**Essential Links**
-
-- 🚀 Quick Reference: [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)
-- 📚 Contribution Guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
-- 🐛 Issues & Features: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
-
-**Quick Contributor Flow**
+We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ```bash
-git fetch origin
-git checkout main-dev
-git pull --ff-only origin main-dev
-git checkout -b fix/<short-topic>
-./quickstart.sh --dev --yes          # ensure dev deps installed
-bash tools/tests/run_examples_tests.sh
-pytest -k issues_manager -vv
-git add <changed-files>
-git commit -m "fix(sage-kernel): correct dispatcher edge case"
-git push -u origin fix/<short-topic>
-# Open PR: include background / solution / tests / impact
+git checkout -b feature/my-feature
+./quickstart.sh --dev --yes
+# Make changes, add tests
+sage-dev quality && sage-dev test
+git commit -m "feat(kernel): add new feature"
+git push -u origin feature/my-feature
 ```
 
-> See `CONTRIBUTING.md` for full commit conventions, branch naming, and test matrices.
+**Resources**: [Quick Reference](./docs/QUICK_REFERENCE.md) |
+[GitHub Issues](https://github.com/intellistream/SAGE/issues) |
+[Discussions](https://github.com/intellistream/SAGE/discussions)
 
-## Developer Shortcuts
-
-SAGE provides convenient Make-like commands for common development tasks:
+## Developer Tools
 
 ```bash
-# View all available commands
-make help
-# or
-sage-dev --help
-
-# Code quality
-make lint          # Run code checks
-make format        # Format code
-make quality       # Full quality check
-
-# Testing
-make test          # Run all tests
-make test-quick    # Quick tests only
-make test-all      # Full test suite with coverage
-
-# Installation & Environment Tests
-bash tools/install/tests/run_all_tests.sh  # Run environment & cleanup tests
-bash tools/install/tests/verify_installation.sh  # Verify SAGE installation
-
-# Build & Deploy
-make build         # Build packages
-make clean         # Clean build artifacts
-make publish       # Publish to TestPyPI
-make version       # Show current version
-
-# Documentation
-make docs          # Build documentation
-make docs-serve    # Serve docs locally
+make help           # View all commands
+sage-dev quality    # Format & lint
+sage-dev test       # Run tests
+make docs           # Build documentation
 ```
 
-**See [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md) for complete command
-reference and workflows.**
+📖 **Complete reference**: [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md)
 
-**Post-Install Diagnostics**
+## Community
 
-```bash
-sage doctor          # Runs environment & module checks
-python -c "import sage; print(sage.__version__)"
-```
-
-## 🤝 Join Our Community
-
-Connect with other sage-developers, get help, and stay updated on the latest developments:
-
-**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - Complete guide to all our communication channels
-
-Quick links:
-
-- **WeChat Group**: Scan QR codes for instant chat (Chinese/English)
-- **QQ Group**: [IntelliStream课题组讨论群](https://qm.qq.com/q/bcnuyQVcvm)
-- **Slack**:
-  [Join our workspace](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
-- **GitHub Discussions**:
-  [Technical Q&A and feature requests](https://github.com/intellistream/SAGE/discussions)
-
-We welcome questions, bug reports, feature requests, and contributions from developers worldwide!
+**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - WeChat, QQ, Slack, GitHub Discussions
 
 ## License
 
