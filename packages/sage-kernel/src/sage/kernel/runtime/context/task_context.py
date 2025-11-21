@@ -30,6 +30,7 @@ class TaskContext(BaseRuntimeContext):
         "_router",  # 包含锁的对象
         "_local_jobmanager_ref",  # weakref 不可序列化
         "dispatcher",  # 避免循环引用
+        "_current_packet_key",  # Runtime-only state, should not be serialized
     ]
 
     def __init__(

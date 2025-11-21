@@ -53,7 +53,17 @@ class BaseOperator(ABC):
             self.logger.warning(f"Received None packet in {self.name}")
             return
         self.logger.debug(f"Operator {self.name} received packet: {packet}")
-        self.process_packet(packet)
+
+        try:
+            # Set the current packet key for keyed state support
+            if hasattr(packet, "partition_key"):
+                self.ctx.set_current_key(packet.partition_key)
+
+            # Process the packet
+            self.process_packet(packet)
+        finally:
+            # Always clear the key after processing to prevent leakage
+            self.ctx.clear_key()
 
     @abstractmethod
     def process_packet(self, packet: "Packet | None" = None):
