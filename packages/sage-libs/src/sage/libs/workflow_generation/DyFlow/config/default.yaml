@@ -1,0 +1,73 @@
+# DyFlow Default Configuration
+# Layer: L3 (Core Library)
+
+# Model Service Configuration
+model_service:
+  # Default designer model for workflow stage generation
+  designer_model: "gpt-4o"
+
+  # Default executor model for instruction execution
+  executor_model: "gpt-3.5-turbo"
+
+  # Temperature for LLM responses
+  temperature: 0.7
+
+  # Max tokens for responses
+  max_tokens: 2048
+
+  # Request timeout (seconds)
+  timeout: 60
+
+  # Enable async mode
+  async_mode: false
+
+# Workflow Executor Configuration
+workflow:
+  # Maximum number of stages in a workflow
+  max_stages: 10
+
+  # Enable verbose logging
+  verbose: true
+
+  # Auto-terminate on completion signals
+  auto_terminate: true
+
+  # Maximum retries for failed stages
+  max_retries: 3
+
+  # Enable state persistence
+  persist_state: false
+
+# Operator Configuration
+operator:
+  # Code execution sandbox settings
+  sandbox:
+    enabled: true
+    timeout: 30
+    max_memory_mb: 512
+
+  # Ensemble generation settings
+  ensemble:
+    num_samples: 3
+    voting_strategy: "majority"
+
+  # Available instruction templates
+  templates:
+  - "GENERATE_ANSWER"
+  - "REVIEW_SOLUTION"
+  - "DECOMPOSE_PROBLEM"
+  - "TEST_CODE"
+  - "IMPROVE_SOLUTION"
+  - "SUMMARIZE_RESULTS"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file:       # Set to path for file logging
+
+# API Keys (use environment variables in production)
+api_keys:
+  openai: "${OPENAI_API_KEY}"
+  anthropic: "${ANTHROPIC_API_KEY}"
+  local_endpoint:

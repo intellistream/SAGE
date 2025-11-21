@@ -1,0 +1,9 @@
+openai
+anthropic
+python-dotenv
+tiktoken
+vllm
+numpy
+pandas
+requests
+tqdm
