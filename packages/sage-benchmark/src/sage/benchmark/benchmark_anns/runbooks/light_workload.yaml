@@ -1,0 +1,36 @@
+# Light Workload Runbook
+# Suitable for quick testing and development
+
+# Initial load: 5K vectors
+- operation: initial
+  start: 0
+  end: 5000
+  description: "Load initial 5K vectors"
+
+# Start workers
+- operation: startHPC
+  description: "Start background workers"
+
+# Light insert: 10K vectors
+- operation: batch_insert
+  start: 5000
+  end: 15000
+  batchSize: 500
+  eventRate: 1000
+  description: "Insert 10K vectors at 1K events/sec"
+
+# Wait for operations
+- operation: waitPending
+  description: "Wait for pending operations"
+
+# Few searches
+- operation: search
+  k: 10
+  description: "Perform search queries"
+
+- operation: search
+  k: 10
+
+# Stop workers
+- operation: endHPC
+  description: "Stop background workers"

@@ -1,0 +1,56 @@
+# Example runbook configuration for congestion testing
+# This YAML file defines a sequence of operations to test ANNS algorithm performance
+
+# Initial data load
+- operation: initial
+  start: 0
+  end: 10000
+  description: "Load initial 10K vectors"
+
+# Start parallel workers
+- operation: startHPC
+  description: "Start background worker threads"
+
+# Batch insert with timing constraints
+- operation: batch_insert
+  start: 10000
+  end: 100000
+  batchSize: 2500
+  eventRate: 10000
+  description: "Insert 40K vectors in batches of 1K at 2K events/sec"
+
+# Wait for pending operations to complete
+- operation: waitPending
+  description: "Wait for all pending inserts to finish"
+
+# Perform searches
+- operation: search
+  k: 10
+  description: "Search for 10-NN"
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+# Delete some vectors
+- operation: delete
+  start: 0
+  end: 1000
+  description: "Delete first 1K vectors"
+
+# More insertions
+# - operation: batch_insert
+#   start: 50000
+#   end: 60000
+#   batchSize: 500
+#   eventRate: 1500
+#   description: "Insert another 10K vectors"
+
+# # Final cleanup
+# - operation: waitPending
+#   description: "Wait for all operations"
+
+- operation: endHPC
+  description: "Stop worker threads"

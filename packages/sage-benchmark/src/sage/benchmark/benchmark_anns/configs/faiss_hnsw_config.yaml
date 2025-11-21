@@ -1,0 +1,42 @@
+# Algorithm configuration for Faiss HNSW
+# This file defines algorithm parameters for benchmarking
+
+algorithm:
+  # Algorithm identifier (required)
+  name: "faiss_hnsw"
+  
+  # Module path (optional - auto-inferred as "benchmark_anns.algorithms.{name}" if not specified)
+  module: "benchmark_anns.algorithms.faiss_hnsw"
+  
+  # Class name (optional - auto-inferred from name if not specified)
+  # Auto-inference converts "faiss_hnsw" -> "FaissHnswCongestion"
+  class: "FaissHNSWCongestion"
+  
+  # Index parameters (passed to algorithm constructor)
+  index_params:
+    indexkey: "HNSW32"  # HNSW with 32 connections per layer
+  
+  # Distance metric
+  metric: "euclidean"  # or "angular" for inner product
+  
+  # Parallel workers for congestion handling
+  parallel_workers: 1
+  
+  # Query parameters (can be single config or list for parameter sweep)
+  query_params:
+    ef: 64  # Search parameter for HNSW
+
+# Dataset configuration
+dataset:
+  name: "sift"
+  data_path: "data/sift"
+  dtype: "float32"
+  
+# Test configuration
+test:
+  k: 10  # Number of nearest neighbors
+  max_pts: 100000  # Maximum points to support
+  
+# Runbook - defines the test scenario/workload
+runbook:
+  file: "runbooks/basic_test.yaml"

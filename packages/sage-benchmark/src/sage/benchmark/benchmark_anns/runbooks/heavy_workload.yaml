@@ -1,0 +1,69 @@
+# Heavy Workload Runbook
+# Stress test with high throughput and large data volumes
+
+# Initial load: 50K vectors
+- operation: initial
+  start: 0
+  end: 50000
+  description: "Load initial 50K vectors"
+
+# Start workers
+- operation: startHPC
+  description: "Start background workers"
+
+# Heavy insert phase 1: 100K vectors at high rate
+- operation: batch_insert
+  start: 50000
+  end: 150000
+  batchSize: 2000
+  eventRate: 5000
+  description: "Insert 100K vectors at 5K events/sec"
+
+# Concurrent queries during ingestion
+- operation: waitPending
+  description: "Wait for queue to stabilize"
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+# Heavy insert phase 2: Another 100K vectors
+- operation: batch_insert
+  start: 150000
+  end: 250000
+  batchSize: 2000
+  eventRate: 4000
+  description: "Insert another 100K vectors"
+
+# Delete phase: Remove 20K vectors
+- operation: delete
+  start: 0
+  end: 20000
+  description: "Delete 20K vectors"
+
+# More searches
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+# Final insert
+- operation: batch_insert
+  start: 250000
+  end: 300000
+  batchSize: 1000
+  eventRate: 3000
+  description: "Final 50K vectors"
+
+# Wait and cleanup
+- operation: waitPending
+  description: "Wait for all operations to complete"
+
+- operation: endHPC
+  description: "Stop background workers"

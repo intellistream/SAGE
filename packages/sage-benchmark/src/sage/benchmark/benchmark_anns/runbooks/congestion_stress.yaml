@@ -1,0 +1,53 @@
+# Congestion Stress Test
+# Designed to trigger congestion and test drop handling
+
+# Initial load
+- operation: initial
+  start: 0
+  end: 10000
+  description: "Load initial 10K vectors"
+
+# Start workers
+- operation: startHPC
+  description: "Start background workers"
+
+# Enable random drop scenario
+- operation: enableScenario
+  randomDrop: 1
+  randomDropProb: 0.05
+  description: "Enable 5% random drop"
+
+# High-rate insert to cause congestion
+- operation: batch_insert
+  start: 10000
+  end: 100000
+  batchSize: 5000
+  eventRate: 10000
+  description: "Insert 90K vectors at 10K events/sec to trigger congestion"
+
+# Wait for stabilization
+- operation: waitPending
+  description: "Wait for queue to drain"
+
+# Normal workload after congestion
+- operation: batch_insert
+  start: 100000
+  end: 120000
+  batchSize: 1000
+  eventRate: 2000
+  description: "Normal insert after congestion"
+
+# Test queries
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+# Cleanup
+- operation: waitPending
+
+- operation: endHPC

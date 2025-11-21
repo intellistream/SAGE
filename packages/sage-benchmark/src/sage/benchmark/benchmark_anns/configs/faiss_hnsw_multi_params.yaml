@@ -1,0 +1,43 @@
+# Multi-parameter configuration for Faiss HNSW
+# This file demonstrates testing multiple parameter combinations
+
+algorithm:
+  name: "faiss_hnsw"
+  class: "FaissHNSWCongestion"
+  module: "benchmark_anns.algorithms.faiss_hnsw"
+  
+  # Index parameters
+  index_params:
+    indexkey: "HNSW32"  # HNSW with 32 connections per layer
+  
+  # Distance metric
+  metric: "euclidean"  # or "angular" for inner product
+  
+  # Parallel workers for congestion handling
+  parallel_workers: 1
+  
+  # Query parameters - Multiple configurations to test
+  query_params_list:
+    - name: "ef16"
+      ef: 16
+    - name: "ef32"
+      ef: 32
+    - name: "ef64"
+      ef: 64
+    - name: "ef128"
+      ef: 128
+
+# Dataset configuration
+dataset:
+  name: "sift"
+  data_path: "data/sift"
+  dtype: "float32"
+  
+# Test configuration
+test:
+  k: 10  # Number of nearest neighbors
+  max_pts: 100000  # Maximum points to support
+  
+# Runbook - defines the test scenario/workload
+runbook:
+  file: "runbooks/basic_test.yaml"

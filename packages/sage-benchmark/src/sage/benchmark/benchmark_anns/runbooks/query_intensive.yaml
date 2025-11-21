@@ -1,0 +1,80 @@
+# Query-Intensive Workload
+# Focus on search performance with minimal updates
+
+# Initial load: 100K vectors
+- operation: initial
+  start: 0
+  end: 100000
+  description: "Load 100K vectors for searching"
+
+# Start workers
+- operation: startHPC
+  description: "Start background workers"
+
+# Many search operations
+- operation: search
+  k: 10
+  description: "Search 1"
+
+- operation: search
+  k: 10
+  description: "Search 2"
+
+- operation: search
+  k: 10
+  description: "Search 3"
+
+- operation: search
+  k: 10
+  description: "Search 4"
+
+- operation: search
+  k: 10
+  description: "Search 5"
+
+# Small insert in between
+- operation: batch_insert
+  start: 100000
+  end: 105000
+  batchSize: 1000
+  eventRate: 1000
+  description: "Small insert: 5K vectors"
+
+# More searches
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+# Another small insert
+- operation: batch_insert
+  start: 105000
+  end: 110000
+  batchSize: 1000
+  eventRate: 1000
+  description: "Another 5K vectors"
+
+# Final searches
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+- operation: search
+  k: 10
+
+# Cleanup
+- operation: waitPending
+
+- operation: endHPC
