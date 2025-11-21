@@ -9,6 +9,7 @@ High-level layout:
 - ``rag``: Retrieval-Augmented Generation building blocks (migrating from middleware)
 - ``integrations``: Third-party service adapters (LLMs, vector DBs, observability)
 - ``privacy``: Machine unlearning and privacy-preserving algorithms
+- ``finetune``: Model fine-tuning utilities (moved from sage-tools for broader access)
 
 This structure makes coarse-grained systems (agents, RAG) live beside
 infrastructure concerns while keeping fine-grained utilities in ``foundation``.
@@ -26,7 +27,7 @@ except ImportError:
 # Export submodules
 __layer__ = "L3"
 
-from . import agentic, foundation, integrations, privacy, rag
+from . import agentic, finetune, foundation, integrations, privacy, rag
 
 __all__ = [
     "__version__",
@@ -37,4 +38,5 @@ __all__ = [
     "rag",
     "integrations",
     "privacy",
+    "finetune",
 ]
