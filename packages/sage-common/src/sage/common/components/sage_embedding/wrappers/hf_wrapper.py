@@ -115,6 +115,9 @@ class HFEmbedding(BaseEmbedding):
         Raises:
             RuntimeError: 如果 embedding 失败
         """
+        if not texts:
+            return []
+
         try:
             return hf_embed_batch_sync(texts, self.tokenizer, self.embed_model)
         except Exception as e:
