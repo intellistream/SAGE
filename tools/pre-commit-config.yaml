@@ -177,10 +177,10 @@ repos:
       # Get all Python test files (staged if in commit, or all files if --all-files)
       if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
         # Running with --all-files or during push
-        all_test_files=$(git ls-files "*.py" | grep -E "^(test_|.*_test\.py|.*tests\.py)" || true)
+        all_test_files=$(git ls-files "*.py" | grep -E "(^|/)test_.*\.py$|_test\.py$|tests\.py$" || true)
       else
         # Running in normal commit mode
-        all_test_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$" | grep -E "(^test_|_test\.py$|tests\.py$)" || true)
+        all_test_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$" | grep -E "(^|/)test_.*\.py$|_test\.py$|tests\.py$" || true)
       fi
 
       if [ -z "$all_test_files" ]; then
