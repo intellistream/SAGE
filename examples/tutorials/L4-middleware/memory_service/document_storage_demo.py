@@ -305,7 +305,8 @@ def example_4_update_delete():
 
     # Show all documents
     print("\n初始文档:")
-    all_docs = collection.retrieve(with_metadata=True)
+    all_ids = collection.get_all_ids()
+    all_docs = collection.filter_ids(all_ids, with_metadata=True)
     for doc in all_docs:
         print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
 
@@ -319,13 +320,16 @@ def example_4_update_delete():
 
     # Show after update
     print("\n更新后的文档:")
-    all_docs = collection.retrieve(with_metadata=True)
+    all_ids = collection.get_all_ids()
+    all_docs = collection.filter_ids(all_ids, with_metadata=True)
     for doc in all_docs:
         print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
 
     # Delete deprecated documents
-    # Using the recommended approach: retrieve + delete
-    deprecated_docs = collection.retrieve(
+    # Using the recommended approach: get_all_ids + filter_ids + delete
+    all_ids = collection.get_all_ids()
+    deprecated_docs = collection.filter_ids(
+        all_ids,
         with_metadata=True,
         metadata_filter_func=lambda m: m.get("status") == "deprecated",
     )
@@ -339,7 +343,8 @@ def example_4_update_delete():
 
     # Show final state
     print("\n最终文档:")
-    all_docs = collection.retrieve(with_metadata=True)
+    all_ids = collection.get_all_ids()
+    all_docs = collection.filter_ids(all_ids, with_metadata=True)
     for doc in all_docs:
         print(f"  - {doc['text']}")
 
