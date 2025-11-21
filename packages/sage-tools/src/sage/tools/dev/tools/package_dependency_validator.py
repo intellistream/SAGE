@@ -163,7 +163,9 @@ class PackageDependencyValidator:
         if package_name == "sage-tools":
             # sage-tools is allowed to depend on isage-common only
             allowed_isage_deps = {"isage-common"}
-            actual_deps = {dep.split(">=")[0].split("==")[0].split("<")[0].strip() for dep in isage_deps}
+            actual_deps = {
+                dep.split(">=")[0].split("==")[0].split("<")[0].strip() for dep in isage_deps
+            }
             return actual_deps.issubset(allowed_isage_deps)
 
         # For other packages, no isage-* dependencies are allowed
@@ -207,7 +209,7 @@ class PackageDependencyValidator:
                         package="sage",
                         severity="warning",
                         message=f"extra '{extra_name}' may not reference [sage-deps]",
-                        details=f"Expected dependencies to use isage-*[sage-deps] notation",
+                        details="Expected dependencies to use isage-*[sage-deps] notation",
                     )
                 )
 
@@ -254,9 +256,7 @@ class PackageDependencyValidator:
         warning_count = sum(1 for issue in issues if issue.severity == "warning")
 
         if passed:
-            console.print(
-                f"\n[yellow]⚠️  Found {warning_count} warning(s), but no errors[/yellow]"
-            )
+            console.print(f"\n[yellow]⚠️  Found {warning_count} warning(s), but no errors[/yellow]")
         else:
             console.print(
                 f"\n[red]❌ Found {error_count} error(s) and {warning_count} warning(s)[/red]"
