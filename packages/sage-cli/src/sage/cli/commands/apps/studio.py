@@ -18,6 +18,7 @@ def start(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
+    no_gateway: bool = typer.Option(False, "--no-gateway", help="不自动启动 Gateway"),
 ):
     """启动 SAGE Studio"""
     console.print("[blue]🚀 启动 SAGE Studio...[/blue]")
@@ -32,9 +33,13 @@ def start(
             console.print(f"[blue]🌐 访问地址: {url}[/blue]")
             return
 
-        success = studio_manager.start(port=port, host=host, dev=dev)
+        success = studio_manager.start(port=port, host=host, dev=dev, auto_gateway=not no_gateway)
         if success:
             console.print("[green]✅ Studio 启动成功[/green]")
+            console.print("\n[cyan]💡 提示：[/cyan]")
+            console.print("  • Chat 模式需要 Gateway 服务支持")
+            console.print("  • 使用 'sage studio status' 查看所有服务状态")
+            console.print("  • 使用 'sage studio stop' 停止服务")
         else:
             console.print("[red]❌ Studio 启动失败[/red]")
     except Exception as e:
@@ -42,12 +47,14 @@ def start(
 
 
 @app.command()
-def stop():
+def stop(
+    gateway: bool = typer.Option(False, "--gateway", help="同时停止 Gateway 服务"),
+):
     """停止 SAGE Studio"""
     console.print("[blue]🛑 停止 SAGE Studio...[/blue]")
 
     try:
-        success = studio_manager.stop()
+        success = studio_manager.stop(stop_gateway=gateway)
         if success:
             console.print("[green]✅ Studio 已停止[/green]")
         else:

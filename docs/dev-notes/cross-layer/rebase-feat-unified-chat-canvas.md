@@ -69,7 +69,56 @@
 
 ## 如何启动和使用
 
-### 首次启动（完整步骤）
+### 🎉 简化启动（推荐）
+
+```bash
+# 1. 首次构建前端（仅需一次）
+sage studio build
+
+# 2. 一键启动（自动启动 Gateway + Studio）
+sage studio start --host 0.0.0.0
+
+# 就这么简单！现在可以在浏览器访问了
+# - Studio 地址: http://localhost:5173 (dev模式) 或 http://localhost:3000 (prod模式)
+# - Gateway API: http://localhost:8000/v1
+```
+
+### 🔧 手动控制启动（高级）
+
+如果你想手动控制 Gateway，可以这样：
+
+```bash
+# 首次构建
+sage studio build
+
+# 手动启动 Gateway
+sage-gateway --host 0.0.0.0 --port 8000
+
+# 启动 Studio（不自动启动 Gateway）
+sage studio start --host 0.0.0.0 --no-gateway
+```
+
+### 📊 查看服务状态
+
+```bash
+# 查看所有服务状态（Frontend, Backend, Gateway）
+sage studio status
+```
+
+### 🛑 停止服务
+
+```bash
+# 停止 Studio（保留 Gateway 运行）
+sage studio stop
+
+# 同时停止 Studio 和 Gateway
+sage studio stop --gateway
+```
+
+### 首次启动（完整步骤 - 已过时，保留参考）
+
+<details>
+<summary>展开查看手动启动的详细步骤（不推荐）</summary>
 
 ```bash
 # 1. 构建 Studio 前端（仅首次需要）
@@ -85,14 +134,19 @@ sage studio start --host 0.0.0.0
 # Studio 默认地址: http://localhost:5173 (dev模式) 或 http://localhost:3000 (prod模式)
 ```
 
-### 后续启动（跳过 build）
+</details>
+
+### 后续启动（简化）
 
 ```bash
-# 终端 1: 启动 Gateway
-sage-gateway --host 0.0.0.0 --port 8000
-
-# 终端 2: 启动 Studio
+# 一键启动（自动检测并启动 Gateway）
 sage studio start --host 0.0.0.0
+
+# 查看状态
+sage studio status
+
+# 停止
+sage studio stop
 ```
 
 ### 使用双模式 UI

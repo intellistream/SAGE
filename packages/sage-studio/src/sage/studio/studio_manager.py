@@ -36,8 +36,10 @@ class StudioManager:
 
         self.pid_file = self.sage_dir / "studio.pid"
         self.backend_pid_file = self.sage_dir / "studio_backend.pid"
+        self.gateway_pid_file = self.sage_dir / "gateway.pid"  # Gateway PID 文件
         self.log_file = self.sage_dir / "studio.log"
         self.backend_log_file = self.sage_dir / "studio_backend.log"
+        self.gateway_log_file = self.sage_dir / "gateway.log"  # Gateway 日志文件
         self.config_file = self.sage_dir / "studio.config.json"
 
         # 缓存和构建目录（React + Vite）
@@ -49,6 +51,7 @@ class StudioManager:
         # React + Vite 默认端口是 5173
         self.default_port = 5173
         self.backend_port = 8080
+        self.gateway_port = 8000  # Gateway 默认端口
         self.default_host = "0.0.0.0"  # 修改为监听所有网络接口
 
         # 确保所有目录存在
@@ -128,6 +131,131 @@ class StudioManager:
             return None
         except Exception:
             return None
+
+    def is_gateway_running(self) -> int | None:
+        """检查 Gateway 是否运行中"""
+        # 方法1: 检查 PID 文件
+        if self.gateway_pid_file.exists():
+            try:
+                with open(self.gateway_pid_file) as f:
+                    pid = int(f.read().strip())
+
+                if psutil.pid_exists(pid):
+                    proc = psutil.Process(pid)
+                    # 检查是否是 sage-gateway 进程
+                    cmdline = " ".join(proc.cmdline())
+                    if "sage-gateway" in cmdline or "gateway" in cmdline:
+                        return pid
+
+                # PID 文件存在但进程不存在，清理文件
+                self.gateway_pid_file.unlink()
+            except Exception:
+                pass
+
+        # 方法2: 通过端口检查
+        try:
+            response = requests.get(f"http://localhost:{self.gateway_port}/health", timeout=1)
+            if response.status_code == 200:
+                # Gateway 在运行但没有 PID 文件，尝试找到进程
+                for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                    try:
+                        cmdline = " ".join(proc.cmdline())
+                        if "sage-gateway" in cmdline or (
+                            "python" in proc.name().lower() and "gateway" in cmdline
+                        ):
+                            return proc.pid
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+                return -1  # 运行中但找不到 PID
+        except Exception:
+            pass
+
+        return None
+
+    def start_gateway(self, host: str | None = None, port: int | None = None) -> bool:
+        """启动 Gateway 服务"""
+        host = host or self.default_host
+        port = port or self.gateway_port
+
+        console.print(f"[blue]🚀 启动 Gateway 服务 ({host}:{port})...[/blue]")
+
+        try:
+            # 检查 sage-gateway 命令是否可用
+            result = subprocess.run(["which", "sage-gateway"], capture_output=True, text=True)
+            if result.returncode != 0:
+                console.print(
+                    "[yellow]⚠️  sage-gateway 命令未找到，尝试使用 python -m sage.gateway.server[/yellow]"
+                )
+                cmd = ["python", "-m", "sage.gateway.server", "--host", host, "--port", str(port)]
+            else:
+                cmd = ["sage-gateway", "--host", host, "--port", str(port)]
+
+            # 启动进程
+            log_file = open(self.gateway_log_file, "w")
+            process = subprocess.Popen(
+                cmd,
+                stdout=log_file,
+                stderr=log_file,
+                start_new_session=True,
+            )
+
+            # 保存 PID
+            with open(self.gateway_pid_file, "w") as f:
+                f.write(str(process.pid))
+
+            # 等待服务启动
+            console.print("[blue]等待 Gateway 服务启动...[/blue]")
+            for i in range(10):  # 最多等待10秒
+                time.sleep(1)
+                try:
+                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    if response.status_code == 200:
+                        console.print(
+                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid})[/green]"
+                        )
+                        console.print(f"[blue]📡 Gateway API: http://{host}:{port}[/blue]")
+                        return True
+                except Exception:
+                    pass
+
+            console.print("[yellow]⚠️  Gateway 可能未完全启动，请检查日志[/yellow]")
+            console.print(f"[blue]日志文件: {self.gateway_log_file}[/blue]")
+            return True  # 进程启动了，即使 health check 失败
+
+        except Exception as e:
+            console.print(f"[red]❌ Gateway 启动失败: {e}[/red]")
+            return False
+
+    def stop_gateway(self) -> bool:
+        """停止 Gateway 服务"""
+        pid = self.is_gateway_running()
+        if not pid:
+            return False
+
+        if pid == -1:
+            console.print("[yellow]⚠️  Gateway 在运行但无法确定 PID，请手动停止[/yellow]")
+            return False
+
+        try:
+            proc = psutil.Process(pid)
+            proc.terminate()
+            proc.wait(timeout=5)
+            console.print(f"[green]✅ Gateway 已停止 (PID: {pid})[/green]")
+
+            # 清理 PID 文件
+            if self.gateway_pid_file.exists():
+                self.gateway_pid_file.unlink()
+
+            return True
+        except psutil.TimeoutExpired:
+            proc.kill()
+            console.print(f"[yellow]⚠️  Gateway 强制停止 (PID: {pid})[/yellow]")
+            if self.gateway_pid_file.exists():
+                self.gateway_pid_file.unlink()
+            return True
+        except Exception as e:
+            console.print(f"[red]❌ 停止 Gateway 失败: {e}[/red]")
+            return False
 
     def check_dependencies(self) -> bool:
         """检查依赖"""
@@ -677,8 +805,22 @@ if __name__ == "__main__":
         host: str | None = None,
         dev: bool = True,
         backend_port: int | None = None,
+        auto_gateway: bool = True,  # 新增：是否自动启动 gateway
     ) -> bool:
         """启动 Studio（前端和后端）"""
+        # 检查并启动 Gateway（如果需要 Chat 模式）
+        if auto_gateway:
+            gateway_pid = self.is_gateway_running()
+            if not gateway_pid:
+                console.print("[blue]🔍 检测到 Gateway 未运行，正在启动...[/blue]")
+                if not self.start_gateway(host=host):
+                    console.print("[yellow]⚠️  Gateway 启动失败，Chat 模式可能无法正常使用[/yellow]")
+                    console.print(
+                        "[yellow]   您可以稍后手动启动: sage-gateway --host 0.0.0.0 --port 8000[/yellow]"
+                    )
+            else:
+                console.print(f"[green]✅ Gateway 已在运行中 (PID: {gateway_pid})[/green]")
+
         # 首先启动后端API
         if not self.start_backend(port=backend_port):
             console.print("[red]后端API启动失败，无法启动Studio[/red]")
@@ -778,8 +920,12 @@ if __name__ == "__main__":
             console.print(f"[red]启动失败: {e}[/red]")
             return False
 
-    def stop(self) -> bool:
-        """停止 Studio（前端和后端）"""
+    def stop(self, stop_gateway: bool = False) -> bool:
+        """停止 Studio（前端和后端）
+
+        Args:
+            stop_gateway: 是否同时停止 Gateway（默认不停止，因为可能被其他服务使用）
+        """
         frontend_pid = self.is_running()
         backend_running = self.is_backend_running()
 
@@ -819,6 +965,13 @@ if __name__ == "__main__":
             if self.stop_backend():
                 stopped_services.append("后端API")
 
+        # 可选：停止 Gateway
+        if stop_gateway:
+            gateway_pid = self.is_gateway_running()
+            if gateway_pid and gateway_pid != -1:
+                if self.stop_gateway():
+                    stopped_services.append("Gateway")
+
         if stopped_services:
             console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
             return True
@@ -830,6 +983,7 @@ if __name__ == "__main__":
         """显示状态"""
         frontend_pid = self.is_running()
         backend_running = self.is_backend_running()
+        gateway_pid = self.is_gateway_running()
         config = self.load_config()
 
         # 创建前端状态表格
@@ -876,6 +1030,29 @@ if __name__ == "__main__":
             backend_table.add_row("端口", str(self.backend_port))
 
         console.print(backend_table)
+
+        # 创建 Gateway 状态表格
+        gateway_table = Table(title="SAGE Gateway 状态")
+        gateway_table.add_column("属性", style="cyan", width=12)
+        gateway_table.add_column("值", style="white")
+
+        if gateway_pid:
+            if gateway_pid == -1:
+                gateway_table.add_row("状态", "[yellow]运行中（PID未知）[/yellow]")
+            else:
+                gateway_table.add_row("状态", "[green]运行中[/green]")
+                gateway_table.add_row("PID", str(gateway_pid))
+            gateway_table.add_row("端口", str(self.gateway_port))
+            gateway_table.add_row("API", f"http://localhost:{self.gateway_port}/v1")
+        else:
+            gateway_table.add_row("状态", "[red]未运行[/red]")
+            gateway_table.add_row("端口", str(self.gateway_port))
+            gateway_table.add_row("启动命令", "sage-gateway --host 0.0.0.0 --port 8000")
+
+        gateway_table.add_row("PID文件", str(self.gateway_pid_file))
+        gateway_table.add_row("日志文件", str(self.gateway_log_file))
+
+        console.print(gateway_table)
 
         # 检查端口是否可访问（不使用代理）
         if frontend_pid:
