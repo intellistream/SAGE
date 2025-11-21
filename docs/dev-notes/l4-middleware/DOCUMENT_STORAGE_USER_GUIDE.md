@@ -152,7 +152,13 @@ collection.insert(
 ### 文档更新
 
 ```python
-# 获取文档ID
+# 获取文档ID的两种方式：
+
+# 方式1: 在插入时保存返回的ID
+doc_id = collection.insert("文档内容", {"metadata": "value"})
+
+# 方式2: 使用相同的文本重新计算ID (基于SHA256哈希)
+# 注意：这要求文本内容完全相同
 doc_text = "原始文档文本"
 doc_id = collection._get_stable_id(doc_text)
 
@@ -164,25 +170,36 @@ collection.metadata_storage.store(doc_id, {
     "source": "更新来源",
     "updated_at": "2024-01-01"
 })
+
+# 注意：建议在应用中维护文档ID的映射关系
+# 例如：文档名称 -> 文档ID 的字典
+doc_id_map = {}
+doc_id_map["doc1"] = collection.insert("文档1内容", {"name": "doc1"})
+# 后续可以通过doc_id_map["doc1"]获取ID进行更新
 ```
 
 ### 文档删除
 
 ```python
-# 方式1: 通过ID删除
-doc_id = collection._get_stable_id("要删除的文档文本")
-collection.delete_by_id(doc_id)
+# 方式1: 直接使用delete方法（推荐）
+collection.delete("要删除的文档文本")
 
-# 方式2: 批量删除（通过元数据筛选）
-# 先获取要删除的文档ID
-ids_to_delete = collection.filter_ids(
-    collection.get_all_ids(),
+# 方式2: 通过ID删除（需要先获取ID）
+doc_id = collection._get_stable_id("要删除的文档文本")
+collection.text_storage.delete(doc_id)
+collection.metadata_storage.delete(doc_id)
+
+# 方式3: 批量删除（通过元数据筛选）
+# 先获取要删除的文档
+docs_to_delete = collection.retrieve(
+    with_metadata=True,
     metadata_filter_func=lambda m: m.get("source") == "过期来源"
 )
 
 # 逐个删除
-for doc_id in ids_to_delete:
-    collection.delete_by_id(doc_id)
+for doc in docs_to_delete:
+    collection.delete(doc['text'])
+```
 ```
 
 ### 清空集合
@@ -497,9 +514,10 @@ manager.store_collection()
 
 ## 相关文档
 
-- [Neuromem组件文档](./neuromem.md)
-- [Memory Service API](../service/memory/memory_api.md)
-- [RAG教程](../../../../tutorials/rag/)
+- [Neuromem Architecture Analysis](../cross-layer/architecture/NEUROMEM_ARCHITECTURE_ANALYSIS.md)
+- [Document Storage Feature Technical Guide](./DOCUMENT_STORAGE_FEATURE.md)
+- [RAG Examples](../../../examples/tutorials/L3-libs/rag/)
+- [Memory Service Examples](../../../examples/tutorials/L4-middleware/memory_service/)
 
 ## 支持
 

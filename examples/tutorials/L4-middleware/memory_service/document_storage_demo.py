@@ -124,7 +124,11 @@ def example_2_semantic_search():
     # Create semantic index
     index_config = {
         "name": "semantic_index",
-        "embedding_model": "mockembedder",  # Use mock embedder for demo
+        # NOTE: Using mockembedder for demo purposes only
+        # In production, use real models like:
+        # "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+        # "dim": 384,
+        "embedding_model": "mockembedder",
         "dim": 128,
         "backend_type": "FAISS",
         "description": "Semantic search index",
@@ -261,6 +265,8 @@ def example_4_update_delete():
         print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
 
     # Update a document
+    # Note: Using _get_stable_id() (private method) for demo purposes
+    # In production, store and manage document IDs returned from insert()
     doc_id = collection._get_stable_id(docs[1])
     collection.text_storage.store(doc_id, "文档2: 已更新的内容")
     collection.metadata_storage.store(doc_id, {"status": "updated", "version": 2})
@@ -273,15 +279,16 @@ def example_4_update_delete():
         print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
 
     # Delete deprecated documents
-    deprecated_ids = collection.filter_ids(
-        collection.get_all_ids(), metadata_filter_func=lambda m: m.get("status") == "deprecated"
+    # Using the recommended approach: retrieve + delete
+    deprecated_docs = collection.retrieve(
+        with_metadata=True, metadata_filter_func=lambda m: m.get("status") == "deprecated"
     )
 
-    for doc_id in deprecated_ids:
-        collection.text_storage.delete(doc_id)
-        collection.metadata_storage.delete(doc_id)
+    for doc in deprecated_docs:
+        # Use the public delete() method which handles both text and metadata
+        collection.delete(doc["text"])
 
-    print(f"\n🗑️ 删除了 {len(deprecated_ids)} 个废弃文档")
+    print(f"\n🗑️ 删除了 {len(deprecated_docs)} 个废弃文档")
     print(f"剩余文档数: {len(collection.get_all_ids())}")
 
     # Show final state
