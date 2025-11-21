@@ -89,6 +89,10 @@ def hf_embed_batch_sync(texts: list[str], tokenizer, embed_model) -> list[list[f
     Returns:
         list[list[float]]: embedding 向量列表
     """
+    # 处理空列表情况
+    if not texts:
+        return []
+
     # 延迟导入 torch
     try:
         import torch
