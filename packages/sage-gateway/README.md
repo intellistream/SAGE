@@ -44,17 +44,41 @@ python -m sage.gateway.server
 Gateway is designed to work with SAGE Studio's Chat mode. To use the full Chat + Canvas dual-mode
 interface:
 
-```bash
-# Terminal 1: Start Gateway (backend for Chat mode)
-sage-gateway --host 0.0.0.0 --port 8000
+**Simplified startup (recommended):**
 
-# Terminal 2: Build and start Studio (first time only)
-sage studio build        # Only needed once to install frontend deps
+```bash
+# One-time: Build Studio frontend
+sage studio build
+
+# Start everything with one command (auto-starts Gateway)
 sage studio start --host 0.0.0.0
 
 # Access Studio at http://localhost:5173 (dev) or http://localhost:3000 (prod)
 # - Chat Mode: Conversational interface powered by Gateway + RAG
 # - Canvas Mode: Visual pipeline builder
+```
+
+**Manual control (advanced):**
+
+```bash
+# Start Gateway manually
+sage-gateway --host 0.0.0.0 --port 8000
+
+# Start Studio without auto-starting Gateway
+sage studio start --host 0.0.0.0 --no-gateway
+```
+
+**Manage services:**
+
+```bash
+# Check status of all services
+sage studio status
+
+# Stop Studio (keep Gateway running)
+sage studio stop
+
+# Stop both Studio and Gateway
+sage studio stop --gateway
 ```
 
 ### Call with OpenAI SDK

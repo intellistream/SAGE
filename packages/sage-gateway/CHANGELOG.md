@@ -1,6 +1,20 @@
-# SAGE Gateway & Studio Changelog
+# SAGE Gateway Changelog
 
-## [Unreleased] - 2025-11-17
+## [Unreleased] - 2025-11-21
+
+### Changed
+
+- Renamed package from `sage-gateway` to `isage-gateway` for consistency
+- Use dynamic version from `_version.py` instead of hardcoded version
+- Auto-start Gateway when running `sage studio start` (unless `--no-gateway`)
+
+### Added
+
+- Gateway status display in `sage studio status`
+- `--gateway` flag to `sage studio stop` to optionally stop Gateway
+- Comprehensive startup documentation
+
+## [0.1.0] - 2025-11-17
 
 ### Added
 
