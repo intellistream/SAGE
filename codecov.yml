@@ -77,6 +77,9 @@ ignore:
 - "**/*.egg-info/**"
 - "**/temp_*.py"
 - "**/update_*.py"
+- "examples/**"  # 示例代码不需要测试覆盖
+- "tutorials/**"  # 教程代码不需要测试覆盖
+- "**/benchmark_memory/experiment/**"  # 实验性 benchmark 代码
 
 # 标记不同的测试类型
 flag_management:
