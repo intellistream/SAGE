@@ -64,7 +64,6 @@ def main():
             subprocess.run(["pkill", "-f", "sage.gateway.server"], stderr=subprocess.DEVNULL)
             time.sleep(1)
         except Exception:
-            # It's safe to ignore errors here: if pkill fails (e.g., process not found or not supported), we continue anyway.
             pass
 
     # 3. 启动 gateway

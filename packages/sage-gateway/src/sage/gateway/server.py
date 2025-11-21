@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sse_starlette.sse import EventSourceResponse
+from fastapi.responses import StreamingResponse
 
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
 from sage.gateway.session import get_session_manager
@@ -103,7 +103,14 @@ async def chat_completions(request: ChatCompletionRequest):
 
         if request.stream:
             # 流式响应（SSE）
-            return EventSourceResponse(response)
+            return StreamingResponse(
+                response,
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                },
+            )
         else:
             # 非流式响应
             return response

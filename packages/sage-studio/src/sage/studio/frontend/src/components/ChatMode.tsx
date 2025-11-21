@@ -445,10 +445,10 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                         <Button
                                             type="link"
                                             icon={<ArrowRightCircle size={16} />}
-                                            onClick={() => onModeChange?.('builder')}
+                                            onClick={() => onModeChange?.('canvas')}
                                             className="px-0 mt-2"
                                         >
-                                            Go to Builder
+                                            Go to Canvas
                                         </Button>
                                     </div>
                                 </div>
@@ -465,9 +465,8 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                     {currentMessages.map((msg) => (
                                         <div
                                             key={msg.id}
-                                            className={`flex gap-4 ${
-                                                msg.role === 'user' ? 'justify-end' : 'justify-start'
-                                            }`}
+                                            className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'
+                                                }`}
                                         >
                                             {msg.role === 'assistant' && (
                                                 <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">

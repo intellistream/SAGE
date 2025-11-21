@@ -397,13 +397,14 @@ export async function sendChatMessage(
     onComplete: () => void
 ): Promise<void> {
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/message`, {
+        const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                message,
+                model: 'sage-default',
+                messages: [{ role: 'user', content: message }],
                 session_id: sessionId,
                 stream: true,
             }),
@@ -467,7 +468,8 @@ export async function sendChatMessage(
  */
 export async function getChatSessions(): Promise<ChatSessionSummary[]> {
     const response = await apiClient.get('/chat/sessions')
-    return response.data
+    // Gateway 返回 {sessions: [...], stats: {...}}
+    return response.data.sessions || response.data
 }
 
 export async function createChatSession(title?: string): Promise<ChatSessionDetail> {

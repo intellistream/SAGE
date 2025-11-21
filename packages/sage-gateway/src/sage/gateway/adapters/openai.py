@@ -82,6 +82,21 @@ class OpenAIAdapter:
     def __init__(self):
         self.session_manager = get_session_manager()
 
+    def _load_api_key_from_config(self) -> str | None:
+        """从 ~/.sage/.env.json 加载 DASHSCOPE_API_KEY"""
+        import json
+        from pathlib import Path
+
+        config_path = Path.home() / ".sage" / ".env.json"
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    config = json.load(f)
+                    return config.get("DASHSCOPE_API_KEY")
+            except Exception:
+                pass
+        return None
+
     async def chat_completions(
         self, request: ChatCompletionRequest
     ) -> ChatCompletionResponse | AsyncIterator[str]:
@@ -107,48 +122,107 @@ class OpenAIAdapter:
             return self._create_response(request, session, assistant_response)
 
     async def _execute_sage_pipeline(self, request: ChatCompletionRequest, session) -> str:
-        """执行 SAGE DataStream Pipeline"""
-        # 获取用户消息
+        """
+        执行 SAGE RAG Pipeline
+
+        流程:
+        1. 文档爬取 (docs-src)
+        2. 向量化存储 (ChromaDB)
+        3. 检索相关文档
+        4. 生成回答 (RAG)
+        """
         user_input = request.messages[-1].content
 
-        # 构建消息历史（支持多轮对话）
-        messages = []
-        for msg in request.messages:
-            messages.append({"role": msg.role, "content": msg.content})
-
-        # 使用 OpenAI 兼容的方式调用 LLM
-        # 这里可以配置不同的后端：OpenAI/vLLM/DashScope 等
         try:
-            from sage.libs.integrations.openaiclient import OpenAIClient
+            # 导入 SAGE Pipeline 组件
+            from sage.kernel.api import LocalEnvironment
+            from sage.libs.io.source import TextSource
+            from sage.libs.io.sink import RetriveSink
+            from sage.middleware.operators.rag.retriever import ChromaRetriever
+            from sage.middleware.operators.rag.promptor import QAPromptor
+            from sage.middleware.operators.rag.generator import OpenAIGenerator
             import os
+            from pathlib import Path
 
-            # 从环境变量读取 LLM 配置
+            # 创建 Pipeline 环境
+            sage_env = LocalEnvironment()
+
+            # 1. Source: 用户输入
+            source = TextSource([user_input])
+
+            # 2. Retriever: 从向量数据库检索相关文档
+            chroma_config = {
+                "persist_directory": str(Path.home() / ".sage" / "vector_db"),
+                "collection_name": "sage_docs",
+                "top_k": 5,
+                "embedding_model": "BAAI/bge-small-zh-v1.5",
+            }
+            retriever = ChromaRetriever(chroma_config)
+
+            # 3. Promptor: 构建 RAG prompt
+            promptor_config = {
+                "template": "根据以下文档回答问题：\n\n{{external_corpus}}\n\n问题：{{query}}\n\n回答："
+            }
+            promptor = QAPromptor(promptor_config)
+
+            # 4. Generator: LLM 生成回答
+            # 从环境变量读取配置
             model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
             base_url = os.getenv(
                 "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
             )
-            api_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("ALIBABA_API_KEY")
+            api_key = (
+                os.getenv("SAGE_CHAT_API_KEY")
+                or os.getenv("ALIBABA_API_KEY")
+                or os.getenv("DASHSCOPE_API_KEY")
+                or self._load_api_key_from_config()
+            )
 
             if not api_key:
-                # 开发模式：返回 echo 响应
-                return f"[开发模式] Echo: {user_input}\n\n(请设置 SAGE_CHAT_API_KEY 环境变量以启用真实 LLM)"
+                return "[配置错误] 请设置 DASHSCOPE_API_KEY 环境变量以启用 RAG 功能"
 
-            # 创建 OpenAI 客户端
-            client = OpenAIClient(
-                model_name=model_name,
-                base_url=base_url,
-                api_key=api_key,
-                seed=42,  # 固定随机种子以保证可重复性
+            generator_config = {
+                "model_name": model_name,
+                "base_url": base_url,
+                "api_key": api_key,
+                "seed": 42,
+            }
+            generator = OpenAIGenerator(generator_config)
+
+            # 5. Sink: 收集结果
+            sink = RetriveSink()
+
+            # 构建 Pipeline
+            (
+                sage_env.from_source(source)
+                .map(retriever)
+                .map(promptor)
+                .map(generator)
+                .add_sink(sink)
             )
 
-            # 调用 LLM 生成响应
-            response = client.generate(
-                messages,
-                max_tokens=2048,
-                temperature=0.7,
-            )
+            # 执行 Pipeline
+            job = sage_env.submit(autostop=True)
 
-            return response
+            # 等待执行完成
+            import asyncio
+
+            while job.is_running():
+                await asyncio.sleep(0.1)
+
+            # 获取结果
+            results = sink.get_results()
+            if results and len(results) > 0:
+                # 提取生成的回答
+                result = results[0]
+                if isinstance(result, dict) and "generated" in result:
+                    return result["generated"]
+                elif isinstance(result, str):
+                    return result
+                else:
+                    return str(result)
+            else:
+                return "抱歉，未能生成回答。"
 
         except Exception as e:
             # 错误处理：返回友好的错误信息

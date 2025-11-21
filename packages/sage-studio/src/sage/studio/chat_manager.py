@@ -34,21 +34,17 @@ class ChatModeManager:
     # ------------------------------------------------------------------
     # Gateway helpers
     # ------------------------------------------------------------------
-    def _ensure_gateway_available(self) -> bool:
-        """Check if sage-gateway is available via command line (avoid L6->L6 import)."""
+    def _ensure_gateway_importable(self) -> bool:
         try:
-            # 使用 python -m 检查是否可以运行 sage.gateway.server
-            result = subprocess.run(
-                [sys.executable, "-m", "sage.gateway.server", "--help"],
-                capture_output=True,
-                timeout=5,
-            )
-            return result.returncode == 0
-        except (subprocess.TimeoutExpired, FileNotFoundError):  # pragma: no cover
+            import sage.gateway.server  # noqa: F401
+
+            return True
+        except ImportError as exc:  # pragma: no cover - user guidance path
             console.print(
-                "[red]无法运行 sage-gateway[/red]\n"
+                "[red]无法导入 sage-gateway 包[/red]\n"
                 "请先在当前环境中安装: pip install -e packages/sage-gateway",
             )
+            console.print(f"详细错误: {exc}")
             return False
 
     def _is_gateway_running(self) -> int | None:
@@ -67,7 +63,6 @@ class ChatModeManager:
         try:
             self.gateway_pid_file.unlink()
         except OSError:
-            # 文件可能已不存在，无需处理
             pass
         return None
 
@@ -76,7 +71,7 @@ class ChatModeManager:
             console.print("[green]✅ sage-gateway 已运行[/green]")
             return True
 
-        if not self._ensure_gateway_available():
+        if not self._ensure_gateway_importable():
             return False
 
         gateway_port = port or self.gateway_port
@@ -85,15 +80,15 @@ class ChatModeManager:
 
         console.print(f"[blue]🚀 启动 sage-gateway (端口: {gateway_port})...[/blue]")
         try:
-            with open(self.gateway_log_file, "w") as log_handle:
-                process = subprocess.Popen(
-                    [sys.executable, "-m", "sage.gateway.server"],
-                    stdout=log_handle,
-                    stderr=subprocess.STDOUT,
-                    preexec_fn=os.setsid if os.name != "nt" else None,
-                    env=env,
-                )
-                self.gateway_pid_file.write_text(str(process.pid))
+            log_handle = open(self.gateway_log_file, "w")
+            process = subprocess.Popen(
+                [sys.executable, "-m", "sage.gateway.server"],
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                preexec_fn=os.setsid if os.name != "nt" else None,
+                env=env,
+            )
+            self.gateway_pid_file.write_text(str(process.pid))
         except Exception as exc:
             console.print(f"[red]❌ 启动 gateway 失败: {exc}")
             return False
