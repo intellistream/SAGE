@@ -34,7 +34,6 @@
 
 from __future__ import annotations
 
-
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service import (
@@ -52,6 +51,9 @@ from pipeline_as_service_operators import (
     ProcessQuestion,
     DisplayAnswer,
 )
+
+# Test configuration: Pipeline-as-Service examples need more time
+TEST_TAGS = ["timeout=120"]
 
 
 def main():
