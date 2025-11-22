@@ -306,9 +306,10 @@ def example_4_update_delete():
     # Show all documents
     print("\n初始文档:")
     all_ids = collection.get_all_ids()
-    all_docs = collection.filter_ids(all_ids, with_metadata=True)
-    for doc in all_docs:
-        print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
+    for doc_id in all_ids:
+        text = collection.text_storage.get(doc_id)
+        metadata = collection.metadata_storage.get(doc_id)
+        print(f"  - {text}, 状态: {metadata['status']}")
 
     # Update a document
     # Note: Using _get_stable_id() (private method) for demo purposes
@@ -323,32 +324,33 @@ def example_4_update_delete():
     # Show after update
     print("\n更新后的文档:")
     all_ids = collection.get_all_ids()
-    all_docs = collection.filter_ids(all_ids, with_metadata=True)
-    for doc in all_docs:
-        print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
+    for doc_id in all_ids:
+        text = collection.text_storage.get(doc_id)
+        metadata = collection.metadata_storage.get(doc_id)
+        print(f"  - {text}, 状态: {metadata['status']}")
 
     # Delete deprecated documents
     # Using the recommended approach: get_all_ids + filter_ids + delete
     all_ids = collection.get_all_ids()
-    deprecated_docs = collection.filter_ids(
+    deprecated_ids = collection.filter_ids(
         all_ids,
-        with_metadata=True,
         metadata_filter_func=lambda m: m.get("status") == "deprecated",
     )
 
-    for doc in deprecated_docs:
+    for doc_id in deprecated_ids:
         # Use the public delete() method which handles both text and metadata
-        collection.delete(doc["text"])
+        text = collection.text_storage.get(doc_id)
+        collection.delete(text)
 
-    print(f"\n🗑️ 删除了 {len(deprecated_docs)} 个废弃文档")
+    print(f"\n🗑️ 删除了 {len(deprecated_ids)} 个废弃文档")
     print(f"剩余文档数: {len(collection.get_all_ids())}")
 
     # Show final state
     print("\n最终文档:")
     all_ids = collection.get_all_ids()
-    all_docs = collection.filter_ids(all_ids, with_metadata=True)
-    for doc in all_docs:
-        print(f"  - {doc['text']}")
+    for doc_id in all_ids:
+        text = collection.text_storage.get(doc_id)
+        print(f"  - {text}")
 
     manager.store_collection("mutable_docs")
 
@@ -389,7 +391,14 @@ def example_5_persistence():
     collection2 = manager2.get_collection("persistent_docs")
 
     if collection2:
-        loaded_docs = collection2.retrieve(with_metadata=True)
+        all_ids = collection2.get_all_ids()
+        loaded_docs = [
+            {
+                "text": collection2.text_storage.get(doc_id),
+                "metadata": collection2.metadata_storage.get(doc_id),
+            }
+            for doc_id in all_ids
+        ]
         print(f"✅ 成功加载 {len(loaded_docs)} 个文档")
 
         for doc in loaded_docs:
