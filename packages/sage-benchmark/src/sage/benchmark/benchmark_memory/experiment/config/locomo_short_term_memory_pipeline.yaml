@@ -24,11 +24,17 @@ runtime:
   max_tokens: 80
   temperature: 0.3
   seed: 42
+  memory_name: "stm"
 
 # 服务配置
 services:
+  register_memory_service: "short_term_memory"  # 注册的记忆服务名称，可切换为其他服务
   short_term_memory:
     max_dialog: 3  # 短期记忆窗口大小（轮次）
+  memory_insert_adapter: "to_dialogs"
+  memory_retrieval_adapter: "none"
+
+
 
 # Operator 配置
 operators:
