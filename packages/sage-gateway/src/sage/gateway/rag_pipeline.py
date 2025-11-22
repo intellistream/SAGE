@@ -383,30 +383,58 @@ class RAGChatMap(MapFunction):
                 {"role": "user", "content": user_input.strip()},
             ]
 
-            # 3. Generate response using vLLM service
+            # 3. Generate response using SAGE LLM service directly
             import os
-            from sage.libs.integrations.openaiclient import OpenAIClient
 
-            # Use local vLLM service by default
-            model_name = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
-            base_url = os.getenv("SAGE_CHAT_BASE_URL", "http://localhost:8000/v1")
-            api_key = os.getenv("SAGE_CHAT_API_KEY", "token-abc123")
+            try:
+                from sage.common.components.sage_llm import VLLMService
 
-            if not base_url:
-                return {
-                    "content": "[配置错误] 请设置 SAGE_CHAT_BASE_URL 环境变量或启动本地 vLLM 服务",
-                    "sources": [],
-                    "type": "error",
+                # Configure VLLMService
+                model_id = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+                llm_config = {
+                    "model_id": model_id,
+                    "auto_download": True,
+                    "sampling": {
+                        "temperature": 0.2,
+                        "top_p": 0.95,
+                        "max_tokens": 512,
+                    },
                 }
 
-            client = OpenAIClient(
-                model_name=model_name,
-                base_url=base_url,
-                api_key=api_key,
-                seed=42,
-            )
+                # Create and setup VLLMService
+                llm_service = VLLMService(llm_config)
+                llm_service.setup()
 
-            response = client.generate(messages, temperature=0.2, stream=False)
+                # Generate response
+                prompt = f"{system_instructions}\n\nUser: {user_input.strip()}\n\nAssistant:"
+                results = llm_service.generate(prompt, temperature=0.2, max_tokens=512)
+                response = results[0]["text"] if results else "抱歉，无法生成回答。"
+
+                llm_service.cleanup()
+
+            except ImportError:
+                # Fallback to OpenAI client if VLLMService not available
+                logger.warning("VLLMService not available, falling back to OpenAI client")
+                from sage.libs.integrations.openaiclient import OpenAIClient
+
+                model_name = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+                base_url = os.getenv("SAGE_CHAT_BASE_URL", "http://localhost:8000/v1")
+                api_key = os.getenv("SAGE_CHAT_API_KEY", "token-abc123")
+
+                if not base_url:
+                    return {
+                        "content": "[配置错误] 请设置 SAGE_CHAT_BASE_URL 环境变量或安装 VLLMService",
+                        "sources": [],
+                        "type": "error",
+                    }
+
+                client = OpenAIClient(
+                    model_name=model_name,
+                    base_url=base_url,
+                    api_key=api_key,
+                    seed=42,
+                )
+                response = client.generate(messages, temperature=0.2, stream=False)
 
             # Return answer with sources
             return {"content": response, "sources": sources, "type": "chat"}
@@ -416,28 +444,57 @@ class RAGChatMap(MapFunction):
             return {"content": self._fallback_direct_llm(user_input), "sources": [], "type": "chat"}
 
     def _fallback_direct_llm(self, user_input: str) -> str:
-        """Fallback: Direct LLM call without RAG using vLLM service."""
+        """Fallback: Direct LLM call without RAG using SAGE LLM service."""
         try:
             import os
-            from sage.libs.integrations.openaiclient import OpenAIClient
 
-            # Use local vLLM service by default
-            model_name = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
-            base_url = os.getenv("SAGE_CHAT_BASE_URL", "http://localhost:8000/v1")
-            api_key = os.getenv("SAGE_CHAT_API_KEY", "token-abc123")
+            try:
+                from sage.common.components.sage_llm import VLLMService
 
-            if not base_url:
-                return "[配置错误] 请设置 SAGE_CHAT_BASE_URL 环境变量或启动本地 vLLM 服务"
+                # Configure VLLMService
+                model_id = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+                llm_config = {
+                    "model_id": model_id,
+                    "auto_download": True,
+                    "sampling": {
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "max_tokens": 512,
+                    },
+                }
 
-            client = OpenAIClient(
-                model_name=model_name,
-                base_url=base_url,
-                api_key=api_key,
-                seed=42,
-            )
+                # Create and setup VLLMService
+                llm_service = VLLMService(llm_config)
+                llm_service.setup()
 
-            messages = [{"role": "user", "content": user_input}]
-            return client.generate(messages, temperature=0.7, stream=False)
+                # Generate response
+                results = llm_service.generate(user_input, temperature=0.7, max_tokens=512)
+                response = results[0]["text"] if results else "抱歉，无法生成回答。"
+
+                llm_service.cleanup()
+                return response
+
+            except ImportError:
+                # Fallback to OpenAI client if VLLMService not available
+                logger.warning("VLLMService not available, falling back to OpenAI client")
+                from sage.libs.integrations.openaiclient import OpenAIClient
+
+                model_name = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+                base_url = os.getenv("SAGE_CHAT_BASE_URL", "http://localhost:8000/v1")
+                api_key = os.getenv("SAGE_CHAT_API_KEY", "token-abc123")
+
+                if not base_url:
+                    return "[配置错误] 请设置 SAGE_CHAT_BASE_URL 环境变量或安装 VLLMService"
+
+                client = OpenAIClient(
+                    model_name=model_name,
+                    base_url=base_url,
+                    api_key=api_key,
+                    seed=42,
+                )
+
+                messages = [{"role": "user", "content": user_input}]
+                return client.generate(messages, temperature=0.7, stream=False)
 
         except Exception as e:
             logger.error(f"Fallback LLM error: {e}", exc_info=True)
