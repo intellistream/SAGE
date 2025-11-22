@@ -151,7 +151,14 @@ class RuleBasedWorkflowGenerator(BaseWorkflowGenerator):
     def _build_visual_pipeline(
         self, intents: list[str], context: GenerationContext
     ) -> dict[str, Any]:
-        """构建可视化 Pipeline（Studio 格式）"""
+        """构建可视化 Pipeline（Studio 格式）
+
+        CRITICAL: 必须符合 SAGE Studio 的 VisualNode 格式要求：
+        - type: 直接使用操作符类型（如 "file_source"），而非 "custom"
+        - config: 配置直接在顶层，而非嵌套在 data 中
+        - label: 必须是顶层字段
+        - 必须遵循 Source -> Map -> Sink 的 dataflow 范式
+        """
         nodes = []
         connections = []
         order = 0
@@ -159,79 +166,80 @@ class RuleBasedWorkflowGenerator(BaseWorkflowGenerator):
         def add_node(
             node_id: str, label: str, node_type: str, description: str, config: dict | None = None
         ) -> str:
+            """添加节点（符合 VisualNode 格式）"""
             nonlocal order
             nodes.append(
                 {
                     "id": node_id,
-                    "type": "custom",
+                    "type": node_type,  # ✅ 直接使用操作符类型
+                    "label": label,  # ✅ label 在顶层
                     "position": {"x": 100 + order * 250, "y": 100},
-                    "data": {
-                        "label": label,
-                        "nodeId": node_type,
-                        "description": description,
-                        "status": "idle",
-                        "config": config or self._get_default_config(node_type),
-                    },
+                    "config": config or self._get_default_config(node_type),  # ✅ config 在顶层
                 }
             )
             order += 1
             return node_id
 
         def connect(source_id: str, target_id: str):
+            """添加连接（包含端口信息）"""
             connections.append(
                 {
                     "id": f"conn-{len(connections)}",
                     "source": source_id,
+                    "sourcePort": "output",  # ✅ 添加端口信息
                     "target": target_id,
-                    "type": "smoothstep",
-                    "animated": True,
+                    "targetPort": "input",  # ✅ 添加端口信息
                 }
             )
 
-        # 起始节点
-        prev_id = add_node("node-input", "User Input", "UserInput", "用户输入")
+        # 起始节点（Source）
+        prev_id = add_node(
+            "node-input",
+            "User Input",
+            "file_source",
+            "用户输入数据源",
+            config={"source_type": "memory", "data": []},
+        )
 
         # RAG 链
         if "rag" in intents or "qa" in intents:
-            loader_id = add_node("node-loader", "Document Loader", "FileSource", "加载文档")
-            connect(prev_id, loader_id)
-            prev_id = loader_id
+            # 文档加载器可以省略（已经包含在 source 中）
 
-            splitter_id = add_node("node-splitter", "Text Splitter", "SimpleSplitter", "文本分块")
+            splitter_id = add_node(
+                "node-splitter", "Text Splitter", "character_splitter", "文本分块"
+            )
             connect(prev_id, splitter_id)
             prev_id = splitter_id
 
-            embed_id = add_node("node-embed", "Embeddings", "Embedding", "向量嵌入")
-            connect(prev_id, embed_id)
-            prev_id = embed_id
+            # 嵌入可以作为检索器的一部分
 
-            retriever_id = add_node("node-retriever", "Retriever", "ChromaRetriever", "向量检索")
+            retriever_id = add_node("node-retriever", "Retriever", "chroma_retriever", "向量检索")
             connect(prev_id, retriever_id)
             prev_id = retriever_id
 
-            promptor_id = add_node("node-promptor", "Promptor", "QAPromptor", "构建提示词")
+            promptor_id = add_node("node-promptor", "Promptor", "qa_promptor", "构建提示词")
             connect(prev_id, promptor_id)
             prev_id = promptor_id
 
         # LLM 节点（几乎所有场景都需要）
         if "generation" in intents or "qa" in intents or "summarize" in intents:
-            llm_id = add_node("node-llm", "LLM", "OpenAIGenerator", "语言模型生成")
+            llm_id = add_node("node-llm", "LLM", "openai_generator", "语言模型生成")
             connect(prev_id, llm_id)
             prev_id = llm_id
 
         # 后处理节点
         if "summarize" in intents:
-            summary_id = add_node("node-summary", "Summarizer", "PostProcessor", "文本摘要")
+            summary_id = add_node("node-summary", "Summarizer", "post_processor", "文本摘要")
             connect(prev_id, summary_id)
             prev_id = summary_id
 
         if "analytics" in intents:
-            analytics_id = add_node("node-analytics", "Analytics", "Analytics", "数据分析")
+            analytics_id = add_node("node-analytics", "Analytics", "analytics", "数据分析")
             connect(prev_id, analytics_id)
             prev_id = analytics_id
 
-        # 输出节点
-        output_id = add_node("node-output", "Output", "TerminalSink", "输出结果")
+        # 输出节点（Sink）
+        output_id = add_node("node-output", "Output", "terminal_sink", "输出结果")
         connect(prev_id, output_id)
 
         return {

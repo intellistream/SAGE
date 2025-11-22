@@ -241,84 +241,95 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
         }
 
     def _convert_to_visual_format(self, plan: dict[str, Any]) -> dict[str, Any]:
-        """将 Pipeline Plan 转换为 Studio 可视化格式"""
+        """将 Pipeline Plan 转换为 Studio 可视化格式
+
+        CRITICAL: 必须符合 SAGE Studio 的 VisualNode 格式要求：
+        - type: 直接使用操作符类型（如 "retriever"），而非 "custom"
+        - config: 配置直接在顶层，而非嵌套在 data 中
+        - 必须遵循 Source -> Map -> Sink 的 dataflow 范式
+        """
         nodes = []
         connections = []
 
         pipeline_info = plan.get("pipeline", {})
 
+        # 辅助函数：将类名转换为 snake_case 的节点类型
+        def _class_to_node_type(class_name: str) -> str:
+            """将类名转换为节点类型
+            例: SimpleRetriever -> simple_retriever
+                OpenAIGenerator -> openai_generator
+            """
+            if not class_name:
+                return "unknown"
+
+            # 移除包路径，只保留类名
+            class_name = class_name.split(".")[-1]
+
+            # 将 CamelCase 转换为 snake_case
+            import re
+
+            s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", class_name)
+            result = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+            return result
+
         # Source 节点
         source_config = plan.get("source", {})
         source_class = source_config.get("class", "")
-        source_type = source_class.split(".")[-1] if source_class else "FileSource"
+        source_type = _class_to_node_type(source_class) or "file_source"
 
         nodes.append(
             {
                 "id": "source-0",
-                "type": "custom",
+                "type": source_type,  # ✅ 修正：直接使用操作符类型
+                "label": source_config.get("summary", "数据源"),
                 "position": {"x": 100, "y": 100},
-                "data": {
-                    "label": "数据源",
-                    "nodeId": source_type,
-                    "description": source_config.get("summary", "数据源"),
-                    "status": "idle",
-                    "config": source_config.get("params", {}),
-                },
+                "config": source_config.get("params", {}),  # ✅ 修正：配置在顶层
             }
         )
 
-        # Stage 节点
+        # Stage 节点（Map 操作符）
         stages = plan.get("stages", [])
         for idx, stage in enumerate(stages):
             stage_class = stage.get("class", "")
-            stage_type = stage_class.split(".")[-1] if stage_class else f"Stage{idx}"
+            stage_type = _class_to_node_type(stage_class) or f"unknown_stage_{idx}"
 
             node_id = f"stage-{idx}"
             nodes.append(
                 {
                     "id": node_id,
-                    "type": "custom",
+                    "type": stage_type,  # ✅ 修正：直接使用操作符类型
+                    "label": stage.get("summary", f"Stage {idx}"),
                     "position": {"x": 100 + (idx + 1) * 250, "y": 100},
-                    "data": {
-                        "label": stage.get("summary", f"Stage {idx}"),
-                        "nodeId": stage_type,
-                        "description": stage.get("summary", ""),
-                        "status": "idle",
-                        "config": stage.get("params", {}),
-                    },
+                    "config": stage.get("params", {}),  # ✅ 修正：配置在顶层
                 }
             )
 
-            # 连接
+            # 连接（符合 SAGE dataflow 范式）
             prev_id = "source-0" if idx == 0 else f"stage-{idx - 1}"
             connections.append(
                 {
                     "id": f"conn-{idx}",
                     "source": prev_id,
+                    "sourcePort": "output",  # ✅ 添加端口信息
                     "target": node_id,
-                    "type": "smoothstep",
-                    "animated": True,
+                    "targetPort": "input",  # ✅ 添加端口信息
                 }
             )
 
         # Sink 节点
         sink_config = plan.get("sink", {})
         sink_class = sink_config.get("class", "")
-        sink_type = sink_class.split(".")[-1] if sink_class else "TerminalSink"
+        sink_type = _class_to_node_type(sink_class) or "terminal_sink"
 
         sink_id = "sink-0"
         nodes.append(
             {
                 "id": sink_id,
-                "type": "custom",
+                "type": sink_type,  # ✅ 修正：直接使用操作符类型
+                "label": sink_config.get("summary", "输出"),
                 "position": {"x": 100 + (len(stages) + 1) * 250, "y": 100},
-                "data": {
-                    "label": "输出",
-                    "nodeId": sink_type,
-                    "description": sink_config.get("summary", "输出结果"),
-                    "status": "idle",
-                    "config": sink_config.get("params", {}),
-                },
+                "config": sink_config.get("params", {}),  # ✅ 修正：配置在顶层
             }
         )
 
@@ -327,9 +338,9 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
             {
                 "id": f"conn-{len(stages)}",
                 "source": last_stage_id,
+                "sourcePort": "output",  # ✅ 添加端口信息
                 "target": sink_id,
-                "type": "smoothstep",
-                "animated": True,
+                "targetPort": "input",  # ✅ 添加端口信息
             }
         )
 
