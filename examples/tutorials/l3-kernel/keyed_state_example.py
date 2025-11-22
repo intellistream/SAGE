@@ -202,9 +202,7 @@ class UserSessionManager(StatefulFunction):
                 "actions": [event["action"]],
                 "pages_visited": [event["page"]],
             }
-            self.logger.info(
-                f"Started new session #{session['session_count']} for user {user_id}"
-            )
+            self.logger.info(f"Started new session #{session['session_count']} for user {user_id}")
         else:
             # Update current session
             session["current_session"]["actions"].append(event["action"])
@@ -269,9 +267,7 @@ class TimeWindowAggregator(StatefulFunction):
             "window_end": (window_id + 1) * self.window_size,
             "event_count": len(current_window),
             "total_value": sum(e["original_event"]["value"] for e in current_window),
-            "unique_actions": len(
-                {e["original_event"]["action"] for e in current_window}
-            ),
+            "unique_actions": len({e["original_event"]["action"] for e in current_window}),
         }
 
         return {"user_id": user_id, "window": aggregations, "latest_event": enriched_event}
@@ -292,9 +288,9 @@ class ResultDisplaySink(SinkFunction):
     def execute(self, result: dict):
         self.result_count += 1
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"Result #{self.result_count}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         # User info
         print(f"👤 User: {result['user_id']}")

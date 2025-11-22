@@ -1,10 +1,13 @@
 # Keyed State Support in SAGE
 
-SAGE now provides native support for keyed state management through the `get_key()` interface. This feature enables functions to maintain state partitioned by keys, with automatic persistence and recovery.
+SAGE now provides native support for keyed state management through the `get_key()` interface. This
+feature enables functions to maintain state partitioned by keys, with automatic persistence and
+recovery.
 
 ## Overview
 
 Keyed state is essential for many stream processing scenarios:
+
 - **User session management**: Track state per user ID
 - **Window aggregations**: Maintain state per time window
 - **Feature engineering**: Compute and store features per entity ID
@@ -204,7 +207,8 @@ class FlexibleFunction(StatefulFunction):
 
 ## State Persistence
 
-All keyed state defined as instance attributes is automatically persisted by SAGE's checkpoint mechanism:
+All keyed state defined as instance attributes is automatically persisted by SAGE's checkpoint
+mechanism:
 
 ```python
 class MyFunction(StatefulFunction):
@@ -219,6 +223,7 @@ class MyFunction(StatefulFunction):
 ```
 
 By default:
+
 - All instance attributes are persisted
 - Except: `logger`, `_logger`, and `runtime_context` (excluded by default)
 - Private attributes (starting with `_`) are excluded unless explicitly included
@@ -226,9 +231,11 @@ By default:
 ## Examples
 
 See the complete example in:
+
 - `examples/tutorials/l3-kernel/keyed_state_example.py`
 
 Run it with:
+
 ```bash
 python examples/tutorials/l3-kernel/keyed_state_example.py
 ```
@@ -238,9 +245,9 @@ python examples/tutorials/l3-kernel/keyed_state_example.py
 ### How It Works
 
 1. **Key Extraction**: `KeyByOperator` extracts keys from events and attaches them to packets
-2. **Key Tracking**: `BaseOperator` sets the current key before processing each packet
-3. **Key Access**: Functions access the key via `ctx.get_key()`
-4. **Key Cleanup**: After processing, the key is cleared to prevent leakage
+1. **Key Tracking**: `BaseOperator` sets the current key before processing each packet
+1. **Key Access**: Functions access the key via `ctx.get_key()`
+1. **Key Cleanup**: After processing, the key is cleared to prevent leakage
 
 ### Packet Flow
 
@@ -261,16 +268,18 @@ Source -> KeyBy -> Map (Stateful) -> Sink
 
 1. **Initialize State in `__init__`**: Always initialize keyed state dictionaries in the constructor
 
-2. **Check for None Keys**: Handle both keyed and unkeyed streams gracefully
+1. **Check for None Keys**: Handle both keyed and unkeyed streams gracefully
 
-3. **Clean Up Old State**: Implement cleanup logic for time-based state (e.g., old windows)
+1. **Clean Up Old State**: Implement cleanup logic for time-based state (e.g., old windows)
 
-4. **Use Appropriate Data Structures**: Choose efficient data structures for your use case
+1. **Use Appropriate Data Structures**: Choose efficient data structures for your use case
+
    - `dict` for sparse keys
    - `defaultdict` for automatic initialization
    - Custom classes for complex state
 
-5. **Monitor State Size**: Large state can impact memory and checkpoint time
+1. **Monitor State Size**: Large state can impact memory and checkpoint time
+
    - Implement state cleanup/expiration
    - Use state TTL where appropriate
 
@@ -294,7 +303,8 @@ def test_keyed_state():
     # Add assertions
 ```
 
-See `packages/sage-kernel/tests/unit/core/function/test_keyed_state.py` for comprehensive test examples.
+See `packages/sage-kernel/tests/unit/core/function/test_keyed_state.py` for comprehensive test
+examples.
 
 ## Troubleshooting
 
@@ -313,9 +323,10 @@ env.from_source(Source).keyby(KeyExtractor).map(KeyedFunction).sink(Sink)
 ### Issue: State not persisting across restarts
 
 **Solution**: Check that:
+
 1. Your attributes are not in `__state_exclude__`
-2. Your state is serializable (basic Python types, not file handles or sockets)
-3. Checkpointing is enabled in your environment
+1. Your state is serializable (basic Python types, not file handles or sockets)
+1. Checkpointing is enabled in your environment
 
 ### Issue: Memory grows unbounded
 
@@ -339,6 +350,7 @@ def execute(self, data):
 If you were managing keyed state manually, migration is straightforward:
 
 **Before (manual management):**
+
 ```python
 class MyFunction(BaseFunction):
     def __init__(self, **kwargs):
@@ -354,6 +366,7 @@ class MyFunction(BaseFunction):
 ```
 
 **After (with get_key()):**
+
 ```python
 class MyFunction(StatefulFunction):
     def __init__(self, **kwargs):
@@ -369,9 +382,10 @@ class MyFunction(StatefulFunction):
 ```
 
 Changes needed:
+
 1. Change pipeline to use `keyby(KeyExtractor)`
-2. Change `StatefulFunction` base class (if not already)
-3. Replace manual key extraction with `self.ctx.get_key()`
+1. Change `StatefulFunction` base class (if not already)
+1. Replace manual key extraction with `self.ctx.get_key()`
 
 ## Related Documentation
 
