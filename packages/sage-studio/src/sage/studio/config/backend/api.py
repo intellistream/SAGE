@@ -18,7 +18,34 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from sage.studio.services.chat_pipeline_recommender import generate_pipeline_recommendation
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    from sage.common.config import find_sage_project_root
+
+    # Use centralized function to find project root
+    repo_root = find_sage_project_root()
+    if repo_root:
+        env_file = repo_root / ".env"
+        if env_file.exists():
+            load_dotenv(env_file, override=True)  # override=True to ensure env vars are updated
+            # Use logging instead of print for production
+            import logging
+
+            logging.info(f"Loaded environment variables from {env_file}")
+        else:
+            import logging
+
+            logging.warning(f".env file not found at {env_file}")
+    else:
+        import logging
+
+        logging.warning("Could not find SAGE project root, skipping .env loading")
+except ImportError as e:
+    import logging
+
+    logging.warning(f"Failed to load environment: {e}")
 
 
 def _convert_pipeline_to_job(
@@ -368,8 +395,8 @@ def _load_operator_class_source(module_path: str, class_name: str) -> str:
     """动态加载operator类并获取其源代码"""
     try:
         # 添加SAGE项目路径到sys.path
-        sage_root = Path(__file__).parent.parent.parent.parent.parent.parent
-        if str(sage_root) not in sys.path:
+        sage_root = find_sage_project_root()
+        if sage_root and str(sage_root) not in sys.path:
             sys.path.insert(0, str(sage_root))
 
         # 动态导入模块
@@ -924,12 +951,13 @@ def _load_flow_data(flow_id: str) -> dict | None:
 def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     """将前端 Flow 数据转换为 FlowDefinition"""
     import sys
-    from pathlib import Path
 
     # 添加 sage-studio 到 Python 路径
-    studio_path = Path(__file__).parent.parent.parent.parent
-    if str(studio_path) not in sys.path:
-        sys.path.insert(0, str(studio_path))
+    studio_root = find_sage_project_root()
+    if studio_root:
+        studio_path = studio_root / "packages" / "sage-studio"
+        if str(studio_path) not in sys.path:
+            sys.path.insert(0, str(studio_path))
 
     from sage.studio.models import (  # type: ignore[import-not-found]
         VisualConnection,
@@ -1073,12 +1101,13 @@ async def execute_playground(request: PlaygroundExecuteRequest):
     try:
         import sys
         import time
-        from pathlib import Path
 
         # 添加 sage-studio 到 Python 路径
-        studio_path = Path(__file__).parent.parent.parent.parent
-        if str(studio_path) not in sys.path:
-            sys.path.insert(0, str(studio_path))
+        studio_root = find_sage_project_root()
+        if studio_root:
+            studio_path = studio_root / "packages" / "sage-studio"
+            if str(studio_path) not in sys.path:
+                sys.path.insert(0, str(studio_path))
 
         from sage.studio.models import PipelineStatus
         from sage.studio.services import get_pipeline_builder
@@ -1553,25 +1582,6 @@ async def delete_chat_session(session_id: str):
         )
 
 
-@app.post("/api/chat/sessions/{session_id}/convert")
-async def convert_chat_session(session_id: str):
-    """根据聊天记录生成 Pipeline 建议"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在，无法转换")
-            response.raise_for_status()
-            session = response.json()
-
-        recommendation = generate_pipeline_recommendation(session)
-        return recommendation
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
-
-
 class WorkflowGenerateRequest(BaseModel):
     """工作流生成请求 (LLM驱动的高级版本)"""
 
@@ -1620,16 +1630,39 @@ async def generate_workflow_advanced(request: WorkflowGenerateRequest):
             pass
 
     # 调用工作流生成器
-    result = generate_workflow_from_chat(
-        user_input=request.user_input,
-        session_messages=session_messages,
-        enable_optimization=request.enable_optimization,
-    )
+    try:
+        print("🔍 Calling generate_workflow_from_chat with:")
+        print(f"  - user_input: {request.user_input}")
+        print(f"  - session_messages: {session_messages is not None}")
+        print(f"  - enable_optimization: {request.enable_optimization}")
+
+        result = generate_workflow_from_chat(
+            user_input=request.user_input,
+            session_messages=session_messages,
+            enable_optimization=request.enable_optimization,
+        )
+
+        print(f"✅ Result returned: {result}")
+        print(f"  - Type: {type(result)}")
+        if result:
+            print(f"  - success: {result.success}")
+            print(f"  - visual_pipeline: {result.visual_pipeline is not None}")
+
+    except Exception as e:
+        import traceback
+
+        print("❌ Exception in generate_workflow_from_chat:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"工作流生成失败: {str(e)}")
+
+    if result is None:
+        raise HTTPException(status_code=500, detail="工作流生成器返回了 None")
 
     if not result.success:
         raise HTTPException(status_code=500, detail=result.error or "工作流生成失败")
 
-    return {
+    print("📤 Preparing response...")
+    response_data = {
         "success": result.success,
         "visual_pipeline": result.visual_pipeline,
         "raw_plan": result.raw_plan,
@@ -1637,6 +1670,8 @@ async def generate_workflow_advanced(request: WorkflowGenerateRequest):
         "optimization_metrics": result.optimization_metrics,
         "message": result.message,
     }
+    print(f"✅ Response data prepared: {list(response_data.keys())}")
+    return response_data
 
 
 # ===== Fine-tune API Endpoints =====

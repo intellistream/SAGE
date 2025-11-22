@@ -100,7 +100,7 @@ export default function FinetunePanel() {
 
     const loadGpuInfo = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/system/gpu-info')
+            const response = await fetch('/api/system/gpu-info')
             if (response.ok) {
                 const data = await response.json()
                 setGpuInfo(data)
@@ -112,7 +112,7 @@ export default function FinetunePanel() {
 
     const loadTasks = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/finetune/tasks')
+            const response = await fetch('/api/finetune/tasks')
             if (response.ok) {
                 const data = await response.json()
                 setTasks(data)
@@ -124,7 +124,7 @@ export default function FinetunePanel() {
 
     const loadModels = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/finetune/models')
+            const response = await fetch('/api/finetune/models')
             if (response.ok) {
                 const data = await response.json()
                 setModels(data)
@@ -136,7 +136,7 @@ export default function FinetunePanel() {
 
     const loadCurrentModel = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/finetune/current-model')
+            const response = await fetch('/api/finetune/current-model')
             if (response.ok) {
                 const data = await response.json()
                 setCurrentModel(data.current_model)
@@ -156,7 +156,7 @@ export default function FinetunePanel() {
             formData.append('file', file as File)
 
             try {
-                const response = await fetch('http://localhost:8080/api/finetune/upload-dataset', {
+                const response = await fetch('/api/finetune/upload-dataset', {
                     method: 'POST',
                     body: formData,
                 })
@@ -187,7 +187,7 @@ export default function FinetunePanel() {
 
         setLoading(true)
         try {
-            const response = await fetch('http://localhost:8080/api/finetune/create', {
+            const response = await fetch('/api/finetune/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -236,7 +236,7 @@ export default function FinetunePanel() {
     const handleSwitchModel = async (modelPath: string) => {
         try {
             const response = await fetch(
-                `http://localhost:8080/api/finetune/switch-model?model_path=${encodeURIComponent(modelPath)}`,
+                `/api/finetune/switch-model?model_path=${encodeURIComponent(modelPath)}`,
                 { method: 'POST' }
             )
 
@@ -254,7 +254,7 @@ export default function FinetunePanel() {
     const handlePrepareSageDocs = async () => {
         const hide = message.loading('正在下载 SAGE 文档并准备训练数据...', 0)
         try {
-            const response = await fetch('http://localhost:8080/api/finetune/prepare-sage-docs', {
+            const response = await fetch('/api/finetune/prepare-sage-docs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({}),
@@ -286,7 +286,7 @@ export default function FinetunePanel() {
             onOk: async () => {
                 try {
                     const response = await fetch(
-                        'http://localhost:8080/api/finetune/use-as-backend',
+                        '/api/finetune/use-as-backend',
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -434,7 +434,7 @@ export default function FinetunePanel() {
 
     const handleDownloadModel = async (taskId: string) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/finetune/tasks/${taskId}/download`)
+            const response = await fetch(`/api/finetune/tasks/${taskId}/download`)
             if (response.ok) {
                 const blob = await response.blob()
                 const url = window.URL.createObjectURL(blob)
@@ -463,7 +463,7 @@ export default function FinetunePanel() {
             cancelText: '取消',
             async onOk() {
                 try {
-                    const response = await fetch(`http://localhost:8080/api/finetune/tasks/${taskId}`, {
+                    const response = await fetch(`/api/finetune/tasks/${taskId}`, {
                         method: 'DELETE',
                     })
                     if (response.ok) {
@@ -489,7 +489,7 @@ export default function FinetunePanel() {
             cancelText: '继续训练',
             async onOk() {
                 try {
-                    const response = await fetch(`http://localhost:8080/api/finetune/tasks/${taskId}/cancel`, {
+                    const response = await fetch(`/api/finetune/tasks/${taskId}/cancel`, {
                         method: 'POST',
                     })
                     if (response.ok) {
@@ -523,20 +523,37 @@ export default function FinetunePanel() {
                     <Space direction="vertical" className="w-full">
                         <Text strong>当前使用的模型</Text>
                         <div className="flex items-center justify-between">
-                            <Text code className="text-lg">
+                            <Text code className="text-lg" style={{ wordBreak: 'break-all' }}>
                                 {currentModel}
                             </Text>
                             <Select
                                 value={currentModel}
                                 onChange={handleSwitchModel}
-                                style={{ width: 300 }}
+                                style={{ width: 400 }}
                                 placeholder="切换模型"
+                                optionLabelProp="label"
                             >
                                 {models.map((model) => (
-                                    <Option key={model.name} value={model.name}>
-                                        <div className="flex items-center justify-between">
-                                            <span>{model.name}</span>
-                                            <Tag color={model.type === 'base' ? 'blue' : 'green'}>
+                                    <Option
+                                        key={model.name}
+                                        value={model.name}
+                                        label={
+                                            <span style={{ fontSize: '13px' }}>
+                                                {model.name.length > 35 ? `${model.name.substring(0, 35)}...` : model.name}
+                                            </span>
+                                        }
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                            <span style={{
+                                                fontSize: '13px',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                flex: 1
+                                            }}>
+                                                {model.name}
+                                            </span>
+                                            <Tag color={model.type === 'base' ? 'blue' : 'green'} style={{ margin: 0 }}>
                                                 {model.type === 'base' ? '基础' : '微调'}
                                             </Tag>
                                         </div>
@@ -569,60 +586,60 @@ export default function FinetunePanel() {
                             tooltip="选择要微调的基础模型（推荐使用 1.5B 模型适配 RTX 3060）"
                             rules={[{ required: true }]}
                         >
-                            <Select placeholder="选择基础模型">
+                            <Select placeholder="选择基础模型" style={{ width: '100%' }}>
                                 <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
-                                    <div>
-                                        <div>✨ Qwen 2.5 Coder 1.5B (推荐)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 6-8GB | 训练时间: 2-4h
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>✨ Qwen 2.5 Coder 1.5B (推荐)</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 6-8GB | 时间: 2-4h
                                         </Text>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-Coder-0.5B-Instruct">
-                                    <div>
-                                        <div>🚀 Qwen 2.5 Coder 0.5B (超快，代码优化)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 2-4GB (8-bit) | 训练时间: 1-2h | ✅ 推荐新手
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>🚀 Qwen 2.5 Coder 0.5B (超快)</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 2-4GB | 时间: 1-2h | ✅ 推荐新手
                                         </Text>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
-                                    <div>
-                                        <div>✨ Qwen 2.5 Coder 1.5B (推荐，代码优化)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 4-6GB (8-bit) | 训练时间: 2-4h | ✅ RTX 3060 推荐
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>✨ Qwen 2.5 Coder 1.5B</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 4-6GB | 时间: 2-4h | ✅ RTX 3060
                                         </Text>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-0.5B-Instruct">
-                                    <div>
-                                        <div>🚀 Qwen 2.5 0.5B (超快)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 2-4GB (8-bit) | 训练时间: 1-2h
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>🚀 Qwen 2.5 0.5B (超快)</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 2-4GB | 时间: 1-2h
                                         </Text>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-1.5B-Instruct">
-                                    <div>
-                                        <div>💬 Qwen 2.5 1.5B (通用)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 4-6GB (8-bit) | 训练时间: 2-4h
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>💬 Qwen 2.5 1.5B (通用)</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 4-6GB | 时间: 2-4h
                                         </Text>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-3B-Instruct">
-                                    <div>
-                                        <div>⚡ Qwen 2.5 3B (高级)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 8-10GB (8-bit) | 训练时间: 4-6h | ⚠️ 可能 OOM
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>⚡ Qwen 2.5 3B (高级)</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 8-10GB | 时间: 4-6h | ⚠️ 可能 OOM
                                         </Text>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-7B-Instruct">
-                                    <div>
-                                        <div>🔥 Qwen 2.5 7B (需要强卡)</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 14-16GB (8-bit) | 训练时间: 8-12h | ❌ RTX 3060 不推荐
+                                    <div style={{ lineHeight: '1.4' }}>
+                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>🔥 Qwen 2.5 7B (需要强卡)</div>
+                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                            显存: 14-16GB | 时间: 8-12h | ❌ RTX 3060
                                         </Text>
                                     </div>
                                 </Option>

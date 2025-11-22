@@ -377,13 +377,22 @@ export interface ChatSessionDetail extends ChatSessionSummary {
 }
 
 export interface PipelineRecommendation {
-    session_id: string
-    suggested_name: string
-    summary: string
-    confidence: number
-    nodes: Node[]
-    edges: Edge[]
-    insights: string[]
+    success: boolean
+    visual_pipeline: {
+        name: string
+        description: string
+        nodes: Node[]
+        connections: Array<{
+            id: string
+            source: string
+            target: string
+            type?: string
+            animated?: boolean
+        }>
+    }
+    raw_plan?: any
+    message: string
+    error?: string
 }
 
 /**
@@ -499,7 +508,11 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
 }
 
 export async function convertChatSessionToPipeline(sessionId: string): Promise<PipelineRecommendation> {
-    const response = await apiClient.post(`/chat/sessions/${sessionId}/convert`)
+    const response = await apiClient.post('/chat/generate-workflow', {
+        user_input: '根据我们的对话历史生成工作流',
+        session_id: sessionId,
+        enable_optimization: false,
+    })
     return response.data
 }
 

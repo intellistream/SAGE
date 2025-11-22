@@ -12,11 +12,14 @@ from sage-cli, providing a research-friendly interface.
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Any
 
-from sage.common.logging.logger import get_logger
+logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
 
 from .base import (
     BaseWorkflowGenerator,
@@ -24,8 +27,6 @@ from .base import (
     GenerationResult,
     GenerationStrategy,
 )
-
-logger = get_logger(__name__)
 
 
 class LLMWorkflowGenerator(BaseWorkflowGenerator):
@@ -68,14 +69,40 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
         """
         super().__init__(GenerationStrategy.LLM_DRIVEN)
 
-        self.model = model or os.getenv("SAGE_PIPELINE_BUILDER_MODEL", "qwen-max")
+        # API Key: 优先级顺序
+        # 1. 显式传入的参数
+        # 2. SAGE_PIPELINE_BUILDER_API_KEY（专用于 Pipeline Builder）
+        # 3. DASHSCOPE_API_KEY（DashScope 官方变量名）
+        # 4. SAGE_CHAT_API_KEY（Gateway/Studio Chat 使用的密钥）
+        # 5. SAGE_DEBUG_API_KEY（开发调试密钥）
+        # 6. OPENAI_API_KEY（通用后备）
         self.api_key = (
-            api_key or os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
+            api_key
+            or os.getenv("SAGE_PIPELINE_BUILDER_API_KEY")
+            or os.getenv("DASHSCOPE_API_KEY")
+            or os.getenv("SAGE_CHAT_API_KEY")
+            or os.getenv("SAGE_DEBUG_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
         )
-        self.base_url = base_url or os.getenv(
-            "SAGE_PIPELINE_BUILDER_BASE_URL",
-            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+
+        # Model: 类似的优先级
+        self.model = (
+            model
+            or os.getenv("SAGE_PIPELINE_BUILDER_MODEL")
+            or os.getenv("SAGE_CHAT_MODEL")
+            or os.getenv("SAGE_DEBUG_MODEL")
+            or os.getenv("OPENAI_MODEL_NAME", "qwen-max")
         )
+
+        # Base URL: 类似的优先级
+        self.base_url = (
+            base_url
+            or os.getenv("SAGE_PIPELINE_BUILDER_BASE_URL")
+            or os.getenv("SAGE_CHAT_BASE_URL")
+            or os.getenv("SAGE_DEBUG_BASE_URL")
+            or os.getenv("OPENAI_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        )
+
         self.use_rag = use_rag
 
         # 检查依赖
@@ -206,7 +233,9 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
             "name": context.metadata.get("name", "用户自定义工作流"),
             "goal": goal,
             "data_sources": context.metadata.get("data_sources", ["文档知识库"]),
-            "latency_budget": context.constraints.get("max_latency", "实时响应优先"),
+            "latency_budget": context.constraints.get("max_latency", "实时响应优先")
+            if context.constraints
+            else "实时响应优先",
             "constraints": "；".join(constraints_text),
             "initial_prompt": context.user_input,
         }

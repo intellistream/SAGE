@@ -31,6 +31,9 @@ from sage.common.utils.document_processing import (
     truncate_text,
 )
 
+# Export logging utilities
+from sage.common.utils.logging import CustomFormatter, CustomLogger, get_logger
+
 __all__ = [
     "__version__",
     "__author__",
@@ -43,4 +46,8 @@ __all__ = [
     "sanitize_metadata_value",
     "slugify",
     "truncate_text",
+    # Logging
+    "CustomLogger",
+    "CustomFormatter",
+    "get_logger",
 ]

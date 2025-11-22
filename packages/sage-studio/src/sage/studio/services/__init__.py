@@ -5,7 +5,6 @@ Studio Services - Business Logic Layer
 所有 Pipeline 执行都委托给 SAGE Engine。
 """
 
-from .chat_pipeline_recommender import generate_pipeline_recommendation
 from .node_registry import NodeRegistry
 from .pipeline_builder import PipelineBuilder, get_pipeline_builder
 from .workflow_generator import (
@@ -13,18 +12,15 @@ from .workflow_generator import (
     WorkflowGenerationResult,
     WorkflowGenerator,
     generate_workflow_from_chat,
-    get_workflow_generator,
 )
 
 __all__ = [
     "NodeRegistry",
     "PipelineBuilder",
     "get_pipeline_builder",
-    "generate_pipeline_recommendation",
-    # Workflow Generation (新增)
+    # Workflow Generation
     "WorkflowGenerator",
     "WorkflowGenerationRequest",
     "WorkflowGenerationResult",
-    "get_workflow_generator",
     "generate_workflow_from_chat",
 ]
