@@ -9,6 +9,7 @@ from .neuromem.memory_collection import (
     BaseMemoryCollection,
     GraphMemoryCollection,
     KVMemoryCollection,
+    SimpleGraphIndex,
     VDBMemoryCollection,
 )
 
@@ -26,6 +27,7 @@ __all__ = [
     "VDBMemoryCollection",
     "KVMemoryCollection",
     "GraphMemoryCollection",
+    "SimpleGraphIndex",
     # Services
     "NeuroMemVDB",
     "NeuroMemVDBService",

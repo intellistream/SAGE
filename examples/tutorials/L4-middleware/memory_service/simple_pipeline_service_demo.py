@@ -28,6 +28,9 @@ from sage.kernel.api.service import (
     PipelineServiceSource,
 )
 
+# Test configuration: Pipeline-as-Service examples need more time
+TEST_TAGS = ["timeout=120"]
+
 
 # ============================================================
 # 业务逻辑：只需要实现自定义的 Map 算子
