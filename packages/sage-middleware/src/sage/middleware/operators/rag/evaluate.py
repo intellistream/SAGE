@@ -264,35 +264,53 @@ class AccuracyEvaluate(MapOperator):
 class TokenCountEvaluate(MapOperator):
     """Token计数评估器
 
-    统计当前阶段文档的token数量
-    优先级：refining_results（压缩后）> retrieval_results（原始）
+    统计送入生成器的最终prompt的token数量（使用真实tokenizer）
+    优先级：compressed_context（压缩后）> refining_results > retrieval_results（原始）
 
-    输入数据格式：{"query": str, "refining_results": List[str], ...} 或
+    输入数据格式：{"query": str, "compressed_context": str, "refining_results": List[str], ...} 或
                  {"query": str, "retrieval_results": List[Dict], ...}
     """
 
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.aggregator = MetricsAggregator()
+        # 使用与REFORM相同的tokenizer以保持一致性
+        try:
+            from transformers import AutoTokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+        except:
+            self.tokenizer = None
 
     def execute(self, data):
         # Handle StopSignal
         if isinstance(data, StopSignal):
             return data
             
-        # 优先计算 refining_results（压缩后），其次是 retrieval_results（原始）
-        docs = data.get("refining_results") or data.get("retrieval_results", [])
-        total_tokens = 0
-
-        if docs:
-            for doc in docs:
-                if isinstance(doc, dict):
-                    text = doc.get("text", str(doc))
-                    total_tokens += len(text.split())
-                elif isinstance(doc, str):
-                    total_tokens += len(doc.split())
-                else:
-                    total_tokens += len(str(doc).split())
+        # 优先使用 compressed_context（最终送入生成器的文本）
+        context = data.get("compressed_context")
+        if context:
+            # 使用真实tokenizer计算token数
+            if self.tokenizer:
+                total_tokens = len(self.tokenizer.encode(context))
+            else:
+                total_tokens = len(context.split())
+        else:
+            # 回退到旧的计算方式
+            docs = data.get("refining_results") or data.get("retrieval_results", [])
+            total_tokens = 0
+            if docs:
+                for doc in docs:
+                    if isinstance(doc, dict):
+                        text = doc.get("text", str(doc))
+                    elif isinstance(doc, str):
+                        text = doc
+                    else:
+                        text = str(doc)
+                    
+                    if self.tokenizer:
+                        total_tokens += len(self.tokenizer.encode(text))
+                    else:
+                        total_tokens += len(text.split())
 
         # Add to aggregator
         self.aggregator.add_token_count(total_tokens)
