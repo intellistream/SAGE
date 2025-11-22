@@ -2,7 +2,7 @@ import json
 import os
 
 from sage.common.core import BatchFunction
-from sage.kernel.runtime.communication.router.packet import StopSignal
+from sage.kernel.runtime.communication.packet import StopSignal
 
 try:
     from datasets import load_dataset
@@ -46,7 +46,7 @@ class HFDatasetBatch(BatchFunction):
         self._iter = None
         self._dataset_exhausted = False
         self._sample_count = 0  # Track number of samples yielded
-        
+
         # Log max_samples configuration
         if self.max_samples is not None:
             self.logger.info(f"HFDatasetBatch configured with max_samples={self.max_samples}")
@@ -74,7 +74,7 @@ class HFDatasetBatch(BatchFunction):
         """
         if self._dataset_exhausted:
             return StopSignal("HFDatasetBatch-exhausted")
-        
+
         # Check if we've reached max_samples limit
         if self.max_samples is not None and self._sample_count >= self.max_samples:
             self.logger.info(
