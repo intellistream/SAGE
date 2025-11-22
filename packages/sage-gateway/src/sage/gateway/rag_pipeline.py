@@ -319,13 +319,17 @@ class RAGChatMap(MapFunction):
             },
         }
 
-    def _perform_rag_chat(self, user_input: str) -> str:
-        """Perform RAG-based chat response."""
+    def _perform_rag_chat(self, user_input: str) -> dict:
+        """Perform RAG-based chat response.
+
+        Returns:
+            Dict with 'content' (answer) and 'sources' (retrieved documents)
+        """
         self._ensure_rag_initialized()
 
         if self._db is None or self._embedder is None:
             # Fallback to direct LLM
-            return self._fallback_direct_llm(user_input)
+            return {"content": self._fallback_direct_llm(user_input), "sources": [], "type": "chat"}
 
         try:
             # 1. Retrieve relevant documents
@@ -333,11 +337,26 @@ class RAGChatMap(MapFunction):
             top_k = 4
             results = self._db.search(query_vector, top_k, True)
 
-            # Extract contexts
+            # Extract contexts and build sources list
             contexts = []
-            for item in results:
+            sources = []
+            for idx, item in enumerate(results, start=1):
                 metadata = dict(item.metadata) if hasattr(item, "metadata") else {}
-                contexts.append(metadata.get("text", ""))
+                text = metadata.get("text", "")
+
+                if text:
+                    contexts.append(text)
+                    # Build source info for display
+                    sources.append(
+                        {
+                            "id": idx,
+                            "text": text[:500] + ("..." if len(text) > 500 else ""),  # Preview
+                            "full_text": text,
+                            "doc_path": metadata.get("doc_path", "unknown"),
+                            "heading": metadata.get("heading", ""),
+                            "chunk": metadata.get("chunk", "0"),
+                        }
+                    )
 
             # 2. Build RAG prompt
             context_block = "\n\n".join(
@@ -350,8 +369,9 @@ class RAGChatMap(MapFunction):
                 """
                 You are SAGE 内嵌编程助手。回答用户关于 SAGE 的问题，依据提供的上下文进行解释。
                 - 如果上下文不足以回答，请坦诚说明并给出下一步建议。
-                - 引用时使用 [编号] 表示。
+                - 引用时使用 [编号] 表示，例如 [1], [2]。
                 - 回答保持简洁，直接给出步骤或示例代码。
+                - 在回答末尾简要说明引用来源的文档标题。
                 """
             ).strip()
 
@@ -363,22 +383,21 @@ class RAGChatMap(MapFunction):
                 {"role": "user", "content": user_input.strip()},
             ]
 
-            # 3. Generate response
+            # 3. Generate response using vLLM service
             import os
             from sage.libs.integrations.openaiclient import OpenAIClient
 
-            model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
-            base_url = os.getenv(
-                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            )
-            api_key = (
-                os.getenv("SAGE_CHAT_API_KEY")
-                or os.getenv("ALIBABA_API_KEY")
-                or os.getenv("DASHSCOPE_API_KEY")
-            )
+            # Use local vLLM service by default
+            model_name = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+            base_url = os.getenv("SAGE_CHAT_BASE_URL", "http://localhost:8000/v1")
+            api_key = os.getenv("SAGE_CHAT_API_KEY", "token-abc123")
 
-            if not api_key:
-                return "[配置错误] 请设置 DASHSCOPE_API_KEY 环境变量以启用 RAG 功能"
+            if not base_url:
+                return {
+                    "content": "[配置错误] 请设置 SAGE_CHAT_BASE_URL 环境变量或启动本地 vLLM 服务",
+                    "sources": [],
+                    "type": "error",
+                }
 
             client = OpenAIClient(
                 model_name=model_name,
@@ -388,30 +407,27 @@ class RAGChatMap(MapFunction):
             )
 
             response = client.generate(messages, temperature=0.2, stream=False)
-            return response
+
+            # Return answer with sources
+            return {"content": response, "sources": sources, "type": "chat"}
 
         except Exception as e:
             logger.error(f"RAG chat error: {e}", exc_info=True)
-            return self._fallback_direct_llm(user_input)
+            return {"content": self._fallback_direct_llm(user_input), "sources": [], "type": "chat"}
 
     def _fallback_direct_llm(self, user_input: str) -> str:
-        """Fallback: Direct LLM call without RAG."""
+        """Fallback: Direct LLM call without RAG using vLLM service."""
         try:
             import os
             from sage.libs.integrations.openaiclient import OpenAIClient
 
-            model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
-            base_url = os.getenv(
-                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            )
-            api_key = (
-                os.getenv("SAGE_CHAT_API_KEY")
-                or os.getenv("ALIBABA_API_KEY")
-                or os.getenv("DASHSCOPE_API_KEY")
-            )
+            # Use local vLLM service by default
+            model_name = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+            base_url = os.getenv("SAGE_CHAT_BASE_URL", "http://localhost:8000/v1")
+            api_key = os.getenv("SAGE_CHAT_API_KEY", "token-abc123")
 
-            if not api_key:
-                return "[配置错误] 请设置 DASHSCOPE_API_KEY 环境变量"
+            if not base_url:
+                return "[配置错误] 请设置 SAGE_CHAT_BASE_URL 环境变量或启动本地 vLLM 服务"
 
             client = OpenAIClient(
                 model_name=model_name,
@@ -470,10 +486,14 @@ class RAGChatMap(MapFunction):
             }
         else:
             # RAG chat mode
-            response_content = self._perform_rag_chat(user_input)
+            rag_result = self._perform_rag_chat(user_input)
 
             return {
-                "payload": {"content": response_content, "type": "chat"},
+                "payload": {
+                    "content": rag_result.get("content", ""),
+                    "type": rag_result.get("type", "chat"),
+                    "sources": rag_result.get("sources", []),
+                },
                 "response_queue": data["response_queue"],
             }
 

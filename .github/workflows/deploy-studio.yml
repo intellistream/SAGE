@@ -1,0 +1,98 @@
+name: Deploy SAGE Studio to Self-Hosted Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      port:
+        description: 'Studio port (default: 4200)'
+        required: false
+        default: '4200'
+  push:
+    branches:
+      - main
+      - main-dev
+      - feat/unified-chat-canvas-rebased
+    paths:
+      - 'packages/sage-studio/**'
+      - 'packages/sage-gateway/**'
+      - '.github/workflows/deploy-studio.yml'
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Stop existing services
+        continue-on-error: true
+        run: |
+          echo "🛑 Stopping existing SAGE Studio services..."
+          pkill -f "sage studio" || true
+          pkill -f "sage-gateway" || true
+          sleep 2
+
+      - name: Install/Update SAGE
+        run: |
+          echo "📦 Installing SAGE with development mode..."
+          ./quickstart.sh --dev --yes
+
+      - name: Start SAGE Studio
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "🚀 Starting SAGE Studio..."
+          # sage studio start automatically:
+          # 1. Builds RAG index from docs-public if needed
+          # 2. Starts Gateway on port 8000
+          # 3. Starts Studio frontend on port 4200
+          nohup sage studio start --host 0.0.0.0 --port ${{ github.event.inputs.port || '4200' }} > ~/sage-studio-deploy.log 2>&1 &
+          sleep 10
+
+      - name: Health check
+        run: |
+          echo "🔍 Checking service health..."
+
+          # Check Studio
+          if curl -f http://localhost:${{ github.event.inputs.port || '4200' }} 2>/dev/null; then
+            echo "✅ Studio is healthy on port ${{ github.event.inputs.port || '4200' }}"
+          else
+            echo "⚠️  Studio health check failed, checking logs..."
+            tail -50 ~/sage-studio-deploy.log || echo "No logs yet"
+          fi
+
+      - name: Deployment summary
+        run: |
+          SERVER_IP=$(hostname -I | awk '{print $1}')
+          PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "Check manually")
+          echo "## 🎉 SAGE Studio Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server IP**: http://$PUBLIC_IP:${{ github.event.inputs.port || '4200' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Local Network**: http://$SERVER_IP:${{ github.event.inputs.port || '4200' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> ⚠️ **Access Note**: Accessible within campus network or via VPN" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Features:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Visual Pipeline Editor" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AI Chat with RAG (auto-indexed SAGE documentation)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Workflow Generation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Interactive Playground" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Logs:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -30 ~/sage-studio-deploy.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

@@ -353,7 +353,26 @@ class OpenAIAdapter:
 
             else:
                 # Normal chat response
-                return response.get("content", "")
+                content = response.get("content", "")
+                sources = response.get("sources", [])
+
+                # If sources are available, append them to the response
+                if sources:
+                    content += "\n\n---\n\n**参考文档：**\n\n"
+                    for source in sources:
+                        doc_path = source.get("doc_path", "unknown")
+                        heading = source.get("heading", "")
+                        source_id = source.get("id", 0)
+                        text_preview = source.get("text", "")
+
+                        # Format source citation
+                        if heading:
+                            content += f"[{source_id}] **{heading}** ({doc_path})\n"
+                        else:
+                            content += f"[{source_id}] {doc_path}\n"
+                        content += f"> {text_preview}\n\n"
+
+                return content
 
         except Exception as e:
             # Fallback: if Pipeline service fails, use direct LLM
