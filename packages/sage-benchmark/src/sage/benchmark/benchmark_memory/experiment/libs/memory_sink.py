@@ -21,14 +21,16 @@ class MemorySink(SinkFunction):
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
         self.test_segments = config.get("runtime.test_segments", 10)
+        self.memory_name = config.get("runtime.memory_name", "default")
 
         # 获取项目根目录
         project_root = get_project_root()
 
-        # 创建时间戳目录结构
+        # 创建时间戳目录结构，包含 memory_name
         time_str = get_time_filename()
         self.output_dir = os.path.join(
-            project_root, f".sage/benchmarks/benchmark_memory/{self.dataset}/{time_str}"
+            project_root,
+            f".sage/benchmarks/benchmark_memory/{self.dataset}/{time_str}/{self.memory_name}",
         )
         os.makedirs(self.output_dir, exist_ok=True)
 
