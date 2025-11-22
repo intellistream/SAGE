@@ -21,6 +21,7 @@ import {
     Collapse,
     Radio,
     Modal,
+    Alert,
 } from 'antd'
 import {
     Upload as UploadIcon,
@@ -196,6 +197,26 @@ export default function FinetunePanel() {
             })
 
             if (response.ok) {
+                const data = await response.json()
+
+                // 显示 OOM 警告（如果有）
+                if (data.warnings && data.warnings.length > 0) {
+                    Modal.warning({
+                        title: '⚠️ 显存警告',
+                        content: (
+                            <div className="space-y-2">
+                                {data.warnings.map((warning: string, index: number) => (
+                                    <div key={index}>{warning}</div>
+                                ))}
+                                <div className="mt-4 text-gray-600">
+                                    任务已创建，但建议重新配置参数以降低 OOM 风险。
+                                </div>
+                            </div>
+                        ),
+                        okText: '知道了',
+                    })
+                }
+
                 message.success('微调任务已创建并开始训练')
                 form.resetFields()
                 setFileList([])
@@ -557,11 +578,27 @@ export default function FinetunePanel() {
                                         </Text>
                                     </div>
                                 </Option>
+                                <Option value="Qwen/Qwen2.5-Coder-0.5B-Instruct">
+                                    <div>
+                                        <div>🚀 Qwen 2.5 Coder 0.5B (超快，代码优化)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 2-4GB (8-bit) | 训练时间: 1-2h | ✅ 推荐新手
+                                        </Text>
+                                    </div>
+                                </Option>
+                                <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
+                                    <div>
+                                        <div>✨ Qwen 2.5 Coder 1.5B (推荐，代码优化)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 4-6GB (8-bit) | 训练时间: 2-4h | ✅ RTX 3060 推荐
+                                        </Text>
+                                    </div>
+                                </Option>
                                 <Option value="Qwen/Qwen2.5-0.5B-Instruct">
                                     <div>
                                         <div>🚀 Qwen 2.5 0.5B (超快)</div>
                                         <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 4-6GB | 训练时间: 1-2h
+                                            显存需求: 2-4GB (8-bit) | 训练时间: 1-2h
                                         </Text>
                                     </div>
                                 </Option>
@@ -569,7 +606,7 @@ export default function FinetunePanel() {
                                     <div>
                                         <div>💬 Qwen 2.5 1.5B (通用)</div>
                                         <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 6-8GB | 训练时间: 2-4h
+                                            显存需求: 4-6GB (8-bit) | 训练时间: 2-4h
                                         </Text>
                                     </div>
                                 </Option>
@@ -577,7 +614,7 @@ export default function FinetunePanel() {
                                     <div>
                                         <div>⚡ Qwen 2.5 3B (高级)</div>
                                         <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 10-12GB | 训练时间: 4-6h
+                                            显存需求: 8-10GB (8-bit) | 训练时间: 4-6h | ⚠️ 可能 OOM
                                         </Text>
                                     </div>
                                 </Option>
@@ -585,7 +622,7 @@ export default function FinetunePanel() {
                                     <div>
                                         <div>🔥 Qwen 2.5 7B (需要强卡)</div>
                                         <Text type="secondary" style={{ fontSize: 12 }}>
-                                            显存需求: 16-20GB | 训练时间: 8-12h
+                                            显存需求: 14-16GB (8-bit) | 训练时间: 8-12h | ❌ RTX 3060 不推荐
                                         </Text>
                                     </div>
                                 </Option>
@@ -633,6 +670,72 @@ export default function FinetunePanel() {
                                 </Text>
                             </Space>
                         </Form.Item>
+
+                        {/* 安全模式预设 */}
+                        <Alert
+                            message="💡 配置建议"
+                            description={
+                                <div className="space-y-2">
+                                    <div>
+                                        针对 RTX 3060 12GB 显卡，推荐使用以下配置以避免 OOM（显存不足）错误：
+                                    </div>
+                                    <Space>
+                                        <Button
+                                            size="small"
+                                            type="primary"
+                                            onClick={() => {
+                                                form.setFieldsValue({
+                                                    num_epochs: 3,
+                                                    batch_size: 1,
+                                                    gradient_accumulation_steps: 16,
+                                                    learning_rate: 0.00005,
+                                                    max_length: 512,
+                                                    load_in_8bit: true,
+                                                })
+                                                message.success('已应用安全配置（推荐）')
+                                            }}
+                                        >
+                                            🛡️ 应用安全配置
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            onClick={() => {
+                                                form.setFieldsValue({
+                                                    num_epochs: 3,
+                                                    batch_size: 2,
+                                                    gradient_accumulation_steps: 8,
+                                                    learning_rate: 0.00005,
+                                                    max_length: 1024,
+                                                    load_in_8bit: true,
+                                                })
+                                                message.success('已应用平衡配置')
+                                            }}
+                                        >
+                                            ⚖️ 平衡配置
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            onClick={() => {
+                                                form.setFieldsValue({
+                                                    num_epochs: 3,
+                                                    batch_size: 4,
+                                                    gradient_accumulation_steps: 4,
+                                                    learning_rate: 0.00005,
+                                                    max_length: 2048,
+                                                    load_in_8bit: false,
+                                                })
+                                                message.warning('高性能配置可能导致 OOM')
+                                            }}
+                                        >
+                                            🚀 高性能配置
+                                        </Button>
+                                    </Space>
+                                </div>
+                            }
+                            type="info"
+                            showIcon
+                            className="mb-4"
+                        />
 
                         <Collapse ghost>
                             <Panel header="高级配置" key="1">

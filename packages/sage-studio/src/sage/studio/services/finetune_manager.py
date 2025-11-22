@@ -454,48 +454,137 @@ class FinetuneManager:
             return True
 
     def _create_training_script(self, task: FinetuneTask) -> Path:
-        """创建独立的训练脚本"""
+        """创建独立的训练脚本（带 OOM 保护）"""
         script_path = Path(task.output_dir) / "train.py"
         script_path.parent.mkdir(parents=True, exist_ok=True)
 
         script_content = f'''"""
 Auto-generated training script for task {task.task_id}
+With OOM protection and auto-recovery
 """
 import sys
+import gc
+import torch
 from pathlib import Path
 from sage.tools.finetune import LoRATrainer, TrainingConfig
+
+def clear_gpu_memory():
+    """清理 GPU 缓存"""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
+
+def get_safe_config(base_config, gpu_memory_gb):
+    """根据显存大小调整配置（OOM 保护）"""
+    config = base_config.copy()
+
+    # 根据显存调整 batch size
+    if gpu_memory_gb < 8:
+        config["per_device_train_batch_size"] = 1
+        config["gradient_accumulation_steps"] = 32
+        config["max_length"] = 512
+    elif gpu_memory_gb < 12:
+        config["per_device_train_batch_size"] = 1
+        config["gradient_accumulation_steps"] = 16
+        config["max_length"] = 1024
+    elif gpu_memory_gb < 16:
+        config["per_device_train_batch_size"] = 2
+        config["gradient_accumulation_steps"] = 8
+        config["max_length"] = 1024
+    else:
+        config["per_device_train_batch_size"] = 4
+        config["gradient_accumulation_steps"] = 4
+        config["max_length"] = 2048
+
+    # 强制启用内存优化选项
+    config["load_in_8bit"] = True
+    config["gradient_checkpointing"] = True
+
+    return config
 
 def main():
     print("=" * 50)
     print("SAGE Fine-tuning Task: {task.task_id}")
     print("=" * 50)
 
+    # 清理 GPU 缓存
+    clear_gpu_memory()
+
+    # 检测 GPU 显存
+    gpu_memory_gb = 0
+    if torch.cuda.is_available():
+        gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        print(f"GPU: {{torch.cuda.get_device_name(0)}}")
+        print(f"GPU Memory: {{gpu_memory_gb:.1f}} GB")
+    else:
+        print("WARNING: No GPU detected, using CPU (very slow!)")
+
+    # 基础配置
+    base_config = {{
+        "num_train_epochs": {task.config.get("num_epochs", 3)},
+        "per_device_train_batch_size": {task.config.get("batch_size", 1)},
+        "gradient_accumulation_steps": {task.config.get("gradient_accumulation_steps", 16)},
+        "learning_rate": {task.config.get("learning_rate", 5e-5)},
+        "max_length": {task.config.get("max_length", 1024)},
+        "load_in_8bit": {task.config.get("load_in_8bit", True)},
+        "gradient_checkpointing": True,
+    }}
+
+    # 应用安全配置（OOM 保护）
+    safe_config = get_safe_config(base_config, gpu_memory_gb)
+
     config = TrainingConfig(
         model_name="{task.model_name}",
         data_path=Path("{task.dataset_path}"),
         output_dir=Path("{task.output_dir}"),
-        num_train_epochs={task.config.get("num_epochs", 3)},
-        per_device_train_batch_size={task.config.get("batch_size", 1)},
-        gradient_accumulation_steps={task.config.get("gradient_accumulation_steps", 16)},
-        learning_rate={task.config.get("learning_rate", 5e-5)},
-        max_length={task.config.get("max_length", 1024)},
-        load_in_8bit={task.config.get("load_in_8bit", True)},
+        **safe_config
     )
 
     print(f"Base model: {task.model_name}")
     print(f"Dataset: {task.dataset_path}")
     print(f"Output: {task.output_dir}")
     print(f"Epochs: {{config.num_train_epochs}}")
+    print(f"Batch size: {{config.per_device_train_batch_size}}")
+    print(f"Gradient accumulation: {{config.gradient_accumulation_steps}}")
+    print(f"Max length: {{config.max_length}}")
+    print(f"8-bit quantization: {{config.load_in_8bit}}")
+    print(f"Gradient checkpointing: {{config.gradient_checkpointing}}")
     print("=" * 50)
 
     try:
         trainer = LoRATrainer(config)
+
+        # 训练前再次清理缓存
+        clear_gpu_memory()
+
         trainer.train()
+
+        # 训练后清理缓存
+        clear_gpu_memory()
+
         print("=" * 50)
         print("Training completed successfully!")
         print(f"Model saved to: {task.output_dir}")
         print("=" * 50)
         return 0
+    except RuntimeError as e:
+        if "out of memory" in str(e).lower():
+            print("=" * 50)
+            print("OOM ERROR: GPU out of memory!")
+            print("Suggestions:")
+            print("  1. Reduce batch_size to 1")
+            print("  2. Reduce max_length to 512")
+            print("  3. Increase gradient_accumulation_steps to 32")
+            print("  4. Use a smaller model (0.5B instead of 1.5B)")
+            print("=" * 50)
+            clear_gpu_memory()
+        else:
+            print("=" * 50)
+            print(f"Training failed: {{e}}")
+            print("=" * 50)
+        import traceback
+        traceback.print_exc()
+        return 1
     except Exception as e:
         print("=" * 50)
         print(f"Training failed: {{e}}")

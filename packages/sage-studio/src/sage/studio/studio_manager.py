@@ -46,8 +46,7 @@ class StudioManager:
         self.node_modules_dir = self.studio_sage_dir / "node_modules"
         self.vite_cache_dir = self.studio_sage_dir / ".vite"  # Vite 缓存
         self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
-        # 注意：dist 目录现在在 frontend/dist，不在 .sage/studio/dist
-        self.dist_dir = self.frontend_dir / "dist"  # 修正：使用 frontend 下的 dist
+        self.dist_dir = self.studio_sage_dir / "dist"  # 构建产物统一放在 .sage/studio/
 
         # React + Vite 默认端口是 5173
         self.default_port = 5173
