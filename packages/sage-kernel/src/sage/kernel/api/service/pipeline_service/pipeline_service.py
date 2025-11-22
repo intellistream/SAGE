@@ -5,12 +5,17 @@
 
 from __future__ import annotations
 
+import os
 import queue
 from typing import Any
 
 from sage.kernel.api.service.base_service import BaseService
 
 from .pipeline_bridge import PipelineBridge
+
+# Test mode detection - reduce timeout in test environments
+_IS_TEST_MODE = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("SAGE_EXAMPLES_MODE") == "test"
+_DEFAULT_TIMEOUT = 5.0 if _IS_TEST_MODE else 30.0
 
 
 class PipelineService(BaseService):
@@ -52,16 +57,16 @@ class PipelineService(BaseService):
     ```
     """
 
-    def __init__(self, bridge: PipelineBridge, request_timeout: float = 30.0):
+    def __init__(self, bridge: PipelineBridge, request_timeout: float | None = None):
         """初始化 PipelineService
 
         Args:
             bridge: PipelineBridge 实例（与服务 Pipeline 共享）
-            request_timeout: 请求超时时间（秒），默认 30 秒
+            request_timeout: 请求超时时间（秒），默认 30 秒（测试模式 5 秒）
         """
         super().__init__()
         self._bridge = bridge
-        self._request_timeout = request_timeout
+        self._request_timeout = request_timeout if request_timeout is not None else _DEFAULT_TIMEOUT
 
     def process(self, message: dict[str, Any]):
         """处理请求 - 阻塞直到 Pipeline 返回结果

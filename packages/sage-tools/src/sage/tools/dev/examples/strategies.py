@@ -85,7 +85,7 @@ class ExampleTestStrategies:
             ),
             "memory": TestStrategy(
                 name="memory",
-                timeout=60,
+                timeout=120,  # 增加到120秒，Pipeline-as-Service示例需要更多时间
                 requires_config=False,
                 requires_data=True,
                 success_patterns=[

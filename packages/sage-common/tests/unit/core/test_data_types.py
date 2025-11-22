@@ -152,9 +152,36 @@ class TestEnsureQueryResult:
         assert result["query"] == "fallback"
         assert result["results"] == []
 
+    def test_ensure_with_non_list_results_iterable(self):
+        """Test ensure_query_result converts non-list iterables to list"""
+        data = {"query": "test", "results": ("a", "b", "c")}  # tuple instead of list
+        result = ensure_query_result(data)
+        assert result["query"] == "test"
+        assert result["results"] == ["a", "b", "c"]
+        assert isinstance(result["results"], list)
+
+    def test_ensure_with_non_list_results_single_value(self):
+        """Test ensure_query_result wraps single non-list value in list"""
+        data = {"query": "test", "results": "single_item"}
+        result = ensure_query_result(data)
+        assert result["query"] == "test"
+        assert result["results"] == ["single_item"]
+        assert isinstance(result["results"], list)
+
+    def test_ensure_unparseable_input(self):
+        """Test ensure_query_result with completely unparseable input"""
+        # Input that doesn't match any expected format
+        result = ensure_query_result("invalid_string", default_query="default")
+        assert result["query"] == "default"
+        assert result["results"] == []
+
 
 class TestExtractQuery:
     """Tests for extract_query() function"""
+
+    def test_extract_from_string(self):
+        """Test extract_query from string input"""
+        assert extract_query("test query") == "test query"
 
     def test_extract_from_dict_query(self):
         """Test extract_query from dict with 'query' key"""
@@ -221,6 +248,19 @@ class TestExtractResults:
         """Test extract_results with default value"""
         assert extract_results({}, default=["default"]) == ["default"]
         assert extract_results({}) == []
+
+    def test_extract_from_single_element_list(self):
+        """Test extract_results from single-element list/tuple"""
+        # Single element list/tuple (length < 2) should return as list
+        assert extract_results(["only_one"]) == ["only_one"]
+        assert extract_results(("single",)) == ["single"]
+
+    def test_extract_from_invalid_type(self):
+        """Test extract_results from invalid type returns default"""
+        # String, int, etc. should return default
+        assert extract_results("string_input", default=["fallback"]) == ["fallback"]
+        assert extract_results(123, default=["default"]) == ["default"]
+        assert extract_results(None) == []
 
 
 class TestCreateQueryResult:

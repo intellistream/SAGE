@@ -70,7 +70,7 @@ class LocalEnvironment(BaseEnvironment):
         )
 
         # 设置最大等待时间，避免无限等待
-        max_wait_time = 600.0  # 增加到 10 分钟，适应长时间处理
+        max_wait_time = 12000.0  # 增加到 10 分钟，适应长时间处理
         start_time = time.time()
         check_interval = 1.0  # 增加检查间隔，减少 CPU 占用
 

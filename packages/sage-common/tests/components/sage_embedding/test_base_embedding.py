@@ -55,3 +55,15 @@ class TestBaseEmbedding:
 
         assert emb.method_name == "example"
         assert emb.get_dim() == len(emb.embed("dim"))
+
+    def test_repr_with_many_config_items(self):
+        """Test __repr__ truncates config when more than 3 items (line 141)"""
+        emb = ExampleEmbedding(
+            scale=2.0, param1="value1", param2="value2", param3="value3", param4="value4"
+        )
+
+        repr_str = repr(emb)
+
+        # Should show "..." when more than 3 config items
+        assert "..." in repr_str
+        assert "ExampleEmbedding" in repr_str

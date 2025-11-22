@@ -44,9 +44,12 @@ class ShortTermMemoryService(BaseService):
             f"Current queue size: {len(self.dialog_queue)}/{self.max_dialog}"
         )
 
-    def retrieve(self) -> list[dict[str, Any]]:
+    def retrieve(self, query: Any = None) -> list[dict[str, Any]]:
         """
         检索所有短期记忆中的对话
+
+        Args:
+            query: 查询参数（对于短期记忆服务，此参数不使用，但保留以统一接口）
 
         Returns:
             list[dict[str, Any]]: 对话列表，每个元素为 {"dialog": [...]}

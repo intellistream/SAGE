@@ -109,3 +109,33 @@ class TestEmbeddingRegistry:
 
         assert EmbeddingRegistry._is_model_cached("foo/bar") is True
         assert EmbeddingRegistry._is_model_cached("other/model") is False
+
+    def test_check_status_unavailable_for_unknown_method(self):
+        """Test check_status returns UNAVAILABLE for unregistered method"""
+        # Don't register anything, just check a non-existent method
+        status = EmbeddingRegistry.check_status("nonexistent_method")
+        assert status == ModelStatus.UNAVAILABLE
+
+    def test_is_model_cached_returns_false_on_exception(self, monkeypatch):
+        """Test _is_model_cached returns False when exception occurs"""
+
+        def raise_exception(*args, **kwargs):
+            raise RuntimeError("Simulated filesystem error")
+
+        # Make Path.home() raise an exception
+        monkeypatch.setattr(
+            "sage.common.components.sage_embedding.registry.Path.home", raise_exception
+        )
+
+        # Should return False instead of propagating the exception
+        assert EmbeddingRegistry._is_model_cached("any/model") is False
+
+    def test_is_model_cached_returns_false_when_cache_dir_not_exists(self, monkeypatch, tmp_path):
+        """Test _is_model_cached returns False when cache directory doesn't exist"""
+        # Use tmp_path without creating the cache directory
+        monkeypatch.setattr(
+            "sage.common.components.sage_embedding.registry.Path.home", lambda: tmp_path
+        )
+
+        # Cache directory doesn't exist, should return False
+        assert EmbeddingRegistry._is_model_cached("any/model") is False

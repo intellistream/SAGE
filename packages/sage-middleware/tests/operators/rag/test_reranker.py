@@ -452,3 +452,113 @@ class TestBGERerankerIntegration:
             for doc in result["results"]:
                 assert isinstance(doc, dict)
                 assert "content" in doc
+
+
+@pytest.mark.unit
+class TestLLMbasedReranker:
+    """Test LLMbased_Reranker class."""
+
+    def test_llm_reranker_import(self):
+        """Test LLMbased_Reranker import."""
+        if not RERANKER_AVAILABLE:
+            pytest.skip("Reranker module not available")
+
+        try:
+            from sage.middleware.operators.rag.reranker import LLMbased_Reranker
+
+            assert LLMbased_Reranker is not None
+        except ImportError:
+            pytest.skip("LLMbased_Reranker not available")
+
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForCausalLM")
+    @patch("torch.cuda.is_available")
+    def test_llm_reranker_initialization(
+        self, mock_cuda_available, mock_model_class, mock_tokenizer_class
+    ):
+        """Test LLMbased_Reranker initialization."""
+        if not RERANKER_AVAILABLE:
+            pytest.skip("Reranker module not available")
+
+        try:
+            from sage.middleware.operators.rag.reranker import LLMbased_Reranker
+        except ImportError:
+            pytest.skip("LLMbased_Reranker not available")
+
+        mock_cuda_available.return_value = False
+
+        # Mock tokenizer and model
+        mock_tokenizer = Mock()
+        mock_model = Mock()
+        mock_tokenizer_class.from_pretrained.return_value = mock_tokenizer
+        mock_model_class.from_pretrained.return_value = mock_model
+        mock_model.to.return_value = mock_model
+
+        # Mock yes_loc extraction
+        mock_tokenizer.return_value = {"input_ids": [123]}
+
+        config = {"top_k": 3}
+
+        reranker = LLMbased_Reranker(config=config)
+
+        assert reranker.config == config
+        assert reranker.device in ["cuda", "cpu"]
+        assert reranker.tokenizer == mock_tokenizer
+
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForCausalLM")
+    @patch("torch.cuda.is_available")
+    def test_llm_reranker_load_model(
+        self, mock_cuda_available, mock_model_class, mock_tokenizer_class
+    ):
+        """Test LLMbased_Reranker model loading."""
+        if not RERANKER_AVAILABLE:
+            pytest.skip("Reranker module not available")
+
+        try:
+            from sage.middleware.operators.rag.reranker import LLMbased_Reranker
+        except ImportError:
+            pytest.skip("LLMbased_Reranker not available")
+
+        mock_cuda_available.return_value = False
+
+        mock_tokenizer = Mock()
+        mock_model = Mock()
+        mock_tokenizer_class.from_pretrained.return_value = mock_tokenizer
+        mock_model_class.from_pretrained.return_value = mock_model
+        mock_model.to.return_value = mock_model
+        mock_tokenizer.return_value = {"input_ids": [123]}
+
+        config = {}
+        custom_model = "custom/reranker-model"
+
+        LLMbased_Reranker(config=config, model_name=custom_model)
+
+        # Verify custom model was loaded
+        mock_tokenizer_class.from_pretrained.assert_called_with(custom_model)
+        mock_model_class.from_pretrained.assert_called_with(custom_model)
+
+    @patch("sage.middleware.operators.rag.reranker.AutoTokenizer")
+    @patch("sage.middleware.operators.rag.reranker.AutoModelForCausalLM")
+    @patch("torch.cuda.is_available")
+    def test_llm_reranker_load_model_failure(
+        self, mock_cuda_available, mock_model_class, mock_tokenizer_class
+    ):
+        """Test LLMbased_Reranker handles model loading failures."""
+        if not RERANKER_AVAILABLE:
+            pytest.skip("Reranker module not available")
+
+        try:
+            from sage.middleware.operators.rag.reranker import LLMbased_Reranker
+        except ImportError:
+            pytest.skip("LLMbased_Reranker not available")
+
+        mock_cuda_available.return_value = False
+
+        # Mock loading failure
+        mock_tokenizer_class.from_pretrained.side_effect = Exception("Load failed")
+
+        config = {}
+
+        with pytest.raises(RuntimeError, match="Model loading failed"):
+            LLMbased_Reranker(config=config)
