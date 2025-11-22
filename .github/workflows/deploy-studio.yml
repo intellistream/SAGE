@@ -48,19 +48,24 @@ jobs:
           echo "📦 Installing SAGE with development mode..."
           ./quickstart.sh --dev --yes
 
+      - name: Build Studio (Production)
+        run: |
+          echo "🏗️  Building SAGE Studio for production..."
+          sage studio build
+
       - name: Start SAGE Studio
         env:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          echo "🚀 Starting SAGE Studio..."
-          # sage studio start automatically:
+          echo "🚀 Starting SAGE Studio in production mode..."
+          # Production mode for better performance and stability
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
-          # 3. Starts Studio frontend on port 4200
-          nohup sage studio start --host 0.0.0.0 --port ${{ github.event.inputs.port || '4200' }} > ~/sage-studio-deploy.log 2>&1 &
-          sleep 10
+          # 3. Builds and serves optimized frontend on port 4200
+          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '4200' }} > ~/sage-studio-deploy.log 2>&1 &
+          sleep 15  # Production build needs more time
 
       - name: Health check
         run: |
