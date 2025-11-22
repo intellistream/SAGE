@@ -102,19 +102,30 @@ class FinetuneManager:
             self._recover_running_tasks()
 
     def _load_tasks(self):
-        """Load existing tasks from disk"""
+        """Load existing tasks from disk (will merge with existing tasks in memory)"""
         task_file = self.output_base / "tasks.json"
         if task_file.exists():
             try:
                 with open(task_file) as f:
                     data = json.load(f)
+                    loaded_count = 0
                     for task_data in data.get("tasks", []):
-                        task = FinetuneTask(**task_data)
-                        task.status = FinetuneStatus(task.status)
-                        self.tasks[task.task_id] = task
+                        task_id = task_data.get("task_id")
+                        # 只加载内存中没有的任务（避免覆盖运行中任务的状态）
+                        if task_id and task_id not in self.tasks:
+                            task = FinetuneTask(**task_data)
+                            task.status = FinetuneStatus(task.status)
+                            self.tasks[task_id] = task
+                            loaded_count += 1
                     self.current_model = data.get("current_model", "Qwen/Qwen2.5-7B-Instruct")
+                print(
+                    f"[FinetuneManager] Loaded {loaded_count} new tasks from {task_file} (total: {len(self.tasks)})"
+                )
             except Exception as e:
-                print(f"Failed to load tasks: {e}")
+                import traceback
+
+                print(f"[FinetuneManager] Failed to load tasks: {e}")
+                print(traceback.format_exc())
 
     def _save_tasks(self):
         """Save tasks to disk"""
@@ -244,8 +255,14 @@ class FinetuneManager:
         return task
 
     def get_task(self, task_id: str) -> FinetuneTask | None:
-        """Get task by ID"""
-        return self.tasks.get(task_id)
+        """Get task by ID (with auto-reload if not found)"""
+        task = self.tasks.get(task_id)
+        if task is None:
+            # 尝试重新加载任务（以防任务是在后端启动后创建的）
+            print(f"[FinetuneManager] Task {task_id} not found in memory, reloading tasks...")
+            self._load_tasks()
+            task = self.tasks.get(task_id)
+        return task
 
     def list_tasks(self) -> list[FinetuneTask]:
         """List all tasks (with runtime health check)"""

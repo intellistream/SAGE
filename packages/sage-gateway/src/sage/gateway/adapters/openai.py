@@ -295,14 +295,20 @@ class OpenAIAdapter:
         user_message = request.messages[-1]  # 最后一条消息
         session.add_message(user_message.role, user_message.content)
 
-        # 3. 调用 SAGE Kernel 执行（已集成 DataStream API）
+        # 3. 调用 SAGE Kernel 执行（已集成 DataStream API + sage-memory）
         assistant_response = await self._execute_sage_pipeline(request, session)
 
         # 4. 添加助手响应到会话
         session.add_message("assistant", assistant_response)
+
+        # 5. 将对话存储到短期记忆服务（sage-memory集成）
+        self.session_manager.store_dialog_to_memory(
+            session.id, user_message.content, assistant_response
+        )
+
         self.session_manager.persist()
 
-        # 5. 返回响应
+        # 6. 返回响应
         if request.stream:
             return self._create_stream_response(request, session, assistant_response)
         else:
@@ -313,21 +319,26 @@ class OpenAIAdapter:
         执行 SAGE RAG Pipeline（通过持久化的 Pipeline-as-Service）
 
         流程:
-        1. 将请求提交到 RAG Pipeline
-        2. Pipeline 自动决定：对话模式 vs 工作流生成模式
-        3. 返回响应（文本回答 或 工作流配置）
+        1. 从 sage-memory 检索对话历史
+        2. 将请求提交到 RAG Pipeline（包含历史记忆上下文）
+        3. Pipeline 自动决定：对话模式 vs 工作流生成模式
+        4. 返回响应（文本回答 或 工作流配置）
         """
         try:
-            # Prepare request payload
+            # 1. 从短期记忆服务检索对话历史
+            memory_history = self.session_manager.retrieve_memory_history(session.id)
+
+            # 2. 准备请求数据
             request_data = {
                 "messages": [
                     {"role": msg.role, "content": msg.content} for msg in request.messages
                 ],
                 "model": request.model,
                 "temperature": request.temperature,
+                "memory_context": memory_history,  # 传递记忆上下文到 Pipeline
             }
 
-            # Submit to Pipeline and wait for response
+            # 3. 提交到 Pipeline 并等待响应
             response = self.rag_pipeline.process(request_data, timeout=120.0)
 
             # Handle different response types

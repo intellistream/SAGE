@@ -1572,6 +1572,73 @@ async def convert_chat_session(session_id: str):
         raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
 
 
+class WorkflowGenerateRequest(BaseModel):
+    """工作流生成请求 (LLM驱动的高级版本)"""
+
+    user_input: str
+    session_id: str | None = None
+    enable_optimization: bool = False
+    optimization_strategy: str = "greedy"  # greedy, parallelization, noop
+    constraints: dict | None = None  # max_cost, max_latency, min_quality
+
+
+@app.post("/api/chat/generate-workflow")
+async def generate_workflow_advanced(request: WorkflowGenerateRequest):
+    """生成智能工作流 (使用 LLM Pipeline Builder)
+
+    这个端点使用更高级的 LLM 驱动生成，而不是简单的意图识别。
+    可选地应用 sage-libs 中的工作流优化算法。
+
+    Args:
+        request: 包含用户输入、会话信息、优化选项
+
+    Returns:
+        {
+            "success": bool,
+            "visual_pipeline": {...},  # Studio 可视化格式
+            "raw_plan": {...},         # 原始 Pipeline 配置
+            "optimization_applied": bool,
+            "optimization_metrics": {...},
+            "message": str
+        }
+    """
+    import httpx
+
+    from sage.studio.services.workflow_generator import generate_workflow_from_chat
+
+    # 如果提供了 session_id，获取对话历史
+    session_messages = None
+    if request.session_id:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"http://localhost:8000/sessions/{request.session_id}")
+                if response.status_code == 200:
+                    session = response.json()
+                    session_messages = session.get("messages", [])
+        except httpx.ConnectError:
+            # 如果无法连接 Gateway，继续使用仅用户输入
+            pass
+
+    # 调用工作流生成器
+    result = generate_workflow_from_chat(
+        user_input=request.user_input,
+        session_messages=session_messages,
+        enable_optimization=request.enable_optimization,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "工作流生成失败")
+
+    return {
+        "success": result.success,
+        "visual_pipeline": result.visual_pipeline,
+        "raw_plan": result.raw_plan,
+        "optimization_applied": result.optimization_applied,
+        "optimization_metrics": result.optimization_metrics,
+        "message": result.message,
+    }
+
+
 # ===== Fine-tune API Endpoints =====
 
 
@@ -1784,6 +1851,11 @@ async def delete_finetune_task(task_id: str):
     else:
         task = finetune_manager.tasks.get(task_id)
         if not task:
+            # 尝试重新加载任务
+            finetune_manager._load_tasks()
+            task = finetune_manager.tasks.get(task_id)
+
+        if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         elif task.status in (
             FinetuneStatus.TRAINING,
@@ -1802,7 +1874,16 @@ async def cancel_finetune_task(task_id: str):
 
     task = finetune_manager.tasks.get(task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        # 任务不在内存中，尝试重新加载
+        print(f"[API] Task {task_id} not found in memory, attempting to reload tasks...")
+        finetune_manager._load_tasks()
+        task = finetune_manager.tasks.get(task_id)
+
+        if not task:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Task not found: {task_id}. Available tasks: {list(finetune_manager.tasks.keys())}",
+            )
 
     if task.status not in (
         FinetuneStatus.TRAINING,

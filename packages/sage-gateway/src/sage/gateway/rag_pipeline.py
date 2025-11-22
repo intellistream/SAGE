@@ -319,8 +319,12 @@ class RAGChatMap(MapFunction):
             },
         }
 
-    def _perform_rag_chat(self, user_input: str) -> dict:
-        """Perform RAG-based chat response.
+    def _perform_rag_chat(self, user_input: str, memory_context: str = "") -> dict:
+        """Perform RAG-based chat response with memory context.
+
+        Args:
+            user_input: Current user question
+            memory_context: Historical conversation context from sage-memory
 
         Returns:
             Dict with 'content' (answer) and 'sources' (retrieved documents)
@@ -329,7 +333,11 @@ class RAGChatMap(MapFunction):
 
         if self._db is None or self._embedder is None:
             # Fallback to direct LLM
-            return {"content": self._fallback_direct_llm(user_input), "sources": [], "type": "chat"}
+            return {
+                "content": self._fallback_direct_llm(user_input, memory_context),
+                "sources": [],
+                "type": "chat",
+            }
 
         try:
             # 1. Retrieve relevant documents
@@ -358,7 +366,7 @@ class RAGChatMap(MapFunction):
                         }
                     )
 
-            # 2. Build RAG prompt
+            # 2. Build RAG prompt with memory context
             context_block = "\n\n".join(
                 f"[{idx}] {textwrap.dedent(ctx).strip()}"
                 for idx, ctx in enumerate(contexts, start=1)
@@ -372,8 +380,13 @@ class RAGChatMap(MapFunction):
                 - 引用时使用 [编号] 表示，例如 [1], [2]。
                 - 回答保持简洁，直接给出步骤或示例代码。
                 - 在回答末尾简要说明引用来源的文档标题。
+                - 注意用户之前的对话历史，保持上下文连贯性。
                 """
             ).strip()
+
+            # 添加对话历史记忆（如果存在）
+            if memory_context:
+                system_instructions += f"\n\n对话历史:\n{memory_context}"
 
             if context_block:
                 system_instructions += f"\n\n已检索上下文:\n{context_block}"
@@ -441,10 +454,19 @@ class RAGChatMap(MapFunction):
 
         except Exception as e:
             logger.error(f"RAG chat error: {e}", exc_info=True)
-            return {"content": self._fallback_direct_llm(user_input), "sources": [], "type": "chat"}
+            return {
+                "content": self._fallback_direct_llm(user_input, memory_context),
+                "sources": [],
+                "type": "chat",
+            }
 
-    def _fallback_direct_llm(self, user_input: str) -> str:
-        """Fallback: Direct LLM call without RAG using SAGE LLM service."""
+    def _fallback_direct_llm(self, user_input: str, memory_context: str = "") -> str:
+        """Fallback: Direct LLM call without RAG using SAGE LLM service.
+
+        Args:
+            user_input: Current user question
+            memory_context: Historical conversation context from sage-memory
+        """
         try:
             import os
 
@@ -467,8 +489,14 @@ class RAGChatMap(MapFunction):
                 llm_service = VLLMService(llm_config)
                 llm_service.setup()
 
+                # Build prompt with memory context
+                if memory_context:
+                    prompt = f"对话历史:\n{memory_context}\n\n当前问题: {user_input}"
+                else:
+                    prompt = user_input
+
                 # Generate response
-                results = llm_service.generate(user_input, temperature=0.7, max_tokens=512)
+                results = llm_service.generate(prompt, temperature=0.7, max_tokens=512)
                 response = results[0]["text"] if results else "抱歉，无法生成回答。"
 
                 llm_service.cleanup()
@@ -493,7 +521,12 @@ class RAGChatMap(MapFunction):
                     seed=42,
                 )
 
-                messages = [{"role": "user", "content": user_input}]
+                # Build messages with memory context
+                messages = []
+                if memory_context:
+                    messages.append({"role": "system", "content": f"对话历史:\n{memory_context}"})
+                messages.append({"role": "user", "content": user_input})
+
                 return client.generate(messages, temperature=0.7, stream=False)
 
         except Exception as e:
@@ -507,7 +540,7 @@ class RAGChatMap(MapFunction):
 
         payload = data["payload"]
 
-        # Extract user input
+        # Extract user input and memory context
         messages = payload.get("messages", [])
         if not messages:
             return {
@@ -516,6 +549,7 @@ class RAGChatMap(MapFunction):
             }
 
         user_input = messages[-1].get("content", "")
+        memory_context = payload.get("memory_context", "")  # 获取记忆上下文
 
         # Detect intent: workflow creation vs. conversation
         if self._detect_workflow_intent(user_input):
@@ -542,8 +576,8 @@ class RAGChatMap(MapFunction):
                 "response_queue": data["response_queue"],
             }
         else:
-            # RAG chat mode
-            rag_result = self._perform_rag_chat(user_input)
+            # RAG chat mode with memory context
+            rag_result = self._perform_rag_chat(user_input, memory_context)
 
             return {
                 "payload": {

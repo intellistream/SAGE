@@ -88,13 +88,14 @@ def stop(
 def restart(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
-    dev: bool = typer.Option(False, "--dev", help="开发模式"),
+    dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
     clean: bool = typer.Option(True, "--clean/--no-clean", help="清理前端构建缓存（默认开启）"),
 ):
     """重启 SAGE Studio
 
-    default会清理前端构建缓存以确保使用最新代码。
+    default 使用开发模式并清理前端构建缓存以确保使用最新代码。
     使用 --no-clean 可跳过清理步骤。
+    使用 --prod 可使用生产模式（需要构建）。
     """
     console.print("[blue]🔄 重启 SAGE Studio...[/blue]")
 
