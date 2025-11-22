@@ -252,7 +252,7 @@ manager.store_collection()
 if manager.has_collection("tech_docs"):
     # 获取已存在的集合（会自动从磁盘加载）
     collection = manager.get_collection("tech_docs")
-    
+
 # 删除集合（内存+磁盘）
 manager.delete_collection("old_collection")
 ```
@@ -472,7 +472,7 @@ manager.delete_collection("old_collection")
 
 ### Q: 如何选择Embedding模型？
 
-A: 
+A:
 - **小型模型**（推荐用于开发/测试）：`mockembedder`（测试用），`all-MiniLM-L6-v2`（384维）
 - **中型模型**（推荐用于生产）：`paraphrase-multilingual-MiniLM-L12-v2`（384维，支持多语言）
 - **大型模型**（高精度）：`text-embedding-ada-002`（OpenAI，1536维）
@@ -486,7 +486,7 @@ A: 向量维度由Embedding模型决定：
 
 ### Q: 如何处理大量文档？
 
-A: 
+A:
 1. 使用`batch_insert_data`批量导入
 2. 考虑分批处理（每批1000-10000条）
 3. 创建索引后再导入新数据需要重新`init_index`
@@ -500,7 +500,7 @@ A: 支持JSON可序列化的类型：
 
 ### Q: 如何备份数据？
 
-A: 
+A:
 ```python
 # 保存到磁盘
 manager.store_collection()

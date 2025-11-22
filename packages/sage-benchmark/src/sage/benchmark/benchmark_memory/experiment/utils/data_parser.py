@@ -42,39 +42,31 @@ class DataParser:
             config: RuntimeConfig 对象，用于读取提取方法和格式化方法配置
         """
         self.config = config
-        
+
         # 从配置读取提取方法
         adapter_name = (
-            config.get("services.memory_insert_adapter", "to_dialogs")
-            if config
-            else "to_dialogs"
+            config.get("services.memory_insert_adapter", "to_dialogs") if config else "to_dialogs"
         )
-        
+
         # 验证提取方法是否支持
         if adapter_name not in self.EXTRACT_METHODS:
             supported = ", ".join(self.EXTRACT_METHODS.keys())
-            raise ValueError(
-                f"不支持的提取方法: {adapter_name}。支持的方法: {supported}"
-            )
-        
+            raise ValueError(f"不支持的提取方法: {adapter_name}。支持的方法: {supported}")
+
         # 获取对应的提取方法
         method_name = self.EXTRACT_METHODS[adapter_name]
         self.extract_method = getattr(self, method_name)
 
         # 从配置读取格式化方法
         formatter_name = (
-            config.get("services.memory_retrieval_adapter", "to_text")
-            if config
-            else "to_text"
+            config.get("services.memory_retrieval_adapter", "to_text") if config else "to_text"
         )
-        
+
         # 验证格式化方法是否支持
         if formatter_name not in self.FORMAT_METHODS:
             supported = ", ".join(self.FORMAT_METHODS.keys())
-            raise ValueError(
-                f"不支持的格式化方法: {formatter_name}。支持的方法: {supported}"
-            )
-        
+            raise ValueError(f"不支持的格式化方法: {formatter_name}。支持的方法: {supported}")
+
         # 获取对应的格式化方法
         format_method_name = self.FORMAT_METHODS[formatter_name]
         self.format_method = getattr(self, format_method_name)
@@ -91,14 +83,14 @@ class DataParser:
         """
         if not data:
             return []
-        
+
         # 调用配置的提取方法
         result = self.extract_method(data)
-        
+
         # 验证提取结果
         if not self.validate_dialogs(result):
             return []
-        
+
         return result
 
     def _extract_to_dialogs(self, data: dict[str, Any]) -> list[dict[str, str]]:
@@ -143,7 +135,7 @@ class DataParser:
         """
         if not memory_data:
             return ""
-        
+
         # 调用配置的格式化方法
         return self.format_method(memory_data, query)
 
@@ -194,7 +186,7 @@ class DataParser:
             >>> data = {"dialogs": [{"speaker": "user", "text": "hello"}]}
             >>> DataParser.get_raw_dialogs(data)
             [{"speaker": "user", "text": "hello"}]
-        
+
         注意：推荐使用实例方法 extract()，因为它支持配置化提取
         """
         if not data:
@@ -274,7 +266,7 @@ class DataParser:
             >>> memory_data = [{"dialog": [{"speaker": "user", "text": "hi"}]}]
             >>> DataParser.format_history(memory_data)
             "user: hi"
-        
+
         注意：推荐使用实例方法 format()，因为它支持配置化格式化
         """
         if not memory_data:
