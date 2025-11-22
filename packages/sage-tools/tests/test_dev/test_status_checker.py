@@ -2,11 +2,11 @@
 项目状态检查器单元测试
 """
 
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
+from sage.common.config import find_sage_project_root
 from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
 
 
@@ -16,13 +16,7 @@ class TestProjectStatusChecker:
     @pytest.fixture
     def project_root(self):
         """获取项目根目录"""
-        current = Path(__file__).parent
-        while current.parent != current:
-            if (current / "packages").exists() and (current / "pyproject.toml").exists():
-                return str(current)
-            current = current.parent
-        # fallback到默认路径
-        return str(Path(__file__).parent.parent.parent.parent.parent)
+        return str(find_sage_project_root())
 
     def test_init(self, project_root):
         """测试初始化"""

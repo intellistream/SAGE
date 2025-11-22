@@ -20,7 +20,7 @@ Architecture Rules:
 
 __layer__ = "L1"
 
-from . import components, config, core, model_registry, utils
+from . import components, config, core, logging, model_registry, utils
 from ._version import __version__
 
 __all__ = [
@@ -28,6 +28,7 @@ __all__ = [
     "components",
     "config",
     "core",
+    "logging",
     "model_registry",
     "utils",
 ]

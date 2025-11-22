@@ -2,7 +2,7 @@ from typing import Any
 
 import requests
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 
 class BochaWebSearch(MapOperator):

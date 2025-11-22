@@ -77,7 +77,7 @@ sage-dev project test --coverage --packages sage-common --test-type unit
 - `sage/common/components/sage_embedding/hf.py` - 25%
 - `sage/common/components/sage_embedding/jina.py` - 24%
 - `sage/common/components/sage_embedding/service.py` - 19%
-- `sage/common/components/sage_vllm/service.py` - 20%
+- `sage/common/components/sage_llm/service.py` - 20%
 - `sage/common/core/functions/base_function.py` - 22%
 - `sage/common/core/functions/join_function.py` - 19%
 
@@ -182,7 +182,7 @@ xdg-open htmlcov/index.html  # Linux
 
    - 为 `sage_embedding` 组件添加更多集成测试
    - 为 `core/functions` 模块添加单元测试
-   - 为 `sage_vllm/service` 添加测试
+   - 为 `sage_llm/service` 添加测试
 
 1. **配置 CI/CD 集成**
 

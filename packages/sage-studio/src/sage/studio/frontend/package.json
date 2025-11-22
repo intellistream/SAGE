@@ -22,7 +22,9 @@
         "react-router-dom": "^6.20.1",
         "react-syntax-highlighter": "^16.1.0",
         "reactflow": "^11.10.4",
+        "rehype-katex": "^7.0.1",
         "remark-gfm": "^4.0.1",
+        "remark-math": "^6.0.0",
         "zustand": "^4.4.7"
     },
     "devDependencies": {

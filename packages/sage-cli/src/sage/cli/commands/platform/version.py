@@ -19,12 +19,9 @@ def _load_version():
     except ImportError:
         # 如果本地版本文件不存在，尝试从项目根目录加载（开发环境）
         try:
-            from pathlib import Path
+            from sage.common.config import find_sage_project_root
 
-            current_file = Path(__file__).resolve()
-            root_dir = (
-                current_file.parent.parent.parent.parent.parent.parent.parent
-            )  # 向上7层到项目根目录
+            root_dir = find_sage_project_root()
             version_file = root_dir / "_version.py"
 
             if version_file.exists():

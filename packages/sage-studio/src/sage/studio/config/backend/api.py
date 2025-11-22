@@ -9,6 +9,7 @@ import inspect
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -17,7 +18,34 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from sage.studio.services.chat_pipeline_recommender import generate_pipeline_recommendation
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+
+    from sage.common.config import find_sage_project_root
+
+    # Use centralized function to find project root
+    repo_root = find_sage_project_root()
+    if repo_root:
+        env_file = repo_root / ".env"
+        if env_file.exists():
+            load_dotenv(env_file, override=True)  # override=True to ensure env vars are updated
+            # Use logging instead of print for production
+            import logging
+
+            logging.info(f"Loaded environment variables from {env_file}")
+        else:
+            import logging
+
+            logging.warning(f".env file not found at {env_file}")
+    else:
+        import logging
+
+        logging.warning("Could not find SAGE project root, skipping .env loading")
+except ImportError as e:
+    import logging
+
+    logging.warning(f"Failed to load environment: {e}")
 
 
 def _convert_pipeline_to_job(
@@ -208,8 +236,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite 开发服务器默认端口
         "http://localhost:4173",  # Vite preview 服务器默认端口
+        "http://localhost:4200",  # Studio 前端端口
         "http://0.0.0.0:5173",
         "http://0.0.0.0:4173",
+        "http://0.0.0.0:4200",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -365,8 +395,8 @@ def _load_operator_class_source(module_path: str, class_name: str) -> str:
     """动态加载operator类并获取其源代码"""
     try:
         # 添加SAGE项目路径到sys.path
-        sage_root = Path(__file__).parent.parent.parent.parent.parent.parent
-        if str(sage_root) not in sys.path:
+        sage_root = find_sage_project_root()
+        if sage_root and str(sage_root) not in sys.path:
             sys.path.insert(0, str(sage_root))
 
         # 动态导入模块
@@ -921,12 +951,13 @@ def _load_flow_data(flow_id: str) -> dict | None:
 def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     """将前端 Flow 数据转换为 FlowDefinition"""
     import sys
-    from pathlib import Path
 
     # 添加 sage-studio 到 Python 路径
-    studio_path = Path(__file__).parent.parent.parent.parent
-    if str(studio_path) not in sys.path:
-        sys.path.insert(0, str(studio_path))
+    studio_root = find_sage_project_root()
+    if studio_root:
+        studio_path = studio_root / "packages" / "sage-studio"
+        if str(studio_path) not in sys.path:
+            sys.path.insert(0, str(studio_path))
 
     from sage.studio.models import (  # type: ignore[import-not-found]
         VisualConnection,
@@ -981,6 +1012,59 @@ def _convert_to_flow_definition(flow_data: dict, flow_id: str):
     )
 
 
+def _parse_execution_results(results, pipeline, execution_time):
+    """
+    解析执行结果,生成输出和步骤
+
+    Args:
+        results: Sink 收集的结果列表
+        pipeline: VisualPipeline 定义
+        execution_time: 执行时间
+
+    Returns:
+        tuple: (output_text, agent_steps)
+    """
+    from datetime import datetime
+
+    agent_steps = []
+    output_parts = []
+
+    # 为每个节点生成步骤
+    step_time = int(execution_time * 1000 / len(pipeline.nodes)) if pipeline.nodes else 0
+
+    for idx, node in enumerate(pipeline.nodes, start=1):
+        # 查找该节点的输出
+        node_output = None
+        if results and idx <= len(results):
+            node_output = results[idx - 1]
+
+        # 生成步骤
+        agent_steps.append(
+            AgentStep(
+                step=idx,
+                type="tool_call",
+                content=f"✓ {node.label}",
+                timestamp=datetime.now().isoformat(),
+                duration=step_time,
+                toolName=node.label,
+                toolInput={"config": node.config},
+                toolOutput={"result": str(node_output) if node_output else "完成"},
+            )
+        )
+
+        # 收集输出
+        if node_output:
+            output_parts.append(f"## {node.label}\n{node_output}\n")
+
+    # 生成最终输出
+    if output_parts:
+        output_text = "\n".join(output_parts)
+    else:
+        output_text = f"Pipeline 执行成功！\n\n总耗时: {execution_time:.2f}秒"
+
+    return output_text, agent_steps
+
+
 class PlaygroundExecuteRequest(BaseModel):
     """Playground 执行请求"""
 
@@ -1013,117 +1097,84 @@ class PlaygroundExecuteResponse(BaseModel):
 
 @app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
 async def execute_playground(request: PlaygroundExecuteRequest):
-    """执行 Playground Flow - 使用真实的 SAGE Pipeline"""
+    """执行 Playground Flow - 使用增强的 PipelineBuilder"""
     try:
-        from datetime import datetime
+        import sys
+        import time
 
-        print(f"🎯 Executing playground - flowId: {request.flowId}, sessionId: {request.sessionId}")
-        print(f"📝 Input: {request.input}")
+        # 添加 sage-studio 到 Python 路径
+        studio_root = find_sage_project_root()
+        if studio_root:
+            studio_path = studio_root / "packages" / "sage-studio"
+            if str(studio_path) not in sys.path:
+                sys.path.insert(0, str(studio_path))
+
+        from sage.studio.models import PipelineStatus
+        from sage.studio.services import get_pipeline_builder
+
+        print(f"\n{'=' * 60}")
+        print("🎯 Playground 执行开始")
+        print(f"   Flow ID: {request.flowId}")
+        print(f"   Session: {request.sessionId}")
+        print(f"   Input: {request.input[:100]}...")
+        print(f"{'=' * 60}\n")
 
         # 1. 加载 Flow 定义
         flow_data = _load_flow_data(request.flowId)
         if not flow_data:
             raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
 
-        nodes_config = flow_data.get("nodes", [])
-        if not nodes_config:
-            return PlaygroundExecuteResponse(
-                output="❌ 请先在画布中创建节点",
-                status="error",
-                agentSteps=None,
-            )
+        # 2. 转换为 VisualPipeline
+        visual_pipeline = _convert_to_flow_definition(flow_data, request.flowId)
+        print(f"📊 Pipeline 节点数: {len(visual_pipeline.nodes)}")
 
-        # 2. 准备操作符配置
-        operator_configs = []
-        for node in nodes_config:
-            node_data = node.get("data", {})
-            node_type = node_data.get("nodeId", node_data.get("type", "Unknown"))
-            node_config = node_data.get("config", {})
+        # 3. 🆕 使用增强的 PipelineBuilder (传入用户输入)
+        builder = get_pipeline_builder()
+        sage_env = builder.build(visual_pipeline, user_input=request.input)
 
-            operator_configs.append({"type": node_type, "config": node_config})
+        # 4. 执行并收集结果
+        start_time = time.time()
+        print("⚙️ 开始执行...")
 
-            print(f"📦 节点配置: {node_type} - {node_config}")
+        # 提交作业并等待完成
+        sage_env.submit(autostop=True)
 
-        # 3. 使用 PlaygroundExecutor 执行
-        try:
-            from sage.studio.services.playground_executor import get_playground_executor
+        execution_time = time.time() - start_time
+        print(f"✅ 执行完成,耗时: {execution_time:.2f}秒\n")
 
-            executor = get_playground_executor()
-            execution_result = executor.execute_simple_query(
-                user_input=request.input,
-                operator_configs=operator_configs,
-                flow_id=request.flowId,  # 传递 flow_id 用于日志
-            )
+        # 5. 🆕 收集执行结果
+        from sage.libs.io.sink import RetriveSink
 
-            # 4. 生成执行步骤
-            agent_steps = []
-            for idx, op_config in enumerate(operator_configs, start=1):
-                agent_steps.append(
-                    AgentStep(
-                        step=idx,
-                        type="tool_call",
-                        content=f"执行节点: {op_config['type']}",
-                        timestamp=datetime.now().isoformat(),
-                        toolName=op_config["type"],
-                        toolInput=op_config["config"],
-                        toolOutput={"status": "completed"},
-                    )
-                )
+        results = []
+        if hasattr(RetriveSink, "get_results"):
+            results = RetriveSink.get_results()
 
-            # 5. 添加日志步骤（如果有日志）
-            if execution_result.get("logs"):
-                for log in execution_result["logs"][-5:]:  # 最后5条日志
-                    agent_steps.append(
-                        AgentStep(
-                            step=len(agent_steps) + 1,
-                            type="reasoning",
-                            content=f"[{log['level']}] {log['message']}",
-                            timestamp=log["timestamp"],
-                        )
-                    )
+        # 6. 🆕 解析结果并生成步骤
+        output_text, agent_steps = _parse_execution_results(
+            results, visual_pipeline, execution_time
+        )
 
-            response = PlaygroundExecuteResponse(
-                output=execution_result["output"],
-                status=execution_result["status"],
-                agentSteps=agent_steps if agent_steps else None,
-            )
+        print(f"📤 输出长度: {len(output_text)} 字符")
+        print(f"📋 步骤数: {len(agent_steps)}")
+        print(f"{'=' * 60}\n")
 
-            # 调试日志：打印返回的数据
-            print("✅ API Response prepared:")
-            print(f"   - Status: {response.status}")
-            print(f"   - Output length: {len(response.output) if response.output else 0}")
-            print(f"   - Output preview: {response.output[:200] if response.output else 'EMPTY'}")
-            print(f"   - Agent steps: {len(response.agentSteps) if response.agentSteps else 0}")
-
-            return response
-
-        except ImportError as e:
-            return PlaygroundExecuteResponse(
-                output=f"""❌ SAGE 模块导入失败: {str(e)}
-
-请确保已安装所有依赖:
-  pip install -e packages/sage-kernel
-  pip install -e packages/sage-common
-  pip install -e packages/sage-middleware
-
-或使用 Python 脚本测试:
-  python /home/gyy/SAGE/run_rag_test.py
-""",
-                status="error",
-                agentSteps=None,
-            )
+        return PlaygroundExecuteResponse(
+            output=output_text,
+            status=PipelineStatus.COMPLETED.value,
+            agentSteps=agent_steps if agent_steps else None,
+        )
 
     except HTTPException:
         raise
     except Exception as e:
         import traceback
 
-        print(f"❌ Error executing playground: {e}")
+        print("\n❌ 执行出错:")
         print(traceback.format_exc())
+        print(f"{'=' * 60}\n")
 
-        # 返回友好的错误信息
         return PlaygroundExecuteResponse(
-            output=f"执行出错: {str(e)}", status="error", agentSteps=None
+            output=f"执行出错: {str(e)}", status="failed", agentSteps=None
         )
 
 
@@ -1531,23 +1582,580 @@ async def delete_chat_session(session_id: str):
         )
 
 
-@app.post("/api/chat/sessions/{session_id}/convert")
-async def convert_chat_session(session_id: str):
-    """根据聊天记录生成 Pipeline 建议"""
+class WorkflowGenerateRequest(BaseModel):
+    """工作流生成请求 (LLM驱动的高级版本)"""
+
+    user_input: str
+    session_id: str | None = None
+    enable_optimization: bool = False
+    optimization_strategy: str = "greedy"  # greedy, parallelization, noop
+    constraints: dict | None = None  # max_cost, max_latency, min_quality
+
+
+@app.post("/api/chat/generate-workflow")
+async def generate_workflow_advanced(request: WorkflowGenerateRequest):
+    """生成智能工作流 (使用 LLM Pipeline Builder)
+
+    这个端点使用更高级的 LLM 驱动生成，而不是简单的意图识别。
+    可选地应用 sage-libs 中的工作流优化算法。
+
+    Args:
+        request: 包含用户输入、会话信息、优化选项
+
+    Returns:
+        {
+            "success": bool,
+            "visual_pipeline": {...},  # Studio 可视化格式
+            "raw_plan": {...},         # 原始 Pipeline 配置
+            "optimization_applied": bool,
+            "optimization_metrics": {...},
+            "message": str
+        }
+    """
     import httpx
 
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在，无法转换")
-            response.raise_for_status()
-            session = response.json()
+    from sage.studio.services.workflow_generator import generate_workflow_from_chat
 
-        recommendation = generate_pipeline_recommendation(session)
-        return recommendation
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    # 如果提供了 session_id，获取对话历史
+    session_messages = None
+    if request.session_id:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"http://localhost:8000/sessions/{request.session_id}")
+                if response.status_code == 200:
+                    session = response.json()
+                    session_messages = session.get("messages", [])
+        except httpx.ConnectError:
+            # 如果无法连接 Gateway，继续使用仅用户输入
+            pass
+
+    # 调用工作流生成器
+    try:
+        print("🔍 Calling generate_workflow_from_chat with:")
+        print(f"  - user_input: {request.user_input}")
+        print(f"  - session_messages: {session_messages is not None}")
+        print(f"  - enable_optimization: {request.enable_optimization}")
+
+        result = generate_workflow_from_chat(
+            user_input=request.user_input,
+            session_messages=session_messages,
+            enable_optimization=request.enable_optimization,
+        )
+
+        print(f"✅ Result returned: {result}")
+        print(f"  - Type: {type(result)}")
+        if result:
+            print(f"  - success: {result.success}")
+            print(f"  - visual_pipeline: {result.visual_pipeline is not None}")
+
+    except Exception as e:
+        import traceback
+
+        print("❌ Exception in generate_workflow_from_chat:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"工作流生成失败: {str(e)}")
+
+    if result is None:
+        raise HTTPException(status_code=500, detail="工作流生成器返回了 None")
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error or "工作流生成失败")
+
+    print("📤 Preparing response...")
+    response_data = {
+        "success": result.success,
+        "visual_pipeline": result.visual_pipeline,
+        "raw_plan": result.raw_plan,
+        "optimization_applied": result.optimization_applied,
+        "optimization_metrics": result.optimization_metrics,
+        "message": result.message,
+    }
+    print(f"✅ Response data prepared: {list(response_data.keys())}")
+    return response_data
+
+
+# ===== Fine-tune API Endpoints =====
+
+
+class FinetuneCreateRequest(BaseModel):
+    """Create fine-tune task request"""
+
+    model_name: str = "Qwen/Qwen2.5-7B-Instruct"
+    dataset_file: str  # Path to uploaded dataset
+    num_epochs: int = 3
+    batch_size: int = 1
+    gradient_accumulation_steps: int = 16
+    learning_rate: float = 5e-5
+    max_length: int = 1024
+    load_in_8bit: bool = True
+
+
+class UseAsBackendRequest(BaseModel):
+    """Use finetuned model as backend request"""
+
+    task_id: str
+
+
+@app.post("/api/finetune/create")
+async def create_finetune_task(request: FinetuneCreateRequest):
+    """创建微调任务（带 OOM 风险检测）"""
+    import torch
+
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    # GPU 显存检测
+    warnings = []
+    if torch.cuda.is_available():
+        gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+
+        # 估算显存需求
+        estimated_memory = 0
+        if "7B" in request.model_name or "7b" in request.model_name:
+            estimated_memory = 14 if request.load_in_8bit else 28
+        elif "3B" in request.model_name or "3b" in request.model_name:
+            estimated_memory = 6 if request.load_in_8bit else 12
+        elif "1.5B" in request.model_name or "1.5b" in request.model_name:
+            estimated_memory = 3 if request.load_in_8bit else 6
+        elif "0.5B" in request.model_name or "0.5b" in request.model_name:
+            estimated_memory = 1 if request.load_in_8bit else 2
+
+        # 添加 batch size 和 sequence length 的额外开销
+        estimated_memory += request.batch_size * (request.max_length / 1024) * 0.5
+
+        # OOM 风险检测
+        if estimated_memory > gpu_memory_gb * 0.9:
+            warnings.append(
+                f"⚠️ OOM 风险高：预计需要 {estimated_memory:.1f}GB，但只有 {gpu_memory_gb:.1f}GB 可用"
+            )
+            warnings.append("建议：减小 batch_size 或 max_length，或启用 8-bit 量化")
+        elif estimated_memory > gpu_memory_gb * 0.7:
+            warnings.append(
+                f"⚠️ OOM 风险中：预计需要 {estimated_memory:.1f}GB，可用 {gpu_memory_gb:.1f}GB"
+            )
+    else:
+        warnings.append("⚠️ 未检测到 GPU，训练将非常缓慢")
+
+    config = {
+        "num_epochs": request.num_epochs,
+        "batch_size": request.batch_size,
+        "gradient_accumulation_steps": request.gradient_accumulation_steps,
+        "learning_rate": request.learning_rate,
+        "max_length": request.max_length,
+        "load_in_8bit": request.load_in_8bit,
+    }
+
+    task = finetune_manager.create_task(
+        model_name=request.model_name, dataset_path=request.dataset_file, config=config
+    )
+
+    # 添加警告日志
+    for warning in warnings:
+        finetune_manager.add_task_log(task.task_id, warning)
+
+    # Start training immediately
+    success = finetune_manager.start_training(task.task_id)
+    if not success:
+        raise HTTPException(status_code=409, detail="Another training task is running")
+
+    result = task.to_dict()
+    result["warnings"] = warnings
+    return result
+
+
+@app.get("/api/finetune/tasks")
+async def list_finetune_tasks():
+    """列出所有微调任务"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    tasks = finetune_manager.list_tasks()
+    return [task.to_dict() for task in tasks]
+
+
+@app.get("/api/finetune/tasks/{task_id}")
+async def get_finetune_task(task_id: str):
+    """获取微调任务详情"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    task = finetune_manager.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task.to_dict()
+
+
+@app.get("/api/finetune/models")
+async def list_finetune_models():
+    """获取可用模型列表（基础模型 + 微调后的模型）"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    return finetune_manager.list_available_models()
+
+
+@app.post("/api/finetune/switch-model")
+async def switch_model(model_path: str):
+    """切换当前使用的模型"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    success = finetune_manager.switch_model(model_path)
+    if success:
+        return {"message": "Model switched successfully", "current_model": model_path}
+    raise HTTPException(status_code=500, detail="Failed to switch model")
+
+
+@app.get("/api/finetune/current-model")
+async def get_current_model():
+    """获取当前使用的模型"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    return {"current_model": finetune_manager.get_current_model()}
+
+
+@app.post("/api/finetune/upload-dataset")
+async def upload_dataset(file: UploadFile = File(...)):
+    """上传微调数据集"""
+    from pathlib import Path
+
+    # Validate file type
+    if not file.filename.endswith((".json", ".jsonl")):
+        raise HTTPException(status_code=400, detail="Only JSON/JSONL files are supported")
+
+    # Save to uploads directory
+    upload_dir = Path.home() / ".sage" / "studio_finetune" / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = upload_dir / f"{int(time.time())}_{file.filename}"
+
+    try:
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        return {"file_path": str(file_path), "filename": file.filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+
+@app.get("/api/finetune/tasks/{task_id}/download")
+async def download_finetuned_model(task_id: str):
+    """下载微调后的模型（打包为 tar.gz）"""
+    import tarfile
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    task = finetune_manager.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.status != "completed":
+        raise HTTPException(status_code=400, detail="Task is not completed yet")
+
+    model_dir = Path(task.output_dir)
+    if not model_dir.exists():
+        raise HTTPException(status_code=404, detail="Model directory not found")
+
+    # 创建临时打包目录
+    temp_dir = Path.home() / ".sage" / "studio_finetune" / "downloads"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    # 打包模型文件
+    archive_path = temp_dir / f"{task_id}.tar.gz"
+    try:
+        with tarfile.open(archive_path, "w:gz") as tar:
+            tar.add(model_dir, arcname=task_id)
+
+        return FileResponse(
+            path=str(archive_path),
+            media_type="application/gzip",
+            filename=f"{task_id}_finetuned_model.tar.gz",
+            headers={
+                "Content-Disposition": f'attachment; filename="{task_id}_finetuned_model.tar.gz"'
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to package model: {e}")
+
+
+@app.delete("/api/finetune/tasks/{task_id}")
+async def delete_finetune_task(task_id: str):
+    """删除微调任务（仅允许删除已完成、失败或取消的任务）"""
+    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+
+    if finetune_manager.delete_task(task_id):
+        return {"status": "success", "message": f"任务 {task_id} 已删除"}
+    else:
+        task = finetune_manager.tasks.get(task_id)
+        if not task:
+            # 尝试重新加载任务
+            finetune_manager._load_tasks()
+            task = finetune_manager.tasks.get(task_id)
+
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        elif task.status in (
+            FinetuneStatus.TRAINING,
+            FinetuneStatus.PREPARING,
+            FinetuneStatus.QUEUED,
+        ):
+            raise HTTPException(status_code=400, detail="无法删除运行中或排队中的任务")
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete task")
+
+
+@app.post("/api/finetune/tasks/{task_id}/cancel")
+async def cancel_finetune_task(task_id: str):
+    """取消运行中的微调任务"""
+    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+
+    task = finetune_manager.tasks.get(task_id)
+    if not task:
+        # 任务不在内存中，尝试重新加载
+        print(f"[API] Task {task_id} not found in memory, attempting to reload tasks...")
+        finetune_manager._load_tasks()
+        task = finetune_manager.tasks.get(task_id)
+
+        if not task:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Task not found: {task_id}. Available tasks: {list(finetune_manager.tasks.keys())}",
+            )
+
+    if task.status not in (
+        FinetuneStatus.TRAINING,
+        FinetuneStatus.PREPARING,
+        FinetuneStatus.QUEUED,
+    ):
+        raise HTTPException(status_code=400, detail="任务不在运行中，无法取消")
+
+    if finetune_manager.cancel_task(task_id):
+        return {"status": "success", "message": f"任务 {task_id} 已取消"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to cancel task")
+
+
+@app.get("/api/finetune/models/base")
+async def list_base_models():
+    """列出推荐的基础模型（按显存需求分类）"""
+    return {
+        "recommended_for_rtx3060": [
+            {
+                "name": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+                "size": "1.5B",
+                "vram_required": "6-8GB",
+                "description": "代码专精，最适合 RTX 3060（推荐）",
+                "training_time": "2-4小时 (1000样本)",
+            },
+            {
+                "name": "Qwen/Qwen2.5-0.5B-Instruct",
+                "size": "500M",
+                "vram_required": "4-6GB",
+                "description": "超轻量级，训练最快",
+                "training_time": "1-2小时 (1000样本)",
+            },
+            {
+                "name": "Qwen/Qwen2.5-1.5B-Instruct",
+                "size": "1.5B",
+                "vram_required": "6-8GB",
+                "description": "通用对话模型，平衡性能和显存",
+                "training_time": "2-4小时 (1000样本)",
+            },
+        ],
+        "advanced_models": [
+            {
+                "name": "Qwen/Qwen2.5-3B-Instruct",
+                "size": "3B",
+                "vram_required": "10-12GB",
+                "description": "更强性能，需要更多显存",
+                "training_time": "4-6小时 (1000样本)",
+            },
+            {
+                "name": "Qwen/Qwen2.5-7B-Instruct",
+                "size": "7B",
+                "vram_required": "16-20GB",
+                "description": "高性能模型，需要 RTX 4090 或更强",
+                "training_time": "8-12小时 (1000样本)",
+            },
+        ],
+    }
+
+
+@app.post("/api/finetune/prepare-sage-docs")
+async def prepare_sage_docs(force_refresh: bool = False):
+    """准备 SAGE 官方文档作为训练数据"""
+    from sage.studio.services.docs_processor import get_docs_processor
+
+    try:
+        processor = get_docs_processor()
+
+        # 准备训练数据
+        data_file = processor.prepare_training_data(force_refresh=force_refresh)
+
+        # 获取统计信息
+        stats = processor.get_stats(data_file)
+
+        return {
+            "status": "success",
+            "message": "SAGE 文档已准备完成",
+            "data_file": str(data_file),
+            "stats": stats,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to prepare SAGE docs: {e}")
+
+
+@app.post("/api/finetune/use-as-backend")
+async def use_finetuned_as_backend(request: UseAsBackendRequest):
+    """将微调后的模型设置为 Studio 对话后端"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    try:
+        task = finetune_manager.get_task(request.task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        if task.status != "completed":
+            raise HTTPException(status_code=400, detail="Task is not completed yet")
+
+        # 获取模型路径
+        model_path = Path(task.output_dir)
+        if not model_path.exists():
+            raise HTTPException(status_code=404, detail="Model directory not found")
+
+        # 注册到 vLLM Registry
+        from sage.platform.llm.vllm_registry import vllm_registry
+
+        model_name = f"sage-finetuned-{request.task_id}"
+
+        # 自动检测 GPU 数量和显存
+        try:
+            import torch
+
+            num_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
+            # 获取单个 GPU 的显存（以 GB 为单位）
+            if num_gpus > 0:
+                gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            else:
+                gpu_memory_gb = 0
+        except Exception:
+            num_gpus = 0
+            gpu_memory_gb = 0
+
+        # 根据 GPU 配置模型参数
+        config = {
+            "trust_remote_code": True,
+            "max_model_len": 2048,  # 默认值
+        }
+
+        # 只有当有 GPU 时才设置 GPU 相关参数
+        if num_gpus > 0:
+            # 根据显存大小调整 max_model_len
+            if gpu_memory_gb >= 24:  # 24GB+ (A100, RTX 4090, etc.)
+                config["max_model_len"] = 4096
+                config["gpu_memory_utilization"] = 0.85
+            elif gpu_memory_gb >= 16:  # 16GB+ (V100, RTX 4080, etc.)
+                config["max_model_len"] = 3072
+                config["gpu_memory_utilization"] = 0.8
+            elif gpu_memory_gb >= 8:  # 8GB+ (RTX 3070, etc.)
+                config["max_model_len"] = 2048
+                config["gpu_memory_utilization"] = 0.75
+            else:  # < 8GB
+                config["max_model_len"] = 1024
+                config["gpu_memory_utilization"] = 0.7
+
+            # 如果有多个 GPU 且模型较大，启用张量并行
+            if num_gpus > 1:
+                config["tensor_parallel_size"] = num_gpus
+
+        # 注册模型
+        vllm_registry.register_model(
+            model_name=model_name,
+            model_path=str(model_path),
+            config=config,
+        )
+
+        # 切换到该模型
+        vllm_registry.switch_model(model_name)
+
+        # 更新环境变量（供 RAG pipeline 使用）
+        os.environ["SAGE_STUDIO_LLM_MODEL"] = model_name
+        os.environ["SAGE_STUDIO_LLM_PATH"] = str(model_path)
+
+        return {
+            "status": "success",
+            "message": f"已切换到微调模型: {model_name}",
+            "model_name": model_name,
+            "model_path": str(model_path),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to switch backend: {e}")
+
+
+@app.get("/api/system/gpu-info")
+async def get_gpu_info():
+    """Get GPU information for finetune recommendations"""
+    try:
+        import torch
+
+        gpu_info = {
+            "available": torch.cuda.is_available(),
+            "count": 0,
+            "devices": [],
+            "recommendation": "CPU 模式（不推荐微调）",
+        }
+
+        if torch.cuda.is_available():
+            gpu_info["count"] = torch.cuda.device_count()
+
+            for i in range(gpu_info["count"]):
+                device_name = torch.cuda.get_device_name(i)
+                device_memory = torch.cuda.get_device_properties(i).total_memory / (1024**3)  # GB
+
+                gpu_info["devices"].append(
+                    {
+                        "id": i,
+                        "name": device_name,
+                        "memory_gb": round(device_memory, 1),
+                    }
+                )
+
+            # 生成推荐配置
+            if gpu_info["count"] == 1:
+                gpu_name = gpu_info["devices"][0]["name"]
+                gpu_memory = gpu_info["devices"][0]["memory_gb"]
+
+                # 根据显存推荐模型
+                if gpu_memory >= 24:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 7B 或 3B"
+                    )
+                elif gpu_memory >= 12:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 3B 或 1.5B"
+                    )
+                elif gpu_memory >= 8:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 1.5B（最佳平衡）或 0.5B（最快训练）"
+                    )
+                else:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 0.5B"
+                    )
+            else:
+                total_memory = sum(d["memory_gb"] for d in gpu_info["devices"])
+                gpu_info["recommendation"] = (
+                    f"检测到 {gpu_info['count']} 块 GPU（总显存 {total_memory:.1f}GB）：支持多卡并行训练"
+                )
+
+        return gpu_info
+
+    except Exception as e:
+        return {
+            "available": False,
+            "count": 0,
+            "devices": [],
+            "recommendation": f"GPU 检测失败: {e}",
+        }
 
 
 if __name__ == "__main__":

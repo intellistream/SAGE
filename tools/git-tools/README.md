@@ -244,7 +244,7 @@ git diff
 当前 SAGE 项目的子模块:
 
 1. `docs-public` - 公共文档
-1. `packages/sage-common/src/sage/common/components/sage_vllm/sageLLM` - vLLM 组件
+1. `packages/sage-common/src/sage/common/components/sage_llm/sageLLM` - vLLM 组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB` - 数据库组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow` - 流处理组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem` - 内存组件

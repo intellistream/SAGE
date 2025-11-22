@@ -1,6 +1,39 @@
-# SAGE Gateway & Studio Changelog
+# SAGE Gateway Changelog
 
-## [Unreleased] - 2025-11-17
+## [Unreleased] - 2025-11-21
+
+### Changed
+
+- Renamed package from `sage-gateway` to `isage-gateway` for consistency
+- Use dynamic version from `_version.py` instead of hardcoded version
+- Auto-start Gateway when running `sage studio start` (unless `--no-gateway`)
+- Improved startup workflow with auto-install and auto-build features
+
+### Added
+
+- Gateway status display in `sage studio status`
+- `--gateway` flag to `sage studio stop` to optionally stop Gateway
+- `--no-auto-install` flag to disable automatic dependency installation
+- `--no-auto-build` flag to disable automatic production build
+- Interactive confirmation prompts before auto-install/auto-build
+- Comprehensive startup documentation with auto-features
+
+### Developer Experience
+
+**Auto-install Dependencies**: When running `sage studio start` for the first time, if
+`node_modules` is missing, the system will prompt: "开始安装依赖?" with default yes. This eliminates the
+need to manually run `sage studio install`.
+
+**Auto-build Production**: When starting in production mode (`--prod`), if the `dist/` build output
+is missing, the system will prompt: "开始构建?" with default yes. This ensures production builds are
+always ready.
+
+**Workflow Simplification**:
+
+- Before: `sage studio install` → `sage studio build` → `sage studio start`
+- After: `sage studio start` (confirms and auto-executes missing steps)
+
+## [0.1.0] - 2025-11-17
 
 ### Added
 

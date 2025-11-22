@@ -211,7 +211,7 @@ gpu_count = 1
 ### Python Code
 
 ```python
-from sage.common.components.sage_vllm import ControlPlaneVLLMService
+from sage.common.components.sage_llm import ControlPlaneVLLMService
 
 # Create service from config
 config = {
@@ -243,10 +243,10 @@ print(f"Throughput: {metrics['throughput_requests_per_sec']} req/s")
 
 ```bash
 # Optional: Override config file location
-export SAGE_VLLM_CONFIG=/path/to/config.toml
+export SAGE_LLM_CONFIG=/path/to/config.toml
 
 # Optional: Set default scheduling policy
-export SAGE_VLLM_SCHEDULING_POLICY=adaptive
+export SAGE_LLM_SCHEDULING_POLICY=adaptive
 
 # Optional: Enable debug logging
 export SAGE_LOG_LEVEL=DEBUG

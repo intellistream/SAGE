@@ -234,6 +234,46 @@ class PlaygroundExecutor:
 
         return converted_config
 
+    def _validate_operator_configs(self, operator_configs: list[dict]) -> list[str]:
+        """验证操作符配置
+
+        Returns:
+            错误信息列表，空列表表示验证通过
+        """
+        errors = []
+
+        if not operator_configs:
+            errors.append("操作符配置列表为空")
+            return errors
+
+        for idx, op_config in enumerate(operator_configs, start=1):
+            if not isinstance(op_config, dict):
+                errors.append(f"节点 {idx}: 配置必须是字典类型")
+                continue
+
+            if "type" not in op_config:
+                errors.append(f"节点 {idx}: 缺少 'type' 字段")
+
+            if "config" not in op_config:
+                errors.append(
+                    f"节点 {idx} ({op_config.get('type', 'Unknown')}): 缺少 'config' 字段"
+                )
+                errors.append("  提示: 从 Chat 推荐生成的工作流可能缺少配置，请手动添加或重新生成")
+
+            # 检查特定操作符的必需配置
+            op_type = op_config.get("type")
+            config = op_config.get("config", {})
+
+            if op_type in ["OpenAIGenerator", "HFGenerator"]:
+                if not config.get("model_name"):
+                    errors.append(f"节点 {idx} ({op_type}): 缺少 'model_name' 配置")
+
+            if op_type == "ChromaRetriever":
+                if not config.get("persist_directory"):
+                    errors.append(f"节点 {idx} ({op_type}): 缺少 'persist_directory' 配置")
+
+        return errors
+
     def execute_simple_query(
         self, user_input: str, operator_configs: list[dict], flow_id: str = "default"
     ) -> dict[str, Any]:
@@ -247,7 +287,21 @@ class PlaygroundExecutor:
 
         Returns:
             执行结果字典
+
+        修复: 添加配置验证
         """
+        # 验证 operator_configs
+        validation_errors = self._validate_operator_configs(operator_configs)
+        if validation_errors:
+            error_msg = "\n".join([f"  - {err}" for err in validation_errors])
+            return {
+                "success": False,
+                "output": f"❌ 配置验证失败:\n{error_msg}\n\n请检查节点配置是否完整。",
+                "logs": [],
+                "execution_time": 0,
+                "error": "Invalid configuration",
+            }
+
         # 生成唯一的执行 ID
         execution_id = f"{flow_id}_{int(time.time() * 1000)}"
 
@@ -267,7 +321,8 @@ class PlaygroundExecutor:
             # 创建环境
             env = LocalEnvironment()
 
-            # 创建输入源
+            # 创建输入源（注意：from_source 期望的是类，不是实例）
+            # PlaygroundSource 是 SourceFunction 子类，需要以类形式传递
             source_stream = env.from_source(PlaygroundSource, question=user_input)
 
             # 按顺序添加操作符

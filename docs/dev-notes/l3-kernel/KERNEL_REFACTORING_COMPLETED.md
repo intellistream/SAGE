@@ -207,7 +207,7 @@ full = [
 1. ✅ **Kernel 兼容层测试**
 
    ```python
-   from sage.kernel.api.function import MapFunction
+   from sage.common.core.functions import MapFunction
 
    # DeprecationWarning: Importing from sage.kernel.api.function is deprecated
    ```
@@ -271,7 +271,7 @@ full = [
 **旧代码 (仍然工作，但有警告)**:
 
 ```python
-from sage.kernel.api.function import MapFunction  # DeprecationWarning
+from sage.common.core.functions import MapFunction  # 使用新的导入路径
 ```
 
 **新代码 (推荐)**:

@@ -126,6 +126,7 @@ install_core_packages() {
         [ -d "packages/sage-studio" ] && required_packages+=("packages/sage-studio")
         # full/dev 模式添加 L5 apps（如果存在）
         [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
+        [ -d "packages/sage-gateway" ] && required_packages+=("packages/sage-gateway")
     fi
 
     # dev 模式需要 sage-tools 和 sage-gateway
@@ -357,6 +358,23 @@ install_core_packages() {
                 log_pip_package_info "isage-apps" "INSTALL"
                 echo -e "${CHECK} sage-apps 安装完成"
             fi
+
+            # L5: gateway (API server)
+            if [ -d "packages/sage-gateway" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
+                log_info "开始安装: packages/sage-gateway" "INSTALL"
+                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
+
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
+                    log_error "安装 sage-gateway 失败" "INSTALL"
+                    echo -e "${CROSS} 安装 sage-gateway 失败！"
+                    return 1
+                fi
+
+                log_info "安装成功: packages/sage-gateway" "INSTALL"
+                log_pip_package_info "isage-gateway" "INSTALL"
+                echo -e "${CHECK} sage-gateway 安装完成"
+            fi
         fi
 
         # L6: CLI (standard/full/dev 模式)
@@ -485,7 +503,7 @@ install_mode = '$install_mode'
 if install_mode != 'core':
     package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
 if install_mode in ['full', 'dev']:
-    package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
+    package_dirs.extend(['packages/sage-apps', 'packages/sage-gateway', 'packages/sage-studio'])
 if install_mode == 'dev':
     package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
 for pkg_dir in package_dirs:

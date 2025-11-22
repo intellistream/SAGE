@@ -15,7 +15,7 @@ import typer
 from sage.common.model_registry import vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
-    from sage.common.components.sage_vllm import VLLMService
+    from sage.common.components.sage_llm import VLLMService
 except Exception:  # pragma: no cover - handled gracefully at runtime
     VLLMService = None  # type: ignore
 

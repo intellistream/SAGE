@@ -14,8 +14,10 @@ from typing import Any
 
 import pytest
 
+from sage.common.config import find_sage_project_root
+
 # 项目根目录
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+PROJECT_ROOT = find_sage_project_root()
 DEV_CLI_MODULE = "sage.tools.cli.commands.dev.main"
 
 

@@ -6,6 +6,7 @@ Configuration management utilities.
 
 from .output_paths import (
     SageOutputPaths,
+    find_sage_project_root,
     get_benchmarks_dir,
     get_cache_dir,
     get_coverage_dir,
@@ -29,6 +30,7 @@ from .output_paths import (
 
 __all__ = [
     "SageOutputPaths",
+    "find_sage_project_root",
     "get_benchmarks_dir",
     "get_cache_dir",
     "get_coverage_dir",

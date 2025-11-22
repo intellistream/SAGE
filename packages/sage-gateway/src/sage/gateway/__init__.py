@@ -11,6 +11,6 @@ Dependencies: sage-kernel (L3), sage-libs (L3), sage-common (L1)
 - Streaming support (SSE/WebSocket)
 """
 
-__version__ = "0.1.0"
+from sage.gateway._version import __version__
 
 __all__ = ["__version__"]

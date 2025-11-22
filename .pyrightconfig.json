@@ -20,7 +20,7 @@
     "**/*.egg-info",
     "packages/sage-benchmark/**",
     "packages/sage-libs/src/sage/libs/libamm/**",
-    "packages/sage-common/src/sage/common/components/sage_vllm/**",
+    "packages/sage-common/src/sage/common/components/sage_llm/**",
     "**/tests/**",
     "**/examples/**",
     "**/scripts/**",

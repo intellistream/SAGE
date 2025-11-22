@@ -11,15 +11,10 @@ def get_project_root() -> Path:
     Raises:
         FileNotFoundError: 如果未找到项目根目录
     """
-    current_dir = Path.cwd()
+    # Use centralized project root finding function from sage-common
+    from sage.common.config import find_sage_project_root
 
-    for _ in range(5):
-        packages_dir = current_dir / "packages"
-        if packages_dir.exists() and packages_dir.is_dir():
-            return current_dir
-
-        if current_dir.parent == current_dir:
-            break
-        current_dir = current_dir.parent
-
-    raise FileNotFoundError("未找到 SAGE 项目根目录")
+    project_root = find_sage_project_root()
+    if project_root is None:
+        raise FileNotFoundError("未找到 SAGE 项目根目录")
+    return project_root

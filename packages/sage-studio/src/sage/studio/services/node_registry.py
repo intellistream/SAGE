@@ -4,7 +4,7 @@ Node Registry - Maps Studio UI node types to SAGE Operators
 
 import re
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 
 def convert_node_type_to_snake_case(node_type: str) -> str:
@@ -16,12 +16,33 @@ def convert_node_type_to_snake_case(node_type: str) -> str:
         FileSource -> file_source
         HFGenerator -> hf_generator
         OpenAIGenerator -> openai_generator
+        QAPromptor -> qa_promptor
     """
-    # 处理连续大写字母（如 HF, AI）
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", node_type)
-    # 处理普通驼峰
+    # 特殊处理已知的缩写词,避免拆分
+    # OpenAI, QA, HF 等应该保持连在一起
+    special_cases = {
+        "OpenAI": "openai",
+        "QA": "qa",
+        "HF": "hf",
+        "BGE": "bge",
+        "LLM": "llm",
+    }
+
+    result = node_type
+    for pascal, snake in special_cases.items():
+        result = result.replace(pascal, snake.upper() + "_TEMP_")
+
+    # 处理普通驼峰转换
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", result)
     s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
-    return s2.lower()
+
+    # 转小写并清理临时标记
+    s3 = s2.lower().replace("_temp_", "")
+
+    # 清理多余的下划线
+    s4 = re.sub("_+", "_", s3).strip("_")
+
+    return s4
 
 
 class NodeRegistry:

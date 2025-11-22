@@ -91,7 +91,7 @@ class TestNodeRegistry:
 
     def test_register_custom_operator(self):
         """测试注册自定义 Operator"""
-        from sage.kernel.operators import MapOperator
+        from sage.common.core.functions import MapFunction as MapOperator
 
         class CustomOperator(MapOperator):
             """自定义测试 Operator"""
@@ -114,7 +114,7 @@ class TestNodeRegistry:
 
     def test_register_duplicate_type(self):
         """测试注册重复的节点类型"""
-        from sage.kernel.operators import MapOperator
+        from sage.common.core.functions import MapFunction as MapOperator
 
         class FirstOperator(MapOperator):
             def map_function(self, item):

@@ -169,6 +169,58 @@ repos:
     pass_filenames: false
     always_run: false
     files: \.md$
+  - id: python-test-files-location-check
+    name: check Python test files are in proper locations
+    entry: bash -c
+    args:
+    - |
+      # Get all Python test files (staged if in commit, or all files if --all-files)
+      if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
+        # Running with --all-files or during push
+        all_test_files=$(git ls-files "*.py" | grep -E "(^|/)test_.*\.py$|_test\.py$|tests\.py$" || true)
+      else
+        # Running in normal commit mode
+        all_test_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$" | grep -E "(^|/)test_.*\.py$|_test\.py$|tests\.py$" || true)
+      fi
+
+      if [ -z "$all_test_files" ]; then
+        exit 0
+      fi
+
+      # Define disallowed patterns (blacklist for test files)
+      violations=""
+      for file in $all_test_files; do
+        # Test files should be in tests/ directories or test scripts in examples/
+        if echo "$file" | grep -qE "^(packages/[^/]+/tests/|tests/|examples/.*/tests?\.py$|examples/.*test.*\.py$)"; then
+          # Allowed location
+          continue
+        else
+          # Disallowed location
+          violations="$violations$file\n"
+        fi
+      done
+
+      # Report violations
+      if [ -n "$violations" ]; then
+        echo "❌ 错误: 以下测试文件不在正确的位置:"
+        echo -e "$violations" | sed "s/^/  - /"
+        echo ""
+        echo "📁 测试文件应该放在:"
+        echo "  - packages/<package-name>/tests/ - 单元测试和集成测试"
+        echo "  - packages/<package-name>/tests/unit/ - 单元测试"
+        echo "  - packages/<package-name>/tests/integration/ - 集成测试"
+        echo "  - packages/<package-name>/tests/manual/ - 手动测试脚本"
+        echo "  - examples/ - 示例和演示脚本（可以包含 test 名称）"
+        echo ""
+        echo "💡 建议: 请将测试文件移动到对应包的 tests/ 目录"
+        exit 1
+      else
+        exit 0
+      fi
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: \.py$
   - id: devnotes-check
     name: dev-notes documentation standards
     entry: bash -c 'if git diff --cached --name-only --diff-filter=ACM | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes || true; else exit 0; fi'

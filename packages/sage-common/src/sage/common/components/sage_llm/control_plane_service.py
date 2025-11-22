@@ -12,7 +12,7 @@ This module provides an advanced vLLM service using sageLLM's Control Plane for:
 
 Dependencies:
     - sage.common.service (L1 - BaseService interface)
-    - sage.common.components.sage_vllm.sageLLM.control_plane (L1 - Control Plane)
+    - sage.common.components.sage_llm.sageLLM.control_plane (L1 - Control Plane)
 
 Note:
     This service runs Control Plane in a background thread/task and provides
@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any
 from sage.common.service import BaseService
 
 if TYPE_CHECKING:
-    from sage.common.components.sage_vllm.sageLLM.control_plane import (
+    from sage.common.components.sage_llm.sageLLM.control_plane import (
         ControlPlaneManager,
         ExecutionInstance,
         ExecutionInstanceType,
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     )
 
 try:
-    from sage.common.components.sage_vllm.sageLLM.control_plane import (
+    from sage.common.components.sage_llm.sageLLM.control_plane import (
         ControlPlaneManager,
         ExecutionInstance,
         ExecutionInstanceType,
@@ -289,7 +289,7 @@ class ControlPlaneVLLMService(BaseService):
         request_id = await self.control_plane.submit_request(request)
 
         # Wait for completion (simplified - in production should use callbacks/futures)
-        from sage.common.components.sage_vllm.sageLLM.control_plane import RequestStatus
+        from sage.common.components.sage_llm.sageLLM.control_plane import RequestStatus
 
         # Default timeout: 300 seconds (5 minutes)
         timeout = options.get("timeout", 300.0)

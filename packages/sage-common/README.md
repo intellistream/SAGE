@@ -15,7 +15,7 @@ This is the foundation layer that provides:
 - **Network utilities** for TCP/UDP communication
 - **Serialization tools** with dill and pickle support
 - **System utilities** for environment and process management
-- **Embedding services** (sage_embedding, sage_vllm)
+- **Embedding services** (sage_embedding, sage_llm)
 
 This package ensures consistency and reduces code duplication across the SAGE ecosystem.
 
@@ -54,7 +54,7 @@ sage-common/
 │           │   └── system/            # System utilities
 │           └── components/            # Shared components
 │               ├── sage_embedding/    # Embedding service
-│               └── sage_vllm/         # VLLM service
+│               └── sage_llm/         # VLLM service
 ├── tests/
 ├── pyproject.toml
 └── README.md

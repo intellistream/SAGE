@@ -7,7 +7,7 @@ particularly for vLLM model registry and management.
 
 Architecture:
     This is a L1 foundation component providing model registry services.
-    Used by components like sage_vllm for model lifecycle management.
+    Used by components like sage_llm for model lifecycle management.
 """
 
 from .vllm_registry import (

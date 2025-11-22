@@ -20,7 +20,7 @@ know, without learning new protocols.
 
 ```bash
 # From PyPI (when published)
-pip install sage-gateway
+pip install isage-gateway
 
 # From source (development)
 cd packages/sage-gateway
@@ -29,7 +29,7 @@ pip install -e .
 
 ## Quick Start
 
-### Start the Gateway Server
+### Standalone Usage
 
 ```bash
 # Using the CLI
@@ -37,6 +37,65 @@ sage-gateway --host 0.0.0.0 --port 8000
 
 # Or with Python
 python -m sage.gateway.server
+```
+
+### Integration with SAGE Studio
+
+Gateway is designed to work with SAGE Studio's Chat mode. To use the full Chat + Canvas dual-mode
+interface:
+
+**Simplified startup (recommended):**
+
+```bash
+# First time: Build Studio frontend
+sage studio build
+
+# Start everything with one command
+# 自动功能（可通过选项禁用）：
+# - 自动启动 Gateway（如未运行）
+# - 自动安装前端依赖（如缺少 node_modules，会提示确认）
+# - 自动构建生产包（生产模式下如缺少构建，会提示确认）
+sage studio start --host 0.0.0.0
+
+# Access Studio at http://localhost:5173 (dev) or http://localhost:3000 (prod)
+# - Chat Mode: Conversational interface powered by Gateway + RAG
+# - Canvas Mode: Visual pipeline builder
+```
+
+**Auto-install and auto-build:**
+
+When you run `sage studio start` for the first time:
+
+- If `node_modules` is missing, it will ask: "开始安装依赖?" (Default: yes)
+- If production mode (`--prod`) and `dist/` is missing, it will ask: "开始构建?" (Default: yes)
+
+To disable these auto-features:
+
+```bash
+sage studio start --no-auto-install --no-auto-build
+```
+
+**Manual control (advanced):**
+
+```bash
+# Start Gateway manually
+sage-gateway --host 0.0.0.0 --port 8000
+
+# Start Studio without auto-starting Gateway
+sage studio start --host 0.0.0.0 --no-gateway
+```
+
+**Manage services:**
+
+```bash
+# Check status of all services
+sage studio status
+
+# Stop Studio (keep Gateway running)
+sage studio stop
+
+# Stop both Studio and Gateway
+sage studio stop --gateway
 ```
 
 ### Call with OpenAI SDK

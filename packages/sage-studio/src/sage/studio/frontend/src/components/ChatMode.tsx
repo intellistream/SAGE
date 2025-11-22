@@ -281,14 +281,30 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         setRecommendationInsights([])
         try {
             const recommendation = await convertChatSessionToPipeline(currentSessionId)
-            setNodes(recommendation.nodes as Node[])
-            setEdges(recommendation.edges as Edge[])
-            setRecommendationSummary(recommendation.summary)
-            setRecommendationInsights(recommendation.insights)
-            antMessage.success(`已生成推荐：${recommendation.suggested_name}`)
+
+            if (!recommendation.success) {
+                throw new Error(recommendation.error || '工作流生成失败')
+            }
+
+            const { visual_pipeline } = recommendation
+
+            // 转换 connections 为 edges 格式
+            const edges = visual_pipeline.connections.map((conn) => ({
+                id: conn.id,
+                source: conn.source,
+                target: conn.target,
+                type: conn.type || 'smoothstep',
+                animated: conn.animated !== false,
+            }))
+
+            setNodes(visual_pipeline.nodes as Node[])
+            setEdges(edges as Edge[])
+            setRecommendationSummary(recommendation.message || visual_pipeline.description)
+            setRecommendationInsights([`工作流: ${visual_pipeline.name}`])
+            antMessage.success(`已生成推荐：${visual_pipeline.name}`)
         } catch (error) {
             console.error('Convert error', error)
-            antMessage.error('无法生成推荐管道')
+            antMessage.error(error instanceof Error ? error.message : '无法生成推荐管道')
         } finally {
             setIsConverting(false)
         }
@@ -445,10 +461,10 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                         <Button
                                             type="link"
                                             icon={<ArrowRightCircle size={16} />}
-                                            onClick={() => onModeChange?.('builder')}
+                                            onClick={() => onModeChange?.('canvas')}
                                             className="px-0 mt-2"
                                         >
-                                            Go to Builder
+                                            Go to Canvas
                                         </Button>
                                     </div>
                                 </div>
@@ -465,9 +481,8 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                     {currentMessages.map((msg) => (
                                         <div
                                             key={msg.id}
-                                            className={`flex gap-4 ${
-                                                msg.role === 'user' ? 'justify-end' : 'justify-start'
-                                            }`}
+                                            className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'
+                                                }`}
                                         >
                                             {msg.role === 'assistant' && (
                                                 <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">

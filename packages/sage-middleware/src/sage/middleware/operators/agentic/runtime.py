@@ -3,7 +3,7 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
 from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile

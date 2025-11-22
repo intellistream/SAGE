@@ -52,8 +52,7 @@ def test_session_manager_delete():
     manager = SessionManager()
     session = manager.get_or_create()
 
-    deleted = manager.delete(session.id)
-    assert deleted is True
+    assert manager.delete(session.id) is True
     assert manager.get(session.id) is None
 
 

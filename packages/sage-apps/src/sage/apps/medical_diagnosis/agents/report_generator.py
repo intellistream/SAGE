@@ -50,7 +50,7 @@ class ReportGenerator:
 
         # TODO: 集成 SAGE VLLMService
         # Issue URL: https://github.com/intellistream/SAGE/issues/901
-        # from sage.common.components.sage_vllm.service import VLLMService
+        # from sage.common.components.sage_llm.service import VLLMService
         # self.llm_service = VLLMService(...)
 
         self.llm_service = "placeholder"
