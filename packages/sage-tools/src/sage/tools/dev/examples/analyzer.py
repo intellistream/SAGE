@@ -77,8 +77,8 @@ class ExampleAnalyzer:
             # 提取依赖
             dependencies = self._extract_dependencies(imports)
 
-            # 提取测试标记
-            test_tags = self._extract_test_tags(content)
+            # 提取测试标记（包括 TEST_TAGS 变量）
+            test_tags = self._extract_test_tags(content, tree)
 
             category = self._get_category(file_path)
 
@@ -201,24 +201,34 @@ class ExampleAnalyzer:
 
         return list(set(external_deps))
 
-    def _extract_test_tags(self, content: str) -> list[str]:
+    def _extract_test_tags(self, content: str, tree: ast.AST | None = None) -> list[str]:
         """从文件内容中提取测试标记
 
         支持的标记格式:
-        # @test:skip - 跳过测试
-        # @test:slow - 标记为慢速测试
-        # @test:require-api - 需要API密钥
-        # @test:interactive - 需要用户交互
-        # @test:unstable - 不稳定的测试
-        # @test:gpu - 需要GPU
-        # @test:timeout=120 - 自定义超时时间
-        # @test:category=batch - 自定义类别
-        # @test_skip_ci: true - CI环境中跳过
-        # @test_category: apps - 测试分类
+        1. Python 变量: TEST_TAGS = ["timeout=120", "slow"]
+        2. 注释标记: # @test:skip - 跳过测试
+        3. 注释标记: # @test:slow - 标记为慢速测试
+        4. 注释标记: # @test:require-api - 需要API密钥
+        5. 注释标记: # @test:timeout=120 - 自定义超时时间
+        6. 注释标记: @test_skip_ci: true - CI环境中跳过
         """
         tags = []
 
-        # Pattern 1: @test:tag 或 @test:tag=value 格式（旧格式）
+        # Method 1: Extract from TEST_TAGS variable (highest priority)
+        if tree is not None:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name) and target.id == "TEST_TAGS":
+                            # Found TEST_TAGS assignment
+                            if isinstance(node.value, ast.List):
+                                for elt in node.value.elts:
+                                    if isinstance(elt, ast.Constant):
+                                        tags.append(str(elt.value))
+                                    elif isinstance(elt, ast.Str):  # Python 3.7 compatibility
+                                        tags.append(elt.s)
+
+        # Method 2: Extract from comments (Pattern 1: @test:tag or @test:tag=value)
         pattern1 = r"(?:#\s*)?@test:([\w-]+)(?:=([\w-]+))?"
         matches1 = re.findall(pattern1, content, re.IGNORECASE)
 
@@ -230,7 +240,7 @@ class ExampleAnalyzer:
                 # 简单标记，如 skip
                 tags.append(match[0])
 
-        # Pattern 2: @test_tag: value 格式（新格式）
+        # Method 3: Extract from comments (Pattern 2: @test_tag: value)
         pattern2 = r"@test_([\w-]+):\s*([\w\[\],\s-]+)"
         matches2 = re.findall(pattern2, content, re.IGNORECASE)
 
