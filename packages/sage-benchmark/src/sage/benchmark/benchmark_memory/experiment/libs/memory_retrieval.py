@@ -19,17 +19,17 @@ class MemoryRetrieval(MapFunction):
 
         Args:
             config: RuntimeConfig 对象
-        
+
         功能：
         1. 明确服务后端（从 config 读取 register_memory_service）
         2. 初始化数据解析器（用于提取查询参数）
         """
         super().__init__()
         self.config = config
-        
+
         # 1. 明确服务后端
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
-        
+
         # 2. 初始化数据解析器（用于提取查询参数）
         self.parser = DataParser(config)
 

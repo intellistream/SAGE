@@ -77,7 +77,7 @@ class MetadataStorage:
 ```python
 class BaseMemoryCollection:
     def insert(self, raw_text: str, metadata: Optional[Dict] = None) -> str
-    def retrieve(self, with_metadata: bool = False, 
+    def retrieve(self, with_metadata: bool = False,
                  metadata_filter_func: Optional[Callable] = None,
                  **metadata_conditions) -> List
     def get_all_ids() -> List[str]
@@ -101,7 +101,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
     def batch_insert_data(self, data: List[str],      # 批量插入
                           metadatas: Optional[List[Dict]] = None)
     def insert(self, index_name: str,                 # 单条插入
-               raw_data: str, 
+               raw_data: str,
                metadata: Optional[Dict] = None)
     def retrieve(self, raw_data: str,                 # 向量检索
                  index_name: str,

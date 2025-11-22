@@ -64,11 +64,13 @@ python data_analyze.py --folder .sage/benchmarks/benchmark_memory/locomo/251121 
 每个 JSON 文件单独分析，生成独立的指标和图表。
 
 **适用场景**：
+
 - 对比不同配置（如 STM-3 vs STM-5）
 - 分析单个任务的性能
 - 快速查看每个实验的结果
 
 **输出**：
+
 ```
 analysis_output/
 ├── report.txt                  # 文本报告
@@ -82,6 +84,7 @@ analysis_output/
 将所有 JSON 文件汇总分析，生成整体统计。
 
 **适用场景**：
+
 - 跨任务的平均性能
 - 整体趋势分析
 - 数据集级别的评估
@@ -100,6 +103,7 @@ results = loader.get_all_results()
 ```
 
 **功能**：
+
 - 递归扫描目录下所有 JSON 文件
 - 解析并验证 JSON 格式
 - 提供统一的数据访问接口
@@ -118,6 +122,7 @@ class MyMetric(BaseMetric):
 ```
 
 **关键方法**：
+
 - `compute_single_question()`: 计算单个问题的指标值
 - `compute_test_round()`: 计算单轮测试的平均值
 - `compute_all_rounds()`: 计算所有轮次的指标值
@@ -155,15 +160,15 @@ class PrecisionScore(BaseMetric):
             name="Precision",
             description="精确率 - 预测正确的比例"
         )
-    
+
     def compute_single_question(self, predicted_answer, reference_answer, metadata=None):
         # 实现精确率计算逻辑
         pred_tokens = set(predicted_answer.lower().split())
         ref_tokens = set(reference_answer.lower().split())
-        
+
         if not pred_tokens:
             return 0.0
-        
+
         common = pred_tokens & ref_tokens
         return len(common) / len(pred_tokens)
 ```
@@ -201,7 +206,7 @@ class BarChart:
     def __init__(self, output_dir="./output"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def plot_comparison(self, data, title, save_name):
         # 实现柱状图绘制逻辑
         pass
@@ -236,13 +241,16 @@ F1:
 ### 图表
 
 1. **单指标折线图** (`{task_id}_{metric_name}.png`)
+
    - 横坐标：测试轮次
    - 纵坐标：指标值
 
-2. **多指标对比图** (`{task_id}_multiple_metrics.png`)
+1. **多指标对比图** (`{task_id}_multiple_metrics.png`)
+
    - 多条折线对比不同指标
 
-3. **实验对比图** (`experiment_comparison.png`)
+1. **实验对比图** (`experiment_comparison.png`)
+
    - 对比不同配置的性能
 
 ## 🔧 扩展点
@@ -280,18 +288,21 @@ def compute_by_category(self, test_results, category):
 ## 📋 TODO
 
 ### 高优先级
+
 - [ ] 实现 Precision 指标
 - [ ] 实现 Recall 指标
 - [ ] 实现 Exact Match 指标
 - [ ] 添加 aggregate 模式支持
 
 ### 中优先级
+
 - [ ] 实现柱状图绘制
 - [ ] 实现热力图绘制（问题难度 vs 准确率）
 - [ ] 添加配置文件支持（YAML）
 - [ ] 支持按问题类别分析
 
 ### 低优先级
+
 - [ ] 实现雷达图绘制
 - [ ] 添加延迟和吞吐量指标
 - [ ] 生成 HTML 报告
@@ -300,10 +311,10 @@ def compute_by_category(self, test_results, category):
 ## 🤝 贡献指南
 
 1. 遵循现有代码风格
-2. 新指标必须继承 `BaseMetric`
-3. 添加单元测试（在 `__main__` 块）
-4. 更新 `__init__.py` 和 `data_analyze.py`
-5. 更新本 README
+1. 新指标必须继承 `BaseMetric`
+1. 添加单元测试（在 `__main__` 块）
+1. 更新 `__init__.py` 和 `data_analyze.py`
+1. 更新本 README
 
 ## 📞 联系方式
 
