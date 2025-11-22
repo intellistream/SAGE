@@ -3,6 +3,8 @@
 负责医学知识和病例的检索
 """
 
+import json
+from pathlib import Path
 from typing import Any
 
 
@@ -47,10 +49,187 @@ class MedicalKnowledgeBase:
 
     def _load_knowledge(self):
         """加载医学知识"""
-        # TODO: 从数据集和医学文献加载知识
-        # Issue URL: https://github.com/intellistream/SAGE/issues/905
+        print("   Loading medical knowledge...")
+        
+        # 从默认知识开始
         self.knowledge_base = self._get_default_knowledge()
         self.case_database = []
+        
+        # 从数据集加载知识
+        dataset_knowledge = self._load_knowledge_from_dataset()
+        if dataset_knowledge:
+            self.knowledge_base.extend(dataset_knowledge)
+            print(f"   ✓ Loaded {len(dataset_knowledge)} knowledge entries from dataset")
+        
+        # 从医学文献/报告加载知识
+        literature_knowledge = self._load_knowledge_from_reports()
+        if literature_knowledge:
+            self.knowledge_base.extend(literature_knowledge)
+            print(f"   ✓ Loaded {len(literature_knowledge)} knowledge entries from reports")
+        
+        # 加载病例数据库
+        cases = self._load_case_database()
+        if cases:
+            self.case_database = cases
+            print(f"   ✓ Loaded {len(cases)} cases from database")
+        
+        print(f"   Total knowledge base size: {len(self.knowledge_base)} entries")
+    
+    def _load_knowledge_from_dataset(self) -> list[dict[str, Any]]:
+        """从处理好的数据集加载医学知识"""
+        knowledge = []
+        
+        # 获取数据集路径配置
+        data_path = self.config.get("data_path")
+        if not data_path:
+            # 尝试默认路径
+            current_file = Path(__file__)
+            default_path = current_file.parent.parent / "data" / "processed"
+            if default_path.exists():
+                data_path = str(default_path)
+            else:
+                return knowledge
+        
+        data_dir = Path(data_path)
+        if not data_dir.exists():
+            return knowledge
+        
+        # 加载统计信息，从中提取疾病知识
+        stats_file = data_dir / "stats.json"
+        if stats_file.exists():
+            try:
+                with open(stats_file, encoding="utf-8") as f:
+                    stats = json.load(f)
+                
+                # 从疾病分布中提取知识
+                disease_dist = stats.get("disease_distribution", {})
+                for disease, count in disease_dist.items():
+                    if disease and disease != "正常":
+                        knowledge.append({
+                            "topic": disease,
+                            "content": f"{disease}是常见的腰椎疾病，在数据集中有{count}个相关病例。",
+                            "source": "dataset_statistics",
+                            "case_count": count,
+                        })
+            except Exception as e:
+                print(f"   Warning: Failed to load stats.json: {e}")
+        
+        return knowledge
+    
+    def _load_knowledge_from_reports(self) -> list[dict[str, Any]]:
+        """从医学报告中提取知识"""
+        knowledge = []
+        
+        # 获取数据集路径配置
+        data_path = self.config.get("data_path")
+        if not data_path:
+            # 尝试默认路径
+            current_file = Path(__file__)
+            default_path = current_file.parent.parent / "data" / "processed"
+            if default_path.exists():
+                data_path = str(default_path)
+            else:
+                return knowledge
+        
+        data_dir = Path(data_path)
+        reports_dir = data_dir / "reports"
+        
+        if not reports_dir.exists():
+            return knowledge
+        
+        # 读取所有报告并提取知识
+        report_files = list(reports_dir.glob("*.txt"))
+        
+        # 用于存储提取的独特知识点
+        disease_knowledge = {}
+        
+        for report_file in report_files[:50]:  # 限制读取数量以避免过载
+            try:
+                with open(report_file, encoding="utf-8") as f:
+                    report_content = f.read()
+                
+                # 从报告中提取诊断结论和治疗建议
+                lines = report_content.split("\n")
+                diagnosis = None
+                treatment = None
+                findings = None
+                
+                for i, line in enumerate(lines):
+                    if "诊断结论:" in line and i + 1 < len(lines):
+                        diagnosis = lines[i + 1].strip()
+                    elif "治疗建议:" in line and i + 1 < len(lines):
+                        treatment = lines[i + 1].strip()
+                    elif "主要发现:" in line:
+                        # 提取接下来几行的发现
+                        findings_lines = []
+                        for j in range(i + 1, min(i + 5, len(lines))):
+                            if lines[j].strip().startswith("-"):
+                                findings_lines.append(lines[j].strip())
+                        findings = "\n".join(findings_lines) if findings_lines else None
+                
+                # 如果提取到有效信息，添加到知识库
+                if diagnosis and diagnosis not in disease_knowledge:
+                    # 从诊断中提取疾病名称
+                    disease_name = diagnosis.split("，")[0] if "，" in diagnosis else diagnosis
+                    
+                    if disease_name and len(disease_name) > 2:
+                        disease_knowledge[disease_name] = {
+                            "topic": disease_name,
+                            "content": diagnosis,
+                            "treatment": treatment if treatment else "请咨询专业医生",
+                            "findings": findings if findings else "影像学检查显示相应变化",
+                            "source": "medical_reports",
+                        }
+            
+            except Exception as e:
+                # 忽略单个文件的错误，继续处理其他文件
+                continue
+        
+        # 将提取的知识转换为列表
+        knowledge = list(disease_knowledge.values())
+        
+        return knowledge
+    
+    def _load_case_database(self) -> list[dict[str, Any]]:
+        """从数据集加载病例数据库"""
+        cases = []
+        
+        # 获取数据集路径配置
+        data_path = self.config.get("data_path")
+        if not data_path:
+            # 尝试默认路径
+            current_file = Path(__file__)
+            default_path = current_file.parent.parent / "data" / "processed"
+            if default_path.exists():
+                data_path = str(default_path)
+            else:
+                return cases
+        
+        data_dir = Path(data_path)
+        
+        # 尝试加载所有病例索引
+        all_cases_file = data_dir / "all_cases.json"
+        if all_cases_file.exists():
+            try:
+                with open(all_cases_file, encoding="utf-8") as f:
+                    cases_data = json.load(f)
+                
+                # 转换为统一格式
+                for case in cases_data:
+                    cases.append({
+                        "case_id": case.get("case_id", ""),
+                        "age": case.get("age", 0),
+                        "gender": case.get("gender", "unknown"),
+                        "diagnosis": case.get("disease", ""),
+                        "severity": case.get("severity", ""),
+                        "image_path": case.get("image_path", ""),
+                        "report_path": case.get("report_path", ""),
+                    })
+            
+            except Exception as e:
+                print(f"   Warning: Failed to load case database: {e}")
+        
+        return cases
 
     def _get_default_knowledge(self) -> list[dict[str, str]]:
         """获取默认医学知识"""
@@ -100,7 +279,39 @@ class MedicalKnowledgeBase:
             相似病例列表
         """
         if self.vector_db == "placeholder":
-            # 返回模拟病例
+            # 如果有加载的病例数据库，使用它；否则返回模拟病例
+            if self.case_database:
+                # 简单的关键词匹配（实际应该使用向量检索）
+                matched_cases = []
+                query_keywords = query.lower().split()
+                
+                for case in self.case_database:
+                    # 计算匹配分数
+                    score = 0.0
+                    diagnosis = case.get("diagnosis", "").lower()
+                    
+                    for keyword in query_keywords:
+                        if keyword in diagnosis:
+                            score += 1.0
+                    
+                    if score > 0:
+                        matched_cases.append({
+                            "case_id": case.get("case_id", ""),
+                            "age": case.get("age", 0),
+                            "gender": case.get("gender", "unknown"),
+                            "diagnosis": case.get("diagnosis", ""),
+                            "severity": case.get("severity", ""),
+                            "similarity_score": min(score / len(query_keywords), 1.0),
+                        })
+                
+                # 按相似度排序
+                matched_cases.sort(key=lambda x: x["similarity_score"], reverse=True)
+                
+                # 如果找到匹配的病例，返回它们
+                if matched_cases:
+                    return matched_cases[:top_k]
+            
+            # 没有加载的数据或没有匹配，返回模拟病例
             return self._get_mock_cases()[:top_k]
 
         # TODO: 实现真实的向量检索
