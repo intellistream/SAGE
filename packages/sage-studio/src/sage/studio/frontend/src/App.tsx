@@ -7,10 +7,11 @@ import PropertiesPanel from './components/PropertiesPanel'
 import StatusBar from './components/StatusBar'
 import LogViewer from './components/LogViewer'
 import ChatMode from './components/ChatMode'
+import FinetunePanel from './components/FinetunePanel'
 
 const { Header, Footer } = Layout
 
-export type AppMode = 'chat' | 'canvas'
+export type AppMode = 'chat' | 'canvas' | 'finetune'
 
 function App() {
     const [mode, setMode] = useState<AppMode>('chat')
@@ -276,10 +277,15 @@ function App() {
                         </>
                     )}
                 </div>
-            ) : (
+            ) : mode === 'chat' ? (
                 /* Chat 模式 - 全新界面 */
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                     <ChatMode onModeChange={setMode} />
+                </div>
+            ) : (
+                /* Finetune 模式 - 模型微调 */
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <FinetunePanel />
                 </div>
             )}
 

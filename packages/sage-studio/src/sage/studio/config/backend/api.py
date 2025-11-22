@@ -9,6 +9,7 @@ import inspect
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -1567,6 +1568,119 @@ async def convert_chat_session(session_id: str):
         return recommendation
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+
+
+# ===== Fine-tune API Endpoints =====
+
+
+class FinetuneCreateRequest(BaseModel):
+    """Create fine-tune task request"""
+
+    model_name: str = "Qwen/Qwen2.5-7B-Instruct"
+    dataset_file: str  # Path to uploaded dataset
+    num_epochs: int = 3
+    batch_size: int = 1
+    gradient_accumulation_steps: int = 16
+    learning_rate: float = 5e-5
+    max_length: int = 1024
+    load_in_8bit: bool = True
+
+
+@app.post("/api/finetune/create")
+async def create_finetune_task(request: FinetuneCreateRequest):
+    """创建微调任务"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    config = {
+        "num_epochs": request.num_epochs,
+        "batch_size": request.batch_size,
+        "gradient_accumulation_steps": request.gradient_accumulation_steps,
+        "learning_rate": request.learning_rate,
+        "max_length": request.max_length,
+        "load_in_8bit": request.load_in_8bit,
+    }
+
+    task = finetune_manager.create_task(
+        model_name=request.model_name, dataset_path=request.dataset_file, config=config
+    )
+
+    # Start training immediately
+    success = finetune_manager.start_training(task.task_id)
+    if not success:
+        raise HTTPException(status_code=409, detail="Another training task is running")
+
+    return task.to_dict()
+
+
+@app.get("/api/finetune/tasks")
+async def list_finetune_tasks():
+    """列出所有微调任务"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    tasks = finetune_manager.list_tasks()
+    return [task.to_dict() for task in tasks]
+
+
+@app.get("/api/finetune/tasks/{task_id}")
+async def get_finetune_task(task_id: str):
+    """获取微调任务详情"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    task = finetune_manager.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task.to_dict()
+
+
+@app.get("/api/finetune/models")
+async def list_finetune_models():
+    """获取可用模型列表（基础模型 + 微调后的模型）"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    return finetune_manager.list_available_models()
+
+
+@app.post("/api/finetune/switch-model")
+async def switch_model(model_path: str):
+    """切换当前使用的模型"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    success = finetune_manager.switch_model(model_path)
+    if success:
+        return {"message": "Model switched successfully", "current_model": model_path}
+    raise HTTPException(status_code=500, detail="Failed to switch model")
+
+
+@app.get("/api/finetune/current-model")
+async def get_current_model():
+    """获取当前使用的模型"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    return {"current_model": finetune_manager.get_current_model()}
+
+
+@app.post("/api/finetune/upload-dataset")
+async def upload_dataset(file: UploadFile = File(...)):
+    """上传微调数据集"""
+    from pathlib import Path
+
+    # Validate file type
+    if not file.filename.endswith((".json", ".jsonl")):
+        raise HTTPException(status_code=400, detail="Only JSON/JSONL files are supported")
+
+    # Save to uploads directory
+    upload_dir = Path.home() / ".sage" / "studio_finetune" / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = upload_dir / f"{int(time.time())}_{file.filename}"
+
+    try:
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        return {"file_path": str(file_path), "filename": file.filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
 
 if __name__ == "__main__":

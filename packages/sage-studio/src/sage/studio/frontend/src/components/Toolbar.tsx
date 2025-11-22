@@ -14,6 +14,7 @@ import {
     Upload as UploadIcon,
     Settings as SettingsIcon,
     Layout as LayoutIcon,
+    Zap,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
@@ -448,10 +449,15 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
 
                                 <div className="h-6 w-px bg-gray-300 mx-2" />
                             </>
-                        ) : (
+                        ) : mode === 'chat' ? (
                             // Chat 模式: 显示提示信息
                             <div style={{ color: '#888', fontSize: 14 }}>
                                 💬 Chat Mode - AI 自动生成工作流
+                            </div>
+                        ) : (
+                            // Finetune 模式: 显示提示信息
+                            <div style={{ color: '#888', fontSize: 14 }}>
+                                🔧 Finetune Mode - 模型微调与管理
                             </div>
                         )}
                     </Space>
@@ -480,6 +486,15 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                         </div>
                                     ),
                                     value: 'canvas',
+                                },
+                                {
+                                    label: (
+                                        <div className="flex items-center gap-2">
+                                            <Zap size={16} />
+                                            <span>Finetune</span>
+                                        </div>
+                                    ),
+                                    value: 'finetune',
                                 },
                             ]}
                             style={{
