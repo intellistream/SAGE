@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
 
 if TYPE_CHECKING:
-    from sage.benchmark.benchmark_memory.experiment.utils.config_loader import RuntimeConfig
+    pass
 
 from .short_term_memory_service import ShortTermMemoryService
 
