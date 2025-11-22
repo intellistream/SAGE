@@ -72,6 +72,8 @@ async def root():
             "/v1/chat/completions",
             "/health",
             "/sessions",
+            "/admin/index/status",
+            "/admin/index/build",
         ],
     }
 
@@ -178,6 +180,157 @@ async def cleanup_sessions(max_age_minutes: int = 30):
         "status": "cleaned",
         "removed_sessions": count,
     }
+
+
+# ==================== Index Management APIs ====================
+
+
+class IndexBuildPayload(BaseModel):
+    """索引构建请求"""
+
+    source_dir: str | None = None  # 源文档目录，默认使用 docs-public/docs_src
+    force_rebuild: bool = False  # 强制重建（即使已存在）
+
+
+@app.get("/admin/index/status")
+async def get_index_status():
+    """获取索引状态
+
+    Returns:
+        索引的元数据信息，包括文档数、chunk数、创建时间等
+    """
+    from pathlib import Path
+    import json
+
+    index_dir = Path.home() / ".sage" / "vector_db"
+    manifest_path = index_dir / "manifest.json"
+
+    if not manifest_path.exists():
+        return {
+            "status": "not_found",
+            "message": "RAG index has not been built yet",
+        }
+
+    try:
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+
+        return {
+            "status": "ready",
+            "index": manifest,
+        }
+    except Exception as e:
+        logger.error(f"Failed to load index manifest: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load index: {str(e)}")
+
+
+@app.post("/admin/index/build")
+async def build_index(payload: IndexBuildPayload):
+    """触发索引构建
+
+    Args:
+        payload: 包含 source_dir 和 force_rebuild 选项
+
+    Returns:
+        构建结果和索引元数据
+    """
+    from pathlib import Path
+    import json
+
+    index_dir = Path.home() / ".sage" / "vector_db"
+    manifest_path = index_dir / "manifest.json"
+
+    # Check if index exists and force_rebuild is False
+    if manifest_path.exists() and not payload.force_rebuild:
+        with open(manifest_path) as f:
+            existing_manifest = json.load(f)
+
+        return {
+            "status": "already_exists",
+            "message": "Index already exists. Use force_rebuild=true to rebuild.",
+            "index": existing_manifest,
+        }
+
+    # Determine source directory
+    if payload.source_dir:
+        source_dir = Path(payload.source_dir)
+    else:
+        # Auto-detect
+        from sage.common.config.output_paths import find_sage_project_root
+
+        project_root = find_sage_project_root()
+        if project_root:
+            source_dir = project_root / "docs-public" / "docs_src"
+        else:
+            source_dir = Path.cwd() / "docs-public" / "docs_src"
+            if not source_dir.exists():
+                source_dir = Path.home() / "SAGE" / "docs-public" / "docs_src"
+
+    if not source_dir.exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Source directory not found: {source_dir}",
+        )
+
+    try:
+        # Clear existing index if force_rebuild
+        if payload.force_rebuild and index_dir.exists():
+            import shutil
+
+            shutil.rmtree(index_dir)
+            logger.info(f"Removed existing index at {index_dir}")
+
+        # Build index (reuse adapter's method)
+        openai_adapter._build_index_from_docs(source_dir, index_dir)
+
+        # Load manifest
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+
+        return {
+            "status": "built",
+            "message": "Index built successfully",
+            "index": manifest,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to build index: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to build index: {str(e)}")
+
+
+@app.delete("/admin/index")
+async def delete_index():
+    """删除索引
+
+    Returns:
+        删除结果
+    """
+    from pathlib import Path
+    import shutil
+
+    index_dir = Path.home() / ".sage" / "vector_db"
+
+    if not index_dir.exists():
+        return {
+            "status": "not_found",
+            "message": "No index to delete",
+        }
+
+    try:
+        shutil.rmtree(index_dir)
+        logger.info(f"Deleted index at {index_dir}")
+
+        return {
+            "status": "deleted",
+            "message": f"Index deleted: {index_dir}",
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to delete index: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to delete index: {str(e)}")
+
+
+# ==================== Main Entry Point ====================
 
 
 def main():

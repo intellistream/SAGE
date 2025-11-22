@@ -8,6 +8,7 @@ This module provides integration with external services and libraries:
 
 # Vector Database Backends
 from sage.libs.integrations.chroma import ChromaBackend, ChromaUtils
+from sage.libs.integrations.chroma_adapter import ChromaVectorStoreAdapter
 
 # LLM Clients
 from sage.libs.integrations.huggingface import HFClient
@@ -19,6 +20,7 @@ __all__ = [
     # Vector DB
     "ChromaBackend",
     "ChromaUtils",
+    "ChromaVectorStoreAdapter",
     "MilvusBackend",
     "MilvusUtils",
     # LLM Clients

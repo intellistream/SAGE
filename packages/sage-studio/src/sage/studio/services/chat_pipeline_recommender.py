@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Sequence
 
 
@@ -23,6 +24,62 @@ INTENT_KEYWORDS = {
 }
 
 
+def _make_default_config(node_type: str) -> dict[str, Any]:
+    """为不同类型的节点生成默认配置
+
+    这确保从 Chat 推荐生成的节点在 Studio 中可以直接运行
+    """
+    configs = {
+        "UserInput": {},
+        "FileSource": {
+            "file_path": "data/sample.txt",
+            "encoding": "utf-8",
+        },
+        "SimpleSplitter": {
+            "chunk_size": 500,
+            "chunk_overlap": 50,
+        },
+        "Embedding": {
+            "model_name": "BAAI/bge-small-zh-v1.5",
+            "device": "cpu",
+        },
+        "Retriever": {
+            "top_k": 5,
+            "persist_directory": str(Path.home() / ".sage" / "vector_db"),
+        },
+        "ChromaRetriever": {
+            "persist_directory": str(Path.home() / ".sage" / "vector_db"),
+            "collection_name": "sage_docs",
+            "top_k": 5,
+            "embedding_model": "BAAI/bge-small-zh-v1.5",
+        },
+        "LLM": {
+            "model_name": "gpt-3.5-turbo",
+            "api_base": "https://api.openai.com/v1",
+            "api_key": "",  # 用户需要填写
+            "temperature": 0.7,
+        },
+        "OpenAIGenerator": {
+            "model_name": "gpt-3.5-turbo",
+            "api_base": "https://api.openai.com/v1",
+            "api_key": "",  # 会从环境变量自动加载
+            "temperature": 0.7,
+        },
+        "QAPromptor": {
+            "template": "根据以下文档回答问题：\n\n{{external_corpus}}\n\n问题：{{query}}\n\n回答：",
+        },
+        "PostProcessor": {
+            "max_length": 200,
+        },
+        "Analytics": {
+            "metrics": ["count", "avg_length"],
+        },
+        "TerminalSink": {},
+    }
+
+    return configs.get(node_type, {})
+
+
 def _detect_intents(user_messages: Sequence[str]) -> set[str]:
     lowered = " \n".join(m.lower() for m in user_messages)
     matches = {
@@ -36,6 +93,10 @@ def _detect_intents(user_messages: Sequence[str]) -> set[str]:
 
 
 def _make_node(node_id: str, label: str, node_type: str, description: str, order: int) -> dict:
+    """创建节点，包含默认配置
+
+    修复: 添加 config 字段，确保生成的工作流在 Studio 中可以直接运行
+    """
     return {
         "id": node_id,
         "type": "custom",
@@ -45,6 +106,7 @@ def _make_node(node_id: str, label: str, node_type: str, description: str, order
             "nodeId": node_type,
             "description": description,
             "status": "idle",
+            "config": _make_default_config(node_type),  # ✅ 添加默认配置
         },
     }
 

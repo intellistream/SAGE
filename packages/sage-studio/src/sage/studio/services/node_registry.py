@@ -4,7 +4,7 @@ Node Registry - Maps Studio UI node types to SAGE Operators
 
 import re
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 
 def convert_node_type_to_snake_case(node_type: str) -> str:

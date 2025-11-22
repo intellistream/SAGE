@@ -799,6 +799,128 @@ if __name__ == "__main__":
             console.print(f"[red]后端API停止失败: {e}[/red]")
             return False
 
+    def _ensure_rag_index(self) -> bool:
+        """确保 RAG 索引就绪（自动 ingest）
+
+        检查 ~/.sage/cache/chat/ 下的索引，如果不存在则自动构建。
+        这样用户无需手动运行 sage chat ingest。
+        """
+        index_root = Path.home() / ".sage" / "cache" / "chat"
+        index_name = "docs-public"
+        manifest_file = index_root / f"{index_name}_manifest.json"
+
+        # 如果索引已存在，直接返回
+        if manifest_file.exists():
+            console.print(f"[green]✅ RAG 索引已就绪: {manifest_file}[/green]")
+            return True
+
+        console.print("[blue]📚 RAG 索引不存在，开始自动构建...[/blue]")
+
+        try:
+            # 查找文档源
+            from sage.common.config.output_paths import find_sage_project_root
+
+            project_root = find_sage_project_root()
+            if not project_root:
+                console.print("[yellow]⚠️  未找到 SAGE 项目根目录，跳过索引构建[/yellow]")
+                return False
+
+            source_dir = project_root / "docs-public" / "docs_src"
+            if not source_dir.exists():
+                console.print(f"[yellow]⚠️  文档源不存在: {source_dir}[/yellow]")
+                return False
+
+            # 导入必要的组件
+            from sage.common.components.sage_embedding import get_embedding_model
+            from sage.common.utils.document_processing import parse_markdown_sections
+            from sage.middleware.components.sage_db.backend import SageDBBackend
+            from sage.middleware.operators.rag.index_builder import IndexBuilder
+
+            # 创建输出路径
+            index_root.mkdir(parents=True, exist_ok=True)
+            db_path = index_root / f"{index_name}.sagedb"
+
+            # 创建 embedder（使用 hash 加快启动速度）
+            console.print("[blue]初始化 embedder (hash-384)...[/blue]")
+            embedder = get_embedding_model("hash", dim=384)
+
+            # Backend factory
+            def backend_factory(persist_path: Path, dim: int):
+                return SageDBBackend(persist_path, dim)
+
+            # Document processor
+            def document_processor(source_dir: Path):
+                console.print(f"[blue]正在处理文档: {source_dir}...[/blue]")
+                documents = []  # 使用列表而不是生成器
+                for md_file in source_dir.rglob("*.md"):
+                    try:
+                        with open(md_file, encoding="utf-8") as f:
+                            content = f.read()
+                        sections = parse_markdown_sections(content)
+                        for section in sections:
+                            documents.append(
+                                {
+                                    "content": f"{section['heading']}\n\n{section['content']}",
+                                    "metadata": {
+                                        "doc_path": str(md_file.relative_to(source_dir)),
+                                        "heading": section["heading"],
+                                    },
+                                }
+                            )
+                    except Exception as e:
+                        console.print(f"[yellow]跳过 {md_file}: {e}[/yellow]")
+                        continue
+                console.print(f"[green]处理了 {len(documents)} 个文档片段[/green]")
+                return documents  # 返回列表
+
+            # Build index
+            console.print("[blue]构建索引中...[/blue]")
+            builder = IndexBuilder(backend_factory=backend_factory)
+            index_manifest = builder.build_from_docs(
+                source_dir=source_dir,
+                persist_path=db_path,
+                embedding_model=embedder,
+                index_name=index_name,
+                chunk_size=800,
+                chunk_overlap=160,
+                document_processor=document_processor,
+            )
+
+            # Save manifest
+            manifest_data = {
+                "index_name": index_name,
+                "db_path": str(db_path),
+                "created_at": index_manifest.created_at,
+                "source_dir": str(source_dir),
+                "embedding": {
+                    "method": "hash",
+                    "dim": 384,
+                },
+                "chunk_size": 800,
+                "chunk_overlap": 160,
+                "num_documents": index_manifest.num_documents,
+                "num_chunks": index_manifest.num_chunks,
+            }
+
+            import json
+
+            with open(manifest_file, "w") as f:
+                json.dump(manifest_data, f, indent=2)
+
+            console.print(
+                f"[green]✅ 索引构建成功: {index_manifest.num_chunks} 个片段 "
+                f"来自 {index_manifest.num_documents} 个文档[/green]"
+            )
+            return True
+
+        except Exception as e:
+            console.print(f"[yellow]⚠️  索引构建失败: {e}[/yellow]")
+            console.print("[yellow]   RAG 功能可能不可用，但 Studio 会继续启动[/yellow]")
+            import traceback
+
+            traceback.print_exc()
+            return False
+
     def start(
         self,
         port: int | None = None,
@@ -810,6 +932,9 @@ if __name__ == "__main__":
         auto_build: bool = True,  # 新增：是否自动构建（生产模式）
     ) -> bool:
         """启动 Studio（前端和后端）"""
+        # 🆕 步骤0: 确保 RAG 索引就绪（自动 ingest）
+        self._ensure_rag_index()
+
         # 检查并启动 Gateway（如果需要 Chat 模式）
         if auto_gateway:
             gateway_pid = self.is_gateway_running()
