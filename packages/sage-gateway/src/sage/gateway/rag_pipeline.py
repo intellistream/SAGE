@@ -177,147 +177,61 @@ class RAGChatMap(MapFunction):
         return False
 
     def _generate_workflow(self, requirements: dict[str, Any]) -> dict[str, Any]:
-        """Generate a workflow using Pipeline Builder.
+        """Generate a workflow using sage-libs LLMWorkflowGenerator.
 
-        This integrates sage.cli.commands.apps.pipeline builder functionality
-        to convert conversational requirements into executable pipelines.
+        迁移说明: 现在使用 sage-libs 的 LLMWorkflowGenerator 替代直接调用 Pipeline Builder。
+        这确保了工作流生成逻辑的统一管理和可复用性。
 
         Returns:
             Workflow configuration in VisualPipeline format
         """
         try:
-            import os
-            from sage.cli.commands.apps import pipeline as pipeline_builder
+            from sage.libs.agentic.workflow import GenerationContext
+            from sage.libs.agentic.workflow.generators import LLMWorkflowGenerator
 
-            # Build config (similar to chat.py)
-            config = pipeline_builder.BuilderConfig(
-                backend="openai",
-                model=os.getenv("SAGE_PIPELINE_BUILDER_MODEL", "qwen-max"),
-                base_url=os.getenv(
-                    "SAGE_PIPELINE_BUILDER_BASE_URL",
-                    "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                ),
-                api_key=(
-                    os.getenv("SAGE_PIPELINE_BUILDER_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
-                ),
-                domain_contexts=(),
-                knowledge_base=None,
-                knowledge_top_k=0,
-                show_knowledge=False,
+            # 提取用户需求描述
+            user_input = requirements.get("description", "") or requirements.get("task", "")
+            if not user_input:
+                user_input = str(requirements)
+
+            # 创建生成上下文
+            context = GenerationContext(
+                user_input=user_input,
+                conversation_history=[],  # 如果需要，可以从 requirements 中提取对话历史
+                constraints=requirements.get("constraints"),
             )
 
-            # Generate plan
-            generator = pipeline_builder.PipelinePlanGenerator(config)
-            plan = generator.generate(requirements, previous_plan=None, feedback=None)
+            # 使用 sage-libs LLM 生成器
+            generator = LLMWorkflowGenerator()
+            result = generator.generate(context)
 
-            # Convert to VisualPipeline format for Studio
-            visual_pipeline = self._convert_to_visual_pipeline(plan)
+            if not result.success:
+                error_msg = result.error or "未知错误"
+                logger.error(f"Workflow generation failed: {error_msg}")
+                return {
+                    "type": "error",
+                    "error": error_msg,
+                    "message": f"抱歉，工作流生成失败：{error_msg}",
+                }
 
+            # visual_pipeline 已经是正确格式 (包含 nodes, connections, name, description)
             return {
                 "type": "workflow",
-                "plan": plan,
-                "visual_pipeline": visual_pipeline,
+                "plan": result.raw_plan,  # 保留原始计划（如果需要）
+                "visual_pipeline": result.visual_pipeline,
                 "message": "我已经为您生成了一个工作流配置，您可以在 Studio 中查看和编辑。",
             }
 
+        except ImportError as e:
+            logger.error(f"Failed to import workflow generators: {e}")
+            return {
+                "type": "error",
+                "error": str(e),
+                "message": "抱歉，工作流生成功能暂时不可用（缺少依赖）",
+            }
         except Exception as e:
             logger.error(f"Workflow generation failed: {e}", exc_info=True)
             return {"type": "error", "error": str(e), "message": f"抱歉，工作流生成失败：{e}"}
-
-    def _convert_to_visual_pipeline(self, plan: dict[str, Any]) -> dict[str, Any]:
-        """Convert pipeline plan to VisualPipeline format.
-
-        This adapts the LLM-generated plan to Studio's visual format.
-        """
-        nodes = []
-        connections = []
-
-        # Extract pipeline metadata
-        pipeline_info = plan.get("pipeline", {})
-
-        # Create source node
-        source_config = plan.get("source", {})
-        nodes.append(
-            {
-                "id": "source-0",
-                "type": source_config.get("class", "text_file_source").lower().replace(".", "_"),
-                "label": "数据源",
-                "config": source_config.get("params", {}),
-                "position": {"x": 100, "y": 100},
-            }
-        )
-
-        # Create stage nodes
-        stages = plan.get("stages", [])
-        for idx, stage in enumerate(stages):
-            stage_id = f"stage-{idx}"
-            nodes.append(
-                {
-                    "id": stage_id,
-                    "type": stage.get("class", "map_function").lower().replace(".", "_"),
-                    "label": stage.get("summary", f"处理阶段 {idx + 1}"),
-                    "config": stage.get("params", {}),
-                    "position": {"x": 100 + (idx + 1) * 200, "y": 100},
-                }
-            )
-
-            # Connect to previous node
-            prev_id = f"stage-{idx - 1}" if idx > 0 else "source-0"
-            connections.append(
-                {
-                    "id": f"conn-{idx}",
-                    "source_node_id": prev_id,
-                    "target_node_id": stage_id,
-                    "source_port": "output",
-                    "target_port": "input",
-                }
-            )
-
-        # Create sink node
-        sink_config = plan.get("sink", {})
-        sink_id = f"sink-{len(stages)}"
-        nodes.append(
-            {
-                "id": sink_id,
-                "type": sink_config.get("class", "terminal_sink").lower().replace(".", "_"),
-                "label": "输出",
-                "config": sink_config.get("params", {}),
-                "position": {"x": 100 + (len(stages) + 1) * 200, "y": 100},
-            }
-        )
-
-        # Connect last stage to sink
-        if stages:
-            connections.append(
-                {
-                    "id": f"conn-{len(stages)}",
-                    "source_node_id": f"stage-{len(stages) - 1}",
-                    "target_node_id": sink_id,
-                    "source_port": "output",
-                    "target_port": "input",
-                }
-            )
-        else:
-            connections.append(
-                {
-                    "id": "conn-0",
-                    "source_node_id": "source-0",
-                    "target_node_id": sink_id,
-                    "source_port": "output",
-                    "target_port": "input",
-                }
-            )
-
-        return {
-            "name": pipeline_info.get("name", "生成的工作流"),
-            "description": pipeline_info.get("description", ""),
-            "nodes": nodes,
-            "connections": connections,
-            "metadata": {
-                "generated_by": "sage_gateway_rag_pipeline",
-                "version": pipeline_info.get("version", "1.0.0"),
-            },
-        }
 
     def _perform_rag_chat(self, user_input: str, memory_context: str = "") -> dict:
         """Perform RAG-based chat response with memory context.
