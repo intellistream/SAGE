@@ -315,6 +315,8 @@ def example_4_update_delete():
     # In production, store and manage document IDs returned from insert()
     doc_id = collection._get_stable_id(docs[1])
     collection.text_storage.store(doc_id, "文档2: 已更新的内容")
+    # Register new metadata field before storing
+    collection.add_metadata_field("version")
     collection.metadata_storage.store(doc_id, {"status": "updated", "version": 2})
     print("\n✏️ 更新了文档2")
 
