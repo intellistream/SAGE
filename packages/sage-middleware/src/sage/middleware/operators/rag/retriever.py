@@ -102,7 +102,7 @@ class ChromaRetriever(MapOperator):
             self.logger.error(f"Failed to load knowledge from file {file_path}: {e}")
 
     def _init_embedding_model(self):
-        """初始化 embedding 模型"""
+        """初始化HuggingFace嵌入模型（使用sentence-transformers）"""
         embedding_method = self.embedding_config.get("method", "default")
         model = self.embedding_config.get("model", "sentence-transformers/all-MiniLM-L6-v2")
 
@@ -856,7 +856,7 @@ class MilvusSparseRetriever(MapOperator):
 # Wiki18 FAISS 检索器
 class Wiki18FAISSRetriever(MapOperator):
     """
-    基于FAISS的Wiki18数据集检索器，使用BGE-M3模型进行嵌入
+    基于FAISS的Wiki18数据集检索器，使用HuggingFace嵌入模型（如BGE-Large-EN-v1.5）
     """
 
     def __init__(self, config, enable_profile=False, **kwargs):
@@ -893,8 +893,8 @@ class Wiki18FAISSRetriever(MapOperator):
             import torch
             from sentence_transformers import SentenceTransformer
 
-            # 从配置获取模型路径，默认使用BGE-M3
-            model_path = self.embedding_config.get("model", "BAAI/bge-m3")
+            # 从配置获取模型路径，默认使用BGE-Large-EN-v1.5
+            model_path = self.embedding_config.get("model", "BAAI/bge-large-en-v1.5")
 
             # 从配置获取GPU设备，默认使用GPU 0
             gpu_device = self.embedding_config.get("gpu_device", 0)
@@ -902,22 +902,22 @@ class Wiki18FAISSRetriever(MapOperator):
             # 明确指定GPU设备
             if torch.cuda.is_available():
                 device = f"cuda:{gpu_device}"
-                self.logger.info(f"BGE-M3模型将使用GPU {gpu_device}")
+                self.logger.info(f"嵌入模型将使用GPU {gpu_device}")
             else:
                 device = "cpu"
-                self.logger.info("BGE-M3模型将使用CPU")
+                self.logger.info("嵌入模型将使用CPU")
 
-            # 初始化BGE-M3模型
+            # 初始化嵌入模型
             self.embedding_model = SentenceTransformer(model_path, device=device)
 
-            self.logger.info(f"BGE-M3模型初始化成功: {model_path} 在设备 {device}")
+            self.logger.info(f"嵌入模型初始化成功: {model_path} 在设备 {device}")
 
         except ImportError as e:
             self.logger.error(f"无法导入sentence-transformers: {e}")
             self.logger.error("请安装: pip install sentence-transformers")
             raise
         except Exception as e:
-            self.logger.error(f"BGE-M3模型初始化失败: {e}")
+            self.logger.error(f"嵌入模型初始化失败: {e}")
             raise
 
     def _init_faiss_index(self):
@@ -928,6 +928,7 @@ class Wiki18FAISSRetriever(MapOperator):
             # FAISS配置 - 从配置文件读取路径
             index_path = self.faiss_config.get("index_path")
             documents_path = self.faiss_config.get("documents_path")
+            mapping_path = self.faiss_config.get("mapping_path")  # 可选的段落到文档映射
 
             # 检查必需的配置项
             if not index_path:
@@ -939,6 +940,16 @@ class Wiki18FAISSRetriever(MapOperator):
             if os.path.exists(index_path) and os.path.exists(documents_path):
                 self.logger.info(f"加载已有FAISS索引: {index_path}")
                 self.faiss_index = faiss.read_index(index_path)
+
+                # 加载段落到文档的映射（如果有）
+                self.passage_to_doc_mapping = None
+                if mapping_path and os.path.exists(mapping_path):
+                    try:
+                        with open(mapping_path, 'r', encoding='utf-8') as f:
+                            self.passage_to_doc_mapping = json.load(f)
+                        self.logger.info(f"加载了段落映射: {len(self.passage_to_doc_mapping)} 个段落映射到文档")
+                    except Exception as e:
+                        self.logger.warning(f"加载段落映射失败: {e}，将直接使用检索索引")
 
                 # 加载JSONL格式的文档数据
                 self.documents = []
@@ -960,6 +971,7 @@ class Wiki18FAISSRetriever(MapOperator):
                     self.documents = []
 
                 self.logger.info(f"加载了 {len(self.documents)} 个文档")
+                self.logger.info(f"FAISS索引大小: {self.faiss_index.ntotal} 个向量")
 
             else:
                 # 如果没有预构建索引，需要从Wiki18数据构建
@@ -967,7 +979,7 @@ class Wiki18FAISSRetriever(MapOperator):
                 self.logger.warning("需要先构建Wiki18 FAISS索引")
 
                 # 创建空索引和文档列表作为占位符
-                dimension = 1024  # BGE-M3的维度
+                dimension = 1024  # 嵌入模型的维度（BGE系列）
                 self.faiss_index = faiss.IndexFlatIP(dimension)  # 内积相似度
                 self.documents = []
 
@@ -981,7 +993,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
     def _encode_query(self, query: str) -> np.ndarray:
         """
-        使用BGE-M3模型编码查询
+        使用嵌入模型编码查询
 
         Args:
             query: 查询文本
@@ -1040,27 +1052,57 @@ class Wiki18FAISSRetriever(MapOperator):
         retrieved_docs = []
 
         for score, idx in zip(scores, indices, strict=False):
-            if idx >= 0 and idx < len(self.documents):
-                original_doc = self.documents[idx]
+            # 如果有段落到文档的映射，使用映射
+            if hasattr(self, 'passage_to_doc_mapping') and self.passage_to_doc_mapping is not None:
+                if idx >= 0 and idx < len(self.passage_to_doc_mapping):
+                    doc_idx = self.passage_to_doc_mapping[idx]
+                    if doc_idx >= 0 and doc_idx < len(self.documents):
+                        original_doc = self.documents[doc_idx]
 
-                # 创建标准化的文档格式，与ChromaRetriever保持一致
-                standardized_doc = {
-                    "text": original_doc.get(
-                        "contents", str(original_doc)
-                    ),  # 将contents字段映射为text
-                    "similarity_score": float(score),
-                    "document_index": int(idx),
-                }
+                        # 创建标准化的文档格式
+                        standardized_doc = {
+                            "text": original_doc.get("contents", str(original_doc)),
+                            "similarity_score": float(score),
+                            "document_index": int(doc_idx),
+                            "passage_index": int(idx),  # 保存段落索引
+                        }
 
-                # 保留其他有用的元数据
-                if "title" in original_doc:
-                    standardized_doc["title"] = original_doc["title"]
-                if "id" in original_doc:
-                    standardized_doc["id"] = original_doc["id"]
-                if "doc_size" in original_doc:
-                    standardized_doc["doc_size"] = original_doc["doc_size"]
+                        # 保留其他有用的元数据
+                        if "title" in original_doc:
+                            standardized_doc["title"] = original_doc["title"]
+                        if "id" in original_doc:
+                            standardized_doc["id"] = original_doc["id"]
+                        if "doc_size" in original_doc:
+                            standardized_doc["doc_size"] = original_doc["doc_size"]
 
-                retrieved_docs.append(standardized_doc)
+                        retrieved_docs.append(standardized_doc)
+                    else:
+                        self.logger.warning(f"映射的文档索引超出范围: {doc_idx} >= {len(self.documents)}")
+                else:
+                    self.logger.warning(f"段落索引超出映射范围: {idx} >= {len(self.passage_to_doc_mapping)}")
+            else:
+                # 没有映射时，直接使用索引
+                if idx >= 0 and idx < len(self.documents):
+                    original_doc = self.documents[idx]
+
+                    # 创建标准化的文档格式，与ChromaRetriever保持一致
+                    standardized_doc = {
+                        "text": original_doc.get(
+                            "contents", str(original_doc)
+                        ),  # 将contents字段映射为text
+                        "similarity_score": float(score),
+                        "document_index": int(idx),
+                    }
+
+                    # 保留其他有用的元数据
+                    if "title" in original_doc:
+                        standardized_doc["title"] = original_doc["title"]
+                    if "id" in original_doc:
+                        standardized_doc["id"] = original_doc["id"]
+                    if "doc_size" in original_doc:
+                        standardized_doc["doc_size"] = original_doc["doc_size"]
+
+                    retrieved_docs.append(standardized_doc)
 
         return retrieved_docs
 
