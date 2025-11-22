@@ -19,6 +19,8 @@ import {
     Divider,
     Switch,
     Collapse,
+    Radio,
+    Modal,
 } from 'antd'
 import {
     Upload as UploadIcon,
@@ -28,6 +30,7 @@ import {
     Clock,
     Cpu,
     AlertCircle,
+    Download,
 } from 'lucide-react'
 import type { UploadFile, UploadProps } from 'antd'
 
@@ -40,7 +43,7 @@ interface FinetuneTask {
     model_name: string
     dataset_path: string
     output_dir: string
-    status: 'pending' | 'preparing' | 'training' | 'completed' | 'failed' | 'cancelled'
+    status: 'pending' | 'queued' | 'preparing' | 'training' | 'completed' | 'failed' | 'cancelled'
     progress: number
     current_epoch: number
     total_epochs: number
@@ -70,11 +73,18 @@ export default function FinetunePanel() {
     const [fileList, setFileList] = useState<UploadFile[]>([])
     const [loading, setLoading] = useState(false)
     const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
+    const [gpuInfo, setGpuInfo] = useState<{
+        available: boolean
+        count: number
+        devices: Array<{ id: number; name: string; memory_gb: number }>
+        recommendation: string
+    } | null>(null)
 
     useEffect(() => {
         loadTasks()
         loadModels()
         loadCurrentModel()
+        loadGpuInfo()
 
         // Auto-refresh every 3 seconds when training
         const interval = setInterval(() => {
@@ -86,6 +96,18 @@ export default function FinetunePanel() {
             if (refreshInterval) clearInterval(refreshInterval)
         }
     }, [])
+
+    const loadGpuInfo = async () => {
+        try {
+            const response = await fetch('http://localhost:8080/api/system/gpu-info')
+            if (response.ok) {
+                const data = await response.json()
+                setGpuInfo(data)
+            }
+        } catch (error) {
+            console.error('Failed to load GPU info:', error)
+        }
+    }
 
     const loadTasks = async () => {
         try {
@@ -208,9 +230,68 @@ export default function FinetunePanel() {
         }
     }
 
+    const handlePrepareSageDocs = async () => {
+        const hide = message.loading('正在下载 SAGE 文档并准备训练数据...', 0)
+        try {
+            const response = await fetch('http://localhost:8080/api/finetune/prepare-sage-docs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setUploadedFile(data.data_file)
+                message.success(`SAGE 文档已准备完成！共 ${data.stats.total_samples} 条训练数据`)
+            } else {
+                const error = await response.json().catch(() => ({ detail: response.statusText }))
+                message.error(error.detail || '准备文档失败')
+                console.error('Prepare docs error:', error)
+            }
+        } catch (error) {
+            console.error('Prepare docs exception:', error)
+            message.error(`准备文档失败: ${error instanceof Error ? error.message : '未知错误'}`)
+        } finally {
+            hide()
+        }
+    }
+
+    const handleUseAsBackend = async (taskId: string) => {
+        Modal.confirm({
+            title: '切换为对话后端',
+            content: '确定要将此微调模型设置为 Studio 的对话后端吗？当前对话将使用此模型。',
+            okText: '确定',
+            cancelText: '取消',
+            onOk: async () => {
+                try {
+                    const response = await fetch(
+                        'http://localhost:8080/api/finetune/use-as-backend',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ task_id: taskId }),
+                        }
+                    )
+
+                    if (response.ok) {
+                        const data = await response.json()
+                        message.success(`✅ ${data.message}`)
+                        message.info('请在对话面板测试微调后的模型效果', 5)
+                    } else {
+                        const error = await response.json()
+                        message.error(error.detail || '切换后端失败')
+                    }
+                } catch (error) {
+                    message.error('切换后端失败')
+                }
+            },
+        })
+    }
+
     const getStatusTag = (status: FinetuneTask['status']) => {
         const statusConfig = {
             pending: { color: 'default', icon: <Clock className="w-3 h-3" />, text: '等待中' },
+            queued: { color: 'warning', icon: <Clock className="w-3 h-3" />, text: '排队中' },
             preparing: { color: 'processing', icon: <Cpu className="w-3 h-3" />, text: '准备中' },
             training: { color: 'processing', icon: <Cpu className="w-3 h-3" />, text: '训练中' },
             completed: {
@@ -278,18 +359,131 @@ export default function FinetunePanel() {
         {
             title: '操作',
             key: 'action',
-            width: 150,
+            width: 280,
             render: (_: any, record: FinetuneTask) => (
                 <Space>
                     {record.status === 'completed' && (
-                        <Button size="small" type="primary" onClick={() => handleSwitchModel(record.output_dir)}>
-                            使用此模型
+                        <>
+                            <Button
+                                size="small"
+                                type="primary"
+                                onClick={() => handleSwitchModel(record.output_dir)}
+                            >
+                                使用此模型
+                            </Button>
+                            <Button
+                                size="small"
+                                type="default"
+                                onClick={() => handleUseAsBackend(record.task_id)}
+                            >
+                                设为后端
+                            </Button>
+                            <Button
+                                size="small"
+                                icon={<Download className="w-3 h-3" />}
+                                onClick={() => handleDownloadModel(record.task_id)}
+                            >
+                                下载
+                            </Button>
+                        </>
+                    )}
+                    {(record.status === 'training' || record.status === 'preparing' || record.status === 'queued') && (
+                        <Button
+                            size="small"
+                            danger
+                            onClick={() => handleCancelTask(record.task_id)}
+                        >
+                            取消
+                        </Button>
+                    )}
+                    {(record.status === 'failed' || record.status === 'completed' || record.status === 'cancelled') && (
+                        <Button
+                            size="small"
+                            danger
+                            icon={<XCircle className="w-3 h-3" />}
+                            onClick={() => handleDeleteTask(record.task_id)}
+                        >
+                            删除
                         </Button>
                     )}
                 </Space>
             ),
         },
     ]
+
+    const handleDownloadModel = async (taskId: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/finetune/tasks/${taskId}/download`)
+            if (response.ok) {
+                const blob = await response.blob()
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${taskId}_finetuned_model.tar.gz`
+                document.body.appendChild(a)
+                a.click()
+                window.URL.revokeObjectURL(url)
+                document.body.removeChild(a)
+                message.success('模型下载已开始')
+            } else {
+                message.error('下载失败')
+            }
+        } catch (error) {
+            message.error('下载失败')
+        }
+    }
+
+    const handleDeleteTask = async (taskId: string) => {
+        Modal.confirm({
+            title: '确认删除',
+            content: '确定要删除此任务吗？此操作无法撤销。',
+            okText: '删除',
+            okType: 'danger',
+            cancelText: '取消',
+            async onOk() {
+                try {
+                    const response = await fetch(`http://localhost:8080/api/finetune/tasks/${taskId}`, {
+                        method: 'DELETE',
+                    })
+                    if (response.ok) {
+                        message.success('任务已删除')
+                        loadTasks() // 刷新任务列表
+                    } else {
+                        const error = await response.json().catch(() => ({ detail: '删除失败' }))
+                        message.error(error.detail || '删除失败')
+                    }
+                } catch (error) {
+                    message.error('删除失败')
+                }
+            },
+        })
+    }
+
+    const handleCancelTask = async (taskId: string) => {
+        Modal.confirm({
+            title: '确认取消',
+            content: '确定要取消此任务吗？训练进度将会丢失。',
+            okText: '取消任务',
+            okType: 'danger',
+            cancelText: '继续训练',
+            async onOk() {
+                try {
+                    const response = await fetch(`http://localhost:8080/api/finetune/tasks/${taskId}/cancel`, {
+                        method: 'POST',
+                    })
+                    if (response.ok) {
+                        message.success('任务已取消')
+                        loadTasks() // 刷新任务列表
+                    } else {
+                        const error = await response.json().catch(() => ({ detail: '取消失败' }))
+                        message.error(error.detail || '取消失败')
+                    }
+                } catch (error) {
+                    message.error('取消失败')
+                }
+            },
+        })
+    }
 
     return (
         <div className="h-full overflow-auto p-6 bg-gray-50">
@@ -298,6 +492,8 @@ export default function FinetunePanel() {
                     <Title level={2}>🔧 模型微调</Title>
                     <Paragraph type="secondary">
                         使用自定义数据微调 LLM 模型，提升特定任务的性能。微调后的模型可直接用于 RAG Pipeline。
+                        <br />
+                        💡 <Text strong>{gpuInfo ? gpuInfo.recommendation : '正在检测 GPU...'}</Text>
                     </Paragraph>
                 </div>
 
@@ -349,24 +545,93 @@ export default function FinetunePanel() {
                         <Form.Item
                             label="基础模型"
                             name="model_name"
-                            tooltip="选择要微调的基础模型"
+                            tooltip="选择要微调的基础模型（推荐使用 1.5B 模型适配 RTX 3060）"
                             rules={[{ required: true }]}
                         >
                             <Select placeholder="选择基础模型">
-                                <Option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B Instruct</Option>
                                 <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
-                                    Qwen 2.5 Coder 1.5B
+                                    <div>
+                                        <div>✨ Qwen 2.5 Coder 1.5B (推荐)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 6-8GB | 训练时间: 2-4h
+                                        </Text>
+                                    </div>
+                                </Option>
+                                <Option value="Qwen/Qwen2.5-0.5B-Instruct">
+                                    <div>
+                                        <div>🚀 Qwen 2.5 0.5B (超快)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 4-6GB | 训练时间: 1-2h
+                                        </Text>
+                                    </div>
+                                </Option>
+                                <Option value="Qwen/Qwen2.5-1.5B-Instruct">
+                                    <div>
+                                        <div>💬 Qwen 2.5 1.5B (通用)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 6-8GB | 训练时间: 2-4h
+                                        </Text>
+                                    </div>
+                                </Option>
+                                <Option value="Qwen/Qwen2.5-3B-Instruct">
+                                    <div>
+                                        <div>⚡ Qwen 2.5 3B (高级)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 10-12GB | 训练时间: 4-6h
+                                        </Text>
+                                    </div>
+                                </Option>
+                                <Option value="Qwen/Qwen2.5-7B-Instruct">
+                                    <div>
+                                        <div>🔥 Qwen 2.5 7B (需要强卡)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            显存需求: 16-20GB | 训练时间: 8-12h
+                                        </Text>
+                                    </div>
                                 </Option>
                             </Select>
                         </Form.Item>
 
-                        <Form.Item label="训练数据集" required tooltip="上传 JSON/JSONL 格式的训练数据">
-                            <Upload {...uploadProps}>
-                                <Button icon={<UploadIcon className="w-4 h-4" />}>点击上传数据集</Button>
-                            </Upload>
-                            <Text type="secondary" className="text-xs mt-2 block">
-                                支持 Alpaca 格式: {'{instruction, input, output}'}
-                            </Text>
+                        <Form.Item label="训练数据集" required>
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                <Radio.Group
+                                    onChange={async (e) => {
+                                        const useSageDocs = e.target.value === 'sage-docs'
+                                        if (useSageDocs) {
+                                            await handlePrepareSageDocs()
+                                        }
+                                    }}
+                                    defaultValue="upload"
+                                >
+                                    <Space direction="vertical">
+                                        <Radio value="upload">
+                                            📁 上传本地数据集
+                                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                                                支持 JSON/JSONL (Alpaca 格式)
+                                            </Text>
+                                        </Radio>
+                                        <Radio value="sage-docs">
+                                            📚 使用 SAGE 官方文档
+                                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                                                自动从 GitHub 下载并准备训练数据
+                                            </Text>
+                                        </Radio>
+                                    </Space>
+                                </Radio.Group>
+
+                                {uploadedFile && (
+                                    <Text type="success" style={{ fontSize: 12 }}>
+                                        ✅ 数据已准备: {uploadedFile.split('/').pop()}
+                                    </Text>
+                                )}
+
+                                <Upload {...uploadProps}>
+                                    <Button icon={<UploadIcon className="w-4 h-4" />}>点击上传数据集</Button>
+                                </Upload>
+                                <Text type="secondary" className="text-xs">
+                                    Alpaca 格式: {'{instruction, input, output}'}
+                                </Text>
+                            </Space>
                         </Form.Item>
 
                         <Collapse ghost>

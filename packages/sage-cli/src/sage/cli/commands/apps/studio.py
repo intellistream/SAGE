@@ -89,15 +89,38 @@ def restart(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(False, "--dev", help="开发模式"),
+    clean: bool = typer.Option(True, "--clean/--no-clean", help="清理前端构建缓存（默认开启）"),
 ):
-    """重启 SAGE Studio"""
+    """重启 SAGE Studio
+
+    default会清理前端构建缓存以确保使用最新代码。
+    使用 --no-clean 可跳过清理步骤。
+    """
     console.print("[blue]🔄 重启 SAGE Studio...[/blue]")
 
     try:
         # 先停止
         studio_manager.stop()
-        # 再启动
-        success = studio_manager.start(port=port, host=host, dev=dev)
+
+        # 清理前端缓存（如果启用）
+        if clean:
+            console.print("[yellow]🧹 清理前端构建缓存...[/yellow]")
+            cleaned = studio_manager.clean_frontend_cache()
+            if cleaned:
+                console.print("[green]✅ 缓存清理完成[/green]")
+            else:
+                console.print("[yellow]⚠️ 缓存清理跳过（未找到缓存目录）[/yellow]")
+
+        # 再启动（启用自动构建以重建被清理的 dist/）
+        success = studio_manager.start(
+            port=port,
+            host=host,
+            dev=dev,
+            auto_build=True,  # 重要：启用自动构建
+            auto_install=True,  # 自动安装依赖
+            auto_gateway=True,  # 自动启动 Gateway
+            skip_confirm=True,  # 重要：跳过确认，直接构建
+        )
         if success:
             console.print("[green]✅ Studio 重启成功[/green]")
         else:

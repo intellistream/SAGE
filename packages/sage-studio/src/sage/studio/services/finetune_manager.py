@@ -6,6 +6,8 @@ Manages fine-tuning tasks, progress tracking, and model switching.
 
 import json
 import os
+import signal
+import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
@@ -19,6 +21,7 @@ class FinetuneStatus(str, Enum):
     """Fine-tune task status"""
 
     PENDING = "pending"
+    QUEUED = "queued"  # 等待 GPU 资源
     PREPARING = "preparing"
     TRAINING = "training"
     COMPLETED = "completed"
@@ -45,6 +48,7 @@ class FinetuneTask:
     error_message: str | None = None
     logs: list[str] = field(default_factory=list)
     config: dict[str, Any] = field(default_factory=dict)
+    process_id: int | None = None  # 添加进程 ID 字段
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -63,6 +67,7 @@ class FinetuneTask:
             "error_message": self.error_message,
             "logs": self.logs[-50:],  # Last 50 logs
             "config": self.config,
+            "process_id": self.process_id,  # 添加进程 ID
         }
 
 
@@ -93,6 +98,9 @@ class FinetuneManager:
             # Load existing tasks
             self._load_tasks()
 
+            # 恢复训练中的任务状态
+            self._recover_running_tasks()
+
     def _load_tasks(self):
         """Load existing tasks from disk"""
         task_file = self.output_base / "tasks.json"
@@ -121,6 +129,100 @@ class FinetuneManager:
         except Exception as e:
             print(f"Failed to save tasks: {e}")
 
+    def _recover_running_tasks(self):
+        """恢复 Studio 重启前正在运行的任务"""
+        for task_id, task in self.tasks.items():
+            # 如果任务状态是 training/preparing，检查进程是否还在运行
+            if task.status in (FinetuneStatus.TRAINING, FinetuneStatus.PREPARING):
+                if task.process_id and self._is_process_running(task.process_id):
+                    # 进程还在运行，启动监控线程
+                    print(f"[FinetuneManager] 恢复任务 {task_id}，进程 PID={task.process_id}")
+                    self.active_task_id = task_id
+                    thread = threading.Thread(target=self._monitor_process, args=(task_id,))
+                    thread.daemon = True
+                    thread.start()
+                else:
+                    # 进程已停止，标记为失败
+                    print(f"[FinetuneManager] 任务 {task_id} 进程已停止，标记为失败")
+                    self.update_task_status(
+                        task_id,
+                        FinetuneStatus.FAILED,
+                        error="Training process terminated (Studio restarted)",
+                    )
+
+    def _is_process_running(self, pid: int) -> bool:
+        """检查进程是否还在运行"""
+        try:
+            # 发送信号 0 检查进程是否存在（不会真正发送信号）
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+
+    def _monitor_process(self, task_id: str):
+        """监控独立进程的状态"""
+        task = self.tasks.get(task_id)
+        if not task or not task.process_id:
+            return
+
+        try:
+            # 定期检查进程状态和日志
+            log_file = Path(task.output_dir) / "training.log"
+            last_position = 0
+
+            while self._is_process_running(task.process_id):
+                # 读取新的日志内容
+                if log_file.exists():
+                    with open(log_file) as f:
+                        f.seek(last_position)
+                        new_logs = f.read()
+                        last_position = f.tell()
+
+                        if new_logs:
+                            for line in new_logs.strip().split("\n"):
+                                self.add_task_log(task_id, line)
+
+                                # 解析进度信息
+                                if "epoch" in line.lower():
+                                    try:
+                                        # 示例: "Epoch 2/3"
+                                        parts = line.split("/")
+                                        if len(parts) >= 2:
+                                            current = int(parts[0].split()[-1])
+                                            total = int(parts[1].split()[0])
+                                            progress = (current / total) * 100
+                                            self.update_task_status(
+                                                task_id,
+                                                FinetuneStatus.TRAINING,
+                                                progress=progress,
+                                                epoch=current,
+                                            )
+                                    except Exception:
+                                        pass
+
+                time.sleep(2)  # 每 2 秒检查一次
+
+            # 进程结束，检查是否成功
+            if log_file.exists():
+                with open(log_file) as f:
+                    content = f.read()
+                    if "training completed" in content.lower() or "success" in content.lower():
+                        self.update_task_status(task_id, FinetuneStatus.COMPLETED, progress=100.0)
+                        self.add_task_log(task_id, "Training completed successfully!")
+                    else:
+                        self.update_task_status(
+                            task_id,
+                            FinetuneStatus.FAILED,
+                            error="Training process exited unexpectedly",
+                        )
+                        self.add_task_log(task_id, "Training failed or was interrupted")
+            else:
+                self.update_task_status(task_id, FinetuneStatus.FAILED, error="No log file found")
+
+        except Exception as e:
+            self.update_task_status(task_id, FinetuneStatus.FAILED, error=str(e))
+            self.add_task_log(task_id, f"Monitor error: {e}")
+
     def create_task(
         self, model_name: str, dataset_path: str, config: dict[str, Any]
     ) -> FinetuneTask:
@@ -146,7 +248,21 @@ class FinetuneManager:
         return self.tasks.get(task_id)
 
     def list_tasks(self) -> list[FinetuneTask]:
-        """List all tasks"""
+        """List all tasks (with runtime health check)"""
+        # 检查正在运行的任务的进程健康状态
+        for task in self.tasks.values():
+            if task.status in (FinetuneStatus.TRAINING, FinetuneStatus.PREPARING):
+                if task.process_id and not self._is_process_running(task.process_id):
+                    # 进程已停止，标记为失败
+                    print(
+                        f"[FinetuneManager] 检测到任务 {task.task_id} 进程已终止 (PID={task.process_id})"
+                    )
+                    self.update_task_status(
+                        task.task_id,
+                        FinetuneStatus.FAILED,
+                        error="Training process terminated unexpectedly",
+                    )
+
         return sorted(self.tasks.values(), key=lambda t: t.created_at, reverse=True)
 
     def update_task_status(
@@ -179,8 +295,21 @@ class FinetuneManager:
             task.completed_at = datetime.now().isoformat()
             if self.active_task_id == task_id:
                 self.active_task_id = None
+                # 任务完成，尝试启动下一个排队任务
+                self._start_next_queued_task()
 
         self._save_tasks()
+
+    def _start_next_queued_task(self):
+        """启动下一个排队任务"""
+        # 查找第一个 QUEUED 状态的任务
+        for task in sorted(self.tasks.values(), key=lambda t: t.created_at):
+            if task.status == FinetuneStatus.QUEUED:
+                print(f"[FinetuneManager] 启动排队任务: {task.task_id}")
+                # 重置状态为 PENDING，然后启动
+                task.status = FinetuneStatus.PENDING
+                self.start_training(task.task_id)
+                break
 
     def add_task_log(self, task_id: str, log: str):
         """Add log entry to task"""
@@ -192,71 +321,197 @@ class FinetuneManager:
                 task.logs = task.logs[-100:]
 
     def start_training(self, task_id: str) -> bool:
-        """Start training in background thread"""
+        """Start training in independent process (survives Studio restart)"""
         task = self.tasks.get(task_id)
         if not task:
             return False
 
+        # 如果已有任务在运行，则加入队列
         if self.active_task_id:
-            return False  # Already training
-
-        self.active_task_id = task_id
-        thread = threading.Thread(target=self._train_worker, args=(task_id,))
-        thread.daemon = True
-        thread.start()
-        return True
-
-    def _train_worker(self, task_id: str):
-        """Background worker for training"""
-        task = self.tasks.get(task_id)
-        if not task:
-            return
+            self.update_task_status(task_id, FinetuneStatus.QUEUED)
+            self.add_task_log(
+                task_id, f"任务已加入队列，等待 GPU 资源释放（当前运行: {self.active_task_id}）"
+            )
+            self._save_tasks()
+            return True  # 返回 True 表示成功加入队列
 
         try:
+            # 创建训练脚本
+            script_path = self._create_training_script(task)
+
+            # 启动独立进程
+            log_file = Path(task.output_dir) / "training.log"
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(log_file, "w") as f:
+                process = subprocess.Popen(
+                    ["python", str(script_path)],
+                    stdout=f,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,  # 创建新的进程组，脱离父进程
+                )
+
+            # 保存进程 ID
+            task.process_id = process.pid
+            self.active_task_id = task_id
             self.update_task_status(task_id, FinetuneStatus.PREPARING)
-            self.add_task_log(task_id, "Preparing training environment...")
+            self._save_tasks()
 
-            # Import training modules
-            from sage.tools.finetune import LoRATrainer, TrainingConfig
+            # 启动监控线程
+            thread = threading.Thread(target=self._monitor_process, args=(task_id,))
+            thread.daemon = True
+            thread.start()
 
-            self.add_task_log(task_id, "Loading training configuration...")
+            self.add_task_log(task_id, f"Training started in process PID={process.pid}")
+            self.add_task_log(task_id, f"Log file: {log_file}")
 
-            # Create training config
-            config = TrainingConfig(
-                model_name=task.model_name,
-                data_path=Path(task.dataset_path),
-                output_dir=Path(task.output_dir),
-                num_train_epochs=task.config.get("num_epochs", 3),
-                per_device_train_batch_size=task.config.get("batch_size", 1),
-                gradient_accumulation_steps=task.config.get("gradient_accumulation_steps", 16),
-                learning_rate=task.config.get("learning_rate", 5e-5),
-                max_length=task.config.get("max_length", 1024),
-                load_in_8bit=task.config.get("load_in_8bit", True),
-            )
-
-            self.add_task_log(task_id, f"Base model: {task.model_name}")
-            self.add_task_log(task_id, f"Dataset: {task.dataset_path}")
-            self.add_task_log(task_id, f"Output: {task.output_dir}")
-
-            self.update_task_status(task_id, FinetuneStatus.TRAINING, progress=5.0)
-            self.add_task_log(task_id, "Starting training...")
-
-            # Create trainer
-            trainer = LoRATrainer(config)
-
-            # Train (this will block)
-            trainer.train()
-
-            self.update_task_status(task_id, FinetuneStatus.COMPLETED, progress=100.0)
-            self.add_task_log(task_id, "Training completed successfully!")
-            self.add_task_log(task_id, f"Model saved to: {task.output_dir}")
+            return True
 
         except Exception as e:
             self.update_task_status(task_id, FinetuneStatus.FAILED, error=str(e))
-            self.add_task_log(task_id, f"Training failed: {e}")
-            import traceback
+            self.add_task_log(task_id, f"Failed to start training: {e}")
+            return False
 
-            self.add_task_log(task_id, traceback.format_exc())
+    def delete_task(self, task_id: str) -> bool:
+        """删除任务（仅允许删除已完成、失败或取消的任务）"""
+        task = self.tasks.get(task_id)
+        if not task:
+            return False
+
+        # 只允许删除非运行中的任务
+        if task.status in (
+            FinetuneStatus.TRAINING,
+            FinetuneStatus.PREPARING,
+            FinetuneStatus.QUEUED,
+        ):
+            print(f"[FinetuneManager] 无法删除运行中或排队中的任务: {task_id}")
+            return False
+
+        # 如果任务有输出目录，可选择删除
+        # output_dir = Path(task.output_dir)
+        # if output_dir.exists():
+        #     import shutil
+        #     shutil.rmtree(output_dir)
+
+        # 从任务列表中删除
+        del self.tasks[task_id]
+        self._save_tasks()
+        print(f"[FinetuneManager] 已删除任务: {task_id}")
+        return True
+
+    def cancel_task(self, task_id: str) -> bool:
+        """取消运行中的任务"""
+        task = self.tasks.get(task_id)
+        if not task:
+            return False
+
+        # 只能取消运行中或排队中的任务
+        if task.status not in (
+            FinetuneStatus.TRAINING,
+            FinetuneStatus.PREPARING,
+            FinetuneStatus.QUEUED,
+        ):
+            print(f"[FinetuneManager] 任务不在运行中，无需取消: {task_id}")
+            return False
+
+        # 如果任务在排队，直接标记为取消
+        if task.status == FinetuneStatus.QUEUED:
+            self.update_task_status(task_id, FinetuneStatus.CANCELLED)
+            self.add_task_log(task_id, "任务已从队列中取消")
+            return True
+
+        # 如果任务正在运行，终止进程
+        if task.process_id and self._is_process_running(task.process_id):
+            try:
+                os.kill(task.process_id, signal.SIGTERM)  # 发送终止信号
+                self.add_task_log(task_id, f"已发送终止信号到进程 PID={task.process_id}")
+
+                # 等待进程结束（最多5秒）
+                for _ in range(10):
+                    if not self._is_process_running(task.process_id):
+                        break
+                    time.sleep(0.5)
+
+                # 如果进程还在运行，强制杀死
+                if self._is_process_running(task.process_id):
+                    os.kill(task.process_id, signal.SIGKILL)
+                    self.add_task_log(task_id, f"强制终止进程 PID={task.process_id}")
+
+                self.update_task_status(task_id, FinetuneStatus.CANCELLED)
+
+                # 如果这是当前活动任务，清除并启动下一个
+                if self.active_task_id == task_id:
+                    self.active_task_id = None
+                    self._start_next_queued_task()
+
+                return True
+            except Exception as e:
+                self.add_task_log(task_id, f"取消任务失败: {e}")
+                return False
+        else:
+            # 进程已经不在运行，直接标记为取消
+            self.update_task_status(task_id, FinetuneStatus.CANCELLED)
+            return True
+
+    def _create_training_script(self, task: FinetuneTask) -> Path:
+        """创建独立的训练脚本"""
+        script_path = Path(task.output_dir) / "train.py"
+        script_path.parent.mkdir(parents=True, exist_ok=True)
+
+        script_content = f'''"""
+Auto-generated training script for task {task.task_id}
+"""
+import sys
+from pathlib import Path
+from sage.tools.finetune import LoRATrainer, TrainingConfig
+
+def main():
+    print("=" * 50)
+    print("SAGE Fine-tuning Task: {task.task_id}")
+    print("=" * 50)
+
+    config = TrainingConfig(
+        model_name="{task.model_name}",
+        data_path=Path("{task.dataset_path}"),
+        output_dir=Path("{task.output_dir}"),
+        num_train_epochs={task.config.get("num_epochs", 3)},
+        per_device_train_batch_size={task.config.get("batch_size", 1)},
+        gradient_accumulation_steps={task.config.get("gradient_accumulation_steps", 16)},
+        learning_rate={task.config.get("learning_rate", 5e-5)},
+        max_length={task.config.get("max_length", 1024)},
+        load_in_8bit={task.config.get("load_in_8bit", True)},
+    )
+
+    print(f"Base model: {task.model_name}")
+    print(f"Dataset: {task.dataset_path}")
+    print(f"Output: {task.output_dir}")
+    print(f"Epochs: {{config.num_train_epochs}}")
+    print("=" * 50)
+
+    try:
+        trainer = LoRATrainer(config)
+        trainer.train()
+        print("=" * 50)
+        print("Training completed successfully!")
+        print(f"Model saved to: {task.output_dir}")
+        print("=" * 50)
+        return 0
+    except Exception as e:
+        print("=" * 50)
+        print(f"Training failed: {{e}}")
+        print("=" * 50)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''
+
+        with open(script_path, "w") as f:
+            f.write(script_content)
+
+        return script_path
 
     def switch_model(self, model_path: str) -> bool:
         """Switch current model"""

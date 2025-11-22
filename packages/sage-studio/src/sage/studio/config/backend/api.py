@@ -209,8 +209,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite 开发服务器默认端口
         "http://localhost:4173",  # Vite preview 服务器默认端口
+        "http://localhost:4200",  # Studio 前端端口
         "http://0.0.0.0:5173",
         "http://0.0.0.0:4173",
+        "http://0.0.0.0:4200",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -1586,10 +1588,50 @@ class FinetuneCreateRequest(BaseModel):
     load_in_8bit: bool = True
 
 
+class UseAsBackendRequest(BaseModel):
+    """Use finetuned model as backend request"""
+
+    task_id: str
+
+
 @app.post("/api/finetune/create")
 async def create_finetune_task(request: FinetuneCreateRequest):
-    """创建微调任务"""
+    """创建微调任务（带 OOM 风险检测）"""
+    import torch
+
     from sage.studio.services.finetune_manager import finetune_manager
+
+    # GPU 显存检测
+    warnings = []
+    if torch.cuda.is_available():
+        gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+
+        # 估算显存需求
+        estimated_memory = 0
+        if "7B" in request.model_name or "7b" in request.model_name:
+            estimated_memory = 14 if request.load_in_8bit else 28
+        elif "3B" in request.model_name or "3b" in request.model_name:
+            estimated_memory = 6 if request.load_in_8bit else 12
+        elif "1.5B" in request.model_name or "1.5b" in request.model_name:
+            estimated_memory = 3 if request.load_in_8bit else 6
+        elif "0.5B" in request.model_name or "0.5b" in request.model_name:
+            estimated_memory = 1 if request.load_in_8bit else 2
+
+        # 添加 batch size 和 sequence length 的额外开销
+        estimated_memory += request.batch_size * (request.max_length / 1024) * 0.5
+
+        # OOM 风险检测
+        if estimated_memory > gpu_memory_gb * 0.9:
+            warnings.append(
+                f"⚠️ OOM 风险高：预计需要 {estimated_memory:.1f}GB，但只有 {gpu_memory_gb:.1f}GB 可用"
+            )
+            warnings.append("建议：减小 batch_size 或 max_length，或启用 8-bit 量化")
+        elif estimated_memory > gpu_memory_gb * 0.7:
+            warnings.append(
+                f"⚠️ OOM 风险中：预计需要 {estimated_memory:.1f}GB，可用 {gpu_memory_gb:.1f}GB"
+            )
+    else:
+        warnings.append("⚠️ 未检测到 GPU，训练将非常缓慢")
 
     config = {
         "num_epochs": request.num_epochs,
@@ -1604,12 +1646,18 @@ async def create_finetune_task(request: FinetuneCreateRequest):
         model_name=request.model_name, dataset_path=request.dataset_file, config=config
     )
 
+    # 添加警告日志
+    for warning in warnings:
+        finetune_manager.add_task_log(task.task_id, warning)
+
     # Start training immediately
     success = finetune_manager.start_training(task.task_id)
     if not success:
         raise HTTPException(status_code=409, detail="Another training task is running")
 
-    return task.to_dict()
+    result = task.to_dict()
+    result["warnings"] = warnings
+    return result
 
 
 @app.get("/api/finetune/tasks")
@@ -1681,6 +1729,317 @@ async def upload_dataset(file: UploadFile = File(...)):
         return {"file_path": str(file_path), "filename": file.filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+
+@app.get("/api/finetune/tasks/{task_id}/download")
+async def download_finetuned_model(task_id: str):
+    """下载微调后的模型（打包为 tar.gz）"""
+    import tarfile
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    task = finetune_manager.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.status != "completed":
+        raise HTTPException(status_code=400, detail="Task is not completed yet")
+
+    model_dir = Path(task.output_dir)
+    if not model_dir.exists():
+        raise HTTPException(status_code=404, detail="Model directory not found")
+
+    # 创建临时打包目录
+    temp_dir = Path.home() / ".sage" / "studio_finetune" / "downloads"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    # 打包模型文件
+    archive_path = temp_dir / f"{task_id}.tar.gz"
+    try:
+        with tarfile.open(archive_path, "w:gz") as tar:
+            tar.add(model_dir, arcname=task_id)
+
+        return FileResponse(
+            path=str(archive_path),
+            media_type="application/gzip",
+            filename=f"{task_id}_finetuned_model.tar.gz",
+            headers={
+                "Content-Disposition": f'attachment; filename="{task_id}_finetuned_model.tar.gz"'
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to package model: {e}")
+
+
+@app.delete("/api/finetune/tasks/{task_id}")
+async def delete_finetune_task(task_id: str):
+    """删除微调任务（仅允许删除已完成、失败或取消的任务）"""
+    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+
+    if finetune_manager.delete_task(task_id):
+        return {"status": "success", "message": f"任务 {task_id} 已删除"}
+    else:
+        task = finetune_manager.tasks.get(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        elif task.status in (
+            FinetuneStatus.TRAINING,
+            FinetuneStatus.PREPARING,
+            FinetuneStatus.QUEUED,
+        ):
+            raise HTTPException(status_code=400, detail="无法删除运行中或排队中的任务")
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete task")
+
+
+@app.post("/api/finetune/tasks/{task_id}/cancel")
+async def cancel_finetune_task(task_id: str):
+    """取消运行中的微调任务"""
+    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+
+    task = finetune_manager.tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.status not in (
+        FinetuneStatus.TRAINING,
+        FinetuneStatus.PREPARING,
+        FinetuneStatus.QUEUED,
+    ):
+        raise HTTPException(status_code=400, detail="任务不在运行中，无法取消")
+
+    if finetune_manager.cancel_task(task_id):
+        return {"status": "success", "message": f"任务 {task_id} 已取消"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to cancel task")
+
+
+@app.get("/api/finetune/models/base")
+async def list_base_models():
+    """列出推荐的基础模型（按显存需求分类）"""
+    return {
+        "recommended_for_rtx3060": [
+            {
+                "name": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+                "size": "1.5B",
+                "vram_required": "6-8GB",
+                "description": "代码专精，最适合 RTX 3060（推荐）",
+                "training_time": "2-4小时 (1000样本)",
+            },
+            {
+                "name": "Qwen/Qwen2.5-0.5B-Instruct",
+                "size": "500M",
+                "vram_required": "4-6GB",
+                "description": "超轻量级，训练最快",
+                "training_time": "1-2小时 (1000样本)",
+            },
+            {
+                "name": "Qwen/Qwen2.5-1.5B-Instruct",
+                "size": "1.5B",
+                "vram_required": "6-8GB",
+                "description": "通用对话模型，平衡性能和显存",
+                "training_time": "2-4小时 (1000样本)",
+            },
+        ],
+        "advanced_models": [
+            {
+                "name": "Qwen/Qwen2.5-3B-Instruct",
+                "size": "3B",
+                "vram_required": "10-12GB",
+                "description": "更强性能，需要更多显存",
+                "training_time": "4-6小时 (1000样本)",
+            },
+            {
+                "name": "Qwen/Qwen2.5-7B-Instruct",
+                "size": "7B",
+                "vram_required": "16-20GB",
+                "description": "高性能模型，需要 RTX 4090 或更强",
+                "training_time": "8-12小时 (1000样本)",
+            },
+        ],
+    }
+
+
+@app.post("/api/finetune/prepare-sage-docs")
+async def prepare_sage_docs(force_refresh: bool = False):
+    """准备 SAGE 官方文档作为训练数据"""
+    from sage.studio.services.docs_processor import get_docs_processor
+
+    try:
+        processor = get_docs_processor()
+
+        # 准备训练数据
+        data_file = processor.prepare_training_data(force_refresh=force_refresh)
+
+        # 获取统计信息
+        stats = processor.get_stats(data_file)
+
+        return {
+            "status": "success",
+            "message": "SAGE 文档已准备完成",
+            "data_file": str(data_file),
+            "stats": stats,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to prepare SAGE docs: {e}")
+
+
+@app.post("/api/finetune/use-as-backend")
+async def use_finetuned_as_backend(request: UseAsBackendRequest):
+    """将微调后的模型设置为 Studio 对话后端"""
+    from sage.studio.services.finetune_manager import finetune_manager
+
+    try:
+        task = finetune_manager.get_task(request.task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        if task.status != "completed":
+            raise HTTPException(status_code=400, detail="Task is not completed yet")
+
+        # 获取模型路径
+        model_path = Path(task.output_dir)
+        if not model_path.exists():
+            raise HTTPException(status_code=404, detail="Model directory not found")
+
+        # 注册到 vLLM Registry
+        from sage.platform.llm.vllm_registry import vllm_registry
+
+        model_name = f"sage-finetuned-{request.task_id}"
+
+        # 自动检测 GPU 数量和显存
+        try:
+            import torch
+
+            num_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
+            # 获取单个 GPU 的显存（以 GB 为单位）
+            if num_gpus > 0:
+                gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            else:
+                gpu_memory_gb = 0
+        except Exception:
+            num_gpus = 0
+            gpu_memory_gb = 0
+
+        # 根据 GPU 配置模型参数
+        config = {
+            "trust_remote_code": True,
+            "max_model_len": 2048,  # 默认值
+        }
+
+        # 只有当有 GPU 时才设置 GPU 相关参数
+        if num_gpus > 0:
+            # 根据显存大小调整 max_model_len
+            if gpu_memory_gb >= 24:  # 24GB+ (A100, RTX 4090, etc.)
+                config["max_model_len"] = 4096
+                config["gpu_memory_utilization"] = 0.85
+            elif gpu_memory_gb >= 16:  # 16GB+ (V100, RTX 4080, etc.)
+                config["max_model_len"] = 3072
+                config["gpu_memory_utilization"] = 0.8
+            elif gpu_memory_gb >= 8:  # 8GB+ (RTX 3070, etc.)
+                config["max_model_len"] = 2048
+                config["gpu_memory_utilization"] = 0.75
+            else:  # < 8GB
+                config["max_model_len"] = 1024
+                config["gpu_memory_utilization"] = 0.7
+
+            # 如果有多个 GPU 且模型较大，启用张量并行
+            if num_gpus > 1:
+                config["tensor_parallel_size"] = num_gpus
+
+        # 注册模型
+        vllm_registry.register_model(
+            model_name=model_name,
+            model_path=str(model_path),
+            config=config,
+        )
+
+        # 切换到该模型
+        vllm_registry.switch_model(model_name)
+
+        # 更新环境变量（供 RAG pipeline 使用）
+        os.environ["SAGE_STUDIO_LLM_MODEL"] = model_name
+        os.environ["SAGE_STUDIO_LLM_PATH"] = str(model_path)
+
+        return {
+            "status": "success",
+            "message": f"已切换到微调模型: {model_name}",
+            "model_name": model_name,
+            "model_path": str(model_path),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to switch backend: {e}")
+
+
+@app.get("/api/system/gpu-info")
+async def get_gpu_info():
+    """Get GPU information for finetune recommendations"""
+    try:
+        import torch
+
+        gpu_info = {
+            "available": torch.cuda.is_available(),
+            "count": 0,
+            "devices": [],
+            "recommendation": "CPU 模式（不推荐微调）",
+        }
+
+        if torch.cuda.is_available():
+            gpu_info["count"] = torch.cuda.device_count()
+
+            for i in range(gpu_info["count"]):
+                device_name = torch.cuda.get_device_name(i)
+                device_memory = torch.cuda.get_device_properties(i).total_memory / (1024**3)  # GB
+
+                gpu_info["devices"].append(
+                    {
+                        "id": i,
+                        "name": device_name,
+                        "memory_gb": round(device_memory, 1),
+                    }
+                )
+
+            # 生成推荐配置
+            if gpu_info["count"] == 1:
+                gpu_name = gpu_info["devices"][0]["name"]
+                gpu_memory = gpu_info["devices"][0]["memory_gb"]
+
+                # 根据显存推荐模型
+                if gpu_memory >= 24:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 7B 或 3B"
+                    )
+                elif gpu_memory >= 12:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 3B 或 1.5B"
+                    )
+                elif gpu_memory >= 8:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 1.5B（最佳平衡）或 0.5B（最快训练）"
+                    )
+                else:
+                    gpu_info["recommendation"] = (
+                        f"{gpu_name} ({gpu_memory}GB): 推荐 Qwen 2.5 Coder 0.5B"
+                    )
+            else:
+                total_memory = sum(d["memory_gb"] for d in gpu_info["devices"])
+                gpu_info["recommendation"] = (
+                    f"检测到 {gpu_info['count']} 块 GPU（总显存 {total_memory:.1f}GB）：支持多卡并行训练"
+                )
+
+        return gpu_info
+
+    except Exception as e:
+        return {
+            "available": False,
+            "count": 0,
+            "devices": [],
+            "recommendation": f"GPU 检测失败: {e}",
+        }
 
 
 if __name__ == "__main__":

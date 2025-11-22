@@ -46,7 +46,8 @@ class StudioManager:
         self.node_modules_dir = self.studio_sage_dir / "node_modules"
         self.vite_cache_dir = self.studio_sage_dir / ".vite"  # Vite 缓存
         self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
-        self.dist_dir = self.studio_sage_dir / "dist"
+        # 注意：dist 目录现在在 frontend/dist，不在 .sage/studio/dist
+        self.dist_dir = self.frontend_dir / "dist"  # 修正：使用 frontend 下的 dist
 
         # React + Vite 默认端口是 5173
         self.default_port = 5173
@@ -930,6 +931,7 @@ if __name__ == "__main__":
         auto_gateway: bool = True,  # 新增：是否自动启动 gateway
         auto_install: bool = True,  # 新增：是否自动安装依赖
         auto_build: bool = True,  # 新增：是否自动构建（生产模式）
+        skip_confirm: bool = False,  # 新增：跳过确认（用于 restart）
     ) -> bool:
         """启动 Studio（前端和后端）"""
         # 🆕 步骤0: 确保 RAG 索引就绪（自动 ingest）
@@ -1029,31 +1031,32 @@ if __name__ == "__main__":
                 if not self.dist_dir.exists() or not list(self.dist_dir.glob("*")):
                     if auto_build:
                         console.print("[blue]🏗️  检测到无构建输出[/blue]")
-                        console.print("[yellow]是否立即构建？这可能需要几分钟时间...[/yellow]")
 
-                        # 交互式确认
-                        try:
-                            from rich.prompt import Confirm
+                        # 交互式确认（除非 skip_confirm=True）
+                        should_build = skip_confirm  # 如果跳过确认，直接构建
 
-                            if Confirm.ask("[cyan]开始构建?[/cyan]", default=True):
-                                console.print("[blue]开始构建...[/blue]")
-                                if not self.build():
-                                    console.print("[red]构建失败，无法启动生产模式[/red]")
-                                    self.stop_backend()
-                                    return False
-                            else:
-                                console.print(
-                                    "[yellow]跳过构建，请稍后手动运行: sage studio build[/yellow]"
-                                )
-                                self.stop_backend()
-                                return False
-                        except ImportError:
-                            # 如果没有 rich.prompt，直接构建
+                        if not skip_confirm:
+                            console.print("[yellow]是否立即构建？这可能需要几分钟时间...[/yellow]")
+                            try:
+                                from rich.prompt import Confirm
+
+                                should_build = Confirm.ask("[cyan]开始构建?[/cyan]", default=True)
+                            except ImportError:
+                                # 如果没有 rich.prompt，直接构建
+                                should_build = True
+
+                        if should_build:
                             console.print("[blue]开始构建...[/blue]")
                             if not self.build():
                                 console.print("[red]构建失败，无法启动生产模式[/red]")
                                 self.stop_backend()
                                 return False
+                        else:
+                            console.print(
+                                "[yellow]跳过构建，请稍后手动运行: sage studio build[/yellow]"
+                            )
+                            self.stop_backend()
+                            return False
                     else:
                         console.print("[yellow]未构建，请先运行: sage studio build[/yellow]")
                         self.stop_backend()
@@ -1157,6 +1160,58 @@ if __name__ == "__main__":
         else:
             console.print("[yellow]Studio 未运行[/yellow]")
             return False
+
+    def clean_frontend_cache(self) -> bool:
+        """清理前端构建缓存
+
+        清理以下目录以确保使用最新代码：
+        - dist/ (构建产物)
+        - .vite/ (Vite 缓存)
+        - node_modules/.vite/ (Vite 节点缓存)
+
+        Returns:
+            bool: 是否成功清理
+        """
+        import shutil
+
+        cleaned_dirs = []
+        errors = []
+
+        # 定义要清理的目录（相对于 frontend_dir）
+        cache_dirs = [
+            self.frontend_dir / "dist",
+            self.frontend_dir / ".vite",
+            self.frontend_dir / "node_modules" / ".vite",
+        ]
+
+        for cache_dir in cache_dirs:
+            if cache_dir.exists():
+                try:
+                    shutil.rmtree(cache_dir)
+                    cleaned_dirs.append(cache_dir.name)
+                    console.print(
+                        f"[green]  ✓ 清理: {cache_dir.relative_to(self.frontend_dir)}[/green]"
+                    )
+                except Exception as e:
+                    errors.append(f"{cache_dir.name}: {e}")
+                    console.print(f"[yellow]  ⚠ 清理失败: {cache_dir.name} - {e}[/yellow]")
+
+        if cleaned_dirs:
+            console.print(f"[green]✅ 已清理 {len(cleaned_dirs)} 个缓存目录[/green]")
+            return True
+        elif errors:
+            console.print("[red]❌ 清理过程中出现错误[/red]")
+            return False
+        else:
+            console.print("[blue]ℹ️  未发现需要清理的缓存[/blue]")
+            return False
+
+    def clean(self) -> bool:
+        """清理 Studio 缓存和临时文件（兼容旧命令）
+
+        这是 clean_frontend_cache 的别名，用于命令行接口。
+        """
+        return self.clean_frontend_cache()
 
     def status(self):
         """显示状态"""
