@@ -1,10 +1,6 @@
----
-name: Question
-about: Ask a question about SAGE
-title: '[Question] '
-labels: 'question'
-assignees: ''
----
+______________________________________________________________________
+
+## name: Question about: Ask a question about SAGE title: '[Question] ' labels: 'question' assignees: ''
 
 ## Question
 

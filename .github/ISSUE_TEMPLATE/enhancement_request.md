@@ -1,10 +1,6 @@
----
-name: Enhancement Request
-about: Request an improvement or optimization to existing functionality
-title: '[Enhancement] '
-labels: 'enhancement'
-assignees: ''
----
+______________________________________________________________________
+
+## name: Enhancement Request about: Request an improvement or optimization to existing functionality title: '[Enhancement] ' labels: 'enhancement' assignees: ''
 
 ## Enhancement Description
 
