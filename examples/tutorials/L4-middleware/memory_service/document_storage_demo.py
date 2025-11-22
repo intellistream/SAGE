@@ -15,10 +15,6 @@ Author: SAGE Team
 Date: 2024-01-22
 """
 
-import json
-import os
-from typing import Any
-
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
 
@@ -61,22 +57,43 @@ def example_1_basic_storage():
     collection.batch_insert_data(documents, metadatas)
     print(f"✅ 已插入 {len(documents)} 个文档")
 
-    # Retrieve all documents
-    all_docs = collection.retrieve(with_metadata=True)
+    # Retrieve all documents using get_all_ids
+    all_ids = collection.get_all_ids()
+    all_docs = [
+        {
+            "text": collection.text_storage.get(doc_id),
+            "metadata": collection.metadata_storage.get(doc_id),
+        }
+        for doc_id in all_ids
+    ]
     print(f"\n所有文档数量: {len(all_docs)}")
 
     # Retrieve with metadata filtering
     print("\n📌 检索 topic='人工智能' 的文档:")
-    ai_docs = collection.retrieve(with_metadata=True, topic="人工智能")
+    ai_ids = collection.filter_ids(all_ids, topic="人工智能")
+    ai_docs = [
+        {
+            "text": collection.text_storage.get(doc_id),
+            "metadata": collection.metadata_storage.get(doc_id),
+        }
+        for doc_id in ai_ids
+    ]
     for i, doc in enumerate(ai_docs, 1):
         print(f"  {i}. {doc['text'][:50]}...")
         print(f"     难度: {doc['metadata']['difficulty']}")
 
     # Retrieve with custom filter function
     print("\n📌 检索高级难度的文档:")
-    advanced_docs = collection.retrieve(
-        with_metadata=True, metadata_filter_func=lambda m: m.get("difficulty") == "高级"
+    advanced_ids = collection.filter_ids(
+        all_ids, metadata_filter_func=lambda m: m.get("difficulty") == "高级"
     )
+    advanced_docs = [
+        {
+            "text": collection.text_storage.get(doc_id),
+            "metadata": collection.metadata_storage.get(doc_id),
+        }
+        for doc_id in advanced_ids
+    ]
     for i, doc in enumerate(advanced_docs, 1):
         print(f"  {i}. {doc['text'][:50]}...")
 
@@ -96,7 +113,11 @@ def example_2_semantic_search():
 
     # Create collection
     collection = manager.create_collection(
-        {"name": "semantic_docs", "backend_type": "VDB", "description": "Semantic search collection"}
+        {
+            "name": "semantic_docs",
+            "backend_type": "VDB",
+            "description": "Semantic search collection",
+        }
     )
 
     # Insert documents
@@ -144,14 +165,22 @@ def example_2_semantic_search():
     for query in queries:
         print(f"\n🔍 查询: '{query}'")
         results = collection.retrieve(
-            raw_data=query, index_name="semantic_index", topk=3, threshold=0.1, with_metadata=True
+            raw_data=query,
+            index_name="semantic_index",
+            topk=3,
+            threshold=0.1,
+            with_metadata=True,
         )
 
         if results:
             for i, result in enumerate(results, 1):
                 print(f"  {i}. {result['text']}")
-                print(f"     类别: {result['metadata']['category']}, 年份: {result['metadata']['year']}")
-                print(f"     相似度: {result.get('score', 'N/A'):.4f}")
+                print(
+                    f"     类别: {result['metadata']['category']}, 年份: {result['metadata']['year']}"
+                )
+                score = result.get("score", "N/A")
+                score_str = f"{score:.4f}" if isinstance(score, (int, float)) else score
+                print(f"     相似度: {score_str}")
         else:
             print("  未找到相关结果")
 
@@ -171,7 +200,11 @@ def example_3_hybrid_search():
 
     # Create collection
     collection = manager.create_collection(
-        {"name": "hybrid_docs", "backend_type": "VDB", "description": "Hybrid search collection"}
+        {
+            "name": "hybrid_docs",
+            "backend_type": "VDB",
+            "description": "Hybrid search collection",
+        }
     )
 
     # Insert technical documents with rich metadata
@@ -190,7 +223,12 @@ def example_3_hybrid_search():
         {"language": "Python", "version": "1.x", "category": "framework", "year": 2016},
         {"language": "Rust", "version": "1.x", "category": "language", "year": 2015},
         {"language": "Go", "version": "1.x", "category": "language", "year": 2009},
-        {"language": "JavaScript", "version": "ES2023", "category": "language", "year": 2023},
+        {
+            "language": "JavaScript",
+            "version": "ES2023",
+            "category": "language",
+            "year": 2023,
+        },
     ]
 
     collection.batch_insert_data(documents, metadatas)
@@ -214,12 +252,15 @@ def example_3_hybrid_search():
         index_name="tech_index",
         topk=5,
         with_metadata=True,
-        metadata_filter_func=lambda m: m.get("language") == "Python" and m.get("year", 0) >= 2020,
+        metadata_filter_func=lambda m: m.get("language") == "Python"
+        and m.get("year", 0) >= 2020,
     )
 
     for i, result in enumerate(results, 1):
         print(f"  {i}. {result['text']}")
-        print(f"     语言: {result['metadata']['language']}, 年份: {result['metadata']['year']}")
+        print(
+            f"     语言: {result['metadata']['language']}, 年份: {result['metadata']['year']}"
+        )
 
     # Hybrid search 2: Programming languages only
     print("\n🔍 混合查询2: 编程语言类别")
@@ -248,7 +289,11 @@ def example_4_update_delete():
     manager = MemoryManager(data_dir=data_dir)
 
     collection = manager.create_collection(
-        {"name": "mutable_docs", "backend_type": "VDB", "description": "Mutable document collection"}
+        {
+            "name": "mutable_docs",
+            "backend_type": "VDB",
+            "description": "Mutable document collection",
+        }
     )
 
     # Initial documents
@@ -260,42 +305,52 @@ def example_4_update_delete():
 
     # Show all documents
     print("\n初始文档:")
-    all_docs = collection.retrieve(with_metadata=True)
-    for doc in all_docs:
-        print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
+    all_ids = collection.get_all_ids()
+    for doc_id in all_ids:
+        text = collection.text_storage.get(doc_id)
+        metadata = collection.metadata_storage.get(doc_id)
+        print(f"  - {text}, 状态: {metadata['status']}")
 
     # Update a document
     # Note: Using _get_stable_id() (private method) for demo purposes
     # In production, store and manage document IDs returned from insert()
     doc_id = collection._get_stable_id(docs[1])
     collection.text_storage.store(doc_id, "文档2: 已更新的内容")
+    # Register new metadata field before storing
+    collection.add_metadata_field("version")
     collection.metadata_storage.store(doc_id, {"status": "updated", "version": 2})
     print("\n✏️ 更新了文档2")
 
     # Show after update
     print("\n更新后的文档:")
-    all_docs = collection.retrieve(with_metadata=True)
-    for doc in all_docs:
-        print(f"  - {doc['text']}, 状态: {doc['metadata']['status']}")
+    all_ids = collection.get_all_ids()
+    for doc_id in all_ids:
+        text = collection.text_storage.get(doc_id)
+        metadata = collection.metadata_storage.get(doc_id)
+        print(f"  - {text}, 状态: {metadata['status']}")
 
     # Delete deprecated documents
-    # Using the recommended approach: retrieve + delete
-    deprecated_docs = collection.retrieve(
-        with_metadata=True, metadata_filter_func=lambda m: m.get("status") == "deprecated"
+    # Using the recommended approach: get_all_ids + filter_ids + delete
+    all_ids = collection.get_all_ids()
+    deprecated_ids = collection.filter_ids(
+        all_ids,
+        metadata_filter_func=lambda m: m.get("status") == "deprecated",
     )
 
-    for doc in deprecated_docs:
+    for doc_id in deprecated_ids:
         # Use the public delete() method which handles both text and metadata
-        collection.delete(doc["text"])
+        text = collection.text_storage.get(doc_id)
+        collection.delete(text)
 
-    print(f"\n🗑️ 删除了 {len(deprecated_docs)} 个废弃文档")
+    print(f"\n🗑️ 删除了 {len(deprecated_ids)} 个废弃文档")
     print(f"剩余文档数: {len(collection.get_all_ids())}")
 
     # Show final state
     print("\n最终文档:")
-    all_docs = collection.retrieve(with_metadata=True)
-    for doc in all_docs:
-        print(f"  - {doc['text']}")
+    all_ids = collection.get_all_ids()
+    for doc_id in all_ids:
+        text = collection.text_storage.get(doc_id)
+        print(f"  - {text}")
 
     manager.store_collection("mutable_docs")
 
@@ -312,7 +367,11 @@ def example_5_persistence():
     print("\n📝 步骤1: 创建并保存数据")
     manager1 = MemoryManager(data_dir=data_dir)
     collection1 = manager1.create_collection(
-        {"name": "persistent_docs", "backend_type": "VDB", "description": "Persistent collection"}
+        {
+            "name": "persistent_docs",
+            "backend_type": "VDB",
+            "description": "Persistent collection",
+        }
     )
 
     docs = [
@@ -332,7 +391,14 @@ def example_5_persistence():
     collection2 = manager2.get_collection("persistent_docs")
 
     if collection2:
-        loaded_docs = collection2.retrieve(with_metadata=True)
+        all_ids = collection2.get_all_ids()
+        loaded_docs = [
+            {
+                "text": collection2.text_storage.get(doc_id),
+                "metadata": collection2.metadata_storage.get(doc_id),
+            }
+            for doc_id in all_ids
+        ]
         print(f"✅ 成功加载 {len(loaded_docs)} 个文档")
 
         for doc in loaded_docs:

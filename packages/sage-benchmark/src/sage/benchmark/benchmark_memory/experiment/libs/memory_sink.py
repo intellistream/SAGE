@@ -2,7 +2,10 @@ import json
 import os
 
 from sage.benchmark.benchmark_memory.experiment.utils.path_finder import get_project_root
-from sage.benchmark.benchmark_memory.experiment.utils.time_geter import get_time_filename
+from sage.benchmark.benchmark_memory.experiment.utils.time_geter import (
+    get_runtime_timestamp,
+    get_time_filename,
+)
 from sage.common.core import SinkFunction
 
 
@@ -17,19 +20,23 @@ class MemorySink(SinkFunction):
         """
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
+        self.test_segments = config.get("runtime.test_segments", 10)
+        self.memory_name = config.get("runtime.memory_name", "default")
 
         # 获取项目根目录
         project_root = get_project_root()
 
-        # 创建时间戳目录结构
+        # 创建时间戳目录结构，包含 memory_name
         time_str = get_time_filename()
         self.output_dir = os.path.join(
-            project_root, f".sage/benchmarks/benchmark_memory/{self.dataset}/{time_str}"
+            project_root,
+            f".sage/benchmarks/benchmark_memory/{self.dataset}/{time_str}/{self.memory_name}",
         )
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # 设置输出文件路径
-        self.output_file = os.path.join(self.output_dir, f"{self.task_id}.json")
+        # 设置输出文件路径（格式：task_id_HHMM.json）
+        runtime_stamp = get_runtime_timestamp()
+        self.output_file = os.path.join(self.output_dir, f"{self.task_id}_{runtime_stamp}.json")
         print(f"💾 输出文件: {self.output_file}")
 
         # 收集所有测试结果
@@ -58,7 +65,7 @@ class MemorySink(SinkFunction):
         """接收并处理测试结果
 
         Args:
-            data: 来自 PipelineCaller 的数据
+            data: 来自 PipelineCaller 的纯数据字典
                 - None: 未触发测试
                 - dict: 测试结果或完成信号
                     - completed: True 表示最后一个包
@@ -68,34 +75,29 @@ class MemorySink(SinkFunction):
             # None 表示未触发测试，直接返回
             return
 
-        # 提取 payload（如果是 PipelineRequest）
-        payload = data.payload if hasattr(data, "payload") else data
-
         # 检查是否包含测试结果
-        if "answers" in payload:
+        if "answers" in data:
             # 收集测试结果
             test_result = {
                 "test_index": len(self.test_results) + 1,
-                "question_range": payload.get("question_range"),
-                "dialogs_inserted_count": payload.get("dialogs_inserted"),
-                "answers": payload.get("answers", []),
+                "question_range": data.get("question_range"),
+                "dialogs_inserted_count": data.get("dialogs_inserted"),
+                "answers": data.get("answers", []),
             }
             self.test_results.append(test_result)
-            print(f"[DEBUG] MemorySink 收集第 {test_result['test_index']} 次测试结果")
 
         # 检查是否完成
-        if payload.get("completed", False):
-            print("[DEBUG] MemorySink 接收到完成信号，准备保存结果...")
-            self._save_results(payload)
+        if data.get("completed", False):
+            self._save_results(data)
 
-    def _save_results(self, payload):
+    def _save_results(self, data):
         """保存最终结果
 
         Args:
-            payload: 包含 dataset 和 task_id 的数据
+            data: 包含 dataset 和 task_id 的数据
         """
-        dataset = payload.get("dataset", self.dataset)
-        task_id = payload.get("task_id", self.task_id)
+        dataset = data.get("dataset", self.dataset)
+        task_id = data.get("task_id", self.task_id)
 
         # 从 DataLoader 获取数据集统计信息
         dataset_stats = self.loader.get_dataset_statistics(task_id)
@@ -109,7 +111,8 @@ class MemorySink(SinkFunction):
             "dataset_statistics": dataset_stats,
             "test_summary": {
                 "total_tests": len(self.test_results),
-                "test_threshold": "1/10 of total questions",
+                "test_segments": self.test_segments,
+                "test_threshold": f"1/{self.test_segments} of total questions",
             },
             "test_results": self._format_test_results(self.test_results),
         }
