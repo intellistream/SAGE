@@ -73,3 +73,46 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
         return embeddings.detach().to(torch.float32).cpu()[0].tolist()
     else:
         return embeddings.detach().cpu()[0].tolist()
+
+
+def hf_embed_batch_sync(texts: list[str], tokenizer, embed_model) -> list[list[float]]:
+    """
+    使用 HuggingFace 模型批量生成文本 embedding。
+
+    Args:
+        texts (list[str]): 输入文本列表
+        tokenizer: 已加载的 tokenizer
+        embed_model: 已加载的 PyTorch embedding 模型
+
+    Returns:
+        list[list[float]]: embedding 向量列表
+    """
+    # 延迟导入 torch
+    try:
+        import torch
+    except ImportError as e:
+        raise ImportError(
+            "torch package is required for HuggingFace embedding functionality. "
+            "Please install it via: pip install torch"
+        ) from e
+
+    if not texts:
+        return []
+
+    device = next(embed_model.parameters()).device
+    # 批量编码所有文本
+    encoded_texts = tokenizer(texts, return_tensors="pt", padding=True, truncation=True).to(device)
+
+    with torch.no_grad():
+        outputs = embed_model(
+            input_ids=encoded_texts["input_ids"],
+            attention_mask=encoded_texts["attention_mask"],
+        )
+        # 对每个序列的hidden states取平均，得到每个文本的embedding
+        embeddings = outputs.last_hidden_state.mean(dim=1)
+
+    # 转换为列表格式
+    if embeddings.dtype == torch.bfloat16:
+        return embeddings.detach().to(torch.float32).cpu().tolist()
+    else:
+        return embeddings.detach().cpu().tolist()
