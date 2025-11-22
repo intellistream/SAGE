@@ -28,12 +28,9 @@ from sage.middleware.components.sage_mem.services.short_term_memory_service impo
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.middleware.components.sage_mem.neuromem.memory_collection import (
     BaseMemoryCollection,
-    VDBMemoryCollection,
+)
 
 logger = logging.getLogger(__name__)
-    KVMemoryCollection,
-    GraphMemoryCollection,
-)
 
 
 @dataclass
@@ -165,7 +162,7 @@ class SessionManager:
             self._memory_manager = None
 
         self._load_sessions()
-    
+
     def _load_sessions(self) -> None:
         for payload in self._storage.load():
             session = self._hydrate_session(payload)
@@ -262,7 +259,7 @@ class SessionManager:
         else:
             # 默认使用短期记忆
             return ShortTermMemoryService(max_dialog=self._max_memory_dialogs)
-    
+
     def get_or_create(self, session_id: str | None = None) -> ChatSession:
         """获取或创建会话"""
         if session_id and session_id in self._sessions:
@@ -278,7 +275,7 @@ class SessionManager:
             self._memory_services[session.id] = self._create_memory_service(session.id)
 
         return session
-    
+
     def get(self, session_id: str) -> ChatSession | None:
         """获取会话"""
         return self._sessions.get(session_id)
@@ -454,7 +451,7 @@ class SessionManager:
                 # 通过 session_id 过滤获取该会话的所有对话
                 results = memory_service.retrieve(
                     with_metadata=True,
-                    session_id=session_id  # 使用元数据条件过滤
+                    session_id=session_id,  # 使用元数据条件过滤
                 )
 
                 if not results:
@@ -462,8 +459,7 @@ class SessionManager:
 
                 # 按时间戳排序（如果有）
                 results_sorted = sorted(
-                    results,
-                    key=lambda x: x.get("metadata", {}).get("timestamp", 0)
+                    results, key=lambda x: x.get("metadata", {}).get("timestamp", 0)
                 )
 
                 # 格式化结果
@@ -485,7 +481,6 @@ class SessionManager:
                 return ""
 
         return ""
-
 
     @staticmethod
     def _parse_datetime(value: str | None) -> datetime:
