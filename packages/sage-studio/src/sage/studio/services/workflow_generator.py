@@ -96,7 +96,7 @@ class WorkflowGenerator:
             context = GenerationContext(
                 user_input=user_input,
                 conversation_history=session_messages or [],
-                constraints=constraints,
+                constraints=constraints or {},
             )
 
             # 选择生成器
