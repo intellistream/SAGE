@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
-    from sage.common.components.sage_vllm import ControlPlaneVLLMService
+    from sage.common.components.sage_llm import ControlPlaneVLLMService
 
     AVAILABLE = True
 except ImportError:

@@ -51,10 +51,10 @@
      - 测试嵌入生成、批处理、重试逻辑
      - 集成测试: 不同wrapper的互换性
 
-2. **sage_vllm 推理服务** (当前 6%-35%)
+2. **sage_llm 推理服务** (当前 6%-35%)
    - 文件清单:
      ```
-     packages/sage-common/src/sage/common/components/sage_vllm/
+     packages/sage-common/src/sage/common/components/sage_llm/
      ├── sageLLM/control_plane/
      │   ├── manager.py               (6% → 70%)
      │   ├── router.py                (18% → 70%)
@@ -73,7 +73,7 @@
      - 测试请求路由、负载均衡、故障转移
      - 测试并行度控制、GPU分配
      - 集成测试: 完整推理流程模拟
-     - **参考**: `packages/sage-common/src/sage/common/components/sage_vllm/sageLLM/tests/control_plane/conftest.py`
+     - **参考**: `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/tests/control_plane/conftest.py`
 
 3. **utils 工具模块** (当前 0%-61%)
    - 文件清单:
@@ -126,7 +126,7 @@ packages/sage-common/tests/
 │   │   │   ├── test_service.py            # 新增
 │   │   │   ├── test_factory.py            # 扩展
 │   │   │   └── conftest.py                # 新增fixtures
-│   │   ├── sage_vllm/
+│   │   ├── sage_llm/
 │   │   │   ├── test_control_plane.py      # 新增
 │   │   │   ├── test_router.py             # 新增
 │   │   │   ├── test_executors.py          # 新增
@@ -198,10 +198,10 @@ class TestOpenAIWrapper:
 
 #### vLLM Router测试模板
 ```python
-# packages/sage-common/tests/unit/components/sage_vllm/test_router.py
+# packages/sage-common/tests/unit/components/sage_llm/test_router.py
 import pytest
 from unittest.mock import AsyncMock, patch
-from sage.common.components.sage_vllm.sageLLM.control_plane.router import Router
+from sage.common.components.sage_llm.sageLLM.control_plane.router import Router
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -969,7 +969,7 @@ cat coverage.xml | grep 'line-rate'
 # 运行特定任务的测试
 # 任务1
 pytest packages/sage-common/tests/unit/components/sage_embedding/ -v
-pytest packages/sage-common/tests/unit/components/sage_vllm/ -v
+pytest packages/sage-common/tests/unit/components/sage_llm/ -v
 pytest packages/sage-common/tests/unit/utils/ -v --cov=sage.common.utils
 
 # 任务2
