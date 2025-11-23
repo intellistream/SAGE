@@ -12,7 +12,6 @@ import time
 from typing import Any
 
 from sage.common.core.functions import MapFunction, SinkFunction, SourceFunction
-from sage.common.core.stateful_function import StatefulFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 
@@ -47,7 +46,7 @@ class KeyExtractor(MapFunction):
         return data["user_id"]
 
 
-class KeyedStateFunction(StatefulFunction):
+class KeyedStateFunction(MapFunction):
     """Function that maintains keyed state per user"""
 
     def __init__(self, **kwargs):
@@ -208,7 +207,7 @@ class TestKeyedStateSupport:
     def test_get_key_method(self):
         """Test that get_key() returns the correct key during processing"""
 
-        class KeyVerificationFunction(StatefulFunction):
+        class KeyVerificationFunction(MapFunction):
             """Function that verifies get_key() returns correct values"""
 
             def __init__(self, **kwargs):
@@ -274,7 +273,7 @@ class TestKeyedStateSupport:
                 self.counter += 1
                 return {"id": self.counter, "value": self.counter * 10}
 
-        class UnkeyedStateFunction(StatefulFunction):
+        class UnkeyedStateFunction(MapFunction):
             """Function that handles both keyed and unkeyed streams"""
 
             def __init__(self, **kwargs):

@@ -17,7 +17,6 @@ Usage:
 import time
 
 from sage.common.core.functions import MapFunction, SinkFunction, SourceFunction
-from sage.common.core.stateful_function import StatefulFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # ==============================================================================
@@ -41,7 +40,14 @@ class UserActivitySource(SourceFunction):
 
         # Predefined user activity patterns
         self.users = [f"user_{i}" for i in range(num_users)]
-        self.actions = ["login", "page_view", "click", "add_to_cart", "purchase", "logout"]
+        self.actions = [
+            "login",
+            "page_view",
+            "click",
+            "add_to_cart",
+            "purchase",
+            "logout",
+        ]
         self.pages = ["/home", "/products", "/cart", "/checkout", "/account"]
 
     def execute(self, data=None):
@@ -89,7 +95,7 @@ class UserIdExtractor(MapFunction):
 # ==============================================================================
 
 
-class UserSessionManager(StatefulFunction):
+class UserSessionManager(MapFunction):
     """
     Manage user sessions with keyed state.
 
@@ -147,7 +153,8 @@ class UserSessionManager(StatefulFunction):
                 "session_count": session["session_count"],
                 "current_session_actions": len(session["current_session"]["actions"]),
                 "total_value": session["total_value"],
-                "session_duration": time.time() - session["current_session"]["start_time"],
+                "session_duration": time.time()
+                - session["current_session"]["start_time"],
                 "lifetime_actions": sum(session["action_counts"].values()),
             },
             "global_metrics": {
@@ -191,7 +198,9 @@ class UserSessionManager(StatefulFunction):
 
         # Check if we need to start a new session (timeout or explicit session change)
         time_since_last = current_time - session["last_seen"]
-        session_changed = event["session_id"] != session["current_session"]["session_id"]
+        session_changed = (
+            event["session_id"] != session["current_session"]["session_id"]
+        )
 
         if time_since_last > self.session_timeout or session_changed:
             # Start new session
@@ -202,7 +211,9 @@ class UserSessionManager(StatefulFunction):
                 "actions": [event["action"]],
                 "pages_visited": [event["page"]],
             }
-            self.logger.info(f"Started new session #{session['session_count']} for user {user_id}")
+            self.logger.info(
+                f"Started new session #{session['session_count']} for user {user_id}"
+            )
         else:
             # Update current session
             session["current_session"]["actions"].append(event["action"])
@@ -223,7 +234,7 @@ class UserSessionManager(StatefulFunction):
 # ==============================================================================
 
 
-class TimeWindowAggregator(StatefulFunction):
+class TimeWindowAggregator(MapFunction):
     """
     Perform time-based window aggregations with keyed state.
 
@@ -267,10 +278,16 @@ class TimeWindowAggregator(StatefulFunction):
             "window_end": (window_id + 1) * self.window_size,
             "event_count": len(current_window),
             "total_value": sum(e["original_event"]["value"] for e in current_window),
-            "unique_actions": len({e["original_event"]["action"] for e in current_window}),
+            "unique_actions": len(
+                {e["original_event"]["action"] for e in current_window}
+            ),
         }
 
-        return {"user_id": user_id, "window": aggregations, "latest_event": enriched_event}
+        return {
+            "user_id": user_id,
+            "window": aggregations,
+            "latest_event": enriched_event,
+        }
 
 
 # ==============================================================================

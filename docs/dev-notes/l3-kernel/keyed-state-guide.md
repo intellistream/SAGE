@@ -33,22 +33,22 @@ class UserSessionFunction(StatefulFunction):
         super().__init__(**kwargs)
         # Define keyed state - will be automatically persisted
         self.user_sessions = {}
-    
+
     def execute(self, event_data):
         # Get current packet's key
         user_id = self.ctx.get_key()
-        
+
         # Initialize state for new users
         if user_id not in self.user_sessions:
             self.user_sessions[user_id] = {
                 'session_count': 0,
                 'total_value': 0
             }
-        
+
         # Update user's state
         self.user_sessions[user_id]['session_count'] += 1
         self.user_sessions[user_id]['total_value'] += event_data['value']
-        
+
         return self.user_sessions[user_id]
 ```
 
@@ -105,7 +105,7 @@ class CounterFunction(StatefulFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.counters = {}  # {key: count}
-    
+
     def execute(self, data):
         key = self.ctx.get_key()
         self.counters[key] = self.counters.get(key, 0) + 1
@@ -120,24 +120,24 @@ class WindowAggregator(StatefulFunction):
         super().__init__(**kwargs)
         self.window_data = {}  # {key: {window_id: [events]}}
         self.window_size = window_size
-    
+
     def execute(self, event):
         key = self.ctx.get_key()
         window_id = int(time.time() // self.window_size)
-        
+
         if key not in self.window_data:
             self.window_data[key] = {}
         if window_id not in self.window_data[key]:
             self.window_data[key][window_id] = []
-        
+
         self.window_data[key][window_id].append(event)
-        
+
         # Clean up old windows
         old_windows = [w for w in self.window_data[key] if w < window_id - 2]
         for w in old_windows:
             del self.window_data[key][w]
-        
-        return {"key": key, "window": window_id, 
+
+        return {"key": key, "window": window_id,
                 "count": len(self.window_data[key][window_id])}
 ```
 
@@ -148,10 +148,10 @@ class FeatureComputer(StatefulFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.features = {}  # {entity_id: feature_dict}
-    
+
     def execute(self, event):
         entity_id = self.ctx.get_key()
-        
+
         if entity_id not in self.features:
             self.features[entity_id] = {
                 'mean': 0.0,
@@ -159,16 +159,16 @@ class FeatureComputer(StatefulFunction):
                 'min': float('inf'),
                 'max': float('-inf')
             }
-        
+
         # Update features
         value = event['value']
         features = self.features[entity_id]
-        
+
         features['count'] += 1
         features['mean'] = (features['mean'] * (features['count'] - 1) + value) / features['count']
         features['min'] = min(features['min'], value)
         features['max'] = max(features['max'], value)
-        
+
         return {entity_id: features}
 ```
 
@@ -180,19 +180,19 @@ class FlexibleFunction(StatefulFunction):
         super().__init__(**kwargs)
         self.keyed_state = {}
         self.global_state = {'total_count': 0}
-    
+
     def execute(self, data):
         key = self.ctx.get_key()
-        
+
         # Always update global state
         self.global_state['total_count'] += 1
-        
+
         if key is not None:
             # Keyed stream - update per-key state
             if key not in self.keyed_state:
                 self.keyed_state[key] = {'count': 0}
             self.keyed_state[key]['count'] += 1
-            
+
             return {
                 'key': key,
                 'key_count': self.keyed_state[key]['count'],
@@ -215,7 +215,7 @@ class MyFunction(StatefulFunction):
     # Control which attributes are persisted
     __state_include__ = []  # If set, only these attributes are saved
     __state_exclude__ = ['temp_cache']  # Exclude specific attributes
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.user_data = {}  # Will be persisted
@@ -293,12 +293,12 @@ from sage.kernel.api.local_environment import LocalEnvironment
 
 def test_keyed_state():
     env = LocalEnvironment("test_keyed_state")
-    
+
     (env.from_source(TestSource)
        .keyby(KeyExtractor)
        .map(MyKeyedFunction)
        .sink(TestSink))
-    
+
     env.submit()
     # Add assertions
 ```
@@ -335,10 +335,10 @@ env.from_source(Source).keyby(KeyExtractor).map(KeyedFunction).sink(Sink)
 ```python
 def execute(self, data):
     key = self.ctx.get_key()
-    
+
     # Add to state
     self.state[key] = data
-    
+
     # Cleanup old keys (example: LRU)
     if len(self.state) > MAX_KEYS:
         oldest_key = next(iter(self.state))
@@ -356,7 +356,7 @@ class MyFunction(BaseFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.state = {}
-    
+
     def execute(self, data):
         key = data['key']  # Manual key extraction
         if key not in self.state:
@@ -372,7 +372,7 @@ class MyFunction(StatefulFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.state = {}
-    
+
     def execute(self, data):
         key = self.ctx.get_key()  # Automatic key access
         if key not in self.state:
