@@ -61,10 +61,14 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           chmod +x ./quickstart.sh
 
+          # 配置国内 PyPI 镜像加速
+          export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+          export PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+
           ./quickstart.sh --dev --yes
 
           echo "✅ SAGE 安装完成"
-        timeout-minutes: 25
+        timeout-minutes: 45
 
       - name: Verify Installation
         run: |
