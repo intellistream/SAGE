@@ -35,11 +35,17 @@ class ChatModeManager:
     # Gateway helpers
     # ------------------------------------------------------------------
     def _ensure_gateway_importable(self) -> bool:
+        """Check if sage-gateway is available by trying to run it."""
         try:
-            import sage.gateway.server  # noqa: F401
-
-            return True
-        except ImportError as exc:  # pragma: no cover - user guidance path
+            # Use subprocess to check if gateway module is available
+            # This avoids direct L6->L6 dependency
+            result = subprocess.run(
+                [sys.executable, "-c", "import sage.gateway.server"],
+                capture_output=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except Exception as exc:  # pragma: no cover - user guidance path
             console.print(
                 "[red]无法导入 sage-gateway 包[/red]\n"
                 "请先在当前环境中安装: pip install -e packages/sage-gateway",
