@@ -91,17 +91,19 @@ def restart(
     dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
     clean: bool = typer.Option(True, "--clean/--no-clean", help="清理前端构建缓存（默认开启）"),
 ):
-    """重启 SAGE Studio
+    """重启 SAGE Studio（包括 Gateway）
 
     default 使用开发模式并清理前端构建缓存以确保使用最新代码。
     使用 --no-clean 可跳过清理步骤。
     使用 --prod 可使用生产模式（需要构建）。
+
+    注意：重启会同时停止并重新启动 Gateway，以确保加载最新的代码。
     """
     console.print("[blue]🔄 重启 SAGE Studio...[/blue]")
 
     try:
-        # 先停止
-        studio_manager.stop()
+        # 先停止（包括 Gateway）
+        studio_manager.stop(stop_gateway=True)
 
         # 清理前端缓存（如果启用）
         if clean:

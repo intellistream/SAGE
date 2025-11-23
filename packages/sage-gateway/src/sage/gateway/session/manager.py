@@ -171,6 +171,9 @@ class SessionManager:
             session = self._hydrate_session(payload)
             self._sessions[session.id] = session
 
+            # 为加载的会话创建记忆服务
+            self._memory_services[session.id] = self._create_memory_service(session.id)
+
     def _hydrate_session(self, payload: dict) -> ChatSession:
         session = ChatSession(
             id=payload.get("id", str(uuid.uuid4())),
@@ -388,8 +391,16 @@ class SessionManager:
             session_id: 会话ID
 
         Returns:
-            对应的记忆服务实例，如果不存在则返回 None
+            对应的记忆服务实例，如果会话不存在则返回 None
         """
+        # 如果会话不存在，返回 None
+        if session_id not in self._sessions:
+            return None
+
+        # 如果记忆服务不存在，自动创建
+        if session_id not in self._memory_services:
+            self._memory_services[session_id] = self._create_memory_service(session_id)
+
         return self._memory_services.get(session_id)
 
     def store_dialog_to_memory(
