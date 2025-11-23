@@ -11,11 +11,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sse_starlette.sse import EventSourceResponse
-
+from pydantic import BaseModel
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
 from sage.gateway.session import get_session_manager
-from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 # 配置日志
 logging.basicConfig(

@@ -83,9 +83,9 @@ class AttentionHookExtractor:
         self.num_heads = self.config.num_attention_heads
         self.hidden_size = self.config.hidden_size
         self.head_dim = self.hidden_size // self.num_heads
-        
+
         # GQA support (Grouped Query Attention, e.g., Llama 3.x)
-        self.num_key_value_heads = getattr(self.config, 'num_key_value_heads', self.num_heads)
+        self.num_key_value_heads = getattr(self.config, "num_key_value_heads", self.num_heads)
         # K/V use same head_dim as Q, just fewer heads
         self.kv_head_dim = self.head_dim
 
@@ -175,8 +175,8 @@ class AttentionHookExtractor:
                     """Hook function to capture Q, K, V tensors."""
                     try:
                         # Extract hidden_states from kwargs (Llama 3.x style) or args (older models)
-                        if 'hidden_states' in kwargs:
-                            hidden_states = kwargs['hidden_states']
+                        if "hidden_states" in kwargs:
+                            hidden_states = kwargs["hidden_states"]
                         elif len(args) > 0:
                             hidden_states = args[0]
                         else:
@@ -213,11 +213,15 @@ class AttentionHookExtractor:
                             # Q: [batch, seq, hidden] -> [batch, num_heads, seq, head_dim]
                             Q = Q.reshape(batch_size, seq_len, self.num_heads, self.head_dim)
                             Q = Q.transpose(1, 2)  # [batch, heads, seq, dim]
-                            
+
                             # K, V might use GQA with fewer heads
-                            K = K.reshape(batch_size, seq_len, self.num_key_value_heads, self.kv_head_dim)
-                            V = V.reshape(batch_size, seq_len, self.num_key_value_heads, self.kv_head_dim)
-                            
+                            K = K.reshape(
+                                batch_size, seq_len, self.num_key_value_heads, self.kv_head_dim
+                            )
+                            V = V.reshape(
+                                batch_size, seq_len, self.num_key_value_heads, self.kv_head_dim
+                            )
+
                             K = K.transpose(1, 2)  # [batch, kv_heads, seq, dim]
                             V = V.transpose(1, 2)
 
@@ -286,29 +290,29 @@ class AttentionHookExtractor:
         max_length: int = 8192,
     ) -> tuple[dict[int, dict[str, torch.Tensor]], list[int], tuple[int, int], tuple[int, int]]:
         """优化的注意力组件提取 - 分别编码context和question
-        
+
         真正的REFORM优化策略:
         1. 分别编码context和question（两次短forward，而非一次长forward）
         2. Context forward获取context tokens的Q/K/V
-        3. Question forward获取question tokens的Q/K/V  
+        3. Question forward获取question tokens的Q/K/V
         4. 合并两者的Q/K/V数据
-        
+
         这样的好处:
         - 两次短序列编码比一次长序列编码更快
         - 避免了question对context attention的干扰
         - 为后续可能的KV cache共享预留空间
-        
+
         Returns:
             - qkv_data: Dictionary mapping layer_idx to {"Q": tensor, "K": tensor, "V": tensor}
-            - tokens: Full token ids list  
+            - tokens: Full token ids list
             - context_range: (start_idx, end_idx) for context
             - question_range: (start_idx, end_idx) for question
         """
         logger.debug("Starting optimized two-pass attention extraction...")
-        
+
         # ============ Pass 1: Encode context only ============
         self.attention_data.clear()
-        
+
         context_inputs = self.tokenizer(
             context_text,
             return_tensors="pt",
@@ -318,19 +322,19 @@ class AttentionHookExtractor:
         )
         context_tokens = context_inputs["input_ids"][0].tolist()
         context_inputs = {k: v.to(self.device) for k, v in context_inputs.items()}
-        
+
         logger.debug(f"Pass 1: Encoding context ({len(context_tokens)} tokens)...")
-        
+
         with torch.no_grad():
             _ = self.model(**context_inputs, output_attentions=False)
-        
+
         # Save context QKV
         context_qkv = {k: v.copy() for k, v in self.attention_data.items()}
         logger.debug(f"Pass 1 complete: Extracted QKV for {len(context_qkv)} layers")
-        
+
         # ============ Pass 2: Encode question only ============
         self.attention_data.clear()
-        
+
         question_inputs = self.tokenizer(
             question_text,
             return_tensors="pt",
@@ -340,27 +344,27 @@ class AttentionHookExtractor:
         )
         question_tokens = question_inputs["input_ids"][0].tolist()
         question_inputs = {k: v.to(self.device) for k, v in question_inputs.items()}
-        
+
         logger.debug(f"Pass 2: Encoding question ({len(question_tokens)} tokens)...")
-        
+
         with torch.no_grad():
             _ = self.model(**question_inputs, output_attentions=False)
-        
+
         # Save question QKV
         question_qkv = {k: v.copy() for k, v in self.attention_data.items()}
         logger.debug(f"Pass 2 complete: Extracted QKV for {len(question_qkv)} layers")
-        
+
         # ============ Pass 3: Merge QKV data ============
         merged_qkv = {}
-        
+
         for layer_idx in context_qkv.keys():
             if layer_idx not in question_qkv:
                 logger.warning(f"Layer {layer_idx} missing in question QKV")
                 continue
-            
+
             ctx = context_qkv[layer_idx]
             ques = question_qkv[layer_idx]
-            
+
             # Concatenate along sequence dimension (dim=2)
             # Context: [batch, heads, ctx_len, head_dim]
             # Question: [batch, heads, ques_len, head_dim]
@@ -370,17 +374,17 @@ class AttentionHookExtractor:
                 "K": torch.cat([ctx["K"], ques["K"]], dim=2),
                 "V": torch.cat([ctx["V"], ques["V"]], dim=2),
             }
-        
+
         # Construct full token list (context tokens, then question tokens)
         full_tokens = context_tokens + question_tokens
-        
+
         # Define ranges
         context_range = (0, len(context_tokens))
         question_range = (len(context_tokens), len(full_tokens))
-        
+
         logger.debug(f"Merge complete: {len(merged_qkv)} layers, {len(full_tokens)} total tokens")
         logger.debug(f"Context: {context_range}, Question: {question_range}")
-        
+
         return merged_qkv, full_tokens, context_range, question_range
 
     def get_model_info(self) -> dict[str, Any]:
@@ -405,28 +409,28 @@ class AttentionHookExtractor:
         input_ids: list[int] | torch.Tensor,
     ) -> dict[int, dict[str, torch.Tensor]]:
         """Extract Q, K, V tensors from token IDs directly (avoid decode/encode).
-        
+
         Args:
             input_ids: Token IDs as list or tensor [seq_len] or [batch, seq_len]
-            
+
         Returns:
             Dictionary mapping layer_idx to {"Q": tensor, "K": tensor, "V": tensor}
         """
         # Clear previous data
         self.attention_data.clear()
-        
+
         # Convert to tensor if needed
         if isinstance(input_ids, list):
             input_ids = torch.tensor([input_ids], dtype=torch.long)
         elif input_ids.dim() == 1:
             input_ids = input_ids.unsqueeze(0)
-        
+
         input_ids = input_ids.to(self.device)
-        
+
         # Forward pass (hooks will capture Q, K, V)
         with torch.no_grad():
             _ = self.model(input_ids=input_ids, output_attentions=False)
-        
+
         return dict(self.attention_data)
 
     def recompute_kv_cache(
@@ -434,19 +438,19 @@ class AttentionHookExtractor:
         selected_token_ids: list[int] | torch.Tensor,
     ) -> tuple[str, Any]:
         """Recompute KV cache for selected tokens (REFORM-style compression)
-        
+
         这是 REFORM 论文中的 "Recompute" 步骤：
         1. 根据选出的 token IDs 重新构造输入
         2. 对这个新输入做一次 forward
         3. 返回新的 past_key_values （KV cache）
-        
+
         这样做的好处：
         - 压缩后的 KV cache 更小，节省内存
         - 后续生成时可以复用这个 cache
-        
+
         Args:
             selected_token_ids: Selected token IDs (list or tensor)
-            
+
         Returns:
             Tuple of (decoded_text, past_key_values)
         """
@@ -457,14 +461,12 @@ class AttentionHookExtractor:
             input_ids = selected_token_ids.unsqueeze(0)
         else:
             input_ids = selected_token_ids
-        
+
         input_ids = input_ids.to(self.device)
-        
+
         # Decode for verification/logging
-        decoded_text = self.tokenizer.decode(
-            input_ids[0].tolist(), skip_special_tokens=True
-        )
-        
+        decoded_text = self.tokenizer.decode(input_ids[0].tolist(), skip_special_tokens=True)
+
         # Forward pass with KV cache enabled
         with torch.no_grad():
             outputs = self.model(
@@ -472,15 +474,14 @@ class AttentionHookExtractor:
                 use_cache=True,  # Enable KV cache
                 output_attentions=False,
             )
-        
+
         # Extract past_key_values (KV cache)
         past_key_values = outputs.past_key_values
-        
+
         logger.info(
-            f"Recomputed KV cache for {input_ids.shape[1]} tokens "
-            f"({len(past_key_values)} layers)"
+            f"Recomputed KV cache for {input_ids.shape[1]} tokens ({len(past_key_values)} layers)"
         )
-        
+
         return decoded_text, past_key_values
 
 
@@ -494,14 +495,14 @@ def create_model_extractor(cfg: Any) -> AttentionHookExtractor:
         AttentionHookExtractor instance
     """
     import torch
-    
+
     # Auto-detect device if not specified
-    if hasattr(cfg.model, 'device') and cfg.model.device:
+    if hasattr(cfg.model, "device") and cfg.model.device:
         device = cfg.model.device
     else:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Auto-detected device: {device}")
-    
+
     extractor = AttentionHookExtractor(
         model_name=cfg.model.name,
         device=device,

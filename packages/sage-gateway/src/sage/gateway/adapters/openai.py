@@ -8,7 +8,6 @@ import time
 from typing import AsyncIterator
 
 from pydantic import BaseModel, Field
-
 from sage.gateway.session import get_session_manager
 
 
@@ -119,8 +118,9 @@ class OpenAIAdapter:
         # 使用 OpenAI 兼容的方式调用 LLM
         # 这里可以配置不同的后端：OpenAI/vLLM/DashScope 等
         try:
-            from sage.libs.integrations.openaiclient import OpenAIClient
             import os
+
+            from sage.libs.integrations.openaiclient import OpenAIClient
 
             # 从环境变量读取 LLM 配置
             model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")

@@ -54,6 +54,7 @@ def pipeline_run(config):
     except Exception as e:
         print(f"\n❌ Pipeline异常: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         print("\n🔄 清理环境...")

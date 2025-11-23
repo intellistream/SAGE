@@ -945,9 +945,11 @@ class Wiki18FAISSRetriever(MapOperator):
                 self.passage_to_doc_mapping = None
                 if mapping_path and os.path.exists(mapping_path):
                     try:
-                        with open(mapping_path, 'r', encoding='utf-8') as f:
+                        with open(mapping_path, encoding="utf-8") as f:
                             self.passage_to_doc_mapping = json.load(f)
-                        self.logger.info(f"加载了段落映射: {len(self.passage_to_doc_mapping)} 个段落映射到文档")
+                        self.logger.info(
+                            f"加载了段落映射: {len(self.passage_to_doc_mapping)} 个段落映射到文档"
+                        )
                     except Exception as e:
                         self.logger.warning(f"加载段落映射失败: {e}，将直接使用检索索引")
 
@@ -1053,7 +1055,7 @@ class Wiki18FAISSRetriever(MapOperator):
 
         for score, idx in zip(scores, indices, strict=False):
             # 如果有段落到文档的映射，使用映射
-            if hasattr(self, 'passage_to_doc_mapping') and self.passage_to_doc_mapping is not None:
+            if hasattr(self, "passage_to_doc_mapping") and self.passage_to_doc_mapping is not None:
                 if idx >= 0 and idx < len(self.passage_to_doc_mapping):
                     doc_idx = self.passage_to_doc_mapping[idx]
                     if doc_idx >= 0 and doc_idx < len(self.documents):
@@ -1077,9 +1079,13 @@ class Wiki18FAISSRetriever(MapOperator):
 
                         retrieved_docs.append(standardized_doc)
                     else:
-                        self.logger.warning(f"映射的文档索引超出范围: {doc_idx} >= {len(self.documents)}")
+                        self.logger.warning(
+                            f"映射的文档索引超出范围: {doc_idx} >= {len(self.documents)}"
+                        )
                 else:
-                    self.logger.warning(f"段落索引超出映射范围: {idx} >= {len(self.passage_to_doc_mapping)}")
+                    self.logger.warning(
+                        f"段落索引超出映射范围: {idx} >= {len(self.passage_to_doc_mapping)}"
+                    )
             else:
                 # 没有映射时，直接使用索引
                 if idx >= 0 and idx < len(self.documents):

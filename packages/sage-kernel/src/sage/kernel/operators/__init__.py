@@ -11,18 +11,10 @@ from sage.common.core.functions import (
     FlatMapFunction,
     MapFunction,
 )
-from sage.common.core.functions import (
-    BaseFunction as BaseOperator,
-)
-from sage.common.core.functions import (
-    FilterFunction as FilterOperator,
-)
-from sage.common.core.functions import (
-    FlatMapFunction as FlatMapOperator,
-)
-from sage.common.core.functions import (
-    MapFunction as MapOperator,
-)
+from sage.common.core.functions import BaseFunction as BaseOperator
+from sage.common.core.functions import FilterFunction as FilterOperator
+from sage.common.core.functions import FlatMapFunction as FlatMapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 __all__ = [
     "BaseOperator",

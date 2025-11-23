@@ -100,8 +100,8 @@ def main():
 
     print("\n   a) Health Check:")
     try:
-        import urllib.request
         import json
+        import urllib.request
 
         response = urllib.request.urlopen("http://localhost:8000/health")
         data = json.loads(response.read())
@@ -111,8 +111,8 @@ def main():
 
     print("\n   b) Chat Completion (non-streaming):")
     try:
-        import urllib.request
         import json
+        import urllib.request
 
         req = urllib.request.Request(
             "http://localhost:8000/v1/chat/completions",
@@ -139,17 +139,20 @@ def main():
     print("=" * 60)
 
     print("\n1️⃣  Using cURL:")
-    print("""
+    print(
+        """
     curl -X POST http://localhost:8000/v1/chat/completions \\
       -H "Content-Type: application/json" \\
       -d '{
         "model": "sage-default",
         "messages": [{"role": "user", "content": "Hello!"}]
       }'
-    """)
+    """
+    )
 
     print("\n2️⃣  Using Python (OpenAI SDK):")
-    print("""
+    print(
+        """
     from openai import OpenAI
 
     client = OpenAI(
@@ -163,7 +166,8 @@ def main():
     )
 
     print(response.choices[0].message.content)
-    """)
+    """
+    )
 
     print("\n3️⃣  Test Examples:")
     print("   bash packages/sage-gateway/examples/curl_examples.sh")

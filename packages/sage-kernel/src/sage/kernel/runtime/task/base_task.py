@@ -458,8 +458,10 @@ class BaseTask(ABC):  # noqa: B024
                                 stop_packet = Packet(payload=data_packet)
                                 self.operator.receive_packet(stop_packet)
                             except Exception as e:
-                                self.logger.error(f"Error processing StopSignal in {self.name}: {e}")
-                            
+                                self.logger.error(
+                                    f"Error processing StopSignal in {self.name}: {e}"
+                                )
+
                             # 然后停止task
                             self.ctx.send_stop_signal_back(self.name)
                             self.ctx.set_stop_signal()

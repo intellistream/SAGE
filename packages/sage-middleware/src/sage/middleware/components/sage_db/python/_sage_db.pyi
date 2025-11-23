@@ -10,6 +10,7 @@ The actual implementation is in C++, this file provides type hints for Python.
 
 class SageDB:
     """SAGE DB C++ extension interface"""
+
     def __init__(self) -> None: ...
     # Add more methods as needed
 

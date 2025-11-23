@@ -39,7 +39,9 @@ class SourceOperator(BaseOperator):
 
             self._stop_signal_sent = True
 
-            self.logger.info(f"Source Operator {self.name} received stop signal from batch function: {result}")
+            self.logger.info(
+                f"Source Operator {self.name} received stop signal from batch function: {result}"
+            )
 
             # 设置停止信号的来源
             result.source = self.name
