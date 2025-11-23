@@ -1790,13 +1790,20 @@ async def list_finetune_models():
 
 @app.post("/api/finetune/switch-model")
 async def switch_model(model_path: str):
-    """切换当前使用的模型"""
+    """切换当前使用的模型并热重启 LLM 服务（无需重启 Studio）"""
     from sage.studio.services.finetune_manager import finetune_manager
 
-    success = finetune_manager.switch_model(model_path)
-    if success:
-        return {"message": "Model switched successfully", "current_model": model_path}
-    raise HTTPException(status_code=500, detail="Failed to switch model")
+    # Apply the finetuned model (hot-swap)
+    result = finetune_manager.apply_finetuned_model(model_path)
+
+    if result["success"]:
+        return {
+            "message": result["message"],
+            "current_model": result["model"],
+            "llm_service_restarted": True,
+        }
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
 
 
 @app.get("/api/finetune/current-model")

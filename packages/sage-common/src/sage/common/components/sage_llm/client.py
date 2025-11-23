@@ -282,31 +282,39 @@ class IntelligentLLMClient:
         Returns:
             Dict with 'model_name', 'base_url', 'api_key'
         """
-        # 1. Check user-configured endpoint
+        # Read environment variables
         user_base_url = os.getenv("SAGE_CHAT_BASE_URL")
         user_model = model_override or os.getenv("SAGE_CHAT_MODEL")
         user_api_key = os.getenv("SAGE_CHAT_API_KEY", "")
 
+        logger.debug("🔍 [LLM Detection] Starting detection...")
+        logger.debug(f"🔍 [LLM Detection] SAGE_CHAT_BASE_URL={user_base_url}")
+        logger.debug(f"🔍 [LLM Detection] SAGE_CHAT_MODEL={user_model}")
+        logger.debug(
+            f"🔍 [LLM Detection] SAGE_CHAT_API_KEY={'***' if user_api_key else '(not set)'}"
+        )
+
+        # Strategy: Local-first, cloud fallback
+        # 1. If SAGE_CHAT_BASE_URL is set to localhost, use it directly
+        # 2. Try to auto-detect local vLLM services (even if cloud API keys are set)
+        # 3. If SAGE_CHAT_BASE_URL is set to remote, use it
+        # 4. Fall back to default cloud API
+
+        # Priority 1: User explicitly configured local endpoint
         if user_base_url:
-            # User explicitly configured - use as-is
-            model_name = user_model or "qwen-max"
             is_local = "localhost" in user_base_url or "127.0.0.1" in user_base_url
-            api_key = user_api_key or ("empty" if is_local else "")
-
             if is_local:
+                model_name = user_model or "local-model"
+                api_key = user_api_key or ""
                 logger.info(f"✅ 使用配置的本地服务: {model_name} @ {user_base_url}")
-            else:
-                if not api_key:
-                    logger.warning("SAGE_CHAT_API_KEY 未设置，云端服务可能无法使用")
-                logger.info(f"☁️  使用配置的云端服务: {model_name} @ {user_base_url}")
+                return {
+                    "model_name": model_name,
+                    "base_url": user_base_url,
+                    "api_key": api_key,
+                }
 
-            return {
-                "model_name": model_name,
-                "base_url": user_base_url,
-                "api_key": api_key,
-            }
-
-        # 2. Auto-detect local vLLM services
+        # Priority 2: Auto-detect local vLLM services (本地优先策略)
+        logger.info("🔍 优先检测本地 LLM 服务...")
         local_endpoints = [
             "http://localhost:8001/v1",  # Recommended (avoids Gateway port 8000)
             "http://127.0.0.1:8001/v1",
@@ -315,20 +323,39 @@ class IntelligentLLMClient:
         ]
 
         for endpoint in local_endpoints:
+            logger.debug(f"🔍 [LLM Detection] Probing {endpoint}...")
             detected_model = IntelligentLLMClient._probe_vllm_service(
                 endpoint, timeout=probe_timeout
             )
             if detected_model:
                 model_name = model_override or detected_model
+                # For local vLLM, match server's auth setting
+                # If VLLM_API_KEY is set, use it; otherwise use empty string (no auth)
+                local_api_key = os.getenv("VLLM_API_KEY", "")
                 logger.info(f"✅ 自动检测到本地 vLLM: {model_name} @ {endpoint}")
+                logger.info("💡 使用本地服务，节省 API 成本")
                 return {
                     "model_name": model_name,
                     "base_url": endpoint,
-                    "api_key": "empty",  # pragma: allowlist secret
+                    "api_key": local_api_key,
                 }
 
-        # 3. Fall back to cloud API
-        logger.info("☁️  未检测到本地服务，降级到云端 API")
+        # Priority 3: User configured remote cloud endpoint
+        if user_base_url:
+            # Remote endpoint (already checked local above)
+            model_name = user_model or "qwen-max"
+            api_key = user_api_key or ""
+            if not api_key:
+                logger.warning("SAGE_CHAT_API_KEY 未设置，云端服务可能无法使用")
+            logger.info(f"☁️  使用配置的云端服务: {model_name} @ {user_base_url}")
+            return {
+                "model_name": model_name,
+                "base_url": user_base_url,
+                "api_key": api_key,
+            }
+
+        # Priority 4: Fall back to default cloud API
+        logger.info("☁️  未检测到本地服务，降级到默认云端 API")
         cloud_model = user_model or "qwen-max"
         cloud_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
@@ -362,8 +389,12 @@ class IntelligentLLMClient:
                 data = json.loads(resp.read().decode("utf-8"))
                 models = [item.get("id") for item in data.get("data", []) if item.get("id")]
                 if models:
+                    logger.debug(f"🔍 [LLM Detection] ✅ Found models at {base_url}: {models[0]}")
                     return models[0]  # Return first available model
-        except (TimeoutError, error.URLError, json.JSONDecodeError, KeyError, Exception):
+                else:
+                    logger.debug(f"🔍 [LLM Detection] ❌ No models found at {base_url}")
+        except (TimeoutError, error.URLError, json.JSONDecodeError, KeyError, Exception) as e:
+            logger.debug(f"🔍 [LLM Detection] ❌ Failed to probe {base_url}: {type(e).__name__}")
             pass  # Service unavailable, fail silently
         return None
 

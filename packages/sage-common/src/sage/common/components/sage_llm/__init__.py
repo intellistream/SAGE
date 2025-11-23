@@ -16,6 +16,7 @@ Architecture:
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
 """
 
+from .api_server import LLMAPIServer, LLMServerConfig
 from .client import IntelligentLLMClient
 from .service import VLLMService, VLLMServiceConfig
 
@@ -29,10 +30,18 @@ try:
     __all__ = [
         "VLLMService",
         "VLLMServiceConfig",
+        "LLMAPIServer",
+        "LLMServerConfig",
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
         "IntelligentLLMClient",
     ]
 except ImportError:
     # Control Plane service not available
-    __all__ = ["VLLMService", "VLLMServiceConfig", "IntelligentLLMClient"]
+    __all__ = [
+        "VLLMService",
+        "VLLMServiceConfig",
+        "LLMAPIServer",
+        "LLMServerConfig",
+        "IntelligentLLMClient",
+    ]

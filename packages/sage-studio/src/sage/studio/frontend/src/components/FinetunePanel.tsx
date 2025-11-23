@@ -32,6 +32,7 @@ import {
     Cpu,
     AlertCircle,
     Download,
+    ArrowRightCircle,
 } from 'lucide-react'
 import type { UploadFile, UploadProps } from 'antd'
 
@@ -234,6 +235,7 @@ export default function FinetunePanel() {
     }
 
     const handleSwitchModel = async (modelPath: string) => {
+        const hide = message.loading('正在切换模型...', 0)
         try {
             const response = await fetch(
                 `/api/finetune/switch-model?model_path=${encodeURIComponent(modelPath)}`,
@@ -241,12 +243,42 @@ export default function FinetunePanel() {
             )
 
             if (response.ok) {
-                message.success('模型已切换')
+                const data = await response.json()
+                hide()
+
+                if (data.llm_service_restarted) {
+                    message.success({
+                        content: (
+                            <div>
+                                <div>✅ 模型已切换并生效</div>
+                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                    LLM 服务已自动重启，可直接使用新模型
+                                </div>
+                            </div>
+                        ),
+                        duration: 3
+                    })
+                } else {
+                    message.warning({
+                        content: (
+                            <div>
+                                <div>⚠️ 模型已切换</div>
+                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                    LLM 服务未重启，需要重启 Studio 后生效
+                                </div>
+                            </div>
+                        ),
+                        duration: 5
+                    })
+                }
+
                 loadCurrentModel()
             } else {
+                hide()
                 message.error('切换模型失败')
             }
         } catch (error) {
+            hide()
             message.error('切换模型失败')
         }
     }
@@ -388,9 +420,10 @@ export default function FinetunePanel() {
                             <Button
                                 size="small"
                                 type="primary"
+                                icon={<ArrowRightCircle className="w-3 h-3" />}
                                 onClick={() => handleSwitchModel(record.output_dir)}
                             >
-                                使用此模型
+                                应用到 Chat
                             </Button>
                             <Button
                                 size="small"
@@ -520,46 +553,68 @@ export default function FinetunePanel() {
 
                 {/* Current Model */}
                 <Card>
-                    <Space direction="vertical" className="w-full">
-                        <Text strong>当前使用的模型</Text>
-                        <div className="flex items-center justify-between">
-                            <Text code className="text-lg" style={{ wordBreak: 'break-all' }}>
-                                {currentModel}
-                            </Text>
-                            <Select
-                                value={currentModel}
-                                onChange={handleSwitchModel}
-                                style={{ width: 400 }}
-                                placeholder="切换模型"
-                                optionLabelProp="label"
+                    <Space direction="vertical" className="w-full" size="large">
+                        <div>
+                            <Text strong>当前使用的模型</Text>
+                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                Chat 模式会优先使用本地 LLM 服务的模型
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <div style={{ flex: 1 }}>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>基础模型（用于微调）</Text>
+                                <Select
+                                    value={currentModel}
+                                    onChange={(value) => setCurrentModel(value)}
+                                    style={{ width: '100%', marginTop: '4px' }}
+                                    placeholder="选择基础模型"
+                                    optionLabelProp="label"
+                                >
+                                    {models.map((model) => (
+                                        <Option
+                                            key={model.name}
+                                            value={model.name}
+                                            label={
+                                                <span style={{ fontSize: '13px' }}>
+                                                    {model.name.length > 35 ? `${model.name.substring(0, 35)}...` : model.name}
+                                                </span>
+                                            }
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                                <span style={{
+                                                    fontSize: '13px',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap',
+                                                    flex: 1
+                                                }}>
+                                                    {model.name}
+                                                </span>
+                                                <Tag color={model.type === 'base' ? 'blue' : 'green'} style={{ margin: 0 }}>
+                                                    {model.type === 'base' ? '基础' : '微调'}
+                                                </Tag>
+                                            </div>
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <Button
+                                type="primary"
+                                onClick={() => handleSwitchModel(currentModel)}
+                                icon={<ArrowRightCircle size={16} />}
+                                style={{ marginTop: '20px' }}
                             >
-                                {models.map((model) => (
-                                    <Option
-                                        key={model.name}
-                                        value={model.name}
-                                        label={
-                                            <span style={{ fontSize: '13px' }}>
-                                                {model.name.length > 35 ? `${model.name.substring(0, 35)}...` : model.name}
-                                            </span>
-                                        }
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                            <span style={{
-                                                fontSize: '13px',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                                flex: 1
-                                            }}>
-                                                {model.name}
-                                            </span>
-                                            <Tag color={model.type === 'base' ? 'blue' : 'green'} style={{ margin: 0 }}>
-                                                {model.type === 'base' ? '基础' : '微调'}
-                                            </Tag>
-                                        </div>
-                                    </Option>
-                                ))}
-                            </Select>
+                                应用到 Chat
+                            </Button>
+                        </div>
+                        <div style={{
+                            background: '#f6f8fa',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#666'
+                        }}>
+                            💡 <strong>提示</strong>：选择模型后点击"应用到 Chat"，LLM 服务会自动重启并加载新模型，无需重启 Studio
                         </div>
                     </Space>
                 </Card>

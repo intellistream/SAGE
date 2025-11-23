@@ -102,6 +102,7 @@ class RAGChatMap(MapFunction):
         self._db = None
         self._embedder = None
         self._manifest_data = None
+        self._llm_client = None  # Lazy-initialized LLM client
 
     def _ensure_rag_initialized(self):
         """Lazy initialization of RAG components."""
@@ -149,7 +150,6 @@ class RAGChatMap(MapFunction):
             logger.error(f"Failed to initialize RAG: {e}", exc_info=True)
             self._db = None
             self._embedder = None
-            self._llm_client = None  # Lazy-initialized LLM client
 
     def _get_llm_client(self):
         """获取智能 LLM 客户端（延迟初始化，带缓存）

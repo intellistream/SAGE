@@ -87,7 +87,11 @@ class FinetuneManager:
     def __init__(self):
         if not hasattr(self, "_initialized"):
             self.tasks: dict[str, FinetuneTask] = {}
-            self.current_model: str = os.getenv("SAGE_CHAT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+            # Default finetune base model (for UI display only, not for chat)
+            # Chat will use IntelligentLLMClient's auto-detection
+            self.current_model: str = os.getenv(
+                "SAGE_FINETUNE_BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct"
+            )
             self.active_task_id: str | None = None
             self._initialized = True
 
@@ -620,15 +624,105 @@ if __name__ == "__main__":
         return script_path
 
     def switch_model(self, model_path: str) -> bool:
-        """Switch current model"""
+        """Switch current model (for finetuning base model selection)
+
+        Note: This only affects the finetuning UI's model selection.
+        Chat mode will use IntelligentLLMClient's auto-detection (local first).
+        """
         self.current_model = model_path
-        os.environ["SAGE_CHAT_MODEL"] = model_path
+        # Removed: os.environ["SAGE_CHAT_MODEL"] = model_path
+        # Chat should use auto-detection, not be affected by finetune settings
         self._save_tasks()
         return True
 
     def get_current_model(self) -> str:
         """Get current model"""
         return self.current_model
+
+    def apply_finetuned_model(self, model_path: str) -> dict[str, Any]:
+        """Apply a finetuned model to the running LLM service (hot-swap)
+
+        This will restart the local LLM service with the new model.
+        Gateway will automatically detect the new model.
+
+        Args:
+            model_path: Path to the finetuned model (local path or HF model name)
+
+        Returns:
+            Dict with status and message
+        """
+        from sage.studio.chat_manager import ChatModeManager
+
+        try:
+            # Get ChatModeManager instance
+            chat_manager = ChatModeManager()
+
+            # Check if LLM service is running
+            if not chat_manager.llm_service or not chat_manager.llm_service.is_running():
+                return {
+                    "success": False,
+                    "message": "本地 LLM 服务未运行。请先启动 Studio 的 LLM 服务。",
+                }
+
+            print(f"🔄 正在切换到微调模型: {model_path}")
+
+            # Stop current LLM service
+            print("   停止当前 LLM 服务...")
+            chat_manager.llm_service.stop()
+
+            # Update config with new model
+            import time
+
+            time.sleep(2)  # Wait for cleanup
+
+            import os
+
+            from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+
+            config = LLMServerConfig(
+                model=model_path,
+                backend="vllm",
+                host="0.0.0.0",
+                port=8001,
+                gpu_memory_utilization=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
+                max_model_len=4096,
+                disable_log_stats=True,
+            )
+
+            # Start new service with finetuned model
+            print(f"   启动新模型: {model_path}")
+            chat_manager.llm_service = LLMAPIServer(config)
+            success = chat_manager.llm_service.start(background=True)
+
+            if success:
+                # Update current_model for UI display
+                self.current_model = model_path
+                self._save_tasks()
+
+                print("✅ 模型切换成功！")
+                print(f"   当前模型: {model_path}")
+                print("   Gateway 会自动检测到新模型")
+
+                return {
+                    "success": True,
+                    "message": f"成功切换到模型: {model_path}",
+                    "model": model_path,
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "LLM 服务启动失败，请查看日志",
+                }
+
+        except Exception as e:
+            import traceback
+
+            print(f"❌ 模型切换失败: {e}")
+            print(traceback.format_exc())
+            return {
+                "success": False,
+                "message": f"切换失败: {str(e)}",
+            }
 
     def list_available_models(self) -> list[dict[str, Any]]:
         """List available models (base + fine-tuned)"""
