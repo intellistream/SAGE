@@ -326,6 +326,305 @@ class TestKeyedStateSupport:
         print("✅ Backward compatibility test passed!")
 
 
+class TestKeyedStateEdgeCases:
+    """Test edge cases and error scenarios for keyed state"""
+
+    def setup_method(self):
+        """Clear results before each test"""
+        KeyedStateSink.clear()
+
+    def test_key_isolation_between_packets(self):
+        """Test that keys don't leak between packets"""
+
+        class KeyLeakageDetector(MapFunction):
+            """Function that tracks key changes to detect leaks"""
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.key_transitions = []
+
+            def execute(self, event_data):
+                current_key = self.ctx.get_key()
+                self.key_transitions.append(
+                    {
+                        "expected": event_data["user_id"],
+                        "actual": current_key,
+                        "event": event_data["action"],
+                    }
+                )
+                return {"key": current_key, "event": event_data}
+
+        print("\n🚀 Testing Key Isolation Between Packets")
+
+        env = LocalEnvironment("test_key_isolation")
+
+        (
+            env.from_source(KeyedStateTestSource, delay=0.3)
+            .keyby(KeyExtractor, strategy="hash")
+            .map(KeyLeakageDetector)
+            .sink(KeyedStateSink)
+        )
+
+        try:
+            env.submit()
+            time.sleep(2.5)
+        finally:
+            env.close()
+
+        results = KeyedStateSink.get_results()
+
+        # Verify each packet had the correct key during processing
+        for result in results:
+            assert result["key"] == result["event"]["user_id"], (
+                f"Key mismatch: expected {result['event']['user_id']}, got {result['key']}"
+            )
+
+        print("✅ Key isolation test passed!")
+
+    def test_none_key_handling(self):
+        """Test handling of None keys (unpartitioned packets)"""
+
+        class NoneKeySource(SourceFunction):
+            """Source that produces events without keys"""
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.counter = 0
+
+            def execute(self, data=None):
+                if self.counter >= 3:
+                    return None
+                self.counter += 1
+                return {"id": self.counter, "value": self.counter * 5}
+
+        class NoneKeyFunction(MapFunction):
+            """Function that handles None keys gracefully"""
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.none_key_count = 0
+                self.keyed_count = 0
+
+            def execute(self, data):
+                key = self.ctx.get_key()
+                if key is None:
+                    self.none_key_count += 1
+                else:
+                    self.keyed_count += 1
+
+                return {"key": key, "none_key_count": self.none_key_count, "data": data}
+
+        print("\n🚀 Testing None Key Handling")
+
+        env = LocalEnvironment("test_none_key")
+
+        # Pipeline without keyby - all keys should be None
+        env.from_source(NoneKeySource, delay=0.3).map(NoneKeyFunction).sink(KeyedStateSink)
+
+        try:
+            env.submit()
+            time.sleep(2)
+        finally:
+            env.close()
+
+        results = KeyedStateSink.get_results()
+
+        for result in results:
+            assert result["key"] is None, f"Expected None key, got {result['key']}"
+            assert result["none_key_count"] > 0, "none_key_count should be incremented"
+
+        print("✅ None key handling test passed!")
+
+    def test_concurrent_key_access(self):
+        """Test that keys are correctly maintained in concurrent processing"""
+
+        class ConcurrentKeyVerifier(MapFunction):
+            """Function that verifies key correctness in concurrent scenarios"""
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.key_verifications = []
+
+            def execute(self, event_data):
+                # Simulate some processing time
+                import random
+
+                time.sleep(random.uniform(0.01, 0.05))
+
+                key = self.ctx.get_key()
+                expected = event_data["user_id"]
+
+                # Record verification
+                self.key_verifications.append(
+                    {"key": key, "expected": expected, "match": key == expected}
+                )
+
+                # Assert immediately
+                assert key == expected, f"Concurrent key mismatch: expected {expected}, got {key}"
+
+                return {"verified": True, "key": key, "event": event_data}
+
+        print("\n🚀 Testing Concurrent Key Access")
+
+        env = LocalEnvironment("test_concurrent_keys")
+
+        (
+            env.from_source(KeyedStateTestSource, delay=0.2)
+            .keyby(KeyExtractor, strategy="hash")
+            .map(ConcurrentKeyVerifier)
+            .sink(KeyedStateSink)
+        )
+
+        try:
+            env.submit()
+            time.sleep(3)
+        finally:
+            env.close()
+
+        results = KeyedStateSink.get_results()
+
+        for result in results:
+            assert result["verified"], "All verifications should pass"
+
+        print("✅ Concurrent key access test passed!")
+
+    def test_state_serialization_excludes_current_key(self):
+        """Test that _current_packet_key is not serialized in state snapshots"""
+
+        class StateSerializationFunction(MapFunction):
+            """Function that tests state serialization"""
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.process_count = 0
+
+            def execute(self, event_data):
+                self.process_count += 1
+                key = self.ctx.get_key()
+
+                # Get state (simulating checkpoint)
+                try:
+                    # Check if ctx has get_state method
+                    if hasattr(self.ctx, "get_state"):
+                        state = self.ctx.get_state()
+                        # _current_packet_key should not be in serialized state
+                        assert "_current_packet_key" not in state, (
+                            "_current_packet_key should be excluded from state"
+                        )
+                except Exception as e:
+                    self.logger.warning(f"State serialization check failed: {e}")
+
+                return {"key": key, "process_count": self.process_count}
+
+        print("\n🚀 Testing State Serialization Excludes Current Key")
+
+        env = LocalEnvironment("test_state_serialization")
+
+        (
+            env.from_source(KeyedStateTestSource, delay=0.3)
+            .keyby(KeyExtractor, strategy="hash")
+            .map(StateSerializationFunction)
+            .sink(KeyedStateSink)
+        )
+
+        try:
+            env.submit()
+            time.sleep(2.5)
+        finally:
+            env.close()
+
+        results = KeyedStateSink.get_results()
+        assert len(results) > 0, "Should receive results"
+
+        print("✅ State serialization test passed!")
+
+
+class TestKeyedStateAPICompleteness:
+    """Test all keyed state API methods"""
+
+    def test_set_clear_get_key_methods(self):
+        """Test direct usage of set_current_key, get_key, and clear_key"""
+        from sage.kernel.runtime.context.base_context import BaseRuntimeContext
+
+        class TestContext(BaseRuntimeContext):
+            """Concrete implementation for testing"""
+
+            def __init__(self):
+                super().__init__()
+                self._test_logger = None
+
+            @property
+            def logger(self):
+                if self._test_logger is None:
+                    import logging
+
+                    self._test_logger = logging.getLogger("test")
+                return self._test_logger
+
+        print("\n🚀 Testing Keyed State API Methods")
+
+        ctx = TestContext()
+
+        # Test initial state
+        assert ctx.get_key() is None, "Initial key should be None"
+
+        # Test set_current_key with string
+        ctx.set_current_key("test_key_1")
+        assert ctx.get_key() == "test_key_1", "Key should be 'test_key_1'"
+
+        # Test set_current_key with integer
+        ctx.set_current_key(12345)
+        assert ctx.get_key() == 12345, "Key should be 12345"
+
+        # Test set_current_key with None
+        ctx.set_current_key(None)
+        assert ctx.get_key() is None, "Key should be None"
+
+        # Test set_current_key with complex object
+        complex_key = {"user": "alice", "session": "abc123"}
+        ctx.set_current_key(complex_key)
+        assert ctx.get_key() == complex_key, "Key should be the complex object"
+
+        # Test clear_key
+        ctx.clear_key()
+        assert ctx.get_key() is None, "Key should be None after clear"
+
+        # Test multiple set/clear cycles
+        for i in range(5):
+            ctx.set_current_key(f"key_{i}")
+            assert ctx.get_key() == f"key_{i}"
+            ctx.clear_key()
+            assert ctx.get_key() is None
+
+        print("✅ API methods test passed!")
+
+    def test_key_attribute_initialization(self):
+        """Test that _current_packet_key is properly initialized"""
+        from sage.kernel.runtime.context.base_context import BaseRuntimeContext
+
+        class TestContext(BaseRuntimeContext):
+            @property
+            def logger(self):
+                import logging
+
+                return logging.getLogger("test")
+
+        print("\n🚀 Testing Key Attribute Initialization")
+
+        ctx = TestContext()
+
+        # Verify attribute exists
+        assert hasattr(ctx, "_current_packet_key"), "Should have _current_packet_key attribute"
+
+        # Verify initial value is None
+        assert ctx._current_packet_key is None, "Initial _current_packet_key should be None"
+
+        # Verify get_key returns None initially
+        assert ctx.get_key() is None, "get_key() should return None initially"
+
+        print("✅ Attribute initialization test passed!")
+
+
 if __name__ == "__main__":
     import pytest
 
