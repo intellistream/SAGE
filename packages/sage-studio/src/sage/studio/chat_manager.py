@@ -29,7 +29,88 @@ class ChatModeManager:
         self.gateway_log_file = self.chat_dir / "gateway.log"
         self.gateway_port = 8000
         self.gateway_host = "0.0.0.0"
+
+        # Local LLM service management (via sageLLM)
+        self.llm_service = None  # Will be VLLMService or other sageLLM service
+        self.llm_enabled = os.getenv("SAGE_STUDIO_LLM", "").lower() in ("true", "1", "yes")
+        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+        self.llm_port = 8001  # OpenAI-compatible API port
+
         self.chat_dir.mkdir(parents=True, exist_ok=True)
+
+    # ------------------------------------------------------------------
+    # Local LLM Service helpers (via sageLLM)
+    # ------------------------------------------------------------------
+    def _start_llm_service(self, model: str | None = None) -> bool:
+        """Start local LLM service via sageLLM.
+
+        Uses sageLLM's service abstraction to start a local LLM server.
+        The actual engine (vLLM, etc.) is determined by sageLLM configuration.
+
+        Args:
+            model: Model name/path to load
+
+        Returns:
+            True if started successfully, False otherwise
+        """
+        try:
+            from sage.common.components.sage_llm.service import VLLMService
+        except ImportError:
+            console.print(
+                "[yellow]⚠️  sageLLM 服务不可用，跳过本地 LLM 启动[/yellow]\n"
+                "提示：确保已安装 sage-common 包"
+            )
+            return False
+
+        model_name = model or self.llm_model
+        console.print("[blue]🚀 启动本地 LLM 服务（通过 sageLLM）...[/blue]")
+        console.print(f"   模型: {model_name}")
+        console.print(f"   端口: {self.llm_port}")
+
+        try:
+            # Create sageLLM service configuration
+            # Note: VLLMService is just one engine, sageLLM will support others in vendors/
+            config = {
+                "model_id": model_name,
+                "engine": {
+                    "dtype": "auto",
+                    "tensor_parallel_size": int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
+                    "gpu_memory_utilization": float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
+                },
+            }
+
+            # Create and setup service
+            self.llm_service = VLLMService(config)
+            self.llm_service.setup()
+
+            console.print("[green]✅ 本地 LLM 服务已启动[/green]")
+
+            # Set environment variable for IntelligentLLMClient to detect
+            os.environ["SAGE_CHAT_BASE_URL"] = f"http://127.0.0.1:{self.llm_port}/v1"
+
+            return True
+
+        except Exception as exc:
+            console.print(f"[red]❌ 启动 LLM 服务失败: {exc}[/red]")
+            console.print("[yellow]💡 提示：安装推理引擎后可使用本地服务[/yellow]")
+            console.print("   示例：pip install vllm  # 安装 vLLM 引擎")
+            return False
+
+    def _stop_llm_service(self) -> bool:
+        """Stop local LLM service."""
+        if self.llm_service is None:
+            console.print("[yellow]本地 LLM 服务未运行[/yellow]")
+            return True
+
+        console.print("[blue]🛑 停止本地 LLM 服务...[/blue]")
+        try:
+            self.llm_service.cleanup()
+            self.llm_service = None
+            console.print("[green]✅ 本地 LLM 服务已停止[/green]")
+            return True
+        except Exception as exc:
+            console.print(f"[red]❌ 停止 LLM 服务失败: {exc}[/red]")
+            return False
 
     # ------------------------------------------------------------------
     # Gateway helpers
@@ -145,13 +226,47 @@ class ChatModeManager:
         gateway_port: int | None = None,
         host: str = "localhost",
         dev: bool = True,
+        llm: bool | None = None,
+        llm_model: str | None = None,
     ) -> bool:
+        """Start Studio Chat Mode services.
+
+        Args:
+            frontend_port: Studio frontend port
+            backend_port: Studio backend port
+            gateway_port: Gateway API port (default: 8000)
+            host: Host to bind to
+            dev: Run in development mode
+            llm: Enable local LLM service via sageLLM (default: from SAGE_STUDIO_LLM env)
+            llm_model: Model to load (default: from SAGE_STUDIO_LLM_MODEL env)
+
+        Returns:
+            True if all services started successfully
+        """
         if gateway_port:
             self.gateway_port = gateway_port
 
+        # Determine if local LLM should be started
+        start_llm = llm if llm is not None else self.llm_enabled
+
+        # Start local LLM service first (if enabled)
+        if start_llm:
+            model = llm_model or self.llm_model
+            llm_started = self._start_llm_service(model=model)
+            if llm_started:
+                console.print(
+                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 IntelligentLLMClient 自动检测）[/green]"
+                )
+            else:
+                console.print(
+                    "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
+                )
+
+        # Start Gateway
         if not self._start_gateway(port=self.gateway_port):
             return False
 
+        # Start Studio UI
         console.print("[blue]⚙️ 启动 Studio 服务...[/blue]")
         success = self.studio_manager.start(
             port=frontend_port,
@@ -159,18 +274,47 @@ class ChatModeManager:
             dev=dev,
             backend_port=backend_port,
         )
+
         if success:
-            console.print("[green]🎉 Chat 模式就绪！打开顶部 Chat 标签即可体验[/green]")
+            console.print("\n" + "=" * 70)
+            console.print("[green]🎉 Chat 模式就绪！[/green]")
+            if start_llm and self.llm_service:
+                console.print("[green]🤖 本地 LLM: 由 sageLLM 管理[/green]")
+            console.print(f"[green]🌐 Gateway API: http://localhost:{self.gateway_port}[/green]")
+            console.print("[green]💬 打开顶部 Chat 标签即可体验[/green]")
+            console.print("=" * 70)
+
         return success
 
     def stop(self) -> bool:
+        """Stop all Studio Chat Mode services."""
         frontend_backend = self.studio_manager.stop()
         gateway = self._stop_gateway()
-        return frontend_backend and gateway
+        llm = self._stop_llm_service()
+        return frontend_backend and gateway and llm
 
     def status(self):
+        """Display status of all Studio Chat Mode services."""
         self.studio_manager.status()
 
+        # Local LLM Service status (via sageLLM)
+        llm_table = Table(title="本地 LLM 服务状态（sageLLM）")
+        llm_table.add_column("属性", style="cyan", width=14)
+        llm_table.add_column("值", style="white")
+
+        if self.llm_service:
+            llm_table.add_row("状态", "[green]运行中[/green]")
+            llm_table.add_row("引擎", "sageLLM (可配置不同 vendor)")
+            llm_table.add_row("模型", self.llm_model)
+            llm_table.add_row("说明", "由 IntelligentLLMClient 自动检测使用")
+        else:
+            llm_table.add_row("状态", "[red]未运行[/red]")
+            llm_table.add_row("提示", "使用 --llm 启动本地服务")
+            llm_table.add_row("说明", "支持通过 sageLLM 配置不同推理引擎")
+
+        console.print(llm_table)
+
+        # Gateway status
         table = Table(title="sage-gateway 状态")
         table.add_column("属性", style="cyan", width=14)
         table.add_column("值", style="white")
@@ -196,6 +340,13 @@ class ChatModeManager:
         console.print(table)
 
     def logs(self, follow: bool = False, gateway: bool = False, backend: bool = False):
+        """Display logs from Studio services.
+
+        Args:
+            follow: Follow log output (like tail -f)
+            gateway: Show Gateway logs
+            backend: Show Studio backend logs
+        """
         if gateway:
             log_file = self.gateway_log_file
             name = "gateway"

@@ -25,6 +25,12 @@ def start(
     no_auto_build: bool = typer.Option(
         False, "--no-auto-build", help="禁用自动构建（生产模式下如缺少构建会提示失败）"
     ),
+    llm: bool = typer.Option(False, "--llm", help="🤖 启动本地 LLM 服务（通过 sageLLM）"),
+    llm_model: str | None = typer.Option(
+        None,
+        "--llm-model",
+        help="指定模型（默认: Qwen/Qwen2.5-7B-Instruct）",
+    ),
 ):
     """启动 SAGE Studio
 
@@ -32,6 +38,21 @@ def start(
     - 自动启动 Gateway 服务（如未运行）
     - 自动安装前端依赖（如缺少 node_modules）
     - 自动构建生产包（如生产模式且缺少构建输出）
+
+    Chat 模式增强（--llm）：
+    - 通过 sageLLM 启动本地 LLM 服务，无需云端 API
+    - 自动配置 IntelligentLLMClient 使用本地服务
+    - 支持多种推理引擎（通过 sageLLM 配置）
+
+    示例：
+        sage studio start --llm                    # 使用默认模型启动
+        sage studio start --llm --llm-model Qwen/Qwen2.5-14B-Instruct  # 自定义模型
+
+    环境变量：
+        SAGE_STUDIO_LLM=true                       # 默认启用本地 LLM
+        SAGE_STUDIO_LLM_MODEL=model_name           # 默认模型
+        SAGE_STUDIO_LLM_GPU_MEMORY=0.9             # GPU 内存使用率
+        SAGE_STUDIO_LLM_TENSOR_PARALLEL=1          # Tensor 并行度
 
     所有自动操作都会先征求确认。
     """
@@ -47,19 +68,38 @@ def start(
             console.print(f"[blue]🌐 访问地址: {url}[/blue]")
             return
 
-        success = studio_manager.start(
-            port=port,
-            host=host,
-            dev=dev,
-            auto_gateway=not no_gateway,
-            auto_install=not no_auto_install,
-            auto_build=not no_auto_build,
-        )
+        # If LLM is requested or Gateway is needed, use ChatModeManager
+        if llm or not no_gateway:
+            from sage.studio.chat_manager import ChatModeManager
+
+            chat_manager = ChatModeManager()
+            success = chat_manager.start(
+                frontend_port=port,
+                host=host,
+                dev=dev,
+                llm=llm,
+                llm_model=llm_model,
+            )
+        else:
+            success = studio_manager.start(
+                port=port,
+                host=host,
+                dev=dev,
+                auto_gateway=not no_gateway,
+                auto_install=not no_auto_install,
+                auto_build=not no_auto_build,
+            )
+
         if success:
             console.print("[green]✅ Studio 启动成功[/green]")
             console.print("\n[cyan]💡 提示：[/cyan]")
-            console.print("  • Chat 模式需要 Gateway 服务支持")
-            console.print("  • 使用 'sage studio status' 查看所有服务状态")
+            if llm:
+                console.print("  • 本地 LLM 服务已通过 sageLLM 启动")
+                console.print("  • IntelligentLLMClient 将自动检测并使用")
+                console.print("  • 使用 'sage studio status' 查看服务状态")
+            else:
+                console.print("  • Chat 模式需要 Gateway 服务支持")
+                console.print("  • 使用 'sage studio status' 查看所有服务状态")
             console.print("  • 使用 'sage studio stop' 停止服务")
         else:
             console.print("[red]❌ Studio 启动失败[/red]")
@@ -147,12 +187,28 @@ def status():
 def logs(
     follow: bool = typer.Option(False, "--follow", "-f", help="跟踪日志"),
     backend: bool = typer.Option(False, "--backend", "-b", help="查看后端API日志"),
+    gateway: bool = typer.Option(False, "--gateway", "-g", help="查看 Gateway 日志"),
 ):
-    """查看 SAGE Studio 日志"""
+    """查看 SAGE Studio 日志
+
+    示例：
+        sage studio logs                # 前端日志
+        sage studio logs --backend      # 后端日志
+        sage studio logs --gateway      # Gateway 日志
+        sage studio logs --follow       # 跟踪日志输出
+
+    注意：本地 LLM 服务由 sageLLM 管理，日志通过 sageLLM 查看
+    """
     console.print("[blue]📋 查看 Studio 日志...[/blue]")
 
     try:
-        studio_manager.logs(follow=follow, backend=backend)
+        if gateway:
+            from sage.studio.chat_manager import ChatModeManager
+
+            chat_manager = ChatModeManager()
+            chat_manager.logs(follow=follow, gateway=gateway)
+        else:
+            studio_manager.logs(follow=follow, backend=backend)
     except Exception as e:
         console.print(f"[red]❌ 查看日志失败: {e}[/red]")
 
