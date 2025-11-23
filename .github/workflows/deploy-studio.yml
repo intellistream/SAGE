@@ -43,15 +43,54 @@ jobs:
           pkill -f "sage-gateway" || true
           sleep 2
 
+      - name: Install System Dependencies
+        run: |
+          echo "� 安装系统依赖..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            git
+          echo "✅ 系统依赖安装完成"
+
       - name: Install/Update SAGE
         run: |
-          echo "📦 Installing SAGE with development mode..."
+          echo "📦 安装 SAGE（开发模式）..."
+
+          export PATH="$HOME/.local/bin:$PATH"
+          chmod +x ./quickstart.sh
+
           ./quickstart.sh --dev --yes
+
+          echo "✅ SAGE 安装完成"
+        timeout-minutes: 25
+
+      - name: Verify Installation
+        run: |
+          echo "✅ 验证 SAGE 安装..."
+
+          export PATH="$HOME/.local/bin:$PATH"
+
+          python -c "import sage; print('✅ SAGE imported')"
+          python -c "import sage.cli; print('✅ sage.cli imported')"
+          python -c "import sage.studio; print('✅ sage.studio imported')"
+
+          if command -v sage >/dev/null 2>&1; then
+            sage --help > /dev/null && echo "✅ sage 命令可用"
+          else
+            echo "⚠️  sage 命令不可用"
+          fi
 
       - name: Build Studio (Production)
         run: |
-          echo "🏗️  Building SAGE Studio for production..."
+          echo "🏗️  构建 SAGE Studio（生产模式）..."
+
+          export PATH="$HOME/.local/bin:$PATH"
+
           sage studio build
+
+          echo "✅ Studio 构建完成"
 
       - name: Start SAGE Studio
         env:
@@ -59,13 +98,19 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          echo "🚀 Starting SAGE Studio in production mode..."
+          echo "🚀 启动 SAGE Studio（生产模式）..."
+
+          export PATH="$HOME/.local/bin:$PATH"
+
           # Production mode for better performance and stability
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
           # 3. Builds and serves optimized frontend on port 4200
           nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '4200' }} > ~/sage-studio-deploy.log 2>&1 &
+
           sleep 15  # Production build needs more time
+
+          echo "✅ Studio 已启动"
 
       - name: Health check
         run: |
