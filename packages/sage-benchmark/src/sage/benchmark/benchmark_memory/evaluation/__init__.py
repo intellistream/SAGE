@@ -3,17 +3,12 @@ Memory Benchmark Evaluation Module
 
 提供对记忆基准测试结果的分析和可视化功能。
 
-主要功能：
-1. 加载实验结果 JSON 文件
-2. 计算各类指标（准确率、效率等）
-3. 生成可视化图表
+当前阶段：
+- 处于探索阶段，暂时采用 specialized_analysis/ 进行专项分析
+- 待算法集成完成后，会重构为系统化的评估框架
 
-使用示例：
-    python data_analyze.py --folder .sage/benchmarks/benchmark_memory/locomo/251121 --mode independent
+子模块：
+- specialized_analysis: 探索性指标分析和可视化
 """
 
-from .core.analyzer import Analyzer
-from .core.metric_interface import BaseMetric
-from .core.result_loader import ResultLoader
-
-__all__ = ["Analyzer", "BaseMetric", "ResultLoader"]
+__all__ = []
