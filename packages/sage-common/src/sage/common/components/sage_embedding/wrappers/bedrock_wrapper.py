@@ -16,16 +16,17 @@ class BedrockEmbedding(BaseEmbedding):
         - ✅ 多种模型选择（Amazon Titan、Cohere）
         - ✅ 企业级安全
         - ✅ 灵活的认证方式
+        - ✅ Cohere 模型支持批量处理
         - ❌ 需要 AWS 凭证
         - ❌ 需要开通 Bedrock 服务
         - 💰 按使用量计费
 
     支持的模型:
-        Amazon Titan:
+        Amazon Titan (不支持批量):
         - amazon.titan-embed-text-v2:0 (默认，1024维)
         - amazon.titan-embed-text-v1 (1536维)
 
-        Cohere:
+        Cohere (支持批量):
         - cohere.embed-multilingual-v3 (1024维)
         - cohere.embed-english-v3 (1024维)
 
@@ -207,19 +208,69 @@ class BedrockEmbedding(BaseEmbedding):
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
-        当前实现为逐个调用 embed()。
-        TODO: 如果模型支持批量接口，可以优化。
-        Issue URL: https://github.com/intellistream/SAGE/issues/908
+        根据模型提供商使用不同的批量策略:
+        - Cohere 模型: 使用原生批量 API（texts 参数）
+        - Amazon Titan 模型: 逐个调用（API 不支持批量）
 
         Args:
             texts: 输入文本列表
 
         Returns:
             embedding 向量列表
+
+        Raises:
+            RuntimeError: 如果 API 调用失败
         """
-        # TODO: 检查 Bedrock API 是否支持批量
-        # Issue URL: https://github.com/intellistream/SAGE/issues/907
-        return [self.embed(text) for text in texts]
+        if not texts:
+            return []
+
+        model_provider = self._model.split(".")[0]
+
+        # Cohere 模型支持原生批量处理
+        if model_provider == "cohere":
+            try:
+                import json
+
+                import boto3
+
+                # 设置环境变量（boto3 会自动读取）
+                if self._aws_access_key_id:
+                    os.environ["AWS_ACCESS_KEY_ID"] = self._aws_access_key_id
+                if self._aws_secret_access_key:
+                    os.environ["AWS_SECRET_ACCESS_KEY"] = self._aws_secret_access_key
+                if self._aws_session_token:
+                    os.environ["AWS_SESSION_TOKEN"] = self._aws_session_token
+
+                bedrock_client = boto3.client("bedrock-runtime")
+
+                body = json.dumps(
+                    {
+                        "texts": texts,  # Cohere 支持批量
+                        "input_type": "search_document",
+                        "truncate": "NONE",
+                    }
+                )
+
+                response = bedrock_client.invoke_model(
+                    modelId=self._model,
+                    body=body,
+                    accept="application/json",
+                    contentType="application/json",
+                )
+                response_body = json.loads(response["body"].read())
+                return response_body["embeddings"]
+
+            except Exception as e:
+                raise RuntimeError(
+                    f"Bedrock 批量 embedding 失败: {e}\n"
+                    f"模型: {self._model}\n"
+                    f"批量大小: {len(texts)}\n"
+                    f"提示: 检查 AWS 凭证、区域设置、Bedrock 服务开通状态"
+                ) from e
+
+        # Amazon Titan 模型不支持批量，需要逐个调用
+        else:
+            return [self.embed(text) for text in texts]
 
     def get_dim(self) -> int:
         """获取向量维度
