@@ -18,6 +18,14 @@ class SimpleBatchIteratorFunction(BatchFunction):
         self.data = data
         self._index = 0
 
+    def execute(self) -> Any:
+        """Execute the batch function - return next item or None when done."""
+        if self._index >= len(self.data):
+            return None
+        item = self.data[self._index]
+        self._index += 1
+        return item
+
     def __iter__(self) -> Iterator[Any]:
         """Return an iterator over the data."""
         return iter(self.data)
@@ -49,6 +57,15 @@ class IterableBatchIteratorFunction(BatchFunction):
         self.iterable = iterable
         self.total_count = total_count
         self._iterator = None
+
+    def execute(self) -> Any:
+        """Execute the batch function - return next item or None when done."""
+        if self._iterator is None:
+            self._iterator = iter(self.iterable)
+        try:
+            return next(self._iterator)
+        except StopIteration:
+            return None
 
     def __iter__(self) -> Iterator[Any]:
         """Return an iterator over the iterable."""
