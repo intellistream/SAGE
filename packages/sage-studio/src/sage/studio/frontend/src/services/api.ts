@@ -574,4 +574,26 @@ apiClient.interceptors.response.use(
     }
 )
 
+// ==================== LLM 状态 API ====================
+
+export interface LLMStatus {
+    running: boolean
+    healthy: boolean
+    service_type: 'local_vllm' | 'remote_api' | 'not_configured' | 'unknown' | 'error'
+    model_name: string
+    base_url: string
+    is_local: boolean
+    details?: {
+        model_id: string
+        max_model_len: number
+        owned_by: string
+    }
+    error?: string
+}
+
+export async function getLLMStatus(): Promise<LLMStatus> {
+    const response = await apiClient.get('/llm/status')
+    return response.data
+}
+
 export default apiClient

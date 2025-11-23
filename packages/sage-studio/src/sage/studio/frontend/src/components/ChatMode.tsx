@@ -37,7 +37,9 @@ import {
     getChatSessionDetail,
     clearChatSession as clearSessionApi,
     convertChatSessionToPipeline,
+    getLLMStatus,
     type ChatSessionSummary,
+    type LLMStatus,
 } from '../services/api'
 import { useFlowStore } from '../store/flowStore'
 import type { AppMode } from '../App'
@@ -79,15 +81,29 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const [isConverting, setIsConverting] = useState(false)
     const [recommendationSummary, setRecommendationSummary] = useState<string | null>(null)
     const [recommendationInsights, setRecommendationInsights] = useState<string[]>([])
+    const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null)
 
-    // 自动滚动到底部
+    //自动滚动到底部
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages[currentSessionId || '']])
 
     useEffect(() => {
         loadSessions()
+        loadLLMStatus()
+        // 每 10 秒刷新一次 LLM 状态
+        const interval = setInterval(loadLLMStatus, 10000)
+        return () => clearInterval(interval)
     }, [])
+
+    const loadLLMStatus = async () => {
+        try {
+            const status = await getLLMStatus()
+            setLlmStatus(status)
+        } catch (error) {
+            console.error('Failed to load LLM status:', error)
+        }
+    }
 
     // 自动聚焦输入框
     useEffect(() => {
@@ -412,11 +428,38 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     <>
                         {/* 顶部工具栏 */}
                         <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6">
-                            <div className="flex items-center gap-2">
-                                <MessageSquare size={18} className="text-gray-600" />
-                                <span className="font-medium text-gray-800">
-                                    {sessions.find(s => s.id === currentSessionId)?.title || 'Chat'}
-                                </span>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare size={18} className="text-gray-600" />
+                                    <span className="font-medium text-gray-800">
+                                        {sessions.find(s => s.id === currentSessionId)?.title || 'Chat'}
+                                    </span>
+                                </div>
+
+                                {/* LLM 状态显示 */}
+                                {llmStatus && (
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-md border border-gray-200">
+                                        <Bot size={14} className={
+                                            llmStatus.healthy ? 'text-green-500' : 'text-gray-400'
+                                        } />
+                                        <Tooltip title={
+                                            llmStatus.is_local
+                                                ? `本地模型: ${llmStatus.details?.model_id || llmStatus.model_name}`
+                                                : `云端模型: ${llmStatus.model_name}`
+                                        }>
+                                            <span className="text-xs text-gray-600 max-w-xs truncate">
+                                                {llmStatus.is_local ? '🚀 Local' : '☁️ Cloud'}: {
+                                                    llmStatus.model_name.split('/').pop() ||
+                                                    llmStatus.model_name.split('__').pop() ||
+                                                    'Unknown'
+                                                }
+                                            </span>
+                                        </Tooltip>
+                                        {llmStatus.healthy && (
+                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <Space>

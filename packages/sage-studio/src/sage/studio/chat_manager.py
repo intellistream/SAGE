@@ -192,9 +192,9 @@ class ChatModeManager(StudioManager):
 
                 # Set environment variables for IntelligentLLMClient
                 os.environ["SAGE_CHAT_BASE_URL"] = f"http://127.0.0.1:{self.llm_port}/v1"
-                # Set model name to match what vLLM is serving
-                # Use the original model_name (not the resolved path) for OpenAI API compatibility
-                os.environ["SAGE_CHAT_MODEL"] = model_name
+                # Set model name to match what vLLM is actually serving
+                # vLLM registers the model with the path we pass (resolved_model_path)
+                os.environ["SAGE_CHAT_MODEL"] = resolved_model_path
 
                 return True
             else:

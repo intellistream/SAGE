@@ -2163,5 +2163,77 @@ async def get_gpu_info():
         }
 
 
+@app.get("/api/llm/status")
+async def get_llm_status():
+    """获取当前运行的 LLM 服务状态"""
+    try:
+        import requests
+
+        # 读取环境变量
+        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+        model_name = os.getenv("SAGE_CHAT_MODEL", "")
+
+        # 检测是否是本地服务
+        is_local = "localhost" in base_url or "127.0.0.1" in base_url
+
+        # 初始化状态
+        status = {
+            "running": False,
+            "healthy": False,
+            "service_type": "unknown",
+            "model_name": model_name,
+            "base_url": base_url,
+            "is_local": is_local,
+            "details": {},
+        }
+
+        # 如果是本地服务，尝试获取详细信息
+        if is_local and base_url:
+            try:
+                # 检查健康状态
+                health_url = base_url.replace("/v1", "/health")
+                health_response = requests.get(health_url, timeout=2)
+                status["healthy"] = health_response.status_code == 200
+                status["running"] = True
+                status["service_type"] = "local_vllm"
+
+                # 获取模型列表
+                models_url = f"{base_url}/models"
+                models_response = requests.get(models_url, timeout=2)
+                if models_response.status_code == 200:
+                    models_data = models_response.json()
+                    if models_data.get("data"):
+                        # 获取第一个模型的详细信息
+                        first_model = models_data["data"][0]
+                        status["details"] = {
+                            "model_id": first_model.get("id", ""),
+                            "max_model_len": first_model.get("max_model_len", 0),
+                            "owned_by": first_model.get("owned_by", ""),
+                        }
+                        # 使用实际注册的模型 ID
+                        status["model_name"] = first_model.get("id", model_name)
+
+            except Exception as e:
+                status["error"] = str(e)
+        elif base_url:
+            # 远程服务
+            status["service_type"] = "remote_api"
+            status["running"] = True  # 假设配置了就是可用的
+        else:
+            # 没有配置
+            status["service_type"] = "not_configured"
+            status["model_name"] = "未配置 LLM 服务"
+
+        return status
+
+    except Exception as e:
+        return {
+            "running": False,
+            "healthy": False,
+            "service_type": "error",
+            "error": str(e),
+        }
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)  # 修改为监听所有网络接口
