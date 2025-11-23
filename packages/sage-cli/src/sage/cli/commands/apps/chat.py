@@ -537,16 +537,29 @@ class ResponseGenerator:
             self._setup_finetune_backend()
         else:
             try:
-                from sage.libs.integrations.openaiclient import OpenAIClient
+                from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-                kwargs: dict[str, Any] = {"seed": 42}
-                if base_url:
-                    kwargs["base_url"] = base_url
-                if api_key:
-                    kwargs["api_key"] = api_key
-                self.client = OpenAIClient(model_name=model, **kwargs)
+                if base_url and api_key:
+                    # Explicit configuration
+                    self.client = IntelligentLLMClient(
+                        model_name=model,
+                        base_url=base_url,
+                        api_key=api_key,
+                        seed=42,
+                    )
+                elif base_url:
+                    # Only base_url provided
+                    self.client = IntelligentLLMClient(
+                        model_name=model,
+                        base_url=base_url,
+                        api_key="empty",  # pragma: allowlist secret
+                        seed=42,
+                    )
+                else:
+                    # Auto-detection mode
+                    self.client = IntelligentLLMClient.create_auto(model_name=model)
             except Exception as exc:  # pragma: no cover - runtime check
-                raise RuntimeError(f"无法初始化 OpenAIClient: {exc}") from exc
+                raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
 
     def _setup_finetune_backend(self) -> None:
         """设置微调模型 backend"""
@@ -681,11 +694,11 @@ class ResponseGenerator:
             else:
                 model_to_use = str(merged_path)
 
-        # 设置 OpenAI 客户端连接到本地 vLLM
+        # 设置 LLM 客户端连接到本地 vLLM
         try:
-            from sage.libs.integrations.openaiclient import OpenAIClient
+            from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-            self.client = OpenAIClient(
+            self.client = IntelligentLLMClient(
                 model_name=model_to_use or str(merged_path),
                 base_url=f"http://localhost:{port}/v1",
                 api_key="EMPTY",  # pragma: allowlist secret

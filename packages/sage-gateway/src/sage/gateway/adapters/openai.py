@@ -398,7 +398,8 @@ class OpenAIAdapter:
     async def _fallback_direct_llm(self, request: ChatCompletionRequest, user_input: str) -> str:
         """降级方案：直接调用 LLM（无 RAG）"""
         import os
-        from sage.libs.integrations.openaiclient import OpenAIClient
+
+        from sage.common.components.sage_llm.client import IntelligentLLMClient
 
         model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
         base_url = os.getenv(
@@ -414,7 +415,7 @@ class OpenAIAdapter:
         if not api_key:
             return "[配置错误] 请设置 DASHSCOPE_API_KEY 环境变量"
 
-        client = OpenAIClient(
+        client = IntelligentLLMClient(
             model_name=model_name,
             base_url=base_url,
             api_key=api_key,

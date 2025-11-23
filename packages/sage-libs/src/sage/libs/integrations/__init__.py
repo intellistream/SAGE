@@ -3,7 +3,12 @@ Third-party integrations for SAGE
 
 This module provides integration with external services and libraries:
 - Vector databases (Chroma, Milvus)
-- LLM clients (OpenAI, HuggingFace)
+- LLM clients (HuggingFace, OpenAI)
+
+Note:
+    OpenAIClient has been migrated to sage.common.components.sage_llm.IntelligentLLMClient (L1).
+    Please update imports:
+        from sage.common.components.sage_llm.client import IntelligentLLMClient
 """
 
 # Vector Database Backends
@@ -14,7 +19,6 @@ from sage.libs.integrations.chroma_adapter import ChromaVectorStoreAdapter
 from sage.libs.integrations.huggingface import HFClient
 from sage.libs.integrations.milvus import MilvusBackend, MilvusUtils
 from sage.libs.integrations.openai import OpenAIClient as OpenAIClientFromOpenai
-from sage.libs.integrations.openaiclient import OpenAIClient
 
 __all__ = [
     # Vector DB
@@ -25,6 +29,5 @@ __all__ = [
     "MilvusUtils",
     # LLM Clients
     "HFClient",
-    "OpenAIClient",
     "OpenAIClientFromOpenai",
 ]

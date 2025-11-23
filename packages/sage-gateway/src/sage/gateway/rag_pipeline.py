@@ -149,59 +149,24 @@ class RAGChatMap(MapFunction):
             logger.error(f"Failed to initialize RAG: {e}", exc_info=True)
             self._db = None
             self._embedder = None
+            self._llm_client = None  # Lazy-initialized LLM client
 
-    def _detect_local_vllm(self) -> tuple[str | None, str | None]:
-        """检测本地 vLLM 服务是否可用
+    def _get_llm_client(self):
+        """获取智能 LLM 客户端（延迟初始化，带缓存）
 
-        检测端口优先级：8001（推荐）> 8000
-        - 8001: vLLM 推荐端口（避免与 Gateway 8000 冲突）
-        - 8000: vLLM 默认端口（备选）
+        使用 sage-common (L1) 的 IntelligentLLMClient，自动检测并选择最佳服务：
+        1. 用户配置的端点（SAGE_CHAT_BASE_URL）
+        2. 本地 vLLM 服务（端口 8001, 8000）
+        3. 云端 API 降级（阿里云 DashScope）
 
         Returns:
-            (base_url, model_name) 如果服务可用，否则 (None, None)
+            IntelligentLLMClient 实例
         """
-        import os
+        if self._llm_client is None:
+            from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-        # 允许用户强制使用云端 API（跳过检测）
-        if os.getenv("SAGE_FORCE_CLOUD_API", "").lower() in ("true", "1", "yes"):
-            logger.info("环境变量 SAGE_FORCE_CLOUD_API 已设置，跳过本地服务检测")
-            return None, None
-
-        # 尝试导入检测工具
-        try:
-            from sage.tools.cli.utils.llm_detection import detect_vllm
-        except ImportError:
-            try:
-                from sage.cli.utils.llm_detection import detect_vllm
-            except ImportError:
-                logger.debug("LLM detection utils not available, skipping local service detection")
-                return None, None
-
-        # 检测本地 vLLM 服务
-        # 优先检测 8001（推荐端口），然后检测 8000（默认端口）
-        try:
-            vllm_info = detect_vllm(
-                base_urls=[
-                    "http://localhost:8001",  # 推荐端口（避免与 Gateway 冲突）
-                    "http://127.0.0.1:8001",
-                    "http://localhost:8000",  # 默认端口（备选）
-                    "http://127.0.0.1:8000",
-                ],
-                auth_token=None,
-            )
-
-            if vllm_info and vllm_info.models:
-                logger.info(
-                    f"检测到本地 vLLM 服务: {vllm_info.base_url}, 模型: {vllm_info.default_model}"
-                )
-                return vllm_info.base_url, vllm_info.default_model
-            else:
-                logger.debug("未检测到本地 vLLM 服务（检查端口: 8001, 8000）")
-                return None, None
-
-        except Exception as e:
-            logger.debug(f"检测本地 vLLM 服务失败: {e}")
-            return None, None
+            self._llm_client = IntelligentLLMClient.create_auto()
+        return self._llm_client
 
     def _detect_workflow_intent(self, user_input: str) -> bool:
         """Detect if user wants to create a workflow.
@@ -363,39 +328,11 @@ class RAGChatMap(MapFunction):
                 {"role": "user", "content": user_input.strip()},
             ]
 
-            # 3. Generate response using intelligent LLM selection
-            # 优先级：本地 vLLM (localhost:8000) > 云端 API
-            import os
-            from sage.libs.integrations.openaiclient import OpenAIClient
-
-            # 尝试检测本地 vLLM 服务
-            local_vllm_url, local_model = self._detect_local_vllm()
-
-            if local_vllm_url:
-                # 本地 vLLM 服务可用
-                model_name = local_model
-                base_url = local_vllm_url
-                api_key = ""  # 本地服务不需要真实 API key
-                logger.info(f"✅ Using local vLLM: {model_name} @ {base_url}")
-            else:
-                # 降级到云端 API
-                model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
-                base_url = os.getenv(
-                    "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-                )
-                api_key = os.getenv("SAGE_CHAT_API_KEY", "")
-                if not api_key:
-                    logger.warning("SAGE_CHAT_API_KEY not set; cloud chat requests may fail.")
-                logger.info(f"☁️  Using cloud API: {model_name} @ {base_url}")
-
+            # 3. Generate response using intelligent LLM client (L1)
+            # 自动检测并使用最佳可用服务（本地 vLLM 或云端 API）
             try:
-                client = OpenAIClient(
-                    model_name=model_name,
-                    base_url=base_url,
-                    api_key=api_key,
-                    seed=42,
-                )
-                response = client.generate(messages, temperature=0.2, stream=False)
+                client = self._get_llm_client()
+                response = client.chat(messages, temperature=0.2, stream=False)
 
             except Exception as e:
                 logger.error(f"LLM generation error: {e}", exc_info=True)
@@ -423,36 +360,8 @@ class RAGChatMap(MapFunction):
             user_input: Current user question
             memory_context: Historical conversation context from sage-memory
         """
-        import os
-        from sage.libs.integrations.openaiclient import OpenAIClient
-
-        # 尝试检测本地 vLLM 服务
-        local_vllm_url, local_model = self._detect_local_vllm()
-
-        if local_vllm_url:
-            # 本地 vLLM 服务可用
-            model_name = local_model
-            base_url = local_vllm_url
-            api_key = ""
-            logger.info(f"✅ Fallback using local vLLM: {model_name} @ {base_url}")
-        else:
-            # 降级到云端 API
-            model_name = os.getenv("SAGE_CHAT_MODEL", "qwen-max")
-            base_url = os.getenv(
-                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            )
-            api_key = os.getenv("SAGE_CHAT_API_KEY", "")
-            if not api_key:
-                logger.warning("SAGE_CHAT_API_KEY not set; fallback cloud chat may fail.")
-            logger.info(f"☁️  Fallback using cloud API: {model_name} @ {base_url}")
-
         try:
-            client = OpenAIClient(
-                model_name=model_name,
-                base_url=base_url,
-                api_key=api_key,
-                seed=42,
-            )
+            client = self._get_llm_client()
 
             # Build messages with memory context
             messages = []
@@ -460,7 +369,7 @@ class RAGChatMap(MapFunction):
                 messages.append({"role": "system", "content": f"对话历史:\n{memory_context}"})
             messages.append({"role": "user", "content": user_input})
 
-            return client.generate(messages, temperature=0.7, stream=False)
+            return client.chat(messages, temperature=0.7, stream=False)
 
         except Exception as e:
             logger.error(f"Fallback LLM error: {e}", exc_info=True)

@@ -8,6 +8,7 @@ allowing SAGE to leverage high-performance LLM serving capabilities.
 Services:
     - VLLMService: Simple single-instance vLLM service
     - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
+    - IntelligentLLMClient: Auto-detecting client with cloud fallback (NEW)
 
 Architecture:
     - Designed to be used by L2 (Platform) and higher layers
@@ -15,6 +16,7 @@ Architecture:
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
 """
 
+from .client import IntelligentLLMClient
 from .service import VLLMService, VLLMServiceConfig
 
 # Optional: Advanced Control Plane service
@@ -29,7 +31,8 @@ try:
         "VLLMServiceConfig",
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
+        "IntelligentLLMClient",
     ]
 except ImportError:
     # Control Plane service not available
-    __all__ = ["VLLMService", "VLLMServiceConfig"]
+    __all__ = ["VLLMService", "VLLMServiceConfig", "IntelligentLLMClient"]

@@ -109,9 +109,10 @@ async def test_gateway_rag():
     print("\n[步骤 5] 测试完整 RAG Pipeline...")
 
     try:
-        from sage.libs.integrations.openaiclient import OpenAIClient
         import os
         import textwrap
+
+        from sage.common.components.sage_llm.client import IntelligentLLMClient
 
         # 提取上下文
         contexts = []
@@ -154,7 +155,7 @@ async def test_gateway_rag():
             print("  ⚠️  跳过 LLM 调用（缺少 API Key）")
             print("  提示: 设置 DASHSCOPE_API_KEY 环境变量")
         else:
-            client = OpenAIClient(
+            client = IntelligentLLMClient(
                 model_name="qwen-max",
                 base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
                 api_key=api_key,

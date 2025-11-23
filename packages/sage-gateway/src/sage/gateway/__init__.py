@@ -13,4 +13,6 @@ Dependencies: sage-kernel (L3), sage-libs (L3), sage-common (L1)
 
 from sage.gateway._version import __version__
 
+__layer__ = "L6"
+
 __all__ = ["__version__"]
