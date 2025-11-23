@@ -538,12 +538,17 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                     log_pip_package_info "$pkg_name" "INSTALL" || true
                 done
             else
-                log_warn "部分外部依赖安装失败，但继续..." "INSTALL"
-                echo -e "${YELLOW}⚠️  部分外部依赖安装失败，但继续...${NC}"
+                log_error "外部依赖安装失败" "INSTALL"
+                echo -e "${RED}❌ 外部依赖安装失败${NC}"
 
-                # 尝试提取安装失败的包
-                local failed_packages=$(grep -i "error\|failed" "$SAGE_INSTALL_LOG" | tail -5 || echo "无法确定失败包")
-                log_warn "失败详情:\n$failed_packages" "INSTALL"
+                # 提取安装失败的包
+                local failed_packages=$(grep -i "error\|failed" "$SAGE_INSTALL_LOG" | tail -10 || echo "无法确定失败包")
+                log_error "失败详情:\n$failed_packages" "INSTALL"
+                echo -e "${RED}失败详情（查看日志）:${NC}"
+                echo "$failed_packages" | tail -5
+                
+                echo -e "${YELLOW}⚠️  将在下一步尝试安装关键依赖...${NC}"
+                # 不立即返回错误,给关键依赖安装一个机会
             fi
         else
             log_warn "未能提取外部依赖或依赖文件为空" "INSTALL"
@@ -557,6 +562,47 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     fi
 
     log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
+    echo ""
+
+    # 4c. 确保关键依赖被安装 (numpy, typer, rich 等)
+    echo -e "${DIM}  4c. 验证和安装关键依赖...${NC}"
+    log_info "确保关键依赖被安装" "INSTALL"
+    
+    # 关键依赖列表
+    local critical_deps="numpy>=1.26.0 typer>=0.9.0 rich>=13.0.0"
+    local missing_deps=""
+    
+    # 检查每个关键依赖
+    for dep_spec in $critical_deps; do
+        dep_name=$(echo "$dep_spec" | sed 's/[<>=].*//')
+        dep_module=$(echo "$dep_name" | tr '-' '_')
+        
+        if ! $PYTHON_CMD -c "import $dep_module" 2>/dev/null; then
+            missing_deps="$missing_deps $dep_spec"
+            echo -e "${DIM}     缺少: $dep_name${NC}"
+            log_warn "关键依赖缺失: $dep_name" "INSTALL"
+        fi
+    done
+    
+    # 如果有缺失的依赖,立即安装
+    if [ -n "$missing_deps" ]; then
+        echo -e "${DIM}     安装缺失的关键依赖...${NC}"
+        log_info "安装缺失的关键依赖:$missing_deps" "INSTALL"
+        log_debug "PIP命令: $PIP_CMD install $missing_deps $pip_args" "INSTALL"
+        
+        if log_command "INSTALL" "Deps" "$PIP_CMD install $missing_deps $pip_args"; then
+            log_info "关键依赖安装成功" "INSTALL"
+            echo -e "${CHECK} 关键依赖安装完成"
+        else
+            log_error "关键依赖安装失败" "INSTALL"
+            echo -e "${RED}❌ 关键依赖安装失败${NC}"
+            echo -e "${RED}缺失的依赖:$missing_deps${NC}"
+            return 1
+        fi
+    else
+        log_info "所有关键依赖已存在" "INSTALL"
+        echo -e "${CHECK} 关键依赖已存在"
+    fi
     echo ""
     echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功！"
     echo ""
