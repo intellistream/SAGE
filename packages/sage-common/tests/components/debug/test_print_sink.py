@@ -3,7 +3,6 @@
 import logging
 
 import pytest
-
 from sage.common.components.debug.print_sink import PrintSink
 
 

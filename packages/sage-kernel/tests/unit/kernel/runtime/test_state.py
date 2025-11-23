@@ -8,7 +8,6 @@ and object attribute filtering.
 from unittest.mock import patch
 
 import pytest
-
 from sage.kernel.utils.persistence.state import (
     _BLACKLIST,
     _filter_attrs,

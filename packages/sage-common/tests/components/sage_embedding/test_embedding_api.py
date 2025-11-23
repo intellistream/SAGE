@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-
 from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.common.components.sage_embedding.embedding_model import (
     apply_embedding_model as apply_model_direct,

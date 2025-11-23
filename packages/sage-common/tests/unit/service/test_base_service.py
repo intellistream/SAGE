@@ -14,7 +14,6 @@ import logging
 from unittest.mock import MagicMock
 
 import pytest
-
 from sage.common.service.base_service import BaseService
 
 

@@ -5,7 +5,6 @@ Comprehensive test coverage for window-based aggregation functionality.
 """
 
 import pytest
-
 from sage.middleware.components.sage_tsdb.python.algorithms.window_aggregator import (
     WindowAggregator,
     WindowConfig,

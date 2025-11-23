@@ -8,7 +8,6 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.kernel.fault_tolerance.impl.restart_recovery import RestartBasedRecovery
 from sage.kernel.fault_tolerance.impl.restart_strategy import (
     ExponentialBackoffStrategy,

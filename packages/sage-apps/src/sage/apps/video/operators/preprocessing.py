@@ -6,7 +6,6 @@ from typing import Any
 
 import numpy as np
 from PIL import Image
-
 from sage.common.core import MapFunction
 
 

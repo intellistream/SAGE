@@ -20,8 +20,8 @@ try:  # pragma: no cover - import fallback for direct execution
 except ImportError:  # pragma: no cover
     if __package__ in (None, ""):
         sys.path.insert(0, str(THIS_DIR))
+        from helpers import CLIRunSummary  # type: ignore[no-redef]
         from helpers import (
-            CLIRunSummary,  # type: ignore[no-redef]
             CLITestCase,
             run_cases,
         )

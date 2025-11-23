@@ -4,7 +4,6 @@ import time
 from typing import Any
 
 import requests
-
 from sage.kernel.operators import MapOperator
 from sage.middleware.context.model_context import ModelContext
 from sage.middleware.context.search_result import SearchResult

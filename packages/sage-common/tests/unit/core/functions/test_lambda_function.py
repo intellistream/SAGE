@@ -16,7 +16,6 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from sage.common.core.functions.lambda_function import (
     LambdaFilterFunction,
     LambdaFlatMapFunction,

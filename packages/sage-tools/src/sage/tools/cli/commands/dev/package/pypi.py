@@ -8,7 +8,6 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-
 from sage.tools.dev.core.bytecode_compiler import (
     BytecodeCompiler,
     compile_multiple_packages,

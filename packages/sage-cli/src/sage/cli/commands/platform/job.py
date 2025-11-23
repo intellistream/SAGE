@@ -15,9 +15,8 @@ from typing import Any
 
 import typer
 from colorama import Fore, Style, init
-from tabulate import tabulate
-
 from sage.kernel.runtime.jobmanager_client import JobManagerClient
+from tabulate import tabulate
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent.parent

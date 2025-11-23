@@ -5,15 +5,13 @@ SAGE Kernel Operators - 基础算子 (向后兼容层)
 请使用: from sage.common.core.functions import MapFunction, ...
 """
 
-from sage.common.core.functions import (
-    BaseFunction,  # 保持原名称
-    FilterFunction,
-    FlatMapFunction,
-    MapFunction,
-)
+from sage.common.core.functions import BaseFunction  # 保持原名称
 from sage.common.core.functions import BaseFunction as BaseOperator
+from sage.common.core.functions import FilterFunction
 from sage.common.core.functions import FilterFunction as FilterOperator
+from sage.common.core.functions import FlatMapFunction
 from sage.common.core.functions import FlatMapFunction as FlatMapOperator
+from sage.common.core.functions import MapFunction
 from sage.common.core.functions import MapFunction as MapOperator
 
 __all__ = [

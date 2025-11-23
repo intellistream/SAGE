@@ -139,7 +139,6 @@ class TestHuggingFaceIntegration:
     def test_huggingface_generate(self, mock_model_from_pretrained, mock_tokenizer_from_pretrained):
         """Test HuggingFace generation"""
         import torch
-
         from sage.libs.integrations.huggingface import HFClient
 
         mock_tokenizer_instance = MagicMock()

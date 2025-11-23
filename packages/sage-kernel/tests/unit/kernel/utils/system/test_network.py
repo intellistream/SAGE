@@ -15,7 +15,6 @@ import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-
 from sage.common.utils.system.network import (
     _find_processes_with_fuser,
     _find_processes_with_lsof,

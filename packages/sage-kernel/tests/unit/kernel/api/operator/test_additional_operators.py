@@ -7,7 +7,6 @@ Tests SourceOperator, SinkOperator, KeyByOperator, and JoinOperator.
 from unittest.mock import MagicMock
 
 import pytest
-
 from sage.common.core.functions import (
     BaseFunction,
     BaseJoinFunction,

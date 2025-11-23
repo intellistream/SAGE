@@ -16,7 +16,6 @@ import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
 from sage.studio.services.chat_pipeline_recommender import generate_pipeline_recommendation
 
 

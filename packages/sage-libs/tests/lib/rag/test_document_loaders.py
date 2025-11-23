@@ -6,7 +6,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from sage.libs.rag.document_loaders import LoaderFactory, MarkdownLoader, TextLoader
 
 

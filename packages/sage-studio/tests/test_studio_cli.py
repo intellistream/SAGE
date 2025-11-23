@@ -5,10 +5,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from typer.testing import CliRunner
 
 # Import from sage-cli (which hosts the studio command)
 from sage.cli.main import app as sage_app
+from typer.testing import CliRunner
 
 # Test runner
 runner = CliRunner()

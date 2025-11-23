@@ -1,7 +1,6 @@
 """Focused tests for the MockEmbedding wrapper."""
 
 import pytest
-
 from sage.common.components.sage_embedding.wrappers.mock_wrapper import MockEmbedding
 
 

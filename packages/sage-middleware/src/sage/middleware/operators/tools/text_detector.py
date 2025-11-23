@@ -2,7 +2,6 @@ import os
 import time
 
 import torch
-
 from sage.libs.foundation.tools.tool import BaseTool
 
 

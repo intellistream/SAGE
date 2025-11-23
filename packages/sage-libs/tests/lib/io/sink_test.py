@@ -1,5 +1,4 @@
 import pytest
-
 from sage.libs.foundation.io.sink import FileSink, MemWriteSink, RetriveSink, TerminalSink
 
 

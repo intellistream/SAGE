@@ -3,7 +3,6 @@
 """
 
 import pytest
-
 from sage.libs.rag.types import (
     RAGDocument,
     RAGQuery,

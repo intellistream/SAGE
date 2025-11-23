@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from sage.benchmark.benchmark_memory.evaluation.core.result_loader import ResultLoader
 
 

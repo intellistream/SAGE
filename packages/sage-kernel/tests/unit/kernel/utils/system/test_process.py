@@ -15,7 +15,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import psutil
 import pytest
-
 from sage.common.utils.system.process import (
     SudoManager,
     check_process_ownership,

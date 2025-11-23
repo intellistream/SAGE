@@ -15,7 +15,6 @@ Tests cover:
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from sage.common.core import BaseFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.runtime.factory.service_factory import ServiceFactory

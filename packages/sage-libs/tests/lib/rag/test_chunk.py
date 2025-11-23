@@ -3,7 +3,6 @@
 """
 
 import pytest
-
 from sage.libs.rag.chunk import CharacterSplitter
 
 

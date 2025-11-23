@@ -9,7 +9,6 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-
 from sage.common.components.sage_embedding import (
     check_model_availability,
     get_embedding_model,

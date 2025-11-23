@@ -258,6 +258,20 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             if log_command "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
                 log_info "外部依赖安装成功" "INSTALL"
                 echo -e "${CHECK} 外部依赖安装完成"
+
+                # 强制升级关键包到正确版本（解决依赖解析问题）
+                echo -e "${DIM}     验证并升级关键包版本...${NC}"
+                log_info "强制升级 transformers 和 peft 到兼容版本" "INSTALL"
+
+                # peft 0.18.0 需要 transformers 4.54.0+
+                # 强制安装确保版本正确，避免 pip 依赖解析选择旧版本
+                if log_command "INSTALL" "Deps" "$PIP_CMD install --upgrade 'transformers>=4.54.0,<5.0.0' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
+                    log_info "关键包版本升级成功" "INSTALL"
+                    echo -e "${CHECK} 关键包版本验证完成"
+                else
+                    log_warn "关键包升级失败，继续安装..." "INSTALL"
+                    echo -e "${YELLOW}⚠️  关键包升级失败，可能导致运行时错误${NC}"
+                fi
             else
                 log_error "外部依赖安装失败" "INSTALL"
                 echo -e "${RED}❌ 外部依赖安装失败${NC}"

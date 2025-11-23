@@ -4,7 +4,6 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-
 from sage.libs.foundation.tools.tool import BaseTool
 
 

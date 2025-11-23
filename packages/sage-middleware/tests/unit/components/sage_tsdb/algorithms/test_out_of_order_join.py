@@ -5,7 +5,6 @@ Comprehensive test coverage for out-of-order stream join functionality.
 """
 
 import pytest
-
 from sage.middleware.components.sage_tsdb.python.algorithms.out_of_order_join import (
     JoinConfig,
     OutOfOrderStreamJoin,

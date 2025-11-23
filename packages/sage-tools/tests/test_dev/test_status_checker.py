@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-
 from sage.tools.dev.tools.project_status_checker import ProjectStatusChecker
 
 

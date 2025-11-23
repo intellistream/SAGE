@@ -4,10 +4,9 @@
 from pathlib import Path
 
 import yaml
-from typer.testing import CliRunner
-
 from sage.cli.commands.platform.config import app as config_app
 from sage.cli.utils.llm_detection import LLMServiceInfo
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

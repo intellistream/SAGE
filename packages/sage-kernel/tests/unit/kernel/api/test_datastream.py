@@ -13,7 +13,6 @@ Tests cover:
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from sage.common.core import BaseFunction
 from sage.kernel.api.connected_streams import ConnectedStreams
 from sage.kernel.api.datastream import DataStream

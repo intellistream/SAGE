@@ -11,7 +11,6 @@ This example demonstrates out-of-order stream join:
 from datetime import datetime
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import OutOfOrderStreamJoin
 from sage.middleware.components.sage_tsdb.python.sage_tsdb import TimeSeriesData
 

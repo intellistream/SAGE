@@ -11,7 +11,6 @@ This example demonstrates using SageTSDB through the service interface:
 from datetime import datetime
 
 import numpy as np
-
 from sage.middleware.components.sage_tsdb import SageTSDBService, SageTSDBServiceConfig
 
 

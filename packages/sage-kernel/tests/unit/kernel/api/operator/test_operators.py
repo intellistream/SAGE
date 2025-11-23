@@ -8,7 +8,6 @@ FlatMapOperator, and CoMapOperator.
 from unittest.mock import MagicMock
 
 import pytest
-
 from sage.common.core.functions import (
     BaseCoMapFunction,
     FilterFunction,

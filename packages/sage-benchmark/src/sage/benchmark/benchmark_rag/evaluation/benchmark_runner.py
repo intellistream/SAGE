@@ -18,7 +18,6 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 from dotenv import load_dotenv
-
 from sage.common.config.output_paths import get_output_file
 from sage.common.core import BatchFunction, MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger

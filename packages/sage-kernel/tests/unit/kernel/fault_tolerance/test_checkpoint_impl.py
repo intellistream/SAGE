@@ -17,7 +17,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from sage.common.core import CheckpointError
 from sage.kernel.fault_tolerance.impl.checkpoint_impl import CheckpointManagerImpl
 

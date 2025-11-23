@@ -5,7 +5,6 @@ LifecycleManagerImpl 单元测试
 from unittest.mock import Mock
 
 import pytest
-
 from sage.kernel.fault_tolerance.impl.lifecycle_impl import LifecycleManagerImpl
 
 

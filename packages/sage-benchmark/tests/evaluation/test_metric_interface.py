@@ -3,7 +3,6 @@ Tests for BaseMetric interface
 """
 
 import pytest
-
 from sage.benchmark.benchmark_memory.evaluation.core.metric_interface import BaseMetric
 
 

@@ -9,7 +9,6 @@ Tests for sage.common.utils.serialization.exceptions module
 """
 
 import pytest
-
 from sage.common.utils.serialization.exceptions import SerializationError
 
 

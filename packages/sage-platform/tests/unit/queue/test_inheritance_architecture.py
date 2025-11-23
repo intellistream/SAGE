@@ -5,7 +5,6 @@
 """
 
 import pytest
-
 from sage.platform.queue import (
     BaseQueueDescriptor,
     PythonQueueDescriptor,

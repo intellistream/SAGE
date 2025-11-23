@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from typing import Any
 
 import torch
-
 from sage.common.core import FlatMapFunction, MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 

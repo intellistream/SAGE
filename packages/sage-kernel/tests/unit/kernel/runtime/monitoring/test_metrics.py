@@ -5,7 +5,6 @@ Tests all metrics data classes and their methods.
 """
 
 import pytest
-
 from sage.kernel.runtime.monitoring.metrics import (
     MethodMetrics,
     PacketMetrics,

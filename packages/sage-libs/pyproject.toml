@@ -102,7 +102,7 @@ llm = [
 # Finetuning dependencies
 finetune = [
     # LoRA/PEFT 支持
-    "peft>=0.7.0",
+    "peft>=0.18.0,<1.0.0",  # 0.18.0+ 需要 transformers>=4.54.0
 
     # 训练加速
     "accelerate>=0.25.0",

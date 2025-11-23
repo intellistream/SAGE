@@ -6,7 +6,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from sage.tools.dev.maintenance import MetadataFixer
 
 

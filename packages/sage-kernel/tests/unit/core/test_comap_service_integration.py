@@ -7,7 +7,6 @@ CoMap函数中服务调用集成测试
 import time
 
 import pytest
-
 from sage.common.core.functions import BaseCoMapFunction, SinkFunction
 from sage.kernel.api.local_environment import LocalEnvironment
 
