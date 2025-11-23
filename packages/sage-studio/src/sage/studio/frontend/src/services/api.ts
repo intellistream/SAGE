@@ -516,6 +516,42 @@ export async function convertChatSessionToPipeline(sessionId: string): Promise<P
     return response.data
 }
 
+// ==================== Memory Management APIs ====================
+
+/**
+ * 获取记忆配置
+ */
+export async function getMemoryConfig(): Promise<{
+    backend: string
+    max_dialogs: number
+    config: Record<string, any>
+    available_backends: string[]
+}> {
+    const response = await apiClient.get('/chat/memory/config')
+    return response.data
+}
+
+/**
+ * 获取记忆统计信息
+ */
+export async function getMemoryStats(): Promise<{
+    total_sessions: number
+    sessions: Record<
+        string,
+        {
+            backend: string
+            dialog_count?: number
+            max_dialogs?: number
+            usage_percent?: number
+            collection_name?: string
+            has_index?: boolean
+        }
+    >
+}> {
+    const response = await apiClient.get('/chat/memory/stats')
+    return response.data
+}
+
 // ==================== 错误处理 ====================
 
 // 添加响应拦截器处理错误

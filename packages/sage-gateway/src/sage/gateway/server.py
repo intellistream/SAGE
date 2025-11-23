@@ -62,6 +62,16 @@ class SessionTitlePayload(BaseModel):
     title: str
 
 
+class MemoryConfigPayload(BaseModel):
+    """记忆配置"""
+
+    backend: str  # short_term, vdb, kv, graph
+    max_dialogs: int | None = None  # 短期记忆窗口大小
+    embedding_model: str | None = None  # VDB 嵌入模型
+    embedding_dim: int | None = None  # VDB 向量维度
+    index_type: str | None = None  # KV 索引类型
+
+
 @app.get("/")
 async def root():
     """根路径"""
@@ -179,6 +189,59 @@ async def cleanup_sessions(max_age_minutes: int = 30):
     return {
         "status": "cleaned",
         "removed_sessions": count,
+    }
+
+
+# ==================== Memory Configuration APIs ====================
+
+
+@app.get("/memory/config")
+async def get_memory_config():
+    """获取当前记忆配置
+
+    Returns:
+        当前的记忆后端类型和配置
+    """
+    return {
+        "backend": session_manager._memory_backend,
+        "max_dialogs": session_manager._max_memory_dialogs,
+        "config": session_manager._memory_config,
+        "available_backends": ["short_term", "vdb", "kv", "graph"],
+    }
+
+
+@app.get("/memory/stats")
+async def get_memory_stats():
+    """获取记忆统计信息
+
+    Returns:
+        各会话的记忆使用情况
+    """
+    stats = {}
+    for session_id, memory_service in session_manager._memory_services.items():
+        if session_manager._memory_backend == "short_term":
+            # 短期记忆统计
+            stats[session_id] = {
+                "backend": "short_term",
+                "dialog_count": len(memory_service.dialog_queue),
+                "max_dialogs": memory_service.max_dialog,
+                "usage_percent": (
+                    len(memory_service.dialog_queue) / memory_service.max_dialog * 100
+                    if memory_service.max_dialog > 0
+                    else 0
+                ),
+            }
+        else:
+            # neuromem collection 统计
+            stats[session_id] = {
+                "backend": session_manager._memory_backend,
+                "collection_name": getattr(memory_service, "name", "unknown"),
+                "has_index": hasattr(memory_service, "_gateway_index_name"),
+            }
+
+    return {
+        "total_sessions": len(stats),
+        "sessions": stats,
     }
 
 

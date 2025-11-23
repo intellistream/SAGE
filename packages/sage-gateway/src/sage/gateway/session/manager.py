@@ -25,6 +25,9 @@ from .storage import FileSessionStore, SessionStorage
 from sage.middleware.components.sage_mem.services.short_term_memory_service import (
     ShortTermMemoryService,
 )
+from sage.middleware.components.sage_mem.services.memory_service_factory import (
+    MemoryServiceFactory,
+)
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.middleware.components.sage_mem.neuromem.memory_collection import (
     BaseMemoryCollection,
@@ -219,7 +222,10 @@ class SessionManager:
         - graph: 图记忆（关系推理）
         """
         if self._memory_backend == "short_term":
-            return ShortTermMemoryService(max_dialog=self._max_memory_dialogs)
+            # 使用 MemoryServiceFactory 创建短期记忆服务
+            return MemoryServiceFactory.create_instance(
+                "short_term_memory", max_dialog=self._max_memory_dialogs
+            )
 
         elif self._memory_backend == "vdb":
             # 向量数据库记忆
