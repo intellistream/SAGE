@@ -540,7 +540,7 @@ class StudioManager:
         server_code = f'''#!/usr/bin/env python3
 """
 SAGE Studio SPA 服务器
-支持 Angular 单页应用的路由重定向
+支持 React 单页应用的路由重定向
 """
 
 import http.server

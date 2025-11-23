@@ -236,10 +236,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite 开发服务器默认端口
         "http://localhost:4173",  # Vite preview 服务器默认端口
-        "http://localhost:4200",  # Studio 前端端口
         "http://0.0.0.0:5173",
         "http://0.0.0.0:4173",
-        "http://0.0.0.0:4200",
     ],
     allow_credentials=True,
     allow_methods=["*"],

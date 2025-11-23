@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       port:
-        description: 'Studio port (default: 4200)'
+        description: 'Studio port (default: 5173)'
         required: false
-        default: '4200'
+        default: '5173'
   push:
     branches:
       - main
@@ -105,8 +105,8 @@ jobs:
           # Production mode for better performance and stability
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
-          # 3. Builds and serves optimized frontend on port 4200
-          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '4200' }} > ~/sage-studio-deploy.log 2>&1 &
+          # 3. Builds and serves optimized frontend on port 5173 (Vite default)
+          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} > ~/sage-studio-deploy.log 2>&1 &
 
           sleep 15  # Production build needs more time
 
@@ -114,35 +114,170 @@ jobs:
 
       - name: Health check
         run: |
-          echo "🔍 Checking service health..."
+          PORT="${{ github.event.inputs.port || '4200' }}"
+          echo "🔍 检查服务健康状态..."
 
-          # Check Studio
-          if curl -f http://localhost:${{ github.event.inputs.port || '4200' }} 2>/dev/null; then
-            echo "✅ Studio is healthy on port ${{ github.event.inputs.port || '4200' }}"
+          # 检查服务是否启动
+          if curl -f http://localhost:${PORT} 2>/dev/null; then
+            echo "✅ Studio 服务健康，端口 ${PORT} 可访问"
           else
-            echo "⚠️  Studio health check failed, checking logs..."
-            tail -50 ~/sage-studio-deploy.log || echo "No logs yet"
+            echo "⚠️  Studio 健康检查失败，查看日志..."
+            tail -50 ~/sage-studio-deploy.log || echo "暂无日志"
           fi
+
+          # 检查端口监听状态
+          echo ""
+          echo "📡 检查端口监听状态..."
+          if command -v netstat &> /dev/null; then
+            netstat -tlnp 2>/dev/null | grep ":${PORT}" || echo "⚠️ 端口 ${PORT} 未在监听"
+          elif command -v ss &> /dev/null; then
+            ss -tlnp 2>/dev/null | grep ":${PORT}" || echo "⚠️ 端口 ${PORT} 未在监听"
+          fi
+
+          # 检查进程状态
+          echo ""
+          echo "🔧 检查 SAGE Studio 进程..."
+          ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
+
+      - name: Network accessibility check
+        continue-on-error: true
+        run: |
+          PORT="${{ github.event.inputs.port || '4200' }}"
+          SERVER_IP=$(hostname -I | awk '{print $1}')
+
+          echo "🌐 测试网络可达性..."
+          echo ""
+          echo "测试从本机访问："
+
+          # 测试 localhost
+          if curl -s -o /dev/null -w "%{http_code}" http://localhost:${PORT} | grep -q "200"; then
+            echo "✅ localhost:${PORT} 可访问"
+          else
+            echo "❌ localhost:${PORT} 不可访问"
+          fi
+
+          # 测试内网IP
+          if curl -s -o /dev/null -w "%{http_code}" http://${SERVER_IP}:${PORT} | grep -q "200"; then
+            echo "✅ ${SERVER_IP}:${PORT} 可访问"
+          else
+            echo "❌ ${SERVER_IP}:${PORT} 不可访问"
+          fi
+
+          # 检查防火墙规则
+          echo ""
+          echo "🔥 防火墙检查："
+          if command -v ufw &> /dev/null; then
+            echo "UFW 状态："
+            sudo ufw status | grep -E "Status|${PORT}" || echo "端口 ${PORT} 未在 UFW 规则中"
+          fi
+
+          if command -v iptables &> /dev/null; then
+            echo ""
+            echo "IPTables 入站规则（端口 ${PORT}）："
+            sudo iptables -L INPUT -n -v 2>/dev/null | grep -E "dpt:${PORT}|ACCEPT.*all" | head -5 || echo "未找到相关规则"
+          fi
+
+          # 输出网络建议
+          echo ""
+          echo "📝 校园网访问建议："
+          echo "1. ✅ 确认服务已启动并监听 0.0.0.0:${PORT}"
+          echo "2. 🔧 如果无法访问，请检查："
+          echo "   - 服务器防火墙配置 (ufw/iptables)"
+          echo "   - 校园网防火墙/安全组规则"
+          echo "   - 网络隔离策略（某些校园网可能有VLAN隔离）"
+          echo "3. 💡 建议联系网络管理员开放端口 ${PORT}"
+          echo "4. 🔐 或配置校园网VPN以访问内网服务"
 
       - name: Deployment summary
         run: |
+          PORT="${{ github.event.inputs.port || '4200' }}"
+
+          # 获取服务器网络信息
           SERVER_IP=$(hostname -I | awk '{print $1}')
-          PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "Check manually")
-          echo "## 🎉 SAGE Studio Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
+          HOSTNAME=$(hostname -f)
+          PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "N/A")
+
+          # 检测防火墙状态
+          FIREWALL_STATUS="未知"
+          if command -v ufw &> /dev/null; then
+            if sudo ufw status | grep -q "Status: active"; then
+              if sudo ufw status | grep -q "$PORT"; then
+                FIREWALL_STATUS="✅ UFW: 端口 $PORT 已开放"
+              else
+                FIREWALL_STATUS="⚠️ UFW: 端口 $PORT 可能未开放"
+              fi
+            else
+              FIREWALL_STATUS="✅ UFW 未启用"
+            fi
+          fi
+
+          # 保存部署信息到文件（持久化）
+          DEPLOY_INFO_FILE="$HOME/sage-studio-deployment-info.txt"
+          cat > "$DEPLOY_INFO_FILE" << EOF
+          ======================================
+          SAGE Studio 部署信息
+          ======================================
+          部署时间: $(date '+%Y-%m-%d %H:%M:%S %Z')
+
+          访问地址:
+          - 内网IP: http://${SERVER_IP}:${PORT}
+          - 主机名: http://${HOSTNAME}:${PORT}
+          - 公网IP: http://${PUBLIC_IP}:${PORT} (如果可用)
+
+          服务状态:
+          - 端口: ${PORT}
+          - 监听: 0.0.0.0 (所有网络接口)
+          - 防火墙: ${FIREWALL_STATUS}
+
+          校园网访问建议:
+          1. 如果在校园网内，使用内网IP: http://${SERVER_IP}:${PORT}
+          2. 如果需要校外访问，需要配置VPN或端口转发
+          3. 请联系网络管理员确认防火墙配置
+
+          日志文件:
+          - 部署日志: ~/sage-studio-deploy.log
+          - 服务日志: 运行 'journalctl -f' 查看
+
+          管理命令:
+          - 查看状态: ps aux | grep "sage studio"
+          - 停止服务: pkill -f "sage studio"
+          - 重启服务: 重新运行此 workflow
+          ======================================
+          EOF
+
+          echo "✅ 部署信息已保存到: $DEPLOY_INFO_FILE"
+          cat "$DEPLOY_INFO_FILE"
+
+          # 输出到 GitHub Actions Summary
+          echo "## 🎉 SAGE Studio 部署成功！" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Server IP**: http://$PUBLIC_IP:${{ github.event.inputs.port || '4200' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Local Network**: http://$SERVER_IP:${{ github.event.inputs.port || '4200' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### 📍 访问地址" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> ⚠️ **Access Note**: Accessible within campus network or via VPN" >> $GITHUB_STEP_SUMMARY
+          echo "| 网络环境 | 访问地址 | 说明 |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏫 校园网内 | \`http://${SERVER_IP}:${PORT}\` | **推荐使用** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🖥️ 主机名 | \`http://${HOSTNAME}:${PORT}\` | 如果DNS配置正确 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 公网访问 | \`http://${PUBLIC_IP}:${PORT}\` | 需要配置防火墙/VPN |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Features:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Visual Pipeline Editor" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ AI Chat with RAG (auto-indexed SAGE documentation)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Workflow Generation" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Interactive Playground" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 服务器信息" >> $GITHUB_STEP_SUMMARY
+          echo "- **内网IP**: ${SERVER_IP}" >> $GITHUB_STEP_SUMMARY
+          echo "- **主机名**: ${HOSTNAME}" >> $GITHUB_STEP_SUMMARY
+          echo "- **监听端口**: ${PORT}" >> $GITHUB_STEP_SUMMARY
+          echo "- **防火墙状态**: ${FIREWALL_STATUS}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Deployment Logs:" >> $GITHUB_STEP_SUMMARY
+          echo "> 💡 **部署信息已保存**: 登录服务器后可查看 \`~/sage-studio-deployment-info.txt\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✨ 功能特性" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ 可视化流水线编辑器" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AI 对话（基于 SAGE 文档的 RAG）" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ 工作流自动生成" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ 交互式调试" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 故障排查" >> $GITHUB_STEP_SUMMARY
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>点击展开最近30行日志</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -30 ~/sage-studio-deploy.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
