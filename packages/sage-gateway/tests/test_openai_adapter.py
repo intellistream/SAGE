@@ -3,6 +3,7 @@ Tests for OpenAI Adapter
 """
 
 import pytest
+from unittest.mock import AsyncMock, patch
 from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdapter
 
 
@@ -11,7 +12,19 @@ def adapter(monkeypatch):
     # 确保测试时清除 API key，使用开发模式
     monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
     monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
-    return OpenAIAdapter()
+    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+
+    # Mock the RAG Pipeline to avoid actual model loading
+    with patch("sage.gateway.adapters.openai.RAGPipelineService"):
+        adapter = OpenAIAdapter()
+
+        # Mock the process method to return a simple response
+        adapter.rag_pipeline.process = AsyncMock(
+            return_value={"answer": "Echo: Hello", "sources": [], "metadata": {}}
+        )
+        adapter._pipeline_started = True
+
+        return adapter
 
 
 @pytest.mark.asyncio

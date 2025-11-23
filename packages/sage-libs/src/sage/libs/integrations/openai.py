@@ -68,11 +68,11 @@ class OpenAIClient:
                 raise ValueError("`messages` must be list[dict] or dict")
 
             # -------- 调用 OpenAI --------
-            # type: ignore needed because OpenAI SDK expects ChatCompletionMessageParam
+            # Note: type ignore needed because OpenAI SDK expects ChatCompletionMessageParam
             # but we accept generic dict for flexibility. Runtime validation ensures correctness.
             response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=messages_list,  # type: ignore[arg-type]
+                messages=messages_list,  # type: ignore
                 temperature=temperature,
                 top_p=top_p,
                 max_tokens=max_tokens,

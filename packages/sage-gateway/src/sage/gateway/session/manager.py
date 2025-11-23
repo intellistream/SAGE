@@ -223,29 +223,50 @@ class SessionManager:
 
         elif self._memory_backend == "vdb":
             # 向量数据库记忆
+            index_name = f"vdb_index_{session_id}"
             config = {
                 "name": f"session_{session_id}_vdb",
                 "backend_type": "VDB",
                 "description": f"Vector memory for session {session_id}",
-                "index_config": {
-                    "name": f"vdb_index_{session_id}",
-                    "embedding_model": self._memory_config.get("embedding_model", "hash"),
-                    "dim": self._memory_config.get("embedding_dim", 384),
-                    "backend_type": "FAISS",
-                    "description": "Session vector index",
-                    "index_parameter": {},
-                },
             }
-            return self._memory_manager.create_collection(config)
+            collection = self._memory_manager.create_collection(config)
+
+            # 创建索引
+            index_config = {
+                "name": index_name,
+                "embedding_model": self._memory_config.get("embedding_model", "hash"),
+                "dim": self._memory_config.get("embedding_dim", 384),
+                "backend_type": "FAISS",
+                "description": "Session vector index",
+                "index_parameter": {},
+            }
+            collection.create_index(index_config)
+
+            # 保存 index_name 用于后续操作
+            collection._gateway_index_name = index_name
+            return collection
 
         elif self._memory_backend == "kv":
             # 键值存储记忆
+            index_name = f"kv_index_{session_id}"
             config = {
                 "name": f"session_{session_id}_kv",
                 "backend_type": "KV",
                 "description": f"KV memory for session {session_id}",
             }
-            return self._memory_manager.create_collection(config)
+            collection = self._memory_manager.create_collection(config)
+
+            # 创建索引
+            index_config = {
+                "name": index_name,
+                "index_type": self._memory_config.get("default_index_type", "bm25s"),
+                "description": "Session KV index",
+            }
+            collection.create_index(index_config)
+
+            # 保存 index_name 用于后续操作
+            collection._gateway_index_name = index_name
+            return collection
 
         elif self._memory_backend == "graph":
             # 图记忆
@@ -408,8 +429,22 @@ class SessionManager:
                 "timestamp": time.time(),
             }
 
-            # 存储到 collection (使用文本哈希自动生成ID)
-            memory_service.insert(raw_text=combined_text, metadata=metadata)
+            # 存储到 collection
+            if self._memory_backend == "vdb":
+                # VDB 需要 index_name 参数
+                index_name = getattr(memory_service, "_gateway_index_name", None)
+                if index_name:
+                    memory_service.insert(
+                        index_name=index_name, raw_data=combined_text, metadata=metadata
+                    )
+            elif self._memory_backend == "kv":
+                # KV 需要 index_names 参数（可变参数）
+                index_name = getattr(memory_service, "_gateway_index_name", None)
+                if index_name:
+                    memory_service.insert(combined_text, metadata, index_name)
+            else:
+                # Graph 使用 BaseMemoryCollection 的 insert 接口
+                memory_service.insert(raw_text=combined_text, metadata=metadata)
 
     def retrieve_memory_history(self, session_id: str) -> str:
         """获取会话的历史记忆
@@ -448,11 +483,41 @@ class SessionManager:
         elif self._memory_backend in ("vdb", "kv", "graph"):
             # neuromem collection 使用 retrieve 方法
             try:
-                # 通过 session_id 过滤获取该会话的所有对话
-                results = memory_service.retrieve(
-                    with_metadata=True,
-                    session_id=session_id,  # 使用元数据条件过滤
-                )
+                if self._memory_backend == "vdb":
+                    # VDB 需要 raw_data 和 index_name 参数进行语义检索
+                    index_name = getattr(memory_service, "_gateway_index_name", None)
+                    if not index_name:
+                        return ""
+
+                    # 使用空查询检索所有内容（通过元数据过滤）
+                    results = memory_service.retrieve(
+                        raw_data="",  # VDB 需要查询文本
+                        index_name=index_name,
+                        topk=self._memory_config.get("max_retrieve", 100),
+                        with_metadata=True,
+                        session_id=session_id,  # 元数据过滤
+                    )
+
+                elif self._memory_backend == "kv":
+                    # KV 需要 raw_text 参数进行关键词检索
+                    index_name = getattr(memory_service, "_gateway_index_name", None)
+                    if not index_name:
+                        return ""
+
+                    results = memory_service.retrieve(
+                        raw_text="",  # KV 需要查询文本
+                        index_name=index_name,
+                        topk=self._memory_config.get("max_retrieve", 100),
+                        with_metadata=True,
+                        session_id=session_id,  # 元数据过滤
+                    )
+
+                else:  # graph
+                    # Graph 使用 BaseMemoryCollection 的 retrieve 接口
+                    results = memory_service.retrieve(
+                        with_metadata=True,
+                        session_id=session_id,  # 元数据过滤
+                    )
 
                 if not results:
                     return ""

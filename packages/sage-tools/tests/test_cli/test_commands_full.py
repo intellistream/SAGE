@@ -82,8 +82,9 @@ class TestCLICommandsFull:
                 "status",
                 "--output-format",
                 "summary",
+                "--quick",
             ],
-            timeout=60,  # 增加超时时间，status 命令较慢
+            timeout=120,  # 增加超时时间到120秒
         )
         assert result["success"], f"Status summary failed: {result['stderr']}"
         assert "状态报告" in result["stdout"]

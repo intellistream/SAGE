@@ -27,15 +27,28 @@ def demo_basic_embedding_service():
 
     from sage.common.components.sage_embedding import EmbeddingService
 
-    # 配置: 使用 HuggingFace 模型
-    config = {
-        "method": "hf",
-        "model": "BAAI/bge-small-zh-v1.5",
-        "batch_size": 32,
-        "normalize": True,
-        "cache_enabled": True,
-        "cache_size": 1000,
-    }
+    # 检查是否在测试模式
+    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+
+    # 配置: 在测试模式使用 mock，否则使用 HuggingFace 模型
+    if is_test_mode:
+        config = {
+            "method": "mockembedder",
+            "dimension": 384,  # 模拟 bge-small-zh-v1.5 的维度
+            "batch_size": 32,
+            "normalize": True,
+            "cache_enabled": True,
+            "cache_size": 1000,
+        }
+    else:
+        config = {
+            "method": "hf",
+            "model": "BAAI/bge-small-zh-v1.5",
+            "batch_size": 32,
+            "normalize": True,
+            "cache_enabled": True,
+            "cache_size": 1000,
+        }
 
     service = EmbeddingService(config)
     service.setup()

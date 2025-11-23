@@ -4,8 +4,10 @@ SAGE Memory Backend 示例
 展示如何使用不同的记忆后端（short_term, vdb, kv, graph）
 """
 
+from pathlib import Path
+
 from sage.gateway.session.manager import SessionManager
-from sage.gateway.storage.file_storage import FileStorage
+from sage.gateway.session.storage import FileSessionStore
 
 
 def demo_short_term_memory():
@@ -14,14 +16,15 @@ def demo_short_term_memory():
     print("Demo 1: Short-Term Memory Backend")
     print("=" * 50)
 
-    storage = FileStorage(storage_path=".sage/sessions_short_term.json")
+    storage = FileSessionStore(path=Path(".sage/sessions_short_term.json"))
     manager = SessionManager(
         storage=storage,
         memory_backend="short_term",
         max_memory_dialogs=3,  # 只保留最近3轮对话
     )
 
-    session_id = manager.create_session()
+    session = manager.create_session()
+    session_id = session.id
     print(f"Created session: {session_id}")
 
     # 存储5轮对话
@@ -52,19 +55,20 @@ def demo_vdb_memory():
     print("Demo 2: Vector Database (VDB) Memory Backend")
     print("=" * 50)
 
-    storage = FileStorage(storage_path=".sage/sessions_vdb.json")
+    storage = FileSessionStore(path=Path(".sage/sessions_vdb.json"))
     manager = SessionManager(
         storage=storage,
         memory_backend="vdb",
         memory_config={
-            "embedding_model": "text-embedding-3-small",
-            "embedding_dim": 1536,
+            "embedding_model": "mockembedder",  # 使用 mock embedder 用于测试
+            "embedding_dim": 128,  # mockembedder 默认维度
             "backend_type": "faiss",
             "max_retrieve": 5,
         },
     )
 
-    session_id = manager.create_session()
+    session = manager.create_session()
+    session_id = session.id
     print(f"Created session: {session_id}")
 
     # 存储不同主题的对话
@@ -96,14 +100,15 @@ def demo_kv_memory():
     print("Demo 3: Key-Value (KV) Memory Backend")
     print("=" * 50)
 
-    storage = FileStorage(storage_path=".sage/sessions_kv.json")
+    storage = FileSessionStore(path=Path(".sage/sessions_kv.json"))
     manager = SessionManager(
         storage=storage,
         memory_backend="kv",
         memory_config={"default_index_type": "bm25s", "max_retrieve": 10},
     )
 
-    session_id = manager.create_session()
+    session = manager.create_session()
+    session_id = session.id
     print(f"Created session: {session_id}")
 
     # 存储关键词密集的对话
@@ -132,14 +137,15 @@ def demo_graph_memory():
     print("Demo 4: Graph Memory Backend")
     print("=" * 50)
 
-    storage = FileStorage(storage_path=".sage/sessions_graph.json")
+    storage = FileSessionStore(path=Path(".sage/sessions_graph.json"))
     manager = SessionManager(
         storage=storage,
         memory_backend="graph",
         memory_config={"max_depth": 2, "max_retrieve": 10},
     )
 
-    session_id = manager.create_session()
+    session = manager.create_session()
+    session_id = session.id
     print(f"Created session: {session_id}")
 
     # 存储有关联关系的对话

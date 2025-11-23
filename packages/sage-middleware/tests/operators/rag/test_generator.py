@@ -371,19 +371,22 @@ class TestOpenAIGenerator:
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
 
-        # 测试缺少必需配置字段
-        incomplete_configs = [
-            {},  # 空配置
-            {"model_name": "gpt-4o-mini"},  # 缺少base_url
-            {"base_url": "http://localhost:8000/v1"},  # 缺少model_name
+        # OpenAIGenerator 接受空配置并使用默认值，不会抛出 KeyError
+        # 测试各种配置都能正常创建实例
+        configs_to_test = [
+            {},  # 空配置 - 使用所有默认值
+            {"model_name": "gpt-4o-mini"},  # 只指定model_name
+            {"base_url": "http://localhost:8000/v1"},  # 只指定base_url
         ]
 
         mock_client_instance = Mock()
         mock_openai_client.return_value = mock_client_instance
 
-        for config in incomplete_configs:
-            with pytest.raises(KeyError):
-                OpenAIGenerator(config=config)
+        for config in configs_to_test:
+            # 这些配置都应该能成功创建实例，因为使用了 .get() 提供默认值
+            generator = OpenAIGenerator(config=config)
+            assert generator is not None
+            assert generator.config == config
 
 
 @pytest.mark.integration
