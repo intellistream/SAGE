@@ -1,7 +1,6 @@
 """记忆测试模块 - 负责使用 LLM 对所有可见问题进行问答测试"""
 
 from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
-from sage.benchmark.benchmark_memory.experiment.utils.prompt_builder import build_prompt
 from sage.common.core import MapFunction
 
 
@@ -17,18 +16,14 @@ class MemoryTest(MapFunction):
         super().__init__()
         self.config = config
 
-        # 从配置中读取 prompt 模板
-        self.prompt_template = self.config.get("runtime.prompt_template")
-        if not self.prompt_template:
-            # 默认模板
-            self.prompt_template = """You are a helpful assistant. Answer the user's question based on the conversation history.
+        # 从配置中读取 prompt_template（阶段二：统一Prompt）
+        self.question_answer_prompt = self.config.get(
+            "runtime.prompt_template",
+            """Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
 
-Conversation History:
-{history}
-
-User Question: {question}
-
-Provide a brief and accurate answer in 2-3 sentences maximum:"""
+Question: {question}
+Answer:""",
+        )
 
         # 从配置中读取 generator 参数并初始化
         api_key = self.config.get("runtime.api_key")
@@ -65,7 +60,7 @@ Provide a brief and accurate answer in 2-3 sentences maximum:"""
             return None
 
         question = data.get("question")
-        history_text = data.get("history_text", "")
+        history_text = data.get("history_text", "")  # 来自PostRetrieval（阶段一）
         question_metadata = data.get("question_metadata", {})
 
         # 如果没有问题，返回空
@@ -73,12 +68,23 @@ Provide a brief and accurate answer in 2-3 sentences maximum:"""
             data["answer"] = None
             return data
 
-        # 构建 Prompt
-        prompt = build_prompt(
-            self.prompt_template,
-            question=question,
-            history=history_text,
-        )
+        # 构建完整Prompt：history_text（阶段一） + question_answer_prompt（阶段二）
+        full_prompt = history_text
+        if full_prompt:
+            full_prompt += "\n\n"
+
+        # 拼接问答部分（阶段二）
+        question_prompt = self.question_answer_prompt.replace("{question}", question)
+        full_prompt += question_prompt
+
+        prompt = full_prompt
+
+        # # Debug: 打印最终的完整Prompt
+        # print(f"\n{'='*80}")
+        # print(f"[DEBUG] Final Prompt for Question: {question}...")
+        # print(f"{'='*80}")
+        # print(prompt)
+        # print(f"{'='*80}\n")
 
         # 调用 LLM 生成答案
         answer_text = self.generator.generate(prompt)
