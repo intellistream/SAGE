@@ -126,3 +126,31 @@ class MemoryServiceFactory:
             服务名称列表
         """
         return list(MemoryServiceFactory.SERVICE_CLASSES.keys())
+
+    @staticmethod
+    def create_instance(service_name: str, **kwargs: Any) -> Any:
+        """直接创建记忆服务实例（用于非 Pipeline 环境）
+
+        Args:
+            service_name: 服务名称（如 "short_term_memory"）
+            **kwargs: 服务构造参数
+
+        Returns:
+            服务实例
+
+        Raises:
+            ValueError: 如果服务名称不支持
+
+        Example:
+            # 创建短期记忆服务
+            memory = MemoryServiceFactory.create_instance(
+                "short_term_memory",
+                max_dialog=10
+            )
+        """
+        if service_name not in MemoryServiceFactory.SERVICE_CLASSES:
+            supported = ", ".join(MemoryServiceFactory.SERVICE_CLASSES.keys())
+            raise ValueError(f"不支持的服务类型: {service_name}。支持的类型: {supported}")
+
+        service_class = MemoryServiceFactory.SERVICE_CLASSES[service_name]
+        return service_class(**kwargs)
