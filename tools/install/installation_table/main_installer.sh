@@ -11,7 +11,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/../download_tools/environment_config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 # libstdcxx_fix.sh 已禁用 - 现代 conda 环境提供足够的 libstdc++ 版本
 # source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"

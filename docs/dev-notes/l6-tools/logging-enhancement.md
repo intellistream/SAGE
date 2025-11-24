@@ -145,18 +145,6 @@ configure_installation_environment "$environment" "$mode"
 log_phase_end "环境配置" "success" "MAIN"
 ```
 
-**VLLM安装**:
-```bash
-if [ "$install_vllm" = "true" ]; then
-    log_phase_start "VLLM 安装" "MAIN"
-    if install_vllm_packages; then
-        log_phase_end "VLLM 安装" "success" "MAIN"
-    else
-        log_phase_end "VLLM 安装" "failure" "MAIN"
-    fi
-fi
-```
-
 **CI检查**:
 ```bash
 log_phase_start "依赖完整性检查" "MAIN"
