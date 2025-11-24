@@ -267,7 +267,7 @@ repos:
     # - Pseudo-code or incomplete Python snippets
     # - mdformat-black        # Black formatter for code blocks
     args: [--wrap=100]
-    exclude: ^(CHANGELOG.md|docs/dev-notes/|docs-public/docs_src/api-reference/)
+    exclude: ^(CHANGELOG.md|\.github/|docs/dev-notes/|docs-public/docs_src/api-reference/)
 
   # Security: Check for secrets
 - repo: https://github.com/Yelp/detect-secrets
