@@ -20,9 +20,9 @@ def test_rag_pipeline():
     # 1. 测试导入
     print("\n[步骤 1] 测试模块导入...")
     try:
-        from sage.middleware.operators.rag.retriever import ChromaRetriever
-        from sage.middleware.operators.rag.promptor import QAPromptor
         from sage.middleware.operators.rag.generator import OpenAIGenerator
+        from sage.middleware.operators.rag.promptor import QAPromptor
+        from sage.middleware.operators.rag.retriever import ChromaRetriever
 
         print("  ✅ 所有模块导入成功")
     except Exception as e:

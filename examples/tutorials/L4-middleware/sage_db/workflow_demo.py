@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 import numpy as np
-
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger

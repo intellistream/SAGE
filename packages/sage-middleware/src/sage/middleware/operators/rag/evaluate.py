@@ -5,6 +5,93 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 
 from sage.common.core.functions import MapFunction as MapOperator
+from sage.kernel.runtime.communication.packet import StopSignal
+
+
+class MetricsAggregator:
+    """全局指标聚合器，用于收集和计算平均指标"""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.reset()
+        return cls._instance
+
+    def reset(self):
+        """重置所有统计数据"""
+        self.metrics = {
+            "f1_scores": [],
+            "token_counts": [],
+            "retrieve_times": [],
+            "refine_times": [],
+            "generate_times": [],
+            "total_latencies": [],
+            "compression_rates": [],
+        }
+        self.sample_count = 0
+
+    def add_f1(self, score):
+        self.metrics["f1_scores"].append(score)
+
+    def add_token_count(self, count):
+        self.metrics["token_counts"].append(count)
+
+    def add_latency(self, retrieve, refine, generate):
+        self.metrics["retrieve_times"].append(retrieve)
+        self.metrics["refine_times"].append(refine)
+        self.metrics["generate_times"].append(generate)
+        self.metrics["total_latencies"].append(retrieve + refine + generate)
+        self.sample_count += 1
+
+    def add_compression_rate(self, rate):
+        self.metrics["compression_rates"].append(rate)
+
+    def print_summary(self):
+        """打印汇总统计信息"""
+        if self.sample_count == 0:
+            print("\n" + "=" * 80)
+            print("No samples processed")
+            print("=" * 80)
+            return
+
+        print("\n" + "=" * 80)
+        print(f"SUMMARY STATISTICS ({self.sample_count} samples)")
+        print("=" * 80)
+
+        # F1 Score
+        if self.metrics["f1_scores"]:
+            avg_f1 = sum(self.metrics["f1_scores"]) / len(self.metrics["f1_scores"])
+            print(f"\033[92m[Average F1 Score]        : {avg_f1:.4f}\033[0m")
+
+        # Token Count
+        if self.metrics["token_counts"]:
+            avg_tokens = sum(self.metrics["token_counts"]) / len(self.metrics["token_counts"])
+            print(f"\033[92m[Average Token Count]     : {avg_tokens:.0f}\033[0m")
+
+        # Latency
+        if self.metrics["retrieve_times"]:
+            avg_retrieve = sum(self.metrics["retrieve_times"]) / len(self.metrics["retrieve_times"])
+            avg_refine = sum(self.metrics["refine_times"]) / len(self.metrics["refine_times"])
+            avg_generate = sum(self.metrics["generate_times"]) / len(self.metrics["generate_times"])
+            avg_total = sum(self.metrics["total_latencies"]) / len(self.metrics["total_latencies"])
+
+            print(f"\033[92m[Average Retrieve Time]   : {avg_retrieve:.2f}s\033[0m")
+            print(f"\033[92m[Average Refine Time]     : {avg_refine:.2f}s\033[0m")
+            print(f"\033[92m[Average Generate Time]   : {avg_generate:.2f}s\033[0m")
+            print(
+                f"\033[92m[Average Total Latency]   : {avg_total:.2f}s ({avg_total / 60:.2f} min)\033[0m"
+            )
+
+        # Compression Rate
+        if self.metrics["compression_rates"]:
+            valid_rates = [r for r in self.metrics["compression_rates"] if r > 0]
+            if valid_rates:
+                avg_compression = sum(valid_rates) / len(valid_rates)
+                print(f"\033[92m[Average Compression Rate]: {avg_compression:.2f}×\033[0m")
+
+        print("=" * 80 + "\n")
 
 
 class F1Evaluate(MapOperator):
@@ -12,6 +99,10 @@ class F1Evaluate(MapOperator):
 
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
+
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+        self.aggregator = MetricsAggregator()
 
     def _get_tokens(self, text: str):
         return text.lower().split()
@@ -29,10 +120,18 @@ class F1Evaluate(MapOperator):
         rec = num_common / sum(r.values())
         return 2 * prec * rec / (prec + rec)
 
-    def execute(self, data: dict):
+    def execute(self, data):
+        # Handle StopSignal - 不输出,让 CompressionRateEvaluate 最后统一输出
+        if isinstance(data, StopSignal):
+            return data
+
         golds = data.get("references", [])
         pred = data.get("generated", "")
         best = max(self._f1_score(pred, g) for g in golds) if golds else 0.0
+
+        # Add to aggregator
+        self.aggregator.add_f1(best)
+
         print(f"\033[93m[F1] : {best:.4f}\033[0m")
         return data
 
@@ -168,27 +267,57 @@ class AccuracyEvaluate(MapOperator):
 class TokenCountEvaluate(MapOperator):
     """Token计数评估器
 
-    统计当前阶段文档的token数量
-    优先级：refining_results（压缩后）> retrieval_results（原始）
+    统计送入生成器的最终prompt的token数量（使用真实tokenizer）
+    优先级：compressed_context（压缩后）> refining_results > retrieval_results（原始）
 
-    输入数据格式：{"query": str, "refining_results": List[str], ...} 或
+    输入数据格式：{"query": str, "compressed_context": str, "refining_results": List[str], ...} 或
                  {"query": str, "retrieval_results": List[Dict], ...}
     """
 
-    def execute(self, data: dict):
-        # 优先计算 refining_results（压缩后），其次是 retrieval_results（原始）
-        docs = data.get("refining_results") or data.get("retrieval_results", [])
-        total_tokens = 0
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+        self.aggregator = MetricsAggregator()
+        # 使用与REFORM相同的tokenizer以保持一致性
+        try:
+            from transformers import AutoTokenizer
 
-        if docs:
-            for doc in docs:
-                if isinstance(doc, dict):
-                    text = doc.get("text", str(doc))
-                    total_tokens += len(text.split())
-                elif isinstance(doc, str):
-                    total_tokens += len(doc.split())
-                else:
-                    total_tokens += len(str(doc).split())
+            self.tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+        except Exception:
+            self.tokenizer = None
+
+    def execute(self, data):
+        # Handle StopSignal
+        if isinstance(data, StopSignal):
+            return data
+
+        # 优先使用 compressed_context（最终送入生成器的文本）
+        context = data.get("compressed_context")
+        if context:
+            # 使用真实tokenizer计算token数
+            if self.tokenizer:
+                total_tokens = len(self.tokenizer.encode(context))
+            else:
+                total_tokens = len(context.split())
+        else:
+            # 回退到旧的计算方式
+            docs = data.get("refining_results") or data.get("retrieval_results", [])
+            total_tokens = 0
+            if docs:
+                for doc in docs:
+                    if isinstance(doc, dict):
+                        text = doc.get("text", str(doc))
+                    elif isinstance(doc, str):
+                        text = doc
+                    else:
+                        text = str(doc)
+
+                    if self.tokenizer:
+                        total_tokens += len(self.tokenizer.encode(text))
+                    else:
+                        total_tokens += len(text.split())
+
+        # Add to aggregator
+        self.aggregator.add_token_count(total_tokens)
 
         print(f"\033[93m[Token Count] : {total_tokens}\033[0m")
         return data
@@ -200,11 +329,22 @@ class LatencyEvaluate(MapOperator):
     输入数据格式：{"query": str, "retrieve_time": float, "refine_time": float, "generate_time": float, ...}
     """
 
-    def execute(self, data: dict):
-        retrieve_time = data.get("retrieve_time", 0.0)
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+        self.aggregator = MetricsAggregator()
+
+    def execute(self, data):
+        # Handle StopSignal - 不输出,让 CompressionRateEvaluate 最后统一输出
+        if isinstance(data, StopSignal):
+            return data
+
+        retrieve_time = data.get("retrieve_time", 0)
         refine_time = data.get("refine_time", 0.0)
         generate_time = data.get("generate_time", 0.0)
         total_lat = retrieve_time + refine_time + generate_time
+
+        # Add to aggregator
+        self.aggregator.add_latency(retrieve_time, refine_time, generate_time)
 
         print(f"\033[93m[Retrieve Time] : {retrieve_time:.2f}s\033[0m")
         print(f"\033[93m[Refine Time]   : {refine_time:.2f}s\033[0m")
@@ -259,6 +399,10 @@ class CompressionRateEvaluate(MapOperator):
     - refining_results: 压缩后的文档文本（用于计算压缩后token数）
     """
 
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+        self.aggregator = MetricsAggregator()
+
     def _count_tokens(self, docs):
         """计算文档列表的总token数"""
         if not docs:
@@ -277,7 +421,13 @@ class CompressionRateEvaluate(MapOperator):
                 total += len(str(doc).split())
         return total
 
-    def execute(self, data: dict):
+    def execute(self, data):
+        # Handle StopSignal - 在最后输出完整汇总统计
+        if isinstance(data, StopSignal):
+            print("\n")  # 添加空行分隔
+            self.aggregator.print_summary()
+            return data
+
         # 获取原始检索文档的token数
         retrieved_docs = data.get("retrieval_results", [])
         retrieved_tokens = self._count_tokens(retrieved_docs)
@@ -291,6 +441,9 @@ class CompressionRateEvaluate(MapOperator):
             compression_rate = retrieved_tokens / refined_tokens
         else:
             compression_rate = 0.0
+
+        # Add to aggregator
+        self.aggregator.add_compression_rate(compression_rate)
 
         print(f"\033[93m[Compression Rate] : {compression_rate:.2f}×\033[0m")
         return data
