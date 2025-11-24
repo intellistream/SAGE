@@ -1,6 +1,10 @@
-______________________________________________________________________
-
-## name: Bug Report about: Report a bug to help us improve SAGE title: '[Bug] ' labels: 'bug' assignees: ''
+---
+name: Bug Report
+about: Report a bug to help us improve SAGE
+title: '[Bug] '
+labels: 'bug'
+assignees: ''
+---
 
 ## Bug Description
 
