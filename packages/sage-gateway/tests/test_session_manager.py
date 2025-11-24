@@ -1,8 +1,12 @@
-"""
-Tests for Session Manager
-"""
+"""Tests for Session Manager."""
+
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pytest
 
 from sage.gateway.session import ChatSession, SessionManager
+from sage.gateway.session.storage import FileSessionStore
 
 
 def test_session_creation():
@@ -34,9 +38,14 @@ def test_get_messages():
     assert messages[1]["role"] == "assistant"
 
 
-def test_session_manager_get_or_create():
+@pytest.fixture()
+def temp_storage(tmp_path: Path) -> FileSessionStore:
+    return FileSessionStore(path=tmp_path / "sessions.json")
+
+
+def test_session_manager_get_or_create(temp_storage):
     """测试会话管理器的获取或创建"""
-    manager = SessionManager()
+    manager = SessionManager(storage=temp_storage)
 
     # 创建新会话
     session1 = manager.get_or_create()
@@ -47,20 +56,18 @@ def test_session_manager_get_or_create():
     assert session2.id == session1.id
 
 
-def test_session_manager_delete():
+def test_session_manager_delete(temp_storage):
     """测试删除会话"""
-    manager = SessionManager()
+    manager = SessionManager(storage=temp_storage)
     session = manager.get_or_create()
 
-    deleted = manager.delete(session.id)
-    assert deleted is True
+    assert manager.delete(session.id) is True
     assert manager.get(session.id) is None
 
 
-def test_session_manager_stats():
+def test_session_manager_stats(temp_storage):
     """测试统计信息"""
-    # 使用新的 SessionManager 实例以避免状态污染
-    manager = SessionManager()
+    manager = SessionManager(storage=temp_storage)
 
     # 清除所有会话
     for session_id in list(manager._sessions.keys()):
@@ -74,5 +81,42 @@ def test_session_manager_stats():
     assert stats["total_sessions"] == 1
     assert stats["total_messages"] == 1
 
-    # 清理
     manager.delete(session.id)
+
+
+def test_store_and_retrieve_memory_short_term(temp_storage):
+    manager = SessionManager(
+        storage=temp_storage, max_memory_dialogs=5, memory_backend="short_term"
+    )
+    session = manager.get_or_create("mem-session")
+
+    manager.store_dialog_to_memory(session.id, "你好", "您好，有什么可以帮您？")
+
+    history = manager.retrieve_memory_history(session.id)
+    assert "user: 你好" in history
+    assert "assistant: 您好，有什么可以帮您？" in history
+
+
+def test_cleanup_expired_sessions(temp_storage):
+    manager = SessionManager(storage=temp_storage)
+    session = manager.get_or_create("old-session")
+    session.last_active = datetime.now() - timedelta(minutes=120)
+    manager.persist()
+
+    cleaned = manager.cleanup_expired(max_age_minutes=30)
+    assert cleaned == 1
+    assert manager.get("old-session") is None
+
+
+def test_list_sessions_sorted(temp_storage):
+    manager = SessionManager(storage=temp_storage)
+    first = manager.get_or_create("first")
+    first.add_message("user", "hello")
+
+    second = manager.get_or_create("second")
+    second.add_message("user", "later")
+    second.last_active = datetime.now() + timedelta(seconds=1)
+    manager.persist()
+
+    summaries = manager.list_sessions()
+    assert summaries[0]["id"] == "second"

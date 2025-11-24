@@ -3,7 +3,8 @@ import os
 import time
 
 from jinja2 import Template
-from sage.kernel.operators import MapOperator
+
+from sage.common.core.functions import MapFunction as MapOperator
 
 QA_prompt_template_str = """Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.

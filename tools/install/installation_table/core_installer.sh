@@ -126,6 +126,7 @@ install_core_packages() {
         [ -d "packages/sage-studio" ] && required_packages+=("packages/sage-studio")
         # full/dev 模式添加 L5 apps（如果存在）
         [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
+        [ -d "packages/sage-gateway" ] && required_packages+=("packages/sage-gateway")
     fi
 
     # dev 模式需要 sage-tools 和 sage-gateway
@@ -446,6 +447,23 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 log_pip_package_info "isage-apps" "INSTALL"
                 echo -e "${CHECK} sage-apps 安装完成"
             fi
+
+            # L5: gateway (API server)
+            if [ -d "packages/sage-gateway" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
+                log_info "开始安装: packages/sage-gateway" "INSTALL"
+                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
+
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
+                    log_error "安装 sage-gateway 失败" "INSTALL"
+                    echo -e "${CROSS} 安装 sage-gateway 失败！"
+                    return 1
+                fi
+
+                log_info "安装成功: packages/sage-gateway" "INSTALL"
+                log_pip_package_info "isage-gateway" "INSTALL"
+                echo -e "${CHECK} sage-gateway 安装完成"
+            fi
         fi
 
         # L6: CLI (standard/full/dev 模式)
@@ -549,9 +567,101 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
     log_info "安装成功: sage meta-package" "INSTALL"
     log_pip_package_info "isage" "INSTALL"
-    echo -e "${CHECK} SAGE meta-package 安装完成"
 
-    log_phase_end_enhanced "SAGE meta-package 安装" "success" "INSTALL"
+    # 4b. 手动安装外部依赖（不经过 sage[mode] 依赖解析）
+    echo -e "${DIM}  4b. 安装外部依赖（提取自各子包声明）...${NC}"
+    log_info "开始提取外部依赖（从 pyproject.toml 文件）" "INSTALL"
+
+    # 使用 Python 脚本提取已安装 editable 包的外部依赖
+    local external_deps_file=".sage/external-deps-${install_mode}.txt"
+    mkdir -p .sage
+
+    log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
+    echo -e "${DIM}     从已安装包中提取外部依赖...${NC}"
+
+    # 执行 Python 脚本提取依赖（内联脚本）
+    log_debug "执行 Python 依赖提取脚本..." "INSTALL"
+    if $PYTHON_CMD -c "
+import sys, re
+from pathlib import Path
+external_deps = set()
+package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
+install_mode = '$install_mode'
+if install_mode != 'core':
+    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
+if install_mode in ['full', 'dev']:
+    package_dirs.extend(['packages/sage-apps', 'packages/sage-gateway', 'packages/sage-studio'])
+if install_mode == 'dev':
+    package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+for pkg_dir in package_dirs:
+    pyproject = Path(pkg_dir) / 'pyproject.toml'
+    if not pyproject.exists(): continue
+    content = pyproject.read_text()
+    in_deps = False
+    for line in content.splitlines():
+        line = line.strip()
+        if 'dependencies' in line and '=' in line: in_deps = True; continue
+        if in_deps:
+            if line == ']': in_deps = False; continue
+            match = re.search(r'\"([^\"]+)\"', line)
+            if match:
+                dep = match.group(1)
+                if not dep.startswith('isage-'): external_deps.add(dep)
+with open('$external_deps_file', 'w') as f:
+    for dep in sorted(external_deps): f.write(f'{dep}\n')
+print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
+" 2>&1; then
+        log_info "依赖提取脚本执行成功" "INSTALL"
+
+        if [ -f "$external_deps_file" ] && [ -s "$external_deps_file" ]; then
+            local dep_count=$(wc -l < "$external_deps_file")
+            log_info "共提取 $dep_count 个外部依赖" "INSTALL"
+            log_debug "依赖列表文件: $external_deps_file" "INSTALL"
+
+            # 记录依赖列表（前10个）
+            if [ "$dep_count" -le 10 ]; then
+                log_debug "依赖列表:\n$(cat "$external_deps_file")" "INSTALL"
+            else
+                log_debug "依赖列表（前10个）:\n$(head -10 "$external_deps_file")" "INSTALL"
+                log_debug "...还有 $((dep_count - 10)) 个依赖（查看完整列表: $external_deps_file）" "INSTALL"
+            fi
+
+            echo -e "${DIM}     安装 $dep_count 个外部依赖包...${NC}"
+            log_info "开始安装外部依赖包..." "INSTALL"
+            log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $pip_args" "INSTALL"
+
+            # 从文件读取并安装
+            if log_command "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $pip_args"; then
+                log_info "外部依赖安装成功" "INSTALL"
+                echo -e "${CHECK} 外部依赖安装完成"
+
+                # 验证关键依赖是否安装成功（采样几个）
+                local sample_deps=$(head -3 "$external_deps_file" | tr '\n' ' ')
+                log_debug "验证采样依赖是否安装: $sample_deps" "INSTALL"
+                for dep in $sample_deps; do
+                    local pkg_name=$(echo "$dep" | sed 's/[<>=].*//' | tr '-' '_')
+                    log_pip_package_info "$pkg_name" "INSTALL" || true
+                done
+            else
+                log_warn "部分外部依赖安装失败，但继续..." "INSTALL"
+                echo -e "${YELLOW}⚠️  部分外部依赖安装失败，但继续...${NC}"
+
+                # 尝试提取安装失败的包
+                local failed_packages=$(grep -i "error\|failed" "$SAGE_INSTALL_LOG" | tail -5 || echo "无法确定失败包")
+                log_warn "失败详情:\n$failed_packages" "INSTALL"
+            fi
+        else
+            log_warn "未能提取外部依赖或依赖文件为空" "INSTALL"
+            log_debug "文件状态: $(ls -lh "$external_deps_file" 2>&1 || echo '文件不存在')" "INSTALL"
+            echo -e "${YELLOW}⚠️  未能提取外部依赖，跳过...${NC}"
+        fi
+    else
+        log_error "依赖提取脚本执行失败" "INSTALL"
+        log_error "Python脚本返回非零退出码" "INSTALL"
+        echo -e "${YELLOW}⚠️  依赖提取脚本失败，跳过外部依赖安装${NC}"
+    fi
+
+    log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
     echo ""
     echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功！"
     echo ""

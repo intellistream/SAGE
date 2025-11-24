@@ -7,7 +7,8 @@ from urllib.parse import quote
 
 import feedparser
 import requests
-from sage.kernel.operators import MapOperator
+
+from sage.common.core.functions import MapFunction as MapOperator
 
 # PyMuPDF (fitz) is required for PDF processing
 try:

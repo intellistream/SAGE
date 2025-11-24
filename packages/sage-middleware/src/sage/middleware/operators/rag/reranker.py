@@ -1,5 +1,11 @@
 import torch
-from sage.kernel.operators import MapOperator
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
+
+from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.rag.types import (
     RAGInput,
     RAGResponse,

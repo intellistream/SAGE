@@ -2,8 +2,11 @@
 """
 RemoteEnvironment 简单示例
 演示如何使用 RemoteEnvironment 和调度器
+
+# test_tags: category=environment, timeout=120, requires_daemon=jobmanager
 """
 
+import os
 import time
 
 from sage.common.core.functions.map_function import MapFunction
@@ -18,7 +21,12 @@ class SimpleSource(SourceFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.count = 0
-        self.max_count = 10000
+        # 在测试模式下减少数据量，加快测试速度
+        test_mode = (
+            os.getenv("SAGE_EXAMPLES_MODE") == "test"
+            or os.getenv("SAGE_TEST_MODE") == "true"
+        )
+        self.max_count = 100 if test_mode else 10000
 
     def execute(self, data=None):
         if self.count >= self.max_count:
@@ -42,9 +50,37 @@ class SimpleProcessor(MapFunction):
 class ConsoleSink(SinkFunction):
     """控制台输出"""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # 在测试模式下限制输出
+        self.test_mode = (
+            os.getenv("SAGE_EXAMPLES_MODE") == "test"
+            or os.getenv("SAGE_TEST_MODE") == "true"
+        )
+        self.count = 0
+
     def execute(self, data):
         if data:
-            print(f"✅ Result: {data}")
+            self.count += 1
+            # 测试模式下仅打印前5条和最后的统计
+            if not self.test_mode or self.count <= 5:
+                print(f"✅ Result: {data}")
+            elif self.count == 6:
+                print("   ... (remaining output suppressed in test mode)")
+
+
+def check_jobmanager_available():
+    """检查 JobManager 是否可用"""
+    import socket
+
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(("localhost", 19001))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
 
 
 def example_default_scheduler():
@@ -52,6 +88,24 @@ def example_default_scheduler():
     print("\n" + "=" * 60)
     print("示例 1: 使用默认调度器")
     print("=" * 60 + "\n")
+
+    # 检查是否在测试模式
+    test_mode = (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    )
+
+    # 检查 JobManager 是否可用
+    if not check_jobmanager_available():
+        if test_mode:
+            # 在测试模式下，如果JobManager不可用，跳过测试
+            print("⚠️  JobManager daemon 不可用，跳过测试")
+            print("   (在生产环境中需要先启动: sage jobmanager start)")
+            return
+        else:
+            print("❌ 错误: JobManager daemon 未运行")
+            print("   请先启动: sage jobmanager start")
+            return
 
     # 📊 开始计时
     total_start = time.time()

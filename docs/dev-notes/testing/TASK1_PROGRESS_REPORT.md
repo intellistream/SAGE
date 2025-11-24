@@ -25,7 +25,7 @@
 
 **Status**: ✅ 26 passing, 11 skipped (require external services), 1 failing (Cohere - API key issue)
 
-### 2. vLLM Control Plane Tests (packages/sage-common/tests/unit/components/sage_vllm/)
+### 2. vLLM Control Plane Tests (packages/sage-common/tests/unit/components/sage_llm/)
 - **File**: `test_control_plane.py` (442 lines, 30+ test cases)
 - **Coverage**: Improved control plane monitoring and routing
 - **Status**: ⚠️ Partially working - some tests fail due to API mismatch with actual implementation
