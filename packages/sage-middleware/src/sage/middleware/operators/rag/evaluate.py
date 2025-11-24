@@ -4,7 +4,7 @@ from rouge import Rouge
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 
 class F1Evaluate(MapOperator):

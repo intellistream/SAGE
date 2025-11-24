@@ -5,6 +5,7 @@ SAGE Pipeline Builder - Embedding Integration 示例
 演示如何使用不同的 embedding 方法来增强 Pipeline Builder 的知识检索能力。
 
 @test:allow-demo
+@test:timeout=120
 """
 
 import os
@@ -14,6 +15,35 @@ from sage.cli.commands.apps.pipeline_knowledge import (
     get_default_knowledge_base,
 )
 
+# 检查是否在测试模式
+_IS_TEST_MODE = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+
+# 在测试模式下，减少chunks以加快初始化
+_MAX_CHUNKS = 50 if _IS_TEST_MODE else 100
+
+# 全局缓存知识库实例，避免重复初始化
+_KB_CACHE = {}
+
+
+def _get_or_create_kb(
+    method: str, model: str | None = None, max_chunks: int | None = None
+):
+    """获取或创建知识库实例（带缓存）"""
+    cache_key = f"{method}:{model}:{max_chunks or _MAX_CHUNKS}"
+    if cache_key not in _KB_CACHE:
+        if method == "default":
+            _KB_CACHE[cache_key] = get_default_knowledge_base(
+                max_chunks=max_chunks or _MAX_CHUNKS, allow_download=False
+            )
+        else:
+            _KB_CACHE[cache_key] = PipelineKnowledgeBase(
+                max_chunks=max_chunks or _MAX_CHUNKS,
+                allow_download=False,
+                embedding_method=method,
+                embedding_model=model,
+            )
+    return _KB_CACHE[cache_key]
+
 
 def example_1_basic_usage():
     """示例 1: 基本使用 - 默认 hash 方法"""
@@ -21,8 +51,8 @@ def example_1_basic_usage():
     print("示例 1: 使用默认的 hash embedding 方法")
     print("=" * 80)
 
-    # 使用默认配置（hash 方法）
-    kb = get_default_knowledge_base(max_chunks=100, allow_download=False)
+    # 使用缓存的知识库
+    kb = _get_or_create_kb("default")
 
     # 执行检索
     query = "如何构建 RAG pipeline"
@@ -44,12 +74,8 @@ def example_2_custom_method():
     print("示例 2: 使用 mockembedder 方法")
     print("=" * 80)
 
-    # 使用 mockembedder（快速测试方法）
-    kb = PipelineKnowledgeBase(
-        max_chunks=100,
-        allow_download=False,
-        embedding_method="mockembedder",
-    )
+    # 使用缓存的知识库
+    kb = _get_or_create_kb("mockembedder")
 
     query = "向量检索算法"
     results = kb.search(query, top_k=3)
@@ -76,11 +102,8 @@ def example_3_compare_methods():
     for method in methods:
         print(f"\n--- 方法: {method} ---")
 
-        kb = PipelineKnowledgeBase(
-            max_chunks=100,
-            allow_download=False,
-            embedding_method=method,
-        )
+        # 使用缓存的知识库
+        kb = _get_or_create_kb(method)
 
         import time
 
@@ -104,11 +127,9 @@ def example_4_with_specific_model():
     # 注意: 这需要模型已经下载到本地
     # 如果没有，会自动下载（需要网络）
     try:
-        kb = PipelineKnowledgeBase(
-            max_chunks=50,  # 减少数据量加快测试
-            allow_download=False,
-            embedding_method="hf",
-            embedding_model="BAAI/bge-small-zh-v1.5",  # 中文优化模型
+        # 在测试模式下使用更小的数据集
+        kb = _get_or_create_kb(
+            "hf", "BAAI/bge-small-zh-v1.5", max_chunks=_MAX_CHUNKS // 2
         )
 
         query = "RAG 系统架构"
@@ -143,8 +164,8 @@ def example_5_environment_variables():
     # 设置环境变量
     os.environ["SAGE_PIPELINE_EMBEDDING_METHOD"] = "mockembedder"
 
-    # 使用默认工厂（会读取环境变量）
-    kb = get_default_knowledge_base(max_chunks=100, allow_download=False)
+    # 使用缓存的知识库
+    kb = _get_or_create_kb("mockembedder")
 
     query = "embedding 优化"
     results = kb.search(query, top_k=2)
@@ -167,7 +188,7 @@ def example_6_fallback_mechanism():
     # 尝试使用一个需要配置的方法（不提供配置）
     # 应该自动回退到 hash
     kb = PipelineKnowledgeBase(
-        max_chunks=50,
+        max_chunks=_MAX_CHUNKS // 2,
         allow_download=False,
         embedding_method="hf",  # 不提供 model，会失败
         # embedding_model 缺失!
@@ -193,9 +214,6 @@ if __name__ == "__main__":
         ("后备机制", example_6_fallback_mechanism),
     ]
 
-    # 检查是否在测试模式
-    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
-
     for title, example_func in examples:
         try:
             example_func()
@@ -203,7 +221,7 @@ if __name__ == "__main__":
             print(f"❌ 示例失败: {e}")
 
         # 在测试模式下不等待用户输入
-        if not is_test_mode:
+        if not _IS_TEST_MODE:
             input("\n按 Enter 继续下一个示例...")
         print("\n")
 

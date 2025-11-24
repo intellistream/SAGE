@@ -7,7 +7,7 @@ Dependencies: sage.platform (L2), sage.common (L1)
 这个模块提供了 SAGE 的核心 API，包括：
 - 环境配置（LocalEnvironment, RemoteEnvironment）
 - 数据流操作（DataStream）
-- 函数定义（BatchFunction, SinkFunction, SourceFunction等）
+- 函数定义（从 sage.common.core.functions 导入）
 - 算子抽象（MapOperator, FilterOperator等）
 
 Architecture:
@@ -18,7 +18,7 @@ Architecture:
 示例：
     ```python
     from sage.kernel.api import LocalEnvironment
-    from sage.kernel.api.function import MapFunction, SinkFunction
+    from sage.common.core.functions import MapFunction, SinkFunction
 
     env = LocalEnvironment("my_app")
     stream = env.from_collection([1, 2, 3])
