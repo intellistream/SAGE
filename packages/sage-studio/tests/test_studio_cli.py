@@ -29,16 +29,17 @@ class FakeStudioManager:
 
     def start(
         self,
-        port=None,
+        frontend_port=None,
+        backend_port=None,
+        gateway_port=None,
         host=None,
-        dev=False,
-        auto_gateway=True,
-        auto_install=True,
-        auto_build=True,
-        skip_confirm=False,
+        dev=True,
+        llm=None,
+        llm_model=None,
+        use_finetuned=False,
     ):
-        if port:
-            self._config["port"] = port
+        if frontend_port:
+            self._config["port"] = frontend_port
         if host:
             self._config["host"] = host
         self._running = True

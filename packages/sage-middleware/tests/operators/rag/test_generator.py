@@ -32,8 +32,8 @@ class TestOpenAIGenerator:
 
         assert OpenAIGenerator is not None
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_openai_generator_initialization(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_openai_generator_initialization(self, mock_llm_client):
         """测试OpenAIGenerator初始化"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -45,9 +45,9 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient
+        # Mock IntelligentLLMClient
         mock_client_instance = Mock()
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -56,8 +56,8 @@ class TestOpenAIGenerator:
         assert generator.enable_profile is False
         assert generator.num == 1
 
-        # 验证OpenAIClient被正确调用
-        mock_openai_client.assert_called_once_with(
+        # 验证IntelligentLLMClient被正确调用
+        mock_llm_client.assert_called_once_with(
             model_name="gpt-4o-mini",
             base_url="http://localhost:8000/v1",
             api_key="test_key",  # pragma: allowlist secret
@@ -65,8 +65,8 @@ class TestOpenAIGenerator:
         )
         assert generator.model == mock_client_instance
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_openai_generator_initialization_with_profile(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_openai_generator_initialization_with_profile(self, mock_llm_client):
         """测试OpenAIGenerator带profile初始化"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -78,9 +78,9 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient
+        # Mock IntelligentLLMClient
         mock_client_instance = Mock()
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         # Mock context with env_base_dir - 使用统一的SAGE路径管理
         mock_ctx = Mock()
@@ -98,8 +98,8 @@ class TestOpenAIGenerator:
 
             assert generator.enable_profile is True
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_openai_generator_initialization_no_api_key(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_openai_generator_initialization_no_api_key(self, mock_llm_client):
         """测试OpenAIGenerator无API密钥初始化"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -114,22 +114,22 @@ class TestOpenAIGenerator:
         # Mock环境变量
         with patch.dict(os.environ, {"ALIBABA_API_KEY": "env_api_key"}):  # pragma: allowlist secret
             mock_client_instance = Mock()
-            mock_openai_client.return_value = mock_client_instance
+            mock_llm_client.return_value = mock_client_instance
 
             OpenAIGenerator(config=config)
 
             # 验证使用环境变量中的API密钥
             # 注意：某些Mock实现可能会遮蔽敏感信息，所以我们检查调用参数
-            assert mock_openai_client.call_count == 1
-            call_kwargs = mock_openai_client.call_args[1]
+            assert mock_llm_client.call_count == 1
+            call_kwargs = mock_llm_client.call_args[1]
             assert call_kwargs["model_name"] == "gpt-4o-mini"
             assert call_kwargs["base_url"] == "http://localhost:8000/v1"
             # API key 可能被遮蔽显示为 ***，我们只检查它不是 None
             assert call_kwargs["api_key"] is not None
             assert call_kwargs["seed"] == 42
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_with_string_input(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_with_string_input(self, mock_llm_client):
         """测试execute方法处理字符串输入"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -141,10 +141,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient和其响应
+        # Mock IntelligentLLMClient和其响应
         mock_client_instance = Mock()
         mock_client_instance.generate.return_value = "Generated response"
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -158,8 +158,8 @@ class TestOpenAIGenerator:
         expected_messages = [{"role": "user", "content": "Test prompt"}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_with_two_string_inputs(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_with_two_string_inputs(self, mock_llm_client):
         """测试execute方法处理两个字符串输入（原始query + prompt）"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -171,10 +171,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient和其响应
+        # Mock IntelligentLLMClient和其响应
         mock_client_instance = Mock()
         mock_client_instance.generate.return_value = "Generated response"
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -190,8 +190,8 @@ class TestOpenAIGenerator:
         expected_messages = [{"role": "user", "content": "Please explain artificial intelligence."}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_with_profile_enabled(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_with_profile_enabled(self, mock_llm_client):
         """测试启用profile的execute方法"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -203,10 +203,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient和其响应
+        # Mock IntelligentLLMClient和其响应
         mock_client_instance = Mock()
         mock_client_instance.generate.return_value = "Generated response"
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         with patch("os.makedirs"), patch("builtins.open", create=True), patch("json.dump"):
             generator = OpenAIGenerator(config=config, enable_profile=True)
@@ -230,8 +230,8 @@ class TestOpenAIGenerator:
             assert isinstance(result, dict)
             assert result["generated"] == "Generated response"
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_with_api_error(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_with_api_error(self, mock_llm_client):
         """测试execute方法处理API错误"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -243,10 +243,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient抛出异常
+        # Mock IntelligentLLMClient抛出异常
         mock_client_instance = Mock()
         mock_client_instance.generate.side_effect = Exception("API Error")
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -256,8 +256,8 @@ class TestOpenAIGenerator:
 
         assert "API Error" in str(exc_info.value)
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_increments_counter(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_increments_counter(self, mock_llm_client):
         """测试execute方法会递增计数器"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -269,10 +269,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient和其响应
+        # Mock IntelligentLLMClient和其响应
         mock_client_instance = Mock()
         mock_client_instance.chat_completion.return_value = "Generated response"
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -286,8 +286,8 @@ class TestOpenAIGenerator:
         generator.execute(["Test prompt 2"])
         assert generator.num == 3
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_with_dict_input_returns_generate_time(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_with_dict_input_returns_generate_time(self, mock_llm_client):
         """测试execute方法处理字典输入时返回generate_time字段"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -299,10 +299,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient和其响应
+        # Mock IntelligentLLMClient和其响应
         mock_client_instance = Mock()
         mock_client_instance.generate.return_value = "Generated response"
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -325,8 +325,8 @@ class TestOpenAIGenerator:
         expected_messages = [{"role": "user", "content": prompt}]
         mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_execute_with_messages_list_input(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_execute_with_messages_list_input(self, mock_llm_client):
         """测试execute方法处理消息列表输入"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -338,10 +338,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock OpenAIClient和其响应
+        # Mock IntelligentLLMClient和其响应
         mock_client_instance = Mock()
         mock_client_instance.generate.return_value = "Generated response"
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -365,8 +365,8 @@ class TestOpenAIGenerator:
         # 验证直接传递消息列表
         mock_client_instance.generate.assert_called_once_with(messages)
 
-    @patch("sage.middleware.operators.rag.generator.OpenAIClient")
-    def test_configuration_validation(self, mock_openai_client):
+    @patch("sage.middleware.operators.rag.generator.IntelligentLLMClient")
+    def test_configuration_validation(self, mock_llm_client):
         """测试配置验证"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -380,7 +380,7 @@ class TestOpenAIGenerator:
         ]
 
         mock_client_instance = Mock()
-        mock_openai_client.return_value = mock_client_instance
+        mock_llm_client.return_value = mock_client_instance
 
         for config in configs_to_test:
             # 这些配置都应该能成功创建实例，因为使用了 .get() 提供默认值
@@ -403,10 +403,12 @@ class TestOpenAIGeneratorIntegration:
             "seed": 42,
         }
 
-        with patch("sage.middleware.operators.rag.generator.OpenAIClient") as mock_openai_client:
+        with patch(
+            "sage.middleware.operators.rag.generator.IntelligentLLMClient"
+        ) as mock_llm_client:
             mock_client_instance = Mock()
             mock_client_instance.generate.return_value = "Mocked response"
-            mock_openai_client.return_value = mock_client_instance
+            mock_llm_client.return_value = mock_client_instance
 
             generator = OpenAIGenerator(config=config)
 
@@ -590,7 +592,7 @@ class TestGeneratorIntegration:
         hf_config = {"model_name": "microsoft/DialoGPT-medium"}
 
         with (
-            patch("sage.middleware.operators.rag.generator.OpenAIClient") as mock_openai,
+            patch("sage.middleware.operators.rag.generator.IntelligentLLMClient") as mock_openai,
             patch("sage.middleware.operators.rag.generator.HFClient") as mock_hf,
         ):
             # Mock两个客户端
