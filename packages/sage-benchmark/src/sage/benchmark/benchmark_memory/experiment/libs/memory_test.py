@@ -22,7 +22,7 @@ class MemoryTest(MapFunction):
             """Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
 
 Question: {question}
-Answer:"""
+Answer:""",
         )
 
         # 从配置中读取 generator 参数并初始化
@@ -72,11 +72,11 @@ Answer:"""
         full_prompt = history_text
         if full_prompt:
             full_prompt += "\n\n"
-        
+
         # 拼接问答部分（阶段二）
         question_prompt = self.question_answer_prompt.replace("{question}", question)
         full_prompt += question_prompt
-        
+
         prompt = full_prompt
 
         # # Debug: 打印最终的完整Prompt
