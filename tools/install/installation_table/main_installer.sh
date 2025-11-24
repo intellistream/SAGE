@@ -15,6 +15,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 # libstdcxx_fix.sh 已禁用 - 现代 conda 环境提供足够的 libstdc++ 版本
 # source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../fixes/build_cache_cleaner.sh"
 
 # pip 缓存清理函数
 clean_pip_cache() {
@@ -184,6 +185,11 @@ install_sage() {
     log_phase_start "环境配置" "MAIN"
     configure_installation_environment "$environment" "$mode"
     log_phase_end "环境配置" "success" "MAIN"
+
+    # 清理构建缓存（检测版本不一致的 egg-info）
+    log_phase_start "构建缓存检查" "MAIN"
+    detect_and_clean_cache false
+    log_phase_end "构建缓存检查" "success" "MAIN"
 
     # 清理 pip 缓存（如果启用）
     if [ "$clean_cache" = "true" ]; then
