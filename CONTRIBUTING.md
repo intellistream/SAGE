@@ -209,7 +209,7 @@ revert/<hash-fragment> 回滚
 ### 避免子模块指针冲突
 
 本仓库目前包含多个 Git submodule（如
-`docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow`、`packages/sage-common/src/sage/common/components/sage_vllm/sageLLM`
+`docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow`、`packages/sage-common/src/sage/common/components/sage_llm/sageLLM`
 等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低 submodule 指针冲突概率：
 
 1. **先合并子仓库 PR**：针对某个子仓库的变更，务必先让它在对应的子仓库仓库内合并到 upstream，不要在主仓库引用未合并的 commit。

@@ -34,14 +34,14 @@ from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
 
 try:  # pragma: no cover - optional dependency at runtime only
-    from sage.libs.integrations.openaiclient import OpenAIClient
+    from sage.common.components.sage_llm.client import IntelligentLLMClient
 
     OPENAI_AVAILABLE = True
     OPENAI_IMPORT_ERROR: Exception | None = None
 except Exception as exc:  # pragma: no cover - runtime check
     OPENAI_AVAILABLE = False
     OPENAI_IMPORT_ERROR = exc
-    OpenAIClient = object  # type: ignore
+    IntelligentLLMClient = object  # type: ignore
 
 
 DEFAULT_BACKEND = os.getenv("SAGE_PIPELINE_BUILDER_BACKEND", "openai")
@@ -542,11 +542,11 @@ class PipelinePlanGenerator:
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
-                message = f"未能导入 OpenAIClient：{OPENAI_IMPORT_ERROR}"
+                message = f"未能导入 IntelligentLLMClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
-            # OpenAIClient accepts model_name and **kwargs (base_url, api_key, seed)
+            # IntelligentLLMClient accepts model_name and **kwargs (base_url, api_key, seed)
             # Pylance doesn't recognize **kwargs parameters properly
-            self._client = OpenAIClient(
+            self._client = IntelligentLLMClient(
                 model_name=self.config.model,  # type: ignore[call-arg]
                 base_url=self.config.base_url,  # type: ignore[call-arg]
                 api_key=self.config.api_key,  # type: ignore[call-arg]
@@ -688,9 +688,9 @@ class GraphPlanGenerator:
 
         if self.config.backend != "mock":
             if not OPENAI_AVAILABLE:
-                message = f"未能导入 OpenAIClient：{OPENAI_IMPORT_ERROR}"
+                message = f"未能导入 IntelligentLLMClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
-            self._client = OpenAIClient(
+            self._client = IntelligentLLMClient(
                 model_name=self.config.model,  # type: ignore[call-arg]
                 base_url=self.config.base_url,  # type: ignore[call-arg]
                 api_key=self.config.api_key,  # type: ignore[call-arg]
