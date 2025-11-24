@@ -15,6 +15,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .studio_manager import StudioManager
+from .utils.gpu_check import is_gpu_available
 
 console = Console()
 
@@ -387,6 +388,13 @@ class ChatModeManager(StudioManager):
 
         # Determine if local LLM should be started
         start_llm = llm if llm is not None else self.llm_enabled
+
+        # Auto-detect GPU if llm is not explicitly requested
+        if llm is None and start_llm:
+            if not is_gpu_available():
+                console.print("[yellow]⚠️  未检测到 NVIDIA GPU，自动禁用本地 LLM 服务[/yellow]")
+                console.print("[dim]   提示：如需强制启动，请使用 --llm 参数[/dim]")
+                start_llm = False
 
         # Start local LLM service first (if enabled)
         if start_llm:
