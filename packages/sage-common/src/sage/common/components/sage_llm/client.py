@@ -283,9 +283,12 @@ class IntelligentLLMClient:
             Dict with 'model_name', 'base_url', 'api_key'
         """
         # Read environment variables
-        user_base_url = os.getenv("SAGE_CHAT_BASE_URL")
-        user_model = model_override or os.getenv("SAGE_CHAT_MODEL")
-        user_api_key = os.getenv("SAGE_CHAT_API_KEY", "")
+        # Fallback to standard OPENAI_* variables if SAGE_CHAT_* are not set
+        user_base_url = os.getenv("SAGE_CHAT_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+        user_model = (
+            model_override or os.getenv("SAGE_CHAT_MODEL") or os.getenv("OPENAI_MODEL_NAME")
+        )
+        user_api_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("OPENAI_API_KEY", "")
 
         logger.debug("🔍 [LLM Detection] Starting detection...")
         logger.debug(f"🔍 [LLM Detection] SAGE_CHAT_BASE_URL={user_base_url}")
