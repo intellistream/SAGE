@@ -21,7 +21,12 @@
 
 from __future__ import annotations
 
+# ============================================================
+# 1. PipelineBridge - 将 Pipeline 包装成可调用的 Service
+# ============================================================
+import queue
 import time
+from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from sage.common.core.functions.map_function import MapFunction
@@ -30,12 +35,6 @@ from sage.common.core.functions.source_function import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service.base_service import BaseService
-
-# ============================================================
-# 1. PipelineBridge - 将 Pipeline 包装成可调用的 Service
-# ============================================================
-import queue
-from dataclasses import dataclass
 
 
 @dataclass
