@@ -63,6 +63,7 @@ from sage.common.core.functions import (
     SourceFunction,
     wrap_lambda,
 )
+from sage.common.core.signals import StopSignal
 from sage.common.core.types import ExecutionMode, NodeID, ServiceID, TaskID, TaskStatus
 
 __all__ = [
@@ -119,4 +120,6 @@ __all__ = [
     "LambdaMapFunction",
     "wrap_lambda",
     "FutureFunction",
+    # Signals
+    "StopSignal",
 ]

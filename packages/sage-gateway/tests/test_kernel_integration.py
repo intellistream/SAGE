@@ -7,7 +7,6 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from sage.gateway.adapters.openai import (
     ChatCompletionRequest,
     ChatMessage,

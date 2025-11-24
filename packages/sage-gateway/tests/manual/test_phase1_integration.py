@@ -86,8 +86,9 @@ def test_openai_adapter():
     """测试 OpenAI 适配器"""
     print("\nTesting OpenAI adapter...")
     try:
-        from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdapter
         import asyncio
+
+        from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdapter
 
         adapter = OpenAIAdapter()
 

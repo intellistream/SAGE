@@ -38,6 +38,8 @@ dependencies = [
     "isage-common>=0.1.0",  # sage-tools 直接使用 sage-common (必需，有10+处导入)
 
     # Tools-specific dependencies
+    "typer>=0.9.0",  # CLI framework for sage-dev command
+    "rich>=13.0.0",  # Rich terminal output for sage-dev
     "click>=8.0.0",
     "jinja2>=2.11.1",
     "markdown>=3.4.4",

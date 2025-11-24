@@ -47,12 +47,12 @@ def test_playground_execution():
     print("=" * 70)
 
     try:
+        from sage.kernel.api import LocalEnvironment
         from sage.studio.services.playground_executor import (
             PlaygroundExecutor,
-            PlaygroundSource,
             PlaygroundSink,
+            PlaygroundSource,
         )
-        from sage.kernel.api import LocalEnvironment
 
         # Simple test flow
 
