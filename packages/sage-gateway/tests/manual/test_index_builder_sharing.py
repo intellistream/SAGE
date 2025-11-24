@@ -65,13 +65,14 @@ def test_index_builder():
     print("\n[L4] Testing sage.middleware.operators.rag.index_builder")
     print("-" * 70)
 
+    from datetime import datetime
+    from pathlib import Path
+
     from sage.middleware.operators.rag.index_builder import (
         IndexBuilder,
         IndexManifest,
         VectorStore,
     )
-    from datetime import datetime
-    from pathlib import Path
 
     # Test IndexManifest
     manifest = IndexManifest(

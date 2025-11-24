@@ -196,13 +196,103 @@ install_core_packages() {
 
     log_info "安装策略: editable + --no-deps (禁用 PyPI 依赖解析)" "INSTALL"
     log_info "手动控制安装顺序，确保使用本地源码" "INSTALL"
-    echo -e "${DIM}安装策略: editable + --no-deps (禁用 PyPI 依赖解析)${NC}"
-    echo -e "${DIM}           手动控制安装顺序，确保使用本地源码${NC}"
+    echo -e "${DIM}安装策略: 先安装外部依赖，再 editable install 本地包${NC}"
+    echo -e "${DIM}           确保所有传递依赖可用后再安装本地源码${NC}"
     echo ""
 
-    # 第一步：安装基础包（L1-L2）
-    echo -e "${DIM}步骤 1/3: 安装基础包 (L1-L2)...${NC}"
-    log_info "步骤 1/3: 安装基础包 (L1-L2)" "INSTALL"
+    # 第一步：安装外部依赖（必须在本地包之前）
+    echo -e "${DIM}步骤 1/5: 安装外部依赖...${NC}"
+    log_info "步骤 1/5: 提取并安装外部依赖" "INSTALL"
+
+    # 使用 Python 脚本提取已声明的外部依赖
+    local external_deps_file=".sage/external-deps-${install_mode}.txt"
+    mkdir -p .sage
+
+    log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
+    echo -e "${DIM}     从 pyproject.toml 中提取外部依赖...${NC}"
+
+    # 执行 Python 脚本提取依赖
+    log_debug "执行 Python 依赖提取脚本..." "INSTALL"
+    if $PYTHON_CMD -c "
+import sys, re
+from pathlib import Path
+external_deps = set()
+package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
+install_mode = '$install_mode'
+if install_mode != 'core':
+    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
+if install_mode in ['full', 'dev']:
+    package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
+if install_mode == 'dev':
+    package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+for pkg_dir in package_dirs:
+    pyproject = Path(pkg_dir) / 'pyproject.toml'
+    if not pyproject.exists(): continue
+    content = pyproject.read_text()
+    in_deps = False
+    for line in content.splitlines():
+        line = line.strip()
+        if 'dependencies' in line and '=' in line: in_deps = True; continue
+        if in_deps:
+            if line == ']': in_deps = False; continue
+            match = re.search(r'\"([^\"]+)\"', line)
+            if match:
+                dep = match.group(1)
+                if not dep.startswith('isage-'): external_deps.add(dep)
+with open('$external_deps_file', 'w') as f:
+    for dep in sorted(external_deps): f.write(f'{dep}\n')
+print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
+" 2>&1; then
+        log_info "依赖提取脚本执行成功" "INSTALL"
+
+        if [ -f "$external_deps_file" ] && [ -s "$external_deps_file" ]; then
+            local dep_count=$(wc -l < "$external_deps_file")
+            log_info "共提取 $dep_count 个外部依赖" "INSTALL"
+
+            echo -e "${DIM}     安装 $dep_count 个外部依赖包...${NC}"
+            log_info "开始安装外部依赖包..." "INSTALL"
+
+            # 移除 --no-deps，让 pip 正常解析传递依赖
+            local deps_pip_args=$(echo "$pip_args" | sed 's/--no-deps//g')
+            log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $deps_pip_args" "INSTALL"
+
+            if log_command "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
+                log_info "外部依赖安装成功" "INSTALL"
+                echo -e "${CHECK} 外部依赖安装完成"
+
+                # 强制升级关键包到正确版本（解决依赖解析问题）
+                echo -e "${DIM}     验证并升级关键包版本...${NC}"
+                log_info "强制安装 transformers 和 peft 到兼容版本" "INSTALL"
+
+                # vllm 0.9.2 与 transformers 4.57+ 有兼容性问题 (aimv2 冲突)
+                # 使用 transformers 4.52.0 可以同时兼容 vllm 0.9.2 和 peft 0.18.0
+                # 同时需要 tokenizers<0.22 来匹配 transformers 4.52.0
+                if log_command "INSTALL" "Deps" "$PIP_CMD install 'transformers==4.52.0' 'tokenizers>=0.21,<0.22' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
+                    log_info "关键包版本升级成功" "INSTALL"
+                    echo -e "${CHECK} 关键包版本验证完成"
+                else
+                    log_warn "关键包升级失败，继续安装..." "INSTALL"
+                    echo -e "${YELLOW}⚠️  关键包升级失败，可能导致运行时错误${NC}"
+                fi
+            else
+                log_error "外部依赖安装失败" "INSTALL"
+                echo -e "${RED}❌ 外部依赖安装失败${NC}"
+                return 1
+            fi
+        else
+            log_warn "未能提取外部依赖或依赖文件为空" "INSTALL"
+            echo -e "${YELLOW}⚠️  未能提取外部依赖，跳过...${NC}"
+        fi
+    else
+        log_error "依赖提取脚本失败" "INSTALL"
+        echo -e "${YELLOW}⚠️  依赖提取脚本失败，跳过...${NC}"
+    fi
+
+    echo ""
+
+    # 第二步：安装基础包（L1-L2）
+    echo -e "${DIM}步骤 2/5: 安装基础包 (L1-L2)...${NC}"
+    log_info "步骤 2/5: 安装基础包 (L1-L2)" "INSTALL"
     local base_packages=("packages/sage-common" "packages/sage-platform")
 
     for package_dir in "${base_packages[@]}"; do
@@ -223,9 +313,9 @@ install_core_packages() {
         log_pip_package_info "$pkg_name" "INSTALL"
     done
 
-    # 第二步：安装核心引擎 (L3)
-    echo -e "${DIM}步骤 2/3: 安装核心引擎 (L3)...${NC}"
-    log_info "步骤 2/3: 安装核心引擎 (L3)" "INSTALL"
+    # 第三步：安装核心引擎 (L3)
+    echo -e "${DIM}步骤 3/5: 安装核心引擎 (L3)...${NC}"
+    log_info "步骤 3/5: 安装核心引擎 (L3)" "INSTALL"
     local core_packages=("packages/sage-kernel")
 
     if [ "$install_mode" != "core" ]; then
@@ -276,9 +366,9 @@ install_core_packages() {
         log_pip_package_info "$pkg_name" "INSTALL"
     done
 
-    # 第三步：安装上层包（L4-L6，根据模式）
+    # 第四步：安装上层包（L4-L6，根据模式）
     if [ "$install_mode" != "core" ]; then
-        echo -e "${DIM}步骤 3/3: 安装上层包 (L4-L6)...${NC}"
+        echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L6)...${NC}"
 
         # L4: middleware (包含C++扩展构建)
         # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
@@ -471,28 +561,26 @@ install_core_packages() {
     fi
 
     if [ "$install_mode" = "core" ]; then
-        echo -e "${DIM}步骤 3/3: 跳过上层包（core 模式）${NC}"
+        echo -e "${DIM}步骤 4/5: 跳过上层包（core 模式）${NC}"
     fi
 
     echo -e "${CHECK} 本地依赖包安装完成"
     echo ""
 
-    log_phase_end_enhanced "本地依赖包安装" "true" "INSTALL"
+    # 第五步：安装主 SAGE meta-package
+    echo -e "${DIM}步骤 5/5: 安装 SAGE meta-package...${NC}"
+    log_phase_start_enhanced "SAGE meta-package 安装" "INSTALL" 60
 
-    # 第四步：安装主 SAGE 包和外部依赖
-    echo -e "${DIM}步骤 4/4: 安装外部依赖...${NC}"
-    log_phase_start_enhanced "外部依赖安装" "INSTALL" 300
-
-    # 4a. 先用 --no-deps 安装 sage meta-package
+    # 安装 sage meta-package (--no-deps)
     local install_target="packages/sage"
-    echo -e "${DIM}  4a. 安装 sage meta-package (--no-deps)...${NC}"
+    echo -e "${DIM}  安装 sage meta-package (--no-deps)...${NC}"
     log_info "开始安装: sage meta-package" "INSTALL"
     log_debug "PIP命令: $PIP_CMD install $install_flags $install_target $pip_args --no-deps" "INSTALL"
 
     if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$install_target\" $pip_args --no-deps"; then
         log_error "安装 sage meta-package 失败" "INSTALL"
         echo -e "${CROSS} 安装 sage meta-package 失败！"
-        log_phase_end "外部依赖安装" "failure" "INSTALL"
+        log_phase_end "SAGE meta-package 安装" "failure" "INSTALL"
         return 1
     fi
 

@@ -12,7 +12,6 @@ import json
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
-
 from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 
