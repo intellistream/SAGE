@@ -8,6 +8,7 @@ status reporting, and fallback mechanisms for optional C++ extensions.
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from sage.middleware.components.extensions_compat import (
     check_extensions_availability,
     get_extension_status,

@@ -3,13 +3,14 @@ import zipfile
 from pathlib import Path
 
 import yaml
+from typer.testing import CliRunner
+
 from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
     build_query_payload,
 )
 from sage.cli.main import app
-from typer.testing import CliRunner
 
 runner = CliRunner()
 

@@ -15,6 +15,7 @@ Tests cover:
 from unittest.mock import MagicMock
 
 import pytest
+
 from sage.common.core.functions.base_function import BaseFunction
 from sage.common.core.functions.comap_function import BaseCoMapFunction
 

@@ -8,6 +8,7 @@ TPS calculation, and latency percentile computation.
 import time
 
 import pytest
+
 from sage.kernel.runtime.monitoring.metrics_collector import MetricsCollector
 
 

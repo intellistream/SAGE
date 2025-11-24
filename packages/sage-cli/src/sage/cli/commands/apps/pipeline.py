@@ -19,6 +19,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
+
 from sage.cli import templates
 from sage.cli.commands.apps.pipeline_domain import load_custom_contexts, load_domain_contexts
 from sage.cli.commands.apps.pipeline_knowledge import (

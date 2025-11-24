@@ -9,6 +9,7 @@ import time
 from queue import Empty, Full
 
 import pytest
+
 from sage.kernel.runtime.communication.rpc.rpc_queue import RPCQueue
 
 # Test Cases

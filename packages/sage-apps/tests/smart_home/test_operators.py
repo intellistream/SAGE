@@ -4,6 +4,7 @@ Tests for sage.apps.smart_home module
 """
 
 import pytest
+
 from sage.apps.smart_home.operators import (
     DeviceEvent,
     DeviceExecutor,

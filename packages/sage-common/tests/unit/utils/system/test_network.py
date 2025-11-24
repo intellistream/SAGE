@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import psutil
 import pytest
+
 from sage.common.utils.system.network import (
     aggressive_port_cleanup,
     allocate_free_port,

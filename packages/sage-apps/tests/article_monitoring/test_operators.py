@@ -4,6 +4,7 @@ Tests for sage.apps.article_monitoring.operators module
 """
 
 import pytest
+
 from sage.apps.article_monitoring.operators import (
     Article,
     ArticleLogSink,

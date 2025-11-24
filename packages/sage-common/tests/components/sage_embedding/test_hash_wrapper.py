@@ -11,6 +11,7 @@ Tests cover:
 """
 
 import pytest  # noqa: F401
+
 from sage.common.components.sage_embedding.wrappers.hash_wrapper import HashEmbedding
 
 

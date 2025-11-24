@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Protocol, TypedDict, cast, overload
 import chromadb
 import numpy as np
 from numpy.typing import NDArray
+
 from sage.libs.rag import CharacterSplitter
 from sage.libs.rag.document_loaders import LoaderFactory
 

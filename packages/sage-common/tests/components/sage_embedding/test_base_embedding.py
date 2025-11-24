@@ -1,6 +1,7 @@
 """Unit tests for the BaseEmbedding abstract helper."""
 
 import pytest
+
 from sage.common.components.sage_embedding.base import BaseEmbedding
 
 

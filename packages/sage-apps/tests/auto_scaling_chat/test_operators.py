@@ -4,6 +4,7 @@ Tests for sage.apps.auto_scaling_chat.operators module
 """
 
 import pytest
+
 from sage.apps.auto_scaling_chat.operators import (
     AutoScaler,
     LoadBalancer,

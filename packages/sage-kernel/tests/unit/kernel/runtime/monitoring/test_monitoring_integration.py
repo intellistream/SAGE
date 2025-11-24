@@ -8,6 +8,7 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
+
 from sage.common.core.functions.base_function import BaseFunction
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.operator.map_operator import MapOperator

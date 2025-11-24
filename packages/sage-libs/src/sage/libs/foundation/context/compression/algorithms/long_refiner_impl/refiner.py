@@ -4,6 +4,11 @@ import re
 
 import numpy as np
 import torch
+from tqdm import tqdm
+from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
+from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
+
 from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.prompt_template import (
     PromptTemplate,
 )
@@ -15,10 +20,6 @@ from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.task_
     USER_PROMPT_STEP2,
     USER_PROMPT_STEP3,
 )
-from tqdm import tqdm
-from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
-from vllm import LLM, SamplingParams
-from vllm.lora.request import LoRARequest
 
 
 class LongRefiner:

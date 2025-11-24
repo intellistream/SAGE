@@ -8,6 +8,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from sage.kernel.runtime.monitoring.resource_monitor import ResourceMonitor
 
 

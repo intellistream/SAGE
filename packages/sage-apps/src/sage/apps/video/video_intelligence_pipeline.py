@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 
@@ -51,8 +52,8 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     SageFlowService = None  # type: ignore[assignment]
 
-from sage.apps.video.operators import EventStatsSink  # noqa: E402
 from sage.apps.video.operators import (
+    EventStatsSink,  # noqa: E402
     FrameEventEmitter,
     FrameLightweightFormatter,
     FrameObjectClassifier,

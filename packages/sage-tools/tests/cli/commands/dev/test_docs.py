@@ -7,8 +7,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sage.tools.cli.commands.dev.docs import app
 from typer.testing import CliRunner
+
+from sage.tools.cli.commands.dev.docs import app
 
 
 @pytest.mark.cli

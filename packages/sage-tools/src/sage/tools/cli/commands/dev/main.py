@@ -8,6 +8,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+
 from sage.cli.utils.diagnostics import (
     collect_packages_status,
     print_packages_status,
@@ -848,6 +849,7 @@ def test(
         from pathlib import Path
 
         from rich.rule import Rule
+
         from sage.tools.dev.tools.enhanced_test_runner import EnhancedTestRunner
 
         # 调试模式：输出时间戳

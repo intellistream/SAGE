@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import typer
 from rich.console import Console
+
 from sage.tools.dev.models.cache import (
     DEFAULT_MODEL_NAME,
     cache_embedding_model,

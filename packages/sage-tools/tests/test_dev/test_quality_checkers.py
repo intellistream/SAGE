@@ -11,8 +11,9 @@ Tests the new sage-dev check-* commands:
 from pathlib import Path
 
 import pytest
-from sage.tools.cli.commands.dev.main import app
 from typer.testing import CliRunner
+
+from sage.tools.cli.commands.dev.main import app
 
 runner = CliRunner()
 

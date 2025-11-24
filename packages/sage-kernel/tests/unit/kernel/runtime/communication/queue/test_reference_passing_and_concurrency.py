@@ -27,11 +27,11 @@ sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
     from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized  # noqa: F401
-    from sage.platform.queue import BaseQueueDescriptor  # noqa: F401
-    from sage.platform.queue import resolve_descriptor  # noqa: F401
     from sage.platform.queue import (
+        BaseQueueDescriptor,  # noqa: F401
         PythonQueueDescriptor,
         RayQueueDescriptor,
+        resolve_descriptor,  # noqa: F401
     )
 
     print("✓ 成功导入队列描述符")

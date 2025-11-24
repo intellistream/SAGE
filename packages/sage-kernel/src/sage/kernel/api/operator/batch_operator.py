@@ -20,25 +20,15 @@ class BatchOperator(BaseOperator):
             result = self.function.execute()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
 
-            # 检查是否为停止信号 (支持 StopSignal 和 _BatchStopSignal)
-            # _BatchStopSignal 是 sage-libs 中的轻量级停止信号,避免跨层依赖
-            is_stop = (
-                result is None
-                or isinstance(result, StopSignal)
-                or (
-                    hasattr(result, "__class__") and result.__class__.__name__ == "_BatchStopSignal"
-                )
-            )
+            # 检查是否为停止信号
+            is_stop = result is None or isinstance(result, StopSignal)
 
             if is_stop:
                 self.logger.info(f"Batch Operator {self.name} completed, sending stop signal")
 
-                # 转换为标准 StopSignal
+                # 使用标准 StopSignal
                 if isinstance(result, StopSignal):
                     stop_signal = result
-                elif hasattr(result, "message"):
-                    # _BatchStopSignal 有 message 属性
-                    stop_signal = StopSignal(result.message)
                 else:
                     stop_signal = StopSignal(self.name)
 

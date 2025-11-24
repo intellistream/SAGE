@@ -30,6 +30,7 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "INFO")
 try:
     # ray may be optional in test environments; import locally after path setup
     import ray
+
     from sage.common.config.output_paths import get_sage_paths
 
     if not ray.is_initialized():

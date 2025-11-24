@@ -233,9 +233,11 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
             "name": context.metadata.get("name", "用户自定义工作流"),
             "goal": goal,
             "data_sources": context.metadata.get("data_sources", ["文档知识库"]),
-            "latency_budget": context.constraints.get("max_latency", "实时响应优先")
-            if context.constraints
-            else "实时响应优先",
+            "latency_budget": (
+                context.constraints.get("max_latency", "实时响应优先")
+                if context.constraints
+                else "实时响应优先"
+            ),
             "constraints": "；".join(constraints_text),
             "initial_prompt": context.user_input,
         }

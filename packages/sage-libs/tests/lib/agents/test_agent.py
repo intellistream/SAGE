@@ -12,11 +12,11 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.libs.agentic.agents.agent import BaseAgent  # noqa: F401
-    from sage.libs.agentic.agents.agent import BochaSearch  # noqa: F401
     from sage.libs.agentic.agents.agent import (
         FORMAT_INSTRUCTIONS,
         PREFIX,
+        BaseAgent,  # noqa: F401
+        BochaSearch,  # noqa: F401
         Tool,
     )
 

@@ -49,8 +49,8 @@ async def test_gateway_rag():
     print("\n[步骤 3] 测试 SageDB 加载...")
 
     try:
-        from sage.middleware.components.sage_db.python.sage_db import SageDB
         from sage.common.components.sage_embedding import get_embedding_model
+        from sage.middleware.components.sage_db.python.sage_db import SageDB
 
         # 创建 embedder
         embed_config = manifest.get("embedding", {})

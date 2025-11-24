@@ -12,6 +12,7 @@ This is a skeleton. Students should fill in the details.
 import math
 
 import numpy as np
+
 from sage.libs.privacy.unlearning.dp_unlearning.base_mechanism import (
     BasePrivacyMechanism,
 )

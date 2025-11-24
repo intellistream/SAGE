@@ -7,6 +7,7 @@ Tests the KeyByFunction class for partition key extraction.
 from unittest.mock import Mock
 
 import pytest
+
 from sage.common.core.functions.keyby_function import KeyByFunction
 
 

@@ -5,14 +5,13 @@ from __future__ import annotations
 import queue
 
 import pytest
-
 from sage.gateway import rag_pipeline
 from sage.gateway.rag_pipeline import (
     PipelineBridge,
-    RAGPipelineService,
     RAGChatMap,
     RAGChatSink,
     RAGChatSource,
+    RAGPipelineService,
 )
 
 

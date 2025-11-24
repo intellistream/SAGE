@@ -189,15 +189,16 @@ class OpenAIAdapter:
             source_dir: Path to docs_src directory
             index_dir: Path to store the built index
         """
-        from sage.middleware.operators.rag.index_builder import IndexBuilder
+        import sys
+        from pathlib import Path as P
+
         from sage.common.components.sage_embedding import get_embedding_model
         from sage.common.utils.document_processing import (
             iter_markdown_files,
             parse_markdown_sections,
             slugify,
         )
-        from pathlib import Path as P
-        import sys
+        from sage.middleware.operators.rag.index_builder import IndexBuilder
 
         logger = logging.getLogger(__name__)
 
@@ -431,11 +432,11 @@ class OpenAIAdapter:
         logger.info("Building SAGE chat index in background...")
 
         try:
-            from sage.middleware.operators.rag.index_builder import IndexBuilder
-            from sage.middleware.components.sage_db.backend import SageDBBackend
             from sage.common.components.sage_embedding import get_embedding_model
             from sage.common.config.output_paths import find_sage_project_root
             from sage.common.utils.document_processing import parse_markdown_sections
+            from sage.middleware.components.sage_db.backend import SageDBBackend
+            from sage.middleware.operators.rag.index_builder import IndexBuilder
 
             # 查找文档源
             project_root = find_sage_project_root()

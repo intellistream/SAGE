@@ -9,6 +9,7 @@ from typing import cast
 from unittest.mock import Mock, patch
 
 import pytest
+
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 

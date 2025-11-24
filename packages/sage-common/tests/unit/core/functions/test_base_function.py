@@ -8,6 +8,7 @@ import logging
 from unittest.mock import Mock
 
 import pytest
+
 from sage.common.core.functions.base_function import BaseFunction
 
 

@@ -262,11 +262,12 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
                 # 强制升级关键包到正确版本（解决依赖解析问题）
                 echo -e "${DIM}     验证并升级关键包版本...${NC}"
-                log_info "强制升级 transformers 和 peft 到兼容版本" "INSTALL"
+                log_info "强制安装 transformers 和 peft 到兼容版本" "INSTALL"
 
-                # peft 0.18.0 需要 transformers 4.54.0+
-                # 强制安装确保版本正确，避免 pip 依赖解析选择旧版本
-                if log_command "INSTALL" "Deps" "$PIP_CMD install --upgrade 'transformers>=4.54.0,<5.0.0' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
+                # vllm 0.9.2 与 transformers 4.57+ 有兼容性问题 (aimv2 冲突)
+                # 使用 transformers 4.52.0 可以同时兼容 vllm 0.9.2 和 peft 0.18.0
+                # 同时需要 tokenizers<0.22 来匹配 transformers 4.52.0
+                if log_command "INSTALL" "Deps" "$PIP_CMD install 'transformers==4.52.0' 'tokenizers>=0.21,<0.22' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
                     log_info "关键包版本升级成功" "INSTALL"
                     echo -e "${CHECK} 关键包版本验证完成"
                 else

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from sage.common.components.sage_embedding.registry import EmbeddingRegistry, ModelStatus
 
 

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import psutil
 import pytest
+
 from sage.common.utils.system.process import (
     find_processes_by_name,
     get_process_info,

@@ -8,7 +8,7 @@ REFORM Compression Operator for SAGE Pipeline
 
 import logging
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 from sage.middleware.components.sage_refiner.python.algorithms.reform.compressor import (
     REFORMCompressor,
 )

@@ -3,6 +3,7 @@ import time
 from typing import Any
 
 import pytest
+
 from sage.common.core.functions import (
     BaseCoMapFunction,
     KeyByFunction,

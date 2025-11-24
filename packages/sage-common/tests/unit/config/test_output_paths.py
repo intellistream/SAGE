@@ -4,6 +4,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+
 from sage.common.config.output_paths import (
     SageOutputPaths,
     find_sage_project_root,

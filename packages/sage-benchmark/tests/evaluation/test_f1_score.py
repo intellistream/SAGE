@@ -3,6 +3,7 @@ Tests for F1 Score metric
 """
 
 import pytest
+
 from sage.benchmark.benchmark_memory.evaluation.accuracy.f1_score import F1Score
 
 

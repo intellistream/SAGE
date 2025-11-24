@@ -1,10 +1,11 @@
 from collections import Counter
 
 from rouge import Rouge
-from sage.kernel.operators import MapOperator
-from sage.kernel.runtime.communication.packet import StopSignal
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoModel, AutoTokenizer
+
+from sage.common.core.functions import MapFunction as MapOperator
+from sage.kernel.runtime.communication.packet import StopSignal
 
 
 class MetricsAggregator:

@@ -3,6 +3,7 @@
 """
 
 import pytest
+
 from sage.middleware.operators.agentic.runtime import (
     AgentRuntimeOperator,
     _build_profile,

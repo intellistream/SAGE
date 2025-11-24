@@ -12,10 +12,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-
+from pydantic import BaseModel
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
 from sage.gateway.session import get_session_manager
-from sse_starlette.sse import EventSourceResponse
 
 # 配置日志
 logging.basicConfig(
@@ -262,8 +261,8 @@ async def get_index_status():
     Returns:
         索引的元数据信息，包括文档数、chunk数、创建时间等
     """
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     index_dir = Path.home() / ".sage" / "vector_db"
     manifest_path = index_dir / "manifest.json"
@@ -297,8 +296,8 @@ async def build_index(payload: IndexBuildPayload):
     Returns:
         构建结果和索引元数据
     """
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     index_dir = Path.home() / ".sage" / "vector_db"
     manifest_path = index_dir / "manifest.json"
@@ -368,8 +367,8 @@ async def delete_index():
     Returns:
         删除结果
     """
-    from pathlib import Path
     import shutil
+    from pathlib import Path
 
     index_dir = Path.home() / ".sage" / "vector_db"
 

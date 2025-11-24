@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
-
 from sage.gateway.session import ChatSession, SessionManager
 from sage.gateway.session.storage import FileSessionStore
 

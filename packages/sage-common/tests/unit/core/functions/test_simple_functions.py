@@ -13,6 +13,7 @@ Tests cover:
 from unittest.mock import MagicMock
 
 import pytest
+
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.filter_function import FilterFunction
 from sage.common.core.functions.flatmap_function import FlatMapFunction

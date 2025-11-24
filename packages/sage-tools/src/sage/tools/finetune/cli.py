@@ -19,6 +19,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
+
 from sage.tools.finetune.core import generate_training_config, prepare_training_data
 from sage.tools.finetune.models import TASK_NAMES, FinetuneTask
 from sage.tools.finetune.service import (

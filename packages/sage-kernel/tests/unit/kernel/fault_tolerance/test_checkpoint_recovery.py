@@ -9,6 +9,7 @@ import time
 from unittest.mock import Mock, patch
 
 import pytest
+
 from sage.kernel.fault_tolerance.impl.checkpoint_impl import CheckpointManagerImpl
 from sage.kernel.fault_tolerance.impl.checkpoint_recovery import CheckpointBasedRecovery
 

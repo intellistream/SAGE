@@ -13,11 +13,6 @@ from sage.libs.rag.types import (
     extract_query,
     extract_results,
 )
-from transformers import (
-    AutoModelForCausalLM,
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-)
 
 
 class BGEReranker(MapOperator):

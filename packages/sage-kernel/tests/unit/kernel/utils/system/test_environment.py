@@ -17,6 +17,7 @@ import sys
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
+
 from sage.common.utils.system.environment import (
     detect_execution_environment,
     detect_gpu_resources,

@@ -13,6 +13,7 @@ Tests cover:
 """
 
 import pytest
+
 from sage.common.core.functions.base_function import BaseFunction
 from sage.common.core.functions.future_function import FutureFunction
 
