@@ -69,22 +69,39 @@ def f1_multi(prediction, ground_truth):
 
 
 def eval_question_answering(qas):
-    """Evaluate QA with category-specific F1 calculation."""
+    """Evaluate QA with category-specific F1 calculation (improved version).
+    
+    改进：
+    1. 统一Prompt后，所有category使用同一套评估逻辑
+    2. Category 5 优先判断"未提及"关键字
+    3. 在评估前对答案做规范化处理（去除分号注释等）
+    """
     f1_scores = []
     for i, q in enumerate(qas):
         answer = str(q['answer'])
-        if q['category'] == 3:
-            answer = answer.split(';')[0].strip()
-        output = q['prediction']
+        output = q['prediction'].strip()
+        category = q['category']
         
-        if q['category'] in [2, 3, 4]:
-            f1_scores.append(f1_score(output, answer))
-        elif q['category'] == 1:
+        # Category 5: 优先判断"信息未提及"
+        if category == 5:
+            # 检查预测答案是否包含"未提及"关键字
+            is_not_mentioned = any(keyword in output.lower() 
+                                   for keyword in ['not mentioned', 'no information', 
+                                                   'not in the conversation', 'cannot be determined'])
+            f1_scores.append(1 if is_not_mentioned else 0)
+            continue
+        
+        # Category 3: 清理分号后的注释部分
+        if category == 3:
+            answer = answer.split(';')[0].strip()
+            output = output.split(';')[0].strip()
+        
+        # Category 1: 多答案（逗号分隔）
+        if category == 1:
             f1_scores.append(f1_multi(output, answer))
-        elif q['category'] == 5:
-            f1_scores.append(1 if 'no information' in output.lower() or 'not mentioned' in output.lower() else 0)
+        # Category 2,3,4: 普通F1
         else:
-            raise ValueError(f"Unknown category: {q['category']}")
+            f1_scores.append(f1_score(output, answer))
     
     print(f"    {len(qas)} questions evaluated")
     return f1_scores
