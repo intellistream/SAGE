@@ -512,34 +512,14 @@ class SAGEDevToolkit:
     def get_version_info() -> dict[str, Any]:
         """Get SAGE version information from _version.py file."""
         try:
+            from sage.common.config import find_sage_project_root
+
             # Find the _version.py file in the project root
-            current_path = Path(__file__)
+            project_root = find_sage_project_root()
+            version_file = project_root / "_version.py"
 
-            # Navigate up to find the project root (where _version.py is located)
-            project_root = current_path
-            while project_root.parent != project_root:
-                version_file = project_root / "_version.py"
-                if version_file.exists():
-                    break
-                project_root = project_root.parent
-            else:
-                # If not found in the directory tree, try a few common locations
-                possible_roots = [
-                    Path(
-                        __file__
-                    ).parent.parent.parent.parent.parent.parent.parent,  # From packages/sage-common/src/sage/common/dev/core/
-                    Path.cwd(),  # Current working directory
-                ]
-
-                version_file = None
-                for root in possible_roots:
-                    test_file = root / "_version.py"
-                    if test_file.exists():
-                        version_file = test_file
-                        break
-
-                if not version_file:
-                    raise FileNotFoundError("Could not find _version.py file")
+            if not version_file.exists():
+                raise FileNotFoundError(f"Could not find _version.py file in {project_root}")
 
             # Execute _version.py to get all variables
             version_globals = {}
