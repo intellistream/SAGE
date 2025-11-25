@@ -22,9 +22,9 @@ retriever:
 
   # Wiki18 FAISS 专用配置
   faiss:
-    index_path: "/home/cyb/wiki18_maxp.index"
-    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
-    mapping_path: "/home/cyb/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+    index_path: "${HOME}/wiki18_maxp.index"
+    documents_path: "${HOME}/wiki18_fulldoc.jsonl"
+    mapping_path: "${HOME}/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
 
   # 嵌入模型配置
   embedding:
@@ -36,7 +36,7 @@ generator:
   vllm:
     api_key: "token-abc123"
     method: "openai"
-    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    model_name: "${HOME}/Llama-3.1-8B-Instruct"
     base_url: "http://sage2:8000/v1"
     seed: 42
 
@@ -49,23 +49,23 @@ longrefiner:
 
   # 基础模型配置
   base_model_path: "Qwen/Qwen2.5-3B-Instruct"
-  
+
   # LoRA模块路径
   query_analysis_module_lora_path: "jinjiajie/Query-Analysis-Qwen2.5-3B-Instruct"
   doc_structuring_module_lora_path: "jinjiajie/Doc-Structuring-Qwen2.5-3B-Instruct"
   global_selection_module_lora_path: "jinjiajie/Global-Selection-Qwen2.5-3B-Instruct"
-  
+
   # 评分模型配置
   score_model_name: "bge-reranker-v2-m3"
   score_model_path: "BAAI/bge-reranker-v2-m3"
-  
+
   # 模型参数
   max_model_len: 25000
   gpu_memory_utilization: 0.5
-  
+
   # 压缩参数
   budget: 2048              # 压缩后最大token数
-  compression_ratio: null   # 压缩比例（可选，与budget二选一）
+  compression_ratio:        # 压缩比例（可选，与budget二选一）
 
 sink:
   platform: "local"

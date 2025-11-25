@@ -707,7 +707,7 @@ class LongRefinerCompressor:
         parent2node = {}
         for node in all_nodes:
             idx = node["idx"]
-            parent = f'{node["question"]}_{node["doc_idx"]}_{node["parent"]}'
+            parent = f"{node['question']}_{node['doc_idx']}_{node['parent']}"
             if idx not in idx2node:
                 idx2node[idx] = []
             if parent not in parent2node:
@@ -939,9 +939,9 @@ class LongRefinerCompressor:
         """
         # Process budget and ratio
         if budget is None:
-            assert (
-                ratio is not None and 0 < ratio < 1
-            ), "budget is None, ratio must be between 0 and 1"
+            assert ratio is not None and 0 < ratio < 1, (
+                "budget is None, ratio must be between 0 and 1"
+            )
             idx2budget = {}
             for idx in idx2node:
                 item_documents = document_list[idx]

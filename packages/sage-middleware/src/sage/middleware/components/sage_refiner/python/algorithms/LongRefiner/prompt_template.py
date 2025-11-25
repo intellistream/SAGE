@@ -6,7 +6,6 @@ Handles prompt formatting and truncation for the LongRefiner algorithm.
 """
 
 
-
 class PromptTemplate:
     """Prompt template handler for LongRefiner"""
 
@@ -140,6 +139,6 @@ class PromptTemplate:
             if self.reference_template is not None:
                 format_reference += self.reference_template.format(idx=idx, title=title, text=text)
             else:
-                format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
+                format_reference += f"Doc {idx + 1}(Title: {title}) {text}\n"
 
         return format_reference
