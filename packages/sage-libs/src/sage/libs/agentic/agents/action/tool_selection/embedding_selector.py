@@ -11,7 +11,12 @@ import numpy as np
 
 from .base import BaseToolSelector, SelectorResources
 from .retriever.vector_index import VectorIndex
-from .schemas import EmbeddingSelectorConfig, ToolPrediction, ToolSelectionQuery
+from .schemas import (
+    EmbeddingSelectorConfig,
+    SelectorConfig,
+    ToolPrediction,
+    ToolSelectionQuery,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +67,9 @@ class EmbeddingSelector(BaseToolSelector):
         cls, config: SelectorConfig, resources: SelectorResources
     ) -> "EmbeddingSelector":
         """Create embedding selector from config."""
-        # Type check to ensure it's the right config type
         if not isinstance(config, EmbeddingSelectorConfig):
             raise TypeError(f"Expected EmbeddingSelectorConfig, got {type(config).__name__}")
-        return cls(config, resources)
+        return cls(config, resources)  # type: ignore[arg-type]
 
     def _preprocess_tools(self) -> None:
         """Preprocess all tools and build vector index."""
@@ -221,17 +225,28 @@ class EmbeddingSelector(BaseToolSelector):
             )
 
             # Convert to ToolPrediction format
-            predictions = [
-                ToolPrediction(
-                    tool_id=tool_id,
-                    score=float(score),
-                    metadata={
-                        "similarity_metric": self.config.similarity_metric,
-                        "embedding_model": self.config.embedding_model,
-                    },
+            predictions = []
+            for tool_id, score in results:
+                # Normalize score to [0, 1] range
+                # For euclidean, VectorIndex returns negative distances
+                # Convert to similarity: higher is better
+                if self.config.similarity_metric == "euclidean":
+                    # Negative distance -> convert to positive similarity
+                    score = max(0.0, 1.0 / (1.0 + abs(score)))
+                else:
+                    # Cosine and dot are already similarities
+                    score = max(0.0, min(1.0, float(score)))
+
+                predictions.append(
+                    ToolPrediction(
+                        tool_id=tool_id,
+                        score=score,
+                        metadata={
+                            "similarity_metric": self.config.similarity_metric,
+                            "embedding_model": self.config.embedding_model,
+                        },
+                    )
                 )
-                for tool_id, score in results
-            ]
 
             # Filter by minimum similarity threshold if specified
             if hasattr(self.config, "similarity_threshold"):
