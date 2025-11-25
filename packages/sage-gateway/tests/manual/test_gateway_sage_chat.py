@@ -37,7 +37,7 @@ async def test_gateway_rag():
 
     import json
 
-    with open(manifest_file, "r") as f:
+    with open(manifest_file) as f:
         manifest = json.load(f)
 
     print(f"  - 索引名称: {manifest['index_name']}")

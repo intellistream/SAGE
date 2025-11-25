@@ -79,9 +79,11 @@ def list_datasets(
                         metadata.name,
                         metadata.type,
                         metadata.size,
-                        metadata.description[:47] + "..."
-                        if len(metadata.description) > 50
-                        else metadata.description,
+                        (
+                            metadata.description[:47] + "..."
+                            if len(metadata.description) > 50
+                            else metadata.description
+                        ),
                     )
 
                 console.print(table)

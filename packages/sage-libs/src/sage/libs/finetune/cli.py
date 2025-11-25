@@ -24,7 +24,6 @@ from sage.libs.finetune.core import generate_training_config, prepare_training_d
 from sage.libs.finetune.models import TASK_NAMES, FinetuneTask
 from sage.libs.finetune.service import (
     merge_lora_weights,
-    serve_model_with_vllm,
     start_training,
 )
 from sage.libs.finetune.utils import (
@@ -257,20 +256,41 @@ def serve_model(
     daemon: bool = typer.Option(False, "--daemon", "-d"),
     gpu_memory_utilization: float = typer.Option(0.9, "--gpu-util"),
 ):
-    """🚀 启动模型服务"""
-    console.print("[bold]🚀 启动服务[/bold]\n")
+    """🚀 启动模型服务
+
+    Deprecated: 此命令已废弃，请使用统一的 vLLM 服务：
+        sage llm serve --model <model_path>
+    """
+    console.print("[yellow]⚠️  此命令已废弃[/yellow]\n")
+    console.print("请使用统一的 vLLM 服务命令：\n")
 
     model_path, use_lora, lora_path = _find_model_for_serving(model_name)
 
-    serve_model_with_vllm(
-        model_path,
+    cmd_parts = [
+        "sage",
+        "llm",
+        "serve",
+        "--model",
+        str(model_path),
+        "--port",
+        str(port),
+        "--host",
         host,
-        port,
-        gpu_memory_utilization,
-        daemon,
-        lora_path if use_lora else None,
-        model_name if use_lora else None,
-    )
+    ]
+
+    if not daemon:
+        cmd_parts.append("--blocking")
+
+    if use_lora and lora_path:
+        console.print(
+            "[yellow]注意: LoRA 支持需要手动配置，请参考 sage llm serve --help[/yellow]\n"
+        )
+
+    console.print(f"[cyan]建议命令: {' '.join(cmd_parts)}[/cyan]\n")
+    console.print("是否执行? [Y/n]: ", end="")
+
+    if Confirm.ask("", default=True):
+        subprocess.run(cmd_parts)
 
 
 @app.command("chat")

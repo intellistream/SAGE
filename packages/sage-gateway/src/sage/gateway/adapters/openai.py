@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import AsyncIterator
 
 from pydantic import BaseModel, Field
+
 from sage.gateway.session import get_session_manager
 
 
@@ -464,7 +465,7 @@ class OpenAIAdapter:
             def document_processor(source_dir: Path):
                 for md_file in source_dir.rglob("*.md"):
                     try:
-                        with open(md_file, "r", encoding="utf-8") as f:
+                        with open(md_file, encoding="utf-8") as f:
                             content = f.read()
                         sections = parse_markdown_sections(content)
                         for section in sections:

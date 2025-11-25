@@ -29,7 +29,7 @@ class FileSessionStore:
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def default(cls) -> "FileSessionStore":
+    def default(cls) -> FileSessionStore:
         return cls()
 
     def load(self) -> list[dict]:

@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
+
 from sage.middleware.components.sage_tsdb import SageTSDB, TimeRange
 
 

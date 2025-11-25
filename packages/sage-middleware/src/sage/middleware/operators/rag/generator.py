@@ -46,6 +46,8 @@ class OpenAIGenerator(MapOperator):
 
         # 获取必需的配置参数（使用 .get() 提供默认值）
         model_name = self.config.get("model_name") or self.config.get("model", "gpt-3.5-turbo")
+        # 展开环境变量（如果 model_name 包含环境变量）
+        model_name = os.path.expandvars(model_name)
         base_url = self.config.get("base_url", "https://api.openai.com/v1")
         seed = self.config.get("seed", 42)
 

@@ -56,6 +56,7 @@ except ModuleNotFoundError:  # pragma: no cover - convenience for local runs
     from sage.kernel.api.service.base_service import BaseService
 
 from pipeline_bridge import PipelineBridge, PipelinePayload
+
 from sage.kernel.runtime.communication.packet import StopSignal
 
 ORDERS: list[dict[str, str | float]] = [
