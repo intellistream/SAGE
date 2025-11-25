@@ -236,7 +236,7 @@ repos:
     # 仅在修改安装相关文件时运行
     files: ^(quickstart\.sh|tools/install/.*\.sh|packages/.*/pyproject\.toml|packages/.*/setup\.py|\.github/workflows/.*\.yml)$
     # 也在手动运行 pre-commit run --all-files 时执行
-    stages: [commit, manual]
+    stages: [pre-commit, manual]
   # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
