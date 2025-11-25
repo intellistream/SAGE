@@ -225,6 +225,9 @@ def generate_training_config(
             "seed": 3407,
         }
 
+    # Ensure output directory exists
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     config_path = output_dir / f"{framework}_config.json"
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)

@@ -487,7 +487,7 @@ import sys
 import gc
 import torch
 from pathlib import Path
-from sage.tools.finetune import LoRATrainer, TrainingConfig
+from sage.libs.finetune import LoRATrainer, TrainingConfig
 
 def clear_gpu_memory():
     """清理 GPU 缓存"""

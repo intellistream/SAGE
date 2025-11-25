@@ -616,7 +616,7 @@ class ResponseGenerator:
                 # 尝试自动合并
                 try:
                     console.print("[cyan]正在合并 LoRA 权重...[/cyan]")
-                    from sage.tools.finetune.service import merge_lora_weights
+                    from sage.libs.finetune.service import merge_lora_weights
 
                     # 读取 meta 获取基础模型
                     meta_file = finetune_dir / "finetune_meta.json"

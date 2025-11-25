@@ -20,14 +20,21 @@ def start_training(config_path: Path, use_native: bool = True):
     Args:
         config_path: 训练配置文件路径
         use_native: 是否使用 SAGE 原生训练模块（推荐）
+
+    Raises:
+        FileNotFoundError: 当配置文件不存在时
     """
+    # Validate config file exists
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
     try:
         if use_native:
             # 使用 SAGE 原生训练模块
             console.print("[cyan]使用 SAGE 原生训练模块[/cyan]\n")
 
             # 导入训练模块
-            from sage.tools.finetune.trainer import train_from_meta
+            from sage.libs.finetune.trainer import train_from_meta
 
             # 读取配置文件获取输出目录
             with open(config_path) as f:
@@ -73,10 +80,14 @@ def start_training(config_path: Path, use_native: bool = True):
             "  • 确保已安装微调依赖: [cyan]pip install -e packages/sage-libs[finetune][/cyan]"
         )
     except FileNotFoundError as e:
-        console.print(f"[red]❌ 找不到命令: {e}[/red]")
-        console.print("[yellow]提示:[/yellow]")
-        console.print("  • 使用 SAGE 原生脚本 (推荐): [cyan]--use-native[/cyan]")
-        console.print("  • 或安装 LLaMA-Factory: [cyan]pip install llmtuner[/cyan]")
+        # Only catch FileNotFoundError for commands, not for config file
+        if "config" not in str(e).lower():
+            console.print(f"[red]❌ 找不到命令: {e}[/red]")
+            console.print("[yellow]提示:[/yellow]")
+            console.print("  • 使用 SAGE 原生脚本 (推荐): [cyan]--use-native[/cyan]")
+            console.print("  • 或安装 LLaMA-Factory: [cyan]pip install llmtuner[/cyan]")
+        else:
+            raise
 
 
 def merge_lora_weights(checkpoint_path: Path, base_model: str, output_path: Path) -> bool:
@@ -150,7 +161,14 @@ def serve_model_with_vllm(
 
     Returns:
         进程对象（如果是daemon模式）
+
+    Raises:
+        FileNotFoundError: 当模型路径不存在时
     """
+    # Validate model path exists
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model path does not exist: {model_path}")
+
     # 检查 vLLM 是否安装
     try:
         import vllm  # noqa: F401
