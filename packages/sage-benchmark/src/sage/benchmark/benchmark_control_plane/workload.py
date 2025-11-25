@@ -245,8 +245,12 @@ class WorkloadGenerator:
         Returns:
             Generated prompt string
         """
-        # If dataset path is configured, load from dataset
-        if self.config.dataset_path and self.config.dataset_path.exists():
+        # If dataset path is configured and exists, load from dataset
+        if (
+            self.config.dataset_path is not None
+            and hasattr(self.config.dataset_path, "exists")
+            and self.config.dataset_path.exists()
+        ):
             return self._load_prompt_from_dataset()
 
         # Generate synthetic prompt
@@ -284,12 +288,59 @@ class WorkloadGenerator:
     def _load_prompt_from_dataset(self) -> str:
         """Load a prompt from the configured dataset.
 
+        Note: Dataset loading is not yet implemented. This method falls back
+        to synthetic prompt generation. For production use, implement proper
+        dataset loading (e.g., ShareGPT format).
+
         Returns:
-            Prompt string from dataset
+            Prompt string (currently falls back to synthetic generation)
         """
-        # Placeholder for dataset loading
-        # In a full implementation, this would load from ShareGPT or similar datasets
-        return self._generate_prompt()
+        # TODO: Implement actual dataset loading from ShareGPT or similar
+        # For now, fall back to synthetic generation with a warning
+        import warnings
+
+        warnings.warn(
+            "Dataset loading not implemented. Falling back to synthetic prompts.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return self._generate_synthetic_prompt()
+
+    def _generate_synthetic_prompt(self) -> str:
+        """Generate a synthetic prompt without recursion.
+
+        Returns:
+            Generated synthetic prompt string
+        """
+        template = self.rng.choice(SYNTHETIC_PROMPTS)
+        topic = self.rng.choice(TOPICS)
+        base_prompt = template.format(topic=topic)
+
+        # Extend to target length
+        target_len = self.rng.randint(
+            self.config.prompt_len_range[0],
+            self.config.prompt_len_range[1],
+        )
+
+        # Estimate tokens (rough: ~4 chars per token)
+        current_tokens = len(base_prompt) // 4
+
+        if current_tokens < target_len:
+            padding_phrases = [
+                " Please provide a detailed explanation.",
+                " Consider various perspectives and examples.",
+                " Include practical applications where relevant.",
+                " Discuss both advantages and limitations.",
+                " Structure your response clearly with key points.",
+            ]
+
+            while current_tokens < target_len and padding_phrases:
+                phrase = self.rng.choice(padding_phrases)
+                base_prompt += phrase
+                current_tokens = len(base_prompt) // 4
+                padding_phrases.remove(phrase)
+
+        return base_prompt
 
 
 class ShareGPTLoader:

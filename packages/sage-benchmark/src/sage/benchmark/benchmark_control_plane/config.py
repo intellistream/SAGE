@@ -6,8 +6,9 @@ Defines configuration parameters for Control Plane scheduling policy benchmarks.
 
 This module provides:
 - BenchmarkConfig: Main configuration dataclass
-- PolicyConfig: Per-policy specific configurations
 - SLOConfig: SLO deadline settings by priority
+- ArrivalPattern: Request arrival pattern types
+- SchedulingPolicy: Supported scheduling policies
 """
 
 from __future__ import annotations

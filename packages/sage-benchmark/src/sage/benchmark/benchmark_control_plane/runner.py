@@ -205,6 +205,8 @@ class BenchmarkRunner:
         Returns:
             Dictionary mapping rate to PolicyResult
         """
+        import copy
+
         results = {}
 
         async with BenchmarkClient(
@@ -215,18 +217,16 @@ class BenchmarkRunner:
             for rate in rates:
                 self._log(f"\n🔄 Testing rate: {rate} req/s")
 
-                # Update config for this rate
-                original_rate = self.config.request_rate
-                self.config.request_rate = rate
+                # Create a copy of config to avoid side effects
+                rate_config = copy.copy(self.config)
+                rate_config.request_rate = rate
 
-                # Generate new workload with updated rate
-                workload = self.workload_generator.generate()
+                # Create a new workload generator with the modified config
+                rate_workload_generator = WorkloadGenerator(rate_config)
+                workload = rate_workload_generator.generate()
 
                 policy_result = await self._run_policy(client, policy, workload)
                 results[rate] = policy_result
-
-                # Restore original rate
-                self.config.request_rate = original_rate
 
         return results
 

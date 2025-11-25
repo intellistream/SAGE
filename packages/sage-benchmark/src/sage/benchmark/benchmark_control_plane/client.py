@@ -203,7 +203,11 @@ class BenchmarkClient:
                     json={"policy": policy},
                 ) as response:
                     return response.status == 200
-        except Exception:
+        except aiohttp.ClientError:
+            # Network errors are expected when Control Plane is unavailable
+            pass
+        except TimeoutError:
+            # Timeout errors are expected in some scenarios
             pass
 
         return False
@@ -222,7 +226,11 @@ class BenchmarkClient:
                 async with self._session.get(f"{self.control_plane_url}/admin/metrics") as response:
                     if response.status == 200:
                         return await response.json()
-        except Exception:
+        except aiohttp.ClientError:
+            # Network errors are expected when Control Plane is unavailable
+            pass
+        except TimeoutError:
+            # Timeout errors are expected in some scenarios
             pass
 
         return {}
@@ -296,6 +304,9 @@ class BenchmarkClient:
     ) -> RequestResult:
         """Send request with streaming response handling.
 
+        Processes Server-Sent Events (SSE) format responses from the Control Plane.
+        Each SSE event is expected to be a JSON object containing token data.
+
         Args:
             payload: Request payload
             headers: Request headers
@@ -322,31 +333,56 @@ class BenchmarkClient:
             token_count = 0
 
             # Process SSE stream
+            # SSE format: "data: <json>\n\n" or "data: [DONE]\n\n"
             async for line in response.content:
-                line_str = line.decode("utf-8").strip()
+                try:
+                    line_str = line.decode("utf-8").strip()
+                except UnicodeDecodeError:
+                    continue
 
+                # Skip empty lines and SSE comments
                 if not line_str or line_str.startswith(":"):
                     continue
 
                 if line_str.startswith("data: "):
                     data = line_str[6:]
 
+                    # End of stream marker
                     if data == "[DONE]":
                         break
 
-                    current_time = time.time()
+                    # Try to parse JSON data to extract token info
+                    # Even if parsing fails, we count the event as a token
+                    try:
+                        import json
 
-                    # Record first token time
-                    if result.first_token_time is None:
-                        result.first_token_time = current_time
+                        event_data = json.loads(data)
+                        # Check if this event contains actual content
+                        choices = event_data.get("choices", [])
+                        if choices and choices[0].get("delta", {}).get("content"):
+                            current_time = time.time()
 
-                    # Calculate inter-token latency
-                    if last_token_time is not None:
-                        itl = (current_time - last_token_time) * 1000
-                        result.inter_token_latencies.append(itl)
+                            # Record first token time
+                            if result.first_token_time is None:
+                                result.first_token_time = current_time
 
-                    last_token_time = current_time
-                    token_count += 1
+                            # Calculate inter-token latency
+                            if last_token_time is not None:
+                                itl = (current_time - last_token_time) * 1000
+                                result.inter_token_latencies.append(itl)
+
+                            last_token_time = current_time
+                            token_count += 1
+                    except (json.JSONDecodeError, KeyError, TypeError):
+                        # If JSON parsing fails, still record timing for the event
+                        current_time = time.time()
+                        if result.first_token_time is None:
+                            result.first_token_time = current_time
+                        if last_token_time is not None:
+                            itl = (current_time - last_token_time) * 1000
+                            result.inter_token_latencies.append(itl)
+                        last_token_time = current_time
+                        token_count += 1
 
             result.output_token_count = token_count
             result.completion_time = time.time()
