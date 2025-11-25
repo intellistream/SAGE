@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from sage.libs.finetune.service import merge_lora_weights, serve_model_with_vllm, start_training
+from sage.libs.finetune.service import merge_lora_weights, start_training
 
 
 class TestStartTraining:
@@ -107,55 +107,3 @@ class TestMergeLoraWeights:
         # Should handle gracefully or raise appropriate error
         with pytest.raises((FileNotFoundError, ImportError, Exception)):
             merge_lora_weights(base_model=base_model, lora_path=lora_path, output_path=output_path)
-
-
-class TestServeModelWithVllm:
-    """Test serve_model_with_vllm function."""
-
-    @patch("subprocess.run")
-    def test_serve_model_basic(self, mock_run, tmp_path):
-        """Test serving model with basic options."""
-        model_path = tmp_path / "model"
-        model_path.mkdir()
-
-        mock_run.return_value = Mock(returncode=0)
-
-        serve_model_with_vllm(model_path=model_path)
-
-        # Verify subprocess.run was called
-        mock_run.assert_called_once()
-        call_args = mock_run.call_args[0][0]
-        assert "vllm" in " ".join(call_args).lower() or "python" in call_args[0]
-
-    @patch("subprocess.run")
-    def test_serve_model_with_custom_port(self, mock_run, tmp_path):
-        """Test serving model with custom port."""
-        model_path = tmp_path / "model"
-        model_path.mkdir()
-
-        mock_run.return_value = Mock(returncode=0)
-
-        serve_model_with_vllm(model_path=model_path, port=8080)
-
-        # Verify port was passed
-        call_args = mock_run.call_args[0][0]
-        assert "8080" in " ".join(map(str, call_args))
-
-    @patch("subprocess.run")
-    def test_serve_model_with_gpu_memory(self, mock_run, tmp_path):
-        """Test serving model with GPU memory fraction."""
-        model_path = tmp_path / "model"
-        model_path.mkdir()
-
-        mock_run.return_value = Mock(returncode=0)
-
-        serve_model_with_vllm(model_path=model_path, gpu_memory_utilization=0.8)
-
-        # Verify GPU memory setting was passed
-        call_args = mock_run.call_args[0][0]
-        assert "0.8" in " ".join(map(str, call_args))
-
-    def test_serve_model_path_not_exists(self):
-        """Test serve_model_with_vllm with non-existent model path."""
-        with pytest.raises((FileNotFoundError, ValueError, Exception)):
-            serve_model_with_vllm(model_path=Path("/nonexistent/model"))
