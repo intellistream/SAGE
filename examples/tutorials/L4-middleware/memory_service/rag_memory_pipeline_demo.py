@@ -34,24 +34,25 @@
 
 from __future__ import annotations
 
-
+# 导入业务相关的算子和服务
+from pipeline_as_service_operators import (
+    DisplayAnswer,
+    MockMemoryService,
+    ProcessQuestion,
+    QAPipelineMap,
+    QuestionBatch,
+)
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service import (
     PipelineBridge,
     PipelineService,
-    PipelineServiceSource,
     PipelineServiceSink,
+    PipelineServiceSource,
 )
 
-# 导入业务相关的算子和服务
-from pipeline_as_service_operators import (
-    MockMemoryService,
-    QAPipelineMap,
-    QuestionBatch,
-    ProcessQuestion,
-    DisplayAnswer,
-)
+# Test configuration: Pipeline-as-Service examples need more time
+TEST_TAGS = ["timeout=120"]
 
 
 def main():

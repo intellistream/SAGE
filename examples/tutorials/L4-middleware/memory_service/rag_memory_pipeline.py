@@ -13,7 +13,6 @@ from pathlib import Path
 
 import yaml
 from rag_memory_service import RAGMemoryService
-
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction

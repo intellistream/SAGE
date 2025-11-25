@@ -639,9 +639,9 @@ jobs:
           from sage.platform.queue import PythonQueueDescriptor, RayQueueDescriptor
           from sage.platform.service import BaseService
 
-          # L3: Kernel
+          # L3: Kernel (execution engine and runtime)
           from sage.kernel import LocalEnvironment, RemoteEnvironment
-          from sage.kernel.operators import MapOperator, FilterOperator
+          # Note: Operators have been migrated to sage.common.core.functions
 
           # L4: Libs (RAG)
           from sage.middleware.operators.rag.pipeline import RAGPipeline

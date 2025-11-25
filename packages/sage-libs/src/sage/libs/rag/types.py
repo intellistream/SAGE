@@ -34,12 +34,8 @@ from sage.common.core import (
     ExtendedQueryResult,
     QueryResultInput,
 )
-from sage.common.core import (
-    extract_query as base_extract_query,
-)
-from sage.common.core import (
-    extract_results as base_extract_results,
-)
+from sage.common.core import extract_query as base_extract_query
+from sage.common.core import extract_results as base_extract_results
 
 # ============================================================================
 # RAG 专用文档类型

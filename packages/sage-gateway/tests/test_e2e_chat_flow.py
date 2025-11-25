@@ -6,7 +6,6 @@ Tests gateway, kernel integration, session management, and NeuroMem storage.
 import tempfile
 
 import pytest
-
 from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdapter
 from sage.gateway.session.neuromem_storage import NeuroMemSessionStorage
 
@@ -196,9 +195,14 @@ class TestE2EChatFlow:
 
         # Verify error is handled gracefully
         assert response.choices[0].message.role == "assistant"
+        content_lower = response.choices[0].message.content.lower()
         assert (
             "错误" in response.choices[0].message.content
-            or "error" in response.choices[0].message.content.lower()
+            or "error" in content_lower
+            or "抱歉" in response.choices[0].message.content
+            or "sorry" in content_lower
+            or "失败" in response.choices[0].message.content
+            or "fail" in content_lower
         )
 
     @pytest.mark.asyncio

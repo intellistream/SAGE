@@ -16,7 +16,6 @@ Modify and extend this example to test your algorithms.
 """
 
 import numpy as np
-
 from sage.libs.privacy.unlearning import UnlearningEngine
 
 

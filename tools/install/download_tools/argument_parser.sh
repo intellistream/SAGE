@@ -66,7 +66,6 @@ source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
-INSTALL_VLLM=false
 AUTO_CONFIRM=false
 SHOW_HELP=false
 CLEAN_PIP_CACHE=true
@@ -390,19 +389,6 @@ show_installation_menu() {
     done
 
     echo ""
-
-    # 选择是否安装 VLLM
-    echo -e "${BOLD}3. AI 模型支持：${NC}"
-    echo -e "  是否配置 VLLM 运行环境？${DIM}(用于本地大语言模型推理，配置系统依赖)${NC}"
-    echo -e "  ${DIM}注意: VLLM Python包已包含在标准/开发者安装中${NC}"
-    echo ""
-    read -p "配置 VLLM 环境？[y/N]: " vllm_choice
-
-    if [[ $vllm_choice =~ ^[Yy]$ ]]; then
-        INSTALL_VLLM=true
-    else
-        INSTALL_VLLM=false
-    fi
     refresh_sync_submodule_default
 }
 
@@ -457,14 +443,7 @@ show_parameter_help() {
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
 
-    echo -e "${BLUE}🤖 AI 模型支持：${NC}"
-    echo ""
-    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}配置 VLLM 运行环境${NC}"
-    echo -e "    ${DIM}与其他模式组合使用，例如: --dev --vllm${NC}"
-    echo -e "    ${DIM}配置 CUDA、系统依赖和启动脚本${NC}"
-    echo -e "    ${DIM}注意: Python包已包含在标准安装中${NC}"
-    echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
-    echo ""
+
 
     echo -e "${BLUE}⚡ 其他选项：${NC}"
     echo ""
@@ -551,7 +530,6 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
     echo -e "  ./quickstart.sh --core --pip --yes               ${DIM}# 核心运行时 + 当前环境 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --full --yes                     ${DIM}# 完整功能 + 跳过确认${NC}"
-    echo -e "  ./quickstart.sh --dev --vllm --yes               ${DIM}# 开发者安装 + VLLM支持 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --verify-deps --standard         ${DIM}# 深度安全验证 + 标准安装${NC}"
     echo -e "  ./quickstart.sh --verify-deps-strict --dev --yes ${DIM}# 严格验证 + 开发模式 + 跳过确认${NC}"
     echo ""
@@ -605,20 +583,6 @@ parse_install_environment() {
         "--auto-venv")
             AUTO_VENV=true
             export SAGE_AUTO_VENV=true
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-# 解析 VLLM 参数
-parse_vllm_option() {
-    local param="$1"
-    case "$param" in
-        "--vllm"|"-vllm")
-            INSTALL_VLLM=true
             return 0
             ;;
         *)
@@ -828,9 +792,6 @@ parse_arguments() {
         elif parse_install_environment "$param"; then
             # 安装环境参数
             shift
-        elif parse_vllm_option "$param"; then
-            # VLLM 安装参数
-            shift
         elif parse_auto_confirm "$param"; then
             # 自动确认参数
             shift
@@ -1001,10 +962,6 @@ show_install_configuration() {
             ;;
     esac
 
-    if [ "$INSTALL_VLLM" = true ]; then
-        echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
-    fi
-
     if [ "$SYNC_SUBMODULES" = "true" ]; then
         echo -e "  ${BLUE}Submodules:${NC} ${GREEN}自动同步${NC}"
     else
@@ -1039,11 +996,6 @@ get_install_mode() {
 # 获取解析后的安装环境
 get_install_environment() {
     echo "$INSTALL_ENVIRONMENT"
-}
-
-# 获取是否安装 VLLM
-get_install_vllm() {
-    echo "$INSTALL_VLLM"
 }
 
 # 获取是否执行依赖验证

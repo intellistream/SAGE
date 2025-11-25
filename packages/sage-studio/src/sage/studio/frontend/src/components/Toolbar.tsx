@@ -14,6 +14,7 @@ import {
     Upload as UploadIcon,
     Settings as SettingsIcon,
     Layout as LayoutIcon,
+    Zap,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
@@ -325,41 +326,17 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
         <>
             <div className="toolbar">
                 <div className="flex items-center justify-between w-full">
-                    <Space>
+                    {/* 左侧: Logo */}
+                    <div className="flex items-center gap-4">
                         <span className="text-lg font-bold text-gray-800 ml-4">
                             SAGE Studio
                         </span>
+                    </div>
 
-                        {/* 模式切换 */}
-                        <Segmented
-                            value={mode}
-                            onChange={(value) => onModeChange(value as AppMode)}
-                            options={[
-                                {
-                                    label: (
-                                        <Space size={4}>
-                                            <LayoutIcon size={14} />
-                                            <span>Builder</span>
-                                        </Space>
-                                    ),
-                                    value: 'builder',
-                                },
-                                {
-                                    label: (
-                                        <Space size={4}>
-                                            <MessageSquare size={14} />
-                                            <span>Chat</span>
-                                        </Space>
-                                    ),
-                                    value: 'chat',
-                                },
-                            ]}
-                        />
-                    </Space>
-
-                    <Space>
-                        {/* Builder 模式的工具按钮 */}
-                        {mode === 'builder' && (
+                    {/* 中间: 根据模式显示不同的工具 */}
+                    <Space size="small">
+                        {mode === 'canvas' ? (
+                            // Canvas 模式: 显示编辑工具
                             <>
                                 <Tooltip title="运行流程">
                                     <Button
@@ -438,19 +415,19 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
 
                                 <div className="h-6 w-px bg-gray-300 mx-2" />
 
-                                <Tooltip title="撤销 (Ctrl/Cmd+Z)">
+                                <Tooltip title="撤销">
                                     <Button
                                         icon={<UndoIcon size={16} />}
                                         onClick={undo}
-                                        disabled={!canUndo()}
+                                        disabled={!canUndo}
                                     />
                                 </Tooltip>
 
-                                <Tooltip title="重做 (Ctrl/Cmd+Shift+Z)">
+                                <Tooltip title="重做">
                                     <Button
                                         icon={<RedoIcon size={16} />}
                                         onClick={redo}
-                                        disabled={!canRedo()}
+                                        disabled={!canRedo}
                                     />
                                 </Tooltip>
 
@@ -472,8 +449,61 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
 
                                 <div className="h-6 w-px bg-gray-300 mx-2" />
                             </>
+                        ) : mode === 'chat' ? (
+                            // Chat 模式: 显示提示信息
+                            <div style={{ color: '#888', fontSize: 14 }}>
+                                💬 Chat Mode - AI 自动生成工作流
+                            </div>
+                        ) : (
+                            // Finetune 模式: 显示提示信息
+                            <div style={{ color: '#888', fontSize: 14 }}>
+                                🔧 Finetune Mode - 模型微调与管理
+                            </div>
                         )}
+                    </Space>
 
+                    {/* 🆕 右侧: 模式切换按钮 (醒目位置) */}
+                    <Space size="middle">
+                        {/* 模式切换 */}
+                        <Segmented
+                            value={mode}
+                            onChange={(value) => onModeChange(value as AppMode)}
+                            options={[
+                                {
+                                    label: (
+                                        <div className="flex items-center gap-2">
+                                            <MessageSquare size={16} />
+                                            <span>Chat</span>
+                                        </div>
+                                    ),
+                                    value: 'chat',
+                                },
+                                {
+                                    label: (
+                                        <div className="flex items-center gap-2">
+                                            <LayoutIcon size={16} />
+                                            <span>Canvas</span>
+                                        </div>
+                                    ),
+                                    value: 'canvas',
+                                },
+                                {
+                                    label: (
+                                        <div className="flex items-center gap-2">
+                                            <Zap size={16} />
+                                            <span>Finetune</span>
+                                        </div>
+                                    ),
+                                    value: 'finetune',
+                                },
+                            ]}
+                            style={{
+                                background: '#1890ff',
+                                padding: 2,
+                            }}
+                        />
+
+                        {/* 设置按钮 */}
                         <Tooltip title="设置">
                             <Button
                                 icon={<SettingsIcon size={16} />}
@@ -483,6 +513,11 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                     </Space>
                 </div>
             </div>
+
+            {/* Modals */}
+            {/* Modals */}
+            <Playground />
+            <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
             {/* 保存模态框 */}
             <Modal
@@ -547,12 +582,6 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                     locale={{ emptyText: '暂无保存的流程' }}
                 />
             </Modal>
-
-            {/* Playground */}
-            <Playground />
-
-            {/* Settings */}
-            <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </>
     )
 }

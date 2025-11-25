@@ -48,6 +48,7 @@
 
 from __future__ import annotations
 
+import os
 import queue
 import time
 from dataclasses import dataclass
@@ -59,6 +60,12 @@ from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.service.base_service import BaseService
 from sage.kernel.runtime.communication.packet import StopSignal
+
+# Test mode detection - reduce sleep times in test/CI environments
+_IS_TEST_MODE = (
+    os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("SAGE_EXAMPLES_MODE") == "test"
+)
+_SLEEP_MULTIPLIER = 0.01 if _IS_TEST_MODE else 1.0  # 100x faster in test mode
 
 
 # ============================================================
@@ -172,7 +179,7 @@ class MockMemoryService(BaseService):
     def retrieve(self, question: str) -> List[Dict[str, Any]]:
         """模拟检索历史记忆"""
         print(f"  [MockMemoryService] 开始检索: {question}")
-        time.sleep(0.5)  # 模拟检索延迟
+        time.sleep(0.5 * _SLEEP_MULTIPLIER)  # 模拟检索延迟
 
         # 返回一些模拟数据
         results = []
@@ -187,7 +194,7 @@ class MockMemoryService(BaseService):
     def insert(self, question: str, metadata: Dict[str, Any]) -> bool:
         """模拟写入记忆"""
         print(f"  [MockMemoryService] 写入记忆: {question}")
-        time.sleep(0.3)  # 模拟写入延迟
+        time.sleep(0.3 * _SLEEP_MULTIPLIER)  # 模拟写入延迟
         self._memory[question] = metadata
         self._counter += 1
         print("  [MockMemoryService] 写入完成")
@@ -279,7 +286,7 @@ class QAPipelineMap(MapFunction):
 
         # 步骤 2: 模拟生成答案（用 sleep 代替实际的 LLM 调用）
         print("  [QAPipelineMap] 模拟生成答案...")
-        time.sleep(1.0)  # 模拟 LLM 生成延迟
+        time.sleep(1.0 * _SLEEP_MULTIPLIER)  # 模拟 LLM 生成延迟
         answer = f"这是针对「{question}」的回答（模拟生成）"
 
         # 步骤 3: 写入记忆

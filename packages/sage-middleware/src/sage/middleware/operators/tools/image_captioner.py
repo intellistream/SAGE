@@ -1,8 +1,8 @@
 import os
 import time
 
+from sage.common.components.sage_llm.client import IntelligentLLMClient
 from sage.libs.foundation.tools.tool import BaseTool
-from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class ImageCaptioner(BaseTool):
@@ -40,7 +40,7 @@ class ImageCaptioner(BaseTool):
                     "Model name is not set. Please set the model name using set_model_name() before executing the tool."
                 )
 
-            # Construct the messages parameter for the OpenAIClient
+            # Construct the messages parameter for IntelligentLLMClient
             messages = [
                 {"role": "system", "content": "You are an image captioning assistant."},
                 {
@@ -49,7 +49,8 @@ class ImageCaptioner(BaseTool):
                 },
             ]
 
-            client = OpenAIClient(model_name=self.model_name, seed=42)
+            # Use auto-detection for best available LLM service
+            client = IntelligentLLMClient.create_auto(model_name=self.model_name)
 
             # Retry mechanism for connection errors
             max_retries = 5

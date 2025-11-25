@@ -43,7 +43,6 @@
 1. **submodule_sync** - 子模块同步
 1. **python_deps** - Python 依赖安装
 1. **sage_packages** - SAGE 包安装
-1. **vllm_install** - vLLM 安装（可选）
 1. **verification** - 安装验证
 1. **cleanup** - 清理工作
 
@@ -106,7 +105,6 @@ bash .sage/checkpoints/rollback.sh
     ],
     "failed_phases": [],
     "install_mode": "standard",
-    "install_vllm": false,
     "environment_name": ".sage/venv",
     "python_path": "/usr/bin/python3.11",
     "backup_created": true,
