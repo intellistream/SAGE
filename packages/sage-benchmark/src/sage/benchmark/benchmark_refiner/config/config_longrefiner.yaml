@@ -8,8 +8,8 @@ source:
   type: "hf"
   # HuggingFace Dataset 参数
   hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
-  hf_dataset_config: "asqa"  # ASQA dataset for long-form QA
-  hf_split: "dev"
+  hf_dataset_config: "nq"  # ASQA dataset for long-form QA
+  hf_split: "test"
   max_samples: 20
 
 retriever:
