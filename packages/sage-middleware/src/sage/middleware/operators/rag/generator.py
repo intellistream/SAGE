@@ -3,10 +3,10 @@ import os
 import time
 from typing import Any
 
+from sage.common.components.sage_llm.client import IntelligentLLMClient
 from sage.common.config.output_paths import get_states_file
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.integrations.huggingface import HFClient
-from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class OpenAIGenerator(MapOperator):
@@ -36,15 +36,26 @@ class OpenAIGenerator(MapOperator):
         self.enable_profile = enable_profile
 
         # 实例化模型
-        # API key 优先级: 配置文件 > OPENAI_API_KEY > ALIBABA_API_KEY
+        # API key 优先级: 配置文件 > OPENAI_API_KEY > ALIBABA_API_KEY > DASHSCOPE_API_KEY
         api_key = (
-            self.config["api_key"] or os.getenv("OPENAI_API_KEY") or os.getenv("ALIBABA_API_KEY")
+            self.config.get("api_key")
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("ALIBABA_API_KEY")
+            or os.getenv("DASHSCOPE_API_KEY")
         )
-        self.model = OpenAIClient(
-            model_name=self.config["model_name"],
-            base_url=self.config["base_url"],
+
+        # 获取必需的配置参数（使用 .get() 提供默认值）
+        model_name = self.config.get("model_name") or self.config.get("model", "gpt-3.5-turbo")
+        # 展开环境变量（如果 model_name 包含环境变量）
+        model_name = os.path.expandvars(model_name)
+        base_url = self.config.get("base_url", "https://api.openai.com/v1")
+        seed = self.config.get("seed", 42)
+
+        self.model = IntelligentLLMClient(
+            model_name=model_name,
+            base_url=base_url,
             api_key=api_key,
-            seed=self.config.get("seed", 42),
+            seed=seed,
         )
         self.num = 1
 
@@ -65,7 +76,7 @@ class OpenAIGenerator(MapOperator):
             "query": query,
             "prompt": prompt,
             "response": response,
-            "model_name": self.config["model_name"],
+            "model_name": self.config.get("model_name") or self.config.get("model", "unknown"),
         }
         self.data_records.append(record)
         self._persist_data_records()

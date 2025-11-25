@@ -25,10 +25,10 @@ import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.privacy.unlearning import UnlearningEngine
-from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
 )
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
 
 class DPMemoryService(BaseService):

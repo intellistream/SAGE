@@ -1,7 +1,6 @@
----
-name: SAGE Development Assistant
-description: Expert assistant for SAGE framework development, covering setup, testing, debugging, and best practices
----
+______________________________________________________________________
+
+## name: SAGE Development Assistant description: Expert assistant for SAGE framework development, covering setup, testing, debugging, and best practices
 
 # SAGE Development Assistant
 

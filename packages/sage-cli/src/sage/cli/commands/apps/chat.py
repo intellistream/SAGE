@@ -11,9 +11,8 @@ import tempfile
 import textwrap
 import urllib.request
 import zipfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +32,13 @@ from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import find_sage_project_root, get_sage_paths
+
+# Import document processing utilities from sage-common (L1)
+from sage.common.utils.document_processing import (
+    iter_markdown_files,
+    parse_markdown_sections,
+    slugify,
+)
 
 console = Console()
 
@@ -74,7 +80,8 @@ DEFAULT_EMBEDDING_METHOD = "hash"
 DEFAULT_FIXED_DIM = 384
 DEFAULT_FINETUNE_MODEL = "sage_code_expert"
 DEFAULT_FINETUNE_PORT = 8000
-SUPPORTED_MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdx"}
+
+# Note: SUPPORTED_MARKDOWN_SUFFIXES now imported from sage.common.utils.document_processing
 
 METHODS_REQUIRE_MODEL = {
     "hf",
@@ -224,82 +231,13 @@ def build_embedder(config: dict[str, object]) -> Any:
     return get_embedding_model(method, **params)
 
 
-def iter_markdown_files(source: Path) -> Iterable[Path]:
-    for path in sorted(source.rglob("*")):
-        if path.is_file() and path.suffix.lower() in SUPPORTED_MARKDOWN_SUFFIXES:
-            yield path
-
-
-_HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(?P<title>.+?)\s*$")
-
-
-def parse_markdown_sections(content: str) -> list[dict[str, str]]:
-    sections: list[dict[str, str]] = []
-    current_title = "Introduction"
-    current_lines: list[str] = []
-
-    for raw_line in content.splitlines():
-        match = _HEADING_PATTERN.match(raw_line.strip())
-        if match:
-            if current_lines:
-                sections.append(
-                    {
-                        "heading": current_title,
-                        "content": "\n".join(current_lines).strip(),
-                    }
-                )
-                current_lines = []
-            current_title = match.group("title").strip()
-        else:
-            current_lines.append(raw_line)
-
-    if current_lines:
-        sections.append({"heading": current_title, "content": "\n".join(current_lines).strip()})
-
-    return [section for section in sections if section["content"]]
-
-
-def chunk_text(content: str, chunk_size: int, chunk_overlap: int) -> list[str]:
-    normalized = re.sub(r"\n{3,}", "\n\n", content).strip()
-    if not normalized:
-        return []
-
-    start = 0
-    length = len(normalized)
-    step = max(1, chunk_size - chunk_overlap)
-    chunks: list[str] = []
-
-    while start < length:
-        end = min(length, start + chunk_size)
-        chunk = normalized[start:end]
-        if end < length:
-            boundary = max(chunk.rfind("\n"), chunk.rfind("。"), chunk.rfind("."))
-            if boundary >= 0 and boundary > len(chunk) * 0.4:
-                end = start + boundary
-                chunk = normalized[start:end]
-        chunks.append(chunk.strip())
-        start += step
-
-    return [c for c in chunks if c]
-
-
-def slugify(text: str) -> str:
-    slug = re.sub(r"[^\w\-]+", "-", text.lower()).strip("-")
-    slug = re.sub(r"-+", "-", slug)
-    return slug or "section"
-
-
-def truncate_text(text: str, limit: int = 480) -> str:
-    if len(text) <= limit:
-        return text
-    return text[: limit - 3] + "..."
-
-
-def sanitize_metadata_value(value: str) -> str:
-    cleaned = value.replace("\r", " ").replace("\n", " ")
-    cleaned = cleaned.replace('"', "'")
-    cleaned = re.sub(r"\s+", " ", cleaned)
-    return cleaned.strip()
+# Note: Document processing functions now imported from sage.common.utils.document_processing
+# - iter_markdown_files
+# - parse_markdown_sections
+# - chunk_text
+# - slugify
+# - truncate_text
+# - sanitize_metadata_value
 
 
 def ensure_docs_corpus(index_root: Path) -> Path:
@@ -402,6 +340,55 @@ def load_or_bootstrap_manifest(index_root: Path, index_name: str) -> ChatManifes
         return manifest
 
 
+def _create_markdown_processor(source_dir: Path, max_files: int | None = None):
+    """Create a custom document processor for Markdown files.
+
+    This processor handles SAGE-specific Markdown processing with:
+    - Section splitting by headings
+    - Metadata extraction (doc_path, title, heading, anchor)
+    - Text preview generation
+    """
+
+    def process_markdown(src: Path) -> list[dict[str, Any]]:
+        chunks = []
+        total_docs = 0
+
+        for idx, file_path in enumerate(iter_markdown_files(src), start=1):
+            if max_files is not None and idx > max_files:
+                break
+
+            rel_path = file_path.relative_to(src)
+            text = file_path.read_text(encoding="utf-8", errors="ignore")
+            sections = parse_markdown_sections(text)
+
+            if not sections:
+                continue
+
+            doc_title = sections[0]["heading"] if sections else file_path.stem
+
+            for section in sections:
+                # Note: chunking happens inside the section's content
+                # We pass the full section content; IndexBuilder will chunk it
+                chunks.append(
+                    {
+                        "content": section["content"],
+                        "metadata": {
+                            "doc_path": str(rel_path),
+                            "title": doc_title,
+                            "heading": section["heading"],
+                            "anchor": slugify(section["heading"]),
+                        },
+                    }
+                )
+
+            total_docs += 1
+            console.print(f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan")
+
+        return chunks
+
+    return process_markdown
+
+
 def ingest_source(
     source_dir: Path,
     index_root: Path,
@@ -411,72 +398,74 @@ def ingest_source(
     embedding_config: dict[str, object],
     max_files: int | None = None,
 ) -> ChatManifest:
+    """Build RAG index from source documents using IndexBuilder.
+
+    This function now uses the unified IndexBuilder from sage-middleware,
+    allowing code sharing with sage-gateway and other components.
+    """
     ensure_sage_db()
 
     if not source_dir.exists():
         raise FileNotFoundError(f"文档目录不存在: {source_dir}")
 
+    # Build embedder
     embedder = build_embedder(embedding_config)
+
+    # Prepare database path
     db_path = db_file_path(index_root, index_name)
     if db_path.exists():
         db_path.unlink()
 
-    if not SageDB:
-        raise RuntimeError("SageDB not available - sage-middleware not installed")
-    db = SageDB(embedder.get_dim())
-    total_chunks = 0
-    total_docs = 0
+    # Import IndexBuilder and SageDBBackend
+    try:
+        from sage.middleware.components.sage_db.backend import SageDBBackend
+        from sage.middleware.operators.rag.index_builder import IndexBuilder
+    except ImportError as e:
+        raise RuntimeError(
+            f"Failed to import IndexBuilder or SageDBBackend: {e}\n"
+            "Ensure sage-middleware is installed with --dev option"
+        ) from e
 
-    for idx, file_path in enumerate(iter_markdown_files(source_dir), start=1):
-        if max_files is not None and idx > max_files:
-            break
+    # Create backend factory for SageDB
+    def backend_factory(persist_path: Path, dim: int):
+        return SageDBBackend(persist_path, dim)
 
-        rel_path = file_path.relative_to(source_dir)
-        text = file_path.read_text(encoding="utf-8", errors="ignore")
-        sections = parse_markdown_sections(text)
-        if not sections:
-            continue
+    # Create document processor for Markdown
+    document_processor = _create_markdown_processor(source_dir, max_files)
 
-        doc_title = sections[0]["heading"] if sections else file_path.stem
+    # Build index using IndexBuilder
+    console.print("🔨 Building index using IndexBuilder...", style="cyan")
+    builder = IndexBuilder(backend_factory=backend_factory)
 
-        for _section_idx, section in enumerate(sections):
-            section_chunks = chunk_text(section["content"], chunk_size, chunk_overlap)
-            for chunk_idx, chunk in enumerate(section_chunks):
-                vector = embedder.embed(chunk)
-                metadata = {
-                    "doc_path": sanitize_metadata_value(str(rel_path)),
-                    "title": sanitize_metadata_value(doc_title),
-                    "heading": sanitize_metadata_value(section["heading"]),
-                    "anchor": sanitize_metadata_value(slugify(section["heading"])),
-                    "chunk": str(chunk_idx),
-                    "text": sanitize_metadata_value(truncate_text(chunk, limit=1200)),
-                }
-                db.add(vector, metadata)
-                total_chunks += 1
+    index_manifest = builder.build_from_docs(
+        source_dir=source_dir,
+        persist_path=db_path,
+        embedding_model=embedder,
+        index_name=index_name,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        document_processor=document_processor,
+    )
 
-        total_docs += 1
-        console.print(f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan")
-
-    if total_chunks == 0:
-        raise RuntimeError("未在文档中生成任何 chunk，检查源目录或 chunk 参数。")
-
-    console.print(f"🧱 共写入向量: {total_chunks}")
-    db.build_index()
-    db.save(str(db_path))
-
+    # Convert IndexManifest to ChatManifest for compatibility
     manifest = ChatManifest(
         index_name=index_name,
         db_path=db_path,
-        created_at=datetime.utcnow().isoformat(),
+        created_at=index_manifest.created_at,
         source_dir=str(source_dir),
         embedding=embedding_config,
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        num_documents=total_docs,
-        num_chunks=total_chunks,
+        num_documents=index_manifest.num_documents,
+        num_chunks=index_manifest.num_chunks,
     )
+
     save_manifest(index_root, index_name, manifest)
     console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
+    console.print(
+        f"📊 Documents: {manifest.num_documents}, Chunks: {manifest.num_chunks}", style="green"
+    )
+
     return manifest
 
 
@@ -548,16 +537,29 @@ class ResponseGenerator:
             self._setup_finetune_backend()
         else:
             try:
-                from sage.libs.integrations.openaiclient import OpenAIClient
+                from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-                kwargs: dict[str, Any] = {"seed": 42}
-                if base_url:
-                    kwargs["base_url"] = base_url
-                if api_key:
-                    kwargs["api_key"] = api_key
-                self.client = OpenAIClient(model_name=model, **kwargs)
+                if base_url and api_key:
+                    # Explicit configuration
+                    self.client = IntelligentLLMClient(
+                        model_name=model,
+                        base_url=base_url,
+                        api_key=api_key,
+                        seed=42,
+                    )
+                elif base_url:
+                    # Only base_url provided
+                    self.client = IntelligentLLMClient(
+                        model_name=model,
+                        base_url=base_url,
+                        api_key="empty",  # pragma: allowlist secret
+                        seed=42,
+                    )
+                else:
+                    # Auto-detection mode
+                    self.client = IntelligentLLMClient.create_auto(model_name=model)
             except Exception as exc:  # pragma: no cover - runtime check
-                raise RuntimeError(f"无法初始化 OpenAIClient: {exc}") from exc
+                raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
 
     def _setup_finetune_backend(self) -> None:
         """设置微调模型 backend"""
@@ -614,7 +616,7 @@ class ResponseGenerator:
                 # 尝试自动合并
                 try:
                     console.print("[cyan]正在合并 LoRA 权重...[/cyan]")
-                    from sage.tools.finetune.service import merge_lora_weights
+                    from sage.libs.finetune.service import merge_lora_weights
 
                     # 读取 meta 获取基础模型
                     meta_file = finetune_dir / "finetune_meta.json"
@@ -692,11 +694,11 @@ class ResponseGenerator:
             else:
                 model_to_use = str(merged_path)
 
-        # 设置 OpenAI 客户端连接到本地 vLLM
+        # 设置 LLM 客户端连接到本地 vLLM
         try:
-            from sage.libs.integrations.openaiclient import OpenAIClient
+            from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-            self.client = OpenAIClient(
+            self.client = IntelligentLLMClient(
                 model_name=model_to_use or str(merged_path),
                 base_url=f"http://localhost:{port}/v1",
                 api_key="EMPTY",  # pragma: allowlist secret

@@ -5,7 +5,7 @@
 # 注意：重构后的 submodule 路径：
 # - packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
 # - packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow
-# - packages/sage-common/src/sage/common/components/sage_vllm/sageLLM
+# - packages/sage-common/src/sage/common/components/sage_llm/sageLLM
 
 set -e
 
@@ -23,7 +23,7 @@ echo ""
 SUBMODULES=(
     "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
     "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
-    "packages/sage-common/src/sage/common/components/sage_vllm/sageLLM"
+    "packages/sage-common/src/sage/common/components/sage_llm/sageLLM"
     "docs-public"
 )
 

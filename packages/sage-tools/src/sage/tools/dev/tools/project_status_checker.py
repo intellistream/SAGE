@@ -392,7 +392,12 @@ class ProjectStatusChecker:
 
             installed = {}
             for dist in metadata.distributions():
-                installed[dist.metadata["Name"]] = dist.version
+                try:
+                    if dist.metadata and "Name" in dist.metadata:
+                        installed[dist.metadata["Name"]] = dist.version
+                except Exception:
+                    # 跳过损坏的包
+                    continue
             return installed
         except ImportError:
             # Python < 3.8 回退方案：使用 pkg_resources（带警告抑制）

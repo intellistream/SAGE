@@ -1,14 +1,15 @@
 """
-SAGE Kernel - 流式数据处理引擎和基础算子
+SAGE Kernel - 流式数据处理引擎和运行时
 
 Layer: L3 (Kernel)
 Dependencies: sage.platform (L2), sage.common (L1)
 
 提供：
 - 数据流执行引擎：Environment, DataStream API
-- 基础算子：MapOperator, FilterOperator, FlatMapOperator
 - 运行时组件：JobManager, Scheduler
 - RPC通信实现：RPCQueue（注册到L2工厂）
+
+注意：基础算子（MapOperator, FilterOperator等）已迁移到 sage.common.core.functions
 """
 
 # 直接从本包的_version模块加载版本信息
@@ -51,7 +52,7 @@ except ImportError:
 # 导出子模块
 __layer__ = "L3"
 
-from . import api, operators
+from . import api
 
 # ============================================================================
 # 架构关键：L3向L2注册实现（Factory Pattern）
@@ -86,5 +87,4 @@ __all__ = [
     "LocalEnvironment",
     "RemoteEnvironment",
     "api",
-    "operators",
 ]
