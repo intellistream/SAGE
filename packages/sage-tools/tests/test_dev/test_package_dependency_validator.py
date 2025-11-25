@@ -61,9 +61,15 @@ sage-deps = []
         assert not passed
         assert len(issues) >= 1
 
-        # Find the isage-* dependency issue
+        # Find the dependency issue by checking for error severity and the package
         isage_issue = next(
-            (i for i in issues if "isage-*" in i.message or "isage-common" in i.details),
+            (
+                i
+                for i in issues
+                if i.severity == "error"
+                and i.package == "sage-tools"
+                and "isage-common" in i.details
+            ),
             None,
         )
         assert isage_issue is not None
@@ -95,13 +101,15 @@ sage-deps = []
         # The new behavior should fail with an error
         assert not passed
 
-        # Find the error issue
-        error_issues = [i for i in issues if i.severity == "error"]
-        assert len(error_issues) >= 1
-
-        # The error should be about isage-* in dependencies
+        # Find the error issue - look for error about sage-tools with isage-common in details
         isage_error = next(
-            (i for i in error_issues if "isage-*" in i.message),
+            (
+                i
+                for i in issues
+                if i.severity == "error"
+                and i.package == "sage-tools"
+                and "isage-common" in i.details
+            ),
             None,
         )
         assert isage_error is not None
@@ -130,9 +138,10 @@ sage-deps = [
         validator = PackageDependencyValidator(temp_packages_dir)
         issues, passed = validator.validate_all_packages()
 
-        # Should pass without isage-* dependency errors
-        isage_issues = [i for i in issues if "isage-*" in i.message and i.severity == "error"]
-        assert len(isage_issues) == 0
+        # Should pass without dependency-related errors for sage-tools
+        # (Note: sage-tools won't fail because isage-* is only in optional-dependencies, not dependencies)
+        dep_errors = [i for i in issues if i.severity == "error" and "isage-common" in i.details]
+        assert len(dep_errors) == 0
 
     def test_meta_package_allowed_isage_deps(self, temp_packages_dir):
         """Test that sage meta-package is allowed to have isage-* in dependencies."""
