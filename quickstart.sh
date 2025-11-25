@@ -332,6 +332,21 @@ main() {
                     echo -e "${DIM}  ℹ️  开发模式 hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
                 }
             fi
+
+            # 安装 neuromem submodule 的 pre-commit hooks
+            local neuromem_path="$SAGE_ROOT/packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
+            if [ -d "$neuromem_path" ] && [ -f "$neuromem_path/.pre-commit-config.yaml" ]; then
+                echo -e "${DIM}   配置 neuromem submodule 的 pre-commit hooks...${NC}"
+                if command -v pre-commit >/dev/null 2>&1; then
+                    (cd "$neuromem_path" && pre-commit install 2>/dev/null) && {
+                        echo -e "${GREEN}   ✅ neuromem pre-commit hooks 已安装${NC}"
+                    } || {
+                        echo -e "${DIM}   ℹ️  neuromem pre-commit hooks 安装跳过${NC}"
+                    }
+                else
+                    echo -e "${DIM}   ℹ️  pre-commit 未安装，跳过 neuromem hooks${NC}"
+                fi
+            fi
         fi
 
         show_usage_tips "$mode"
