@@ -13,7 +13,7 @@ SAGE Finetune - 轻量级大模型微调工具
 - 支持多种数据格式
 
 使用示例:
-    from sage.tools.finetune import LoRATrainer, TrainingConfig
+    from sage.libs.finetune import LoRATrainer, TrainingConfig
 
     config = TrainingConfig(
         model_name="Qwen/Qwen2.5-Coder-1.5B-Instruct",

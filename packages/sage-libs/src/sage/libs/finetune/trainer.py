@@ -262,15 +262,18 @@ def train_from_meta(output_dir: str | Path):
 
     Args:
         output_dir: 输出目录（包含 finetune_meta.json）
+
+    Raises:
+        FileNotFoundError: 当元信息文件不存在时
     """
     output_dir = Path(output_dir)
 
     # 读取元信息
     meta_file = output_dir / "finetune_meta.json"
     if not meta_file.exists():
-        print(f"❌ 未找到元信息文件: {meta_file}")
-        print("请先运行: sage finetune quickstart")
-        sys.exit(1)
+        error_msg = f"❌ 未找到元信息文件: {meta_file}\n请先运行: sage finetune quickstart"
+        print(error_msg)
+        raise FileNotFoundError(error_msg)
 
     import json
 
@@ -292,9 +295,12 @@ def train_from_meta(output_dir: str | Path):
 if __name__ == "__main__":
     # 支持命令行调用
     if len(sys.argv) < 2:
-        print("用法: python -m sage.tools.finetune.trainer <output_dir>")
+        print("用法: python -m sage.libs.finetune.trainer <output_dir>")
         print("\n示例:")
-        print("  python -m sage.tools.finetune.trainer finetune_output/code")
+        print("  python -m sage.libs.finetune.trainer finetune_output/code")
         sys.exit(1)
 
-    train_from_meta(sys.argv[1])
+    try:
+        train_from_meta(sys.argv[1])
+    except FileNotFoundError:
+        sys.exit(1)

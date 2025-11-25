@@ -116,11 +116,13 @@ def start(
             return
 
         # Start Studio with ChatModeManager (includes Gateway + LLM by default)
+        # Pass llm=None to allow auto-detection (if no_llm is False)
+        # Pass llm=False if user explicitly requested no_llm
         success = studio_manager.start(
             frontend_port=port,
             host=host,
             dev=dev,
-            llm=not no_llm,
+            llm=False if no_llm else None,
             llm_model=llm_model,
             use_finetuned=use_finetuned,
         )

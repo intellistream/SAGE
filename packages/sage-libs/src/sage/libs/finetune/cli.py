@@ -20,14 +20,14 @@ from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
 
-from sage.tools.finetune.core import generate_training_config, prepare_training_data
-from sage.tools.finetune.models import TASK_NAMES, FinetuneTask
-from sage.tools.finetune.service import (
+from sage.libs.finetune.core import generate_training_config, prepare_training_data
+from sage.libs.finetune.models import TASK_NAMES, FinetuneTask
+from sage.libs.finetune.service import (
     merge_lora_weights,
     serve_model_with_vllm,
     start_training,
 )
-from sage.tools.finetune.utils import (
+from sage.libs.finetune.utils import (
     check_training_dependencies,
     get_finetune_output_dir,
     get_sage_root,
@@ -432,7 +432,7 @@ def _show_next_steps(output_dir, config_path):
             "[bold green]✅ 准备完成！[/bold green]\n\n"
             "[bold]🚀 启动训练:[/bold]\n"
             f"[cyan]sage finetune run {output_dir}[/cyan]\n\n"
-            f"或: [cyan]python -m sage.tools.finetune.trainer {output_dir}[/cyan]",
+            f"或: [cyan]python -m sage.libs.finetune.trainer {output_dir}[/cyan]",
             border_style="green",
         )
     )
