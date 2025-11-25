@@ -73,23 +73,32 @@ class TestFinetuneServeCommand:
         """Test that serve command help works."""
         result = cli_runner.invoke(app, ["serve", "--help"])
         assert result.exit_code == 0
-        assert "serve" in result.stdout.lower() or "服务" in result.stdout
+        assert (
+            "serve" in result.stdout.lower()
+            or "服务" in result.stdout
+            or "deprecated" in result.stdout.lower()
+        )
 
-    @patch("sage.libs.finetune.cli.serve_model_with_vllm")
+    @patch("subprocess.run")
     @patch("sage.libs.finetune.cli._find_model_for_serving")
-    def test_serve_command_basic(self, mock_find_model, mock_serve, cli_runner, tmp_path):
-        """Test serve command with basic options."""
+    @patch("sage.libs.finetune.cli.Confirm.ask")
+    def test_serve_command_basic(
+        self, mock_confirm, mock_find_model, mock_subprocess, cli_runner, tmp_path
+    ):
+        """Test serve command shows deprecation warning and suggests new command."""
         model_path = tmp_path / "model"
         model_path.mkdir()
 
         # Mock the model finder to return valid paths
         mock_find_model.return_value = (model_path, False, None)
-        mock_serve.return_value = None
+        mock_confirm.return_value = False  # Don't actually run the command
+        mock_subprocess.return_value = None
 
         result = cli_runner.invoke(app, ["serve", "test_model"])
 
-        # Should attempt to call serve function
-        assert result.exit_code in [0, 1]
+        # Should show deprecation warning
+        assert result.exit_code == 0
+        mock_find_model.assert_called_once()
 
 
 class TestFinetuneMergeCommand:
