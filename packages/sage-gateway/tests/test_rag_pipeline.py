@@ -5,6 +5,7 @@ from __future__ import annotations
 import queue
 
 import pytest
+
 from sage.gateway import rag_pipeline
 from sage.gateway.rag_pipeline import (
     PipelineBridge,
@@ -18,7 +19,7 @@ from sage.gateway.rag_pipeline import (
 class DummyPipelineBuilder:
     """Fluent helper that mimics the chaining interface used by LocalEnvironment."""
 
-    def __init__(self, env: "DummyEnvironment"):
+    def __init__(self, env: DummyEnvironment):
         self._env = env
 
     def map(self, map_cls, **kwargs):

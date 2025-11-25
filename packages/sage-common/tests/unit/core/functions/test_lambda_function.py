@@ -604,9 +604,8 @@ class TestDetectLambdaTypeAnnotations:
 
     def test_detect_flatmap_with_list_annotation(self):
         """Test detection of flatmap function with List return annotation (line 135)"""
-        from typing import List
 
-        def list_func(x: int) -> List[int]:
+        def list_func(x: int) -> list[int]:
             return [x, x * 2]
 
         assert detect_lambda_type(list_func) == "flatmap"

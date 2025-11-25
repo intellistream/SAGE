@@ -1,6 +1,19 @@
 # @test:skip           - 跳过测试
 
+"""
+LongRefiner RAG Pipeline
+========================
+
+使用LongRefiner三阶段压缩算法的RAG pipeline。
+
+LongRefiner三阶段:
+    1. Query Analysis: 分析查询的局部/全局信息需求
+    2. Document Structuring: 将文档结构化为层次化的章节
+    3. Global Selection: 基于查询分析选择相关内容
+"""
+
 import os
+import sys
 import time
 
 from sage.common.utils.config.loader import load_config
@@ -20,6 +33,7 @@ from sage.middleware.operators.rag import (
 
 
 def pipeline_run(config):
+    """运行LongRefiner RAG pipeline"""
     env = LocalEnvironment()
 
     enable_profile = True
@@ -27,46 +41,47 @@ def pipeline_run(config):
     (
         env.from_batch(HFDatasetBatch, config["source"])
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
-        .map(LongRefinerOperator, config["refiner"])
+        .map(LongRefinerOperator, config["longrefiner"])
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
         .map(F1Evaluate, config["evaluate"])
-        # .map(RecallEvaluate, config["evaluate"])
-        # .map(RougeLEvaluate, config["evaluate"])
-        # .map(BRSEvaluate, config["evaluate"])
-        # .map(AccuracyEvaluate, config["evaluate"])
         .map(TokenCountEvaluate, config["evaluate"])
         .map(LatencyEvaluate, config["evaluate"])
-        # .map(ContextRecallEvaluate, config["evaluate"])
         .map(CompressionRateEvaluate, config["evaluate"])
     )
 
     try:
         env.submit()
-        time.sleep(600)
+        # Wait for pipeline to complete
+        time.sleep(600)  # 10 minutes for 20 samples
     except KeyboardInterrupt:
-        print("停止运行")
+        print("\n⚠️  KeyboardInterrupt: 用户手动停止")
+    except Exception as e:
+        print(f"\n❌ Pipeline异常: {e}")
+        import traceback
+
+        traceback.print_exc()
     finally:
+        print("\n🔄 清理环境...")
         env.close()
+        print("✅ 环境已关闭")
 
 
 # ==========================================================
 if __name__ == "__main__":
-    from sage.common.utils.logging.custom_logger import CustomLogger
-
     CustomLogger.disable_global_console_debug()
-
-    import os
-    import sys
 
     # 检查是否在测试模式下运行
     if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
-        print("🧪 Test mode detected - qa_refiner example requires pre-built FAISS index")
+        print(
+            "🧪 Test mode detected - LongRefiner pipeline requires pre-built FAISS index and LoRA models"
+        )
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
 
+    # 配置文件路径
     config_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "config", "config_refiner.yaml"
+        os.path.dirname(__file__), "..", "..", "config", "config_longrefiner.yaml"
     )
 
     # 检查配置文件是否存在
