@@ -76,14 +76,17 @@ class TestFinetuneServeCommand:
         assert "serve" in result.stdout.lower() or "服务" in result.stdout
 
     @patch("sage.libs.finetune.cli.serve_model_with_vllm")
-    def test_serve_command_basic(self, mock_serve, cli_runner, tmp_path):
+    @patch("sage.libs.finetune.cli._find_model_for_serving")
+    def test_serve_command_basic(self, mock_find_model, mock_serve, cli_runner, tmp_path):
         """Test serve command with basic options."""
         model_path = tmp_path / "model"
         model_path.mkdir()
 
+        # Mock the model finder to return valid paths
+        mock_find_model.return_value = (model_path, False, None)
         mock_serve.return_value = None
 
-        result = cli_runner.invoke(app, ["serve", "--model", str(model_path)])
+        result = cli_runner.invoke(app, ["serve", "test_model"])
 
         # Should attempt to call serve function
         assert result.exit_code in [0, 1]
@@ -99,23 +102,23 @@ class TestFinetuneMergeCommand:
         assert "merge" in result.stdout.lower() or "合并" in result.stdout
 
     @patch("sage.libs.finetune.cli.merge_lora_weights")
-    def test_merge_command_basic(self, mock_merge, cli_runner, tmp_path):
+    @patch("sage.libs.finetune.cli._find_checkpoint")
+    def test_merge_command_basic(self, mock_find_checkpoint, mock_merge, cli_runner, tmp_path):
         """Test merge command with basic options."""
         base_model = "test/model"
         lora_path = tmp_path / "lora"
         lora_path.mkdir()
         output_path = tmp_path / "merged"
 
-        mock_merge.return_value = None
+        # Mock the checkpoint finder to return valid paths
+        mock_find_checkpoint.return_value = (lora_path, base_model)
+        mock_merge.return_value = True
 
         result = cli_runner.invoke(
             app,
             [
                 "merge",
-                "--base-model",
-                base_model,
-                "--lora-path",
-                str(lora_path),
+                "test_model",
                 "--output",
                 str(output_path),
             ],

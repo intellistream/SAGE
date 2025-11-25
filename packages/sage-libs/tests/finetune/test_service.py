@@ -12,7 +12,7 @@ from sage.libs.finetune.service import merge_lora_weights, serve_model_with_vllm
 class TestStartTraining:
     """Test start_training function."""
 
-    @patch("sage.libs.finetune.service.train_from_meta")
+    @patch("sage.libs.finetune.trainer.train_from_meta")
     def test_start_training_native(self, mock_train, tmp_path):
         """Test starting training with native SAGE module."""
         # Create mock config file
@@ -73,8 +73,8 @@ class TestMergeLoraWeights:
     ):
         """Test successful LoRA weights merging."""
         base_model = "test/model"
-        lora_path = tmp_path / "lora"
-        lora_path.mkdir()
+        checkpoint_path = tmp_path / "lora"
+        checkpoint_path.mkdir()
         output_path = tmp_path / "merged"
 
         # Mock model and tokenizer
@@ -89,7 +89,9 @@ class TestMergeLoraWeights:
         mock_tok = MagicMock()
         mock_tokenizer.return_value = mock_tok
 
-        merge_lora_weights(base_model=base_model, lora_path=lora_path, output_path=output_path)
+        merge_lora_weights(
+            checkpoint_path=checkpoint_path, base_model=base_model, output_path=output_path
+        )
 
         # Verify models were loaded and saved
         mock_model.assert_called_once()

@@ -61,15 +61,12 @@ class TestTrainFromMeta:
         output_dir.mkdir()
 
         metadata = {
-            "config": {
-                "model_name": "test/model",
-                "output_dir": str(output_dir),
-                "num_train_epochs": 3,
-            },
-            "data_path": str(tmp_path / "data.json"),
+            "model": "test/model",
+            "dataset": str(tmp_path / "data.json"),
         }
 
-        metadata_file = output_dir / "metadata.json"
+        # Use the correct filename that train_from_meta expects
+        metadata_file = output_dir / "finetune_meta.json"
         with open(metadata_file, "w") as f:
             json.dump(metadata, f)
 
