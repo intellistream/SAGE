@@ -21,8 +21,7 @@ tools/install/
     ├── core_installer.sh
     ├── dev_installer.sh
     ├── main_installer.sh
-    ├── scientific_installer.sh
-    └── vllm_installer.sh
+    └── scientific_installer.sh
 
 tools/conda/
 ├── conda_utils.sh
