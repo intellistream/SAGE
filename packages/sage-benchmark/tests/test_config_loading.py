@@ -72,13 +72,19 @@ class TestDataFiles:
 
     def test_data_directory_exists(self):
         """Verify data directory exists"""
-        data_dir = Path(__file__).parent.parent / "src" / "sage" / "data" / "qa"
+        data_dir = Path(__file__).parent.parent / "src" / "sage" / "data" / "sources" / "qa_base"
         assert data_dir.exists(), "Data directory should exist"
 
     def test_queries_file_exists(self):
         """Verify queries.jsonl exists"""
         queries_path = (
-            Path(__file__).parent.parent / "src" / "sage" / "data" / "qa" / "queries.jsonl"
+            Path(__file__).parent.parent
+            / "src"
+            / "sage"
+            / "data"
+            / "sources"
+            / "qa_base"
+            / "queries.jsonl"
         )
 
         if queries_path.exists():
