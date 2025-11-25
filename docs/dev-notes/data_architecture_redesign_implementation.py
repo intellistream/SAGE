@@ -32,9 +32,8 @@ Architecture:
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -61,9 +60,9 @@ class SourceRegistry:
 
     def __init__(self, sources_root: Path):
         self.sources_root = sources_root
-        self._cache: Dict[str, DatasetMetadata] = {}
+        self._cache: dict[str, DatasetMetadata] = {}
 
-    def discover_sources(self) -> List[str]:
+    def discover_sources(self) -> list[str]:
         """Discover all available dataset sources."""
         if not self.sources_root.exists():
             return []
@@ -126,7 +125,7 @@ class UsageProfile:
         source_name = self.datasets[dataset_name]
         return self.registry.load_source(source_name)
 
-    def list_datasets(self) -> List[str]:
+    def list_datasets(self) -> list[str]:
         """List all datasets in this usage profile."""
         return list(self.datasets.keys())
 
@@ -137,9 +136,9 @@ class UsageRegistry:
     def __init__(self, usages_root: Path, source_registry: SourceRegistry):
         self.usages_root = usages_root
         self.source_registry = source_registry
-        self._cache: Dict[str, UsageProfile] = {}
+        self._cache: dict[str, UsageProfile] = {}
 
-    def discover_usages(self) -> List[str]:
+    def discover_usages(self) -> list[str]:
         """Discover all available usage profiles."""
         if not self.usages_root.exists():
             return []
@@ -186,7 +185,7 @@ class DataManager:
         sift_loader = manager.get_source("sift")
     """
 
-    _instance: Optional["DataManager"] = None
+    _instance: Optional[DataManager] = None
 
     def __init__(self, data_root: Optional[Path] = None):
         if data_root is None:
@@ -201,7 +200,7 @@ class DataManager:
         self.usage_registry = UsageRegistry(self.usages_root, self.source_registry)
 
     @classmethod
-    def get_instance(cls, data_root: Optional[Path] = None) -> "DataManager":
+    def get_instance(cls, data_root: Optional[Path] = None) -> DataManager:
         """Get singleton instance of DataManager."""
         if cls._instance is None:
             cls._instance = cls(data_root)
@@ -225,7 +224,7 @@ class DataManager:
 
     # --- Source Layer API ---
 
-    def list_sources(self) -> List[str]:
+    def list_sources(self) -> list[str]:
         """List all available data sources."""
         return self.source_registry.discover_sources()
 
@@ -239,7 +238,7 @@ class DataManager:
 
     # --- Usage Layer API ---
 
-    def list_usages(self) -> List[str]:
+    def list_usages(self) -> list[str]:
         """List all available usage profiles."""
         return self.usage_registry.discover_usages()
 

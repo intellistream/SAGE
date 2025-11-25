@@ -936,6 +936,12 @@ class Wiki18FAISSRetriever(MapOperator):
             if not documents_path:
                 raise ValueError("faiss.documents_path 配置项是必需的")
 
+            # 展开环境变量（支持 ${HOME}, ${USER}, $HOME 等格式）
+            index_path = os.path.expandvars(index_path)
+            documents_path = os.path.expandvars(documents_path)
+            if mapping_path:
+                mapping_path = os.path.expandvars(mapping_path)
+
             # 尝试加载已有索引
             if os.path.exists(index_path) and os.path.exists(documents_path):
                 self.logger.info(f"加载已有FAISS索引: {index_path}")

@@ -1,6 +1,7 @@
 # sageLLM Control Plane Benchmark
 
-This module provides benchmarking tools for evaluating different scheduling policies in sageLLM's Control Plane.
+This module provides benchmarking tools for evaluating different scheduling policies in sageLLM's
+Control Plane.
 
 ## Overview
 
@@ -37,11 +38,13 @@ pip install -e "packages/sage-benchmark[dev]"
 ```
 
 Additional dependencies for HTTP client:
+
 ```bash
 pip install aiohttp
 ```
 
 For CLI:
+
 ```bash
 pip install typer
 ```
@@ -122,30 +125,30 @@ reporter.save_all("./benchmark_results")
 
 ## Supported Scheduling Policies
 
-| Policy | Description |
-|--------|-------------|
-| `fifo` | First-In-First-Out scheduling |
-| `priority` | Priority-based scheduling |
-| `slo_aware` | SLO-deadline aware scheduling |
-| `cost_optimized` | Cost-optimized scheduling |
-| `adaptive` | Adaptive scheduling based on system state |
-| `aegaeon` | Advanced scheduling with multiple optimizations |
+| Policy           | Description                                     |
+| ---------------- | ----------------------------------------------- |
+| `fifo`           | First-In-First-Out scheduling                   |
+| `priority`       | Priority-based scheduling                       |
+| `slo_aware`      | SLO-deadline aware scheduling                   |
+| `cost_optimized` | Cost-optimized scheduling                       |
+| `adaptive`       | Adaptive scheduling based on system state       |
+| `aegaeon`        | Advanced scheduling with multiple optimizations |
 
 ## Configuration Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `control_plane_url` | Control Plane HTTP address | `http://localhost:8080` |
-| `policies` | List of policies to benchmark | `["fifo", "priority", "slo_aware"]` |
-| `num_requests` | Total requests per policy | `100` |
-| `request_rate` | Target request rate (req/s) | `10.0` |
-| `arrival_pattern` | Request arrival pattern | `poisson` |
-| `model_distribution` | Request distribution across models | `{"llama-7b": 1.0}` |
-| `priority_distribution` | Request priority distribution | `{"NORMAL": 1.0}` |
-| `prompt_len_range` | Prompt length range (min, max) | `(50, 500)` |
-| `output_len_range` | Output length range (min, max) | `(50, 200)` |
-| `timeout_seconds` | Request timeout | `60.0` |
-| `warmup_requests` | Warmup requests before measurement | `10` |
+| Option                  | Description                        | Default                             |
+| ----------------------- | ---------------------------------- | ----------------------------------- |
+| `control_plane_url`     | Control Plane HTTP address         | `http://localhost:8080`             |
+| `policies`              | List of policies to benchmark      | `["fifo", "priority", "slo_aware"]` |
+| `num_requests`          | Total requests per policy          | `100`                               |
+| `request_rate`          | Target request rate (req/s)        | `10.0`                              |
+| `arrival_pattern`       | Request arrival pattern            | `poisson`                           |
+| `model_distribution`    | Request distribution across models | `{"llama-7b": 1.0}`                 |
+| `priority_distribution` | Request priority distribution      | `{"NORMAL": 1.0}`                   |
+| `prompt_len_range`      | Prompt length range (min, max)     | `(50, 500)`                         |
+| `output_len_range`      | Output length range (min, max)     | `(50, 200)`                         |
+| `timeout_seconds`       | Request timeout                    | `60.0`                              |
+| `warmup_requests`       | Warmup requests before measurement | `10`                                |
 
 ## Output Formats
 
@@ -181,19 +184,23 @@ Summary metrics saved to `summary_<timestamp>.csv` for spreadsheet analysis.
 ## Metrics Collected
 
 ### Latency Metrics
+
 - End-to-end latency (avg, p50, p95, p99, min, max)
 - Time to First Token (TTFT)
 - Time Between Tokens (TBT)
 
 ### Throughput Metrics
+
 - Requests per second
 - Tokens per second
 
 ### SLO Metrics
+
 - Overall SLO compliance rate
 - SLO compliance by priority level
 
 ### Error Metrics
+
 - Error rate
 - Timeout rate
 
@@ -203,16 +210,17 @@ Summary metrics saved to `summary_<timestamp>.csv` for spreadsheet analysis.
 
 The benchmark expects the following Control Plane endpoints:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/v1/chat/completions` | POST | OpenAI-compatible completion endpoint |
-| `/admin/set_policy` | POST | Switch scheduling policy |
-| `/admin/metrics` | GET | Get Control Plane metrics |
+| Endpoint               | Method | Description                           |
+| ---------------------- | ------ | ------------------------------------- |
+| `/health`              | GET    | Health check                          |
+| `/v1/chat/completions` | POST   | OpenAI-compatible completion endpoint |
+| `/admin/set_policy`    | POST   | Switch scheduling policy              |
+| `/admin/metrics`       | GET    | Get Control Plane metrics             |
 
 ### Request Headers
 
 Custom headers for request metadata:
+
 - `X-Request-ID`: Unique request identifier
 - `X-Request-Priority`: Request priority (HIGH, NORMAL, LOW)
 - `X-SLO-Deadline-Ms`: SLO deadline in milliseconds

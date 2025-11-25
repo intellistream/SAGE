@@ -18,6 +18,7 @@ Usage 1: Direct Library Usage
 """
 
 import numpy as np
+
 from sage.libs.privacy.unlearning import UnlearningEngine
 from sage.libs.privacy.unlearning.algorithms import LaplaceMechanism
 
