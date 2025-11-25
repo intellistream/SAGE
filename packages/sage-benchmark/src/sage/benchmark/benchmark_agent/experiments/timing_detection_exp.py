@@ -55,8 +55,7 @@ class TimingDetectionExperiment(BaseExperiment):
         """Prepare experiment: load data and initialize detector."""
         super().prepare()
 
-        verbose = getattr(self.config, "verbose", False)
-        if verbose:
+        if self.config.verbose:
             print(f"\n{'=' * 60}")
             print(f"Timing Detection Experiment: {self.experiment_id}")
             print(f"{'=' * 60}")
@@ -72,7 +71,7 @@ class TimingDetectionExperiment(BaseExperiment):
 
             self.benchmark_loader = profile_data.get("benchmark")
 
-            if verbose:
+            if self.config.verbose:
                 print("✓ Loaded benchmark data")
 
         except Exception as e:
@@ -82,7 +81,7 @@ class TimingDetectionExperiment(BaseExperiment):
         if self.adapter_registry is not None:
             try:
                 self.strategy = self.adapter_registry.get(self.config.detector)
-                if verbose:
+                if self.config.verbose:
                     print(f"✓ Initialized detector: {self.config.detector}")
             except Exception as e:
                 print(f"Warning: Could not load detector: {e}")
@@ -97,8 +96,7 @@ class TimingDetectionExperiment(BaseExperiment):
         Returns:
             ExperimentResult with timing decisions and references
         """
-        verbose = getattr(self.config, "verbose", False)
-        if verbose:
+        if self.config.verbose:
             print("\nRunning experiment...")
 
         predictions = []
@@ -170,19 +168,19 @@ class TimingDetectionExperiment(BaseExperiment):
                     }
                     references.append(ref_dict)
 
-                    if verbose and (idx + 1) % 10 == 0:
+                    if self.config.verbose and (idx + 1) % 10 == 0:
                         print(f"  Processed {idx + 1} samples...")
 
                 except Exception as e:
                     metadata["failed_samples"] += 1
-                    if verbose:
+                    if self.config.verbose:
                         print(f"  Error processing sample {idx}: {e}")
                     continue
 
         except Exception as e:
             print(f"Error iterating samples: {e}")
 
-        if verbose:
+        if self.config.verbose:
             print("\nCompleted:")
             print(f"  Total samples: {metadata['total_samples']}")
             print(f"  Failed samples: {metadata['failed_samples']}")

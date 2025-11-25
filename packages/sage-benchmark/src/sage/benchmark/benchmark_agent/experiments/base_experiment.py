@@ -64,7 +64,6 @@ class PlanningConfig(ExperimentConfig):
     min_steps: int = Field(default=5)
     max_steps: int = Field(default=10)
     planner_params: dict[str, Any] = Field(default_factory=dict)
-    verbose: bool = Field(default=False, description="Enable verbose output")
 
 
 class TimingDetectionConfig(ExperimentConfig):

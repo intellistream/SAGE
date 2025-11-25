@@ -11,24 +11,20 @@ import argparse
 import sys
 from pathlib import Path
 
-from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
 from sage.benchmark.benchmark_agent.config.config_loader import ConfigLoader
 from sage.benchmark.benchmark_agent.experiments import (
     PlanningExperiment,
     TimingDetectionExperiment,
     ToolSelectionExperiment,
 )
-from sage.data import DataManager
 
 
-def create_experiment(config, data_manager, adapter_registry):
+def create_experiment(config):
     """
     Create appropriate experiment instance based on config type.
 
     Args:
         config: Experiment configuration
-        data_manager: DataManager instance
-        adapter_registry: AdapterRegistry instance
 
     Returns:
         Experiment instance
@@ -39,17 +35,11 @@ def create_experiment(config, data_manager, adapter_registry):
     experiment_type = config.experiment
 
     if experiment_type == "tool_selection":
-        return ToolSelectionExperiment(
-            config, data_manager=data_manager, adapter_registry=adapter_registry
-        )
+        return ToolSelectionExperiment(config)
     elif experiment_type == "planning":
-        return PlanningExperiment(
-            config, data_manager=data_manager, adapter_registry=adapter_registry
-        )
+        return PlanningExperiment(config)
     elif experiment_type == "timing_detection":
-        return TimingDetectionExperiment(
-            config, data_manager=data_manager, adapter_registry=adapter_registry
-        )
+        return TimingDetectionExperiment(config)
     else:
         raise ValueError(f"Unknown experiment type: {experiment_type}")
 
@@ -120,23 +110,9 @@ Examples:
         print(f"Error loading config: {e}")
         sys.exit(1)
 
-    # Initialize DataManager and AdapterRegistry
-    try:
-        print("Initializing DataManager...")
-        data_manager = DataManager.get_instance()
-
-        print("Initializing AdapterRegistry...")
-        adapter_registry = get_adapter_registry()
-
-        print(f"  Available strategies: {adapter_registry.list_strategies()}")
-
-    except Exception as e:
-        print(f"Error initializing managers: {e}")
-        sys.exit(1)
-
     # Create experiment
     try:
-        experiment = create_experiment(config, data_manager, adapter_registry)
+        experiment = create_experiment(config)
         print(f"Created experiment: {experiment.__class__.__name__}")
     except Exception as e:
         print(f"Error creating experiment: {e}")

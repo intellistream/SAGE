@@ -7,12 +7,6 @@ experiments:
 1. **Planning** - Multi-step planning with tool composition
 1. **Timing Detection** - Timing judgment for tool invocation decisions
 
-## Documentation
-
-- **[DATA_PATHS.md](DATA_PATHS.md)** - Data file locations and loading guide
-- **[TOOL_SELECTION_README.md](scripts/evaluations/TOOL_SELECTION_README.md)** - Tool selection
-  benchmark details
-
 ## Architecture
 
 ```
@@ -28,7 +22,6 @@ benchmark_agent/
 │   ├── tool_selection_exp.py # Tool selection experiment
 │   ├── planning_exp.py       # Planning experiment
 │   └── timing_detection_exp.py # Timing detection experiment
-├── data_paths.py             # Centralized data path management
 ├── __init__.py               # Module exports
 ├── __main__.py               # CLI entry point
 └── README.md                 # This file
