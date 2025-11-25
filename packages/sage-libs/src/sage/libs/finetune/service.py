@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
 Finetune CLI - Service Management
-服务管理：训练执行、模型合并、服务部署
+服务管理：训练执行、模型合并
+
+Note: vLLM 服务功能已移至统一的 sage.common.components.sage_vllm.VLLMService
+      请使用 `sage llm serve` 命令启动模型服务
 """
 
 import json
@@ -9,7 +12,6 @@ import subprocess
 from pathlib import Path
 
 from rich.console import Console
-from rich.panel import Panel
 
 console = Console()
 
@@ -137,97 +139,3 @@ def merge_lora_weights(checkpoint_path: Path, base_model: str, output_path: Path
     except Exception as e:
         console.print(f"[red]❌ 合并失败: {e}[/red]")
         return False
-
-
-def serve_model_with_vllm(
-    model_path: Path,
-    host: str = "0.0.0.0",
-    port: int = 8000,
-    gpu_memory_utilization: float = 0.9,
-    daemon: bool = False,
-    lora_path: Path | None = None,
-    lora_name: str | None = None,
-) -> subprocess.Popen | None:
-    """使用 vLLM 启动模型服务
-
-    Args:
-        model_path: 模型路径
-        host: 服务主机
-        port: 服务端口
-        gpu_memory_utilization: GPU 显存利用率
-        daemon: 是否后台运行
-        lora_path: LoRA 路径（可选）
-        lora_name: LoRA 名称（可选）
-
-    Returns:
-        进程对象（如果是daemon模式）
-
-    Raises:
-        FileNotFoundError: 当模型路径不存在时
-    """
-    # Validate model path exists
-    if not model_path.exists():
-        raise FileNotFoundError(f"Model path does not exist: {model_path}")
-
-    # 检查 vLLM 是否安装
-    try:
-        import vllm  # noqa: F401
-    except ImportError:
-        console.print("[yellow]⚠️  vLLM 未安装，正在安装...[/yellow]")
-        subprocess.run(["pip", "install", "vllm"], check=True)
-        console.print("[green]✅ vLLM 安装完成[/green]\n")
-
-    # 构建命令
-    cmd = [
-        "python",
-        "-m",
-        "vllm.entrypoints.openai.api_server",
-        "--model",
-        str(model_path),
-        "--host",
-        host,
-        "--port",
-        str(port),
-        "--gpu-memory-utilization",
-        str(gpu_memory_utilization),
-    ]
-
-    if lora_path and lora_name:
-        cmd.extend(["--enable-lora", "--lora-modules", f"{lora_name}={lora_path}"])
-
-    console.print(f"[cyan]📡 启动命令: {' '.join(cmd)}[/cyan]\n")
-    console.print(
-        Panel.fit(
-            f"[bold green]🎉 服务启动中...[/bold green]\n\n"
-            f"📍 API 地址: [cyan]http://{host}:{port}[/cyan]\n"
-            f"🤖 模型: [green]{model_path.name}[/green]\n\n"
-            f"[bold]使用方式:[/bold]\n"
-            f"  sage chat --backend compatible --base-url http://localhost:{port}/v1\n\n"
-            f"[yellow]按 Ctrl+C 停止服务[/yellow]",
-            border_style="green",
-        )
-    )
-
-    if daemon:
-        # 后台运行
-        log_file = Path.cwd() / f"vllm_{model_path.name}.log"
-        pid_file = Path.cwd() / f"vllm_{model_path.name}.pid"
-
-        with open(log_file, "w") as f:
-            process = subprocess.Popen(
-                cmd, stdout=f, stderr=subprocess.STDOUT, start_new_session=True
-            )
-
-        with open(pid_file, "w") as f:
-            f.write(str(process.pid))
-
-        console.print("\n[green]✅ 服务已在后台启动[/green]")
-        console.print(f"PID: {process.pid}")
-        console.print(f"日志: [cyan]{log_file}[/cyan]")
-        console.print(f"\n停止服务: [cyan]kill {process.pid}[/cyan]")
-
-        return process
-    else:
-        # 前台运行
-        subprocess.run(cmd)
-        return None
