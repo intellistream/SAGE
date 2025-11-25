@@ -501,6 +501,24 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             log_info "安装成功: packages/sage-studio" "INSTALL"
             log_pip_package_info "isage-studio" "INSTALL"
             echo -e "${CHECK} sage-studio 安装完成"
+
+            # 自动安装前端依赖 (npm install)
+            # 用户期望 quickstart.sh 能一站式搞定所有依赖
+            local frontend_dir="packages/sage-studio/src/sage/studio/frontend"
+            if [ -d "$frontend_dir" ] && command -v npm &> /dev/null; then
+                echo -e "${DIM}  正在安装前端依赖 (npm install)...${NC}"
+                log_info "开始安装前端依赖: $frontend_dir" "INSTALL"
+
+                # 使用子shell进入目录执行，避免影响当前目录
+                # 使用 --no-audit --no-fund 加速安装
+                if (cd "$frontend_dir" && npm install --no-audit --no-fund --loglevel=error &> /dev/null); then
+                    log_info "前端依赖安装成功" "INSTALL"
+                    echo -e "${CHECK} 前端依赖安装完成"
+                else
+                    log_warn "前端依赖安装失败，但这不影响 Python 包安装" "INSTALL"
+                    echo -e "${WARNING} 前端依赖安装失败 (请稍后运行 'sage studio install' 修复)"
+                fi
+            fi
         fi
     fi
 
