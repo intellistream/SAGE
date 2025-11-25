@@ -10,7 +10,7 @@ source:
   hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
   hf_dataset_config: "asqa"  # ASQA dataset for long-form QA
   hf_split: "dev"
-  max_samples: 10
+  max_samples: 20
 
 retriever:
   # 检索器类型: wiki18_faiss
@@ -18,7 +18,7 @@ retriever:
 
   # 通用配置
   dimension: 1024    # BGE-Large-EN-v1.5模型的维度
-  top_k: 8
+  top_k: 100
 
   # Wiki18 FAISS 专用配置
   faiss:

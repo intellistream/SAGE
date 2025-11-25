@@ -9,8 +9,8 @@ source:
   # HuggingFace Dataset 参数
   hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
   hf_dataset_config: "nq"  # Natural Questions dataset
-  hf_split: "dev"
-  max_samples: 10
+  hf_split: "test"
+  max_samples: 20
 
 retriever:
   # 检索器类型: wiki18_faiss
