@@ -12,14 +12,17 @@ Three-stage pipeline:
 
 import re
 import warnings
+from typing import TYPE_CHECKING
 
 import json_repair
 import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
-from vllm import LLM, SamplingParams
-from vllm.lora.request import LoRARequest
+
+# 延迟导入 vLLM（仅在类型检查或实际使用时导入）
+if TYPE_CHECKING:
+    pass
 
 # 抑制 tokenizer 截断警告（这是预期行为，不需要 overflowing tokens）
 warnings.filterwarnings("ignore", message=".*overflowing tokens are not returned.*")
@@ -82,6 +85,15 @@ class LongRefinerCompressor:
         gpu_memory_utilization: float = 0.5,
     ):
         """Load the trained refinement model with LoRA adapters"""
+        try:
+            from vllm import LLM, SamplingParams
+            from vllm.lora.request import LoRARequest
+        except ImportError as e:
+            raise ImportError(
+                "LongRefiner requires vLLM. Please install it with: "
+                "pip install 'isage-middleware[vllm]' or pip install vllm"
+            ) from e
+
         self.model = LLM(
             base_model_path,
             enable_lora=True,
