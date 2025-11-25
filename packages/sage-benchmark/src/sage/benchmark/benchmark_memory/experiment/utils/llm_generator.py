@@ -44,6 +44,40 @@ class LLMGenerator:
         self.seed = seed
         self.extra_params = kwargs
 
+    @classmethod
+    def from_config(cls, config, prefix: str = "runtime") -> "LLMGenerator":
+        """从配置对象创建 LLMGenerator
+
+        Args:
+            config: RuntimeConfig 对象
+            prefix: 配置前缀，默认为 "runtime"
+
+        Returns:
+            LLMGenerator 实例
+
+        Raises:
+            ValueError: 缺少必需的配置参数
+        """
+        api_key = config.get(f"{prefix}.api_key")
+        base_url = config.get(f"{prefix}.base_url")
+        model_name = config.get(f"{prefix}.model_name")
+        max_tokens = config.get(f"{prefix}.max_tokens", 512)
+        temperature = config.get(f"{prefix}.temperature", 0.7)
+        seed = config.get(f"{prefix}.seed")
+
+        # 验证必需参数
+        if not all([api_key, base_url, model_name]):
+            raise ValueError("缺少必需的 LLM 配置: api_key, base_url, model_name")
+
+        return cls(
+            api_key=api_key,
+            base_url=base_url,
+            model_name=model_name,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            seed=seed,
+        )
+
     def generate(self, prompt: str, **override_params: Any) -> str:
         """调用 OpenAI-compatible API 生成回答
 

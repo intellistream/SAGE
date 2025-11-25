@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     pass
 
 from .short_term_memory_service import ShortTermMemoryService
+from .vector_hash_memory_service import VectorHashMemoryService
 
 
 class MemoryServiceFactory:
@@ -35,10 +36,10 @@ class MemoryServiceFactory:
     # 服务类型映射表
     SERVICE_CLASSES = {
         "short_term_memory": ShortTermMemoryService,
+        "vector_hash_memory": VectorHashMemoryService,
         # 未来可以添加其他服务：
         # "long_term_memory": LongTermMemoryService,
         # "hybrid_memory": HybridMemoryService,
-        # "vector_memory": VectorMemoryService,
     }
 
     @staticmethod
@@ -68,6 +69,8 @@ class MemoryServiceFactory:
         # 根据服务类型读取配置并创建 ServiceFactory
         if service_name == "short_term_memory":
             return MemoryServiceFactory._create_short_term_memory(service_name, config)
+        elif service_name == "vector_hash_memory":
+            return MemoryServiceFactory._create_vector_hash_memory(service_name, config)
         # 未来可以添加其他服务的创建逻辑
         # elif service_name == "long_term_memory":
         #     return MemoryServiceFactory._create_long_term_memory(service_name, config)
@@ -97,6 +100,35 @@ class MemoryServiceFactory:
             service_name=service_name,
             service_class=ShortTermMemoryService,
             service_kwargs={"max_dialog": max_dialog},
+        )
+
+    @staticmethod
+    def _create_vector_hash_memory(service_name: str, config: Any) -> ServiceFactory:
+        """创建向量哈希记忆服务的 ServiceFactory
+
+        Args:
+            service_name: 服务名称
+            config: RuntimeConfig 对象
+
+        Returns:
+            ServiceFactory 实例
+
+        Raises:
+            ValueError: 如果 dim 或 nbits 参数缺失
+        """
+        dim = config.get(f"services.{service_name}.dim")
+        nbits = config.get(f"services.{service_name}.nbits")
+        
+        if dim is None:
+            raise ValueError(f"配置缺失: services.{service_name}.dim")
+        if nbits is None:
+            raise ValueError(f"配置缺失: services.{service_name}.nbits")
+
+        # 创建并返回 ServiceFactory
+        return ServiceFactory(
+            service_name=service_name,
+            service_class=VectorHashMemoryService,
+            service_kwargs={"dim": dim, "nbits": nbits},
         )
 
     @staticmethod

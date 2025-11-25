@@ -1,0 +1,83 @@
+# 运行时参数配置
+runtime:
+  dataset: "locomo"  # 数据集名称
+  # task_id: "conv-26"  # 任务ID，可通过命令行 --task_id 覆盖
+  memory_insert_verbose: false  # 是否打印记忆插入的详细信息（Memory Source部分）
+  memory_test_verbose: true    # 是否打印记忆测试的详细信息（QA部分）
+  test_segments: 10             # 测试分段数，将总问题数分成几段进行测试
+
+  # Prompt 模板配置（阶段二：MemoryTest）
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+    
+    Question: {question}
+    Answer:
+
+  # LLM Generator 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 80
+  temperature: 0.3
+  seed: 42
+  memory_name: "TiM"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"  # Embedding 服务器地址
+  embedding_model: "BAAI/bge-m3"  # Embedding 模型名称
+
+
+
+# 服务配置
+services:
+  register_memory_service: "vector_hash_memory"  # 注册的记忆服务名称，可切换为其他服务
+  short_term_memory:
+    max_dialog: 3  # 短期记忆窗口大小（轮次）
+  vector_hash_memory:
+    dim: 1024  # 向量维度（需要与 embedding 模型输出维度一致）
+    nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
+  memory_insert_adapter: "to_refactor"  # 决定插入的数据 to_dialogs(原始对话) / to_refactor(三元组)
+  memory_retrieval_adapter: "none"
+
+
+
+# Operator 配置
+operators:
+  pre_insert:
+    action: "tri_embed"  # tri_embed先通过llm进行三元组提取实体后进行embedding
+    triple_extraction_prompt: |
+      You are a factual knowledge extractor.  
+      Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
+      
+      Guidelines:
+      - Include personal states or situations if clearly described (e.g., "I'm busy with X" → (Speaker, is busy with, X)).
+      - Resolve speaker identities using names or roles when available.
+      - Never output pronouns (such as "it", "they", "he", "she", "this", "that") as subject or object.
+      - If a pronoun clearly refers to a specific entity mentioned in the same sentence or immediately before (with no ambiguity), replace it with that entity.
+      - Only skip a triple if its subject or object contains a pronoun with no clear referent. Do not skip other valid triples.
+      - Use natural-language predicates in active voice (e.g., "recommends", "lives in", "is responsible for").
+      - Extract time-related facts using predicates like “occurs on”, “starts at”, “lasts until”, “happens during”, etc., when time is specified.
+      - Extract location-related facts using predicates like “takes place in”, “is located in”, “goes to”, “works at”, etc.
+      - Do NOT assume external knowledge; base everything on what is said or immediately implied.
+      
+      Output ONLY in this format:
+      
+      If one or more facts exist:
+      (Subject, Predicate, Object)
+      (Subject, Predicate, Object)
+      ...
+      
+      If no extractable facts:
+      None
+      
+      Dialogue:
+      {dialogue}
+  pre_retrieval:
+    action: "embedding"  # 检索前操作: none, optimize, validate
+  post_insert:
+    action: "none"  # 插入后操作
+  post_retrieval:
+    action: "none"  # 后检索操作: none（默认会格式化对话历史）
+    # 阶段一：对话历史格式化Prompt（PostRetrieval）
+    conversation_format_prompt: |
+      The following is some history information.

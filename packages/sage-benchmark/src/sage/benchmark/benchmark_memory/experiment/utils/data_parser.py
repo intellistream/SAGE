@@ -21,6 +21,7 @@ class DataParser:
     # 支持的提取方法映射
     EXTRACT_METHODS = {
         "to_dialogs": "_extract_to_dialogs",
+        "to_refactor": "_extract_to_refactor",
         # 未来可以添加其他提取方法：
         # "to_messages": "_extract_to_messages",
         # "to_turns": "_extract_to_turns",
@@ -71,73 +72,79 @@ class DataParser:
         format_method_name = self.FORMAT_METHODS[formatter_name]
         self.format_method = getattr(self, format_method_name)
 
-    def extract(self, data: dict[str, Any] | None) -> list[dict[str, str]]:
-        """从数据中提取对话列表（入口方法）
+    def extract(self, data: dict[str, Any] | None) -> str:
+        """从数据中提取内容（入口方法）
 
         Args:
             data: 数据字典
 
         Returns:
-            对话列表，每个元素为 {"speaker": str, "text": str}
-            如果数据为空或提取失败，返回空列表
+            根据配置的 adapter 返回字符串：
+            - to_dialogs: str - 格式化后的对话字符串（多条对话用换行合并）
+            - to_refactor: str - 重构描述字符串
         """
-        if not data:
-            return []
 
         # 调用配置的提取方法
-        result = self.extract_method(data)
+        return self.extract_method(data)
 
-        # 验证提取结果
-        if not self.validate_dialogs(result):
-            return []
-
-        return result
-
-    def _extract_to_dialogs(self, data: dict[str, Any]) -> list[dict[str, str]]:
+    def _extract_to_dialogs(self, data: dict[str, Any]) -> str:
         """提取方法：to_dialogs（默认方法）
 
-        从 'dialogs' 或 'dialog' 字段提取对话列表
+        从 'dialogs' 或 'data.dialogs' 字段提取对话列表并格式化为字符串
+        
+        每个对话字典包含：{"speaker": str, "text": str, "date_time": str (可选)}
+        格式化为：
+        - 有 date_time: "({date_time}){speaker}: {text}"
+        - 无 date_time: "{speaker}: {text}"
+        - 多条对话用换行符分隔，合并为一个字符串
 
         Args:
-            data: 数据字典
+            data: 数据字典，包含 "dialogs" 或 "data" 字段
 
         Returns:
-            对话列表
+            格式化后的对话字符串（多条对话用换行合并）
         """
-        # 尝试从 'dialogs' 字段获取（多个对话）
+        # 尝试从 'dialogs' 或 'data.dialogs' 获取对话列表
         dialogs = data.get("dialogs")
-        if dialogs is not None:
-            if isinstance(dialogs, list):
-                return dialogs
-            # 如果 dialogs 不是列表，尝试包装为列表
-            return [dialogs] if dialogs else []
+        if dialogs is None and "data" in data:
+            dialogs = data["data"].get("dialogs")
+        
+        if not dialogs or not isinstance(dialogs, list):
+            return ""
+        
+        # 格式化每个对话为字符串
+        formatted_dialogs = []
+        for dialog in dialogs:
+            if not isinstance(dialog, dict):
+                continue
+            
+            speaker = dialog.get("speaker", "Unknown")
+            text = dialog.get("text", "")
+            date_time = dialog.get("date_time")
+            
+            # 根据是否有 date_time 决定格式
+            if date_time:
+                formatted = f"({date_time}){speaker}: {text}"
+            else:
+                formatted = f"{speaker}: {text}"
+            
+            formatted_dialogs.append(formatted)
+        
+        # 合并为单个字符串（用换行符分隔）
+        return "\n".join(formatted_dialogs)
 
-        # 尝试从 'dialog' 字段获取（单个对话）
-        dialog = data.get("dialog")
-        if dialog is not None:
-            if isinstance(dialog, list):
-                return dialog
-            # 如果 dialog 不是列表，尝试包装为列表
-            return [dialog] if dialog else []
+    def _extract_to_refactor(self, data: dict[str, Any]) -> str:
+        """提取方法：to_refactor（用于三元组模式）
 
-        # 都没有，返回空列表
-        return []
-
-    def format(self, memory_data: list[dict[str, Any]], query: Any = None) -> str:
-        """格式化记忆数据（入口方法）
+        从 'refactor' 字段提取重构描述
 
         Args:
-            memory_data: 从记忆服务检索的数据
-            query: 查询参数（某些格式化方法可能需要）
+            data: 数据字典，包含 'refactor' 字段
 
         Returns:
-            格式化后的文本
+            重构描述字符串，如果不存在则返回空字符串
         """
-        if not memory_data:
-            return ""
-
-        # 调用配置的格式化方法
-        return self.format_method(memory_data, query)
+        return data.get("refactor", "")
 
     def _format_none(self, memory_data: list[dict[str, Any]], query: Any = None) -> str:
         """格式化方法：none（不做任何处理，返回空字符串）

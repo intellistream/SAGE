@@ -9,8 +9,8 @@ Usage: python run_f1_analysis.py
 # ============================================================================
 # CONFIGURATION - Modify these paths as needed
 # ============================================================================
-INPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/251122/stm"
-OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251122/stm"
+INPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/251124/stm"
+OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251124/stm"
 # ============================================================================
 
 import json
