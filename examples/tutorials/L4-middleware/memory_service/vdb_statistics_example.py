@@ -53,7 +53,10 @@ def main():
     documents = [
         ("Python is a programming language", {"category": "tech", "priority": "high"}),
         ("Machine learning is a subset of AI", {"category": "tech", "priority": "high"}),
-        ("Data science combines statistics and programming", {"category": "tech", "priority": "medium"}),
+        (
+            "Data science combines statistics and programming",
+            {"category": "tech", "priority": "medium"},
+        ),
         ("Neural networks mimic the human brain", {"category": "ai", "priority": "high"}),
         ("Deep learning uses multiple layers", {"category": "ai", "priority": "medium"}),
     ]
@@ -105,9 +108,11 @@ def main():
     print(f"Average duration: {retrieve_stats['avg_duration']:.4f}s")
     print("\nRecent retrievals:")
     for i, stat in enumerate(retrieve_stats["recent_stats"], 1):
-        print(f"  {i}. Index: {stat['index_name']}, "
-              f"Results: {stat['result_count']}, "
-              f"Duration: {stat['duration']:.4f}s")
+        print(
+            f"  {i}. Index: {stat['index_name']}, "
+            f"Results: {stat['result_count']}, "
+            f"Duration: {stat['duration']:.4f}s"
+        )
 
     # 8. Show index rebuild statistics
     print_section("Index Rebuild Statistics")
