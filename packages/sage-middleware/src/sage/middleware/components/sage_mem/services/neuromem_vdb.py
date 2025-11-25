@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any
 
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
@@ -168,11 +169,17 @@ class NeuroMemVDB:
 
     @classmethod
     def _get_default_data_dir(cls):
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "neuromem_vdb")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录，优先使用 SAGE_HOME 或项目 .sage 目录"""
+        sage_home = os.environ.get("SAGE_HOME")
+        if sage_home:
+            base_dir = Path(sage_home)
+        else:
+            # Fallback to repository-local .sage workspace
+            base_dir = Path.cwd() / ".sage"
+
+        data_dir = base_dir / "data" / "neuromem_vdb"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
 
 if __name__ == "__main__":

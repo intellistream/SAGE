@@ -2235,5 +2235,193 @@ async def get_llm_status():
         }
 
 
+# ==================== Dataset Management APIs ====================
+
+
+@app.get("/api/datasets/sources")
+async def list_dataset_sources():
+    """列出所有可用的数据源"""
+    try:
+        from sage.data import DataManager
+
+        manager = DataManager.get_instance()
+        sources = manager.list_sources()
+
+        result = []
+        for source_name in sources:
+            metadata = manager.get_source_metadata(source_name)
+            result.append(
+                {
+                    "name": metadata.name,
+                    "description": metadata.description,
+                    "type": metadata.type,
+                    "format": metadata.format,
+                    "size": metadata.size,
+                    "license": metadata.license,
+                    "version": metadata.version,
+                    "maintainer": metadata.maintainer,
+                    "tags": metadata.tags,
+                }
+            )
+
+        return {"sources": result, "count": len(result)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load datasets: {str(e)}")
+
+
+@app.get("/api/datasets/usages")
+async def list_dataset_usages():
+    """列出所有用途配置"""
+    try:
+        from sage.data import DataManager
+
+        manager = DataManager.get_instance()
+        usages = manager.list_usages()
+
+        result = []
+        for usage_name in usages:
+            try:
+                profile = manager.get_by_usage(usage_name)
+                result.append(
+                    {
+                        "name": usage_name,
+                        "description": profile.description,
+                        "datasets": profile.list_datasets(),
+                    }
+                )
+            except Exception as e:
+                result.append(
+                    {
+                        "name": usage_name,
+                        "description": f"Error: {str(e)}",
+                        "datasets": [],
+                    }
+                )
+
+        return {"usages": result, "count": len(result)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load usages: {str(e)}")
+
+
+@app.get("/api/datasets/sources/{source_name}")
+async def get_dataset_source(source_name: str):
+    """获取特定数据源的详细信息"""
+    try:
+        from sage.data import DataManager
+
+        manager = DataManager.get_instance()
+
+        if source_name not in manager.list_sources():
+            raise HTTPException(status_code=404, detail=f"Dataset '{source_name}' not found")
+
+        metadata = manager.get_source_metadata(source_name)
+
+        # Find which usages include this source
+        usages_with_source = []
+        for usage_name in manager.list_usages():
+            try:
+                profile = manager.get_by_usage(usage_name)
+                if source_name in [profile.datasets.get(k) for k in profile.datasets]:
+                    usages_with_source.append(usage_name)
+            except Exception:
+                pass
+
+        return {
+            "name": metadata.name,
+            "description": metadata.description,
+            "type": metadata.type,
+            "format": metadata.format,
+            "size": metadata.size,
+            "license": metadata.license,
+            "version": metadata.version,
+            "maintainer": metadata.maintainer,
+            "tags": metadata.tags,
+            "used_in": usages_with_source,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load dataset: {str(e)}")
+
+
+@app.get("/api/datasets/usages/{usage_name}")
+async def get_dataset_usage(usage_name: str):
+    """获取特定用途配置的详细信息"""
+    try:
+        from sage.data import DataManager
+
+        manager = DataManager.get_instance()
+
+        if usage_name not in manager.list_usages():
+            raise HTTPException(status_code=404, detail=f"Usage '{usage_name}' not found")
+
+        profile = manager.get_by_usage(usage_name)
+
+        # Get metadata for each dataset in this usage
+        datasets_info = []
+        for ds_name, source_name in profile.datasets.items():
+            try:
+                metadata = manager.get_source_metadata(source_name)
+                datasets_info.append(
+                    {
+                        "alias": ds_name,
+                        "source": source_name,
+                        "description": metadata.description,
+                        "type": metadata.type,
+                    }
+                )
+            except Exception:
+                datasets_info.append(
+                    {
+                        "alias": ds_name,
+                        "source": source_name,
+                        "description": "N/A",
+                        "type": "unknown",
+                    }
+                )
+
+        return {
+            "name": usage_name,
+            "description": profile.description,
+            "datasets": datasets_info,
+            "dataset_count": len(datasets_info),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load usage: {str(e)}")
+
+
+@app.post("/api/datasets/test/{source_name}")
+async def test_dataset_source(source_name: str):
+    """测试加载数据源"""
+    try:
+        from sage.data import DataManager
+
+        manager = DataManager.get_instance()
+
+        if source_name not in manager.list_sources():
+            raise HTTPException(status_code=404, detail=f"Dataset '{source_name}' not found")
+
+        # Try to load the dataset
+        loader = manager.get_by_source(source_name)
+
+        return {
+            "success": True,
+            "source": source_name,
+            "loader_type": type(loader).__name__,
+            "message": f"Successfully loaded {source_name}",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {
+            "success": False,
+            "source": source_name,
+            "error": str(e),
+            "message": f"Failed to load {source_name}: {str(e)}",
+        }
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)  # 修改为监听所有网络接口

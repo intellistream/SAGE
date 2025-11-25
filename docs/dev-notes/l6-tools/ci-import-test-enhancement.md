@@ -87,7 +87,7 @@ case "${{ matrix.install-mode }}" in
         exit 1
       }
       # 验证 sage.data 子包
-      python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+      python -c "from sage.data import load_dataset; print('✅ sage.data 可用')" || {
         echo "❌ sage.data 导入失败"
         exit 1
       }
@@ -117,7 +117,7 @@ if pip show isage-benchmark >/dev/null 2>&1; then
     exit 1
   }
   # 验证 sage.data 子包
-  python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+  python -c "from sage.data import load_dataset; print('✅ sage.data 可用')" || {
     echo "❌ sage.data 导入失败"
     exit 1
   }
@@ -131,7 +131,7 @@ python -c "import sage.benchmark; print('✅ sage.benchmark 可用')" || {
   echo "❌ sage.benchmark 导入失败"
   exit 1
 }
-python -c "from sage.data import load_qa_dataset; print('✅ sage.data 可用')" || {
+python -c "from sage.data import load_dataset; print('✅ sage.data 可用')" || {
   echo "❌ sage.data 导入失败"
   exit 1
 }
