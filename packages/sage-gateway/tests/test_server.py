@@ -3,6 +3,7 @@ Integration tests for SAGE Gateway Server
 """
 
 from fastapi.testclient import TestClient
+
 from sage.gateway.server import app
 
 client = TestClient(app)

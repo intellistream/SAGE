@@ -88,7 +88,7 @@ def build_chroma_index():
     for file_path in md_files[:10]:  # 先处理前10个文件测试
         try:
             # 读取文档
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # 解析为 sections（只传入content）

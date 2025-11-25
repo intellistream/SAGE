@@ -1,10 +1,15 @@
 # @test:skip           - 跳过测试
 
 """
-REFORM RAG Pipeline
-===================
+LongRefiner RAG Pipeline
+========================
 
-使用REFORM压缩算法的RAG pipeline，用于压缩检索上下文。
+使用LongRefiner三阶段压缩算法的RAG pipeline。
+
+LongRefiner三阶段:
+    1. Query Analysis: 分析查询的局部/全局信息需求
+    2. Document Structuring: 将文档结构化为层次化的章节
+    3. Global Selection: 基于查询分析选择相关内容
 """
 
 import os
@@ -15,7 +20,7 @@ from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.foundation.io.batch import HFDatasetBatch
-from sage.middleware.components.sage_refiner import REFORMRefinerOperator
+from sage.middleware.components.sage_refiner import LongRefinerOperator
 from sage.middleware.operators.rag import (
     CompressionRateEvaluate,
     F1Evaluate,
@@ -28,7 +33,7 @@ from sage.middleware.operators.rag import (
 
 
 def pipeline_run(config):
-    """运行REFORM RAG pipeline"""
+    """运行LongRefiner RAG pipeline"""
     env = LocalEnvironment()
 
     enable_profile = True
@@ -36,7 +41,7 @@ def pipeline_run(config):
     (
         env.from_batch(HFDatasetBatch, config["source"])
         .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
-        .map(REFORMRefinerOperator, config["reform"])
+        .map(LongRefinerOperator, config["longrefiner"])
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
         .map(F1Evaluate, config["evaluate"])
@@ -47,8 +52,8 @@ def pipeline_run(config):
 
     try:
         env.submit()
-        # Wait for pipeline to complete (increased timeout for long contexts)
-        time.sleep(12000)  # 20 minutes for 5 samples with 100k+ tokens each
+        # Wait for pipeline to complete
+        time.sleep(600)  # 10 minutes for 20 samples
     except KeyboardInterrupt:
         print("\n⚠️  KeyboardInterrupt: 用户手动停止")
     except Exception as e:
@@ -68,13 +73,15 @@ if __name__ == "__main__":
 
     # 检查是否在测试模式下运行
     if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
-        print("🧪 Test mode detected - REFORM pipeline requires pre-built FAISS index")
+        print(
+            "🧪 Test mode detected - LongRefiner pipeline requires pre-built FAISS index and LoRA models"
+        )
         print("✅ Test passed: Example structure validated")
         sys.exit(0)
 
     # 配置文件路径
     config_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "config", "config_reform.yaml"
+        os.path.dirname(__file__), "..", "..", "config", "config_longrefiner.yaml"
     )
 
     # 检查配置文件是否存在

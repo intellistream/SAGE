@@ -7,6 +7,7 @@
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+
 from sage.cli.templates.catalog import get_template, list_templates
 
 console = Console()

@@ -9,10 +9,11 @@ This directory is reserved for benchmark datasets.
 The ShareGPT dataset format contains conversations in JSON format. To use:
 
 1. Download the ShareGPT dataset (available from various sources)
-2. Place the JSON file in this directory
-3. Configure the benchmark with `dataset_path` pointing to the file
+1. Place the JSON file in this directory
+1. Configure the benchmark with `dataset_path` pointing to the file
 
 Example ShareGPT format:
+
 ```json
 {
   "id": "conversation_1",
