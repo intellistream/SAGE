@@ -35,6 +35,10 @@ from sage.libs.foundation.context.compression.refiner import (
     RefinerMetrics,
 )
 from sage.middleware.components.sage_refiner.python.adapter import RefinerAdapter
+from sage.middleware.components.sage_refiner.python.algorithms.LongRefiner import (
+    LongRefinerCompressor,
+    LongRefinerOperator,
+)
 from sage.middleware.components.sage_refiner.python.algorithms.reform import (
     AttentionHookExtractor,
     REFORMCompressor,
@@ -69,6 +73,9 @@ __all__ = [
     "REFORMCompressor",
     "REFORMRefinerOperator",
     "AttentionHookExtractor",
+    # LongRefiner算法
+    "LongRefinerCompressor",
+    "LongRefinerOperator",
 ]
 
 __version__ = "0.1.0"

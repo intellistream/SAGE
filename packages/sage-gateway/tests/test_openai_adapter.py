@@ -4,6 +4,7 @@ from types import MethodType
 from unittest.mock import MagicMock
 
 import pytest
+
 from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdapter
 
 

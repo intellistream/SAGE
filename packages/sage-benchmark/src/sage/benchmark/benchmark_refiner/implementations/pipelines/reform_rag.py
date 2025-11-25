@@ -88,6 +88,8 @@ if __name__ == "__main__":
     # 检查索引文件是否存在
     if config["retriever"]["type"] == "wiki18_faiss":
         index_path = config["retriever"]["faiss"]["index_path"]
+        # 展开环境变量
+        index_path = os.path.expandvars(index_path)
         if not os.path.exists(index_path):
             print(f"❌ FAISS index file not found: {index_path}")
             print(

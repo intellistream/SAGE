@@ -125,7 +125,7 @@ class RAGChatMap(MapFunction):
                 logger.warning("RAG index not found, RAG will be disabled")
                 return
 
-            with open(manifest_file, "r") as f:
+            with open(manifest_file) as f:
                 self._manifest_data = json.load(f)
 
             db_path = P(self._manifest_data["db_path"])

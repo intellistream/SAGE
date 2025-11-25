@@ -9,7 +9,7 @@ source:
   # HuggingFace Dataset 参数
   hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
   hf_dataset_config: "nq"  # Natural Questions dataset
-  hf_split: "dev"
+  hf_split: "test"
   max_samples: 20
 
 retriever:
@@ -18,7 +18,7 @@ retriever:
 
   # 通用配置
   dimension: 1024    # BGE-Large-EN-v1.5模型的维度
-  top_k: 8
+  top_k: 100
 
   # Wiki18 FAISS 专用配置
   faiss:
