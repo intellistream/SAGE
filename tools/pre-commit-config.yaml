@@ -277,6 +277,17 @@ repos:
     args: [--baseline, tools/secrets.baseline]
     exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$)
 
+  # SAGE Data Architecture Validation
+- repo: local
+  hooks:
+  - id: validate-data-architecture
+    name: Validate SAGE Data Architecture
+    entry: python tools/hooks/validate_data_architecture.py
+    language: system
+    pass_filenames: false
+    files: ^packages/sage-benchmark/src/sage/data/(sources|usages)/.*\.(yaml|py)$
+    description: Validate that datasets follow the two-layer architecture
+
 # To install pre-commit hooks:
 #   pre-commit install
 #
