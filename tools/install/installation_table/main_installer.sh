@@ -11,7 +11,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/../download_tools/environment_config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 # libstdcxx_fix.sh 已禁用 - 现代 conda 环境提供足够的 libstdc++ 版本
 # source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
@@ -155,8 +154,7 @@ except Exception as e:
 install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
-    local install_vllm="${3:-false}"
-    local clean_cache="${4:-true}"
+    local clean_cache="${3:-true}"
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
@@ -171,9 +169,6 @@ install_sage() {
 
     echo ""
     echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
-    if [ "$install_vllm" = "true" ]; then
-        echo -e "${PURPLE}包含 VLLM 支持${NC}"
-    fi
     echo ""
     mkdir -p "$(dirname "$log_file")"
     echo -e "${BLUE}📝 安装日志: ${log_file}${NC}"
@@ -208,7 +203,6 @@ install_sage() {
     echo "SAGE 主要安装过程开始 - $(date)" >> "$log_file"
     echo "安装模式: $mode" >> "$log_file"
     echo "安装环境: $environment" >> "$log_file"
-    echo "安装 VLLM: $install_vllm" >> "$log_file"
     echo "PIP 命令: $PIP_CMD" >> "$log_file"
     echo "Python 命令: $PYTHON_CMD" >> "$log_file"
     echo "========================================" >> "$log_file"
@@ -221,7 +215,7 @@ install_sage() {
     fi
 
     log_info "SAGE 主要安装过程开始" "MAIN"
-    log_info "安装模式: $mode | 环境: $environment | VLLM: $install_vllm" "MAIN"
+    log_info "安装模式: $mode | 环境: $environment" "MAIN"
 
     echo ""
     case "$mode" in
@@ -341,24 +335,8 @@ install_sage() {
     # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
     # 上面的验证步骤已检查扩展状态
 
-    # 安装 VLLM（如果需要）
-    if [ "$install_vllm" = "true" ]; then
-        echo ""
-        log_phase_start "VLLM 安装" "MAIN"
-
-        if install_vllm_packages; then
-            log_phase_end "VLLM 安装" "success" "MAIN"
-        else
-            log_phase_end "VLLM 安装" "failure" "MAIN"
-            log_warn "VLLM 安装失败，但主安装已完成" "MAIN"
-        fi
-    fi
-
     # 记录安装完成
     log_info "SAGE 安装完成" "MAIN"
-    if [ "$install_vllm" = "true" ]; then
-        log_info "VLLM 安装请求已处理" "MAIN"
-    fi
 
     log_info "安装结束" "MAIN"
 
@@ -394,7 +372,7 @@ install_sage() {
     if [ -f "$track_script" ]; then
         echo "" >> "$log_file"
         echo "包追踪信息:" >> "$log_file"
-        bash "$track_script" post-install "$mode" "$environment" "$install_vllm" >> "$log_file" 2>&1 || true
+        bash "$track_script" post-install "$mode" "$environment" "false" >> "$log_file" 2>&1 || true
     fi
 
     # 显示安装信息
