@@ -9,7 +9,7 @@ runtime:
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
     Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
-    
+
     Question: {question}
     Answer:
 
@@ -45,4 +45,3 @@ operators:
     # 阶段一：对话历史格式化Prompt（PostRetrieval）
     conversation_format_prompt: |
       Below is a conversation between two people. The conversation takes place over multiple days and the date of each conversation is written at the beginning of the conversation.
-
