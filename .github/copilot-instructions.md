@@ -3,18 +3,20 @@
 ## Overview
 
 **SAGE** is a Python 3.10+ framework for building AI/LLM data processing pipelines with declarative
-dataflow. 10 functional packages + 1 meta-package, ~400MB dev install, uses C++ extensions (CMake).
+dataflow. 11 functional packages + 1 meta-package, ~400MB dev install, uses C++ extensions (CMake).
 
 **Architecture (L1-L6)** - CRITICAL: No upward dependencies
 
 ```
-L6: sage-cli, sage-studio, sage-tools  # Interfaces & Dev Tools
+L6: sage-cli, sage-studio, sage-tools, sage-gateway  # Interfaces, Dev Tools & API Gateway
 L5: sage-apps, sage-benchmark          # Apps & Benchmarks  
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
 L1: sage-common                        # Foundation
 ```
+
+Note: `sage-gateway` is published to PyPI as `isage-gateway` (OpenAI/Anthropic compatible API Gateway).
 
 All in `/packages/<name>/`. L6 imports L1-L5, L5 imports L1-L4, etc.
 
@@ -32,8 +34,7 @@ liblapack-dev
 ./quickstart.sh --full --yes       # Full with examples
 ```
 
-Options: `--pip` (current env), `--conda` (create env), `--vllm` (vLLM support),
-`--no-sync-submodules`
+Options: `--pip` (current env), `--conda` (create env), `--sync-submodules` / `--no-sync-submodules`
 
 **Submodules** - CRITICAL: NEVER use `git submodule update --init`
 
@@ -78,7 +79,7 @@ Tools: Ruff (format+lint, line 100), Mypy (types, warning mode), Shellcheck Conf
 ## CI/CD (.github/workflows/)
 
 **Main workflows**: build-test.yml (45m), examples-test.yml (30m), code-quality.yml (10m),
-pip-installation-test.yml, publish-pypi.yml
+installation-test.yml, publish-pypi.yml
 
 **CI uses**: Ubuntu latest, Python 3.11, GitHub Secrets (OPENAI_API_KEY, HF_TOKEN), pip cache
 
@@ -96,9 +97,9 @@ pre-commit run --all-files --config tools/pre-commit-config.yaml
 
 ```
 .github/workflows/      # CI/CD
-docs/dev-notes/         # Dev docs (by layer: l1-l6, cross-layer)
+docs/dev-notes/         # Dev docs (by layer: l0-l6, cross-layer)
 examples/               # apps/, tutorials/ (by layer)
-packages/               # 10 packages + meta
+packages/               # 11 packages + meta
   sage-*/src/sage/      # Source
   sage-*/tests/         # Tests (unit/, integration/)
 tools/
@@ -117,20 +118,21 @@ Makefile                # Shortcuts
 
 ## Common Issues
 
-**Install hangs**: Check network, try `--no-cache-clean` (10-25min normal) **C++ build fails**:
-Install deps: `build-essential cmake pkg-config libopenblas-dev liblapack-dev` **Detached HEAD**:
-Use `./tools/maintenance/sage-maintenance.sh submodule switch` **Tests fail CI not local**: Run
-`sage-dev project test --coverage` from repo root **Import errors**: Must use `--dev` install, run
-from repo root **Pre-commit fails**: Run `sage-dev quality` to auto-fix **Old artifacts**:
-`make clean` or `rm -rf .sage/build/ build/ dist/ *.egg-info/`
+**Install hangs**: Check network, try `--resume` for checkpoint recovery (10-25min normal)
+**C++ build fails**: Install deps: `build-essential cmake pkg-config libopenblas-dev liblapack-dev`
+**Detached HEAD**: Use `./tools/maintenance/sage-maintenance.sh submodule switch`
+**Tests fail CI not local**: Run `sage-dev project test --coverage` from repo root
+**Import errors**: Must use `--dev` install, run from repo root
+**Pre-commit fails**: Run `sage-dev quality` to auto-fix
+**Old artifacts**: `make clean` or `rm -rf .sage/build/ build/ dist/ *.egg-info/`
 
 ## Development Workflow
 
-**Setup**: `./quickstart.sh --dev --yes` → `./manage.sh` (if C++ needed) **During**: Run
-`sage-dev project test`, `sage-dev quality` frequently **Before commit**:
-`sage-dev quality --check-only`, `sage-dev project test --coverage` **Commits**:
-`<type>(<scope>): <summary>` (types: feat, fix, refactor, docs, test, ci, etc.) **PR**: Local CI
-checks first, update CHANGELOG.md, reference issues
+**Setup**: `./quickstart.sh --dev --yes` → `./manage.sh` (if C++ needed)
+**During**: Run `sage-dev project test`, `sage-dev quality` frequently
+**Before commit**: `sage-dev quality --check-only`, `sage-dev project test --coverage`
+**Commits**: `<type>(<scope>): <summary>` (types: feat, fix, refactor, docs, test, ci, etc.)
+**PR**: Local CI checks first, update CHANGELOG.md, reference issues
 
 **Critical files** (review before modifying): quickstart.sh, manage.sh, .github/workflows/,
 tools/pytest.ini, tools/pre-commit-config.yaml
