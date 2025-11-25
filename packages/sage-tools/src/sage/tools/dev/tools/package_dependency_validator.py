@@ -102,25 +102,14 @@ class PackageDependencyValidator:
         if package_name != "sage":
             isage_deps = self._find_isage_dependencies(data)
             if isage_deps:
-                # Check if these are explicitly allowed (like sage-tools depending on isage-common)
-                if self._has_allowed_isage_dependencies(package_name, isage_deps):
-                    issues.append(
-                        ValidationIssue(
-                            package=package_name,
-                            severity="warning",
-                            message="contains isage-* dependencies in [project.dependencies]",
-                            details="\n".join(f"  - {dep}" for dep in isage_deps),
-                        )
+                issues.append(
+                    ValidationIssue(
+                        package=package_name,
+                        severity="error",
+                        message="contains isage-* dependencies in [project.dependencies]",
+                        details="\n".join(f"  - {dep}" for dep in isage_deps),
                     )
-                else:
-                    issues.append(
-                        ValidationIssue(
-                            package=package_name,
-                            severity="error",
-                            message="contains isage-* dependencies in [project.dependencies]",
-                            details="\n".join(f"  - {dep}" for dep in isage_deps),
-                        )
-                    )
+                )
 
         # Rule 2: Check for sage-deps (except for packages that don't need it)
         if package_name not in self.NO_SAGE_DEPS_REQUIRED:
@@ -151,25 +140,6 @@ class PackageDependencyValidator:
                     isage_deps.append(dep.strip())
 
         return isage_deps
-
-    def _has_allowed_isage_dependencies(self, package_name: str, isage_deps: list[str]) -> bool:
-        """
-        Check if package has explicitly allowed isage-* dependencies.
-
-        Some packages like sage-tools may legitimately depend on isage-common.
-        We treat these as warnings rather than errors.
-        """
-        # Known exceptions: sage-tools requires isage-common for core functionality
-        if package_name == "sage-tools":
-            # sage-tools is allowed to depend on isage-common only
-            allowed_isage_deps = {"isage-common"}
-            actual_deps = {
-                dep.split(">=")[0].split("==")[0].split("<")[0].strip() for dep in isage_deps
-            }
-            return actual_deps.issubset(allowed_isage_deps)
-
-        # For other packages, no isage-* dependencies are allowed
-        return False
 
     def _has_sage_deps(self, data: dict) -> bool:
         """Check if package defines sage-deps."""
