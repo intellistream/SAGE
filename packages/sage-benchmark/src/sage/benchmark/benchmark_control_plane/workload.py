@@ -334,11 +334,14 @@ class WorkloadGenerator:
                 " Structure your response clearly with key points.",
             ]
 
-            while current_tokens < target_len and padding_phrases:
-                phrase = self.rng.choice(padding_phrases)
+            # Shuffle a copy to avoid modifying the original list
+            shuffled_phrases = padding_phrases.copy()
+            self.rng.shuffle(shuffled_phrases)
+            for phrase in shuffled_phrases:
+                if current_tokens >= target_len:
+                    break
                 base_prompt += phrase
                 current_tokens = len(base_prompt) // 4
-                padding_phrases.remove(phrase)
 
         return base_prompt
 
