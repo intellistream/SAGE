@@ -14,11 +14,11 @@ except ImportError:
 # 导出质量检查工具
 from .architecture_checker import ArchitectureChecker
 from .devnotes_checker import DevNotesChecker
-from .package_dependency_validator import PackageDependencyValidator
 
 # 导出开发工具类
 from .enhanced_package_manager import EnhancedPackageManager
 from .enhanced_test_runner import EnhancedTestRunner
+from .package_dependency_validator import PackageDependencyValidator
 from .package_readme_checker import PackageREADMEChecker
 from .vscode_path_manager import VSCodePathManager
 
