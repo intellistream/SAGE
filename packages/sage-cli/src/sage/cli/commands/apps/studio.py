@@ -76,7 +76,7 @@ def start(
         SAGE_STUDIO_LLM_MODEL=model_name           # 默认模型
         SAGE_STUDIO_LLM_GPU_MEMORY=0.9             # GPU 内存使用率
         SAGE_STUDIO_LLM_TENSOR_PARALLEL=1          # Tensor 并行度
-        SAGE_VLLM_MODEL_ROOT=~/.sage/models/vllm   # 模型缓存位置
+        SAGE_LLM_MODEL_ROOT=~/.sage/models/llm     # 模型缓存位置
 
     所有自动操作都会先征求确认。
     """

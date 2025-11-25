@@ -3,7 +3,7 @@
 Finetune CLI - Service Management
 服务管理：训练执行、模型合并
 
-Note: vLLM 服务功能已移至统一的 sage.common.components.sage_vllm.VLLMService
+Note: vLLM 服务功能已移至统一的 sage.common.components.sage_llm.LLMService
       请使用 `sage llm serve` 命令启动模型服务
 """
 
