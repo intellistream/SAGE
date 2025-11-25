@@ -266,11 +266,11 @@ class WorkloadGenerator:
         if current_tokens < target_len:
             # Add padding context
             padding_phrases = [
-                f" Please provide a detailed explanation.",
-                f" Consider various perspectives and examples.",
-                f" Include practical applications where relevant.",
-                f" Discuss both advantages and limitations.",
-                f" Structure your response clearly with key points.",
+                " Please provide a detailed explanation.",
+                " Consider various perspectives and examples.",
+                " Include practical applications where relevant.",
+                " Discuss both advantages and limitations.",
+                " Structure your response clearly with key points.",
             ]
 
             while current_tokens < target_len and padding_phrases:

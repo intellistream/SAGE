@@ -75,14 +75,14 @@ class RequestResult:
     @property
     def e2e_latency_ms(self) -> float | None:
         """End-to-end latency in milliseconds."""
-        if self.send_time and self.completion_time:
+        if self.send_time is not None and self.completion_time is not None:
             return (self.completion_time - self.send_time) * 1000
         return None
 
     @property
     def ttft_ms(self) -> float | None:
         """Time to first token in milliseconds."""
-        if self.send_time and self.first_token_time:
+        if self.send_time is not None and self.first_token_time is not None:
             return (self.first_token_time - self.send_time) * 1000
         return None
 
@@ -138,8 +138,7 @@ class BenchmarkClient:
         """
         if not AIOHTTP_AVAILABLE:
             raise RuntimeError(
-                "aiohttp is required for BenchmarkClient. "
-                "Install it with: pip install aiohttp"
+                "aiohttp is required for BenchmarkClient. Install it with: pip install aiohttp"
             )
 
         self.control_plane_url = control_plane_url.rstrip("/")
@@ -220,9 +219,7 @@ class BenchmarkClient:
 
         try:
             if self._session:
-                async with self._session.get(
-                    f"{self.control_plane_url}/admin/metrics"
-                ) as response:
+                async with self._session.get(f"{self.control_plane_url}/admin/metrics") as response:
                     if response.status == 200:
                         return await response.json()
         except Exception:
@@ -275,15 +272,11 @@ class BenchmarkClient:
                 raise RuntimeError("Session not initialized")
 
             if self.enable_streaming:
-                result = await self._send_streaming_request(
-                    payload, headers, result
-                )
+                result = await self._send_streaming_request(payload, headers, result)
             else:
-                result = await self._send_non_streaming_request(
-                    payload, headers, result
-                )
+                result = await self._send_non_streaming_request(payload, headers, result)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             result.completion_time = time.time()
             result.success = False
             result.error = "Request timed out"

@@ -205,9 +205,7 @@ class MetricsCollector:
         metrics.failed_requests = sum(
             1 for r in self._results if not r.success and r.error != "Request timed out"
         )
-        metrics.timeout_requests = sum(
-            1 for r in self._results if r.error == "Request timed out"
-        )
+        metrics.timeout_requests = sum(1 for r in self._results if r.error == "Request timed out")
 
         # Compute duration and throughput
         if self._start_time and self._end_time:
@@ -227,8 +225,7 @@ class MetricsCollector:
 
         # Compute E2E latency statistics
         e2e_latencies = [
-            r.e2e_latency_ms for r in self._results
-            if r.success and r.e2e_latency_ms is not None
+            r.e2e_latency_ms for r in self._results if r.success and r.e2e_latency_ms is not None
         ]
         if e2e_latencies:
             metrics.e2e_latency_avg_ms = float(np.mean(e2e_latencies))
@@ -239,10 +236,7 @@ class MetricsCollector:
             metrics.e2e_latency_max_ms = float(np.max(e2e_latencies))
 
         # Compute TTFT statistics
-        ttft_values = [
-            r.ttft_ms for r in self._results
-            if r.success and r.ttft_ms is not None
-        ]
+        ttft_values = [r.ttft_ms for r in self._results if r.success and r.ttft_ms is not None]
         if ttft_values:
             metrics.ttft_avg_ms = float(np.mean(ttft_values))
             metrics.ttft_p50_ms = float(np.percentile(ttft_values, 50))
@@ -328,8 +322,7 @@ class MetricsCollector:
         for group_value, group_results in groups.items():
             success_results = [r for r in group_results if r.success]
             e2e_latencies = [
-                r.e2e_latency_ms for r in success_results
-                if r.e2e_latency_ms is not None
+                r.e2e_latency_ms for r in success_results if r.e2e_latency_ms is not None
             ]
 
             result[group_value] = {
@@ -338,7 +331,8 @@ class MetricsCollector:
                 "avg_latency_ms": float(np.mean(e2e_latencies)) if e2e_latencies else 0.0,
                 "slo_compliance_rate": (
                     sum(1 for r in success_results if r.met_slo) / len(success_results)
-                    if success_results else 0.0
+                    if success_results
+                    else 0.0
                 ),
             }
 

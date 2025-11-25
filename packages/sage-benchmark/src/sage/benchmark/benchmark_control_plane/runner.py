@@ -83,8 +83,7 @@ class BenchmarkResult:
         return {
             "config": self.config,
             "policy_results": {
-                name: result.to_dict()
-                for name, result in self.policy_results.items()
+                name: result.to_dict() for name, result in self.policy_results.items()
             },
             "summary": {
                 "best_throughput": self.best_throughput,
@@ -167,9 +166,7 @@ class BenchmarkRunner:
 
                 self._log(f"   ✅ Completed: {policy_result.metrics.completed_requests} requests")
                 self._log(f"   📊 Throughput: {policy_result.metrics.throughput_rps:.2f} req/s")
-                self._log(
-                    f"   📈 SLO Compliance: {policy_result.metrics.slo_compliance_rate:.1%}"
-                )
+                self._log(f"   📈 SLO Compliance: {policy_result.metrics.slo_compliance_rate:.1%}")
 
         # Determine best performers
         result = self._determine_best_performers(result)
@@ -264,7 +261,7 @@ class BenchmarkRunner:
             await self._execute_workload(client, warmup_workload)
 
         # Run main workload
-        main_workload = workload[self.config.warmup_requests:]
+        main_workload = workload[self.config.warmup_requests :]
         self._log(f"   ▶️  Running main workload ({len(main_workload)} requests)...")
 
         result.start_time = time.time()
@@ -357,7 +354,8 @@ class BenchmarkRunner:
 
         # Best P99 latency (lowest is best)
         policies_with_latency = [
-            (name, p) for name, p in result.policy_results.items()
+            (name, p)
+            for name, p in result.policy_results.items()
             if p.metrics.e2e_latency_p99_ms > 0
         ]
         if policies_with_latency:

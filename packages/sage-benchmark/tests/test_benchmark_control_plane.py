@@ -8,11 +8,6 @@ This module tests the Control Plane benchmark components including:
 - Report generation
 """
 
-import json
-from pathlib import Path
-
-import pytest
-
 from sage.benchmark.benchmark_control_plane.config import (
     ArrivalPattern,
     BenchmarkConfig,
@@ -401,7 +396,8 @@ class TestRequestResult:
             send_time=1.0,
             first_token_time=1.1,
         )
-        assert result.ttft_ms == 100.0  # (1.1 - 1.0) * 1000
+        # Use approximate comparison for floating point
+        assert abs(result.ttft_ms - 100.0) < 0.01  # (1.1 - 1.0) * 1000
 
     def test_met_slo_true(self):
         """Test met_slo is True when deadline is met."""

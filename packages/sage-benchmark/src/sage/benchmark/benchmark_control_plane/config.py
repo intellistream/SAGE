@@ -146,7 +146,9 @@ class BenchmarkConfig:
         # Validate model distribution sums to ~1.0
         model_prob_sum = sum(self.model_distribution.values())
         if abs(model_prob_sum - 1.0) > 0.01:
-            errors.append(f"model_distribution probabilities should sum to 1.0 (got {model_prob_sum})")
+            errors.append(
+                f"model_distribution probabilities should sum to 1.0 (got {model_prob_sum})"
+            )
 
         # Validate priority distribution sums to ~1.0
         priority_prob_sum = sum(self.priority_distribution.values())

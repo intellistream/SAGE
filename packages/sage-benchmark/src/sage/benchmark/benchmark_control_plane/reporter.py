@@ -47,9 +47,11 @@ class BenchmarkReporter:
 
         # Print config summary
         config = self.result.config
-        print(f"Config: {config.get('num_requests', 'N/A')} requests "
-              f"@ {config.get('request_rate', 'N/A')} req/s")
-        models = list(config.get('model_distribution', {}).keys())
+        print(
+            f"Config: {config.get('num_requests', 'N/A')} requests "
+            f"@ {config.get('request_rate', 'N/A')} req/s"
+        )
+        models = list(config.get("model_distribution", {}).keys())
         print(f"Models: {', '.join(models)}")
         print("-" * 70)
         print()
@@ -90,18 +92,24 @@ class BenchmarkReporter:
         # Print best performers
         if self.result.best_throughput:
             best_tp = self.result.policy_results[self.result.best_throughput]
-            print(f"Best Throughput: {self.result.best_throughput} "
-                  f"({best_tp.metrics.throughput_rps:.1f} req/s)")
+            print(
+                f"Best Throughput: {self.result.best_throughput} "
+                f"({best_tp.metrics.throughput_rps:.1f} req/s)"
+            )
 
         if self.result.best_slo_compliance:
             best_slo = self.result.policy_results[self.result.best_slo_compliance]
-            print(f"Best SLO Compliance: {self.result.best_slo_compliance} "
-                  f"({best_slo.metrics.slo_compliance_rate:.1%})")
+            print(
+                f"Best SLO Compliance: {self.result.best_slo_compliance} "
+                f"({best_slo.metrics.slo_compliance_rate:.1%})"
+            )
 
         if self.result.best_p99_latency:
             best_p99 = self.result.policy_results[self.result.best_p99_latency]
-            print(f"Best P99 Latency: {self.result.best_p99_latency} "
-                  f"({best_p99.metrics.e2e_latency_p99_ms:.0f} ms)")
+            print(
+                f"Best P99 Latency: {self.result.best_p99_latency} "
+                f"({best_p99.metrics.e2e_latency_p99_ms:.0f} ms)"
+            )
 
         print()
 

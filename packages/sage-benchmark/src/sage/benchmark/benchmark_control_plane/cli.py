@@ -42,9 +42,7 @@ def create_app() -> typer.Typer:
         Typer application
     """
     if not TYPER_AVAILABLE:
-        raise RuntimeError(
-            "typer is required for CLI. Install it with: pip install typer"
-        )
+        raise RuntimeError("typer is required for CLI. Install it with: pip install typer")
 
     app = typer.Typer(
         name="sage-bench",
@@ -56,37 +54,44 @@ def create_app() -> typer.Typer:
     def run_benchmark(
         control_plane: str = Option(
             "http://localhost:8080",
-            "--control-plane", "-c",
+            "--control-plane",
+            "-c",
             help="Control Plane URL",
         ),
         policy: str = Option(
             "fifo",
-            "--policy", "-p",
+            "--policy",
+            "-p",
             help="Scheduling policy to benchmark",
         ),
         requests: int = Option(
             100,
-            "--requests", "-n",
+            "--requests",
+            "-n",
             help="Number of requests to send",
         ),
         rate: float = Option(
             10.0,
-            "--rate", "-r",
+            "--rate",
+            "-r",
             help="Request rate (requests/second)",
         ),
         output: str = Option(
             "./benchmark_results",
-            "--output", "-o",
+            "--output",
+            "-o",
             help="Output directory for results",
         ),
         warmup: int = Option(
             10,
-            "--warmup", "-w",
+            "--warmup",
+            "-w",
             help="Number of warmup requests",
         ),
         timeout: float = Option(
             60.0,
-            "--timeout", "-t",
+            "--timeout",
+            "-t",
             help="Request timeout in seconds",
         ),
         no_streaming: bool = Option(
@@ -96,7 +101,8 @@ def create_app() -> typer.Typer:
         ),
         quiet: bool = Option(
             False,
-            "--quiet", "-q",
+            "--quiet",
+            "-q",
             help="Suppress progress output",
         ),
     ) -> None:
@@ -133,7 +139,7 @@ def create_app() -> typer.Typer:
         # Save results
         paths = reporter.save_all(Path(output))
         if not quiet:
-            typer.echo(f"\n📁 Results saved to:")
+            typer.echo("\n📁 Results saved to:")
             for fmt, path in paths.items():
                 typer.echo(f"   {fmt}: {path}")
 
@@ -141,42 +147,50 @@ def create_app() -> typer.Typer:
     def compare_policies(
         control_plane: str = Option(
             "http://localhost:8080",
-            "--control-plane", "-c",
+            "--control-plane",
+            "-c",
             help="Control Plane URL",
         ),
         policies: str = Option(
             "fifo,priority,slo_aware",
-            "--policies", "-p",
+            "--policies",
+            "-p",
             help="Comma-separated list of policies to compare",
         ),
         requests: int = Option(
             100,
-            "--requests", "-n",
+            "--requests",
+            "-n",
             help="Number of requests per policy",
         ),
         rate: float = Option(
             10.0,
-            "--rate", "-r",
+            "--rate",
+            "-r",
             help="Request rate (requests/second)",
         ),
         output: str = Option(
             "./benchmark_results",
-            "--output", "-o",
+            "--output",
+            "-o",
             help="Output directory for results",
         ),
         warmup: int = Option(
             10,
-            "--warmup", "-w",
+            "--warmup",
+            "-w",
             help="Number of warmup requests",
         ),
         timeout: float = Option(
             60.0,
-            "--timeout", "-t",
+            "--timeout",
+            "-t",
             help="Request timeout in seconds",
         ),
         quiet: bool = Option(
             False,
-            "--quiet", "-q",
+            "--quiet",
+            "-q",
             help="Suppress progress output",
         ),
     ) -> None:
@@ -214,7 +228,7 @@ def create_app() -> typer.Typer:
         # Save results
         paths = reporter.save_all(Path(output))
         if not quiet:
-            typer.echo(f"\n📁 Results saved to:")
+            typer.echo("\n📁 Results saved to:")
             for fmt, path in paths.items():
                 typer.echo(f"   {fmt}: {path}")
 
@@ -222,32 +236,38 @@ def create_app() -> typer.Typer:
     def rate_sweep(
         control_plane: str = Option(
             "http://localhost:8080",
-            "--control-plane", "-c",
+            "--control-plane",
+            "-c",
             help="Control Plane URL",
         ),
         policy: str = Option(
             "fifo",
-            "--policy", "-p",
+            "--policy",
+            "-p",
             help="Policy to benchmark",
         ),
         requests: int = Option(
             100,
-            "--requests", "-n",
+            "--requests",
+            "-n",
             help="Number of requests per rate",
         ),
         rates: str = Option(
             "10,50,100,200",
-            "--rates", "-r",
+            "--rates",
+            "-r",
             help="Comma-separated list of request rates to test",
         ),
         output: str = Option(
             "./benchmark_results",
-            "--output", "-o",
+            "--output",
+            "-o",
             help="Output directory for results",
         ),
         quiet: bool = Option(
             False,
-            "--quiet", "-q",
+            "--quiet",
+            "-q",
             help="Suppress progress output",
         ),
     ) -> None:
@@ -294,10 +314,7 @@ def create_app() -> typer.Typer:
         output_path = Path(output)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        sweep_results = {
-            str(rate): result.to_dict()
-            for rate, result in results.items()
-        }
+        sweep_results = {str(rate): result.to_dict() for rate, result in results.items()}
         sweep_file = output_path / f"rate_sweep_{policy}.json"
         with open(sweep_file, "w") as f:
             json.dump(sweep_results, f, indent=2)
@@ -309,7 +326,8 @@ def create_app() -> typer.Typer:
     def show_config(
         output: str = Option(
             None,
-            "--output", "-o",
+            "--output",
+            "-o",
             help="Save example config to file",
         ),
     ) -> None:
