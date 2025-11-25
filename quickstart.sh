@@ -133,11 +133,7 @@ main() {
         mkdir -p .sage/logs
 
         # 运行新的环境预检查
-        local install_vllm_planned=$(get_install_vllm)
         local skip_cuda="true"
-        if [ "$install_vllm_planned" = "true" ]; then
-            skip_cuda="false"
-        fi
 
         if ! run_environment_prechecks "$skip_cuda" ".sage/logs/environment_precheck.log"; then
             echo -e "${YELLOW}⚠️  环境预检查发现问题，但将继续尝试安装${NC}"
@@ -158,7 +154,6 @@ main() {
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
-    local install_vllm=$(get_install_vllm)
     local auto_confirm=$(get_auto_confirm)
     local clean_cache=$(get_clean_pip_cache)
     local sync_submodules=$(get_sync_submodules)
@@ -249,7 +244,7 @@ main() {
     fi
 
     # 执行安装
-    install_sage "$mode" "$environment" "$install_vllm" "$clean_cache"
+    install_sage "$mode" "$environment" "$clean_cache"
 
     # 验证安装
     if run_comprehensive_verification; then
@@ -360,11 +355,6 @@ main() {
             fi
         fi
 
-        # 如果安装了 VLLM，验证 VLLM 安装
-        if [ "$install_vllm" = "true" ]; then
-            echo ""
-            verify_vllm_installation
-        fi
         echo ""
         # 使用适配的居中显示函数，确保在所有环境下都能正确居中
         if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
@@ -386,9 +376,6 @@ main() {
         # 使用正确的 Python 命令
         local python_cmd="${PYTHON_CMD:-python3}"
         echo -e "  $python_cmd -c \"import sage; print(sage.__version__)\""
-        if [ "$install_vllm" = "true" ]; then
-            echo -e "  $python_cmd -c \"import vllm; print(vllm.__version__)\""
-        fi
     fi
 }
 
