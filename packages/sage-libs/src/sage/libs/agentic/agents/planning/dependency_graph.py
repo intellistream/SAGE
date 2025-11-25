@@ -87,10 +87,12 @@ class DependencyGraph:
                 elif neighbor in rec_stack:
                     # Found cycle, reconstruct it
                     cycle = [neighbor]
-                    current: Optional[int] = node
-                    while current != neighbor and current is not None:
+                    current = node
+                    while current != neighbor:
                         cycle.append(current)
                         current = parent.get(current)
+                        if current is None:
+                            break
                     cycle.append(neighbor)
                     return cycle[::-1]
 
