@@ -12,7 +12,7 @@
         name="openai",
         model="BAAI/bge-m3",  # 或任意名称
         base_url="http://localhost:8080/v1",
-        api_key="dummy",  # 本地服务不需要真实的 API key  # pragma: allowlist secret
+        api_key="dummy"  # 本地服务不需要真实的 API key  # pragma: allowlist secret
     )
 
     result = embedding_model.embed("Hello world")
