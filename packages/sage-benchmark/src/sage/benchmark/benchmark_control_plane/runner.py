@@ -217,8 +217,8 @@ class BenchmarkRunner:
             for rate in rates:
                 self._log(f"\n🔄 Testing rate: {rate} req/s")
 
-                # Create a copy of config to avoid side effects
-                rate_config = copy.copy(self.config)
+                # Create a deep copy of config to avoid side effects
+                rate_config = copy.deepcopy(self.config)
                 rate_config.request_rate = rate
 
                 # Create a new workload generator with the modified config
