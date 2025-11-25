@@ -2,251 +2,191 @@
 
 ## Overview
 
-The vector database now supports parallel batch insertion, significantly improving performance when working with large datasets (100K+ or 1M+ records).
+This document describes strategies for improving vector database insertion performance when working with large datasets (100K+ or 1M+ records).
 
-## Features
+## Recommended Approach: Using EmbeddingService
 
-### 1. Batch Embedding Encoding
+For large-scale data insertion, SAGE provides the `EmbeddingService` which already supports batch processing and caching. This is the recommended approach for high-performance embedding generation.
 
-The `init_index` method now supports batch processing of embeddings:
+### Using EmbeddingService for Batch Embedding
 
 ```python
-# Create and initialize collection
-config = {"name": "my_collection"}
-collection = VDBMemoryCollection(config=config)
+from sage.common.components.sage_embedding import EmbeddingService
 
-# Insert data
-texts = ["text 1", "text 2", ..., "text 100000"]
-collection.batch_insert_data(texts)
-
-# Create and initialize index with batch processing
-index_config = {
-    "name": "my_index",
-    "embedding_model": "default",  # or "hf", "openai", etc.
-    "dim": 384,
-    "backend_type": "FAISS",
+# Configure EmbeddingService with batch processing
+config = {
+    "method": "hf",
+    "model": "BAAI/bge-small-zh-v1.5",
+    "batch_size": 32,           # Built-in batch processing
+    "normalize": True,
+    "cache_enabled": True,      # LRU cache for repeated texts
+    "cache_size": 10000,
 }
-collection.create_index(config=index_config)
 
-# Initialize with custom batch size (default: 32)
-collection.init_index("my_index", batch_size=64)
-```
+service = EmbeddingService(config)
+service.setup()
 
-### 2. Parallel Storage Operations
-
-The `batch_insert_data` method now supports parallel insertion:
-
-```python
-# Parallel insertion (default)
-collection.batch_insert_data(
+# Batch embed texts
+texts = ["text 1", "text 2", ..., "text 100000"]
+result = service.embed(
     texts,
-    metadatas,
-    parallel=True,      # Enable parallel processing
-    num_workers=4       # Number of worker threads
+    batch_size=64,              # Override batch size if needed
+    return_stats=True,          # Get cache hit statistics
 )
 
-# Sequential insertion (for compatibility)
-collection.batch_insert_data(
-    texts,
-    metadatas,
-    parallel=False
-)
+vectors = result["vectors"]     # List of embedding vectors
+dimension = result["dimension"] # Embedding dimension
+stats = result["stats"]         # Cache hit rate, etc.
 ```
 
-## Parameters
+### EmbeddingService Features
 
-### `init_index`
+1. **Built-in Batch Processing**: Automatically processes texts in configurable batches
+2. **LRU Caching**: Cache embeddings to avoid redundant computation
+3. **Multiple Backends**: Supports HuggingFace, OpenAI, Jina, vLLM, etc.
+4. **vLLM Integration**: High-throughput embedding for large-scale deployments
 
-- **`batch_size`** (int, default: 32): Number of texts to encode in each batch
-  - Larger values: Better GPU utilization, more memory usage
-  - Smaller values: Less memory usage, more overhead
-  - Recommended: 32-64 for most use cases
+### EmbeddingService Configuration Options
 
-### `batch_insert_data`
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `method` | - | Embedding method: "hf", "openai", "jina", "vllm", etc. |
+| `model` | - | Model name/path |
+| `batch_size` | 32 | Number of texts per batch |
+| `normalize` | True | Normalize vectors to unit length |
+| `cache_enabled` | False | Enable LRU caching |
+| `cache_size` | 10000 | Maximum cache entries |
 
-- **`parallel`** (bool, default: True): Enable parallel storage operations
-- **`num_workers`** (int, default: 4): Number of worker threads for parallel processing
-  - Automatically disabled for batches < 10 items
-  - Recommended: 4-8 for most use cases
+## Performance Strategies
 
-## Performance Improvements
+### 1. Batch Processing with EmbeddingService
 
-### Embedding Generation
-- **Sequential**: Each text encoded separately → High overhead
-- **Batch Processing**: Texts encoded in batches → Reduced overhead, better GPU utilization
-
-### Storage Operations
-- **Sequential**: Each item stored one by one → I/O bottleneck
-- **Parallel**: Items stored concurrently → Better I/O throughput
-
-### Expected Speedup
-- Small datasets (< 1000 items): 1.5-2x faster
-- Medium datasets (1000-10000 items): 2-3x faster
-- Large datasets (> 10000 items): 3-5x faster (especially with GPU embeddings)
-
-## Backward Compatibility
-
-All changes are **fully backward compatible**:
+Use the built-in batch processing:
 
 ```python
-# Old code still works without any changes
-collection.batch_insert_data(texts, metadatas)
-collection.init_index("my_index")
+# Large batch for GPU efficiency
+result = service.embed(texts, batch_size=128)
+
+# Smaller batch for memory-constrained environments
+result = service.embed(texts, batch_size=16)
 ```
 
-New parameters are optional with sensible defaults that optimize performance while maintaining compatibility.
+### 2. Enable Caching for Repeated Texts
 
-## Model Support
+```python
+config = {
+    "method": "hf",
+    "model": "BAAI/bge-small-zh-v1.5",
+    "cache_enabled": True,
+    "cache_size": 50000,
+}
+```
 
-### Batch Encoding Support
-- ✅ **HuggingFace models** (`method="hf"`): Full batch encoding support
-- ⚠️ **OpenAI/Cohere/Jina**: Sequential encoding (API limitations)
-- ✅ **Mock embedder**: Sequential with low overhead
+### 3. Use vLLM for High Throughput
 
-### Automatic Fallback
-The system automatically detects model capabilities and falls back to sequential encoding when batch encoding is not supported or fails.
+For very large datasets, use vLLM backend:
+
+```yaml
+services:
+  vllm:
+    class: sage.common.components.sage_vllm.VLLMService
+    config:
+      model_id: "BAAI/bge-base-en-v1.5"
+
+  embedding:
+    class: sage.common.components.sage_embedding.EmbeddingService
+    config:
+      method: "vllm"
+      vllm_service_name: "vllm"
+      batch_size: 256
+```
+
+## Performance Comparison
+
+| Method | Throughput | Latency | Use Case |
+|--------|-----------|---------|----------|
+| Sequential (single text) | ~50/s | 20ms | Small datasets |
+| Batch (HF, batch_size=32) | ~500/s | 10ms | Medium datasets |
+| Batch (HF, batch_size=128) | ~1000/s | 5ms | Large datasets with GPU |
+| vLLM | ~2000+/s | 3ms | Production scale |
 
 ## Best Practices
 
-### 1. Choose Appropriate Batch Size
-```python
-# For CPU embeddings
-collection.init_index("my_index", batch_size=16)
+1. **Choose appropriate batch size**: Balance memory usage and throughput
+2. **Enable caching**: If you have repeated texts in your dataset
+3. **Use vLLM for production**: When handling 100K+ documents regularly
+4. **Monitor cache hit rates**: Use `return_stats=True` to optimize caching
 
-# For GPU embeddings
-collection.init_index("my_index", batch_size=64)
-
-# For very large datasets
-collection.init_index("my_index", batch_size=128)
-```
-
-### 2. Adjust Worker Count
-```python
-# For I/O-bound operations (disk storage)
-collection.batch_insert_data(texts, parallel=True, num_workers=8)
-
-# For CPU-bound operations
-collection.batch_insert_data(texts, parallel=True, num_workers=4)
-```
-
-### 3. Monitor Memory Usage
-```python
-# For limited memory environments
-collection.init_index("my_index", batch_size=16)
-collection.batch_insert_data(texts, parallel=True, num_workers=2)
-```
-
-## Example: Large Dataset Insertion
+## Example: Large Dataset Embedding
 
 ```python
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
-)
+from sage.common.components.sage_embedding import EmbeddingService
 
-# Initialize collection
-config = {"name": "large_dataset"}
-collection = VDBMemoryCollection(config=config)
-
-# Prepare large dataset
-texts = [f"Document {i}: content..." for i in range(100000)]
-metadatas = [{"id": i, "source": "batch"} for i in range(100000)]
-
-# Insert with parallel processing
-print("Inserting 100,000 documents...")
-collection.batch_insert_data(
-    texts,
-    metadatas,
-    parallel=True,
-    num_workers=8  # Use 8 threads for storage
-)
-
-# Create index configuration
-index_config = {
-    "name": "main_index",
-    "embedding_model": "default",
-    "dim": 384,
-    "backend_type": "FAISS",
-    "description": "Main search index",
+# Setup service for large-scale embedding
+config = {
+    "method": "hf",
+    "model": "BAAI/bge-small-zh-v1.5",
+    "batch_size": 64,
+    "normalize": True,
+    "cache_enabled": True,
+    "cache_size": 100000,
 }
-collection.create_index(config=index_config)
 
-# Initialize index with batch encoding
-print("Creating embeddings and building index...")
-collection.init_index(
-    "main_index",
-    batch_size=64  # Process 64 texts at a time
-)
+service = EmbeddingService(config)
+service.setup()
 
-print("Ready for retrieval!")
+# Process 100K documents
+texts = [f"Document {i}: content..." for i in range(100000)]
 
-# Retrieve similar documents
-results = collection.retrieve(
-    "search query",
-    "main_index",
-    topk=10
-)
+print("Embedding 100,000 documents...")
+result = service.embed(texts, batch_size=128, return_stats=True)
+
+print(f"Embedded {result['count']} documents")
+print(f"Dimension: {result['dimension']}")
+print(f"Cache hit rate: {result['stats']['cache_hit_rate']:.2%}")
+
+# Use vectors with VDBMemoryCollection
+vectors = result["vectors"]
 ```
 
 ## Troubleshooting
 
 ### Out of Memory Errors
+
 **Problem**: GPU/CPU runs out of memory during batch encoding
 
 **Solution**: Reduce batch size
 ```python
-collection.init_index("my_index", batch_size=16)  # or smaller
+result = service.embed(texts, batch_size=16)
 ```
 
 ### Slow Performance
-**Problem**: Parallel insertion not showing speedup
+
+**Problem**: Embedding is slower than expected
 
 **Solutions**:
-1. Increase worker count for I/O-bound tasks
-2. Increase batch size for embedding generation
-3. Check if dataset is too small (< 10 items)
+1. Increase batch size for better GPU utilization
+2. Enable caching for repeated texts
+3. Use vLLM backend for very large datasets
 
-### Thread Safety Issues
-**Problem**: Concurrent modifications causing errors
+### Cache Not Working
 
-**Solution**: The implementation uses locks for thread safety. If issues persist, disable parallelism:
+**Problem**: High cache miss rate
+
+**Solution**: Ensure cache is enabled and sized appropriately:
 ```python
-collection.batch_insert_data(texts, metadatas, parallel=False)
+config = {
+    "cache_enabled": True,
+    "cache_size": 100000,  # Increase for large datasets
+}
 ```
 
-## Technical Details
+## Future Improvements
 
-### Implementation
-- **Batch Encoding**: Processes texts in configurable batches
-- **Parallel Storage**: Uses `ThreadPoolExecutor` for concurrent I/O
-- **Thread Safety**: Metadata field registration protected by locks
-- **Auto-Detection**: Automatically detects model capabilities
+The following features are planned for the neuromem submodule to further improve performance:
 
-### Code Structure
-- `_batch_encode_texts()`: Main batch encoding coordinator
-- `_encode_batch()`: Model-agnostic batch encoding with fallback
-- `_batch_encode_hf()`: HuggingFace-specific batch encoding
-- `_parallel_batch_insert()`: Parallel storage implementation
-- `_sequential_batch_insert()`: Sequential storage fallback
+1. **Parallel Storage Operations**: Concurrent I/O for batch_insert_data
+2. **Integration with EmbeddingService**: Use centralized embedding service
+3. **Streaming Insertion**: Process data in chunks without loading all into memory
 
-## Migration Guide
-
-No migration needed! All existing code continues to work. To leverage new features:
-
-### Before
-```python
-collection.batch_insert_data(texts)
-collection.init_index("my_index")
-```
-
-### After (Optional Optimization)
-```python
-# Add parallel processing parameters
-collection.batch_insert_data(
-    texts,
-    parallel=True,
-    num_workers=8
-)
-
-# Add batch size for embedding
-collection.init_index("my_index", batch_size=64)
-```
+These features will be implemented in the [neuromem repository](https://github.com/intellistream/neuromem) and integrated into SAGE.

@@ -1,263 +1,207 @@
 """
-Example: Using Parallel Batch Insertion for Large-Scale Vector Database
+Example: High-Performance Batch Embedding with EmbeddingService
 
-This example demonstrates how to use the new parallel batch insertion feature
-to efficiently insert large datasets into a vector database.
+This example demonstrates how to use EmbeddingService for efficient
+batch embedding of large datasets, which is the recommended approach
+for vector database insertion performance.
 """
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
-)
 
-
-def example_basic_parallel_insertion():
-    """Basic example of parallel batch insertion"""
+def example_basic_batch_embedding():
+    """Example 1: Basic batch embedding with EmbeddingService"""
     print("\n" + "=" * 70)
-    print("Example 1: Basic Parallel Batch Insertion")
+    print("Example 1: Basic Batch Embedding")
     print("=" * 70)
 
-    # Step 1: Create collection
-    config = {"name": "example_collection"}
-    collection = VDBMemoryCollection(config=config)
-    print("✓ Created collection: example_collection")
+    from sage.common.components.sage_embedding import EmbeddingService
 
-    # Step 2: Prepare data (simulate large dataset)
-    num_docs = 1000
+    # Configure EmbeddingService
+    config = {
+        "method": "hf",
+        "model": "BAAI/bge-small-zh-v1.5",
+        "batch_size": 32,
+        "normalize": True,
+        "cache_enabled": True,
+        "cache_size": 10000,
+    }
+
+    service = EmbeddingService(config)
+    service.setup()
+
+    # Sample texts
     texts = [
-        f"这是第{i}篇文档，内容是关于机器学习和人工智能的研究。" for i in range(num_docs)
+        "人工智能正在改变世界",
+        "机器学习是AI的核心",
+        "深度学习推动了AI发展",
+        "自然语言处理很重要",
+        "向量数据库用于存储嵌入",
     ]
-    metadatas = [
-        {"doc_id": i, "category": f"category_{i % 10}", "priority": i % 3}
-        for i in range(num_docs)
-    ]
-    print(f"✓ Prepared {num_docs} documents")
 
-    # Step 3: Insert with parallel processing (NEW!)
-    print("\nInserting documents with parallel processing...")
-    collection.batch_insert_data(
-        texts,
-        metadatas,
-        parallel=True,  # Enable parallel processing
-        num_workers=8,  # Use 8 worker threads
-    )
-    print(f"✓ Inserted {num_docs} documents in parallel")
+    # Batch embed
+    result = service.embed(texts, return_stats=True)
 
-    # Step 4: Create and initialize index with batch encoding (NEW!)
-    index_config = {
-        "name": "main_index",
-        "embedding_model": "default",  # Uses sentence-transformers/all-MiniLM-L6-v2
-        "dim": 384,
-        "backend_type": "FAISS",
-        "description": "Main search index",
-    }
-    collection.create_index(config=index_config)
-    print("✓ Created index configuration")
+    print(f"\n✓ Embedded {result['count']} texts")
+    print(f"✓ Dimension: {result['dimension']}")
+    print(f"✓ Stats: {result['stats']}")
 
-    print("\nBuilding index with batch encoding...")
-    collection.init_index(
-        "main_index",
-        batch_size=64,  # Process 64 texts at a time (NEW!)
-    )
-    print("✓ Index built with batch processing")
-
-    # Step 5: Search
-    query = "机器学习"
-    results = collection.retrieve(query, "main_index", topk=5, with_metadata=True)
-
-    print(f"\nSearch results for '{query}':")
-    for i, result in enumerate(results, 1):  # type: ignore[arg-type]
-        print(f"{i}. {result['text'][:50]}...")  # type: ignore[index]
-        print(f"   Metadata: {result['metadata']}")  # type: ignore[index]
-
-    print("\n✅ Basic example completed successfully!")
+    service.cleanup()
 
 
-def example_large_dataset_with_filtering():
-    """Example with filtering and custom batch sizes"""
+def example_large_dataset_embedding():
+    """Example 2: Large dataset embedding with caching"""
     print("\n" + "=" * 70)
-    print("Example 2: Large Dataset with Metadata Filtering")
+    print("Example 2: Large Dataset Embedding")
     print("=" * 70)
 
-    # Create collection
-    config = {"name": "filtered_collection"}
-    collection = VDBMemoryCollection(config=config)
-    print("✓ Created collection")
+    from sage.common.components.sage_embedding import EmbeddingService
 
-    # Prepare diverse dataset
-    num_docs = 500
-    categories = ["tech", "science", "business", "health", "education"]
-    texts = [
-        f"Document {i} about {categories[i % len(categories)]}: detailed content here."
-        for i in range(num_docs)
-    ]
-    metadatas = [
-        {
-            "id": i,
-            "category": categories[i % len(categories)],
-            "priority": "high" if i % 3 == 0 else "low",
-            "year": 2020 + (i % 5),
-        }
-        for i in range(num_docs)
-    ]
-
-    # Insert with parallel processing
-    collection.batch_insert_data(texts, metadatas, parallel=True, num_workers=6)
-    print(f"✓ Inserted {num_docs} documents")
-
-    # Create index
-    index_config = {
-        "name": "tech_index",
-        "embedding_model": "default",
-        "dim": 384,
-        "backend_type": "FAISS",
-        "description": "Technology documents index",
+    config = {
+        "method": "hf",
+        "model": "BAAI/bge-small-zh-v1.5",
+        "batch_size": 64,
+        "normalize": True,
+        "cache_enabled": True,
+        "cache_size": 50000,
     }
-    collection.create_index(config=index_config)
 
-    # Initialize index with filtering (only tech and science categories)
-    print("\nBuilding index with filtered data...")
-    collection.init_index(
-        "tech_index",
-        batch_size=32,  # Smaller batch size for filtered data
-        metadata_filter_func=lambda m: m.get("category") in ["tech", "science"],
-    )
-    print("✓ Index built with metadata filtering")
+    service = EmbeddingService(config)
+    service.setup()
 
-    # Search in filtered index
-    results = collection.retrieve(
-        "technology innovation", "tech_index", topk=3, with_metadata=True
-    )
-
-    print("\nSearch results (tech and science only):")
-    for i, result in enumerate(results, 1):  # type: ignore[arg-type]
-        print(f"{i}. Category: {result['metadata']['category']}")  # type: ignore[index, union-attr]
-        print(f"   {result['text'][:60]}...")  # type: ignore[index]
-
-    print("\n✅ Filtered example completed successfully!")
-
-
-def example_performance_optimization():
-    """Example showing different optimization strategies"""
-    print("\n" + "=" * 70)
-    print("Example 3: Performance Optimization Strategies")
-    print("=" * 70)
-
-    import time
-
-    # Prepare test data
-    num_docs = 200
-    texts = [f"Performance test document {i} with content." for i in range(num_docs)]
-
-    # Strategy 1: Default settings (good for most cases)
-    print("\n1. Default settings (recommended for most cases)")
-    config1 = {"name": "default_strategy"}
-    coll1 = VDBMemoryCollection(config=config1)
-
-    start = time.time()
-    coll1.batch_insert_data(texts)  # Uses default: parallel=True, num_workers=4
-    elapsed1 = time.time() - start
-    print(f"   Time: {elapsed1:.3f}s with default settings")
-
-    # Strategy 2: High parallelism (for I/O-bound workloads)
-    print("\n2. High parallelism (for fast storage)")
-    config2 = {"name": "high_parallel"}
-    coll2 = VDBMemoryCollection(config=config2)
-
-    start = time.time()
-    coll2.batch_insert_data(texts, parallel=True, num_workers=12)
-    elapsed2 = time.time() - start
-    print(f"   Time: {elapsed2:.3f}s with 12 workers")
-
-    # Strategy 3: Sequential (for debugging or small batches)
-    print("\n3. Sequential (for compatibility/debugging)")
-    config3 = {"name": "sequential"}
-    coll3 = VDBMemoryCollection(config=config3)
-
-    start = time.time()
-    coll3.batch_insert_data(texts, parallel=False)
-    elapsed3 = time.time() - start
-    print(f"   Time: {elapsed3:.3f}s with sequential processing")
-
-    # Strategy 4: Optimized for GPU embeddings
-    print("\n4. Large batch size (for GPU embeddings)")
-    index_config = {
-        "name": "gpu_index",
-        "embedding_model": "default",
-        "dim": 384,
-        "backend_type": "FAISS",
-    }
-    coll1.create_index(config=index_config)
-
-    start = time.time()
-    coll1.init_index("gpu_index", batch_size=128)  # Large batch for GPU
-    elapsed4 = time.time() - start
-    print(f"   Time: {elapsed4:.3f}s with batch_size=128")
-
-    print("\n✅ Performance optimization examples completed!")
-    print(f"\nPerformance summary:")
-    print(f"  Default:      {elapsed1:.3f}s")
-    print(f"  High parallel: {elapsed2:.3f}s ({elapsed1/elapsed2:.1f}x)")
-    print(f"  Sequential:   {elapsed3:.3f}s ({elapsed3/elapsed1:.1f}x slower)")
-
-
-def example_memory_efficient():
-    """Example for memory-constrained environments"""
-    print("\n" + "=" * 70)
-    print("Example 4: Memory-Efficient Configuration")
-    print("=" * 70)
-
-    config = {"name": "memory_efficient"}
-    collection = VDBMemoryCollection(config=config)
-
-    # Large dataset
+    # Simulate large dataset
     num_docs = 1000
-    texts = [f"Memory-efficient document {i}" for i in range(num_docs)]
+    texts = [f"Document {i}: This is sample content for testing." for i in range(num_docs)]
 
-    # Use moderate parallelism to reduce memory pressure
-    print("\nUsing memory-efficient settings...")
-    collection.batch_insert_data(
-        texts,
-        parallel=True,
-        num_workers=2,  # Fewer workers = less memory
-    )
-    print(f"✓ Inserted {num_docs} documents with 2 workers")
+    print(f"\nEmbedding {num_docs} documents...")
+    
+    # Use larger batch size for efficiency
+    result = service.embed(texts, batch_size=128, return_stats=True)
 
-    # Small batch size for embedding to reduce GPU/CPU memory
-    index_config = {
-        "name": "efficient_index",
-        "embedding_model": "default",
-        "dim": 384,
-        "backend_type": "FAISS",
-    }
-    collection.create_index(config=index_config)
+    print(f"✓ Embedded {result['count']} documents")
+    print(f"✓ Computed: {result['stats']['computed']}")
+    print(f"✓ Cached: {result['stats']['cached']}")
 
-    collection.init_index(
-        "efficient_index",
-        batch_size=16,  # Small batch = less memory usage
-    )
-    print("✓ Index built with small batch size (16)")
+    # Re-embed same texts to show caching
+    print("\nRe-embedding (should use cache)...")
+    result2 = service.embed(texts[:100], return_stats=True)
+    print(f"✓ Cache hit rate: {result2['stats']['cache_hit_rate']:.2%}")
 
-    print("\n✅ Memory-efficient example completed!")
-    print("   Tip: Adjust num_workers and batch_size based on your system resources")
+    service.cleanup()
+
+
+def example_embedding_strategies():
+    """Example 3: Different embedding strategies"""
+    print("\n" + "=" * 70)
+    print("Example 3: Embedding Strategies")
+    print("=" * 70)
+
+    strategies = """
+Strategy Selection Guide:
+
+1. Small datasets (< 1K texts):
+   - method: "hf"
+   - batch_size: 16
+   - cache_enabled: False
+
+2. Medium datasets (1K - 10K texts):
+   - method: "hf"
+   - batch_size: 32
+   - cache_enabled: True
+
+3. Large datasets (10K - 100K texts):
+   - method: "hf"
+   - batch_size: 64-128
+   - cache_enabled: True
+   - cache_size: 100000
+
+4. Production scale (100K+ texts):
+   - method: "vllm"
+   - batch_size: 256
+   - Use vLLM service for high throughput
+
+5. Cloud deployment:
+   - method: "openai"
+   - batch_size: 100 (API limit)
+   - Rate limiting required
+"""
+    print(strategies)
+
+
+def example_vllm_config():
+    """Example 4: vLLM configuration for high throughput"""
+    print("\n" + "=" * 70)
+    print("Example 4: vLLM Configuration")
+    print("=" * 70)
+
+    vllm_config = """
+# YAML configuration for vLLM-backed embedding service
+
+services:
+  vllm:
+    class: sage.common.components.sage_vllm.VLLMService
+    config:
+      model_id: "BAAI/bge-base-en-v1.5"
+      embedding_model_id: "BAAI/bge-base-en-v1.5"
+      auto_download: true
+      engine:
+        tensor_parallel_size: 1
+        gpu_memory_utilization: 0.9
+
+  embedding:
+    class: sage.common.components.sage_embedding.EmbeddingService
+    config:
+      method: "vllm"
+      vllm_service_name: "vllm"
+      batch_size: 256
+      normalize: true
+      cache_enabled: true
+      cache_size: 100000
+
+# Usage in pipeline:
+# result = self.call_service("embedding", payload={
+#     "task": "embed",
+#     "inputs": texts,
+#     "options": {"batch_size": 256}
+# })
+"""
+    print(vllm_config)
+
+
+def main():
+    """Run all examples"""
+    print("\n" + "=" * 70)
+    print("HIGH-PERFORMANCE BATCH EMBEDDING EXAMPLES")
+    print("=" * 70)
+    print("\nThese examples demonstrate the recommended approach for")
+    print("high-performance vector database insertion using EmbeddingService.")
+
+    import os
+    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+
+    if is_test_mode:
+        # In test mode, just show the examples
+        print("\n🧪 Test mode: Showing example configurations\n")
+        example_embedding_strategies()
+        example_vllm_config()
+    else:
+        try:
+            example_basic_batch_embedding()
+            example_large_dataset_embedding()
+        except ImportError as e:
+            print(f"\nNote: {e}")
+            print("Install SAGE to run the embedding examples.")
+
+        example_embedding_strategies()
+        example_vllm_config()
+
+    print("\n" + "=" * 70)
+    print("EXAMPLES COMPLETE")
+    print("=" * 70)
+    print("\nKey takeaways:")
+    print("1. Use EmbeddingService for batch embedding")
+    print("2. Enable caching for repeated texts")
+    print("3. Adjust batch_size based on hardware")
+    print("4. Use vLLM for production scale")
 
 
 if __name__ == "__main__":
-    print("=" * 70)
-    print("PARALLEL BATCH INSERTION EXAMPLES")
-    print("=" * 70)
-
-    # Run all examples
-    example_basic_parallel_insertion()
-    example_large_dataset_with_filtering()
-    example_performance_optimization()
-    example_memory_efficient()
-
-    print("\n" + "=" * 70)
-    print("🎉 ALL EXAMPLES COMPLETED SUCCESSFULLY!")
-    print("=" * 70)
-    print("\nKey Takeaways:")
-    print("1. Use parallel=True (default) for faster insertion")
-    print("2. Adjust num_workers (default: 4) based on your I/O performance")
-    print("3. Use batch_size=32-64 for CPU, 64-128 for GPU embeddings")
-    print("4. Reduce batch_size and num_workers for memory-constrained systems")
-    print("5. All new parameters are optional - existing code works without changes!")
+    main()
