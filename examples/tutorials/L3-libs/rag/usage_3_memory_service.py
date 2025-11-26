@@ -88,7 +88,8 @@ class DPMemoryService(BaseService):
                 "description": "Global index for similarity search",
             }
             collection.create_index(index_config)  # type: ignore[attr-defined]
-            collection.init_index("global_index")  # type: ignore[attr-defined]
+            # Note: index initialization with vectors happens when data is inserted
+            # via store_memory which calls collection.insert with pre-computed vectors
 
             self.logger.info(f"✓ Created collection: {collection_name}")
             return True
@@ -129,9 +130,12 @@ class DPMemoryService(BaseService):
                 )
                 return None
 
-            # VDBMemoryCollection.insert 使用 (index_name, raw_data, metadata)
+            # VDBMemoryCollection.insert 使用 (index_name, raw_data, vector, metadata)
             memory_id = collection.insert(
-                index_name="global_index", raw_data=content, metadata=metadata
+                index_name="global_index",
+                raw_data=content,
+                vector=vector,
+                metadata=metadata,
             )
 
             self.logger.debug(f"Stored memory: {memory_id}")
@@ -142,14 +146,14 @@ class DPMemoryService(BaseService):
             return None
 
     def retrieve_memories(
-        self, collection_name: str, query_text: str, topk: int = 5
+        self, collection_name: str, query_vector: np.ndarray, topk: int = 5
     ) -> list[dict[str, Any]]:
         """
         检索相似的记忆
 
         Args:
             collection_name: Collection 名称
-            query_text: 查询文本
+            query_vector: 查询向量
             topk: 返回结果数量
 
         Returns:
@@ -162,7 +166,7 @@ class DPMemoryService(BaseService):
                 return []
 
             results = collection.retrieve(  # type: ignore[call-arg]
-                raw_data=query_text,
+                query_vector=query_vector,
                 index_name="global_index",
                 topk=topk,
                 with_metadata=True,
@@ -341,7 +345,9 @@ def example_basic_dp_memory():
 
     # 检索
     print("\n🔍 Retrieving memories...")
-    results = service.retrieve_memories("documents", "document information", topk=3)
+    query_vector = np.random.randn(128).astype(np.float32)
+    query_vector = query_vector / (np.linalg.norm(query_vector) + 1e-10)
+    results = service.retrieve_memories("documents", query_vector, topk=3)
     print(f"  Found {len(results)} results")
 
     # 遗忘其中一些
@@ -438,7 +444,9 @@ def example_multi_collection():
 
     # 从 confidential collection 遗忘一些数据
     print("\n🔒 Forgetting from confidential collection...")
-    results = service.retrieve_memories("confidential", "document", topk=2)
+    query_vector = np.random.randn(128).astype(np.float32)
+    query_vector = query_vector / (np.linalg.norm(query_vector) + 1e-10)
+    results = service.retrieve_memories("confidential", query_vector, topk=2)
     if results:
         # 获取第一个结果的 ID（这是一个简化版，实际需要追踪 ID）
         print(f"  Found {len(results)} documents in confidential collection")

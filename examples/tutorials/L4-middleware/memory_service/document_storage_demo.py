@@ -15,7 +15,25 @@ Author: SAGE Team
 Date: 2024-01-22
 """
 
+import numpy as np
+
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+
+
+def normalize_vector(vector):
+    """Normalize a vector using L2 normalization."""
+    if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+        vector = vector.detach().cpu().numpy()
+    if isinstance(vector, list):
+        vector = np.array(vector)
+    if not isinstance(vector, np.ndarray):
+        vector = np.array(vector)
+    vector = vector.astype(np.float32)
+    norm = np.linalg.norm(vector)
+    if norm > 0:
+        vector = vector / norm
+    return vector
 
 
 def example_1_basic_storage():
@@ -111,6 +129,9 @@ def example_2_semantic_search():
     data_dir = ".sage/examples/document_storage/example_2"
     manager = MemoryManager(data_dir=data_dir)
 
+    # Initialize embedding model
+    embedding_model = apply_embedding_model("mockembedder")
+
     # Create collection
     collection = manager.create_collection(
         {
@@ -156,7 +177,10 @@ def example_2_semantic_search():
     }
 
     collection.create_index(index_config)
-    collection.init_index("semantic_index")
+    # Generate vectors externally and initialize index
+    vectors = [normalize_vector(embedding_model.encode(doc)) for doc in documents]
+    item_ids = collection.get_all_ids()
+    collection.init_index("semantic_index", vectors, item_ids)
     print("✅ 语义索引创建完成")
 
     # Semantic search
@@ -164,8 +188,9 @@ def example_2_semantic_search():
 
     for query in queries:
         print(f"\n🔍 查询: '{query}'")
+        query_vector = normalize_vector(embedding_model.encode(query))
         results = collection.retrieve(
-            raw_data=query,
+            query_vector=query_vector,
             index_name="semantic_index",
             topk=3,
             threshold=0.1,
@@ -197,6 +222,9 @@ def example_3_hybrid_search():
 
     data_dir = ".sage/examples/document_storage/example_3"
     manager = MemoryManager(data_dir=data_dir)
+
+    # Initialize embedding model
+    embedding_model = apply_embedding_model("mockembedder")
 
     # Create collection
     collection = manager.create_collection(
@@ -242,13 +270,17 @@ def example_3_hybrid_search():
             "backend_type": "FAISS",
         }
     )
-    collection.init_index("tech_index")
+    # Generate vectors externally and initialize index
+    vectors = [normalize_vector(embedding_model.encode(doc)) for doc in documents]
+    item_ids = collection.get_all_ids()
+    collection.init_index("tech_index", vectors, item_ids)
     print("✅ 技术文档索引创建完成")
 
     # Hybrid search 1: Python related + recent years
     print("\n🔍 混合查询1: Python相关 AND 2020年后")
+    query_vector = normalize_vector(embedding_model.encode("Python深度学习框架"))
     results = collection.retrieve(
-        raw_data="Python深度学习框架",
+        query_vector=query_vector,
         index_name="tech_index",
         topk=5,
         with_metadata=True,
@@ -264,8 +296,9 @@ def example_3_hybrid_search():
 
     # Hybrid search 2: Programming languages only
     print("\n🔍 混合查询2: 编程语言类别")
+    query_vector = normalize_vector(embedding_model.encode("现代编程语言特性"))
     results = collection.retrieve(
-        raw_data="现代编程语言特性",
+        query_vector=query_vector,
         index_name="tech_index",
         topk=5,
         with_metadata=True,
