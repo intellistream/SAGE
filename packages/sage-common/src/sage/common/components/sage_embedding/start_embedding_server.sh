@@ -53,3 +53,4 @@ python3 "${EMBEDDING_SERVER}" \
     --port "${PORT}" \
     --device "${DEVICE}" \
     --workers 1
+
