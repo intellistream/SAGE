@@ -42,9 +42,7 @@ def main():
     parser.add_argument(
         "--demo", action="store_true", help="Demo mode with simulated results (no GPU)"
     )
-    parser.add_argument(
-        "--quick", action="store_true", help="Quick test with 3 methods (8GB GPU)"
-    )
+    parser.add_argument("--quick", action="store_true", help="Quick test with 3 methods (8GB GPU)")
     parser.add_argument(
         "--full",
         action="store_true",
@@ -63,9 +61,7 @@ def main():
         default="Qwen/Qwen2.5-1.5B-Instruct",
         help="Base model for training",
     )
-    parser.add_argument(
-        "--show-plot", action="store_true", help="Display plot interactively"
-    )
+    parser.add_argument("--show-plot", action="store_true", help="Display plot interactively")
     parser.add_argument(
         "--skip-training",
         action="store_true",
@@ -147,13 +143,9 @@ def main():
         parser.print_help()
         print("\n" + "-" * 70)
         print("QUICK START:")
-        print(
-            "  python run_method_comparison.py --demo    # See visualization (no GPU)"
-        )
+        print("  python run_method_comparison.py --demo    # See visualization (no GPU)")
         print("  python run_method_comparison.py --quick   # Quick test (8GB GPU)")
-        print(
-            "  python run_method_comparison.py --full    # Full benchmark (24GB+ GPU)"
-        )
+        print("  python run_method_comparison.py --full    # Full benchmark (24GB+ GPU)")
 
 
 if __name__ == "__main__":

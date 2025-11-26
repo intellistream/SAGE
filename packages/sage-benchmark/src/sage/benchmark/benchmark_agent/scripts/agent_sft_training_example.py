@@ -44,9 +44,7 @@ def check_dependencies():
         return True
     except ImportError as e:
         logger.error(f"Missing dependency: {e}")
-        logger.error(
-            "Install with: pip install transformers peft accelerate bitsandbytes"
-        )
+        logger.error("Install with: pip install transformers peft accelerate bitsandbytes")
         return False
 
 
@@ -84,7 +82,7 @@ def show_data_stats():
 
 def train_quick_mode(output_dir: Path):
     """Quick training mode for testing the pipeline."""
-    from sage.tools.agent_training import AgentSFTConfig, AgentSFTTrainer
+    from sage.libs.finetune.agent import AgentSFTConfig, AgentSFTTrainer
 
     print("\n" + "=" * 60)
     print("QUICK TRAINING MODE")
@@ -122,7 +120,7 @@ def train_quick_mode(output_dir: Path):
 
 def train_full_mode(output_dir: Path):
     """Full training mode for production."""
-    from sage.tools.agent_training import AgentSFTConfig, AgentSFTTrainer
+    from sage.libs.finetune.agent import AgentSFTConfig, AgentSFTTrainer
 
     print("\n" + "=" * 60)
     print("FULL TRAINING MODE")
@@ -220,17 +218,13 @@ def evaluate_model(model_path: Path):
     target = 0.95
     top_k_acc = metrics.get("top_k_accuracy", 0)
     if top_k_acc >= target:
-        print(
-            f"  ✓ Top-5 Accuracy: {top_k_acc * 100:.1f}% >= {target * 100:.0f}% (TARGET MET)"
-        )
+        print(f"  ✓ Top-5 Accuracy: {top_k_acc * 100:.1f}% >= {target * 100:.0f}% (TARGET MET)")
     else:
         gap = target - top_k_acc
         print(
             f"  △ Top-5 Accuracy: {top_k_acc * 100:.1f}% < {target * 100:.0f}% (gap: {gap * 100:.1f}%)"
         )
-        print(
-            "    Note: Baseline strategy used. Train with SFT data for better results."
-        )
+        print("    Note: Baseline strategy used. Train with SFT data for better results.")
 
     return metrics
 
@@ -247,9 +241,7 @@ def main():
         default=Path.home() / ".sage" / "agent_training_example",
         help="Output directory",
     )
-    parser.add_argument(
-        "--stats-only", action="store_true", help="Show data stats only"
-    )
+    parser.add_argument("--stats-only", action="store_true", help="Show data stats only")
     args = parser.parse_args()
 
     print("=" * 60)

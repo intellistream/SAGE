@@ -10,6 +10,16 @@ set -e
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="$SAGE_ROOT/tools/install"
 
+# 自动设置 HuggingFace 镜像（国内网络加速）
+# 如果用户已设置 HF_ENDPOINT 则不覆盖
+if [ -z "${HF_ENDPOINT}" ]; then
+    # 检测是否能直接访问 huggingface.co
+    if ! curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
+        export HF_ENDPOINT="https://hf-mirror.com"
+        echo -e "\033[2m自动设置 HuggingFace 镜像: $HF_ENDPOINT\033[0m"
+    fi
+fi
+
 # 导入所有模块
 source "$TOOLS_DIR/display_tools/colors.sh"
 source "$TOOLS_DIR/display_tools/output_formatter.sh"

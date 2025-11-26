@@ -1,39 +1,46 @@
 """
-Agent Training Pipeline
+Agent Training Module (Backward Compatibility Shim)
 
-Provides training infrastructure for Agent models including:
-- SFT (Supervised Fine-Tuning) with tool-calling data
-- RL (Reinforcement Learning) with DPO/PPO/GRPO
-- Evaluation against agent benchmarks
+⚠️ DEPRECATED: This module has been moved to sage.libs.finetune.agent
+
+Please update your imports:
+    # Old (deprecated)
+    from sage.tools.agent_training import AgentSFTTrainer, AgentSFTConfig
+
+    # New (recommended)
+    from sage.libs.finetune.agent import AgentSFTTrainer, AgentSFTConfig
+
+This shim will be removed in a future version.
 """
 
-from .config import (
+import warnings
+
+# Emit deprecation warning on import
+warnings.warn(
+    "sage.tools.agent_training is deprecated. Please use sage.libs.finetune.agent instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# Re-export everything from the new location for backward compatibility
+from sage.libs.finetune.agent import (
+    AgentDialogProcessor,
     AgentRewardConfig,
     AgentSFTConfig,
+    AgentSFTTrainer,
+    CoresetSelector,
+    OnlineContinualLearner,
+    ProcessedDialog,
     RLTrainingConfig,
 )
-from .continual import CoresetSelector, OnlineContinualLearner
-from .data_formatter import AgentSFTFormatter
-from .dialog_processor import AgentDialogProcessor
-from .evaluator import AgentTrainingEvaluator
-from .reward_model import AgentRewardModel
-from .sft_trainer import AgentSFTTrainer
 
 __all__ = [
-    # Config
     "AgentSFTConfig",
     "RLTrainingConfig",
     "AgentRewardConfig",
-    # Data
-    "AgentSFTFormatter",
-    "AgentDialogProcessor",
     "AgentSFTTrainer",
     "CoresetSelector",
     "OnlineContinualLearner",
-    # Training
-    # "AgentSFTTrainer",  # TODO
-    # "AgentRLTrainer",   # TODO
-    # Evaluation
-    "AgentRewardModel",
-    "AgentTrainingEvaluator",
+    "AgentDialogProcessor",
+    "ProcessedDialog",
 ]

@@ -200,6 +200,24 @@ install_core_packages() {
     echo -e "${DIM}           确保所有传递依赖可用后再安装本地源码${NC}"
     echo ""
 
+    # 步骤 0: 检测 GPU 并预安装 CUDA 版本的 PyTorch（如果有 GPU）
+    echo -e "${DIM}步骤 0/5: 检测 GPU 环境...${NC}"
+    log_info "步骤 0/5: 检测 GPU 并安装 CUDA 版本 PyTorch" "INSTALL"
+
+    local pytorch_installer="$(dirname "${BASH_SOURCE[0]}")/../fixes/pytorch_cuda_installer.sh"
+    if [ -f "$pytorch_installer" ]; then
+        source "$pytorch_installer"
+        if preinstall_pytorch_cuda; then
+            log_info "PyTorch 环境设置完成" "INSTALL"
+        else
+            log_warn "PyTorch CUDA 安装失败，将使用 CPU 版本" "INSTALL"
+        fi
+    else
+        log_warn "pytorch_cuda_installer.sh 不存在，跳过 GPU 检测" "INSTALL"
+        echo -e "${DIM}跳过 GPU 检测（安装脚本不存在）${NC}"
+    fi
+    echo ""
+
     # 第一步：安装外部依赖（必须在本地包之前）
     echo -e "${DIM}步骤 1/5: 安装外部依赖...${NC}"
     log_info "步骤 1/5: 提取并安装外部依赖" "INSTALL"
