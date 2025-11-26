@@ -8,6 +8,36 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 导入 conda 管理工具
 source "$(dirname "${BASH_SOURCE[0]}")/conda_manager.sh"
 
+# 尝试通过公网 IP 判断是否位于中国大陆
+detect_mainland_china_ip() {
+    local detector=""
+    if command -v curl >/dev/null 2>&1; then
+        detector="curl -s --max-time 3"
+    elif command -v wget >/dev/null 2>&1; then
+        detector="wget -qO- --timeout=3"
+    else
+        return 1
+    fi
+
+    local endpoints=(
+        "https://ipinfo.io/country"
+        "https://ifconfig.co/country-iso"
+        "https://ipapi.co/country/"
+    )
+
+    for url in "${endpoints[@]}"; do
+        local code=$($detector "$url" 2>/dev/null | tr -d ' \r\n\t')
+        if [[ "$code" =~ ^[A-Z]{2}$ ]]; then
+            if [ "$code" = "CN" ]; then
+                return 0
+            fi
+            return 1
+        fi
+    done
+
+    return 1
+}
+
 # 配置 pip 镜像
 configure_pip_mirror() {
     local mirror_source="${1:-auto}"
@@ -16,14 +46,16 @@ configure_pip_mirror() {
 
     case "$mirror_source" in
         "auto")
-            # 自动检测最优镜像
-            if [[ "$LANG" == zh_* ]] || [[ "$LC_ALL" == zh_* ]] || [[ "$LC_CTYPE" == zh_* ]]; then
-                # 中文环境，优先使用清华镜像
+            # 自动检测最优镜像，优先根据公网 IP 判断
+            if detect_mainland_china_ip; then
                 export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                 export PIP_EXTRA_INDEX_URL=""
-                echo -e "${DIM}  检测到中文环境，使用清华镜像${NC}"
+                echo -e "${DIM}  检测到中国大陆公网 IP，使用清华镜像${NC}"
+            elif [[ "$LANG" == zh_* ]] || [[ "$LC_ALL" == zh_* ]] || [[ "$LC_CTYPE" == zh_* ]]; then
+                export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+                export PIP_EXTRA_INDEX_URL=""
+                echo -e "${DIM}  检测到中文语言环境，使用清华镜像${NC}"
             else
-                # 英文环境，使用官方
                 export PIP_INDEX_URL="https://pypi.org/simple/"
                 export PIP_EXTRA_INDEX_URL=""
                 echo -e "${DIM}  使用官方 PyPI${NC}"
