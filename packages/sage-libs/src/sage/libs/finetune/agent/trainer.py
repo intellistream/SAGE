@@ -1,36 +1,4 @@
-"""
-Supervised Fine-Tuning Trainer for Agent Dialogs.
-
-This module provides the main training infrastructure for fine-tuning
-language models on agent tasks (tool calling, planning, timing judgment).
-
-Key Features:
-    - Parameter-efficient fine-tuning with LoRA/DoRA/LoRA+
-    - Automatic GPU memory optimization for 12GB+ GPUs
-    - Optional coreset selection for efficient training
-    - Optional continual learning with experience replay
-    - Support for multiple output formats (ChatML, Alpaca, etc.)
-
-Example Usage:
-    >>> from sage.libs.finetune.agent import AgentSFTTrainer, AgentSFTConfig
-    >>>
-    >>> config = AgentSFTConfig(
-    ...     base_model="Qwen/Qwen2.5-1.5B-Instruct",
-    ...     train_data="agent_sft:train",
-    ...     num_epochs=2,
-    ...     use_coreset_selection=True,
-    ... )
-    >>>
-    >>> trainer = AgentSFTTrainer(config)
-    >>> trainer.train()
-    >>> trainer.save_model("./my_agent_model")
-
-Advanced Features:
-    - DoRA: Set `use_dora=True` for weight-decomposed LoRA
-    - LoRA+: Set `use_lora_plus=True` for differentiated learning rates
-    - Coreset: Set `use_coreset_selection=True` with strategy
-    - Continual: Set `use_online_continual=True` for experience replay
-"""
+"""Supervised fine-tuning trainer for agent dialogs."""
 
 from __future__ import annotations
 
@@ -140,33 +108,19 @@ class AgentSFTTrainer:
         self.tokenizer.padding_side = self.config.padding_side
 
     def apply_lora(self) -> None:
-        """Attach LoRA adapters with agent-friendly defaults.
-
-        Supports:
-        - Standard LoRA
-        - DoRA (Weight-Decomposed LoRA, PEFT >= 0.9.0)
-        - LoRA+ (differentiated learning rates for A/B matrices)
-        """
+        """Attach LoRA adapters with agent-friendly defaults."""
 
         if self.model is None:
             raise ValueError("Model must be loaded before applying LoRA")
 
-        # Build LoRA config with optional DoRA support
-        lora_kwargs = {
-            "r": self.config.lora_r,
-            "lora_alpha": self.config.lora_alpha,
-            "target_modules": self.config.lora_target_modules,
-            "lora_dropout": self.config.lora_dropout,
-            "bias": "none",
-            "task_type": "CAUSAL_LM",
-        }
-
-        # DoRA support (requires PEFT >= 0.9.0)
-        if self.config.use_dora:
-            lora_kwargs["use_dora"] = True
-            logger.info("Enabling DoRA (Weight-Decomposed LoRA)")
-
-        lora_config = PeftLoraConfig(**lora_kwargs)
+        lora_config = PeftLoraConfig(
+            r=self.config.lora_r,
+            lora_alpha=self.config.lora_alpha,
+            target_modules=self.config.lora_target_modules,
+            lora_dropout=self.config.lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
         self.model = get_peft_model(self.model, lora_config)  # type: ignore[arg-type]
 
         # 确保 LoRA 参数需要梯度
@@ -267,30 +221,13 @@ class AgentSFTTrainer:
         data_collator = DataCollatorForLanguageModeling(self.tokenizer, mlm=False)
 
         self.training_args = training_args
-
-        # Use custom trainer for LoRA+ support
-        if self.config.use_lora_plus:
-            self.trainer = LoRAPlusTrainer(
-                model=self.model,
-                args=training_args,
-                train_dataset=self.train_dataset,
-                eval_dataset=self.eval_dataset if evaluation_strategy != "no" else None,
-                data_collator=data_collator,
-                lora_plus_lr_ratio=self.config.lora_plus_lr_ratio,
-            )
-            logger.info(
-                "Using LoRA+ optimizer with lr_ratio=%.1f (B matrix lr = %.2e)",
-                self.config.lora_plus_lr_ratio,
-                self.config.learning_rate * self.config.lora_plus_lr_ratio,
-            )
-        else:
-            self.trainer = Trainer(
-                model=self.model,
-                args=training_args,
-                train_dataset=self.train_dataset,
-                eval_dataset=self.eval_dataset if evaluation_strategy != "no" else None,
-                data_collator=data_collator,
-            )
+        self.trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=self.train_dataset,
+            eval_dataset=self.eval_dataset if evaluation_strategy != "no" else None,
+            data_collator=data_collator,
+        )
 
     def save_model(self) -> None:
         """Persist LoRA weights and tokenizer."""
@@ -434,116 +371,6 @@ class AgentSFTTrainer:
         metrics: dict[str, float] = {}
         for sample in samples:
             value = sample.metadata.get(key)
-            if isinstance(value, int | float):
+            if isinstance(value, (int, float)):
                 metrics[sample.dialog_id] = float(value)
         return metrics
-
-
-class LoRAPlusTrainer(Trainer):
-    """
-    Custom Trainer implementing LoRA+ optimization strategy.
-
-    LoRA+ applies different learning rates to LoRA A and B matrices:
-    - A matrix (down-projection): base learning rate
-    - B matrix (up-projection): base learning rate × lr_ratio
-
-    Reference:
-        Hayou et al. (2024) "LoRA+: Efficient Low Rank Adaptation of Large Models"
-        https://arxiv.org/abs/2402.12354
-
-    The key insight is that B matrices benefit from higher learning rates
-    because they are initialized to zero and need to learn more quickly.
-    """
-
-    def __init__(self, *args, lora_plus_lr_ratio: float = 16.0, **kwargs):
-        """
-        Initialize LoRA+ Trainer.
-
-        Args:
-            lora_plus_lr_ratio: Learning rate multiplier for B matrices.
-                Default 16.0 as recommended in the paper.
-            *args, **kwargs: Passed to parent Trainer.
-        """
-        super().__init__(*args, **kwargs)
-        self.lora_plus_lr_ratio = lora_plus_lr_ratio
-
-    def create_optimizer(self):
-        """
-        Create optimizer with differentiated learning rates for LoRA A/B matrices.
-
-        LoRA+ strategy:
-        - lora_A parameters: base_lr (down-projection, initialized with Kaiming)
-        - lora_B parameters: base_lr * lr_ratio (up-projection, initialized to zero)
-        - Other trainable params: base_lr
-        """
-        if self.optimizer is not None:
-            return self.optimizer
-
-        # Separate parameters into groups
-        lora_a_params = []
-        lora_b_params = []
-        other_params = []
-
-        for name, param in self.model.named_parameters():
-            if not param.requires_grad:
-                continue
-
-            # LoRA naming convention: lora_A, lora_B
-            if "lora_A" in name or "lora_a" in name:
-                lora_a_params.append(param)
-            elif "lora_B" in name or "lora_b" in name:
-                lora_b_params.append(param)
-            else:
-                other_params.append(param)
-
-        base_lr = self.args.learning_rate
-        b_lr = base_lr * self.lora_plus_lr_ratio
-
-        # Build parameter groups
-        param_groups = []
-
-        if lora_a_params:
-            param_groups.append(
-                {
-                    "params": lora_a_params,
-                    "lr": base_lr,
-                    "name": "lora_A",
-                }
-            )
-
-        if lora_b_params:
-            param_groups.append(
-                {
-                    "params": lora_b_params,
-                    "lr": b_lr,
-                    "name": "lora_B",
-                }
-            )
-
-        if other_params:
-            param_groups.append(
-                {
-                    "params": other_params,
-                    "lr": base_lr,
-                    "name": "other",
-                }
-            )
-
-        # Log parameter group info
-        logger.info(
-            "LoRA+ optimizer groups: A=%d params (lr=%.2e), B=%d params (lr=%.2e), other=%d params",
-            len(lora_a_params),
-            base_lr,
-            len(lora_b_params),
-            b_lr,
-            len(other_params),
-        )
-
-        # Create optimizer based on args.optim
-        optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
-
-        # Remove lr from kwargs since we set it per group
-        optimizer_kwargs.pop("lr", None)
-
-        self.optimizer = optimizer_cls(param_groups, **optimizer_kwargs)
-        return self.optimizer

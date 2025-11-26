@@ -6,11 +6,6 @@ SAGE Agent Finetuning Module
 - CoresetSelector: 智能样本选择器
 - OnlineContinualLearner: 在线持续学习模块
 - AgentDialogProcessor: Agent 对话数据处理器
-- TrajectoryCollector: FireAct 轨迹收集器
-- TrajectoryFilter: 轨迹质量筛选器
-- TrajectoryToSFTConverter: 轨迹转 SFT 数据转换器
-- MultiTaskMixer: AgentTuning 多任务数据混合器
-- AgentCapabilityEvaluator: Agent 多维能力评估器
 
 这些组件是难题4（高精度工具规划与调用）的核心实现。
 
@@ -26,70 +21,12 @@ SAGE Agent Finetuning Module
 
     trainer = AgentSFTTrainer(config)
     trainer.train()
-
-FireAct 轨迹微调示例:
-    from sage.libs.finetune.agent import (
-        TrajectoryCollector, TrajectoryFilter, TrajectoryToSFTConverter
-    )
-
-    # 收集轨迹
-    collector = TrajectoryCollector(agent=my_agent)
-    trajectories = collector.collect(tasks)
-
-    # 筛选高质量轨迹
-    filter = TrajectoryFilter(min_reward=0.5, require_success=True)
-    good_trajectories = filter.filter(trajectories)
-
-    # 转换为 SFT 数据
-    converter = TrajectoryToSFTConverter()
-    sft_data = converter.convert(good_trajectories)
-
-AgentTuning 多任务训练示例:
-    from sage.libs.finetune.agent import MultiTaskMixer, MixerConfig, TaskSample
-
-    # 配置多任务混合权重
-    config = MixerConfig(task_weights={
-        "tool_selection": 0.35,
-        "planning": 0.30,
-        "timing": 0.20,
-        "general": 0.15,
-    })
-
-    # 混合多个任务数据集
-    mixer = MultiTaskMixer(config)
-    mixed_data = mixer.mix(task_datasets)
-
-    # 评估多维能力
-    from sage.libs.finetune.agent import AgentCapabilityEvaluator
-    evaluator = AgentCapabilityEvaluator()
-    report = evaluator.evaluate(model, test_sets)
-    print(report.summary())
 """
 
 from .config import AgentRewardConfig, AgentSFTConfig, RLTrainingConfig
 from .continual import CoresetSelector, OnlineContinualLearner
 from .dialog_processor import AgentDialogProcessor, ProcessedDialog
-from .multi_task import (
-    AgentCapabilityEvaluator,
-    AgentTuningConfig,
-    CapabilityReport,
-    CapabilityScore,
-    MixerConfig,
-    MultiTaskMixer,
-    TaskSample,
-)
 from .trainer import AgentSFTTrainer
-from .trajectory import (
-    AgentTrajectory,
-    CollectorConfig,
-    SFTConversionConfig,
-    TrajectoryCollector,
-    TrajectoryFilter,
-    TrajectoryStep,
-    TrajectoryToSFTConverter,
-    collect_and_convert,
-    load_trajectories,
-)
 
 
 # 延迟导入较重的模块
@@ -122,24 +59,6 @@ __all__ = [
     # 数据处理
     "AgentDialogProcessor",
     "ProcessedDialog",
-    # AgentTuning 多任务训练
-    "MultiTaskMixer",
-    "MixerConfig",
-    "TaskSample",
-    "AgentCapabilityEvaluator",
-    "CapabilityScore",
-    "CapabilityReport",
-    "AgentTuningConfig",
-    # FireAct 轨迹微调
-    "AgentTrajectory",
-    "TrajectoryStep",
-    "TrajectoryCollector",
-    "CollectorConfig",
-    "TrajectoryFilter",
-    "TrajectoryToSFTConverter",
-    "SFTConversionConfig",
-    "collect_and_convert",
-    "load_trajectories",
     # 延迟导入
     "AgentEvaluator",
     "RewardModel",

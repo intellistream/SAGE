@@ -257,7 +257,7 @@ class MethodComparisonExperiment:
             # Training phase (if not dry run and training enabled)
             train_start = time.time()
             try:
-                from sage.tools.agent_training import AgentSFTConfig, AgentSFTTrainer
+                from sage.libs.finetune.agent import AgentSFTConfig, AgentSFTTrainer
 
                 sft_config = AgentSFTConfig(
                     base_model=self.base_model,

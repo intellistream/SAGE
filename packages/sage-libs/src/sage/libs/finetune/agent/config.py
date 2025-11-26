@@ -104,15 +104,6 @@ class AgentSFTConfig:
         ]
     )
 
-    # DoRA 配置 (Weight-Decomposed Low-Rank Adaptation)
-    # 参考: "DoRA: Weight-Decomposed Low-Rank Adaptation" (Liu et al., 2024)
-    use_dora: bool = False
-
-    # LoRA+ 配置 (Efficient Low Rank Adaptation with differentiated learning rates)
-    # 参考: "LoRA+: Efficient Low Rank Adaptation of Large Models" (Hayou et al., 2024)
-    use_lora_plus: bool = False
-    lora_plus_lr_ratio: float = 16.0  # B 矩阵学习率 = base_lr * ratio
-
     # 训练超参
     num_epochs: int = 3
     batch_size: int = 1
