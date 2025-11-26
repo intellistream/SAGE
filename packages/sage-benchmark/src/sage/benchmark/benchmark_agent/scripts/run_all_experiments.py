@@ -42,17 +42,9 @@ Output:
 
 from __future__ import annotations
 
-# Suppress PyTorch distributed warnings in WSL environment
-# These warnings are harmless but noisy: "[c10d] The hostname of the client socket cannot be retrieved"
-import os
-
-os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
-os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
-# Reduce torch distributed verbosity
-os.environ.setdefault("TORCH_DISTRIBUTED_DEBUG", "OFF")
-
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -65,22 +57,15 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_AGENT_DIR = SCRIPT_DIR.parent
 BENCHMARK_ROOT = BENCHMARK_AGENT_DIR.parent.parent.parent.parent  # sage-benchmark
+SAGE_ROOT = BENCHMARK_ROOT.parent.parent  # SAGE repo root
+
+# Default output directory: .sage/benchmark/
+DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark"
+# Default data directory: .sage/benchmark/data/
+DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data"
+
+# Ensure sage packages are importable
 sys.path.insert(0, str(BENCHMARK_ROOT / "src"))
-
-# Import data paths module
-try:
-    from sage.benchmark.benchmark_agent.data_paths import (
-        get_runtime_paths,
-    )
-
-    _runtime_paths = get_runtime_paths()
-    DEFAULT_OUTPUT_DIR = _runtime_paths.results_root.parent  # .sage/benchmark/
-    DEFAULT_DATA_DIR = _runtime_paths.data_root  # .sage/benchmark/data/
-except ImportError:
-    # Fallback for standalone execution
-    SAGE_ROOT = BENCHMARK_ROOT.parent.parent
-    DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark"
-    DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data"
 
 
 def setup_environment():
@@ -174,12 +159,8 @@ class ExperimentRunner:
         ]
 
         # Filter out LLM strategies if skip_llm is set
-        # Note: timing.hybrid also uses LLM internally, so it should be skipped too
-        LLM_STRATEGIES = {"timing.llm_based", "timing.hybrid"}
         if self.skip_llm:
-            detectors = [
-                (name, display) for name, display in detectors if name not in LLM_STRATEGIES
-            ]
+            detectors = [(name, display) for name, display in detectors if "llm" not in name]
             print("  ⚠️  Skipping LLM-based strategies (--skip-llm)")
 
         results = []
@@ -200,20 +181,22 @@ class ExperimentRunner:
 
             for sample in samples:
                 try:
-                    # Create TimingMessage for detector
-                    from sage.benchmark.benchmark_agent.experiments.timing_detection_exp import (
-                        TimingMessage,
+                    # Create input for detector
+                    from sage.benchmark.benchmark_agent.data_models import DataItem
+
+                    item = DataItem(
+                        id=sample.get("sample_id", ""),
+                        input={"query": sample.get("message", "")},
+                        expected={"label": "tool" if sample.get("should_call_tool") else "no_tool"},
+                        metadata=sample.get("context", {}),
                     )
 
-                    message = TimingMessage(
-                        sample_id=sample.get("sample_id", ""),
-                        message=sample.get("message", ""),
-                        context=sample.get("context", {}),
+                    result = detector.adapt(item)
+                    predicted = (
+                        result.get("prediction", "no_tool")
+                        if isinstance(result, dict)
+                        else "no_tool"
                     )
-
-                    # Call decide() method on detector
-                    result = detector.decide(message)
-                    predicted = "tool" if result.should_call_tool else "no_tool"
                     expected = "tool" if sample.get("should_call_tool") else "no_tool"
 
                     if predicted == expected:
@@ -368,107 +351,57 @@ class ExperimentRunner:
         print("=" * 70)
 
         from sage.benchmark.benchmark_agent import (
+            ToolSelectionConfig,
+            ToolSelectionExperiment,
             get_adapter_registry,
         )
-
-        # Prefer original submodule data (higher quality) over generated data
-        submodule_data = (
-            Path(__file__).parent.parent.parent.parent
-            / "data"
-            / "sources"
-            / "agent_benchmark"
-            / "splits"
-            / "tool_selection.jsonl"
-        )
+        from sage.benchmark.benchmark_agent.evaluation import compute_metrics
 
         data_dir = self.data_root / "tool_selection"
-        if submodule_data.exists():
-            test_file = submodule_data
-            print(f"  Using submodule data: {test_file}")
-        elif (data_dir / "tool_selection.jsonl").exists():
-            test_file = data_dir / "tool_selection.jsonl"
-        elif (data_dir / "test.jsonl").exists():
-            test_file = data_dir / "test.jsonl"
-        else:
+        if not (data_dir / "test.jsonl").exists():
             print("⚠️  Tool selection data not found. Running data preparation...")
             self._prepare_tool_selection_data(data_dir)
-            test_file = data_dir / "tool_selection.jsonl"
 
         registry = get_adapter_registry()
         selectors = [
             ("selector.keyword", "Keyword (BM25)"),
             ("selector.embedding", "Embedding"),
             ("selector.hybrid", "Hybrid"),
-            ("selector.gorilla", "Gorilla (Retrieval+LLM)"),
-            ("selector.dfsdt", "DFSDT (Tree Search)"),
         ]
-
-        # Filter out LLM-based selectors if skip_llm is set
-        LLM_SELECTORS = {"selector.gorilla", "selector.dfsdt"}
-        if self.skip_llm:
-            selectors = [
-                (name, display) for name, display in selectors if name not in LLM_SELECTORS
-            ]
-            print("  ⚠️  Skipping LLM-based selectors (--skip-llm)")
 
         results = []
         for selector_name, display_name in selectors:
             print(f"\n  Testing: {display_name} ({selector_name})")
 
             try:
-                samples = self._load_jsonl(test_file)
-                # Filter to test split only
-                samples = [s for s in samples if s.get("split") == "test"][:max_samples]
-                if not samples:
-                    print(f"    ⚠️  No test data found at {test_file}")
-                    continue
+                config = ToolSelectionConfig(
+                    profile="tool_selection_eval",
+                    split="test",
+                    selector=selector_name,
+                    top_k=top_k,
+                    max_samples=max_samples,
+                    verbose=self.verbose,
+                )
 
-                # Get selector
-                selector = registry.get(selector_name)
+                exp = ToolSelectionExperiment(config, data_manager=None, adapter_registry=registry)
+                exp.set_local_data_dir(data_dir)
+                exp.prepare()
+                result = exp.run()
 
-                predictions = []
-                references = []
-
-                for sample in samples:
-                    try:
-                        # Create query for selector
-                        query = sample.get("instruction", "")
-                        candidate_tools = sample.get("candidate_tools", [])
-                        ground_truth_raw = sample.get("ground_truth", [])
-
-                        # Handle ground_truth format: may be dict {"top_k": [...]} or list
-                        if isinstance(ground_truth_raw, dict):
-                            ground_truth = ground_truth_raw.get("top_k", [])
-                        else:
-                            ground_truth = ground_truth_raw
-
-                        # Call selector
-                        result = selector.select(query, candidate_tools, top_k=top_k)
-                        predicted_tools = [
-                            r.tool_id if hasattr(r, "tool_id") else r for r in result
-                        ]
-
-                        predictions.append(predicted_tools)
-                        references.append(ground_truth)
-
-                    except Exception as e:
-                        if self.verbose:
-                            print(f"    Error on sample: {e}")
-                        predictions.append([])
-                        gt_raw = sample.get("ground_truth", [])
-                        references.append(
-                            gt_raw.get("top_k", []) if isinstance(gt_raw, dict) else gt_raw
-                        )
-
-                # Compute metrics
-                metrics = self._compute_tool_selection_metrics(predictions, references, top_k)
+                metrics = compute_metrics(
+                    task="tool_selection",
+                    predictions=result.predictions,
+                    references=result.references,
+                    metrics=["top_k_accuracy", "recall_at_k", "precision_at_k", "mrr"],
+                    k=top_k,
+                )
 
                 top_k_acc = metrics.get("top_k_accuracy", 0)
                 exp_result = ExperimentResult(
                     challenge="tool_selection",
                     strategy=selector_name,
                     metrics=metrics,
-                    metadata={"total_samples": len(samples), "top_k": top_k},
+                    metadata=result.metadata,
                     passed=top_k_acc >= 0.95,
                     target=0.95,
                 )
@@ -736,20 +669,13 @@ class ExperimentRunner:
 
         # If we have detailed results with per-sample data, compute actual metrics
         # Otherwise, simulate based on general trends (complex tasks harder)
-        # Use actual strategy names from results
+        strategies = ["Simple", "Hierarchical", "LLM-based"]
+
+        # Get actual planning results if available
         if self.results.planning:
-            strategies = [
-                r.strategy.replace("planner.", "").replace("_", " ").title()
-                for r in self.results.planning
-            ]
             base_rates = [r.metrics.get("plan_success_rate", 0) for r in self.results.planning]
         else:
-            strategies = ["Simple", "Hierarchical", "LLM-based"]
             base_rates = [0.3, 0.5, 0.7]  # Simulated baseline
-
-        if not strategies:
-            print("  ⚠️  No planning results for complexity analysis")
-            return
 
         # Complexity adjustment factors (simulated: easier tasks have higher success)
         complexity_adjustments = {
@@ -1142,93 +1068,6 @@ class ExperimentRunner:
 
         print(f"\n✓ Results saved to: {results_file}")
 
-    def run_training_comparison(
-        self,
-        methods: list[str],
-        base_model: str,
-        dry_run: bool = False,
-    ) -> list[dict]:
-        """
-        Run training method comparison (Task C1).
-
-        This integrates the MethodComparisonExperiment into the unified runner.
-
-        Args:
-            methods: List of method IDs to compare (e.g., ["A_baseline", "D_combined"])
-            base_model: Base model for training (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
-            dry_run: If True, simulate training without actual model training
-
-        Returns:
-            List of training comparison results
-        """
-        print("\n" + "=" * 70)
-        print("🎓 Training Method Comparison")
-        print("=" * 70)
-        print(f"  Base model: {base_model}")
-        print(f"  Methods: {', '.join(methods)}")
-        print(f"  Dry run: {dry_run}")
-        print("=" * 70)
-
-        from sage.benchmark.benchmark_agent.experiments.method_comparison import (
-            MethodComparisonExperiment,
-            MethodRegistry,
-        )
-
-        # Get all available methods
-        all_methods = MethodRegistry.get_all_methods()
-
-        # Validate requested methods
-        invalid_methods = [m for m in methods if m not in all_methods]
-        if invalid_methods:
-            print(f"  ⚠️  Unknown methods: {invalid_methods}")
-            print(f"  Available methods: {list(all_methods.keys())}")
-            methods = [m for m in methods if m in all_methods]
-
-        if not methods:
-            print("  ❌ No valid methods to compare")
-            return []
-
-        # Create method configs for selected methods
-        selected_methods = {k: all_methods[k] for k in methods}
-
-        # Create experiment
-        training_output_dir = self.output_dir / "training"
-        exp = MethodComparisonExperiment(
-            output_dir=training_output_dir,
-            base_model=base_model,
-            methods=selected_methods,
-            dry_run=dry_run,
-        )
-
-        # Run all methods
-        results = exp.run_all_methods(skip_training=False)
-
-        # Convert results to dicts and store
-        training_results = [r.to_dict() for r in results]
-        self.results.training = training_results
-
-        # Generate comparison chart
-        try:
-            chart_path = exp.generate_comparison_chart()
-            print(f"\n  ✓ Comparison chart saved to: {chart_path}")
-        except Exception as e:
-            print(f"  ⚠️  Failed to generate chart: {e}")
-
-        # Print summary
-        print("\n" + "-" * 50)
-        print("Training Comparison Summary")
-        print("-" * 50)
-        for r in results:
-            top_k = r.metrics.get("top_k_accuracy", 0)
-            train_time = r.training_time_seconds
-            status = "✅" if top_k >= 0.95 else "❌"
-            print(
-                f"  {status} {r.method_name}: Top-K={top_k * 100:.1f}%, "
-                f"Time={train_time / 60:.1f}min"
-            )
-
-        return training_results
-
     def _load_jsonl(self, path: Path) -> list[dict]:
         """Load JSONL file."""
         if not path.exists():
@@ -1239,46 +1078,6 @@ class ExperimentRunner:
                 if line.strip():
                     samples.append(json.loads(line))
         return samples
-
-    def _compute_tool_selection_metrics(
-        self, predictions: list[list[str]], references: list[list[str]], k: int
-    ) -> dict[str, float]:
-        """Compute tool selection metrics."""
-        if not predictions or not references:
-            return {"top_k_accuracy": 0, "mrr": 0, "recall_at_k": 0, "precision_at_k": 0}
-
-        top_k_hits = 0
-        mrr_sum = 0
-        recall_sum = 0
-        precision_sum = 0
-
-        for pred, ref in zip(predictions, references):
-            # Top-K accuracy: any ground truth tool in top-k predictions
-            hit = any(gt in pred[:k] for gt in ref)
-            if hit:
-                top_k_hits += 1
-
-            # MRR: mean reciprocal rank of first correct prediction
-            for i, tool in enumerate(pred):
-                if tool in ref:
-                    mrr_sum += 1.0 / (i + 1)
-                    break
-
-            # Recall@K: fraction of ground truth tools in top-k
-            if ref:
-                recall_sum += len(set(pred[:k]) & set(ref)) / len(ref)
-
-            # Precision@K: fraction of top-k predictions that are correct
-            if pred[:k]:
-                precision_sum += len(set(pred[:k]) & set(ref)) / len(pred[:k])
-
-        n = len(predictions)
-        return {
-            "top_k_accuracy": top_k_hits / n if n > 0 else 0,
-            "mrr": mrr_sum / n if n > 0 else 0,
-            "recall_at_k": recall_sum / n if n > 0 else 0,
-            "precision_at_k": precision_sum / n if n > 0 else 0,
-        }
 
     def _prepare_timing_data(self, data_dir: Path):
         """Run timing data preparation script."""
@@ -1296,18 +1095,7 @@ class ExperimentRunner:
         """Run tool selection data preparation script."""
         script = SCRIPT_DIR / "evaluations" / "prepare_tool_selection_data.py"
         if script.exists():
-            # This script uses --generate --create-splits, output goes to default location
-            subprocess.run(
-                [sys.executable, str(script), "--generate", "--create-splits"], check=True
-            )
-            # Copy data to expected location if needed
-            default_data_dir = BENCHMARK_ROOT / "data" / "tool_selection"
-            if default_data_dir.exists() and default_data_dir != data_dir:
-                import shutil
-
-                data_dir.mkdir(parents=True, exist_ok=True)
-                for f in default_data_dir.glob("*.jsonl"):
-                    shutil.copy2(f, data_dir / f.name)
+            subprocess.run([sys.executable, str(script), "--output", str(data_dir)], check=True)
 
 
 def main():
@@ -1325,32 +1113,6 @@ def main():
         "--paper-only", action="store_true", help="Generate paper materials from existing results"
     )
     parser.add_argument(
-        "--challenge",
-        type=str,
-        choices=["timing", "planning", "tool_selection"],
-        help="Run only a specific challenge (timing, planning, or tool_selection)",
-    )
-    # Training mode arguments (Task C1)
-    parser.add_argument(
-        "--train", action="store_true", help="Run training comparison (Methods A-J)"
-    )
-    parser.add_argument(
-        "--train-methods",
-        nargs="+",
-        default=["A_baseline", "D_combined"],
-        help="Methods to compare (default: A_baseline D_combined)",
-    )
-    parser.add_argument(
-        "--train-model",
-        default="Qwen/Qwen2.5-1.5B-Instruct",
-        help="Base model for training (default: Qwen/Qwen2.5-1.5B-Instruct)",
-    )
-    parser.add_argument(
-        "--train-dry-run",
-        action="store_true",
-        help="Simulate training without actual model training (for testing)",
-    )
-    parser.add_argument(
         "--results-dir",
         type=Path,
         default=None,
@@ -1358,9 +1120,6 @@ def main():
     )
     parser.add_argument("--max-samples", type=int, default=None, help="Max samples per experiment")
     parser.add_argument("--top-k", type=int, default=5, help="Top-K for tool selection")
-    parser.add_argument(
-        "--skip-llm", action="store_true", help="Skip LLM-based strategies (faster, no GPU needed)"
-    )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
@@ -1382,70 +1141,16 @@ def main():
         max_planning = 100
         max_tool = 100
 
-    # Determine mode string for display
-    if args.train:
-        mode_str = "train"
-    elif args.quick:
-        mode_str = "quick"
-    elif args.full:
-        mode_str = "full"
-    elif args.paper_only:
-        mode_str = "paper-only"
-    else:
-        mode_str = "eval-only"
-
     print("=" * 70)
     print("🚀 SAGE AGENT BENCHMARK - Complete Experiment Runner")
     print("=" * 70)
     print(f"  Output directory: {args.results_dir}")
     print(f"  Data directory:   {DEFAULT_DATA_DIR}")
-    print(f"  Mode: {mode_str}")
-    if args.train or args.full:
-        print(f"  Training methods: {', '.join(args.train_methods)}")
-        print(f"  Base model: {args.train_model}")
-        if args.train_dry_run:
-            print("  ⚠️  Training: DRY RUN (no actual training)")
-    else:
-        print(f"  Sample sizes: timing={max_timing}, planning={max_planning}, tool={max_tool}")
-    if args.skip_llm:
-        print("  ⚠️  LLM strategies: SKIPPED (--skip-llm)")
-
-    # Check LLM service availability (unless skipped)
-    if not args.skip_llm:
-        print("-" * 70)
-        print("📡 LLM Service Status:")
-        try:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
-
-            # Check local vLLM
-            local_endpoints = ["http://localhost:8001/v1", "http://localhost:8000/v1"]
-            local_available = False
-            for endpoint in local_endpoints:
-                if UnifiedInferenceClient._check_endpoint_health(endpoint):
-                    print(f"  ✅ Local vLLM: {endpoint}")
-                    local_available = True
-                    break
-            if not local_available:
-                print("  ⚠️  Local vLLM: Not detected")
-
-            # Check cloud config
-            import os
-
-            cloud_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("ALIBABA_API_KEY")
-            if cloud_key and "your_" not in cloud_key.lower():
-                print("  ☁️  Cloud API: Configured")
-            else:
-                print("  ⚠️  Cloud API: Not configured")
-                if not local_available:
-                    print("\n  💡 Tip: Start local vLLM for faster evaluation:")
-                    print("     vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001")
-                    print("     Or use --skip-llm to skip LLM strategies")
-        except ImportError:
-            print("  ⚠️  Unable to check LLM service status")
-
+    print(f"  Mode: {'quick' if args.quick else 'full' if args.full else 'eval-only'}")
+    print(f"  Sample sizes: timing={max_timing}, planning={max_planning}, tool={max_tool}")
     print("=" * 70)
 
-    runner = ExperimentRunner(args.results_dir, verbose=args.verbose, skip_llm=args.skip_llm)
+    runner = ExperimentRunner(args.results_dir, verbose=args.verbose)
 
     if args.paper_only:
         # Load existing results and generate paper materials
@@ -1460,43 +1165,13 @@ def main():
             ]
             runner.results.summary = data.get("summary", {})
         runner.generate_paper_materials()
-    elif args.train:
-        # Training comparison mode (Task C1)
-        start_time = time.time()
-
-        runner.run_training_comparison(
-            methods=args.train_methods,
-            base_model=args.train_model,
-            dry_run=args.train_dry_run,
-        )
-
-        runner.save_results()
-
-        elapsed = time.time() - start_time
-        print(f"\n✅ Training comparison completed in {elapsed / 60:.1f} minutes")
     else:
-        # Run evaluations (all or specific challenge)
+        # Run all evaluations
         start_time = time.time()
 
-        # Determine which challenges to run
-        run_timing = args.challenge is None or args.challenge == "timing"
-        run_planning = args.challenge is None or args.challenge == "planning"
-        run_tool_selection = args.challenge is None or args.challenge == "tool_selection"
-
-        if run_timing:
-            runner.run_timing_evaluation(max_samples=max_timing)
-        if run_planning:
-            runner.run_planning_evaluation(max_samples=max_planning)
-        if run_tool_selection:
-            runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
-
-        # Run training if --full mode (only when running all challenges)
-        if args.full and args.challenge is None:
-            runner.run_training_comparison(
-                methods=args.train_methods,
-                base_model=args.train_model,
-                dry_run=args.train_dry_run,
-            )
+        runner.run_timing_evaluation(max_samples=max_timing)
+        runner.run_planning_evaluation(max_samples=max_planning)
+        runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
 
         # Generate paper materials
         runner.generate_paper_materials()

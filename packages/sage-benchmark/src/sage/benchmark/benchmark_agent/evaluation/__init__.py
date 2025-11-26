@@ -176,13 +176,27 @@ def compute_metrics(
             pred_decisions.append(pred.get("should_call_tool", False))
             ref_decisions.append(ref.get("should_call_tool", False))
 
+        # Metric name mapping for timing detection
+        timing_metric_map = {
+            "accuracy": "timing_accuracy",
+            "precision": "timing_precision",
+            "recall": "timing_recall",
+            "f1": "timing_f1",
+        }
+
         for metric_name in metrics:
             try:
-                metric = MetricRegistry.get(metric_name)
+                # Map simple names to full metric names
+                registry_name = timing_metric_map.get(metric_name, metric_name)
+                metric = MetricRegistry.get(registry_name)
                 output = metric.compute(pred_decisions, ref_decisions)
                 results[metric_name] = output.value
-            except Exception:
+                # Include details if available
+                if hasattr(output, "details") and output.details:
+                    results[f"{metric_name}_details"] = output.details
+            except Exception as e:
                 results[metric_name] = 0.0
+                results[f"{metric_name}_error"] = str(e)
 
     elif task == "planning":
         # Extract tool sequences

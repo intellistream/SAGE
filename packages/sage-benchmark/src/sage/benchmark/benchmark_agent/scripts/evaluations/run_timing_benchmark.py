@@ -28,20 +28,14 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_AGENT_DIR = SCRIPT_DIR.parent.parent
 BENCHMARK_ROOT = BENCHMARK_AGENT_DIR.parent.parent.parent  # sage-benchmark
+SAGE_ROOT = BENCHMARK_ROOT.parent.parent  # SAGE repo root
+
+# Default directories in .sage/
+DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data" / "timing_judgment"
+DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark" / "results" / "timing"
+
+# Ensure sage packages are importable
 sys.path.insert(0, str(BENCHMARK_ROOT / "src"))
-
-# Import data paths module
-try:
-    from sage.benchmark.benchmark_agent.data_paths import get_runtime_paths
-
-    runtime_paths = get_runtime_paths()
-    DEFAULT_DATA_DIR = runtime_paths.timing_judgment_dir
-    DEFAULT_OUTPUT_DIR = runtime_paths.timing_judgment_results
-except ImportError:
-    # Fallback for standalone execution
-    SAGE_ROOT = BENCHMARK_ROOT.parent.parent
-    DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data" / "timing_judgment"
-    DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark" / "results" / "timing"
 
 
 @dataclass
@@ -486,24 +480,8 @@ def main():
         action="store_true",
         help="Skip visualization generation",
     )
-    parser.add_argument(
-        "--skip-llm",
-        action="store_true",
-        help="Skip LLM-based strategies (faster, no GPU needed). Excludes timing.llm_based and timing.hybrid.",
-    )
 
     args = parser.parse_args()
-
-    # Filter out LLM strategies if --skip-llm is set
-    # Note: timing.hybrid also uses LLM internally, so it should be skipped too
-    LLM_STRATEGIES = {"timing.llm_based", "timing.hybrid"}
-    if args.skip_llm:
-        args.detectors = [d for d in args.detectors if d not in LLM_STRATEGIES]
-        if not args.detectors:
-            print(
-                "Error: All detectors were filtered out by --skip-llm. Use --detectors to specify non-LLM detectors."
-            )
-            sys.exit(1)
 
     # Resolve paths - use .sage/benchmark/ by default
     data_dir = Path(args.data_dir) if args.data_dir else DEFAULT_DATA_DIR
@@ -516,8 +494,6 @@ def main():
     print(f"Output directory: {output_dir}")
     print(f"Split: {args.split}")
     print(f"Detectors: {', '.join(args.detectors)}")
-    if args.skip_llm:
-        print("  ⚠️  LLM strategies skipped (--skip-llm)")
     if args.max_samples:
         print(f"Max samples: {args.max_samples}")
     print()

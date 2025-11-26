@@ -25,20 +25,14 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_AGENT_DIR = SCRIPT_DIR.parent.parent
 BENCHMARK_ROOT = BENCHMARK_AGENT_DIR.parent.parent.parent  # sage-benchmark
+SAGE_ROOT = BENCHMARK_ROOT.parent.parent  # SAGE repo root
+
+# Default directories in .sage/
+DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data" / "task_planning"
+DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark" / "results" / "planning"
+
+# Ensure sage packages are importable
 sys.path.insert(0, str(BENCHMARK_ROOT / "src"))
-
-# Import data paths module
-try:
-    from sage.benchmark.benchmark_agent.data_paths import get_runtime_paths
-
-    runtime_paths = get_runtime_paths()
-    DEFAULT_DATA_DIR = runtime_paths.task_planning_dir
-    DEFAULT_OUTPUT_DIR = runtime_paths.task_planning_results
-except ImportError:
-    # Fallback for standalone execution
-    SAGE_ROOT = BENCHMARK_ROOT.parent.parent
-    DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data" / "task_planning"
-    DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark" / "results" / "planning"
 
 
 def main():
