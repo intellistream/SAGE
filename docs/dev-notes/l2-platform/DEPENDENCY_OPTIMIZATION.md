@@ -113,3 +113,47 @@ When a user runs `pip install isage-middleware`, `pip` intelligently selects the
 for their system. If a pre-compiled wheel is not available for their specific platform (e.g., a less
 common Linux distribution), `pip` falls back to downloading the source distribution (`sdist`) and
 compiling it locally, ensuring that the package can still be installed.
+
+## 4. Torch & vLLM Compatibility Guide
+
+Torch 和 vLLM 的版本必须保持同步，否则会出现 `torch._inductor.config` 缺失或 CUDA 运算符注册失败等问题。SAGE 已经在 `packages/sage-common/pyproject.toml` 中通过 extras 为可选的 vLLM 功能声明了如下约束：
+
+```toml
+[project.optional-dependencies]
+vllm = [
+  "vllm>=0.10.1",
+  "torch>=2.4.0",
+  "torchaudio>=2.4.0",
+  "torchvision>=0.17.0",
+]
+```
+
+### 快速自检
+
+1. 运行 `python tools/install/verify_dependencies.py --verbose`，脚本会自动检查 torch/vLLM 组合是否满足上述范围。
+2. CI 失败时可参考 `.github/workflows/code-quality.yml` 中的 "Verify Dependency Compatibility" 步骤输出。
+3. 如果看到 `AttributeError: module 'torch._inductor' has no attribute 'config'`，说明当前 torch 版本 < 2.4，需要升级。
+
+### 推荐修复步骤
+
+```bash
+# 1. 卸载旧版本
+pip uninstall -y torch torchaudio torchvision vllm
+
+# 2. 安装兼容组合（默认会拉取 >=2.4 的 torch）
+pip install vllm==0.10.1.1
+
+# 3. 重新验证
+python tools/install/verify_dependencies.py
+```
+
+在企业或自定义镜像环境中，可以使用 `tools/install/fix_vllm_torch.sh --non-interactive` 自动完成上述流程。
+
+### 诊断 checklist
+
+- `python -c "import torch, vllm; print(torch.__version__, vllm.__version__)"` 输出的 torch 主版本应 ≥ 2.4。
+- `python -c "import torch._inductor.config"` 成功返回表示启用了 inductor。
+- `python tools/install/verify_dependencies.py` 返回 0。
+- 需要 GPU 支持时，确保 `nvidia-smi` 和 `torch.cuda.is_available()` 正常。
+
+额外说明：`packages/sage-middleware/pyproject.toml` 中的 `vllm` extras 也会引用同样的约束，保持分层一致性即可。

@@ -1,4 +1,4 @@
-**Date**: 2025-10-26  
+**Date**: 2025-11-25  
 **Author**: SAGE Development Team  
 **Summary**: sage-dev 命令速查表 - 重组后的命令结构和使用示例
 
@@ -15,7 +15,10 @@ sage-dev
 ├── maintain/     🔧 维护工具
 ├── package/      📦 包管理
 ├── resource/     💾 资源管理
-└── github/       🐙 GitHub 管理
+├── github/       🐙 GitHub 管理
+├── examples/     🔬 Examples 测试
+├── maintenance/  🛠️ Dev-notes & Ruff 维护
+└── docs/         📚 文档管理
 ```
 
 ## 🔍 quality - 质量检查
@@ -87,6 +90,35 @@ sage-dev
 | `sage-dev github issues stats` | Issues 统计 | `sage-dev github issues stats` |
 
 注：github issues 功能正在迁移中，当前可能需要使用旧命令。
+
+## 🔬 examples - 示例测试
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `sage-dev examples analyze` | 扫描 `examples/` 并输出分类统计 | `sage-dev examples analyze --verbose` |
+| `sage-dev examples test` | 运行示例测试 | `sage-dev examples test --quick` |
+| `sage-dev examples check` | 检查示例中间结果存放位置 | `sage-dev examples check --verbose` |
+| `sage-dev examples info` | 查看开发环境信息 | `sage-dev examples info` |
+
+> 需要从源码环境运行（需访问 `examples/` 目录）。
+
+## 🛠️ maintenance - 文档与 Ruff 维护
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `sage-dev maintenance organize-devnotes` | 扫描并整理 dev-notes | `sage-dev maintenance organize-devnotes` |
+| `sage-dev maintenance fix-metadata` | 批量补全文档元数据 | `sage-dev maintenance fix-metadata --scan` |
+| `sage-dev maintenance update-ruff-ignore` | 批量更新 Ruff ignore | `sage-dev maintenance update-ruff-ignore --preset b904-c901` |
+| `sage-dev maintenance list` | 列出维护工具 | `sage-dev maintenance list` |
+
+## 📚 docs - 文档管理
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `sage-dev docs build` | 构建 `docs-public` | `sage-dev docs build --clean` |
+| `sage-dev docs serve` | 启动本地文档服务器 | `sage-dev docs serve --port 9000` |
+| `sage-dev docs check` | 检查文档结构 | `sage-dev docs check` |
+| `sage-dev docs list` | 查看可用命令 | `sage-dev docs list` |
 
 ## 🔄 向后兼容别名
 
@@ -187,6 +219,9 @@ sage-dev --help
 sage-dev quality --help
 sage-dev project --help
 sage-dev maintain --help
+sage-dev examples --help
+sage-dev maintenance --help
+sage-dev docs --help
 
 # 查看特定命令的详细说明
 sage-dev quality check --help
@@ -195,6 +230,6 @@ sage-dev maintain submodule init --help
 
 ## 📚 相关文档
 
-- [COMMAND_REORGANIZATION.md](./COMMAND_REORGANIZATION.md) - 重组方案详细说明
-- [COMMAND_REORGANIZATION_PLAN.md](./COMMAND_REORGANIZATION_PLAN.md) - 实施计划
+- [COMMAND_REORGANIZATION_SUMMARY.md](./COMMAND_REORGANIZATION_SUMMARY.md) - 重组方案总结与映射
+- [CLI_HELP_UPDATE.md](./CLI_HELP_UPDATE.md) - 帮助文本改版详情
 - [sage-tools README](../../../packages/sage-tools/README.md) - sage-tools 包文档
