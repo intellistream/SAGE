@@ -84,5 +84,7 @@ class PostRetrieval(MapFunction):
 
         # 添加到data中, 最终构建查询的语料
         data["history_text"] = history_text
-
+        # print("Formatted history_text:")
+        # print(history_text)
+        # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         return data

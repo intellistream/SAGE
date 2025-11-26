@@ -53,5 +53,5 @@ class MemoryRetrieval(MapFunction):
             )
 
         data["memory_data"] = result
-
+        
         return data

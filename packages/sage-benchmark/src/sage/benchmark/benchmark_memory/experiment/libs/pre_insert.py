@@ -4,11 +4,12 @@
 此模块保留用于未来扩展（如数据验证、格式转换等）。
 """
 
+from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
+from sage.benchmark.benchmark_memory.experiment.utils.triple_parser import TripleParser
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
 )
 from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
-from sage.benchmark.benchmark_memory.experiment.utils.pre_insert_parser import PreInsertParser
 from sage.common.core import MapFunction
 
 
@@ -33,8 +34,9 @@ class PreInsert(MapFunction):
         self.action = config.get("operators.pre_insert.action", "none")
         self.config = config
 
-        # 初始化解析器（无需配置）
-        self.parser = PreInsertParser()
+        # 初始化解析器
+        self.dialogue_parser = DialogueParser()
+        self.triple_parser = TripleParser()
 
         # 如果 action 是 tri_embed，初始化 LLM 生成器和 Embedding 生成器
         if self.action == "tri_embed":
@@ -64,30 +66,108 @@ class PreInsert(MapFunction):
                     ...原字典的其他字段（包括可能的控制字段）
                 }
         """
-        if not data:
-            return None
-
         # 根据 action 模式生成记忆条目队列
         if self.action == "none":
             # 直接模式：原始数据作为单个条目
+            # 示例 entries:
+            # [
+            #     {
+            #         "task_id": "1",
+            #         "session_id": 0,
+            #         "dialog_id": 2,
+            #         "dialogs": [
+            #             {"speaker": "user1", "text": "今天天气真好", "date_time": "2024-01-01 10:00"},
+            #             {"speaker": "user2", "text": "是啊，适合出去玩", "date_time": "2024-01-01 10:01"}
+            #         ],
+            #         "dialog_len": 2,
+            #         "packet_idx": 1,
+            #         "total_packets": 10
+            #     }
+            # ]
             entries = [data]
         elif self.action == "tri_embed":
             # 三元组模式：提取三元组并生成多个条目
-            entries = self._extract_and_embed_triples(data)
+            # 示例 entries (从一段对话中提取多个三元组):
+            # [
+            #     {
+            #         "dialogs": [{"speaker": "user1", "text": "...", "date_time": "..."}],
+            #         "triple": ("Alice", "likes", "coffee"),
+            #         "refactor": "Alice likes coffee",
+            #         "embedding": numpy.ndarray([0.1, 0.2, ...]) 
+            #     },
+            #     {
+            #         "dialogs": [{"speaker": "user1", "text": "...", "date_time": "..."}],
+            #         "triple": ("Bob", "works at", "Google"),
+            #         "refactor": "Bob works at Google",
+            #         "embedding": numpy.ndarray([0.3, 0.4, ...])  # 768维向量
+            #     }
+            # ]
             # 即使为空列表也继续流转，避免阻塞 Pipeline
-            if not entries:
-                entries = []
+            entries = self._extract_and_embed_triples(data)
         elif self.action == "validate":
             # TODO: 实现数据验证逻辑
+            # 示例 entries (验证通过后原样返回):
+            # [
+            #     {
+            #         "task_id": "1",
+            #         "session_id": 0,
+            #         "dialog_id": 2,
+            #         "dialogs": [...],
+            #         "dialog_len": 2,
+            #         "packet_idx": 1,
+            #         "total_packets": 10
+            #     }
+            # ]
             entries = [data]
         elif self.action == "transform":
             # TODO: 实现数据转换逻辑
+            # 示例 entries (转换后的数据，格式待定):
+            # [
+            #     {
+            #         "task_id": "1",
+            #         "session_id": 0,
+            #         "dialog_id": 2,
+            #         "dialogs": [...],  # 可能经过格式转换
+            #         ...
+            #     }
+            # ]
             entries = [data]
         else:
-            # 未知操作模式
+            # 未知操作模式，原样返回
+            # 示例 entries: [原始 data 字典]
             entries = [data]
 
         # 在原字典基础上添加 memory_entries 队列
+        # 最终送往下游的完整数据示例:
+        #
+        # 【action="none" 时】:
+        # {
+        #     "task_id": "1",
+        #     "session_id": 0,
+        #     "dialog_id": 2,
+        #     "dialogs": [{"speaker": "user1", "text": "今天天气真好", "date_time": "2024-01-01 10:00"}, ...],
+        #     "dialog_len": 2,
+        #     "packet_idx": 1,
+        #     "total_packets": 10,
+        #     "memory_entries": [
+        #         {... 与外层相同的完整 data 字典 ...}
+        #     ]
+        # }
+        #
+        # 【action="tri_embed" 时】:
+        # {
+        #     "task_id": "1",
+        #     "session_id": 0,
+        #     "dialog_id": 2,
+        #     "dialogs": [...],
+        #     "dialog_len": 2,
+        #     "packet_idx": 1,
+        #     "total_packets": 10,
+        #     "memory_entries": [
+        #         {"dialogs": [...], "triple": ("Alice", "likes", "coffee"), "refactor": "Alice likes coffee", "embedding": ndarray},
+        #         {"dialogs": [...], "triple": ("Bob", "works at", "Google"), "refactor": "Bob works at Google", "embedding": ndarray}
+        #     ]
+        # }
         data["memory_entries"] = entries
 
         return data
@@ -115,28 +195,17 @@ class PreInsert(MapFunction):
         """
         # 1. 从 data 中提取 dialogs 并格式化为字符串
         dialogs = data.get("dialogs", [])
-        dialogue = self.parser.format_dialogue(dialogs)
+        dialogue = self.dialogue_parser.format(dialogs)
 
         # 2. 使用 LLM 提取三元组
         prompt = self.triple_extraction_prompt.replace("{dialogue}", dialogue)
         triples_text = self.generator.generate(prompt)
 
-        # 3. 解析三元组
-        triples = self.parser.parse_triples(triples_text)
+        # 3. 解析三元组并重构为自然语言描述
+        triples, refactor_descriptions = self.triple_parser.parse_and_refactor(triples_text)
 
-        # 4. 重构三元组为自然语言描述
-        refactor_descriptions = self.parser.refactor_triples(triples)
-        
-        # 5. 去重：基于 refactor 描述去重（保留首次出现）
-        seen_refactors = set()
-        unique_triples = []
-        unique_refactors = []
-        
-        for triple, refactor in zip(triples, refactor_descriptions):
-            if refactor not in seen_refactors:
-                seen_refactors.add(refactor)
-                unique_triples.append(triple)
-                unique_refactors.append(refactor)
+        # 4. 去重：基于 refactor 描述去重（保留首次出现）
+        unique_triples, unique_refactors = self.triple_parser.deduplicate(triples, refactor_descriptions)
         
         # 如果去重后为空，直接返回
         if not unique_refactors:

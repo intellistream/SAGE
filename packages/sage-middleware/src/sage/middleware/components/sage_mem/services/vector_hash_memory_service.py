@@ -34,8 +34,8 @@ class VectorHashMemoryService(BaseService):
             "backend_type": "FAISS",
             "description": "LSH index for vector hashing",
             "index_parameter": {
-                "index_type": "LSH",
-                "nbits": nbits,
+                "index_type": "IndexLSH",
+                "LSH_NBITS": nbits,
             },
         }
         result = self.collection.create_index(config=index_config)
@@ -59,7 +59,7 @@ class VectorHashMemoryService(BaseService):
 
     def delete(self, entry: str):
         """
-        删除指定的文本条目
+        删除指定的文本条目（同时从 text_storage、metadata_storage 和所有索引中删除）
 
         Args:
             entry: 要删除的文本数据
@@ -67,10 +67,9 @@ class VectorHashMemoryService(BaseService):
         Returns:
             bool: 删除是否成功
         """
-        result = self.collection.delete(entry)
-        return result is not None
+        return self.collection.delete(entry)
 
-    def retrieve(self, query=None, vector=None, metadata: dict | None = None, topk: int = 5, threshold: float = 0.7):
+    def retrieve(self, query=None, vector=None, metadata: dict | None = None, topk: int = 10, threshold: int | None = None):
         """
         使用查询向量检索相似的数据
 
@@ -79,13 +78,25 @@ class VectorHashMemoryService(BaseService):
             vector: 查询向量（numpy.ndarray）
             metadata: 元数据（为统一接口保留）
             topk: 返回的最大结果数
-            threshold: 相似度阈值
+            threshold: 汉明距离阈值，即最多接受多少位不同（范围 [0, nbits]）
+                      默认为 nbits/2，表示最多接受一半的位不同。
+                      例如 nbits=128 时，默认值为 64，表示最多接受 64 位不同。
 
         Returns:
             list[dict[str, Any]]: 检索结果列表，每个元素包含 text 和 metadata
+        
+        Note:
+            LSH 索引使用汉明距离作为相似度度量：
+            - 汉明距离 = 哈希码中不同的位数
+            - 范围: [0, nbits]，0 表示完全相同，nbits 表示完全不同
+            - threshold=64 表示：最多允许 64 位不同，超过则过滤
         """
         if vector is None:
             return []
+        
+        # 使用默认值：nbits 的一半
+        if threshold is None:
+            threshold = self.nbits // 2
         
         results = self.collection.retrieve(
             vector,
@@ -150,8 +161,10 @@ if __name__ == "__main__":
         query_vector = embedding_model.encode(query_text)
         query_vector = query_vector / np.linalg.norm(query_vector)
         
-        # 检索（使用关键字参数以匹配新接口）
-        results = service.retrieve(vector=query_vector, topk=2, threshold=0.5)
+        # 检索（max_hamming_distance 表示最多接受多少位不同）
+        # 对于 nbits=64，默认值为 32，表示最多接受 32 位不同（50%相似度）
+        # 不传参数则使用默认值 nbits/2
+        results = service.retrieve(vector=query_vector, topk=2)
         
         print(f"\n检索结果 (Top {len(results)}):")
         if results:
