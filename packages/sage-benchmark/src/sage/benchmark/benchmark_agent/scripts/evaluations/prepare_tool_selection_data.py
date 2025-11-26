@@ -26,7 +26,8 @@ from pathlib import Path
 # Setup paths
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_AGENT_DIR = SCRIPT_DIR.parent.parent
-BENCHMARK_ROOT = BENCHMARK_AGENT_DIR.parent.parent.parent  # sage-benchmark
+# Fix: BENCHMARK_ROOT is sage-benchmark package root (contains src/)
+BENCHMARK_ROOT = BENCHMARK_AGENT_DIR.parent.parent.parent.parent  # sage-benchmark
 SAGE_ROOT = BENCHMARK_ROOT.parent.parent  # SAGE repo root
 
 # Default output in .sage/
@@ -317,6 +318,9 @@ def main():
         print(f"\n🔧 Generating {args.samples} synthetic samples...")
         start_id = len(samples) + 1
         new_samples = generate_samples(tools, args.samples, start_id)
+
+        # Ensure output directory exists
+        paths["output_dir"].mkdir(parents=True, exist_ok=True)
 
         # Append to existing file
         output_file = paths["output_dir"] / "tool_selection.jsonl"

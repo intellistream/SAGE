@@ -42,9 +42,17 @@ Output:
 
 from __future__ import annotations
 
+# Suppress PyTorch distributed warnings in WSL environment
+# These warnings are harmless but noisy: "[c10d] The hostname of the client socket cannot be retrieved"
+import os
+
+os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
+os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
+# Reduce torch distributed verbosity
+os.environ.setdefault("TORCH_DISTRIBUTED_DEBUG", "OFF")
+
 import argparse
 import json
-import os
 import subprocess
 import sys
 import time
@@ -181,22 +189,20 @@ class ExperimentRunner:
 
             for sample in samples:
                 try:
-                    # Create input for detector
-                    from sage.benchmark.benchmark_agent.data_models import DataItem
-
-                    item = DataItem(
-                        id=sample.get("sample_id", ""),
-                        input={"query": sample.get("message", "")},
-                        expected={"label": "tool" if sample.get("should_call_tool") else "no_tool"},
-                        metadata=sample.get("context", {}),
+                    # Create TimingMessage for detector
+                    from sage.benchmark.benchmark_agent.experiments.timing_detection_exp import (
+                        TimingMessage,
                     )
 
-                    result = detector.adapt(item)
-                    predicted = (
-                        result.get("prediction", "no_tool")
-                        if isinstance(result, dict)
-                        else "no_tool"
+                    message = TimingMessage(
+                        sample_id=sample.get("sample_id", ""),
+                        message=sample.get("message", ""),
+                        context=sample.get("context", {}),
                     )
+
+                    # Call decide() method on detector
+                    result = detector.decide(message)
+                    predicted = "tool" if result.should_call_tool else "no_tool"
                     expected = "tool" if sample.get("should_call_tool") else "no_tool"
 
                     if predicted == expected:
@@ -351,11 +357,8 @@ class ExperimentRunner:
         print("=" * 70)
 
         from sage.benchmark.benchmark_agent import (
-            ToolSelectionConfig,
-            ToolSelectionExperiment,
             get_adapter_registry,
         )
-        from sage.benchmark.benchmark_agent.evaluation import compute_metrics
 
         data_dir = self.data_root / "tool_selection"
         if not (data_dir / "test.jsonl").exists():
@@ -374,34 +377,54 @@ class ExperimentRunner:
             print(f"\n  Testing: {display_name} ({selector_name})")
 
             try:
-                config = ToolSelectionConfig(
-                    profile="tool_selection_eval",
-                    split="test",
-                    selector=selector_name,
-                    top_k=top_k,
-                    max_samples=max_samples,
-                    verbose=self.verbose,
-                )
+                # Load test data directly
+                test_file = data_dir / "tool_selection.jsonl"
+                if not test_file.exists():
+                    # Try alternate location
+                    test_file = data_dir / "test.jsonl"
 
-                exp = ToolSelectionExperiment(config, data_manager=None, adapter_registry=registry)
-                exp.set_local_data_dir(data_dir)
-                exp.prepare()
-                result = exp.run()
+                samples = self._load_jsonl(test_file)[:max_samples]
+                if not samples:
+                    print(f"    ⚠️  No test data found at {test_file}")
+                    continue
 
-                metrics = compute_metrics(
-                    task="tool_selection",
-                    predictions=result.predictions,
-                    references=result.references,
-                    metrics=["top_k_accuracy", "recall_at_k", "precision_at_k", "mrr"],
-                    k=top_k,
-                )
+                # Get selector
+                selector = registry.get(selector_name)
+
+                predictions = []
+                references = []
+
+                for sample in samples:
+                    try:
+                        # Create query for selector
+                        query = sample.get("instruction", "")
+                        candidate_tools = sample.get("candidate_tools", [])
+                        ground_truth = sample.get("ground_truth", [])
+
+                        # Call selector
+                        result = selector.select(query, candidate_tools, top_k=top_k)
+                        predicted_tools = [
+                            r.tool_id if hasattr(r, "tool_id") else r for r in result
+                        ]
+
+                        predictions.append(predicted_tools)
+                        references.append(ground_truth)
+
+                    except Exception as e:
+                        if self.verbose:
+                            print(f"    Error on sample: {e}")
+                        predictions.append([])
+                        references.append(sample.get("ground_truth", []))
+
+                # Compute metrics
+                metrics = self._compute_tool_selection_metrics(predictions, references, top_k)
 
                 top_k_acc = metrics.get("top_k_accuracy", 0)
                 exp_result = ExperimentResult(
                     challenge="tool_selection",
                     strategy=selector_name,
                     metrics=metrics,
-                    metadata=result.metadata,
+                    metadata={"total_samples": len(samples), "top_k": top_k},
                     passed=top_k_acc >= 0.95,
                     target=0.95,
                 )
@@ -669,13 +692,20 @@ class ExperimentRunner:
 
         # If we have detailed results with per-sample data, compute actual metrics
         # Otherwise, simulate based on general trends (complex tasks harder)
-        strategies = ["Simple", "Hierarchical", "LLM-based"]
-
-        # Get actual planning results if available
+        # Use actual strategy names from results
         if self.results.planning:
+            strategies = [
+                r.strategy.replace("planner.", "").replace("_", " ").title()
+                for r in self.results.planning
+            ]
             base_rates = [r.metrics.get("plan_success_rate", 0) for r in self.results.planning]
         else:
+            strategies = ["Simple", "Hierarchical", "LLM-based"]
             base_rates = [0.3, 0.5, 0.7]  # Simulated baseline
+
+        if not strategies:
+            print("  ⚠️  No planning results for complexity analysis")
+            return
 
         # Complexity adjustment factors (simulated: easier tasks have higher success)
         complexity_adjustments = {
@@ -1079,6 +1109,46 @@ class ExperimentRunner:
                     samples.append(json.loads(line))
         return samples
 
+    def _compute_tool_selection_metrics(
+        self, predictions: list[list[str]], references: list[list[str]], k: int
+    ) -> dict[str, float]:
+        """Compute tool selection metrics."""
+        if not predictions or not references:
+            return {"top_k_accuracy": 0, "mrr": 0, "recall_at_k": 0, "precision_at_k": 0}
+
+        top_k_hits = 0
+        mrr_sum = 0
+        recall_sum = 0
+        precision_sum = 0
+
+        for pred, ref in zip(predictions, references):
+            # Top-K accuracy: any ground truth tool in top-k predictions
+            hit = any(gt in pred[:k] for gt in ref)
+            if hit:
+                top_k_hits += 1
+
+            # MRR: mean reciprocal rank of first correct prediction
+            for i, tool in enumerate(pred):
+                if tool in ref:
+                    mrr_sum += 1.0 / (i + 1)
+                    break
+
+            # Recall@K: fraction of ground truth tools in top-k
+            if ref:
+                recall_sum += len(set(pred[:k]) & set(ref)) / len(ref)
+
+            # Precision@K: fraction of top-k predictions that are correct
+            if pred[:k]:
+                precision_sum += len(set(pred[:k]) & set(ref)) / len(pred[:k])
+
+        n = len(predictions)
+        return {
+            "top_k_accuracy": top_k_hits / n if n > 0 else 0,
+            "mrr": mrr_sum / n if n > 0 else 0,
+            "recall_at_k": recall_sum / n if n > 0 else 0,
+            "precision_at_k": precision_sum / n if n > 0 else 0,
+        }
+
     def _prepare_timing_data(self, data_dir: Path):
         """Run timing data preparation script."""
         script = SCRIPT_DIR / "evaluations" / "prepare_timing_data.py"
@@ -1095,7 +1165,18 @@ class ExperimentRunner:
         """Run tool selection data preparation script."""
         script = SCRIPT_DIR / "evaluations" / "prepare_tool_selection_data.py"
         if script.exists():
-            subprocess.run([sys.executable, str(script), "--output", str(data_dir)], check=True)
+            # This script uses --generate --create-splits, output goes to default location
+            subprocess.run(
+                [sys.executable, str(script), "--generate", "--create-splits"], check=True
+            )
+            # Copy data to expected location if needed
+            default_data_dir = BENCHMARK_ROOT / "data" / "tool_selection"
+            if default_data_dir.exists() and default_data_dir != data_dir:
+                import shutil
+
+                data_dir.mkdir(parents=True, exist_ok=True)
+                for f in default_data_dir.glob("*.jsonl"):
+                    shutil.copy2(f, data_dir / f.name)
 
 
 def main():
@@ -1120,6 +1201,9 @@ def main():
     )
     parser.add_argument("--max-samples", type=int, default=None, help="Max samples per experiment")
     parser.add_argument("--top-k", type=int, default=5, help="Top-K for tool selection")
+    parser.add_argument(
+        "--skip-llm", action="store_true", help="Skip LLM-based strategies (faster, no GPU needed)"
+    )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
@@ -1148,9 +1232,11 @@ def main():
     print(f"  Data directory:   {DEFAULT_DATA_DIR}")
     print(f"  Mode: {'quick' if args.quick else 'full' if args.full else 'eval-only'}")
     print(f"  Sample sizes: timing={max_timing}, planning={max_planning}, tool={max_tool}")
+    if args.skip_llm:
+        print("  ⚠️  LLM strategies: SKIPPED (--skip-llm)")
     print("=" * 70)
 
-    runner = ExperimentRunner(args.results_dir, verbose=args.verbose)
+    runner = ExperimentRunner(args.results_dir, verbose=args.verbose, skip_llm=args.skip_llm)
 
     if args.paper_only:
         # Load existing results and generate paper materials
