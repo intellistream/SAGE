@@ -247,7 +247,7 @@ stop_spinner() {
     printf "\r" >&2  # clear spinner line
 }
 
-# 执行 pip 安装命令，带实时进度显示
+# 执行 pip 安装命令，带进度显示（输出包含安装计数）
 log_pip_install_with_progress() {
     local context="$1"
     local phase="$2"
@@ -260,58 +260,11 @@ log_pip_install_with_progress() {
     temp_output=$(mktemp)
     local exit_code=0
 
-    local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    local char_idx=0
-    local installed_count=0
-    local current_pkg=""
+    start_spinner "安装依赖包"
 
-    # 使用管道实时读取 pip 输出并更新进度
-    {
-        eval "$cmd" 2>&1
-        echo $? > "${temp_output}.exit"
-    } | while IFS= read -r line; do
-        echo "$line" >> "$temp_output"
-
-        # 解析 pip 输出，提取正在安装的包名
-        if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]]; then
-            current_pkg="${BASH_REMATCH[1]}"
-        elif [[ "$line" =~ ^Downloading[[:space:]] ]]; then
-            # 提取下载的包名
-            if [[ "$line" =~ /([^/]+\.whl) ]] || [[ "$line" =~ /([^/]+\.tar\.gz) ]]; then
-                current_pkg="${BASH_REMATCH[1]}"
-            fi
-        elif [[ "$line" =~ Successfully\ installed ]]; then
-            # 统计成功安装的包数
-            installed_count=$(echo "$line" | grep -oE '[^ ]+' | wc -l)
-            ((installed_count = installed_count - 2))  # 减去 "Successfully installed"
-        fi
-
-        # 更新 spinner 动画和当前包名
-        local spinner_char="${chars:$char_idx:1}"
-        char_idx=$(( (char_idx + 1) % ${#chars} ))
-
-        if [ -n "$current_pkg" ]; then
-            # 截断过长的包名
-            local display_pkg="$current_pkg"
-            if [ ${#display_pkg} -gt 40 ]; then
-                display_pkg="${display_pkg:0:37}..."
-            fi
-            printf "\r  ${CYAN}%s${NC} 安装依赖包... ${DIM}%s${NC}          " "$spinner_char" "$display_pkg" >&2
-        else
-            printf "\r  ${CYAN}%s${NC} 安装依赖包...          " "$spinner_char" >&2
-        fi
-    done
-
-    # 读取退出码
-    if [ -f "${temp_output}.exit" ]; then
-        exit_code=$(cat "${temp_output}.exit")
-        rm -f "${temp_output}.exit"
-    fi
-
-    # 清除进度行
-    printf "\r                                                              \r" >&2
-
-    if [ "$exit_code" = "0" ]; then
+    if eval "$cmd" > "$temp_output" 2>&1; then
+        exit_code=0
+        stop_spinner true
         log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
         if [ -s "$temp_output" ]; then
             local output_preview
@@ -319,6 +272,8 @@ log_pip_install_with_progress() {
             log_debug "命令输出预览:\n$output_preview" "$context" "$phase"
         fi
     else
+        exit_code=$?
+        stop_spinner false
         log_error "命令失败 (exit=$exit_code): $cmd" "$context" "$phase"
         if [ -s "$temp_output" ]; then
             local error_output
