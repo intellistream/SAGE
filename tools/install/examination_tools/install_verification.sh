@@ -7,6 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # 设置 Python 命令（使用安装过程中设置的环境变量）
 PYTHON_CMD="${PYTHON_CMD:-python3}"
+SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"  # 可能由安装流程设置
 
 # 验证常量
 VERIFICATION_LOG=".sage/install_verification.log"
@@ -15,6 +16,48 @@ HELLO_WORLD_SCRIPT="docs-public/hello_world.py"
 # 验证结果状态
 VERIFICATION_PASSED=true
 VERIFICATION_RESULTS=()
+
+# 从 PYTHON_CMD 中推断 conda 环境名称（例如 "conda run -n sage python"）
+detect_conda_env_from_python_cmd() {
+    if [[ "$PYTHON_CMD" =~ conda[[:space:]]+run[[:space:]]+-n[[:space:]]+([^[:space:]]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    fi
+}
+
+get_sage_cli_env() {
+    if [ -n "$SAGE_ENV_NAME" ]; then
+        echo "$SAGE_ENV_NAME"
+        return
+    fi
+
+    local detected
+    detected=$(detect_conda_env_from_python_cmd)
+    if [ -n "$detected" ]; then
+        echo "$detected"
+    fi
+}
+
+run_sage_dev() {
+    local env_name
+    env_name=$(get_sage_cli_env)
+
+    if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
+        conda run -n "$env_name" sage-dev "$@"
+    else
+        sage-dev "$@"
+    fi
+}
+
+sage_dev_available() {
+    local env_name
+    env_name=$(get_sage_cli_env)
+
+    if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
+        conda run -n "$env_name" which sage-dev >/dev/null 2>&1
+    else
+        command -v sage-dev >/dev/null 2>&1
+    fi
+}
 
 # 记录验证结果
 log_verification_result() {
@@ -82,7 +125,7 @@ verify_sage_doctor() {
     echo -e "${BLUE}🩺 验证 sage doctor 命令...${NC}"
 
     # 检查 sage-dev 命令是否存在
-    if ! command -v sage-dev &> /dev/null; then
+    if ! sage_dev_available; then
         log_verification_result "sage_doctor" "FAIL" "sage-dev 命令不可用"
         echo -e "${RED}   ❌ sage-dev 命令不可用${NC}"
         return 1
@@ -90,7 +133,7 @@ verify_sage_doctor() {
 
     # 运行 sage maintain doctor（新命令结构）
     local output
-    output=$(sage-dev maintain doctor 2>&1)
+    output=$(run_sage_dev maintain doctor 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
@@ -112,7 +155,7 @@ verify_cli_commands() {
     local failed_commands=()
 
     # 验证 sage-dev 命令
-    if command -v "sage-dev" &> /dev/null; then
+    if sage_dev_available; then
         echo -e "${GREEN}   ✅ sage-dev 命令可用${NC}"
     else
         echo -e "${RED}   ❌ sage-dev 命令不可用${NC}"
