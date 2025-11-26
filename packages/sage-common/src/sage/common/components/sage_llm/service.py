@@ -15,12 +15,18 @@ Dependencies:
 
 from __future__ import annotations
 
+import os
 import threading
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+
+# Suppress PyTorch distributed warnings in WSL environment
+# These warnings are harmless: "[c10d] The hostname of the client socket cannot be retrieved"
+os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
+os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
 
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
