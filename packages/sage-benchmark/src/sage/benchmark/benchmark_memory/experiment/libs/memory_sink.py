@@ -55,7 +55,7 @@ class MemorySink(SinkFunction):
             DataLoader 实例
         """
         if dataset == "locomo":
-            from sage.data.locomo.dataloader import LocomoDataLoader
+            from sage.data.sources.locomo.dataloader import LocomoDataLoader
 
             return LocomoDataLoader()
         else:
