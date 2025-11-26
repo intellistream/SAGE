@@ -1,6 +1,8 @@
 import json
 import os
 
+import numpy as np
+
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
 )
@@ -32,14 +34,54 @@ def test_vdb_collection():
     }
     test_collection.create_index(config=index_config)
 
+    # 生成嵌入向量 (使用 mockembedder)
+    from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
+
+    embedding_model = apply_embedding_model("mockembedder")
+
+    # 生成向量并归一化
+    vectors = []
+    for text in texts:
+        vector = embedding_model.encode(text)
+        # 统一处理不同格式的向量
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        # L2 归一化
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        vectors.append(vector)
+
+    # 获取所有文本的 ID
+    item_ids = test_collection.get_all_ids()
+
     # 初始化索引
-    test_collection.init_index(
-        "test_index", metadata_filter_func=lambda m: m.get("priority") == "low"
-    )
+    test_collection.init_index("test_index", vectors, item_ids)
+
+    # 生成查询向量
+    query_text = "数据库事务可确保操作的原子性与一致性。"
+    query_vector = embedding_model.encode(query_text)
+    # 统一处理不同格式的向量
+    if hasattr(query_vector, "detach") and hasattr(query_vector, "cpu"):
+        query_vector = query_vector.detach().cpu().numpy()
+    if isinstance(query_vector, list):
+        query_vector = np.array(query_vector)
+    if not isinstance(query_vector, np.ndarray):
+        query_vector = np.array(query_vector)
+    query_vector = query_vector.astype(np.float32)
+    # L2 归一化
+    norm = np.linalg.norm(query_vector)
+    if norm > 0:
+        query_vector = query_vector / norm
 
     # 搜索测试
     results = test_collection.retrieve(
-        raw_data="数据库事务可确保操作的原子性与一致性。",
+        query_vector=query_vector,
         index_name="test_index",
         topk=3,  # 注意：这里使用topk而不是top_k
         threshold=0.3,  # 使用合理的阈值

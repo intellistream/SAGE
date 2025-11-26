@@ -14,6 +14,8 @@ import shutil
 import tempfile
 import time
 
+import numpy as np
+
 try:
     import pytest
 
@@ -21,6 +23,7 @@ try:
 except ImportError:
     PYTEST_AVAILABLE = False
 
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
 )
@@ -37,6 +40,25 @@ if PYTEST_AVAILABLE:
             shutil.rmtree(temp_dir)
         except Exception:
             pass
+
+    @pytest.fixture
+    def embedding_model():
+        """Create embedding model for generating vectors."""
+        return apply_embedding_model("mockembedder")
+
+    def normalize_vector(vector):
+        """Normalize a vector using L2 normalization."""
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
 
     @pytest.fixture
     def collection():
@@ -79,11 +101,15 @@ if PYTEST_AVAILABLE:
         assert stats["index_stats"]["test_index"]["vector_count"] == 0
         assert stats["index_stats"]["test_index"]["created_time"] is not None
 
-    def test_insert_statistics(collection_with_index):
+    def test_insert_statistics(collection_with_index, embedding_model):
         """Test statistics tracking for data insertion."""
         # Insert data
-        collection_with_index.insert("test_index", "Test document 1", metadata={"type": "test"})
-        collection_with_index.insert("test_index", "Test document 2", metadata={"type": "test"})
+        text1 = "Test document 1"
+        text2 = "Test document 2"
+        vec1 = normalize_vector(embedding_model.encode(text1))
+        vec2 = normalize_vector(embedding_model.encode(text2))
+        collection_with_index.insert("test_index", text1, vec1, metadata={"type": "test"})
+        collection_with_index.insert("test_index", text2, vec2, metadata={"type": "test"})
 
         stats = collection_with_index.get_statistics()
 
@@ -91,7 +117,7 @@ if PYTEST_AVAILABLE:
         assert stats["index_stats"]["test_index"]["vector_count"] == 2
         assert stats["total_vectors_stored"] == 2
 
-    def test_batch_insert_statistics(collection_with_index):
+    def test_batch_insert_statistics(collection_with_index, embedding_model):
         """Test statistics tracking for batch insertion."""
         # Batch insert data
         texts = ["Document 1", "Document 2", "Document 3"]
@@ -99,7 +125,9 @@ if PYTEST_AVAILABLE:
         collection_with_index.batch_insert_data(texts, metadatas)
 
         # Initialize the index to add vectors
-        collection_with_index.init_index("test_index")
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
 
         stats = collection_with_index.get_statistics()
 
@@ -107,15 +135,18 @@ if PYTEST_AVAILABLE:
         assert stats["index_stats"]["test_index"]["vector_count"] == 3
         assert stats["total_vectors_stored"] == 3
 
-    def test_retrieve_statistics(collection_with_index):
+    def test_retrieve_statistics(collection_with_index, embedding_model):
         """Test statistics tracking for retrieval operations."""
         # Insert and initialize data
         texts = ["Python programming", "Machine learning", "Data science"]
         collection_with_index.batch_insert_data(texts, None)
-        collection_with_index.init_index("test_index")
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
 
         # Perform retrieval
-        collection_with_index.retrieve("programming", "test_index", topk=2)
+        query_vec = normalize_vector(embedding_model.encode("programming"))
+        collection_with_index.retrieve(query_vec, "test_index", topk=2)
 
         stats = collection_with_index.get_statistics()
 
@@ -130,16 +161,19 @@ if PYTEST_AVAILABLE:
         assert retrieve_stat["index_name"] == "test_index"
         assert retrieve_stat["requested_topk"] == 2
 
-    def test_multiple_retrievals_statistics(collection_with_index):
+    def test_multiple_retrievals_statistics(collection_with_index, embedding_model):
         """Test statistics for multiple retrieval operations."""
         # Insert and initialize data
         texts = ["AI research", "Neural networks", "Deep learning"]
         collection_with_index.batch_insert_data(texts, None)
-        collection_with_index.init_index("test_index")
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
 
         # Perform multiple retrievals
+        query_vec = normalize_vector(embedding_model.encode("AI"))
         for _ in range(5):
-            collection_with_index.retrieve("AI", "test_index", topk=1)
+            collection_with_index.retrieve(query_vec, "test_index", topk=1)
             time.sleep(0.01)  # Small delay to ensure different timestamps
 
         stats = collection_with_index.get_statistics()
@@ -147,26 +181,31 @@ if PYTEST_AVAILABLE:
         assert stats["retrieve_count"] == 5
         assert len(stats["retrieve_stats"]) == 5
 
-    def test_index_rebuild_statistics(collection_with_index):
+    def test_index_rebuild_statistics(collection_with_index, embedding_model):
         """Test statistics tracking for index rebuild operations."""
         # Insert initial data
-        collection_with_index.batch_insert_data(["Initial data"], None)
-        collection_with_index.init_index("test_index")
+        texts = ["Initial data"]
+        collection_with_index.batch_insert_data(texts, None)
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
 
         # Rebuild the index
-        collection_with_index.update_index("test_index")
+        collection_with_index.update_index("test_index", vectors, item_ids)
 
         stats = collection_with_index.get_statistics()
 
         assert stats["index_rebuild_count"] == 1
         assert stats["index_stats"]["test_index"]["last_rebuild_time"] is not None
 
-    def test_memory_stats(collection_with_index):
+    def test_memory_stats(collection_with_index, embedding_model):
         """Test memory statistics calculation."""
         # Insert data
         texts = [f"Document {i}" for i in range(10)]
         collection_with_index.batch_insert_data(texts, None)
-        collection_with_index.init_index("test_index")
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
 
         memory_stats = collection_with_index.get_memory_stats()
 
@@ -175,15 +214,19 @@ if PYTEST_AVAILABLE:
         assert "test_index" in memory_stats["index_stats"]
         assert memory_stats["index_stats"]["test_index"]["vector_count"] == 10
 
-    def test_retrieve_stats_method(collection_with_index):
+    def test_retrieve_stats_method(collection_with_index, embedding_model):
         """Test the get_retrieve_stats method."""
         # Insert and initialize data
-        collection_with_index.batch_insert_data(["Test data"], None)
-        collection_with_index.init_index("test_index")
+        texts = ["Test data"]
+        collection_with_index.batch_insert_data(texts, None)
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
 
         # Perform retrievals
+        query_vec = normalize_vector(embedding_model.encode("test"))
         for _ in range(3):
-            collection_with_index.retrieve("test", "test_index")
+            collection_with_index.retrieve(query_vec, "test_index")
 
         retrieve_stats = collection_with_index.get_retrieve_stats()
 
@@ -195,7 +238,7 @@ if PYTEST_AVAILABLE:
         retrieve_stats_last_2 = collection_with_index.get_retrieve_stats(last_n=2)
         assert len(retrieve_stats_last_2["recent_stats"]) == 2
 
-    def test_index_rebuild_stats_method(collection_with_index):
+    def test_index_rebuild_stats_method(collection_with_index, embedding_model):
         """Test the get_index_rebuild_stats method."""
         rebuild_stats = collection_with_index.get_index_rebuild_stats()
 
@@ -204,21 +247,36 @@ if PYTEST_AVAILABLE:
         assert rebuild_stats["index_details"]["test_index"]["vector_count"] == 0
 
         # Rebuild index
-        collection_with_index.batch_insert_data(["Data"], None)
-        collection_with_index.init_index("test_index")
-        collection_with_index.update_index("test_index")
+        texts = ["Data"]
+        collection_with_index.batch_insert_data(texts, None)
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection_with_index.get_all_ids()
+        collection_with_index.init_index("test_index", vectors, item_ids)
+        collection_with_index.update_index("test_index", vectors, item_ids)
 
         rebuild_stats = collection_with_index.get_index_rebuild_stats()
         assert rebuild_stats["total_rebuild_count"] == 1
 
 
-def test_reset_statistics(collection_with_index):
+def test_reset_statistics(collection_with_index, embedding_model):
     """Test resetting statistics."""
-    # Insert data and perform operations
-    collection_with_index.insert("test_index", "Test", metadata={"key": "value"})
-    collection_with_index.batch_insert_data(["Data1", "Data2"], None)
-    collection_with_index.init_index("test_index")
-    collection_with_index.retrieve("test", "test_index")
+    # Insert data and perform operations - insert adds to index directly
+    text1 = "Test"
+    vec1 = normalize_vector(embedding_model.encode(text1))
+    collection_with_index.insert("test_index", text1, vec1, metadata={"key": "value"})
+
+    # Batch insert more data - only stores, doesn't add to index yet
+    texts = ["Data1", "Data2"]
+    collection_with_index.batch_insert_data(texts, None)
+
+    # Init index with all stored data (this will include the first insert too)
+    all_ids = collection_with_index.get_all_ids()
+    all_texts = [collection_with_index.text_storage.get(item_id) for item_id in all_ids]
+    vectors = [normalize_vector(embedding_model.encode(text)) for text in all_texts]
+    collection_with_index.init_index("test_index", vectors, all_ids)
+
+    query_vec = normalize_vector(embedding_model.encode("test"))
+    collection_with_index.retrieve(query_vec, "test_index")
 
     # Reset statistics
     collection_with_index.reset_statistics()
@@ -230,17 +288,26 @@ def test_reset_statistics(collection_with_index):
     assert stats["index_create_count"] == 0
     assert stats["index_rebuild_count"] == 0
     # total_vectors_stored reflects actual state, not a counter that can be reset
-    assert stats["total_vectors_stored"] == 4  # Actual vectors still in index
+    # 1 from insert + 3 from init_index (which re-adds everything) = 4 total
+    assert stats["total_vectors_stored"] == 4
     assert len(stats["retrieve_stats"]) == 0
 
 
-def test_statistics_persistence(collection_with_index, test_dir):
+def test_statistics_persistence(collection_with_index, test_dir, embedding_model):
     """Test that statistics are persisted and restored correctly."""
     # Perform operations
-    collection_with_index.insert("test_index", "Test document")
-    collection_with_index.batch_insert_data(["Doc1", "Doc2"], None)
-    collection_with_index.init_index("test_index")
-    collection_with_index.retrieve("test", "test_index")
+    text1 = "Test document"
+    vec1 = normalize_vector(embedding_model.encode(text1))
+    collection_with_index.insert("test_index", text1, vec1)
+
+    texts = ["Doc1", "Doc2"]
+    collection_with_index.batch_insert_data(texts, None)
+    vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+    item_ids = collection_with_index.get_all_ids()
+    collection_with_index.init_index("test_index", vectors, item_ids)
+
+    query_vec = normalize_vector(embedding_model.encode("test"))
+    collection_with_index.retrieve(query_vec, "test_index")
 
     # Get statistics before saving
     stats_before = collection_with_index.get_statistics()
@@ -263,7 +330,7 @@ def test_statistics_persistence(collection_with_index, test_dir):
     assert stats_after["total_vectors_stored"] == stats_before["total_vectors_stored"]
 
 
-def test_statistics_with_multiple_indexes(collection):
+def test_statistics_with_multiple_indexes(collection, embedding_model):
     """Test statistics tracking with multiple indexes."""
     # Create two indexes
     for i in range(2):
@@ -278,8 +345,12 @@ def test_statistics_with_multiple_indexes(collection):
         collection.create_index(config=index_config)
 
     # Insert data to different indexes
-    collection.insert("index_0", "Document for index 0")
-    collection.insert("index_1", "Document for index 1")
+    text0 = "Document for index 0"
+    text1 = "Document for index 1"
+    vec0 = normalize_vector(embedding_model.encode(text0))
+    vec1 = normalize_vector(embedding_model.encode(text1))
+    collection.insert("index_0", text0, vec0)
+    collection.insert("index_1", text1, vec1)
 
     stats = collection.get_statistics()
 
@@ -289,19 +360,28 @@ def test_statistics_with_multiple_indexes(collection):
     assert stats["total_vectors_stored"] == 2
 
 
-def test_statistics_accuracy_after_operations(collection_with_index):
+def test_statistics_accuracy_after_operations(collection_with_index, embedding_model):
     """Test that statistics remain accurate after multiple operations."""
     # Perform a series of operations
-    collection_with_index.batch_insert_data(["Doc1", "Doc2", "Doc3"], None)
-    collection_with_index.init_index("test_index")
+    texts = ["Doc1", "Doc2", "Doc3"]
+    collection_with_index.batch_insert_data(texts, None)
+    vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+    item_ids = collection_with_index.get_all_ids()
+    collection_with_index.init_index("test_index", vectors, item_ids)
 
     # Insert additional items
-    collection_with_index.insert("test_index", "Doc4")
-    collection_with_index.insert("test_index", "Doc5")
+    text4 = "Doc4"
+    text5 = "Doc5"
+    vec4 = normalize_vector(embedding_model.encode(text4))
+    vec5 = normalize_vector(embedding_model.encode(text5))
+    collection_with_index.insert("test_index", text4, vec4)
+    collection_with_index.insert("test_index", text5, vec5)
 
     # Perform retrievals
-    collection_with_index.retrieve("test", "test_index", topk=3)
-    collection_with_index.retrieve("doc", "test_index", topk=2)
+    query_vec1 = normalize_vector(embedding_model.encode("test"))
+    query_vec2 = normalize_vector(embedding_model.encode("doc"))
+    collection_with_index.retrieve(query_vec1, "test_index", topk=3)
+    collection_with_index.retrieve(query_vec2, "test_index", topk=2)
 
     stats = collection_with_index.get_statistics()
 
@@ -313,6 +393,25 @@ def test_statistics_accuracy_after_operations(collection_with_index):
 
 if __name__ == "__main__":
     # Run a simple test to verify the module works
+    from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
+
+    def normalize_vector_main(vector):
+        """Normalize a vector using L2 normalization."""
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
+
+    # Create embedding model
+    embedding_model = apply_embedding_model("mockembedder")
+
     config = {"name": "manual_test"}
     collection = VDBMemoryCollection(config=config)
 
@@ -327,14 +426,20 @@ if __name__ == "__main__":
     collection.create_index(config=index_config)
 
     # Test insert
-    collection.insert("test_index", "Test document 1", metadata={"type": "test"})
+    text1 = "Test document 1"
+    vec1 = normalize_vector_main(embedding_model.encode(text1))
+    collection.insert("test_index", text1, vec1, metadata={"type": "test"})
 
     # Test batch insert
-    collection.batch_insert_data(["Doc A", "Doc B", "Doc C"], None)
-    collection.init_index("test_index")
+    texts = ["Doc A", "Doc B", "Doc C"]
+    collection.batch_insert_data(texts, None)
+    vectors = [normalize_vector_main(embedding_model.encode(text)) for text in texts]
+    item_ids = collection.get_all_ids()
+    collection.init_index("test_index", vectors, item_ids)
 
     # Test retrieve
-    collection.retrieve("test", "test_index", topk=2)
+    query_vec = normalize_vector_main(embedding_model.encode("test"))
+    collection.retrieve(query_vec, "test_index", topk=2)
 
     # Print statistics
     print("\n=== Statistics ===")
