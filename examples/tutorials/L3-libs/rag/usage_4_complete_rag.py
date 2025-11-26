@@ -97,15 +97,16 @@ class RAGUnlearningSystem(BaseService):
                 self.logger.error("Collection is not a VDB collection")
                 return False
 
-            # 插入文档 - VDBMemoryCollection.insert(index_name, raw_data, metadata)
+            # 插入文档 - VDBMemoryCollection.insert(index_name, raw_data, vector, metadata)
             for doc in documents:
                 collection.insert(
                     index_name="content_index",
                     raw_data=doc["content"],
+                    vector=doc["vector"],
                     metadata=doc.get("metadata", {}),
                 )
 
-            collection.init_index("content_index")
+            # Index is initialized through individual inserts, no need for init_index
             self.manager.store_collection(collection_name)
 
             self.logger.info(
@@ -120,7 +121,7 @@ class RAGUnlearningSystem(BaseService):
             return False
 
     def retrieve_relevant_documents(
-        self, collection_name: str, query: str, topk: int = 5
+        self, collection_name: str, query_vector: np.ndarray, topk: int = 5
     ) -> list[dict[str, Any]]:
         """检索相关文档"""
         try:
@@ -133,9 +134,9 @@ class RAGUnlearningSystem(BaseService):
                 self.logger.error("Collection is not a VDB collection")
                 return []
 
-            # VDBMemoryCollection.retrieve(raw_data, index_name, topk, ...)
+            # VDBMemoryCollection.retrieve(query_vector, index_name, topk, ...)
             results = collection.retrieve(
-                raw_data=query,
+                query_vector=query_vector,
                 index_name="content_index",
                 topk=topk,
                 with_metadata=True,
@@ -450,9 +451,9 @@ def example_basic_rag():
 
     # 检索
     print("\n🔍 Retrieving documents...")
-    results = system.retrieve_relevant_documents(
-        "knowledge_base", "machine learning", topk=3
-    )
+    query_vector = np.random.randn(128).astype(np.float32)
+    query_vector = query_vector / (np.linalg.norm(query_vector) + 1e-10)
+    results = system.retrieve_relevant_documents("knowledge_base", query_vector, topk=3)
     print(f"  Found {len(results)} relevant documents")
 
     # 用户请求删除
