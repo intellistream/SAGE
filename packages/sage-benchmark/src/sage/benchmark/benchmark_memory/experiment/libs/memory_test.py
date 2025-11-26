@@ -25,27 +25,8 @@ Question: {question}
 Answer:""",
         )
 
-        # 从配置中读取 generator 参数并初始化
-        api_key = self.config.get("runtime.api_key")
-        base_url = self.config.get("runtime.base_url")
-        model_name = self.config.get("runtime.model_name")
-        max_tokens = self.config.get("runtime.max_tokens", 512)
-        temperature = self.config.get("runtime.temperature", 0.7)
-        seed = self.config.get("runtime.seed")
-
-        # 验证必需参数
-        if not all([api_key, base_url, model_name]):
-            raise ValueError("缺少必需的 LLM 配置: api_key, base_url, model_name")
-
         # 初始化 LLM 生成器
-        self.generator = LLMGenerator(
-            api_key=api_key,
-            base_url=base_url,
-            model_name=model_name,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            seed=seed,
-        )
+        self.generator = LLMGenerator.from_config(config)
 
     def execute(self, data):
         """执行记忆测试（生成答案）
@@ -79,7 +60,7 @@ Answer:""",
 
         prompt = full_prompt
 
-        # # Debug: 打印最终的完整Prompt
+        # # # Debug: 打印最终的完整Prompt
         # print(f"\n{'='*80}")
         # print(f"[DEBUG] Final Prompt for Question: {question}...")
         # print(f"{'='*80}")
