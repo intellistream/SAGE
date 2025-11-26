@@ -115,9 +115,13 @@ def main():
     print("Embedding Server 使用示例")
     print("=" * 60)
     print("\n请确保 embedding 服务器已启动:")
-    print("  bash packages/sage-common/src/sage/common/components/sage_embedding/start_embedding_server.sh 8091")
+    print(
+        "  bash packages/sage-common/src/sage/common/components/sage_embedding/start_embedding_server.sh 8091"
+    )
     print("\n或手动启动:")
-    print("  python packages/sage-common/src/sage/common/components/sage_embedding/embedding_server.py --model BAAI/bge-m3 --port 8091")
+    print(
+        "  python packages/sage-common/src/sage/common/components/sage_embedding/embedding_server.py --model BAAI/bge-m3 --port 8091"
+    )
     print("\n" + "=" * 60 + "\n")
 
     try:
@@ -134,7 +138,9 @@ def main():
     except Exception as e:
         print(f"\n错误: {e}")
         print("\n请确保 embedding 服务器正在运行:")
-        print("  bash packages/sage-common/src/sage/common/components/sage_embedding/start_embedding_server.sh 8091")
+        print(
+            "  bash packages/sage-common/src/sage/common/components/sage_embedding/start_embedding_server.sh 8091"
+        )
 
 
 if __name__ == "__main__":

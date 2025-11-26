@@ -19,9 +19,9 @@
 from .args_parser import parse_args
 from .config_loader import RuntimeConfig
 from .dialogue_parser import DialogueParser
-from .triple_parser import TripleParser
 from .embedding_generator import EmbeddingGenerator
 from .llm_generator import LLMGenerator
+from .triple_parser import TripleParser
 
 __all__ = [
     "parse_args",
