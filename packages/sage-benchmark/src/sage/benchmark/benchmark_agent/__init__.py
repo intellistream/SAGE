@@ -9,6 +9,7 @@ This module provides infrastructure for evaluating agent capabilities including:
 Architecture:
     config/         Configuration files and loaders
     experiments/    Experiment runners and base classes
+    adapter_registry.py  Strategy adapter registry
 
 Usage:
     # Via CLI
@@ -17,15 +18,29 @@ Usage:
     # Programmatic
     from sage.benchmark.benchmark_agent import ToolSelectionExperiment
     from sage.benchmark.benchmark_agent.config import ConfigLoader
+    from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+    from sage.data import DataManager
 
     loader = ConfigLoader()
     config = loader.load_config("config/tool_selection_exp.yaml")
-    exp = ToolSelectionExperiment(config)
+
+    dm = DataManager.get_instance()
+    registry = get_adapter_registry()
+
+    exp = ToolSelectionExperiment(config, data_manager=dm, adapter_registry=registry)
     exp.prepare()
     result = exp.run()
     exp.finalize()
 """
 
+from sage.benchmark.benchmark_agent.adapter_registry import (
+    AdapterRegistry,
+    PlannerAdapter,
+    SelectorAdapter,
+    TimingAdapter,
+    get_adapter_registry,
+    register_strategy,
+)
 from sage.benchmark.benchmark_agent.experiments import (
     # Base classes
     BaseExperiment,
@@ -39,6 +54,16 @@ from sage.benchmark.benchmark_agent.experiments import (
     ToolSelectionConfig,
     # Experiments
     ToolSelectionExperiment,
+)
+from sage.benchmark.benchmark_agent.experiments.method_comparison import (
+    ExperimentResult as ComparisonResult,
+)
+from sage.benchmark.benchmark_agent.experiments.method_comparison import (
+    MethodComparisonExperiment,
+    MethodConfig,
+    MethodRegistry,
+    run_full_comparison,
+    run_quick_comparison,
 )
 
 __version__ = "0.1.0"
@@ -57,4 +82,11 @@ __all__ = [
     "ToolSelectionConfig",
     "PlanningConfig",
     "TimingDetectionConfig",
+    # Adapter Registry
+    "AdapterRegistry",
+    "SelectorAdapter",
+    "PlannerAdapter",
+    "TimingAdapter",
+    "get_adapter_registry",
+    "register_strategy",
 ]

@@ -155,6 +155,128 @@ class RecallAtKMetric:
         )
 
 
+@MetricRegistry.register("precision_at_k")
+class PrecisionAtKMetric:
+    """
+    Precision@K for tool selection.
+
+    Measures what fraction of top-K predictions are relevant.
+    """
+
+    name = "precision_at_k"
+
+    def __init__(self, k: int = 5):
+        """
+        Initialize metric.
+
+        Args:
+            k: Number of top predictions to consider
+        """
+        self.k = k
+
+    def compute(
+        self, predictions: Sequence[list[str]], references: Sequence[list[str]]
+    ) -> MetricOutput:
+        """
+        Compute precision@k.
+
+        Args:
+            predictions: List of predicted tool ID lists
+            references: List of reference tool ID lists
+
+        Returns:
+            MetricOutput with precision value
+        """
+        start_time = time.time()
+
+        precisions = []
+        for pred, ref in zip(predictions, references):
+            pred_top_k = set(pred[: self.k]) if isinstance(pred, list) else {pred}
+            ref_set = set(ref) if isinstance(ref, list) else {ref}
+
+            if len(pred_top_k) == 0:
+                precisions.append(0.0)
+            else:
+                precision = len(pred_top_k & ref_set) / len(pred_top_k)
+                precisions.append(precision)
+
+        avg_precision = np.mean(precisions) if len(precisions) > 0 else 0.0
+        elapsed = time.time() - start_time
+
+        return MetricOutput(
+            value=float(avg_precision),
+            details={
+                "k": self.k,
+                "total_samples": len(predictions),
+                "per_sample_precisions": precisions,
+                "compute_time_seconds": elapsed,
+            },
+        )
+
+
+@MetricRegistry.register("mrr")
+class MRRMetric:
+    """
+    Mean Reciprocal Rank (MRR) for tool selection.
+
+    Measures the average of reciprocal ranks of the first correct prediction.
+    """
+
+    name = "mrr"
+
+    def __init__(self, k: int | None = None):
+        """
+        Initialize metric.
+
+        Args:
+            k: Optional cutoff (only consider top-k predictions)
+        """
+        self.k = k
+
+    def compute(
+        self, predictions: Sequence[list[str]], references: Sequence[list[str]]
+    ) -> MetricOutput:
+        """
+        Compute MRR.
+
+        Args:
+            predictions: List of predicted tool ID lists
+            references: List of reference tool ID lists
+
+        Returns:
+            MetricOutput with MRR value
+        """
+        start_time = time.time()
+
+        reciprocal_ranks = []
+        for pred, ref in zip(predictions, references):
+            pred_list = pred if isinstance(pred, list) else [pred]
+            if self.k is not None:
+                pred_list = pred_list[: self.k]
+            ref_set = set(ref) if isinstance(ref, list) else {ref}
+
+            # Find rank of first correct prediction
+            rr = 0.0
+            for i, p in enumerate(pred_list):
+                if p in ref_set:
+                    rr = 1.0 / (i + 1)
+                    break
+            reciprocal_ranks.append(rr)
+
+        mrr = np.mean(reciprocal_ranks) if len(reciprocal_ranks) > 0 else 0.0
+        elapsed = time.time() - start_time
+
+        return MetricOutput(
+            value=float(mrr),
+            details={
+                "k": self.k,
+                "total_samples": len(predictions),
+                "per_sample_rr": reciprocal_ranks,
+                "compute_time_seconds": elapsed,
+            },
+        )
+
+
 @MetricRegistry.register("plan_success_rate")
 class PlanSuccessRateMetric:
     """
