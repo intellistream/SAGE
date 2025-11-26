@@ -213,6 +213,85 @@ log_environment() {
     log_info "==============================" "$context" false "$phase"
 }
 
+# 显示旋转动画的后台 spinner
+_pip_spinner_pid=""
+_pip_spinner_running=false
+
+start_spinner() {
+    local msg="${1:-安装中}"
+    local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local delay=0.1
+    _pip_spinner_running=true
+
+    (
+        trap 'exit 0' TERM
+        while true; do
+            for (( i=0; i<${#chars}; i++ )); do
+                printf "\r  ${CYAN}%s${NC} %s..." "${chars:$i:1}" "$msg" >&2
+                sleep $delay
+            done
+        done
+    ) &
+    _pip_spinner_pid=$!
+    disown "$_pip_spinner_pid" 2>/dev/null || true
+}
+
+stop_spinner() {
+    local success="${1:-true}"
+    if [ -n "$_pip_spinner_pid" ]; then
+        kill "$_pip_spinner_pid" 2>/dev/null || true
+        wait "$_pip_spinner_pid" 2>/dev/null || true
+        _pip_spinner_pid=""
+    fi
+    _pip_spinner_running=false
+    printf "\r" >&2  # clear spinner line
+}
+
+# 执行 pip 安装命令，带进度显示（输出包含安装计数）
+log_pip_install_with_progress() {
+    local context="$1"
+    local phase="$2"
+    shift 2
+    local cmd="$@"
+
+    log_debug "执行命令: $cmd" "$context" "$phase"
+
+    local temp_output
+    temp_output=$(mktemp)
+    local exit_code=0
+
+    start_spinner "安装依赖包"
+
+    if eval "$cmd" > "$temp_output" 2>&1; then
+        exit_code=0
+        stop_spinner true
+        log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
+        if [ -s "$temp_output" ]; then
+            local output_preview
+            output_preview=$(head -10 "$temp_output")
+            log_debug "命令输出预览:\n$output_preview" "$context" "$phase"
+        fi
+    else
+        exit_code=$?
+        stop_spinner false
+        log_error "命令失败 (exit=$exit_code): $cmd" "$context" "$phase"
+        if [ -s "$temp_output" ]; then
+            local error_output
+            error_output=$(cat "$temp_output")
+            log_error "错误输出:\n$error_output" "$context" "$phase"
+        fi
+    fi
+
+    if [ -s "$temp_output" ]; then
+        local full_output
+        full_output=$(cat "$temp_output")
+        _write_log "CMD_OUTPUT" "$full_output" "$context" "$phase"
+    fi
+
+    rm -f "$temp_output"
+    return $exit_code
+}
+
 # 记录 pip 包信息
 log_pip_package_info() {
     local package_name="$1"

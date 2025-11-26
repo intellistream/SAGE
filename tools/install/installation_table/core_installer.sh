@@ -256,7 +256,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             local deps_pip_args=$(echo "$pip_args" | sed 's/--no-deps//g')
             log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $deps_pip_args" "INSTALL"
 
-            if log_command "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
+            if log_pip_install_with_progress "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
                 log_info "外部依赖安装成功" "INSTALL"
                 echo -e "${CHECK} 外部依赖安装完成"
 
