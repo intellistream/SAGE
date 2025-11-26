@@ -40,283 +40,306 @@ get_miniconda_url() {
     local os=$(echo "$system_info" | cut -d':' -f1)
     local arch=$(echo "$system_info" | cut -d':' -f2)
 
-    # 接受 Conda 频道的服务条款
-    accept_conda_tos() {
-        local mode="interactive"
-        local forced_choice=""
-        local skip_env_test="${SAGE_CONDA_TOS_SKIP_ENV_TEST:-false}"
-
-        while [[ $# -gt 0 ]]; do
-            case "$1" in
-                --auto)
-                    mode="auto"
-                    ;;
-                --choice)
-                    forced_choice="$2"
-                    shift
-                    ;;
-                --choice=*)
-                    forced_choice="${1#*=}"
-                    ;;
-                --skip-env-test)
-                    skip_env_test="true"
-                    ;;
-            esac
-            shift
-        done
-
-        print_header "🔧 Conda 服务条款修复工具"
-
-        # 检查 conda 是否可用
-        if ! command -v conda &> /dev/null; then
-            print_error "conda 命令不可用"
-            print_status "请先确保 Conda 已正确安装并初始化"
-            print_status "运行: source ~/.bashrc 或重新打开终端"
-            return 1
-        }
-
-        print_status "当前 Conda 版本: $(conda --version)"
-
-        # 显示当前频道配置
-        print_header "📋 当前 Conda 配置"
-        print_status "当前配置的频道:"
-        conda config --show channels 2>/dev/null || echo "  (无自定义频道配置)"
-
-        echo
-        print_status "检查服务条款状态..."
-
-        # 检查是否有服务条款问题
-        if ! conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
-            print_success "✓ 所有服务条款都已接受，无需修复"
-
-            local verify_args=()
-            if [ "$skip_env_test" = "true" ]; then
-                verify_args+=("--skip-env-test")
-            fi
-            verify_tos_fix "${verify_args[@]}"
-            return 0
-        fi
-
-        print_warning "发现未接受的服务条款"
-
-        # 显示需要接受的频道
-        echo "需要接受服务条款的频道:"
-        local tos_channels=$(conda info 2>&1 | grep -A 10 "Terms of Service have not been accepted" | grep "https://" | sed 's/^[[:space:]]*/  • /' | head -10)
-        echo "$tos_channels"
-
-        # 原有主要频道列表
-        local main_channels=(
-            "https://repo.anaconda.com/pkgs/main"
-            "https://repo.anaconda.com/pkgs/r"
-        )
-
-        # 获取所有潜在频道：主要 + 从 info 提取的
-        local channels=("${main_channels[@]}")
-        local additional=$(conda info 2>&1 | grep -oP 'https?://\S+' | sort -u)
-        for ch in $additional; do
-            if [[ ! " ${channels[*]} " =~ " ${ch} " ]]; then
-                channels+=("$ch")
-            fi
-        done
-
-        local choice=""
-        local auto_mode=false
-        if [ "$mode" = "auto" ] || [ "${SAGE_CONDA_TOS_AUTO:-false}" = "true" ]; then
-            auto_mode=true
-            choice="$forced_choice"
-            if [[ ! "$choice" =~ ^[1-4]$ ]]; then
-                choice="${SAGE_CONDA_TOS_CHOICE:-1}"
-            fi
-            if [[ ! "$choice" =~ ^[1-4]$ ]]; then
-                choice="1"
-            fi
-            print_status "自动选择方案 $choice"
+    if [ "$os" = "Linux" ]; then
+        if [ "$arch" = "x86_64" ]; then
+            echo "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+        elif [ "$arch" = "aarch64" ]; then
+            echo "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"
         else
-            echo
-            echo "选择解决方案:"
-            echo "1) 🏃 快速修复 - 自动接受所有频道的服务条款"
-            echo "2) 🔄 使用 conda-forge - 配置使用 conda-forge 频道 (推荐)"
-            echo "3) 🛠️  手动修复 - 显示手动修复命令"
-            echo "4) ❌ 退出"
-            read -p "请输入选择 (1-4): " choice
+            print_error "不支持的架构: $arch"
+            return 1
         fi
+    elif [ "$os" = "Darwin" ]; then
+        if [ "$arch" = "x86_64" ]; then
+            echo "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh"
+        elif [ "$arch" = "arm64" ]; then
+            echo "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh"
+        else
+            print_error "不支持的架构: $arch"
+            return 1
+        fi
+    else
+        print_error "不支持的操作系统: $os"
+        return 1
+    fi
+    print_status "当前 Conda 版本: $(conda --version)"
 
-        case $choice in
-            1)
-                print_status "自动接受服务条款..."
+# 接受 Conda 频道的服务条款
+accept_conda_tos() {
+    local mode="interactive"
+    local forced_choice=""
+    local skip_env_test="${SAGE_CONDA_TOS_SKIP_ENV_TEST:-false}"
 
-                local success_count=0
-
-                for channel in "${channels[@]}"; do
-                    print_status "接受频道: $channel"
-                    if conda tos accept --override-channels --channel "$channel" 2>&1; then
-                        print_success "✓ 已接受: $channel"
-                        ((success_count++))
-                    else
-                        local exit_code=$?
-                        if [ $exit_code -eq 1 ]; then
-                            print_debug "频道 $channel 的服务条款可能已经接受过"
-                        else
-                            print_warning "✗ 接受失败 (退出代码: $exit_code): $channel"
-                        fi
-                    fi
-                done
-
-                print_debug "处理了 ${#channels[@]} 个频道，成功处理 $success_count 个"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --auto)
+                mode="auto"
                 ;;
-
-            2)
-                print_status "配置 conda-forge 频道..."
-
-                conda config --add channels conda-forge
-                conda config --set channel_priority strict
-
-                print_success "✓ 已配置 conda-forge 频道为默认"
-                print_status "新的频道配置:"
-                conda config --show channels
+            --choice)
+                forced_choice="$2"
+                shift
                 ;;
-
-            3)
-                print_header "🛠️ 手动修复命令"
-                echo "请根据频道列表，手动运行以下命令:"
-                echo
-                for channel in "${channels[@]}"; do
-                    echo "conda tos accept --override-channels --channel $channel"
-                done
-                echo
-                echo "或者使用 conda-forge:"
-                echo "conda config --add channels conda-forge"
-                echo "conda config --set channel_priority strict"
+            --choice=*)
+                forced_choice="${1#*=}"
                 ;;
-
-            4)
-                print_status "用户选择退出"
-                return 0
-                ;;
-
-            *)
-                print_error "无效选择"
-                return 1
+            --skip-env-test)
+                skip_env_test="true"
                 ;;
         esac
+        shift
+    done
 
-        # 验证修复结果（对于选项3，也运行验证以检查当前状态）
+    print_header "🔧 Conda 服务条款修复工具"
+
+    # 检查 conda 是否可用
+    if ! command -v conda &> /dev/null; then
+        print_error "conda 命令不可用"
+        print_status "请先确保 Conda 已正确安装并初始化"
+        print_status "运行: source ~/.bashrc 或重新打开终端"
+        return 1
+    fi
+
+    print_status "当前 Conda 版本: $(conda --version)"
+
+    # 显示当前频道配置
+    print_header "📋 当前 Conda 配置"
+    print_status "当前配置的频道:"
+    conda config --show channels 2>/dev/null || echo "  (无自定义频道配置)"
+
+    echo
+    print_status "检查服务条款状态..."
+
+    # 检查是否有服务条款问题
+    if ! conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
+        print_success "✓ 所有服务条款都已接受，无需修复"
+
         local verify_args=()
         if [ "$skip_env_test" = "true" ]; then
             verify_args+=("--skip-env-test")
         fi
         verify_tos_fix "${verify_args[@]}"
-    }
+        return 0
+    fi
 
-    verify_tos_fix() {
-        local skip_env_test="false"
+    print_warning "发现未接受的服务条款"
 
-        while [[ $# -gt 0 ]]; do
-            case "$1" in
-                --skip-env-test)
-                    skip_env_test="true"
-                    ;;
-            esac
-            shift
-        done
+    # 显示需要接受的频道
+    echo "需要接受服务条款的频道:"
+    local tos_channels=$(conda info 2>&1 | grep -A 10 "Terms of Service have not been accepted" | grep "https://" | sed 's/^[[:space:]]*/  • /' | head -10)
+    echo "$tos_channels"
 
-        print_header "🧪 验证修复结果"
-        print_status "重新检查服务条款状态..."
+    # 原有主要频道列表
+    local main_channels=(
+        "https://repo.anaconda.com/pkgs/main"
+        "https://repo.anaconda.com/pkgs/r"
+    )
 
-        if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
-            print_warning "仍有未接受的服务条款，可能需要手动处理"
-            print_status "剩余的问题:"
-            conda info 2>&1 | grep -A 10 "Terms of Service have not been accepted"
+    # 获取所有潜在频道：主要 + 从 info 提取的
+    local channels=("${main_channels[@]}")
+    local additional=$(conda info 2>&1 | grep -oP 'https?://\S+' | sort -u)
+    for ch in $additional; do
+        if [[ ! " ${channels[*]} " =~ " ${ch} " ]]; then
+            channels+=("$ch")
+        fi
+    done
+
+    local choice=""
+    local auto_mode=false
+    if [ "$mode" = "auto" ] || [ "${SAGE_CONDA_TOS_AUTO:-false}" = "true" ]; then
+        auto_mode=true
+        choice="$forced_choice"
+        if [[ ! "$choice" =~ ^[1-4]$ ]]; then
+            choice="${SAGE_CONDA_TOS_CHOICE:-1}"
+        fi
+        if [[ ! "$choice" =~ ^[1-4]$ ]]; then
+            choice="1"
+        fi
+        print_status "自动选择方案 $choice"
+    else
+        echo
+        echo "选择解决方案:"
+        echo "1) 🏃 快速修复 - 自动接受所有频道的服务条款"
+        echo "2) 🔄 使用 conda-forge - 配置使用 conda-forge 频道 (推荐)"
+        echo "3) 🛠️  手动修复 - 显示手动修复命令"
+        echo "4) ❌ 退出"
+        read -p "请输入选择 (1-4): " choice
+    fi
+
+    case $choice in
+        1)
+            print_status "自动接受服务条款..."
+
+            local success_count=0
+
+            for channel in "${channels[@]}"; do
+                print_status "接受频道: $channel"
+                if conda tos accept --override-channels --channel "$channel" 2>&1; then
+                    print_success "✓ 已接受: $channel"
+                    ((success_count++))
+                else
+                    local exit_code=$?
+                    if [ $exit_code -eq 1 ]; then
+                        print_debug "频道 $channel 的服务条款可能已经接受过"
+                    else
+                        print_warning "✗ 接受失败 (退出代码: $exit_code): $channel"
+                    fi
+                fi
+            done
+
+            print_debug "处理了 ${#channels[@]} 个频道，成功处理 $success_count 个"
+            ;;
+
+        2)
+            print_status "配置 conda-forge 频道..."
+
+            conda config --add channels conda-forge
+            conda config --set channel_priority strict
+
+            print_success "✓ 已配置 conda-forge 频道为默认"
+            print_status "新的频道配置:"
+            conda config --show channels
+            ;;
+
+        3)
+            print_header "🛠️ 手动修复命令"
+            echo "请根据频道列表，手动运行以下命令:"
+            echo
+            for channel in "${channels[@]}"; do
+                echo "conda tos accept --override-channels --channel $channel"
+            done
+            echo
+            echo "或者使用 conda-forge:"
+            echo "conda config --add channels conda-forge"
+            echo "conda config --set channel_priority strict"
+            ;;
+
+        4)
+            print_status "用户选择退出"
+            return 0
+            ;;
+
+        *)
+            print_error "无效选择"
             return 1
+            ;;
+    esac
+
+    # 验证修复结果（对于选项3，也运行验证以检查当前状态）
+    local verify_args=()
+    if [ "$skip_env_test" = "true" ]; then
+        verify_args+=("--skip-env-test")
+    fi
+    verify_tos_fix "${verify_args[@]}"
+}
+
+verify_tos_fix() {
+    local skip_env_test="false"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --skip-env-test)
+                skip_env_test="true"
+                ;;
+        esac
+        shift
+    done
+
+    print_header "🧪 验证修复结果"
+    print_status "重新检查服务条款状态..."
+
+    if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
+        print_warning "仍有未接受的服务条款，可能需要手动处理"
+        print_status "剩余的问题:"
+        conda info 2>&1 | grep -A 10 "Terms of Service have not been accepted"
+        return 1
+    fi
+
+    print_success "✅ 所有服务条款问题已解决！"
+
+    if [ "$skip_env_test" = "true" ]; then
+        print_debug "跳过环境创建验证（已指定 --skip-env-test）"
+        return 0
+    fi
+
+    # 测试创建临时环境
+    print_status "测试环境创建功能..."
+    local test_env_name="sage_test_$$"
+
+    if conda create -n "$test_env_name" python=3.11 -y &>/dev/null; then
+        print_success "✓ 环境创建测试通过"
+        conda env remove -n "$test_env_name" -y &>/dev/null
+        print_debug "已清理测试环境"
+        return 0
+    else
+        print_warning "环境创建测试失败，可能还有其他问题"
+        return 1
+    fi
+}
+
+# 确保 Conda 服务条款已接受（可在非交互模式下使用）
+ensure_conda_tos_accepted() {
+    local auto_mode=false
+    local quiet=false
+    local choice="1"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --auto)
+                auto_mode=true
+                ;;
+            --quiet)
+                quiet=true
+                ;;
+            --choice)
+                choice="$2"
+                shift
+                ;;
+            --choice=*)
+                choice="${1#*=}"
+                ;;
+        esac
+        shift
+    done
+
+    if ! command -v conda &> /dev/null; then
+        return 0
+    fi
+
+    if conda info >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local conda_info_output
+    conda_info_output=$(conda info 2>&1)
+
+    if echo "$conda_info_output" | grep -q "Terms of Service have not been accepted"; then
+        if [ "$quiet" != "true" ]; then
+            print_warning "检测到 Conda 服务条款未接受，尝试自动修复..."
         fi
 
-        print_success "✅ 所有服务条款问题已解决！"
+        local args=("--skip-env-test")
+        if [ "$auto_mode" = true ]; then
+            args+=("--auto")
+        fi
+        if [[ "$choice" =~ ^[1-4]$ ]]; then
+            args+=("--choice" "$choice")
+        fi
 
-        if [ "$skip_env_test" = "true" ]; then
-            print_debug "跳过环境创建验证（已指定 --skip-env-test）"
+        if accept_conda_tos "${args[@]}"; then
             return 0
-        fi
-
-        # 测试创建临时环境
-        print_status "测试环境创建功能..."
-        local test_env_name="sage_test_$$"
-
-        if conda create -n "$test_env_name" python=3.11 -y &>/dev/null; then
-            print_success "✓ 环境创建测试通过"
-            conda env remove -n "$test_env_name" -y &>/dev/null
-            print_debug "已清理测试环境"
-            return 0
-        else
-            print_warning "环境创建测试失败，可能还有其他问题"
-            return 1
-        fi
-    }
-
-    # 确保 Conda 服务条款已接受（可在非交互模式下使用）
-    ensure_conda_tos_accepted() {
-        local auto_mode=false
-        local quiet=false
-        local choice="1"
-
-        while [[ $# -gt 0 ]]; do
-            case "$1" in
-                --auto)
-                    auto_mode=true
-                    ;;
-                --quiet)
-                    quiet=true
-                    ;;
-                --choice)
-                    choice="$2"
-                    shift
-                    ;;
-                --choice=*)
-                    choice="${1#*=}"
-                    ;;
-            esac
-            shift
-        done
-
-        if ! command -v conda &> /dev/null; then
-            return 0
-        fi
-
-        if conda info >/dev/null 2>&1; then
-            return 0
-        fi
-
-        local conda_info_output
-        conda_info_output=$(conda info 2>&1)
-
-        if echo "$conda_info_output" | grep -q "Terms of Service have not been accepted"; then
-            if [ "$quiet" != "true" ]; then
-                print_warning "检测到 Conda 服务条款未接受，尝试自动修复..."
-            fi
-
-            local args=("--skip-env-test")
-            if [ "$auto_mode" = true ]; then
-                args+=("--auto")
-            fi
-            if [[ "$choice" =~ ^[1-4]$ ]]; then
-                args+=("--choice" "$choice")
-            fi
-
-            if accept_conda_tos "${args[@]}"; then
-                return 0
-            fi
-
-            if [ "$quiet" != "true" ]; then
-                print_error "自动接受 Conda 服务条款失败"
-            fi
-            return 1
         fi
 
         if [ "$quiet" != "true" ]; then
-            print_warning "conda info 执行失败: $conda_info_output"
+            print_error "自动接受 Conda 服务条款失败"
         fi
         return 1
-    }
-    print_status "当前 Conda 版本: $(conda --version)"
+    fi
+
+    if [ "$quiet" != "true" ]; then
+        print_warning "conda info 执行失败: $conda_info_output"
+    fi
+    return 1
+}
 
     # 显示当前频道配置
     print_header "📋 当前 Conda 配置"
