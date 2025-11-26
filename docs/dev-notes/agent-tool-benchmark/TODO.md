@@ -188,3 +188,44 @@ python run_full_training_comparison.py --full --model Qwen/Qwen2.5-7B-Instruct
 ### 已知问题
 1. HuggingFace 模型下载可能较慢，已添加镜像自动检测
 2. 0.5B 模型的评估结果仅供验证流程，实际论文需要 7B 模型数据
+3. **`torch_dtype` 弃用警告**: transformers 新版本建议使用 `dtype` 替代 `torch_dtype`，需要在 `trainer.py` 中修复
+4. **模型评估返回 0% 准确率**: 当前 `_evaluate_with_model()` 评估逻辑可能有问题，模型推理的工具评分逻辑需要调试
+   - 症状：训练完成后评估显示 `Top-K Acc: 0.00%, MRR: 0.00%`
+   - 可能原因：prompt 格式不匹配、评分解析失败、候选工具集不正确
+5. **Generation flags 警告**: `['temperature', 'top_p', 'top_k']` 被忽略，需要检查 generate 参数
+
+---
+
+## 🔬 待集成的 SOTA 方法
+
+当前实现的方法（A-D）主要是基础方法，以下是论文中应该对比的真正 SOTA 方法：
+
+### 工具选择 SOTA
+| 方法 | 论文 | 状态 | 备注 |
+|------|------|------|------|
+| ToolLLM | Qin et al., 2023 | ❌ 未集成 | 需要实现 DFSDT 搜索算法 |
+| ToolBench | Xu et al., 2023 | ❌ 未集成 | 需要适配其评估协议 |
+| API-Bank | Li et al., 2023 | ❌ 未集成 | API 调用评估基准 |
+| Gorilla | Patil et al., 2023 | ❌ 未集成 | API 文档检索增强 |
+| TaskMatrix | Liang et al., 2023 | ❌ 未集成 | 多模态工具调用 |
+
+### 规划 SOTA
+| 方法 | 论文 | 状态 | 备注 |
+|------|------|------|------|
+| ReAct | Yao et al., 2023 | ⚠️ 部分实现 | 需要完善 reasoning trace |
+| Tree-of-Thoughts | Yao et al., 2023 | ❌ 未集成 | 树搜索规划 |
+| Graph-of-Thoughts | Besta et al., 2023 | ❌ 未集成 | 图结构规划 |
+| DEPS | Wang et al., 2023 | ❌ 未集成 | 依赖感知规划 |
+
+### 微调 SOTA  
+| 方法 | 论文 | 状态 | 备注 |
+|------|------|------|------|
+| FireAct | Chen et al., 2023 | ❌ 未集成 | Agent 轨迹微调 |
+| AgentTuning | Zeng et al., 2023 | ❌ 未集成 | 通用 Agent 能力微调 |
+| ToolAlpaca | Tang et al., 2023 | ❌ 未集成 | 工具使用微调数据 |
+
+### 集成计划
+详见 `how-to-add-sota-methods.md` 中的添加指南。优先级：
+1. **P0**: ToolLLM (工具选择核心对比)
+2. **P1**: ReAct 完善、FireAct (规划+微调)
+3. **P2**: 其他方法按需添加
