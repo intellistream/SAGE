@@ -49,7 +49,7 @@ class PostRetrieval(MapFunction):
         """格式化对话历史为结构化文本（阶段一：Prompt拼接）
 
         统一处理 memory service 的返回格式：[{"text": "...", "metadata": {...}}, ...]
-        
+
         只负责：
         1. 添加第一阶段的 prompt 前缀
         2. 将所有 text 字段直接拼接

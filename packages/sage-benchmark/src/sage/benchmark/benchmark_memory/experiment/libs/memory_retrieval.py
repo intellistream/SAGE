@@ -44,14 +44,14 @@ class MemoryRetrieval(MapFunction):
 
         # 调用记忆服务检索对话（统一接口：传入 query 参数）
         result = self.call_service(
-                self.service_name,
-                query=query,
-                vector=vector,
-                metadata=metadata,
-                method="retrieve",
-                timeout=10.0,
-            )
+            self.service_name,
+            query=query,
+            vector=vector,
+            metadata=metadata,
+            method="retrieve",
+            timeout=10.0,
+        )
 
         data["memory_data"] = result
-        
+
         return data

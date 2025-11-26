@@ -1,5 +1,5 @@
-from sage.platform.service import BaseService
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.platform.service import BaseService
 
 
 class VectorHashMemoryService(BaseService):
@@ -69,7 +69,14 @@ class VectorHashMemoryService(BaseService):
         """
         return self.collection.delete(entry)
 
-    def retrieve(self, query=None, vector=None, metadata: dict | None = None, topk: int = 10, threshold: int | None = None):
+    def retrieve(
+        self,
+        query=None,
+        vector=None,
+        metadata: dict | None = None,
+        topk: int = 10,
+        threshold: int | None = None,
+    ):
         """
         使用查询向量检索相似的数据
 
@@ -84,7 +91,7 @@ class VectorHashMemoryService(BaseService):
 
         Returns:
             list[dict[str, Any]]: 检索结果列表，每个元素包含 text 和 metadata
-        
+
         Note:
             LSH 索引使用汉明距离作为相似度度量：
             - 汉明距离 = 哈希码中不同的位数
@@ -93,11 +100,11 @@ class VectorHashMemoryService(BaseService):
         """
         if vector is None:
             return []
-        
+
         # 使用默认值：nbits 的一半
         if threshold is None:
             threshold = self.nbits // 2
-        
+
         results = self.collection.retrieve(
             vector,
             "lsh_index",
@@ -107,8 +114,10 @@ class VectorHashMemoryService(BaseService):
         )
         return results if results else []
 
+
 if __name__ == "__main__":
     import numpy as np
+
     from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 
     def test_vector_hash_memory():
@@ -127,22 +136,22 @@ if __name__ == "__main__":
         print("=" * 70)
         print("📝 步骤2: 插入数据")
         print("=" * 70)
-        
+
         # 创建 embedding 模型
         embedding_model = apply_embedding_model("mockembedder")
-        
+
         texts = [
             "机器学习是人工智能的一个分支",
             "深度学习使用神经网络进行训练",
             "自然语言处理用于理解人类语言",
         ]
-        
+
         print(f"插入 {len(texts)} 条数据:")
         for i, text in enumerate(texts, 1):
             # 生成并归一化向量
             vector = embedding_model.encode(text)
             vector = vector / np.linalg.norm(vector)
-            
+
             # 插入数据
             success = service.insert(text, vector)
             status = "✅ 成功" if success else "❌ 失败"
@@ -153,19 +162,19 @@ if __name__ == "__main__":
         print("=" * 70)
         print("📝 步骤3: 检索数据")
         print("=" * 70)
-        
+
         query_text = "什么是深度学习和神经网络"
-        print(f"查询文本: \"{query_text}\"")
-        
+        print(f'查询文本: "{query_text}"')
+
         # 生成查询向量
         query_vector = embedding_model.encode(query_text)
         query_vector = query_vector / np.linalg.norm(query_vector)
-        
+
         # 检索（max_hamming_distance 表示最多接受多少位不同）
         # 对于 nbits=64，默认值为 32，表示最多接受 32 位不同（50%相似度）
         # 不传参数则使用默认值 nbits/2
         results = service.retrieve(vector=query_vector, topk=2)
-        
+
         print(f"\n检索结果 (Top {len(results)}):")
         if results:
             for i, result in enumerate(results, 1):

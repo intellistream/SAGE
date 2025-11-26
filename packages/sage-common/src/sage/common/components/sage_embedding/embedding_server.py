@@ -7,14 +7,14 @@
 
 然后在代码中使用:
     from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
-    
+
     embedding_model = apply_embedding_model(
         name="openai",
         model="BAAI/bge-m3",  # 或任意名称
         base_url="http://localhost:8080/v1",
-        api_key="dummy"  # 本地服务不需要真实的 API key
+        api_key="dummy",  # 本地服务不需要真实的 API key  # pragma: allowlist secret
     )
-    
+
     result = embedding_model.embed("Hello world")
 """
 
@@ -157,7 +157,9 @@ class EmbeddingServer:
 embedding_server: EmbeddingServer | None = None
 
 # 创建 FastAPI 应用
-app = FastAPI(title="Embedding Server", description="OpenAI-compatible Embedding API", version="1.0")
+app = FastAPI(
+    title="Embedding Server", description="OpenAI-compatible Embedding API", version="1.0"
+)
 
 
 @app.get("/")
@@ -225,7 +227,7 @@ async def create_embeddings(request: EmbeddingRequest):
 
         logger.info(
             f"Generated {len(embeddings)} embeddings in {elapsed_time:.3f}s "
-            f"({len(embeddings)/elapsed_time:.2f} emb/s)"
+            f"({len(embeddings) / elapsed_time:.2f} emb/s)"
         )
 
         return JSONResponse(content=response)
@@ -245,7 +247,9 @@ def main():
         help="HuggingFace model name (default: BAAI/bge-m3)",
     )
     parser.add_argument("--port", type=int, default=8091, help="Server port (default: 8090)")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host (default: 0.0.0.0)")
+    parser.add_argument(
+        "--host", type=str, default="0.0.0.0", help="Server host (default: 0.0.0.0)"
+    )
     parser.add_argument(
         "--device", type=str, default="auto", help="Device (cuda/cpu/auto, default: auto)"
     )
@@ -272,9 +276,9 @@ def main():
     # 启动 FastAPI 服务器
     logger.info(f"Starting server on {args.host}:{args.port}")
     logger.info(f"API endpoint: http://{args.host}:{args.port}/v1/embeddings")
-    logger.info(f"Usage example:")
-    logger.info(f'  curl -X POST http://localhost:{args.port}/v1/embeddings \\')
-    logger.info(f'    -H "Content-Type: application/json" \\')
+    logger.info("Usage example:")
+    logger.info(f"  curl -X POST http://localhost:{args.port}/v1/embeddings \\")
+    logger.info('    -H "Content-Type: application/json" \\')
     logger.info(f'    -d \'{{"input": "Hello world", "model": "{args.model}"}}\'')
 
     uvicorn.run(app, host=args.host, port=args.port, workers=args.workers, log_level="info")

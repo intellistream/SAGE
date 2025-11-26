@@ -39,15 +39,16 @@ class ShortTermMemoryService(BaseService):
         data = {"text": entry}
         if metadata:
             data["metadata"] = metadata
-        
+
         self.dialog_queue.append(data)
 
         self._logger.debug(
-            f"Inserted dialog text. "
-            f"Current queue size: {len(self.dialog_queue)}/{self.max_dialog}"
+            f"Inserted dialog text. Current queue size: {len(self.dialog_queue)}/{self.max_dialog}"
         )
 
-    def retrieve(self, query: Any = None, vector=None, metadata: dict | None = None) -> list[dict[str, Any]]:
+    def retrieve(
+        self, query: Any = None, vector=None, metadata: dict | None = None
+    ) -> list[dict[str, Any]]:
         """
         检索所有短期记忆中的对话
 
@@ -145,12 +146,14 @@ if __name__ == "__main__":
         print("⚠️  又有1个旧对话被移除，保留最新的3个对话")
         print("当前记忆内容:")
         for i, entry in enumerate(retrieved, 1):
-            metadata_info = f" [metadata: {entry.get('metadata')}]" if entry.get('metadata') else ""
+            metadata_info = f" [metadata: {entry.get('metadata')}]" if entry.get("metadata") else ""
             print(f"  记忆 {i}: {entry['text']}{metadata_info}")
 
         print("\n" + "=" * 70)
         print("✅ 测试完成！")
-        print("新接口统一格式: insert(text, vector, metadata) / retrieve() -> [{'text': '...', 'metadata': {...}}, ...]")
+        print(
+            "新接口统一格式: insert(text, vector, metadata) / retrieve() -> [{'text': '...', 'metadata': {...}}, ...]"
+        )
         print("=" * 70 + "\n")
 
     CustomLogger.disable_global_console_debug()

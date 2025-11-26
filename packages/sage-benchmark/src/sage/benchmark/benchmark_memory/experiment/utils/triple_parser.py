@@ -58,9 +58,9 @@ class TripleParser:
                 continue
 
             # 移除行首的编号格式，如 "(1) "、"(2) "、"1. "、"1) " 等
-            line = re.sub(r'^\(\d+\)\s*', '', line)  # (1) 格式
-            line = re.sub(r'^\d+\.\s*', '', line)    # 1. 格式
-            line = re.sub(r'^\d+\)\s*', '', line)    # 1) 格式
+            line = re.sub(r"^\(\d+\)\s*", "", line)  # (1) 格式
+            line = re.sub(r"^\d+\.\s*", "", line)  # 1. 格式
+            line = re.sub(r"^\d+\)\s*", "", line)  # 1) 格式
             line = line.strip()
 
             # 解析形如 (Subject, Predicate, Object) 的格式
@@ -117,9 +117,7 @@ class TripleParser:
         return triples, descriptions
 
     def deduplicate(
-        self, 
-        triples: list[tuple[str, str, str]], 
-        descriptions: list[str]
+        self, triples: list[tuple[str, str, str]], descriptions: list[str]
     ) -> tuple[list[tuple[str, str, str]], list[str]]:
         """基于描述去重三元组
 

@@ -3,7 +3,9 @@
 对于短期记忆（STM），通常不需要后处理。
 此模块保留用于未来扩展（记忆蒸馏等）。
 """
+
 import json
+
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
 )
@@ -28,23 +30,25 @@ class PostInsert(MapFunction):
         super().__init__()
         self.config = config
         self.action = config.get("operators.post_insert.action", "none")
-        
+
         # 服务后端配置
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
-        
+
         # 如果 action 是 distillation，初始化 LLM 和 Embedding 生成器
         if self.action == "distillation":
             # 蒸馏配置
             self.distillation_topk = config.get("operators.post_insert.distillation_topk", 10)
             # threshold: 汉明距离阈值，即最多接受多少位不同，None 表示使用服务默认值 (nbits/2)
-            self.distillation_threshold = config.get("operators.post_insert.distillation_threshold", None)
+            self.distillation_threshold = config.get(
+                "operators.post_insert.distillation_threshold", None
+            )
             self.distillation_prompt = config.get("operators.post_insert.distillation_prompt")
             if not self.distillation_prompt:
                 raise ValueError("缺少必需的配置: operators.post_insert.distillation_prompt")
-            
+
             # 初始化 LLM 生成器
             self.generator = LLMGenerator.from_config(config)
-            
+
             # 初始化 Embedding 生成器
             self.embedding_generator = EmbeddingGenerator.from_config(config)
 
@@ -105,27 +109,27 @@ class PostInsert(MapFunction):
 
             prompt = self.distillation_prompt.replace("{memory_list}", memory_list_str)
             distillation_result = self.generator.generate(prompt)
-            
+
             # 解析 JSON 格式的蒸馏结果
             try:
                 result_text = distillation_result.strip()
                 start_idx = result_text.find("{")
                 end_idx = result_text.rfind("}") + 1
-                
+
                 if start_idx == -1 or end_idx == 0:
                     continue
-                
+
                 json_str = result_text[start_idx:end_idx]
                 result = json.loads(json_str)
             except json.JSONDecodeError:
                 continue
-            
+
             to_delete_raw = result.get("to_delete", [])
             to_insert_raw = result.get("to_insert", [])
-            
+
             # 构建原始记忆文本集合，用于对齐验证
             memory_texts_set = set(memory_texts)
-            
+
             # 处理 to_delete：必须和原始记忆完全匹配才能删除
             to_delete_set = set()
             for t in to_delete_raw:
@@ -134,7 +138,7 @@ class PostInsert(MapFunction):
                 t = t.strip()
                 if t in memory_texts_set:
                     to_delete_set.add(t)
-            
+
             # 处理 to_insert：去重，过滤包含括号的文本，且不能是已存在的记忆
             seen = set()
             new_texts = []
@@ -170,7 +174,9 @@ class PostInsert(MapFunction):
 
     # ==================== 服务调用方法 ====================
 
-    def _retrieve_memories(self, vector, topk: int | None = None, threshold: int | None = None) -> list:
+    def _retrieve_memories(
+        self, vector, topk: int | None = None, threshold: int | None = None
+    ) -> list:
         """检索相似记忆
 
         Args:

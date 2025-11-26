@@ -27,8 +27,10 @@ class MemoryInsert(MapFunction):
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
 
         # 从配置读取提取模式
-        self.adapter = config.get("services.memory_insert_adapter", "to_dialogs") if config else "to_dialogs"
-        
+        self.adapter = (
+            config.get("services.memory_insert_adapter", "to_dialogs") if config else "to_dialogs"
+        )
+
         # 初始化对话解析器（仅 to_dialogs 模式需要）
         if self.adapter == "to_dialogs":
             self.dialogue_parser = DialogueParser()
@@ -79,7 +81,7 @@ class MemoryInsert(MapFunction):
         # 如果 entry 为空字符串，跳过插入
         if not entry:
             return
-        
+
         # 提取 vector 和 metadata
         vector = entry_dict.get("embedding", None)
         metadata = entry_dict.get("metadata", None)

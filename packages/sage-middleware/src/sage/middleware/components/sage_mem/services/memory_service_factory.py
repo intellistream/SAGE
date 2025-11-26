@@ -118,7 +118,7 @@ class MemoryServiceFactory:
         """
         dim = config.get(f"services.{service_name}.dim")
         nbits = config.get(f"services.{service_name}.nbits")
-        
+
         if dim is None:
             raise ValueError(f"配置缺失: services.{service_name}.dim")
         if nbits is None:

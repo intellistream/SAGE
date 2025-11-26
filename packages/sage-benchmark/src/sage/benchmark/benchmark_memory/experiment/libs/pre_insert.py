@@ -5,11 +5,11 @@
 """
 
 from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
-from sage.benchmark.benchmark_memory.experiment.utils.triple_parser import TripleParser
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
 )
 from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
+from sage.benchmark.benchmark_memory.experiment.utils.triple_parser import TripleParser
 from sage.common.core import MapFunction
 
 
@@ -41,7 +41,9 @@ class PreInsert(MapFunction):
         # 如果 action 是 tri_embed，初始化 LLM 生成器和 Embedding 生成器
         if self.action == "tri_embed":
             # 从配置文件读取三元组提取的 Prompt 模板
-            self.triple_extraction_prompt = config.get("operators.pre_insert.triple_extraction_prompt")
+            self.triple_extraction_prompt = config.get(
+                "operators.pre_insert.triple_extraction_prompt"
+            )
             if not self.triple_extraction_prompt:
                 raise ValueError("缺少必需的配置: operators.pre_insert.triple_extraction_prompt")
 
@@ -93,7 +95,7 @@ class PreInsert(MapFunction):
             #         "dialogs": [{"speaker": "user1", "text": "...", "date_time": "..."}],
             #         "triple": ("Alice", "likes", "coffee"),
             #         "refactor": "Alice likes coffee",
-            #         "embedding": numpy.ndarray([0.1, 0.2, ...]) 
+            #         "embedding": numpy.ndarray([0.1, 0.2, ...])
             #     },
             #     {
             #         "dialogs": [{"speaker": "user1", "text": "...", "date_time": "..."}],
@@ -205,12 +207,14 @@ class PreInsert(MapFunction):
         triples, refactor_descriptions = self.triple_parser.parse_and_refactor(triples_text)
 
         # 4. 去重：基于 refactor 描述去重（保留首次出现）
-        unique_triples, unique_refactors = self.triple_parser.deduplicate(triples, refactor_descriptions)
-        
+        unique_triples, unique_refactors = self.triple_parser.deduplicate(
+            triples, refactor_descriptions
+        )
+
         # 如果去重后为空，直接返回
         if not unique_refactors:
             return []
-        
+
         # 6. 生成 Embedding（只对去重后的数据生成）
         embeddings = self.embedding_generator.embed_batch(unique_refactors)
 
