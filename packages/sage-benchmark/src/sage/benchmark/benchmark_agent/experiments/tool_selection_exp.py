@@ -79,10 +79,18 @@ class ToolSelectionExperiment(BaseExperiment):
         except Exception as e:
             print(f"Warning: Could not load data: {e}")
 
-        # Initialize selector strategy
+        # Initialize selector strategy with real tools data
         if self.adapter_registry is not None:
             try:
-                self.strategy = self.adapter_registry.get(self.config.selector)
+                # Create resources with real tools loader
+                from sage.libs.agentic.agents.action.tool_selection import SelectorResources
+
+                resources = SelectorResources(
+                    tools_loader=self.tools_loader,
+                    embedding_client=None,  # TODO: Add embedding support
+                )
+
+                self.strategy = self.adapter_registry.get(self.config.selector, resources=resources)
                 if verbose:
                     print(f"✓ Initialized selector: {self.config.selector}")
             except Exception as e:
@@ -118,10 +126,17 @@ class ToolSelectionExperiment(BaseExperiment):
                 metadata["total_samples"] += 1
 
                 try:
+                    # Handle context - may be string or dict
+                    context = sample.context if hasattr(sample, "context") else {}
+                    if isinstance(context, str):
+                        context = {"description": context}
+                    elif context is None:
+                        context = {}
+
                     query = ToolSelectionQuery(
                         sample_id=sample.sample_id,
                         instruction=sample.instruction,
-                        context=sample.context if hasattr(sample, "context") else {},
+                        context=context,
                         candidate_tools=sample.candidate_tools,
                     )
 

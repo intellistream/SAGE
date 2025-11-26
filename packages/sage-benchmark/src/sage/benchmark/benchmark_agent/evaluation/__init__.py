@@ -7,7 +7,7 @@ and timing judgment.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Protocol, Sequence
+from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,8 @@ __all__ = [
     "Metric",
     "Analyzer",
     "ReportBuilder",
+    "compute_metrics",
+    "MetricRegistry",
 ]
 
 
@@ -97,3 +99,106 @@ class ReportBuilder(Protocol):
             Path to saved report file
         """
         ...
+
+
+# Import metric registry after defining base classes
+from sage.benchmark.benchmark_agent.evaluation.metrics import MetricRegistry
+
+
+def compute_metrics(
+    task: str,
+    predictions: list[dict[str, Any]],
+    references: list[dict[str, Any]],
+    metrics: list[str],
+    k: int = 5,
+) -> dict[str, float]:
+    """
+    Compute evaluation metrics for experiment results.
+
+    Args:
+        task: Task type ('tool_selection', 'planning', 'timing_detection')
+        predictions: List of prediction dictionaries
+        references: List of reference dictionaries
+        metrics: List of metric names to compute
+        k: Top-k parameter for ranking metrics
+
+    Returns:
+        Dictionary mapping metric names to values
+    """
+    results = {}
+
+    if task == "tool_selection":
+        # Extract tool lists from predictions and references
+        pred_tools = []
+        ref_tools = []
+
+        for pred, ref in zip(predictions, references):
+            # Get predicted tool IDs
+            if "predicted_tools" in pred:
+                tools = pred["predicted_tools"]
+                if tools and isinstance(tools[0], dict):
+                    pred_tools.append([t["tool_id"] for t in tools])
+                else:
+                    pred_tools.append(tools if tools else [])
+            else:
+                pred_tools.append([])
+
+            # Get reference tool IDs
+            if "ground_truth_tools" in ref:
+                ref_tools.append(ref["ground_truth_tools"])
+            elif "top_k" in ref:
+                ref_tools.append(ref["top_k"])
+            else:
+                ref_tools.append([])
+
+        # Compute each metric
+        for metric_name in metrics:
+            try:
+                if metric_name in ("top_k_accuracy", "recall_at_k", "precision_at_k"):
+                    metric = MetricRegistry.get(metric_name, k=k)
+                elif metric_name == "mrr":
+                    metric = MetricRegistry.get("mrr")
+                else:
+                    continue
+
+                output = metric.compute(pred_tools, ref_tools)
+                results[metric_name] = output.value
+            except Exception as e:
+                results[metric_name] = 0.0
+                results[f"{metric_name}_error"] = str(e)
+
+    elif task == "timing_detection":
+        # Extract boolean decisions
+        pred_decisions = []
+        ref_decisions = []
+
+        for pred, ref in zip(predictions, references):
+            pred_decisions.append(pred.get("should_call_tool", False))
+            ref_decisions.append(ref.get("should_call_tool", False))
+
+        for metric_name in metrics:
+            try:
+                metric = MetricRegistry.get(metric_name)
+                output = metric.compute(pred_decisions, ref_decisions)
+                results[metric_name] = output.value
+            except Exception:
+                results[metric_name] = 0.0
+
+    elif task == "planning":
+        # Extract tool sequences
+        pred_sequences = []
+        ref_sequences = []
+
+        for pred, ref in zip(predictions, references):
+            pred_sequences.append(pred.get("tool_sequence", []))
+            ref_sequences.append(ref.get("tool_sequence", []))
+
+        for metric_name in metrics:
+            try:
+                metric = MetricRegistry.get(metric_name)
+                output = metric.compute(pred_sequences, ref_sequences)
+                results[metric_name] = output.value
+            except Exception:
+                results[metric_name] = 0.0
+
+    return results
