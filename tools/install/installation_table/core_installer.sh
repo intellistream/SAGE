@@ -607,6 +607,10 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
     # 4b. 手动安装外部依赖（不经过 sage[mode] 依赖解析）
     echo -e "${DIM}  4b. 安装外部依赖（提取自各子包声明）...${NC}"
+
+    # 开始外部依赖安装阶段（记录开始时间）
+    log_phase_start_enhanced "外部依赖安装" "INSTALL" 300
+
     log_info "开始提取外部依赖（从 pyproject.toml 文件）" "INSTALL"
 
     # 使用 Python 脚本提取已安装 editable 包的外部依赖

@@ -39,8 +39,17 @@ detect_mainland_china_ip() {
 }
 
 # 配置 pip 镜像
+# 配置 pip 镜像
 configure_pip_mirror() {
     local mirror_source="${1:-auto}"
+
+    # CI环境自动禁用镜像（使用官方PyPI以确保稳定性）
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        export PIP_INDEX_URL="https://pypi.org/simple/"
+        export PIP_EXTRA_INDEX_URL=""
+        echo -e "${INFO} CI环境检测：使用官方 PyPI（禁用镜像）"
+        return 0
+    fi
 
     echo -e "${INFO} 配置 pip 镜像: $mirror_source"
 
@@ -50,33 +59,44 @@ configure_pip_mirror() {
             if detect_mainland_china_ip; then
                 export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                 export PIP_EXTRA_INDEX_URL=""
-                echo -e "${DIM}  检测到中国大陆公网 IP，使用清华镜像${NC}"
+                echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
             elif [[ "$LANG" == zh_* ]] || [[ "$LC_ALL" == zh_* ]] || [[ "$LC_CTYPE" == zh_* ]]; then
                 export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                 export PIP_EXTRA_INDEX_URL=""
-                echo -e "${DIM}  检测到中文语言环境，使用清华镜像${NC}"
+                echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
             else
                 export PIP_INDEX_URL="https://pypi.org/simple/"
                 export PIP_EXTRA_INDEX_URL=""
-                echo -e "${DIM}  使用官方 PyPI${NC}"
+                echo -e "${DIM}  使用官方 PyPI（国际网络）${NC}"
             fi
             ;;
         "aliyun")
             export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
             export PIP_EXTRA_INDEX_URL=""
+            echo -e "${GREEN}  ✓ 使用阿里云镜像${NC}"
             ;;
         "tencent")
             export PIP_INDEX_URL="https://mirrors.cloud.tencent.com/pypi/simple/"
             export PIP_EXTRA_INDEX_URL=""
+            echo -e "${GREEN}  ✓ 使用腾讯云镜像${NC}"
             ;;
         "pypi")
             export PIP_INDEX_URL="https://pypi.org/simple/"
             export PIP_EXTRA_INDEX_URL=""
+            echo -e "${DIM}  使用官方 PyPI${NC}"
+            ;;
+        "disable")
+            # 显式禁用镜像配置
+            unset PIP_INDEX_URL
+            unset PIP_EXTRA_INDEX_URL
+            echo -e "${DIM}  镜像已禁用${NC}"
+            return 0
             ;;
         custom:*)
             local custom_url="${mirror_source#custom:}"
             export PIP_INDEX_URL="$custom_url"
             export PIP_EXTRA_INDEX_URL=""
+            echo -e "${GREEN}  ✓ 使用自定义镜像: $custom_url${NC}"
             ;;
         *)
             echo -e "${WARNING} 未知镜像源: $mirror_source，使用官方 PyPI"
@@ -315,9 +335,12 @@ configure_installation_environment() {
     export PIP_CMD="${PIP_CMD:-python3 -m pip}"
     export PYTHON_CMD="${PYTHON_CMD:-python3}"
 
-    # 配置 pip 镜像（如果启用）
-    if [ "${USE_PIP_MIRROR:-false}" = "true" ]; then
+    # 智能配置 pip 镜像（自动检测CI环境和网络环境）
+    # CI环境自动禁用；中国网络自动启用清华镜像
+    if [ "${USE_PIP_MIRROR:-true}" = "true" ]; then
         configure_pip_mirror "${MIRROR_SOURCE:-auto}"
+    else
+        echo -e "${DIM}  pip 镜像已手动禁用（使用 --no-mirror 参数）${NC}"
     fi
 
     echo -e "${CHECK} 环境配置完成"

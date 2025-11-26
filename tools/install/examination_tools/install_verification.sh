@@ -272,6 +272,20 @@ verify_vllm_installation() {
     local vllm_version=$($PYTHON_CMD -c "import vllm; print(vllm.__version__)" 2>/dev/null)
     echo -e "${GREEN}   ✅ VLLM $vllm_version 已安装${NC}"
 
+    # 检查 FlashInfer（可选但推荐）
+    if $PYTHON_CMD -c "import flashinfer" &> /dev/null; then
+        local flashinfer_version=$($PYTHON_CMD -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
+        echo -e "${GREEN}   ✅ FlashInfer $flashinfer_version 已安装（高性能采样）${NC}"
+    else
+        echo -e "${DIM}   ℹ️  FlashInfer 未安装（可选：用于高性能采样）${NC}"
+        # 获取 CUDA 版本并给出安装建议
+        local cuda_version=$($PYTHON_CMD -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
+        if [ -n "$cuda_version" ]; then
+            local cuda_major=$(echo "$cuda_version" | cut -d. -f1)
+            echo -e "${DIM}      安装命令: pip install flashinfer-python -i https://flashinfer.ai/whl/cu${cuda_major}4/torch2.6/${NC}"
+        fi
+    fi
+
     # 尝试基本功能测试
     if $PYTHON_CMD -c "
 import vllm

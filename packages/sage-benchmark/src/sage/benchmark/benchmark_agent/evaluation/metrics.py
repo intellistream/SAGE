@@ -343,6 +343,108 @@ class PlanSuccessRateMetric:
         )
 
 
+@MetricRegistry.register("step_accuracy")
+class StepAccuracyMetric:
+    """
+    Step accuracy for task planning.
+
+    Measures the average accuracy of individual steps in plans.
+    """
+
+    name = "step_accuracy"
+
+    def compute(
+        self, predictions: Sequence[list[str]], references: Sequence[list[str]]
+    ) -> MetricOutput:
+        """
+        Compute step accuracy.
+
+        Args:
+            predictions: List of predicted tool sequences
+            references: List of reference tool sequences
+
+        Returns:
+            MetricOutput with step accuracy
+        """
+        start_time = time.time()
+
+        total_correct = 0
+        total_steps = 0
+        per_sample_accuracy = []
+
+        for pred, ref in zip(predictions, references):
+            if len(ref) == 0:
+                per_sample_accuracy.append(0.0)
+                continue
+
+            # Compare up to the length of reference
+            correct = 0
+            for i, ref_tool in enumerate(ref):
+                if i < len(pred) and pred[i] == ref_tool:
+                    correct += 1
+
+            total_correct += correct
+            total_steps += len(ref)
+            per_sample_accuracy.append(correct / len(ref))
+
+        step_accuracy = total_correct / total_steps if total_steps > 0 else 0.0
+        elapsed = time.time() - start_time
+
+        return MetricOutput(
+            value=step_accuracy,
+            details={
+                "total_samples": len(predictions),
+                "total_correct_steps": total_correct,
+                "total_reference_steps": total_steps,
+                "per_sample_accuracy": per_sample_accuracy,
+                "avg_sample_accuracy": float(np.mean(per_sample_accuracy))
+                if per_sample_accuracy
+                else 0.0,
+                "compute_time_seconds": elapsed,
+            },
+        )
+
+
+@MetricRegistry.register("sequence_match")
+class SequenceMatchMetric:
+    """
+    Sequence match rate for task planning.
+
+    Measures the proportion of samples where the predicted tool sequence
+    exactly matches the reference sequence.
+    """
+
+    name = "sequence_match"
+
+    def compute(
+        self, predictions: Sequence[list[str]], references: Sequence[list[str]]
+    ) -> MetricOutput:
+        """
+        Compute sequence match rate.
+
+        Args:
+            predictions: List of predicted tool sequences
+            references: List of reference tool sequences
+
+        Returns:
+            MetricOutput with match rate
+        """
+        start_time = time.time()
+
+        exact_matches = sum(1 for pred, ref in zip(predictions, references) if pred == ref)
+        match_rate = exact_matches / len(predictions) if len(predictions) > 0 else 0.0
+        elapsed = time.time() - start_time
+
+        return MetricOutput(
+            value=match_rate,
+            details={
+                "total_samples": len(predictions),
+                "exact_matches": exact_matches,
+                "compute_time_seconds": elapsed,
+            },
+        )
+
+
 @MetricRegistry.register("timing_f1")
 class TimingF1Metric:
     """
@@ -405,6 +507,61 @@ class TimingF1Metric:
                 "false_negatives": int(false_negatives),
                 "true_negatives": int(true_negatives),
                 "total_samples": len(predictions),
+                "compute_time_seconds": elapsed,
+            },
+        )
+
+
+@MetricRegistry.register("timing_accuracy")
+class TimingAccuracyMetric:
+    """Accuracy metric for timing judgment."""
+
+    name = "timing_accuracy"
+
+    def compute(self, predictions: Sequence[bool], references: Sequence[bool]) -> MetricOutput:
+        """
+        Compute accuracy for timing judgment.
+
+        Args:
+            predictions: List of predicted decisions (True = call tool)
+            references: List of reference decisions
+
+        Returns:
+            MetricOutput with accuracy value
+        """
+        start_time = time.time()
+
+        preds = np.array(predictions, dtype=bool)
+        refs = np.array(references, dtype=bool)
+
+        correct = np.sum(preds == refs)
+        accuracy = correct / len(predictions) if len(predictions) > 0 else 0.0
+
+        # Also compute per-class accuracy
+        tool_mask = refs
+        no_tool_mask = ~refs
+
+        tool_correct = np.sum((preds == refs) & tool_mask)
+        tool_total = np.sum(tool_mask)
+        tool_accuracy = tool_correct / tool_total if tool_total > 0 else 0.0
+
+        no_tool_correct = np.sum((preds == refs) & no_tool_mask)
+        no_tool_total = np.sum(no_tool_mask)
+        no_tool_accuracy = no_tool_correct / no_tool_total if no_tool_total > 0 else 0.0
+
+        elapsed = time.time() - start_time
+
+        return MetricOutput(
+            value=float(accuracy),
+            details={
+                "correct": int(correct),
+                "total_samples": len(predictions),
+                "tool_accuracy": float(tool_accuracy),
+                "tool_correct": int(tool_correct),
+                "tool_total": int(tool_total),
+                "no_tool_accuracy": float(no_tool_accuracy),
+                "no_tool_correct": int(no_tool_correct),
+                "no_tool_total": int(no_tool_total),
                 "compute_time_seconds": elapsed,
             },
         )

@@ -50,6 +50,62 @@ class ToolSelectionExperiment(BaseExperiment):
         """
         super().__init__(config, data_manager, adapter_registry)
         self.config: ToolSelectionConfig = config
+        self._embedding_client = None
+
+    def _create_embedding_client(self):
+        """Create embedding client for selector."""
+        # Try to create an embedding client wrapper
+        try:
+            import os
+
+            from sage.common.components.sage_embedding import EmbeddingService
+
+            # Determine embedding method and optional model from environment
+            method = os.environ.get("SAGE_EMBEDDING_METHOD") or "hf"
+            model = os.environ.get("SAGE_EMBEDDING_MODEL") or None
+            api_key = os.environ.get("SAGE_EMBEDDING_API_KEY") or None
+            base_url = os.environ.get("SAGE_EMBEDDING_BASE_URL") or None
+
+            # Create a simple embedding client wrapper that uses configured service
+            class EmbeddingClientWrapper:
+                """Wrapper to adapt EmbeddingService to selector interface."""
+
+                def __init__(self):
+                    cfg = {
+                        "method": method,
+                        "model": model,
+                        "api_key": api_key,
+                        "base_url": base_url,
+                        "normalize": True,
+                    }
+                    try:
+                        self.service = EmbeddingService(cfg)
+                        self.service.setup()
+                    except Exception:
+                        # Fallback to mockembedder if configured method not available
+                        cfg["method"] = "mockembedder"
+                        self.service = EmbeddingService(cfg)
+                        self.service.setup()
+
+                def embed(self, texts, model=None, batch_size=32):
+                    """Embed texts and return numpy array."""
+                    import numpy as np
+
+                    result = self.service.embed(texts, batch_size=batch_size)
+                    return np.array(result["vectors"])
+
+                def cleanup(self):
+                    try:
+                        self.service.cleanup()
+                    except Exception:
+                        pass
+
+            return EmbeddingClientWrapper()
+        except ImportError:
+            return None
+        except Exception as e:
+            print(f"Warning: Could not create embedding client: {e}")
+            return None
 
     def prepare(self):
         """Prepare experiment: load data and initialize selector."""
@@ -85,9 +141,18 @@ class ToolSelectionExperiment(BaseExperiment):
                 # Create resources with real tools loader
                 from sage.libs.agentic.agents.action.tool_selection import SelectorResources
 
+                # Create embedding client if selector needs it
+                embedding_client = None
+                selector_name = self.config.selector.lower()
+                if "embedding" in selector_name or "hybrid" in selector_name:
+                    embedding_client = self._create_embedding_client()
+                    self._embedding_client = embedding_client
+                    if verbose and embedding_client:
+                        print("✓ Initialized embedding client")
+
                 resources = SelectorResources(
                     tools_loader=self.tools_loader,
-                    embedding_client=None,  # TODO: Add embedding support
+                    embedding_client=embedding_client,
                 )
 
                 self.strategy = self.adapter_registry.get(self.config.selector, resources=resources)

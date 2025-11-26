@@ -176,6 +176,10 @@ main() {
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
 
+    # 导出 pip 镜像配置为环境变量，供子脚本使用
+    export USE_PIP_MIRROR="$use_mirror"
+    export MIRROR_SOURCE="$mirror_source"
+
     # 执行安装前清理（如果启用）
     if [ "$clean_before_install" = "true" ]; then
         echo ""
