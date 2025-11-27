@@ -1,4 +1,36 @@
-"""Supervised fine-tuning trainer for agent dialogs."""
+"""
+Supervised Fine-Tuning Trainer for Agent Dialogs.
+
+This module provides the main training infrastructure for fine-tuning
+language models on agent tasks (tool calling, planning, timing judgment).
+
+Key Features:
+    - Parameter-efficient fine-tuning with LoRA/DoRA/LoRA+
+    - Automatic GPU memory optimization for 12GB+ GPUs
+    - Optional coreset selection for efficient training
+    - Optional continual learning with experience replay
+    - Support for multiple output formats (ChatML, Alpaca, etc.)
+
+Example Usage:
+    >>> from sage.libs.finetune.agent import AgentSFTTrainer, AgentSFTConfig
+    >>>
+    >>> config = AgentSFTConfig(
+    ...     base_model="Qwen/Qwen2.5-1.5B-Instruct",
+    ...     train_data="agent_sft:train",
+    ...     num_epochs=2,
+    ...     use_coreset_selection=True,
+    ... )
+    >>>
+    >>> trainer = AgentSFTTrainer(config)
+    >>> trainer.train()
+    >>> trainer.save_model("./my_agent_model")
+
+Advanced Features:
+    - DoRA: Set `use_dora=True` for weight-decomposed LoRA
+    - LoRA+: Set `use_lora_plus=True` for differentiated learning rates
+    - Coreset: Set `use_coreset_selection=True` with strategy
+    - Continual: Set `use_online_continual=True` for experience replay
+"""
 
 from __future__ import annotations
 

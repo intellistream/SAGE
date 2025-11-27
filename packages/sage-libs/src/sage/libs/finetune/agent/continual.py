@@ -165,7 +165,24 @@ class CoresetSelector:
 
 
 class OnlineContinualLearner:
-    """Maintain a rehearsal buffer for online continual learning."""
+    """
+    Maintain a replay buffer for online continual learning.
+
+    Implements experience replay to prevent catastrophic forgetting during
+    incremental/online training. The buffer is managed using coreset selection
+    to keep the most valuable samples.
+
+    Attributes:
+        buffer_size: Maximum number of samples to keep in buffer
+        replay_ratio: Ratio of replay samples to add per batch (e.g., 0.25 = 25%)
+        selector: CoresetSelector for buffer management
+
+    Example:
+        >>> learner = OnlineContinualLearner(buffer_size=2048, replay_ratio=0.25)
+        >>> for new_batch in data_stream:
+        ...     training_batch = learner.update_buffer(new_batch)
+        ...     train_step(training_batch)
+    """
 
     def __init__(
         self,
