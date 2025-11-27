@@ -105,58 +105,115 @@ def get_a100_methods(quick: bool = False):
         )
 
     methods = {
-        "A_baseline": {
-            "name": "A: Baseline SFT",
-            "description": "Standard SFT without any optimization",
-            "use_coreset": False,
-            "use_continual": False,
+        # =====================================================================
+        # Paper 2: SAGE-Agent Methods (Streaming Adaptive Learning Framework)
+        # =====================================================================
+        #
+        # SAGE-Agent 核心创新:
+        # 1. SSIS (Streaming Sample Importance Scorer) - 实时样本重要性评估
+        # 2. Priority Replay Buffer - 基于重要性的经验回放
+        # 3. Unified Multi-Task Network - 跨任务注意力机制
+        #
+        # 实验配置按消融顺序排列:
+        # - Baseline: 标准 SFT (无任何优化)
+        # - +SSIS: 加入流式样本评估
+        # - +Replay: 加入优先级回放缓冲区
+        # - +MultiTask: 加入跨任务注意力
+        # - Full: 完整 SAGE-Agent
+        # =====================================================================
+        "SAGE_sft_baseline": {
+            "name": "SAGE-Agent: Baseline SFT",
+            "description": "Standard SFT without streaming optimization (ablation baseline)",
+            "use_ssis": False,
+            "use_priority_replay": False,
+            "use_cross_task_attention": False,
             **base_settings,
         },
-        "B1_coreset_loss": {
-            "name": "B1: Coreset (Loss Top-K)",
-            "description": "Select high-loss samples for training",
-            "use_coreset": True,
-            "coreset_strategy": "loss_topk",
-            "coreset_target_size": 2000 if not quick else 300,
-            "use_continual": False,
+        "SAGE_ssis_only": {
+            "name": "SAGE-Agent: +SSIS",
+            "description": "Add Streaming Sample Importance Scorer (uncertainty + diversity + forgetting)",
+            "use_ssis": True,
+            "ssis_config": {
+                "uncertainty_weight": 0.4,
+                "diversity_weight": 0.3,
+                "forgetting_weight": 0.3,
+                "diversity_window": 1000,
+            },
+            "use_priority_replay": False,
+            "use_cross_task_attention": False,
             **base_settings,
         },
-        "B2_coreset_diversity": {
-            "name": "B2: Coreset (Diversity)",
-            "description": "Select diverse samples using feature distance",
-            "use_coreset": True,
-            "coreset_strategy": "diversity",
-            "coreset_target_size": 2000 if not quick else 300,
-            "use_continual": False,
+        "SAGE_ssis_replay": {
+            "name": "SAGE-Agent: +SSIS +Replay",
+            "description": "Add importance-weighted priority replay buffer",
+            "use_ssis": True,
+            "ssis_config": {
+                "uncertainty_weight": 0.4,
+                "diversity_weight": 0.3,
+                "forgetting_weight": 0.3,
+                "diversity_window": 1000,
+            },
+            "use_priority_replay": True,
+            "replay_config": {
+                "buffer_size": 2048,
+                "priority_alpha": 0.6,
+                "beta_start": 0.4,
+                "replay_ratio": 0.25,
+            },
+            "use_cross_task_attention": False,
             **base_settings,
         },
-        "B3_coreset_hybrid": {
-            "name": "B3: Coreset (Hybrid)",
-            "description": "60% loss-based + 40% diversity-based",
-            "use_coreset": True,
-            "coreset_strategy": "hybrid",
-            "coreset_target_size": 2000 if not quick else 300,
-            "use_continual": False,
+        "SAGE_full": {
+            "name": "SAGE-Agent: Full (SSIS + Replay + CrossTask)",
+            "description": "Complete SAGE-Agent with all components",
+            "use_ssis": True,
+            "ssis_config": {
+                "uncertainty_weight": 0.4,
+                "diversity_weight": 0.3,
+                "forgetting_weight": 0.3,
+                "diversity_window": 1000,
+            },
+            "use_priority_replay": True,
+            "replay_config": {
+                "buffer_size": 2048,
+                "priority_alpha": 0.6,
+                "beta_start": 0.4,
+                "replay_ratio": 0.25,
+            },
+            "use_cross_task_attention": True,
+            "cross_task_config": {
+                "num_heads": 8,
+                "dropout": 0.1,
+            },
             **base_settings,
         },
-        "C_continual": {
-            "name": "C: Continual Learning",
-            "description": "Online learning with experience replay buffer",
-            "use_coreset": False,
-            "use_continual": True,
-            "continual_buffer_size": 2048,
-            "continual_replay_ratio": 0.25,
+        # Legacy methods (for backward compatibility with old experiments)
+        "SAGE_coreset_hybrid": {
+            "name": "SAGE Coreset (Hybrid) [Legacy]",
+            "description": "60% loss-based + 40% diversity-based selection (legacy, use SAGE_ssis_only instead)",
+            "use_ssis": True,  # Maps to SSIS with specific weights
+            "ssis_config": {
+                "uncertainty_weight": 0.6,  # 60% loss
+                "diversity_weight": 0.4,  # 40% diversity
+                "forgetting_weight": 0.0,  # No forgetting in legacy
+                "diversity_window": 1000,
+            },
+            "use_priority_replay": False,
+            "use_cross_task_attention": False,
             **base_settings,
         },
-        "D_combined": {
-            "name": "D: Coreset + Continual",
-            "description": "Combined approach: hybrid coreset + continual learning",
-            "use_coreset": True,
-            "coreset_strategy": "hybrid",
-            "coreset_target_size": 2500 if not quick else 350,
-            "use_continual": True,
-            "continual_buffer_size": 2048,
-            "continual_replay_ratio": 0.20,
+        "SAGE_continual": {
+            "name": "SAGE Continual Learning [Legacy]",
+            "description": "Experience replay buffer (legacy, use SAGE_ssis_replay instead)",
+            "use_ssis": False,
+            "use_priority_replay": True,
+            "replay_config": {
+                "buffer_size": 2048,
+                "priority_alpha": 0.0,  # Uniform sampling (legacy behavior)
+                "beta_start": 1.0,
+                "replay_ratio": 0.25,
+            },
+            "use_cross_task_attention": False,
             **base_settings,
         },
     }

@@ -1324,6 +1324,12 @@ def main():
     parser.add_argument(
         "--paper-only", action="store_true", help="Generate paper materials from existing results"
     )
+    parser.add_argument(
+        "--challenge",
+        type=str,
+        choices=["timing", "planning", "tool_selection"],
+        help="Run only a specific challenge (timing, planning, or tool_selection)",
+    )
     # Training mode arguments (Task C1)
     parser.add_argument(
         "--train", action="store_true", help="Run training comparison (Methods A-J)"
@@ -1461,15 +1467,23 @@ def main():
         elapsed = time.time() - start_time
         print(f"\n✅ Training comparison completed in {elapsed / 60:.1f} minutes")
     else:
-        # Run all evaluations
+        # Run evaluations (all or specific challenge)
         start_time = time.time()
 
-        runner.run_timing_evaluation(max_samples=max_timing)
-        runner.run_planning_evaluation(max_samples=max_planning)
-        runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
+        # Determine which challenges to run
+        run_timing = args.challenge is None or args.challenge == "timing"
+        run_planning = args.challenge is None or args.challenge == "planning"
+        run_tool_selection = args.challenge is None or args.challenge == "tool_selection"
 
-        # Run training if --full mode
-        if args.full:
+        if run_timing:
+            runner.run_timing_evaluation(max_samples=max_timing)
+        if run_planning:
+            runner.run_planning_evaluation(max_samples=max_planning)
+        if run_tool_selection:
+            runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
+
+        # Run training if --full mode (only when running all challenges)
+        if args.full and args.challenge is None:
             runner.run_training_comparison(
                 methods=args.train_methods,
                 base_model=args.train_model,

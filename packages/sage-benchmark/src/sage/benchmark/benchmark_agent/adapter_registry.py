@@ -1,10 +1,35 @@
 """
 Strategy Adapter Registry
 
-Provides a unified registry for mapping strategy names (e.g., "baseline.keyword")
+Provides a unified registry for mapping strategy names (e.g., "selector.keyword")
 to actual selector/planner/timing implementations from sage-libs.
 
 This bridges the benchmark experiments with the runtime components.
+
+Method Classification:
+=====================
+
+Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Adapters):
+    Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
+    Planning: simple, hierarchical, llm_based, react, tot
+    Timing: rule_based, llm_based, hybrid, embedding
+
+Paper 2 (Method) - SAGE-Agent Framework (Training Strategies):
+    Core Components:
+    - SSIS: Streaming Sample Importance Scorer
+    - Priority Replay: Importance-Weighted Experience Buffer
+    - Cross-Task Attention: Unified Multi-Task Network
+
+    Training Configurations (run_full_training_comparison.py):
+    - SAGE_sft_baseline: Standard SFT (ablation baseline)
+    - SAGE_ssis_only: + Streaming Sample Importance Scorer
+    - SAGE_ssis_replay: + Priority Replay Buffer
+    - SAGE_full: Complete SAGE-Agent
+
+Usage:
+    >>> registry = get_adapter_registry()
+    >>> selector = registry.get("selector.keyword", resources)
+    >>> planner = registry.get("planner.react", resources)
 """
 
 from typing import Any, Callable, Optional, Protocol
@@ -164,9 +189,35 @@ class PlannerAdapter:
         return self.planner.plan(task)
 
 
+class UnifiedTimingMessage:
+    """
+    Unified timing message that provides both .message and .user_message attributes.
+
+    This ensures compatibility with:
+    - Local deciders in adapter_registry.py (expect .message)
+    - sage-libs timing_decider.py (expects .user_message)
+    """
+
+    def __init__(
+        self,
+        user_message: str,
+        conversation_history: list = None,
+        last_tool_call: Any = None,
+        context: dict = None,
+    ):
+        self.user_message = user_message
+        self.message = user_message  # Alias for compatibility with local deciders
+        self.conversation_history = conversation_history or []
+        self.last_tool_call = last_tool_call
+        self.context = context or {}
+
+
 class TimingAdapter:
     """
     Adapter wrapping timing deciders to provide unified decide() interface.
+
+    Handles conversion between experiment TimingMessage format and
+    sage-libs schemas.TimingMessage format.
     """
 
     def __init__(self, decider: Any):
@@ -183,12 +234,55 @@ class TimingAdapter:
         Make timing decision.
 
         Args:
-            message: TimingMessage from experiment
+            message: TimingMessage from experiment (has .message attribute)
+                     or dict with 'instruction'/'message' key
 
         Returns:
             TimingDecision with should_call_tool, confidence, reasoning
         """
-        return self.decider.decide(message)
+        # Convert to UnifiedTimingMessage which has both .message and .user_message
+        if isinstance(message, dict):
+            # Handle dict input (e.g., from tests or direct API calls)
+            user_msg = (
+                message.get("instruction")
+                or message.get("message")
+                or message.get("user_message", "")
+            )
+            unified_message = UnifiedTimingMessage(
+                user_message=user_msg,
+                conversation_history=message.get("conversation_history", []),
+                last_tool_call=message.get("last_tool_call"),
+                context=message.get("context", {}),
+            )
+        elif hasattr(message, "user_message") and hasattr(message, "message"):
+            # Already has both attributes (e.g., UnifiedTimingMessage)
+            unified_message = message
+        elif hasattr(message, "user_message"):
+            # schemas.TimingMessage format (sage-libs)
+            unified_message = UnifiedTimingMessage(
+                user_message=message.user_message,
+                conversation_history=getattr(message, "conversation_history", []),
+                last_tool_call=getattr(message, "last_tool_call", None),
+                context=getattr(message, "context", {}),
+            )
+        elif hasattr(message, "message"):
+            # Experiment's TimingMessage (has .message instead of .user_message)
+            unified_message = UnifiedTimingMessage(
+                user_message=message.message,
+                conversation_history=getattr(message, "conversation_history", []),
+                last_tool_call=getattr(message, "last_tool_call", None),
+                context=getattr(message, "context", {}),
+            )
+        else:
+            # Fallback: treat as string
+            unified_message = UnifiedTimingMessage(
+                user_message=str(message),
+                conversation_history=[],
+                last_tool_call=None,
+                context={},
+            )
+
+        return self.decider.decide(unified_message)
 
 
 class AdapterRegistry:
@@ -200,6 +294,10 @@ class AdapterRegistry:
 
     def __init__(self):
         """Initialize registry with built-in strategies."""
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+
         self._selectors: dict[str, Any] = {}
         self._planners: dict[str, Any] = {}
         self._timing_deciders: dict[str, Any] = {}
@@ -209,8 +307,25 @@ class AdapterRegistry:
         self._register_builtins()
 
     def _register_builtins(self) -> None:
-        """Register built-in baseline strategies."""
-        # Selector factories
+        """Register built-in baseline strategies.
+
+        Method Classification:
+        =====================
+
+        Paper 1 (Benchmark) - Existing SOTA Methods:
+        - Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
+        - Planning: simple, hierarchical, llm_based, react, tot
+        - Timing: rule_based, llm_based, hybrid, embedding
+
+        Paper 2 (Method) - SAGE Original Methods:
+        - Training: SAGE_baseline_sft, SAGE_coreset_loss, SAGE_coreset_diversity,
+                   SAGE_coreset_hybrid, SAGE_continual, SAGE_combined
+        - (Defined in run_full_training_comparison.py, not runtime adapters)
+        """
+        # =================================================================
+        # Paper 1: Existing SOTA Selector Strategies
+        # =================================================================
+        # BM25/TF-IDF keyword-based selection
         self._factories["baseline.keyword"] = self._create_keyword_selector
         self._factories["baseline.embedding"] = self._create_embedding_selector
         self._factories["baseline.hybrid"] = self._create_hybrid_selector
@@ -221,16 +336,18 @@ class AdapterRegistry:
         self._factories["selector.keyword"] = self._create_keyword_selector
         self._factories["selector.embedding"] = self._create_embedding_selector
         self._factories["selector.hybrid"] = self._create_hybrid_selector
-        # SOTA selector strategies
+        # Gorilla: LLM-augmented retrieval (Patil et al., 2023)
         self._factories["selector.gorilla"] = self._create_gorilla_selector
         self._factories["gorilla"] = self._create_gorilla_selector
-        # ToolLLM DFSDT selector
+        # ToolLLM DFSDT: Depth-First Search Decision Tree (Qin et al., 2023)
         self._factories["selector.dfsdt"] = self._create_dfsdt_selector
         self._factories["selector.toolllm"] = self._create_dfsdt_selector  # Alias
         self._factories["dfsdt"] = self._create_dfsdt_selector
         self._factories["toolllm"] = self._create_dfsdt_selector  # Alias
 
-        # Planner factories
+        # =================================================================
+        # Paper 1: Existing SOTA Planner Strategies
+        # =================================================================
         self._factories["baseline.template"] = self._create_template_planner
         self._factories["baseline.hierarchical"] = self._create_hierarchical_planner
         self._factories["cot"] = self._create_hierarchical_planner
@@ -239,14 +356,16 @@ class AdapterRegistry:
         self._factories["planner.simple"] = self._create_simple_planner
         self._factories["planner.hierarchical"] = self._create_hierarchical_planning_strategy
         self._factories["planner.llm_based"] = self._create_llm_planning_strategy
-        # ReAct planner (SOTA strategy)
+        # ReAct: Reasoning + Acting (Yao et al., 2023)
         self._factories["planner.react"] = self._create_react_planner
         self._factories["react"] = self._create_react_planner  # Alias
-        # Tree-of-Thoughts planner (SOTA strategy)
+        # Tree-of-Thoughts: Multi-path reasoning (Yao et al., 2023)
         self._factories["planner.tot"] = self._create_tot_planner
         self._factories["planner.tree_of_thoughts"] = self._create_tot_planner  # Alias
 
-        # Timing factories
+        # =================================================================
+        # Paper 1: Existing SOTA Timing Strategies
+        # =================================================================
         self._factories["baseline.threshold"] = self._create_threshold_decider
         self._factories["llm_based"] = self._create_llm_timing_decider
         # New timing strategies for benchmark
@@ -412,30 +531,35 @@ class AdapterRegistry:
                 max_context_tools=15,
             )
 
+            # Try to create embedding client first
+            embedding_client = None
+            try:
+                from sage.common.components.sage_embedding import (
+                    EmbeddingFactory,
+                    adapt_embedding_client,
+                )
+
+                # EmbeddingFactory returns single-text interface, need to adapt
+                raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                # Adapt to batch interface (embed(texts: list[str]))
+                embedding_client = adapt_embedding_client(raw_embedder)
+            except Exception as e:
+                self.logger.warning(f"Failed to create embedding client: {e}")
+
+            # Use SAGE tools (1,200 real tools) instead of mock tools
             if resources is None:
-                resources = self._create_mock_resources()
+                resources = self._create_sage_resources(embedding_client=embedding_client)
+            elif resources.embedding_client is None and embedding_client is not None:
+                # Update resources with embedding client
+                resources.embedding_client = embedding_client
 
             # Gorilla requires embedding client with batch interface
             if resources.embedding_client is None:
-                # Try to create embedding client
-                try:
-                    from sage.common.components.sage_embedding import (
-                        EmbeddingFactory,
-                        adapt_embedding_client,
-                    )
-
-                    # EmbeddingFactory returns single-text interface, need to adapt
-                    raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
-                    # Adapt to batch interface (embed(texts: list[str]))
-                    embedding_client = adapt_embedding_client(raw_embedder)
-                    resources.embedding_client = embedding_client
-                except Exception as e:
-                    # Fall back to hybrid selector if embedding not available
-                    self.logger.warning(
-                        f"Gorilla selector requires embedding client ({e}). "
-                        "Falling back to hybrid selector."
-                    )
-                    return self._create_hybrid_selector(resources)
+                # Fall back to hybrid selector if embedding not available
+                self.logger.warning(
+                    "Gorilla selector requires embedding client. Falling back to hybrid selector."
+                )
+                return self._create_hybrid_selector(resources)
 
             selector = GorillaSelector(config, resources)
             return SelectorAdapter(selector)
@@ -481,8 +605,9 @@ class AdapterRegistry:
                 top_k=5,
             )
 
+            # Use SAGE tools (1,200 real tools) instead of mock tools
             if resources is None:
-                resources = self._create_mock_resources()
+                resources = self._create_sage_resources()
 
             selector = DFSDTSelector(config, resources)
             return SelectorAdapter(selector)
@@ -1838,6 +1963,35 @@ Only output the JSON, nothing else."""
         return SelectorResources(
             tools_loader=MockToolsLoader(),
             embedding_client=None,
+        )
+
+    def _create_sage_resources(self, embedding_client: Optional[Any] = None) -> Any:
+        """
+        Create SelectorResources with real SAGE-Bench tools.
+
+        This loads the 1,200 tools from tool_catalog.jsonl for use with
+        Gorilla and DFSDT selectors that need to build a proper tool index.
+
+        Args:
+            embedding_client: Optional embedding client for semantic search
+
+        Returns:
+            SelectorResources with SageToolsLoader
+        """
+        from sage.libs.agentic.agents.action.tool_selection import SelectorResources
+
+        try:
+            from sage.benchmark.benchmark_agent.tools_loader import get_sage_tools_loader
+
+            tools_loader = get_sage_tools_loader()
+            self.logger.info(f"Using SAGE tools loader with {len(tools_loader)} tools")
+        except Exception as e:
+            self.logger.warning(f"Failed to load SAGE tools: {e}. Falling back to mock tools.")
+            return self._create_mock_resources()
+
+        return SelectorResources(
+            tools_loader=tools_loader,
+            embedding_client=embedding_client,
         )
 
     def _create_simple_planner(self, resources: Optional[Any] = None) -> PlannerAdapter:

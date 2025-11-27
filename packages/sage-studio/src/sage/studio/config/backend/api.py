@@ -18,6 +18,11 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from sage.common.config.ports import SagePorts
+
+# Gateway URL for API calls
+GATEWAY_BASE_URL = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}"
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
@@ -1423,7 +1428,7 @@ async def send_chat_message(request: ChatRequest):
     """
     发送聊天消息（调用 sage-gateway）
 
-    注意：需要 sage-gateway 服务运行在 localhost:8000
+    注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
     """
     from datetime import datetime
 
@@ -1433,7 +1438,7 @@ async def send_chat_message(request: ChatRequest):
         # 调用 sage-gateway 的 OpenAI 兼容接口
         async with httpx.AsyncClient(timeout=30.0) as client:
             gateway_response = await client.post(
-                "http://localhost:8000/v1/chat/completions",
+                f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
                     "model": request.model,
                     "messages": [{"role": "user", "content": request.message}],
@@ -1463,7 +1468,7 @@ async def send_chat_message(request: ChatRequest):
     except httpx.ConnectError:
         raise HTTPException(
             status_code=503,
-            detail="无法连接到 SAGE Gateway (localhost:8000)。请确保 gateway 服务已启动。",
+            detail=f"无法连接到 SAGE Gateway ({GATEWAY_BASE_URL})。请确保 gateway 服务已启动。",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat 请求失败: {str(e)}")
@@ -1476,7 +1481,7 @@ async def list_chat_sessions():
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get("http://localhost:8000/sessions")
+            response = await client.get(f"{GATEWAY_BASE_URL}/sessions")
             data = response.json()
             return data.get("sessions", [])
     except httpx.ConnectError:
@@ -1493,9 +1498,7 @@ async def create_chat_session(payload: ChatSessionCreateRequest):
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                "http://localhost:8000/sessions", json=payload.model_dump()
-            )
+            response = await client.post(f"{GATEWAY_BASE_URL}/sessions", json=payload.model_dump())
             if response.status_code >= 400:
                 raise HTTPException(status_code=response.status_code, detail=response.text)
             return response.json()
@@ -1510,7 +1513,7 @@ async def get_chat_session(session_id: str):
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="会话不存在")
             response.raise_for_status()
@@ -1526,7 +1529,7 @@ async def clear_chat_session(session_id: str):
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(f"http://localhost:8000/sessions/{session_id}/clear")
+            response = await client.post(f"{GATEWAY_BASE_URL}/sessions/{session_id}/clear")
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="会话不存在")
             response.raise_for_status()
@@ -1543,14 +1546,14 @@ async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUp
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.patch(
-                f"http://localhost:8000/sessions/{session_id}/title",
+                f"{GATEWAY_BASE_URL}/sessions/{session_id}/title",
                 json=payload.model_dump(),
             )
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="会话不存在")
             response.raise_for_status()
             # 更新后重新获取一次会话摘要，避免缺字段
-            detail_resp = await client.get(f"http://localhost:8000/sessions/{session_id}")
+            detail_resp = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
             detail_resp.raise_for_status()
             detail = detail_resp.json()
             return ChatSessionSummary(
@@ -1571,7 +1574,7 @@ async def delete_chat_session(session_id: str):
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.delete(f"http://localhost:8000/sessions/{session_id}")
+            response = await client.delete(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
             return response.json()
     except httpx.ConnectError:
         raise HTTPException(
@@ -1619,7 +1622,7 @@ async def generate_workflow_advanced(request: WorkflowGenerateRequest):
     if request.session_id:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"http://localhost:8000/sessions/{request.session_id}")
+                response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{request.session_id}")
                 if response.status_code == 200:
                     session = response.json()
                     session_messages = session.get("messages", [])

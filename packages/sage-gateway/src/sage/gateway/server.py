@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from sage.common.config.ports import SagePorts
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
 from sage.gateway.session import get_session_manager
 
@@ -404,7 +405,7 @@ def main():
     uvicorn.run(
         "sage.gateway.server:app",
         host="0.0.0.0",
-        port=8000,
+        port=SagePorts.GATEWAY_DEFAULT,
         reload=False,
         log_level="info",
     )

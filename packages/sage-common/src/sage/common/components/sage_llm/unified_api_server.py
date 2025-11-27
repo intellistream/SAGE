@@ -46,6 +46,8 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Literal
 
+from sage.common.config.ports import SagePorts
+
 logger = logging.getLogger(__name__)
 
 # Type stubs for conditional imports - helps type checkers understand optional deps
@@ -108,11 +110,19 @@ class BackendInstanceConfig:
     """
 
     host: str = "localhost"
-    port: int = 8000
+    port: int | None = None  # Will default based on instance_type
     model_name: str = ""
     instance_type: Literal["llm", "embedding", "llm_embedding"] = "llm"
     max_concurrent_requests: int = 100
     api_key: str | None = None
+
+    def __post_init__(self) -> None:
+        """Set default port based on instance type."""
+        if self.port is None:
+            if self.instance_type == "embedding":
+                self.port = SagePorts.EMBEDDING_DEFAULT
+            else:
+                self.port = SagePorts.LLM_DEFAULT
 
     @property
     def base_url(self) -> str:
@@ -138,7 +148,7 @@ class UnifiedServerConfig:
     """
 
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int | None = None  # Will default to SagePorts.GATEWAY_DEFAULT
     llm_backends: list[BackendInstanceConfig] = field(default_factory=list)
     embedding_backends: list[BackendInstanceConfig] = field(default_factory=list)
     scheduling_policy: SchedulingPolicyType = SchedulingPolicyType.ADAPTIVE
@@ -150,9 +160,13 @@ class UnifiedServerConfig:
 
     def __post_init__(self) -> None:
         """Set up default backends if none provided."""
+        # Set default port
+        if self.port is None:
+            self.port = SagePorts.GATEWAY_DEFAULT
+
         # Add default LLM backend if none specified
         if not self.llm_backends:
-            llm_port = int(os.getenv("SAGE_LLM_PORT", "8001"))
+            llm_port = int(os.getenv("SAGE_LLM_PORT", str(SagePorts.LLM_DEFAULT)))
             self.llm_backends.append(
                 BackendInstanceConfig(
                     host="localhost",
@@ -164,7 +178,7 @@ class UnifiedServerConfig:
 
         # Add default Embedding backend if none specified
         if not self.embedding_backends:
-            embed_port = int(os.getenv("SAGE_EMBEDDING_PORT", "8090"))
+            embed_port = int(os.getenv("SAGE_EMBEDDING_PORT", str(SagePorts.EMBEDDING_DEFAULT)))
             self.embedding_backends.append(
                 BackendInstanceConfig(
                     host="localhost",
