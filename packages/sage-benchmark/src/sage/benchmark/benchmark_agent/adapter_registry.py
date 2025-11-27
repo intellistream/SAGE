@@ -1,10 +1,35 @@
 """
 Strategy Adapter Registry
 
-Provides a unified registry for mapping strategy names (e.g., "baseline.keyword")
+Provides a unified registry for mapping strategy names (e.g., "selector.keyword")
 to actual selector/planner/timing implementations from sage-libs.
 
 This bridges the benchmark experiments with the runtime components.
+
+Method Classification:
+=====================
+
+Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Adapters):
+    Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
+    Planning: simple, hierarchical, llm_based, react, tot
+    Timing: rule_based, llm_based, hybrid, embedding
+
+Paper 2 (Method) - SAGE-Agent Framework (Training Strategies):
+    Core Components:
+    - SSIS: Streaming Sample Importance Scorer
+    - Priority Replay: Importance-Weighted Experience Buffer
+    - Cross-Task Attention: Unified Multi-Task Network
+
+    Training Configurations (run_full_training_comparison.py):
+    - SAGE_sft_baseline: Standard SFT (ablation baseline)
+    - SAGE_ssis_only: + Streaming Sample Importance Scorer
+    - SAGE_ssis_replay: + Priority Replay Buffer
+    - SAGE_full: Complete SAGE-Agent
+
+Usage:
+    >>> registry = get_adapter_registry()
+    >>> selector = registry.get("selector.keyword", resources)
+    >>> planner = registry.get("planner.react", resources)
 """
 
 from typing import Any, Callable, Optional, Protocol
@@ -209,8 +234,25 @@ class AdapterRegistry:
         self._register_builtins()
 
     def _register_builtins(self) -> None:
-        """Register built-in baseline strategies."""
-        # Selector factories
+        """Register built-in baseline strategies.
+
+        Method Classification:
+        =====================
+
+        Paper 1 (Benchmark) - Existing SOTA Methods:
+        - Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
+        - Planning: simple, hierarchical, llm_based, react, tot
+        - Timing: rule_based, llm_based, hybrid, embedding
+
+        Paper 2 (Method) - SAGE Original Methods:
+        - Training: SAGE_baseline_sft, SAGE_coreset_loss, SAGE_coreset_diversity,
+                   SAGE_coreset_hybrid, SAGE_continual, SAGE_combined
+        - (Defined in run_full_training_comparison.py, not runtime adapters)
+        """
+        # =================================================================
+        # Paper 1: Existing SOTA Selector Strategies
+        # =================================================================
+        # BM25/TF-IDF keyword-based selection
         self._factories["baseline.keyword"] = self._create_keyword_selector
         self._factories["baseline.embedding"] = self._create_embedding_selector
         self._factories["baseline.hybrid"] = self._create_hybrid_selector
@@ -221,16 +263,18 @@ class AdapterRegistry:
         self._factories["selector.keyword"] = self._create_keyword_selector
         self._factories["selector.embedding"] = self._create_embedding_selector
         self._factories["selector.hybrid"] = self._create_hybrid_selector
-        # SOTA selector strategies
+        # Gorilla: LLM-augmented retrieval (Patil et al., 2023)
         self._factories["selector.gorilla"] = self._create_gorilla_selector
         self._factories["gorilla"] = self._create_gorilla_selector
-        # ToolLLM DFSDT selector
+        # ToolLLM DFSDT: Depth-First Search Decision Tree (Qin et al., 2023)
         self._factories["selector.dfsdt"] = self._create_dfsdt_selector
         self._factories["selector.toolllm"] = self._create_dfsdt_selector  # Alias
         self._factories["dfsdt"] = self._create_dfsdt_selector
         self._factories["toolllm"] = self._create_dfsdt_selector  # Alias
 
-        # Planner factories
+        # =================================================================
+        # Paper 1: Existing SOTA Planner Strategies
+        # =================================================================
         self._factories["baseline.template"] = self._create_template_planner
         self._factories["baseline.hierarchical"] = self._create_hierarchical_planner
         self._factories["cot"] = self._create_hierarchical_planner
@@ -239,14 +283,16 @@ class AdapterRegistry:
         self._factories["planner.simple"] = self._create_simple_planner
         self._factories["planner.hierarchical"] = self._create_hierarchical_planning_strategy
         self._factories["planner.llm_based"] = self._create_llm_planning_strategy
-        # ReAct planner (SOTA strategy)
+        # ReAct: Reasoning + Acting (Yao et al., 2023)
         self._factories["planner.react"] = self._create_react_planner
         self._factories["react"] = self._create_react_planner  # Alias
-        # Tree-of-Thoughts planner (SOTA strategy)
+        # Tree-of-Thoughts: Multi-path reasoning (Yao et al., 2023)
         self._factories["planner.tot"] = self._create_tot_planner
         self._factories["planner.tree_of_thoughts"] = self._create_tot_planner  # Alias
 
-        # Timing factories
+        # =================================================================
+        # Paper 1: Existing SOTA Timing Strategies
+        # =================================================================
         self._factories["baseline.threshold"] = self._create_threshold_decider
         self._factories["llm_based"] = self._create_llm_timing_decider
         # New timing strategies for benchmark

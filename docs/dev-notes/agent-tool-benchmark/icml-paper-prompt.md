@@ -1,6 +1,7 @@
-# ICML 2026 论文生成提示词
+# ICML 2026 Benchmark 论文生成提示词
 
 > 请将此提示词发送给 Claude/GPT-4 以生成完整的 LaTeX 论文
+> 这是一篇**纯 Benchmark 论文**，专注于评测框架和数据集贡献，不提出新方法
 
 ---
 
@@ -12,14 +13,22 @@
 
 **作者**: [待填写]
 
-**会议**: ICML 2026
+**会议**: ICML 2026 (Datasets and Benchmarks Track)
+
+## 论文定位
+
+这是一篇 **Benchmark/Dataset 论文**，核心贡献是：
+1. 提出统一的评测框架（不是新方法）
+2. 构建高质量数据集（数据贡献）
+3. 系统评估现有方法，揭示 gap（实证分析）
+
+**注意**：本论文不提出新的 Agent 训练方法。方法创新见配套的 SAGE-Agent 方法论文。
 
 ## 核心贡献
 
 1. **统一评测框架**: 提出首个同时评估 Timing/Planning/Tool Selection 三维度的 Agent 能力基准
 2. **高质量数据集**: 1,200 条标注样本 + 1,200 个工具目录，覆盖 25+ 领域；集成 ACEBench、API-Bank、ToolAlpaca 等外部数据集
-3. **全面的 Baseline 对比**: 实现并评估 15+ 种方法（含训练方法），揭示当前 SOTA 的不足
-4. **端到端训练框架**: 支持 SFT + RL (DPO/PPO/GRPO) + Coreset Selection + Continual Learning
+3. **全面的 Baseline 对比**: 实现并评估 12+ 种现有方法，揭示当前 SOTA 的不足，为未来研究指明方向
 
 ## 问题定义
 
@@ -147,38 +156,6 @@
 | **Two-Stage** | Coarse (keyword) + Fine (embedding/LLM) | - |
 | **Adaptive** | Multi-armed bandit 动态选择策略 | - |
 
-### Training Methods (数据高效训练)
-
-| Method | Description | Reference |
-|--------|-------------|-----------|
-| **SFT + LoRA** | 低秩适配微调 | Hu et al., 2022 |
-| **SFT + DoRA** | 权重分解低秩适配 | Liu et al., 2024 |
-| **SFT + LoRA+** | 差异化学习率的 LoRA | Hayou et al., 2024 |
-| **Coreset Selection** | 基于 loss/diversity/hybrid 的样本筛选 | - |
-| **Continual Learning** | 在线增量学习 + 经验回放 | - |
-| **DPO** | Direct Preference Optimization | Rafailov et al., 2023 |
-| **PPO** | Proximal Policy Optimization | Schulman et al., 2017 |
-| **GRPO** | Group Relative Policy Optimization | Shao et al., 2024 |
-
-#### Coreset Selection Strategies
-```python
-# 实现位置: sage-libs/src/sage/libs/finetune/agent/continual.py
-class CoresetSelector:
-    strategies = ["loss_topk", "diversity", "hybrid", "random"]
-    # loss_topk: 选择 loss 最高的样本
-    # diversity: 最大化样本多样性 (基于文本特征的余弦距离)
-    # hybrid: 60% loss + 40% diversity
-```
-
-#### Continual Learning
-```python
-# 实现位置: sage-libs/src/sage/libs/finetune/agent/continual.py
-class OnlineContinualLearner:
-    # 维护经验回放缓冲区
-    # 每次训练混合新样本 + 历史样本
-    # 支持 reservoir sampling 动态更新
-```
-
 ## 实验结果
 
 ### Challenge 1: Timing Judgment (Target: ≥95%)
@@ -237,19 +214,6 @@ class OnlineContinualLearner:
 | LLM Direct | 67.0% | **66.7%** |
 | Embedding | 64.0% | 60.0% |
 
-### Training Ablation (预期结果模板)
-
-| Configuration | Tool Selection | Planning | Timing |
-|---------------|----------------|----------|--------|
-| Baseline (no training) | 82.0% | 27.0% | 76.0% |
-| + SFT (LoRA) | 85.0% | 35.0% | 82.0% |
-| + DoRA | 86.0% | 37.0% | 83.0% |
-| + Coreset Selection | 86.5% | 38.0% | 84.0% |
-| + Continual Learning | 87.0% | 40.0% | 85.0% |
-| + DPO | **88.0%** | **42.0%** | **86.0%** |
-
-*注: 训练结果为预期目标，需要实际运行确认*
-
 ## 论文结构要求
 
 请生成完整的 LaTeX 代码，包含以下章节：
@@ -265,13 +229,10 @@ class OnlineContinualLearner:
 - Gap：现有 benchmark 各自为战
 - Contributions (3 点)
 
-### 3. Related Work (~1.5 pages)
+### 3. Related Work (~1 page)
 - **Tool Learning for LLMs**: ToolLLM (Qin et al., 2023), Gorilla (Patil et al., 2023), TaskMatrix (Liang et al., 2023), ToolFormer (Schick et al., 2023), ToolACE (Liu et al., 2024)
 - **Agent Benchmarks**: BFCL (Yan et al., 2024), ToolBench (Qin et al., 2023), API-Bank (Li et al., 2023), AgentBench (Liu et al., 2023), T-Eval, ToolACE
 - **Planning & Reasoning**: ReAct (Yao et al., 2023), CoT (Wei et al., 2022), ToT (Yao et al., 2023), DEPS (Wang et al., 2023)
-- **Efficient Fine-tuning**: LoRA (Hu et al., 2022), DoRA (Liu et al., 2024), LoRA+ (Hayou et al., 2024)
-- **Data-efficient Training**: Coreset Selection, Curriculum Learning, Active Learning
-- **RLHF for Agents**: DPO (Rafailov et al., 2023), PPO (Schulman et al., 2017), GRPO (Shao et al., 2024)
 
 ### 4. SAGE-Bench Dataset (~1.5 pages)
 - **4.1 Three Challenges Definition**: 形式化定义 Timing/Planning/Selection
@@ -280,34 +241,35 @@ class OnlineContinualLearner:
 - **4.4 Statistics**: 表格 + 分布图
 - **4.5 Evaluation Metrics**: 每个 challenge 的指标定义
 
-### 5. Baseline Methods (~2 pages)
+### 5. Baseline Methods (~1.5 pages)
 - **5.1 Timing Judgment Methods**: Rule/LLM/Hybrid
 - **5.2 Planning Methods**: Simple/Hierarchical/ReAct/ToT
 - **5.3 Tool Selection Methods**: Keyword/Embedding/Hybrid/LLM/Gorilla/DFSDT
-- **5.4 Training Methods**: SFT (LoRA/DoRA/LoRA+), Coreset Selection, Continual Learning, RL (DPO/PPO/GRPO)
 
-### 6. Experiments (~2.5 pages)
+### 6. Experiments (~2 pages)
 - **6.1 Setup**: 模型、硬件、超参数
 - **6.2 Main Results**: 3 个大表 (每个 challenge 一个)
-- **6.3 Training Experiments**: SFT/RL 训练对比
-- **6.4 Analysis**:
+- **6.3 Analysis**:
   - Error analysis: 失败案例分类
   - Scaling analysis: 工具数量 vs 准确率
-  - Ablation: Hybrid 组件消融, Coreset 策略对比
-- **6.5 Cross-benchmark Validation**: ACEBench, API-Bank 结果
+  - Ablation: Hybrid 组件消融
+- **6.4 Cross-benchmark Validation**: ACEBench, API-Bank 结果
 
 ### 7. Discussion (~0.5 page)
-- Why current methods struggle
-- Implications for future research
-- Potential directions: 更好的 retrieval、LLM reasoning、联合训练
+- Why current methods struggle (分析现有方法的根本局限)
+- Implications for future research (指出改进方向，但不提出具体方法)
+- Potential directions: 更好的 retrieval、LLM reasoning、联合训练、在线学习等
 
 ### 8. Conclusion (~0.5 page)
+- 总结 SAGE-Bench 的贡献
+- 强调 benchmark 的挑战性
+- 呼吁社区开发更好的方法
 
 ### 9. Limitations (ICML required)
 - 数据集规模有限 (1,200 samples)
 - 工具是模拟的，非真实 API 调用
 - 评测在特定模型上，泛化性待验证
-- RL 训练方法 (DPO/PPO/GRPO) 尚未完整实现，为未来工作
+- 未涵盖多轮对话场景
 
 ## LaTeX 格式要求
 
@@ -335,10 +297,11 @@ class OnlineContinualLearner:
 ## 写作风格要求
 
 1. **客观学术**: 不夸大贡献，准确描述
-2. **Benchmark 论文定位**: 强调数据集和框架贡献，不是某方法的 SOTA
+2. **Benchmark 论文定位**: 强调数据集和框架贡献，**绝对不要**提出新方法
 3. **诚实讨论不足**: 所有方法都有 gap 是卖点——说明 benchmark 有挑战性
 4. **准确引用**: ToolLLM, Gorilla, BFCL, API-Bank 等要引用正确
 5. **清晰的 Take-away**: 每个实验表格后要有明确的 insight
+6. **开放性结论**: 指出改进方向，邀请社区贡献新方法
 
 ## 附录内容建议
 
@@ -348,48 +311,6 @@ class OnlineContinualLearner:
 - D. 数据样例展示
 - E. 实现细节 (prompts, hyperparameters)
 - F. ACEBench/API-Bank 数据转换细节
-- G. Coreset Selection 算法伪代码
-- H. Continual Learning 缓冲区管理
-
-## 实现位置参考
-
-```
-SAGE Framework 代码结构:
-
-packages/sage-libs/src/sage/libs/
-├── agentic/agents/
-│   ├── action/tool_selection/
-│   │   ├── keyword_selector.py      # TF-IDF, BM25, Overlap
-│   │   ├── embedding_selector.py    # BGE-M3 向量检索
-│   │   ├── hybrid_selector.py       # Keyword + Embedding 融合
-│   │   ├── gorilla_selector.py      # 两阶段: 检索 + LLM 重排
-│   │   ├── dfsdt_selector.py        # DFS 树搜索 + LLM 评分
-│   │   └── registry.py              # 策略注册
-│   └── planning/
-│       ├── timing_decider.py        # Rule/LLM/Hybrid
-│       ├── hierarchical_planner.py  # 层次规划
-│       ├── react_planner.py         # ReAct
-│       ├── tot_planner.py           # Tree-of-Thoughts
-│       └── llm_planner.py           # 直接 LLM 规划
-└── finetune/agent/
-    ├── trainer.py                   # AgentSFTTrainer
-    ├── config.py                    # SFT/RL 配置 (LoRA/DoRA/LoRA+)
-    └── continual.py                 # CoresetSelector, OnlineContinualLearner
-
-packages/sage-benchmark/src/sage/
-├── data/sources/
-│   ├── agent_benchmark/             # SAGE 原生数据集
-│   │   ├── splits/                  # tool_selection, planning, timing
-│   │   └── external_benchmarks/     # ACEBench, API-Bank, ToolAlpaca
-│   └── agent_tools/data/            # 1,200 工具目录
-└── benchmark/benchmark_agent/
-    ├── acebench_loader.py           # ACEBench 数据加载
-    ├── evaluation/                  # 评估指标
-    └── scripts/                     # 实验脚本
-        ├── run_unified_eval.py      # 统一评估
-        ├── run_all_experiments.py   # 三挑战完整实验
-        └── run_full_training_comparison.py  # 训练对比
-```
 
 ---
 
