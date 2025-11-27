@@ -10,6 +10,8 @@ inference service (LLM + Embedding).
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,12 +19,16 @@ import pytest
 from typer.testing import CliRunner
 
 from sage.cli.commands.apps.inference import (
+    _get_running_pid,
     _is_port_in_use,
     _load_config,
     _save_config,
     _save_pid,
     _test_api_health,
     app,
+    CONFIG_FILE,
+    LOG_FILE,
+    PID_FILE,
 )
 
 runner = CliRunner()
@@ -135,7 +141,9 @@ class TestStartCommand:
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     @patch("sage.cli.commands.apps.inference._is_port_in_use")
-    def test_start_port_in_use(self, mock_port_check: MagicMock, mock_get_pid: MagicMock) -> None:
+    def test_start_port_in_use(
+        self, mock_port_check: MagicMock, mock_get_pid: MagicMock
+    ) -> None:
         """Test start when port is already in use."""
         mock_get_pid.return_value = None
         mock_port_check.return_value = True

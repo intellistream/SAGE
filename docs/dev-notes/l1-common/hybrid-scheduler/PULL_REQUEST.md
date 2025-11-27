@@ -241,7 +241,7 @@ class ExecutionInstanceType(Enum):
 @dataclass
 class RequestMetadata:
     # ... 现有字段 ...
-
+    
     # 新增 Embedding 相关字段
     request_type: RequestType = RequestType.LLM_CHAT
     embedding_texts: list[str] | None = None
@@ -254,7 +254,7 @@ class RequestMetadata:
 ```python
 class RequestClassifier:
     """请求分类器 - 自动识别请求类型并筛选兼容实例"""
-
+    
     def classify(self, request: RequestMetadata) -> RequestType:
         """分类逻辑:
         1. 如果 request_type 已设置，直接返回
@@ -262,14 +262,14 @@ class RequestClassifier:
         3. 如果 prompt 非空，根据上下文返回 LLM_CHAT 或 LLM_GENERATE
         4. 默认返回 LLM_CHAT
         """
-
+    
     def get_compatible_instances(
         self,
         request_type: RequestType,
         instances: list[ExecutionInstance],
     ) -> list[ExecutionInstance]:
         """根据请求类型筛选兼容的执行实例"""
-
+    
     def validate_request(self, request: RequestMetadata) -> ValidationResult:
         """验证请求完整性"""
 ```
@@ -287,7 +287,7 @@ class HybridSchedulingConfig:
 
 class HybridSchedulingPolicy(SchedulingPolicy):
     """混合调度策略"""
-
+    
     def schedule(
         self,
         requests: list[RequestMetadata],
@@ -299,7 +299,7 @@ class HybridSchedulingPolicy(SchedulingPolicy):
         3. LLM 请求：使用配置的回退策略 → 排除纯 Embedding 实例
         4. 混合实例负载均衡
         """
-
+    
     def _aggregate_embedding_batches(
         self,
         requests: list[RequestMetadata],
@@ -312,7 +312,7 @@ class HybridSchedulingPolicy(SchedulingPolicy):
 ```python
 class UnifiedInferenceClient:
     """统一推理客户端 - 合并 LLM 和 Embedding 功能"""
-
+    
     @classmethod
     def create_auto(
         cls,
@@ -326,7 +326,7 @@ class UnifiedInferenceClient:
         3. 本地 Embedding: localhost:8090, 8080
         4. 云端 API: DashScope
         """
-
+    
     @classmethod
     def create_with_control_plane(
         cls,
@@ -335,13 +335,13 @@ class UnifiedInferenceClient:
         **kwargs,
     ) -> UnifiedInferenceClient:
         """Control Plane 模式 - 支持高级调度"""
-
+    
     def chat(self, messages: list[dict], **kwargs) -> str:
         """聊天补全"""
-
+    
     def generate(self, prompt: str, **kwargs) -> str:
         """文本生成"""
-
+    
     def embed(self, texts: list[str], **kwargs) -> list[list[float]]:
         """文本嵌入"""
 ```
@@ -351,7 +351,7 @@ class UnifiedInferenceClient:
 ```python
 class UnifiedAPIServer:
     """OpenAI 兼容的统一 API 服务器"""
-
+    
     # 端点
     # GET  /              # 服务器信息
     # GET  /health        # 健康检查
@@ -359,13 +359,13 @@ class UnifiedAPIServer:
     # POST /v1/chat/completions   # 聊天补全
     # POST /v1/completions        # 文本补全
     # POST /v1/embeddings         # 向量嵌入
-
+    
     def __init__(self, config: UnifiedServerConfig):
         """初始化服务器"""
-
+    
     async def start(self) -> None:
         """启动服务器"""
-
+    
     async def stop(self) -> None:
         """优雅关闭"""
 ```
@@ -701,5 +701,23 @@ sage_llm/
 - [x] 向后兼容性验证通过
 - [x] 开发文档已更新 (`DEVELOPMENT_SUMMARY.md`)
 
+---
+
+## 📚 相关文档
+
+- [任务书](./task-spec.md)
+- [开发工作总结](./DEVELOPMENT_SUMMARY.md)
+- [SAGE 架构文档](../../../docs-public/docs_src/dev-notes/package-architecture.md)
+- [copilot-instructions.md (LLM & Embedding 章节)](../../../../.github/copilot-instructions.md)
+
+---
+
+## 👥 审阅者
+
+- [ ] @team-lead - 架构审阅
+- [ ] @backend-dev - 代码审阅
+- [ ] @qa-team - 测试覆盖审阅
+
+---
 
 *PR 创建日期: 2025年11月27日*
