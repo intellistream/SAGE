@@ -125,6 +125,8 @@ Makefile                # Shortcuts
 **Import errors**: Must use `--dev` install, run from repo root
 **Pre-commit fails**: Run `sage-dev quality` to auto-fix
 **Old artifacts**: `make clean` or `rm -rf .sage/build/ build/ dist/ *.egg-info/`
+**Bash exclamation mark**: NEVER use `!` in terminal commands (causes `bash: !': event not found`).
+  Use period `.` instead: `print("Done.")` not `print("Done!")`
 
 ## Development Workflow
 
@@ -239,18 +241,88 @@ vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001
 不确定？ → IntelligentLLMClient.create_auto()（自动检测）
 ```
 
-### EmbeddingFactory (sage-common)
+### IntelligentEmbeddingClient (sage-common) - 推荐
 
-嵌入模型工厂，支持多种后端：
+**设计原则**: 与 LLM 一样，本地优先，自动回退。
+
+**两种模式**:
+| 模式 | 说明 | 是否需要启动服务 |
+|------|------|-----------------|
+| **API 模式** | 连接 OpenAI 兼容的 embedding server | ✅ 需要 |
+| **内嵌模式** | 进程内加载 HuggingFace 模型 | ❌ 无需 |
 
 ```python
-from sage.common.components.sage_embedding.factory import EmbeddingFactory
+from sage.common.components.sage_embedding import IntelligentEmbeddingClient
 
-# 创建嵌入模型
-embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
-vectors = embedder.embed(["文本1", "文本2"])
+# 方式 1: 自动检测（推荐）- 本地 server 优先，内嵌回退
+client = IntelligentEmbeddingClient.create_auto()
+vectors = client.embed(["文本1", "文本2"])  # 批量接口
 
-# 支持的后端: hf, openai, jina, hash (测试用)
+# 方式 2: 显式 API 模式
+client = IntelligentEmbeddingClient.create_api(
+    base_url="http://localhost:8090/v1",
+    model="BAAI/bge-m3"
+)
+
+# 方式 3: 显式内嵌模式
+client = IntelligentEmbeddingClient.create_embedded(
+    model="BAAI/bge-small-zh-v1.5"
+)
+```
+
+**`create_auto()` 检测顺序**:
+1. `SAGE_EMBEDDING_BASE_URL` 环境变量
+2. 本地 embedding server: `localhost:8090`
+3. 本地 embedding server: `localhost:8080`
+4. 内嵌模式（进程内加载 fallback_model）
+
+**启动本地 Embedding Server**（可选）:
+```bash
+cd packages/sage-common/src/sage/common/components/sage_embedding
+./start_embedding_server.sh 8090  # 默认使用 BAAI/bge-m3
+```
+
+### EmbeddingFactory 和 EmbeddingProtocol (sage-common)
+
+**架构**: Embedding 是**进程内加载模型**，无需启动单独服务（与 LLM 的 API 模式不同）。
+每次调用 `EmbeddingFactory.create()` 都会在当前进程内加载模型到内存。
+
+**重要**: `EmbeddingFactory.create()` 返回的是**单文本接口** (`embed(text: str)`)，
+但很多组件（如 GorillaSelector）需要**批量接口** (`embed(texts: list[str])`)。
+
+**正确用法** - 使用 `EmbeddingClientAdapter` 适配接口：
+
+```python
+from sage.common.components.sage_embedding import (
+    EmbeddingFactory,
+    EmbeddingClientAdapter,  # 接口适配器
+    adapt_embedding_client,   # 自动适配函数
+)
+
+# 方式 1: 手动适配
+raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+client = EmbeddingClientAdapter(raw_embedder)
+vectors = client.embed(["文本1", "文本2"])  # 批量接口
+
+# 方式 2: 自动适配（推荐）
+raw_embedder = EmbeddingFactory.create("hash", dim=64)
+client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
+vectors = client.embed(["文本1", "文本2"])
+
+# 支持的后端: hf, openai, jina, hash (测试用), mockembedder (单元测试)
+```
+
+**接口对比**:
+| 接口 | 签名 | 来源 |
+|------|------|------|
+| 单文本 (BaseEmbedding) | `embed(text: str) -> list[float]` | `EmbeddingFactory.create()` |
+| 批量 (EmbeddingProtocol) | `embed(texts: list[str], model=None) -> list[list[float]]` | `EmbeddingClientAdapter` |
+
+**错误示例** (会导致运行时错误):
+```python
+# 错误: EmbeddingFactory 返回的是单文本接口
+embedder = EmbeddingFactory.create("hf", model="...")
+embedder.embed(texts=["a", "b"])  # TypeError: embed() got unexpected keyword argument 'texts'
 ```
 
 ### 环境变量 (.env)
@@ -278,8 +350,12 @@ packages/sage-common/src/sage/common/components/
     service.py             # VLLMService (本地 vLLM 封装)
     control_plane_service.py  # 多实例调度
   sage_embedding/
-    factory.py             # EmbeddingFactory
+    client.py              # IntelligentEmbeddingClient (推荐，API/内嵌双模式)
+    factory.py             # EmbeddingFactory (创建单文本embedder)
+    protocols.py           # EmbeddingProtocol, EmbeddingClientAdapter (批量接口)
+    embedding_server.py    # FastAPI embedding server (OpenAI 兼容)
     service.py             # EmbedderService
+    base.py                # BaseEmbedding (单文本接口基类)
 ```
 
 ## sage-benchmark 组件
