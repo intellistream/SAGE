@@ -385,3 +385,9 @@ packages/sage-middleware/.cmake/api/v1/reply/target-stream-Release-1e50d87c59c5a
 packages/sage-middleware/.cmake/api/v1/reply/target-utils-Release-202390ec2568b80f66fd.json
 packages/sage-middleware/.cmake/api/v1/reply/toolchains-v1-7b6acd0222e90559d611.json
 coverage.json
+
+# NumPy arrays and benchmark results
+**/*.npy
+**/*.npz
+packages/sage-benchmark/src/sage/benchmark/benchmark_anns/data/*
+packages/sage-benchmark/src/sage/benchmark/benchmark_anns/results/*
