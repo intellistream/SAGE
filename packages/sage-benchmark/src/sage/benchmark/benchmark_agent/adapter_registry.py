@@ -25,9 +25,10 @@ class StrategyProtocol(Protocol):
 
 class SelectorAdapter:
     """
-    Adapter wrapping tool selectors to provide unified predict() interface.
+    Adapter wrapping tool selectors to provide unified predict()/select() interface.
 
     Maps the selector's select() method to predict() for benchmark compatibility.
+    Also provides select() method for run_all_experiments.py compatibility.
     """
 
     def __init__(self, selector: Any):
@@ -64,6 +65,76 @@ class SelectorAdapter:
 
         k = top_k if top_k is not None else 5
         return self.selector.select(selector_query, top_k=k)
+
+    def select(self, query: Any, candidate_tools: Optional[list] = None, top_k: int = 5) -> list:
+        """
+        Select tools for a query (alias for predict with simpler interface).
+
+        This method is provided for compatibility with run_all_experiments.py
+        which calls selector.select(query, candidate_tools, top_k=top_k).
+
+        Args:
+            query: Either a string (instruction) or ToolSelectionQuery object
+            candidate_tools: Optional list of candidate tools (may be ignored if
+                           selector has its own tool corpus)
+            top_k: Number of tools to select
+
+        Returns:
+            List of ToolPrediction objects or tool IDs
+        """
+        from sage.libs.agentic.agents.action.tool_selection.schemas import (
+            ToolSelectionQuery as SelectorQuery,
+        )
+
+        # Ensure candidate_tools is always a list (never None)
+        tools = candidate_tools if candidate_tools is not None else []
+
+        # Handle string query (from run_all_experiments.py)
+        if isinstance(query, str):
+            selector_query = SelectorQuery(
+                sample_id="runtime",
+                instruction=query,
+                candidate_tools=tools,
+                context={},
+            )
+        # Handle dict query
+        elif isinstance(query, dict):
+            tools_from_dict = query.get("candidate_tools", [])
+            selector_query = SelectorQuery(
+                sample_id=query.get("sample_id", "runtime"),
+                instruction=query.get("instruction", str(query)),
+                candidate_tools=tools if tools else (tools_from_dict or []),
+                context=query.get("context", {}),
+            )
+        # Handle query object with attributes
+        elif hasattr(query, "instruction"):
+            tools_from_obj = getattr(query, "candidate_tools", [])
+            selector_query = SelectorQuery(
+                sample_id=getattr(query, "sample_id", "runtime"),
+                instruction=query.instruction,
+                candidate_tools=tools if tools else (tools_from_obj or []),
+                context=getattr(query, "context", {}),
+            )
+        else:
+            # Fallback: treat query as instruction string
+            selector_query = SelectorQuery(
+                sample_id="runtime",
+                instruction=str(query),
+                candidate_tools=tools,
+                context={},
+            )
+
+        try:
+            result = self.selector.select(selector_query, top_k=top_k)
+            return result
+        except Exception as e:
+            # If selector fails, return empty list with debug info
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Selector failed for query '{str(query)[:50]}...': {e}"
+            )
+            return []
 
 
 class PlannerAdapter:
@@ -344,18 +415,24 @@ class AdapterRegistry:
             if resources is None:
                 resources = self._create_mock_resources()
 
-            # Gorilla requires embedding client
+            # Gorilla requires embedding client with batch interface
             if resources.embedding_client is None:
                 # Try to create embedding client
                 try:
-                    from sage.common.components.sage_embedding.factory import EmbeddingFactory
+                    from sage.common.components.sage_embedding import (
+                        EmbeddingFactory,
+                        adapt_embedding_client,
+                    )
 
-                    embedding_client = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    # EmbeddingFactory returns single-text interface, need to adapt
+                    raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    # Adapt to batch interface (embed(texts: list[str]))
+                    embedding_client = adapt_embedding_client(raw_embedder)
                     resources.embedding_client = embedding_client
-                except Exception:
+                except Exception as e:
                     # Fall back to hybrid selector if embedding not available
                     self.logger.warning(
-                        "Gorilla selector requires embedding client. "
+                        f"Gorilla selector requires embedding client ({e}). "
                         "Falling back to hybrid selector."
                     )
                     return self._create_hybrid_selector(resources)

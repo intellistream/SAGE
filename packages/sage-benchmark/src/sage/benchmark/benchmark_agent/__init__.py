@@ -108,4 +108,22 @@ __all__ = [
     "SourcePaths",
     "RuntimePaths",
     "DataPathsConfig",
+    # ACEBench
+    "load_acebench_samples",
+    "save_acebench_to_jsonl",
 ]
+
+
+# Lazy imports for ACEBench
+def load_acebench_samples(*args, **kwargs):
+    """Load ToolACE samples in SAGE benchmark format."""
+    from sage.benchmark.benchmark_agent.acebench_loader import load_acebench_samples as _load
+
+    return _load(*args, **kwargs)
+
+
+def save_acebench_to_jsonl(*args, **kwargs):
+    """Save ToolACE samples to JSONL file."""
+    from sage.benchmark.benchmark_agent.acebench_loader import save_acebench_to_jsonl as _save
+
+    return _save(*args, **kwargs)

@@ -307,7 +307,7 @@ class AgentDialogProcessor:
         difficulty = length / 512.0 + entropy / 5.0
         difficulty = float(min(max(difficulty, 0.0), 5.0))
 
-        if isinstance(sample.metadata.get("loss"), (int, float)):
+        if isinstance(sample.metadata.get("loss"), int | float):
             difficulty = float(sample.metadata["loss"])
 
         return {

@@ -371,30 +371,54 @@ class ExperimentRunner:
             get_adapter_registry,
         )
 
+        # Prefer original submodule data (higher quality) over generated data
+        submodule_data = (
+            Path(__file__).parent.parent.parent.parent
+            / "data"
+            / "sources"
+            / "agent_benchmark"
+            / "splits"
+            / "tool_selection.jsonl"
+        )
+
         data_dir = self.data_root / "tool_selection"
-        if not (data_dir / "test.jsonl").exists():
+        if submodule_data.exists():
+            test_file = submodule_data
+            print(f"  Using submodule data: {test_file}")
+        elif (data_dir / "tool_selection.jsonl").exists():
+            test_file = data_dir / "tool_selection.jsonl"
+        elif (data_dir / "test.jsonl").exists():
+            test_file = data_dir / "test.jsonl"
+        else:
             print("⚠️  Tool selection data not found. Running data preparation...")
             self._prepare_tool_selection_data(data_dir)
+            test_file = data_dir / "tool_selection.jsonl"
 
         registry = get_adapter_registry()
         selectors = [
             ("selector.keyword", "Keyword (BM25)"),
             ("selector.embedding", "Embedding"),
             ("selector.hybrid", "Hybrid"),
+            ("selector.gorilla", "Gorilla (Retrieval+LLM)"),
+            ("selector.dfsdt", "DFSDT (Tree Search)"),
         ]
+
+        # Filter out LLM-based selectors if skip_llm is set
+        LLM_SELECTORS = {"selector.gorilla", "selector.dfsdt"}
+        if self.skip_llm:
+            selectors = [
+                (name, display) for name, display in selectors if name not in LLM_SELECTORS
+            ]
+            print("  ⚠️  Skipping LLM-based selectors (--skip-llm)")
 
         results = []
         for selector_name, display_name in selectors:
             print(f"\n  Testing: {display_name} ({selector_name})")
 
             try:
-                # Load test data directly
-                test_file = data_dir / "tool_selection.jsonl"
-                if not test_file.exists():
-                    # Try alternate location
-                    test_file = data_dir / "test.jsonl"
-
-                samples = self._load_jsonl(test_file)[:max_samples]
+                samples = self._load_jsonl(test_file)
+                # Filter to test split only
+                samples = [s for s in samples if s.get("split") == "test"][:max_samples]
                 if not samples:
                     print(f"    ⚠️  No test data found at {test_file}")
                     continue
@@ -410,7 +434,13 @@ class ExperimentRunner:
                         # Create query for selector
                         query = sample.get("instruction", "")
                         candidate_tools = sample.get("candidate_tools", [])
-                        ground_truth = sample.get("ground_truth", [])
+                        ground_truth_raw = sample.get("ground_truth", [])
+
+                        # Handle ground_truth format: may be dict {"top_k": [...]} or list
+                        if isinstance(ground_truth_raw, dict):
+                            ground_truth = ground_truth_raw.get("top_k", [])
+                        else:
+                            ground_truth = ground_truth_raw
 
                         # Call selector
                         result = selector.select(query, candidate_tools, top_k=top_k)
@@ -425,7 +455,10 @@ class ExperimentRunner:
                         if self.verbose:
                             print(f"    Error on sample: {e}")
                         predictions.append([])
-                        references.append(sample.get("ground_truth", []))
+                        gt_raw = sample.get("ground_truth", [])
+                        references.append(
+                            gt_raw.get("top_k", []) if isinstance(gt_raw, dict) else gt_raw
+                        )
 
                 # Compute metrics
                 metrics = self._compute_tool_selection_metrics(predictions, references, top_k)

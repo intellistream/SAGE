@@ -70,7 +70,7 @@ class CoresetSelector:
             if metrics and sample.dialog_id in metrics:
                 return metrics[sample.dialog_id]
             meta_val = sample.metadata.get(self.metric_key)
-            if isinstance(meta_val, (int, float)):
+            if isinstance(meta_val, int | float):
                 return float(meta_val)
             return 0.0
 

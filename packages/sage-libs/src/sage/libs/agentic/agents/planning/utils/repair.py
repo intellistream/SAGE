@@ -203,7 +203,7 @@ def normalize_plan_steps(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
         # Ensure depends_on is a list
         if not isinstance(normalized_step["depends_on"], list):
-            if isinstance(normalized_step["depends_on"], (int, str)):
+            if isinstance(normalized_step["depends_on"], int | str):
                 normalized_step["depends_on"] = [normalized_step["depends_on"]]
             else:
                 normalized_step["depends_on"] = []

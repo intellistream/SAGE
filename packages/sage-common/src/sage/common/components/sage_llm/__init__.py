@@ -6,10 +6,15 @@ This module provides service wrappers for vLLM (Very Large Language Model infere
 allowing SAGE to leverage high-performance LLM serving capabilities.
 
 Services:
-    - VLLMService: Simple single-instance vLLM service
+    - VLLMService: Simple single-instance vLLM service (in-process)
     - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
     - IntelligentLLMClient: Auto-detecting client with cloud fallback
     - UnifiedInferenceClient: Unified client for both LLM and Embedding (NEW)
+
+Modes:
+    - API Mode: Connect to external vLLM server or cloud API
+    - Embedded Mode: In-process GPU inference (no external server needed)
+    - Control Plane Mode: Multi-instance load balancing
 
 Architecture:
     - Designed to be used by L2 (Platform) and higher layers
@@ -18,7 +23,17 @@ Architecture:
 """
 
 from .api_server import LLMAPIServer, LLMServerConfig
-from .client import IntelligentLLMClient, check_llm_service, get_llm_client
+from .client import (
+    IntelligentLLMClient,
+    check_llm_service,
+    get_llm_client,
+)
+from .client import (
+    _check_gpu_available as check_gpu_available,
+)
+from .client import (
+    _check_vllm_available as check_vllm_available,
+)
 from .compat import (
     EmbeddingClientAdapter,
     LLMClientAdapter,
@@ -58,6 +73,8 @@ try:
         "IntelligentLLMClient",
         "check_llm_service",
         "get_llm_client",
+        "check_gpu_available",
+        "check_vllm_available",
         # Unified Client
         "UnifiedInferenceClient",
         "UnifiedClient",
@@ -86,6 +103,8 @@ except ImportError:
         "IntelligentLLMClient",
         "check_llm_service",
         "get_llm_client",
+        "check_gpu_available",
+        "check_vllm_available",
         # Unified Client
         "UnifiedInferenceClient",
         "UnifiedClient",
