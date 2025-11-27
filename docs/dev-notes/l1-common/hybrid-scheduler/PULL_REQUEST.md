@@ -701,23 +701,5 @@ sage_llm/
 - [x] 向后兼容性验证通过
 - [x] 开发文档已更新 (`DEVELOPMENT_SUMMARY.md`)
 
----
-
-## 📚 相关文档
-
-- [任务书](./task-spec.md)
-- [开发工作总结](./DEVELOPMENT_SUMMARY.md)
-- [SAGE 架构文档](../../../docs-public/docs_src/dev-notes/package-architecture.md)
-- [copilot-instructions.md (LLM & Embedding 章节)](../../../../.github/copilot-instructions.md)
-
----
-
-## 👥 审阅者
-
-- [ ] @team-lead - 架构审阅
-- [ ] @backend-dev - 代码审阅
-- [ ] @qa-team - 测试覆盖审阅
-
----
 
 *PR 创建日期: 2025年11月27日*
