@@ -531,33 +531,65 @@ class AdapterRegistry:
                 max_context_tools=15,
             )
 
-            # Create embedding client using UnifiedInferenceClient
+            # Create embedding client with fallback to local HuggingFace model
             embedding_client = None
+
+            # Strategy 1: Try UnifiedInferenceClient (API-based embedding)
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                # UnifiedInferenceClient.create_auto() handles:
-                # 1. Environment variables (SAGE_UNIFIED_BASE_URL)
-                # 2. Local services (ports from SagePorts)
-                # 3. Cloud API fallback
                 unified_client = UnifiedInferenceClient.create_auto()
 
-                # Wrap UnifiedInferenceClient to match EmbeddingProtocol interface
-                class UnifiedEmbeddingAdapter:
-                    """Adapter to expose UnifiedInferenceClient as embedding client."""
+                # Test if embedding actually works
+                test_result = unified_client.embed(["test"])
+                if test_result and len(test_result) > 0:
+                    # Wrap UnifiedInferenceClient to match EmbeddingProtocol interface
+                    class UnifiedEmbeddingAdapter:
+                        """Adapter to expose UnifiedInferenceClient as embedding client."""
 
-                    def __init__(self, client: UnifiedInferenceClient):
-                        self._client = client
+                        def __init__(self, client: UnifiedInferenceClient):
+                            self._client = client
 
-                    def embed(
-                        self, texts: list[str], model: str | None = None
-                    ) -> list[list[float]]:
-                        return self._client.embed(texts, model=model)
+                        def embed(
+                            self, texts: list[str], model: str | None = None
+                        ) -> list[list[float]]:
+                            return self._client.embed(texts, model=model)
 
-                embedding_client = UnifiedEmbeddingAdapter(unified_client)
-                self.logger.info("Embedding client created via UnifiedInferenceClient")
+                    embedding_client = UnifiedEmbeddingAdapter(unified_client)
+                    self.logger.info("Embedding client created via UnifiedInferenceClient")
             except Exception as e:
-                self.logger.warning(f"Failed to create embedding client: {e}")
+                self.logger.debug(f"UnifiedInferenceClient embedding not available: {e}")
+
+            # Strategy 2: Fall back to local HuggingFace embedding
+            if embedding_client is None:
+                try:
+                    from sage.common.components.sage_embedding import (
+                        EmbeddingClientAdapter,
+                        EmbeddingFactory,
+                    )
+
+                    # Use HuggingFace model (loads locally, no server needed)
+                    raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    self.logger.info("Embedding client created via local HuggingFace model")
+                except Exception as e2:
+                    self.logger.warning(f"Local HuggingFace embedding failed: {e2}")
+
+            # Strategy 3: Hash-based embedding as last resort (for testing)
+            if embedding_client is None:
+                try:
+                    from sage.common.components.sage_embedding import (
+                        EmbeddingClientAdapter,
+                        EmbeddingFactory,
+                    )
+
+                    raw_embedder = EmbeddingFactory.create("hash", dim=384)
+                    embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    self.logger.warning(
+                        "Using hash-based embedding (low quality, for testing only)"
+                    )
+                except Exception as e3:
+                    self.logger.warning(f"Hash embedding also failed: {e3}")
 
             # Use SAGE tools (1,200 real tools) instead of mock tools
             if resources is None:

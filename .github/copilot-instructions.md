@@ -183,172 +183,170 @@ tools/pytest.ini, tools/pre-commit-config.yaml
 - Guides: `CONTRIBUTING.md` (CN), `DEVELOPER.md` (EN)
 - Dev notes: `docs/dev-notes/` (l1-l6, cross-layer/ci-cd/)
 
-## LLM & Embedding Services
+## LLM & Embedding Services - sageLLM 架构
 
-**设计原则**: 本地优先，云端回退。SAGE 提供两种 LLM 使用模式，根据场景选择。
+**设计原则**: 统一调度，资源共享。所有 LLM 和 Embedding 请求通过 **sageLLM Control Plane** 统一管理。
 
-### 模式对比
+### 架构总览
 
-| 模式 | 类 | 适用场景 | 是否需要启动服务 |
-|------|-----|---------|-----------------|
-| **内嵌模式** | `VLLMService` | 批处理、训练、离线推理 | ❌ 无需，进程内加载 |
-| **API 模式** | `IntelligentLLMClient` | 在线服务、多客户端共享、测试脚本 | ✅ 需要 API 端点 |
-
-### 模式 1: 内嵌模式 (VLLMService) - 进程内加载
-
-**直接在 Python 进程内加载 vLLM 引擎**，无需单独启动服务。适合批处理和离线任务。
-
-```python
-from sage.common.components.sage_llm import VLLMService
-
-# 创建并加载模型（首次会自动下载）
-service = VLLMService({
-    "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
-    "auto_download": True,
-    "sampling": {"temperature": 0.7, "max_tokens": 512}
-})
-service.setup()  # 加载模型到 GPU（耗时操作）
-
-# 生成文本
-results = service.generate("Hello, world!")
-print(results[0]["generations"][0]["text"])
-
-# 清理资源
-service.teardown()
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           应用层 (Application Layer)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                      UnifiedInferenceClient                              │
+│                 chat() | generate() | embed()                            │
+│        ┌─────────────────────┬─────────────────────┐                    │
+│        │   Simple Mode       │  Control Plane Mode │                    │
+│        │  (直连后端 API)      │  (通过调度器路由)    │  ← 推荐           │
+│        └─────────────────────┴─────────────────────┘                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                       UnifiedAPIServer                                   │
+│              (OpenAI-Compatible REST API Gateway)                        │
+│   /v1/chat/completions | /v1/completions | /v1/embeddings | /v1/models  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                    sageLLM Control Plane (核心)                          │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │  RequestClassifier (LLM_CHAT / LLM_GENERATE / EMBEDDING)        │   │
+│   │  HybridSchedulingPolicy (请求分组、优先级、批处理聚合)            │   │
+│   │  ExecutionCoordinator (LLM) | EmbeddingExecutor (Embedding)     │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                        统一资源池 (GPU Pool)                             │
+│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
+│   │  vLLM Instance  │  │  vLLM Instance  │  │  Embedding Srv  │        │
+│   │  (LLM Only)     │  │  (LLM+Embed)    │  │  (Embed Only)   │        │
+│   │  Type: GENERAL  │  │  Type: MIXED    │  │  Type: EMBEDDING│        │
+│   └─────────────────┘  └─────────────────┘  └─────────────────┘        │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**特点**:
-- ✅ 无需启动外部服务
-- ✅ 适合批处理、训练流水线
-- ❌ 不支持多进程共享
-- ❌ 每次 setup() 都要加载模型
-
-### 模式 2: API 模式 (UnifiedInferenceClient) - 连接 API 端点 (推荐)
-
-**连接 OpenAI 兼容的 API 端点**（本地 vLLM 或云端）。适合在线服务和测试脚本。
+### 推荐用法：Control Plane 模式
 
 ```python
 from sage.common.components.sage_llm import UnifiedInferenceClient
 
-# 方式 A: 自动检测（推荐）- 本地优先，云端回退
-client = UnifiedInferenceClient.create_auto()
-
-# 方式 B: 指定端点
-client = UnifiedInferenceClient(
-    llm_base_url="http://localhost:8001/v1",
-    llm_model="Qwen/Qwen2.5-7B-Instruct",
-    llm_api_key=""  # 本地服务通常无需 key
-)
-
-# 聊天
-response = client.chat([
-    {"role": "user", "content": "Hello."}
-])
-print(response)  # 返回字符串
-
-# 文本生成
-text = client.generate("Once upon a time")
-
-# 向量嵌入
-vectors = client.embed(["text1", "text2"])
-```
-
-**`create_auto()` 检测顺序**:
-1. `SAGE_UNIFIED_BASE_URL` 环境变量（用户显式配置）
-2. 本地 LLM: `localhost:8001/v1`（推荐端口）
-3. 本地 LLM: `localhost:8000/v1`（vLLM 默认端口）
-4. 本地 Embedding: `localhost:8090`, `localhost:8080`
-5. 云端 API: DashScope（需要 `SAGE_CHAT_API_KEY`）
-
-**启动本地 vLLM API 服务**（可选，如果需要多进程共享）:
-```bash
-# 方式 1: SAGE CLI
-sage apps llm start --model "Qwen/Qwen2.5-0.5B-Instruct" --port 8001
-
-# 方式 2: SAGE Studio（完整服务栈）
-sage studio start
-
-# 方式 3: 直接 vLLM
-vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001
-```
-
-**特点**:
-- ✅ 支持多进程/多客户端共享
-- ✅ 本地优先，自动回退云端
-- ✅ 适合测试脚本"一键运行"
-- ❌ 需要先启动服务（或有云端 API Key）
-
-### 如何选择？
-
-```
-需要批处理/离线任务？ → VLLMService（内嵌模式）
-需要在线服务/测试脚本？ → UnifiedInferenceClient（推荐）
-同时需要 LLM 和 Embedding？ → UnifiedInferenceClient（推荐）
-不确定？ → UnifiedInferenceClient.create_auto()（自动检测）
-```
-
-### UnifiedInferenceClient API 参考
-
-**主要方法**:
-| 方法 | 签名 | 说明 |
-|------|------|------|
-| `chat()` | `chat(messages: list[dict]) -> str` | 聊天对话 |
-| `generate()` | `generate(prompt: str) -> str` | 文本生成 |
-| `embed()` | `embed(texts: list[str]) -> list[list[float]]` | 向量嵌入 |
-
-**工厂方法**:
-| 方法 | 说明 |
-|------|------|
-| `create_auto()` | 自动检测端点（推荐） |
-| `get_instance(instance_key)` | 单例模式，避免重复创建 |
-| `create_with_control_plane()` | 高级调度模式 |
-
-**Control Plane 模式**（高级调度）:
-```python
+# 方式 1: Control Plane 模式（推荐 - 支持智能调度）
 client = UnifiedInferenceClient.create_with_control_plane(
-    llm_base_url="http://localhost:8001/v1",
+    llm_base_url="http://localhost:8901/v1",      # vLLM 服务
     llm_model="Qwen/Qwen2.5-7B-Instruct",
-    embedding_base_url="http://localhost:8090/v1",
+    embedding_base_url="http://localhost:8090/v1", # Embedding 服务
     embedding_model="BAAI/bge-m3",
 )
+
+# 方式 2: 自动检测（Simple 模式，适合简单场景）
+client = UnifiedInferenceClient.create_auto()
+
+# 统一 API
+response = client.chat([{"role": "user", "content": "Hello"}])  # LLM
+text = client.generate("Once upon a time")                       # LLM
+vectors = client.embed(["text1", "text2"])                       # Embedding
 ```
 
-### 向后兼容 (DEPRECATED)
+### 启动服务栈
 
-以下类已弃用，但仍可使用（会发出 DeprecationWarning）：
-- `IntelligentLLMClient` → 使用 `UnifiedInferenceClient`
-- `IntelligentEmbeddingClient` → 使用 `UnifiedInferenceClient.embed()`
-- `check_llm_service()` → 使用 `UnifiedInferenceClient._check_endpoint_health()`
-- `get_llm_client()` → 使用 `UnifiedInferenceClient.create_auto()`
+```bash
+# 推荐：一键启动 LLM + Embedding 服务栈
+sage stack start                    # 默认模型启动
+sage stack start -l Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3  # 指定模型
+sage stack status                   # 查看状态
+sage stack stop                     # 停止所有服务
+sage stack logs                     # 查看日志
 
-### EmbeddingFactory 和 EmbeddingProtocol (sage-common)
+# 或分别启动：
+# 1. 启动 LLM 服务 (vLLM)
+sage apps llm start --model "Qwen/Qwen2.5-0.5B-Instruct" --port 8901
 
-**架构**: Embedding 是**进程内加载模型**，无需启动单独服务（与 LLM 的 API 模式不同）。
-每次调用 `EmbeddingFactory.create()` 都会在当前进程内加载模型到内存。
+# 2. 启动 Embedding 服务
+python -m sage.common.components.sage_embedding.embedding_server \
+    --model BAAI/bge-m3 --port 8090
+```
 
-**重要**: `EmbeddingFactory.create()` 返回的是**单文本接口** (`embed(text: str)`)，
-但很多组件（如 GorillaSelector）需要**批量接口** (`embed(texts: list[str])`)。
+### Control Plane 核心组件
 
-**正确用法** - 使用 `EmbeddingClientAdapter` 适配接口：
+| 组件 | 位置 | 功能 |
+|------|------|------|
+| `ControlPlaneManager` | `sageLLM/control_plane/manager.py` | 核心调度管理器 |
+| `RequestClassifier` | `sageLLM/control_plane/request_classifier.py` | 请求类型分类 |
+| `HybridSchedulingPolicy` | `sageLLM/control_plane/strategies/hybrid_policy.py` | 混合调度策略 |
+| `EmbeddingExecutor` | `sageLLM/control_plane/executors/embedding_executor.py` | Embedding 批处理 |
+| `ControlPlaneVLLMService` | `sage_llm/control_plane_service.py` | SAGE 封装层 |
+
+### 关键文件位置
+
+```
+packages/sage-common/src/sage/common/components/
+  sage_llm/
+    unified_client.py         # UnifiedInferenceClient (统一客户端)
+    unified_api_server.py     # UnifiedAPIServer (API Gateway)
+    control_plane_service.py  # Control Plane SAGE 封装
+    service.py                # VLLMService (内嵌模式，批处理用)
+    sageLLM/control_plane/    # ← Control Plane 核心实现
+      manager.py              # 调度管理器
+      request_classifier.py   # 请求分类器
+      strategies/             # 调度策略
+        hybrid_policy.py      # LLM + Embedding 混合调度
+      executors/              # 执行器
+        embedding_executor.py # Embedding 批处理执行
+  sage_embedding/
+    embedding_server.py       # OpenAI 兼容 Embedding 服务器
+    factory.py                # EmbeddingFactory (本地模型)
+```
+
+### 两种模式对比
+
+| 特性 | Simple 模式 | Control Plane 模式 |
+|------|-------------|-------------------|
+| 创建方式 | `create_auto()` | `create_with_control_plane()` |
+| 调度 | 直连后端 | 智能路由 + 负载均衡 |
+| 多实例 | ❌ | ✅ 支持 |
+| 批处理聚合 | ❌ | ✅ Embedding 自动聚合 |
+| 优先级调度 | ❌ | ✅ 支持 |
+| 适用场景 | 开发测试、简单部署 | 生产环境、高并发 |
+
+### 内嵌模式 (VLLMService) - 批处理专用
+
+```python
+from sage.common.components.sage_llm import VLLMService
+
+# 进程内加载模型，适合批处理任务
+service = VLLMService({
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+    "auto_download": True,
+})
+service.setup()  # 加载模型到 GPU
+results = service.generate("Hello, world!")
+service.teardown()
+```
+
+### 环境变量 (.env)
+
+```bash
+# === 本地服务（推荐）===
+# 无需配置，使用 SagePorts 默认端口
+
+# === 云端 API（回退）===
+SAGE_CHAT_API_KEY=sk-xxx              # DashScope API Key
+SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+
+# === HuggingFace ===
+HF_TOKEN=hf_xxx
+HF_ENDPOINT=https://hf-mirror.com     # 中国镜像
+```
+
+### EmbeddingFactory (本地模型，无需服务)
+
+用于不想启动 Embedding 服务的场景：
 
 ```python
 from sage.common.components.sage_embedding import (
-    EmbeddingFactory,
-    EmbeddingClientAdapter,  # 接口适配器
-    adapt_embedding_client,   # 自动适配函数
+    EmbeddingFactory, EmbeddingClientAdapter
 )
 
-# 方式 1: 手动适配
+# 本地加载 HuggingFace 模型
 raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
-client = EmbeddingClientAdapter(raw_embedder)
-vectors = client.embed(["文本1", "文本2"])  # 批量接口
-
-# 方式 2: 自动适配（推荐）
-raw_embedder = EmbeddingFactory.create("hash", dim=64)
-client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
+client = EmbeddingClientAdapter(raw_embedder)  # 适配为批量接口
 vectors = client.embed(["文本1", "文本2"])
-
-# 支持的后端: hf, openai, jina, hash (测试用), mockembedder (单元测试)
 ```
 
 **接口对比**:
@@ -362,44 +360,6 @@ vectors = client.embed(["文本1", "文本2"])
 # 错误: EmbeddingFactory 返回的是单文本接口
 embedder = EmbeddingFactory.create("hf", model="...")
 embedder.embed(texts=["a", "b"])  # TypeError: embed() got unexpected keyword argument 'texts'
-```
-
-### 环境变量 (.env)
-
-```bash
-# === 本地 LLM（优先，通常无需配置）===
-# VLLM_API_KEY=             # 本地 vLLM 认证（通常留空）
-
-# === 云端 API（回退，需要时配置）===
-SAGE_CHAT_API_KEY=sk-xxx    # DashScope/阿里云 API Key
-SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
-SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-
-# Embedding
-HF_TOKEN=hf_xxx             # HuggingFace (模型下载)
-HF_ENDPOINT=https://hf-mirror.com  # 中国镜像
-```
-
-### 关键组件位置
-
-```
-packages/sage-common/src/sage/common/components/
-  sage_llm/
-    unified_client.py      # UnifiedInferenceClient (统一客户端，推荐)
-    unified_api_server.py  # UnifiedAPIServer (OpenAI 兼容 API 服务器)
-    service.py             # VLLMService (内嵌 vLLM 封装)
-    api_server.py          # LLMAPIServer (LLM API 服务器)
-    control_plane_service.py  # 多实例调度
-    client.py              # DEPRECATED: 向后兼容别名
-    sageLLM/control_plane/ # Control Plane 调度框架
-      strategies/hybrid_policy.py  # 混合调度策略
-  sage_embedding/
-    factory.py             # EmbeddingFactory (创建单文本embedder)
-    protocols.py           # EmbeddingProtocol, EmbeddingClientAdapter (批量接口)
-    embedding_server.py    # FastAPI embedding server (OpenAI 兼容)
-    service.py             # EmbeddingService
-    base.py                # BaseEmbedding (单文本接口基类)
-    client.py              # DEPRECATED: 向后兼容别名
 ```
 
 ## sage-benchmark 组件

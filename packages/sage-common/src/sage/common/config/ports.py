@@ -108,8 +108,11 @@ class SagePorts:
 
     @classmethod
     def get_llm_ports(cls) -> list[int]:
-        """Get all LLM-related ports in priority order."""
-        return [cls.LLM_DEFAULT, cls.LLM_SECONDARY]
+        """Get all LLM-related ports in priority order.
+
+        Includes fallback ports for WSL2 compatibility.
+        """
+        return [cls.LLM_DEFAULT, cls.BENCHMARK_LLM, cls.LLM_SECONDARY, cls.GATEWAY_DEFAULT]
 
     @classmethod
     def get_embedding_ports(cls) -> list[int]:
