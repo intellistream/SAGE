@@ -93,8 +93,8 @@ class KeywordSelector(BaseToolSelector):
                 self._tool_texts[tool.tool_id] = text
                 self._tool_tokens[tool.tool_id] = self._tokenize(text)
 
-            # Compute IDF scores
-            if self.config.method == "tfidf":
+            # Compute IDF scores (needed for both TF-IDF and BM25)
+            if self.config.method in ("tfidf", "bm25"):
                 self._compute_idf()
 
             self.logger.info(f"Preprocessed {len(self._tool_texts)} tools")

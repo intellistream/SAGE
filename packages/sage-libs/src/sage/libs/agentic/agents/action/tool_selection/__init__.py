@@ -5,7 +5,9 @@ Provides tool selector strategies for choosing relevant tools based on queries.
 """
 
 from .base import BaseToolSelector, SelectorResources, ToolSelectorProtocol
+from .dfsdt_selector import DFSDTSelector
 from .embedding_selector import EmbeddingSelector
+from .gorilla_selector import GorillaSelector, GorillaSelectorConfig
 from .hybrid_selector import HybridSelector, HybridSelectorConfig
 from .keyword_selector import KeywordSelector
 from .registry import (
@@ -17,6 +19,7 @@ from .registry import (
 from .schemas import (
     CONFIG_TYPES,
     AdaptiveSelectorConfig,
+    DFSDTSelectorConfig,
     EmbeddingSelectorConfig,
     KeywordSelectorConfig,
     SelectorConfig,
@@ -25,11 +28,16 @@ from .schemas import (
     TwoStageSelectorConfig,
     create_selector_config,
 )
+from .schemas import (
+    GorillaSelectorConfig as GorillaSelectorConfigSchema,
+)
 
 # Auto-register built-in selectors
 register_selector("keyword", KeywordSelector)
 register_selector("embedding", EmbeddingSelector)
 register_selector("hybrid", HybridSelector)
+register_selector("gorilla", GorillaSelector)
+register_selector("dfsdt", DFSDTSelector)
 
 __all__ = [
     # Base classes
@@ -41,6 +49,10 @@ __all__ = [
     "EmbeddingSelector",
     "HybridSelector",
     "HybridSelectorConfig",
+    "GorillaSelector",
+    "GorillaSelectorConfig",
+    "DFSDTSelector",
+    "DFSDTSelectorConfig",
     # Registry
     "SelectorRegistry",
     "register_selector",
