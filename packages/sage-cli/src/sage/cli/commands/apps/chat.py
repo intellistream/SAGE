@@ -537,27 +537,25 @@ class ResponseGenerator:
             self._setup_finetune_backend()
         else:
             try:
-                from sage.common.components.sage_llm.client import IntelligentLLMClient
+                from sage.common.components.sage_llm import UnifiedInferenceClient
 
                 if base_url and api_key:
                     # Explicit configuration
-                    self.client = IntelligentLLMClient(
-                        model_name=model,
-                        base_url=base_url,
-                        api_key=api_key,
-                        seed=42,
+                    self.client = UnifiedInferenceClient(
+                        llm_model=model,
+                        llm_base_url=base_url,
+                        llm_api_key=api_key,
                     )
                 elif base_url:
                     # Only base_url provided
-                    self.client = IntelligentLLMClient(
-                        model_name=model,
-                        base_url=base_url,
-                        api_key="empty",  # pragma: allowlist secret
-                        seed=42,
+                    self.client = UnifiedInferenceClient(
+                        llm_model=model,
+                        llm_base_url=base_url,
+                        llm_api_key="",
                     )
                 else:
                     # Auto-detection mode
-                    self.client = IntelligentLLMClient.create_auto(model_name=model)
+                    self.client = UnifiedInferenceClient.create_auto()
             except Exception as exc:  # pragma: no cover - runtime check
                 raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
 
@@ -696,13 +694,12 @@ class ResponseGenerator:
 
         # 设置 LLM 客户端连接到本地 vLLM
         try:
-            from sage.common.components.sage_llm.client import IntelligentLLMClient
+            from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            self.client = IntelligentLLMClient(
-                model_name=model_to_use or str(merged_path),
-                base_url=f"http://localhost:{port}/v1",
-                api_key="EMPTY",  # pragma: allowlist secret
-                seed=42,
+            self.client = UnifiedInferenceClient(
+                llm_model=model_to_use or str(merged_path),
+                llm_base_url=f"http://localhost:{port}/v1",
+                llm_api_key="",
             )
             self.model = model_to_use or str(merged_path)
             console.print(f"[green]✅ 已连接到微调模型: {model_name}[/green]\n")

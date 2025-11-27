@@ -139,6 +139,9 @@ from sage.common.config.ports import SagePorts
 port = SagePorts.LLM_DEFAULT           # 8001
 gateway_port = SagePorts.GATEWAY_DEFAULT  # 8000
 
+# ✅ WSL2 环境推荐用法
+port = SagePorts.get_recommended_llm_port()  # 自动检测 WSL2 并选择合适端口
+
 # ❌ 错误用法 - 禁止硬编码
 port = 8001  # 不要这样写
 ```
@@ -148,12 +151,18 @@ port = 8001  # 不要这样写
 |------|------|------|
 | `GATEWAY_DEFAULT` | 8000 | sage-gateway (OpenAI 兼容 API Gateway) |
 | `LLM_DEFAULT` | 8001 | vLLM 推理服务 |
+| `LLM_WSL_FALLBACK` | 8901 | WSL2 备用 LLM 端口 |
 | `STUDIO_BACKEND` | 8080 | sage-studio 后端 API |
 | `STUDIO_FRONTEND` | 5173 | sage-studio 前端 (Vite) |
 | `EMBEDDING_DEFAULT` | 8090 | Embedding 服务 |
 | `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
 
 **架构**: `User → Gateway (8000) → LLM (8001)`
+
+**WSL2 已知问题**:
+- 端口 8001 在 WSL2 上可能出现"端口监听但连接被拒绝"的问题
+- 使用 `SagePorts.get_recommended_llm_port()` 自动选择合适端口
+- 或直接使用 `SagePorts.BENCHMARK_LLM` (8901) 作为备用
 
 **配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
 
@@ -214,35 +223,42 @@ service.teardown()
 - ❌ 不支持多进程共享
 - ❌ 每次 setup() 都要加载模型
 
-### 模式 2: API 模式 (IntelligentLLMClient) - 连接 API 端点
+### 模式 2: API 模式 (UnifiedInferenceClient) - 连接 API 端点 (推荐)
 
 **连接 OpenAI 兼容的 API 端点**（本地 vLLM 或云端）。适合在线服务和测试脚本。
 
 ```python
-from sage.common.components.sage_llm.client import IntelligentLLMClient
+from sage.common.components.sage_llm import UnifiedInferenceClient
 
 # 方式 A: 自动检测（推荐）- 本地优先，云端回退
-client = IntelligentLLMClient.create_auto()
+client = UnifiedInferenceClient.create_auto()
 
 # 方式 B: 指定端点
-client = IntelligentLLMClient(
-    model_name="Qwen/Qwen2.5-7B-Instruct",
-    base_url="http://localhost:8001/v1",
-    api_key=""  # 本地服务通常无需 key
+client = UnifiedInferenceClient(
+    llm_base_url="http://localhost:8001/v1",
+    llm_model="Qwen/Qwen2.5-7B-Instruct",
+    llm_api_key=""  # 本地服务通常无需 key
 )
 
 # 聊天
 response = client.chat([
-    {"role": "user", "content": "Hello!"}
+    {"role": "user", "content": "Hello."}
 ])
 print(response)  # 返回字符串
+
+# 文本生成
+text = client.generate("Once upon a time")
+
+# 向量嵌入
+vectors = client.embed(["text1", "text2"])
 ```
 
 **`create_auto()` 检测顺序**:
-1. `SAGE_CHAT_BASE_URL` 环境变量（用户显式配置）
-2. 本地 vLLM: `localhost:8001/v1`（推荐端口）
-3. 本地 vLLM: `localhost:8000/v1`（vLLM 默认端口）
-4. 云端 API: DashScope（需要 `SAGE_CHAT_API_KEY`）
+1. `SAGE_UNIFIED_BASE_URL` 环境变量（用户显式配置）
+2. 本地 LLM: `localhost:8001/v1`（推荐端口）
+3. 本地 LLM: `localhost:8000/v1`（vLLM 默认端口）
+4. 本地 Embedding: `localhost:8090`, `localhost:8080`
+5. 云端 API: DashScope（需要 `SAGE_CHAT_API_KEY`）
 
 **启动本地 vLLM API 服务**（可选，如果需要多进程共享）:
 ```bash
@@ -266,104 +282,44 @@ vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001
 
 ```
 需要批处理/离线任务？ → VLLMService（内嵌模式）
-需要在线服务/测试脚本？ → IntelligentLLMClient（API 模式）
-同时需要 LLM 和 Embedding？ → UnifiedInferenceClient（统一客户端，推荐）
+需要在线服务/测试脚本？ → UnifiedInferenceClient（推荐）
+同时需要 LLM 和 Embedding？ → UnifiedInferenceClient（推荐）
 不确定？ → UnifiedInferenceClient.create_auto()（自动检测）
 ```
 
-### UnifiedInferenceClient (sage-common) - 统一推理客户端 (NEW)
+### UnifiedInferenceClient API 参考
 
-**设计原则**: 将 LLM 和 Embedding 统一到一个客户端，共享 sageLLM 资源池，支持混合调度。
+**主要方法**:
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `chat()` | `chat(messages: list[dict]) -> str` | 聊天对话 |
+| `generate()` | `generate(prompt: str) -> str` | 文本生成 |
+| `embed()` | `embed(texts: list[str]) -> list[list[float]]` | 向量嵌入 |
 
-**三种客户端并存**:
-| 客户端 | 功能 | 推荐场景 |
-|--------|------|----------|
-| `UnifiedInferenceClient` | chat/generate/embed 统一入口 | 新项目，同时需要 LLM 和 Embedding |
-| `IntelligentLLMClient` | 仅 LLM | 现有项目，只使用 LLM，向后兼容 |
-| `IntelligentEmbeddingClient` | 仅 Embedding | 现有项目，只使用 Embedding，向后兼容 |
-
-> **重要**: 三种客户端**都连接到同一个 sageLLM 资源池**，享受混合调度的好处。
-
-```python
-from sage.common.components.sage_llm import UnifiedInferenceClient
-
-# 自动检测模式（推荐）
-client = UnifiedInferenceClient.create_auto()
-
-# 聊天
-response = client.chat([{"role": "user", "content": "Hello"}])
-
-# 文本生成
-text = client.generate("Once upon a time")
-
-# 向量嵌入
-vectors = client.embed(["text1", "text2"])
-```
-
-**`create_auto()` 检测顺序**:
-1. `SAGE_UNIFIED_BASE_URL` 环境变量
-2. 本地 LLM: `localhost:8001`, `localhost:8000`
-3. 本地 Embedding: `localhost:8090`, `localhost:8080`
-4. 云端 API: DashScope
+**工厂方法**:
+| 方法 | 说明 |
+|------|------|
+| `create_auto()` | 自动检测端点（推荐） |
+| `get_instance(instance_key)` | 单例模式，避免重复创建 |
+| `create_with_control_plane()` | 高级调度模式 |
 
 **Control Plane 模式**（高级调度）:
 ```python
 client = UnifiedInferenceClient.create_with_control_plane(
-    instances=[
-        {"host": "localhost", "port": 8001, "model_name": "Qwen/...", "instance_type": "llm"},
-        {"host": "localhost", "port": 8090, "model_name": "BAAI/bge-m3", "instance_type": "embedding"},
-    ],
-    scheduling_policy="hybrid",
+    llm_base_url="http://localhost:8001/v1",
+    llm_model="Qwen/Qwen2.5-7B-Instruct",
+    embedding_base_url="http://localhost:8090/v1",
+    embedding_model="BAAI/bge-m3",
 )
 ```
 
-**CLI 命令**:
-```bash
-sage inference start --port 8000 --background  # 启动统一推理服务
-sage inference status                          # 查看状态
-sage inference stop                            # 停止服务
-```
+### 向后兼容 (DEPRECATED)
 
-### IntelligentEmbeddingClient (sage-common) - 推荐
-
-**设计原则**: 与 LLM 一样，本地优先，自动回退。
-
-**两种模式**:
-| 模式 | 说明 | 是否需要启动服务 |
-|------|------|-----------------|
-| **API 模式** | 连接 OpenAI 兼容的 embedding server | ✅ 需要 |
-| **内嵌模式** | 进程内加载 HuggingFace 模型 | ❌ 无需 |
-
-```python
-from sage.common.components.sage_embedding import IntelligentEmbeddingClient
-
-# 方式 1: 自动检测（推荐）- 本地 server 优先，内嵌回退
-client = IntelligentEmbeddingClient.create_auto()
-vectors = client.embed(["文本1", "文本2"])  # 批量接口
-
-# 方式 2: 显式 API 模式
-client = IntelligentEmbeddingClient.create_api(
-    base_url="http://localhost:8090/v1",
-    model="BAAI/bge-m3"
-)
-
-# 方式 3: 显式内嵌模式
-client = IntelligentEmbeddingClient.create_embedded(
-    model="BAAI/bge-small-zh-v1.5"
-)
-```
-
-**`create_auto()` 检测顺序**:
-1. `SAGE_EMBEDDING_BASE_URL` 环境变量
-2. 本地 embedding server: `localhost:8090`
-3. 本地 embedding server: `localhost:8080`
-4. 内嵌模式（进程内加载 fallback_model）
-
-**启动本地 Embedding Server**（可选）:
-```bash
-cd packages/sage-common/src/sage/common/components/sage_embedding
-./start_embedding_server.sh 8090  # 默认使用 BAAI/bge-m3
-```
+以下类已弃用，但仍可使用（会发出 DeprecationWarning）：
+- `IntelligentLLMClient` → 使用 `UnifiedInferenceClient`
+- `IntelligentEmbeddingClient` → 使用 `UnifiedInferenceClient.embed()`
+- `check_llm_service()` → 使用 `UnifiedInferenceClient._check_endpoint_health()`
+- `get_llm_client()` → 使用 `UnifiedInferenceClient.create_auto()`
 
 ### EmbeddingFactory 和 EmbeddingProtocol (sage-common)
 
@@ -429,22 +385,21 @@ HF_ENDPOINT=https://hf-mirror.com  # 中国镜像
 ```
 packages/sage-common/src/sage/common/components/
   sage_llm/
-    client.py              # IntelligentLLMClient (L1)
-    unified_client.py      # UnifiedInferenceClient (统一客户端，NEW)
-    unified_api_server.py  # UnifiedAPIServer (OpenAI 兼容 API 服务器，NEW)
-    compat.py              # 兼容性适配器 (NEW)
-    service.py             # VLLMService (本地 vLLM 封装)
+    unified_client.py      # UnifiedInferenceClient (统一客户端，推荐)
+    unified_api_server.py  # UnifiedAPIServer (OpenAI 兼容 API 服务器)
+    service.py             # VLLMService (内嵌 vLLM 封装)
+    api_server.py          # LLMAPIServer (LLM API 服务器)
     control_plane_service.py  # 多实例调度
+    client.py              # DEPRECATED: 向后兼容别名
     sageLLM/control_plane/ # Control Plane 调度框架
-      request_classifier.py    # 请求分类器 (NEW)
-      strategies/hybrid_policy.py  # 混合调度策略 (NEW)
+      strategies/hybrid_policy.py  # 混合调度策略
   sage_embedding/
-    client.py              # IntelligentEmbeddingClient (推荐，API/内嵌双模式)
     factory.py             # EmbeddingFactory (创建单文本embedder)
     protocols.py           # EmbeddingProtocol, EmbeddingClientAdapter (批量接口)
     embedding_server.py    # FastAPI embedding server (OpenAI 兼容)
-    service.py             # EmbedderService
+    service.py             # EmbeddingService
     base.py                # BaseEmbedding (单文本接口基类)
+    client.py              # DEPRECATED: 向后兼容别名
 ```
 
 ## sage-benchmark 组件
@@ -479,7 +434,7 @@ registry = get_adapter_registry()
 # 工具选择策略
 selector = registry.create_adapter("selector.keyword")  # keyword, embedding, hybrid
 
-# 任务规划策略 (使用 IntelligentLLMClient)
+# 任务规划策略 (使用 UnifiedInferenceClient)
 planner = registry.create_adapter("planner.llm_based")  # simple, hierarchical, llm_based
 
 # 时机决策策略

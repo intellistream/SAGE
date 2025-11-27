@@ -1,7 +1,7 @@
 import os
 import time
 
-from sage.common.components.sage_llm.client import IntelligentLLMClient
+from sage.common.components.sage_llm import UnifiedInferenceClient
 from sage.libs.foundation.tools.tool import BaseTool
 
 
@@ -50,7 +50,7 @@ class ImageCaptioner(BaseTool):
             ]
 
             # Use auto-detection for best available LLM service
-            client = IntelligentLLMClient.create_auto(model_name=self.model_name)
+            client = UnifiedInferenceClient.create_auto()
 
             # Retry mechanism for connection errors
             max_retries = 5
@@ -58,7 +58,7 @@ class ImageCaptioner(BaseTool):
 
             for attempt in range(max_retries):
                 try:
-                    response = client.generate(messages=messages)
+                    response = client.chat(messages)
                     return response
                 except ConnectionError as e:
                     print(f"Connection error on attempt {attempt + 1}: {e}")

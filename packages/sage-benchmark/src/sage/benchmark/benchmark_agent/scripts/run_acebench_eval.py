@@ -84,32 +84,17 @@ class ACEBenchEvaluator:
         self._client: Any = None
 
     def setup(self) -> None:
-        """Initialize LLM client."""
-        from sage.common.components.sage_llm import (
-            IntelligentLLMClient,
-            check_vllm_available,
-        )
+        """Initialize LLM client using UnifiedInferenceClient."""
+        from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        if self.use_embedded:
-            if not check_vllm_available():
-                raise RuntimeError(
-                    "Embedded LLM requires vLLM and GPU. Install vLLM or use API mode."
-                )
-            model = self.model_id or IntelligentLLMClient.DEFAULT_EMBEDDED_MODEL
-            logger.info(f"Setting up embedded LLM: {model}")
-            self._client = IntelligentLLMClient.create_embedded(model_id=model)
-            self.model_id = model
-        else:
-            logger.info("Setting up API-based LLM client...")
-            self._client = IntelligentLLMClient.create_auto()
-            self.model_id = self._client.model_name
+        logger.info("Setting up LLM client via UnifiedInferenceClient...")
+        self._client = UnifiedInferenceClient.create_auto()
+        # Get model name from client if available
+        self.model_id = getattr(self._client, "llm_model", self.model_id) or "auto"
 
     def teardown(self) -> None:
         """Cleanup resources."""
-        if self.use_embedded:
-            from sage.common.components.sage_llm import IntelligentLLMClient
-
-            IntelligentLLMClient.clear_embedded_instances()
+        pass  # UnifiedInferenceClient handles cleanup internally
 
     def evaluate_sample(self, sample: dict[str, Any]) -> EvalResult:
         """
@@ -177,12 +162,8 @@ Selected tool(s):"""
 
     def _generate(self, prompt: str) -> str:
         """Generate response from LLM."""
-        # IntelligentLLMClient provides unified chat interface
-        return self._client.chat(
-            [{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=200,
-        )
+        # UnifiedInferenceClient.chat() returns string directly
+        return self._client.chat([{"role": "user", "content": prompt}])
 
     def _parse_response(self, response: str, candidate_tools: list[str]) -> list[str]:
         """Parse tool names from response."""

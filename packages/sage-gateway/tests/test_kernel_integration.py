@@ -136,7 +136,7 @@ class TestKernelIntegration:
             )
 
             # Mock the fallback LLM to avoid actual API calls
-            with patch("sage.common.components.sage_llm.client.IntelligentLLMClient") as MockClient:
+            with patch("sage.common.components.sage_llm.UnifiedInferenceClient") as MockClient:
                 mock_client = MagicMock()
                 mock_client.generate.return_value = "抱歉，处理请求时出错：Network error"
                 MockClient.return_value = mock_client
@@ -168,7 +168,7 @@ class TestKernelIntegration:
             "SAGE_CHAT_API_KEY": "custom-key",  # pragma: allowlist secret
         }
 
-        with patch("sage.common.components.sage_llm.client.IntelligentLLMClient") as MockClient:
+        with patch("sage.common.components.sage_llm.UnifiedInferenceClient") as MockClient:
             mock_client = MagicMock()
             mock_client.generate.return_value = "Response"
             MockClient.return_value = mock_client
