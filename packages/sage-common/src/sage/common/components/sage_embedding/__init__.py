@@ -34,11 +34,17 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 # 新架构：统一的 embedding 接口
 from .base import BaseEmbedding
+from .client import IntelligentEmbeddingClient, get_embedding_client
 from .factory import (
     EmbeddingFactory,
     check_model_availability,
     get_embedding_model,
     list_embedding_models,
+)
+from .protocols import (
+    EmbeddingClientAdapter,
+    EmbeddingProtocol,
+    adapt_embedding_client,
 )
 from .registry import EmbeddingRegistry, ModelInfo, ModelStatus
 

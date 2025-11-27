@@ -81,9 +81,9 @@ AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
 HOOKS_PROFILE="lightweight"
-USE_PIP_MIRROR=false
+USE_PIP_MIRROR=true  # 默认启用pip镜像自动检测（中国用户自动使用清华源）
 MIRROR_SOURCE="auto"
-RESUME_INSTALL=false  # 新增：断点续传
+RESUME_INSTALL=true  # 默认启用断点续传（安装失败时自动恢复）
 RESET_CHECKPOINT=false  # 新增：重置检查点
 CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
 
@@ -477,13 +477,20 @@ show_parameter_help() {
     echo -e "    ${DIM}lightweight: 仅安装 hook 脚本，首次提交再下载依赖${NC}"
     echo -e "    ${DIM}full: 立即下载完整工具链，适合离线/CI${NC}"
     echo ""
-    echo -e "  ${BOLD}--use-mirror [源]${NC}                        ${GREEN}自动切换 pip 镜像${NC}"
-    echo -e "    ${DIM}无参数=auto，根据语言/时区选择最优镜像${NC}"
-    echo -e "    ${DIM}支持: tsinghua, aliyun, tencent, pypi, custom:<url>${NC}"
+    echo -e "  ${BOLD}--use-mirror [源]${NC}                        ${GREEN}使用 pip 镜像（默认自动检测）${NC}"
+    echo -e "    ${DIM}无参数=auto，根据网络位置自动选择最优镜像${NC}"
+    echo -e "    ${DIM}支持: auto, aliyun, tencent, pypi, custom:<url>${NC}"
+    echo -e "    ${DIM}注意: 默认已启用自动检测，中国用户自动使用清华源${NC}"
     echo ""
-    echo -e "  ${BOLD}--resume${NC}                                ${BLUE}断点续传安装${NC}"
+    echo -e "  ${BOLD}--no-mirror${NC}                              ${YELLOW}禁用 pip 镜像${NC}"
+    echo -e "    ${DIM}强制使用官方 PyPI（默认会自动检测网络环境）${NC}"
+    echo ""
+    echo -e "  ${BOLD}--resume${NC}                                ${BLUE}断点续传安装（默认启用）${NC}"
     echo -e "    ${DIM}从上次失败的地方继续安装${NC}"
-    echo -e "    ${DIM}如果没有断点，等同于重新安装${NC}"
+    echo -e "    ${DIM}如果没有断点，等同于正常安装${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-resume${NC}                             ${YELLOW}禁用断点续传${NC}"
+    echo -e "    ${DIM}强制从头开始安装，忽略之前的进度${NC}"
     echo ""
     echo -e "  ${BOLD}--reset-checkpoint${NC}                      ${YELLOW}重置安装进度${NC}"
     echo -e "    ${DIM}清除之前的安装记录，从头开始${NC}"
@@ -704,6 +711,10 @@ parse_resume_option() {
             RESUME_INSTALL=true
             return 0
             ;;
+        "--no-resume")
+            RESUME_INSTALL=false
+            return 0
+            ;;
         "--reset-checkpoint")
             RESET_CHECKPOINT=true
             return 0
@@ -786,6 +797,10 @@ parse_arguments() {
                 MIRROR_SOURCE="auto"
                 shift
             fi
+        elif [[ "$param" == "--no-mirror" ]]; then
+            USE_PIP_MIRROR=false
+            MIRROR_SOURCE="disable"
+            shift
         elif parse_install_mode "$param"; then
             # 安装模式参数
             shift
@@ -979,7 +994,13 @@ show_install_configuration() {
     fi
 
     if [ "$USE_PIP_MIRROR" = true ]; then
-        echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}$MIRROR_SOURCE${NC}"
+        if [ "$MIRROR_SOURCE" = "auto" ]; then
+            echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}自动检测${NC} ${DIM}(中国网络自动使用清华源)${NC}"
+        else
+            echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}$MIRROR_SOURCE${NC}"
+        fi
+    else
+        echo -e "  ${BLUE}pip 镜像:${NC} ${YELLOW}已禁用${NC} ${DIM}(使用官方 PyPI)${NC}"
     fi
 
     if [ "$CLEAN_PIP_CACHE" = false ]; then
