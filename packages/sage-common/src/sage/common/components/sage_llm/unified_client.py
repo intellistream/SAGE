@@ -749,9 +749,7 @@ class UnifiedInferenceClient:
             }
         except Exception:
             # Fall back to chat API
-            typed_messages: list[ChatCompletionMessageParam] = [
-                {"role": "user", "content": prompt}
-            ]
+            typed_messages: list[ChatCompletionMessageParam] = [{"role": "user", "content": prompt}]
             response = self._llm_client.chat.completions.create(
                 model=actual_model,
                 messages=typed_messages,
@@ -1006,9 +1004,7 @@ class UnifiedInferenceClient:
     def _get_default_embedding_model(self) -> str:
         """Get default embedding model from server."""
         try:
-            if self._embedding_client is not None and hasattr(
-                self._embedding_client, "models"
-            ):
+            if self._embedding_client is not None and hasattr(self._embedding_client, "models"):
                 models = self._embedding_client.models.list()  # type: ignore[union-attr]
                 if models.data:
                     return models.data[0].id

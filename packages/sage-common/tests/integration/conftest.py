@@ -19,7 +19,6 @@ import json
 import os
 import sys
 import time
-from collections.abc import AsyncGenerator, Generator
 from dataclasses import dataclass
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -36,7 +35,6 @@ from sage.common.components.sage_llm.sageLLM.control_plane.types import (
     RequestPriority,
     RequestType,
 )
-
 
 # =============================================================================
 # Mock Backend Fixtures
@@ -86,9 +84,7 @@ class MockLLMBackend:
         """Get the base URL for this backend."""
         return f"http://{self.host}:{self.port}/v1"
 
-    async def handle_chat_completion(
-        self, request: dict[str, Any]
-    ) -> MockBackendResponse:
+    async def handle_chat_completion(self, request: dict[str, Any]) -> MockBackendResponse:
         """Handle a chat completion request.
 
         Args:

@@ -91,21 +91,11 @@ class GorillaSelectorAdapter(BaseSelectorAdapter):
         if self._selector is None:
             self._init_selector()
 
-        from sage.libs.agentic.agents.action.tool_selection.schemas import (
-            ToolSelectionQuery,
-        )
-
-        selector_query = ToolSelectionQuery(
-            sample_id="eval",
-            instruction=query,
-            candidate_tools=[
-                {"id": t.id, "name": t.name, "description": t.description} for t in candidate_tools
-            ],
-            context={},
-        )
+        # Pass tool IDs only (schema expects list[str])
+        tool_ids_input = [t.id for t in candidate_tools]
 
         try:
-            results = self._selector.select(selector_query, top_k=top_k)
+            results = self._selector.select(query, tool_ids_input, top_k=top_k)
             tool_ids = [r.tool_id if hasattr(r, "tool_id") else str(r) for r in results]
             scores = [r.score if hasattr(r, "score") else 1.0 for r in results]
             return SelectionResult(tool_ids=tool_ids, scores=scores)
@@ -114,10 +104,11 @@ class GorillaSelectorAdapter(BaseSelectorAdapter):
             return SelectionResult(tool_ids=[])
 
     def _init_selector(self):
-        from sage.libs.agentic.agents.action.tool_selection import SelectorRegistry
+        # Use adapter_registry which handles resources correctly
+        from sage.benchmark.benchmark_agent import get_adapter_registry
 
-        registry = SelectorRegistry()
-        self._selector = registry.create("gorilla")
+        registry = get_adapter_registry()
+        self._selector = registry.get("selector.gorilla")
 
 
 class DFSDTSelectorAdapter(BaseSelectorAdapter):
@@ -145,21 +136,11 @@ class DFSDTSelectorAdapter(BaseSelectorAdapter):
         if self._selector is None:
             self._init_selector()
 
-        from sage.libs.agentic.agents.action.tool_selection.schemas import (
-            ToolSelectionQuery,
-        )
-
-        selector_query = ToolSelectionQuery(
-            sample_id="eval",
-            instruction=query,
-            candidate_tools=[
-                {"id": t.id, "name": t.name, "description": t.description} for t in candidate_tools
-            ],
-            context={},
-        )
+        # Pass tool IDs only (schema expects list[str])
+        tool_ids_input = [t.id for t in candidate_tools]
 
         try:
-            results = self._selector.select(selector_query, top_k=top_k)
+            results = self._selector.select(query, tool_ids_input, top_k=top_k)
             tool_ids = [r.tool_id if hasattr(r, "tool_id") else str(r) for r in results]
             scores = [r.score if hasattr(r, "score") else 1.0 for r in results]
             return SelectionResult(tool_ids=tool_ids, scores=scores)
@@ -168,10 +149,11 @@ class DFSDTSelectorAdapter(BaseSelectorAdapter):
             return SelectionResult(tool_ids=[])
 
     def _init_selector(self):
-        from sage.libs.agentic.agents.action.tool_selection import SelectorRegistry
+        # Use adapter_registry which handles resources correctly
+        from sage.benchmark.benchmark_agent import get_adapter_registry
 
-        registry = SelectorRegistry()
-        self._selector = registry.create("dfsdt")
+        registry = get_adapter_registry()
+        self._selector = registry.get("selector.dfsdt")
 
 
 # =============================================================================
@@ -222,16 +204,20 @@ def load_acebench_dataset(
 ) -> list[ToolSelectionSample]:
     """Load ACEBench/ToolACE dataset from HuggingFace."""
     try:
-        from sage.benchmark.benchmark_agent.data.acebench_loader import (
-            ACEBenchLoader,
+        from sage.benchmark.benchmark_agent.acebench_loader import (
+            ToolACELoader,
         )
 
-        loader = ACEBenchLoader(cache_dir=cache_dir)
-        raw_samples = loader.load_samples(max_samples=max_samples or 100)
+        loader = ToolACELoader(
+            max_samples=max_samples or 100,
+            cache_dir=cache_dir,
+        )
 
         samples = []
-        for raw in raw_samples:
-            sample = ToolSelectionSample.from_acebench(raw)
+        for ace_sample in loader.load():
+            # Convert ACEBenchSample to dict, then to ToolSelectionSample
+            sage_format = ace_sample.to_sage_format()
+            sample = ToolSelectionSample.from_acebench(sage_format)
             samples.append(sample)
 
         logger.info(f"Loaded {len(samples)} ACEBench samples")
@@ -239,6 +225,9 @@ def load_acebench_dataset(
 
     except Exception as e:
         logger.warning(f"Failed to load ACEBench: {e}")
+        import traceback
+
+        traceback.print_exc()
         return []
 
 

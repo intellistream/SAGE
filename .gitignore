@@ -188,6 +188,9 @@ temp_ci_test_env
 ./experiment/data
 ./experiment/results
 
+# Benchmark experiment results (should be in .sage/benchmark/results/)
+experiment_results*/
+
 # ============================================
 # RAG系统数据文件
 # ============================================
