@@ -66,6 +66,10 @@ except ImportError:
     ControlPlaneVLLMServiceConfig = None  # type: ignore
 
 
+# Global instance cache for singleton pattern
+_llm_client_instances: dict[str, IntelligentLLMClient] = {}
+
+
 class IntelligentLLMClient:
     """Intelligent LLM client with auto-detection and cloud fallback.
 
@@ -267,6 +271,85 @@ class IntelligentLLMClient:
             api_key=config["api_key"],
             **kwargs,
         )
+
+    @classmethod
+    def get_instance(
+        cls,
+        model_name: str | None = None,
+        cache_key: str | None = None,
+        **kwargs: Any,
+    ) -> IntelligentLLMClient:
+        """Get or create a cached LLM client instance (singleton pattern).
+
+        This method caches client instances to avoid repeated model loading
+        when using local vLLM services. The same instance is returned for
+        the same cache_key within the same process.
+
+        Args:
+            model_name: Optional model override
+            cache_key: Custom cache key. If not provided, uses model_name or "default"
+            **kwargs: Additional arguments passed to create_auto()
+
+        Returns:
+            Cached or newly created IntelligentLLMClient instance
+
+        Example:
+            >>> # First call creates the instance
+            >>> client1 = IntelligentLLMClient.get_instance()
+            >>>
+            >>> # Second call returns the same instance (no re-loading)
+            >>> client2 = IntelligentLLMClient.get_instance()
+            >>> assert client1 is client2
+            >>>
+            >>> # Use different cache key for different models
+            >>> client_7b = IntelligentLLMClient.get_instance(cache_key="7b-chat")
+            >>> client_72b = IntelligentLLMClient.get_instance(cache_key="72b-instruct")
+        """
+        global _llm_client_instances
+
+        key = cache_key or model_name or "default"
+
+        if key not in _llm_client_instances:
+            logger.info(f"🔄 Creating new LLM client instance (cache_key={key})")
+            _llm_client_instances[key] = cls.create_auto(model_name=model_name, **kwargs)
+        else:
+            logger.debug(f"♻️  Reusing cached LLM client instance (cache_key={key})")
+
+        return _llm_client_instances[key]
+
+    @classmethod
+    def clear_instances(cls, cache_key: str | None = None) -> int:
+        """Clear cached client instances.
+
+        Args:
+            cache_key: Specific instance to clear. If None, clears all instances.
+
+        Returns:
+            Number of instances cleared
+        """
+        global _llm_client_instances
+
+        if cache_key is not None:
+            if cache_key in _llm_client_instances:
+                del _llm_client_instances[cache_key]
+                logger.info(f"🗑️  Cleared LLM client instance: {cache_key}")
+                return 1
+            return 0
+        else:
+            count = len(_llm_client_instances)
+            _llm_client_instances.clear()
+            logger.info(f"🗑️  Cleared all {count} LLM client instances")
+            return count
+
+    @classmethod
+    def get_cached_keys(cls) -> list[str]:
+        """Get list of currently cached instance keys.
+
+        Returns:
+            List of cache keys
+        """
+        global _llm_client_instances
+        return list(_llm_client_instances.keys())
 
     @staticmethod
     def _detect_llm_config(
@@ -620,4 +703,104 @@ class IntelligentLLMClient:
             self._control_plane_service = None
 
 
-__all__ = ["IntelligentLLMClient"]
+def check_llm_service(verbose: bool = True) -> dict[str, Any]:
+    """Check and report LLM service availability.
+
+    This function probes local and cloud LLM services and returns
+    a status report. Useful for diagnostics and startup checks.
+
+    Args:
+        verbose: If True, print status messages to stdout
+
+    Returns:
+        Dict with service status information:
+        - local_available: bool
+        - local_endpoint: str or None
+        - local_model: str or None
+        - cloud_configured: bool
+        - recommended_action: str
+
+    Example:
+        >>> status = check_llm_service()
+        >>> if not status["local_available"]:
+        ...     print(status["recommended_action"])
+    """
+    status: dict[str, Any] = {
+        "local_available": False,
+        "local_endpoint": None,
+        "local_model": None,
+        "cloud_configured": False,
+        "recommended_action": "",
+    }
+
+    # Check local services
+    local_endpoints = [
+        ("localhost:8001", "http://localhost:8001/v1"),
+        ("localhost:8000", "http://localhost:8000/v1"),
+    ]
+
+    for name, endpoint in local_endpoints:
+        model = IntelligentLLMClient._probe_vllm_service(endpoint, timeout=1.5)
+        if model:
+            status["local_available"] = True
+            status["local_endpoint"] = endpoint
+            status["local_model"] = model
+            if verbose:
+                print(f"✅ 检测到本地 vLLM 服务: {name} (model: {model})")
+            break
+
+    if not status["local_available"] and verbose:
+        print("⚠️  未检测到本地 vLLM 服务")
+
+    # Check cloud configuration
+    api_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("SAGE_CHAT_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+
+    if api_key:
+        status["cloud_configured"] = True
+        if verbose:
+            cloud_name = "DashScope" if not base_url or "dashscope" in base_url else "Cloud API"
+            print(f"☁️  已配置云端 API: {cloud_name}")
+    elif verbose:
+        print("⚠️  未配置云端 API (SAGE_CHAT_API_KEY)")
+
+    # Generate recommendation
+    if status["local_available"]:
+        status["recommended_action"] = "使用本地服务 (推荐)"
+    elif status["cloud_configured"]:
+        status["recommended_action"] = "使用云端 API (注意成本)"
+    else:
+        status["recommended_action"] = (
+            "建议启动本地 vLLM 服务:\n"
+            "  vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001\n"
+            "或设置云端 API:\n"
+            "  export SAGE_CHAT_API_KEY=your-api-key"
+        )
+
+    if verbose and not status["local_available"] and not status["cloud_configured"]:
+        print(f"\n💡 {status['recommended_action']}")
+
+    return status
+
+
+def get_llm_client(cache_key: str | None = None, **kwargs: Any) -> IntelligentLLMClient:
+    """Convenience function to get a cached LLM client.
+
+    This is a shorthand for IntelligentLLMClient.get_instance().
+
+    Args:
+        cache_key: Optional cache key for the instance
+        **kwargs: Additional arguments passed to get_instance()
+
+    Returns:
+        Cached or newly created IntelligentLLMClient instance
+
+    Example:
+        >>> from sage.common.components.sage_llm import get_llm_client
+        >>> client = get_llm_client()
+        >>> response = client.chat([{"role": "user", "content": "Hello"}])
+    """
+    return IntelligentLLMClient.get_instance(cache_key=cache_key, **kwargs)
+
+
+__all__ = ["IntelligentLLMClient", "check_llm_service", "get_llm_client"]

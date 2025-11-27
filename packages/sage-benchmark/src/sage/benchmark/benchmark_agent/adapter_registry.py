@@ -482,8 +482,10 @@ class AdapterRegistry:
                     try:
                         from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-                        # create_auto() will: 1) detect local vLLM first 2) fall back to cloud if needed
-                        self._llm_client = IntelligentLLMClient.create_auto(probe_timeout=1.0)
+                        # Use singleton to avoid repeated model loading
+                        self._llm_client = IntelligentLLMClient.get_instance(
+                            cache_key="benchmark_hybrid", probe_timeout=1.0
+                        )
                     except Exception:
                         self._llm_client = None
 
@@ -1059,8 +1061,9 @@ Only output the JSON, nothing else."""
                 try:
                     from sage.common.components.sage_llm import IntelligentLLMClient
 
-                    self._client = IntelligentLLMClient.create_auto(
-                        probe_timeout=1.0,
+                    # Use singleton to avoid repeated model loading
+                    self._client = IntelligentLLMClient.get_instance(
+                        cache_key="benchmark_timing", probe_timeout=1.0
                     )
                     return True
                 except Exception as e:
@@ -1159,10 +1162,17 @@ Only output the JSON, nothing else."""
 
         class RuleBasedDecider:
             """
-            Enhanced rule-based timing decider.
+            Enhanced rule-based timing decider v2.
 
-            Uses pattern matching and keyword analysis to determine
+            Uses multi-layer pattern matching and keyword analysis to determine
             if a message requires tool invocation.
+
+            Improvements over v1:
+            - Added patterns for prediction/forecast queries (stock prices, future events)
+            - Added patterns for data lookup queries (calories, nutritional info)
+            - Added NO_TOOL patterns for advice/opinion questions
+            - Improved confidence scoring with weighted categories
+            - Better handling of edge cases (e.g., "should I" questions)
             """
 
             # Patterns that strongly indicate tool invocation is needed
@@ -1172,19 +1182,55 @@ Only output the JSON, nothing else."""
                 r"\bwhat('s| is) the (current|latest)\b",
                 r"\b(weather|temperature|forecast)\s+(in|for|at)\b",
                 r"\b(stock|share) (price|value|chart)\b",
+                # Time queries
+                r"\bwhat('s| is) the\s+(current\s+)?time\s+(in|at)\b",
+                r"\bwhat time is it in\b",
+                # Prediction/Forecast queries (needs tool for data)
+                r"\bwhat will\b.*\b(price|stock|weather|be)\b.*\b(next|tomorrow|week|month)\b",
+                r"\bwill it\b.*\b(rain|snow|be sunny|be cold|be hot)\b",
+                r"\b(forecast|predict|projection)\s+for\b",
                 # Actions and operations
                 r"\b(search|find|look up|fetch|retrieve|get|query)\s+(for|the|about)?\b",
                 r"\b(calculate|compute|convert)\s+",
                 r"\b(create|generate|make|build)\s+(a|an|the)?\s*(file|document|spreadsheet|chart|report)\b",
                 r"\b(send|email|schedule|book|reserve|cancel)\s+",
-                r"\b(open|close|save|delete|rename|move|copy)\s+(the|a|this)?\s*file\b",
-                r"\b(run|execute|compile|debug|test)\s+(this|the|a)?\s*(code|script|program|command)\b",
+                # File operations (enhanced patterns)
+                r"\b(open|close|save|delete|rename|move|copy)\s+(the|a|this)?\s*(file|document|report|spreadsheet)\b",
+                r"\bsave\s+(this|the|a)\s+(document|file|data)\b",
+                r"\bsave\s+.*\s+as\b",  # "save X as Y"
+                r"\bopen\s+(the|a)\s+file\b",
+                r"\bdelete\s+(the|a)\s+file\b",
+                # Code execution (enhanced patterns)
+                r"\b(run|execute|compile|debug|test)\s+(this|the|a)?\s*(code|script|program|command|python|javascript)\b",
+                r"\brun\s+this\s+\w+\s+code\b",  # "run this Python code"
+                r"\bexecute\s+(this|the)\s+(script|code|program)\b",
                 # Database/API operations
                 r"\b(select|insert|update|delete)\s+.*\b(from|into|where)\b",
                 r"\bapi\s+(call|request|endpoint)\b",
+                # Data lookup queries (needs external database)
+                r"\bhow many calories\b",
+                r"\b(calories|carbs|protein|fat|nutrition)\s+(in|of)\b",
+                r"\b(nutritional|nutrition)\s+(info|information|value|data)\b",
+                r"\bexchange rate\s+(for|of|between)\b",
+                r"\bconvert\s+\d+\s*\w+\s+to\b",
             ]
 
-            # Keywords indicating tool invocation
+            # Patterns that indicate NO tool needed (advice, opinion, philosophical)
+            NO_TOOL_PATTERNS = [
+                # Advice/Opinion questions
+                r"\bshould i\b",
+                r"\bwhat do you think\b",
+                r"\bwhat('s| is) your opinion\b",
+                r"\bdo you recommend\b",
+                r"\bany (tips|advice|suggestions)\b",
+                r"\bis it (a good|worth|better)\b",
+                # Personal/Philosophical questions
+                r"\bwhat('s| is) the meaning of life\b",
+                r"\bwhy (do|should) (we|i|people)\b",
+                r"\bhow (do|can) i (feel|cope|deal)\b",
+            ]
+
+            # Keywords indicating tool invocation (with weights)
             TOOL_KEYWORDS = frozenset(
                 [
                     # Search/Retrieve
@@ -1207,7 +1253,7 @@ Only output the JSON, nothing else."""
                     "delete",
                     "modify",
                     "edit",
-                    # Real-time
+                    # Real-time indicators
                     "current",
                     "live",
                     "real-time",
@@ -1216,7 +1262,7 @@ Only output the JSON, nothing else."""
                     "now",
                     "today",
                     "right now",
-                    # Specific domains
+                    # Specific domains requiring tools
                     "weather",
                     "stock",
                     "price",
@@ -1224,6 +1270,8 @@ Only output the JSON, nothing else."""
                     "traffic",
                     "flight",
                     "news",
+                    "calories",
+                    "nutritional",
                     # File/System operations
                     "open",
                     "save",
@@ -1251,6 +1299,25 @@ Only output the JSON, nothing else."""
                 ]
             )
 
+            # High-weight keywords that strongly suggest tool usage
+            HIGH_WEIGHT_TOOL_KEYWORDS = frozenset(
+                [
+                    "search",
+                    "calculate",
+                    "weather",
+                    "stock",
+                    "price",
+                    "calories",
+                    "execute",
+                    "run code",
+                    "compile",
+                    "exchange rate",
+                    "schedule",
+                    "book",
+                    "send email",
+                ]
+            )
+
             # Keywords indicating NO tool needed (direct answer)
             NO_TOOL_KEYWORDS = frozenset(
                 [
@@ -1262,7 +1329,7 @@ Only output the JSON, nothing else."""
                     "meaning of",
                     "explain",
                     "describe",
-                    # Factual (static)
+                    # Factual (static knowledge)
                     "who was",
                     "who is",
                     "who invented",
@@ -1274,7 +1341,7 @@ Only output the JSON, nothing else."""
                     "capital of",
                     "population of",
                     "history of",
-                    # Knowledge
+                    # Knowledge/Educational
                     "how does",
                     "how do",
                     "why do",
@@ -1287,27 +1354,54 @@ Only output the JSON, nothing else."""
                     "thank you",
                     "goodbye",
                     "bye",
-                    # Opinion/Advice
+                    # Opinion/Advice (important: these do NOT need tools)
                     "what do you think",
                     "your opinion",
                     "any tips",
                     "advice",
                     "suggest",
                     "recommend",
-                    # Creative
+                    "should i",
+                    "is it worth",
+                    "is it a good idea",
+                    "pros and cons",
+                    # Creative writing
                     "write a",
                     "compose",
                     "create a story",
                     "create a poem",
                     "tell me a story",
+                    # Math/Science knowledge (not calculations)
+                    "pythagorean theorem",
+                    "quadratic formula",
+                    "what is pi",
+                ]
+            )
+
+            # High-weight keywords that strongly suggest NO tool
+            HIGH_WEIGHT_NO_TOOL_KEYWORDS = frozenset(
+                [
+                    "should i",
+                    "what do you think",
+                    "your opinion",
+                    "recommend",
+                    "advice",
+                    "capital of",
+                    "who invented",
+                    "who wrote",
+                    "explain",
+                    "define",
                 ]
             )
 
             def __init__(self):
                 import re
 
-                self._compiled_patterns = [
+                self._compiled_tool_patterns = [
                     re.compile(p, re.IGNORECASE) for p in self.TOOL_REQUIRED_PATTERNS
+                ]
+                self._compiled_no_tool_patterns = [
+                    re.compile(p, re.IGNORECASE) for p in self.NO_TOOL_PATTERNS
                 ]
 
             def decide(self, message):
@@ -1317,46 +1411,84 @@ Only output the JSON, nothing else."""
 
                 text = message.message.lower()
 
-                # Check for strong tool patterns first
-                pattern_match = any(p.search(text) for p in self._compiled_patterns)
-                if pattern_match:
+                # Priority 1: Check for strong NO-TOOL patterns first (advice/opinion)
+                # These override tool patterns because the question is fundamentally
+                # asking for advice, not data retrieval
+                no_tool_pattern_match = any(p.search(text) for p in self._compiled_no_tool_patterns)
+                if no_tool_pattern_match:
+                    # Even if there are tool-like keywords, the core question is advice
+                    return TimingDecision(
+                        should_call_tool=False,
+                        confidence=0.9,
+                        reasoning="Strong pattern match for advice/opinion question (no tool needed)",
+                    )
+
+                # Priority 2: Check for strong TOOL patterns
+                tool_pattern_match = any(p.search(text) for p in self._compiled_tool_patterns)
+                if tool_pattern_match:
                     return TimingDecision(
                         should_call_tool=True,
                         confidence=0.95,
                         reasoning="Strong pattern match for tool invocation",
                     )
 
-                # Count keyword matches
+                # Priority 3: Weighted keyword analysis
+                # Calculate weighted scores
                 tool_score = sum(1 for kw in self.TOOL_KEYWORDS if kw in text)
-                no_tool_score = sum(1 for kw in self.NO_TOOL_KEYWORDS if kw in text)
+                high_tool_score = sum(2 for kw in self.HIGH_WEIGHT_TOOL_KEYWORDS if kw in text)
+                total_tool_score = tool_score + high_tool_score
 
-                # Weighted decision
-                if tool_score > 0 and no_tool_score == 0:
+                no_tool_score = sum(1 for kw in self.NO_TOOL_KEYWORDS if kw in text)
+                high_no_tool_score = sum(
+                    2 for kw in self.HIGH_WEIGHT_NO_TOOL_KEYWORDS if kw in text
+                )
+                total_no_tool_score = no_tool_score + high_no_tool_score
+
+                # Decision based on weighted scores
+                if total_tool_score > 0 and total_no_tool_score == 0:
+                    confidence = min(0.7 + total_tool_score * 0.08, 0.95)
                     return TimingDecision(
                         should_call_tool=True,
-                        confidence=min(0.7 + tool_score * 0.1, 0.95),
-                        reasoning=f"Tool keywords detected ({tool_score})",
+                        confidence=confidence,
+                        reasoning=f"Tool keywords detected (score: {total_tool_score})",
                     )
-                elif no_tool_score > 0 and tool_score == 0:
+                elif total_no_tool_score > 0 and total_tool_score == 0:
+                    confidence = min(0.7 + total_no_tool_score * 0.08, 0.95)
                     return TimingDecision(
                         should_call_tool=False,
-                        confidence=min(0.7 + no_tool_score * 0.1, 0.95),
-                        reasoning=f"No-tool keywords detected ({no_tool_score})",
+                        confidence=confidence,
+                        reasoning=f"No-tool keywords detected (score: {total_no_tool_score})",
                     )
-                elif tool_score > no_tool_score:
+                elif total_tool_score > total_no_tool_score:
+                    score_diff = total_tool_score - total_no_tool_score
+                    confidence = min(0.55 + score_diff * 0.08, 0.85)
                     return TimingDecision(
                         should_call_tool=True,
-                        confidence=0.6 + (tool_score - no_tool_score) * 0.05,
-                        reasoning=f"More tool keywords ({tool_score} vs {no_tool_score})",
+                        confidence=confidence,
+                        reasoning=f"More tool keywords ({total_tool_score} vs {total_no_tool_score})",
                     )
-                elif no_tool_score > tool_score:
+                elif total_no_tool_score > total_tool_score:
+                    score_diff = total_no_tool_score - total_tool_score
+                    confidence = min(0.55 + score_diff * 0.08, 0.85)
                     return TimingDecision(
                         should_call_tool=False,
-                        confidence=0.6 + (no_tool_score - tool_score) * 0.05,
-                        reasoning=f"More no-tool keywords ({no_tool_score} vs {tool_score})",
+                        confidence=confidence,
+                        reasoning=f"More no-tool keywords ({total_no_tool_score} vs {total_tool_score})",
                     )
                 else:
-                    # Default: assume no tool needed for ambiguous cases
+                    # Ambiguous case: use heuristics
+                    # Check for question words that might indicate knowledge queries
+                    knowledge_indicators = ["what is", "who is", "where is", "when was"]
+                    is_knowledge_query = any(ind in text for ind in knowledge_indicators)
+
+                    if is_knowledge_query:
+                        return TimingDecision(
+                            should_call_tool=False,
+                            confidence=0.55,
+                            reasoning="Ambiguous - appears to be knowledge query, defaulting to no tool",
+                        )
+
+                    # Default: assume no tool needed for truly ambiguous cases
                     return TimingDecision(
                         should_call_tool=False,
                         confidence=0.5,
@@ -2204,7 +2336,10 @@ Return ONLY the JSON array, no explanation. Example:
                 try:
                     from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-                    self._llm_client = IntelligentLLMClient.create_auto(probe_timeout=1.0)
+                    # Use singleton to avoid repeated model loading
+                    self._llm_client = IntelligentLLMClient.get_instance(
+                        cache_key="benchmark_planner", probe_timeout=1.0
+                    )
                 except Exception:
                     self._llm_client = None
 

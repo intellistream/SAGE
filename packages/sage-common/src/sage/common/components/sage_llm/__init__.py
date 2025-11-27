@@ -17,7 +17,7 @@ Architecture:
 """
 
 from .api_server import LLMAPIServer, LLMServerConfig
-from .client import IntelligentLLMClient
+from .client import IntelligentLLMClient, check_llm_service, get_llm_client
 from .service import VLLMService, VLLMServiceConfig
 
 # Optional: Advanced Control Plane service
@@ -35,6 +35,8 @@ try:
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
         "IntelligentLLMClient",
+        "check_llm_service",
+        "get_llm_client",
     ]
 except ImportError:
     # Control Plane service not available
@@ -44,4 +46,6 @@ except ImportError:
         "LLMAPIServer",
         "LLMServerConfig",
         "IntelligentLLMClient",
+        "check_llm_service",
+        "get_llm_client",
     ]
