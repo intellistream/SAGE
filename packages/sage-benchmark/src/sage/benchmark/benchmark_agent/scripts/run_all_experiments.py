@@ -1415,23 +1415,31 @@ def main():
         print("-" * 70)
         print("📡 LLM Service Status:")
         try:
-            from sage.common.components.sage_llm.client import check_llm_service
+            from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            status = check_llm_service(verbose=False)
-            if status["local_available"]:
-                print(
-                    f"  ✅ Local vLLM: {status['local_endpoint']} (model: {status['local_model']})"
-                )
-            else:
+            # Check local vLLM
+            local_endpoints = ["http://localhost:8001/v1", "http://localhost:8000/v1"]
+            local_available = False
+            for endpoint in local_endpoints:
+                if UnifiedInferenceClient._check_endpoint_health(endpoint):
+                    print(f"  ✅ Local vLLM: {endpoint}")
+                    local_available = True
+                    break
+            if not local_available:
                 print("  ⚠️  Local vLLM: Not detected")
-            if status["cloud_configured"]:
+
+            # Check cloud config
+            import os
+
+            cloud_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("ALIBABA_API_KEY")
+            if cloud_key and "your_" not in cloud_key.lower():
                 print("  ☁️  Cloud API: Configured")
             else:
                 print("  ⚠️  Cloud API: Not configured")
-            if not status["local_available"] and not status["cloud_configured"]:
-                print("\n  💡 Tip: Start local vLLM for faster evaluation:")
-                print("     vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001")
-                print("     Or use --skip-llm to skip LLM strategies")
+                if not local_available:
+                    print("\n  💡 Tip: Start local vLLM for faster evaluation:")
+                    print("     vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001")
+                    print("     Or use --skip-llm to skip LLM strategies")
         except ImportError:
             print("  ⚠️  Unable to check LLM service status")
 

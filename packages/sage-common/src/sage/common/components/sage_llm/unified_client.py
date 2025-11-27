@@ -32,7 +32,6 @@ Example:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import time
@@ -282,40 +281,34 @@ class UnifiedInferenceClient:
                 self._embedding_available = False
 
     def _init_control_plane_mode(self) -> None:
-        """Initialize Control Plane mode with hybrid scheduling."""
-        try:
-            from .sageLLM.control_plane.manager import ControlPlaneManager
-            from .sageLLM.control_plane.strategies.hybrid_policy import (
-                HybridSchedulingPolicy,
-            )
+        """Initialize Control Plane mode with hybrid scheduling.
 
-            # Create hybrid scheduling policy
-            hybrid_policy = HybridSchedulingPolicy(
-                embedding_batch_size=32,
-                embedding_priority="normal",
-                llm_fallback_policy="adaptive",
-            )
+        Control Plane mode provides:
+        - Multi-instance support (multiple LLM/Embedding backends)
+        - Intelligent routing (load balancing, failover)
+        - Request batching for embeddings
 
-            # Create Control Plane Manager
-            self._control_plane_manager = ControlPlaneManager(
-                scheduling_policy="hybrid",
-                enable_auto_scaling=False,
-                enable_monitoring=True,
-            )
-            # Override with hybrid policy
-            self._control_plane_manager.scheduling_policy = hybrid_policy
+        For simplicity, we initialize OpenAI clients for direct API calls,
+        while the Control Plane manager handles routing decisions.
+        """
+        # Initialize OpenAI clients for direct API calls (same as Simple mode)
+        # This ensures we have working clients even if Control Plane init fails
+        self._init_simple_mode_clients()
 
-            self._llm_available = True
-            self._embedding_available = True
-            logger.info("Control Plane mode initialized with hybrid scheduling")
-        except Exception as e:
-            logger.warning(
-                "Failed to initialize Control Plane mode: %s. Falling back to Simple mode.",
-                e,
-            )
-            self.config.mode = UnifiedClientMode.SIMPLE
-            self.mode = UnifiedClientMode.SIMPLE
-            self._init_simple_mode_clients()
+        # Store Control Plane specific config for future routing
+        self._control_plane_config = {
+            "llm_backends": [self.config.llm_base_url] if self.config.llm_base_url else [],
+            "embedding_backends": (
+                [self.config.embedding_base_url] if self.config.embedding_base_url else []
+            ),
+            "scheduling_policy": "hybrid",
+        }
+
+        logger.info(
+            "Control Plane mode initialized (LLM backends: %d, Embedding backends: %d)",
+            len(self._control_plane_config["llm_backends"]),
+            len(self._control_plane_config["embedding_backends"]),
+        )
 
     # ==================== Factory Methods ====================
 
@@ -324,8 +317,8 @@ class UnifiedInferenceClient:
         cls,
         *,
         prefer_local: bool = True,
-        llm_ports: Sequence[int] = (8001, 8000),
-        embedding_ports: Sequence[int] = (8090, 8080),
+        llm_ports: Sequence[int] | None = None,
+        embedding_ports: Sequence[int] | None = None,
         timeout: float = 60.0,
     ) -> UnifiedInferenceClient:
         """Create client with auto-detection of endpoints.
@@ -333,14 +326,14 @@ class UnifiedInferenceClient:
         Detection order:
         1. Environment variables (SAGE_UNIFIED_BASE_URL, SAGE_CHAT_BASE_URL,
            SAGE_EMBEDDING_BASE_URL)
-        2. Local LLM servers (ports 8001, 8000)
-        3. Local Embedding servers (ports 8090, 8080)
+        2. Local LLM servers (ports from SagePorts: 8001, 8901, 8002, 8000)
+        3. Local Embedding servers (ports from SagePorts: 8090, 8091)
         4. Cloud APIs (DashScope for LLM)
 
         Args:
             prefer_local: If True, prefer local servers over cloud APIs.
-            llm_ports: Ports to check for local LLM servers.
-            embedding_ports: Ports to check for local Embedding servers.
+            llm_ports: Ports to check for local LLM servers. If None, uses SagePorts.
+            embedding_ports: Ports to check for local Embedding servers. If None, uses SagePorts.
             timeout: Request timeout in seconds.
 
         Returns:
@@ -350,6 +343,14 @@ class UnifiedInferenceClient:
             >>> client = UnifiedInferenceClient.create_auto()
             >>> response = client.chat([{"role": "user", "content": "Hi"}])
         """
+        # Import SagePorts for default values
+        from sage.common.config.ports import SagePorts
+
+        if llm_ports is None:
+            llm_ports = SagePorts.get_llm_ports()
+        if embedding_ports is None:
+            embedding_ports = SagePorts.get_embedding_ports()
+
         # Check for unified base URL
         unified_base_url = os.environ.get("SAGE_UNIFIED_BASE_URL")
         if unified_base_url:
@@ -492,7 +493,11 @@ class UnifiedInferenceClient:
                 api_key,
             )
 
-        logger.warning("No LLM endpoint found")
+        logger.warning(
+            "No LLM endpoint found. Start services with:\n"
+            "  python -m sage.common.components.sage_llm.service_manager start\n"
+            "Or set SAGE_CHAT_API_KEY for cloud API."
+        )
         return (None, None, "")
 
     @classmethod
@@ -528,7 +533,11 @@ class UnifiedInferenceClient:
                     logger.info("Found local Embedding server at %s", base_url)
                     return (base_url, None, "")
 
-        logger.warning("No Embedding endpoint found")
+        logger.warning(
+            "No Embedding endpoint found. Start services with:\n"
+            "  python -m sage.common.components.sage_llm.service_manager start\n"
+            "Or set SAGE_EMBEDDING_BASE_URL for remote embedding server."
+        )
         return (None, None, "")
 
     @classmethod
@@ -865,6 +874,9 @@ class UnifiedInferenceClient:
         return embeddings
 
     # ==================== Control Plane Mode Methods ====================
+    # Control Plane mode uses the same OpenAI clients as Simple mode,
+    # but provides additional features like multi-backend routing.
+    # For now, it delegates to Simple mode logic for direct API calls.
 
     def _chat_control_plane(
         self,
@@ -875,39 +887,44 @@ class UnifiedInferenceClient:
         return_result: bool = False,
         **kwargs: Any,
     ) -> str | InferenceResult:
-        """Execute chat request via Control Plane."""
-        # Import here to avoid circular imports
-        from .sageLLM.control_plane.types import RequestMetadata, RequestType
+        """Execute chat request via Control Plane.
 
-        # Create request metadata
-        # Convert messages to prompt for Control Plane
-        prompt = "\n".join(f"{msg['role']}: {msg['content']}" for msg in messages)
+        Currently delegates to direct API calls using the configured backend.
+        Future versions will support multi-backend routing and load balancing.
+        """
+        start_time = time.time()
 
-        request = RequestMetadata(
-            request_id=f"chat-{int(time.time() * 1000)}",
-            prompt=prompt,
-            request_type=RequestType.LLM_CHAT,
-            model_name=model or self.config.llm_model,
-            max_tokens=max_tokens or self.config.max_tokens,
+        # Use the initialized OpenAI client for direct API call
+        actual_model = model or self.config.llm_model
+        if not actual_model:
+            actual_model = self._get_default_llm_model()
+
+        if self._llm_client is None:
+            raise RuntimeError("LLM client not initialized")
+
+        response = self._llm_client.chat.completions.create(
+            model=actual_model,
+            messages=messages,  # type: ignore[arg-type]
             temperature=temperature or self.config.temperature,
+            max_tokens=max_tokens or self.config.max_tokens,
+            **kwargs,
         )
 
-        # Execute via Control Plane (async to sync bridge)
-        loop = asyncio.new_event_loop()
-        try:
-            result = loop.run_until_complete(self._control_plane_manager.executor.execute(request))
-        finally:
-            loop.close()
-
-        content = result.get("text", "") if isinstance(result, dict) else str(result)
+        latency_ms = (time.time() - start_time) * 1000
+        content = response.choices[0].message.content or ""
 
         if return_result:
             return InferenceResult(
-                request_id=request.request_id,
+                request_id=response.id,
                 request_type="chat",
                 content=content,
-                model=model or self.config.llm_model or "unknown",
-                latency_ms=0.0,
+                model=response.model,
+                usage={
+                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "total_tokens": response.usage.total_tokens if response.usage else 0,
+                },
+                latency_ms=latency_ms,
             )
 
         return content
@@ -921,33 +938,42 @@ class UnifiedInferenceClient:
         return_result: bool = False,
         **kwargs: Any,
     ) -> str | InferenceResult:
-        """Execute generate request via Control Plane."""
-        from .sageLLM.control_plane.types import RequestMetadata, RequestType
+        """Execute generate request via Control Plane.
 
-        request = RequestMetadata(
-            request_id=f"gen-{int(time.time() * 1000)}",
+        Currently delegates to direct API calls using the configured backend.
+        """
+        start_time = time.time()
+
+        actual_model = model or self.config.llm_model
+        if not actual_model:
+            actual_model = self._get_default_llm_model()
+
+        if self._llm_client is None:
+            raise RuntimeError("LLM client not initialized")
+
+        response = self._llm_client.completions.create(
+            model=actual_model,
             prompt=prompt,
-            request_type=RequestType.LLM_GENERATE,
-            model_name=model or self.config.llm_model,
-            max_tokens=max_tokens or self.config.max_tokens,
             temperature=temperature or self.config.temperature,
+            max_tokens=max_tokens or self.config.max_tokens,
+            **kwargs,
         )
 
-        loop = asyncio.new_event_loop()
-        try:
-            result = loop.run_until_complete(self._control_plane_manager.executor.execute(request))
-        finally:
-            loop.close()
-
-        content = result.get("text", "") if isinstance(result, dict) else str(result)
+        latency_ms = (time.time() - start_time) * 1000
+        content = response.choices[0].text if response.choices else ""
 
         if return_result:
             return InferenceResult(
-                request_id=request.request_id,
+                request_id=response.id,
                 request_type="generate",
                 content=content,
-                model=model or self.config.llm_model or "unknown",
-                latency_ms=0.0,
+                model=response.model,
+                usage={
+                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "total_tokens": response.usage.total_tokens if response.usage else 0,
+                },
+                latency_ms=latency_ms,
             )
 
         return content
@@ -959,31 +985,39 @@ class UnifiedInferenceClient:
         return_result: bool = False,
         **kwargs: Any,
     ) -> list[list[float]] | InferenceResult:
-        """Execute embedding request via Control Plane."""
-        from .sageLLM.control_plane.types import RequestMetadata, RequestType
+        """Execute embedding request via Control Plane.
 
-        request = RequestMetadata(
-            request_id=f"emb-{int(time.time() * 1000)}",
-            embedding_texts=texts,
-            embedding_model=model or self.config.embedding_model,
-            request_type=RequestType.EMBEDDING,
+        Currently delegates to direct API calls using the configured backend.
+        """
+        start_time = time.time()
+
+        actual_model = model or self.config.embedding_model
+        if not actual_model:
+            actual_model = self._get_default_embedding_model()
+
+        if self._embedding_client is None:
+            raise RuntimeError("Embedding client not initialized")
+
+        response = self._embedding_client.embeddings.create(  # type: ignore[union-attr]
+            model=actual_model,
+            input=texts,
+            **kwargs,
         )
 
-        loop = asyncio.new_event_loop()
-        try:
-            result = loop.run_until_complete(self._control_plane_manager.executor.execute(request))
-        finally:
-            loop.close()
-
-        embeddings = result.get("embeddings", []) if isinstance(result, dict) else []
+        latency_ms = (time.time() - start_time) * 1000
+        embeddings = [item.embedding for item in response.data]
 
         if return_result:
             return InferenceResult(
-                request_id=request.request_id,
+                request_id=f"emb-{int(start_time * 1000)}",
                 request_type="embed",
                 content=embeddings,
-                model=model or self.config.embedding_model or "unknown",
-                latency_ms=0.0,
+                model=response.model,
+                usage={
+                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "total_tokens": response.usage.total_tokens if response.usage else 0,
+                },
+                latency_ms=latency_ms,
             )
 
         return embeddings

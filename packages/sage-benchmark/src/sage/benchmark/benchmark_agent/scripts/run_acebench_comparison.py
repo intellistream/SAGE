@@ -210,7 +210,7 @@ class HybridSelector(BaseSelector):
 
 
 class LLMSelector(BaseSelector):
-    """LLM-based direct prompting selector."""
+    """LLM-based direct prompting selector using UnifiedInferenceClient."""
 
     name = "LLM Direct"
 
@@ -220,30 +220,16 @@ class LLMSelector(BaseSelector):
         self._client = None
 
     def setup(self) -> None:
-        """Setup LLM client."""
-        from sage.common.components.sage_llm import (
-            IntelligentLLMClient,
-            check_vllm_available,
-        )
+        """Setup LLM client using UnifiedInferenceClient."""
+        from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        if self.use_embedded:
-            if not check_vllm_available():
-                raise RuntimeError("Embedded LLM requires vLLM and GPU.")
-            model = self.model_id or IntelligentLLMClient.DEFAULT_EMBEDDED_MODEL
-            logger.info(f"Setting up embedded LLM: {model}")
-            self._client = IntelligentLLMClient.create_embedded(model_id=model)
-            self.model_id = model
-        else:
-            logger.info("Setting up API-based LLM client...")
-            self._client = IntelligentLLMClient.create_auto()
-            self.model_id = self._client.model_name
+        logger.info("Setting up LLM client via UnifiedInferenceClient...")
+        self._client = UnifiedInferenceClient.create_auto()
+        self.model_id = getattr(self._client, "llm_model", self.model_id) or "auto"
 
     def teardown(self) -> None:
         """Cleanup LLM resources."""
-        if self.use_embedded:
-            from sage.common.components.sage_llm import IntelligentLLMClient
-
-            IntelligentLLMClient.clear_embedded_instances()
+        pass  # UnifiedInferenceClient handles cleanup internally
 
     def select(self, query: str, candidate_tools: list[str], top_k: int = 5) -> list[str]:
         """Select tools using LLM."""
@@ -263,12 +249,8 @@ If multiple tools are needed, list them in order of relevance.
 
 Selected tool(s):"""
 
-        # Generate response
-        response = self._client.chat(
-            [{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=200,
-        )
+        # Generate response - UnifiedInferenceClient.chat() returns string directly
+        response = self._client.chat([{"role": "user", "content": prompt}])
 
         # Parse response
         return self._parse_response(response, candidate_tools, top_k)

@@ -8,6 +8,9 @@ This module provides a consistent API for different embedding providers:
 - HuggingFace Transformer models (local, high quality)
 - OpenAI and other API-based services
 
+IMPORTANT: For LLM + Embedding combined usage, use UnifiedInferenceClient from
+sage.common.components.sage_llm instead. This module is for embedding-only scenarios.
+
 Quick Start:
     >>> from sage.common.components.sage_embedding import get_embedding_model
     >>>
@@ -15,11 +18,10 @@ Quick Start:
     >>> emb = get_embedding_model("hash", dim=384)
     >>> vec = emb.embed("hello world")
     >>>
-    >>> # List available methods
-    >>> from sage.common.components.sage_embedding import list_embedding_models
-    >>> models = list_embedding_models()
-    >>> for method, info in models.items():
-    ...     print(f"{method}: {info['description']}")
+    >>> # For combined LLM + Embedding, use UnifiedInferenceClient:
+    >>> from sage.common.components.sage_llm import UnifiedInferenceClient
+    >>> client = UnifiedInferenceClient.create_auto()
+    >>> vectors = client.embed(["text1", "text2"])
 
 Architecture:
     This is a L1 foundation component used by higher layers (L2-L6).
@@ -32,9 +34,8 @@ __version__ = "0.1.4"
 __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
 
-# 新架构：统一的 embedding 接口
+# Core embedding interfaces
 from .base import BaseEmbedding
-from .client import IntelligentEmbeddingClient, get_embedding_client
 from .factory import (
     EmbeddingFactory,
     check_model_availability,
@@ -240,6 +241,12 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
+# =============================================================================
+# DEPRECATED: Backward-compatible IntelligentEmbeddingClient
+# Use UnifiedInferenceClient from sage.common.components.sage_llm instead.
+# =============================================================================
+import warnings
+
 from .embedding_model import (
     EmbeddingModel,  # noqa: E402
     apply_embedding_model,
@@ -248,12 +255,159 @@ from .embedding_model import (
 # Service interface (新增)
 from .service import EmbeddingService, EmbeddingServiceConfig  # noqa: E402
 
+
+class IntelligentEmbeddingClient:
+    """DEPRECATED: Use UnifiedInferenceClient from sage_llm instead.
+
+    This class is provided for backward compatibility only and will be
+    removed in a future version.
+
+    Migration guide:
+        # Old (deprecated):
+        from sage.common.components.sage_embedding import IntelligentEmbeddingClient
+        client = IntelligentEmbeddingClient.create_auto()
+        vectors = client.embed(["text1", "text2"])
+
+        # New (recommended):
+        from sage.common.components.sage_llm import UnifiedInferenceClient
+        client = UnifiedInferenceClient.create_auto()
+        vectors = client.embed(["text1", "text2"])
+    """
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+        model: str = "BAAI/bge-m3",
+        api_key: str = "",
+        timeout: int = 30,
+        mode: str = "auto",
+        **kwargs,
+    ):
+        """Initialize embedding client with deprecation warning."""
+        warnings.warn(
+            "IntelligentEmbeddingClient is deprecated. "
+            "Use UnifiedInferenceClient from sage.common.components.sage_llm instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.model = model
+        self.base_url = base_url
+        self.api_key = api_key or "empty"
+        self.timeout = timeout
+        self.mode = mode
+        self._client = None
+        self._dimension = None
+
+        if mode == "api" and base_url:
+            self._init_api_mode(base_url)
+        elif mode == "embedded":
+            self._init_embedded_mode()
+
+    def _init_api_mode(self, base_url: str) -> None:
+        """Initialize API mode with OpenAI client."""
+        try:
+            from openai import OpenAI
+        except ImportError as e:
+            raise ImportError(
+                "openai package required for API mode. Install: pip install openai"
+            ) from e
+
+        self._client = OpenAI(
+            base_url=base_url,
+            api_key=self.api_key,
+            timeout=self.timeout,
+        )
+        self.mode = "api"
+
+    def _init_embedded_mode(self) -> None:
+        """Initialize embedded mode with in-process model."""
+        raw_embedder = EmbeddingFactory.create("hf", model=self.model)
+        self._client = EmbeddingClientAdapter(raw_embedder)
+        self._dimension = raw_embedder.get_dim()
+        self.mode = "embedded"
+
+    @classmethod
+    def create_auto(
+        cls,
+        model: str = "BAAI/bge-m3",
+        fallback_model: str = "BAAI/bge-small-zh-v1.5",
+        **kwargs,
+    ):
+        """DEPRECATED: Create client with auto-detection.
+
+        Use UnifiedInferenceClient.create_auto() instead.
+        """
+        warnings.warn(
+            "IntelligentEmbeddingClient.create_auto() is deprecated. "
+            "Use UnifiedInferenceClient.create_auto() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        import os
+
+        # Check environment variable
+        env_url = os.environ.get("SAGE_EMBEDDING_BASE_URL")
+        if env_url:
+            return cls(base_url=env_url, model=model, mode="api", **kwargs)
+
+        # Try local servers
+        for port in [8090, 8080]:
+            base_url = f"http://localhost:{port}/v1"
+            if cls._check_server(base_url):
+                return cls(base_url=base_url, model=model, mode="api", **kwargs)
+
+        # Fall back to embedded mode
+        return cls(model=fallback_model, mode="embedded", **kwargs)
+
+    @staticmethod
+    def _check_server(base_url: str, timeout: float = 2.0) -> bool:
+        """Check if embedding server is available."""
+        try:
+            import httpx
+
+            response = httpx.get(f"{base_url}/models", timeout=timeout)
+            return response.status_code == 200
+        except Exception:
+            return False
+
+    def embed(self, texts: list[str], model: str | None = None) -> list[list[float]]:
+        """Generate embeddings for texts."""
+        if not texts:
+            return []
+
+        use_model = model or self.model
+
+        if self.mode == "api" and self._client:
+            response = self._client.embeddings.create(
+                model=use_model,
+                input=texts,
+            )
+            return [item.embedding for item in response.data]
+        elif self.mode == "embedded" and self._client:
+            return self._client.embed(texts)
+        else:
+            raise RuntimeError("Client not initialized. Use create_auto() first.")
+
+
+def get_embedding_client(**kwargs) -> IntelligentEmbeddingClient:
+    """DEPRECATED: Get a configured embedding client.
+
+    Use UnifiedInferenceClient.create_auto() instead.
+    """
+    warnings.warn(
+        "get_embedding_client() is deprecated. Use UnifiedInferenceClient.create_auto() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return IntelligentEmbeddingClient.create_auto(**kwargs)
+
+
 # 统一导出接口
 __all__ = [
-    # Service interface (新增 - 推荐用于 pipelines)
+    # Service interface (推荐用于 pipelines)
     "EmbeddingService",  # ⭐ Service 主要 API
     "EmbeddingServiceConfig",
-    # 新架构（推荐使用 - 用于standalone）
+    # Core embedding interfaces
     "BaseEmbedding",
     "EmbeddingRegistry",
     "EmbeddingFactory",
@@ -262,6 +416,10 @@ __all__ = [
     "get_embedding_model",  # ⭐ 主要 API
     "list_embedding_models",  # ⭐ 模型发现
     "check_model_availability",  # ⭐ 状态检查
+    # Protocol adapters
+    "EmbeddingProtocol",
+    "EmbeddingClientAdapter",
+    "adapt_embedding_client",
     # Lightweight wrappers (直接导入)
     "HashEmbedding",
     "MockEmbedding",
@@ -270,4 +428,7 @@ __all__ = [
     # 向后兼容（旧代码仍可使用）
     "EmbeddingModel",
     "apply_embedding_model",
+    # DEPRECATED: Backward-compatible aliases (will be removed)
+    "IntelligentEmbeddingClient",
+    "get_embedding_client",
 ]
