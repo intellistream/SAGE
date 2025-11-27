@@ -226,6 +226,7 @@ def load_acebench_dataset(
     except Exception as e:
         logger.warning(f"Failed to load ACEBench: {e}")
         import traceback
+
         traceback.print_exc()
         return []
 
