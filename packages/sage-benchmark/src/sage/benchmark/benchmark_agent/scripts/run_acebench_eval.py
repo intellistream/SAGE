@@ -85,42 +85,31 @@ class ACEBenchEvaluator:
 
     def setup(self) -> None:
         """Initialize LLM client."""
-        if self.use_embedded:
-            self._setup_embedded()
-        else:
-            self._setup_api()
-
-    def _setup_embedded(self) -> None:
-        """Setup embedded VLLMService."""
-        from sage.benchmark.benchmark_agent.embedded_llm import (
-            EmbeddedLLMClient,
+        from sage.common.components.sage_llm import (
+            IntelligentLLMClient,
             check_vllm_available,
         )
 
-        if not check_vllm_available():
-            raise RuntimeError(
-                "Embedded LLM requires vLLM and GPU. "
-                "Install vLLM or use --no-embedded for API mode."
-            )
-
-        model = self.model_id or EmbeddedLLMClient.DEFAULT_MODEL
-        logger.info(f"Setting up embedded LLM: {model}")
-        self._client = EmbeddedLLMClient.get_instance(model_id=model)
-        self._client.setup()
-        self.model_id = model
-
-    def _setup_api(self) -> None:
-        """Setup API-based LLM client."""
-        from sage.common.components.sage_llm.client import IntelligentLLMClient
-
-        logger.info("Setting up API-based LLM client...")
-        self._client = IntelligentLLMClient.create_auto()
-        self.model_id = self._client.model_name
+        if self.use_embedded:
+            if not check_vllm_available():
+                raise RuntimeError(
+                    "Embedded LLM requires vLLM and GPU. Install vLLM or use API mode."
+                )
+            model = self.model_id or IntelligentLLMClient.DEFAULT_EMBEDDED_MODEL
+            logger.info(f"Setting up embedded LLM: {model}")
+            self._client = IntelligentLLMClient.create_embedded(model_id=model)
+            self.model_id = model
+        else:
+            logger.info("Setting up API-based LLM client...")
+            self._client = IntelligentLLMClient.create_auto()
+            self.model_id = self._client.model_name
 
     def teardown(self) -> None:
         """Cleanup resources."""
-        if self.use_embedded and self._client:
-            self._client.teardown()
+        if self.use_embedded:
+            from sage.common.components.sage_llm import IntelligentLLMClient
+
+            IntelligentLLMClient.clear_embedded_instances()
 
     def evaluate_sample(self, sample: dict[str, Any]) -> EvalResult:
         """
@@ -188,14 +177,12 @@ Selected tool(s):"""
 
     def _generate(self, prompt: str) -> str:
         """Generate response from LLM."""
-        if self.use_embedded:
-            messages = [{"role": "user", "content": prompt}]
-            return self._client.chat(messages, temperature=0.1, max_tokens=200)
-        else:
-            return self._client.chat(
-                [{"role": "user", "content": prompt}],
-                temperature=0.1,
-            )
+        # IntelligentLLMClient provides unified chat interface
+        return self._client.chat(
+            [{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=200,
+        )
 
     def _parse_response(self, response: str, candidate_tools: list[str]) -> list[str]:
         """Parse tool names from response."""

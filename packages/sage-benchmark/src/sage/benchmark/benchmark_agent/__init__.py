@@ -111,13 +111,10 @@ __all__ = [
     # ACEBench
     "load_acebench_samples",
     "save_acebench_to_jsonl",
-    # Embedded LLM
-    "get_embedded_llm_client",
-    "cleanup_embedded_llm",
 ]
 
 
-# Lazy imports for ACEBench and embedded LLM
+# Lazy imports for ACEBench
 def load_acebench_samples(*args, **kwargs):
     """Load ToolACE samples in SAGE benchmark format."""
     from sage.benchmark.benchmark_agent.acebench_loader import load_acebench_samples as _load
@@ -130,17 +127,3 @@ def save_acebench_to_jsonl(*args, **kwargs):
     from sage.benchmark.benchmark_agent.acebench_loader import save_acebench_to_jsonl as _save
 
     return _save(*args, **kwargs)
-
-
-def get_embedded_llm_client(*args, **kwargs):
-    """Get a cached embedded LLM client."""
-    from sage.benchmark.benchmark_agent.embedded_llm import get_embedded_llm_client as _get
-
-    return _get(*args, **kwargs)
-
-
-def cleanup_embedded_llm():
-    """Clean up all embedded LLM instances."""
-    from sage.benchmark.benchmark_agent.embedded_llm import cleanup_embedded_llm as _cleanup
-
-    return _cleanup()

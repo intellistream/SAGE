@@ -65,15 +65,49 @@ except ImportError:
     ControlPlaneVLLMService = None  # type: ignore
     ControlPlaneVLLMServiceConfig = None  # type: ignore
 
+# Optional: Embedded VLLMService for in-process inference
+try:
+    from sage.common.components.sage_llm.service import VLLMService
+
+    EMBEDDED_VLLM_AVAILABLE = True
+except ImportError:
+    EMBEDDED_VLLM_AVAILABLE = False
+    VLLMService = None  # type: ignore
+
+
+def _check_gpu_available() -> bool:
+    """Check if GPU is available for local inference."""
+    try:
+        import torch
+
+        return torch.cuda.is_available()
+    except ImportError:
+        return False
+
+
+def _check_vllm_available() -> bool:
+    """Check if vLLM is installed and GPU is available."""
+    if not _check_gpu_available():
+        return False
+    try:
+        import vllm  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
 
 # Global instance cache for singleton pattern
 _llm_client_instances: dict[str, IntelligentLLMClient] = {}
+# Embedded VLLMService instances cache
+_embedded_vllm_instances: dict[str, Any] = {}
 
 
 class IntelligentLLMClient:
     """Intelligent LLM client with auto-detection and cloud fallback.
 
-    This client supports two modes:
+    This client supports three modes:
+
     1. **Simple Mode** (default): Direct OpenAI-compatible API calls
        - Auto-detects local vLLM services
        - Falls back to cloud API
@@ -86,12 +120,23 @@ class IntelligentLLMClient:
        - Topology-aware routing
        - Requires Control Plane setup
 
-    Priority (Simple Mode):
+    3. **Embedded Mode** (new): In-process VLLMService
+       - No external API server required
+       - Direct GPU inference in current process
+       - Best for batch processing and offline tasks
+       - Requires GPU + vLLM installation
+
+    Priority (Simple Mode auto-detection):
         1. User-configured endpoint (SAGE_CHAT_BASE_URL)
         2. Local vLLM on port 8001 (recommended, avoids Gateway conflict)
         3. Local vLLM on port 8000 (vLLM default)
         4. Cloud API (DashScope default)
+
+    For embedded mode with auto-fallback, use create_auto_with_fallback().
     """
+
+    # Default small model for embedded mode (fast loading, low memory)
+    DEFAULT_EMBEDDED_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 
     def __init__(
         self,
@@ -102,18 +147,22 @@ class IntelligentLLMClient:
         seed: int | None = None,
         use_control_plane: bool = False,
         control_plane_service: Any = None,
+        use_embedded: bool = False,
+        embedded_service: Any = None,
         **kwargs: Any,
     ):
         """Initialize LLM client with specific configuration.
 
         Args:
             model_name: Model identifier (e.g., "qwen-max", "meta-llama/Llama-2-7b")
-            base_url: OpenAI-compatible API endpoint
+            base_url: OpenAI-compatible API endpoint (ignored in embedded mode)
             api_key: API key (use "empty" or "" for local services)
             timeout: Request timeout in seconds
             seed: Random seed for reproducibility (stored but not always enforced)
             use_control_plane: Enable Control Plane mode (requires setup)
             control_plane_service: Pre-configured Control Plane service instance
+            use_embedded: Enable Embedded mode (in-process VLLMService)
+            embedded_service: Pre-configured VLLMService instance
             **kwargs: Additional arguments passed to OpenAI client
         """
         self.model_name = model_name
@@ -123,6 +172,19 @@ class IntelligentLLMClient:
         self.seed = seed  # Store for compatibility
         self.use_control_plane = use_control_plane
         self._control_plane_service = control_plane_service
+        self.use_embedded = use_embedded
+        self._embedded_service = embedded_service
+
+        # Embedded mode - in-process VLLMService
+        if use_embedded:
+            if embedded_service is None:
+                raise ValueError(
+                    "Embedded mode requires a pre-configured embedded_service. "
+                    "Use IntelligentLLMClient.create_embedded() instead."
+                )
+            logger.info(f"🚀 初始化内嵌 LLM 客户端: {model_name} (in-process)")
+            self.client = None  # No OpenAI client in embedded mode
+            return
 
         # Initialize OpenAI client (Simple Mode)
         if not use_control_plane:
@@ -273,6 +335,166 @@ class IntelligentLLMClient:
         )
 
     @classmethod
+    def create_embedded(
+        cls,
+        model_id: str | None = None,
+        auto_download: bool = True,
+        gpu_memory_utilization: float = 0.5,
+        max_model_len: int = 4096,
+        **kwargs: Any,
+    ) -> IntelligentLLMClient:
+        """Create client with embedded VLLMService (in-process GPU inference).
+
+        This mode loads the model directly in the current process without
+        requiring an external vLLM server. Best for batch processing, offline
+        tasks, and testing.
+
+        Requirements:
+            - GPU with sufficient VRAM
+            - vLLM installed (pip install vllm)
+
+        Args:
+            model_id: HuggingFace model ID (default: Qwen2.5-0.5B-Instruct)
+            auto_download: Auto-download model if not found locally
+            gpu_memory_utilization: Fraction of GPU memory to use (0.0-1.0)
+            max_model_len: Maximum sequence length
+            **kwargs: Additional VLLMService config options
+
+        Returns:
+            IntelligentLLMClient in embedded mode
+
+        Raises:
+            RuntimeError: If vLLM or GPU not available
+
+        Example:
+            >>> client = IntelligentLLMClient.create_embedded()
+            >>> response = client.chat([{"role": "user", "content": "Hello!"}])
+            >>> print(response)
+        """
+        if not _check_vllm_available():
+            raise RuntimeError(
+                "Embedded mode requires vLLM and GPU. "
+                "Install with: pip install vllm, and ensure CUDA is available."
+            )
+
+        if not EMBEDDED_VLLM_AVAILABLE:
+            raise RuntimeError(
+                "VLLMService not available. "
+                "Ensure sage.common.components.sage_llm.service is importable."
+            )
+
+        model = model_id or cls.DEFAULT_EMBEDDED_MODEL
+
+        # Check cache first
+        global _embedded_vllm_instances
+        if model in _embedded_vllm_instances:
+            logger.info(f"♻️  复用已缓存的内嵌 LLM: {model}")
+            service = _embedded_vllm_instances[model]
+        else:
+            # Create and setup VLLMService
+            config = {
+                "model_id": model,
+                "auto_download": auto_download,
+                "sampling": {
+                    "temperature": kwargs.pop("temperature", 0.7),
+                    "max_tokens": kwargs.pop("max_tokens", 512),
+                },
+                "engine": {
+                    "gpu_memory_utilization": gpu_memory_utilization,
+                    "max_model_len": max_model_len,
+                    **kwargs,
+                },
+            }
+
+            logger.info(f"🚀 加载内嵌 LLM 模型: {model}")
+            service = VLLMService(config)
+            service.setup()
+            _embedded_vllm_instances[model] = service
+            logger.info(f"✅ 内嵌 LLM 就绪: {model}")
+
+        return cls(
+            model_name=model,
+            base_url="embedded://vllm",  # Placeholder
+            api_key="",
+            use_embedded=True,
+            embedded_service=service,
+        )
+
+    @classmethod
+    def create_auto_with_fallback(
+        cls,
+        model_name: str | None = None,
+        embedded_model: str | None = None,
+        probe_timeout: float = 1.5,
+        prefer_embedded: bool = False,
+        **kwargs: Any,
+    ) -> IntelligentLLMClient:
+        """Auto-detect with embedded mode fallback.
+
+        Detection priority:
+        1. If prefer_embedded=True and GPU available: use embedded mode
+        2. Check SAGE_CHAT_BASE_URL env var
+        3. Probe local vLLM services (8001, 8000)
+        4. If GPU available: use embedded mode (no cloud API needed)
+        5. Fall back to cloud API
+
+        This method ensures LLM is available even without API keys or
+        external services, as long as GPU is available.
+
+        Args:
+            model_name: Model for API mode (auto-detected if None)
+            embedded_model: Model for embedded mode (default: Qwen2.5-0.5B)
+            probe_timeout: Timeout for service detection
+            prefer_embedded: Prefer embedded over API even if API available
+            **kwargs: Additional arguments
+
+        Returns:
+            IntelligentLLMClient instance (API or embedded mode)
+
+        Example:
+            >>> # Will use local GPU if no API available
+            >>> client = IntelligentLLMClient.create_auto_with_fallback()
+            >>> response = client.chat([{"role": "user", "content": "Hello!"}])
+        """
+        # Option 1: User prefers embedded mode
+        if prefer_embedded and _check_vllm_available():
+            logger.info("🚀 使用首选的内嵌模式")
+            return cls.create_embedded(model_id=embedded_model, **kwargs)
+
+        # Option 2: Try API-based detection first
+        try:
+            config = cls._detect_llm_config(model_name, probe_timeout)
+            # Check if we found a working local service or have cloud API key
+            has_local = "localhost" in config["base_url"] or "127.0.0.1" in config["base_url"]
+            has_api_key = bool(config["api_key"])
+
+            if has_local or has_api_key:
+                logger.info(f"✅ 使用 API 模式: {config['model_name']} @ {config['base_url']}")
+                return cls(
+                    model_name=config["model_name"],
+                    base_url=config["base_url"],
+                    api_key=config["api_key"],
+                    **kwargs,
+                )
+        except Exception as e:
+            logger.debug(f"API 检测失败: {e}")
+
+        # Option 3: Fall back to embedded mode if GPU available
+        if _check_vllm_available():
+            logger.info("🚀 API 不可用，降级到内嵌模式")
+            return cls.create_embedded(model_id=embedded_model, **kwargs)
+
+        # Option 4: No option available, try cloud anyway (may fail)
+        logger.warning("⚠️  无可用 LLM 服务，尝试云端 API（可能失败）")
+        config = cls._detect_llm_config(model_name, probe_timeout)
+        return cls(
+            model_name=config["model_name"],
+            base_url=config["base_url"],
+            api_key=config["api_key"],
+            **kwargs,
+        )
+
+    @classmethod
     def get_instance(
         cls,
         model_name: str | None = None,
@@ -319,7 +541,7 @@ class IntelligentLLMClient:
 
     @classmethod
     def clear_instances(cls, cache_key: str | None = None) -> int:
-        """Clear cached client instances.
+        """Clear cached client instances (both API and embedded).
 
         Args:
             cache_key: Specific instance to clear. If None, clears all instances.
@@ -327,19 +549,54 @@ class IntelligentLLMClient:
         Returns:
             Number of instances cleared
         """
-        global _llm_client_instances
+        global _llm_client_instances, _embedded_vllm_instances
 
+        count = 0
+
+        # Clear API client instances
         if cache_key is not None:
             if cache_key in _llm_client_instances:
                 del _llm_client_instances[cache_key]
                 logger.info(f"🗑️  Cleared LLM client instance: {cache_key}")
-                return 1
-            return 0
+                count += 1
         else:
-            count = len(_llm_client_instances)
+            count += len(_llm_client_instances)
             _llm_client_instances.clear()
             logger.info(f"🗑️  Cleared all {count} LLM client instances")
-            return count
+
+        # Clear embedded VLLMService instances
+        if cache_key is None:
+            for model_id, service in _embedded_vllm_instances.items():
+                try:
+                    service.cleanup()
+                    logger.info(f"🗑️  Cleared embedded LLM instance: {model_id}")
+                    count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup embedded service {model_id}: {e}")
+            _embedded_vllm_instances.clear()
+
+        return count
+
+    @classmethod
+    def clear_embedded_instances(cls) -> int:
+        """Clear only embedded VLLMService instances (free GPU memory).
+
+        Returns:
+            Number of embedded instances cleared
+        """
+        global _embedded_vllm_instances
+
+        count = 0
+        for model_id, service in list(_embedded_vllm_instances.items()):
+            try:
+                service.cleanup()
+                del _embedded_vllm_instances[model_id]
+                logger.info(f"🗑️  Cleared embedded LLM: {model_id}")
+                count += 1
+            except Exception as e:
+                logger.warning(f"Failed to cleanup embedded service {model_id}: {e}")
+
+        return count
 
     @classmethod
     def get_cached_keys(cls) -> list[str]:
@@ -521,6 +778,22 @@ class IntelligentLLMClient:
         Raises:
             RuntimeError: If API call fails
         """
+        # Embedded mode - in-process VLLMService
+        if self.use_embedded and self._embedded_service:
+            prompt = self._messages_to_prompt(messages)
+            results = self._embedded_service.generate(
+                prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            if results and results[0].get("generations"):
+                text = results[0]["generations"][0]["text"]
+                if n > 1:
+                    # For n>1, return list (embedded mode doesn't support multiple samples)
+                    return [text]
+                return text
+            return "" if n == 1 else []
+
         # Control Plane mode
         if self.use_control_plane and self._control_plane_service:
             # Build prompt from messages (simplified)
