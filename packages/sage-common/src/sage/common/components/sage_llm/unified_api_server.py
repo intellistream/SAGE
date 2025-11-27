@@ -110,7 +110,7 @@ class BackendInstanceConfig:
     """
 
     host: str = "localhost"
-    port: int | None = None  # Will default to SagePorts.LLM_VLLM_DEFAULT in post_init
+    port: int | None = None  # Will default based on instance_type
     model_name: str = ""
     instance_type: Literal["llm", "embedding", "llm_embedding"] = "llm"
     max_concurrent_requests: int = 100
@@ -120,9 +120,9 @@ class BackendInstanceConfig:
         """Set default port based on instance type."""
         if self.port is None:
             if self.instance_type == "embedding":
-                self.port = SagePorts.LEGACY_EMBEDDING_8090
+                self.port = SagePorts.EMBEDDING_DEFAULT
             else:
-                self.port = SagePorts.LLM_VLLM_DEFAULT
+                self.port = SagePorts.LLM_DEFAULT
 
     @property
     def base_url(self) -> str:
@@ -178,7 +178,7 @@ class UnifiedServerConfig:
 
         # Add default Embedding backend if none specified
         if not self.embedding_backends:
-            embed_port = int(os.getenv("SAGE_EMBEDDING_PORT", str(SagePorts.LEGACY_EMBEDDING_8090)))
+            embed_port = int(os.getenv("SAGE_EMBEDDING_PORT", str(SagePorts.EMBEDDING_DEFAULT)))
             self.embedding_backends.append(
                 BackendInstanceConfig(
                     host="localhost",

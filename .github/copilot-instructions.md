@@ -146,13 +146,14 @@ port = 8001  # 不要这样写
 **端口分配表**:
 | 常量 | 端口 | 用途 |
 |------|------|------|
-| `LLM_DEFAULT` | 8001 | SAGE 推荐的 vLLM 服务端口 |
-| `LLM_VLLM_DEFAULT` | 8000 | vLLM 原生默认端口 |
-| `GATEWAY_DEFAULT` | 8000 | API Gateway (OpenAI 兼容) |
-| `STUDIO_BACKEND` | 8080 | Studio 后端 API |
-| `STUDIO_FRONTEND` | 5173 | Studio 前端 (Vite) |
-| `LEGACY_EMBEDDING_8090` | 8090 | 旧版 Embedding 服务端口 |
+| `GATEWAY_DEFAULT` | 8000 | sage-gateway (OpenAI 兼容 API Gateway) |
+| `LLM_DEFAULT` | 8001 | vLLM 推理服务 |
+| `STUDIO_BACKEND` | 8080 | sage-studio 后端 API |
+| `STUDIO_FRONTEND` | 5173 | sage-studio 前端 (Vite) |
+| `EMBEDDING_DEFAULT` | 8090 | Embedding 服务 |
 | `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
+
+**架构**: `User → Gateway (8000) → LLM (8001)`
 
 **配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
 
