@@ -269,7 +269,7 @@ def select_experiment_interactive() -> Optional[Experiment]:
         return None
 
 
-def run_experiment(exp: Experiment, extra_args: list[str] = None):
+def run_experiment(exp: Experiment, extra_args: list[str] = None, skip_confirm: bool = False):
     """运行实验"""
     script_path = SCRIPT_DIR / exp.script
     if not script_path.exists():
@@ -290,15 +290,16 @@ def run_experiment(exp: Experiment, extra_args: list[str] = None):
         print("   ⚠️  需要 GPU")
     print(f"{'=' * 70}\n")
 
-    # 确认运行
-    try:
-        confirm = input("确认运行? (y/n): ").strip().lower()
-        if confirm != "y":
-            print("已取消")
+    # 确认运行 (可跳过)
+    if not skip_confirm:
+        try:
+            confirm = input("确认运行? (y/n): ").strip().lower()
+            if confirm != "y":
+                print("已取消")
+                return False
+        except KeyboardInterrupt:
+            print("\n已取消")
             return False
-    except KeyboardInterrupt:
-        print("\n已取消")
-        return False
 
     # 运行
     print(f"\n执行命令: {' '.join(cmd)}\n")
@@ -364,6 +365,12 @@ Examples:
         help="列出所有可用实验",
     )
     parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="跳过确认提示，直接运行",
+    )
+    parser.add_argument(
         "extra_args",
         nargs="*",
         help="传递给实验脚本的额外参数",
@@ -384,7 +391,7 @@ Examples:
             print(f"❌ 未找到实验: {args.experiment}")
             print("使用 --list 查看可用实验")
             return 1
-        success = run_experiment(exp, args.extra_args)
+        success = run_experiment(exp, args.extra_args, skip_confirm=args.yes)
         return 0 if success else 1
 
     # 交互式模式

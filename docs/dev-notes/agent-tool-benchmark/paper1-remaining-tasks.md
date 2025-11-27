@@ -1,7 +1,43 @@
-# Paper 1 (SAGE-Bench) 剩余任务 - 并行执行指南
+# Paper 1 (SAGE-Bench) 剩余任务 - 完整指南
 
-> 本文档定义了完成 SAGE-Bench Benchmark 论文所需的 4 个独立任务
+> 本文档定义了完成 SAGE-Bench Benchmark 论文所需的所有任务
 > 每个任务都可以分配给不同的 Copilot Agent 并行执行
+>
+> **生成日期**: 2025-11-27
+
+---
+
+## 🚀 统一入口 CLI (重要)
+
+**在执行任何实验之前，请优先使用统一的交互式 CLI 入口：**
+
+```bash
+# 进入脚本目录
+cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+
+# 方式 1: 交互式运行 (推荐)
+python sage_benchmark_cli.py
+
+# 方式 2: 直接指定实验 (跳过确认)
+python sage_benchmark_cli.py --paper 1 --experiment tool_selection --yes
+python sage_benchmark_cli.py --paper 1 --experiment all_challenges --yes
+
+# 方式 3: 列出所有可用实验
+python sage_benchmark_cli.py --list
+```
+
+**⚠️ 注意**: 使用 `--yes` 或 `-y` 参数可以跳过确认提示，直接运行实验。
+
+**CLI 支持的 Paper 1 实验：**
+
+| ID | 名称 | 描述 | 预估时间 |
+|----|------|------|----------|
+| `timing` | Challenge 1 | 评测何时调用工具 | ~10 min |
+| `planning` | Challenge 2 | 评测任务分解与规划 | ~15 min |
+| `tool_selection` | Challenge 3 | 评测工具检索与选择 | ~20 min |
+| `all_challenges` | 完整评测 | 运行所有 3 个 Challenge | ~2 hours |
+| `cross_dataset` | 跨数据集 | SAGE + ACEBench + ToolBench | ~30 min |
+| `quick_benchmark` | 快速评测 | 跳过 LLM 方法 | ~30 min |
 
 ---
 
@@ -14,12 +50,83 @@
 | Keyword/Embedding/Hybrid | ✅ 工作 | 基础方法正常 |
 | **Gorilla** | ❌ Bug | 工具索引 ID 不匹配 |
 | **DFSDT** | ❌ Bug | 工具索引 ID 不匹配 |
+| **Timing Decider** | ❌ Bug | 接口不兼容 (dict vs object) |
 | LLM-based 方法 | ⚠️ 未完整测试 | 需要验证 |
 | 论文图表 | ⚠️ 需完善 | 需要最终结果 |
 
+### 当前性能基准
+
+| Challenge | Best Method | Current | Target | Gap |
+|-----------|-------------|---------|--------|-----|
+| Timing | Rule-based | 76% | 95% | -19% |
+| Planning | Hierarchical | 27% | 90% | -63% |
+| Tool Selection | BM25 | 82% | 95% | -13% |
+
 ---
 
-## Task 1: 修复 Gorilla/DFSDT 工具索引问题
+## 🔧 Task 1: 修复 Timing Decider 接口不兼容
+
+### 问题描述
+
+`timing.rule_based`, `timing.llm_based`, `timing.hybrid` 期望的是带 `.message` 属性的对象，但 benchmark 传入的是 dict。
+
+### 提示词
+
+```
+请帮我修复 SAGE benchmark 中 Timing Decider 的接口不兼容问题。
+
+## 问题描述
+
+Timing Decider 方法 (`timing.rule_based`, `timing.llm_based`, `timing.hybrid`)
+期望输入是带 `.message` 属性的对象，但 benchmark 传入的是 dict 格式。
+
+## 关键文件位置
+
+- Adapter Registry: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/adapter_registry.py`
+- Timing Decider: `packages/sage-libs/src/sage/libs/agentic/agents/planning/timing_decider.py`
+- Schemas: `packages/sage-libs/src/sage/libs/agentic/agents/planning/schemas.py`
+
+## 修复方案
+
+在 `TimingAdapter.decide()` 中添加输入转换：
+
+```python
+def decide(self, message: Any, **kwargs) -> Any:
+    # 如果是 dict，转换为 TimingMessage
+    if isinstance(message, dict):
+        from sage.libs.agentic.agents.planning.schemas import TimingMessage
+        message = TimingMessage(
+            message=message.get('instruction', ''),
+            context=message.get('context', {})
+        )
+    return self.decider.decide(message)
+```
+
+## 统一入口 CLI
+
+修复后，使用统一 CLI 验证：
+```bash
+cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+python sage_benchmark_cli.py --paper 1 --experiment timing
+```
+
+## 成功标准
+
+- `timing.rule_based` 返回有效的 true/false 判断
+- `timing.llm_based` 正常调用 LLM
+- `timing.hybrid` 组合判断正常
+- 无 AttributeError 或 KeyError
+```
+
+---
+
+## 🔧 Task 2: 修复 Gorilla/DFSDT 工具索引问题
+
+### 问题描述
+
+当前 Gorilla 和 DFSDT 选择器在评测时返回 0% 准确率，原因是：
+- 选择器构建索引时使用的是 mock 工具 ID (`tool_000`, `tool_001`...)
+- 但数据集中的 `candidate_tools` 使用的是实际工具 ID (`environment_weather_001`, `finance_payment_001`...)
 
 ### 提示词
 
@@ -74,13 +181,16 @@
    - 确保 `SelectorResources.tools_loader` 使用正确的加载器
 
 3. **验证修复**
-   - 运行: `python run_unified_eval.py --dataset sage --methods gorilla,dfsdt --samples 20`
+   - 使用统一 CLI: `python sage_benchmark_cli.py --paper 1 --experiment tool_selection`
+   - 或直接运行: `python run_unified_eval.py --dataset sage --methods gorilla,dfsdt --samples 20`
    - 预期: 准确率应该 > 0%
 
-## 验证命令
+## 统一入口 CLI
 
+```bash
 cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
-python run_unified_eval.py --dataset sage --methods keyword,gorilla,dfsdt --samples 50 -v
+python sage_benchmark_cli.py --paper 1 --experiment tool_selection
+```
 
 ## 成功标准
 
@@ -91,7 +201,7 @@ python run_unified_eval.py --dataset sage --methods keyword,gorilla,dfsdt --samp
 
 ---
 
-## Task 2: 完善 LLM-based 方法测试
+## 🔧 Task 3: 完善 LLM-based 方法测试
 
 ### 提示词
 
@@ -112,6 +222,7 @@ SAGE-Bench 需要评测以下 LLM-based 方法：
 
 ## 关键文件位置
 
+- **统一入口 CLI**: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/sage_benchmark_cli.py`
 - Unified Eval: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/run_unified_eval.py`
 - All Experiments: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/run_all_experiments.py`
 - Adapter Registry: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/adapter_registry.py`
@@ -135,19 +246,30 @@ SAGE-Bench 需要评测以下 LLM-based 方法：
    - 确保 `run_unified_eval.py --use-embedded` 正常工作
    - 默认使用 Qwen/Qwen2.5-0.5B-Instruct 进行测试
 
-## 测试命令
+## 统一入口 CLI (推荐)
 
-# 测试 LLM-based selector (需要 LLM 服务)
+```bash
 cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
 
-# 使用云端 API
+# 交互式运行
+python sage_benchmark_cli.py
+
+# 或直接指定
+python sage_benchmark_cli.py --paper 1 --experiment all_challenges
+```
+
+## 测试命令 (备用)
+
+```bash
+# 测试 LLM-based selector
 python run_unified_eval.py --dataset sage --methods llm_direct --samples 10 -v
 
 # 使用 embedded vLLM
-python run_unified_eval.py --dataset sage --methods llm_direct --samples 10 --use-embedded --model Qwen/Qwen2.5-0.5B-Instruct -v
+python run_unified_eval.py --dataset sage --methods llm_direct --samples 10 --use-embedded -v
 
 # 测试所有 LLM 方法
 python run_all_experiments.py --quick --max-samples 10
+```
 
 ## 成功标准
 
@@ -165,7 +287,7 @@ python run_all_experiments.py --quick --max-samples 10
 
 ---
 
-## Task 3: 跨数据集验证完善
+## 🔧 Task 4: 跨数据集验证完善
 
 ### 提示词
 
@@ -182,6 +304,7 @@ SAGE-Bench 论文需要在多个数据集上验证工具选择方法：
 
 ## 关键文件位置
 
+- **统一入口 CLI**: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/sage_benchmark_cli.py`
 - Unified Eval: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/run_unified_eval.py`
 - ACEBench Loader: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/acebench_loader.py`
 - External Benchmarks: `packages/sage-benchmark/src/sage/data/sources/agent_benchmark/external_benchmarks/`
@@ -196,155 +319,185 @@ SAGE-Bench 论文需要在多个数据集上验证工具选择方法：
 ## 需要完成的工作
 
 1. **验证 ACEBench 在所有方法上的评测**
-   - 运行: `python run_unified_eval.py --dataset acebench --methods keyword,embedding,hybrid --samples 100`
+   - 使用统一 CLI: `python sage_benchmark_cli.py --paper 1 --experiment cross_dataset`
    - 确保结果格式与 SAGE 一致
 
-2. **完善 ACEBench 数据加载**
-   - 检查 `acebench_loader.py` 中的格式转换是否正确
-   - 确保 candidate_tools 和 ground_truth 正确映射
+2. **集成 API-Bank 数据集** (可选)
+   - 创建 `apibank_loader.py`
+   - 转换为统一的 ToolSelectionSample 格式
 
 3. **生成跨数据集对比表格**
-   - 修改 `run_unified_eval.py`，支持 `--dataset all` 同时评测 SAGE 和 ACEBench
-   - 生成 LaTeX 格式的对比表格
+   - 格式: Dataset × Method × Metric
 
-4. **(可选) 添加 API-Bank 支持**
-   - 数据位置: `external_benchmarks/converted/raw/apibank/`
-   - 创建 `apibank_loader.py` 加载数据
+## 统一入口 CLI
 
-## 测试命令
-
+```bash
 cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
 
-# 测试 SAGE 数据集
-python run_unified_eval.py --dataset sage --methods keyword,embedding,hybrid --samples 100 -v
-
-# 测试 ACEBench 数据集
-python run_unified_eval.py --dataset acebench --methods keyword,embedding,hybrid --samples 100 -v
-
 # 跨数据集对比
-python run_unified_eval.py --dataset all --methods keyword,embedding,hybrid --samples 100 -v
+python sage_benchmark_cli.py --paper 1 --experiment cross_dataset
 
-## 预期输出格式
-
-================================================================================
-Cross-Dataset Tool Selection Comparison
-================================================================================
-Method          | SAGE Top-5 | ACEBench Top-5 | Avg
-----------------+------------+----------------+------
-keyword         |    82.0%   |     78.0%      | 80.0%
-embedding       |    82.0%   |     76.0%      | 79.0%
-hybrid          |    84.0%   |     80.0%      | 82.0%
-================================================================================
+# 或手动指定
+python run_unified_eval.py --dataset acebench --methods keyword,embedding,hybrid --samples 100
+```
 
 ## 成功标准
 
-- ACEBench 数据正确加载，无格式错误
-- 所有方法在 ACEBench 上返回有效结果
-- 生成跨数据集对比表格（Markdown 和 LaTeX）
+- ACEBench 上所有方法正常运行
+- 结果可以与 SAGE 数据集结果对比
+- 生成统一格式的 JSON 结果文件
 ```
 
 ---
 
-## Task 4: 实验结果整理和论文图表生成
+## 🔧 Task 5: Scaling 分析实验
 
 ### 提示词
 
 ```
-请帮我完善 SAGE benchmark 的实验结果整理和论文图表生成。
+请帮我完成 SAGE benchmark 的 Scaling 分析实验。
 
 ## 背景
 
-SAGE-Bench 论文需要以下图表和表格：
-1. **Table 1**: 三个 Challenge 的主要结果对比
-2. **Table 2**: 跨数据集验证结果
-3. **Figure 1**: Timing Detection 方法对比
-4. **Figure 2**: Task Planning 方法对比
-5. **Figure 3**: Tool Selection 方法对比
-6. **Figure 4**: 工具数量 vs 准确率 (Scaling Analysis)
-7. **Figure 5**: 错误类型分析
+论文需要分析工具数量对选择准确率的影响，生成 Tool Count vs Accuracy 曲线。
 
-## 关键文件位置
+## 实验配置
 
-- All Experiments: `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/run_all_experiments.py`
-- 结果输出目录: `.sage/benchmark/results/`
-- 图表输出: `.sage/benchmark/results/figures/`
-- 表格输出: `.sage/benchmark/results/tables/`
+- 工具数量: 100, 500, 1000, 1200 (full)
+- 方法: keyword, embedding, hybrid
+- 样本数: 200 per configuration
 
-## 当前生成的文件
+## 统一入口 CLI
 
-运行 `python run_all_experiments.py --quick` 后生成：
-- `figures/fig1_timing_comparison.pdf`
-- `figures/fig2_planning_comparison.pdf`
-- `figures/fig3_tool_selection_comparison.pdf`
-- `figures/fig4_overall_comparison.pdf`
-- `tables/table1_projected_performance.tex`
-- `tables/table2_observed_benchmark.tex`
+```bash
+cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+
+# 先确认 CLI 可用
+python sage_benchmark_cli.py --list
+```
 
 ## 需要完成的工作
 
-1. **完善图表样式**
-   - 使用 ICML 2026 论文格式
-   - 字体大小、颜色方案符合学术规范
-   - 添加图例和轴标签
+1. **在 run_unified_eval.py 中添加 --num-candidate-tools 参数**
 
-2. **生成 Scaling Analysis 图表**
-   - X 轴: 候选工具数量 (10, 50, 100, 500, 1000)
-   - Y 轴: Top-5 准确率
-   - 对比: keyword, embedding, hybrid, gorilla, dfsdt
+2. **运行 Scaling 实验**
+```bash
+for num_tools in 100 500 1000 1200; do
+    python run_unified_eval.py --dataset sage --num-candidate-tools $num_tools --samples 200
+done
+```
 
-3. **生成 Error Analysis 图表**
-   - 错误类型分布: 漏选、错选、排序错误
-   - 按难度级别分析: easy, medium, hard
-
-4. **生成 LaTeX 表格**
-   - 使用 booktabs 样式
-   - 包含置信区间或标准差
-   - 最佳结果加粗
-
-5. **整合所有结果到 JSON**
-   - 结构化的实验结果汇总
-   - 便于后续引用和更新
-
-## 图表代码位置
-
-`run_all_experiments.py` 中的 `generate_paper_materials()` 函数
-
-## 运行命令
-
-cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
-
-# 快速测试图表生成
-python run_all_experiments.py --quick --max-samples 50
-
-# 完整评测 + 图表生成 (需要 Task 1-3 完成)
-python run_all_experiments.py --eval-only --max-samples 200
-
-# 仅生成图表 (使用已有结果)
-python run_all_experiments.py --paper-only --results-dir .sage/benchmark/results
-
-## 预期输出
-
-figures/
-├── fig1_timing_comparison.pdf
-├── fig2_planning_comparison.pdf
-├── fig3_tool_selection_comparison.pdf
-├── fig4_scaling_analysis.pdf
-├── fig5_error_analysis.pdf
-└── fig6_cross_dataset.pdf
-
-tables/
-├── table1_main_results.tex
-├── table2_cross_dataset.tex
-├── table3_ablation.tex
-└── table4_challenge_details.tex
+3. **生成可视化图表**
+   - X 轴: Tool Count
+   - Y 轴: Top-5 Accuracy
+   - 多条线: 不同方法
 
 ## 成功标准
 
-- 所有图表使用统一的学术风格
-- LaTeX 表格可直接复制到论文中
-- 图表清晰、可读性好
-- 包含所有 Paper 需要的数据可视化
+- 生成 scaling_analysis.png 图表
+- 数据保存到 JSON 文件
 ```
+
+---
+
+## 🔧 Task 6: 消融实验
+
+### 提示词
+
+```
+请帮我完成 SAGE benchmark 的消融实验。
+
+## Hybrid Selector 消融
+
+测试不同 keyword_weight 对 hybrid 选择器的影响：
+- keyword_weight = 0.0 (纯 embedding)
+- keyword_weight = 0.5 (平衡)
+- keyword_weight = 1.0 (纯 keyword)
+
+## Timing Hybrid 消融
+
+测试不同组合策略：
+- rule_only
+- llm_only
+- hybrid (rule + llm)
+
+## 统一入口 CLI
+
+```bash
+cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+python sage_benchmark_cli.py --paper 1 --experiment all_challenges
+```
+
+## 成功标准
+
+- 生成消融实验结果表格
+- 结果保存到 ablation_results.json
+```
+
+---
+
+## 🔧 Task 7: 论文图表生成
+
+### 提示词
+
+```
+请帮我生成 SAGE-Bench 论文所需的图表。
+
+## 需要生成的图表
+
+1. **Main Results Table**: 所有方法在 3 个 Challenge 上的表现
+2. **Cross-Dataset Comparison**: SAGE vs ACEBench vs API-Bank
+3. **Scaling Analysis**: Tool Count vs Accuracy
+4. **Ablation Study**: Hybrid selector 消融
+
+## 数据来源
+
+- 主结果: `.sage/benchmark/results/all_results.json`
+- 跨数据集: `.sage/benchmark/results/cross_dataset/`
+- Scaling: `.sage/benchmark/results/scaling/`
+
+## 统一入口 CLI
+
+先运行完整实验：
+```bash
+cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+python sage_benchmark_cli.py --paper 1 --experiment all_challenges
+```
+
+## 输出位置
+
+- 图表: `experiment_results/figures/`
+- 表格: `experiment_results/tables/`
+```
+
+---
+
+## 📋 优先级排序
+
+### P0 - 必须完成 (阻塞论文)
+
+| # | 任务 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | 修复 Timing Decider 接口 | ❌ | 接口不兼容 |
+| 2 | 修复 Gorilla/DFSDT 索引 | ❌ | 返回 0% 准确率 |
+| 3 | 完成 SAGE 完整实验 | ⚠️ | 需要修复 Bug 后运行 |
+| 4 | 完成 ACEBench 实验 | ⚠️ | 需要验证所有方法 |
+
+### P1 - 重要 (论文完善)
+
+| # | 任务 | 状态 | 说明 |
+|---|------|------|------|
+| 5 | LLM-based 方法测试 | ⚠️ | 需要验证 |
+| 6 | Scaling 分析实验 | ❌ | 未开始 |
+| 7 | 消融实验 | ❌ | 未开始 |
+| 8 | 论文图表生成 | ❌ | 依赖实验结果 |
+
+### P2 - 可选增强
+
+| # | 任务 | 状态 | 说明 |
+|---|------|------|------|
+| 9 | API-Bank 集成 | ❌ | 可选 |
+| 10 | 不同 LLM 模型对比 | ❌ | 可选 |
 
 ---
 
@@ -355,22 +508,81 @@ tables/
 │                    可并行执行的任务                          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  Task 1                Task 2               Task 3          │
-│  (Gorilla/DFSDT)       (LLM-based)          (跨数据集)       │
-│       │                    │                    │           │
-│       └────────────────────┼────────────────────┘           │
-│                            │                                │
-│                            ▼                                │
-│                       Task 4                                │
-│                   (论文图表生成)                             │
+│  Task 1              Task 2              Task 3             │
+│  (Timing 接口)       (Gorilla/DFSDT)     (LLM-based)        │
+│       │                  │                   │              │
+│       └──────────────────┼───────────────────┘              │
+│                          │                                  │
+│                          ▼                                  │
+│  ┌───────────────────────────────────────────────┐          │
+│  │ Task 4: 跨数据集验证                           │          │
+│  └───────────────────────────────────────────────┘          │
+│                          │                                  │
+│                          ▼                                  │
+│  ┌───────────────────────────────────────────────┐          │
+│  │ Task 5-6: Scaling + 消融实验                   │          │
+│  └───────────────────────────────────────────────┘          │
+│                          │                                  │
+│                          ▼                                  │
+│  ┌───────────────────────────────────────────────┐          │
+│  │ Task 7: 论文图表生成                           │          │
+│  └───────────────────────────────────────────────┘          │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **执行建议**:
 - Task 1, 2, 3 可以分配给 3 个不同的 Copilot Agent 并行执行
-- Task 4 需要等 Task 1-3 基本完成后执行
+- Task 4-7 需要等 Task 1-3 基本完成后执行
 - 每个 Task 预计 2-3 小时
+
+---
+
+## 🛠️ 快速开始
+
+```bash
+# 1. 进入脚本目录
+cd /home/shuhao/SAGE/packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+
+# 2. 使用统一 CLI (推荐)
+python sage_benchmark_cli.py
+
+# 3. 或直接运行特定实验
+python sage_benchmark_cli.py --paper 1 --experiment tool_selection
+
+# 4. 列出所有可用实验
+python sage_benchmark_cli.py --list
+```
+
+---
+
+## 📁 文件位置参考
+
+```
+packages/sage-benchmark/src/sage/benchmark/benchmark_agent/
+├── scripts/
+│   ├── sage_benchmark_cli.py      # 🌟 统一交互式入口 (推荐)
+│   ├── run_all_experiments.py     # 三 Challenge 完整实验
+│   ├── run_unified_eval.py        # Tool Selection 评估
+│   └── README.md                  # 脚本文档
+├── adapter_registry.py            # 需要修复: 接口适配
+├── acebench_loader.py             # ACEBench 数据加载
+└── experiments/                   # 实验定义
+
+packages/sage-benchmark/src/sage/data/sources/
+├── agent_tools/data/
+│   └── tool_catalog.jsonl         # 1,200 个工具定义
+└── agent_benchmark/splits/
+    └── tool_selection.jsonl       # 评测数据
+
+packages/sage-libs/src/sage/libs/agentic/agents/
+├── action/tool_selection/
+│   ├── gorilla_selector.py        # 需要修复: 工具索引
+│   └── dfsdt_selector.py          # 需要修复: 工具索引
+└── planning/
+    ├── timing_decider.py          # 需要修复: 接口
+    └── schemas.py                 # TimingMessage 定义
+```
 
 ---
 
@@ -396,14 +608,29 @@ python -c "from sage.benchmark.benchmark_agent.adapter_registry import get_adapt
 
 ```bash
 # Task 1
-git commit -m "fix(benchmark): resolve Gorilla/DFSDT tool index mismatch issue"
+git commit -m "fix(benchmark): resolve Timing Decider interface compatibility issue"
 
 # Task 2
-git commit -m "feat(benchmark): complete LLM-based methods testing and validation"
+git commit -m "fix(benchmark): resolve Gorilla/DFSDT tool index mismatch issue"
 
 # Task 3
-git commit -m "feat(benchmark): enhance cross-dataset validation with ACEBench"
+git commit -m "feat(benchmark): complete LLM-based methods testing and validation"
 
 # Task 4
+git commit -m "feat(benchmark): enhance cross-dataset validation with ACEBench"
+
+# Task 5-6
+git commit -m "feat(benchmark): add scaling analysis and ablation experiments"
+
+# Task 7
 git commit -m "docs(benchmark): generate ICML paper figures and LaTeX tables"
 ```
+
+---
+
+## ⚠️ 重要提醒
+
+1. **优先使用统一 CLI**: `sage_benchmark_cli.py` 是所有实验的统一入口
+2. **修复 Bug 优先**: Task 1-2 是 P0 优先级，阻塞后续实验
+3. **LLM 服务**: LLM-based 方法需要 API Key 或本地服务
+4. **GPU 内存**: Embedded vLLM 模式需要足够的 GPU 内存
