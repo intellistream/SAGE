@@ -511,14 +511,7 @@ Examples:
         # Save results
         save_results(results, output_dir)
 
-    # Cleanup embedded LLM if used
-    if args.use_embedded:
-        try:
-            from sage.common.components.sage_llm import IntelligentLLMClient
-
-            IntelligentLLMClient.clear_embedded_instances()
-        except Exception:
-            pass
+    # UnifiedInferenceClient handles cleanup internally
 
 
 if __name__ == "__main__":

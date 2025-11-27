@@ -352,12 +352,10 @@ class LLMDirectSelectorAdapter(BaseSelectorAdapter):
         return SelectionResult(tool_ids=tool_ids[:top_k])
 
     def _init_client(self):
-        from sage.common.components.sage_llm import IntelligentLLMClient
+        from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        if self._use_embedded:
-            self._llm_client = IntelligentLLMClient.create_embedded(model_id=self._model_id)
-        else:
-            self._llm_client = IntelligentLLMClient.create_auto()
+        # UnifiedInferenceClient.create_auto() handles local/cloud detection
+        self._llm_client = UnifiedInferenceClient.create_auto()
 
     def _build_prompt(self, query: str, candidate_tools: list[Tool], top_k: int) -> str:
         """Build prompt for LLM tool selection."""

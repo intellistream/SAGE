@@ -3,7 +3,7 @@ import os
 import time
 from typing import Any
 
-from sage.common.components.sage_llm.client import IntelligentLLMClient
+from sage.common.components.sage_llm import UnifiedInferenceClient
 from sage.common.config.output_paths import get_states_file
 from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.integrations.huggingface import HFClient
@@ -49,13 +49,11 @@ class OpenAIGenerator(MapOperator):
         # 展开环境变量（如果 model_name 包含环境变量）
         model_name = os.path.expandvars(model_name)
         base_url = self.config.get("base_url", "https://api.openai.com/v1")
-        seed = self.config.get("seed", 42)
 
-        self.model = IntelligentLLMClient(
-            model_name=model_name,
-            base_url=base_url,
-            api_key=api_key,
-            seed=seed,
+        self.model = UnifiedInferenceClient(
+            llm_model=model_name,
+            llm_base_url=base_url,
+            llm_api_key=api_key,
         )
         self.num = 1
 

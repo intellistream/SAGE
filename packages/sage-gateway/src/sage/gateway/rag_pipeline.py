@@ -160,12 +160,12 @@ class RAGChatMap(MapFunction):
         3. 云端 API 降级（阿里云 DashScope）
 
         Returns:
-            IntelligentLLMClient 实例
+            UnifiedInferenceClient 实例
         """
         if self._llm_client is None:
-            from sage.common.components.sage_llm.client import IntelligentLLMClient
+            from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            self._llm_client = IntelligentLLMClient.create_auto()
+            self._llm_client = UnifiedInferenceClient.create_auto()
         return self._llm_client
 
     def _detect_workflow_intent(self, user_input: str) -> bool:

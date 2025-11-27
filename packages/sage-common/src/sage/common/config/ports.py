@@ -5,11 +5,15 @@ Centralized port configuration for all SAGE services to avoid conflicts.
 
 Port Allocation Strategy:
 - 8000: sage-gateway (OpenAI-compatible API Gateway)
-- 8001: vLLM/LLM inference service (SAGE recommended)
+- 8001: vLLM/LLM inference service (SAGE recommended, may have issues on WSL2)
 - 8080: sage-studio backend API
 - 5173: sage-studio frontend (Vite dev server)
-- 8090: Legacy embedding service
+- 8090: Embedding service
 - 8900-8999: Benchmark & testing services
+
+Known Issues:
+- WSL2: Port 8001 may show as listening but refuse connections due to WSL2
+  network stack issues. Use BENCHMARK_LLM (8901) as fallback.
 
 Usage:
     from sage.common.config.ports import SagePorts
@@ -23,6 +27,9 @@ Usage:
 
     # Get all ports for a service category
     llm_ports = SagePorts.get_llm_ports()
+
+    # For WSL2, use benchmark port as fallback
+    port = SagePorts.BENCHMARK_LLM  # 8901 - more reliable on WSL2
 """
 
 from __future__ import annotations
@@ -31,6 +38,15 @@ import os
 import socket
 from dataclasses import dataclass
 from typing import ClassVar
+
+
+def is_wsl() -> bool:
+    """Check if running in WSL (Windows Subsystem for Linux)."""
+    try:
+        with open("/proc/version") as f:
+            return "microsoft" in f.read().lower()
+    except OSError:
+        return False
 
 
 @dataclass(frozen=True)
@@ -55,6 +71,7 @@ class SagePorts:
     # =========================================================================
     LLM_DEFAULT: ClassVar[int] = 8001  # SAGE recommended vLLM port
     LLM_SECONDARY: ClassVar[int] = 8002  # Secondary LLM instance (if needed)
+    LLM_WSL_FALLBACK: ClassVar[int] = 8901  # Fallback for WSL2 (same as BENCHMARK_LLM)
 
     # =========================================================================
     # sage-studio (Frontend + Backend)
@@ -76,9 +93,26 @@ class SagePorts:
     BENCHMARK_API: ClassVar[int] = 8903  # Benchmark API server
 
     @classmethod
+    def get_recommended_llm_port(cls) -> int:
+        """
+        Get recommended LLM port based on platform.
+
+        On WSL2, port 8001 may have connectivity issues, so use 8901 as fallback.
+
+        Returns:
+            Recommended port number for LLM services
+        """
+        if is_wsl():
+            return cls.LLM_WSL_FALLBACK
+        return cls.LLM_DEFAULT
+
+    @classmethod
     def get_llm_ports(cls) -> list[int]:
-        """Get all LLM-related ports in priority order."""
-        return [cls.LLM_DEFAULT, cls.LLM_SECONDARY]
+        """Get all LLM-related ports in priority order.
+
+        Includes fallback ports for WSL2 compatibility.
+        """
+        return [cls.LLM_DEFAULT, cls.BENCHMARK_LLM, cls.LLM_SECONDARY, cls.GATEWAY_DEFAULT]
 
     @classmethod
     def get_embedding_ports(cls) -> list[int]:

@@ -524,27 +524,72 @@ class AdapterRegistry:
                 top_k_retrieve=20,
                 top_k_select=5,
                 embedding_model="default",
-                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
+                llm_model="auto",  # Uses UnifiedInferenceClient.create_auto()
                 similarity_metric="cosine",
                 temperature=0.1,
                 use_detailed_docs=True,
                 max_context_tools=15,
             )
 
-            # Try to create embedding client first
+            # Create embedding client with fallback to local HuggingFace model
             embedding_client = None
-            try:
-                from sage.common.components.sage_embedding import (
-                    EmbeddingFactory,
-                    adapt_embedding_client,
-                )
 
-                # EmbeddingFactory returns single-text interface, need to adapt
-                raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
-                # Adapt to batch interface (embed(texts: list[str]))
-                embedding_client = adapt_embedding_client(raw_embedder)
+            # Strategy 1: Try UnifiedInferenceClient (API-based embedding)
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                unified_client = UnifiedInferenceClient.create_auto()
+
+                # Test if embedding actually works
+                test_result = unified_client.embed(["test"])
+                if test_result and len(test_result) > 0:
+                    # Wrap UnifiedInferenceClient to match EmbeddingProtocol interface
+                    class UnifiedEmbeddingAdapter:
+                        """Adapter to expose UnifiedInferenceClient as embedding client."""
+
+                        def __init__(self, client: UnifiedInferenceClient):
+                            self._client = client
+
+                        def embed(
+                            self, texts: list[str], model: str | None = None
+                        ) -> list[list[float]]:
+                            return self._client.embed(texts, model=model)
+
+                    embedding_client = UnifiedEmbeddingAdapter(unified_client)
+                    self.logger.info("Embedding client created via UnifiedInferenceClient")
             except Exception as e:
-                self.logger.warning(f"Failed to create embedding client: {e}")
+                self.logger.debug(f"UnifiedInferenceClient embedding not available: {e}")
+
+            # Strategy 2: Fall back to local HuggingFace embedding
+            if embedding_client is None:
+                try:
+                    from sage.common.components.sage_embedding import (
+                        EmbeddingClientAdapter,
+                        EmbeddingFactory,
+                    )
+
+                    # Use HuggingFace model (loads locally, no server needed)
+                    raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    self.logger.info("Embedding client created via local HuggingFace model")
+                except Exception as e2:
+                    self.logger.warning(f"Local HuggingFace embedding failed: {e2}")
+
+            # Strategy 3: Hash-based embedding as last resort (for testing)
+            if embedding_client is None:
+                try:
+                    from sage.common.components.sage_embedding import (
+                        EmbeddingClientAdapter,
+                        EmbeddingFactory,
+                    )
+
+                    raw_embedder = EmbeddingFactory.create("hash", dim=384)
+                    embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    self.logger.warning(
+                        "Using hash-based embedding (low quality, for testing only)"
+                    )
+                except Exception as e3:
+                    self.logger.warning(f"Hash embedding also failed: {e3}")
 
             # Use SAGE tools (1,200 real tools) instead of mock tools
             if resources is None:
@@ -596,7 +641,7 @@ class AdapterRegistry:
                 name="dfsdt",
                 max_depth=3,
                 beam_width=5,
-                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
+                llm_model="auto",  # Uses UnifiedInferenceClient.create_auto()
                 temperature=0.1,
                 use_diversity_prompt=True,
                 score_threshold=0.3,
@@ -672,8 +717,8 @@ class AdapterRegistry:
 
                 boosted.sort(key=lambda x: x.score, reverse=True)
 
-                # Optionally use LLM reranker via IntelligentLLMClient.create_auto()
-                # This uses LOCAL-FIRST strategy: local vLLM (8001/8000) -> cloud API fallback
+                # Optionally use LLM reranker via UnifiedInferenceClient.create_auto()
+                # Uses LOCAL-FIRST strategy: local services (SagePorts) -> cloud API fallback
                 # Set SAGE_HYBRID_ENABLE_LLM_RERANK=1 to enable
                 import os
 
@@ -682,11 +727,11 @@ class AdapterRegistry:
                 if enable_llm_rerank and not hasattr(self, "_llm_client_checked"):
                     self._llm_client_checked = True
                     try:
-                        from sage.common.components.sage_llm.client import IntelligentLLMClient
+                        from sage.common.components.sage_llm import UnifiedInferenceClient
 
                         # Use singleton to avoid repeated model loading
-                        self._llm_client = IntelligentLLMClient.get_instance(
-                            cache_key="benchmark_hybrid", probe_timeout=1.0
+                        self._llm_client = UnifiedInferenceClient.get_instance(
+                            instance_key="benchmark_hybrid"
                         )
                     except Exception:
                         self._llm_client = None
@@ -728,8 +773,8 @@ class AdapterRegistry:
                     },
                 ]
 
-                # IntelligentLLMClient.chat() returns string directly
-                resp = llm.chat(messages, temperature=0.0, max_tokens=512)
+                # UnifiedInferenceClient.chat() returns string directly
+                resp = llm.chat(messages)
 
                 # Parse response
                 txt = resp if isinstance(resp, str) else str(resp)
@@ -850,44 +895,11 @@ class AdapterRegistry:
 
             def _get_llm_client(self):
                 """Get LLM client with local-first strategy."""
-                import os
-
-                # Try local vLLM first
+                # Use UnifiedInferenceClient.create_auto() which implements local-first strategy
                 try:
-                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    local_endpoints = [
-                        ("http://localhost:8001/v1", 8001),
-                        ("http://localhost:8000/v1", 8000),
-                    ]
-
-                    for endpoint, port in local_endpoints:
-                        detected_model = IntelligentLLMClient._probe_vllm_service(
-                            endpoint, timeout=1.0
-                        )
-                        if detected_model:
-                            return IntelligentLLMClient(
-                                model_name=detected_model,
-                                base_url=endpoint,
-                                api_key=os.getenv("VLLM_API_KEY", ""),
-                            )
-
-                    # Fall back to cloud API
-                    api_key = (
-                        os.getenv("SAGE_CHAT_API_KEY")
-                        or os.getenv("ALIBABA_API_KEY")
-                        or os.getenv("OPENAI_API_KEY")
-                    )
-
-                    if api_key and "your_" not in api_key.lower():
-                        return IntelligentLLMClient(
-                            model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                            base_url=os.getenv(
-                                "SAGE_CHAT_BASE_URL",
-                                "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                            ),
-                            api_key=api_key,
-                        )
+                    return UnifiedInferenceClient.create_auto()
                 except Exception:
                     pass
 
@@ -1189,19 +1201,17 @@ class AdapterRegistry:
         return TimingAdapter(ThresholdDecider())
 
     def _create_llm_timing_decider(self, resources: Optional[Any] = None) -> TimingAdapter:
-        """Create LLM-based timing decider using embedded VLLMService (local-first).
+        """Create LLM-based timing decider using UnifiedInferenceClient.
 
-        Priority:
-        1. Embedded VLLMService (内嵌 vLLM，无需启动服务) - highest
-        2. Local vLLM API service (localhost:8001 or 8000) - if already running
-        3. Cloud API via SAGE_CHAT_* environment variables - fallback
+        Uses UnifiedInferenceClient.create_auto() which handles:
+        1. Environment variables (SAGE_UNIFIED_BASE_URL)
+        2. Local services (ports from SagePorts)
+        3. Cloud API fallback (DashScope)
         """
 
         class LLMTimingDecider:
             """
-            LLM-based timing decider with local-first strategy.
-
-            Uses embedded VLLMService when available, falls back to API-based client.
+            LLM-based timing decider using UnifiedInferenceClient.
             """
 
             TIMING_PROMPT = """You are an AI assistant that determines whether a user's message requires tool invocation or can be answered directly from your knowledge.
@@ -1225,48 +1235,21 @@ Respond in JSON format:
 
 Only output the JSON, nothing else."""
 
-            def __init__(self, llm_client=None):
-                self._client = llm_client
-                self._vllm_service = None
-                self._use_embedded_vllm = False
+            def __init__(self):
+                self._client = None
                 self._initialized = False
 
             def _ensure_client(self):
-                """Lazy initialization with embedded VLLMService priority."""
+                """Lazy initialization using UnifiedInferenceClient."""
                 if self._initialized:
-                    return self._vllm_service is not None or self._client is not None
+                    return self._client is not None
 
                 self._initialized = True
-                import os
 
-                # Step 1: Try embedded VLLMService (内嵌模式，无需单独启动服务)
                 try:
-                    from sage.common.components.sage_llm import VLLMService
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    model_id = os.getenv("SAGE_BENCHMARK_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-                    self._vllm_service = VLLMService(
-                        {
-                            "model_id": model_id,
-                            "auto_download": True,
-                            "sampling": {"temperature": 0.1, "max_tokens": 256},
-                        }
-                    )
-                    self._vllm_service.setup()
-                    self._use_embedded_vllm = True
-                    print(f"✅ [Timing] 使用内嵌 VLLMService: {model_id}")
-                    return True
-                except Exception:
-                    self._use_embedded_vllm = False
-                    # VLLMService not available, try API client
-
-                # Step 2: Try API-based client (local vLLM or cloud)
-                try:
-                    from sage.common.components.sage_llm import IntelligentLLMClient
-
-                    # Use singleton to avoid repeated model loading
-                    self._client = IntelligentLLMClient.get_instance(
-                        cache_key="benchmark_timing", probe_timeout=1.0
-                    )
+                    self._client = UnifiedInferenceClient.create_auto()
                     return True
                 except Exception as e:
                     import logging
@@ -1282,33 +1265,18 @@ Only output the JSON, nothing else."""
                     TimingDecision,
                 )
 
-                # Ensure LLM client/service is initialized
+                # Ensure LLM client is initialized
                 if not self._ensure_client():
-                    # No LLM available, fall back to rule-based
                     return self._fallback_decide(message)
 
                 try:
                     import json
 
                     prompt = self.TIMING_PROMPT.format(message=message.message)
+                    messages = [{"role": "user", "content": prompt}]
 
-                    # Use embedded VLLMService if available
-                    if self._use_embedded_vllm and self._vllm_service is not None:
-                        results = self._vllm_service.generate(prompt)
-                        if results and results[0].get("generations"):
-                            content = results[0]["generations"][0]["text"].strip()
-                        else:
-                            return self._fallback_decide(message)
-                    elif self._client is not None:
-                        # Use API-based client
-                        response = self._client.chat(
-                            messages=[{"role": "user", "content": prompt}],
-                            temperature=0.1,
-                            max_tokens=200,
-                        )
-                        content = response.choices[0].message.content.strip()
-                    else:
-                        return self._fallback_decide(message)
+                    # UnifiedInferenceClient.chat() returns string directly
+                    content = self._client.chat(messages)
 
                     # Parse JSON response
                     # Handle potential markdown code blocks
@@ -1325,7 +1293,6 @@ Only output the JSON, nothing else."""
                         reasoning=f"[LLM] {result.get('reasoning', 'LLM decision')}",
                     )
                 except Exception:
-                    # Fall through to rule-based
                     return self._fallback_decide(message)
 
             def _fallback_decide(self, message):
@@ -2324,13 +2291,13 @@ Only output the JSON, nothing else."""
 
     def _create_llm_planning_strategy(self, resources: Optional[Any] = None) -> PlannerAdapter:
         """
-        Create LLM-based planner using IntelligentLLMClient.
+        Create LLM-based planner using UnifiedInferenceClient.
 
         Uses real LLM for plan generation with semantic understanding.
         """
 
         class LLMPlanningStrategy:
-            """LLM-based planner using IntelligentLLMClient."""
+            """LLM-based planner using UnifiedInferenceClient."""
 
             def __init__(self, fallback_planner):
                 self._fallback = fallback_planner
@@ -2338,107 +2305,33 @@ Only output the JSON, nothing else."""
                 self._client_initialized = False
 
             def _get_llm_client(self):
-                """Lazy initialization of LLM client with local-first strategy.
+                """Lazy initialization of LLM client using UnifiedInferenceClient.
 
-                Priority:
-                1. Embedded VLLMService (内嵌 vLLM，无需启动服务) - highest
-                2. Local vLLM API service (localhost:8001 or 8000) - if already running
-                3. Cloud API via SAGE_CHAT_* environment variables - fallback
+                Uses UnifiedInferenceClient.create_auto() which handles:
+                1. Local vLLM API service detection (via SagePorts)
+                2. Cloud API fallback (via SAGE_CHAT_* env vars)
                 """
                 if not self._client_initialized:
                     self._client_initialized = True
-                    import os
 
-                    # Step 1: Try embedded VLLMService (内嵌模式，无需单独启动服务)
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
+
                     try:
-                        from sage.common.components.sage_llm import VLLMService
-
-                        # Use a lightweight model for benchmark
-                        model_id = os.getenv(
-                            "SAGE_BENCHMARK_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct"
-                        )
-                        self._vllm_service = VLLMService(
-                            {
-                                "model_id": model_id,
-                                "auto_download": True,
-                                "sampling": {"temperature": 0.2, "max_tokens": 1024},
-                            }
-                        )
-                        self._vllm_service.setup()
-                        self._use_embedded_vllm = True
-                        print(f"✅ 使用内嵌 VLLMService: {model_id} (无需启动外部服务)")
-                        return self  # Return self to use embedded mode
-                    except Exception:
-                        self._use_embedded_vllm = False
-                        # VLLMService not available, try other options
-                        pass
-
-                    from sage.common.components.sage_llm.client import IntelligentLLMClient
-
-                    # Step 2: Try local vLLM API service (如果已经在运行)
-                    local_endpoints = [
-                        ("http://localhost:8001/v1", 8001),
-                        ("http://localhost:8000/v1", 8000),
-                    ]
-
-                    for endpoint, port in local_endpoints:
-                        detected_model = IntelligentLLMClient._probe_vllm_service(
-                            endpoint, timeout=1.0
-                        )
-                        if detected_model:
-                            try:
-                                self._llm_client = IntelligentLLMClient(
-                                    model_name=detected_model,
-                                    base_url=endpoint,
-                                    api_key=os.getenv("VLLM_API_KEY", ""),
-                                )
-                                print(f"✅ 使用本地 vLLM API: {detected_model} @ port {port}")
-                                return self._llm_client
-                            except Exception:
-                                pass
-
-                    # Step 3: Fall back to cloud API
-                    api_key = (
-                        os.getenv("SAGE_CHAT_API_KEY")
-                        or os.getenv("ALIBABA_API_KEY")
-                        or os.getenv("OPENAI_API_KEY")
-                    )
-
-                    # Skip placeholder values
-                    if api_key and "your_" in api_key.lower():
-                        api_key = None
-
-                    if api_key:
-                        try:
-                            self._llm_client = IntelligentLLMClient(
-                                model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                                base_url=os.getenv(
-                                    "SAGE_CHAT_BASE_URL",
-                                    "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                                ),
-                                api_key=api_key,
-                            )
-                            print("☁️  本地 vLLM 不可用，使用云端 API")
-                        except Exception:
-                            pass
-                    else:
-                        print("⚠️  无可用 LLM 服务：本地 vLLM 未运行，云端 API Key 未配置")
+                        self._llm_client = UnifiedInferenceClient.create_auto()
+                        # Log which mode we're using
+                        if self._llm_client._llm_base_url:
+                            if "localhost" in self._llm_client._llm_base_url:
+                                print(f"✅ 使用本地 LLM: {self._llm_client._llm_model}")
+                            else:
+                                print(f"☁️  使用云端 API: {self._llm_client._llm_model}")
+                        else:
+                            print("⚠️  LLM 客户端初始化但无可用端点")
+                    except Exception as e:
+                        print(f"⚠️  无可用 LLM 服务: {e}")
                         print("   启动本地服务: sage studio start")
                         print("   或配置云端: export SAGE_CHAT_API_KEY=your_key")
 
                 return self._llm_client
-
-            def _generate_with_embedded_vllm(self, prompt: str) -> str:
-                """Generate text using embedded VLLMService."""
-                if not hasattr(self, "_vllm_service") or self._vllm_service is None:
-                    return ""
-                try:
-                    results = self._vllm_service.generate(prompt)
-                    if results and results[0].get("generations"):
-                        return results[0]["generations"][0].get("text", "")
-                except Exception:
-                    pass
-                return ""
 
             def plan(self, task):
                 from sage.benchmark.benchmark_agent.experiments.base_experiment import (
@@ -2452,8 +2345,10 @@ Only output the JSON, nothing else."""
                 if not available_tools:
                     return PlanningPrediction(steps=[], tool_sequence=[])
 
-                # Initialize LLM client (this also sets up embedded vLLM if available)
-                self._get_llm_client()
+                # Initialize LLM client
+                client = self._get_llm_client()
+                if client is None:
+                    return self._fallback.plan(task)
 
                 # Build prompt for plan generation
                 tools_desc = ", ".join(available_tools[:20])  # Limit for prompt
@@ -2470,27 +2365,19 @@ Return a JSON array of steps, each with:
 Return ONLY the JSON array, no explanation. Example:
 [{{"tool_id": "file_read", "description": "Read config file"}}]"""
 
-                response = None
+                try:
+                    messages = [
+                        {
+                            "role": "system",
+                            "content": "You are a task planning assistant. Return only valid JSON.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ]
+                    response = client.chat(messages)
+                except Exception:
+                    return self._fallback.plan(task)
 
-                # Try embedded VLLMService first
-                if getattr(self, "_use_embedded_vllm", False):
-                    response = self._generate_with_embedded_vllm(prompt)
-
-                # Try IntelligentLLMClient
-                if not response and self._llm_client is not None:
-                    try:
-                        messages = [
-                            {
-                                "role": "system",
-                                "content": "You are a task planning assistant. Return only valid JSON.",
-                            },
-                            {"role": "user", "content": prompt},
-                        ]
-                        response = self._llm_client.chat(messages, max_tokens=1024, temperature=0.2)
-                    except Exception:
-                        pass
-
-                # Parse response if we got one
+                # Parse response
                 if response:
                     try:
                         import json
@@ -2565,11 +2452,11 @@ Return ONLY the JSON array, no explanation. Example:
 
                 self._client_initialized = True
                 try:
-                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
 
                     # Use singleton to avoid repeated model loading
-                    self._llm_client = IntelligentLLMClient.get_instance(
-                        cache_key="benchmark_planner", probe_timeout=1.0
+                    self._llm_client = UnifiedInferenceClient.get_instance(
+                        instance_key="benchmark_planner"
                     )
                 except Exception:
                     self._llm_client = None
