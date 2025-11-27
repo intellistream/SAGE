@@ -49,6 +49,22 @@ class MethodConfig:
     num_epochs: int = 1
     learning_rate: float = 2e-5
 
+    # Advanced LoRA methods (Task B4)
+    use_dora: bool = False  # DoRA: Weight-Decomposed LoRA
+    use_lora_plus: bool = False  # LoRA+: Differentiated learning rates
+    lora_plus_lr_ratio: float = 16.0  # B matrix lr = base_lr * ratio
+
+    # FireAct trajectory fine-tuning (Task B1)
+    use_trajectory_collection: bool = False  # Enable FireAct-style trajectory collection
+    trajectory_min_reward: float = 0.5  # Minimum reward for filtering trajectories
+    trajectory_require_success: bool = True  # Only use successful trajectories
+    trajectory_max_steps: int = 10  # Maximum steps per trajectory
+
+    # AgentTuning multi-task training (Task B2)
+    use_multi_task: bool = False  # Enable AgentTuning-style multi-task mixing
+    task_weights: Optional[dict[str, float]] = None  # Task type weights
+    mixing_strategy: Literal["weighted", "balanced", "curriculum"] = "weighted"
+
     def to_dict(self) -> dict:
         return {
             "name": self.name,
@@ -62,6 +78,16 @@ class MethodConfig:
             "max_train_samples": self.max_train_samples,
             "num_epochs": self.num_epochs,
             "learning_rate": self.learning_rate,
+            "use_dora": self.use_dora,
+            "use_lora_plus": self.use_lora_plus,
+            "lora_plus_lr_ratio": self.lora_plus_lr_ratio,
+            "use_trajectory_collection": self.use_trajectory_collection,
+            "trajectory_min_reward": self.trajectory_min_reward,
+            "trajectory_require_success": self.trajectory_require_success,
+            "trajectory_max_steps": self.trajectory_max_steps,
+            "use_multi_task": self.use_multi_task,
+            "task_weights": self.task_weights,
+            "mixing_strategy": self.mixing_strategy,
         }
 
 
@@ -148,6 +174,99 @@ class MethodRegistry:
                 continual_buffer_size=2048,
                 continual_replay_ratio=0.20,
             ),
+            # Agent trajectory fine-tuning methods (Task B1: FireAct)
+            "E_fireact": MethodConfig(
+                name="E: FireAct",
+                description="Agent trajectory fine-tuning (Chen et al., 2023)",
+                use_trajectory_collection=True,
+                trajectory_min_reward=0.5,
+                trajectory_require_success=True,
+                trajectory_max_steps=10,
+                num_epochs=2,
+            ),
+            "F_fireact_coreset": MethodConfig(
+                name="F: FireAct + Coreset",
+                description="FireAct trajectory collection with coreset selection",
+                use_trajectory_collection=True,
+                trajectory_min_reward=0.5,
+                trajectory_require_success=True,
+                use_coreset=True,
+                coreset_strategy="hybrid",
+                coreset_target_size=1000,
+                num_epochs=2,
+            ),
+            # Advanced LoRA methods (Task B4: DoRA/LoRA+)
+            "G_dora": MethodConfig(
+                name="G: DoRA",
+                description="Weight-Decomposed Low-Rank Adaptation (Liu et al., 2024)",
+                use_dora=True,
+            ),
+            "H_lora_plus": MethodConfig(
+                name="H: LoRA+",
+                description="LoRA with differentiated learning rates (Hayou et al., 2024)",
+                use_lora_plus=True,
+                lora_plus_lr_ratio=16.0,
+            ),
+            "I_dora_coreset": MethodConfig(
+                name="I: DoRA + Coreset",
+                description="DoRA combined with hybrid coreset selection",
+                use_dora=True,
+                use_coreset=True,
+                coreset_strategy="hybrid",
+                coreset_target_size=1000,
+            ),
+            "J_loraplus_continual": MethodConfig(
+                name="J: LoRA+ + Continual",
+                description="LoRA+ combined with continual learning",
+                use_lora_plus=True,
+                lora_plus_lr_ratio=16.0,
+                use_continual=True,
+                continual_buffer_size=2048,
+                continual_replay_ratio=0.25,
+            ),
+            # AgentTuning multi-task training (Task B2)
+            "F_agenttuning": MethodConfig(
+                name="F: AgentTuning",
+                description="Multi-task agent capability tuning (Zeng et al., 2023)",
+                use_multi_task=True,
+                task_weights={
+                    "tool_selection": 0.35,
+                    "planning": 0.30,
+                    "timing": 0.20,
+                    "general": 0.15,
+                },
+                mixing_strategy="weighted",
+                num_epochs=2,
+            ),
+            "F2_agenttuning_curriculum": MethodConfig(
+                name="F2: AgentTuning (Curriculum)",
+                description="AgentTuning with curriculum learning strategy",
+                use_multi_task=True,
+                task_weights={
+                    "tool_selection": 0.35,
+                    "planning": 0.30,
+                    "timing": 0.20,
+                    "general": 0.15,
+                },
+                mixing_strategy="curriculum",
+                num_epochs=3,
+            ),
+            "F3_agenttuning_coreset": MethodConfig(
+                name="F3: AgentTuning + Coreset",
+                description="AgentTuning combined with coreset selection",
+                use_multi_task=True,
+                task_weights={
+                    "tool_selection": 0.35,
+                    "planning": 0.30,
+                    "timing": 0.20,
+                    "general": 0.15,
+                },
+                mixing_strategy="weighted",
+                use_coreset=True,
+                coreset_strategy="hybrid",
+                coreset_target_size=1000,
+                num_epochs=2,
+            ),
         }
 
     @staticmethod
@@ -175,6 +294,16 @@ class MethodRegistry:
                 use_continual=True,
                 continual_buffer_size=100,
                 continual_replay_ratio=0.3,
+                max_train_samples=200,
+                num_epochs=1,
+            ),
+            "E_fireact": MethodConfig(
+                name="E: FireAct",
+                description="Agent trajectory fine-tuning",
+                use_trajectory_collection=True,
+                trajectory_min_reward=0.3,
+                trajectory_require_success=False,
+                trajectory_max_steps=5,
                 max_train_samples=200,
                 num_epochs=1,
             ),
@@ -272,6 +401,10 @@ class MethodComparisonExperiment:
                     use_online_continual=config.use_continual,
                     continual_buffer_size=config.continual_buffer_size,
                     continual_replay_ratio=config.continual_replay_ratio,
+                    # DoRA and LoRA+ settings (Task B4)
+                    use_dora=config.use_dora,
+                    use_lora_plus=config.use_lora_plus,
+                    lora_plus_lr_ratio=config.lora_plus_lr_ratio,
                     output_dir=self.output_dir / method_id,
                 )
                 trainer = AgentSFTTrainer(sft_config)

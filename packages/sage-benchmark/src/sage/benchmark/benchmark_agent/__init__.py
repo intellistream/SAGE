@@ -41,6 +41,17 @@ from sage.benchmark.benchmark_agent.adapter_registry import (
     get_adapter_registry,
     register_strategy,
 )
+
+# Data paths management
+from sage.benchmark.benchmark_agent.data_paths import (
+    DataPathsConfig,
+    RuntimePaths,
+    SourcePaths,
+    ensure_runtime_dirs,
+    get_data_paths_config,
+    get_runtime_paths,
+    get_source_paths,
+)
 from sage.benchmark.benchmark_agent.experiments import (
     # Base classes
     BaseExperiment,
@@ -89,4 +100,12 @@ __all__ = [
     "TimingAdapter",
     "get_adapter_registry",
     "register_strategy",
+    # Data Paths
+    "get_source_paths",
+    "get_runtime_paths",
+    "get_data_paths_config",
+    "ensure_runtime_dirs",
+    "SourcePaths",
+    "RuntimePaths",
+    "DataPathsConfig",
 ]
