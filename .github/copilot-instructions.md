@@ -238,7 +238,61 @@ vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001
 ```
 需要批处理/离线任务？ → VLLMService（内嵌模式）
 需要在线服务/测试脚本？ → IntelligentLLMClient（API 模式）
-不确定？ → IntelligentLLMClient.create_auto()（自动检测）
+同时需要 LLM 和 Embedding？ → UnifiedInferenceClient（统一客户端，推荐）
+不确定？ → UnifiedInferenceClient.create_auto()（自动检测）
+```
+
+### UnifiedInferenceClient (sage-common) - 统一推理客户端 (NEW)
+
+**设计原则**: 将 LLM 和 Embedding 统一到一个客户端，共享 sageLLM 资源池，支持混合调度。
+
+**三种客户端并存**:
+| 客户端 | 功能 | 推荐场景 |
+|--------|------|----------|
+| `UnifiedInferenceClient` | chat/generate/embed 统一入口 | 新项目，同时需要 LLM 和 Embedding |
+| `IntelligentLLMClient` | 仅 LLM | 现有项目，只使用 LLM，向后兼容 |
+| `IntelligentEmbeddingClient` | 仅 Embedding | 现有项目，只使用 Embedding，向后兼容 |
+
+> **重要**: 三种客户端**都连接到同一个 sageLLM 资源池**，享受混合调度的好处。
+
+```python
+from sage.common.components.sage_llm import UnifiedInferenceClient
+
+# 自动检测模式（推荐）
+client = UnifiedInferenceClient.create_auto()
+
+# 聊天
+response = client.chat([{"role": "user", "content": "Hello"}])
+
+# 文本生成
+text = client.generate("Once upon a time")
+
+# 向量嵌入
+vectors = client.embed(["text1", "text2"])
+```
+
+**`create_auto()` 检测顺序**:
+1. `SAGE_UNIFIED_BASE_URL` 环境变量
+2. 本地 LLM: `localhost:8001`, `localhost:8000`
+3. 本地 Embedding: `localhost:8090`, `localhost:8080`
+4. 云端 API: DashScope
+
+**Control Plane 模式**（高级调度）:
+```python
+client = UnifiedInferenceClient.create_with_control_plane(
+    instances=[
+        {"host": "localhost", "port": 8001, "model_name": "Qwen/...", "instance_type": "llm"},
+        {"host": "localhost", "port": 8090, "model_name": "BAAI/bge-m3", "instance_type": "embedding"},
+    ],
+    scheduling_policy="hybrid",
+)
+```
+
+**CLI 命令**:
+```bash
+sage inference start --port 8000 --background  # 启动统一推理服务
+sage inference status                          # 查看状态
+sage inference stop                            # 停止服务
 ```
 
 ### IntelligentEmbeddingClient (sage-common) - 推荐
@@ -347,8 +401,14 @@ HF_ENDPOINT=https://hf-mirror.com  # 中国镜像
 packages/sage-common/src/sage/common/components/
   sage_llm/
     client.py              # IntelligentLLMClient (L1)
+    unified_client.py      # UnifiedInferenceClient (统一客户端，NEW)
+    unified_api_server.py  # UnifiedAPIServer (OpenAI 兼容 API 服务器，NEW)
+    compat.py              # 兼容性适配器 (NEW)
     service.py             # VLLMService (本地 vLLM 封装)
     control_plane_service.py  # 多实例调度
+    sageLLM/control_plane/ # Control Plane 调度框架
+      request_classifier.py    # 请求分类器 (NEW)
+      strategies/hybrid_policy.py  # 混合调度策略 (NEW)
   sage_embedding/
     client.py              # IntelligentEmbeddingClient (推荐，API/内嵌双模式)
     factory.py             # EmbeddingFactory (创建单文本embedder)
