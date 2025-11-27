@@ -99,12 +99,78 @@ class AdaptiveSelectorConfig(SelectorConfig):
     update_interval: int = Field(default=100, ge=1, description="Update interval for adaptation")
 
 
+class DFSDTSelectorConfig(SelectorConfig):
+    """
+    Configuration for DFSDT (Depth-First Search-based Decision Tree) selector.
+
+    Based on ToolLLM paper (Qin et al., 2023):
+    "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs"
+    """
+
+    name: str = "dfsdt"
+    max_depth: int = Field(default=3, ge=1, le=10, description="Maximum search depth")
+    beam_width: int = Field(default=5, ge=1, le=20, description="Number of candidates per level")
+    llm_model: str = Field(
+        default="auto", description="LLM model for scoring (auto uses IntelligentLLMClient)"
+    )
+    temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM sampling temperature")
+    use_diversity_prompt: bool = Field(
+        default=True, description="Use diversity prompting for exploration"
+    )
+    score_threshold: float = Field(
+        default=0.3, ge=0.0, le=1.0, description="Minimum score threshold for pruning"
+    )
+    use_keyword_prefilter: bool = Field(
+        default=True, description="Use keyword matching to pre-filter candidates"
+    )
+    prefilter_k: int = Field(
+        default=20, ge=5, le=100, description="Number of candidates after pre-filtering"
+    )
+
+
+class GorillaSelectorConfig(SelectorConfig):
+    """
+    Configuration for Gorilla-style retrieval-augmented selector.
+
+    Based on Gorilla paper (Patil et al., 2023):
+    "Gorilla: Large Language Model Connected with Massive APIs"
+
+    Two-stage approach: embedding retrieval + LLM selection.
+    """
+
+    name: str = "gorilla"
+    top_k_retrieve: int = Field(
+        default=20, ge=1, description="Number of tools to retrieve in first stage"
+    )
+    top_k_select: int = Field(
+        default=5, ge=1, description="Number of tools to select in final output"
+    )
+    embedding_model: str = Field(default="default", description="Embedding model for retrieval")
+    llm_model: str = Field(
+        default="auto", description="LLM model for selection (auto uses IntelligentLLMClient)"
+    )
+    similarity_metric: str = Field(
+        default="cosine", description="Similarity metric: cosine, dot, euclidean"
+    )
+    temperature: float = Field(
+        default=0.1, ge=0.0, le=2.0, description="LLM temperature for selection"
+    )
+    use_detailed_docs: bool = Field(
+        default=True, description="Include detailed parameter docs in context"
+    )
+    max_context_tools: int = Field(
+        default=15, ge=1, description="Max tools to include in LLM context"
+    )
+
+
 # Config type registry
 CONFIG_TYPES = {
     "keyword": KeywordSelectorConfig,
     "embedding": EmbeddingSelectorConfig,
     "two_stage": TwoStageSelectorConfig,
     "adaptive": AdaptiveSelectorConfig,
+    "dfsdt": DFSDTSelectorConfig,
+    "gorilla": GorillaSelectorConfig,
 }
 
 

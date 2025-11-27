@@ -6,9 +6,12 @@ Defines the ToolSelector protocol and abstract base class.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 from .schemas import SelectorConfig, ToolPrediction, ToolSelectionQuery
+
+if TYPE_CHECKING:
+    from sage.common.components.sage_embedding.protocols import EmbeddingProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +22,7 @@ class SelectorResources:
 
     Attributes:
         tools_loader: DataLoader for tool metadata
-        embedding_client: Optional embedding service client
+        embedding_client: Optional embedding service client (must conform to EmbeddingProtocol)
         logger: Logger instance
         cache: Optional cache instance
     """
@@ -27,7 +30,7 @@ class SelectorResources:
     def __init__(
         self,
         tools_loader: Any,
-        embedding_client: Optional[Any] = None,
+        embedding_client: Optional["EmbeddingProtocol"] = None,
         logger: Optional[logging.Logger] = None,
         cache: Optional[Any] = None,
     ):
@@ -36,7 +39,7 @@ class SelectorResources:
 
         Args:
             tools_loader: Tool metadata loader (from DataManager)
-            embedding_client: Optional embedding service
+            embedding_client: Optional embedding service (must have embed(texts, model) interface)
             logger: Optional logger instance
             cache: Optional cache instance
         """
