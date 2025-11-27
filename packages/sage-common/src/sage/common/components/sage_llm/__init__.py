@@ -9,6 +9,7 @@ Services:
     - VLLMService: Simple single-instance vLLM service (in-process)
     - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
     - IntelligentLLMClient: Auto-detecting client with cloud fallback
+    - UnifiedInferenceClient: Unified client for both LLM and Embedding (NEW)
 
 Modes:
     - API Mode: Connect to external vLLM server or cloud API
@@ -33,7 +34,27 @@ from .client import (
 from .client import (
     _check_vllm_available as check_vllm_available,
 )
+from .compat import (
+    EmbeddingClientAdapter,
+    LLMClientAdapter,
+    create_embedding_client_compat,
+    create_llm_client_compat,
+)
 from .service import VLLMService, VLLMServiceConfig
+from .unified_api_server import (
+    BackendInstanceConfig,
+    SchedulingPolicyType,
+    UnifiedAPIServer,
+    UnifiedServerConfig,
+    create_unified_server,
+)
+from .unified_client import (
+    InferenceResult,
+    UnifiedClient,
+    UnifiedClientConfig,
+    UnifiedClientMode,
+    UnifiedInferenceClient,
+)
 
 # Optional: Advanced Control Plane service
 try:
@@ -54,6 +75,23 @@ try:
         "get_llm_client",
         "check_gpu_available",
         "check_vllm_available",
+        # Unified Client
+        "UnifiedInferenceClient",
+        "UnifiedClient",
+        "UnifiedClientConfig",
+        "UnifiedClientMode",
+        "InferenceResult",
+        # Unified API Server
+        "UnifiedAPIServer",
+        "UnifiedServerConfig",
+        "BackendInstanceConfig",
+        "SchedulingPolicyType",
+        "create_unified_server",
+        # Compatibility adapters
+        "LLMClientAdapter",
+        "EmbeddingClientAdapter",
+        "create_llm_client_compat",
+        "create_embedding_client_compat",
     ]
 except ImportError:
     # Control Plane service not available
@@ -67,4 +105,21 @@ except ImportError:
         "get_llm_client",
         "check_gpu_available",
         "check_vllm_available",
+        # Unified Client
+        "UnifiedInferenceClient",
+        "UnifiedClient",
+        "UnifiedClientConfig",
+        "UnifiedClientMode",
+        "InferenceResult",
+        # Unified API Server
+        "UnifiedAPIServer",
+        "UnifiedServerConfig",
+        "BackendInstanceConfig",
+        "SchedulingPolicyType",
+        "create_unified_server",
+        # Compatibility adapters
+        "LLMClientAdapter",
+        "EmbeddingClientAdapter",
+        "create_llm_client_compat",
+        "create_embedding_client_compat",
     ]
