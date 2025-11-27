@@ -150,6 +150,14 @@ class AdapterRegistry:
         self._factories["selector.keyword"] = self._create_keyword_selector
         self._factories["selector.embedding"] = self._create_embedding_selector
         self._factories["selector.hybrid"] = self._create_hybrid_selector
+        # SOTA selector strategies
+        self._factories["selector.gorilla"] = self._create_gorilla_selector
+        self._factories["gorilla"] = self._create_gorilla_selector
+        # ToolLLM DFSDT selector
+        self._factories["selector.dfsdt"] = self._create_dfsdt_selector
+        self._factories["selector.toolllm"] = self._create_dfsdt_selector  # Alias
+        self._factories["dfsdt"] = self._create_dfsdt_selector
+        self._factories["toolllm"] = self._create_dfsdt_selector  # Alias
 
         # Planner factories
         self._factories["baseline.template"] = self._create_template_planner
@@ -160,6 +168,12 @@ class AdapterRegistry:
         self._factories["planner.simple"] = self._create_simple_planner
         self._factories["planner.hierarchical"] = self._create_hierarchical_planning_strategy
         self._factories["planner.llm_based"] = self._create_llm_planning_strategy
+        # ReAct planner (SOTA strategy)
+        self._factories["planner.react"] = self._create_react_planner
+        self._factories["react"] = self._create_react_planner  # Alias
+        # Tree-of-Thoughts planner (SOTA strategy)
+        self._factories["planner.tot"] = self._create_tot_planner
+        self._factories["planner.tree_of_thoughts"] = self._create_tot_planner  # Alias
 
         # Timing factories
         self._factories["baseline.threshold"] = self._create_threshold_decider
@@ -298,6 +312,112 @@ class AdapterRegistry:
         except ImportError:
             # Fallback: create inline hybrid selector
             return self._create_inline_hybrid_selector(resources)
+
+    def _create_gorilla_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
+        """
+        Create Gorilla-style retrieval-augmented selector.
+
+        Gorilla uses a two-stage approach:
+        1. Embedding retrieval to find candidate tools
+        2. LLM selection from retrieved candidates
+
+        Reference: Patil et al. (2023) "Gorilla: Large Language Model Connected with Massive APIs"
+        """
+        try:
+            from sage.libs.agentic.agents.action.tool_selection import (
+                GorillaSelector,
+                GorillaSelectorConfig,
+            )
+
+            config = GorillaSelectorConfig(
+                name="gorilla",
+                top_k_retrieve=20,
+                top_k_select=5,
+                embedding_model="default",
+                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
+                similarity_metric="cosine",
+                temperature=0.1,
+                use_detailed_docs=True,
+                max_context_tools=15,
+            )
+
+            if resources is None:
+                resources = self._create_mock_resources()
+
+            # Gorilla requires embedding client
+            if resources.embedding_client is None:
+                # Try to create embedding client
+                try:
+                    from sage.common.components.sage_embedding.factory import EmbeddingFactory
+
+                    embedding_client = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    resources.embedding_client = embedding_client
+                except Exception:
+                    # Fall back to hybrid selector if embedding not available
+                    self.logger.warning(
+                        "Gorilla selector requires embedding client. "
+                        "Falling back to hybrid selector."
+                    )
+                    return self._create_hybrid_selector(resources)
+
+            selector = GorillaSelector(config, resources)
+            return SelectorAdapter(selector)
+
+        except ImportError as e:
+            # Fallback to hybrid selector
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"GorillaSelector not available ({e}), falling back to hybrid"
+            )
+            return self._create_hybrid_selector(resources)
+
+    def _create_dfsdt_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
+        """
+        Create DFSDT (Depth-First Search-based Decision Tree) selector.
+
+        Based on ToolLLM paper (Qin et al., 2023):
+        "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs"
+
+        Key features:
+        - LLM-guided scoring for semantic understanding
+        - Tree search for exploring multiple tool combinations
+        - Diversity prompting to avoid local optima
+        - Keyword pre-filtering for efficiency
+        """
+        try:
+            from sage.libs.agentic.agents.action.tool_selection import (
+                DFSDTSelector,
+                DFSDTSelectorConfig,
+            )
+
+            config = DFSDTSelectorConfig(
+                name="dfsdt",
+                max_depth=3,
+                beam_width=5,
+                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
+                temperature=0.1,
+                use_diversity_prompt=True,
+                score_threshold=0.3,
+                use_keyword_prefilter=True,
+                prefilter_k=20,
+                top_k=5,
+            )
+
+            if resources is None:
+                resources = self._create_mock_resources()
+
+            selector = DFSDTSelector(config, resources)
+            return SelectorAdapter(selector)
+
+        except ImportError as e:
+            # Fallback to hybrid selector
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"DFSDTSelector not available ({e}), falling back to hybrid"
+            )
+            return self._create_hybrid_selector(resources)
 
     def _create_inline_hybrid_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
         """Create inline hybrid selector when library version unavailable."""
@@ -473,6 +593,235 @@ class AdapterRegistry:
             return PlannerAdapter(planner)
         except ImportError:
             return self._create_template_planner(resources)
+
+    def _create_react_planner(self, resources: Optional[Any] = None) -> PlannerAdapter:
+        """
+        Create ReAct planner implementing Thought-Action-Observation loop.
+
+        ReAct (Reasoning + Acting) generates plans by interleaving:
+        1. Thought: Reasoning about current state
+        2. Action: Selecting tool to use
+        3. Observation: Expected result (predicted in planning mode)
+
+        Reference: "ReAct: Synergizing Reasoning and Acting in Language Models" (Yao et al., 2023)
+        """
+
+        class ReActPlannerWrapper:
+            """Wrapper for ReAct planner with benchmark-compatible interface."""
+
+            def __init__(self):
+                self._planner = None
+                self._llm_client = None
+                self._initialized = False
+
+            def _ensure_initialized(self):
+                """Lazy initialization of ReAct planner."""
+                if self._initialized:
+                    return
+
+                self._initialized = True
+
+                try:
+                    from sage.libs.agentic.agents.planning import ReActConfig, ReActPlanner
+
+                    # Try to get LLM client
+                    llm_client = self._get_llm_client()
+
+                    config = ReActConfig(
+                        min_steps=5,
+                        max_steps=10,
+                        max_iterations=12,
+                        temperature=0.2,
+                    )
+
+                    self._planner = ReActPlanner(
+                        config=config,
+                        llm_client=llm_client,
+                    )
+                except ImportError as e:
+                    import logging
+
+                    logging.warning(f"ReActPlanner import failed: {e}")
+                    self._planner = None
+
+            def _get_llm_client(self):
+                """Get LLM client with local-first strategy."""
+                import os
+
+                # Try local vLLM first
+                try:
+                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+
+                    local_endpoints = [
+                        ("http://localhost:8001/v1", 8001),
+                        ("http://localhost:8000/v1", 8000),
+                    ]
+
+                    for endpoint, port in local_endpoints:
+                        detected_model = IntelligentLLMClient._probe_vllm_service(
+                            endpoint, timeout=1.0
+                        )
+                        if detected_model:
+                            return IntelligentLLMClient(
+                                model_name=detected_model,
+                                base_url=endpoint,
+                                api_key=os.getenv("VLLM_API_KEY", ""),
+                            )
+
+                    # Fall back to cloud API
+                    api_key = (
+                        os.getenv("SAGE_CHAT_API_KEY")
+                        or os.getenv("ALIBABA_API_KEY")
+                        or os.getenv("OPENAI_API_KEY")
+                    )
+
+                    if api_key and "your_" not in api_key.lower():
+                        return IntelligentLLMClient(
+                            model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                            base_url=os.getenv(
+                                "SAGE_CHAT_BASE_URL",
+                                "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                            ),
+                            api_key=api_key,
+                        )
+                except Exception:
+                    pass
+
+                return None
+
+            def plan(self, task):
+                """Generate plan using ReAct strategy."""
+                from sage.benchmark.benchmark_agent.experiments.base_experiment import (
+                    PlanningPrediction,
+                    PlanStep,
+                )
+
+                self._ensure_initialized()
+
+                instruction = getattr(task, "instruction", "") or ""
+                available_tools = getattr(task, "available_tools", []) or []
+
+                if not available_tools:
+                    return PlanningPrediction(steps=[], tool_sequence=[])
+
+                # Try ReAct planner if available
+                if self._planner is not None:
+                    try:
+                        from sage.libs.agentic.agents.planning import (
+                            PlanRequest,
+                            ToolMetadata,
+                        )
+
+                        # Convert available tools to ToolMetadata
+                        tools = [
+                            ToolMetadata(
+                                tool_id=t,
+                                name=t,
+                                description=f"Tool: {t}",
+                                category="general",
+                            )
+                            for t in available_tools
+                        ]
+
+                        request = PlanRequest(
+                            goal=instruction,
+                            tools=tools,
+                            constraints=[],
+                            min_steps=5,
+                            max_steps=10,
+                        )
+
+                        result = self._planner.plan(request)
+
+                        if result.success and result.steps:
+                            steps = []
+                            tool_sequence = []
+
+                            for i, step in enumerate(result.steps):
+                                tool_id = step.tool_id or step.action
+                                if tool_id in available_tools:
+                                    steps.append(
+                                        PlanStep(
+                                            step_id=i,
+                                            description=step.description or step.action,
+                                            tool_id=tool_id,
+                                            confidence=0.8,
+                                        )
+                                    )
+                                    tool_sequence.append(tool_id)
+
+                            if steps:
+                                return PlanningPrediction(
+                                    steps=steps,
+                                    tool_sequence=tool_sequence,
+                                )
+                    except Exception:
+                        pass
+
+                # Fallback: use heuristic-based planning
+                return self._fallback_plan(instruction, available_tools)
+
+            def _fallback_plan(self, instruction: str, available_tools: list[str]):
+                """Heuristic-based fallback planning."""
+                from sage.benchmark.benchmark_agent.experiments.base_experiment import (
+                    PlanningPrediction,
+                    PlanStep,
+                )
+
+                steps = []
+                tool_sequence = []
+                instruction_lower = instruction.lower()
+
+                # Score tools by relevance
+                tool_scores = []
+                for tool in available_tools:
+                    score = 0
+                    tool_lower = tool.lower()
+                    tool_words = set(tool_lower.replace("_", " ").split())
+                    instruction_words = set(instruction_lower.replace(",", " ").split())
+
+                    # Word overlap
+                    overlap = len(tool_words & instruction_words)
+                    score += overlap * 2
+
+                    # Action keyword matching
+                    if any(w in tool_lower for w in ["read", "get", "fetch", "load"]):
+                        if any(w in instruction_lower for w in ["read", "get", "load", "fetch"]):
+                            score += 2
+                    if any(w in tool_lower for w in ["write", "save", "send", "post"]):
+                        if any(w in instruction_lower for w in ["write", "save", "send", "post"]):
+                            score += 2
+                    if any(w in tool_lower for w in ["process", "transform", "convert"]):
+                        if any(w in instruction_lower for w in ["process", "convert", "transform"]):
+                            score += 2
+
+                    tool_scores.append((tool, score))
+
+                tool_scores.sort(key=lambda x: x[1], reverse=True)
+
+                # Select top tools
+                selected = [t for t, s in tool_scores[:8] if s > 0]
+                if len(selected) < 5:
+                    for t, _ in tool_scores:
+                        if t not in selected:
+                            selected.append(t)
+                        if len(selected) >= 5:
+                            break
+
+                for i, tool in enumerate(selected[:10]):
+                    steps.append(
+                        PlanStep(
+                            step_id=i,
+                            description=f"ReAct step {i + 1}: Use {tool}",
+                            tool_id=tool,
+                            confidence=0.6,
+                        )
+                    )
+                    tool_sequence.append(tool)
+
+                return PlanningPrediction(steps=steps, tool_sequence=tool_sequence)
+
+        return PlannerAdapter(ReActPlannerWrapper())
 
     def _create_sequence_planner(self, resources: Optional[Any] = None) -> PlannerAdapter:
         """Create sequence-based planner using selector for tool ordering."""
@@ -1819,6 +2168,224 @@ Return ONLY the JSON array, no explanation. Example:
         # Create hierarchical fallback
         hierarchical = self._create_hierarchical_planning_strategy(resources)
         return PlannerAdapter(LLMPlanningStrategy(hierarchical.planner))
+
+    def _create_tot_planner(self, resources: Optional[Any] = None) -> PlannerAdapter:
+        """
+        Create Tree-of-Thoughts planner for Challenge 2.
+
+        Uses tree search to explore multiple reasoning paths.
+        Based on "Tree of Thoughts: Deliberate Problem Solving with LLMs" (Yao et al., 2023)
+        """
+
+        class ToTPlanningStrategy:
+            """
+            Tree-of-Thoughts planning strategy.
+
+            Explores multiple reasoning paths via BFS/DFS tree search,
+            using LLM to generate and evaluate thought candidates.
+            """
+
+            def __init__(self, fallback_planner):
+                self._fallback = fallback_planner
+                self._llm_client = None
+                self._client_initialized = False
+                # ToT configuration
+                self._max_depth = 3
+                self._branch_factor = 3
+                self._beam_width = 5
+                self._min_score = 0.3
+
+            def _get_llm_client(self):
+                """Lazy initialization of LLM client."""
+                if self._client_initialized:
+                    return self._llm_client
+
+                self._client_initialized = True
+                try:
+                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+
+                    self._llm_client = IntelligentLLMClient.create_auto(probe_timeout=1.0)
+                except Exception:
+                    self._llm_client = None
+
+                return self._llm_client
+
+            def plan(self, task):
+                """Generate plan using Tree-of-Thoughts search."""
+                from sage.benchmark.benchmark_agent.experiments.base_experiment import (
+                    PlanningPrediction,
+                    PlanStep,
+                )
+
+                instruction = getattr(task, "instruction", "") or ""
+                available_tools = getattr(task, "available_tools", []) or []
+
+                if not available_tools:
+                    return PlanningPrediction(steps=[], tool_sequence=[])
+
+                # Get LLM client
+                llm_client = self._get_llm_client()
+
+                # If no LLM, fall back to hierarchical
+                if llm_client is None:
+                    return self._fallback.plan(task)
+
+                try:
+                    # Run ToT search
+                    best_path = self._tot_search(instruction, available_tools, llm_client)
+
+                    if best_path:
+                        steps = []
+                        tool_sequence = []
+                        for i, (thought, tool_id) in enumerate(best_path):
+                            if tool_id and tool_id in available_tools:
+                                steps.append(
+                                    PlanStep(
+                                        step_id=i,
+                                        description=thought,
+                                        tool_id=tool_id,
+                                        confidence=0.8,
+                                    )
+                                )
+                                tool_sequence.append(tool_id)
+
+                        if steps:
+                            return PlanningPrediction(steps=steps, tool_sequence=tool_sequence)
+                except Exception:
+                    pass
+
+                # Fallback to hierarchical planner
+                return self._fallback.plan(task)
+
+            def _tot_search(
+                self, instruction: str, available_tools: list[str], llm_client
+            ) -> list[tuple[str, str]]:
+                """
+                Perform Tree-of-Thoughts BFS search.
+
+                Returns list of (thought, tool_id) tuples.
+                """
+                # Initialize queue with empty path
+                queue: list[list[tuple[str, str, float]]] = [[]]  # Paths
+
+                tools_str = ", ".join(available_tools[:15])
+
+                for depth in range(self._max_depth):
+                    next_queue: list[list[tuple[str, str, float]]] = []
+
+                    for path in queue:
+                        # Generate candidate thoughts
+                        candidates = self._generate_thoughts(
+                            instruction, path, available_tools, llm_client, tools_str
+                        )
+
+                        for thought, tool_id, score in candidates:
+                            if score >= self._min_score:
+                                new_path = path + [(thought, tool_id, score)]
+                                next_queue.append(new_path)
+
+                    if not next_queue:
+                        break
+
+                    # Keep top-k paths by average score
+                    next_queue.sort(
+                        key=lambda p: sum(s for _, _, s in p) / len(p) if p else 0, reverse=True
+                    )
+                    queue = next_queue[: self._beam_width]
+
+                # Return best path
+                if queue:
+                    best_path = max(
+                        queue, key=lambda p: sum(s for _, _, s in p) / len(p) if p else 0
+                    )
+                    return [(t, tid) for t, tid, _ in best_path]
+
+                return []
+
+            def _generate_thoughts(
+                self,
+                instruction: str,
+                path: list[tuple[str, str, float]],
+                available_tools: list[str],
+                llm_client,
+                tools_str: str,
+            ) -> list[tuple[str, str, float]]:
+                """Generate and evaluate candidate thoughts."""
+                import json
+                import re
+
+                # Format current progress
+                progress = ""
+                if path:
+                    progress = "\n".join(
+                        f"Step {i + 1}: {t} (tool: {tid})" for i, (t, tid, _) in enumerate(path)
+                    )
+                else:
+                    progress = "No steps taken yet."
+
+                # Get used tools
+                used_tools = {tid for _, tid, _ in path if tid}
+
+                # Generate prompt
+                prompt = f"""You are a planning assistant. Generate {self._branch_factor} different possible next steps.
+
+Task: {instruction}
+Available tools: {tools_str}
+Current progress:
+{progress}
+
+Generate {self._branch_factor} different next steps. Each should use an available tool.
+Avoid tools already used: {", ".join(used_tools) if used_tools else "none"}
+
+Output as JSON array:
+[{{"thought": "step description", "tool_id": "tool_name", "score": 0-10}}]
+
+Only output JSON, nothing else."""
+
+                try:
+                    response = llm_client.chat(
+                        [{"role": "user", "content": prompt}],
+                        max_tokens=512,
+                        temperature=0.7,
+                    )
+
+                    # Parse response
+                    text = response if isinstance(response, str) else str(response)
+                    json_match = re.search(r"\[.*\]", text, re.DOTALL)
+                    if json_match:
+                        candidates = json.loads(json_match.group())
+                        result = []
+                        for c in candidates:
+                            thought = c.get("thought", "")
+                            tool_id = c.get("tool_id", "")
+                            score = c.get("score", 5) / 10.0
+
+                            # Validate tool
+                            if tool_id not in available_tools:
+                                # Try to find closest match
+                                for tool in available_tools:
+                                    if tool not in used_tools:
+                                        tool_id = tool
+                                        break
+                                else:
+                                    continue
+
+                            result.append((thought, tool_id, score))
+
+                        return result[: self._branch_factor]
+                except Exception:
+                    pass
+
+                # Fallback: return one thought per unused tool
+                result = []
+                for tool in available_tools:
+                    if tool not in used_tools and len(result) < self._branch_factor:
+                        result.append((f"Use {tool} for task", tool, 0.5))
+                return result
+
+        # Create hierarchical fallback
+        hierarchical = self._create_hierarchical_planning_strategy(resources)
+        return PlannerAdapter(ToTPlanningStrategy(hierarchical.planner))
 
 
 # Global registry instance

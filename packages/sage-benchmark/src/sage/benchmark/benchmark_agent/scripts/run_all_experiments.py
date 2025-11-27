@@ -65,15 +65,22 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 BENCHMARK_AGENT_DIR = SCRIPT_DIR.parent
 BENCHMARK_ROOT = BENCHMARK_AGENT_DIR.parent.parent.parent.parent  # sage-benchmark
-SAGE_ROOT = BENCHMARK_ROOT.parent.parent  # SAGE repo root
-
-# Default output directory: .sage/benchmark/
-DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark"
-# Default data directory: .sage/benchmark/data/
-DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data"
-
-# Ensure sage packages are importable
 sys.path.insert(0, str(BENCHMARK_ROOT / "src"))
+
+# Import data paths module
+try:
+    from sage.benchmark.benchmark_agent.data_paths import (
+        get_runtime_paths,
+    )
+
+    _runtime_paths = get_runtime_paths()
+    DEFAULT_OUTPUT_DIR = _runtime_paths.results_root.parent  # .sage/benchmark/
+    DEFAULT_DATA_DIR = _runtime_paths.data_root  # .sage/benchmark/data/
+except ImportError:
+    # Fallback for standalone execution
+    SAGE_ROOT = BENCHMARK_ROOT.parent.parent
+    DEFAULT_OUTPUT_DIR = SAGE_ROOT / ".sage" / "benchmark"
+    DEFAULT_DATA_DIR = SAGE_ROOT / ".sage" / "benchmark" / "data"
 
 
 def setup_environment():
@@ -167,8 +174,12 @@ class ExperimentRunner:
         ]
 
         # Filter out LLM strategies if skip_llm is set
+        # Note: timing.hybrid also uses LLM internally, so it should be skipped too
+        LLM_STRATEGIES = {"timing.llm_based", "timing.hybrid"}
         if self.skip_llm:
-            detectors = [(name, display) for name, display in detectors if "llm" not in name]
+            detectors = [
+                (name, display) for name, display in detectors if name not in LLM_STRATEGIES
+            ]
             print("  ⚠️  Skipping LLM-based strategies (--skip-llm)")
 
         results = []
