@@ -314,6 +314,20 @@ install_sage() {
                 log_phase_end "开发者安装模式" "failure" "MAIN"
                 return 1
             fi
+
+            # 尝试安装 FlashInfer（可选，用于 vLLM 高性能采样）
+            local flashinfer_script="$project_root/tools/install/helpers/install_flashinfer.sh"
+            if [ -f "$flashinfer_script" ]; then
+                echo ""
+                echo -e "${BLUE}🚀 尝试安装 FlashInfer（vLLM 高性能采样加速）...${NC}"
+                log_info "尝试安装 FlashInfer" "MAIN"
+                if bash "$flashinfer_script" 2>&1 | tee -a "$log_file"; then
+                    log_info "FlashInfer 安装成功" "MAIN"
+                else
+                    log_warn "FlashInfer 安装跳过（可选组件，不影响基本功能）" "MAIN"
+                    echo -e "${DIM}   FlashInfer 安装跳过，vLLM 将使用 PyTorch 原生采样${NC}"
+                fi
+            fi
             ;;
         *)
             echo -e "${WARNING} 未知安装模式: $mode，使用开发者模式"

@@ -5,6 +5,15 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "$SAGE_ROOT" ]; then
+    SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+fi
+
+if [ -f "$SAGE_ROOT/tools/conda/conda_utils.sh" ]; then
+    source "$SAGE_ROOT/tools/conda/conda_utils.sh"
+fi
+
 # 检测操作系统
 detect_os() {
     if [[ -f /etc/os-release ]]; then
@@ -57,12 +66,27 @@ check_and_install_build_tools() {
     if [ "$need_node" = "true" ] && command -v conda &> /dev/null; then
         log_info "尝试使用 Conda 安装 Node.js (无需 sudo)..." "SysDeps"
         echo -e "${GEAR} 尝试使用 Conda 安装 Node.js..."
-        if conda install -y nodejs; then
-            log_info "Node.js (Conda) 安装成功" "SysDeps"
-            echo -e "${CHECK} Node.js (Conda) 安装成功"
-            need_node=false
+
+        if declare -f ensure_conda_tos_accepted >/dev/null 2>&1; then
+            if ensure_conda_tos_accepted --auto --quiet; then
+                if conda install -y nodejs; then
+                    log_info "Node.js (Conda) 安装成功" "SysDeps"
+                    echo -e "${CHECK} Node.js (Conda) 安装成功"
+                    need_node=false
+                else
+                    log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
+                fi
+            else
+                log_warn "Conda 尚未准备好执行安装（服务条款未接受或 Conda 信息异常），将跳过此路径" "SysDeps"
+            fi
         else
-            log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
+            if conda install -y nodejs; then
+                log_info "Node.js (Conda) 安装成功" "SysDeps"
+                echo -e "${CHECK} Node.js (Conda) 安装成功"
+                need_node=false
+            else
+                log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
+            fi
         fi
     fi
 

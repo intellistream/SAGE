@@ -1,0 +1,22 @@
+# Runtime Configuration Example - Timing Detection
+
+# Timing configuration
+timing:
+  name: "rule_based"  # Strategy: rule_based, llm_based, threshold
+  threshold: 0.5
+  use_context: true
+  params:
+    confidence_threshold: 0.7
+    context_window: 5
+
+# Telemetry configuration
+telemetry:
+  enabled: true
+  collect_latency: true
+  collect_accuracy: true
+  output_path: "${PROJECT_ROOT}/outputs/runtime/telemetry_timing.json"
+  log_level: "INFO"
+
+# General runtime settings
+max_turns: 8
+timeout: 30.0
