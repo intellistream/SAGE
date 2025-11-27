@@ -86,3 +86,54 @@ vector_store.add_texts(["document 1", "document 2"])
 ## 📄 License
 
 MIT License - see [LICENSE](../../LICENSE) for details.
+
+______________________________________________________________________
+
+## 🤖 Agent Fine-tuning Module
+
+The `sage.libs.finetune.agent` module provides specialized tools for fine-tuning language models on
+agent tasks, including tool calling, planning, and timing judgment.
+
+### Quick Start
+
+```python
+from sage.libs.finetune.agent import AgentSFTConfig, AgentSFTTrainer
+
+# Basic configuration
+config = AgentSFTConfig(
+    base_model="Qwen/Qwen2.5-1.5B-Instruct",
+    train_data="agent_sft:train",
+    num_epochs=1,
+)
+
+# Create and run trainer
+trainer = AgentSFTTrainer(config)
+trainer.train()
+```
+
+### Available Training Methods
+
+| Method ID           | Name                | Description              | Key Features                     |
+| ------------------- | ------------------- | ------------------------ | -------------------------------- |
+| `A_baseline`        | Baseline            | Standard SFT             | No enhancements                  |
+| `B3_coreset_hybrid` | Coreset (Hybrid)    | 60% loss + 40% diversity | `coreset_strategy="hybrid"`      |
+| `C_continual`       | Continual Learning  | Experience replay buffer | `use_continual=True`             |
+| `D_combined`        | Coreset + Continual | Best of both approaches  | Combined                         |
+| `E_fireact`         | FireAct             | Trajectory fine-tuning   | `use_trajectory_collection=True` |
+| `F_agenttuning`     | AgentTuning         | Multi-task training      | `use_multi_task=True`            |
+| `G_dora`            | DoRA                | Weight-decomposed LoRA   | `use_dora=True`                  |
+| `H_lora_plus`       | LoRA+               | Differentiated LR        | `use_lora_plus=True`             |
+
+### Key Components
+
+| Component                | Description                   | Import Path                                  |
+| ------------------------ | ----------------------------- | -------------------------------------------- |
+| `AgentSFTTrainer`        | Main trainer class            | `sage.libs.finetune.agent`                   |
+| `CoresetSelector`        | Sample selection              | `sage.libs.finetune.agent`                   |
+| `OnlineContinualLearner` | Experience replay             | `sage.libs.finetune.agent`                   |
+| `TrajectoryCollector`    | FireAct trajectory collection | `sage.libs.finetune.agent`                   |
+| `MultiTaskMixer`         | AgentTuning data mixing       | `sage.libs.finetune.agent`                   |
+| `MethodRegistry`         | Predefined methods            | `sage.benchmark.benchmark_agent.experiments` |
+
+For detailed API documentation, see
+[Agent Fine-tuning API Reference](../../docs/dev-notes/l3-libs/AGENT_FINETUNE_API_REFERENCE.md).
