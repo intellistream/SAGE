@@ -399,7 +399,17 @@ class ExperimentRunner:
             ("selector.keyword", "Keyword (BM25)"),
             ("selector.embedding", "Embedding"),
             ("selector.hybrid", "Hybrid"),
+            ("selector.gorilla", "Gorilla (Retrieval+LLM)"),
+            ("selector.dfsdt", "DFSDT (Tree Search)"),
         ]
+
+        # Filter out LLM-based selectors if skip_llm is set
+        LLM_SELECTORS = {"selector.gorilla", "selector.dfsdt"}
+        if self.skip_llm:
+            selectors = [
+                (name, display) for name, display in selectors if name not in LLM_SELECTORS
+            ]
+            print("  ⚠️  Skipping LLM-based selectors (--skip-llm)")
 
         results = []
         for selector_name, display_name in selectors:

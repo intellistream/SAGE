@@ -330,6 +330,6 @@ class AgentSFTTrainer:
         metrics: dict[str, float] = {}
         for sample in samples:
             value = sample.metadata.get(key)
-            if isinstance(value, (int, float)):
+            if isinstance(value, int | float):
                 metrics[sample.dialog_id] = float(value)
         return metrics

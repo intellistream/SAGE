@@ -132,7 +132,7 @@ class MarkdownReportBuilder:
 
         if isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(value, (dict, list)) and len(str(value)) > 50:
+                if isinstance(value, dict | list) and len(str(value)) > 50:
                     lines.append(f"{prefix}- **{key}**:")
                     lines.append(self._format_section(value, indent + 1))
                 else:
@@ -156,7 +156,7 @@ class MarkdownReportBuilder:
         """Format individual value."""
         if isinstance(value, float):
             return f"{value:.4f}"
-        elif isinstance(value, (list, tuple)) and len(value) <= 5:
+        elif isinstance(value, list | tuple) and len(value) <= 5:
             return ", ".join(str(v) for v in value)
         else:
             return str(value)

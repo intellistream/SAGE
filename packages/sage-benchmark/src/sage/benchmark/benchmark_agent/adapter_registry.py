@@ -415,18 +415,24 @@ class AdapterRegistry:
             if resources is None:
                 resources = self._create_mock_resources()
 
-            # Gorilla requires embedding client
+            # Gorilla requires embedding client with batch interface
             if resources.embedding_client is None:
                 # Try to create embedding client
                 try:
-                    from sage.common.components.sage_embedding.factory import EmbeddingFactory
+                    from sage.common.components.sage_embedding import (
+                        EmbeddingFactory,
+                        adapt_embedding_client,
+                    )
 
-                    embedding_client = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    # EmbeddingFactory returns single-text interface, need to adapt
+                    raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    # Adapt to batch interface (embed(texts: list[str]))
+                    embedding_client = adapt_embedding_client(raw_embedder)
                     resources.embedding_client = embedding_client
-                except Exception:
+                except Exception as e:
                     # Fall back to hybrid selector if embedding not available
                     self.logger.warning(
-                        "Gorilla selector requires embedding client. "
+                        f"Gorilla selector requires embedding client ({e}). "
                         "Falling back to hybrid selector."
                     )
                     return self._create_hybrid_selector(resources)
