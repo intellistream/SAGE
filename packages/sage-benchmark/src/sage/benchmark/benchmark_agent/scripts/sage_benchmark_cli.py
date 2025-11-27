@@ -16,19 +16,210 @@ Usage:
 
     # 列出所有可用实验
     python sage_benchmark_cli.py --list
+
+    # LLM 服务管理
+    python sage_benchmark_cli.py --start-llm                    # 启动本地 LLM 服务
+    python sage_benchmark_cli.py --start-llm --llm-model Qwen/Qwen2.5-7B-Instruct
+    python sage_benchmark_cli.py --llm-status                   # 检查服务状态
+    python sage_benchmark_cli.py --stop-llm                     # 停止服务
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import signal
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import httpx
+
 # 获取脚本目录
 SCRIPT_DIR = Path(__file__).resolve().parent
+
+# LLM 服务配置 - 从统一配置导入
+try:
+    from sage.common.config.ports import SagePorts
+
+    DEFAULT_LLM_PORT = SagePorts.BENCHMARK_LLM
+except ImportError:
+    DEFAULT_LLM_PORT = 8901  # Fallback
+
+DEFAULT_LLM_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+LLM_PID_FILE = Path.home() / ".sage" / "benchmark_llm.pid"
+
+
+# =============================================================================
+# LLM 服务管理
+# =============================================================================
+
+
+def check_llm_service(port: int = DEFAULT_LLM_PORT) -> dict:
+    """检查 LLM 服务状态"""
+    result = {"running": False, "port": port, "model": None, "error": None}
+
+    try:
+        response = httpx.get(f"http://localhost:{port}/v1/models", timeout=5.0)
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get("data", [])
+            if models:
+                result["running"] = True
+                result["model"] = models[0].get("id", "unknown")
+        else:
+            result["error"] = f"HTTP {response.status_code}"
+    except httpx.ConnectError:
+        result["error"] = "Connection refused"
+    except httpx.TimeoutException:
+        result["error"] = "Timeout"
+    except Exception as e:
+        result["error"] = str(e)
+
+    return result
+
+
+def start_llm_service(
+    model: str = DEFAULT_LLM_MODEL,
+    port: int = DEFAULT_LLM_PORT,
+    gpu_memory: float = 0.5,
+) -> bool:
+    """启动本地 vLLM 服务"""
+    # 检查是否已运行
+    status = check_llm_service(port)
+    if status["running"]:
+        print(f"✅ LLM 服务已在运行 (port={port}, model={status['model']})")
+        return True
+
+    print("🚀 启动 LLM 服务...")
+    print(f"   模型: {model}")
+    print(f"   端口: {port}")
+    print(f"   GPU 显存: {gpu_memory * 100:.0f}%")
+
+    # 确保 PID 文件目录存在
+    LLM_PID_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    # 构建 vLLM 命令
+    cmd = [
+        sys.executable,
+        "-m",
+        "vllm.entrypoints.openai.api_server",
+        "--model",
+        model,
+        "--port",
+        str(port),
+        "--gpu-memory-utilization",
+        str(gpu_memory),
+        "--trust-remote-code",
+    ]
+
+    try:
+        # 后台启动
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+
+        # 保存 PID
+        with open(LLM_PID_FILE, "w") as f:
+            f.write(str(process.pid))
+
+        print(f"   PID: {process.pid}")
+        print("   等待服务启动...")
+
+        # 等待服务就绪 (最多 120 秒)
+        for i in range(120):
+            time.sleep(1)
+            status = check_llm_service(port)
+            if status["running"]:
+                print(f"\n✅ LLM 服务已启动 (耗时 {i + 1}s)")
+                print(f"   端点: http://localhost:{port}/v1")
+                print(f"   模型: {status['model']}")
+                return True
+            if i % 10 == 9:
+                print(f"   已等待 {i + 1}s...")
+
+        print("\n❌ 服务启动超时")
+        return False
+
+    except FileNotFoundError:
+        print("❌ vLLM 未安装，请运行: pip install vllm")
+        return False
+    except Exception as e:
+        print(f"❌ 启动失败: {e}")
+        return False
+
+
+def stop_llm_service() -> bool:
+    """停止 LLM 服务"""
+    if not LLM_PID_FILE.exists():
+        print("ℹ️  没有找到运行中的 LLM 服务")
+        return True
+
+    try:
+        with open(LLM_PID_FILE) as f:
+            pid = int(f.read().strip())
+
+        print(f"🛑 停止 LLM 服务 (PID={pid})...")
+        os.kill(pid, signal.SIGTERM)
+
+        # 等待进程结束
+        for _ in range(10):
+            time.sleep(1)
+            try:
+                os.kill(pid, 0)  # 检查进程是否存在
+            except OSError:
+                break
+
+        LLM_PID_FILE.unlink(missing_ok=True)
+        print("✅ LLM 服务已停止")
+        return True
+
+    except ProcessLookupError:
+        print("ℹ️  进程已不存在")
+        LLM_PID_FILE.unlink(missing_ok=True)
+        return True
+    except Exception as e:
+        print(f"❌ 停止失败: {e}")
+        return False
+
+
+def print_llm_status():
+    """打印 LLM 服务状态"""
+    print("\n📡 LLM 服务状态")
+    print("=" * 50)
+
+    # 检查所有可能的 LLM 端口
+    try:
+        from sage.common.config.ports import SagePorts
+
+        ports_to_check = [SagePorts.BENCHMARK_LLM] + SagePorts.get_llm_ports()
+    except ImportError:
+        ports_to_check = [DEFAULT_LLM_PORT, 8001, 8000]
+
+    # 去重并保持顺序
+    seen = set()
+    unique_ports = []
+    for p in ports_to_check:
+        if p not in seen:
+            seen.add(p)
+            unique_ports.append(p)
+
+    for port in unique_ports:
+        status = check_llm_service(port)
+        if status["running"]:
+            print(f"  ✅ Port {port}: 运行中")
+            print(f"     模型: {status['model']}")
+            print(f"     端点: http://localhost:{port}/v1")
+        else:
+            print(f"  ❌ Port {port}: {status['error'] or '未运行'}")
+
+    print()
 
 
 @dataclass
@@ -342,6 +533,12 @@ Examples:
 
     # 列出所有实验
     python sage_benchmark_cli.py --list
+
+    # LLM 服务管理
+    python sage_benchmark_cli.py --start-llm                                    # 启动默认模型
+    python sage_benchmark_cli.py --start-llm --llm-model Qwen/Qwen2.5-7B-Instruct
+    python sage_benchmark_cli.py --llm-status                                   # 检查状态
+    python sage_benchmark_cli.py --stop-llm                                     # 停止服务
         """,
     )
 
@@ -370,6 +567,43 @@ Examples:
         action="store_true",
         help="跳过确认提示，直接运行",
     )
+
+    # LLM 服务管理参数
+    llm_group = parser.add_argument_group("LLM 服务管理")
+    llm_group.add_argument(
+        "--start-llm",
+        action="store_true",
+        help="启动本地 vLLM 服务",
+    )
+    llm_group.add_argument(
+        "--stop-llm",
+        action="store_true",
+        help="停止本地 vLLM 服务",
+    )
+    llm_group.add_argument(
+        "--llm-status",
+        action="store_true",
+        help="检查 LLM 服务状态",
+    )
+    llm_group.add_argument(
+        "--llm-model",
+        type=str,
+        default=DEFAULT_LLM_MODEL,
+        help=f"LLM 模型 (默认: {DEFAULT_LLM_MODEL})",
+    )
+    llm_group.add_argument(
+        "--llm-port",
+        type=int,
+        default=DEFAULT_LLM_PORT,
+        help=f"LLM 服务端口 (默认: {DEFAULT_LLM_PORT})",
+    )
+    llm_group.add_argument(
+        "--gpu-memory",
+        type=float,
+        default=0.5,
+        help="GPU 显存使用比例 (默认: 0.5)",
+    )
+
     parser.add_argument(
         "extra_args",
         nargs="*",
@@ -378,10 +612,27 @@ Examples:
 
     args = parser.parse_args()
 
+    # LLM 服务管理命令
+    if args.llm_status:
+        print_llm_status()
+        return 0
+
+    if args.stop_llm:
+        return 0 if stop_llm_service() else 1
+
+    if args.start_llm:
+        success = start_llm_service(
+            model=args.llm_model,
+            port=args.llm_port,
+            gpu_memory=args.gpu_memory,
+        )
+        return 0 if success else 1
+
     # 列出实验
     if args.list:
         print_banner()
         print_experiments()
+        print_llm_status()
         return 0
 
     # 直接指定实验
@@ -391,10 +642,22 @@ Examples:
             print(f"❌ 未找到实验: {args.experiment}")
             print("使用 --list 查看可用实验")
             return 1
+
+        # 检查 LLM 服务（对于需要 LLM 的实验）
+        if exp.requires_gpu or "llm" in exp.id.lower():
+            status = check_llm_service()
+            if not status["running"]:
+                print("⚠️  LLM 服务未运行，某些方法可能无法使用")
+                print("   使用 --start-llm 启动服务")
+                print()
+
         success = run_experiment(exp, args.extra_args, skip_confirm=args.yes)
         return 0 if success else 1
 
     # 交互式模式
+    print_banner()
+    print_llm_status()
+
     while True:
         exp = select_experiment_interactive()
         if exp is None:
