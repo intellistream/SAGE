@@ -1109,6 +1109,93 @@ class ExperimentRunner:
 
         print(f"\n✓ Results saved to: {results_file}")
 
+    def run_training_comparison(
+        self,
+        methods: list[str],
+        base_model: str,
+        dry_run: bool = False,
+    ) -> list[dict]:
+        """
+        Run training method comparison (Task C1).
+
+        This integrates the MethodComparisonExperiment into the unified runner.
+
+        Args:
+            methods: List of method IDs to compare (e.g., ["A_baseline", "D_combined"])
+            base_model: Base model for training (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
+            dry_run: If True, simulate training without actual model training
+
+        Returns:
+            List of training comparison results
+        """
+        print("\n" + "=" * 70)
+        print("🎓 Training Method Comparison")
+        print("=" * 70)
+        print(f"  Base model: {base_model}")
+        print(f"  Methods: {', '.join(methods)}")
+        print(f"  Dry run: {dry_run}")
+        print("=" * 70)
+
+        from sage.benchmark.benchmark_agent.experiments.method_comparison import (
+            MethodComparisonExperiment,
+            MethodRegistry,
+        )
+
+        # Get all available methods
+        all_methods = MethodRegistry.get_all_methods()
+
+        # Validate requested methods
+        invalid_methods = [m for m in methods if m not in all_methods]
+        if invalid_methods:
+            print(f"  ⚠️  Unknown methods: {invalid_methods}")
+            print(f"  Available methods: {list(all_methods.keys())}")
+            methods = [m for m in methods if m in all_methods]
+
+        if not methods:
+            print("  ❌ No valid methods to compare")
+            return []
+
+        # Create method configs for selected methods
+        selected_methods = {k: all_methods[k] for k in methods}
+
+        # Create experiment
+        training_output_dir = self.output_dir / "training"
+        exp = MethodComparisonExperiment(
+            output_dir=training_output_dir,
+            base_model=base_model,
+            methods=selected_methods,
+            dry_run=dry_run,
+        )
+
+        # Run all methods
+        results = exp.run_all_methods(skip_training=False)
+
+        # Convert results to dicts and store
+        training_results = [r.to_dict() for r in results]
+        self.results.training = training_results
+
+        # Generate comparison chart
+        try:
+            chart_path = exp.generate_comparison_chart()
+            print(f"\n  ✓ Comparison chart saved to: {chart_path}")
+        except Exception as e:
+            print(f"  ⚠️  Failed to generate chart: {e}")
+
+        # Print summary
+        print("\n" + "-" * 50)
+        print("Training Comparison Summary")
+        print("-" * 50)
+        for r in results:
+            top_k = r.metrics.get("top_k_accuracy", 0)
+            train_time = r.training_time_seconds
+            status = "✅" if top_k >= 0.95 else "❌"
+            print(
+                f"  {status} {r.method_name}: Top-K={top_k * 100:.1f}%, "
+                f"Time={train_time / 60:.1f}min"
+            )
+
+        return training_results
+
     def _load_jsonl(self, path: Path) -> list[dict]:
         """Load JSONL file."""
         if not path.exists():
@@ -1204,6 +1291,26 @@ def main():
     parser.add_argument(
         "--paper-only", action="store_true", help="Generate paper materials from existing results"
     )
+    # Training mode arguments (Task C1)
+    parser.add_argument(
+        "--train", action="store_true", help="Run training comparison (Methods A-J)"
+    )
+    parser.add_argument(
+        "--train-methods",
+        nargs="+",
+        default=["A_baseline", "D_combined"],
+        help="Methods to compare (default: A_baseline D_combined)",
+    )
+    parser.add_argument(
+        "--train-model",
+        default="Qwen/Qwen2.5-1.5B-Instruct",
+        help="Base model for training (default: Qwen/Qwen2.5-1.5B-Instruct)",
+    )
+    parser.add_argument(
+        "--train-dry-run",
+        action="store_true",
+        help="Simulate training without actual model training (for testing)",
+    )
     parser.add_argument(
         "--results-dir",
         type=Path,
@@ -1236,15 +1343,59 @@ def main():
         max_planning = 100
         max_tool = 100
 
+    # Determine mode string for display
+    if args.train:
+        mode_str = "train"
+    elif args.quick:
+        mode_str = "quick"
+    elif args.full:
+        mode_str = "full"
+    elif args.paper_only:
+        mode_str = "paper-only"
+    else:
+        mode_str = "eval-only"
+
     print("=" * 70)
     print("🚀 SAGE AGENT BENCHMARK - Complete Experiment Runner")
     print("=" * 70)
     print(f"  Output directory: {args.results_dir}")
     print(f"  Data directory:   {DEFAULT_DATA_DIR}")
-    print(f"  Mode: {'quick' if args.quick else 'full' if args.full else 'eval-only'}")
-    print(f"  Sample sizes: timing={max_timing}, planning={max_planning}, tool={max_tool}")
+    print(f"  Mode: {mode_str}")
+    if args.train or args.full:
+        print(f"  Training methods: {', '.join(args.train_methods)}")
+        print(f"  Base model: {args.train_model}")
+        if args.train_dry_run:
+            print("  ⚠️  Training: DRY RUN (no actual training)")
+    else:
+        print(f"  Sample sizes: timing={max_timing}, planning={max_planning}, tool={max_tool}")
     if args.skip_llm:
         print("  ⚠️  LLM strategies: SKIPPED (--skip-llm)")
+
+    # Check LLM service availability (unless skipped)
+    if not args.skip_llm:
+        print("-" * 70)
+        print("📡 LLM Service Status:")
+        try:
+            from sage.common.components.sage_llm.client import check_llm_service
+
+            status = check_llm_service(verbose=False)
+            if status["local_available"]:
+                print(
+                    f"  ✅ Local vLLM: {status['local_endpoint']} (model: {status['local_model']})"
+                )
+            else:
+                print("  ⚠️  Local vLLM: Not detected")
+            if status["cloud_configured"]:
+                print("  ☁️  Cloud API: Configured")
+            else:
+                print("  ⚠️  Cloud API: Not configured")
+            if not status["local_available"] and not status["cloud_configured"]:
+                print("\n  💡 Tip: Start local vLLM for faster evaluation:")
+                print("     vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001")
+                print("     Or use --skip-llm to skip LLM strategies")
+        except ImportError:
+            print("  ⚠️  Unable to check LLM service status")
+
     print("=" * 70)
 
     runner = ExperimentRunner(args.results_dir, verbose=args.verbose, skip_llm=args.skip_llm)
@@ -1262,6 +1413,20 @@ def main():
             ]
             runner.results.summary = data.get("summary", {})
         runner.generate_paper_materials()
+    elif args.train:
+        # Training comparison mode (Task C1)
+        start_time = time.time()
+
+        runner.run_training_comparison(
+            methods=args.train_methods,
+            base_model=args.train_model,
+            dry_run=args.train_dry_run,
+        )
+
+        runner.save_results()
+
+        elapsed = time.time() - start_time
+        print(f"\n✅ Training comparison completed in {elapsed / 60:.1f} minutes")
     else:
         # Run all evaluations
         start_time = time.time()
@@ -1269,6 +1434,14 @@ def main():
         runner.run_timing_evaluation(max_samples=max_timing)
         runner.run_planning_evaluation(max_samples=max_planning)
         runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
+
+        # Run training if --full mode
+        if args.full:
+            runner.run_training_comparison(
+                methods=args.train_methods,
+                base_model=args.train_model,
+                dry_run=args.train_dry_run,
+            )
 
         # Generate paper materials
         runner.generate_paper_materials()
