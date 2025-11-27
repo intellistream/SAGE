@@ -14,6 +14,8 @@ import requests
 from rich.console import Console
 from rich.table import Table
 
+from sage.common.config.ports import SagePorts
+
 from .studio_manager import StudioManager
 from .utils.gpu_check import is_gpu_available
 
@@ -36,7 +38,7 @@ class ChatModeManager(StudioManager):
         self.llm_enabled = os.getenv("SAGE_STUDIO_LLM", "true").lower() in ("true", "1", "yes")
         # Use Qwen2.5-0.5B as default - very small and fast
         self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-        self.llm_port = 8001  # OpenAI-compatible API port
+        self.llm_port = SagePorts.LLM_DEFAULT  # OpenAI-compatible API port
 
     # ------------------------------------------------------------------
     # Fine-tuned Model Discovery
@@ -227,9 +229,10 @@ class ChatModeManager(StudioManager):
         import subprocess
 
         try:
-            # Check for vLLM processes on port 8001
+            # Check for vLLM processes on the LLM port
+            llm_port_str = f":{SagePorts.LLM_DEFAULT}"
             result = subprocess.run(
-                ["lsof", "-ti", ":8001"],
+                ["lsof", "-ti", llm_port_str],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -244,7 +247,7 @@ class ChatModeManager(StudioManager):
                 for i in range(10):
                     time.sleep(1)
                     check_result = subprocess.run(
-                        ["lsof", "-ti", ":8001"],
+                        ["lsof", "-ti", llm_port_str],
                         capture_output=True,
                         text=True,
                         timeout=5,

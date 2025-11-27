@@ -50,14 +50,14 @@ class SagePorts:
     # =========================================================================
     # Studio & UI Services (8100-8199)
     # =========================================================================
-    STUDIO_BACKEND: ClassVar[int] = 8100  # Studio API backend
-    STUDIO_FRONTEND: ClassVar[int] = 8101  # Studio frontend dev server
+    STUDIO_BACKEND: ClassVar[int] = 8080  # Studio API backend (legacy, using 8080)
+    STUDIO_FRONTEND: ClassVar[int] = 5173  # Studio frontend dev server (Vite default)
     STUDIO_WEBSOCKET: ClassVar[int] = 8102  # Studio WebSocket server
 
     # =========================================================================
-    # Gateway & API Routing (8200-8299)
+    # Gateway & API Routing (8000, 8200-8299)
     # =========================================================================
-    GATEWAY_DEFAULT: ClassVar[int] = 8200  # API Gateway
+    GATEWAY_DEFAULT: ClassVar[int] = 8000  # API Gateway (OpenAI-compatible endpoint)
     GATEWAY_ADMIN: ClassVar[int] = 8201  # Gateway admin API
 
     # =========================================================================

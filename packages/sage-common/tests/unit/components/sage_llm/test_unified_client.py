@@ -50,7 +50,7 @@ class TestUnifiedClientConfig:
         config = UnifiedClientConfig(
             llm_base_url="http://localhost:8001/v1",
             llm_model="qwen-7b",
-            llm_api_key="test-key",
+            llm_api_key="test-key",  # pragma: allowlist secret
             embedding_base_url="http://localhost:8090/v1",
             embedding_model="bge-m3",
             mode=UnifiedClientMode.CONTROL_PLANE,
@@ -61,7 +61,7 @@ class TestUnifiedClientConfig:
 
         assert config.llm_base_url == "http://localhost:8001/v1"
         assert config.llm_model == "qwen-7b"
-        assert config.llm_api_key == "test-key"
+        assert config.llm_api_key == "test-key"  # pragma: allowlist secret
         assert config.embedding_base_url == "http://localhost:8090/v1"
         assert config.embedding_model == "bge-m3"
         assert config.mode == UnifiedClientMode.CONTROL_PLANE
@@ -206,18 +206,21 @@ class TestUnifiedClientEndpointDetection:
         assert model is None
         assert api_key == ""
 
-    @patch("sage.common.components.sage_llm.unified_client.os.environ", {
-        "SAGE_CHAT_BASE_URL": "http://test:8001/v1",
-        "SAGE_CHAT_MODEL": "test-model",
-        "SAGE_CHAT_API_KEY": "test-key",
-    })
+    @patch(
+        "sage.common.components.sage_llm.unified_client.os.environ",
+        {
+            "SAGE_CHAT_BASE_URL": "http://test:8001/v1",
+            "SAGE_CHAT_MODEL": "test-model",
+            "SAGE_CHAT_API_KEY": "test-key",  # pragma: allowlist secret
+        },
+    )
     def test_detect_llm_endpoint_from_env(self):
         """Test LLM endpoint detection from environment variables."""
         base_url, model, api_key = UnifiedInferenceClient._detect_llm_endpoint()
 
         assert base_url == "http://test:8001/v1"
         assert model == "test-model"
-        assert api_key == "test-key"
+        assert api_key == "test-key"  # pragma: allowlist secret
 
     @patch("sage.common.components.sage_llm.unified_client.os.environ", {})
     @patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=True)
@@ -242,10 +245,13 @@ class TestUnifiedClientEndpointDetection:
         assert model is None
         assert api_key == ""
 
-    @patch("sage.common.components.sage_llm.unified_client.os.environ", {
-        "SAGE_EMBEDDING_BASE_URL": "http://test:8090/v1",
-        "SAGE_EMBEDDING_MODEL": "bge-m3",
-    })
+    @patch(
+        "sage.common.components.sage_llm.unified_client.os.environ",
+        {
+            "SAGE_EMBEDDING_BASE_URL": "http://test:8090/v1",
+            "SAGE_EMBEDDING_MODEL": "bge-m3",
+        },
+    )
     def test_detect_embedding_endpoint_from_env(self):
         """Test Embedding endpoint detection from environment variables."""
         base_url, model, api_key = UnifiedInferenceClient._detect_embedding_endpoint()
@@ -268,9 +274,7 @@ class TestUnifiedClientHealthCheck:
         mock_client.get.return_value = mock_response
         mock_client_class.return_value = mock_client
 
-        result = UnifiedInferenceClient._check_endpoint_health(
-            "http://localhost:8001/v1"
-        )
+        result = UnifiedInferenceClient._check_endpoint_health("http://localhost:8001/v1")
 
         assert result is True
 
@@ -283,9 +287,7 @@ class TestUnifiedClientHealthCheck:
         mock_client.get.side_effect = Exception("Connection refused")
         mock_client_class.return_value = mock_client
 
-        result = UnifiedInferenceClient._check_endpoint_health(
-            "http://localhost:8001/v1"
-        )
+        result = UnifiedInferenceClient._check_endpoint_health("http://localhost:8001/v1")
 
         assert result is False
 
@@ -505,7 +507,7 @@ class TestUnifiedClientSingleton:
 
         with patch.object(UnifiedInferenceClient, "create_auto") as mock_create:
             mock_create.return_value = MagicMock(spec=UnifiedInferenceClient)
-            client = UnifiedInferenceClient.get_instance("test-key")
+            _client = UnifiedInferenceClient.get_instance("test-key")  # noqa: F841
 
             mock_create.assert_called_once()
 
@@ -556,10 +558,13 @@ class TestUnifiedClientFactoryMethods:
         assert client.config.embedding_base_url == "http://localhost:8090/v1"
         assert client.config.embedding_model == "bge-m3"
 
-    @patch("sage.common.components.sage_llm.unified_client.os.environ", {
-        "SAGE_UNIFIED_BASE_URL": "http://unified:8000/v1",
-        "SAGE_UNIFIED_MODEL": "unified-model",
-    })
+    @patch(
+        "sage.common.components.sage_llm.unified_client.os.environ",
+        {
+            "SAGE_UNIFIED_BASE_URL": "http://unified:8000/v1",
+            "SAGE_UNIFIED_MODEL": "unified-model",
+        },
+    )
     def test_create_auto_with_unified_env(self):
         """Test create_auto with unified base URL from environment."""
         client = UnifiedInferenceClient.create_auto()

@@ -128,6 +128,34 @@ Makefile                # Shortcuts
 **Bash exclamation mark**: NEVER use `!` in terminal commands (causes `bash: !': event not found`).
   Use period `.` instead: `print("Done.")` not `print("Done!")`
 
+## Port Configuration - CRITICAL
+
+**统一端口配置**: 所有端口号必须使用 `sage.common.config.ports.SagePorts`，禁止硬编码。
+
+```python
+from sage.common.config.ports import SagePorts
+
+# ✅ 正确用法
+port = SagePorts.LLM_DEFAULT           # 8001
+gateway_port = SagePorts.GATEWAY_DEFAULT  # 8000
+
+# ❌ 错误用法 - 禁止硬编码
+port = 8001  # 不要这样写
+```
+
+**端口分配表**:
+| 常量 | 端口 | 用途 |
+|------|------|------|
+| `LLM_DEFAULT` | 8001 | SAGE 推荐的 vLLM 服务端口 |
+| `LLM_VLLM_DEFAULT` | 8000 | vLLM 原生默认端口 |
+| `GATEWAY_DEFAULT` | 8000 | API Gateway (OpenAI 兼容) |
+| `STUDIO_BACKEND` | 8080 | Studio 后端 API |
+| `STUDIO_FRONTEND` | 5173 | Studio 前端 (Vite) |
+| `LEGACY_EMBEDDING_8090` | 8090 | 旧版 Embedding 服务端口 |
+| `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
+
+**配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
+
 ## Development Workflow
 
 **Setup**: `./quickstart.sh --dev --yes` → `./manage.sh` (if C++ needed)
