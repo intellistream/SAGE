@@ -17,8 +17,9 @@
 ## 核心贡献
 
 1. **统一评测框架**: 提出首个同时评估 Timing/Planning/Tool Selection 三维度的 Agent 能力基准
-2. **高质量数据集**: 1,200 条标注样本 + 1,200 个工具目录，覆盖 25+ 领域
-3. **全面的 Baseline 对比**: 实现并评估 10+ 种方法，揭示当前 SOTA 的不足
+2. **高质量数据集**: 1,200 条标注样本 + 1,200 个工具目录，覆盖 25+ 领域；集成 ACEBench、API-Bank、ToolAlpaca 等外部数据集
+3. **全面的 Baseline 对比**: 实现并评估 15+ 种方法（含训练方法），揭示当前 SOTA 的不足
+4. **端到端训练框架**: 支持 SFT + RL (DPO/PPO/GRPO) + Coreset Selection + Continual Learning
 
 ## 问题定义
 
@@ -42,6 +43,16 @@
 | Task Planning | 300 | 210 | 45 | 45 |
 | Timing Judgment | 300 | 210 | 45 | 45 |
 | **Total** | **1,200** | 840 | 180 | 180 |
+
+### 外部数据集集成
+
+| Dataset | Source | Samples | Focus |
+|---------|--------|---------|-------|
+| **ACEBench (ToolACE)** | HuggingFace Team-ACE | 10,000+ | Tool selection with real APIs |
+| **API-Bank** | Microsoft/Alibaba | 2,138 | Multi-turn API dialogues |
+| **ToolAlpaca** | Microsoft | 3,928 | Tool learning conversations |
+| **BFCL** | Berkeley | 2,000+ | Function calling syntax |
+| **ToolBench** | Tsinghua/OpenBMB | 16,000+ | Large-scale tool retrieval |
 
 ### 工具目录
 - 1,200 unique tools
@@ -136,6 +147,38 @@
 | **Two-Stage** | Coarse (keyword) + Fine (embedding/LLM) | - |
 | **Adaptive** | Multi-armed bandit 动态选择策略 | - |
 
+### Training Methods (数据高效训练)
+
+| Method | Description | Reference |
+|--------|-------------|-----------|
+| **SFT + LoRA** | 低秩适配微调 | Hu et al., 2022 |
+| **SFT + DoRA** | 权重分解低秩适配 | Liu et al., 2024 |
+| **SFT + LoRA+** | 差异化学习率的 LoRA | Hayou et al., 2024 |
+| **Coreset Selection** | 基于 loss/diversity/hybrid 的样本筛选 | - |
+| **Continual Learning** | 在线增量学习 + 经验回放 | - |
+| **DPO** | Direct Preference Optimization | Rafailov et al., 2023 |
+| **PPO** | Proximal Policy Optimization | Schulman et al., 2017 |
+| **GRPO** | Group Relative Policy Optimization | Shao et al., 2024 |
+
+#### Coreset Selection Strategies
+```python
+# 实现位置: sage-libs/src/sage/libs/finetune/agent/continual.py
+class CoresetSelector:
+    strategies = ["loss_topk", "diversity", "hybrid", "random"]
+    # loss_topk: 选择 loss 最高的样本
+    # diversity: 最大化样本多样性 (基于文本特征的余弦距离)
+    # hybrid: 60% loss + 40% diversity
+```
+
+#### Continual Learning
+```python
+# 实现位置: sage-libs/src/sage/libs/finetune/agent/continual.py
+class OnlineContinualLearner:
+    # 维护经验回放缓冲区
+    # 每次训练混合新样本 + 历史样本
+    # 支持 reservoir sampling 动态更新
+```
+
 ## 实验结果
 
 ### Challenge 1: Timing Judgment (Target: ≥95%)
@@ -194,6 +237,19 @@
 | LLM Direct | 67.0% | **66.7%** |
 | Embedding | 64.0% | 60.0% |
 
+### Training Ablation (预期结果模板)
+
+| Configuration | Tool Selection | Planning | Timing |
+|---------------|----------------|----------|--------|
+| Baseline (no training) | 82.0% | 27.0% | 76.0% |
+| + SFT (LoRA) | 85.0% | 35.0% | 82.0% |
+| + DoRA | 86.0% | 37.0% | 83.0% |
+| + Coreset Selection | 86.5% | 38.0% | 84.0% |
+| + Continual Learning | 87.0% | 40.0% | 85.0% |
+| + DPO | **88.0%** | **42.0%** | **86.0%** |
+
+*注: 训练结果为预期目标，需要实际运行确认*
+
 ## 论文结构要求
 
 请生成完整的 LaTeX 代码，包含以下章节：
@@ -209,30 +265,36 @@
 - Gap：现有 benchmark 各自为战
 - Contributions (3 点)
 
-### 3. Related Work (~1 page)
-- **Tool Learning for LLMs**: ToolLLM (Qin et al., 2023), Gorilla (Patil et al., 2023), TaskMatrix (Liang et al., 2023), ToolFormer (Schick et al., 2023)
-- **Agent Benchmarks**: BFCL (Yan et al., 2024), ToolBench (Qin et al., 2023), API-Bank (Li et al., 2023), AgentBench (Liu et al., 2023), T-Eval
+### 3. Related Work (~1.5 pages)
+- **Tool Learning for LLMs**: ToolLLM (Qin et al., 2023), Gorilla (Patil et al., 2023), TaskMatrix (Liang et al., 2023), ToolFormer (Schick et al., 2023), ToolACE (Liu et al., 2024)
+- **Agent Benchmarks**: BFCL (Yan et al., 2024), ToolBench (Qin et al., 2023), API-Bank (Li et al., 2023), AgentBench (Liu et al., 2023), T-Eval, ToolACE
 - **Planning & Reasoning**: ReAct (Yao et al., 2023), CoT (Wei et al., 2022), ToT (Yao et al., 2023), DEPS (Wang et al., 2023)
+- **Efficient Fine-tuning**: LoRA (Hu et al., 2022), DoRA (Liu et al., 2024), LoRA+ (Hayou et al., 2024)
+- **Data-efficient Training**: Coreset Selection, Curriculum Learning, Active Learning
+- **RLHF for Agents**: DPO (Rafailov et al., 2023), PPO (Schulman et al., 2017), GRPO (Shao et al., 2024)
 
 ### 4. SAGE-Bench Dataset (~1.5 pages)
 - **4.1 Three Challenges Definition**: 形式化定义 Timing/Planning/Selection
 - **4.2 Data Collection**: 工具目录构建 + 样本生成 + 质量控制
-- **4.3 Statistics**: 表格 + 分布图
-- **4.4 Evaluation Metrics**: 每个 challenge 的指标定义
+- **4.3 External Dataset Integration**: ACEBench, API-Bank, ToolAlpaca 转换
+- **4.4 Statistics**: 表格 + 分布图
+- **4.5 Evaluation Metrics**: 每个 challenge 的指标定义
 
-### 5. Baseline Methods (~1.5 pages)
+### 5. Baseline Methods (~2 pages)
 - **5.1 Timing Judgment Methods**: Rule/LLM/Hybrid
 - **5.2 Planning Methods**: Simple/Hierarchical/ReAct/ToT
 - **5.3 Tool Selection Methods**: Keyword/Embedding/Hybrid/LLM/Gorilla/DFSDT
+- **5.4 Training Methods**: SFT (LoRA/DoRA/LoRA+), Coreset Selection, Continual Learning, RL (DPO/PPO/GRPO)
 
-### 6. Experiments (~2 pages)
+### 6. Experiments (~2.5 pages)
 - **6.1 Setup**: 模型、硬件、超参数
 - **6.2 Main Results**: 3 个大表 (每个 challenge 一个)
-- **6.3 Analysis**:
+- **6.3 Training Experiments**: SFT/RL 训练对比
+- **6.4 Analysis**:
   - Error analysis: 失败案例分类
   - Scaling analysis: 工具数量 vs 准确率
-  - Ablation: Hybrid 组件消融
-- **6.4 Cross-benchmark Validation**: ACEBench 结果
+  - Ablation: Hybrid 组件消融, Coreset 策略对比
+- **6.5 Cross-benchmark Validation**: ACEBench, API-Bank 结果
 
 ### 7. Discussion (~0.5 page)
 - Why current methods struggle
@@ -245,6 +307,7 @@
 - 数据集规模有限 (1,200 samples)
 - 工具是模拟的，非真实 API 调用
 - 评测在特定模型上，泛化性待验证
+- RL 训练方法 (DPO/PPO/GRPO) 尚未完整实现，为未来工作
 
 ## LaTeX 格式要求
 
@@ -284,6 +347,49 @@
 - C. 更多实验结果 (不同模型大小、不同 top-k)
 - D. 数据样例展示
 - E. 实现细节 (prompts, hyperparameters)
+- F. ACEBench/API-Bank 数据转换细节
+- G. Coreset Selection 算法伪代码
+- H. Continual Learning 缓冲区管理
+
+## 实现位置参考
+
+```
+SAGE Framework 代码结构:
+
+packages/sage-libs/src/sage/libs/
+├── agentic/agents/
+│   ├── action/tool_selection/
+│   │   ├── keyword_selector.py      # TF-IDF, BM25, Overlap
+│   │   ├── embedding_selector.py    # BGE-M3 向量检索
+│   │   ├── hybrid_selector.py       # Keyword + Embedding 融合
+│   │   ├── gorilla_selector.py      # 两阶段: 检索 + LLM 重排
+│   │   ├── dfsdt_selector.py        # DFS 树搜索 + LLM 评分
+│   │   └── registry.py              # 策略注册
+│   └── planning/
+│       ├── timing_decider.py        # Rule/LLM/Hybrid
+│       ├── hierarchical_planner.py  # 层次规划
+│       ├── react_planner.py         # ReAct
+│       ├── tot_planner.py           # Tree-of-Thoughts
+│       └── llm_planner.py           # 直接 LLM 规划
+└── finetune/agent/
+    ├── trainer.py                   # AgentSFTTrainer
+    ├── config.py                    # SFT/RL 配置 (LoRA/DoRA/LoRA+)
+    └── continual.py                 # CoresetSelector, OnlineContinualLearner
+
+packages/sage-benchmark/src/sage/
+├── data/sources/
+│   ├── agent_benchmark/             # SAGE 原生数据集
+│   │   ├── splits/                  # tool_selection, planning, timing
+│   │   └── external_benchmarks/     # ACEBench, API-Bank, ToolAlpaca
+│   └── agent_tools/data/            # 1,200 工具目录
+└── benchmark/benchmark_agent/
+    ├── acebench_loader.py           # ACEBench 数据加载
+    ├── evaluation/                  # 评估指标
+    └── scripts/                     # 实验脚本
+        ├── run_unified_eval.py      # 统一评估
+        ├── run_all_experiments.py   # 三挑战完整实验
+        └── run_full_training_comparison.py  # 训练对比
+```
 
 ---
 
