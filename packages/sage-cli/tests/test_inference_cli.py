@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -32,6 +33,14 @@ from sage.cli.commands.apps.inference import (
 )
 
 runner = CliRunner()
+
+# Pre-compiled regex pattern for stripping ANSI escape codes
+_ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
+
+
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text."""
+    return _ANSI_ESCAPE_PATTERN.sub('', text)
 
 
 # =============================================================================
@@ -124,11 +133,12 @@ class TestStartCommand:
         """Test start command help."""
         result = runner.invoke(app, ["start", "--help"])
         assert result.exit_code == 0
-        assert "启动统一推理服务" in result.stdout
-        assert "--llm-model" in result.stdout
-        assert "--embedding-model" in result.stdout
-        assert "--port" in result.stdout
-        assert "--scheduling-policy" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "启动统一推理服务" in stdout
+        assert "--llm-model" in stdout
+        assert "--embedding-model" in stdout
+        assert "--port" in stdout
+        assert "--scheduling-policy" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     def test_start_already_running(self, mock_get_pid: MagicMock) -> None:
@@ -160,8 +170,9 @@ class TestStopCommand:
         """Test stop command help."""
         result = runner.invoke(app, ["stop", "--help"])
         assert result.exit_code == 0
-        assert "停止统一推理服务" in result.stdout
-        assert "--force" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "停止统一推理服务" in stdout
+        assert "--force" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     def test_stop_not_running(self, mock_get_pid: MagicMock) -> None:
@@ -180,8 +191,9 @@ class TestStatusCommand:
         """Test status command help."""
         result = runner.invoke(app, ["status", "--help"])
         assert result.exit_code == 0
-        assert "查看统一推理服务状态" in result.stdout
-        assert "--json" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "查看统一推理服务状态" in stdout
+        assert "--json" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     @patch("sage.cli.commands.apps.inference._load_config")
@@ -233,7 +245,8 @@ class TestConfigCommand:
         """Test config command help."""
         result = runner.invoke(app, ["config", "--help"])
         assert result.exit_code == 0
-        assert "显示当前配置" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "显示当前配置" in stdout
 
     @patch("sage.cli.commands.apps.inference._load_config")
     def test_config_no_config(self, mock_load_config: MagicMock) -> None:
@@ -266,9 +279,10 @@ class TestLogsCommand:
         """Test logs command help."""
         result = runner.invoke(app, ["logs", "--help"])
         assert result.exit_code == 0
-        assert "查看服务日志" in result.stdout
-        assert "--follow" in result.stdout
-        assert "--lines" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "查看服务日志" in stdout
+        assert "--follow" in stdout
+        assert "--lines" in stdout
 
     def test_logs_no_file(self, tmp_path: Path) -> None:
         """Test logs when log file doesn't exist."""

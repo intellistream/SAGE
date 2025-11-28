@@ -29,13 +29,68 @@ import pytest
 # Add source path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 
-from sage.common.components.sage_llm.sageLLM.control_plane.types import (
-    ExecutionInstance,
-    ExecutionInstanceType,
-    RequestMetadata,
-    RequestPriority,
-    RequestType,
-)
+# Try to import control plane types, but gracefully handle if submodule is not available
+try:
+    from sage.common.components.sage_llm.sageLLM.control_plane.types import (
+        ExecutionInstance,
+        ExecutionInstanceType,
+        RequestMetadata,
+        RequestPriority,
+        RequestType,
+    )
+    _CONTROL_PLANE_AVAILABLE = True
+except (ImportError, ModuleNotFoundError):
+    # Create mock types for when control plane submodule is not available
+    _CONTROL_PLANE_AVAILABLE = False
+    from enum import Enum, auto
+    from dataclasses import dataclass as dc
+
+    class RequestType(Enum):
+        LLM_CHAT = auto()
+        LLM_GENERATE = auto()
+        EMBEDDING = auto()
+
+    class RequestPriority(Enum):
+        LOW = auto()
+        NORMAL = auto()
+        HIGH = auto()
+        CRITICAL = auto()
+
+    class ExecutionInstanceType(Enum):
+        GENERAL = auto()
+        EMBEDDING = auto()
+        LLM_EMBEDDING = auto()
+
+    @dc
+    class RequestMetadata:
+        request_id: str = ""
+        prompt: str = ""
+        model_name: str = ""
+        max_tokens: int = 100
+        request_type: RequestType = RequestType.LLM_CHAT
+        priority: RequestPriority = RequestPriority.NORMAL
+        embedding_texts: list[str] | None = None
+        embedding_model: str = ""
+        embedding_batch_size: int = 32
+
+        def __post_init__(self):
+            if self.embedding_texts is None:
+                self.embedding_texts = []
+
+    @dc
+    class ExecutionInstance:
+        instance_id: str = ""
+        host: str = "localhost"
+        port: int = 8001
+        instance_type: ExecutionInstanceType = ExecutionInstanceType.GENERAL
+        model_name: str = ""
+        supported_request_types: list[RequestType] | None = None
+        embedding_model_loaded: str = ""
+        embedding_max_batch_size: int = 32
+
+        def __post_init__(self):
+            if self.supported_request_types is None:
+                self.supported_request_types = []
 
 
 # =============================================================================
