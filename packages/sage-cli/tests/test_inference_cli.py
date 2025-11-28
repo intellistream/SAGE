@@ -34,11 +34,13 @@ from sage.cli.commands.apps.inference import (
 
 runner = CliRunner()
 
+# Pre-compiled regex pattern for stripping ANSI escape codes
+_ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
+
 
 def strip_ansi(text: str) -> str:
     """Strip ANSI escape codes from text."""
-    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
-    return ansi_escape.sub('', text)
+    return _ANSI_ESCAPE_PATTERN.sub('', text)
 
 
 # =============================================================================

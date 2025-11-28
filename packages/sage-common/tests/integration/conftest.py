@@ -69,7 +69,7 @@ except (ImportError, ModuleNotFoundError):
         max_tokens: int = 100
         request_type: RequestType = RequestType.LLM_CHAT
         priority: RequestPriority = RequestPriority.NORMAL
-        embedding_texts: list = None  # type: ignore
+        embedding_texts: list[str] | None = None
         embedding_model: str = ""
         embedding_batch_size: int = 32
 
@@ -84,7 +84,7 @@ except (ImportError, ModuleNotFoundError):
         port: int = 8001
         instance_type: ExecutionInstanceType = ExecutionInstanceType.GENERAL
         model_name: str = ""
-        supported_request_types: list = None  # type: ignore
+        supported_request_types: list[RequestType] | None = None
         embedding_model_loaded: str = ""
         embedding_max_batch_size: int = 32
 
