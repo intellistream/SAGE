@@ -136,7 +136,6 @@ try:
         inference_app,
         llm_app,
         pipeline_app,
-        stack_app,
         studio_app,
     )
 
@@ -173,12 +172,6 @@ try:
             inference_app,
             name="inference",
             help="🔮 统一推理服务 - LLM 和 Embedding 混合调度 (start, stop, status, config)",
-        )
-    if stack_app:
-        app.add_typer(
-            stack_app,
-            name="stack",
-            help="🚀 服务栈管理 - 一键启动 LLM + Embedding 服务 (start, stop, status, logs)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

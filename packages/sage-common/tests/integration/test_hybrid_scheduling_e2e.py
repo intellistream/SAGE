@@ -19,14 +19,17 @@ from __future__ import annotations
 import asyncio
 import time
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from sage.common.components.sage_llm.sageLLM.control_plane.request_classifier import (
     RequestClassifier,
+    ValidationResult,
 )
 from sage.common.components.sage_llm.sageLLM.control_plane.strategies.hybrid_policy import (
     EmbeddingBatch,
+    EmbeddingPriority,
     HybridSchedulingConfig,
     HybridSchedulingPolicy,
 )
@@ -36,6 +39,7 @@ from sage.common.components.sage_llm.sageLLM.control_plane.types import (
     RequestMetadata,
     RequestPriority,
     RequestType,
+    SchedulingDecision,
 )
 
 if TYPE_CHECKING:
@@ -92,14 +96,18 @@ class TestRequestClassificationE2E:
         ]
 
         # Get compatible instances for LLM requests
-        llm_compatible = classifier.get_compatible_instances(RequestType.LLM_CHAT, all_instances)
+        llm_compatible = classifier.get_compatible_instances(
+            RequestType.LLM_CHAT, all_instances
+        )
         assert len(llm_compatible) == 2  # LLM and mixed
         assert llm_execution_instance in llm_compatible
         assert mixed_execution_instance in llm_compatible
         assert embedding_execution_instance not in llm_compatible
 
         # Get compatible instances for Embedding requests
-        embed_compatible = classifier.get_compatible_instances(RequestType.EMBEDDING, all_instances)
+        embed_compatible = classifier.get_compatible_instances(
+            RequestType.EMBEDDING, all_instances
+        )
         assert len(embed_compatible) == 2  # Embedding and mixed
         assert embedding_execution_instance in embed_compatible
         assert mixed_execution_instance in embed_compatible
@@ -120,7 +128,9 @@ class TestRequestClassificationE2E:
 
         for request in sample_embedding_requests:
             result = classifier.validate_request(request)
-            assert result.is_valid, f"Embedding request {request.request_id} should be valid"
+            assert (
+                result.is_valid
+            ), f"Embedding request {request.request_id} should be valid"
 
     def test_classify_auto_detect_embedding(self):
         """Test auto-detection of embedding requests without explicit type."""
@@ -184,7 +194,9 @@ class TestHybridSchedulingPolicyE2E:
 
         # Check that LLM requests go to LLM-capable instances
         for decision in decisions:
-            request = next((r for r in mixed_requests if r.request_id == decision.request_id), None)
+            request = next(
+                (r for r in mixed_requests if r.request_id == decision.request_id), None
+            )
             if request and request.request_type in (
                 RequestType.LLM_CHAT,
                 RequestType.LLM_GENERATE,
@@ -393,11 +405,10 @@ class TestConcurrentRequestHandling:
     @pytest.mark.asyncio
     async def test_concurrent_llm_and_embedding_requests(
         self,
-        mock_llm_backend: MockLLMBackend,
-        mock_embedding_backend: MockEmbeddingBackend,
+        mock_llm_backend: "MockLLMBackend",
+        mock_embedding_backend: "MockEmbeddingBackend",
     ):
         """Test handling concurrent LLM and embedding requests."""
-
         # Simulate concurrent requests
         async def llm_request():
             return await mock_llm_backend.handle_chat_completion(
@@ -436,8 +447,8 @@ class TestConcurrentRequestHandling:
     @pytest.mark.asyncio
     async def test_high_concurrency_mixed_workload(
         self,
-        mock_llm_backend: MockLLMBackend,
-        mock_embedding_backend: MockEmbeddingBackend,
+        mock_llm_backend: "MockLLMBackend",
+        mock_embedding_backend: "MockEmbeddingBackend",
     ):
         """Test high concurrency with many mixed requests."""
         num_requests = 50
@@ -451,7 +462,9 @@ class TestConcurrentRequestHandling:
                         mock_llm_backend.handle_chat_completion(
                             {
                                 "model": "Qwen/Qwen2.5-7B-Instruct",
-                                "messages": [{"role": "user", "content": f"Question {i}"}],
+                                "messages": [
+                                    {"role": "user", "content": f"Question {i}"}
+                                ],
                             }
                         )
                     )
@@ -488,7 +501,7 @@ class TestConcurrentRequestHandling:
     @pytest.mark.asyncio
     async def test_request_ordering_under_load(
         self,
-        mock_llm_backend: MockLLMBackend,
+        mock_llm_backend: "MockLLMBackend",
     ):
         """Test that request ordering is maintained under load."""
         request_order = []

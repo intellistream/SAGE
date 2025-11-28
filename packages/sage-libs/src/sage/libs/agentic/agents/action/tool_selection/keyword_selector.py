@@ -126,12 +126,8 @@ class KeywordSelector(BaseToolSelector):
         if self.config.lowercase:
             text = text.lower()
 
-        # Replace underscores with spaces for better tokenization
-        # This handles tool IDs like "development_deploy_022" -> ["development", "deploy", "022"]
-        text = text.replace("_", " ")
-
         # Split on non-alphanumeric
-        tokens = re.findall(r"[a-z0-9]+", text, re.IGNORECASE)
+        tokens = re.findall(r"\b[a-z0-9_]+\b", text, re.IGNORECASE)
 
         # Remove stopwords if enabled
         if self.config.remove_stopwords:
@@ -186,23 +182,15 @@ class KeywordSelector(BaseToolSelector):
         # Score each candidate
         scores = []
         for tool_id in candidate_ids:
-            # Check if tool is in preloaded corpus
-            if tool_id in self._tool_tokens:
-                tool_tokens = self._tool_tokens[tool_id]
-            else:
-                # For dynamic candidate tools not in corpus, tokenize tool_id itself
-                # This handles benchmark data where tool_id contains semantic info
-                # e.g., "travel_booking_021" -> tokens: {"travel", "booking", "021"}
-                tool_tokens = self._tokenize(tool_id)
-                if not tool_tokens:
-                    continue
+            if tool_id not in self._tool_tokens:
+                continue
 
             if self.config.method == "tfidf":
-                score = self._tfidf_score_dynamic(query_tokens, tool_tokens)
+                score = self._tfidf_score(query_tokens, tool_id)
             elif self.config.method == "overlap":
-                score = self._overlap_score_dynamic(query_tokens, tool_tokens)
+                score = self._overlap_score(query_tokens, tool_id)
             elif self.config.method == "bm25":
-                score = self._bm25_score_dynamic(query_tokens, tool_tokens)
+                score = self._bm25_score(query_tokens, tool_id)
             else:
                 raise ValueError(f"Unknown method: {self.config.method}")
 
@@ -227,19 +215,13 @@ class KeywordSelector(BaseToolSelector):
     def _tfidf_score(self, query_tokens: set[str], tool_id: str) -> float:
         """Compute TF-IDF score."""
         tool_tokens = self._tool_tokens[tool_id]
-        return self._tfidf_score_dynamic(query_tokens, tool_tokens)
-
-    def _tfidf_score_dynamic(self, query_tokens: set[str], tool_tokens: set[str]) -> float:
-        """Compute TF-IDF score with dynamic tool tokens."""
         common = query_tokens & tool_tokens
 
         if not common:
             return 0.0
 
         # Sum IDF scores for matching tokens
-        # For unknown tokens (not in IDF corpus), use a default IDF value
-        default_idf = 1.0  # Neutral default
-        score = sum(self._idf_scores.get(token, default_idf) for token in common)
+        score = sum(self._idf_scores.get(token, 0.0) for token in common)
 
         # Normalize by query length
         score /= len(query_tokens)
@@ -249,10 +231,7 @@ class KeywordSelector(BaseToolSelector):
     def _overlap_score(self, query_tokens: set[str], tool_id: str) -> float:
         """Compute token overlap score (Jaccard similarity)."""
         tool_tokens = self._tool_tokens[tool_id]
-        return self._overlap_score_dynamic(query_tokens, tool_tokens)
 
-    def _overlap_score_dynamic(self, query_tokens: set[str], tool_tokens: set[str]) -> float:
-        """Compute token overlap score with dynamic tool tokens."""
         if not query_tokens or not tool_tokens:
             return 0.0
 
@@ -264,10 +243,6 @@ class KeywordSelector(BaseToolSelector):
     def _bm25_score(self, query_tokens: set[str], tool_id: str) -> float:
         """Compute BM25 score (simplified)."""
         tool_tokens = self._tool_tokens[tool_id]
-        return self._bm25_score_dynamic(query_tokens, tool_tokens)
-
-    def _bm25_score_dynamic(self, query_tokens: set[str], tool_tokens: set[str]) -> float:
-        """Compute BM25 score with dynamic tool tokens."""
         common = query_tokens & tool_tokens
 
         if not common:
@@ -277,22 +252,18 @@ class KeywordSelector(BaseToolSelector):
         k1 = 1.5
         b = 0.75
 
-        # Average document length (use corpus if available, else use tool_tokens length)
-        if self._tool_tokens:
-            avg_len = np.mean([len(tokens) for tokens in self._tool_tokens.values()])
-        else:
-            avg_len = len(tool_tokens)
+        # Average document length
+        avg_len = np.mean([len(tokens) for tokens in self._tool_tokens.values()])
         doc_len = len(tool_tokens)
 
         score = 0.0
-        default_idf = 1.0  # Neutral default for unknown tokens
         for token in common:
-            idf = self._idf_scores.get(token, default_idf)
+            idf = self._idf_scores.get(token, 0.0)
             tf = 1  # Binary TF
 
             # BM25 formula
             numerator = tf * (k1 + 1)
-            denominator = tf + k1 * (1 - b + b * doc_len / max(avg_len, 1))
+            denominator = tf + k1 * (1 - b + b * doc_len / avg_len)
 
             score += idf * (numerator / denominator)
 
