@@ -24,6 +24,7 @@ Usage:
 from __future__ import annotations
 
 import base64
+import importlib.util
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -33,14 +34,8 @@ if TYPE_CHECKING:
     from ..hybrid_scheduler.runner import HybridBenchmarkResult
     from ..llm_scheduler.runner import LLMBenchmarkResult
 
-# Try to import Jinja2
-JINJA2_AVAILABLE = False
-try:
-    from jinja2 import Environment, FileSystemLoader, select_autoescape
-
-    JINJA2_AVAILABLE = True
-except ImportError:
-    pass
+# Check Jinja2 availability using importlib.util.find_spec
+JINJA2_AVAILABLE = importlib.util.find_spec("jinja2") is not None
 
 logger = logging.getLogger(__name__)
 

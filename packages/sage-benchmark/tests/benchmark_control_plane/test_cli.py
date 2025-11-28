@@ -143,14 +143,15 @@ class TestCLIAppCreation:
 
     def test_typer_availability_flag(self) -> None:
         """Test TYPER_AVAILABLE flag."""
+        import importlib.util
+
         from sage.benchmark.benchmark_control_plane import cli
 
-        # If we can import typer, the flag should be True
-        try:
-            import typer
-
+        # If typer is available, the flag should be True
+        typer_available = importlib.util.find_spec("typer") is not None
+        if typer_available:
             assert cli.TYPER_AVAILABLE is True
-        except ImportError:
+        else:
             assert cli.TYPER_AVAILABLE is False
 
 
