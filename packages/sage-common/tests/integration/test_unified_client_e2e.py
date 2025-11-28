@@ -352,9 +352,8 @@ class TestControlPlaneMode:
         """Test Control Plane mode graceful degradation when init fails.
 
         When Control Plane initialization fails (e.g., missing dependencies),
-        the client should still function using Simple mode clients internally,
-        but the mode attribute remains as CONTROL_PLANE since that's what
-        the user requested.
+        the client should still function by falling back to Simple mode,
+        and the mode attribute is updated to reflect the actual operating mode.
         """
         # Remove the control plane module from sys.modules to trigger import error
         with patch.dict(
@@ -368,9 +367,8 @@ class TestControlPlaneMode:
                 mode=UnifiedClientMode.CONTROL_PLANE,
             )
 
-            # Mode remains as requested (CONTROL_PLANE)
-            # but internally uses Simple mode clients for API calls
-            assert client.mode == UnifiedClientMode.CONTROL_PLANE
+            # Mode falls back to SIMPLE since Control Plane init failed
+            assert client.mode == UnifiedClientMode.SIMPLE
             # Verify that Simple mode clients were initialized as fallback
             assert client._llm_client is not None or not client.config.llm_base_url
 
