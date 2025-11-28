@@ -20,7 +20,8 @@ from sage.libs.foundation.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
 )
-from sage.middleware.components.sage_refiner.python.config import (
+# Import from sageRefiner submodule
+from sage.middleware.components.sage_refiner.sageRefiner.config import (
     RefinerAlgorithm,
     RefinerConfig,
 )

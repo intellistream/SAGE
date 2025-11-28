@@ -26,6 +26,7 @@ else:
             pass
 
 
+# Use sageRefiner submodule service
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 
 
