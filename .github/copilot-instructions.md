@@ -457,4 +457,128 @@ planner = registry.create_adapter("planner.llm_based")  # simple, hierarchical, 
 decider = registry.create_adapter("timing.threshold")   # threshold, embedding, llm
 ```
 
+## Control Plane Benchmark (sage-benchmark)
+
+sageLLM Control Plane 调度器性能评测框架，位于 `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/`。
+
+### 功能概述
+
+- **LLM Benchmark**: 纯 LLM 推理性能评测
+- **Hybrid Benchmark**: LLM + Embedding 混合负载评测
+- **策略对比**: 多种调度策略 (FIFO, Priority, SLO-Aware, Hybrid) 对比
+- **可视化**: 自动生成图表和 HTML/Markdown 报告
+
+### CLI 命令 (`sage-cp-bench`)
+
+```bash
+# 运行 LLM benchmark
+sage-cp-bench run --mode llm --url http://localhost:8080 --requests 1000 --rate 100
+
+# 运行 Hybrid benchmark
+sage-cp-bench run --mode hybrid --llm-ratio 0.7 --requests 500
+
+# 策略对比
+sage-cp-bench compare --policies fifo,priority,slo_aware --requests 500
+
+# 运行预定义实验
+sage-cp-bench experiment --name throughput    # 吞吐量实验
+sage-cp-bench experiment --name latency       # 延迟分布实验
+sage-cp-bench experiment --name slo           # SLO 达成率实验
+sage-cp-bench experiment --name mixed_ratio   # 混合比例实验
+
+# 从结果生成可视化
+sage-cp-bench visualize --input results.json --output ./viz --format all
+```
+
+### Python API
+
+```python
+from sage.benchmark.benchmark_control_plane import (
+    LLMBenchmarkConfig,
+    HybridBenchmarkConfig,
+    LLMBenchmarkRunner,
+    HybridBenchmarkRunner,
+    BenchmarkCharts,
+    ReportGenerator,
+)
+
+# LLM Benchmark
+config = LLMBenchmarkConfig(
+    control_plane_url="http://localhost:8080",
+    num_requests=1000,
+    request_rate=100.0,
+    policy="slo_aware",
+)
+runner = LLMBenchmarkRunner(config)
+result = await runner.run()
+
+# Hybrid Benchmark
+config = HybridBenchmarkConfig(
+    control_plane_url="http://localhost:8080",
+    num_requests=500,
+    llm_ratio=0.7,
+    policy="hybrid_slo",
+)
+runner = HybridBenchmarkRunner(config)
+result = await runner.run()
+
+# 生成图表
+charts = BenchmarkCharts(output_dir="./charts")
+charts.generate_all_charts(policy_metrics=result)
+
+# 生成报告
+report = ReportGenerator(result=result, charts_dir="./charts")
+report.generate_html_report("./report.html")
+```
+
+### 模块结构
+
+```
+benchmark_control_plane/
+├── cli.py                 # CLI 入口 (sage-cp-bench)
+├── common/                # 共享组件
+│   ├── base_config.py     # 配置基类
+│   ├── base_metrics.py    # 指标基类
+│   ├── gpu_monitor.py     # GPU 监控
+│   └── strategy_adapter.py # 策略适配器
+├── llm_scheduler/         # LLM Benchmark
+│   ├── config.py          # LLM 配置
+│   ├── workload.py        # 负载生成
+│   ├── metrics.py         # 指标收集
+│   └── runner.py          # 执行器
+├── hybrid_scheduler/      # Hybrid Benchmark
+│   ├── config.py          # Hybrid 配置
+│   ├── workload.py        # 混合负载生成
+│   ├── client.py          # HTTP 客户端
+│   ├── metrics.py         # 指标收集
+│   └── runner.py          # 执行器
+├── experiments/           # 预定义实验
+│   ├── throughput_exp.py  # 吞吐量实验
+│   ├── latency_exp.py     # 延迟实验
+│   ├── slo_compliance_exp.py  # SLO 实验
+│   └── mixed_ratio_exp.py # 混合比例实验
+└── visualization/         # 可视化
+    ├── charts.py          # 图表生成
+    ├── report_generator.py # 报告生成
+    └── templates/         # HTML 模板
+```
+
+### 数据文件位置
+
+```
+sage/data/sources/control_plane_benchmark/
+├── data/
+│   ├── llm_workloads/     # LLM 负载配置 (light.jsonl, medium.jsonl, heavy.jsonl)
+│   ├── hybrid_workloads/  # Hybrid 负载配置 (balanced.jsonl, llm_heavy.jsonl)
+│   └── prompts/           # 测试数据 (llm_prompts.jsonl, embed_texts.jsonl)
+└── metadata/
+    └── schema.json        # 数据格式定义
+```
+
+### 文档
+
+- `README.md`: 模块概述、CLI 参考、Python API
+- `DATA_PATHS.md`: 数据目录结构和文件格式
+- `VISUALIZATION.md`: 图表类型和报告格式
+
 **Trust these instructions** - search only if incomplete, errors occur, or deep architecture needed.
