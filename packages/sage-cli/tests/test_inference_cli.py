@@ -43,6 +43,14 @@ def strip_ansi(text: str) -> str:
     return _ANSI_ESCAPE_PATTERN.sub('', text)
 
 
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text for reliable assertions."""
+    import re
+
+    ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+    return ansi_pattern.sub("", text)
+
+
 # =============================================================================
 # Test Helper Functions
 # =============================================================================
