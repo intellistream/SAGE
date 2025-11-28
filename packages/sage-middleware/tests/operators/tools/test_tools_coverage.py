@@ -28,7 +28,8 @@ class TestImageCaptioner:
 
             # Mock UnifiedInferenceClient instance
             mock_client_instance = MagicMock()
-            mock_client_instance.generate.return_value = "A photo of a cat"
+            # ImageCaptioner uses client.chat() method, not generate()
+            mock_client_instance.chat.return_value = "A photo of a cat"
             mock_unified_client.return_value = mock_client_instance
 
             captioner = ImageCaptioner()
