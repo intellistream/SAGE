@@ -4,17 +4,11 @@ LLM Integration Test for Agent Tasks
 Tests real LLM backends (DeepSeek, Qwen, OpenAI, etc.) with agent planning
 and tool selection tasks.
 
-**NEW**: Supports embedded VLLMService when GPU is available, no external
-API required for local testing.
-
 Usage:
-    # Run with embedded vLLM (requires GPU)
-    pytest tests/integration/test_llm_agent_integration.py -v -k embedded
-
     # Run with DeepSeek API
     pytest tests/integration/test_llm_agent_integration.py -v -k deepseek
 
-    # Run with local vLLM server
+    # Run with local vLLM
     pytest tests/integration/test_llm_agent_integration.py -v -k vllm
 
     # Run all available backends
@@ -30,7 +24,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 
@@ -43,37 +37,6 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(_IS_CI, reason="LLM integration tests require real API keys or GPU"),
 ]
-
-
-# =============================================================================
-# GPU/vLLM Availability Checks
-# =============================================================================
-
-
-def check_gpu_available() -> bool:
-    """Check if GPU is available."""
-    try:
-        import torch
-
-        return torch.cuda.is_available()
-    except ImportError:
-        return False
-
-
-def check_vllm_available() -> bool:
-    """Check if vLLM is installed and GPU is available."""
-    if not check_gpu_available():
-        return False
-    try:
-        import vllm  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
-
-
-HAS_GPU = check_gpu_available()
-HAS_VLLM = check_vllm_available()
 
 
 # =============================================================================
@@ -149,169 +112,7 @@ LLM_BACKENDS = {
 
 
 # =============================================================================
-# Embedded LLM Client (GPU-based, no external API needed)
-# =============================================================================
-
-
-class EmbeddedLLMClient:
-    """
-    内嵌 LLM 客户端，使用 VLLMService 直接在进程内加载模型。
-
-    无需外部 API，只需 GPU 和 vLLM 安装。
-    """
-
-    DEFAULT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
-
-    def __init__(
-        self,
-        model_id: str = DEFAULT_MODEL,
-        max_tokens: int = 512,
-        temperature: float = 0.1,
-    ):
-        self.model_id = model_id
-        self.max_tokens = max_tokens
-        self.temperature = temperature
-        self._service: Any = None
-        self._available: Optional[bool] = None
-
-    @property
-    def is_available(self) -> bool:
-        """Check if embedded LLM is available (GPU + vLLM)."""
-        if self._available is not None:
-            return self._available
-
-        self._available = HAS_VLLM
-        if not self._available:
-            logger.info("Embedded LLM not available: vLLM or GPU not found")
-        return self._available
-
-    def setup(self) -> None:
-        """Initialize VLLMService and load model."""
-        if self._service is not None:
-            return
-
-        from sage.common.components.sage_llm import VLLMService
-
-        config = {
-            "model_id": self.model_id,
-            "auto_download": True,
-            "sampling": {
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-            },
-            "engine": {
-                "gpu_memory_utilization": 0.5,  # Conservative for testing
-                "max_model_len": 4096,
-            },
-        }
-
-        logger.info(f"Loading embedded LLM: {self.model_id}")
-        self._service = VLLMService(config)
-        self._service.setup()
-        logger.info("Embedded LLM ready")
-
-    def teardown(self) -> None:
-        """Release GPU resources."""
-        if self._service is not None:
-            self._service.cleanup()
-            self._service = None
-
-    def generate(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        json_mode: bool = False,
-    ) -> str:
-        """Generate text response."""
-        if self._service is None:
-            self.setup()
-
-        # Build prompt with system message
-        full_prompt = ""
-        if system_prompt:
-            full_prompt = f"System: {system_prompt}\n\nUser: {prompt}\n\nAssistant:"
-        else:
-            full_prompt = f"User: {prompt}\n\nAssistant:"
-
-        results = self._service.generate(
-            full_prompt,
-            temperature=temperature or self.temperature,
-            max_tokens=max_tokens or self.max_tokens,
-        )
-
-        if results and results[0].get("generations"):
-            return results[0]["generations"][0]["text"]
-        return ""
-
-    def generate_with_tools(
-        self,
-        prompt: str,
-        tools: list[dict],
-        system_prompt: Optional[str] = None,
-    ) -> dict:
-        """
-        Generate with tools (simulated via prompt engineering).
-
-        Note: Most small models don't support native function calling,
-        so we use prompt-based tool selection.
-        """
-        # Build tool descriptions
-        tool_descs = []
-        for t in tools:
-            func = t.get("function", {})
-            name = func.get("name", "")
-            desc = func.get("description", "")
-            tool_descs.append(f"- {name}: {desc}")
-
-        tools_str = "\n".join(tool_descs)
-
-        enhanced_prompt = f"""You have access to these tools:
-{tools_str}
-
-User request: {prompt}
-
-If you need to use a tool, respond with JSON: {{"tool": "tool_name", "arguments": {{...}}}}
-If no tool is needed, respond normally."""
-
-        response = self.generate(
-            enhanced_prompt,
-            system_prompt=system_prompt,
-            temperature=0.1,
-        )
-
-        # Try to parse tool call from response
-        tool_calls = []
-        try:
-            # Look for JSON in response
-            import re
-
-            json_match = re.search(r'\{[^{}]*"tool"[^{}]*\}', response)
-            if json_match:
-                tool_data = json.loads(json_match.group())
-                if "tool" in tool_data:
-                    tool_calls.append(
-                        {
-                            "id": "embedded_call_1",
-                            "function": {
-                                "name": tool_data["tool"],
-                                "arguments": json.dumps(tool_data.get("arguments", {})),
-                            },
-                        }
-                    )
-        except (json.JSONDecodeError, AttributeError):
-            pass
-
-        return {
-            "content": response,
-            "tool_calls": tool_calls,
-            "finish_reason": "stop",
-        }
-
-
-# =============================================================================
-# LLM Client (API-based)
+# LLM Client
 # =============================================================================
 
 
@@ -820,116 +621,6 @@ class TestModelComparison:
 
 
 # =============================================================================
-# Embedded LLM Tests (GPU-based, no external API)
-# =============================================================================
-
-
-@pytest.mark.integration
-class TestEmbeddedLLM:
-    """
-    内嵌 LLM 测试 - 使用本地 GPU，无需外部 API。
-
-    这些测试在有 GPU 和 vLLM 时自动启用，无需配置 API keys。
-    """
-
-    @pytest.fixture(scope="class")
-    def embedded_client(self):
-        """创建内嵌 LLM 客户端 fixture"""
-        if not HAS_VLLM:
-            pytest.skip("vLLM or GPU not available")
-
-        client = EmbeddedLLMClient(
-            model_id="Qwen/Qwen2.5-0.5B-Instruct",
-            max_tokens=256,
-            temperature=0.1,
-        )
-        yield client
-        # Cleanup after all tests in class
-        client.teardown()
-
-    def test_embedded_availability(self):
-        """测试内嵌 LLM 可用性检测"""
-        client = EmbeddedLLMClient()
-        is_available = client.is_available
-
-        if HAS_VLLM:
-            assert is_available, "Should be available when vLLM and GPU are present"
-        else:
-            assert not is_available, "Should not be available without vLLM/GPU"
-
-    @pytest.mark.skipif(not HAS_VLLM, reason="vLLM or GPU not available")
-    def test_embedded_basic_generation(self, embedded_client: EmbeddedLLMClient):
-        """测试内嵌 LLM 基础文本生成"""
-        response = embedded_client.generate(
-            prompt="What is 2 + 2? Answer with just the number.",
-            temperature=0.0,
-            max_tokens=32,
-        )
-
-        assert response is not None
-        assert len(response) > 0
-        # The response should contain "4" somewhere
-        assert "4" in response, f"Expected '4' in response, got: {response}"
-
-        logger.info(f"[Embedded] Basic generation: {response[:100]}")
-
-    @pytest.mark.skipif(not HAS_VLLM, reason="vLLM or GPU not available")
-    def test_embedded_with_system_prompt(self, embedded_client: EmbeddedLLMClient):
-        """测试内嵌 LLM 系统提示"""
-        response = embedded_client.generate(
-            prompt="What color is the sky?",
-            system_prompt="You are a helpful assistant. Always answer briefly.",
-            temperature=0.0,
-        )
-
-        assert response is not None
-        assert len(response) > 0
-        # Should mention blue or sky-related color
-        response_lower = response.lower()
-        assert any(word in response_lower for word in ["blue", "sky", "color"]), (
-            f"Unexpected response: {response}"
-        )
-
-        logger.info(f"[Embedded] System prompt test: {response[:100]}")
-
-    @pytest.mark.skipif(not HAS_VLLM, reason="vLLM or GPU not available")
-    def test_embedded_tool_selection(self, embedded_client: EmbeddedLLMClient):
-        """测试内嵌 LLM 工具选择（通过 prompt）"""
-        result = embedded_client.generate_with_tools(
-            prompt="What's the weather in Beijing?",
-            tools=AGENT_TOOLS,
-            system_prompt="You are an assistant that can use tools.",
-        )
-
-        logger.info(f"[Embedded] Tool selection result: {result}")
-
-        # Should have some response
-        assert result is not None
-        assert "content" in result
-
-        # Tool calls are optional (depends on model capability)
-        if result.get("tool_calls"):
-            tool_call = result["tool_calls"][0]
-            logger.info(f"[Embedded] Detected tool call: {tool_call['function']['name']}")
-
-    @pytest.mark.skipif(not HAS_VLLM, reason="vLLM or GPU not available")
-    def test_embedded_chinese(self, embedded_client: EmbeddedLLMClient):
-        """测试内嵌 LLM 中文支持"""
-        response = embedded_client.generate(
-            prompt="请用中文回答：1加1等于几？",
-            temperature=0.0,
-            max_tokens=64,
-        )
-
-        assert response is not None
-        assert len(response) > 0
-        # Should contain "2" or Chinese numeral
-        assert "2" in response or "二" in response, f"Unexpected response: {response}"
-
-        logger.info(f"[Embedded] Chinese test: {response[:100]}")
-
-
-# =============================================================================
 # Run Tests
 # =============================================================================
 
@@ -938,13 +629,8 @@ if __name__ == "__main__":
     print("Checking available LLM backends...")
     for name, config in LLM_BACKENDS.items():
         client = LLMClient(config)
-        status = "Available" if client.is_available else "Not available"
+        status = "✅ Available" if client.is_available else "❌ Not available"
         print(f"  {name}: {status}")
-
-    # Check embedded availability
-    embedded = EmbeddedLLMClient()
-    embedded_status = "Available (GPU + vLLM)" if embedded.is_available else "Not available"
-    print(f"  embedded: {embedded_status}")
 
     # 运行测试
     pytest.main([__file__, "-v", "-x", "--tb=short"])

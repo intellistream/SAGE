@@ -36,6 +36,7 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 # Core embedding interfaces
 from .base import BaseEmbedding
+from .client import IntelligentEmbeddingClient, get_embedding_client
 from .factory import (
     EmbeddingFactory,
     check_model_availability,
