@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from sage.tools.cli.main import app as sage_app
+from sage.cli.main import app as sage_app
 
 from .helpers import CLITestCase
 
