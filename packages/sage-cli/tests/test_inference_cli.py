@@ -28,6 +28,14 @@ from sage.cli.commands.apps.inference import (
 runner = CliRunner()
 
 
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text for reliable assertions."""
+    import re
+
+    ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+    return ansi_pattern.sub("", text)
+
+
 # =============================================================================
 # Test Helper Functions
 # =============================================================================
@@ -118,11 +126,12 @@ class TestStartCommand:
         """Test start command help."""
         result = runner.invoke(app, ["start", "--help"])
         assert result.exit_code == 0
-        assert "启动统一推理服务" in result.stdout
-        assert "--llm-model" in result.stdout
-        assert "--embedding-model" in result.stdout
-        assert "--port" in result.stdout
-        assert "--scheduling-policy" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "启动统一推理服务" in stdout
+        assert "--llm-model" in stdout
+        assert "--embedding-model" in stdout
+        assert "--port" in stdout
+        assert "--scheduling-policy" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     def test_start_already_running(self, mock_get_pid: MagicMock) -> None:
@@ -152,8 +161,9 @@ class TestStopCommand:
         """Test stop command help."""
         result = runner.invoke(app, ["stop", "--help"])
         assert result.exit_code == 0
-        assert "停止统一推理服务" in result.stdout
-        assert "--force" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "停止统一推理服务" in stdout
+        assert "--force" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     def test_stop_not_running(self, mock_get_pid: MagicMock) -> None:
@@ -172,8 +182,9 @@ class TestStatusCommand:
         """Test status command help."""
         result = runner.invoke(app, ["status", "--help"])
         assert result.exit_code == 0
-        assert "查看统一推理服务状态" in result.stdout
-        assert "--json" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "查看统一推理服务状态" in stdout
+        assert "--json" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     @patch("sage.cli.commands.apps.inference._load_config")
@@ -258,9 +269,10 @@ class TestLogsCommand:
         """Test logs command help."""
         result = runner.invoke(app, ["logs", "--help"])
         assert result.exit_code == 0
-        assert "查看服务日志" in result.stdout
-        assert "--follow" in result.stdout
-        assert "--lines" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "查看服务日志" in stdout
+        assert "--follow" in stdout
+        assert "--lines" in stdout
 
     def test_logs_no_file(self, tmp_path: Path) -> None:
         """Test logs when log file doesn't exist."""
