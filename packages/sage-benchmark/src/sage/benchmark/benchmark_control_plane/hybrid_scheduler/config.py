@@ -58,9 +58,7 @@ class HybridSLOConfig(BaseSLOConfig):
     embedding_normal_priority_deadline_ms: int = 200
     embedding_low_priority_deadline_ms: int = 500
 
-    def get_deadline_for_request(
-        self, priority: str, request_type: RequestType | str
-    ) -> int:
+    def get_deadline_for_request(self, priority: str, request_type: RequestType | str) -> int:
         """Get SLO deadline for a given priority and request type.
 
         Args:
@@ -92,11 +90,13 @@ class HybridSLOConfig(BaseSLOConfig):
     def to_dict(self) -> dict[str, int]:
         """Convert to dictionary."""
         base_dict = super().to_dict()
-        base_dict.update({
-            "embedding_high_priority_deadline_ms": self.embedding_high_priority_deadline_ms,
-            "embedding_normal_priority_deadline_ms": self.embedding_normal_priority_deadline_ms,
-            "embedding_low_priority_deadline_ms": self.embedding_low_priority_deadline_ms,
-        })
+        base_dict.update(
+            {
+                "embedding_high_priority_deadline_ms": self.embedding_high_priority_deadline_ms,
+                "embedding_normal_priority_deadline_ms": self.embedding_normal_priority_deadline_ms,
+                "embedding_low_priority_deadline_ms": self.embedding_low_priority_deadline_ms,
+            }
+        )
         return base_dict
 
 
@@ -157,9 +157,7 @@ class HybridBenchmarkConfig(BaseBenchmarkConfig):
         # Validate ratio sum
         ratio_sum = self.llm_ratio + self.embedding_ratio
         if abs(ratio_sum - 1.0) > 0.01:
-            errors.append(
-                f"llm_ratio + embedding_ratio should sum to 1.0 (got {ratio_sum})"
-            )
+            errors.append(f"llm_ratio + embedding_ratio should sum to 1.0 (got {ratio_sum})")
 
         # Validate ratios are non-negative
         if self.llm_ratio < 0:
@@ -308,23 +306,25 @@ class HybridBenchmarkConfig(BaseBenchmarkConfig):
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         base_dict = self.to_base_dict()
-        base_dict.update({
-            # Hybrid-specific
-            "llm_ratio": self.llm_ratio,
-            "embedding_ratio": self.embedding_ratio,
-            "llm_model_distribution": self.llm_model_distribution,
-            "prompt_len_range": list(self.prompt_len_range),
-            "output_len_range": list(self.output_len_range),
-            "enable_streaming": self.enable_streaming,
-            "embedding_model": self.embedding_model,
-            "embedding_batch_sizes": self.embedding_batch_sizes,
-            "embedding_text_len_range": list(self.embedding_text_len_range),
-            "hybrid_slo_config": self.hybrid_slo_config.to_dict(),
-            "llm_dataset_path": str(self.llm_dataset_path) if self.llm_dataset_path else None,
-            "embedding_dataset_path": (
-                str(self.embedding_dataset_path) if self.embedding_dataset_path else None
-            ),
-        })
+        base_dict.update(
+            {
+                # Hybrid-specific
+                "llm_ratio": self.llm_ratio,
+                "embedding_ratio": self.embedding_ratio,
+                "llm_model_distribution": self.llm_model_distribution,
+                "prompt_len_range": list(self.prompt_len_range),
+                "output_len_range": list(self.output_len_range),
+                "enable_streaming": self.enable_streaming,
+                "embedding_model": self.embedding_model,
+                "embedding_batch_sizes": self.embedding_batch_sizes,
+                "embedding_text_len_range": list(self.embedding_text_len_range),
+                "hybrid_slo_config": self.hybrid_slo_config.to_dict(),
+                "llm_dataset_path": str(self.llm_dataset_path) if self.llm_dataset_path else None,
+                "embedding_dataset_path": (
+                    str(self.embedding_dataset_path) if self.embedding_dataset_path else None
+                ),
+            }
+        )
         return base_dict
 
     def to_yaml(self, yaml_path: str | Path) -> None:

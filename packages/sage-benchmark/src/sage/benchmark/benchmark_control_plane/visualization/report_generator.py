@@ -171,9 +171,7 @@ class ReportGenerator:
 
         if best_throughput and best_throughput in policy_results:
             metrics = policy_results[best_throughput].get("metrics", {})
-            best_throughput_value = metrics.get("throughput", {}).get(
-                "requests_per_second", 0
-            )
+            best_throughput_value = metrics.get("throughput", {}).get("requests_per_second", 0)
 
         if best_slo and best_slo in policy_results:
             metrics = policy_results[best_slo].get("metrics", {})
@@ -212,9 +210,7 @@ class ReportGenerator:
         # Add hybrid-specific data
         if self._is_hybrid_result():
             context["best_llm_throughput"] = summary.get("best_llm_throughput", "")
-            context["best_embedding_throughput"] = summary.get(
-                "best_embedding_throughput", ""
-            )
+            context["best_embedding_throughput"] = summary.get("best_embedding_throughput", "")
 
         return context
 
@@ -281,9 +277,7 @@ class ReportGenerator:
         if embedding:
             emb_throughput = embedding.get("throughput", {})
             flat["embedding_throughput_rps"] = emb_throughput.get("requests_per_second", 0)
-            flat["embedding_throughput_texts_ps"] = emb_throughput.get(
-                "texts_per_second", 0
-            )
+            flat["embedding_throughput_texts_ps"] = emb_throughput.get("texts_per_second", 0)
             batch = embedding.get("batch", {})
             flat["embedding_batch_efficiency"] = batch.get("efficiency", 0)
             flat["embedding_avg_batch_size"] = batch.get("avg_size", 0)
@@ -310,8 +304,7 @@ class ReportGenerator:
         """
         if not JINJA2_AVAILABLE:
             raise RuntimeError(
-                "Jinja2 is required for HTML report generation. "
-                "Install with: pip install jinja2"
+                "Jinja2 is required for HTML report generation. Install with: pip install jinja2"
             )
 
         output_path = Path(output_path)
@@ -408,15 +401,19 @@ class ReportGenerator:
                 "| Policy | Throughput | LLM Throughput | Embed Throughput | "
                 "Avg Latency | P99 Latency | SLO Rate | Error Rate |"
             )
-            lines.append("|--------|------------|----------------|------------------|"
-                         "------------|-------------|----------|------------|")
+            lines.append(
+                "|--------|------------|----------------|------------------|"
+                "------------|-------------|----------|------------|"
+            )
         else:
             lines.append(
                 "| Policy | Throughput | Avg Latency | P99 Latency | "
                 "Avg TTFT | SLO Rate | Error Rate |"
             )
-            lines.append("|--------|------------|-------------|-------------|"
-                         "----------|----------|------------|")
+            lines.append(
+                "|--------|------------|-------------|-------------|"
+                "----------|----------|------------|"
+            )
 
         for policy_name, policy_data in policy_results.items():
             metrics = self._flatten_metrics(policy_data.get("metrics", {}))
@@ -485,9 +482,7 @@ class ReportGenerator:
             if self._is_hybrid_result():
                 lines.append("#### LLM Performance")
                 lines.append("")
-                lines.append(
-                    f"- Throughput: {metrics.get('llm_throughput_rps', 0):.1f} req/s"
-                )
+                lines.append(f"- Throughput: {metrics.get('llm_throughput_rps', 0):.1f} req/s")
                 lines.append(
                     f"- Token Throughput: {metrics.get('llm_token_throughput_tps', 0):.1f} tokens/s"
                 )
@@ -502,15 +497,11 @@ class ReportGenerator:
                 lines.append(
                     f"- Throughput: {metrics.get('embedding_throughput_rps', 0):.1f} req/s"
                 )
-                lines.append(
-                    f"- Texts/s: {metrics.get('embedding_throughput_texts_ps', 0):.1f}"
-                )
+                lines.append(f"- Texts/s: {metrics.get('embedding_throughput_texts_ps', 0):.1f}")
                 lines.append(
                     f"- Batch Efficiency: {metrics.get('embedding_batch_efficiency', 0) * 100:.1f}%"
                 )
-                lines.append(
-                    f"- Avg Batch Size: {metrics.get('embedding_avg_batch_size', 0):.1f}"
-                )
+                lines.append(f"- Avg Batch Size: {metrics.get('embedding_avg_batch_size', 0):.1f}")
                 lines.append(
                     f"- SLO Compliance: {metrics.get('embedding_slo_compliance_rate', 0) * 100:.1f}%"
                 )
@@ -570,8 +561,7 @@ class ReportGenerator:
         """
         if not JINJA2_AVAILABLE:
             raise RuntimeError(
-                "Jinja2 is required for HTML report generation. "
-                "Install with: pip install jinja2"
+                "Jinja2 is required for HTML report generation. Install with: pip install jinja2"
             )
 
         output_path = Path(output_path)

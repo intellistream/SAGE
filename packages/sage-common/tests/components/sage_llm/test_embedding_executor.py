@@ -8,13 +8,12 @@ via OpenAI-compatible HTTP API.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from sage.common.components.sage_llm.sageLLM.control_plane.executors.embedding_executor import (
     EmbeddingExecutor,
-    EmbeddingExecutorError,
     EmbeddingInstanceUnavailableError,
     EmbeddingMetrics,
     EmbeddingRequestError,
@@ -166,9 +165,7 @@ class TestEmbeddingExceptions:
 
     def test_embedding_instance_unavailable_error_with_message(self):
         """Test EmbeddingInstanceUnavailableError with custom message."""
-        error = EmbeddingInstanceUnavailableError(
-            "localhost", 8090, "Custom error message"
-        )
+        error = EmbeddingInstanceUnavailableError("localhost", 8090, "Custom error message")
 
         assert error.message == "Custom error message"
 
@@ -257,7 +254,11 @@ class TestEmbeddingExecutor:
         mock_response.json = AsyncMock(return_value=mock_openai_response)
 
         with patch.object(
-            executor.http_session, "post", return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock())
+            executor.http_session,
+            "post",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
+            ),
         ):
             result = await executor.execute_embedding(
                 texts=["Hello", "World"],
@@ -318,7 +319,7 @@ class TestEmbeddingExecutor:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise asyncio.TimeoutError()
+                raise TimeoutError()
             # Return a proper async context manager for success case
             mock_cm = AsyncMock()
             mock_cm.__aenter__ = AsyncMock(return_value=mock_response_success)
@@ -343,9 +344,7 @@ class TestEmbeddingExecutor:
         """Test embedding execution when all retries are exhausted."""
         await executor.initialize()
 
-        with patch.object(
-            executor.http_session, "post", side_effect=asyncio.TimeoutError()
-        ):
+        with patch.object(executor.http_session, "post", side_effect=TimeoutError()):
             with pytest.raises(EmbeddingTimeoutError):
                 await executor.execute_embedding(
                     texts=["Hello"],
@@ -360,9 +359,7 @@ class TestEmbeddingExecutor:
         await executor.cleanup()
 
     @pytest.mark.asyncio
-    async def test_execute_embedding_batch_small_input(
-        self, executor, mock_openai_response
-    ):
+    async def test_execute_embedding_batch_small_input(self, executor, mock_openai_response):
         """Test batch embedding with small input (no actual batching needed)."""
         await executor.initialize()
 
@@ -371,7 +368,11 @@ class TestEmbeddingExecutor:
         mock_response.json = AsyncMock(return_value=mock_openai_response)
 
         with patch.object(
-            executor.http_session, "post", return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock())
+            executor.http_session,
+            "post",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
+            ),
         ):
             result = await executor.execute_embedding_batch(
                 texts=["Hello", "World"],
@@ -449,7 +450,11 @@ class TestEmbeddingExecutor:
         mock_response.status = 200
 
         with patch.object(
-            executor.http_session, "get", return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock())
+            executor.http_session,
+            "get",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
+            ),
         ):
             is_healthy = await executor.health_check("localhost", 8090)
 
@@ -462,9 +467,7 @@ class TestEmbeddingExecutor:
         """Test failed health check."""
         await executor.initialize()
 
-        with patch.object(
-            executor.http_session, "get", side_effect=asyncio.TimeoutError()
-        ):
+        with patch.object(executor.http_session, "get", side_effect=TimeoutError()):
             is_healthy = await executor.health_check("localhost", 8090)
 
             assert is_healthy is False
@@ -531,7 +534,11 @@ class TestEmbeddingExecutorIntegration:
         mock_response.json = AsyncMock(return_value=mock_response_data)
 
         with patch.object(
-            executor.http_session, "post", return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock())
+            executor.http_session,
+            "post",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_response), __aexit__=AsyncMock()
+            ),
         ):
             # Execute 10 concurrent requests
             tasks = [

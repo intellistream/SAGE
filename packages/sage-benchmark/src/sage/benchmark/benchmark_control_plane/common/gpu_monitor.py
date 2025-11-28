@@ -365,7 +365,9 @@ class GPUMonitor:
                     total_mb = mem.total / (1024 * 1024)
                     metrics.memory_used_mb.append(used_mb)
                     metrics.memory_total_mb.append(total_mb)
-                    metrics.memory_percent.append(100.0 * mem.used / mem.total if mem.total else 0.0)
+                    metrics.memory_percent.append(
+                        100.0 * mem.used / mem.total if mem.total else 0.0
+                    )
                 except Exception:
                     metrics.memory_used_mb.append(0.0)
                     metrics.memory_total_mb.append(0.0)
@@ -374,7 +376,8 @@ class GPUMonitor:
                 # Temperature
                 try:
                     temp = pynvml.nvmlDeviceGetTemperature(  # type: ignore[union-attr]
-                        handle, pynvml.NVML_TEMPERATURE_GPU  # type: ignore[union-attr]
+                        handle,
+                        pynvml.NVML_TEMPERATURE_GPU,  # type: ignore[union-attr]
                     )
                     metrics.temperature_celsius.append(float(temp))
                 except Exception:
@@ -420,7 +423,9 @@ class GPUMonitor:
                         total_mb = float(parts[2])
                         metrics.memory_total_mb.append(total_mb)
                         used_mb = float(parts[1])
-                        metrics.memory_percent.append(100.0 * used_mb / total_mb if total_mb else 0.0)
+                        metrics.memory_percent.append(
+                            100.0 * used_mb / total_mb if total_mb else 0.0
+                        )
                         metrics.temperature_celsius.append(float(parts[3]))
                         # Power might be "[N/A]" for some GPUs
                         try:

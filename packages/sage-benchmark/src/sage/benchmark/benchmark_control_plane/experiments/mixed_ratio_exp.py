@@ -133,9 +133,7 @@ class MixedRatioExperiment(BaseExperiment):
 
         for ratio in self.llm_ratios:
             emb_ratio = 1.0 - ratio
-            self._log(
-                f"\n   🔄 Testing ratio: LLM={ratio:.0%}, Embedding={emb_ratio:.0%}"
-            )
+            self._log(f"\n   🔄 Testing ratio: LLM={ratio:.0%}, Embedding={emb_ratio:.0%}")
 
             runner = self._runners[ratio]
             result = await runner.run()
@@ -153,9 +151,7 @@ class MixedRatioExperiment(BaseExperiment):
                 metrics = policy_result.metrics
 
                 # Compute separate stats for LLM and Embedding requests
-                llm_stats, emb_stats = self._compute_type_stats(
-                    policy_result.raw_results
-                )
+                llm_stats, emb_stats = self._compute_type_stats(policy_result.raw_results)
 
                 ratio_result["policies"][policy_name] = {
                     "throughput": metrics.throughput_rps,
@@ -163,9 +159,7 @@ class MixedRatioExperiment(BaseExperiment):
                     "p50_latency_ms": metrics.e2e_latency_p50_ms,
                     "p99_latency_ms": metrics.e2e_latency_p99_ms,
                     "success_rate": 1.0 - metrics.error_rate,
-                    "slo_compliance": self._compute_slo_compliance(
-                        policy_result.raw_results
-                    ),
+                    "slo_compliance": self._compute_slo_compliance(policy_result.raw_results),
                     "llm_stats": llm_stats,
                     "embedding_stats": emb_stats,
                 }
@@ -301,17 +295,11 @@ class MixedRatioExperiment(BaseExperiment):
                     optimal_ratio = ratio
 
             summary["policies"][policy_name] = {
-                "throughputs_by_ratio": dict(
-                    zip(self.llm_ratios, throughputs, strict=False)
-                ),
-                "compliances_by_ratio": dict(
-                    zip(self.llm_ratios, compliances, strict=False)
-                ),
+                "throughputs_by_ratio": dict(zip(self.llm_ratios, throughputs, strict=False)),
+                "compliances_by_ratio": dict(zip(self.llm_ratios, compliances, strict=False)),
                 "max_throughput": max_throughput,
                 "optimal_ratio": optimal_ratio,
-                "avg_compliance": (
-                    sum(compliances) / len(compliances) if compliances else 0.0
-                ),
+                "avg_compliance": (sum(compliances) / len(compliances) if compliances else 0.0),
             }
 
             summary["optimal_ratio_by_policy"][policy_name] = optimal_ratio
@@ -350,11 +338,13 @@ class MixedRatioExperiment(BaseExperiment):
 
                 for result in self._result.results:
                     policy_metrics = result["policies"].get(policy_name, {})
-                    ratio_results.append({
-                        "llm_ratio": result["llm_ratio"],
-                        "throughput_rps": policy_metrics.get("throughput", 0.0),
-                        "slo_compliance_rate": policy_metrics.get("slo_compliance", 0.0),
-                    })
+                    ratio_results.append(
+                        {
+                            "llm_ratio": result["llm_ratio"],
+                            "throughput_rps": policy_metrics.get("throughput", 0.0),
+                            "slo_compliance_rate": policy_metrics.get("slo_compliance", 0.0),
+                        }
+                    )
 
                 chart_path = chart_gen.plot_mixed_ratio_impact(
                     ratio_results=ratio_results,
@@ -374,9 +364,7 @@ class MixedRatioExperiment(BaseExperiment):
                 policy_metrics = {}
                 for policy_name, policy_data in mid_ratio_result["policies"].items():
                     policy_metrics[policy_name] = {
-                        "throughput": {
-                            "requests_per_second": policy_data.get("throughput", 0.0)
-                        }
+                        "throughput": {"requests_per_second": policy_data.get("throughput", 0.0)}
                     }
 
                 chart_path = chart_gen.plot_throughput_comparison(
