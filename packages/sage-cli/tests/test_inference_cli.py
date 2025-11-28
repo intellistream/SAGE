@@ -10,6 +10,9 @@ inference service (LLM + Embedding).
 from __future__ import annotations
 
 import json
+import os
+import re
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,15 +20,27 @@ import pytest
 from typer.testing import CliRunner
 
 from sage.cli.commands.apps.inference import (
+    _get_running_pid,
     _is_port_in_use,
     _load_config,
     _save_config,
     _save_pid,
     _test_api_health,
     app,
+    CONFIG_FILE,
+    LOG_FILE,
+    PID_FILE,
 )
 
 runner = CliRunner()
+
+# Pre-compiled regex pattern for stripping ANSI escape codes
+_ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
+
+
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text."""
+    return _ANSI_ESCAPE_PATTERN.sub('', text)
 
 
 def strip_ansi(text: str) -> str:
@@ -144,7 +159,9 @@ class TestStartCommand:
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     @patch("sage.cli.commands.apps.inference._is_port_in_use")
-    def test_start_port_in_use(self, mock_port_check: MagicMock, mock_get_pid: MagicMock) -> None:
+    def test_start_port_in_use(
+        self, mock_port_check: MagicMock, mock_get_pid: MagicMock
+    ) -> None:
         """Test start when port is already in use."""
         mock_get_pid.return_value = None
         mock_port_check.return_value = True
@@ -236,7 +253,8 @@ class TestConfigCommand:
         """Test config command help."""
         result = runner.invoke(app, ["config", "--help"])
         assert result.exit_code == 0
-        assert "显示当前配置" in result.stdout
+        stdout = strip_ansi(result.stdout)
+        assert "显示当前配置" in stdout
 
     @patch("sage.cli.commands.apps.inference._load_config")
     def test_config_no_config(self, mock_load_config: MagicMock) -> None:
