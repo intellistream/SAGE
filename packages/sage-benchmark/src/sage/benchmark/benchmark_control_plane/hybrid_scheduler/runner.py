@@ -163,7 +163,7 @@ class HybridBenchmarkRunner:
         self.verbose = verbose
         self.enable_gpu_monitoring = enable_gpu_monitoring
         self.gpu_monitor_interval = gpu_monitor_interval
-        self.output_dir = Path(output_dir) if output_dir else Path("benchmark_results")
+        self.output_dir = Path(output_dir) if output_dir else Path(".benchmarks")
         self.workload_generator = HybridWorkloadGenerator(config)
 
     def _log(self, message: str) -> None:

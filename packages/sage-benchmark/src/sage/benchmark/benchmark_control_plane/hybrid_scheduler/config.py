@@ -238,7 +238,7 @@ class HybridBenchmarkConfig(BaseBenchmarkConfig):
         if embedding_dataset_path:
             embedding_dataset_path = Path(embedding_dataset_path)
 
-        output_dir = data.get("output_dir", "./benchmark_results")
+        output_dir = data.get("output_dir", "./.benchmarks")
         if isinstance(output_dir, str):
             output_dir = Path(output_dir)
 

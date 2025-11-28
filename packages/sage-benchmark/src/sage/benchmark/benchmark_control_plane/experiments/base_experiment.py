@@ -119,7 +119,7 @@ class BaseExperiment(ABC):
     def __init__(
         self,
         name: str,
-        output_dir: str | Path = "./experiment_results",
+        output_dir: str | Path = "./.benchmarks",
         verbose: bool = True,
     ):
         """Initialize experiment.

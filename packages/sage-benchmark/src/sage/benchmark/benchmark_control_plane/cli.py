@@ -202,7 +202,7 @@ def create_app() -> Any:
             help="LLM request ratio for hybrid mode (0.0-1.0)",
         ),
         output: str = Option(
-            "./benchmark_results",
+            "./.benchmarks",
             "--output",
             "-o",
             help="Output directory for results",
@@ -447,7 +447,7 @@ def create_app() -> Any:
             help="LLM request ratio for hybrid mode (0.0-1.0)",
         ),
         output: str = Option(
-            "./benchmark_results",
+            "./.benchmarks",
             "--output",
             "-o",
             help="Output directory for results",
@@ -678,7 +678,7 @@ def create_app() -> Any:
             help="LLM request ratio for hybrid mode",
         ),
         output: str = Option(
-            "./benchmark_results",
+            "./.benchmarks",
             "--output",
             "-o",
             help="Output directory for results",
@@ -878,7 +878,7 @@ def create_app() -> Any:
             help="Comma-separated list of policies to test",
         ),
         output: str = Option(
-            "./experiment_results",
+            "./.benchmarks",
             "--output",
             "-o",
             help="Output directory",

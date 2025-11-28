@@ -136,7 +136,7 @@ class LLMBenchmarkRunner:
         self.config = config
         self.verbose = verbose
         self.enable_gpu_monitoring = enable_gpu_monitoring
-        self.output_dir = Path(output_dir) if output_dir else Path("benchmark_results")
+        self.output_dir = Path(output_dir) if output_dir else Path(".benchmarks")
         self.workload_generator = LLMWorkloadGenerator(config)
 
     def _log(self, message: str) -> None:

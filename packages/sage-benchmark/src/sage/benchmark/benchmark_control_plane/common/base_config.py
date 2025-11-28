@@ -133,7 +133,7 @@ class BaseBenchmarkConfig(ABC):
     concurrent_requests: int = 50
 
     # Output configuration
-    output_dir: Path = field(default_factory=lambda: Path("./benchmark_results"))
+    output_dir: Path = field(default_factory=lambda: Path("./.benchmarks"))
 
     # Auto visualization after benchmark
     auto_visualize: bool = True

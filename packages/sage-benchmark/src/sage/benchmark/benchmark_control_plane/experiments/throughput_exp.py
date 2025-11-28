@@ -58,7 +58,7 @@ class ThroughputExperiment(BaseExperiment):
         llm_ratio: float = 0.5,
         policies: list[SchedulingPolicy] | None = None,
         arrival_pattern: ArrivalPattern = ArrivalPattern.POISSON,
-        output_dir: str | Path = "./experiment_results",
+        output_dir: str | Path = "./.benchmarks",
         verbose: bool = True,
     ):
         """Initialize throughput experiment.

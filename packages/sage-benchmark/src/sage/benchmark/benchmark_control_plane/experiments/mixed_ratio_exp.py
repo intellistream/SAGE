@@ -61,7 +61,7 @@ class MixedRatioExperiment(BaseExperiment):
         policies: list[SchedulingPolicy] | None = None,
         arrival_pattern: ArrivalPattern = ArrivalPattern.POISSON,
         slo_config: HybridSLOConfig | None = None,
-        output_dir: str | Path = "./experiment_results",
+        output_dir: str | Path = "./.benchmarks",
         verbose: bool = True,
     ):
         """Initialize mixed ratio experiment.
