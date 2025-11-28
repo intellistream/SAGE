@@ -2,6 +2,13 @@
 """
 SAGE Agent Benchmark - One-Click Complete Experiment Runner
 
+.. note::
+    This script is now a functional module. For CLI usage, prefer:
+
+        sage-bench run [--challenge <challenge>] [--quick]
+
+    Direct script invocation is still supported for backward compatibility.
+
 This script runs ALL experiments for the ICML paper:
 1. Challenge 1: Timing Detection (target: ≥95% accuracy)
 2. Challenge 2: Task Planning (target: ≥90% success rate)
@@ -9,18 +16,15 @@ This script runs ALL experiments for the ICML paper:
 4. Training Comparison: Methods A-D (if --train enabled)
 5. Generate paper-ready figures and LaTeX tables
 
-Usage:
-    # Quick evaluation (no training, uses existing data)
+CLI Usage (Recommended):
+    sage-bench run --quick                    # Quick evaluation
+    sage-bench run --challenge tool_selection # Single challenge
+    sage-bench run --dataset all              # Cross-dataset
+
+Legacy Usage (Still Supported):
     python run_all_experiments.py --quick
-
-    # Full evaluation with all samples
     python run_all_experiments.py --eval-only
-
-    # Complete pipeline including training (requires GPU)
     python run_all_experiments.py --full
-
-    # Generate paper materials only (from existing results)
-    python run_all_experiments.py --paper-only --results-dir ./results
 
 Output:
     results/
@@ -1361,6 +1365,13 @@ def main():
     parser.add_argument(
         "--skip-llm", action="store_true", help="Skip LLM-based strategies (faster, no GPU needed)"
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="sage",
+        choices=["sage", "acebench", "apibank", "toolalpaca", "bfcl", "toolbench", "all"],
+        help="Dataset for tool selection evaluation (default: sage). Use 'all' for cross-dataset comparison.",
+    )
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
@@ -1488,7 +1499,30 @@ def main():
         if run_planning:
             runner.run_planning_evaluation(max_samples=max_planning)
         if run_tool_selection:
-            runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
+            # Use unified eval for cross-dataset comparison
+            if args.dataset != "sage":
+                print(f"\n📊 Running cross-dataset tool selection with dataset={args.dataset}")
+                unified_eval_script = SCRIPT_DIR / "run_unified_eval.py"
+                methods = (
+                    "keyword,embedding,hybrid"
+                    if args.skip_llm
+                    else "keyword,embedding,hybrid,gorilla,dfsdt"
+                )
+                cmd = [
+                    sys.executable,
+                    str(unified_eval_script),
+                    "--dataset",
+                    args.dataset,
+                    "--methods",
+                    methods,
+                    "--samples",
+                    str(max_tool),
+                    "--top-k",
+                    str(args.top_k),
+                ]
+                subprocess.run(cmd, cwd=str(SCRIPT_DIR))
+            else:
+                runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
 
         # Run training if --full mode (only when running all challenges)
         if args.full and args.challenge is None:

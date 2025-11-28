@@ -2,13 +2,16 @@
 """
 ACEBench Multi-Method Tool Selection Comparison
 
-Compares multiple tool selection strategies on ACEBench (ToolACE) dataset:
-1. LLM Direct Prompting (baseline)
-2. Keyword (BM25) matching
-3. Embedding similarity
-4. Hybrid (Keyword + Embedding)
+.. deprecated::
+    This script is DEPRECATED. Please use run_unified_eval.py instead:
 
-Usage:
+        python run_unified_eval.py --dataset acebench --samples 100
+        python run_unified_eval.py --dataset all --samples 100  # Cross-dataset comparison
+
+    run_unified_eval.py supports all datasets (SAGE, ACEBench, APIBank, ToolAlpaca, etc.)
+    with a unified interface.
+
+Legacy usage (deprecated):
     python run_acebench_comparison.py --samples 100
     python run_acebench_comparison.py --samples 50 --use-embedded
 """
@@ -20,9 +23,18 @@ import json
 import logging
 import sys
 import time
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# Emit deprecation warning
+warnings.warn(
+    "run_acebench_comparison.py is deprecated. "
+    "Use 'python run_unified_eval.py --dataset acebench' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))

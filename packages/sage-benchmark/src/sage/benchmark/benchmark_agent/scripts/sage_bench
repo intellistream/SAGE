@@ -1,0 +1,472 @@
+#!/usr/bin/env python3
+"""
+SAGE-Bench CLI - 统一命令行入口
+
+这是 SAGE Benchmark 的唯一官方入口，所有功能通过子命令访问。
+
+Usage:
+    sage-bench <command> [options]
+
+Commands:
+    eval        工具选择评测 (跨数据集)
+    run         运行完整 Benchmark (三个 Challenge)
+    train       训练方法对比 (Paper 2)
+    llm         LLM 服务管理
+    list        列出可用数据集/方法/实验
+    interactive 交互式模式
+
+Examples:
+    # 列出可用数据集
+    sage-bench list datasets
+
+    # 在 ACEBench 上评测
+    sage-bench eval --dataset acebench --samples 100
+
+    # 跨数据集对比
+    sage-bench eval --dataset all --methods keyword,embedding,gorilla
+
+    # 运行完整 Benchmark
+    sage-bench run --quick
+
+    # LLM 服务管理
+    sage-bench llm start
+    sage-bench llm status
+    sage-bench llm stop
+
+    # 交互式模式
+    sage-bench interactive
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import signal
+import sys
+import time
+from pathlib import Path
+
+# 获取脚本目录
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+# 添加路径
+sys.path.insert(0, str(SCRIPT_DIR.parent.parent.parent.parent))
+
+
+# =============================================================================
+# LLM 服务管理
+# =============================================================================
+
+try:
+    from sage.common.config.ports import SagePorts
+
+    DEFAULT_LLM_PORT = SagePorts.BENCHMARK_LLM
+except ImportError:
+    DEFAULT_LLM_PORT = 8901
+
+DEFAULT_LLM_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+LLM_PID_FILE = Path.home() / ".sage" / "benchmark_llm.pid"
+
+
+def check_llm_service(port: int = DEFAULT_LLM_PORT) -> dict:
+    """检查 LLM 服务状态"""
+    import httpx
+
+    result = {"running": False, "port": port, "model": None, "error": None}
+    try:
+        response = httpx.get(f"http://localhost:{port}/v1/models", timeout=5.0)
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get("data", [])
+            if models:
+                result["running"] = True
+                result["model"] = models[0].get("id", "unknown")
+        else:
+            result["error"] = f"HTTP {response.status_code}"
+    except httpx.ConnectError:
+        result["error"] = "Connection refused"
+    except httpx.TimeoutException:
+        result["error"] = "Timeout"
+    except Exception as e:
+        result["error"] = str(e)
+    return result
+
+
+def cmd_llm(args):
+    """LLM 服务管理子命令"""
+    import subprocess
+
+    if args.llm_action == "status":
+        print("\n📡 LLM 服务状态")
+        print("=" * 50)
+        try:
+            from sage.common.config.ports import SagePorts
+
+            ports = [SagePorts.BENCHMARK_LLM] + SagePorts.get_llm_ports()
+        except ImportError:
+            ports = [DEFAULT_LLM_PORT, 8001, 8000]
+
+        seen = set()
+        for port in ports:
+            if port in seen:
+                continue
+            seen.add(port)
+            status = check_llm_service(port)
+            if status["running"]:
+                print(f"  ✅ Port {port}: 运行中")
+                print(f"     模型: {status['model']}")
+            else:
+                print(f"  ❌ Port {port}: {status['error'] or '未运行'}")
+        return 0
+
+    elif args.llm_action == "start":
+        status = check_llm_service(args.port)
+        if status["running"]:
+            print(f"✅ LLM 服务已在运行 (port={args.port}, model={status['model']})")
+            return 0
+
+        print("🚀 启动 LLM 服务...")
+        print(f"   模型: {args.model}")
+        print(f"   端口: {args.port}")
+
+        LLM_PID_FILE.parent.mkdir(parents=True, exist_ok=True)
+        cmd = [
+            sys.executable,
+            "-m",
+            "vllm.entrypoints.openai.api_server",
+            "--model",
+            args.model,
+            "--port",
+            str(args.port),
+            "--gpu-memory-utilization",
+            str(args.gpu_memory),
+            "--trust-remote-code",
+        ]
+
+        try:
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
+            )
+            with open(LLM_PID_FILE, "w") as f:
+                f.write(str(process.pid))
+            print(f"   PID: {process.pid}")
+            print("   等待服务启动...")
+
+            for i in range(120):
+                time.sleep(1)
+                if check_llm_service(args.port)["running"]:
+                    print(f"\n✅ LLM 服务已启动 (耗时 {i + 1}s)")
+                    return 0
+                if i % 10 == 9:
+                    print(f"   已等待 {i + 1}s...")
+
+            print("\n❌ 服务启动超时")
+            return 1
+        except Exception as e:
+            print(f"❌ 启动失败: {e}")
+            return 1
+
+    elif args.llm_action == "stop":
+        if not LLM_PID_FILE.exists():
+            print("ℹ️  没有找到运行中的 LLM 服务")
+            return 0
+        try:
+            with open(LLM_PID_FILE) as f:
+                pid = int(f.read().strip())
+            print(f"🛑 停止 LLM 服务 (PID={pid})...")
+            os.kill(pid, signal.SIGTERM)
+            LLM_PID_FILE.unlink(missing_ok=True)
+            print("✅ LLM 服务已停止")
+            return 0
+        except Exception as e:
+            print(f"❌ 停止失败: {e}")
+            return 1
+
+    return 0
+
+
+# =============================================================================
+# 评测命令
+# =============================================================================
+
+
+def cmd_eval(args):
+    """工具选择评测子命令"""
+    from sage.benchmark.benchmark_agent.scripts._internal.unified_eval import run_evaluation
+
+    return run_evaluation(
+        dataset=args.dataset,
+        methods=args.methods.split(",") if args.methods else ["keyword", "embedding", "hybrid"],
+        max_samples=args.samples,
+        top_k=args.top_k,
+        use_embedded=args.use_embedded,
+        output_dir=args.output,
+    )
+
+
+def cmd_run(args):
+    """运行完整 Benchmark"""
+    from sage.benchmark.benchmark_agent.scripts._internal.all_experiments import run_all_experiments
+
+    return run_all_experiments(
+        challenge=args.challenge,
+        quick=args.quick,
+        skip_llm=args.skip_llm,
+        max_samples=args.samples,
+        dataset=args.dataset,
+        output_dir=args.output,
+    )
+
+
+def cmd_train(args):
+    """训练方法对比 (Paper 2)"""
+    from sage.benchmark.benchmark_agent.scripts._internal.training_comparison import (
+        run_training_comparison,
+    )
+
+    return run_training_comparison(
+        methods=args.methods.split(",") if args.methods else ["A_baseline", "D_combined"],
+        base_model=args.model,
+        quick=args.quick,
+        dry_run=args.dry_run,
+        output_dir=args.output,
+    )
+
+
+# =============================================================================
+# 列表命令
+# =============================================================================
+
+
+def cmd_list(args):
+    """列出可用资源"""
+    if args.resource == "datasets":
+        print("\n" + "=" * 70)
+        print("Available Datasets for Tool Selection Evaluation")
+        print("=" * 70)
+        print()
+        print(f"{'Dataset':<15} {'Description':<50} {'Status'}")
+        print("-" * 70)
+
+        datasets = [
+            ("sage", "SAGE-Bench (1200 synthetic tools)", "Built-in"),
+            ("acebench", "ToolACE from HuggingFace", "HuggingFace"),
+            ("apibank", "API-Bank (Microsoft/Alibaba)", "External"),
+            ("toolalpaca", "ToolAlpaca (Microsoft)", "External"),
+            ("bfcl", "BFCL (Berkeley Function Calling)", "External"),
+            ("toolbench", "ToolBench (Tsinghua/OpenBMB)", "External"),
+            ("taskbench", "TaskBench (PKU)", "External"),
+            ("metatool", "MetaTool (Tsinghua)", "External"),
+            ("all", "Evaluate on ALL datasets", "-"),
+        ]
+        for name, desc, status in datasets:
+            print(f"{name:<15} {desc:<50} {status}")
+        print()
+        return 0
+
+    elif args.resource == "methods":
+        print("\n" + "=" * 70)
+        print("Available Tool Selection Methods")
+        print("=" * 70)
+        print()
+        print(f"{'Method':<15} {'Description':<40} {'Source'}")
+        print("-" * 70)
+
+        methods = [
+            ("keyword", "BM25 keyword matching", "Classic"),
+            ("embedding", "Semantic embedding similarity", "Common"),
+            ("hybrid", "Keyword + Embedding fusion", "Common"),
+            ("gorilla", "Retrieval + LLM reranking", "Berkeley"),
+            ("dfsdt", "Tree search (ToolLLM)", "Tsinghua"),
+            ("llm_direct", "Direct LLM prompting", "Baseline"),
+        ]
+        for name, desc, source in methods:
+            print(f"{name:<15} {desc:<40} {source}")
+        print()
+        return 0
+
+    elif args.resource == "experiments":
+        print("\n" + "=" * 70)
+        print("Available Experiments")
+        print("=" * 70)
+
+        print("\n📘 Paper 1: Benchmark (现有 SOTA 方法对比)")
+        print("-" * 70)
+        experiments_p1 = [
+            ("timing", "Challenge 1: Timing Judgment", "~10 min"),
+            ("planning", "Challenge 2: Task Planning", "~15 min"),
+            ("tool_selection", "Challenge 3: Tool Selection", "~20 min"),
+            ("cross_dataset", "Cross-Dataset Comparison", "~30 min"),
+        ]
+        for exp_id, name, time_est in experiments_p1:
+            print(f"  {exp_id:<20} {name:<35} {time_est}")
+
+        print("\n📙 Paper 2: Method (SAGE 原创方法)")
+        print("-" * 70)
+        experiments_p2 = [
+            ("baseline", "Baseline SFT training", "~2 hours"),
+            ("coreset", "Coreset hybrid strategy", "~1.5 hours"),
+            ("continual", "Continual learning + replay", "~2.5 hours"),
+            ("combined", "Full SAGE method", "~2 hours"),
+        ]
+        for exp_id, name, time_est in experiments_p2:
+            print(f"  {exp_id:<20} {name:<35} {time_est}")
+        print()
+        return 0
+
+    return 1
+
+
+# =============================================================================
+# 交互式模式
+# =============================================================================
+
+
+def cmd_interactive(args):
+    """交互式模式"""
+    # 导入原有的交互式逻辑
+    from sage.benchmark.benchmark_agent.scripts._internal.interactive import run_interactive_mode
+
+    return run_interactive_mode()
+
+
+# =============================================================================
+# 主入口
+# =============================================================================
+
+
+def print_banner():
+    print("""
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                       SAGE-Bench CLI v2.0                                 ║
+║                                                                           ║
+║  Unified benchmark for evaluating Agent capabilities                      ║
+║  Paper 1: SAGE-Bench | Paper 2: SAGE Methods                              ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+""")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="sage-bench",
+        description="SAGE-Bench CLI - 统一命令行入口",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    sage-bench list datasets          # 列出可用数据集
+    sage-bench eval --dataset all     # 跨数据集评测
+    sage-bench run --quick            # 快速运行完整 Benchmark
+    sage-bench llm start              # 启动 LLM 服务
+    sage-bench interactive            # 交互式模式
+        """,
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="子命令")
+
+    # =========================================================================
+    # eval 子命令
+    # =========================================================================
+    eval_parser = subparsers.add_parser("eval", help="工具选择评测 (跨数据集)")
+    eval_parser.add_argument(
+        "--dataset",
+        "-d",
+        default="sage",
+        choices=["sage", "acebench", "apibank", "toolalpaca", "bfcl", "toolbench", "all"],
+        help="评测数据集 (default: sage)",
+    )
+    eval_parser.add_argument(
+        "--methods",
+        "-m",
+        default="keyword,embedding,hybrid",
+        help="评测方法，逗号分隔 (default: keyword,embedding,hybrid)",
+    )
+    eval_parser.add_argument(
+        "--samples", "-n", type=int, default=100, help="最大样本数 (default: 100)"
+    )
+    eval_parser.add_argument("--top-k", "-k", type=int, default=5, help="Top-K 评测 (default: 5)")
+    eval_parser.add_argument(
+        "--use-embedded", action="store_true", help="使用内嵌 LLM (for llm_direct method)"
+    )
+    eval_parser.add_argument("--output", "-o", type=str, default=None, help="输出目录")
+    eval_parser.set_defaults(func=cmd_eval)
+
+    # =========================================================================
+    # run 子命令
+    # =========================================================================
+    run_parser = subparsers.add_parser("run", help="运行完整 Benchmark (三个 Challenge)")
+    run_parser.add_argument(
+        "--challenge",
+        "-c",
+        choices=["timing", "planning", "tool_selection"],
+        help="只运行指定 Challenge",
+    )
+    run_parser.add_argument("--quick", "-q", action="store_true", help="快速模式 (fewer samples)")
+    run_parser.add_argument("--skip-llm", action="store_true", help="跳过 LLM 方法")
+    run_parser.add_argument("--samples", "-n", type=int, default=None, help="最大样本数")
+    run_parser.add_argument("--dataset", "-d", default="sage", help="数据集 (default: sage)")
+    run_parser.add_argument("--output", "-o", type=str, default=None, help="输出目录")
+    run_parser.set_defaults(func=cmd_run)
+
+    # =========================================================================
+    # train 子命令
+    # =========================================================================
+    train_parser = subparsers.add_parser("train", help="训练方法对比 (Paper 2)")
+    train_parser.add_argument(
+        "--methods", "-m", default="A_baseline,D_combined", help="训练方法，逗号分隔"
+    )
+    train_parser.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct", help="基础模型")
+    train_parser.add_argument("--quick", "-q", action="store_true", help="快速模式")
+    train_parser.add_argument("--dry-run", action="store_true", help="模拟运行 (不实际训练)")
+    train_parser.add_argument("--output", "-o", type=str, default=None, help="输出目录")
+    train_parser.set_defaults(func=cmd_train)
+
+    # =========================================================================
+    # llm 子命令
+    # =========================================================================
+    llm_parser = subparsers.add_parser("llm", help="LLM 服务管理")
+    llm_parser.add_argument(
+        "llm_action", choices=["start", "stop", "status"], help="操作: start/stop/status"
+    )
+    llm_parser.add_argument(
+        "--model", default=DEFAULT_LLM_MODEL, help=f"LLM 模型 (default: {DEFAULT_LLM_MODEL})"
+    )
+    llm_parser.add_argument(
+        "--port", type=int, default=DEFAULT_LLM_PORT, help=f"端口 (default: {DEFAULT_LLM_PORT})"
+    )
+    llm_parser.add_argument(
+        "--gpu-memory", type=float, default=0.5, help="GPU 显存比例 (default: 0.5)"
+    )
+    llm_parser.set_defaults(func=cmd_llm)
+
+    # =========================================================================
+    # list 子命令
+    # =========================================================================
+    list_parser = subparsers.add_parser("list", help="列出可用资源")
+    list_parser.add_argument(
+        "resource",
+        choices=["datasets", "methods", "experiments"],
+        help="资源类型: datasets/methods/experiments",
+    )
+    list_parser.set_defaults(func=cmd_list)
+
+    # =========================================================================
+    # interactive 子命令
+    # =========================================================================
+    interactive_parser = subparsers.add_parser("interactive", help="交互式模式")
+    interactive_parser.set_defaults(func=cmd_interactive)
+
+    # =========================================================================
+    # 解析并执行
+    # =========================================================================
+    args = parser.parse_args()
+
+    if args.command is None:
+        print_banner()
+        parser.print_help()
+        return 0
+
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

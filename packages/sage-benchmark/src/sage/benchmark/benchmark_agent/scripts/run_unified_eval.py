@@ -2,6 +2,13 @@
 """
 Unified Tool Selection Evaluation
 
+.. note::
+    This script is now a functional module. For CLI usage, prefer:
+
+        sage-bench eval --dataset <dataset> --methods <methods>
+
+    Direct script invocation is still supported for backward compatibility.
+
 This script provides a unified evaluation framework that:
 1. Works with any benchmark dataset (SAGE, ACEBench, APIBench, etc.)
 2. Evaluates all tool selection methods with the same interface
@@ -10,20 +17,14 @@ This script provides a unified evaluation framework that:
 This addresses the problem of inconsistent evaluation across benchmarks,
 following SOTA practices from Gorilla, ToolACE, and other papers.
 
-Usage:
-    # Evaluate on SAGE dataset
+CLI Usage (Recommended):
+    sage-bench eval --dataset sage --samples 100
+    sage-bench eval --dataset all --methods keyword,embedding,gorilla
+    sage-bench list datasets
+
+Legacy Usage (Still Supported):
     python run_unified_eval.py --dataset sage --samples 100
-
-    # Evaluate on ACEBench dataset
     python run_unified_eval.py --dataset acebench --samples 100
-
-    # Evaluate specific methods
-    python run_unified_eval.py --dataset sage --methods keyword,embedding,llm_direct
-
-    # Use embedded LLM for llm_direct method
-    python run_unified_eval.py --dataset sage --use-embedded
-
-    # Compare all methods on all datasets
     python run_unified_eval.py --dataset all --samples 50
 """
 
@@ -61,20 +62,28 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Additional Selector Adapters (Gorilla, DFSDT)
+# Lightweight Selector Adapters (Gorilla, DFSDT)
 # =============================================================================
+# These adapters are "lightweight" - they do NOT preload any tool library.
+# Instead, they dynamically process the candidate_tools provided in each sample.
+# This follows SOTA practice (BFCL) where each sample includes its own tools.
 
 
 class GorillaSelectorAdapter(BaseSelectorAdapter):
     """
-    Gorilla-style selector: Retrieval + LLM reranking.
+    Lightweight Gorilla-style selector: Retrieval + LLM reranking.
 
     From the Gorilla paper (Berkeley): combines document retrieval
     with LLM-based selection for better API call accuracy.
+
+    Unlike the full GorillaSelector which preloads 1200+ SAGE tools,
+    this adapter dynamically builds an index for each sample's candidate_tools.
+    This enables cross-dataset evaluation (SAGE, ACEBench, etc.).
     """
 
     def __init__(self, use_embedded: bool = False, model_id: Optional[str] = None):
-        self._selector = None
+        self._embedding_client = None
+        self._llm_client = None
         self._use_embedded = use_embedded
         self._model_id = model_id
 
@@ -82,78 +91,250 @@ class GorillaSelectorAdapter(BaseSelectorAdapter):
     def name(self) -> str:
         return "gorilla"
 
+    def _init_clients(self):
+        """Lazy initialization of embedding and LLM clients."""
+        if self._embedding_client is None:
+            try:
+                from sage.common.components.sage_embedding import (
+                    EmbeddingClientAdapter,
+                    EmbeddingFactory,
+                )
+
+                # Use local HuggingFace model for embedding
+                raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                self._embedding_client = EmbeddingClientAdapter(raw_embedder)
+            except Exception as e:
+                logger.warning(f"Failed to create embedding client: {e}")
+
+        if self._llm_client is None:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                self._llm_client = UnifiedInferenceClient.create_auto()
+            except Exception as e:
+                logger.warning(f"Failed to create LLM client: {e}")
+
     def select(
         self,
         query: str,
         candidate_tools: list[Tool],
         top_k: int = 5,
     ) -> SelectionResult:
-        if self._selector is None:
-            self._init_selector()
+        self._init_clients()
 
-        # Pass tool IDs only (schema expects list[str])
-        tool_ids_input = [t.id for t in candidate_tools]
+        if not candidate_tools:
+            return SelectionResult(tool_ids=[])
 
         try:
-            results = self._selector.select(query, tool_ids_input, top_k=top_k)
-            tool_ids = [r.tool_id if hasattr(r, "tool_id") else str(r) for r in results]
-            scores = [r.score if hasattr(r, "score") else 1.0 for r in results]
-            return SelectionResult(tool_ids=tool_ids, scores=scores)
+            import numpy as np
+
+            # Stage 1: Embedding retrieval on sample's candidate_tools
+            tool_texts = [f"{t.name}: {t.description}" for t in candidate_tools]
+            tool_ids = [t.id for t in candidate_tools]
+
+            # Embed query and tools
+            all_texts = [query] + tool_texts
+            embeddings = self._embedding_client.embed(all_texts)
+
+            query_emb = np.asarray(embeddings[0])
+            tool_embs = np.asarray(embeddings[1:])
+
+            # Compute cosine similarity
+            query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+            tool_norms = tool_embs / (np.linalg.norm(tool_embs, axis=1, keepdims=True) + 1e-8)
+            scores = np.dot(tool_norms, query_norm)
+
+            # Get top candidates for LLM reranking
+            retrieve_k = min(15, len(candidate_tools))
+            top_indices = np.argsort(scores)[::-1][:retrieve_k]
+            retrieved_tools = [candidate_tools[i] for i in top_indices]
+
+            # Stage 2: LLM reranking (if available)
+            if self._llm_client is not None and len(retrieved_tools) > 0:
+                selected_ids = self._llm_rerank(query, retrieved_tools, top_k)
+                if selected_ids:
+                    return SelectionResult(tool_ids=selected_ids)
+
+            # Fallback to embedding-only results
+            result_ids = [tool_ids[i] for i in top_indices[:top_k]]
+            result_scores = [float(scores[i]) for i in top_indices[:top_k]]
+            return SelectionResult(tool_ids=result_ids, scores=result_scores)
+
         except Exception as e:
             logger.warning(f"Gorilla selector failed: {e}")
             return SelectionResult(tool_ids=[])
 
-    def _init_selector(self):
-        # Use adapter_registry which handles resources correctly
-        from sage.benchmark.benchmark_agent import get_adapter_registry
+    def _llm_rerank(self, query: str, tools: list[Tool], top_k: int) -> list[str]:
+        """Use LLM to rerank retrieved tools."""
+        tools_text = "\n".join(
+            f"{i + 1}. **{t.name}** (ID: `{t.id}`)\n   Description: {t.description}"
+            for i, t in enumerate(tools)
+        )
 
-        registry = get_adapter_registry()
-        self._selector = registry.get("selector.gorilla")
+        prompt = f"""You are an expert API selector. Given a user task and a list of available APIs/tools,
+select the {top_k} most relevant tools that can help complete the task.
+
+## User Task
+{query}
+
+## Available Tools
+{tools_text}
+
+## Instructions
+1. Analyze the user's task requirements carefully
+2. Consider which tools have the capabilities to fulfill the requirements
+3. Select exactly {top_k} tools, ordered by relevance (most relevant first)
+4. Return ONLY a JSON array of tool IDs, no explanation needed
+
+## Output Format
+Return a JSON array of tool IDs:
+["tool_id_1", "tool_id_2", ...]
+
+## Your Selection (JSON array only):"""
+
+        try:
+            response = self._llm_client.chat(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+            )
+
+            # Parse JSON response
+            response = response.strip()
+            if response.startswith("```"):
+                lines = response.split("\n")
+                response = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
+                response = response.strip()
+
+            import json as json_module
+
+            selected = json_module.loads(response)
+            if isinstance(selected, list):
+                valid_ids = {t.id for t in tools}
+                return [tid for tid in selected if tid in valid_ids]
+        except Exception as e:
+            logger.debug(f"LLM reranking failed: {e}")
+
+        return []
 
 
 class DFSDTSelectorAdapter(BaseSelectorAdapter):
     """
-    DFSDT (Depth-First Search Decision Tree) selector.
+    Lightweight DFSDT (Depth-First Search Decision Tree) selector.
 
-    Tree-search based tool selection that explores tool combinations.
+    Tree-search based tool selection that uses LLM scoring.
+
+    Unlike the full DFSDTSelector which preloads 1200+ SAGE tools,
+    this adapter dynamically scores the candidate_tools in each sample.
+    This enables cross-dataset evaluation (SAGE, ACEBench, etc.).
     """
 
     def __init__(self, use_embedded: bool = False, model_id: Optional[str] = None):
-        self._selector = None
+        self._llm_client = None
         self._use_embedded = use_embedded
         self._model_id = model_id
+        self._score_threshold = 0.3
 
     @property
     def name(self) -> str:
         return "dfsdt"
 
+    def _init_client(self):
+        """Lazy initialization of LLM client."""
+        if self._llm_client is None:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                self._llm_client = UnifiedInferenceClient.create_auto()
+            except Exception as e:
+                logger.warning(f"Failed to create LLM client: {e}")
+
     def select(
         self,
         query: str,
         candidate_tools: list[Tool],
         top_k: int = 5,
     ) -> SelectionResult:
-        if self._selector is None:
-            self._init_selector()
+        self._init_client()
 
-        # Pass tool IDs only (schema expects list[str])
-        tool_ids_input = [t.id for t in candidate_tools]
+        if not candidate_tools:
+            return SelectionResult(tool_ids=[])
 
         try:
-            results = self._selector.select(query, tool_ids_input, top_k=top_k)
-            tool_ids = [r.tool_id if hasattr(r, "tool_id") else str(r) for r in results]
-            scores = [r.score if hasattr(r, "score") else 1.0 for r in results]
-            return SelectionResult(tool_ids=tool_ids, scores=scores)
+            # Score each candidate tool using LLM
+            scored_tools = []
+            for tool in candidate_tools:
+                score = self._score_tool(query, tool)
+                if score >= self._score_threshold:
+                    scored_tools.append((tool.id, score))
+
+            # Sort by score
+            scored_tools.sort(key=lambda x: x[1], reverse=True)
+
+            # Return top-k
+            result_ids = [t[0] for t in scored_tools[:top_k]]
+            result_scores = [t[1] for t in scored_tools[:top_k]]
+
+            return SelectionResult(tool_ids=result_ids, scores=result_scores)
+
         except Exception as e:
             logger.warning(f"DFSDT selector failed: {e}")
             return SelectionResult(tool_ids=[])
 
-    def _init_selector(self):
-        # Use adapter_registry which handles resources correctly
-        from sage.benchmark.benchmark_agent import get_adapter_registry
+    def _score_tool(self, query: str, tool: Tool) -> float:
+        """Score a single tool's relevance to the query."""
+        if self._llm_client is None:
+            return self._fallback_score(query, tool)
 
-        registry = get_adapter_registry()
-        self._selector = registry.get("selector.dfsdt")
+        prompt = f"""You are a tool selection expert. Given a user query and a candidate tool,
+evaluate how relevant the tool is for completing the query.
+
+User Query: {query}
+
+Candidate Tool:
+- Name: {tool.name}
+- Description: {tool.description}
+
+Rate the relevance of this tool for the given query on a scale of 0 to 10, where:
+- 0-2: Not relevant at all
+- 3-4: Slightly relevant, might be useful indirectly
+- 5-6: Moderately relevant, could help with part of the task
+- 7-8: Highly relevant, directly addresses the query
+- 9-10: Perfect match, exactly what's needed
+
+Provide your rating as a single number. Only output the number, nothing else.
+
+Rating:"""
+
+        try:
+            response = self._llm_client.chat(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+            )
+            # Parse score
+            import re
+
+            numbers = re.findall(r"(\d+(?:\.\d+)?)", response.strip())
+            if numbers:
+                score = float(numbers[0])
+                return min(max(score, 0.0), 10.0) / 10.0  # Normalize to 0-1
+        except Exception as e:
+            logger.debug(f"LLM scoring failed for {tool.id}: {e}")
+
+        return self._fallback_score(query, tool)
+
+    def _fallback_score(self, query: str, tool: Tool) -> float:
+        """Fallback scoring using keyword matching."""
+        query_lower = query.lower()
+        tool_text = f"{tool.name} {tool.description}".lower()
+
+        query_words = set(query_lower.split())
+        tool_words = set(tool_text.split())
+
+        if not query_words or not tool_words:
+            return 0.0
+
+        overlap = len(query_words & tool_words)
+        return min(overlap / len(query_words), 1.0)
 
 
 # =============================================================================
@@ -231,6 +412,137 @@ def load_acebench_dataset(
         return []
 
 
+def load_external_benchmark(
+    benchmark_name: str,
+    max_samples: Optional[int] = None,
+    task_type: str = "tool_selection",
+) -> list[ToolSelectionSample]:
+    """
+    Load external benchmark from converted JSONL files.
+
+    Supports: bfcl, toolbench, apibank, toolalpaca, taskbench, metatool
+
+    Args:
+        benchmark_name: Name of the benchmark (e.g., 'apibank', 'toolalpaca')
+        max_samples: Maximum samples to load
+        task_type: Task type filter (default: tool_selection)
+
+    Returns:
+        List of ToolSelectionSample
+    """
+    try:
+        from sage.data.sources.agent_benchmark.external_benchmarks.loader import (
+            ExternalBenchmarkLoader,
+        )
+
+        loader = ExternalBenchmarkLoader(benchmarks=[benchmark_name])
+        external_samples = loader.get_samples(
+            task_type=task_type,
+            split="test",
+            limit=max_samples,
+        )
+
+        if not external_samples:
+            logger.warning(
+                f"No samples found for {benchmark_name}. "
+                f"Run 'python download_{benchmark_name}.py' to download data."
+            )
+            return []
+
+        # Convert ExternalSample to ToolSelectionSample
+        samples = []
+        for ext_sample in external_samples:
+            # Parse context for tool descriptions
+            tool_descriptions = {}
+            if ext_sample.context:
+                try:
+                    ctx = (
+                        json.loads(ext_sample.context)
+                        if isinstance(ext_sample.context, str)
+                        else ext_sample.context
+                    )
+                    # Extract tool descriptions from nl_documentation
+                    if "nl_documentation" in ctx:
+                        nl_doc = ctx["nl_documentation"]
+                        # Parse tool documentation (format: "tool_name: description\n...")
+                        for line in nl_doc.split("\n"):
+                            if ":" in line:
+                                tool_name = line.split(":")[0].strip()
+                                tool_desc = line.strip()
+                                tool_descriptions[tool_name] = tool_desc
+                    # Fallback to api_description
+                    if "api_description" in ctx:
+                        api_desc = ctx.get("api_description", "")
+                        api_name = ctx.get("api_name", "")
+                        # Apply to all tools if no specific description
+                        for tool_id in ext_sample.candidate_tools or []:
+                            if tool_id not in tool_descriptions:
+                                tool_descriptions[tool_id] = f"{api_name}: {api_desc}"
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            # Build Tool objects from candidate_tools with descriptions
+            candidate_tools = []
+            for tool_id in ext_sample.candidate_tools or []:
+                desc = tool_descriptions.get(tool_id, f"Tool: {tool_id}")
+                candidate_tools.append(
+                    Tool(
+                        id=tool_id,
+                        name=tool_id,
+                        description=desc,
+                    )
+                )
+
+            # Get ground truth - handle multiple formats
+            gt = ext_sample.ground_truth
+            ground_truth = []
+            if isinstance(gt, dict):
+                # Format 1: {"top_k": ["tool1", "tool2"]}
+                if "top_k" in gt:
+                    ground_truth = gt["top_k"]
+                # Format 2: {"tool_calls": [{"tool": "tool_name"}]}
+                elif "tool_calls" in gt:
+                    ground_truth = [tc.get("tool", tc.get("name", "")) for tc in gt["tool_calls"]]
+                # Format 3: {"selected_tools": ["tool1"]}
+                elif "selected_tools" in gt:
+                    ground_truth = gt["selected_tools"]
+            elif isinstance(gt, list):
+                ground_truth = gt
+
+            sample = ToolSelectionSample(
+                sample_id=ext_sample.sample_id,
+                instruction=ext_sample.instruction,
+                candidate_tools=candidate_tools,
+                ground_truth=ground_truth,
+                context={"source": benchmark_name, **ext_sample.metadata},
+            )
+            samples.append(sample)
+
+        logger.info(f"Loaded {len(samples)} {benchmark_name} samples")
+        return samples
+
+    except ImportError as e:
+        logger.warning(f"ExternalBenchmarkLoader not available: {e}")
+        return []
+    except Exception as e:
+        logger.warning(f"Failed to load {benchmark_name}: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return []
+
+
+# Available external benchmarks
+EXTERNAL_BENCHMARKS = {
+    "apibank": "API-Bank (Microsoft/Alibaba)",
+    "toolalpaca": "ToolAlpaca (Microsoft)",
+    "bfcl": "BFCL (Berkeley Function Calling Leaderboard)",
+    "toolbench": "ToolBench (Tsinghua/OpenBMB)",
+    "taskbench": "TaskBench (PKU)",
+    "metatool": "MetaTool (Tsinghua)",
+}
+
+
 # =============================================================================
 # Main Evaluation Logic
 # =============================================================================
@@ -279,7 +591,7 @@ def run_evaluation(
     Run unified evaluation.
 
     Args:
-        dataset: 'sage', 'acebench', or 'all'
+        dataset: 'sage', 'acebench', 'apibank', 'toolalpaca', 'bfcl', 'toolbench', or 'all'
         methods: List of method names
         max_samples: Max samples per dataset
         use_embedded: Use embedded LLM
@@ -294,15 +606,31 @@ def run_evaluation(
 
     # Load datasets
     datasets_to_eval = []
+
+    # SAGE dataset
     if dataset in ("sage", "all"):
         sage_samples = load_sage_dataset(max_samples=max_samples)
         if sage_samples:
             datasets_to_eval.append(("SAGE", sage_samples))
 
+    # ACEBench (from HuggingFace)
     if dataset in ("acebench", "all"):
         acebench_samples = load_acebench_dataset(max_samples=max_samples)
         if acebench_samples:
             datasets_to_eval.append(("ACEBench", acebench_samples))
+
+    # External benchmarks (from converted JSONL)
+    external_to_load = []
+    if dataset == "all":
+        external_to_load = list(EXTERNAL_BENCHMARKS.keys())
+    elif dataset in EXTERNAL_BENCHMARKS:
+        external_to_load = [dataset]
+
+    for ext_name in external_to_load:
+        ext_samples = load_external_benchmark(ext_name, max_samples=max_samples)
+        if ext_samples:
+            display_name = ext_name.upper()
+            datasets_to_eval.append((display_name, ext_samples))
 
     if not datasets_to_eval:
         logger.error("No datasets loaded")
@@ -396,6 +724,9 @@ def print_comparison_table(results: dict[str, dict[str, EvaluationMetrics]]):
 
 
 def main():
+    # Build dataset choices dynamically
+    dataset_choices = ["sage", "acebench", "all"] + list(EXTERNAL_BENCHMARKS.keys())
+
     parser = argparse.ArgumentParser(
         description="Unified Tool Selection Evaluation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -404,21 +735,43 @@ Examples:
     # Evaluate all methods on SAGE
     python run_unified_eval.py --dataset sage
 
-    # Evaluate specific methods on ACEBench
+    # Evaluate on ACEBench
     python run_unified_eval.py --dataset acebench --methods keyword,embedding,llm_direct
 
-    # Compare across datasets
+    # Evaluate on API-Bank
+    python run_unified_eval.py --dataset apibank --samples 25
+
+    # Compare across ALL datasets (SAGE + ACEBench + external)
     python run_unified_eval.py --dataset all --samples 50
 
     # Use embedded LLM
     python run_unified_eval.py --dataset sage --use-embedded --model Qwen/Qwen2.5-0.5B-Instruct
+
+    # List available datasets
+    python run_unified_eval.py --list-datasets
+
+Available Datasets:
+    sage        - SAGE-Bench (our synthetic dataset, 1200 tools)
+    acebench    - ToolACE from HuggingFace
+    apibank     - API-Bank (Microsoft/Alibaba)
+    toolalpaca  - ToolAlpaca (Microsoft)
+    bfcl        - Berkeley Function Calling Leaderboard
+    toolbench   - ToolBench (Tsinghua/OpenBMB)
+    taskbench   - TaskBench (PKU)
+    metatool    - MetaTool (Tsinghua)
+    all         - Evaluate on ALL available datasets
 """,
     )
     parser.add_argument(
         "--dataset",
-        choices=["sage", "acebench", "all"],
+        choices=dataset_choices,
         default="sage",
-        help="Dataset to evaluate on",
+        help="Dataset to evaluate on (see --list-datasets for details)",
+    )
+    parser.add_argument(
+        "--list-datasets",
+        action="store_true",
+        help="List all available datasets and exit",
     )
     parser.add_argument(
         "--methods",
@@ -463,6 +816,24 @@ Examples:
     )
 
     args = parser.parse_args()
+
+    # Handle --list-datasets
+    if args.list_datasets:
+        print("\n" + "=" * 70)
+        print("Available Datasets for Tool Selection Evaluation")
+        print("=" * 70)
+        print(f"\n{'Dataset':<15} {'Description':<50} {'Status'}")
+        print("-" * 70)
+        print(f"{'sage':<15} {'SAGE-Bench (1200 synthetic tools)':<50} Built-in")
+        print(f"{'acebench':<15} {'ToolACE from HuggingFace':<50} HuggingFace")
+        for name, desc in EXTERNAL_BENCHMARKS.items():
+            print(f"{name:<15} {desc:<50} External")
+        print(f"{'all':<15} {'Evaluate on ALL available datasets':<50} -")
+        print("\n" + "=" * 70)
+        print("Note: External datasets require downloading first.")
+        print("Run: python download_<dataset>.py  (e.g., python download_apibank.py)")
+        print("=" * 70 + "\n")
+        return
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
