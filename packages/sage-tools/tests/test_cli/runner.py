@@ -34,6 +34,7 @@ SUITE_FILES: Sequence[str] = (
     "chat_suite.py",
     "embedding_suite.py",
     "pipeline_suite.py",
+    "inference_suite.py",
     "studio_suite.py",
     "docs_suite.py",
     "stack_suite.py",
