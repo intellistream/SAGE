@@ -60,7 +60,7 @@ def demo_1_llm_benchmark_config():
         print("Configuration is valid.")
 
     # Show configuration
-    print(f"\nConfiguration summary:")
+    print("\nConfiguration summary:")
     print(f"  - Control Plane: {config.control_plane_url}")
     print(f"  - Requests: {config.num_requests}")
     print(f"  - Rate: {config.request_rate} req/s")
@@ -110,7 +110,7 @@ def demo_2_hybrid_benchmark_config():
     else:
         print("Hybrid configuration is valid.")
 
-    print(f"\nHybrid configuration summary:")
+    print("\nHybrid configuration summary:")
     print(f"  - LLM Ratio: {config.llm_ratio * 100:.0f}%")
     print(f"  - Embedding Ratio: {config.embedding_ratio * 100:.0f}%")
     print(f"  - LLM Models: {config.llm_model_distribution}")
@@ -206,7 +206,7 @@ def demo_5_gpu_monitor():
     monitor.stop_monitoring()
 
     summary = monitor.get_summary()
-    print(f"\nGPU Metrics Summary:")
+    print("\nGPU Metrics Summary:")
     print(f"  - Samples: {summary.samples}")
     print(f"  - Duration: {summary.duration_seconds:.1f}s")
     print(f"  - Avg Utilization: {summary.utilization_avg:.1f}%")
@@ -256,19 +256,19 @@ def demo_6_metrics_collection():
     # Get aggregated metrics
     metrics = collector.compute_metrics()
 
-    print(f"\nAggregated Metrics:")
-    print(f"  [Throughput]")
+    print("\nAggregated Metrics:")
+    print("  [Throughput]")
     print(f"    - Requests/s: {metrics.throughput_rps:.2f}")
     print(f"    - Tokens/s: {metrics.token_throughput_tps:.2f}")
-    print(f"  [Latency]")
+    print("  [Latency]")
     print(f"    - E2E Avg: {metrics.e2e_latency_avg_ms:.1f} ms")
     print(f"    - E2E P50: {metrics.e2e_latency_p50_ms:.1f} ms")
     print(f"    - E2E P99: {metrics.e2e_latency_p99_ms:.1f} ms")
     print(f"    - TTFT Avg: {metrics.ttft_avg_ms:.1f} ms")
-    print(f"  [Quality]")
+    print("  [Quality]")
     print(f"    - Success Rate: {(1 - metrics.error_rate) * 100:.1f}%")
     print(f"    - SLO Compliance: {metrics.slo_compliance_rate * 100:.1f}%")
-    print(f"  [Volume]")
+    print("  [Volume]")
     print(f"    - Total Requests: {metrics.total_requests}")
     print(f"    - Completed: {metrics.completed_requests}")
 
@@ -425,8 +425,8 @@ async def demo_9_mock_benchmark_run():
     print("\nNote: This demo shows the runner structure.")
     print("In production, it would send requests to an actual Control Plane.")
 
-    runner = LLMBenchmarkRunner(config)
-    print(f"\nRunner created:")
+    _runner = LLMBenchmarkRunner(config)  # noqa: F841
+    print("\nRunner created:")
     print(f"  - Config: {config.num_requests} requests at {config.request_rate} req/s")
     print(f"  - Policies: {config.policies}")
     print(f"  - Output directory: {config.output_dir}")

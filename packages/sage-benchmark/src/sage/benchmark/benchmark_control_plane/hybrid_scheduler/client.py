@@ -330,7 +330,7 @@ class HybridBenchmarkClient:
                     endpoint, payload, headers, result
                 )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             result.completion_time = time.time()
             result.success = False
             result.error = "Request timed out"
@@ -388,7 +388,7 @@ class HybridBenchmarkClient:
                     break
 
                 try:
-                    data = json.loads(data_str)
+                    json.loads(data_str)  # Validate JSON
                     current_time = time.time()
 
                     # Record first token time
@@ -540,7 +540,7 @@ class HybridBenchmarkClient:
 
                 result.success = True
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             result.completion_time = time.time()
             result.success = False
             result.error = "Request timed out"
