@@ -54,10 +54,14 @@ from sage.middleware.components.sage_refiner.sageRefiner.algorithms.LongRefiner 
     LongRefiner as LongRefinerCompressor,
     LongRefinerOperator,
 )
+from sage.middleware.components.sage_refiner.sageRefiner.algorithms.provence import (
+    ProvenceCompressor,
+    ProvenceRefinerOperator,
+)
 from sage.middleware.components.sage_refiner.sageRefiner.algorithms.reform import (
     AttentionHookExtractor,
     ReformCompressor as REFORMCompressor,
-    REformRefinerOperator as REFORMRefinerOperator,
+    REFORMRefinerOperator,
 )
 
 __all__ = [
@@ -83,6 +87,9 @@ __all__ = [
     # LongRefiner算法
     "LongRefinerCompressor",
     "LongRefinerOperator",
+    # Provence算法
+    "ProvenceCompressor",
+    "ProvenceRefinerOperator",
 ]
 
 __version__ = "0.1.0"
