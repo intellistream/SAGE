@@ -236,29 +236,22 @@ client = UnifiedInferenceClient.create_with_control_plane(
 # 方式 2: 自动检测（Simple 模式，适合简单场景）
 client = UnifiedInferenceClient.create_auto()
 
-# 统一 API
-response = client.chat([{"role": "user", "content": "Hello"}])  # LLM
-text = client.generate("Once upon a time")                       # LLM
-vectors = client.embed(["text1", "text2"])                       # Embedding
-```
-
 ### 启动服务栈
 
 ```bash
-# 推荐：一键启动 LLM + Embedding 服务栈
-sage stack start                    # 默认模型启动
-sage stack start -l Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3  # 指定模型
-sage stack status                   # 查看状态
-sage stack stop                     # 停止所有服务
-sage stack logs                     # 查看日志
-
-# 或分别启动：
-# 1. 启动 LLM 服务 (vLLM)
-sage apps llm start --model "Qwen/Qwen2.5-0.5B-Instruct" --port 8901
-
-# 2. 启动 Embedding 服务
+# 推荐：一键启动/管理
+sage stack start                                   # 默认模型（LLM + Embedding）
 python -m sage.common.components.sage_embedding.embedding_server \
     --model BAAI/bge-m3 --port 8090
+sage stack status                                  # 查看状态
+sage stack stop                                    # 停止服务
+sage stack logs --follow                           # 查看日志
+
+# 手动启动（按需）
+# 启动 LLM 服务 (vLLM)
+
+# 查看运行状态
+ps aux | grep -E "vllm|embedding_server"
 ```
 
 ### Control Plane 核心组件
