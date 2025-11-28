@@ -95,6 +95,23 @@ def setup_environment():
     # Use FLASH_ATTN backend instead of flashinfer to avoid initialization hang
     os.environ.setdefault("VLLM_ATTENTION_BACKEND", "FLASH_ATTN")
 
+    # Set random seed for reproducibility
+    import random
+
+    import numpy as np
+
+    RANDOM_SEED = 42
+    random.seed(RANDOM_SEED)
+    np.random.seed(RANDOM_SEED)
+    try:
+        import torch
+
+        torch.manual_seed(RANDOM_SEED)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(RANDOM_SEED)
+    except ImportError:
+        pass
+
     # Auto-detect HuggingFace mirror for China
     if not os.environ.get("HF_ENDPOINT"):
         try:
@@ -133,7 +150,12 @@ class AllExperimentResults:
 class ExperimentRunner:
     """Run all benchmark experiments."""
 
-    def __init__(self, output_dir: Path, verbose: bool = False, skip_llm: bool = False):
+    def __init__(
+        self,
+        output_dir: Path,
+        verbose: bool = False,
+        skip_llm: bool = False,
+    ):
         self.output_dir = Path(output_dir)
         self.verbose = verbose
         self.skip_llm = skip_llm
@@ -381,6 +403,8 @@ class ExperimentRunner:
             self._prepare_tool_selection_data(data_dir)
 
         registry = get_adapter_registry()
+
+        # All selectors now use dynamic indexing for cross-dataset compatibility
         selectors = [
             ("selector.keyword", "Keyword (BM25)"),
             ("selector.embedding", "Embedding"),
@@ -1446,38 +1470,8 @@ def main():
         runner.run_planning_evaluation(max_samples=max_planning)
         runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
 
-        if run_timing:
-            runner.run_timing_evaluation(max_samples=max_timing)
-        if run_planning:
-            runner.run_planning_evaluation(max_samples=max_planning)
-        if run_tool_selection:
-            # Use unified eval for cross-dataset comparison
-            if args.dataset != "sage":
-                print(f"\n📊 Running cross-dataset tool selection with dataset={args.dataset}")
-                unified_eval_script = SCRIPT_DIR / "run_unified_eval.py"
-                methods = (
-                    "keyword,embedding,hybrid"
-                    if args.skip_llm
-                    else "keyword,embedding,hybrid,gorilla,dfsdt"
-                )
-                cmd = [
-                    sys.executable,
-                    str(unified_eval_script),
-                    "--dataset",
-                    args.dataset,
-                    "--methods",
-                    methods,
-                    "--samples",
-                    str(max_tool),
-                    "--top-k",
-                    str(args.top_k),
-                ]
-                subprocess.run(cmd, cwd=str(SCRIPT_DIR))
-            else:
-                runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
-
-        # Run training if --full mode (only when running all challenges)
-        if args.full and args.challenge is None:
+        # Run training if --full mode
+        if args.full:
             runner.run_training_comparison(
                 methods=args.train_methods,
                 base_model=args.train_model,

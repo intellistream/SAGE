@@ -1,0 +1,242 @@
+name: Paper 1 - SAGE-Bench Full Experiments
+
+# Manual trigger only - self-hosted GPU server
+on:
+  workflow_dispatch:
+    inputs:
+      challenge:
+        description: 'Challenge to run (all/timing/planning/tool_selection)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - timing
+          - planning
+          - tool_selection
+      dataset:
+        description: 'Dataset for tool selection (sage/all)'
+        required: false
+        default: 'sage'
+        type: choice
+        options:
+          - sage
+          - all
+          - acebench
+          - apibank
+          - toolalpaca
+      max_samples:
+        description: 'Max samples per experiment (0=full)'
+        required: false
+        default: '0'
+        type: string
+      skip_llm:
+        description: 'Skip LLM-based methods (faster)'
+        required: false
+        default: false
+        type: boolean
+      generate_paper:
+        description: 'Generate paper figures and tables'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  HF_ENDPOINT: https://hf-mirror.com
+  SAGE_TEST_MODE: false
+  SAGE_LOG_LEVEL: INFO
+  # LLM Service Configuration
+  SAGE_CHAT_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  SAGE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  SAGE_CHAT_MODEL: qwen-turbo-2025-02-11
+
+jobs:
+  run-experiments:
+    name: Run SAGE-Bench Experiments
+    runs-on: [self-hosted, A100]
+    timeout-minutes: 480  # 8 hours for full experiments
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Setup Python Environment
+        run: |
+          echo "🐍 Setting up Python environment..."
+
+          # Check if conda env exists
+          if conda env list | grep -q "sage"; then
+            echo "Activating existing sage environment"
+            source $(conda info --base)/etc/profile.d/conda.sh
+            conda activate sage
+          else
+            echo "Installing SAGE with quickstart..."
+            ./quickstart.sh --dev --yes --conda
+            source $(conda info --base)/etc/profile.d/conda.sh
+            conda activate sage
+          fi
+
+          python --version
+          pip list | grep -E "^sage-"
+
+      - name: Create Environment File
+        run: |
+          echo "📝 Creating .env file..."
+          cat > .env << EOF
+          # Paper 1 Experiments Environment
+
+          # HuggingFace
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+
+          # LLM Service (DashScope/Qwen)
+          SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+
+          # Embedding Service (if local)
+          SAGE_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+
+          # Runtime Settings
+          SAGE_TEST_MODE=false
+          SAGE_LOG_LEVEL=INFO
+          EOF
+
+          echo "✅ .env created"
+
+      - name: Check GPU Availability
+        run: |
+          echo "🔍 Checking GPU status..."
+          nvidia-smi || echo "No NVIDIA GPU found"
+
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sage
+
+          python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
+
+      - name: Start Local LLM Service (Optional)
+        if: ${{ !inputs.skip_llm }}
+        run: |
+          echo "🚀 Checking/Starting local LLM service..."
+
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sage
+
+          # Check if local vLLM is already running
+          if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
+            echo "✅ Local LLM service already running on port 8901"
+          else
+            echo "⚠️ Local LLM not available, will use cloud API"
+          fi
+
+      - name: Run SAGE-Bench Experiments
+        run: |
+          echo "🧪 Running SAGE-Bench experiments..."
+
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sage
+
+          # Build command
+          CMD="python -m sage.benchmark.benchmark_agent.scripts.run_all_experiments"
+
+          # Add challenge selection
+          if [ "${{ inputs.challenge }}" != "all" ]; then
+            CMD="$CMD --challenge ${{ inputs.challenge }}"
+          fi
+
+          # Add dataset selection
+          if [ "${{ inputs.dataset }}" != "sage" ]; then
+            CMD="$CMD --dataset ${{ inputs.dataset }}"
+          fi
+
+          # Add max samples (if not 0 = full)
+          if [ "${{ inputs.max_samples }}" != "0" ]; then
+            CMD="$CMD --max-samples ${{ inputs.max_samples }}"
+          fi
+
+          # Skip LLM if requested
+          if [ "${{ inputs.skip_llm }}" == "true" ]; then
+            CMD="$CMD --skip-llm"
+          fi
+
+          # Verbose output
+          CMD="$CMD --verbose"
+
+          echo "Running: $CMD"
+          $CMD
+
+      - name: Generate Paper Materials
+        if: ${{ inputs.generate_paper && success() }}
+        run: |
+          echo "📊 Generating paper figures and tables..."
+
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sage
+
+          python -m sage.benchmark.benchmark_agent.scripts.run_all_experiments --paper-only
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paper1-results-${{ github.run_number }}
+          path: |
+            .sage/benchmark/results/
+          retention-days: 90
+
+      - name: Upload Paper Materials
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.generate_paper && success() }}
+        with:
+          name: paper1-figures-${{ github.run_number }}
+          path: |
+            .sage/benchmark/results/figures/
+            .sage/benchmark/results/tables/
+          retention-days: 90
+
+      - name: Print Summary
+        if: always()
+        run: |
+          echo "📋 Experiment Summary"
+          echo "===================="
+          echo "Challenge: ${{ inputs.challenge }}"
+          echo "Dataset: ${{ inputs.dataset }}"
+          echo "Max Samples: ${{ inputs.max_samples || 'Full' }}"
+          echo "Skip LLM: ${{ inputs.skip_llm }}"
+          echo ""
+
+          if [ -f ".sage/benchmark/results/all_results.json" ]; then
+            echo "Results file exists."
+            cat .sage/benchmark/results/all_results.json | python -m json.tool | head -100
+          else
+            echo "No results file found."
+          fi
+
+          echo ""
+          echo "========================================"
+          echo "📥 HOW TO DOWNLOAD EXPERIMENT RESULTS"
+          echo "========================================"
+          echo ""
+          echo "Your experiment results have been uploaded as GitHub Artifacts."
+          echo ""
+          echo "To download:"
+          echo "  1. Go to this workflow run page:"
+          echo "     https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo ""
+          echo "  2. Scroll down to the 'Artifacts' section at the bottom of the page"
+          echo ""
+          echo "  3. Download the following artifacts:"
+          echo "     - paper1-results-${{ github.run_number }}: Full experiment results (.sage/benchmark/results/)"
+          echo "     - paper1-figures-${{ github.run_number }}: Paper figures and tables (if generated)"
+          echo ""
+          echo "Artifacts will be retained for 90 days."
+          echo ""
+          echo "Alternatively, use GitHub CLI:"
+          echo "  gh run download ${{ github.run_id }} --repo ${{ github.repository }}"
+          echo "========================================"
