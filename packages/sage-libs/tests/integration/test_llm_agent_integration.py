@@ -36,6 +36,14 @@ import pytest
 
 logger = logging.getLogger(__name__)
 
+# Skip entire module in CI - these tests require real API keys or GPU
+_IS_CI = os.environ.get("CI") == "true" or os.environ.get("SAGE_TEST_MODE") == "true"
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(_IS_CI, reason="LLM integration tests require real API keys or GPU"),
+]
+
 
 # =============================================================================
 # GPU/vLLM Availability Checks
