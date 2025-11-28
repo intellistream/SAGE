@@ -579,11 +579,11 @@ class HybridWorkloadGenerator:
             },
             "llm_model_distribution": {
                 model: sum(1 for r in llm_requests if r.model_name == model)
-                for model in set(r.model_name for r in llm_requests)
+                for model in {r.model_name for r in llm_requests}
             },
             "embedding_batch_size_distribution": {
                 bs: sum(1 for r in embedding_requests if r.batch_size == bs)
-                for bs in set(r.batch_size for r in embedding_requests)
+                for bs in {r.batch_size for r in embedding_requests}
             },
             "duration_seconds": max(r.scheduled_arrival_time for r in requests)
             if requests
