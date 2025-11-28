@@ -157,7 +157,7 @@ def start_workers():
         try:
             node_ip = socket.gethostbyname(host)
         except Exception:
-            node_ip = host  # Fallback to hostname if resolution fails
+            node_ip = host # Fallback to hostname if resolution fails
 
         typer.echo(f"\n🔧 启动Worker节点 {i}/{total_count}: {host}:{port} (IP: {node_ip})")
 
