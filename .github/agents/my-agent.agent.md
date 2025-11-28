@@ -146,7 +146,7 @@ pre-commit run --all-files --config tools/pre-commit-config.yaml
 .github/workflows/      # CI/CD workflows
 docs/dev-notes/         # Dev documentation (organized by layer: l1-l6, cross-layer)
 examples/               # apps/, tutorials/ (organized by layer)
-packages/               # 10 functional packages + meta-package
+packages/               # 11 functional packages + 1 meta-package (sage)
   sage-*/src/sage/      # Source code
   sage-*/tests/         # Tests (unit/, integration/)
 tools/
@@ -191,6 +191,51 @@ Makefile                # Development shortcuts
 - Developer guide: `DEVELOPER.md` (English)
 - Dev notes by layer: `docs/dev-notes/l1-common/`, `l2-platform/`, etc.
 - Cross-layer notes: `docs/dev-notes/cross-layer/ci-cd/`
+
+## LLM & Embedding Services
+
+### UnifiedInferenceClient 快速上手
+
+```python
+from sage.common.components.sage_llm import UnifiedInferenceClient
+
+# 推荐：Control Plane 模式（支持智能调度）
+client = UnifiedInferenceClient.create_with_control_plane(
+    llm_base_url="http://localhost:8901/v1",
+    llm_model="Qwen/Qwen2.5-7B-Instruct",
+    embedding_base_url="http://localhost:8090/v1",
+    embedding_model="BAAI/bge-m3",
+)
+
+# Simple 模式（自动检测本地/云端）
+auto_client = UnifiedInferenceClient.create_auto()
+
+response = client.chat([{"role": "user", "content": "Hello"}])
+vectors = client.embed(["text1", "text2"])
+```
+
+### 服务启动命令
+
+```bash
+# 推荐：一键管理
+sage stack start                       # 启动 vLLM + Embedding（默认模型）
+sage stack start -l Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
+sage stack status                      # 查看服务状态
+sage stack stop                        # 停止所有服务
+sage stack logs --follow               # 追踪日志
+
+# 手动方式（按需）
+sage llm start --model "Qwen/Qwen2.5-0.5B-Instruct" --port 8901
+python -m sage.common.components.sage_embedding.embedding_server \
+    --model BAAI/bge-m3 --port 8090
+```
+
+### 端口与配置
+
+- 端口全部来自 `sage.common.config.ports.SagePorts`（禁止硬编码）
+- 常用端口：`SagePorts.GATEWAY_DEFAULT=8000`, `SagePorts.LLM_DEFAULT=8001`,
+  `SagePorts.BENCHMARK_LLM=8901`, `SagePorts.EMBEDDING_DEFAULT=8090`
+- WSL2 建议使用 `SagePorts.get_recommended_llm_port()` 获取可用 LLM 端口
 
 ## Your Response Style
 

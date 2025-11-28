@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import os
 import time
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -32,7 +32,7 @@ from sage.common.components.sage_llm.unified_client import (
 )
 
 if TYPE_CHECKING:
-    pass
+    from conftest import MockEmbeddingBackend, MockLLMBackend
 
 
 # =============================================================================
@@ -133,7 +133,9 @@ class TestAutoDetection:
         os.environ["SAGE_UNIFIED_BASE_URL"] = "http://localhost:8000/v1"
         os.environ["SAGE_UNIFIED_MODEL"] = "unified-model"
 
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=True):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=True
+        ):
             client = UnifiedInferenceClient.create_auto()
 
         assert client.config.llm_base_url == "http://localhost:8000/v1"
@@ -147,7 +149,9 @@ class TestAutoDetection:
         os.environ["SAGE_EMBEDDING_BASE_URL"] = "http://localhost:8090/v1"
         os.environ["SAGE_EMBEDDING_MODEL"] = "embed-model"
 
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             client = UnifiedInferenceClient.create_auto()
 
         assert client.config.llm_base_url == "http://localhost:8001/v1"
@@ -174,9 +178,11 @@ class TestAutoDetection:
 
     def test_fallback_to_cloud_api(self):
         """Test fallback to cloud API when no local servers."""
-        os.environ["SAGE_CHAT_API_KEY"] = "test-api-key"  # pragma: allowlist secret
+        os.environ["SAGE_CHAT_API_KEY"] = "test-api-key"
 
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             client = UnifiedInferenceClient.create_auto()
 
         # Should fallback to DashScope
@@ -184,7 +190,9 @@ class TestAutoDetection:
 
     def test_no_endpoints_available(self):
         """Test behavior when no endpoints are available."""
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             client = UnifiedInferenceClient.create_auto()
 
         # Client should still be created
@@ -268,13 +276,10 @@ class TestSimpleMode:
             client._llm_available = True
             client._llm_client = mock_openai_client
 
-            client.generate("Once upon a time")  # Result not needed, testing side effect
+            response = client.generate("Once upon a time")
 
         # Generate typically calls chat with a user message
-        assert (
-            mock_openai_client.chat.completions.create.called
-            or mock_openai_client.completions.create.called
-        )
+        assert mock_openai_client.chat.completions.create.called or mock_openai_client.completions.create.called
 
     def test_embed_method(self, mock_openai_client):
         """Test embed method in Simple mode."""
@@ -344,7 +349,12 @@ class TestControlPlaneMode:
             assert client.config.mode == UnifiedClientMode.CONTROL_PLANE
 
     def test_control_plane_fallback_to_simple(self):
-        """Test fallback to Simple mode when Control Plane init fails."""
+        """Test Control Plane mode graceful degradation when init fails.
+
+        When Control Plane initialization fails (e.g., missing dependencies),
+        the client should still function by falling back to Simple mode,
+        and the mode attribute is updated to reflect the actual operating mode.
+        """
         # Remove the control plane module from sys.modules to trigger import error
         with patch.dict(
             "sys.modules",
@@ -357,8 +367,10 @@ class TestControlPlaneMode:
                 mode=UnifiedClientMode.CONTROL_PLANE,
             )
 
-            # Should fall back to Simple mode due to import failure
+            # Mode falls back to SIMPLE since Control Plane init failed
             assert client.mode == UnifiedClientMode.SIMPLE
+            # Verify that Simple mode clients were initialized as fallback
+            assert client._llm_client is not None or not client.config.llm_base_url
 
 
 # =============================================================================
@@ -371,7 +383,9 @@ class TestSingletonPattern:
 
     def test_get_instance_returns_same_object(self):
         """Test that get_instance returns the same cached object."""
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             instance1 = UnifiedInferenceClient.get_instance("key1")
             instance2 = UnifiedInferenceClient.get_instance("key1")
 
@@ -379,7 +393,9 @@ class TestSingletonPattern:
 
     def test_different_keys_different_instances(self):
         """Test that different keys create different instances."""
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             instance1 = UnifiedInferenceClient.get_instance("key1")
             instance2 = UnifiedInferenceClient.get_instance("key2")
 
@@ -387,7 +403,9 @@ class TestSingletonPattern:
 
     def test_clear_instances(self):
         """Test clearing cached instances."""
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             instance1 = UnifiedInferenceClient.get_instance("key1")
             UnifiedInferenceClient.clear_instances()
             instance2 = UnifiedInferenceClient.get_instance("key1")
@@ -626,9 +644,11 @@ class TestPerformance:
 
     def test_client_initialization_time(self):
         """Test that client initialization is fast."""
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             start = time.time()
-            _client = UnifiedInferenceClient.create_auto()  # noqa: F841
+            client = UnifiedInferenceClient.create_auto()
             elapsed = time.time() - start
 
         # Should be fast (under 1 second without network calls)
@@ -636,7 +656,9 @@ class TestPerformance:
 
     def test_cached_instance_retrieval_time(self):
         """Test that cached instance retrieval is very fast."""
-        with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
+        with patch.object(
+            UnifiedInferenceClient, "_check_endpoint_health", return_value=False
+        ):
             # First call creates instance
             UnifiedInferenceClient.get_instance("perf-test")
 

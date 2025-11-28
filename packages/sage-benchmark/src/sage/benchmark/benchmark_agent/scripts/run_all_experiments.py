@@ -375,54 +375,30 @@ class ExperimentRunner:
             get_adapter_registry,
         )
 
-        # Prefer original submodule data (higher quality) over generated data
-        submodule_data = (
-            Path(__file__).parent.parent.parent.parent
-            / "data"
-            / "sources"
-            / "agent_benchmark"
-            / "splits"
-            / "tool_selection.jsonl"
-        )
-
         data_dir = self.data_root / "tool_selection"
-        if submodule_data.exists():
-            test_file = submodule_data
-            print(f"  Using submodule data: {test_file}")
-        elif (data_dir / "tool_selection.jsonl").exists():
-            test_file = data_dir / "tool_selection.jsonl"
-        elif (data_dir / "test.jsonl").exists():
-            test_file = data_dir / "test.jsonl"
-        else:
+        if not (data_dir / "test.jsonl").exists():
             print("⚠️  Tool selection data not found. Running data preparation...")
             self._prepare_tool_selection_data(data_dir)
-            test_file = data_dir / "tool_selection.jsonl"
 
         registry = get_adapter_registry()
         selectors = [
             ("selector.keyword", "Keyword (BM25)"),
             ("selector.embedding", "Embedding"),
             ("selector.hybrid", "Hybrid"),
-            ("selector.gorilla", "Gorilla (Retrieval+LLM)"),
-            ("selector.dfsdt", "DFSDT (Tree Search)"),
         ]
-
-        # Filter out LLM-based selectors if skip_llm is set
-        LLM_SELECTORS = {"selector.gorilla", "selector.dfsdt"}
-        if self.skip_llm:
-            selectors = [
-                (name, display) for name, display in selectors if name not in LLM_SELECTORS
-            ]
-            print("  ⚠️  Skipping LLM-based selectors (--skip-llm)")
 
         results = []
         for selector_name, display_name in selectors:
             print(f"\n  Testing: {display_name} ({selector_name})")
 
             try:
-                samples = self._load_jsonl(test_file)
-                # Filter to test split only
-                samples = [s for s in samples if s.get("split") == "test"][:max_samples]
+                # Load test data directly
+                test_file = data_dir / "tool_selection.jsonl"
+                if not test_file.exists():
+                    # Try alternate location
+                    test_file = data_dir / "test.jsonl"
+
+                samples = self._load_jsonl(test_file)[:max_samples]
                 if not samples:
                     print(f"    ⚠️  No test data found at {test_file}")
                     continue
@@ -438,13 +414,7 @@ class ExperimentRunner:
                         # Create query for selector
                         query = sample.get("instruction", "")
                         candidate_tools = sample.get("candidate_tools", [])
-                        ground_truth_raw = sample.get("ground_truth", [])
-
-                        # Handle ground_truth format: may be dict {"top_k": [...]} or list
-                        if isinstance(ground_truth_raw, dict):
-                            ground_truth = ground_truth_raw.get("top_k", [])
-                        else:
-                            ground_truth = ground_truth_raw
+                        ground_truth = sample.get("ground_truth", [])
 
                         # Call selector
                         result = selector.select(query, candidate_tools, top_k=top_k)
@@ -459,10 +429,7 @@ class ExperimentRunner:
                         if self.verbose:
                             print(f"    Error on sample: {e}")
                         predictions.append([])
-                        gt_raw = sample.get("ground_truth", [])
-                        references.append(
-                            gt_raw.get("top_k", []) if isinstance(gt_raw, dict) else gt_raw
-                        )
+                        references.append(sample.get("ground_truth", []))
 
                 # Compute metrics
                 metrics = self._compute_tool_selection_metrics(predictions, references, top_k)
@@ -1328,12 +1295,6 @@ def main():
     parser.add_argument(
         "--paper-only", action="store_true", help="Generate paper materials from existing results"
     )
-    parser.add_argument(
-        "--challenge",
-        type=str,
-        choices=["timing", "planning", "tool_selection"],
-        help="Run only a specific challenge (timing, planning, or tool_selection)",
-    )
     # Training mode arguments (Task C1)
     parser.add_argument(
         "--train", action="store_true", help="Run training comparison (Methods A-J)"
@@ -1426,31 +1387,23 @@ def main():
         print("-" * 70)
         print("📡 LLM Service Status:")
         try:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
+            from sage.common.components.sage_llm.client import check_llm_service
 
-            # Check local vLLM
-            local_endpoints = ["http://localhost:8001/v1", "http://localhost:8000/v1"]
-            local_available = False
-            for endpoint in local_endpoints:
-                if UnifiedInferenceClient._check_endpoint_health(endpoint):
-                    print(f"  ✅ Local vLLM: {endpoint}")
-                    local_available = True
-                    break
-            if not local_available:
+            status = check_llm_service(verbose=False)
+            if status["local_available"]:
+                print(
+                    f"  ✅ Local vLLM: {status['local_endpoint']} (model: {status['local_model']})"
+                )
+            else:
                 print("  ⚠️  Local vLLM: Not detected")
-
-            # Check cloud config
-            import os
-
-            cloud_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("ALIBABA_API_KEY")
-            if cloud_key and "your_" not in cloud_key.lower():
+            if status["cloud_configured"]:
                 print("  ☁️  Cloud API: Configured")
             else:
                 print("  ⚠️  Cloud API: Not configured")
-                if not local_available:
-                    print("\n  💡 Tip: Start local vLLM for faster evaluation:")
-                    print("     vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001")
-                    print("     Or use --skip-llm to skip LLM strategies")
+            if not status["local_available"] and not status["cloud_configured"]:
+                print("\n  💡 Tip: Start local vLLM for faster evaluation:")
+                print("     vllm serve Qwen/Qwen2.5-7B-Instruct --port 8001")
+                print("     Or use --skip-llm to skip LLM strategies")
         except ImportError:
             print("  ⚠️  Unable to check LLM service status")
 
@@ -1486,13 +1439,12 @@ def main():
         elapsed = time.time() - start_time
         print(f"\n✅ Training comparison completed in {elapsed / 60:.1f} minutes")
     else:
-        # Run evaluations (all or specific challenge)
+        # Run all evaluations
         start_time = time.time()
 
-        # Determine which challenges to run
-        run_timing = args.challenge is None or args.challenge == "timing"
-        run_planning = args.challenge is None or args.challenge == "planning"
-        run_tool_selection = args.challenge is None or args.challenge == "tool_selection"
+        runner.run_timing_evaluation(max_samples=max_timing)
+        runner.run_planning_evaluation(max_samples=max_planning)
+        runner.run_tool_selection_evaluation(max_samples=max_tool, top_k=args.top_k)
 
         if run_timing:
             runner.run_timing_evaluation(max_samples=max_timing)

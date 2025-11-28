@@ -1,35 +1,10 @@
 """
 Strategy Adapter Registry
 
-Provides a unified registry for mapping strategy names (e.g., "selector.keyword")
+Provides a unified registry for mapping strategy names (e.g., "baseline.keyword")
 to actual selector/planner/timing implementations from sage-libs.
 
 This bridges the benchmark experiments with the runtime components.
-
-Method Classification:
-=====================
-
-Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Adapters):
-    Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
-    Planning: simple, hierarchical, llm_based, react, tot
-    Timing: rule_based, llm_based, hybrid, embedding
-
-Paper 2 (Method) - SAGE-Agent Framework (Training Strategies):
-    Core Components:
-    - SSIS: Streaming Sample Importance Scorer
-    - Priority Replay: Importance-Weighted Experience Buffer
-    - Cross-Task Attention: Unified Multi-Task Network
-
-    Training Configurations (run_full_training_comparison.py):
-    - SAGE_sft_baseline: Standard SFT (ablation baseline)
-    - SAGE_ssis_only: + Streaming Sample Importance Scorer
-    - SAGE_ssis_replay: + Priority Replay Buffer
-    - SAGE_full: Complete SAGE-Agent
-
-Usage:
-    >>> registry = get_adapter_registry()
-    >>> selector = registry.get("selector.keyword", resources)
-    >>> planner = registry.get("planner.react", resources)
 """
 
 from typing import Any, Callable, Optional, Protocol
@@ -50,10 +25,9 @@ class StrategyProtocol(Protocol):
 
 class SelectorAdapter:
     """
-    Adapter wrapping tool selectors to provide unified predict()/select() interface.
+    Adapter wrapping tool selectors to provide unified predict() interface.
 
     Maps the selector's select() method to predict() for benchmark compatibility.
-    Also provides select() method for run_all_experiments.py compatibility.
     """
 
     def __init__(self, selector: Any):
@@ -91,76 +65,6 @@ class SelectorAdapter:
         k = top_k if top_k is not None else 5
         return self.selector.select(selector_query, top_k=k)
 
-    def select(self, query: Any, candidate_tools: Optional[list] = None, top_k: int = 5) -> list:
-        """
-        Select tools for a query (alias for predict with simpler interface).
-
-        This method is provided for compatibility with run_all_experiments.py
-        which calls selector.select(query, candidate_tools, top_k=top_k).
-
-        Args:
-            query: Either a string (instruction) or ToolSelectionQuery object
-            candidate_tools: Optional list of candidate tools (may be ignored if
-                           selector has its own tool corpus)
-            top_k: Number of tools to select
-
-        Returns:
-            List of ToolPrediction objects or tool IDs
-        """
-        from sage.libs.agentic.agents.action.tool_selection.schemas import (
-            ToolSelectionQuery as SelectorQuery,
-        )
-
-        # Ensure candidate_tools is always a list (never None)
-        tools = candidate_tools if candidate_tools is not None else []
-
-        # Handle string query (from run_all_experiments.py)
-        if isinstance(query, str):
-            selector_query = SelectorQuery(
-                sample_id="runtime",
-                instruction=query,
-                candidate_tools=tools,
-                context={},
-            )
-        # Handle dict query
-        elif isinstance(query, dict):
-            tools_from_dict = query.get("candidate_tools", [])
-            selector_query = SelectorQuery(
-                sample_id=query.get("sample_id", "runtime"),
-                instruction=query.get("instruction", str(query)),
-                candidate_tools=tools if tools else (tools_from_dict or []),
-                context=query.get("context", {}),
-            )
-        # Handle query object with attributes
-        elif hasattr(query, "instruction"):
-            tools_from_obj = getattr(query, "candidate_tools", [])
-            selector_query = SelectorQuery(
-                sample_id=getattr(query, "sample_id", "runtime"),
-                instruction=query.instruction,
-                candidate_tools=tools if tools else (tools_from_obj or []),
-                context=getattr(query, "context", {}),
-            )
-        else:
-            # Fallback: treat query as instruction string
-            selector_query = SelectorQuery(
-                sample_id="runtime",
-                instruction=str(query),
-                candidate_tools=tools,
-                context={},
-            )
-
-        try:
-            result = self.selector.select(selector_query, top_k=top_k)
-            return result
-        except Exception as e:
-            # If selector fails, return empty list with debug info
-            import logging
-
-            logging.getLogger(__name__).warning(
-                f"Selector failed for query '{str(query)[:50]}...': {e}"
-            )
-            return []
-
 
 class PlannerAdapter:
     """
@@ -189,35 +93,9 @@ class PlannerAdapter:
         return self.planner.plan(task)
 
 
-class UnifiedTimingMessage:
-    """
-    Unified timing message that provides both .message and .user_message attributes.
-
-    This ensures compatibility with:
-    - Local deciders in adapter_registry.py (expect .message)
-    - sage-libs timing_decider.py (expects .user_message)
-    """
-
-    def __init__(
-        self,
-        user_message: str,
-        conversation_history: list = None,
-        last_tool_call: Any = None,
-        context: dict = None,
-    ):
-        self.user_message = user_message
-        self.message = user_message  # Alias for compatibility with local deciders
-        self.conversation_history = conversation_history or []
-        self.last_tool_call = last_tool_call
-        self.context = context or {}
-
-
 class TimingAdapter:
     """
     Adapter wrapping timing deciders to provide unified decide() interface.
-
-    Handles conversion between experiment TimingMessage format and
-    sage-libs schemas.TimingMessage format.
     """
 
     def __init__(self, decider: Any):
@@ -234,55 +112,12 @@ class TimingAdapter:
         Make timing decision.
 
         Args:
-            message: TimingMessage from experiment (has .message attribute)
-                     or dict with 'instruction'/'message' key
+            message: TimingMessage from experiment
 
         Returns:
             TimingDecision with should_call_tool, confidence, reasoning
         """
-        # Convert to UnifiedTimingMessage which has both .message and .user_message
-        if isinstance(message, dict):
-            # Handle dict input (e.g., from tests or direct API calls)
-            user_msg = (
-                message.get("instruction")
-                or message.get("message")
-                or message.get("user_message", "")
-            )
-            unified_message = UnifiedTimingMessage(
-                user_message=user_msg,
-                conversation_history=message.get("conversation_history", []),
-                last_tool_call=message.get("last_tool_call"),
-                context=message.get("context", {}),
-            )
-        elif hasattr(message, "user_message") and hasattr(message, "message"):
-            # Already has both attributes (e.g., UnifiedTimingMessage)
-            unified_message = message
-        elif hasattr(message, "user_message"):
-            # schemas.TimingMessage format (sage-libs)
-            unified_message = UnifiedTimingMessage(
-                user_message=message.user_message,
-                conversation_history=getattr(message, "conversation_history", []),
-                last_tool_call=getattr(message, "last_tool_call", None),
-                context=getattr(message, "context", {}),
-            )
-        elif hasattr(message, "message"):
-            # Experiment's TimingMessage (has .message instead of .user_message)
-            unified_message = UnifiedTimingMessage(
-                user_message=message.message,
-                conversation_history=getattr(message, "conversation_history", []),
-                last_tool_call=getattr(message, "last_tool_call", None),
-                context=getattr(message, "context", {}),
-            )
-        else:
-            # Fallback: treat as string
-            unified_message = UnifiedTimingMessage(
-                user_message=str(message),
-                conversation_history=[],
-                last_tool_call=None,
-                context={},
-            )
-
-        return self.decider.decide(unified_message)
+        return self.decider.decide(message)
 
 
 class AdapterRegistry:
@@ -294,10 +129,6 @@ class AdapterRegistry:
 
     def __init__(self):
         """Initialize registry with built-in strategies."""
-        import logging
-
-        self.logger = logging.getLogger(__name__)
-
         self._selectors: dict[str, Any] = {}
         self._planners: dict[str, Any] = {}
         self._timing_deciders: dict[str, Any] = {}
@@ -307,25 +138,8 @@ class AdapterRegistry:
         self._register_builtins()
 
     def _register_builtins(self) -> None:
-        """Register built-in baseline strategies.
-
-        Method Classification:
-        =====================
-
-        Paper 1 (Benchmark) - Existing SOTA Methods:
-        - Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
-        - Planning: simple, hierarchical, llm_based, react, tot
-        - Timing: rule_based, llm_based, hybrid, embedding
-
-        Paper 2 (Method) - SAGE Original Methods:
-        - Training: SAGE_baseline_sft, SAGE_coreset_loss, SAGE_coreset_diversity,
-                   SAGE_coreset_hybrid, SAGE_continual, SAGE_combined
-        - (Defined in run_full_training_comparison.py, not runtime adapters)
-        """
-        # =================================================================
-        # Paper 1: Existing SOTA Selector Strategies
-        # =================================================================
-        # BM25/TF-IDF keyword-based selection
+        """Register built-in baseline strategies."""
+        # Selector factories
         self._factories["baseline.keyword"] = self._create_keyword_selector
         self._factories["baseline.embedding"] = self._create_embedding_selector
         self._factories["baseline.hybrid"] = self._create_hybrid_selector
@@ -336,18 +150,16 @@ class AdapterRegistry:
         self._factories["selector.keyword"] = self._create_keyword_selector
         self._factories["selector.embedding"] = self._create_embedding_selector
         self._factories["selector.hybrid"] = self._create_hybrid_selector
-        # Gorilla: LLM-augmented retrieval (Patil et al., 2023)
+        # SOTA selector strategies
         self._factories["selector.gorilla"] = self._create_gorilla_selector
         self._factories["gorilla"] = self._create_gorilla_selector
-        # ToolLLM DFSDT: Depth-First Search Decision Tree (Qin et al., 2023)
+        # ToolLLM DFSDT selector
         self._factories["selector.dfsdt"] = self._create_dfsdt_selector
         self._factories["selector.toolllm"] = self._create_dfsdt_selector  # Alias
         self._factories["dfsdt"] = self._create_dfsdt_selector
         self._factories["toolllm"] = self._create_dfsdt_selector  # Alias
 
-        # =================================================================
-        # Paper 1: Existing SOTA Planner Strategies
-        # =================================================================
+        # Planner factories
         self._factories["baseline.template"] = self._create_template_planner
         self._factories["baseline.hierarchical"] = self._create_hierarchical_planner
         self._factories["cot"] = self._create_hierarchical_planner
@@ -356,16 +168,14 @@ class AdapterRegistry:
         self._factories["planner.simple"] = self._create_simple_planner
         self._factories["planner.hierarchical"] = self._create_hierarchical_planning_strategy
         self._factories["planner.llm_based"] = self._create_llm_planning_strategy
-        # ReAct: Reasoning + Acting (Yao et al., 2023)
+        # ReAct planner (SOTA strategy)
         self._factories["planner.react"] = self._create_react_planner
         self._factories["react"] = self._create_react_planner  # Alias
-        # Tree-of-Thoughts: Multi-path reasoning (Yao et al., 2023)
+        # Tree-of-Thoughts planner (SOTA strategy)
         self._factories["planner.tot"] = self._create_tot_planner
         self._factories["planner.tree_of_thoughts"] = self._create_tot_planner  # Alias
 
-        # =================================================================
-        # Paper 1: Existing SOTA Timing Strategies
-        # =================================================================
+        # Timing factories
         self._factories["baseline.threshold"] = self._create_threshold_decider
         self._factories["llm_based"] = self._create_llm_timing_decider
         # New timing strategies for benchmark
@@ -524,87 +334,31 @@ class AdapterRegistry:
                 top_k_retrieve=20,
                 top_k_select=5,
                 embedding_model="default",
-                llm_model="auto",  # Uses UnifiedInferenceClient.create_auto()
+                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
                 similarity_metric="cosine",
                 temperature=0.1,
                 use_detailed_docs=True,
                 max_context_tools=15,
             )
 
-            # Create embedding client with fallback to local HuggingFace model
-            embedding_client = None
-
-            # Strategy 1: Try UnifiedInferenceClient (API-based embedding)
-            try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
-
-                unified_client = UnifiedInferenceClient.create_auto()
-
-                # Test if embedding actually works
-                test_result = unified_client.embed(["test"])
-                if test_result and len(test_result) > 0:
-                    # Wrap UnifiedInferenceClient to match EmbeddingProtocol interface
-                    class UnifiedEmbeddingAdapter:
-                        """Adapter to expose UnifiedInferenceClient as embedding client."""
-
-                        def __init__(self, client: UnifiedInferenceClient):
-                            self._client = client
-
-                        def embed(
-                            self, texts: list[str], model: str | None = None
-                        ) -> list[list[float]]:
-                            return self._client.embed(texts, model=model)
-
-                    embedding_client = UnifiedEmbeddingAdapter(unified_client)
-                    self.logger.info("Embedding client created via UnifiedInferenceClient")
-            except Exception as e:
-                self.logger.debug(f"UnifiedInferenceClient embedding not available: {e}")
-
-            # Strategy 2: Fall back to local HuggingFace embedding
-            if embedding_client is None:
-                try:
-                    from sage.common.components.sage_embedding import (
-                        EmbeddingClientAdapter,
-                        EmbeddingFactory,
-                    )
-
-                    # Use HuggingFace model (loads locally, no server needed)
-                    raw_embedder = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
-                    embedding_client = EmbeddingClientAdapter(raw_embedder)
-                    self.logger.info("Embedding client created via local HuggingFace model")
-                except Exception as e2:
-                    self.logger.warning(f"Local HuggingFace embedding failed: {e2}")
-
-            # Strategy 3: Hash-based embedding as last resort (for testing)
-            if embedding_client is None:
-                try:
-                    from sage.common.components.sage_embedding import (
-                        EmbeddingClientAdapter,
-                        EmbeddingFactory,
-                    )
-
-                    raw_embedder = EmbeddingFactory.create("hash", dim=384)
-                    embedding_client = EmbeddingClientAdapter(raw_embedder)
-                    self.logger.warning(
-                        "Using hash-based embedding (low quality, for testing only)"
-                    )
-                except Exception as e3:
-                    self.logger.warning(f"Hash embedding also failed: {e3}")
-
-            # Use SAGE tools (1,200 real tools) instead of mock tools
             if resources is None:
-                resources = self._create_sage_resources(embedding_client=embedding_client)
-            elif resources.embedding_client is None and embedding_client is not None:
-                # Update resources with embedding client
-                resources.embedding_client = embedding_client
+                resources = self._create_mock_resources()
 
-            # Gorilla requires embedding client with batch interface
+            # Gorilla requires embedding client
             if resources.embedding_client is None:
-                # Fall back to hybrid selector if embedding not available
-                self.logger.warning(
-                    "Gorilla selector requires embedding client. Falling back to hybrid selector."
-                )
-                return self._create_hybrid_selector(resources)
+                # Try to create embedding client
+                try:
+                    from sage.common.components.sage_embedding.factory import EmbeddingFactory
+
+                    embedding_client = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
+                    resources.embedding_client = embedding_client
+                except Exception:
+                    # Fall back to hybrid selector if embedding not available
+                    self.logger.warning(
+                        "Gorilla selector requires embedding client. "
+                        "Falling back to hybrid selector."
+                    )
+                    return self._create_hybrid_selector(resources)
 
             selector = GorillaSelector(config, resources)
             return SelectorAdapter(selector)
@@ -641,7 +395,7 @@ class AdapterRegistry:
                 name="dfsdt",
                 max_depth=3,
                 beam_width=5,
-                llm_model="auto",  # Uses UnifiedInferenceClient.create_auto()
+                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
                 temperature=0.1,
                 use_diversity_prompt=True,
                 score_threshold=0.3,
@@ -650,9 +404,8 @@ class AdapterRegistry:
                 top_k=5,
             )
 
-            # Use SAGE tools (1,200 real tools) instead of mock tools
             if resources is None:
-                resources = self._create_sage_resources()
+                resources = self._create_mock_resources()
 
             selector = DFSDTSelector(config, resources)
             return SelectorAdapter(selector)
@@ -717,8 +470,8 @@ class AdapterRegistry:
 
                 boosted.sort(key=lambda x: x.score, reverse=True)
 
-                # Optionally use LLM reranker via UnifiedInferenceClient.create_auto()
-                # Uses LOCAL-FIRST strategy: local services (SagePorts) -> cloud API fallback
+                # Optionally use LLM reranker via IntelligentLLMClient.create_auto()
+                # This uses LOCAL-FIRST strategy: local vLLM (8001/8000) -> cloud API fallback
                 # Set SAGE_HYBRID_ENABLE_LLM_RERANK=1 to enable
                 import os
 
@@ -727,11 +480,11 @@ class AdapterRegistry:
                 if enable_llm_rerank and not hasattr(self, "_llm_client_checked"):
                     self._llm_client_checked = True
                     try:
-                        from sage.common.components.sage_llm import UnifiedInferenceClient
+                        from sage.common.components.sage_llm.client import IntelligentLLMClient
 
                         # Use singleton to avoid repeated model loading
-                        self._llm_client = UnifiedInferenceClient.get_instance(
-                            instance_key="benchmark_hybrid"
+                        self._llm_client = IntelligentLLMClient.get_instance(
+                            cache_key="benchmark_hybrid", probe_timeout=1.0
                         )
                     except Exception:
                         self._llm_client = None
@@ -773,8 +526,8 @@ class AdapterRegistry:
                     },
                 ]
 
-                # UnifiedInferenceClient.chat() returns string directly
-                resp = llm.chat(messages)
+                # IntelligentLLMClient.chat() returns string directly
+                resp = llm.chat(messages, temperature=0.0, max_tokens=512)
 
                 # Parse response
                 txt = resp if isinstance(resp, str) else str(resp)
@@ -895,11 +648,44 @@ class AdapterRegistry:
 
             def _get_llm_client(self):
                 """Get LLM client with local-first strategy."""
-                # Use UnifiedInferenceClient.create_auto() which implements local-first strategy
-                try:
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                import os
 
-                    return UnifiedInferenceClient.create_auto()
+                # Try local vLLM first
+                try:
+                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+
+                    local_endpoints = [
+                        ("http://localhost:8001/v1", 8001),
+                        ("http://localhost:8000/v1", 8000),
+                    ]
+
+                    for endpoint, port in local_endpoints:
+                        detected_model = IntelligentLLMClient._probe_vllm_service(
+                            endpoint, timeout=1.0
+                        )
+                        if detected_model:
+                            return IntelligentLLMClient(
+                                model_name=detected_model,
+                                base_url=endpoint,
+                                api_key=os.getenv("VLLM_API_KEY", ""),
+                            )
+
+                    # Fall back to cloud API
+                    api_key = (
+                        os.getenv("SAGE_CHAT_API_KEY")
+                        or os.getenv("ALIBABA_API_KEY")
+                        or os.getenv("OPENAI_API_KEY")
+                    )
+
+                    if api_key and "your_" not in api_key.lower():
+                        return IntelligentLLMClient(
+                            model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                            base_url=os.getenv(
+                                "SAGE_CHAT_BASE_URL",
+                                "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                            ),
+                            api_key=api_key,
+                        )
                 except Exception:
                     pass
 
@@ -1201,17 +987,19 @@ class AdapterRegistry:
         return TimingAdapter(ThresholdDecider())
 
     def _create_llm_timing_decider(self, resources: Optional[Any] = None) -> TimingAdapter:
-        """Create LLM-based timing decider using UnifiedInferenceClient.
+        """Create LLM-based timing decider using embedded VLLMService (local-first).
 
-        Uses UnifiedInferenceClient.create_auto() which handles:
-        1. Environment variables (SAGE_UNIFIED_BASE_URL)
-        2. Local services (ports from SagePorts)
-        3. Cloud API fallback (DashScope)
+        Priority:
+        1. Embedded VLLMService (内嵌 vLLM，无需启动服务) - highest
+        2. Local vLLM API service (localhost:8001 or 8000) - if already running
+        3. Cloud API via SAGE_CHAT_* environment variables - fallback
         """
 
         class LLMTimingDecider:
             """
-            LLM-based timing decider using UnifiedInferenceClient.
+            LLM-based timing decider with local-first strategy.
+
+            Uses embedded VLLMService when available, falls back to API-based client.
             """
 
             TIMING_PROMPT = """You are an AI assistant that determines whether a user's message requires tool invocation or can be answered directly from your knowledge.
@@ -1235,21 +1023,48 @@ Respond in JSON format:
 
 Only output the JSON, nothing else."""
 
-            def __init__(self):
-                self._client = None
+            def __init__(self, llm_client=None):
+                self._client = llm_client
+                self._vllm_service = None
+                self._use_embedded_vllm = False
                 self._initialized = False
 
             def _ensure_client(self):
-                """Lazy initialization using UnifiedInferenceClient."""
+                """Lazy initialization with embedded VLLMService priority."""
                 if self._initialized:
-                    return self._client is not None
+                    return self._vllm_service is not None or self._client is not None
 
                 self._initialized = True
+                import os
 
+                # Step 1: Try embedded VLLMService (内嵌模式，无需单独启动服务)
                 try:
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.common.components.sage_llm import VLLMService
 
-                    self._client = UnifiedInferenceClient.create_auto()
+                    model_id = os.getenv("SAGE_BENCHMARK_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+                    self._vllm_service = VLLMService(
+                        {
+                            "model_id": model_id,
+                            "auto_download": True,
+                            "sampling": {"temperature": 0.1, "max_tokens": 256},
+                        }
+                    )
+                    self._vllm_service.setup()
+                    self._use_embedded_vllm = True
+                    print(f"✅ [Timing] 使用内嵌 VLLMService: {model_id}")
+                    return True
+                except Exception:
+                    self._use_embedded_vllm = False
+                    # VLLMService not available, try API client
+
+                # Step 2: Try API-based client (local vLLM or cloud)
+                try:
+                    from sage.common.components.sage_llm import IntelligentLLMClient
+
+                    # Use singleton to avoid repeated model loading
+                    self._client = IntelligentLLMClient.get_instance(
+                        cache_key="benchmark_timing", probe_timeout=1.0
+                    )
                     return True
                 except Exception as e:
                     import logging
@@ -1265,18 +1080,33 @@ Only output the JSON, nothing else."""
                     TimingDecision,
                 )
 
-                # Ensure LLM client is initialized
+                # Ensure LLM client/service is initialized
                 if not self._ensure_client():
+                    # No LLM available, fall back to rule-based
                     return self._fallback_decide(message)
 
                 try:
                     import json
 
                     prompt = self.TIMING_PROMPT.format(message=message.message)
-                    messages = [{"role": "user", "content": prompt}]
 
-                    # UnifiedInferenceClient.chat() returns string directly
-                    content = self._client.chat(messages)
+                    # Use embedded VLLMService if available
+                    if self._use_embedded_vllm and self._vllm_service is not None:
+                        results = self._vllm_service.generate(prompt)
+                        if results and results[0].get("generations"):
+                            content = results[0]["generations"][0]["text"].strip()
+                        else:
+                            return self._fallback_decide(message)
+                    elif self._client is not None:
+                        # Use API-based client
+                        response = self._client.chat(
+                            messages=[{"role": "user", "content": prompt}],
+                            temperature=0.1,
+                            max_tokens=200,
+                        )
+                        content = response.choices[0].message.content.strip()
+                    else:
+                        return self._fallback_decide(message)
 
                     # Parse JSON response
                     # Handle potential markdown code blocks
@@ -1293,6 +1123,7 @@ Only output the JSON, nothing else."""
                         reasoning=f"[LLM] {result.get('reasoning', 'LLM decision')}",
                     )
                 except Exception:
+                    # Fall through to rule-based
                     return self._fallback_decide(message)
 
             def _fallback_decide(self, message):
@@ -1932,35 +1763,6 @@ Only output the JSON, nothing else."""
             embedding_client=None,
         )
 
-    def _create_sage_resources(self, embedding_client: Optional[Any] = None) -> Any:
-        """
-        Create SelectorResources with real SAGE-Bench tools.
-
-        This loads the 1,200 tools from tool_catalog.jsonl for use with
-        Gorilla and DFSDT selectors that need to build a proper tool index.
-
-        Args:
-            embedding_client: Optional embedding client for semantic search
-
-        Returns:
-            SelectorResources with SageToolsLoader
-        """
-        from sage.libs.agentic.agents.action.tool_selection import SelectorResources
-
-        try:
-            from sage.benchmark.benchmark_agent.tools_loader import get_sage_tools_loader
-
-            tools_loader = get_sage_tools_loader()
-            self.logger.info(f"Using SAGE tools loader with {len(tools_loader)} tools")
-        except Exception as e:
-            self.logger.warning(f"Failed to load SAGE tools: {e}. Falling back to mock tools.")
-            return self._create_mock_resources()
-
-        return SelectorResources(
-            tools_loader=tools_loader,
-            embedding_client=embedding_client,
-        )
-
     def _create_simple_planner(self, resources: Optional[Any] = None) -> PlannerAdapter:
         """
         Create simple planner using embedding-based tool matching.
@@ -2291,13 +2093,13 @@ Only output the JSON, nothing else."""
 
     def _create_llm_planning_strategy(self, resources: Optional[Any] = None) -> PlannerAdapter:
         """
-        Create LLM-based planner using UnifiedInferenceClient.
+        Create LLM-based planner using IntelligentLLMClient.
 
         Uses real LLM for plan generation with semantic understanding.
         """
 
         class LLMPlanningStrategy:
-            """LLM-based planner using UnifiedInferenceClient."""
+            """LLM-based planner using IntelligentLLMClient."""
 
             def __init__(self, fallback_planner):
                 self._fallback = fallback_planner
@@ -2305,33 +2107,107 @@ Only output the JSON, nothing else."""
                 self._client_initialized = False
 
             def _get_llm_client(self):
-                """Lazy initialization of LLM client using UnifiedInferenceClient.
+                """Lazy initialization of LLM client with local-first strategy.
 
-                Uses UnifiedInferenceClient.create_auto() which handles:
-                1. Local vLLM API service detection (via SagePorts)
-                2. Cloud API fallback (via SAGE_CHAT_* env vars)
+                Priority:
+                1. Embedded VLLMService (内嵌 vLLM，无需启动服务) - highest
+                2. Local vLLM API service (localhost:8001 or 8000) - if already running
+                3. Cloud API via SAGE_CHAT_* environment variables - fallback
                 """
                 if not self._client_initialized:
                     self._client_initialized = True
+                    import os
 
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
-
+                    # Step 1: Try embedded VLLMService (内嵌模式，无需单独启动服务)
                     try:
-                        self._llm_client = UnifiedInferenceClient.create_auto()
-                        # Log which mode we're using
-                        if self._llm_client._llm_base_url:
-                            if "localhost" in self._llm_client._llm_base_url:
-                                print(f"✅ 使用本地 LLM: {self._llm_client._llm_model}")
-                            else:
-                                print(f"☁️  使用云端 API: {self._llm_client._llm_model}")
-                        else:
-                            print("⚠️  LLM 客户端初始化但无可用端点")
-                    except Exception as e:
-                        print(f"⚠️  无可用 LLM 服务: {e}")
+                        from sage.common.components.sage_llm import VLLMService
+
+                        # Use a lightweight model for benchmark
+                        model_id = os.getenv(
+                            "SAGE_BENCHMARK_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct"
+                        )
+                        self._vllm_service = VLLMService(
+                            {
+                                "model_id": model_id,
+                                "auto_download": True,
+                                "sampling": {"temperature": 0.2, "max_tokens": 1024},
+                            }
+                        )
+                        self._vllm_service.setup()
+                        self._use_embedded_vllm = True
+                        print(f"✅ 使用内嵌 VLLMService: {model_id} (无需启动外部服务)")
+                        return self  # Return self to use embedded mode
+                    except Exception:
+                        self._use_embedded_vllm = False
+                        # VLLMService not available, try other options
+                        pass
+
+                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+
+                    # Step 2: Try local vLLM API service (如果已经在运行)
+                    local_endpoints = [
+                        ("http://localhost:8001/v1", 8001),
+                        ("http://localhost:8000/v1", 8000),
+                    ]
+
+                    for endpoint, port in local_endpoints:
+                        detected_model = IntelligentLLMClient._probe_vllm_service(
+                            endpoint, timeout=1.0
+                        )
+                        if detected_model:
+                            try:
+                                self._llm_client = IntelligentLLMClient(
+                                    model_name=detected_model,
+                                    base_url=endpoint,
+                                    api_key=os.getenv("VLLM_API_KEY", ""),
+                                )
+                                print(f"✅ 使用本地 vLLM API: {detected_model} @ port {port}")
+                                return self._llm_client
+                            except Exception:
+                                pass
+
+                    # Step 3: Fall back to cloud API
+                    api_key = (
+                        os.getenv("SAGE_CHAT_API_KEY")
+                        or os.getenv("ALIBABA_API_KEY")
+                        or os.getenv("OPENAI_API_KEY")
+                    )
+
+                    # Skip placeholder values
+                    if api_key and "your_" in api_key.lower():
+                        api_key = None
+
+                    if api_key:
+                        try:
+                            self._llm_client = IntelligentLLMClient(
+                                model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                                base_url=os.getenv(
+                                    "SAGE_CHAT_BASE_URL",
+                                    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                                ),
+                                api_key=api_key,
+                            )
+                            print("☁️  本地 vLLM 不可用，使用云端 API")
+                        except Exception:
+                            pass
+                    else:
+                        print("⚠️  无可用 LLM 服务：本地 vLLM 未运行，云端 API Key 未配置")
                         print("   启动本地服务: sage studio start")
                         print("   或配置云端: export SAGE_CHAT_API_KEY=your_key")
 
                 return self._llm_client
+
+            def _generate_with_embedded_vllm(self, prompt: str) -> str:
+                """Generate text using embedded VLLMService."""
+                if not hasattr(self, "_vllm_service") or self._vllm_service is None:
+                    return ""
+                try:
+                    results = self._vllm_service.generate(prompt)
+                    if results and results[0].get("generations"):
+                        return results[0]["generations"][0].get("text", "")
+                except Exception:
+                    pass
+                return ""
 
             def plan(self, task):
                 from sage.benchmark.benchmark_agent.experiments.base_experiment import (
@@ -2345,10 +2221,8 @@ Only output the JSON, nothing else."""
                 if not available_tools:
                     return PlanningPrediction(steps=[], tool_sequence=[])
 
-                # Initialize LLM client
-                client = self._get_llm_client()
-                if client is None:
-                    return self._fallback.plan(task)
+                # Initialize LLM client (this also sets up embedded vLLM if available)
+                self._get_llm_client()
 
                 # Build prompt for plan generation
                 tools_desc = ", ".join(available_tools[:20])  # Limit for prompt
@@ -2365,19 +2239,27 @@ Return a JSON array of steps, each with:
 Return ONLY the JSON array, no explanation. Example:
 [{{"tool_id": "file_read", "description": "Read config file"}}]"""
 
-                try:
-                    messages = [
-                        {
-                            "role": "system",
-                            "content": "You are a task planning assistant. Return only valid JSON.",
-                        },
-                        {"role": "user", "content": prompt},
-                    ]
-                    response = client.chat(messages)
-                except Exception:
-                    return self._fallback.plan(task)
+                response = None
 
-                # Parse response
+                # Try embedded VLLMService first
+                if getattr(self, "_use_embedded_vllm", False):
+                    response = self._generate_with_embedded_vllm(prompt)
+
+                # Try IntelligentLLMClient
+                if not response and self._llm_client is not None:
+                    try:
+                        messages = [
+                            {
+                                "role": "system",
+                                "content": "You are a task planning assistant. Return only valid JSON.",
+                            },
+                            {"role": "user", "content": prompt},
+                        ]
+                        response = self._llm_client.chat(messages, max_tokens=1024, temperature=0.2)
+                    except Exception:
+                        pass
+
+                # Parse response if we got one
                 if response:
                     try:
                         import json
@@ -2452,11 +2334,11 @@ Return ONLY the JSON array, no explanation. Example:
 
                 self._client_initialized = True
                 try:
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.common.components.sage_llm.client import IntelligentLLMClient
 
                     # Use singleton to avoid repeated model loading
-                    self._llm_client = UnifiedInferenceClient.get_instance(
-                        instance_key="benchmark_planner"
+                    self._llm_client = IntelligentLLMClient.get_instance(
+                        cache_key="benchmark_planner", probe_timeout=1.0
                     )
                 except Exception:
                     self._llm_client = None
