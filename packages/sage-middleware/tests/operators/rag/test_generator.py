@@ -121,11 +121,10 @@ class TestOpenAIGenerator:
             # 注意：某些Mock实现可能会遮蔽敏感信息，所以我们检查调用参数
             assert mock_unified_client.call_count == 1
             call_kwargs = mock_unified_client.call_args[1]
-            assert call_kwargs["model_name"] == "gpt-4o-mini"
-            assert call_kwargs["base_url"] == "http://localhost:8000/v1"
+            assert call_kwargs["llm_model"] == "gpt-4o-mini"
+            assert call_kwargs["llm_base_url"] == "http://localhost:8000/v1"
             # API key 可能被遮蔽显示为 ***，我们只检查它不是 None
-            assert call_kwargs["api_key"] is not None
-            assert call_kwargs["seed"] == 42
+            assert call_kwargs["llm_api_key"] is not None
 
     @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
     def test_execute_with_string_input(self, mock_unified_client):

@@ -36,6 +36,14 @@ import pytest
 
 logger = logging.getLogger(__name__)
 
+# Skip entire module in CI - these tests require real API keys or GPU
+_IS_CI = os.environ.get("CI") == "true" or os.environ.get("SAGE_TEST_MODE") == "true"
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(_IS_CI, reason="LLM integration tests require real API keys or GPU"),
+]
+
 
 # =============================================================================
 # GPU/vLLM Availability Checks
@@ -336,6 +344,23 @@ class LLMClient:
         # 尝试连接
         try:
             self._init_client()
+            # For local vLLM, do a health check since no API key is required
+            if not self.config.api_key_env:
+                # Try to list models to verify connection
+                import httpx
+
+                try:
+                    resp = httpx.get(f"{self.config.api_base}/models", timeout=5.0)
+                    if resp.status_code != 200:
+                        logger.warning(
+                            f"{self.config.name}: Health check failed (status {resp.status_code})"
+                        )
+                        self._available = False
+                        return False
+                except Exception as e:
+                    logger.warning(f"{self.config.name}: Health check failed - {e}")
+                    self._available = False
+                    return False
             self._available = True
         except Exception as e:
             logger.warning(f"{self.config.name}: Connection failed - {e}")
