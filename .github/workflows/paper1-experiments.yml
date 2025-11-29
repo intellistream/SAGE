@@ -82,15 +82,25 @@ jobs:
         run: |
           echo "Setting up Python environment..."
 
+          # Initialize conda (try multiple common locations)
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          elif command -v conda &> /dev/null; then
+            eval "$(conda shell.bash hook)"
+          else
+            echo "ERROR: Conda not found"
+            exit 1
+          fi
+
           # Check if conda env exists
-          if conda env list | grep -q "sage"; then
+          if conda env list | grep -q "^sage "; then
             echo "Activating existing sage environment"
-            source $(conda info --base)/etc/profile.d/conda.sh
             conda activate sage
           else
             echo "Installing SAGE with quickstart..."
             ./quickstart.sh --dev --yes --conda
-            source $(conda info --base)/etc/profile.d/conda.sh
             conda activate sage
           fi
 
@@ -127,7 +137,14 @@ jobs:
           echo "Checking GPU status..."
           nvidia-smi || echo "No NVIDIA GPU found"
 
-          source $(conda info --base)/etc/profile.d/conda.sh
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
           conda activate sage
 
           python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
@@ -148,7 +165,14 @@ jobs:
         run: |
           echo "Running SAGE Agent Bench experiments..."
 
-          source $(conda info --base)/etc/profile.d/conda.sh
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
           conda activate sage
 
           # Navigate to scripts directory
@@ -193,7 +217,14 @@ jobs:
         run: |
           echo "Generating paper figures and tables..."
 
-          source $(conda info --base)/etc/profile.d/conda.sh
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
           conda activate sage
 
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
