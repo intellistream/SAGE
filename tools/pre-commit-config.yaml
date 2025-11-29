@@ -230,6 +230,92 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs/dev-notes/.*\.md$
+  - id: devnotes-structure-check
+    name: dev-notes directory structure validation
+    entry: bash -c
+    args:
+    - |
+      # Check if any files were staged in docs/dev-notes/
+      if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
+        # Running with --all-files or during push
+        staged_files=$(git ls-files "docs/dev-notes/*")
+      else
+        # Running in normal commit mode
+        staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs/dev-notes/" || true)
+      fi
+
+      if [ -z "$staged_files" ]; then
+        exit 0
+      fi
+
+      # Allowed top-level directories under docs/dev-notes/
+      # NOTE: When adding new directories, update this list
+      allowed_dirs=(
+        "l1-common"
+        "l2-platform"
+        "l3-kernel"
+        "l3-libs"
+        "l4-middleware"
+        "l5-apps"
+        "l5-benchmark"
+        "l6-cli"
+        "l6-gateway"
+        "l6-studio"
+        "l6-tools"
+        "cross-layer"
+        "testing"
+        "archive"
+        "research_work"
+      )
+
+      # Get all first-level directories under docs/dev-notes/
+      violations=""
+      for file in $staged_files; do
+        # Extract the first directory component after docs/dev-notes/
+        # e.g., docs/dev-notes/foo/bar.md -> foo
+        dir_component=$(echo "$file" | sed -n 's|^docs/dev-notes/\([^/]*\)/.*|\1|p')
+
+        # Skip root-level files (README.md, TEMPLATE.md)
+        if [ -z "$dir_component" ]; then
+          continue
+        fi
+
+        # Check if directory is allowed
+        allowed=false
+        for allowed_dir in "${allowed_dirs[@]}"; do
+          if [ "$dir_component" = "$allowed_dir" ]; then
+            allowed=true
+            break
+          fi
+        done
+
+        if [ "$allowed" = false ]; then
+          # Only add unique violations
+          if [[ ! "$violations" =~ "$dir_component" ]]; then
+            violations="$violations$dir_component\n"
+          fi
+        fi
+      done
+
+      # Report violations
+      if [ -n "$violations" ]; then
+        echo "❌ 错误: docs/dev-notes/ 下存在未授权的目录:"
+        echo -e "$violations" | sort -u | sed "s/^/  - /"
+        echo ""
+        echo "📁 允许的目录:"
+        echo "  - 分层目录: l1-common, l2-platform, l3-kernel, l3-libs, l4-middleware"
+        echo "               l5-apps, l5-benchmark, l6-cli, l6-gateway, l6-studio, l6-tools"
+        echo "  - 交叉主题: cross-layer, testing, archive"
+        echo "  - 研究工作: research_work"
+        echo ""
+        echo "💡 建议: 将文档移动到合适的目录，或联系维护者更新允许列表"
+        exit 1
+      fi
+      exit 0
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^docs/dev-notes/
   - id: installation-consistency-check
     name: installation consistency check (local vs CI/CD)
     entry: bash tools/install/examination_tools/installation_consistency_check.sh
