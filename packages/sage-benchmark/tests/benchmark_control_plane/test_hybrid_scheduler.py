@@ -191,9 +191,7 @@ class TestHybridMetricsCollector:
 
         # Add results with 100ms TTFT
         for i in range(5):
-            collector.add_result(
-                self._create_llm_result(f"llm-{i}", ttft_s=0.1)
-            )
+            collector.add_result(self._create_llm_result(f"llm-{i}", ttft_s=0.1))
 
         metrics = collector.compute_metrics()
 
@@ -208,9 +206,7 @@ class TestHybridMetricsCollector:
 
         # Add results with batch size 8 (25% efficiency)
         for i in range(4):
-            collector.add_result(
-                self._create_embedding_result(f"embed-{i}", batch_size=8)
-            )
+            collector.add_result(self._create_embedding_result(f"embed-{i}", batch_size=8))
 
         metrics = collector.compute_metrics()
 
@@ -323,6 +319,7 @@ class TestHybridBenchmarkRunner:
 
         with pytest.raises(ValueError) as exc_info:
             import asyncio
+
             asyncio.run(runner.run())
 
         assert "Invalid configuration" in str(exc_info.value)

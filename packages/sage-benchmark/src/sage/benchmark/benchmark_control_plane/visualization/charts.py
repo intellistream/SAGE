@@ -56,8 +56,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     from ..common.base_metrics import BaseRequestMetrics
-    from ..hybrid_scheduler.metrics import HybridRequestMetrics
-    from ..llm_scheduler.metrics import LLMRequestMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -348,9 +346,15 @@ class BenchmarkCharts:
         p95 = np.percentile(latencies, 95)
         p99 = np.percentile(latencies, 99)
 
-        ax.axvline(p50, color=COLORS["success"], linestyle="--", linewidth=2, label=f"P50: {p50:.1f}ms")
-        ax.axvline(p95, color=COLORS["warning"], linestyle="--", linewidth=2, label=f"P95: {p95:.1f}ms")
-        ax.axvline(p99, color=COLORS["error"], linestyle="--", linewidth=2, label=f"P99: {p99:.1f}ms")
+        ax.axvline(
+            p50, color=COLORS["success"], linestyle="--", linewidth=2, label=f"P50: {p50:.1f}ms"
+        )
+        ax.axvline(
+            p95, color=COLORS["warning"], linestyle="--", linewidth=2, label=f"P95: {p95:.1f}ms"
+        )
+        ax.axvline(
+            p99, color=COLORS["error"], linestyle="--", linewidth=2, label=f"P99: {p99:.1f}ms"
+        )
 
         ax.set_xlabel("Latency (ms)")
         ax.set_ylabel("Count")
@@ -658,7 +662,9 @@ class BenchmarkCharts:
 
         # Add average line
         avg_util = np.mean(utilizations)
-        ax.axhline(avg_util, color=COLORS["secondary"], linestyle="--", label=f"Avg: {avg_util:.1f}%")
+        ax.axhline(
+            avg_util, color=COLORS["secondary"], linestyle="--", label=f"Avg: {avg_util:.1f}%"
+        )
 
         ax.fill_between(timestamps, utilizations, alpha=0.3, color=COLORS["primary"])
 
@@ -919,7 +925,9 @@ class BenchmarkCharts:
         if "llm" in metrics:
             llm_throughput = metrics["llm"].get("throughput", {}).get("requests_per_second", 0)
         if "embedding" in metrics:
-            embed_throughput = metrics["embedding"].get("throughput", {}).get("requests_per_second", 0)
+            embed_throughput = (
+                metrics["embedding"].get("throughput", {}).get("requests_per_second", 0)
+            )
 
         llm_throughput = getattr(self.metrics, "llm_throughput_rps", llm_throughput)
         embed_throughput = getattr(self.metrics, "embedding_throughput_rps", embed_throughput)
@@ -1000,7 +1008,9 @@ class BenchmarkCharts:
         embed_values = [embed_latencies.get("avg", 0), embed_latencies.get("p99", 0)]
 
         bars1 = ax.bar(x - width / 2, llm_values, width, label="LLM", color=COLORS["llm"])
-        bars2 = ax.bar(x + width / 2, embed_values, width, label="Embedding", color=COLORS["embedding"])
+        bars2 = ax.bar(
+            x + width / 2, embed_values, width, label="Embedding", color=COLORS["embedding"]
+        )
 
         # Add value labels
         for bars in [bars1, bars2]:

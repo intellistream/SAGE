@@ -51,9 +51,7 @@ def demo_agent_sft_loader():
         print(f"   Turns: {len(dialog.turns)}")
         print("   First 3 turns:")
         for j, turn in enumerate(dialog.turns[:3], 1):
-            content_preview = (
-                turn.content[:50] + "..." if len(turn.content) > 50 else turn.content
-            )
+            content_preview = turn.content[:50] + "..." if len(turn.content) > 50 else turn.content
             print(f"      {j}. [{turn.role}] {content_preview}")
     print()
 
@@ -78,9 +76,7 @@ def demo_agent_sft_loader():
     if stats.tool_coverage:
         sample_tool = list(stats.tool_coverage.keys())[0]
         tool_dialogs = loader.filter_by_tool(sample_tool, split="train")
-        print(
-            f"   Tool '{sample_tool}' is used in {len(tool_dialogs)} training dialogs"
-        )
+        print(f"   Tool '{sample_tool}' is used in {len(tool_dialogs)} training dialogs")
     print()
 
     # Demonstrate dialog lookup

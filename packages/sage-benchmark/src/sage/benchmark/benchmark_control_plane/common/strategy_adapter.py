@@ -46,9 +46,7 @@ except ImportError:
     AdaptivePolicy = None  # type: ignore[assignment, misc]
     AegaeonPolicy = None  # type: ignore[assignment, misc]
     HybridSchedulingPolicy = None  # type: ignore[assignment, misc]
-    logger.warning(
-        "Control Plane strategies not available. Install sage-common package."
-    )
+    logger.warning("Control Plane strategies not available. Install sage-common package.")
 
 
 class StrategyInfo:
@@ -259,9 +257,7 @@ class StrategyAdapter:
 
         info = cls._STRATEGIES.get(name)
         if info is None:
-            raise ValueError(
-                f"Unknown strategy: {name}. Available: {cls.list_strategies()}"
-            )
+            raise ValueError(f"Unknown strategy: {name}. Available: {cls.list_strategies()}")
 
         if info.cls is None:
             raise RuntimeError(f"Strategy {name} class not available")
@@ -325,9 +321,7 @@ class StrategyAdapter:
                         return True
                     else:
                         text = await response.text()
-                        logger.warning(
-                            f"Policy switch failed: {response.status} - {text}"
-                        )
+                        logger.warning(f"Policy switch failed: {response.status} - {text}")
                         return False
 
         except ImportError:
