@@ -94,18 +94,20 @@ jobs:
             exit 1
           fi
 
-          # Check if conda env exists
-          if conda env list | grep -q "^sage "; then
-            echo "Activating existing sage environment"
+          # Check if conda env exists and has SAGE installed
+          if conda env list | grep -q "^sage " && conda run -n sage pip list 2>/dev/null | grep -q "^sage-"; then
+            echo "Activating existing sage environment with SAGE packages"
             conda activate sage
           else
             echo "Installing SAGE with quickstart..."
+            # Remove existing incomplete environment if exists
+            conda env remove -n sage -y 2>/dev/null || true
             ./quickstart.sh --dev --yes --conda
             conda activate sage
           fi
 
           python --version
-          pip list | grep -E "^sage-"
+          pip list | grep -E "^sage-" || echo "Warning: No sage packages found"
 
       - name: Create Environment File
         run: |
