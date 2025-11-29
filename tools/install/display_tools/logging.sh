@@ -10,8 +10,20 @@ LOG_LEVEL_INFO=1
 LOG_LEVEL_WARN=2
 LOG_LEVEL_ERROR=3
 
-# 当前日志级别（默认 INFO）
-CURRENT_LOG_LEVEL=${SAGE_LOG_LEVEL:-$LOG_LEVEL_INFO}
+# 将字符串日志级别转换为数字
+_parse_log_level() {
+    local level="$1"
+    case "$level" in
+        0|DEBUG|debug) echo 0 ;;
+        1|INFO|info)   echo 1 ;;
+        2|WARN|warn)   echo 2 ;;
+        3|ERROR|error) echo 3 ;;
+        *)             echo 1 ;;  # 默认 INFO
+    esac
+}
+
+# 当前日志级别（默认 INFO，支持字符串或数字）
+CURRENT_LOG_LEVEL=$(_parse_log_level "${SAGE_LOG_LEVEL:-1}")
 
 # 日志文件路径（全局变量，由主安装脚本设置）
 SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-.sage/logs/install.log}"
