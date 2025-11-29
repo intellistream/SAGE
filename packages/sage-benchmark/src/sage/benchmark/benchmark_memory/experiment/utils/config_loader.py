@@ -21,7 +21,7 @@ class RuntimeConfig:
     3. 提供统一的参数访问接口 config.get("key")
     """
 
-    def __init__(self, config_path: str, **runtime_params):
+    def __init__(self, config_path: str | None, **runtime_params):
         """初始化运行时配置
 
         Args:
@@ -31,7 +31,8 @@ class RuntimeConfig:
         self.config_path = config_path
         self.runtime_params = runtime_params
         self._config: dict[str, Any] = {}
-        self._load()
+        if config_path is not None:
+            self._load()
 
     def _load(self) -> None:
         """加载配置文件"""
