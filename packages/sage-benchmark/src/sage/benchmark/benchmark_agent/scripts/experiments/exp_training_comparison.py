@@ -75,17 +75,64 @@ class TrainingMethodConfig:
 
 
 # =============================================================================
-# Paper 1 (Benchmark) Training Methods - Standard baselines
+# Paper 1 (Benchmark) Training Methods - Published SOTA baselines
 # =============================================================================
 PAPER1_TRAINING_METHODS = {
+    # --- Standard Baselines ---
     "A_baseline": TrainingMethodConfig(
         name="A_baseline",
         display_name="A: Baseline SFT",
-        description="Standard supervised fine-tuning without optimization",
+        description="Standard supervised fine-tuning (full parameters)",
         use_coreset=False,
         use_continual=False,
     ),
-    # Note: FireAct, AgentTuning, DoRA, LoRA+ can be added here as Paper 1 baselines
+    # --- PEFT Methods ---
+    "A_lora": TrainingMethodConfig(
+        name="A_lora",
+        display_name="A: LoRA",
+        description="Low-Rank Adaptation (Hu et al., 2021)",
+        use_coreset=False,
+        use_continual=False,
+        # LoRA-specific config would be handled by trainer
+    ),
+    "A_qlora": TrainingMethodConfig(
+        name="A_qlora",
+        display_name="A: QLoRA",
+        description="Quantized LoRA (Dettmers et al., 2023)",
+        use_coreset=False,
+        use_continual=False,
+    ),
+    "A_dora": TrainingMethodConfig(
+        name="A_dora",
+        display_name="A: DoRA",
+        description="Weight-Decomposed LoRA (Liu et al., 2024)",
+        use_coreset=False,
+        use_continual=False,
+    ),
+    # --- Agent-Specific Training Methods ---
+    "A_fireact": TrainingMethodConfig(
+        name="A_fireact",
+        display_name="A: FireAct",
+        description="Trajectory fine-tuning (Chen et al., 2023)",
+        use_coreset=False,
+        use_continual=False,
+        # FireAct uses trajectory data format
+    ),
+    "A_agenttuning": TrainingMethodConfig(
+        name="A_agenttuning",
+        display_name="A: AgentTuning",
+        description="Multi-task agent tuning (Zeng et al., 2023)",
+        use_coreset=False,
+        use_continual=False,
+        # AgentTuning uses mixed task data
+    ),
+    "A_toolllm": TrainingMethodConfig(
+        name="A_toolllm",
+        display_name="A: ToolLLM",
+        description="Tool-augmented fine-tuning (Qin et al., 2023)",
+        use_coreset=False,
+        use_continual=False,
+    ),
 }
 
 # =============================================================================

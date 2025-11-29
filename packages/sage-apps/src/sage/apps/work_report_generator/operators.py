@@ -840,6 +840,8 @@ class ReportSink(SinkFunction):
         output_path: str | Path | None = None,
         repos: list[str] | None = None,
         days: int = 7,
+        language: str = "zh",
+        use_llm: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -850,18 +852,151 @@ class ReportSink(SinkFunction):
             output_path: Path to save the report file.
             repos: List of repositories being tracked.
             days: Number of days in the report period.
+            language: Output language ("zh" or "en").
+            use_llm: Whether to use LLM for leaderboard generation.
         """
         super().__init__(**kwargs)
         self.output_format = output_format
         self.output_path = Path(output_path) if output_path else None
         self.repos = repos or []
         self.days = days
+        self.language = language
+        self.use_llm = use_llm
         self.contributors: dict[str, dict[str, Any]] = {}
         self.start_time = time.time()
+        self._llm_client = None
 
         # Date range
         self.end_date = datetime.now()
         self.start_date = self.end_date - timedelta(days=days)
+
+    def _get_llm_client(self):
+        """Lazy initialization of LLM client."""
+        if self._llm_client is None:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                self._llm_client = UnifiedInferenceClient.create_auto()
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize LLM client: {e}")
+                self._llm_client = None
+        return self._llm_client
+
+    def _generate_leaderboard(self, report: WeeklyReport) -> str:
+        """Generate a contribution leaderboard using LLM."""
+        if not self.use_llm:
+            return self._generate_simple_leaderboard(report)
+
+        client = self._get_llm_client()
+        if client is None:
+            return self._generate_simple_leaderboard(report)
+
+        # Build contributor stats for LLM
+        contributors_data = []
+        for c in report.contributors:
+            contributors_data.append(
+                {
+                    "name": c.username,
+                    "commits": c.total_commits,
+                    "prs": c.total_prs,
+                    "merged_prs": c.merged_prs,
+                    "additions": c.total_additions,
+                    "deletions": c.total_deletions,
+                }
+            )
+
+        # Sort by contribution (commits + merged PRs * 3)
+        contributors_data.sort(key=lambda x: x["commits"] + x["merged_prs"] * 3, reverse=True)
+
+        stats_text = "\n".join(
+            f"- {i + 1}. {c['name']}: {c['commits']} commits, "
+            f"{c['prs']} PRs ({c['merged_prs']} merged), "
+            f"+{c['additions']}/-{c['deletions']} lines"
+            for i, c in enumerate(contributors_data)
+        )
+
+        if self.language == "zh":
+            prompt = f"""根据以下贡献者数据，生成一份简洁有趣的周贡献度排行榜。
+请用emoji和简短评语让排行榜更生动。
+
+贡献者数据（按贡献度排序）：
+{stats_text}
+
+时间范围：{report.start_date} ~ {report.end_date}
+总提交数：{report.total_commits}
+总PR数：{report.total_prs}（已合并：{report.total_merged_prs}）
+
+要求：
+1. 用🥇🥈🥉标注前三名
+2. 每个人配一句简短有趣的评语（10-20字）
+3. 最后加一句团队总结或鼓励语
+4. 保持简洁，总共不超过300字"""
+        else:
+            prompt = f"""Based on the contributor data below, generate a brief and fun weekly contribution leaderboard.
+Use emojis and short comments to make it engaging.
+
+Contributor data (sorted by contribution):
+{stats_text}
+
+Period: {report.start_date} ~ {report.end_date}
+Total commits: {report.total_commits}
+Total PRs: {report.total_prs} (merged: {report.total_merged_prs})
+
+Requirements:
+1. Use 🥇🥈🥉 for top 3
+2. Add a short fun comment for each person (10-20 words)
+3. End with a team summary or encouragement
+4. Keep it concise, under 300 words total"""
+
+        try:
+            messages = [{"role": "user", "content": prompt}]
+            response = client.chat(messages)
+            if hasattr(response, "content"):
+                return response.content
+            return str(response)
+        except Exception as e:
+            self.logger.warning(f"LLM leaderboard generation failed: {e}")
+            return self._generate_simple_leaderboard(report)
+
+    def _generate_simple_leaderboard(self, report: WeeklyReport) -> str:
+        """Generate a simple leaderboard without LLM."""
+        # Sort contributors by contribution score
+        sorted_contributors = sorted(
+            report.contributors,
+            key=lambda c: c.total_commits + c.merged_prs * 3,
+            reverse=True,
+        )
+
+        if self.language == "zh":
+            lines = ["## 🏆 本周贡献排行榜", ""]
+            medals = ["🥇", "🥈", "🥉"]
+            for i, c in enumerate(sorted_contributors):
+                medal = medals[i] if i < 3 else f"{i + 1}."
+                lines.append(
+                    f"{medal} **{c.username}** - "
+                    f"{c.total_commits} commits, {c.merged_prs} merged PRs"
+                )
+            lines.append("")
+            lines.append(
+                f"*本周团队共完成 {report.total_commits} 次提交，"
+                f"合并 {report.total_merged_prs} 个PR，继续加油！*"
+            )
+        else:
+            lines = ["## 🏆 Weekly Contribution Leaderboard", ""]
+            medals = ["🥇", "🥈", "🥉"]
+            for i, c in enumerate(sorted_contributors):
+                medal = medals[i] if i < 3 else f"{i + 1}."
+                lines.append(
+                    f"{medal} **{c.username}** - "
+                    f"{c.total_commits} commits, {c.merged_prs} merged PRs"
+                )
+            lines.append("")
+            lines.append(
+                f"*Team completed {report.total_commits} commits and "
+                f"merged {report.total_merged_prs} PRs this week. Keep it up!*"
+            )
+
+        return "\n".join(lines)
 
     def execute(self, data: dict[str, Any]) -> None:
         """Collect data for the report."""
@@ -930,6 +1065,11 @@ class ReportSink(SinkFunction):
             if llm_summary:
                 print(f"   Summary: {llm_summary[:200]}...")
 
+        # Generate and print leaderboard
+        print("\n" + "-" * 70)
+        leaderboard = self._generate_leaderboard(report)
+        print(leaderboard)
+
         print("\n" + "=" * 70)
         print(f" Generated in {elapsed:.2f}s")
         print("=" * 70 + "\n")
@@ -988,8 +1128,13 @@ class ReportSink(SinkFunction):
                     ]
                 )
 
+        # Add leaderboard section
+        leaderboard = self._generate_leaderboard(report)
         lines.extend(
             [
+                "",
+                leaderboard,
+                "",
                 "---",
                 f"*Report generated in {elapsed:.2f}s by SAGE Work Report Generator*",
             ]
@@ -1052,6 +1197,10 @@ class ReportSink(SinkFunction):
                 ),
             }
             data["contributors"].append(contrib_data)
+
+        # Add leaderboard
+        leaderboard = self._generate_leaderboard(report)
+        data["leaderboard"] = leaderboard
 
         content = json.dumps(data, indent=2, ensure_ascii=False)
 

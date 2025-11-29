@@ -136,6 +136,8 @@ def run_work_report_pipeline(
         output_path=output_path,
         repos=repos,
         days=days,
+        language=language,
+        use_llm=use_llm,
     )
 
     # Optionally add verbose logging
