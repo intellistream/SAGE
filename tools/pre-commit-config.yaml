@@ -325,6 +325,109 @@ repos:
     files: ^(quickstart\.sh|tools/install/.*\.sh|packages/.*/pyproject\.toml|packages/.*/setup\.py|\.github/workflows/.*\.yml)$
     # 也在手动运行 pre-commit run --all-files 时执行
     stages: [pre-commit, manual]
+  - id: root-directory-cleanup-check
+    name: check for unwanted files/directories in project root
+    entry: bash -c
+    args:
+    - |
+      # Whitelist mode: Only allow known files/directories in project root
+      # Any unexpected item will trigger a warning
+
+      # Allowed files in project root (whitelist)
+      allowed_files=(
+        ".env"
+        ".env.template"
+        ".github_token"
+        ".gitignore"
+        ".gitmodules"
+        ".pre-commit-config.yaml"
+        ".pypirc"
+        ".pyrightconfig.json"
+        "codecov.yml"
+        "CONTRIBUTING.md"
+        "coverage.xml"
+        "DEVELOPER.md"
+        "LICENSE"
+        "Makefile"
+        "manage.sh"
+        "quickstart.sh"
+        "README.md"
+        "CHANGELOG.md"
+      )
+
+      # Allowed directories in project root (whitelist)
+      allowed_dirs=(
+        ".benchmarks"
+        ".git"
+        ".github"
+        ".mypy_cache"
+        ".pytest_cache"
+        ".ruff_cache"
+        ".sage"
+        ".vscode"
+        "build"
+        "docs"
+        "docs-public"
+        "examples"
+        "htmlcov"
+        "packages"
+        "tools"
+      )
+
+      violations=""
+
+      # Check all items in project root
+      for item in * .*; do
+        # Skip . and ..
+        [ "$item" = "." ] || [ "$item" = ".." ] && continue
+        # Skip if item doesn't exist (glob didn't match)
+        [ -e "$item" ] || continue
+
+        allowed=false
+
+        if [ -d "$item" ]; then
+          # Check directories
+          for allowed_dir in "${allowed_dirs[@]}"; do
+            if [ "$item" = "$allowed_dir" ]; then
+              allowed=true
+              break
+            fi
+          done
+        else
+          # Check files
+          for allowed_file in "${allowed_files[@]}"; do
+            if [ "$item" = "$allowed_file" ]; then
+              allowed=true
+              break
+            fi
+          done
+        fi
+
+        if [ "$allowed" = false ]; then
+          violations="$violations$item\n"
+        fi
+      done
+
+      if [ -n "$violations" ]; then
+        echo "⚠️  警告: 项目根目录下存在未授权的文件/目录:"
+        echo -e "$violations" | grep -v "^$" | sed "s/^/  - /"
+        echo ""
+        echo "📁 可能的原因:"
+        echo "   - 运行脚本/测试时错误创建的临时目录"
+        echo "   - 临时文件未清理"
+        echo ""
+        echo "💡 建议:"
+        echo "   - 临时文件应放在 .sage/ 目录下"
+        echo "   - 如果是新增的合法文件/目录，请更新 tools/pre-commit-config.yaml 中的白名单"
+        echo ""
+        echo "📖 参考: docs/dev-notes/l6-tools/CACHE_MANAGEMENT.md"
+        exit 1
+      fi
+      exit 0
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages: [pre-commit, manual]
   # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
