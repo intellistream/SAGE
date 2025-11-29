@@ -32,6 +32,7 @@ Example:
 
 from __future__ import annotations
 
+import importlib
 import logging
 import os
 import time
@@ -225,6 +226,7 @@ class UnifiedInferenceClient:
         self._llm_client: OpenAI | None = None
         self._embedding_client: OpenAI | httpx.Client | None = None
         self._control_plane_manager: Any = None
+        self._control_plane_policy: Any = None
 
         # Track availability
         self._llm_available = False
@@ -304,11 +306,48 @@ class UnifiedInferenceClient:
             "scheduling_policy": "hybrid",
         }
 
+        try:
+            manager_module = importlib.import_module(
+                "sage.common.components.sage_llm.sageLLM.control_plane.manager"
+            )
+            policy_module = importlib.import_module(
+                "sage.common.components.sage_llm.sageLLM.control_plane.strategies.hybrid_policy"
+            )
+
+            control_plane_manager_cls = manager_module.ControlPlaneManager
+            hybrid_policy_cls = policy_module.HybridSchedulingPolicy
+        except Exception as exc:  # noqa: BLE001
+            self._fallback_to_simple_mode("Control Plane dependencies unavailable", error=exc)
+            return
+
+        try:
+            # Lazily instantiate manager and policy to ensure dependencies work.
+            self._control_plane_manager = control_plane_manager_cls(
+                scheduling_policy=self._control_plane_config["scheduling_policy"]
+            )
+            self._control_plane_policy = hybrid_policy_cls()
+        except Exception as exc:  # noqa: BLE001
+            self._fallback_to_simple_mode("Control Plane initialization failed", error=exc)
+            return
+
         logger.info(
             "Control Plane mode initialized (LLM backends: %d, Embedding backends: %d)",
             len(self._control_plane_config["llm_backends"]),
             len(self._control_plane_config["embedding_backends"]),
         )
+
+    def _fallback_to_simple_mode(self, reason: str, error: Exception | None = None) -> None:
+        """Gracefully fall back to Simple mode when Control Plane init fails."""
+
+        if error:
+            logger.warning("%s. Falling back to Simple mode: %s", reason, error)
+        else:
+            logger.warning("%s. Falling back to Simple mode", reason)
+
+        self.mode = UnifiedClientMode.SIMPLE
+        self.config.mode = UnifiedClientMode.SIMPLE
+        self._control_plane_manager = None
+        self._control_plane_policy = None
 
     # ==================== Factory Methods ====================
 
