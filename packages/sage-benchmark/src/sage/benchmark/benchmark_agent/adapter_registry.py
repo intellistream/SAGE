@@ -1,13 +1,52 @@
 """
 Strategy Adapter Registry
 
-Provides a unified registry for mapping strategy names (e.g., "baseline.keyword")
+Provides a unified registry for mapping strategy names (e.g., "selector.keyword")
 to actual selector/planner/timing implementations from sage-libs.
 
 This bridges the benchmark experiments with the runtime components.
+
+Method Classification:
+=====================
+
+Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Adapters):
+    Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
+    Planning: simple, hierarchical, llm_based, react, tot
+    Timing: rule_based, llm_based, hybrid, embedding
+
+Paper 2 (Method) - SAGE-Agent Framework (Training Strategies):
+    Core Components:
+    - SSIS: Streaming Sample Importance Scorer
+    - Priority Replay: Importance-Weighted Experience Buffer
+    - Cross-Task Attention: Unified Multi-Task Network
+
+    Training Configurations (run_full_training_comparison.py):
+    - SAGE_sft_baseline: Standard SFT (ablation baseline)
+    - SAGE_ssis_only: + Streaming Sample Importance Scorer
+    - SAGE_ssis_replay: + Priority Replay Buffer
+    - SAGE_full: Complete SAGE-Agent
+
+Usage:
+    >>> registry = get_adapter_registry()
+    >>> selector = registry.get("selector.keyword", resources)
+    >>> planner = registry.get("planner.react", resources)
 """
 
 from typing import Any, Callable, Optional, Protocol
+
+# =============================================================================
+# Experiment Configuration Constants (for controlled variable experiments)
+# =============================================================================
+# These constants ensure all methods use the same underlying models/parameters
+# to enable fair comparison (控制变量法)
+
+# Embedding model: all embedding-based methods use the same model
+BENCHMARK_EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
+
+# LLM temperature: low value for reproducibility in benchmark evaluation
+BENCHMARK_LLM_TEMPERATURE = 0.1
+
+# =============================================================================
 
 # Lazy imports to avoid circular dependencies
 _SELECTOR_REGISTRY = None
@@ -25,9 +64,10 @@ class StrategyProtocol(Protocol):
 
 class SelectorAdapter:
     """
-    Adapter wrapping tool selectors to provide unified predict() interface.
+    Adapter wrapping tool selectors to provide unified predict()/select() interface.
 
     Maps the selector's select() method to predict() for benchmark compatibility.
+    Also provides select() method for run_all_experiments.py compatibility.
     """
 
     def __init__(self, selector: Any):
@@ -65,6 +105,76 @@ class SelectorAdapter:
         k = top_k if top_k is not None else 5
         return self.selector.select(selector_query, top_k=k)
 
+    def select(self, query: Any, candidate_tools: Optional[list] = None, top_k: int = 5) -> list:
+        """
+        Select tools for a query (alias for predict with simpler interface).
+
+        This method is provided for compatibility with run_all_experiments.py
+        which calls selector.select(query, candidate_tools, top_k=top_k).
+
+        Args:
+            query: Either a string (instruction) or ToolSelectionQuery object
+            candidate_tools: Optional list of candidate tools (may be ignored if
+                           selector has its own tool corpus)
+            top_k: Number of tools to select
+
+        Returns:
+            List of ToolPrediction objects or tool IDs
+        """
+        from sage.libs.agentic.agents.action.tool_selection.schemas import (
+            ToolSelectionQuery as SelectorQuery,
+        )
+
+        # Ensure candidate_tools is always a list (never None)
+        tools = candidate_tools if candidate_tools is not None else []
+
+        # Handle string query (from run_all_experiments.py)
+        if isinstance(query, str):
+            selector_query = SelectorQuery(
+                sample_id="runtime",
+                instruction=query,
+                candidate_tools=tools,
+                context={},
+            )
+        # Handle dict query
+        elif isinstance(query, dict):
+            tools_from_dict = query.get("candidate_tools", [])
+            selector_query = SelectorQuery(
+                sample_id=query.get("sample_id", "runtime"),
+                instruction=query.get("instruction", str(query)),
+                candidate_tools=tools if tools else (tools_from_dict or []),
+                context=query.get("context", {}),
+            )
+        # Handle query object with attributes
+        elif hasattr(query, "instruction"):
+            tools_from_obj = getattr(query, "candidate_tools", [])
+            selector_query = SelectorQuery(
+                sample_id=getattr(query, "sample_id", "runtime"),
+                instruction=query.instruction,
+                candidate_tools=tools if tools else (tools_from_obj or []),
+                context=getattr(query, "context", {}),
+            )
+        else:
+            # Fallback: treat query as instruction string
+            selector_query = SelectorQuery(
+                sample_id="runtime",
+                instruction=str(query),
+                candidate_tools=tools,
+                context={},
+            )
+
+        try:
+            result = self.selector.select(selector_query, top_k=top_k)
+            return result
+        except Exception as e:
+            # If selector fails, return empty list with debug info
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Selector failed for query '{str(query)[:50]}...': {e}"
+            )
+            return []
+
 
 class PlannerAdapter:
     """
@@ -93,9 +203,35 @@ class PlannerAdapter:
         return self.planner.plan(task)
 
 
+class UnifiedTimingMessage:
+    """
+    Unified timing message that provides both .message and .user_message attributes.
+
+    This ensures compatibility with:
+    - Local deciders in adapter_registry.py (expect .message)
+    - sage-libs timing_decider.py (expects .user_message)
+    """
+
+    def __init__(
+        self,
+        user_message: str,
+        conversation_history: list = None,
+        last_tool_call: Any = None,
+        context: dict = None,
+    ):
+        self.user_message = user_message
+        self.message = user_message  # Alias for compatibility with local deciders
+        self.conversation_history = conversation_history or []
+        self.last_tool_call = last_tool_call
+        self.context = context or {}
+
+
 class TimingAdapter:
     """
     Adapter wrapping timing deciders to provide unified decide() interface.
+
+    Handles conversion between experiment TimingMessage format and
+    sage-libs schemas.TimingMessage format.
     """
 
     def __init__(self, decider: Any):
@@ -112,12 +248,55 @@ class TimingAdapter:
         Make timing decision.
 
         Args:
-            message: TimingMessage from experiment
+            message: TimingMessage from experiment (has .message attribute)
+                     or dict with 'instruction'/'message' key
 
         Returns:
             TimingDecision with should_call_tool, confidence, reasoning
         """
-        return self.decider.decide(message)
+        # Convert to UnifiedTimingMessage which has both .message and .user_message
+        if isinstance(message, dict):
+            # Handle dict input (e.g., from tests or direct API calls)
+            user_msg = (
+                message.get("instruction")
+                or message.get("message")
+                or message.get("user_message", "")
+            )
+            unified_message = UnifiedTimingMessage(
+                user_message=user_msg,
+                conversation_history=message.get("conversation_history", []),
+                last_tool_call=message.get("last_tool_call"),
+                context=message.get("context", {}),
+            )
+        elif hasattr(message, "user_message") and hasattr(message, "message"):
+            # Already has both attributes (e.g., UnifiedTimingMessage)
+            unified_message = message
+        elif hasattr(message, "user_message"):
+            # schemas.TimingMessage format (sage-libs)
+            unified_message = UnifiedTimingMessage(
+                user_message=message.user_message,
+                conversation_history=getattr(message, "conversation_history", []),
+                last_tool_call=getattr(message, "last_tool_call", None),
+                context=getattr(message, "context", {}),
+            )
+        elif hasattr(message, "message"):
+            # Experiment's TimingMessage (has .message instead of .user_message)
+            unified_message = UnifiedTimingMessage(
+                user_message=message.message,
+                conversation_history=getattr(message, "conversation_history", []),
+                last_tool_call=getattr(message, "last_tool_call", None),
+                context=getattr(message, "context", {}),
+            )
+        else:
+            # Fallback: treat as string
+            unified_message = UnifiedTimingMessage(
+                user_message=str(message),
+                conversation_history=[],
+                last_tool_call=None,
+                context={},
+            )
+
+        return self.decider.decide(unified_message)
 
 
 class AdapterRegistry:
@@ -129,6 +308,10 @@ class AdapterRegistry:
 
     def __init__(self):
         """Initialize registry with built-in strategies."""
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+
         self._selectors: dict[str, Any] = {}
         self._planners: dict[str, Any] = {}
         self._timing_deciders: dict[str, Any] = {}
@@ -138,8 +321,25 @@ class AdapterRegistry:
         self._register_builtins()
 
     def _register_builtins(self) -> None:
-        """Register built-in baseline strategies."""
-        # Selector factories
+        """Register built-in baseline strategies.
+
+        Method Classification:
+        =====================
+
+        Paper 1 (Benchmark) - Existing SOTA Methods:
+        - Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
+        - Planning: simple, hierarchical, llm_based, react, tot
+        - Timing: rule_based, llm_based, hybrid, embedding
+
+        Paper 2 (Method) - SAGE Original Methods:
+        - Training: SAGE_baseline_sft, SAGE_coreset_loss, SAGE_coreset_diversity,
+                   SAGE_coreset_hybrid, SAGE_continual, SAGE_combined
+        - (Defined in run_full_training_comparison.py, not runtime adapters)
+        """
+        # =================================================================
+        # Paper 1: Existing SOTA Selector Strategies
+        # =================================================================
+        # BM25/TF-IDF keyword-based selection
         self._factories["baseline.keyword"] = self._create_keyword_selector
         self._factories["baseline.embedding"] = self._create_embedding_selector
         self._factories["baseline.hybrid"] = self._create_hybrid_selector
@@ -150,16 +350,18 @@ class AdapterRegistry:
         self._factories["selector.keyword"] = self._create_keyword_selector
         self._factories["selector.embedding"] = self._create_embedding_selector
         self._factories["selector.hybrid"] = self._create_hybrid_selector
-        # SOTA selector strategies
+        # Gorilla: LLM-augmented retrieval (Patil et al., 2023)
         self._factories["selector.gorilla"] = self._create_gorilla_selector
         self._factories["gorilla"] = self._create_gorilla_selector
-        # ToolLLM DFSDT selector
+        # ToolLLM DFSDT: Depth-First Search Decision Tree (Qin et al., 2023)
         self._factories["selector.dfsdt"] = self._create_dfsdt_selector
         self._factories["selector.toolllm"] = self._create_dfsdt_selector  # Alias
         self._factories["dfsdt"] = self._create_dfsdt_selector
         self._factories["toolllm"] = self._create_dfsdt_selector  # Alias
 
-        # Planner factories
+        # =================================================================
+        # Paper 1: Existing SOTA Planner Strategies
+        # =================================================================
         self._factories["baseline.template"] = self._create_template_planner
         self._factories["baseline.hierarchical"] = self._create_hierarchical_planner
         self._factories["cot"] = self._create_hierarchical_planner
@@ -168,14 +370,16 @@ class AdapterRegistry:
         self._factories["planner.simple"] = self._create_simple_planner
         self._factories["planner.hierarchical"] = self._create_hierarchical_planning_strategy
         self._factories["planner.llm_based"] = self._create_llm_planning_strategy
-        # ReAct planner (SOTA strategy)
+        # ReAct: Reasoning + Acting (Yao et al., 2023)
         self._factories["planner.react"] = self._create_react_planner
         self._factories["react"] = self._create_react_planner  # Alias
-        # Tree-of-Thoughts planner (SOTA strategy)
+        # Tree-of-Thoughts: Multi-path reasoning (Yao et al., 2023)
         self._factories["planner.tot"] = self._create_tot_planner
         self._factories["planner.tree_of_thoughts"] = self._create_tot_planner  # Alias
 
-        # Timing factories
+        # =================================================================
+        # Paper 1: Existing SOTA Timing Strategies
+        # =================================================================
         self._factories["baseline.threshold"] = self._create_threshold_decider
         self._factories["llm_based"] = self._create_llm_timing_decider
         # New timing strategies for benchmark
@@ -245,73 +449,318 @@ class AdapterRegistry:
     # --- Factory methods for built-in strategies ---
 
     def _create_keyword_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
-        """Create keyword-based selector."""
-        from sage.libs.agentic.agents.action.tool_selection import (
-            KeywordSelector,
-            KeywordSelectorConfig,
-        )
+        """
+        Create keyword-based selector using BM25/TF-IDF.
 
-        config = KeywordSelectorConfig(
-            name="keyword",
-            method="bm25",
-            top_k=5,
-        )
+        This implementation uses dynamic indexing - it processes the candidate_tools
+        provided in each query, enabling cross-dataset evaluation.
+        """
 
-        if resources is None:
-            # Create minimal resources with mock tools loader
-            resources = self._create_mock_resources()
+        class DynamicKeywordSelector:
+            """Dynamic keyword selector using BM25 on candidate_tools."""
 
-        selector = KeywordSelector(config, resources)
-        return SelectorAdapter(selector)
+            def __init__(self):
+                self.name = "keyword"
+
+            def select(self, query, top_k=5):
+                """Select tools using BM25 keyword matching."""
+                import math
+                import re
+
+                from sage.libs.agentic.agents.action.tool_selection.schemas import (
+                    ToolPrediction,
+                )
+
+                candidate_tools = getattr(query, "candidate_tools", []) or []
+                if not candidate_tools:
+                    return []
+
+                instruction = getattr(query, "instruction", str(query))
+
+                # Tokenize query
+                query_tokens = set(re.findall(r"[a-z0-9]+", instruction.lower()))
+                if not query_tokens:
+                    return []
+
+                # Build tool texts and tokenize
+                tool_data = []
+                for tool in candidate_tools:
+                    if isinstance(tool, str):
+                        tool_id = tool
+                        tool_text = tool.replace("_", " ")
+                    elif hasattr(tool, "name"):
+                        tool_id = getattr(tool, "tool_id", getattr(tool, "id", tool.name))
+                        tool_text = f"{tool.name} {getattr(tool, 'description', '')}"
+                    elif isinstance(tool, dict):
+                        tool_id = tool.get("tool_id", tool.get("id", tool.get("name", "")))
+                        tool_text = f"{tool.get('name', '')} {tool.get('description', '')}"
+                    else:
+                        continue
+                    tool_tokens = set(re.findall(r"[a-z0-9]+", tool_text.lower()))
+                    tool_data.append((tool_id, tool_tokens, len(tool_tokens)))
+
+                if not tool_data:
+                    return []
+
+                # Compute IDF
+                num_docs = len(tool_data)
+                doc_freq = {}
+                for _, tokens, _ in tool_data:
+                    for token in tokens:
+                        doc_freq[token] = doc_freq.get(token, 0) + 1
+                idf = {t: math.log((num_docs + 1) / (df + 1)) for t, df in doc_freq.items()}
+
+                # BM25 scoring
+                k1, b = 1.5, 0.75
+                avg_dl = sum(dl for _, _, dl in tool_data) / num_docs if num_docs else 1
+
+                scores = []
+                for tool_id, tool_tokens, doc_len in tool_data:
+                    score = 0.0
+                    for token in query_tokens:
+                        if token in tool_tokens:
+                            tf = 1  # Binary TF
+                            score += (
+                                idf.get(token, 0)
+                                * (tf * (k1 + 1))
+                                / (tf + k1 * (1 - b + b * doc_len / avg_dl))
+                            )
+                    scores.append((tool_id, score))
+
+                # Sort and return top-k
+                scores.sort(key=lambda x: x[1], reverse=True)
+                return [
+                    ToolPrediction(tool_id=tid, score=min(s / 10, 1.0)) for tid, s in scores[:top_k]
+                ]
+
+        return SelectorAdapter(DynamicKeywordSelector())
 
     def _create_embedding_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
-        """Create embedding-based selector."""
-        from sage.libs.agentic.agents.action.tool_selection import (
-            EmbeddingSelector,
-            EmbeddingSelectorConfig,
-        )
+        """
+        Create embedding-based selector using cosine similarity.
 
-        config = EmbeddingSelectorConfig(
-            name="embedding",
-            embedding_model="default",
-            similarity_metric="cosine",
-            top_k=5,
-        )
+        This implementation uses dynamic indexing - it embeds the candidate_tools
+        provided in each query, enabling cross-dataset evaluation.
+        """
 
-        if resources is None or resources.embedding_client is None:
-            # Fallback to keyword selector if no embedding client
-            return self._create_keyword_selector(resources)
+        class DynamicEmbeddingSelector:
+            """Dynamic embedding selector on candidate_tools."""
 
-        selector = EmbeddingSelector(config, resources)
-        return SelectorAdapter(selector)
+            def __init__(self):
+                self.name = "embedding"
+                self._embedding_client = None
+
+            def _init_client(self):
+                if self._embedding_client is None:
+                    try:
+                        from sage.common.components.sage_embedding import (
+                            EmbeddingClientAdapter,
+                            EmbeddingFactory,
+                        )
+
+                        raw_embedder = EmbeddingFactory.create(
+                            "hf", model=BENCHMARK_EMBEDDING_MODEL
+                        )
+                        self._embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    except Exception:
+                        pass
+
+            def select(self, query, top_k=5):
+                """Select tools using embedding similarity."""
+                import numpy as np
+
+                from sage.libs.agentic.agents.action.tool_selection.schemas import (
+                    ToolPrediction,
+                )
+
+                self._init_client()
+
+                candidate_tools = getattr(query, "candidate_tools", []) or []
+                if not candidate_tools:
+                    return []
+
+                instruction = getattr(query, "instruction", str(query))
+
+                # Build tool texts
+                tool_ids = []
+                tool_texts = []
+                for tool in candidate_tools:
+                    if isinstance(tool, str):
+                        tool_ids.append(tool)
+                        tool_texts.append(tool.replace("_", " "))
+                    elif hasattr(tool, "name"):
+                        tool_ids.append(getattr(tool, "tool_id", getattr(tool, "id", tool.name)))
+                        tool_texts.append(f"{tool.name}: {getattr(tool, 'description', '')}")
+                    elif isinstance(tool, dict):
+                        tool_ids.append(tool.get("tool_id", tool.get("id", tool.get("name", ""))))
+                        tool_texts.append(f"{tool.get('name', '')}: {tool.get('description', '')}")
+
+                if not tool_texts or self._embedding_client is None:
+                    # Fallback to simple matching
+                    return [ToolPrediction(tool_id=tid, score=0.5) for tid in tool_ids[:top_k]]
+
+                try:
+                    # Embed query and tools
+                    all_texts = [instruction] + tool_texts
+                    embeddings = self._embedding_client.embed(all_texts)
+
+                    query_emb = np.asarray(embeddings[0])
+                    tool_embs = np.asarray(embeddings[1:])
+
+                    # Cosine similarity
+                    query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+                    tool_norms = tool_embs / (
+                        np.linalg.norm(tool_embs, axis=1, keepdims=True) + 1e-8
+                    )
+                    scores = np.dot(tool_norms, query_norm)
+
+                    # Sort and return top-k
+                    top_indices = np.argsort(scores)[::-1][:top_k]
+                    return [
+                        ToolPrediction(tool_id=tool_ids[i], score=float(scores[i]))
+                        for i in top_indices
+                    ]
+                except Exception:
+                    return [ToolPrediction(tool_id=tid, score=0.5) for tid in tool_ids[:top_k]]
+
+        return SelectorAdapter(DynamicEmbeddingSelector())
 
     def _create_hybrid_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
-        """Create hybrid selector combining keyword and embedding."""
-        # Try to import HybridSelector from the library
-        try:
-            from sage.libs.agentic.agents.action.tool_selection import (
-                HybridSelector,
-                HybridSelectorConfig,
-            )
+        """
+        Create hybrid selector combining keyword (BM25) and embedding similarity.
 
-            config = HybridSelectorConfig(
-                name="hybrid",
-                keyword_weight=0.4,
-                embedding_weight=0.6,
-                keyword_method="bm25",
-                embedding_model="default",
-                fusion_method="weighted_sum",
-                top_k=5,
-            )
+        This implementation uses dynamic indexing - it processes the candidate_tools
+        provided in each query, enabling cross-dataset evaluation.
+        """
 
-            if resources is None:
-                resources = self._create_mock_resources()
+        class DynamicHybridSelector:
+            """Dynamic hybrid selector: 40% keyword + 60% embedding."""
 
-            selector = HybridSelector(config, resources)
-            return SelectorAdapter(selector)
-        except ImportError:
-            # Fallback: create inline hybrid selector
-            return self._create_inline_hybrid_selector(resources)
+            def __init__(self):
+                self.name = "hybrid"
+                self._embedding_client = None
+                self._keyword_weight = 0.4
+                self._embedding_weight = 0.6
+
+            def _init_client(self):
+                if self._embedding_client is None:
+                    try:
+                        from sage.common.components.sage_embedding import (
+                            EmbeddingClientAdapter,
+                            EmbeddingFactory,
+                        )
+
+                        raw_embedder = EmbeddingFactory.create(
+                            "hf", model=BENCHMARK_EMBEDDING_MODEL
+                        )
+                        self._embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    except Exception:
+                        pass
+
+            def select(self, query, top_k=5):
+                """Select tools using hybrid scoring."""
+                import math
+                import re
+
+                import numpy as np
+
+                from sage.libs.agentic.agents.action.tool_selection.schemas import (
+                    ToolPrediction,
+                )
+
+                self._init_client()
+
+                candidate_tools = getattr(query, "candidate_tools", []) or []
+                if not candidate_tools:
+                    return []
+
+                instruction = getattr(query, "instruction", str(query))
+
+                # Build tool data
+                tool_ids = []
+                tool_texts = []
+                for tool in candidate_tools:
+                    if isinstance(tool, str):
+                        tool_ids.append(tool)
+                        tool_texts.append(tool.replace("_", " "))
+                    elif hasattr(tool, "name"):
+                        tool_ids.append(getattr(tool, "tool_id", getattr(tool, "id", tool.name)))
+                        tool_texts.append(f"{tool.name}: {getattr(tool, 'description', '')}")
+                    elif isinstance(tool, dict):
+                        tool_ids.append(tool.get("tool_id", tool.get("id", tool.get("name", ""))))
+                        tool_texts.append(f"{tool.get('name', '')}: {tool.get('description', '')}")
+
+                if not tool_ids:
+                    return []
+
+                # === Keyword scores (BM25) ===
+                query_tokens = set(re.findall(r"[a-z0-9]+", instruction.lower()))
+                tool_tokens_list = [set(re.findall(r"[a-z0-9]+", t.lower())) for t in tool_texts]
+
+                # IDF
+                num_docs = len(tool_ids)
+                doc_freq = {}
+                for tokens in tool_tokens_list:
+                    for token in tokens:
+                        doc_freq[token] = doc_freq.get(token, 0) + 1
+                idf = {t: math.log((num_docs + 1) / (df + 1)) for t, df in doc_freq.items()}
+
+                # BM25
+                k1, b = 1.5, 0.75
+                avg_dl = sum(len(t) for t in tool_tokens_list) / num_docs if num_docs else 1
+
+                keyword_scores = []
+                for tool_tokens in tool_tokens_list:
+                    score = 0.0
+                    doc_len = len(tool_tokens)
+                    for token in query_tokens:
+                        if token in tool_tokens:
+                            tf = 1
+                            score += (
+                                idf.get(token, 0)
+                                * (tf * (k1 + 1))
+                                / (tf + k1 * (1 - b + b * doc_len / avg_dl))
+                            )
+                    keyword_scores.append(score)
+
+                # Normalize keyword scores
+                max_kw = max(keyword_scores) if keyword_scores and max(keyword_scores) > 0 else 1
+                keyword_scores = [s / max_kw for s in keyword_scores]
+
+                # === Embedding scores ===
+                embedding_scores = [0.0] * len(tool_ids)
+                if self._embedding_client is not None:
+                    try:
+                        all_texts = [instruction] + tool_texts
+                        embeddings = self._embedding_client.embed(all_texts)
+
+                        query_emb = np.asarray(embeddings[0])
+                        tool_embs = np.asarray(embeddings[1:])
+
+                        query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+                        tool_norms = tool_embs / (
+                            np.linalg.norm(tool_embs, axis=1, keepdims=True) + 1e-8
+                        )
+                        embedding_scores = list(np.dot(tool_norms, query_norm))
+                    except Exception:
+                        pass
+
+                # === Combine scores ===
+                combined = [
+                    (
+                        tool_ids[i],
+                        self._keyword_weight * keyword_scores[i]
+                        + self._embedding_weight * embedding_scores[i],
+                    )
+                    for i in range(len(tool_ids))
+                ]
+                combined.sort(key=lambda x: x[1], reverse=True)
+
+                return [
+                    ToolPrediction(tool_id=tid, score=min(s, 1.0)) for tid, s in combined[:top_k]
+                ]
+
+        return SelectorAdapter(DynamicHybridSelector())
 
     def _create_gorilla_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
         """
@@ -322,55 +771,159 @@ class AdapterRegistry:
         2. LLM selection from retrieved candidates
 
         Reference: Patil et al. (2023) "Gorilla: Large Language Model Connected with Massive APIs"
+
+        This implementation uses dynamic indexing - it builds embeddings from the
+        candidate_tools provided in each query, enabling cross-dataset evaluation.
         """
-        try:
-            from sage.libs.agentic.agents.action.tool_selection import (
-                GorillaSelector,
-                GorillaSelectorConfig,
-            )
 
-            config = GorillaSelectorConfig(
-                name="gorilla",
-                top_k_retrieve=20,
-                top_k_select=5,
-                embedding_model="default",
-                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
-                similarity_metric="cosine",
-                temperature=0.1,
-                use_detailed_docs=True,
-                max_context_tools=15,
-            )
+        class DynamicGorillaSelector:
+            """Gorilla selector with dynamic tool indexing."""
 
-            if resources is None:
-                resources = self._create_mock_resources()
+            def __init__(self):
+                self._embedding_client = None
+                self._llm_client = None
+                self.name = "gorilla"
 
-            # Gorilla requires embedding client
-            if resources.embedding_client is None:
-                # Try to create embedding client
+            def _init_clients(self):
+                """Lazy initialization of embedding and LLM clients."""
+                if self._embedding_client is None:
+                    # Try local HuggingFace embedding first
+                    try:
+                        from sage.common.components.sage_embedding import (
+                            EmbeddingClientAdapter,
+                            EmbeddingFactory,
+                        )
+
+                        raw_embedder = EmbeddingFactory.create(
+                            "hf", model=BENCHMARK_EMBEDDING_MODEL
+                        )
+                        self._embedding_client = EmbeddingClientAdapter(raw_embedder)
+                    except Exception:
+                        pass
+
+                if self._llm_client is None:
+                    try:
+                        from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                        self._llm_client = UnifiedInferenceClient.create_auto()
+                    except Exception:
+                        pass
+
+            def select(self, query, top_k=5):
+                """Select tools using embedding retrieval + LLM reranking."""
+                import logging
+
+                import numpy as np
+
+                from sage.libs.agentic.agents.action.tool_selection.schemas import (
+                    ToolPrediction,
+                )
+
+                logger = logging.getLogger(__name__)
+                self._init_clients()
+
+                candidate_tools = getattr(query, "candidate_tools", []) or []
+                if not candidate_tools:
+                    return []
+
+                instruction = getattr(query, "instruction", str(query))
+
+                # Parse candidate tools into (tool_id, tool_text) pairs
+                tool_ids, tool_texts = [], []
+                for tool in candidate_tools:
+                    if isinstance(tool, str):
+                        tool_ids.append(tool)
+                        tool_texts.append(tool)
+                    elif hasattr(tool, "name"):
+                        tid = getattr(tool, "tool_id", getattr(tool, "id", tool.name))
+                        tool_ids.append(tid)
+                        tool_texts.append(f"{tool.name}: {getattr(tool, 'description', '')}")
+                    elif isinstance(tool, dict):
+                        tid = tool.get("tool_id", tool.get("id", tool.get("name", "")))
+                        tool_ids.append(tid)
+                        tool_texts.append(f"{tool.get('name', tid)}: {tool.get('description', '')}")
+
+                if not tool_ids:
+                    return []
+
+                # Fallback if no embedding client
+                if self._embedding_client is None:
+                    return [ToolPrediction(tool_id=tid, score=0.5) for tid in tool_ids[:top_k]]
+
                 try:
-                    from sage.common.components.sage_embedding.factory import EmbeddingFactory
+                    # Embed query and tools
+                    embeddings = self._embedding_client.embed([instruction] + tool_texts)
+                    query_emb = np.asarray(embeddings[0])
+                    tool_embs = np.asarray(embeddings[1:])
 
-                    embedding_client = EmbeddingFactory.create("hf", model="BAAI/bge-small-zh-v1.5")
-                    resources.embedding_client = embedding_client
-                except Exception:
-                    # Fall back to hybrid selector if embedding not available
-                    self.logger.warning(
-                        "Gorilla selector requires embedding client. "
-                        "Falling back to hybrid selector."
+                    # Cosine similarity
+                    query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+                    tool_norms = tool_embs / (
+                        np.linalg.norm(tool_embs, axis=1, keepdims=True) + 1e-8
                     )
-                    return self._create_hybrid_selector(resources)
+                    scores = np.dot(tool_norms, query_norm)
 
-            selector = GorillaSelector(config, resources)
-            return SelectorAdapter(selector)
+                    # Get top candidates for LLM reranking
+                    retrieve_k = min(15, len(tool_ids))
+                    top_indices = np.argsort(scores)[::-1][:retrieve_k]
 
-        except ImportError as e:
-            # Fallback to hybrid selector
-            import logging
+                    # LLM reranking if available
+                    if self._llm_client is not None:
+                        reranked = self._llm_rerank(
+                            instruction,
+                            [(tool_ids[i], tool_texts[i]) for i in top_indices],
+                            top_k,
+                        )
+                        if reranked:
+                            return [
+                                ToolPrediction(tool_id=tid, score=1.0 - i * 0.1)
+                                for i, tid in enumerate(reranked)
+                            ]
 
-            logging.getLogger(__name__).warning(
-                f"GorillaSelector not available ({e}), falling back to hybrid"
-            )
-            return self._create_hybrid_selector(resources)
+                    # Fallback to embedding-only
+                    return [
+                        ToolPrediction(tool_id=tool_ids[i], score=float(scores[i]))
+                        for i in top_indices[:top_k]
+                    ]
+
+                except Exception as e:
+                    logger.warning(f"Gorilla selector failed: {e}")
+                    return []
+
+            def _llm_rerank(self, query, tools, top_k):
+                """Use LLM to rerank retrieved tools."""
+                import json
+                import re
+
+                tools_text = "\n".join(
+                    f"{i + 1}. {tid}: {desc}" for i, (tid, desc) in enumerate(tools)
+                )
+                prompt = f"""Select the {top_k} most relevant tools for this task. Return ONLY a JSON array of tool IDs.
+
+Task: {query}
+
+Tools:
+{tools_text}
+
+Output (JSON array only):"""
+
+                try:
+                    response = self._llm_client.chat(
+                        [{"role": "user", "content": prompt}], temperature=BENCHMARK_LLM_TEMPERATURE
+                    )
+                    response = response.strip()
+                    if response.startswith("```"):
+                        response = "\n".join(response.split("\n")[1:-1]).strip()
+                    match = re.search(r"\[.*?\]", response, re.DOTALL)
+                    if match:
+                        selected = json.loads(match.group())
+                        valid_ids = {tid for tid, _ in tools}
+                        return [tid for tid in selected if tid in valid_ids][:top_k]
+                except Exception:
+                    pass
+                return []
+
+        return SelectorAdapter(DynamicGorillaSelector())
 
     def _create_dfsdt_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
         """
@@ -379,45 +932,93 @@ class AdapterRegistry:
         Based on ToolLLM paper (Qin et al., 2023):
         "ToolLLM: Facilitating Large Language Models to Master 16000+ Real-world APIs"
 
-        Key features:
-        - LLM-guided scoring for semantic understanding
-        - Tree search for exploring multiple tool combinations
-        - Diversity prompting to avoid local optima
-        - Keyword pre-filtering for efficiency
+        This implementation uses dynamic scoring - it evaluates the candidate_tools
+        provided in each query, enabling cross-dataset evaluation.
         """
-        try:
-            from sage.libs.agentic.agents.action.tool_selection import (
-                DFSDTSelector,
-                DFSDTSelectorConfig,
-            )
 
-            config = DFSDTSelectorConfig(
-                name="dfsdt",
-                max_depth=3,
-                beam_width=5,
-                llm_model="auto",  # Uses IntelligentLLMClient.create_auto()
-                temperature=0.1,
-                use_diversity_prompt=True,
-                score_threshold=0.3,
-                use_keyword_prefilter=True,
-                prefilter_k=20,
-                top_k=5,
-            )
+        class DynamicDFSDTSelector:
+            """DFSDT selector with dynamic tool scoring."""
 
-            if resources is None:
-                resources = self._create_mock_resources()
+            def __init__(self):
+                self._llm_client = None
+                self._score_threshold = 0.3
+                self.name = "dfsdt"
 
-            selector = DFSDTSelector(config, resources)
-            return SelectorAdapter(selector)
+            def _init_client(self):
+                """Lazy initialization of LLM client."""
+                if self._llm_client is None:
+                    try:
+                        from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        except ImportError as e:
-            # Fallback to hybrid selector
-            import logging
+                        self._llm_client = UnifiedInferenceClient.create_auto()
+                    except Exception:
+                        pass
 
-            logging.getLogger(__name__).warning(
-                f"DFSDTSelector not available ({e}), falling back to hybrid"
-            )
-            return self._create_hybrid_selector(resources)
+            def select(self, query, top_k=5):
+                """Select tools using LLM-based scoring."""
+
+                from sage.libs.agentic.agents.action.tool_selection.schemas import (
+                    ToolPrediction,
+                )
+
+                self._init_client()
+
+                candidate_tools = getattr(query, "candidate_tools", []) or []
+                if not candidate_tools:
+                    return []
+
+                instruction = getattr(query, "instruction", str(query))
+
+                # Parse and score each tool
+                scored_tools = []
+                for tool in candidate_tools:
+                    if isinstance(tool, str):
+                        tool_id, tool_name, tool_desc = tool, tool, ""
+                    elif hasattr(tool, "name"):
+                        tool_id = getattr(tool, "tool_id", getattr(tool, "id", tool.name))
+                        tool_name, tool_desc = tool.name, getattr(tool, "description", "")
+                    elif isinstance(tool, dict):
+                        tool_id = tool.get("tool_id", tool.get("id", tool.get("name", "")))
+                        tool_name = tool.get("name", tool_id)
+                        tool_desc = tool.get("description", "")
+                    else:
+                        continue
+
+                    score = self._score_tool(instruction, tool_name, tool_desc)
+                    if score >= self._score_threshold:
+                        scored_tools.append((tool_id, score))
+
+                scored_tools.sort(key=lambda x: x[1], reverse=True)
+                return [
+                    ToolPrediction(tool_id=tid, score=score) for tid, score in scored_tools[:top_k]
+                ]
+
+            def _score_tool(self, query, tool_name, tool_desc):
+                """Score tool relevance using LLM or keyword fallback."""
+                import re
+
+                if self._llm_client is not None:
+                    prompt = f"""Rate relevance (0-10): Query: {query} | Tool: {tool_name} - {tool_desc}
+Output only a number:"""
+                    try:
+                        response = self._llm_client.chat(
+                            [{"role": "user", "content": prompt}],
+                            temperature=BENCHMARK_LLM_TEMPERATURE,
+                        )
+                        numbers = re.findall(r"(\d+(?:\.\d+)?)", response.strip())
+                        if numbers:
+                            return min(max(float(numbers[0]), 0.0), 10.0) / 10.0
+                    except Exception:
+                        pass
+
+                # Keyword fallback
+                query_words = set(query.lower().split())
+                tool_words = set(f"{tool_name} {tool_desc}".lower().split())
+                if not query_words:
+                    return 0.0
+                return min(len(query_words & tool_words) / len(query_words), 1.0)
+
+        return SelectorAdapter(DynamicDFSDTSelector())
 
     def _create_inline_hybrid_selector(self, resources: Optional[Any] = None) -> SelectorAdapter:
         """Create inline hybrid selector when library version unavailable."""
@@ -470,8 +1071,8 @@ class AdapterRegistry:
 
                 boosted.sort(key=lambda x: x.score, reverse=True)
 
-                # Optionally use LLM reranker via IntelligentLLMClient.create_auto()
-                # This uses LOCAL-FIRST strategy: local vLLM (8001/8000) -> cloud API fallback
+                # Optionally use LLM reranker via UnifiedInferenceClient.create_auto()
+                # Uses LOCAL-FIRST strategy: local services (SagePorts) -> cloud API fallback
                 # Set SAGE_HYBRID_ENABLE_LLM_RERANK=1 to enable
                 import os
 
@@ -480,11 +1081,11 @@ class AdapterRegistry:
                 if enable_llm_rerank and not hasattr(self, "_llm_client_checked"):
                     self._llm_client_checked = True
                     try:
-                        from sage.common.components.sage_llm.client import IntelligentLLMClient
+                        from sage.common.components.sage_llm import UnifiedInferenceClient
 
                         # Use singleton to avoid repeated model loading
-                        self._llm_client = IntelligentLLMClient.get_instance(
-                            cache_key="benchmark_hybrid", probe_timeout=1.0
+                        self._llm_client = UnifiedInferenceClient.get_instance(
+                            instance_key="benchmark_hybrid"
                         )
                     except Exception:
                         self._llm_client = None
@@ -526,8 +1127,8 @@ class AdapterRegistry:
                     },
                 ]
 
-                # IntelligentLLMClient.chat() returns string directly
-                resp = llm.chat(messages, temperature=0.0, max_tokens=512)
+                # UnifiedInferenceClient.chat() returns string directly
+                resp = llm.chat(messages)
 
                 # Parse response
                 txt = resp if isinstance(resp, str) else str(resp)
@@ -633,7 +1234,7 @@ class AdapterRegistry:
                         min_steps=5,
                         max_steps=10,
                         max_iterations=12,
-                        temperature=0.2,
+                        temperature=BENCHMARK_LLM_TEMPERATURE,
                     )
 
                     self._planner = ReActPlanner(
@@ -648,44 +1249,11 @@ class AdapterRegistry:
 
             def _get_llm_client(self):
                 """Get LLM client with local-first strategy."""
-                import os
-
-                # Try local vLLM first
+                # Use UnifiedInferenceClient.create_auto() which implements local-first strategy
                 try:
-                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    local_endpoints = [
-                        ("http://localhost:8001/v1", 8001),
-                        ("http://localhost:8000/v1", 8000),
-                    ]
-
-                    for endpoint, port in local_endpoints:
-                        detected_model = IntelligentLLMClient._probe_vllm_service(
-                            endpoint, timeout=1.0
-                        )
-                        if detected_model:
-                            return IntelligentLLMClient(
-                                model_name=detected_model,
-                                base_url=endpoint,
-                                api_key=os.getenv("VLLM_API_KEY", ""),
-                            )
-
-                    # Fall back to cloud API
-                    api_key = (
-                        os.getenv("SAGE_CHAT_API_KEY")
-                        or os.getenv("ALIBABA_API_KEY")
-                        or os.getenv("OPENAI_API_KEY")
-                    )
-
-                    if api_key and "your_" not in api_key.lower():
-                        return IntelligentLLMClient(
-                            model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                            base_url=os.getenv(
-                                "SAGE_CHAT_BASE_URL",
-                                "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                            ),
-                            api_key=api_key,
-                        )
+                    return UnifiedInferenceClient.create_auto()
                 except Exception:
                     pass
 
@@ -987,19 +1555,17 @@ class AdapterRegistry:
         return TimingAdapter(ThresholdDecider())
 
     def _create_llm_timing_decider(self, resources: Optional[Any] = None) -> TimingAdapter:
-        """Create LLM-based timing decider using embedded VLLMService (local-first).
+        """Create LLM-based timing decider using UnifiedInferenceClient.
 
-        Priority:
-        1. Embedded VLLMService (内嵌 vLLM，无需启动服务) - highest
-        2. Local vLLM API service (localhost:8001 or 8000) - if already running
-        3. Cloud API via SAGE_CHAT_* environment variables - fallback
+        Uses UnifiedInferenceClient.create_auto() which handles:
+        1. Environment variables (SAGE_UNIFIED_BASE_URL)
+        2. Local services (ports from SagePorts)
+        3. Cloud API fallback (DashScope)
         """
 
         class LLMTimingDecider:
             """
-            LLM-based timing decider with local-first strategy.
-
-            Uses embedded VLLMService when available, falls back to API-based client.
+            LLM-based timing decider using UnifiedInferenceClient.
             """
 
             TIMING_PROMPT = """You are an AI assistant that determines whether a user's message requires tool invocation or can be answered directly from your knowledge.
@@ -1023,48 +1589,21 @@ Respond in JSON format:
 
 Only output the JSON, nothing else."""
 
-            def __init__(self, llm_client=None):
-                self._client = llm_client
-                self._vllm_service = None
-                self._use_embedded_vllm = False
+            def __init__(self):
+                self._client = None
                 self._initialized = False
 
             def _ensure_client(self):
-                """Lazy initialization with embedded VLLMService priority."""
+                """Lazy initialization using UnifiedInferenceClient."""
                 if self._initialized:
-                    return self._vllm_service is not None or self._client is not None
+                    return self._client is not None
 
                 self._initialized = True
-                import os
 
-                # Step 1: Try embedded VLLMService (内嵌模式，无需单独启动服务)
                 try:
-                    from sage.common.components.sage_llm import VLLMService
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    model_id = os.getenv("SAGE_BENCHMARK_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-                    self._vllm_service = VLLMService(
-                        {
-                            "model_id": model_id,
-                            "auto_download": True,
-                            "sampling": {"temperature": 0.1, "max_tokens": 256},
-                        }
-                    )
-                    self._vllm_service.setup()
-                    self._use_embedded_vllm = True
-                    print(f"✅ [Timing] 使用内嵌 VLLMService: {model_id}")
-                    return True
-                except Exception:
-                    self._use_embedded_vllm = False
-                    # VLLMService not available, try API client
-
-                # Step 2: Try API-based client (local vLLM or cloud)
-                try:
-                    from sage.common.components.sage_llm import IntelligentLLMClient
-
-                    # Use singleton to avoid repeated model loading
-                    self._client = IntelligentLLMClient.get_instance(
-                        cache_key="benchmark_timing", probe_timeout=1.0
-                    )
+                    self._client = UnifiedInferenceClient.create_auto()
                     return True
                 except Exception as e:
                     import logging
@@ -1080,33 +1619,18 @@ Only output the JSON, nothing else."""
                     TimingDecision,
                 )
 
-                # Ensure LLM client/service is initialized
+                # Ensure LLM client is initialized
                 if not self._ensure_client():
-                    # No LLM available, fall back to rule-based
                     return self._fallback_decide(message)
 
                 try:
                     import json
 
                     prompt = self.TIMING_PROMPT.format(message=message.message)
+                    messages = [{"role": "user", "content": prompt}]
 
-                    # Use embedded VLLMService if available
-                    if self._use_embedded_vllm and self._vllm_service is not None:
-                        results = self._vllm_service.generate(prompt)
-                        if results and results[0].get("generations"):
-                            content = results[0]["generations"][0]["text"].strip()
-                        else:
-                            return self._fallback_decide(message)
-                    elif self._client is not None:
-                        # Use API-based client
-                        response = self._client.chat(
-                            messages=[{"role": "user", "content": prompt}],
-                            temperature=0.1,
-                            max_tokens=200,
-                        )
-                        content = response.choices[0].message.content.strip()
-                    else:
-                        return self._fallback_decide(message)
+                    # UnifiedInferenceClient.chat() returns string directly
+                    content = self._client.chat(messages)
 
                     # Parse JSON response
                     # Handle potential markdown code blocks
@@ -1123,7 +1647,6 @@ Only output the JSON, nothing else."""
                         reasoning=f"[LLM] {result.get('reasoning', 'LLM decision')}",
                     )
                 except Exception:
-                    # Fall through to rule-based
                     return self._fallback_decide(message)
 
             def _fallback_decide(self, message):
@@ -1643,7 +2166,7 @@ Only output the JSON, nothing else."""
                     if method == "hf":
                         try:
                             self._embedder = get_embedding_model(
-                                "hf", model="BAAI/bge-small-zh-v1.5"
+                                "hf", model=BENCHMARK_EMBEDDING_MODEL
                             )
                         except Exception:
                             self._embedder = get_embedding_model("hash", dim=384)
@@ -1763,6 +2286,35 @@ Only output the JSON, nothing else."""
             embedding_client=None,
         )
 
+    def _create_sage_resources(self, embedding_client: Optional[Any] = None) -> Any:
+        """
+        Create SelectorResources with real SAGE-Bench tools.
+
+        This loads the 1,200 tools from tool_catalog.jsonl for use with
+        Gorilla and DFSDT selectors that need to build a proper tool index.
+
+        Args:
+            embedding_client: Optional embedding client for semantic search
+
+        Returns:
+            SelectorResources with SageToolsLoader
+        """
+        from sage.libs.agentic.agents.action.tool_selection import SelectorResources
+
+        try:
+            from sage.benchmark.benchmark_agent.tools_loader import get_sage_tools_loader
+
+            tools_loader = get_sage_tools_loader()
+            self.logger.info(f"Using SAGE tools loader with {len(tools_loader)} tools")
+        except Exception as e:
+            self.logger.warning(f"Failed to load SAGE tools: {e}. Falling back to mock tools.")
+            return self._create_mock_resources()
+
+        return SelectorResources(
+            tools_loader=tools_loader,
+            embedding_client=embedding_client,
+        )
+
     def _create_simple_planner(self, resources: Optional[Any] = None) -> PlannerAdapter:
         """
         Create simple planner using embedding-based tool matching.
@@ -1786,7 +2338,7 @@ Only output the JSON, nothing else."""
                         # Try to use HF model, fallback to hash
                         try:
                             self._embedder = get_embedding_model(
-                                "hf", model="BAAI/bge-small-zh-v1.5"
+                                "hf", model=BENCHMARK_EMBEDDING_MODEL
                             )
                         except Exception:
                             self._embedder = get_embedding_model("hash", dim=384)
@@ -2093,13 +2645,13 @@ Only output the JSON, nothing else."""
 
     def _create_llm_planning_strategy(self, resources: Optional[Any] = None) -> PlannerAdapter:
         """
-        Create LLM-based planner using IntelligentLLMClient.
+        Create LLM-based planner using UnifiedInferenceClient.
 
         Uses real LLM for plan generation with semantic understanding.
         """
 
         class LLMPlanningStrategy:
-            """LLM-based planner using IntelligentLLMClient."""
+            """LLM-based planner using UnifiedInferenceClient."""
 
             def __init__(self, fallback_planner):
                 self._fallback = fallback_planner
@@ -2107,107 +2659,33 @@ Only output the JSON, nothing else."""
                 self._client_initialized = False
 
             def _get_llm_client(self):
-                """Lazy initialization of LLM client with local-first strategy.
+                """Lazy initialization of LLM client using UnifiedInferenceClient.
 
-                Priority:
-                1. Embedded VLLMService (内嵌 vLLM，无需启动服务) - highest
-                2. Local vLLM API service (localhost:8001 or 8000) - if already running
-                3. Cloud API via SAGE_CHAT_* environment variables - fallback
+                Uses UnifiedInferenceClient.create_auto() which handles:
+                1. Local vLLM API service detection (via SagePorts)
+                2. Cloud API fallback (via SAGE_CHAT_* env vars)
                 """
                 if not self._client_initialized:
                     self._client_initialized = True
-                    import os
 
-                    # Step 1: Try embedded VLLMService (内嵌模式，无需单独启动服务)
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
+
                     try:
-                        from sage.common.components.sage_llm import VLLMService
-
-                        # Use a lightweight model for benchmark
-                        model_id = os.getenv(
-                            "SAGE_BENCHMARK_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct"
-                        )
-                        self._vllm_service = VLLMService(
-                            {
-                                "model_id": model_id,
-                                "auto_download": True,
-                                "sampling": {"temperature": 0.2, "max_tokens": 1024},
-                            }
-                        )
-                        self._vllm_service.setup()
-                        self._use_embedded_vllm = True
-                        print(f"✅ 使用内嵌 VLLMService: {model_id} (无需启动外部服务)")
-                        return self  # Return self to use embedded mode
-                    except Exception:
-                        self._use_embedded_vllm = False
-                        # VLLMService not available, try other options
-                        pass
-
-                    from sage.common.components.sage_llm.client import IntelligentLLMClient
-
-                    # Step 2: Try local vLLM API service (如果已经在运行)
-                    local_endpoints = [
-                        ("http://localhost:8001/v1", 8001),
-                        ("http://localhost:8000/v1", 8000),
-                    ]
-
-                    for endpoint, port in local_endpoints:
-                        detected_model = IntelligentLLMClient._probe_vllm_service(
-                            endpoint, timeout=1.0
-                        )
-                        if detected_model:
-                            try:
-                                self._llm_client = IntelligentLLMClient(
-                                    model_name=detected_model,
-                                    base_url=endpoint,
-                                    api_key=os.getenv("VLLM_API_KEY", ""),
-                                )
-                                print(f"✅ 使用本地 vLLM API: {detected_model} @ port {port}")
-                                return self._llm_client
-                            except Exception:
-                                pass
-
-                    # Step 3: Fall back to cloud API
-                    api_key = (
-                        os.getenv("SAGE_CHAT_API_KEY")
-                        or os.getenv("ALIBABA_API_KEY")
-                        or os.getenv("OPENAI_API_KEY")
-                    )
-
-                    # Skip placeholder values
-                    if api_key and "your_" in api_key.lower():
-                        api_key = None
-
-                    if api_key:
-                        try:
-                            self._llm_client = IntelligentLLMClient(
-                                model_name=os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                                base_url=os.getenv(
-                                    "SAGE_CHAT_BASE_URL",
-                                    "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                                ),
-                                api_key=api_key,
-                            )
-                            print("☁️  本地 vLLM 不可用，使用云端 API")
-                        except Exception:
-                            pass
-                    else:
-                        print("⚠️  无可用 LLM 服务：本地 vLLM 未运行，云端 API Key 未配置")
+                        self._llm_client = UnifiedInferenceClient.create_auto()
+                        # Log which mode we're using
+                        if self._llm_client._llm_base_url:
+                            if "localhost" in self._llm_client._llm_base_url:
+                                print(f"✅ 使用本地 LLM: {self._llm_client._llm_model}")
+                            else:
+                                print(f"☁️  使用云端 API: {self._llm_client._llm_model}")
+                        else:
+                            print("⚠️  LLM 客户端初始化但无可用端点")
+                    except Exception as e:
+                        print(f"⚠️  无可用 LLM 服务: {e}")
                         print("   启动本地服务: sage studio start")
                         print("   或配置云端: export SAGE_CHAT_API_KEY=your_key")
 
                 return self._llm_client
-
-            def _generate_with_embedded_vllm(self, prompt: str) -> str:
-                """Generate text using embedded VLLMService."""
-                if not hasattr(self, "_vllm_service") or self._vllm_service is None:
-                    return ""
-                try:
-                    results = self._vllm_service.generate(prompt)
-                    if results and results[0].get("generations"):
-                        return results[0]["generations"][0].get("text", "")
-                except Exception:
-                    pass
-                return ""
 
             def plan(self, task):
                 from sage.benchmark.benchmark_agent.experiments.base_experiment import (
@@ -2221,8 +2699,10 @@ Only output the JSON, nothing else."""
                 if not available_tools:
                     return PlanningPrediction(steps=[], tool_sequence=[])
 
-                # Initialize LLM client (this also sets up embedded vLLM if available)
-                self._get_llm_client()
+                # Initialize LLM client
+                client = self._get_llm_client()
+                if client is None:
+                    return self._fallback.plan(task)
 
                 # Build prompt for plan generation
                 tools_desc = ", ".join(available_tools[:20])  # Limit for prompt
@@ -2239,27 +2719,19 @@ Return a JSON array of steps, each with:
 Return ONLY the JSON array, no explanation. Example:
 [{{"tool_id": "file_read", "description": "Read config file"}}]"""
 
-                response = None
+                try:
+                    messages = [
+                        {
+                            "role": "system",
+                            "content": "You are a task planning assistant. Return only valid JSON.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ]
+                    response = client.chat(messages)
+                except Exception:
+                    return self._fallback.plan(task)
 
-                # Try embedded VLLMService first
-                if getattr(self, "_use_embedded_vllm", False):
-                    response = self._generate_with_embedded_vllm(prompt)
-
-                # Try IntelligentLLMClient
-                if not response and self._llm_client is not None:
-                    try:
-                        messages = [
-                            {
-                                "role": "system",
-                                "content": "You are a task planning assistant. Return only valid JSON.",
-                            },
-                            {"role": "user", "content": prompt},
-                        ]
-                        response = self._llm_client.chat(messages, max_tokens=1024, temperature=0.2)
-                    except Exception:
-                        pass
-
-                # Parse response if we got one
+                # Parse response
                 if response:
                     try:
                         import json
@@ -2334,11 +2806,11 @@ Return ONLY the JSON array, no explanation. Example:
 
                 self._client_initialized = True
                 try:
-                    from sage.common.components.sage_llm.client import IntelligentLLMClient
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
 
                     # Use singleton to avoid repeated model loading
-                    self._llm_client = IntelligentLLMClient.get_instance(
-                        cache_key="benchmark_planner", probe_timeout=1.0
+                    self._llm_client = UnifiedInferenceClient.get_instance(
+                        instance_key="benchmark_planner"
                     )
                 except Exception:
                     self._llm_client = None
@@ -2481,7 +2953,7 @@ Only output JSON, nothing else."""
                     response = llm_client.chat(
                         [{"role": "user", "content": prompt}],
                         max_tokens=512,
-                        temperature=0.7,
+                        temperature=BENCHMARK_LLM_TEMPERATURE,
                     )
 
                     # Parse response
