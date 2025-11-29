@@ -1,5 +1,8 @@
 from typing import Any
 
+import numpy as np
+
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
@@ -29,6 +32,7 @@ class RAGMemoryService(BaseService):
 
         self._logger = CustomLogger()
         self.rag_collection: VDBMemoryCollection | None = None
+        self._embedding_model = apply_embedding_model("mockembedder")
 
         # 如果 config 为 None，尝试从 kwargs 构建
         if config is None:
@@ -52,9 +56,7 @@ class RAGMemoryService(BaseService):
                 self.rag_collection = collection
                 self._logger.info("Successfully loaded RAG memory from disk")
             else:
-                raise TypeError(
-                    f"Expected VDBMemoryCollection, got {type(collection).__name__}"
-                )
+                raise TypeError(f"Expected VDBMemoryCollection, got {type(collection).__name__}")
         else:
             self._logger.warning(
                 "RAG Memory collection not found on disk, creating a fresh one for this session"
@@ -65,21 +67,36 @@ class RAGMemoryService(BaseService):
             if isinstance(collection, VDBMemoryCollection):
                 self.rag_collection = collection
             else:
-                raise TypeError(
-                    f"Expected VDBMemoryCollection, got {type(collection).__name__}"
-                )
+                raise TypeError(f"Expected VDBMemoryCollection, got {type(collection).__name__}")
             index_config = config.get("index_config")
             if index_config and self.rag_collection:
                 self.rag_collection.create_index(index_config)
             # Optional: do not init_index here; will be built upon insert or explicit init in callers
 
+    def _normalize_vector(self, vector):
+        """Normalize a vector using L2 normalization."""
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
+
     def retrieve(self, data: str):
         if not self.rag_collection:
             return []
 
+        # Generate query vector externally
+        query_vector = self._normalize_vector(self._embedding_model.encode(data))
+
         # VDBMemoryCollection.retrieve 方法签名
         results = self.rag_collection.retrieve(
-            raw_data=data,
+            query_vector=query_vector,
             index_name="test_index",
             topk=5,
             threshold=0.1,
@@ -110,10 +127,14 @@ class RAGMemoryService(BaseService):
             self._logger.error("RAG collection not initialized")
             return
 
+        # Generate vector externally
+        vector = self._normalize_vector(self._embedding_model.encode(data))
+
         # VDBMemoryCollection.insert 方法签名
         result = self.rag_collection.insert(
             index_name="test_index",
             raw_data=data,
+            vector=vector,
             metadata=metadata,
         )
         if result:

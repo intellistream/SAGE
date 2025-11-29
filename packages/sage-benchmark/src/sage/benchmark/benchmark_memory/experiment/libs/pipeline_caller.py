@@ -9,7 +9,7 @@ from sage.benchmark.benchmark_memory.experiment.utils.calculation_table import (
 )
 from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
-from sage.data.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.locomo.dataloader import LocomoDataLoader
 
 
 class PipelineCaller(MapFunction):

@@ -112,7 +112,7 @@ async def test_gateway_rag():
         import os
         import textwrap
 
-        from sage.common.components.sage_llm.client import IntelligentLLMClient
+        from sage.common.components.sage_llm import UnifiedInferenceClient
 
         # 提取上下文
         contexts = []
@@ -155,14 +155,13 @@ async def test_gateway_rag():
             print("  ⚠️  跳过 LLM 调用（缺少 API Key）")
             print("  提示: 设置 DASHSCOPE_API_KEY 环境变量")
         else:
-            client = IntelligentLLMClient(
-                model_name="qwen-max",
-                base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-                api_key=api_key,
-                seed=42,
+            client = UnifiedInferenceClient(
+                llm_model="qwen-max",
+                llm_base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+                llm_api_key=api_key,
             )
 
-            response = client.chat(messages, temperature=0.2, stream=False)
+            response = client.chat(messages)
 
             print("  ✅ RAG 回答生成成功")
             print("\n  回答预览:")

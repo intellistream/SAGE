@@ -48,18 +48,15 @@ class PostRetrieval(MapFunction):
     def _format_dialog_history(self, data):
         """格式化对话历史为结构化文本（阶段一：Prompt拼接）
 
-        从 memory_data 中提取对话，格式化为：
+        统一处理 memory service 的返回格式：[{"text": "...", "metadata": {...}}, ...]
 
-        Below is a conversation...
-
-        DATE: 2023-08-01
-        CONVERSATION:
-        Alice said, "..."
-        Bob said, "..."
+        只负责：
+        1. 添加第一阶段的 prompt 前缀
+        2. 将所有 text 字段直接拼接
 
         Args:
             data: 包含 memory_data 的字典
-                 memory_data 格式: [{"dialog": [{"speaker": "...", "text": "..."}, ...]}, ...]
+                 memory_data 格式: [{"text": "...", "metadata": {...}}, ...]
 
         Returns:
             添加了 history_text 字段的 data
@@ -76,43 +73,18 @@ class PostRetrieval(MapFunction):
         if self.conversation_format_prompt:
             history_parts.append(self.conversation_format_prompt.strip())
 
-        # 格式化对话内容
-        # STM返回格式: [{"dialog": [{"speaker": "...", "text": "...", "date_time": "..."}, ...]}, ...]
-        # 按日期分组对话
-        current_date = None
-        conversation_lines = []
-
+        # 展开 memory_data，直接提取所有 text 字段拼接
         for entry in memory_data:
-            dialog = entry.get("dialog", [])
-            for msg in dialog:
-                speaker = msg.get("speaker", "Unknown")
-                text = msg.get("text", "")
-                date_time = msg.get("date_time", "")
-
-                # 检查日期是否变化
-                if date_time and date_time != current_date:
-                    # 输出上一个日期的对话
-                    if conversation_lines:
-                        history_parts.append("CONVERSATION:")
-                        history_parts.extend(conversation_lines)
-                        conversation_lines = []
-
-                    # 开始新日期
-                    current_date = date_time
-                    history_parts.append(f"\nDATE: {date_time}")
-
-                # 添加对话行
-                conversation_lines.append(f'{speaker} said, "{text}"')
-
-        # 输出最后一组对话
-        if conversation_lines:
-            history_parts.append("CONVERSATION:")
-            history_parts.extend(conversation_lines)
+            text = entry.get("text", "")
+            if text:
+                history_parts.append(text)
 
         # 合并为最终文本
         history_text = "\n".join(history_parts) if history_parts else ""
 
-        # 添加到data中
+        # 添加到data中, 最终构建查询的语料
         data["history_text"] = history_text
-
+        # print("Formatted history_text:")
+        # print(history_text)
+        # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         return data

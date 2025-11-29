@@ -15,6 +15,8 @@ import requests
 from rich.console import Console
 from rich.table import Table
 
+from sage.common.config.ports import SagePorts
+
 console = Console()
 
 
@@ -49,9 +51,9 @@ class StudioManager:
         self.dist_dir = self.studio_sage_dir / "dist"  # 构建产物统一放在 .sage/studio/
 
         # React + Vite 默认端口是 5173
-        self.default_port = 5173
-        self.backend_port = 8080
-        self.gateway_port = 8000  # Gateway 默认端口
+        self.default_port = SagePorts.STUDIO_FRONTEND
+        self.backend_port = SagePorts.STUDIO_BACKEND  # Studio backend API
+        self.gateway_port = SagePorts.GATEWAY_DEFAULT  # Gateway 默认端口
         self.default_host = "0.0.0.0"  # 修改为监听所有网络接口
 
         # 确保所有目录存在
@@ -944,7 +946,7 @@ if __name__ == "__main__":
                 if not self.start_gateway(host=host):
                     console.print("[yellow]⚠️  Gateway 启动失败，Chat 模式可能无法正常使用[/yellow]")
                     console.print(
-                        "[yellow]   您可以稍后手动启动: sage-gateway --host 0.0.0.0 --port 8000[/yellow]"
+                        f"[yellow]   您可以稍后手动启动: sage-gateway --host 0.0.0.0 --port {SagePorts.GATEWAY_DEFAULT}[/yellow]"
                     )
             else:
                 console.print(f"[green]✅ Gateway 已在运行中 (PID: {gateway_pid})[/green]")
@@ -1280,7 +1282,9 @@ if __name__ == "__main__":
         else:
             gateway_table.add_row("状态", "[red]未运行[/red]")
             gateway_table.add_row("端口", str(self.gateway_port))
-            gateway_table.add_row("启动命令", "sage-gateway --host 0.0.0.0 --port 8000")
+            gateway_table.add_row(
+                "启动命令", f"sage-gateway --host 0.0.0.0 --port {SagePorts.GATEWAY_DEFAULT}"
+            )
 
         gateway_table.add_row("PID文件", str(self.gateway_pid_file))
         gateway_table.add_row("日志文件", str(self.gateway_log_file))

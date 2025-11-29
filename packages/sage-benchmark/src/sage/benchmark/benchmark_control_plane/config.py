@@ -122,7 +122,7 @@ class BenchmarkConfig:
     dataset_path: Path | None = None
 
     # Output configuration
-    output_dir: Path = field(default_factory=lambda: Path("./benchmark_results"))
+    output_dir: Path = field(default_factory=lambda: Path("./.benchmarks"))
     enable_streaming: bool = True
 
     def validate(self) -> list[str]:
@@ -191,7 +191,7 @@ class BenchmarkConfig:
         if dataset_path:
             dataset_path = Path(dataset_path)
 
-        output_dir = data.get("output_dir", "./benchmark_results")
+        output_dir = data.get("output_dir", "./.benchmarks")
         if isinstance(output_dir, str):
             output_dir = Path(output_dir)
 

@@ -7,7 +7,7 @@ For integration testing with real APIs, set environment variable:
 
 Note:
     OpenAIClient has been removed. OpenAI functionality is now provided by
-    sage.common.components.sage_llm.IntelligentLLMClient (L1).
+    sage.common.components.sage_llm.UnifiedInferenceClient (L1).
 """
 
 from unittest.mock import MagicMock, patch

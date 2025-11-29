@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - SAGE Control Plane Benchmark Report</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        header .subtitle {
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .metadata {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section h3 {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .config-item {
+            padding: 0.75rem;
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+
+        .config-item label {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+            display: block;
+        }
+
+        .config-item .value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .summary-card h4 {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .summary-card .policy {
+            font-size: 1.2rem;
+            margin-top: 0.25rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-color);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--secondary-color);
+        }
+
+        tr:hover {
+            background: var(--bg-color);
+        }
+
+        .chart-container {
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .metric-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .metric-badge.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .metric-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .metric-badge.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .policy-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .policy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .policy-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+
+        .metric-item .label {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-item .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .metric-item .unit {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SAGE Control Plane Benchmark Report</h1>
+            <p class="subtitle">{{ subtitle | default('Scheduling Policy Performance Analysis') }}</p>
+            <div class="metadata">
+                <span>Generated: {{ timestamp }}</span>
+                <span>Benchmark Type: {{ benchmark_type | default('LLM') }}</span>
+            </div>
+        </header>
+
+        <!-- Summary Section -->
+        <section class="section">
+            <h2>Summary</h2>
+            <div class="summary-cards">
+                {% if best_throughput %}
+                <div class="summary-card">
+                    <h4>Best Throughput</h4>
+                    <div class="value">{{ best_throughput_value }} req/s</div>
+                    <div class="policy">{{ best_throughput }}</div>
+                </div>
+                {% endif %}
+                {% if best_slo_compliance %}
+                <div class="summary-card" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+                    <h4>Best SLO Compliance</h4>
+                    <div class="value">{{ best_slo_value }}%</div>
+                    <div class="policy">{{ best_slo_compliance }}</div>
+                </div>
+                {% endif %}
+                {% if best_p99_latency %}
+                <div class="summary-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                    <h4>Best P99 Latency</h4>
+                    <div class="value">{{ best_p99_value }} ms</div>
+                    <div class="policy">{{ best_p99_latency }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Configuration Section -->
+        <section class="section">
+            <h2>Configuration</h2>
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>Control Plane URL</label>
+                    <div class="value">{{ config.control_plane_url }}</div>
+                </div>
+                <div class="config-item">
+                    <label>Total Requests</label>
+                    <div class="value">{{ config.num_requests }}</div>
+                </div>
+                <div class="config-item">
+                    <label>Request Rate</label>
+                    <div class="value">{{ config.request_rate }} req/s</div>
+                </div>
+                <div class="config-item">
+                    <label>Arrival Pattern</label>
+                    <div class="value">{{ config.arrival_pattern }}</div>
+                </div>
+                <div class="config-item">
+                    <label>Policies Tested</label>
+                    <div class="value">{{ config.policies | join(', ') }}</div>
+                </div>
+                <div class="config-item">
+                    <label>Warmup Requests</label>
+                    <div class="value">{{ config.warmup_requests }}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparison Table -->
+        <section class="section">
+            <h2>Policy Comparison</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Policy</th>
+                        <th>Throughput</th>
+                        <th>Avg Latency</th>
+                        <th>P99 Latency</th>
+                        <th>Avg TTFT</th>
+                        <th>SLO Compliance</th>
+                        <th>Error Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for policy_name, result in policy_results.items() %}
+                    <tr>
+                        <td><strong>{{ policy_name }}</strong></td>
+                        <td>{{ "%.1f"|format(result.metrics.throughput_rps) }} req/s</td>
+                        <td>{{ "%.0f"|format(result.metrics.e2e_latency_avg_ms) }} ms</td>
+                        <td>{{ "%.0f"|format(result.metrics.e2e_latency_p99_ms) }} ms</td>
+                        <td>{{ "%.0f"|format(result.metrics.ttft_avg_ms) }} ms</td>
+                        <td>
+                            <span class="metric-badge {{ 'success' if result.metrics.slo_compliance_rate > 0.9 else 'warning' if result.metrics.slo_compliance_rate > 0.7 else 'error' }}">
+                                {{ "%.1f"|format(result.metrics.slo_compliance_rate * 100) }}%
+                            </span>
+                        </td>
+                        <td>
+                            <span class="metric-badge {{ 'success' if result.metrics.error_rate < 0.01 else 'warning' if result.metrics.error_rate < 0.05 else 'error' }}">
+                                {{ "%.1f"|format(result.metrics.error_rate * 100) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Charts Section -->
+        {% if charts %}
+        <section class="section">
+            <h2>Performance Charts</h2>
+            <div class="chart-grid">
+                {% for chart in charts %}
+                <div class="chart-container">
+                    <img src="{{ chart.path }}" alt="{{ chart.title }}">
+                    <p>{{ chart.title }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Per-Policy Details -->
+        <section class="section">
+            <h2>Detailed Results</h2>
+            {% for policy_name, result in policy_results.items() %}
+            <div class="policy-section">
+                <div class="policy-header">
+                    <span class="policy-name">{{ policy_name }}</span>
+                    <span class="metric-badge {{ 'success' if result.metrics.slo_compliance_rate > 0.9 else 'warning' }}">
+                        {{ "%.1f"|format(result.metrics.slo_compliance_rate * 100) }}% SLO
+                    </span>
+                </div>
+                
+                <h3>Throughput</h3>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="label">Request Throughput</div>
+                        <div class="value">{{ "%.1f"|format(result.metrics.throughput_rps) }}</div>
+                        <div class="unit">req/s</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">Token Throughput</div>
+                        <div class="value">{{ "%.1f"|format(result.metrics.token_throughput_tps) }}</div>
+                        <div class="unit">tokens/s</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">Duration</div>
+                        <div class="value">{{ "%.1f"|format(result.metrics.duration_seconds) }}</div>
+                        <div class="unit">seconds</div>
+                    </div>
+                </div>
+
+                <h3>Latency</h3>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="label">E2E Average</div>
+                        <div class="value">{{ "%.0f"|format(result.metrics.e2e_latency_avg_ms) }}</div>
+                        <div class="unit">ms</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">E2E P50</div>
+                        <div class="value">{{ "%.0f"|format(result.metrics.e2e_latency_p50_ms) }}</div>
+                        <div class="unit">ms</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">E2E P95</div>
+                        <div class="value">{{ "%.0f"|format(result.metrics.e2e_latency_p95_ms) }}</div>
+                        <div class="unit">ms</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">E2E P99</div>
+                        <div class="value">{{ "%.0f"|format(result.metrics.e2e_latency_p99_ms) }}</div>
+                        <div class="unit">ms</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">TTFT Average</div>
+                        <div class="value">{{ "%.0f"|format(result.metrics.ttft_avg_ms) }}</div>
+                        <div class="unit">ms</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">TBT Average</div>
+                        <div class="value">{{ "%.1f"|format(result.metrics.tbt_avg_ms) }}</div>
+                        <div class="unit">ms</div>
+                    </div>
+                </div>
+
+                <h3>Request Statistics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="label">Total</div>
+                        <div class="value">{{ result.metrics.total_requests }}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">Completed</div>
+                        <div class="value">{{ result.metrics.completed_requests }}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">Failed</div>
+                        <div class="value">{{ result.metrics.failed_requests }}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="label">Timeouts</div>
+                        <div class="value">{{ result.metrics.timeout_requests }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+
+        <footer>
+            <p>Generated by SAGE Benchmark Framework</p>
+            <p>{{ timestamp }}</p>
+        </footer>
+    </div>
+</body>
+</html>

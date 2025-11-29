@@ -425,12 +425,10 @@ class SessionManager:
             return
 
         if self._memory_backend == "short_term":
-            # 短期记忆服务使用原有格式
-            dialog = [
-                {"speaker": "user", "text": user_message},
-                {"speaker": "assistant", "text": assistant_message},
-            ]
-            memory_service.insert(dialog)
+            # 短期记忆服务需要格式化的字符串
+            # 格式: "user: {message}\nassistant: {response}"
+            formatted_dialog = f"user: {user_message}\nassistant: {assistant_message}"
+            memory_service.insert(formatted_dialog)
 
         elif self._memory_backend in ("vdb", "kv", "graph"):
             # neuromem collection 使用统一的存储接口
@@ -482,7 +480,7 @@ class SessionManager:
             return ""
 
         if self._memory_backend == "short_term":
-            # 短期记忆服务使用原有格式
+            # 短期记忆服务返回 [{"text": "...", "metadata": {...}}, ...]
             memory_data = memory_service.retrieve()
 
             if not memory_data:
@@ -490,11 +488,10 @@ class SessionManager:
 
             history_parts = []
             for item in memory_data:
-                dialog = item.get("dialog", [])
-                for turn in dialog:
-                    speaker = turn.get("speaker", "unknown")
-                    text = turn.get("text", "")
-                    history_parts.append(f"{speaker}: {text}")
+                # 新格式: {"text": "user: ...\nassistant: ...", "metadata": {...}}
+                text = item.get("text", "")
+                if text:
+                    history_parts.append(text)
 
             return "\n".join(history_parts)
 
@@ -606,7 +603,8 @@ def _create_storage_backend() -> SessionStorage:
             import warnings
 
             warnings.warn(
-                "NeuroMem backend requested but not available, falling back to file storage"
+                "NeuroMem backend requested but not available, falling back to file storage",
+                stacklevel=2,
             )
             return FileSessionStore.default()
     else:

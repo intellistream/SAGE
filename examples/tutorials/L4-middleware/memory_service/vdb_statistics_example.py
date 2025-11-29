@@ -9,6 +9,9 @@ added to VDBMemoryCollection.
 import json
 import time
 
+import numpy as np
+
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
 )
@@ -21,9 +24,27 @@ def print_section(title):
     print("=" * 60)
 
 
+def normalize_vector(vector):
+    """Normalize a vector using L2 normalization."""
+    if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+        vector = vector.detach().cpu().numpy()
+    if isinstance(vector, list):
+        vector = np.array(vector)
+    if not isinstance(vector, np.ndarray):
+        vector = np.array(vector)
+    vector = vector.astype(np.float32)
+    norm = np.linalg.norm(vector)
+    if norm > 0:
+        vector = vector / norm
+    return vector
+
+
 def main():
     """Main example function."""
     print_section("VDBMemoryCollection Statistics Example")
+
+    # Initialize embedding model
+    embedding_model = apply_embedding_model("mockembedder")
 
     # 1. Create collection
     print("\n1. Creating collection...")
@@ -52,17 +73,27 @@ def main():
     print("\n3. Inserting data...")
     documents = [
         ("Python is a programming language", {"category": "tech", "priority": "high"}),
-        ("Machine learning is a subset of AI", {"category": "tech", "priority": "high"}),
+        (
+            "Machine learning is a subset of AI",
+            {"category": "tech", "priority": "high"},
+        ),
         (
             "Data science combines statistics and programming",
             {"category": "tech", "priority": "medium"},
         ),
-        ("Neural networks mimic the human brain", {"category": "ai", "priority": "high"}),
-        ("Deep learning uses multiple layers", {"category": "ai", "priority": "medium"}),
+        (
+            "Neural networks mimic the human brain",
+            {"category": "ai", "priority": "high"},
+        ),
+        (
+            "Deep learning uses multiple layers",
+            {"category": "ai", "priority": "medium"},
+        ),
     ]
 
     for text, metadata in documents:
-        collection.insert("example_index", text, metadata=metadata)
+        vector = normalize_vector(embedding_model.encode(text))
+        collection.insert("example_index", text, vector, metadata=metadata)
         time.sleep(0.01)  # Small delay to simulate real usage
 
     print(f"✓ Inserted {len(documents)} documents")
@@ -80,7 +111,10 @@ def main():
         "RAG combines retrieval and generation",
     ]
     collection.batch_insert_data(batch_texts, None)
-    collection.init_index("example_index")
+    # Generate vectors for batch inserted data
+    batch_vectors = [normalize_vector(embedding_model.encode(text)) for text in batch_texts]
+    batch_item_ids = collection.get_all_ids()[-len(batch_texts) :]  # Get the last N IDs
+    collection.init_index("example_index", batch_vectors, batch_item_ids)
     print(f"✓ Batch inserted {len(batch_texts)} documents")
 
     # 5. Perform retrievals
@@ -92,7 +126,8 @@ def main():
     ]
 
     for query in queries:
-        results = collection.retrieve(query, "example_index", topk=3)
+        query_vector = normalize_vector(embedding_model.encode(query))
+        results = collection.retrieve(query_vector, "example_index", topk=3)
         print(f"   Query: '{query}' -> {len(results) if results else 0} results")
         time.sleep(0.01)
 

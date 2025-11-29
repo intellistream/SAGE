@@ -1,6 +1,9 @@
 import json
 import os
 
+import numpy as np
+
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
@@ -57,7 +60,25 @@ class RAGMemoryManager:
     def init(self, texts, metadatas):
         if self.rag_collection is not None:
             self.rag_collection.batch_insert_data(texts, metadatas)
-            self.rag_collection.init_index("test_index")
+            # Generate vectors externally
+            embedding_model = apply_embedding_model("mockembedder")
+            vectors = [self._normalize_vector(embedding_model.encode(text)) for text in texts]
+            item_ids = self.rag_collection.get_all_ids()
+            self.rag_collection.init_index("test_index", vectors, item_ids)
+
+    def _normalize_vector(self, vector):
+        """Normalize a vector using L2 normalization."""
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
 
     def store(self):
         self.memory_manager.store_collection()
@@ -72,8 +93,12 @@ class RAGMemoryManager:
         if self.rag_collection is None:
             return []
 
+        # Generate query vector externally
+        embedding_model = apply_embedding_model("mockembedder")
+        query_vector = self._normalize_vector(embedding_model.encode(data))
+
         results = self.rag_collection.retrieve(
-            raw_data=data,
+            query_vector=query_vector,
             index_name="test_index",
             topk=5,
             threshold=0.1,

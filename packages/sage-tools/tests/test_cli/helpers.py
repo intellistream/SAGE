@@ -18,7 +18,7 @@ from typing import Any
 from typer import Typer
 from typer.testing import CliRunner
 
-from sage.tools.cli.main import app as sage_app
+from sage.cli.main import app as sage_app
 
 # Type alias for factory functions that return context managers (e.g. mocks).
 PatchFactory = Callable[[], AbstractContextManager[Any]]

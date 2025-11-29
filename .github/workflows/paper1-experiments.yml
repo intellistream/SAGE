@@ -1,0 +1,322 @@
+name: Paper 1 - SAGE Agent Bench Full Experiments
+
+# Manual trigger only - self-hosted GPU server
+on:
+  workflow_dispatch:
+    inputs:
+      section:
+        description: 'Section to run (all/5.2/5.3/5.4/5.5)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - '5.2'
+          - '5.3'
+          - '5.4'
+          - '5.5'
+      experiment:
+        description: 'Specific experiment (optional)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - timing
+          - planning
+          - selection
+          - error
+          - scaling
+          - robustness
+          - ablation
+          - cross-dataset
+          - training
+      quick_mode:
+        description: 'Quick mode (reduced samples for testing)'
+        required: false
+        default: false
+        type: boolean
+      skip_llm:
+        description: 'Skip LLM-based methods (faster)'
+        required: false
+        default: false
+        type: boolean
+      skip_llm_scaling:
+        description: 'Skip LLM Scaling test (saves time, uses estimates)'
+        required: false
+        default: false
+        type: boolean
+      generate_paper:
+        description: 'Generate paper figures and tables'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  HF_ENDPOINT: https://hf-mirror.com
+  SAGE_TEST_MODE: false
+  SAGE_LOG_LEVEL: INFO
+  # LLM Service Configuration
+  SAGE_CHAT_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  SAGE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  SAGE_CHAT_MODEL: qwen-turbo-2025-02-11
+
+
+jobs:
+  run-experiments:
+    name: Run SAGE Agent Bench Experiments
+    runs-on: [self-hosted, A100]
+    timeout-minutes: 480  # 8 hours for full experiments
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Setup Python Environment
+        run: |
+          echo "Setting up Python environment..."
+
+          # Initialize conda (try multiple common locations)
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          elif command -v conda &> /dev/null; then
+            eval "$(conda shell.bash hook)"
+          else
+            echo "ERROR: Conda not found"
+            exit 1
+          fi
+
+          # Check if conda env exists and has SAGE installed
+          if conda env list | grep -q "^sage " && conda run -n sage pip list 2>/dev/null | grep -q "^sage-"; then
+            echo "Activating existing sage environment with SAGE packages"
+            conda activate sage
+          else
+            echo "Installing SAGE with quickstart..."
+            # Remove existing incomplete environment if exists
+            conda env remove -n sage -y 2>/dev/null || true
+            ./quickstart.sh --dev --yes --conda
+            conda activate sage
+          fi
+
+          python --version
+          pip list | grep -E "^sage-" || echo "Warning: No sage packages found"
+
+      - name: Create Environment File
+        run: |
+          echo "Creating .env file..."
+          cat > .env << EOF
+          # Paper 1 Experiments Environment
+
+          # HuggingFace
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+
+          # LLM Service (DashScope/Qwen)
+          SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+
+          # Embedding Service
+          SAGE_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+
+          # Runtime Settings
+          SAGE_TEST_MODE=false
+          SAGE_LOG_LEVEL=INFO
+          EOF
+
+          echo "Done: .env created"
+
+      - name: Check GPU Availability
+        run: |
+          echo "Checking GPU status..."
+          nvidia-smi || echo "No NVIDIA GPU found"
+
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
+          conda activate sage
+
+          python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
+
+      - name: Check Local LLM Service
+        if: ${{ !inputs.skip_llm }}
+        run: |
+          echo "Checking local LLM service..."
+
+          # Check if local vLLM is already running
+          if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
+            echo "Done: Local LLM service running on port 8901"
+          else
+            echo "Warning: Local LLM not available, will use cloud API (DashScope)"
+          fi
+
+      - name: Run Paper 1 Experiments
+        run: |
+          echo "Running SAGE Agent Bench experiments..."
+
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
+          conda activate sage
+
+          # Navigate to scripts directory
+          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
+
+          # Build command
+          CMD="python run_paper1_experiments.py"
+
+          # Add section selection
+          if [ "${{ inputs.section }}" != "all" ]; then
+            CMD="$CMD --section ${{ inputs.section }}"
+          fi
+
+          # Add specific experiment if provided
+          if [ -n "${{ inputs.experiment }}" ]; then
+            CMD="$CMD --exp ${{ inputs.experiment }}"
+          fi
+
+          # Quick mode
+          if [ "${{ inputs.quick_mode }}" == "true" ]; then
+            CMD="$CMD --quick"
+          fi
+
+          # Skip LLM if requested
+          if [ "${{ inputs.skip_llm }}" == "true" ]; then
+            CMD="$CMD --skip-llm"
+          fi
+
+          # Skip LLM Scaling if requested (saves ~1-2 hours)
+          if [ "${{ inputs.skip_llm_scaling }}" == "true" ]; then
+            CMD="$CMD --skip-llm-scaling"
+          fi
+
+          # Verbose output
+          CMD="$CMD --verbose"
+
+          echo "Running: $CMD"
+          $CMD
+
+      - name: Generate Paper Materials
+        if: ${{ inputs.generate_paper && success() }}
+        run: |
+          echo "Generating paper figures and tables..."
+
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
+          conda activate sage
+
+          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
+
+          # Generate figures
+          python -c "from figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
+
+          # Generate tables
+          python -c "from table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paper1-results-${{ github.run_number }}
+          path: |
+            .sage/benchmark/paper1/
+          retention-days: 90
+
+      - name: Upload Paper Materials
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.generate_paper && success() }}
+        with:
+          name: paper1-figures-tables-${{ github.run_number }}
+          path: |
+            .sage/benchmark/paper1/figures/
+            .sage/benchmark/paper1/tables/
+          retention-days: 90
+
+      - name: Print Summary
+        if: always()
+        run: |
+          echo ""
+          echo "=============================================="
+          echo "       SAGE Agent Bench - Experiment Summary"
+          echo "=============================================="
+          echo ""
+          echo "Configuration:"
+          echo "  Section: ${{ inputs.section }}"
+          echo "  Experiment: ${{ inputs.experiment || 'all' }}"
+          echo "  Quick Mode: ${{ inputs.quick_mode }}"
+          echo "  Skip LLM: ${{ inputs.skip_llm }}"
+          echo "  Generate Paper: ${{ inputs.generate_paper }}"
+          echo ""
+          echo "=============================================="
+          echo "  Control Constants:"
+          echo "  - RANDOM_SEED: 42"
+          echo "  - EMBEDDING_MODEL: BAAI/bge-small-zh-v1.5"
+          echo "  - LLM_TEMPERATURE: 0.1"
+          echo "=============================================="
+          echo ""
+
+          # Print results summary if available
+          if [ -d ".sage/benchmark/paper1" ]; then
+            echo "Results directory structure:"
+            find .sage/benchmark/paper1 -type f -name "*.json" | head -20
+            echo ""
+
+            # Print main results if available
+            for section in section_5_2_main section_5_3_analysis section_5_4_generalization section_5_5_training; do
+              dir=".sage/benchmark/paper1/$section"
+              if [ -d "$dir" ]; then
+                echo "[$section]"
+                ls -la "$dir"/*.json 2>/dev/null || echo "  (no results)"
+                echo ""
+              fi
+            done
+          else
+            echo "No results directory found."
+          fi
+
+          echo ""
+          echo "========================================"
+          echo "  HOW TO DOWNLOAD EXPERIMENT RESULTS"
+          echo "========================================"
+          echo ""
+          echo "Your experiment results have been uploaded as GitHub Artifacts."
+          echo ""
+          echo "To download:"
+          echo "  1. Go to this workflow run page:"
+          echo "     https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo ""
+          echo "  2. Scroll down to the 'Artifacts' section"
+          echo ""
+          echo "  3. Download:"
+          echo "     - paper1-results-${{ github.run_number }}: Full results"
+          echo "     - paper1-figures-tables-${{ github.run_number }}: Figures and LaTeX tables"
+          echo ""
+          echo "Artifacts retained for 90 days."
+          echo ""
+          echo "GitHub CLI:"
+          echo "  gh run download ${{ github.run_id }} --repo ${{ github.repository }}"
+          echo "========================================"

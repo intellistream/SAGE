@@ -58,7 +58,7 @@ repos:
 #
   # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.2
+  rev: v0.14.6
   hooks:
   - id: ruff
     name: ruff check
@@ -112,7 +112,9 @@ repos:
         "^CONTRIBUTING\.md$"
         "^LICENSE\.md$"
         "^DEVELOPER\.md$"
-        "^docs/dev-notes/"
+        "^docs/dev-notes/README\.md$"
+        "^docs/dev-notes/TEMPLATE\.md$"
+        "^docs/dev-notes/.+/"
         "^docs/assets/"
         "^docs/security/"
         "^docs-public/"

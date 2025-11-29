@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""
+SAGE Agent Bench CLI - Agent 能力评测命令行入口
+
+这是 SAGE Agent Benchmark 的官方入口，用于评测 Agent 工具调用能力。
+
+Usage:
+    sage-agent-bench <command> [options]
+
+Commands:
+    run       运行实验
+    eval      工具选择评测
+    train     训练方法对比
+    llm       管理 LLM 服务
+    list      列出可用资源
+"""
+
+from sage.benchmark.benchmark_agent.scripts.experiments.sage_bench_cli import main
+
+if __name__ == "__main__":
+    main()

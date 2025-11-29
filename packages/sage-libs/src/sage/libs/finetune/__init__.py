@@ -40,6 +40,10 @@ def __getattr__(name):
         from .trainer import LoRATrainer
 
         return LoRATrainer
+    if name == "agent":
+        from . import agent
+
+        return agent
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -55,6 +59,8 @@ __all__ = [
     "load_training_data",
     # CLI 应用
     "app",
+    # Agent 微调子模块（延迟导入）
+    "agent",  # type: ignore[attr-defined]
 ]
 
 __version__ = "0.1.0"
