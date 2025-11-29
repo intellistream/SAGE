@@ -954,7 +954,17 @@ class ReportSink(SinkFunction):
         return self._llm_client
 
     def _generate_leaderboard(self, report: WeeklyReport) -> str:
-        """Generate a contribution leaderboard using LLM."""
+        """Generate a contribution leaderboard with visual chart and optional LLM comments."""
+        # Sort contributors by contribution score
+        sorted_contributors = sorted(
+            report.contributors,
+            key=lambda c: c.total_commits + c.merged_prs * 3,
+            reverse=True,
+        )
+
+        # Always generate visual chart first
+        chart = self._generate_leaderboard_chart(sorted_contributors)
+
         if not self.use_llm:
             return self._generate_simple_leaderboard(report)
 
@@ -987,7 +997,7 @@ class ReportSink(SinkFunction):
         )
 
         if self.language == "zh":
-            prompt = f"""根据以下贡献者数据，生成一份简洁有趣的周贡献度排行榜。
+            prompt = f"""根据以下贡献者数据，生成一份简洁有趣的周贡献度排行榜评语。
 请用emoji和简短评语让排行榜更生动。
 
 贡献者数据（按贡献度排序）：
@@ -1003,7 +1013,7 @@ class ReportSink(SinkFunction):
 3. 最后加一句团队总结或鼓励语
 4. 保持简洁，总共不超过300字"""
         else:
-            prompt = f"""Based on the contributor data below, generate a brief and fun weekly contribution leaderboard.
+            prompt = f"""Based on the contributor data below, generate brief and fun weekly contribution leaderboard comments.
 Use emojis and short comments to make it engaging.
 
 Contributor data (sorted by contribution):
@@ -1022,9 +1032,15 @@ Requirements:
         try:
             messages = [{"role": "user", "content": prompt}]
             response = client.chat(messages)
-            if hasattr(response, "content"):
-                return response.content
-            return str(response)
+            llm_comments = response.content if hasattr(response, "content") else str(response)
+
+            # Combine chart with LLM comments
+            title = (
+                "## 🏆 本周贡献排行榜"
+                if self.language == "zh"
+                else "## 🏆 Weekly Contribution Leaderboard"
+            )
+            return f"{title}\n\n{chart}\n\n{llm_comments}"
         except Exception as e:
             self.logger.warning(f"LLM leaderboard generation failed: {e}")
             return self._generate_simple_leaderboard(report)
@@ -1038,8 +1054,13 @@ Requirements:
             reverse=True,
         )
 
+        # Generate visual bar chart
+        chart = self._generate_leaderboard_chart(sorted_contributors)
+
         if self.language == "zh":
             lines = ["## 🏆 本周贡献排行榜", ""]
+            lines.append(chart)
+            lines.append("")
             medals = ["🥇", "🥈", "🥉"]
             for i, c in enumerate(sorted_contributors):
                 medal = medals[i] if i < 3 else f"{i + 1}."
@@ -1054,6 +1075,8 @@ Requirements:
             )
         else:
             lines = ["## 🏆 Weekly Contribution Leaderboard", ""]
+            lines.append(chart)
+            lines.append("")
             medals = ["🥇", "🥈", "🥉"]
             for i, c in enumerate(sorted_contributors):
                 medal = medals[i] if i < 3 else f"{i + 1}."
@@ -1066,6 +1089,53 @@ Requirements:
                 f"*Team completed {report.total_commits} commits and "
                 f"merged {report.total_merged_prs} PRs this week. Keep it up!*"
             )
+
+        return "\n".join(lines)
+
+    def _generate_leaderboard_chart(self, sorted_contributors: list) -> str:
+        """Generate an ASCII/Unicode bar chart for the leaderboard."""
+        if not sorted_contributors:
+            return ""
+
+        # Calculate contribution scores
+        scores = []
+        for c in sorted_contributors:
+            score = c.total_commits + c.merged_prs * 3
+            scores.append((c.username, score, c.total_commits, c.merged_prs))
+
+        max_score = max(s[1] for s in scores) if scores else 1
+        max_name_len = max(len(s[0]) for s in scores) if scores else 10
+        max_name_len = min(max_name_len, 20)  # Cap at 20 chars
+
+        # Bar characters
+        bar_full = "█"
+        bar_width = 30
+
+        lines = ["```"]
+        lines.append(f"{'Contributor':<{max_name_len}} │ {'Score':>6} │ Progress")
+        lines.append(f"{'─' * max_name_len}─┼{'─' * 8}┼{'─' * (bar_width + 10)}")
+
+        medals = ["🥇", "🥈", "🥉"]
+
+        for i, (name, score, commits, prs) in enumerate(scores):
+            # Truncate long names
+            display_name = name[:max_name_len] if len(name) > max_name_len else name
+
+            # Calculate bar length
+            bar_len = int((score / max_score) * bar_width) if max_score > 0 else 0
+            bar = bar_full * bar_len
+
+            # Medal for top 3
+            medal = medals[i] if i < 3 else "  "
+
+            # Color-like indicators using different bar styles
+            lines.append(
+                f"{display_name:<{max_name_len}} │ {score:>6} │ {bar} {medal} ({commits}c+{prs}pr)"
+            )
+
+        lines.append("```")
+        lines.append("")
+        lines.append("*Score = commits + merged_prs × 3*")
 
         return "\n".join(lines)
 
