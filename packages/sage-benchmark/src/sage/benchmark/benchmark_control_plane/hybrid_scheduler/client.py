@@ -105,26 +105,32 @@ class HybridRequestResult(BaseRequestResult):
     def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary."""
         base = self.to_base_dict()
-        base.update({
-            "request_type": self.request_type.value,
-        })
+        base.update(
+            {
+                "request_type": self.request_type.value,
+            }
+        )
 
         if self.is_llm_request:
-            base.update({
-                "model_name": self.model_name,
-                "first_token_time": self.first_token_time,
-                "ttft_ms": self.ttft_ms,
-                "inter_token_latencies": self.inter_token_latencies,
-                "output_token_count": self.output_token_count,
-            })
+            base.update(
+                {
+                    "model_name": self.model_name,
+                    "first_token_time": self.first_token_time,
+                    "ttft_ms": self.ttft_ms,
+                    "inter_token_latencies": self.inter_token_latencies,
+                    "output_token_count": self.output_token_count,
+                }
+            )
         elif self.is_embedding_request:
-            base.update({
-                "embedding_model": self.embedding_model,
-                "batch_size": self.batch_size,
-                "embedding_dimensions": self.embedding_dimensions,
-                "total_texts_embedded": self.total_texts_embedded,
-                "texts_per_second": self.texts_per_second,
-            })
+            base.update(
+                {
+                    "embedding_model": self.embedding_model,
+                    "batch_size": self.batch_size,
+                    "embedding_dimensions": self.embedding_dimensions,
+                    "total_texts_embedded": self.total_texts_embedded,
+                    "texts_per_second": self.texts_per_second,
+                }
+            )
 
         return base
 
@@ -237,9 +243,7 @@ class HybridBenchmarkClient:
 
         try:
             if self._session:
-                async with self._session.get(
-                    f"{self.control_plane_url}/admin/metrics"
-                ) as resp:
+                async with self._session.get(f"{self.control_plane_url}/admin/metrics") as resp:
                     if resp.status == 200:
                         return await resp.json()
         except Exception:
@@ -322,9 +326,7 @@ class HybridBenchmarkClient:
                 raise RuntimeError("Session not initialized")
 
             if self.enable_streaming and request.stream:
-                result = await self._send_streaming_llm_request(
-                    endpoint, payload, headers, result
-                )
+                result = await self._send_streaming_llm_request(endpoint, payload, headers, result)
             else:
                 result = await self._send_non_streaming_llm_request(
                     endpoint, payload, headers, result
@@ -363,9 +365,7 @@ class HybridBenchmarkClient:
         if not self._session:
             raise RuntimeError("Session not initialized")
 
-        async with self._session.post(
-            endpoint, json=payload, headers=headers
-        ) as response:
+        async with self._session.post(endpoint, json=payload, headers=headers) as response:
             result.status_code = response.status
 
             if response.status != 200:
@@ -433,9 +433,7 @@ class HybridBenchmarkClient:
         if not self._session:
             raise RuntimeError("Session not initialized")
 
-        async with self._session.post(
-            endpoint, json=payload, headers=headers
-        ) as response:
+        async with self._session.post(endpoint, json=payload, headers=headers) as response:
             result.status_code = response.status
             result.completion_time = time.time()
 
@@ -466,9 +464,7 @@ class HybridBenchmarkClient:
 
         return result
 
-    async def send_embedding_request(
-        self, request: HybridRequest
-    ) -> HybridRequestResult:
+    async def send_embedding_request(self, request: HybridRequest) -> HybridRequestResult:
         """Send an embedding request to the Control Plane.
 
         Args:
@@ -510,9 +506,7 @@ class HybridBenchmarkClient:
             if not self._session:
                 raise RuntimeError("Session not initialized")
 
-            async with self._session.post(
-                endpoint, json=payload, headers=headers
-            ) as response:
+            async with self._session.post(endpoint, json=payload, headers=headers) as response:
                 result.status_code = response.status
                 result.completion_time = time.time()
 

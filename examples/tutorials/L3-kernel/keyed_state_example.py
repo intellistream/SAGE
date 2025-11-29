@@ -153,8 +153,7 @@ class UserSessionManager(MapFunction):
                 "session_count": session["session_count"],
                 "current_session_actions": len(session["current_session"]["actions"]),
                 "total_value": session["total_value"],
-                "session_duration": time.time()
-                - session["current_session"]["start_time"],
+                "session_duration": time.time() - session["current_session"]["start_time"],
                 "lifetime_actions": sum(session["action_counts"].values()),
             },
             "global_metrics": {
@@ -198,9 +197,7 @@ class UserSessionManager(MapFunction):
 
         # Check if we need to start a new session (timeout or explicit session change)
         time_since_last = current_time - session["last_seen"]
-        session_changed = (
-            event["session_id"] != session["current_session"]["session_id"]
-        )
+        session_changed = event["session_id"] != session["current_session"]["session_id"]
 
         if time_since_last > self.session_timeout or session_changed:
             # Start new session
@@ -211,9 +208,7 @@ class UserSessionManager(MapFunction):
                 "actions": [event["action"]],
                 "pages_visited": [event["page"]],
             }
-            self.logger.info(
-                f"Started new session #{session['session_count']} for user {user_id}"
-            )
+            self.logger.info(f"Started new session #{session['session_count']} for user {user_id}")
         else:
             # Update current session
             session["current_session"]["actions"].append(event["action"])
@@ -278,9 +273,7 @@ class TimeWindowAggregator(MapFunction):
             "window_end": (window_id + 1) * self.window_size,
             "event_count": len(current_window),
             "total_value": sum(e["original_event"]["value"] for e in current_window),
-            "unique_actions": len(
-                {e["original_event"]["action"] for e in current_window}
-            ),
+            "unique_actions": len({e["original_event"]["action"] for e in current_window}),
         }
 
         return {

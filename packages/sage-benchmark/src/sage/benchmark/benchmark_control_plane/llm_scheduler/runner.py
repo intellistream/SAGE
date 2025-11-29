@@ -193,7 +193,9 @@ class LLMBenchmarkRunner:
         result = self._determine_best_performers(result)
 
         # Auto visualization
-        should_visualize = auto_visualize if auto_visualize is not None else self.config.auto_visualize
+        should_visualize = (
+            auto_visualize if auto_visualize is not None else self.config.auto_visualize
+        )
         if should_visualize:
             self._generate_visualizations(result)
 
@@ -341,7 +343,7 @@ class LLMBenchmarkRunner:
             gpu_monitor.start_monitoring(interval_seconds=0.5)
 
         # Run main workload
-        main_workload = workload[self.config.warmup_requests:]
+        main_workload = workload[self.config.warmup_requests :]
         self._log(f"   Running main workload ({len(main_workload)} requests)...")
 
         result.start_time = time.time()

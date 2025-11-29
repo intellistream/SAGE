@@ -164,11 +164,7 @@ class QAPipelineMap(MapFunction):
         out = {"question": question, "answer": answer, "context": context}
 
         # 获取响应队列
-        resp_q = (
-            data.response_queue
-            if hasattr(data, "response_queue")
-            else data["response_queue"]
-        )
+        resp_q = data.response_queue if hasattr(data, "response_queue") else data["response_queue"]
         return {"payload": out, "response_queue": resp_q}
 
 
@@ -361,15 +357,13 @@ def main():
 
         # 4. 创建 QA Pipeline（实际处理逻辑）
         print("✓ 创建 QA Pipeline")
-        env.from_source(QAPipelineSource, qa_bridge).map(QAPipelineMap).sink(
-            QAPipelineSink
-        )
+        env.from_source(QAPipelineSource, qa_bridge).map(QAPipelineMap).sink(QAPipelineSink)
 
         # 5. 创建 Controller Pipeline（顺序发送问题）
         print("✓ 创建 Controller Pipeline")
-        env.from_source(QuestionController, questions, total_q).map(
-            ProcessQuestion
-        ).sink(DisplayAnswer, total_q, [qa_bridge])
+        env.from_source(QuestionController, questions, total_q).map(ProcessQuestion).sink(
+            DisplayAnswer, total_q, [qa_bridge]
+        )
 
         print("\n" + "=" * 60)
         print("🚀 启动 Pipeline...")

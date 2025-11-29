@@ -116,15 +116,11 @@ class LLMMetricsCollector(BaseMetricsCollector):
 
         # Compute token throughput
         if metrics.duration_seconds > 0:
-            total_tokens = sum(
-                r.output_token_count for r in self._results if r.success
-            )
+            total_tokens = sum(r.output_token_count for r in self._results if r.success)
             metrics.token_throughput_tps = total_tokens / metrics.duration_seconds
 
         # Compute TTFT statistics
-        ttft_values = [
-            r.ttft_ms for r in self._results if r.success and r.ttft_ms is not None
-        ]
+        ttft_values = [r.ttft_ms for r in self._results if r.success and r.ttft_ms is not None]
         if ttft_values:
             metrics.ttft_avg_ms = float(np.mean(ttft_values))
             metrics.ttft_p50_ms = float(np.percentile(ttft_values, 50))
@@ -167,7 +163,9 @@ class LLMMetricsCollector(BaseMetricsCollector):
                 r.e2e_latency_ms for r in success_results if r.e2e_latency_ms is not None
             ]
             ttft_values = [
-                r.ttft_ms for r in success_results if hasattr(r, "ttft_ms") and r.ttft_ms is not None
+                r.ttft_ms
+                for r in success_results
+                if hasattr(r, "ttft_ms") and r.ttft_ms is not None
             ]
             total_tokens = sum(
                 r.output_token_count for r in success_results if hasattr(r, "output_token_count")

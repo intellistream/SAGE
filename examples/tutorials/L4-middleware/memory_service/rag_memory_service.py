@@ -56,9 +56,7 @@ class RAGMemoryService(BaseService):
                 self.rag_collection = collection
                 self._logger.info("Successfully loaded RAG memory from disk")
             else:
-                raise TypeError(
-                    f"Expected VDBMemoryCollection, got {type(collection).__name__}"
-                )
+                raise TypeError(f"Expected VDBMemoryCollection, got {type(collection).__name__}")
         else:
             self._logger.warning(
                 "RAG Memory collection not found on disk, creating a fresh one for this session"
@@ -69,9 +67,7 @@ class RAGMemoryService(BaseService):
             if isinstance(collection, VDBMemoryCollection):
                 self.rag_collection = collection
             else:
-                raise TypeError(
-                    f"Expected VDBMemoryCollection, got {type(collection).__name__}"
-                )
+                raise TypeError(f"Expected VDBMemoryCollection, got {type(collection).__name__}")
             index_config = config.get("index_config")
             if index_config and self.rag_collection:
                 self.rag_collection.create_index(index_config)

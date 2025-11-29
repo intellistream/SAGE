@@ -16,10 +16,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from sage.benchmark.benchmark_control_plane.common import ArrivalPattern, SchedulingPolicy
 from sage.benchmark.benchmark_control_plane.experiments import (
@@ -27,7 +24,6 @@ from sage.benchmark.benchmark_control_plane.experiments import (
     DEFAULT_LOAD_LEVELS,
     DEFAULT_PERCENTILES,
     DEFAULT_REQUEST_RATES,
-    BaseExperiment,
     ExperimentResult,
     LatencyExperiment,
     MixedRatioExperiment,

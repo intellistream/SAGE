@@ -18,16 +18,11 @@ GPU resources or running servers.
 
 from __future__ import annotations
 
-import asyncio
-import json
-import time
-from typing import TYPE_CHECKING, Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import TYPE_CHECKING
 
 import pytest
 
 from sage.common.components.sage_llm.unified_api_server import (
-    AIOHTTP_AVAILABLE,
     FASTAPI_AVAILABLE,
     BackendInstanceConfig,
     SchedulingPolicyType,
@@ -163,9 +158,7 @@ class TestServerConfiguration:
         assert "Qwen/Qwen2.5-7B-Instruct" in unified_server._llm_models
         assert "BAAI/bge-m3" in unified_server._embedding_models
 
-    def test_multi_backend_configuration(
-        self, multi_backend_config: UnifiedServerConfig
-    ):
+    def test_multi_backend_configuration(self, multi_backend_config: UnifiedServerConfig):
         """Test configuration with multiple backends."""
         server = UnifiedAPIServer(multi_backend_config)
 
@@ -375,7 +368,7 @@ class TestWithMockBackends:
     async def test_chat_completion_with_mock(
         self,
         unified_server: UnifiedAPIServer,
-        mock_llm_backend: "MockLLMBackend",
+        mock_llm_backend: MockLLMBackend,
     ):
         """Test chat completion flow with mock backend."""
         # Test the backend selection logic
@@ -388,7 +381,7 @@ class TestWithMockBackends:
     async def test_embedding_with_mock(
         self,
         unified_server: UnifiedAPIServer,
-        mock_embedding_backend: "MockEmbeddingBackend",
+        mock_embedding_backend: MockEmbeddingBackend,
     ):
         """Test embedding flow with mock backend."""
         # Test backend selection
