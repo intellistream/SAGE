@@ -95,8 +95,7 @@ class LLMBenchmarkConfig(BaseBenchmarkConfig):
         for policy in self.policies:
             if policy not in llm_strategies and policy != "hybrid":
                 errors.append(
-                    f"Policy {policy} may not support LLM requests. "
-                    f"Recommended: {llm_strategies}"
+                    f"Policy {policy} may not support LLM requests. Recommended: {llm_strategies}"
                 )
 
         return errors
@@ -158,13 +157,15 @@ class LLMBenchmarkConfig(BaseBenchmarkConfig):
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         base_dict = self.to_base_dict()
-        base_dict.update({
-            "model_distribution": self.model_distribution,
-            "prompt_len_range": list(self.prompt_len_range),
-            "output_len_range": list(self.output_len_range),
-            "dataset_path": str(self.dataset_path) if self.dataset_path else None,
-            "enable_streaming": self.enable_streaming,
-        })
+        base_dict.update(
+            {
+                "model_distribution": self.model_distribution,
+                "prompt_len_range": list(self.prompt_len_range),
+                "output_len_range": list(self.output_len_range),
+                "dataset_path": str(self.dataset_path) if self.dataset_path else None,
+                "enable_streaming": self.enable_streaming,
+            }
+        )
         return base_dict
 
 

@@ -62,9 +62,7 @@ from sage.kernel.api.service.base_service import BaseService
 from sage.kernel.runtime.communication.packet import StopSignal
 
 # Test mode detection - reduce sleep times in test/CI environments
-_IS_TEST_MODE = (
-    os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("SAGE_EXAMPLES_MODE") == "test"
-)
+_IS_TEST_MODE = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("SAGE_EXAMPLES_MODE") == "test"
 _SLEEP_MULTIPLIER = 0.01 if _IS_TEST_MODE else 1.0  # 100x faster in test mode
 
 
@@ -303,11 +301,7 @@ class QAPipelineMap(MapFunction):
         out = {"question": question, "answer": answer, "context": context}
 
         # 获取响应队列
-        resp_q = (
-            data.response_queue
-            if hasattr(data, "response_queue")
-            else data["response_queue"]
-        )
+        resp_q = data.response_queue if hasattr(data, "response_queue") else data["response_queue"]
         return {"payload": out, "response_queue": resp_q}
 
 

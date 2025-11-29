@@ -157,9 +157,7 @@ class SLOComplianceExperiment(BaseExperiment):
                     "llm_compliance": slo_stats["llm_compliance"],
                     "embedding_compliance": slo_stats["embedding_compliance"],
                     "high_priority_compliance": slo_stats["high_priority_compliance"],
-                    "normal_priority_compliance": slo_stats[
-                        "normal_priority_compliance"
-                    ],
+                    "normal_priority_compliance": slo_stats["normal_priority_compliance"],
                     "low_priority_compliance": slo_stats["low_priority_compliance"],
                     "violation_count": slo_stats["violation_count"],
                     "total_requests": slo_stats["total_requests"],
@@ -308,9 +306,7 @@ class SLOComplianceExperiment(BaseExperiment):
 
             summary["policies"][policy_name] = {
                 "avg_compliance": avg_compliance,
-                "compliance_by_load": dict(
-                    zip(self.load_levels, compliances, strict=False)
-                ),
+                "compliance_by_load": dict(zip(self.load_levels, compliances, strict=False)),
                 "violations_by_load": violations_by_load,
                 "min_compliance": min(compliances) if compliances else 0.0,
                 "max_compliance": max(compliances) if compliances else 0.0,
@@ -368,9 +364,7 @@ class SLOComplianceExperiment(BaseExperiment):
                 policy_metrics = {}
                 for policy, data in self._result.summary["policies"].items():
                     policy_metrics[policy] = {
-                        "slo": {
-                            "compliance_rate": data.get("avg_compliance", 0.0)
-                        }
+                        "slo": {"compliance_rate": data.get("avg_compliance", 0.0)}
                     }
                 chart_path = chart_gen.plot_slo_compliance(
                     policy_metrics=policy_metrics,

@@ -14,7 +14,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -27,7 +27,7 @@ from sage.benchmark.benchmark_control_plane.visualization import (
 def _matplotlib_available() -> bool:
     """Check if matplotlib is available."""
     try:
-        import matplotlib
+        import matplotlib  # noqa: F401
 
         return True
     except ImportError:
@@ -37,7 +37,7 @@ def _matplotlib_available() -> bool:
 def _jinja2_available() -> bool:
     """Check if jinja2 is available."""
     try:
-        import jinja2
+        import jinja2  # noqa: F401
 
         return True
     except ImportError:
@@ -315,9 +315,7 @@ class TestBenchmarkCharts:
     def test_plot_slo_by_priority(self) -> None:
         """Test SLO by priority chart generation."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            charts = BenchmarkCharts(
-                metrics=create_mock_metrics(), output_dir=tmpdir
-            )
+            charts = BenchmarkCharts(metrics=create_mock_metrics(), output_dir=tmpdir)
 
             path = charts.plot_slo_by_priority()
 
@@ -352,9 +350,7 @@ class TestBenchmarkCharts:
     def test_plot_type_breakdown(self) -> None:
         """Test type breakdown pie chart generation."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            charts = BenchmarkCharts(
-                metrics=create_mock_metrics(), output_dir=tmpdir
-            )
+            charts = BenchmarkCharts(metrics=create_mock_metrics(), output_dir=tmpdir)
 
             path = charts.plot_type_breakdown()
 
@@ -368,9 +364,7 @@ class TestBenchmarkCharts:
     def test_generate_all_charts(self) -> None:
         """Test generating all charts at once."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            charts = BenchmarkCharts(
-                metrics=create_mock_metrics(), output_dir=tmpdir
-            )
+            charts = BenchmarkCharts(metrics=create_mock_metrics(), output_dir=tmpdir)
 
             paths = charts.generate_all_charts()
 
@@ -509,9 +503,7 @@ class TestReportGenerator:
             dummy_chart.write_bytes(b"PNG fake image data")
 
             result = create_mock_benchmark_result()
-            generator = ReportGenerator(
-                result, charts_dir=charts_dir, embed_charts=True
-            )
+            generator = ReportGenerator(result, charts_dir=charts_dir, embed_charts=True)
 
             output_path = Path(tmpdir) / "report.html"
             generator.generate_html_report(output_path)
@@ -521,7 +513,7 @@ class TestReportGenerator:
     def test_generate_html_without_jinja2_raises(self) -> None:
         """Test that HTML generation raises RuntimeError without Jinja2."""
         result = create_mock_benchmark_result()
-        generator = ReportGenerator(result)
+        _generator = ReportGenerator(result)  # noqa: F841
 
         # Patch JINJA2_AVAILABLE to False
         with patch(
@@ -529,7 +521,7 @@ class TestReportGenerator:
             False,
         ):
             with tempfile.TemporaryDirectory() as tmpdir:
-                output_path = Path(tmpdir) / "report.html"
+                _output_path = Path(tmpdir) / "report.html"  # noqa: F841
                 # If jinja2 is not available, it should raise RuntimeError
                 # But if jinja2 IS available in the test env, the patch may not work
                 # as expected because the module was already loaded.
@@ -573,9 +565,7 @@ class TestReportGenerator:
             (charts_dir / "latency_distribution.png").write_bytes(b"PNG data")
 
             result = create_mock_benchmark_result()
-            generator = ReportGenerator(
-                result, charts_dir=charts_dir, embed_charts=False
-            )
+            generator = ReportGenerator(result, charts_dir=charts_dir, embed_charts=False)
             chart_list = generator._get_chart_paths()
 
             assert len(chart_list) == 2

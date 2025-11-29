@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
-    import typer as typer_module
+    pass
 
 # Try to import typer, provide helpful error if not available
 try:
@@ -100,9 +100,6 @@ except ImportError:
     yaml = _YamlStub()  # type: ignore[assignment]
     YAML_AVAILABLE = False
 
-from .config import BenchmarkConfig
-from .reporter import BenchmarkReporter
-from .runner import BenchmarkRunner
 
 logger = logging.getLogger(__name__)
 
@@ -137,8 +134,7 @@ def load_config_file(config_path: Path) -> dict[str, Any]:
     elif suffix in (".yaml", ".yml"):
         if not YAML_AVAILABLE:
             raise ValueError(
-                "PyYAML is required to load YAML config files. "
-                "Install with: pip install pyyaml"
+                "PyYAML is required to load YAML config files. Install with: pip install pyyaml"
             )
         with open(config_path) as f:
             return yaml.safe_load(f)
@@ -997,7 +993,7 @@ def create_app() -> Any:
             result = asyncio.run(experiment.run_full())
 
         if result.success:
-            typer.echo(f"\n✅ Experiment completed successfully")
+            typer.echo("\n✅ Experiment completed successfully")
             typer.echo(f"   Duration: {result.duration_seconds:.1f}s")
             typer.echo(f"   Results saved to: {output_path}")
 
@@ -1007,9 +1003,7 @@ def create_app() -> Any:
                 if "best_policy" in result.summary:
                     typer.echo(f"   Best policy: {result.summary['best_policy']}")
                 if "max_throughput" in result.summary:
-                    typer.echo(
-                        f"   Max throughput: {result.summary['max_throughput']:.1f} req/s"
-                    )
+                    typer.echo(f"   Max throughput: {result.summary['max_throughput']:.1f} req/s")
                 if "overall_compliance" in result.summary:
                     typer.echo(
                         f"   Overall SLO compliance: {result.summary['overall_compliance']:.1%}"
@@ -1112,9 +1106,7 @@ def create_app() -> Any:
                     typer.echo("   📄 Generating HTML report...")
 
                 report_gen = ReportGenerator(result=results, charts_dir=output_path)
-                html_path = report_gen.generate_html_report(
-                    output_path / "benchmark_report.html"
-                )
+                html_path = report_gen.generate_html_report(output_path / "benchmark_report.html")
                 generated_files.append(str(html_path))
 
                 if not quiet:
@@ -1134,9 +1126,7 @@ def create_app() -> Any:
                     typer.echo("   📝 Generating Markdown report...")
 
                 report_gen = ReportGenerator(result=results, charts_dir=output_path)
-                md_path = report_gen.generate_markdown_report(
-                    output_path / "benchmark_report.md"
-                )
+                md_path = report_gen.generate_markdown_report(output_path / "benchmark_report.md")
                 generated_files.append(str(md_path))
 
                 if not quiet:

@@ -603,7 +603,8 @@ def _create_storage_backend() -> SessionStorage:
             import warnings
 
             warnings.warn(
-                "NeuroMem backend requested but not available, falling back to file storage"
+                "NeuroMem backend requested but not available, falling back to file storage",
+                stacklevel=2,
             )
             return FileSessionStore.default()
     else:
