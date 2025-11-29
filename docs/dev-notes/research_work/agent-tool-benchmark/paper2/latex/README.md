@@ -7,7 +7,7 @@
 
 ## Compile
 ```bash
-cd docs/dev-notes/agent-tool-benchmark/paper2/latex
+cd docs/dev-notes/research_work/agent-tool-benchmark/paper2/latex
 pdflatex main.tex
 bibtex main
 pdflatex main.tex

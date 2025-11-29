@@ -363,6 +363,6 @@ If you encounter import errors, ensure:
 
 ## See Also
 
-- [Task 3 Decomposition Plan](../../../../docs/dev-notes/agent-tool-benchmark/task3-decomposition-plan.md)
+- [Task 3 Decomposition Plan](../../../../docs/dev-notes/research_work/agent-tool-benchmark/task3-decomposition-plan.md)
 - [Agent Benchmark Module](../../../../packages/sage-benchmark/src/sage/benchmark/benchmark_agent/README.md)
 - [SAGE Contributing Guide](../../../../CONTRIBUTING.md)
