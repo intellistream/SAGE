@@ -18,8 +18,10 @@ from transformers import (
     TrainingArguments,
 )
 
+# Import SIAS components from their new location
+from sage.libs.sias import CoresetSelector, OnlineContinualLearner
+
 from .config import AgentSFTConfig
-from .continual import CoresetSelector, OnlineContinualLearner
 from .dialog_processor import AgentDialogProcessor, ProcessedDialog
 
 logger = logging.getLogger(__name__)

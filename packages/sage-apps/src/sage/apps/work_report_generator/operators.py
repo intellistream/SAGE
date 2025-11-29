@@ -22,8 +22,67 @@ from .models import (
     DiaryEntry,
     GitHubCommit,
     GitHubPullRequest,
+    ReportPeriod,
     WeeklyReport,
 )
+
+
+def calculate_period_dates(
+    period: ReportPeriod, reference_date: datetime | None = None
+) -> tuple[datetime, datetime]:
+    """
+    Calculate start and end dates for a given report period.
+
+    Args:
+        period: The report period type (weekly, monthly, quarterly, yearly).
+        reference_date: The reference date to calculate from. Defaults to now.
+
+    Returns:
+        Tuple of (start_date, end_date) for the period.
+    """
+    if reference_date is None:
+        reference_date = datetime.now()
+
+    if period == ReportPeriod.WEEKLY:
+        # Last 7 days
+        end_date = reference_date
+        start_date = end_date - timedelta(days=7)
+    elif period == ReportPeriod.MONTHLY:
+        # Last calendar month or last 30 days
+        end_date = reference_date
+        # Go to first day of current month, then back one day to get last month
+        first_of_month = reference_date.replace(day=1)
+        start_date = (first_of_month - timedelta(days=1)).replace(day=1)
+        end_date = first_of_month - timedelta(days=1)
+        # If we're past the 7th, use last 30 days instead for more recent data
+        if reference_date.day > 7:
+            end_date = reference_date
+            start_date = end_date - timedelta(days=30)
+    elif period == ReportPeriod.QUARTERLY:
+        # Last quarter (3 months / ~90 days)
+        end_date = reference_date
+        start_date = end_date - timedelta(days=90)
+    elif period == ReportPeriod.YEARLY:
+        # Last year (365 days)
+        end_date = reference_date
+        start_date = end_date - timedelta(days=365)
+    else:
+        # Default to weekly
+        end_date = reference_date
+        start_date = end_date - timedelta(days=7)
+
+    return start_date, end_date
+
+
+def get_period_days(period: ReportPeriod) -> int:
+    """Get the number of days for a report period."""
+    days_map = {
+        ReportPeriod.WEEKLY: 7,
+        ReportPeriod.MONTHLY: 30,
+        ReportPeriod.QUARTERLY: 90,
+        ReportPeriod.YEARLY: 365,
+    }
+    return days_map.get(period, 7)
 
 
 class GitHubDataSource(BatchFunction):
@@ -50,7 +109,8 @@ class GitHubDataSource(BatchFunction):
     def __init__(
         self,
         repos: list[str] | None = None,
-        days: int = 7,
+        days: int | None = None,
+        period: ReportPeriod | str = ReportPeriod.WEEKLY,
         branch: str = "main-dev",
         github_token: str | None = None,
         include_submodules: bool = True,
@@ -62,7 +122,8 @@ class GitHubDataSource(BatchFunction):
         Args:
             repos: List of repositories in "owner/repo" format.
                    If None, defaults to SAGE_REPOS (main + submodules).
-            days: Number of days to look back for contributions.
+            days: Number of days to look back for contributions (overrides period).
+            period: Report period type (weekly/monthly/quarterly/yearly).
             branch: Branch name to fetch commits from. Default "main-dev".
             github_token: GitHub personal access token. If not provided,
                          will try GITHUB_TOKEN or GIT_TOKEN environment variables.
@@ -76,7 +137,17 @@ class GitHubDataSource(BatchFunction):
         else:
             self.repos = repos
 
-        self.days = days
+        # Handle period parameter
+        if isinstance(period, str):
+            period = ReportPeriod(period.lower())
+        self.period = period
+
+        # Days can override period
+        if days is not None:
+            self.days = days
+        else:
+            self.days = get_period_days(period)
+
         self.branch = branch
         self.github_token = github_token or os.environ.get(
             "GITHUB_TOKEN", os.environ.get("GIT_TOKEN", "")
@@ -93,9 +164,8 @@ class GitHubDataSource(BatchFunction):
         self.current_index = 0
         self.fetched = False
 
-        # Calculate date range
-        self.end_date = datetime.now()
-        self.start_date = self.end_date - timedelta(days=days)
+        # Calculate date range based on period or days
+        self.start_date, self.end_date = calculate_period_dates(period)
 
     def _execute_graphql(
         self, query: str, variables: dict[str, Any] | None = None
@@ -124,6 +194,7 @@ class GitHubDataSource(BatchFunction):
         since = self.start_date.isoformat()
 
         # Query that supports fetching from a specific branch (ref)
+        # Also fetches associated PR info to determine who assigned Copilot
         query = """
         query($owner: String!, $repo: String!, $branch: String!, $since: GitTimestamp!, $after: String) {
             repository(owner: $owner, name: $repo) {
@@ -148,6 +219,25 @@ class GitHubDataSource(BatchFunction):
                                         email
                                         user {
                                             login
+                                        }
+                                    }
+                                    committer {
+                                        name
+                                        email
+                                        user {
+                                            login
+                                        }
+                                    }
+                                    associatedPullRequests(first: 1) {
+                                        nodes {
+                                            author {
+                                                login
+                                            }
+                                            assignees(first: 5) {
+                                                nodes {
+                                                    login
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -307,6 +397,11 @@ class GitHubDataSource(BatchFunction):
                         changedFiles
                         author {
                             login
+                        }
+                        assignees(first: 5) {
+                            nodes {
+                                login
+                            }
                         }
                         labels(first: 10) {
                             nodes {
@@ -504,7 +599,8 @@ class DiaryEntrySource(BatchFunction):
     def __init__(
         self,
         diary_path: str | Path | None = None,
-        days: int = 7,
+        days: int | None = None,
+        period: ReportPeriod | str = ReportPeriod.WEEKLY,
         **kwargs,
     ) -> None:
         """
@@ -512,17 +608,29 @@ class DiaryEntrySource(BatchFunction):
 
         Args:
             diary_path: Path to diary directory or file.
-            days: Number of days to look back.
+            days: Number of days to look back (overrides period).
+            period: Report period type (weekly/monthly/quarterly/yearly).
         """
         super().__init__(**kwargs)
         self.diary_path = Path(diary_path) if diary_path else None
-        self.days = days
+
+        # Handle period parameter
+        if isinstance(period, str):
+            period = ReportPeriod(period.lower())
+        self.period = period
+
+        # Days can override period
+        if days is not None:
+            self.days = days
+        else:
+            self.days = get_period_days(period)
+
         self.entries: list[DiaryEntry] = []
         self.current_index = 0
         self.fetched = False
 
-        self.end_date = datetime.now()
-        self.start_date = self.end_date - timedelta(days=days)
+        # Calculate date range based on period
+        self.start_date, self.end_date = calculate_period_dates(period)
 
     def _load_entries(self) -> None:
         """Load diary entries from the specified path."""
@@ -619,8 +727,65 @@ class ContributorAggregator(MapFunction):
     # Class-level storage for aggregation across all instances
     _contributors: dict[str, ContributorSummary] = {}
 
+    # Username aliases: map alternative names to canonical names
+    # Key: lowercase alias, Value: canonical name
+    USERNAME_ALIASES: dict[str, str] = {
+        # ShuhaoZhangTony variants
+        "shuhao zhang": "ShuhaoZhangTony",
+        "shuhaozhangtony": "ShuhaoZhangTony",
+        "shuhaozhang": "ShuhaoZhangTony",
+        # Copilot variants - these will be reassigned to their assigners
+        "copilot": "Copilot",
+        "copilot-swe-agent": "Copilot",
+        "github-copilot": "Copilot",
+    }
+
+    # Copilot usernames (lowercase)
+    COPILOT_USERS: set[str] = {"copilot", "copilot-swe-agent", "github-copilot"}
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+
+    @classmethod
+    def normalize_username(cls, username: str) -> str:
+        """Normalize username to canonical form."""
+        if not username:
+            return "Unknown"
+        # Check if lowercase version matches any alias
+        lower_name = username.lower().strip()
+        return cls.USERNAME_ALIASES.get(lower_name, username)
+
+    @classmethod
+    def is_copilot_user(cls, username: str) -> bool:
+        """Check if the username is a Copilot variant."""
+        return username.lower().strip() in cls.COPILOT_USERS
+
+    def _resolve_author(
+        self, raw_author: str, item: GitHubCommit | GitHubPullRequest | DiaryEntry | None
+    ) -> tuple[str, bool]:
+        """
+        Resolve the final author for contribution attribution.
+
+        Returns:
+            tuple: (final_author, is_copilot_assisted)
+        """
+        normalized = self.normalize_username(raw_author)
+
+        # Check if this is a Copilot commit with an assigned user
+        if isinstance(item, GitHubCommit) and self.is_copilot_user(raw_author):
+            if item.assigned_by:
+                # Attribute to the assigning user, but mark as Copilot-assisted
+                final_author = self.normalize_username(item.assigned_by)
+                return final_author, True
+
+        # Check if this is a Copilot PR with an assigned user
+        if isinstance(item, GitHubPullRequest) and self.is_copilot_user(raw_author):
+            if item.assigned_by:
+                # Attribute to the assigning user, but mark as Copilot-assisted
+                final_author = self.normalize_username(item.assigned_by)
+                return final_author, True
+
+        return normalized, False
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Aggregate data by contributor."""
@@ -628,9 +793,12 @@ class ContributorAggregator(MapFunction):
         if not isinstance(data, dict):
             return None
 
-        author = data.get("author", "Unknown")
+        raw_author = data.get("author", "Unknown")
         data_type = data.get("type")
         item = data.get("data")
+
+        # Resolve author (handle Copilot attribution)
+        author, is_copilot_assisted = self._resolve_author(raw_author, item)
 
         if author not in ContributorAggregator._contributors:
             ContributorAggregator._contributors[author] = ContributorSummary(username=author)
@@ -639,8 +807,18 @@ class ContributorAggregator(MapFunction):
 
         if data_type == "commit" and isinstance(item, GitHubCommit):
             contributor.commits.append(item)
+            if is_copilot_assisted:
+                # Track Copilot-assisted commits separately
+                if not hasattr(contributor, "copilot_assisted_commits"):
+                    contributor.copilot_assisted_commits = 0
+                contributor.copilot_assisted_commits += 1
         elif data_type == "pull_request" and isinstance(item, GitHubPullRequest):
             contributor.pull_requests.append(item)
+            if is_copilot_assisted:
+                # Track Copilot-assisted PRs separately
+                if not hasattr(contributor, "copilot_assisted_prs"):
+                    contributor.copilot_assisted_prs = 0
+                contributor.copilot_assisted_prs += 1
         elif data_type == "diary_entry" and isinstance(item, DiaryEntry):
             contributor.diary_entries.append(item)
 
@@ -815,7 +993,10 @@ class ReportSink(SinkFunction):
         output_format: str = "markdown",
         output_path: str | Path | None = None,
         repos: list[str] | None = None,
-        days: int = 7,
+        days: int | None = None,
+        period: ReportPeriod | str = ReportPeriod.WEEKLY,
+        language: str = "zh",
+        use_llm: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -825,19 +1006,277 @@ class ReportSink(SinkFunction):
             output_format: Output format ("console", "markdown", "json").
             output_path: Path to save the report file.
             repos: List of repositories being tracked.
-            days: Number of days in the report period.
+            days: Number of days in the report period (overrides period).
+            period: Report period type (weekly/monthly/quarterly/yearly).
+            language: Output language ("zh" or "en").
+            use_llm: Whether to use LLM for leaderboard generation.
         """
         super().__init__(**kwargs)
         self.output_format = output_format
         self.output_path = Path(output_path) if output_path else None
         self.repos = repos or []
-        self.days = days
+
+        # Handle period parameter
+        if isinstance(period, str):
+            period = ReportPeriod(period.lower())
+        self.period = period
+
+        # Days can override period
+        if days is not None:
+            self.days = days
+        else:
+            self.days = get_period_days(period)
+
+        self.language = language
+        self.use_llm = use_llm
         self.contributors: dict[str, dict[str, Any]] = {}
         self.start_time = time.time()
+        self._llm_client = None
 
-        # Date range
-        self.end_date = datetime.now()
-        self.start_date = self.end_date - timedelta(days=days)
+        # Date range based on period
+        self.start_date, self.end_date = calculate_period_dates(period)
+
+    def _get_llm_client(self):
+        """Lazy initialization of LLM client."""
+        if self._llm_client is None:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                self._llm_client = UnifiedInferenceClient.create_auto()
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize LLM client: {e}")
+                self._llm_client = None
+        return self._llm_client
+
+    def _get_period_text(self) -> dict[str, str]:
+        """Get period-specific text for report generation."""
+        period_texts = {
+            ReportPeriod.WEEKLY: {
+                "zh_title": "本周贡献排行榜",
+                "en_title": "Weekly Contribution Leaderboard",
+                "zh_period": "本周",
+                "en_period": "this week",
+                "zh_summary_type": "周报",
+                "en_summary_type": "weekly report",
+            },
+            ReportPeriod.MONTHLY: {
+                "zh_title": "本月贡献排行榜",
+                "en_title": "Monthly Contribution Leaderboard",
+                "zh_period": "本月",
+                "en_period": "this month",
+                "zh_summary_type": "月报",
+                "en_summary_type": "monthly report",
+            },
+            ReportPeriod.QUARTERLY: {
+                "zh_title": "本季度贡献排行榜",
+                "en_title": "Quarterly Contribution Leaderboard",
+                "zh_period": "本季度",
+                "en_period": "this quarter",
+                "zh_summary_type": "季报",
+                "en_summary_type": "quarterly report",
+            },
+            ReportPeriod.YEARLY: {
+                "zh_title": "年度贡献排行榜",
+                "en_title": "Yearly Contribution Leaderboard",
+                "zh_period": "本年度",
+                "en_period": "this year",
+                "zh_summary_type": "年报",
+                "en_summary_type": "yearly report",
+            },
+        }
+        return period_texts.get(self.period, period_texts[ReportPeriod.WEEKLY])
+
+    def _generate_leaderboard(self, report: WeeklyReport) -> str:
+        """Generate a contribution leaderboard with visual chart and optional LLM comments."""
+        # Sort contributors by contribution score
+        sorted_contributors = sorted(
+            report.contributors,
+            key=lambda c: c.total_commits + c.merged_prs * 3,
+            reverse=True,
+        )
+
+        # Always generate visual chart first
+        chart = self._generate_leaderboard_chart(sorted_contributors)
+
+        if not self.use_llm:
+            return self._generate_simple_leaderboard(report)
+
+        client = self._get_llm_client()
+        if client is None:
+            return self._generate_simple_leaderboard(report)
+
+        # Build contributor stats for LLM
+        contributors_data = []
+        for c in report.contributors:
+            contributors_data.append(
+                {
+                    "name": c.username,
+                    "commits": c.total_commits,
+                    "prs": c.total_prs,
+                    "merged_prs": c.merged_prs,
+                    "additions": c.total_additions,
+                    "deletions": c.total_deletions,
+                }
+            )
+
+        # Sort by contribution (commits + merged PRs * 3)
+        contributors_data.sort(key=lambda x: x["commits"] + x["merged_prs"] * 3, reverse=True)
+
+        stats_text = "\n".join(
+            f"- {i + 1}. {c['name']}: {c['commits']} commits, "
+            f"{c['prs']} PRs ({c['merged_prs']} merged), "
+            f"+{c['additions']}/-{c['deletions']} lines"
+            for i, c in enumerate(contributors_data)
+        )
+
+        # Get period-specific text
+        period_text = self._get_period_text()
+
+        if self.language == "zh":
+            prompt = f"""根据以下贡献者数据，生成一份简洁有趣的{period_text["zh_period"]}贡献度排行榜评语。
+请用emoji和简短评语让排行榜更生动。
+
+贡献者数据（按贡献度排序）：
+{stats_text}
+
+时间范围：{report.start_date} ~ {report.end_date}
+总提交数：{report.total_commits}
+总PR数：{report.total_prs}（已合并：{report.total_merged_prs}）
+
+要求：
+1. 用🥇🥈🥉标注前三名
+2. 每个人配一句简短有趣的评语（10-20字）
+3. 最后加一句团队总结或鼓励语
+4. 保持简洁，总共不超过300字"""
+        else:
+            prompt = f"""Based on the contributor data below, generate brief and fun {period_text["en_period"]} contribution leaderboard comments.
+Use emojis and short comments to make it engaging.
+
+Contributor data (sorted by contribution):
+{stats_text}
+
+Period: {report.start_date} ~ {report.end_date}
+Total commits: {report.total_commits}
+Total PRs: {report.total_prs} (merged: {report.total_merged_prs})
+
+Requirements:
+1. Use 🥇🥈🥉 for top 3
+2. Add a short fun comment for each person (10-20 words)
+3. End with a team summary or encouragement
+4. Keep it concise, under 300 words total"""
+
+        try:
+            messages = [{"role": "user", "content": prompt}]
+            response = client.chat(messages)
+            llm_comments = response.content if hasattr(response, "content") else str(response)
+
+            # Combine chart with LLM comments
+            title = (
+                f"## 🏆 {period_text['zh_title']}"
+                if self.language == "zh"
+                else f"## 🏆 {period_text['en_title']}"
+            )
+            return f"{title}\n\n{chart}\n\n{llm_comments}"
+        except Exception as e:
+            self.logger.warning(f"LLM leaderboard generation failed: {e}")
+            return self._generate_simple_leaderboard(report)
+
+    def _generate_simple_leaderboard(self, report: WeeklyReport) -> str:
+        """Generate a simple leaderboard without LLM."""
+        # Sort contributors by contribution score
+        sorted_contributors = sorted(
+            report.contributors,
+            key=lambda c: c.total_commits + c.merged_prs * 3,
+            reverse=True,
+        )
+
+        # Generate visual bar chart
+        chart = self._generate_leaderboard_chart(sorted_contributors)
+
+        # Get period-specific text
+        period_text = self._get_period_text()
+
+        if self.language == "zh":
+            lines = [f"## 🏆 {period_text['zh_title']}", ""]
+            lines.append(chart)
+            lines.append("")
+            medals = ["🥇", "🥈", "🥉"]
+            for i, c in enumerate(sorted_contributors):
+                medal = medals[i] if i < 3 else f"{i + 1}."
+                lines.append(
+                    f"{medal} **{c.username}** - "
+                    f"{c.total_commits} commits, {c.merged_prs} merged PRs"
+                )
+            lines.append("")
+            lines.append(
+                f"*{period_text['zh_period']}团队共完成 {report.total_commits} 次提交，"
+                f"合并 {report.total_merged_prs} 个PR，继续加油。*"
+            )
+        else:
+            lines = [f"## 🏆 {period_text['en_title']}", ""]
+            lines.append(chart)
+            lines.append("")
+            medals = ["🥇", "🥈", "🥉"]
+            for i, c in enumerate(sorted_contributors):
+                medal = medals[i] if i < 3 else f"{i + 1}."
+                lines.append(
+                    f"{medal} **{c.username}** - "
+                    f"{c.total_commits} commits, {c.merged_prs} merged PRs"
+                )
+            lines.append("")
+            lines.append(
+                f"*Team completed {report.total_commits} commits and "
+                f"merged {report.total_merged_prs} PRs {period_text['en_period']}. Keep it up.*"
+            )
+
+        return "\n".join(lines)
+
+    def _generate_leaderboard_chart(self, sorted_contributors: list) -> str:
+        """Generate an ASCII/Unicode bar chart for the leaderboard."""
+        if not sorted_contributors:
+            return ""
+
+        # Calculate contribution scores
+        scores = []
+        for c in sorted_contributors:
+            score = c.total_commits + c.merged_prs * 3
+            scores.append((c.username, score, c.total_commits, c.merged_prs))
+
+        max_score = max(s[1] for s in scores) if scores else 1
+        max_name_len = max(len(s[0]) for s in scores) if scores else 10
+        max_name_len = min(max_name_len, 20)  # Cap at 20 chars
+
+        # Bar characters
+        bar_full = "█"
+        bar_width = 30
+
+        lines = ["```"]
+        lines.append(f"{'Contributor':<{max_name_len}} │ {'Score':>6} │ Progress")
+        lines.append(f"{'─' * max_name_len}─┼{'─' * 8}┼{'─' * (bar_width + 10)}")
+
+        medals = ["🥇", "🥈", "🥉"]
+
+        for i, (name, score, commits, prs) in enumerate(scores):
+            # Truncate long names
+            display_name = name[:max_name_len] if len(name) > max_name_len else name
+
+            # Calculate bar length
+            bar_len = int((score / max_score) * bar_width) if max_score > 0 else 0
+            bar = bar_full * bar_len
+
+            # Medal for top 3
+            medal = medals[i] if i < 3 else "  "
+
+            # Color-like indicators using different bar styles
+            lines.append(
+                f"{display_name:<{max_name_len}} │ {score:>6} │ {bar} {medal} ({commits}c+{prs}pr)"
+            )
+
+        lines.append("```")
+        lines.append("")
+        lines.append("*Score = commits + merged_prs × 3*")
+
+        return "\n".join(lines)
 
     def execute(self, data: dict[str, Any]) -> None:
         """Collect data for the report."""
@@ -906,6 +1345,11 @@ class ReportSink(SinkFunction):
             if llm_summary:
                 print(f"   Summary: {llm_summary[:200]}...")
 
+        # Generate and print leaderboard
+        print("\n" + "-" * 70)
+        leaderboard = self._generate_leaderboard(report)
+        print(leaderboard)
+
         print("\n" + "=" * 70)
         print(f" Generated in {elapsed:.2f}s")
         print("=" * 70 + "\n")
@@ -964,8 +1408,13 @@ class ReportSink(SinkFunction):
                     ]
                 )
 
+        # Add leaderboard section
+        leaderboard = self._generate_leaderboard(report)
         lines.extend(
             [
+                "",
+                leaderboard,
+                "",
                 "---",
                 f"*Report generated in {elapsed:.2f}s by SAGE Work Report Generator*",
             ]
@@ -1028,6 +1477,10 @@ class ReportSink(SinkFunction):
                 ),
             }
             data["contributors"].append(contrib_data)
+
+        # Add leaderboard
+        leaderboard = self._generate_leaderboard(report)
+        data["leaderboard"] = leaderboard
 
         content = json.dumps(data, indent=2, ensure_ascii=False)
 
