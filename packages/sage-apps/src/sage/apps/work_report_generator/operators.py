@@ -124,6 +124,7 @@ class GitHubDataSource(BatchFunction):
         since = self.start_date.isoformat()
 
         # Query that supports fetching from a specific branch (ref)
+        # Also fetches associated PR info to determine who assigned Copilot
         query = """
         query($owner: String!, $repo: String!, $branch: String!, $since: GitTimestamp!, $after: String) {
             repository(owner: $owner, name: $repo) {
@@ -148,6 +149,25 @@ class GitHubDataSource(BatchFunction):
                                         email
                                         user {
                                             login
+                                        }
+                                    }
+                                    committer {
+                                        name
+                                        email
+                                        user {
+                                            login
+                                        }
+                                    }
+                                    associatedPullRequests(first: 1) {
+                                        nodes {
+                                            author {
+                                                login
+                                            }
+                                            assignees(first: 5) {
+                                                nodes {
+                                                    login
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -307,6 +327,11 @@ class GitHubDataSource(BatchFunction):
                         changedFiles
                         author {
                             login
+                        }
+                        assignees(first: 5) {
+                            nodes {
+                                login
+                            }
                         }
                         labels(first: 10) {
                             nodes {
@@ -626,11 +651,14 @@ class ContributorAggregator(MapFunction):
         "shuhao zhang": "ShuhaoZhangTony",
         "shuhaozhangtony": "ShuhaoZhangTony",
         "shuhaozhang": "ShuhaoZhangTony",
-        # Copilot variants
+        # Copilot variants - these will be reassigned to their assigners
         "copilot": "Copilot",
         "copilot-swe-agent": "Copilot",
         "github-copilot": "Copilot",
     }
+
+    # Copilot usernames (lowercase)
+    COPILOT_USERS: set[str] = {"copilot", "copilot-swe-agent", "github-copilot"}
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -644,6 +672,38 @@ class ContributorAggregator(MapFunction):
         lower_name = username.lower().strip()
         return cls.USERNAME_ALIASES.get(lower_name, username)
 
+    @classmethod
+    def is_copilot_user(cls, username: str) -> bool:
+        """Check if the username is a Copilot variant."""
+        return username.lower().strip() in cls.COPILOT_USERS
+
+    def _resolve_author(
+        self, raw_author: str, item: GitHubCommit | GitHubPullRequest | DiaryEntry | None
+    ) -> tuple[str, bool]:
+        """
+        Resolve the final author for contribution attribution.
+
+        Returns:
+            tuple: (final_author, is_copilot_assisted)
+        """
+        normalized = self.normalize_username(raw_author)
+
+        # Check if this is a Copilot commit with an assigned user
+        if isinstance(item, GitHubCommit) and self.is_copilot_user(raw_author):
+            if item.assigned_by:
+                # Attribute to the assigning user, but mark as Copilot-assisted
+                final_author = self.normalize_username(item.assigned_by)
+                return final_author, True
+
+        # Check if this is a Copilot PR with an assigned user
+        if isinstance(item, GitHubPullRequest) and self.is_copilot_user(raw_author):
+            if item.assigned_by:
+                # Attribute to the assigning user, but mark as Copilot-assisted
+                final_author = self.normalize_username(item.assigned_by)
+                return final_author, True
+
+        return normalized, False
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Aggregate data by contributor."""
         # Skip non-dict data (e.g., StopSignal)
@@ -651,10 +711,11 @@ class ContributorAggregator(MapFunction):
             return None
 
         raw_author = data.get("author", "Unknown")
-        # Normalize the author name
-        author = self.normalize_username(raw_author)
         data_type = data.get("type")
         item = data.get("data")
+
+        # Resolve author (handle Copilot attribution)
+        author, is_copilot_assisted = self._resolve_author(raw_author, item)
 
         if author not in ContributorAggregator._contributors:
             ContributorAggregator._contributors[author] = ContributorSummary(username=author)
@@ -663,8 +724,18 @@ class ContributorAggregator(MapFunction):
 
         if data_type == "commit" and isinstance(item, GitHubCommit):
             contributor.commits.append(item)
+            if is_copilot_assisted:
+                # Track Copilot-assisted commits separately
+                if not hasattr(contributor, "copilot_assisted_commits"):
+                    contributor.copilot_assisted_commits = 0
+                contributor.copilot_assisted_commits += 1
         elif data_type == "pull_request" and isinstance(item, GitHubPullRequest):
             contributor.pull_requests.append(item)
+            if is_copilot_assisted:
+                # Track Copilot-assisted PRs separately
+                if not hasattr(contributor, "copilot_assisted_prs"):
+                    contributor.copilot_assisted_prs = 0
+                contributor.copilot_assisted_prs += 1
         elif data_type == "diary_entry" and isinstance(item, DiaryEntry):
             contributor.diary_entries.append(item)
 
