@@ -304,13 +304,13 @@ def run_section_5_5(args) -> dict[str, Any]:
         try:
             from experiments.exp_training_comparison import run_training_comparison
 
-            # 确定要对比的方法
+            # Paper 1 only uses baseline methods
+            # SIAS methods (B_coreset, C_continual, D_combined) are for Paper 2
             if args.train_methods:
                 methods = args.train_methods.split(",")
-            elif args.quick:
-                methods = ["A_baseline", "D_combined"]
             else:
-                methods = ["A_baseline", "B3_coreset_hybrid", "C_continual", "D_combined"]
+                # Paper 1 default: only baseline SFT
+                methods = ["A_baseline"]
 
             results["training_comparison"] = run_training_comparison(
                 methods=methods,

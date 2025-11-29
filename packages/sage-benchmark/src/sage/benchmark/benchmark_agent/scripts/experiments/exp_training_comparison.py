@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
 """
-Section 5.5: Training Method Comparison
+Training Method Comparison Experiments
 
-研究问题: 不同训练优化方法对 Agent 能力的提升效果如何?
+This module contains training method comparisons for both Paper 1 and Paper 2.
 
-测试方法:
+Paper 1 (Benchmark) Methods:
 - Method A: Baseline SFT (标准微调，无优化)
-- Method B: Coreset Selection (数据选择策略)
+- (Future: FireAct, AgentTuning, DoRA, LoRA+ as baselines)
+
+Paper 2 (SIAS) Methods - Our Contributions:
+- Method B: Coreset Selection (数据选择策略) - from sage.libs.sias
   - B1: Loss-based (选择高损失样本)
   - B2: Diversity-based (选择多样性样本)
   - B3: Hybrid (60% loss + 40% diversity)
-- Method C: Continual Learning (持续学习 + 经验回放)
+- Method C: Continual Learning (持续学习 + 经验回放) - from sage.libs.sias
 - Method D: Combined (Coreset + Continual)
 
-目标:
-- 对比各方法在三个 Challenge 上的表现
-- 确定最优训练策略组合
-- 为 Paper 2 (SAGE Method) 提供 baseline
-
 Usage:
-    python exp_training_comparison.py
-    python exp_training_comparison.py --quick
-    python exp_training_comparison.py --methods A,D
-    python exp_training_comparison.py --dry-run
+    # Paper 1 only (baseline)
+    python exp_training_comparison.py --methods A_baseline
+
+    # Paper 2 experiments (SIAS)
+    python exp_training_comparison.py --methods A_baseline,B3_coreset_hybrid,C_continual,D_combined
+
+    # Quick test
+    python exp_training_comparison.py --quick --dry-run
 """
 
 from __future__ import annotations
@@ -72,8 +74,10 @@ class TrainingMethodConfig:
         return asdict(self)
 
 
-# 预定义方法配置
-TRAINING_METHODS = {
+# =============================================================================
+# Paper 1 (Benchmark) Training Methods - Standard baselines
+# =============================================================================
+PAPER1_TRAINING_METHODS = {
     "A_baseline": TrainingMethodConfig(
         name="A_baseline",
         display_name="A: Baseline SFT",
@@ -81,10 +85,17 @@ TRAINING_METHODS = {
         use_coreset=False,
         use_continual=False,
     ),
+    # Note: FireAct, AgentTuning, DoRA, LoRA+ can be added here as Paper 1 baselines
+}
+
+# =============================================================================
+# Paper 2 (SIAS) Training Methods - Our contributions
+# =============================================================================
+SIAS_TRAINING_METHODS = {
     "B1_coreset_loss": TrainingMethodConfig(
         name="B1_coreset_loss",
         display_name="B1: Coreset (Loss)",
-        description="Select high-loss samples for training",
+        description="[SIAS] Select high-loss samples for training",
         use_coreset=True,
         coreset_strategy="loss",
         coreset_ratio=0.3,
@@ -92,7 +103,7 @@ TRAINING_METHODS = {
     "B2_coreset_diversity": TrainingMethodConfig(
         name="B2_coreset_diversity",
         display_name="B2: Coreset (Diversity)",
-        description="Select diverse samples using clustering",
+        description="[SIAS] Select diverse samples using clustering",
         use_coreset=True,
         coreset_strategy="diversity",
         coreset_ratio=0.3,
@@ -100,7 +111,7 @@ TRAINING_METHODS = {
     "B3_coreset_hybrid": TrainingMethodConfig(
         name="B3_coreset_hybrid",
         display_name="B3: Coreset (Hybrid)",
-        description="60% high-loss + 40% diverse samples",
+        description="[SIAS] 60% high-loss + 40% diverse samples",
         use_coreset=True,
         coreset_strategy="hybrid",
         coreset_ratio=0.3,
@@ -108,14 +119,14 @@ TRAINING_METHODS = {
     "C_continual": TrainingMethodConfig(
         name="C_continual",
         display_name="C: Continual Learning",
-        description="Online learning with experience replay",
+        description="[SIAS] Online learning with experience replay",
         use_continual=True,
         replay_ratio=0.1,
     ),
     "D_combined": TrainingMethodConfig(
         name="D_combined",
         display_name="D: Combined",
-        description="Coreset selection + Continual learning",
+        description="[SIAS] Coreset selection + Continual learning",
         use_coreset=True,
         coreset_strategy="hybrid",
         coreset_ratio=0.3,
@@ -123,6 +134,9 @@ TRAINING_METHODS = {
         replay_ratio=0.1,
     ),
 }
+
+# Combined registry for backward compatibility
+TRAINING_METHODS = {**PAPER1_TRAINING_METHODS, **SIAS_TRAINING_METHODS}
 
 
 @dataclass

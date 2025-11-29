@@ -619,8 +619,30 @@ class ContributorAggregator(MapFunction):
     # Class-level storage for aggregation across all instances
     _contributors: dict[str, ContributorSummary] = {}
 
+    # Username aliases: map alternative names to canonical names
+    # Key: lowercase alias, Value: canonical name
+    USERNAME_ALIASES: dict[str, str] = {
+        # ShuhaoZhangTony variants
+        "shuhao zhang": "ShuhaoZhangTony",
+        "shuhaozhangtony": "ShuhaoZhangTony",
+        "shuhaozhang": "ShuhaoZhangTony",
+        # Copilot variants
+        "copilot": "Copilot",
+        "copilot-swe-agent": "Copilot",
+        "github-copilot": "Copilot",
+    }
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
+
+    @classmethod
+    def normalize_username(cls, username: str) -> str:
+        """Normalize username to canonical form."""
+        if not username:
+            return "Unknown"
+        # Check if lowercase version matches any alias
+        lower_name = username.lower().strip()
+        return cls.USERNAME_ALIASES.get(lower_name, username)
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Aggregate data by contributor."""
@@ -628,7 +650,9 @@ class ContributorAggregator(MapFunction):
         if not isinstance(data, dict):
             return None
 
-        author = data.get("author", "Unknown")
+        raw_author = data.get("author", "Unknown")
+        # Normalize the author name
+        author = self.normalize_username(raw_author)
         data_type = data.get("type")
         item = data.get("data")
 

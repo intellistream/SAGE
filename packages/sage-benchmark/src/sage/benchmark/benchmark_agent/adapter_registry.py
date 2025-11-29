@@ -9,22 +9,28 @@ This bridges the benchmark experiments with the runtime components.
 Method Classification:
 =====================
 
-Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Adapters):
+Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Evaluation Only):
     Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
     Planning: simple, hierarchical, llm_based, react, tot
     Timing: rule_based, llm_based, hybrid, embedding
 
-Paper 2 (Method) - SAGE-Agent Framework (Training Strategies):
-    Core Components:
-    - SSIS: Streaming Sample Importance Scorer
-    - Priority Replay: Importance-Weighted Experience Buffer
-    - Cross-Task Attention: Unified Multi-Task Network
+    Note: Paper 1 is a BENCHMARK paper that evaluates existing methods
+    using pre-trained models. It does NOT involve training.
 
-    Training Configurations (run_full_training_comparison.py):
-    - SAGE_sft_baseline: Standard SFT (ablation baseline)
-    - SAGE_ssis_only: + Streaming Sample Importance Scorer
-    - SAGE_ssis_replay: + Priority Replay Buffer
-    - SAGE_full: Complete SAGE-Agent
+Paper 2 (SIAS Method) - Training Strategies (in sage.libs.sias):
+    Core Components:
+    - CoresetSelector: Intelligent sample selection (loss_topk, diversity, hybrid)
+    - OnlineContinualLearner: Experience replay buffer with importance weighting
+    - SSIS: Streaming Sample Importance Scorer (TODO)
+    - Priority Replay: Importance-Weighted Experience Buffer (TODO)
+
+    Training Configurations:
+    - SIAS_sft_baseline: Standard SFT (ablation baseline)
+    - SIAS_coreset: + Coreset selection
+    - SIAS_continual: + Continual learning with replay
+    - SIAS_full: Complete SIAS framework
+
+    Import: from sage.libs.sias import CoresetSelector, OnlineContinualLearner
 
 Usage:
     >>> registry = get_adapter_registry()

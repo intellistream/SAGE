@@ -129,11 +129,15 @@ trainer.train()
 | Component                | Description                   | Import Path                                  |
 | ------------------------ | ----------------------------- | -------------------------------------------- |
 | `AgentSFTTrainer`        | Main trainer class            | `sage.libs.finetune.agent`                   |
-| `CoresetSelector`        | Sample selection              | `sage.libs.finetune.agent`                   |
-| `OnlineContinualLearner` | Experience replay             | `sage.libs.finetune.agent`                   |
+| `CoresetSelector`        | Sample selection (SIAS)       | `sage.libs.sias`                             |
+| `OnlineContinualLearner` | Experience replay (SIAS)      | `sage.libs.sias`                             |
 | `TrajectoryCollector`    | FireAct trajectory collection | `sage.libs.finetune.agent`                   |
 | `MultiTaskMixer`         | AgentTuning data mixing       | `sage.libs.finetune.agent`                   |
 | `MethodRegistry`         | Predefined methods            | `sage.benchmark.benchmark_agent.experiments` |
+
+> **Note**: `CoresetSelector` and `OnlineContinualLearner` have been moved to the SIAS module
+> (`sage.libs.sias`). They are re-exported from `sage.libs.finetune.agent` for backward
+> compatibility.
 
 For detailed API documentation, see
 [Agent Fine-tuning API Reference](../../docs/dev-notes/l3-libs/AGENT_FINETUNE_API_REFERENCE.md).
