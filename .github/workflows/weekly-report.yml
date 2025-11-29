@@ -1,0 +1,301 @@
+# Weekly Report Generator Workflow
+#
+# Generates weekly work reports for all contributors using SAGE framework.
+# Runs every Monday at 9:00 UTC (17:00 Beijing Time) on self-hosted A6000 runner.
+#
+# Reports are:
+# 1. Saved as artifacts
+# 2. Posted as GitHub issue comments (optional)
+# 3. Sent via email/webhook (future)
+
+name: Weekly Report Generator
+
+on:
+  # Weekly schedule: Monday 9:00 UTC (17:00 Beijing Time)
+  schedule:
+    - cron: '0 9 * * 1'
+
+  # Manual trigger with options
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: 'Repositories to include (comma-separated, leave empty for all SAGE repos)'
+        required: false
+        default: ''
+        type: string
+      branch:
+        description: 'Branch to fetch commits from'
+        required: false
+        default: 'main-dev'
+        type: string
+      days:
+        description: 'Number of days to look back'
+        required: false
+        default: '7'
+        type: choice
+        options:
+          - '7'
+          - '14'
+          - '30'
+      output_format:
+        description: 'Output format'
+        required: false
+        default: 'markdown'
+        type: choice
+        options:
+          - markdown
+          - json
+          - console
+      language:
+        description: 'Report language'
+        required: false
+        default: 'zh'
+        type: choice
+        options:
+          - zh
+          - en
+      use_llm:
+        description: 'Use LLM for AI summaries'
+        required: false
+        default: true
+        type: boolean
+      include_submodules:
+        description: 'Include submodule repositories'
+        required: false
+        default: true
+        type: boolean
+      create_issue:
+        description: 'Create GitHub issue with report'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  CI: true
+  GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+  GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  HF_ENDPOINT: https://hf-mirror.com
+  # LLM Service Configuration
+  SAGE_CHAT_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  SAGE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  SAGE_CHAT_MODEL: qwen-turbo-2025-02-11
+
+jobs:
+  generate-report:
+    name: Generate Weekly Report
+    runs-on: [self-hosted, A6000]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GIT_TOKEN }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Setup Python Environment
+        run: |
+          echo "Setting up Python environment..."
+
+          # Check if conda env exists
+          if conda env list | grep -q "sage"; then
+            echo "Activating existing sage environment"
+            source $(conda info --base)/etc/profile.d/conda.sh
+            conda activate sage
+          else
+            echo "Installing SAGE with quickstart..."
+            ./quickstart.sh --dev --yes --conda
+            source $(conda info --base)/etc/profile.d/conda.sh
+            conda activate sage
+          fi
+
+          python --version
+          pip list | grep -E "^sage-"
+
+      - name: Create Environment File
+        run: |
+          cat > .env << EOF
+          GITHUB_TOKEN=${{ secrets.GIT_TOKEN }}
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+          EOF
+
+      - name: Prepare Report Directory
+        run: |
+          mkdir -p reports
+          echo "Report directory created: $(pwd)/reports"
+
+      - name: Generate Weekly Report
+        id: generate
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate sage
+
+          # Set parameters from workflow inputs or defaults
+          REPOS="${{ github.event.inputs.repos || '' }}"
+          BRANCH="${{ github.event.inputs.branch || 'main-dev' }}"
+          DAYS="${{ github.event.inputs.days || '7' }}"
+          FORMAT="${{ github.event.inputs.output_format || 'markdown' }}"
+          LANGUAGE="${{ github.event.inputs.language || 'zh' }}"
+          USE_LLM="${{ github.event.inputs.use_llm || 'true' }}"
+          INCLUDE_SUBMODULES="${{ github.event.inputs.include_submodules || 'true' }}"
+
+          # Generate timestamp for filename
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          WEEK_START=$(date -d "-${DAYS} days" +%Y%m%d)
+          WEEK_END=$(date +%Y%m%d)
+
+          # Determine file extension
+          if [ "$FORMAT" = "json" ]; then
+            EXT="json"
+          else
+            EXT="md"
+          fi
+
+          OUTPUT_FILE="reports/weekly_report_${WEEK_START}_${WEEK_END}.${EXT}"
+
+          echo "Generating report..."
+          echo "  Repos: ${REPOS:-'All SAGE repos (main + submodules)'}"
+          echo "  Branch: $BRANCH"
+          echo "  Days: $DAYS"
+          echo "  Format: $FORMAT"
+          echo "  Language: $LANGUAGE"
+          echo "  Use LLM: $USE_LLM"
+          echo "  Include Submodules: $INCLUDE_SUBMODULES"
+          echo "  Output: $OUTPUT_FILE"
+
+          # Build command
+          CMD="python -m sage.apps.work_report_generator.pipeline"
+          CMD="$CMD --branch $BRANCH"
+          CMD="$CMD --days $DAYS"
+          CMD="$CMD --format $FORMAT"
+          CMD="$CMD --output $OUTPUT_FILE"
+          CMD="$CMD --language $LANGUAGE"
+
+          # Add repos if specified
+          if [ -n "$REPOS" ]; then
+            CMD="$CMD --repos $REPOS"
+          fi
+
+          if [ "$USE_LLM" = "false" ]; then
+            CMD="$CMD --no-llm"
+          fi
+
+          if [ "$INCLUDE_SUBMODULES" = "false" ]; then
+            CMD="$CMD --no-submodules"
+          fi
+
+          # Run report generation
+          echo "Running: $CMD"
+          $CMD
+
+          # Set outputs
+          echo "output_file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
+          echo "week_start=$WEEK_START" >> $GITHUB_OUTPUT
+          echo "week_end=$WEEK_END" >> $GITHUB_OUTPUT
+
+      - name: Upload Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-report-${{ steps.generate.outputs.week_start }}-${{ steps.generate.outputs.week_end }}
+          path: reports/
+          retention-days: 90
+
+      - name: Create GitHub Issue with Report
+        if: ${{ github.event.inputs.create_issue != 'false' && github.event.inputs.output_format != 'json' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GIT_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const outputFile = '${{ steps.generate.outputs.output_file }}';
+            const weekStart = '${{ steps.generate.outputs.week_start }}';
+            const weekEnd = '${{ steps.generate.outputs.week_end }}';
+
+            // Read report content
+            let reportContent = '';
+            try {
+              reportContent = fs.readFileSync(outputFile, 'utf8');
+            } catch (e) {
+              console.log('Could not read report file:', e.message);
+              return;
+            }
+
+            // Create issue
+            const title = `📊 Weekly Report: ${weekStart} - ${weekEnd}`;
+            const body = `## Weekly Contribution Report
+
+            **Period:** ${weekStart} - ${weekEnd}
+            **Generated:** ${new Date().toISOString()}
+
+            ---
+
+            ${reportContent}
+
+            ---
+
+            *This report was automatically generated by the SAGE Work Report Generator.*
+            `;
+
+            try {
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['weekly-report', 'automated']
+              });
+              console.log(`Created issue #${issue.data.number}`);
+            } catch (e) {
+              console.log('Could not create issue:', e.message);
+            }
+
+      - name: Summary
+        run: |
+          echo "## Weekly Report Generation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Report Period:** ${{ steps.generate.outputs.week_start }} - ${{ steps.generate.outputs.week_end }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Output File:** ${{ steps.generate.outputs.output_file }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The report has been:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Saved as workflow artifact" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Posted as GitHub issue (if enabled)" >> $GITHUB_STEP_SUMMARY
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: generate-report
+    if: failure()
+
+    steps:
+      - name: Create Failure Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GIT_TOKEN }}
+          script: |
+            const title = `⚠️ Weekly Report Generation Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Weekly Report Generation Failed
+
+            **Workflow Run:** [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            **Time:** ${new Date().toISOString()}
+
+            Please check the workflow logs for details.
+
+            cc @${{ github.repository_owner }}
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'ci-failure', 'weekly-report']
+            });
