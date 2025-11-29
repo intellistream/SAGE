@@ -185,9 +185,7 @@ class TestBaseRequestResult:
 
     def test_default_result(self):
         """Test default request result."""
-        result = BaseRequestResult(
-            request_id="test-1", priority="NORMAL", slo_deadline_ms=1000
-        )
+        result = BaseRequestResult(request_id="test-1", priority="NORMAL", slo_deadline_ms=1000)
         assert result.request_id == "test-1"
         assert result.priority == "NORMAL"
         assert result.success is False
@@ -264,9 +262,7 @@ class TestBaseRequestMetrics:
 
     def test_metrics_to_base_dict(self):
         """Test serialization to dictionary."""
-        metrics = BaseRequestMetrics(
-            total_requests=100, completed_requests=95, throughput_rps=10.0
-        )
+        metrics = BaseRequestMetrics(total_requests=100, completed_requests=95, throughput_rps=10.0)
         d = metrics.to_base_dict()
         assert d["request_counts"]["total"] == 100
         assert d["request_counts"]["completed"] == 95
@@ -296,9 +292,7 @@ class TestBaseMetricsCollector:
     def test_clear(self):
         """Test clearing collector."""
         collector = ConcreteMetricsCollector()
-        result = BaseRequestResult(
-            request_id="test-1", priority="NORMAL", slo_deadline_ms=1000
-        )
+        result = BaseRequestResult(request_id="test-1", priority="NORMAL", slo_deadline_ms=1000)
         collector.add_result(result)
         collector.clear()
         assert len(collector._results) == 0

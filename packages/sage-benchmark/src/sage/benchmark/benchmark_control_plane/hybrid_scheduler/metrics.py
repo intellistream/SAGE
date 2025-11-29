@@ -260,9 +260,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
 
         # Throughput
         if metrics.duration_seconds > 0:
-            metrics.llm_throughput_rps = (
-                metrics.llm_completed_requests / metrics.duration_seconds
-            )
+            metrics.llm_throughput_rps = metrics.llm_completed_requests / metrics.duration_seconds
 
         # Token throughput
         total_tokens = sum(r.output_token_count for r in llm_results if r.success)
@@ -270,9 +268,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
             metrics.llm_token_throughput_tps = total_tokens / metrics.duration_seconds
 
         # TTFT (Time To First Token)
-        ttfts = [
-            r.ttft_ms for r in llm_results if r.success and r.ttft_ms is not None
-        ]
+        ttfts = [r.ttft_ms for r in llm_results if r.success and r.ttft_ms is not None]
         if ttfts:
             metrics.llm_ttft_avg_ms = float(np.mean(ttfts))
             metrics.llm_ttft_p50_ms = float(np.percentile(ttfts, 50))
@@ -290,9 +286,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
 
         # E2E Latency for LLM
         llm_latencies = [
-            r.e2e_latency_ms
-            for r in llm_results
-            if r.success and r.e2e_latency_ms is not None
+            r.e2e_latency_ms for r in llm_results if r.success and r.e2e_latency_ms is not None
         ]
         if llm_latencies:
             metrics.llm_e2e_latency_avg_ms = float(np.mean(llm_latencies))
@@ -316,9 +310,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
 
         # Request counts
         metrics.embedding_total_requests = len(embedding_results)
-        metrics.embedding_completed_requests = sum(
-            1 for r in embedding_results if r.success
-        )
+        metrics.embedding_completed_requests = sum(1 for r in embedding_results if r.success)
 
         # Throughput (requests per second)
         if metrics.duration_seconds > 0:
@@ -327,13 +319,9 @@ class HybridMetricsCollector(BaseMetricsCollector):
             )
 
         # Texts per second throughput
-        total_texts = sum(
-            r.total_texts_embedded for r in embedding_results if r.success
-        )
+        total_texts = sum(r.total_texts_embedded for r in embedding_results if r.success)
         if metrics.duration_seconds > 0:
-            metrics.embedding_throughput_texts_ps = (
-                total_texts / metrics.duration_seconds
-            )
+            metrics.embedding_throughput_texts_ps = total_texts / metrics.duration_seconds
 
         # Batch efficiency (actual batch size / max batch size)
         batch_sizes = [r.batch_size for r in embedding_results if r.success]
@@ -351,9 +339,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
         ]
         if embedding_latencies:
             metrics.embedding_e2e_latency_avg_ms = float(np.mean(embedding_latencies))
-            metrics.embedding_e2e_latency_p99_ms = float(
-                np.percentile(embedding_latencies, 99)
-            )
+            metrics.embedding_e2e_latency_p99_ms = float(np.percentile(embedding_latencies, 99))
 
         # SLO compliance for Embedding
         successful_embedding = [r for r in embedding_results if r.success]
@@ -371,9 +357,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
             return
 
         metrics.llm_ratio_actual = metrics.llm_total_requests / metrics.total_requests
-        metrics.embedding_ratio_actual = (
-            metrics.embedding_total_requests / metrics.total_requests
-        )
+        metrics.embedding_ratio_actual = metrics.embedding_total_requests / metrics.total_requests
 
     def _compute_metrics_by_request_type(self) -> dict[str, dict[str, Any]]:
         """Compute metrics breakdown by request type.
@@ -393,9 +377,7 @@ class HybridMetricsCollector(BaseMetricsCollector):
         for request_type, group_results in type_groups.items():
             success_results = [r for r in group_results if r.success]
             e2e_latencies = [
-                r.e2e_latency_ms
-                for r in success_results
-                if r.e2e_latency_ms is not None
+                r.e2e_latency_ms for r in success_results if r.e2e_latency_ms is not None
             ]
 
             result[request_type] = {
@@ -414,14 +396,8 @@ class HybridMetricsCollector(BaseMetricsCollector):
 
             # Add LLM-specific fields if applicable
             if request_type in (RequestType.LLM_CHAT.value, RequestType.LLM_GENERATE.value):
-                ttfts = [
-                    r.ttft_ms
-                    for r in success_results
-                    if r.ttft_ms is not None
-                ]
-                result[request_type]["avg_ttft_ms"] = (
-                    float(np.mean(ttfts)) if ttfts else 0.0
-                )
+                ttfts = [r.ttft_ms for r in success_results if r.ttft_ms is not None]
+                result[request_type]["avg_ttft_ms"] = float(np.mean(ttfts)) if ttfts else 0.0
                 result[request_type]["total_tokens"] = sum(
                     r.output_token_count for r in success_results
                 )

@@ -23,9 +23,7 @@ class ArxivSearchTool:
     """
 
     name = "arxiv_search"
-    description = (
-        "Search arXiv papers; return a list of {title, authors, link, abstract}."
-    )
+    description = "Search arXiv papers; return a list of {title, authors, link, abstract}."
     input_schema = {
         "type": "object",
         "properties": {
@@ -132,9 +130,7 @@ class ArxivSearchTool:
 
         # 移除多余的空格和特殊字符
         query = re.sub(r"\s+", " ", query)  # 多个空格变成单个空格
-        query = re.sub(
-            r"[^\w\s\-\+\.]", " ", query
-        )  # 只保留字母数字、空格、连字符、加号、点号
+        query = re.sub(r"[^\w\s\-\+\.]", " ", query)  # 只保留字母数字、空格、连字符、加号、点号
         query = query.strip()
 
         # 限制查询长度
@@ -178,10 +174,7 @@ class ArxivSearchTool:
                 retry_count = 0  # 重置重试计数
 
             except requests.exceptions.HTTPError as e:
-                if (
-                    e.response.status_code in [500, 503, 429]
-                    and retry_count < max_retries
-                ):
+                if e.response.status_code in [500, 503, 429] and retry_count < max_retries:
                     logging.warning(
                         f"[arxiv_search] HTTP {e.response.status_code} error, retrying ({retry_count + 1}/{max_retries}) after delay..."
                     )
