@@ -361,8 +361,8 @@ install_sage() {
         log_phase_start "依赖完整性检查" "MAIN"
 
         local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
-        if [ -f "$monitor_script" ]; then
-            if bash "$monitor_script" analyze; then
+        if [ -f "$monitor_script" ] && [ -f "$log_file" ]; then
+            if bash "$monitor_script" analyze "$log_file"; then
                 log_info "依赖完整性检查通过" "MAIN"
                 echo -e "${CHECK} 依赖完整性检查通过"
                 log_phase_end "依赖完整性检查" "success" "MAIN"
@@ -376,8 +376,8 @@ install_sage() {
                 echo "DEPENDENCY_VIOLATION_DETECTED=true" >> "$GITHUB_ENV" || true
             fi
         else
-            log_warn "监控脚本不存在，跳过检查" "MAIN"
-            echo -e "${DIM}监控脚本不存在，跳过检查${NC}"
+            log_warn "监控脚本或日志文件不存在，跳过检查" "MAIN"
+            echo -e "${DIM}监控脚本或日志文件不存在，跳过检查${NC}"
             log_phase_end "依赖完整性检查" "skipped" "MAIN"
         fi
     fi
