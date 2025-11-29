@@ -24,15 +24,31 @@ detect_conda_env_from_python_cmd() {
     fi
 }
 
+# 检查 conda 环境是否存在
+conda_env_exists() {
+    local env_name="$1"
+    if [ -z "$env_name" ]; then
+        return 1
+    fi
+    if ! command -v conda >/dev/null 2>&1; then
+        return 1
+    fi
+    conda env list 2>/dev/null | grep -q "^${env_name} " || \
+    conda env list 2>/dev/null | grep -q "^${env_name}$"
+}
+
 get_sage_cli_env() {
     if [ -n "$SAGE_ENV_NAME" ]; then
-        echo "$SAGE_ENV_NAME"
-        return
+        # 验证环境是否存在
+        if conda_env_exists "$SAGE_ENV_NAME"; then
+            echo "$SAGE_ENV_NAME"
+            return
+        fi
     fi
 
     local detected
     detected=$(detect_conda_env_from_python_cmd)
-    if [ -n "$detected" ]; then
+    if [ -n "$detected" ] && conda_env_exists "$detected"; then
         echo "$detected"
     fi
 }
