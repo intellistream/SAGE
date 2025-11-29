@@ -22,8 +22,67 @@ from .models import (
     DiaryEntry,
     GitHubCommit,
     GitHubPullRequest,
+    ReportPeriod,
     WeeklyReport,
 )
+
+
+def calculate_period_dates(
+    period: ReportPeriod, reference_date: datetime | None = None
+) -> tuple[datetime, datetime]:
+    """
+    Calculate start and end dates for a given report period.
+
+    Args:
+        period: The report period type (weekly, monthly, quarterly, yearly).
+        reference_date: The reference date to calculate from. Defaults to now.
+
+    Returns:
+        Tuple of (start_date, end_date) for the period.
+    """
+    if reference_date is None:
+        reference_date = datetime.now()
+
+    if period == ReportPeriod.WEEKLY:
+        # Last 7 days
+        end_date = reference_date
+        start_date = end_date - timedelta(days=7)
+    elif period == ReportPeriod.MONTHLY:
+        # Last calendar month or last 30 days
+        end_date = reference_date
+        # Go to first day of current month, then back one day to get last month
+        first_of_month = reference_date.replace(day=1)
+        start_date = (first_of_month - timedelta(days=1)).replace(day=1)
+        end_date = first_of_month - timedelta(days=1)
+        # If we're past the 7th, use last 30 days instead for more recent data
+        if reference_date.day > 7:
+            end_date = reference_date
+            start_date = end_date - timedelta(days=30)
+    elif period == ReportPeriod.QUARTERLY:
+        # Last quarter (3 months / ~90 days)
+        end_date = reference_date
+        start_date = end_date - timedelta(days=90)
+    elif period == ReportPeriod.YEARLY:
+        # Last year (365 days)
+        end_date = reference_date
+        start_date = end_date - timedelta(days=365)
+    else:
+        # Default to weekly
+        end_date = reference_date
+        start_date = end_date - timedelta(days=7)
+
+    return start_date, end_date
+
+
+def get_period_days(period: ReportPeriod) -> int:
+    """Get the number of days for a report period."""
+    days_map = {
+        ReportPeriod.WEEKLY: 7,
+        ReportPeriod.MONTHLY: 30,
+        ReportPeriod.QUARTERLY: 90,
+        ReportPeriod.YEARLY: 365,
+    }
+    return days_map.get(period, 7)
 
 
 class GitHubDataSource(BatchFunction):
@@ -50,7 +109,8 @@ class GitHubDataSource(BatchFunction):
     def __init__(
         self,
         repos: list[str] | None = None,
-        days: int = 7,
+        days: int | None = None,
+        period: ReportPeriod | str = ReportPeriod.WEEKLY,
         branch: str = "main-dev",
         github_token: str | None = None,
         include_submodules: bool = True,
@@ -62,7 +122,8 @@ class GitHubDataSource(BatchFunction):
         Args:
             repos: List of repositories in "owner/repo" format.
                    If None, defaults to SAGE_REPOS (main + submodules).
-            days: Number of days to look back for contributions.
+            days: Number of days to look back for contributions (overrides period).
+            period: Report period type (weekly/monthly/quarterly/yearly).
             branch: Branch name to fetch commits from. Default "main-dev".
             github_token: GitHub personal access token. If not provided,
                          will try GITHUB_TOKEN or GIT_TOKEN environment variables.
@@ -76,7 +137,17 @@ class GitHubDataSource(BatchFunction):
         else:
             self.repos = repos
 
-        self.days = days
+        # Handle period parameter
+        if isinstance(period, str):
+            period = ReportPeriod(period.lower())
+        self.period = period
+
+        # Days can override period
+        if days is not None:
+            self.days = days
+        else:
+            self.days = get_period_days(period)
+
         self.branch = branch
         self.github_token = github_token or os.environ.get(
             "GITHUB_TOKEN", os.environ.get("GIT_TOKEN", "")
@@ -93,9 +164,8 @@ class GitHubDataSource(BatchFunction):
         self.current_index = 0
         self.fetched = False
 
-        # Calculate date range
-        self.end_date = datetime.now()
-        self.start_date = self.end_date - timedelta(days=days)
+        # Calculate date range based on period or days
+        self.start_date, self.end_date = calculate_period_dates(period)
 
     def _execute_graphql(
         self, query: str, variables: dict[str, Any] | None = None
@@ -529,7 +599,8 @@ class DiaryEntrySource(BatchFunction):
     def __init__(
         self,
         diary_path: str | Path | None = None,
-        days: int = 7,
+        days: int | None = None,
+        period: ReportPeriod | str = ReportPeriod.WEEKLY,
         **kwargs,
     ) -> None:
         """
@@ -537,17 +608,29 @@ class DiaryEntrySource(BatchFunction):
 
         Args:
             diary_path: Path to diary directory or file.
-            days: Number of days to look back.
+            days: Number of days to look back (overrides period).
+            period: Report period type (weekly/monthly/quarterly/yearly).
         """
         super().__init__(**kwargs)
         self.diary_path = Path(diary_path) if diary_path else None
-        self.days = days
+
+        # Handle period parameter
+        if isinstance(period, str):
+            period = ReportPeriod(period.lower())
+        self.period = period
+
+        # Days can override period
+        if days is not None:
+            self.days = days
+        else:
+            self.days = get_period_days(period)
+
         self.entries: list[DiaryEntry] = []
         self.current_index = 0
         self.fetched = False
 
-        self.end_date = datetime.now()
-        self.start_date = self.end_date - timedelta(days=days)
+        # Calculate date range based on period
+        self.start_date, self.end_date = calculate_period_dates(period)
 
     def _load_entries(self) -> None:
         """Load diary entries from the specified path."""
@@ -910,7 +993,8 @@ class ReportSink(SinkFunction):
         output_format: str = "markdown",
         output_path: str | Path | None = None,
         repos: list[str] | None = None,
-        days: int = 7,
+        days: int | None = None,
+        period: ReportPeriod | str = ReportPeriod.WEEKLY,
         language: str = "zh",
         use_llm: bool = True,
         **kwargs,
@@ -922,7 +1006,8 @@ class ReportSink(SinkFunction):
             output_format: Output format ("console", "markdown", "json").
             output_path: Path to save the report file.
             repos: List of repositories being tracked.
-            days: Number of days in the report period.
+            days: Number of days in the report period (overrides period).
+            period: Report period type (weekly/monthly/quarterly/yearly).
             language: Output language ("zh" or "en").
             use_llm: Whether to use LLM for leaderboard generation.
         """
@@ -930,16 +1015,26 @@ class ReportSink(SinkFunction):
         self.output_format = output_format
         self.output_path = Path(output_path) if output_path else None
         self.repos = repos or []
-        self.days = days
+
+        # Handle period parameter
+        if isinstance(period, str):
+            period = ReportPeriod(period.lower())
+        self.period = period
+
+        # Days can override period
+        if days is not None:
+            self.days = days
+        else:
+            self.days = get_period_days(period)
+
         self.language = language
         self.use_llm = use_llm
         self.contributors: dict[str, dict[str, Any]] = {}
         self.start_time = time.time()
         self._llm_client = None
 
-        # Date range
-        self.end_date = datetime.now()
-        self.start_date = self.end_date - timedelta(days=days)
+        # Date range based on period
+        self.start_date, self.end_date = calculate_period_dates(period)
 
     def _get_llm_client(self):
         """Lazy initialization of LLM client."""
@@ -952,6 +1047,44 @@ class ReportSink(SinkFunction):
                 self.logger.warning(f"Failed to initialize LLM client: {e}")
                 self._llm_client = None
         return self._llm_client
+
+    def _get_period_text(self) -> dict[str, str]:
+        """Get period-specific text for report generation."""
+        period_texts = {
+            ReportPeriod.WEEKLY: {
+                "zh_title": "本周贡献排行榜",
+                "en_title": "Weekly Contribution Leaderboard",
+                "zh_period": "本周",
+                "en_period": "this week",
+                "zh_summary_type": "周报",
+                "en_summary_type": "weekly report",
+            },
+            ReportPeriod.MONTHLY: {
+                "zh_title": "本月贡献排行榜",
+                "en_title": "Monthly Contribution Leaderboard",
+                "zh_period": "本月",
+                "en_period": "this month",
+                "zh_summary_type": "月报",
+                "en_summary_type": "monthly report",
+            },
+            ReportPeriod.QUARTERLY: {
+                "zh_title": "本季度贡献排行榜",
+                "en_title": "Quarterly Contribution Leaderboard",
+                "zh_period": "本季度",
+                "en_period": "this quarter",
+                "zh_summary_type": "季报",
+                "en_summary_type": "quarterly report",
+            },
+            ReportPeriod.YEARLY: {
+                "zh_title": "年度贡献排行榜",
+                "en_title": "Yearly Contribution Leaderboard",
+                "zh_period": "本年度",
+                "en_period": "this year",
+                "zh_summary_type": "年报",
+                "en_summary_type": "yearly report",
+            },
+        }
+        return period_texts.get(self.period, period_texts[ReportPeriod.WEEKLY])
 
     def _generate_leaderboard(self, report: WeeklyReport) -> str:
         """Generate a contribution leaderboard with visual chart and optional LLM comments."""
@@ -996,8 +1129,11 @@ class ReportSink(SinkFunction):
             for i, c in enumerate(contributors_data)
         )
 
+        # Get period-specific text
+        period_text = self._get_period_text()
+
         if self.language == "zh":
-            prompt = f"""根据以下贡献者数据，生成一份简洁有趣的周贡献度排行榜评语。
+            prompt = f"""根据以下贡献者数据，生成一份简洁有趣的{period_text["zh_period"]}贡献度排行榜评语。
 请用emoji和简短评语让排行榜更生动。
 
 贡献者数据（按贡献度排序）：
@@ -1013,7 +1149,7 @@ class ReportSink(SinkFunction):
 3. 最后加一句团队总结或鼓励语
 4. 保持简洁，总共不超过300字"""
         else:
-            prompt = f"""Based on the contributor data below, generate brief and fun weekly contribution leaderboard comments.
+            prompt = f"""Based on the contributor data below, generate brief and fun {period_text["en_period"]} contribution leaderboard comments.
 Use emojis and short comments to make it engaging.
 
 Contributor data (sorted by contribution):
@@ -1036,9 +1172,9 @@ Requirements:
 
             # Combine chart with LLM comments
             title = (
-                "## 🏆 本周贡献排行榜"
+                f"## 🏆 {period_text['zh_title']}"
                 if self.language == "zh"
-                else "## 🏆 Weekly Contribution Leaderboard"
+                else f"## 🏆 {period_text['en_title']}"
             )
             return f"{title}\n\n{chart}\n\n{llm_comments}"
         except Exception as e:
@@ -1057,8 +1193,11 @@ Requirements:
         # Generate visual bar chart
         chart = self._generate_leaderboard_chart(sorted_contributors)
 
+        # Get period-specific text
+        period_text = self._get_period_text()
+
         if self.language == "zh":
-            lines = ["## 🏆 本周贡献排行榜", ""]
+            lines = [f"## 🏆 {period_text['zh_title']}", ""]
             lines.append(chart)
             lines.append("")
             medals = ["🥇", "🥈", "🥉"]
@@ -1070,11 +1209,11 @@ Requirements:
                 )
             lines.append("")
             lines.append(
-                f"*本周团队共完成 {report.total_commits} 次提交，"
-                f"合并 {report.total_merged_prs} 个PR，继续加油！*"
+                f"*{period_text['zh_period']}团队共完成 {report.total_commits} 次提交，"
+                f"合并 {report.total_merged_prs} 个PR，继续加油。*"
             )
         else:
-            lines = ["## 🏆 Weekly Contribution Leaderboard", ""]
+            lines = [f"## 🏆 {period_text['en_title']}", ""]
             lines.append(chart)
             lines.append("")
             medals = ["🥇", "🥈", "🥉"]
@@ -1087,7 +1226,7 @@ Requirements:
             lines.append("")
             lines.append(
                 f"*Team completed {report.total_commits} commits and "
-                f"merged {report.total_merged_prs} PRs this week. Keep it up!*"
+                f"merged {report.total_merged_prs} PRs {period_text['en_period']}. Keep it up.*"
             )
 
         return "\n".join(lines)

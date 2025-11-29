@@ -8,7 +8,39 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any
+
+
+class ReportPeriod(Enum):
+    """Report period types."""
+
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
+
+    @property
+    def display_name(self) -> str:
+        """Get display name for the period."""
+        names = {
+            ReportPeriod.WEEKLY: "周报",
+            ReportPeriod.MONTHLY: "月报",
+            ReportPeriod.QUARTERLY: "季报",
+            ReportPeriod.YEARLY: "年报",
+        }
+        return names.get(self, self.value)
+
+    @property
+    def english_name(self) -> str:
+        """Get English name for the period."""
+        names = {
+            ReportPeriod.WEEKLY: "Weekly Report",
+            ReportPeriod.MONTHLY: "Monthly Report",
+            ReportPeriod.QUARTERLY: "Quarterly Report",
+            ReportPeriod.YEARLY: "Yearly Report",
+        }
+        return names.get(self, self.value.title())
 
 
 @dataclass
@@ -232,12 +264,13 @@ class ContributorSummary:
 
 
 @dataclass
-class WeeklyReport:
-    """Weekly report for all contributors."""
+class PeriodReport:
+    """Report for a specific time period (weekly/monthly/quarterly/yearly)."""
 
     start_date: str
     end_date: str
     repos: list[str]
+    period: ReportPeriod = ReportPeriod.WEEKLY
     contributors: list[ContributorSummary] = field(default_factory=list)
     generated_at: str = ""
     llm_summary: str = ""
@@ -253,3 +286,7 @@ class WeeklyReport:
         self.total_prs = sum(c.total_prs for c in self.contributors)
         self.total_merged_prs = sum(c.merged_prs for c in self.contributors)
         self.generated_at = datetime.now().isoformat()
+
+
+# Alias for backward compatibility
+WeeklyReport = PeriodReport

@@ -1,7 +1,7 @@
 """
 Work Report Generator Pipeline
 
-Main pipeline implementation using SAGE operators for weekly/daily report generation.
+Main pipeline implementation using SAGE operators for weekly/monthly/quarterly/yearly report generation.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from pathlib import Path
 
 from sage.kernel.api.local_environment import LocalEnvironment
 
+from .models import ReportPeriod
 from .operators import (
     ConsoleSink,
     ContributorAggregator,
@@ -18,12 +19,15 @@ from .operators import (
     GitHubDataSource,
     LLMReportGenerator,
     ReportSink,
+    calculate_period_dates,
+    get_period_days,
 )
 
 
 def run_work_report_pipeline(
     repos: list[str] | None = None,
-    days: int = 7,
+    days: int | None = None,
+    period: ReportPeriod | str = ReportPeriod.WEEKLY,
     branch: str = "main-dev",
     output_format: str = "markdown",
     output_path: str | Path | None = None,
@@ -47,7 +51,8 @@ def run_work_report_pipeline(
     Args:
         repos: List of GitHub repositories in "owner/repo" format.
                If None, defaults to SAGE main repo + all submodules.
-        days: Number of days to look back for contributions. Default 7.
+        days: Number of days to look back for contributions (overrides period).
+        period: Report period type (weekly/monthly/quarterly/yearly).
         branch: Branch name to fetch commits from. Default "main-dev".
         output_format: Output format ("console", "markdown", "json").
         output_path: Path to save the report file. If None, outputs to console.
@@ -63,15 +68,24 @@ def run_work_report_pipeline(
 
     Example:
         >>> run_work_report_pipeline(
-        ...     days=7,
+        ...     period="monthly",
         ...     branch="main-dev",
         ...     output_format="markdown",
-        ...     output_path="reports/weekly_report.md"
+        ...     output_path="reports/monthly_report.md"
         ... )
     """
-    # Calculate date range
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=days)
+    # Handle period parameter
+    if isinstance(period, str):
+        period = ReportPeriod(period.lower())
+
+    # Calculate date range based on period or days
+    if days is not None:
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        actual_days = days
+    else:
+        start_date, end_date = calculate_period_dates(period)
+        actual_days = get_period_days(period)
 
     # Get repo list for display
     display_repos = (
@@ -84,9 +98,10 @@ def run_work_report_pipeline(
 
     # Print header
     print("=" * 70)
-    print(" SAGE Work Report Generator")
+    print(f" SAGE Work Report Generator - {period.english_name}")
     print("=" * 70)
     print(f"Period: {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}")
+    print(f"Report Type: {period.display_name} ({period.value})")
     print(f"Target Branch: {branch}")
     print(f"Repositories ({len(display_repos)}):")
     for repo in display_repos:
@@ -108,7 +123,8 @@ def run_work_report_pipeline(
         output_dir = Path(".sage/reports")
         output_dir.mkdir(parents=True, exist_ok=True)
         ext = "json" if output_format == "json" else "md"
-        output_path = output_dir / f"weekly_report_{end_date.strftime('%Y%m%d')}.{ext}"
+        # Use period name in filename
+        output_path = output_dir / f"{period.value}_report_{end_date.strftime('%Y%m%d')}.{ext}"
 
     # Build pipeline:
     # 1. GitHubDataSource: Fetch commits and PRs from main-dev branch
@@ -119,7 +135,8 @@ def run_work_report_pipeline(
     pipeline = env.from_batch(
         GitHubDataSource,
         repos=repos,
-        days=days,
+        days=actual_days,
+        period=period,
         branch=branch,
         github_token=github_token,
         include_submodules=include_submodules,
@@ -135,7 +152,8 @@ def run_work_report_pipeline(
         output_format=output_format,
         output_path=output_path,
         repos=repos,
-        days=days,
+        days=actual_days,
+        period=period,
         language=language,
         use_llm=use_llm,
     )
@@ -149,7 +167,8 @@ def run_work_report_pipeline(
         diary_pipeline = env.from_batch(
             DiaryEntrySource,
             diary_path=diary_path,
-            days=days,
+            days=actual_days,
+            period=period,
         ).map(ContributorAggregator)
 
         if use_llm:
@@ -160,7 +179,8 @@ def run_work_report_pipeline(
             output_format=output_format,
             output_path=output_path,
             repos=repos,
-            days=days,
+            days=actual_days,
+            period=period,
         )
 
     # Execute pipeline
@@ -176,12 +196,21 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="SAGE Work Report Generator - Generate weekly/daily work reports",
+        description="SAGE Work Report Generator - Generate periodic work reports",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Generate report for all SAGE repositories (main + submodules)
+  # Generate weekly report for all SAGE repositories (default)
   python -m sage.apps.work_report_generator.pipeline
+
+  # Generate monthly report
+  python -m sage.apps.work_report_generator.pipeline --period monthly
+
+  # Generate quarterly report
+  python -m sage.apps.work_report_generator.pipeline --period quarterly
+
+  # Generate yearly report
+  python -m sage.apps.work_report_generator.pipeline --period yearly
 
   # Specify custom repositories
   python -m sage.apps.work_report_generator.pipeline \\
@@ -193,7 +222,7 @@ Examples:
   # Main repo only (without submodules)
   python -m sage.apps.work_report_generator.pipeline --no-submodules
 
-  # Custom time range and output
+  # Custom time range (overrides period)
   python -m sage.apps.work_report_generator.pipeline \\
       --days 14 \\
       --output reports/biweekly.md \\
@@ -207,6 +236,15 @@ Examples:
   # Skip LLM for faster generation
   python -m sage.apps.work_report_generator.pipeline --no-llm
         """,
+    )
+
+    parser.add_argument(
+        "--period",
+        "-p",
+        type=str,
+        choices=["weekly", "monthly", "quarterly", "yearly"],
+        default="weekly",
+        help="Report period type (default: weekly)",
     )
 
     parser.add_argument(
@@ -229,8 +267,8 @@ Examples:
         "--days",
         "-d",
         type=int,
-        default=7,
-        help="Number of days to look back (default: 7)",
+        default=None,
+        help="Number of days to look back (overrides --period)",
     )
 
     parser.add_argument(
@@ -301,6 +339,7 @@ Examples:
     result = run_work_report_pipeline(
         repos=repos,
         days=args.days,
+        period=args.period,
         branch=args.branch,
         output_format=args.format,
         output_path=args.output,
