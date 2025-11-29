@@ -66,13 +66,15 @@ class LLMRequestResult(BaseRequestResult):
     def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary."""
         base = self.to_base_dict()
-        base.update({
-            "model_name": self.model_name,
-            "first_token_time": self.first_token_time,
-            "ttft_ms": self.ttft_ms,
-            "inter_token_latencies": self.inter_token_latencies,
-            "output_token_count": self.output_token_count,
-        })
+        base.update(
+            {
+                "model_name": self.model_name,
+                "first_token_time": self.first_token_time,
+                "ttft_ms": self.ttft_ms,
+                "inter_token_latencies": self.inter_token_latencies,
+                "output_token_count": self.output_token_count,
+            }
+        )
         return base
 
 

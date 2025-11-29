@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from sage.benchmark.benchmark_control_plane.common import ArrivalPattern, SchedulingPolicy
+from sage.benchmark.benchmark_control_plane.common import ArrivalPattern
 from sage.benchmark.benchmark_control_plane.llm_scheduler import (
     LLMBenchmarkConfig,
     LLMBenchmarkReporter,
@@ -235,7 +235,9 @@ class TestLLMWorkloadGenerator:
 
         # For uniform, inter-arrival should be ~0.1s (1/10 req/s)
         scheduled_times = [r.scheduled_arrival_time for r in requests]
-        intervals = [scheduled_times[i+1] - scheduled_times[i] for i in range(len(scheduled_times)-1)]
+        intervals = [
+            scheduled_times[i + 1] - scheduled_times[i] for i in range(len(scheduled_times) - 1)
+        ]
         avg_interval = sum(intervals) / len(intervals)
         assert abs(avg_interval - 0.1) < 0.01
 
@@ -485,6 +487,7 @@ class TestLLMBenchmarkRunner:
 
         with pytest.raises(ValueError, match="Invalid configuration"):
             import asyncio
+
             asyncio.run(runner.run())
 
 

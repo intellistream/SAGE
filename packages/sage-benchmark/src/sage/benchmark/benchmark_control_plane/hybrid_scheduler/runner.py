@@ -194,7 +194,9 @@ class HybridBenchmarkRunner:
         # Count request types
         llm_count = sum(1 for r in workload if r.is_llm_request)
         embed_count = sum(1 for r in workload if r.is_embedding_request)
-        self._log(f"   Generated {len(workload)} requests (LLM: {llm_count}, Embedding: {embed_count})")
+        self._log(
+            f"   Generated {len(workload)} requests (LLM: {llm_count}, Embedding: {embed_count})"
+        )
 
         async with HybridBenchmarkClient(
             self.config.control_plane_url,
@@ -217,13 +219,21 @@ class HybridBenchmarkRunner:
                 result.policy_results[policy] = policy_result
 
                 self._log(f"   ✅ Completed: {policy_result.metrics.completed_requests} requests")
-                self._log(f"   📊 Overall Throughput: {policy_result.metrics.throughput_rps:.2f} req/s")
-                self._log(f"   🤖 LLM Throughput: {policy_result.metrics.llm_throughput_rps:.2f} req/s")
-                self._log(f"   📝 Embedding Throughput: {policy_result.metrics.embedding_throughput_rps:.2f} req/s")
+                self._log(
+                    f"   📊 Overall Throughput: {policy_result.metrics.throughput_rps:.2f} req/s"
+                )
+                self._log(
+                    f"   🤖 LLM Throughput: {policy_result.metrics.llm_throughput_rps:.2f} req/s"
+                )
+                self._log(
+                    f"   📝 Embedding Throughput: {policy_result.metrics.embedding_throughput_rps:.2f} req/s"
+                )
                 self._log(f"   📈 SLO Compliance: {policy_result.metrics.slo_compliance_rate:.1%}")
 
                 if policy_result.gpu_metrics:
-                    self._log(f"   🎮 GPU Utilization: {policy_result.gpu_metrics.utilization_avg:.1f}%")
+                    self._log(
+                        f"   🎮 GPU Utilization: {policy_result.gpu_metrics.utilization_avg:.1f}%"
+                    )
 
         # Determine best performers
         result = self._determine_best_performers(result)
@@ -363,7 +373,9 @@ class HybridBenchmarkRunner:
         ) as client:
             for llm_ratio in llm_ratios:
                 embedding_ratio = 1.0 - llm_ratio
-                self._log(f"\n🔄 Testing ratio: LLM={llm_ratio:.0%}, Embedding={embedding_ratio:.0%}")
+                self._log(
+                    f"\n🔄 Testing ratio: LLM={llm_ratio:.0%}, Embedding={embedding_ratio:.0%}"
+                )
 
                 # Create a deep copy of config to avoid side effects
                 ratio_config = copy.deepcopy(self.config)
@@ -492,9 +504,7 @@ class HybridBenchmarkRunner:
 
         return results
 
-    def _determine_best_performers(
-        self, result: HybridBenchmarkResult
-    ) -> HybridBenchmarkResult:
+    def _determine_best_performers(self, result: HybridBenchmarkResult) -> HybridBenchmarkResult:
         """Determine best performing policies.
 
         Args:

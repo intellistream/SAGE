@@ -49,6 +49,26 @@
 	- 前端 Chat 模式调用 `http://{gateway-host}:{port}/v1/chat/completions`，会话管理通过 `/sessions/**` REST API。
 - 独立部署：`sage-gateway --host 0.0.0.0 --port 8000` 或 `python -m sage.gateway.server`。
 
+## REST API 端点清单
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/` | GET | 根路径，返回服务信息和可用端点列表 |
+| `/health` | GET | 健康检查，返回会话统计 |
+| `/v1/chat/completions` | POST | OpenAI 兼容聊天端点，支持流式/非流式 |
+| `/sessions` | GET | 列出所有会话 |
+| `/sessions` | POST | 创建新会话 |
+| `/sessions/{id}` | GET | 获取会话详情 |
+| `/sessions/{id}` | DELETE | 删除会话 |
+| `/sessions/{id}/clear` | POST | 清空会话历史 |
+| `/sessions/{id}/title` | PATCH | 更新会话标题 |
+| `/sessions/cleanup` | POST | 清理过期会话（参数：`max_age_minutes`） |
+| `/memory/config` | GET | 获取记忆后端配置 |
+| `/memory/stats` | GET | 获取各会话的记忆使用情况 |
+| `/admin/index/status` | GET | 获取 RAG 索引状态 |
+| `/admin/index/build` | POST | 构建 RAG 索引（参数：`source_dir`, `force_rebuild`） |
+| `/admin/index` | DELETE | 删除 RAG 索引 |
+
 ## 运维与排查要点
 - **健康检查**：`GET /health` 返回 session 统计；Studio 依赖该接口判定是否联通。
 - **Session 清理**：`POST /sessions/cleanup?max_age_minutes=30`，或直接调用 `/sessions/{id}/clear`、`DELETE /sessions/{id}`。

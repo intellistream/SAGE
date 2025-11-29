@@ -12,8 +12,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from sage.common.components.sage_llm.compat import (
     EmbeddingClientAdapter,
     LLMClientAdapter,
@@ -36,7 +34,7 @@ class TestLLMClientAdapter:
         adapter = LLMClientAdapter(
             model_name="qwen-7b",
             base_url="http://localhost:8001/v1",
-            api_key="test-key",
+            api_key="test-key",  # pragma: allowlist secret
         )
 
         assert adapter.config.llm_model == "qwen-7b"
@@ -133,9 +131,7 @@ class TestEmbeddingClientAdapter:
         """Test create_auto falls back to embedded mode."""
         mock_detect.return_value = (None, None, "")
 
-        adapter = EmbeddingClientAdapter.create_auto(
-            fallback_model="BAAI/bge-small-zh-v1.5"
-        )
+        adapter = EmbeddingClientAdapter.create_auto(fallback_model="BAAI/bge-small-zh-v1.5")
 
         assert adapter._mode == "embedded"
 
@@ -153,9 +149,7 @@ class TestEmbeddingClientAdapter:
     @patch.object(EmbeddingClientAdapter, "_init_embedded_mode")
     def test_create_embedded(self, mock_init):
         """Test create_embedded factory method."""
-        adapter = EmbeddingClientAdapter.create_embedded(
-            model="BAAI/bge-small-zh-v1.5"
-        )
+        adapter = EmbeddingClientAdapter.create_embedded(model="BAAI/bge-small-zh-v1.5")
 
         assert adapter._mode == "embedded"
         assert adapter.config.embedding_model == "BAAI/bge-small-zh-v1.5"

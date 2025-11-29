@@ -102,20 +102,24 @@ class HybridRequest:
         }
 
         if self.is_llm_request:
-            base.update({
-                "model_name": self.model_name,
-                "prompt": self.prompt,
-                "max_tokens": self.max_tokens,
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-                "stream": self.stream,
-            })
+            base.update(
+                {
+                    "model_name": self.model_name,
+                    "prompt": self.prompt,
+                    "max_tokens": self.max_tokens,
+                    "temperature": self.temperature,
+                    "top_p": self.top_p,
+                    "stream": self.stream,
+                }
+            )
         elif self.is_embedding_request:
-            base.update({
-                "embedding_model": self.embedding_model,
-                "texts": self.texts,
-                "batch_size": self.batch_size,
-            })
+            base.update(
+                {
+                    "embedding_model": self.embedding_model,
+                    "texts": self.texts,
+                    "batch_size": self.batch_size,
+                }
+            )
 
         return base
 
@@ -228,9 +232,7 @@ class HybridWorkloadGenerator:
             self._llm_prompts = self._load_jsonl(self.config.llm_dataset_path, "prompt")
 
         if self.config.embedding_dataset_path and self.config.embedding_dataset_path.exists():
-            self._embedding_texts = self._load_jsonl(
-                self.config.embedding_dataset_path, "text"
-            )
+            self._embedding_texts = self._load_jsonl(self.config.embedding_dataset_path, "text")
 
     def _load_jsonl(self, path: Path, text_field: str) -> list[str]:
         """Load texts from a JSONL file.
@@ -427,9 +429,7 @@ class HybridWorkloadGenerator:
         )
 
         # Decide request type (chat vs generate)
-        request_type = (
-            RequestType.LLM_CHAT if self.rng.random() < 0.8 else RequestType.LLM_GENERATE
-        )
+        request_type = RequestType.LLM_CHAT if self.rng.random() < 0.8 else RequestType.LLM_GENERATE
 
         return HybridRequest(
             request_id=f"llm-{index}-{uuid.uuid4().hex[:8]}",
@@ -569,9 +569,7 @@ class HybridWorkloadGenerator:
             "llm_requests": len(llm_requests),
             "embedding_requests": len(embedding_requests),
             "actual_llm_ratio": len(llm_requests) / len(requests) if requests else 0,
-            "actual_embedding_ratio": (
-                len(embedding_requests) / len(requests) if requests else 0
-            ),
+            "actual_embedding_ratio": (len(embedding_requests) / len(requests) if requests else 0),
             "priority_distribution": {
                 "HIGH": sum(1 for r in requests if r.priority == "HIGH"),
                 "NORMAL": sum(1 for r in requests if r.priority == "NORMAL"),
@@ -585,9 +583,7 @@ class HybridWorkloadGenerator:
                 bs: sum(1 for r in embedding_requests if r.batch_size == bs)
                 for bs in {r.batch_size for r in embedding_requests}
             },
-            "duration_seconds": max(r.scheduled_arrival_time for r in requests)
-            if requests
-            else 0,
+            "duration_seconds": max(r.scheduled_arrival_time for r in requests) if requests else 0,
         }
 
 

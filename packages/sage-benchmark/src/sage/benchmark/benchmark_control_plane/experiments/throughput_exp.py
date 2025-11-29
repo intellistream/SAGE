@@ -193,9 +193,7 @@ class ThroughputExperiment(BaseExperiment):
             summary["policies"][policy_name] = {
                 "max_throughput": max_throughput,
                 "optimal_rate": optimal_rate,
-                "throughputs_by_rate": dict(
-                    zip(self.request_rates, throughputs, strict=False)
-                ),
+                "throughputs_by_rate": dict(zip(self.request_rates, throughputs, strict=False)),
             }
 
             # Track global best
@@ -231,9 +229,7 @@ class ThroughputExperiment(BaseExperiment):
 
                 for result in self._result.results:
                     rate = float(result["request_rate"])
-                    throughput = result["policies"].get(policy_name, {}).get(
-                        "throughput", 0.0
-                    )
+                    throughput = result["policies"].get(policy_name, {}).get("throughput", 0.0)
                     throughput_data[policy_name].append((rate, throughput))
 
             # Generate throughput chart for each policy
@@ -251,9 +247,7 @@ class ThroughputExperiment(BaseExperiment):
                 policy_metrics = {}
                 for policy, data in self._result.summary["policies"].items():
                     policy_metrics[policy] = {
-                        "throughput": {
-                            "requests_per_second": data["max_throughput"]
-                        }
+                        "throughput": {"requests_per_second": data["max_throughput"]}
                     }
                 chart_path = chart_gen.plot_throughput_comparison(
                     policy_metrics=policy_metrics,

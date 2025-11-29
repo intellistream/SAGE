@@ -1,22 +1,26 @@
 """
-Agent Benchmark Scripts
+SAGE-Bench Scripts
 
-Executable scripts for running agent training experiments:
-- run_method_comparison.py: Compare different training methods (A-D)
-- run_full_training_comparison.py: Full training on A100 GPUs
-- agent_sft_training_example.py: SFT training demonstration
+统一的 Benchmark 实验脚本入口。
+
+所有实验功能位于 experiments/ 子包:
+- run_paper1_experiments.py: 论文 1 实验统一入口
+- exp_main_*.py: Section 5.2 主实验
+- exp_analysis_*.py: Section 5.3 分析实验
+- exp_cross_dataset.py: Section 5.4 跨数据集泛化
+- exp_training_comparison.py: Section 5.5 训练方法对比
 
 Usage:
-    # From command line
-    python -m sage.benchmark.benchmark_agent.scripts.run_method_comparison --demo
+    # CLI 入口
+    sage-bench run --quick
+    sage-bench eval --dataset all
+    sage-bench train --dry-run
+    sage-bench llm status
 
-    # Or directly
-    cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
-    python run_method_comparison.py --quick
+    # 直接运行
+    python -m sage.benchmark.benchmark_agent.scripts.experiments.run_paper1_experiments --quick
 """
 
 __all__ = [
-    "run_method_comparison",
-    "run_full_training_comparison",
-    "agent_sft_training_example",
+    "experiments",
 ]

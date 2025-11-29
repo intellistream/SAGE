@@ -1,16 +1,42 @@
 # Feature Branch: agent_tools_plan - 开发者注意事项
 
 > **合并日期**: 2025-11-27
-> **影响范围**: sage-common, sage-libs, copilot-instructions
+> **影响范围**: sage-common, sage-libs, sage-benchmark, copilot-instructions
 
 本文档总结 `feature/agent_tools_plan` 分支合并到 `main-dev` 后，**其他开发者需要注意的改动**。
-Agent Benchmark 相关的内容（sage-benchmark/benchmark_agent）不在此文档范围内。
 
 ---
 
 ## 🚨 重要改动
 
-### 1. IntelligentLLMClient 新增 Embedded 模式
+### 1. 推荐使用 UnifiedInferenceClient (新增)
+
+**文件**: `packages/sage-common/src/sage/common/components/sage_llm/unified_client.py`
+
+**说明**: 新增统一客户端，同时支持 LLM 和 Embedding，**推荐用于所有新代码**。
+
+```python
+from sage.common.components.sage_llm import UnifiedInferenceClient
+
+# 推荐：自动检测模式
+client = UnifiedInferenceClient.create_auto()
+
+# LLM 调用
+response = client.chat([{"role": "user", "content": "Hello"}])
+
+# Embedding 调用
+vectors = client.embed(["文本1", "文本2"])
+
+# Control Plane 模式（高级）
+client = UnifiedInferenceClient.create_with_control_plane(
+    llm_base_url="http://localhost:8901/v1",
+    llm_model="Qwen/Qwen2.5-7B-Instruct",
+    embedding_base_url="http://localhost:8090/v1",
+    embedding_model="BAAI/bge-m3",
+)
+```
+
+### 2. IntelligentLLMClient 新增 Embedded 模式
 
 **文件**: `packages/sage-common/src/sage/common/components/sage_llm/client.py`
 
@@ -42,11 +68,11 @@ client = IntelligentLLMClient.get_cached("my_key", model="Qwen/Qwen2.5-7B-Instru
 
 ---
 
-### 2. 新增 IntelligentEmbeddingClient
+### 3. IntelligentEmbeddingClient (建议使用 UnifiedInferenceClient)
 
-**文件**: `packages/sage-common/src/sage/common/components/sage_embedding/client.py` (新文件)
+**文件**: `packages/sage-common/src/sage/common/components/sage_embedding/client.py`
 
-**说明**: 新的统一 Embedding 客户端，支持 API 模式和内嵌模式。
+**说明**: 独立 Embedding 客户端。**推荐使用 `UnifiedInferenceClient` 统一管理 LLM + Embedding**。
 
 ```python
 from sage.common.components.sage_embedding import IntelligentEmbeddingClient
@@ -69,7 +95,7 @@ client = IntelligentEmbeddingClient.create_embedded(
 
 ---
 
-### 3. 新增 EmbeddingProtocol 和适配器
+### 4. 新增 EmbeddingProtocol 和适配器
 
 **文件**: `packages/sage-common/src/sage/common/components/sage_embedding/protocols.py` (新文件)
 
@@ -103,7 +129,7 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 
 ---
 
-### 4. copilot-instructions.md 更新
+### 5. copilot-instructions.md 更新
 
 **文件**: `.github/copilot-instructions.md`
 
@@ -114,7 +140,7 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 
 ---
 
-### 5. 新增 Tool Selection 和 Planning 模块
+### 6. 新增 Tool Selection 和 Planning 模块
 
 **位置**: `packages/sage-libs/src/sage/libs/agentic/agents/`
 
@@ -124,6 +150,19 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 - `runtime/` - 运行时适配器
 
 这些是新增模块，不影响现有代码，但可以被其他开发者使用。
+
+### 7. 新增 benchmark_agent 和 benchmark_control_plane 模块
+
+**位置**: `packages/sage-benchmark/src/sage/benchmark/`
+
+**新增模块**:
+- `benchmark_agent/` - Agent 能力评测（工具选择、任务规划、时机判断）
+- `benchmark_control_plane/` - sageLLM Control Plane 调度策略评测
+
+**详细文档**:
+- [benchmark_agent/README.md](../../../packages/sage-benchmark/src/sage/benchmark/benchmark_agent/README.md)
+- [benchmark_control_plane/README.md](../../../packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md)
+- [l5-benchmark/README.md](../l5-benchmark/README.md)
 
 ---
 
@@ -141,6 +180,7 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 
 如果你的代码使用了以下功能，请检查：
 
+- [ ] **新项目**: 推荐使用 `UnifiedInferenceClient` 统一管理 LLM + Embedding
 - [ ] **使用 EmbeddingFactory**: 考虑使用 `adapt_embedding_client()` 获得批量接口
 - [ ] **使用 IntelligentLLMClient**: 了解新的 Embedded 模式（可选）
 - [ ] **自定义 Embedding 实现**: 可以实现 `EmbeddingProtocol` 接口
@@ -149,10 +189,15 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 
 ## 🔗 相关文档
 
-- [LLM & Embedding 服务指南](/.github/copilot-instructions.md#llm--embedding-services)
-- [Agent Finetune API 参考](/docs/dev-notes/l3-libs/AGENT_FINETUNE_API_REFERENCE.md)
-- [Data Architecture](/docs/dev-notes/cross-layer/data-architecture/)
+- [LLM & Embedding 服务指南](../../../.github/copilot-instructions.md#llm--embedding-services---sagellm-架构)
+- [Agent Benchmark 任务](../agent-benchmark-tasks.md)
+- [Agent Finetune API 参考](../l3-libs/AGENT_FINETUNE_API_REFERENCE.md)
+- [Data Architecture](./data-architecture/)
+- [L5 Benchmark README](../l5-benchmark/README.md)
+- [Cross-Layer 文档索引](./README.md)
 
 ---
+
+*最后更新: 2025-11-29*
 
 *如有问题，请联系 @shuhao 或在 GitHub Issues 中提问。*

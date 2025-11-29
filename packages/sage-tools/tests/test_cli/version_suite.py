@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sage.tools.cli.main import app as sage_app
+from sage.cli.main import app as sage_app
 
 from .helpers import CLITestCase
 
