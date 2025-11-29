@@ -80,17 +80,17 @@ python examples/apps/run_work_report.py --days 7
 
 当不指定 `repos` 参数时，pipeline 默认收集以下所有仓库的贡献：
 
-| 仓库                      | 说明               |
-| ------------------------- | ------------------ |
-| `intellistream/SAGE`      | 主仓库             |
-| `intellistream/SAGE-docs` | 文档 (docs-public) |
-| `intellistream/SAGE-data` | Benchmark 数据     |
-| `intellistream/sageLLM`   | LLM 调度模块       |
-| `intellistream/libamm`    | 近似矩阵乘法库     |
-| `intellistream/sageDB`    | 数据库中间件       |
-| `intellistream/sageFlow`  | 流处理引擎         |
-| `intellistream/neuromem`  | 内存管理模块       |
-| `intellistream/sageTSDB`  | 时序数据库         |
+| 仓库                     | 说明               |
+| ------------------------ | ------------------ |
+| `intellistream/SAGE`     | 主仓库             |
+| `intellistream/SAGE-Pub` | 文档 (docs-public) |
+| `intellistream/sageData` | Benchmark 数据     |
+| `intellistream/sageLLM`  | LLM 调度模块       |
+| `intellistream/LibAMM`   | 近似矩阵乘法库     |
+| `intellistream/sageDB`   | 数据库中间件       |
+| `intellistream/sageFlow` | 流处理引擎         |
+| `intellistream/neuromem` | 内存管理模块       |
+| `intellistream/sageTSDB` | 时序数据库         |
 
 ## 配置选项
 

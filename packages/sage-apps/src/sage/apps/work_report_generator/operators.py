@@ -37,10 +37,10 @@ class GitHubDataSource(BatchFunction):
     # SAGE main repository and all submodule repositories
     SAGE_REPOS = [
         "intellistream/SAGE",
-        "intellistream/SAGE-docs",  # docs-public submodule
-        "intellistream/SAGE-data",  # benchmark data submodule
+        "intellistream/SAGE-Pub",  # docs-public submodule
+        "intellistream/sageData",  # benchmark data submodule
         "intellistream/sageLLM",  # sageLLM submodule
-        "intellistream/libamm",  # libamm submodule
+        "intellistream/LibAMM",  # libamm submodule
         "intellistream/sageDB",  # sageDB submodule
         "intellistream/sageFlow",  # sageFlow submodule
         "intellistream/neuromem",  # neuromem submodule
