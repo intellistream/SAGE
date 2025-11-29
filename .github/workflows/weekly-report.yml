@@ -143,8 +143,16 @@ jobs:
           DAYS="${{ github.event.inputs.days || '7' }}"
           FORMAT="${{ github.event.inputs.output_format || 'markdown' }}"
           LANGUAGE="${{ github.event.inputs.language || 'zh' }}"
-          USE_LLM="${{ github.event.inputs.use_llm || 'true' }}"
-          INCLUDE_SUBMODULES="${{ github.event.inputs.include_submodules || 'true' }}"
+          USE_LLM="${{ github.event.inputs.use_llm }}"
+          INCLUDE_SUBMODULES="${{ github.event.inputs.include_submodules }}"
+
+          # For scheduled runs (not workflow_dispatch), use defaults with LLM enabled
+          if [ -z "$USE_LLM" ]; then
+            USE_LLM="true"
+          fi
+          if [ -z "$INCLUDE_SUBMODULES" ]; then
+            INCLUDE_SUBMODULES="true"
+          fi
 
           # Generate timestamp for filename
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -260,14 +268,25 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## Weekly Report Generation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Weekly Report Generation Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Report Period:** ${{ steps.generate.outputs.week_start }} - ${{ steps.generate.outputs.week_end }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Output File:** ${{ steps.generate.outputs.output_file }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Report Details" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Period** | ${{ steps.generate.outputs.week_start }} - ${{ steps.generate.outputs.week_end }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | ${{ github.event.inputs.branch || 'main-dev' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Language** | ${{ github.event.inputs.language || 'zh' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **LLM Analysis** | ✅ Enabled (Qwen) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Output File** | ${{ steps.generate.outputs.output_file }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The report has been:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Saved as workflow artifact" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Generated weekly contribution report with AI summaries" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Saved report as workflow artifact (90-day retention)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Posted as GitHub issue (if enabled)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### LLM Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Model**: qwen-turbo-2025-02-11" >> $GITHUB_STEP_SUMMARY
+          echo "- **Provider**: Alibaba DashScope" >> $GITHUB_STEP_SUMMARY
 
   notify-failure:
     name: Notify on Failure

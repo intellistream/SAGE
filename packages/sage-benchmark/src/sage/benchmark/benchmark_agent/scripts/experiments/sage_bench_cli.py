@@ -195,16 +195,23 @@ def cmd_list(args):
 
         print("\n📋 Training Methods:")
         print("-" * 50)
-        training_methods = [
+        print("  Paper 1 (Benchmark):")
+        paper1_methods = [
             ("A_baseline", "Standard SFT training"),
-            ("B1_coreset_loss", "Select high-loss samples"),
-            ("B2_coreset_diversity", "Select diverse samples"),
-            ("B3_coreset_hybrid", "60% loss + 40% diversity"),
-            ("C_continual", "Online learning with replay"),
-            ("D_combined", "Coreset + Continual Learning"),
         ]
-        for name, desc in training_methods:
-            print(f"  {name:<20} {desc}")
+        for name, desc in paper1_methods:
+            print(f"    {name:<20} {desc}")
+
+        print("\n  Paper 2 (SIAS) - from sage.libs.sias:")
+        sias_methods = [
+            ("B1_coreset_loss", "[SIAS] Select high-loss samples"),
+            ("B2_coreset_diversity", "[SIAS] Select diverse samples"),
+            ("B3_coreset_hybrid", "[SIAS] 60% loss + 40% diversity"),
+            ("C_continual", "[SIAS] Online learning with replay"),
+            ("D_combined", "[SIAS] Coreset + Continual Learning"),
+        ]
+        for name, desc in sias_methods:
+            print(f"    {name:<20} {desc}")
         print()
         return 0
 

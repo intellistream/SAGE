@@ -337,6 +337,96 @@ class TestContributorAggregator:
 
         assert len(ContributorAggregator.get_all_contributors()) == 0
 
+    def test_aggregator_username_normalization(self):
+        """Test username normalization for duplicate contributors."""
+        ContributorAggregator.reset()
+        aggregator = ContributorAggregator()
+
+        # Test ShuhaoZhangTony variants
+        commit1 = GitHubCommit(
+            sha="abc1",
+            message="Commit from ShuhaoZhangTony",
+            author="ShuhaoZhangTony",
+            author_email="",
+            committed_date="2024-01-15T10:00:00Z",
+            repo="test/repo",
+            url="",
+        )
+        aggregator.execute({"type": "commit", "data": commit1, "author": "ShuhaoZhangTony"})
+
+        commit2 = GitHubCommit(
+            sha="abc2",
+            message="Commit from Shuhao Zhang",
+            author="Shuhao Zhang",
+            author_email="",
+            committed_date="2024-01-15T11:00:00Z",
+            repo="test/repo",
+            url="",
+        )
+        result = aggregator.execute({"type": "commit", "data": commit2, "author": "Shuhao Zhang"})
+
+        # Both should map to ShuhaoZhangTony
+        assert result["author"] == "ShuhaoZhangTony"
+        contributors = ContributorAggregator.get_all_contributors()
+        assert "ShuhaoZhangTony" in contributors
+        assert "Shuhao Zhang" not in contributors
+        assert contributors["ShuhaoZhangTony"].total_commits == 2
+
+    def test_aggregator_copilot_normalization(self):
+        """Test Copilot username normalization."""
+        ContributorAggregator.reset()
+        aggregator = ContributorAggregator()
+
+        commit1 = GitHubCommit(
+            sha="cop1",
+            message="Commit from Copilot",
+            author="Copilot",
+            author_email="",
+            committed_date="2024-01-15T10:00:00Z",
+            repo="test/repo",
+            url="",
+        )
+        aggregator.execute({"type": "commit", "data": commit1, "author": "Copilot"})
+
+        commit2 = GitHubCommit(
+            sha="cop2",
+            message="Commit from copilot-swe-agent",
+            author="copilot-swe-agent",
+            author_email="",
+            committed_date="2024-01-15T11:00:00Z",
+            repo="test/repo",
+            url="",
+        )
+        result = aggregator.execute(
+            {"type": "commit", "data": commit2, "author": "copilot-swe-agent"}
+        )
+
+        # Both should map to Copilot
+        assert result["author"] == "Copilot"
+        contributors = ContributorAggregator.get_all_contributors()
+        assert "Copilot" in contributors
+        assert "copilot-swe-agent" not in contributors
+        assert contributors["Copilot"].total_commits == 2
+
+    def test_normalize_username_static_method(self):
+        """Test the normalize_username static method."""
+        # ShuhaoZhangTony variants
+        assert ContributorAggregator.normalize_username("ShuhaoZhangTony") == "ShuhaoZhangTony"
+        assert ContributorAggregator.normalize_username("Shuhao Zhang") == "ShuhaoZhangTony"
+        assert ContributorAggregator.normalize_username("shuhao zhang") == "ShuhaoZhangTony"
+        assert ContributorAggregator.normalize_username("shuhaozhangtony") == "ShuhaoZhangTony"
+
+        # Copilot variants
+        assert ContributorAggregator.normalize_username("Copilot") == "Copilot"
+        assert ContributorAggregator.normalize_username("copilot-swe-agent") == "Copilot"
+        assert ContributorAggregator.normalize_username("github-copilot") == "Copilot"
+
+        # Unknown users should stay unchanged
+        assert ContributorAggregator.normalize_username("some-random-user") == "some-random-user"
+
+        # Empty string should return Unknown
+        assert ContributorAggregator.normalize_username("") == "Unknown"
+
 
 class TestLLMReportGenerator:
     """Test LLMReportGenerator operator."""

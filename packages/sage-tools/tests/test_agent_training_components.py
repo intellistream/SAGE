@@ -7,7 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from sage.tools.agent_training.continual import CoresetSelector, OnlineContinualLearner
+# Import SIAS components from new location
+from sage.libs.sias import CoresetSelector, OnlineContinualLearner
 from sage.tools.agent_training.data_formatter import AgentSFTFormatter
 from sage.tools.agent_training.dialog_processor import AgentDialogProcessor, ProcessedDialog
 
