@@ -1,23 +1,42 @@
-# Weekly Report Generator Workflow
+# Periodic Report Generator Workflow
 #
-# Generates weekly work reports for all contributors using SAGE framework.
-# Runs every Monday at 9:00 UTC (17:00 Beijing Time) on self-hosted A6000 runner.
+# Generates periodic work reports (weekly/monthly/quarterly/yearly) for all contributors
+# using SAGE framework. Runs on self-hosted A6000 runner.
+#
+# Schedule:
+# - Weekly: Every Monday at 9:00 UTC (17:00 Beijing Time)
+# - Monthly: 1st of each month at 9:00 UTC
+# - Quarterly: 1st of Jan/Apr/Jul/Oct at 9:00 UTC
+# - Yearly: January 1st at 9:00 UTC
 #
 # Reports are:
 # 1. Saved as artifacts
-# 2. Posted as GitHub issue comments (optional)
-# 3. Sent via email/webhook (future)
+# 2. Committed to docs-public for persistence
+# 3. Posted as GitHub issue comments (optional)
 
-name: Weekly Report Generator
+name: Periodic Report Generator
 
 on:
   # Weekly schedule: Monday 9:00 UTC (17:00 Beijing Time)
   schedule:
-    - cron: '0 9 * * 1'
+    - cron: '0 9 * * 1'  # Weekly - every Monday
+    - cron: '0 9 1 * *'  # Monthly - 1st of each month
+    - cron: '0 9 1 1,4,7,10 *'  # Quarterly - 1st of Jan/Apr/Jul/Oct
+    # Note: Yearly report runs on Jan 1st via the monthly schedule
 
   # Manual trigger with options
   workflow_dispatch:
     inputs:
+      period:
+        description: 'Report period type'
+        required: false
+        default: 'weekly'
+        type: choice
+        options:
+          - weekly
+          - monthly
+          - quarterly
+          - yearly
       repos:
         description: 'Repositories to include (comma-separated, leave empty for all SAGE repos)'
         required: false
@@ -29,14 +48,10 @@ on:
         default: 'main-dev'
         type: string
       days:
-        description: 'Number of days to look back'
+        description: 'Number of days to look back (overrides period if set)'
         required: false
-        default: '7'
-        type: choice
-        options:
-          - '7'
-          - '14'
-          - '30'
+        default: ''
+        type: string
       output_format:
         description: 'Output format'
         required: false
@@ -83,7 +98,7 @@ env:
 
 jobs:
   generate-report:
-    name: Generate Weekly Report
+    name: Generate Periodic Report
     runs-on: [self-hosted, A6000]
     timeout-minutes: 30
 
@@ -131,16 +146,46 @@ jobs:
           mkdir -p reports
           echo "Report directory created: $(pwd)/reports"
 
-      - name: Generate Weekly Report
+      - name: Generate Periodic Report
         id: generate
         run: |
           source $(conda info --base)/etc/profile.d/conda.sh
           conda activate sage
 
+          # Determine period based on schedule or manual input
+          # For scheduled runs, determine period from the schedule that triggered
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Check which schedule triggered based on current date
+            DAY_OF_MONTH=$(date +%d)
+            MONTH=$(date +%m)
+            DAY_OF_WEEK=$(date +%u)  # 1=Monday, 7=Sunday
+
+            if [ "$MONTH" = "01" ] && [ "$DAY_OF_MONTH" = "01" ]; then
+              # January 1st - yearly report
+              PERIOD="yearly"
+            elif [ "$MONTH" = "01" ] || [ "$MONTH" = "04" ] || [ "$MONTH" = "07" ] || [ "$MONTH" = "10" ]; then
+              if [ "$DAY_OF_MONTH" = "01" ]; then
+                # 1st of quarter month - quarterly report
+                PERIOD="quarterly"
+              else
+                PERIOD="weekly"
+              fi
+            elif [ "$DAY_OF_MONTH" = "01" ]; then
+              # 1st of month - monthly report
+              PERIOD="monthly"
+            else
+              # Default to weekly (every Monday)
+              PERIOD="weekly"
+            fi
+          else
+            # Manual trigger - use input
+            PERIOD="${{ github.event.inputs.period || 'weekly' }}"
+          fi
+
           # Set parameters from workflow inputs or defaults
           REPOS="${{ github.event.inputs.repos || '' }}"
           BRANCH="${{ github.event.inputs.branch || 'main-dev' }}"
-          DAYS="${{ github.event.inputs.days || '7' }}"
+          DAYS="${{ github.event.inputs.days || '' }}"
           FORMAT="${{ github.event.inputs.output_format || 'markdown' }}"
           LANGUAGE="${{ github.event.inputs.language || 'zh' }}"
           USE_LLM="${{ github.event.inputs.use_llm }}"
@@ -156,8 +201,35 @@ jobs:
 
           # Generate timestamp for filename
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          WEEK_START=$(date -d "-${DAYS} days" +%Y%m%d)
-          WEEK_END=$(date +%Y%m%d)
+
+          # Calculate date range based on period
+          case $PERIOD in
+            weekly)
+              PERIOD_DAYS=7
+              ;;
+            monthly)
+              PERIOD_DAYS=30
+              ;;
+            quarterly)
+              PERIOD_DAYS=90
+              ;;
+            yearly)
+              PERIOD_DAYS=365
+              ;;
+            *)
+              PERIOD_DAYS=7
+              ;;
+          esac
+
+          # Use custom days if specified, otherwise use period days
+          if [ -n "$DAYS" ]; then
+            ACTUAL_DAYS=$DAYS
+          else
+            ACTUAL_DAYS=$PERIOD_DAYS
+          fi
+
+          PERIOD_START=$(date -d "-${ACTUAL_DAYS} days" +%Y%m%d)
+          PERIOD_END=$(date +%Y%m%d)
 
           # Determine file extension
           if [ "$FORMAT" = "json" ]; then
@@ -166,12 +238,13 @@ jobs:
             EXT="md"
           fi
 
-          OUTPUT_FILE="reports/weekly_report_${WEEK_START}_${WEEK_END}.${EXT}"
+          OUTPUT_FILE="reports/${PERIOD}_report_${PERIOD_START}_${PERIOD_END}.${EXT}"
 
           echo "Generating report..."
+          echo "  Period: $PERIOD"
           echo "  Repos: ${REPOS:-'All SAGE repos (main + submodules)'}"
           echo "  Branch: $BRANCH"
-          echo "  Days: $DAYS"
+          echo "  Days: $ACTUAL_DAYS"
           echo "  Format: $FORMAT"
           echo "  Language: $LANGUAGE"
           echo "  Use LLM: $USE_LLM"
@@ -180,11 +253,16 @@ jobs:
 
           # Build command
           CMD="python -m sage.apps.work_report_generator.pipeline"
+          CMD="$CMD --period $PERIOD"
           CMD="$CMD --branch $BRANCH"
-          CMD="$CMD --days $DAYS"
           CMD="$CMD --format $FORMAT"
           CMD="$CMD --output $OUTPUT_FILE"
           CMD="$CMD --language $LANGUAGE"
+
+          # Add days if explicitly specified (overrides period)
+          if [ -n "$DAYS" ]; then
+            CMD="$CMD --days $DAYS"
+          fi
 
           # Add repos if specified
           if [ -n "$REPOS" ]; then
@@ -205,48 +283,59 @@ jobs:
 
           # Set outputs
           echo "output_file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
-          echo "week_start=$WEEK_START" >> $GITHUB_OUTPUT
-          echo "week_end=$WEEK_END" >> $GITHUB_OUTPUT
+          echo "period=$PERIOD" >> $GITHUB_OUTPUT
+          echo "period_start=$PERIOD_START" >> $GITHUB_OUTPUT
+          echo "period_end=$PERIOD_END" >> $GITHUB_OUTPUT
 
       - name: Upload Report Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: weekly-report-${{ steps.generate.outputs.week_start }}-${{ steps.generate.outputs.week_end }}
+          name: ${{ steps.generate.outputs.period }}-report-${{ steps.generate.outputs.period_start }}-${{ steps.generate.outputs.period_end }}
           path: reports/
           retention-days: 90
 
       - name: Commit Report to docs-public
         if: ${{ github.event.inputs.output_format != 'json' }}
         run: |
-          WEEK_START="${{ steps.generate.outputs.week_start }}"
-          WEEK_END="${{ steps.generate.outputs.week_end }}"
+          PERIOD="${{ steps.generate.outputs.period }}"
+          PERIOD_START="${{ steps.generate.outputs.period_start }}"
+          PERIOD_END="${{ steps.generate.outputs.period_end }}"
           OUTPUT_FILE="${{ steps.generate.outputs.output_file }}"
 
           # Create docs directory if not exists
           DOCS_DIR="docs-public/docs_src/community/weekly-reports"
           mkdir -p "$DOCS_DIR"
 
-          # Copy report to docs with proper naming
-          REPORT_NAME="report_${WEEK_START}_${WEEK_END}.md"
+          # Copy report to docs with proper naming (include period type)
+          REPORT_NAME="${PERIOD}_report_${PERIOD_START}_${PERIOD_END}.md"
           cp "$OUTPUT_FILE" "$DOCS_DIR/$REPORT_NAME"
 
           # Update index.md with new report link
           INDEX_FILE="$DOCS_DIR/index.md"
           if [ -f "$INDEX_FILE" ]; then
             # Format dates for display
-            START_DISPLAY=$(date -d "${WEEK_START}" +"%Y-%m-%d" 2>/dev/null || echo "$WEEK_START")
-            END_DISPLAY=$(date -d "${WEEK_END}" +"%Y-%m-%d" 2>/dev/null || echo "$WEEK_END")
+            START_DISPLAY=$(date -d "${PERIOD_START}" +"%Y-%m-%d" 2>/dev/null || echo "$PERIOD_START")
+            END_DISPLAY=$(date -d "${PERIOD_END}" +"%Y-%m-%d" 2>/dev/null || echo "$PERIOD_END")
             GENERATED=$(date +"%Y-%m-%d %H:%M UTC")
 
+            # Period display names
+            case $PERIOD in
+              weekly) PERIOD_DISPLAY="周报" ;;
+              monthly) PERIOD_DISPLAY="月报" ;;
+              quarterly) PERIOD_DISPLAY="季报" ;;
+              yearly) PERIOD_DISPLAY="年报" ;;
+              *) PERIOD_DISPLAY="$PERIOD" ;;
+            esac
+
             # Add new row to table (after the header row)
-            NEW_ROW="| [${START_DISPLAY} ~ ${END_DISPLAY}](./${REPORT_NAME}) | ${START_DISPLAY} ~ ${END_DISPLAY} | ${GENERATED} |"
+            NEW_ROW="| [${PERIOD_DISPLAY}: ${START_DISPLAY} ~ ${END_DISPLAY}](./${REPORT_NAME}) | ${PERIOD} | ${START_DISPLAY} ~ ${END_DISPLAY} | ${GENERATED} |"
 
             # Insert after the table header (line with "Reports will appear" or after |--------|)
             if grep -q "Reports will appear here automatically" "$INDEX_FILE"; then
               sed -i "s|.*Reports will appear here automatically.*|${NEW_ROW}|" "$INDEX_FILE"
             else
               # Add to the end of the table
-              sed -i "/^|.*|.*|.*|$/a ${NEW_ROW}" "$INDEX_FILE"
+              sed -i "/^|.*|.*|.*|.*|$/a ${NEW_ROW}" "$INDEX_FILE"
             fi
           fi
 
@@ -256,10 +345,11 @@ jobs:
 
           # Commit and push
           git add "$DOCS_DIR/"
-          git commit -m "docs: add weekly report ${WEEK_START}-${WEEK_END}
+          git commit -m "docs: add ${PERIOD} report ${PERIOD_START}-${PERIOD_END}
 
-          Auto-generated by Weekly Report Generator workflow.
-          Period: ${WEEK_START} ~ ${WEEK_END}
+          Auto-generated by Periodic Report Generator workflow.
+          Period Type: ${PERIOD}
+          Date Range: ${PERIOD_START} ~ ${PERIOD_END}
           " || echo "No changes to commit"
 
           git push origin ${{ github.ref_name }} || echo "Push failed, may need manual intervention"
