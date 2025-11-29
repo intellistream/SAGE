@@ -1107,6 +1107,7 @@ Result:"""
             # 如果阈值 < 1，进行相似度检测
             if threshold < 1.0 and self._embedding_generator:
                 # TODO: 实现基于 embedding 的相似度检测
+                # Issue URL: https://github.com/intellistream/SAGE/issues/1266
                 # 这需要维护已有记忆的 embedding 索引
                 pass
 

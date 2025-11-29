@@ -340,6 +340,7 @@ class PreRetrieval(MapFunction):
                 "operators.pre_retrieval.route_mapping", "route_strategy=classifier"
             )
             # TODO: 初始化分类器模型
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1268
 
         elif self.route_strategy == "llm":
             self.route_prompt = self._get_required_config(
@@ -762,6 +763,7 @@ class PreRetrieval(MapFunction):
         使用预训练分类器判断查询意图
         """
         # TODO: 实现分类器路由
+        # Issue URL: https://github.com/intellistream/SAGE/issues/1267
         # 这里需要加载和使用意图分类模型
         logger.warning("Classifier routing not implemented, using default route")
         return [self.default_route]
