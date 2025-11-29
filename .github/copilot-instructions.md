@@ -357,10 +357,13 @@ embedder.embed(texts=["a", "b"])  # TypeError: embed() got unexpected keyword ar
 
 ## sage-benchmark 组件
 
-Agent 能力评测框架，位于 `packages/sage-benchmark/`：
+Agent 能力和 Control Plane 评测框架，位于 `packages/sage-benchmark/`：
 
-### 核心模块
+### benchmark_agent (Agent 能力评测)
 
+评估 Agent 三个核心能力：工具选择、任务规划、时机判断。
+
+**核心模块**:
 ```
 src/sage/benchmark/benchmark_agent/
   adapter_registry.py      # 策略注册表 (selector.*, planner.*, timing.*)
@@ -368,30 +371,44 @@ src/sage/benchmark/benchmark_agent/
     base_experiment.py     # 实验基类 + 数据模型
     tool_selection_exp.py  # 工具选择评测
     planning_exp.py        # 任务规划评测
-    timing_exp.py          # 时机决策评测
+    timing_detection_exp.py # 时机决策评测
   evaluation/
     metrics.py             # 评测指标 (accuracy, precision, recall, etc.)
-  data/                    # 评测数据 (JSONL)
-scripts/
-  test_tool_selection_e2e.py  # 工具选择端到端测试
-  test_planning_e2e.py        # 规划端到端测试
+  scripts/                 # 评测脚本
 ```
 
-### 使用示例
-
+**使用示例**:
 ```python
-from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+from sage.benchmark.benchmark_agent import get_adapter_registry
 
 registry = get_adapter_registry()
 
 # 工具选择策略
-selector = registry.create_adapter("selector.keyword")  # keyword, embedding, hybrid
+selector = registry.get("selector.keyword")  # keyword, embedding, hybrid, gorilla, dfsdt
 
-# 任务规划策略 (使用 UnifiedInferenceClient)
-planner = registry.create_adapter("planner.llm_based")  # simple, hierarchical, llm_based
+# 任务规划策略
+planner = registry.get("planner.react")  # simple, hierarchical, llm_based, react, tot
 
 # 时机决策策略
-decider = registry.create_adapter("timing.threshold")   # threshold, embedding, llm
+decider = registry.get("timing.rule_based")  # rule_based, llm_based, hybrid
 ```
+
+### benchmark_control_plane (调度策略评测)
+
+评估 sageLLM Control Plane 的调度策略性能（吞吐量、延迟、SLO 合规率）。
+
+**CLI**:
+```bash
+# LLM 调度评测
+sage-cp-bench run --mode llm --policy fifo --requests 100
+
+# Hybrid (LLM + Embedding) 评测
+sage-cp-bench run --mode hybrid --policy hybrid_slo --llm-ratio 0.7
+
+# 策略对比
+sage-cp-bench compare --mode llm --policies fifo,priority,slo_aware
+```
+
+**详细文档**: `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md`
 
 **Trust these instructions** - search only if incomplete, errors occur, or deep architecture needed.
