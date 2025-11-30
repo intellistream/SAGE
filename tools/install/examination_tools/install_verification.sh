@@ -7,6 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # 设置 Python 命令（使用安装过程中设置的环境变量）
 PYTHON_CMD="${PYTHON_CMD:-python3}"
+SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"  # 可能由安装流程设置
 
 # 验证常量
 VERIFICATION_LOG=".sage/install_verification.log"
@@ -15,6 +16,80 @@ HELLO_WORLD_SCRIPT="docs-public/hello_world.py"
 # 验证结果状态
 VERIFICATION_PASSED=true
 VERIFICATION_RESULTS=()
+
+# 从 PYTHON_CMD 中推断 conda 环境名称（例如 "conda run -n sage python"）
+detect_conda_env_from_python_cmd() {
+    if [[ "$PYTHON_CMD" =~ conda[[:space:]]+run[[:space:]]+-n[[:space:]]+([^[:space:]]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    fi
+}
+
+# 检查 conda 环境是否存在
+conda_env_exists() {
+    local env_name="$1"
+    if [ -z "$env_name" ]; then
+        return 1
+    fi
+    if ! command -v conda >/dev/null 2>&1; then
+        return 1
+    fi
+    conda env list 2>/dev/null | grep -q "^${env_name} " || \
+    conda env list 2>/dev/null | grep -q "^${env_name}$"
+}
+
+get_sage_cli_env() {
+    if [ -n "$SAGE_ENV_NAME" ]; then
+        # 验证环境是否存在
+        if conda_env_exists "$SAGE_ENV_NAME"; then
+            echo "$SAGE_ENV_NAME"
+            return
+        fi
+    fi
+
+    local detected
+    detected=$(detect_conda_env_from_python_cmd)
+    if [ -n "$detected" ] && conda_env_exists "$detected"; then
+        echo "$detected"
+    fi
+}
+
+run_sage_dev() {
+    local env_name
+    env_name=$(get_sage_cli_env)
+
+    if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
+        conda run -n "$env_name" sage-dev "$@"
+    else
+        # 对于 pip 安装，CLI 工具可能在 ~/.local/bin 中
+        if command -v sage-dev >/dev/null 2>&1; then
+            sage-dev "$@"
+        elif [ -x "$HOME/.local/bin/sage-dev" ]; then
+            "$HOME/.local/bin/sage-dev" "$@"
+        else
+            echo "sage-dev 命令不可用" >&2
+            return 1
+        fi
+    fi
+}
+
+sage_dev_available() {
+    local env_name
+    env_name=$(get_sage_cli_env)
+
+    if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
+        conda run -n "$env_name" which sage-dev >/dev/null 2>&1
+    else
+        # 检查 sage-dev 命令是否可用
+        # 对于 pip 安装，CLI 工具可能在 ~/.local/bin 中
+        if command -v sage-dev >/dev/null 2>&1; then
+            return 0
+        elif [ -x "$HOME/.local/bin/sage-dev" ]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
 
 # 记录验证结果
 log_verification_result() {
@@ -82,7 +157,7 @@ verify_sage_doctor() {
     echo -e "${BLUE}🩺 验证 sage doctor 命令...${NC}"
 
     # 检查 sage-dev 命令是否存在
-    if ! command -v sage-dev &> /dev/null; then
+    if ! sage_dev_available; then
         log_verification_result "sage_doctor" "FAIL" "sage-dev 命令不可用"
         echo -e "${RED}   ❌ sage-dev 命令不可用${NC}"
         return 1
@@ -90,7 +165,7 @@ verify_sage_doctor() {
 
     # 运行 sage maintain doctor（新命令结构）
     local output
-    output=$(sage-dev maintain doctor 2>&1)
+    output=$(run_sage_dev maintain doctor 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
@@ -112,7 +187,7 @@ verify_cli_commands() {
     local failed_commands=()
 
     # 验证 sage-dev 命令
-    if command -v "sage-dev" &> /dev/null; then
+    if sage_dev_available; then
         echo -e "${GREEN}   ✅ sage-dev 命令可用${NC}"
     else
         echo -e "${RED}   ❌ sage-dev 命令不可用${NC}"
@@ -228,6 +303,20 @@ verify_vllm_installation() {
 
     local vllm_version=$($PYTHON_CMD -c "import vllm; print(vllm.__version__)" 2>/dev/null)
     echo -e "${GREEN}   ✅ VLLM $vllm_version 已安装${NC}"
+
+    # 检查 FlashInfer（可选但推荐）
+    if $PYTHON_CMD -c "import flashinfer" &> /dev/null; then
+        local flashinfer_version=$($PYTHON_CMD -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
+        echo -e "${GREEN}   ✅ FlashInfer $flashinfer_version 已安装（高性能采样）${NC}"
+    else
+        echo -e "${DIM}   ℹ️  FlashInfer 未安装（可选：用于高性能采样）${NC}"
+        # 获取 CUDA 版本并给出安装建议
+        local cuda_version=$($PYTHON_CMD -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
+        if [ -n "$cuda_version" ]; then
+            local cuda_major=$(echo "$cuda_version" | cut -d. -f1)
+            echo -e "${DIM}      安装命令: pip install flashinfer-python -i https://flashinfer.ai/whl/cu${cuda_major}4/torch2.6/${NC}"
+        fi
+    fi
 
     # 尝试基本功能测试
     if $PYTHON_CMD -c "

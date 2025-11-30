@@ -35,19 +35,26 @@ def find_project_root(
     Returns:
         项目根目录路径，如果找不到返回None
     """
+    # If no custom markers provided, use the centralized implementation from sage-common
+    if markers is None:
+        try:
+            from sage.common.config import find_sage_project_root
+
+            return find_sage_project_root(start_path)
+        except ImportError:
+            # Fallback to local implementation if sage-common not available
+            markers = [
+                "setup.py",
+                "pyproject.toml",
+                "requirements.txt",
+                ".git",
+                "sage",
+                "packages",
+                "SAGE_API_REFACTOR_SUMMARY.md",
+            ]
+
     if start_path is None:
         start_path = Path.cwd()
-
-    if markers is None:
-        markers = [
-            "setup.py",
-            "pyproject.toml",
-            "requirements.txt",
-            ".git",
-            "sage",
-            "packages",
-            "SAGE_API_REFACTOR_SUMMARY.md",
-        ]
 
     current = Path(start_path).resolve()
 

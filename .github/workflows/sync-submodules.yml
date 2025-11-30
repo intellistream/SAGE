@@ -36,19 +36,25 @@ jobs:
 
       - name: Check and sync submodules
         id: sync
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "## 🔄 Syncing Submodules from main-dev to main" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Submodule | Status | Changes |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
 
-          SUCCESS_COUNT=0
-          UPTODATE_COUNT=0
-          FAILED_COUNT=0
-          FAILED_SUBMODULES=""
+          # Initialize counters using files to avoid subshell issues
+          echo "0" > /tmp/success_count.txt
+          echo "0" > /tmp/uptodate_count.txt
+          echo "0" > /tmp/failed_count.txt
+          rm -f /tmp/failed_submodules.txt /tmp/warnings.txt
+          touch /tmp/failed_submodules.txt /tmp/warnings.txt
 
-          # Process each submodule
-          git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read submodule_path; do
+          # Get submodule list into an array (avoid pipe subshell)
+          mapfile -t SUBMODULES < <(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
+
+          for submodule_path in "${SUBMODULES[@]}"; do
             if [ ! -d "$submodule_path" ]; then
               continue
             fi
@@ -57,11 +63,17 @@ jobs:
 
             cd "$submodule_path"
 
+            # Configure authentication for this submodule
+            remote_url=$(git remote get-url origin)
+            auth_url=$(echo "$remote_url" | sed "s|https://github.com/|https://x-access-token:${PAT_TOKEN}@github.com/|")
+            git remote set-url origin "$auth_url"
+
             # Fetch latest from both branches
             if ! git fetch origin main main-dev 2>&1; then
               echo "| $submodule_path | ❌ Failed | Failed to fetch |" >> $GITHUB_STEP_SUMMARY
-              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
               echo "$submodule_path" >> /tmp/failed_submodules.txt
+              git remote set-url origin "$remote_url"
               cd - > /dev/null
               continue
             fi
@@ -73,7 +85,8 @@ jobs:
             # Case 1: main-dev is up to date with main
             if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -eq 0 ]; then
               echo "| $submodule_path | ✅ Up to date | No changes |" >> $GITHUB_STEP_SUMMARY
-              UPTODATE_COUNT=$((UPTODATE_COUNT + 1))
+              echo $(($(cat /tmp/uptodate_count.txt) + 1)) > /tmp/uptodate_count.txt
+              git remote set-url origin "$remote_url"
               cd - > /dev/null
               continue
             fi
@@ -82,7 +95,8 @@ jobs:
             if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -gt 0 ]; then
               echo "| $submodule_path | ⚠️ Behind | main-dev is $BEHIND commits behind main |" >> $GITHUB_STEP_SUMMARY
               echo "⚠️ $submodule_path: main-dev is $BEHIND commits behind main, skipping sync" >> /tmp/warnings.txt
-              UPTODATE_COUNT=$((UPTODATE_COUNT + 1))
+              echo $(($(cat /tmp/uptodate_count.txt) + 1)) > /tmp/uptodate_count.txt
+              git remote set-url origin "$remote_url"
               cd - > /dev/null
               continue
             fi
@@ -95,16 +109,18 @@ jobs:
             # Checkout main branch
             if ! git checkout main 2>&1; then
               echo "| $submodule_path | ❌ Failed | Cannot checkout main |" >> $GITHUB_STEP_SUMMARY
-              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
               echo "$submodule_path" >> /tmp/failed_submodules.txt
+              git remote set-url origin "$remote_url"
               cd - > /dev/null
               continue
             fi
 
             if ! git pull origin main 2>&1; then
               echo "| $submodule_path | ❌ Failed | Cannot pull main |" >> $GITHUB_STEP_SUMMARY
-              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
               echo "$submodule_path" >> /tmp/failed_submodules.txt
+              git remote set-url origin "$remote_url"
               cd - > /dev/null
               continue
             fi
@@ -114,31 +130,30 @@ jobs:
               # Push to remote
               if git push origin main 2>&1; then
                 echo "| $submodule_path | ✅ Synced | $AHEAD commits merged |" >> $GITHUB_STEP_SUMMARY
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+                echo $(($(cat /tmp/success_count.txt) + 1)) > /tmp/success_count.txt
               else
                 echo "| $submodule_path | ❌ Failed | Push failed |" >> $GITHUB_STEP_SUMMARY
-                FAILED_COUNT=$((FAILED_COUNT + 1))
+                echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
                 echo "$submodule_path" >> /tmp/failed_submodules.txt
               fi
             else
               echo "| $submodule_path | ❌ Conflict | Merge conflict detected |" >> $GITHUB_STEP_SUMMARY
               git merge --abort 2>/dev/null
-              FAILED_COUNT=$((FAILED_COUNT + 1))
+              echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
               echo "$submodule_path" >> /tmp/failed_submodules.txt
             fi
 
+            # Restore original URL
+            git remote set-url origin "$remote_url"
             cd - > /dev/null
           done
 
-          # Read failed submodules and warnings
-          if [ -f /tmp/failed_submodules.txt ]; then
-            FAILED_SUBMODULES=$(cat /tmp/failed_submodules.txt | tr '\n' ' ')
-          fi
-
-          WARNINGS=""
-          if [ -f /tmp/warnings.txt ]; then
-            WARNINGS=$(cat /tmp/warnings.txt)
-          fi
+          # Read counters from files
+          SUCCESS_COUNT=$(cat /tmp/success_count.txt)
+          UPTODATE_COUNT=$(cat /tmp/uptodate_count.txt)
+          FAILED_COUNT=$(cat /tmp/failed_count.txt)
+          FAILED_SUBMODULES=$(cat /tmp/failed_submodules.txt | tr '\n' ' ')
+          WARNINGS=$(cat /tmp/warnings.txt)
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Summary" >> $GITHUB_STEP_SUMMARY
