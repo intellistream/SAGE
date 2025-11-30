@@ -317,15 +317,123 @@ class ImageAnalyzer:
         }
 
     def _load_image(self, image_path: Path):
-        """加载影像"""
-        # TODO: 实现 DICOM 或常规图像加载
-        # Issue URL: https://github.com/intellistream/SAGE/issues/898
+        """
+        加载影像
+
+        支持格式:
+        - DICOM格式 (.dcm, .dicom)
+        - 常规图像格式 (PNG, JPG, JPEG, BMP, TIFF等)
+
+        Args:
+            image_path: 影像文件路径
+
+        Returns:
+            numpy数组格式的灰度图像，失败时返回None
+        """
+        if not image_path.exists():
+            print(f"   Warning: 图像文件不存在 {image_path}")
+            return None
+
+        # 获取文件扩展名
+        file_extension = image_path.suffix.lower()
+
+        try:
+            # 尝试加载DICOM格式
+            if file_extension in [".dcm", ".dicom"]:
+                return self._load_dicom_image(image_path)
+
+            # 尝试加载常规图像格式
+            return self._load_regular_image(image_path)
+
+        except Exception as e:
+            print(f"   Warning: 无法加载图像 {image_path}: {e}")
+            return None
+
+    def _load_dicom_image(self, image_path: Path):
+        """
+        加载DICOM格式影像
+
+        Args:
+            image_path: DICOM文件路径
+
+        Returns:
+            numpy数组格式的灰度图像
+        """
+        try:
+            import pydicom
+
+            # 读取DICOM文件
+            dicom_data = pydicom.dcmread(str(image_path))
+
+            # 获取像素数据
+            image_array = dicom_data.pixel_array
+
+            # 应用DICOM的窗宽窗位（如果存在）
+            if hasattr(dicom_data, "WindowCenter") and hasattr(dicom_data, "WindowWidth"):
+                window_center = (
+                    dicom_data.WindowCenter
+                    if isinstance(dicom_data.WindowCenter, (int, float))
+                    else dicom_data.WindowCenter[0]
+                )
+                window_width = (
+                    dicom_data.WindowWidth
+                    if isinstance(dicom_data.WindowWidth, (int, float))
+                    else dicom_data.WindowWidth[0]
+                )
+
+                # 应用窗宽窗位
+                img_min = window_center - window_width / 2
+                img_max = window_center + window_width / 2
+                image_array = np.clip(image_array, img_min, img_max)
+
+            # 归一化到0-255范围
+            if image_array.max() > image_array.min():
+                image_array = (
+                    (image_array - image_array.min())
+                    / (image_array.max() - image_array.min())
+                    * 255
+                )
+            else:
+                image_array = np.zeros_like(image_array)
+
+            # 转换为uint8类型
+            image_array = image_array.astype(np.uint8)
+
+            return image_array
+
+        except ImportError:
+            print("   Warning: pydicom未安装，无法加载DICOM文件")
+            print("   请运行: pip install pydicom")
+            return None
+        except Exception as e:
+            print(f"   Warning: 加载DICOM文件失败 {image_path}: {e}")
+            return None
+
+    def _load_regular_image(self, image_path: Path):
+        """
+        加载常规图像格式
+
+        Args:
+            image_path: 图像文件路径
+
+        Returns:
+            numpy数组格式的灰度图像
+        """
         try:
             from PIL import Image
 
-            return np.array(Image.open(image_path).convert("L"))
+            # 使用PIL加载图像并转换为灰度
+            image = Image.open(image_path)
+
+            # 转换为灰度图像
+            if image.mode != "L":
+                image = image.convert("L")
+
+            # 转换为numpy数组
+            return np.array(image)
+
         except Exception as e:
-            print(f"   Warning: 无法加载图像 {image_path}: {e}")
+            print(f"   Warning: 加载图像文件失败 {image_path}: {e}")
             return None
 
     def _assess_quality(self, image) -> float:
