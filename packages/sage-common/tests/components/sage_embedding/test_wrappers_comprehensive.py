@@ -9,6 +9,8 @@ This test suite provides detailed coverage for:
 - API key management
 """
 
+import base64
+import struct
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -433,60 +435,61 @@ class TestSiliconCloudWrapper:
         with pytest.raises(RuntimeError, match="需要 API Key"):
             SiliconCloudEmbedding()
 
-    def test_embed_batch_empty_list(self):
-        """Test embed_batch with empty list returns empty list"""
+    @patch("requests.post")
+    def test_embed_batch_single_request(self, mock_post):
+        """Batch embedding should call SiliconCloud once when under batch size"""
         from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
             SiliconCloudEmbedding,
         )
 
-        wrapper = SiliconCloudEmbedding(api_key="test-key")  # pragma: allowlist secret
-        result = wrapper.embed_batch([])
-        assert result == []
+        mock_post.return_value = self._mock_siliconcloud_response([[1.0, 2.0], [3.0, 4.0]])
 
-    def test_embed_batch_uses_batch_api(self):
-        """Test embed_batch sends all texts in a single API call"""
-        from unittest.mock import MagicMock, patch
+        wrapper = SiliconCloudEmbedding(api_key="test-key", batch_size=8)
+        texts = ["foo", "bar"]
+        result = wrapper.embed_batch(texts)
 
+        assert result == [[1.0, 2.0], [3.0, 4.0]]
+        assert mock_post.call_count == 1
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["input"] == texts
+
+    @patch("requests.post")
+    def test_embed_batch_chunked_requests(self, mock_post):
+        """Batch embedding should respect configured batch_size"""
         from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
             SiliconCloudEmbedding,
         )
 
-        wrapper = SiliconCloudEmbedding(api_key="test-key")  # pragma: allowlist secret
+        mock_post.side_effect = [
+            self._mock_siliconcloud_response([[1.0]]),
+            self._mock_siliconcloud_response([[2.0]]),
+            self._mock_siliconcloud_response([[3.0]]),
+        ]
 
-        # Mock the API response with base64 encoded vectors
-        import base64
-        import struct
+        wrapper = SiliconCloudEmbedding(api_key="test-key", batch_size=1)
+        texts = ["alpha", "beta", "gamma"]
+        result = wrapper.embed_batch(texts)
 
-        # Create two 4-dimensional vectors for testing
-        vec1 = [0.1, 0.2, 0.3, 0.4]
-        vec2 = [0.5, 0.6, 0.7, 0.8]
-        encoded1 = base64.b64encode(struct.pack("<" + "f" * 4, *vec1)).decode()
-        encoded2 = base64.b64encode(struct.pack("<" + "f" * 4, *vec2)).decode()
+        assert result == [[1.0], [2.0], [3.0]]
+        assert mock_post.call_count == 3
 
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = {
-            "data": [
-                {"embedding": encoded1},
-                {"embedding": encoded2},
-            ]
-        }
+        inputs = [call.kwargs["json"]["input"] for call in mock_post.call_args_list]
+        assert inputs == [["alpha"], ["beta"], ["gamma"]]
 
-        with patch("requests.post", return_value=mock_response) as mock_post:
-            texts = ["text1", "text2"]
-            result = wrapper.embed_batch(texts)
+    @staticmethod
+    def _mock_siliconcloud_response(vectors: list[list[float]]) -> Mock:
+        """Build a fake SiliconCloud response with base64 embeddings"""
 
-            # Verify single API call with all texts
-            assert mock_post.call_count == 1
-            call_args = mock_post.call_args
-            payload = call_args.kwargs["json"]
-            assert payload["input"] == texts
+        def _encode(vec: list[float]) -> str:
+            return base64.b64encode(struct.pack("<" + "f" * len(vec), *vec)).decode("utf-8")
 
-            # Verify results
-            assert len(result) == 2
-            for i, (res, expected) in enumerate(zip(result, [vec1, vec2])):
-                for j, (r, e) in enumerate(zip(res, expected)):
-                    assert abs(r - e) < 1e-6, f"Mismatch at [{i}][{j}]: {r} != {e}"
+        data = [{"embedding": _encode(vec)} for vec in vectors]
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.raise_for_status = Mock()
+        mock_response.json.return_value = {"data": data}
+        return mock_response
 
 
 # ==============================================================================

@@ -76,12 +76,15 @@ class SiliconCloudEmbedding(BaseEmbedding):
             ImportError: 如果未安装依赖包
             RuntimeError: 如果未提供 API Key
         """
+        extra_kwargs = dict(kwargs)
+        batch_size_cfg = extra_kwargs.pop("batch_size", None)
+
         super().__init__(
             model=model,
             base_url=base_url,
             max_token_size=max_token_size,
             api_key=api_key,
-            **kwargs,
+            **extra_kwargs,
         )
 
         # 检查依赖
@@ -96,7 +99,8 @@ class SiliconCloudEmbedding(BaseEmbedding):
         self._base_url = base_url
         self._max_token_size = max_token_size
         self._api_key = api_key or os.getenv("SILICONCLOUD_API_KEY")
-        self._kwargs = kwargs
+        self._kwargs = extra_kwargs
+        self._batch_size = max(1, int(batch_size_cfg or 32))
 
         # 检查 API Key
         if not self._api_key:
@@ -125,43 +129,7 @@ class SiliconCloudEmbedding(BaseEmbedding):
             RuntimeError: 如果 API 调用失败
         """
         try:
-            import base64
-            import struct
-
-            import requests
-
-            # 准备 API Key（添加 Bearer 前缀）
-            api_key = self._api_key  # pragma: allowlist secret
-            if api_key and not api_key.startswith("Bearer "):
-                api_key = "Bearer " + api_key  # pragma: allowlist secret
-
-            headers = {
-                "Authorization": api_key,  # pragma: allowlist secret
-                "Content-Type": "application/json",
-            }
-
-            # 截断文本
-            text = text[: self._max_token_size]
-
-            payload = {
-                "model": self._model,
-                "input": [text],
-                "encoding_format": "base64",
-            }
-
-            response = requests.post(self._base_url, headers=headers, json=payload)
-            response.raise_for_status()
-            content = response.json()
-
-            if "code" in content:
-                raise ValueError(f"SiliconCloud API error: {content}")
-
-            # 解码 base64 编码的向量
-            base64_string = content["data"][0]["embedding"]
-            decode_bytes = base64.b64decode(base64_string)
-            n = len(decode_bytes) // 4
-            float_array = struct.unpack("<" + "f" * n, decode_bytes)
-            return list(float_array)
+            return self._request_embeddings([text])[0]
 
         except Exception as e:
             raise RuntimeError(
@@ -172,72 +140,19 @@ class SiliconCloudEmbedding(BaseEmbedding):
             ) from e
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        """批量将文本转换为 embedding 向量
+        """批量将文本转换为 embedding 向量"""
 
-        使用 SiliconCloud API 的批量接口（input 参数支持列表）。
-
-        Args:
-            texts: 输入文本列表
-
-        Returns:
-            embedding 向量列表
-
-        Raises:
-            RuntimeError: 如果 API 调用失败
-        """
         if not texts:
             return []
 
-        try:
-            import base64
-            import struct
+        embeddings: list[list[float]] = []
+        batch_size = max(1, self._batch_size)
 
-            import requests
+        for idx in range(0, len(texts), batch_size):
+            chunk = texts[idx : idx + batch_size]
+            embeddings.extend(self._request_embeddings(chunk))
 
-            # 准备 API Key（添加 Bearer 前缀）
-            api_key = self._api_key  # pragma: allowlist secret
-            if api_key and not api_key.startswith("Bearer "):
-                api_key = "Bearer " + api_key  # pragma: allowlist secret
-
-            headers = {
-                "Authorization": api_key,  # pragma: allowlist secret
-                "Content-Type": "application/json",
-            }
-
-            # 截断所有文本
-            truncated_texts = [text[: self._max_token_size] for text in texts]
-
-            payload = {
-                "model": self._model,
-                "input": truncated_texts,  # 直接传入列表
-                "encoding_format": "base64",
-            }
-
-            response = requests.post(self._base_url, headers=headers, json=payload)
-            response.raise_for_status()
-            content = response.json()
-
-            if "code" in content:
-                raise ValueError(f"SiliconCloud API error: {content}")
-
-            # 解码所有 base64 编码的向量
-            results = []
-            for item in content["data"]:
-                base64_string = item["embedding"]
-                decode_bytes = base64.b64decode(base64_string)
-                n = len(decode_bytes) // 4
-                float_array = struct.unpack("<" + "f" * n, decode_bytes)
-                results.append(list(float_array))
-
-            return results
-
-        except Exception as e:
-            raise RuntimeError(
-                f"SiliconCloud 批量 embedding 失败: {e}\n"
-                f"模型: {self._model}\n"
-                f"批量大小: {len(texts)}\n"
-                f"提示: 检查 API Key 是否有效，网络连接是否正常"
-            ) from e
+        return embeddings
 
     def get_dim(self) -> int:
         """获取向量维度
@@ -300,3 +215,53 @@ class SiliconCloudEmbedding(BaseEmbedding):
             字符串表示
         """
         return f"SiliconCloudEmbedding(model='{self._model}', dim={self._dim})"
+
+    def _request_embeddings(self, texts: list[str]) -> list[list[float]]:
+        """调用 SiliconCloud API 获取向量，支持批量输入"""
+
+        import base64
+        import struct
+
+        import requests
+
+        if not texts:
+            return []
+
+        api_key = self._api_key  # pragma: allowlist secret
+        if api_key and not api_key.startswith("Bearer "):
+            api_key = "Bearer " + api_key  # pragma: allowlist secret
+
+        headers = {
+            "Authorization": api_key,  # pragma: allowlist secret
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": self._model,
+            "input": [text[: self._max_token_size] for text in texts],
+            "encoding_format": "base64",
+        }
+
+        response = requests.post(self._base_url, headers=headers, json=payload)
+        response.raise_for_status()
+        content = response.json()
+
+        if "code" in content:
+            raise ValueError(f"SiliconCloud API error: {content}")
+
+        data = content.get("data", [])
+        if len(data) != len(texts):
+            raise RuntimeError(
+                "SiliconCloud API returned unexpected number of embeddings "
+                f"(expected {len(texts)}, got {len(data)})"
+            )
+
+        embeddings: list[list[float]] = []
+        for item in data:
+            base64_string = item["embedding"]
+            decode_bytes = base64.b64decode(base64_string)
+            n = len(decode_bytes) // 4
+            float_array = struct.unpack("<" + "f" * n, decode_bytes)
+            embeddings.append(list(float_array))
+
+        return embeddings
