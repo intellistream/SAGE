@@ -7,9 +7,38 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import yaml  # type: ignore[import-untyped]
+
+
+class ConfigProtocol(Protocol):
+    """配置对象协议"""
+
+    def get(self, key: str) -> Any:
+        """获取配置值"""
+        ...
+
+
+def get_required_config(config: ConfigProtocol, key: str, context: str = "") -> Any:
+    """获取必需配置，缺失则报错
+
+    Args:
+        config: 配置对象，需要有 get(key) 方法
+        key: 配置键路径，如 "operators.pre_insert.action"
+        context: 上下文说明，用于错误消息
+
+    Returns:
+        配置值
+
+    Raises:
+        ValueError: 配置缺失时抛出
+    """
+    value = config.get(key)
+    if value is None:
+        ctx = f" ({context})" if context else ""
+        raise ValueError(f"缺少必需配置: {key}{ctx}")
+    return value
 
 
 class RuntimeConfig:
