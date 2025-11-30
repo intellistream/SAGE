@@ -1,0 +1,26 @@
+# 注意力头分析配置文件示例
+# 使用方法: python find_heads.py --config config.yaml
+
+# 模型配置
+model: "/home/cyb/Llama-3.1-8B-Instruct"  # 模型路径或 HuggingFace 名称
+dtype: "bfloat16"                          # 数据类型: float32, float16, bfloat16
+device: "cuda"                             # 设备: cuda 或 cpu
+
+# 数据集配置
+dataset: "nq"                              # 数据集: nq, hotpotqa, triviaqa, squad
+split: "train"                             # 分割: train, dev, test
+num_samples: 100                           # 评估样本数
+
+# 层范围（可选）
+layer_start: 0                             # 起始层
+layer_end: 32                              # 结束层（不包含）
+# layer_end: null                          # null = 分析所有层
+
+# 输出配置
+output_dir: "packages/sage-benchmark/src/sage/benchmark/benchmark_refiner/analysis/results"
+top_k: 20                                  # 输出 top-k 个头
+
+# 说明:
+# 1. 所有配置项都是可选的，未指定的会使用默认值
+# 2. 命令行参数会被配置文件覆盖
+# 3. 可以只配置需要修改的项

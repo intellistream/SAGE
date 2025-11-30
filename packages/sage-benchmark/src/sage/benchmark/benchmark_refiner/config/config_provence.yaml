@@ -1,0 +1,70 @@
+pipeline:
+  name: "sage-benchmark-provence-rag"
+  description: "Provence RAG Pipeline with Sentence-level Context Pruning"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 100
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "${HOME}/wiki18_maxp.index"
+    documents_path: "${HOME}/wiki18_fulldoc.jsonl"
+    mapping_path: "${HOME}/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "${HOME}/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+provence:
+  # Provence压缩配置
+  enabled: true  # 设为false即为baseline模式
+
+  # 模型配置
+  model_name: "naver/provence-reranker-debertav3-v1"  # Provence预训练模型
+  device: "cuda"  # 可选: cuda, cpu
+
+  # 压缩参数
+  threshold: 0.1       # 相关性阈值 (0-1)，低于此值的句子将被过滤
+  batch_size: 32       # 批处理大小
+  always_select_title: true  # 始终保留文档标题
+
+  # 重排序参数
+  reorder: false       # 是否对压缩后的文档进行重排序
+  top_k: 5             # 重排序时保留的文档数量
+
+  # 其他选项
+  enable_warnings: true
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

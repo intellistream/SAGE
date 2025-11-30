@@ -24,7 +24,8 @@ cd "$PROJECT_ROOT"
 for submodule in \
     "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
     "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
-    "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"; do
+    "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB" \
+    "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"; do
 
     if [ -d "$submodule" ]; then
         if [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then

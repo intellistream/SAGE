@@ -25,6 +25,7 @@ SAGE Refiner - 上下文压缩和精炼组件
     ... )
 """
 
+# SAGE framework dependencies
 from sage.libs.foundation.context.compression.algorithms import (
     LongRefinerAlgorithm,
     SimpleRefiner,
@@ -34,24 +35,34 @@ from sage.libs.foundation.context.compression.refiner import (
     RefineResult,
     RefinerMetrics,
 )
+
+# SAGE adapter layer (depends on SAGE core)
 from sage.middleware.components.sage_refiner.python.adapter import RefinerAdapter
-from sage.middleware.components.sage_refiner.python.algorithms.LongRefiner import (
-    LongRefinerCompressor,
-    LongRefinerOperator,
-)
-from sage.middleware.components.sage_refiner.python.algorithms.reform import (
-    AttentionHookExtractor,
-    REFORMCompressor,
-    REFORMRefinerOperator,
-)
-from sage.middleware.components.sage_refiner.python.config import (
-    RefinerAlgorithm,
-    RefinerConfig,
-)
 from sage.middleware.components.sage_refiner.python.context_service import (
     ContextService,
 )
 from sage.middleware.components.sage_refiner.python.service import RefinerService
+
+# sageRefiner submodule (standalone library)
+from sage.middleware.components.sage_refiner.sageRefiner import (
+    LongRefiner,
+    RefinerAlgorithm,
+    RefinerConfig,
+    ReformCompressor,
+)
+from sage.middleware.components.sage_refiner.sageRefiner.algorithms.LongRefiner import (
+    LongRefiner as LongRefinerCompressor,
+    LongRefinerOperator,
+)
+from sage.middleware.components.sage_refiner.sageRefiner.algorithms.provence import (
+    ProvenceCompressor,
+    ProvenceRefinerOperator,
+)
+from sage.middleware.components.sage_refiner.sageRefiner.algorithms.reform import (
+    AttentionHookExtractor,
+    ReformCompressor as REFORMCompressor,
+    REFORMRefinerOperator,
+)
 
 __all__ = [
     # 基础类
@@ -76,6 +87,9 @@ __all__ = [
     # LongRefiner算法
     "LongRefinerCompressor",
     "LongRefinerOperator",
+    # Provence算法
+    "ProvenceCompressor",
+    "ProvenceRefinerOperator",
 ]
 
 __version__ = "0.1.0"
