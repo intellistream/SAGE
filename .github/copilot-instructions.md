@@ -166,6 +166,12 @@ port = 8001  # 不要这样写
 
 **配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
 
+## Features
+
+**CPU Node Support**: SAGE fully supports CPU-only compute nodes via JobManager + NodeSelector.
+Tasks can specify `cpu_required`, `memory_required`, `gpu_required=0` for CPU-only execution. See
+`examples/tutorials/L3-kernel/cpu_node_demo.py` and `docs/dev-notes/l3-kernel/cpu-node-setup.md`.
+
 ## Development Workflow
 
 **Setup**: `./quickstart.sh --dev --yes` → `./manage.sh` (if C++ needed)
