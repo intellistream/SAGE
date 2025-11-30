@@ -76,74 +76,22 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          clean: true
           submodules: 'recursive'
 
-      - name: Setup Python Environment
+      # Use shared setup-sage action for consistent installation
+      - name: Setup SAGE
+        uses: ./.github/actions/setup-sage
+        with:
+          install-mode: 'dev'
+          skip-system-deps: 'false'
+          hf-token: ${{ secrets.HF_TOKEN }}
+          create-env-file: 'true'
+
+      - name: Create Experiment Environment File
         run: |
-          echo "Setting up Python environment..."
-
-          # Initialize conda (try multiple common locations)
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          elif command -v conda &> /dev/null; then
-            eval "$(conda shell.bash hook)"
-          else
-            echo "ERROR: Conda not found"
-            exit 1
-          fi
-
-          # Always reinstall SAGE to ensure consistency with current code
-          # This matches the behavior of other workflows (build-test.yml, examples-test.yml)
-          echo "Installing SAGE with quickstart..."
-
-          # Remove existing environment to ensure clean install
-          conda env remove -n sage -y 2>/dev/null || true
-
-          # Use quickstart.sh with conda (standard installation method)
-          ./quickstart.sh --dev --yes --conda
-
-          # Activate the environment
-          conda activate sage
-
-          python --version
-          pip list | grep -E "^sage-" || echo "Warning: No sage packages found"
-
-      - name: Verify Installation
-        run: |
-          # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
-
-          echo "Verifying SAGE installation..."
-          python -c "import sage; print('SAGE imported successfully')"
-          python -c "import sage.benchmark; print('sage.benchmark imported successfully')"
-
-          # Verify CLI commands
-          if command -v sage-dev >/dev/null 2>&1; then
-            echo "sage-dev command available"
-          else
-            echo "Warning: sage-dev command not found in PATH"
-            # Try to find it
-            which sage-dev || pip show sage-tools | grep -i location || true
-          fi
-
-      - name: Create Environment File
-        run: |
-          echo "Creating .env file..."
-          cat > .env << EOF
-          # Paper 1 Experiments Environment
-
-          # HuggingFace
-          HF_TOKEN=${{ secrets.HF_TOKEN }}
-          HF_ENDPOINT=https://hf-mirror.com
+          # Append experiment-specific settings to .env
+          cat >> .env << EOF
 
           # LLM Service (DashScope/Qwen)
           SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
@@ -153,28 +101,18 @@ jobs:
           # Embedding Service
           SAGE_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
 
-          # Runtime Settings
+          # Experiment Settings
           SAGE_TEST_MODE=false
-          SAGE_LOG_LEVEL=INFO
           EOF
 
-          echo "Done: .env created"
+          echo "Done: Experiment .env settings added"
 
       - name: Check GPU Availability
         run: |
           echo "Checking GPU status..."
           nvidia-smi || echo "No NVIDIA GPU found"
 
-          # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
-
+          export PATH="$HOME/.local/bin:$PATH"
           python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
 
       - name: Check Local LLM Service
@@ -193,15 +131,7 @@ jobs:
         run: |
           echo "Running SAGE Agent Bench experiments..."
 
-          # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
+          export PATH="$HOME/.local/bin:$PATH"
 
           # Navigate to scripts directory
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
@@ -245,15 +175,7 @@ jobs:
         run: |
           echo "Generating paper figures and tables..."
 
-          # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
+          export PATH="$HOME/.local/bin:$PATH"
 
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
 
