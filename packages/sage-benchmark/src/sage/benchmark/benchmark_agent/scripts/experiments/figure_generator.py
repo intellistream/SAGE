@@ -634,7 +634,7 @@ def generate_all_figures(
     cross_data = load_json(section_5_4 / "cross_dataset_results.json")
     if cross_data:
         path = output_dir / "fig7_cross_dataset.pdf"
-        plot_cross_dataset_comparison(cross_data, output_path=path)
+        plot_cross_dataset_comparison(cross_data, metric="top5_accuracy", output_path=path)
         generated["cross_dataset"] = path
         print(f"    Generated: {path.name}")
 

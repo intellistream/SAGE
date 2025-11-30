@@ -149,6 +149,9 @@ jobs:
             done
           fi
 
+          # Activate conda environment
+          conda activate $CONDA_ENV_NAME
+
           # Install system dependencies if needed
           for cmd in cmake pkg-config; do
             if ! command -v $cmd &> /dev/null; then
@@ -158,12 +161,17 @@ jobs:
             fi
           done
 
-          # Install SAGE in dev mode
-          conda run -n $CONDA_ENV_NAME pip install --upgrade pip setuptools wheel
-          conda run -n $CONDA_ENV_NAME pip install -e "packages/sage[dev]" --no-build-isolation
+          # Temporarily unset CI variables so quickstart.sh installs to conda env, not ~/.local
+          # This ensures packages are installed in the active conda environment
+          unset CI GITHUB_ACTIONS
+
+          # Install SAGE using quickstart.sh (same as build-test.yml)
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --yes --pip
 
           # Verify installation
-          conda run -n $CONDA_ENV_NAME python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
+          python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
+          python -c "from sage.benchmark.benchmark_agent import get_adapter_registry; print('sage-benchmark OK')"
           echo "✅ SAGE installation completed"
         timeout-minutes: 25
 
@@ -199,16 +207,36 @@ jobs:
 
           conda run -n $CONDA_ENV_NAME python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
 
-      - name: Check Local LLM Service
+      - name: Start Local LLM Service
         if: ${{ !inputs.skip_llm }}
         run: |
-          echo "Checking local LLM service..."
+          echo "🚀 Starting local LLM service..."
+
+          # Initialize conda
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
           # Check if local vLLM is already running
           if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
-            echo "Done: Local LLM service running on port 8901"
+            echo "✅ Local LLM service already running on port 8901"
           else
-            echo "Warning: Local LLM not available, will use cloud API (DashScope)"
+            echo "Starting vLLM server..."
+
+            # Use the experiment script's LLM service manager
+            cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+
+            # Start LLM service (uses Qwen2.5-0.5B by default for speed)
+            # Note: llm_service.py uses subcommand style: start/stop/status
+            conda run -n $CONDA_ENV_NAME python -m experiments.llm_service start \
+              --model "Qwen/Qwen2.5-0.5B-Instruct" \
+              --port 8901 \
+              --gpu-memory 0.5 || echo "⚠️ Failed to start LLM service"
+
+            # Check if service is now running
+            if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
+              echo "✅ Local LLM service is ready"
+            else
+              echo "⚠️ Local LLM service not available, will use cloud API (DashScope)"
+            fi
           fi
 
       - name: Run Paper 1 Experiments
