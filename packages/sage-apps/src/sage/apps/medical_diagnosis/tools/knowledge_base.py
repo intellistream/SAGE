@@ -531,7 +531,7 @@ class MedicalKnowledgeBase:
         }
 
         # 存入向量数据库
-        vector_id = self.vector_db.add(case_vector, metadata)
+        self.vector_db.add(case_vector, metadata)
 
         # 同时添加到本地缓存
         self.case_database.append(case_data)
