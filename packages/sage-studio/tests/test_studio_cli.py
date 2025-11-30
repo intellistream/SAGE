@@ -27,15 +27,25 @@ class FakeStudioManager:
     def load_config(self):
         return dict(self._config)
 
-    def start(self, port=None, host=None, dev=False):
-        if port:
-            self._config["port"] = port
+    def start(
+        self,
+        frontend_port=None,
+        backend_port=None,
+        gateway_port=None,
+        host=None,
+        dev=True,
+        llm=None,
+        llm_model=None,
+        use_finetuned=False,
+    ):
+        if frontend_port:
+            self._config["port"] = frontend_port
         if host:
             self._config["host"] = host
         self._running = True
         return True
 
-    def stop(self):
+    def stop(self, stop_gateway=False):
         was_running = self._running
         self._running = False
         return was_running
@@ -71,11 +81,20 @@ def mock_studio_manager():
 
 def test_studio_start_command(mock_studio_manager):
     """Test that 'sage studio start' command works."""
+    # Patch at the import location before CLI invocation
     with patch("sage.cli.commands.apps.studio.studio_manager", mock_studio_manager):
         result = runner.invoke(
             sage_app, ["studio", "start", "--host", "127.0.0.1", "--port", "9001"]
         )
+        # Print output for debugging
+        if result.exit_code != 0:
+            print(f"Exit code: {result.exit_code}")
+            print(f"Output: {result.stdout}")
+            if result.exception:
+                print(f"Exception: {result.exception}")
+
         assert result.exit_code == 0
+        # After the command runs, the manager should be running
         assert mock_studio_manager._running is True
         assert mock_studio_manager._config["port"] == 9001
         assert mock_studio_manager._config["host"] == "127.0.0.1"
@@ -96,6 +115,7 @@ def test_studio_stop_command(mock_studio_manager):
     with patch("sage.cli.commands.apps.studio.studio_manager", mock_studio_manager):
         result = runner.invoke(sage_app, ["studio", "stop"])
         assert result.exit_code == 0
+        # After stop command, manager should not be running
         assert mock_studio_manager._running is False
 
 

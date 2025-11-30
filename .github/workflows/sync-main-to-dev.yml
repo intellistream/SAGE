@@ -40,6 +40,124 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Sync submodules main to main-dev
+        id: sync_submodules
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          echo "## 🔄 Syncing Submodules from main to main-dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Submodule | Status | Changes |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          # Initialize counters using files to avoid subshell issues
+          echo "0" > /tmp/success_count.txt
+          echo "0" > /tmp/uptodate_count.txt
+          echo "0" > /tmp/failed_count.txt
+          rm -f /tmp/failed_submodules.txt
+          touch /tmp/failed_submodules.txt
+
+          # Get submodule list into an array (avoid pipe subshell)
+          mapfile -t SUBMODULES < <(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
+
+          for submodule_path in "${SUBMODULES[@]}"; do
+            if [ ! -d "$submodule_path" ]; then
+              continue
+            fi
+
+            echo "Processing: $submodule_path"
+
+            cd "$submodule_path"
+
+            # Configure authentication for this submodule
+            remote_url=$(git remote get-url origin)
+            auth_url=$(echo "$remote_url" | sed "s|https://github.com/|https://x-access-token:${PAT_TOKEN}@github.com/|")
+            git remote set-url origin "$auth_url"
+
+            # Fetch all branches
+            git fetch origin --prune
+
+            # Check if main and main-dev branches exist
+            has_main=$(git ls-remote --heads origin main | wc -l)
+            has_main_dev=$(git ls-remote --heads origin main-dev | wc -l)
+
+            if [ "$has_main" -eq 0 ] || [ "$has_main_dev" -eq 0 ]; then
+              echo "| $submodule_path | ⏭️ Skipped | Missing main or main-dev branch |" >> $GITHUB_STEP_SUMMARY
+              echo $(($(cat /tmp/uptodate_count.txt) + 1)) > /tmp/uptodate_count.txt
+              git remote set-url origin "$remote_url"
+              cd - > /dev/null
+              continue
+            fi
+
+            # Check if main-dev is behind main
+            BEHIND=$(git rev-list --count origin/main-dev..origin/main 2>/dev/null || echo "0")
+
+            if [ "$BEHIND" -eq 0 ]; then
+              echo "| $submodule_path | ✅ Up to date | No changes |" >> $GITHUB_STEP_SUMMARY
+              echo $(($(cat /tmp/uptodate_count.txt) + 1)) > /tmp/uptodate_count.txt
+              git remote set-url origin "$remote_url"
+              cd - > /dev/null
+              continue
+            fi
+
+            echo "  main-dev is $BEHIND commits behind main, syncing..."
+
+            # Checkout main-dev
+            git checkout main-dev 2>/dev/null || git checkout -b main-dev origin/main-dev
+            git pull origin main-dev --ff-only 2>/dev/null || true
+
+            # Try fast-forward merge first
+            if git merge origin/main --ff-only 2>/dev/null; then
+              echo "  Fast-forward merge successful"
+            else
+              # Try regular merge
+              if git merge origin/main -m "chore: sync main to main-dev [sync]" 2>/dev/null; then
+                echo "  Merge successful"
+              else
+                echo "| $submodule_path | ❌ Failed | Merge conflict |" >> $GITHUB_STEP_SUMMARY
+                git merge --abort 2>/dev/null || true
+                echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
+                echo "$submodule_path" >> /tmp/failed_submodules.txt
+                git remote set-url origin "$remote_url"
+                cd - > /dev/null
+                continue
+              fi
+            fi
+
+            # Push changes
+            if git push origin main-dev 2>/dev/null; then
+              echo "| $submodule_path | ✅ Synced | $BEHIND commits merged |" >> $GITHUB_STEP_SUMMARY
+              echo $(($(cat /tmp/success_count.txt) + 1)) > /tmp/success_count.txt
+            else
+              echo "| $submodule_path | ❌ Failed | Push failed |" >> $GITHUB_STEP_SUMMARY
+              echo $(($(cat /tmp/failed_count.txt) + 1)) > /tmp/failed_count.txt
+              echo "$submodule_path" >> /tmp/failed_submodules.txt
+            fi
+
+            # Restore original URL
+            git remote set-url origin "$remote_url"
+            cd - > /dev/null
+          done
+
+          # Read counters from files
+          SUCCESS_COUNT=$(cat /tmp/success_count.txt)
+          UPTODATE_COUNT=$(cat /tmp/uptodate_count.txt)
+          FAILED_COUNT=$(cat /tmp/failed_count.txt)
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Submodule Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Successfully synced: $SUCCESS_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- ℹ️  Already up to date: $UPTODATE_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ Failed: $FAILED_COUNT" >> $GITHUB_STEP_SUMMARY
+
+          # Set outputs
+          echo "success_count=$SUCCESS_COUNT" >> $GITHUB_OUTPUT
+          echo "failed_count=$FAILED_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$FAILED_COUNT" -gt 0 ]; then
+            echo "⚠️  Some submodules failed to sync. Check the summary above."
+          fi
+
       - name: Sync main to main-dev (fast-forward merge)
         run: |
           echo "🔄 Starting sync from main to main-dev..."

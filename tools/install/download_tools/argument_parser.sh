@@ -66,7 +66,6 @@ source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
-INSTALL_VLLM=false
 AUTO_CONFIRM=false
 SHOW_HELP=false
 CLEAN_PIP_CACHE=true
@@ -82,9 +81,9 @@ AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
 HOOKS_PROFILE="lightweight"
-USE_PIP_MIRROR=false
+USE_PIP_MIRROR=true  # 默认启用pip镜像自动检测（中国用户自动使用清华源）
 MIRROR_SOURCE="auto"
-RESUME_INSTALL=false  # 新增：断点续传
+RESUME_INSTALL=true  # 默认启用断点续传（安装失败时自动恢复）
 RESET_CHECKPOINT=false  # 新增：重置检查点
 CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
 
@@ -390,19 +389,6 @@ show_installation_menu() {
     done
 
     echo ""
-
-    # 选择是否安装 VLLM
-    echo -e "${BOLD}3. AI 模型支持：${NC}"
-    echo -e "  是否配置 VLLM 运行环境？${DIM}(用于本地大语言模型推理，配置系统依赖)${NC}"
-    echo -e "  ${DIM}注意: VLLM Python包已包含在标准/开发者安装中${NC}"
-    echo ""
-    read -p "配置 VLLM 环境？[y/N]: " vllm_choice
-
-    if [[ $vllm_choice =~ ^[Yy]$ ]]; then
-        INSTALL_VLLM=true
-    else
-        INSTALL_VLLM=false
-    fi
     refresh_sync_submodule_default
 }
 
@@ -457,14 +443,7 @@ show_parameter_help() {
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
 
-    echo -e "${BLUE}🤖 AI 模型支持：${NC}"
-    echo ""
-    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}配置 VLLM 运行环境${NC}"
-    echo -e "    ${DIM}与其他模式组合使用，例如: --dev --vllm${NC}"
-    echo -e "    ${DIM}配置 CUDA、系统依赖和启动脚本${NC}"
-    echo -e "    ${DIM}注意: Python包已包含在标准安装中${NC}"
-    echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
-    echo ""
+
 
     echo -e "${BLUE}⚡ 其他选项：${NC}"
     echo ""
@@ -498,13 +477,20 @@ show_parameter_help() {
     echo -e "    ${DIM}lightweight: 仅安装 hook 脚本，首次提交再下载依赖${NC}"
     echo -e "    ${DIM}full: 立即下载完整工具链，适合离线/CI${NC}"
     echo ""
-    echo -e "  ${BOLD}--use-mirror [源]${NC}                        ${GREEN}自动切换 pip 镜像${NC}"
-    echo -e "    ${DIM}无参数=auto，根据语言/时区选择最优镜像${NC}"
-    echo -e "    ${DIM}支持: tsinghua, aliyun, tencent, pypi, custom:<url>${NC}"
+    echo -e "  ${BOLD}--use-mirror [源]${NC}                        ${GREEN}使用 pip 镜像（默认自动检测）${NC}"
+    echo -e "    ${DIM}无参数=auto，根据网络位置自动选择最优镜像${NC}"
+    echo -e "    ${DIM}支持: auto, aliyun, tencent, pypi, custom:<url>${NC}"
+    echo -e "    ${DIM}注意: 默认已启用自动检测，中国用户自动使用清华源${NC}"
     echo ""
-    echo -e "  ${BOLD}--resume${NC}                                ${BLUE}断点续传安装${NC}"
+    echo -e "  ${BOLD}--no-mirror${NC}                              ${YELLOW}禁用 pip 镜像${NC}"
+    echo -e "    ${DIM}强制使用官方 PyPI（默认会自动检测网络环境）${NC}"
+    echo ""
+    echo -e "  ${BOLD}--resume${NC}                                ${BLUE}断点续传安装（默认启用）${NC}"
     echo -e "    ${DIM}从上次失败的地方继续安装${NC}"
-    echo -e "    ${DIM}如果没有断点，等同于重新安装${NC}"
+    echo -e "    ${DIM}如果没有断点，等同于正常安装${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-resume${NC}                             ${YELLOW}禁用断点续传${NC}"
+    echo -e "    ${DIM}强制从头开始安装，忽略之前的进度${NC}"
     echo ""
     echo -e "  ${BOLD}--reset-checkpoint${NC}                      ${YELLOW}重置安装进度${NC}"
     echo -e "    ${DIM}清除之前的安装记录，从头开始${NC}"
@@ -551,7 +537,6 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
     echo -e "  ./quickstart.sh --core --pip --yes               ${DIM}# 核心运行时 + 当前环境 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --full --yes                     ${DIM}# 完整功能 + 跳过确认${NC}"
-    echo -e "  ./quickstart.sh --dev --vllm --yes               ${DIM}# 开发者安装 + VLLM支持 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --verify-deps --standard         ${DIM}# 深度安全验证 + 标准安装${NC}"
     echo -e "  ./quickstart.sh --verify-deps-strict --dev --yes ${DIM}# 严格验证 + 开发模式 + 跳过确认${NC}"
     echo ""
@@ -605,20 +590,6 @@ parse_install_environment() {
         "--auto-venv")
             AUTO_VENV=true
             export SAGE_AUTO_VENV=true
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-# 解析 VLLM 参数
-parse_vllm_option() {
-    local param="$1"
-    case "$param" in
-        "--vllm"|"-vllm")
-            INSTALL_VLLM=true
             return 0
             ;;
         *)
@@ -740,6 +711,10 @@ parse_resume_option() {
             RESUME_INSTALL=true
             return 0
             ;;
+        "--no-resume")
+            RESUME_INSTALL=false
+            return 0
+            ;;
         "--reset-checkpoint")
             RESET_CHECKPOINT=true
             return 0
@@ -822,14 +797,15 @@ parse_arguments() {
                 MIRROR_SOURCE="auto"
                 shift
             fi
+        elif [[ "$param" == "--no-mirror" ]]; then
+            USE_PIP_MIRROR=false
+            MIRROR_SOURCE="disable"
+            shift
         elif parse_install_mode "$param"; then
             # 安装模式参数
             shift
         elif parse_install_environment "$param"; then
             # 安装环境参数
-            shift
-        elif parse_vllm_option "$param"; then
-            # VLLM 安装参数
             shift
         elif parse_auto_confirm "$param"; then
             # 自动确认参数
@@ -1001,10 +977,6 @@ show_install_configuration() {
             ;;
     esac
 
-    if [ "$INSTALL_VLLM" = true ]; then
-        echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
-    fi
-
     if [ "$SYNC_SUBMODULES" = "true" ]; then
         echo -e "  ${BLUE}Submodules:${NC} ${GREEN}自动同步${NC}"
     else
@@ -1022,7 +994,13 @@ show_install_configuration() {
     fi
 
     if [ "$USE_PIP_MIRROR" = true ]; then
-        echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}$MIRROR_SOURCE${NC}"
+        if [ "$MIRROR_SOURCE" = "auto" ]; then
+            echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}自动检测${NC} ${DIM}(中国网络自动使用清华源)${NC}"
+        else
+            echo -e "  ${BLUE}pip 镜像:${NC} ${GREEN}$MIRROR_SOURCE${NC}"
+        fi
+    else
+        echo -e "  ${BLUE}pip 镜像:${NC} ${YELLOW}已禁用${NC} ${DIM}(使用官方 PyPI)${NC}"
     fi
 
     if [ "$CLEAN_PIP_CACHE" = false ]; then
@@ -1039,11 +1017,6 @@ get_install_mode() {
 # 获取解析后的安装环境
 get_install_environment() {
     echo "$INSTALL_ENVIRONMENT"
-}
-
-# 获取是否安装 VLLM
-get_install_vllm() {
-    echo "$INSTALL_VLLM"
 }
 
 # 获取是否执行依赖验证

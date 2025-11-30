@@ -11,11 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 引入日志模块
 source "../lib/logging.sh"
 
-print_header "🔧 Conda 服务条款修复工具"
-
 main() {
     source ./conda_utils.sh
-    accept_conda_tos
+    accept_conda_tos "$@"
 }
 
 main "$@"

@@ -99,9 +99,8 @@ class ContextFileSink(SinkFunction):
         if self.config["create_index"] and not self.index_file.exists():
             self._initialize_index()
 
-    def _setup_directories(self):
+    def _setup_directories(self) -> None:
         """设置目录结构"""
-        # type: () -> None
         # 基础目录
         if self.config["base_directory"] is None:
             base_dir = self.get_default_template_directory()
@@ -137,9 +136,8 @@ class ContextFileSink(SinkFunction):
         self.logger.info(f"File organization: {self.config['organization']}")
         self.logger.info(f"File format: {self.config['file_format']}")
 
-    def _initialize_index(self):
+    def _initialize_index(self) -> None:
         """初始化索引文件"""
-        # type: () -> None
         index_data = {
             "created_at": datetime.now().isoformat(),
             "total_templates": 0,
@@ -206,9 +204,8 @@ class ContextFileSink(SinkFunction):
 
         return org_dir / filename
 
-    def _update_index(self, template: ModelContext, file_path: Path):
+    def _update_index(self, template: ModelContext, file_path: Path) -> None:
         """更新索引文件"""
-        # type: (ModelContext, Path) -> None
         if not self.config["create_index"]:
             return
 
