@@ -6,7 +6,7 @@ from collections.abc import Callable
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from sage.tools.cli.main import app as sage_app
+from sage.cli.main import app as sage_app
 
 from .helpers import CLITestCase
 
@@ -63,6 +63,10 @@ def _build_fake_client() -> SimpleNamespace:
         get_job_status=get_job_status,
         health_check=health_check,
         get_server_info=get_server_info,
+        pause_job=lambda uuid: {"status": "stopped", "message": "stopped"},
+        continue_job=lambda uuid: {"status": "running", "message": "resumed"},
+        delete_job=lambda uuid, force=False: {"status": "success", "message": "deleted"},
+        cleanup_all_jobs=lambda: {"status": "success", "message": "all cleaned"},
     )
 
 
@@ -87,6 +91,14 @@ def _patch_cli_client() -> list[Callable[[], object]]:
         lambda: patch(
             "sage.tools.cli.commands.job.JobManagerCLI.ensure_connected",
             fake_ensure_connected,
+        ),
+        lambda: patch(
+            "sage.tools.cli.commands.job.typer.confirm",
+            return_value=True,
+        ),
+        lambda: patch(
+            "sage.tools.cli.commands.job.cli._resolve_job_identifier",
+            return_value="job-demo-uuid",
         ),
     ]
 
@@ -118,5 +130,79 @@ def collect_cases() -> list[CLITestCase]:
             ["job", "info"],
             app=sage_app,
             patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job stop",
+            ["job", "stop", "job-demo-uuid", "--force"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job continue",
+            ["job", "continue", "job-demo-uuid", "--force"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job delete",
+            ["job", "delete", "job-demo-uuid", "--force"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job cleanup",
+            ["job", "cleanup", "--force"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job show",
+            ["job", "show", "job-demo-uuid"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job pause alias",
+            ["job", "pause", "job-demo-uuid", "--force"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job resume alias",
+            ["job", "resume", "job-demo-uuid", "--force"],
+            app=sage_app,
+            patch_factories=patches,
+        ),
+        CLITestCase(
+            "sage job monitor",
+            ["job", "monitor", "--refresh", "0"],
+            app=sage_app,
+            patch_factories=patches
+            + [
+                lambda: patch(
+                    "sage.tools.cli.commands.job.time.sleep",
+                    side_effect=KeyboardInterrupt,
+                ),
+                lambda: patch(
+                    "sage.tools.cli.commands.job.os.system",
+                    return_value=0,
+                ),
+            ],
+        ),
+        CLITestCase(
+            "sage job watch",
+            ["job", "watch", "job-demo-uuid", "--refresh", "0"],
+            app=sage_app,
+            patch_factories=patches
+            + [
+                lambda: patch(
+                    "sage.tools.cli.commands.job.time.sleep",
+                    side_effect=KeyboardInterrupt,
+                ),
+                lambda: patch(
+                    "sage.tools.cli.commands.job.os.system",
+                    return_value=0,
+                ),
+            ],
         ),
     ]

@@ -66,6 +66,18 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: Examples 测试功能不可用: {e}[/yellow]")
 
+# 添加 Data 数据集管理子命令
+try:
+    from .data import app as data_app
+
+    app.add_typer(
+        data_app,
+        name="data",
+        help="📊 数据集管理 - 查看和管理 SAGE 数据集",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 数据集管理功能不可用: {e}[/yellow]")
+
 
 @app.command()
 def quality(

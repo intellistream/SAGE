@@ -1,6 +1,10 @@
-______________________________________________________________________
-
-## name: Refactor Request about: Suggest code refactoring or architectural improvements title: '[Refactor] ' labels: 'refactor' assignees: ''
+---
+name: Refactor Request
+about: Suggest code refactoring or architectural improvements
+title: '[Refactor] '
+labels: 'refactor'
+assignees: ''
+---
 
 ## Refactoring Goal
 

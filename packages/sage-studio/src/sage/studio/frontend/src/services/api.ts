@@ -377,13 +377,22 @@ export interface ChatSessionDetail extends ChatSessionSummary {
 }
 
 export interface PipelineRecommendation {
-    session_id: string
-    suggested_name: string
-    summary: string
-    confidence: number
-    nodes: Node[]
-    edges: Edge[]
-    insights: string[]
+    success: boolean
+    visual_pipeline: {
+        name: string
+        description: string
+        nodes: Node[]
+        connections: Array<{
+            id: string
+            source: string
+            target: string
+            type?: string
+            animated?: boolean
+        }>
+    }
+    raw_plan?: any
+    message: string
+    error?: string
 }
 
 /**
@@ -397,13 +406,14 @@ export async function sendChatMessage(
     onComplete: () => void
 ): Promise<void> {
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/message`, {
+        const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                message,
+                model: 'sage-default',
+                messages: [{ role: 'user', content: message }],
                 session_id: sessionId,
                 stream: true,
             }),
@@ -467,7 +477,8 @@ export async function sendChatMessage(
  */
 export async function getChatSessions(): Promise<ChatSessionSummary[]> {
     const response = await apiClient.get('/chat/sessions')
-    return response.data
+    // Gateway 返回 {sessions: [...], stats: {...}}
+    return response.data.sessions || response.data
 }
 
 export async function createChatSession(title?: string): Promise<ChatSessionDetail> {
@@ -497,7 +508,47 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
 }
 
 export async function convertChatSessionToPipeline(sessionId: string): Promise<PipelineRecommendation> {
-    const response = await apiClient.post(`/chat/sessions/${sessionId}/convert`)
+    const response = await apiClient.post('/chat/generate-workflow', {
+        user_input: '根据我们的对话历史生成工作流',
+        session_id: sessionId,
+        enable_optimization: false,
+    })
+    return response.data
+}
+
+// ==================== Memory Management APIs ====================
+
+/**
+ * 获取记忆配置
+ */
+export async function getMemoryConfig(): Promise<{
+    backend: string
+    max_dialogs: number
+    config: Record<string, any>
+    available_backends: string[]
+}> {
+    const response = await apiClient.get('/chat/memory/config')
+    return response.data
+}
+
+/**
+ * 获取记忆统计信息
+ */
+export async function getMemoryStats(): Promise<{
+    total_sessions: number
+    sessions: Record<
+        string,
+        {
+            backend: string
+            dialog_count?: number
+            max_dialogs?: number
+            usage_percent?: number
+            collection_name?: string
+            has_index?: boolean
+        }
+    >
+}> {
+    const response = await apiClient.get('/chat/memory/stats')
     return response.data
 }
 
@@ -522,5 +573,27 @@ apiClient.interceptors.response.use(
         }
     }
 )
+
+// ==================== LLM 状态 API ====================
+
+export interface LLMStatus {
+    running: boolean
+    healthy: boolean
+    service_type: 'local_vllm' | 'remote_api' | 'not_configured' | 'unknown' | 'error'
+    model_name: string
+    base_url: string
+    is_local: boolean
+    details?: {
+        model_id: string
+        max_model_len: number
+        owned_by: string
+    }
+    error?: string
+}
+
+export async function getLLMStatus(): Promise<LLMStatus> {
+    const response = await apiClient.get('/llm/status')
+    return response.data
+}
 
 export default apiClient

@@ -1,0 +1,82 @@
+pipeline:
+  name: "sage-benchmark-reform-rag"
+  description: "REFORM RAG Pipeline with Context Compression"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 100
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "/home/cyb/wiki18_maxp.index"
+    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
+    mapping_path: "/home/cyb/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+reform:
+  # REFORM压缩配置
+  enabled: true  # 设为false即为baseline模式
+
+  # 模型配置
+  model_path: "/home/cyb/Llama-3.1-8B-Instruct"
+  dtype: "bfloat16"
+  device: "cuda"  # CUDA_VISIBLE_DEVICES=1会映射到cuda:0
+  gpu_memory_utilization: 0.5
+  layer_range: [0, 32]  # Llama-3.1-8B有32层
+
+  # 选定的heads (从head selection实验中得出)
+  selected_heads:
+  - {layer: 14, head: 6, type: "q"}      # MNR=0.2364
+  - {layer: 14, head: 28, type: "q"}     # MNR=0.2369
+  - {layer: 13, head: 2, type: "q"}      # MNR=0.2377
+  - {layer: 17, head: 31, type: "q"}     # MNR=0.2399
+
+  # 压缩参数
+  max_tokens: 2048       # 压缩后最大token数（全局预算）
+  keep_prefix: 50        # 始终保留前缀
+  keep_suffix: 50        # 始终保留后缀
+  smoothing_window: 20   # 分数平滑窗口
+  merge_threshold: 5     # span合并阈值
+
+  # 长上下文支持（Chunking模式）
+  chunking:
+    enable: true                    # 启用chunking模式（支持100k+ tokens）
+    chunk_size:                     # Chunk大小，null则自动计算: max_length - question_reserve - margin
+    question_reserve: 200           # 每个chunk为question预留的token数
+    margin: 56                      # 安全边距token数
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

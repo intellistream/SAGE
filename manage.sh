@@ -30,7 +30,7 @@ if [ $# -eq 0 ]; then
         cleanup_needed=true
     elif git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_flow.url" &>/dev/null; then
         cleanup_needed=true
-    elif git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_vllm.url" &>/dev/null; then
+    elif git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_llm.url" &>/dev/null; then
         cleanup_needed=true
     fi
 
