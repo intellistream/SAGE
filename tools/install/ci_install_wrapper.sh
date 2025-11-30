@@ -115,6 +115,9 @@ main() {
     # 确保在 SAGE 根目录
     cd "$SAGE_ROOT"
 
+    # 确保 ~/.local/bin 在 PATH 中（pip 安装的 CLI 工具位置）
+    export PATH="$HOME/.local/bin:$PATH"
+
     # 记录安装配置
     log_install_config "$@"
 

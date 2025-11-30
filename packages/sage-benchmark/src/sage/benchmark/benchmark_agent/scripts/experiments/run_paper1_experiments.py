@@ -304,13 +304,19 @@ def run_section_5_5(args) -> dict[str, Any]:
         try:
             from experiments.exp_training_comparison import run_training_comparison
 
-            # 确定要对比的方法
+            # Paper 1 compares published SOTA training methods
+            # SIAS methods (B_coreset, C_continual, D_combined) are for Paper 2
             if args.train_methods:
                 methods = args.train_methods.split(",")
-            elif args.quick:
-                methods = ["A_baseline", "D_combined"]
             else:
-                methods = ["A_baseline", "B3_coreset_hybrid", "C_continual", "D_combined"]
+                # Paper 1 default: compare published SOTA methods
+                methods = [
+                    "A_baseline",  # Standard SFT (full params)
+                    "A_lora",  # LoRA (Hu et al., 2021)
+                    "A_qlora",  # QLoRA (Dettmers et al., 2023)
+                    "A_fireact",  # FireAct trajectory tuning
+                    "A_agenttuning",  # AgentTuning multi-task
+                ]
 
             results["training_comparison"] = run_training_comparison(
                 methods=methods,

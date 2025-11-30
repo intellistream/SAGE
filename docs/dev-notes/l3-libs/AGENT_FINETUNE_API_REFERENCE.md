@@ -148,7 +148,7 @@ trainer.save_model("./my_agent_model")
 Intelligently select training samples based on various strategies.
 
 ```python
-from sage.libs.finetune.agent import CoresetSelector
+from sage.libs.sias import CoresetSelector
 ```
 
 **Constructor**:
@@ -204,7 +204,7 @@ losses = selector.compute_losses(all_samples, model=my_model)
 Experience replay for preventing catastrophic forgetting.
 
 ```python
-from sage.libs.finetune.agent import OnlineContinualLearner
+from sage.libs.sias import OnlineContinualLearner
 ```
 
 **Constructor**:

@@ -112,7 +112,9 @@ repos:
         "^CONTRIBUTING\.md$"
         "^LICENSE\.md$"
         "^DEVELOPER\.md$"
-        "^docs/dev-notes/"
+        "^docs/dev-notes/README\.md$"
+        "^docs/dev-notes/TEMPLATE\.md$"
+        "^docs/dev-notes/.+/"
         "^docs/assets/"
         "^docs/security/"
         "^docs-public/"
@@ -228,6 +230,92 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs/dev-notes/.*\.md$
+  - id: devnotes-structure-check
+    name: dev-notes directory structure validation
+    entry: bash -c
+    args:
+    - |
+      # Check if any files were staged in docs/dev-notes/
+      if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
+        # Running with --all-files or during push
+        staged_files=$(git ls-files "docs/dev-notes/*")
+      else
+        # Running in normal commit mode
+        staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs/dev-notes/" || true)
+      fi
+
+      if [ -z "$staged_files" ]; then
+        exit 0
+      fi
+
+      # Allowed top-level directories under docs/dev-notes/
+      # NOTE: When adding new directories, update this list
+      allowed_dirs=(
+        "l1-common"
+        "l2-platform"
+        "l3-kernel"
+        "l3-libs"
+        "l4-middleware"
+        "l5-apps"
+        "l5-benchmark"
+        "l6-cli"
+        "l6-gateway"
+        "l6-studio"
+        "l6-tools"
+        "cross-layer"
+        "testing"
+        "archive"
+        "research_work"
+      )
+
+      # Get all first-level directories under docs/dev-notes/
+      violations=""
+      for file in $staged_files; do
+        # Extract the first directory component after docs/dev-notes/
+        # e.g., docs/dev-notes/foo/bar.md -> foo
+        dir_component=$(echo "$file" | sed -n 's|^docs/dev-notes/\([^/]*\)/.*|\1|p')
+
+        # Skip root-level files (README.md, TEMPLATE.md)
+        if [ -z "$dir_component" ]; then
+          continue
+        fi
+
+        # Check if directory is allowed
+        allowed=false
+        for allowed_dir in "${allowed_dirs[@]}"; do
+          if [ "$dir_component" = "$allowed_dir" ]; then
+            allowed=true
+            break
+          fi
+        done
+
+        if [ "$allowed" = false ]; then
+          # Only add unique violations
+          if [[ ! "$violations" =~ "$dir_component" ]]; then
+            violations="$violations$dir_component\n"
+          fi
+        fi
+      done
+
+      # Report violations
+      if [ -n "$violations" ]; then
+        echo "❌ 错误: docs/dev-notes/ 下存在未授权的目录:"
+        echo -e "$violations" | sort -u | sed "s/^/  - /"
+        echo ""
+        echo "📁 允许的目录:"
+        echo "  - 分层目录: l1-common, l2-platform, l3-kernel, l3-libs, l4-middleware"
+        echo "               l5-apps, l5-benchmark, l6-cli, l6-gateway, l6-studio, l6-tools"
+        echo "  - 交叉主题: cross-layer, testing, archive"
+        echo "  - 研究工作: research_work"
+        echo ""
+        echo "💡 建议: 将文档移动到合适的目录，或联系维护者更新允许列表"
+        exit 1
+      fi
+      exit 0
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^docs/dev-notes/
   - id: installation-consistency-check
     name: installation consistency check (local vs CI/CD)
     entry: bash tools/install/examination_tools/installation_consistency_check.sh
@@ -236,6 +324,109 @@ repos:
     # 仅在修改安装相关文件时运行
     files: ^(quickstart\.sh|tools/install/.*\.sh|packages/.*/pyproject\.toml|packages/.*/setup\.py|\.github/workflows/.*\.yml)$
     # 也在手动运行 pre-commit run --all-files 时执行
+    stages: [pre-commit, manual]
+  - id: root-directory-cleanup-check
+    name: check for unwanted files/directories in project root
+    entry: bash -c
+    args:
+    - |
+      # Whitelist mode: Only allow known files/directories in project root
+      # Any unexpected item will trigger a warning
+
+      # Allowed files in project root (whitelist)
+      allowed_files=(
+        ".env"
+        ".env.template"
+        ".github_token"
+        ".gitignore"
+        ".gitmodules"
+        ".pre-commit-config.yaml"
+        ".pypirc"
+        ".pyrightconfig.json"
+        "codecov.yml"
+        "CONTRIBUTING.md"
+        "coverage.xml"
+        "DEVELOPER.md"
+        "LICENSE"
+        "Makefile"
+        "manage.sh"
+        "quickstart.sh"
+        "README.md"
+        "CHANGELOG.md"
+      )
+
+      # Allowed directories in project root (whitelist)
+      allowed_dirs=(
+        ".benchmarks"
+        ".git"
+        ".github"
+        ".mypy_cache"
+        ".pytest_cache"
+        ".ruff_cache"
+        ".sage"
+        ".vscode"
+        "build"
+        "docs"
+        "docs-public"
+        "examples"
+        "htmlcov"
+        "packages"
+        "tools"
+      )
+
+      violations=""
+
+      # Check all items in project root
+      for item in * .*; do
+        # Skip . and ..
+        [ "$item" = "." ] || [ "$item" = ".." ] && continue
+        # Skip if item doesn't exist (glob didn't match)
+        [ -e "$item" ] || continue
+
+        allowed=false
+
+        if [ -d "$item" ]; then
+          # Check directories
+          for allowed_dir in "${allowed_dirs[@]}"; do
+            if [ "$item" = "$allowed_dir" ]; then
+              allowed=true
+              break
+            fi
+          done
+        else
+          # Check files
+          for allowed_file in "${allowed_files[@]}"; do
+            if [ "$item" = "$allowed_file" ]; then
+              allowed=true
+              break
+            fi
+          done
+        fi
+
+        if [ "$allowed" = false ]; then
+          violations="$violations$item\n"
+        fi
+      done
+
+      if [ -n "$violations" ]; then
+        echo "⚠️  警告: 项目根目录下存在未授权的文件/目录:"
+        echo -e "$violations" | grep -v "^$" | sed "s/^/  - /"
+        echo ""
+        echo "📁 可能的原因:"
+        echo "   - 运行脚本/测试时错误创建的临时目录"
+        echo "   - 临时文件未清理"
+        echo ""
+        echo "💡 建议:"
+        echo "   - 临时文件应放在 .sage/ 目录下"
+        echo "   - 如果是新增的合法文件/目录，请更新 tools/pre-commit-config.yaml 中的白名单"
+        echo ""
+        echo "📖 参考: docs/dev-notes/l6-tools/CACHE_MANAGEMENT.md"
+        exit 1
+      fi
+      exit 0
+    language: system
+    pass_filenames: false
+    always_run: true
     stages: [pre-commit, manual]
   # Shell: shellcheck
 - repo: https://github.com/shellcheck-py/shellcheck-py
