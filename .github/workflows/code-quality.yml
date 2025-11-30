@@ -98,7 +98,7 @@ jobs:
             echo "   ./tools/install/fix_vllm_torch.sh --non-interactive"
             echo ""
             echo "📚 详细文档:"
-            echo "   cat docs/dev-notes/l0-infra/vllm-torch-version-conflict.md"
+            echo "   see docs/dev-notes/l2-platform/DEPENDENCY_OPTIMIZATION.md (Torch & vLLM section)"
             echo ""
             # 在 CI 中，依赖问题不应该阻止构建（因为可能是可选依赖）
             # 只显示警告

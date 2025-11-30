@@ -130,7 +130,14 @@ except ImportError as e:
 # ============================================================================
 
 try:
-    from .commands.apps import chat_app, embedding_app, llm_app, pipeline_app, studio_app
+    from .commands.apps import (
+        chat_app,
+        embedding_app,
+        inference_app,
+        llm_app,
+        pipeline_app,
+        studio_app,
+    )
 
     if llm_app:
         app.add_typer(
@@ -159,6 +166,12 @@ try:
             studio_app,
             name="studio",
             help="🎨 Studio - 低代码可视化管道编辑器 (start, stop, status)",
+        )
+    if inference_app:
+        app.add_typer(
+            inference_app,
+            name="inference",
+            help="🔮 统一推理服务 - LLM 和 Embedding 混合调度 (start, stop, status, config)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

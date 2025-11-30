@@ -14,6 +14,7 @@ Components:
 - benchmark_rag: RAG performance benchmarking and evaluation tools
 - benchmark_scheduler: Scheduler performance benchmarking
 - benchmark_libamm: LibAMM (Approximate Matrix Multiplication) benchmarking
+- benchmark_control_plane: sageLLM Control Plane scheduling policy benchmarking
 - benchmark_agent: (Future) Agent performance benchmarking
 - benchmark_anns: (Future) Approximate Nearest Neighbor Search benchmarking
 
@@ -25,7 +26,13 @@ Architecture:
 
 __layer__ = "L5"
 
-from . import benchmark_libamm, benchmark_memory, benchmark_rag, benchmark_scheduler
+from . import (
+    benchmark_control_plane,
+    benchmark_libamm,
+    benchmark_memory,
+    benchmark_rag,
+    benchmark_scheduler,
+)
 from ._version import __version__
 
 __all__ = [
@@ -34,4 +41,5 @@ __all__ = [
     "benchmark_rag",
     "benchmark_scheduler",
     "benchmark_libamm",
+    "benchmark_control_plane",
 ]

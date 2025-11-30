@@ -15,3 +15,13 @@ def get_time_filename():
     time_str = now.strftime("%y%m%d")
 
     return time_str
+
+
+def get_runtime_timestamp():
+    """
+    返回格式为 '时分' 的时间字符串，用于文件名
+    例如: '1722' 表示 17:22
+    """
+    now = datetime.now()
+    # 格式化为 'HHMM' 格式
+    return now.strftime("%H%M")
