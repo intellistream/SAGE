@@ -16,6 +16,8 @@ class BaseRuntimeContext:
     def __init__(self):
         # 服务调用相关
         self._proxy_manager: ProxyManager | None = None
+        # Keyed state support - tracks current packet's key
+        self._current_packet_key: Any = None
 
     @property
     def logger(self) -> "CustomLogger":
@@ -98,3 +100,53 @@ class BaseRuntimeContext:
                 self.logger.warning(f"Error shutting down proxy manager: {e}")
             finally:
                 self._proxy_manager = None
+
+    # ------------------------------------------------------------------
+    # Keyed State Support
+    # ------------------------------------------------------------------
+    def set_current_key(self, key: Any) -> None:
+        """
+        Set the current packet's key for keyed state operations.
+
+        This method is called by operators when processing a packet to make
+        the packet's key available to functions via get_key().
+
+        Args:
+            key: The key associated with the current packet being processed
+        """
+        self._current_packet_key = key
+
+    def get_key(self) -> Any:
+        """
+        Get the key of the currently processing packet.
+
+        This method allows functions to access the key of the packet being
+        processed, enabling keyed state management patterns. Returns None
+        if no key is set (e.g., for unkeyed streams).
+
+        Returns:
+            The current packet's key, or None if not set
+
+        Example:
+            >>> class UserSessionFunction(StatefulFunction):
+            ...     def __init__(self, **kwargs):
+            ...         super().__init__(**kwargs)
+            ...         self.user_sessions = {}  # Keyed state
+            ...
+            ...     def execute(self, event_data):
+            ...         user_id = self.ctx.get_key()
+            ...         if user_id not in self.user_sessions:
+            ...             self.user_sessions[user_id] = {'count': 0}
+            ...         self.user_sessions[user_id]['count'] += 1
+            ...         return self.user_sessions[user_id]
+        """
+        return self._current_packet_key
+
+    def clear_key(self) -> None:
+        """
+        Clear the current packet's key.
+
+        This method is called by operators after packet processing is complete
+        to ensure the key doesn't leak into subsequent operations.
+        """
+        self._current_packet_key = None

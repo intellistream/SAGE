@@ -1,0 +1,24 @@
+# Default Configuration for Agent Benchmark Experiments
+
+# Data settings
+profile: "quick_eval"  # agent_eval usage profile
+split: "dev"           # Data split: train/dev/test
+max_samples:           # Limit samples (null = all)
+
+# Randomness
+seed: 42
+
+# Output and reporting
+report:
+  format: ["json", "markdown"]
+  include_breakdowns: true
+  path: "${PROJECT_ROOT}/outputs/agent_benchmark"
+  markdown_template:
+
+# Metrics (common defaults, overridden per experiment)
+metrics:
+- "accuracy"
+
+# Logging
+verbose: true
+log_level: "INFO"

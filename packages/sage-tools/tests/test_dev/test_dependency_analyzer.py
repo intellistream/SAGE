@@ -2,24 +2,16 @@
 依赖分析器单元测试
 """
 
-from pathlib import Path
-
 import pytest
 
+from sage.common.config import find_sage_project_root
 from sage.tools.dev.tools.dependency_analyzer import DependencyAnalyzer
 
 
 @pytest.fixture
 def project_root():
     """获取项目根目录的fixture"""
-    current = Path(__file__).parent
-    # 从 test_dev/ 向上找到项目根目录
-    while current.parent != current:
-        if (current / "packages").exists() and (current / "pyproject.toml").exists():
-            return current
-        current = current.parent
-    # 如果找不到，使用相对路径估计 - 需要向上5级才能到达SAGE根目录
-    return Path(__file__).parent.parent.parent.parent.parent
+    return find_sage_project_root()
 
 
 @pytest.mark.unit

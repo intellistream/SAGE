@@ -1,6 +1,8 @@
 import os
 import shutil
 
+import numpy as np
+
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.middleware.components.sage_mem.neuromem.utils.path_utils import (
     get_default_data_dir,
@@ -31,25 +33,60 @@ def test_neuromem_manager():
     }
     vdb_collection.create_index(config=index_config)  # type: ignore[union-attr]
 
-    vdb_collection.insert(  # type: ignore[union-attr]
-        index_name="test_index",
-        raw_data="将军，您的恩情我们一辈子也还不完！",
-        metadata={"priority": "high"},
-    )
-    vdb_collection.insert(  # type: ignore[union-attr]
-        index_name="test_index",
-        raw_data="我从丹东来带走一片雪白~",
-        metadata={"priority": "low", "tag": "poem"},
-    )
-    vdb_collection.insert(  # type: ignore[union-attr]
-        index_name="test_index",
-        raw_data="想吃广东菜",
-        metadata={"priority": "low", "tag": "food"},
-    )
+    # 创建 embedding 模型并生成向量
+    from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
+
+    embedding_model = apply_embedding_model("mockembedder")
+
+    # 准备测试数据
+    test_data = [
+        ("将军，您的恩情我们一辈子也还不完！", {"priority": "high"}),
+        ("我从丹东来带走一片雪白~", {"priority": "low", "tag": "poem"}),
+        ("想吃广东菜", {"priority": "low", "tag": "food"}),
+    ]
+
+    # 为每条数据生成向量并插入
+    for text, metadata in test_data:
+        vector = embedding_model.encode(text)
+        # 统一处理不同格式的向量
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        # L2 归一化
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+
+        vdb_collection.insert(  # type: ignore[union-attr]
+            index_name="test_index",
+            raw_data=text,
+            vector=vector,
+            metadata=metadata,
+        )
+
+    # 生成查询向量
+    query_text = "想吃广东菜"
+    query_vector = embedding_model.encode(query_text)
+    # 统一处理不同格式的向量
+    if hasattr(query_vector, "detach") and hasattr(query_vector, "cpu"):
+        query_vector = query_vector.detach().cpu().numpy()
+    if isinstance(query_vector, list):
+        query_vector = np.array(query_vector)
+    if not isinstance(query_vector, np.ndarray):
+        query_vector = np.array(query_vector)
+    query_vector = query_vector.astype(np.float32)
+    # L2 归一化
+    norm = np.linalg.norm(query_vector)
+    if norm > 0:
+        query_vector = query_vector / norm
 
     results = vdb_collection.retrieve(  # type: ignore[union-attr]
         index_name="test_index",
-        raw_data="想吃广东菜",
+        query_vector=query_vector,
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )
@@ -85,9 +122,26 @@ def test_neuromem_manager():
     del manager
     manager = MemoryManager()
     vdb_collection = manager.get_collection("test_collection")
+
+    # 生成查询向量用于持久化后的检索
+    query_text = "想吃广东菜"
+    query_vector = embedding_model.encode(query_text)
+    # 统一处理不同格式的向量
+    if hasattr(query_vector, "detach") and hasattr(query_vector, "cpu"):
+        query_vector = query_vector.detach().cpu().numpy()
+    if isinstance(query_vector, list):
+        query_vector = np.array(query_vector)
+    if not isinstance(query_vector, np.ndarray):
+        query_vector = np.array(query_vector)
+    query_vector = query_vector.astype(np.float32)
+    # L2 归一化
+    norm = np.linalg.norm(query_vector)
+    if norm > 0:
+        query_vector = query_vector / norm
+
     results = vdb_collection.retrieve(  # type: ignore[union-attr]
         index_name="test_index",
-        raw_data="想吃广东菜",
+        query_vector=query_vector,
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )

@@ -250,6 +250,30 @@ def check_examples(
             raise typer.Exit(1)
 
 
+@app.command(name="dependencies")
+def check_dependencies(
+    warn_only: bool = typer.Option(
+        False,
+        "--warn-only",
+        help="只给警告，不中断运行",
+    ),
+):
+    """
+    📦 包依赖分离检查
+
+    验证所有包的 pyproject.toml 依赖配置是否符合 SAGE 依赖分离规范：
+    - 非 meta-package 的 dependencies 不应包含 isage-*
+    - 包应使用 sage-deps 配置内部 SAGE 依赖
+    - sage meta-package 的 extras 应使用 [sage-deps]
+
+    示例：
+        sage-dev quality dependencies
+    """
+    if not _run_dependency_check(warn_only=warn_only):
+        if not warn_only:
+            raise typer.Exit(1)
+
+
 # 为了支持在 main.py 中调用，导出辅助函数
 def _run_architecture_check(warn_only: bool = False, changed_only: bool = False) -> bool:
     """运行架构检查，返回是否通过"""
@@ -401,6 +425,42 @@ def _run_examples_check(warn_only: bool = False) -> bool:
         return False if not warn_only else True
     except Exception as e:
         console.print(f"[red]examples 检查失败: {e}[/red]")
+        import traceback
+
+        traceback.print_exc()
+        return False
+
+
+def _run_dependency_check(warn_only: bool = False) -> bool:
+    """运行包依赖分离检查，返回是否通过"""
+    try:
+        from pathlib import Path
+
+        from sage.tools.dev.tools.package_dependency_validator import (
+            PackageDependencyValidator,
+        )
+        from sage.tools.dev.utils import find_project_root
+
+        # 获取项目根目录
+        root_dir = find_project_root()
+        if root_dir is None:
+            console.print("[red]错误: 无法找到项目根目录[/red]")
+            return False
+
+        validator = PackageDependencyValidator(root_dir)
+        issues, passed = validator.validate_all_packages()
+
+        # 打印结果
+        validator.print_results(issues, passed)
+
+        # 如果只是警告模式，总是返回通过
+        if warn_only:
+            return True
+
+        return passed
+
+    except Exception as e:
+        console.print(f"[red]依赖检查失败: {e}[/red]")
         import traceback
 
         traceback.print_exc()

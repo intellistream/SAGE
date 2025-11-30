@@ -134,7 +134,7 @@ def test_general_error_handling(url_extractor_tool, mocker):
     error_message = "Fake parsing error"
     mocker.patch("requests.get", return_value=MagicMock())  # 让 get 成功
     mocker.patch(
-        "sage.libs.tools.url_text_extractor.BeautifulSoup",
+        "sage.middleware.operators.tools.url_text_extractor.BeautifulSoup",
         side_effect=Exception(error_message),
     )
 

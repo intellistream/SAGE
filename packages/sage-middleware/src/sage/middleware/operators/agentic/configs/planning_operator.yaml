@@ -1,0 +1,15 @@
+# Operator Configuration Example - Planning Operator
+
+planner:
+  name: "hierarchical"
+  min_steps: 3
+  max_steps: 12
+  enable_repair: true
+  params:
+    decomposition_strategy: "goal_based"
+    max_retries: 2
+
+telemetry:
+  enabled: true
+  collect_latency: true
+  output_path: "./outputs/operator_planning.json"

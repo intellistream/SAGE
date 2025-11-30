@@ -8,6 +8,9 @@ This example shows how to:
 4. Retrieve data from the collection
 """
 
+import numpy as np
+
+from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.sage_mem import MemoryManager
 
@@ -29,8 +32,26 @@ config = {
 }
 
 
+def normalize_vector(vector):
+    """Normalize a vector using L2 normalization."""
+    if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+        vector = vector.detach().cpu().numpy()
+    if isinstance(vector, list):
+        vector = np.array(vector)
+    if not isinstance(vector, np.ndarray):
+        vector = np.array(vector)
+    vector = vector.astype(np.float32)
+    norm = np.linalg.norm(vector)
+    if norm > 0:
+        vector = vector / norm
+    return vector
+
+
 def main():
     logger = CustomLogger()
+
+    # Initialize embedding model
+    embedding_model = apply_embedding_model("mockembedder")
 
     # Create memory manager
     logger.info(f"Creating memory manager at: {manager_path}")
@@ -64,9 +85,11 @@ def main():
         logger.info("Creating index...")
         collection.create_index(config["index_config"])
 
-        # Initialize index
+        # Initialize index with vectors
         logger.info("Initializing index...")
-        collection.init_index("demo_index")
+        vectors = [normalize_vector(embedding_model.encode(text)) for text in texts]
+        item_ids = collection.get_all_ids()
+        collection.init_index("demo_index", vectors, item_ids)
 
         # Store collection to disk
         logger.info("Storing collection to disk...")
@@ -75,8 +98,9 @@ def main():
     # Perform retrieval
     query = "What is machine learning?"
     logger.info(f"Retrieving results for query: '{query}'")
+    query_vector = normalize_vector(embedding_model.encode(query))
     results = collection.retrieve(
-        raw_data=query,
+        query_vector=query_vector,
         index_name="demo_index",
         topk=2,
         threshold=0.0,

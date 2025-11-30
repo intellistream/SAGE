@@ -48,10 +48,11 @@
 
 from __future__ import annotations
 
+import os
 import queue
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.map_function import MapFunction
@@ -59,6 +60,10 @@ from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.service.base_service import BaseService
 from sage.kernel.runtime.communication.packet import StopSignal
+
+# Test mode detection - reduce sleep times in test/CI environments
+_IS_TEST_MODE = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("SAGE_EXAMPLES_MODE") == "test"
+_SLEEP_MULTIPLIER = 0.01 if _IS_TEST_MODE else 1.0  # 100x faster in test mode
 
 
 # ============================================================
@@ -75,8 +80,8 @@ class PipelineRequest:
         response_queue: 用于返回结果的队列（每个请求独立）
     """
 
-    payload: Dict[str, Any]
-    response_queue: "queue.Queue[Dict[str, Any]]"
+    payload: dict[str, Any]
+    response_queue: queue.Queue[dict[str, Any]]
 
 
 class PipelineBridge:
@@ -106,14 +111,14 @@ class PipelineBridge:
     """
 
     def __init__(self):
-        self._requests: "queue.Queue[PipelineRequest | StopSignal]" = queue.Queue()
+        self._requests: queue.Queue[PipelineRequest | StopSignal] = queue.Queue()
         self._closed = False
 
-    def submit(self, payload: Dict[str, Any]) -> "queue.Queue[Dict[str, Any]]":
+    def submit(self, payload: dict[str, Any]) -> queue.Queue[dict[str, Any]]:
         """提交请求到 Pipeline"""
         if self._closed:
             raise RuntimeError("Pipeline bridge is closed")
-        response_q: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1)
+        response_q: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1)
         req = PipelineRequest(payload=payload, response_queue=response_q)
         self._requests.put(req)
         return response_q
@@ -169,10 +174,10 @@ class MockMemoryService(BaseService):
         self._memory = {}  # 简单的内存存储
         self._counter = 0
 
-    def retrieve(self, question: str) -> List[Dict[str, Any]]:
+    def retrieve(self, question: str) -> list[dict[str, Any]]:
         """模拟检索历史记忆"""
         print(f"  [MockMemoryService] 开始检索: {question}")
-        time.sleep(0.5)  # 模拟检索延迟
+        time.sleep(0.5 * _SLEEP_MULTIPLIER)  # 模拟检索延迟
 
         # 返回一些模拟数据
         results = []
@@ -184,10 +189,10 @@ class MockMemoryService(BaseService):
         print(f"  [MockMemoryService] 检索完成，找到 {len(results)} 条记录")
         return results
 
-    def insert(self, question: str, metadata: Dict[str, Any]) -> bool:
+    def insert(self, question: str, metadata: dict[str, Any]) -> bool:
         """模拟写入记忆"""
         print(f"  [MockMemoryService] 写入记忆: {question}")
-        time.sleep(0.3)  # 模拟写入延迟
+        time.sleep(0.3 * _SLEEP_MULTIPLIER)  # 模拟写入延迟
         self._memory[question] = metadata
         self._counter += 1
         print("  [MockMemoryService] 写入完成")
@@ -279,7 +284,7 @@ class QAPipelineMap(MapFunction):
 
         # 步骤 2: 模拟生成答案（用 sleep 代替实际的 LLM 调用）
         print("  [QAPipelineMap] 模拟生成答案...")
-        time.sleep(1.0)  # 模拟 LLM 生成延迟
+        time.sleep(1.0 * _SLEEP_MULTIPLIER)  # 模拟 LLM 生成延迟
         answer = f"这是针对「{question}」的回答（模拟生成）"
 
         # 步骤 3: 写入记忆
@@ -296,11 +301,7 @@ class QAPipelineMap(MapFunction):
         out = {"question": question, "answer": answer, "context": context}
 
         # 获取响应队列
-        resp_q = (
-            data.response_queue
-            if hasattr(data, "response_queue")
-            else data["response_queue"]
-        )
+        resp_q = data.response_queue if hasattr(data, "response_queue") else data["response_queue"]
         return {"payload": out, "response_queue": resp_q}
 
 
@@ -371,7 +372,7 @@ class QAPipelineService(BaseService):
         self._bridge = bridge
         self._request_timeout = request_timeout
 
-    def process(self, message: Dict[str, Any]):
+    def process(self, message: dict[str, Any]):
         """处理请求 - 阻塞直到 Pipeline 返回结果"""
         if message is None:
             raise ValueError("Empty message")
@@ -410,9 +411,9 @@ class QuestionBatch(BatchFunction):
     - shutdown 命令触发 QA Pipeline 关闭
     """
 
-    def __init__(self, questions: List[str], include_shutdown: bool = True):
+    def __init__(self, questions: list[str], include_shutdown: bool = True):
         super().__init__()
-        self.questions: List[str | Dict[str, str]] = list(questions)
+        self.questions: list[str | dict[str, str]] = list(questions)
         if include_shutdown:
             # 添加 shutdown 命令
             self.questions.append({"command": "shutdown"})

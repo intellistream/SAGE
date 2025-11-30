@@ -220,7 +220,7 @@ main() {
         echo "  sage-dev --help"
         echo
         print_info "相关文档:"
-        echo "  cat docs/dev-notes/l0-infra/vllm-torch-version-conflict.md"
+        echo "  see docs/dev-notes/l2-platform/DEPENDENCY_OPTIMIZATION.md (Torch & vLLM section)"
     else
         echo
         print_error "=========================================="

@@ -11,10 +11,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/../download_tools/environment_config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 # libstdcxx_fix.sh 已禁用 - 现代 conda 环境提供足够的 libstdc++ 版本
 # source "$(dirname "${BASH_SOURCE[0]}")/../fixes/libstdcxx_fix.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../fixes/build_cache_cleaner.sh"
 
 # pip 缓存清理函数
 clean_pip_cache() {
@@ -154,8 +154,7 @@ except Exception as e:
 install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
-    local install_vllm="${3:-false}"
-    local clean_cache="${4:-true}"
+    local clean_cache="${3:-true}"
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
@@ -170,9 +169,6 @@ install_sage() {
 
     echo ""
     echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
-    if [ "$install_vllm" = "true" ]; then
-        echo -e "${PURPLE}包含 VLLM 支持${NC}"
-    fi
     echo ""
     mkdir -p "$(dirname "$log_file")"
     echo -e "${BLUE}📝 安装日志: ${log_file}${NC}"
@@ -184,6 +180,11 @@ install_sage() {
     log_phase_start "环境配置" "MAIN"
     configure_installation_environment "$environment" "$mode"
     log_phase_end "环境配置" "success" "MAIN"
+
+    # 清理构建缓存（检测版本不一致的 egg-info）
+    log_phase_start "构建缓存检查" "MAIN"
+    detect_and_clean_cache false
+    log_phase_end "构建缓存检查" "success" "MAIN"
 
     # 清理 pip 缓存（如果启用）
     if [ "$clean_cache" = "true" ]; then
@@ -202,7 +203,6 @@ install_sage() {
     echo "SAGE 主要安装过程开始 - $(date)" >> "$log_file"
     echo "安装模式: $mode" >> "$log_file"
     echo "安装环境: $environment" >> "$log_file"
-    echo "安装 VLLM: $install_vllm" >> "$log_file"
     echo "PIP 命令: $PIP_CMD" >> "$log_file"
     echo "Python 命令: $PYTHON_CMD" >> "$log_file"
     echo "========================================" >> "$log_file"
@@ -215,7 +215,7 @@ install_sage() {
     fi
 
     log_info "SAGE 主要安装过程开始" "MAIN"
-    log_info "安装模式: $mode | 环境: $environment | VLLM: $install_vllm" "MAIN"
+    log_info "安装模式: $mode | 环境: $environment" "MAIN"
 
     echo ""
     case "$mode" in
@@ -314,6 +314,20 @@ install_sage() {
                 log_phase_end "开发者安装模式" "failure" "MAIN"
                 return 1
             fi
+
+            # 尝试安装 FlashInfer（可选，用于 vLLM 高性能采样）
+            local flashinfer_script="$project_root/tools/install/helpers/install_flashinfer.sh"
+            if [ -f "$flashinfer_script" ]; then
+                echo ""
+                echo -e "${BLUE}🚀 尝试安装 FlashInfer（vLLM 高性能采样加速）...${NC}"
+                log_info "尝试安装 FlashInfer" "MAIN"
+                if bash "$flashinfer_script" 2>&1 | tee -a "$log_file"; then
+                    log_info "FlashInfer 安装成功" "MAIN"
+                else
+                    log_warn "FlashInfer 安装跳过（可选组件，不影响基本功能）" "MAIN"
+                    echo -e "${DIM}   FlashInfer 安装跳过，vLLM 将使用 PyTorch 原生采样${NC}"
+                fi
+            fi
             ;;
         *)
             echo -e "${WARNING} 未知安装模式: $mode，使用开发者模式"
@@ -335,24 +349,8 @@ install_sage() {
     # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
     # 上面的验证步骤已检查扩展状态
 
-    # 安装 VLLM（如果需要）
-    if [ "$install_vllm" = "true" ]; then
-        echo ""
-        log_phase_start "VLLM 安装" "MAIN"
-
-        if install_vllm_packages; then
-            log_phase_end "VLLM 安装" "success" "MAIN"
-        else
-            log_phase_end "VLLM 安装" "failure" "MAIN"
-            log_warn "VLLM 安装失败，但主安装已完成" "MAIN"
-        fi
-    fi
-
     # 记录安装完成
     log_info "SAGE 安装完成" "MAIN"
-    if [ "$install_vllm" = "true" ]; then
-        log_info "VLLM 安装请求已处理" "MAIN"
-    fi
 
     log_info "安装结束" "MAIN"
 
@@ -363,8 +361,8 @@ install_sage() {
         log_phase_start "依赖完整性检查" "MAIN"
 
         local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
-        if [ -f "$monitor_script" ]; then
-            if bash "$monitor_script" analyze; then
+        if [ -f "$monitor_script" ] && [ -f "$log_file" ]; then
+            if bash "$monitor_script" analyze "$log_file"; then
                 log_info "依赖完整性检查通过" "MAIN"
                 echo -e "${CHECK} 依赖完整性检查通过"
                 log_phase_end "依赖完整性检查" "success" "MAIN"
@@ -378,8 +376,8 @@ install_sage() {
                 echo "DEPENDENCY_VIOLATION_DETECTED=true" >> "$GITHUB_ENV" || true
             fi
         else
-            log_warn "监控脚本不存在，跳过检查" "MAIN"
-            echo -e "${DIM}监控脚本不存在，跳过检查${NC}"
+            log_warn "监控脚本或日志文件不存在，跳过检查" "MAIN"
+            echo -e "${DIM}监控脚本或日志文件不存在，跳过检查${NC}"
             log_phase_end "依赖完整性检查" "skipped" "MAIN"
         fi
     fi
@@ -388,7 +386,7 @@ install_sage() {
     if [ -f "$track_script" ]; then
         echo "" >> "$log_file"
         echo "包追踪信息:" >> "$log_file"
-        bash "$track_script" post-install "$mode" "$environment" "$install_vllm" >> "$log_file" 2>&1 || true
+        bash "$track_script" post-install "$mode" "$environment" "false" >> "$log_file" 2>&1 || true
     fi
 
     # 显示安装信息

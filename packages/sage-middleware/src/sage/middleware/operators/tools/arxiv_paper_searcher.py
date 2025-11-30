@@ -57,9 +57,8 @@ class _Searcher_Tool(BaseTool):
         Returns:
             list: A list of dictionaries containing paper information.
         """
-        self.user_metadata = self.user_metadata or {}
-        valid_sizes = self.user_metadata.get("valid_sizes", [25, 50, 100, 200])
-        base_url = self.user_metadata.get("base_url", "https://arxiv.org/search/")
+        valid_sizes = self.valid_sizes
+        base_url = self.base_url
 
         if size is None:
             size = 25
