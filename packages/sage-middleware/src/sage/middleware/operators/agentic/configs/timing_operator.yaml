@@ -1,0 +1,14 @@
+# Operator Configuration Example - Timing Operator
+
+timing:
+  name: "llm_based"
+  threshold: 0.7
+  use_context: true
+  params:
+    use_history: true
+    max_history_length: 10
+
+telemetry:
+  enabled: true
+  collect_latency: true
+  output_path: "./outputs/operator_timing.json"

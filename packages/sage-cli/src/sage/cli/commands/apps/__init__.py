@@ -7,6 +7,7 @@ SAGE Application Commands
 - embedding: Embedding管理
 - pipeline: Pipeline构建器
 - studio: 可视化编辑器
+- inference: 统一推理服务管理
 """
 
 from rich.console import Console
@@ -44,6 +45,12 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 studio 命令: {e}[/yellow]")
     studio_app = None
 
+try:
+    from .inference import app as inference_app
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 inference 命令: {e}[/yellow]")
+    inference_app = None
+
 # 导出所有命令
 __all__ = [
     "llm_app",
@@ -51,4 +58,5 @@ __all__ = [
     "embedding_app",
     "pipeline_app",
     "studio_app",
+    "inference_app",
 ]

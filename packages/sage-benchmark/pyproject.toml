@@ -57,6 +57,14 @@ sage-deps = [
     "isage-middleware>=0.1.0",
     "isage-libs>=0.1.0",
 ]
+
+# Agent training benchmark dependencies
+agent-training = [
+    "isage-libs>=0.1.0",  # 核心依赖已包含 peft, accelerate, tensorboard, trl
+    "isage-libs[finetune-gpu]>=0.1.0",  # GPU 加速（bitsandbytes, wandb）
+    "matplotlib>=3.7.0",  # for generating comparison charts
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -65,7 +73,7 @@ dev = [
 ]
 
 all = [
-    "isage-benchmark[sage-deps,dev]",
+    "isage-benchmark[sage-deps,dev,agent-training]",
 ]
 
 [project.urls]
@@ -73,6 +81,10 @@ Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE"
 Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
+
+[project.scripts]
+# Control Plane Benchmark CLI
+sage-cp-bench = "sage.benchmark.benchmark_control_plane.cli:main"
 
 [tool.setuptools]
 # Automatically discover all packages under src/

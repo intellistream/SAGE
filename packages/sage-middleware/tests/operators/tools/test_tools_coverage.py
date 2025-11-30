@@ -20,16 +20,17 @@ class TestImageCaptioner:
         except (ImportError, AttributeError):
             pytest.skip("ImageCaptioner not available")
 
-    @patch("sage.middleware.operators.tools.image_captioner.OpenAIClient")
-    def test_image_captioner_execute(self, mock_openai_client_class):
+    @patch("sage.common.components.sage_llm.UnifiedInferenceClient.create_auto")
+    def test_image_captioner_execute(self, mock_unified_client):
         """Test ImageCaptioner execute method"""
         try:
             from sage.middleware.operators.tools.image_captioner import ImageCaptioner
 
-            # Mock OpenAI client instance
+            # Mock UnifiedInferenceClient instance
             mock_client_instance = MagicMock()
-            mock_client_instance.generate.return_value = "A photo of a cat"
-            mock_openai_client_class.return_value = mock_client_instance
+            # ImageCaptioner uses client.chat() method, not generate()
+            mock_client_instance.chat.return_value = "A photo of a cat"
+            mock_unified_client.return_value = mock_client_instance
 
             captioner = ImageCaptioner()
 

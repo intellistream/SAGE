@@ -17,7 +17,6 @@ declare -a INSTALL_PHASES=(
     "submodule_sync"
     "python_deps"
     "sage_packages"
-    "vllm_install"
     "verification"
     "cleanup"
 )
@@ -36,7 +35,6 @@ init_checkpoint_system() {
     "completed_phases": [],
     "failed_phases": [],
     "install_mode": "",
-    "install_vllm": false,
     "environment_name": "",
     "python_path": "",
     "backup_created": false,
@@ -83,7 +81,6 @@ except:
         "completed_phases": [],
         "failed_phases": [],
         "install_mode": "",
-        "install_vllm": False,
         "environment_name": "",
         "python_path": "",
         "backup_created": False,

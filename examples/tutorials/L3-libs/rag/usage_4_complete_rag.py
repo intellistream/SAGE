@@ -26,10 +26,10 @@ import numpy as np
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.service.base_service import BaseService
 from sage.libs.privacy.unlearning import UnlearningEngine
-from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
 )
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
 
 class RAGUnlearningSystem(BaseService):
@@ -56,9 +56,7 @@ class RAGUnlearningSystem(BaseService):
 
         self.logger.info("RAGUnlearningSystem initialized")
 
-    def initialize_rag_corpus(
-        self, collection_name: str, documents: list[dict[str, Any]]
-    ) -> bool:
+    def initialize_rag_corpus(self, collection_name: str, documents: list[dict[str, Any]]) -> bool:
         """
         初始化 RAG corpus
 
@@ -97,20 +95,19 @@ class RAGUnlearningSystem(BaseService):
                 self.logger.error("Collection is not a VDB collection")
                 return False
 
-            # 插入文档 - VDBMemoryCollection.insert(index_name, raw_data, metadata)
+            # 插入文档 - VDBMemoryCollection.insert(index_name, raw_data, vector, metadata)
             for doc in documents:
                 collection.insert(
                     index_name="content_index",
                     raw_data=doc["content"],
+                    vector=doc["vector"],
                     metadata=doc.get("metadata", {}),
                 )
 
-            collection.init_index("content_index")
+            # Index is initialized through individual inserts, no need for init_index
             self.manager.store_collection(collection_name)
 
-            self.logger.info(
-                f"✓ Initialized RAG corpus with {len(documents)} documents"
-            )
+            self.logger.info(f"✓ Initialized RAG corpus with {len(documents)} documents")
             self._audit_log("INIT_CORPUS", collection_name, len(documents))
 
             return True
@@ -120,7 +117,7 @@ class RAGUnlearningSystem(BaseService):
             return False
 
     def retrieve_relevant_documents(
-        self, collection_name: str, query: str, topk: int = 5
+        self, collection_name: str, query_vector: np.ndarray, topk: int = 5
     ) -> list[dict[str, Any]]:
         """检索相关文档"""
         try:
@@ -133,9 +130,9 @@ class RAGUnlearningSystem(BaseService):
                 self.logger.error("Collection is not a VDB collection")
                 return []
 
-            # VDBMemoryCollection.retrieve(raw_data, index_name, topk, ...)
+            # VDBMemoryCollection.retrieve(query_vector, index_name, topk, ...)
             results = collection.retrieve(
-                raw_data=query,
+                query_vector=query_vector,
                 index_name="content_index",
                 topk=topk,
                 with_metadata=True,
@@ -201,9 +198,7 @@ class RAGUnlearningSystem(BaseService):
                         all_vectors.append(vector)
                         all_ids.append(vid)
 
-            self.logger.info(
-                f"Starting DP unlearning for {len(valid_ids)} documents..."
-            )
+            self.logger.info(f"Starting DP unlearning for {len(valid_ids)} documents...")
 
             # 执行 DP 遗忘
             vectors_array = np.array(vectors_to_forget)
@@ -367,9 +362,7 @@ class RAGUnlearningSystem(BaseService):
                     "message": "No malicious content found",
                 }
 
-            self.logger.warning(
-                f"Detected {len(malicious_docs)} documents with malicious content"
-            )
+            self.logger.warning(f"Detected {len(malicious_docs)} documents with malicious content")
 
             # 遗忘恶意内容
             result = self.forget_documents(
@@ -389,9 +382,7 @@ class RAGUnlearningSystem(BaseService):
         """获取审计日志"""
         return self.audit_log
 
-    def _audit_log(
-        self, operation: str, collection: str, count: int, extra: dict | None = None
-    ):
+    def _audit_log(self, operation: str, collection: str, count: int, extra: dict | None = None):
         """记录审计事件"""
         log_entry = {
             "timestamp": datetime.now().isoformat(),
@@ -450,9 +441,9 @@ def example_basic_rag():
 
     # 检索
     print("\n🔍 Retrieving documents...")
-    results = system.retrieve_relevant_documents(
-        "knowledge_base", "machine learning", topk=3
-    )
+    query_vector = np.random.randn(128).astype(np.float32)
+    query_vector = query_vector / (np.linalg.norm(query_vector) + 1e-10)
+    results = system.retrieve_relevant_documents("knowledge_base", query_vector, topk=3)
     print(f"  Found {len(results)} relevant documents")
 
     # 用户请求删除

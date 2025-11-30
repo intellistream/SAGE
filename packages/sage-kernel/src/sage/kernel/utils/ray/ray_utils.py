@@ -64,12 +64,17 @@ def ensure_ray_initialized(runtime_env=None):
     # ray 在 RAY_AVAILABLE=True 时总是有效的
     if not ray.is_initialized():  # type: ignore[union-attr]
         try:
+            import os
+
+            # 检测是否在CI环境中
+            is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+
             # 准备初始化参数
             init_kwargs = {
                 "ignore_reinit_error": True,
-                "num_cpus": 16,  # 限制CPU使用
+                "num_cpus": 2 if is_ci else 16,  # CI环境使用更少的CPU
                 "num_gpus": 0,  # 不使用GPU
-                "object_store_memory": 200000000,  # 200MB object store
+                "object_store_memory": 100000000 if is_ci else 200000000,  # CI: 100MB, 本地: 200MB
                 "log_to_driver": False,  # 减少日志输出
                 "include_dashboard": False,  # 禁用dashboard减少资源占用
             }
@@ -103,7 +108,8 @@ def ensure_ray_initialized(runtime_env=None):
 
             # 使用标准模式但限制资源，支持async actors和队列
             ray.init(**init_kwargs)  # type: ignore[union-attr]
-            print("Ray initialized in standard mode with limited resources")
+            mode = "CI mode" if is_ci else "standard mode"
+            print(f"Ray initialized in {mode} with limited resources")
         except Exception as e:
             print(f"Failed to initialize Ray: {e}")
             raise

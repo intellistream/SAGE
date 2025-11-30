@@ -275,6 +275,7 @@ class ExampleRunner:
 
         # 设置示例特定的环境变量
         env["SAGE_EXAMPLES_MODE"] = "test"
+        env["SAGE_TEST_MODE"] = "true"  # 标记为测试模式，用于示例中的条件判断
         env["SAGE_LOG_LEVEL"] = "WARNING"  # 减少日志输出
 
         # 检查是否需要使用真实API (通过环境变量传递)

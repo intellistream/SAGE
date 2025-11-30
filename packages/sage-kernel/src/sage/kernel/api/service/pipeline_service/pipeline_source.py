@@ -17,12 +17,13 @@ class PipelineServiceSource(SourceFunction):
     【职责】：
     - 轮询 PipelineBridge 获取请求
     - 识别并传递 StopSignal 以触发 Pipeline 停止
-    - 返回 PipelineRequest 给下游处理
+    - 解包 PipelineRequest.payload 并附加 response_queue，返回纯数据给下游
 
     【关键点】：
     - 这是服务 Pipeline 的入口
     - 通过 bridge.next() 实现阻塞轮询
     - StopSignal 必须透传才能停止 Pipeline
+    - 自动解包 payload，下游算子只处理纯数据
 
     【使用示例】：
     ```python
@@ -49,7 +50,7 @@ class PipelineServiceSource(SourceFunction):
         """轮询 bridge，获取请求
 
         Returns:
-            - PipelineRequest: 正常请求，继续处理
+            - dict: 解包后的纯数据（包含 response_queue）
             - StopSignal: 停止信号，触发 Pipeline 停止
             - None: 暂时没有数据，继续轮询
         """
@@ -63,4 +64,20 @@ class PipelineServiceSource(SourceFunction):
             self.logger.info(f"Received stop signal: {req}")
             return req
 
+        # 解包 PipelineRequest.payload，并附加 response_queue
+        # 这样下游算子只需要处理纯数据，无需 hasattr 检查
+        if hasattr(req, "payload") and hasattr(req, "response_queue"):
+            payload = req.payload
+            if isinstance(payload, dict):
+                # 将 response_queue 附加到 payload 中
+                payload["_response_queue"] = req.response_queue
+                return payload
+            else:
+                # 如果 payload 不是字典，包装成字典
+                return {
+                    "data": payload,
+                    "_response_queue": req.response_queue,
+                }
+
+        # 兼容性：如果不是 PipelineRequest，直接返回
         return req
