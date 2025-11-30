@@ -5,6 +5,14 @@ sage.libs.agentic components so Studio and pipeline builders can drag-and-drop
 agent runtimes without wiring boilerplate.
 """
 
+from .planning_operator import PlanningOperator
 from .runtime import AgentRuntimeOperator
+from .timing_operator import TimingOperator
+from .tool_selection_operator import ToolSelectionOperator
 
-__all__ = ["AgentRuntimeOperator"]
+__all__ = [
+    "AgentRuntimeOperator",
+    "ToolSelectionOperator",
+    "PlanningOperator",
+    "TimingOperator",
+]

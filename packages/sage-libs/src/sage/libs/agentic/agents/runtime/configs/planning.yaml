@@ -1,0 +1,23 @@
+# Runtime Configuration Example - Planning
+
+# Planner configuration
+planner:
+  name: "llm"  # Strategy: llm, hierarchical, template
+  min_steps: 1
+  max_steps: 10
+  enable_repair: true
+  params:
+    allow_tool_reuse: true
+    enforce_sequence: true
+
+# Telemetry configuration
+telemetry:
+  enabled: true
+  collect_latency: true
+  collect_accuracy: true
+  output_path: "${PROJECT_ROOT}/outputs/runtime/telemetry_planning.json"
+  log_level: "INFO"
+
+# General runtime settings
+max_turns: 8
+timeout: 30.0

@@ -6,11 +6,11 @@
 
 from __future__ import annotations
 
+from sage.benchmark.benchmark_memory.experiment.libs.memory_evaluator import MemoryTest
 from sage.benchmark.benchmark_memory.experiment.libs.memory_insert import MemoryInsert
 from sage.benchmark.benchmark_memory.experiment.libs.memory_retrieval import MemoryRetrieval
 from sage.benchmark.benchmark_memory.experiment.libs.memory_sink import MemorySink
 from sage.benchmark.benchmark_memory.experiment.libs.memory_source import MemorySource
-from sage.benchmark.benchmark_memory.experiment.libs.memory_test import MemoryTest
 from sage.benchmark.benchmark_memory.experiment.libs.pipeline_caller import PipelineCaller
 from sage.benchmark.benchmark_memory.experiment.libs.post_insert import PostInsert
 from sage.benchmark.benchmark_memory.experiment.libs.post_retrieval import PostRetrieval
@@ -26,9 +26,7 @@ from sage.kernel.api.service import (
     PipelineServiceSink,
     PipelineServiceSource,
 )
-from sage.middleware.components.sage_mem.services.short_term_memory_service import (
-    ShortTermMemoryService,
-)
+from sage.middleware.components.sage_mem.services import MemoryServiceFactory
 
 
 def main():
@@ -42,9 +40,9 @@ def main():
     # 创建环境
     env = LocalEnvironment("memory_test_experiment")
 
-    # 注册服务
-    max_dialog = config.get("services.short_term_memory.max_dialog", 3)
-    env.register_service("short_term_memory", ShortTermMemoryService, max_dialog=max_dialog)
+    # 注册服务 - 使用工厂模式动态创建服务
+    service_name = config.get("services.register_memory_service", "short_term_memory")
+    env.register_service_factory(service_name, MemoryServiceFactory.create(service_name, config))
 
     insert_bridge = PipelineBridge()
     env.register_service("memory_insert_service", PipelineService, insert_bridge)

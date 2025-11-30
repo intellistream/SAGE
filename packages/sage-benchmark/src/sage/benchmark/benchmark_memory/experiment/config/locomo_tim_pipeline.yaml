@@ -1,0 +1,104 @@
+# 运行时参数配置
+runtime:
+  dataset: "locomo"  # 数据集名称
+  # task_id: "conv-26"  # 任务ID，可通过命令行 --task_id 覆盖
+  memory_insert_verbose: false  # 是否打印记忆插入的详细信息（Memory Source部分）
+  memory_test_verbose: true    # 是否打印记忆测试的详细信息（QA部分）
+  test_segments: 10             # 测试分段数，将总问题数分成几段进行测试
+
+  # Prompt 模板配置（阶段二：MemoryTest）
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+    
+    Question: {question}
+    Answer:
+
+  # LLM Generator 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "TiM"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"  # Embedding 服务器地址
+  embedding_model: "BAAI/bge-m3"  # Embedding 模型名称
+
+
+
+# 服务配置
+services:
+  register_memory_service: "vector_hash_memory"  # 注册的记忆服务名称，可切换为其他服务
+  short_term_memory:
+    max_dialog: 3  # 短期记忆窗口大小（轮次）
+  vector_hash_memory:
+    dim: 1024  # 向量维度（需要与 embedding 模型输出维度一致）
+    nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
+  memory_insert_adapter: "to_refactor"  # 决定插入的数据 to_dialogs(原始对话) / to_refactor(三元组)
+  memory_retrieval_adapter: "none"
+
+
+
+# Operator 配置
+operators:
+  pre_insert:
+    action: "tri_embed"  # tri_embed先通过llm进行三元组提取实体后进行embedding
+    triple_extraction_prompt: |
+      You are a factual knowledge extractor.  
+      Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
+
+      Guidelines:
+      - Map "I", "me", "my" to the name of the speaker provided in the dialogue log.
+      - Include personal states, plans, or situations if clearly described (e.g., "I'm busy" → (Speaker, is, busy)).
+      - Handle colloquialisms and omitted subjects: If a subject is implied but omitted, infer the subject from context.
+      - Resolve pronouns to specific entities; if the referent is ambiguous, skip the triple. Never output pronouns as subject or object.
+      - Avoid redundancy by consolidating repeated or fragmented details into a single, most specific triple, and ignore non-informative conversational fillers.
+      - Use natural-language predicates in active voice. Capture specific nuances like time and location directly in the predicate (e.g., "starts at 5 PM", "lives in Tokyo").
+      - Do NOT assume external knowledge; base everything on what is said or immediately implied.
+
+      Output ONLY in this format:
+
+      If one or more facts exist:
+      (Subject, Predicate, Object)
+      ...
+
+      If no extractable facts:
+      None
+
+      Dialogue:
+      {dialogue}
+  pre_retrieval:
+    action: "embedding"  # 检索前操作: none, optimize, validate
+  post_insert:
+    action: "distillation"  # 插入后操作
+    distillation_topk: 10  # 检索相似记忆的数量
+    distillation_threshold: 16  # 汉明距离阈值：最多接受多少位不同（nbits=128时，16表示约87.5%相似度）
+    distillation_prompt: |
+      You are a memory consolidation expert. Given a list of facts about a person, your job is to:
+      1. REMOVE duplicates and near-duplicates (same meaning, different wording)
+      2. MERGE related facts into more complete statements
+      3. REMOVE logically subsumed facts (if A contains B's meaning, remove B)
+      
+      EXAMPLES of what to consolidate:
+      - "Alice likes coffee" + "Alice likes coffee a lot" → keep only "Alice likes coffee a lot"
+      - "Bob works at Google" + "Bob works at Google as engineer" → keep only "Bob works at Google as engineer"
+      - "Carol plans to travel" + "Carol plans to travel to Japan" → keep only "Carol plans to travel to Japan"
+      
+      RULES:
+      - to_delete: List EXACT original texts to remove (duplicates, subsumed facts)
+      - to_insert: Only if you need to CREATE a new merged fact not in original list
+      - Prefer keeping the most informative version rather than creating new text
+      - If a fact appears multiple times, delete all but one
+      
+      Facts:
+      {memory_list}
+      
+      Respond with JSON only:
+      {"to_delete": ["exact text 1", "exact text 2"], "to_insert": []}
+  post_retrieval:
+    action: "none"  # 后检索操作: none（默认会格式化对话历史）
+    # 阶段一：对话历史格式化Prompt（PostRetrieval）
+    conversation_format_prompt: |
+      The following is some history information.

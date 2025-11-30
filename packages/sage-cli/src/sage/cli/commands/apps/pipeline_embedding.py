@@ -57,7 +57,7 @@ class EmbeddingPipelineTemplates:
         if use_vllm or embedding_method == "vllm":
             # Use vLLM backend
             config["services"]["vllm"] = {  # type: ignore[index]
-                "class": "sage.common.components.sage_vllm.VLLMService",
+                "class": "sage.common.components.sage_llm.VLLMService",
                 "config": {
                     "model_id": llm_model,
                     "embedding_model_id": embedding_model,
@@ -194,7 +194,7 @@ Answer:""",
         # Configure services based on method
         if use_vllm or embedding_method == "vllm":
             config["services"]["vllm"] = {  # type: ignore[index]
-                "class": "sage.common.components.sage_vllm.VLLMService",
+                "class": "sage.common.components.sage_llm.VLLMService",
                 "config": {
                     "model_id": embedding_model,
                     "embedding_model_id": embedding_model,
@@ -428,7 +428,7 @@ Answer:""",
                 },
                 # vLLM for batch processing
                 "vllm": {
-                    "class": "sage.common.components.sage_vllm.VLLMService",
+                    "class": "sage.common.components.sage_llm.VLLMService",
                     "config": {
                         "model_id": "BAAI/bge-large-en-v1.5",
                         "embedding_model_id": "BAAI/bge-large-en-v1.5",
