@@ -60,7 +60,15 @@ run_sage_dev() {
     if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
         conda run -n "$env_name" sage-dev "$@"
     else
-        sage-dev "$@"
+        # 对于 pip 安装，CLI 工具可能在 ~/.local/bin 中
+        if command -v sage-dev >/dev/null 2>&1; then
+            sage-dev "$@"
+        elif [ -x "$HOME/.local/bin/sage-dev" ]; then
+            "$HOME/.local/bin/sage-dev" "$@"
+        else
+            echo "sage-dev 命令不可用" >&2
+            return 1
+        fi
     fi
 }
 
@@ -71,7 +79,15 @@ sage_dev_available() {
     if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
         conda run -n "$env_name" which sage-dev >/dev/null 2>&1
     else
-        command -v sage-dev >/dev/null 2>&1
+        # 检查 sage-dev 命令是否可用
+        # 对于 pip 安装，CLI 工具可能在 ~/.local/bin 中
+        if command -v sage-dev >/dev/null 2>&1; then
+            return 0
+        elif [ -x "$HOME/.local/bin/sage-dev" ]; then
+            return 0
+        else
+            return 1
+        fi
     fi
 }
 
