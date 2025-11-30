@@ -3,7 +3,14 @@
 负责医学知识和病例的检索
 """
 
+import json
+from pathlib import Path
 from typing import Any
+
+from sage.common.components.sage_embedding.service import EmbeddingService
+from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+    SageDBService,
+)
 
 
 class MedicalKnowledgeBase:
@@ -14,6 +21,14 @@ class MedicalKnowledgeBase:
     1. 存储和检索医学知识
     2. 存储和检索病例数据
     3. 多模态检索（文本+影像）
+
+    配置选项 (config):
+        data_path: str - 处理后数据集的路径
+        enable_dataset_knowledge: bool - 是否从数据集加载知识 (默认True)
+        enable_report_knowledge: bool - 是否从医学报告加载知识 (默认True)
+        enable_case_database: bool - 是否加载病例数据库 (默认True)
+        max_reports: int - 最大读取报告数量 (默认50)
+        verbose: bool - 是否输出详细日志 (默认True)
     """
 
     def __init__(self, config: dict):
@@ -21,36 +36,256 @@ class MedicalKnowledgeBase:
         初始化知识库
 
         Args:
-            config: 配置字典
+            config: 配置字典，支持以下选项：
+                - data_path: 数据路径
+                - enable_dataset_knowledge: 启用数据集知识加载
+                - enable_report_knowledge: 启用报告知识加载
+                - enable_case_database: 启用病例数据库加载
+                - max_reports: 最大报告读取数量
+                - verbose: 详细输出
         """
         self.config = config
         self.embedding_service = None
         self.vector_db = None
+
+        # 配置选项
+        self._verbose = config.get("verbose", True)
+        self._enable_dataset = config.get("enable_dataset_knowledge", True)
+        self._enable_reports = config.get("enable_report_knowledge", True)
+        self._enable_cases = config.get("enable_case_database", True)
+        self._max_reports = config.get("max_reports", 50)
+
         self._setup_services()
         self._load_knowledge()
 
+    def _log(self, message: str):
+        """输出日志信息（如果启用详细模式）"""
+        if self._verbose:
+            print(message)
+
     def _setup_services(self):
         """设置服务"""
-        print("   Setting up knowledge base services...")
+        self._log("   Setting up knowledge base services...")
 
-        # TODO: 集成 SAGE EmbeddingService 和 SageDB
-        # 参见跟踪问题: https://github.com/your-org/your-repo/issues/123
-        # Issue URL: https://github.com/intellistream/SAGE/issues/906
-        # from sage.common.components.sage_embedding.service import EmbeddingService
-        # from sage.middleware.components.sage_db.service import SageDBService
+        # 获取embedding和向量数据库配置
+        embedding_config = self.config.get("services", {}).get("embedding", {})
+        vector_db_config = self.config.get("services", {}).get("vector_db", {})
+        models_config = self.config.get("models", {})
 
-        # self.embedding_service = EmbeddingService(...)
-        # self.vector_db = SageDBService(...)
+        # 初始化 EmbeddingService
+        embedding_service_config = {
+            "method": embedding_config.get("method", "hf"),
+            "model": models_config.get("embedding_model", "BAAI/bge-large-zh-v1.5"),
+            "batch_size": embedding_config.get("batch_size", 32),
+            "normalize": embedding_config.get("normalize", True),
+            "cache_enabled": embedding_config.get("cache_enabled", False),
+        }
 
-        self.embedding_service = "placeholder"
-        self.vector_db = "placeholder"
+        self.embedding_service = EmbeddingService(embedding_service_config)
+        self.embedding_service.setup()
+
+        # 初始化 SageDBService
+        # 获取embedding维度
+        dimension = self.embedding_service.get_dimension()
+        index_type = vector_db_config.get("index_type", "AUTO")
+
+        self.vector_db = SageDBService(dimension=dimension, index_type=index_type)
+
+        print(
+            f"   ✓ EmbeddingService initialized (dim={dimension}, method={embedding_service_config['method']})"
+        )
+        print(f"   ✓ SageDBService initialized (dim={dimension}, index_type={index_type})")
 
     def _load_knowledge(self):
         """加载医学知识"""
-        # TODO: 从数据集和医学文献加载知识
-        # Issue URL: https://github.com/intellistream/SAGE/issues/905
+        self._log("   Loading medical knowledge...")
+
+        # 从默认知识开始
         self.knowledge_base = self._get_default_knowledge()
         self.case_database = []
+
+        # 从数据集加载知识
+        if self._enable_dataset:
+            dataset_knowledge = self._load_knowledge_from_dataset()
+            if dataset_knowledge:
+                self.knowledge_base.extend(dataset_knowledge)
+                self._log(f"   ✓ Loaded {len(dataset_knowledge)} knowledge entries from dataset")
+
+        # 从医学文献/报告加载知识
+        if self._enable_reports:
+            literature_knowledge = self._load_knowledge_from_reports()
+            if literature_knowledge:
+                self.knowledge_base.extend(literature_knowledge)
+                self._log(f"   ✓ Loaded {len(literature_knowledge)} knowledge entries from reports")
+
+        # 加载病例数据库
+        if self._enable_cases:
+            cases = self._load_case_database()
+            if cases:
+                self.case_database = cases
+                self._log(f"   ✓ Loaded {len(cases)} cases from database")
+
+        self._log(f"   Total knowledge base size: {len(self.knowledge_base)} entries")
+
+    def _load_knowledge_from_dataset(self) -> list[dict[str, Any]]:
+        """从处理好的数据集加载医学知识"""
+        knowledge = []
+
+        # 获取数据集路径配置
+        data_path = self.config.get("data_path")
+        if not data_path:
+            # 尝试默认路径
+            current_file = Path(__file__)
+            default_path = current_file.parent.parent / "data" / "processed"
+            if default_path.exists():
+                data_path = str(default_path)
+            else:
+                return knowledge
+
+        data_dir = Path(data_path)
+        if not data_dir.exists():
+            return knowledge
+
+        # 加载统计信息，从中提取疾病知识
+        stats_file = data_dir / "stats.json"
+        if stats_file.exists():
+            try:
+                with open(stats_file, encoding="utf-8") as f:
+                    stats = json.load(f)
+
+                # 从疾病分布中提取知识
+                disease_dist = stats.get("disease_distribution", {})
+                for disease, count in disease_dist.items():
+                    if disease and disease != "正常":
+                        knowledge.append(
+                            {
+                                "topic": disease,
+                                "content": f"{disease}是常见的腰椎疾病，在数据集中有{count}个相关病例。",
+                                "source": "dataset_statistics",
+                                "case_count": count,
+                            }
+                        )
+            except Exception as e:
+                print(f"   Warning: Failed to load stats.json: {e}")
+
+        return knowledge
+
+    def _load_knowledge_from_reports(self) -> list[dict[str, Any]]:
+        """从医学报告中提取知识"""
+        knowledge = []
+
+        # 获取数据集路径配置
+        data_path = self.config.get("data_path")
+        if not data_path:
+            # 尝试默认路径
+            current_file = Path(__file__)
+            default_path = current_file.parent.parent / "data" / "processed"
+            if default_path.exists():
+                data_path = str(default_path)
+            else:
+                return knowledge
+
+        data_dir = Path(data_path)
+        reports_dir = data_dir / "reports"
+
+        if not reports_dir.exists():
+            return knowledge
+
+        # 读取所有报告并提取知识
+        report_files = list(reports_dir.glob("*.txt"))
+
+        # 用于存储提取的独特知识点
+        disease_knowledge = {}
+
+        for report_file in report_files[: self._max_reports]:  # 限制读取数量以避免过载
+            try:
+                with open(report_file, encoding="utf-8") as f:
+                    report_content = f.read()
+
+                # 从报告中提取诊断结论和治疗建议
+                lines = report_content.split("\n")
+                diagnosis = None
+                treatment = None
+                findings = None
+
+                for i, line in enumerate(lines):
+                    if "诊断结论:" in line and i + 1 < len(lines):
+                        diagnosis = lines[i + 1].strip()
+                    elif "治疗建议:" in line and i + 1 < len(lines):
+                        treatment = lines[i + 1].strip()
+                    elif "主要发现:" in line:
+                        # 提取接下来几行的发现
+                        findings_lines = []
+                        for j in range(i + 1, min(i + 5, len(lines))):
+                            if lines[j].strip().startswith("-"):
+                                findings_lines.append(lines[j].strip())
+                        findings = "\n".join(findings_lines) if findings_lines else None
+
+                # 如果提取到有效信息，添加到知识库
+                if diagnosis and diagnosis not in disease_knowledge:
+                    # 从诊断中提取疾病名称
+                    disease_name = diagnosis.split("，")[0] if "，" in diagnosis else diagnosis
+
+                    if disease_name and len(disease_name) > 2:
+                        disease_knowledge[disease_name] = {
+                            "topic": disease_name,
+                            "content": diagnosis,
+                            "treatment": treatment if treatment else "请咨询专业医生",
+                            "findings": findings if findings else "影像学检查显示相应变化",
+                            "source": "medical_reports",
+                        }
+
+            except Exception:
+                # 忽略单个文件的错误，继续处理其他文件
+                continue
+
+        # 将提取的知识转换为列表
+        knowledge = list(disease_knowledge.values())
+
+        return knowledge
+
+    def _load_case_database(self) -> list[dict[str, Any]]:
+        """从数据集加载病例数据库"""
+        cases = []
+
+        # 获取数据集路径配置
+        data_path = self.config.get("data_path")
+        if not data_path:
+            # 尝试默认路径
+            current_file = Path(__file__)
+            default_path = current_file.parent.parent / "data" / "processed"
+            if default_path.exists():
+                data_path = str(default_path)
+            else:
+                return cases
+
+        data_dir = Path(data_path)
+
+        # 尝试加载所有病例索引
+        all_cases_file = data_dir / "all_cases.json"
+        if all_cases_file.exists():
+            try:
+                with open(all_cases_file, encoding="utf-8") as f:
+                    cases_data = json.load(f)
+
+                # 转换为统一格式
+                for case in cases_data:
+                    cases.append(
+                        {
+                            "case_id": case.get("case_id", ""),
+                            "age": case.get("age", 0),
+                            "gender": case.get("gender", "unknown"),
+                            "diagnosis": case.get("disease", ""),
+                            "severity": case.get("severity", ""),
+                            "image_path": case.get("image_path", ""),
+                            "report_path": case.get("report_path", ""),
+                        }
+                    )
+
+            except Exception as e:
+                print(f"   Warning: Failed to load case database: {e}")
+
+        return cases
 
     def _get_default_knowledge(self) -> list[dict[str, str]]:
         """获取默认医学知识"""
@@ -99,18 +334,70 @@ class MedicalKnowledgeBase:
         Returns:
             相似病例列表
         """
-        if self.vector_db == "placeholder":
-            # 返回模拟病例
+        # 如果向量数据库为空，使用关键词匹配或模拟病例
+        if self.vector_db.stats()["size"] == 0:
+            # 如果有加载的病例数据库，使用它；否则返回模拟病例
+            if self.case_database:
+                # 简单的关键词匹配（实际应该使用向量检索）
+                matched_cases = []
+                query_keywords = query.lower().split()
+
+                for case in self.case_database:
+                    # 计算匹配分数
+                    score = 0.0
+                    diagnosis = case.get("diagnosis", "").lower()
+
+                    for keyword in query_keywords:
+                        if keyword in diagnosis:
+                            score += 1.0
+
+                    if score > 0:
+                        matched_cases.append(
+                            {
+                                "case_id": case.get("case_id", ""),
+                                "age": case.get("age", 0),
+                                "gender": case.get("gender", "unknown"),
+                                "diagnosis": case.get("diagnosis", ""),
+                                "severity": case.get("severity", ""),
+                                "similarity_score": min(score / len(query_keywords), 1.0),
+                            }
+                        )
+
+                # 按相似度排序
+                matched_cases.sort(key=lambda x: x["similarity_score"], reverse=True)
+
+                # 如果找到匹配的病例，返回它们
+                if matched_cases:
+                    return matched_cases[:top_k]
+
+            # 没有加载的数据或没有匹配，返回模拟病例
             return self._get_mock_cases()[:top_k]
 
-        # TODO: 实现真实的向量检索
-        # Issue URL: https://github.com/intellistream/SAGE/issues/904
-        # 1. 对查询文本进行embedding
-        # 2. 对影像特征进行embedding
-        # 3. 多模态检索（文本+影像）
-        # 4. 返回Top-K相似病例
+        # 使用 EmbeddingService 生成查询向量
+        result = self.embedding_service.embed(query)
+        query_vector = result["vectors"][0]
 
-        return []
+        # 使用 SageDB 进行向量检索
+        search_results = self.vector_db.search(query_vector, k=top_k, include_metadata=True)
+
+        # 转换为病例格式
+        cases = []
+        for res in search_results:
+            metadata = res.get("metadata", {})
+            cases.append(
+                {
+                    "case_id": metadata.get("case_id", f"CASE_{res['id']:03d}"),
+                    "age": int(metadata.get("age", 0)) if metadata.get("age") else 0,
+                    "gender": metadata.get("gender", "unknown"),
+                    "diagnosis": metadata.get("diagnosis", ""),
+                    "symptoms": metadata.get("symptoms", ""),
+                    "treatment": metadata.get("treatment", ""),
+                    "outcome": metadata.get("outcome", ""),
+                    "similarity_score": float(res["score"]),
+                }
+            )
+
+        return cases
 
     def retrieve_knowledge(self, query: str, top_k: int = 3) -> list[dict[str, Any]]:
         """
@@ -123,12 +410,48 @@ class MedicalKnowledgeBase:
         Returns:
             医学知识列表
         """
-        # 简单匹配（实际应该使用向量检索）
+        # 使用简单的关键词匹配（可以后续改进为向量检索）
         results = []
 
         for knowledge in self.knowledge_base:
-            if any(keyword in query for keyword in knowledge["topic"].split()):
+            topic = knowledge.get("topic", "")
+            content = knowledge.get("content", "")
+
+            # Check if query contains topic or topic contains query (for Chinese text)
+            # Also check if query matches content
+            if (
+                topic in query
+                or query in topic
+                or any(char in topic for char in query if len(char.strip()) > 0)
+                or topic in content
+                or query in content
+            ):
                 results.append(knowledge)
+
+        # 如果没有匹配结果，使用向量相似度检索
+        if not results and self.embedding_service:
+            # 为知识库条目生成embedding并检索
+            knowledge_texts = [k["topic"] + " " + k["content"] for k in self.knowledge_base]
+            knowledge_embeddings = self.embedding_service.embed(knowledge_texts)
+
+            # 为查询生成embedding
+            query_embedding = self.embedding_service.embed(query)
+            query_vec = query_embedding["vectors"][0]
+
+            # 计算相似度并排序
+            import numpy as np
+
+            similarities = []
+            for i, emb_vec in enumerate(knowledge_embeddings["vectors"]):
+                similarity = float(np.dot(query_vec, emb_vec))
+                similarities.append((i, similarity))
+
+            # 按相似度排序
+            similarities.sort(key=lambda x: x[1], reverse=True)
+
+            # 返回top_k个最相似的知识
+            for idx, _ in similarities[:top_k]:
+                results.append(self.knowledge_base[idx])
 
         return results[:top_k]
 
@@ -189,18 +512,46 @@ class MedicalKnowledgeBase:
 
     def add_case(self, case_data: dict[str, Any]):
         """添加新病例到知识库"""
-        # TODO: 实现病例添加
-        # Issue URL: https://github.com/intellistream/SAGE/issues/903
-        # 1. 提取影像特征
-        # 2. 生成文本embedding
-        # 3. 存入向量数据库
+        # 构建病例文本描述用于embedding
+        case_text = f"{case_data.get('diagnosis', '')} {case_data.get('symptoms', '')}"
+
+        # 生成文本embedding
+        result = self.embedding_service.embed(case_text)
+        case_vector = result["vectors"][0]
+
+        # 准备metadata
+        metadata = {
+            "case_id": str(case_data.get("case_id", "")),
+            "age": str(case_data.get("age", "")),
+            "gender": str(case_data.get("gender", "")),
+            "diagnosis": str(case_data.get("diagnosis", "")),
+            "symptoms": str(case_data.get("symptoms", "")),
+            "treatment": str(case_data.get("treatment", "")),
+            "outcome": str(case_data.get("outcome", "")),
+        }
+
+        # 存入向量数据库
+        vector_id = self.vector_db.add(case_vector, metadata)
+
+        # 同时添加到本地缓存
         self.case_database.append(case_data)
+
+        return vector_id
 
     def update_knowledge(self, knowledge_data: dict[str, Any]):
         """更新医学知识"""
         # TODO: 实现知识更新
         # Issue URL: https://github.com/intellistream/SAGE/issues/902
         self.knowledge_base.append(knowledge_data)
+
+    def cleanup(self):
+        """清理资源"""
+        if self.embedding_service and hasattr(self.embedding_service, "cleanup"):
+            self.embedding_service.cleanup()
+
+    def __del__(self):
+        """析构时清理资源"""
+        self.cleanup()
 
 
 if __name__ == "__main__":

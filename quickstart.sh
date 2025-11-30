@@ -10,6 +10,16 @@ set -e
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="$SAGE_ROOT/tools/install"
 
+# 自动设置 HuggingFace 镜像（国内网络加速）
+# 如果用户已设置 HF_ENDPOINT 则不覆盖
+if [ -z "${HF_ENDPOINT}" ]; then
+    # 检测是否能直接访问 huggingface.co
+    if ! curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
+        export HF_ENDPOINT="https://hf-mirror.com"
+        echo -e "\033[2m自动设置 HuggingFace 镜像: $HF_ENDPOINT\033[0m"
+    fi
+fi
+
 # 导入所有模块
 source "$TOOLS_DIR/display_tools/colors.sh"
 source "$TOOLS_DIR/display_tools/output_formatter.sh"
@@ -133,11 +143,7 @@ main() {
         mkdir -p .sage/logs
 
         # 运行新的环境预检查
-        local install_vllm_planned=$(get_install_vllm)
         local skip_cuda="true"
-        if [ "$install_vllm_planned" = "true" ]; then
-            skip_cuda="false"
-        fi
 
         if ! run_environment_prechecks "$skip_cuda" ".sage/logs/environment_precheck.log"; then
             echo -e "${YELLOW}⚠️  环境预检查发现问题，但将继续尝试安装${NC}"
@@ -158,7 +164,6 @@ main() {
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
-    local install_vllm=$(get_install_vllm)
     local auto_confirm=$(get_auto_confirm)
     local clean_cache=$(get_clean_pip_cache)
     local sync_submodules=$(get_sync_submodules)
@@ -170,6 +175,10 @@ main() {
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
+
+    # 导出 pip 镜像配置为环境变量，供子脚本使用
+    export USE_PIP_MIRROR="$use_mirror"
+    export MIRROR_SOURCE="$mirror_source"
 
     # 执行安装前清理（如果启用）
     if [ "$clean_before_install" = "true" ]; then
@@ -249,7 +258,7 @@ main() {
     fi
 
     # 执行安装
-    install_sage "$mode" "$environment" "$install_vllm" "$clean_cache"
+    install_sage "$mode" "$environment" "$clean_cache"
 
     # 验证安装
     if run_comprehensive_verification; then
@@ -337,6 +346,21 @@ main() {
                     echo -e "${DIM}  ℹ️  开发模式 hooks 设置跳过（非 Git 仓库或权限问题）${NC}"
                 }
             fi
+
+            # 安装 neuromem submodule 的 pre-commit hooks
+            local neuromem_path="$SAGE_ROOT/packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
+            if [ -d "$neuromem_path" ] && [ -f "$neuromem_path/.pre-commit-config.yaml" ]; then
+                echo -e "${DIM}   配置 neuromem submodule 的 pre-commit hooks...${NC}"
+                if command -v pre-commit >/dev/null 2>&1; then
+                    (cd "$neuromem_path" && pre-commit install 2>/dev/null) && {
+                        echo -e "${GREEN}   ✅ neuromem pre-commit hooks 已安装${NC}"
+                    } || {
+                        echo -e "${DIM}   ℹ️  neuromem pre-commit hooks 安装跳过${NC}"
+                    }
+                else
+                    echo -e "${DIM}   ℹ️  pre-commit 未安装，跳过 neuromem hooks${NC}"
+                fi
+            fi
         fi
 
         show_usage_tips "$mode"
@@ -360,11 +384,6 @@ main() {
             fi
         fi
 
-        # 如果安装了 VLLM，验证 VLLM 安装
-        if [ "$install_vllm" = "true" ]; then
-            echo ""
-            verify_vllm_installation
-        fi
         echo ""
         # 使用适配的居中显示函数，确保在所有环境下都能正确居中
         if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
@@ -386,9 +405,6 @@ main() {
         # 使用正确的 Python 命令
         local python_cmd="${PYTHON_CMD:-python3}"
         echo -e "  $python_cmd -c \"import sage; print(sage.__version__)\""
-        if [ "$install_vllm" = "true" ]; then
-            echo -e "  $python_cmd -c \"import vllm; print(vllm.__version__)\""
-        fi
     fi
 }
 

@@ -5,6 +5,15 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "$SAGE_ROOT" ]; then
+    SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+fi
+
+if [ -f "$SAGE_ROOT/tools/conda/conda_utils.sh" ]; then
+    source "$SAGE_ROOT/tools/conda/conda_utils.sh"
+fi
+
 # 检测操作系统
 detect_os() {
     if [[ -f /etc/os-release ]]; then
@@ -47,6 +56,45 @@ check_and_install_build_tools() {
         missing_tools+=("pkg-config")
     fi
 
+    # 检查 Node.js 和 npm (Studio 需要)
+    local need_node=false
+    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+        need_node=true
+    fi
+
+    # 优先尝试 Conda 安装 (无需 sudo)
+    if [ "$need_node" = "true" ] && command -v conda &> /dev/null; then
+        log_info "尝试使用 Conda 安装 Node.js (无需 sudo)..." "SysDeps"
+        echo -e "${GEAR} 尝试使用 Conda 安装 Node.js..."
+
+        if declare -f ensure_conda_tos_accepted >/dev/null 2>&1; then
+            if ensure_conda_tos_accepted --auto --quiet; then
+                if conda install -y nodejs; then
+                    log_info "Node.js (Conda) 安装成功" "SysDeps"
+                    echo -e "${CHECK} Node.js (Conda) 安装成功"
+                    need_node=false
+                else
+                    log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
+                fi
+            else
+                log_warn "Conda 尚未准备好执行安装（服务条款未接受或 Conda 信息异常），将跳过此路径" "SysDeps"
+            fi
+        else
+            if conda install -y nodejs; then
+                log_info "Node.js (Conda) 安装成功" "SysDeps"
+                echo -e "${CHECK} Node.js (Conda) 安装成功"
+                need_node=false
+            else
+                log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
+            fi
+        fi
+    fi
+
+    if [ "$need_node" = "true" ]; then
+        if ! command -v node &> /dev/null; then missing_tools+=("nodejs"); fi
+        if ! command -v npm &> /dev/null; then missing_tools+=("npm"); fi
+    fi
+
     if [ ${#missing_tools[@]} -eq 0 ]; then
         log_info "基础构建工具已安装" "SysDeps"
         echo -e "${CHECK} 基础构建工具已安装"
@@ -76,27 +124,44 @@ check_and_install_build_tools() {
     case "$OS" in
         ubuntu|debian)
             log_command "SysDeps" "Install" "$SUDO apt-get update -qq"
-            if log_command "SysDeps" "Install" "$SUDO apt-get install -y --no-install-recommends build-essential cmake pkg-config"; then
-                log_info "构建工具安装成功" "SysDeps"
-                echo -e "${CHECK} 构建工具安装成功"
+
+            # 动态构建包列表
+            local PKG_LIST="build-essential cmake pkg-config"
+            if [[ " ${missing_tools[*]} " =~ " nodejs " ]] || [[ " ${missing_tools[*]} " =~ " npm " ]]; then
+                PKG_LIST="$PKG_LIST nodejs npm"
+            fi
+
+            # 安装构建工具和 Node.js
+            if log_command "SysDeps" "Install" "$SUDO apt-get install -y --no-install-recommends $PKG_LIST"; then
+                log_info "系统依赖安装成功" "SysDeps"
+                echo -e "${CHECK} 系统依赖安装成功"
             else
-                log_error "构建工具安装失败" "SysDeps"
-                echo -e "${CROSS} 构建工具安装失败"
+                log_error "系统依赖安装失败" "SysDeps"
+                echo -e "${CROSS} 系统依赖安装失败"
                 return 1
             fi
             ;;
         centos|rhel)
+            local EXTRA_PKGS="cmake pkg-config"
+            if [[ " ${missing_tools[*]} " =~ " nodejs " ]] || [[ " ${missing_tools[*]} " =~ " npm " ]]; then
+                EXTRA_PKGS="$EXTRA_PKGS nodejs npm"
+            fi
+
             if command -v dnf &> /dev/null; then
                 log_command "SysDeps" "Install" "$SUDO dnf groupinstall -y 'Development Tools'"
-                log_command "SysDeps" "Install" "$SUDO dnf install -y cmake pkg-config"
+                log_command "SysDeps" "Install" "$SUDO dnf install -y $EXTRA_PKGS"
             else
                 log_command "SysDeps" "Install" "$SUDO yum groupinstall -y 'Development Tools'"
-                log_command "SysDeps" "Install" "$SUDO yum install -y cmake pkg-config"
+                log_command "SysDeps" "Install" "$SUDO yum install -y $EXTRA_PKGS"
             fi
             ;;
         fedora)
+            local EXTRA_PKGS="cmake pkg-config"
+            if [[ " ${missing_tools[*]} " =~ " nodejs " ]] || [[ " ${missing_tools[*]} " =~ " npm " ]]; then
+                EXTRA_PKGS="$EXTRA_PKGS nodejs npm"
+            fi
             log_command "SysDeps" "Install" "$SUDO dnf groupinstall -y 'Development Tools'"
-            log_command "SysDeps" "Install" "$SUDO dnf install -y cmake pkg-config"
+            log_command "SysDeps" "Install" "$SUDO dnf install -y $EXTRA_PKGS"
             ;;
         arch|manjaro)
             log_command "SysDeps" "Install" "$SUDO pacman -S --noconfirm base-devel cmake pkg-config"

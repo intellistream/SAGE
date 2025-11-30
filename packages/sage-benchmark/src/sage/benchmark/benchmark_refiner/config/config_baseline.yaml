@@ -1,0 +1,53 @@
+pipeline:
+  name: "sage-benchmark-baseline-rag"
+  description: "Baseline RAG Pipeline without Context Compression"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "dev"
+  # 处理前10个样本用于对比实验
+  max_samples: 10
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 8
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "/home/cyb/wiki18_maxp.index"
+    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
+    mapping_path: "/home/cyb/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+# 注意：不包含reform配置，因为baseline不使用refiner
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

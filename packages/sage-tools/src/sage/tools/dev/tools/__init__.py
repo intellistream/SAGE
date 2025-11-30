@@ -18,6 +18,7 @@ from .devnotes_checker import DevNotesChecker
 # 导出开发工具类
 from .enhanced_package_manager import EnhancedPackageManager
 from .enhanced_test_runner import EnhancedTestRunner
+from .package_dependency_validator import PackageDependencyValidator
 from .package_readme_checker import PackageREADMEChecker
 from .vscode_path_manager import VSCodePathManager
 
@@ -28,4 +29,5 @@ __all__ = [
     "ArchitectureChecker",
     "DevNotesChecker",
     "PackageREADMEChecker",
+    "PackageDependencyValidator",
 ]

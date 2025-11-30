@@ -1,6 +1,10 @@
-______________________________________________________________________
-
-## name: Feature Request about: Suggest a new feature for SAGE title: '[Feature] ' labels: 'feature' assignees: ''
+---
+name: Feature Request
+about: Suggest a new feature for SAGE
+title: '[Feature] '
+labels: 'feature'
+assignees: ''
+---
 
 ## Feature Description
 

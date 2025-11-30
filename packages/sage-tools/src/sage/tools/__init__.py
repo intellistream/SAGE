@@ -26,15 +26,9 @@ def __getattr__(name):
     """延迟导入 finetune 模块"""
     if name == "finetune":
         import importlib
-        import sys
 
-        # 避免递归导入
-        module_name = f"{__name__}.finetune"
-        if module_name in sys.modules:
-            return sys.modules[module_name]
-
-        # 导入 finetune 子模块
-        finetune_module = importlib.import_module(".finetune", package=__name__)
+        # Redirect to sage.libs.finetune (Moved to L3)
+        finetune_module = importlib.import_module("sage.libs.finetune")
         return finetune_module
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
