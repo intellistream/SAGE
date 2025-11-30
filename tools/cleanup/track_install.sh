@@ -20,7 +20,6 @@ mkdir -p "$SAGE_ROOT/.sage"
 record_install_info() {
     local install_mode="${1:-dev}"
     local install_environment="${2:-pip}"
-    local install_vllm="${3:-false}"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     cat > "$INSTALL_INFO_FILE" <<EOF
@@ -28,7 +27,6 @@ record_install_info() {
   "timestamp": "$timestamp",
   "install_mode": "$install_mode",
   "install_environment": "$install_environment",
-  "install_vllm": $install_vllm,
   "python_version": "$(python3 --version 2>&1 | cut -d' ' -f2)",
   "pip_version": "$(pip --version 2>&1 | awk '{print $2}')",
   "venv_name": "${SAGE_ENV_NAME:-}",

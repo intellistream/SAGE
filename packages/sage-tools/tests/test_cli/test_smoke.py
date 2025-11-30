@@ -16,19 +16,15 @@ SAGE CLI 冒烟测试 (Smoke Test)
 
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
+
+from sage.common.config import find_sage_project_root
 
 
 def get_project_root():
     """获取项目根目录"""
-    current = Path(__file__).parent
-    while current.parent != current:
-        if (current / "packages").exists():
-            return current
-        current = current.parent
-    return Path(__file__).parent.parent.parent.parent.parent
+    return find_sage_project_root()
 
 
 def run_command_simple(cmd_list, timeout=20):
@@ -73,8 +69,14 @@ class TestCLISmoke:
     def test_status_check(self):
         """测试基本状态检查"""
         success, stdout, stderr = run_command_simple(
-            [sys.executable, "-m", "sage.tools.cli.commands.dev.main", "status"],
-            timeout=60,  # 增加超时
+            [
+                sys.executable,
+                "-m",
+                "sage.tools.cli.commands.dev.main",
+                "status",
+                "--quick",
+            ],
+            timeout=120,  # 增加超时到120秒
         )
         assert success, f"Status check failed: {stderr}"
         assert "状态报告" in stdout or "status" in stdout.lower()

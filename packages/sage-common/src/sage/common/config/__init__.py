@@ -6,6 +6,7 @@ Configuration management utilities.
 
 from .output_paths import (
     SageOutputPaths,
+    find_sage_project_root,
     get_benchmarks_dir,
     get_cache_dir,
     get_coverage_dir,
@@ -26,9 +27,17 @@ from .output_paths import (
     migrate_existing_outputs,
     setup_sage_environment,
 )
+from .ports import (
+    DEFAULT_BENCHMARK_LLM_PORT,
+    DEFAULT_EMBEDDING_PORT,
+    DEFAULT_LLM_PORT,
+    SagePorts,
+)
 
 __all__ = [
+    # Output paths
     "SageOutputPaths",
+    "find_sage_project_root",
     "get_benchmarks_dir",
     "get_cache_dir",
     "get_coverage_dir",
@@ -48,4 +57,9 @@ __all__ = [
     "initialize_sage_paths",
     "migrate_existing_outputs",
     "setup_sage_environment",
+    # Ports
+    "SagePorts",
+    "DEFAULT_LLM_PORT",
+    "DEFAULT_EMBEDDING_PORT",
+    "DEFAULT_BENCHMARK_LLM_PORT",
 ]

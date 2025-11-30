@@ -1,4 +1,4 @@
-.PHONY: help install lint format test test-quick test-all quality clean build publish check version docs build-extensions clean-env
+.PHONY: help install lint format test test-quick test-all quality clean clean-cache build publish check version docs build-extensions clean-env
 
 # 默认目标：显示帮助
 help:
@@ -24,6 +24,7 @@ help:
 	@echo "📦 构建与发布:"
 	@echo "  make build        - 构建所有包"
 	@echo "  make clean        - 清理构建产物"
+	@echo "  make clean-cache  - 清理构建缓存（egg-info, build, dist）"
 	@echo "  make check        - 检查包配置"
 	@echo "  make publish      - 发布到 TestPyPI"
 	@echo "  make publish-prod - 发布到生产 PyPI（谨慎使用）"
@@ -117,6 +118,11 @@ clean:
 	@rm -rf packages/sage-common/build/
 	@find packages/sage-middleware/src/sage/middleware/components -type d \( -name "build" -o -name "lib" -o -name "bin" -o -name "install" \) -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ 清理完成"
+
+clean-cache:
+	@echo "🧹 清理构建缓存..."
+	@bash tools/install/fixes/build_cache_cleaner.sh clean
+	@echo "✅ 缓存清理完成"
 
 clean-env:
 	@echo "🧹 运行 SAGE 卸载与环境清理工具..."

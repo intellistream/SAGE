@@ -39,25 +39,29 @@ class SourceOperator(BaseOperator):
 
             self._stop_signal_sent = True
 
-            self.logger.info(f"Source Operator {self.name} received stop signal: {result}")
+            self.logger.info(
+                f"Source Operator {self.name} received stop signal from batch function: {result}"
+            )
 
             # 设置停止信号的来源
             result.source = self.name
 
-            # 转发停止信号到下游
+            # ✅ 将 StopSignal 发送到下游，让评估器输出统计信息
             self.router.send_stop_signal(result)
 
-            # 通知 JobManager 该节点停止（与其他节点一致）
+            # ✅ 同时通知 JobManager 停止整个任务
             if hasattr(self, "ctx") and hasattr(self.ctx, "request_stop"):
+                self.logger.info(f"Source Operator {self.name} requesting task stop via context")
                 self.ctx.request_stop()
 
-            # 设置任务停止标志（与其他节点一致）
+            # 设置任务停止标志
             if hasattr(self, "task") and self.task:
                 if hasattr(self.task, "ctx") and hasattr(self.task.ctx, "set_stop_signal"):
                     self.task.ctx.set_stop_signal()
 
                 if hasattr(self.task, "is_running"):
                     self.task.is_running = False
+                    self.logger.info(f"Source Operator {self.name} set task.is_running = False")
 
             return
 

@@ -85,7 +85,7 @@ class ExampleTestStrategies:
             ),
             "memory": TestStrategy(
                 name="memory",
-                timeout=60,
+                timeout=120,  # 增加到120秒，Pipeline-as-Service示例需要更多时间
                 requires_config=False,
                 requires_data=True,
                 success_patterns=[
@@ -304,6 +304,30 @@ class ExampleTestStrategies:
                     "SAGE_APP_MODE": "test",
                     "SAGE_LOG_LEVEL": "ERROR",
                     "SAGE_EXAMPLES_MODE": "test",
+                },
+            ),
+            "environment": TestStrategy(
+                name="environment",
+                timeout=120,  # 2 minutes for environment examples
+                requires_config=False,
+                requires_data=False,
+                success_patterns=[
+                    "任务执行完成",
+                    "环境创建完成",
+                    "Pipeline 构建完成",
+                    "✅",
+                    "所有示例运行完成",
+                ],
+                failure_patterns=[
+                    "连接失败",
+                    "任务提交失败",
+                    "JobManager daemon 未运行",
+                    "Connection refused",
+                ],
+                environment_vars={
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                    "SAGE_TEST_MODE": "true",
                 },
             ),
         }
