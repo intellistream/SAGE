@@ -116,30 +116,48 @@ class PostInsert(MapFunction):
 
         elif self.action == "reflection":
             # reflection 配置
-            self.trigger_mode = get_required_config(self.config, f"{cfg}.trigger_mode", "action=reflection")
-            self.importance_threshold = get_required_config(self.config, f"{cfg}.importance_threshold", "trigger_mode=threshold")
+            self.trigger_mode = get_required_config(
+                self.config, f"{cfg}.trigger_mode", "action=reflection"
+            )
+            self.importance_threshold = get_required_config(
+                self.config, f"{cfg}.importance_threshold", "trigger_mode=threshold"
+            )
             self.importance_field = self.config.get(f"{cfg}.importance_field", "importance_score")
             self.reset_after_reflection = self.config.get(f"{cfg}.reset_after_reflection", True)
             self.interval_minutes = self.config.get(f"{cfg}.interval_minutes", 60)
             self.memory_count_trigger = self.config.get(f"{cfg}.memory_count", 50)
-            self.reflection_prompt = get_required_config(self.config, f"{cfg}.reflection_prompt", "action=reflection")
+            self.reflection_prompt = get_required_config(
+                self.config, f"{cfg}.reflection_prompt", "action=reflection"
+            )
             self.reflection_depth = self.config.get(f"{cfg}.reflection_depth", 1)
-            self.max_reflections = get_required_config(self.config, f"{cfg}.max_reflections", "action=reflection")
+            self.max_reflections = get_required_config(
+                self.config, f"{cfg}.max_reflections", "action=reflection"
+            )
             self.reflection_type = self.config.get(f"{cfg}.reflection_type", "general")
             self.self_reflection_prompt = self.config.get(f"{cfg}.self_reflection_prompt")
             self.other_reflection_prompt = self.config.get(f"{cfg}.other_reflection_prompt")
             if self.reflection_type == "self" and not self.self_reflection_prompt:
-                raise ValueError("缺少必需配置: operators.post_insert.self_reflection_prompt (reflection_type=self)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.self_reflection_prompt (reflection_type=self)"
+                )
             if self.reflection_type == "other" and not self.other_reflection_prompt:
-                raise ValueError("缺少必需配置: operators.post_insert.other_reflection_prompt (reflection_type=other)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.other_reflection_prompt (reflection_type=other)"
+                )
             self.store_reflection = self.config.get(f"{cfg}.store_reflection", True)
             self.reflection_importance = self.config.get(f"{cfg}.reflection_importance", 8)
 
         elif self.action == "link_evolution":
             # link_evolution 配置
-            self.link_policy = get_required_config(self.config, f"{cfg}.link_policy", "action=link_evolution")
-            self.knn_k = get_required_config(self.config, f"{cfg}.knn_k", "link_policy=synonym_edge")
-            self.similarity_threshold = get_required_config(self.config, f"{cfg}.similarity_threshold", "link_policy=synonym_edge")
+            self.link_policy = get_required_config(
+                self.config, f"{cfg}.link_policy", "action=link_evolution"
+            )
+            self.knn_k = get_required_config(
+                self.config, f"{cfg}.knn_k", "link_policy=synonym_edge"
+            )
+            self.similarity_threshold = get_required_config(
+                self.config, f"{cfg}.similarity_threshold", "link_policy=synonym_edge"
+            )
             self.edge_weight = self.config.get(f"{cfg}.edge_weight", 1.0)
             self.strengthen_factor = self.config.get(f"{cfg}.strengthen_factor", 0.1)
             self.decay_factor = self.config.get(f"{cfg}.decay_factor", 0.01)
@@ -149,14 +167,22 @@ class PostInsert(MapFunction):
             self.auto_link_prompt = self.config.get(f"{cfg}.auto_link_prompt")
             self.max_auto_links = self.config.get(f"{cfg}.max_auto_links", 5)
             if self.link_policy == "auto_link" and not self.auto_link_prompt:
-                raise ValueError("缺少必需配置: operators.post_insert.auto_link_prompt (link_policy=auto_link)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.auto_link_prompt (link_policy=auto_link)"
+                )
 
         elif self.action == "forgetting":
             # forgetting 配置
-            self.decay_type = get_required_config(self.config, f"{cfg}.decay_type", "action=forgetting")
-            self.decay_rate = get_required_config(self.config, f"{cfg}.decay_rate", "decay_type=time_decay")
+            self.decay_type = get_required_config(
+                self.config, f"{cfg}.decay_type", "action=forgetting"
+            )
+            self.decay_rate = get_required_config(
+                self.config, f"{cfg}.decay_rate", "decay_type=time_decay"
+            )
             self.decay_floor = self.config.get(f"{cfg}.decay_floor", 0.1)
-            self.max_memories = get_required_config(self.config, f"{cfg}.max_memories", "decay_type=lru/lfu")
+            self.max_memories = get_required_config(
+                self.config, f"{cfg}.max_memories", "decay_type=lru/lfu"
+            )
             self.evict_count = self.config.get(f"{cfg}.evict_count", 100)
             self.heat_threshold = self.config.get(f"{cfg}.heat_threshold", 0.3)
             self.heat_decay = self.config.get(f"{cfg}.heat_decay", 0.1)
@@ -171,32 +197,54 @@ class PostInsert(MapFunction):
 
         elif self.action == "summarize":
             # summarize 配置
-            self.trigger_condition = get_required_config(self.config, f"{cfg}.trigger_condition", "action=summarize")
-            self.overflow_threshold = get_required_config(self.config, f"{cfg}.overflow_threshold", "trigger_condition=overflow")
+            self.trigger_condition = get_required_config(
+                self.config, f"{cfg}.trigger_condition", "action=summarize"
+            )
+            self.overflow_threshold = get_required_config(
+                self.config, f"{cfg}.overflow_threshold", "trigger_condition=overflow"
+            )
             self.periodic_interval = self.config.get(f"{cfg}.periodic_interval", 3600)
-            self.summary_strategy = get_required_config(self.config, f"{cfg}.summary_strategy", "action=summarize")
+            self.summary_strategy = get_required_config(
+                self.config, f"{cfg}.summary_strategy", "action=summarize"
+            )
             self.hierarchy_levels = self.config.get(f"{cfg}.hierarchy_levels")
             if self.summary_strategy == "hierarchical" and not self.hierarchy_levels:
-                raise ValueError("缺少必需配置: operators.post_insert.hierarchy_levels (summary_strategy=hierarchical)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.hierarchy_levels (summary_strategy=hierarchical)"
+                )
             self.incremental_prompt = self.config.get(f"{cfg}.incremental_prompt")
             if self.summary_strategy == "incremental" and not self.incremental_prompt:
-                raise ValueError("缺少必需配置: operators.post_insert.incremental_prompt (summary_strategy=incremental)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.incremental_prompt (summary_strategy=incremental)"
+                )
             self.summarize_prompt = self.config.get(f"{cfg}.summarize_prompt")
             if self.summary_strategy == "single" and not self.summarize_prompt:
-                raise ValueError("缺少必需配置: operators.post_insert.summarize_prompt (summary_strategy=single)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.summarize_prompt (summary_strategy=single)"
+                )
             self.replace_originals = self.config.get(f"{cfg}.replace_originals", False)
             self.store_as_new = self.config.get(f"{cfg}.store_as_new", True)
             self.summary_importance = self.config.get(f"{cfg}.summary_importance", 7)
 
         elif self.action == "migrate":
             # migrate 配置
-            self.migrate_policy = get_required_config(self.config, f"{cfg}.migrate_policy", "action=migrate")
-            self.heat_upgrade_threshold = get_required_config(self.config, f"{cfg}.heat_upgrade_threshold", "migrate_policy=heat")
-            self.cold_threshold = get_required_config(self.config, f"{cfg}.cold_threshold", "migrate_policy=heat")
-            self.session_gap = get_required_config(self.config, f"{cfg}.session_gap", "migrate_policy=time")
+            self.migrate_policy = get_required_config(
+                self.config, f"{cfg}.migrate_policy", "action=migrate"
+            )
+            self.heat_upgrade_threshold = get_required_config(
+                self.config, f"{cfg}.heat_upgrade_threshold", "migrate_policy=heat"
+            )
+            self.cold_threshold = get_required_config(
+                self.config, f"{cfg}.cold_threshold", "migrate_policy=heat"
+            )
+            self.session_gap = get_required_config(
+                self.config, f"{cfg}.session_gap", "migrate_policy=time"
+            )
             self.tier_capacities = self.config.get(f"{cfg}.tier_capacities")
             if self.migrate_policy == "overflow" and not self.tier_capacities:
-                raise ValueError("缺少必需配置: operators.post_insert.tier_capacities (migrate_policy=overflow)")
+                raise ValueError(
+                    "缺少必需配置: operators.post_insert.tier_capacities (migrate_policy=overflow)"
+                )
             self.upgrade_transform = self.config.get(f"{cfg}.upgrade_transform", "none")
             self.downgrade_transform = self.config.get(f"{cfg}.downgrade_transform", "summarize")
 
@@ -392,9 +440,7 @@ class PostInsert(MapFunction):
             print("没有可用于反思的记忆")
             return
 
-        memory_list_str = "\n".join(
-            [f"- {m.get('text', '')}" for m in recent_memories]
-        )
+        memory_list_str = "\n".join([f"- {m.get('text', '')}" for m in recent_memories])
 
         reflections = []
 
@@ -439,11 +485,11 @@ class PostInsert(MapFunction):
         result = self._parse_json_response(response)
 
         if result and "reflections" in result:
-            return result["reflections"][:self.max_reflections]
+            return result["reflections"][: self.max_reflections]
 
         # 尝试按行解析
         lines = [line.strip() for line in response.strip().split("\n") if line.strip()]
-        return lines[:self.max_reflections]
+        return lines[: self.max_reflections]
 
     def _generate_typed_reflections(
         self, memory_list_str: str, prompt_template: str, reflection_type: str
@@ -458,10 +504,10 @@ class PostInsert(MapFunction):
         result = self._parse_json_response(response)
 
         if result and "reflections" in result:
-            return result["reflections"][:self.max_reflections]
+            return result["reflections"][: self.max_reflections]
 
         lines = [line.strip() for line in response.strip().split("\n") if line.strip()]
-        return lines[:self.max_reflections]
+        return lines[: self.max_reflections]
 
     def _generate_higher_order_reflections(self, base_reflections: list[str]):
         """生成更高阶的反思（二阶反思）"""
@@ -480,10 +526,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         if result and "higher_reflections" in result:
             higher_reflections = result["higher_reflections"]
             if self.store_reflection:
-                self._store_reflections(
-                    higher_reflections,
-                    metadata={"reflection_level": 2}
-                )
+                self._store_reflections(higher_reflections, metadata={"reflection_level": 2})
 
     def _store_reflections(self, reflections: list[str], metadata: dict | None = None):
         """存储反思到记忆库"""
@@ -503,12 +546,15 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         """获取最近的记忆（从服务获取）"""
         try:
             # 尝试调用服务获取最近记忆
-            return self.call_service(
-                self.service_name,
-                method="get_recent",
-                limit=limit,
-                timeout=10.0,
-            ) or []
+            return (
+                self.call_service(
+                    self.service_name,
+                    method="get_recent",
+                    limit=limit,
+                    timeout=10.0,
+                )
+                or []
+            )
         except Exception:
             # 服务不支持 get_recent，返回空
             return []
@@ -642,12 +688,15 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             )
 
             # 获取邻居
-            neighbors = self.call_service(
-                self.graph_service_name,
-                method="get_neighbors",
-                node_id=node_id,
-                timeout=5.0,
-            ) or []
+            neighbors = (
+                self.call_service(
+                    self.graph_service_name,
+                    method="get_neighbors",
+                    node_id=node_id,
+                    timeout=5.0,
+                )
+                or []
+            )
 
             # 递归激活邻居
             new_decay = decay * self.activation_decay
@@ -681,9 +730,9 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             return
 
         # 格式化候选记忆
-        existing_memories = "\n".join([
-            f"{i}. {c.get('text', '')}" for i, c in enumerate(candidates)
-        ])
+        existing_memories = "\n".join(
+            [f"{i}. {c.get('text', '')}" for i, c in enumerate(candidates)]
+        )
 
         prompt = self.auto_link_prompt.format(
             new_memory=new_memory_text,
@@ -695,7 +744,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
 
         if result and "links" in result:
             entry_id = entry.get("id") or new_memory_text[:32]
-            link_indices = result["links"][:self.max_auto_links]
+            link_indices = result["links"][: self.max_auto_links]
 
             for idx in link_indices:
                 if 0 <= idx < len(candidates):
@@ -708,9 +757,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
                         weight=self.edge_weight,
                     )
 
-    def _create_graph_edge(
-        self, source: str, target: str, edge_type: str, weight: float
-    ):
+    def _create_graph_edge(self, source: str, target: str, edge_type: str, weight: float):
         """创建图边"""
         try:
             self.call_service(
@@ -783,9 +830,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
                 to_forget,
                 key=lambda x: self._memory_access_times.get(x, 0),
             )
-            to_forget = sorted_entries[
-                : len(self._memory_access_times) - self.retention_min
-            ]
+            to_forget = sorted_entries[: len(self._memory_access_times) - self.retention_min]
 
         self._forget_memories(to_forget)
 
@@ -989,10 +1034,9 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         if not self._pending_memories:
             return
 
-        memory_list_str = "\n".join([
-            f"- {m.get('refactor', '') or m.get('text', '')}"
-            for m in self._pending_memories
-        ])
+        memory_list_str = "\n".join(
+            [f"- {m.get('refactor', '') or m.get('text', '')}" for m in self._pending_memories]
+        )
 
         prompt = self.summarize_prompt.format(memory_list=memory_list_str)
         response = self._generator.generate(prompt)
@@ -1033,14 +1077,13 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             window = level_config.get("window", 86400)
             prompt_template = level_config.get("prompt")
             if not prompt_template:
-                raise ValueError(
-                    f"缺少必需配置: hierarchy_levels[{level_name}].prompt"
-                )
+                raise ValueError(f"缺少必需配置: hierarchy_levels[{level_name}].prompt")
 
             # 根据时间窗口筛选记忆
             if window > 0:
                 relevant_memories = [
-                    m for m in self._pending_memories
+                    m
+                    for m in self._pending_memories
                     if current_time - m.get("timestamp", current_time) <= window
                 ]
             else:
@@ -1049,10 +1092,9 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             if not relevant_memories:
                 continue
 
-            memory_list_str = "\n".join([
-                f"- {m.get('refactor', '') or m.get('text', '')}"
-                for m in relevant_memories
-            ])
+            memory_list_str = "\n".join(
+                [f"- {m.get('refactor', '') or m.get('text', '')}" for m in relevant_memories]
+            )
 
             prompt = prompt_template.format(memory_list=memory_list_str)
             response = self._generator.generate(prompt)
@@ -1094,10 +1136,9 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         if not self._pending_memories:
             return
 
-        new_memories_str = "\n".join([
-            f"- {m.get('refactor', '') or m.get('text', '')}"
-            for m in self._pending_memories
-        ])
+        new_memories_str = "\n".join(
+            [f"- {m.get('refactor', '') or m.get('text', '')}" for m in self._pending_memories]
+        )
 
         prompt = self.incremental_prompt.format(
             existing_summary=self._existing_summary or "No existing summary.",
@@ -1180,11 +1221,14 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         if time_gap >= self.session_gap:
             # 获取当前 STM 中的所有记忆
             try:
-                stm_memories = self.call_service(
-                    self.hierarchical_service_names["stm"],
-                    method="get_all",
-                    timeout=10.0,
-                ) or []
+                stm_memories = (
+                    self.call_service(
+                        self.hierarchical_service_names["stm"],
+                        method="get_all",
+                        timeout=10.0,
+                    )
+                    or []
+                )
             except Exception:
                 stm_memories = []
 
@@ -1233,11 +1277,14 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         stm_capacity = self.tier_capacities.get("stm", 100)
 
         try:
-            stm_count = self.call_service(
-                self.hierarchical_service_names["stm"],
-                method="count",
-                timeout=5.0,
-            ) or 0
+            stm_count = (
+                self.call_service(
+                    self.hierarchical_service_names["stm"],
+                    method="count",
+                    timeout=5.0,
+                )
+                or 0
+            )
         except Exception:
             return
 
@@ -1247,12 +1294,15 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
 
             # 获取最旧的记忆
             try:
-                oldest_memories = self.call_service(
-                    self.hierarchical_service_names["stm"],
-                    method="get_oldest",
-                    limit=overflow_count,
-                    timeout=10.0,
-                ) or []
+                oldest_memories = (
+                    self.call_service(
+                        self.hierarchical_service_names["stm"],
+                        method="get_oldest",
+                        limit=overflow_count,
+                        timeout=10.0,
+                    )
+                    or []
+                )
             except Exception:
                 oldest_memories = []
 
@@ -1452,4 +1502,3 @@ Summary:"""
 
         self.trigger_condition = original_condition
         self.overflow_threshold = original_threshold
-

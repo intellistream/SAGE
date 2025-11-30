@@ -268,12 +268,14 @@ class HierarchicalMemoryService(BaseService):
         for idx in top_indices:
             entry_id = entry_ids[idx]
             entry = id_to_entry.get(entry_id, {})
-            results.append({
-                "id": entry_id,
-                "text": entry.get("content", ""),
-                "score": float(scores[idx]),
-                "metadata": entry.get("metadata", {}),
-            })
+            results.append(
+                {
+                    "id": entry_id,
+                    "text": entry.get("content", ""),
+                    "score": float(scores[idx]),
+                    "metadata": entry.get("metadata", {}),
+                }
+            )
 
         return results
 
@@ -290,12 +292,14 @@ class HierarchicalMemoryService(BaseService):
 
         results = []
         for entry in sorted_data[:top_k]:
-            results.append({
-                "id": entry.get("id", ""),
-                "text": entry.get("content", ""),
-                "score": 1.0,
-                "metadata": entry.get("metadata", {}),
-            })
+            results.append(
+                {
+                    "id": entry.get("id", ""),
+                    "text": entry.get("content", ""),
+                    "score": 1.0,
+                    "metadata": entry.get("metadata", {}),
+                }
+            )
 
         return results
 
@@ -309,12 +313,14 @@ class HierarchicalMemoryService(BaseService):
 
         results = []
         for entry in data_list[:top_k]:
-            results.append({
-                "id": entry.get("id", ""),
-                "text": entry.get("content", ""),
-                "score": entry.get("heat", 1.0),
-                "metadata": entry.get("metadata", {}),
-            })
+            results.append(
+                {
+                    "id": entry.get("id", ""),
+                    "text": entry.get("content", ""),
+                    "score": entry.get("heat", 1.0),
+                    "metadata": entry.get("metadata", {}),
+                }
+            )
 
         return results
 
@@ -473,9 +479,7 @@ class HierarchicalMemoryService(BaseService):
                 entry_id = entry.get("id")
 
                 if entry_id in from_storage["embeddings"]:
-                    to_storage["embeddings"][entry_id] = from_storage["embeddings"].pop(
-                        entry_id
-                    )
+                    to_storage["embeddings"][entry_id] = from_storage["embeddings"].pop(entry_id)
 
                 if isinstance(to_storage["data"], deque):
                     to_storage["data"].append(entry)
@@ -538,6 +542,7 @@ class HierarchicalMemoryService(BaseService):
 
 
 if __name__ == "__main__":
+
     def test_hierarchical_memory():
         print("\n" + "=" * 70)
         print("HierarchicalMemoryService 测试")
@@ -554,11 +559,11 @@ if __name__ == "__main__":
         for i in range(5):
             vec = np.random.randn(768).astype(np.float32)
             service.insert(
-                f"这是第 {i+1} 条记忆内容",
+                f"这是第 {i + 1} 条记忆内容",
                 vector=vec,
                 metadata={"importance": float(i) / 5},
             )
-            print(f"插入第 {i+1} 条记忆")
+            print(f"插入第 {i + 1} 条记忆")
 
         # 打印统计
         stats = service.get_tier_stats()

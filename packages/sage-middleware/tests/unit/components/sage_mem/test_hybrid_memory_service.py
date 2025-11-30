@@ -104,9 +104,7 @@ class TestHybridMemoryServiceRetrieve:
         import numpy as np
 
         query_vector = np.random.randn(768).astype(np.float32)
-        result = populated_service.retrieve(
-            query="机器学习", vector=query_vector, metadata={}
-        )
+        result = populated_service.retrieve(query="机器学习", vector=query_vector, metadata={})
 
         assert isinstance(result, list)
 

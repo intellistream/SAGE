@@ -69,39 +69,48 @@ class PreRetrieval(MapFunction):
         """根据 action 类型初始化对应配置和工具"""
         if self.action == "optimize":
             # optimize action 配置
-            self.optimize_type = get_required_config(self.config, 
-                "operators.pre_retrieval.optimize_type", "action=optimize"
+            self.optimize_type = get_required_config(
+                self.config, "operators.pre_retrieval.optimize_type", "action=optimize"
             )
 
             if self.optimize_type == "keyword_extract":
-                self.extractor = get_required_config(self.config, 
-                    "operators.pre_retrieval.extractor", "optimize_type=keyword_extract"
+                self.extractor = get_required_config(
+                    self.config,
+                    "operators.pre_retrieval.extractor",
+                    "optimize_type=keyword_extract",
                 )
                 self.extract_types = self.config.get(
                     "operators.pre_retrieval.extract_types", ["NOUN", "PROPN"]
                 )
-                self.max_keywords = get_required_config(self.config, 
-                    "operators.pre_retrieval.max_keywords", "optimize_type=keyword_extract"
+                self.max_keywords = get_required_config(
+                    self.config,
+                    "operators.pre_retrieval.max_keywords",
+                    "optimize_type=keyword_extract",
                 )
                 self.keyword_prompt = self.config.get("operators.pre_retrieval.keyword_prompt")
 
                 if self.extractor == "spacy":
-                    import spacy
                     import subprocess
-                    model_name = get_required_config(self.config, 
-                        "operators.pre_retrieval.spacy_model", "extractor=spacy"
+
+                    import spacy
+
+                    model_name = get_required_config(
+                        self.config, "operators.pre_retrieval.spacy_model", "extractor=spacy"
                     )
                     try:
                         self._nlp = spacy.load(model_name)
                     except OSError:
                         print(f"spaCy model {model_name} not found, attempting to download...")
-                        subprocess.run(["python", "-m", "spacy", "download", model_name], check=True)
+                        subprocess.run(
+                            ["python", "-m", "spacy", "download", model_name], check=True
+                        )
                         self._nlp = spacy.load(model_name)
 
                 elif self.extractor == "nltk":
                     import nltk
                     from nltk import pos_tag, word_tokenize
                     from nltk.stem import WordNetLemmatizer
+
                     for resource, path in [
                         ("punkt", "tokenizers/punkt"),
                         ("averaged_perceptron_tagger", "taggers/averaged_perceptron_tagger"),
@@ -115,10 +124,19 @@ class PreRetrieval(MapFunction):
                     self._pos_tag = pos_tag
                     self._lemmatizer = WordNetLemmatizer()
                     self._nltk_pos_mapping = {
-                        "NN": "NOUN", "NNS": "NOUN", "NNP": "PROPN", "NNPS": "PROPN",
-                        "VB": "VERB", "VBD": "VERB", "VBG": "VERB", "VBN": "VERB",
-                        "VBP": "VERB", "VBZ": "VERB",
-                        "JJ": "ADJ", "JJR": "ADJ", "JJS": "ADJ",
+                        "NN": "NOUN",
+                        "NNS": "NOUN",
+                        "NNP": "PROPN",
+                        "NNPS": "PROPN",
+                        "VB": "VERB",
+                        "VBD": "VERB",
+                        "VBG": "VERB",
+                        "VBN": "VERB",
+                        "VBP": "VERB",
+                        "VBZ": "VERB",
+                        "JJ": "ADJ",
+                        "JJR": "ADJ",
+                        "JJS": "ADJ",
                     }
 
                 elif self.extractor == "llm":
@@ -128,33 +146,43 @@ class PreRetrieval(MapFunction):
                         )
 
             elif self.optimize_type == "expand":
-                self.expand_prompt = get_required_config(self.config, 
-                    "operators.pre_retrieval.expand_prompt", "optimize_type=expand"
+                self.expand_prompt = get_required_config(
+                    self.config, "operators.pre_retrieval.expand_prompt", "optimize_type=expand"
                 )
-                self.expand_count = get_required_config(self.config, 
-                    "operators.pre_retrieval.expand_count", "optimize_type=expand"
+                self.expand_count = get_required_config(
+                    self.config, "operators.pre_retrieval.expand_count", "optimize_type=expand"
                 )
-                self.merge_strategy = self.config.get("operators.pre_retrieval.merge_strategy", "union")
+                self.merge_strategy = self.config.get(
+                    "operators.pre_retrieval.merge_strategy", "union"
+                )
 
             elif self.optimize_type == "rewrite":
-                self.rewrite_prompt = get_required_config(self.config, 
-                    "operators.pre_retrieval.rewrite_prompt", "optimize_type=rewrite"
+                self.rewrite_prompt = get_required_config(
+                    self.config, "operators.pre_retrieval.rewrite_prompt", "optimize_type=rewrite"
                 )
 
             elif self.optimize_type == "instruction":
-                self.instruction_prefix = get_required_config(self.config, 
-                    "operators.pre_retrieval.instruction_prefix", "optimize_type=instruction"
+                self.instruction_prefix = get_required_config(
+                    self.config,
+                    "operators.pre_retrieval.instruction_prefix",
+                    "optimize_type=instruction",
                 )
-                self.instruction_suffix = self.config.get("operators.pre_retrieval.instruction_suffix", "")
+                self.instruction_suffix = self.config.get(
+                    "operators.pre_retrieval.instruction_suffix", ""
+                )
 
-            self.replace_original = self.config.get("operators.pre_retrieval.replace_original", False)
+            self.replace_original = self.config.get(
+                "operators.pre_retrieval.replace_original", False
+            )
             self.store_optimized = self.config.get("operators.pre_retrieval.store_optimized", True)
 
         elif self.action == "multi_embed":
             # multi_embed action 配置
             self.embeddings_config = self.config.get("operators.pre_retrieval.embeddings", [])
             if not self.embeddings_config:
-                self.embeddings_config = [{"name": "semantic", "model": "BAAI/bge-m3", "weight": 0.6}]
+                self.embeddings_config = [
+                    {"name": "semantic", "model": "BAAI/bge-m3", "weight": 0.6}
+                ]
 
             self._embedding_generators: dict[str, tuple[EmbeddingGenerator, float]] = {}
             base_url = self.config.get("runtime.embedding_base_url")
@@ -166,59 +194,73 @@ class PreRetrieval(MapFunction):
                 self._embedding_generators[name] = (generator, weight)
 
             self.output_format = self.config.get("operators.pre_retrieval.output_format", "dict")
-            self.match_insert_config = self.config.get("operators.pre_retrieval.match_insert_config", True)
+            self.match_insert_config = self.config.get(
+                "operators.pre_retrieval.match_insert_config", True
+            )
 
         elif self.action == "decompose":
             # decompose action 配置
-            self.decompose_strategy = get_required_config(self.config, 
-                "operators.pre_retrieval.decompose_strategy", "action=decompose"
+            self.decompose_strategy = get_required_config(
+                self.config, "operators.pre_retrieval.decompose_strategy", "action=decompose"
             )
-            self.max_sub_queries = get_required_config(self.config, 
-                "operators.pre_retrieval.max_sub_queries", "action=decompose"
+            self.max_sub_queries = get_required_config(
+                self.config, "operators.pre_retrieval.max_sub_queries", "action=decompose"
             )
-            self.sub_query_action = self.config.get("operators.pre_retrieval.sub_query_action", "parallel")
-            self.decompose_merge_strategy = self.config.get("operators.pre_retrieval.merge_strategy", "union")
+            self.sub_query_action = self.config.get(
+                "operators.pre_retrieval.sub_query_action", "parallel"
+            )
+            self.decompose_merge_strategy = self.config.get(
+                "operators.pre_retrieval.merge_strategy", "union"
+            )
 
             if self.decompose_strategy == "llm":
-                self.decompose_prompt = get_required_config(self.config, 
-                    "operators.pre_retrieval.decompose_prompt", "decompose_strategy=llm"
+                self.decompose_prompt = get_required_config(
+                    self.config,
+                    "operators.pre_retrieval.decompose_prompt",
+                    "decompose_strategy=llm",
                 )
             elif self.decompose_strategy == "rule":
-                self.split_keywords = get_required_config(self.config, 
-                    "operators.pre_retrieval.split_keywords", "decompose_strategy=rule"
+                self.split_keywords = get_required_config(
+                    self.config, "operators.pre_retrieval.split_keywords", "decompose_strategy=rule"
                 )
 
         elif self.action == "route":
             # route action 配置
-            self.route_strategy = get_required_config(self.config, 
-                "operators.pre_retrieval.route_strategy", "action=route"
+            self.route_strategy = get_required_config(
+                self.config, "operators.pre_retrieval.route_strategy", "action=route"
             )
-            self.allow_multi_route = self.config.get("operators.pre_retrieval.allow_multi_route", True)
+            self.allow_multi_route = self.config.get(
+                "operators.pre_retrieval.allow_multi_route", True
+            )
             self.max_routes = self.config.get("operators.pre_retrieval.max_routes", 2)
-            self.default_route = get_required_config(self.config, 
-                "operators.pre_retrieval.default_route", "action=route"
+            self.default_route = get_required_config(
+                self.config, "operators.pre_retrieval.default_route", "action=route"
             )
 
             if self.route_strategy == "keyword":
-                self.keyword_rules = get_required_config(self.config, 
-                    "operators.pre_retrieval.keyword_rules", "route_strategy=keyword"
+                self.keyword_rules = get_required_config(
+                    self.config, "operators.pre_retrieval.keyword_rules", "route_strategy=keyword"
                 )
             elif self.route_strategy == "classifier":
-                self.classifier_model = get_required_config(self.config, 
-                    "operators.pre_retrieval.classifier_model", "route_strategy=classifier"
+                self.classifier_model = get_required_config(
+                    self.config,
+                    "operators.pre_retrieval.classifier_model",
+                    "route_strategy=classifier",
                 )
-                self.route_mapping = get_required_config(self.config, 
-                    "operators.pre_retrieval.route_mapping", "route_strategy=classifier"
+                self.route_mapping = get_required_config(
+                    self.config,
+                    "operators.pre_retrieval.route_mapping",
+                    "route_strategy=classifier",
                 )
             elif self.route_strategy == "llm":
-                self.route_prompt = get_required_config(self.config, 
-                    "operators.pre_retrieval.route_prompt", "route_strategy=llm"
+                self.route_prompt = get_required_config(
+                    self.config, "operators.pre_retrieval.route_prompt", "route_strategy=llm"
                 )
 
         elif self.action == "validate":
             # validate action 配置
-            self.validation_rules = get_required_config(self.config, 
-                "operators.pre_retrieval.rules", "action=validate"
+            self.validation_rules = get_required_config(
+                self.config, "operators.pre_retrieval.rules", "action=validate"
             )
             self.on_fail = self.config.get("operators.pre_retrieval.on_fail", "default")
             self.default_query = self.config.get("operators.pre_retrieval.default_query", "Hello")
@@ -395,7 +437,9 @@ class PreRetrieval(MapFunction):
 
             # 解析扩展查询
             lines = result.strip().split("\n")
-            expanded_queries = [line.strip().lstrip("0123456789.-) ") for line in lines if line.strip()]
+            expanded_queries = [
+                line.strip().lstrip("0123456789.-) ") for line in lines if line.strip()
+            ]
             expanded_queries = expanded_queries[: self.expand_count]
 
             # 根据合并策略返回
@@ -471,7 +515,9 @@ class PreRetrieval(MapFunction):
             data["embedding_weights"] = weights
         else:
             # list 格式：按权重排序的向量列表
-            sorted_items = sorted(embeddings.items(), key=lambda x: weights.get(x[0], 0), reverse=True)
+            sorted_items = sorted(
+                embeddings.items(), key=lambda x: weights.get(x[0], 0), reverse=True
+            )
             data["query_embeddings"] = [emb for _, emb in sorted_items]
             data["embedding_weights"] = [weights.get(name, 0) for name, _ in sorted_items]
             data["embedding_names"] = [name for name, _ in sorted_items]
@@ -525,7 +571,7 @@ class PreRetrieval(MapFunction):
             # 尝试解析 JSON 数组
             try:
                 # 查找 JSON 数组
-                match = re.search(r'\[.*?\]', result, re.DOTALL)
+                match = re.search(r"\[.*?\]", result, re.DOTALL)
                 if match:
                     sub_queries = json.loads(match.group())
                     if isinstance(sub_queries, list):
@@ -550,7 +596,7 @@ class PreRetrieval(MapFunction):
     def _decompose_with_rules(self, query: str) -> list[str]:
         """使用规则分解查询"""
         # 构建分割正则
-        pattern = r'\b(?:' + '|'.join(re.escape(kw) for kw in self.split_keywords) + r')\b'
+        pattern = r"\b(?:" + "|".join(re.escape(kw) for kw in self.split_keywords) + r")\b"
 
         # 分割查询
         parts = re.split(pattern, query, flags=re.IGNORECASE)
@@ -635,7 +681,7 @@ class PreRetrieval(MapFunction):
 
             # 尝试解析 JSON 数组
             try:
-                match = re.search(r'\[.*?\]', result, re.DOTALL)
+                match = re.search(r"\[.*?\]", result, re.DOTALL)
                 if match:
                     routes = json.loads(match.group())
                     if isinstance(routes, list):
@@ -701,7 +747,7 @@ class PreRetrieval(MapFunction):
             query = query.lower()
 
         if self.preprocessing.get("remove_punctuation", False):
-            query = re.sub(r'[^\w\s]', '', query)
+            query = re.sub(r"[^\w\s]", "", query)
 
         return query
 
@@ -728,7 +774,7 @@ class PreRetrieval(MapFunction):
             elif rule_type == "safety":
                 for pattern in self.blocked_patterns:
                     if pattern.lower() in query.lower():
-                        return False, f"Query contains blocked pattern"
+                        return False, "Query contains blocked pattern"
 
         return True, ""
 
@@ -738,19 +784,19 @@ class PreRetrieval(MapFunction):
         基于字符集的启发式检测
         """
         # 检测中文
-        if re.search(r'[\u4e00-\u9fff]', text):
+        if re.search(r"[\u4e00-\u9fff]", text):
             return "zh"
 
         # 检测日文
-        if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
+        if re.search(r"[\u3040-\u309f\u30a0-\u30ff]", text):
             return "ja"
 
         # 检测韩文
-        if re.search(r'[\uac00-\ud7af]', text):
+        if re.search(r"[\uac00-\ud7af]", text):
             return "ko"
 
         # 默认英文
-        if re.search(r'[a-zA-Z]', text):
+        if re.search(r"[a-zA-Z]", text):
             return "en"
 
         return None

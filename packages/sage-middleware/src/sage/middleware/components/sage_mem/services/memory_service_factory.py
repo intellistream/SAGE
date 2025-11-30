@@ -153,27 +153,15 @@ class MemoryServiceFactory:
             ServiceFactory 实例
         """
         # 获取配置参数（均有默认值）
-        graph_type = config.get(
-            f"services.{service_name}.graph_type", "knowledge_graph"
-        )
-        node_embedding_dim = config.get(
-            f"services.{service_name}.node_embedding_dim", 768
-        )
+        graph_type = config.get(f"services.{service_name}.graph_type", "knowledge_graph")
+        node_embedding_dim = config.get(f"services.{service_name}.node_embedding_dim", 768)
         edge_types_raw = config.get(f"services.{service_name}.edge_types")
         edge_types = list(edge_types_raw) if edge_types_raw else None
 
-        link_policy = config.get(
-            f"services.{service_name}.link_policy", "bidirectional"
-        )
-        max_links_per_node = config.get(
-            f"services.{service_name}.max_links_per_node", 50
-        )
-        link_weight_init = config.get(
-            f"services.{service_name}.link_weight_init", 1.0
-        )
-        synonymy_threshold = config.get(
-            f"services.{service_name}.synonymy_threshold", 0.8
-        )
+        link_policy = config.get(f"services.{service_name}.link_policy", "bidirectional")
+        max_links_per_node = config.get(f"services.{service_name}.max_links_per_node", 50)
+        link_weight_init = config.get(f"services.{service_name}.link_weight_init", 1.0)
+        synonymy_threshold = config.get(f"services.{service_name}.synonymy_threshold", 0.8)
         damping = config.get(f"services.{service_name}.damping", 0.5)
 
         # 创建并返回 ServiceFactory
@@ -216,15 +204,9 @@ class MemoryServiceFactory:
         else:
             tier_capacities = None
 
-        migration_policy = config.get(
-            f"services.{service_name}.migration_policy", "overflow"
-        )
-        migration_threshold = config.get(
-            f"services.{service_name}.migration_threshold", 0.7
-        )
-        migration_interval = config.get(
-            f"services.{service_name}.migration_interval", 3600
-        )
+        migration_policy = config.get(f"services.{service_name}.migration_policy", "overflow")
+        migration_threshold = config.get(f"services.{service_name}.migration_threshold", 0.7)
+        migration_interval = config.get(f"services.{service_name}.migration_interval", 3600)
         embedding_dim = config.get(f"services.{service_name}.embedding_dim", 768)
         heat_alpha = config.get(f"services.{service_name}.heat_alpha", 1.0)
         heat_beta = config.get(f"services.{service_name}.heat_beta", 1.0)
@@ -262,15 +244,11 @@ class MemoryServiceFactory:
         indexes_raw = config.get(f"services.{service_name}.indexes")
         indexes = indexes_raw if isinstance(indexes_raw, list) else None
 
-        fusion_strategy = config.get(
-            f"services.{service_name}.fusion_strategy", "weighted"
-        )
+        fusion_strategy = config.get(f"services.{service_name}.fusion_strategy", "weighted")
         fusion_weights_raw = config.get(f"services.{service_name}.fusion_weights")
         if fusion_weights_raw:
             if isinstance(fusion_weights_raw, str):
-                fusion_weights = [
-                    float(x.strip()) for x in fusion_weights_raw.split(",")
-                ]
+                fusion_weights = [float(x.strip()) for x in fusion_weights_raw.split(",")]
             else:
                 fusion_weights = list(fusion_weights_raw)
         else:
@@ -305,9 +283,7 @@ class MemoryServiceFactory:
         match_type = config.get(f"services.{service_name}.match_type", "exact")
         key_extractor = config.get(f"services.{service_name}.key_extractor", "entity")
         fuzzy_threshold = config.get(f"services.{service_name}.fuzzy_threshold", 0.8)
-        semantic_threshold = config.get(
-            f"services.{service_name}.semantic_threshold", 0.7
-        )
+        semantic_threshold = config.get(f"services.{service_name}.semantic_threshold", 0.7)
         embedding_dim = config.get(f"services.{service_name}.embedding_dim", 768)
         case_sensitive = config.get(f"services.{service_name}.case_sensitive", False)
 

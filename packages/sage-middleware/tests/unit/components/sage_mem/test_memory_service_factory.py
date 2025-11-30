@@ -44,28 +44,14 @@ class TestMemoryServiceFactoryServiceClasses:
 
     def test_service_class_mapping(self):
         """测试服务类映射正确"""
+        assert MemoryServiceFactory.SERVICE_CLASSES["short_term_memory"] == ShortTermMemoryService
+        assert MemoryServiceFactory.SERVICE_CLASSES["vector_hash_memory"] == VectorHashMemoryService
+        assert MemoryServiceFactory.SERVICE_CLASSES["graph_memory"] == GraphMemoryService
         assert (
-            MemoryServiceFactory.SERVICE_CLASSES["short_term_memory"]
-            == ShortTermMemoryService
+            MemoryServiceFactory.SERVICE_CLASSES["hierarchical_memory"] == HierarchicalMemoryService
         )
-        assert (
-            MemoryServiceFactory.SERVICE_CLASSES["vector_hash_memory"]
-            == VectorHashMemoryService
-        )
-        assert (
-            MemoryServiceFactory.SERVICE_CLASSES["graph_memory"] == GraphMemoryService
-        )
-        assert (
-            MemoryServiceFactory.SERVICE_CLASSES["hierarchical_memory"]
-            == HierarchicalMemoryService
-        )
-        assert (
-            MemoryServiceFactory.SERVICE_CLASSES["hybrid_memory"] == HybridMemoryService
-        )
-        assert (
-            MemoryServiceFactory.SERVICE_CLASSES["key_value_memory"]
-            == KeyValueMemoryService
-        )
+        assert MemoryServiceFactory.SERVICE_CLASSES["hybrid_memory"] == HybridMemoryService
+        assert MemoryServiceFactory.SERVICE_CLASSES["key_value_memory"] == KeyValueMemoryService
 
 
 class TestMemoryServiceFactoryGetServiceClass:
@@ -104,44 +90,34 @@ class TestMemoryServiceFactoryCreateInstance:
 
     def test_create_short_term_instance(self):
         """测试创建短期记忆实例"""
-        instance = MemoryServiceFactory.create_instance(
-            "short_term_memory", max_dialog=5
-        )
+        instance = MemoryServiceFactory.create_instance("short_term_memory", max_dialog=5)
 
         assert isinstance(instance, ShortTermMemoryService)
 
     def test_create_graph_memory_instance(self):
         """测试创建图记忆实例"""
-        instance = MemoryServiceFactory.create_instance(
-            "graph_memory", graph_type="link_graph"
-        )
+        instance = MemoryServiceFactory.create_instance("graph_memory", graph_type="link_graph")
 
         assert isinstance(instance, GraphMemoryService)
         assert instance.graph_type == "link_graph"
 
     def test_create_hierarchical_memory_instance(self):
         """测试创建分层记忆实例"""
-        instance = MemoryServiceFactory.create_instance(
-            "hierarchical_memory", tier_mode="two_tier"
-        )
+        instance = MemoryServiceFactory.create_instance("hierarchical_memory", tier_mode="two_tier")
 
         assert isinstance(instance, HierarchicalMemoryService)
         assert instance.tier_mode == "two_tier"
 
     def test_create_hybrid_memory_instance(self):
         """测试创建混合记忆实例"""
-        instance = MemoryServiceFactory.create_instance(
-            "hybrid_memory", fusion_strategy="rrf"
-        )
+        instance = MemoryServiceFactory.create_instance("hybrid_memory", fusion_strategy="rrf")
 
         assert isinstance(instance, HybridMemoryService)
         assert instance.fusion_strategy == "rrf"
 
     def test_create_key_value_memory_instance(self):
         """测试创建键值记忆实例"""
-        instance = MemoryServiceFactory.create_instance(
-            "key_value_memory", match_type="fuzzy"
-        )
+        instance = MemoryServiceFactory.create_instance("key_value_memory", match_type="fuzzy")
 
         assert isinstance(instance, KeyValueMemoryService)
         assert instance.match_type == "fuzzy"

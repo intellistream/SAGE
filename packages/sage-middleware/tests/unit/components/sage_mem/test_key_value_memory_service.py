@@ -63,9 +63,7 @@ class TestKeyValueMemoryServiceInsert:
         import numpy as np
 
         vector = np.random.randn(768).astype(np.float32)
-        result = service.insert(
-            entry="测试条目", vector=vector, metadata={"key": "test_key"}
-        )
+        result = service.insert(entry="测试条目", vector=vector, metadata={"key": "test_key"})
 
         assert result is not None
 

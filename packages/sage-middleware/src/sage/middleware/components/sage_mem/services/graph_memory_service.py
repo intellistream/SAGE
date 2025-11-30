@@ -287,9 +287,7 @@ class GraphMemoryService(BaseService):
             query_vec = query_vec.reshape(1, -1)
 
         node_ids = list(self.node_embeddings.keys())
-        embeddings = np.array(
-            [self.node_embeddings[nid] for nid in node_ids], dtype=np.float32
-        )
+        embeddings = np.array([self.node_embeddings[nid] for nid in node_ids], dtype=np.float32)
 
         if len(embeddings) == 0:
             return []
@@ -305,12 +303,14 @@ class GraphMemoryService(BaseService):
         for idx in top_indices:
             node_id = node_ids[idx]
             node_data = self.nodes.get(node_id, {})
-            results.append({
-                "text": node_data.get("content", ""),
-                "node_id": node_id,
-                "score": float(scores[idx]),
-                "metadata": node_data.get("metadata", {}),
-            })
+            results.append(
+                {
+                    "text": node_data.get("content", ""),
+                    "node_id": node_id,
+                    "score": float(scores[idx]),
+                    "metadata": node_data.get("metadata", {}),
+                }
+            )
 
         return results
 
@@ -359,8 +359,8 @@ class GraphMemoryService(BaseService):
         ppr_scores = reset_prob.copy()
         for _ in range(50):
             new_scores = (
-                (1 - self.damping) * reset_prob + self.damping * transition_matrix @ ppr_scores
-            )
+                1 - self.damping
+            ) * reset_prob + self.damping * transition_matrix @ ppr_scores
             if np.abs(new_scores - ppr_scores).sum() < 1e-6:
                 break
             ppr_scores = new_scores
@@ -376,12 +376,14 @@ class GraphMemoryService(BaseService):
         results = []
         for node_id, score in passage_scores[:top_k]:
             node_data = self.nodes.get(node_id, {})
-            results.append({
-                "text": node_data.get("content", ""),
-                "node_id": node_id,
-                "score": float(score),
-                "metadata": node_data.get("metadata", {}),
-            })
+            results.append(
+                {
+                    "text": node_data.get("content", ""),
+                    "node_id": node_id,
+                    "score": float(score),
+                    "metadata": node_data.get("metadata", {}),
+                }
+            )
 
         return results
 
@@ -435,12 +437,14 @@ class GraphMemoryService(BaseService):
                         next_level.append(neighbor_id)
 
                         node_data = self.nodes.get(neighbor_id, {})
-                        results.append({
-                            "text": node_data.get("content", ""),
-                            "node_id": neighbor_id,
-                            "score": 0.5,
-                            "metadata": node_data.get("metadata", {}),
-                        })
+                        results.append(
+                            {
+                                "text": node_data.get("content", ""),
+                                "node_id": neighbor_id,
+                                "score": 0.5,
+                                "metadata": node_data.get("metadata", {}),
+                            }
+                        )
 
             current_level = next_level
 
@@ -466,9 +470,7 @@ class GraphMemoryService(BaseService):
             return 0
 
         node_ids = [nid for nid, _ in entity_nodes]
-        embeddings = np.array(
-            [self.node_embeddings[nid] for nid in node_ids], dtype=np.float32
-        )
+        embeddings = np.array([self.node_embeddings[nid] for nid in node_ids], dtype=np.float32)
 
         embeddings = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8)
 
@@ -546,6 +548,7 @@ class GraphMemoryService(BaseService):
 
 
 if __name__ == "__main__":
+
     def test_graph_memory():
         print("\n" + "=" * 70)
         print("GraphMemoryService 测试")

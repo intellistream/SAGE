@@ -137,7 +137,7 @@ class PreInsert(MapFunction):
 
         else:
             # 未知操作模式，原样返回
-            print(f"[WARNING] " + str(f"Unknown action: {self.action}, passing through"))
+            print("[WARNING] " + str(f"Unknown action: {self.action}, passing through"))
             entries = [data]
 
         # 在原字典基础上添加 memory_entries 队列
@@ -159,8 +159,8 @@ class PreInsert(MapFunction):
         Returns:
             转换后的记忆条目列表
         """
-        transform_type = get_required_config(self.config, 
-            "operators.pre_insert.transform_type", "action=transform"
+        transform_type = get_required_config(
+            self.config, "operators.pre_insert.transform_type", "action=transform"
         )
 
         if transform_type == "chunking":
@@ -174,7 +174,7 @@ class PreInsert(MapFunction):
         elif transform_type == "compress":
             return self._transform_compress(data)
         else:
-            print(f"[WARNING] " + str(f"Unknown transform_type: {transform_type}, using chunking"))
+            print("[WARNING] " + str(f"Unknown transform_type: {transform_type}, using chunking"))
             return self._transform_chunking(data)
 
     def _transform_chunking(self, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -187,11 +187,11 @@ class PreInsert(MapFunction):
         - chunk_overlap: 块之间的重叠字符数
         - chunk_strategy: 分块策略 (fixed/sentence/paragraph)
         """
-        chunk_size = get_required_config(self.config, 
-            "operators.pre_insert.chunk_size", "transform_type=chunking"
+        chunk_size = get_required_config(
+            self.config, "operators.pre_insert.chunk_size", "transform_type=chunking"
         )
-        chunk_overlap = get_required_config(self.config, 
-            "operators.pre_insert.chunk_overlap", "transform_type=chunking"
+        chunk_overlap = get_required_config(
+            self.config, "operators.pre_insert.chunk_overlap", "transform_type=chunking"
         )
         chunk_strategy = self.config.get("operators.pre_insert.chunk_strategy", "fixed")
 
@@ -315,8 +315,8 @@ class PreInsert(MapFunction):
         dialogue_text = "\n".join(formatted_dialogs)
 
         # 使用 LLM 识别话题边界
-        prompt_template = get_required_config(self.config, 
-            "operators.pre_insert.segment_prompt", "transform_type=topic_segment"
+        prompt_template = get_required_config(
+            self.config, "operators.pre_insert.segment_prompt", "transform_type=topic_segment"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
@@ -324,7 +324,10 @@ class PreInsert(MapFunction):
             response = self._generator.generate(prompt)
             segments = self._parse_json_response(response, default=[])
         except Exception as e:
-            print(f"[WARNING] " + str(f"Topic segmentation failed: {e}, falling back to single segment"))
+            print(
+                "[WARNING] "
+                + str(f"Topic segmentation failed: {e}, falling back to single segment")
+            )
             return [data]
 
         if not segments:
@@ -348,9 +351,7 @@ class PreInsert(MapFunction):
                 continue
             if len(segment_text) > max_size:
                 # 进一步分块
-                sub_entries = self._transform_chunking(
-                    {**data, "dialogs": segment_dialogs}
-                )
+                sub_entries = self._transform_chunking({**data, "dialogs": segment_dialogs})
                 for sub in sub_entries:
                     sub["topic"] = topic
                     sub["segment_index"] = i
@@ -389,8 +390,8 @@ class PreInsert(MapFunction):
         dialogue_text = "\n".join(formatted_dialogs)
 
         # 使用 LLM 提取事实
-        prompt_template = get_required_config(self.config, 
-            "operators.pre_insert.fact_prompt", "transform_type=fact_extract"
+        prompt_template = get_required_config(
+            self.config, "operators.pre_insert.fact_prompt", "transform_type=fact_extract"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
@@ -398,7 +399,7 @@ class PreInsert(MapFunction):
             response = self._generator.generate(prompt)
             facts = self._parse_json_response(response, default=[])
         except Exception as e:
-            print(f"[WARNING] " + str(f"Fact extraction failed: {e}"))
+            print("[WARNING] " + str(f"Fact extraction failed: {e}"))
             return [data]
 
         if not facts:
@@ -441,8 +442,8 @@ class PreInsert(MapFunction):
             return [data]
 
         # 使用 LLM 生成摘要
-        prompt_template = get_required_config(self.config, 
-            "operators.pre_insert.summary_prompt", "transform_type=summarize"
+        prompt_template = get_required_config(
+            self.config, "operators.pre_insert.summary_prompt", "transform_type=summarize"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
@@ -450,7 +451,7 @@ class PreInsert(MapFunction):
             max_tokens = self.config.get("operators.pre_insert.summary_max_tokens", 200)
             summary = self._generator.generate(prompt, max_tokens=max_tokens)
         except Exception as e:
-            print(f"[WARNING] " + str(f"Summarization failed: {e}"))
+            print("[WARNING] " + str(f"Summarization failed: {e}"))
             return [data]
 
         entry = data.copy()
@@ -480,7 +481,8 @@ class PreInsert(MapFunction):
             from llmlingua import PromptCompressor
 
             model_name = self.config.get(
-                "operators.pre_insert.compression_model", "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
+                "operators.pre_insert.compression_model",
+                "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
             )
             compressor = PromptCompressor(model_name, use_llmlingua2=True)
 
@@ -493,12 +495,12 @@ class PreInsert(MapFunction):
             compressed_text = result.get("compressed_prompt", text)
 
         except ImportError:
-            print(f"[WARNING] " + str("LLMLingua not installed, using simple truncation"))
+            print("[WARNING] " + "LLMLingua not installed, using simple truncation")
             # 简单截断作为后备
             target_len = int(len(text) * compression_ratio)
             compressed_text = text[:target_len]
         except Exception as e:
-            print(f"[WARNING] " + str(f"Compression failed: {e}, using original text"))
+            print("[WARNING] " + str(f"Compression failed: {e}, using original text"))
             compressed_text = text
 
         entry = data.copy()
@@ -522,8 +524,8 @@ class PreInsert(MapFunction):
         Returns:
             添加了抽取信息的记忆条目列表
         """
-        extract_type = get_required_config(self.config, 
-            "operators.pre_insert.extract_type", "action=extract"
+        extract_type = get_required_config(
+            self.config, "operators.pre_insert.extract_type", "action=extract"
         )
 
         entry = data.copy()
@@ -561,8 +563,8 @@ class PreInsert(MapFunction):
         if not text:
             return []
 
-        prompt_template = get_required_config(self.config, 
-            "operators.pre_insert.keyword_prompt", "extract_type=keyword"
+        prompt_template = get_required_config(
+            self.config, "operators.pre_insert.keyword_prompt", "extract_type=keyword"
         )
         prompt = prompt_template.replace("{text}", text)
 
@@ -576,7 +578,7 @@ class PreInsert(MapFunction):
             return keywords[:max_keywords]
 
         except Exception as e:
-            print(f"[WARNING] " + str(f"Keyword extraction failed: {e}"))
+            print("[WARNING] " + str(f"Keyword extraction failed: {e}"))
             return []
 
     def _extract_entities(self, data: dict[str, Any]) -> list[dict[str, str]]:
@@ -607,7 +609,7 @@ class PreInsert(MapFunction):
         elif ner_model == "llm":
             # 使用 LLM 进行 NER
             prompt = f"""Extract named entities from the following text.
-Entity types to extract: {', '.join(entity_types)}
+Entity types to extract: {", ".join(entity_types)}
 
 Text: {text}
 
@@ -618,7 +620,7 @@ Entities:"""
                 response = self._generator.generate(prompt)
                 entities = self._parse_json_response(response, default=[])
             except Exception as e:
-                print(f"[WARNING] " + str(f"LLM NER failed: {e}"))
+                print("[WARNING] " + str(f"LLM NER failed: {e}"))
 
         # 去重
         seen = set()
@@ -642,9 +644,7 @@ Entities:"""
         if not text or not getattr(self, "_spacy_nlp", None):
             return []
 
-        include_proper_nouns = self.config.get(
-            "operators.pre_insert.include_proper_nouns", True
-        )
+        include_proper_nouns = self.config.get("operators.pre_insert.include_proper_nouns", True)
 
         doc = self._spacy_nlp(text)
         nouns = []
@@ -676,8 +676,8 @@ Entities:"""
         if not dialogue_text:
             return {}
 
-        prompt_template = get_required_config(self.config, 
-            "operators.pre_insert.persona_prompt", "extract_type=persona"
+        prompt_template = get_required_config(
+            self.config, "operators.pre_insert.persona_prompt", "extract_type=persona"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
@@ -700,7 +700,7 @@ Entities:"""
             return filtered_personas
 
         except Exception as e:
-            print(f"[WARNING] " + str(f"Persona extraction failed: {e}"))
+            print("[WARNING] " + str(f"Persona extraction failed: {e}"))
             return {}
 
     # ========================================================================
@@ -718,8 +718,8 @@ Entities:"""
         Returns:
             添加了评分的记忆条目列表
         """
-        score_type = get_required_config(self.config, 
-            "operators.pre_insert.score_type", "action=score"
+        score_type = get_required_config(
+            self.config, "operators.pre_insert.score_type", "action=score"
         )
         entry = data.copy()
 
@@ -728,7 +728,7 @@ Entities:"""
         elif score_type == "emotion":
             score_result = self._score_emotion(data)
         else:
-            print(f"[WARNING] " + str(f"Unknown score_type: {score_type}"))
+            print("[WARNING] " + str(f"Unknown score_type: {score_type}"))
             score_result = {}
 
         # 添加评分到 metadata
@@ -753,8 +753,8 @@ Entities:"""
         if not text:
             return {"score": 5, "reason": "Empty content"}
 
-        prompt_template = get_required_config(self.config, 
-            "operators.pre_insert.importance_prompt", "score_type=importance"
+        prompt_template = get_required_config(
+            self.config, "operators.pre_insert.importance_prompt", "score_type=importance"
         )
         prompt = prompt_template.replace("{text}", text)
 
@@ -775,7 +775,7 @@ Entities:"""
             return result
 
         except Exception as e:
-            print(f"[WARNING] " + str(f"Importance scoring failed: {e}"))
+            print("[WARNING] " + str(f"Importance scoring failed: {e}"))
             return {"score": 5, "reason": f"Scoring failed: {e}"}
 
     def _score_emotion(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -800,7 +800,7 @@ Entities:"""
         if emotion_model == "llm":
             # 使用 LLM 进行情感分类
             prompt = f"""Analyze the emotion in the following text.
-Categories: {', '.join(emotion_categories)}
+Categories: {", ".join(emotion_categories)}
 
 Text: {text}
 
@@ -820,7 +820,7 @@ Result:"""
                 return result
 
             except Exception as e:
-                print(f"[WARNING] " + str(f"Emotion scoring failed: {e}"))
+                print("[WARNING] " + str(f"Emotion scoring failed: {e}"))
 
         # 如果配置了情感 embedding 模型，生成情感向量
         if self._embedding_generator and self._embedding_generator.is_available():
@@ -832,7 +832,7 @@ Result:"""
                     "vector": emotion_vector,
                 }
             except Exception as e:
-                print(f"[WARNING] " + str(f"Emotion embedding failed: {e}"))
+                print("[WARNING] " + str(f"Emotion embedding failed: {e}"))
 
         return {"category": "neutral", "intensity": 0.5, "vector": None}
 
@@ -855,9 +855,7 @@ Result:"""
 
         if not embeddings_config:
             # 默认配置
-            embeddings_config = [
-                {"name": "semantic", "model": "default", "field": "content"}
-            ]
+            embeddings_config = [{"name": "semantic", "model": "default", "field": "content"}]
 
         dialogs = data.get("dialogs", [])
         content = self._dialogue_parser.format(dialogs)
@@ -887,7 +885,7 @@ Result:"""
                     embedding = self._embedding_generator.embed(text_to_embed)
                     embeddings_result[name] = embedding
                 except Exception as e:
-                    print(f"[WARNING] " + str(f"Embedding failed for {name}: {e}"))
+                    print("[WARNING] " + str(f"Embedding failed for {name}: {e}"))
                     embeddings_result[name] = None
             else:
                 embeddings_result[name] = None
@@ -937,17 +935,16 @@ Result:"""
         validation_errors = []
 
         for rule in rules:
-            rule_type = rule.get("type")
             error = self._validate_rule(text, data, rule)
             if error:
                 validation_errors.append(error)
 
         if validation_errors:
             if on_fail == "skip":
-                print(f"[INFO] " + str(f"Validation failed, skipping: {validation_errors}"))
+                print("[INFO] " + str(f"Validation failed, skipping: {validation_errors}"))
                 return []  # 返回空列表，跳过此条目
             elif on_fail == "warn":
-                print(f"[WARNING] " + str(f"Validation warnings: {validation_errors}"))
+                print("[WARNING] " + str(f"Validation warnings: {validation_errors}"))
                 entry = data.copy()
                 entry["validation_warnings"] = validation_errors
                 return [entry]
@@ -958,13 +955,11 @@ Result:"""
                 transform_action = self.config.get(
                     "operators.pre_insert.transform_action", "summarize"
                 )
-                original_transform_type = self.config.get(
-                    "operators.pre_insert.transform_type"
-                )
+                original_transform_type = self.config.get("operators.pre_insert.transform_type")
                 # 临时修改配置
-                self.config._data.setdefault("operators", {}).setdefault(
-                    "pre_insert", {}
-                )["transform_type"] = transform_action
+                self.config._data.setdefault("operators", {}).setdefault("pre_insert", {})[
+                    "transform_type"
+                ] = transform_action
                 try:
                     entries = self._execute_transform(data)
                 finally:
@@ -977,9 +972,7 @@ Result:"""
 
         return [data]
 
-    def _validate_rule(
-        self, text: str, data: dict[str, Any], rule: dict[str, Any]
-    ) -> str | None:
+    def _validate_rule(self, text: str, data: dict[str, Any], rule: dict[str, Any]) -> str | None:
         """验证单个规则
 
         Returns:
@@ -1007,9 +1000,9 @@ Result:"""
                     if detected not in allowed:
                         return f"Language not allowed: {detected} not in {allowed}"
                 except ImportError:
-                    print(f"[WARNING] " + str("langdetect not installed, skipping language check"))
+                    print("[WARNING] " + "langdetect not installed, skipping language check")
                 except Exception as e:
-                    print(f"[WARNING] " + str(f"Language detection failed: {e}"))
+                    print("[WARNING] " + str(f"Language detection failed: {e}"))
 
         elif rule_type == "content":
             blacklist = rule.get("blacklist", [])
@@ -1133,8 +1126,8 @@ Result:"""
             return json.loads(response_cleaned)
 
         except json.JSONDecodeError as e:
-            print(f"[WARNING] " + str(f"JSON parsing error: {e}"))
-            #DEBUG: f"Raw response: {response}"
+            print("[WARNING] " + str(f"JSON parsing error: {e}"))
+            # DEBUG: f"Raw response: {response}"
             return default
 
     def _get_text_content(self, data: dict[str, Any]) -> str:

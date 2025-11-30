@@ -31,9 +31,7 @@ class TestHierarchicalMemoryServiceInit:
 
     def test_custom_capacities(self):
         """测试自定义容量"""
-        service = HierarchicalMemoryService(
-            tier_capacities={"stm": 50, "mtm": 500, "ltm": -1}
-        )
+        service = HierarchicalMemoryService(tier_capacities={"stm": 50, "mtm": 500, "ltm": -1})
         assert service.tier_capacities["stm"] == 50
         assert service.tier_capacities["mtm"] == 500
 

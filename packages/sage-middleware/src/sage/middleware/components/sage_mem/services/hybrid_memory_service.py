@@ -275,9 +275,7 @@ class HybridMemoryService(BaseService):
             index_type = index_data["type"]
 
             if index_type == "vector" and index_name in query_vectors:
-                results = self._vector_search(
-                    index_name, query_vectors[index_name], top_k * 2
-                )
+                results = self._vector_search(index_name, query_vectors[index_name], top_k * 2)
             elif index_type == "bm25" and query:
                 results = self._bm25_search(index_name, query, top_k * 2)
             elif index_type == "keyword":
@@ -297,12 +295,14 @@ class HybridMemoryService(BaseService):
         final_results = []
         for doc_id, score in fused_results:
             doc = self.documents.get(doc_id, {})
-            final_results.append({
-                "id": doc_id,
-                "text": doc.get("content", ""),
-                "score": score,
-                "metadata": doc.get("metadata", {}),
-            })
+            final_results.append(
+                {
+                    "id": doc_id,
+                    "text": doc.get("content", ""),
+                    "score": score,
+                    "metadata": doc.get("metadata", {}),
+                }
+            )
 
         return final_results
 
@@ -384,9 +384,7 @@ class HybridMemoryService(BaseService):
         avg_dl = index["avg_doc_length"]
 
         scores = []
-        for i, (doc_tokens, doc_id) in enumerate(
-            zip(index["corpus"], index["doc_ids"])
-        ):
+        for i, (doc_tokens, doc_id) in enumerate(zip(index["corpus"], index["doc_ids"])):
             doc_len = len(doc_tokens)
             score = 0.0
 
@@ -401,9 +399,7 @@ class HybridMemoryService(BaseService):
                 idf = np.log((n_docs - df + 0.5) / (df + 0.5) + 1)
 
                 # TF normalization
-                tf_norm = (tf * (k1 + 1)) / (
-                    tf + k1 * (1 - b + b * doc_len / avg_dl)
-                )
+                tf_norm = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * doc_len / avg_dl))
 
                 score += idf * tf_norm
 
@@ -438,9 +434,7 @@ class HybridMemoryService(BaseService):
 
         # 归一化
         max_score = max(doc_scores.values()) if doc_scores else 1.0
-        results = [
-            (doc_id, score / max_score) for doc_id, score in doc_scores.items()
-        ]
+        results = [(doc_id, score / max_score) for doc_id, score in doc_scores.items()]
 
         # 排序并返回 top-k
         results.sort(key=lambda x: x[1], reverse=True)
@@ -573,6 +567,7 @@ class HybridMemoryService(BaseService):
 
 
 if __name__ == "__main__":
+
     def test_hybrid_memory():
         print("\n" + "=" * 70)
         print("HybridMemoryService 测试")
@@ -595,11 +590,11 @@ if __name__ == "__main__":
             emotion_vec = np.random.randn(64).astype(np.float32)
 
             service.insert(
-                f"这是第 {i+1} 篇测试文档",
+                f"这是第 {i + 1} 篇测试文档",
                 vector={"semantic": semantic_vec, "emotion": emotion_vec},
-                metadata={"keywords": ["测试", f"文档{i+1}"]},
+                metadata={"keywords": ["测试", f"文档{i + 1}"]},
             )
-            print(f"插入文档 {i+1}")
+            print(f"插入文档 {i + 1}")
 
         # 打印统计
         stats = service.get_index_stats()

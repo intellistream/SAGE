@@ -254,9 +254,7 @@ class KeyValueMemoryService(BaseService):
         # 存储键向量
         if "key_vector" in metadata:
             for key in keys:
-                self.key_embeddings[key] = np.array(
-                    metadata["key_vector"], dtype=np.float32
-                )
+                self.key_embeddings[key] = np.array(metadata["key_vector"], dtype=np.float32)
 
         return entry_id
 
@@ -309,13 +307,15 @@ class KeyValueMemoryService(BaseService):
             entry_ids = self.key_to_ids[search_key]
             for entry_id in entry_ids[:top_k]:
                 entry = self.kv_store.get(entry_id, {})
-                results.append({
-                    "id": entry_id,
-                    "key": search_key,
-                    "text": entry.get("value", ""),
-                    "score": 1.0,
-                    "metadata": entry.get("metadata", {}),
-                })
+                results.append(
+                    {
+                        "id": entry_id,
+                        "key": search_key,
+                        "text": entry.get("value", ""),
+                        "score": 1.0,
+                        "metadata": entry.get("metadata", {}),
+                    }
+                )
 
         return results
 
@@ -355,13 +355,15 @@ class KeyValueMemoryService(BaseService):
 
                 seen_ids.add(entry_id)
                 entry = self.kv_store.get(entry_id, {})
-                results.append({
-                    "id": entry_id,
-                    "key": key,
-                    "text": entry.get("value", ""),
-                    "score": similarity,
-                    "metadata": entry.get("metadata", {}),
-                })
+                results.append(
+                    {
+                        "id": entry_id,
+                        "key": key,
+                        "text": entry.get("value", ""),
+                        "score": similarity,
+                        "metadata": entry.get("metadata", {}),
+                    }
+                )
 
                 if len(results) >= top_k:
                     break
@@ -395,12 +397,8 @@ class KeyValueMemoryService(BaseService):
         # 与键向量匹配
         if self.key_embeddings:
             keys = list(self.key_embeddings.keys())
-            key_embs = np.array(
-                [self.key_embeddings[k] for k in keys], dtype=np.float32
-            )
-            key_embs_norm = key_embs / (
-                np.linalg.norm(key_embs, axis=1, keepdims=True) + 1e-8
-            )
+            key_embs = np.array([self.key_embeddings[k] for k in keys], dtype=np.float32)
+            key_embs_norm = key_embs / (np.linalg.norm(key_embs, axis=1, keepdims=True) + 1e-8)
 
             key_scores = np.dot(key_embs_norm, query_norm.T).flatten()
 
@@ -408,14 +406,16 @@ class KeyValueMemoryService(BaseService):
                 if key_scores[i] >= threshold:
                     for entry_id in self.key_to_ids[key]:
                         entry = self.kv_store.get(entry_id, {})
-                        results.append({
-                            "id": entry_id,
-                            "key": key,
-                            "text": entry.get("value", ""),
-                            "score": float(key_scores[i]),
-                            "metadata": entry.get("metadata", {}),
-                            "match_type": "key",
-                        })
+                        results.append(
+                            {
+                                "id": entry_id,
+                                "key": key,
+                                "text": entry.get("value", ""),
+                                "score": float(key_scores[i]),
+                                "metadata": entry.get("metadata", {}),
+                                "match_type": "key",
+                            }
+                        )
 
         # 与值向量匹配
         if self.value_embeddings:
@@ -434,14 +434,16 @@ class KeyValueMemoryService(BaseService):
                     entry = self.kv_store.get(entry_id, {})
                     # 检查是否已添加
                     if not any(r["id"] == entry_id for r in results):
-                        results.append({
-                            "id": entry_id,
-                            "key": entry.get("keys", [""])[0],
-                            "text": entry.get("value", ""),
-                            "score": float(value_scores[i]),
-                            "metadata": entry.get("metadata", {}),
-                            "match_type": "value",
-                        })
+                        results.append(
+                            {
+                                "id": entry_id,
+                                "key": entry.get("keys", [""])[0],
+                                "text": entry.get("value", ""),
+                                "score": float(value_scores[i]),
+                                "metadata": entry.get("metadata", {}),
+                                "match_type": "value",
+                            }
+                        )
 
         # 按分数排序
         results.sort(key=lambda x: x["score"], reverse=True)
@@ -538,6 +540,7 @@ class KeyValueMemoryService(BaseService):
 
 
 if __name__ == "__main__":
+
     def test_key_value_memory():
         print("\n" + "=" * 70)
         print("KeyValueMemoryService 测试")

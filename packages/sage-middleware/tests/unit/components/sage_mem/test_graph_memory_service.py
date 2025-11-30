@@ -46,9 +46,7 @@ class TestGraphMemoryServiceInsert:
     def test_insert_with_triples(self, service):
         """测试使用三元组插入"""
         entry = "北京是中国的首都"
-        metadata = {
-            "triples": [{"head": "北京", "relation": "是...的首都", "tail": "中国"}]
-        }
+        metadata = {"triples": [{"head": "北京", "relation": "是...的首都", "tail": "中国"}]}
 
         node_id = service.insert(entry=entry, metadata=metadata)
 
@@ -89,18 +87,12 @@ class TestGraphMemoryServiceRetrieve:
         service.insert(
             entry="北京是中国的首都",
             vector=np.random.randn(768).astype(np.float32),
-            metadata={
-                "triples": [{"head": "北京", "relation": "是...的首都", "tail": "中国"}]
-            },
+            metadata={"triples": [{"head": "北京", "relation": "是...的首都", "tail": "中国"}]},
         )
         service.insert(
             entry="上海是中国最大的城市",
             vector=np.random.randn(768).astype(np.float32),
-            metadata={
-                "triples": [
-                    {"head": "上海", "relation": "是...最大的城市", "tail": "中国"}
-                ]
-            },
+            metadata={"triples": [{"head": "上海", "relation": "是...最大的城市", "tail": "中国"}]},
         )
         return service
 
