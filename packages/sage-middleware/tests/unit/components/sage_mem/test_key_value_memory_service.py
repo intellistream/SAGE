@@ -149,7 +149,8 @@ class TestKeyValueMemoryServiceDelete:
 
         # delete 返回删除的数量
         assert result >= 1
-        assert service.get("to_delete") is None
+        # get 返回空列表表示键不存在
+        assert service.get("to_delete") == []
 
 
 class TestKeyValueMemoryServiceStatistics:

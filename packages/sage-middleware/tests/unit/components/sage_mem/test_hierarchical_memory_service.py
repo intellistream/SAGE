@@ -58,7 +58,7 @@ class TestHierarchicalMemoryServiceInsert:
             service.insert(entry=f"条目{i}", metadata={})
 
         # STM 应该有数据（可能迁移到 MTM）
-        total = sum(len(t) for t in service.tiers.values())
+        total = sum(len(t.get("data", [])) for t in service.tiers.values())
         assert total == 5
 
 
@@ -103,8 +103,9 @@ class TestHierarchicalMemoryServiceMigration:
         for i in range(5):
             service.insert(entry=f"条目{i}", metadata={})
 
-        # STM 应该不超过容量
-        assert len(service.tiers.get("stm", [])) <= 3
+        # STM 应该不超过容量 (deque 自动限制 maxlen)
+        stm_data = service.tiers.get("stm", {}).get("data", [])
+        assert len(stm_data) <= 3
 
     def test_manual_migration(self):
         """测试手动迁移模式下的插入"""
