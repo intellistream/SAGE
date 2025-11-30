@@ -55,8 +55,8 @@ image_processing:
 
   # 特征提取
   feature_extraction:
-    method: "clip"  # 或使用医学影像专用模型
-    dimension: 768
+    method: "clip"  # 特征提取方法: "clip" (推荐) 或 "dinov2"
+    dimension: 768  # 特征向量维度 (CLIP: 512, DINOv2: 768)
 
 diagnosis:
   # 诊断阈值
