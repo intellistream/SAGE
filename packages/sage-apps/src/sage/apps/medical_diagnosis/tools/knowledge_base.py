@@ -536,13 +536,40 @@ class MedicalKnowledgeBase:
         # 同时添加到本地缓存
         self.case_database.append(case_data)
 
-        return vector_id
+    def update_knowledge(self, knowledge_data: dict[str, Any]) -> dict[str, str]:
+        """
+        更新医学知识
 
-    def update_knowledge(self, knowledge_data: dict[str, Any]):
-        """更新医学知识"""
-        # TODO: 实现知识更新
-        # Issue URL: https://github.com/intellistream/SAGE/issues/902
-        self.knowledge_base.append(knowledge_data)
+        Args:
+            knowledge_data: 知识数据字典，必须包含 'topic' 字段
+
+        Returns:
+            操作结果字典，包含 'action' (added/updated) 和 'topic' 字段
+
+        Raises:
+            ValueError: 如果 knowledge_data 缺少必需的 'topic' 字段
+        """
+        # 验证必需字段
+        if not knowledge_data or "topic" not in knowledge_data:
+            raise ValueError("knowledge_data must contain 'topic' field")
+
+        topic = knowledge_data["topic"]
+
+        # 检查是否已存在相同主题的知识
+        existing_index = None
+        for i, knowledge in enumerate(self.knowledge_base):
+            if knowledge.get("topic") == topic:
+                existing_index = i
+                break
+
+        if existing_index is not None:
+            # 更新现有知识
+            self.knowledge_base[existing_index] = knowledge_data
+            return {"action": "updated", "topic": topic}
+        else:
+            # 添加新知识
+            self.knowledge_base.append(knowledge_data)
+            return {"action": "added", "topic": topic}
 
     def cleanup(self):
         """清理资源"""
@@ -560,9 +587,50 @@ if __name__ == "__main__":
 
     kb = MedicalKnowledgeBase(config)
 
-    # 测试检索
-    cases = kb.retrieve_similar_cases(query="腰痛伴下肢麻木", image_features={}, top_k=3)
+    print("=" * 80)
+    print("测试知识库功能")
+    print("=" * 80)
 
-    print(f"检索到 {len(cases)} 个相似病例:")
+    # 测试检索
+    print(f"\n1. 初始知识库包含 {len(kb.knowledge_base)} 个知识条目")
+    print(f"   主题: {[k['topic'] for k in kb.knowledge_base]}")
+
+    # 测试添加新知识
+    print("\n2. 测试添加新知识")
+    new_knowledge = {
+        "topic": "椎体压缩性骨折",
+        "content": "椎体压缩性骨折是指椎体在外力作用下发生压缩性变形",
+        "diagnosis_criteria": "X线或CT显示椎体高度降低超过20%",
+        "treatment": "急性期卧床休息，必要时行椎体成形术",
+    }
+    result = kb.update_knowledge(new_knowledge)
+    print(f"   结果: {result['action']} - {result['topic']}")
+    print(f"   知识库现有 {len(kb.knowledge_base)} 个条目")
+
+    # 测试更新现有知识
+    print("\n3. 测试更新现有知识")
+    updated_knowledge = {
+        "topic": "腰椎间盘突出症",
+        "content": "更新后的内容：腰椎间盘突出症是最常见的腰椎疾病之一",
+        "diagnosis_criteria": "更新后的诊断标准",
+        "treatment": "更新后的治疗方案",
+        "additional_info": "新增字段：这是补充信息",
+    }
+    result = kb.update_knowledge(updated_knowledge)
+    print(f"   结果: {result['action']} - {result['topic']}")
+    print(f"   知识库仍有 {len(kb.knowledge_base)} 个条目 (未增加)")
+
+    # 验证更新是否成功
+    disc_knowledge = [k for k in kb.knowledge_base if k["topic"] == "腰椎间盘突出症"]
+    print(f"   '腰椎间盘突出症' 条目数: {len(disc_knowledge)}")
+    if disc_knowledge:
+        print(f"   更新后的内容预览: {disc_knowledge[0]['content'][:50]}...")
+
+    # 测试相似病例检索
+    print("\n4. 测试相似病例检索")
+    cases = kb.retrieve_similar_cases(query="腰痛伴下肢麻木", image_features={}, top_k=3)
+    print(f"   检索到 {len(cases)} 个相似病例:")
     for case in cases:
-        print(f"  - {case['case_id']}: {case['diagnosis']} (相似度: {case['similarity_score']})")
+        print(f"     - {case['case_id']}: {case['diagnosis']} (相似度: {case['similarity_score']})")
+
+    print("\n" + "=" * 80)
