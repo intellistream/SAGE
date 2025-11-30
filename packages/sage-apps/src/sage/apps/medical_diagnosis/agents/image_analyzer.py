@@ -29,6 +29,11 @@ except ImportError:
     CLIPModel = None
     CLIPProcessor = None
 
+try:
+    from numpy.lib.stride_tricks import sliding_window_view
+except ImportError:  # pragma: no cover - older NumPy fallback
+    sliding_window_view = None  # type: ignore[assignment]
+
 
 DEFAULT_DISC_LEVELS = ["L1/L2", "L2/L3", "L3/L4", "L4/L5", "L5/S1"]
 
@@ -54,6 +59,17 @@ class ImageAnalyzer:
     3. 病变区域检测
     4. 影像特征提取和向量化
     """
+
+    _LAPLACIAN_KERNEL = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=np.float32)
+    _SOBEL_X = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float32)
+    _SOBEL_Y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=np.float32)
+    _BLUR_KERNEL = np.ones((3, 3), dtype=np.float32) / 9.0
+    _DEFAULT_QUALITY_WEIGHTS = {
+        "contrast": 0.25,
+        "sharpness": 0.35,
+        "noise": 0.25,
+        "brightness": 0.15,
+    }
 
     def __init__(self, config: dict):
         """
@@ -317,10 +333,10 @@ class ImageAnalyzer:
         评估影像质量
 
         使用多个指标综合评估:
-        1. 对比度 (Contrast): 使用标准差和动态范围
-        2. 清晰度 (Sharpness): 使用拉普拉斯方差
-        3. 噪声水平 (Noise): 使用高频成分分析
-        4. 亮度分布 (Brightness): 使用直方图统计
+        1. 对比度 (Contrast): 标准差、动态范围与分位区间
+        2. 清晰度 (Sharpness): 拉普拉斯方差 + 梯度能量
+        3. 噪声水平 (Noise): 高频残差能量
+        4. 亮度分布 (Brightness): 直方图占用与亮度平衡
 
         Returns:
             0-1之间的质量分数，越高表示质量越好
@@ -329,75 +345,186 @@ class ImageAnalyzer:
             return 0.0
 
         try:
-            # 确保图像是numpy数组且归一化到[0, 1]
-            img = np.array(image, dtype=np.float32)
-            if img.max() > 1.0:
-                img = img / 255.0
+            img = self._prepare_quality_image(image)
+            if img.size == 0:
+                return 0.0
 
-            # 1. 对比度评估 (Contrast Assessment)
-            # 使用标准差和动态范围的组合
-            std_dev = np.std(img)
-            dynamic_range = np.ptp(img)  # Peak-to-peak (max - min)
-            # 归一化对比度分数: 0.15是医学影像的典型良好标准差
-            contrast_score = min(std_dev / 0.15, 1.0) * 0.5 + min(dynamic_range, 1.0) * 0.5
+            metrics = self._compute_quality_metrics(img)
+            return self._combine_quality_scores(metrics)
 
-            # 2. 清晰度评估 (Sharpness Assessment)
-            # 使用拉普拉斯算子计算边缘强度
-            # 拉普拉斯核检测二阶导数，对模糊敏感
-            laplacian = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=np.float32)
-            # 使用简单卷积计算拉普拉斯响应
-            h, w = img.shape
-            lap_var = 0.0
-            pad_img = np.pad(img, 1, mode="reflect")
-            for i in range(1, h + 1):
-                for j in range(1, w + 1):
-                    region = pad_img[i - 1 : i + 2, j - 1 : j + 2]
-                    lap_var += (region * laplacian).sum() ** 2
-            lap_var /= h * w
-            # 归一化清晰度分数: 0.01是典型清晰影像的方差阈值
-            sharpness_score = min(lap_var / 0.01, 1.0)
-
-            # 3. 噪声水平评估 (Noise Assessment)
-            # 使用高频成分估计噪声
-            # 计算局部方差来估计噪声
-            window_size = min(7, min(h, w) // 10)
-            if window_size < 3:
-                noise_score = 0.8  # 图像太小，给默认分数
-            else:
-                local_vars = []
-                step = max(window_size // 2, 1)
-                for i in range(0, h - window_size, step):
-                    for j in range(0, w - window_size, step):
-                        window = img[i : i + window_size, j : j + window_size]
-                        local_vars.append(np.var(window))
-                noise_estimate = np.median(local_vars) if local_vars else 0.0
-                # 噪声越小越好，使用反向分数
-                # 0.005是噪声方差的典型阈值
-                noise_score = max(1.0 - noise_estimate / 0.005, 0.0)
-
-            # 4. 亮度分布评估 (Brightness Distribution)
-            # 检查直方图是否充分利用动态范围
-            mean_intensity = np.mean(img)
-            # 理想亮度范围 [0.3, 0.7]
-            brightness_score = 1.0 - abs(mean_intensity - 0.5) * 2.0
-            brightness_score = max(brightness_score, 0.0)
-
-            # 综合质量分数 (加权平均)
-            # 权重: 对比度(25%), 清晰度(35%), 噪声(25%), 亮度(15%)
-            quality_score = (
-                contrast_score * 0.25
-                + sharpness_score * 0.35
-                + noise_score * 0.25
-                + brightness_score * 0.15
-            )
-
-            # 确保分数在[0, 1]范围内
-            return float(np.clip(quality_score, 0.0, 1.0))
-
-        except Exception as e:
+        except Exception as e:  # pragma: no cover - 防御性回退
             print(f"   Warning: 质量评估失败: {e}")
-            # 发生错误时返回中等分数
             return 0.5
+
+    def _prepare_quality_image(self, image: Any) -> np.ndarray:
+        """将输入图像转换为[0,1]范围的灰度图"""
+        arr = np.asarray(image)
+        if arr.ndim == 3:
+            arr = arr.mean(axis=-1)
+        arr = arr.astype(np.float32, copy=False)
+        if arr.size == 0:
+            return arr
+
+        max_val = float(arr.max())
+        min_val = float(arr.min())
+        if max_val == min_val == 0.0:
+            return arr
+
+        if max_val > 1.0 or min_val < 0.0:
+            # 依据位深度估算归一化系数
+            if max_val <= 255.0:
+                scale = 255.0
+            elif max_val <= 1023.0:
+                scale = 1023.0
+            elif max_val <= 4095.0:
+                scale = 4095.0
+            else:
+                scale = max_val
+            arr = arr / max(scale, 1e-6)
+        if arr.min() < 0:
+            arr = arr - arr.min()
+            arr = arr / max(arr.max(), 1e-6)
+
+        return np.clip(arr, 0.0, 1.0)
+
+    def _compute_quality_metrics(self, img: np.ndarray) -> dict[str, float]:
+        """分别计算对比度、清晰度、噪声与亮度分数"""
+        metrics = {
+            "contrast": self._evaluate_contrast(img),
+            "sharpness": self._evaluate_sharpness(img),
+            "noise": self._evaluate_noise(img),
+            "brightness": self._evaluate_brightness(img),
+        }
+        return {k: float(np.clip(v, 0.0, 1.0)) for k, v in metrics.items()}
+
+    def _evaluate_contrast(self, img: np.ndarray) -> float:
+        std_dev = float(np.std(img))
+        dynamic_range = float(np.ptp(img))
+        percentile_low, percentile_high = np.percentile(img, (5, 95))
+        percentile_range = float(max(percentile_high - percentile_low, 0.0))
+
+        std_component = min(std_dev / 0.18, 1.0)
+        range_component = min(dynamic_range / 0.85, 1.0)
+        percentile_component = min(percentile_range / 0.75, 1.0)
+
+        return float(
+            np.clip(
+                0.5 * std_component + 0.3 * range_component + 0.2 * percentile_component,
+                0.0,
+                1.0,
+            )
+        )
+
+    def _evaluate_sharpness(self, img: np.ndarray) -> float:
+        if img.size == 0:
+            return 0.0
+
+        lap_response = self._apply_kernel(img, self._LAPLACIAN_KERNEL)
+        lap_var = float(np.mean(lap_response**2))
+        lap_component = min(lap_var / 0.012, 1.0)
+
+        grad_x = self._apply_kernel(img, self._SOBEL_X)
+        grad_y = self._apply_kernel(img, self._SOBEL_Y)
+        gradient_energy = float(np.mean(np.hypot(grad_x, grad_y)))
+        gradient_component = min(gradient_energy / 0.35, 1.0)
+
+        return float(np.clip(0.6 * lap_component + 0.4 * gradient_component, 0.0, 1.0))
+
+    def _evaluate_noise(self, img: np.ndarray) -> float:
+        if min(img.shape) < 2:
+            return 0.8
+
+        smoothed = self._apply_kernel(img, self._BLUR_KERNEL)
+        high_freq = img - smoothed
+        grad_x = self._apply_kernel(img, self._SOBEL_X)
+        grad_y = self._apply_kernel(img, self._SOBEL_Y)
+        grad_mag = np.hypot(grad_x, grad_y)
+
+        hf_energy = float(np.mean(high_freq**2))
+        smooth_mask = grad_mag < 0.05
+        if np.any(smooth_mask):
+            smooth_noise = float(np.mean(np.abs(high_freq[smooth_mask])))
+        else:
+            smooth_noise = float(np.mean(np.abs(high_freq)))
+
+        energy_component = max(1.0 - hf_energy / 0.015, 0.0)
+        smooth_component = max(1.0 - smooth_noise / 0.06, 0.0)
+
+        return float(np.clip(0.5 * energy_component + 0.5 * smooth_component, 0.0, 1.0))
+
+    def _evaluate_brightness(self, img: np.ndarray) -> float:
+        if img.size == 0:
+            return 0.0
+
+        mean_intensity = float(np.mean(img))
+        histogram, _ = np.histogram(img, bins=32, range=(0.0, 1.0))
+        if histogram.sum() == 0:
+            return 0.0
+
+        hist = histogram.astype(np.float32) / float(histogram.sum())
+        clipping_ratio = float(hist[0] + hist[-1])
+
+        mid_balance = max(1.0 - abs(mean_intensity - 0.5) * 2.0, 0.0)
+        distribution_score = max(1.0 - clipping_ratio * 0.5, 0.0)
+
+        brightness_score = mid_balance * 0.7 + distribution_score * 0.3
+        return float(np.clip(brightness_score, 0.0, 1.0))
+
+    def _combine_quality_scores(self, metrics: dict[str, float]) -> float:
+        weights_cfg = (
+            self.config.get("image_processing", {}).get("quality_weights", {})
+            if isinstance(self.config, dict)
+            else {}
+        )
+        weights: dict[str, float] = {}
+        total = 0.0
+        for key, default_value in self._DEFAULT_QUALITY_WEIGHTS.items():
+            weight = float(weights_cfg.get(key, default_value))
+            if weight < 0:
+                weight = 0.0
+            weights[key] = weight
+            total += weight
+
+        if total <= 0:
+            weights = self._DEFAULT_QUALITY_WEIGHTS.copy()
+            total = sum(weights.values())
+
+        for key in weights:
+            weights[key] /= total
+
+        score = 0.0
+        for key, weight in weights.items():
+            score += float(metrics.get(key, 0.0)) * weight
+
+        noise_metric = float(np.clip(metrics.get("noise", 1.0), 0.0, 1.0))
+        dampening = 0.55 + 0.45 * noise_metric  # 高噪声时额外惩罚总体分数
+        return float(np.clip(score * dampening, 0.0, 1.0))
+
+    def _apply_kernel(self, img: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+        """使用滑动窗口卷积核，必要时回退至循环计算"""
+        pad_y = kernel.shape[0] // 2
+        pad_x = kernel.shape[1] // 2
+        padded = np.pad(img, ((pad_y, pad_y), (pad_x, pad_x)), mode="reflect")
+
+        if sliding_window_view is not None:
+            windows = sliding_window_view(padded, kernel.shape)
+            response = np.tensordot(windows, kernel, axes=((2, 3), (0, 1)))
+            return response.astype(np.float32, copy=False)
+
+        return self._apply_kernel_fallback(padded, kernel)
+
+    @staticmethod
+    def _apply_kernel_fallback(padded: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+        """在旧版NumPy上使用逐像素卷积，保证算法可用"""
+        k_h, k_w = kernel.shape
+        out_h = padded.shape[0] - k_h + 1
+        out_w = padded.shape[1] - k_w + 1
+        output = np.empty((out_h, out_w), dtype=np.float32)
+        for i in range(out_h):
+            for j in range(out_w):
+                patch = padded[i : i + k_h, j : j + k_w]
+                output[i, j] = float(np.sum(patch * kernel))
+        return output
 
     def _segment_vertebrae(self, image) -> list[dict[str, Any]]:
         """分割椎体"""
