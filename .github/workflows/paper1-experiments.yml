@@ -74,6 +74,11 @@ jobs:
     env:
       CONDA_ENV_NAME: sage-paper1-ci
 
+    # Use login shell to ensure conda is initialized
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -88,6 +93,36 @@ jobs:
         run: |
           echo "🔧 Setting up dedicated conda environment: $CONDA_ENV_NAME"
 
+          # Function to initialize conda
+          init_conda() {
+            if command -v conda &> /dev/null; then
+              return 0
+            fi
+            # Common conda locations on self-hosted runners
+            for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3" "/home/action-runner/miniconda3"; do
+              if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+                echo "Found conda at: $conda_path"
+                source "$conda_path/etc/profile.d/conda.sh"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          # Try to initialize conda
+          if ! init_conda; then
+            echo "❌ Conda not found. Installing Miniconda..."
+            wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
+            bash /tmp/miniconda.sh -b -p $HOME/miniconda3
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+            rm /tmp/miniconda.sh
+            # Add to bashrc for future steps
+            echo 'source "$HOME/miniconda3/etc/profile.d/conda.sh"' >> ~/.bashrc
+          fi
+
+          conda --version
+          echo "✅ Conda is available"
+
           # Remove existing environment if it exists (clean slate)
           conda env remove -n $CONDA_ENV_NAME -y 2>/dev/null || true
 
@@ -98,14 +133,21 @@ jobs:
           conda run -n $CONDA_ENV_NAME python --version
           echo "✅ Conda environment $CONDA_ENV_NAME created"
 
+          # Save conda path for other steps
+          echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
+
       - name: Install SAGE in Conda Environment
         run: |
           echo "🚀 Installing SAGE in $CONDA_ENV_NAME environment..."
 
-          # Set environment variables for installation
-          export SAGE_ENV_NAME=$CONDA_ENV_NAME
-          export PIP_CMD="conda run -n $CONDA_ENV_NAME pip"
-          export PYTHON_CMD="conda run -n $CONDA_ENV_NAME python"
+          # Initialize conda from saved path or search
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
 
           # Install system dependencies if needed
           for cmd in cmake pkg-config; do
@@ -152,6 +194,9 @@ jobs:
           echo "Checking GPU status..."
           nvidia-smi || echo "No NVIDIA GPU found"
 
+          # Initialize conda
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
+
           conda run -n $CONDA_ENV_NAME python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
 
       - name: Check Local LLM Service
@@ -169,6 +214,9 @@ jobs:
       - name: Run Paper 1 Experiments
         run: |
           echo "Running SAGE Agent Bench experiments..."
+
+          # Initialize conda
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
           # Navigate to scripts directory
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
@@ -211,6 +259,9 @@ jobs:
         if: ${{ inputs.generate_paper && success() }}
         run: |
           echo "Generating paper figures and tables..."
+
+          # Initialize conda
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
 
