@@ -42,6 +42,8 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
     """
     使用 HuggingFace 模型同步生成文本 embedding。
 
+    使用 masked mean pooling 确保只对有效 token 取平均。
+
     Args:
         text (str): 输入文本
         tokenizer: 已加载的 tokenizer
@@ -67,7 +69,17 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
             input_ids=encoded_texts["input_ids"],
             attention_mask=encoded_texts["attention_mask"],
         )
-        embeddings = outputs.last_hidden_state.mean(dim=1)
+        # 使用 masked mean pooling：只对非 padding token 取平均
+        last_hidden_state = outputs.last_hidden_state  # (1, seq_len, hidden_dim)
+        attention_mask = encoded_texts["attention_mask"]  # (1, seq_len)
+
+        # 扩展 attention_mask 到 hidden_dim 维度
+        mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
+
+        # 对有效 token 求和然后取平均
+        sum_embeddings = torch.sum(last_hidden_state * mask_expanded, dim=1)
+        sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)
+        embeddings = sum_embeddings / sum_mask
 
     if embeddings.dtype == torch.bfloat16:
         return embeddings.detach().to(torch.float32).cpu()[0].tolist()
@@ -80,6 +92,7 @@ def hf_embed_batch_sync(texts: list[str], tokenizer, embed_model) -> list[list[f
     使用 HuggingFace 模型同步批量生成文本 embedding。
 
     通过一次前向传播处理多个文本，相比逐个处理显著提高效率。
+    使用 masked mean pooling 确保 padding token 不影响结果。
 
     Args:
         texts (list[str]): 输入文本列表
@@ -111,8 +124,18 @@ def hf_embed_batch_sync(texts: list[str], tokenizer, embed_model) -> list[list[f
             input_ids=encoded_texts["input_ids"],
             attention_mask=encoded_texts["attention_mask"],
         )
-        # 对每个文本，取其所有token的平均值作为句子embedding
-        embeddings = outputs.last_hidden_state.mean(dim=1)
+        # 使用 masked mean pooling：只对非 padding token 取平均
+        # 这确保批处理结果与单独处理结果一致
+        last_hidden_state = outputs.last_hidden_state  # (batch_size, seq_len, hidden_dim)
+        attention_mask = encoded_texts["attention_mask"]  # (batch_size, seq_len)
+
+        # 扩展 attention_mask 到 hidden_dim 维度: (batch_size, seq_len, hidden_dim)
+        mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
+
+        # 对每个文本，只对有效 token 求和然后取平均
+        sum_embeddings = torch.sum(last_hidden_state * mask_expanded, dim=1)
+        sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)  # 防止除零
+        embeddings = sum_embeddings / sum_mask
 
     # 转换为float32并返回CPU上的列表
     if embeddings.dtype == torch.bfloat16:
