@@ -70,6 +70,10 @@ jobs:
     runs-on: [self-hosted, A100]
     timeout-minutes: 480  # 8 hours for full experiments
 
+    # Use dedicated conda environment to avoid conflicts with any existing "sage" env
+    env:
+      CONDA_ENV_NAME: sage-paper1-ci
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -79,19 +83,55 @@ jobs:
           clean: true
           submodules: 'recursive'
 
-      # Use shared setup-sage action for consistent installation
-      - name: Setup SAGE
-        uses: ./.github/actions/setup-sage
-        with:
-          install-mode: 'dev'
-          skip-system-deps: 'false'
-          hf-token: ${{ secrets.HF_TOKEN }}
-          create-env-file: 'true'
+      # Setup dedicated conda environment for this workflow
+      - name: Setup Conda Environment
+        run: |
+          echo "🔧 Setting up dedicated conda environment: $CONDA_ENV_NAME"
+
+          # Remove existing environment if it exists (clean slate)
+          conda env remove -n $CONDA_ENV_NAME -y 2>/dev/null || true
+
+          # Create fresh environment with Python 3.11
+          conda create -n $CONDA_ENV_NAME python=3.11 -y
+
+          # Verify environment
+          conda run -n $CONDA_ENV_NAME python --version
+          echo "✅ Conda environment $CONDA_ENV_NAME created"
+
+      - name: Install SAGE in Conda Environment
+        run: |
+          echo "🚀 Installing SAGE in $CONDA_ENV_NAME environment..."
+
+          # Set environment variables for installation
+          export SAGE_ENV_NAME=$CONDA_ENV_NAME
+          export PIP_CMD="conda run -n $CONDA_ENV_NAME pip"
+          export PYTHON_CMD="conda run -n $CONDA_ENV_NAME python"
+
+          # Install system dependencies if needed
+          for cmd in cmake pkg-config; do
+            if ! command -v $cmd &> /dev/null; then
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends build-essential cmake pkg-config libopenblas-dev liblapack-dev git
+              break
+            fi
+          done
+
+          # Install SAGE in dev mode
+          conda run -n $CONDA_ENV_NAME pip install --upgrade pip setuptools wheel
+          conda run -n $CONDA_ENV_NAME pip install -e "packages/sage[dev]" --no-build-isolation
+
+          # Verify installation
+          conda run -n $CONDA_ENV_NAME python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
+          echo "✅ SAGE installation completed"
+        timeout-minutes: 25
 
       - name: Create Experiment Environment File
         run: |
-          # Append experiment-specific settings to .env
-          cat >> .env << EOF
+          # Create .env with all required settings
+          cat > .env << EOF
+          # SAGE Environment Configuration (auto-generated for Paper 1 experiments)
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
 
           # LLM Service (DashScope/Qwen)
           SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
@@ -112,8 +152,7 @@ jobs:
           echo "Checking GPU status..."
           nvidia-smi || echo "No NVIDIA GPU found"
 
-          export PATH="$HOME/.local/bin:$PATH"
-          python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
+          conda run -n $CONDA_ENV_NAME python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
 
       - name: Check Local LLM Service
         if: ${{ !inputs.skip_llm }}
@@ -131,13 +170,11 @@ jobs:
         run: |
           echo "Running SAGE Agent Bench experiments..."
 
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Navigate to scripts directory
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
 
           # Build command
-          CMD="python run_paper1_experiments.py"
+          CMD="conda run -n $CONDA_ENV_NAME python run_paper1_experiments.py"
 
           # Add section selection
           if [ "${{ inputs.section }}" != "all" ]; then
@@ -175,15 +212,13 @@ jobs:
         run: |
           echo "Generating paper figures and tables..."
 
-          export PATH="$HOME/.local/bin:$PATH"
-
           cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
 
           # Generate figures
-          python -c "from figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
+          conda run -n $CONDA_ENV_NAME python -c "from figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
 
           # Generate tables
-          python -c "from table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
+          conda run -n $CONDA_ENV_NAME python -c "from table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
