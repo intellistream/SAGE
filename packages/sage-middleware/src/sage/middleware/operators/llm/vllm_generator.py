@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 
 def _extract_prompt_bundle(data: Sequence[Any]) -> tuple[Any, Any, dict[str, Any]]:

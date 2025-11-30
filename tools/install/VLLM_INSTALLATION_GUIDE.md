@@ -16,17 +16,17 @@
 ### 方法 1: 使用 quickstart.sh（推荐）
 
 ```bash
-# 默认安装 + 准备 VLLM 环境
-./quickstart.sh --vllm
+# 默认安装（自动包含 vLLM 依赖）
+./quickstart.sh
 
-# 开发者安装 + 准备 VLLM 环境
-./quickstart.sh --dev --vllm
+# 开发者安装
+./quickstart.sh --dev
 ```
 
 安装脚本会自动：
 
+- ✅ 安装 `sage-llm` 及其依赖（包括 vLLM）
 - ✅ 检查并修复依赖版本冲突
-- ✅ 安装兼容的 torch 和 vllm 版本
 - ✅ 验证安装结果
 
 ### 方法 2: 使用自动修复脚本
@@ -109,53 +109,9 @@ python -c "import vllm; print(f'vLLM version: {vllm.__version__}')"
 python -c "import torch._inductor.config; print('✅ torch._inductor.config 可用')"
 ```
 
-## 📚 新增功能
+## 📚 功能说明
 
-`quickstart.sh` 脚本现在支持 `--vllm` 选项，用于准备 VLLM 使用环境。实际的 VLLM 安装将在首次使用 `vllm_local_serve.sh` 时自动完成。
-
-## 使用方法
-
-### 基本用法
-
-```bash
-# 默认安装 + 准备 VLLM 环境
-./quickstart.sh --vllm
-
-# 标准安装 + 准备 VLLM 环境
-./quickstart.sh --standard --vllm
-
-# 核心安装 + 准备 VLLM 环境
-./quickstart.sh --core --vllm
-
-# 开发者安装 + 准备 VLLM 环境 + pip 环境
-./quickstart.sh --dev --vllm --pip
-```
-
-### 功能特性
-
-- ✅ **自动依赖检查**: 安装后自动检查并修复版本冲突
-- ✅ **环境准备**: 确保 VLLM 启动脚本可执行并提供使用指南
-- ✅ **延迟安装**: VLLM 在首次使用时自动安装，避免不必要的安装时间
-- ✅ **智能检测**: vllm_local_serve.sh 会自动检测 CUDA 支持并安装对应版本
-- ✅ **使用指南**: 安装完成后提供详细的使用提示和推荐模型
-- ✅ **状态验证**: 检查 VLLM 当前安装状态
-
-### 工作流程
-
-1. **环境准备阶段**（quickstart.sh --vllm）：
-
-   - 检查 `vllm_local_serve.sh` 脚本是否存在
-   - 设置脚本执行权限
-   - **检查依赖版本兼容性**（新增）
-   - **自动修复版本冲突**（新增）
-   - 检查当前 VLLM 安装状态
-   - 显示使用指南和推荐模型
-
-1. **实际安装阶段**（首次运行 vllm_local_serve.sh）：
-
-   - 自动检测和安装 VLLM
-   - 智能网络检测和镜像设置
-   - 模型下载和缓存管理
+vLLM 现在作为 `sage-llm` 组件的核心依赖自动安装。
 
 ### 安装后使用
 
@@ -244,17 +200,6 @@ python -c "import transformers, torch, accelerate; print('All dependencies OK')"
    # 查看安装日志
    cat install.log | grep -i vllm
    ```
-
-## 文件结构
-
-新增的文件和修改：
-
-```
-tools/install/installation_table/vllm_installer.sh  # VLLM 安装模块
-tools/install/download_tools/argument_parser.sh     # 修改：添加 --vllm 参数支持
-tools/install/installation_table/main_installer.sh  # 修改：集成 VLLM 安装
-quickstart.sh                                       # 修改：传递 VLLM 参数
-```
 
 ## 更多信息
 

@@ -14,8 +14,8 @@ import pytest
 
 # Test imports with fallbacks
 try:
-    from examples.agents.tools.arxiv_search_tool import (  # type: ignore[import-not-found]
-        ArxivSearchTool,  # type: ignore[import-not-found]
+    from examples.agents.tools.arxiv_search_tool import (
+        ArxivSearchTool,  # type: ignore[import-not-found]; type: ignore[import-not-found]
     )
 
     ARXIV_TOOL_AVAILABLE = True

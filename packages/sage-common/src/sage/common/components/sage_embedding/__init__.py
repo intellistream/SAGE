@@ -8,6 +8,9 @@ This module provides a consistent API for different embedding providers:
 - HuggingFace Transformer models (local, high quality)
 - OpenAI and other API-based services
 
+IMPORTANT: For LLM + Embedding combined usage, use UnifiedInferenceClient from
+sage.common.components.sage_llm instead. This module is for embedding-only scenarios.
+
 Quick Start:
     >>> from sage.common.components.sage_embedding import get_embedding_model
     >>>
@@ -15,11 +18,10 @@ Quick Start:
     >>> emb = get_embedding_model("hash", dim=384)
     >>> vec = emb.embed("hello world")
     >>>
-    >>> # List available methods
-    >>> from sage.common.components.sage_embedding import list_embedding_models
-    >>> models = list_embedding_models()
-    >>> for method, info in models.items():
-    ...     print(f"{method}: {info['description']}")
+    >>> # For combined LLM + Embedding, use UnifiedInferenceClient:
+    >>> from sage.common.components.sage_llm import UnifiedInferenceClient
+    >>> client = UnifiedInferenceClient.create_auto()
+    >>> vectors = client.embed(["text1", "text2"])
 
 Architecture:
     This is a L1 foundation component used by higher layers (L2-L6).
@@ -32,13 +34,19 @@ __version__ = "0.1.4"
 __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
 
-# 新架构：统一的 embedding 接口
+# Core embedding interfaces
 from .base import BaseEmbedding
+from .client import IntelligentEmbeddingClient, get_embedding_client
 from .factory import (
     EmbeddingFactory,
     check_model_availability,
     get_embedding_model,
     list_embedding_models,
+)
+from .protocols import (
+    EmbeddingClientAdapter,
+    EmbeddingProtocol,
+    adapt_embedding_client,
 )
 from .registry import EmbeddingRegistry, ModelInfo, ModelStatus
 
@@ -234,6 +242,12 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
+# =============================================================================
+# DEPRECATED: Backward-compatible IntelligentEmbeddingClient
+# Use UnifiedInferenceClient from sage.common.components.sage_llm instead.
+# =============================================================================
+import warnings
+
 from .embedding_model import (
     EmbeddingModel,  # noqa: E402
     apply_embedding_model,
@@ -242,12 +256,16 @@ from .embedding_model import (
 # Service interface (新增)
 from .service import EmbeddingService, EmbeddingServiceConfig  # noqa: E402
 
+# Note: IntelligentEmbeddingClient and get_embedding_client are imported from
+# .client above (line 39). The implementations there are the canonical versions.
+
+
 # 统一导出接口
 __all__ = [
-    # Service interface (新增 - 推荐用于 pipelines)
+    # Service interface (推荐用于 pipelines)
     "EmbeddingService",  # ⭐ Service 主要 API
     "EmbeddingServiceConfig",
-    # 新架构（推荐使用 - 用于standalone）
+    # Core embedding interfaces
     "BaseEmbedding",
     "EmbeddingRegistry",
     "EmbeddingFactory",
@@ -256,6 +274,10 @@ __all__ = [
     "get_embedding_model",  # ⭐ 主要 API
     "list_embedding_models",  # ⭐ 模型发现
     "check_model_availability",  # ⭐ 状态检查
+    # Protocol adapters
+    "EmbeddingProtocol",
+    "EmbeddingClientAdapter",
+    "adapt_embedding_client",
     # Lightweight wrappers (直接导入)
     "HashEmbedding",
     "MockEmbedding",
@@ -264,4 +286,7 @@ __all__ = [
     # 向后兼容（旧代码仍可使用）
     "EmbeddingModel",
     "apply_embedding_model",
+    # DEPRECATED: Backward-compatible aliases (will be removed)
+    "IntelligentEmbeddingClient",
+    "get_embedding_client",
 ]

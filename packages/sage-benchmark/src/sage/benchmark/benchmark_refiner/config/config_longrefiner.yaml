@@ -1,0 +1,74 @@
+pipeline:
+  name: "sage-benchmark-longrefiner-rag"
+  description: "LongRefiner RAG Pipeline with Three-Stage Compression"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # ASQA dataset for long-form QA
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 100
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "${HOME}/wiki18_maxp.index"
+    documents_path: "${HOME}/wiki18_fulldoc.jsonl"
+    mapping_path: "${HOME}/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "${HOME}/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+longrefiner:
+  # LongRefiner压缩配置
+  enabled: true  # 设为false即为baseline模式
+
+  # 基础模型配置
+  base_model_path: "Qwen/Qwen2.5-3B-Instruct"
+
+  # LoRA模块路径
+  query_analysis_module_lora_path: "jinjiajie/Query-Analysis-Qwen2.5-3B-Instruct"
+  doc_structuring_module_lora_path: "jinjiajie/Doc-Structuring-Qwen2.5-3B-Instruct"
+  global_selection_module_lora_path: "jinjiajie/Global-Selection-Qwen2.5-3B-Instruct"
+
+  # 评分模型配置
+  score_model_name: "bge-reranker-v2-m3"
+  score_model_path: "BAAI/bge-reranker-v2-m3"
+
+  # 模型参数
+  max_model_len: 25000
+  gpu_memory_utilization: 0.5
+
+  # 压缩参数
+  budget: 2048              # 压缩后最大token数
+  compression_ratio:        # 压缩比例（可选，与budget二选一）
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"
