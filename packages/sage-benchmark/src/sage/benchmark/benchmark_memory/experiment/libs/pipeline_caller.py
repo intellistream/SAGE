@@ -4,9 +4,12 @@
 注意：修改代码时请同步更新该文档
 """
 
+from sage.benchmark.benchmark_memory.experiment.utils.calculation_table import (
+    calculate_test_thresholds,
+)
 from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
-from sage.data.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.locomo.dataloader import LocomoDataLoader
 
 
 class PipelineCaller(MapFunction):
@@ -44,48 +47,17 @@ class PipelineCaller(MapFunction):
         self.last_tested_count = 0  # 上次测试时的问题数量
 
         # 从配置中读取测试分段数（默认10段）
-        test_segments = config.get("test_segments", 10)
+        test_segments = config.get("runtime.test_segments", 10)
         # 计算测试阈值数组
-        self.test_thresholds = self._calculate_test_thresholds(self.total_questions, test_segments)
+        self.test_thresholds = calculate_test_thresholds(self.total_questions, test_segments)
         self.next_threshold_idx = 0  # 下一个要触发的阈值索引
 
         # 测试统计
         self.total_dialogs_inserted = 0  # 累计插入的对话数
 
-    def _calculate_test_thresholds(self, total_questions, segments):
-        """计算测试阈值数组
-
-        将总问题数均匀分成 segments 段，返回每段的结束位置作为测试触发点
-
-        Args:
-            total_questions: 总问题数
-            segments: 分段数
-
-        Returns:
-            list: 测试阈值数组，例如 [10, 20, 30, ..., 100]
-        """
-        if total_questions == 0:
-            return []
-
-        # 确保至少有1段
-        segments = max(1, segments)
-
-        # 计算每段的大小
-        segment_size = max(1, total_questions // segments)
-
-        # 生成阈值数组
-        thresholds = []
-        for i in range(1, segments + 1):
-            threshold = min(i * segment_size, total_questions)
-            # 避免重复的阈值
-            if not thresholds or threshold > thresholds[-1]:
-                thresholds.append(threshold)
-
-        # 确保最后一个阈值是 total_questions
-        if not thresholds or thresholds[-1] < total_questions:
-            thresholds.append(total_questions)
-
-        return thresholds
+        # 调试打印开关（默认False）
+        self.memory_insert_verbose = config.get("runtime.memory_insert_verbose", False)
+        self.memory_test_verbose = config.get("runtime.memory_test_verbose", False)
 
     def execute(self, data):
         """调用服务处理对话
@@ -116,23 +88,23 @@ class PipelineCaller(MapFunction):
         self.progress_bar.update(1)
 
         # 打印【Memory Source】部分（使用数据中的序号）
-        print(f"\n{'=' * 60}")
+        if self.memory_insert_verbose:
+            print(f"\n{'=' * 60}")
+            print(f"\033[92m[Memory Source]\033[0m (Packet {packet_idx + 1}/{total_packets})")
 
-        print(f"\033[92m[Memory Source]\033[0m (Packet {packet_idx + 1}/{total_packets})")
+            prefix = ">> "
+            # Session 行
+            session_info = f"{prefix}Session: {session_id}, Dialog {dialog_id}"
+            if len(dialogs) == 2:
+                session_info += f" - {dialog_id + 1}"
+            print(session_info)
 
-        prefix = ">> "
-        # Session 行
-        session_info = f"{prefix}Session: {session_id}, Dialog {dialog_id}"
-        if len(dialogs) == 2:
-            session_info += f" - {dialog_id + 1}"
-        print(session_info)
-
-        # Dialog 内容
-        for i, dialog in enumerate(dialogs):
-            speaker = dialog.get("speaker", "Unknown")
-            text = dialog.get("text", "")
-            print(f"{prefix}   Dialog {dialog_id + i} ({speaker}): {text}")
-        print(f"{'=' * 60}")
+            # Dialog 内容
+            for i, dialog in enumerate(dialogs):
+                speaker = dialog.get("speaker", "Unknown")
+                text = dialog.get("text", "")
+                print(f"{prefix}   Dialog {dialog_id + i} ({speaker}): {text}")
+            print(f"{'=' * 60}")
 
         # ============================================================
         # 阶段1：记忆存储（总是执行）
@@ -149,7 +121,7 @@ class PipelineCaller(MapFunction):
             "memory_insert_service",
             insert_data,
             method="process",
-            timeout=30.0,
+            timeout=90.0,
         )
 
         # 累计插入的对话数
@@ -181,14 +153,16 @@ class PipelineCaller(MapFunction):
 
         # 如果未达到阈值，跳过测试
         if not should_test:
-            threshold_info = f"下一个阈值：{next_threshold}" if next_threshold else "无更多阈值"
-            print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
-            print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
+            if self.memory_test_verbose:
+                threshold_info = f"下一个阈值：{next_threshold}" if next_threshold else "无更多阈值"
+                print(f"\n>> 当前可见问题数：{current_count}/{self.total_questions}")
+                print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
 
             # 如果是最后一个包，发送完成信号
             if is_last_packet:
-                print(">> 最后一个数据包，发送完成信号")
-                print(f"{'=' * 60}\n")
+                if self.memory_test_verbose:
+                    print(">> 最后一个数据包，发送完成信号")
+                    print(f"{'=' * 60}")
 
                 # 关闭进度条
                 if self.progress_bar:
@@ -201,19 +175,21 @@ class PipelineCaller(MapFunction):
                     "completed": True,
                 }
 
-            print(f"{'=' * 60}\n")
+            if self.memory_test_verbose:
+                print(f"{'=' * 60}\n")
             # 不触发测试时，不发送数据给 Sink
             return None
 
         # 达到阈值，触发测试
-        print(f"{'+' * 60}")
-        print("【QA】：问题驱动测试触发")
-        print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
-        print(f">> 已测试问题数：{self.last_tested_count}")
-        print(
-            f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）"
-        )
-        print(f">> 测试范围：问题 1 到 {current_count}")
+        if self.memory_test_verbose:
+            print(f"\n{'+' * 60}")
+            print("【QA】：问题驱动测试触发")
+            print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
+            print(f">> 已测试问题数：{self.last_tested_count}")
+            print(
+                f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）"
+            )
+            print(f">> 测试范围：问题 1 到 {current_count}")
 
         # 逐个问题调用记忆测试服务
         test_answers = []
@@ -233,47 +209,30 @@ class PipelineCaller(MapFunction):
                 "question_metadata": qa,  # 传递完整的 qa 对象作为 metadata
             }
 
-            try:
-                # 调用记忆测试服务（阻塞等待）
-                # 服务内部会：检索相关记忆 → 生成答案
-                result = self.call_service(
-                    "memory_test_service",
-                    test_data,
-                    method="process",
-                    timeout=300.0,
-                )
+            # 调用记忆测试服务（阻塞等待）
+            # 服务内部会：检索相关记忆 → 生成答案
+            result = self.call_service(
+                "memory_test_service",
+                test_data,
+                method="process",
+                timeout=90.0,
+            )
 
-                # 提取答案结果
-                answer_data = result.payload if hasattr(result, "payload") else result
-                if "answer" in answer_data:
-                    # 构造标准化的答案记录
-                    answer_record = {
-                        "question_index": q_idx + 1,
-                        "question": question,
-                        "predicted_answer": answer_data["answer"],
-                        "metadata": answer_data.get("question_metadata", qa),
-                    }
-                    test_answers.append(answer_record)
+            # PipelineService 返回的是纯数据（已由 PipelineServiceSink 处理）
+            if "answer" in result:
+                # 构造标准化的答案记录
+                answer_record = {
+                    "question_index": q_idx + 1,
+                    "question": question,
+                    "predicted_answer": result["answer"],
+                    "metadata": result.get("question_metadata", qa),
+                }
+                test_answers.append(answer_record)
 
-                    # 打印问答
+                # 打印问答
+                if self.memory_test_verbose:
                     print(f">> Question {q_idx + 1}：{question}")
-                    print(f">> Answer：{answer_data['answer']}")
-
-            except Exception as e:
-                # 服务调用失败（可能是超时、服务关闭等）
-                print(f">> Question {q_idx + 1}：{question}")
-                print(f">> Answer：[服务调用失败: {str(e)}]")
-                # 记录失败的答案
-                test_answers.append(
-                    {
-                        "question_index": q_idx + 1,
-                        "question": question,
-                        "predicted_answer": "[ERROR]",
-                        "error": str(e),
-                        "metadata": qa,
-                    }
-                )
-                # 继续处理下一个问题（而不是中断整个批次）
+                    print(f">> Answer：{result['answer']}")
 
         # 构造本次测试结果
         test_result = {
@@ -292,8 +251,8 @@ class PipelineCaller(MapFunction):
         self.last_tested_count = current_count
         self.next_threshold_idx += 1  # 移动到下一个阈值
 
-        print(f"{'+' * 60}\n")
-        print(f"{'=' * 60}\n")
+        if self.memory_test_verbose:
+            print(f"{'+' * 60}")
 
         # 关闭进度条（如果是最后一个包）
         if is_last_packet and self.progress_bar:

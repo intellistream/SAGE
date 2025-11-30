@@ -361,13 +361,6 @@ class BaseTask(ABC):  # noqa: B024
             self.logger.debug(f"Task {self.name} has fault_handler: {type(fault_handler).__name__}")
 
         # Main execution loop
-        print(
-            f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}, stop={self.ctx.is_stop_requested()}"
-        )
-        self.logger.info(
-            f"[DIAGNOSE] Task {self.name}: Entering worker loop, is_spout={self.is_spout}"
-        )
-
         while not self.ctx.is_stop_requested():
             try:
                 # ✅ 定期保存 checkpoint
@@ -457,8 +450,19 @@ class BaseTask(ABC):  # noqa: B024
 
                         if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
                             self.logger.info(
-                                f"Intermediate operator {self.name} received stop signal, stopping and forwarding"
+                                f"Intermediate operator {self.name} received stop signal, processing and forwarding"
                             )
+                            # 先让operator处理StopSignal(例如打印统计信息)
+                            try:
+                                # 将 StopSignal 包装成 Packet
+                                stop_packet = Packet(payload=data_packet)
+                                self.operator.receive_packet(stop_packet)
+                            except Exception as e:
+                                self.logger.error(
+                                    f"Error processing StopSignal in {self.name}: {e}"
+                                )
+
+                            # 然后停止task
                             self.ctx.send_stop_signal_back(self.name)
                             self.ctx.set_stop_signal()
                             break

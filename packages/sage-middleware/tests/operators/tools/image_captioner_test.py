@@ -51,16 +51,16 @@ def test_execute_success(image_captioner_tool, mocker):
     # 模拟一个假的、成功的 API 响应
     fake_caption = "A beautiful landscape with mountains and a lake."
 
-    # 创建一个 OpenAIClient 的模拟实例
+    # 创建一个 UnifiedInferenceClient 的模拟实例
     mock_client_instance = MagicMock()
-    # 配置该实例的 generate 方法，使其返回我们的假标题
-    mock_client_instance.generate.return_value = fake_caption
+    # ImageCaptioner uses client.chat() method, not generate()
+    mock_client_instance.chat.return_value = fake_caption
 
     # 使用 mocker 来“拦截” OpenAIClient 的创建过程。
-    # 当代码尝试 `OpenAIClient(...)` 时，它将不会创建真实对象，而是返回我们上面配置好的模拟实例。
+
     # 注意：这里的路径是相对于您运行 pytest 的根目录的绝对路径。
     mocker.patch(
-        "sage.libs.tools.image_captioner.OpenAIClient",
+        "sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto",
         return_value=mock_client_instance,
     )
 
@@ -68,8 +68,8 @@ def test_execute_success(image_captioner_tool, mocker):
     result = image_captioner_tool.execute(image_path="path/to/fake_image.png")
 
     # --- 断言 (Assert) ---
-    # 验证 generate 方法被正确调用
-    mock_client_instance.generate.assert_called_once()
+    # 验证 chat 方法被正确调用
+    mock_client_instance.chat.assert_called_once()
     # 验证返回的结果是我们预期的假标题
     assert result == fake_caption
 
@@ -106,7 +106,7 @@ def test_execute_model_not_set(image_captioner_tool):
 #         successful_caption
 #     ]
 
-#     mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto', return_value=mock_client_instance)
 #     # 同样需要模拟 time.sleep，否则测试会真的暂停
 #     mock_sleep = mocker.patch('time.sleep')
 
@@ -131,7 +131,7 @@ def test_execute_model_not_set(image_captioner_tool):
 #     # 模拟一个总是失败的场景
 #     mock_client_instance.generate.side_effect = ConnectionError("Persistent connection failure")
 
-#     mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto', return_value=mock_client_instance)
 #     mock_sleep = mocker.patch('time.sleep')
 
 #     # --- 执行 (Act) ---
@@ -155,7 +155,7 @@ def test_execute_model_not_set(image_captioner_tool):
 #     # 模拟一个通用的异常
 #     mock_client_instance.generate.side_effect = Exception("A generic error occurred")
 
-#     mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto', return_value=mock_client_instance)
 
 #     # --- 执行 (Act) ---
 #     result = image_captioner_tool.execute(image_path="path/to/image.png")

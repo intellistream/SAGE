@@ -1,5 +1,8 @@
 import os
+from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
     VDBMemoryCollection,
@@ -89,18 +92,20 @@ class NeuroMemVDB:
                 results[collection_name] = None
         return results
 
-    def retrieve(self, raw_data: Any, topk: int = 5, index_name: str = "global_index"):
+    def retrieve(self, query_vector: np.ndarray, topk: int = 5, index_name: str = "global_index"):
         # 测试类型的retrieve方法，不返回任何值，直接print出检索结果
         if not self.online_register_collection:
             print("警告: 没有注册的collection，无法检索数据")
             return
 
-        print(f"检索查询: {raw_data}")
+        print("检索查询: [query_vector]")
         print("=" * 50)
 
         for collection_name, collection in self.online_register_collection.items():
             try:
-                results = collection.retrieve(raw_data, index_name, topk=topk, with_metadata=True)
+                results = collection.retrieve(
+                    query_vector, index_name, topk=topk, with_metadata=True
+                )
                 print(f"Collection '{collection_name}' 检索结果:")
                 if results:
                     for i, result in enumerate(results, 1):
@@ -114,7 +119,14 @@ class NeuroMemVDB:
                 print(f"Collection '{collection_name}' 检索失败: {str(e)}")
                 print("-" * 30)
 
-    def build_index(self, index_name: str = "global_index", description: str = "全局索引"):
+    def build_index(
+        self,
+        vectors: list[np.ndarray],
+        item_ids: list[str],
+        index_name: str = "global_index",
+        description: str = "全局索引",
+        dim: int = 128,
+    ):
         # 该方法在所有 online_register_collection 创建指定索引
         if not self.online_register_collection:
             print("警告: 没有注册的collection，无法创建索引")
@@ -127,13 +139,13 @@ class NeuroMemVDB:
                     "name": index_name,
                     "description": description,
                     "embedding_model": "default",  # 使用默认嵌入模型
-                    "dim": 384,  # 对应默认模型的维度
+                    "dim": dim,  # 对应默认模型的维度
                     "backend_type": "FAISS",  # 默认后端
                 }
                 success = collection.create_index(index_config)
                 if success:
                     # 初始化索引，将现有数据插入索引
-                    collection.init_index(index_name)
+                    collection.init_index(index_name, vectors, item_ids)
                     results[collection_name] = True
                     print(f"成功在collection '{collection_name}' 中创建索引 '{index_name}'")
                 else:
@@ -168,18 +180,43 @@ class NeuroMemVDB:
 
     @classmethod
     def _get_default_data_dir(cls):
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "neuromem_vdb")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录，优先使用 SAGE_HOME 或项目 .sage 目录"""
+        sage_home = os.environ.get("SAGE_HOME")
+        if sage_home:
+            base_dir = Path(sage_home)
+        else:
+            # Fallback to repository-local .sage workspace
+            base_dir = Path.cwd() / ".sage"
+
+        data_dir = base_dir / "data" / "neuromem_vdb"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
 
 if __name__ == "__main__":
+    from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
+
+    def normalize_vector(vector):
+        """Normalize a vector using L2 normalization."""
+        if hasattr(vector, "detach") and hasattr(vector, "cpu"):
+            vector = vector.detach().cpu().numpy()
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        if not isinstance(vector, np.ndarray):
+            vector = np.array(vector)
+        vector = vector.astype(np.float32)
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
+
     print("默认数据目录:", NeuroMemVDB._get_default_data_dir())
     print("\n" + "=" * 60)
     print("开始测试 NeuroMemVDB")
     print("=" * 60)
+
+    # Initialize embedding model
+    embedding_model = apply_embedding_model("mockembedder")
 
     # 创建NeuroMemVDB实例
     vdb = NeuroMemVDB()
@@ -199,17 +236,32 @@ if __name__ == "__main__":
 
     # 测试3: 插入数据
     print("\n3. 测试插入数据")
-    vdb.insert("Python是一种编程语言", {"type": "test", "priority": "high"})
-    vdb.insert("机器学习是人工智能的重要分支", {"type": "demo", "priority": "low"})
-    vdb.insert("向量数据库用于存储和检索高维向量数据")
+    sample_texts = [
+        "Python是一种编程语言",
+        "机器学习是人工智能的重要分支",
+        "向量数据库用于存储和检索高维向量数据",
+    ]
+    metadatas = [
+        {"type": "test", "priority": "high"},
+        {"type": "demo", "priority": "low"},
+        None,
+    ]
+    for text, metadata in zip(sample_texts, metadatas):
+        vdb.insert(text, metadata)
 
     # 测试4: 创建索引
     print("\n4. 测试创建索引")
-    vdb.build_index("custom_index", "自定义测试索引")
+    vectors = [normalize_vector(embedding_model.encode(text)) for text in sample_texts]
+    # Get item_ids from all collections
+    for collection_name, collection in vdb.online_register_collection.items():
+        item_ids = collection.get_all_ids()
+        break  # Get from the first collection
+    vdb.build_index(vectors, item_ids, "custom_index", "自定义测试索引", dim=128)
 
     # 测试5: 检索数据
     print("\n5. 测试检索数据")
-    vdb.retrieve("编程语言", topk=3)
+    query_vector = normalize_vector(embedding_model.encode("编程语言"))
+    vdb.retrieve(query_vector, topk=3, index_name="custom_index")
 
     # 测试6: 保存到磁盘
     print("\n6. 测试保存到磁盘")
@@ -225,7 +277,7 @@ if __name__ == "__main__":
 
     # 测试9: 再次检索（应该只有test_collection2的结果）
     print("\n9. 清理后再次检索")
-    vdb.retrieve("编程语言", topk=3)
+    vdb.retrieve(query_vector, topk=3, index_name="custom_index")
 
     print("\n" + "=" * 60)
     print("测试完成")

@@ -1,13 +1,11 @@
 import os
 import time
 
+from sage.common.components.sage_llm import UnifiedInferenceClient
 from sage.libs.foundation.tools.tool import BaseTool
-from sage.libs.integrations.openaiclient import OpenAIClient
 
 
 class ImageCaptioner(BaseTool):
-    require_llm_engine = True
-
     def __init__(self, model_name: str = "meta-llama/Llama-2-13b-chat-hf"):
         super().__init__(
             tool_name="image_captioner",
@@ -26,6 +24,7 @@ class ImageCaptioner(BaseTool):
                     "description": "Generate a caption for an image using a custom prompt and model.",
                 },
             ],
+            require_llm_engine=True,  # This tool requires an LLM engine
         )
         # Store additional metadata and model configuration as instance variables
         self.tool_version = "1.0.0"
@@ -40,7 +39,7 @@ class ImageCaptioner(BaseTool):
                     "Model name is not set. Please set the model name using set_model_name() before executing the tool."
                 )
 
-            # Construct the messages parameter for the OpenAIClient
+            # Construct the messages parameter for IntelligentLLMClient
             messages = [
                 {"role": "system", "content": "You are an image captioning assistant."},
                 {
@@ -49,7 +48,8 @@ class ImageCaptioner(BaseTool):
                 },
             ]
 
-            client = OpenAIClient(model_name=self.model_name, seed=42)
+            # Use auto-detection for best available LLM service
+            client = UnifiedInferenceClient.create_auto()
 
             # Retry mechanism for connection errors
             max_retries = 5
@@ -57,7 +57,7 @@ class ImageCaptioner(BaseTool):
 
             for attempt in range(max_retries):
                 try:
-                    response = client.generate(messages=messages)
+                    response = client.chat(messages)
                     return response
                 except ConnectionError as e:
                     print(f"Connection error on attempt {attempt + 1}: {e}")

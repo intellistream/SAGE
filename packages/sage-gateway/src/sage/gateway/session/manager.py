@@ -12,13 +12,29 @@ Supports multiple storage backends:
 
 from __future__ import annotations
 
+import logging
 import os
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-import uuid
 from typing import Any
 
+from sage.middleware.components.sage_mem.neuromem.memory_collection import (
+    BaseMemoryCollection,
+)
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.sage_mem.services.memory_service_factory import (
+    MemoryServiceFactory,
+)
+
+# Import sage-memory components
+from sage.middleware.components.sage_mem.services.short_term_memory_service import (
+    ShortTermMemoryService,
+)
+
 from .storage import FileSessionStore, SessionStorage
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -110,17 +126,54 @@ class ChatSession:
 
 
 class SessionManager:
-    """会话管理器（内存+文件存储）"""
+    """会话管理器（内存+文件存储）
 
-    def __init__(self, storage: SessionStorage | None = None):
+    支持多种记忆体后端：
+    - short_term: 短期记忆服务（滑动窗口，默认）
+    - vdb: 向量数据库记忆（语义检索）
+    - kv: 键值对记忆（快速查询）
+    - graph: 图记忆（关系推理）
+    """
+
+    def __init__(
+        self,
+        storage: SessionStorage | None = None,
+        max_memory_dialogs: int = 10,
+        memory_backend: str = "short_term",
+        memory_config: dict[str, Any] | None = None,
+    ):
+        """初始化会话管理器
+
+        Args:
+            storage: 会话存储后端
+            max_memory_dialogs: 短期记忆最大对话轮数（仅 short_term 后端）
+            memory_backend: 记忆体后端类型 (short_term/vdb/kv/graph)
+            memory_config: 记忆体配置（各后端的特定配置）
+        """
         self._storage = storage or FileSessionStore.default()
         self._sessions: dict[str, ChatSession] = {}
+
+        # sage-memory: 为每个session维护独立的记忆服务
+        self._memory_services: dict[str, ShortTermMemoryService | BaseMemoryCollection] = {}
+        self._max_memory_dialogs = max_memory_dialogs
+        self._memory_backend = memory_backend
+        self._memory_config = memory_config or {}
+
+        # 如果使用 neuromem collection，初始化 MemoryManager
+        if memory_backend in ("vdb", "kv", "graph"):
+            self._memory_manager = MemoryManager()
+        else:
+            self._memory_manager = None
+
         self._load_sessions()
 
     def _load_sessions(self) -> None:
         for payload in self._storage.load():
             session = self._hydrate_session(payload)
             self._sessions[session.id] = session
+
+            # 为加载的会话创建记忆服务
+            self._memory_services[session.id] = self._create_memory_service(session.id)
 
     def _hydrate_session(self, payload: dict) -> ChatSession:
         session = ChatSession(
@@ -154,8 +207,89 @@ class SessionManager:
         if title:
             session.rename(title)
         self._sessions[session.id] = session
+
+        # 为新session创建独立的记忆服务
+        self._memory_services[session.id] = self._create_memory_service(session.id)
+
         self._persist()
         return session
+
+    def _create_memory_service(
+        self, session_id: str
+    ) -> ShortTermMemoryService | BaseMemoryCollection:
+        """为会话创建记忆服务
+
+        根据配置的后端类型创建不同的记忆服务：
+        - short_term: 短期记忆（滑动窗口）
+        - vdb: 向量数据库（语义检索）
+        - kv: 键值存储（快速查询）
+        - graph: 图记忆（关系推理）
+        """
+        if self._memory_backend == "short_term":
+            # 使用 MemoryServiceFactory 创建短期记忆服务
+            return MemoryServiceFactory.create_instance(
+                "short_term_memory", max_dialog=self._max_memory_dialogs
+            )
+
+        elif self._memory_backend == "vdb":
+            # 向量数据库记忆
+            index_name = f"vdb_index_{session_id}"
+            config = {
+                "name": f"session_{session_id}_vdb",
+                "backend_type": "VDB",
+                "description": f"Vector memory for session {session_id}",
+            }
+            collection = self._memory_manager.create_collection(config)
+
+            # 创建索引
+            index_config = {
+                "name": index_name,
+                "embedding_model": self._memory_config.get("embedding_model", "hash"),
+                "dim": self._memory_config.get("embedding_dim", 384),
+                "backend_type": "FAISS",
+                "description": "Session vector index",
+                "index_parameter": {},
+            }
+            collection.create_index(index_config)
+
+            # 保存 index_name 用于后续操作
+            collection._gateway_index_name = index_name
+            return collection
+
+        elif self._memory_backend == "kv":
+            # 键值存储记忆
+            index_name = f"kv_index_{session_id}"
+            config = {
+                "name": f"session_{session_id}_kv",
+                "backend_type": "KV",
+                "description": f"KV memory for session {session_id}",
+            }
+            collection = self._memory_manager.create_collection(config)
+
+            # 创建索引
+            index_config = {
+                "name": index_name,
+                "index_type": self._memory_config.get("default_index_type", "bm25s"),
+                "description": "Session KV index",
+            }
+            collection.create_index(index_config)
+
+            # 保存 index_name 用于后续操作
+            collection._gateway_index_name = index_name
+            return collection
+
+        elif self._memory_backend == "graph":
+            # 图记忆
+            config = {
+                "name": f"session_{session_id}_graph",
+                "backend_type": "Graph",
+                "description": f"Graph memory for session {session_id}",
+            }
+            return self._memory_manager.create_collection(config)
+
+        else:
+            # 默认使用短期记忆
+            return ShortTermMemoryService(max_dialog=self._max_memory_dialogs)
 
     def get_or_create(self, session_id: str | None = None) -> ChatSession:
         """获取或创建会话"""
@@ -165,7 +299,13 @@ class SessionManager:
             self._persist()
             return session
 
-        return self.create_session(session_id=session_id)
+        session = self.create_session(session_id=session_id)
+
+        # 确保记忆服务存在
+        if session.id not in self._memory_services:
+            self._memory_services[session.id] = self._create_memory_service(session.id)
+
+        return session
 
     def get(self, session_id: str) -> ChatSession | None:
         """获取会话"""
@@ -175,6 +315,25 @@ class SessionManager:
         """删除会话"""
         if session_id in self._sessions:
             del self._sessions[session_id]
+
+            # 清理关联的记忆服务
+            if session_id in self._memory_services:
+                memory_service = self._memory_services[session_id]
+
+                # 对于 neuromem collection，需要通过 MemoryManager 删除
+                if (
+                    self._memory_backend in ("vdb", "kv", "graph")
+                    and self._memory_manager
+                    and isinstance(memory_service, BaseMemoryCollection)
+                ):
+                    try:
+                        collection_name = f"session_{session_id}_{self._memory_backend}"
+                        self._memory_manager.delete_collection(collection_name)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete memory collection: {e}")
+
+                del self._memory_services[session_id]
+
             self._persist()
             return True
         return False
@@ -224,6 +383,185 @@ class SessionManager:
             "total_messages": sum(len(s.messages) for s in self._sessions.values()),
         }
 
+    def get_memory_service(
+        self, session_id: str
+    ) -> ShortTermMemoryService | BaseMemoryCollection | None:
+        """获取会话的记忆服务
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            对应的记忆服务实例，如果会话不存在则返回 None
+        """
+        # 如果会话不存在，返回 None
+        if session_id not in self._sessions:
+            return None
+
+        # 如果记忆服务不存在，自动创建
+        if session_id not in self._memory_services:
+            self._memory_services[session_id] = self._create_memory_service(session_id)
+
+        return self._memory_services.get(session_id)
+
+    def store_dialog_to_memory(
+        self, session_id: str, user_message: str, assistant_message: str
+    ) -> None:
+        """将一轮对话存储到记忆服务
+
+        支持多种后端：
+        - short_term: 使用滑动窗口存储
+        - vdb: 向量化后存储到向量数据库
+        - kv: 以键值对形式存储
+        - graph: 构建对话关系图
+
+        Args:
+            session_id: 会话ID
+            user_message: 用户消息
+            assistant_message: 助手回复
+        """
+        memory_service = self.get_memory_service(session_id)
+        if not memory_service:
+            return
+
+        if self._memory_backend == "short_term":
+            # 短期记忆服务需要格式化的字符串
+            # 格式: "user: {message}\nassistant: {response}"
+            formatted_dialog = f"user: {user_message}\nassistant: {assistant_message}"
+            memory_service.insert(formatted_dialog)
+
+        elif self._memory_backend in ("vdb", "kv", "graph"):
+            # neuromem collection 使用统一的存储接口
+            import time
+
+            # 合并对话内容
+            combined_text = f"User: {user_message}\nAssistant: {assistant_message}"
+
+            # 元数据
+            metadata = {
+                "session_id": session_id,
+                "user_message": user_message,
+                "assistant_message": assistant_message,
+                "timestamp": time.time(),
+            }
+
+            # 存储到 collection
+            if self._memory_backend == "vdb":
+                # VDB 需要 index_name 参数
+                index_name = getattr(memory_service, "_gateway_index_name", None)
+                if index_name:
+                    memory_service.insert(
+                        index_name=index_name, raw_data=combined_text, metadata=metadata
+                    )
+            elif self._memory_backend == "kv":
+                # KV 需要 index_names 参数（可变参数）
+                index_name = getattr(memory_service, "_gateway_index_name", None)
+                if index_name:
+                    memory_service.insert(combined_text, metadata, index_name)
+            else:
+                # Graph 使用 BaseMemoryCollection 的 insert 接口
+                memory_service.insert(raw_text=combined_text, metadata=metadata)
+
+    def retrieve_memory_history(self, session_id: str) -> str:
+        """获取会话的历史记忆
+
+        支持多种后端：
+        - short_term: 返回滑动窗口内的对话
+        - vdb/kv/graph: 通过 retrieve 方法检索对话片段
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            格式化的记忆历史字符串
+        """
+        memory_service = self.get_memory_service(session_id)
+        if not memory_service:
+            return ""
+
+        if self._memory_backend == "short_term":
+            # 短期记忆服务返回 [{"text": "...", "metadata": {...}}, ...]
+            memory_data = memory_service.retrieve()
+
+            if not memory_data:
+                return ""
+
+            history_parts = []
+            for item in memory_data:
+                # 新格式: {"text": "user: ...\nassistant: ...", "metadata": {...}}
+                text = item.get("text", "")
+                if text:
+                    history_parts.append(text)
+
+            return "\n".join(history_parts)
+
+        elif self._memory_backend in ("vdb", "kv", "graph"):
+            # neuromem collection 使用 retrieve 方法
+            try:
+                if self._memory_backend == "vdb":
+                    # VDB 需要 raw_data 和 index_name 参数进行语义检索
+                    index_name = getattr(memory_service, "_gateway_index_name", None)
+                    if not index_name:
+                        return ""
+
+                    # 使用空查询检索所有内容（通过元数据过滤）
+                    results = memory_service.retrieve(
+                        raw_data="",  # VDB 需要查询文本
+                        index_name=index_name,
+                        topk=self._memory_config.get("max_retrieve", 100),
+                        with_metadata=True,
+                        session_id=session_id,  # 元数据过滤
+                    )
+
+                elif self._memory_backend == "kv":
+                    # KV 需要 raw_text 参数进行关键词检索
+                    index_name = getattr(memory_service, "_gateway_index_name", None)
+                    if not index_name:
+                        return ""
+
+                    results = memory_service.retrieve(
+                        raw_text="",  # KV 需要查询文本
+                        index_name=index_name,
+                        topk=self._memory_config.get("max_retrieve", 100),
+                        with_metadata=True,
+                        session_id=session_id,  # 元数据过滤
+                    )
+
+                else:  # graph
+                    # Graph 使用 BaseMemoryCollection 的 retrieve 接口
+                    results = memory_service.retrieve(
+                        with_metadata=True,
+                        session_id=session_id,  # 元数据过滤
+                    )
+
+                if not results:
+                    return ""
+
+                # 按时间戳排序（如果有）
+                results_sorted = sorted(
+                    results, key=lambda x: x.get("metadata", {}).get("timestamp", 0)
+                )
+
+                # 格式化结果
+                history_parts = []
+                for result in results_sorted:
+                    metadata = result.get("metadata", {})
+                    user_msg = metadata.get("user_message", "")
+                    assistant_msg = metadata.get("assistant_message", "")
+
+                    if user_msg:
+                        history_parts.append(f"user: {user_msg}")
+                    if assistant_msg:
+                        history_parts.append(f"assistant: {assistant_msg}")
+
+                return "\n".join(history_parts)
+
+            except Exception as e:
+                logger.warning(f"Failed to retrieve memory from {self._memory_backend}: {e}")
+                return ""
+
+        return ""
+
     @staticmethod
     def _parse_datetime(value: str | None) -> datetime:
         if not value:
@@ -265,7 +603,8 @@ def _create_storage_backend() -> SessionStorage:
             import warnings
 
             warnings.warn(
-                "NeuroMem backend requested but not available, falling back to file storage"
+                "NeuroMem backend requested but not available, falling back to file storage",
+                stacklevel=2,
             )
             return FileSessionStore.default()
     else:

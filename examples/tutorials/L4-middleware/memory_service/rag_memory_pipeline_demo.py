@@ -34,24 +34,26 @@
 
 from __future__ import annotations
 
+# 导入业务相关的算子和服务
+from pipeline_as_service_operators import (
+    DisplayAnswer,
+    MockMemoryService,
+    ProcessQuestion,
+    QAPipelineMap,
+    QuestionBatch,
+)
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service import (
     PipelineBridge,
     PipelineService,
-    PipelineServiceSource,
     PipelineServiceSink,
+    PipelineServiceSource,
 )
 
-# 导入业务相关的算子和服务
-from pipeline_as_service_operators import (
-    MockMemoryService,
-    QAPipelineMap,
-    QuestionBatch,
-    ProcessQuestion,
-    DisplayAnswer,
-)
+# Test configuration: Pipeline-as-Service examples need more time
+TEST_TAGS = ["timeout=120"]
 
 
 def main():
@@ -97,9 +99,7 @@ def main():
     print("\n【创建 Pipeline 1】QA Pipeline（服务 Pipeline）")
     print("  └─ 架构: PipelineServiceSource → QAPipelineMap → PipelineServiceSink")
     print("  └─ 职责: 从 Bridge 拉取请求，调用 Memory Service，返回结果")
-    env.from_source(PipelineServiceSource, qa_bridge).map(QAPipelineMap).sink(
-        PipelineServiceSink
-    )
+    env.from_source(PipelineServiceSource, qa_bridge).map(QAPipelineMap).sink(PipelineServiceSink)
 
     print("\n【创建 Pipeline 2】主 Pipeline（Controller Pipeline）")
     print("  └─ 架构: QuestionBatch → ProcessQuestion → DisplayAnswer")

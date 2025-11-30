@@ -4,41 +4,62 @@
 >
 > **用户文档**: 请访问 [docs-public](../../docs-public/) 获取完整的用户和开发者文档。
 
+## 🧱 分层目录（与 `packages/sage/pyproject.toml` 对齐）
+
+| 层级 | 关联包（pyproject） | 目录 | 角色 |
+|------|--------------------|------|------|
+| L1 | `isage-common` | `l1-common/` | 基础设施、共享组件、Hybrid Scheduler |
+| L2 | `isage-platform` | `l2-platform/` | 平台服务、安装与部署能力 |
+| L3 | `isage-kernel`, `isage-libs` | `l3-kernel/`, `l3-libs/` | 核心执行引擎、算法库、Agentic 模块 |
+| L4 | `isage-middleware` | `l4-middleware/` | 运算符、C++ 组件、数据面能力 |
+| L5 | `isage-apps`, `isage-benchmark` | `l5-apps/`, `l5-benchmark/` | 应用、Agent/Control Plane 评测 |
+| L6 | `isage-cli`, `isage-studio`, `isage-tools`, `isage-gateway` | `l6-cli/`, `l6-studio/`, `l6-tools/`, `l6-gateway/` | 交互接口、可视化和开发者工具 |
+
+交叉主题（`cross-layer/`, `testing/`, `archive/`）用于记录跨层设计、测试策略和历史材料。
+研究工作（`research_work/`）用于存放研究相关文档，如论文、benchmark 设计等。
+
 ## 📂 当前文档
 
 ### 🏗️ 架构设计
 
 | 文档 | 描述 | 状态 |
 |------|------|------|
-| [DATA_TYPES_ARCHITECTURE.md](DATA_TYPES_ARCHITECTURE.md) | 数据类型架构设计 | ✅ 活跃 |
-| [NEUROMEM_ARCHITECTURE_ANALYSIS.md](NEUROMEM_ARCHITECTURE_ANALYSIS.md) | NeuroMem 架构分析 | ✅ 活跃 |
-| [VLLM_SERVICE_INTEGRATION_DESIGN.md](VLLM_SERVICE_INTEGRATION_DESIGN.md) | vLLM 服务集成设计 | ✅ 活跃 |
-| [SAGE_CHAT_ARCHITECTURE.md](SAGE_CHAT_ARCHITECTURE.md) | Chat 命令架构 | ✅ 活跃 |
-| [kernel/KERNEL_REFACTORING_COMPLETED.md](kernel/KERNEL_REFACTORING_COMPLETED.md) | Kernel 层重构完成报告 (Issue #1041) | ✅ 活跃 |
+| [cross-layer/architecture/DATA_TYPES_ARCHITECTURE.md](cross-layer/architecture/DATA_TYPES_ARCHITECTURE.md) | 数据类型架构设计 | ✅ 活跃 |
+| [cross-layer/architecture/NEUROMEM_ARCHITECTURE_ANALYSIS.md](cross-layer/architecture/NEUROMEM_ARCHITECTURE_ANALYSIS.md) | NeuroMem 架构分析 | ✅ 活跃 |
+| [cross-layer/architecture/VLLM_SERVICE_INTEGRATION_DESIGN.md](cross-layer/architecture/VLLM_SERVICE_INTEGRATION_DESIGN.md) | vLLM 服务集成设计 | ✅ 活跃 |
+| [cross-layer/architecture/SAGE_CHAT_ARCHITECTURE.md](cross-layer/architecture/SAGE_CHAT_ARCHITECTURE.md) | Chat 命令架构 | ✅ 活跃 |
+| [l3-kernel/KERNEL_REFACTORING_COMPLETED.md](l3-kernel/KERNEL_REFACTORING_COMPLETED.md) | Kernel 层重构完成报告 (Issue #1041) | ✅ 活跃 |
+| [cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md](cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md) | sageLLM Control Plane 集成 | ✅ 活跃 |
 
 ### 📋 系统文档
 
 | 文档 | 描述 | 状态 |
 |------|------|------|
-| [APPLICATION_ORGANIZATION_STRATEGY.md](APPLICATION_ORGANIZATION_STRATEGY.md) | 应用代码组织策略 | ✅ 活跃 |
-| [EMBEDDING_README.md](EMBEDDING_README.md) | Embedding 系统总览 | ✅ 活跃 |
-| [EMBEDDING_QUICK_REFERENCE.md](EMBEDDING_QUICK_REFERENCE.md) | Embedding API 快速参考 | ✅ 活跃 |
-| [EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md](EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md) | Embedding 系统完整总结 | ✅ 活跃 |
+| [cross-layer/migration/APPLICATION_ORGANIZATION_STRATEGY.md](cross-layer/migration/APPLICATION_ORGANIZATION_STRATEGY.md) | 应用代码组织策略 | ✅ 活跃 |
+| [cross-layer/migration/EMBEDDING_README.md](cross-layer/migration/EMBEDDING_README.md) | Embedding 系统总览 | ✅ 活跃 |
+| [cross-layer/migration/EMBEDDING_QUICK_REFERENCE.md](cross-layer/migration/EMBEDDING_QUICK_REFERENCE.md) | Embedding API 快速参考 | ✅ 活跃 |
+| [cross-layer/migration/EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md](cross-layer/migration/EMBEDDING_SYSTEM_COMPLETE_SUMMARY.md) | Embedding 系统完整总结 | ✅ 活跃 |
+| [cross-layer/BREAKING_CHANGES_agent_tools_plan.md](cross-layer/BREAKING_CHANGES_agent_tools_plan.md) | agent_tools_plan 分支重要改动 | ✅ 活跃 |
+
+### 🤖 Agent & Benchmark
+
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [l5-benchmark/README.md](l5-benchmark/README.md) | Benchmark 层概述（含 benchmark_agent, benchmark_control_plane） | ✅ 活跃 |
+| [cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md](cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md) | sageLLM Control Plane 集成设计 | ✅ 活跃 |
 
 ### ⚙️ 运维配置
 
 | 文档 | 描述 | 状态 |
 |------|------|------|
-| [CODECOV_SETUP_GUIDE.md](CODECOV_SETUP_GUIDE.md) | CodeCov CI/CD 配置 | ✅ 活跃 |
-| [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知问题跟踪 | ✅ 活跃 |
-| [DEV_INFRASTRUCTURE_SETUP.md](DEV_INFRASTRUCTURE_SETUP.md) | 开发基础设施配置 | ✅ 活跃 |
+| [cross-layer/ci-cd/CODECOV_SETUP_GUIDE.md](cross-layer/ci-cd/CODECOV_SETUP_GUIDE.md) | CodeCov CI/CD 配置 | ✅ 活跃 |
+| [cross-layer/ci-cd/DEV_INFRASTRUCTURE_SETUP.md](cross-layer/ci-cd/DEV_INFRASTRUCTURE_SETUP.md) | 开发基础设施配置 | ✅ 活跃 |
 
 ### 🛠️ 开发工具
 
 | 文档 | 描述 | 状态 |
 |------|------|------|
-| [tools/pre-commit-auto-fix-guide.md](tools/pre-commit-auto-fix-guide.md) | Pre-commit 自动修复详细指南 | ✅ 活跃 |
-| [tools/pre-commit-quick-reference.md](tools/pre-commit-quick-reference.md) | Pre-commit 快速参考卡片 | ✅ 活跃 |
+| [l6-tools/PRE_COMMIT_AUTOFIX_GUIDE.md](l6-tools/PRE_COMMIT_AUTOFIX_GUIDE.md) | Pre-commit 自动修复详细指南 | ✅ 活跃 |
 
 ### 📄 模板
 
@@ -52,20 +73,17 @@
 
 ```
 archive/
-├── 2025-restructuring/     # 2025年重构相关文档
-│   ├── PACKAGE_RESTRUCTURING_*.md
-│   ├── RESTRUCTURING_SUMMARY.md
-│   ├── TOP_LAYER_REVIEW*.md
-│   ├── TEST_*.md
-│   └── ...
-├── guides/                 # 功能使用指南
-│   ├── PIPELINE_*.md
-│   ├── RAG_DATA_TYPES_GUIDE.md
-│   └── PYLANCE_TYPE_ERRORS_GUIDE.md
-└── migration-guides/       # 已完成的迁移指南
-    ├── EMBEDDING_PATH_MIGRATION.md
-    ├── ENV_VARIABLES_MIGRATION.md
-    └── NAMESPACE_PACKAGE_FIX.md
+├── 2025-restructuring/         # 2025年重构相关文档
+├── agent-benchmark-2025/       # Agent Benchmark 任务文档
+├── data-architecture/          # 数据架构设计示例代码
+├── guides/                     # 功能使用指南
+├── l3-kernel/                  # Kernel 层历史文档
+├── l3-libs/                    # Libs 层历史文档
+├── migration-guides/           # 已完成的迁移指南
+└── testing-2025/               # 2025年测试改进报告
+
+research_work/
+└── agent-tool-benchmark/       # Agent 工具评测详细文档（论文相关）
 ```
 
 ## 🔍 查找文档
@@ -75,10 +93,12 @@ archive/
 | 系统架构 | [docs-public/architecture/](../../docs-public/docs_src/architecture/) |
 | 快速开始 | [docs-public/getting-started/](../../docs-public/docs_src/getting-started/) |
 | 开发指南 | [docs-public/developers/](../../docs-public/docs_src/developers/) |
-| 数据类型设计 | [DATA_TYPES_ARCHITECTURE.md](DATA_TYPES_ARCHITECTURE.md) |
-| Embedding 系统 | [EMBEDDING_README.md](EMBEDDING_README.md) |
-| 已知问题 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
-| Pre-commit 工具使用 | [tools/pre-commit-quick-reference.md](tools/pre-commit-quick-reference.md) 或 [详细指南](tools/pre-commit-auto-fix-guide.md) |
+| 数据类型设计 | [cross-layer/architecture/DATA_TYPES_ARCHITECTURE.md](cross-layer/architecture/DATA_TYPES_ARCHITECTURE.md) |
+| Embedding 系统 | [cross-layer/migration/EMBEDDING_README.md](cross-layer/migration/EMBEDDING_README.md) |
+| Agent Benchmark | [l5-benchmark/README.md](l5-benchmark/README.md) |
+| Control Plane | [cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md](cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md) |
+| Pre-commit 工具 | [l6-tools/PRE_COMMIT_AUTOFIX_GUIDE.md](l6-tools/PRE_COMMIT_AUTOFIX_GUIDE.md) |
+| CLI 命令速查 | [l6-cli/COMMAND_CHEATSHEET.md](l6-cli/COMMAND_CHEATSHEET.md) |
 
 ## 📝 文档原则
 
@@ -89,17 +109,16 @@ archive/
 
 ## 📊 统计
 
-- **活跃文档**: 16 个
+- **活跃文档**: 20+ 个
 - **归档文档**: 15+ 个
-- **文档分类**: 架构设计 (5) + 系统文档 (4) + 运维配置 (3) + 开发工具 (2) + 模板 (2)
+- **文档分类**: 架构设计 (6) + 系统文档 (5) + Agent Benchmark (4) + 运维配置 (2) + 开发工具 (1) + 模板 (1)
 
 ## 🆘 需要帮助？
 
-- 查看 [清理决策](CLEANUP_DECISION.md) 了解文档整理原则
 - 阅读 [docs-public 重组计划](../../docs-public/DOCS_RESTRUCTURE_PLAN.md)
 - 提交 [GitHub Issue](https://github.com/intellistream/SAGE/issues)
 
 ---
 
-**最后更新**: 2025-10-23  
+**最后更新**: 2025-11-29
 **维护者**: SAGE Core Team

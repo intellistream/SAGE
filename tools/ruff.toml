@@ -27,6 +27,7 @@ extend-exclude = [
     "neuromem",
     "sageTSDB",
     "libamm",
+    "**/benchmark_libamm/scripts/**",  # Jupyter notebooks with cell dependencies
     "build",
     "_deps",
     ".venv",

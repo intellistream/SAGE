@@ -5,7 +5,7 @@ from transformers import (
     AutoTokenizer,
 )
 
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.rag.types import (
     RAGInput,
     RAGResponse,

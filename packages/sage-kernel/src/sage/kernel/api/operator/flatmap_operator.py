@@ -75,12 +75,6 @@ class FlatMapOperator(BaseOperator):
                 # 清空collector
                 self.out.clear()
 
-            # 保存状态逻辑（如果function是StatefulFunction）
-            # TODO: Implement StatefulFunction when needed
-            # from sage.kernel.api.function.base_function import StatefulFunction
-            # if isinstance(self.function, StatefulFunction):
-            #     self.function.save_state()
-
             self.logger.debug(f"FlatMapOperator '{self.name}' finished processing packet")
 
         except Exception as e:
