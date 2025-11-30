@@ -292,10 +292,15 @@ main() {
             if [ -n "$SAGE_ENV_NAME" ]; then
                 # 如果使用 conda 环境，使用 conda run 确保在正确的环境中运行
                 sage_dev_cmd="conda run -n $SAGE_ENV_NAME sage-dev"
+            elif [ -x "$HOME/.local/bin/sage-dev" ]; then
+                # pip 安装模式：使用 ~/.local/bin 中的 sage-dev
+                sage_dev_cmd="$HOME/.local/bin/sage-dev"
             fi
 
             # 检查 sage-dev 是否可用
-            if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; }; then
+            if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || \
+               { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; } || \
+               { [ -z "$SAGE_ENV_NAME" ] && [ -x "$HOME/.local/bin/sage-dev" ]; }; then
                 # 确定是否后台运行
                 local run_background=false
                 if [ "$hooks_mode" = "background" ]; then
