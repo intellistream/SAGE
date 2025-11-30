@@ -94,20 +94,46 @@ jobs:
             exit 1
           fi
 
-          # Check if conda env exists and has SAGE installed
-          if conda env list | grep -q "^sage " && conda run -n sage pip list 2>/dev/null | grep -q "^sage-"; then
-            echo "Activating existing sage environment with SAGE packages"
-            conda activate sage
-          else
-            echo "Installing SAGE with quickstart..."
-            # Remove existing incomplete environment if exists
-            conda env remove -n sage -y 2>/dev/null || true
-            ./quickstart.sh --dev --yes --conda
-            conda activate sage
-          fi
+          # Always reinstall SAGE to ensure consistency with current code
+          # This matches the behavior of other workflows (build-test.yml, examples-test.yml)
+          echo "Installing SAGE with quickstart..."
+
+          # Remove existing environment to ensure clean install
+          conda env remove -n sage -y 2>/dev/null || true
+
+          # Use quickstart.sh with conda (standard installation method)
+          ./quickstart.sh --dev --yes --conda
+
+          # Activate the environment
+          conda activate sage
 
           python --version
           pip list | grep -E "^sage-" || echo "Warning: No sage packages found"
+
+      - name: Verify Installation
+        run: |
+          # Initialize conda
+          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
+            source "/opt/conda/etc/profile.d/conda.sh"
+          else
+            eval "$(conda shell.bash hook)"
+          fi
+          conda activate sage
+
+          echo "Verifying SAGE installation..."
+          python -c "import sage; print('SAGE imported successfully')"
+          python -c "import sage.benchmark; print('sage.benchmark imported successfully')"
+
+          # Verify CLI commands
+          if command -v sage-dev >/dev/null 2>&1; then
+            echo "sage-dev command available"
+          else
+            echo "Warning: sage-dev command not found in PATH"
+            # Try to find it
+            which sage-dev || pip show sage-tools | grep -i location || true
+          fi
 
       - name: Create Environment File
         run: |
