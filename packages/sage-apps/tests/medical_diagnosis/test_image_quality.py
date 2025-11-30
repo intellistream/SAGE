@@ -157,3 +157,31 @@ class TestImageQualityAssessment:
 
         # 两种类型应该给出相近的结果
         assert abs(score_uint8 - score_float32) < 0.1, "不同类型相同内容应给出相近分数"
+
+    def test_quality_penalizes_added_noise(self, analyzer):
+        """干净图像应比加噪图像获得更高分"""
+        size = 128
+        gradient = np.tile(np.linspace(30, 220, size, dtype=np.float32), (size, 1))
+        clean = gradient.astype(np.uint8)
+        rng = np.random.RandomState(7)
+        noisy = np.clip(clean + rng.normal(0, 25, clean.shape), 0, 255).astype(np.uint8)
+
+        clean_score = analyzer._assess_quality(clean)
+        noisy_score = analyzer._assess_quality(noisy)
+
+        assert clean_score > noisy_score, "加噪后应降低质量分数"
+
+    def test_brightness_histogram_balance(self, analyzer):
+        """亮度直方图平衡的图像应优于过曝/欠曝图像"""
+        size = 200
+        balanced_line = np.linspace(0, 255, size, dtype=np.float32)
+        balanced = np.tile(balanced_line, (size, 1)).astype(np.uint8)
+        bright = np.ones((size, size), dtype=np.uint8) * 240
+        dark = np.ones((size, size), dtype=np.uint8) * 15
+
+        balanced_score = analyzer._assess_quality(balanced)
+        bright_score = analyzer._assess_quality(bright)
+        dark_score = analyzer._assess_quality(dark)
+
+        assert balanced_score > bright_score
+        assert balanced_score > dark_score
