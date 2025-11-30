@@ -70,78 +70,116 @@ jobs:
     runs-on: [self-hosted, A100]
     timeout-minutes: 480  # 8 hours for full experiments
 
+    # Use dedicated conda environment to avoid conflicts with any existing "sage" env
+    env:
+      CONDA_ENV_NAME: sage-paper1-ci
+
+    # Use login shell to ensure conda is initialized
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          clean: true
           submodules: 'recursive'
 
-      - name: Setup Python Environment
+      # Setup dedicated conda environment for this workflow
+      - name: Setup Conda Environment
         run: |
-          echo "Setting up Python environment..."
+          echo "🔧 Setting up dedicated conda environment: $CONDA_ENV_NAME"
 
-          # Initialize conda (try multiple common locations)
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+          # Function to initialize conda
+          init_conda() {
+            if command -v conda &> /dev/null; then
+              return 0
+            fi
+            # Common conda locations on self-hosted runners
+            for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3" "/home/action-runner/miniconda3"; do
+              if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+                echo "Found conda at: $conda_path"
+                source "$conda_path/etc/profile.d/conda.sh"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          # Try to initialize conda
+          if ! init_conda; then
+            echo "❌ Conda not found. Installing Miniconda..."
+            wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
+            bash /tmp/miniconda.sh -b -p $HOME/miniconda3
             source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          elif command -v conda &> /dev/null; then
-            eval "$(conda shell.bash hook)"
-          else
-            echo "ERROR: Conda not found"
-            exit 1
+            rm /tmp/miniconda.sh
+            # Add to bashrc for future steps
+            echo 'source "$HOME/miniconda3/etc/profile.d/conda.sh"' >> ~/.bashrc
           fi
 
-          # Always reinstall SAGE to ensure consistency with current code
-          # This matches the behavior of other workflows (build-test.yml, examples-test.yml)
-          echo "Installing SAGE with quickstart..."
+          conda --version
+          echo "✅ Conda is available"
 
-          # Remove existing environment to ensure clean install
-          conda env remove -n sage -y 2>/dev/null || true
+          # Remove existing environment if it exists (clean slate)
+          conda env remove -n $CONDA_ENV_NAME -y 2>/dev/null || true
 
-          # Use quickstart.sh with conda (standard installation method)
-          ./quickstart.sh --dev --yes --conda
+          # Create fresh environment with Python 3.11
+          conda create -n $CONDA_ENV_NAME python=3.11 -y
 
-          # Activate the environment
-          conda activate sage
+          # Verify environment
+          conda run -n $CONDA_ENV_NAME python --version
+          echo "✅ Conda environment $CONDA_ENV_NAME created"
 
-          python --version
-          pip list | grep -E "^sage-" || echo "Warning: No sage packages found"
+          # Save conda path for other steps
+          echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
 
-      - name: Verify Installation
+      - name: Install SAGE in Conda Environment
         run: |
-          # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
+          echo "🚀 Installing SAGE in $CONDA_ENV_NAME environment..."
 
-          echo "Verifying SAGE installation..."
-          python -c "import sage; print('SAGE imported successfully')"
-          python -c "import sage.benchmark; print('sage.benchmark imported successfully')"
-
-          # Verify CLI commands
-          if command -v sage-dev >/dev/null 2>&1; then
-            echo "sage-dev command available"
+          # Initialize conda from saved path or search
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
           else
-            echo "Warning: sage-dev command not found in PATH"
-            # Try to find it
-            which sage-dev || pip show sage-tools | grep -i location || true
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
           fi
 
-      - name: Create Environment File
+          # Activate conda environment
+          conda activate $CONDA_ENV_NAME
+
+          # Install system dependencies if needed
+          for cmd in cmake pkg-config; do
+            if ! command -v $cmd &> /dev/null; then
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends build-essential cmake pkg-config libopenblas-dev liblapack-dev git
+              break
+            fi
+          done
+
+          # Temporarily unset CI variables so quickstart.sh installs to conda env, not ~/.local
+          # This ensures packages are installed in the active conda environment
+          unset CI GITHUB_ACTIONS
+
+          # Install SAGE using quickstart.sh (same as build-test.yml)
+          chmod +x ./quickstart.sh
+          ./quickstart.sh --dev --yes --pip
+
+          # Verify installation
+          python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
+          python -c "from sage.benchmark.benchmark_agent import get_adapter_registry; print('sage-benchmark OK')"
+          echo "✅ SAGE installation completed"
+        timeout-minutes: 25
+
+      - name: Create Experiment Environment File
         run: |
-          echo "Creating .env file..."
+          # Create .env with all required settings
           cat > .env << EOF
-          # Paper 1 Experiments Environment
-
-          # HuggingFace
+          # SAGE Environment Configuration (auto-generated for Paper 1 experiments)
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
 
@@ -153,12 +191,11 @@ jobs:
           # Embedding Service
           SAGE_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
 
-          # Runtime Settings
+          # Experiment Settings
           SAGE_TEST_MODE=false
-          SAGE_LOG_LEVEL=INFO
           EOF
 
-          echo "Done: .env created"
+          echo "Done: Experiment .env settings added"
 
       - name: Check GPU Availability
         run: |
@@ -166,27 +203,40 @@ jobs:
           nvidia-smi || echo "No NVIDIA GPU found"
 
           # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
-          python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
+          conda run -n $CONDA_ENV_NAME python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}'); print(f'GPUs: {torch.cuda.device_count()}')" || true
 
-      - name: Check Local LLM Service
+      - name: Start Local LLM Service
         if: ${{ !inputs.skip_llm }}
         run: |
-          echo "Checking local LLM service..."
+          echo "🚀 Starting local LLM service..."
+
+          # Initialize conda
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
           # Check if local vLLM is already running
           if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
-            echo "Done: Local LLM service running on port 8901"
+            echo "✅ Local LLM service already running on port 8901"
           else
-            echo "Warning: Local LLM not available, will use cloud API (DashScope)"
+            echo "Starting vLLM server..."
+
+            # Use the experiment script's LLM service manager
+            cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
+
+            # Start LLM service (uses Qwen2.5-0.5B by default for speed)
+            # Note: llm_service.py uses subcommand style: start/stop/status
+            conda run -n $CONDA_ENV_NAME python -m experiments.llm_service start \
+              --model "Qwen/Qwen2.5-0.5B-Instruct" \
+              --port 8901 \
+              --gpu-memory 0.5 || echo "⚠️ Failed to start LLM service"
+
+            # Check if service is now running
+            if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
+              echo "✅ Local LLM service is ready"
+            else
+              echo "⚠️ Local LLM service not available, will use cloud API (DashScope)"
+            fi
           fi
 
       - name: Run Paper 1 Experiments
@@ -194,20 +244,13 @@ jobs:
           echo "Running SAGE Agent Bench experiments..."
 
           # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
-          # Navigate to scripts directory
-          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
+          # Navigate to scripts directory (NOT experiments/ - need parent for proper imports)
+          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
 
-          # Build command
-          CMD="python run_paper1_experiments.py"
+          # Build command - run from scripts/ so 'experiments' is a valid package
+          CMD="conda run -n $CONDA_ENV_NAME python -m experiments.run_paper1_experiments"
 
           # Add section selection
           if [ "${{ inputs.section }}" != "all" ]; then
@@ -246,22 +289,15 @@ jobs:
           echo "Generating paper figures and tables..."
 
           # Initialize conda
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            eval "$(conda shell.bash hook)"
-          fi
-          conda activate sage
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
-          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
+          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
 
           # Generate figures
-          python -c "from figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
+          conda run -n $CONDA_ENV_NAME python -c "from experiments.figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
 
           # Generate tables
-          python -c "from table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
+          conda run -n $CONDA_ENV_NAME python -c "from experiments.table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
 
       - name: Upload Results
         uses: actions/upload-artifact@v4

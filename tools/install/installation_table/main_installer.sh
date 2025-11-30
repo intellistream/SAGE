@@ -163,6 +163,14 @@ install_sage() {
         environment="pip"
     fi
 
+    # 根据安装环境设置 SAGE_ENV_NAME
+    # pip 模式不使用 conda 环境，清空 SAGE_ENV_NAME 避免验证脚本尝试使用 conda
+    if [ "$environment" = "pip" ]; then
+        export SAGE_ENV_NAME=""
+        export PIP_CMD="python3 -m pip"
+        export PYTHON_CMD="python3"
+    fi
+
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/.sage/logs/install.log"

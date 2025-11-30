@@ -11,6 +11,7 @@ from .key_value_memory_service import KeyValueMemoryService
 from .memory_service_factory import MemoryServiceFactory
 from .neuromem_vdb import NeuroMemVDB
 from .neuromem_vdb_service import NeuroMemVDBService
+from .parallel_vdb_service import ParallelInsertResult, ParallelVDBService, parallel_insert_to_vdb
 from .short_term_memory_service import ShortTermMemoryService
 from .vector_hash_memory_service import VectorHashMemoryService
 
@@ -24,4 +25,8 @@ __all__ = [
     "HybridMemoryService",
     "KeyValueMemoryService",
     "MemoryServiceFactory",
+    # Parallel insertion support
+    "ParallelVDBService",
+    "ParallelInsertResult",
+    "parallel_insert_to_vdb",
 ]
