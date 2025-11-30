@@ -174,19 +174,70 @@ class SiliconCloudEmbedding(BaseEmbedding):
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
-        当前实现为逐个调用 embed()。
-        TODO: 如果 API 支持批量，可以优化。
-        Issue URL: https://github.com/intellistream/SAGE/issues/912
+        使用 SiliconCloud API 的批量接口（input 参数支持列表）。
 
         Args:
             texts: 输入文本列表
 
         Returns:
             embedding 向量列表
+
+        Raises:
+            RuntimeError: 如果 API 调用失败
         """
-        # TODO: 检查 SiliconCloud API 是否支持批量
-        # Issue URL: https://github.com/intellistream/SAGE/issues/911
-        return [self.embed(text) for text in texts]
+        if not texts:
+            return []
+
+        try:
+            import base64
+            import struct
+
+            import requests
+
+            # 准备 API Key（添加 Bearer 前缀）
+            api_key = self._api_key  # pragma: allowlist secret
+            if api_key and not api_key.startswith("Bearer "):
+                api_key = "Bearer " + api_key  # pragma: allowlist secret
+
+            headers = {
+                "Authorization": api_key,  # pragma: allowlist secret
+                "Content-Type": "application/json",
+            }
+
+            # 截断所有文本
+            truncated_texts = [text[: self._max_token_size] for text in texts]
+
+            payload = {
+                "model": self._model,
+                "input": truncated_texts,  # 直接传入列表
+                "encoding_format": "base64",
+            }
+
+            response = requests.post(self._base_url, headers=headers, json=payload)
+            response.raise_for_status()
+            content = response.json()
+
+            if "code" in content:
+                raise ValueError(f"SiliconCloud API error: {content}")
+
+            # 解码所有 base64 编码的向量
+            results = []
+            for item in content["data"]:
+                base64_string = item["embedding"]
+                decode_bytes = base64.b64decode(base64_string)
+                n = len(decode_bytes) // 4
+                float_array = struct.unpack("<" + "f" * n, decode_bytes)
+                results.append(list(float_array))
+
+            return results
+
+        except Exception as e:
+            raise RuntimeError(
+                f"SiliconCloud 批量 embedding 失败: {e}\n"
+                f"模型: {self._model}\n"
+                f"批量大小: {len(texts)}\n"
+                f"提示: 检查 API Key 是否有效，网络连接是否正常"
+            ) from e
 
     def get_dim(self) -> int:
         """获取向量维度
