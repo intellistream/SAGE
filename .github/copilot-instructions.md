@@ -124,6 +124,12 @@ Use `./tools/maintenance/sage-maintenance.sh submodule switch` **Tests fail CI n
 from repo root **Pre-commit fails**: Run `sage-dev quality` to auto-fix **Old artifacts**:
 `make clean` or `rm -rf .sage/build/ build/ dist/ *.egg-info/`
 
+## Features
+
+**CPU Node Support**: SAGE fully supports CPU-only compute nodes via JobManager + NodeSelector.
+Tasks can specify `cpu_required`, `memory_required`, `gpu_required=0` for CPU-only execution. See
+`examples/tutorials/L3-kernel/cpu_node_demo.py` and `docs/dev-notes/l3-kernel/cpu-node-setup.md`.
+
 ## Development Workflow
 
 **Setup**: `./quickstart.sh --dev --yes` → `./manage.sh` (if C++ needed) **During**: Run

@@ -33,6 +33,9 @@ management and parallel execution capabilities.
 **Transparency**: Built-in observability and debugging tools provide complete visibility into
 execution paths and performance characteristics.
 
+**Flexible Deployment**: Full support for CPU-only compute nodes alongside GPU nodes, with
+intelligent resource-aware scheduling for hybrid clusters.
+
 ## Quick Start
 
 Transform rigid LLM applications into flexible, observable workflows. Traditional imperative
@@ -80,6 +83,16 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 git checkout main-dev
 ./quickstart.sh --dev --yes
 python examples/tutorials/hello_world.py
+```
+
+**For CPU-only deployment:**
+
+```bash
+# Start JobManager for distributed task execution
+sage jobmanager start
+
+# Run CPU node demo (no GPU required)
+python examples/tutorials/L3-kernel/cpu_node_demo.py
 ```
 
 ## Architecture Excellence
