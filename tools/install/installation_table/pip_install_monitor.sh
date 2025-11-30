@@ -65,20 +65,25 @@ analyze_pip_log() {
 
     # 检测是否从 PyPI 下载了本地包
     for package in "${LOCAL_PACKAGES[@]}"; do
-        # 检查各种下载模式
-        # 1. "Downloading isage-xxx-0.1.0.tar.gz"
-        # 2. "Collecting isage-xxx" (从 PyPI)
-        # 3. "Downloading https://files.pythonhosted.org/.../isage-xxx"
-
-        # 注意：跳过 JSON 格式的日志行（包含 "level":），只检查实际的 pip 输出
-        # JSON 日志行的 message 字段可能包含嵌套的 pip 输出，但这不是实际的下载操作
+        # 检查真正的 PyPI 下载行为
+        # 只检测以下模式（实际从 PyPI 下载）：
+        # 1. "Downloading https://files.pythonhosted.org/.../isage-xxx"
+        # 2. "Downloading isage-xxx-0.1.0.tar.gz" (从 PyPI 镜像)
+        #
+        # 排除以下模式（不是实际下载）：
+        # 1. "Collecting isage-xxx" - 这只是依赖解析，不一定从 PyPI 下载
+        # 2. "Requirement already satisfied: isage-xxx" - 已安装，不需要下载
+        # 3. JSON 格式的日志行（包含 "level":）
+        # 4. 本地安装（editable, file://, /packages/）
+        # 5. "Using cached" - 使用本地缓存，不是新下载
 
         echo -e "${BLUE}🐛 DEBUG - 检查包: ${package}${NC}"
 
-        # 显示所有匹配行（包括被排除的）- 排除JSON格式日志
-        local all_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' || true)
-        local excluded_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' | grep -E "(editable|file://|/packages/)" || true)
-        local violation_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' | grep -vE "(editable|file://|/packages/)" || true)
+        # 只检测实际的下载行为，排除 Collecting（依赖解析）
+        # 真正的违规是从 PyPI 下载 .whl 或 .tar.gz 文件
+        local all_matches=$(grep -E "Downloading.*${package}[-_].*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' || true)
+        local excluded_matches=$(grep -E "Downloading.*${package}[-_].*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | grep -E "(editable|file://|/packages/|Using cached)" || true)
+        local violation_matches=$(grep -E "Downloading.*${package}[-_].*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | grep -vE "(editable|file://|/packages/|Using cached)" || true)
 
         if [ -n "$all_matches" ]; then
             echo -e "${YELLOW}   所有匹配（$(echo "$all_matches" | wc -l) 行）：${NC}"
@@ -154,15 +159,15 @@ analyze_pip_log() {
 
         echo -e "${YELLOW}🐛 DEBUG - 详细诊断信息：${NC}"
         echo "   日志文件: ${log_file}"
-        echo "   检测模式: grep -E \"(Downloading|Collecting).*PACKAGE[-_]\" | grep -v '\"level\":' | grep -vE \"(editable|file://|/packages/)\""
+        echo "   检测模式: grep -E \"Downloading.*PACKAGE[-_].*\\.(whl|tar\\.gz)\" | grep -v '\"level\":' | grep -vE \"(editable|file://|/packages/|Using cached)\""
         echo ""
 
         echo -e "${YELLOW}🔍 原始匹配详情（每个违规包）：${NC}"
         for pkg in "${violations[@]}"; do
             echo "   === ${pkg} ==="
-            grep -E "(Downloading|Collecting).*${pkg}[-_]" "$log_file" | \
+            grep -E "Downloading.*${pkg}[-_].*\.(whl|tar\.gz)" "$log_file" | \
                 grep -v '"level":' | \
-                grep -vE "(editable|file://|/packages/)" | \
+                grep -vE "(editable|file://|/packages/|Using cached)" | \
                 sed 's/^/     /' || echo "     （无法重现匹配，可能是并发问题）"
             echo ""
         done
