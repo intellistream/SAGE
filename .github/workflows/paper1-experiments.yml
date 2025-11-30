@@ -218,11 +218,11 @@ jobs:
           # Initialize conda
           source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
-          # Navigate to scripts directory
-          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
+          # Navigate to scripts directory (NOT experiments/ - need parent for proper imports)
+          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
 
-          # Build command
-          CMD="conda run -n $CONDA_ENV_NAME python run_paper1_experiments.py"
+          # Build command - run from scripts/ so 'experiments' is a valid package
+          CMD="conda run -n $CONDA_ENV_NAME python -m experiments.run_paper1_experiments"
 
           # Add section selection
           if [ "${{ inputs.section }}" != "all" ]; then
@@ -263,13 +263,13 @@ jobs:
           # Initialize conda
           source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
 
-          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts/experiments
+          cd packages/sage-benchmark/src/sage/benchmark/benchmark_agent/scripts
 
           # Generate figures
-          conda run -n $CONDA_ENV_NAME python -c "from figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
+          conda run -n $CONDA_ENV_NAME python -c "from experiments.figure_generator import generate_all_figures; generate_all_figures(); print('Figures generated.')"
 
           # Generate tables
-          conda run -n $CONDA_ENV_NAME python -c "from table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
+          conda run -n $CONDA_ENV_NAME python -c "from experiments.table_generator import generate_all_tables; generate_all_tables(); print('Tables generated.')"
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
