@@ -313,14 +313,91 @@ class ImageAnalyzer:
             return None
 
     def _assess_quality(self, image) -> float:
-        """评估影像质量"""
+        """
+        评估影像质量
+
+        使用多个指标综合评估:
+        1. 对比度 (Contrast): 使用标准差和动态范围
+        2. 清晰度 (Sharpness): 使用拉普拉斯方差
+        3. 噪声水平 (Noise): 使用高频成分分析
+        4. 亮度分布 (Brightness): 使用直方图统计
+
+        Returns:
+            0-1之间的质量分数，越高表示质量越好
+        """
         if image is None:
             return 0.0
 
-        # 简单质量评估：对比度、清晰度等
-        # TODO: 实现更复杂的质量评估算法
-        # Issue URL: https://github.com/intellistream/SAGE/issues/897
-        return 0.85
+        try:
+            # 确保图像是numpy数组且归一化到[0, 1]
+            img = np.array(image, dtype=np.float32)
+            if img.max() > 1.0:
+                img = img / 255.0
+
+            # 1. 对比度评估 (Contrast Assessment)
+            # 使用标准差和动态范围的组合
+            std_dev = np.std(img)
+            dynamic_range = np.ptp(img)  # Peak-to-peak (max - min)
+            # 归一化对比度分数: 0.15是医学影像的典型良好标准差
+            contrast_score = min(std_dev / 0.15, 1.0) * 0.5 + min(dynamic_range, 1.0) * 0.5
+
+            # 2. 清晰度评估 (Sharpness Assessment)
+            # 使用拉普拉斯算子计算边缘强度
+            # 拉普拉斯核检测二阶导数，对模糊敏感
+            laplacian = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=np.float32)
+            # 使用简单卷积计算拉普拉斯响应
+            h, w = img.shape
+            lap_var = 0.0
+            pad_img = np.pad(img, 1, mode="reflect")
+            for i in range(1, h + 1):
+                for j in range(1, w + 1):
+                    region = pad_img[i - 1 : i + 2, j - 1 : j + 2]
+                    lap_var += (region * laplacian).sum() ** 2
+            lap_var /= h * w
+            # 归一化清晰度分数: 0.01是典型清晰影像的方差阈值
+            sharpness_score = min(lap_var / 0.01, 1.0)
+
+            # 3. 噪声水平评估 (Noise Assessment)
+            # 使用高频成分估计噪声
+            # 计算局部方差来估计噪声
+            window_size = min(7, min(h, w) // 10)
+            if window_size < 3:
+                noise_score = 0.8  # 图像太小，给默认分数
+            else:
+                local_vars = []
+                step = max(window_size // 2, 1)
+                for i in range(0, h - window_size, step):
+                    for j in range(0, w - window_size, step):
+                        window = img[i : i + window_size, j : j + window_size]
+                        local_vars.append(np.var(window))
+                noise_estimate = np.median(local_vars) if local_vars else 0.0
+                # 噪声越小越好，使用反向分数
+                # 0.005是噪声方差的典型阈值
+                noise_score = max(1.0 - noise_estimate / 0.005, 0.0)
+
+            # 4. 亮度分布评估 (Brightness Distribution)
+            # 检查直方图是否充分利用动态范围
+            mean_intensity = np.mean(img)
+            # 理想亮度范围 [0.3, 0.7]
+            brightness_score = 1.0 - abs(mean_intensity - 0.5) * 2.0
+            brightness_score = max(brightness_score, 0.0)
+
+            # 综合质量分数 (加权平均)
+            # 权重: 对比度(25%), 清晰度(35%), 噪声(25%), 亮度(15%)
+            quality_score = (
+                contrast_score * 0.25
+                + sharpness_score * 0.35
+                + noise_score * 0.25
+                + brightness_score * 0.15
+            )
+
+            # 确保分数在[0, 1]范围内
+            return float(np.clip(quality_score, 0.0, 1.0))
+
+        except Exception as e:
+            print(f"   Warning: 质量评估失败: {e}")
+            # 发生错误时返回中等分数
+            return 0.5
 
     def _segment_vertebrae(self, image) -> list[dict[str, Any]]:
         """分割椎体"""
