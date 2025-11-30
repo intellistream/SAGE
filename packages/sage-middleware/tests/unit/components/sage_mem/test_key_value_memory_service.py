@@ -149,7 +149,8 @@ class TestKeyValueMemoryServiceDelete:
         """测试按键删除"""
         result = service.delete("to_delete")
 
-        assert result is True
+        # delete 返回删除的数量
+        assert result >= 1
         assert service.get("to_delete") is None
 
 

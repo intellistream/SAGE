@@ -8,6 +8,8 @@ Tests for CPU-only node support in SAGE:
 - Node filtering and ranking
 """
 
+import time
+
 import pytest
 
 from sage.kernel.scheduler.decision import PlacementDecision
@@ -195,6 +197,8 @@ class TestNodeSelector:
                 task_count=1,
             ),
         }
+        # Prevent cache update from overwriting our mock data
+        selector.last_update = time.time()
 
         # Select node for CPU-only task
         node_id = selector.select_best_node(cpu_required=4, gpu_required=0, strategy="balanced")
@@ -227,6 +231,8 @@ class TestNodeSelector:
                 memory_usage=0.25,
             ),
         }
+        # Prevent cache update from overwriting our mock data
+        selector.last_update = time.time()
 
         # Try to select node for GPU task
         node_id = selector.select_best_node(
@@ -288,6 +294,8 @@ class TestNodeSelector:
                 memory_usage=0.75,
             ),
         }
+        # Prevent cache update from overwriting our mock data
+        selector.last_update = time.time()
 
         node_id = selector.select_best_node(cpu_required=1, gpu_required=0, strategy="balanced")
 
@@ -330,6 +338,8 @@ class TestNodeSelector:
                 memory_usage=0.5,
             ),
         }
+        # Prevent cache update from overwriting our mock data
+        selector.last_update = time.time()
 
         node_id = selector.select_best_node(cpu_required=2, gpu_required=0, strategy="pack")
 
@@ -374,6 +384,8 @@ class TestNodeSelector:
                 task_count=3,
             ),
         }
+        # Prevent cache update from overwriting our mock data
+        selector.last_update = time.time()
 
         # Track tasks
         selector.node_task_count = {"cpu-node-1": 2, "cpu-node-2": 3}
