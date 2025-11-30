@@ -20,18 +20,16 @@
 from __future__ import annotations
 
 import json
-import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
+from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
 )
 from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
 from sage.common.core import MapFunction
-
-logger = logging.getLogger(__name__)
 
 
 class PreRetrieval(MapFunction):
@@ -56,325 +54,182 @@ class PreRetrieval(MapFunction):
         """
         super().__init__()
         self.config = config
-        self.action = self._get_required_config("operators.pre_retrieval.action")
+        self.action = get_required_config(self.config, "operators.pre_retrieval.action")
 
-        # 根据 action 初始化不同的组件
-        if self.action == "embedding":
-            self._init_embedding()
-        elif self.action == "optimize":
-            self._init_optimize()
-        elif self.action == "multi_embed":
-            self._init_multi_embed()
-        elif self.action == "decompose":
-            self._init_decompose()
-        elif self.action == "route":
-            self._init_route()
-        elif self.action == "validate":
-            self._init_validate()
+        # 共享工具（LLM 和 Embedding），依赖外部模型部署
+        self._generator = LLMGenerator.from_config(self.config)
+        self._embedding_generator = EmbeddingGenerator.from_config(self.config)
 
-    def _get_required_config(self, key: str, context: str = "") -> any:
-        """获取必需配置，缺失则报错
-
-        Args:
-            key: 配置键路径
-            context: 上下文说明
-
-        Returns:
-            配置值
-
-        Raises:
-            ValueError: 配置缺失时抛出
-        """
-        value = self.config.get(key)
-        if value is None:
-            ctx = f" ({context})" if context else ""
-            raise ValueError(f"缺少必需配置: {key}{ctx}")
-        return value
+        # 根据 action 初始化特定配置和工具
+        self._init_for_action()
 
     # ==================== 初始化方法 ====================
 
-    def _init_embedding(self):
-        """初始化基础 Embedding"""
-        self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-
-    def _init_optimize(self):
-        """初始化查询优化组件
-
-        支持的优化类型：
-        - keyword_extract: 关键词提取 (LD-Agent)
-        - expand: 查询扩展
-        - rewrite: 查询改写 (HippoRAG Query2Doc)
-        - instruction: 指令增强 (HippoRAG)
-        """
-        self.optimize_type = self._get_required_config(
-            "operators.pre_retrieval.optimize_type", "action=optimize"
-        )
-
-        # 关键词提取配置
-        if self.optimize_type == "keyword_extract":
-            self.extractor = self._get_required_config(
-                "operators.pre_retrieval.extractor", "optimize_type=keyword_extract"
+    def _init_for_action(self):
+        """根据 action 类型初始化对应配置和工具"""
+        if self.action == "optimize":
+            # optimize action 配置
+            self.optimize_type = get_required_config(self.config, 
+                "operators.pre_retrieval.optimize_type", "action=optimize"
             )
-            self.extract_types = self.config.get(
-                "operators.pre_retrieval.extract_types", ["NOUN", "PROPN"]
-            )
-            self.max_keywords = self._get_required_config(
-                "operators.pre_retrieval.max_keywords", "optimize_type=keyword_extract"
-            )
-            self.keyword_prompt = self.config.get("operators.pre_retrieval.keyword_prompt")
 
-            # 初始化提取器
-            if self.extractor == "spacy":
-                self._init_spacy()
-            elif self.extractor == "nltk":
-                self._init_nltk()
-            elif self.extractor == "llm":
-                if not self.keyword_prompt:
-                    raise ValueError(
-                        "缺少必需配置: operators.pre_retrieval.keyword_prompt (extractor=llm)"
+            if self.optimize_type == "keyword_extract":
+                self.extractor = get_required_config(self.config, 
+                    "operators.pre_retrieval.extractor", "optimize_type=keyword_extract"
+                )
+                self.extract_types = self.config.get(
+                    "operators.pre_retrieval.extract_types", ["NOUN", "PROPN"]
+                )
+                self.max_keywords = get_required_config(self.config, 
+                    "operators.pre_retrieval.max_keywords", "optimize_type=keyword_extract"
+                )
+                self.keyword_prompt = self.config.get("operators.pre_retrieval.keyword_prompt")
+
+                if self.extractor == "spacy":
+                    import spacy
+                    import subprocess
+                    model_name = get_required_config(self.config, 
+                        "operators.pre_retrieval.spacy_model", "extractor=spacy"
                     )
-                self.generator = LLMGenerator.from_config(self.config)
+                    try:
+                        self._nlp = spacy.load(model_name)
+                    except OSError:
+                        print(f"spaCy model {model_name} not found, attempting to download...")
+                        subprocess.run(["python", "-m", "spacy", "download", model_name], check=True)
+                        self._nlp = spacy.load(model_name)
 
-        # 查询扩展配置
-        elif self.optimize_type == "expand":
-            self.expand_prompt = self._get_required_config(
-                "operators.pre_retrieval.expand_prompt", "optimize_type=expand"
+                elif self.extractor == "nltk":
+                    import nltk
+                    from nltk import pos_tag, word_tokenize
+                    from nltk.stem import WordNetLemmatizer
+                    for resource, path in [
+                        ("punkt", "tokenizers/punkt"),
+                        ("averaged_perceptron_tagger", "taggers/averaged_perceptron_tagger"),
+                        ("wordnet", "corpora/wordnet"),
+                    ]:
+                        try:
+                            nltk.data.find(path)
+                        except LookupError:
+                            nltk.download(resource, quiet=True)
+                    self._word_tokenize = word_tokenize
+                    self._pos_tag = pos_tag
+                    self._lemmatizer = WordNetLemmatizer()
+                    self._nltk_pos_mapping = {
+                        "NN": "NOUN", "NNS": "NOUN", "NNP": "PROPN", "NNPS": "PROPN",
+                        "VB": "VERB", "VBD": "VERB", "VBG": "VERB", "VBN": "VERB",
+                        "VBP": "VERB", "VBZ": "VERB",
+                        "JJ": "ADJ", "JJR": "ADJ", "JJS": "ADJ",
+                    }
+
+                elif self.extractor == "llm":
+                    if not self.keyword_prompt:
+                        raise ValueError(
+                            "缺少必需配置: operators.pre_retrieval.keyword_prompt (extractor=llm)"
+                        )
+
+            elif self.optimize_type == "expand":
+                self.expand_prompt = get_required_config(self.config, 
+                    "operators.pre_retrieval.expand_prompt", "optimize_type=expand"
+                )
+                self.expand_count = get_required_config(self.config, 
+                    "operators.pre_retrieval.expand_count", "optimize_type=expand"
+                )
+                self.merge_strategy = self.config.get("operators.pre_retrieval.merge_strategy", "union")
+
+            elif self.optimize_type == "rewrite":
+                self.rewrite_prompt = get_required_config(self.config, 
+                    "operators.pre_retrieval.rewrite_prompt", "optimize_type=rewrite"
+                )
+
+            elif self.optimize_type == "instruction":
+                self.instruction_prefix = get_required_config(self.config, 
+                    "operators.pre_retrieval.instruction_prefix", "optimize_type=instruction"
+                )
+                self.instruction_suffix = self.config.get("operators.pre_retrieval.instruction_suffix", "")
+
+            self.replace_original = self.config.get("operators.pre_retrieval.replace_original", False)
+            self.store_optimized = self.config.get("operators.pre_retrieval.store_optimized", True)
+
+        elif self.action == "multi_embed":
+            # multi_embed action 配置
+            self.embeddings_config = self.config.get("operators.pre_retrieval.embeddings", [])
+            if not self.embeddings_config:
+                self.embeddings_config = [{"name": "semantic", "model": "BAAI/bge-m3", "weight": 0.6}]
+
+            self._embedding_generators: dict[str, tuple[EmbeddingGenerator, float]] = {}
+            base_url = self.config.get("runtime.embedding_base_url")
+            for emb_config in self.embeddings_config:
+                name = emb_config.get("name", "default")
+                model = emb_config.get("model", "BAAI/bge-m3")
+                weight = emb_config.get("weight", 1.0)
+                generator = EmbeddingGenerator(base_url=base_url, model_name=model)
+                self._embedding_generators[name] = (generator, weight)
+
+            self.output_format = self.config.get("operators.pre_retrieval.output_format", "dict")
+            self.match_insert_config = self.config.get("operators.pre_retrieval.match_insert_config", True)
+
+        elif self.action == "decompose":
+            # decompose action 配置
+            self.decompose_strategy = get_required_config(self.config, 
+                "operators.pre_retrieval.decompose_strategy", "action=decompose"
             )
-            self.expand_count = self._get_required_config(
-                "operators.pre_retrieval.expand_count", "optimize_type=expand"
+            self.max_sub_queries = get_required_config(self.config, 
+                "operators.pre_retrieval.max_sub_queries", "action=decompose"
             )
-            self.merge_strategy = self.config.get(
-                "operators.pre_retrieval.merge_strategy", "union"
+            self.sub_query_action = self.config.get("operators.pre_retrieval.sub_query_action", "parallel")
+            self.decompose_merge_strategy = self.config.get("operators.pre_retrieval.merge_strategy", "union")
+
+            if self.decompose_strategy == "llm":
+                self.decompose_prompt = get_required_config(self.config, 
+                    "operators.pre_retrieval.decompose_prompt", "decompose_strategy=llm"
+                )
+            elif self.decompose_strategy == "rule":
+                self.split_keywords = get_required_config(self.config, 
+                    "operators.pre_retrieval.split_keywords", "decompose_strategy=rule"
+                )
+
+        elif self.action == "route":
+            # route action 配置
+            self.route_strategy = get_required_config(self.config, 
+                "operators.pre_retrieval.route_strategy", "action=route"
             )
-            self.generator = LLMGenerator.from_config(self.config)
-
-        # 查询改写配置
-        elif self.optimize_type == "rewrite":
-            self.rewrite_prompt = self._get_required_config(
-                "operators.pre_retrieval.rewrite_prompt", "optimize_type=rewrite"
-            )
-            self.generator = LLMGenerator.from_config(self.config)
-
-        # 指令增强配置 (HippoRAG style)
-        elif self.optimize_type == "instruction":
-            self.instruction_prefix = self._get_required_config(
-                "operators.pre_retrieval.instruction_prefix", "optimize_type=instruction"
-            )
-            self.instruction_suffix = self.config.get(
-                "operators.pre_retrieval.instruction_suffix", ""
-            )
-
-        # 通用配置
-        self.replace_original = self.config.get(
-            "operators.pre_retrieval.replace_original", False
-        )
-        self.store_optimized = self.config.get(
-            "operators.pre_retrieval.store_optimized", True
-        )
-
-        # 如果需要对优化后的查询进行 embedding
-        if self.config.get("operators.pre_retrieval.embed_optimized", False):
-            self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-        else:
-            self.embedding_generator = None
-
-    def _init_spacy(self):
-        """初始化 spaCy 分词器"""
-        try:
-            import spacy
-
-            model_name = self._get_required_config(
-                "operators.pre_retrieval.spacy_model", "extractor=spacy"
-            )
-            try:
-                self.nlp = spacy.load(model_name)
-            except OSError:
-                # 尝试下载模型
-                logger.warning(f"spaCy model {model_name} not found, attempting to download...")
-                import subprocess
-
-                subprocess.run(["python", "-m", "spacy", "download", model_name], check=True)
-                self.nlp = spacy.load(model_name)
-        except ImportError:
-            raise ImportError("spaCy is required for keyword extraction. Install with: pip install spacy")
-
-    def _init_nltk(self):
-        """初始化 NLTK 分词器"""
-        try:
-            import nltk
-
-            # 确保必要的数据已下载
-            try:
-                nltk.data.find("tokenizers/punkt")
-            except LookupError:
-                nltk.download("punkt", quiet=True)
-            try:
-                nltk.data.find("taggers/averaged_perceptron_tagger")
-            except LookupError:
-                nltk.download("averaged_perceptron_tagger", quiet=True)
-            try:
-                nltk.data.find("corpora/wordnet")
-            except LookupError:
-                nltk.download("wordnet", quiet=True)
-
-            from nltk import pos_tag, word_tokenize
-            from nltk.stem import WordNetLemmatizer
-
-            self.word_tokenize = word_tokenize
-            self.pos_tag = pos_tag
-            self.lemmatizer = WordNetLemmatizer()
-
-            # NLTK POS tags 到通用 POS 的映射
-            self.nltk_pos_mapping = {
-                "NN": "NOUN",
-                "NNS": "NOUN",
-                "NNP": "PROPN",
-                "NNPS": "PROPN",
-                "VB": "VERB",
-                "VBD": "VERB",
-                "VBG": "VERB",
-                "VBN": "VERB",
-                "VBP": "VERB",
-                "VBZ": "VERB",
-                "JJ": "ADJ",
-                "JJR": "ADJ",
-                "JJS": "ADJ",
-            }
-        except ImportError:
-            raise ImportError("NLTK is required for keyword extraction. Install with: pip install nltk")
-
-    def _init_multi_embed(self):
-        """初始化多维 Embedding
-
-        参考 EmotionalRAG 实现，支持多个 embedding 模型并行生成
-        """
-        self.embeddings_config = self.config.get("operators.pre_retrieval.embeddings", [])
-        if not self.embeddings_config:
-            # 默认配置：语义 + 情感
-            self.embeddings_config = [
-                {"name": "semantic", "model": "BAAI/bge-m3", "weight": 0.6},
-            ]
-
-        # 初始化各个 embedding 生成器
-        self.embedding_generators: dict[str, tuple[EmbeddingGenerator, float]] = {}
-        base_url = self.config.get("runtime.embedding_base_url")
-
-        for emb_config in self.embeddings_config:
-            name = emb_config.get("name", "default")
-            model = emb_config.get("model", "BAAI/bge-m3")
-            weight = emb_config.get("weight", 1.0)
-
-            generator = EmbeddingGenerator(
-                base_url=base_url,
-                model_name=model,
-            )
-            self.embedding_generators[name] = (generator, weight)
-
-        self.output_format = self.config.get("operators.pre_retrieval.output_format", "dict")
-        self.match_insert_config = self.config.get(
-            "operators.pre_retrieval.match_insert_config", True
-        )
-
-    def _init_decompose(self):
-        """初始化查询分解
-
-        将复杂查询分解为多个子查询
-        """
-        self.decompose_strategy = self._get_required_config(
-            "operators.pre_retrieval.decompose_strategy", "action=decompose"
-        )
-        self.max_sub_queries = self._get_required_config(
-            "operators.pre_retrieval.max_sub_queries", "action=decompose"
-        )
-        self.sub_query_action = self.config.get(
-            "operators.pre_retrieval.sub_query_action", "parallel"
-        )
-        self.decompose_merge_strategy = self.config.get(
-            "operators.pre_retrieval.merge_strategy", "union"
-        )
-
-        if self.decompose_strategy == "llm":
-            self.decompose_prompt = self._get_required_config(
-                "operators.pre_retrieval.decompose_prompt", "decompose_strategy=llm"
-            )
-            self.generator = LLMGenerator.from_config(self.config)
-
-        elif self.decompose_strategy == "rule":
-            self.split_keywords = self._get_required_config(
-                "operators.pre_retrieval.split_keywords", "decompose_strategy=rule"
+            self.allow_multi_route = self.config.get("operators.pre_retrieval.allow_multi_route", True)
+            self.max_routes = self.config.get("operators.pre_retrieval.max_routes", 2)
+            self.default_route = get_required_config(self.config, 
+                "operators.pre_retrieval.default_route", "action=route"
             )
 
-        # 如果需要对子查询进行 embedding
-        if self.config.get("operators.pre_retrieval.embed_sub_queries", False):
-            self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-        else:
-            self.embedding_generator = None
+            if self.route_strategy == "keyword":
+                self.keyword_rules = get_required_config(self.config, 
+                    "operators.pre_retrieval.keyword_rules", "route_strategy=keyword"
+                )
+            elif self.route_strategy == "classifier":
+                self.classifier_model = get_required_config(self.config, 
+                    "operators.pre_retrieval.classifier_model", "route_strategy=classifier"
+                )
+                self.route_mapping = get_required_config(self.config, 
+                    "operators.pre_retrieval.route_mapping", "route_strategy=classifier"
+                )
+            elif self.route_strategy == "llm":
+                self.route_prompt = get_required_config(self.config, 
+                    "operators.pre_retrieval.route_prompt", "route_strategy=llm"
+                )
 
-    def _init_route(self):
-        """初始化检索路由
-
-        根据查询内容路由到不同的检索源
-        参考 MemoryOS 和 MemGPT 实现
-        """
-        self.route_strategy = self._get_required_config(
-            "operators.pre_retrieval.route_strategy", "action=route"
-        )
-        self.allow_multi_route = self.config.get(
-            "operators.pre_retrieval.allow_multi_route", True
-        )
-        self.max_routes = self.config.get("operators.pre_retrieval.max_routes", 2)
-        self.default_route = self._get_required_config(
-            "operators.pre_retrieval.default_route", "action=route"
-        )
-
-        if self.route_strategy == "keyword":
-            self.keyword_rules = self._get_required_config(
-                "operators.pre_retrieval.keyword_rules", "route_strategy=keyword"
+        elif self.action == "validate":
+            # validate action 配置
+            self.validation_rules = get_required_config(self.config, 
+                "operators.pre_retrieval.rules", "action=validate"
             )
-
-        elif self.route_strategy == "classifier":
-            self.classifier_model = self._get_required_config(
-                "operators.pre_retrieval.classifier_model", "route_strategy=classifier"
+            self.on_fail = self.config.get("operators.pre_retrieval.on_fail", "default")
+            self.default_query = self.config.get("operators.pre_retrieval.default_query", "Hello")
+            self.preprocessing = self.config.get(
+                "operators.pre_retrieval.preprocessing",
+                {"strip_whitespace": True, "lowercase": False, "remove_punctuation": False},
             )
-            self.route_mapping = self._get_required_config(
-                "operators.pre_retrieval.route_mapping", "route_strategy=classifier"
-            )
-            # TODO: 初始化分类器模型
-            # Issue URL: https://github.com/intellistream/SAGE/issues/1268
-
-        elif self.route_strategy == "llm":
-            self.route_prompt = self._get_required_config(
-                "operators.pre_retrieval.route_prompt", "route_strategy=llm"
-            )
-            self.generator = LLMGenerator.from_config(self.config)
-
-    def _init_validate(self):
-        """初始化查询验证
-
-        验证查询是否符合要求，进行预处理
-        """
-        self.validation_rules = self._get_required_config(
-            "operators.pre_retrieval.rules", "action=validate"
-        )
-        self.on_fail = self.config.get("operators.pre_retrieval.on_fail", "default")
-        self.default_query = self.config.get("operators.pre_retrieval.default_query", "Hello")
-
-        # 预处理配置
-        self.preprocessing = self.config.get(
-            "operators.pre_retrieval.preprocessing",
-            {
-                "strip_whitespace": True,
-                "lowercase": False,
-                "remove_punctuation": False,
-            },
-        )
-
-        # 安全检查模式
-        self.blocked_patterns = []
-        for rule in self.validation_rules:
-            if rule.get("type") == "safety":
-                patterns = rule.get("blocked_patterns", [])
-                self.blocked_patterns.extend(patterns)
+            self.blocked_patterns = []
+            for rule in self.validation_rules:
+                if rule.get("type") == "safety":
+                    self.blocked_patterns.extend(rule.get("blocked_patterns", []))
 
     # ==================== 执行方法 ====================
 
@@ -418,7 +273,7 @@ class PreRetrieval(MapFunction):
             添加了 "query_embedding" 字段的数据
         """
         question = data.get("question")
-        embedding = self.embedding_generator.embed(question)
+        embedding = self._embedding_generator.embed(question)
         data["query_embedding"] = embedding
         return data
 
@@ -452,9 +307,9 @@ class PreRetrieval(MapFunction):
             data["question"] = optimized
 
         # 是否对优化后的查询进行 embedding
-        if self.embedding_generator is not None:
+        if self._embedding_generator is not None:
             query_to_embed = optimized if self.replace_original else question
-            data["query_embedding"] = self.embedding_generator.embed(query_to_embed)
+            data["query_embedding"] = self._embedding_generator.embed(query_to_embed)
 
         return data
 
@@ -479,7 +334,7 @@ class PreRetrieval(MapFunction):
         tokenized_item = self.lemma_tokenizer(query_item)
         query_nouns_item = list(set([token.lemma_ for token in tokenized_item if token.pos_ == "NOUN"]))
         """
-        doc = self.nlp(query)
+        doc = self._nlp(query)
 
         # 提取指定词性的词元
         keywords = []
@@ -494,14 +349,14 @@ class PreRetrieval(MapFunction):
 
     def _extract_keywords_nltk(self, query: str) -> str:
         """使用 NLTK 提取关键词"""
-        tokens = self.word_tokenize(query)
-        tagged = self.pos_tag(tokens)
+        tokens = self._word_tokenize(query)
+        tagged = self._pos_tag(tokens)
 
         keywords = []
         for word, tag in tagged:
-            universal_tag = self.nltk_pos_mapping.get(tag, "")
+            universal_tag = self._nltk_pos_mapping.get(tag, "")
             if universal_tag in self.extract_types:
-                lemma = self.lemmatizer.lemmatize(word.lower())
+                lemma = self._lemmatizer.lemmatize(word.lower())
                 keywords.append(lemma)
 
         # 去重并限制数量
@@ -519,13 +374,13 @@ class PreRetrieval(MapFunction):
         prompt = prompt.format(query=query)
 
         try:
-            result = self.generator.generate(prompt, max_tokens=100, temperature=0.3)
+            result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
             # 清理结果
             keywords = [k.strip() for k in result.strip().split(",")]
             keywords = keywords[: self.max_keywords]
             return ",".join(keywords) if keywords else query
         except Exception as e:
-            logger.warning(f"LLM keyword extraction failed: {e}")
+            print(f"LLM keyword extraction failed: {e}")
             return query
 
     def _expand_query(self, query: str) -> str | list[str]:
@@ -536,7 +391,7 @@ class PreRetrieval(MapFunction):
         prompt = self.expand_prompt.format(query=query, count=self.expand_count)
 
         try:
-            result = self.generator.generate(prompt, max_tokens=300, temperature=0.7)
+            result = self._generator.generate(prompt, max_tokens=300, temperature=0.7)
 
             # 解析扩展查询
             lines = result.strip().split("\n")
@@ -550,7 +405,7 @@ class PreRetrieval(MapFunction):
                 return expanded_queries if expanded_queries else [query]
 
         except Exception as e:
-            logger.warning(f"Query expansion failed: {e}")
+            print(f"Query expansion failed: {e}")
             return [query]
 
     def _rewrite_query(self, query: str) -> str:
@@ -561,10 +416,10 @@ class PreRetrieval(MapFunction):
         prompt = self.rewrite_prompt.format(query=query)
 
         try:
-            result = self.generator.generate(prompt, max_tokens=200, temperature=0.5)
+            result = self._generator.generate(prompt, max_tokens=200, temperature=0.5)
             return result.strip() or query
         except Exception as e:
-            logger.warning(f"Query rewrite failed: {e}")
+            print(f"Query rewrite failed: {e}")
             return query
 
     def _add_instruction(self, query: str) -> str:
@@ -596,9 +451,9 @@ class PreRetrieval(MapFunction):
             emb = generator.embed(question)
             return name, emb, weight
 
-        with ThreadPoolExecutor(max_workers=len(self.embedding_generators)) as executor:
+        with ThreadPoolExecutor(max_workers=len(self._embedding_generators)) as executor:
             futures = []
-            for name, (generator, weight) in self.embedding_generators.items():
+            for name, (generator, weight) in self._embedding_generators.items():
                 futures.append(executor.submit(generate_embedding, name, generator, weight))
 
             for future in as_completed(futures):
@@ -608,7 +463,7 @@ class PreRetrieval(MapFunction):
                         embeddings[name] = emb
                         weights[name] = weight
                 except Exception as e:
-                    logger.warning(f"Embedding generation failed: {e}")
+                    print(f"Embedding generation failed: {e}")
 
         # 根据输出格式存储
         if self.output_format == "dict":
@@ -649,14 +504,14 @@ class PreRetrieval(MapFunction):
         data["sub_query_action"] = self.sub_query_action
 
         # 如果需要对子查询进行 embedding
-        if self.embedding_generator is not None:
+        if self._embedding_generator is not None:
             if self.sub_query_action == "parallel":
                 # 并行生成所有子查询的 embedding
-                sub_embeddings = self.embedding_generator.embed_batch(sub_queries)
+                sub_embeddings = self._embedding_generator.embed_batch(sub_queries)
                 data["sub_query_embeddings"] = sub_embeddings
             else:
                 # 串行处理时只生成第一个的 embedding
-                data["query_embedding"] = self.embedding_generator.embed(sub_queries[0])
+                data["query_embedding"] = self._embedding_generator.embed(sub_queries[0])
 
         return data
 
@@ -665,7 +520,7 @@ class PreRetrieval(MapFunction):
         prompt = self.decompose_prompt.format(query=query)
 
         try:
-            result = self.generator.generate(prompt, max_tokens=500, temperature=0.5)
+            result = self._generator.generate(prompt, max_tokens=500, temperature=0.5)
 
             # 尝试解析 JSON 数组
             try:
@@ -689,7 +544,7 @@ class PreRetrieval(MapFunction):
             return sub_queries[: self.max_sub_queries] if sub_queries else [query]
 
         except Exception as e:
-            logger.warning(f"Query decomposition failed: {e}")
+            print(f"Query decomposition failed: {e}")
             return [query]
 
     def _decompose_with_rules(self, query: str) -> list[str]:
@@ -765,7 +620,7 @@ class PreRetrieval(MapFunction):
         # TODO: 实现分类器路由
         # Issue URL: https://github.com/intellistream/SAGE/issues/1267
         # 这里需要加载和使用意图分类模型
-        logger.warning("Classifier routing not implemented, using default route")
+        print("Classifier routing not implemented, using default route")
         return [self.default_route]
 
     def _route_by_llm(self, query: str) -> list[str]:
@@ -776,7 +631,7 @@ class PreRetrieval(MapFunction):
         prompt = self.route_prompt.format(query=query)
 
         try:
-            result = self.generator.generate(prompt, max_tokens=100, temperature=0.3)
+            result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
 
             # 尝试解析 JSON 数组
             try:
@@ -797,7 +652,7 @@ class PreRetrieval(MapFunction):
             return routes if routes else [self.default_route]
 
         except Exception as e:
-            logger.warning(f"LLM routing failed: {e}")
+            print(f"LLM routing failed: {e}")
             return [self.default_route]
 
     # ==================== validate action 实现 ====================

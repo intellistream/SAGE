@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import re
 from typing import Any
 
+from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
 from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
@@ -26,8 +26,6 @@ from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import
 from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
 from sage.benchmark.benchmark_memory.experiment.utils.triple_parser import TripleParser
 from sage.common.core import MapFunction
-
-logger = logging.getLogger(__name__)
 
 
 class PreInsert(MapFunction):
@@ -60,127 +58,51 @@ class PreInsert(MapFunction):
         """
         super().__init__()
         self.config = config
-        self.action = self._get_required_config("operators.pre_insert.action")
 
-        # 初始化解析器
-        self.dialogue_parser = DialogueParser()
-        self.triple_parser = TripleParser()
+        # 此处默认初始化共通工具（对外请求服务的和内部都使用的，比如共用解析器、LLM 和 Embedding）
+        self._dialogue_parser = DialogueParser()
+        self._generator: LLMGenerator = LLMGenerator.from_config(self.config)
+        self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
 
-        # 延迟初始化的组件
-        self._generator: LLMGenerator | None = None
-        self._embedding_generator: EmbeddingGenerator | None = None
-        self._spacy_nlp = None  # spaCy 模型，用于 NER 和名词提取
-
-        # 用于重复检测的缓存
-        self._content_hashes: set[str] = set()
-
-        # 根据 action 初始化必要组件
+        # 根据 action 初始化特定配置和工具
+        self.action = get_required_config(self.config, "operators.pre_insert.action")
         self._init_for_action()
 
-    def _get_required_config(self, key: str, context: str = "") -> any:
-        """获取必需配置，缺失则报错
-
-        Args:
-            key: 配置键路径，如 "operators.pre_insert.action"
-            context: 上下文说明，用于错误消息
-
-        Returns:
-            配置值
-
-        Raises:
-            ValueError: 配置缺失时抛出
-        """
-        value = self.config.get(key)
-        if value is None:
-            ctx = f" ({context})" if context else ""
-            raise ValueError(f"缺少必需配置: {key}{ctx}")
-        return value
-
     def _init_for_action(self):
-        """根据 action 类型初始化必要的组件"""
+        """根据 action 类型初始化特定配置和工具"""
         if self.action == "tri_embed":
-            self.triple_extraction_prompt = self._get_required_config(
-                "operators.pre_insert.triple_extraction_prompt", "action=tri_embed"
+            self._triple_parser = TripleParser()
+            self._triple_extraction_prompt = get_required_config(
+                self.config,
+                "operators.pre_insert.triple_extraction_prompt",
+                "action=tri_embed",
             )
-            self._init_llm_generator()
-            self._init_embedding_generator()
 
         elif self.action == "transform":
-            transform_type = self._get_required_config(
-                "operators.pre_insert.transform_type", "action=transform"
+            get_required_config(
+                self.config,
+                "operators.pre_insert.transform_type",
+                "action=transform",
             )
-            if transform_type in ["topic_segment", "fact_extract", "summarize"]:
-                self._init_llm_generator()
-            # chunking 和 compress 不需要 LLM
 
         elif self.action == "extract":
-            extract_type = self._get_required_config(
-                "operators.pre_insert.extract_type", "action=extract"
+            extract_type = get_required_config(
+                self.config,
+                "operators.pre_insert.extract_type",
+                "action=extract",
             )
-            if extract_type in ["keyword", "persona", "all"]:
-                self._init_llm_generator()
             if extract_type in ["entity", "noun", "all"]:
-                self._init_spacy()
-
-        elif self.action == "score":
-            self._init_llm_generator()
-
-        elif self.action == "multi_embed":
-            self._init_embedding_generator()
-
-        elif self.action == "validate":
-            # validate 可能需要重复检测的 embedding
-            similarity_check = any(
-                r.get("type") == "duplicate"
-                for r in self.config.get("operators.pre_insert.rules", [])
-            )
-            if similarity_check:
-                self._init_embedding_generator()
-
-    def _init_llm_generator(self):
-        """初始化 LLM 生成器"""
-        if self._generator is None:
-            self._generator = LLMGenerator.from_config(self.config)
-
-    def _init_embedding_generator(self):
-        """初始化 Embedding 生成器"""
-        if self._embedding_generator is None:
-            self._embedding_generator = EmbeddingGenerator.from_config(self.config)
-
-    def _init_spacy(self):
-        """初始化 spaCy 模型"""
-        if self._spacy_nlp is None:
-            try:
                 import spacy
 
-                model_name = self._get_required_config(
-                    "operators.pre_insert.spacy_model", "entity/noun extraction"
+                model_name = get_required_config(
+                    self.config,
+                    "operators.pre_insert.spacy_model",
+                    "entity/noun extraction",
                 )
-                try:
-                    self._spacy_nlp = spacy.load(model_name)
-                except OSError:
-                    logger.warning(f"spaCy model {model_name} not found, downloading...")
-                    from spacy.cli import download
+                self._spacy_nlp = spacy.load(model_name)
 
-                    download(model_name)
-                    self._spacy_nlp = spacy.load(model_name)
-            except ImportError:
-                logger.warning("spaCy not installed. Entity/noun extraction will be limited.")
-                self._spacy_nlp = None
-
-    @property
-    def generator(self) -> LLMGenerator:
-        """获取 LLM 生成器（延迟初始化）"""
-        if self._generator is None:
-            self._init_llm_generator()
-        return self._generator
-
-    @property
-    def embedding_generator(self) -> EmbeddingGenerator:
-        """获取 Embedding 生成器（延迟初始化）"""
-        if self._embedding_generator is None:
-            self._init_embedding_generator()
-        return self._embedding_generator
+        elif self.action == "validate":
+            self._content_hashes: set[str] = set()
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行预处理
@@ -215,7 +137,7 @@ class PreInsert(MapFunction):
 
         else:
             # 未知操作模式，原样返回
-            logger.warning(f"Unknown action: {self.action}, passing through")
+            print(f"[WARNING] " + str(f"Unknown action: {self.action}, passing through"))
             entries = [data]
 
         # 在原字典基础上添加 memory_entries 队列
@@ -237,7 +159,7 @@ class PreInsert(MapFunction):
         Returns:
             转换后的记忆条目列表
         """
-        transform_type = self._get_required_config(
+        transform_type = get_required_config(self.config, 
             "operators.pre_insert.transform_type", "action=transform"
         )
 
@@ -252,7 +174,7 @@ class PreInsert(MapFunction):
         elif transform_type == "compress":
             return self._transform_compress(data)
         else:
-            logger.warning(f"Unknown transform_type: {transform_type}, using chunking")
+            print(f"[WARNING] " + str(f"Unknown transform_type: {transform_type}, using chunking"))
             return self._transform_chunking(data)
 
     def _transform_chunking(self, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -265,17 +187,17 @@ class PreInsert(MapFunction):
         - chunk_overlap: 块之间的重叠字符数
         - chunk_strategy: 分块策略 (fixed/sentence/paragraph)
         """
-        chunk_size = self._get_required_config(
+        chunk_size = get_required_config(self.config, 
             "operators.pre_insert.chunk_size", "transform_type=chunking"
         )
-        chunk_overlap = self._get_required_config(
+        chunk_overlap = get_required_config(self.config, 
             "operators.pre_insert.chunk_overlap", "transform_type=chunking"
         )
         chunk_strategy = self.config.get("operators.pre_insert.chunk_strategy", "fixed")
 
         # 获取文本内容
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         if not text:
             return [data]
@@ -393,16 +315,16 @@ class PreInsert(MapFunction):
         dialogue_text = "\n".join(formatted_dialogs)
 
         # 使用 LLM 识别话题边界
-        prompt_template = self._get_required_config(
+        prompt_template = get_required_config(self.config, 
             "operators.pre_insert.segment_prompt", "transform_type=topic_segment"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
         try:
-            response = self.generator.generate(prompt)
+            response = self._generator.generate(prompt)
             segments = self._parse_json_response(response, default=[])
         except Exception as e:
-            logger.warning(f"Topic segmentation failed: {e}, falling back to single segment")
+            print(f"[WARNING] " + str(f"Topic segmentation failed: {e}, falling back to single segment"))
             return [data]
 
         if not segments:
@@ -419,7 +341,7 @@ class PreInsert(MapFunction):
 
             # 提取该段的对话
             segment_dialogs = [dialogs[idx] for idx in exchange_indices if idx < len(dialogs)]
-            segment_text = self.dialogue_parser.format(segment_dialogs)
+            segment_text = self._dialogue_parser.format(segment_dialogs)
 
             # 检查大小约束
             if len(segment_text) < min_size:
@@ -467,16 +389,16 @@ class PreInsert(MapFunction):
         dialogue_text = "\n".join(formatted_dialogs)
 
         # 使用 LLM 提取事实
-        prompt_template = self._get_required_config(
+        prompt_template = get_required_config(self.config, 
             "operators.pre_insert.fact_prompt", "transform_type=fact_extract"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
         try:
-            response = self.generator.generate(prompt)
+            response = self._generator.generate(prompt)
             facts = self._parse_json_response(response, default=[])
         except Exception as e:
-            logger.warning(f"Fact extraction failed: {e}")
+            print(f"[WARNING] " + str(f"Fact extraction failed: {e}"))
             return [data]
 
         if not facts:
@@ -513,22 +435,22 @@ class PreInsert(MapFunction):
         - summary_max_tokens: 摘要最大 token 数
         """
         dialogs = data.get("dialogs", [])
-        dialogue_text = self.dialogue_parser.format(dialogs)
+        dialogue_text = self._dialogue_parser.format(dialogs)
 
         if not dialogue_text:
             return [data]
 
         # 使用 LLM 生成摘要
-        prompt_template = self._get_required_config(
+        prompt_template = get_required_config(self.config, 
             "operators.pre_insert.summary_prompt", "transform_type=summarize"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
         try:
             max_tokens = self.config.get("operators.pre_insert.summary_max_tokens", 200)
-            summary = self.generator.generate(prompt, max_tokens=max_tokens)
+            summary = self._generator.generate(prompt, max_tokens=max_tokens)
         except Exception as e:
-            logger.warning(f"Summarization failed: {e}")
+            print(f"[WARNING] " + str(f"Summarization failed: {e}"))
             return [data]
 
         entry = data.copy()
@@ -546,7 +468,7 @@ class PreInsert(MapFunction):
         - compression_model: 压缩模型名称
         """
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         if not text:
             return [data]
@@ -571,12 +493,12 @@ class PreInsert(MapFunction):
             compressed_text = result.get("compressed_prompt", text)
 
         except ImportError:
-            logger.warning("LLMLingua not installed, using simple truncation")
+            print(f"[WARNING] " + str("LLMLingua not installed, using simple truncation"))
             # 简单截断作为后备
             target_len = int(len(text) * compression_ratio)
             compressed_text = text[:target_len]
         except Exception as e:
-            logger.warning(f"Compression failed: {e}, using original text")
+            print(f"[WARNING] " + str(f"Compression failed: {e}, using original text"))
             compressed_text = text
 
         entry = data.copy()
@@ -600,7 +522,7 @@ class PreInsert(MapFunction):
         Returns:
             添加了抽取信息的记忆条目列表
         """
-        extract_type = self._get_required_config(
+        extract_type = get_required_config(self.config, 
             "operators.pre_insert.extract_type", "action=extract"
         )
 
@@ -634,18 +556,18 @@ class PreInsert(MapFunction):
         使用 LLM 提取关键概念和术语
         """
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         if not text:
             return []
 
-        prompt_template = self._get_required_config(
+        prompt_template = get_required_config(self.config, 
             "operators.pre_insert.keyword_prompt", "extract_type=keyword"
         )
         prompt = prompt_template.replace("{text}", text)
 
         try:
-            response = self.generator.generate(prompt)
+            response = self._generator.generate(prompt)
             result = self._parse_json_response(response, default={"keywords": []})
             keywords = result.get("keywords", [])
 
@@ -654,7 +576,7 @@ class PreInsert(MapFunction):
             return keywords[:max_keywords]
 
         except Exception as e:
-            logger.warning(f"Keyword extraction failed: {e}")
+            print(f"[WARNING] " + str(f"Keyword extraction failed: {e}"))
             return []
 
     def _extract_entities(self, data: dict[str, Any]) -> list[dict[str, str]]:
@@ -663,7 +585,7 @@ class PreInsert(MapFunction):
         使用 spaCy 或 LLM 识别命名实体
         """
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         if not text:
             return []
@@ -676,7 +598,7 @@ class PreInsert(MapFunction):
 
         entities = []
 
-        if ner_model == "spacy" and self._spacy_nlp:
+        if ner_model == "spacy" and getattr(self, "_spacy_nlp", None):
             doc = self._spacy_nlp(text)
             for ent in doc.ents:
                 if ent.label_ in entity_types:
@@ -693,10 +615,10 @@ Return a JSON list of entities: [{{"text": "entity text", "type": "ENTITY_TYPE"}
 
 Entities:"""
             try:
-                response = self.generator.generate(prompt)
+                response = self._generator.generate(prompt)
                 entities = self._parse_json_response(response, default=[])
             except Exception as e:
-                logger.warning(f"LLM NER failed: {e}")
+                print(f"[WARNING] " + str(f"LLM NER failed: {e}"))
 
         # 去重
         seen = set()
@@ -715,9 +637,9 @@ Entities:"""
         使用 spaCy 提取名词短语
         """
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
-        if not text or not self._spacy_nlp:
+        if not text or not getattr(self, "_spacy_nlp", None):
             return []
 
         include_proper_nouns = self.config.get(
@@ -749,12 +671,12 @@ Entities:"""
         从对话中提取说话者的性格特征、偏好和事实信息
         """
         dialogs = data.get("dialogs", [])
-        dialogue_text = self.dialogue_parser.format(dialogs)
+        dialogue_text = self._dialogue_parser.format(dialogs)
 
         if not dialogue_text:
             return {}
 
-        prompt_template = self._get_required_config(
+        prompt_template = get_required_config(self.config, 
             "operators.pre_insert.persona_prompt", "extract_type=persona"
         )
         prompt = prompt_template.replace("{dialogue}", dialogue_text)
@@ -764,7 +686,7 @@ Entities:"""
         )
 
         try:
-            response = self.generator.generate(prompt)
+            response = self._generator.generate(prompt)
             personas = self._parse_json_response(response, default={})
 
             # 只保留配置的字段
@@ -778,7 +700,7 @@ Entities:"""
             return filtered_personas
 
         except Exception as e:
-            logger.warning(f"Persona extraction failed: {e}")
+            print(f"[WARNING] " + str(f"Persona extraction failed: {e}"))
             return {}
 
     # ========================================================================
@@ -796,7 +718,7 @@ Entities:"""
         Returns:
             添加了评分的记忆条目列表
         """
-        score_type = self._get_required_config(
+        score_type = get_required_config(self.config, 
             "operators.pre_insert.score_type", "action=score"
         )
         entry = data.copy()
@@ -806,7 +728,7 @@ Entities:"""
         elif score_type == "emotion":
             score_result = self._score_emotion(data)
         else:
-            logger.warning(f"Unknown score_type: {score_type}")
+            print(f"[WARNING] " + str(f"Unknown score_type: {score_type}"))
             score_result = {}
 
         # 添加评分到 metadata
@@ -826,12 +748,12 @@ Entities:"""
         使用 LLM 评估记忆的重要性 (1-10)
         """
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         if not text:
             return {"score": 5, "reason": "Empty content"}
 
-        prompt_template = self._get_required_config(
+        prompt_template = get_required_config(self.config, 
             "operators.pre_insert.importance_prompt", "score_type=importance"
         )
         prompt = prompt_template.replace("{text}", text)
@@ -840,7 +762,7 @@ Entities:"""
         min_score, max_score = importance_scale
 
         try:
-            response = self.generator.generate(prompt)
+            response = self._generator.generate(prompt)
             result = self._parse_json_response(
                 response, default={"score": 5, "reason": "Default score"}
             )
@@ -853,7 +775,7 @@ Entities:"""
             return result
 
         except Exception as e:
-            logger.warning(f"Importance scoring failed: {e}")
+            print(f"[WARNING] " + str(f"Importance scoring failed: {e}"))
             return {"score": 5, "reason": f"Scoring failed: {e}"}
 
     def _score_emotion(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -862,7 +784,7 @@ Entities:"""
         识别文本的情感类别和强度
         """
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         if not text:
             return {"category": "neutral", "intensity": 0.5, "vector": None}
@@ -890,7 +812,7 @@ Return a JSON object with:
 Result:"""
 
             try:
-                response = self.generator.generate(prompt)
+                response = self._generator.generate(prompt)
                 result = self._parse_json_response(
                     response,
                     default={"category": "neutral", "intensity": 0.5},
@@ -898,7 +820,7 @@ Result:"""
                 return result
 
             except Exception as e:
-                logger.warning(f"Emotion scoring failed: {e}")
+                print(f"[WARNING] " + str(f"Emotion scoring failed: {e}"))
 
         # 如果配置了情感 embedding 模型，生成情感向量
         if self._embedding_generator and self._embedding_generator.is_available():
@@ -910,7 +832,7 @@ Result:"""
                     "vector": emotion_vector,
                 }
             except Exception as e:
-                logger.warning(f"Emotion embedding failed: {e}")
+                print(f"[WARNING] " + str(f"Emotion embedding failed: {e}"))
 
         return {"category": "neutral", "intensity": 0.5, "vector": None}
 
@@ -938,7 +860,7 @@ Result:"""
             ]
 
         dialogs = data.get("dialogs", [])
-        content = self.dialogue_parser.format(dialogs)
+        content = self._dialogue_parser.format(dialogs)
 
         entry = data.copy()
         embeddings_result: dict[str, list[float] | None] = {}
@@ -960,12 +882,12 @@ Result:"""
             else:
                 text_to_embed = str(entry.get(field, content))
 
-            if text_to_embed and self.embedding_generator.is_available():
+            if text_to_embed and self._embedding_generator.is_available():
                 try:
-                    embedding = self.embedding_generator.embed(text_to_embed)
+                    embedding = self._embedding_generator.embed(text_to_embed)
                     embeddings_result[name] = embedding
                 except Exception as e:
-                    logger.warning(f"Embedding failed for {name}: {e}")
+                    print(f"[WARNING] " + str(f"Embedding failed for {name}: {e}"))
                     embeddings_result[name] = None
             else:
                 embeddings_result[name] = None
@@ -1010,7 +932,7 @@ Result:"""
         on_fail = self.config.get("operators.pre_insert.on_fail", "skip")
 
         dialogs = data.get("dialogs", [])
-        text = self.dialogue_parser.format(dialogs)
+        text = self._dialogue_parser.format(dialogs)
 
         validation_errors = []
 
@@ -1022,10 +944,10 @@ Result:"""
 
         if validation_errors:
             if on_fail == "skip":
-                logger.info(f"Validation failed, skipping: {validation_errors}")
+                print(f"[INFO] " + str(f"Validation failed, skipping: {validation_errors}"))
                 return []  # 返回空列表，跳过此条目
             elif on_fail == "warn":
-                logger.warning(f"Validation warnings: {validation_errors}")
+                print(f"[WARNING] " + str(f"Validation warnings: {validation_errors}"))
                 entry = data.copy()
                 entry["validation_warnings"] = validation_errors
                 return [entry]
@@ -1085,9 +1007,9 @@ Result:"""
                     if detected not in allowed:
                         return f"Language not allowed: {detected} not in {allowed}"
                 except ImportError:
-                    logger.warning("langdetect not installed, skipping language check")
+                    print(f"[WARNING] " + str("langdetect not installed, skipping language check"))
                 except Exception as e:
-                    logger.warning(f"Language detection failed: {e}")
+                    print(f"[WARNING] " + str(f"Language detection failed: {e}"))
 
         elif rule_type == "content":
             blacklist = rule.get("blacklist", [])
@@ -1127,17 +1049,17 @@ Result:"""
             记忆条目列表，每个条目包含 triple, refactor, embedding
         """
         dialogs = data.get("dialogs", [])
-        dialogue = self.dialogue_parser.format(dialogs)
+        dialogue = self._dialogue_parser.format(dialogs)
 
         # 使用 LLM 提取三元组
-        prompt = self.triple_extraction_prompt.replace("{dialogue}", dialogue)
-        triples_text = self.generator.generate(prompt)
+        prompt = self._triple_extraction_prompt.replace("{dialogue}", dialogue)
+        triples_text = self._generator.generate(prompt)
 
         # 解析三元组并重构为自然语言描述
-        triples, refactor_descriptions = self.triple_parser.parse_and_refactor(triples_text)
+        triples, refactor_descriptions = self._triple_parser.parse_and_refactor(triples_text)
 
         # 去重
-        unique_triples, unique_refactors = self.triple_parser.deduplicate(
+        unique_triples, unique_refactors = self._triple_parser.deduplicate(
             triples, refactor_descriptions
         )
 
@@ -1145,7 +1067,7 @@ Result:"""
             return []
 
         # 生成 Embedding
-        embeddings = self.embedding_generator.embed_batch(unique_refactors)
+        embeddings = self._embedding_generator.embed_batch(unique_refactors)
 
         # 构建记忆条目列表
         memory_entries = []
@@ -1211,11 +1133,11 @@ Result:"""
             return json.loads(response_cleaned)
 
         except json.JSONDecodeError as e:
-            logger.warning(f"JSON parsing error: {e}")
-            logger.debug(f"Raw response: {response}")
+            print(f"[WARNING] " + str(f"JSON parsing error: {e}"))
+            #DEBUG: f"Raw response: {response}"
             return default
 
     def _get_text_content(self, data: dict[str, Any]) -> str:
         """从数据中获取文本内容"""
         dialogs = data.get("dialogs", [])
-        return self.dialogue_parser.format(dialogs)
+        return self._dialogue_parser.format(dialogs)

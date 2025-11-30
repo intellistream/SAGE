@@ -14,17 +14,15 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Iterable, List, Optional
 
+from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
 )
 from sage.common.core import MapFunction
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -100,7 +98,7 @@ class PostRetrieval(MapFunction):
 
         super().__init__()
         self.config = config
-        self.action = self._get_required_config("operators.post_retrieval.action")
+        self.action = get_required_config(self.config, "operators.post_retrieval.action")
 
         # 对话格式化 Prompt（阶段一）
         self.conversation_format_prompt = config.get(
@@ -112,40 +110,81 @@ class PostRetrieval(MapFunction):
             ),
         )
 
-        # 初始化各 action 所需组件（按需延迟初始化避免不必要依赖）
-        self._embedding_generator: Optional[EmbeddingGenerator] = None
+        # 默认初始化共通工具（Embedding）
+        # 这些工具依赖外部模型部署，持有句柄没有问题
+        self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
+
+        # 根据 action 初始化特定配置
+        self._init_for_action()
+
+    def _init_for_action(self) -> None:
+        """根据 action 类型初始化对应配置"""
+        cfg_prefix = "operators.post_retrieval"
 
         if self.action == "rerank":
-            self._init_rerank()
+            # rerank 配置
+            self.rerank_type: str = get_required_config(self.config, 
+                f"{cfg_prefix}.rerank_type", "action=rerank"
+            )
+            self.semantic_model_name: str | None = self.config.get(f"{cfg_prefix}.rerank_model")
+            self.cross_encoder_model: str | None = self.config.get(f"{cfg_prefix}.cross_encoder_model")
+            self.cross_encoder_batch_size: int = self.config.get(f"{cfg_prefix}.batch_size", 32)
+            self.time_decay_rate: float = float(
+                get_required_config(self.config, f"{cfg_prefix}.time_decay_rate", "rerank_type=time_weighted"),
+            )
+            self.time_field: str = self.config.get(f"{cfg_prefix}.time_field", "timestamp")
+            self.ppr_damping_factor: float = float(self.config.get(f"{cfg_prefix}.damping_factor", 0.5))
+            self.ppr_max_iterations: int = int(self.config.get(f"{cfg_prefix}.max_iterations", 100))
+            self.ppr_convergence_threshold: float = float(self.config.get(f"{cfg_prefix}.convergence_threshold", 1e-6))
+            self.ppr_personalization_nodes: str = self.config.get(f"{cfg_prefix}.personalization_nodes", "query_entities")
+            self.weighted_factors: list[dict[str, Any]] = self.config.get(f"{cfg_prefix}.factors")
+            if self.rerank_type == "weighted" and not self.weighted_factors:
+                raise ValueError("缺少必需配置: operators.post_retrieval.factors (rerank_type=weighted)")
+            self.rerank_top_k: int | None = self.config.get(f"{cfg_prefix}.top_k")
+            self.rerank_score_field: str = self.config.get(f"{cfg_prefix}.score_field", "rerank_score")
+
         elif self.action == "filter":
-            self._init_filter()
+            # filter 配置
+            self.filter_type = get_required_config(self.config, f"{cfg_prefix}.filter_type", "action=filter")
+            self.token_budget = get_required_config(self.config, f"{cfg_prefix}.token_budget", "filter_type=token_budget")
+            self.token_counter = self.config.get(f"{cfg_prefix}.token_counter", "char")
+            self.overflow_strategy = self.config.get(f"{cfg_prefix}.overflow_strategy", "truncate")
+            self.score_threshold = get_required_config(self.config, f"{cfg_prefix}.score_threshold", "filter_type=threshold")
+            self.top_k = get_required_config(self.config, f"{cfg_prefix}.k", "filter_type=top_k")
+            self.dedup_threshold = self.config.get(f"{cfg_prefix}.dedup_threshold", 0.9)
+            self.dedup_strategy = self.config.get(f"{cfg_prefix}.dedup_strategy", "keep_first")
+
         elif self.action == "merge":
-            self._init_merge()
+            # merge 配置
+            self.merge_type = get_required_config(self.config, f"{cfg_prefix}.merge_type", "action=merge")
+            self.merge_sources = self.config.get(f"{cfg_prefix}.merge_sources", ["memory_data", "context_data"])
+            self.rrf_k = self.config.get(f"{cfg_prefix}.rrf_k", 60)
+            self.merge_weights = self.config.get(f"{cfg_prefix}.merge_weights", None)
+            if self.merge_type == "weighted" and not self.merge_weights:
+                raise ValueError("缺少必需配置: operators.post_retrieval.merge_weights (merge_type=weighted)")
+
         elif self.action == "augment":
-            self._init_augment()
+            # augment 配置
+            self.augment_type = get_required_config(self.config, f"{cfg_prefix}.augment_type", "action=augment")
+            self.augment_template = self.config.get(f"{cfg_prefix}.augment_template", "")
+            self.augment_fields = self.config.get(f"{cfg_prefix}.augment_fields", [])
+            self.time_field = self.config.get(f"{cfg_prefix}.time_field", "timestamp")
+
         elif self.action == "compress":
-            self._init_compress()
+            # compress 配置
+            self.compress_type = get_required_config(self.config, f"{cfg_prefix}.compress_type", "action=compress")
+            self.compress_ratio = get_required_config(self.config, f"{cfg_prefix}.compress_ratio", "action=compress")
+            self.compress_max_length = self.config.get(f"{cfg_prefix}.compress_max_length", 512)
+
         elif self.action == "format":
-            self._init_format()
-
-    def _get_required_config(self, key: str, context: str = "") -> any:
-        """获取必需配置，缺失则报错
-
-        Args:
-            key: 配置键路径
-            context: 上下文说明
-
-        Returns:
-            配置值
-
-        Raises:
-            ValueError: 配置缺失时抛出
-        """
-        value = self.config.get(key)
-        if value is None:
-            ctx = f" ({context})" if context else ""
-            raise ValueError(f"缺少必需配置: {key}{ctx}")
-        return value
+            # format 配置
+            self.format_type = get_required_config(self.config, f"{cfg_prefix}.format_type", "action=format")
+            self.format_template = get_required_config(self.config, f"{cfg_prefix}.template", "format_type=template")
+            self.memory_template = self.config.get(f"{cfg_prefix}.memory_template", "- {{text}}")
+            self.format_structure = get_required_config(self.config, f"{cfg_prefix}.structure", "format_type=structured")
+            self.role_mapping = self.config.get(f"{cfg_prefix}.role_mapping", {})
+            self.include_timestamps = self.config.get(f"{cfg_prefix}.include_timestamps", False)
+            self.xml_tags = self.config.get(f"{cfg_prefix}.xml_tags", {})
 
     # =============================================================
     # 公共入口
@@ -181,7 +220,7 @@ class PostRetrieval(MapFunction):
             return self._execute_format_action(data)
         else:
             # 其他 action 尚未实现时，保持向后兼容：仅做基础格式化
-            logger.warning("PostRetrieval action '%s' not implemented, fallback to 'none'", action)
+            print("PostRetrieval action '%s' not implemented, fallback to 'none'", action)
             processed = data
 
         # 无论如何，最终都生成 history_text 供下游 LLM 使用
@@ -276,70 +315,6 @@ class PostRetrieval(MapFunction):
     # rerank: 结果重排序
     # =============================================================
 
-    def _init_rerank(self) -> None:
-        """初始化 rerank 相关配置。"""
-
-        cfg_prefix = "operators.post_retrieval"
-        self.rerank_type: str = self._get_required_config(
-            f"{cfg_prefix}.rerank_type", "action=rerank"
-        )
-
-        # semantic / cross_encoder 相关
-        self.semantic_model_name: str | None = self.config.get(
-            f"{cfg_prefix}.rerank_model",
-        )
-        self.cross_encoder_model: str | None = self.config.get(
-            f"{cfg_prefix}.cross_encoder_model",
-        )
-        self.cross_encoder_batch_size: int = self.config.get(
-            f"{cfg_prefix}.batch_size",
-            32,
-        )
-
-        # time_weighted
-        self.time_decay_rate: float = float(
-            self._get_required_config(f"{cfg_prefix}.time_decay_rate", "rerank_type=time_weighted"),
-        )
-        self.time_field: str = self.config.get(f"{cfg_prefix}.time_field", "timestamp")
-
-        # ppr 相关
-        self.ppr_damping_factor: float = float(
-            self.config.get(f"{cfg_prefix}.damping_factor", 0.5),
-        )
-        self.ppr_max_iterations: int = int(
-            self.config.get(f"{cfg_prefix}.max_iterations", 100),
-        )
-        self.ppr_convergence_threshold: float = float(
-            self.config.get(f"{cfg_prefix}.convergence_threshold", 1e-6),
-        )
-        self.ppr_personalization_nodes: str = self.config.get(
-            f"{cfg_prefix}.personalization_nodes",
-            "query_entities",
-        )
-
-        # weighted 相关
-        self.weighted_factors: list[dict[str, Any]] = self.config.get(
-            f"{cfg_prefix}.factors",
-        )
-        if self.rerank_type == "weighted" and not self.weighted_factors:
-            raise ValueError(
-                "缺少必需配置: operators.post_retrieval.factors (rerank_type=weighted)"
-            )
-
-        # 通用配置
-        self.rerank_top_k: int | None = self.config.get(f"{cfg_prefix}.top_k")
-        self.rerank_score_field: str = self.config.get(
-            f"{cfg_prefix}.score_field",
-            "rerank_score",
-        )
-
-        # embedding 生成器
-        try:
-            self._embedding_generator = EmbeddingGenerator.from_config(self.config)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to init EmbeddingGenerator for rerank: %s", exc)
-            self._embedding_generator = None
-
     def _execute_rerank(self, data: dict[str, Any]) -> dict[str, Any]:
         """根据 rerank_type 对 memory_data 进行重排序。"""
 
@@ -375,7 +350,7 @@ class PostRetrieval(MapFunction):
         elif rerank_type == "cross_encoder":
             scored = self._rerank_cross_encoder_placeholder(items, data)
         else:
-            logger.warning("Unknown rerank_type '%s', skip rerank", rerank_type)
+            print("Unknown rerank_type '%s', skip rerank", rerank_type)
             return data
 
         # 按分数排序
@@ -405,15 +380,15 @@ class PostRetrieval(MapFunction):
         - 否则使用 EmbeddingGenerator 对 `question` 做一次 embedding（如果可用）
         """
 
-        if self._embedding_generator is None or not self._embedding_generator.is_available():
-            logger.warning("Semantic rerank requires embedding service, but none is available")
+        if not self._embedding_generator.is_available():
+            print("Semantic rerank requires embedding service, but none is available")
             return [(item, item.score or 0.0) for item in items]
 
         query_vec = data.get("query_embedding")
         if query_vec is None:
             question = data.get("question")
             if not isinstance(question, str) or not question.strip():
-                logger.warning("Semantic rerank: missing question/query_embedding, fallback to original score")
+                print("Semantic rerank: missing question/query_embedding, fallback to original score")
                 return [(item, item.score or 0.0) for item in items]
             query_vec = self._embedding_generator.embed(question)
 
@@ -434,7 +409,7 @@ class PostRetrieval(MapFunction):
 
         item_embeddings = self._embedding_generator.embed_batch([i.text for i in items]) or []
         if len(item_embeddings) != len(items):
-            logger.warning("Semantic rerank: embedding_batch length mismatch, fallback to original score")
+            print("Semantic rerank: embedding_batch length mismatch, fallback to original score")
             return [(item, item.score or 0.0) for item in items]
 
         scored: list[tuple[MemoryItem, float]] = []
@@ -474,7 +449,7 @@ class PostRetrieval(MapFunction):
         方便未来与 HippoRAG 图后端集成时无缝替换。
         """
 
-        logger.warning("PPR rerank is not wired to a graph backend yet, keep original order")
+        print("PPR rerank is not wired to a graph backend yet, keep original order")
         return [(item, item.score or 0.0) for item in items]
 
     # ---------------------- weighted ----------------------
@@ -488,7 +463,7 @@ class PostRetrieval(MapFunction):
             # 优先使用已有 score，其次使用 embedding 相似度（如果可用），否则为 0
             if item.score is not None:
                 return float(item.score)
-            if self._embedding_generator is None or not self._embedding_generator.is_available():
+            if not self._embedding_generator.is_available():
                 return 0.0
             query_vec = data.get("query_embedding")
             question = data.get("question")
@@ -569,28 +544,12 @@ class PostRetrieval(MapFunction):
         这里仅保留接口以免引入沉重依赖，默认返回原 score。
         """
 
-        logger.warning("cross_encoder rerank is not implemented in benchmark; keep original score")
+        print("cross_encoder rerank is not implemented in benchmark; keep original score")
         return [(item, item.score or 0.0) for item in items]
 
     # ========================================================================
     # FILTER ACTION
     # ========================================================================
-
-    def _init_filter(self) -> None:
-        """初始化 filter 所需的配置。"""
-        cfg_prefix = "operators.post_retrieval"
-        self.filter_type = self._get_required_config(f"{cfg_prefix}.filter_type", "action=filter")
-        self.token_budget = self._get_required_config(
-            f"{cfg_prefix}.token_budget", "filter_type=token_budget"
-        )
-        self.token_counter = self.config.get(f"{cfg_prefix}.token_counter", "char")
-        self.overflow_strategy = self.config.get(f"{cfg_prefix}.overflow_strategy", "truncate")
-        self.score_threshold = self._get_required_config(
-            f"{cfg_prefix}.score_threshold", "filter_type=threshold"
-        )
-        self.top_k = self._get_required_config(f"{cfg_prefix}.k", "filter_type=top_k")
-        self.dedup_threshold = self.config.get(f"{cfg_prefix}.dedup_threshold", 0.9)
-        self.dedup_strategy = self.config.get(f"{cfg_prefix}.dedup_strategy", "keep_first")
 
     def _execute_filter(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
         """filter 执行分发。
@@ -613,7 +572,7 @@ class PostRetrieval(MapFunction):
         if self.filter_type == "dedup":
             return self._filter_dedup(items, data)
 
-        logger.warning(f"Unknown filter_type: {self.filter_type}, fallback to threshold")
+        print(f"Unknown filter_type: {self.filter_type}, fallback to threshold")
         return self._filter_threshold(items, data)
 
     def _filter_token_budget(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -683,7 +642,7 @@ class PostRetrieval(MapFunction):
         真实实现需要调用 LLMGenerator，构造 prompt 让 LLM 判断每条记忆是否相关。
         这里仅保留接口，默认返回所有 items。
         """
-        logger.warning("LLM-based filter is not implemented in benchmark; keep all items")
+        print("LLM-based filter is not implemented in benchmark; keep all items")
         return items
 
     def _filter_dedup(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -701,8 +660,8 @@ class PostRetrieval(MapFunction):
         strategy = self.dedup_strategy
 
         # 使用 embedding 计算相似度进行去重
-        if self._embedding_generator is None or not self._embedding_generator.is_available():
-            logger.warning("Dedup filter requires embedding service, but none is available; fallback to text equality")
+        if not self._embedding_generator.is_available():
+            print("Dedup filter requires embedding service, but none is available; fallback to text equality")
             # 退化为严格文本去重
             seen: set[str] = set()
             result: list[MemoryItem] = []
@@ -715,7 +674,7 @@ class PostRetrieval(MapFunction):
         # 使用 embedding 去重
         embeddings = self._embedding_generator.embed_batch([i.text for i in items]) or []
         if len(embeddings) != len(items):
-            logger.warning("Dedup: embedding_batch length mismatch, fallback to text equality")
+            print("Dedup: embedding_batch length mismatch, fallback to text equality")
             seen = set()
             result = []
             for item in items:
@@ -774,20 +733,6 @@ class PostRetrieval(MapFunction):
     # MERGE ACTION
     # ========================================================================
 
-    def _init_merge(self) -> None:
-        """初始化 merge 所需的配置。"""
-        cfg_prefix = "operators.post_retrieval"
-        self.merge_type = self._get_required_config(f"{cfg_prefix}.merge_type", "action=merge")
-        self.merge_sources = self.config.get(
-            f"{cfg_prefix}.merge_sources", ["memory_data", "context_data"]
-        )
-        self.rrf_k = self.config.get(f"{cfg_prefix}.rrf_k", 60)
-        self.merge_weights = self.config.get(f"{cfg_prefix}.merge_weights", None)
-        if self.merge_type == "weighted" and not self.merge_weights:
-            raise ValueError(
-                "缺少必需配置: operators.post_retrieval.merge_weights (merge_type=weighted)"
-            )
-
     def _execute_merge(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
         """merge 执行分发。
 
@@ -812,7 +757,7 @@ class PostRetrieval(MapFunction):
         if self.merge_type == "multi_aspect":
             return self._merge_multi_aspect_placeholder(items, data)
 
-        logger.warning(f"Unknown merge_type: {self.merge_type}, fallback to concat")
+        print(f"Unknown merge_type: {self.merge_type}, fallback to concat")
         return self._merge_concat(items, data)
 
     def _merge_concat(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -993,7 +938,7 @@ class PostRetrieval(MapFunction):
         真实实现需要图存储支持，从 items 中的节点扩展出关联节点。
         这里仅保留接口，默认返回原 items。
         """
-        logger.warning("link_expand merge is not wired to a graph backend; keep original items")
+        print("link_expand merge is not wired to a graph backend; keep original items")
         return items
 
     def _merge_multi_aspect_placeholder(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -1002,20 +947,12 @@ class PostRetrieval(MapFunction):
         真实实现需要从多个维度（事实、情感、社会等）的记忆存储中检索并合并。
         这里仅保留接口，默认返回原 items。
         """
-        logger.warning("multi_aspect merge is not implemented in benchmark; keep original items")
+        print("multi_aspect merge is not implemented in benchmark; keep original items")
         return items
 
     # ========================================================================
     # AUGMENT ACTION
     # ========================================================================
-
-    def _init_augment(self) -> None:
-        """初始化 augment 所需的配置。"""
-        cfg_prefix = "operators.post_retrieval"
-        self.augment_type = self._get_required_config(f"{cfg_prefix}.augment_type", "action=augment")
-        self.augment_template = self.config.get(f"{cfg_prefix}.augment_template", "")
-        self.augment_fields = self.config.get(f"{cfg_prefix}.augment_fields", [])
-        self.time_field = self.config.get(f"{cfg_prefix}.time_field", "timestamp")
 
     def _execute_augment(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
         """augment 执行分发。
@@ -1035,7 +972,7 @@ class PostRetrieval(MapFunction):
         if self.augment_type == "temporal":
             return self._augment_temporal(items, data)
 
-        logger.warning(f"Unknown augment_type: {self.augment_type}, no augmentation")
+        print(f"Unknown augment_type: {self.augment_type}, no augmentation")
         return items
 
     def _augment_reflection_placeholder(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -1044,7 +981,7 @@ class PostRetrieval(MapFunction):
         真实实现需要调用 LLMGenerator，为每条记忆生成高层次的反思摘要。
         这里仅保留接口，默认返回原 items。
         """
-        logger.warning("reflection augment is not implemented in benchmark; keep original items")
+        print("reflection augment is not implemented in benchmark; keep original items")
         return items
 
     def _augment_context(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -1144,15 +1081,6 @@ class PostRetrieval(MapFunction):
     # COMPRESS ACTION
     # ========================================================================
 
-    def _init_compress(self) -> None:
-        """初始化 compress 所需的配置。"""
-        cfg_prefix = "operators.post_retrieval"
-        self.compress_type = self._get_required_config(f"{cfg_prefix}.compress_type", "action=compress")
-        self.compress_ratio = self._get_required_config(
-            f"{cfg_prefix}.compress_ratio", "action=compress"
-        )
-        self.compress_max_length = self.config.get(f"{cfg_prefix}.compress_max_length", 512)
-
     def _execute_compress(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
         """compress 执行分发。
 
@@ -1168,7 +1096,7 @@ class PostRetrieval(MapFunction):
         if self.compress_type == "abstractive":
             return self._compress_abstractive_placeholder(items, data)
 
-        logger.warning(f"Unknown compress_type: {self.compress_type}, no compression")
+        print(f"Unknown compress_type: {self.compress_type}, no compression")
         return items
 
     def _compress_llmlingua_placeholder(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -1177,7 +1105,7 @@ class PostRetrieval(MapFunction):
         真实实现需要调用 LLMLingua 库进行提示词压缩，去除冗余 tokens。
         这里仅保留接口，默认返回原 items。
         """
-        logger.warning("llmlingua compress is not implemented in benchmark; keep original items")
+        print("llmlingua compress is not implemented in benchmark; keep original items")
         return items
 
     def _compress_extractive(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
@@ -1232,27 +1160,12 @@ class PostRetrieval(MapFunction):
         真实实现需要调用 LLMGenerator，为每个 item 生成摘要。
         这里仅保留接口，默认返回原 items。
         """
-        logger.warning("abstractive compress is not implemented in benchmark; keep original items")
+        print("abstractive compress is not implemented in benchmark; keep original items")
         return items
 
     # ========================================================================
     # FORMAT ACTION
     # ========================================================================
-
-    def _init_format(self) -> None:
-        """初始化 format 所需的配置。"""
-        cfg_prefix = "operators.post_retrieval"
-        self.format_type = self._get_required_config(f"{cfg_prefix}.format_type", "action=format")
-        self.format_template = self._get_required_config(
-            f"{cfg_prefix}.template", "format_type=template"
-        )
-        self.memory_template = self.config.get(f"{cfg_prefix}.memory_template", "- {{text}}")
-        self.format_structure = self._get_required_config(
-            f"{cfg_prefix}.structure", "format_type=structured"
-        )
-        self.role_mapping = self.config.get(f"{cfg_prefix}.role_mapping", {})
-        self.include_timestamps = self.config.get(f"{cfg_prefix}.include_timestamps", False)
-        self.xml_tags = self.config.get(f"{cfg_prefix}.xml_tags", {})
 
     def _execute_format_action(self, data: dict[str, Any]) -> dict[str, Any]:
         """format action 包装：提取、格式化、直接设置 history_text。"""
@@ -1280,7 +1193,7 @@ class PostRetrieval(MapFunction):
         if self.format_type == "xml":
             return self._format_xml(items, data)
 
-        logger.warning(f"Unknown format_type: {self.format_type}, fallback to template")
+        print(f"Unknown format_type: {self.format_type}, fallback to template")
         return self._format_template(items, data)
 
     def _format_template(self, items: list[MemoryItem], data: dict[str, Any]) -> str:
@@ -1308,7 +1221,7 @@ class PostRetrieval(MapFunction):
                 line = self.memory_template.format(**format_vars)
                 memory_lines.append(line)
             except Exception as e:  # noqa: BLE001
-                logger.warning(f"Failed to format memory item with template: {e}")
+                print(f"Failed to format memory item with template: {e}")
                 memory_lines.append(f"- {item.text}")
 
         memories_str = "\n".join(memory_lines) if memory_lines else "(No memories)"
@@ -1332,7 +1245,7 @@ class PostRetrieval(MapFunction):
         try:
             return self.format_template.format(**template_vars)
         except Exception as e:  # noqa: BLE001
-            logger.warning(f"Failed to format template: {e}")
+            print(f"Failed to format template: {e}")
             return memories_str
 
     def _format_structured(self, items: list[MemoryItem], data: dict[str, Any]) -> str:

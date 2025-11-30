@@ -15,20 +15,18 @@
 from __future__ import annotations
 
 import json
-import logging
 import math
 import random
 import time
 from collections import defaultdict
 from typing import Any
 
+from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
 from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
     EmbeddingGenerator,
 )
 from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
 from sage.common.core import MapFunction
-
-logger = logging.getLogger(__name__)
 
 
 class PostInsert(MapFunction):
@@ -52,7 +50,7 @@ class PostInsert(MapFunction):
         """
         super().__init__()
         self.config = config
-        self.action = self._get_required_config("operators.post_insert.action")
+        self.action = get_required_config(self.config, "operators.post_insert.action")
 
         # 服务后端配置
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
@@ -67,30 +65,16 @@ class PostInsert(MapFunction):
             "ltm": config.get("services.ltm_service", "long_term_memory"),
         }
 
+        # 默认初始化共通工具（LLM 和 Embedding）
+        # 这些工具依赖外部模型部署，持有句柄没有问题
+        self._generator = LLMGenerator.from_config(self.config)
+        self._embedding_generator = EmbeddingGenerator.from_config(self.config)
+
         # 初始化状态追踪器（用于各种触发机制）
         self._init_state_trackers()
 
-        # 根据 action 初始化相应的配置
-        self._init_action_config()
-
-    def _get_required_config(self, key: str, context: str = "") -> any:
-        """获取必需配置，缺失则报错
-
-        Args:
-            key: 配置键路径
-            context: 上下文说明
-
-        Returns:
-            配置值
-
-        Raises:
-            ValueError: 配置缺失时抛出
-        """
-        value = self.config.get(key)
-        if value is None:
-            ctx = f" ({context})" if context else ""
-            raise ValueError(f"缺少必需配置: {key}{ctx}")
-        return value
+        # 根据 action 初始化特定配置
+        self._init_for_action()
 
     def _init_state_trackers(self):
         """初始化状态追踪器"""
@@ -118,273 +102,103 @@ class PostInsert(MapFunction):
         self._weekly_summaries: list[str] = []
         self._global_summary = ""
 
-    def _init_action_config(self):
-        """根据 action 初始化配置"""
-        # Distillation 配置
+    def _init_for_action(self):
+        """根据 action 类型初始化对应配置"""
+        cfg = "operators.post_insert"
+
         if self.action == "distillation":
-            self._init_distillation_config()
+            # distillation 配置
+            self.distillation_topk = self.config.get(f"{cfg}.distillation_topk", 10)
+            self.distillation_threshold = self.config.get(f"{cfg}.distillation_threshold", None)
+            self.distillation_prompt = self.config.get(f"{cfg}.distillation_prompt")
+            if not self.distillation_prompt:
+                raise ValueError("缺少必需的配置: operators.post_insert.distillation_prompt")
 
-        # Reflection 配置
         elif self.action == "reflection":
-            self._init_reflection_config()
+            # reflection 配置
+            self.trigger_mode = get_required_config(self.config, f"{cfg}.trigger_mode", "action=reflection")
+            self.importance_threshold = get_required_config(self.config, f"{cfg}.importance_threshold", "trigger_mode=threshold")
+            self.importance_field = self.config.get(f"{cfg}.importance_field", "importance_score")
+            self.reset_after_reflection = self.config.get(f"{cfg}.reset_after_reflection", True)
+            self.interval_minutes = self.config.get(f"{cfg}.interval_minutes", 60)
+            self.memory_count_trigger = self.config.get(f"{cfg}.memory_count", 50)
+            self.reflection_prompt = get_required_config(self.config, f"{cfg}.reflection_prompt", "action=reflection")
+            self.reflection_depth = self.config.get(f"{cfg}.reflection_depth", 1)
+            self.max_reflections = get_required_config(self.config, f"{cfg}.max_reflections", "action=reflection")
+            self.reflection_type = self.config.get(f"{cfg}.reflection_type", "general")
+            self.self_reflection_prompt = self.config.get(f"{cfg}.self_reflection_prompt")
+            self.other_reflection_prompt = self.config.get(f"{cfg}.other_reflection_prompt")
+            if self.reflection_type == "self" and not self.self_reflection_prompt:
+                raise ValueError("缺少必需配置: operators.post_insert.self_reflection_prompt (reflection_type=self)")
+            if self.reflection_type == "other" and not self.other_reflection_prompt:
+                raise ValueError("缺少必需配置: operators.post_insert.other_reflection_prompt (reflection_type=other)")
+            self.store_reflection = self.config.get(f"{cfg}.store_reflection", True)
+            self.reflection_importance = self.config.get(f"{cfg}.reflection_importance", 8)
 
-        # Link Evolution 配置
         elif self.action == "link_evolution":
-            self._init_link_evolution_config()
+            # link_evolution 配置
+            self.link_policy = get_required_config(self.config, f"{cfg}.link_policy", "action=link_evolution")
+            self.knn_k = get_required_config(self.config, f"{cfg}.knn_k", "link_policy=synonym_edge")
+            self.similarity_threshold = get_required_config(self.config, f"{cfg}.similarity_threshold", "link_policy=synonym_edge")
+            self.edge_weight = self.config.get(f"{cfg}.edge_weight", 1.0)
+            self.strengthen_factor = self.config.get(f"{cfg}.strengthen_factor", 0.1)
+            self.decay_factor = self.config.get(f"{cfg}.decay_factor", 0.01)
+            self.max_weight = self.config.get(f"{cfg}.max_weight", 10.0)
+            self.activation_depth = self.config.get(f"{cfg}.activation_depth", 2)
+            self.activation_decay = self.config.get(f"{cfg}.activation_decay", 0.5)
+            self.auto_link_prompt = self.config.get(f"{cfg}.auto_link_prompt")
+            self.max_auto_links = self.config.get(f"{cfg}.max_auto_links", 5)
+            if self.link_policy == "auto_link" and not self.auto_link_prompt:
+                raise ValueError("缺少必需配置: operators.post_insert.auto_link_prompt (link_policy=auto_link)")
 
-        # Forgetting 配置
         elif self.action == "forgetting":
-            self._init_forgetting_config()
+            # forgetting 配置
+            self.decay_type = get_required_config(self.config, f"{cfg}.decay_type", "action=forgetting")
+            self.decay_rate = get_required_config(self.config, f"{cfg}.decay_rate", "decay_type=time_decay")
+            self.decay_floor = self.config.get(f"{cfg}.decay_floor", 0.1)
+            self.max_memories = get_required_config(self.config, f"{cfg}.max_memories", "decay_type=lru/lfu")
+            self.evict_count = self.config.get(f"{cfg}.evict_count", 100)
+            self.heat_threshold = self.config.get(f"{cfg}.heat_threshold", 0.3)
+            self.heat_decay = self.config.get(f"{cfg}.heat_decay", 0.1)
+            self.initial_strength = self.config.get(f"{cfg}.initial_strength", 1.0)
+            self.forgetting_curve = self.config.get(f"{cfg}.forgetting_curve", "exponential")
+            self.review_boost = self.config.get(f"{cfg}.review_boost", 0.5)
+            self.hybrid_factors = self.config.get(f"{cfg}.factors")
+            if self.decay_type == "hybrid" and not self.hybrid_factors:
+                raise ValueError("缺少必需配置: operators.post_insert.factors (decay_type=hybrid)")
+            self.retention_min = self.config.get(f"{cfg}.retention_min", 50)
+            self.archive_before_delete = self.config.get(f"{cfg}.archive_before_delete", True)
 
-        # Summarize 配置
         elif self.action == "summarize":
-            self._init_summarize_config()
+            # summarize 配置
+            self.trigger_condition = get_required_config(self.config, f"{cfg}.trigger_condition", "action=summarize")
+            self.overflow_threshold = get_required_config(self.config, f"{cfg}.overflow_threshold", "trigger_condition=overflow")
+            self.periodic_interval = self.config.get(f"{cfg}.periodic_interval", 3600)
+            self.summary_strategy = get_required_config(self.config, f"{cfg}.summary_strategy", "action=summarize")
+            self.hierarchy_levels = self.config.get(f"{cfg}.hierarchy_levels")
+            if self.summary_strategy == "hierarchical" and not self.hierarchy_levels:
+                raise ValueError("缺少必需配置: operators.post_insert.hierarchy_levels (summary_strategy=hierarchical)")
+            self.incremental_prompt = self.config.get(f"{cfg}.incremental_prompt")
+            if self.summary_strategy == "incremental" and not self.incremental_prompt:
+                raise ValueError("缺少必需配置: operators.post_insert.incremental_prompt (summary_strategy=incremental)")
+            self.summarize_prompt = self.config.get(f"{cfg}.summarize_prompt")
+            if self.summary_strategy == "single" and not self.summarize_prompt:
+                raise ValueError("缺少必需配置: operators.post_insert.summarize_prompt (summary_strategy=single)")
+            self.replace_originals = self.config.get(f"{cfg}.replace_originals", False)
+            self.store_as_new = self.config.get(f"{cfg}.store_as_new", True)
+            self.summary_importance = self.config.get(f"{cfg}.summary_importance", 7)
 
-        # Migrate 配置
         elif self.action == "migrate":
-            self._init_migrate_config()
-
-    def _init_distillation_config(self):
-        """初始化蒸馏配置"""
-        self.distillation_topk = self.config.get("operators.post_insert.distillation_topk", 10)
-        self.distillation_threshold = self.config.get(
-            "operators.post_insert.distillation_threshold", None
-        )
-        self.distillation_prompt = self.config.get("operators.post_insert.distillation_prompt")
-        if not self.distillation_prompt:
-            raise ValueError("缺少必需的配置: operators.post_insert.distillation_prompt")
-
-        self.generator = LLMGenerator.from_config(self.config)
-        self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-
-    def _init_reflection_config(self):
-        """初始化反思配置"""
-        # 触发模式: threshold | periodic | count | manual
-        self.trigger_mode = self._get_required_config(
-            "operators.post_insert.trigger_mode", "action=reflection"
-        )
-
-        # threshold 模式配置 (Generative Agents)
-        self.importance_threshold = self._get_required_config(
-            "operators.post_insert.importance_threshold", "trigger_mode=threshold"
-        )
-        self.importance_field = self.config.get(
-            "operators.post_insert.importance_field", "importance_score"
-        )
-        self.reset_after_reflection = self.config.get(
-            "operators.post_insert.reset_after_reflection", True
-        )
-
-        # periodic 模式配置
-        self.interval_minutes = self.config.get("operators.post_insert.interval_minutes", 60)
-
-        # count 模式配置 (LoCoMo)
-        self.memory_count_trigger = self.config.get("operators.post_insert.memory_count", 50)
-
-        # 反思配置
-        self.reflection_prompt = self._get_required_config(
-            "operators.post_insert.reflection_prompt", "action=reflection"
-        )
-        self.reflection_depth = self.config.get("operators.post_insert.reflection_depth", 1)
-        self.max_reflections = self._get_required_config(
-            "operators.post_insert.max_reflections", "action=reflection"
-        )
-
-        # 反思类型 (LoCoMo): general | self | other
-        self.reflection_type = self.config.get("operators.post_insert.reflection_type", "general")
-        self.self_reflection_prompt = self.config.get(
-            "operators.post_insert.self_reflection_prompt"
-        )
-        self.other_reflection_prompt = self.config.get(
-            "operators.post_insert.other_reflection_prompt"
-        )
-
-        # 检查特定类型所需的 prompt
-        if self.reflection_type == "self" and not self.self_reflection_prompt:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.self_reflection_prompt (reflection_type=self)"
-            )
-        if self.reflection_type == "other" and not self.other_reflection_prompt:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.other_reflection_prompt (reflection_type=other)"
-            )
-
-        # 输出配置
-        self.store_reflection = self.config.get("operators.post_insert.store_reflection", True)
-        self.reflection_importance = self.config.get(
-            "operators.post_insert.reflection_importance", 8
-        )
-
-        # 初始化 LLM 和 Embedding
-        self.generator = LLMGenerator.from_config(self.config)
-        self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-
-    def _init_link_evolution_config(self):
-        """初始化链接演化配置"""
-        # 链接策略: synonym_edge | strengthen | activate | auto_link
-        self.link_policy = self._get_required_config(
-            "operators.post_insert.link_policy", "action=link_evolution"
-        )
-
-        # synonym_edge 配置 (HippoRAG)
-        self.knn_k = self._get_required_config(
-            "operators.post_insert.knn_k", "link_policy=synonym_edge"
-        )
-        self.similarity_threshold = self._get_required_config(
-            "operators.post_insert.similarity_threshold", "link_policy=synonym_edge"
-        )
-        self.edge_weight = self.config.get("operators.post_insert.edge_weight", 1.0)
-
-        # strengthen 配置 (A-mem)
-        self.strengthen_factor = self.config.get("operators.post_insert.strengthen_factor", 0.1)
-        self.decay_factor = self.config.get("operators.post_insert.decay_factor", 0.01)
-        self.max_weight = self.config.get("operators.post_insert.max_weight", 10.0)
-
-        # activate 配置 (A-mem)
-        self.activation_depth = self.config.get("operators.post_insert.activation_depth", 2)
-        self.activation_decay = self.config.get("operators.post_insert.activation_decay", 0.5)
-
-        # auto_link 配置 (A-mem)
-        self.auto_link_prompt = self.config.get("operators.post_insert.auto_link_prompt")
-        self.max_auto_links = self.config.get("operators.post_insert.max_auto_links", 5)
-
-        # 检查 auto_link 所需的 prompt
-        if self.link_policy == "auto_link" and not self.auto_link_prompt:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.auto_link_prompt (link_policy=auto_link)"
-            )
-
-        # 初始化 LLM 和 Embedding
-        self.generator = LLMGenerator.from_config(self.config)
-        self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-
-    def _init_forgetting_config(self):
-        """初始化遗忘配置"""
-        # 遗忘类型: time_decay | lru | lfu | ebbinghaus | hybrid
-        self.decay_type = self._get_required_config(
-            "operators.post_insert.decay_type", "action=forgetting"
-        )
-
-        # time_decay 配置
-        self.decay_rate = self._get_required_config(
-            "operators.post_insert.decay_rate", "decay_type=time_decay"
-        )
-        self.decay_floor = self.config.get("operators.post_insert.decay_floor", 0.1)
-
-        # lru 配置
-        self.max_memories = self._get_required_config(
-            "operators.post_insert.max_memories", "decay_type=lru/lfu"
-        )
-        self.evict_count = self.config.get("operators.post_insert.evict_count", 100)
-
-        # lfu 配置 (MemoryOS)
-        self.heat_threshold = self.config.get("operators.post_insert.heat_threshold", 0.3)
-        self.heat_decay = self.config.get("operators.post_insert.heat_decay", 0.1)
-
-        # ebbinghaus 配置 (MemoryBank)
-        self.initial_strength = self.config.get("operators.post_insert.initial_strength", 1.0)
-        self.forgetting_curve = self.config.get(
-            "operators.post_insert.forgetting_curve", "exponential"
-        )
-        self.review_boost = self.config.get("operators.post_insert.review_boost", 0.5)
-
-        # hybrid 配置
-        self.hybrid_factors = self.config.get("operators.post_insert.factors")
-        if self.decay_type == "hybrid" and not self.hybrid_factors:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.factors (decay_type=hybrid)"
-            )
-
-        # 淘汰配置
-        self.retention_min = self.config.get("operators.post_insert.retention_min", 50)
-        self.archive_before_delete = self.config.get(
-            "operators.post_insert.archive_before_delete", True
-        )
-
-    def _init_summarize_config(self):
-        """初始化摘要配置"""
-        # 触发条件: overflow | periodic | manual
-        self.trigger_condition = self._get_required_config(
-            "operators.post_insert.trigger_condition", "action=summarize"
-        )
-        self.overflow_threshold = self._get_required_config(
-            "operators.post_insert.overflow_threshold", "trigger_condition=overflow"
-        )
-        self.periodic_interval = self.config.get("operators.post_insert.periodic_interval", 3600)
-
-        # 摘要策略: single | hierarchical | incremental
-        self.summary_strategy = self._get_required_config(
-            "operators.post_insert.summary_strategy", "action=summarize"
-        )
-
-        # hierarchical 配置 (MemoryBank)
-        self.hierarchy_levels = self.config.get("operators.post_insert.hierarchy_levels")
-        if self.summary_strategy == "hierarchical" and not self.hierarchy_levels:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.hierarchy_levels (summary_strategy=hierarchical)"
-            )
-
-        # incremental 配置 (SCM4LLMs)
-        self.incremental_prompt = self.config.get("operators.post_insert.incremental_prompt")
-        if self.summary_strategy == "incremental" and not self.incremental_prompt:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.incremental_prompt (summary_strategy=incremental)"
-            )
-
-        # single 配置
-        self.summarize_prompt = self.config.get("operators.post_insert.summarize_prompt")
-        if self.summary_strategy == "single" and not self.summarize_prompt:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.summarize_prompt (summary_strategy=single)"
-            )
-
-        # 输出配置
-        self.replace_originals = self.config.get("operators.post_insert.replace_originals", False)
-        self.store_as_new = self.config.get("operators.post_insert.store_as_new", True)
-        self.summary_importance = self.config.get("operators.post_insert.summary_importance", 7)
-
-        # 初始化 LLM 和 Embedding
-        self.generator = LLMGenerator.from_config(self.config)
-        self.embedding_generator = EmbeddingGenerator.from_config(self.config)
-
-    def _init_migrate_config(self):
-        """初始化迁移配置"""
-        # 迁移策略: heat | time | overflow | manual
-        self.migrate_policy = self._get_required_config(
-            "operators.post_insert.migrate_policy", "action=migrate"
-        )
-
-        # heat 配置 (MemoryOS)
-        self.heat_upgrade_threshold = self._get_required_config(
-            "operators.post_insert.heat_upgrade_threshold", "migrate_policy=heat"
-        )
-        self.cold_threshold = self._get_required_config(
-            "operators.post_insert.cold_threshold", "migrate_policy=heat"
-        )
-
-        # time 配置 (LD-Agent)
-        self.session_gap = self._get_required_config(
-            "operators.post_insert.session_gap", "migrate_policy=time"
-        )
-
-        # overflow 配置
-        self.tier_capacities = self.config.get("operators.post_insert.tier_capacities")
-        if self.migrate_policy == "overflow" and not self.tier_capacities:
-            raise ValueError(
-                "缺少必需配置: operators.post_insert.tier_capacities (migrate_policy=overflow)"
-            )
-
-        # 迁移转换配置
-        self.upgrade_transform = self.config.get(
-            "operators.post_insert.upgrade_transform", "none"
-        )
-        self.downgrade_transform = self.config.get(
-            "operators.post_insert.downgrade_transform", "summarize"
-        )
-
-        # 初始化 LLM 和 Embedding
-        self.generator = LLMGenerator.from_config(self.config)
-        self.embedding_generator = EmbeddingGenerator.from_config(self.config)
+            # migrate 配置
+            self.migrate_policy = get_required_config(self.config, f"{cfg}.migrate_policy", "action=migrate")
+            self.heat_upgrade_threshold = get_required_config(self.config, f"{cfg}.heat_upgrade_threshold", "migrate_policy=heat")
+            self.cold_threshold = get_required_config(self.config, f"{cfg}.cold_threshold", "migrate_policy=heat")
+            self.session_gap = get_required_config(self.config, f"{cfg}.session_gap", "migrate_policy=time")
+            self.tier_capacities = self.config.get(f"{cfg}.tier_capacities")
+            if self.migrate_policy == "overflow" and not self.tier_capacities:
+                raise ValueError("缺少必需配置: operators.post_insert.tier_capacities (migrate_policy=overflow)")
+            self.upgrade_transform = self.config.get(f"{cfg}.upgrade_transform", "none")
+            self.downgrade_transform = self.config.get(f"{cfg}.downgrade_transform", "summarize")
 
     # ==================== 主执行方法 ====================
 
@@ -421,7 +235,7 @@ class PostInsert(MapFunction):
         elif self.action == "migrate":
             self._migrate_process(data)
         else:
-            logger.warning(f"未知的 action: {self.action}，跳过处理")
+            print(f"未知的 action: {self.action}，跳过处理")
 
         return data
 
@@ -430,7 +244,7 @@ class PostInsert(MapFunction):
         log_level = self.config.get("operators.post_insert.log_level", "INFO")
         entries = data.get("memory_entries", [])
         log_msg = f"PostInsert 处理了 {len(entries)} 条记忆条目"
-        getattr(logger, log_level.lower(), logger.info)(log_msg)
+        print(f"[{log_level}] {log_msg}")
 
     def _analyze_stats(self, data):
         """统计分析"""
@@ -445,7 +259,7 @@ class PostInsert(MapFunction):
             stats["avg_len"] = sum(len(t) for t in texts) / len(texts) if texts else 0
 
         data["post_insert_stats"] = stats
-        logger.info(f"PostInsert 统计: {stats}")
+        print(f"PostInsert 统计: {stats}")
 
     # ==================== Distillation 实现 ====================
 
@@ -475,7 +289,7 @@ class PostInsert(MapFunction):
             memory_list_str = "\n".join(memory_texts)
 
             prompt = self.distillation_prompt.replace("{memory_list}", memory_list_str)
-            distillation_result = self.generator.generate(prompt)
+            distillation_result = self._generator.generate(prompt)
 
             # 解析 JSON 格式的蒸馏结果
             result = self._parse_json_response(distillation_result)
@@ -514,7 +328,7 @@ class PostInsert(MapFunction):
 
             # Step 4: 插入新记忆
             if new_texts:
-                embeddings = self.embedding_generator.embed_batch(new_texts)
+                embeddings = self._embedding_generator.embed_batch(new_texts)
                 for i, text in enumerate(new_texts):
                     vector = embeddings[i] if embeddings is not None else None
                     self._insert_memory(text, vector)
@@ -575,7 +389,7 @@ class PostInsert(MapFunction):
         recent_memories = self._get_recent_memories(limit=100)
 
         if not recent_memories:
-            logger.warning("没有可用于反思的记忆")
+            print("没有可用于反思的记忆")
             return
 
         memory_list_str = "\n".join(
@@ -621,7 +435,7 @@ class PostInsert(MapFunction):
             max_reflections=self.max_reflections,
         )
 
-        response = self.generator.generate(prompt)
+        response = self._generator.generate(prompt)
         result = self._parse_json_response(response)
 
         if result and "reflections" in result:
@@ -640,7 +454,7 @@ class PostInsert(MapFunction):
             max_reflections=self.max_reflections,
         )
 
-        response = self.generator.generate(prompt)
+        response = self._generator.generate(prompt)
         result = self._parse_json_response(response)
 
         if result and "reflections" in result:
@@ -660,7 +474,7 @@ Insights:
 
 Output JSON: {{"higher_reflections": ["...", "..."]}}
 """
-        response = self.generator.generate(prompt)
+        response = self._generator.generate(prompt)
         result = self._parse_json_response(response)
 
         if result and "higher_reflections" in result:
@@ -682,7 +496,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             base_metadata.update(metadata)
 
         for reflection in reflections:
-            vector = self.embedding_generator.embed(reflection)
+            vector = self._embedding_generator.embed(reflection)
             self._insert_memory(reflection, vector, base_metadata)
 
     def _get_recent_memories(self, limit: int = 100) -> list[dict]:
@@ -741,7 +555,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         try:
             similar_entries = self._retrieve_memories(vector, topk=self.knn_k)
         except Exception as e:
-            logger.warning(f"检索相似记忆失败: {e}")
+            print(f"检索相似记忆失败: {e}")
             return
 
         if not similar_entries:
@@ -841,7 +655,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
                 self._propagate_activation(neighbor_id, depth - 1, new_decay)
 
         except Exception as e:
-            logger.debug(f"激活传播失败: {e}")
+            print(f"激活传播失败: {e}")
 
     def _create_auto_links(self, entry: dict):
         """自动链接 (A-mem)
@@ -876,7 +690,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             existing_memories=existing_memories,
         )
 
-        response = self.generator.generate(prompt)
+        response = self._generator.generate(prompt)
         result = self._parse_json_response(response)
 
         if result and "links" in result:
@@ -909,7 +723,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
                 timeout=5.0,
             )
         except Exception as e:
-            logger.debug(f"创建图边失败: {e}")
+            print(f"创建图边失败: {e}")
 
     # ==================== Forgetting 实现 ====================
 
@@ -1114,7 +928,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             try:
                 self._delete_memory(entry_id)
             except Exception as e:
-                logger.warning(f"删除记忆失败 {entry_id}: {e}")
+                print(f"删除记忆失败 {entry_id}: {e}")
 
             # 清理追踪器
             self._memory_access_times.pop(entry_id, None)
@@ -1181,14 +995,14 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
         ])
 
         prompt = self.summarize_prompt.format(memory_list=memory_list_str)
-        response = self.generator.generate(prompt)
+        response = self._generator.generate(prompt)
         result = self._parse_json_response(response)
 
         summary = result.get("summary", response) if result else response
 
         # 存储摘要
         if self.store_as_new:
-            vector = self.embedding_generator.embed(summary)
+            vector = self._embedding_generator.embed(summary)
             metadata = {
                 "type": "summary",
                 "importance_score": self.summary_importance,
@@ -1241,14 +1055,14 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             ])
 
             prompt = prompt_template.format(memory_list=memory_list_str)
-            response = self.generator.generate(prompt)
+            response = self._generator.generate(prompt)
             result = self._parse_json_response(response)
 
             summary = result.get("summary", response) if result else response
 
             # 存储摘要
             if self.store_as_new:
-                vector = self.embedding_generator.embed(summary)
+                vector = self._embedding_generator.embed(summary)
                 metadata = {
                     "type": f"{level_name}_summary",
                     "importance_score": self.summary_importance,
@@ -1290,7 +1104,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             new_memories=new_memories_str,
         )
 
-        response = self.generator.generate(prompt)
+        response = self._generator.generate(prompt)
         result = self._parse_json_response(response)
 
         summary = result.get("summary", response) if result else response
@@ -1298,7 +1112,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
 
         # 存储更新的摘要
         if self.store_as_new:
-            vector = self.embedding_generator.embed(summary)
+            vector = self._embedding_generator.embed(summary)
             metadata = {
                 "type": "incremental_summary",
                 "importance_score": self.summary_importance,
@@ -1381,7 +1195,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
 
                 # 存入 LTM
                 if summary:
-                    vector = self.embedding_generator.embed(summary)
+                    vector = self._embedding_generator.embed(summary)
                     metadata = {
                         "type": "session_summary",
                         "session_time": self._last_session_time,
@@ -1397,7 +1211,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
                             timeout=10.0,
                         )
                     except Exception as e:
-                        logger.warning(f"存入 LTM 失败: {e}")
+                        print(f"存入 LTM 失败: {e}")
 
                 # 清空 STM
                 for mem in stm_memories:
@@ -1463,7 +1277,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             # 应用转换
             if transform == "summarize":
                 prompt = f"Summarize this memory concisely:\n{memory_content}"
-                response = self.generator.generate(prompt)
+                response = self._generator.generate(prompt)
                 final_content = response.strip()
             elif transform == "compress":
                 final_content = memory_content[:100]  # 简单截断
@@ -1471,7 +1285,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
                 final_content = memory_content
 
             # 生成 embedding
-            vector = self.embedding_generator.embed(final_content)
+            vector = self._embedding_generator.embed(final_content)
 
             # 插入目标层
             self.call_service(
@@ -1486,10 +1300,10 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
             # 从源层删除
             self._delete_memory(entry_id)
 
-            logger.debug(f"记忆 {entry_id} 已迁移 ({direction})")
+            print(f"记忆 {entry_id} 已迁移 ({direction})")
 
         except Exception as e:
-            logger.warning(f"迁移记忆失败 {entry_id}: {e}")
+            print(f"迁移记忆失败 {entry_id}: {e}")
 
     def _generate_session_summary(self, memory_texts: list[str]) -> str:
         """生成会话摘要"""
@@ -1503,7 +1317,7 @@ Output JSON: {{"higher_reflections": ["...", "..."]}}
 
 Summary:"""
 
-        return self.generator.generate(prompt).strip()
+        return self._generator.generate(prompt).strip()
 
     # ==================== 服务调用方法 ====================
 
