@@ -5,6 +5,11 @@
 
 from typing import Any
 
+from sage.common.components.sage_embedding.service import EmbeddingService
+from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+    SageDBService,
+)
+
 
 class MedicalKnowledgeBase:
     """
@@ -33,17 +38,34 @@ class MedicalKnowledgeBase:
         """设置服务"""
         print("   Setting up knowledge base services...")
 
-        # TODO: 集成 SAGE EmbeddingService 和 SageDB
-        # 参见跟踪问题: https://github.com/your-org/your-repo/issues/123
-        # Issue URL: https://github.com/intellistream/SAGE/issues/906
-        # from sage.common.components.sage_embedding.service import EmbeddingService
-        # from sage.middleware.components.sage_db.service import SageDBService
+        # 获取embedding和向量数据库配置
+        embedding_config = self.config.get("services", {}).get("embedding", {})
+        vector_db_config = self.config.get("services", {}).get("vector_db", {})
+        models_config = self.config.get("models", {})
 
-        # self.embedding_service = EmbeddingService(...)
-        # self.vector_db = SageDBService(...)
+        # 初始化 EmbeddingService
+        embedding_service_config = {
+            "method": embedding_config.get("method", "hf"),
+            "model": models_config.get("embedding_model", "BAAI/bge-large-zh-v1.5"),
+            "batch_size": embedding_config.get("batch_size", 32),
+            "normalize": embedding_config.get("normalize", True),
+            "cache_enabled": embedding_config.get("cache_enabled", False),
+        }
 
-        self.embedding_service = "placeholder"
-        self.vector_db = "placeholder"
+        self.embedding_service = EmbeddingService(embedding_service_config)
+        self.embedding_service.setup()
+
+        # 初始化 SageDBService
+        # 获取embedding维度
+        dimension = self.embedding_service.get_dimension()
+        index_type = vector_db_config.get("index_type", "AUTO")
+
+        self.vector_db = SageDBService(dimension=dimension, index_type=index_type)
+
+        print(
+            f"   ✓ EmbeddingService initialized (dim={dimension}, method={embedding_service_config['method']})"
+        )
+        print(f"   ✓ SageDBService initialized (dim={dimension}, index_type={index_type})")
 
     def _load_knowledge(self):
         """加载医学知识"""
@@ -99,18 +121,36 @@ class MedicalKnowledgeBase:
         Returns:
             相似病例列表
         """
-        if self.vector_db == "placeholder":
+        # 如果向量数据库为空，返回模拟病例
+        if self.vector_db.stats()["size"] == 0:
             # 返回模拟病例
             return self._get_mock_cases()[:top_k]
 
-        # TODO: 实现真实的向量检索
-        # Issue URL: https://github.com/intellistream/SAGE/issues/904
-        # 1. 对查询文本进行embedding
-        # 2. 对影像特征进行embedding
-        # 3. 多模态检索（文本+影像）
-        # 4. 返回Top-K相似病例
+        # 使用 EmbeddingService 生成查询向量
+        result = self.embedding_service.embed(query)
+        query_vector = result["vectors"][0]
 
-        return []
+        # 使用 SageDB 进行向量检索
+        search_results = self.vector_db.search(query_vector, k=top_k, include_metadata=True)
+
+        # 转换为病例格式
+        cases = []
+        for res in search_results:
+            metadata = res.get("metadata", {})
+            cases.append(
+                {
+                    "case_id": metadata.get("case_id", f"CASE_{res['id']:03d}"),
+                    "age": int(metadata.get("age", 0)) if metadata.get("age") else 0,
+                    "gender": metadata.get("gender", "unknown"),
+                    "diagnosis": metadata.get("diagnosis", ""),
+                    "symptoms": metadata.get("symptoms", ""),
+                    "treatment": metadata.get("treatment", ""),
+                    "outcome": metadata.get("outcome", ""),
+                    "similarity_score": float(res["score"]),
+                }
+            )
+
+        return cases
 
     def retrieve_knowledge(self, query: str, top_k: int = 3) -> list[dict[str, Any]]:
         """
@@ -123,12 +163,37 @@ class MedicalKnowledgeBase:
         Returns:
             医学知识列表
         """
-        # 简单匹配（实际应该使用向量检索）
+        # 使用简单的关键词匹配（可以后续改进为向量检索）
         results = []
 
         for knowledge in self.knowledge_base:
             if any(keyword in query for keyword in knowledge["topic"].split()):
                 results.append(knowledge)
+
+        # 如果没有匹配结果，使用向量相似度检索
+        if not results and self.embedding_service:
+            # 为知识库条目生成embedding并检索
+            knowledge_texts = [k["topic"] + " " + k["content"] for k in self.knowledge_base]
+            knowledge_embeddings = self.embedding_service.embed(knowledge_texts)
+
+            # 为查询生成embedding
+            query_embedding = self.embedding_service.embed(query)
+            query_vec = query_embedding["vectors"][0]
+
+            # 计算相似度并排序
+            import numpy as np
+
+            similarities = []
+            for i, emb_vec in enumerate(knowledge_embeddings["vectors"]):
+                similarity = float(np.dot(query_vec, emb_vec))
+                similarities.append((i, similarity))
+
+            # 按相似度排序
+            similarities.sort(key=lambda x: x[1], reverse=True)
+
+            # 返回top_k个最相似的知识
+            for idx, _ in similarities[:top_k]:
+                results.append(self.knowledge_base[idx])
 
         return results[:top_k]
 
@@ -189,18 +254,46 @@ class MedicalKnowledgeBase:
 
     def add_case(self, case_data: dict[str, Any]):
         """添加新病例到知识库"""
-        # TODO: 实现病例添加
-        # Issue URL: https://github.com/intellistream/SAGE/issues/903
-        # 1. 提取影像特征
-        # 2. 生成文本embedding
-        # 3. 存入向量数据库
+        # 构建病例文本描述用于embedding
+        case_text = f"{case_data.get('diagnosis', '')} {case_data.get('symptoms', '')}"
+
+        # 生成文本embedding
+        result = self.embedding_service.embed(case_text)
+        case_vector = result["vectors"][0]
+
+        # 准备metadata
+        metadata = {
+            "case_id": str(case_data.get("case_id", "")),
+            "age": str(case_data.get("age", "")),
+            "gender": str(case_data.get("gender", "")),
+            "diagnosis": str(case_data.get("diagnosis", "")),
+            "symptoms": str(case_data.get("symptoms", "")),
+            "treatment": str(case_data.get("treatment", "")),
+            "outcome": str(case_data.get("outcome", "")),
+        }
+
+        # 存入向量数据库
+        vector_id = self.vector_db.add(case_vector, metadata)
+
+        # 同时添加到本地缓存
         self.case_database.append(case_data)
+
+        return vector_id
 
     def update_knowledge(self, knowledge_data: dict[str, Any]):
         """更新医学知识"""
         # TODO: 实现知识更新
         # Issue URL: https://github.com/intellistream/SAGE/issues/902
         self.knowledge_base.append(knowledge_data)
+
+    def cleanup(self):
+        """清理资源"""
+        if self.embedding_service and hasattr(self.embedding_service, "cleanup"):
+            self.embedding_service.cleanup()
+
+    def __del__(self):
+        """析构时清理资源"""
+        self.cleanup()
 
 
 if __name__ == "__main__":
