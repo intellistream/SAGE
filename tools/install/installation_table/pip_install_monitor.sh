@@ -113,9 +113,10 @@ analyze_pip_log() {
     # 额外检查：从 PyPI 下载任何 sage/isage 相关包
     echo -e "${BLUE}📊 所有下载记录（包括合法的外部依赖）：${NC}"
     # 排除JSON格式日志，只统计实际的pip输出
-    local download_count=$(grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | grep -vc '"level":' || echo "0")
+    local download_count
+    download_count=$(grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || download_count=0
     echo "   总下载数（非JSON日志）: $download_count"
-    if [ "$download_count" -gt 0 ]; then
+    if [ "$download_count" -gt 0 ] 2>/dev/null; then
         echo "   前 20 条下载："
         grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | head -n 20 | sed 's/^/     /'
         echo ""
@@ -126,9 +127,10 @@ analyze_pip_log() {
 
     # 检查 editable 安装（应该有）
     echo -e "${BLUE}📦 Editable 安装记录（应该存在）：${NC}"
-    local editable_count=$(grep -E "(Installing|Preparing|Building).*editable" "$log_file" | grep -vc '"level":' || echo "0")
+    local editable_count
+    editable_count=$(grep -E "(Installing|Preparing|Building).*editable" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || editable_count=0
     echo "   Editable 安装数（非JSON日志）: $editable_count"
-    if [ "$editable_count" -gt 0 ]; then
+    if [ "$editable_count" -gt 0 ] 2>/dev/null; then
         echo "   前 10 条记录："
         grep -E "(Installing|Preparing|Building).*editable" "$log_file" | grep -v '"level":' | head -n 10 | sed 's/^/     /'
         echo ""
@@ -139,11 +141,17 @@ analyze_pip_log() {
 
     # DEBUG: 显示日志文件的关键统计
     echo -e "${BLUE}🐛 DEBUG - 日志文件统计（排除JSON格式）：${NC}"
-    echo "   'Downloading' 出现次数: $(grep "Downloading" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   'Collecting' 出现次数: $(grep "Collecting" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   'Installing' 出现次数: $(grep "Installing" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   'editable' 出现次数: $(grep "editable" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   包含 'sage' 的行数: $(grep -i "sage" "$log_file" | grep -vc '"level":' || echo "0")"
+    local stat_downloading stat_collecting stat_installing stat_editable stat_sage
+    stat_downloading=$(grep "Downloading" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_downloading=0
+    stat_collecting=$(grep "Collecting" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_collecting=0
+    stat_installing=$(grep "Installing" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_installing=0
+    stat_editable=$(grep "editable" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_editable=0
+    stat_sage=$(grep -i "sage" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_sage=0
+    echo "   'Downloading' 出现次数: $stat_downloading"
+    echo "   'Collecting' 出现次数: $stat_collecting"
+    echo "   'Installing' 出现次数: $stat_installing"
+    echo "   'editable' 出现次数: $stat_editable"
+    echo "   包含 'sage' 的行数: $stat_sage"
     echo ""
 
     # 返回结果
