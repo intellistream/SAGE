@@ -23,7 +23,34 @@
 
 ## 🏗️ 包结构设计
 
-### sage-cli 包结构
+### 当前实现（2025-02）
+
+目前仓库已存在 `packages/sage-cli`，并完成以下内容：
+
+```
+packages/sage-cli/
+├── pyproject.toml
+├── src/sage/cli/
+│   ├── main.py
+│   ├── commands/
+│   │   ├── platform/
+│   │   │   ├── env.py            # ``sage env`` 交互式 .env 管理
+│   │   │   └── llm_config.py     # ``sage llm-config auto`` 写入 generator 配置
+│   │   └── apps/
+│   │       ├── pipeline.py       # LLM 驱动的 pipeline builder
+│   │       ├── pipeline_domain.py / pipeline_knowledge.py
+│   │       ├── llm.py / chat.py / embedding.py / studio.py
+│   │       └── pipeline_embedding.py
+│   └── utils/
+│       ├── env.py                # .env 检测 & 加载工具
+│       └── llm_detection.py      # 本地 LLM 服务探测
+└── tests/ (待补充)
+```
+
+- `sage env` 与 `sage llm-config auto` 仍归属 `sage` 主命令（platform 组），暂未迁入 `sage-dev project`。
+- `sage-dev *` 命令仍由 `packages/sage-tools` 提供，CLI 包暂不包含 `dev` 子目录。
+
+### 目标结构（规划）
 
 ```
 packages/sage-cli/
@@ -474,8 +501,7 @@ def __getattr__(name):
 
 ## 📚 相关文档
 
-- [孤立命令分析](./ORPHANED_COMMANDS_ANALYSIS.md)
-- [命令重组计划](../sage-tools/COMMAND_REORGANIZATION.md)
+- [命令重组总结](../l6-cli/COMMAND_REORGANIZATION_SUMMARY.md)
 - [架构文档](./PACKAGE_ARCHITECTURE.md)
 
 ## 🔗 相关 Issue/PR

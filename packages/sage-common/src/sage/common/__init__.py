@@ -18,9 +18,17 @@ Architecture Rules:
 - ✅ May import: Standard library, external dependencies
 """
 
+# Suppress PyTorch distributed warnings in WSL/containerized environments
+# Must be set BEFORE importing torch/vllm
+import os as _os
+
+_os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
+_os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
+_os.environ.setdefault("TORCH_DISTRIBUTED_DEBUG", "OFF")
+
 __layer__ = "L1"
 
-from . import components, config, core, model_registry, utils
+from . import components, config, core, logging, model_registry, utils
 from ._version import __version__
 
 __all__ = [
@@ -28,6 +36,7 @@ __all__ = [
     "components",
     "config",
     "core",
+    "logging",
     "model_registry",
     "utils",
 ]

@@ -496,6 +496,40 @@ class CustomLogger:
         return list(cls._LEVEL_MAPPING.keys())
 
     @classmethod
+    def get_logger(
+        cls,
+        name: str | None = None,
+        *,
+        level: str | int = "INFO",
+        outputs: list[tuple[str, str | int]] | None = None,
+        log_base_folder: str | None = None,
+    ) -> logging.Logger:
+        """兼容旧版 API 的便捷方法，返回 ``logging.Logger`` 实例。
+
+        旧的示例（例如 ``examples/apps/run_work_report.py``）使用
+        ``CustomLogger.get_logger(__name__)`` 获取标准 logger。本方法保持
+        该接口，同时复用新的 ``CustomLogger`` 配置能力。
+
+        Args:
+            name: Logger 名称，默认 "Logger"。
+            level: 当 ``outputs`` 未提供时，用于 console 输出的级别。
+            outputs: 可选的输出配置列表，与 ``CustomLogger`` 构造函数一致。
+            log_base_folder: 提供相对路径输出时使用的日志根目录。
+
+        Returns:
+            logging.Logger: 配置好的 logger。
+        """
+
+        resolved_outputs: list[tuple[str, str | int]] = outputs if outputs else [("console", level)]
+
+        instance = cls(
+            name=name,
+            outputs=resolved_outputs,
+            log_base_folder=log_base_folder,
+        )
+        return instance.logger
+
+    @classmethod
     def disable_global_console_debug(cls):
         """全局禁用所有console debug输出"""
         with cls._lock:

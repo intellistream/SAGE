@@ -35,9 +35,9 @@ class HFClient:
 
         # Ensure model on the right device if not using device_map
         if self.device != "cuda":
-            # type: ignore is needed due to incomplete type hints in transformers library
+            # Note: type ignore is needed due to incomplete type hints in transformers library
             # model.to() correctly accepts device strings at runtime
-            model.to(self.device)  # type: ignore[arg-type]
+            model.to(self.device)  # type: ignore
 
         return model, tokenizer
 
