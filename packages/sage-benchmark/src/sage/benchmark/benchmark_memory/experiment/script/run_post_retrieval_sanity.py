@@ -7,7 +7,7 @@ Run with:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sage.benchmark.benchmark_memory.experiment.libs.post_retrieval import (
     PostRetrieval,
@@ -35,7 +35,7 @@ def main() -> None:
     cfg = build_runtime_config()
     op = PostRetrieval(cfg)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     data = {
         "question": "What did we talk about yesterday?",

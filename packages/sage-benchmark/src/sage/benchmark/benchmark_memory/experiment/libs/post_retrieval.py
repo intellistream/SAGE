@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
@@ -58,7 +58,7 @@ class MemoryItem:
                 try:
                     dt = datetime.strptime(value, fmt)
                     if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
+                        dt = dt.replace(tzinfo=UTC)
                     return dt
                 except Exception:  # noqa: BLE001
                     continue
@@ -66,7 +66,7 @@ class MemoryItem:
         # 时间戳（秒）
         if isinstance(value, (int, float)):
             try:
-                return datetime.fromtimestamp(float(value), tz=timezone.utc)
+                return datetime.fromtimestamp(float(value), tz=UTC)
             except Exception:  # noqa: BLE001
                 return None
 
@@ -467,7 +467,7 @@ class PostRetrieval(MapFunction):
     ) -> list[tuple[MemoryItem, float]]:
         """时间衰减 + 原相关性组合（受 LD-Agent 启发）。"""
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         decay_rate = float(self.time_decay_rate)
 
         scored: list[tuple[MemoryItem, float]] = []
@@ -509,7 +509,7 @@ class PostRetrieval(MapFunction):
     ) -> list[tuple[MemoryItem, float]]:
         """多因子加权重排（参考 Generative Agents 的 recency/importance/relevance）。"""
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         def get_relevance(item: MemoryItem) -> float:
             # 优先使用已有 score，其次使用 embedding 相似度（如果可用），否则为 0
@@ -1114,7 +1114,7 @@ class PostRetrieval(MapFunction):
         从 metadata 中提取 time_field 字段，转换为自然语言时间描述。
         例如：[2 hours ago] original_text
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result: list[MemoryItem] = []
 
         for item in items:

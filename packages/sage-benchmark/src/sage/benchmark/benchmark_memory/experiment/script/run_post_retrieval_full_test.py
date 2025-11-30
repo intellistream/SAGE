@@ -3,7 +3,7 @@
 This script tests D5-2 (filter), D5-3 (merge), D5-4 (augment), D5-5 (compress).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sage.benchmark.benchmark_memory.experiment.libs.post_retrieval import PostRetrieval
 from sage.benchmark.benchmark_memory.experiment.utils.config_loader import RuntimeConfig
@@ -35,7 +35,7 @@ def test_filter_threshold():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Original count: 3")
+    print("Original count: 3")
     print(f"Filtered count: {len(result['memory_data'])}")
     for item in result["memory_data"]:
         print(f"  - {item['text']}: {item['score']}")
@@ -71,7 +71,7 @@ def test_filter_top_k():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Original count: 4")
+    print("Original count: 4")
     print(f"Top-k count: {len(result['memory_data'])}")
     for item in result["memory_data"]:
         print(f"  - {item['text']}: {item['score']}")
@@ -104,12 +104,16 @@ def test_filter_token_budget():
             {"text": "Short memory 1", "score": 0.9, "metadata": {}},  # 14 chars
             {"text": "Short memory 2", "score": 0.8, "metadata": {}},  # 14 chars
             {"text": "Short memory 3", "score": 0.7, "metadata": {}},  # 14 chars
-            {"text": "This is a very long memory that will exceed the budget", "score": 0.6, "metadata": {}},  # 55 chars
+            {
+                "text": "This is a very long memory that will exceed the budget",
+                "score": 0.6,
+                "metadata": {},
+            },  # 55 chars
         ]
     }
 
     result = post_retrieval.execute(data)
-    print(f"Original count: 4")
+    print("Original count: 4")
     print(f"Budget-filtered count: {len(result['memory_data'])}")
     total_chars = sum(len(item["text"]) for item in result["memory_data"])
     print(f"Total characters: {total_chars}")
@@ -146,7 +150,7 @@ def test_filter_dedup():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Original count: 3")
+    print("Original count: 3")
     print(f"Dedup count: {len(result['memory_data'])}")
     for item in result["memory_data"]:
         print(f"  - {item['text']}: {item['score']}")
@@ -183,7 +187,7 @@ def test_merge_concat():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Original memory_data count: 1")
+    print("Original memory_data count: 1")
     print(f"Merged count: {len(result['memory_data'])}")
     for item in result["memory_data"]:
         print(f"  - {item['text']}: {item['score']}")
@@ -271,7 +275,9 @@ def test_merge_weighted():
     # Check weighted average: 0.7 * 0.8 + 0.3 * 0.6 = 0.74
     shared_item = next(item for item in result["memory_data"] if item["text"] == "Shared memory")
     expected_score = (0.7 * 0.8 + 0.3 * 0.6) / (0.7 + 0.3)
-    assert abs(shared_item["score"] - expected_score) < 0.01, f"Weighted score should be {expected_score}"
+    assert abs(shared_item["score"] - expected_score) < 0.01, (
+        f"Weighted score should be {expected_score}"
+    )
     print("✓ Merge weighted test passed")
 
 
@@ -299,7 +305,11 @@ def test_merge_rrf():
             {"text": "Memory B", "score": 0.8, "metadata": {}},  # rank 2 in memory_data
         ],
         "context_data": [
-            {"text": "Memory B", "score": 0.7, "metadata": {}},  # rank 1 in context_data (same as Memory B)
+            {
+                "text": "Memory B",
+                "score": 0.7,
+                "metadata": {},
+            },  # rank 1 in context_data (same as Memory B)
             {"text": "Context C", "score": 0.6, "metadata": {}},  # rank 2 in context_data
         ],
     }
@@ -342,11 +352,13 @@ def test_augment_context():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Augmented memory_data:")
+    print("Augmented memory_data:")
     for item in result["memory_data"]:
         print(f"  - {item['text']}")
 
-    assert "[user_name: John, user_age: 30]" in result["memory_data"][0]["text"], "Should add context fields"
+    assert "[user_name: John, user_age: 30]" in result["memory_data"][0]["text"], (
+        "Should add context fields"
+    )
     print("✓ Augment context test passed")
 
 
@@ -368,16 +380,22 @@ def test_augment_metadata():
 
     data = {
         "memory_data": [
-            {"text": "Important memory", "score": 0.9, "metadata": {"importance": 8, "emotion": "happy"}},
+            {
+                "text": "Important memory",
+                "score": 0.9,
+                "metadata": {"importance": 8, "emotion": "happy"},
+            },
         ],
     }
 
     result = post_retrieval.execute(data)
-    print(f"Augmented memory_data:")
+    print("Augmented memory_data:")
     for item in result["memory_data"]:
         print(f"  - {item['text']}")
 
-    assert "[importance: 8, emotion: happy]" in result["memory_data"][0]["text"], "Should add metadata to text"
+    assert "[importance: 8, emotion: happy]" in result["memory_data"][0]["text"], (
+        "Should add metadata to text"
+    )
     print("✓ Augment metadata test passed")
 
 
@@ -398,17 +416,21 @@ def test_augment_temporal():
 
     post_retrieval = PostRetrieval(config)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     two_hours_ago = now - timedelta(hours=2)
 
     data = {
         "memory_data": [
-            {"text": "Recent memory", "score": 0.9, "metadata": {"timestamp": two_hours_ago.isoformat()}},
+            {
+                "text": "Recent memory",
+                "score": 0.9,
+                "metadata": {"timestamp": two_hours_ago.isoformat()},
+            },
         ],
     }
 
     result = post_retrieval.execute(data)
-    print(f"Augmented memory_data:")
+    print("Augmented memory_data:")
     for item in result["memory_data"]:
         print(f"  - {item['text']}")
 

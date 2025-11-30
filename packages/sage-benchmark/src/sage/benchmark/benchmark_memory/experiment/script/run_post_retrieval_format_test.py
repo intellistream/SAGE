@@ -27,14 +27,22 @@ def test_format_template():
 
     data = {
         "memory_data": [
-            {"text": "User likes pizza", "score": 0.9, "metadata": {"timestamp": "2025-11-28T10:00:00"}},
-            {"text": "User is a developer", "score": 0.8, "metadata": {"timestamp": "2025-11-27T15:30:00"}},
+            {
+                "text": "User likes pizza",
+                "score": 0.9,
+                "metadata": {"timestamp": "2025-11-28T10:00:00"},
+            },
+            {
+                "text": "User is a developer",
+                "score": 0.8,
+                "metadata": {"timestamp": "2025-11-27T15:30:00"},
+            },
         ],
         "user_profile": "Name: John, Age: 30",
     }
 
     result = post_retrieval.execute(data)
-    print(f"Formatted history_text:")
+    print("Formatted history_text:")
     print(result["history_text"])
 
     assert "Relevant Memories" in result["history_text"], "Should contain section title"
@@ -74,7 +82,7 @@ def test_format_structured():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Formatted history_text:")
+    print("Formatted history_text:")
     print(result["history_text"])
 
     assert "## Recent Conversations" in result["history_text"], "Should contain section 1"
@@ -108,13 +116,21 @@ def test_format_chat():
     data = {
         "memory_data": [
             {"text": "Hello!", "score": 0.9, "metadata": {"role": "user", "timestamp": "10:00"}},
-            {"text": "Hi there!", "score": 0.8, "metadata": {"role": "assistant", "timestamp": "10:01"}},
-            {"text": "How are you?", "score": 0.7, "metadata": {"role": "user", "timestamp": "10:02"}},
+            {
+                "text": "Hi there!",
+                "score": 0.8,
+                "metadata": {"role": "assistant", "timestamp": "10:01"},
+            },
+            {
+                "text": "How are you?",
+                "score": 0.7,
+                "metadata": {"role": "user", "timestamp": "10:02"},
+            },
         ],
     }
 
     result = post_retrieval.execute(data)
-    print(f"Formatted history_text:")
+    print("Formatted history_text:")
     print(result["history_text"])
 
     assert "Human: Hello!" in result["history_text"], "Should map user to Human"
@@ -149,7 +165,7 @@ def test_format_xml():
     }
 
     result = post_retrieval.execute(data)
-    print(f"Formatted history_text:")
+    print("Formatted history_text:")
     print(result["history_text"])
 
     assert "<relevant_context>" in result["history_text"], "Should have memories tag"
