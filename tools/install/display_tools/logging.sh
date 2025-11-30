@@ -10,8 +10,20 @@ LOG_LEVEL_INFO=1
 LOG_LEVEL_WARN=2
 LOG_LEVEL_ERROR=3
 
-# 当前日志级别（默认 INFO）
-CURRENT_LOG_LEVEL=${SAGE_LOG_LEVEL:-$LOG_LEVEL_INFO}
+# 将字符串日志级别转换为数字
+_parse_log_level() {
+    local level="$1"
+    case "$level" in
+        0|DEBUG|debug) echo 0 ;;
+        1|INFO|info)   echo 1 ;;
+        2|WARN|warn)   echo 2 ;;
+        3|ERROR|error) echo 3 ;;
+        *)             echo 1 ;;  # 默认 INFO
+    esac
+}
+
+# 当前日志级别（默认 INFO，支持字符串或数字）
+CURRENT_LOG_LEVEL=$(_parse_log_level "${SAGE_LOG_LEVEL:-1}")
 
 # 日志文件路径（全局变量，由主安装脚本设置）
 SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-.sage/logs/install.log}"
@@ -211,6 +223,130 @@ log_environment() {
     log_debug "LD_LIBRARY_PATH: ${LD_LIBRARY_PATH:-<未设置>}" "$context" "$phase"
 
     log_info "==============================" "$context" false "$phase"
+}
+
+# 显示旋转动画的后台 spinner
+_pip_spinner_pid=""
+_pip_spinner_running=false
+
+start_spinner() {
+    local msg="${1:-安装中}"
+    local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local delay=0.1
+    _pip_spinner_running=true
+
+    (
+        trap 'exit 0' TERM
+        while true; do
+            for (( i=0; i<${#chars}; i++ )); do
+                printf "\r  ${CYAN}%s${NC} %s..." "${chars:$i:1}" "$msg" >&2
+                sleep $delay
+            done
+        done
+    ) &
+    _pip_spinner_pid=$!
+    disown "$_pip_spinner_pid" 2>/dev/null || true
+}
+
+stop_spinner() {
+    local success="${1:-true}"
+    if [ -n "$_pip_spinner_pid" ]; then
+        kill "$_pip_spinner_pid" 2>/dev/null || true
+        wait "$_pip_spinner_pid" 2>/dev/null || true
+        _pip_spinner_pid=""
+    fi
+    _pip_spinner_running=false
+    printf "\r" >&2  # clear spinner line
+}
+
+# 执行 pip 安装命令，带实时进度显示
+log_pip_install_with_progress() {
+    local context="$1"
+    local phase="$2"
+    shift 2
+    local cmd="$@"
+
+    log_debug "执行命令: $cmd" "$context" "$phase"
+
+    local temp_output
+    temp_output=$(mktemp)
+    local exit_code=0
+
+    local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local char_idx=0
+    local installed_count=0
+    local current_pkg=""
+
+    # 使用管道实时读取 pip 输出并更新进度
+    {
+        eval "$cmd" 2>&1
+        echo $? > "${temp_output}.exit"
+    } | while IFS= read -r line; do
+        echo "$line" >> "$temp_output"
+
+        # 解析 pip 输出，提取正在安装的包名
+        if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]]; then
+            current_pkg="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^Downloading[[:space:]] ]]; then
+            # 提取下载的包名
+            if [[ "$line" =~ /([^/]+\.whl) ]] || [[ "$line" =~ /([^/]+\.tar\.gz) ]]; then
+                current_pkg="${BASH_REMATCH[1]}"
+            fi
+        elif [[ "$line" =~ Successfully\ installed ]]; then
+            # 统计成功安装的包数
+            installed_count=$(echo "$line" | grep -oE '[^ ]+' | wc -l)
+            ((installed_count = installed_count - 2))  # 减去 "Successfully installed"
+        fi
+
+        # 更新 spinner 动画和当前包名
+        local spinner_char="${chars:$char_idx:1}"
+        char_idx=$(( (char_idx + 1) % ${#chars} ))
+
+        if [ -n "$current_pkg" ]; then
+            # 截断过长的包名
+            local display_pkg="$current_pkg"
+            if [ ${#display_pkg} -gt 40 ]; then
+                display_pkg="${display_pkg:0:37}..."
+            fi
+            printf "\r  ${CYAN}%s${NC} 安装依赖包... ${DIM}%s${NC}          " "$spinner_char" "$display_pkg" >&2
+        else
+            printf "\r  ${CYAN}%s${NC} 安装依赖包...          " "$spinner_char" >&2
+        fi
+    done
+
+    # 读取退出码
+    if [ -f "${temp_output}.exit" ]; then
+        exit_code=$(cat "${temp_output}.exit")
+        rm -f "${temp_output}.exit"
+    fi
+
+    # 清除进度行
+    printf "\r                                                              \r" >&2
+
+    if [ "$exit_code" = "0" ]; then
+        log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
+        if [ -s "$temp_output" ]; then
+            local output_preview
+            output_preview=$(head -10 "$temp_output")
+            log_debug "命令输出预览:\n$output_preview" "$context" "$phase"
+        fi
+    else
+        log_error "命令失败 (exit=$exit_code): $cmd" "$context" "$phase"
+        if [ -s "$temp_output" ]; then
+            local error_output
+            error_output=$(cat "$temp_output")
+            log_error "错误输出:\n$error_output" "$context" "$phase"
+        fi
+    fi
+
+    if [ -s "$temp_output" ]; then
+        local full_output
+        full_output=$(cat "$temp_output")
+        _write_log "CMD_OUTPUT" "$full_output" "$context" "$phase"
+    fi
+
+    rm -f "$temp_output"
+    return $exit_code
 }
 
 # 记录 pip 包信息

@@ -84,9 +84,7 @@ class ServiceDrivenSource(SourceFunction):
         if isinstance(request, StopSignal):
             return request
 
-        return PipelinePayload(
-            order=request.payload, response_queue=request.response_queue
-        )
+        return PipelinePayload(order=request.payload, response_queue=request.response_queue)
 
 
 class OrderSource(BatchFunction):
@@ -252,9 +250,7 @@ class OrderPipelineService(BaseService):
         try:
             return response_queue.get(timeout=self._request_timeout)
         except queue.Empty as exc:
-            raise TimeoutError(
-                "Pipeline service timed out waiting for a reply"
-            ) from exc
+            raise TimeoutError("Pipeline service timed out waiting for a reply") from exc
 
 
 class InvokePipeline(MapFunction):

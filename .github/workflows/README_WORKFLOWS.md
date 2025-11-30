@@ -208,3 +208,65 @@ pip install -e ".[standard]"   # 标准模式
 - [SAGE 架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
 - [包依赖关系](../../docs-public/docs_src/dev-notes/package-dependencies.md)
 - [贡献指南](../../CONTRIBUTING.md)
+
+______________________________________________________________________
+
+## 🚀 新增：Self-Hosted 部署 Workflow
+
+### `deploy-studio.yml` - 自动部署 SAGE Studio
+
+**功能**：在 self-hosted GitHub Actions runner 上自动部署 SAGE Studio 并暴露服务。
+
+**触发方式**：
+
+1. **自动触发**：推送到 `main` 或 `feat/unified-chat-canvas-rebased` 分支
+1. **手动触发**：GitHub Actions → "Deploy SAGE Studio" → Run workflow
+
+**部署流程**：
+
+1. 停止现有服务
+1. 安装 SAGE (full 模式)
+1. 构建 RAG 索引
+1. 启动 Gateway (端口 8000)
+1. 启动 Studio (端口 4200)
+1. 配置防火墙
+1. 输出访问地址
+
+**访问方式**：
+
+部署成功后，在 Actions Summary 中查看访问地址：
+
+```
+Studio UI:   http://<服务器IP>:4200
+Gateway API: http://<服务器IP>:8000
+```
+
+**详细文档**：
+
+- [Self-Hosted 部署完整指南](../../docs/dev-notes/cross-layer/self-hosted-deployment.md)
+- [部署脚本使用](../../deploy-self-hosted.sh)
+
+**服务器管理**：
+
+```bash
+# SSH 到服务器后
+
+# 查看服务
+ps aux | grep -E "sage studio|sage-gateway"
+
+# 查看日志
+tail -f ~/.sage/gateway.log
+tail -f ~/.sage/studio.log
+
+# 重新部署
+cd /path/to/SAGE
+./deploy-self-hosted.sh 4200 8000
+```
+
+**所需 Secrets**：
+
+在 GitHub Settings → Secrets 中配置：
+
+- `DASHSCOPE_API_KEY` - 阿里云 API Key (必需)
+- `OPENAI_API_KEY` - OpenAI API Key (可选)
+- `HF_TOKEN` - Hugging Face Token (可选)

@@ -5,7 +5,7 @@
 """
 
 from sage.common.core import BatchFunction
-from sage.data.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.locomo.dataloader import LocomoDataLoader
 
 
 class MemorySource(BatchFunction):

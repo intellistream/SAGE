@@ -1,0 +1,14 @@
+# Operator Configuration Example - Tool Selection Operator
+
+selector:
+  name: "embedding"
+  top_k: 10
+  cache_enabled: true
+  params:
+    model_name: "all-MiniLM-L6-v2"
+    similarity_threshold: 0.6
+
+telemetry:
+  enabled: true
+  collect_latency: true
+  output_path: "./outputs/operator_tool_selection.json"
