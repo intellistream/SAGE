@@ -433,6 +433,61 @@ class TestSiliconCloudWrapper:
         with pytest.raises(RuntimeError, match="需要 API Key"):
             SiliconCloudEmbedding()
 
+    def test_embed_batch_empty_list(self):
+        """Test embed_batch with empty list returns empty list"""
+        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
+            SiliconCloudEmbedding,
+        )
+
+        wrapper = SiliconCloudEmbedding(api_key="test-key")  # pragma: allowlist secret
+        result = wrapper.embed_batch([])
+        assert result == []
+
+    def test_embed_batch_uses_batch_api(self):
+        """Test embed_batch sends all texts in a single API call"""
+        from unittest.mock import MagicMock, patch
+
+        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
+            SiliconCloudEmbedding,
+        )
+
+        wrapper = SiliconCloudEmbedding(api_key="test-key")  # pragma: allowlist secret
+
+        # Mock the API response with base64 encoded vectors
+        import base64
+        import struct
+
+        # Create two 4-dimensional vectors for testing
+        vec1 = [0.1, 0.2, 0.3, 0.4]
+        vec2 = [0.5, 0.6, 0.7, 0.8]
+        encoded1 = base64.b64encode(struct.pack("<" + "f" * 4, *vec1)).decode()
+        encoded2 = base64.b64encode(struct.pack("<" + "f" * 4, *vec2)).decode()
+
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {
+            "data": [
+                {"embedding": encoded1},
+                {"embedding": encoded2},
+            ]
+        }
+
+        with patch("requests.post", return_value=mock_response) as mock_post:
+            texts = ["text1", "text2"]
+            result = wrapper.embed_batch(texts)
+
+            # Verify single API call with all texts
+            assert mock_post.call_count == 1
+            call_args = mock_post.call_args
+            payload = call_args.kwargs["json"]
+            assert payload["input"] == texts
+
+            # Verify results
+            assert len(result) == 2
+            for i, (res, expected) in enumerate(zip(result, [vec1, vec2])):
+                for j, (r, e) in enumerate(zip(res, expected)):
+                    assert abs(r - e) < 1e-6, f"Mismatch at [{i}][{j}]: {r} != {e}"
+
 
 # ==============================================================================
 # NVIDIA OpenAI Wrapper Tests
