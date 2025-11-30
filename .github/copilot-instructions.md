@@ -79,7 +79,19 @@ Tools: Ruff (format+lint, line 100), Mypy (types, warning mode), Shellcheck Conf
 ## CI/CD (.github/workflows/)
 
 **Main workflows**: build-test.yml (45m), examples-test.yml (30m), code-quality.yml (10m),
-installation-test.yml, publish-pypi.yml
+installation-test.yml, publish-pypi.yml, paper1-experiments.yml (GPU, manual)
+
+**CI Installation Standards** - CRITICAL for new workflows:
+
+| 场景 | 推荐安装方式 | 说明 |
+|------|-------------|------|
+| GitHub Actions (ubuntu-latest) | `./tools/install/ci_install_wrapper.sh --dev --yes` | 标准 CI，安装到 `~/.local` |
+| GitHub Actions + Conda | `unset CI GITHUB_ACTIONS && ./quickstart.sh --dev --yes --pip` | 需取消 CI 变量，安装到 conda env |
+| Self-hosted GPU runner | 同上 (Conda 方式) | paper1-experiments.yml 使用 |
+
+**为什么需要 `unset CI GITHUB_ACTIONS`**：
+- `quickstart.sh` 在检测到 CI 环境时会添加 `--user` 参数，安装到 `~/.local`
+- 如果使用 conda 环境，需要取消这些变量让包安装到当前激活的环境
 
 **CI uses**: Ubuntu latest, Python 3.11, GitHub Secrets (OPENAI_API_KEY, HF_TOKEN), pip cache
 
