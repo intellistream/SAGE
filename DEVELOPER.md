@@ -229,12 +229,50 @@ sage-dev quality check --all-files --readme
 # Clean build artifacts
 sage-dev project clean --target all
 
+# Clean build cache (egg-info, build, dist)
+make clean-cache
+
+# Or use the cache cleaner directly
+bash tools/install/fixes/build_cache_cleaner.sh clean
+
 # Build documentation
 sage-dev docs build
 
 # Get help
 sage-dev --help
 ```
+
+### Build Cache Management
+
+SAGE includes automatic build cache detection and cleaning to prevent version inconsistencies:
+
+**Automatic Cache Cleaning** (during installation):
+
+- `quickstart.sh` automatically detects and cleans stale `egg-info` caches
+- Checks for version mismatches between cached metadata and source code
+- Only cleans caches when inconsistencies are detected
+
+**Manual Cache Cleaning** (when needed):
+
+```bash
+# Clean all build caches (egg-info, build, dist)
+make clean-cache
+
+# Or use the cleaner tool directly
+bash tools/install/fixes/build_cache_cleaner.sh clean
+
+# Just detect and clean egg-info (automatic during install)
+bash tools/install/fixes/build_cache_cleaner.sh detect
+```
+
+**When to clean cache manually:**
+
+- After git pull if versions seem wrong
+- Before reinstalling after version changes
+- When `pip list` shows inconsistent versions
+
+**Note:** The `quickstart.sh` script handles this automatically, so manual cleaning is rarely
+needed.
 
 ### Pre-commit Hooks
 

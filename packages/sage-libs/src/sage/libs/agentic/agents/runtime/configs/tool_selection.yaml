@@ -1,0 +1,22 @@
+# Runtime Configuration Example - Tool Selection
+
+# Selector configuration
+selector:
+  name: "keyword"  # Strategy: keyword, embedding, two_stage, adaptive
+  top_k: 5
+  cache_enabled: true
+  params:
+    min_score: 0.1
+    use_fuzzy_match: false
+
+# Telemetry configuration
+telemetry:
+  enabled: true
+  collect_latency: true
+  collect_accuracy: true
+  output_path: "${PROJECT_ROOT}/outputs/runtime/telemetry_tool_selection.json"
+  log_level: "INFO"
+
+# General runtime settings
+max_turns: 8
+timeout: 30.0

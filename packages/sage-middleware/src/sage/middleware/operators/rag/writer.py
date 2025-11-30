@@ -1,4 +1,4 @@
-from sage.kernel.operators import MapOperator
+from sage.common.core.functions import MapFunction as MapOperator
 
 
 class MemoryWriter(MapOperator):

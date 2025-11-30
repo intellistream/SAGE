@@ -3,6 +3,34 @@
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow
 > abstractions.
 
+## 🚀 Quick Start
+
+### Try SAGE Studio
+
+**Option 1: HUST Campus Network Access** 🎓
+
+Our team maintains a live deployment accessible within HUST campus network:
+
+```
+🌐 Contact team for access URL
+```
+
+**Requirements**: HUST campus network or VPN connection
+
+Experience SAGE's visual pipeline editor and AI-powered chat assistant with RAG capabilities!
+
+**Option 2: Local Installation**
+
+```bash
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+./quickstart.sh --standard --yes
+sage studio start
+# Visit http://localhost:4200
+```
+
+______________________________________________________________________
+
 [![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml)
 [![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -32,6 +60,9 @@ management and parallel execution capabilities.
 
 **Transparency**: Built-in observability and debugging tools provide complete visibility into
 execution paths and performance characteristics.
+
+**Flexible Deployment**: Full support for CPU-only compute nodes alongside GPU nodes, with
+intelligent resource-aware scheduling for hybrid clusters.
 
 ## Quick Start
 
@@ -80,6 +111,16 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 git checkout main-dev
 ./quickstart.sh --dev --yes
 python examples/tutorials/hello_world.py
+```
+
+**For CPU-only deployment:**
+
+```bash
+# Start JobManager for distributed task execution
+sage jobmanager start
+
+# Run CPU node demo (no GPU required)
+python examples/tutorials/L3-kernel/cpu_node_demo.py
 ```
 
 ## Architecture Excellence

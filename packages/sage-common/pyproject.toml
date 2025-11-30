@@ -52,6 +52,9 @@ vllm = [
     "torch>=2.4.0",
     "torchaudio>=2.4.0",
     "torchvision>=0.17.0",
+    # FlashInfer for high-performance sampling (optional but recommended)
+    # Note: Requires CUDA 12.x, install from https://flashinfer.ai/whl/
+    # "flashinfer-python",  # Uncomment if using compatible CUDA version
 ]
 
 [project.urls]
