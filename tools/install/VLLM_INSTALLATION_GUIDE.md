@@ -132,7 +132,8 @@ sage llm run --model meta-llama/Llama-2-7b-chat-hf --prompt "Hello"
 sage llm fine-tune --help
 ```
 
-如果仍需兼容旧的后台服务管理命令，可继续使用 `sage llm start|status|stop`，但这些命令会打印弃用提示并将在未来移除。
+早期的 `sage llm start|status|stop` 命令已在 2025-12 移除；如需守护式服务，请保持 `sage llm run` 的终端窗口打开，或使用
+`sage studio start` / `sage stack start` 让 SAGE 自动托管本地 LLM。
 
 > ⚠️ **重要**：传统的 `tools/vllm` 脚本已被废弃，请使用新的 `sage llm` CLI 功能。
 
@@ -204,5 +205,4 @@ python -c "import transformers, torch, accelerate; print('All dependencies OK')"
 ## 更多信息
 
 - SAGE CLI 帮助：`sage llm --help`
-- VLLM 服务状态：`sage llm status`
 - 安装日志：`install.log`

@@ -225,9 +225,9 @@ sage stack stop                        # 停止所有服务
 sage stack logs --follow               # 追踪日志
 
 # 手动方式（按需）
-sage llm start --model "Qwen/Qwen2.5-0.5B-Instruct" --port 8901
+sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
 python -m sage.common.components.sage_embedding.embedding_server \
-    --model BAAI/bge-m3 --port 8090
+  --model BAAI/bge-m3 --port 8090
 ```
 
 ### 端口与配置

@@ -207,6 +207,32 @@ jobs:
 
           echo "Done: Experiment .env settings added"
 
+      - name: Prepare Benchmark Data
+        run: |
+          echo "📦 Preparing benchmark runtime data..."
+
+          # Initialize conda
+          source "${CONDA_PATH:-$HOME/miniconda3}/etc/profile.d/conda.sh" 2>/dev/null || true
+
+          cd packages/sage-benchmark/src/sage/data/sources/agent_benchmark
+
+          # Prepare tool selection data (generates .sage/benchmark/data/tool_selection/)
+          echo "  Preparing tool selection data..."
+          conda run -n $CONDA_ENV_NAME python prepare_runtime_data.py --create-splits --num-candidates 100,500,1000 || echo "⚠️ Tool selection data preparation failed"
+
+          # Prepare timing judgment data (generates .sage/benchmark/data/timing_judgment/)
+          echo "  Preparing timing judgment data..."
+          conda run -n $CONDA_ENV_NAME python prepare_timing_data.py --num-tool-needed 500 --num-no-tool 500 || echo "⚠️ Timing data preparation failed"
+
+          # Prepare task planning data (generates .sage/benchmark/data/task_planning/)
+          echo "  Preparing task planning data..."
+          conda run -n $CONDA_ENV_NAME python prepare_planning_data.py --num_samples 300 || echo "⚠️ Planning data preparation failed"
+
+          # Verify data was created
+          echo "  Verifying data directories..."
+          ls -la $GITHUB_WORKSPACE/.sage/benchmark/data/ || echo "Data directory not found"
+          echo "✅ Benchmark data preparation complete"
+
       - name: Check GPU Availability
         run: |
           echo "Checking GPU status..."

@@ -83,4 +83,4 @@ sage studio start --use-finetuned
 # -> 浏览器访问 http://localhost:5173 运行 Flow/Chat/Finetune/Memory 全链路
 ```
 
-遇到 gateway/LLM 进程残留时使用 `sage studio stop --gateway` 或 `sage llm stop --port 8001` 清理。`~/.sage/studio` 下存放前端缓存、Finetune 输出与日志，可在排查异常时检查。
+遇到 gateway/LLM 进程残留时使用 `sage studio stop --gateway`，若手动通过 `sage llm run` 启动过本地服务，请直接关闭其终端或执行 `pkill -f vllm.entrypoints.openai.api_server` 清理。`~/.sage/studio` 下存放前端缓存、Finetune 输出与日志，可在排查异常时检查。
