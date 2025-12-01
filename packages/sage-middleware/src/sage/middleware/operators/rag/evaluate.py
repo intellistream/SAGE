@@ -8,6 +8,23 @@ from sage.common.core.functions import MapFunction as MapOperator
 from sage.kernel.runtime.communication.packet import StopSignal
 
 
+def _get_results_collector():
+    """
+    延迟导入 ResultsCollector 以避免循环依赖
+
+    Returns:
+        ResultsCollector 实例，如果不可用则返回 None
+    """
+    try:
+        from sage.benchmark.benchmark_refiner.experiments.results_collector import (
+            ResultsCollector,
+        )
+
+        return ResultsCollector()
+    except ImportError:
+        return None
+
+
 class MetricsAggregator:
     """全局指标聚合器，用于收集和计算平均指标"""
 
@@ -131,6 +148,12 @@ class F1Evaluate(MapOperator):
 
         # Add to aggregator
         self.aggregator.add_f1(best)
+
+        # Add to ResultsCollector (if available)
+        collector = _get_results_collector()
+        if collector is not None:
+            sample_id = data.get("sample_id", data.get("_sample_idx"))
+            collector.update_sample(sample_id, f1=best)
 
         print(f"\033[93m[F1] : {best:.4f}\033[0m")
         return data
@@ -319,6 +342,12 @@ class TokenCountEvaluate(MapOperator):
         # Add to aggregator
         self.aggregator.add_token_count(total_tokens)
 
+        # Add to ResultsCollector (if available)
+        collector = _get_results_collector()
+        if collector is not None:
+            sample_id = data.get("sample_id", data.get("_sample_idx"))
+            collector.update_sample(sample_id, token_count=total_tokens)
+
         print(f"\033[93m[Token Count] : {total_tokens}\033[0m")
         return data
 
@@ -345,6 +374,18 @@ class LatencyEvaluate(MapOperator):
 
         # Add to aggregator
         self.aggregator.add_latency(retrieve_time, refine_time, generate_time)
+
+        # Add to ResultsCollector (if available)
+        collector = _get_results_collector()
+        if collector is not None:
+            sample_id = data.get("sample_id", data.get("_sample_idx"))
+            collector.update_sample(
+                sample_id,
+                retrieve_time=retrieve_time,
+                refine_time=refine_time,
+                generate_time=generate_time,
+                total_time=total_lat,
+            )
 
         print(f"\033[93m[Retrieve Time] : {retrieve_time:.2f}s\033[0m")
         print(f"\033[93m[Refine Time]   : {refine_time:.2f}s\033[0m")
@@ -444,6 +485,17 @@ class CompressionRateEvaluate(MapOperator):
 
         # Add to aggregator
         self.aggregator.add_compression_rate(compression_rate)
+
+        # Add to ResultsCollector (if available)
+        collector = _get_results_collector()
+        if collector is not None:
+            sample_id = data.get("sample_id", data.get("_sample_idx"))
+            collector.update_sample(
+                sample_id,
+                compression_rate=compression_rate,
+                original_tokens=retrieved_tokens,
+                compressed_tokens=refined_tokens,
+            )
 
         print(f"\033[93m[Compression Rate] : {compression_rate:.2f}×\033[0m")
         return data

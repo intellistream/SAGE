@@ -1,0 +1,70 @@
+pipeline:
+  name: "sage-benchmark-adaptive-rag"
+  description: "Adaptive RAG Pipeline with Query-Aware Multi-Granularity Compression"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 100
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "${HOME}/wiki18_maxp.index"
+    documents_path: "${HOME}/wiki18_fulldoc.jsonl"
+    mapping_path: "${HOME}/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "${HOME}/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+adaptive:
+  # Adaptive压缩配置
+  enabled: true  # 设为false即为baseline模式
+
+  # Query分类器配置
+  use_query_classifier: true   # 启用Query类型分类
+  use_ner: false               # NER较慢，默认关闭
+
+  # 多样性选择配置
+  similarity_threshold: 0.85   # 相似度阈值
+  diversity_weight: 0.3        # MMR多样性权重 (0-1)
+
+  # 预算配置
+  budget: 2048                 # 基础token预算
+  min_budget: 256              # 最小token预算
+  max_budget_multiplier: 2.0   # 最大预算乘数
+
+  # 可选：强制粒度 (paragraph/sentence/phrase)
+  # force_granularity: null
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

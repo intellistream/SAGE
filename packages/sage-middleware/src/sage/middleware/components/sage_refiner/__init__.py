@@ -92,4 +92,40 @@ __all__ = [
     "ProvenceRefinerOperator",
 ]
 
+# Adaptive算法 (新增)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.adaptive import (
+        AdaptiveCompressor,
+        AdaptiveRefinerOperator,
+    )
+
+    __all__.extend(
+        [
+            "AdaptiveCompressor",
+            "AdaptiveRefinerOperator",
+        ]
+    )
+except ImportError:
+    # Adaptive算法依赖未满足时的后备
+    AdaptiveCompressor = None
+    AdaptiveRefinerOperator = None
+
+# LLMLingua算法 (可选依赖: llmlingua)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.llmlingua import (
+        LLMLinguaCompressor,
+        LLMLinguaRefinerOperator,
+    )
+
+    __all__.extend(
+        [
+            "LLMLinguaCompressor",
+            "LLMLinguaRefinerOperator",
+        ]
+    )
+except ImportError:
+    # LLMLingua未安装时的后备
+    LLMLinguaCompressor = None
+    LLMLinguaRefinerOperator = None
+
 __version__ = "0.1.0"

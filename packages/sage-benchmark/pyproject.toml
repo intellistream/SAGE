@@ -85,6 +85,8 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 [project.scripts]
 # Control Plane Benchmark CLI
 sage-cp-bench = "sage.benchmark.benchmark_control_plane.cli:main"
+# Refiner Benchmark CLI
+sage-refiner-bench = "sage.benchmark.benchmark_refiner.cli:main"
 
 [tool.setuptools]
 # Automatically discover all packages under src/
