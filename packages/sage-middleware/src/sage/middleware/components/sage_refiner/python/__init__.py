@@ -2,11 +2,11 @@
 SAGE Refiner Python Adapter Layer
 ==================================
 
-This module provides the SAGE-specific adapter layer for sageRefiner.
-It wraps the standalone sageRefiner library with SAGE framework integration.
+This module provides the SAGE-specific adapter layer for sage_refiner.
+It wraps the standalone sage_refiner library with SAGE framework integration.
 
-For standalone usage of sageRefiner, import from:
-    sage.middleware.components.sage_refiner.sageRefiner
+For standalone usage of sage_refiner, import from:
+    sage.middleware.components.sage_refiner.sageRefiner.sage_refiner
 """
 
 from sage.libs.foundation.context.compression.refiner import (
@@ -15,8 +15,8 @@ from sage.libs.foundation.context.compression.refiner import (
     RefinerMetrics,
 )
 
-# Import from sageRefiner submodule
-from sage.middleware.components.sage_refiner.sageRefiner.config import (
+# Import from sage_refiner submodule
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.config import (
     RefinerAlgorithm,
     RefinerConfig,
 )

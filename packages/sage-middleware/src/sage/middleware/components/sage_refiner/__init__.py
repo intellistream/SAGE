@@ -43,24 +43,24 @@ from sage.middleware.components.sage_refiner.python.context_service import (
 )
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 
-# sageRefiner submodule (standalone library)
-from sage.middleware.components.sage_refiner.sageRefiner import (
+# sage_refiner submodule (standalone library)
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner import (
     LongRefiner,
+    LongRefinerCompressor,
+    ProvenceCompressor,
     RefinerAlgorithm,
     RefinerConfig,
     ReformCompressor,
+    REFORMCompressor,
 )
-from sage.middleware.components.sage_refiner.sageRefiner.algorithms.LongRefiner import (
-    LongRefiner as LongRefinerCompressor,
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.LongRefiner import (
     LongRefinerOperator,
 )
-from sage.middleware.components.sage_refiner.sageRefiner.algorithms.provence import (
-    ProvenceCompressor,
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.provence import (
     ProvenceRefinerOperator,
 )
-from sage.middleware.components.sage_refiner.sageRefiner.algorithms.reform import (
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.reform import (
     AttentionHookExtractor,
-    ReformCompressor as REFORMCompressor,
     REFORMRefinerOperator,
 )
 
