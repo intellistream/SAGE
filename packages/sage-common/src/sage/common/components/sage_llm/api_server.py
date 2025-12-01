@@ -183,12 +183,28 @@ class LLMAPIServer:
 
     def _build_vllm_command(self) -> list[str]:
         """Build command for vLLM backend"""
+        # 从模型路径提取友好的模型名称
+        # 例如: /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
+        served_model_name = self.config.model
+        if "/" in self.config.model or "\\" in self.config.model:
+            # 本地路径，提取最后一部分并转换 __ 为 /
+            import os
+
+            model_basename = os.path.basename(self.config.model)
+            # Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
+            if "__" in model_basename:
+                served_model_name = model_basename.replace("__", "/", 1)
+            else:
+                served_model_name = model_basename
+
         cmd = [
             sys.executable,
             "-m",
             "vllm.entrypoints.openai.api_server",
             "--model",
             self.config.model,
+            "--served-model-name",
+            served_model_name,
             "--host",
             self.config.host,
             "--port",

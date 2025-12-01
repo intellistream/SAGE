@@ -1317,11 +1317,17 @@ def render_references(references: Sequence[dict[str, str]]) -> Table:
     table.add_column("得分", justify="right", width=7)
 
     for idx, ref in enumerate(references, start=1):
+        # score 可能是字符串，需要转换为浮点数
+        score = ref.get("score", 0.0)
+        try:
+            score_float = float(score)
+        except (ValueError, TypeError):
+            score_float = 0.0
         table.add_row(
             str(idx),
             ref.get("title", "未知"),
             ref.get("heading", "-"),
-            f"{ref.get('score', 0.0):.4f}",
+            f"{score_float:.4f}",
         )
     return table
 
