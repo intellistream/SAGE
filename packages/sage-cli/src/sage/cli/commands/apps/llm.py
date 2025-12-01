@@ -436,6 +436,45 @@ def stop_llm(
         raise typer.Exit(1)
 
 
+@app.command("restart")
+def restart_llm():
+    """重启 LLM 推理服务（使用上次的配置）。"""
+    import time
+
+    if LLMLauncher is None:
+        console.print("[red]❌ LLMLauncher 不可用[/red]")
+        raise typer.Exit(1)
+
+    # 获取当前配置
+    pid, config = LLMLauncher.load_service_info()
+    if not config:
+        console.print("[yellow]⚠️  没有找到之前的服务配置，请使用 'sage llm serve' 启动[/yellow]")
+        raise typer.Exit(1)
+
+    console.print("[blue]🔄 重启 LLM 服务...[/blue]")
+
+    # 停止服务
+    LLMLauncher.stop(verbose=False)
+    time.sleep(1)  # 等待端口释放
+
+    # 使用保存的配置重新启动
+    model = config.get("model", "Qwen/Qwen2.5-0.5B-Instruct")
+    port = config.get("port", SagePorts.BENCHMARK_LLM)
+
+    result = LLMLauncher.launch(
+        model=model,
+        port=port,
+        background=True,
+        verbose=True,
+    )
+
+    if result.success:
+        console.print("[green]✅ LLM 服务重启成功[/green]")
+    else:
+        console.print(f"[red]❌ 重启失败: {result.error}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("status")
 def status_llm():
     """查看 LLM 服务状态。"""

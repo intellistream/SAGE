@@ -349,9 +349,15 @@ def _create_markdown_processor(
     - Section splitting by headings
     - Metadata extraction (doc_path, title, heading, anchor)
     - Text preview generation
+
+    Note: Progress display is handled by IndexBuilder's Rich progress bar.
+    This processor only prints summary info, consistent with sage-studio.
     """
 
     def process_markdown(src: Path) -> list[dict[str, Any]]:
+        if show_progress:
+            console.print(f"[blue]正在处理文档: {src}...[/blue]")
+
         chunks = []
         total_docs = 0
 
@@ -384,10 +390,10 @@ def _create_markdown_processor(
                 )
 
             total_docs += 1
-            if show_progress:
-                console.print(
-                    f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan"
-                )
+
+        # Print summary (consistent with sage-studio)
+        if show_progress:
+            console.print(f"[green]处理了 {total_docs} 个文档, {len(chunks)} 个文档片段[/green]")
 
         return chunks
 
