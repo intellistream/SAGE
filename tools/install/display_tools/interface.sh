@@ -354,7 +354,8 @@ PY
                 echo -e "${DIM}   首次启动会下载模型（LLM + Embedding）...${NC}"
                 echo ""
                 # 后台启动服务，使用 subshell 彻底隔离 job control 输出
-                ( sage llm serve --with-embedding &>/dev/null & )
+                # 注意: sage llm serve 默认已包含 embedding 服务
+                ( sage llm serve &>/dev/null & )
                 # 等待 Embedding 服务就绪
                 start_spinner "   等待服务启动"
                 local wait_count=0
@@ -412,7 +413,7 @@ PY
                 echo -e "${DIM}   正在清理不完整的索引文件...${NC}"
                 rm -f "${chat_cache_dir}/docs-public"* 2>/dev/null || true
                 echo -e "${YELLOW}⚠️  可以稍后重试:${NC}"
-                echo -e "   ${CYAN}sage llm serve --with-embedding${NC}  # 启动服务"
+                echo -e "   ${CYAN}sage llm serve${NC}  # 启动 LLM + Embedding 服务"
                 echo -e "   ${CYAN}sage chat ingest --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url http://localhost:8090/v1${NC}"
             fi
             rm -f "$ingest_log"

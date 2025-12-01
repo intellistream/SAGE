@@ -328,9 +328,9 @@ def serve_llm(
         help="后台运行（默认）或前台运行",
     ),
     with_embedding: bool = typer.Option(
-        False,
-        "--with-embedding",
-        help="同时启动 Embedding 服务",
+        True,
+        "--with-embedding/--no-embedding",
+        help="同时启动 Embedding 服务（默认启用）",
     ),
     embedding_model: str = typer.Option(
         "BAAI/bge-small-zh-v1.5",
@@ -350,9 +350,9 @@ def serve_llm(
     默认后台运行，可通过 'sage llm stop' 停止。
 
     示例:
-        sage llm serve                           # 使用默认小模型启动
+        sage llm serve                           # 启动 LLM + Embedding 服务
         sage llm serve -m Qwen/Qwen2.5-7B-Instruct  # 指定模型
-        sage llm serve --with-embedding          # 同时启动 Embedding 服务
+        sage llm serve --no-embedding            # 仅启动 LLM，不启动 Embedding
         sage llm serve --foreground              # 前台运行（阻塞）
 
     启动后可通过以下方式使用:
