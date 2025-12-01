@@ -271,16 +271,15 @@ client = UnifiedInferenceClient.create_auto()
 > ⚠️ `sage llm run` 与 `VLLMService` 依赖 `isage-common[vllm]`（带 vLLM 0.10.x 与 torch 2.4+）。如需本地阻塞式服务，请先运行 `pip install isage-common[vllm]`。
 
 ```bash
-# 推荐：一键启动/管理
-sage stack start                                   # 默认模型（LLM + Embedding）
-python -m sage.common.components.sage_embedding.embedding_server \
-    --model BAAI/bge-m3 --port 8090
-sage stack status                                  # 查看状态
-sage stack stop                                    # 停止服务
-sage stack logs --follow                           # 查看日志
+# 推荐：一键启动/管理（后台守护进程）
+sage llm serve                                     # 默认模型
+sage llm serve --with-embedding                    # 同时启动 Embedding 服务
+sage llm status                                    # 查看状态
+sage llm stop                                      # 停止服务
+sage llm logs --follow                             # 查看日志
 
-# 手动启动（按需）
-# 启动 LLM 服务 (vLLM)
+# 阻塞式交互模式（开发调试用）
+sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
 
 # 查看运行状态
 ps aux | grep -E "vllm|embedding_server"
