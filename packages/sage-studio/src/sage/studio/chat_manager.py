@@ -181,6 +181,126 @@ class ChatModeManager(StudioManager):
         return LLMLauncher.stop(verbose=True)
 
     # ------------------------------------------------------------------
+    # Embedding Service helpers
+    # ------------------------------------------------------------------
+    def _start_embedding_service(self, model: str = "BAAI/bge-m3", port: int | None = None) -> bool:
+        """Start Embedding service as a background process.
+
+        Args:
+            model: Embedding model name (default: BAAI/bge-m3)
+            port: Server port (default: SagePorts.EMBEDDING_DEFAULT = 8090)
+
+        Returns:
+            True if started successfully
+        """
+        if port is None:
+            port = SagePorts.EMBEDDING_DEFAULT  # 8090
+
+        # Check if already running
+        try:
+            resp = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
+            if resp.status_code == 200:
+                console.print(f"[green]✅ Embedding 服务已在运行 (localhost:{port})[/green]")
+                return True
+        except Exception:
+            pass  # Not running, continue to start
+
+        console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model}, 端口: {port})[/blue]")
+
+        # Ensure log directory exists
+        log_dir = Path.home() / ".sage" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        embedding_log = log_dir / "embedding.log"
+
+        embedding_cmd = [
+            sys.executable,
+            "-m",
+            "sage.common.components.sage_embedding.embedding_server",
+            "--model",
+            model,
+            "--port",
+            str(port),
+        ]
+
+        try:
+            with open(embedding_log, "w") as log_file:
+                proc = subprocess.Popen(
+                    embedding_cmd,
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+
+            # Save PID for later cleanup
+            embedding_pid_file = log_dir / "embedding.pid"
+            embedding_pid_file.write_text(str(proc.pid))
+
+            console.print(f"   [green]✓[/green] Embedding 服务已启动 (PID: {proc.pid})")
+            console.print(f"   日志: {embedding_log}")
+
+            # Wait for service to be ready (up to 60 seconds)
+            console.print("   [dim]等待服务就绪...[/dim]")
+            for i in range(60):
+                try:
+                    resp = requests.get(f"http://localhost:{port}/v1/models", timeout=1)
+                    if resp.status_code == 200:
+                        console.print("   [green]✓[/green] Embedding 服务已就绪")
+                        return True
+                except Exception:
+                    pass
+                time.sleep(1)
+
+            console.print("[yellow]⚠️  Embedding 服务启动超时，但进程仍在运行[/yellow]")
+            return True  # Process started, might just be slow to load model
+
+        except Exception as e:
+            console.print(f"[red]❌ 启动 Embedding 服务失败: {e}[/red]")
+            return False
+
+    def _stop_embedding_service(self) -> bool:
+        """Stop Embedding service if running."""
+        port = SagePorts.EMBEDDING_DEFAULT
+        log_dir = Path.home() / ".sage" / "logs"
+        embedding_pid_file = log_dir / "embedding.pid"
+
+        stopped = False
+
+        # Try to stop via PID file first
+        if embedding_pid_file.exists():
+            try:
+                pid = int(embedding_pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    console.print(f"[blue]🛑 停止 Embedding 服务 (PID: {pid})...[/blue]")
+                    os.kill(pid, signal.SIGTERM)
+                    # Wait for graceful shutdown
+                    for _ in range(5):
+                        if not psutil.pid_exists(pid):
+                            break
+                        time.sleep(0.5)
+                    # Force kill if still running
+                    if psutil.pid_exists(pid):
+                        os.kill(pid, signal.SIGKILL)
+                    console.print("[green]✅ Embedding 服务已停止[/green]")
+                    stopped = True
+                embedding_pid_file.unlink()
+            except Exception as e:
+                console.print(f"[yellow]⚠️  清理 Embedding PID 文件失败: {e}[/yellow]")
+
+        # Also try to find and kill any orphan embedding server processes
+        for proc in psutil.process_iter(["pid", "cmdline"]):
+            try:
+                cmdline = proc.info.get("cmdline") or []
+                if "embedding_server" in " ".join(cmdline) and str(port) in " ".join(cmdline):
+                    console.print(f"[blue]🛑 停止孤儿 Embedding 进程 (PID: {proc.pid})...[/blue]")
+                    proc.terminate()
+                    proc.wait(timeout=5)
+                    stopped = True
+            except (psutil.NoSuchProcess, psutil.TimeoutExpired):
+                pass
+
+        return stopped
+
+    # ------------------------------------------------------------------
     # Gateway helpers
     # ------------------------------------------------------------------
     def _is_gateway_running(self) -> int | None:
@@ -327,6 +447,9 @@ class ChatModeManager(StudioManager):
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
                 )
 
+            # Start Embedding service alongside LLM
+            self._start_embedding_service()
+
         # Start Gateway
         if not self._start_gateway(port=self.gateway_port):
             return False
@@ -357,28 +480,66 @@ class ChatModeManager(StudioManager):
         frontend_backend = super().stop(stop_gateway=False)  # Don't stop gateway via parent
         gateway = self._stop_gateway()
         llm = self._stop_llm_service()
-        return frontend_backend and gateway and llm
+        embedding = self._stop_embedding_service()
+        return frontend_backend and gateway and llm and embedding
 
     def status(self):
         """Display status of all Studio Chat Mode services."""
         super().status()  # Show Studio status first
 
-        # Local LLM Service status (via sageLLM)
+        # Local LLM Service status - check via HTTP instead of self.llm_service
         llm_table = Table(title="本地 LLM 服务状态（sageLLM）")
         llm_table.add_column("属性", style="cyan", width=14)
         llm_table.add_column("值", style="white")
 
-        if self.llm_service:
+        llm_port = SagePorts.BENCHMARK_LLM  # 8901
+        llm_running = False
+        llm_model_name = None
+        try:
+            resp = requests.get(f"http://localhost:{llm_port}/v1/models", timeout=2)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                if models:
+                    llm_running = True
+                    llm_model_name = models[0].get("id", "unknown")
+        except Exception:
+            pass
+
+        if llm_running:
             llm_table.add_row("状态", "[green]运行中[/green]")
-            llm_table.add_row("引擎", "sageLLM (可配置不同 vendor)")
-            llm_table.add_row("模型", self.llm_model)
+            llm_table.add_row("端口", str(llm_port))
+            llm_table.add_row("模型", llm_model_name or "unknown")
             llm_table.add_row("说明", "由 IntelligentLLMClient 自动检测使用")
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
+            llm_table.add_row("端口", str(llm_port))
             llm_table.add_row("提示", "使用 --llm 启动本地服务")
-            llm_table.add_row("说明", "支持通过 sageLLM 配置不同推理引擎")
 
         console.print(llm_table)
+
+        # Embedding Service status
+        embedding_table = Table(title="Embedding 服务状态")
+        embedding_table.add_column("属性", style="cyan", width=14)
+        embedding_table.add_column("值", style="white")
+
+        embedding_port = SagePorts.EMBEDDING_DEFAULT
+        try:
+            resp = requests.get(f"http://localhost:{embedding_port}/v1/models", timeout=2)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                model_name = models[0].get("id", "unknown") if models else "unknown"
+                embedding_table.add_row("状态", "[green]运行中[/green]")
+                embedding_table.add_row("端口", str(embedding_port))
+                embedding_table.add_row("模型", model_name)
+            else:
+                embedding_table.add_row("状态", "[red]未运行[/red]")
+                embedding_table.add_row("端口", str(embedding_port))
+        except Exception:
+            embedding_table.add_row("状态", "[red]未运行[/red]")
+            embedding_table.add_row("端口", str(embedding_port))
+            embedding_table.add_row("提示", "将随 LLM 服务自动启动")
+
+        console.print(embedding_table)
 
         # Gateway status
         table = Table(title="sage-gateway 状态")

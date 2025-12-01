@@ -23,7 +23,7 @@ from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
 from sage.common.utils.logging import get_logger
 
-from .api_server import LLMAPIServer, LLMServerConfig
+from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
 
 logger = get_logger(__name__)
 console = Console()
@@ -285,11 +285,16 @@ class LLMLauncher:
             success = server.start(background=background, log_file=log_file)
 
             if success and background:
+                # Get the friendly model name for API clients
+                # e.g., /home/user/.sage/models/vllm/Qwen__X -> Qwen/X
+                served_model_name = get_served_model_name(resolved_model)
+
                 # Save service info for management
                 cls.save_service_info(
                     server.pid,
                     {
                         "model": resolved_model,
+                        "served_model_name": served_model_name,
                         "port": port,
                         "host": host,
                         "gpu_memory": gpu_memory,
@@ -298,13 +303,15 @@ class LLMLauncher:
                 )
 
                 # Set environment variables for client auto-detection
+                # Use the friendly model name so clients can call the API correctly
                 os.environ["SAGE_CHAT_BASE_URL"] = f"http://127.0.0.1:{port}/v1"
-                os.environ["SAGE_CHAT_MODEL"] = resolved_model
+                os.environ["SAGE_CHAT_MODEL"] = served_model_name
 
                 if verbose:
                     console.print("\n[green]✅ LLM 服务已启动[/green]")
                     console.print(f"   PID: {server.pid}")
                     console.print(f"   API: http://localhost:{port}/v1")
+                    console.print(f"   模型: {served_model_name}")
                     console.print(f"   日志: {log_file}")
 
                 return LLMLauncherResult(
@@ -312,7 +319,7 @@ class LLMLauncher:
                     server=server,
                     pid=server.pid,
                     port=port,
-                    model=resolved_model,
+                    model=served_model_name,
                     log_file=log_file,
                 )
             elif success:

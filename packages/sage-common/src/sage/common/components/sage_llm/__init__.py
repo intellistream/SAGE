@@ -17,7 +17,7 @@ Architecture:
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
 """
 
-from .api_server import LLMAPIServer, LLMServerConfig
+from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
 from .client import IntelligentLLMClient, check_llm_service, get_llm_client
 from .compat import (
     EmbeddingClientAdapter,
@@ -56,6 +56,7 @@ try:
         "LLMServerConfig",
         "LLMLauncher",
         "LLMLauncherResult",
+        "get_served_model_name",
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
         "IntelligentLLMClient",
@@ -88,6 +89,7 @@ except ImportError:
         "LLMServerConfig",
         "LLMLauncher",
         "LLMLauncherResult",
+        "get_served_model_name",
         "IntelligentLLMClient",
         "check_llm_service",
         "get_llm_client",
