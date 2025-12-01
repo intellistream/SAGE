@@ -130,15 +130,31 @@ class RAGChatMap(MapFunction):
 
             db_path = P(self._manifest_data["db_path"])
 
-            # Initialize embedder
+            # Initialize embedder - 根据 manifest 中的配置选择正确的方法
             embed_config = self._manifest_data.get("embedding", {})
             embedding_method = embed_config.get("method", "hash")
-            embedding_model = embed_config.get("model_name")
+            embedding_model = embed_config.get(
+                "model"
+            )  # 注意: studio 存的是 "model" 不是 "model_name"
+            embedding_dim = embed_config.get("dim", 384)
 
-            if embedding_method in ["hf", "openai", "jina"]:
-                self._embedder = get_embedding_model(embedding_method, model_name=embedding_model)
+            if embedding_method == "openai":
+                # 使用本地 embedding 服务
+                from sage.common.config.ports import SagePorts
+
+                embedding_port = SagePorts.EMBEDDING_DEFAULT
+                self._embedder = get_embedding_model(
+                    "openai",
+                    model=embedding_model or "BAAI/bge-m3",
+                    base_url=f"http://localhost:{embedding_port}/v1",
+                    api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
+                )
+                logger.info(f"Using OpenAI-compatible embedding service at port {embedding_port}")
+            elif embedding_method in ["hf", "jina"]:
+                self._embedder = get_embedding_model(embedding_method, model=embedding_model)
             else:
-                self._embedder = get_embedding_model(embedding_method, dim=384)
+                # hash 或其他方法
+                self._embedder = get_embedding_model(embedding_method, dim=embedding_dim)
 
             # Load SageDB
             self._db = SageDB(self._embedder.get_dim())
