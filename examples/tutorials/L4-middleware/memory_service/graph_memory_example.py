@@ -67,7 +67,9 @@ def example_basic_graph_collection():
     collection.add_edge("ai", "ml", weight=1.0)  # ML is a core part of AI
     collection.add_edge("ai", "nlp", weight=0.9)  # NLP is a major AI subfield
     collection.add_edge("ml", "dl", weight=0.95)  # DL is a key ML technique
-    collection.add_edge("nlp", "transformers", weight=0.9)  # Transformers are key for NLP
+    collection.add_edge(
+        "nlp", "transformers", weight=0.9
+    )  # Transformers are key for NLP
     collection.add_edge("dl", "transformers", weight=0.8)  # Transformers use DL
 
     # Retrieve neighbors of a concept

@@ -61,7 +61,7 @@ class TestUnifiedClientConfig:
 
         assert config.llm_base_url == "http://localhost:8001/v1"
         assert config.llm_model == "qwen-7b"
-        assert config.llm_api_key == "test-key"
+        assert config.llm_api_key == "test-key"  # pragma: allowlist secret
         assert config.embedding_base_url == "http://localhost:8090/v1"
         assert config.embedding_model == "bge-m3"
         assert config.mode == UnifiedClientMode.CONTROL_PLANE
@@ -211,7 +211,7 @@ class TestUnifiedClientEndpointDetection:
         {
             "SAGE_CHAT_BASE_URL": "http://test:8001/v1",
             "SAGE_CHAT_MODEL": "test-model",
-            "SAGE_CHAT_API_KEY": "test-key",
+            "SAGE_CHAT_API_KEY": "test-key",  # pragma: allowlist secret
         },
     )
     def test_detect_llm_endpoint_from_env(self):
@@ -220,7 +220,7 @@ class TestUnifiedClientEndpointDetection:
 
         assert base_url == "http://test:8001/v1"
         assert model == "test-model"
-        assert api_key == "test-key"
+        assert api_key == "test-key"  # pragma: allowlist secret
 
     @patch("sage.common.components.sage_llm.unified_client.os.environ", {})
     @patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=True)

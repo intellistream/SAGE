@@ -56,7 +56,9 @@ class RAGUnlearningSystem(BaseService):
 
         self.logger.info("RAGUnlearningSystem initialized")
 
-    def initialize_rag_corpus(self, collection_name: str, documents: list[dict[str, Any]]) -> bool:
+    def initialize_rag_corpus(
+        self, collection_name: str, documents: list[dict[str, Any]]
+    ) -> bool:
         """
         初始化 RAG corpus
 
@@ -107,7 +109,9 @@ class RAGUnlearningSystem(BaseService):
             # Index is initialized through individual inserts, no need for init_index
             self.manager.store_collection(collection_name)
 
-            self.logger.info(f"✓ Initialized RAG corpus with {len(documents)} documents")
+            self.logger.info(
+                f"✓ Initialized RAG corpus with {len(documents)} documents"
+            )
             self._audit_log("INIT_CORPUS", collection_name, len(documents))
 
             return True
@@ -198,7 +202,9 @@ class RAGUnlearningSystem(BaseService):
                         all_vectors.append(vector)
                         all_ids.append(vid)
 
-            self.logger.info(f"Starting DP unlearning for {len(valid_ids)} documents...")
+            self.logger.info(
+                f"Starting DP unlearning for {len(valid_ids)} documents..."
+            )
 
             # 执行 DP 遗忘
             vectors_array = np.array(vectors_to_forget)
@@ -362,7 +368,9 @@ class RAGUnlearningSystem(BaseService):
                     "message": "No malicious content found",
                 }
 
-            self.logger.warning(f"Detected {len(malicious_docs)} documents with malicious content")
+            self.logger.warning(
+                f"Detected {len(malicious_docs)} documents with malicious content"
+            )
 
             # 遗忘恶意内容
             result = self.forget_documents(
@@ -382,7 +390,9 @@ class RAGUnlearningSystem(BaseService):
         """获取审计日志"""
         return self.audit_log
 
-    def _audit_log(self, operation: str, collection: str, count: int, extra: dict | None = None):
+    def _audit_log(
+        self, operation: str, collection: str, count: int, extra: dict | None = None
+    ):
         """记录审计事件"""
         log_entry = {
             "timestamp": datetime.now().isoformat(),

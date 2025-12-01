@@ -23,7 +23,8 @@ class SimpleSource(SourceFunction):
         self.count = 0
         # 在测试模式下减少数据量，加快测试速度
         test_mode = (
-            os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true"
+            os.getenv("SAGE_EXAMPLES_MODE") == "test"
+            or os.getenv("SAGE_TEST_MODE") == "true"
         )
         self.max_count = 100 if test_mode else 10000
 
@@ -53,7 +54,8 @@ class ConsoleSink(SinkFunction):
         super().__init__(**kwargs)
         # 在测试模式下限制输出
         self.test_mode = (
-            os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true"
+            os.getenv("SAGE_EXAMPLES_MODE") == "test"
+            or os.getenv("SAGE_TEST_MODE") == "true"
         )
         self.count = 0
 
@@ -88,7 +90,10 @@ def example_default_scheduler():
     print("=" * 60 + "\n")
 
     # 检查是否在测试模式
-    test_mode = os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true"
+    test_mode = (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    )
 
     # 检查 JobManager 是否可用
     if not check_jobmanager_available():

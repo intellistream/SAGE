@@ -62,7 +62,9 @@ class RAGMemoryManager:
             self.rag_collection.batch_insert_data(texts, metadatas)
             # Generate vectors externally
             embedding_model = apply_embedding_model("mockembedder")
-            vectors = [self._normalize_vector(embedding_model.encode(text)) for text in texts]
+            vectors = [
+                self._normalize_vector(embedding_model.encode(text)) for text in texts
+            ]
             item_ids = self.rag_collection.get_all_ids()
             self.rag_collection.init_index("test_index", vectors, item_ids)
 

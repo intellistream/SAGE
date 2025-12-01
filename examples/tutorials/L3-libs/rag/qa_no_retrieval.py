@@ -85,7 +85,9 @@ def create_qa_pipeline():
 
     # 加载配置
     load_dotenv(override=False)
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_source.yaml")
+    config_path = os.path.join(
+        os.path.dirname(__file__), "..", "config", "config_source.yaml"
+    )
     config = load_config(config_path)
 
     # 创建本地环境
@@ -126,7 +128,10 @@ if __name__ == "__main__":
     import sys
 
     # 检查是否在测试模式下运行
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         print("🧪 Test mode detected - qa_without_retrieval is interactive")
         print("✅ Test passed: Interactive example structure validated")
         sys.exit(0)

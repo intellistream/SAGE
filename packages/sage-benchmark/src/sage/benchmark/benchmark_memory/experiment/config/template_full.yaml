@@ -28,7 +28,7 @@ runtime:
   # Embedding 服务配置
   embedding_base_url: ""         # REQUIRED when action needs embedding
   embedding_model: ""            # REQUIRED when action needs embedding
-  
+
   # 测试 Prompt 模板
   prompt_template: |
     Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
@@ -156,13 +156,13 @@ operators:
     # entity 参数
     ner_model: "spacy"           # spacy | llm
     entity_types:
-      - "PERSON"
-      - "ORG"
-      - "LOC"
-      - "EVENT"
-      - "GPE"
-      - "DATE"
-      - "TIME"
+    - "PERSON"
+    - "ORG"
+    - "LOC"
+    - "EVENT"
+    - "GPE"
+    - "DATE"
+    - "TIME"
 
     # persona 参数
     persona_prompt: |
@@ -174,7 +174,7 @@ operators:
 
       Return a JSON object with speaker names as keys, each containing:
       - "traits": list of personality traits
-      - "preferences": list of likes/dislikes  
+      - "preferences": list of likes/dislikes
       - "facts": list of factual information about the person
 
       Example: {"Alice": {"traits": ["friendly"], "preferences": ["coffee"], "facts": ["works at Google"]}}
@@ -216,20 +216,20 @@ operators:
 
     # -------------------- multi_embed action --------------------
     embeddings:
-      - name: "semantic"
-        model: "BAAI/bge-m3"
-        weight: 0.6
-      - name: "emotion"
-        model: "BAAI/bge-m3"
-        weight: 0.4
+    - name: "semantic"
+      model: "BAAI/bge-m3"
+      weight: 0.6
+    - name: "emotion"
+      model: "BAAI/bge-m3"
+      weight: 0.4
 
     # -------------------- validate action --------------------
     rules:
-      - type: "length"
-        min: 1
-        max: 10000
-      - type: "duplicate"
-        threshold: 0.95
+    - type: "length"
+      min: 1
+      max: 10000
+    - type: "duplicate"
+      threshold: 0.95
 
   # ============================================================
   # D3: PostInsert 算子配置
@@ -249,7 +249,7 @@ operators:
 
     # -------------------- distillation action --------------------
     distillation_topk: 10
-    distillation_threshold: null
+    distillation_threshold:
     distillation_prompt: |
       Given the following related memories, identify which memories can be consolidated or removed.
       Keep the most important and unique information.
@@ -268,8 +268,8 @@ operators:
 
     # -------------------- stats action --------------------
     stats_fields:
-      - "count"
-      - "avg_len"
+    - "count"
+    - "avg_len"
 
     # -------------------- reflection action --------------------
     # trigger_mode: threshold | periodic | count | manual
@@ -380,12 +380,12 @@ operators:
 
     # hybrid 配置
     factors:
-      - type: "time"
-        weight: 0.3
-      - type: "frequency"
-        weight: 0.3
-      - type: "importance"
-        weight: 0.4
+    - type: "time"
+      weight: 0.3
+    - type: "frequency"
+      weight: 0.3
+    - type: "importance"
+      weight: 0.4
 
     # 淘汰配置
     retention_min: 50
@@ -402,27 +402,27 @@ operators:
 
     # hierarchical 配置 (MemoryBank)
     hierarchy_levels:
-      - name: "daily"
-        window: 86400
-        prompt: |
-          Summarize today's conversations and events:
-          {memory_list}
+    - name: "daily"
+      window: 86400
+      prompt: |
+        Summarize today's conversations and events:
+        {memory_list}
 
-          Output JSON: {"summary": "..."}
-      - name: "weekly"
-        window: 604800
-        prompt: |
-          Summarize this week's key events and insights:
-          {memory_list}
+        Output JSON: {"summary": "..."}
+    - name: "weekly"
+      window: 604800
+      prompt: |
+        Summarize this week's key events and insights:
+        {memory_list}
 
-          Output JSON: {"summary": "..."}
-      - name: "global"
-        window: -1
-        prompt: |
-          Update the overall summary based on all information:
-          {memory_list}
+        Output JSON: {"summary": "..."}
+    - name: "global"
+      window: -1
+      prompt: |
+        Update the overall summary based on all information:
+        {memory_list}
 
-          Output JSON: {"summary": "..."}
+        Output JSON: {"summary": "..."}
 
     # incremental 配置 (SCM4LLMs)
     incremental_prompt: |
@@ -491,8 +491,8 @@ operators:
     # 关键词提取配置
     extractor: "spacy"           # spacy | nltk | llm
     extract_types:
-      - "NOUN"
-      - "PROPN"
+    - "NOUN"
+    - "PROPN"
     max_keywords: 10
     keyword_prompt: |
       Extract keywords from this query:
@@ -528,9 +528,9 @@ operators:
 
     # -------------------- multi_embed action --------------------
     embeddings:
-      - name: "semantic"
-        model: "BAAI/bge-m3"
-        weight: 0.6
+    - name: "semantic"
+      model: "BAAI/bge-m3"
+      weight: 0.6
     output_format: "dict"
     match_insert_config: true
 
@@ -552,13 +552,13 @@ operators:
 
     # rule 策略配置
     split_keywords:
-      - "and"
-      - "or"
-      - "also"
-      - "additionally"
-      - "moreover"
-      - "furthermore"
-      - "besides"
+    - "and"
+    - "or"
+    - "also"
+    - "additionally"
+    - "moreover"
+    - "furthermore"
+    - "besides"
 
     # -------------------- route action --------------------
     # route_strategy: keyword | classifier | llm
@@ -569,12 +569,12 @@ operators:
 
     # keyword 路由规则
     keyword_rules:
-      - keywords: ["remember", "recall", "last time", "before", "previously"]
-        target: "long_term_memory"
-      - keywords: ["just", "now", "recently", "today", "moment ago"]
-        target: "short_term_memory"
-      - keywords: ["know", "fact", "what is", "who is", "define"]
-        target: "knowledge_base"
+    - keywords: ["remember", "recall", "last time", "before", "previously"]
+      target: "long_term_memory"
+    - keywords: ["just", "now", "recently", "today", "moment ago"]
+      target: "short_term_memory"
+    - keywords: ["know", "fact", "what is", "who is", "define"]
+      target: "knowledge_base"
 
     # classifier 配置
     classifier_model: "intent-classifier"
@@ -598,9 +598,9 @@ operators:
 
     # -------------------- validate action --------------------
     rules:
-      - type: "length"
-        min: 1
-        max: 1000
+    - type: "length"
+      min: 1
+      max: 1000
     on_fail: "default"
     default_query: "Hello"
 
@@ -625,8 +625,8 @@ operators:
 
     # 对话格式化 Prompt
     conversation_format_prompt: |
-      Below is a conversation between two people. 
-      The conversation takes place over multiple days and the date of each 
+      Below is a conversation between two people.
+      The conversation takes place over multiple days and the date of each
       conversation is written at the beginning of the conversation.
 
     # -------------------- rerank action --------------------
@@ -634,8 +634,8 @@ operators:
     rerank_type: "weighted"
 
     # semantic / cross_encoder 配置
-    rerank_model: null
-    cross_encoder_model: null
+    rerank_model:
+    cross_encoder_model:
     batch_size: 32
 
     # time_weighted 配置
@@ -650,18 +650,18 @@ operators:
 
     # weighted 配置 (Generative Agents)
     factors:
-      - name: "recency"
-        weight: 0.3
-        decay_type: "exponential"
-        decay_rate: 0.995
-      - name: "importance"
-        weight: 0.3
-        field: "importance_score"
-      - name: "relevance"
-        weight: 0.4
+    - name: "recency"
+      weight: 0.3
+      decay_type: "exponential"
+      decay_rate: 0.995
+    - name: "importance"
+      weight: 0.3
+      field: "importance_score"
+    - name: "relevance"
+      weight: 0.4
 
     # 通用配置
-    top_k: null
+    top_k:
     score_field: "rerank_score"
 
     # -------------------- filter action --------------------
@@ -694,28 +694,28 @@ operators:
 
     # -------------------- augment action --------------------
     augment_types:
-      - "reflection"
-      - "context"
-      - "metadata"
-      - "temporal"
+    - "reflection"
+    - "context"
+    - "metadata"
+    - "temporal"
     context_window: 2
     metadata_fields:
-      - "importance_score"
-      - "source"
+    - "importance_score"
+    - "source"
     temporal_format: "relative"
 
     # -------------------- compress action --------------------
     # compress_strategy: llmlingua | extractive | abstractive
     compress_strategy: "extractive"
     compression_ratio: 0.5
-    compress_model: null
+    compress_model:
     compress_max_tokens: 1000
     preserve_order: true
 
     compress_abstractive_prompt: |
       Compress the following memories while preserving key information:
       {memories}
-      
+
       Compressed result:
 
     # -------------------- format action --------------------
