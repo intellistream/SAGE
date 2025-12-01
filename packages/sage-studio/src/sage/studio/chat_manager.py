@@ -38,7 +38,7 @@ class ChatModeManager(StudioManager):
         self.llm_enabled = os.getenv("SAGE_STUDIO_LLM", "true").lower() in ("true", "1", "yes")
         # Use Qwen2.5-0.5B as default - very small and fast
         self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-        self.llm_port = SagePorts.LLM_DEFAULT  # OpenAI-compatible API port
+        self.llm_port = SagePorts.BENCHMARK_LLM  # Unified default port (8901)
 
     # ------------------------------------------------------------------
     # Fine-tuned Model Discovery
@@ -102,12 +102,12 @@ class ChatModeManager(StudioManager):
         return None
 
     # ------------------------------------------------------------------
-    # Local LLM Service helpers (via sageLLM)
+    # Local LLM Service helpers (via sageLLM LLMLauncher)
     # ------------------------------------------------------------------
     def _start_llm_service(self, model: str | None = None, use_finetuned: bool = False) -> bool:
         """Start local LLM service via sageLLM.
 
-        Uses sageLLM's API server to start a local LLM HTTP server.
+        Uses sageLLM's unified LLMLauncher to start a local LLM HTTP server.
         The server provides OpenAI-compatible API at http://localhost:{port}/v1
 
         Args:
@@ -118,10 +118,10 @@ class ChatModeManager(StudioManager):
             True if started successfully, False otherwise
         """
         try:
-            from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+            from sage.common.components.sage_llm import LLMLauncher
         except ImportError:
             console.print(
-                "[yellow]⚠️  sageLLM API Server 不可用，跳过本地 LLM 启动[/yellow]\n"
+                "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
                 "提示：确保已安装 sage-common 包"
             )
             return False
@@ -129,145 +129,56 @@ class ChatModeManager(StudioManager):
         # Determine which model to use
         model_name = model or self.llm_model
 
-        # If use_finetuned is requested, try to use a fine-tuned model
+        # Get finetuned models list if needed
+        finetuned_models = None
         if use_finetuned and not model:
             finetuned_models = self.list_finetuned_models()
-            if finetuned_models:
-                # Use the most recent fine-tuned model
-                latest_model = sorted(
-                    finetuned_models, key=lambda m: m["completed_at"] or "", reverse=True
-                )[0]
-                model_name = latest_model["path"]
-                console.print(f"[cyan]🎓 使用微调模型: {latest_model['name']}[/cyan]")
-                console.print(f"   基础模型: {latest_model['base_model']}")
-                console.print(f"   类型: {latest_model['type']}")
-            else:
+            if not finetuned_models:
                 console.print("[yellow]⚠️  未找到可用的微调模型，使用默认模型[/yellow]")
 
-        # Check if this is a local path (fine-tuned model)
-        is_local_path = Path(model_name).exists()
+        # Use unified launcher
+        result = LLMLauncher.launch(
+            model=model_name,
+            port=self.llm_port,
+            gpu_memory=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.7")),
+            tensor_parallel=int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
+            background=True,
+            use_finetuned=use_finetuned,
+            finetuned_models=finetuned_models,
+            verbose=True,
+            check_existing=False,  # We handle existing check at Studio level
+        )
 
-        console.print("[blue]🚀 启动本地 LLM 服务（通过 sageLLM）...[/blue]")
-        console.print(f"   模型: {model_name}")
-        console.print(f"   端口: {self.llm_port}")
-
-        # Resolve model path - use cache if available
-        resolved_model_path = model_name
-        if not is_local_path:
-            try:
-                from sage.common.model_registry import vllm_registry
-
-                try:
-                    cached_path = vllm_registry.get_model_path(model_name)
-                    console.print(f"   [green]✓[/green] 使用本地缓存: {cached_path}")
-                    resolved_model_path = str(cached_path)  # Convert Path to string for vLLM
-                except Exception:
-                    console.print("   [yellow]⚠️  模型未缓存，将从 HuggingFace 下载...[/yellow]")
-                    console.print(
-                        f"   下载位置: ~/.sage/models/vllm/{model_name.replace('/', '__')}/"
-                    )
-                    # Keep original model_name, vLLM will download it
-            except ImportError:
-                pass  # Registry not available, will download during setup
+        if result.success:
+            self.llm_service = result.server
+            return True
         else:
-            console.print("   [green]✓[/green] 使用本地微调模型")
-
-        try:
-            # Create sageLLM API server configuration
-            # Use resolved_model_path which points to local cache if available
-            config = LLMServerConfig(
-                model=resolved_model_path,  # Use cached path to avoid re-download
-                backend="vllm",  # Default to vLLM, can be made configurable
-                host="0.0.0.0",
-                port=self.llm_port,
-                gpu_memory_utilization=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
-                max_model_len=4096,
-                tensor_parallel_size=int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
-                disable_log_stats=True,
-            )
-
-            # Create and start API server
-            self.llm_service = LLMAPIServer(config)
-            success = self.llm_service.start(background=True)
-
-            if success:
-                console.print("[green]✅ 本地 LLM 服务已启动[/green]")
-
-                # Set environment variables for IntelligentLLMClient
-                os.environ["SAGE_CHAT_BASE_URL"] = f"http://127.0.0.1:{self.llm_port}/v1"
-                # Set model name to match what vLLM is actually serving
-                # vLLM registers the model with the path we pass (resolved_model_path)
-                os.environ["SAGE_CHAT_MODEL"] = resolved_model_path
-
-                return True
-            else:
-                console.print("[red]❌ LLM 服务启动失败[/red]")
-                return False
-
-        except Exception as exc:
-            console.print(f"[red]❌ 启动 LLM 服务失败: {exc}[/red]")
             console.print("[yellow]💡 提示：安装推理引擎后可使用本地服务[/yellow]")
             console.print("   示例：pip install vllm  # 安装 vLLM 引擎")
             return False
 
     def _stop_llm_service(self) -> bool:
         """Stop local LLM service."""
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+        except ImportError:
+            return True
+
         # First, try to stop via self.llm_service if it exists
         if self.llm_service is not None:
             console.print("[blue]🛑 停止本地 LLM 服务...[/blue]")
             try:
                 self.llm_service.stop()
                 self.llm_service = None
+                LLMLauncher.clear_service_info()
                 console.print("[green]✅ 本地 LLM 服务已停止[/green]")
                 return True
             except Exception as exc:
                 console.print(f"[red]❌ 停止 LLM 服务失败: {exc}[/red]")
                 return False
 
-        # If llm_service is None, check if there's an orphaned vLLM process
-        # This handles restart scenarios where the old process wasn't tracked
-        import subprocess
-
-        try:
-            # Check for vLLM processes on the LLM port
-            llm_port_str = f":{SagePorts.LLM_DEFAULT}"
-            result = subprocess.run(
-                ["lsof", "-ti", llm_port_str],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                pid = int(result.stdout.strip().split()[0])
-                console.print(f"[yellow]发现遗留的 LLM 进程 (PID: {pid})，正在清理...[/yellow]")
-                subprocess.run(["kill", str(pid)], timeout=5)
-                import time
-
-                # Wait for port to actually be freed (up to 10 seconds)
-                for i in range(10):
-                    time.sleep(1)
-                    check_result = subprocess.run(
-                        ["lsof", "-ti", llm_port_str],
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                    )
-                    if check_result.returncode != 0 or not check_result.stdout.strip():
-                        # Port is free
-                        console.print("[green]✅ 遗留 LLM 进程已清理[/green]")
-                        return True
-
-                # Timeout - force kill
-                console.print("[yellow]⚠️  进程未响应 SIGTERM，使用 SIGKILL 强制终止...[/yellow]")
-                subprocess.run(["kill", "-9", str(pid)], timeout=5)
-                time.sleep(2)
-                console.print("[green]✅ 遗留 LLM 进程已清理[/green]")
-                return True
-        except Exception as exc:
-            console.print(f"[yellow]检查遗留进程失败: {exc}[/yellow]")
-
-        console.print("[yellow]本地 LLM 服务未运行[/yellow]")
-        return True
+        # Use LLMLauncher to stop any running service
+        return LLMLauncher.stop(verbose=True)
 
     # ------------------------------------------------------------------
     # Gateway helpers

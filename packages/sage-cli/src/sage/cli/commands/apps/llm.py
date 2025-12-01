@@ -25,9 +25,14 @@ except Exception:  # pragma: no cover - handled gracefully at runtime
     VLLMService = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+    from sage.common.components.sage_llm import (
+        LLMAPIServer,
+        LLMLauncher,
+        LLMServerConfig,
+    )
 except Exception:  # pragma: no cover
     LLMAPIServer = None  # type: ignore
+    LLMLauncher = None  # type: ignore
     LLMServerConfig = None  # type: ignore
 
 # Import config subcommands
@@ -39,8 +44,6 @@ model_app = typer.Typer(help="📦 模型管理")
 
 # PID file for tracking background service
 SAGE_DIR = Path.home() / ".sage"
-LLM_PID_FILE = SAGE_DIR / "llm_service.pid"
-LLM_CONFIG_FILE = SAGE_DIR / "llm_service_config.json"
 LOG_DIR = SAGE_DIR / "logs"
 
 
@@ -48,36 +51,6 @@ def _ensure_dirs():
     """Ensure required directories exist."""
     SAGE_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def _save_service_info(pid: int, config: dict):
-    """Save service PID and config for later management."""
-    _ensure_dirs()
-    LLM_PID_FILE.write_text(str(pid))
-    LLM_CONFIG_FILE.write_text(json.dumps(config, indent=2))
-
-
-def _load_service_info() -> tuple[int | None, dict | None]:
-    """Load saved service info."""
-    pid = None
-    config = None
-    if LLM_PID_FILE.exists():
-        try:
-            pid = int(LLM_PID_FILE.read_text().strip())
-        except (ValueError, OSError):
-            pass
-    if LLM_CONFIG_FILE.exists():
-        try:
-            config = json.loads(LLM_CONFIG_FILE.read_text())
-        except (json.JSONDecodeError, OSError):
-            pass
-    return pid, config
-
-
-def _clear_service_info():
-    """Clear saved service info."""
-    LLM_PID_FILE.unlink(missing_ok=True)
-    LLM_CONFIG_FILE.unlink(missing_ok=True)
 
 
 # Add subcommands
@@ -389,75 +362,33 @@ def serve_llm(
         client = UnifiedInferenceClient.create_auto()
         response = client.chat([{"role": "user", "content": "Hello"}])
     """
-    if LLMAPIServer is None:
-        console.print("[red]❌ LLMAPIServer 不可用，请确保已安装 sage-common[/red]")
+    if LLMLauncher is None:
+        console.print("[red]❌ LLMLauncher 不可用，请确保已安装 sage-common[/red]")
         raise typer.Exit(1)
 
-    # Auto-configure HuggingFace mirror for China mainland users
-    ensure_hf_mirror_configured()
-    _ensure_dirs()
-
-    # Check if service already running
-    import psutil
-
-    pid, _ = _load_service_info()
-    if pid and psutil.pid_exists(pid):
-        console.print(f"[yellow]⚠️  LLM 服务已在运行中 (PID: {pid})[/yellow]")
-        console.print("使用 'sage llm stop' 停止现有服务，或 'sage llm status' 查看状态")
-        raise typer.Exit(1)
-
-    # Create server config
-    config = LLMServerConfig(
+    # Launch LLM service using unified launcher
+    result = LLMLauncher.launch(
         model=model,
-        backend="vllm",
-        host=host,
         port=port,
-        gpu_memory_utilization=gpu_memory,
+        host=host,
+        gpu_memory=gpu_memory,
         max_model_len=max_model_len,
-        tensor_parallel_size=tensor_parallel,
+        tensor_parallel=tensor_parallel,
+        background=background,
+        verbose=True,
     )
 
-    console.print("[blue]🚀 启动 LLM 服务 (sageLLM)[/blue]")
-    console.print(f"   模型: {model}")
-    console.print(f"   端口: {port}")
-    console.print(f"   模式: {'后台' if background else '前台'}")
-
-    server = LLMAPIServer(config)
+    if not result.success:
+        if result.error and "already running" not in result.error:
+            console.print(f"[dim]请检查日志: {LOG_DIR / f'llm_api_server_{port}.log'}[/dim]")
+        raise typer.Exit(1)
 
     if background:
-        log_file = LOG_DIR / f"llm_api_server_{port}.log"
-        success = server.start(background=True, log_file=log_file)
-
-        if success:
-            # Save service info for management
-            _save_service_info(
-                server.pid,
-                {
-                    "model": model,
-                    "port": port,
-                    "host": host,
-                    "log_file": str(log_file),
-                },
-            )
-
-            console.print("\n[green]✅ LLM 服务已启动[/green]")
-            console.print(f"   PID: {server.pid}")
-            console.print(f"   API: http://localhost:{port}/v1")
-            console.print(f"   日志: {log_file}")
-            console.print("\n[dim]使用 'sage llm status' 查看状态[/dim]")
-            console.print("[dim]使用 'sage llm stop' 停止服务[/dim]")
-        else:
-            console.print("[red]❌ LLM 服务启动失败[/red]")
-            console.print(f"[dim]请检查日志: {LOG_DIR / f'llm_api_server_{port}.log'}[/dim]")
-            raise typer.Exit(1)
+        console.print("\n[dim]使用 'sage llm status' 查看状态[/dim]")
+        console.print("[dim]使用 'sage llm stop' 停止服务[/dim]")
     else:
-        # Foreground mode - blocking
-        console.print("\n[yellow]前台模式运行中，按 Ctrl+C 停止...[/yellow]")
-        try:
-            server.start(background=False)
-        except KeyboardInterrupt:
-            console.print("\n[yellow]收到中断信号，正在停止...[/yellow]")
-            server.stop()
+        # Foreground mode completed
+        pass
 
     # Optionally start Embedding service
     if with_embedding:
@@ -496,49 +427,12 @@ def stop_llm(
     force: bool = typer.Option(False, "--force", "-f", help="强制停止"),
 ):
     """停止 LLM 推理服务。"""
-    import psutil
+    if LLMLauncher is None:
+        console.print("[red]❌ LLMLauncher 不可用[/red]")
+        raise typer.Exit(1)
 
-    pid, config = _load_service_info()
-
-    if not pid:
-        console.print("[dim]没有运行中的 LLM 服务[/dim]")
-        return
-
-    if not psutil.pid_exists(pid):
-        console.print(f"[dim]服务进程 (PID: {pid}) 已不存在，清理记录...[/dim]")
-        _clear_service_info()
-        return
-
-    console.print(f"[blue]🛑 停止 LLM 服务 (PID: {pid})...[/blue]")
-
-    try:
-        proc = psutil.Process(pid)
-        # Terminate children first
-        children = proc.children(recursive=True)
-        for child in children:
-            try:
-                child.terminate()
-            except psutil.NoSuchProcess:
-                pass
-
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-            console.print("[green]✅ LLM 服务已停止[/green]")
-        except psutil.TimeoutExpired:
-            if force:
-                proc.kill()
-                console.print("[yellow]⚠️  LLM 服务已强制停止[/yellow]")
-            else:
-                console.print("[yellow]⚠️  服务停止超时，使用 --force 强制停止[/yellow]")
-                return
-
-        _clear_service_info()
-    except psutil.NoSuchProcess:
-        console.print("[dim]服务进程已不存在[/dim]")
-        _clear_service_info()
-    except Exception as exc:
-        console.print(f"[red]❌ 停止服务失败: {exc}[/red]")
+    success = LLMLauncher.stop(verbose=True)
+    if not success:
         raise typer.Exit(1)
 
 
@@ -549,7 +443,11 @@ def status_llm():
 
     import psutil
 
-    pid, config = _load_service_info()
+    if LLMLauncher is None:
+        console.print("[red]❌ LLMLauncher 不可用[/red]")
+        raise typer.Exit(1)
+
+    pid, config = LLMLauncher.load_service_info()
 
     table = Table(title="LLM 服务状态", show_header=True, header_style="bold")
     table.add_column("属性")
@@ -612,7 +510,11 @@ def view_logs(
     """查看 LLM 服务日志。"""
     import os
 
-    _, config = _load_service_info()
+    if LLMLauncher is None:
+        console.print("[red]❌ LLMLauncher 不可用[/red]")
+        raise typer.Exit(1)
+
+    _, config = LLMLauncher.load_service_info()
 
     if config and config.get("log_file"):
         log_file = Path(config["log_file"])
