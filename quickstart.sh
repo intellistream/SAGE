@@ -175,6 +175,7 @@ main() {
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
+    local install_vllm=$(should_install_vllm)
 
     # 导出 pip 镜像配置为环境变量，供子脚本使用
     export USE_PIP_MIRROR="$use_mirror"
@@ -258,7 +259,7 @@ main() {
     fi
 
     # 执行安装
-    install_sage "$mode" "$environment" "$clean_cache"
+    install_sage "$mode" "$environment" "$clean_cache" "$install_vllm"
 
     # 验证安装
     if run_comprehensive_verification; then

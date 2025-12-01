@@ -256,6 +256,8 @@ client = UnifiedInferenceClient.create_auto()
 
 ### 启动服务栈
 
+> ⚠️ `sage llm run` 与 `VLLMService` 依赖 `isage-common[vllm]`（带 vLLM 0.10.x 与 torch 2.4+）。如需本地阻塞式服务，请先运行 `pip install isage-common[vllm]`。
+
 ```bash
 # 推荐：一键启动/管理
 sage stack start                                   # 默认模型（LLM + Embedding）

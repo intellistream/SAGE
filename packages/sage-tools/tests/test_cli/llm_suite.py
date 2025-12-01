@@ -7,26 +7,7 @@ from unittest.mock import patch
 
 from sage.cli.main import app as sage_app
 
-from .helpers import CLITestCase, DummyProcess
-
-
-def _patch_llm_helpers() -> list:
-    fake_processes = [DummyProcess(pid=4321, cmd=["vllm", "serve", "model"])]
-
-    return [
-        lambda: patch(
-            "sage.tools.cli.commands.llm._is_service_running",
-            return_value=True,
-        ),
-        lambda: patch(
-            "sage.tools.cli.commands.llm._find_llm_processes",
-            return_value=fake_processes,
-        ),
-        lambda: patch(
-            "sage.tools.cli.commands.llm._test_api_endpoint",
-            return_value=None,
-        ),
-    ]
+from .helpers import CLITestCase
 
 
 def _raise_not_implemented(*_args, **_kwargs):
@@ -34,7 +15,6 @@ def _raise_not_implemented(*_args, **_kwargs):
 
 
 def collect_cases() -> list[CLITestCase]:
-    status_patches = _patch_llm_helpers()
     fake_info = SimpleNamespace(
         model_id="demo/model",
         revision="main",
@@ -47,12 +27,6 @@ def collect_cases() -> list[CLITestCase]:
 
     return [
         CLITestCase(
-            "sage llm status",
-            ["llm", "status"],
-            app=sage_app,
-            patch_factories=status_patches,
-        ),
-        CLITestCase(
             "sage llm model show --json",
             ["llm", "model", "show", "--json"],
             app=sage_app,
@@ -61,6 +35,25 @@ def collect_cases() -> list[CLITestCase]:
                     "sage.tools.cli.commands.llm.vllm_registry.list_models",
                     return_value=[fake_info],
                 )
+            ],
+        ),
+        CLITestCase(
+            "sage llm run (stub)",
+            ["llm", "run", "--model", "demo/model"],
+            app=sage_app,
+            patch_factories=[
+                lambda: patch(
+                    "sage.tools.cli.commands.llm.VLLMService",
+                    return_value=SimpleNamespace(
+                        setup=lambda: None,
+                        generate=lambda *_a, **_k: [{"generations": [{"text": "hi"}]}],
+                        cleanup=lambda: None,
+                    ),
+                ),
+                lambda: patch(
+                    "sage.tools.cli.commands.llm.typer.prompt",
+                    return_value="",
+                ),
             ],
         ),
         CLITestCase(
@@ -103,6 +96,7 @@ def collect_cases() -> list[CLITestCase]:
                     "sage.tools.cli.commands.llm.VLLMService",
                     return_value=SimpleNamespace(
                         fine_tune=_raise_not_implemented,
+                        setup=lambda: None,
                         cleanup=lambda: None,
                     ),
                 )

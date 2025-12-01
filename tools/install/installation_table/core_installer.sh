@@ -31,9 +31,99 @@ fi
 # 设置pip命令
 PIP_CMD="${PIP_CMD:-pip3}"
 
+# 安装 vLLM 运行时依赖（基于 optional-dependencies[vllm]）
+install_vllm_optional_dependencies() {
+    local pip_args="$1"
+    local pyproject="packages/sage-common/pyproject.toml"
+    local extra_name="vllm"
+    local python_cmd="${PYTHON_CMD:-python3}"
+
+    if [ ! -f "$pyproject" ]; then
+        log_warn "跳过 vLLM 依赖安装：找不到 $pyproject" "INSTALL"
+        return 0
+    fi
+
+    local deps_output
+    if ! deps_output=$(
+        PYPROJECT_PATH="$pyproject" \
+        EXTRA_NAME="$extra_name" \
+        "$python_cmd" - <<'PY' 2>/dev/null
+import os
+import re
+from pathlib import Path
+
+pyproject = Path(os.environ['PYPROJECT_PATH'])
+extra_name = os.environ['EXTRA_NAME']
+if not pyproject.exists():
+    raise SystemExit(0)
+
+text = pyproject.read_text(encoding='utf-8')
+pattern = re.compile(rf"\b{re.escape(extra_name)}\s*=\s*\[(.*?)\]", re.S)
+match = pattern.search(text)
+if not match:
+    raise SystemExit(0)
+
+deps_block = match.group(1)
+deps = []
+for raw_line in deps_block.splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith('#'):
+        continue
+    if line.endswith(','):
+        line = line[:-1].strip()
+    if line.startswith(('"', "'")) and line.endswith(('"', "'")) and len(line) >= 2:
+        line = line[1:-1]
+    if line:
+        deps.append(line)
+
+print("\n".join(deps))
+PY
+    ); then
+        log_warn "解析 vLLM 可选依赖失败" "INSTALL"
+        return 1
+    fi
+
+    if [ -z "$deps_output" ]; then
+        log_warn "未在 pyproject.toml 中找到 vLLM 可选依赖" "INSTALL"
+        return 0
+    fi
+
+    # 转为数组（逐行）
+    local IFS=$'\n'
+    local vllm_deps=($deps_output)
+    IFS=' '
+
+    if [ ${#vllm_deps[@]} -eq 0 ]; then
+        log_warn "vLLM 依赖列表为空" "INSTALL"
+        return 0
+    fi
+
+    echo -e "${DIM}  安装 vLLM 运行时依赖 (${#vllm_deps[@]} 个)...${NC}"
+    log_info "开始安装 vLLM 运行时依赖: ${vllm_deps[*]}" "INSTALL"
+
+    local pip_cmd="$(printf %q "$PIP_CMD") install"
+    for dep in "${vllm_deps[@]}"; do
+        pip_cmd+=" $(printf %q "$dep")"
+    done
+    for arg in $pip_args; do
+        pip_cmd+=" $(printf %q "$arg")"
+    done
+
+    if log_pip_install_with_progress "INSTALL" "vLLM" "$pip_cmd"; then
+        log_success "vLLM 运行时依赖安装完成" "INSTALL"
+        echo -e "${CHECK} vLLM 运行时依赖安装完成"
+        return 0
+    else
+        log_warn "vLLM 运行时依赖安装失败，可稍后运行 pip install 'isage-common[vllm]'" "INSTALL"
+        echo -e "${WARNING} vLLM 依赖安装失败，可稍后运行: pip install 'isage-common[vllm]'${NC}"
+        return 1
+    fi
+}
+
 # 安装核心包 - 新的简化版本
 install_core_packages() {
     local install_mode="${1:-dev}"  # 默认为开发模式
+    local install_vllm="${SAGE_INSTALL_VLLM:-true}"
 
     # 准备pip安装参数
     local pip_args="--disable-pip-version-check --no-input"
@@ -703,6 +793,16 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     fi
 
     log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
+
+    echo ""
+    if [ "$install_vllm" = "true" ]; then
+        echo -e "${BLUE}🤖 安装 vLLM 运行时依赖...${NC}"
+        install_vllm_optional_dependencies "$pip_args"
+    else
+        echo -e "${DIM}跳过 vLLM 运行时依赖安装（使用 --no-vllm）${NC}"
+        log_info "用户通过 --no-vllm 跳过 vLLM 依赖安装" "INSTALL"
+    fi
+
     echo ""
     echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功！"
     echo ""

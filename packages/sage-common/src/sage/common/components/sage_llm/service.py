@@ -107,7 +107,7 @@ class VLLMService(BaseService):
     def setup(self) -> None:
         if LLM is None:
             raise RuntimeError(
-                "vLLM is not installed. Install the 'isage-middleware[vllm]' extra to enable this service."
+                "vLLM is not installed. Install the 'isage-common[vllm]' extra to enable this service."
             )
 
         self.logger.info("VLLMService setup starting")
