@@ -528,7 +528,7 @@ class ResponseGenerator:
         self.temperature = temperature
         self.finetune_model = finetune_model
         self.finetune_port = finetune_port
-        self.vllm_process = None  # 用于追踪启动的 vLLM 进程
+        self._llm_server = None  # 用于追踪 sageLLM 服务
 
         if self.backend == "mock":
             self.client = None
@@ -560,9 +560,7 @@ class ResponseGenerator:
                 raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
 
     def _setup_finetune_backend(self) -> None:
-        """设置微调模型 backend"""
-        import subprocess
-        import time
+        """设置微调模型 backend（通过 sageLLM LLMAPIServer）"""
         from pathlib import Path
 
         import requests
@@ -595,10 +593,10 @@ class ResponseGenerator:
             service_running = False
 
         if service_running:
-            console.print(f"[green]✅ vLLM 服务已在端口 {port} 运行[/green]")
+            console.print(f"[green]✅ LLM 服务已在端口 {port} 运行[/green]")
             model_to_use = self.model if self.model != "qwen-max" else None
         else:
-            console.print("[yellow]⏳ 正在启动微调模型 vLLM 服务...[/yellow]")
+            console.print("[yellow]⏳ 正在启动微调模型服务（通过 sageLLM）...[/yellow]")
 
             # 检查是否有合并模型
             if not merged_path.exists():
@@ -640,46 +638,30 @@ class ResponseGenerator:
                         f"自动合并失败: {merge_exc}\n请手动运行: sage finetune merge {model_name}"
                     ) from merge_exc
 
-            # 启动 vLLM 服务
-            cmd = [
-                "python",
-                "-m",
-                "vllm.entrypoints.openai.api_server",
-                "--model",
-                str(merged_path),
-                "--host",
-                "0.0.0.0",
-                "--port",
-                str(port),
-                "--gpu-memory-utilization",
-                "0.9",
-            ]
-
+            # 使用 sageLLM LLMAPIServer 启动服务
             try:
-                self.vllm_process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True,
-                )
-            except Exception as exc:
-                raise RuntimeError(f"启动 vLLM 服务失败: {exc}") from exc
+                from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
 
-            # 等待服务启动
-            console.print("[cyan]⏳ 等待服务启动（最多 60 秒）...[/cyan]")
-            for _i in range(60):
-                try:
-                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
-                    if response.status_code == 200:
-                        console.print("[green]✅ vLLM 服务启动成功！[/green]\n")
-                        break
-                except Exception:  # noqa: S110
-                    pass
-                time.sleep(1)
-            else:
-                if self.vllm_process:
-                    self.vllm_process.terminate()
-                raise RuntimeError("vLLM 服务启动超时（60秒）")
+                config = LLMServerConfig(
+                    model=str(merged_path),
+                    backend="vllm",
+                    host="0.0.0.0",
+                    port=port,
+                    gpu_memory_utilization=0.9,
+                )
+
+                self._llm_server = LLMAPIServer(config)
+                success = self._llm_server.start(background=True)
+
+                if not success:
+                    raise RuntimeError("LLM 服务启动失败")
+
+                console.print("[green]✅ LLM 服务启动成功（sageLLM）[/green]\n")
+
+            except ImportError:
+                raise RuntimeError("sageLLM 不可用，请确保已安装 sage-common")
+            except Exception as exc:
+                raise RuntimeError(f"启动 LLM 服务失败: {exc}") from exc
 
             # 读取实际的模型名称
             meta_file = finetune_dir / "finetune_meta.json"
@@ -692,7 +674,7 @@ class ResponseGenerator:
             else:
                 model_to_use = str(merged_path)
 
-        # 设置 LLM 客户端连接到本地 vLLM
+        # 设置 LLM 客户端连接到本地服务
         try:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
@@ -704,22 +686,20 @@ class ResponseGenerator:
             self.model = model_to_use or str(merged_path)
             console.print(f"[green]✅ 已连接到微调模型: {model_name}[/green]\n")
         except Exception as exc:
-            if self.vllm_process:
-                self.vllm_process.terminate()
-            raise RuntimeError(f"无法连接到 vLLM 服务: {exc}") from exc
+            if hasattr(self, "_llm_server") and self._llm_server:
+                self._llm_server.stop()
+            raise RuntimeError(f"无法连接到 LLM 服务: {exc}") from exc
 
     def cleanup(self) -> None:
-        """清理资源（如果启动了 vLLM 进程）"""
-        if self.vllm_process:
+        """清理资源（如果启动了 LLM 服务）"""
+        if hasattr(self, "_llm_server") and self._llm_server:
             try:
-                console.print("\n[yellow]⏳ 正在关闭 vLLM 服务...[/yellow]")
-                self.vllm_process.terminate()
-                self.vllm_process.wait(timeout=10)
-                console.print("[green]✅ vLLM 服务已关闭[/green]")
+                console.print("\n[yellow]⏳ 正在关闭 LLM 服务...[/yellow]")
+                self._llm_server.stop()
+                console.print("[green]✅ LLM 服务已关闭[/green]")
             except Exception:  # noqa: S110
-                if self.vllm_process.poll() is None:
-                    self.vllm_process.kill()
-            self.vllm_process = None
+                pass
+            self._llm_server = None
 
     def answer(
         self,

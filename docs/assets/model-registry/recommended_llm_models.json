@@ -1,0 +1,61 @@
+{
+  "updated_at": "2025-12-01",
+  "source": "SAGE",
+  "models": [
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "display_name": "Qwen2.5 0.5B Instruct",
+      "size_billion": 0.5,
+      "disk_gb": 2.8,
+      "min_gpu_memory_gb": 6,
+      "recommended_gpu": "Single 8GB",
+      "throughput_tps": 35,
+      "tags": ["default", "chat", "cn"],
+      "description": "默认开发模型，下载体积小、加载速度快，适合本地开发与单 GPU 环境。"
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-7B-Instruct",
+      "display_name": "Qwen2.5 7B Instruct",
+      "size_billion": 7,
+      "disk_gb": 14,
+      "min_gpu_memory_gb": 16,
+      "recommended_gpu": "Single 24GB",
+      "throughput_tps": 12,
+      "tags": ["chat", "general"],
+      "description": "平衡质量与成本，适合中等规模应用。支持中文/英文任务。"
+    },
+    {
+      "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+      "display_name": "Llama 3.1 8B Instruct",
+      "size_billion": 8,
+      "disk_gb": 16,
+      "min_gpu_memory_gb": 18,
+      "recommended_gpu": "Single 24GB",
+      "throughput_tps": 10,
+      "tags": ["chat", "english"],
+      "description": "英语任务表现优秀，适合需要开放许可的商业场景。"
+    },
+    {
+      "model_id": "google/gemma-2-9b-it",
+      "display_name": "Gemma 2 9B IT",
+      "size_billion": 9,
+      "disk_gb": 18,
+      "min_gpu_memory_gb": 20,
+      "recommended_gpu": "Single 24GB",
+      "throughput_tps": 9,
+      "tags": ["chat", "lightweight"],
+      "description": "轻量指令微调模型，多语种支持，推理成本低。"
+    },
+    {
+      "model_id": "BAAI/bge-m3",
+      "display_name": "BGE M3 (Embedding)",
+      "size_billion": 1.8,
+      "disk_gb": 1.9,
+      "min_gpu_memory_gb": 4,
+      "recommended_gpu": "Single 8GB",
+      "throughput_tps": 120,
+      "tags": ["embedding", "retrieval"],
+      "description": "通用多语种 Embedding 模型，支持 RAG 与搜索场景。"
+    }
+  ]
+}

@@ -534,7 +534,7 @@ class UnifiedInferenceClient:
 
         logger.warning(
             "No LLM endpoint found. Start services with:\n"
-            "  sage stack start --llm-model <model_name> --llm-port 8901\n"
+            "  sage llm serve --model <model_name> --port 8901\n"
             "Or set SAGE_CHAT_API_KEY for cloud API."
         )
         return (None, None, "")
@@ -574,7 +574,7 @@ class UnifiedInferenceClient:
 
         logger.warning(
             "No Embedding endpoint found. Start services with:\n"
-            "  sage stack start --skip-llm --embedding-model <model_name> --embedding-port 8090\n"
+            "  sage llm serve --with-embedding --embedding-model <model_name> --embedding-port 8090\n"
             "Or set SAGE_EMBEDDING_BASE_URL for remote embedding server."
         )
         return (None, None, "")

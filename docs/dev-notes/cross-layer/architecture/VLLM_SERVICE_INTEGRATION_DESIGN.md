@@ -184,7 +184,7 @@ Add `register_vllm_service(env, service_name, config)` utility (probably under `
 
 ## 7. Backward Compatibility & Migration
 
-- Legacy `sage llm start/stop/status` were removed after the migration window; script authors must switch to `sage llm run` or `sage studio start`/`sage stack start` for managed services.
+- Legacy `sage llm start/stop/status` were removed after the migration window; script authors must switch to `sage llm run` (blocking) or `sage llm serve` (background daemon) for managed services.
 - New documentation in `tools/install/VLLM_INSTALLATION_GUIDE.md` and `docs-public` describing the service-based workflow.
 - Provide sample pipeline `examples/service/vllm/vllm_service_demo.py` demonstrating registration + operator usage.
 
