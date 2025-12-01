@@ -152,6 +152,16 @@ jobs:
           # Activate conda environment
           conda activate $CONDA_ENV_NAME
 
+          # Configure pip to use Chinese mirrors (for self-hosted runner in China)
+          echo "📦 Configuring pip mirrors for faster downloads..."
+          pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+          pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn
+
+          # Configure conda to use Chinese mirrors
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+          conda config --set show_channel_urls yes
+
           # Install system dependencies if needed
           for cmd in cmake pkg-config; do
             if ! command -v $cmd &> /dev/null; then
@@ -173,7 +183,7 @@ jobs:
           python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
           python -c "from sage.benchmark.benchmark_agent import get_adapter_registry; print('sage-benchmark OK')"
           echo "✅ SAGE installation completed"
-        timeout-minutes: 25
+        timeout-minutes: 45  # Increased from 25 to handle 130+ dependencies
 
       - name: Create Experiment Environment File
         run: |
