@@ -25,6 +25,7 @@ from .compat import (
     create_embedding_client_compat,
     create_llm_client_compat,
 )
+from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
 from .unified_api_server import (
     BackendInstanceConfig,
@@ -53,6 +54,8 @@ try:
         "VLLMServiceConfig",
         "LLMAPIServer",
         "LLMServerConfig",
+        "LLMLauncher",
+        "LLMLauncherResult",
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
         "IntelligentLLMClient",
@@ -83,6 +86,8 @@ except ImportError:
         "VLLMServiceConfig",
         "LLMAPIServer",
         "LLMServerConfig",
+        "LLMLauncher",
+        "LLMLauncherResult",
         "IntelligentLLMClient",
         "check_llm_service",
         "get_llm_client",

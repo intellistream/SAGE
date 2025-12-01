@@ -40,7 +40,7 @@ class LLMServerConfig:
         backend: Literal["vllm", "ollama", "lmdeploy"] = "vllm",
         host: str = "0.0.0.0",
         port: int | None = None,
-        gpu_memory_utilization: float = 0.9,
+        gpu_memory_utilization: float = 0.7,
         max_model_len: int = 4096,
         tensor_parallel_size: int = 1,
         disable_log_stats: bool = True,
@@ -52,8 +52,8 @@ class LLMServerConfig:
             model: Model name or path
             backend: Inference backend ("vllm", "ollama", "lmdeploy")
             host: Server host
-            port: Server port (default: SagePorts.LLM_DEFAULT)
-            gpu_memory_utilization: GPU memory utilization (vLLM specific)
+            port: Server port (default: SagePorts.BENCHMARK_LLM = 8901)
+            gpu_memory_utilization: GPU memory utilization (default 0.7 for consumer GPUs)
             max_model_len: Maximum model sequence length
             tensor_parallel_size: Number of GPUs for tensor parallelism
             disable_log_stats: Disable logging statistics (vLLM specific)
@@ -62,7 +62,7 @@ class LLMServerConfig:
         self.model = model
         self.backend = backend
         self.host = host
-        self.port = port if port is not None else SagePorts.LLM_DEFAULT
+        self.port = port if port is not None else SagePorts.BENCHMARK_LLM
         self.gpu_memory_utilization = gpu_memory_utilization
         self.max_model_len = max_model_len
         self.tensor_parallel_size = tensor_parallel_size
