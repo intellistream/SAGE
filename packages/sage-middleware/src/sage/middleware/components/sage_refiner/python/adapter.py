@@ -26,7 +26,7 @@ else:
             pass
 
 
-# Use sageRefiner submodule service
+# Use sage_refiner submodule service
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 
 

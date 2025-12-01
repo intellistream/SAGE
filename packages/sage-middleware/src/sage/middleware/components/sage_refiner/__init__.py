@@ -50,8 +50,8 @@ from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner import (
     ProvenceCompressor,
     RefinerAlgorithm,
     RefinerConfig,
-    ReformCompressor,
     REFORMCompressor,
+    ReformCompressor,
 )
 from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.LongRefiner import (
     LongRefinerOperator,

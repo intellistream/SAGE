@@ -5,10 +5,9 @@
 """
 
 import logging
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
-import unicodedata
 
 import numpy as np
 import pandas as pd
@@ -28,27 +27,27 @@ logger = logging.getLogger(__name__)
 
 def normalize_text(text: str) -> str:
     """规范化文本用于 token 匹配
-    
+
     在编码前进行规范化以提高答案 token 匹配的成功率。
-    
+
     Args:
         text: 原始文本
-    
+
     Returns:
         规范化后的文本（strip、lowercase、Unicode NFKC）
     """
     if not text:
         return ""
-    
+
     # Strip 空白字符
     text = text.strip()
-    
+
     # 转小写
     text = text.lower()
-    
+
     # Unicode NFKC 规范化（处理各种 Unicode 变体）
     text = unicodedata.normalize("NFKC", text)
-    
+
     return text
 
 
@@ -58,25 +57,25 @@ def find_subsequence(
     start_from: int = 0,
 ) -> int:
     """在主序列中查找子序列的起始位置
-    
+
     Args:
         main_ids: 主 token 序列
         sub_ids: 子 token 序列
         start_from: 从哪个位置开始查找
-    
+
     Returns:
         子序列的起始索引，如果找不到返回 -1
     """
     if not sub_ids:
         return -1
-    
+
     sub_len = len(sub_ids)
     main_len = len(main_ids)
-    
+
     for i in range(start_from, main_len - sub_len + 1):
-        if main_ids[i:i + sub_len] == sub_ids:
+        if main_ids[i : i + sub_len] == sub_ids:
             return i
-    
+
     return -1
 
 
@@ -85,29 +84,29 @@ def smooth_scores(
     window_size: int = 41,
 ) -> torch.Tensor:
     """对分数应用局部最大值平滑
-    
+
     根据 REFORM 论文，在计算 MNR 之前对 token 级别的相似度分数
     应用局部最大值平滑（窗口大小约41）。
-    
+
     Args:
         scores: [context_len] 分数张量
         window_size: 平滑窗口大小
-    
+
     Returns:
         平滑后的分数 [context_len]
     """
     if scores.dim() != 1:
         raise ValueError("scores must be 1D tensor")
-    
+
     context_len = len(scores)
     smoothed = torch.zeros_like(scores)
     half_window = window_size // 2
-    
+
     for i in range(context_len):
         start = max(0, i - half_window)
         end = min(context_len, i + half_window + 1)
         smoothed[i] = scores[start:end].max()
-    
+
     return smoothed
 
 
@@ -122,14 +121,14 @@ def mean_normalized_rank(
     normalize: bool = True,
 ) -> float:
     """计算平均归一化排名 (MNR)
-    
+
     MNR 衡量预测分数对真实索引的排序能力。MNR 越低表示检索性能越好。
-    
+
     Args:
         true_indices: 真实标签的索引
         predicted_scores: 所有 token 的预测相关性分数
         normalize: 是否按序列长度归一化
-    
+
     Returns:
         Mean Normalized Rank (归一化后为 0-1，越低越好)
     """
@@ -202,7 +201,7 @@ class MetricsAggregator:
 
 class AttentionHookExtractor:
     """注意力 Hook 提取器
-    
+
     在 Transformer 模型的注意力层注册 forward hook，提取 Q/K/V 张量
     """
 
@@ -214,7 +213,7 @@ class AttentionHookExtractor:
         layer_range: tuple[int, int] | None = None,
     ):
         """初始化
-        
+
         Args:
             model_name: 模型名称或路径
             dtype: 数据类型
@@ -258,63 +257,63 @@ class AttentionHookExtractor:
     def _get_attention_modules(self) -> list[tuple[int, nn.Module]]:
         """获取所有注意力模块"""
         attention_modules = []
-        
+
         # 支持 LLaMA/Mistral 架构
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             layers = self.model.model.layers
             start_idx, end_idx = self.layer_range if self.layer_range else (0, len(layers))
-            
+
             for idx in range(start_idx, min(end_idx, len(layers))):
                 layer = layers[idx]
                 if hasattr(layer, "self_attn"):
                     attention_modules.append((idx, layer.self_attn))
         else:
             raise ValueError(f"Unknown model architecture: {type(self.model)}")
-        
+
         return attention_modules
 
     def register_hooks(self) -> None:
         """注册 forward hooks 提取 Q/K/V"""
-        
+
         def make_hook(layer_id):
             def hook(module, args, kwargs, output):
                 """提取 Q/K/V 张量"""
                 # 从模块获取 Q/K/V 投影权重
                 hidden_states = args[0] if args else kwargs.get("hidden_states")
-                
+
                 if hidden_states is None:
                     return output
-                
+
                 # 应用 Q/K/V 投影
                 Q = module.q_proj(hidden_states)
                 K = module.k_proj(hidden_states)
                 V = module.v_proj(hidden_states)
-                
+
                 # Reshape 为 [batch, heads, seq_len, head_dim]
                 batch_size, seq_len, _ = hidden_states.shape
                 num_heads = module.num_heads
                 head_dim = module.head_dim
-                
+
                 Q = Q.view(batch_size, seq_len, num_heads, head_dim).transpose(1, 2)
                 K = K.view(batch_size, seq_len, num_heads, head_dim).transpose(1, 2)
                 V = V.view(batch_size, seq_len, num_heads, head_dim).transpose(1, 2)
-                
+
                 # 存储
                 self.attention_outputs[layer_id] = {
                     "Q": Q.detach(),
                     "K": K.detach(),
                     "V": V.detach(),
                 }
-                
+
                 return output
-            
+
             return hook
-        
+
         # 为每个注意力层注册 hook
         for layer_idx, attn_module in self.attention_modules:
             handle = attn_module.register_forward_hook(make_hook(layer_idx), with_kwargs=True)
             self.hooks.append(handle)
-        
+
         logger.info(f"Registered {len(self.hooks)} attention hooks")
 
     def remove_hooks(self) -> None:
@@ -327,12 +326,12 @@ class AttentionHookExtractor:
     def __call__(self, text: str) -> dict[int, dict[str, torch.Tensor]]:
         """运行模型并提取注意力"""
         self.attention_outputs.clear()
-        
+
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
-        
+
         with torch.no_grad():
             _ = self.model(**inputs)
-        
+
         return self.attention_outputs
 
 
@@ -352,7 +351,7 @@ class HeadwiseEvaluator:
         output_top_k: int = 20,
     ):
         """初始化
-        
+
         Args:
             model_extractor: 模型提取器
             query_pooling: 查询池化方法 ("max", "mean", "last")
@@ -363,11 +362,11 @@ class HeadwiseEvaluator:
         self.query_pooling = query_pooling
         self.context_pooling = context_pooling
         self.output_top_k = output_top_k
-        
+
         # 存储每个头的指标
         self.head_metrics = defaultdict(lambda: MetricsAggregator())
-        
-        logger.info(f"Evaluator initialized (Q/K/V heads)")
+
+        logger.info("Evaluator initialized (Q/K/V heads)")
 
     def _pool_vectors(
         self,
@@ -376,19 +375,19 @@ class HeadwiseEvaluator:
         indices: list[int] | None = None,
     ) -> torch.Tensor:
         """池化向量
-        
+
         Args:
             vectors: [batch, heads, seq_len, dim] 或 [batch, heads, dim]
             pooling_method: 池化方法
             indices: 特定位置索引
-        
+
         Returns:
             [batch, heads, dim]
         """
         if indices is not None and len(indices) > 0:
             if vectors.dim() == 4:
                 vectors = vectors[:, :, indices, :]
-        
+
         if vectors.dim() == 4 and vectors.shape[2] == 0:
             batch, heads, _, dim = vectors.shape
             return torch.zeros(batch, heads, dim, device=vectors.device, dtype=vectors.dtype)
@@ -414,13 +413,13 @@ class HeadwiseEvaluator:
         context_vecs: torch.Tensor,
     ) -> torch.Tensor:
         """计算相似度 (带 query 维度 max pooling)
-        
+
         对每个 context token i: score[i] = max_j cosine(context[i], query[j])
-        
+
         Args:
             query_vecs: [batch, heads, query_len, dim]
             context_vecs: [batch, heads, context_len, dim]
-        
+
         Returns:
             [batch, heads, context_len]
         """
@@ -429,17 +428,17 @@ class HeadwiseEvaluator:
             query_vecs = query_vecs.float()
         if context_vecs.dtype == torch.bfloat16:
             context_vecs = context_vecs.float()
-        
+
         # 归一化
         query_vecs = F.normalize(query_vecs, p=2, dim=-1)
         context_vecs = F.normalize(context_vecs, p=2, dim=-1)
-        
+
         # [batch, heads, context_len, query_len]
         pairwise = torch.matmul(context_vecs, query_vecs.transpose(-2, -1))
-        
+
         # Max pooling over query dimension
         similarity = pairwise.max(dim=-1)[0]  # [batch, heads, context_len]
-        
+
         return similarity
 
     def evaluate_sample(
@@ -449,82 +448,88 @@ class HeadwiseEvaluator:
         answers: list[str],
     ) -> dict[str, dict[str, float]]:
         """评估单个样本
-        
+
         根据 REFORM 论文，只将 ground-truth 答案 span 作为正样本 token，
         而不是所有 context tokens。
-        
+
         Args:
             question: 问题
             context: 上下文
             answers: ground-truth 答案列表
-        
+
         Returns:
             {(layer, head, type): {"mnr": float}}
         """
         # 构建输入（不添加 "Question:" 和 "Context:" 前缀，以便 token 对齐）
         combined_text = f"{question}\n\n{context}"
-        
+
         # 规范化文本用于答案匹配
         question_norm = normalize_text(question)
         context_norm = normalize_text(context)
         answers_norm = [normalize_text(ans) for ans in answers]
-        
+
         # 提取注意力
         attention_outputs = self.model_extractor(combined_text)
-        
+
         # Tokenize 获取位置（使用规范化后的文本以便对齐）
         combined_text_norm = f"{question_norm}\n\n{context_norm}"
         inputs = self.model_extractor.tokenizer(combined_text_norm, return_tensors="pt")
         input_ids = inputs["input_ids"][0].tolist()
-        
+
         # 分别 tokenize question 和 context（不添加特殊 token，使用规范化文本）
-        question_tokens = self.model_extractor.tokenizer.encode(question_norm, add_special_tokens=False)
-        context_tokens = self.model_extractor.tokenizer.encode(context_norm, add_special_tokens=False)
-        
+        question_tokens = self.model_extractor.tokenizer.encode(
+            question_norm, add_special_tokens=False
+        )
+        context_tokens = self.model_extractor.tokenizer.encode(
+            context_norm, add_special_tokens=False
+        )
+
         # 使用子序列查找确定准确位置
         question_start = find_subsequence(input_ids, question_tokens)
         if question_start == -1:
             logger.warning("Could not find question tokens in combined sequence")
             return {}
-        
+
         context_start = find_subsequence(input_ids, context_tokens, start_from=question_start + 1)
         if context_start == -1:
             logger.warning("Could not find context tokens in combined sequence")
             return {}
-        
+
         question_indices = list(range(question_start, question_start + len(question_tokens)))
         context_indices = list(range(context_start, context_start + len(context_tokens)))
-        
+
         if not question_indices or not context_indices:
             return {}
-        
+
         # 查找答案 span 在 context 中的位置（相对于 context_indices）
         answer_token_indices = set()
         for answer_norm in answers_norm:
             if not answer_norm:
                 continue
-            
+
             # Tokenize 答案（使用规范化文本）
-            answer_tokens = self.model_extractor.tokenizer.encode(answer_norm, add_special_tokens=False)
+            answer_tokens = self.model_extractor.tokenizer.encode(
+                answer_norm, add_special_tokens=False
+            )
             if not answer_tokens:
                 continue
-            
+
             # 在 input_ids 中查找答案（只在 context 范围内）
             search_start = context_start
             while search_start < context_start + len(context_tokens):
                 match_pos = find_subsequence(input_ids, answer_tokens, start_from=search_start)
                 if match_pos == -1 or match_pos >= context_start + len(context_tokens):
                     break
-                
+
                 # 记录答案 span 的所有位置（相对于 context_indices）
                 for i in range(len(answer_tokens)):
                     abs_idx = match_pos + i
                     if abs_idx in context_indices:
                         rel_idx = abs_idx - context_start
                         answer_token_indices.add(rel_idx)
-                
+
                 search_start = match_pos + 1
-        
+
         # 如果找不到答案，跳过此样本
         if not answer_token_indices:
             logger.warning(f"No answer spans found in context for answers: {answers}")
@@ -537,37 +542,39 @@ class HeadwiseEvaluator:
                         key = (layer_idx, head_idx, head_type)
                         results[key] = {"mnr": 1.0}
             return results
-        
-        true_indices = sorted(list(answer_token_indices))
-        
+
+        true_indices = sorted(answer_token_indices)
+
         results = {}
-        
+
         # 评估每一层的每个头的每种类型
         for layer_idx, layer_data in attention_outputs.items():
             for head_type in ["Q", "K", "V"]:
                 vecs = layer_data[head_type]  # [batch, heads, seq_len, dim]
-                
+
                 # 提取 query 和 context 向量
                 query_vecs = vecs[:, :, question_indices, :]
                 context_vecs = vecs[:, :, context_indices, :]
-                
+
                 # 计算相似度
-                similarity = self._compute_similarity(query_vecs, context_vecs)  # [batch, heads, context_len]
-                
+                similarity = self._compute_similarity(
+                    query_vecs, context_vecs
+                )  # [batch, heads, context_len]
+
                 # 对每个头计算 MNR
                 num_heads = similarity.shape[1]
                 for head_idx in range(num_heads):
                     head_sim = similarity[0, head_idx, :]  # [context_len]
-                    
+
                     # 应用局部平滑（REFORM 论文中的方法）
                     head_sim = smooth_scores(head_sim, window_size=41)
-                    
+
                     # 使用答案 span 作为 true_indices（而非所有 context tokens）
                     mnr = mean_normalized_rank(true_indices, head_sim, normalize=True)
-                    
+
                     key = (layer_idx, head_idx, head_type)
                     results[key] = {"mnr": mnr}
-        
+
         return results
 
     def evaluate_samples(
@@ -576,32 +583,32 @@ class HeadwiseEvaluator:
         log_interval: int = 10,
     ) -> pd.DataFrame:
         """评估多个样本
-        
+
         Args:
             samples: [{"question": str, "context": str, "answers": list}, ...]
             log_interval: 日志间隔
-        
+
         Returns:
             DataFrame with columns: layer, head, head_type, mnr, mnr_std
         """
         logger.info(f"Evaluating {len(samples)} samples...")
-        
+
         for idx, sample in enumerate(tqdm(samples, desc="Evaluating heads")):
             question = sample["question"]
             context = sample["context"]
             answers = sample.get("answers", [])
-            
+
             # 评估样本
             results = self.evaluate_sample(question, context, answers)
-            
+
             # 累积指标
             for (layer, head, head_type), metrics in results.items():
                 key = f"L{layer}_H{head}_{head_type}"
                 self.head_metrics[key].add(metrics)
-            
+
             if (idx + 1) % log_interval == 0:
                 logger.info(f"Processed {idx + 1}/{len(samples)} samples")
-        
+
         # 汇总结果
         logger.info("Computing final statistics...")
         rows = []
@@ -611,19 +618,21 @@ class HeadwiseEvaluator:
             layer = int(parts[0][1:])
             head = int(parts[1][1:])
             head_type = parts[2]
-            
+
             stats = aggregator.compute_average()
-            rows.append({
-                "layer": layer,
-                "head": head,
-                "head_type": head_type,
-                "mnr": stats.get("mnr", 1.0),
-                "mnr_std": stats.get("mnr_std", 0.0),
-            })
-        
+            rows.append(
+                {
+                    "layer": layer,
+                    "head": head,
+                    "head_type": head_type,
+                    "mnr": stats.get("mnr", 1.0),
+                    "mnr_std": stats.get("mnr_std", 0.0),
+                }
+            )
+
         df = pd.DataFrame(rows)
         df = df.sort_values("mnr")  # 按 MNR 升序排列
-        
+
         return df
 
     def get_top_heads(self, results_df: pd.DataFrame, top_k: int | None = None) -> pd.DataFrame:
@@ -636,12 +645,12 @@ class HeadwiseEvaluator:
         """保存结果"""
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 保存所有结果
         csv_path = output_dir / f"head_mnr_{dataset_name}_all_types.csv"
         results_df.to_csv(csv_path, index=False)
         logger.info(f"Saved results to {csv_path}")
-        
+
         # 保存 top-k
         top_heads = self.get_top_heads(results_df)
         top_csv_path = output_dir / f"head_mnr_{dataset_name}_top{self.output_top_k}.csv"

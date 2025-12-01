@@ -13,6 +13,7 @@ try:
         ContextService,
         RefinerConfig,
     )
+
     CONTEXT_SERVICE_AVAILABLE = True
 except ImportError:
     CONTEXT_SERVICE_AVAILABLE = False
@@ -22,7 +23,7 @@ except ImportError:
 
 pytestmark = pytest.mark.skipif(
     not CONTEXT_SERVICE_AVAILABLE,
-    reason="ContextService not available (C++ extensions may not be built)"
+    reason="ContextService not available (C++ extensions may not be built)",
 )
 
 
@@ -90,9 +91,7 @@ class TestContextManagement:
         """测试包含系统提示词的上下文管理"""
         service = ContextService()
 
-        result = service.manage_context(
-            query="测试查询", system_prompt="你是一个助手。"
-        )
+        result = service.manage_context(query="测试查询", system_prompt="你是一个助手。")
 
         context_parts = result["compressed_context"]
         assert len(context_parts) == 2
@@ -126,9 +125,7 @@ class TestContextManagement:
 
     def test_manage_context_with_documents(self):
         """测试包含检索文档的上下文管理"""
-        service = ContextService(
-            {"refiner": {"algorithm": "simple", "budget": 100}}
-        )
+        service = ContextService({"refiner": {"algorithm": "simple", "budget": 100}})
 
         documents = ["文档1内容", "文档2内容", "文档3内容"]
 
@@ -147,9 +144,7 @@ class TestContextManagement:
 
     def test_manage_context_complete(self):
         """测试完整的上下文管理（所有部分）"""
-        service = ContextService(
-            {"refiner": {"algorithm": "simple", "budget": 200}}
-        )
+        service = ContextService({"refiner": {"algorithm": "simple", "budget": 200}})
 
         system_prompt = "你是一个助手。"
         history = [
@@ -185,9 +180,7 @@ class TestHistoryCompression:
 
     def test_no_compression_for_short_history(self):
         """测试短历史不应被压缩"""
-        service = ContextService(
-            {"max_context_length": 8192, "auto_compress": True}
-        )
+        service = ContextService({"max_context_length": 8192, "auto_compress": True})
 
         # 短历史
         history = [
@@ -231,9 +224,7 @@ class TestHistoryCompression:
 
     def test_auto_compress_disabled(self):
         """测试禁用自动压缩"""
-        service = ContextService(
-            {"max_context_length": 100, "auto_compress": False}
-        )
+        service = ContextService({"max_context_length": 100, "auto_compress": False})
 
         # 即使历史很长，也不应压缩
         history = []
@@ -285,14 +276,10 @@ class TestHistoryManagement:
         service.add_to_history("assistant", "第一个回答")
 
         # 使用内部历史
-        result = service.manage_context(
-            query="第二个问题", history=service.context_history
-        )
+        result = service.manage_context(query="第二个问题", history=service.context_history)
 
         context_parts = result["compressed_context"]
-        history_part = next(
-            (p for p in context_parts if p["type"] == "history"), None
-        )
+        history_part = next((p for p in context_parts if p["type"] == "history"), None)
 
         assert history_part is not None
         assert "第一个问题" in history_part["content"]
@@ -380,9 +367,7 @@ class TestFlagControl:
 
         # 启用的情况
         if app_config_enabled["enable_context_service"]:
-            service = ContextService.from_config(
-                app_config_enabled["context_service"]
-            )
+            service = ContextService.from_config(app_config_enabled["context_service"])
             result = service.manage_context(query="测试")
             assert result is not None
             service.shutdown()

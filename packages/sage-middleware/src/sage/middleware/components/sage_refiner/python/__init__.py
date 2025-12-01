@@ -15,17 +15,17 @@ from sage.libs.foundation.context.compression.refiner import (
     RefinerMetrics,
 )
 
+# Global Context Service
+from sage.middleware.components.sage_refiner.python.context_service import ContextService
+
+# SAGE-specific adapter
+from sage.middleware.components.sage_refiner.python.service import RefinerService
+
 # Import from sage_refiner submodule
 from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.config import (
     RefinerAlgorithm,
     RefinerConfig,
 )
-
-# SAGE-specific adapter
-from sage.middleware.components.sage_refiner.python.service import RefinerService
-
-# Global Context Service
-from sage.middleware.components.sage_refiner.python.context_service import ContextService
 
 __all__ = [
     "BaseRefiner",
