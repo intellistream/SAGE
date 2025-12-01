@@ -164,6 +164,148 @@ show_install_success() {
     echo -e "${DIM}更多信息请查看: README.md${NC}"
 }
 
+# 询问用户是否要启动服务（LLM / Studio）
+prompt_start_llm_service() {
+    local mode="$1"
+
+    # 在 CI 环境或 --yes 自动模式下跳过
+    if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$AUTO_YES" = "true" ]; then
+        return 0
+    fi
+
+    # 只在 dev/full 模式下询问（core/standard 模式可能没有完整的服务支持）
+    if [ "$mode" = "core" ]; then
+        return 0
+    fi
+
+    # 检查是否有 GPU 可用
+    local has_gpu=false
+    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+        has_gpu=true
+    fi
+
+    # 检查环境是否激活
+    local env_activated=true
+    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+        env_activated=false
+    fi
+
+    echo ""
+    draw_line "─" "$CYAN"
+    echo -e "${CYAN}${BOLD}🚀 快速启动服务${NC}"
+    draw_line "─" "$CYAN"
+    echo ""
+
+    # 如果环境未激活，显示提示后返回
+    if [ "$env_activated" = false ]; then
+        echo -e "${YELLOW}⚠️  请先激活 conda 环境后再启动服务:${NC}"
+        echo -e "  ${CYAN}conda activate $SAGE_ENV_NAME${NC}"
+        echo ""
+        echo -e "${DIM}激活后可用以下命令启动服务:${NC}"
+        echo -e "  ${CYAN}sage llm serve${NC}       # 启动 LLM 推理服务"
+        echo -e "  ${CYAN}sage studio start${NC}   # 启动 Studio Web 界面"
+        echo ""
+        return 0
+    fi
+
+    # 显示可用服务选项
+    echo -e "${INFO} SAGE 提供以下服务，您可以选择启动："
+    echo ""
+    echo -e "  ${BOLD}[1] sage llm serve${NC}    - LLM 推理服务 (OpenAI 兼容 API)"
+    if [ "$has_gpu" = true ]; then
+        echo -e "      ${DIM}提供 http://localhost:8901/v1，支持本地大模型推理${NC}"
+    else
+        echo -e "      ${DIM}${YELLOW}⚠️  需要 GPU，当前未检测到${NC}"
+    fi
+    echo ""
+    echo -e "  ${BOLD}[2] sage studio start${NC} - Studio Web 界面 (包含 LLM)"
+    if [ "$mode" = "full" ] || [ "$mode" = "dev" ]; then
+        echo -e "      ${DIM}图形化界面，http://localhost:5173，包含 Chat/RAG/微调等功能${NC}"
+    else
+        echo -e "      ${DIM}${YELLOW}⚠️  需要 --full 或 --dev 模式安装${NC}"
+    fi
+    echo ""
+    echo -e "  ${BOLD}[3] 跳过${NC}              - 稍后手动启动"
+    echo ""
+
+    # 交互式询问
+    echo -ne "${BOLD}请选择要启动的服务 [1/2/3]: ${NC}"
+    read -r choice
+
+    case "$choice" in
+        1)
+            if [ "$has_gpu" = true ]; then
+                echo ""
+                echo -e "${INFO} 正在启动 LLM 服务..."
+                echo -e "${DIM}   首次启动会下载模型（Qwen2.5-0.5B，约 300MB）...${NC}"
+                echo ""
+
+                if command -v sage &>/dev/null; then
+                    sage llm serve 2>&1 | head -25
+                    echo ""
+                    echo -e "${GREEN}✅ LLM 服务已启动${NC}"
+                    echo -e "${DIM}   API 地址: http://localhost:8901/v1${NC}"
+                    echo -e "${DIM}   状态查看: sage llm status${NC}"
+                    echo -e "${DIM}   停止服务: sage llm stop${NC}"
+                else
+                    echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
+                    echo -e "  ${CYAN}sage llm serve${NC}"
+                fi
+            else
+                echo ""
+                echo -e "${YELLOW}⚠️  未检测到 GPU，无法启动本地 LLM 服务。${NC}"
+                echo -e "${DIM}您可以配置云端 API 作为替代（在 .env 文件中设置）:${NC}"
+                echo -e "  ${CYAN}SAGE_CHAT_API_KEY=sk-xxx${NC}"
+                echo -e "  ${CYAN}SAGE_CHAT_BASE_URL=https://api.openai.com/v1${NC}"
+            fi
+            ;;
+        2)
+            if [ "$mode" = "full" ] || [ "$mode" = "dev" ]; then
+                echo ""
+                echo -e "${INFO} 正在启动 SAGE Studio..."
+                echo -e "${DIM}   这将同时启动前端界面和后端服务${NC}"
+                if [ "$has_gpu" = true ]; then
+                    echo -e "${DIM}   首次启动会下载 LLM 模型...${NC}"
+                fi
+                echo ""
+
+                if command -v sage &>/dev/null; then
+                    # Studio 启动可能需要更长时间，显示更多输出
+                    sage studio start 2>&1 | head -30
+                    echo ""
+                    echo -e "${GREEN}✅ Studio 已启动${NC}"
+                    echo -e "${DIM}   访问地址: http://localhost:5173${NC}"
+                    echo -e "${DIM}   状态查看: sage studio status${NC}"
+                    echo -e "${DIM}   停止服务: sage studio stop${NC}"
+                else
+                    echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
+                    echo -e "  ${CYAN}sage studio start${NC}"
+                fi
+            else
+                echo ""
+                echo -e "${YELLOW}⚠️  Studio 需要 --full 或 --dev 模式安装。${NC}"
+                echo -e "${DIM}请使用以下命令重新安装:${NC}"
+                echo -e "  ${CYAN}./quickstart.sh --full${NC}"
+                echo -e "  ${CYAN}./quickstart.sh --dev${NC}"
+            fi
+            ;;
+        3|"")
+            echo ""
+            echo -e "${DIM}已跳过。稍后可用以下命令启动服务:${NC}"
+            echo -e "  ${CYAN}sage llm serve${NC}       # LLM 推理服务"
+            echo -e "  ${CYAN}sage studio start${NC}   # Studio Web 界面"
+            ;;
+        *)
+            echo ""
+            echo -e "${DIM}无效选择，已跳过。稍后可用以下命令启动:${NC}"
+            echo -e "  ${CYAN}sage llm serve${NC}"
+            echo -e "  ${CYAN}sage studio start${NC}"
+            ;;
+    esac
+
+    echo ""
+}
+
 # 显示使用提示
 show_usage_tips() {
     local mode="$1"
@@ -284,6 +426,9 @@ show_usage_tips() {
         fi
         echo ""
     fi
+
+    # 询问用户是否要启动 LLM 服务（非 CI 环境 + 非 --yes 自动模式）
+    prompt_start_llm_service "$mode"
 }
 
 # 创建 VS Code conda 环境配置的辅助函数
