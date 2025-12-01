@@ -24,6 +24,9 @@ from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.config imp
 # SAGE-specific adapter
 from sage.middleware.components.sage_refiner.python.service import RefinerService
 
+# Global Context Service
+from sage.middleware.components.sage_refiner.python.context_service import ContextService
+
 __all__ = [
     "BaseRefiner",
     "RefineResult",
@@ -31,4 +34,5 @@ __all__ = [
     "RefinerConfig",
     "RefinerAlgorithm",
     "RefinerService",
+    "ContextService",
 ]
