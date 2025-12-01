@@ -324,6 +324,8 @@ configure_installation_environment() {
             echo -e "${INFO} 使用系统 Python 环境安装"
             export PIP_CMD="python3 -m pip"
             export PYTHON_CMD="python3"
+            # 清除 SAGE_ENV_NAME 以避免验证脚本尝试使用不存在的 conda 环境
+            export SAGE_ENV_NAME=""
             ;;
         *)
             echo -e "${CROSS} 未知的安装环境: $install_environment"
