@@ -279,6 +279,52 @@ class RAGChatMap(MapFunction):
         Returns:
             Dict with 'content' (answer) and 'sources' (retrieved documents)
         """
+        # 检测是否是简单闲聊（不需要检索）
+        casual_patterns = [
+            "你好",
+            "hi",
+            "hello",
+            "嗨",
+            "hey",
+            "谢谢",
+            "thanks",
+            "thank you",
+            "再见",
+            "bye",
+            "拜拜",
+            "test",
+            "测试",
+            "试试",
+            "ok",
+            "好的",
+            "嗯",
+        ]
+        user_lower = user_input.strip().lower()
+        is_casual = (
+            any(
+                user_lower == p or user_lower.startswith(p + " ") or user_lower.endswith(" " + p)
+                for p in casual_patterns
+            )
+            and len(user_input.strip()) < 20
+        )
+
+        if is_casual:
+            # 闲聊模式：跳过检索，直接生成简单回答
+            try:
+                client = self._get_llm_client()
+                messages = [
+                    {
+                        "role": "system",
+                        "content": "你是 SAGE 智能助手。用户在和你打招呼或闲聊，请自然友好地回应，不要输出代码。",
+                    },
+                    {"role": "user", "content": user_input.strip()},
+                ]
+                response = client.chat(messages, temperature=0.7, stream=False)
+                return {"content": response, "sources": [], "type": "chat"}
+            except Exception as e:
+                logger.error(f"Casual chat error: {e}")
+                return {"content": "你好！有什么我可以帮助你的吗？", "sources": [], "type": "chat"}
+
         self._ensure_rag_initialized()
 
         if self._db is None or self._embedder is None:
@@ -325,15 +371,13 @@ class RAGChatMap(MapFunction):
 
             system_instructions = textwrap.dedent(
                 """
-                You are SAGE 智能助手，可以回答关于 SAGE 框架的技术问题，也可以进行日常对话。
+                你是 SAGE 智能助手。根据用户问题和提供的文档上下文回答。
 
-                对话规则：
-                - 如果用户在打招呼或闲聊（如"你好"、"hi"、"谢谢"等），请自然地回应，不要输出代码。
-                - 如果用户询问 SAGE 相关的技术问题，依据提供的上下文进行解释，可以给出示例代码。
-                - 如果上下文不足以回答技术问题，请坦诚说明并给出下一步建议。
-                - 引用文档时使用 [编号] 表示，例如 [1], [2]。
-                - 在回答技术问题时，末尾简要说明引用来源的文档标题。
-                - 注意用户之前的对话历史，保持上下文连贯性。
+                规则：
+                - 依据上下文回答，引用时用 [编号] 标注
+                - 可以给出示例代码
+                - 如果上下文不足，坦诚说明
+                - 注意对话历史，保持上下文连贯
                 """
             ).strip()
 

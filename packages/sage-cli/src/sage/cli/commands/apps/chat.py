@@ -603,6 +603,55 @@ def open_database(manifest: ChatManifest) -> Any:
 
 
 def build_prompt(question: str, contexts: Sequence[str]) -> list[dict[str, str]]:
+    """构建对话 prompt。
+
+    针对小模型优化：
+    1. 简短清晰的指令
+    2. 明确区分闲聊和技术问题
+    3. 只在真正相关时使用上下文
+    """
+    # 检测是否是简单闲聊（不需要检索上下文）
+    casual_patterns = [
+        "你好",
+        "hi",
+        "hello",
+        "嗨",
+        "hey",
+        "谢谢",
+        "thanks",
+        "thank you",
+        "再见",
+        "bye",
+        "拜拜",
+        "test",
+        "测试",
+        "试试",
+        "ok",
+        "好的",
+        "嗯",
+    ]
+    question_lower = question.strip().lower()
+    is_casual = (
+        any(
+            question_lower == p
+            or question_lower.startswith(p + " ")
+            or question_lower.endswith(" " + p)
+            for p in casual_patterns
+        )
+        and len(question.strip()) < 20
+    )
+
+    if is_casual:
+        # 简单闲聊：不使用检索上下文，避免干扰
+        system_instructions = (
+            "你是 SAGE 智能助手。用户在和你打招呼或闲聊，请自然友好地回应，不要输出代码。"
+        )
+        return [
+            {"role": "system", "content": system_instructions},
+            {"role": "user", "content": question.strip()},
+        ]
+
+    # 技术问题：使用检索上下文
     context_block = "\n\n".join(
         f"[{idx}] {textwrap.dedent(ctx).strip()}"
         for idx, ctx in enumerate(contexts, start=1)
@@ -610,18 +659,17 @@ def build_prompt(question: str, contexts: Sequence[str]) -> list[dict[str, str]]
     )
     system_instructions = textwrap.dedent(
         """
-        You are SAGE 智能助手，可以回答关于 SAGE 框架的技术问题，也可以进行日常对话。
+        你是 SAGE 智能助手。根据用户问题和提供的文档上下文回答。
 
-        对话规则：
-        - 如果用户在打招呼或闲聊（如"你好"、"hi"、"谢谢"等），请自然地回应，不要输出代码。
-        - 如果用户询问 SAGE 相关的技术问题，依据提供的上下文进行解释，可以给出示例代码。
-        - 如果上下文不足以回答技术问题，请坦诚说明并给出下一步建议。
-        - 引用文档时使用 [编号] 表示。
+        规则：
+        - 依据上下文回答，引用时用 [编号] 标注
+        - 可以给出示例代码
+        - 如果上下文不足，坦诚说明
         """
     ).strip()
 
     if context_block:
-        system_instructions += f"\n\n已检索上下文:\n{context_block}"
+        system_instructions += f"\n\n参考文档:\n{context_block}"
 
     return [
         {"role": "system", "content": system_instructions},
@@ -1608,10 +1656,45 @@ def interactive_chat(
         return db, embedder
 
     def answer_once(query: str) -> None:
-        current_db, current_embedder = ensure_retriever()
-        payload = retrieve_context(current_db, current_embedder, query, top_k)
-        contexts: Sequence[str] = payload["contexts"]  # type: ignore[assignment]
-        references: Sequence[dict[str, str]] = payload["references"]  # type: ignore[assignment]
+        # 检测是否是简单闲聊（不需要检索）
+        casual_patterns = [
+            "你好",
+            "hi",
+            "hello",
+            "嗨",
+            "hey",
+            "谢谢",
+            "thanks",
+            "thank you",
+            "再见",
+            "bye",
+            "拜拜",
+            "test",
+            "测试",
+            "试试",
+            "ok",
+            "好的",
+            "嗯",
+        ]
+        query_lower = query.strip().lower()
+        is_casual = (
+            any(
+                query_lower == p or query_lower.startswith(p + " ") or query_lower.endswith(" " + p)
+                for p in casual_patterns
+            )
+            and len(query.strip()) < 20
+        )
+
+        if is_casual:
+            # 闲聊模式：跳过检索，直接生成回答
+            contexts: Sequence[str] = []
+            references: Sequence[dict[str, str]] = []
+        else:
+            # 技术问题：执行检索
+            current_db, current_embedder = ensure_retriever()
+            payload = retrieve_context(current_db, current_embedder, query, top_k)
+            contexts = payload["contexts"]  # type: ignore[assignment]
+            references = payload["references"]  # type: ignore[assignment]
 
         try:
             reply = generator.answer(query, contexts, references, stream=stream)
@@ -1619,8 +1702,10 @@ def interactive_chat(
             console.print(f"[red]生成回答失败: {exc}[/red]")
             return
 
-        context_table = render_references(references)
-        console.print(context_table)
+        # 只在有引用时显示引用表
+        if references:
+            context_table = render_references(references)
+            console.print(context_table)
 
         if stream:
             text = Text()
