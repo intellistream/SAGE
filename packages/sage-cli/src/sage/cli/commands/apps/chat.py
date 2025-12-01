@@ -351,49 +351,106 @@ def _create_markdown_processor(
     - Text preview generation
 
     Note: Progress display is handled by IndexBuilder's Rich progress bar.
-    This processor only prints summary info, consistent with sage-studio.
+    This processor shows live progress during document processing.
     """
 
     def process_markdown(src: Path) -> list[dict[str, Any]]:
-        if show_progress:
-            console.print(f"[blue]正在处理文档: {src}...[/blue]")
-
         chunks = []
         total_docs = 0
+        skipped_docs = []  # Track skipped documents
 
-        for idx, file_path in enumerate(iter_markdown_files(src), start=1):
-            if max_files is not None and idx > max_files:
-                break
+        # Count total files first for progress display
+        all_files = list(iter_markdown_files(src))
+        total_files = len(all_files) if max_files is None else min(len(all_files), max_files)
 
-            rel_path = file_path.relative_to(src)
-            text = file_path.read_text(encoding="utf-8", errors="ignore")
-            sections = parse_markdown_sections(text)
-
-            if not sections:
-                continue
-
-            doc_title = sections[0]["heading"] if sections else file_path.stem
-
-            for section in sections:
-                # Note: chunking happens inside the section's content
-                # We pass the full section content; IndexBuilder will chunk it
-                chunks.append(
-                    {
-                        "content": section["content"],
-                        "metadata": {
-                            "doc_path": str(rel_path),
-                            "title": doc_title,
-                            "heading": section["heading"],
-                            "anchor": slugify(section["heading"]),
-                        },
-                    }
-                )
-
-            total_docs += 1
-
-        # Print summary (consistent with sage-studio)
         if show_progress:
-            console.print(f"[green]处理了 {total_docs} 个文档, {len(chunks)} 个文档片段[/green]")
+            from rich.live import Live
+            from rich.text import Text
+
+            # Use Rich Live for real-time progress updates
+            with Live(
+                Text(f"📄 处理文档 0/{total_files}, 已生成 0 个片段", style="cyan"),
+                refresh_per_second=10,
+                transient=True,
+            ) as live:
+                for idx, file_path in enumerate(all_files, start=1):
+                    if max_files is not None and idx > max_files:
+                        break
+
+                    rel_path = file_path.relative_to(src)
+                    text = file_path.read_text(encoding="utf-8", errors="ignore")
+                    sections = parse_markdown_sections(text)
+
+                    if not sections:
+                        skipped_docs.append(
+                            (rel_path, "无法解析出有效章节（可能为空或格式不支持）")
+                        )
+                        continue
+
+                    doc_title = sections[0]["heading"] if sections else file_path.stem
+
+                    for section in sections:
+                        chunks.append(
+                            {
+                                "content": section["content"],
+                                "metadata": {
+                                    "doc_path": str(rel_path),
+                                    "title": doc_title,
+                                    "heading": section["heading"],
+                                    "anchor": slugify(section["heading"]),
+                                },
+                            }
+                        )
+
+                    total_docs += 1
+                    # Update live progress after each document
+                    live.update(
+                        Text(
+                            f"📄 处理文档 {total_docs}/{total_files}, 已生成 {len(chunks)} 个片段",
+                            style="cyan",
+                        )
+                    )
+
+            # Print final summary
+            console.print(
+                f"[green]✓ 文档处理完成: {total_docs}/{total_files} 个文档, {len(chunks)} 个片段[/green]"
+            )
+
+            # Report skipped documents
+            if skipped_docs:
+                console.print(f"[yellow]⚠ 跳过 {len(skipped_docs)} 个文档:[/yellow]")
+                for doc_path, reason in skipped_docs:
+                    console.print(f"[dim]  - {doc_path}: {reason}[/dim]")
+        else:
+            # Quiet mode - no progress display
+            for idx, file_path in enumerate(all_files, start=1):
+                if max_files is not None and idx > max_files:
+                    break
+
+                rel_path = file_path.relative_to(src)
+                text = file_path.read_text(encoding="utf-8", errors="ignore")
+                sections = parse_markdown_sections(text)
+
+                if not sections:
+                    skipped_docs.append((rel_path, "无法解析出有效章节"))
+                    continue
+
+                doc_title = sections[0]["heading"] if sections else file_path.stem
+
+                for section in sections:
+                    chunks.append(
+                        {
+                            "content": section["content"],
+                            "metadata": {
+                                "doc_path": str(rel_path),
+                                "title": doc_title,
+                                "heading": section["heading"],
+                                "anchor": slugify(section["heading"]),
+                            },
+                        }
+                    )
+
+                total_docs += 1
 
         return chunks
 

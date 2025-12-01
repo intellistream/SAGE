@@ -239,51 +239,52 @@ class IndexBuilder:
                 return text[:limit] if len(text) > limit else text
 
         # Embed and store (with chunking)
-        total_chunks = 0
+        # First pass: count total chunks for accurate progress
+        all_chunks_data = []  # List of (chunk_text, base_metadata)
         unique_docs = set()
 
-        with _optional_progress(
-            show_progress, "Embedding documents", total=len(processed_docs)
-        ) as progress_update:
-            for idx, doc in enumerate(processed_docs, start=1):
-                content = doc["content"]
-                base_metadata = doc["metadata"]
+        for doc in processed_docs:
+            content = doc["content"]
+            base_metadata = doc["metadata"]
 
-                # Track unique documents
-                if "doc_path" in base_metadata:
-                    unique_docs.add(base_metadata["doc_path"])
+            # Track unique documents
+            if "doc_path" in base_metadata:
+                unique_docs.add(base_metadata["doc_path"])
 
-                # Chunk the content
-                content_chunks = chunk_text(content, chunk_size, chunk_overlap)
+            # Chunk the content
+            content_chunks = chunk_text(content, chunk_size, chunk_overlap)
 
-                # Process each chunk
-                for chunk_idx, chunk in enumerate(content_chunks):
-                    # Generate embedding
-                    vector = embedding_model.embed(chunk)
+            for chunk_idx, chunk in enumerate(content_chunks):
+                all_chunks_data.append((chunk, base_metadata, chunk_idx))
 
-                    # Create metadata for this chunk
-                    metadata = {
-                        **base_metadata,
-                        "chunk": str(chunk_idx),
-                        "text": sanitize_metadata_value(truncate_text(chunk, limit=1200)),
-                    }
+        total_chunks = len(all_chunks_data)
+        logger.debug(f"Total chunks to embed: {total_chunks}")
 
-                    # Sanitize all string values
-                    metadata = {
-                        k: sanitize_metadata_value(str(v)) if isinstance(v, str) else str(v)
-                        for k, v in metadata.items()
-                    }
+        # Second pass: embed with accurate progress
+        with _optional_progress(show_progress, "Embedding", total=total_chunks) as progress_update:
+            for idx, (chunk, base_metadata, chunk_idx) in enumerate(all_chunks_data, start=1):
+                # Generate embedding
+                vector = embedding_model.embed(chunk)
 
-                    # Store vector with metadata
-                    store.add(vector, metadata)
-                    total_chunks += 1
+                # Create metadata for this chunk
+                metadata = {
+                    **base_metadata,
+                    "chunk": str(chunk_idx),
+                    "text": sanitize_metadata_value(truncate_text(chunk, limit=1200)),
+                }
 
+                # Sanitize all string values
+                metadata = {
+                    k: sanitize_metadata_value(str(v)) if isinstance(v, str) else str(v)
+                    for k, v in metadata.items()
+                }
+
+                # Store vector with metadata
+                store.add(vector, metadata)
                 progress_update(advance=1)
 
-                if idx % 100 == 0:
-                    logger.debug(
-                        f"Processed {idx}/{len(processed_docs)} sections -> {total_chunks} chunks"
-                    )
+                if idx % 500 == 0:
+                    logger.debug(f"Embedded {idx}/{total_chunks} chunks")
 
         logger.debug(f"Added {total_chunks} vectors from {len(unique_docs)} documents")
 
