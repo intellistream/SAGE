@@ -334,9 +334,9 @@ def serve_llm(
         help="服务主机地址",
     ),
     gpu_memory: float = typer.Option(
-        0.9,
+        0.7,
         "--gpu-memory",
-        help="GPU 内存使用率 (0.1-1.0)",
+        help="GPU 内存使用率 (0.1-1.0)，默认 0.7 以兼容消费级显卡",
     ),
     max_model_len: int = typer.Option(
         4096,

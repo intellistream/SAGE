@@ -49,7 +49,7 @@ _DEFAULT_SAMPLING = {
 _DEFAULT_ENGINE = {
     "dtype": "auto",
     "tensor_parallel_size": 1,
-    "gpu_memory_utilization": 0.9,
+    "gpu_memory_utilization": 0.7,  # Lower default for consumer GPUs (e.g., RTX 3060)
     "max_model_len": 4096,
 }
 
