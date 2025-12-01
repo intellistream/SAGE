@@ -6,6 +6,7 @@ Control Plane Benchmark module.
 ## Overview
 
 The visualization module provides:
+
 - **Charts**: Matplotlib-based charts for metrics visualization
 - **Reports**: HTML and Markdown reports with embedded charts
 - **Templates**: Customizable Jinja2 templates for reports
@@ -227,6 +228,7 @@ charts.plot_type_breakdown(
 ### HTML Report
 
 Interactive HTML report with:
+
 - Configuration summary
 - Metrics tables
 - Embedded chart images
@@ -382,8 +384,8 @@ charts = BenchmarkCharts(
 Create custom templates in `visualization/templates/`:
 
 1. Copy existing template
-2. Modify HTML/CSS
-3. Use in ReportGenerator:
+1. Modify HTML/CSS
+1. Use in ReportGenerator:
 
 ```python
 report_gen = ReportGenerator(
@@ -395,16 +397,16 @@ report_gen = ReportGenerator(
 
 ### Available Template Variables
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `timestamp` | string | Report generation time |
-| `config` | dict | Benchmark configuration |
-| `policy_results` | dict | Per-policy results |
-| `summary` | dict | Summary statistics |
-| `charts` | list | List of chart filenames |
-| `best_throughput` | dict | Best throughput policy/value |
-| `best_slo` | dict | Best SLO policy/value |
-| `best_latency` | dict | Best latency policy/value |
+| Variable          | Type   | Description                  |
+| ----------------- | ------ | ---------------------------- |
+| `timestamp`       | string | Report generation time       |
+| `config`          | dict   | Benchmark configuration      |
+| `policy_results`  | dict   | Per-policy results           |
+| `summary`         | dict   | Summary statistics           |
+| `charts`          | list   | List of chart filenames      |
+| `best_throughput` | dict   | Best throughput policy/value |
+| `best_slo`        | dict   | Best SLO policy/value        |
+| `best_latency`    | dict   | Best latency policy/value    |
 
 ## CLI Integration
 
@@ -427,14 +429,17 @@ sage-cp-bench visualize --input results.json --format markdown
 ## Dependencies
 
 Required packages:
+
 - `matplotlib>=3.5.0` - Chart generation
 - `jinja2>=3.0.0` - HTML template rendering
 
 Optional packages:
+
 - `plotly>=5.0.0` - Interactive charts (future)
 - `seaborn>=0.12.0` - Enhanced chart styles
 
 Install with:
+
 ```bash
 pip install matplotlib jinja2
 # Or
@@ -446,7 +451,7 @@ pip install isage-benchmark[visualization]
 ### Charts Not Generating
 
 1. Check matplotlib is installed: `pip install matplotlib`
-2. For headless servers, set backend:
+1. For headless servers, set backend:
    ```python
    import matplotlib
    matplotlib.use('Agg')
@@ -455,16 +460,17 @@ pip install isage-benchmark[visualization]
 ### Template Not Found
 
 1. Ensure templates directory exists
-2. Check template path in ReportGenerator
-3. Use absolute path if needed
+1. Check template path in ReportGenerator
+1. Use absolute path if needed
 
 ### Low Resolution Images
 
 Increase DPI when creating charts:
+
 ```python
 charts = BenchmarkCharts(output_dir="./charts", dpi=300)
 ```
 
----
+______________________________________________________________________
 
 *Updated: 2025-11-28*

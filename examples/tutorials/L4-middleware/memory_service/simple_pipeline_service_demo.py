@@ -52,7 +52,11 @@ class SimpleProcessor(MapFunction):
         result = number**2
 
         # 返回结果（带上 response_queue）
-        resp_q = data.response_queue if hasattr(data, "response_queue") else data["response_queue"]
+        resp_q = (
+            data.response_queue
+            if hasattr(data, "response_queue")
+            else data["response_queue"]
+        )
         return {
             "payload": {"result": result, "original": number},
             "response_queue": resp_q,
@@ -154,7 +158,9 @@ def main():
     env.register_service("processor", PipelineService, bridge)
 
     # 3. 创建服务 Pipeline（使用通用的 Source 和 Sink）
-    env.from_source(PipelineServiceSource, bridge).map(SimpleProcessor).sink(PipelineServiceSink)
+    env.from_source(PipelineServiceSource, bridge).map(SimpleProcessor).sink(
+        PipelineServiceSink
+    )
 
     # ====================================
     # 主 Pipeline（正常创建）

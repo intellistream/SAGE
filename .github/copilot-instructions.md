@@ -69,10 +69,17 @@ Config: `tools/pytest.ini`, cache: `.sage/cache/pytest/`, env: `SAGE_TEST_MODE=t
 sage-dev quality                              # Auto-fix
 sage-dev quality --check-only                 # Check only
 pre-commit run --all-files --config tools/pre-commit-config.yaml
+./tools/install/check_tool_versions.sh        # Check version consistency
+./tools/install/check_tool_versions.sh --fix  # Auto-fix version mismatch
 ```
 
 Tools: Ruff (format+lint, line 100), Mypy (types, warning mode), Shellcheck Config:
 `tools/pre-commit-config.yaml`, `tools/ruff.toml`
+
+**Tool Version Consistency** - CRITICAL:
+- `ruff` version is pinned in both `tools/pre-commit-config.yaml` (rev) and
+  `packages/sage-tools/pyproject.toml` (==x.y.z) to ensure local and CI consistency.
+- Run `./tools/install/check_tool_versions.sh` to verify versions match.
 
 **Make shortcuts**: `make help`, `make test`, `make format`, `make clean`, `make docs`
 

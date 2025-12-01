@@ -94,7 +94,9 @@ Features:
         help="Maximum number of articles to fetch (default: 10)",
     )
 
-    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
 
     args = parser.parse_args()
 

@@ -112,7 +112,9 @@ def main():
     ]
     collection.batch_insert_data(batch_texts, None)
     # Generate vectors for batch inserted data
-    batch_vectors = [normalize_vector(embedding_model.encode(text)) for text in batch_texts]
+    batch_vectors = [
+        normalize_vector(embedding_model.encode(text)) for text in batch_texts
+    ]
     batch_item_ids = collection.get_all_ids()[-len(batch_texts) :]  # Get the last N IDs
     collection.init_index("example_index", batch_vectors, batch_item_ids)
     print(f"✓ Batch inserted {len(batch_texts)} documents")

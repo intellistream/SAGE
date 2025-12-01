@@ -43,7 +43,10 @@ def demo_1_llm_benchmark_config():
         timeout_seconds=30.0,
         arrival_pattern=ArrivalPattern.POISSON,
         policies=[SchedulingPolicy.FIFO, SchedulingPolicy.PRIORITY],
-        model_distribution={"Qwen/Qwen2.5-7B-Instruct": 0.7, "meta-llama/Llama-3-8B": 0.3},
+        model_distribution={
+            "Qwen/Qwen2.5-7B-Instruct": 0.7,
+            "meta-llama/Llama-3-8B": 0.3,
+        },
         priority_distribution={"HIGH": 0.2, "NORMAL": 0.6, "LOW": 0.2},
         slo_config=LLMSLOConfig(
             high_priority_deadline_ms=500,
@@ -65,7 +68,9 @@ def demo_1_llm_benchmark_config():
     print(f"  - Requests: {config.num_requests}")
     print(f"  - Rate: {config.request_rate} req/s")
     print(f"  - Arrival: {config.arrival_pattern.value}")
-    print(f"  - Policies: {[p.value if hasattr(p, 'value') else str(p) for p in config.policies]}")  # type: ignore
+    print(
+        f"  - Policies: {[p.value if hasattr(p, 'value') else str(p) for p in config.policies]}"
+    )  # type: ignore
     print(f"  - Models: {config.model_distribution}")
 
     return config
@@ -157,17 +162,23 @@ def demo_3_workload_generation():
     hybrid_generator = HybridWorkloadGenerator(hybrid_config)
     hybrid_requests = hybrid_generator.generate()
 
-    llm_count = sum(1 for r in hybrid_requests if r.request_type.value.startswith("llm"))
+    llm_count = sum(
+        1 for r in hybrid_requests if r.request_type.value.startswith("llm")
+    )
     embed_count = len(hybrid_requests) - llm_count
 
     print(f"  Generated {len(hybrid_requests)} hybrid requests:")
-    print(f"    - LLM requests: {llm_count} ({llm_count / len(hybrid_requests) * 100:.0f}%)")
+    print(
+        f"    - LLM requests: {llm_count} ({llm_count / len(hybrid_requests) * 100:.0f}%)"
+    )
     print(
         f"    - Embedding requests: {embed_count} ({embed_count / len(hybrid_requests) * 100:.0f}%)"
     )
 
     for i, req in enumerate(hybrid_requests[:5]):
-        print(f"    {i + 1}. type={req.request_type.value}, time={req.scheduled_arrival_time:.2f}s")
+        print(
+            f"    {i + 1}. type={req.request_type.value}, time={req.scheduled_arrival_time:.2f}s"
+        )
 
 
 def demo_4_strategy_adapter():
