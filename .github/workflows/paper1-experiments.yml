@@ -152,16 +152,6 @@ jobs:
           # Activate conda environment
           conda activate $CONDA_ENV_NAME
 
-          # Configure pip to use Chinese mirrors (for self-hosted runner in China)
-          echo "📦 Configuring pip mirrors for faster downloads..."
-          pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-          pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn
-
-          # Configure conda to use Chinese mirrors
-          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
-          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
-          conda config --set show_channel_urls yes
-
           # Install system dependencies if needed
           for cmd in cmake pkg-config; do
             if ! command -v $cmd &> /dev/null; then
@@ -171,19 +161,18 @@ jobs:
             fi
           done
 
-          # Temporarily unset CI variables so quickstart.sh installs to conda env, not ~/.local
-          # This ensures packages are installed in the active conda environment
-          unset CI GITHUB_ACTIONS
-
-          # Install SAGE using quickstart.sh (same as build-test.yml)
+          # Use SAGE's unified installation with automatic China mirror detection
+          # SAGE_FORCE_CHINA_MIRROR=true forces Chinese mirrors for self-hosted runners in China
+          # unset CI/GITHUB_ACTIONS so packages install to conda env, not ~/.local
           chmod +x ./quickstart.sh
-          ./quickstart.sh --dev --yes --pip
+          unset CI GITHUB_ACTIONS
+          SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip
 
           # Verify installation
           python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
           python -c "from sage.benchmark.benchmark_agent import get_adapter_registry; print('sage-benchmark OK')"
           echo "✅ SAGE installation completed"
-        timeout-minutes: 45  # Increased from 25 to handle 130+ dependencies
+        timeout-minutes: 60  # Increased timeout for large dependencies
 
       - name: Create Experiment Environment File
         run: |

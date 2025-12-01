@@ -94,11 +94,16 @@ installation-test.yml, publish-pypi.yml, paper1-experiments.yml (GPU, manual)
 |------|-------------|------|
 | GitHub Actions (ubuntu-latest) | `./tools/install/ci_install_wrapper.sh --dev --yes` | 标准 CI，安装到 `~/.local` |
 | GitHub Actions + Conda | `unset CI GITHUB_ACTIONS && ./quickstart.sh --dev --yes --pip` | 需取消 CI 变量，安装到 conda env |
-| Self-hosted GPU runner | 同上 (Conda 方式) | paper1-experiments.yml 使用 |
+| Self-hosted GPU runner (中国) | `unset CI GITHUB_ACTIONS && SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip` | 强制使用中国镜像 |
 
 **为什么需要 `unset CI GITHUB_ACTIONS`**：
 - `quickstart.sh` 在检测到 CI 环境时会添加 `--user` 参数，安装到 `~/.local`
 - 如果使用 conda 环境，需要取消这些变量让包安装到当前激活的环境
+
+**`SAGE_FORCE_CHINA_MIRROR=true`**：
+- 强制使用中国镜像（清华 PyPI + hf-mirror.com）
+- 适用于位于中国的 self-hosted runner
+- 会覆盖 CI 环境的默认官方源设置
 
 **CI uses**: Ubuntu latest, Python 3.11, GitHub Secrets (OPENAI_API_KEY, HF_TOKEN), pip cache
 
@@ -351,8 +356,32 @@ SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 
 # === HuggingFace ===
 HF_TOKEN=hf_xxx
-HF_ENDPOINT=https://hf-mirror.com     # 中国镜像
+# HF_ENDPOINT 无需手动设置，SAGE 会自动检测网络并配置镜像
 ```
+
+### 网络检测和 HuggingFace 镜像自动配置
+
+SAGE 会在运行时自动检测网络区域，如果检测到中国大陆网络，会自动设置 `HF_ENDPOINT=https://hf-mirror.com`。
+
+```python
+from sage.common.config import (
+    detect_china_mainland,      # 检测是否在中国大陆
+    get_hf_endpoint,            # 获取推荐的 HF endpoint
+    ensure_hf_mirror_configured,  # 自动配置 HF 镜像（推荐在 CLI 命令入口调用）
+)
+
+# 检测网络区域
+is_china = detect_china_mainland()  # True/False
+
+# 自动配置（如果在中国大陆，设置 HF_ENDPOINT 环境变量）
+ensure_hf_mirror_configured()  # 只会在首次调用时检测，结果会缓存
+```
+
+**自动配置的命令**：
+- `sage llm run` - 运行 vLLM 服务
+- `sage llm model download` - 下载模型
+- `sage llm fine-tune` - 微调模型
+- Embedding 相关服务
 
 ### EmbeddingFactory (本地模型，无需服务)
 
