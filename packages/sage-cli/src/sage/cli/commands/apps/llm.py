@@ -501,6 +501,54 @@ def status_llm():
         except Exception as e:
             console.print(f"\n[yellow]⚠️  健康检查失败: {e}[/yellow]")
 
+    # Check Embedding service status
+    _show_embedding_status()
+
+
+def _show_embedding_status():
+    """显示 Embedding 服务状态。"""
+    import socket
+
+    embedding_port = SagePorts.EMBEDDING_DEFAULT
+    embedding_log = LOG_DIR / "embedding.log"
+
+    # Check port status
+    embedding_port_in_use = False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        embedding_port_in_use = sock.connect_ex(("localhost", embedding_port)) == 0
+
+    # Build table
+    embed_table = Table(title="Embedding 服务状态", show_header=True, header_style="bold")
+    embed_table.add_column("属性")
+    embed_table.add_column("值")
+
+    if embedding_port_in_use:
+        embed_status = "[green]运行中[/green]"
+    else:
+        embed_status = "[red]已停止[/red]"
+
+    embed_table.add_row("状态", embed_status)
+    embed_table.add_row("端口", str(embedding_port))
+    embed_table.add_row("日志", str(embedding_log) if embedding_log.exists() else "-")
+    embed_table.add_row("API 端点", f"http://localhost:{embedding_port}/v1")
+
+    console.print()
+    console.print(embed_table)
+
+    # Health check for embedding
+    if embedding_port_in_use:
+        try:
+            import httpx
+
+            resp = httpx.get(f"http://localhost:{embedding_port}/v1/models", timeout=5)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                if models:
+                    console.print("\n[green]✓[/green] Embedding 健康检查通过")
+                    console.print(f"  加载的模型: {models[0].get('id', 'unknown')}")
+        except Exception as e:
+            console.print(f"\n[yellow]⚠️  Embedding 健康检查失败: {e}[/yellow]")
+
 
 @app.command("logs")
 def view_logs(

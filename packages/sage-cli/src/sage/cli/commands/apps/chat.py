@@ -340,7 +340,9 @@ def load_or_bootstrap_manifest(index_root: Path, index_name: str) -> ChatManifes
         return manifest
 
 
-def _create_markdown_processor(source_dir: Path, max_files: int | None = None):
+def _create_markdown_processor(
+    source_dir: Path, max_files: int | None = None, show_progress: bool = True
+):
     """Create a custom document processor for Markdown files.
 
     This processor handles SAGE-specific Markdown processing with:
@@ -382,7 +384,10 @@ def _create_markdown_processor(source_dir: Path, max_files: int | None = None):
                 )
 
             total_docs += 1
-            console.print(f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan")
+            if show_progress:
+                console.print(
+                    f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan"
+                )
 
         return chunks
 
@@ -397,6 +402,7 @@ def ingest_source(
     chunk_overlap: int,
     embedding_config: dict[str, object],
     max_files: int | None = None,
+    show_progress: bool = True,
 ) -> ChatManifest:
     """Build RAG index from source documents using IndexBuilder.
 
@@ -431,10 +437,11 @@ def ingest_source(
         return SageDBBackend(persist_path, dim)
 
     # Create document processor for Markdown
-    document_processor = _create_markdown_processor(source_dir, max_files)
+    document_processor = _create_markdown_processor(source_dir, max_files, show_progress)
 
     # Build index using IndexBuilder
-    console.print("🔨 Building index using IndexBuilder...", style="cyan")
+    if show_progress:
+        console.print("🔨 Building index using IndexBuilder...", style="cyan")
     builder = IndexBuilder(backend_factory=backend_factory)
 
     index_manifest = builder.build_from_docs(
@@ -445,6 +452,7 @@ def ingest_source(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         document_processor=document_processor,
+        show_progress=show_progress,
     )
 
     # Convert IndexManifest to ChatManifest for compatibility
@@ -461,10 +469,11 @@ def ingest_source(
     )
 
     save_manifest(index_root, index_name, manifest)
-    console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
-    console.print(
-        f"📊 Documents: {manifest.num_documents}, Chunks: {manifest.num_chunks}", style="green"
-    )
+    if show_progress:
+        console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
+        console.print(
+            f"📊 Documents: {manifest.num_documents}, Chunks: {manifest.num_chunks}", style="green"
+        )
 
     return manifest
 
@@ -715,7 +724,7 @@ class ResponseGenerator:
             raise RuntimeError("Client not initialized")
         messages = build_prompt(question, contexts)
         try:
-            response = self.client.generate(
+            response = self.client.chat(
                 messages,
                 max_tokens=768,
                 temperature=self.temperature,
@@ -1626,6 +1635,17 @@ def ingest(
         "--index-root",
         help="索引输出目录 (未提供则使用 ~/.sage/cache/chat)",
     ),
+    embedding_base_url: str | None = typer.Option(
+        None,
+        "--embedding-base-url",
+        help="Embedding 服务 API 端点 (用于连接本地 embedding server，如 http://localhost:8090/v1)",
+    ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="静默模式，只显示进度条不打印详细日志",
+    ),
 ) -> None:
     ensure_sage_db()
     root = resolve_index_root(index_root)
@@ -1648,15 +1668,23 @@ def ingest(
     if embedding_model:
         embedding_config["params"]["model"] = embedding_model
 
-    console.print(
-        Panel(
-            f"索引名称: [cyan]{index_name}[/cyan]\n"
-            f"文档目录: [green]{target_source}[/green]\n"
-            f"索引目录: [magenta]{root}[/magenta]\n"
-            f"Embedding: {embedding_config}",
-            title="SAGE Chat Ingest",
+    # 设置 base_url（如果提供，用于连接本地 embedding 服务）
+    if embedding_base_url:
+        embedding_config["params"]["base_url"] = embedding_base_url
+        # 本地服务不需要 API key，设置一个占位符
+        if "api_key" not in embedding_config["params"]:
+            embedding_config["params"]["api_key"] = "local"  # pragma: allowlist secret
+
+    if not quiet:
+        console.print(
+            Panel(
+                f"索引名称: [cyan]{index_name}[/cyan]\n"
+                f"文档目录: [green]{target_source}[/green]\n"
+                f"索引目录: [magenta]{root}[/magenta]\n"
+                f"Embedding: {embedding_config}",
+                title="SAGE Chat Ingest",
+            )
         )
-    )
 
     ingest_source(
         source_dir=target_source,
@@ -1666,6 +1694,7 @@ def ingest(
         chunk_overlap=chunk_overlap,
         embedding_config=embedding_config,
         max_files=max_files,
+        show_progress=not quiet,
     )
 
 
