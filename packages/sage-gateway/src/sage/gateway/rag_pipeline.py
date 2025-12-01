@@ -132,24 +132,26 @@ class RAGChatMap(MapFunction):
 
             # Initialize embedder - 根据 manifest 中的配置选择正确的方法
             embed_config = self._manifest_data.get("embedding", {})
-            embedding_method = embed_config.get("method", "hash")
-            embedding_model = embed_config.get(
-                "model"
-            )  # 注意: studio 存的是 "model" 不是 "model_name"
-            embedding_dim = embed_config.get("dim", 384)
+            embedding_method = embed_config.get("method", "openai")  # 默认使用 openai
+            # 兼容两种格式：params.model 或直接 model
+            embed_params = embed_config.get("params", {})
+            embedding_model = embed_params.get("model") or embed_config.get("model")
+            embedding_dim = embed_params.get("dim") or embed_config.get("dim", 384)
 
             if embedding_method == "openai":
                 # 使用本地 embedding 服务
                 from sage.common.config.ports import SagePorts
 
                 embedding_port = SagePorts.EMBEDDING_DEFAULT
+                # 优先使用 manifest 中的 base_url，否则使用默认端口
+                base_url = embed_params.get("base_url", f"http://localhost:{embedding_port}/v1")
                 self._embedder = get_embedding_model(
                     "openai",
                     model=embedding_model or "BAAI/bge-m3",
-                    base_url=f"http://localhost:{embedding_port}/v1",
+                    base_url=base_url,
                     api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
                 )
-                logger.info(f"Using OpenAI-compatible embedding service at port {embedding_port}")
+                logger.info(f"Using OpenAI-compatible embedding service: {base_url}")
             elif embedding_method in ["hf", "jina"]:
                 self._embedder = get_embedding_model(embedding_method, model=embedding_model)
             else:
@@ -323,11 +325,14 @@ class RAGChatMap(MapFunction):
 
             system_instructions = textwrap.dedent(
                 """
-                You are SAGE 内嵌编程助手。回答用户关于 SAGE 的问题，依据提供的上下文进行解释。
-                - 如果上下文不足以回答，请坦诚说明并给出下一步建议。
-                - 引用时使用 [编号] 表示，例如 [1], [2]。
-                - 回答保持简洁，直接给出步骤或示例代码。
-                - 在回答末尾简要说明引用来源的文档标题。
+                You are SAGE 智能助手，可以回答关于 SAGE 框架的技术问题，也可以进行日常对话。
+
+                对话规则：
+                - 如果用户在打招呼或闲聊（如"你好"、"hi"、"谢谢"等），请自然地回应，不要输出代码。
+                - 如果用户询问 SAGE 相关的技术问题，依据提供的上下文进行解释，可以给出示例代码。
+                - 如果上下文不足以回答技术问题，请坦诚说明并给出下一步建议。
+                - 引用文档时使用 [编号] 表示，例如 [1], [2]。
+                - 在回答技术问题时，末尾简要说明引用来源的文档标题。
                 - 注意用户之前的对话历史，保持上下文连贯性。
                 """
             ).strip()

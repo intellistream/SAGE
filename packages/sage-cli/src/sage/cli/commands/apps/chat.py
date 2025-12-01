@@ -31,7 +31,7 @@ from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
-from sage.common.config.output_paths import find_sage_project_root, get_sage_paths
+from sage.common.config.output_paths import find_sage_project_root
 
 # Import document processing utilities from sage-common (L1)
 from sage.common.utils.document_processing import (
@@ -75,9 +75,11 @@ DEFAULT_INDEX_NAME = "docs-public"
 DEFAULT_CHUNK_SIZE = 800
 DEFAULT_CHUNK_OVERLAP = 160
 DEFAULT_TOP_K = 4
-DEFAULT_BACKEND = "mock"
-DEFAULT_EMBEDDING_METHOD = "hash"
-DEFAULT_FIXED_DIM = 384
+DEFAULT_BACKEND = "auto"  # 自动检测本地 LLM 服务，若无则回退 mock
+# 默认使用本地 embedding server（与 sage-gateway 统一）
+DEFAULT_EMBEDDING_METHOD = "openai"  # 使用 OpenAI 兼容接口连接本地 embedding server
+DEFAULT_EMBEDDING_MODEL = "BAAI/bge-m3"  # 默认 embedding 模型
+DEFAULT_FIXED_DIM = 384  # 仅用于 hash 方法的回退
 DEFAULT_FINETUNE_MODEL = "sage_code_expert"
 DEFAULT_FINETUNE_PORT = 8000
 
@@ -142,12 +144,17 @@ def ensure_sage_db() -> None:
 
 
 def resolve_index_root(index_root: str | None) -> Path:
+    """解析索引存储根目录。
+
+    用户数据缓存（聊天索引）始终使用用户目录 ~/.sage/cache/chat/，
+    确保 sage-chat 和 sage-gateway 使用同一份索引。
+    """
     if index_root:
         root = Path(index_root).expanduser().resolve()
         root.mkdir(parents=True, exist_ok=True)
         return root
-    paths = get_sage_paths()
-    cache_dir = paths.cache_dir / "chat"
+    # 始终使用用户目录，确保与 sage-gateway 共享同一份索引
+    cache_dir = Path.home() / ".sage" / "cache" / "chat"
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir
 
@@ -161,7 +168,8 @@ def default_source_dir() -> Path:
 
 
 def manifest_path(index_root: Path, index_name: str) -> Path:
-    return index_root / f"{index_name}.manifest.json"
+    # 使用下划线格式，与 sage-gateway 保持一致
+    return index_root / f"{index_name}_manifest.json"
 
 
 def db_file_path(index_root: Path, index_name: str) -> Path:
@@ -171,7 +179,12 @@ def db_file_path(index_root: Path, index_name: str) -> Path:
 def load_manifest(index_root: Path, index_name: str) -> ChatManifest:
     path = manifest_path(index_root, index_name)
     if not path.exists():
-        raise FileNotFoundError(f"未找到索引 manifest: {path}. 请先运行 `sage chat ingest`.")
+        # 兼容旧格式：尝试读取 .manifest.json
+        old_path = index_root / f"{index_name}.manifest.json"
+        if old_path.exists():
+            path = old_path
+        else:
+            raise FileNotFoundError(f"未找到索引 manifest: {path}. 请先运行 `sage chat ingest`.")
     payload = json.loads(path.read_text(encoding="utf-8"))
     manifest = ChatManifest(
         index_name=index_name,
@@ -299,10 +312,41 @@ def bootstrap_default_index(index_root: Path, index_name: str) -> ChatManifest |
         console.print(f"[red]无法准备文档语料: {exc}[/red]")
         return None
 
-    embedding_config: dict[str, object] = {
-        "method": DEFAULT_EMBEDDING_METHOD,
-        "params": {"dim": DEFAULT_FIXED_DIM},
-    }
+    # 检测本地 embedding server 是否可用
+    from sage.common.config.ports import SagePorts
+
+    embedding_port = SagePorts.EMBEDDING_DEFAULT
+    embedding_available = False
+
+    try:
+        import requests
+
+        # 使用 /v1/models 端点检测（OpenAI 兼容接口）
+        response = requests.get(f"http://localhost:{embedding_port}/v1/models", timeout=2)
+        embedding_available = response.status_code == 200
+    except Exception:
+        pass
+
+    if embedding_available:
+        console.print(f"[green]✅ 检测到本地 Embedding 服务 (端口 {embedding_port})[/green]")
+        embedding_config: dict[str, object] = {
+            "method": "openai",
+            "params": {
+                "model": DEFAULT_EMBEDDING_MODEL,
+                "base_url": f"http://localhost:{embedding_port}/v1",
+                "api_key": "local",  # 本地服务不需要真实 key  # pragma: allowlist secret
+            },
+        }
+    else:
+        console.print(
+            f"[yellow]⚠️  未检测到本地 Embedding 服务 (端口 {embedding_port})，使用 hash 方法[/yellow]\n"
+            "[dim]提示: 运行 `sage llm serve` 启动 Embedding 服务以获得更好的检索效果[/dim]"
+        )
+        embedding_config = {
+            "method": "hash",
+            "params": {"dim": DEFAULT_FIXED_DIM},
+        }
+
     console.print(
         f"🚀 正在导入 [cyan]{source_dir}[/cyan] 以初始化 `{index_name}` 索引...",
         style="green",
@@ -566,10 +610,13 @@ def build_prompt(question: str, contexts: Sequence[str]) -> list[dict[str, str]]
     )
     system_instructions = textwrap.dedent(
         """
-        You are SAGE 内嵌编程助手。回答用户关于 SAGE 的问题，依据提供的上下文进行解释。
-        - 如果上下文不足以回答，请坦诚说明并给出下一步建议。
-        - 引用时使用 [编号] 表示。
-        - 回答保持简洁，直接给出步骤或示例代码。
+        You are SAGE 智能助手，可以回答关于 SAGE 框架的技术问题，也可以进行日常对话。
+
+        对话规则：
+        - 如果用户在打招呼或闲聊（如"你好"、"hi"、"谢谢"等），请自然地回应，不要输出代码。
+        - 如果用户询问 SAGE 相关的技术问题，依据提供的上下文进行解释，可以给出示例代码。
+        - 如果上下文不足以回答技术问题，请坦诚说明并给出下一步建议。
+        - 引用文档时使用 [编号] 表示。
         """
     ).strip()
 
@@ -604,6 +651,9 @@ class ResponseGenerator:
 
         if self.backend == "mock":
             self.client = None
+        elif self.backend == "auto":
+            # 自动检测本地 LLM 服务
+            self._setup_auto_backend()
         elif self.backend == "finetune":
             # 使用微调模型
             self._setup_finetune_backend()
@@ -630,6 +680,76 @@ class ResponseGenerator:
                     self.client = UnifiedInferenceClient.create_auto()
             except Exception as exc:  # pragma: no cover - runtime check
                 raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
+
+    def _setup_auto_backend(self) -> None:
+        """自动检测并配置最佳可用的 LLM 后端。
+
+        优先级: 本地 LLM 服务 → 云端 API → mock 回退
+        """
+        import os
+
+        import requests
+
+        from sage.common.config.ports import SagePorts
+
+        # 1. 尝试本地 LLM 服务
+        local_ports = [SagePorts.BENCHMARK_LLM, SagePorts.LLM_DEFAULT]
+        for port in local_ports:
+            try:
+                response = requests.get(f"http://localhost:{port}/health", timeout=2)
+                if response.status_code == 200:
+                    # 获取本地服务的实际模型名
+                    models_response = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
+                    local_model = self.model
+                    if models_response.status_code == 200:
+                        models_data = models_response.json()
+                        if models_data.get("data"):
+                            local_model = models_data["data"][0].get("id", self.model)
+
+                    console.print(
+                        f"[green]✅ 检测到本地 LLM 服务 (端口 {port}, 模型: {local_model})[/green]"
+                    )
+                    from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                    self.client = UnifiedInferenceClient(
+                        llm_model=local_model,
+                        llm_base_url=f"http://localhost:{port}/v1",
+                        llm_api_key="",
+                    )
+                    self.model = local_model
+                    self.backend = "local"
+                    return
+            except Exception:  # noqa: S110
+                pass
+
+        # 2. 尝试云端 API（检查环境变量）
+        api_key = (
+            os.getenv("SAGE_CHAT_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("DASHSCOPE_API_KEY")
+            or os.getenv("ALIBABA_API_KEY")
+        )
+        if api_key:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+
+                # 使用 create_auto 会自动检测配置
+                self.client = UnifiedInferenceClient.create_auto()
+                status = self.client.get_status()
+                if status.get("llm_available"):
+                    console.print("[green]✅ 使用云端 API 服务[/green]")
+                    self.backend = "api"
+                    return
+            except Exception as e:
+                console.print(f"[yellow]⚠️  云端 API 初始化失败: {e}[/yellow]")
+
+        # 3. 回退到 mock 模式
+        console.print(
+            "[yellow]⚠️  未检测到可用的 LLM 服务，使用 mock 模式[/yellow]\n"
+            "[dim]提示: 启动本地服务 `sage llm serve` 或配置 SAGE_CHAT_API_KEY 环境变量[/dim]"
+        )
+        self.client = None
+        self.backend = "mock"
 
     def _setup_finetune_backend(self) -> None:
         """设置微调模型 backend（通过 sageLLM LLMAPIServer）"""
@@ -815,7 +935,7 @@ class ResponseGenerator:
         citation = top_ref.get("label", top_ref.get("title", "Docs"))
         return (
             f"根据 {citation} 的说明：{snippet[:280]}...\n\n"
-            "如需更多细节，可以输入 `more` 再次检索，或使用 `--backend openai` 启用真实模型。"
+            "[Mock 模式] 启动本地服务 `sage llm serve` 或配置 SAGE_CHAT_API_KEY 以获得完整回答。"
         )
 
 
@@ -1400,9 +1520,31 @@ def retrieve_context(
     embedder: EmbeddingModel,
     question: str,
     top_k: int,
+    show_progress: bool = True,
 ) -> dict[str, object]:
-    query_vector = embedder.embed(question)
-    results = db.search(query_vector, top_k, True)
+    """检索相关上下文。
+
+    Args:
+        db: SageDB 数据库实例
+        embedder: Embedding 模型
+        question: 用户问题
+        top_k: 返回的文档数量
+        show_progress: 是否显示进度
+    """
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+
+    if show_progress:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[cyan]正在检索相关文档...[/cyan]"),
+            transient=True,
+        ) as progress:
+            progress.add_task("embedding", total=None)
+            query_vector = embedder.embed(question)
+            results = db.search(query_vector, top_k, True)
+    else:
+        query_vector = embedder.embed(question)
+        results = db.search(query_vector, top_k, True)
 
     contexts: list[str] = []
     references: list[dict[str, str]] = []
