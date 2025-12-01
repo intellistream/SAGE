@@ -8,6 +8,7 @@ from typing import Any
 
 import typer
 
+from sage.common.config import ensure_hf_mirror_configured
 from sage.common.model_registry import vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
@@ -74,6 +75,9 @@ def download_model(
 ):
     """下载模型到本地缓存。"""
 
+    # Auto-configure HuggingFace mirror for China mainland users
+    ensure_hf_mirror_configured()
+
     try:
         info = vllm_registry.download_model(
             model,
@@ -132,6 +136,9 @@ def run_vllm_service(
         typer.echo("   请运行 `pip install isage-common[vllm]` 后重试。")
         raise typer.Exit(1)
 
+    # Auto-configure HuggingFace mirror for China mainland users
+    ensure_hf_mirror_configured()
+
     config_dict: dict[str, Any] = {
         "model_id": model,
         "embedding_model_id": embedding_model,
@@ -184,6 +191,9 @@ def fine_tune_stub(
     if VLLMService is None:  # pragma: no cover - dependency guard
         typer.echo("❌ 当前环境未安装 isage-common[vllm]，无法调用 fine-tune 接口。")
         raise typer.Exit(1)
+
+    # Auto-configure HuggingFace mirror for China mainland users
+    ensure_hf_mirror_configured()
 
     service = VLLMService({"model_id": base_model, "auto_download": auto_download})
     try:
