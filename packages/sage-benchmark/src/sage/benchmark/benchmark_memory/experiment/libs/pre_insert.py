@@ -1,4 +1,23 @@
-"""预插入处理模块 - 在记忆插入前的预处理（可选）
+"""预插入处理模块 - 记忆插入前的预处理操作
+
+记忆体架构说明：
+================
+记忆体分为【记忆操作】和【记忆数据结构】两部分：
+
+记忆操作（4 种）：
+- 插入前操作 (PreInsert): 预处理记忆数据，决定插入方式，仅允许检索记忆数据结构
+- 插入后操作 (PostInsert): 优化记忆数据结构，允许进行检索-删除-插入（replace）
+- 检索前操作 (PreRetrieval): 预处理提问，不允许访问记忆数据结构
+- 检索后操作 (PostRetrieval): 处理返回结果，允许多次查询并拼接成 prompt
+
+记忆数据结构：
+- 存储结构 + 插入/检索/删除接口
+- 插入可提供多种方法，检索和删除方法固定
+
+本模块职责（PreInsert - 插入前操作）：
+- 预处理记忆数据
+- 决定如何插入
+- 过程中仅允许对记忆数据结构进行检索（通过 service_name 访问）
 
 D2 维度：PreInsert 开发
 支持的 action：
@@ -31,7 +50,14 @@ from sage.common.core import MapFunction
 class PreInsert(MapFunction):
     """记忆插入前的预处理算子
 
+    作为记忆操作的一部分，负责在记忆插入前进行预处理。
+
     职责：
+    - 预处理记忆数据
+    - 决定如何插入（通过 memory_entries 返回插入方法和数据）
+    - 过程中仅允许对记忆数据结构进行检索（通过 service_name 访问）
+
+    具体操作：
     - 数据验证 (validate)
     - 格式转换 (transform)
     - 信息抽取 (extract)
@@ -47,6 +73,9 @@ class PreInsert(MapFunction):
     - multi_embed: 多维向量编码 (EmotionalRAG)
     - validate: 输入验证
 
+    Attributes:
+        service_name: 要访问的记忆服务名称，用于在预处理过程中检索记忆数据结构
+
     注：短期记忆通常使用 none，长期记忆需要更多预处理
     """
 
@@ -58,6 +87,9 @@ class PreInsert(MapFunction):
         """
         super().__init__()
         self.config = config
+
+        # 注册要访问的记忆服务名称（插入前操作允许对记忆数据结构进行检索）
+        self.service_name = config.get("services.register_memory_service", "short_term_memory")
 
         # 此处默认初始化共通工具（对外请求服务的和内部都使用的，比如共用解析器、LLM 和 Embedding）
         self._dialogue_parser = DialogueParser()

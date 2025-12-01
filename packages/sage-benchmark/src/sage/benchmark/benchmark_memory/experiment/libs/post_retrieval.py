@@ -1,15 +1,23 @@
 """后检索处理模块 - 在记忆检索后的后处理（可选）
 
+R3 重构：修正职责边界，确保不实现应属于记忆服务的功能。
+
+职责边界（R3 规范）：
+- 检索结果后处理（rerank, filter, augment, compress, format）
+- 允许多次查询记忆服务以拼接完整 prompt
+- 不自己计算 embedding（由服务完成）
+- 不从 data 读取多个记忆源（只与单一服务交互）
+- filter 不支持 dedup（应由服务返回去重结果）
+- merge 通过多次调用服务实现，而非从 data 读取多源
+
 当前支持的 action：
 - none: 仅做基础格式化（保持向后兼容）
 - rerank: 对检索结果进行重排序（语义 / 时间衰减 / PPR / 加权 / cross-encoder）
-
-后续将扩展：
-- filter: 结果筛选（token budget / 阈值 / top-k / 去重等）
-- merge: 多源结果融合
-- augment: 结果增强（反思 / 上下文 / 元数据 / 时间）
-- compress: 结果压缩（LLMLingua / 抽取式 / 生成式）
-- format: 最终格式化输出（模板 / 结构化 / chat / xml）
+- filter: 结果筛选（token budget / 阈值 / top-k / llm）
+- merge: 多次查询服务合并（link_expand / multi_query）
+- augment: 结果增强（context / metadata / temporal）
+- compress: 结果压缩（extractive）
+- format: 最终格式化输出（template / structured / chat / xml）
 """
 
 from __future__ import annotations
@@ -19,9 +27,6 @@ from datetime import UTC, datetime
 from typing import Any, Optional
 
 from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
-from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
-    EmbeddingGenerator,
-)
 from sage.common.core import MapFunction
 
 
@@ -76,17 +81,20 @@ class MemoryItem:
 class PostRetrieval(MapFunction):
     """记忆检索后的后处理算子
 
-    职责：
-    - 结果重排序（rerank）
-    - 结果过滤（filter, TODO）
-    - 多源融合（merge, TODO）
-    - 结果增强（augment, TODO）
-    - 内容压缩（compress, TODO）
-    - 格式化输出（format, TODO）
+    职责边界：
+    - 检索结果后处理（rerank, filter, augment, compress, format）
+    - 允许多次查询记忆服务以拼接完整 prompt
+    - 构建最终 history_text
 
-    当前实现优先保证：
+    约束（R3 重构）：
+    - 不自己计算 embedding（由服务完成）
+    - 不从 data 读取多个记忆源（只与单一服务交互）
+    - filter 不再支持 dedup（应由服务返回去重结果）
+    - merge 通过多次调用服务实现，而非从 data 读取多源
+
+    当前实现：
     - 默认 `none` 行为不变，仅做基础 history_text 拼接
-    - 在此基础上按 action 追加 /改写 memory_data，并最终统一生成 history_text
+    - 在此基础上按 action 追加/改写 memory_data，并最终统一生成 history_text
     """
 
     def __init__(self, config):  # noqa: D401
@@ -110,9 +118,8 @@ class PostRetrieval(MapFunction):
             ),
         )
 
-        # 默认初始化共通工具（Embedding）
-        # 这些工具依赖外部模型部署，持有句柄没有问题
-        self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
+        # 服务名称（用于多次查询）
+        self.service_name = config.get("services.register_memory_service", "short_term_memory")
 
         # 根据 action 初始化特定配置
         self._init_for_action()
@@ -158,7 +165,7 @@ class PostRetrieval(MapFunction):
             )
 
         elif self.action == "filter":
-            # filter 配置
+            # filter 配置（R3: 移除 dedup，由服务返回去重结果）
             self.filter_type = get_required_config(
                 self.config, f"{cfg_prefix}.filter_type", "action=filter"
             )
@@ -171,23 +178,17 @@ class PostRetrieval(MapFunction):
                 self.config, f"{cfg_prefix}.score_threshold", "filter_type=threshold"
             )
             self.top_k = get_required_config(self.config, f"{cfg_prefix}.k", "filter_type=top_k")
-            self.dedup_threshold = self.config.get(f"{cfg_prefix}.dedup_threshold", 0.9)
-            self.dedup_strategy = self.config.get(f"{cfg_prefix}.dedup_strategy", "keep_first")
 
         elif self.action == "merge":
-            # merge 配置
+            # merge 配置（R3 重构：基于多次查询服务，而非从 data 读取多源）
             self.merge_type = get_required_config(
                 self.config, f"{cfg_prefix}.merge_type", "action=merge"
             )
-            self.merge_sources = self.config.get(
-                f"{cfg_prefix}.merge_sources", ["memory_data", "context_data"]
-            )
-            self.rrf_k = self.config.get(f"{cfg_prefix}.rrf_k", 60)
-            self.merge_weights = self.config.get(f"{cfg_prefix}.merge_weights", None)
-            if self.merge_type == "weighted" and not self.merge_weights:
-                raise ValueError(
-                    "缺少必需配置: operators.post_retrieval.merge_weights (merge_type=weighted)"
-                )
+            # link_expand 专用配置
+            self.expand_top_n = self.config.get(f"{cfg_prefix}.expand_top_n", 5)
+            self.max_depth = self.config.get(f"{cfg_prefix}.max_depth", 1)
+            # multi_query 专用配置
+            self.secondary_queries = self.config.get(f"{cfg_prefix}.secondary_queries", [])
 
         elif self.action == "augment":
             # augment 配置
@@ -416,25 +417,16 @@ class PostRetrieval(MapFunction):
     ) -> list[tuple[MemoryItem, float]]:
         """基于 embedding 相似度的语义重排。
 
-        - 如果上游已经提供 `query_embedding`，优先使用
-        - 否则使用 EmbeddingGenerator 对 `question` 做一次 embedding（如果可用）
+        R3 重构：只使用上游已提供的 query_embedding 和 item.metadata 中的 embedding。
+        如果上游未提供 embedding，则回退到使用已有 score。
         """
-
-        if not self._embedding_generator.is_available():
-            print("Semantic rerank requires embedding service, but none is available")
-            return [(item, item.score or 0.0) for item in items]
 
         query_vec = data.get("query_embedding")
         if query_vec is None:
-            question = data.get("question")
-            if not isinstance(question, str) or not question.strip():
-                print(
-                    "Semantic rerank: missing question/query_embedding, fallback to original score"
-                )
-                return [(item, item.score or 0.0) for item in items]
-            query_vec = self._embedding_generator.embed(question)
-
-        if not query_vec:
+            print(
+                "Semantic rerank: query_embedding not provided by upstream, "
+                "fallback to original score"
+            )
             return [(item, item.score or 0.0) for item in items]
 
         import math
@@ -449,15 +441,17 @@ class PostRetrieval(MapFunction):
                 return 0.0
             return dot / (na * nb)
 
-        item_embeddings = self._embedding_generator.embed_batch([i.text for i in items]) or []
-        if len(item_embeddings) != len(items):
-            print("Semantic rerank: embedding_batch length mismatch, fallback to original score")
-            return [(item, item.score or 0.0) for item in items]
-
         scored: list[tuple[MemoryItem, float]] = []
-        for item, emb in zip(items, item_embeddings):
-            sim = cosine(query_vec, emb)
-            scored.append((item, float(sim)))
+        for item in items:
+            # 尝试从 metadata 中获取 embedding（服务应在 retrieve 时返回）
+            item_emb = item.metadata.get("embedding")
+            if item_emb is not None:
+                sim = cosine(query_vec, item_emb)
+                scored.append((item, float(sim)))
+            else:
+                # 没有 embedding，使用已有 score
+                scored.append((item, item.score or 0.0))
+
         return scored
 
     # ------------------- time_weighted --------------------
@@ -507,34 +501,18 @@ class PostRetrieval(MapFunction):
     def _rerank_weighted(
         self, items: list[MemoryItem], data: dict[str, Any]
     ) -> list[tuple[MemoryItem, float]]:
-        """多因子加权重排（参考 Generative Agents 的 recency/importance/relevance）。"""
+        """多因子加权重排（参考 Generative Agents 的 recency/importance/relevance）。
+
+        R3 重构：relevance 只使用已有 score，不自己计算 embedding。
+        """
 
         now = datetime.now(UTC)
 
         def get_relevance(item: MemoryItem) -> float:
-            # 优先使用已有 score，其次使用 embedding 相似度（如果可用），否则为 0
+            # R3: 只使用已有 score，不计算 embedding
             if item.score is not None:
                 return float(item.score)
-            if not self._embedding_generator.is_available():
-                return 0.0
-            query_vec = data.get("query_embedding")
-            question = data.get("question")
-            if query_vec is None and isinstance(question, str) and question.strip():
-                query_vec = self._embedding_generator.embed(question)
-            if not query_vec:
-                return 0.0
-            emb = self._embedding_generator.embed(item.text)
-            if not emb:
-                return 0.0
-
-            import math
-
-            dot = sum(x * y for x, y in zip(query_vec, emb))
-            na = math.sqrt(sum(x * x for x in query_vec))
-            nb = math.sqrt(sum(y * y for y in emb))
-            if na == 0.0 or nb == 0.0:
-                return 0.0
-            return float(dot / (na * nb))
+            return 0.0
 
         def compute_factor_score(item: MemoryItem, factor_cfg: dict[str, Any]) -> float:
             name = (factor_cfg.get("name") or "").lower()
@@ -563,6 +541,7 @@ class PostRetrieval(MapFunction):
                 return get_relevance(item)
 
             # 未知因子默认 0
+            return 0.0
             return 0.0
 
         scored: list[tuple[MemoryItem, float]] = []
@@ -606,12 +585,13 @@ class PostRetrieval(MapFunction):
     def _execute_filter(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
         """filter 执行分发。
 
-        支持的子类型：
+        支持的子类型（R3 重构后）：
         - token_budget: 按 token 预算过滤（参考 SCM4LLMs）
         - threshold: 按分数阈值过滤
         - top_k: 取 top-k
         - llm: 占位，由 LLM 判断相关性
-        - dedup: 去重
+
+        注意：dedup 已移除，应由服务返回去重结果。
         """
         if self.filter_type == "token_budget":
             return self._filter_token_budget(items, data)
@@ -621,8 +601,6 @@ class PostRetrieval(MapFunction):
             return self._filter_top_k(items, data)
         if self.filter_type == "llm":
             return self._filter_llm_placeholder(items, data)
-        if self.filter_type == "dedup":
-            return self._filter_dedup(items, data)
 
         print(f"Unknown filter_type: {self.filter_type}, fallback to threshold")
         return self._filter_threshold(items, data)
@@ -705,316 +683,147 @@ class PostRetrieval(MapFunction):
         print("LLM-based filter is not implemented in benchmark; keep all items")
         return items
 
-    def _filter_dedup(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """去重过滤。
-
-        dedup_strategy:
-        - "keep_first": 重复时保留第一次出现的
-        - "keep_last": 重复时保留最后一次出现的
-        - "keep_highest_score": 重复时保留得分最高的
-        """
-        if not items:
-            return []
-
-        threshold = float(self.dedup_threshold)
-        strategy = self.dedup_strategy
-
-        # 使用 embedding 计算相似度进行去重
-        if not self._embedding_generator.is_available():
-            print(
-                "Dedup filter requires embedding service, but none is available; fallback to text equality"
-            )
-            # 退化为严格文本去重
-            seen: set[str] = set()
-            result: list[MemoryItem] = []
-            for item in items:
-                if item.text not in seen:
-                    result.append(item)
-                    seen.add(item.text)
-            return result
-
-        # 使用 embedding 去重
-        embeddings = self._embedding_generator.embed_batch([i.text for i in items]) or []
-        if len(embeddings) != len(items):
-            print("Dedup: embedding_batch length mismatch, fallback to text equality")
-            seen = set()
-            result = []
-            for item in items:
-                if item.text not in seen:
-                    result.append(item)
-                    seen.add(item.text)
-            return result
-
-        import math
-
-        def cosine(a: list[float], b: list[float]) -> float:
-            if not a or not b or len(a) != len(b):
-                return 0.0
-            dot = sum(x * y for x, y in zip(a, b))
-            na = math.sqrt(sum(x * x for x in a))
-            nb = math.sqrt(sum(y * y for y in b))
-            if na == 0.0 or nb == 0.0:
-                return 0.0
-            return dot / (na * nb)
-
-        # 策略实现
-        clusters: list[tuple[MemoryItem, list[float]]] = []  # (representative_item, embedding)
-        result = []
-
-        for item, emb in zip(items, embeddings):
-            # 检查与已有 cluster 的相似度
-            matched_cluster_idx = None
-            for idx, (rep_item, rep_emb) in enumerate(clusters):
-                sim = cosine(emb, rep_emb)
-                if sim >= threshold:
-                    matched_cluster_idx = idx
-                    break
-
-            if matched_cluster_idx is None:
-                # 新 cluster
-                clusters.append((item, emb))
-                result.append(item)
-            else:
-                # 已有 cluster，根据策略决定是否替换
-                rep_item, rep_emb = clusters[matched_cluster_idx]
-                if strategy == "keep_first":
-                    pass  # 保留原有代表
-                elif strategy == "keep_last":
-                    # 替换代表
-                    clusters[matched_cluster_idx] = (item, emb)
-                    result[matched_cluster_idx] = item
-                elif strategy == "keep_highest_score":
-                    # 比较得分
-                    if (item.score or 0.0) > (rep_item.score or 0.0):
-                        clusters[matched_cluster_idx] = (item, emb)
-                        result[matched_cluster_idx] = item
-
-        return result
-
     # ========================================================================
-    # MERGE ACTION
+    # MERGE ACTION (R3 重构：基于多次查询服务，而非从 data 读取多源)
     # ========================================================================
 
     def _execute_merge(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
         """merge 执行分发。
 
+        R3 重构：不再从 data 读取多个来源，而是通过多次查询记忆服务来合并。
+
         支持的子类型：
-        - concat: 简单拼接多个来源（参考 MemoryOS 的 multi-tier）
-        - interleave: 交错合并
-        - weighted: 加权合并（按来源权重）
-        - rrf: Reciprocal Rank Fusion
-        - link_expand: 占位，扩展图链接（参考 A-mem）
-        - multi_aspect: 占位，多维度记忆合并（参考 EmotionalRAG）
+        - link_expand: 通过链接扩展获取关联记忆（参考 A-mem）
+        - multi_query: 多次查询服务获取补充信息
+
+        注意：旧的 concat/interleave/weighted/rrf 已移除，
+        这些功能应由服务内部实现或通过 multi_query 实现。
         """
-        if self.merge_type == "concat":
-            return self._merge_concat(items, data)
-        if self.merge_type == "interleave":
-            return self._merge_interleave(items, data)
-        if self.merge_type == "weighted":
-            return self._merge_weighted(items, data)
-        if self.merge_type == "rrf":
-            return self._merge_rrf(items, data)
         if self.merge_type == "link_expand":
-            return self._merge_link_expand_placeholder(items, data)
-        if self.merge_type == "multi_aspect":
-            return self._merge_multi_aspect_placeholder(items, data)
+            return self._merge_by_link_expand(items, data)
+        if self.merge_type == "multi_query":
+            return self._merge_by_multi_query(items, data)
 
-        print(f"Unknown merge_type: {self.merge_type}, fallback to concat")
-        return self._merge_concat(items, data)
+        # 默认：不合并，直接使用
+        print(f"Unknown merge_type: {self.merge_type}, no merge applied")
+        return items
 
-    def _merge_concat(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """简单拼接多个来源。
+    def _merge_by_link_expand(
+        self, items: list[MemoryItem], data: dict[str, Any]
+    ) -> list[MemoryItem]:
+        """通过链接扩展获取关联记忆（参考 A-mem 的图扩展）。
 
-        merge_sources: ["memory_data", "context_data", ...]
-        从 data 中取各来源的 memory item list，依次拼接。
-        如果 items 已有内容，也会被保留在最前面。
+        调用服务的 retrieve 方法获取关联记忆。
+        服务负责实现扩展逻辑（如图遍历、链接追踪等）。
+
+        配置：
+        - expand_top_n: 只扩展 top N 条记忆（默认 5）
+        - max_depth: 扩展深度（默认 1）
         """
         result = list(items)
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        result.append(
-                            MemoryItem(
-                                text=obj.get("text", ""),
-                                score=obj.get("score"),
-                                metadata=obj.get("metadata", {}),
-                                original_index=obj.get("original_index", -1),
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        result.append(obj)
+        expand_top_n = int(getattr(self, "expand_top_n", 5))
+        max_depth = int(getattr(self, "max_depth", 1))
+
+        # 收集已有的 text，用于去重
+        seen_texts = {item.text for item in result}
+
+        # 只扩展 top N 条记忆
+        for item in items[:expand_top_n]:
+            # 调用服务获取关联记忆
+            # 注意：这里使用 call_service 方法（MapFunction 提供）
+            # 服务应根据 metadata 中的 expand_links=True 返回关联记忆
+            try:
+                related = self.call_service(
+                    self.service_name,
+                    method="retrieve",
+                    query=item.text,
+                    metadata={"expand_links": True, "max_depth": max_depth},
+                )
+                if related and isinstance(related, list):
+                    for r in related:
+                        if isinstance(r, dict):
+                            text = r.get("text", "")
+                            if text and text not in seen_texts:
+                                result.append(
+                                    MemoryItem(
+                                        text=text,
+                                        score=r.get("score"),
+                                        metadata=r.get("metadata", {}),
+                                        original_index=-1,
+                                    )
+                                )
+                                seen_texts.add(text)
+            except Exception as e:  # noqa: BLE001
+                print(f"link_expand: call_service failed: {e}")
+                continue
+
         return result
 
-    def _merge_interleave(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """交错合并多个来源。
-
-        例如：source1[0], source2[0], source1[1], source2[1], ...
-        """
-        sources: list[list[MemoryItem]] = [list(items)]
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                converted: list[MemoryItem] = []
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        converted.append(
-                            MemoryItem(
-                                text=obj.get("text", ""),
-                                score=obj.get("score"),
-                                metadata=obj.get("metadata", {}),
-                                original_index=obj.get("original_index", -1),
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        converted.append(obj)
-                sources.append(converted)
-
-        # 交错合并
-        result: list[MemoryItem] = []
-        max_len = max((len(s) for s in sources), default=0)
-        for i in range(max_len):
-            for s in sources:
-                if i < len(s):
-                    result.append(s[i])
-        return result
-
-    def _merge_weighted(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """加权合并多个来源，对 score 进行加权平均。
-
-        merge_weights: {"memory_data": 0.7, "context_data": 0.3, ...}
-        如果 merge_weights 未配置，则退化为 concat。
-        """
-        if not self.merge_weights:
-            return self._merge_concat(items, data)
-
-        # 收集所有来源的 items 并标记来源
-        all_items: list[tuple[MemoryItem, str]] = [(item, "items") for item in items]
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        all_items.append(
-                            (
-                                MemoryItem(
-                                    text=obj.get("text", ""),
-                                    score=obj.get("score"),
-                                    metadata=obj.get("metadata", {}),
-                                    original_index=obj.get("original_index", -1),
-                                ),
-                                src,
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        all_items.append((obj, src))
-
-        # 按 text 合并相同的 item，对 score 进行加权平均
-        text_to_items: dict[str, list[tuple[MemoryItem, str]]] = {}
-        for item, src in all_items:
-            text_to_items.setdefault(item.text, []).append((item, src))
-
-        result: list[MemoryItem] = []
-        for text, group in text_to_items.items():
-            # 计算加权平均得分
-            total_weight = 0.0
-            weighted_score = 0.0
-            representative_item = group[0][0]
-            for item, src in group:
-                weight = float(self.merge_weights.get(src, 1.0))
-                total_weight += weight
-                weighted_score += weight * (item.score or 0.0)
-
-            avg_score = weighted_score / total_weight if total_weight > 0 else 0.0
-            merged_item = MemoryItem(
-                text=representative_item.text,
-                score=avg_score,
-                metadata=representative_item.metadata,
-                original_index=representative_item.original_index,
-            )
-            result.append(merged_item)
-
-        # 按 score 降序
-        result.sort(key=lambda x: x.score or 0.0, reverse=True)
-        return result
-
-    def _merge_rrf(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """Reciprocal Rank Fusion 合并多个来源。
-
-        RRF score = sum(1 / (k + rank_in_source_i))
-        其中 k 默认为 60。
-        """
-        k = int(self.rrf_k)
-
-        # 收集所有来源的 ranked lists
-        sources: list[list[MemoryItem]] = [list(items)]
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                converted: list[MemoryItem] = []
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        converted.append(
-                            MemoryItem(
-                                text=obj.get("text", ""),
-                                score=obj.get("score"),
-                                metadata=obj.get("metadata", {}),
-                                original_index=obj.get("original_index", -1),
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        converted.append(obj)
-                sources.append(converted)
-
-        # 为每个 item (by text) 计算 RRF score
-        text_to_rrf: dict[str, float] = {}
-        text_to_item: dict[str, MemoryItem] = {}
-
-        for src_list in sources:
-            for rank, item in enumerate(src_list, start=1):
-                rrf_contribution = 1.0 / (k + rank)
-                text_to_rrf[item.text] = text_to_rrf.get(item.text, 0.0) + rrf_contribution
-                if item.text not in text_to_item:
-                    text_to_item[item.text] = item
-
-        # 构建结果
-        result: list[MemoryItem] = []
-        for text, rrf_score in text_to_rrf.items():
-            item = text_to_item[text]
-            merged_item = MemoryItem(
-                text=item.text,
-                score=rrf_score,
-                metadata=item.metadata,
-                original_index=item.original_index,
-            )
-            result.append(merged_item)
-
-        # 按 RRF score 降序
-        result.sort(key=lambda x: x.score or 0.0, reverse=True)
-        return result
-
-    def _merge_link_expand_placeholder(
+    def _merge_by_multi_query(
         self, items: list[MemoryItem], data: dict[str, Any]
     ) -> list[MemoryItem]:
-        """link_expand 占位实现（参考 A-mem 的图扩展）。
+        """多次查询服务获取补充信息。
 
-        真实实现需要图存储支持，从 items 中的节点扩展出关联节点。
-        这里仅保留接口，默认返回原 items。
+        允许配置多个补充查询，每个查询可以指定不同的查询模板和元数据。
+
+        配置：
+        - secondary_queries: 补充查询列表
+            - query_template: 查询模板（可使用 {user}, {question} 等变量）
+            - metadata: 传递给服务的元数据
         """
-        print("link_expand merge is not wired to a graph backend; keep original items")
-        return items
+        result = list(items)
+        secondary_queries = getattr(self, "secondary_queries", []) or []
 
-    def _merge_multi_aspect_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """multi_aspect 占位实现（参考 EmotionalRAG 的多维度记忆）。
+        # 收集已有的 text，用于去重
+        seen_texts = {item.text for item in result}
 
-        真实实现需要从多个维度（事实、情感、社会等）的记忆存储中检索并合并。
-        这里仅保留接口，默认返回原 items。
-        """
-        print("multi_aspect merge is not implemented in benchmark; keep original items")
-        return items
+        for query_cfg in secondary_queries:
+            if not isinstance(query_cfg, dict):
+                continue
+
+            # 构造查询
+            query_template = query_cfg.get("query_template", "")
+            query_metadata = query_cfg.get("metadata", {})
+
+            # 替换模板变量
+            query = query_template
+            for key in ["user", "question", "user_name"]:
+                value = data.get(key, "")
+                query = query.replace("{" + key + "}", str(value))
+
+            if not query.strip():
+                query = data.get("question", "")
+
+            if not query:
+                continue
+
+            # 调用服务
+            try:
+                secondary_result = self.call_service(
+                    self.service_name,
+                    method="retrieve",
+                    query=query,
+                    metadata=query_metadata,
+                )
+                if secondary_result and isinstance(secondary_result, list):
+                    for r in secondary_result:
+                        if isinstance(r, dict):
+                            text = r.get("text", "")
+                            if text and text not in seen_texts:
+                                result.append(
+                                    MemoryItem(
+                                        text=text,
+                                        score=r.get("score"),
+                                        metadata=r.get("metadata", {}),
+                                        original_index=-1,
+                                    )
+                                )
+                                seen_texts.add(text)
+            except Exception as e:  # noqa: BLE001
+                print(f"multi_query: call_service failed: {e}")
+                continue
+
+        return result
 
     # ========================================================================
     # AUGMENT ACTION

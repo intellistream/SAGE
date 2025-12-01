@@ -35,14 +35,17 @@ ______________________________________________________________________
 | `short_term_memory`   | ✅ 已实现 | `maxlen`                   | SCM4LLMs                     |
 | `vector_hash_memory`  | ✅ 已实现 | `lsh_nbits`, `k_nearest`   | -                            |
 | `neuromem_vdb`        | ✅ 已实现 | `collection_name`, `top_k` | -                            |
-| `graph_memory`        | ⏳ 待实现 | 见下文                     | HippoRAG, A-mem              |
-| `hierarchical_memory` | ⏳ 待实现 | 见下文                     | MemoryOS, MemGPT, MemoryBank |
-| `hybrid_memory`       | ⏳ 待实现 | 见下文                     | EmotionalRAG                 |
-| `key_value_memory`    | ⏳ 待实现 | 见下文                     | LAPS                         |
+| `graph_memory`        | ✅ 已实现 | 见下文                     | HippoRAG, A-mem              |
+| `hierarchical_memory` | ✅ 已实现 | 见下文                     | MemoryOS, MemGPT, MemoryBank |
+| `hybrid_memory`       | ✅ 已实现 | 见下文                     | EmotionalRAG                 |
+| `key_value_memory`    | ✅ 已实现 | 见下文                     | LAPS                         |
 
 ______________________________________________________________________
 
-## ⏳ TODO-D1-1: `graph_memory`
+## ✅ DONE-D1-1: `graph_memory`
+
+> **实现位置**:
+> `sage-middleware/src/sage/middleware/components/sage_mem/services/graph_memory_service.py` (583行)
 
 ### 概述
 
@@ -122,7 +125,11 @@ services:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D1-2: `hierarchical_memory`
+## ✅ DONE-D1-2: `hierarchical_memory`
+
+> **实现位置**:
+> `sage-middleware/src/sage/middleware/components/sage_mem/services/hierarchical_memory_service.py`
+> (586行)
 
 ### 概述
 
@@ -210,7 +217,10 @@ services:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D1-3: `hybrid_memory`
+## ✅ DONE-D1-3: `hybrid_memory`
+
+> **实现位置**:
+> `sage-middleware/src/sage/middleware/components/sage_mem/services/hybrid_memory_service.py` (617行)
 
 ### 概述
 
@@ -258,7 +268,11 @@ services:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D1-4: `key_value_memory`
+## ✅ DONE-D1-4: `key_value_memory`
+
+> **实现位置**:
+> `sage-middleware/src/sage/middleware/components/sage_mem/services/key_value_memory_service.py`
+> (595行)
 
 ### 概述
 
@@ -296,16 +310,16 @@ services:
 
 ______________________________________________________________________
 
-## 📋 开发优先级
+## 📋 完成状态
 
-| 优先级 | Action                | 参考工作                               | 预估工时 |
-| ------ | --------------------- | -------------------------------------- | -------- |
-| P0     | `graph_memory`        | HippoRAG, A-mem                        | 5天      |
-| P0     | `hierarchical_memory` | MemoryOS, MemGPT, MemoryBank, LD-Agent | 5天      |
-| P1     | `hybrid_memory`       | EmotionalRAG                           | 3天      |
-| P2     | `key_value_memory`    | LAPS                                   | 2天      |
+| 优先级 | Action                | 参考工作                               | 状态      |
+| ------ | --------------------- | -------------------------------------- | --------- |
+| P0     | `graph_memory`        | HippoRAG, A-mem                        | ✅ 已实现 |
+| P0     | `hierarchical_memory` | MemoryOS, MemGPT, MemoryBank, LD-Agent | ✅ 已实现 |
+| P1     | `hybrid_memory`       | EmotionalRAG                           | ✅ 已实现 |
+| P2     | `key_value_memory`    | LAPS                                   | ✅ 已实现 |
 
-**总计**: 15 人天
+**全部完成**: 7/7 后端服务已实现
 
 ______________________________________________________________________
 

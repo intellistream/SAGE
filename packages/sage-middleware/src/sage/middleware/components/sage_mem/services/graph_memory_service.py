@@ -3,18 +3,24 @@
 支持两种模式:
 1. knowledge_graph: 知识图谱模式 (参考 HippoRAG)
 2. link_graph: 链接图模式 (参考 A-mem / Zettelkasten)
+
+使用 GraphMemoryCollection 作为底层存储。
 """
 
 from __future__ import annotations
 
 import hashlib
-import uuid
-from collections import defaultdict
-from typing import Any, Literal
+import os
+from typing import TYPE_CHECKING, Any, Literal
 
-import numpy as np
-
+from sage.middleware.components.sage_mem.neuromem.memory_collection.graph_collection import (
+    GraphMemoryCollection,
+)
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
+
+if TYPE_CHECKING:
+    import numpy as np
 
 
 def compute_mdhash_id(content: str, prefix: str = "") -> str:
@@ -23,560 +29,309 @@ def compute_mdhash_id(content: str, prefix: str = "") -> str:
 
 
 class GraphMemoryService(BaseService):
-    """图结构记忆服务"""
+    """图结构记忆服务
+
+    支持 knowledge_graph 和 link_graph 两种模式。
+    底层使用 MemoryManager + GraphMemoryCollection 存储。
+    """
 
     def __init__(
         self,
+        collection_name: str = "graph_memory",
         graph_type: Literal["knowledge_graph", "link_graph"] = "knowledge_graph",
-        node_embedding_dim: int = 768,
-        edge_types: list[str] | None = None,
+        index_name: str = "default",
         link_policy: Literal["bidirectional", "directed"] = "bidirectional",
         max_links_per_node: int = 50,
         link_weight_init: float = 1.0,
-        synonymy_threshold: float = 0.8,
-        damping: float = 0.5,
     ):
-        """初始化图记忆服务"""
+        """初始化图记忆服务
+
+        Args:
+            collection_name: NeuroMem collection 名称
+            graph_type: 图类型 ("knowledge_graph" | "link_graph")
+            index_name: 图索引名称
+            link_policy: 链接策略 ("bidirectional" | "directed")
+            max_links_per_node: 每个节点最大链接数
+            link_weight_init: 链接初始权重
+        """
         super().__init__()
 
+        self.collection_name = collection_name
         self.graph_type = graph_type
-        self.node_embedding_dim = node_embedding_dim
-        self.edge_types = edge_types or ["relation", "synonym", "temporal"]
+        self.index_name = index_name
         self.link_policy = link_policy
         self.max_links_per_node = max_links_per_node
         self.link_weight_init = link_weight_init
-        self.synonymy_threshold = synonymy_threshold
-        self.damping = damping
 
-        # 核心数据结构
-        self.nodes: dict[str, dict[str, Any]] = {}
-        self.edges: dict[tuple[str, str], dict[str, Any]] = {}
-        self.node_embeddings: dict[str, np.ndarray] = {}
+        # 初始化 MemoryManager
+        self.manager = MemoryManager(self._get_default_data_dir())
 
-        # 知识图谱专用
-        self.triples: list[tuple[str, str, str]] = []
-        self.entity_to_chunks: dict[str, set[str]] = defaultdict(set)
+        # 创建或获取 GraphMemoryCollection
+        if self.manager.has_collection(collection_name):
+            collection = self.manager.get_collection(collection_name)
+            if not isinstance(collection, GraphMemoryCollection):
+                raise TypeError(f"Collection '{collection_name}' is not a GraphMemoryCollection")
+            self.collection = collection
+        else:
+            self.collection = self.manager.create_collection(
+                {
+                    "name": collection_name,
+                    "backend_type": "graph",
+                    "description": f"Graph memory collection ({graph_type})",
+                }
+            )
 
-        # 链接图专用
-        self.node_keywords: dict[str, list[str]] = {}
-        self.node_context: dict[str, str] = {}
-        self.node_links: dict[str, list[str]] = defaultdict(list)
+        # 确保有默认索引
+        if isinstance(self.collection, GraphMemoryCollection):
+            if index_name not in self.collection.indexes:
+                self.collection.create_index({"name": index_name})
 
-        # 邻接表
-        self.adj_list: dict[str, dict[str, float]] = defaultdict(dict)
-        self.inverse_adj_list: dict[str, dict[str, float]] = defaultdict(dict)
+        self.logger.info(
+            f"GraphMemoryService initialized: collection={collection_name}, "
+            f"graph_type={graph_type}, index={index_name}"
+        )
+
+    @classmethod
+    def _get_default_data_dir(cls) -> str:
+        """获取默认数据目录"""
+        cur_dir = os.getcwd()
+        data_dir = os.path.join(cur_dir, "data", "graph_memory")
+        os.makedirs(data_dir, exist_ok=True)
+        return data_dir
 
     def insert(
         self,
         entry: str,
-        vector: np.ndarray | None = None,
+        vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
+        *,
+        insert_mode: Literal["active", "passive"] = "passive",
+        insert_params: dict | None = None,
     ) -> str:
-        """插入记忆条目"""
+        """插入记忆条目（节点）
+
+        支持两种插入模式：
+        - passive: 由服务自行决定存储方式（默认行为）
+        - active: 根据 insert_params 指定存储方式
+
+        Args:
+            entry: 文本内容
+            vector: embedding 向量（可选，用于语义链接）
+            metadata: 元数据，可包含:
+                - node_type: 节点类型 ("entity" | "fact" | "passage")
+                - triples: 三元组列表 [(subject, relation, object), ...]
+                - links: 链接目标节点 ID 列表
+                - keywords: 关键词列表
+            insert_mode: 插入模式 ("active" | "passive")
+            insert_params: 主动插入参数
+                - node_type: 节点类型 (覆盖 metadata)
+                - create_edges: 是否自动创建边
+                - priority: 优先级
+
+        Returns:
+            str: 节点 ID
+        """
         metadata = metadata or {}
 
-        if self.graph_type == "knowledge_graph":
-            return self._insert_knowledge_graph(entry, vector, metadata)
+        # 处理插入模式
+        if insert_mode == "active" and insert_params:
+            # 主动插入：从 insert_params 获取参数
+            if "node_type" in insert_params:
+                metadata["node_type"] = insert_params["node_type"]
+            if "priority" in insert_params:
+                metadata["priority"] = insert_params["priority"]
+            create_edges = insert_params.get("create_edges", True)
         else:
-            return self._insert_link_graph(entry, vector, metadata)
+            # 被动插入：使用默认行为
+            create_edges = True
 
-    def _insert_knowledge_graph(
-        self,
-        entry: str,
-        vector: np.ndarray | None,
-        metadata: dict,
-    ) -> str:
-        """知识图谱模式插入"""
-        node_type = metadata.get("node_type", "passage")
+        # 生成节点 ID
+        node_id = metadata.get("node_id") or compute_mdhash_id(entry, prefix="node_")
 
-        if node_type == "passage":
-            node_id = compute_mdhash_id(entry, "chunk-")
-            self.nodes[node_id] = {
-                "content": entry,
-                "type": "passage",
-                "metadata": metadata,
-            }
+        # 添加节点到图
+        self.collection.add_node(
+            node_id=node_id,
+            text=entry,
+            metadata=metadata,
+            index_name=self.index_name,
+        )
 
-            if vector is not None:
-                self.node_embeddings[node_id] = np.array(vector, dtype=np.float32)
+        # 处理三元组（知识图谱模式，仅在 create_edges=True 时）
+        if create_edges and self.graph_type == "knowledge_graph" and "triples" in metadata:
+            for triple in metadata["triples"]:
+                if len(triple) >= 2:
+                    # triple 格式: (subject, object) 或 (subject, relation, object)
+                    obj = triple[1] if len(triple) == 2 else triple[2]
+                    # 创建关系边
+                    self._add_link(node_id, obj, weight=self.link_weight_init)
 
-            triples = metadata.get("triples", [])
-            for triple in triples:
-                # 支持字典格式和列表/元组格式
-                if isinstance(triple, dict):
-                    subject = triple.get("head") or triple.get("subject")
-                    predicate = triple.get("relation") or triple.get("predicate")
-                    obj = triple.get("tail") or triple.get("object")
-                elif isinstance(triple, (list, tuple)) and len(triple) >= 3:
-                    subject, predicate, obj = triple[0], triple[1], triple[2]
-                else:
-                    continue
-                if subject and predicate and obj:
-                    self._add_triple(subject, predicate, obj, node_id)
+        # 处理显式链接（仅在 create_edges=True 时）
+        if create_edges and "links" in metadata:
+            for target_id in metadata["links"]:
+                self._add_link(node_id, target_id, weight=self.link_weight_init)
 
-        elif node_type == "entity":
-            node_id = compute_mdhash_id(entry, "entity-")
-            self.nodes[node_id] = {
-                "content": entry,
-                "type": "entity",
-                "metadata": metadata,
-            }
-
-            if vector is not None:
-                self.node_embeddings[node_id] = np.array(vector, dtype=np.float32)
-
-        else:
-            node_id = str(uuid.uuid4())
-            self.nodes[node_id] = {
-                "content": entry,
-                "type": node_type,
-                "metadata": metadata,
-            }
-
-            if vector is not None:
-                self.node_embeddings[node_id] = np.array(vector, dtype=np.float32)
-
+        self.logger.debug(f"Inserted node {node_id} to graph")
         return node_id
 
-    def _add_triple(
-        self,
-        subject: str,
-        predicate: str,
-        obj: str,
-        chunk_id: str,
-    ) -> None:
-        """添加三元组"""
-        self.triples.append((subject, predicate, obj))
+    def _add_link(self, from_node: str, to_node: str, weight: float = 1.0) -> None:
+        """添加链接（边）"""
+        self.collection.add_edge(
+            from_node=from_node,
+            to_node=to_node,
+            weight=weight,
+            index_name=self.index_name,
+        )
 
-        subject_id = compute_mdhash_id(subject.lower(), "entity-")
-        obj_id = compute_mdhash_id(obj.lower(), "entity-")
-
-        if subject_id not in self.nodes:
-            self.nodes[subject_id] = {"content": subject, "type": "entity"}
-        if obj_id not in self.nodes:
-            self.nodes[obj_id] = {"content": obj, "type": "entity"}
-
-        edge_key = (subject_id, obj_id)
-        if edge_key not in self.edges:
-            self.edges[edge_key] = {
-                "type": "relation",
-                "predicate": predicate,
-                "weight": 1.0,
-            }
-        else:
-            self.edges[edge_key]["weight"] += 1.0
-
-        self.adj_list[subject_id][obj_id] = self.edges[edge_key]["weight"]
-        self.inverse_adj_list[obj_id][subject_id] = self.edges[edge_key]["weight"]
-
-        self.entity_to_chunks[subject_id].add(chunk_id)
-        self.entity_to_chunks[obj_id].add(chunk_id)
-
-    def _insert_link_graph(
-        self,
-        entry: str,
-        vector: np.ndarray | None,
-        metadata: dict,
-    ) -> str:
-        """链接图模式插入"""
-        node_id = metadata.get("id", str(uuid.uuid4()))
-
-        self.nodes[node_id] = {
-            "content": entry,
-            "type": "memory",
-            "metadata": metadata,
-        }
-
-        if vector is not None:
-            self.node_embeddings[node_id] = np.array(vector, dtype=np.float32)
-
-        self.node_keywords[node_id] = metadata.get("keywords", [])
-        self.node_context[node_id] = metadata.get("context", "")
-
-        links = metadata.get("links", [])
-        for link_id in links:
-            if link_id in self.nodes:
-                self._create_link(node_id, link_id)
-
-        return node_id
-
-    def _create_link(
-        self,
-        src_id: str,
-        dst_id: str,
-        weight: float | None = None,
-    ) -> None:
-        """创建链接"""
-        if weight is None:
-            weight = self.link_weight_init
-
-        if len(self.node_links[src_id]) >= self.max_links_per_node:
-            return
-
-        edge_key = (src_id, dst_id)
-        self.edges[edge_key] = {
-            "type": "link",
-            "weight": weight,
-        }
-
-        self.adj_list[src_id][dst_id] = weight
-        self.node_links[src_id].append(dst_id)
-
+        # 双向链接
         if self.link_policy == "bidirectional":
-            reverse_key = (dst_id, src_id)
-            if reverse_key not in self.edges:
-                self.edges[reverse_key] = {
-                    "type": "link",
-                    "weight": weight,
-                }
-                self.adj_list[dst_id][src_id] = weight
-                self.node_links[dst_id].append(src_id)
+            self.collection.add_edge(
+                from_node=to_node,
+                to_node=from_node,
+                weight=weight,
+                index_name=self.index_name,
+            )
 
     def retrieve(
         self,
         query: str | None = None,
-        vector: np.ndarray | None = None,
+        vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
     ) -> list[dict[str, Any]]:
-        """检索相关记忆"""
+        """检索记忆
+
+        Args:
+            query: 查询文本（作为起始节点 ID 或用于查找起始节点）
+            vector: 查询向量（可选）
+            metadata: 检索参数:
+                - start_node: 起始节点 ID
+                - max_depth: 最大遍历深度 (默认 2)
+                - method: 检索方法 ("bfs" | "neighbors")
+            top_k: 返回结果数量
+
+        Returns:
+            list[dict]: 检索结果
+        """
         metadata = metadata or {}
+        start_node = metadata.get("start_node") or query
+        max_depth = metadata.get("max_depth", 2)
+        method = metadata.get("method", "bfs")
 
-        if self.graph_type == "knowledge_graph":
-            return self._retrieve_knowledge_graph(query, vector, metadata, top_k)
-        else:
-            return self._retrieve_link_graph(query, vector, metadata, top_k)
-
-    def _retrieve_knowledge_graph(
-        self,
-        query: str | None,
-        vector: np.ndarray | None,
-        metadata: dict,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """知识图谱检索"""
-        method = metadata.get("method", "ppr")
-
-        if method == "knn" and vector is not None:
-            return self._knn_retrieve(vector, top_k)
-        elif method == "ppr":
-            seed_nodes = metadata.get("seed_nodes", [])
-
-            if not seed_nodes and vector is not None:
-                knn_results = self._knn_retrieve(vector, min(5, top_k))
-                seed_nodes = [r.get("node_id") for r in knn_results if r.get("node_id")]
-
-            if seed_nodes:
-                return self._ppr_retrieve(seed_nodes, top_k)
-            else:
-                return self._knn_retrieve(vector, top_k) if vector is not None else []
-        else:
-            return self._knn_retrieve(vector, top_k) if vector is not None else []
-
-    def _knn_retrieve(
-        self,
-        vector: np.ndarray,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """KNN 向量检索"""
-        if not self.node_embeddings:
+        if not start_node:
+            self.logger.warning("No start_node provided for graph retrieval")
             return []
 
-        query_vec = np.array(vector, dtype=np.float32)
-        if len(query_vec.shape) == 1:
-            query_vec = query_vec.reshape(1, -1)
+        if method == "neighbors":
+            # 只获取直接邻居
+            results = self.collection.get_neighbors(
+                node_id=start_node,
+                k=top_k,
+                index_name=self.index_name,
+            )
+        else:
+            # BFS 遍历
+            results = self.collection.retrieve_by_graph(
+                start_node=start_node,
+                max_depth=max_depth,
+                max_nodes=top_k,
+                index_name=self.index_name,
+            )
 
-        node_ids = list(self.node_embeddings.keys())
-        embeddings = np.array([self.node_embeddings[nid] for nid in node_ids], dtype=np.float32)
-
-        if len(embeddings) == 0:
-            return []
-
-        query_norm = query_vec / (np.linalg.norm(query_vec, axis=1, keepdims=True) + 1e-8)
-        emb_norm = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8)
-
-        scores = np.dot(emb_norm, query_norm.T).flatten()
-
-        top_indices = np.argsort(scores)[::-1][:top_k]
-
-        results = []
-        for idx in top_indices:
-            node_id = node_ids[idx]
-            node_data = self.nodes.get(node_id, {})
-            results.append(
+        # 转换为统一格式
+        formatted_results = []
+        for item in results:
+            formatted_results.append(
                 {
-                    "text": node_data.get("content", ""),
-                    "node_id": node_id,
-                    "score": float(scores[idx]),
-                    "metadata": node_data.get("metadata", {}),
+                    "text": item.get("data", ""),
+                    "node_id": item.get("node_id", ""),
+                    "depth": item.get("depth", 0),
+                    "score": 1.0 / (1 + item.get("depth", 0)),  # 深度越小分数越高
+                    "metadata": {},
                 }
             )
 
-        return results
+        return formatted_results
 
-    def _ppr_retrieve(
-        self,
-        seed_nodes: list[str],
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """Personalized PageRank 检索"""
-        if not self.nodes:
-            return []
+    def delete(self, entry_id: str) -> bool:
+        """删除节点
 
-        node_ids = list(self.nodes.keys())
-        node_to_idx = {nid: idx for idx, nid in enumerate(node_ids)}
-        n = len(node_ids)
+        Args:
+            entry_id: 节点 ID
 
-        if n == 0:
-            return []
-
-        reset_prob = np.zeros(n)
-        valid_seeds = [nid for nid in seed_nodes if nid in node_to_idx]
-
-        if not valid_seeds:
-            return []
-
-        for seed_id in valid_seeds:
-            idx = node_to_idx[seed_id]
-            reset_prob[idx] = 1.0 / len(valid_seeds)
-
-        transition_matrix = np.zeros((n, n))
-        for src_id, neighbors in self.adj_list.items():
-            if src_id not in node_to_idx:
-                continue
-            src_idx = node_to_idx[src_id]
-            total_weight = sum(neighbors.values())
-            if total_weight > 0:
-                for dst_id, weight in neighbors.items():
-                    if dst_id in node_to_idx:
-                        dst_idx = node_to_idx[dst_id]
-                        transition_matrix[dst_idx, src_idx] = weight / total_weight
-
-        dangling = np.where(transition_matrix.sum(axis=0) == 0)[0]
-        for idx in dangling:
-            transition_matrix[:, idx] = 1.0 / n
-
-        ppr_scores = reset_prob.copy()
-        for _ in range(50):
-            new_scores = (
-                1 - self.damping
-            ) * reset_prob + self.damping * transition_matrix @ ppr_scores
-            if np.abs(new_scores - ppr_scores).sum() < 1e-6:
-                break
-            ppr_scores = new_scores
-
-        passage_scores = []
-        for idx, node_id in enumerate(node_ids):
-            node_data = self.nodes.get(node_id, {})
-            if node_data.get("type") == "passage":
-                passage_scores.append((node_id, ppr_scores[idx]))
-
-        passage_scores.sort(key=lambda x: x[1], reverse=True)
-
-        results = []
-        for node_id, score in passage_scores[:top_k]:
-            node_data = self.nodes.get(node_id, {})
-            results.append(
-                {
-                    "text": node_data.get("content", ""),
-                    "node_id": node_id,
-                    "score": float(score),
-                    "metadata": node_data.get("metadata", {}),
-                }
-            )
-
-        return results
-
-    def _retrieve_link_graph(
-        self,
-        query: str | None,
-        vector: np.ndarray | None,
-        metadata: dict,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """链接图检索"""
-        method = metadata.get("method", "knn")
-
-        if vector is not None:
-            initial_results = self._knn_retrieve(vector, min(5, top_k))
-        else:
-            initial_results = []
-
-        if method == "expand":
-            expand_depth = metadata.get("expand_depth", 1)
-            expanded_results = self._expand_links(initial_results, expand_depth, top_k)
-            return expanded_results
-        else:
-            return initial_results[:top_k]
-
-    def _expand_links(
-        self,
-        initial_results: list[dict],
-        depth: int,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """扩展链接检索"""
-        visited = set()
-        results = []
-
-        for r in initial_results:
-            node_id = r.get("node_id")
-            if node_id and node_id not in visited:
-                visited.add(node_id)
-                results.append(r)
-
-        current_level = [r.get("node_id") for r in initial_results if r.get("node_id")]
-
-        for _ in range(depth):
-            next_level = []
-            for node_id in current_level:
-                neighbors = self.node_links.get(node_id, [])
-                for neighbor_id in neighbors:
-                    if neighbor_id not in visited:
-                        visited.add(neighbor_id)
-                        next_level.append(neighbor_id)
-
-                        node_data = self.nodes.get(neighbor_id, {})
-                        results.append(
-                            {
-                                "text": node_data.get("content", ""),
-                                "node_id": neighbor_id,
-                                "score": 0.5,
-                                "metadata": node_data.get("metadata", {}),
-                            }
-                        )
-
-            current_level = next_level
-
-            if len(results) >= top_k:
-                break
-
-        return results[:top_k]
-
-    def add_synonymy_edges(self, similarity_threshold: float | None = None) -> int:
-        """添加同义边 (knowledge_graph 专用)"""
-        if self.graph_type != "knowledge_graph":
-            return 0
-
-        threshold = similarity_threshold or self.synonymy_threshold
-
-        entity_nodes = [
-            (nid, data)
-            for nid, data in self.nodes.items()
-            if data.get("type") == "entity" and nid in self.node_embeddings
-        ]
-
-        if len(entity_nodes) < 2:
-            return 0
-
-        node_ids = [nid for nid, _ in entity_nodes]
-        embeddings = np.array([self.node_embeddings[nid] for nid in node_ids], dtype=np.float32)
-
-        embeddings = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-8)
-
-        similarity_matrix = np.dot(embeddings, embeddings.T)
-
-        num_edges = 0
-        for i in range(len(node_ids)):
-            for j in range(i + 1, len(node_ids)):
-                if similarity_matrix[i, j] >= threshold:
-                    src_id, dst_id = node_ids[i], node_ids[j]
-                    edge_key = (src_id, dst_id)
-
-                    if edge_key not in self.edges:
-                        self.edges[edge_key] = {
-                            "type": "synonym",
-                            "weight": float(similarity_matrix[i, j]),
-                        }
-                        self.adj_list[src_id][dst_id] = float(similarity_matrix[i, j])
-                        self.inverse_adj_list[dst_id][src_id] = float(similarity_matrix[i, j])
-                        num_edges += 1
-
-                    reverse_key = (dst_id, src_id)
-                    if reverse_key not in self.edges:
-                        self.edges[reverse_key] = {
-                            "type": "synonym",
-                            "weight": float(similarity_matrix[i, j]),
-                        }
-                        self.adj_list[dst_id][src_id] = float(similarity_matrix[i, j])
-                        self.inverse_adj_list[src_id][dst_id] = float(similarity_matrix[i, j])
-                        num_edges += 1
-
-        return num_edges
-
-    def strengthen_link(self, src_id: str, dst_id: str, delta: float = 0.1) -> bool:
-        """增强链接权重 (link_graph 专用)"""
-        if self.graph_type != "link_graph":
+        Returns:
+            bool: 是否删除成功
+        """
+        if self.index_name not in self.collection.indexes:
             return False
 
-        edge_key = (src_id, dst_id)
-        if edge_key in self.edges:
-            self.edges[edge_key]["weight"] += delta
-            self.adj_list[src_id][dst_id] += delta
-            return True
-        return False
+        index = self.collection.indexes[self.index_name]
+        if not index.has_node(entry_id):
+            return False
 
-    def get_neighbors(self, node_id: str, edge_type: str | None = None) -> list[str]:
-        """获取节点的邻居"""
-        neighbors = []
-        for (src, dst), edge_data in self.edges.items():
-            if src == node_id:
-                if edge_type is None or edge_data.get("type") == edge_type:
-                    neighbors.append(dst)
-        return neighbors
+        index.remove_node(entry_id)
+        self.logger.debug(f"Deleted node {entry_id} from graph")
+        return True
 
-    def get_graph_info(self) -> dict:
-        """获取图统计信息"""
-        entity_nodes = sum(1 for n in self.nodes.values() if n.get("type") == "entity")
-        passage_nodes = sum(1 for n in self.nodes.values() if n.get("type") == "passage")
-        memory_nodes = sum(1 for n in self.nodes.values() if n.get("type") == "memory")
+    def add_edge(
+        self,
+        from_node: str,
+        to_node: str,
+        weight: float = 1.0,
+        edge_type: str = "relation",
+    ) -> bool:
+        """添加边
 
-        edge_types_count: dict[str, int] = defaultdict(int)
-        for edge_data in self.edges.values():
-            edge_types_count[edge_data.get("type", "unknown")] += 1
+        Args:
+            from_node: 源节点 ID
+            to_node: 目标节点 ID
+            weight: 边权重
+            edge_type: 边类型
 
-        return {
-            "graph_type": self.graph_type,
-            "total_nodes": len(self.nodes),
-            "entity_nodes": entity_nodes,
-            "passage_nodes": passage_nodes,
-            "memory_nodes": memory_nodes,
-            "total_edges": len(self.edges),
-            "edge_types": dict(edge_types_count),
-            "total_triples": len(self.triples),
+        Returns:
+            bool: 是否成功
+        """
+        self._add_link(from_node, to_node, weight)
+        return True
+
+    def optimize(self, trigger: str = "auto") -> dict[str, Any]:
+        """优化图结构
+
+        Args:
+            trigger: 触发类型 ("auto" | "manual" | "decay" | "strengthen")
+
+        Returns:
+            dict: 优化统计信息
+        """
+        if self.index_name not in self.collection.indexes:
+            return {"success": False, "message": "Index not found"}
+
+        index = self.collection.indexes[self.index_name]
+        stats = {
+            "success": True,
+            "trigger": trigger,
+            "nodes_count": len(index.nodes),
+            "edges_count": sum(len(edges) for edges in index.adjacency.values()),
         }
 
+        # TODO: 实现具体的优化逻辑（如边权重衰减、剪枝等）
+        self.logger.info(f"Graph optimization triggered: {trigger}")
+        return stats
 
-if __name__ == "__main__":
+    def get_stats(self) -> dict[str, Any]:
+        """获取统计信息"""
+        if self.index_name not in self.collection.indexes:
+            return {
+                "memory_count": 0,
+                "edges_count": 0,
+                "graph_type": self.graph_type,
+                "collection_name": self.collection_name,
+            }
 
-    def test_graph_memory():
-        print("\n" + "=" * 70)
-        print("GraphMemoryService 测试")
-        print("=" * 70 + "\n")
-
-        # 知识图谱模式
-        kg_service = GraphMemoryService(graph_type="knowledge_graph")
-        doc_vec = np.random.randn(768).astype(np.float32)
-        kg_service.insert(
-            "机器学习是人工智能的分支",
-            vector=doc_vec,
-            metadata={
-                "node_type": "passage",
-                "triples": [("机器学习", "是", "人工智能分支")],
-            },
-        )
-        print(f"KG info: {kg_service.get_graph_info()}")
-
-        # 链接图模式
-        lg_service = GraphMemoryService(graph_type="link_graph")
-        mem_vec = np.random.randn(768).astype(np.float32)
-        lg_service.insert(
-            "今天学习了编程",
-            vector=mem_vec,
-            metadata={"id": "mem_001", "keywords": ["编程", "学习"]},
-        )
-        print(f"LG info: {lg_service.get_graph_info()}")
-
-        print("\n✅ 测试完成!")
-
-    test_graph_memory()
+        index = self.collection.indexes[self.index_name]
+        return {
+            "memory_count": len(index.nodes),
+            "edges_count": sum(len(edges) for edges in index.adjacency.values()),
+            "graph_type": self.graph_type,
+            "collection_name": self.collection_name,
+            "index_name": self.index_name,
+        }
