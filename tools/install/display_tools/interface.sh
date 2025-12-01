@@ -164,7 +164,184 @@ show_install_success() {
     echo -e "${DIM}更多信息请查看: README.md${NC}"
 }
 
-# 询问用户是否要启动服务（LLM / Studio）
+# 运行 Hello World 示例（动画展示 Pipeline）
+run_hello_world_demo() {
+    local with_llm="${1:-false}"
+
+    echo ""
+    echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}${BOLD}                       🚀 SAGE 快速体验                                    ${NC}"
+    echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    # 验证 SAGE 安装
+    echo -e "${INFO} 验证 SAGE 安装..."
+    local sage_version
+    sage_version=$(VLLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "import sage; print(sage.__version__)" 2>/dev/null | tail -1)
+    if [ -n "$sage_version" ]; then
+        echo -e "   ${GREEN}✅ SAGE v${sage_version} 已就绪${NC}"
+    else
+        echo -e "   ${RED}❌ SAGE 未正确安装${NC}"
+        return 1
+    fi
+    echo ""
+
+    if [ "$with_llm" = "true" ]; then
+        run_llm_demo
+    else
+        run_streaming_demo
+    fi
+}
+
+# 流式处理演示（不需要 LLM）
+run_streaming_demo() {
+    echo -e "${BLUE}${BOLD}� SAGE 流式数据处理 Pipeline${NC}"
+    echo ""
+    echo -e "   ${DIM}演示: 实时数据流 → 批处理 → 转换 → 输出${NC}"
+    echo ""
+
+    sleep 0.3
+
+    # 展示 Pipeline 结构图
+    echo -e "   ┌──────────────────────────────────────────────────────────────────────┐"
+    echo -e "   │                                                                      │"
+    echo -e "   │    ${CYAN}┌─────────────┐     ┌─────────────┐     ┌─────────────┐${NC}       │"
+    echo -e "   │    ${CYAN}│ BatchSource │${NC} ──▶ ${CYAN}│  Transform  │${NC} ──▶ ${CYAN}│    Sink     │${NC}       │"
+    echo -e "   │    ${CYAN}│  (生成数据)  │     │  (大写转换) │     │  (输出结果) │${NC}       │"
+    echo -e "   │    ${CYAN}└─────────────┘     └─────────────┘     └─────────────┘${NC}       │"
+    echo -e "   │                                                                      │"
+    echo -e "   └──────────────────────────────────────────────────────────────────────┘"
+    echo ""
+
+    sleep 0.5
+
+    echo -e "${BLUE}${BOLD}▶ 执行 Pipeline...${NC}"
+    echo ""
+
+    # 动画显示数据流
+    local messages=("Hello" "SAGE" "World" "Pipeline" "Demo")
+    for i in "${!messages[@]}"; do
+        local msg="${messages[$i]}"
+        local upper=$(echo "$msg" | tr '[:lower:]' '[:upper:]')
+        local num=$((i + 1))
+        echo -ne "   ${DIM}[$num]${NC} \"$msg\" "
+        sleep 0.15
+        echo -ne "──▶ "
+        sleep 0.15
+        echo -e "${GREEN}\"$upper\"${NC}"
+        sleep 0.1
+    done
+
+    echo ""
+    echo -e "   ${GREEN}✅ 流式处理完成: 5 条数据已处理${NC}"
+    echo ""
+
+    # 显示实际代码
+    echo -e "${BLUE}${BOLD}📝 示例代码:${NC}"
+    echo ""
+    echo -e "   ${DIM}from sage.kernel.api import LocalEnvironment${NC}"
+    echo -e "   ${DIM}from sage.common.core.functions import BatchFunction, MapFunction, SinkFunction${NC}"
+    echo ""
+    echo -e "   ${CYAN}env = LocalEnvironment(\"demo\")${NC}"
+    echo -e "   ${CYAN}env.from_batch(Source).map(Transform).sink(Output)${NC}"
+    echo -e "   ${CYAN}env.submit(autostop=True)${NC}"
+    echo ""
+
+    show_demo_footer
+}
+
+# LLM 智能处理演示
+run_llm_demo() {
+    echo -e "${BLUE}${BOLD}🤖 SAGE + LLM 智能处理${NC}"
+    echo ""
+    echo -e "   ${DIM}演示: 使用本地大模型进行智能文本处理${NC}"
+    echo ""
+
+    sleep 0.3
+
+    # 展示架构图
+    echo -e "   ┌──────────────────────────────────────────────────────────────────────┐"
+    echo -e "   │                                                                      │"
+    echo -e "   │    ${CYAN}┌─────────────┐     ┌─────────────┐     ┌─────────────┐${NC}       │"
+    echo -e "   │    ${CYAN}│   Input     │${NC} ──▶ ${CYAN}│  LLM API    │${NC} ──▶ ${CYAN}│   Output    │${NC}       │"
+    echo -e "   │    ${CYAN}│  (用户问题)  │     │ (localhost) │     │  (智能回答) │${NC}       │"
+    echo -e "   │    ${CYAN}└─────────────┘     └─────────────┘     └─────────────┘${NC}       │"
+    echo -e "   │                       │                                              │"
+    echo -e "   │                       ▼                                              │"
+    echo -e "   │              ${YELLOW}┌─────────────────┐${NC}                                   │"
+    echo -e "   │              ${YELLOW}│  Qwen2.5-0.5B   │${NC}                                   │"
+    echo -e "   │              ${YELLOW}│   (本地 GPU)    │${NC}                                   │"
+    echo -e "   │              ${YELLOW}└─────────────────┘${NC}                                   │"
+    echo -e "   │                                                                      │"
+    echo -e "   └──────────────────────────────────────────────────────────────────────┘"
+    echo ""
+
+    sleep 0.5
+
+    echo -e "${BLUE}${BOLD}▶ 调用本地 LLM...${NC}"
+    echo ""
+
+    # 实际调用 LLM
+    VLLM_LOGGING_LEVEL=ERROR python3 -W ignore 2>/dev/null << 'LLM_DEMO_EOF'
+import warnings; warnings.filterwarnings('ignore')
+import os; os.environ['VLLM_LOGGING_LEVEL'] = 'ERROR'
+import logging; logging.disable(logging.INFO)
+import sys
+
+try:
+    from sage.common.components.sage_llm import UnifiedInferenceClient
+
+    print("   📝 问题: \"用一句话介绍什么是 SAGE 框架?\"")
+    print("")
+    print("   ⏳ 正在思考...", end="", flush=True)
+
+    client = UnifiedInferenceClient.create_auto()
+    response = client.chat([
+        {"role": "system", "content": "你是一个技术助手，回答要简洁。"},
+        {"role": "user", "content": "用一句话介绍什么是 SAGE 框架? (SAGE是一个流式AI数据处理框架)"}
+    ], max_tokens=100)
+
+    print("\r   " + " " * 20)  # 清除 "正在思考..."
+    print(f"   💬 回答: {response.strip()}")
+    print("")
+    print("   ✅ LLM 调用成功")
+
+except Exception as e:
+    print("\r   " + " " * 20)
+    print(f"   ⚠️  LLM 调用失败: {str(e)[:50]}")
+    print("   💡 请确保已运行 'sage llm serve' 启动服务")
+LLM_DEMO_EOF
+
+    echo ""
+
+    # 显示示例代码
+    echo -e "${BLUE}${BOLD}📝 示例代码:${NC}"
+    echo ""
+    echo -e "   ${DIM}from sage.common.components.sage_llm import UnifiedInferenceClient${NC}"
+    echo ""
+    echo -e "   ${CYAN}client = UnifiedInferenceClient.create_auto()${NC}"
+    echo -e "   ${CYAN}response = client.chat([${NC}"
+    echo -e "   ${CYAN}    {\"role\": \"user\", \"content\": \"你的问题\"}${NC}"
+    echo -e "   ${CYAN}])${NC}"
+    echo ""
+
+    show_demo_footer
+}
+
+# 显示演示结尾
+show_demo_footer() {
+    echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}${BOLD}                           ✨ 演示完成 ✨                                 ${NC}"
+    echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "   ${DIM}🎯 探索更多:${NC}"
+    echo -e "      ${CYAN}cd examples/tutorials/${NC}    ${DIM}# 教程示例${NC}"
+    echo -e "      ${CYAN}cd examples/apps/${NC}         ${DIM}# 应用示例${NC}"
+    echo -e "      ${CYAN}sage --help${NC}               ${DIM}# CLI 命令${NC}"
+    echo ""
+}
+
+# 询问用户是否要启动服务（LLM / Studio / Hello World）
 prompt_start_llm_service() {
     local mode="$1"
 
@@ -209,31 +386,40 @@ prompt_start_llm_service() {
     fi
 
     # 显示可用服务选项
-    echo -e "${INFO} SAGE 提供以下服务，您可以选择启动："
+    echo -e "${INFO} SAGE 安装完成，您可以："
     echo ""
-    echo -e "  ${BOLD}[1] sage llm serve${NC}    - LLM 推理服务 (OpenAI 兼容 API)"
+    echo -e "  ${BOLD}[1] 运行 Hello World${NC}  - 快速体验 SAGE Pipeline"
+    echo -e "      ${DIM}运行一个简单的数据处理流水线示例${NC}"
+    echo ""
+    echo -e "  ${BOLD}[2] sage llm serve${NC}    - 启动 LLM 推理服务"
     if [ "$has_gpu" = true ]; then
-        echo -e "      ${DIM}提供 http://localhost:8901/v1，支持本地大模型推理${NC}"
+        echo -e "      ${DIM}提供 OpenAI 兼容 API (http://localhost:8901/v1)${NC}"
     else
         echo -e "      ${DIM}${YELLOW}⚠️  需要 GPU，当前未检测到${NC}"
     fi
     echo ""
-    echo -e "  ${BOLD}[2] sage studio start${NC} - Studio Web 界面 (包含 LLM)"
+    echo -e "  ${BOLD}[3] sage studio start${NC} - 启动 Studio Web 界面"
     if [ "$mode" = "full" ] || [ "$mode" = "dev" ]; then
-        echo -e "      ${DIM}图形化界面，http://localhost:5173，包含 Chat/RAG/微调等功能${NC}"
+        echo -e "      ${DIM}图形化界面 (http://localhost:5173)，含 Chat/RAG 等功能${NC}"
     else
         echo -e "      ${DIM}${YELLOW}⚠️  需要 --full 或 --dev 模式安装${NC}"
     fi
     echo ""
-    echo -e "  ${BOLD}[3] 跳过${NC}              - 稍后手动启动"
+    echo -e "  ${BOLD}[4] 跳过${NC}              - 稍后手动操作"
     echo ""
 
     # 交互式询问
-    echo -ne "${BOLD}请选择要启动的服务 [1/2/3]: ${NC}"
+    echo -ne "${BOLD}请选择 [1/2/3/4]: ${NC}"
     read -r choice
 
     case "$choice" in
         1)
+            echo ""
+            echo -e "${INFO} 运行 Hello World Pipeline..."
+            echo ""
+            run_hello_world_demo false
+            ;;
+        2)
             if [ "$has_gpu" = true ]; then
                 echo ""
                 echo -e "${INFO} 正在启动 LLM 服务..."
@@ -247,6 +433,14 @@ prompt_start_llm_service() {
                     echo -e "${DIM}   API 地址: http://localhost:8901/v1${NC}"
                     echo -e "${DIM}   状态查看: sage llm status${NC}"
                     echo -e "${DIM}   停止服务: sage llm stop${NC}"
+                    echo ""
+                    # 询问是否运行 LLM Demo
+                    echo -ne "${BOLD}是否运行 LLM Demo 体验? [y/N]: ${NC}"
+                    read -r run_demo
+                    if [[ "$run_demo" =~ ^[Yy] ]]; then
+                        echo ""
+                        run_hello_world_demo true
+                    fi
                 else
                     echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
                     echo -e "  ${CYAN}sage llm serve${NC}"
@@ -259,7 +453,7 @@ prompt_start_llm_service() {
                 echo -e "  ${CYAN}SAGE_CHAT_BASE_URL=https://api.openai.com/v1${NC}"
             fi
             ;;
-        2)
+        3)
             if [ "$mode" = "full" ] || [ "$mode" = "dev" ]; then
                 echo ""
                 echo -e "${INFO} 正在启动 SAGE Studio..."
@@ -270,7 +464,6 @@ prompt_start_llm_service() {
                 echo ""
 
                 if command -v sage &>/dev/null; then
-                    # Studio 启动可能需要更长时间，显示更多输出
                     sage studio start 2>&1 | head -30
                     echo ""
                     echo -e "${GREEN}✅ Studio 已启动${NC}"
@@ -289,17 +482,16 @@ prompt_start_llm_service() {
                 echo -e "  ${CYAN}./quickstart.sh --dev${NC}"
             fi
             ;;
-        3|"")
+        4|"")
             echo ""
-            echo -e "${DIM}已跳过。稍后可用以下命令启动服务:${NC}"
-            echo -e "  ${CYAN}sage llm serve${NC}       # LLM 推理服务"
-            echo -e "  ${CYAN}sage studio start${NC}   # Studio Web 界面"
+            echo -e "${DIM}已跳过。稍后可用以下命令:${NC}"
+            echo -e "  ${CYAN}python examples/tutorials/hello_world.py${NC}  # Hello World"
+            echo -e "  ${CYAN}sage llm serve${NC}                           # LLM 服务"
+            echo -e "  ${CYAN}sage studio start${NC}                        # Studio 界面"
             ;;
         *)
             echo ""
-            echo -e "${DIM}无效选择，已跳过。稍后可用以下命令启动:${NC}"
-            echo -e "  ${CYAN}sage llm serve${NC}"
-            echo -e "  ${CYAN}sage studio start${NC}"
+            echo -e "${DIM}无效选择，已跳过。${NC}"
             ;;
     esac
 
