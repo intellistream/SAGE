@@ -123,15 +123,17 @@ jobs:
           conda --version
           echo "✅ Conda is available"
 
-          # Remove existing environment if it exists (clean slate)
-          conda env remove -n $CONDA_ENV_NAME -y 2>/dev/null || true
-
-          # Create fresh environment with Python 3.11
-          conda create -n $CONDA_ENV_NAME python=3.11 -y
+          # Create environment only if it does not already exist
+          if conda env list | grep -q "^$CONDA_ENV_NAME "; then
+            echo "♻️  Conda environment $CONDA_ENV_NAME already exists, reusing it"
+          else
+            echo "✨ Creating conda environment $CONDA_ENV_NAME (python=3.11)"
+            conda create -n $CONDA_ENV_NAME python=3.11 -y
+          fi
 
           # Verify environment
           conda run -n $CONDA_ENV_NAME python --version
-          echo "✅ Conda environment $CONDA_ENV_NAME created"
+          echo "✅ Conda environment $CONDA_ENV_NAME is ready"
 
           # Save conda path for other steps
           echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
@@ -166,10 +168,19 @@ jobs:
           # unset CI/GITHUB_ACTIONS so packages install to conda env, not ~/.local
           chmod +x ./quickstart.sh
           unset CI GITHUB_ACTIONS
-          SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip
 
-          # Verify installation
-          python -c "import sage; print(f'SAGE {sage.__version__} installed successfully')"
+          INSTALL_SENTINEL="$HOME/.sage/.paper1_env_ready"
+          if [ "${FORCE_PAPER1_REINSTALL}" = "true" ] || [ ! -f "$INSTALL_SENTINEL" ]; then
+            echo "📦 Running full quickstart installation (this may take a while)"
+            SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip
+            mkdir -p "$(dirname "$INSTALL_SENTINEL")"
+            touch "$INSTALL_SENTINEL"
+          else
+            echo "✅ Existing SAGE installation detected (skip quickstart). Set FORCE_PAPER1_REINSTALL=true to force re-install."
+          fi
+
+          # Verify installation (lightweight sanity check)
+          python -c "import sage; print(f'SAGE {sage.__version__} already available')"
           python -c "from sage.benchmark.benchmark_agent import get_adapter_registry; print('sage-benchmark OK')"
           echo "✅ SAGE installation completed"
         timeout-minutes: 60  # Increased timeout for large dependencies

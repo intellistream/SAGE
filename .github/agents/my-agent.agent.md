@@ -218,11 +218,11 @@ vectors = client.embed(["text1", "text2"])
 
 ```bash
 # 推荐：一键管理
-sage stack start                       # 启动 vLLM + Embedding（默认模型）
-sage stack start -l Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
-sage stack status                      # 查看服务状态
-sage stack stop                        # 停止所有服务
-sage stack logs --follow               # 追踪日志
+sage llm serve                         # 启动 LLM（默认模型）
+sage llm serve --with-embedding -m Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
+sage llm status                        # 查看服务状态
+sage llm stop                          # 停止服务
+sage llm logs --follow                 # 追踪日志
 
 # 手动方式（按需）
 sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
