@@ -155,6 +155,9 @@ install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
     local clean_cache="${3:-true}"
+    local install_vllm="${4:-true}"
+
+    export SAGE_INSTALL_VLLM="$install_vllm"
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
@@ -223,7 +226,7 @@ install_sage() {
     fi
 
     log_info "SAGE 主要安装过程开始" "MAIN"
-    log_info "安装模式: $mode | 环境: $environment" "MAIN"
+    log_info "安装模式: $mode | 环境: $environment | vLLM: $install_vllm" "MAIN"
 
     echo ""
     case "$mode" in
