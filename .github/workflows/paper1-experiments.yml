@@ -169,21 +169,30 @@ jobs:
           chmod +x ./quickstart.sh
           unset CI GITHUB_ACTIONS
 
-          INSTALL_SENTINEL="$HOME/.sage/.paper1_env_ready"
+          # Check if SAGE is already installed in this conda env (to skip reinstall)
+          INSTALL_SENTINEL="$HOME/.sage/.paper1_env_ready_$(python --version | tr ' ' '_')"
           if [ "${FORCE_PAPER1_REINSTALL}" = "true" ] || [ ! -f "$INSTALL_SENTINEL" ]; then
             echo "📦 Running full quickstart installation (this may take a while)"
+            echo "   This is normal for first-time setup. Subsequent runs will be faster."
+
+            # Use China mirrors for self-hosted runner
             SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip
+
             mkdir -p "$(dirname "$INSTALL_SENTINEL")"
             touch "$INSTALL_SENTINEL"
           else
-            echo "✅ Existing SAGE installation detected (skip quickstart). Set FORCE_PAPER1_REINSTALL=true to force re-install."
+            echo "✅ Existing SAGE installation detected (skip quickstart)."
+            echo "   Set FORCE_PAPER1_REINSTALL=true to force re-install."
+
+            # Even if skipping full install, ensure packages are in editable mode
+            pip install -e packages/sage-benchmark --no-deps --no-build-isolation -q 2>/dev/null || true
           fi
 
           # Verify installation (lightweight sanity check)
           python -c "import sage; print(f'SAGE {sage.__version__} already available')"
           python -c "from sage.benchmark.benchmark_agent import get_adapter_registry; print('sage-benchmark OK')"
           echo "✅ SAGE installation completed"
-        timeout-minutes: 60  # Increased timeout for large dependencies
+        timeout-minutes: 90  # Extended timeout for CUDA packages (first-time only)
 
       - name: Create Experiment Environment File
         run: |
