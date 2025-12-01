@@ -165,13 +165,12 @@ PY
     echo -e "${DIM}  安装 vLLM 运行时依赖 (${#vllm_deps[@]} 个)...${NC}"
     log_info "开始安装 vLLM 运行时依赖: ${vllm_deps[*]}" "INSTALL"
 
-    local pip_cmd="$(printf %q "$PIP_CMD") install"
+    # 构建 pip 安装命令（依赖包名需要用引号包裹，避免 >= 被解释为重定向）
+    local pip_cmd="$PIP_CMD install"
     for dep in "${vllm_deps[@]}"; do
-        pip_cmd+=" $(printf %q "$dep")"
+        pip_cmd+=" '${dep}'"
     done
-    for arg in $pip_args; do
-        pip_cmd+=" $(printf %q "$arg")"
-    done
+    pip_cmd+=" $pip_args"
 
     if log_pip_install_with_progress "INSTALL" "vLLM" "$pip_cmd"; then
         log_success "vLLM 运行时依赖安装完成" "INSTALL"
