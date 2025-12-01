@@ -356,18 +356,24 @@ class TrainingComparisonExperiment:
         try:
             from sage.benchmark.benchmark_agent.experiments.method_comparison import (
                 MethodComparisonExperiment,
+                MethodConfig,
             )
 
-            # 创建方法配置
+            # 创建 MethodConfig 对象（而不是普通 dict）
             method_config = {
-                method.name: {
-                    "coreset": method.use_coreset,
-                    "coreset_strategy": method.coreset_strategy,
-                    "coreset_ratio": method.coreset_ratio,
-                    "continual": method.use_continual,
-                    "replay_ratio": method.replay_ratio,
-                    "epochs": 1 if self.quick else method.num_epochs,
-                }
+                method.name: MethodConfig(
+                    name=method.display_name,
+                    description=method.description,
+                    use_coreset=method.use_coreset,
+                    coreset_strategy=method.coreset_strategy or "loss_topk",
+                    coreset_target_size=int(method.coreset_ratio * 1000)
+                    if method.use_coreset
+                    else None,
+                    use_continual=method.use_continual,
+                    continual_replay_ratio=method.replay_ratio,
+                    num_epochs=1 if self.quick else method.num_epochs,
+                    learning_rate=method.learning_rate,
+                )
             }
 
             # 运行训练
@@ -386,13 +392,15 @@ class TrainingComparisonExperiment:
                     method_name=method.name,
                     config=method.to_dict(),
                     training_time_seconds=r.training_time_seconds,
-                    train_samples=r.train_samples,
+                    train_samples=r.num_train_samples,
                     timing_accuracy=r.metrics.get("timing_accuracy", 0),
                     planning_success_rate=r.metrics.get("planning_success_rate", 0),
                     selection_top_k_accuracy=r.metrics.get("top_k_accuracy", 0),
                     train_loss=r.metrics.get("train_loss", 0),
                     eval_loss=r.metrics.get("eval_loss", 0),
-                    model_path=str(r.model_path) if r.model_path else None,
+                    model_path=str(r.model_path)
+                    if hasattr(r, "model_path") and r.model_path
+                    else None,
                 )
 
         except ImportError as e:
