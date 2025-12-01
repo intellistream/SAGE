@@ -284,12 +284,15 @@ def example_3_hybrid_search():
         index_name="tech_index",
         topk=5,
         with_metadata=True,
-        metadata_filter_func=lambda m: m.get("language") == "Python" and m.get("year", 0) >= 2020,
+        metadata_filter_func=lambda m: m.get("language") == "Python"
+        and m.get("year", 0) >= 2020,
     )
 
     for i, result in enumerate(results, 1):
         print(f"  {i}. {result['text']}")
-        print(f"     语言: {result['metadata']['language']}, 年份: {result['metadata']['year']}")
+        print(
+            f"     语言: {result['metadata']['language']}, 年份: {result['metadata']['year']}"
+        )
 
     # Hybrid search 2: Programming languages only
     print("\n🔍 混合查询2: 编程语言类别")

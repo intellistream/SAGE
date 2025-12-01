@@ -176,10 +176,13 @@ main() {
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
     local install_vllm=$(should_install_vllm)
+    local vllm_from_source=$(should_install_vllm_from_source)
 
     # 导出 pip 镜像配置为环境变量，供子脚本使用
     export USE_PIP_MIRROR="$use_mirror"
     export MIRROR_SOURCE="$mirror_source"
+    # 导出 vLLM 源码安装配置
+    export SAGE_VLLM_FROM_SOURCE="$vllm_from_source"
 
     # 执行安装前清理（如果启用）
     if [ "$clean_before_install" = "true" ]; then
@@ -332,6 +335,15 @@ main() {
                         echo -e "${DIM}   • 代码质量检查: black, isort, ruff 等${NC}"
                         echo -e "${DIM}   • 架构合规性: 包依赖、导入路径等${NC}"
                         echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
+
+                        # 检查工具版本一致性
+                        if [ -f "$SAGE_ROOT/tools/install/check_tool_versions.sh" ]; then
+                            echo ""
+                            if ! bash "$SAGE_ROOT/tools/install/check_tool_versions.sh" --quiet 2>/dev/null; then
+                                echo -e "${YELLOW}⚠️  检测到工具版本不一致${NC}"
+                                echo -e "${DIM}   运行 ./tools/install/check_tool_versions.sh --fix 自动修复${NC}"
+                            fi
+                        fi
                     else
                         echo -e "${YELLOW}⚠️  Git hooks 安装失败（可能不在 Git 仓库中）${NC}"
                         echo -e "${DIM}   可稍后手动运行: sage-dev maintain hooks install${NC}"

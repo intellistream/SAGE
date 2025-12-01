@@ -39,19 +39,19 @@ class TestLLMClientAdapter:
 
         assert adapter.config.llm_model == "qwen-7b"
         assert adapter.config.llm_base_url == "http://localhost:8001/v1"
-        assert adapter.config.llm_api_key == "test-key"
+        assert adapter.config.llm_api_key == "test-key"  # pragma: allowlist secret
 
     def test_legacy_properties(self):
         """Test legacy properties for backward compatibility."""
         adapter = LLMClientAdapter(
             model_name="qwen-7b",
             base_url="http://localhost:8001/v1",
-            api_key="test-key",
+            api_key="test-key",  # pragma: allowlist secret
         )
 
         assert adapter.model_name == "qwen-7b"
         assert adapter.base_url == "http://localhost:8001/v1"
-        assert adapter.api_key == "test-key"
+        assert adapter.api_key == "test-key"  # pragma: allowlist secret
 
     def test_inherits_from_unified_client(self):
         """Test that adapter inherits from UnifiedInferenceClient."""
@@ -85,12 +85,12 @@ class TestEmbeddingClientAdapter:
         adapter = EmbeddingClientAdapter(
             base_url="http://localhost:8090/v1",
             model="bge-m3",
-            api_key="test-key",
+            api_key="test-key",  # pragma: allowlist secret
         )
 
         assert adapter.config.embedding_base_url == "http://localhost:8090/v1"
         assert adapter.config.embedding_model == "bge-m3"
-        assert adapter.config.embedding_api_key == "test-key"
+        assert adapter.config.embedding_api_key == "test-key"  # pragma: allowlist secret
 
     def test_legacy_properties(self):
         """Test legacy properties for backward compatibility."""

@@ -97,7 +97,9 @@ def compute_window_statistics(
         # Every 10 points, compute aggregations
         if (i + 1) % 10 == 0:
             # Query recent data
-            time_range = TimeRange(start_time=data["timestamp"] - 30000, end_time=data["timestamp"])
+            time_range = TimeRange(
+                start_time=data["timestamp"] - 30000, end_time=data["timestamp"]
+            )
 
             recent_data = db.query(time_range=time_range)
 

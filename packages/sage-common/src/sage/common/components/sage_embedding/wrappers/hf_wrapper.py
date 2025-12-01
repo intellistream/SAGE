@@ -122,7 +122,7 @@ class HFEmbedding(BaseEmbedding):
             return hf_embed_batch_sync(texts, self.tokenizer, self.embed_model)
         except Exception as e:
             raise RuntimeError(
-                f"HuggingFace batch embedding 失败: {e}\n" f"文本数量: {len(texts)}"
+                f"HuggingFace batch embedding 失败: {e}\n文本数量: {len(texts)}"
             ) from e
 
     def get_dim(self) -> int:

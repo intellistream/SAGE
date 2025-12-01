@@ -27,13 +27,7 @@ show_logo() {
         padding=$(( (width - first_line_len) / 2 ))
     fi
 
-    # 如果启用了偏移，为 LOGO 添加额外偏移
-    if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
-        # LOGO 偏移量，用户可通过环境变量自定义
-
-        local logo_offset="${SAGE_LOGO_OFFSET:-30}"  # 默认6个字符的额外偏移
-        padding=$((padding + logo_offset))
-    fi
+    # LOGO 始终居中显示，不需要额外偏移
 
     local spaces=""
     for (( i=0; i<padding; i++ )); do

@@ -25,7 +25,9 @@ _MAX_CHUNKS = 50 if _IS_TEST_MODE else 100
 _KB_CACHE = {}
 
 
-def _get_or_create_kb(method: str, model: str | None = None, max_chunks: int | None = None):
+def _get_or_create_kb(
+    method: str, model: str | None = None, max_chunks: int | None = None
+):
     """获取或创建知识库实例（带缓存）"""
     cache_key = f"{method}:{model}:{max_chunks or _MAX_CHUNKS}"
     if cache_key not in _KB_CACHE:
@@ -126,7 +128,9 @@ def example_4_with_specific_model():
     # 如果没有，会自动下载（需要网络）
     try:
         # 在测试模式下使用更小的数据集
-        kb = _get_or_create_kb("hf", "BAAI/bge-small-zh-v1.5", max_chunks=_MAX_CHUNKS // 2)
+        kb = _get_or_create_kb(
+            "hf", "BAAI/bge-small-zh-v1.5", max_chunks=_MAX_CHUNKS // 2
+        )
 
         query = "RAG 系统架构"
         results = kb.search(query, top_k=3)

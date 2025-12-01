@@ -91,7 +91,9 @@ def main():
     source1 = env.from_batch(SourceOne)
     source2 = env.from_batch(SourceTwo)
 
-    source1.keyby(IdKeyBy).connect(source2.keyby(IdKeyBy)).join(HelloWorldJoin).sink(PrintSink)
+    source1.keyby(IdKeyBy).connect(source2.keyby(IdKeyBy)).join(HelloWorldJoin).sink(
+        PrintSink
+    )
 
     # 使用 autostop=True 让框架自动检测处理完成
     env.submit(autostop=True)
