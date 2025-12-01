@@ -583,7 +583,23 @@ Examples:
         from experiments.llm_service import ensure_llm_available
 
         if not ensure_llm_available(auto_start=False):
-            print("  ⚠️  No LLM service available. Use --llm-start or --skip-llm")
+            print("  ⚠️  No LLM service available.")
+            print("")
+            print("  💡 To start local LLM service, run in another terminal:")
+            print("     sage llm run")
+            print("")
+            print("  Or use cloud API by setting SAGE_CHAT_API_KEY in .env")
+            print("  Or skip LLM methods with: --skip-llm")
+            print("")
+            # Ask user to continue or abort
+            try:
+                response = input("  Continue without LLM? (LLM-based methods will fail) [y/N]: ")
+                if response.lower() not in ["y", "yes"]:
+                    print("  Aborted. Please start LLM service first.")
+                    sys.exit(1)
+            except (KeyboardInterrupt, EOFError):
+                print("\n  Aborted.")
+                sys.exit(1)
 
     start_time = time.time()
     all_results = {}
