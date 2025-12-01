@@ -216,7 +216,7 @@ def delete_model(
 # ---------------------------------------------------------------------------
 @app.command("run")
 def run_vllm_service(
-    model: str = typer.Option("meta-llama/Llama-3.1-8B-Instruct", "--model", "-m", help="生成模型"),
+    model: str = typer.Option("Qwen/Qwen2.5-1.5B-Instruct", "--model", "-m", help="生成模型"),
     embedding_model: str | None = typer.Option(
         None, "--embedding-model", help="嵌入模型（默认同生成模型）"
     ),
