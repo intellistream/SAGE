@@ -35,16 +35,18 @@ ______________________________________________________________________
 | Action     | 状态      | 小类参数                     | 参考工作                              |
 | ---------- | --------- | ---------------------------- | ------------------------------------- |
 | `none`     | ✅ 已实现 | `conversation_format_prompt` | 基础格式化                            |
-| `rerank`   | ⏳ 待实现 | 见下文                       | HippoRAG, Generative Agents, LD-Agent |
-| `filter`   | ⏳ 待实现 | 见下文                       | SCM4LLMs                              |
-| `merge`    | ⏳ 待实现 | 见下文                       | MemoryOS, EmotionalRAG, A-mem         |
-| `augment`  | ⏳ 待实现 | 见下文                       | LoCoMo, Generative Agents             |
-| `compress` | ⏳ 待实现 | 见下文                       | SeCom                                 |
-| `format`   | ⏳ 待实现 | 见下文                       | MemGPT, MemoryBank                    |
+| `rerank`   | ✅ 已实现 | 见下文                       | HippoRAG, Generative Agents, LD-Agent |
+| `filter`   | ✅ 已实现 | 见下文                       | SCM4LLMs                              |
+| `merge`    | ✅ 已实现 | 见下文                       | MemoryOS, EmotionalRAG, A-mem         |
+| `augment`  | ✅ 已实现 | 见下文                       | LoCoMo, Generative Agents             |
+| `compress` | ✅ 已实现 | 见下文                       | SeCom                                 |
+| `format`   | ✅ 已实现 | 见下文                       | MemGPT, MemoryBank                    |
 
 ______________________________________________________________________
 
-## ⏳ TODO-D5-1: `rerank`
+## ✅ DONE-D5-1: `rerank`
+
+> **实现位置**: `libs/post_retrieval.py` 第124行起
 
 ### 概述
 
@@ -167,7 +169,9 @@ operators:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D5-2: `filter`
+## ✅ DONE-D5-2: `filter`
+
+> **实现位置**: `libs/post_retrieval.py` 第160行起
 
 ### 概述
 
@@ -269,7 +273,9 @@ operators:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D5-3: `merge`
+## ✅ DONE-D5-3: `merge`
+
+> **实现位置**: `libs/post_retrieval.py` 第177行起
 
 ### 概述
 
@@ -397,7 +403,9 @@ operators:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D5-4: `augment`
+## ✅ DONE-D5-4: `augment`
+
+> **实现位置**: `libs/post_retrieval.py` 第192行起
 
 ### 概述
 
@@ -485,7 +493,9 @@ operators:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D5-5: `compress`
+## ✅ DONE-D5-5: `compress`
+
+> **实现位置**: `libs/post_retrieval.py` 第201行起
 
 ### 概述
 
@@ -555,7 +565,9 @@ operators:
 
 ______________________________________________________________________
 
-## ⏳ TODO-D5-6: `format`
+## ✅ DONE-D5-6: `format`
+
+> **实现位置**: `libs/post_retrieval.py` 第211行起
 
 ### 概述
 
@@ -639,18 +651,18 @@ operators:
 
 ______________________________________________________________________
 
-## 📋 开发优先级
+## 📋 完成状态
 
-| 优先级 | Action     | 小类                                     | 参考工作                      | 预估工时 |
-| ------ | ---------- | ---------------------------------------- | ----------------------------- | -------- |
-| P0     | `rerank`   | semantic, time_weighted, ppr, weighted   | HippoRAG, GA, LD-Agent        | 5天      |
-| P0     | `filter`   | token_budget, threshold, top_k, dedup    | SCM4LLMs                      | 4天      |
-| P0     | `merge`    | weighted, rrf, link_expand, multi_aspect | MemoryOS, A-mem, EmotionalRAG | 5天      |
-| P1     | `augment`  | reflection, context, temporal            | LoCoMo, GA                    | 3天      |
-| P1     | `compress` | llmlingua, extractive, abstractive       | SeCom                         | 3天      |
-| P2     | `format`   | template, structured, chat, xml          | MemGPT, MemoryBank            | 2天      |
+| 优先级 | Action     | 小类                                     | 参考工作                      | 状态      |
+| ------ | ---------- | ---------------------------------------- | ----------------------------- | --------- |
+| P0     | `rerank`   | semantic, time_weighted, ppr, weighted   | HippoRAG, GA, LD-Agent        | ✅ 已实现 |
+| P0     | `filter`   | token_budget, threshold, top_k, dedup    | SCM4LLMs                      | ✅ 已实现 |
+| P0     | `merge`    | weighted, rrf, link_expand, multi_aspect | MemoryOS, A-mem, EmotionalRAG | ✅ 已实现 |
+| P1     | `augment`  | reflection, context, temporal            | LoCoMo, GA                    | ✅ 已实现 |
+| P1     | `compress` | llmlingua, extractive, abstractive       | SeCom                         | ✅ 已实现 |
+| P2     | `format`   | template, structured, chat, xml          | MemGPT, MemoryBank            | ✅ 已实现 |
 
-**总计**: 22 人天
+**全部完成**: 7/7 action 已实现 (1427行代码)
 
 ______________________________________________________________________
 

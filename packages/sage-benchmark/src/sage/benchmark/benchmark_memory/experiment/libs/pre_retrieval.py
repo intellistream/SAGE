@@ -233,7 +233,10 @@ class PreRetrieval(MapFunction):
                 "operators.pre_retrieval.allow_multi_route", True
             )
             self.max_routes = self.config.get("operators.pre_retrieval.max_routes", 2)
-            self.default_route = get_required_config(
+            # 注意：default_route 改名为 default_strategy 以避免歧义
+            self.default_strategy = self.config.get(
+                "operators.pre_retrieval.default_strategy"
+            ) or get_required_config(
                 self.config, "operators.pre_retrieval.default_route", "action=route"
             )
 
@@ -607,99 +610,159 @@ class PreRetrieval(MapFunction):
     # ==================== route action 实现 ====================
 
     def _route_query(self, data) -> dict[str, Any]:
-        """检索路由
+        """检索路由 - 输出检索策略提示
 
-        根据查询内容决定查询哪些记忆源
-        参考 MemoryOS（并行查询所有源）和 MemGPT（函数调用决定）
+        根据查询内容决定使用哪些检索策略。
+        注意：这里输出的是"策略提示"(hints)，而非服务选择。
+        单一服务将根据这些提示调整检索行为。
+
+        参考实现:
+        - MemoryOS: 并行查询所有源
+        - MemGPT: 函数调用决定
+
+        输出:
+        - retrieval_hints: 包含 strategies 和 params 的提示信息
         """
         question = data.get("question", "")
 
         if self.route_strategy == "keyword":
-            routes = self._route_by_keyword(question)
+            strategies, params = self._route_by_keyword(question)
         elif self.route_strategy == "classifier":
-            routes = self._route_by_classifier(question)
+            strategies, params = self._route_by_classifier(question)
         elif self.route_strategy == "llm":
-            routes = self._route_by_llm(question)
+            strategies, params = self._route_by_llm(question)
         else:
-            routes = [self.default_route]
+            strategies = [self.default_strategy]
+            params = {}
 
-        # 限制路由数量
+        # 限制策略数量
         if not self.allow_multi_route:
-            routes = routes[:1]
+            strategies = strategies[:1]
         else:
-            routes = routes[: self.max_routes]
+            strategies = strategies[: self.max_routes]
 
-        # 确保至少有一个路由
-        if not routes:
-            routes = [self.default_route]
+        # 确保至少有一个策略
+        if not strategies:
+            strategies = [self.default_strategy]
 
-        data["retrieval_routes"] = routes
-        data["route_strategy"] = self.route_strategy
+        # 输出 retrieval_hints（语义清晰，表示"提示"而非"路由目标"）
+        data["retrieval_hints"] = {
+            "strategies": strategies,  # 检索策略列表
+            "params": params,  # 传递给服务的检索参数
+            "route_strategy": self.route_strategy,  # 使用的路由策略
+        }
 
         return data
 
-    def _route_by_keyword(self, query: str) -> list[str]:
+    def _route_by_keyword(self, query: str) -> tuple[list[str], dict[str, Any]]:
         """基于关键词的路由
 
-        检查查询中是否包含特定关键词，决定路由目标
+        检查查询中是否包含特定关键词，决定检索策略。
+
+        配置格式:
+            keyword_rules:
+              - keywords: ["remember", "recall"]
+                strategy: "deep_search"  # 检索策略标签
+                params:  # 可选：传递给服务的检索参数
+                  tier_preference: "ltm"
+                  expand_links: true
+
+        Returns:
+            (strategies, params): 匹配的策略列表和合并的参数
         """
         query_lower = query.lower()
-        matched_routes = []
+        matched_strategies: list[str] = []
+        merged_params: dict[str, Any] = {}
 
         for rule in self.keyword_rules:
             keywords = rule.get("keywords", [])
-            target = rule.get("target")
+            # 向后兼容：支持 strategy 或旧的 target
+            strategy = rule.get("strategy") or rule.get("target")
+            params = rule.get("params", {})
 
             for keyword in keywords:
                 if keyword.lower() in query_lower:
-                    if target not in matched_routes:
-                        matched_routes.append(target)
+                    if strategy and strategy not in matched_strategies:
+                        matched_strategies.append(strategy)
+                        # 合并参数（后匹配的规则覆盖前面的）
+                        merged_params.update(params)
                     break
 
-        return matched_routes if matched_routes else [self.default_route]
+        if not matched_strategies:
+            return [self.default_strategy], {}
 
-    def _route_by_classifier(self, query: str) -> list[str]:
+        return matched_strategies, merged_params
+
+    def _route_by_classifier(self, query: str) -> tuple[list[str], dict[str, Any]]:
         """基于分类器的路由
 
-        使用预训练分类器判断查询意图
+        使用预训练分类器判断查询意图。
+
+        Returns:
+            (strategies, params): 匹配的策略列表和参数
         """
         # TODO: 实现分类器路由
         # Issue URL: https://github.com/intellistream/SAGE/issues/1267
         # 这里需要加载和使用意图分类模型
-        print("Classifier routing not implemented, using default route")
-        return [self.default_route]
+        print("Classifier routing not implemented, using default strategy")
+        return [self.default_strategy], {}
 
-    def _route_by_llm(self, query: str) -> list[str]:
+    def _route_by_llm(self, query: str) -> tuple[list[str], dict[str, Any]]:
         """基于 LLM 的路由
 
-        使用 LLM 判断应该查询哪些记忆源
+        使用 LLM 判断应该使用哪些检索策略。
+
+        Returns:
+            (strategies, params): 匹配的策略列表和参数
         """
         prompt = self.route_prompt.format(query=query)
 
         try:
             result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
 
-            # 尝试解析 JSON 数组
+            # 尝试解析 JSON 对象（新格式：包含 strategies 和 params）
             try:
-                match = re.search(r"\[.*?\]", result, re.DOTALL)
+                match = re.search(r"\{.*?\}", result, re.DOTALL)
                 if match:
-                    routes = json.loads(match.group())
-                    if isinstance(routes, list):
-                        return [r for r in routes if isinstance(r, str)]
+                    parsed = json.loads(match.group())
+                    if isinstance(parsed, dict):
+                        strategies = parsed.get("strategies", [])
+                        params = parsed.get("params", {})
+                        if strategies:
+                            return strategies, params
             except json.JSONDecodeError:
                 pass
 
-            # 如果不是 JSON，尝试解析文本
-            routes = []
-            for source in ["short_term_memory", "long_term_memory", "knowledge_base"]:
-                if source in result.lower():
-                    routes.append(source)
+            # 尝试解析 JSON 数组（旧格式兼容）
+            try:
+                match = re.search(r"\[.*?\]", result, re.DOTALL)
+                if match:
+                    strategies = json.loads(match.group())
+                    if isinstance(strategies, list):
+                        return [r for r in strategies if isinstance(r, str)], {}
+            except json.JSONDecodeError:
+                pass
 
-            return routes if routes else [self.default_route]
+            # 如果不是 JSON，尝试解析文本中的策略关键词
+            strategies: list[str] = []
+            known_strategies = [
+                "deep_search",
+                "temporal_search",
+                "persona_search",
+                "semantic_search",
+                "short_term_memory",
+                "long_term_memory",
+                "knowledge_base",
+            ]
+            for strategy in known_strategies:
+                if strategy in result.lower():
+                    strategies.append(strategy)
+
+            return (strategies, {}) if strategies else ([self.default_strategy], {})
 
         except Exception as e:
             print(f"LLM routing failed: {e}")
-            return [self.default_route]
+            return [self.default_strategy], {}
 
     # ==================== validate action 实现 ====================
 

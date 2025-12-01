@@ -34,6 +34,14 @@ class MemoryRetrieval(MapFunction):
 
         Args:
             data: 纯数据字典（已由 PipelineServiceSource 解包）
+                可能包含的字段：
+                - question: 查询问题
+                - query_embedding: 查询向量（可选，由 PreRetrieval 生成）
+                - metadata: 元数据（可选）
+                - retrieval_hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+                    - strategies: 检索策略列表
+                    - params: 传递给服务的检索参数
+                    - route_strategy: 使用的路由策略
 
         Returns:
             在原始数据基础上添加 "memory_data" 字段，包含检索到的原始记忆数据
@@ -42,12 +50,17 @@ class MemoryRetrieval(MapFunction):
         vector = data.get("query_embedding", None)
         metadata = data.get("metadata", None)
 
+        # 提取 retrieval_hints（如有，由 PreRetrieval route action 生成）
+        # hints 包含检索策略建议，服务可根据 hints 调整检索行为
+        hints = data.get("retrieval_hints", None)
+
         # 调用记忆服务检索对话（统一接口：传入 query 参数）
         result = self.call_service(
             self.service_name,
             query=query,
             vector=vector,
             metadata=metadata,
+            hints=hints,  # 传递给服务，让服务决定如何使用
             method="retrieve",
             timeout=10.0,
         )

@@ -2,6 +2,7 @@
 Service layer for SAGE-Mem
 
 Pre-defined services that combine neuromem functionality.
+All services inherit from sage.platform.service.BaseService and use NeuroMem as backend.
 """
 
 from .graph_memory_service import GraphMemoryService
@@ -16,6 +17,7 @@ from .short_term_memory_service import ShortTermMemoryService
 from .vector_hash_memory_service import VectorHashMemoryService
 
 __all__ = [
+    # Service implementations (all inherit from BaseService)
     "NeuroMemVDB",
     "NeuroMemVDBService",
     "ShortTermMemoryService",

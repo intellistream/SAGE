@@ -1,17 +1,34 @@
-"""记忆插入模块 - 负责将对话存储到记忆服务中"""
+"""记忆插入模块 - 负责将对话存储到记忆服务中
+
+支持两种插入模式：
+- passive: 被动插入，由服务内部决定如何存储（默认）
+- active: 主动插入，根据 insert_params 指定存储方式
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Literal
 
 from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
 from sage.common.core import MapFunction
+
+if TYPE_CHECKING:
+    pass
 
 
 class MemoryInsert(MapFunction):
     """将对话插入记忆服务
 
+    支持两种插入模式：
+    - passive: 被动插入，由服务内部决定如何存储（默认）
+    - active: 主动插入，根据 insert_params 指定存储方式
+
     职责：
     1. 接收 PreInsert 输出的列表格式数据
     2. 逐条处理记忆条目
-    3. 调用配置的记忆服务存储
-    4. 透传数据给下游
+    3. 根据 insert_mode 决定调用方式
+    4. 调用配置的记忆服务存储
+    5. 透传数据给下游
     """
 
     def __init__(self, config=None):
@@ -55,16 +72,26 @@ class MemoryInsert(MapFunction):
         # 透传数据给下一个算子（不修改队列）
         return data
 
-    def _insert_single_entry(self, entry_dict: dict):
-        """插入单条记忆条目（统一调用格式）
+    def _insert_single_entry(self, entry_dict: dict[str, Any]) -> None:
+        """插入单条记忆条目
+
+        根据 insert_mode 决定调用方式：
+        - passive: 简单调用，由服务决定如何存储（默认）
+        - active: 传递 insert_params，服务按参数存储
 
         Args:
             entry_dict: 记忆条目字典，由 PreInsert 生成：
                 - to_dialogs 模式: {"dialogs": [...], ...}
                 - to_refactor 模式: {"refactor": "...", "embedding": ..., ...}
+                - insert_mode: "active" | "passive"（可选，默认 passive）
+                - insert_params: 主动插入参数（可选）
+                    - target_tier: 目标层级 (分层服务)
+                    - node_type: 节点类型 (图服务)
+                    - priority: 优先级
+                    - force: 是否强制插入
 
         调用服务的统一格式：
-            call_service(service_name, entry, vector, metadata, method="insert")
+            call_service(service_name, entry, vector, metadata, insert_mode, insert_params, method="insert")
         """
         # 根据 adapter 模式提取 entry
         if self.adapter == "to_dialogs":
@@ -77,7 +104,7 @@ class MemoryInsert(MapFunction):
         else:
             # 未知模式，尝试提取 refactor 或返回空
             entry = entry_dict.get("refactor", "")
-        # print(f"Inserting entry: {entry}")
+
         # 如果 entry 为空字符串，跳过插入
         if not entry:
             return
@@ -86,12 +113,18 @@ class MemoryInsert(MapFunction):
         vector = entry_dict.get("embedding", None)
         metadata = entry_dict.get("metadata", None)
 
+        # 获取插入模式配置
+        insert_mode: Literal["active", "passive"] = entry_dict.get("insert_mode", "passive")
+        insert_params: dict[str, Any] | None = entry_dict.get("insert_params", None)
+
         # 统一插入字符串
         self.call_service(
             self.service_name,
             entry=entry,
             vector=vector,
             metadata=metadata,
+            insert_mode=insert_mode,
+            insert_params=insert_params,
             method="insert",
             timeout=10.0,
         )

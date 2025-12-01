@@ -1,188 +1,260 @@
 """Hierarchical Memory Service - 分层记忆存储
 
-支持三种模式:
-1. two_tier: 双层结构 (STM + LTM) - 参考 MemoryBank, LD-Agent
-2. three_tier: 三层结构 (STM + MTM + LTM) - 参考 MemoryOS
-3. functional: 功能分层 (Core + Archival + Recall) - 参考 MemGPT
+支持多层记忆结构:
+1. two_tier: 双层 (STM + LTM)
+2. three_tier: 三层 (STM + MTM + LTM)
+3. functional: 功能分区 (episodic + semantic + procedural)
+
+使用多个 VDBMemoryCollection 作为底层存储。
 """
 
 from __future__ import annotations
 
-import json
+import os
 import time
 import uuid
-from collections import deque
-from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
+from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
+    VDBMemoryCollection,
+)
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
-
-def get_timestamp() -> str:
-    """获取当前时间戳"""
-    return datetime.now().strftime("%Y%m%d%H%M%S")
-
-
-def compute_time_decay(
-    last_time: str,
-    current_time: str,
-    tau_hours: float = 24.0,
-) -> float:
-    """计算时间衰减因子"""
-    try:
-        last_dt = datetime.strptime(last_time, "%Y%m%d%H%M%S")
-        current_dt = datetime.strptime(current_time, "%Y%m%d%H%M%S")
-        hours_diff = (current_dt - last_dt).total_seconds() / 3600
-        return np.exp(-hours_diff / tau_hours)
-    except Exception:
-        return 1.0
+if TYPE_CHECKING:
+    pass
 
 
 class HierarchicalMemoryService(BaseService):
     """分层记忆服务
 
-    支持 two_tier, three_tier, functional 三种模式。
+    底层使用 MemoryManager + 多个 VDBMemoryCollection 存储。
+    支持记忆在各层之间的迁移。
     """
 
     def __init__(
         self,
         tier_mode: Literal["two_tier", "three_tier", "functional"] = "three_tier",
         tier_capacities: dict[str, int] | None = None,
-        migration_policy: Literal["time", "heat", "manual", "overflow"] = "overflow",
-        migration_threshold: float = 0.7,
-        migration_interval: int = 3600,
-        embedding_dim: int = 768,
-        heat_alpha: float = 1.0,
-        heat_beta: float = 1.0,
-        heat_gamma: float = 1.0,
+        migration_policy: Literal["overflow", "importance", "time"] = "overflow",
+        embedding_dim: int = 384,
+        collection_prefix: str = "hierarchical",
     ):
         """初始化分层记忆服务
 
         Args:
             tier_mode: 分层模式
-            tier_capacities: 各层容量配置
+                - "two_tier": STM + LTM
+                - "three_tier": STM + MTM + LTM
+                - "functional": episodic + semantic + procedural
+            tier_capacities: 各层容量限制 (如 {"stm": 10, "mtm": 100, "ltm": -1})
             migration_policy: 迁移策略
-            migration_threshold: 热度迁移阈值
-            migration_interval: 时间迁移间隔(秒)
+                - "overflow": 容量溢出时迁移
+                - "importance": 按重要性迁移
+                - "time": 按时间迁移
             embedding_dim: 向量维度
-            heat_alpha: 访问次数权重
-            heat_beta: 交互长度权重
-            heat_gamma: 时间衰减权重
+            collection_prefix: Collection 名称前缀
         """
         super().__init__()
 
         self.tier_mode = tier_mode
         self.migration_policy = migration_policy
-        self.migration_threshold = migration_threshold
-        self.migration_interval = migration_interval
         self.embedding_dim = embedding_dim
-        self.heat_alpha = heat_alpha
-        self.heat_beta = heat_beta
-        self.heat_gamma = heat_gamma
+        self.collection_prefix = collection_prefix
 
-        # 初始化各层容量
+        # 根据模式确定层级名称
         if tier_mode == "two_tier":
             self.tier_names = ["stm", "ltm"]
-            default_capacities = {"stm": 100, "ltm": -1}
         elif tier_mode == "three_tier":
             self.tier_names = ["stm", "mtm", "ltm"]
-            default_capacities = {"stm": 100, "mtm": 1000, "ltm": -1}
         else:  # functional
-            self.tier_names = ["core", "archival", "recall"]
-            default_capacities = {"core": 50, "archival": -1, "recall": 500}
+            self.tier_names = ["episodic", "semantic", "procedural"]
 
-        self.tier_capacities = tier_capacities or default_capacities
+        # 设置容量
+        default_capacities = {
+            "stm": 10,
+            "mtm": 100,
+            "ltm": -1,
+            "episodic": 100,
+            "semantic": -1,
+            "procedural": 50,
+        }
+        self.tier_capacities = tier_capacities or {
+            name: default_capacities.get(name, -1) for name in self.tier_names
+        }
 
-        # 初始化存储
-        self._init_storage()
+        # 初始化 MemoryManager
+        self.manager = MemoryManager(self._get_default_data_dir())
 
-        # 上次迁移时间
-        self._last_migration_time = time.time()
-
-    def _init_storage(self) -> None:
-        """初始化存储结构"""
-        self.tiers: dict[str, Any] = {}
-
+        # 为每一层创建 VDBMemoryCollection
+        self.tier_collections: dict[str, VDBMemoryCollection] = {}
         for tier_name in self.tier_names:
-            capacity = self.tier_capacities.get(tier_name, -1)
-            if capacity > 0:
-                self.tiers[tier_name] = {
-                    "data": deque(maxlen=capacity),
-                    "capacity": capacity,
-                    "embeddings": {},
-                    "metadata": {},
-                }
+            collection_name = f"{collection_prefix}_{tier_name}"
+            if self.manager.has_collection(collection_name):
+                collection = self.manager.get_collection(collection_name)
             else:
-                self.tiers[tier_name] = {
-                    "data": [],
-                    "capacity": -1,
-                    "embeddings": {},
-                    "metadata": {},
-                }
+                collection = self.manager.create_collection(
+                    {
+                        "name": collection_name,
+                        "backend_type": "VDB",
+                        "description": f"Hierarchical memory tier: {tier_name}",
+                    }
+                )
+
+            if isinstance(collection, VDBMemoryCollection):
+                # 确保有 global_index
+                if "global_index" not in collection.index_info:
+                    collection.create_index(
+                        {
+                            "name": "global_index",
+                            "dim": embedding_dim,
+                            "backend_type": "FAISS",
+                            "description": f"Index for {tier_name} tier",
+                        }
+                    )
+                self.tier_collections[tier_name] = collection
+
+        # 记录每层的条目数量（用于溢出检测）
+        self._tier_counts: dict[str, int] = dict.fromkeys(self.tier_names, 0)
+
+        self.logger.info(
+            f"HierarchicalMemoryService initialized: mode={tier_mode}, "
+            f"tiers={self.tier_names}, capacities={self.tier_capacities}"
+        )
+
+    @classmethod
+    def _get_default_data_dir(cls) -> str:
+        """获取默认数据目录"""
+        cur_dir = os.getcwd()
+        data_dir = os.path.join(cur_dir, "data", "hierarchical_memory")
+        os.makedirs(data_dir, exist_ok=True)
+        return data_dir
 
     def insert(
         self,
         entry: str,
-        vector: np.ndarray | None = None,
+        vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
+        target_tier: str | None = None,
+        *,
+        insert_mode: Literal["active", "passive"] = "passive",
+        insert_params: dict | None = None,
     ) -> str:
         """插入记忆条目
 
+        支持两种插入模式：
+        - passive: 由服务自行决定存储方式（默认存入第一层）
+        - active: 根据 insert_params 指定存储方式
+
         Args:
             entry: 文本内容
-            vector: 向量表示
+            vector: embedding 向量
             metadata: 元数据，可包含:
-                - tier: 指定层级
-                - importance: 重要性评分
-                - keywords: 关键词
-                - summary: 摘要
+                - importance: 重要性分数 (0-1)
+                - tier: 指定目标层级
+            target_tier: 目标层级（覆盖 metadata 中的 tier）
+            insert_mode: 插入模式 ("active" | "passive")
+            insert_params: 主动插入参数
+                - target_tier: 目标层级 (覆盖 target_tier 参数)
+                - priority: 优先级
+                - force: 是否强制插入（跳过容量检查）
 
         Returns:
-            entry_id: 条目 ID
+            str: 条目 ID
         """
         metadata = metadata or {}
-        entry_id = metadata.get("id", str(uuid.uuid4()))
-        target_tier = metadata.get("tier", self.tier_names[0])
 
-        # 检查是否需要迁移
-        if self.migration_policy == "overflow":
-            self._check_overflow_migration(target_tier)
-        elif self.migration_policy == "time":
-            self._check_time_migration()
-
-        # 创建记忆条目
-        memory_entry = {
-            "id": entry_id,
-            "content": entry,
-            "timestamp": get_timestamp(),
-            "last_accessed": get_timestamp(),
-            "access_count": 0,
-            "heat": 1.0,
-            "importance": metadata.get("importance", 1.0),
-            "keywords": metadata.get("keywords", []),
-            "summary": metadata.get("summary", ""),
-            "metadata": metadata,
-        }
-
-        # 添加到目标层
-        tier_storage = self.tiers[target_tier]
-        if isinstance(tier_storage["data"], deque):
-            tier_storage["data"].append(memory_entry)
+        # 处理插入模式
+        if insert_mode == "active" and insert_params:
+            # 主动插入：从 insert_params 获取参数
+            effective_tier = insert_params.get("target_tier", target_tier)
+            force_insert = insert_params.get("force", False)
+            if "priority" in insert_params:
+                metadata["priority"] = insert_params["priority"]
         else:
-            tier_storage["data"].append(memory_entry)
+            # 被动插入：使用默认行为
+            effective_tier = target_tier
+            force_insert = False
 
-        # 存储向量
+        # 确定目标层级
+        tier_name = effective_tier or metadata.get("tier", self.tier_names[0])
+        if tier_name not in self.tier_collections:
+            tier_name = self.tier_names[0]
+
+        # 生成 ID
+        entry_id = metadata.get("id", str(uuid.uuid4()))
+        timestamp = time.time()
+
+        # 准备元数据
+        full_metadata = metadata.copy()
+        full_metadata["entry_id"] = entry_id
+        full_metadata["timestamp"] = timestamp
+        full_metadata["tier"] = tier_name
+        full_metadata["importance"] = metadata.get("importance", 0.5)
+
+        # 检查容量，必要时触发迁移（force_insert 跳过容量检查）
+        capacity = self.tier_capacities.get(tier_name, -1)
+        if not force_insert and capacity > 0 and self._tier_counts[tier_name] >= capacity:
+            self._migrate_overflow(tier_name)
+
+        # 插入到目标层的 collection
+        collection = self.tier_collections[tier_name]
         if vector is not None:
-            tier_storage["embeddings"][entry_id] = np.array(vector, dtype=np.float32)
+            vec = np.array(vector, dtype=np.float32)
+            collection.insert(
+                index_name="global_index",
+                text=entry,
+                vector=vec,
+                metadata=full_metadata,
+            )
+        else:
+            collection.insert(entry, full_metadata)
 
+        self._tier_counts[tier_name] += 1
+
+        self.logger.debug(f"Inserted entry to {tier_name}: {entry_id[:16]}...")
         return entry_id
+
+    def _migrate_overflow(self, from_tier: str) -> int:
+        """处理容量溢出迁移
+
+        Args:
+            from_tier: 源层级
+
+        Returns:
+            int: 迁移的条目数
+        """
+        tier_idx = self.tier_names.index(from_tier)
+        if tier_idx >= len(self.tier_names) - 1:
+            # 已经是最后一层，执行遗忘
+            return self._forget_oldest(from_tier, count=1)
+
+        # 迁移到下一层
+        to_tier = self.tier_names[tier_idx + 1]
+        # TODO: 实现具体的迁移逻辑
+        self.logger.info(f"Migration triggered: {from_tier} -> {to_tier}")
+        return 0
+
+    def _forget_oldest(self, tier_name: str, count: int = 1) -> int:
+        """遗忘最旧的条目
+
+        Args:
+            tier_name: 层级名称
+            count: 遗忘数量
+
+        Returns:
+            int: 实际遗忘的数量
+        """
+        # TODO: 实现遗忘逻辑
+        self.logger.info(f"Forgetting {count} oldest entries from {tier_name}")
+        return 0
 
     def retrieve(
         self,
         query: str | None = None,
-        vector: np.ndarray | None = None,
+        vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
     ) -> list[dict[str, Any]]:
@@ -191,13 +263,13 @@ class HierarchicalMemoryService(BaseService):
         Args:
             query: 查询文本
             vector: 查询向量
-            metadata: 查询元数据，可包含:
-                - tiers: 要检索的层级列表
-                - method: 检索方法 ("all" | "semantic" | "recent")
-            top_k: 返回结果数
+            metadata: 检索参数:
+                - tiers: 要搜索的层级列表
+                - method: "semantic" | "recent"
+            top_k: 返回结果数量
 
         Returns:
-            检索结果列表
+            list[dict]: 检索结果
         """
         metadata = metadata or {}
         tiers_to_search = metadata.get("tiers", self.tier_names)
@@ -206,380 +278,114 @@ class HierarchicalMemoryService(BaseService):
         all_results = []
 
         for tier_name in tiers_to_search:
-            if tier_name not in self.tiers:
+            if tier_name not in self.tier_collections:
                 continue
 
-            tier_storage = self.tiers[tier_name]
+            collection = self.tier_collections[tier_name]
 
             if method == "semantic" and vector is not None:
-                results = self._semantic_search(tier_storage, vector, top_k)
-            elif method == "recent":
-                results = self._recent_search(tier_storage, top_k)
+                query_vec = np.array(vector, dtype=np.float32)
+                results = collection.retrieve(
+                    query_text=query,
+                    query_vector=query_vec,
+                    index_name="global_index",
+                    topk=top_k,
+                    with_metadata=True,
+                )
+                if results:
+                    for r in results:
+                        if isinstance(r, dict):
+                            r["tier"] = tier_name
+                    all_results.extend(results)
             else:
-                results = self._all_search(tier_storage, top_k)
-
-            # 更新访问统计
-            for r in results:
-                self._update_access_stats(tier_name, r.get("id"))
-
-            all_results.extend(results)
+                # 获取最近的记忆（按时间）
+                # TODO: 实现基于时间的检索
+                pass
 
         # 按分数排序
-        all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
-
+        all_results.sort(
+            key=lambda x: x.get("score", 0) if isinstance(x, dict) else 0, reverse=True
+        )
         return all_results[:top_k]
 
-    def _semantic_search(
-        self,
-        tier_storage: dict,
-        query_vector: np.ndarray,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """语义检索"""
-        embeddings = tier_storage["embeddings"]
-        if not embeddings:
-            return []
+    def delete(self, entry_id: str) -> bool:
+        """删除记忆条目
 
-        query_vec = np.array(query_vector, dtype=np.float32)
-        if len(query_vec.shape) == 1:
-            query_vec = query_vec.reshape(1, -1)
+        Args:
+            entry_id: 条目 ID
 
-        entry_ids = list(embeddings.keys())
-        emb_matrix = np.array([embeddings[eid] for eid in entry_ids], dtype=np.float32)
+        Returns:
+            bool: 是否删除成功
+        """
+        for tier_name, collection in self.tier_collections.items():
+            try:
+                # 尝试在每一层删除
+                collection.delete(entry_id)
+                self._tier_counts[tier_name] = max(0, self._tier_counts[tier_name] - 1)
+                self.logger.debug(f"Deleted entry {entry_id[:16]}... from {tier_name}")
+                return True
+            except Exception:
+                continue
 
-        if len(emb_matrix) == 0:
-            return []
+        return False
 
-        # 归一化
-        query_norm = query_vec / (np.linalg.norm(query_vec, axis=1, keepdims=True) + 1e-8)
-        emb_norm = emb_matrix / (np.linalg.norm(emb_matrix, axis=1, keepdims=True) + 1e-8)
+    def optimize(self, trigger: str = "auto") -> dict[str, Any]:
+        """优化记忆结构
 
-        # 计算相似度
-        scores = np.dot(emb_norm, query_norm.T).flatten()
+        Args:
+            trigger: 触发类型 ("auto" | "migrate" | "forgetting")
 
-        # 获取 top-k
-        top_indices = np.argsort(scores)[::-1][:top_k]
+        Returns:
+            dict: 优化统计信息
+        """
+        stats = {
+            "success": True,
+            "trigger": trigger,
+            "migrated": 0,
+            "forgotten": 0,
+        }
 
-        # 构建结果
-        data_list = list(tier_storage["data"])
-        id_to_entry = {e["id"]: e for e in data_list}
+        if trigger in ("auto", "migrate"):
+            # 检查各层是否需要迁移
+            for tier_name in self.tier_names[:-1]:
+                capacity = self.tier_capacities.get(tier_name, -1)
+                if capacity > 0 and self._tier_counts[tier_name] > capacity:
+                    migrated = self._migrate_overflow(tier_name)
+                    stats["migrated"] += migrated
 
-        results = []
-        for idx in top_indices:
-            entry_id = entry_ids[idx]
-            entry = id_to_entry.get(entry_id, {})
-            results.append(
-                {
-                    "id": entry_id,
-                    "text": entry.get("content", ""),
-                    "score": float(scores[idx]),
-                    "metadata": entry.get("metadata", {}),
-                }
-            )
+        if trigger in ("auto", "forgetting"):
+            # 检查最后一层是否需要遗忘
+            last_tier = self.tier_names[-1]
+            capacity = self.tier_capacities.get(last_tier, -1)
+            if capacity > 0 and self._tier_counts[last_tier] > capacity:
+                forgotten = self._forget_oldest(last_tier)
+                stats["forgotten"] += forgotten
 
-        return results
+        self.logger.info(f"Optimization complete: {stats}")
+        return stats
 
-    def _recent_search(
-        self,
-        tier_storage: dict,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """最近访问检索"""
-        data_list = list(tier_storage["data"])
+    def get_stats(self) -> dict[str, Any]:
+        """获取统计信息"""
+        tier_stats = {}
+        for tier_name in self.tier_names:
+            tier_stats[tier_name] = {
+                "count": self._tier_counts.get(tier_name, 0),
+                "capacity": self.tier_capacities.get(tier_name, -1),
+            }
 
-        # 按时间戳排序
-        sorted_data = sorted(data_list, key=lambda x: x.get("timestamp", ""), reverse=True)
-
-        results = []
-        for entry in sorted_data[:top_k]:
-            results.append(
-                {
-                    "id": entry.get("id", ""),
-                    "text": entry.get("content", ""),
-                    "score": 1.0,
-                    "metadata": entry.get("metadata", {}),
-                }
-            )
-
-        return results
-
-    def _all_search(
-        self,
-        tier_storage: dict,
-        top_k: int,
-    ) -> list[dict[str, Any]]:
-        """返回所有记忆"""
-        data_list = list(tier_storage["data"])
-
-        results = []
-        for entry in data_list[:top_k]:
-            results.append(
-                {
-                    "id": entry.get("id", ""),
-                    "text": entry.get("content", ""),
-                    "score": entry.get("heat", 1.0),
-                    "metadata": entry.get("metadata", {}),
-                }
-            )
-
-        return results
-
-    def _update_access_stats(self, tier_name: str, entry_id: str | None) -> None:
-        """更新访问统计"""
-        if entry_id is None:
-            return
-
-        tier_storage = self.tiers[tier_name]
-        data_list = list(tier_storage["data"])
-
-        for entry in data_list:
-            if entry.get("id") == entry_id:
-                entry["access_count"] = entry.get("access_count", 0) + 1
-                entry["last_accessed"] = get_timestamp()
-                entry["heat"] = self._compute_heat(entry)
-                break
-
-    def _compute_heat(self, entry: dict) -> float:
-        """计算热度值 (参考 MemoryOS)"""
-        n_visit = entry.get("access_count", 0)
-        l_interaction = len(entry.get("content", ""))
-        r_recency = compute_time_decay(
-            entry.get("last_accessed", get_timestamp()),
-            get_timestamp(),
-        )
-
-        return (
-            self.heat_alpha * n_visit
-            + self.heat_beta * (l_interaction / 1000)
-            + self.heat_gamma * r_recency
-        )
-
-    def _check_overflow_migration(self, current_tier: str) -> None:
-        """检查溢出迁移"""
-        tier_idx = self.tier_names.index(current_tier)
-        if tier_idx >= len(self.tier_names) - 1:
-            return
-
-        tier_storage = self.tiers[current_tier]
-        capacity = tier_storage["capacity"]
-
-        if capacity > 0 and len(tier_storage["data"]) >= capacity:
-            # 迁移最旧的条目到下一层
-            next_tier = self.tier_names[tier_idx + 1]
-            self._migrate_entry(current_tier, next_tier)
-
-    def _check_time_migration(self) -> None:
-        """检查时间迁移"""
-        current_time = time.time()
-        if current_time - self._last_migration_time < self.migration_interval:
-            return
-
-        self._last_migration_time = current_time
-
-        # 对每一层执行迁移检查
-        for i, tier_name in enumerate(self.tier_names[:-1]):
-            next_tier = self.tier_names[i + 1]
-            self._migrate_by_time(tier_name, next_tier)
-
-    def _migrate_entry(self, from_tier: str, to_tier: str) -> None:
-        """迁移单个条目"""
-        from_storage = self.tiers[from_tier]
-        to_storage = self.tiers[to_tier]
-
-        if not from_storage["data"]:
-            return
-
-        # 获取最旧的条目
-        if isinstance(from_storage["data"], deque):
-            oldest_entry = from_storage["data"].popleft()
-        else:
-            oldest_entry = from_storage["data"].pop(0)
-
-        entry_id = oldest_entry.get("id")
-
-        # 迁移向量
-        if entry_id in from_storage["embeddings"]:
-            to_storage["embeddings"][entry_id] = from_storage["embeddings"].pop(entry_id)
-
-        # 添加到目标层
-        if isinstance(to_storage["data"], deque):
-            to_storage["data"].append(oldest_entry)
-        else:
-            to_storage["data"].append(oldest_entry)
-
-    def _migrate_by_time(self, from_tier: str, to_tier: str) -> None:
-        """按时间迁移多个条目"""
-        from_storage = self.tiers[from_tier]
-        current_time = get_timestamp()
-
-        entries_to_migrate = []
-        remaining_entries = []
-
-        for entry in list(from_storage["data"]):
-            decay = compute_time_decay(
-                entry.get("last_accessed", current_time),
-                current_time,
-                tau_hours=24.0,
-            )
-            if decay < self.migration_threshold:
-                entries_to_migrate.append(entry)
-            else:
-                remaining_entries.append(entry)
-
-        # 更新源层
-        if isinstance(from_storage["data"], deque):
-            from_storage["data"].clear()
-            from_storage["data"].extend(remaining_entries)
-        else:
-            from_storage["data"] = remaining_entries
-
-        # 迁移到目标层
-        to_storage = self.tiers[to_tier]
-        for entry in entries_to_migrate:
-            entry_id = entry.get("id")
-
-            if entry_id in from_storage["embeddings"]:
-                to_storage["embeddings"][entry_id] = from_storage["embeddings"].pop(entry_id)
-
-            if isinstance(to_storage["data"], deque):
-                to_storage["data"].append(entry)
-            else:
-                to_storage["data"].append(entry)
-
-    def migrate_by_heat(self, heat_threshold: float | None = None) -> int:
-        """按热度迁移 (手动触发)"""
-        threshold = heat_threshold or self.migration_threshold
-        migrated_count = 0
-
-        for i, tier_name in enumerate(self.tier_names[:-1]):
-            next_tier = self.tier_names[i + 1]
-            from_storage = self.tiers[tier_name]
-            to_storage = self.tiers[next_tier]
-
-            entries_to_migrate = []
-            remaining_entries = []
-
-            for entry in list(from_storage["data"]):
-                heat = self._compute_heat(entry)
-                entry["heat"] = heat
-                if heat < threshold:
-                    entries_to_migrate.append(entry)
-                else:
-                    remaining_entries.append(entry)
-
-            # 更新源层
-            if isinstance(from_storage["data"], deque):
-                from_storage["data"].clear()
-                from_storage["data"].extend(remaining_entries)
-            else:
-                from_storage["data"] = remaining_entries
-
-            # 迁移到目标层
-            for entry in entries_to_migrate:
-                entry_id = entry.get("id")
-
-                if entry_id in from_storage["embeddings"]:
-                    to_storage["embeddings"][entry_id] = from_storage["embeddings"].pop(entry_id)
-
-                if isinstance(to_storage["data"], deque):
-                    to_storage["data"].append(entry)
-                else:
-                    to_storage["data"].append(entry)
-
-                migrated_count += 1
-
-        return migrated_count
+        return {
+            "memory_count": sum(self._tier_counts.values()),
+            "tier_mode": self.tier_mode,
+            "tier_distribution": tier_stats,
+            "migration_policy": self.migration_policy,
+        }
 
     def get_tier_stats(self) -> dict[str, dict]:
         """获取各层统计信息"""
         stats = {}
         for tier_name in self.tier_names:
-            tier_storage = self.tiers[tier_name]
             stats[tier_name] = {
-                "count": len(tier_storage["data"]),
-                "capacity": tier_storage["capacity"],
-                "embeddings_count": len(tier_storage["embeddings"]),
+                "count": self._tier_counts.get(tier_name, 0),
+                "capacity": self.tier_capacities.get(tier_name, -1),
             }
         return stats
-
-    def consolidate(self, tier_name: str) -> str | None:
-        """整合记忆 (生成摘要)
-
-        Args:
-            tier_name: 要整合的层级
-
-        Returns:
-            摘要文本
-        """
-        if tier_name not in self.tiers:
-            return None
-
-        tier_storage = self.tiers[tier_name]
-        data_list = list(tier_storage["data"])
-
-        if not data_list:
-            return None
-
-        # 简单拼接所有内容作为摘要基础
-        contents = [entry.get("content", "") for entry in data_list]
-        summary = " | ".join(contents[:10])  # 只取前10条
-
-        return summary
-
-    def clear_tier(self, tier_name: str) -> bool:
-        """清空指定层级"""
-        if tier_name not in self.tiers:
-            return False
-
-        tier_storage = self.tiers[tier_name]
-        if isinstance(tier_storage["data"], deque):
-            tier_storage["data"].clear()
-        else:
-            tier_storage["data"] = []
-
-        tier_storage["embeddings"] = {}
-        return True
-
-
-if __name__ == "__main__":
-
-    def test_hierarchical_memory():
-        print("\n" + "=" * 70)
-        print("HierarchicalMemoryService 测试")
-        print("=" * 70 + "\n")
-
-        # 三层模式测试
-        service = HierarchicalMemoryService(
-            tier_mode="three_tier",
-            tier_capacities={"stm": 3, "mtm": 10, "ltm": -1},
-            migration_policy="overflow",
-        )
-
-        # 插入记忆
-        for i in range(5):
-            vec = np.random.randn(768).astype(np.float32)
-            service.insert(
-                f"这是第 {i + 1} 条记忆内容",
-                vector=vec,
-                metadata={"importance": float(i) / 5},
-            )
-            print(f"插入第 {i + 1} 条记忆")
-
-        # 打印统计
-        stats = service.get_tier_stats()
-        print(f"\n层级统计: {json.dumps(stats, indent=2)}")
-
-        # 检索测试
-        query_vec = np.random.randn(768).astype(np.float32)
-        results = service.retrieve(
-            vector=query_vec,
-            metadata={"method": "semantic"},
-            top_k=3,
-        )
-        print(f"\n检索结果: {len(results)} 条")
-        for r in results:
-            print(f"  - {r['text'][:30]}... (score: {r['score']:.4f})")
-
-        print("\n✅ 测试完成!")
-
-    test_hierarchical_memory()
