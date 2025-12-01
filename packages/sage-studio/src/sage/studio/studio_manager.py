@@ -834,6 +834,7 @@ if __name__ == "__main__":
 
             # 导入必要的组件
             from sage.common.components.sage_embedding import get_embedding_model
+            from sage.common.config.ports import SagePorts
             from sage.common.utils.document_processing import parse_markdown_sections
             from sage.middleware.components.sage_db.backend import SageDBBackend
             from sage.middleware.operators.rag.index_builder import IndexBuilder
@@ -842,9 +843,49 @@ if __name__ == "__main__":
             index_root.mkdir(parents=True, exist_ok=True)
             db_path = index_root / f"{index_name}.sagedb"
 
-            # 创建 embedder（使用 hash 加快启动速度）
-            console.print("[blue]初始化 embedder (hash-384)...[/blue]")
-            embedder = get_embedding_model("hash", dim=384)
+            # 创建 embedder - 优先使用运行中的 embedding 服务
+            embedding_method = "hash"
+            embedding_dim = 384
+            embedding_model_name = None
+
+            # 检查 embedding 服务是否运行
+            embedding_port = SagePorts.EMBEDDING_DEFAULT
+            try:
+                import httpx
+
+                resp = httpx.get(
+                    f"http://localhost:{embedding_port}/v1/models",
+                    timeout=2.0,
+                )
+                if resp.status_code == 200:
+                    models = resp.json().get("data", [])
+                    if models:
+                        embedding_method = "openai"
+                        embedding_model_name = models[0].get("id", "BAAI/bge-m3")
+                        embedding_dim = 1024  # BGE-M3 默认维度
+                        console.print(
+                            f"[green]✅ 检测到 Embedding 服务 (localhost:{embedding_port})[/green]"
+                        )
+                        console.print(f"[blue]   使用模型: {embedding_model_name}[/blue]")
+            except Exception:
+                pass  # 服务未运行，使用 hash fallback
+
+            if embedding_method == "openai":
+                console.print(
+                    f"[blue]初始化 embedder (openai @ localhost:{embedding_port})...[/blue]"
+                )
+                embedder = get_embedding_model(
+                    "openai",
+                    model=embedding_model_name,
+                    base_url=f"http://localhost:{embedding_port}/v1",
+                    api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
+                )
+            else:
+                console.print("[blue]初始化 embedder (hash-384)...[/blue]")
+                console.print(
+                    "[dim]   提示: 运行 'sage llm serve --with-embedding' 可使用真正的 embedding[/dim]"
+                )
+                embedder = get_embedding_model("hash", dim=embedding_dim)
 
             # Backend factory
             def backend_factory(persist_path: Path, dim: int):
@@ -895,8 +936,9 @@ if __name__ == "__main__":
                 "created_at": index_manifest.created_at,
                 "source_dir": str(source_dir),
                 "embedding": {
-                    "method": "hash",
-                    "dim": 384,
+                    "method": embedding_method,
+                    "dim": embedding_dim,
+                    "model": embedding_model_name,
                 },
                 "chunk_size": 800,
                 "chunk_overlap": 160,

@@ -130,27 +130,27 @@ start_spinner() {
         message="处理中..."
     fi
 
-    # 禁用 job 控制以抑制 [1] PID 输出
-    set +m
-    (
-        local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-        local i=0
-        while true; do
-            printf "\r%s %s" "$message" "${frames[$i]}"
-            sleep 0.12
-            i=$(((i + 1) % ${#frames[@]}))
-        done
-    ) &
-    _spinner_pid=$!
-    # 恢复 job 控制
-    set -m 2>/dev/null || true
+    # 使用双层 subshell 彻底隔离 job control 输出
+    # 外层 subshell 捕获所有 job 通知，内层运行实际的 spinner
+    _spinner_pid=$(
+        (
+            local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+            local i=0
+            while true; do
+                printf "\r%s %s" "$message" "${frames[$i]}"
+                sleep 0.12
+                i=$(((i + 1) % ${#frames[@]}))
+            done
+        ) &
+        echo $!
+    )
 }
 
 stop_spinner() {
     local final_message="$1"
     if [ -n "$_spinner_pid" ]; then
-        kill "$_spinner_pid" >/dev/null 2>&1
-        wait "$_spinner_pid" >/dev/null 2>&1
+        kill "$_spinner_pid" 2>/dev/null || true
+        wait "$_spinner_pid" 2>/dev/null || true
         _spinner_pid=""
         printf "\r\033[K"
     fi
@@ -353,11 +353,8 @@ PY
                 echo -e "${INFO} 启动 LLM + Embedding 服务..."
                 echo -e "${DIM}   首次启动会下载模型（LLM + Embedding）...${NC}"
                 echo ""
-                # 后台启动服务，抑制 job 控制输出和日志
-                # 使用 set +m 禁用 job control 以避免打印 [1] PID 信息
-                set +m
-                sage llm serve --with-embedding &>/dev/null &
-                set -m
+                # 后台启动服务，使用 subshell 彻底隔离 job control 输出
+                ( sage llm serve --with-embedding &>/dev/null & )
                 # 等待 Embedding 服务就绪
                 start_spinner "   等待服务启动"
                 local wait_count=0
