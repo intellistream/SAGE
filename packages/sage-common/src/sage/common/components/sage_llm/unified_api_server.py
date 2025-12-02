@@ -77,6 +77,18 @@ try:
 except ImportError:
     AIOHTTP_AVAILABLE = False
 
+try:
+    from sage.common.components.sage_llm.sageLLM.control_plane import (
+        ControlPlaneManager,
+        ExecutionInstanceType,
+    )
+
+    CONTROL_PLANE_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional dependency wiring
+    CONTROL_PLANE_AVAILABLE = False
+    ControlPlaneManager = None  # type: ignore[assignment]
+    ExecutionInstanceType = None  # type: ignore[assignment]
+
 
 # =============================================================================
 # Configuration
@@ -234,6 +246,53 @@ if FASTAPI_AVAILABLE:
         root: str | None = None
         parent: str | None = None
 
+    class EngineStartRequest(BaseModel):
+        """Request body for Control Plane engine startup."""
+
+        model_id: str = Field(..., description="Model identifier to launch")
+        tensor_parallel_size: int = Field(
+            1,
+            ge=1,
+            description="Number of GPUs to allocate for tensor parallelism",
+        )
+        pipeline_parallel_size: int = Field(1, ge=1, description="Pipeline stages")
+        port: int | None = Field(
+            None,
+            description="Preferred port for the new engine (auto-select if omitted)",
+        )
+        host: str = Field("localhost", description="Host where the engine is reachable")
+        instance_type: str = Field(
+            "GENERAL",
+            description="ExecutionInstanceType name (e.g., GENERAL, PREFILLING)",
+        )
+        max_concurrent_requests: int = Field(256, ge=1, description="Scheduling limit")
+        required_memory_gb: float | None = Field(
+            None,
+            gt=0,
+            description="Optional per-GPU memory requirement override (GB)",
+        )
+        engine_label: str | None = Field(
+            None,
+            description="Optional friendly label stored with the engine",
+        )
+        extra_args: list[str] | None = Field(
+            None,
+            description="Additional CLI args passed to the vLLM process",
+        )
+        metadata: dict[str, Any] | None = Field(
+            None,
+            description="Optional metadata attached to the registered instance",
+        )
+        engine_kind: str = Field(
+            "llm",
+            description="Runtime kind of engine (llm or embedding)",
+        )
+        use_gpu: bool | None = Field(
+            None,
+            description="GPU usage override. None=default (LLM uses GPU, Embedding does not), "
+            "True=force GPU, False=force no GPU",
+        )
+
 
 # =============================================================================
 # Unified API Server
@@ -280,6 +339,7 @@ class UnifiedAPIServer:
         self._server: uvicorn.Server | None = None
         self._running = False
         self._http_session: aiohttp.ClientSession | None = None
+        self._control_plane_manager: ControlPlaneManager | None = None
 
         # Track available models
         self._llm_models: dict[str, BackendInstanceConfig] = {}
@@ -287,6 +347,9 @@ class UnifiedAPIServer:
 
         # Build model mappings
         self._build_model_mappings()
+
+        if self.config.enable_control_plane:
+            self._initialize_control_plane_manager()
 
         logger.info(
             "UnifiedAPIServer initialized with %d LLM backends and %d Embedding backends",
@@ -304,6 +367,27 @@ class UnifiedAPIServer:
             if backend.model_name:
                 self._embedding_models[backend.model_name] = backend
 
+    def _initialize_control_plane_manager(self) -> None:
+        """Initialize Control Plane Manager if dependencies are available."""
+
+        if not CONTROL_PLANE_AVAILABLE:
+            logger.warning(
+                "enable_control_plane is True but Control Plane components are unavailable"
+            )
+            return
+
+        try:
+            self._control_plane_manager = ControlPlaneManager(
+                scheduling_policy=self.config.scheduling_policy.value,
+                routing_strategy="load_balanced",
+                enable_pd_separation=True,
+                mode="http",
+            )
+            logger.info("Control Plane Manager initialized for Unified API Server")
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to initialize Control Plane Manager: %s", exc)
+            self._control_plane_manager = None
+
     def _create_app(self) -> FastAPI:
         """Create and configure the FastAPI application."""
 
@@ -316,10 +400,14 @@ class UnifiedAPIServer:
                 timeout=aiohttp.ClientTimeout(total=self.config.request_timeout)
             )
             self._running = True
+            if self._control_plane_manager:
+                await self._control_plane_manager.start()
             yield
             # Shutdown
             logger.info("Shutting down Unified API Server...")
             self._running = False
+            if self._control_plane_manager:
+                await self._control_plane_manager.stop()
             if self._http_session:
                 await self._http_session.close()
                 self._http_session = None
@@ -352,39 +440,60 @@ class UnifiedAPIServer:
         @app.get("/")
         async def root() -> dict[str, Any]:
             """Root endpoint with server info."""
+            endpoints: dict[str, Any] = {
+                "chat": "/v1/chat/completions",
+                "completions": "/v1/completions",
+                "embeddings": "/v1/embeddings",
+                "models": "/v1/models",
+                "health": "/health",
+            }
+
+            if self._control_plane_manager:
+                endpoints["management"] = {
+                    "start_engine": "/v1/management/engines",
+                    "stop_engine": "/v1/management/engines/{engine_id}",
+                    "cluster_status": "/v1/management/status",
+                }
+
             return {
-                "name": "SAGE Unified Inference API",
-                "version": "1.0.0",
+                "service": "SAGE Unified API Server",
                 "status": "running" if self._running else "starting",
-                "endpoints": {
-                    "chat": "/v1/chat/completions",
-                    "completions": "/v1/completions",
-                    "embeddings": "/v1/embeddings",
-                    "models": "/v1/models",
-                    "health": "/health",
-                },
+                "endpoints": endpoints,
             }
 
         @app.get("/health")
         async def health_check() -> dict[str, Any]:
             """Health check endpoint."""
-            # Check backend health
-            llm_healthy = await self._check_backends_health(self.config.llm_backends)
-            embed_healthy = await self._check_backends_health(self.config.embedding_backends)
+            llm_count = len(self.config.llm_backends)
+            embed_count = len(self.config.embedding_backends)
+            llm_healthy = llm_count > 0
+            embed_healthy = embed_count > 0
 
-            status = "healthy" if (llm_healthy or embed_healthy) else "unhealthy"
+            status = "ok"
+            if not llm_healthy or not embed_healthy:
+                status = "degraded"
+            if not llm_healthy and not embed_healthy:
+                status = "unavailable"
 
-            return {
+            response = {
                 "status": status,
                 "timestamp": datetime.now().isoformat(),
                 "backends": {
-                    "llm": {"healthy": llm_healthy, "count": len(self.config.llm_backends)},
+                    "llm": {"healthy": llm_healthy, "count": llm_count},
                     "embedding": {
                         "healthy": embed_healthy,
-                        "count": len(self.config.embedding_backends),
+                        "count": embed_count,
                     },
                 },
             }
+
+            if self._control_plane_manager:
+                response["control_plane"] = {
+                    "enabled": True,
+                    "policy": self.config.scheduling_policy.value,
+                }
+
+            return response
 
         @app.get("/v1/models")
         async def list_models() -> dict[str, Any]:
@@ -473,6 +582,67 @@ class UnifiedAPIServer:
             except Exception as e:
                 logger.error(f"Embedding error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+
+        @app.post("/v1/management/engines")
+        async def management_start_engine(request: EngineStartRequest) -> dict[str, Any]:
+            """Start a new managed engine via Control Plane."""
+
+            manager = self._require_control_plane_manager()
+            instance_type = self._parse_instance_type(request.instance_type)
+            try:
+                engine_info = manager.request_engine_startup(
+                    model_id=request.model_id,
+                    tensor_parallel_size=request.tensor_parallel_size,
+                    pipeline_parallel_size=request.pipeline_parallel_size,
+                    port=request.port,
+                    instance_host=request.host,
+                    instance_type=instance_type,
+                    max_concurrent_requests=request.max_concurrent_requests,
+                    extra_spawn_args=request.extra_args,
+                    required_memory_gb=request.required_memory_gb,
+                    engine_label=request.engine_label,
+                    metadata=request.metadata,
+                    engine_kind=request.engine_kind,
+                    use_gpu=request.use_gpu,
+                )
+            except ValueError as exc:  # Invalid arguments
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            except RuntimeError as exc:  # Resource contention
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.error("Engine startup failed: %s", exc)
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+            return self._format_engine_start_response(engine_info)
+
+        @app.delete("/v1/management/engines/{engine_id}")
+        async def management_stop_engine(engine_id: str) -> dict[str, Any]:
+            """Stop a managed engine via Control Plane."""
+
+            manager = self._require_control_plane_manager()
+            try:
+                result = manager.request_engine_shutdown(engine_id)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.error("Engine shutdown failed: %s", exc)
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+            if not result.get("stopped"):
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Engine '{engine_id}' could not be stopped",
+                )
+            return result
+
+        @app.get("/v1/management/status")
+        async def management_cluster_status() -> dict[str, Any]:
+            """Retrieve aggregated Control Plane cluster status."""
+
+            manager = self._require_control_plane_manager()
+            try:
+                return manager.get_cluster_status()
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.error("Failed to collect cluster status: %s", exc)
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     def _get_llm_backend(self, model: str) -> BackendInstanceConfig | None:
         """Get the backend configuration for an LLM model.
@@ -695,6 +865,49 @@ class UnifiedAPIServer:
                 raise HTTPException(status_code=resp.status, detail=error_text)
             return await resp.json()
 
+    def _format_engine_start_response(self, engine_info: dict[str, Any]) -> dict[str, Any]:
+        """Flatten engine metadata for API consumers while preserving nested copy."""
+
+        payload: dict[str, Any] = {"engine": engine_info}
+        payload.update(engine_info)
+
+        engine_id = engine_info.get("engine_id")
+        if engine_id:
+            payload.setdefault("id", engine_id)
+
+        payload.setdefault("status", engine_info.get("status", "STARTING"))
+        return payload
+
+    def _require_control_plane_manager(self) -> ControlPlaneManager:
+        """Return the active Control Plane manager or raise an HTTP error."""
+
+        if not self._control_plane_manager:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Control Plane management API is disabled. "
+                    "Set UnifiedServerConfig.enable_control_plane=True to use it."
+                ),
+            )
+        return self._control_plane_manager
+
+    def _parse_instance_type(self, type_name: str) -> ExecutionInstanceType:
+        """Convert a string into an ExecutionInstanceType enum value."""
+
+        if ExecutionInstanceType is None:  # pragma: no cover - defensive guard
+            raise HTTPException(status_code=503, detail="ExecutionInstanceType unavailable")
+
+        try:
+            return ExecutionInstanceType[type_name.upper()]
+        except KeyError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Invalid instance_type. Expected one of "
+                    f"{[t.name for t in ExecutionInstanceType]}"
+                ),
+            ) from exc
+
     @property
     def app(self) -> FastAPI:
         """Get the FastAPI application instance."""
@@ -777,6 +990,7 @@ class UnifiedAPIServer:
             "embedding_backends": len(self.config.embedding_backends),
             "llm_models": list(self._llm_models.keys()),
             "embedding_models": list(self._embedding_models.keys()),
+            "control_plane_enabled": bool(self._control_plane_manager),
         }
 
     async def __aenter__(self) -> UnifiedAPIServer:

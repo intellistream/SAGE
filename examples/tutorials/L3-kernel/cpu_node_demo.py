@@ -474,9 +474,7 @@ def print_usage_guide():
     print("\n1️⃣  启动JobManager (必需):")
     print("   $ sage jobmanager start")
     print("   或者手动启动:")
-    print(
-        "   $ python -m sage.kernel.runtime.job_manager --host 127.0.0.1 --port 19001"
-    )
+    print("   $ python -m sage.kernel.runtime.job_manager --host 127.0.0.1 --port 19001")
 
     print("\n2️⃣  启动Ray集群 (可选，JobManager会自动初始化):")
     print("   $ ray start --head  # 启动头节点")

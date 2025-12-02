@@ -275,7 +275,7 @@ def get_llm_client():
     try:
         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        return UnifiedInferenceClient.create_auto()
+        return UnifiedInferenceClient.create()
     except ImportError as e:
         print(f"  Warning: Could not create LLM client: {e}")
         return None

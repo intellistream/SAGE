@@ -228,7 +228,7 @@ class IntelligentLLMClient:
         }
 
         # Create and setup Control Plane service
-        cp_service = ControlPlaneVLLMService(cp_config)
+        cp_service = ControlPlaneVLLMService(cp_config)  # type: ignore
         cp_service.setup()
 
         # Extract model name from first instance

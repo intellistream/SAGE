@@ -8,13 +8,23 @@ NOT by directly calling vLLM entrypoints.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+import httpx
 import typer
+import yaml
 from rich.console import Console
 from rich.table import Table
 
+from sage.common.components.sage_llm.presets import (
+    EnginePreset,
+    get_builtin_preset,
+    list_builtin_presets,
+    load_preset_file,
+)
 from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
 from sage.common.model_registry import fetch_recommended_models, vllm_registry
@@ -41,6 +51,8 @@ from sage.cli.commands.platform.llm_config import app as config_app
 console = Console()
 app = typer.Typer(help="🤖 LLM 服务管理")
 model_app = typer.Typer(help="📦 模型管理")
+engine_app = typer.Typer(help="⚙️ 引擎管理")
+preset_app = typer.Typer(help="🎛️ 预设编排")
 
 # PID file for tracking background service
 SAGE_DIR = Path.home() / ".sage"
@@ -53,9 +65,328 @@ def _ensure_dirs():
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _resolve_api_base(api_base: str | None, port: int | None) -> str:
+    """Return the control plane base URL (including /v1)."""
+    if api_base:
+        return api_base.rstrip("/")
+    target_port = port or SagePorts.GATEWAY_DEFAULT
+    return f"http://localhost:{target_port}/v1"
+
+
+def _print_management_api_hint(api_base: str) -> None:
+    """Provide guidance when the management API cannot be reached."""
+
+    parsed = urlparse(api_base)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or SagePorts.GATEWAY_DEFAULT
+
+    console.print(
+        "[yellow]💡 控制平面管理 API 未运行或不可达。[/yellow]",
+    )
+    console.print(
+        "   请先启动 Unified API Server（gateway），例如运行 [cyan]sage llm serve[/cyan]",
+    )
+    console.print(
+        f"   默认管理地址: http://{host}:{port}/v1，可用 --api-port 或 --api-base 自行覆盖。",
+    )
+
+
+def _extract_error_detail(resp: httpx.Response) -> str:
+    try:
+        payload = resp.json()
+    except ValueError:
+        return resp.text.strip() or resp.reason_phrase
+
+    if isinstance(payload, dict):
+        for key in ("detail", "message", "error"):
+            if key in payload:
+                value = payload[key]
+                if isinstance(value, (dict, list)):
+                    return json.dumps(value, ensure_ascii=False)
+                return str(value)
+        return json.dumps(payload, ensure_ascii=False)
+    return str(payload)
+
+
+def _management_request(
+    method: str,
+    endpoint: str,
+    *,
+    api_base: str,
+    timeout: float,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    endpoint_path = endpoint if endpoint.startswith("/") else f"/{endpoint}"
+    url = f"{api_base.rstrip('/')}{endpoint_path}"
+
+    request_kwargs: dict[str, Any] = {"timeout": timeout}
+    if payload is not None:
+        request_kwargs["json"] = payload
+
+    try:
+        response = httpx.request(method, url, **request_kwargs)
+    except httpx.RequestError as exc:
+        console.print(f"[red]❌ 无法连接到管理 API: {exc}[/red]")
+        _print_management_api_hint(api_base)
+        raise typer.Exit(1) from exc
+
+    if response.status_code >= 400:
+        detail = _extract_error_detail(response)
+        console.print(f"[red]❌ 管理 API 请求失败 ({response.status_code}): {detail}[/red]")
+        raise typer.Exit(1)
+
+    if not response.content:
+        return {}
+
+    try:
+        return response.json()
+    except ValueError as exc:  # pragma: no cover - defensive
+        console.print(f"[red]❌ 无法解析服务响应: {exc}[/red]")
+        raise typer.Exit(1)
+
+
+def _load_preset_source(name: str | None, file_path: Path | None) -> EnginePreset:
+    """Resolve preset definition from builtin registry or local file."""
+
+    if file_path is not None:
+        return load_preset_file(file_path)
+    if name:
+        preset = get_builtin_preset(name)
+        if preset is None:
+            console.print(f"[red]未知预设 '{name}'。使用 'sage llm preset list' 查看可用项。[/red]")
+            raise typer.Exit(1)
+        return preset
+    console.print("[red]请指定预设名称或 --file。[/red]")
+    raise typer.Exit(1)
+
+
+def _print_preset_plan(preset: EnginePreset) -> None:
+    table = Table(show_header=True, header_style="bold", title=f"预设: {preset.name}")
+    table.add_column("序号", justify="center")
+    table.add_column("名称", overflow="fold")
+    table.add_column("类型", justify="center")
+    table.add_column("模型", overflow="fold")
+    table.add_column("TP/PP", justify="center")
+    table.add_column("端口", justify="center")
+    table.add_column("标签", overflow="fold")
+    for idx, engine in enumerate(preset.engines, start=1):
+        table.add_row(
+            str(idx),
+            engine.name,
+            engine.kind,
+            engine.model,
+            f"{engine.tensor_parallel}/{engine.pipeline_parallel}",
+            str(engine.port or "auto"),
+            engine.label or "-",
+        )
+    console.print(table)
+
+
+def _fetch_cluster_status(api_base: str, timeout: float) -> dict[str, Any]:
+    return _management_request(
+        "GET",
+        "/management/status",
+        api_base=api_base,
+        timeout=timeout,
+    )
+
+
+def _ensure_dict_list(data: Any) -> list[dict[str, Any]]:
+    if isinstance(data, list):
+        return [item for item in data if isinstance(item, dict)]
+    if isinstance(data, dict):
+        return [item for item in data.values() if isinstance(item, dict)]
+    return []
+
+
+def _normalize_memory_gb(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if numeric > 1_000_000:  # assume bytes
+        return numeric / (1024**3)
+    return numeric
+
+
+def _format_memory_gb(value: Any) -> str:
+    amount = _normalize_memory_gb(value)
+    if amount is None:
+        return "-"
+    return f"{amount:.1f} GB"
+
+
+def _format_uptime(value: Any) -> str:
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        return "-"
+
+    if seconds < 60:
+        return f"{int(seconds)}s"
+
+    minutes, remaining = divmod(int(seconds), 60)
+    if minutes < 60:
+        return f"{minutes}m{remaining:02d}s"
+
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h{minutes:02d}m"
+
+
 # Add subcommands
 app.add_typer(config_app, name="config")
 app.add_typer(model_app, name="model")
+app.add_typer(engine_app, name="engine")
+app.add_typer(preset_app, name="preset")
+
+
+# ---------------------------------------------------------------------------
+# Preset orchestration commands
+# ---------------------------------------------------------------------------
+@preset_app.command("list")
+def list_presets(json_output: bool = typer.Option(False, "--json", help="JSON 输出")):
+    """列出内置预设。"""
+
+    presets = list_builtin_presets()
+    if not presets:
+        console.print("[yellow]当前没有定义任何内置预设。[/yellow]")
+        return
+
+    if json_output:
+        typer.echo(
+            json.dumps([preset.to_dict() for preset in presets], ensure_ascii=False, indent=2)
+        )
+        return
+
+    table = Table(show_header=True, header_style="bold", title="LLM 预设列表")
+    table.add_column("名称", overflow="fold")
+    table.add_column("描述", overflow="fold")
+    table.add_column("引擎数量", justify="center")
+
+    for preset in presets:
+        table.add_row(
+            preset.name,
+            preset.description or "-",
+            str(len(preset.engines)),
+        )
+
+    console.print(table)
+
+
+@preset_app.command("show")
+def show_preset(
+    name: str | None = typer.Option(None, "--name", "-n", help="预设名称"),
+    file: Path | None = typer.Option(None, "--file", "-f", help="自定义预设文件"),
+    json_output: bool = typer.Option(False, "--json", help="以 JSON 输出"),
+):
+    """展示预设详情。"""
+
+    preset = _load_preset_source(name, file)
+    data = preset.to_dict()
+    if json_output:
+        typer.echo(json.dumps(data, ensure_ascii=False, indent=2))
+    else:
+        typer.echo(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
+
+
+def _rollback_engines(engine_ids: list[str], api_base: str, timeout: float) -> None:
+    for engine_id in engine_ids:
+        try:
+            _management_request(
+                "DELETE",
+                f"/management/engines/{engine_id}",
+                api_base=api_base,
+                timeout=timeout,
+            )
+            console.print(f"[yellow]↩️ 已回滚引擎 {engine_id}[/yellow]")
+        except typer.Exit:
+            console.print(f"[red]⚠️ 回滚 {engine_id} 失败[/red]")
+
+
+@preset_app.command("apply")
+def apply_preset(
+    name: str | None = typer.Option(None, "--name", "-n", help="预设名称"),
+    file: Path | None = typer.Option(None, "--file", "-f", help="自定义预设文件"),
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(None, "--api-base", help="覆盖控制平面 API 基地址"),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+    assume_yes: bool = typer.Option(False, "--yes", "-y", help="无需确认直接执行"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="仅展示计划，不执行"),
+    no_rollback: bool = typer.Option(False, "--no-rollback", help="失败时不回滚已启动的引擎"),
+):
+    """根据预设启动一组引擎。"""
+
+    preset = _load_preset_source(name, file)
+    _print_preset_plan(preset)
+
+    if dry_run:
+        console.print("[blue]🔍 Dry-run 模式，仅展示计划。[/blue]")
+        return
+
+    if not assume_yes and not typer.confirm("确认按照以上计划启动引擎?", default=True):
+        typer.echo("已取消。")
+        return
+
+    base_url = _resolve_api_base(api_base, api_port)
+    started_ids: list[str] = []
+    results: list[dict[str, Any]] = []
+    rollback_enabled = not no_rollback
+
+    for engine in preset.engines:
+        console.print(f"[cyan]🚀 启动 {engine.name} ({engine.kind}) -> {engine.model}[/cyan]")
+        payload = engine.to_payload()
+        try:
+            response = _management_request(
+                "POST",
+                "/management/engines",
+                api_base=base_url,
+                timeout=timeout,
+                payload=payload,
+            )
+        except typer.Exit as exc:
+            if rollback_enabled and started_ids:
+                console.print("[yellow]⚠️ 启动失败，执行回滚...[/yellow]")
+                _rollback_engines(started_ids, base_url, timeout)
+            raise exc
+
+        engine_id = response.get("engine_id") or response.get("id")
+        if engine_id:
+            started_ids.append(engine_id)
+        results.append(
+            {
+                "engine_id": engine_id or "(pending)",
+                "model": response.get("model_id") or engine.model,
+                "port": response.get("port") or payload.get("port") or "auto",
+                "status": response.get("status") or "STARTING",
+                "kind": response.get("engine_kind") or engine.kind,
+            }
+        )
+
+    table = Table(show_header=True, header_style="bold", title="启动结果")
+    table.add_column("Engine ID", overflow="fold")
+    table.add_column("类型", justify="center")
+    table.add_column("模型", overflow="fold")
+    table.add_column("端口", justify="center")
+    table.add_column("状态", justify="center")
+
+    for item in results:
+        table.add_row(
+            item["engine_id"],
+            item["kind"],
+            item["model"],
+            str(item["port"]),
+            item["status"],
+        )
+
+    console.print("[green]✅ 预设已应用。[/green]")
+    console.print(table)
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +513,284 @@ def delete_model(
         raise typer.Exit(1)
 
     typer.echo(f"🗑️ 已删除模型 {model}")
+
+
+# ---------------------------------------------------------------------------
+# Engine management commands
+# ---------------------------------------------------------------------------
+
+
+@engine_app.command("list")
+def list_engines(
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址 (默认 http://localhost:<api-port>/v1)",
+    ),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+):
+    """列出当前由控制平面管理的引擎。"""
+
+    base_url = _resolve_api_base(api_base, api_port)
+    cluster_status = _fetch_cluster_status(base_url, timeout)
+    engines = _ensure_dict_list(
+        cluster_status.get("engines")
+        or cluster_status.get("engine_instances")
+        or cluster_status.get("instances")
+        or []
+    )
+
+    if not engines:
+        console.print("[yellow]当前没有由控制平面管理的引擎。[/yellow]")
+        return
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Engine ID", overflow="fold")
+    table.add_column("模型", overflow="fold")
+    table.add_column("类型", justify="center")
+    table.add_column("状态", justify="center")
+    table.add_column("端口", justify="center")
+    table.add_column("GPU", justify="center")
+    table.add_column("PID", justify="center")
+    table.add_column("Uptime", justify="center")
+
+    for engine in engines:
+        engine_id = engine.get("engine_id") or engine.get("id") or "-"
+        model_name = engine.get("model_id") or engine.get("model") or "-"
+        runtime_kind = engine.get("runtime") or engine.get("engine_kind")
+        if not runtime_kind:
+            metadata = engine.get("metadata") or {}
+            runtime_kind = metadata.get("engine_kind")
+        runtime_kind = runtime_kind or "llm"
+        status_text = engine.get("status") or engine.get("state") or "-"
+        listen_port = engine.get("port") or engine.get("listen_port") or "-"
+        pid = engine.get("pid") or engine.get("process_id") or "-"
+        uptime = engine.get("uptime_seconds") or engine.get("uptime") or engine.get("uptime_s")
+
+        gpu_ids = engine.get("gpu_ids") or engine.get("gpus") or engine.get("devices")
+        if isinstance(gpu_ids, list):
+            gpu_text = ",".join(str(item) for item in gpu_ids) or "-"
+        else:
+            gpu_text = str(gpu_ids) if gpu_ids is not None else "-"
+
+        table.add_row(
+            str(engine_id),
+            str(model_name),
+            str(runtime_kind),
+            str(status_text),
+            str(listen_port),
+            gpu_text,
+            str(pid),
+            _format_uptime(uptime),
+        )
+
+    console.print(table)
+    console.print(f"[green]共 {len(engines)} 个引擎。[/green]")
+
+
+@engine_app.command("start")
+def start_engine(
+    model_id: str = typer.Argument(..., help="要启动的模型 ID"),
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址",
+    ),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+    engine_port: int | None = typer.Option(
+        None,
+        "--engine-port",
+        help="显式指定新引擎监听端口",
+    ),
+    tensor_parallel: int | None = typer.Option(
+        None,
+        "--tensor-parallel",
+        "-tp",
+        help="Tensor 并行度 (直接透传给控制平面)",
+    ),
+    required_memory_gb: float | None = typer.Option(
+        None,
+        "--required-memory-gb",
+        help="期望的显存需求 (GB)",
+    ),
+    engine_label: str | None = typer.Option(
+        None,
+        "--label",
+        help="自定义标签，便于识别引擎",
+    ),
+    pipeline_parallel: int | None = typer.Option(
+        None,
+        "--pipeline-parallel",
+        "-pp",
+        help="Pipeline 并行度",
+    ),
+    max_concurrent: int | None = typer.Option(
+        None,
+        "--max-concurrent",
+        help="最大并发请求数 (默认 256)",
+    ),
+    engine_kind: str = typer.Option(
+        "llm",
+        "--engine-kind",
+        help="引擎类型 (llm 或 embedding)",
+    ),
+    use_gpu: bool | None = typer.Option(
+        None,
+        "--use-gpu/--no-gpu",
+        help="显式指定是否使用 GPU (默认: LLM 使用 GPU, Embedding 不使用)",
+    ),
+):
+    """请求启动新的 LLM 引擎。"""
+
+    base_url = _resolve_api_base(api_base, api_port)
+    payload: dict[str, Any] = {"model_id": model_id}
+    engine_kind_value = engine_kind.strip().lower()
+    if engine_kind_value not in {"llm", "embedding"}:
+        console.print("[red]engine-kind 仅支持 'llm' 或 'embedding'.[/red]")
+        raise typer.Exit(1)
+
+    if engine_port is not None:
+        payload["port"] = engine_port
+    if tensor_parallel is not None:
+        payload["tensor_parallel_size"] = tensor_parallel
+    if pipeline_parallel is not None:
+        payload["pipeline_parallel_size"] = pipeline_parallel
+    if required_memory_gb is not None:
+        payload["required_memory_gb"] = required_memory_gb
+    if engine_label:
+        payload["engine_label"] = engine_label
+    if max_concurrent is not None:
+        payload["max_concurrent_requests"] = max_concurrent
+    payload["engine_kind"] = engine_kind_value
+    if use_gpu is not None:
+        payload["use_gpu"] = use_gpu
+
+    response = _management_request(
+        "POST",
+        "/management/engines",
+        api_base=base_url,
+        timeout=timeout,
+        payload=payload,
+    )
+
+    engine_id = response.get("engine_id") or response.get("id") or "(pending)"
+    model_name = response.get("model_id") or model_id
+    status_text = response.get("status") or response.get("state") or "CREATED"
+    assigned_port = response.get("port") or response.get("listen_port") or payload.get("port")
+
+    console.print("[green]✅ 已提交引擎启动请求[/green]")
+    console.print(f"  Engine ID : {engine_id}")
+    console.print(f"  模型       : {model_name}")
+    console.print(f"  状态       : {status_text}")
+    console.print(f"  端口       : {assigned_port or '-'}")
+
+
+@engine_app.command("stop")
+def stop_engine(
+    engine_id: str = typer.Argument(..., help="要停止的引擎 ID"),
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址",
+    ),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+):
+    """请求停止指定的 LLM 引擎。"""
+
+    base_url = _resolve_api_base(api_base, api_port)
+    response = _management_request(
+        "DELETE",
+        f"/management/engines/{engine_id}",
+        api_base=base_url,
+        timeout=timeout,
+    )
+
+    status_text = response.get("status") or response.get("state") or "STOPPED"
+    console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
+
+
+@app.command("gpu")
+def gpu_status(
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址",
+    ),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+):
+    """展示控制平面感知到的 GPU 状态。"""
+
+    base_url = _resolve_api_base(api_base, api_port)
+    cluster_status = _fetch_cluster_status(base_url, timeout)
+    gpu_entries = _ensure_dict_list(
+        cluster_status.get("gpus")
+        or cluster_status.get("gpu_status")
+        or cluster_status.get("system_status")
+        or cluster_status.get("gpu")
+        or []
+    )
+
+    if not gpu_entries:
+        console.print("[yellow]控制平面未返回 GPU 信息。[/yellow]")
+        return
+
+    table = Table(title="GPU 资源", show_header=True, header_style="bold")
+    table.add_column("GPU", overflow="fold")
+    table.add_column("内存 (已用/总量)", justify="center")
+    table.add_column("空闲", justify="center")
+    table.add_column("利用率", justify="center")
+    table.add_column("关联引擎", overflow="fold")
+
+    for gpu in gpu_entries:
+        idx = gpu.get("index")
+        name = gpu.get("name") or "GPU"
+        label = f"{idx}: {name}" if idx is not None else name
+
+        used = gpu.get("memory_used_gb") or gpu.get("memory_used")
+        total = gpu.get("memory_total_gb") or gpu.get("memory_total")
+        free = gpu.get("memory_free_gb") or gpu.get("memory_free")
+
+        util = gpu.get("utilization") or gpu.get("gpu_utilization")
+        if isinstance(util, (int, float)):
+            util_str = f"{util:.0f}%"
+        else:
+            util_str = str(util) if util is not None else "-"
+
+        engines = gpu.get("engines") or gpu.get("engine_ids") or gpu.get("allocations")
+        if isinstance(engines, list):
+            engines_str = ", ".join(str(item) for item in engines) or "-"
+        else:
+            engines_str = str(engines) if engines is not None else "-"
+
+        table.add_row(
+            label,
+            f"{_format_memory_gb(used)} / {_format_memory_gb(total)}",
+            _format_memory_gb(free),
+            util_str,
+            engines_str,
+        )
+
+    console.print(table)
 
 
 # ---------------------------------------------------------------------------
@@ -359,7 +968,7 @@ def serve_llm(
 
         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        client = UnifiedInferenceClient.create_auto()
+        client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])
     """
     if LLMLauncher is None:
@@ -421,6 +1030,15 @@ def serve_llm(
         console.print(f"   [green]✓[/green] Embedding 服务已启动 (PID: {proc.pid})")
         console.print(f"   日志: {embedding_log}")
 
+        # Update service info with embedding PID
+        if background:
+            pid, config = LLMLauncher.load_service_info()
+            if pid and config:
+                config["embedding_pid"] = proc.pid
+                config["embedding_port"] = embedding_port
+                config["embedding_model"] = embedding_model
+                LLMLauncher.save_service_info(pid, config)
+
 
 @app.command("stop")
 def stop_llm(
@@ -439,8 +1057,6 @@ def stop_llm(
 @app.command("restart")
 def restart_llm():
     """重启 LLM 推理服务（使用上次的配置）。"""
-    import time
-
     if LLMLauncher is None:
         console.print("[red]❌ LLMLauncher 不可用[/red]")
         raise typer.Exit(1)
