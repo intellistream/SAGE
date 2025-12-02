@@ -5,20 +5,25 @@
 
 This module provides the UnifiedInferenceClient class, which combines LLM
 (chat/generation) and Embedding capabilities into a single client interface.
-It supports both Simple mode (direct API calls) and Control Plane mode
-(advanced scheduling with hybrid policy).
+All requests are managed through the Control Plane for intelligent scheduling.
 
 Design Principles:
-- **Local First, Cloud Fallback**: Auto-detect local services before cloud APIs
+- **Control Plane First**: All requests go through Control Plane for unified management
 - **Unified Interface**: Single client for both LLM and Embedding requests
-- **Backward Compatible**: Existing IntelligentLLMClient/EmbeddingClient work unchanged
-- **Hybrid Scheduling**: Control Plane mode enables intelligent request routing
+- **Single Entry Point**: Use `create()` as the only way to instantiate the client
+- **Hybrid Scheduling**: Intelligent request routing and load balancing
 
 Example:
     >>> from sage.common.components.sage_llm import UnifiedInferenceClient
     >>>
-    >>> # Create with auto-detection
-    >>> client = UnifiedInferenceClient.create_auto()
+    >>> # Create with auto-detection (recommended)
+    >>> client = UnifiedInferenceClient.create()
+    >>>
+    >>> # Create connecting to external Control Plane
+    >>> client = UnifiedInferenceClient.create(control_plane_url="http://localhost:8000/v1")
+    >>>
+    >>> # Create with embedded Control Plane
+    >>> client = UnifiedInferenceClient.create(embedded=True)
     >>>
     >>> # Chat (LLM)
     >>> response = client.chat([{"role": "user", "content": "Hello"}])
@@ -37,7 +42,6 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from enum import Enum
 from threading import Lock
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
@@ -45,23 +49,26 @@ import httpx
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
+# 抑制 httpx 的 INFO 日志（每次 HTTP 请求都会打印，非常吵）
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
 
-class UnifiedClientMode(Enum):
+class UnifiedClientMode:
     """Operation mode for UnifiedInferenceClient.
 
+    Note: This class is kept for backward compatibility but only CONTROL_PLANE
+    mode is supported. All requests go through Control Plane for unified management.
+
     Attributes:
-        SIMPLE: Direct API calls to LLM and Embedding endpoints.
-            Suitable for single-instance deployments or testing.
         CONTROL_PLANE: Advanced scheduling via Control Plane Manager.
             Enables hybrid scheduling, load balancing, and auto-scaling.
     """
 
-    SIMPLE = "simple"
     CONTROL_PLANE = "control_plane"
 
 
@@ -76,10 +83,9 @@ class UnifiedClientConfig:
         embedding_base_url: Base URL for Embedding API endpoint.
         embedding_model: Default model name for Embedding requests.
         embedding_api_key: API key for Embedding endpoint.
-        mode: Operation mode (SIMPLE or CONTROL_PLANE).
         timeout: Request timeout in seconds.
         max_retries: Maximum number of retries for failed requests.
-        enable_caching: Whether to cache responses (for Control Plane mode).
+        enable_caching: Whether to cache responses.
     """
 
     llm_base_url: str | None = None
@@ -88,7 +94,6 @@ class UnifiedClientConfig:
     embedding_base_url: str | None = None
     embedding_model: str | None = None
     embedding_api_key: str = ""
-    mode: UnifiedClientMode = UnifiedClientMode.SIMPLE
     timeout: float = 60.0
     max_retries: int = 3
     enable_caching: bool = False
@@ -126,42 +131,41 @@ class UnifiedInferenceClient:
     """Unified client for LLM and Embedding inference.
 
     This client provides a single interface for both LLM (chat/generation)
-    and Embedding requests. It supports two operation modes:
+    and Embedding requests. All requests are managed through the Control Plane
+    for intelligent scheduling, load balancing, and resource management.
 
-    1. **Simple Mode**: Direct API calls to LLM and Embedding endpoints.
-       - Uses OpenAI-compatible APIs
-       - Suitable for single-instance deployments
-       - No advanced scheduling or load balancing
+    **IMPORTANT**: Use `create()` as the only entry point to instantiate this client.
+    Direct instantiation via `__init__` is not supported.
 
-    2. **Control Plane Mode**: Advanced scheduling via Control Plane Manager.
-       - Hybrid scheduling for mixed workloads
-       - Load balancing across multiple instances
-       - Auto-scaling based on demand
-       - SLO-aware request routing
+    Features:
+    - Intelligent request routing via Control Plane
+    - Multi-instance support (multiple LLM/Embedding backends)
+    - Load balancing across instances
+    - Auto-scaling based on demand
+    - SLO-aware request routing
 
     The client follows a "local first, cloud fallback" strategy:
     1. Check for explicitly configured endpoints (env vars)
-    2. Try local vLLM server (ports 8001, 8000)
-    3. Try local embedding server (ports 8090, 8080)
+    2. Try local vLLM server (ports from SagePorts)
+    3. Try local embedding server (ports from SagePorts)
     4. Fall back to cloud APIs (DashScope, etc.)
 
     Attributes:
         config: Client configuration.
-        mode: Current operation mode.
         llm_client: OpenAI client for LLM requests.
-        embedding_client: Client for embedding requests (OpenAI or httpx).
+        embedding_client: Client for embedding requests.
 
     Example:
         >>> # Auto-detection (recommended)
-        >>> client = UnifiedInferenceClient.create_auto()
+        >>> client = UnifiedInferenceClient.create()
         >>>
-        >>> # Explicit configuration
-        >>> client = UnifiedInferenceClient(
-        ...     llm_base_url="http://localhost:8001/v1",
-        ...     llm_model="Qwen/Qwen2.5-7B-Instruct",
-        ...     embedding_base_url="http://localhost:8090/v1",
-        ...     embedding_model="BAAI/bge-m3",
+        >>> # Connect to external Control Plane
+        >>> client = UnifiedInferenceClient.create(
+        ...     control_plane_url="http://localhost:8000/v1"
         ... )
+        >>>
+        >>> # Embedded Control Plane mode
+        >>> client = UnifiedInferenceClient.create(embedded=True)
         >>>
         >>> # Chat
         >>> response = client.chat([{"role": "user", "content": "Hello"}])
@@ -176,6 +180,8 @@ class UnifiedInferenceClient:
     # Class-level singleton cache for instances
     _instances: ClassVar[dict[str, UnifiedInferenceClient]] = {}
     _lock: ClassVar[Lock] = Lock()
+    # Flag to track if __init__ was called via create()
+    _allow_init: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -185,12 +191,13 @@ class UnifiedInferenceClient:
         embedding_base_url: str | None = None,
         embedding_model: str | None = None,
         embedding_api_key: str = "",
-        mode: UnifiedClientMode = UnifiedClientMode.SIMPLE,
         timeout: float = 60.0,
         max_retries: int = 3,
         config: UnifiedClientConfig | None = None,
     ) -> None:
         """Initialize the unified inference client.
+
+        NOTE: This constructor is private. Use `create()` to instantiate.
 
         Args:
             llm_base_url: Base URL for LLM API endpoint.
@@ -199,11 +206,19 @@ class UnifiedInferenceClient:
             embedding_base_url: Base URL for Embedding API endpoint.
             embedding_model: Default model name for Embedding requests.
             embedding_api_key: API key for Embedding endpoint.
-            mode: Operation mode (SIMPLE or CONTROL_PLANE).
             timeout: Request timeout in seconds.
             max_retries: Maximum number of retries for failed requests.
             config: Full configuration object (overrides individual params).
+
+        Raises:
+            RuntimeError: If called directly instead of via create().
         """
+        # Check if init was called via create()
+        if not UnifiedInferenceClient._allow_init:
+            raise RuntimeError(
+                "UnifiedInferenceClient cannot be instantiated directly. "
+                "Use UnifiedInferenceClient.create() instead."
+            )
         # Use config if provided, otherwise build from parameters
         if config is not None:
             self.config = config
@@ -215,12 +230,9 @@ class UnifiedInferenceClient:
                 embedding_base_url=embedding_base_url,
                 embedding_model=embedding_model,
                 embedding_api_key=embedding_api_key,
-                mode=mode,
                 timeout=timeout,
                 max_retries=max_retries,
             )
-
-        self.mode = self.config.mode
 
         # Initialize clients based on mode
         self._llm_client: OpenAI | None = None
@@ -232,18 +244,11 @@ class UnifiedInferenceClient:
         self._llm_available = False
         self._embedding_available = False
 
-        # Initialize appropriate clients
-        self._init_clients()
+        # Initialize Control Plane mode
+        self._init_control_plane_mode()
 
     def _init_clients(self) -> None:
-        """Initialize LLM and Embedding clients based on configuration."""
-        if self.config.mode == UnifiedClientMode.SIMPLE:
-            self._init_simple_mode_clients()
-        else:
-            self._init_control_plane_mode()
-
-    def _init_simple_mode_clients(self) -> None:
-        """Initialize clients for Simple mode."""
+        """Initialize LLM and Embedding clients for API calls."""
         # Initialize LLM client
         if self.config.llm_base_url:
             try:
@@ -289,13 +294,10 @@ class UnifiedInferenceClient:
         - Multi-instance support (multiple LLM/Embedding backends)
         - Intelligent routing (load balancing, failover)
         - Request batching for embeddings
-
-        For simplicity, we initialize OpenAI clients for direct API calls,
-        while the Control Plane manager handles routing decisions.
+        - Unified management of all inference requests
         """
-        # Initialize OpenAI clients for direct API calls (same as Simple mode)
-        # This ensures we have working clients even if Control Plane init fails
-        self._init_simple_mode_clients()
+        # Initialize OpenAI clients for direct API calls
+        self._init_clients()
 
         # Store Control Plane specific config for future routing
         self._control_plane_config = {
@@ -317,7 +319,11 @@ class UnifiedInferenceClient:
             control_plane_manager_cls = manager_module.ControlPlaneManager
             hybrid_policy_cls = policy_module.HybridSchedulingPolicy
         except Exception as exc:  # noqa: BLE001
-            self._fallback_to_simple_mode("Control Plane dependencies unavailable", error=exc)
+            logger.warning(
+                "Control Plane dependencies unavailable: %s. "
+                "Client will still work but without advanced scheduling.",
+                exc,
+            )
             return
 
         try:
@@ -327,7 +333,11 @@ class UnifiedInferenceClient:
             )
             self._control_plane_policy = hybrid_policy_cls()
         except Exception as exc:  # noqa: BLE001
-            self._fallback_to_simple_mode("Control Plane initialization failed", error=exc)
+            logger.warning(
+                "Control Plane initialization failed: %s. "
+                "Client will still work but without advanced scheduling.",
+                exc,
+            )
             return
 
         logger.info(
@@ -336,52 +346,78 @@ class UnifiedInferenceClient:
             len(self._control_plane_config["embedding_backends"]),
         )
 
-    def _fallback_to_simple_mode(self, reason: str, error: Exception | None = None) -> None:
-        """Gracefully fall back to Simple mode when Control Plane init fails."""
-
-        if error:
-            logger.warning("%s. Falling back to Simple mode: %s", reason, error)
-        else:
-            logger.warning("%s. Falling back to Simple mode", reason)
-
-        self.mode = UnifiedClientMode.SIMPLE
-        self.config.mode = UnifiedClientMode.SIMPLE
-        self._control_plane_manager = None
-        self._control_plane_policy = None
-
     # ==================== Factory Methods ====================
 
     @classmethod
-    def create_auto(
+    def create(
         cls,
         *,
+        control_plane_url: str | None = None,
+        embedded: bool = False,
+        default_llm_model: str | None = None,
+        default_embedding_model: str | None = None,
+        scheduling_policy: str = "adaptive",
+        timeout: float = 60.0,
         prefer_local: bool = True,
         llm_ports: Sequence[int] | None = None,
         embedding_ports: Sequence[int] | None = None,
-        timeout: float = 60.0,
     ) -> UnifiedInferenceClient:
-        """Create client with auto-detection of endpoints.
+        """Create a UnifiedInferenceClient instance.
 
-        Detection order:
-        1. Environment variables (SAGE_UNIFIED_BASE_URL, SAGE_CHAT_BASE_URL,
-           SAGE_EMBEDDING_BASE_URL)
-        2. Local LLM servers (ports from SagePorts: 8001, 8901, 8002, 8000)
-        3. Local Embedding servers (ports from SagePorts: 8090, 8091)
-        4. Cloud APIs (DashScope for LLM)
+        This is the **only** entry point for creating client instances.
+        All requests are managed through the Control Plane.
+
+        Usage modes:
+        1. Auto-detection (default): Automatically detect local/cloud endpoints
+        2. External Control Plane: Connect to an existing Control Plane server
+        3. Embedded Control Plane: Start an embedded Control Plane for this process
 
         Args:
+            control_plane_url: URL of an external Control Plane to connect to.
+                If provided, the client will route requests through this endpoint.
+                Example: "http://localhost:8000/v1"
+            embedded: If True, start an embedded Control Plane for this process.
+                Mutually exclusive with control_plane_url.
+            default_llm_model: Default model name for LLM requests.
+            default_embedding_model: Default model name for Embedding requests.
+            scheduling_policy: Scheduling policy to use ("adaptive", "fifo",
+                "priority", "slo_aware", "cost_optimized").
+            timeout: Request timeout in seconds.
             prefer_local: If True, prefer local servers over cloud APIs.
             llm_ports: Ports to check for local LLM servers. If None, uses SagePorts.
             embedding_ports: Ports to check for local Embedding servers. If None, uses SagePorts.
-            timeout: Request timeout in seconds.
 
         Returns:
             Configured UnifiedInferenceClient instance.
 
+        Raises:
+            ValueError: If both control_plane_url and embedded=True are provided.
+
         Example:
-            >>> client = UnifiedInferenceClient.create_auto()
-            >>> response = client.chat([{"role": "user", "content": "Hi"}])
+            >>> # Auto-detection (recommended for most cases)
+            >>> client = UnifiedInferenceClient.create()
+            >>>
+            >>> # Connect to external Control Plane
+            >>> client = UnifiedInferenceClient.create(
+            ...     control_plane_url="http://localhost:8000/v1"
+            ... )
+            >>>
+            >>> # Embedded Control Plane
+            >>> client = UnifiedInferenceClient.create(embedded=True)
+            >>>
+            >>> # With specific models
+            >>> client = UnifiedInferenceClient.create(
+            ...     default_llm_model="Qwen/Qwen2.5-7B-Instruct",
+            ...     default_embedding_model="BAAI/bge-m3",
+            ... )
         """
+        # Validate mutually exclusive options
+        if control_plane_url and embedded:
+            raise ValueError(
+                "Cannot specify both control_plane_url and embedded=True. "
+                "Choose one mode or omit both for auto-detection."
+            )
+
         # Import SagePorts for default values
         from sage.common.config.ports import SagePorts
 
@@ -390,76 +426,149 @@ class UnifiedInferenceClient:
         if embedding_ports is None:
             embedding_ports = SagePorts.get_embedding_ports()
 
-        # Check for unified base URL
-        unified_base_url = os.environ.get("SAGE_UNIFIED_BASE_URL")
-        if unified_base_url:
-            logger.info("Using unified base URL from environment: %s", unified_base_url)
-            return cls(
-                llm_base_url=unified_base_url,
-                llm_model=os.environ.get("SAGE_UNIFIED_MODEL"),
-                llm_api_key=os.environ.get("SAGE_UNIFIED_API_KEY", ""),
-                embedding_base_url=unified_base_url,
-                embedding_model=os.environ.get("SAGE_UNIFIED_MODEL"),
-                embedding_api_key=os.environ.get("SAGE_UNIFIED_API_KEY", ""),
+        # Determine endpoints based on mode
+        llm_base_url: str | None = None
+        llm_model: str | None = default_llm_model
+        llm_api_key: str = ""
+        embedding_base_url: str | None = None
+        embedding_model: str | None = default_embedding_model
+        embedding_api_key: str = ""
+
+        if control_plane_url:
+            # Use external Control Plane URL for both LLM and Embedding
+            llm_base_url = control_plane_url
+            embedding_base_url = control_plane_url
+            logger.info("Using external Control Plane: %s", control_plane_url)
+        elif embedded:
+            # Embedded mode: will be initialized during _init_control_plane_mode
+            logger.info("Using embedded Control Plane mode")
+            # Still detect endpoints for the embedded Control Plane to use
+            llm_base_url, llm_model_detected, llm_api_key = cls._detect_llm_endpoint(
+                prefer_local=prefer_local,
+                ports=llm_ports,
+            )
+            embedding_base_url, embedding_model_detected, embedding_api_key = (
+                cls._detect_embedding_endpoint(
+                    prefer_local=prefer_local,
+                    ports=embedding_ports,
+                )
+            )
+            llm_model = llm_model or llm_model_detected
+            embedding_model = embedding_model or embedding_model_detected
+        else:
+            # Auto-detection mode (default)
+            # Check for unified base URL
+            unified_base_url = os.environ.get("SAGE_UNIFIED_BASE_URL")
+            if unified_base_url:
+                logger.info("Using unified base URL from environment: %s", unified_base_url)
+                llm_base_url = unified_base_url
+                embedding_base_url = unified_base_url
+                llm_model = llm_model or os.environ.get("SAGE_UNIFIED_MODEL")
+                embedding_model = embedding_model or os.environ.get("SAGE_UNIFIED_MODEL")
+                llm_api_key = os.environ.get("SAGE_UNIFIED_API_KEY", "")
+                embedding_api_key = os.environ.get("SAGE_UNIFIED_API_KEY", "")
+            else:
+                # Detect LLM endpoint
+                llm_base_url, llm_model_detected, llm_api_key = cls._detect_llm_endpoint(
+                    prefer_local=prefer_local,
+                    ports=llm_ports,
+                )
+                # Detect Embedding endpoint
+                embedding_base_url, embedding_model_detected, embedding_api_key = (
+                    cls._detect_embedding_endpoint(
+                        prefer_local=prefer_local,
+                        ports=embedding_ports,
+                    )
+                )
+                llm_model = llm_model or llm_model_detected
+                embedding_model = embedding_model or embedding_model_detected
+
+        # Create the instance using the internal flag
+        try:
+            cls._allow_init = True
+            instance = cls(
+                llm_base_url=llm_base_url,
+                llm_model=llm_model,
+                llm_api_key=llm_api_key,
+                embedding_base_url=embedding_base_url,
+                embedding_model=embedding_model,
+                embedding_api_key=embedding_api_key,
                 timeout=timeout,
             )
+        finally:
+            cls._allow_init = False
 
-        # Detect LLM endpoint
-        llm_base_url, llm_model, llm_api_key = cls._detect_llm_endpoint(
-            prefer_local=prefer_local,
-            ports=llm_ports,
-        )
-
-        # Detect Embedding endpoint
-        embedding_base_url, embedding_model, embedding_api_key = cls._detect_embedding_endpoint(
-            prefer_local=prefer_local,
-            ports=embedding_ports,
-        )
-
-        return cls(
-            llm_base_url=llm_base_url,
-            llm_model=llm_model,
-            llm_api_key=llm_api_key,
-            embedding_base_url=embedding_base_url,
-            embedding_model=embedding_model,
-            embedding_api_key=embedding_api_key,
-            timeout=timeout,
-        )
+        return instance
 
     @classmethod
-    def create_with_control_plane(
+    def create_for_model(
         cls,
+        model_id: str,
         *,
-        llm_base_url: str | None = None,
-        llm_model: str | None = None,
-        embedding_base_url: str | None = None,
-        embedding_model: str | None = None,
-        embedding_batch_size: int = 32,
-        embedding_priority: str = "normal",
-        llm_fallback_policy: str = "adaptive",
+        management_base_url: str | None = None,
+        tensor_parallel_size: int = 1,
+        required_memory_gb: float | None = None,
+        engine_label: str | None = None,
+        extra_spawn_args: list[str] | None = None,
+        wait_timeout: float = 120.0,
+        poll_interval: float = 2.0,
+        auto_start: bool = True,
+        prefer_existing: bool = True,
     ) -> UnifiedInferenceClient:
-        """Create client with Control Plane mode for advanced scheduling.
+        """Create a client bound to a managed engine resolved by model name.
+
+        This helper talks to the Control Plane management API (default
+        ``http://localhost:8000/v1/management``) to locate an existing engine
+        that already serves ``model_id``. If no engine is running and
+        ``auto_start`` is True, it will request a new engine startup and wait
+        until the engine is reachable before returning a configured client.
 
         Args:
-            llm_base_url: Base URL for LLM API endpoint.
-            llm_model: Default model name for LLM requests.
-            embedding_base_url: Base URL for Embedding API endpoint.
-            embedding_model: Default model name for Embedding requests.
-            embedding_batch_size: Target batch size for embedding requests.
-            embedding_priority: Priority for embeddings ("high", "normal", "low").
-            llm_fallback_policy: LLM scheduling policy name.
+            model_id: Target model name registered with the Control Plane.
+            management_base_url: Base URL of the Unified API server
+                (e.g. ``http://localhost:8000/v1``). Defaults to the local
+                gateway port if omitted.
+            tensor_parallel_size: Requested tensor parallelism when starting
+                a new engine.
+            required_memory_gb: Explicit per-GPU memory reservation for the
+                engine request. Control Plane heuristics are used if omitted.
+            engine_label: Optional label recorded with the engine metadata.
+            extra_spawn_args: Additional CLI args forwarded to vLLM.
+            wait_timeout: Maximum seconds to wait for the engine to reach a
+                RUNNING/STARTING state after spawning.
+            poll_interval: Interval (seconds) between status polls.
+            auto_start: Whether to spawn a new engine when no running engine
+                matches the requested model.
+            prefer_existing: If False, forces creation of a new engine even if
+                a compatible engine is already tracked.
 
         Returns:
-            Configured UnifiedInferenceClient with Control Plane mode.
+            UnifiedInferenceClient wired to the resolved engine endpoint.
+
+        Raises:
+            RuntimeError: When the management API is unreachable, no engine
+                can be allocated, or the new engine never reaches RUNNING.
         """
-        config = UnifiedClientConfig(
-            llm_base_url=llm_base_url,
-            llm_model=llm_model,
-            embedding_base_url=embedding_base_url,
-            embedding_model=embedding_model,
-            mode=UnifiedClientMode.CONTROL_PLANE,
+
+        resolved_base = cls._normalize_management_base(management_base_url)
+        engine_info = cls._ensure_engine_for_model(
+            model_id=model_id,
+            management_base=resolved_base,
+            tensor_parallel_size=tensor_parallel_size,
+            required_memory_gb=required_memory_gb,
+            engine_label=engine_label,
+            extra_spawn_args=extra_spawn_args,
+            wait_timeout=wait_timeout,
+            poll_interval=poll_interval,
+            auto_start=auto_start,
+            prefer_existing=prefer_existing,
         )
-        return cls(config=config)
+
+        llm_base_url = cls._build_engine_base_url(engine_info)
+        return cls.create(
+            control_plane_url=llm_base_url,
+            default_llm_model=model_id,
+        )
 
     @classmethod
     def get_instance(
@@ -474,14 +583,14 @@ class UnifiedInferenceClient:
 
         Args:
             instance_key: Unique key for this instance configuration.
-            **kwargs: Arguments passed to create_auto() for new instances.
+            **kwargs: Arguments passed to create() for new instances.
 
         Returns:
             Cached or newly created UnifiedInferenceClient instance.
         """
         with cls._lock:
             if instance_key not in cls._instances:
-                cls._instances[instance_key] = cls.create_auto(**kwargs)
+                cls._instances[instance_key] = cls.create(**kwargs)
             return cls._instances[instance_key]
 
     @classmethod
@@ -534,7 +643,7 @@ class UnifiedInferenceClient:
 
         logger.warning(
             "No LLM endpoint found. Start services with:\n"
-            "  sage stack start --llm-model <model_name> --llm-port 8901\n"
+            "  sage llm serve --model <model_name> --port 8901\n"
             "Or set SAGE_CHAT_API_KEY for cloud API."
         )
         return (None, None, "")
@@ -574,7 +683,7 @@ class UnifiedInferenceClient:
 
         logger.warning(
             "No Embedding endpoint found. Start services with:\n"
-            "  sage stack start --skip-llm --embedding-model <model_name> --embedding-port 8090\n"
+            "  sage llm serve --with-embedding --embedding-model <model_name> --embedding-port 8090\n"
             "Or set SAGE_EMBEDDING_BASE_URL for remote embedding server."
         )
         return (None, None, "")
@@ -649,7 +758,7 @@ class UnifiedInferenceClient:
             Exception: If API call fails.
 
         Example:
-            >>> client = UnifiedInferenceClient.create_auto()
+            >>> client = UnifiedInferenceClient.create()
             >>> response = client.chat([
             ...     {"role": "user", "content": "What is 2+2?"}
             ... ])
@@ -664,17 +773,7 @@ class UnifiedInferenceClient:
         return_result = kwargs.pop("return_result", False)
         start_time = time.time()
 
-        if self.mode == UnifiedClientMode.CONTROL_PLANE:
-            return self._chat_control_plane(
-                messages=messages,
-                model=model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                return_result=return_result,
-                **kwargs,
-            )
-
-        # Simple mode: direct API call
+        # All requests go through Control Plane (direct API call path)
         actual_model = model or self.config.llm_model
         if not actual_model:
             # Try to get model from server
@@ -748,7 +847,7 @@ class UnifiedInferenceClient:
             RuntimeError: If LLM endpoint is not available.
 
         Example:
-            >>> client = UnifiedInferenceClient.create_auto()
+            >>> client = UnifiedInferenceClient.create()
             >>> text = client.generate("Once upon a time")
             >>> print(text)
         """
@@ -760,17 +859,7 @@ class UnifiedInferenceClient:
         return_result = kwargs.pop("return_result", False)
         start_time = time.time()
 
-        if self.mode == UnifiedClientMode.CONTROL_PLANE:
-            return self._generate_control_plane(
-                prompt=prompt,
-                model=model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                return_result=return_result,
-                **kwargs,
-            )
-
-        # Simple mode: use completions API or chat API
+        # All requests go through Control Plane
         actual_model = model or self.config.llm_model
         if not actual_model:
             actual_model = self._get_default_llm_model()
@@ -848,7 +937,7 @@ class UnifiedInferenceClient:
             RuntimeError: If Embedding endpoint is not available.
 
         Example:
-            >>> client = UnifiedInferenceClient.create_auto()
+            >>> client = UnifiedInferenceClient.create()
             >>> vectors = client.embed(["Hello", "World"])
             >>> print(len(vectors))
             2
@@ -868,15 +957,7 @@ class UnifiedInferenceClient:
         return_result = kwargs.pop("return_result", False)
         start_time = time.time()
 
-        if self.mode == UnifiedClientMode.CONTROL_PLANE:
-            return self._embed_control_plane(
-                texts=texts,
-                model=model,
-                return_result=return_result,
-                **kwargs,
-            )
-
-        # Simple mode: direct API call
+        # All requests go through Control Plane
         actual_model = model or self.config.embedding_model
         if not actual_model:
             actual_model = self._get_default_embedding_model()
@@ -912,156 +993,209 @@ class UnifiedInferenceClient:
 
         return embeddings
 
-    # ==================== Control Plane Mode Methods ====================
-    # Control Plane mode uses the same OpenAI clients as Simple mode,
-    # but provides additional features like multi-backend routing.
-    # For now, it delegates to Simple mode logic for direct API calls.
-
-    def _chat_control_plane(
-        self,
-        messages: list[dict[str, str]],
-        model: str | None = None,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        return_result: bool = False,
-        **kwargs: Any,
-    ) -> str | InferenceResult:
-        """Execute chat request via Control Plane.
-
-        Currently delegates to direct API calls using the configured backend.
-        Future versions will support multi-backend routing and load balancing.
-        """
-        start_time = time.time()
-
-        # Use the initialized OpenAI client for direct API call
-        actual_model = model or self.config.llm_model
-        if not actual_model:
-            actual_model = self._get_default_llm_model()
-
-        if self._llm_client is None:
-            raise RuntimeError("LLM client not initialized")
-
-        response = self._llm_client.chat.completions.create(
-            model=actual_model,
-            messages=messages,  # type: ignore[arg-type]
-            temperature=temperature or self.config.temperature,
-            max_tokens=max_tokens or self.config.max_tokens,
-            **kwargs,
-        )
-
-        latency_ms = (time.time() - start_time) * 1000
-        content = response.choices[0].message.content or ""
-
-        if return_result:
-            return InferenceResult(
-                request_id=response.id,
-                request_type="chat",
-                content=content,
-                model=response.model,
-                usage={
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
-                    "total_tokens": response.usage.total_tokens if response.usage else 0,
-                },
-                latency_ms=latency_ms,
-            )
-
-        return content
-
-    def _generate_control_plane(
-        self,
-        prompt: str,
-        model: str | None = None,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        return_result: bool = False,
-        **kwargs: Any,
-    ) -> str | InferenceResult:
-        """Execute generate request via Control Plane.
-
-        Currently delegates to direct API calls using the configured backend.
-        """
-        start_time = time.time()
-
-        actual_model = model or self.config.llm_model
-        if not actual_model:
-            actual_model = self._get_default_llm_model()
-
-        if self._llm_client is None:
-            raise RuntimeError("LLM client not initialized")
-
-        response = self._llm_client.completions.create(
-            model=actual_model,
-            prompt=prompt,
-            temperature=temperature or self.config.temperature,
-            max_tokens=max_tokens or self.config.max_tokens,
-            **kwargs,
-        )
-
-        latency_ms = (time.time() - start_time) * 1000
-        content = response.choices[0].text if response.choices else ""
-
-        if return_result:
-            return InferenceResult(
-                request_id=response.id,
-                request_type="generate",
-                content=content,
-                model=response.model,
-                usage={
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
-                    "total_tokens": response.usage.total_tokens if response.usage else 0,
-                },
-                latency_ms=latency_ms,
-            )
-
-        return content
-
-    def _embed_control_plane(
-        self,
-        texts: list[str],
-        model: str | None = None,
-        return_result: bool = False,
-        **kwargs: Any,
-    ) -> list[list[float]] | InferenceResult:
-        """Execute embedding request via Control Plane.
-
-        Currently delegates to direct API calls using the configured backend.
-        """
-        start_time = time.time()
-
-        actual_model = model or self.config.embedding_model
-        if not actual_model:
-            actual_model = self._get_default_embedding_model()
-
-        if self._embedding_client is None:
-            raise RuntimeError("Embedding client not initialized")
-
-        response = self._embedding_client.embeddings.create(  # type: ignore[union-attr]
-            model=actual_model,
-            input=texts,
-            **kwargs,
-        )
-
-        latency_ms = (time.time() - start_time) * 1000
-        embeddings = [item.embedding for item in response.data]
-
-        if return_result:
-            return InferenceResult(
-                request_id=f"emb-{int(start_time * 1000)}",
-                request_type="embed",
-                content=embeddings,
-                model=response.model,
-                usage={
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "total_tokens": response.usage.total_tokens if response.usage else 0,
-                },
-                latency_ms=latency_ms,
-            )
-
-        return embeddings
-
     # ==================== Helper Methods ====================
+
+    @classmethod
+    def _normalize_management_base(cls, base_url: str | None) -> str:
+        """Return a normalized Control Plane base URL ending with /v1."""
+
+        if base_url:
+            normalized = base_url.rstrip("/")
+        else:
+            from sage.common.config.ports import SagePorts  # Lazy import to avoid cycles
+
+            normalized = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+
+        if not normalized.endswith("/v1"):
+            normalized = f"{normalized}/v1"
+        return normalized.rstrip("/")
+
+    @classmethod
+    def _ensure_engine_for_model(
+        cls,
+        *,
+        model_id: str,
+        management_base: str,
+        tensor_parallel_size: int,
+        required_memory_gb: float | None,
+        engine_label: str | None,
+        extra_spawn_args: list[str] | None,
+        wait_timeout: float,
+        poll_interval: float,
+        auto_start: bool,
+        prefer_existing: bool,
+    ) -> dict[str, Any]:
+        """Find or create an engine that serves the requested model."""
+
+        cluster_status = cls._fetch_cluster_status(management_base)
+        engine = None if not prefer_existing else cls._find_engine_entry(cluster_status, model_id)
+        if engine:
+            return engine
+
+        if not auto_start:
+            raise RuntimeError(
+                f"No managed engine found for model '{model_id}'. "
+                "Enable auto_start or provision one via 'sage llm engine start'."
+            )
+
+        response = cls._start_engine_via_management(
+            management_base,
+            model_id=model_id,
+            tensor_parallel_size=tensor_parallel_size,
+            required_memory_gb=required_memory_gb,
+            engine_label=engine_label,
+            extra_spawn_args=extra_spawn_args,
+        )
+        engine_id = (
+            response.get("engine_id")
+            or response.get("id")
+            or response.get("engine", {}).get("engine_id")
+        )
+        if not engine_id:
+            raise RuntimeError("Control Plane response did not return an engine_id")
+
+        return cls._wait_for_engine_ready(
+            management_base,
+            model_id=model_id,
+            engine_id=str(engine_id),
+            wait_timeout=wait_timeout,
+            poll_interval=poll_interval,
+        )
+
+    @classmethod
+    def _fetch_cluster_status(cls, management_base: str) -> dict[str, Any]:
+        url = f"{management_base}/management/status"
+        try:
+            response = httpx.get(url, timeout=15.0)
+            response.raise_for_status()
+        except httpx.RequestError as exc:  # pragma: no cover - network failures
+            raise RuntimeError(f"Unable to reach Control Plane at {url}: {exc}") from exc
+        except httpx.HTTPStatusError as exc:  # pragma: no cover - HTTP errors
+            detail = exc.response.text.strip() or exc.response.reason_phrase
+            raise RuntimeError(
+                f"Control Plane status request failed ({exc.response.status_code}): {detail}"
+            ) from exc
+
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise RuntimeError("Control Plane returned invalid JSON for cluster status") from exc
+
+    @classmethod
+    def _find_engine_entry(
+        cls,
+        cluster_status: dict[str, Any],
+        model_id: str,
+        engine_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        target = model_id.lower()
+        engines = cluster_status.get("engines") or cluster_status.get("engine_instances") or []
+        for entry in engines:
+            if not isinstance(entry, dict):
+                continue
+
+            entry_id = str(entry.get("engine_id") or entry.get("id") or "")
+            if engine_id and entry_id == engine_id:
+                return entry
+
+            models = [
+                entry.get("model_id"),
+                entry.get("model_name"),
+                entry.get("model"),
+            ]
+            if any(isinstance(value, str) and value.lower() == target for value in models):
+                status = str(entry.get("status") or entry.get("state") or "RUNNING").upper()
+                if status in {"RUNNING", "STARTING"}:
+                    return entry
+        return None
+
+    @classmethod
+    def _start_engine_via_management(
+        cls,
+        management_base: str,
+        *,
+        model_id: str,
+        tensor_parallel_size: int,
+        required_memory_gb: float | None,
+        engine_label: str | None,
+        extra_spawn_args: list[str] | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model_id": model_id,
+            "tensor_parallel_size": tensor_parallel_size,
+        }
+        if required_memory_gb is not None:
+            payload["required_memory_gb"] = required_memory_gb
+        if engine_label:
+            payload["engine_label"] = engine_label
+        if extra_spawn_args:
+            payload["extra_args"] = extra_spawn_args
+
+        url = f"{management_base}/management/engines"
+        try:
+            response = httpx.post(url, json=payload, timeout=30.0)
+        except httpx.RequestError as exc:  # pragma: no cover - network failures
+            raise RuntimeError(f"Failed to contact Control Plane at {url}: {exc}") from exc
+
+        if response.status_code >= 400:
+            detail = cls._safe_error_detail(response)
+            raise RuntimeError(
+                f"Control Plane rejected engine request ({response.status_code}): {detail}"
+            )
+
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise RuntimeError("Control Plane returned invalid JSON when creating engine") from exc
+
+    @staticmethod
+    def _safe_error_detail(response: httpx.Response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            return response.text.strip() or response.reason_phrase
+
+        if isinstance(payload, dict):
+            for key in ("detail", "message", "error"):
+                if key in payload:
+                    return str(payload[key])
+        return str(payload)
+
+    @classmethod
+    def _wait_for_engine_ready(
+        cls,
+        management_base: str,
+        *,
+        model_id: str,
+        engine_id: str,
+        wait_timeout: float,
+        poll_interval: float,
+    ) -> dict[str, Any]:
+        deadline = time.time() + max(wait_timeout, 1.0)
+        while time.time() < deadline:
+            cluster_status = cls._fetch_cluster_status(management_base)
+            engine = cls._find_engine_entry(cluster_status, model_id, engine_id=engine_id)
+            if engine:
+                status = str(engine.get("status") or engine.get("state") or "RUNNING").upper()
+                if status in {"RUNNING", "STARTING"}:
+                    return engine
+                if status in {"FAILED", "STOPPED"}:
+                    raise RuntimeError(
+                        f"Engine {engine_id} reported terminal status '{status}'. Check logs."
+                    )
+            time.sleep(max(poll_interval, 0.5))
+
+        raise RuntimeError(
+            f"Timed out ({wait_timeout:.0f}s) waiting for engine {engine_id} to become ready"
+        )
+
+    @staticmethod
+    def _build_engine_base_url(engine_info: dict[str, Any]) -> str:
+        host = str(engine_info.get("host") or "localhost")
+        port = engine_info.get("port") or engine_info.get("listen_port")
+        if port is None:
+            raise RuntimeError("Engine metadata is missing port information")
+        return f"http://{host}:{int(port)}/v1"
 
     def _get_default_llm_model(self) -> str:
         """Get default LLM model from server."""
@@ -1099,22 +1233,30 @@ class UnifiedInferenceClient:
 
     @property
     def is_control_plane_mode(self) -> bool:
-        """Check if running in Control Plane mode."""
-        return self.mode == UnifiedClientMode.CONTROL_PLANE
+        """Check if Control Plane manager is initialized.
+
+        Note: All clients now use Control Plane mode. This property
+        indicates whether the Control Plane manager was successfully
+        initialized (returns True) or if it's running in degraded mode
+        (returns False, still functional but without advanced scheduling).
+        """
+        return self._control_plane_manager is not None
 
     def get_status(self) -> dict[str, Any]:
         """Get client status information.
 
         Returns:
             Dict with status information including:
-            - mode: Current operation mode
+            - mode: Current operation mode (always "control_plane")
+            - control_plane_active: Whether Control Plane manager is initialized
             - llm_available: Whether LLM is available
             - embedding_available: Whether Embedding is available
             - llm_base_url: LLM endpoint URL
             - embedding_base_url: Embedding endpoint URL
         """
         return {
-            "mode": self.mode.value,
+            "mode": UnifiedClientMode.CONTROL_PLANE,
+            "control_plane_active": self._control_plane_manager is not None,
             "llm_available": self._llm_available,
             "embedding_available": self._embedding_available,
             "llm_base_url": self.config.llm_base_url,

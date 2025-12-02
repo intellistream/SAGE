@@ -31,19 +31,21 @@ PipelineCaller (协调器)
 MemorySink (收集结果)
 ```
 
----
+______________________________________________________________________
 
 ## 配置模式对比
 
 ### 模式 1: Short-Term Memory (STM)
+
 **配置文件**: `locomo_short_term_memory_pipeline.yaml`
 
 **核心配置**:
+
 ```yaml
 services:
   register_memory_service: "short_term_memory"
   memory_insert_adapter: "to_dialogs"
-  
+
 operators:
   pre_insert:
     action: "none"
@@ -52,9 +54,11 @@ operators:
 ```
 
 ### 模式 2: Vector Hash Memory with TiM (三元组)
+
 **配置文件**: `locomo_tim_pipeline.yaml`
 
 **核心配置**:
+
 ```yaml
 runtime:
   embedding_base_url: "http://localhost:8091/v1"
@@ -63,7 +67,7 @@ runtime:
 services:
   register_memory_service: "vector_hash_memory"
   memory_insert_adapter: "to_refactor"
-  
+
 operators:
   pre_insert:
     action: "tri_embed"  # 三元组提取 + Embedding
@@ -71,7 +75,7 @@ operators:
     action: "embedding"  # 问题 Embedding
 ```
 
----
+______________________________________________________________________
 
 ## 数据流详解
 
@@ -80,6 +84,7 @@ operators:
 ### MemorySource → PipelineCaller
 
 **MemorySource 输出** (所有模式相同):
+
 ```python
 {
     "task_id": "conv-26",
@@ -92,7 +97,7 @@ operators:
             "date_time": "2023-08-01"
         },
         {
-            "speaker": "Bob", 
+            "speaker": "Bob",
             "text": "I'm fine, thanks!",
             "date_time": "2023-08-01"
         }
@@ -104,12 +109,13 @@ operators:
 ```
 
 **说明**:
+
 - 每个数据包包含 1-2 条对话
 - `dialog_id` 为偶数索引 (0, 2, 4, ...)
 - `dialog_len=1`: 单条对话
 - `dialog_len=2`: 一问一答对话
 
----
+______________________________________________________________________
 
 ## 2. 记忆插入 Pipeline (Insert Pipeline)
 
@@ -118,6 +124,7 @@ operators:
 #### 2.1.1 PreInsert (action="none")
 
 **输入** (from PipelineCaller):
+
 ```python
 {
     "task_id": "conv-26",
@@ -130,11 +137,13 @@ operators:
 }
 ```
 
-**处理**: 
+**处理**:
+
 - `action="none"`: 不做任何预处理
 - 将输入包装为长度为 1 的列表
 
 **输出**:
+
 ```python
 [
     {
@@ -156,13 +165,15 @@ operators:
 **输入**: PreInsert 的输出列表
 
 **处理**:
+
 1. 遍历列表中的每个 `entry_dict`
-2. 调用 `DataParser.extract(entry_dict)` (adapter="to_dialogs")
+1. 调用 `DataParser.extract(entry_dict)` (adapter="to_dialogs")
    - 从 `data.dialogs` 提取对话列表
    - 格式化为单个字符串 (多条对话用 `\n` 合并)
-3. 调用 `call_service(service_name, entry=str, vector=None, metadata=None)`
+1. 调用 `call_service(service_name, entry=str, vector=None, metadata=None)`
 
 **DataParser 转换**:
+
 ```python
 # 输入 entry_dict
 {
@@ -179,6 +190,7 @@ operators:
 ```
 
 **调用服务**:
+
 ```python
 call_service(
     "short_term_memory",
@@ -190,6 +202,7 @@ call_service(
 ```
 
 **ShortTermMemoryService 存储**:
+
 ```python
 # 存储格式
 {
@@ -201,19 +214,21 @@ call_service(
 
 **输入**: MemoryInsert 的透传数据
 
-**处理**: 
+**处理**:
+
 - `action="none"`: 直接透传
 - 不做任何后处理
 
 **输出**: 原数据透传
 
----
+______________________________________________________________________
 
 ### 模式 2: TiM (三元组 + Embedding)
 
 #### 2.2.1 PreInsert (action="tri_embed")
 
 **输入** (同模式 1):
+
 ```python
 {
     "task_id": "conv-26",
@@ -226,12 +241,13 @@ call_service(
 ```
 
 **处理**:
+
 1. 使用 `PreInsertParser.format_dialogue(dialogs)` 格式化对话为字符串
-2. 使用 LLM 提取三元组 (基于 `triple_extraction_prompt`)
-3. 解析三元组文本
-4. 重构为自然语言描述
-5. 对每个重构描述进行 Embedding
-6. 构建记忆条目列表
+1. 使用 LLM 提取三元组 (基于 `triple_extraction_prompt`)
+1. 解析三元组文本
+1. 重构为自然语言描述
+1. 对每个重构描述进行 Embedding
+1. 构建记忆条目列表
 
 **内部转换流程**:
 
@@ -265,6 +281,7 @@ memory_entries = [
 ```
 
 **输出**:
+
 ```python
 [
     {
@@ -284,14 +301,16 @@ memory_entries = [
 **输入**: PreInsert 的输出列表 (或 None)
 
 **处理**:
+
 1. 如果输入为 `None` 或空列表，直接返回
-2. 遍历列表中的每个 `entry_dict`
-3. 调用 `DataParser.extract(entry_dict)` (adapter="to_refactor")
+1. 遍历列表中的每个 `entry_dict`
+1. 调用 `DataParser.extract(entry_dict)` (adapter="to_refactor")
    - 从 `refactor` 字段提取字符串
-4. 提取 `embedding` 和 `metadata`
-5. 调用 `call_service(service_name, entry=str, vector=array, metadata=dict)`
+1. 提取 `embedding` 和 `metadata`
+1. 调用 `call_service(service_name, entry=str, vector=array, metadata=dict)`
 
 **DataParser 转换**:
+
 ```python
 # 输入 entry_dict
 {
@@ -306,6 +325,7 @@ memory_entries = [
 ```
 
 **调用服务**:
+
 ```python
 call_service(
     "vector_hash_memory",
@@ -317,6 +337,7 @@ call_service(
 ```
 
 **VectorHashMemoryService 存储**:
+
 ```python
 # 使用 LSH 索引存储
 collection.insert(
@@ -331,7 +352,7 @@ collection.insert(
 
 **处理**: 同模式 1，直接透传
 
----
+______________________________________________________________________
 
 ## 3. 记忆测试 Pipeline (Test Pipeline)
 
@@ -340,6 +361,7 @@ collection.insert(
 #### 3.1.1 PreRetrieval (action="none")
 
 **输入** (from PipelineCaller):
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -350,7 +372,8 @@ collection.insert(
 }
 ```
 
-**处理**: 
+**处理**:
+
 - `action="none"`: 不做任何预处理
 - 直接透传
 
@@ -361,11 +384,13 @@ collection.insert(
 **输入**: PreRetrieval 的输出
 
 **处理**:
+
 1. 提取 `question`
-2. 调用 `call_service(service_name, query=question, vector=None, metadata=None, method="retrieve")`
-3. 将检索结果添加到 `memory_data` 字段
+1. 调用 `call_service(service_name, query=question, vector=None, metadata=None, method="retrieve")`
+1. 将检索结果添加到 `memory_data` 字段
 
 **调用服务**:
+
 ```python
 result = call_service(
     "short_term_memory",
@@ -377,6 +402,7 @@ result = call_service(
 ```
 
 **ShortTermMemoryService 返回**:
+
 ```python
 [
     {"text": "(2023-08-01)Alice: I work at Google"},
@@ -387,6 +413,7 @@ result = call_service(
 ```
 
 **输出**:
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -407,11 +434,13 @@ result = call_service(
 **输入**: MemoryRetrieval 的输出
 
 **处理**:
+
 1. 添加 `conversation_format_prompt` 前缀
-2. 将 `memory_data` 中的所有 `text` 字段拼接
-3. 添加到 `history_text` 字段
+1. 将 `memory_data` 中的所有 `text` 字段拼接
+1. 添加到 `history_text` 字段
 
 **转换**:
+
 ```python
 # 输入 memory_data
 [
@@ -430,6 +459,7 @@ The following is some history information.
 ```
 
 **输出**:
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -447,12 +477,14 @@ The following is some history information.
 **输入**: PostRetrieval 的输出
 
 **处理**:
+
 1. 构建完整 prompt: `history_text` + `prompt_template.format(question=question)`
-2. 调用 LLM 生成答案
-3. 评估答案准确性
-4. 构建测试结果
+1. 调用 LLM 生成答案
+1. 评估答案准确性
+1. 构建测试结果
 
 **Prompt 构建**:
+
 ```
 The following is some history information.
 (2023-08-01)Alice: I work at Google
@@ -468,6 +500,7 @@ Answer:
 **LLM 生成**: `"Google"`
 
 **输出**:
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -480,13 +513,14 @@ Answer:
 }
 ```
 
----
+______________________________________________________________________
 
 ### 模式 2: TiM (Vector Hash Memory)
 
 #### 3.2.1 PreRetrieval (action="embedding")
 
 **输入** (同模式 1):
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -496,11 +530,13 @@ Answer:
 ```
 
 **处理**:
+
 1. 提取 `question` 字段
-2. 调用 `EmbeddingGenerator.embed(question)` 生成查询向量
-3. 将向量添加到 `query_embedding` 字段
+1. 调用 `EmbeddingGenerator.embed(question)` 生成查询向量
+1. 将向量添加到 `query_embedding` 字段
 
 **内部转换**:
+
 ```python
 # 1. 提取问题
 question = "Where does Alice work?"
@@ -511,6 +547,7 @@ query_embedding = embedding_model.embed(question)
 ```
 
 **输出**:
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -525,10 +562,13 @@ query_embedding = embedding_model.embed(question)
 **输入**: PreRetrieval 的输出
 
 **处理**:
+
 1. 提取 `question` 和 `query_embedding`
-2. 调用 `call_service(service_name, query=question, vector=query_embedding, metadata=None, method="retrieve")`
+1. 调用
+   `call_service(service_name, query=question, vector=query_embedding, metadata=None, method="retrieve")`
 
 **调用服务**:
+
 ```python
 result = call_service(
     "vector_hash_memory",
@@ -540,6 +580,7 @@ result = call_service(
 ```
 
 **VectorHashMemoryService 返回**:
+
 ```python
 [
     {
@@ -555,6 +596,7 @@ result = call_service(
 ```
 
 **输出**:
+
 ```python
 {
     "question": "Where does Alice work?",
@@ -573,6 +615,7 @@ result = call_service(
 **处理**: 同模式 1
 
 **转换**:
+
 ```python
 # 输入 memory_data
 [
@@ -593,6 +636,7 @@ Bob lives in New York
 **处理**: 同模式 1
 
 **Prompt 构建**:
+
 ```
 The following is some history information.
 Alice works at Google
@@ -604,18 +648,20 @@ Question: Where does Alice work?
 Answer:
 ```
 
----
+______________________________________________________________________
 
 ## 4. 数据格式统一规范
 
 ### 4.1 所有 Memory Service 的统一接口
 
 #### Insert 方法
+
 ```python
 def insert(self, text: str, vector=None, metadata: dict | None = None) -> None
 ```
 
 **参数**:
+
 - `text` (str): 要插入的文本内容（必需）
   - STM: 格式化的对话字符串
   - VectorHash: 三元组重构描述
@@ -625,11 +671,13 @@ def insert(self, text: str, vector=None, metadata: dict | None = None) -> None
 - `metadata` (dict | None): 元数据（可选）
 
 #### Retrieve 方法
+
 ```python
 def retrieve(self, query=None, vector=None, metadata=None) -> list[dict[str, Any]]
 ```
 
 **返回格式** (统一):
+
 ```python
 [
     {
@@ -643,21 +691,24 @@ def retrieve(self, query=None, vector=None, metadata=None) -> list[dict[str, Any
 ### 4.2 DataParser 统一规范
 
 #### extract 方法
+
 ```python
 def extract(self, data: dict[str, Any]) -> str
 ```
 
 **所有 adapter 都返回字符串**:
+
 - `to_dialogs`: 格式化对话字符串（多条用 `\n` 合并）
 - `to_refactor`: 三元组重构描述
 
----
+______________________________________________________________________
 
 ## 5. 关键设计模式
 
 ### 5.1 列表封装模式
 
 **PreInsert 输出**: 始终返回 `list[dict]` 或 `None`
+
 ```python
 # action="none"
 [{"data": {...}}]  # 长度为 1
@@ -670,6 +721,7 @@ def extract(self, data: dict[str, Any]) -> str
 ```
 
 **好处**:
+
 - 统一处理逻辑
 - 支持一对多转换（一个对话 → 多个三元组）
 - MemoryInsert 可以用简单的循环处理
@@ -679,36 +731,39 @@ def extract(self, data: dict[str, Any]) -> str
 **DataParser.extract()**: 所有模式都返回 `str`
 
 **好处**:
+
 - MemoryInsert 无需类型判断
 - Memory Service 接口简单统一
 - 对话合并在 DataParser 内部完成
 
 ### 5.3 透传模式
 
-**PostInsert 和某些模式的 PreRetrieval**: 
+**PostInsert 和某些模式的 PreRetrieval**:
+
 - `action="none"` 时直接透传
 - 保留扩展性，未来可添加功能
 
----
+______________________________________________________________________
 
 ## 6. 配置切换对比表
 
-| 配置项 | STM 模式 | TiM 模式 |
-|--------|----------|----------|
-| **Memory Service** | short_term_memory | vector_hash_memory |
-| **Insert Adapter** | to_dialogs | to_refactor |
-| **PreInsert Action** | none | tri_embed |
-| **PreRetrieval Action** | none | embedding |
-| **插入数据类型** | 格式化对话字符串 | 三元组重构描述 |
-| **检索机制** | 队列（最近 N 条） | LSH 向量相似度 |
-| **需要 Embedding** | ❌ | ✅ (需要 embedding server) |
-| **需要 LLM** | ❌ (仅测试时) | ✅ (提取三元组 + 测试) |
+| 配置项                  | STM 模式          | TiM 模式                   |
+| ----------------------- | ----------------- | -------------------------- |
+| **Memory Service**      | short_term_memory | vector_hash_memory         |
+| **Insert Adapter**      | to_dialogs        | to_refactor                |
+| **PreInsert Action**    | none              | tri_embed                  |
+| **PreRetrieval Action** | none              | embedding                  |
+| **插入数据类型**        | 格式化对话字符串  | 三元组重构描述             |
+| **检索机制**            | 队列（最近 N 条） | LSH 向量相似度             |
+| **需要 Embedding**      | ❌                | ✅ (需要 embedding server) |
+| **需要 LLM**            | ❌ (仅测试时)     | ✅ (提取三元组 + 测试)     |
 
----
+______________________________________________________________________
 
 ## 7. 运行示例
 
 ### 启动 STM 模式
+
 ```bash
 python memory_test_pipeline.py \
     --config config/locomo_short_term_memory_pipeline.yaml \
@@ -716,6 +771,7 @@ python memory_test_pipeline.py \
 ```
 
 ### 启动 TiM 模式
+
 ```bash
 # 1. 启动 Embedding Server
 python examples/tutorials/embedding_server_example.py
@@ -726,11 +782,12 @@ python memory_test_pipeline.py \
     --task_id conv-26
 ```
 
----
+______________________________________________________________________
 
 ## 8. 调试技巧
 
 ### 查看详细日志
+
 ```yaml
 runtime:
   memory_insert_verbose: true   # 显示插入过程
@@ -738,7 +795,9 @@ runtime:
 ```
 
 ### 检查数据流
+
 在关键算子中添加打印:
+
 ```python
 # 在 MemoryInsert._insert_single_entry
 print(f"[DEBUG] entry type: {type(entry)}")
@@ -749,11 +808,12 @@ print(f"[DEBUG] memory_data: {memory_data}")
 print(f"[DEBUG] history_text: {history_text}")
 ```
 
----
+______________________________________________________________________
 
 ## 附录: 完整数据流图
 
 ### STM 模式完整流程
+
 ```
 MemorySource
   ↓ {task_id, session_id, dialog_id, dialogs: [{speaker, text, date_time}]}
@@ -780,6 +840,7 @@ PipelineCaller
 ```
 
 ### TiM 模式完整流程
+
 ```
 MemorySource
   ↓ {task_id, session_id, dialog_id, dialogs: [{speaker, text, date_time}]}
@@ -811,29 +872,29 @@ PipelineCaller
           ↓ {question, predicted_answer, is_correct}
 ```
 
----
+______________________________________________________________________
 
 ## 总结
 
 ### 核心设计原则
 
 1. **统一接口**: 所有 Memory Service 使用相同的 insert/retrieve 接口
-2. **字符串为王**: DataParser 统一返回字符串，简化类型处理
-3. **列表封装**: PreInsert 输出列表，支持一对多转换
-4. **透传设计**: 不需要的算子直接透传，保留扩展性
-5. **配置驱动**: 通过 YAML 配置切换不同模式，无需修改代码
+1. **字符串为王**: DataParser 统一返回字符串，简化类型处理
+1. **列表封装**: PreInsert 输出列表，支持一对多转换
+1. **透传设计**: 不需要的算子直接透传，保留扩展性
+1. **配置驱动**: 通过 YAML 配置切换不同模式，无需修改代码
 
 ### 扩展新模式
 
 要添加新的记忆模式，只需：
 
 1. 实现新的 Memory Service (遵循统一接口)
-2. 在 MemoryServiceFactory 中注册
-3. 配置 YAML:
+1. 在 MemoryServiceFactory 中注册
+1. 配置 YAML:
    - `register_memory_service`: 服务名称
    - `memory_insert_adapter`: 数据提取方式
    - `pre_insert.action`: 预处理方式
    - `pre_retrieval.action`: 检索预处理方式
-4. 可选：实现新的 DataParser adapter
+1. 可选：实现新的 DataParser adapter
 
 **无需修改 Pipeline 代码！**

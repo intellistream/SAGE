@@ -86,6 +86,9 @@ MIRROR_SOURCE="auto"
 RESUME_INSTALL=true  # 默认启用断点续传（安装失败时自动恢复）
 RESET_CHECKPOINT=false  # 新增：重置检查点
 CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
+INSTALL_VLLM=true          # 默认安装 vLLM 引擎
+INSTALL_VLLM_EXPLICIT=false
+VLLM_FROM_SOURCE=false     # 是否从本地源码安装 vLLM
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -389,6 +392,36 @@ show_installation_menu() {
     done
 
     echo ""
+
+    # 询问是否安装 vLLM 引擎
+    echo -e "${BOLD}3. vLLM 推理引擎（可选）：${NC}"
+    echo -e "   ${DIM}vLLM 是高性能 LLM 推理引擎，需要 NVIDIA GPU 和较大显存（建议 >= 8GB）${NC}"
+    echo -e "   ${DIM}如果您没有 GPU 或显存不足，可以跳过安装，稍后手动安装${NC}"
+    echo ""
+    echo -e "  ${GREEN}1)${NC} 安装 vLLM ${DIM}(推荐，如有 NVIDIA GPU)${NC}"
+    echo -e "  ${PURPLE}2)${NC} 跳过 vLLM ${DIM}(CPU 环境或低显存设备)${NC}"
+    echo ""
+    read -p "请选择 [1-2，默认1]: " vllm_choice
+
+    case "${vllm_choice:-1}" in
+        1)
+            INSTALL_VLLM=true
+            INSTALL_VLLM_EXPLICIT=true
+            ;;
+        2)
+            INSTALL_VLLM=false
+            INSTALL_VLLM_EXPLICIT=true
+            echo -e "${DIM}提示: 跳过 vLLM 安装。稍后可通过以下命令手动安装:${NC}"
+            echo -e "${DIM}  pip install 'isage-common[vllm]'${NC}"
+            ;;
+        *)
+            # 默认安装
+            INSTALL_VLLM=true
+            INSTALL_VLLM_EXPLICIT=true
+            ;;
+    esac
+
+    echo ""
     refresh_sync_submodule_default
 }
 
@@ -443,7 +476,24 @@ show_parameter_help() {
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
 
-
+    echo -e "${BLUE}🤖 vLLM 引擎选项：${NC}"
+    echo ""
+    echo -e "  ${BOLD}--vllm, --enable-vllm${NC}                       ${GREEN}安装 vLLM 引擎（默认）${NC}"
+    echo -e "    ${DIM}高性能 LLM 推理引擎，支持本地运行大语言模型${NC}"
+    echo -e "    ${DIM}需要 NVIDIA GPU (CUDA) 和约 2GB+ 额外磁盘空间${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-vllm, --skip-vllm${NC}                      ${YELLOW}跳过 vLLM 安装${NC}"
+    echo -e "    ${DIM}适用于 CPU 环境、磁盘空间有限、或仅使用云端 API${NC}"
+    echo -e "    ${DIM}稍后可手动安装: pip install 'isage-common[vllm]'${NC}"
+    echo ""
+    echo -e "  ${BOLD}--vllm-source, --vllm-from-source${NC}           ${PURPLE}从本地源码编译安装 vLLM${NC}"
+    echo -e "    ${DIM}使用 sageLLM/engines/vllm 目录下的源码编译安装${NC}"
+    echo -e "    ${DIM}需要 CUDA toolkit、cmake 等编译工具，编译时间较长${NC}"
+    echo -e "    ${DIM}适用于需要自定义 vLLM 或进行二次开发的场景${NC}"
+    echo ""
+    echo -e "  ${BOLD}--vllm-pip, --vllm-from-pip${NC}                 ${GREEN}从 PyPI 安装预编译 vLLM（默认）${NC}"
+    echo -e "    ${DIM}使用官方预编译包，安装速度快${NC}"
+    echo ""
 
     echo -e "${BLUE}⚡ 其他选项：${NC}"
     echo ""
@@ -663,6 +713,38 @@ parse_clean_before_install_option() {
     esac
 }
 
+# 解析 vLLM 安装选项
+parse_vllm_option() {
+    local param="$1"
+    case "$param" in
+        "--vllm"|"--enable-vllm")
+            INSTALL_VLLM=true
+            INSTALL_VLLM_EXPLICIT=true
+            return 0
+            ;;
+        "--no-vllm"|"--skip-vllm")
+            INSTALL_VLLM=false
+            INSTALL_VLLM_EXPLICIT=true
+            return 0
+            ;;
+        "--vllm-source"|"--vllm-from-source")
+            INSTALL_VLLM=true
+            INSTALL_VLLM_EXPLICIT=true
+            VLLM_FROM_SOURCE=true
+            return 0
+            ;;
+        "--vllm-pip"|"--vllm-from-pip")
+            INSTALL_VLLM=true
+            INSTALL_VLLM_EXPLICIT=true
+            VLLM_FROM_SOURCE=false
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 解析帮助参数
 parse_help_option() {
     local param="$1"
@@ -819,6 +901,9 @@ parse_arguments() {
         elif parse_clean_before_install_option "$param"; then
             # 安装前清理参数
             shift
+        elif parse_vllm_option "$param"; then
+            # vLLM 安装选项
+            shift
         elif parse_doctor_option "$param"; then
             # 环境医生参数
             shift
@@ -914,6 +999,15 @@ set_defaults_and_show_tips() {
     # 根据当前安装模式决定是否同步 submodule
     set_default_sync_submodules
 
+    # 处理 vLLM 安装默认值
+    if [ "$INSTALL_VLLM_EXPLICIT" = false ] && [ "$INSTALL_VLLM" != "false" ]; then
+        INSTALL_VLLM=true
+        echo -e "${INFO} vLLM 引擎默认会随 quickstart 安装。使用 --no-vllm 可跳过（CPU/低显存环境）。"
+        has_defaults=true
+    elif [ "$INSTALL_VLLM" = false ]; then
+        echo -e "${DIM}提示: 检测到 --no-vllm，跳过 vLLM 引擎安装${NC}"
+    fi
+
     # 设置安装环境默认值（基于当前环境智能选择）
     if [ -z "$INSTALL_ENVIRONMENT" ]; then
         local recommendation=$(get_smart_environment_recommendation)
@@ -1006,6 +1100,16 @@ show_install_configuration() {
     if [ "$CLEAN_PIP_CACHE" = false ]; then
         echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
     fi
+
+    if [ "$INSTALL_VLLM" = true ]; then
+        if [ "$VLLM_FROM_SOURCE" = true ]; then
+            echo -e "  ${BLUE}vLLM 引擎:${NC} ${PURPLE}从本地源码编译${NC} ${DIM}(engines/vllm)${NC}"
+        else
+            echo -e "  ${BLUE}vLLM 引擎:${NC} ${GREEN}从 PyPI 安装（默认）${NC}"
+        fi
+    else
+        echo -e "  ${BLUE}vLLM 引擎:${NC} ${DIM}跳过（用户指定）${NC}"
+    fi
     echo ""
 }
 
@@ -1097,4 +1201,12 @@ should_use_pip_mirror() {
 
 get_mirror_source_value() {
     echo "$MIRROR_SOURCE"
+}
+
+should_install_vllm() {
+    echo "$INSTALL_VLLM"
+}
+
+should_install_vllm_from_source() {
+    echo "$VLLM_FROM_SOURCE"
 }

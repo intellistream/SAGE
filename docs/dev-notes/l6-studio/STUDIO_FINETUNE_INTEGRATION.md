@@ -1,4 +1,12 @@
-# Studio 微调 + Chat 集成指南
+# Studio 微调 +数据流：
+1. 用户在 Finetune 面板创建任务 → 后端写入任务元数据并调用 `finetune_manager.create_task()`。
+2. 训练完成后输出 `merged_model/` 或 `lora/`，并更新任务状态。
+3. 前端轮询 `/api/finetune/tasks`、`/api/finetune/models` 展示列表。
+4. 选择模型或点击"切换为对话后端" → `POST /api/finetune/switch-model`。
+5. 后端调用 `chat_manager._stop_llm_service()` → `_start_llm_service(model_path)`，通过 `sage.common.components.sage_llm.LLMAPIServer` 在 `localhost:8001` 重启 vLLM。
+6. Gateway 通过 `UnifiedInferenceClient` 自动检测新的本地服务，Chat 面板立即使用。
+
+## 2. Web UI 操作流程（推荐）南
 
 > 适用版本：`packages/sage-studio` (React/Vite + FastAPI) 与 `packages/sage-gateway` 主干，2025-11。本文合并原「集成文档」「UI 总结」「快速参考」，聚焦已经落地的功能及排障手册。
 
@@ -17,7 +25,7 @@
 3. 前端轮询 `/api/finetune/tasks`、`/api/finetune/models` 展示列表。
 4. 选择模型或点击“切换为对话后端” → `POST /api/finetune/switch-model`。
 5. 后端调用 `chat_manager._stop_llm_service()` → `_start_llm_service(model_path)`，通过 `sage.common.components.sage_llm.LLMAPIServer` 在 `localhost:8001` 重启 vLLM。
-6. Gateway 通过 `IntelligentLLMClient` 自动检测新的本地服务，Chat 面板立即使用。
+6. Gateway 通过 `UnifiedInferenceClient` 自动检测新的本地服务，Chat 面板立即使用。
 
 ## 2. Web UI 操作流程（推荐）
 
@@ -74,7 +82,12 @@ CLI 适合批量创建任务；UI 负责监控与热切换，两者共享同一 
 | `/api/finetune/upload-dataset` | POST multipart | 上传 JSON/JSONL，返回缓存路径 |
 | `/api/finetune/create` | POST | 创建任务，参数同前端表单 |
 | `/api/finetune/tasks` | GET | 任务列表（含进度、Loss、日志、输出目录） |
+| `/api/finetune/tasks/{task_id}` | GET | 获取单个任务详情 |
+| `/api/finetune/tasks/{task_id}` | DELETE | 删除任务 |
+| `/api/finetune/tasks/{task_id}/cancel` | POST | 取消运行中的任务 |
+| `/api/finetune/tasks/{task_id}/download` | GET | 下载任务产出的模型文件 |
 | `/api/finetune/models` | GET | 基础 + 微调模型清单（type: base/finetuned） |
+| `/api/finetune/models/base` | GET | 获取可用基础模型列表 |
 | `/api/finetune/current-model` | GET | 当前对话使用的模型路径 |
 | `/api/finetune/switch-model?model_path=...` | POST | 触发热切换；返回 `llm_service_restarted` 标记 |
 | `/api/finetune/use-as-backend` | POST | 通过 task_id 切换（表格快捷按钮使用） |

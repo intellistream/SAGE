@@ -21,8 +21,11 @@
 # ========== 关键：必须在导入任何 HuggingFace 库之前设置环境变量 ==========
 import os
 
-# 设置环境变量 - 使用镜像站
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+# 设置环境变量 - 自动检测网络并配置 HuggingFace 镜像
+from sage.common.config import ensure_hf_mirror_configured
+
+ensure_hf_mirror_configured()
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # ========== 现在可以安全导入其他库了 ==========

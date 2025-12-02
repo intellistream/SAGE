@@ -1,0 +1,23 @@
+random-xs:
+  faiss_onlinepq:
+    module: benchmark_anns.bench.algorithms.faiss_onlinepq.faiss_onlinepq
+    constructor: FaissOnlinepq
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "PQ4x8"}]
+        query-args: |
+          [{"ef": 30}]
+
+sift:
+  faiss_onlinepq:
+    module: benchmark_anns.bench.algorithms.faiss_onlinepq.faiss_onlinepq
+    constructor: FaissOnlinepq
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "PQ4x8"}]
+        query-args: |
+          [{"ef": 30}]

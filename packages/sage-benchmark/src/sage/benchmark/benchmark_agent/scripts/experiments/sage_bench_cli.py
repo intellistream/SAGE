@@ -181,7 +181,30 @@ def cmd_list(args):
         print("Available Methods")
         print("=" * 70)
 
-        print("\n📋 Tool Selection Methods:")
+        print("\n📋 Timing Detection Methods (RQ1):")
+        print("-" * 50)
+        timing_methods = [
+            ("rule_based", "Keyword + Regex rules", "Classic"),
+            ("embedding", "Semantic similarity", "Common"),
+            ("llm_based", "Direct LLM inference", "LLM"),
+            ("hybrid", "Rule filter + LLM judge", "Combined"),
+        ]
+        for name, desc, source in timing_methods:
+            print(f"  {name:<15} {desc:<35} {source}")
+
+        print("\n📋 Task Planning Methods (RQ2):")
+        print("-" * 50)
+        planning_methods = [
+            ("simple", "Greedy matching", "Classic"),
+            ("hierarchical", "HuggingGPT-style decomposition", "ICML'23"),
+            ("llm_based", "CoT prompting", "Common"),
+            ("react", "ReAct interleaved execution", "ICLR'23"),
+            ("tot", "Tree-of-Thoughts search", "NeurIPS'23"),
+        ]
+        for name, desc, source in planning_methods:
+            print(f"  {name:<15} {desc:<35} {source}")
+
+        print("\n📋 Tool Selection Methods (RQ3):")
         print("-" * 50)
         methods = [
             ("keyword", "BM25 keyword matching", "Classic"),
@@ -193,18 +216,31 @@ def cmd_list(args):
         for name, desc, source in methods:
             print(f"  {name:<15} {desc:<35} {source}")
 
-        print("\n📋 Training Methods:")
+        print("\n📋 Training Methods (Section 5.5):")
         print("-" * 50)
-        training_methods = [
-            ("A_baseline", "Standard SFT training"),
-            ("B1_coreset_loss", "Select high-loss samples"),
-            ("B2_coreset_diversity", "Select diverse samples"),
-            ("B3_coreset_hybrid", "60% loss + 40% diversity"),
-            ("C_continual", "Online learning with replay"),
-            ("D_combined", "Coreset + Continual Learning"),
+        print("  Paper 1 (Benchmark) - Published SOTA:")
+        paper1_methods = [
+            ("A_baseline", "Standard SFT (full parameters)"),
+            ("A_lora", "LoRA (Hu et al., 2021)"),
+            ("A_qlora", "QLoRA (Dettmers et al., 2023)"),
+            ("A_dora", "DoRA (Liu et al., 2024)"),
+            ("A_fireact", "FireAct trajectory tuning"),
+            ("A_agenttuning", "AgentTuning multi-task"),
+            ("A_toolllm", "ToolLLM tool-augmented"),
         ]
-        for name, desc in training_methods:
-            print(f"  {name:<20} {desc}")
+        for name, desc in paper1_methods:
+            print(f"    {name:<20} {desc}")
+
+        print("\n  Paper 2 (SIAS) - from sage.libs.sias:")
+        sias_methods = [
+            ("B1_coreset_loss", "[SIAS] Select high-loss samples"),
+            ("B2_coreset_diversity", "[SIAS] Select diverse samples"),
+            ("B3_coreset_hybrid", "[SIAS] 60% loss + 40% diversity"),
+            ("C_continual", "[SIAS] Online learning with replay"),
+            ("D_combined", "[SIAS] Coreset + Continual Learning"),
+        ]
+        for name, desc in sias_methods:
+            print(f"    {name:<20} {desc}")
         print()
         return 0
 

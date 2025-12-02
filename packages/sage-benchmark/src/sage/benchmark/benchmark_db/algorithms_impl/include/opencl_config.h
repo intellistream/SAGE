@@ -1,0 +1,8 @@
+//
+// Created by tony on 04/06/22.
+//
+
+#ifndef CANDY_OPENCL_CONFIG_H_IN_H_
+#define CANDY_OPENCL_CONFIG_H_IN_H_
+#define CANDY_OPENCL 0
+#endif
