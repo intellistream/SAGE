@@ -1,0 +1,101 @@
+# ============================================================
+# SCM (Self-Controlled Memory) Pipeline 配置
+# 论文: SCM4LLMs
+# 特点: Memory Stream + Token Budget + 三元决策
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "SCM"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# ============================================================
+services:
+  register_memory_service: "neuromem_vdb"
+  neuromem_vdb:
+    collection_name: "scm_memory_stream"
+    dim: 1024
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 每轮交互摘要 + embedding
+  # SCM 会对每轮交互生成 memory summarization
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "transform"
+    transform_type: "summarize"
+    summarize_prompt: |
+      Create a brief summary of this interaction that captures the key information.
+
+      User: {user_input}
+      Assistant: {assistant_response}
+
+      Summary:
+
+  # ----------------------------------------------------------
+  # PostInsert: 无（SCM 不做插入后优化）
+  # ----------------------------------------------------------
+  post_insert:
+    action: "none"
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 判断是否需要激活记忆
+  # SCM 有 Memory Controller 决定是否检索
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "validate"
+    rules:
+    - type: "length"
+      min: 3
+      max: 1000
+    on_fail: "default"
+    default_query: ""
+
+  # ----------------------------------------------------------
+  # PostRetrieval: Token Budget 控制 + 三元决策
+  # SCM 核心: 超过 budget 时 summarize/truncate/drop
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "filter"
+    filter_type: "token_budget"
+    token_budget: 2000
+    token_counter: "tiktoken"
+    overflow_strategy: "summarize"    # summarize | truncate | drop_lowest
+    priority_field: "relevance"
+    decision_mode: "three_way"
+    three_way_actions:
+    - condition: "too_long"
+      action: "summarize"
+    - condition: "irrelevant"
+      action: "drop"
+    - condition: "relevant"
+      action: "keep"
+    conversation_format_prompt: |
+      The following is relevant memory context.
