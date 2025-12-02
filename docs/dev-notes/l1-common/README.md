@@ -53,6 +53,7 @@ Embedding 服务和工厂：
 
 ### 核心文档
 
+- **[control-plane-enhancement.md](./control-plane-enhancement.md)** - Control Plane 动态引擎管理增强（GPU/Lifecycle/预设）
 - **[hybrid-scheduler/README.md](./hybrid-scheduler/README.md)** - sageLLM 混合调度器项目总结
 - **[hybrid-scheduler/PULL_REQUEST.md](./hybrid-scheduler/PULL_REQUEST.md)** - PR 详细说明
 
@@ -66,6 +67,7 @@ Embedding 服务和工厂：
 | 想要了解... | 查看 |
 |-------------|------|
 | 统一推理客户端使用 | [hybrid-scheduler/README.md](./hybrid-scheduler/README.md) |
+| 动态引擎管理 | [control-plane-enhancement.md](./control-plane-enhancement.md) |
 | Control Plane 架构 | `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/` |
 | 端口配置 | `packages/sage-common/src/sage/common/config/ports.py` |
 | Embedding 服务 | `packages/sage-common/src/sage/common/components/sage_embedding/` |
@@ -78,4 +80,4 @@ Embedding 服务和工厂：
 
 ---
 
-**最后更新**: 2025-11-29
+**最后更新**: 2025-12-02
