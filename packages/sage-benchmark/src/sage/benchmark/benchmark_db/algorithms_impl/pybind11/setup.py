@@ -124,7 +124,7 @@ with remove_output("pybind11/include", "pybind11/share"):
     # Generate the files if they are not present.
     with TemporaryDirectory() as tmpdir:
         cmd = ["cmake", "-S", ".", "-B", tmpdir] + [
-            "-DCMAKE_INSTALL_PREFIX=pybind11",
+            "-DCMAKE_INSTALL_PREFIX=pybind11",  # pragma: allowlist secret
             "-DBUILD_TESTING=OFF",
             "-DPYBIND11_NOPYTHON=ON",
             "-Dprefix_for_pc_file=${pcfiledir}/../../",

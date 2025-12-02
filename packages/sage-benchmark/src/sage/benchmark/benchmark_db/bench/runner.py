@@ -376,9 +376,9 @@ class BenchmarkRunner:
         # 流式算法应该通过 insert 一条条添加数据
         ids = np.arange(start_idx, end_idx, dtype=np.uint32)
 
-        start_time = time.time()
+        # start_time = time.time()
         self.algo.insert(X, ids)
-        elapsed = time.time() - start_time
+        # elapsed = time.time() - start_time
         self.counts["initial"] = data_size
         self.maintenance_state.live_points = data_size
 
@@ -569,7 +569,7 @@ class BenchmarkRunner:
         start_time = time.time()
 
         # Cache profiling 统计
-        batch_cache_stats = []  # 存储每个批次的 cache miss 统计
+        # batch_cache_stats = []  # 存储每个批次的 cache miss 统计
 
         for batch_idx in range(num_batches):
             batch_start = batch_idx * batch_size
@@ -901,9 +901,9 @@ class BenchmarkRunner:
 
             # 处理返回值格式
             if isinstance(results, tuple):
-                results, distances = results[0], results[1]
+                results = results[0]
             else:
-                distances = None
+                pass
 
             query_latency = time.time() - start_time
 
