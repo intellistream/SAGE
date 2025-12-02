@@ -176,9 +176,7 @@ Features:
         repos = [r.strip() for r in args.repos.split(",")]
 
     # Get GitHub token
-    github_token = (
-        args.token or os.environ.get("GITHUB_TOKEN") or os.environ.get("GIT_TOKEN")
-    )
+    github_token = args.token or os.environ.get("GITHUB_TOKEN") or os.environ.get("GIT_TOKEN")
 
     if not github_token:
         logger.warning(
@@ -190,11 +188,7 @@ Features:
     display_repos = (
         repos
         if repos
-        else (
-            GitHubDataSource.SAGE_REPOS
-            if not args.no_submodules
-            else ["intellistream/SAGE"]
-        )
+        else (GitHubDataSource.SAGE_REPOS if not args.no_submodules else ["intellistream/SAGE"])
     )
 
     # Print configuration
@@ -208,9 +202,7 @@ Features:
     print(f"  Output Format: {args.format}")
     print(f"  Language: {'Chinese' if args.language == 'zh' else 'English'}")
     print(f"  LLM Summary: {'Disabled' if args.no_llm else 'Enabled'}")
-    print(
-        f"  GitHub Token: {'Provided' if github_token else 'Not provided (mock data)'}"
-    )
+    print(f"  GitHub Token: {'Provided' if github_token else 'Not provided (mock data)'}")
     print()
 
     # Run pipeline
