@@ -30,4 +30,3 @@ pub fn set_rayon_num_threads(num_threads: u32) {
         num_threads.to_string(),
     );
 }
-

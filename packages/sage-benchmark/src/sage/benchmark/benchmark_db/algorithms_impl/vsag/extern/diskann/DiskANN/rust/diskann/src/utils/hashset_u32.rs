@@ -43,4 +43,3 @@ impl DerefMut for HashSetForU32 {
         &mut self.hashset
     }
 }
-

@@ -103,7 +103,7 @@ pub(crate) fn load_truthset(
         // This is in the C++ code, but nothing is done in this case. Keeping it here for future reference just in case.
         // expected_file_size_just_ids => 2,
         x if x == expected_file_size_with_dists => 1,
-        _ => return Err(ANNError::log_index_error(format!("Error. File size mismatch. File should have bin format, with npts followed by ngt 
+        _ => return Err(ANNError::log_index_error(format!("Error. File size mismatch. File should have bin format, with npts followed by ngt
                                                         followed by npts*ngt ids and optionally followed by npts*ngt distance values; actual size: {}, expected: {} or {}",
                                                         actual_file_size,
                                                         expected_file_size_with_dists,
@@ -151,7 +151,7 @@ pub(crate) fn load_aligned_bin<T: Default + Copy + Sized + Pod>(
 
     if file_size != expected_actual_file_size {
         return Err(ANNError::log_index_error(format!(
-            "ERROR: File size mismatch. Actual size is {} while expected size is {} 
+            "ERROR: File size mismatch. Actual size is {} while expected size is {}
         npts = {}, #dims = {}, aligned_dim = {}",
             file_size, expected_actual_file_size, npts, dim, rounded_dim
         )));

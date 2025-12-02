@@ -57,10 +57,7 @@ def vectors_to_file(vector_file: str, vectors: VectorLikeBatch) -> None:
 
 
 def vectors_from_file(
-    vector_file: str,
-    dtype: VectorDType,
-    use_memmap: bool = False,
-    mode: Literal["r", "r+"] = "r"
+    vector_file: str, dtype: VectorDType, use_memmap: bool = False, mode: Literal["r", "r+"] = "r"
 ) -> npt.NDArray[VectorDType]:
     """
     Read vectors from a DiskANN binary vector file.
@@ -79,7 +76,9 @@ def vectors_from_file(
     if not use_memmap:
         return np.fromfile(file=vector_file, dtype=dtype, offset=8).reshape(points, dims)
     else:
-        return np.memmap(vector_file, dtype=dtype, mode=mode, offset=8, shape=(points, dims), order='C')
+        return np.memmap(
+            vector_file, dtype=dtype, mode=mode, offset=8, shape=(points, dims), order="C"
+        )
 
 
 def tags_to_file(tags_file: str, tags: VectorIdentifierBatch) -> None:

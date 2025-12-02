@@ -1,17 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-import os
 import shutil
 import unittest
-
 from pathlib import Path
 from tempfile import mkdtemp
 
 import diskannpy as dap
 import numpy as np
-from fixtures import build_random_vectors_and_memory_index, calculate_recall
-from fixtures import  random_vectors
+from fixtures import build_random_vectors_and_memory_index, calculate_recall, random_vectors
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -66,9 +63,7 @@ class TestStaticMemoryIndex(unittest.TestCase):
 
                 diskann_neighbors, diskann_distances = batch_response
                 if metric in ["l2", "cosine"]:
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric=metric
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric=metric)
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
                     recall = calculate_recall(diskann_neighbors, knn_indices, k)
@@ -168,9 +163,7 @@ class TestStaticMemoryIndex(unittest.TestCase):
                         num_threads=16,
                         initial_search_complexity=32,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)
 
     def test_zero_threads(self):
         for (
@@ -190,7 +183,9 @@ class TestStaticMemoryIndex(unittest.TestCase):
                 )
 
                 k = 5
-                ids, dists = index.batch_search(query_vectors, k_neighbors=k, complexity=5, num_threads=0)
+                ids, dists = index.batch_search(
+                    query_vectors, k_neighbors=k, complexity=5, num_threads=0
+                )
 
     def test_relative_paths(self):
         # Issue 483 and 491 both fixed errors that were somehow slipping past our unit tests
@@ -217,7 +212,6 @@ class TestStaticMemoryIndex(unittest.TestCase):
 
         finally:
             shutil.rmtree(rel_dir, ignore_errors=True)
-
 
 
 class TestFilteredStaticMemoryIndex(unittest.TestCase):
@@ -251,21 +245,24 @@ class TestFilteredStaticMemoryIndex(unittest.TestCase):
                 index_directory=temp,
                 num_threads=16,
                 initial_search_complexity=64,
-                enable_filters=True
+                enable_filters=True,
             )
 
             k = 50
-            probable_superset, _ = index.search(query_vectors[0], k_neighbors=k*2, complexity=128)
-            ids_1, _ = index.search(query_vectors[0], k_neighbors=k, complexity=64, filter_label="even_by_3")
+            probable_superset, _ = index.search(query_vectors[0], k_neighbors=k * 2, complexity=128)
+            ids_1, _ = index.search(
+                query_vectors[0], k_neighbors=k, complexity=64, filter_label="even_by_3"
+            )
             self.assertTrue(all(id % 3 == 0 for id in ids_1))
-            ids_2, _ = index.search(query_vectors[0], k_neighbors=k, complexity=64, filter_label="even_by_5")
+            ids_2, _ = index.search(
+                query_vectors[0], k_neighbors=k, complexity=64, filter_label="even_by_5"
+            )
             self.assertTrue(all(id % 5 == 0 for id in ids_2))
 
             in_superset = np.intersect1d(probable_superset, np.append(ids_1, ids_2)).shape[0]
-            self.assertTrue(in_superset/k*2 > 0.98)
+            self.assertTrue(in_superset / k * 2 > 0.98)
         finally:
             shutil.rmtree(temp, ignore_errors=True)
-
 
     def test_exhaustive_validation(self):
         vectors: np.ndarray = random_vectors(10000, 10, dtype=np.float32, seed=54321)
@@ -298,26 +295,30 @@ class TestFilteredStaticMemoryIndex(unittest.TestCase):
                 index_directory=temp,
                 num_threads=16,
                 initial_search_complexity=64,
-                enable_filters=True
+                enable_filters=True,
             )
 
             k = 5_000
-            without_filter, _ = index.search(query_vectors[0], k_neighbors=k*2, complexity=128)
+            without_filter, _ = index.search(query_vectors[0], k_neighbors=k * 2, complexity=128)
             with_filter_but_label_all, _ = index.search(
-                query_vectors[0], k_neighbors=k*2, complexity=128, filter_label="all"
+                query_vectors[0], k_neighbors=k * 2, complexity=128, filter_label="all"
             )
             # this has begun failing randomly. gopalrs - this *shouldn't* fail, but for some reason the filtered search
-            # will sometimes return fewer than the expected 10k results here. 
+            # will sometimes return fewer than the expected 10k results here.
             intersection = np.intersect1d(without_filter, with_filter_but_label_all)
             intersect_count = intersection.shape[0]
-            self.assertEqual(intersect_count, k*2)
+            self.assertEqual(intersect_count, k * 2)
 
-            ids_1, _ = index.search(query_vectors[0], k_neighbors=k*10, complexity=128, filter_label="even")
+            ids_1, _ = index.search(
+                query_vectors[0], k_neighbors=k * 10, complexity=128, filter_label="even"
+            )
             # we ask for more than 5000. prior to the addition of the `_label_metadata.json` file
             # asking for more k than we had items with that label would result in nonsense results past the first
             # 5000.
             self.assertTrue(all(id % 2 == 0 for id in ids_1))
-            ids_2, _ = index.search(query_vectors[0], k_neighbors=k, complexity=128, filter_label="odd")
+            ids_2, _ = index.search(
+                query_vectors[0], k_neighbors=k, complexity=128, filter_label="odd"
+            )
             self.assertTrue(all(id % 2 != 0 for id in ids_2))
 
         finally:

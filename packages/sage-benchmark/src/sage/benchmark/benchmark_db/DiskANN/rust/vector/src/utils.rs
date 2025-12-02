@@ -18,4 +18,3 @@ pub fn prefetch_vector<T>(vec: &[T]) {
         }
     }
 }
-

@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-import numpy as np
-from scipy.cluster.vq import vq, kmeans2
-from typing import Tuple
 from time import perf_counter
 
+import numpy as np
+from scipy.cluster.vq import kmeans2, vq
 
-def get_bin_metadata(bin_file) -> Tuple[int, int]:
+
+def get_bin_metadata(bin_file) -> tuple[int, int]:
     array = np.fromfile(file=bin_file, dtype=np.uint32, count=2)
     return array[0], array[1]
 
@@ -24,7 +24,7 @@ class Timer:
         new = perf_counter()
         self.last = new
 
-    def elapsed(self, round_digit:int = 3):
+    def elapsed(self, round_digit: int = 3):
         new = perf_counter()
         elapsed_time = new - self.last
         self.last = new
@@ -42,14 +42,12 @@ def numpy_to_bin(array, out_file):
     f.close()
 
 
-def read_gt_file(gt_file) -> Tuple[np.ndarray[int], np.ndarray[float]]:
+def read_gt_file(gt_file) -> tuple[np.ndarray[int], np.ndarray[float]]:
     """
     Return ids and distances to queries
     """
     nq, K = get_bin_metadata(gt_file)
-    ids = np.fromfile(file=gt_file, dtype=np.uint32, offset=8, count=nq * K).reshape(
-        nq, K
-    )
+    ids = np.fromfile(file=gt_file, dtype=np.uint32, offset=8, count=nq * K).reshape(nq, K)
     dists = np.fromfile(
         file=gt_file, dtype=np.float32, offset=8 + nq * K * 4, count=nq * K
     ).reshape(nq, K)
@@ -88,7 +86,7 @@ def calculate_recall_from_gt_file(K: int, ids: np.ndarray[int], gt_file: str) ->
 
 def cluster_and_permute(
     dtype_str, npts, ndims, data, num_clusters
-) -> Tuple[np.ndarray[int], np.ndarray[int]]:
+) -> tuple[np.ndarray[int], np.ndarray[int]]:
     """
     Cluster the data and return permutation of row indices
     that would group indices of the same cluster together

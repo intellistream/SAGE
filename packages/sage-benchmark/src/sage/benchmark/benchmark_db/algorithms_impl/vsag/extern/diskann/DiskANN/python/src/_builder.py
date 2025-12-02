@@ -4,7 +4,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -28,7 +28,7 @@ def _valid_path_and_dtype(
     vector_dtype: VectorDType,
     index_path: str,
     index_prefix: str,
-) -> Tuple[str, VectorDType]:
+) -> tuple[str, VectorDType]:
     if isinstance(data, str):
         vector_bin_path = data
         _assert(
@@ -39,9 +39,7 @@ def _valid_path_and_dtype(
     else:
         vector_bin_path = os.path.join(index_path, f"{index_prefix}_vectors.bin")
         if Path(vector_bin_path).exists():
-            raise ValueError(
-                f"The path {vector_bin_path} already exists. Remove it and try again."
-            )
+            raise ValueError(f"The path {vector_bin_path} already exists. Remove it and try again.")
         vector_dtype_actual = valid_dtype(data.dtype)
         vectors_to_file(vector_file=vector_bin_path, vectors=data)
 
@@ -97,8 +95,7 @@ def build_disk_index(
     """
 
     _assert(
-        (isinstance(data, str) and vector_dtype is not None)
-        or isinstance(data, np.ndarray),
+        (isinstance(data, str) and vector_dtype is not None) or isinstance(data, np.ndarray),
         "vector_dtype is required if data is a str representing a path to the vector bin file",
     )
     dap_metric = _valid_metric(distance_metric)
@@ -207,8 +204,7 @@ def build_memory_index(
     - **index_prefix**: The prefix of the index files. Defaults to "ann".
     """
     _assert(
-        (isinstance(data, str) and vector_dtype is not None)
-        or isinstance(data, np.ndarray),
+        (isinstance(data, str) and vector_dtype is not None) or isinstance(data, np.ndarray),
         "vector_dtype is required if data is a str representing a path to the vector bin file",
     )
     dap_metric = _valid_metric(distance_metric)

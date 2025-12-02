@@ -40,11 +40,11 @@ pub struct DiskGraph {
 impl<'a> DiskGraph {
     /// Create DiskGraph instance
     pub fn new(
-        dim: usize, 
+        dim: usize,
         num_nodes_per_sector: u64,
         max_node_len: u64,
         fp_vector_len: u64,
-        beam_width: usize, 
+        beam_width: usize,
         graph_storage: DiskGraphStorage,
     ) -> ANNResult<Self> {
         let graph = Self {
@@ -75,10 +75,10 @@ impl<'a> DiskGraph {
     /// Copy disk fp vector to DiskScratchDataset
     /// Return the fp vector with aligned dim from DiskScratchDataset
     pub fn copy_fp_vector_to_disk_scratch_dataset<T, const N: usize>(
-        &self, 
+        &self,
         node_index: usize,
         disk_scratch_dataset: &'a mut DiskScratchDataset<T, N>
-    ) -> ANNResult<Vertex<'a, T, N>> 
+    ) -> ANNResult<Vertex<'a, T, N>>
     where
         [T; N]: FullPrecisionDistance<T, N>,
     {
@@ -160,7 +160,7 @@ impl<'a> IntoIterator for &'a DiskGraph
     }
 }
 
-impl<'a> Iterator for DiskGraphIntoIterator<'a> 
+impl<'a> Iterator for DiskGraphIntoIterator<'a>
 {
     type Item = ANNResult<(usize, VertexAndNeighbors)>;
 
@@ -169,11 +169,10 @@ impl<'a> Iterator for DiskGraphIntoIterator<'a>
             return None;
         }
 
-        let node_index = self.index;    
+        let node_index = self.index;
         let vertex_and_neighbors = self.graph.get_vertex_and_neighbors(self.index);
-    
+
         self.index += 1;
         Some(Ok((node_index, vertex_and_neighbors)))
     }
 }
-

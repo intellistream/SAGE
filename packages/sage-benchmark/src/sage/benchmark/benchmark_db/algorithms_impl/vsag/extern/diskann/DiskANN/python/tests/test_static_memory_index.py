@@ -57,9 +57,7 @@ class TestStaticMemoryIndex(unittest.TestCase):
                     num_threads=16,
                 )
                 if metric in ["l2", "cosine"]:
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric=metric
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric=metric)
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
                     recall = calculate_recall(diskann_neighbors, knn_indices, k)
@@ -157,6 +155,4 @@ class TestStaticMemoryIndex(unittest.TestCase):
                         num_threads=16,
                         initial_search_complexity=32,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)

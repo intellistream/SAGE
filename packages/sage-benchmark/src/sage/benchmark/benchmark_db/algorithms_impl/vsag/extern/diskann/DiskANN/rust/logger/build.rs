@@ -30,4 +30,3 @@ fn main() {
 
     prost_build::compile_protos(&["src/indexlog.proto"], &["src/"]).unwrap();
 }
-

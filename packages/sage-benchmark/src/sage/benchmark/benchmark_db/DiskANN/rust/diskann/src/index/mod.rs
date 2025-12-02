@@ -8,4 +8,3 @@ pub use inmem_index::InmemIndex;
 
 mod disk_index;
 pub use disk_index::*;
-

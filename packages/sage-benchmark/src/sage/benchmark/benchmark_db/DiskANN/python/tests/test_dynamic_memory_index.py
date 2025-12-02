@@ -83,14 +83,10 @@ class TestDynamicMemoryIndex(unittest.TestCase):
 
                 diskann_neighbors, diskann_distances = batch_response
                 if metric == "l2" or metric == "cosine":
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric=metric
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric=metric)
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
-                    recall = _calculate_recall(
-                        diskann_neighbors, generated_tags, knn_indices, k
-                    )
+                    recall = _calculate_recall(diskann_neighbors, generated_tags, knn_indices, k)
                     self.assertTrue(
                         recall > 0.70,
                         f"Recall [{recall}] was not over 0.7",
@@ -305,9 +301,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                         complexity=64,
                         graph_degree=32,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)
 
     # Issue #400
     def test_issue400(self):
@@ -332,9 +326,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
         )
         self.assertIn(10053, tags)
         tags, distances = index.search(deletion_vector, k_neighbors=5, complexity=64)
-        self.assertIn(
-            deletion_tag, tags, "deletion_tag should exist, as we have not deleted yet"
-        )
+        self.assertIn(deletion_tag, tags, "deletion_tag should exist, as we have not deleted yet")
         index.mark_deleted(deletion_tag)
         tags, distances = index.search(deletion_vector, k_neighbors=5, complexity=64)
         self.assertNotIn(
@@ -353,9 +345,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                 complexity=64,
                 graph_degree=32,
             )
-            tags, distances = index2.search(
-                deletion_vector, k_neighbors=5, complexity=64
-            )
+            tags, distances = index2.search(deletion_vector, k_neighbors=5, complexity=64)
             self.assertNotIn(
                 deletion_tag,
                 tags,
@@ -373,7 +363,6 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                 graph_degree=32,
                 num_threads=16,
             )
-
 
         rng = np.random.default_rng(12345)
 
@@ -400,58 +389,65 @@ class TestDynamicMemoryIndex(unittest.TestCase):
         index = _tiny_index()
         with self.assertRaises(RuntimeError):
             index.batch_insert(
-                rng.random((3, 10), dtype=np.float32),
-                np.array([1,2,3], dtype=np.uint32)
+                rng.random((3, 10), dtype=np.float32), np.array([1, 2, 3], dtype=np.uint32)
             )
-
 
         # insert 2 batch, remove 1, add 1 and expect a warning, remove 1, insert 2 batch and look for an exception
         index = _tiny_index()
-        index.batch_insert(
-            rng.random((2, 10), dtype=np.float32),
-            np.array([1,2], dtype=np.uint32)
-        )
+        index.batch_insert(rng.random((2, 10), dtype=np.float32), np.array([1, 2], dtype=np.uint32))
         index.mark_deleted(1)
         with self.assertWarns(UserWarning):
             index.insert(rng.random(10, dtype=np.float32), 3)
         index.mark_deleted(2)
         with self.assertRaises(RuntimeError):
-            index.batch_insert(rng.random((2,10), dtype=np.float32), np.array([4, 5], dtype=np.uint32))
+            index.batch_insert(
+                rng.random((2, 10), dtype=np.float32), np.array([4, 5], dtype=np.uint32)
+            )
 
         # insert 1, remove it, add 2 batch, and expect a warning
         index = _tiny_index()
         index.insert(rng.random(10, dtype=np.float32), 1)
         index.mark_deleted(1)
         with self.assertWarns(UserWarning):
-            index.batch_insert(rng.random((2, 10), dtype=np.float32), np.array([10, 20], dtype=np.uint32))
+            index.batch_insert(
+                rng.random((2, 10), dtype=np.float32), np.array([10, 20], dtype=np.uint32)
+            )
 
         # insert 2 batch, remove both, add 2 batch, and expect a warning
         index = _tiny_index()
-        index.batch_insert(rng.random((2,10), dtype=np.float32), np.array([10, 20], dtype=np.uint32))
+        index.batch_insert(
+            rng.random((2, 10), dtype=np.float32), np.array([10, 20], dtype=np.uint32)
+        )
         index.mark_deleted(10)
         index.mark_deleted(20)
         with self.assertWarns(UserWarning):
-            index.batch_insert(rng.random((2, 10), dtype=np.float32), np.array([15, 25], dtype=np.uint32))
+            index.batch_insert(
+                rng.random((2, 10), dtype=np.float32), np.array([15, 25], dtype=np.uint32)
+            )
 
         # insert 2 batch, remove both, consolidate_delete, add 2 batch and do not expect warning
         index = _tiny_index()
-        index.batch_insert(rng.random((2,10), dtype=np.float32), np.array([10, 20], dtype=np.uint32))
+        index.batch_insert(
+            rng.random((2, 10), dtype=np.float32), np.array([10, 20], dtype=np.uint32)
+        )
         index.mark_deleted(10)
         index.mark_deleted(20)
         index.consolidate_delete()
         with warnings.catch_warnings():
             warnings.simplefilter("error")  # turns warnings into raised exceptions
-            index.batch_insert(rng.random((2, 10), dtype=np.float32), np.array([15, 25], dtype=np.uint32))
+            index.batch_insert(
+                rng.random((2, 10), dtype=np.float32), np.array([15, 25], dtype=np.uint32)
+            )
 
     def test_zero_threads(self):
         for (
-                metric,
-                dtype,
-                query_vectors,
-                index_vectors,
-                ann_dir,
-                vector_bin_file,
-                generated_tags,
+            metric,
+            dtype,
+            query_vectors,
+            index_vectors,
+            ann_dir,
+            vector_bin_file,
+            generated_tags,
         ) in self._test_matrix:
             with self.subTest(msg=f"Testing dtype {dtype}"):
                 index = dap.DynamicMemoryIndex(
@@ -461,9 +457,11 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                     max_vectors=11_000,
                     complexity=64,
                     graph_degree=32,
-                    num_threads=0, # explicitly asking it to use all available threads.
+                    num_threads=0,  # explicitly asking it to use all available threads.
                 )
                 index.batch_insert(vectors=index_vectors, vector_ids=generated_tags, num_threads=0)
 
                 k = 5
-                ids, dists = index.batch_search(query_vectors, k_neighbors=k, complexity=5, num_threads=0)
+                ids, dists = index.batch_search(
+                    query_vectors, k_neighbors=k, complexity=5, num_threads=0
+                )

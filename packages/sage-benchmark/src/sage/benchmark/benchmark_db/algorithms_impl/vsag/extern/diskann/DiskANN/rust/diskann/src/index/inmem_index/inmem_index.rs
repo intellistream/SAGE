@@ -576,7 +576,7 @@ where
         let (file_num_points, file_dim) = load_metadata_from_file(filename)?;
         if file_num_points > self.configuration.max_points {
             return Err(ANNError::log_index_error(format!(
-                "ERROR: Driver requests loading {} points and file has {} points, 
+                "ERROR: Driver requests loading {} points and file has {} points,
                 but index can support only {} points as specified in configuration.",
                 num_points_to_load, file_num_points, self.configuration.max_points
             )));

@@ -10,7 +10,7 @@ pub type NonRecursiveMutex = Mutex<()>;
 
 /// Round up X to the nearest multiple of Y
 #[inline]
-pub fn round_up<T>(x: T, y: T) -> T 
+pub fn round_up<T>(x: T, y: T) -> T
 where T : Num + Copy
 {
     div_round_up(x, y) * y
@@ -18,7 +18,7 @@ where T : Num + Copy
 
 /// Rounded-up division
 #[inline]
-pub fn div_round_up<T>(x: T, y: T) -> T 
+pub fn div_round_up<T>(x: T, y: T) -> T
 where T : Num + Copy
 {
     (x / y) + if x % y != T::zero() {T::one()} else {T::zero()}
@@ -120,7 +120,7 @@ mod file_util_test {
         assert!(is_4096_aligned(4096));
     }
 
-    #[test] 
+    #[test]
     fn convert_types_test() {
         let data = vec![0u64, 1u64, 2u64];
         let output = convert_types_u64_usize(&data, 3, 1);
@@ -151,4 +151,3 @@ mod file_util_test {
         type_name::<T>()
     }
 }
-

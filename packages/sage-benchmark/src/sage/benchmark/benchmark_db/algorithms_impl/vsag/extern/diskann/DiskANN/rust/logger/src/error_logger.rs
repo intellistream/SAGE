@@ -26,4 +26,3 @@ mod error_logger_test {
         log_error(String::from("Error")).unwrap();
     }
 }
-

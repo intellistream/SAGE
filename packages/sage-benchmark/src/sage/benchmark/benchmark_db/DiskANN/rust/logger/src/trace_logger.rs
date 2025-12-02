@@ -38,4 +38,3 @@ impl log::Log for TraceLogger {
 
     fn flush(&self) {}
 }
-

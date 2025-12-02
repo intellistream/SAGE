@@ -21,7 +21,7 @@ pub const DISK_SCRATCH_DATASET_ALIGN: usize = 256;
 pub struct DiskScratchDataset<T, const N: usize>
 {
     /// fp vectors with aligned dim
-    pub data: AlignedBoxWithSlice<T>, 
+    pub data: AlignedBoxWithSlice<T>,
 
     /// current index to store the next fp vector
     pub cur_index: usize,
@@ -34,7 +34,7 @@ impl<T, const N: usize> DiskScratchDataset<T, N>
         Ok(Self {
             // C++ code allocates round_up(MAX_N_CMPS * N, 256) bytes, shouldn't it be round_up(MAX_N_CMPS * N, 256) * size_of::<T> bytes?
             data: AlignedBoxWithSlice::new(
-                round_up(MAX_N_CMPS * N, DISK_SCRATCH_DATASET_ALIGN), 
+                round_up(MAX_N_CMPS * N, DISK_SCRATCH_DATASET_ALIGN),
                 DISK_SCRATCH_DATASET_ALIGN)?,
             cur_index: 0,
         })
@@ -47,7 +47,7 @@ impl<T, const N: usize> DiskScratchDataset<T, N>
     /// Behavior is undefined if any of the following conditions are violated:
     ///
     /// * `fp_vector_buf`'s len must be `dim * size_of::<T>()` bytes
-    /// 
+    ///
     /// * `fp_vector_buf` must be smaller than or equal to `N * size_of::<T>()` bytes.
     ///
     /// * `fp_vector_buf` and `self.data` must be nonoverlapping.

@@ -38,14 +38,12 @@ def insert_and_search(
         dimensions=ndims,
         max_vectors=npts,
         complexity=Lb,
-        graph_degree=graph_degree
+        graph_degree=graph_degree,
     )
     queries = diskannpy.vectors_from_file(querydata_file, dtype)
     data = diskannpy.vectors_from_file(indexdata_file, dtype)
 
-    offsets, permutation = utils.cluster_and_permute(
-        dtype_str, npts, ndims, data, num_clusters
-    )
+    offsets, permutation = utils.cluster_and_permute(dtype_str, npts, ndims, data, num_clusters)
 
     i = 0
     timer = utils.Timer()
@@ -54,9 +52,9 @@ def insert_and_search(
         cluster_indices = np.array(permutation[cluster_index_range], dtype=np.uint32)
         cluster_data = data[cluster_indices, :]
         index.batch_insert(cluster_data, cluster_indices + 1, num_insert_threads)
-        print('Inserted cluster', c, 'in', timer.elapsed(), 's')
+        print("Inserted cluster", c, "in", timer.elapsed(), "s")
     tags, dists = index.batch_search(queries, K, Ls, num_search_threads)
-    print('Batch searched', queries.shape[0], 'queries in', timer.elapsed(), 's')
+    print("Batch searched", queries.shape[0], "queries in", timer.elapsed(), "s")
     res_ids = tags - 1
 
     if gt_file != "":

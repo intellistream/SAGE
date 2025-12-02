@@ -70,9 +70,7 @@ class TestStaticDiskIndex(unittest.TestCase):
                     num_threads=16,
                 )
                 if metric == "l2":
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric="l2"
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric="l2")
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
                     recall = calculate_recall(diskann_neighbors, knn_indices, k)
@@ -141,6 +139,4 @@ class TestStaticDiskIndex(unittest.TestCase):
                         num_threads=16,
                         num_nodes_to_cache=10,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)

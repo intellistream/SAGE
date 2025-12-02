@@ -164,4 +164,3 @@ fn publish(log_level: LogLevel, message: &str) -> Result<(), LogError> {
         Err(ref err) => Err(LogError::ETWProviderError { err: err.clone() }),
     }
 }
-

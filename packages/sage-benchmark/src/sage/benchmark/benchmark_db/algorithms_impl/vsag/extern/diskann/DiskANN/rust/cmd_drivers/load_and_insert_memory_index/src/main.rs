@@ -32,8 +32,8 @@ fn load_and_insert_in_memory_index<T> (
     _use_pq_build: bool,
     _num_pq_bytes: usize,
     use_opq: bool
-) -> ANNResult<()> 
-where 
+) -> ANNResult<()>
+where
     T: Default + Copy + Sync + Send + Into<f32>,
     [T; DIM_104]: FullPrecisionDistance<T, DIM_104>,
     [T; DIM_128]: FullPrecisionDistance<T, DIM_128>,
@@ -62,19 +62,19 @@ where
     let mut index = create_inmem_index::<T>(config)?;
 
     let timer = Timer::new();
-    
+
     index.load(data_path, data_num)?;
-   
+
     let diff = timer.elapsed();
 
     println!("Initial indexing time: {}", diff.as_secs_f64());
 
     let (delta_data_num, _) = load_metadata_from_file(delta_path)?;
-    
+
     index.insert(delta_path, delta_data_num)?;
 
     index.save(save_path)?;
-    
+
     Ok(())
 }
 
@@ -105,95 +105,95 @@ fn main() -> ANNResult<()> {
             }
             "--data_type" => {
                 data_type = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "data_type".to_string(), 
+                        "data_type".to_string(),
                         "Missing data type".to_string())
                     )?
                     .to_owned();
             }
             "--dist_fn" => {
                 dist_fn = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "dist_fn".to_string(), 
+                        "dist_fn".to_string(),
                         "Missing distance function".to_string())
                     )?
                     .to_owned();
             }
             "--data_path" => {
                 data_path = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "data_path".to_string(), 
+                        "data_path".to_string(),
                         "Missing data path".to_string())
                     )?
                     .to_owned();
             }
             "--insert_path" => {
                 insert_path = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "insert_path".to_string(), 
+                        "insert_path".to_string(),
                         "Missing insert path".to_string())
                     )?
                     .to_owned();
             }
             "--index_path_prefix" => {
                 index_path_prefix = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "index_path_prefix".to_string(), 
+                        "index_path_prefix".to_string(),
                         "Missing index path prefix".to_string()))?
                     .to_owned();
             }
             "--max_degree" | "-R" => {
                 r = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "max_degree".to_string(), 
+                        "max_degree".to_string(),
                         "Missing max degree".to_string()))?
                     .parse()
                     .map_err(|err| ANNError::log_index_config_error(
-                        "max_degree".to_string(), 
+                        "max_degree".to_string(),
                         format!("ParseIntError: {}", err))
                     )?;
             }
             "--Lbuild" | "-L" => {
                 l = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "Lbuild".to_string(), 
+                        "Lbuild".to_string(),
                         "Missing build complexity".to_string()))?
                     .parse()
                     .map_err(|err| ANNError::log_index_config_error(
-                        "Lbuild".to_string(), 
+                        "Lbuild".to_string(),
                         format!("ParseIntError: {}", err))
                     )?;
             }
             "--alpha" => {
                 alpha = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "alpha".to_string(), 
+                        "alpha".to_string(),
                         "Missing alpha".to_string()))?
                     .parse()
                     .map_err(|err| ANNError::log_index_config_error(
-                        "alpha".to_string(), 
+                        "alpha".to_string(),
                         format!("ParseFloatError: {}", err))
                     )?;
             }
             "--num_threads" | "-T" => {
                 num_threads = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "num_threads".to_string(), 
+                        "num_threads".to_string(),
                         "Missing number of threads".to_string()))?
                     .parse()
                     .map_err(|err| ANNError::log_index_config_error(
-                        "num_threads".to_string(), 
+                        "num_threads".to_string(),
                         format!("ParseIntError: {}", err))
                     )?;
             }
             "--build_PQ_bytes" => {
                 build_pq_bytes = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "build_PQ_bytes".to_string(), 
+                        "build_PQ_bytes".to_string(),
                         "Missing PQ bytes".to_string()))?
                     .parse()
                     .map_err(|err| ANNError::log_index_config_error(
-                        "build_PQ_bytes".to_string(), 
+                        "build_PQ_bytes".to_string(),
                         format!("ParseIntError: {}", err))
                     )?;
             }
             "--use_opq" => {
                 use_opq = iter.next().ok_or_else(|| ANNError::log_index_config_error(
-                        "use_opq".to_string(), 
+                        "use_opq".to_string(),
                         "Missing use_opq flag".to_string()))?
                     .parse()
                     .map_err(|err| ANNError::log_index_config_error(
-                        "use_opq".to_string(), 
+                        "use_opq".to_string(),
                         format!("ParseBoolError: {}", err))
                     )?;
             }
@@ -216,7 +216,7 @@ fn main() -> ANNResult<()> {
     let metric = dist_fn
         .parse::<Metric>()
         .map_err(|err| ANNError::log_index_config_error(
-            "dist_fn".to_string(), 
+            "dist_fn".to_string(),
             err.to_string(),
         ))?;
 
@@ -310,4 +310,3 @@ fn print_help() {
     println!("--build_PQ_bytes          Number of PQ bytes to build the index; 0 for full precision build (default: 0)");
     println!("--use_opq                 Set true for OPQ compression while using PQ distance comparisons for building the index, and false for PQ compression (default: false)");
 }
-

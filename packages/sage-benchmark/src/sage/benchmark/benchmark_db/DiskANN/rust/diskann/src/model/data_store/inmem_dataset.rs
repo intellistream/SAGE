@@ -192,7 +192,7 @@ where
 
     /// Convert into dto object
     pub fn into_dto(&mut self) -> DatasetDto<T> {
-        DatasetDto { 
+        DatasetDto {
             data: &mut self.data,
             rounded_dim: N,
         }
@@ -282,4 +282,3 @@ mod dataset_test {
         }
     }
 }
-

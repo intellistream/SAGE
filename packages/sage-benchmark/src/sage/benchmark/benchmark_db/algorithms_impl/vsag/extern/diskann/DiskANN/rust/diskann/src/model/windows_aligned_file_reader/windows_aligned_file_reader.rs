@@ -31,7 +31,7 @@ pub const IO_COMPLETION_TIMEOUT: DWORD = u32::MAX; // Infinite timeout.
 pub const DISK_IO_ALIGNMENT: usize = 512;
 pub const ASYNC_IO_COMPLETION_CHECK_INTERVAL: Duration = Duration::from_micros(5);
 
-/// Aligned read struct for disk IO, it takes the ownership of the AlignedBoxedSlice and returns the AlignedBoxWithSlice data immutably.  
+/// Aligned read struct for disk IO, it takes the ownership of the AlignedBoxedSlice and returns the AlignedBoxWithSlice data immutably.
 pub struct AlignedRead<'a, T> {
     /// where to read from
     /// offset needs to be aligned with DISK_IO_ALIGNMENT
@@ -101,7 +101,7 @@ impl WindowsAlignedFileReader {
         let id = thread::current().id();
         if ctx_map.contains_key(&id) {
             println!(
-                "Warning:: Duplicate registration for thread_id : {:?}. Directly call get_ctx to get the thread context data.", 
+                "Warning:: Duplicate registration for thread_id : {:?}. Directly call get_ctx to get the thread context data.",
                 id);
 
             return Ok(());

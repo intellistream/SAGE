@@ -75,9 +75,7 @@ class TestStaticDiskIndex(unittest.TestCase):
 
                 diskann_neighbors, diskann_distances = batch_response
                 if metric == "l2":
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric="l2"
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric="l2")
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
                     recall = calculate_recall(diskann_neighbors, knn_indices, k)
@@ -98,9 +96,7 @@ class TestStaticDiskIndex(unittest.TestCase):
                 )
 
                 k = 5
-                response = index.search(
-                    query_vectors[0], k_neighbors=k, complexity=5, beam_width=2
-                )
+                response = index.search(query_vectors[0], k_neighbors=k, complexity=5, beam_width=2)
                 self.assertIsInstance(response, dap.QueryResponse)
                 ids, dists = response
                 self.assertEqual(ids.shape[0], k)
@@ -148,9 +144,7 @@ class TestStaticDiskIndex(unittest.TestCase):
                         num_threads=16,
                         num_nodes_to_cache=10,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)
 
     def test_zero_threads(self):
         for metric, dtype, query_vectors, index_vectors, ann_dir in self._test_matrix:

@@ -288,7 +288,7 @@ mod tests {
     }
 
     /// This is a single value test. It avoids the unlimited wait until the collectin got empty on the previous test.
-    /// It will make sure the signal mutex is matching the waiting mutex.  
+    /// It will make sure the signal mutex is matching the waiting mutex.
     #[test]
     fn test_wait_for_push_notify() {
         let queue = Arc::new(ConcurrentQueue::<usize>::new());
