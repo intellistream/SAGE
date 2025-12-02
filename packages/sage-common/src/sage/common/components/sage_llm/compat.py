@@ -116,34 +116,6 @@ class LLMClientAdapter(UnifiedInferenceClient):
         return self.config.llm_api_key
 
     @classmethod
-    def create_auto(
-        cls,
-        *,
-        timeout: float = 60.0,
-        **kwargs: Any,
-    ) -> LLMClientAdapter:
-        """Create adapter with auto-detection.
-
-        .. deprecated::
-            Use :meth:`create` instead. This method will be removed in a future version.
-
-        Args:
-            timeout: Request timeout in seconds.
-            **kwargs: Additional arguments.
-
-        Returns:
-            Configured LLMClientAdapter instance.
-        """
-        import warnings
-
-        warnings.warn(
-            "create_auto() is deprecated, use create() instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls.create(timeout=timeout, **kwargs)
-
-    @classmethod
     def create(
         cls,
         *,
@@ -289,36 +261,6 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
 
         # Otherwise use parent's API-based implementation
         return super().embed(texts, model=model, **kwargs)
-
-    @classmethod
-    def create_auto(
-        cls,
-        *,
-        fallback_model: str = "BAAI/bge-small-zh-v1.5",
-        timeout: float = 60.0,
-        **kwargs: Any,
-    ) -> EmbeddingClientAdapter:
-        """Create adapter with auto-detection.
-
-        .. deprecated::
-            Use :meth:`create` instead. This method will be removed in a future version.
-
-        Args:
-            fallback_model: Model to use for embedded mode if no server found.
-            timeout: Request timeout in seconds.
-            **kwargs: Additional arguments.
-
-        Returns:
-            Configured EmbeddingClientAdapter instance.
-        """
-        import warnings
-
-        warnings.warn(
-            "create_auto() is deprecated, use create() instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls.create(fallback_model=fallback_model, timeout=timeout, **kwargs)
 
     @classmethod
     def create(

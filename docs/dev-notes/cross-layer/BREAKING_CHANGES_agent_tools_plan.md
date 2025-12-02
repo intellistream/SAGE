@@ -1,7 +1,8 @@
 # Feature Branch: agent_tools_plan - 开发者注意事项
 
-> **合并日期**: 2025-11-27
-> **影响范围**: sage-common, sage-libs, sage-benchmark, copilot-instructions
+> **合并日期**: 2025-11-27  
+> **影响范围**: sage-common, sage-libs, sage-benchmark, copilot-instructions  
+> **⚠️ 更新 (2025-12)**: `IntelligentLLMClient` 和 `IntelligentEmbeddingClient` 已被完全移除，统一使用 `UnifiedInferenceClient.create()`
 
 本文档总结 `feature/agent_tools_plan` 分支合并到 `main-dev` 后，**其他开发者需要注意的改动**。
 
@@ -9,17 +10,17 @@
 
 ## 🚨 重要改动
 
-### 1. 推荐使用 UnifiedInferenceClient (新增)
+### 1. 统一使用 UnifiedInferenceClient
 
 **文件**: `packages/sage-common/src/sage/common/components/sage_llm/unified_client.py`
 
-**说明**: 新增统一客户端，同时支持 LLM 和 Embedding，**推荐用于所有新代码**。
+**说明**: 唯一的客户端入口，同时支持 LLM 和 Embedding。
 
 ```python
 from sage.common.components.sage_llm import UnifiedInferenceClient
 
 # 推荐：自动检测模式
-client = UnifiedInferenceClient.create_auto()
+client = UnifiedInferenceClient.create()
 
 # LLM 调用
 response = client.chat([{"role": "user", "content": "Hello"}])
@@ -28,36 +29,22 @@ response = client.chat([{"role": "user", "content": "Hello"}])
 vectors = client.embed(["文本1", "文本2"])
 
 # Control Plane 模式（高级）
-client = UnifiedInferenceClient.create_with_control_plane(
-    llm_base_url="http://localhost:8901/v1",
-    llm_model="Qwen/Qwen2.5-7B-Instruct",
-    embedding_base_url="http://localhost:8090/v1",
-    embedding_model="BAAI/bge-m3",
+client = UnifiedInferenceClient.create(
+    control_plane_url="http://localhost:8000/v1"
 )
 ```
 
-### 2. IntelligentLLMClient 新增 Embedded 模式
+### 2. IntelligentLLMClient 已移除
 
-**文件**: `packages/sage-common/src/sage/common/components/sage_llm/client.py`
+~~**文件**: `packages/sage-common/src/sage/common/components/sage_llm/client.py`~~
 
-**变更**: LLM Client 现在支持三种模式：
+**状态**: 已删除。请使用 `UnifiedInferenceClient.create()` 替代。
 
-| 模式 | 说明 | 使用场景 |
-|------|------|----------|
-| Simple Mode | OpenAI 兼容 API 调用 | 在线服务、多客户端共享 |
-| Control Plane Mode | 多实例调度 | 大规模部署 |
-| **Embedded Mode (新增)** | 进程内 vLLM 推理 | 批处理、离线任务、无需启动服务 |
+### 3. IntelligentEmbeddingClient 已移除
 
-**新增 API**:
-```python
-from sage.common.components.sage_llm import IntelligentLLMClient
+~~**文件**: `packages/sage-common/src/sage/common/components/sage_embedding/client.py`~~
 
-# 自动检测：优先本地 API → 内嵌 vLLM → 云端回退
-client = IntelligentLLMClient.create_auto_with_fallback()
-
-# 显式内嵌模式
-client = IntelligentLLMClient.create_embedded(
-    model="Qwen/Qwen2.5-0.5B-Instruct"
+**状态**: 已删除。请使用 `UnifiedInferenceClient.create().embed()` 替代。
 )
 
 # 单例缓存（避免重复加载模型）
@@ -65,33 +52,6 @@ client = IntelligentLLMClient.get_cached("my_key", model="Qwen/Qwen2.5-7B-Instru
 ```
 
 **注意**: Embedded 模式需要 GPU + vLLM 安装。
-
----
-
-### 3. IntelligentEmbeddingClient (建议使用 UnifiedInferenceClient)
-
-**文件**: `packages/sage-common/src/sage/common/components/sage_embedding/client.py`
-
-**说明**: 独立 Embedding 客户端。**推荐使用 `UnifiedInferenceClient` 统一管理 LLM + Embedding**。
-
-```python
-from sage.common.components.sage_embedding import IntelligentEmbeddingClient
-
-# 自动检测：本地 server → 内嵌 HuggingFace
-client = IntelligentEmbeddingClient.create_auto()
-vectors = client.embed(["文本1", "文本2"])  # 批量接口
-
-# 显式 API 模式
-client = IntelligentEmbeddingClient.create_api(
-    base_url="http://localhost:8090/v1",
-    model="BAAI/bge-m3"
-)
-
-# 显式内嵌模式
-client = IntelligentEmbeddingClient.create_embedded(
-    model="BAAI/bge-small-zh-v1.5"
-)
-```
 
 ---
 
