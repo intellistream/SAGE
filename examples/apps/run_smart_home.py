@@ -68,9 +68,7 @@ Features:
         help="Number of laundry cycles to run (default: 1)",
     )
 
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Enable verbose logging"
-    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 

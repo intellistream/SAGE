@@ -170,7 +170,10 @@ def test_faiss_algorithm():
 
     # 检查 Faiss 是否可用
     try:
-        import faiss
+        import importlib.util
+
+        if importlib.util.find_spec("faiss") is None:
+            raise ImportError
 
         print("✓ Faiss 已安装")
     except ImportError:

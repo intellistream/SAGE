@@ -70,9 +70,7 @@ def example_parallel_vdb_insertion():
         f"Document {i}: This is sample content for parallel insertion testing."
         for i in range(num_documents)
     ]
-    metadatas = [
-        {"doc_id": i, "category": f"cat_{i % 5}"} for i in range(num_documents)
-    ]
+    metadatas = [{"doc_id": i, "category": f"cat_{i % 5}"} for i in range(num_documents)]
 
     print(f"\nInserting {num_documents} documents in parallel...")
 
@@ -132,9 +130,7 @@ def example_convenience_function():
         batch_size=50,
     )
 
-    print(
-        f"Inserted {result.total_inserted} documents in {result.elapsed_seconds:.2f}s"
-    )
+    print(f"Inserted {result.total_inserted} documents in {result.elapsed_seconds:.2f}s")
 
 
 def example_large_scale_config():

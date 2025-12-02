@@ -106,7 +106,7 @@ def get_next_set(tag_to_id: dict, entry: dict) -> dict:
             tag_to_id[i + entry["start"]] = i + entry["start"]
 
     elif operation == "batch_insert_delete":
-        percentage = entry.get("deletion_percentage", 0)
+        # percentage = entry.get("deletion_percentage", 0)
         for i in range(entry["end"] - entry["start"]):
             tag_to_id[i + entry["start"]] = i + entry["start"]
 
@@ -389,7 +389,7 @@ def main():
 
     # Process runbook - 参考 big-ann-benchmarks 的处理流程
     step = 1
-    ids = np.empty(0, dtype=np.uint32)
+    # ids = np.empty(0, dtype=np.uint32)
     num_batch_insert = 0
 
     for entry in runbook[1:]:

@@ -17,6 +17,8 @@ sys.path.insert(0, str(project_root))
 
 from bench.runner import BenchmarkRunner
 
+from sage.benchmark.benchmark_db.datasets.loaders import load_dataset
+
 
 def create_mock_algorithm():
     """创建一个模拟算法用于测试"""
@@ -71,7 +73,7 @@ def test_runbook_execution():
 
     # 2. 加载一个小数据集
     try:
-        dataset = get_dataset("random-xs")
+        dataset = load_dataset("random-xs")
         print(f"\n✓ 数据集加载成功: {dataset.short_name()}")
     except Exception as e:
         print(f"\n✗ 数据集加载失败: {e}")
@@ -132,7 +134,7 @@ def test_enable_scenario():
     print("=" * 80)
 
     algorithm = create_mock_algorithm()
-    dataset = get_dataset("random-xs")
+    dataset = load_dataset("random-xs")
 
     runner = BenchmarkRunner(
         algorithm=algorithm,
@@ -163,7 +165,7 @@ def test_enable_scenario():
     }
 
     try:
-        metrics = runner.run_runbook(runbook, dataset_name="random-xs")
+        _ = runner.run_runbook(runbook, dataset_name="random-xs")
 
         # 检查是否正确启用了随机丢弃
         if runner.random_drop:

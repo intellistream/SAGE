@@ -3,8 +3,6 @@ PyANNS Algorithm Implementation
 使用 PyCANDYAlgo 封装的 diskannpy 接口
 """
 
-import numpy as np
-
 from ..base import BaseStreamingANN
 
 try:
@@ -94,14 +92,6 @@ class Pyanns(BaseStreamingANN):
     def set_query_arguments(self, query_args):
         self.Ls = query_args.get("Ls", 50)
         self.search_threads = query_args.get("T", 8)
-
-    def query(self, X, k):
-        # PyANNS query implementation
-        result_ids = np.zeros((X.shape[0], k), dtype=np.int32)
-        self.res = result_ids
-
-    def set_query_arguments(self, query_args):
-        self.search_param = query_args.get("search_param", 50)
 
     def get_results(self):
         return self.res

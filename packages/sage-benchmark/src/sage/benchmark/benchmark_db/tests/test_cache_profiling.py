@@ -47,7 +47,7 @@ def test_basic_profiling():
     # 创建大数组进行矩阵运算（会产生大量 cache miss）
     size = 10000
     data = np.random.rand(size, 128).astype(np.float32)
-    result = np.dot(data, data.T)
+    _ = np.dot(data, data.T)
 
     # 再做一些随机访问（更多 cache miss）
     indices = np.random.randint(0, size, size=5000)
@@ -101,7 +101,7 @@ def test_context_manager():
         return False
 
     try:
-        with CacheProfiler() as profiler:
+        with CacheProfiler():
             print("✓ 进入上下文管理器")
 
             # 执行一些工作

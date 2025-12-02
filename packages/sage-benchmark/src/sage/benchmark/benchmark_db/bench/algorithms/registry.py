@@ -108,7 +108,7 @@ def _load_algorithm_config(algo_name: str, dataset: str = "random-xs") -> dict[s
                                 args_list = ast.literal_eval(args_str)
                                 if args_list and isinstance(args_list, list):
                                     params["index_params"] = args_list[0]
-                            except:
+                            except Exception:
                                 pass
 
                     # 解析 query-args（查询参数）
@@ -126,7 +126,7 @@ def _load_algorithm_config(algo_name: str, dataset: str = "random-xs") -> dict[s
                                         params["index_params"].update(query_args_list[0])
                                     else:
                                         params["index_params"] = query_args_list[0]
-                            except:
+                            except Exception:
                                 pass
 
             return params
@@ -195,7 +195,7 @@ def auto_register_algorithms():
                             if "BaseStreamingANN" in [base.__name__ for base in obj.__bases__]:
                                 algo_class = obj
                                 break
-                        except:
+                        except Exception:
                             pass
 
             if algo_class:
@@ -219,8 +219,8 @@ auto_register_algorithms()
 # 尝试导入 CANDY 算法包装器（向后兼容）
 try:
     from .candy_wrapper import (
-        CANDYWrapper,
-        get_candy_algorithm,
+        CANDYWrapper,  # noqa: F401
+        get_candy_algorithm,  # noqa: F401
     )
 
     print("✓ Legacy CANDY wrapper still available")
@@ -230,7 +230,7 @@ except ImportError:
 
 # 尝试导入 Faiss 算法包装器（向后兼容）
 try:
-    from .faiss_wrapper import FaissWrapper
+    from .faiss_wrapper import FaissWrapper  # noqa: F401
 
     print("✓ Legacy Faiss wrapper still available")
 except ImportError:
@@ -239,7 +239,7 @@ except ImportError:
 
 # 尝试导入 DiskANN 算法包装器（向后兼容）
 try:
-    from .diskann_wrapper import DiskANNWrapper
+    from .diskann_wrapper import DiskANNWrapper  # noqa: F401
 
     print("✓ Legacy DiskANN wrapper still available")
 except ImportError:
