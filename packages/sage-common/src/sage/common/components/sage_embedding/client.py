@@ -21,7 +21,7 @@ Example:
     >>> from sage.common.components.sage_embedding.client import IntelligentEmbeddingClient
     >>>
     >>> # Auto-detect: local server → embedded fallback
-    >>> client = IntelligentEmbeddingClient.create_auto()
+    >>> client = IntelligentEmbeddingClient.create()
     >>> vectors = client.embed(["Hello", "World"])
     >>>
     >>> # Explicit API mode
@@ -283,9 +283,9 @@ class IntelligentEmbeddingClient:
 def get_embedding_client(**kwargs: Any) -> IntelligentEmbeddingClient:
     """Get an intelligent embedding client with auto-detection.
 
-    This is a convenience function that calls IntelligentEmbeddingClient.create_auto().
+    This is a convenience function that calls IntelligentEmbeddingClient.create().
 
     Returns:
         Configured IntelligentEmbeddingClient
     """
-    return IntelligentEmbeddingClient.create_auto(**kwargs)
+    return IntelligentEmbeddingClient.create(**kwargs)

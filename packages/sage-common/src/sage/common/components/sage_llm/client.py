@@ -22,7 +22,7 @@ Example:
     >>> from sage.common.components.sage_llm.client import IntelligentLLMClient
     >>>
     >>> # Simple mode - Auto-detect and use best available service
-    >>> client = IntelligentLLMClient.create_auto()
+    >>> client = IntelligentLLMClient.create()
     >>> response = client.chat([
     ...     {"role": "user", "content": "Hello!"}
     ... ])
@@ -311,7 +311,7 @@ class IntelligentLLMClient:
 
         if key not in _llm_client_instances:
             logger.info(f"🔄 Creating new LLM client instance (cache_key={key})")
-            _llm_client_instances[key] = cls.create_auto(model_name=model_name, **kwargs)
+            _llm_client_instances[key] = cls.create(model_name=model_name, **kwargs)
         else:
             logger.debug(f"♻️  Reusing cached LLM client instance (cache_key={key})")
 

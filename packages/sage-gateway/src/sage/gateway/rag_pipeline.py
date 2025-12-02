@@ -183,7 +183,7 @@ class RAGChatMap(MapFunction):
         if self._llm_client is None:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            self._llm_client = UnifiedInferenceClient.create_auto()
+            self._llm_client = UnifiedInferenceClient.create()
         return self._llm_client
 
     def _detect_workflow_intent(self, user_input: str) -> bool:

@@ -61,15 +61,15 @@ class TestLLMClientAdapter:
         assert hasattr(adapter, "embed")
 
     @patch.object(LLMClientAdapter, "_detect_llm_endpoint")
-    def test_create_auto(self, mock_detect):
-        """Test create_auto factory method."""
+    def test_create(self, mock_detect):
+        """Test create factory method."""
         mock_detect.return_value = (
             "http://localhost:8001/v1",
             "qwen-7b",
             "",
         )
 
-        adapter = LLMClientAdapter.create_auto()
+        adapter = LLMClientAdapter.create()
 
         assert adapter.config.llm_base_url == "http://localhost:8001/v1"
         assert adapter.config.llm_model == "qwen-7b"
@@ -110,26 +110,26 @@ class TestEmbeddingClientAdapter:
         assert hasattr(adapter, "generate")
 
     @patch.object(EmbeddingClientAdapter, "_detect_embedding_endpoint")
-    def test_create_auto_api_mode(self, mock_detect):
-        """Test create_auto returns API mode when endpoint found."""
+    def test_create_api_mode(self, mock_detect):
+        """Test create returns API mode when endpoint found."""
         mock_detect.return_value = (
             "http://localhost:8090/v1",
             "bge-m3",
             "",
         )
 
-        adapter = EmbeddingClientAdapter.create_auto()
+        adapter = EmbeddingClientAdapter.create()
 
         assert adapter._mode == "api"
         assert adapter.config.embedding_base_url == "http://localhost:8090/v1"
 
     @patch.object(EmbeddingClientAdapter, "_detect_embedding_endpoint")
     @patch.object(EmbeddingClientAdapter, "_init_embedded_mode")
-    def test_create_auto_embedded_mode(self, mock_init_embedded, mock_detect):
-        """Test create_auto falls back to embedded mode."""
+    def test_create_embedded_mode(self, mock_init_embedded, mock_detect):
+        """Test create falls back to embedded mode."""
         mock_detect.return_value = (None, None, "")
 
-        adapter = EmbeddingClientAdapter.create_auto(fallback_model="BAAI/bge-small-zh-v1.5")
+        adapter = EmbeddingClientAdapter.create(fallback_model="BAAI/bge-small-zh-v1.5")
 
         assert adapter._mode == "embedded"
 

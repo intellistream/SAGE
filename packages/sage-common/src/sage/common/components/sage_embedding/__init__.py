@@ -20,7 +20,7 @@ Quick Start:
     >>>
     >>> # For combined LLM + Embedding, use UnifiedInferenceClient:
     >>> from sage.common.components.sage_llm import UnifiedInferenceClient
-    >>> client = UnifiedInferenceClient.create_auto()
+    >>> client = UnifiedInferenceClient.create()
     >>> vectors = client.embed(["text1", "text2"])
 
 Architecture:

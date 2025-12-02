@@ -26,13 +26,13 @@ class TestLLMClientSingleton:
         """Test that get_instance creates a new instance when cache is empty."""
         from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-        # Mock create_auto to avoid actual network calls
+        # Mock create to avoid actual network calls
         mock_client = MagicMock(spec=IntelligentLLMClient)
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             client = IntelligentLLMClient.get_instance(cache_key="test1")
 
             assert client is mock_client
-            IntelligentLLMClient.create_auto.assert_called_once()
+            IntelligentLLMClient.create.assert_called_once()
 
     def test_get_instance_returns_cached_instance(self):
         """Test that get_instance returns cached instance on second call."""
@@ -40,13 +40,13 @@ class TestLLMClientSingleton:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             client1 = IntelligentLLMClient.get_instance(cache_key="test2")
             client2 = IntelligentLLMClient.get_instance(cache_key="test2")
 
             assert client1 is client2
-            # create_auto should only be called once
-            assert IntelligentLLMClient.create_auto.call_count == 1
+            # create should only be called once
+            assert IntelligentLLMClient.create.call_count == 1
 
     def test_get_instance_different_keys(self):
         """Test that different cache keys create different instances."""
@@ -56,13 +56,13 @@ class TestLLMClientSingleton:
         mock_client_b = MagicMock(spec=IntelligentLLMClient)
 
         with patch.object(
-            IntelligentLLMClient, "create_auto", side_effect=[mock_client_a, mock_client_b]
+            IntelligentLLMClient, "create", side_effect=[mock_client_a, mock_client_b]
         ):
             client_a = IntelligentLLMClient.get_instance(cache_key="key_a")
             client_b = IntelligentLLMClient.get_instance(cache_key="key_b")
 
             assert client_a is not client_b
-            assert IntelligentLLMClient.create_auto.call_count == 2
+            assert IntelligentLLMClient.create.call_count == 2
 
     def test_get_instance_default_key(self):
         """Test get_instance with default cache key."""
@@ -70,12 +70,12 @@ class TestLLMClientSingleton:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             client1 = IntelligentLLMClient.get_instance()
             client2 = IntelligentLLMClient.get_instance()
 
             assert client1 is client2
-            assert IntelligentLLMClient.create_auto.call_count == 1
+            assert IntelligentLLMClient.create.call_count == 1
 
     def test_clear_instances_all(self):
         """Test clearing all cached instances."""
@@ -83,7 +83,7 @@ class TestLLMClientSingleton:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             IntelligentLLMClient.get_instance(cache_key="a")
             IntelligentLLMClient.get_instance(cache_key="b")
             IntelligentLLMClient.get_instance(cache_key="c")
@@ -99,7 +99,7 @@ class TestLLMClientSingleton:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             IntelligentLLMClient.get_instance(cache_key="keep")
             IntelligentLLMClient.get_instance(cache_key="remove")
 
@@ -122,7 +122,7 @@ class TestLLMClientSingleton:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             IntelligentLLMClient.get_instance(cache_key="alpha")
             IntelligentLLMClient.get_instance(cache_key="beta")
 
@@ -222,7 +222,7 @@ class TestGetLLMClient:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             client = get_llm_client(cache_key="test")
 
             assert client is mock_client
@@ -236,9 +236,9 @@ class TestGetLLMClient:
 
         mock_client = MagicMock(spec=IntelligentLLMClient)
 
-        with patch.object(IntelligentLLMClient, "create_auto", return_value=mock_client):
+        with patch.object(IntelligentLLMClient, "create", return_value=mock_client):
             client1 = get_llm_client()
             client2 = get_llm_client()
 
             assert client1 is client2
-            assert IntelligentLLMClient.create_auto.call_count == 1
+            assert IntelligentLLMClient.create.call_count == 1
