@@ -725,9 +725,9 @@ class ResponseGenerator:
                     )
                 else:
                     # Auto-detection mode
-                    self.client = UnifiedInferenceClient.create_auto()
+                    self.client = UnifiedInferenceClient.create()
             except Exception as exc:  # pragma: no cover - runtime check
-                raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
+                raise RuntimeError(f"无法初始化 UnifiedInferenceClient: {exc}") from exc
 
     def _setup_auto_backend(self) -> None:
         """自动检测并配置最佳可用的 LLM 后端。
@@ -781,8 +781,8 @@ class ResponseGenerator:
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                # 使用 create_auto 会自动检测配置
-                self.client = UnifiedInferenceClient.create_auto()
+                # 使用 create 会自动检测配置
+                self.client = UnifiedInferenceClient.create()
                 status = self.client.get_status()
                 if status.get("llm_available"):
                     console.print("[green]✅ 使用云端 API 服务[/green]")

@@ -39,7 +39,7 @@ class ImageCaptioner(BaseTool):
                     "Model name is not set. Please set the model name using set_model_name() before executing the tool."
                 )
 
-            # Construct the messages parameter for IntelligentLLMClient
+            # Construct the messages parameter for UnifiedInferenceClient
             messages = [
                 {"role": "system", "content": "You are an image captioning assistant."},
                 {
@@ -49,7 +49,7 @@ class ImageCaptioner(BaseTool):
             ]
 
             # Use auto-detection for best available LLM service
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
             # Retry mechanism for connection errors
             max_retries = 5

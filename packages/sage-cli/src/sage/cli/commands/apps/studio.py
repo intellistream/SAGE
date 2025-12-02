@@ -29,7 +29,13 @@ def start(
     llm_model: str | None = typer.Option(
         None,
         "--llm-model",
-        help="指定模型（默认: Qwen/Qwen2.5-0.5B-Instruct - 超小模型）",
+        help="指定 LLM 模型（默认: Qwen/Qwen2.5-0.5B-Instruct - 超小模型）",
+    ),
+    no_embedding: bool = typer.Option(False, "--no-embedding", help="禁用 Embedding 服务"),
+    embedding_model: str | None = typer.Option(
+        None,
+        "--embedding-model",
+        help="指定 Embedding 模型（默认: BAAI/bge-m3）",
     ),
     use_finetuned: bool = typer.Option(
         False,
@@ -41,44 +47,55 @@ def start(
         "--list-finetuned",
         help="📋 列出可用的微调模型",
     ),
+    no_interactive: bool = typer.Option(
+        False,
+        "--no-interactive",
+        "-y",
+        help="禁用交互式引擎选择（使用默认配置）",
+    ),
 ):
-    """启动 SAGE Studio（默认启动本地 LLM）
+    """启动 SAGE Studio（默认启动本地 LLM + Embedding）
 
     自动化功能（可通过选项禁用）：
     - 自动启动 Gateway 服务（如未运行）
     - 自动启动本地 LLM 服务（通过 sageLLM，使用 0.5B 小模型）
-    - 自动下载模型（从 HuggingFace，缓存到 ~/.sage/models/vllm/）
+    - 自动启动 Embedding 服务（默认使用 BAAI/bge-m3）
+    - 自动下载模型（从 HuggingFace，缓存到 ~/.sage/models/）
     - 自动安装前端依赖（如缺少 node_modules）
     - 自动构建生产包（如生产模式且缺少构建输出）
 
+    交互式模式：
+    - 默认在非 CI 环境下会询问用户选择引擎配置
+    - 使用 -y/--no-interactive 跳过交互，使用默认配置
+    - CI 环境（检测到 CI/GITHUB_ACTIONS 等）自动跳过交互
+
     模型管理：
-    - 默认模型 Qwen2.5-0.5B-Instruct 非常小（~300MB），适合快速启动
+    - LLM 默认模型 Qwen2.5-0.5B-Instruct 非常小（~300MB），适合快速启动
+    - Embedding 默认模型 BAAI/bge-m3 支持多语言
     - 首次使用会从 HuggingFace 自动下载，后续使用本地缓存
-    - 模型缓存位置：~/.sage/models/vllm/<model-id>/
     - 使用 'sage llm model show' 查看已缓存模型
-    - 使用 'sage llm model download' 预下载模型
 
     微调模型集成：
     - 使用 --use-finetuned 自动使用最新的微调模型
     - 使用 --list-finetuned 查看所有可用的微调模型
     - 微调模型位置：~/.sage/studio_finetune/
-    - 微调模型会自动被 sageLLM 识别和加载
 
     示例：
-        sage studio start                          # 默认启动（含 0.5B 小模型）
+        sage studio start                          # 交互式选择引擎
+        sage studio start -y                       # 使用默认配置，无交互
         sage studio start --no-llm                 # 不启动 LLM
-        sage studio start --llm-model Qwen/Qwen2.5-7B-Instruct  # 使用 7B 模型（首次会下载）
+        sage studio start --no-embedding           # 不启动 Embedding
+        sage studio start --llm-model Qwen/Qwen2.5-7B-Instruct  # 使用 7B 模型
+        sage studio start --embedding-model BAAI/bge-large-zh-v1.5  # 使用大型中文模型
         sage studio start --use-finetuned         # 使用最新微调模型
-        sage studio start --list-finetuned        # 列出可用微调模型
 
     环境变量：
         SAGE_STUDIO_LLM=true                       # 默认启用本地 LLM
-        SAGE_STUDIO_LLM_MODEL=model_name           # 默认模型
+        SAGE_STUDIO_LLM_MODEL=model_name           # 默认 LLM 模型
         SAGE_STUDIO_LLM_GPU_MEMORY=0.9             # GPU 内存使用率
-        SAGE_STUDIO_LLM_TENSOR_PARALLEL=1          # Tensor 并行度
         SAGE_LLM_MODEL_ROOT=~/.sage/models/llm     # 模型缓存位置
 
-    所有自动操作都会先征求确认。
+    所有自动操作都会先征求确认（除非使用 -y 或在 CI 环境）。
     """
     console.print("[blue]🚀 启动 SAGE Studio...[/blue]")
 
@@ -115,16 +132,19 @@ def start(
             console.print(f"[blue]🌐 访问地址: {url}[/blue]")
             return
 
-        # Start Studio with ChatModeManager (includes Gateway + LLM by default)
-        # Pass llm=None to allow auto-detection (if no_llm is False)
-        # Pass llm=False if user explicitly requested no_llm
+        # Start Studio with ChatModeManager (includes Gateway + LLM + Embedding by default)
+        # Pass llm/embedding=None to allow interactive selection
+        # Pass llm/embedding=False if user explicitly requested no_llm/no_embedding
         success = studio_manager.start(
             frontend_port=port,
             host=host,
             dev=dev,
             llm=False if no_llm else None,
             llm_model=llm_model,
+            embedding=False if no_embedding else None,
+            embedding_model=embedding_model,
             use_finetuned=use_finetuned,
+            interactive=not no_interactive,
         )
 
         if success:
@@ -132,8 +152,10 @@ def start(
             console.print("\n[cyan]💡 提示：[/cyan]")
             if not no_llm:
                 console.print("  • 本地 LLM 服务已通过 sageLLM 启动")
-                console.print("  • IntelligentLLMClient 将自动检测并使用")
-                console.print("  • 使用 'sage studio status' 查看服务状态")
+                console.print("  • UnifiedInferenceClient 将自动检测并使用")
+            if not no_embedding:
+                console.print("  • Embedding 服务已启动")
+            console.print("  • 使用 'sage studio status' 查看服务状态")
             console.print("  • Chat 模式需要 Gateway 服务支持")
             console.print("  • 使用 'sage studio stop' 停止服务")
         else:
