@@ -1,48 +1,44 @@
 # SAGE LLM Control Plane Enhancement Tasks
 
-This document outlines the tasks for enhancing the sageLLM Control Plane to support dynamic engine
-lifecycle management and GPU resource scheduling (Issue #1284).
+This document outlines the tasks for enhancing the sageLLM Control Plane to support dynamic engine lifecycle management and GPU resource scheduling (Issue #1284).
 
 ## Task 1: GPU Resource Manager (Phase 1)
 
-**Assignee**: Copilot A **Goal**: Implement `GPUResourceManager` to monitor and manage GPU
-resources. **File**:
-`packages/sage-common/src/sage/common/components/sage_llm/sageLLM/control_plane/gpu_manager.py`
+**Assignee**: Copilot A
+
+**Goal**: Implement `GPUResourceManager` to monitor and manage GPU resources.
+
+**File**: `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/control_plane/gpu_manager.py`
 
 **Instructions**:
 
 1. Create the file `gpu_manager.py`.
 1. Implement the `GPUResourceManager` class.
 1. **Dependencies**: Use `pynvml` for GPU monitoring.
-   - Check `packages/sage-common/pyproject.toml`. If `nvidia-ml-py` is not listed, add it to
-     dependencies.
+   - Check `packages/sage-common/pyproject.toml`. If `nvidia-ml-py` is not listed, add it to dependencies.
    - Handle `ImportError` gracefully (mock if not available or if running on CPU).
 1. **Key Methods**:
    - `__init__(self)`: Initialize NVML.
-   - `get_system_status(self) -> List[Dict]`: Return status of all GPUs (index, name, memory_total,
-     memory_used, memory_free, utilization).
-   - `check_resource_availability(self, required_memory_gb: float, count: int = 1) -> List[int]`:
-     Return list of GPU indices that satisfy the requirement.
-   - `allocate_resources(self, required_memory_gb: float, count: int = 1) -> List[int]`: Reserve
-     resources (internal accounting).
+   - `get_system_status(self) -> List[Dict]`: Return status of all GPUs (index, name, memory_total, memory_used, memory_free, utilization).
+   - `check_resource_availability(self, required_memory_gb: float, count: int = 1) -> List[int]`: Return list of GPU indices that satisfy the requirement.
+   - `allocate_resources(self, required_memory_gb: float, count: int = 1) -> List[int]`: Reserve resources (internal accounting).
    - `release_resources(self, gpu_ids: List[int], memory_gb: float)`: Release resources.
-   - `estimate_model_memory(self, model_name: str, tensor_parallel_size: int = 1) -> float`:
-     Implement a heuristic to estimate memory usage (e.g., 2GB per 1B params + overhead). You can
-     use a simple lookup or formula for now.
+   - `estimate_model_memory(self, model_name: str, tensor_parallel_size: int = 1) -> float`: Implement a heuristic to estimate memory usage (e.g., 2GB per 1B params + overhead). You can use a simple lookup or formula for now.
 1. **Error Handling**: Ensure robust error handling for NVML calls.
 
 ## Task 2: Engine Lifecycle Manager (Phase 2)
 
-**Assignee**: Copilot B **Goal**: Implement `EngineLifecycleManager` to spawn and stop vLLM
-processes. **File**:
-`packages/sage-common/src/sage/common/components/sage_llm/sageLLM/control_plane/engine_lifecycle.py`
+**Assignee**: Copilot B
+
+**Goal**: Implement `EngineLifecycleManager` to spawn and stop vLLM processes.
+
+**File**: `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/control_plane/engine_lifecycle.py`
 
 **Instructions**:
 
 1. Create the file `engine_lifecycle.py`.
 1. Implement the `EngineLifecycleManager` class.
-1. **Dependencies**: `subprocess`, `psutil` (for process management),
-   `sage.common.config.ports.SagePorts`.
+1. **Dependencies**: `subprocess`, `psutil` (for process management), `sage.common.config.ports.SagePorts`.
 1. **Key Methods**:
    - `spawn_engine(self, model_id: str, gpu_ids: List[int], port: int, extra_args: List[str] = None) -> str`:
      - Launch `vllm.entrypoints.openai.api_server` as a subprocess.
@@ -50,17 +46,18 @@ processes. **File**:
      - Return a unique `engine_id`.
    - `stop_engine(self, engine_id: str) -> bool`:
      - Send SIGTERM, wait, then SIGKILL if needed.
-   - `get_engine_status(self, engine_id: str) -> Dict`: Return status (RUNNING, STOPPED, FAILED),
-     PID, port, model.
+   - `get_engine_status(self, engine_id: str) -> Dict`: Return status (RUNNING, STOPPED, FAILED), PID, port, model.
    - `list_engines(self) -> List[Dict]`: List all managed engines.
-1. **Port Management**: You might need a simple helper to find available ports if `port` is not
-   provided, or rely on the caller.
+1. **Port Management**: You might need a simple helper to find available ports if `port` is not provided, or rely on the caller.
 1. **Logging**: Log all spawn/stop events.
 
 ## Task 3: Control Plane Integration & API (Phase 2/3)
 
-**Assignee**: Copilot C **Goal**: Integrate managers into `ControlPlaneManager` and expose
-Management API. **Files**:
+**Assignee**: Copilot C
+
+**Goal**: Integrate managers into `ControlPlaneManager` and expose Management API.
+
+**Files**:
 
 - `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/control_plane/manager.py`
 - `packages/sage-common/src/sage/common/components/sage_llm/unified_api_server.py`
@@ -92,8 +89,11 @@ Management API. **Files**:
 
 ## Task 4: CLI Commands (Phase 3)
 
-**Assignee**: Copilot D **Goal**: Add CLI commands to manage engines. **File**:
-`packages/sage-cli/src/sage/cli/commands/apps/llm.py` (or new file `llm_engine.py` imported there)
+**Assignee**: Copilot D
+
+**Goal**: Add CLI commands to manage engines.
+
+**File**: `packages/sage-cli/src/sage/cli/commands/apps/llm.py` (or new file `llm_engine.py` imported there)
 
 **Instructions**:
 
@@ -104,7 +104,6 @@ Management API. **Files**:
    - `sage llm engine stop <engine_id>`: Call `DELETE /v1/management/engines/{engine_id}`.
    - `sage llm gpu`: Call `GET /v1/management/status` and display GPU info.
 1. **Implementation Details**:
-   - Use `httpx` or `requests` to talk to the local `UnifiedAPIServer` (default port 8000 or from
-     config).
+   - Use `httpx` or `requests` to talk to the local `UnifiedAPIServer` (default port 8000 or from config).
    - Use `rich` for pretty printing tables (Engine status, GPU usage).
    - Handle connection errors (e.g., if `sage llm serve` is not running).
