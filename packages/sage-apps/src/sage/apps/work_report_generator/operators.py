@@ -870,7 +870,7 @@ class LLMReportGenerator(MapFunction):
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                self._client = UnifiedInferenceClient.create_auto()
+                self._client = UnifiedInferenceClient.create()
             except Exception as e:
                 self.logger.warning(f"Failed to initialize LLM client: {e}")
                 self._client = None
@@ -1042,7 +1042,7 @@ class ReportSink(SinkFunction):
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                self._llm_client = UnifiedInferenceClient.create_auto()
+                self._llm_client = UnifiedInferenceClient.create()
             except Exception as e:
                 self.logger.warning(f"Failed to initialize LLM client: {e}")
                 self._llm_client = None

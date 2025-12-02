@@ -93,7 +93,6 @@ cross-layer/
 |------|------|------|
 | [BREAKING_CHANGES_agent_tools_plan.md](BREAKING_CHANGES_agent_tools_plan.md) | Agent Tools 功能分支破坏性变更说明 | ✅ 有效 |
 | [MERGE_CONFLICT_RESOLUTION_GUIDE.md](MERGE_CONFLICT_RESOLUTION_GUIDE.md) | 合并冲突解决指南 | ✅ 有效 |
-| [INTELLIGENT_LLM_CLIENT_REFACTORING.md](INTELLIGENT_LLM_CLIENT_REFACTORING.md) | IntelligentLLMClient 重构文档 | ✅ 有效 |
 | [FINETUNE_ARCHITECTURE.md](FINETUNE_ARCHITECTURE.md) | Fine-tune 功能架构说明 | ✅ 有效 |
 | [AGENT_TRAINING_PIPELINE.md](AGENT_TRAINING_PIPELINE.md) | Agent 训练流水线文档 | ✅ 有效 |
 

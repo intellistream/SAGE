@@ -1143,20 +1143,60 @@ def main() -> None:
         choices=["fifo", "priority", "slo_aware", "adaptive", "hybrid"],
         help="Scheduling policy (default: adaptive)",
     )
+    parser.add_argument(
+        "--enable-control-plane",
+        action="store_true",
+        help="Enable Control Plane for dynamic engine management",
+    )
     parser.add_argument("--log-level", default="info", help="Log level (default: info)")
 
     args = parser.parse_args()
 
-    # Create and start server
-    server = create_unified_server(
+    # Build configuration
+    policy = SchedulingPolicyType(args.scheduling_policy)
+
+    llm_backends = []
+    embedding_backends = []
+
+    # Parse LLM backend
+    if args.llm_backend:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(args.llm_backend)
+        llm_backends.append(
+            BackendInstanceConfig(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 8001,
+                model_name=args.llm_model or "",
+                instance_type="llm",
+            )
+        )
+
+    # Parse Embedding backend
+    if args.embedding_backend:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(args.embedding_backend)
+        embedding_backends.append(
+            BackendInstanceConfig(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 8090,
+                model_name=args.embedding_model or "",
+                instance_type="embedding",
+            )
+        )
+
+    config = UnifiedServerConfig(
         host=args.host,
         port=args.port,
-        llm_model=args.llm_model,
-        llm_backend_url=args.llm_backend,
-        embedding_model=args.embedding_model,
-        embedding_backend_url=args.embedding_backend,
-        scheduling_policy=args.scheduling_policy,
+        llm_backends=llm_backends if llm_backends else [],
+        embedding_backends=embedding_backends if embedding_backends else [],
+        scheduling_policy=policy,
+        enable_control_plane=args.enable_control_plane,
+        log_level=args.log_level,
     )
+
+    server = UnifiedAPIServer(config)
 
     try:
         server.start(block=True)

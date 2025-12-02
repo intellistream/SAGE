@@ -221,8 +221,8 @@ sage llm model list                         # 列出已下载模型
 |------|------|
 | `unified_client.py` | `UnifiedInferenceClient` - 统一推理客户端（**唯一入口**） |
 | `unified_api_server.py` | `UnifiedAPIServer` - OpenAI 兼容 API Gateway |
-| `client.py` | `IntelligentLLMClient` - 独立 LLM 客户端（保留） |
 | `control_plane_service.py` | Control Plane SAGE 封装层 |
+| `compat.py` | `LLMClientAdapter`, `EmbeddingClientAdapter` - vLLM 引擎适配器 |
 | `sageLLM/control_plane/` | 核心调度框架（GPU 管理、引擎生命周期、预设系统） |
 
 **统一入口 API**:
@@ -266,7 +266,9 @@ Embedding 服务和工厂：
 |------|------|
 | `embedding_server.py` | OpenAI 兼容 Embedding 服务器 |
 | `factory.py` | `EmbeddingFactory` - 本地模型加载 |
-| `client.py` | `IntelligentEmbeddingClient` - 独立客户端（保留） |
+| `service.py` | `EmbeddingService` - Embedding 服务管理 |
+
+> **注意**: 独立的 `IntelligentEmbeddingClient` 已被移除，请使用 `UnifiedInferenceClient.create().embed()` 替代。
 
 ### ⚙️ 配置模块 (`config/`)
 
@@ -281,8 +283,6 @@ Embedding 服务和工厂：
 
 - **[control-plane-enhancement.md](./control-plane-enhancement.md)** - Control Plane 动态引擎管理增强（GPU/Lifecycle/预设/`use_gpu` 支持）
 - **[control-plane-roadmap-tasks.md](./control-plane-roadmap-tasks.md)** - Control Plane 任务路线图（已完成）
-- **[hybrid-scheduler/README.md](./hybrid-scheduler/README.md)** - sageLLM 混合调度器项目总结
-- **[hybrid-scheduler/PULL_REQUEST.md](./hybrid-scheduler/PULL_REQUEST.md)** - PR 详细说明
 
 ### 工具文档
 

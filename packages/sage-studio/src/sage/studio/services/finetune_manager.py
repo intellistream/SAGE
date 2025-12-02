@@ -88,7 +88,7 @@ class FinetuneManager:
         if not hasattr(self, "_initialized"):
             self.tasks: dict[str, FinetuneTask] = {}
             # Default finetune base model (for UI display only, not for chat)
-            # Chat will use IntelligentLLMClient's auto-detection
+            # Chat will use UnifiedInferenceClient's auto-detection
             self.current_model: str = os.getenv(
                 "SAGE_FINETUNE_BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct"
             )
@@ -364,13 +364,15 @@ class FinetuneManager:
             log_file = Path(task.output_dir) / "training.log"
             log_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(log_file, "w") as f:
-                process = subprocess.Popen(
-                    ["python", str(script_path)],
-                    stdout=f,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,  # 创建新的进程组，脱离父进程
-                )
+            log_handle = open(log_file, "w")
+            process = subprocess.Popen(
+                ["python", str(script_path)],
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,  # 创建新的进程组，脱离父进程
+            )
+            # 注意：不关闭 log_handle，让子进程继承并管理它
 
             # 保存进程 ID
             task.process_id = process.pid
@@ -627,7 +629,7 @@ if __name__ == "__main__":
         """Switch current model (for finetuning base model selection)
 
         Note: This only affects the finetuning UI's model selection.
-        Chat mode will use IntelligentLLMClient's auto-detection (local first).
+        Chat mode will use UnifiedInferenceClient's auto-detection (local first).
         """
         self.current_model = model_path
         # Removed: os.environ["SAGE_CHAT_MODEL"] = model_path

@@ -60,7 +60,7 @@ def test_execute_success(image_captioner_tool, mocker):
 
     # 注意：这里的路径是相对于您运行 pytest 的根目录的绝对路径。
     mocker.patch(
-        "sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto",
+        "sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create",
         return_value=mock_client_instance,
     )
 
@@ -106,7 +106,7 @@ def test_execute_model_not_set(image_captioner_tool):
 #         successful_caption
 #     ]
 
-#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto', return_value=mock_client_instance)
+#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create', return_value=mock_client_instance)
 #     # 同样需要模拟 time.sleep，否则测试会真的暂停
 #     mock_sleep = mocker.patch('time.sleep')
 
@@ -131,7 +131,7 @@ def test_execute_model_not_set(image_captioner_tool):
 #     # 模拟一个总是失败的场景
 #     mock_client_instance.generate.side_effect = ConnectionError("Persistent connection failure")
 
-#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto', return_value=mock_client_instance)
+#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create', return_value=mock_client_instance)
 #     mock_sleep = mocker.patch('time.sleep')
 
 #     # --- 执行 (Act) ---
@@ -155,7 +155,7 @@ def test_execute_model_not_set(image_captioner_tool):
 #     # 模拟一个通用的异常
 #     mock_client_instance.generate.side_effect = Exception("A generic error occurred")
 
-#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create_auto', return_value=mock_client_instance)
+#     mocker.patch('sage.middleware.operators.tools.image_captioner.UnifiedInferenceClient.create', return_value=mock_client_instance)
 
 #     # --- 执行 (Act) ---
 #     result = image_captioner_tool.execute(image_path="path/to/image.png")

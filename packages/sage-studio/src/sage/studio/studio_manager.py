@@ -193,13 +193,15 @@ class StudioManager:
                 cmd = ["sage-gateway", "--host", host, "--port", str(port)]
 
             # 启动进程
-            log_file = open(self.gateway_log_file, "w")
+            log_handle = open(self.gateway_log_file, "w")
             process = subprocess.Popen(
                 cmd,
-                stdout=log_file,
-                stderr=log_file,
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=log_handle,
                 start_new_session=True,
             )
+            # 注意：不关闭 log_handle，让子进程继承并管理它
 
             # 保存 PID
             with open(self.gateway_pid_file, "w") as f:
@@ -709,14 +711,16 @@ if __name__ == "__main__":
         try:
             # 启动后端进程
             cmd = [sys.executable, str(api_file)]
-            with open(self.backend_log_file, "w") as log:
-                process = subprocess.Popen(
-                    cmd,
-                    cwd=self.backend_dir,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    preexec_fn=os.setsid if os.name != "nt" else None,
-                )
+            log_handle = open(self.backend_log_file, "w")
+            process = subprocess.Popen(
+                cmd,
+                cwd=self.backend_dir,
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                preexec_fn=os.setsid if os.name != "nt" else None,
+            )
+            # 注意：不关闭 log_handle，让子进程继承并管理它
 
             # 保存 PID
             with open(self.backend_pid_file, "w") as f:
@@ -1122,14 +1126,19 @@ if __name__ == "__main__":
                 ]
 
             # 启动进程 - 使用独立的日志文件句柄
-            log_file = open(self.log_file, "w")
+            # 关键修复: 使用 with 语句确保文件句柄正确管理，并设置 stdin=DEVNULL
+            # 防止 npm/Vite 进程尝试读取终端输入导致卡顿
+            log_handle = open(self.log_file, "w")
             process = subprocess.Popen(
                 cmd,
                 cwd=self.frontend_dir,
-                stdout=log_file,
-                stderr=log_file,
+                stdin=subprocess.DEVNULL,  # 关键：阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=log_handle,
                 start_new_session=True,  # 在新会话中运行,避免信号问题
             )
+            # 注意：不关闭 log_handle，让子进程继承并管理它
+            # 子进程退出时会自动关闭
 
             # 保存 PID
             with open(self.pid_file, "w") as f:
