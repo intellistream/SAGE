@@ -111,7 +111,7 @@ class DFSDTSelectorConfig(SelectorConfig):
     max_depth: int = Field(default=3, ge=1, le=10, description="Maximum search depth")
     beam_width: int = Field(default=5, ge=1, le=20, description="Number of candidates per level")
     llm_model: str = Field(
-        default="auto", description="LLM model for scoring (auto uses UnifiedInferenceClient)"
+        default="auto", description="LLM model for scoring (auto uses IntelligentLLMClient)"
     )
     temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="LLM sampling temperature")
     use_diversity_prompt: bool = Field(
@@ -147,7 +147,7 @@ class GorillaSelectorConfig(SelectorConfig):
     )
     embedding_model: str = Field(default="default", description="Embedding model for retrieval")
     llm_model: str = Field(
-        default="auto", description="LLM model for selection (auto uses UnifiedInferenceClient)"
+        default="auto", description="LLM model for selection (auto uses IntelligentLLMClient)"
     )
     similarity_metric: str = Field(
         default="cosine", description="Similarity metric: cosine, dot, euclidean"

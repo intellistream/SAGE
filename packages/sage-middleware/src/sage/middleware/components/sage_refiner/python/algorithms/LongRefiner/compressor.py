@@ -91,7 +91,7 @@ class LongRefinerCompressor:
         except ImportError as e:
             raise ImportError(
                 "LongRefiner requires vLLM. Please install it with: "
-                "pip install 'isage-common[vllm]' or pip install vllm"
+                "pip install 'isage-middleware[vllm]' or pip install vllm"
             ) from e
 
         self.model = LLM(

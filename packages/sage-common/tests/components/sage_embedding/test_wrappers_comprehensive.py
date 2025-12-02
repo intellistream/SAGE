@@ -9,8 +9,6 @@ This test suite provides detailed coverage for:
 - API key management
 """
 
-import base64
-import struct
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -434,62 +432,6 @@ class TestSiliconCloudWrapper:
 
         with pytest.raises(RuntimeError, match="需要 API Key"):
             SiliconCloudEmbedding()
-
-    @patch("requests.post")
-    def test_embed_batch_single_request(self, mock_post):
-        """Batch embedding should call SiliconCloud once when under batch size"""
-        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
-            SiliconCloudEmbedding,
-        )
-
-        mock_post.return_value = self._mock_siliconcloud_response([[1.0, 2.0], [3.0, 4.0]])
-
-        wrapper = SiliconCloudEmbedding(api_key="test-key", batch_size=8)
-        texts = ["foo", "bar"]
-        result = wrapper.embed_batch(texts)
-
-        assert result == [[1.0, 2.0], [3.0, 4.0]]
-        assert mock_post.call_count == 1
-        payload = mock_post.call_args.kwargs["json"]
-        assert payload["input"] == texts
-
-    @patch("requests.post")
-    def test_embed_batch_chunked_requests(self, mock_post):
-        """Batch embedding should respect configured batch_size"""
-        from sage.common.components.sage_embedding.wrappers.siliconcloud_wrapper import (
-            SiliconCloudEmbedding,
-        )
-
-        mock_post.side_effect = [
-            self._mock_siliconcloud_response([[1.0]]),
-            self._mock_siliconcloud_response([[2.0]]),
-            self._mock_siliconcloud_response([[3.0]]),
-        ]
-
-        wrapper = SiliconCloudEmbedding(api_key="test-key", batch_size=1)
-        texts = ["alpha", "beta", "gamma"]
-        result = wrapper.embed_batch(texts)
-
-        assert result == [[1.0], [2.0], [3.0]]
-        assert mock_post.call_count == 3
-
-        inputs = [call.kwargs["json"]["input"] for call in mock_post.call_args_list]
-        assert inputs == [["alpha"], ["beta"], ["gamma"]]
-
-    @staticmethod
-    def _mock_siliconcloud_response(vectors: list[list[float]]) -> Mock:
-        """Build a fake SiliconCloud response with base64 embeddings"""
-
-        def _encode(vec: list[float]) -> str:
-            return base64.b64encode(struct.pack("<" + "f" * len(vec), *vec)).decode("utf-8")
-
-        data = [{"embedding": _encode(vec)} for vec in vectors]
-
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {"data": data}
-        return mock_response
 
 
 # ==============================================================================

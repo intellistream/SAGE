@@ -54,7 +54,7 @@ dependencies = [
     "black>=23.0.0",
     "isort>=5.10.0",
     "mypy>=1.0.0",
-    "ruff==0.14.6",  # Pinned to match tools/pre-commit-config.yaml
+    "ruff>=0.1.0",
     "flake8>=5.0.0",
     "coverage>=7.0.0",
     "bandit>=1.7.0",

@@ -304,19 +304,13 @@ def run_section_5_5(args) -> dict[str, Any]:
         try:
             from experiments.exp_training_comparison import run_training_comparison
 
-            # Paper 1 compares published SOTA training methods
-            # SIAS methods (B_coreset, C_continual, D_combined) are for Paper 2
+            # 确定要对比的方法
             if args.train_methods:
                 methods = args.train_methods.split(",")
+            elif args.quick:
+                methods = ["A_baseline", "D_combined"]
             else:
-                # Paper 1 default: compare published SOTA methods
-                methods = [
-                    "A_baseline",  # Standard SFT (full params)
-                    "A_lora",  # LoRA (Hu et al., 2021)
-                    "A_qlora",  # QLoRA (Dettmers et al., 2023)
-                    "A_fireact",  # FireAct trajectory tuning
-                    "A_agenttuning",  # AgentTuning multi-task
-                ]
+                methods = ["A_baseline", "B3_coreset_hybrid", "C_continual", "D_combined"]
 
             results["training_comparison"] = run_training_comparison(
                 methods=methods,
@@ -582,17 +576,8 @@ Examples:
         print("\n📡 Checking LLM service...")
         from experiments.llm_service import ensure_llm_available
 
-        # 尝试自动启动本地服务，不允许使用云端 API
-        # 优先检查命令行指定的端口和模型
-        if not ensure_llm_available(
-            port=args.llm_port,
-            model=args.llm_model,
-            auto_start=True,
-            allow_cloud=False,
-        ):
-            print("  ❌ Failed to connect to or start local LLM service. Aborting.")
-            print("  💡 Please check logs or start service manually: sage llm run")
-            sys.exit(1)
+        if not ensure_llm_available(auto_start=False):
+            print("  ⚠️  No LLM service available. Use --llm-start or --skip-llm")
 
     start_time = time.time()
     all_results = {}

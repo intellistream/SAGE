@@ -1,54 +1,39 @@
-# Archive - Historical Development Documents
+# Archive - Historical Development Scripts
 
-This directory contains historical scripts and documents from previous development work.
+This directory contains historical scripts and documents from previous refactoring work.
 
-## Directory Structure
+## Files
 
-```
-archive/
-├── 2025-restructuring/         # 2025年项目重构相关文档
-├── agent-benchmark-2025/       # Agent Benchmark 开发任务文档
-├── agent-tool-benchmark-2025/  # Agent 工具评测详细设计文档
-├── data-architecture/          # 数据架构设计示例代码
-├── guides/                     # 功能使用指南（已完成）
-├── l3-kernel/                  # Kernel 层历史 Issue 修复文档
-├── l3-libs/                    # Libs 层重构和优化文档
-├── migration-guides/           # 已完成的迁移指南
-└── testing-2025/               # 2025年测试覆盖率改进报告
-```
+### temp_update_imports.py
+- **Date**: 2025-10-22
+- **Purpose**: Update imports from `sage.kernel.core` to `sage.common.core`
+- **Context**: Phase 1 restructuring - moving core types to sage-common (L1)
+- **Status**: Completed, kept for reference
 
-## Key Archives
+### update_operator_imports.py
+- **Date**: 2025-10-22
+- **Purpose**: Batch update operator imports from `sage.libs.rag.*` to `sage.middleware.operators.rag.*`
+- **Context**: Package restructuring - moving RAG/LLM/Tool operators to sage-middleware (L4)
+- **Status**: Completed, kept for reference
 
-### agent-benchmark-2025/
-Agent Benchmark 开发任务相关文档，包括：
-- 任务拆分计划
-- 剩余工作清单
-- 高级实验设计
-
-### agent-tool-benchmark-2025/
-Agent 工具评测的详细设计文档，包括：
-- ICLR/ICML 论文提示词
-- 任务分解计划
-- SOTA 方法集成指南
-
-### testing-2025/
-2025年测试覆盖率改进工作的完整记录，包括：
-- 任务进度报告
-- 最终完成总结
-- 覆盖率提升数据
+### PR_DESCRIPTION.md
+- **Date**: 2025-10-13 to 2025-10-14
+- **Purpose**: Pull request description for "Complete Package Build Configuration"
+- **Context**: CI/CD fix - adding missing packages (sage-apps, sage-benchmark, sage-studio) to build pipeline
+- **Key Changes**:
+  - Added missing packages to CI/CD
+  - Restructured dependency hierarchy
+  - Fixed installation with `--no-deps` flag
+  - Implemented lazy import for C++ extensions
+- **Status**: Merged, kept for historical reference
 
 ## Why Archive?
 
 These files are kept in the archive because:
-1. They document important historical development work
+1. They document important historical refactoring work
 2. They may be useful for understanding past architectural decisions
-3. They can serve as templates for future similar tasks
-4. They provide context for ongoing or future improvements
+3. They can serve as templates for future similar refactoring tasks
 
 ## Note
 
-These documents should be considered historical reference. For current documentation, please refer to the parent `dev-notes/` directory or `docs-public/`.
-
----
-
-**Last Updated**: 2025-11-29
+These scripts should NOT be run on the current codebase without careful review, as the code structure may have evolved since they were created.

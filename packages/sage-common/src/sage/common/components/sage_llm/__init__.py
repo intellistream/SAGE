@@ -8,7 +8,8 @@ allowing SAGE to leverage high-performance LLM serving capabilities.
 Services:
     - VLLMService: Simple single-instance vLLM service
     - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
-    - UnifiedInferenceClient: Unified client for both LLM and Embedding
+    - IntelligentLLMClient: Auto-detecting client with cloud fallback
+    - UnifiedInferenceClient: Unified client for both LLM and Embedding (NEW)
 
 Architecture:
     - Designed to be used by L2 (Platform) and higher layers
@@ -16,12 +17,14 @@ Architecture:
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
 """
 
-from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
+from .api_server import LLMAPIServer, LLMServerConfig
+from .client import IntelligentLLMClient, check_llm_service, get_llm_client
 from .compat import (
     EmbeddingClientAdapter,
     LLMClientAdapter,
+    create_embedding_client_compat,
+    create_llm_client_compat,
 )
-from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
 from .unified_api_server import (
     BackendInstanceConfig,
@@ -50,11 +53,11 @@ try:
         "VLLMServiceConfig",
         "LLMAPIServer",
         "LLMServerConfig",
-        "LLMLauncher",
-        "LLMLauncherResult",
-        "get_served_model_name",
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
+        "IntelligentLLMClient",
+        "check_llm_service",
+        "get_llm_client",
         # Unified Client
         "UnifiedInferenceClient",
         "UnifiedClient",
@@ -70,6 +73,8 @@ try:
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
+        "create_llm_client_compat",
+        "create_embedding_client_compat",
     ]
 except ImportError:
     # Control Plane service not available
@@ -78,9 +83,9 @@ except ImportError:
         "VLLMServiceConfig",
         "LLMAPIServer",
         "LLMServerConfig",
-        "LLMLauncher",
-        "LLMLauncherResult",
-        "get_served_model_name",
+        "IntelligentLLMClient",
+        "check_llm_service",
+        "get_llm_client",
         # Unified Client
         "UnifiedInferenceClient",
         "UnifiedClient",
@@ -96,4 +101,6 @@ except ImportError:
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
+        "create_llm_client_compat",
+        "create_embedding_client_compat",
     ]

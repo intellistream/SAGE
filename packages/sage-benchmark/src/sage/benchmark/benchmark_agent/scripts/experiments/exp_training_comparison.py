@@ -1,30 +1,28 @@
 #!/usr/bin/env python3
 """
-Training Method Comparison Experiments
+Section 5.5: Training Method Comparison
 
-This module contains training method comparisons for both Paper 1 and Paper 2.
+研究问题: 不同训练优化方法对 Agent 能力的提升效果如何?
 
-Paper 1 (Benchmark) Methods:
+测试方法:
 - Method A: Baseline SFT (标准微调，无优化)
-- (Future: FireAct, AgentTuning, DoRA, LoRA+ as baselines)
-
-Paper 2 (SIAS) Methods - Our Contributions:
-- Method B: Coreset Selection (数据选择策略) - from sage.libs.sias
+- Method B: Coreset Selection (数据选择策略)
   - B1: Loss-based (选择高损失样本)
   - B2: Diversity-based (选择多样性样本)
   - B3: Hybrid (60% loss + 40% diversity)
-- Method C: Continual Learning (持续学习 + 经验回放) - from sage.libs.sias
+- Method C: Continual Learning (持续学习 + 经验回放)
 - Method D: Combined (Coreset + Continual)
 
+目标:
+- 对比各方法在三个 Challenge 上的表现
+- 确定最优训练策略组合
+- 为 Paper 2 (SAGE Method) 提供 baseline
+
 Usage:
-    # Paper 1 only (baseline)
-    python exp_training_comparison.py --methods A_baseline
-
-    # Paper 2 experiments (SIAS)
-    python exp_training_comparison.py --methods A_baseline,B3_coreset_hybrid,C_continual,D_combined
-
-    # Quick test
-    python exp_training_comparison.py --quick --dry-run
+    python exp_training_comparison.py
+    python exp_training_comparison.py --quick
+    python exp_training_comparison.py --methods A,D
+    python exp_training_comparison.py --dry-run
 """
 
 from __future__ import annotations
@@ -74,75 +72,19 @@ class TrainingMethodConfig:
         return asdict(self)
 
 
-# =============================================================================
-# Paper 1 (Benchmark) Training Methods - Published SOTA baselines
-# =============================================================================
-PAPER1_TRAINING_METHODS = {
-    # --- Standard Baselines ---
+# 预定义方法配置
+TRAINING_METHODS = {
     "A_baseline": TrainingMethodConfig(
         name="A_baseline",
         display_name="A: Baseline SFT",
-        description="Standard supervised fine-tuning (full parameters)",
+        description="Standard supervised fine-tuning without optimization",
         use_coreset=False,
         use_continual=False,
     ),
-    # --- PEFT Methods ---
-    "A_lora": TrainingMethodConfig(
-        name="A_lora",
-        display_name="A: LoRA",
-        description="Low-Rank Adaptation (Hu et al., 2021)",
-        use_coreset=False,
-        use_continual=False,
-        # LoRA-specific config would be handled by trainer
-    ),
-    "A_qlora": TrainingMethodConfig(
-        name="A_qlora",
-        display_name="A: QLoRA",
-        description="Quantized LoRA (Dettmers et al., 2023)",
-        use_coreset=False,
-        use_continual=False,
-    ),
-    "A_dora": TrainingMethodConfig(
-        name="A_dora",
-        display_name="A: DoRA",
-        description="Weight-Decomposed LoRA (Liu et al., 2024)",
-        use_coreset=False,
-        use_continual=False,
-    ),
-    # --- Agent-Specific Training Methods ---
-    "A_fireact": TrainingMethodConfig(
-        name="A_fireact",
-        display_name="A: FireAct",
-        description="Trajectory fine-tuning (Chen et al., 2023)",
-        use_coreset=False,
-        use_continual=False,
-        # FireAct uses trajectory data format
-    ),
-    "A_agenttuning": TrainingMethodConfig(
-        name="A_agenttuning",
-        display_name="A: AgentTuning",
-        description="Multi-task agent tuning (Zeng et al., 2023)",
-        use_coreset=False,
-        use_continual=False,
-        # AgentTuning uses mixed task data
-    ),
-    "A_toolllm": TrainingMethodConfig(
-        name="A_toolllm",
-        display_name="A: ToolLLM",
-        description="Tool-augmented fine-tuning (Qin et al., 2023)",
-        use_coreset=False,
-        use_continual=False,
-    ),
-}
-
-# =============================================================================
-# Paper 2 (SIAS) Training Methods - Our contributions
-# =============================================================================
-SIAS_TRAINING_METHODS = {
     "B1_coreset_loss": TrainingMethodConfig(
         name="B1_coreset_loss",
         display_name="B1: Coreset (Loss)",
-        description="[SIAS] Select high-loss samples for training",
+        description="Select high-loss samples for training",
         use_coreset=True,
         coreset_strategy="loss",
         coreset_ratio=0.3,
@@ -150,7 +92,7 @@ SIAS_TRAINING_METHODS = {
     "B2_coreset_diversity": TrainingMethodConfig(
         name="B2_coreset_diversity",
         display_name="B2: Coreset (Diversity)",
-        description="[SIAS] Select diverse samples using clustering",
+        description="Select diverse samples using clustering",
         use_coreset=True,
         coreset_strategy="diversity",
         coreset_ratio=0.3,
@@ -158,7 +100,7 @@ SIAS_TRAINING_METHODS = {
     "B3_coreset_hybrid": TrainingMethodConfig(
         name="B3_coreset_hybrid",
         display_name="B3: Coreset (Hybrid)",
-        description="[SIAS] 60% high-loss + 40% diverse samples",
+        description="60% high-loss + 40% diverse samples",
         use_coreset=True,
         coreset_strategy="hybrid",
         coreset_ratio=0.3,
@@ -166,14 +108,14 @@ SIAS_TRAINING_METHODS = {
     "C_continual": TrainingMethodConfig(
         name="C_continual",
         display_name="C: Continual Learning",
-        description="[SIAS] Online learning with experience replay",
+        description="Online learning with experience replay",
         use_continual=True,
         replay_ratio=0.1,
     ),
     "D_combined": TrainingMethodConfig(
         name="D_combined",
         display_name="D: Combined",
-        description="[SIAS] Coreset selection + Continual learning",
+        description="Coreset selection + Continual learning",
         use_coreset=True,
         coreset_strategy="hybrid",
         coreset_ratio=0.3,
@@ -181,9 +123,6 @@ SIAS_TRAINING_METHODS = {
         replay_ratio=0.1,
     ),
 }
-
-# Combined registry for backward compatibility
-TRAINING_METHODS = {**PAPER1_TRAINING_METHODS, **SIAS_TRAINING_METHODS}
 
 
 @dataclass
@@ -356,24 +295,18 @@ class TrainingComparisonExperiment:
         try:
             from sage.benchmark.benchmark_agent.experiments.method_comparison import (
                 MethodComparisonExperiment,
-                MethodConfig,
             )
 
-            # 创建 MethodConfig 对象（而不是普通 dict）
+            # 创建方法配置
             method_config = {
-                method.name: MethodConfig(
-                    name=method.display_name,
-                    description=method.description,
-                    use_coreset=method.use_coreset,
-                    coreset_strategy=method.coreset_strategy or "loss_topk",
-                    coreset_target_size=int(method.coreset_ratio * 1000)
-                    if method.use_coreset
-                    else None,
-                    use_continual=method.use_continual,
-                    continual_replay_ratio=method.replay_ratio,
-                    num_epochs=1 if self.quick else method.num_epochs,
-                    learning_rate=method.learning_rate,
-                )
+                method.name: {
+                    "coreset": method.use_coreset,
+                    "coreset_strategy": method.coreset_strategy,
+                    "coreset_ratio": method.coreset_ratio,
+                    "continual": method.use_continual,
+                    "replay_ratio": method.replay_ratio,
+                    "epochs": 1 if self.quick else method.num_epochs,
+                }
             }
 
             # 运行训练
@@ -392,15 +325,13 @@ class TrainingComparisonExperiment:
                     method_name=method.name,
                     config=method.to_dict(),
                     training_time_seconds=r.training_time_seconds,
-                    train_samples=r.num_train_samples,
+                    train_samples=r.train_samples,
                     timing_accuracy=r.metrics.get("timing_accuracy", 0),
                     planning_success_rate=r.metrics.get("planning_success_rate", 0),
                     selection_top_k_accuracy=r.metrics.get("top_k_accuracy", 0),
                     train_loss=r.metrics.get("train_loss", 0),
                     eval_loss=r.metrics.get("eval_loss", 0),
-                    model_path=str(r.model_path)
-                    if hasattr(r, "model_path") and r.model_path
-                    else None,
+                    model_path=str(r.model_path) if r.model_path else None,
                 )
 
         except ImportError as e:

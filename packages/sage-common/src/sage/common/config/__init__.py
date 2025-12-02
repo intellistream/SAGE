@@ -4,15 +4,6 @@ SAGE Common Config
 Configuration management utilities.
 """
 
-from .network import (
-    HF_MIRROR_CN,
-    NetworkRegion,
-    configure_hf_mirror,
-    detect_china_mainland,
-    ensure_hf_mirror_configured,
-    get_hf_endpoint,
-    get_network_region,
-)
 from .output_paths import (
     SageOutputPaths,
     find_sage_project_root,
@@ -71,12 +62,4 @@ __all__ = [
     "DEFAULT_LLM_PORT",
     "DEFAULT_EMBEDDING_PORT",
     "DEFAULT_BENCHMARK_LLM_PORT",
-    # Network detection and HuggingFace mirror
-    "HF_MIRROR_CN",
-    "detect_china_mainland",
-    "get_hf_endpoint",
-    "configure_hf_mirror",
-    "ensure_hf_mirror_configured",
-    "get_network_region",
-    "NetworkRegion",
 ]

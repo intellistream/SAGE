@@ -31,7 +31,7 @@ from sage.cli.commands.apps.pipeline_domain import load_domain_contexts
 from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
-from sage.common.config.output_paths import find_sage_project_root
+from sage.common.config.output_paths import find_sage_project_root, get_sage_paths
 
 # Import document processing utilities from sage-common (L1)
 from sage.common.utils.document_processing import (
@@ -75,11 +75,9 @@ DEFAULT_INDEX_NAME = "docs-public"
 DEFAULT_CHUNK_SIZE = 800
 DEFAULT_CHUNK_OVERLAP = 160
 DEFAULT_TOP_K = 4
-DEFAULT_BACKEND = "auto"  # 自动检测本地 LLM 服务，若无则回退 mock
-# 默认使用本地 embedding server（与 sage-gateway 统一）
-DEFAULT_EMBEDDING_METHOD = "openai"  # 使用 OpenAI 兼容接口连接本地 embedding server
-DEFAULT_EMBEDDING_MODEL = "BAAI/bge-m3"  # 默认 embedding 模型
-DEFAULT_FIXED_DIM = 384  # 仅用于 hash 方法的回退
+DEFAULT_BACKEND = "mock"
+DEFAULT_EMBEDDING_METHOD = "hash"
+DEFAULT_FIXED_DIM = 384
 DEFAULT_FINETUNE_MODEL = "sage_code_expert"
 DEFAULT_FINETUNE_PORT = 8000
 
@@ -144,17 +142,12 @@ def ensure_sage_db() -> None:
 
 
 def resolve_index_root(index_root: str | None) -> Path:
-    """解析索引存储根目录。
-
-    用户数据缓存（聊天索引）始终使用用户目录 ~/.sage/cache/chat/，
-    确保 sage-chat 和 sage-gateway 使用同一份索引。
-    """
     if index_root:
         root = Path(index_root).expanduser().resolve()
         root.mkdir(parents=True, exist_ok=True)
         return root
-    # 始终使用用户目录，确保与 sage-gateway 共享同一份索引
-    cache_dir = Path.home() / ".sage" / "cache" / "chat"
+    paths = get_sage_paths()
+    cache_dir = paths.cache_dir / "chat"
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir
 
@@ -168,8 +161,7 @@ def default_source_dir() -> Path:
 
 
 def manifest_path(index_root: Path, index_name: str) -> Path:
-    # 使用下划线格式，与 sage-gateway 保持一致
-    return index_root / f"{index_name}_manifest.json"
+    return index_root / f"{index_name}.manifest.json"
 
 
 def db_file_path(index_root: Path, index_name: str) -> Path:
@@ -179,12 +171,7 @@ def db_file_path(index_root: Path, index_name: str) -> Path:
 def load_manifest(index_root: Path, index_name: str) -> ChatManifest:
     path = manifest_path(index_root, index_name)
     if not path.exists():
-        # 兼容旧格式：尝试读取 .manifest.json
-        old_path = index_root / f"{index_name}.manifest.json"
-        if old_path.exists():
-            path = old_path
-        else:
-            raise FileNotFoundError(f"未找到索引 manifest: {path}. 请先运行 `sage chat ingest`.")
+        raise FileNotFoundError(f"未找到索引 manifest: {path}. 请先运行 `sage chat ingest`.")
     payload = json.loads(path.read_text(encoding="utf-8"))
     manifest = ChatManifest(
         index_name=index_name,
@@ -312,41 +299,10 @@ def bootstrap_default_index(index_root: Path, index_name: str) -> ChatManifest |
         console.print(f"[red]无法准备文档语料: {exc}[/red]")
         return None
 
-    # 检测本地 embedding server 是否可用
-    from sage.common.config.ports import SagePorts
-
-    embedding_port = SagePorts.EMBEDDING_DEFAULT
-    embedding_available = False
-
-    try:
-        import requests
-
-        # 使用 /v1/models 端点检测（OpenAI 兼容接口）
-        response = requests.get(f"http://localhost:{embedding_port}/v1/models", timeout=2)
-        embedding_available = response.status_code == 200
-    except Exception:
-        pass
-
-    if embedding_available:
-        console.print(f"[green]✅ 检测到本地 Embedding 服务 (端口 {embedding_port})[/green]")
-        embedding_config: dict[str, object] = {
-            "method": "openai",
-            "params": {
-                "model": DEFAULT_EMBEDDING_MODEL,
-                "base_url": f"http://localhost:{embedding_port}/v1",
-                "api_key": "local",  # 本地服务不需要真实 key  # pragma: allowlist secret
-            },
-        }
-    else:
-        console.print(
-            f"[yellow]⚠️  未检测到本地 Embedding 服务 (端口 {embedding_port})，使用 hash 方法[/yellow]\n"
-            "[dim]提示: 运行 `sage llm serve` 启动 Embedding 服务以获得更好的检索效果[/dim]"
-        )
-        embedding_config = {
-            "method": "hash",
-            "params": {"dim": DEFAULT_FIXED_DIM},
-        }
-
+    embedding_config: dict[str, object] = {
+        "method": DEFAULT_EMBEDDING_METHOD,
+        "params": {"dim": DEFAULT_FIXED_DIM},
+    }
     console.print(
         f"🚀 正在导入 [cyan]{source_dir}[/cyan] 以初始化 `{index_name}` 索引...",
         style="green",
@@ -384,117 +340,49 @@ def load_or_bootstrap_manifest(index_root: Path, index_name: str) -> ChatManifes
         return manifest
 
 
-def _create_markdown_processor(
-    source_dir: Path, max_files: int | None = None, show_progress: bool = True
-):
+def _create_markdown_processor(source_dir: Path, max_files: int | None = None):
     """Create a custom document processor for Markdown files.
 
     This processor handles SAGE-specific Markdown processing with:
     - Section splitting by headings
     - Metadata extraction (doc_path, title, heading, anchor)
     - Text preview generation
-
-    Note: Progress display is handled by IndexBuilder's Rich progress bar.
-    This processor shows live progress during document processing.
     """
 
     def process_markdown(src: Path) -> list[dict[str, Any]]:
         chunks = []
         total_docs = 0
-        skipped_docs = []  # Track skipped documents
 
-        # Count total files first for progress display
-        all_files = list(iter_markdown_files(src))
-        total_files = len(all_files) if max_files is None else min(len(all_files), max_files)
+        for idx, file_path in enumerate(iter_markdown_files(src), start=1):
+            if max_files is not None and idx > max_files:
+                break
 
-        if show_progress:
-            from rich.live import Live
-            from rich.text import Text
+            rel_path = file_path.relative_to(src)
+            text = file_path.read_text(encoding="utf-8", errors="ignore")
+            sections = parse_markdown_sections(text)
 
-            # Use Rich Live for real-time progress updates
-            with Live(
-                Text(f"📄 处理文档 0/{total_files}, 已生成 0 个片段", style="cyan"),
-                refresh_per_second=10,
-                transient=True,
-            ) as live:
-                for idx, file_path in enumerate(all_files, start=1):
-                    if max_files is not None and idx > max_files:
-                        break
+            if not sections:
+                continue
 
-                    rel_path = file_path.relative_to(src)
-                    text = file_path.read_text(encoding="utf-8", errors="ignore")
-                    sections = parse_markdown_sections(text)
+            doc_title = sections[0]["heading"] if sections else file_path.stem
 
-                    if not sections:
-                        skipped_docs.append(
-                            (rel_path, "无法解析出有效章节（可能为空或格式不支持）")
-                        )
-                        continue
+            for section in sections:
+                # Note: chunking happens inside the section's content
+                # We pass the full section content; IndexBuilder will chunk it
+                chunks.append(
+                    {
+                        "content": section["content"],
+                        "metadata": {
+                            "doc_path": str(rel_path),
+                            "title": doc_title,
+                            "heading": section["heading"],
+                            "anchor": slugify(section["heading"]),
+                        },
+                    }
+                )
 
-                    doc_title = sections[0]["heading"] if sections else file_path.stem
-
-                    for section in sections:
-                        chunks.append(
-                            {
-                                "content": section["content"],
-                                "metadata": {
-                                    "doc_path": str(rel_path),
-                                    "title": doc_title,
-                                    "heading": section["heading"],
-                                    "anchor": slugify(section["heading"]),
-                                },
-                            }
-                        )
-
-                    total_docs += 1
-                    # Update live progress after each document
-                    live.update(
-                        Text(
-                            f"📄 处理文档 {total_docs}/{total_files}, 已生成 {len(chunks)} 个片段",
-                            style="cyan",
-                        )
-                    )
-
-            # Print final summary
-            console.print(
-                f"[green]✓ 文档处理完成: {total_docs}/{total_files} 个文档, {len(chunks)} 个片段[/green]"
-            )
-
-            # Report skipped documents
-            if skipped_docs:
-                console.print(f"[yellow]⚠ 跳过 {len(skipped_docs)} 个文档:[/yellow]")
-                for doc_path, reason in skipped_docs:
-                    console.print(f"[dim]  - {doc_path}: {reason}[/dim]")
-        else:
-            # Quiet mode - no progress display
-            for idx, file_path in enumerate(all_files, start=1):
-                if max_files is not None and idx > max_files:
-                    break
-
-                rel_path = file_path.relative_to(src)
-                text = file_path.read_text(encoding="utf-8", errors="ignore")
-                sections = parse_markdown_sections(text)
-
-                if not sections:
-                    skipped_docs.append((rel_path, "无法解析出有效章节"))
-                    continue
-
-                doc_title = sections[0]["heading"] if sections else file_path.stem
-
-                for section in sections:
-                    chunks.append(
-                        {
-                            "content": section["content"],
-                            "metadata": {
-                                "doc_path": str(rel_path),
-                                "title": doc_title,
-                                "heading": section["heading"],
-                                "anchor": slugify(section["heading"]),
-                            },
-                        }
-                    )
-
-                total_docs += 1
+            total_docs += 1
+            console.print(f"📄 处理文档 {idx}: {rel_path} (sections={len(sections)})", style="cyan")
 
         return chunks
 
@@ -509,7 +397,6 @@ def ingest_source(
     chunk_overlap: int,
     embedding_config: dict[str, object],
     max_files: int | None = None,
-    show_progress: bool = True,
 ) -> ChatManifest:
     """Build RAG index from source documents using IndexBuilder.
 
@@ -544,11 +431,10 @@ def ingest_source(
         return SageDBBackend(persist_path, dim)
 
     # Create document processor for Markdown
-    document_processor = _create_markdown_processor(source_dir, max_files, show_progress)
+    document_processor = _create_markdown_processor(source_dir, max_files)
 
     # Build index using IndexBuilder
-    if show_progress:
-        console.print("🔨 Building index using IndexBuilder...", style="cyan")
+    console.print("🔨 Building index using IndexBuilder...", style="cyan")
     builder = IndexBuilder(backend_factory=backend_factory)
 
     index_manifest = builder.build_from_docs(
@@ -559,7 +445,6 @@ def ingest_source(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         document_processor=document_processor,
-        show_progress=show_progress,
     )
 
     # Convert IndexManifest to ChatManifest for compatibility
@@ -576,11 +461,10 @@ def ingest_source(
     )
 
     save_manifest(index_root, index_name, manifest)
-    if show_progress:
-        console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
-        console.print(
-            f"📊 Documents: {manifest.num_documents}, Chunks: {manifest.num_chunks}", style="green"
-        )
+    console.print(Panel.fit(f"✅ 索引已更新 -> {db_path}", title="INGEST", style="green"))
+    console.print(
+        f"📊 Documents: {manifest.num_documents}, Chunks: {manifest.num_chunks}", style="green"
+    )
 
     return manifest
 
@@ -603,55 +487,6 @@ def open_database(manifest: ChatManifest) -> Any:
 
 
 def build_prompt(question: str, contexts: Sequence[str]) -> list[dict[str, str]]:
-    """构建对话 prompt。
-
-    针对小模型优化：
-    1. 简短清晰的指令
-    2. 明确区分闲聊和技术问题
-    3. 只在真正相关时使用上下文
-    """
-    # 检测是否是简单闲聊（不需要检索上下文）
-    casual_patterns = [
-        "你好",
-        "hi",
-        "hello",
-        "嗨",
-        "hey",
-        "谢谢",
-        "thanks",
-        "thank you",
-        "再见",
-        "bye",
-        "拜拜",
-        "test",
-        "测试",
-        "试试",
-        "ok",
-        "好的",
-        "嗯",
-    ]
-    question_lower = question.strip().lower()
-    is_casual = (
-        any(
-            question_lower == p
-            or question_lower.startswith(p + " ")
-            or question_lower.endswith(" " + p)
-            for p in casual_patterns
-        )
-        and len(question.strip()) < 20
-    )
-
-    if is_casual:
-        # 简单闲聊：不使用检索上下文，避免干扰
-        system_instructions = (
-            "你是 SAGE 智能助手。用户在和你打招呼或闲聊，请自然友好地回应，不要输出代码。"
-        )
-        return [
-            {"role": "system", "content": system_instructions},
-            {"role": "user", "content": question.strip()},
-        ]
-
-    # 技术问题：使用检索上下文
     context_block = "\n\n".join(
         f"[{idx}] {textwrap.dedent(ctx).strip()}"
         for idx, ctx in enumerate(contexts, start=1)
@@ -659,17 +494,15 @@ def build_prompt(question: str, contexts: Sequence[str]) -> list[dict[str, str]]
     )
     system_instructions = textwrap.dedent(
         """
-        你是 SAGE 智能助手。根据用户问题和提供的文档上下文回答。
-
-        规则：
-        - 依据上下文回答，引用时用 [编号] 标注
-        - 可以给出示例代码
-        - 如果上下文不足，坦诚说明
+        You are SAGE 内嵌编程助手。回答用户关于 SAGE 的问题，依据提供的上下文进行解释。
+        - 如果上下文不足以回答，请坦诚说明并给出下一步建议。
+        - 引用时使用 [编号] 表示。
+        - 回答保持简洁，直接给出步骤或示例代码。
         """
     ).strip()
 
     if context_block:
-        system_instructions += f"\n\n参考文档:\n{context_block}"
+        system_instructions += f"\n\n已检索上下文:\n{context_block}"
 
     return [
         {"role": "system", "content": system_instructions},
@@ -695,13 +528,10 @@ class ResponseGenerator:
         self.temperature = temperature
         self.finetune_model = finetune_model
         self.finetune_port = finetune_port
-        self._llm_server = None  # 用于追踪 sageLLM 服务
+        self.vllm_process = None  # 用于追踪启动的 vLLM 进程
 
         if self.backend == "mock":
             self.client = None
-        elif self.backend == "auto":
-            # 自动检测本地 LLM 服务
-            self._setup_auto_backend()
         elif self.backend == "finetune":
             # 使用微调模型
             self._setup_finetune_backend()
@@ -725,82 +555,14 @@ class ResponseGenerator:
                     )
                 else:
                     # Auto-detection mode
-                    self.client = UnifiedInferenceClient.create()
+                    self.client = UnifiedInferenceClient.create_auto()
             except Exception as exc:  # pragma: no cover - runtime check
-                raise RuntimeError(f"无法初始化 UnifiedInferenceClient: {exc}") from exc
-
-    def _setup_auto_backend(self) -> None:
-        """自动检测并配置最佳可用的 LLM 后端。
-
-        优先级: 本地 LLM 服务 → 云端 API → mock 回退
-        """
-        import os
-
-        import requests
-
-        from sage.common.config.ports import SagePorts
-
-        # 1. 尝试本地 LLM 服务
-        local_ports = [SagePorts.BENCHMARK_LLM, SagePorts.LLM_DEFAULT]
-        for port in local_ports:
-            try:
-                response = requests.get(f"http://localhost:{port}/health", timeout=2)
-                if response.status_code == 200:
-                    # 获取本地服务的实际模型名
-                    models_response = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
-                    local_model = self.model
-                    if models_response.status_code == 200:
-                        models_data = models_response.json()
-                        if models_data.get("data"):
-                            local_model = models_data["data"][0].get("id", self.model)
-
-                    console.print(
-                        f"[green]✅ 检测到本地 LLM 服务 (端口 {port}, 模型: {local_model})[/green]"
-                    )
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
-
-                    self.client = UnifiedInferenceClient(
-                        llm_model=local_model,
-                        llm_base_url=f"http://localhost:{port}/v1",
-                        llm_api_key="",
-                    )
-                    self.model = local_model
-                    self.backend = "local"
-                    return
-            except Exception:  # noqa: S110
-                pass
-
-        # 2. 尝试云端 API（检查环境变量）
-        api_key = (
-            os.getenv("SAGE_CHAT_API_KEY")
-            or os.getenv("OPENAI_API_KEY")
-            or os.getenv("DASHSCOPE_API_KEY")
-            or os.getenv("ALIBABA_API_KEY")
-        )
-        if api_key:
-            try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
-
-                # 使用 create 会自动检测配置
-                self.client = UnifiedInferenceClient.create()
-                status = self.client.get_status()
-                if status.get("llm_available"):
-                    console.print("[green]✅ 使用云端 API 服务[/green]")
-                    self.backend = "api"
-                    return
-            except Exception as e:
-                console.print(f"[yellow]⚠️  云端 API 初始化失败: {e}[/yellow]")
-
-        # 3. 回退到 mock 模式
-        console.print(
-            "[yellow]⚠️  未检测到可用的 LLM 服务，使用 mock 模式[/yellow]\n"
-            "[dim]提示: 启动本地服务 `sage llm serve` 或配置 SAGE_CHAT_API_KEY 环境变量[/dim]"
-        )
-        self.client = None
-        self.backend = "mock"
+                raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
 
     def _setup_finetune_backend(self) -> None:
-        """设置微调模型 backend（通过 sageLLM LLMAPIServer）"""
+        """设置微调模型 backend"""
+        import subprocess
+        import time
         from pathlib import Path
 
         import requests
@@ -833,10 +595,10 @@ class ResponseGenerator:
             service_running = False
 
         if service_running:
-            console.print(f"[green]✅ LLM 服务已在端口 {port} 运行[/green]")
+            console.print(f"[green]✅ vLLM 服务已在端口 {port} 运行[/green]")
             model_to_use = self.model if self.model != "qwen-max" else None
         else:
-            console.print("[yellow]⏳ 正在启动微调模型服务（通过 sageLLM）...[/yellow]")
+            console.print("[yellow]⏳ 正在启动微调模型 vLLM 服务...[/yellow]")
 
             # 检查是否有合并模型
             if not merged_path.exists():
@@ -878,30 +640,46 @@ class ResponseGenerator:
                         f"自动合并失败: {merge_exc}\n请手动运行: sage finetune merge {model_name}"
                     ) from merge_exc
 
-            # 使用 sageLLM LLMAPIServer 启动服务
+            # 启动 vLLM 服务
+            cmd = [
+                "python",
+                "-m",
+                "vllm.entrypoints.openai.api_server",
+                "--model",
+                str(merged_path),
+                "--host",
+                "0.0.0.0",
+                "--port",
+                str(port),
+                "--gpu-memory-utilization",
+                "0.9",
+            ]
+
             try:
-                from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
-
-                config = LLMServerConfig(
-                    model=str(merged_path),
-                    backend="vllm",
-                    host="0.0.0.0",
-                    port=port,
-                    gpu_memory_utilization=0.9,
+                self.vllm_process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
                 )
-
-                self._llm_server = LLMAPIServer(config)
-                success = self._llm_server.start(background=True)
-
-                if not success:
-                    raise RuntimeError("LLM 服务启动失败")
-
-                console.print("[green]✅ LLM 服务启动成功（sageLLM）[/green]\n")
-
-            except ImportError:
-                raise RuntimeError("sageLLM 不可用，请确保已安装 sage-common")
             except Exception as exc:
-                raise RuntimeError(f"启动 LLM 服务失败: {exc}") from exc
+                raise RuntimeError(f"启动 vLLM 服务失败: {exc}") from exc
+
+            # 等待服务启动
+            console.print("[cyan]⏳ 等待服务启动（最多 60 秒）...[/cyan]")
+            for _i in range(60):
+                try:
+                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    if response.status_code == 200:
+                        console.print("[green]✅ vLLM 服务启动成功！[/green]\n")
+                        break
+                except Exception:  # noqa: S110
+                    pass
+                time.sleep(1)
+            else:
+                if self.vllm_process:
+                    self.vllm_process.terminate()
+                raise RuntimeError("vLLM 服务启动超时（60秒）")
 
             # 读取实际的模型名称
             meta_file = finetune_dir / "finetune_meta.json"
@@ -914,7 +692,7 @@ class ResponseGenerator:
             else:
                 model_to_use = str(merged_path)
 
-        # 设置 LLM 客户端连接到本地服务
+        # 设置 LLM 客户端连接到本地 vLLM
         try:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
@@ -926,20 +704,22 @@ class ResponseGenerator:
             self.model = model_to_use or str(merged_path)
             console.print(f"[green]✅ 已连接到微调模型: {model_name}[/green]\n")
         except Exception as exc:
-            if hasattr(self, "_llm_server") and self._llm_server:
-                self._llm_server.stop()
-            raise RuntimeError(f"无法连接到 LLM 服务: {exc}") from exc
+            if self.vllm_process:
+                self.vllm_process.terminate()
+            raise RuntimeError(f"无法连接到 vLLM 服务: {exc}") from exc
 
     def cleanup(self) -> None:
-        """清理资源（如果启动了 LLM 服务）"""
-        if hasattr(self, "_llm_server") and self._llm_server:
+        """清理资源（如果启动了 vLLM 进程）"""
+        if self.vllm_process:
             try:
-                console.print("\n[yellow]⏳ 正在关闭 LLM 服务...[/yellow]")
-                self._llm_server.stop()
-                console.print("[green]✅ LLM 服务已关闭[/green]")
+                console.print("\n[yellow]⏳ 正在关闭 vLLM 服务...[/yellow]")
+                self.vllm_process.terminate()
+                self.vllm_process.wait(timeout=10)
+                console.print("[green]✅ vLLM 服务已关闭[/green]")
             except Exception:  # noqa: S110
-                pass
-            self._llm_server = None
+                if self.vllm_process.poll() is None:
+                    self.vllm_process.kill()
+            self.vllm_process = None
 
     def answer(
         self,
@@ -955,7 +735,7 @@ class ResponseGenerator:
             raise RuntimeError("Client not initialized")
         messages = build_prompt(question, contexts)
         try:
-            response = self.client.chat(
+            response = self.client.generate(
                 messages,
                 max_tokens=768,
                 temperature=self.temperature,
@@ -983,7 +763,7 @@ class ResponseGenerator:
         citation = top_ref.get("label", top_ref.get("title", "Docs"))
         return (
             f"根据 {citation} 的说明：{snippet[:280]}...\n\n"
-            "[Mock 模式] 启动本地服务 `sage llm serve` 或配置 SAGE_CHAT_API_KEY 以获得完整回答。"
+            "如需更多细节，可以输入 `more` 再次检索，或使用 `--backend openai` 启用真实模型。"
         )
 
 
@@ -1548,17 +1328,11 @@ def render_references(references: Sequence[dict[str, str]]) -> Table:
     table.add_column("得分", justify="right", width=7)
 
     for idx, ref in enumerate(references, start=1):
-        # score 可能是字符串，需要转换为浮点数
-        score = ref.get("score", 0.0)
-        try:
-            score_float = float(score)
-        except (ValueError, TypeError):
-            score_float = 0.0
         table.add_row(
             str(idx),
             ref.get("title", "未知"),
             ref.get("heading", "-"),
-            f"{score_float:.4f}",
+            f"{ref.get('score', 0.0):.4f}",
         )
     return table
 
@@ -1568,31 +1342,9 @@ def retrieve_context(
     embedder: EmbeddingModel,
     question: str,
     top_k: int,
-    show_progress: bool = True,
 ) -> dict[str, object]:
-    """检索相关上下文。
-
-    Args:
-        db: SageDB 数据库实例
-        embedder: Embedding 模型
-        question: 用户问题
-        top_k: 返回的文档数量
-        show_progress: 是否显示进度
-    """
-    from rich.progress import Progress, SpinnerColumn, TextColumn
-
-    if show_progress:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]正在检索相关文档...[/cyan]"),
-            transient=True,
-        ) as progress:
-            progress.add_task("embedding", total=None)
-            query_vector = embedder.embed(question)
-            results = db.search(query_vector, top_k, True)
-    else:
-        query_vector = embedder.embed(question)
-        results = db.search(query_vector, top_k, True)
+    query_vector = embedder.embed(question)
+    results = db.search(query_vector, top_k, True)
 
     contexts: list[str] = []
     references: list[dict[str, str]] = []
@@ -1656,45 +1408,10 @@ def interactive_chat(
         return db, embedder
 
     def answer_once(query: str) -> None:
-        # 检测是否是简单闲聊（不需要检索）
-        casual_patterns = [
-            "你好",
-            "hi",
-            "hello",
-            "嗨",
-            "hey",
-            "谢谢",
-            "thanks",
-            "thank you",
-            "再见",
-            "bye",
-            "拜拜",
-            "test",
-            "测试",
-            "试试",
-            "ok",
-            "好的",
-            "嗯",
-        ]
-        query_lower = query.strip().lower()
-        is_casual = (
-            any(
-                query_lower == p or query_lower.startswith(p + " ") or query_lower.endswith(" " + p)
-                for p in casual_patterns
-            )
-            and len(query.strip()) < 20
-        )
-
-        if is_casual:
-            # 闲聊模式：跳过检索，直接生成回答
-            contexts: Sequence[str] = []
-            references: Sequence[dict[str, str]] = []
-        else:
-            # 技术问题：执行检索
-            current_db, current_embedder = ensure_retriever()
-            payload = retrieve_context(current_db, current_embedder, query, top_k)
-            contexts = payload["contexts"]  # type: ignore[assignment]
-            references = payload["references"]  # type: ignore[assignment]
+        current_db, current_embedder = ensure_retriever()
+        payload = retrieve_context(current_db, current_embedder, query, top_k)
+        contexts: Sequence[str] = payload["contexts"]  # type: ignore[assignment]
+        references: Sequence[dict[str, str]] = payload["references"]  # type: ignore[assignment]
 
         try:
             reply = generator.answer(query, contexts, references, stream=stream)
@@ -1702,10 +1419,8 @@ def interactive_chat(
             console.print(f"[red]生成回答失败: {exc}[/red]")
             return
 
-        # 只在有引用时显示引用表
-        if references:
-            context_table = render_references(references)
-            console.print(context_table)
+        context_table = render_references(references)
+        console.print(context_table)
 
         if stream:
             text = Text()
@@ -1931,17 +1646,6 @@ def ingest(
         "--index-root",
         help="索引输出目录 (未提供则使用 ~/.sage/cache/chat)",
     ),
-    embedding_base_url: str | None = typer.Option(
-        None,
-        "--embedding-base-url",
-        help="Embedding 服务 API 端点 (用于连接本地 embedding server，如 http://localhost:8090/v1)",
-    ),
-    quiet: bool = typer.Option(
-        False,
-        "--quiet",
-        "-q",
-        help="静默模式，只显示进度条不打印详细日志",
-    ),
 ) -> None:
     ensure_sage_db()
     root = resolve_index_root(index_root)
@@ -1964,23 +1668,15 @@ def ingest(
     if embedding_model:
         embedding_config["params"]["model"] = embedding_model
 
-    # 设置 base_url（如果提供，用于连接本地 embedding 服务）
-    if embedding_base_url:
-        embedding_config["params"]["base_url"] = embedding_base_url
-        # 本地服务不需要 API key，设置一个占位符
-        if "api_key" not in embedding_config["params"]:
-            embedding_config["params"]["api_key"] = "local"  # pragma: allowlist secret
-
-    if not quiet:
-        console.print(
-            Panel(
-                f"索引名称: [cyan]{index_name}[/cyan]\n"
-                f"文档目录: [green]{target_source}[/green]\n"
-                f"索引目录: [magenta]{root}[/magenta]\n"
-                f"Embedding: {embedding_config}",
-                title="SAGE Chat Ingest",
-            )
+    console.print(
+        Panel(
+            f"索引名称: [cyan]{index_name}[/cyan]\n"
+            f"文档目录: [green]{target_source}[/green]\n"
+            f"索引目录: [magenta]{root}[/magenta]\n"
+            f"Embedding: {embedding_config}",
+            title="SAGE Chat Ingest",
         )
+    )
 
     ingest_source(
         source_dir=target_source,
@@ -1990,7 +1686,6 @@ def ingest(
         chunk_overlap=chunk_overlap,
         embedding_config=embedding_config,
         max_files=max_files,
-        show_progress=not quiet,
     )
 
 

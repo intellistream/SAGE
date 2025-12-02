@@ -130,33 +130,15 @@ class RAGChatMap(MapFunction):
 
             db_path = P(self._manifest_data["db_path"])
 
-            # Initialize embedder - 根据 manifest 中的配置选择正确的方法
+            # Initialize embedder
             embed_config = self._manifest_data.get("embedding", {})
-            embedding_method = embed_config.get("method", "openai")  # 默认使用 openai
-            # 兼容两种格式：params.model 或直接 model
-            embed_params = embed_config.get("params", {})
-            embedding_model = embed_params.get("model") or embed_config.get("model")
-            embedding_dim = embed_params.get("dim") or embed_config.get("dim", 384)
+            embedding_method = embed_config.get("method", "hash")
+            embedding_model = embed_config.get("model_name")
 
-            if embedding_method == "openai":
-                # 使用本地 embedding 服务
-                from sage.common.config.ports import SagePorts
-
-                embedding_port = SagePorts.EMBEDDING_DEFAULT
-                # 优先使用 manifest 中的 base_url，否则使用默认端口
-                base_url = embed_params.get("base_url", f"http://localhost:{embedding_port}/v1")
-                self._embedder = get_embedding_model(
-                    "openai",
-                    model=embedding_model or "BAAI/bge-m3",
-                    base_url=base_url,
-                    api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
-                )
-                logger.info(f"Using OpenAI-compatible embedding service: {base_url}")
-            elif embedding_method in ["hf", "jina"]:
-                self._embedder = get_embedding_model(embedding_method, model=embedding_model)
+            if embedding_method in ["hf", "openai", "jina"]:
+                self._embedder = get_embedding_model(embedding_method, model_name=embedding_model)
             else:
-                # hash 或其他方法
-                self._embedder = get_embedding_model(embedding_method, dim=embedding_dim)
+                self._embedder = get_embedding_model(embedding_method, dim=384)
 
             # Load SageDB
             self._db = SageDB(self._embedder.get_dim())
@@ -172,7 +154,7 @@ class RAGChatMap(MapFunction):
     def _get_llm_client(self):
         """获取智能 LLM 客户端（延迟初始化，带缓存）
 
-        使用 sage-common (L1) 的 UnifiedInferenceClient，自动检测并选择最佳服务：
+        使用 sage-common (L1) 的 IntelligentLLMClient，自动检测并选择最佳服务：
         1. 用户配置的端点（SAGE_CHAT_BASE_URL）
         2. 本地 vLLM 服务（端口 8001, 8000）
         3. 云端 API 降级（阿里云 DashScope）
@@ -183,7 +165,7 @@ class RAGChatMap(MapFunction):
         if self._llm_client is None:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            self._llm_client = UnifiedInferenceClient.create()
+            self._llm_client = UnifiedInferenceClient.create_auto()
         return self._llm_client
 
     def _detect_workflow_intent(self, user_input: str) -> bool:
@@ -279,52 +261,6 @@ class RAGChatMap(MapFunction):
         Returns:
             Dict with 'content' (answer) and 'sources' (retrieved documents)
         """
-        # 检测是否是简单闲聊（不需要检索）
-        casual_patterns = [
-            "你好",
-            "hi",
-            "hello",
-            "嗨",
-            "hey",
-            "谢谢",
-            "thanks",
-            "thank you",
-            "再见",
-            "bye",
-            "拜拜",
-            "test",
-            "测试",
-            "试试",
-            "ok",
-            "好的",
-            "嗯",
-        ]
-        user_lower = user_input.strip().lower()
-        is_casual = (
-            any(
-                user_lower == p or user_lower.startswith(p + " ") or user_lower.endswith(" " + p)
-                for p in casual_patterns
-            )
-            and len(user_input.strip()) < 20
-        )
-
-        if is_casual:
-            # 闲聊模式：跳过检索，直接生成简单回答
-            try:
-                client = self._get_llm_client()
-                messages = [
-                    {
-                        "role": "system",
-                        "content": "你是 SAGE 智能助手。用户在和你打招呼或闲聊，请自然友好地回应，不要输出代码。",
-                    },
-                    {"role": "user", "content": user_input.strip()},
-                ]
-                response = client.chat(messages, temperature=0.7, stream=False)
-                return {"content": response, "sources": [], "type": "chat"}
-            except Exception as e:
-                logger.error(f"Casual chat error: {e}")
-                return {"content": "你好！有什么我可以帮助你的吗？", "sources": [], "type": "chat"}
-
         self._ensure_rag_initialized()
 
         if self._db is None or self._embedder is None:
@@ -371,13 +307,12 @@ class RAGChatMap(MapFunction):
 
             system_instructions = textwrap.dedent(
                 """
-                你是 SAGE 智能助手。根据用户问题和提供的文档上下文回答。
-
-                规则：
-                - 依据上下文回答，引用时用 [编号] 标注
-                - 可以给出示例代码
-                - 如果上下文不足，坦诚说明
-                - 注意对话历史，保持上下文连贯
+                You are SAGE 内嵌编程助手。回答用户关于 SAGE 的问题，依据提供的上下文进行解释。
+                - 如果上下文不足以回答，请坦诚说明并给出下一步建议。
+                - 引用时使用 [编号] 表示，例如 [1], [2]。
+                - 回答保持简洁，直接给出步骤或示例代码。
+                - 在回答末尾简要说明引用来源的文档标题。
+                - 注意用户之前的对话历史，保持上下文连贯性。
                 """
             ).strip()
 

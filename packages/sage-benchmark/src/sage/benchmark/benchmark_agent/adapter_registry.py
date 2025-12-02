@@ -9,28 +9,22 @@ This bridges the benchmark experiments with the runtime components.
 Method Classification:
 =====================
 
-Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Evaluation Only):
+Paper 1 (Benchmark) - Existing SOTA Methods (Runtime Adapters):
     Tool Selection: keyword, embedding, hybrid, gorilla, dfsdt/toolllm
     Planning: simple, hierarchical, llm_based, react, tot
     Timing: rule_based, llm_based, hybrid, embedding
 
-    Note: Paper 1 is a BENCHMARK paper that evaluates existing methods
-    using pre-trained models. It does NOT involve training.
-
-Paper 2 (SIAS Method) - Training Strategies (in sage.libs.sias):
+Paper 2 (Method) - SAGE-Agent Framework (Training Strategies):
     Core Components:
-    - CoresetSelector: Intelligent sample selection (loss_topk, diversity, hybrid)
-    - OnlineContinualLearner: Experience replay buffer with importance weighting
-    - SSIS: Streaming Sample Importance Scorer (TODO)
-    - Priority Replay: Importance-Weighted Experience Buffer (TODO)
+    - SSIS: Streaming Sample Importance Scorer
+    - Priority Replay: Importance-Weighted Experience Buffer
+    - Cross-Task Attention: Unified Multi-Task Network
 
-    Training Configurations:
-    - SIAS_sft_baseline: Standard SFT (ablation baseline)
-    - SIAS_coreset: + Coreset selection
-    - SIAS_continual: + Continual learning with replay
-    - SIAS_full: Complete SIAS framework
-
-    Import: from sage.libs.sias import CoresetSelector, OnlineContinualLearner
+    Training Configurations (run_full_training_comparison.py):
+    - SAGE_sft_baseline: Standard SFT (ablation baseline)
+    - SAGE_ssis_only: + Streaming Sample Importance Scorer
+    - SAGE_ssis_replay: + Priority Replay Buffer
+    - SAGE_full: Complete SAGE-Agent
 
 Usage:
     >>> registry = get_adapter_registry()
@@ -811,7 +805,7 @@ class AdapterRegistry:
                     try:
                         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                        self._llm_client = UnifiedInferenceClient.create()
+                        self._llm_client = UnifiedInferenceClient.create_auto()
                     except Exception:
                         pass
 
@@ -956,7 +950,7 @@ Output (JSON array only):"""
                     try:
                         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                        self._llm_client = UnifiedInferenceClient.create()
+                        self._llm_client = UnifiedInferenceClient.create_auto()
                     except Exception:
                         pass
 
@@ -1077,7 +1071,7 @@ Output only a number:"""
 
                 boosted.sort(key=lambda x: x.score, reverse=True)
 
-                # Optionally use LLM reranker via UnifiedInferenceClient.create()
+                # Optionally use LLM reranker via UnifiedInferenceClient.create_auto()
                 # Uses LOCAL-FIRST strategy: local services (SagePorts) -> cloud API fallback
                 # Set SAGE_HYBRID_ENABLE_LLM_RERANK=1 to enable
                 import os
@@ -1255,11 +1249,11 @@ Output only a number:"""
 
             def _get_llm_client(self):
                 """Get LLM client with local-first strategy."""
-                # Use UnifiedInferenceClient.create() which implements local-first strategy
+                # Use UnifiedInferenceClient.create_auto() which implements local-first strategy
                 try:
                     from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    return UnifiedInferenceClient.create()
+                    return UnifiedInferenceClient.create_auto()
                 except Exception:
                     pass
 
@@ -1563,7 +1557,7 @@ Output only a number:"""
     def _create_llm_timing_decider(self, resources: Optional[Any] = None) -> TimingAdapter:
         """Create LLM-based timing decider using UnifiedInferenceClient.
 
-        Uses UnifiedInferenceClient.create() which handles:
+        Uses UnifiedInferenceClient.create_auto() which handles:
         1. Environment variables (SAGE_UNIFIED_BASE_URL)
         2. Local services (ports from SagePorts)
         3. Cloud API fallback (DashScope)
@@ -1609,7 +1603,7 @@ Only output the JSON, nothing else."""
                 try:
                     from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    self._client = UnifiedInferenceClient.create()
+                    self._client = UnifiedInferenceClient.create_auto()
                     return True
                 except Exception as e:
                     import logging
@@ -2667,7 +2661,7 @@ Only output the JSON, nothing else."""
             def _get_llm_client(self):
                 """Lazy initialization of LLM client using UnifiedInferenceClient.
 
-                Uses UnifiedInferenceClient.create() which handles:
+                Uses UnifiedInferenceClient.create_auto() which handles:
                 1. Local vLLM API service detection (via SagePorts)
                 2. Cloud API fallback (via SAGE_CHAT_* env vars)
                 """
@@ -2677,7 +2671,7 @@ Only output the JSON, nothing else."""
                     from sage.common.components.sage_llm import UnifiedInferenceClient
 
                     try:
-                        self._llm_client = UnifiedInferenceClient.create()
+                        self._llm_client = UnifiedInferenceClient.create_auto()
                         # Log which mode we're using
                         if self._llm_client._llm_base_url:
                             if "localhost" in self._llm_client._llm_base_url:

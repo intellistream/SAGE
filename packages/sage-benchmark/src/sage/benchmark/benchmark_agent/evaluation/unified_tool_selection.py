@@ -354,8 +354,8 @@ class LLMDirectSelectorAdapter(BaseSelectorAdapter):
     def _init_client(self):
         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        # UnifiedInferenceClient.create() handles local/cloud detection
-        self._llm_client = UnifiedInferenceClient.create()
+        # UnifiedInferenceClient.create_auto() handles local/cloud detection
+        self._llm_client = UnifiedInferenceClient.create_auto()
 
     def _build_prompt(self, query: str, candidate_tools: list[Tool], top_k: int) -> str:
         """Build prompt for LLM tool selection."""

@@ -59,7 +59,7 @@ class HierarchicalPlanner(BasePlanner):
 
         Args:
             config: Planner configuration
-            llm_client: LLM client for plan generation (UnifiedInferenceClient)
+            llm_client: LLM client for plan generation (IntelligentLLMClient)
             tool_selector: Optional tool selector for enriching steps
             **kwargs: Additional arguments
         """
@@ -171,7 +171,7 @@ Return JSON array of steps with id, action, tool_id, inputs, depends_on, expecte
                 {"role": "user", "content": prompt},
             ]
 
-            # Call LLM (supports UnifiedInferenceClient interface)
+            # Call LLM (supports IntelligentLLMClient interface)
             response = self.llm_client.chat(
                 messages=messages, temperature=self.config.llm_temperature, max_tokens=2000
             )

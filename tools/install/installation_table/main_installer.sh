@@ -155,23 +155,12 @@ install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
     local clean_cache="${3:-true}"
-    local install_vllm="${4:-true}"
-
-    export SAGE_INSTALL_VLLM="$install_vllm"
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
     if [[ (-n "$CI" || -n "$GITHUB_ACTIONS") && "$environment" = "conda" ]]; then
         echo -e "${INFO} CI 环境中检测到 environment='conda'，强制使用 pip（CI 优化）"
         environment="pip"
-    fi
-
-    # 根据安装环境设置 SAGE_ENV_NAME
-    # pip 模式不使用 conda 环境，清空 SAGE_ENV_NAME 避免验证脚本尝试使用 conda
-    if [ "$environment" = "pip" ]; then
-        export SAGE_ENV_NAME=""
-        export PIP_CMD="python3 -m pip"
-        export PYTHON_CMD="python3"
     fi
 
     # 获取项目根目录和日志文件
@@ -226,7 +215,7 @@ install_sage() {
     fi
 
     log_info "SAGE 主要安装过程开始" "MAIN"
-    log_info "安装模式: $mode | 环境: $environment | vLLM: $install_vllm" "MAIN"
+    log_info "安装模式: $mode | 环境: $environment" "MAIN"
 
     echo ""
     case "$mode" in
@@ -372,8 +361,8 @@ install_sage() {
         log_phase_start "依赖完整性检查" "MAIN"
 
         local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
-        if [ -f "$monitor_script" ] && [ -f "$log_file" ]; then
-            if bash "$monitor_script" analyze "$log_file"; then
+        if [ -f "$monitor_script" ]; then
+            if bash "$monitor_script" analyze; then
                 log_info "依赖完整性检查通过" "MAIN"
                 echo -e "${CHECK} 依赖完整性检查通过"
                 log_phase_end "依赖完整性检查" "success" "MAIN"
@@ -387,8 +376,8 @@ install_sage() {
                 echo "DEPENDENCY_VIOLATION_DETECTED=true" >> "$GITHUB_ENV" || true
             fi
         else
-            log_warn "监控脚本或日志文件不存在，跳过检查" "MAIN"
-            echo -e "${DIM}监控脚本或日志文件不存在，跳过检查${NC}"
+            log_warn "监控脚本不存在，跳过检查" "MAIN"
+            echo -e "${DIM}监控脚本不存在，跳过检查${NC}"
             log_phase_end "依赖完整性检查" "skipped" "MAIN"
         fi
     fi

@@ -213,15 +213,13 @@ def sanitize_metadata_value(value: str) -> str:
     """Sanitize text for use as vector database metadata.
 
     Performs the following transformations:
-    - Remove backslashes (avoid JSON escape issues in C++ parser)
     - Replace carriage returns and newlines with spaces
     - Replace double quotes with single quotes
-    - Replace patterns that look like JSON keys (avoid C++ parser confusion)
     - Collapse multiple spaces into one
     - Trim leading/trailing whitespace
 
     This ensures metadata values are safe for JSON serialization and
-    don't contain problematic characters that confuse the C++ parser.
+    don't contain problematic characters.
 
     Args:
         value: Raw metadata value
@@ -234,15 +232,8 @@ def sanitize_metadata_value(value: str) -> str:
         'Line 1 Line 2'
         >>> sanitize_metadata_value('He said "hello"')
         "He said 'hello'"
-        >>> sanitize_metadata_value('dict["key"]: {value}')
-        "dict['key']: (value)"
     """
-    # Remove backslashes to avoid JSON/C++ parser issues
-    cleaned = value.replace("\\", "")
-    cleaned = cleaned.replace("\r", " ").replace("\n", " ")
-    # Replace double quotes with single quotes
+    cleaned = value.replace("\r", " ").replace("\n", " ")
     cleaned = cleaned.replace('"', "'")
-    # Replace { and } with ( and ) to avoid JSON-like patterns
-    cleaned = cleaned.replace("{", "(").replace("}", ")")
     cleaned = re.sub(r"\s+", " ", cleaned)
     return cleaned.strip()

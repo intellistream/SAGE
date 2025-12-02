@@ -229,35 +229,22 @@ message(STATUS "")
 # ============================================================================
 # scikit-build-core 需要明确告知要安装哪些 Python 文件
 # 这确保纯 Python 代码（如 sage.libs.context.compression）也被正确安装
-#
-# 注意：在 editable 模式下跳过文件复制，让 scikit-build-core 的 redirect 模式生效
-# SKBUILD_STATE 可能的值: "wheel", "editable", "sdist", "metadata_wheel", "metadata_editable"
-# ============================================================================
-if(SKBUILD_STATE STREQUAL "editable" OR SKBUILD_STATE STREQUAL "metadata_editable")
-    message(STATUS "")
-    message(STATUS "========================================")
-    message(STATUS "  Editable mode detected - skipping Python file installation")
-    message(STATUS "  Source files will be used directly from: ${CMAKE_CURRENT_SOURCE_DIR}/src/sage/")
-    message(STATUS "========================================")
-    message(STATUS "")
-else()
-    message(STATUS "Configuring Python source installation...")
+message(STATUS "Configuring Python source installation...")
 
-    # 安装所有 Python 包到 site-packages/sage
-    install(
-        DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/"
-        DESTINATION "${SKBUILD_PLATLIB_DIR}/sage"
-        COMPONENT python
-        FILES_MATCHING
-        PATTERN "*.py"
-        PATTERN "*.pyi"
-        PATTERN "py.typed"
-        PATTERN "__pycache__" EXCLUDE
-        PATTERN "*.pyc" EXCLUDE
-        PATTERN ".pytest_cache" EXCLUDE
-        PATTERN "tests" EXCLUDE
-    )
+# 安装所有 Python 包到 site-packages/sage
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/"
+    DESTINATION "${SKBUILD_PLATLIB_DIR}/sage"
+    COMPONENT python
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "*.pyi"
+    PATTERN "py.typed"
+    PATTERN "__pycache__" EXCLUDE
+    PATTERN "*.pyc" EXCLUDE
+    PATTERN ".pytest_cache" EXCLUDE
+    PATTERN "tests" EXCLUDE
+)
 
-    message(STATUS "  ✓ Python source files will be installed to: ${SKBUILD_PLATLIB_DIR}/sage")
-    message(STATUS "")
-endif()
+message(STATUS "  ✓ Python source files will be installed to: ${SKBUILD_PLATLIB_DIR}/sage")
+message(STATUS "")

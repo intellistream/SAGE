@@ -18,34 +18,8 @@ class ConfigManager:
         if config_path:
             self.config_path = Path(config_path)
         else:
-            # 搜索路径优先级：
-            # 1. 当前目录及父目录查找 .sage/config.yaml
-            # 2. ~/SAGE_dev/.sage/config.yaml (特定开发环境)
-            # 3. ~/.sage/config.yaml (默认)
-            
-            paths_to_check = []
-            
-            # 1. 向上查找
-            d = Path.cwd()
-            root = Path(d.root)
-            while d != root:
-                paths_to_check.append(d / ".sage" / "config.yaml")
-                d = d.parent
-            
-            # 2. 特定开发目录
-            paths_to_check.append(Path.home() / "SAGE_dev" / ".sage" / "config.yaml")
-            
-            # 3. 用户目录
-            paths_to_check.append(Path.home() / ".sage" / "config.yaml")
-            
-            selected_path = Path.home() / ".sage" / "config.yaml" # 默认值
-            
-            for p in paths_to_check:
-                if p.exists():
-                    selected_path = p
-                    break
-            
-            self.config_path = selected_path
+            # 统一使用家目录下的配置文件以维护一致性
+            self.config_path = Path.home() / ".sage" / "config.yaml"
         self._config: dict[str, Any] | None = None
 
     def load_config(self) -> dict[str, Any]:

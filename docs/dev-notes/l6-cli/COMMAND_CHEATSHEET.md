@@ -1,69 +1,12 @@
-**Date**: 2025-11-25 (Updated: 2025-11-29)  
+**Date**: 2025-11-25  
 **Author**: SAGE Development Team  
-**Summary**: SAGE CLI 命令速查表 - 包含 sage 和 sage-dev 两个入口的完整命令结构
+**Summary**: sage-dev 命令速查表 - 重组后的命令结构和使用示例
 
 ---
 
-# SAGE CLI 命令速查表
+# sage-dev 命令速查表
 
-## 📋 命令入口概览
-
-SAGE 提供两个主要的 CLI 入口：
-
-- **`sage`** (由 `sage-cli` 包提供): 平台管理和应用层命令
-- **`sage-dev`** (由 `sage-tools` 包提供): 开发工具命令
-
----
-
-## 🚀 sage 命令结构 (Platform & Apps)
-
-```
-sage
-├── version        📋 版本信息
-├── cluster        🌐 集群管理
-├── head           🎯 头节点管理
-├── worker         🔧 工作节点管理
-├── job            📋 作业管理
-├── jobmanager     ⚡ 作业管理器服务
-├── config         ⚙️ 配置管理
-├── doctor         🔍 系统诊断
-├── extensions     🧩 扩展管理
-├── docs           📚 文档管理
-├── llm            🤖 LLM 服务管理
-├── chat           🧭 编程助手
-├── embedding      🎯 Embedding 管理
-├── inference      🔮 统一推理服务 (LLM + Embedding)
-├── pipeline       🧱 Pipeline Builder
-└── studio         🎨 可视化工作台
-```
-
-### Platform 命令
-
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `sage cluster start` | 启动集群 | `sage cluster start` |
-| `sage cluster status` | 查看集群状态 | `sage cluster status` |
-| `sage head start` | 启动头节点 | `sage head start` |
-| `sage worker start` | 启动工作节点 | `sage worker start` |
-| `sage job submit` | 提交作业 | `sage job submit task.py` |
-| `sage config show` | 显示配置 | `sage config show` |
-| `sage doctor` | 系统诊断 | `sage doctor` |
-
-### Apps 命令
-
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `sage llm serve` | 启动 LLM 服务 | `sage llm serve --model Qwen/Qwen2.5-7B-Instruct` |
-| `sage chat` | 启动聊天助手 | `sage chat` |
-| `sage embedding test` | 测试 Embedding | `sage embedding test --model BAAI/bge-m3` |
-| `sage inference start` | 启动统一推理服务 | `sage inference start --port 8000` |
-| `sage inference status` | 查看推理服务状态 | `sage inference status` |
-| `sage pipeline build` | 构建 Pipeline | `sage pipeline build` |
-| `sage studio start` | 启动 Studio | `sage studio start` |
-
----
-
-## 🛠️ sage-dev 命令结构 (开发工具)
+## 📋 新命令结构概览
 
 ```
 sage-dev
