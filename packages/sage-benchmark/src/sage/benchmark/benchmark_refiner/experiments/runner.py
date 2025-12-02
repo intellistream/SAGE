@@ -134,7 +134,8 @@ class RefinerExperimentRunner:
         algorithms: list[str] | None = None,
         max_samples: int = 50,
         budget: int = 2048,
-        dataset: str = "nq",
+        datasets: list[str] | None = None,
+        dataset: str | None = None,  # 向后兼容
         output_dir: str = "./.benchmarks/refiner",
     ) -> ExperimentResult:
         """
@@ -144,7 +145,8 @@ class RefinerExperimentRunner:
             algorithms: 要对比的算法列表，默认为所有已实现算法
             max_samples: 最大样本数
             budget: Token 预算
-            dataset: 数据集名称
+            datasets: 数据集列表
+            dataset: 单个数据集名称 (向后兼容)
             output_dir: 输出目录
 
         Returns:
@@ -153,12 +155,20 @@ class RefinerExperimentRunner:
         if algorithms is None:
             algorithms = ["baseline", "longrefiner", "reform", "provence"]
 
+        # 处理数据集参数：支持新的 datasets 和旧的 dataset
+        if datasets is None:
+            if dataset is not None:
+                datasets = [dataset]
+            else:
+                datasets = ["nq"]
+
         config = RefinerExperimentConfig(
             name="quick_comparison",
             algorithms=algorithms,
             max_samples=max_samples,
             budget=budget,
-            dataset_config=dataset,
+            datasets=datasets,
+            dataset_config=datasets[0],  # 保持向后兼容
             output_dir=output_dir,
             verbose=self.verbose,
         )
@@ -239,10 +249,7 @@ class RefinerExperimentRunner:
         # 保存汇总结果
         summary_path = Path(output_dir) / "sweep_summary.json"
         summary = {
-            algo: {
-                str(budget): result.to_dict()
-                for budget, result in budget_results.items()
-            }
+            algo: {str(budget): result.to_dict() for budget, result in budget_results.items()}
             for algo, budget_results in all_results.items()
         }
 
@@ -262,8 +269,14 @@ class RefinerExperimentRunner:
         Args:
             result: 实验结果
         """
+        # 检查是否有多数据集信息
+        config = result.config
+        datasets = config.get("datasets", [config.get("dataset_config", "unknown")])
+
         print("\n" + "=" * 80)
         print("                    Refiner Algorithm Comparison")
+        if len(datasets) > 1:
+            print(f"                    Datasets: {', '.join(datasets)}")
         print("=" * 80)
 
         headers = ["Algorithm", "F1 Score", "Compression", "Latency (s)", "Samples"]
@@ -285,6 +298,68 @@ class RefinerExperimentRunner:
         print("=" * 80)
 
         # 打印最佳算法
+        print(f"\n🏆 Best F1: {result.best_f1_algorithm}")
+        print(f"🏆 Best Compression: {result.best_compression_algorithm}")
+        print(f"🏆 Best Latency: {result.best_latency_algorithm}")
+
+    @staticmethod
+    def print_multi_dataset_table(
+        result: "MultiDatasetExperimentResult",  # noqa: F821
+    ) -> None:
+        """
+        打印多数据集对比表格
+
+        Args:
+            result: 多数据集实验结果
+        """
+        from sage.benchmark.benchmark_refiner.experiments.comparison_experiment import (
+            MultiDatasetExperimentResult,
+        )
+
+        if not isinstance(result, MultiDatasetExperimentResult):
+            # 回退到单数据集表格
+            RefinerExperimentRunner.print_comparison_table(result)
+            return
+
+        # 打印每个数据集的结果
+        for dataset, ds_result in result.dataset_results.items():
+            print(f"\n{'=' * 60}")
+            print(f"                Dataset: {dataset}")
+            print("=" * 60)
+
+            headers = ["Algorithm", "F1", "Compression", "Latency"]
+            print("| " + " | ".join(f"{h:^12}" for h in headers) + " |")
+            print("|" + "|".join("-" * 14 for _ in headers) + "|")
+
+            for name, metrics in ds_result.algorithm_metrics.items():
+                row = [
+                    name[:12],
+                    f"{metrics.avg_f1:.4f}",
+                    f"{metrics.avg_compression_rate:.2f}x",
+                    f"{metrics.avg_total_time:.2f}s",
+                ]
+                print("| " + " | ".join(f"{v:^12}" for v in row) + " |")
+
+        # 打印聚合结果
+        print(f"\n{'=' * 60}")
+        print("                Aggregated Results (Cross-Dataset Average)")
+        print("=" * 60)
+
+        headers = ["Algorithm", "F1", "Compression", "Latency", "Total Samples"]
+        print("| " + " | ".join(f"{h:^12}" for h in headers) + " |")
+        print("|" + "|".join("-" * 14 for _ in headers) + "|")
+
+        for name, metrics in result.aggregated_metrics.items():
+            row = [
+                name[:12],
+                f"{metrics.avg_f1:.4f}",
+                f"{metrics.avg_compression_rate:.2f}x",
+                f"{metrics.avg_total_time:.2f}s",
+                str(metrics.num_samples),
+            ]
+            print("| " + " | ".join(f"{v:^12}" for v in row) + " |")
+
+        print("=" * 60)
         print(f"\n🏆 Best F1: {result.best_f1_algorithm}")
         print(f"🏆 Best Compression: {result.best_compression_algorithm}")
         print(f"🏆 Best Latency: {result.best_latency_algorithm}")
@@ -324,9 +399,7 @@ class RefinerExperimentRunner:
             if name == result.best_latency_algorithm:
                 lat_str = r"\textbf{" + lat_str + "}"
 
-            lines.append(
-                f"{name} & {f1_str} & {comp_str} & {lat_str} & {metrics.num_samples} \\\\"
-            )
+            lines.append(f"{name} & {f1_str} & {comp_str} & {lat_str} & {metrics.num_samples} \\\\")
 
         lines.extend(
             [

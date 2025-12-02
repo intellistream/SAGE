@@ -56,6 +56,19 @@ class DatasetType(str, Enum):
     CUSTOM = "custom"
 
 
+# FlashRAG 支持的数据集列表
+AVAILABLE_DATASETS = [
+    "nq",  # Natural Questions
+    "triviaqa",  # TriviaQA
+    "hotpotqa",  # HotpotQA (multi-hop)
+    "2wikimultihopqa",  # 2Wiki Multi-hop
+    "musique",  # Musique (multi-hop)
+    "asqa",  # ASQA (long-form)
+    "popqa",  # PopQA
+    "webq",  # WebQuestions
+]
+
+
 @dataclass
 class RefinerExperimentConfig:
     """Refiner 评测实验配置"""
@@ -65,7 +78,8 @@ class RefinerExperimentConfig:
     description: str = ""
 
     # === 数据配置 ===
-    dataset: DatasetType = DatasetType.NQ
+    dataset: DatasetType = DatasetType.NQ  # 向后兼容，单数据集
+    datasets: list[str] = field(default_factory=lambda: ["nq"])  # 多数据集支持
     dataset_config: str = "nq"  # HuggingFace dataset config
     split: str = "test"
     max_samples: int = 100
@@ -100,6 +114,7 @@ class RefinerExperimentConfig:
             "name": self.name,
             "description": self.description,
             "dataset": self.dataset.value if isinstance(self.dataset, Enum) else self.dataset,
+            "datasets": self.datasets,
             "dataset_config": self.dataset_config,
             "split": self.split,
             "max_samples": self.max_samples,
@@ -124,7 +139,19 @@ class RefinerExperimentConfig:
         """从字典创建配置"""
         # 处理枚举类型
         if "dataset" in data and isinstance(data["dataset"], str):
-            data["dataset"] = DatasetType(data["dataset"])
+            try:
+                data["dataset"] = DatasetType(data["dataset"])
+            except ValueError:
+                # 自定义数据集名称，保持字符串
+                pass
+        # 处理 datasets 字段
+        if "datasets" not in data and "dataset" in data:
+            # 向后兼容：如果没有 datasets，从 dataset 创建
+            dataset_val = data["dataset"]
+            if isinstance(dataset_val, DatasetType):
+                data["datasets"] = [dataset_val.value]
+            else:
+                data["datasets"] = [dataset_val]
         return cls(**data)
 
     @classmethod
@@ -153,11 +180,28 @@ class RefinerExperimentConfig:
         if self.max_samples <= 0:
             errors.append("max_samples must be positive")
 
+        # 验证 datasets 列表
+        if not self.datasets:
+            errors.append("datasets cannot be empty")
+        else:
+            for ds in self.datasets:
+                if ds not in AVAILABLE_DATASETS:
+                    errors.append(f"Unknown dataset: {ds}. Available: {AVAILABLE_DATASETS}")
+
         # 检查 budget
         if self.budget <= 0:
             errors.append("budget must be positive")
 
         return errors
+
+    def get_datasets(self) -> list[str]:
+        """
+        获取要运行的数据集列表
+
+        Returns:
+            数据集名称列表
+        """
+        return self.datasets
 
 
 @dataclass

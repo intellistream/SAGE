@@ -62,37 +62,49 @@ Examples:
         help="Compare multiple Refiner algorithms",
     )
     compare_parser.add_argument(
-        "--algorithms", "-a",
+        "--algorithms",
+        "-a",
         type=str,
         default="baseline,longrefiner,reform,provence",
         help="Comma-separated list of algorithms to compare",
     )
     compare_parser.add_argument(
-        "--samples", "-n",
+        "--samples",
+        "-n",
         type=int,
         default=50,
         help="Number of samples to evaluate",
     )
     compare_parser.add_argument(
-        "--budget", "-b",
+        "--budget",
+        "-b",
         type=int,
         default=2048,
         help="Token budget for compression",
     )
     compare_parser.add_argument(
-        "--dataset", "-d",
+        "--datasets",
         type=str,
         default="nq",
-        help="Dataset to use (nq, hotpotqa, triviaqa, squad)",
+        help="Comma-separated dataset names: nq,hotpotqa,triviaqa,2wikimultihopqa,asqa,musique,popqa,webq. Use 'all' for all datasets.",
     )
     compare_parser.add_argument(
-        "--output", "-o",
+        "--dataset",
+        "-d",
+        type=str,
+        default=None,
+        help="[Deprecated] Single dataset. Use --datasets instead.",
+    )
+    compare_parser.add_argument(
+        "--output",
+        "-o",
         type=str,
         default="./.benchmarks/refiner",
         help="Output directory",
     )
     compare_parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="Suppress progress output",
     )
@@ -105,20 +117,23 @@ Examples:
         help="Run experiment from config file",
     )
     run_parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         type=str,
         required=True,
         help="Path to YAML config file",
     )
     run_parser.add_argument(
-        "--type", "-t",
+        "--type",
+        "-t",
         type=str,
         default="comparison",
         choices=["comparison", "quality", "latency", "compression"],
         help="Experiment type",
     )
     run_parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="Suppress progress output",
     )
@@ -131,31 +146,36 @@ Examples:
         help="Sweep across different budgets for an algorithm",
     )
     sweep_parser.add_argument(
-        "--algorithm", "-a",
+        "--algorithm",
+        "-a",
         type=str,
         required=True,
         help="Algorithm to sweep",
     )
     sweep_parser.add_argument(
-        "--budgets", "-b",
+        "--budgets",
+        "-b",
         type=str,
         default="512,1024,2048,4096",
         help="Comma-separated list of budgets to test",
     )
     sweep_parser.add_argument(
-        "--samples", "-n",
+        "--samples",
+        "-n",
         type=int,
         default=50,
         help="Number of samples per budget",
     )
     sweep_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=str,
         default="./.benchmarks/refiner",
         help="Output directory",
     )
     sweep_parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="Suppress progress output",
     )
@@ -168,7 +188,8 @@ Examples:
         help="Generate example configuration file",
     )
     config_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=str,
         default="refiner_experiment.yaml",
         help="Output file path",
@@ -182,29 +203,34 @@ Examples:
         help="Run attention head analysis (for REFORM)",
     )
     heads_parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         type=str,
         help="Path to head analysis config file",
     )
     heads_parser.add_argument(
-        "--model", "-m",
+        "--model",
+        "-m",
         type=str,
         help="Model name or path",
     )
     heads_parser.add_argument(
-        "--dataset", "-d",
+        "--dataset",
+        "-d",
         type=str,
         default="nq",
         help="Dataset to use",
     )
     heads_parser.add_argument(
-        "--samples", "-n",
+        "--samples",
+        "-n",
         type=int,
         default=100,
         help="Number of samples",
     )
     heads_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=str,
         default="./.benchmarks/head_analysis",
         help="Output directory",
@@ -227,16 +253,35 @@ Examples:
 
 def cmd_compare(args: argparse.Namespace) -> int:
     """Run algorithm comparison."""
+    from sage.benchmark.benchmark_refiner.experiments.base_experiment import (
+        AVAILABLE_DATASETS,
+    )
     from sage.benchmark.benchmark_refiner.experiments.runner import (
         RefinerExperimentRunner,
     )
 
     algorithms = [a.strip() for a in args.algorithms.split(",")]
 
+    # 处理数据集参数
+    if args.dataset:  # 向后兼容：优先使用旧参数
+        datasets = [args.dataset.strip()]
+        print("\n⚠️  Warning: --dataset is deprecated, use --datasets instead.")
+    elif args.datasets == "all":
+        datasets = AVAILABLE_DATASETS.copy()
+    else:
+        datasets = [d.strip() for d in args.datasets.split(",")]
+
+    # 验证数据集
+    invalid_datasets = [d for d in datasets if d not in AVAILABLE_DATASETS]
+    if invalid_datasets:
+        print(f"\n❌ Unknown datasets: {invalid_datasets}")
+        print(f"   Available: {AVAILABLE_DATASETS}")
+        return 1
+
     print(f"\n🚀 Comparing Refiner algorithms: {', '.join(algorithms)}")
     print(f"   Samples: {args.samples}")
     print(f"   Budget: {args.budget}")
-    print(f"   Dataset: {args.dataset}")
+    print(f"   Datasets: {', '.join(datasets)}")
     print(f"   Output: {args.output}")
 
     runner = RefinerExperimentRunner(verbose=not args.quiet)
@@ -244,7 +289,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
         algorithms=algorithms,
         max_samples=args.samples,
         budget=args.budget,
-        dataset=args.dataset,
+        datasets=datasets,
         output_dir=args.output,
     )
 
@@ -311,7 +356,9 @@ def cmd_sweep(args: argparse.Namespace) -> int:
     for budget, result in results.items():
         if result.algorithm_metrics:
             metrics = list(result.algorithm_metrics.values())[0]
-            print(f"| {budget:^10} | {metrics.avg_f1:^12.4f} | {metrics.avg_compression_rate:^12.2f}x |")
+            print(
+                f"| {budget:^10} | {metrics.avg_f1:^12.4f} | {metrics.avg_compression_rate:^12.2f}x |"
+            )
 
     print("=" * 60)
     print(f"\n✅ Results saved to: {args.output}")
@@ -347,7 +394,8 @@ def cmd_heads(args: argparse.Namespace) -> int:
     # 使用已有的 find_heads.py 脚本
     cmd = [
         sys.executable,
-        "-m", "sage.benchmark.benchmark_refiner.analysis.find_heads",
+        "-m",
+        "sage.benchmark.benchmark_refiner.analysis.find_heads",
     ]
 
     if args.config:

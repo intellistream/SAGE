@@ -3,7 +3,7 @@
 > **位置**: `docs/dev-notes/l5-benchmark/ICML_REFINER_TASKS.md`
 > **创建日期**: 2025-12-01
 > **最后更新**: 2025-12-02
-> **状态**: Round 1 已完成
+> **状态**: Round 2 已完成
 
 ## 任务总览
 
@@ -14,9 +14,9 @@ Round 1 (可完全并行) ✅ 已完成:
   ├── Task 1C: 统计检验模块 ✅
   └── Task 1D: LLMLingua-2 Pipeline 集成 ✅
 
-Round 2 (依赖 Round 1):
-  ├── Task 2A: ComparisonExperiment 重构 (依赖 1A)
-  └── Task 2B: 多数据集批量运行支持 (依赖 1A)
+Round 2 (依赖 Round 1) ✅ 已完成:
+  ├── Task 2A: ComparisonExperiment 重构 ✅
+  └── Task 2B: 多数据集批量运行支持 ✅
 
 Round 3 (依赖 Round 2):
   ├── Task 3A: 可视化增强
@@ -187,9 +187,11 @@ result = compressor.compress(
 
 ---
 
-## Round 2: 集成层 (依赖 Round 1)
+## Round 2: 集成层 ✅ 已完成
 
-### Task 2A: ComparisonExperiment 重构
+### Task 2A: ComparisonExperiment 重构 ✅
+
+**状态**: 已完成
 
 **依赖**: Task 1A (ResultsCollector)
 
@@ -198,7 +200,26 @@ result = compressor.compress(
 **输出文件**:
 - 修改 `packages/sage-benchmark/src/sage/benchmark/benchmark_refiner/experiments/comparison_experiment.py`
 
-**Prompt**:
+**实现功能**:
+- `_execute_pipeline(algorithm)` - 执行真实 Pipeline 并收集结果
+- `_load_and_modify_config(algorithm, dataset)` - 加载并修改配置
+- `_run_pipeline_module(algorithm, config)` - 动态导入并运行 Pipeline
+- `_run_on_dataset(dataset)` - 在单个数据集上运行所有算法
+- `_aggregate_results(all_results)` - 聚合多数据集结果
+- `MultiDatasetExperimentResult` - 多数据集结果容器
+- `DatasetResult` - 单数据集结果容器
+
+**Pipeline 映射**:
+| 算法 | Pipeline 模块 |
+|------|--------------|
+| baseline | `baseline_rag.py` |
+| longrefiner | `longrefiner_rag.py` |
+| reform | `reform_rag.py` |
+| provence | `provence_rag.py` |
+| longllmlingua | `longllmlingua_rag.py` |
+| llmlingua2 | `llmlingua2_rag.py` |
+
+**参考 Prompt** (已完成，保留供参考):
 ```
 你是 SAGE 框架的开发者。请重构 ComparisonExperiment 以调用真实 Pipeline。
 
@@ -297,7 +318,9 @@ ComparisonExperiment.run()
 
 ---
 
-### Task 2B: 多数据集批量运行支持
+### Task 2B: 多数据集批量运行支持 ✅
+
+**状态**: 已完成
 
 **依赖**: Task 1A (ResultsCollector)
 
@@ -307,58 +330,15 @@ ComparisonExperiment.run()
 - 修改 `packages/sage-benchmark/src/sage/benchmark/benchmark_refiner/cli.py`
 - 修改 `packages/sage-benchmark/src/sage/benchmark/benchmark_refiner/experiments/base_experiment.py`
 
-**Prompt**:
-```
-你是 SAGE 框架的开发者。请添加多数据集批量运行支持。
+**实现功能**:
+- `--datasets` CLI 参数，支持逗号分隔的数据集名或 "all"
+- `RefinerExperimentConfig.datasets: list[str]` 字段
+- `RefinerExperimentConfig.get_datasets()` 方法
+- `AVAILABLE_DATASETS` 常量 (8 个 FlashRAG 数据集)
+- `validate()` 方法验证数据集有效性
+- 向后兼容废弃的 `--dataset` 参数
 
-## 前置条件
-Task 1A 已完成，结果可以被程序化收集。
-
-## 背景
-当前需要手动修改 config 文件的 `hf_dataset_config` 来切换数据集。
-需要支持命令行一次指定多个数据集。
-
-## 任务
-
-1. **修改 CLI** (`cli.py`)：
-```python
-@click.option(
-    "--datasets",
-    default="nq",
-    help="Comma-separated dataset names: nq,hotpotqa,triviaqa,2wikimultihopqa,asqa"
-)
-def compare(algorithms, datasets, samples, ...):
-    dataset_list = [d.strip() for d in datasets.split(",")]
-    # 对每个数据集运行实验
-```
-
-2. **修改 RefinerExperimentConfig** (`base_experiment.py`)：
-```python
-@dataclass
-class RefinerExperimentConfig:
-    # 改为支持多数据集
-    datasets: list[str] = field(default_factory=lambda: ["nq"])
-    # ... 其他字段
-```
-
-3. **修改 ComparisonExperiment**：
-```python
-def run(self) -> ExperimentResult:
-    all_results = {}
-    for dataset in self.config.datasets:
-        self._log(f"Running on dataset: {dataset}")
-        dataset_results = self._run_on_dataset(dataset)
-        all_results[dataset] = dataset_results
-
-    return self._aggregate_results(all_results)
-```
-
-4. **结果聚合**：
-- 按数据集分组存储原始结果
-- 支持跨数据集的平均性能计算
-- 支持单独查看每个数据集的结果
-
-## FlashRAG 可用数据集
+**可用数据集**:
 ```python
 AVAILABLE_DATASETS = [
     "nq",           # Natural Questions
@@ -372,7 +352,7 @@ AVAILABLE_DATASETS = [
 ]
 ```
 
-## CLI 使用示例
+**CLI 使用示例**:
 ```bash
 # 单数据集
 sage-refiner-bench compare --algorithms baseline,longrefiner --datasets nq --samples 100
@@ -383,32 +363,9 @@ sage-refiner-bench compare \
     --datasets nq,hotpotqa,2wikimultihopqa \
     --samples 500 \
     --output results/icml_main.json
-```
 
-## 输出格式
-```json
-{
-  "experiment_id": "...",
-  "datasets": {
-    "nq": {
-      "algorithm_metrics": {...},
-      "raw_results": [...]
-    },
-    "hotpotqa": {
-      "algorithm_metrics": {...},
-      "raw_results": [...]
-    }
-  },
-  "aggregated": {
-    "algorithm_metrics": {...}  // 跨数据集平均
-  }
-}
-```
-
-## 注意事项
-- 数据集名称需要与 FlashRAG 的 config 名称一致
-- 添加数据集验证
-- 支持 `--datasets all` 运行所有可用数据集
+# 所有数据集
+sage-refiner-bench compare --algorithms baseline,longrefiner --datasets all
 ```
 
 ---
@@ -708,5 +665,6 @@ Round 3 (依赖 Round 2):   │
 
 ## 更新日志
 
+- **2025-12-02**: Round 2 完成 (Task 2A ComparisonExperiment 重构, Task 2B 多数据集批量运行支持)
 - **2025-12-02**: 更新算法列表，移除 Adaptive/LLMLingua，新增 LongLLMLingua/LLMLingua-2
 - **2025-12-01**: 初始版本，Round 1 任务完成

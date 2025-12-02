@@ -12,9 +12,12 @@ Refiner Experiments Module
 - CompressionExperiment: 压缩率评测实验
 - RefinerExperimentRunner: 实验运行器
 - ResultsCollector: 结果收集器
+- DatasetResult: 单数据集结果
+- MultiDatasetExperimentResult: 多数据集实验结果
 """
 
 from sage.benchmark.benchmark_refiner.experiments.base_experiment import (
+    AVAILABLE_DATASETS,
     AlgorithmMetrics,
     BaseRefinerExperiment,
     DatasetType,
@@ -25,7 +28,9 @@ from sage.benchmark.benchmark_refiner.experiments.base_experiment import (
 from sage.benchmark.benchmark_refiner.experiments.comparison_experiment import (
     ComparisonExperiment,
     CompressionExperiment,
+    DatasetResult,
     LatencyExperiment,
+    MultiDatasetExperimentResult,
     QualityExperiment,
 )
 from sage.benchmark.benchmark_refiner.experiments.results_collector import (
@@ -37,6 +42,8 @@ from sage.benchmark.benchmark_refiner.experiments.runner import (
 )
 
 __all__ = [
+    # Constants
+    "AVAILABLE_DATASETS",
     # Enums
     "RefinerAlgorithm",
     "DatasetType",
@@ -44,6 +51,8 @@ __all__ = [
     "RefinerExperimentConfig",
     "AlgorithmMetrics",
     "ExperimentResult",
+    "DatasetResult",
+    "MultiDatasetExperimentResult",
     # Experiment classes
     "BaseRefinerExperiment",
     "ComparisonExperiment",

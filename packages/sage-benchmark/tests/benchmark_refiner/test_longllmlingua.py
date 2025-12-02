@@ -13,8 +13,6 @@ Tests cover:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 
@@ -162,14 +160,8 @@ class TestLongLLMLinguaPipelineStructure:
 
     def test_pipeline_file_exists(self) -> None:
         """Test that pipeline file exists."""
-        import os
-        from pathlib import Path
-
-        pipeline_path = Path(__file__).parent.parent.parent / "src" / "sage" / "benchmark" / "benchmark_refiner" / "implementations" / "pipelines" / "longllmlingua_rag.py"
-
-        # Use relative import instead
+        # Use relative import to test module can be found (not necessarily imported without deps)
         try:
-            # This tests the module can be found (not necessarily imported without deps)
             import importlib.util
 
             spec = importlib.util.find_spec(
@@ -181,14 +173,17 @@ class TestLongLLMLinguaPipelineStructure:
 
     def test_config_file_exists(self) -> None:
         """Test that config file exists."""
-        import os
         from pathlib import Path
 
-        config_path = Path(__file__).parent.parent.parent / "src" / "sage" / "benchmark" / "benchmark_refiner" / "config" / "config_longllmlingua.yaml"
+        config_path = (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "sage"
+            / "benchmark"
+            / "benchmark_refiner"
+            / "config"
+            / "config_longllmlingua.yaml"
+        )
 
         # Check relative to benchmark_refiner package
-        from sage.benchmark import benchmark_refiner
-        import importlib.resources
-
-        # Just verify the config key would be used
-        assert "longllmlingua" in "config_longllmlingua.yaml"
+        assert config_path.exists(), f"Config file not found at {config_path}"

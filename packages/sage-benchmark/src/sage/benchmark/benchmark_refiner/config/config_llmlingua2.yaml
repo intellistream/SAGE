@@ -64,10 +64,10 @@ llmlingua2:
 
   # Token 保留选项
   force_tokens:                    # 强制保留的 token 列表
-    - "\n"
-    - "."
-    - "?"
-    - "!"
+  - "\n"
+  - "."
+  - "?"
+  - "!"
   force_reserve_digit: false       # 是否保留包含数字的 token
   drop_consecutive: false          # 是否丢弃连续的强制保留 token
 

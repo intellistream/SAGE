@@ -16,13 +16,9 @@ Tests cover:
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
-
-import pytest
 
 from sage.benchmark.benchmark_refiner.experiments import (
     AlgorithmMetrics,
-    BaseRefinerExperiment,
     ComparisonExperiment,
     CompressionExperiment,
     DatasetType,

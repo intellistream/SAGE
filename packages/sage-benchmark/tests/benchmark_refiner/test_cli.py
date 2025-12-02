@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -40,12 +40,17 @@ class TestArgumentParser:
     def test_compare_command(self) -> None:
         """Test compare command parsing."""
         parser = create_parser()
-        args = parser.parse_args([
-            "compare",
-            "--algorithms", "baseline,longrefiner",
-            "--samples", "50",
-            "--budget", "1024",
-        ])
+        args = parser.parse_args(
+            [
+                "compare",
+                "--algorithms",
+                "baseline,longrefiner",
+                "--samples",
+                "50",
+                "--budget",
+                "1024",
+            ]
+        )
         assert args.command == "compare"
         assert args.algorithms == "baseline,longrefiner"
         assert args.samples == 50
@@ -63,11 +68,15 @@ class TestArgumentParser:
     def test_run_command(self) -> None:
         """Test run command parsing."""
         parser = create_parser()
-        args = parser.parse_args([
-            "run",
-            "--config", "experiment.yaml",
-            "--type", "quality",
-        ])
+        args = parser.parse_args(
+            [
+                "run",
+                "--config",
+                "experiment.yaml",
+                "--type",
+                "quality",
+            ]
+        )
         assert args.command == "run"
         assert args.config == "experiment.yaml"
         assert args.type == "quality"
@@ -75,12 +84,17 @@ class TestArgumentParser:
     def test_sweep_command(self) -> None:
         """Test sweep command parsing."""
         parser = create_parser()
-        args = parser.parse_args([
-            "sweep",
-            "--algorithm", "longrefiner",
-            "--budgets", "512,1024,2048",
-            "--samples", "100",
-        ])
+        args = parser.parse_args(
+            [
+                "sweep",
+                "--algorithm",
+                "longrefiner",
+                "--budgets",
+                "512,1024,2048",
+                "--samples",
+                "100",
+            ]
+        )
         assert args.command == "sweep"
         assert args.algorithm == "longrefiner"
         assert args.budgets == "512,1024,2048"
@@ -89,22 +103,30 @@ class TestArgumentParser:
     def test_config_command(self) -> None:
         """Test config command parsing."""
         parser = create_parser()
-        args = parser.parse_args([
-            "config",
-            "--output", "my_config.yaml",
-        ])
+        args = parser.parse_args(
+            [
+                "config",
+                "--output",
+                "my_config.yaml",
+            ]
+        )
         assert args.command == "config"
         assert args.output == "my_config.yaml"
 
     def test_heads_command(self) -> None:
         """Test heads command parsing."""
         parser = create_parser()
-        args = parser.parse_args([
-            "heads",
-            "--model", "/path/to/model",
-            "--dataset", "hotpotqa",
-            "--samples", "200",
-        ])
+        args = parser.parse_args(
+            [
+                "heads",
+                "--model",
+                "/path/to/model",
+                "--dataset",
+                "hotpotqa",
+                "--samples",
+                "200",
+            ]
+        )
         assert args.command == "heads"
         assert args.model == "/path/to/model"
         assert args.dataset == "hotpotqa"
@@ -130,6 +152,7 @@ class TestCommands:
 
             # Verify it's valid YAML
             import yaml
+
             with open(f.name) as yaml_file:
                 config = yaml.safe_load(yaml_file)
                 assert "experiment" in config

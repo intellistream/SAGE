@@ -172,7 +172,7 @@ python -c "from sage.benchmark.benchmark_refiner.experiments import RefinerAlgor
 3. `LongLLMLinguaCompressor` 核心实现 (已完成):
    ```python
    from llmlingua import PromptCompressor  # 使用 pip 包
-   
+
    # 论文 baseline 默认配置
    DEFAULT_LONG_LLMLINGUA_CONFIG = {
        "rate": 0.55,  # 论文 baseline
@@ -182,7 +182,7 @@ python -c "from sage.benchmark.benchmark_refiner.experiments import RefinerAlgor
        "condition_compare": True,  # 关键：启用对比困惑度
        ...
    }
-   
+
    class LongLLMLinguaCompressor:
        """LongLLMLingua: 针对长文档优化的 Prompt 压缩器"""
        def __init__(self, model_name="NousResearch/Llama-2-7b-hf", device="cuda"):
@@ -211,7 +211,7 @@ python -c "from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner
    pipeline:
      name: "sage-benchmark-longllmlingua-rag"
      description: "LongLLMLingua RAG Pipeline for Long Documents"
-   
+
    longllmlingua:
      enabled: true
      model_name: "NousResearch/Llama-2-7b-hf"  # 或 meta-llama/Llama-2-7b-hf
@@ -277,11 +277,11 @@ SAGE_TEST_MODE=true python packages/sage-benchmark/src/sage/benchmark/benchmark_
 3. `LLMLingua2Compressor` 核心实现 (已完成):
    ```python
    from llmlingua import PromptCompressor  # 使用 pip 包
-   
+
    class LLMLingua2Compressor:
        """LLMLingua-2: 基于 BERT Token 分类的快速 Prompt 压缩器"""
        DEFAULT_MODEL = "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
-       
+
        def __init__(self, model_name=None, device="cuda"):
            from llmlingua import PromptCompressor  # pip 包
            self.compressor = PromptCompressor(
@@ -312,7 +312,7 @@ python -c "from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner
    pipeline:
      name: "sage-benchmark-llmlingua2-rag"
      description: "LLMLingua-2 RAG Pipeline with BERT Token Classification"
-   
+
    llmlingua2:
      enabled: true
      model_name: "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
@@ -370,7 +370,7 @@ SAGE_TEST_MODE=true python packages/sage-benchmark/src/sage/benchmark/benchmark_
    except ImportError:
        LongLLMLinguaCompressor = None
        LongLLMLinguaOperator = None
-   
+
    # LLMLingua2算法
    try:
        from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.llmlingua2 import (
@@ -633,28 +633,28 @@ result = compressor.compress_prompt(
 def test_imports():
     """验证所有导入"""
     errors = []
-    
+
     # 1. 验证 pip llmlingua 包可导入
     try:
         from llmlingua import PromptCompressor
         print("✅ llmlingua pip package import OK")
     except Exception as e:
         errors.append(f"llmlingua package: {e}")
-    
+
     # 2. 验证 LongLLMLingua Compressor
     try:
         from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.longllmlingua import LongLLMLinguaCompressor
         print("✅ LongLLMLinguaCompressor import OK")
     except Exception as e:
         errors.append(f"LongLLMLinguaCompressor: {e}")
-    
+
     # 3. 验证 LLMLingua2 Compressor
     try:
         from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.llmlingua2 import LLMLingua2Compressor
         print("✅ LLMLingua2Compressor import OK")
     except Exception as e:
         errors.append(f"LLMLingua2Compressor: {e}")
-    
+
     # 4. 验证主导出
     try:
         from sage.middleware.components.sage_refiner import (
@@ -664,7 +664,7 @@ def test_imports():
         print("✅ Main exports OK")
     except Exception as e:
         errors.append(f"Main exports: {e}")
-    
+
     # 5. 验证枚举
     try:
         from sage.benchmark.benchmark_refiner.experiments import RefinerAlgorithm
@@ -674,13 +674,13 @@ def test_imports():
         print(f"✅ RefinerAlgorithm OK: {available}")
     except Exception as e:
         errors.append(f"RefinerAlgorithm: {e}")
-    
+
     if errors:
         print("\n❌ Errors found:")
         for e in errors:
             print(f"  - {e}")
         return False
-    
+
     print("\n✅ All imports verified successfully")
     return True
 
