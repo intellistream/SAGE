@@ -22,8 +22,6 @@ from .client import IntelligentLLMClient, check_llm_service, get_llm_client
 from .compat import (
     EmbeddingClientAdapter,
     LLMClientAdapter,
-    create_embedding_client_compat,
-    create_llm_client_compat,
 )
 from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
@@ -77,8 +75,6 @@ try:
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
-        "create_llm_client_compat",
-        "create_embedding_client_compat",
     ]
 except ImportError:
     # Control Plane service not available
@@ -108,6 +104,4 @@ except ImportError:
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
-        "create_llm_client_compat",
-        "create_embedding_client_compat",
     ]
