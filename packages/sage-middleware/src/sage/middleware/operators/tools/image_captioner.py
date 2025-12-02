@@ -49,7 +49,7 @@ class ImageCaptioner(BaseTool):
             ]
 
             # Use auto-detection for best available LLM service
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
             # Retry mechanism for connection errors
             max_retries = 5

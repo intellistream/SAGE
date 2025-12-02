@@ -98,8 +98,8 @@ class TestAutoDetection:
         result = IntelligentEmbeddingClient._check_endpoint("http://localhost:59999/v1")
         assert result is False
 
-    def test_create_auto_falls_back_to_embedded_mocked(self):
-        """Test create_auto falls back to embedded when no server available."""
+    def test_create_falls_back_to_embedded_mocked(self):
+        """Test create falls back to embedded when no server available."""
         from sage.common.components.sage_embedding import EmbeddingClientAdapter, EmbeddingFactory
 
         # Mock _init_embedded_mode to use hash embedder
@@ -110,27 +110,27 @@ class TestAutoDetection:
             self.mode = "embedded"
 
         with patch.object(IntelligentEmbeddingClient, "_init_embedded_mode", mock_init_embedded):
-            client = IntelligentEmbeddingClient.create_auto(fallback_model="hash")
+            client = IntelligentEmbeddingClient.create(fallback_model="hash")
             assert client.mode == "embedded"
 
     @patch.dict("os.environ", {"SAGE_EMBEDDING_BASE_URL": "http://test:8090/v1"})
     @patch.object(IntelligentEmbeddingClient, "_check_endpoint", return_value=True)
     @patch.object(IntelligentEmbeddingClient, "_init_api_mode")
-    def test_create_auto_uses_env_var(self, mock_init, mock_check):
-        """Test create_auto uses SAGE_EMBEDDING_BASE_URL env var."""
-        client = IntelligentEmbeddingClient.create_auto()
+    def test_create_uses_env_var(self, mock_init, mock_check):
+        """Test create uses SAGE_EMBEDDING_BASE_URL env var."""
+        client = IntelligentEmbeddingClient.create()
 
         # Should use the env var URL
         assert client.base_url == "http://test:8090/v1"
 
-    def test_create_auto_with_local_server_detection(self):
-        """Test create_auto detects local server when available."""
+    def test_create_with_local_server_detection(self):
+        """Test create detects local server when available."""
         # Mock a successful endpoint check for port 8090
         with patch.object(
             IntelligentEmbeddingClient, "_check_endpoint", side_effect=lambda url: "8090" in url
         ):
             with patch.object(IntelligentEmbeddingClient, "_init_api_mode"):
-                client = IntelligentEmbeddingClient.create_auto()
+                client = IntelligentEmbeddingClient.create()
                 assert client.mode == "api"
                 assert "8090" in client.base_url
 

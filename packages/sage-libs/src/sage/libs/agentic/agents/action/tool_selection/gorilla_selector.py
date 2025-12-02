@@ -128,9 +128,9 @@ class GorillaSelector(BaseToolSelector):
         try:
             from sage.common.components.sage_llm.client import IntelligentLLMClient
 
-            # Always use create_auto() for automatic local-first detection
+            # Always use create() for automatic local-first detection
             # config.llm_model is informational only; actual model determined by endpoint
-            return IntelligentLLMClient.create_auto()
+            return IntelligentLLMClient.create()
         except ImportError:
             logger.warning(
                 "IntelligentLLMClient not available. GorillaSelector will use "

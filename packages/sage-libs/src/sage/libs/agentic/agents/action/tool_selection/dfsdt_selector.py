@@ -167,7 +167,7 @@ class DFSDTSelector(BaseToolSelector):
                 from sage.common.components.sage_llm.client import IntelligentLLMClient
 
                 if self.config.llm_model == "auto":
-                    self._llm_client = IntelligentLLMClient.create_auto()
+                    self._llm_client = IntelligentLLMClient.create()
                 else:
                     self._llm_client = IntelligentLLMClient(
                         model_name=self.config.llm_model,
