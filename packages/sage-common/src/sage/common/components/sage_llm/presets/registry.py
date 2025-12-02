@@ -1,4 +1,5 @@
 """Built-in preset registry for sageLLM multi-engine launcher."""
+
 from __future__ import annotations
 
 from typing import Iterator

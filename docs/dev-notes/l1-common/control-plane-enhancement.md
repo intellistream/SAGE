@@ -49,7 +49,7 @@
 | 命令 | 描述 |
 |------|------|
 | `sage llm engine list` | 展示当前由控制平面管理的引擎（含 runtime 列） |
-| `sage llm engine start <model_id>` | 启动引擎，支持 `--engine-kind llm\|embedding`、`--tensor-parallel`、`--pipeline-parallel` 等 |
+| `sage llm engine start <model_id>` | 启动引擎，支持 `--engine-kind llm\|embedding`、`--use-gpu/--no-gpu`、`--tensor-parallel`、`--pipeline-parallel` 等 |
 | `sage llm engine stop <engine_id>` | 停止引擎 |
 | `sage llm gpu` | 展示 GPU 状态 |
 | `sage llm preset list` | 列出内置预设 |
@@ -76,7 +76,17 @@ engines:
     kind: embedding
     model: BAAI/bge-small-zh-v1.5
     label: embedding-bge
+  - name: embed-gpu
+    kind: embedding
+    model: BAAI/bge-m3
+    use_gpu: true  # 显式使用 GPU（默认 Embedding 不用 GPU）
+    label: embedding-bge-m3-gpu
 ```
+
+**`use_gpu` 参数行为**:
+- `use_gpu: null` 或省略 (默认): LLM 用 GPU，Embedding 不用
+- `use_gpu: true`: 强制使用 GPU
+- `use_gpu: false`: 强制不用 GPU（即使是 LLM）
 
 内置预设位于 `packages/sage-common/.../sage_llm/presets/registry.py`；用户可通过 `--file` 加载自定义 YAML。
 
@@ -91,8 +101,11 @@ sage llm serve
 # 列出现有引擎
 sage llm engine list
 
-# 启动额外 Embedding 引擎
+# 启动额外 Embedding 引擎（默认 CPU）
 sage llm engine start BAAI/bge-m3 --engine-kind embedding --port 8095
+
+# 启动 Embedding 引擎使用 GPU
+sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu --port 8095
 
 # 一键预设部署
 sage llm preset apply -n qwen-mini-with-embeddings
@@ -119,6 +132,6 @@ sage llm gpu
 
 ## 后续计划
 
-1. 单元/集成测试覆盖 GPU Manager、Lifecycle Manager、Preset 解析与 CLI 命令。
+1. ~~单元/集成测试覆盖 GPU Manager、Lifecycle Manager、Preset 解析与 CLI 命令。~~ ✅ 已完成
 2. 可视化面板 (sage-studio) 与 preset apply 状态反馈整合。
 3. 引擎健康检查与自动重启策略。

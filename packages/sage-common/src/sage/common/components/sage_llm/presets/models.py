@@ -1,4 +1,5 @@
 """Preset schema definitions for multi-engine launcher."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,6 +31,7 @@ class PresetEngine:
     port: int | None = None
     label: str | None = None
     max_concurrent_requests: int = 256
+    use_gpu: bool | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     extra_args: list[str] = field(default_factory=list)
 
@@ -49,7 +51,11 @@ class PresetEngine:
             data.get("pipeline_parallel"),
             "pipeline_parallel",
         )
-        max_req = _ensure_positive(data.get("max_concurrent_requests"), "max_concurrent_requests", 256)
+        max_req = _ensure_positive(
+            data.get("max_concurrent_requests"), "max_concurrent_requests", 256
+        )
+        raw_use_gpu = data.get("use_gpu")
+        use_gpu = None if raw_use_gpu is None else bool(raw_use_gpu)
         extra_args = list(data.get("extra_args") or [])
         metadata = dict(data.get("metadata") or {})
         return cls(
@@ -61,6 +67,7 @@ class PresetEngine:
             port=data.get("port"),
             label=data.get("label"),
             max_concurrent_requests=max_req,
+            use_gpu=use_gpu,
             metadata=metadata,
             extra_args=extra_args,
         )
@@ -77,6 +84,8 @@ class PresetEngine:
             payload["port"] = self.port
         if self.label:
             payload["engine_label"] = self.label
+        if self.use_gpu is not None:
+            payload["use_gpu"] = self.use_gpu
         if self.metadata:
             payload["metadata"] = self.metadata
         if self.extra_args:
@@ -103,7 +112,9 @@ class EnginePreset:
         engines = [PresetEngine.from_dict(item) for item in raw_engines]
         version = int(data.get("version", 1))
         description = data.get("description")
-        return cls(name=str(data["name"]), version=version, description=description, engines=engines)
+        return cls(
+            name=str(data["name"]), version=version, description=description, engines=engines
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -120,6 +131,7 @@ class EnginePreset:
                     "port": engine.port,
                     "label": engine.label,
                     "max_concurrent_requests": engine.max_concurrent_requests,
+                    "use_gpu": engine.use_gpu,
                     "metadata": engine.metadata or None,
                     "extra_args": engine.extra_args or None,
                 }

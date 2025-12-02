@@ -132,9 +132,7 @@ def _management_request(
 
     if response.status_code >= 400:
         detail = _extract_error_detail(response)
-        console.print(
-            f"[red]❌ 管理 API 请求失败 ({response.status_code}): {detail}[/red]"
-        )
+        console.print(f"[red]❌ 管理 API 请求失败 ({response.status_code}): {detail}[/red]")
         raise typer.Exit(1)
 
     if not response.content:
@@ -342,9 +340,7 @@ def apply_preset(
     rollback_enabled = not no_rollback
 
     for engine in preset.engines:
-        console.print(
-            f"[cyan]🚀 启动 {engine.name} ({engine.kind}) -> {engine.model}[/cyan]"
-        )
+        console.print(f"[cyan]🚀 启动 {engine.name} ({engine.kind}) -> {engine.model}[/cyan]")
         payload = engine.to_payload()
         try:
             response = _management_request(
@@ -648,6 +644,11 @@ def start_engine(
         "--engine-kind",
         help="引擎类型 (llm 或 embedding)",
     ),
+    use_gpu: bool | None = typer.Option(
+        None,
+        "--use-gpu/--no-gpu",
+        help="显式指定是否使用 GPU (默认: LLM 使用 GPU, Embedding 不使用)",
+    ),
 ):
     """请求启动新的 LLM 引擎。"""
 
@@ -671,6 +672,8 @@ def start_engine(
     if max_concurrent is not None:
         payload["max_concurrent_requests"] = max_concurrent
     payload["engine_kind"] = engine_kind_value
+    if use_gpu is not None:
+        payload["use_gpu"] = use_gpu
 
     response = _management_request(
         "POST",
@@ -718,9 +721,7 @@ def stop_engine(
     )
 
     status_text = response.get("status") or response.get("state") or "STOPPED"
-    console.print(
-        f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]"
-    )
+    console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
 
 
 @app.command("gpu")
@@ -967,7 +968,7 @@ def serve_llm(
 
         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        client = UnifiedInferenceClient.create_auto()
+        client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])
     """
     if LLMLauncher is None:

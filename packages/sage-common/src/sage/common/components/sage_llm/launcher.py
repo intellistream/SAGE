@@ -378,7 +378,9 @@ class LLMLauncher:
                 if psutil.pid_exists(emb_pid):
                     try:
                         if verbose:
-                            console.print(f"[blue]🛑 停止 Embedding 服务 (PID: {emb_pid})...[/blue]")
+                            console.print(
+                                f"[blue]🛑 停止 Embedding 服务 (PID: {emb_pid})...[/blue]"
+                            )
                         emb_proc = psutil.Process(emb_pid)
                         emb_proc.terminate()
                         emb_proc.wait(timeout=5)

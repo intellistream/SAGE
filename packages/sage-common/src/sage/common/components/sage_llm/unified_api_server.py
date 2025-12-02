@@ -287,6 +287,11 @@ if FASTAPI_AVAILABLE:
             "llm",
             description="Runtime kind of engine (llm or embedding)",
         )
+        use_gpu: bool | None = Field(
+            None,
+            description="GPU usage override. None=default (LLM uses GPU, Embedding does not), "
+            "True=force GPU, False=force no GPU",
+        )
 
 
 # =============================================================================
@@ -598,6 +603,7 @@ class UnifiedAPIServer:
                     engine_label=request.engine_label,
                     metadata=request.metadata,
                     engine_kind=request.engine_kind,
+                    use_gpu=request.use_gpu,
                 )
             except ValueError as exc:  # Invalid arguments
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
