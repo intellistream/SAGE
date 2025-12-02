@@ -128,6 +128,7 @@ repos:
         "^examples/README\.md$"  # Allow top-level examples README
         "^examples/.*/README\.md$"
         "^examples/tutorials/"
+        "^config/README\.md$"  # Allow config directory README
         "^tools/.*/README\.md$"
         "^tools/.*\.md$"  # Allow any .md in tools (installation guides, etc.)
         "^\.sage/.*\.md$"
