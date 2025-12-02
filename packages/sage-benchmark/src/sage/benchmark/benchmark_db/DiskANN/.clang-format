@@ -1,6 +1,5 @@
 ---
-BasedOnStyle:  Microsoft
+BasedOnStyle: Microsoft
 ---
 Language: Cpp
 SortIncludes: false
-...

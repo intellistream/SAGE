@@ -247,9 +247,7 @@ class DynamicMemoryIndex:
         _assert_is_nonnegative_uint32(num_threads, "num_threads")
         _assert_is_nonnegative_uint32(filter_complexity, "filter_complexity")
         _assert_is_nonnegative_uint32(num_frozen_points, "num_frozen_points")
-        _assert_is_nonnegative_uint32(
-            initial_search_complexity, "initial_search_complexity"
-        )
+        _assert_is_nonnegative_uint32(initial_search_complexity, "initial_search_complexity")
         _assert_is_nonnegative_uint32(search_threads, "search_threads")
 
         self._max_vectors = max_vectors
@@ -281,9 +279,7 @@ class DynamicMemoryIndex:
         )
         self._points_deleted = False
 
-    def search(
-        self, query: VectorLike, k_neighbors: int, complexity: int
-    ) -> QueryResponse:
+    def search(self, query: VectorLike, k_neighbors: int, complexity: int) -> QueryResponse:
         """
         Searches the index by a single query vector.
 
@@ -372,7 +368,9 @@ class DynamicMemoryIndex:
         if index_prefix == "":
             raise ValueError("index_prefix cannot be empty")
 
-        index_prefix = index_prefix.format(complexity=self._complexity, graph_degree=self._graph_degree)
+        index_prefix = index_prefix.format(
+            complexity=self._complexity, graph_degree=self._graph_degree
+        )
         _assert_existing_directory(save_path, "save_path")
         save_path = os.path.join(save_path, index_prefix)
         if self._points_deleted is True:
@@ -411,13 +409,17 @@ class DynamicMemoryIndex:
         _assert_is_positive_uint32(vector_id, "vector_id")
         if self._num_vectors + 1 > self._max_vectors:
             if self._removed_num_vectors > 0:
-                warnings.warn(f"Inserting this vector would overrun the max_vectors={self._max_vectors} specified at index "
-                              f"construction. We are attempting to consolidate_delete() to make space.")
+                warnings.warn(
+                    f"Inserting this vector would overrun the max_vectors={self._max_vectors} specified at index "
+                    f"construction. We are attempting to consolidate_delete() to make space."
+                )
                 self.consolidate_delete()
             else:
-                raise RuntimeError(f"Inserting this vector would overrun the max_vectors={self._max_vectors} specified "
-                                   f"at index construction. Unable to make space by consolidating deletions. The insert"
-                                   f"operation has failed.")
+                raise RuntimeError(
+                    f"Inserting this vector would overrun the max_vectors={self._max_vectors} specified "
+                    f"at index construction. Unable to make space by consolidating deletions. The insert"
+                    f"operation has failed."
+                )
         status = self._index.insert(_vector, np.uint32(vector_id))
         if status == 0:
             self._num_vectors += 1
@@ -425,7 +427,6 @@ class DynamicMemoryIndex:
             raise RuntimeError(
                 f"Insert was unable to complete successfully; error code returned from diskann C++ lib: {status}"
             )
-
 
     def batch_insert(
         self,
@@ -456,14 +457,18 @@ class DynamicMemoryIndex:
 
         if self._num_vectors + _vector_ids.shape[0] > self._max_vectors:
             if self._max_vectors + self._removed_num_vectors >= _vector_ids.shape[0]:
-                warnings.warn(f"Inserting these vectors, count={_vector_ids.shape[0]} would overrun the "
-                              f"max_vectors={self._max_vectors} specified at index construction. We are attempting to "
-                              f"consolidate_delete() to make space.")
+                warnings.warn(
+                    f"Inserting these vectors, count={_vector_ids.shape[0]} would overrun the "
+                    f"max_vectors={self._max_vectors} specified at index construction. We are attempting to "
+                    f"consolidate_delete() to make space."
+                )
                 self.consolidate_delete()
             else:
-                raise RuntimeError(f"Inserting these vectors count={_vector_ids.shape[0]} would overrun the "
-                                   f"max_vectors={self._max_vectors} specified at index construction. Unable to make "
-                                   f"space by consolidating deletions. The batch insert operation has failed.")
+                raise RuntimeError(
+                    f"Inserting these vectors count={_vector_ids.shape[0]} would overrun the "
+                    f"max_vectors={self._max_vectors} specified at index construction. Unable to make "
+                    f"space by consolidating deletions. The batch insert operation has failed."
+                )
 
         statuses = self._index.batch_insert(
             _vectors, _vector_ids, _vector_ids.shape[0], num_threads
@@ -483,7 +488,6 @@ class DynamicMemoryIndex:
             f"During batch insert, the following vector_ids were unable to be inserted into the index: {failed_ids}. "
             f"{len(successes)} were successfully inserted"
         )
-
 
     def mark_deleted(self, vector_id: VectorIdentifier):
         """

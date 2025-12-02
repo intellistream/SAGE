@@ -19,14 +19,14 @@ const NUM_POINTS_TO_LOAD: usize = 256;
 pub fn create_index_with_test_data() -> InmemIndex<f32, DIM_128> {
     let index_write_parameters = IndexWriteParametersBuilder::new(50, 4).with_alpha(1.2).build();
     let config = IndexConfiguration::new(
-        Metric::L2, 
-        128, 
+        Metric::L2,
         128,
-        256, 
-        false, 
-        0, 
+        128,
+        256,
         false,
-        0, 
+        0,
+        false,
+        0,
         1.0f32,
         index_write_parameters);
     let mut index: InmemIndex<f32, DIM_128> = InmemIndex::new(config).unwrap();
@@ -46,7 +46,7 @@ fn build_test_index(index: &mut InmemIndex<f32, DIM_128>, filename: &str, num_po
     let (file_num_points, file_dim) = load_metadata_from_file(filename).unwrap();
     if file_num_points > index.configuration.max_points {
         panic!(
-            "ERROR: Driver requests loading {} points and file has {} points, 
+            "ERROR: Driver requests loading {} points and file has {} points,
         but index can support only {} points as specified in configuration.",
             num_points_to_load, file_num_points, index.configuration.max_points
         );

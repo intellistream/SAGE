@@ -1,19 +1,15 @@
-import diskannpy as dap
-import numpy as np
-import numpy.typing as npt
-
-import fire
-
 from contextlib import contextmanager
 from time import perf_counter
 
-from typing import Tuple
+import diskannpy as dap
+import fire
+import numpy as np
+import numpy.typing as npt
 
 
 def _basic_setup(
-    dtype: str,
-    query_vectors_file: str
-) -> Tuple[dap.VectorDType, npt.NDArray[dap.VectorDType]]:
+    dtype: str, query_vectors_file: str
+) -> tuple[dap.VectorDType, npt.NDArray[dap.VectorDType]]:
     _dtype = dap.valid_dtype(dtype)
     vectors_to_query = dap.vectors_from_binary(query_vectors_file, dtype=_dtype)
     return _dtype, vectors_to_query
@@ -35,20 +31,16 @@ def dynamic(
     vectors_to_index = dap.vectors_from_binary(index_vectors_file, dtype=_dtype)
 
     npts, ndims = vectors_to_index.shape
-    index = dap.DynamicMemoryIndex(
-        "l2", _dtype, ndims, npts, build_complexity, graph_degree
-    )
+    index = dap.DynamicMemoryIndex("l2", _dtype, ndims, npts, build_complexity, graph_degree)
 
-    tags = np.arange(1, npts+1, dtype=np.uintc)
+    tags = np.arange(1, npts + 1, dtype=np.uintc)
     timer = Timer()
 
     with timer.time("batch insert"):
         index.batch_insert(vectors_to_index, tags, num_insert_threads)
 
     delete_tags = np.random.choice(
-        np.array(range(1, npts + 1, 1), dtype=np.uintc),
-        size=int(0.5 * npts),
-        replace=False
+        np.array(range(1, npts + 1, 1), dtype=np.uintc), size=int(0.5 * npts), replace=False
     )
     with timer.time("mark deletion"):
         for tag in delete_tags:
@@ -70,6 +62,7 @@ def dynamic(
     #     recall = utils.calculate_recall_from_gt_file(K, res_ids, gt_file)
     #     print(f"recall@{K} is {recall}")
 
+
 def static(
     dtype: str,
     index_directory: str,
@@ -81,7 +74,7 @@ def static(
     search_complexity: int,
     num_threads: int,
     gt_file: str = "",
-    index_prefix: str = "ann"
+    index_prefix: str = "ann",
 ):
     _dtype, vectors_to_query = _basic_setup(dtype, query_vectors_file)
     timer = Timer()
@@ -111,8 +104,8 @@ def static(
             index_directory=index_directory,
             num_threads=num_threads,  # this can be different at search time if you would like
             initial_search_complexity=search_complexity,
-            index_prefix=index_prefix
-    )
+            index_prefix=index_prefix,
+        )
 
     ids, dists = index.batch_search(vectors_to_query, K, search_complexity, num_threads)
 
@@ -120,8 +113,10 @@ def static(
     #     recall = utils.calculate_recall_from_gt_file(K, ids, gt_file)
     #     print(f"recall@{K} is {recall}")
 
+
 def dynamic_clustered():
     pass
+
 
 def generate_clusters():
     pass
@@ -138,15 +133,18 @@ class Timer:
             self._start = start
         yield
         now = perf_counter()
-        print(f"Operation {message} completed in {(now - start):.3f}s, total: {(now - self._start):.3f}s")
-
-
+        print(
+            f"Operation {message} completed in {(now - start):.3f}s, total: {(now - self._start):.3f}s"
+        )
 
 
 if __name__ == "__main__":
-    fire.Fire({
-        "in-mem-dynamic": dynamic,
-        "in-mem-static": static,
-        "in-mem-dynamic-clustered": dynamic_clustered,
-        "generate-clusters": generate_clusters
-    }, name="cli")
+    fire.Fire(
+        {
+            "in-mem-dynamic": dynamic,
+            "in-mem-static": static,
+            "in-mem-dynamic-clustered": dynamic_clustered,
+            "generate-clusters": generate_clusters,
+        },
+        name="cli",
+    )

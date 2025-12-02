@@ -85,9 +85,7 @@ class StaticMemoryIndex:
         dap_metric = _valid_metric(metric)
 
         _assert_is_nonnegative_uint32(num_threads, "num_threads")
-        _assert_is_positive_uint32(
-            initial_search_complexity, "initial_search_complexity"
-        )
+        _assert_is_positive_uint32(initial_search_complexity, "initial_search_complexity")
 
         self._vector_dtype = vector_dtype
         self._dimensions = dims
@@ -108,9 +106,7 @@ class StaticMemoryIndex:
             initial_search_complexity=initial_search_complexity,
         )
 
-    def search(
-        self, query: VectorLike, k_neighbors: int, complexity: int
-    ) -> QueryResponse:
+    def search(self, query: VectorLike, k_neighbors: int, complexity: int) -> QueryResponse:
         """
         Searches the index by a single query vector.
 

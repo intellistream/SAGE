@@ -17,7 +17,7 @@ pub struct DiskIndexBuildLogger {
 
 impl DiskIndexBuildLogger {
     pub fn new(checkpoint: DiskIndexConstructionCheckpoint) -> Self {
-        Self { 
+        Self {
             timer: Timer::new(),
             checkpoint,
         }
@@ -54,4 +54,3 @@ mod dataset_test {
         logger.log_checkpoint(DiskIndexConstructionCheckpoint::InmemIndexBuild).unwrap();logger.log_checkpoint(logger::logger::indexlog::DiskIndexConstructionCheckpoint::DiskLayout).unwrap();
     }
 }
-

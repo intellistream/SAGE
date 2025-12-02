@@ -21,7 +21,7 @@ pub struct IndexConfiguration {
 
     /// Dimension of the raw data
     pub dim: usize,
-    
+
     /// Aligned dimension - round up dim to the nearest multiple of 8
     pub aligned_dim: usize,
 
@@ -60,15 +60,15 @@ impl IndexConfiguration {
     /// Create IndexConfiguration instance
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        dist_metric: Metric, 
-        dim: usize, 
+        dist_metric: Metric,
+        dim: usize,
         aligned_dim: usize,
-        max_points: usize, 
-        use_pq_dist: bool, 
-        num_pq_chunks: usize, 
-        use_opq: bool, 
-        num_frozen_pts: usize, 
-        growth_potential: f32, 
+        max_points: usize,
+        use_pq_dist: bool,
+        num_pq_chunks: usize,
+        use_opq: bool,
+        num_frozen_pts: usize,
+        growth_potential: f32,
         index_write_parameter: IndexWriteParameters
     ) -> Self {
         Self {

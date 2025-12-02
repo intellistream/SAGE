@@ -7,7 +7,7 @@
 
 It also includes a few nascent [utilities](#utilities).
 
-And lastly, it makes substantial use of type hints, with various shorthand [type aliases](#parameter-and-response-type-aliases) documented. 
+And lastly, it makes substantial use of type hints, with various shorthand [type aliases](#parameter-and-response-type-aliases) documented.
 When reading the `diskannpy` code we refer to the type aliases, though `pdoc` helpfully expands them.
 
 ## Index Builders
@@ -49,16 +49,16 @@ from numpy import typing as npt
 
 DistanceMetric = Literal["l2", "mips", "cosine"]
 """ Type alias for one of {"l2", "mips", "cosine"} """
-VectorDType = Union[Type[np.float32], Type[np.int8], Type[np.uint8]]
+VectorDType = Union[type[np.float32], type[np.int8], type[np.uint8]]
 """ Type alias for one of {`numpy.float32`, `numpy.int8`, `numpy.uint8`} """
 VectorLike = npt.NDArray[VectorDType]
 """ Type alias for something that can be treated as a vector """
 VectorLikeBatch = npt.NDArray[VectorDType]
 """ Type alias for a batch of VectorLikes """
 VectorIdentifier = np.uint32
-""" 
-Type alias for a vector identifier, whether it be an implicit array index identifier from StaticMemoryIndex or 
-StaticDiskIndex, or an explicit tag identifier from DynamicMemoryIndex 
+"""
+Type alias for a vector identifier, whether it be an implicit array index identifier from StaticMemoryIndex or
+StaticDiskIndex, or an explicit tag identifier from DynamicMemoryIndex
 """
 VectorIdentifierBatch = npt.NDArray[np.uint32]
 """ Type alias for a batch of VectorIdentifiers """
@@ -86,15 +86,15 @@ class QueryResponseBatch(NamedTuple):
     """
 
     identifiers: npt.NDArray[VectorIdentifier]
-    """ 
-    A `numpy.typing.NDArray[VectorIdentifier]` array of vector identifiers, 2 dimensional. The row corresponds to index 
-    of the query, and the column corresponds to the k neighbors requested 
+    """
+    A `numpy.typing.NDArray[VectorIdentifier]` array of vector identifiers, 2 dimensional. The row corresponds to index
+    of the query, and the column corresponds to the k neighbors requested
     """
     distances: np.ndarray[np.float32]
-    """  
-    A `numpy.typing.NDAarray[numpy.float32]` of distances as calculated by the distance metric function, 2 dimensional. 
-    The row corresponds to the index of the query, and the column corresponds to the distance of the query to the 
-    *k-th* neighbor 
+    """
+    A `numpy.typing.NDAarray[numpy.float32]` of distances as calculated by the distance metric function, 2 dimensional.
+    The row corresponds to the index of the query, and the column corresponds to the distance of the query to the
+    *k-th* neighbor
     """
 
 

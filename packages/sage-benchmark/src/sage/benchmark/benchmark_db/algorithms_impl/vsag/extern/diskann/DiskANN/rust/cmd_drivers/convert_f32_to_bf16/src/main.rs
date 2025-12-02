@@ -55,7 +55,7 @@ fn main() -> io::Result<()> {
     let data_point_size = (dimension * 4 * batch_size) as usize;
     let mut batches_processed = 0;
     let numbers_to_print = 2;
-    let mut numbers_printed = 0; 
+    let mut numbers_printed = 0;
     let mut num_fb16_wins = 0;
     let mut num_f16_wins = 0;
     let mut bf16_overflow = 0;
@@ -96,7 +96,7 @@ fn main() -> io::Result<()> {
                         println!("f32 value: {} f16 value: {} | distance {},  bf16 value: {} | distance {},",
                         value, converted_f16, converted_f16.to_f32() - value, converted_bf16, converted_bf16.to_f32() - value);
                     }
-                    
+
                     if use_f16 {
                         F16OrBF16::F16(converted_f16)
                     } else {
@@ -151,4 +151,3 @@ fn print_usage() {
     println!("specify save_as_float to downcast to f16 or bf16, and upcast to float before saving the output data. otherwise, the data will be saved as half type.");
     println!("specify the batch_size as a int, the default value is 100000.");
 }
-

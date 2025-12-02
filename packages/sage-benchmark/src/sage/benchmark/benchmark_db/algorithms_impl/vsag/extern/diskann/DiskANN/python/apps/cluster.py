@@ -2,13 +2,11 @@
 # Licensed under the MIT license.
 
 import argparse
+
 import utils
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="cluster", description="kmeans cluster points in a file"
-    )
+    parser = argparse.ArgumentParser(prog="cluster", description="kmeans cluster points in a file")
 
     parser.add_argument("-d", "--data_type", required=True)
     parser.add_argument("-i", "--indexdata_file", required=True)

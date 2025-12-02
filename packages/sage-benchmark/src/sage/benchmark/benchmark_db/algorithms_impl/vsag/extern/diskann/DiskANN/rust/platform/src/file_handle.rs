@@ -40,10 +40,10 @@ pub enum AccessMode {
 
 /// `ShareMode` determines how a file can be shared.
 ///
-/// These modes are used when creating or opening a file to decide what operations other 
+/// These modes are used when creating or opening a file to decide what operations other
 /// opening instances of the file can perform on it.
 /// # Variants
-/// - `None`: Prevents other processes from opening a file if they request delete, 
+/// - `None`: Prevents other processes from opening a file if they request delete,
 ///   read, or write access.
 ///
 /// - `Read`: Allows subsequent open operations on the same file to request read access.

@@ -61,4 +61,3 @@ impl<'a> IntoIterator for &'a AdjacencyList {
         self.edges.iter()
     }
 }
-

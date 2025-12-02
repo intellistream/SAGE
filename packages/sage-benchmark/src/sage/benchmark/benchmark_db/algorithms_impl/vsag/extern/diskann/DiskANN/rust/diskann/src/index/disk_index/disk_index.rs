@@ -29,7 +29,7 @@ where
     /// None for query path
     disk_build_param: Option<DiskIndexBuildParameters>,
 
-    configuration: IndexConfiguration, 
+    configuration: IndexConfiguration,
 
     pub storage: DiskIndexStorage<T>,
 }
@@ -40,8 +40,8 @@ where
     [T; N]: FullPrecisionDistance<T, N>,
 {
     pub fn new(
-        disk_build_param: Option<DiskIndexBuildParameters>, 
-        configuration: IndexConfiguration, 
+        disk_build_param: Option<DiskIndexBuildParameters>,
+        configuration: IndexConfiguration,
         storage: DiskIndexStorage<T>,
     ) -> Self {
         Self {
@@ -83,7 +83,7 @@ where
 
         let dataset_size = (size * N * datasize) as f64;
         let graph_size = (size * degree * mem::size_of::<u32>()) as f64 * GRAPH_SLACK_FACTOR;
-        
+
         OVERHEAD_FACTOR * (dataset_size + graph_size)
     }
 
@@ -92,12 +92,12 @@ where
         self.disk_build_param
             .as_ref()
             .ok_or_else(|| ANNError::log_index_config_error(
-                "disk_build_param".to_string(), 
+                "disk_build_param".to_string(),
                 "disk_build_param is None".to_string()))
     }
 }
 
-impl<T, const N: usize> ANNDiskIndex<T> for DiskIndex<T, N> 
+impl<T, const N: usize> ANNDiskIndex<T> for DiskIndex<T, N>
 where
     T: Default + Copy + Sync + Send + Into<f32>,
     [T; N]: FullPrecisionDistance<T, N>,
@@ -108,7 +108,7 @@ where
         }
 
         println!("Starting index build: R={} L={} Query RAM budget={} Indexing RAM budget={} T={}",
-            self.configuration.index_write_parameter.max_degree, 
+            self.configuration.index_write_parameter.max_degree,
             self.configuration.index_write_parameter.search_list_size,
             self.fetch_disk_build_param()?.search_ram_limit(),
             self.fetch_disk_build_param()?.index_build_ram_limit(),
@@ -158,4 +158,3 @@ where
         Ok(())
     }
 }
-

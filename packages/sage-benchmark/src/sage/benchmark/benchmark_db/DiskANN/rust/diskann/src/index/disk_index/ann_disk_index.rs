@@ -26,10 +26,10 @@ where T : Default + Copy + Sync + Send + Into<f32>
 
 /// Create Index<T, N> based on configuration
 pub fn create_disk_index<'a, T>(
-    disk_build_param: Option<DiskIndexBuildParameters>, 
-    config: IndexConfiguration, 
+    disk_build_param: Option<DiskIndexBuildParameters>,
+    config: IndexConfiguration,
     storage: DiskIndexStorage<T>,
-) -> ANNResult<Box<dyn ANNDiskIndex<T> + 'a>> 
+) -> ANNResult<Box<dyn ANNDiskIndex<T> + 'a>>
 where
     T: Default + Copy + Sync + Send + Into<f32> + 'a,
     [T; DIM_104]: FullPrecisionDistance<T, DIM_104>,

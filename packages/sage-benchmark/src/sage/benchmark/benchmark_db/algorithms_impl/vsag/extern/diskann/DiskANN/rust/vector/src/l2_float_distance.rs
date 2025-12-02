@@ -75,4 +75,3 @@ pub fn distance_l2_vector_f32<const N: usize>(a: &[f32; N], b: &[f32; N]) -> f32
         _mm_cvtss_f32(x32)
     }
 }
-

@@ -259,7 +259,7 @@ if (NOT MSVC)
     set(DISKANN_ASYNC_LIB aio)
 endif()
 
-#Main compiler/linker settings 
+#Main compiler/linker settings
 if(MSVC)
 	#language options
 	add_compile_options(/permissive- /openmp:experimental /Zc:twoPhase- /Zc:inline /WX- /std:c++17 /Gd /W3 /MP /Zi /FC /nologo)
@@ -272,7 +272,7 @@ if(MSVC)
     # Linker options. Exclude VCOMP/VCOMPD.LIB which contain VisualStudio's version of OpenMP.
     # MKL was linked against Intel's OpenMP and depends on the corresponding DLL.
     add_link_options(/NODEFAULTLIB:VCOMP.LIB /NODEFAULTLIB:VCOMPD.LIB /DEBUG:FULL /OPT:REF /OPT:ICF)
-	
+
 	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/x64/Debug)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/x64/Debug)
 	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/x64/Debug)
@@ -327,4 +327,3 @@ include(clang-format.cmake)
 if(PYBIND)
     add_subdirectory(python)
 endif()
-

@@ -2,11 +2,11 @@
 # Licensed under the MIT license.
 
 import argparse
-from xml.dom.pulldom import default_bufsize
 
 import diskannpy
 import numpy as np
 import utils
+
 
 def build_and_search(
     metric,
@@ -21,7 +21,7 @@ def build_and_search(
     num_threads,
     gt_file,
     index_prefix,
-    search_only
+    search_only,
 ) -> dict[str, float]:
     """
 
@@ -81,7 +81,7 @@ def build_and_search(
         index_directory=index_directory,
         num_threads=num_threads,  # this can be different at search time if you would like
         initial_search_complexity=Ls,
-        index_prefix=index_prefix
+        index_prefix=index_prefix,
     )
     timer_results["load_index_seconds"] = load_index_timer.elapsed()
 
@@ -90,8 +90,8 @@ def build_and_search(
     query_timer = utils.Timer()
     ids, dists = index.batch_search(queries, 10, Ls, num_threads)
     query_time = query_timer.elapsed()
-    qps = round(queries.shape[0]/query_time, 1)
-    print('Batch searched', queries.shape[0], 'in', query_time, 's @', qps, 'QPS')
+    qps = round(queries.shape[0] / query_time, 1)
+    print("Batch searched", queries.shape[0], "in", query_time, "s @", qps, "QPS")
     timer_results["query_seconds"] = query_time
 
     if gt_file != "":
@@ -100,9 +100,10 @@ def build_and_search(
         print(f"recall@{K} is {recall}")
         timer_results["recall_seconds"] = recall_timer.elapsed()
 
-    timer_results['total_time_seconds'] = method_timer.elapsed()
+    timer_results["total_time_seconds"] = method_timer.elapsed()
 
     return timer_results
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -123,7 +124,12 @@ if __name__ == "__main__":
     parser.add_argument("-G", "--gt_file", default="")
     parser.add_argument("-ip", "--index_prefix", required=False, default="ann")
     parser.add_argument("--search_only", required=False, default=False)
-    parser.add_argument("--json_timings_output", required=False, default=None, help="File to write out timings to as JSON.  If not specified, timings will not be written out.")
+    parser.add_argument(
+        "--json_timings_output",
+        required=False,
+        default=None,
+        help="File to write out timings to as JSON.  If not specified, timings will not be written out.",
+    )
     args = parser.parse_args()
 
     timings: dict[str, float] = build_and_search(
@@ -139,11 +145,12 @@ if __name__ == "__main__":
         args.num_threads,  # search args
         args.gt_file,
         args.index_prefix,
-        args.search_only
+        args.search_only,
     )
 
     if args.json_timings_output is not None:
         import json
-        timings['log_file'] = args.json_timings_output
+
+        timings["log_file"] = args.json_timings_output
         with open(args.json_timings_output, "w") as f:
             json.dump(timings, f)

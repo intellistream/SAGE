@@ -51,7 +51,7 @@ def build_memory_index(
     filter_labels: Optional[list[list[str]]],
     universal_label: str,
     filter_complexity: int,
-    index_prefix: str
+    index_prefix: str,
 ) -> None: ...
 @overload
 def build_memory_index(
@@ -70,5 +70,5 @@ def build_memory_index(
     filter_labels_file: Optional[list[list[str]]],
     universal_label: str,
     filter_complexity: int,
-    index_prefix: str
+    index_prefix: str,
 ) -> None: ...

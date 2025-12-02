@@ -47,4 +47,3 @@ pub fn get_process_cycle_time(process_handle: Option<usize>) -> Option<u64> {
 
     None
 }
-

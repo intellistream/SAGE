@@ -20,7 +20,7 @@ pub struct Neighbor {
 impl Neighbor {
     /// Create the neighbor node and it has not been visited
     pub fn new (id: u32, distance: f32) -> Self {
-        Self { 
+        Self {
             id,
             distance,
             visited: false
@@ -101,4 +101,3 @@ mod neighbor_test {
         assert!(n1 <= n2);
     }
 }
-

@@ -26,4 +26,3 @@ path= "src/examples/trace_example.rs"
 
 [target."cfg(target_os=\"windows\")".build-dependencies.vcpkg]
 version = "0.2"
-

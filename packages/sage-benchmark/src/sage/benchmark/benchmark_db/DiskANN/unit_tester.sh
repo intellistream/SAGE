@@ -38,7 +38,7 @@ while IFS= read -r line; do
   DBLOG="${WORK_FOLDER}/${DATASET}_db.log"
   MSLOG="${WORK_FOLDER}/${DATASET}_ms.log"
   DSLOG="${WORK_FOLDER}/${DATASET}_ds.log"
-  
+
   FILESIZE=`wc -c "${BASE}" | awk '{print $1}'`
   BUDGETBUILD=`bc <<< "scale=4; 0.0001 + ${FILESIZE}/(5*1024*1024*1024)"`
   BUDGETSERVE=`bc <<< "scale=4; 0.0001 + ${FILESIZE}/(10*1024*1024*1024)"`
@@ -46,11 +46,11 @@ while IFS= read -r line; do
   echo "Running apps on ${DATASET} dataset, ${TYPE} datatype, $METRIC metric, ${BUDGETBUILD} GiB and ${BUDGETSERVE} GiB build and serve budget"
   echo "============================================================================================================================================="
   rm ${DISK}_*
-  
+
   #echo "Going to run test on ${BASE} base, ${QUERY} query, ${TYPE} datatype, ${METRIC} metric, saving gt at ${GT}"
   echo "Computing Groundtruth"
   #${BUILD_FOLDER}/apps/utils/compute_groundtruth ${TYPE} ${BASE} ${QUERY} 30 ${GT} ${METRIC} > /dev/null
-  ${BUILD_FOLDER}/apps/utils/compute_groundtruth --data_type ${TYPE} --base_file ${BASE} --query_file ${QUERY} --K 30 --gt_file ${GT} --dist_fn ${METRIC} > /dev/null  
+  ${BUILD_FOLDER}/apps/utils/compute_groundtruth --data_type ${TYPE} --base_file ${BASE} --query_file ${QUERY} --K 30 --gt_file ${GT} --dist_fn ${METRIC} > /dev/null
   echo "Building Mem Index"
 #  /usr/bin/time ${BUILD_FOLDER}/apps/build_memory_index ${TYPE} ${METRIC} ${BASE} ${MEM}  32  50  1.2 0 > ${MBLOG}
   /usr/bin/time ${BUILD_FOLDER}/apps/build_memory_index --data_type ${TYPE} --dist_fn ${METRIC} --data_path ${BASE} --index_path_prefix ${MEM}  -R 32  -L 50  --alpha 1.2 -T 0 > ${MBLOG}

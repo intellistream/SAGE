@@ -79,4 +79,3 @@ impl Half {
 
 unsafe impl Send for Half {}
 unsafe impl Sync for Half {}
-

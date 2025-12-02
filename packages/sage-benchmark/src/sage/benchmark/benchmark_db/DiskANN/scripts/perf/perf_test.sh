@@ -37,4 +37,3 @@ json_time $BASE_PATH/search_memory_index --data_type float --dist_fn mips --inde
 
 json_time $BASE_PATH/build_memory_index --data_type float --dist_fn cosine --data_path data/rand_float_768D_1M_norm1.0.bin --index_path_prefix data/index_cosine_rand_float_768D_1M_norm1.0
 json_time $BASE_PATH/search_memory_index --data_type float --dist_fn cosine --index_path_prefix data/index_l2_rand_float_768D_1M_norm1.0 --query_file data/rand_float_768D_10K_norm1.0.bin --recall_at 10 --result_path temp --gt_file data/cosine_rand_float_768D_1M_norm1.0_768D_10K_norm1.0_gt100 -L 100 32
-

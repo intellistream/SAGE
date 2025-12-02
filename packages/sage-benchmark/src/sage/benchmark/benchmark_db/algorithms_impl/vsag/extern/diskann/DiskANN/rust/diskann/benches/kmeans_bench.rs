@@ -67,4 +67,3 @@ fn benchmark_kmeans_c(c: &mut Criterion) {
 criterion_group!(benches, benchmark_kmeans_rust, benchmark_kmeans_c);
 
 criterion_main!(benches);
-

@@ -24,4 +24,3 @@ pub enum LogError {
     #[error("EtwProviderError: {err:?}")]
     ETWProviderError { err: win_etw_provider::Error },
 }
-

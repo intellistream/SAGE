@@ -27,4 +27,3 @@ fn main() {
         error_is_enabled, warn_is_enabled, info_is_enabled, debug_is_enabled, trace_is_enabled,
     );
 }
-

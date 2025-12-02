@@ -46,4 +46,3 @@ fn generate_random_floats() -> Vec<Neighbor> {
 
 criterion_group!(benches, benchmark_priority_queue_insert);
 criterion_main!(benches);
-

@@ -81,4 +81,3 @@ mod tests {
         assert_eq!(current_scratch.data, vec![2, 4, 6]);
     }
 }
-
