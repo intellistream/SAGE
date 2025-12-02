@@ -105,120 +105,95 @@ class ConfigManager:
         return self._config
 
     def get_head_config(self) -> dict[str, Any]:
-        """获取head节点配置"""
-        return self.config.get("head", {})
+        """获取head节点配置
+
+        Maps new config structure to expected format:
+        - provider.head_ip -> host
+        - ray.* -> head_port, dashboard_port, etc.
+        """
+        provider = self.config.get("provider", {})
+        ray_config = self.config.get("ray", {})
+        remote = self.config.get("remote", {})
+
+        return {
+            "host": provider.get("head_ip", "localhost"),
+            "head_port": ray_config.get("head_port", 6379),
+            "dashboard_port": ray_config.get("dashboard_port", 8265),
+            "dashboard_host": ray_config.get("dashboard_host", "0.0.0.0"),
+            "temp_dir": ray_config.get("temp_dir", "/tmp/ray"),
+            "log_dir": ray_config.get("log_dir", "/tmp/sage_head_logs"),
+            "ray_command": remote.get("ray_command"),
+            "conda_env": remote.get("conda_env", "sage"),
+        }
 
     def get_worker_config(self) -> dict[str, Any]:
         """获取worker配置"""
-        return self.config.get("worker", {})
+        ray_config = self.config.get("ray", {})
+        return {
+            "bind_host": ray_config.get("worker_bind_host", "0.0.0.0"),
+            "temp_dir": ray_config.get("worker_temp_dir", "/tmp/ray_worker"),
+            "log_dir": ray_config.get("worker_log_dir", "/tmp/sage_worker_logs"),
+        }
 
     def get_ssh_config(self) -> dict[str, Any]:
-        """获取SSH配置"""
-        return self.config.get("ssh", {})
+        """获取SSH配置
+
+        Maps new config structure:
+        - auth.ssh_user -> user
+        - auth.ssh_private_key -> key_path
+        """
+        auth = self.config.get("auth", {})
+        return {
+            "user": auth.get("ssh_user", "sage"),
+            "key_path": auth.get("ssh_private_key", "~/.ssh/id_rsa"),
+            "connect_timeout": auth.get("connect_timeout", 10),
+        }
 
     def get_remote_config(self) -> dict[str, Any]:
         """获取远程路径配置"""
         return self.config.get("remote", {})
 
     def get_workers_ssh_hosts(self) -> list[tuple[str, int]]:
-        """解析worker SSH主机列表"""
-        # 先从ssh.workers中读取
-        ssh_config = self.get_ssh_config()
-        workers = ssh_config.get("workers", [])
+        """解析worker SSH主机列表
 
-        if workers:
-            return [(w["host"], w.get("port", 22)) for w in workers]
+        Reads from provider.worker_ips (new format)
+        """
+        provider = self.config.get("provider", {})
+        worker_ips = provider.get("worker_ips", [])
 
-        # 兼容旧的workers_ssh_hosts格式
-        hosts_str = self.config.get("workers_ssh_hosts", "")
-        if not hosts_str:
+        if not worker_ips:
             return []
 
-        # 检查是否为列表格式（新格式测试）
-        if isinstance(hosts_str, list):
-            return [(item["host"], item.get("port", 22)) for item in hosts_str]
+        # worker_ips is a list of IP strings
+        return [(ip, 22) for ip in worker_ips]
 
-        nodes = []
-        for node in hosts_str.split(","):
-            node = node.strip()
-            if ":" in node:
-                host, port = node.split(":", 1)
-                port = int(port)
-            else:
-                host = node
-                port = 22  # 默认SSH端口
-            nodes.append((host, port))
-        return nodes
+    def add_worker_ip(self, ip: str) -> bool:
+        """添加新的worker IP"""
+        provider = self.config.get("provider", {})
+        worker_ips = provider.get("worker_ips", [])
 
-    def add_worker_ssh_host(self, host: str, port: int = 22):
-        """添加新的worker SSH主机"""
-        current_hosts = self.get_workers_ssh_hosts()
-        new_host = (host, port)
-
-        # 检查是否已存在
-        if new_host in current_hosts:
+        if ip in worker_ips:
             return False
 
-        current_hosts.append(new_host)
-        hosts_str = ",".join([f"{h}:{p}" for h, p in current_hosts])
-
-        config = self.config.copy()
-        config["workers_ssh_hosts"] = hosts_str
-        self.save_config(config)
+        worker_ips.append(ip)
+        provider["worker_ips"] = worker_ips
+        self.config["provider"] = provider
+        self.save_config(self.config)
         return True
 
-    def remove_worker_ssh_host(self, host: str, port: int = 22):
-        """移除worker SSH主机"""
-        current_hosts = self.get_workers_ssh_hosts()
-        target_host = (host, port)
+    def remove_worker_ip(self, ip: str) -> bool:
+        """移除worker IP"""
+        provider = self.config.get("provider", {})
+        worker_ips = provider.get("worker_ips", [])
 
-        if target_host not in current_hosts:
+        if ip not in worker_ips:
             return False
 
-        current_hosts.remove(target_host)
-        hosts_str = ",".join([f"{h}:{p}" for h, p in current_hosts])
-
-        config = self.config.copy()
-        config["workers_ssh_hosts"] = hosts_str
-        self.save_config(config)
+        worker_ips.remove(ip)
+        provider["worker_ips"] = worker_ips
+        self.config["provider"] = provider
+        self.save_config(self.config)
         return True
-
-    def create_default_config(self):
-        """创建默认配置文件"""
-        default_config = {
-            "head": {
-                "host": "base-sage",  # 需要自动捕获头节点ip
-                "head_port": 6379,
-                "dashboard_port": 8265,
-                "dashboard_host": "0.0.0.0",
-                "temp_dir": "/var/tmp/ray",
-                "log_dir": "/var/tmp/sage_head_logs",
-                "conda_env": "sage_lj",
-                "python_path": "/home/sage/.conda/envs/sage_lj/bin/python",
-                "ray_command": "/home/sage/.conda/envs/sage_lj/bin/ray",
-                "sage_home": "/home/sage",
-            },
-            "worker": {
-                "bind_host": "localhost",
-                "temp_dir": "/tmp/ray_worker",
-                "log_dir": "/tmp/sage_worker_logs",
-            },
-            "workers_ssh_hosts": "",
-            "ssh": {"user": "sage", "key_path": "~/.ssh/id_rsa", "connect_timeout": 10},
-            "remote": {
-                "sage_home": "/home/sage",
-                "python_path": "/opt/conda/envs/sage/bin/python",
-                "ray_command": "/opt/conda/envs/sage/bin/ray",
-                "conda_env": "sage",
-            },
-            "daemon": {"host": "base-sage", "port": 19001},  # 需要改成头节点ip
-            "output": {"format": "table", "colors": True},
-            "monitor": {"refresh_interval": 5},
-            "jobmanager": {"timeout": 30, "retry_attempts": 3},
-        }
-
-        self.save_config(default_config)
-        return default_config
 
 
 def get_config_manager(config_path: str | None = None) -> ConfigManager:
@@ -238,27 +213,28 @@ def show(
     config_manager = get_config_manager(config_path)
     try:
         config = config_manager.load_config()
+        print(f"配置文件: {config_manager.config_path}")
         print("当前配置:")
         import pprint
 
         pprint.pprint(config)
     except FileNotFoundError:
-        print("配置文件不存在，请先创建配置")
+        print(f"配置文件不存在: {config_manager.config_path}")
+        print("请运行 'sage cluster init' 创建配置")
 
 
 @app.command()
-def create(
+def path(
     config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
 ):
-    """创建默认配置"""
+    """显示配置文件路径"""
     config_manager = get_config_manager(config_path)
-    config_manager.create_default_config()
-    print(f"默认配置已创建: {config_manager.config_path}")
+    print(config_manager.config_path)
 
 
-@app.command()
-def set(
-    key: str = typer.Argument(..., help="Configuration key"),
+@app.command("set")
+def set_value(
+    key: str = typer.Argument(..., help="Configuration key (dot notation: provider.head_ip)"),
     value: str = typer.Argument(..., help="Configuration value"),
     config_path: str | None = typer.Option(None, "--config", "-c", help="Configuration file path"),
 ):
@@ -277,7 +253,7 @@ def set(
         config_manager.save_config(config)
         print(f"配置已更新: {key} = {value}")
     except FileNotFoundError:
-        print("配置文件不存在，请先创建配置")
+        print("配置文件不存在，请运行 'sage cluster init' 创建配置")
 
 
 if __name__ == "__main__":
