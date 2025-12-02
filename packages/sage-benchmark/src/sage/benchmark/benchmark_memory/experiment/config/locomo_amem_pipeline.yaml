@@ -1,0 +1,106 @@
+# ============================================================
+# A-Mem Pipeline 配置
+# 论文: A-MEM: Agentic Memory for LLM Agents
+# 特点: Note 结构 + Link Evolution + Memory Evolution
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "A-Mem"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# ============================================================
+services:
+  register_memory_service: "graph_memory"
+  graph_memory:
+    graph_type: "link_graph"          # A-Mem 使用链接图
+    link_policy: "bidirectional"
+    max_links_per_node: 50
+    link_weight_init: 1.0
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 生成 Note 结构（keywords + tags + context）
+  # A-Mem 的 note 包含多个语义属性
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "extract"
+    extract_type: "all"               # 提取 keyword + entity + context
+    keyword_prompt: |
+      Extract key concepts, entities, and contextual tags from this conversation.
+      Output format:
+      Keywords: word1, word2, ...
+      Entities: entity1, entity2, ...
+      Context: A brief description of the conversation context
+
+      Conversation:
+      {dialogue}
+    max_keywords: 10
+    add_to_metadata: true
+
+  # ----------------------------------------------------------
+  # PostInsert: Link Generation + Memory Evolution
+  # A-Mem 的核心：建立链接 + 更新相关记忆
+  # ----------------------------------------------------------
+  post_insert:
+    action: "link_evolution"
+    link_policy: "auto_link"          # 自动建立链接
+    knn_k: 10
+    similarity_threshold: 0.7
+    max_auto_links: 5
+    auto_link_prompt: |
+      Given a new memory and existing memories, identify which existing memories
+      should be linked to this new memory based on semantic relevance.
+
+      New memory: {new_entry}
+
+      Existing memories:
+      {memory_list}
+
+      Return the indices of memories that should be linked (0-indexed):
+      [index1, index2, ...]
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 基础 embedding
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 链接扩展（获取关联记忆）
+  # A-Mem 会通过链接扩展检索结果
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "merge"
+    merge_type: "link_expand"
+    expand_top_n: 5
+    max_depth: 1
+    conversation_format_prompt: |
+      The following is relevant memory with associated context.

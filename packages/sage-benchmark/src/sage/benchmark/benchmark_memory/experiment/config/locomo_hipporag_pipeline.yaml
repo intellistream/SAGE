@@ -1,0 +1,103 @@
+# ============================================================
+# HippoRAG Pipeline 配置
+# 论文: HippoRAG: Neurobiologically Inspired Long-Term Memory for LLMs
+# 特点: Knowledge Graph + Synonym Edges + PPR 检索
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "HippoRAG"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# ============================================================
+services:
+  register_memory_service: "graph_memory"
+  graph_memory:
+    graph_type: "knowledge_graph"     # HippoRAG 使用知识图谱
+    triple_store: "igraph"
+    node_embedding_dim: 1024
+    edge_types: ["relation", "synonym", "temporal"]
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 三元组抽取（OpenIE 风格）
+  # HippoRAG 的核心是从文本抽取 (S, P, O) 三元组
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "tri_embed"
+    triple_extraction_prompt: |
+      You are a knowledge graph builder. Extract all factual triples from the dialogue.
+
+      Rules:
+      - Output format: (Subject, Predicate, Object)
+      - Resolve all pronouns to actual entity names
+      - Use natural language predicates
+      - Include temporal/location info in predicate when relevant
+
+      Dialogue:
+      {dialogue}
+
+      Triples:
+
+  # ----------------------------------------------------------
+  # PostInsert: Synonym Edge 建立
+  # HippoRAG 会在相似实体间建立同义边
+  # ----------------------------------------------------------
+  post_insert:
+    action: "link_evolution"
+    link_policy: "synonym_edge"
+    knn_k: 10
+    similarity_threshold: 0.7
+    edge_weight: 1.0
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 实体抽取 + Instruction prefix
+  # HippoRAG 先从 query 中识别实体，作为 PPR 的起点
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "optimize"
+    optimize_type: "instruction"
+    instruction_prefix: "Retrieve passages that help answer the question: "
+    instruction_suffix: ""
+
+  # ----------------------------------------------------------
+  # PostRetrieval: PPR 重排序
+  # HippoRAG 使用 Personalized PageRank 排序检索结果
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "rerank"
+    rerank_type: "ppr"
+    damping_factor: 0.5
+    max_iterations: 100
+    convergence_threshold: 1e-6
+    personalization_nodes: "query_entities"
+    top_k: 10
+    conversation_format_prompt: |
+      The following is relevant knowledge from the graph.
