@@ -94,6 +94,33 @@ def compute_precision_at_k(
     return sum(precisions) / len(precisions) if precisions else 0.0
 
 
+def normalize_ground_truth(ground_truth: object) -> list[str]:
+    """将地面真实标签统一为字符串列表。"""
+
+    if ground_truth is None:
+        return []
+
+    if isinstance(ground_truth, str):
+        return [ground_truth]
+
+    if isinstance(ground_truth, list):
+        return [str(item) for item in ground_truth]
+
+    if isinstance(ground_truth, dict):
+        for key in ("top_k", "tool_ids", "tools", "ids"):
+            value = ground_truth.get(key)
+            if isinstance(value, list):
+                return [str(item) for item in value]
+            if isinstance(value, str):
+                return [value]
+        # fall back to any string-like values
+        values = [str(value) for value in ground_truth.values() if value]
+        if values:
+            return values
+
+    return [str(ground_truth)]
+
+
 def run_selection_experiment(
     max_samples: int = 100,
     top_k: int = 5,
@@ -188,12 +215,7 @@ def run_selection_experiment(
                         pred_ids = [str(p) for p in predictions] if predictions else []
 
                     # 标准化 ground truth
-                    if isinstance(ground_truth, str):
-                        ref_ids = [ground_truth]
-                    elif isinstance(ground_truth, list):
-                        ref_ids = ground_truth
-                    else:
-                        ref_ids = [str(ground_truth)]
+                    ref_ids = normalize_ground_truth(ground_truth)
 
                     all_predictions.append(pred_ids)
                     all_references.append(ref_ids)

@@ -582,8 +582,17 @@ Examples:
         print("\n📡 Checking LLM service...")
         from experiments.llm_service import ensure_llm_available
 
-        if not ensure_llm_available(auto_start=False):
-            print("  ⚠️  No LLM service available. Use --llm-start or --skip-llm")
+        # 尝试自动启动本地服务，不允许使用云端 API
+        # 优先检查命令行指定的端口和模型
+        if not ensure_llm_available(
+            port=args.llm_port,
+            model=args.llm_model,
+            auto_start=True,
+            allow_cloud=False,
+        ):
+            print("  ❌ Failed to connect to or start local LLM service. Aborting.")
+            print("  💡 Please check logs or start service manually: sage llm run")
+            sys.exit(1)
 
     start_time = time.time()
     all_results = {}

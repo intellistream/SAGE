@@ -24,9 +24,7 @@ def demo_clip_features():
 
     config = {
         "models": {"vision_model": "Qwen/Qwen2-VL-7B-Instruct"},
-        "image_processing": {
-            "feature_extraction": {"method": "clip", "dimension": 512}
-        },
+        "image_processing": {"feature_extraction": {"method": "clip", "dimension": 512}},
     }
 
     if not TORCH_AVAILABLE:
@@ -66,9 +64,7 @@ def demo_dinov2_features():
 
     config = {
         "models": {"vision_model": "Qwen/Qwen2-VL-7B-Instruct"},
-        "image_processing": {
-            "feature_extraction": {"method": "dinov2", "dimension": 768}
-        },
+        "image_processing": {"feature_extraction": {"method": "dinov2", "dimension": 768}},
     }
 
     if not TORCH_AVAILABLE:
@@ -108,9 +104,7 @@ def demo_full_analysis():
 
     config = {
         "models": {"vision_model": "Qwen/Qwen2-VL-7B-Instruct"},
-        "image_processing": {
-            "feature_extraction": {"method": "clip", "dimension": 768}
-        },
+        "image_processing": {"feature_extraction": {"method": "clip", "dimension": 768}},
     }
 
     analyzer = ImageAnalyzer(config)
@@ -133,9 +127,7 @@ def demo_full_analysis():
     print("\n📝 Detected Abnormalities:")
     for i, abnormality in enumerate(result["abnormalities"], 1):
         print(f"   {i}. {abnormality['description']}")
-        print(
-            f"      Location: {abnormality['location']}, Severity: {abnormality['severity']}"
-        )
+        print(f"      Location: {abnormality['location']}, Severity: {abnormality['severity']}")
 
 
 def main():

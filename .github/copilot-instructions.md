@@ -272,8 +272,8 @@ client = UnifiedInferenceClient.create_auto()
 
 ```bash
 # 推荐：一键启动/管理（后台守护进程）
-sage llm serve                                     # 默认模型
-sage llm serve --with-embedding                    # 同时启动 Embedding 服务
+sage llm serve                                     # 启动 LLM + Embedding 服务（默认）
+sage llm serve --no-embedding                      # 仅启动 LLM，不启动 Embedding
 sage llm status                                    # 查看状态
 sage llm stop                                      # 停止服务
 sage llm logs --follow                             # 查看日志
@@ -281,9 +281,36 @@ sage llm logs --follow                             # 查看日志
 # 阻塞式交互模式（开发调试用）
 sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
 
+# 引擎管理（通过 Control Plane）
+sage llm engine start BAAI/bge-m3 --engine-kind embedding           # 默认 CPU
+sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu # 使用 GPU
+sage llm engine list                                                 # 查看引擎列表
+sage llm engine stop <engine-id>                                     # 停止引擎
+
 # 查看运行状态
 ps aux | grep -E "vllm|embedding_server"
 ```
+
+### Embedding 引擎 GPU 支持
+
+默认情况下，Embedding 引擎运行在 CPU 上。对于大型 Embedding 模型（如 BGE-M3），可以显式启用 GPU：
+
+```python
+# CLI 方式
+# sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu
+
+# 预设文件 (preset.yaml)
+engines:
+  - name: embed-gpu
+    kind: embedding
+    model: BAAI/bge-m3
+    use_gpu: true  # 显式使用 GPU
+```
+
+**`use_gpu` 参数行为**：
+- `use_gpu=None` (默认): LLM 使用 GPU，Embedding 不使用
+- `use_gpu=True`: 强制使用 GPU
+- `use_gpu=False`: 强制不使用 GPU（即使是 LLM）
 
 ### Control Plane 核心组件
 

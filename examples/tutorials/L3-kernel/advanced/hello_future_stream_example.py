@@ -97,9 +97,7 @@ class CounterSink(SinkFunction):
             print(f"[{self.custom_name}] 📊 {message}")
 
             if count >= 10:
-                print(
-                    f"[{self.custom_name}] 🎉 Counter completed! Final value: {count}"
-                )
+                print(f"[{self.custom_name}] 🎉 Counter completed! Final value: {count}")
         return data
 
 
@@ -154,12 +152,8 @@ def main():
     print(
         "   CounterSource → [Connected with Future] → CounterProcessor → Incrementer → ExitChecker → CounterSink"
     )
-    print(
-        "                           ↑                                                        ↓"
-    )
-    print(
-        "                           └────────────────── FeedbackDelayer ←────────────────────┘"
-    )
+    print("                           ↑                                                        ↓")
+    print("                           └────────────────── FeedbackDelayer ←────────────────────┘")
     print()
 
     print("✅ Pipeline validation:")

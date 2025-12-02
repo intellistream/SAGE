@@ -1,6 +1,15 @@
 # L6 Studio Dev Notes
 
-`packages/sage-studio` 提供 SAGE 的可视化界面（Flow Editor、Chat、Playground、Finetune、Memory 视图），负责把前端 React/Vite 应用与 FastAPI 后端、`sage-kernel`/`sage-middleware` 能力连接起来。本笔记记录当前主干代码已经实现的能力，便于快速定位模块与排查问题。
+`packages/sage-studio` 提供    ```bash
+   curl http://localhost:8001/health
+   curl http://localhost:8001/v1/models
+   tail -f ~/.sage/studio/chat/gateway.log  # 查看 Gateway 实际使用的 LLM 源
+   ```
+4. **仅使用云端 API**：设置 `SAGE_FORCE_CLOUD_API=true` 或在 Chat 面板选择"云端"。
+
+> ⚠️ 端口冲突时可改用 8002+，同时更新 `SAGE_STUDIO_LLM_PORT` 和 `UnifiedInferenceClient` 的自动检测列表。
+
+## 深入主题面（Flow Editor、Chat、Playground、Finetune、Memory 视图），负责把前端 React/Vite 应用与 FastAPI 后端、`sage-kernel`/`sage-middleware` 能力连接起来。本笔记记录当前主干代码已经实现的能力，便于快速定位模块与排查问题。
 
 ## 目录与职责速查
 
@@ -54,7 +63,7 @@
    ```
 4. **仅使用云端 API**：设置 `SAGE_FORCE_CLOUD_API=true` 或在 Chat 面板选择“云端”。
 
-> ⚠️ 端口冲突时可改用 8002+，同时更新 `SAGE_STUDIO_LLM_PORT` 和 `IntelligentLLMClient` 的自动检测列表。
+> ⚠️ 端口冲突时可改用 8002+，同时更新 `SAGE_STUDIO_LLM_PORT` 和 `UnifiedInferenceClient` 的自动检测列表。
 
 ## 深入主题
 

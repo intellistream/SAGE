@@ -20,7 +20,7 @@
 2. **会话层**：`SessionManager.get_or_create()` 维护对话记录，并将用户消息写入短期记忆或 Neuromem collection。
 3. **RAG Pipeline**：`OpenAIAdapter._ensure_pipeline_started()` 懒加载 `RAGPipelineService`，通过 `PipelineBridge` 将请求送入工作线程；流程内置：
 	 - 检测工作流意图 → 调用 `sage.libs.agentic.workflow.LLMWorkflowGenerator` 生成 VisualPipeline；
-	 - 否则执行 `RAGChatMap`：读取 `~/.sage/cache/chat/docs-public_manifest.json`，使用 `SageDB + embedding` 检索，再由 IntelligentLLMClient 生成回答；
+	 - 否则执行 `RAGChatMap`：读取 `~/.sage/cache/chat/docs-public_manifest.json`，使用 `SageDB + embedding` 检索，再由 UnifiedInferenceClient 生成回答；
 	 - 若索引缺失，自动触发 `_build_index_from_docs()`（`docs-public/docs_src`）。
 4. **回写**：adapter 将助手回复写入会话、调用 `store_dialog_to_memory()`，最后生成非流式或流式响应体。
 
@@ -73,7 +73,7 @@
 - **健康检查**：`GET /health` 返回 session 统计；Studio 依赖该接口判定是否联通。
 - **Session 清理**：`POST /sessions/cleanup?max_age_minutes=30`，或直接调用 `/sessions/{id}/clear`、`DELETE /sessions/{id}`。
 - **日志**：`logging.basicConfig(level=INFO)`，可通过 `SAGE_GATEWAY_LOG_LEVEL` 调整。
-- **LLM 后端降级**：`OpenAIAdapter._fallback_direct_llm()` 在 RAG Pipeline 异常时直接调用 IntelligentLLMClient，根据 `SAGE_CHAT_*` 环境变量自动选择 DashScope / OpenAI / vLLM / Ollama。
+- **LLM 后端降级**：`OpenAIAdapter._fallback_direct_llm()` 在 RAG Pipeline 异常时直接调用 UnifiedInferenceClient，根据 `SAGE_CHAT_*` 环境变量自动选择 DashScope / OpenAI / vLLM / Ollama。
 
 ## 后续更新指引
 - 当 Gateway 新增路由或支持 Anthropic/WebSocket，需要同步在“请求执行路径”和“运维”两节补充。
