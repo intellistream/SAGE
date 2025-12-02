@@ -164,15 +164,14 @@ class DFSDTSelector(BaseToolSelector):
         """Lazy initialization of LLM client."""
         if not self._llm_initialized:
             try:
-                from sage.common.components.sage_llm.client import IntelligentLLMClient
+                from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                if self.config.llm_model == "auto":
-                    self._llm_client = IntelligentLLMClient.create()
-                else:
-                    self._llm_client = IntelligentLLMClient(
-                        model_name=self.config.llm_model,
-                        temperature=self.config.temperature,
-                    )
+                # UnifiedInferenceClient.create() handles model auto-detection
+                self._llm_client = UnifiedInferenceClient.create(
+                    default_llm_model=None
+                    if self.config.llm_model == "auto"
+                    else self.config.llm_model,
+                )
                 self._llm_initialized = True
                 self.logger.info("DFSDT: LLM client initialized")
             except Exception as e:

@@ -102,13 +102,70 @@ class ChatModeManager(StudioManager):
         return None
 
     # ------------------------------------------------------------------
-    # Local LLM Service helpers (via sageLLM LLMLauncher)
+    # Local LLM Service helpers (via Control Plane or fallback to LLMLauncher)
     # ------------------------------------------------------------------
-    def _start_llm_service(self, model: str | None = None, use_finetuned: bool = False) -> bool:
-        """Start local LLM service via sageLLM.
+    def _is_control_plane_running(self, port: int | None = None) -> bool:
+        """Check if Control Plane Gateway is running."""
+        gateway_port = port or SagePorts.GATEWAY_DEFAULT
+        try:
+            resp = requests.get(f"http://localhost:{gateway_port}/health", timeout=2)
+            return resp.status_code == 200
+        except Exception:
+            return False
 
-        Uses sageLLM's unified LLMLauncher to start a local LLM HTTP server.
-        The server provides OpenAI-compatible API at http://localhost:{port}/v1
+    def _start_llm_via_control_plane(
+        self,
+        model: str,
+        gateway_port: int | None = None,
+        llm_port: int | None = None,
+    ) -> bool:
+        """Start LLM engine via Control Plane API.
+
+        Args:
+            model: Model name to load
+            gateway_port: Gateway port (default: SagePorts.GATEWAY_DEFAULT)
+            llm_port: LLM engine port (default: self.llm_port)
+
+        Returns:
+            True if started successfully
+        """
+        gateway_port = gateway_port or SagePorts.GATEWAY_DEFAULT
+        llm_port = llm_port or self.llm_port
+
+        api_base = f"http://localhost:{gateway_port}/v1"
+
+        payload = {
+            "model_id": model,
+            "engine_kind": "llm",
+            "port": llm_port,
+            "tensor_parallel_size": int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
+        }
+
+        try:
+            resp = requests.post(
+                f"{api_base}/management/engines",
+                json=payload,
+                timeout=120.0,
+            )
+            if resp.status_code == 200:
+                engine_info = resp.json()
+                console.print(
+                    f"[green]✓[/green] LLM 引擎已通过 Control Plane 启动 "
+                    f"(ID: {engine_info.get('engine_id', 'unknown')})"
+                )
+                return True
+            else:
+                console.print(f"[yellow]⚠️  Control Plane 启动 LLM 失败: {resp.text}[/yellow]")
+                return False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Control Plane API 调用失败: {e}[/yellow]")
+            return False
+
+    def _start_llm_service(self, model: str | None = None, use_finetuned: bool = False) -> bool:
+        """Start local LLM service via Control Plane or fallback to LLMLauncher.
+
+        Uses Control Plane if available, otherwise falls back to sageLLM's
+        unified LLMLauncher to start a local LLM HTTP server.
 
         Args:
             model: Model name/path to load (can be HF model or local path)
@@ -117,15 +174,6 @@ class ChatModeManager(StudioManager):
         Returns:
             True if started successfully, False otherwise
         """
-        try:
-            from sage.common.components.sage_llm import LLMLauncher
-        except ImportError:
-            console.print(
-                "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
-                "提示：确保已安装 sage-common 包"
-            )
-            return False
-
         # Determine which model to use
         model_name = model or self.llm_model
 
@@ -135,6 +183,24 @@ class ChatModeManager(StudioManager):
             finetuned_models = self.list_finetuned_models()
             if not finetuned_models:
                 console.print("[yellow]⚠️  未找到可用的微调模型，使用默认模型[/yellow]")
+            elif finetuned_models:
+                # Use the most recent finetuned model
+                model_name = finetuned_models[0]["path"]
+
+        # Check if Control Plane is already running
+        if self._is_control_plane_running():
+            console.print("[blue]📡 检测到 Control Plane Gateway，通过 API 启动 LLM 引擎[/blue]")
+            return self._start_llm_via_control_plane(model_name)
+
+        # Fallback to LLMLauncher
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+        except ImportError:
+            console.print(
+                "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
+                "提示：确保已安装 sage-common 包"
+            )
+            return False
 
         # Use unified launcher
         result = LLMLauncher.launch(
@@ -183,8 +249,56 @@ class ChatModeManager(StudioManager):
     # ------------------------------------------------------------------
     # Embedding Service helpers
     # ------------------------------------------------------------------
+    def _start_embedding_via_control_plane(
+        self,
+        model: str,
+        gateway_port: int | None = None,
+        embedding_port: int | None = None,
+    ) -> bool:
+        """Start Embedding engine via Control Plane API.
+
+        Args:
+            model: Embedding model name
+            gateway_port: Gateway port (default: SagePorts.GATEWAY_DEFAULT)
+            embedding_port: Embedding engine port (default: SagePorts.EMBEDDING_DEFAULT)
+
+        Returns:
+            True if started successfully
+        """
+        gateway_port = gateway_port or SagePorts.GATEWAY_DEFAULT
+        embedding_port = embedding_port or SagePorts.EMBEDDING_DEFAULT
+
+        api_base = f"http://localhost:{gateway_port}/v1"
+
+        payload = {
+            "model_id": model,
+            "engine_kind": "embedding",
+            "port": embedding_port,
+            "use_gpu": False,  # Embedding 默认不使用 GPU
+        }
+
+        try:
+            resp = requests.post(
+                f"{api_base}/management/engines",
+                json=payload,
+                timeout=60.0,
+            )
+            if resp.status_code == 200:
+                engine_info = resp.json()
+                console.print(
+                    f"[green]✓[/green] Embedding 引擎已通过 Control Plane 启动 "
+                    f"(ID: {engine_info.get('engine_id', 'unknown')})"
+                )
+                return True
+            else:
+                console.print(f"[yellow]⚠️  Control Plane 启动 Embedding 失败: {resp.text}[/yellow]")
+                return False
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Control Plane API 调用失败: {e}[/yellow]")
+            return False
+
     def _start_embedding_service(self, model: str = "BAAI/bge-m3", port: int | None = None) -> bool:
-        """Start Embedding service as a background process.
+        """Start Embedding service via Control Plane or as a background process.
 
         Args:
             model: Embedding model name (default: BAAI/bge-m3)
@@ -205,6 +319,14 @@ class ChatModeManager(StudioManager):
         except Exception:
             pass  # Not running, continue to start
 
+        # Try Control Plane first if available
+        if self._is_control_plane_running():
+            console.print(
+                "[blue]📡 检测到 Control Plane Gateway，通过 API 启动 Embedding 引擎[/blue]"
+            )
+            return self._start_embedding_via_control_plane(model, embedding_port=port)
+
+        # Fallback to direct process start
         console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model}, 端口: {port})[/blue]")
 
         # Ensure log directory exists
@@ -443,7 +565,7 @@ class ChatModeManager(StudioManager):
             llm_started = self._start_llm_service(model=model, use_finetuned=use_finetuned)
             if llm_started:
                 console.print(
-                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 IntelligentLLMClient 自动检测）[/green]"
+                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 UnifiedInferenceClient 自动检测）[/green]"
                 )
             else:
                 console.print(
@@ -512,7 +634,7 @@ class ChatModeManager(StudioManager):
             llm_table.add_row("状态", "[green]运行中[/green]")
             llm_table.add_row("端口", str(llm_port))
             llm_table.add_row("模型", llm_model_name or "unknown")
-            llm_table.add_row("说明", "由 IntelligentLLMClient 自动检测使用")
+            llm_table.add_row("说明", "由 UnifiedInferenceClient 自动检测使用")
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
             llm_table.add_row("端口", str(llm_port))

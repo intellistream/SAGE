@@ -45,6 +45,15 @@ except Exception:  # pragma: no cover
     LLMLauncher = None  # type: ignore
     LLMServerConfig = None  # type: ignore
 
+try:
+    from sage.common.components.sage_llm import (
+        UnifiedAPIServer,
+        UnifiedServerConfig,
+    )
+except Exception:  # pragma: no cover
+    UnifiedAPIServer = None  # type: ignore
+    UnifiedServerConfig = None  # type: ignore
+
 # Import config subcommands
 from sage.cli.commands.platform.llm_config import app as config_app
 
@@ -894,8 +903,105 @@ def fine_tune_stub(
 
 
 # ---------------------------------------------------------------------------
-# Service lifecycle commands (via sageLLM LLMAPIServer)
+# Service lifecycle commands (via Control Plane)
 # ---------------------------------------------------------------------------
+
+# PID file for Control Plane Gateway
+GATEWAY_PID_FILE = SAGE_DIR / "gateway.pid"
+GATEWAY_CONFIG_FILE = SAGE_DIR / "gateway.json"
+
+
+def _save_gateway_info(pid: int, config: dict[str, Any]) -> None:
+    """Save gateway process info for later management."""
+    _ensure_dirs()
+    GATEWAY_PID_FILE.write_text(str(pid))
+    GATEWAY_CONFIG_FILE.write_text(json.dumps(config, indent=2))
+
+
+def _load_gateway_info() -> tuple[int | None, dict[str, Any] | None]:
+    """Load gateway process info."""
+    if not GATEWAY_PID_FILE.exists():
+        return None, None
+    try:
+        pid = int(GATEWAY_PID_FILE.read_text().strip())
+        config = json.loads(GATEWAY_CONFIG_FILE.read_text()) if GATEWAY_CONFIG_FILE.exists() else {}
+        return pid, config
+    except Exception:
+        return None, None
+
+
+def _clear_gateway_info() -> None:
+    """Clear gateway process info."""
+    GATEWAY_PID_FILE.unlink(missing_ok=True)
+    GATEWAY_CONFIG_FILE.unlink(missing_ok=True)
+
+
+def _is_gateway_running(pid: int | None = None) -> bool:
+    """Check if gateway is running."""
+    import psutil
+
+    if pid is None:
+        pid, _ = _load_gateway_info()
+    if pid is None:
+        return False
+    return psutil.pid_exists(pid)
+
+
+def _wait_for_gateway(port: int, timeout: float = 30.0) -> bool:
+    """Wait for gateway to be ready."""
+    import time
+
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            resp = httpx.get(f"http://localhost:{port}/health", timeout=2.0)
+            if resp.status_code == 200:
+                return True
+        except Exception:
+            pass
+        time.sleep(0.5)
+    return False
+
+
+def _start_engine_via_api(
+    api_base: str,
+    model_id: str,
+    engine_kind: str = "llm",
+    port: int | None = None,
+    tensor_parallel_size: int = 1,
+    use_gpu: bool | None = None,
+    extra_args: list[str] | None = None,
+    timeout: float = 10.0,
+) -> dict[str, Any] | None:
+    """Start an engine via Control Plane management API."""
+    payload = {
+        "model_id": model_id,
+        "engine_kind": engine_kind,
+        "tensor_parallel_size": tensor_parallel_size,
+    }
+    if port is not None:
+        payload["port"] = port
+    if use_gpu is not None:
+        payload["use_gpu"] = use_gpu
+    if extra_args:
+        payload["extra_args"] = extra_args
+
+    try:
+        resp = httpx.post(
+            f"{api_base}/management/engines",
+            json=payload,
+            timeout=timeout,
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            console.print(f"[red]❌ 启动引擎失败: {_extract_error_detail(resp)}[/red]")
+            return None
+    except Exception as e:
+        console.print(f"[red]❌ 启动引擎失败: {e}[/red]")
+        return None
+
+
 @app.command("serve")
 def serve_llm(
     model: str = typer.Option(
@@ -904,11 +1010,17 @@ def serve_llm(
         "-m",
         help="LLM 模型名称",
     ),
-    port: int = typer.Option(
+    gateway_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--gateway-port",
+        "-g",
+        help=f"Control Plane Gateway 端口 (默认: {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    llm_port: int = typer.Option(
         SagePorts.BENCHMARK_LLM,
-        "--port",
+        "--llm-port",
         "-p",
-        help=f"服务端口 (默认: {SagePorts.BENCHMARK_LLM})",
+        help=f"LLM 引擎端口 (默认: {SagePorts.BENCHMARK_LLM})",
     ),
     host: str = typer.Option(
         "0.0.0.0",
@@ -953,16 +1065,19 @@ def serve_llm(
         help=f"Embedding 服务端口 (默认: {SagePorts.EMBEDDING_DEFAULT})",
     ),
 ):
-    """启动 LLM 推理服务（通过 sageLLM）。
+    """启动 LLM 推理服务（通过 Control Plane）。
 
-    使用 sageLLM 的 LLMAPIServer 启动 OpenAI 兼容的 LLM 服务。
+    使用 sageLLM Control Plane 启动统一的 API Gateway 和推理引擎。
     默认后台运行，可通过 'sage llm stop' 停止。
 
+    架构:
+        Gateway (8000) → LLM Engine (8901) + Embedding Engine (8090)
+
     示例:
-        sage llm serve                           # 启动 LLM + Embedding 服务
-        sage llm serve -m Qwen/Qwen2.5-7B-Instruct  # 指定模型
-        sage llm serve --no-embedding            # 仅启动 LLM，不启动 Embedding
-        sage llm serve --foreground              # 前台运行（阻塞）
+        sage llm serve                              # 启动 Gateway + LLM + Embedding
+        sage llm serve -m Qwen/Qwen2.5-7B-Instruct  # 指定 LLM 模型
+        sage llm serve --no-embedding               # 仅启动 LLM，不启动 Embedding
+        sage llm serve --foreground                 # 前台运行（阻塞）
 
     启动后可通过以下方式使用:
 
@@ -971,124 +1086,252 @@ def serve_llm(
         client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])
     """
-    if LLMLauncher is None:
-        console.print("[red]❌ LLMLauncher 不可用，请确保已安装 sage-common[/red]")
+    import subprocess
+    import sys
+
+    if UnifiedAPIServer is None:
+        console.print("[red]❌ UnifiedAPIServer 不可用，请确保已安装 sage-common[/red]")
         raise typer.Exit(1)
 
-    # Launch LLM service using unified launcher
-    result = LLMLauncher.launch(
-        model=model,
-        port=port,
-        host=host,
-        gpu_memory=gpu_memory,
-        max_model_len=max_model_len,
-        tensor_parallel=tensor_parallel,
-        background=background,
-        verbose=True,
-    )
+    _ensure_dirs()
+    ensure_hf_mirror_configured()
 
-    if not result.success:
-        if result.error and "already running" not in result.error:
-            console.print(f"[dim]请检查日志: {LOG_DIR / f'llm_api_server_{port}.log'}[/dim]")
-        raise typer.Exit(1)
+    # Check if gateway is already running
+    pid, config = _load_gateway_info()
+    if pid and _is_gateway_running(pid):
+        console.print(f"[yellow]⚠️  Control Plane Gateway 已在运行 (PID: {pid})[/yellow]")
+        console.print(f"   端口: {config.get('gateway_port', gateway_port)}")
+        console.print("   使用 'sage llm stop' 停止后重试，或使用 'sage llm engine start' 添加引擎")
+        raise typer.Exit(0)
+
+    # Build extra args for vLLM
+    extra_args = [
+        f"--gpu-memory-utilization={gpu_memory}",
+        f"--max-model-len={max_model_len}",
+    ]
+
+    console.print("[blue]🚀 启动 Control Plane Gateway[/blue]")
+    console.print(f"   Gateway 端口: {gateway_port}")
+    console.print(f"   主机: {host}")
+
+    # Start gateway as subprocess
+    gateway_log = LOG_DIR / "gateway.log"
+    gateway_cmd = [
+        sys.executable,
+        "-m",
+        "sage.common.components.sage_llm.unified_api_server",
+        "--host",
+        host,
+        "--port",
+        str(gateway_port),
+        "--enable-control-plane",
+    ]
 
     if background:
-        console.print("\n[dim]使用 'sage llm status' 查看状态[/dim]")
-        console.print("[dim]使用 'sage llm stop' 停止服务[/dim]")
-    else:
-        # Foreground mode completed
-        pass
-
-    # Optionally start Embedding service
-    if with_embedding:
-        console.print("\n[blue]🎯 启动 Embedding 服务[/blue]")
-        console.print(f"   模型: {embedding_model}")
-        console.print(f"   端口: {embedding_port}")
-
-        import subprocess
-        import sys
-
-        embedding_log = LOG_DIR / "embedding.log"
-        embedding_cmd = [
-            sys.executable,
-            "-m",
-            "sage.common.components.sage_embedding.embedding_server",
-            "--model",
-            embedding_model,
-            "--port",
-            str(embedding_port),
-        ]
-
-        with open(embedding_log, "w") as log_file:
+        with open(gateway_log, "w") as log_file:
             proc = subprocess.Popen(
-                embedding_cmd,
+                gateway_cmd,
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
             )
+        gateway_pid = proc.pid
+        console.print(f"   [green]✓[/green] Gateway 进程已启动 (PID: {gateway_pid})")
+        console.print(f"   日志: {gateway_log}")
 
-        console.print(f"   [green]✓[/green] Embedding 服务已启动 (PID: {proc.pid})")
-        console.print(f"   日志: {embedding_log}")
+        # Wait for gateway to be ready
+        console.print("   [dim]等待 Gateway 就绪...[/dim]")
+        if not _wait_for_gateway(gateway_port, timeout=30.0):
+            console.print("[red]❌ Gateway 启动超时[/red]")
+            console.print(f"   请检查日志: {gateway_log}")
+            raise typer.Exit(1)
+        console.print("   [green]✓[/green] Gateway 已就绪")
 
-        # Update service info with embedding PID
-        if background:
-            pid, config = LLMLauncher.load_service_info()
-            if pid and config:
-                config["embedding_pid"] = proc.pid
-                config["embedding_port"] = embedding_port
-                config["embedding_model"] = embedding_model
-                LLMLauncher.save_service_info(pid, config)
+        # Save gateway info
+        gateway_config = {
+            "gateway_port": gateway_port,
+            "host": host,
+            "llm_model": model,
+            "llm_port": llm_port,
+            "embedding_model": embedding_model if with_embedding else None,
+            "embedding_port": embedding_port if with_embedding else None,
+            "engines": [],
+        }
+        _save_gateway_info(gateway_pid, gateway_config)
+
+        # Start LLM engine via Control Plane API
+        api_base = f"http://localhost:{gateway_port}/v1"
+        console.print("\n[blue]🎯 启动 LLM 引擎[/blue]")
+        console.print(f"   模型: {model}")
+        console.print(f"   端口: {llm_port}")
+        console.print(f"   TP: {tensor_parallel}")
+
+        llm_result = _start_engine_via_api(
+            api_base=api_base,
+            model_id=model,
+            engine_kind="llm",
+            port=llm_port,
+            tensor_parallel_size=tensor_parallel,
+            extra_args=extra_args,
+            timeout=120.0,  # LLM 启动可能需要较长时间
+        )
+
+        if llm_result:
+            engine_id = llm_result.get("engine_id", "unknown")
+            console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id})")
+            gateway_config["engines"].append({"id": engine_id, "kind": "llm", "model": model})
+        else:
+            console.print("[yellow]⚠️  LLM 引擎启动失败，Gateway 仍在运行[/yellow]")
+
+        # Optionally start Embedding engine
+        if with_embedding:
+            console.print("\n[blue]🎯 启动 Embedding 引擎[/blue]")
+            console.print(f"   模型: {embedding_model}")
+            console.print(f"   端口: {embedding_port}")
+
+            embed_result = _start_engine_via_api(
+                api_base=api_base,
+                model_id=embedding_model,
+                engine_kind="embedding",
+                port=embedding_port,
+                use_gpu=False,  # Embedding 默认不使用 GPU
+                timeout=60.0,
+            )
+
+            if embed_result:
+                engine_id = embed_result.get("engine_id", "unknown")
+                console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id})")
+                gateway_config["engines"].append(
+                    {"id": engine_id, "kind": "embedding", "model": embedding_model}
+                )
+            else:
+                console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")
+
+        # Update gateway config with engine info
+        _save_gateway_info(gateway_pid, gateway_config)
+
+        console.print("\n[green]✅ 服务启动完成[/green]")
+        console.print(f"   API Gateway: http://localhost:{gateway_port}/v1")
+        console.print("\n[dim]使用 'sage llm status' 查看状态[/dim]")
+        console.print("[dim]使用 'sage llm stop' 停止服务[/dim]")
+
+    else:
+        # Foreground mode - run gateway directly (blocking)
+        console.print("[dim]前台模式，Ctrl+C 退出[/dim]")
+
+        config = UnifiedServerConfig(
+            host=host,
+            port=gateway_port,
+            enable_control_plane=True,
+        )
+        server = UnifiedAPIServer(config)
+        try:
+            server.start(block=True)
+        except KeyboardInterrupt:
+            console.print("\n[yellow]收到中断信号，正在停止...[/yellow]")
+            server.stop()
 
 
 @app.command("stop")
 def stop_llm(
     force: bool = typer.Option(False, "--force", "-f", help="强制停止"),
 ):
-    """停止 LLM 推理服务。"""
-    if LLMLauncher is None:
-        console.print("[red]❌ LLMLauncher 不可用[/red]")
+    """停止 LLM 推理服务（Control Plane Gateway 和所有引擎）。"""
+    import os
+    import signal
+
+    import psutil
+
+    pid, config = _load_gateway_info()
+
+    if pid is None:
+        # Fallback to legacy LLMLauncher
+        if LLMLauncher is not None:
+            legacy_pid, _ = LLMLauncher.load_service_info()
+            if legacy_pid:
+                console.print("[dim]检测到旧版服务，使用 LLMLauncher 停止[/dim]")
+                success = LLMLauncher.stop(verbose=True)
+                if not success:
+                    raise typer.Exit(1)
+                return
+        console.print("[yellow]⚠️  没有正在运行的服务[/yellow]")
+        return
+
+    if not _is_gateway_running(pid):
+        console.print("[yellow]⚠️  Gateway 进程不存在，清理 PID 文件[/yellow]")
+        _clear_gateway_info()
+        return
+
+    console.print(f"[blue]🛑 停止 Control Plane Gateway (PID: {pid})[/blue]")
+
+    try:
+        process = psutil.Process(pid)
+        # First try graceful shutdown
+        os.kill(pid, signal.SIGTERM)
+        try:
+            process.wait(timeout=10)
+            console.print("[green]✓[/green] Gateway 已停止")
+        except psutil.TimeoutExpired:
+            if force:
+                console.print("[yellow]⚠️  强制终止进程[/yellow]")
+                os.kill(pid, signal.SIGKILL)
+                process.wait(timeout=5)
+                console.print("[green]✓[/green] Gateway 已强制停止")
+            else:
+                console.print("[yellow]⚠️  进程未能在超时时间内停止，使用 --force 强制终止[/yellow]")
+                raise typer.Exit(1)
+    except psutil.NoSuchProcess:
+        console.print("[dim]进程已不存在[/dim]")
+    except Exception as e:
+        console.print(f"[red]❌ 停止失败: {e}[/red]")
         raise typer.Exit(1)
 
-    success = LLMLauncher.stop(verbose=True)
-    if not success:
-        raise typer.Exit(1)
+    _clear_gateway_info()
+    console.print("[green]✅ 服务已停止[/green]")
 
 
 @app.command("restart")
 def restart_llm():
     """重启 LLM 推理服务（使用上次的配置）。"""
-    if LLMLauncher is None:
-        console.print("[red]❌ LLMLauncher 不可用[/red]")
-        raise typer.Exit(1)
+    pid, config = _load_gateway_info()
 
-    # 获取当前配置
-    pid, config = LLMLauncher.load_service_info()
     if not config:
+        # Fallback to legacy LLMLauncher
+        if LLMLauncher is not None:
+            legacy_pid, legacy_config = LLMLauncher.load_service_info()
+            if legacy_config:
+                console.print("[dim]检测到旧版配置，使用 LLMLauncher 重启[/dim]")
+                LLMLauncher.stop(verbose=False)
+                time.sleep(1)
+                model = legacy_config.get("model", "Qwen/Qwen2.5-0.5B-Instruct")
+                port = legacy_config.get("port", SagePorts.BENCHMARK_LLM)
+                result = LLMLauncher.launch(model=model, port=port, background=True, verbose=True)
+                if result.success:
+                    console.print("[green]✅ LLM 服务重启成功[/green]")
+                else:
+                    console.print(f"[red]❌ 重启失败: {result.error}[/red]")
+                    raise typer.Exit(1)
+                return
         console.print("[yellow]⚠️  没有找到之前的服务配置，请使用 'sage llm serve' 启动[/yellow]")
         raise typer.Exit(1)
 
-    console.print("[blue]🔄 重启 LLM 服务...[/blue]")
+    console.print("[blue]🔄 重启 Control Plane 服务...[/blue]")
 
-    # 停止服务
-    LLMLauncher.stop(verbose=False)
-    time.sleep(1)  # 等待端口释放
+    # Stop current service
+    stop_llm(force=False)
+    time.sleep(2)  # Wait for ports to be released
 
-    # 使用保存的配置重新启动
-    model = config.get("model", "Qwen/Qwen2.5-0.5B-Instruct")
-    port = config.get("port", SagePorts.BENCHMARK_LLM)
-
-    result = LLMLauncher.launch(
-        model=model,
-        port=port,
+    # Restart with saved config
+    serve_llm(
+        model=config.get("llm_model", "Qwen/Qwen2.5-0.5B-Instruct"),
+        gateway_port=config.get("gateway_port", SagePorts.GATEWAY_DEFAULT),
+        llm_port=config.get("llm_port", SagePorts.BENCHMARK_LLM),
+        host=config.get("host", "0.0.0.0"),
+        with_embedding=config.get("embedding_model") is not None,
+        embedding_model=config.get("embedding_model", "BAAI/bge-small-zh-v1.5"),
+        embedding_port=config.get("embedding_port", SagePorts.EMBEDDING_DEFAULT),
         background=True,
-        verbose=True,
     )
-
-    if result.success:
-        console.print("[green]✅ LLM 服务重启成功[/green]")
-    else:
-        console.print(f"[red]❌ 重启失败: {result.error}[/red]")
-        raise typer.Exit(1)
 
 
 @app.command("status")
@@ -1098,66 +1341,112 @@ def status_llm():
 
     import psutil
 
-    if LLMLauncher is None:
-        console.print("[red]❌ LLMLauncher 不可用[/red]")
-        raise typer.Exit(1)
+    pid, config = _load_gateway_info()
 
-    pid, config = LLMLauncher.load_service_info()
+    # Check for legacy service
+    legacy_pid, legacy_config = None, None
+    if LLMLauncher is not None:
+        legacy_pid, legacy_config = LLMLauncher.load_service_info()
 
-    table = Table(title="LLM 服务状态", show_header=True, header_style="bold")
+    table = Table(title="Control Plane 服务状态", show_header=True, header_style="bold")
     table.add_column("属性")
     table.add_column("值")
 
-    # Check process status
-    process_running = False
+    # Check gateway process status
+    gateway_running = False
     if pid and psutil.pid_exists(pid):
         try:
             proc = psutil.Process(pid)
-            process_running = proc.is_running()
+            gateway_running = proc.is_running()
         except psutil.NoSuchProcess:
             pass
 
-    # Check port status
-    port = config.get("port", SagePorts.BENCHMARK_LLM) if config else SagePorts.BENCHMARK_LLM
-    port_in_use = False
+    # Check gateway port
+    gateway_port = (
+        config.get("gateway_port", SagePorts.GATEWAY_DEFAULT)
+        if config
+        else SagePorts.GATEWAY_DEFAULT
+    )
+    gateway_port_in_use = False
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        port_in_use = sock.connect_ex(("localhost", port)) == 0
+        gateway_port_in_use = sock.connect_ex(("localhost", gateway_port)) == 0
 
-    # Determine overall status
-    if process_running and port_in_use:
-        status = "[green]运行中[/green]"
-    elif port_in_use:
-        status = "[yellow]端口被占用 (外部进程)[/yellow]"
+    # Determine gateway status
+    if gateway_running and gateway_port_in_use:
+        gateway_status = "[green]运行中[/green]"
+    elif gateway_port_in_use:
+        gateway_status = "[yellow]端口被占用 (外部进程)[/yellow]"
     else:
-        status = "[red]已停止[/red]"
+        gateway_status = "[red]已停止[/red]"
 
-    table.add_row("状态", status)
-    table.add_row("PID", str(pid) if pid else "-")
-    table.add_row("端口", str(port))
+    table.add_row("Gateway 状态", gateway_status)
+    table.add_row("Gateway PID", str(pid) if pid else "-")
+    table.add_row("Gateway 端口", str(gateway_port))
 
     if config:
-        table.add_row("模型", config.get("model", "-"))
-        table.add_row("日志", config.get("log_file", "-"))
-        table.add_row("API 端点", f"http://localhost:{port}/v1")
+        table.add_row("LLM 模型", config.get("llm_model", "-"))
+        table.add_row("LLM 端口", str(config.get("llm_port", "-")))
+        if config.get("embedding_model"):
+            table.add_row("Embedding 模型", config.get("embedding_model", "-"))
+            table.add_row("Embedding 端口", str(config.get("embedding_port", "-")))
+        table.add_row("API 端点", f"http://localhost:{gateway_port}/v1")
+
+        # Show engines
+        engines = config.get("engines", [])
+        if engines:
+            engine_info = ", ".join(f"{e['kind']}:{e.get('id', 'unknown')}" for e in engines)
+            table.add_row("引擎", engine_info)
 
     console.print(table)
 
-    # Health check if running
-    if port_in_use:
+    # Try to get detailed status from Control Plane API
+    if gateway_port_in_use:
         try:
-            import httpx
-
-            resp = httpx.get(f"http://localhost:{port}/v1/models", timeout=5)
+            resp = httpx.get(f"http://localhost:{gateway_port}/v1/management/status", timeout=5)
             if resp.status_code == 200:
-                models = resp.json().get("data", [])
-                if models:
-                    console.print("\n[green]✓[/green] 健康检查通过")
-                    console.print(f"  加载的模型: {models[0].get('id', 'unknown')}")
-        except Exception as e:
-            console.print(f"\n[yellow]⚠️  健康检查失败: {e}[/yellow]")
+                cluster_status = resp.json()
+                console.print("\n[green]✓[/green] Control Plane 健康检查通过")
 
-    # Check Embedding service status
-    _show_embedding_status()
+                # Show registered instances
+                instances = cluster_status.get("instances", [])
+                if instances:
+                    inst_table = Table(title="注册的引擎实例", show_header=True)
+                    inst_table.add_column("ID")
+                    inst_table.add_column("类型")
+                    inst_table.add_column("模型")
+                    inst_table.add_column("端口")
+                    inst_table.add_column("状态")
+
+                    for inst in instances:
+                        inst_table.add_row(
+                            inst.get("instance_id", "-"),
+                            inst.get("instance_type", "-"),
+                            inst.get("model_name", "-"),
+                            str(inst.get("port", "-")),
+                            "[green]运行中[/green]"
+                            if inst.get("is_healthy")
+                            else "[red]异常[/red]",
+                        )
+                    console.print(inst_table)
+        except Exception:
+            # Control Plane API not available, try basic health check
+            try:
+                resp = httpx.get(f"http://localhost:{gateway_port}/health", timeout=5)
+                if resp.status_code == 200:
+                    console.print("\n[green]✓[/green] Gateway 健康检查通过")
+            except Exception as e:
+                console.print(f"\n[yellow]⚠️  健康检查失败: {e}[/yellow]")
+
+    # Legacy service status
+    if legacy_pid and not pid:
+        console.print("\n[dim]检测到旧版服务配置:[/dim]")
+        if psutil.pid_exists(legacy_pid):
+            console.print(f"  PID: {legacy_pid} [green](运行中)[/green]")
+        else:
+            console.print(f"  PID: {legacy_pid} [red](已停止)[/red]")
+        if legacy_config:
+            console.print(f"  模型: {legacy_config.get('model', '-')}")
+            console.print(f"  端口: {legacy_config.get('port', '-')}")
 
 
 def _show_embedding_status():

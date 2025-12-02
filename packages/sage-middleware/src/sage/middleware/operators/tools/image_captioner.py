@@ -39,7 +39,7 @@ class ImageCaptioner(BaseTool):
                     "Model name is not set. Please set the model name using set_model_name() before executing the tool."
                 )
 
-            # Construct the messages parameter for IntelligentLLMClient
+            # Construct the messages parameter for UnifiedInferenceClient
             messages = [
                 {"role": "system", "content": "You are an image captioning assistant."},
                 {

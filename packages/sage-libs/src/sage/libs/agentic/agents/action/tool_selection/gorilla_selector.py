@@ -35,7 +35,7 @@ class GorillaSelectorConfig(SelectorConfig):
     )
     embedding_model: str = Field(default="default", description="Embedding model for retrieval")
     llm_model: str = Field(
-        default="auto", description="LLM model for selection (auto uses IntelligentLLMClient)"
+        default="auto", description="LLM model for selection (auto uses UnifiedInferenceClient)"
     )
     similarity_metric: str = Field(
         default="cosine", description="Similarity metric: cosine, dot, euclidean"
@@ -126,14 +126,14 @@ class GorillaSelector(BaseToolSelector):
     def _create_llm_client(self) -> Any:
         """Create LLM client for selection stage."""
         try:
-            from sage.common.components.sage_llm.client import IntelligentLLMClient
+            from sage.common.components.sage_llm import UnifiedInferenceClient
 
             # Always use create() for automatic local-first detection
             # config.llm_model is informational only; actual model determined by endpoint
-            return IntelligentLLMClient.create()
+            return UnifiedInferenceClient.create()
         except ImportError:
             logger.warning(
-                "IntelligentLLMClient not available. GorillaSelector will use "
+                "UnifiedInferenceClient not available. GorillaSelector will use "
                 "embedding-only mode (no LLM reranking)."
             )
             return None
