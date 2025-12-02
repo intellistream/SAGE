@@ -45,6 +45,9 @@ import httpx
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
+# 抑制 httpx 的 INFO 日志（每次 HTTP 请求都会打印，非常吵）
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 

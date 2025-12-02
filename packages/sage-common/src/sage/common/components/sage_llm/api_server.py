@@ -27,6 +27,38 @@ from sage.common.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
+def get_served_model_name(model_path: str) -> str:
+    """Convert model path to a friendly model name for API served_model_name.
+
+    Examples:
+        /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
+        Qwen/Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct (unchanged if no local path indicators)
+
+    Args:
+        model_path: Model path or name
+
+    Returns:
+        Friendly model name suitable for API calls
+    """
+    # Check if it looks like a local path (contains path separators that indicate absolute/relative path)
+    # We need to distinguish between:
+    # - Local paths: /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct
+    # - HuggingFace model names: Qwen/Qwen2.5-0.5B-Instruct (single slash, no leading /)
+    is_local_path = model_path.startswith("/") or model_path.startswith("\\") or "\\" in model_path
+
+    if is_local_path:
+        # Local path, extract basename and convert __ to /
+        model_basename = os.path.basename(model_path)
+        # Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
+        if "__" in model_basename:
+            return model_basename.replace("__", "/", 1)
+        else:
+            return model_basename
+
+    # Not a local path, return as-is (e.g., HuggingFace model name)
+    return model_path
+
+
 class LLMServerConfig:
     """Configuration for LLM API Server
 
@@ -183,12 +215,17 @@ class LLMAPIServer:
 
     def _build_vllm_command(self) -> list[str]:
         """Build command for vLLM backend"""
+        # Use the public function to get friendly model name
+        served_model_name = get_served_model_name(self.config.model)
+
         cmd = [
             sys.executable,
             "-m",
             "vllm.entrypoints.openai.api_server",
             "--model",
             self.config.model,
+            "--served-model-name",
+            served_model_name,
             "--host",
             self.config.host,
             "--port",

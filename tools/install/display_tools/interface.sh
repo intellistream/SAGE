@@ -122,6 +122,43 @@ show_help() {
     echo ""
 }
 
+# 进度动画工具
+_spinner_pid=""
+start_spinner() {
+    local message="$1"
+    if [ -z "$message" ]; then
+        message="处理中..."
+    fi
+
+    # 使用双层 subshell 彻底隔离 job control 输出
+    # 外层 subshell 捕获所有 job 通知，内层运行实际的 spinner
+    _spinner_pid=$(
+        (
+            local frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+            local i=0
+            while true; do
+                printf "\r%s %s" "$message" "${frames[$i]}"
+                sleep 0.12
+                i=$(((i + 1) % ${#frames[@]}))
+            done
+        ) &
+        echo $!
+    )
+}
+
+stop_spinner() {
+    local final_message="$1"
+    if [ -n "$_spinner_pid" ]; then
+        kill "$_spinner_pid" 2>/dev/null || true
+        wait "$_spinner_pid" 2>/dev/null || true
+        _spinner_pid=""
+        printf "\r\033[K"
+    fi
+    if [ -n "$final_message" ]; then
+        echo -e "$final_message"
+    fi
+}
+
 # 显示安装成功信息
 show_install_success() {
     local mode="$1"
@@ -250,79 +287,180 @@ run_streaming_demo() {
     show_demo_footer
 }
 
-# LLM 智能处理演示
+# LLM 智能处理演示 - 启动 sage chat (RAG + Pipeline 构建)
 run_llm_demo() {
-    echo -e "${BLUE}${BOLD}🤖 SAGE + LLM 智能处理${NC}"
+    echo -e "${BLUE}${BOLD}🤖 SAGE 智能编程助手${NC}"
     echo ""
-    echo -e "   ${DIM}演示: 使用本地大模型进行智能文本处理${NC}"
+    echo -e "   ${DIM}集成 RAG 检索 + LLM 生成 + Pipeline 构建${NC}"
     echo ""
 
     sleep 0.3
 
     # 展示架构图
     echo -e "   ┌──────────────────────────────────────────────────────────────────────┐"
+    echo -e "   │                    ${YELLOW}SAGE Chat Pipeline${NC}                                │"
     echo -e "   │                                                                      │"
     echo -e "   │    ${CYAN}┌─────────────┐     ┌─────────────┐     ┌─────────────┐${NC}       │"
-    echo -e "   │    ${CYAN}│   Input     │${NC} ──▶ ${CYAN}│  LLM API    │${NC} ──▶ ${CYAN}│   Output    │${NC}       │"
-    echo -e "   │    ${CYAN}│  (用户问题)  │     │ (localhost) │     │  (智能回答) │${NC}       │"
+    echo -e "   │    ${CYAN}│  User Query │${NC} ──▶ ${CYAN}│  SageDB RAG │${NC} ──▶ ${CYAN}│  LLM Gen    │${NC}       │"
+    echo -e "   │    ${CYAN}│   (问题)    │${NC}     ${CYAN}│  (向量检索) │${NC}     ${CYAN}│   (生成)    │${NC}       │"
     echo -e "   │    ${CYAN}└─────────────┘     └─────────────┘     └─────────────┘${NC}       │"
-    echo -e "   │                       │                                              │"
-    echo -e "   │                       ▼                                              │"
-    echo -e "   │              ${YELLOW}┌─────────────────┐${NC}                                   │"
-    echo -e "   │              ${YELLOW}│  Qwen2.5-0.5B   │${NC}                                   │"
-    echo -e "   │              ${YELLOW}│   (本地 GPU)    │${NC}                                   │"
-    echo -e "   │              ${YELLOW}└─────────────────┘${NC}                                   │"
+    echo -e "   │                              │                     │              │"
+    echo -e "   │                              ▼                     ▼              │"
+    echo -e "   │                      ${GREEN}┌─────────────┐   ┌─────────────┐${NC}        │"
+    echo -e "   │                      ${GREEN}│ SAGE Docs   │   │ Qwen2.5     │${NC}        │"
+    echo -e "   │                      ${GREEN}│ (知识库)    │   │ (本地 LLM)  │${NC}        │"
+    echo -e "   │                      ${GREEN}└─────────────┘   └─────────────┘${NC}        │"
     echo -e "   │                                                                      │"
+    echo -e "   │   ${DIM}� 支持: 文档问答 / Pipeline 构建 / 代码生成${NC}                      │"
     echo -e "   └──────────────────────────────────────────────────────────────────────┘"
     echo ""
 
     sleep 0.5
 
-    echo -e "${BLUE}${BOLD}▶ 调用本地 LLM...${NC}"
+    # 检查是否有索引（manifest + db 文件）
+    local chat_cache_dir
+    chat_cache_dir=$(python3 - <<'PY' 2>/dev/null || true
+from sage.cli.commands.apps.chat import resolve_index_root
+print(resolve_index_root(None))
+PY
+)
+    if [ -z "$chat_cache_dir" ]; then
+        local repo_root
+        repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+        chat_cache_dir="${repo_root}/.sage/cache/chat"
+    fi
+    local index_manifest="${chat_cache_dir}/docs-public_manifest.json"
+    local index_db_prefix="${chat_cache_dir}/docs-public.sagedb"
+    if [ ! -f "$index_manifest" ] || [ ! -f "${index_db_prefix}.config" ]; then
+        echo -e "${YELLOW}⚠️  首次运行需要构建文档索引...${NC}"
+        echo -e "${DIM}   这将使用本地 Embedding 服务创建向量索引${NC}"
+        echo ""
+
+        # 检查 Embedding 服务是否已运行
+        local embedding_port=8090
+        local embedding_running=false
+        # 更可靠的检测：检查返回的 JSON 是否包含 data 数组
+        if curl -s --connect-timeout 2 "http://localhost:${embedding_port}/v1/models" 2>/dev/null | grep -q '"data"'; then
+            embedding_running=true
+        fi
+
+        if [ "$embedding_running" = false ]; then
+            echo -e "${YELLOW}ℹ️  Embedding 服务未运行，需要先启动${NC}"
+            echo -ne "${BOLD}是否启动 LLM + Embedding 服务? [Y/n]: ${NC}"
+            read -r start_services
+            if [[ ! "$start_services" =~ ^[Nn] ]]; then
+                echo ""
+                echo -e "${INFO} 启动 LLM + Embedding 服务..."
+                echo -e "${DIM}   首次启动会下载模型（LLM + Embedding）...${NC}"
+                echo ""
+                # 后台启动服务，使用 subshell 彻底隔离 job control 输出
+                # 注意: sage llm serve 默认已包含 embedding 服务
+                ( sage llm serve &>/dev/null & )
+                # 等待 Embedding 服务就绪
+                start_spinner "   等待服务启动"
+                local wait_count=0
+                while [ $wait_count -lt 60 ]; do
+                    if curl -s --connect-timeout 2 "http://localhost:${embedding_port}/v1/models" 2>/dev/null | grep -q '"data"'; then
+                        embedding_running=true
+                        break
+                    fi
+                    sleep 2
+                    wait_count=$((wait_count + 1))
+                done
+                if [ "$embedding_running" = true ]; then
+                    stop_spinner "   ${GREEN}✅ Embedding 服务已就绪${NC}"
+                else
+                    stop_spinner "   ${YELLOW}⚠️  Embedding 服务启动超时，使用本地 HF 模型${NC}"
+                fi
+            fi
+        else
+            echo -e "   ${GREEN}✅ 检测到 Embedding 服务 (localhost:${embedding_port})${NC}"
+        fi
+        echo ""
+
+        echo -ne "${BOLD}是否现在构建索引? [Y/n]: ${NC}"
+        read -r build_index
+        if [[ ! "$build_index" =~ ^[Nn] ]]; then
+            echo ""
+            echo -e "${INFO} 正在构建索引..."
+            echo ""
+
+            local ingest_log
+            ingest_log=$(mktemp)
+            local ingest_cmd
+            # 设置环境变量抑制各种 INFO 日志
+            local quiet_env="VLLM_LOGGING_LEVEL=WARNING TRANSFORMERS_VERBOSITY=error HF_HUB_VERBOSITY=error HTTPX_LOG_LEVEL=WARNING"
+
+            if [ "$embedding_running" = true ]; then
+                # 使用运行中的 Embedding 服务
+                echo -e "${DIM}   使用 Embedding 服务: http://localhost:${embedding_port}/v1${NC}"
+                ingest_cmd=(env $quiet_env sage chat ingest --quiet --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url "http://localhost:${embedding_port}/v1")
+            else
+                # 回退到本地 HuggingFace 模型
+                echo -e "${DIM}   使用本地 HF 模型: BAAI/bge-m3${NC}"
+                ingest_cmd=(env $quiet_env sage chat ingest --quiet --embedding-method hf --embedding-model BAAI/bge-m3)
+            fi
+
+            start_spinner "   索引构建中，请稍候"
+            if "${ingest_cmd[@]}" >"$ingest_log" 2>&1; then
+                stop_spinner "   ${GREEN}✅ 索引构建完成${NC}"
+            else
+                stop_spinner "   ${YELLOW}⚠️  索引构建可能未完成${NC}"
+                echo ""
+                echo -e "${DIM}   错误信息:${NC}"
+                tail -n 10 "$ingest_log"
+                echo ""
+                echo -e "${DIM}   正在清理不完整的索引文件...${NC}"
+                rm -f "${chat_cache_dir}/docs-public"* 2>/dev/null || true
+                echo -e "${YELLOW}⚠️  可以稍后重试:${NC}"
+                echo -e "   ${CYAN}sage llm serve${NC}  # 启动 LLM + Embedding 服务"
+                echo -e "   ${CYAN}sage chat ingest --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url http://localhost:8090/v1${NC}"
+            fi
+            rm -f "$ingest_log"
+        fi
+        echo ""
+    fi
+
+    echo -e "${BLUE}${BOLD}▶ 启动 SAGE Chat (RAG 模式)...${NC}"
+    echo -e "   ${DIM}输入 'exit'、'quit' 或 Ctrl+C 退出${NC}"
     echo ""
 
-    # 实际调用 LLM
-    VLLM_LOGGING_LEVEL=ERROR python3 -W ignore 2>/dev/null << 'LLM_DEMO_EOF'
-import warnings; warnings.filterwarnings('ignore')
-import os; os.environ['VLLM_LOGGING_LEVEL'] = 'ERROR'
-import logging; logging.disable(logging.INFO)
-import sys
-
-try:
-    from sage.common.components.sage_llm import UnifiedInferenceClient
-
-    print("   📝 问题: \"用一句话介绍什么是 SAGE 框架?\"")
-    print("")
-    print("   ⏳ 正在思考...", end="", flush=True)
-
-    client = UnifiedInferenceClient.create_auto()
-    response = client.chat([
-        {"role": "system", "content": "你是一个技术助手，回答要简洁。"},
-        {"role": "user", "content": "用一句话介绍什么是 SAGE 框架? (SAGE是一个流式AI数据处理框架)"}
-    ], max_tokens=100)
-
-    print("\r   " + " " * 20)  # 清除 "正在思考..."
-    print(f"   💬 回答: {response.strip()}")
-    print("")
-    print("   ✅ LLM 调用成功")
-
-except Exception as e:
-    print("\r   " + " " * 20)
-    print(f"   ⚠️  LLM 调用失败: {str(e)[:50]}")
-    print("   💡 请确保已运行 'sage llm serve' 启动服务")
-LLM_DEMO_EOF
+    # 启动 sage chat
+    # 优先使用本地 vLLM，如果没有则用 mock
+    if curl -s http://localhost:8901/v1/models >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ 检测到本地 LLM 服务 (localhost:8901)${NC}"
+        # 获取实际运行的模型名称
+        local vllm_model
+        vllm_model=$(curl -s http://localhost:8901/v1/models | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null || echo "")
+        if [ -n "$vllm_model" ]; then
+            echo -e "   ${DIM}模型: $vllm_model${NC}"
+        fi
+        echo ""
+        sage chat --backend vllm --base-url http://localhost:8901/v1 --model "${vllm_model:-Qwen/Qwen2.5-0.5B-Instruct}" --stream
+    elif [ -n "$SAGE_CHAT_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
+        echo -e "   ${GREEN}✅ 使用云端 API${NC}"
+        echo ""
+        sage chat --backend openai --stream
+    else
+        echo -e "   ${YELLOW}ℹ️  使用 Mock 模式演示 (无需 LLM 服务)${NC}"
+        echo -e "   ${DIM}   提示: 运行 'sage llm serve' 可启动本地 LLM${NC}"
+        echo ""
+        sage chat --backend mock
+    fi
 
     echo ""
 
     # 显示示例代码
-    echo -e "${BLUE}${BOLD}📝 示例代码:${NC}"
+    echo -e "${BLUE}${BOLD}📝 使用方式:${NC}"
     echo ""
-    echo -e "   ${DIM}from sage.common.components.sage_llm import UnifiedInferenceClient${NC}"
+    echo -e "   ${CYAN}# 交互式 RAG 问答${NC}"
+    echo -e "   ${DIM}sage chat --backend vllm --base-url http://localhost:8901/v1${NC}"
     echo ""
-    echo -e "   ${CYAN}client = UnifiedInferenceClient.create_auto()${NC}"
-    echo -e "   ${CYAN}response = client.chat([${NC}"
-    echo -e "   ${CYAN}    {\"role\": \"user\", \"content\": \"你的问题\"}${NC}"
-    echo -e "   ${CYAN}])${NC}"
+    echo -e "   ${CYAN}# 单次提问${NC}"
+    echo -e "   ${DIM}sage chat --ask \"如何创建 SAGE Pipeline?\" --backend vllm${NC}"
+    echo ""
+    echo -e "   ${CYAN}# 构建自定义知识库${NC}"
+    echo -e "   ${DIM}sage chat ingest --source ./my-docs --index my-knowledge${NC}"
     echo ""
 
     show_demo_footer

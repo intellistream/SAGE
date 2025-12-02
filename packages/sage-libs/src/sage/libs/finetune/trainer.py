@@ -52,10 +52,23 @@ class LoRATrainer:
         print("🤖 加载模型和分词器...")
 
         # 量化配置
+        if self.config.load_in_8bit or self.config.load_in_4bit:
+            # 检查 bitsandbytes 是否可用
+            try:
+                import bitsandbytes  # noqa: F401
+            except ImportError as e:
+                raise ImportError(
+                    "使用量化训练需要安装 bitsandbytes 库。\n"
+                    "请运行: pip install -U bitsandbytes\n"
+                    "或安装完整依赖: pip install 'isage-libs[finetune-gpu]'"
+                ) from e
+
         if self.config.load_in_8bit:
             print("⚠️  使用 8-bit 量化加载（节省显存）")
+            from transformers import BitsAndBytesConfig
+
             load_kwargs = {
-                "load_in_8bit": True,
+                "quantization_config": BitsAndBytesConfig(load_in_8bit=True),
                 "device_map": "auto",
                 "torch_dtype": torch.float16,
             }

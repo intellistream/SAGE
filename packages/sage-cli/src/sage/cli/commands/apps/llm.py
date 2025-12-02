@@ -328,9 +328,9 @@ def serve_llm(
         help="后台运行（默认）或前台运行",
     ),
     with_embedding: bool = typer.Option(
-        False,
-        "--with-embedding",
-        help="同时启动 Embedding 服务",
+        True,
+        "--with-embedding/--no-embedding",
+        help="同时启动 Embedding 服务（默认启用）",
     ),
     embedding_model: str = typer.Option(
         "BAAI/bge-small-zh-v1.5",
@@ -350,9 +350,9 @@ def serve_llm(
     默认后台运行，可通过 'sage llm stop' 停止。
 
     示例:
-        sage llm serve                           # 使用默认小模型启动
+        sage llm serve                           # 启动 LLM + Embedding 服务
         sage llm serve -m Qwen/Qwen2.5-7B-Instruct  # 指定模型
-        sage llm serve --with-embedding          # 同时启动 Embedding 服务
+        sage llm serve --no-embedding            # 仅启动 LLM，不启动 Embedding
         sage llm serve --foreground              # 前台运行（阻塞）
 
     启动后可通过以下方式使用:
@@ -436,6 +436,45 @@ def stop_llm(
         raise typer.Exit(1)
 
 
+@app.command("restart")
+def restart_llm():
+    """重启 LLM 推理服务（使用上次的配置）。"""
+    import time
+
+    if LLMLauncher is None:
+        console.print("[red]❌ LLMLauncher 不可用[/red]")
+        raise typer.Exit(1)
+
+    # 获取当前配置
+    pid, config = LLMLauncher.load_service_info()
+    if not config:
+        console.print("[yellow]⚠️  没有找到之前的服务配置，请使用 'sage llm serve' 启动[/yellow]")
+        raise typer.Exit(1)
+
+    console.print("[blue]🔄 重启 LLM 服务...[/blue]")
+
+    # 停止服务
+    LLMLauncher.stop(verbose=False)
+    time.sleep(1)  # 等待端口释放
+
+    # 使用保存的配置重新启动
+    model = config.get("model", "Qwen/Qwen2.5-0.5B-Instruct")
+    port = config.get("port", SagePorts.BENCHMARK_LLM)
+
+    result = LLMLauncher.launch(
+        model=model,
+        port=port,
+        background=True,
+        verbose=True,
+    )
+
+    if result.success:
+        console.print("[green]✅ LLM 服务重启成功[/green]")
+    else:
+        console.print(f"[red]❌ 重启失败: {result.error}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("status")
 def status_llm():
     """查看 LLM 服务状态。"""
@@ -500,6 +539,54 @@ def status_llm():
                     console.print(f"  加载的模型: {models[0].get('id', 'unknown')}")
         except Exception as e:
             console.print(f"\n[yellow]⚠️  健康检查失败: {e}[/yellow]")
+
+    # Check Embedding service status
+    _show_embedding_status()
+
+
+def _show_embedding_status():
+    """显示 Embedding 服务状态。"""
+    import socket
+
+    embedding_port = SagePorts.EMBEDDING_DEFAULT
+    embedding_log = LOG_DIR / "embedding.log"
+
+    # Check port status
+    embedding_port_in_use = False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        embedding_port_in_use = sock.connect_ex(("localhost", embedding_port)) == 0
+
+    # Build table
+    embed_table = Table(title="Embedding 服务状态", show_header=True, header_style="bold")
+    embed_table.add_column("属性")
+    embed_table.add_column("值")
+
+    if embedding_port_in_use:
+        embed_status = "[green]运行中[/green]"
+    else:
+        embed_status = "[red]已停止[/red]"
+
+    embed_table.add_row("状态", embed_status)
+    embed_table.add_row("端口", str(embedding_port))
+    embed_table.add_row("日志", str(embedding_log) if embedding_log.exists() else "-")
+    embed_table.add_row("API 端点", f"http://localhost:{embedding_port}/v1")
+
+    console.print()
+    console.print(embed_table)
+
+    # Health check for embedding
+    if embedding_port_in_use:
+        try:
+            import httpx
+
+            resp = httpx.get(f"http://localhost:{embedding_port}/v1/models", timeout=5)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                if models:
+                    console.print("\n[green]✓[/green] Embedding 健康检查通过")
+                    console.print(f"  加载的模型: {models[0].get('id', 'unknown')}")
+        except Exception as e:
+            console.print(f"\n[yellow]⚠️  Embedding 健康检查失败: {e}[/yellow]")
 
 
 @app.command("logs")

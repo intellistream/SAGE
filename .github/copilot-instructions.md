@@ -272,8 +272,8 @@ client = UnifiedInferenceClient.create_auto()
 
 ```bash
 # 推荐：一键启动/管理（后台守护进程）
-sage llm serve                                     # 默认模型
-sage llm serve --with-embedding                    # 同时启动 Embedding 服务
+sage llm serve                                     # 启动 LLM + Embedding 服务（默认）
+sage llm serve --no-embedding                      # 仅启动 LLM，不启动 Embedding
 sage llm status                                    # 查看状态
 sage llm stop                                      # 停止服务
 sage llm logs --follow                             # 查看日志
