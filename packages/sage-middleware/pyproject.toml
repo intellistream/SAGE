@@ -82,6 +82,9 @@ dependencies = [
     # Scientific computing
     "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
 
+    # Prompt compression (LLMLingua family)
+    "llmlingua>=0.2.0,<1.0.0",  # For LongLLMLingua and LLMLingua2 compression
+
     # Documentation
     "markdown>=3.4.4,<4.0.0",
     "pymdown-extensions>=10.2.0,<11.0.0",

@@ -64,6 +64,28 @@ from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms
     REFORMRefinerOperator,
 )
 
+# LLMLingua2 算法 (基于 BERT token 分类的快速压缩)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.llmlingua2 import (
+        LLMLingua2Compressor,
+        LLMLingua2Operator,
+    )
+except ImportError:
+    LLMLingua2Compressor = None
+    LLMLingua2Operator = None
+
+# LongLLMLingua 算法 (问题感知的长文档压缩)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.longllmlingua import (
+        DEFAULT_LONG_LLMLINGUA_CONFIG,
+        LongLLMLinguaCompressor,
+        LongLLMLinguaOperator,
+    )
+except ImportError:
+    LongLLMLinguaCompressor = None
+    LongLLMLinguaOperator = None
+    DEFAULT_LONG_LLMLINGUA_CONFIG = None
+
 __all__ = [
     # 基础类
     "BaseRefiner",
@@ -90,42 +112,13 @@ __all__ = [
     # Provence算法
     "ProvenceCompressor",
     "ProvenceRefinerOperator",
+    # LLMLingua2算法 (BERT-based fast compression)
+    "LLMLingua2Compressor",
+    "LLMLingua2Operator",
+    # LongLLMLingua算法 (Question-aware long context compression)
+    "LongLLMLinguaCompressor",
+    "LongLLMLinguaOperator",
+    "DEFAULT_LONG_LLMLINGUA_CONFIG",
 ]
-
-# Adaptive算法 (新增)
-try:
-    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.adaptive import (
-        AdaptiveCompressor,
-        AdaptiveRefinerOperator,
-    )
-
-    __all__.extend(
-        [
-            "AdaptiveCompressor",
-            "AdaptiveRefinerOperator",
-        ]
-    )
-except ImportError:
-    # Adaptive算法依赖未满足时的后备
-    AdaptiveCompressor = None
-    AdaptiveRefinerOperator = None
-
-# LLMLingua算法 (可选依赖: llmlingua)
-try:
-    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.llmlingua import (
-        LLMLinguaCompressor,
-        LLMLinguaRefinerOperator,
-    )
-
-    __all__.extend(
-        [
-            "LLMLinguaCompressor",
-            "LLMLinguaRefinerOperator",
-        ]
-    )
-except ImportError:
-    # LLMLingua未安装时的后备
-    LLMLinguaCompressor = None
-    LLMLinguaRefinerOperator = None
 
 __version__ = "0.1.0"

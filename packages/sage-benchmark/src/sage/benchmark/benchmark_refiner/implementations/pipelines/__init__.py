@@ -17,6 +17,14 @@ Refiner RAG Pipelines
 - Token Count: 压缩后token数
 - Latency: 端到端延迟
 - Compression Rate: 压缩率
+
+可用 Pipeline:
+- baseline_rag: 无压缩的基准 Pipeline
+- reform_rag: REFORM 算法 (Attention-based token compression)
+- longrefiner_rag: LongRefiner 算法 (Three-stage compression)
+- provence_rag: Provence 算法 (Sentence-level pruning)
+- llmlingua2_rag: LLMLingua-2 算法 (BERT token classification, fast)
+- longllmlingua_rag: LongLLMLingua 算法 (Question-aware long context compression)
 """
 
 __all__: list[str] = []

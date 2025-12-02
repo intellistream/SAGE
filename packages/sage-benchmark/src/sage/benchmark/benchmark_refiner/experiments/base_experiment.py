@@ -28,9 +28,9 @@ class RefinerAlgorithm(str, Enum):
     REFORM = "reform"  # REFORM 注意力头压缩
     PROVENCE = "provence"  # Provence 句子级剪枝
     SIMPLE = "simple"  # 简单截断
-    LLMLINGUA = "llmlingua"  # LLMLingua perplexity-based 压缩
-    ADAPTIVE = "adaptive"  # Adaptive 多粒度压缩
     RECOMP = "recomp"  # RECOMP (TODO)
+    LLMLINGUA2 = "llmlingua2"  # LLMLingua-2: BERT token classification compression
+    LONGLLMLINGUA = "longllmlingua"  # LongLLMLingua: Question-aware long context compression
 
     @classmethod
     def available(cls) -> list[str]:
@@ -40,8 +40,8 @@ class RefinerAlgorithm(str, Enum):
             cls.LONGREFINER.value,
             cls.REFORM.value,
             cls.PROVENCE.value,
-            cls.LLMLINGUA.value,
-            cls.ADAPTIVE.value,
+            cls.LLMLINGUA2.value,
+            cls.LONGLLMLINGUA.value,
         ]
 
 
