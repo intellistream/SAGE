@@ -198,7 +198,7 @@ class CongestionDropWorker(AbstractThread):
         """
         print(f"Worker {self.my_id}: Starting main thread logic.")
         should_loop = True
-        query_seq = 0
+        # query_seq = 0
         bind_to_core(self.my_id)
 
         while should_loop:

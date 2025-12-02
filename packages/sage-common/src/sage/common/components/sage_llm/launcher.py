@@ -372,6 +372,22 @@ class LLMLauncher:
             if verbose:
                 console.print(f"[blue]🛑 停止 LLM 服务 (PID: {pid})...[/blue]")
 
+            # Stop Embedding service if recorded
+            if config and "embedding_pid" in config:
+                emb_pid = config["embedding_pid"]
+                if psutil.pid_exists(emb_pid):
+                    try:
+                        if verbose:
+                            console.print(
+                                f"[blue]🛑 停止 Embedding 服务 (PID: {emb_pid})...[/blue]"
+                            )
+                        emb_proc = psutil.Process(emb_pid)
+                        emb_proc.terminate()
+                        emb_proc.wait(timeout=5)
+                    except Exception as e:
+                        if verbose:
+                            console.print(f"[yellow]⚠️  停止 Embedding 服务失败: {e}[/yellow]")
+
             proc = psutil.Process(pid)
             proc.terminate()
 

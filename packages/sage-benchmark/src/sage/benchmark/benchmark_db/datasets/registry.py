@@ -157,10 +157,10 @@ class SIFTSmall(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I = load_ivecs(filename)
+        indices = load_ivecs(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -335,10 +335,10 @@ class SIFT(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -394,10 +394,10 @@ class SIFT100M(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -448,10 +448,10 @@ class OpenImagesStreaming(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -504,10 +504,10 @@ class Sun(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -558,10 +558,10 @@ class Msong(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -612,10 +612,10 @@ class COCO(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -666,10 +666,10 @@ class Glove(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -721,10 +721,10 @@ class MSTuring(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"
@@ -782,10 +782,10 @@ class WTE(Dataset):
 
     def get_groundtruth(self, k=None) -> np.ndarray:
         filename = os.path.join(self.basedir, self.gt_fn)
-        I, D = knn_result_read(filename)
+        indices, _ = knn_result_read(filename)
         if k is not None:
-            I = I[:, :k]
-        return I
+            indices = indices[:, :k]
+        return indices
 
     def distance(self) -> str:
         return "euclidean"

@@ -111,7 +111,7 @@ def test_algorithm_instantiation():
 
             try:
                 # 尝试获取算法类（而不是实例化）
-                algo_factory = ALGORITHMS[algo_name]
+                _ = ALGORITHMS[algo_name]
                 print(f"✓ {algo_name:25s} - 工厂函数可用")
                 success_count += 1
             except Exception as e:

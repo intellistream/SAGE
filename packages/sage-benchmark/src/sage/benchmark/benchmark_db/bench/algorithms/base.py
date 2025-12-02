@@ -135,16 +135,16 @@ class BaseStreamingANN(BaseANN):
                 D: 距离 (nq, k)
                 T: 处理时间戳 (nq,) - 如果提供了 timestamps
         """
-        I, D = self.query(X, k)
+        indices, distances = self.query(X, k)
 
         if timestamps is not None:
             # 如果提供了时间戳，返回当前时间作为处理时间
             import time
 
             T = np.full(len(X), int(time.time() * 1e6), dtype=np.int64)
-            return I, D, T
+            return indices, distances, T
 
-        return I, D, None
+        return indices, distances, None
 
     def fit(self, dataset) -> None:
         """
@@ -353,15 +353,15 @@ class DummyStreamingANN(BaseStreamingANN):
         indices = np.argsort(distances, axis=1)[:, :k_actual]
 
         # 转换为实际 ID
-        I = ids_array[indices]
-        D = np.take_along_axis(distances, indices, axis=1)
+        indices = ids_array[indices]
+        distances = np.take_along_axis(distances, indices, axis=1)
 
         # 如果 k 大于实际数量，填充
         if k > k_actual:
             I_padded = np.full((len(X), k), -1, dtype=np.int32)
             D_padded = np.full((len(X), k), np.inf, dtype=np.float32)
-            I_padded[:, :k_actual] = I
-            D_padded[:, :k_actual] = D
+            I_padded[:, :k_actual] = indices
+            D_padded[:, :k_actual] = distances
             return I_padded, D_padded
 
-        return I, D
+        return indices, distances

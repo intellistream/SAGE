@@ -88,8 +88,8 @@ def test_basic_operations():
 
     # 查询
     queries = dataset.get_queries()[:10]
-    I, D = algo.query(queries, k=5)
-    print(f"✓ Query completed: I.shape={I.shape}, D.shape={D.shape}")
+    indices, D = algo.query(queries, k=5)
+    print(f"✓ Query completed: I.shape={indices.shape}, D.shape={D.shape}")
 
     # 删除
     delete_ids = np.arange(50, 60, dtype=np.uint32)

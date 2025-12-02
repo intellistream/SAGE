@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -50,6 +51,39 @@ except ImportError:
 # =============================================================================
 # 环境设置
 # =============================================================================
+def ensure_hf_endpoint_configured(verbose: bool = False) -> tuple[bool, bool]:
+    """确保 HuggingFace 端点可用（必要时自动切换镜像）。"""
+
+    configured_endpoint = False
+    synced_hub = False
+
+    endpoint = os.environ.get("HF_ENDPOINT", "").strip()
+    if not endpoint:
+        try:
+            urllib.request.urlopen("https://huggingface.co", timeout=3)
+        except Exception:
+            endpoint = "https://hf-mirror.com"
+            os.environ["HF_ENDPOINT"] = endpoint
+            configured_endpoint = True
+            if verbose:
+                print(f"  Auto-configured HF mirror: {endpoint}")
+    else:
+        endpoint = endpoint.rstrip("/")
+        os.environ["HF_ENDPOINT"] = endpoint
+
+    if os.environ.get("HF_ENDPOINT") and not os.environ.get("HF_HUB_ENDPOINT"):
+        os.environ["HF_HUB_ENDPOINT"] = os.environ["HF_ENDPOINT"]
+        synced_hub = True
+        if verbose:
+            print(f"  HF_HUB_ENDPOINT synchronized to {os.environ['HF_HUB_ENDPOINT']}")
+
+    return configured_endpoint, synced_hub
+
+
+# 在模块导入时尽早配置镜像，避免后续导入 transformers 时命中默认域名
+ensure_hf_endpoint_configured(verbose=False)
+
+
 def setup_experiment_env(seed: int = RANDOM_SEED, verbose: bool = True) -> None:
     """
     设置实验环境，确保可复现性。
@@ -89,16 +123,7 @@ def setup_experiment_env(seed: int = RANDOM_SEED, verbose: bool = True) -> None:
     os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
     os.environ.setdefault("TORCH_DISTRIBUTED_DEBUG", "OFF")
 
-    # HuggingFace 镜像自动检测 (中国)
-    if not os.environ.get("HF_ENDPOINT"):
-        try:
-            import urllib.request
-
-            urllib.request.urlopen("https://huggingface.co", timeout=3)
-        except Exception:
-            os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-            if verbose:
-                print(f"  Auto-configured HF mirror: {os.environ['HF_ENDPOINT']}")
+    ensure_hf_endpoint_configured(verbose=verbose)
 
     if verbose:
         print(f"  Random seed: {seed}")
@@ -250,7 +275,7 @@ def get_llm_client():
     try:
         from sage.common.components.sage_llm import UnifiedInferenceClient
 
-        return UnifiedInferenceClient.create_auto()
+        return UnifiedInferenceClient.create()
     except ImportError as e:
         print(f"  Warning: Could not create LLM client: {e}")
         return None

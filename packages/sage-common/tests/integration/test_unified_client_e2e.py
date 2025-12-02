@@ -4,12 +4,11 @@
 """End-to-end integration tests for UnifiedInferenceClient.
 
 This module tests the unified client including:
-1. Auto-detection of endpoints (create_auto)
-2. Simple mode with direct API calls
-3. Control Plane mode with hybrid scheduling
-4. Chat, generate, and embed methods
-5. Error handling and fallback behavior
-6. Caching and singleton patterns
+1. Auto-detection of endpoints (create())
+2. Control Plane mode with hybrid scheduling
+3. Chat, generate, and embed methods
+4. Error handling and fallback behavior
+5. Caching and singleton patterns
 
 Tests use mock servers and patched network calls to avoid
 requiring actual running services.
@@ -27,7 +26,6 @@ import pytest
 from sage.common.components.sage_llm.unified_client import (
     InferenceResult,
     UnifiedClientConfig,
-    UnifiedClientMode,
     UnifiedInferenceClient,
 )
 
@@ -134,7 +132,7 @@ class TestAutoDetection:
         os.environ["SAGE_UNIFIED_MODEL"] = "unified-model"
 
         with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=True):
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
         assert client.config.llm_base_url == "http://localhost:8000/v1"
         assert client.config.embedding_base_url == "http://localhost:8000/v1"
@@ -148,7 +146,7 @@ class TestAutoDetection:
         os.environ["SAGE_EMBEDDING_MODEL"] = "embed-model"
 
         with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
         assert client.config.llm_base_url == "http://localhost:8001/v1"
         assert client.config.llm_model == "chat-model"
@@ -167,7 +165,7 @@ class TestAutoDetection:
             "_check_endpoint_health",
             side_effect=mock_health_check,
         ):
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
         assert client.config.llm_base_url == "http://localhost:8001/v1"
         assert client.config.embedding_base_url == "http://localhost:8090/v1"
@@ -177,7 +175,7 @@ class TestAutoDetection:
         os.environ["SAGE_CHAT_API_KEY"] = "test-api-key"  # pragma: allowlist secret
 
         with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
         # Should fallback to DashScope
         assert "dashscope" in (client.config.llm_base_url or "")
@@ -185,7 +183,7 @@ class TestAutoDetection:
     def test_no_endpoints_available(self):
         """Test behavior when no endpoints are available."""
         with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
-            client = UnifiedInferenceClient.create_auto()
+            client = UnifiedInferenceClient.create()
 
         # Client should still be created
         assert client is not None
@@ -203,7 +201,7 @@ class TestAutoDetection:
             "_check_endpoint_health",
             side_effect=mock_health_check,
         ):
-            client = UnifiedInferenceClient.create_auto(
+            client = UnifiedInferenceClient.create(
                 llm_ports=(9000, 9001),
                 embedding_ports=(9090, 9091),
             )
@@ -213,38 +211,44 @@ class TestAutoDetection:
 
 
 # =============================================================================
-# Simple Mode Tests
+# Basic Mode Tests
 # =============================================================================
 
 
-class TestSimpleMode:
-    """Tests for Simple mode (direct API calls)."""
+class TestBasicMode:
+    """Tests for basic mode (direct API calls via create())."""
 
     def test_explicit_configuration(self, mock_openai_client):
         """Test client with explicit configuration."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-llm", "")
+            mock_embed_detect.return_value = ("http://localhost:8090/v1", "test-embed", "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-                llm_model="test-llm",
-                embedding_base_url="http://localhost:8090/v1",
-                embedding_model="test-embed",
+            client = UnifiedInferenceClient.create(
+                default_llm_model="test-llm",
+                default_embedding_model="test-embed",
             )
 
-        assert client.mode == UnifiedClientMode.SIMPLE
         assert client.config.llm_base_url == "http://localhost:8001/v1"
         assert client.config.embedding_base_url == "http://localhost:8090/v1"
 
     def test_chat_method(self, mock_openai_client):
-        """Test chat method in Simple mode."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        """Test chat method."""
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-model", "")
+            mock_embed_detect.return_value = (None, None, "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-                llm_model="test-model",
-            )
+            client = UnifiedInferenceClient.create()
 
             # Make sure client thinks LLM is available
             client._llm_available = True
@@ -256,14 +260,17 @@ class TestSimpleMode:
         mock_openai_client.chat.completions.create.assert_called_once()
 
     def test_generate_method(self, mock_openai_client):
-        """Test generate method in Simple mode."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        """Test generate method."""
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-model", "")
+            mock_embed_detect.return_value = (None, None, "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-                llm_model="test-model",
-            )
+            client = UnifiedInferenceClient.create()
 
             client._llm_available = True
             client._llm_client = mock_openai_client
@@ -277,14 +284,17 @@ class TestSimpleMode:
         )
 
     def test_embed_method(self, mock_openai_client):
-        """Test embed method in Simple mode."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        """Test embed method."""
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = (None, None, "")
+            mock_embed_detect.return_value = ("http://localhost:8090/v1", "test-embed", "")
 
-            client = UnifiedInferenceClient(
-                embedding_base_url="http://localhost:8090/v1",
-                embedding_model="test-embed",
-            )
+            client = UnifiedInferenceClient.create()
 
             client._embedding_available = True
             client._embedding_client = mock_openai_client
@@ -296,16 +306,28 @@ class TestSimpleMode:
 
     def test_llm_not_available_error(self):
         """Test error when LLM is not available."""
-        client = UnifiedInferenceClient()
-        client._llm_available = False
+        with (
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
+            mock_llm_detect.return_value = (None, None, "")
+            mock_embed_detect.return_value = (None, None, "")
+
+            client = UnifiedInferenceClient.create()
 
         with pytest.raises(RuntimeError, match="LLM.*not available"):
             client.chat([{"role": "user", "content": "Hello"}])
 
     def test_embedding_not_available_error(self):
         """Test error when embedding is not available."""
-        client = UnifiedInferenceClient()
-        client._embedding_available = False
+        with (
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
+            mock_llm_detect.return_value = (None, None, "")
+            mock_embed_detect.return_value = (None, None, "")
+
+            client = UnifiedInferenceClient.create()
 
         with pytest.raises(RuntimeError, match="Embedding.*not available"):
             client.embed(["text"])
@@ -319,53 +341,36 @@ class TestSimpleMode:
 class TestControlPlaneMode:
     """Tests for Control Plane mode with hybrid scheduling."""
 
-    def test_create_with_control_plane(self):
-        """Test creating client with Control Plane mode configuration."""
-        # Mock the imports that _init_control_plane_mode needs
-        mock_manager = MagicMock()
-        mock_policy = MagicMock()
-
-        with patch.dict(
-            "sys.modules",
-            {
-                "sage.common.components.sage_llm.sageLLM.control_plane.manager": MagicMock(
-                    ControlPlaneManager=lambda **kwargs: mock_manager
-                ),
-                "sage.common.components.sage_llm.sageLLM.control_plane.strategies.hybrid_policy": MagicMock(
-                    HybridSchedulingPolicy=lambda **kwargs: mock_policy
-                ),
-            },
+    def test_create_with_control_plane_url(self):
+        """Test creating client with Control Plane URL."""
+        with (
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
         ):
-            client = UnifiedInferenceClient.create_with_control_plane(
-                llm_base_url="http://localhost:8001/v1",
-                embedding_base_url="http://localhost:8090/v1",
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-llm", "")
+            mock_embed_detect.return_value = ("http://localhost:8090/v1", "test-embed", "")
+
+            client = UnifiedInferenceClient.create(
+                control_plane_url="http://localhost:8000",
             )
 
-            assert client.config.mode == UnifiedClientMode.CONTROL_PLANE
+            # Should be in control plane mode
+            assert client.is_control_plane_mode is True
+            assert client._control_plane_manager is not None
 
-    def test_control_plane_fallback_to_simple(self):
-        """Test Control Plane mode graceful degradation when init fails.
-
-        When Control Plane initialization fails (e.g., missing dependencies),
-        the client should still function by falling back to Simple mode,
-        and the mode attribute is updated to reflect the actual operating mode.
-        """
-        # Remove the control plane module from sys.modules to trigger import error
-        with patch.dict(
-            "sys.modules",
-            {
-                "sage.common.components.sage_llm.sageLLM.control_plane.manager": None,
-            },
+    def test_control_plane_mode_property(self):
+        """Test is_control_plane_mode property reflects actual state."""
+        with (
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
         ):
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-                mode=UnifiedClientMode.CONTROL_PLANE,
-            )
+            mock_llm_detect.return_value = (None, None, "")
+            mock_embed_detect.return_value = (None, None, "")
 
-            # Mode falls back to SIMPLE since Control Plane init failed
-            assert client.mode == UnifiedClientMode.SIMPLE
-            # Verify that Simple mode clients were initialized as fallback
-            assert client._llm_client is not None or not client.config.llm_base_url
+            client = UnifiedInferenceClient.create()
+
+            # With the new unified create() API, Control Plane mode is always enabled
+            assert client.is_control_plane_mode is True
 
 
 # =============================================================================
@@ -414,12 +419,16 @@ class TestErrorHandling:
         """Test that chat method handles API errors gracefully."""
         mock_openai_client.chat.completions.create.side_effect = Exception("API Error")
 
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-model", "")
+            mock_embed_detect.return_value = (None, None, "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-            )
+            client = UnifiedInferenceClient.create()
             client._llm_available = True
             client._llm_client = mock_openai_client
 
@@ -430,12 +439,16 @@ class TestErrorHandling:
         """Test that embed method handles API errors gracefully."""
         mock_openai_client.embeddings.create.side_effect = Exception("Embedding Error")
 
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = (None, None, "")
+            mock_embed_detect.return_value = ("http://localhost:8090/v1", "test-embed", "")
 
-            client = UnifiedInferenceClient(
-                embedding_base_url="http://localhost:8090/v1",
-            )
+            client = UnifiedInferenceClient.create()
             client._embedding_available = True
             client._embedding_client = mock_openai_client
 
@@ -444,15 +457,22 @@ class TestErrorHandling:
 
     def test_timeout_configuration(self):
         """Test that timeout is properly configured."""
-        client = UnifiedInferenceClient(timeout=30.0)
+        with (
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
+            mock_llm_detect.return_value = (None, None, "")
+            mock_embed_detect.return_value = (None, None, "")
+
+            client = UnifiedInferenceClient.create(timeout=30.0)
 
         assert client.config.timeout == 30.0
 
     def test_max_retries_configuration(self):
         """Test that max retries is properly configured."""
-        client = UnifiedInferenceClient(max_retries=5)
+        config = UnifiedClientConfig(max_retries=5)
 
-        assert client.config.max_retries == 5
+        assert config.max_retries == 5
 
 
 # =============================================================================
@@ -488,13 +508,11 @@ class TestConfiguration:
         config = UnifiedClientConfig(
             llm_base_url="http://localhost:8001/v1",
             llm_model="test-model",
-            mode=UnifiedClientMode.SIMPLE,
         )
 
-        client = UnifiedInferenceClient(config=config)
-
-        assert client.config is config
-        assert client.config.llm_model == "test-model"
+        # Config object is used internally, verify its values
+        assert config.llm_base_url == "http://localhost:8001/v1"
+        assert config.llm_model == "test-model"
 
 
 # =============================================================================
@@ -558,13 +576,16 @@ class TestFullFlow:
 
     def test_chat_then_embed_flow(self, mock_openai_client):
         """Test using both chat and embed in sequence."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-model", "")
+            mock_embed_detect.return_value = ("http://localhost:8090/v1", "test-embed", "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-                embedding_base_url="http://localhost:8090/v1",
-            )
+            client = UnifiedInferenceClient.create()
             client._llm_available = True
             client._embedding_available = True
             client._llm_client = mock_openai_client
@@ -580,12 +601,16 @@ class TestFullFlow:
 
     def test_multiple_concurrent_requests(self, mock_openai_client):
         """Test multiple requests in sequence."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-model", "")
+            mock_embed_detect.return_value = (None, None, "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-            )
+            client = UnifiedInferenceClient.create()
             client._llm_available = True
             client._llm_client = mock_openai_client
 
@@ -600,12 +625,16 @@ class TestFullFlow:
 
     def test_return_result_mode(self, mock_openai_client):
         """Test chat with return_result=True for detailed results."""
-        with patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai:
+        with (
+            patch("sage.common.components.sage_llm.unified_client.OpenAI") as mock_openai,
+            patch.object(UnifiedInferenceClient, "_detect_llm_endpoint") as mock_llm_detect,
+            patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint") as mock_embed_detect,
+        ):
             mock_openai.return_value = mock_openai_client
+            mock_llm_detect.return_value = ("http://localhost:8001/v1", "test-model", "")
+            mock_embed_detect.return_value = (None, None, "")
 
-            client = UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-            )
+            client = UnifiedInferenceClient.create()
             client._llm_available = True
             client._llm_client = mock_openai_client
 
@@ -635,7 +664,7 @@ class TestPerformance:
         """Test that client initialization is fast."""
         with patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=False):
             start = time.time()
-            _client = UnifiedInferenceClient.create_auto()  # noqa: F841
+            _client = UnifiedInferenceClient.create()  # noqa: F841
             elapsed = time.time() - start
 
         # Should be fast (under 1 second without network calls)

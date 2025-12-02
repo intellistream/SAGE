@@ -102,30 +102,30 @@ def knn_result_read(filename: str) -> tuple[np.ndarray, np.ndarray]:
         # 二进制格式
         with open(filename, "rb") as f:
             nq, k = np.fromfile(f, dtype=np.uint32, count=2)
-            I = np.fromfile(f, dtype=np.uint32).reshape(nq, k)
+            indices = np.fromfile(f, dtype=np.uint32).reshape(nq, k)
 
             # 尝试读取距离（如果有）
             remaining = f.read()
             if len(remaining) > 0:
-                D = np.frombuffer(remaining, dtype=np.float32).reshape(nq, k)
+                distances = np.frombuffer(remaining, dtype=np.float32).reshape(nq, k)
             else:
-                D = np.zeros_like(I, dtype=np.float32)
+                distances = np.zeros_like(indices, dtype=np.float32)
     elif filename.endswith(".ivecs"):
-        I = load_ivecs(filename)
-        D = np.zeros_like(I, dtype=np.float32)
+        indices = load_ivecs(filename)
+        distances = np.zeros_like(indices, dtype=np.float32)
     else:
         # 默认尝试 ivecs 格式
         try:
-            I = load_ivecs(filename)
-            D = np.zeros_like(I, dtype=np.float32)
-        except:
+            indices = load_ivecs(filename)
+            distances = np.zeros_like(indices, dtype=np.float32)
+        except Exception:
             # 尝试二进制格式
             with open(filename, "rb") as f:
                 nq, k = np.fromfile(f, dtype=np.uint32, count=2)
-                I = np.fromfile(f, dtype=np.uint32).reshape(nq, k)
-                D = np.zeros_like(I, dtype=np.float32)
+                indices = np.fromfile(f, dtype=np.uint32).reshape(nq, k)
+                distances = np.zeros_like(indices, dtype=np.float32)
 
-    return I, D
+    return indices, distances
 
 
 def range_result_read(filename: str):
