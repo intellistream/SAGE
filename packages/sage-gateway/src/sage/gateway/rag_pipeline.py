@@ -172,7 +172,7 @@ class RAGChatMap(MapFunction):
     def _get_llm_client(self):
         """获取智能 LLM 客户端（延迟初始化，带缓存）
 
-        使用 sage-common (L1) 的 IntelligentLLMClient，自动检测并选择最佳服务：
+        使用 sage-common (L1) 的 UnifiedInferenceClient，自动检测并选择最佳服务：
         1. 用户配置的端点（SAGE_CHAT_BASE_URL）
         2. 本地 vLLM 服务（端口 8001, 8000）
         3. 云端 API 降级（阿里云 DashScope）

@@ -36,7 +36,6 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 # Core embedding interfaces
 from .base import BaseEmbedding
-from .client import IntelligentEmbeddingClient, get_embedding_client
 from .factory import (
     EmbeddingFactory,
     check_model_availability,
@@ -242,10 +241,6 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
-# =============================================================================
-# DEPRECATED: Backward-compatible IntelligentEmbeddingClient
-# Use UnifiedInferenceClient from sage.common.components.sage_llm instead.
-# =============================================================================
 import warnings
 
 from .embedding_model import (
@@ -255,10 +250,6 @@ from .embedding_model import (
 
 # Service interface (新增)
 from .service import EmbeddingService, EmbeddingServiceConfig  # noqa: E402
-
-# Note: IntelligentEmbeddingClient and get_embedding_client are imported from
-# .client above (line 39). The implementations there are the canonical versions.
-
 
 # 统一导出接口
 __all__ = [
@@ -286,7 +277,4 @@ __all__ = [
     # 向后兼容（旧代码仍可使用）
     "EmbeddingModel",
     "apply_embedding_model",
-    # DEPRECATED: Backward-compatible aliases (will be removed)
-    "IntelligentEmbeddingClient",
-    "get_embedding_client",
 ]

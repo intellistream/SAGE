@@ -88,7 +88,7 @@ class FinetuneManager:
         if not hasattr(self, "_initialized"):
             self.tasks: dict[str, FinetuneTask] = {}
             # Default finetune base model (for UI display only, not for chat)
-            # Chat will use IntelligentLLMClient's auto-detection
+            # Chat will use UnifiedInferenceClient's auto-detection
             self.current_model: str = os.getenv(
                 "SAGE_FINETUNE_BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct"
             )
@@ -629,7 +629,7 @@ if __name__ == "__main__":
         """Switch current model (for finetuning base model selection)
 
         Note: This only affects the finetuning UI's model selection.
-        Chat mode will use IntelligentLLMClient's auto-detection (local first).
+        Chat mode will use UnifiedInferenceClient's auto-detection (local first).
         """
         self.current_model = model_path
         # Removed: os.environ["SAGE_CHAT_MODEL"] = model_path

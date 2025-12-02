@@ -727,7 +727,7 @@ class ResponseGenerator:
                     # Auto-detection mode
                     self.client = UnifiedInferenceClient.create()
             except Exception as exc:  # pragma: no cover - runtime check
-                raise RuntimeError(f"无法初始化 IntelligentLLMClient: {exc}") from exc
+                raise RuntimeError(f"无法初始化 UnifiedInferenceClient: {exc}") from exc
 
     def _setup_auto_backend(self) -> None:
         """自动检测并配置最佳可用的 LLM 后端。

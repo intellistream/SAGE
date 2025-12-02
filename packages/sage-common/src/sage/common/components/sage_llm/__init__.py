@@ -8,8 +8,7 @@ allowing SAGE to leverage high-performance LLM serving capabilities.
 Services:
     - VLLMService: Simple single-instance vLLM service
     - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
-    - IntelligentLLMClient: Auto-detecting client with cloud fallback
-    - UnifiedInferenceClient: Unified client for both LLM and Embedding (NEW)
+    - UnifiedInferenceClient: Unified client for both LLM and Embedding
 
 Architecture:
     - Designed to be used by L2 (Platform) and higher layers
@@ -18,7 +17,6 @@ Architecture:
 """
 
 from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
-from .client import IntelligentLLMClient, check_llm_service, get_llm_client
 from .compat import (
     EmbeddingClientAdapter,
     LLMClientAdapter,
@@ -57,9 +55,6 @@ try:
         "get_served_model_name",
         "ControlPlaneVLLMService",
         "ControlPlaneVLLMServiceConfig",
-        "IntelligentLLMClient",
-        "check_llm_service",
-        "get_llm_client",
         # Unified Client
         "UnifiedInferenceClient",
         "UnifiedClient",
@@ -86,9 +81,6 @@ except ImportError:
         "LLMLauncher",
         "LLMLauncherResult",
         "get_served_model_name",
-        "IntelligentLLMClient",
-        "check_llm_service",
-        "get_llm_client",
         # Unified Client
         "UnifiedInferenceClient",
         "UnifiedClient",

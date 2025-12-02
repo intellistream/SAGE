@@ -132,7 +132,7 @@ def start(
             console.print("\n[cyan]💡 提示：[/cyan]")
             if not no_llm:
                 console.print("  • 本地 LLM 服务已通过 sageLLM 启动")
-                console.print("  • IntelligentLLMClient 将自动检测并使用")
+                console.print("  • UnifiedInferenceClient 将自动检测并使用")
                 console.print("  • 使用 'sage studio status' 查看服务状态")
             console.print("  • Chat 模式需要 Gateway 服务支持")
             console.print("  • 使用 'sage studio stop' 停止服务")
