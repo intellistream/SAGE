@@ -224,7 +224,7 @@ class HybridMemoryService(BaseService):
                     vec_array = np.array(vec, dtype=np.float32)
                     self.vector_collection.insert(
                         index_name=index_name,
-                        text=entry,
+                        raw_data=entry,
                         vector=vec_array,
                         metadata={"entry_id": entry_id, **metadata},
                     )

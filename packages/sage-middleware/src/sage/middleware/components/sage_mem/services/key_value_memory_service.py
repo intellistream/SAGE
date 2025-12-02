@@ -136,7 +136,7 @@ class KeyValueMemoryService(BaseService):
         query: str | None = None,
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
-        top_k: int | None = None,
+        top_k: int = 10,
     ) -> list[dict[str, Any]]:
         """检索值
 
@@ -154,7 +154,7 @@ class KeyValueMemoryService(BaseService):
             return []
 
         metadata = metadata or {}
-        top_k = top_k or self.default_topk
+        top_k = top_k if top_k > 0 else self.default_topk
         with_metadata = metadata.get("with_metadata", True)
 
         # 使用 KVMemoryCollection 的检索功能
