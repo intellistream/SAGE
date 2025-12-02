@@ -2,6 +2,11 @@
 """
 SAGE Configuration Manager
 统一的配置文件管理
+
+Configuration search priority:
+1. Explicitly provided config_path
+2. Project-level: <project_root>/config/config.yaml
+3. Fallback: ~/.config/sage/config.yaml (XDG standard)
 """
 
 from pathlib import Path
@@ -11,15 +16,62 @@ import typer
 import yaml  # type: ignore[import-untyped]
 
 
+def _find_project_root() -> Path | None:
+    """Find SAGE project root by looking for characteristic markers."""
+    d = Path.cwd()
+    root = Path(d.root)
+    while d != root:
+        # Check for SAGE project markers
+        if (d / "packages" / "sage-common").exists() or (d / "quickstart.sh").exists():
+            return d
+        d = d.parent
+    return None
+
+
+def _get_default_config_path() -> Path:
+    """Get default config path (XDG fallback)."""
+    xdg_config = Path.home() / ".config" / "sage"
+    xdg_config.mkdir(parents=True, exist_ok=True)
+    return xdg_config / "config.yaml"
+
+
 class ConfigManager:
-    """配置管理器"""
+    """配置管理器
+
+    Configuration search priority:
+    1. Explicitly provided config_path
+    2. Project-level: <project_root>/config/config.yaml
+    3. Fallback: ~/.config/sage/config.yaml (XDG standard)
+    """
 
     def __init__(self, config_path: str | None = None):
         if config_path:
             self.config_path = Path(config_path)
         else:
-            # 统一使用家目录下的配置文件以维护一致性
-            self.config_path = Path.home() / ".sage" / "config.yaml"
+            # 搜索路径优先级：
+            # 1. 项目根目录 config/config.yaml
+            # 2. XDG 标准: ~/.config/sage/config.yaml (回退)
+
+            paths_to_check = []
+
+            # 1. 查找项目根目录的 config/
+            project_root = _find_project_root()
+            if project_root:
+                paths_to_check.append(project_root / "config" / "config.yaml")
+
+            # 2. XDG 标准用户配置目录（回退）
+            default_config = _get_default_config_path()
+            paths_to_check.append(default_config)
+
+            # 默认使用 XDG 标准路径
+            selected_path = default_config
+
+            for p in paths_to_check:
+                if p.exists():
+                    selected_path = p
+                    break
+
+            self.config_path = selected_path
         self._config: dict[str, Any] | None = None
 
     def load_config(self) -> dict[str, Any]:

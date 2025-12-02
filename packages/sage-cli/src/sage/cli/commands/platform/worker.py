@@ -139,7 +139,7 @@ def start_workers():
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
 
-    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    ray_command = remote_config.get("ray_command", "ray")
     conda_env = remote_config.get("conda_env", "sage")
 
     typer.echo("📋 配置信息:")
@@ -148,16 +148,26 @@ def start_workers():
     typer.echo(f"   Worker绑定主机: {worker_bind_host}")
 
     success_count = 0
+    import socket
+
     total_count = len(workers)
 
     for i, (host, port) in enumerate(workers, 1):
-        typer.echo(f"\n🔧 启动Worker节点 {i}/{total_count}: {host}:{port}")
+        # Resolve hostname to IP to ensure worker binds to the correct interface
+        try:
+            node_ip = socket.gethostbyname(host)
+        except Exception:
+            node_ip = host # Fallback to hostname if resolution fails
+
+        typer.echo(f"\n🔧 启动Worker节点 {i}/{total_count}: {host}:{port} (IP: {node_ip})")
 
         start_command = f"""set -e
 export PYTHONUNBUFFERED=1
 
 # 当前主机名
 CURRENT_HOST='{host}'
+# 解析后的IP
+RESOLVED_IP='{node_ip}'
 
 # 创建必要目录
 LOG_DIR='{worker_log_dir}'
@@ -175,6 +185,10 @@ echo "===============================================" | tee -a "$LOG_DIR/worker
 # 初始化conda环境
 {get_conda_init_code(conda_env)}
 
+# 记录版本信息
+echo "[INFO] Python版本: $(python --version 2>&1)" | tee -a "$LOG_DIR/worker.log"
+echo "[INFO] Ray版本: $({ray_command} --version 2>&1)" | tee -a "$LOG_DIR/worker.log"
+
 # 停止现有的ray进程
 echo "[INFO] 停止现有Ray进程..." | tee -a "$LOG_DIR/worker.log"
 {ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
@@ -182,14 +196,24 @@ sleep 2
 
 # 强制清理残留进程
 echo "[INFO] 强制清理所有Ray相关进程..." | tee -a "$LOG_DIR/worker.log"
-for proc in raylet core_worker log_monitor; do
-    PIDS=$(pgrep -f "$proc" 2>/dev/null || true)
-    if [[ -n "$PIDS" ]]; then
-        echo "[INFO] 发现$proc进程: $PIDS" | tee -a "$LOG_DIR/worker.log"
-        echo "$PIDS" | xargs -r kill -TERM 2>/dev/null || true
-        sleep 2
-    fi
-done
+# 使用更精确的匹配模式，并限制为当前用户
+pgrep -u $(whoami) -x raylet | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -x gcs_server | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -f "ray/dashboard/[d]ashboard.py" | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -f "ray/dashboard/[a]gent.py" | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -f "ray.util.client.[s]erver" | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -f "ray/autoscaler/_private/[m]onitor.py" | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -f "ray/_private/[l]og_monitor.py" | xargs -r kill -9 2>/dev/null || true
+pgrep -u $(whoami) -f "ray/core/src/ray/raylet/raylet" | xargs -r kill -9 2>/dev/null || true
+
+# for proc in raylet core_worker log_monitor; do
+#     PIDS=$(pgrep -f "$proc" 2>/dev/null || true)
+#     if [[ -n "$PIDS" ]]; then
+#         echo "[INFO] 发现$proc进程: $PIDS" | tee -a "$LOG_DIR/worker.log"
+#         echo "$PIDS" | xargs -r kill -TERM 2>/dev/null || true
+#         sleep 2
+#     fi
+# done
 
 # 清理Ray会话目录
 echo "[INFO] 清理Ray会话目录..." | tee -a "$LOG_DIR/worker.log"
@@ -200,7 +224,7 @@ sleep 3
 # 设置节点IP
 NODE_IP="{worker_bind_host}"
 if [ "{worker_bind_host}" = "localhost" ] || [ "{worker_bind_host}" = "127.0.0.1" ]; then
-    NODE_IP="$CURRENT_HOST"
+    NODE_IP="$RESOLVED_IP"
 fi
 echo "[INFO] 使用节点IP: $NODE_IP" | tee -a "$LOG_DIR/worker.log"
 
@@ -210,7 +234,7 @@ export RAY_DISABLE_IMPORT_WARNING=1
 
 # 测试连通性
 echo "[INFO] 测试到头节点的连通性..." | tee -a "$LOG_DIR/worker.log"
-if timeout 10 nc -z {head_host} {head_port} 2>/dev/null; then
+if python -c "import socket; s = socket.socket(); s.settimeout(10); s.connect(('{head_host}', {head_port})); s.close()" 2>/dev/null; then
     echo "[SUCCESS] 可以连接到头节点 {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
 else
     echo "[WARNING] 无法验证到头节点的连通性，但继续尝试启动Ray" | tee -a "$LOG_DIR/worker.log"
@@ -218,7 +242,7 @@ fi
 
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
-RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
+RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
 # 执行Ray启动命令并捕获输出和退出码

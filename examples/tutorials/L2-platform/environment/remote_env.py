@@ -17,15 +17,11 @@ from sage.kernel.api.remote_environment import RemoteEnvironment
 
 class SimpleSource(SourceFunction):
     """简单数据源"""
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.count = 0
-        # 在测试模式下减少数据量，加快测试速度
-        test_mode = (
-            os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true"
-        )
-        self.max_count = 100 if test_mode else 10000
+        self.max_count = 100  # 限制生成的数据量
+
 
     def execute(self, data=None):
         if self.count >= self.max_count:
@@ -42,6 +38,9 @@ class SimpleProcessor(MapFunction):
     """简单处理器"""
 
     def execute(self, data):
+        # 跳过非字符串数据（如 StopSignal）
+        if not isinstance(data, str):
+            return data
         result = data.upper()
         return result
 
@@ -141,7 +140,7 @@ def example_default_scheduler():
     print("🚀 [4/5] 提交任务到 JobManager...")
     step_start = time.time()
     try:
-        env.submit(autostop=False)  # 不自动停止,手动控制
+        env.submit(autostop=True)  # 不自动停止,手动控制
         step_duration = time.time() - step_start
         print(f"   ✅ 任务提交成功 (耗时: {step_duration:.3f}秒)\n")
     except Exception as e:
