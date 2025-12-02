@@ -38,46 +38,46 @@ random-plus(5000000,1000,768):
     operation: "waitPending"
   5:
     operation: "search"
-  5:
+  6:
     operation: "batch_insert"
     start: 100000
     end: 500000
     batchSize: 2500
     eventRate: 10000
-  6:
-    operation: "waitPending"
   7:
-    operation: "search"
+    operation: "waitPending"
   8:
+    operation: "search"
+  9:
     operation: "batch_insert"
     start: 500000
     end: 1000000
     batchSize: 2500
     eventRate: 10000
-  9:
-    operation: "waitPending"
   10:
-    operation: "search"
+    operation: "waitPending"
   11:
+    operation: "search"
+  12:
     operation: "batch_insert"
     start: 1000000
     end: 2500000
     batchSize: 2500
 
-  12:
-    operation: "waitPending"
   13:
-    operation: "search"
+    operation: "waitPending"
   14:
+    operation: "search"
+  15:
     operation: "batch_insert"
     start: 2500000
     end: 5000000
     batchSize: 2500
 
-  15:
-    operation: "waitPending"
   16:
-    operation: "search"
+    operation: "waitPending"
   17:
+    operation: "search"
+  18:
     operation: "endHPC"
   gt_url: "none"

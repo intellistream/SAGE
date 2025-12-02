@@ -141,7 +141,7 @@ class CacheProfiler:
             result = subprocess.run(["perf", "version"], capture_output=True, timeout=2)
             if result.returncode == 0:
                 return "perf"
-        except:
+        except Exception:
             pass
 
         # 2. 在 WSL 中，尝试查找 /usr/lib/linux-tools/ 下的版本
@@ -155,7 +155,7 @@ class CacheProfiler:
                 result = subprocess.run([perf_cmd, "version"], capture_output=True, timeout=2)
                 if result.returncode == 0:
                     return perf_cmd
-            except:
+            except Exception:
                 pass
 
         return None

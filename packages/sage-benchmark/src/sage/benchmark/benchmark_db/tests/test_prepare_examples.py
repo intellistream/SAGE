@@ -4,6 +4,11 @@
 展示如何使用 big-ann-benchmarks 的完整下载和预处理流程
 """
 
+import os
+
+from sage.benchmark.benchmark_db.datasets.download_utils import download_dataset
+from sage.benchmark.benchmark_db.datasets.registry import load_data, sample_vectors, save_data
+
 # 示例：完整的数据集 prepare() 方法实现
 
 

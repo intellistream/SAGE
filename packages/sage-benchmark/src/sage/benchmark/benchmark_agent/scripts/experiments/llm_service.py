@@ -228,6 +228,7 @@ def ensure_llm_available(
     port: int = DEFAULT_LLM_PORT,
     model: str = DEFAULT_LLM_MODEL,
     auto_start: bool = True,
+    allow_cloud: bool = True,
 ) -> bool:
     """
     确保 LLM 服务可用。
@@ -238,24 +239,34 @@ def ensure_llm_available(
         port: 服务端口
         model: 模型 ID
         auto_start: 是否自动启动
+        allow_cloud: 是否允许使用云端 API (默认 True)
 
     Returns:
         服务是否可用
     """
     # 首先检查指定端口
+    print(f"  🔍 Checking LLM service on port {port}...")
     status = check_llm_service(port)
     if status["running"]:
+        print(f"  ✅ Found running service on port {port}")
+        # 设置环境变量供后续使用
+        os.environ["SAGE_LLM_PORT"] = str(port)
+        os.environ["SAGE_CHAT_BASE_URL"] = f"http://localhost:{port}/v1"
         return True
 
     # 检查其他端口
+    print("  🔍 Checking other common ports...")
     all_statuses = check_all_llm_services()
     for p, s in all_statuses.items():
         if s["running"]:
-            print(f"  ℹ️  发现 LLM 服务运行在端口 {p}")
+            print(f"  ℹ️  Found running service on port {p}")
+            # 设置环境变量供后续使用
+            os.environ["SAGE_LLM_PORT"] = str(p)
+            os.environ["SAGE_CHAT_BASE_URL"] = f"http://localhost:{p}/v1"
             return True
 
     # 检查云端 API 配置
-    if os.environ.get("SAGE_CHAT_API_KEY") or os.environ.get("OPENAI_API_KEY"):
+    if allow_cloud and (os.environ.get("SAGE_CHAT_API_KEY") or os.environ.get("OPENAI_API_KEY")):
         print("  ℹ️  检测到云端 API 配置")
         return True
 

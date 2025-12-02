@@ -16,6 +16,8 @@ if str(project_root) not in sys.path:
 
 from datasets.registry import DATASETS
 
+from sage.benchmark.benchmark_db.datasets.loaders import load_dataset
+
 
 def test_dataset_registry():
     """测试数据集注册表"""

@@ -465,6 +465,78 @@ class UnifiedInferenceClient:
         return cls(config=config)
 
     @classmethod
+    def create_for_model(
+        cls,
+        model_id: str,
+        *,
+        management_base_url: str | None = None,
+        tensor_parallel_size: int = 1,
+        required_memory_gb: float | None = None,
+        engine_label: str | None = None,
+        extra_spawn_args: list[str] | None = None,
+        wait_timeout: float = 120.0,
+        poll_interval: float = 2.0,
+        auto_start: bool = True,
+        prefer_existing: bool = True,
+    ) -> UnifiedInferenceClient:
+        """Create a client bound to a managed engine resolved by model name.
+
+        This helper talks to the Control Plane management API (default
+        ``http://localhost:8000/v1/management``) to locate an existing engine
+        that already serves ``model_id``. If no engine is running and
+        ``auto_start`` is True, it will request a new engine startup and wait
+        until the engine is reachable before returning a configured client.
+
+        Args:
+            model_id: Target model name registered with the Control Plane.
+            management_base_url: Base URL of the Unified API server
+                (e.g. ``http://localhost:8000/v1``). Defaults to the local
+                gateway port if omitted.
+            tensor_parallel_size: Requested tensor parallelism when starting
+                a new engine.
+            required_memory_gb: Explicit per-GPU memory reservation for the
+                engine request. Control Plane heuristics are used if omitted.
+            engine_label: Optional label recorded with the engine metadata.
+            extra_spawn_args: Additional CLI args forwarded to vLLM.
+            wait_timeout: Maximum seconds to wait for the engine to reach a
+                RUNNING/STARTING state after spawning.
+            poll_interval: Interval (seconds) between status polls.
+            auto_start: Whether to spawn a new engine when no running engine
+                matches the requested model.
+            prefer_existing: If False, forces creation of a new engine even if
+                a compatible engine is already tracked.
+
+        Returns:
+            UnifiedInferenceClient wired to the resolved engine endpoint.
+
+        Raises:
+            RuntimeError: When the management API is unreachable, no engine
+                can be allocated, or the new engine never reaches RUNNING.
+        """
+
+        resolved_base = cls._normalize_management_base(management_base_url)
+        engine_info = cls._ensure_engine_for_model(
+            model_id=model_id,
+            management_base=resolved_base,
+            tensor_parallel_size=tensor_parallel_size,
+            required_memory_gb=required_memory_gb,
+            engine_label=engine_label,
+            extra_spawn_args=extra_spawn_args,
+            wait_timeout=wait_timeout,
+            poll_interval=poll_interval,
+            auto_start=auto_start,
+            prefer_existing=prefer_existing,
+        )
+
+        llm_base_url = cls._build_engine_base_url(engine_info)
+        config = UnifiedClientConfig(
+            llm_base_url=llm_base_url,
+            llm_model=model_id,
+            mode=UnifiedClientMode.SIMPLE,
+        )
+        return cls(config=config)
+
+    @classmethod
     def get_instance(
         cls,
         instance_key: str = "default",
@@ -1065,6 +1137,208 @@ class UnifiedInferenceClient:
         return embeddings
 
     # ==================== Helper Methods ====================
+
+    @classmethod
+    def _normalize_management_base(cls, base_url: str | None) -> str:
+        """Return a normalized Control Plane base URL ending with /v1."""
+
+        if base_url:
+            normalized = base_url.rstrip("/")
+        else:
+            from sage.common.config.ports import SagePorts  # Lazy import to avoid cycles
+
+            normalized = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+
+        if not normalized.endswith("/v1"):
+            normalized = f"{normalized}/v1"
+        return normalized.rstrip("/")
+
+    @classmethod
+    def _ensure_engine_for_model(
+        cls,
+        *,
+        model_id: str,
+        management_base: str,
+        tensor_parallel_size: int,
+        required_memory_gb: float | None,
+        engine_label: str | None,
+        extra_spawn_args: list[str] | None,
+        wait_timeout: float,
+        poll_interval: float,
+        auto_start: bool,
+        prefer_existing: bool,
+    ) -> dict[str, Any]:
+        """Find or create an engine that serves the requested model."""
+
+        cluster_status = cls._fetch_cluster_status(management_base)
+        engine = None if not prefer_existing else cls._find_engine_entry(cluster_status, model_id)
+        if engine:
+            return engine
+
+        if not auto_start:
+            raise RuntimeError(
+                f"No managed engine found for model '{model_id}'. "
+                "Enable auto_start or provision one via 'sage llm engine start'."
+            )
+
+        response = cls._start_engine_via_management(
+            management_base,
+            model_id=model_id,
+            tensor_parallel_size=tensor_parallel_size,
+            required_memory_gb=required_memory_gb,
+            engine_label=engine_label,
+            extra_spawn_args=extra_spawn_args,
+        )
+        engine_id = (
+            response.get("engine_id")
+            or response.get("id")
+            or response.get("engine", {}).get("engine_id")
+        )
+        if not engine_id:
+            raise RuntimeError("Control Plane response did not return an engine_id")
+
+        return cls._wait_for_engine_ready(
+            management_base,
+            model_id=model_id,
+            engine_id=str(engine_id),
+            wait_timeout=wait_timeout,
+            poll_interval=poll_interval,
+        )
+
+    @classmethod
+    def _fetch_cluster_status(cls, management_base: str) -> dict[str, Any]:
+        url = f"{management_base}/management/status"
+        try:
+            response = httpx.get(url, timeout=15.0)
+            response.raise_for_status()
+        except httpx.RequestError as exc:  # pragma: no cover - network failures
+            raise RuntimeError(f"Unable to reach Control Plane at {url}: {exc}") from exc
+        except httpx.HTTPStatusError as exc:  # pragma: no cover - HTTP errors
+            detail = exc.response.text.strip() or exc.response.reason_phrase
+            raise RuntimeError(
+                f"Control Plane status request failed ({exc.response.status_code}): {detail}"
+            ) from exc
+
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise RuntimeError("Control Plane returned invalid JSON for cluster status") from exc
+
+    @classmethod
+    def _find_engine_entry(
+        cls,
+        cluster_status: dict[str, Any],
+        model_id: str,
+        engine_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        target = model_id.lower()
+        engines = cluster_status.get("engines") or cluster_status.get("engine_instances") or []
+        for entry in engines:
+            if not isinstance(entry, dict):
+                continue
+
+            entry_id = str(entry.get("engine_id") or entry.get("id") or "")
+            if engine_id and entry_id == engine_id:
+                return entry
+
+            models = [
+                entry.get("model_id"),
+                entry.get("model_name"),
+                entry.get("model"),
+            ]
+            if any(isinstance(value, str) and value.lower() == target for value in models):
+                status = str(entry.get("status") or entry.get("state") or "RUNNING").upper()
+                if status in {"RUNNING", "STARTING"}:
+                    return entry
+        return None
+
+    @classmethod
+    def _start_engine_via_management(
+        cls,
+        management_base: str,
+        *,
+        model_id: str,
+        tensor_parallel_size: int,
+        required_memory_gb: float | None,
+        engine_label: str | None,
+        extra_spawn_args: list[str] | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model_id": model_id,
+            "tensor_parallel_size": tensor_parallel_size,
+        }
+        if required_memory_gb is not None:
+            payload["required_memory_gb"] = required_memory_gb
+        if engine_label:
+            payload["engine_label"] = engine_label
+        if extra_spawn_args:
+            payload["extra_args"] = extra_spawn_args
+
+        url = f"{management_base}/management/engines"
+        try:
+            response = httpx.post(url, json=payload, timeout=30.0)
+        except httpx.RequestError as exc:  # pragma: no cover - network failures
+            raise RuntimeError(f"Failed to contact Control Plane at {url}: {exc}") from exc
+
+        if response.status_code >= 400:
+            detail = cls._safe_error_detail(response)
+            raise RuntimeError(
+                f"Control Plane rejected engine request ({response.status_code}): {detail}"
+            )
+
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise RuntimeError("Control Plane returned invalid JSON when creating engine") from exc
+
+    @staticmethod
+    def _safe_error_detail(response: httpx.Response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            return response.text.strip() or response.reason_phrase
+
+        if isinstance(payload, dict):
+            for key in ("detail", "message", "error"):
+                if key in payload:
+                    return str(payload[key])
+        return str(payload)
+
+    @classmethod
+    def _wait_for_engine_ready(
+        cls,
+        management_base: str,
+        *,
+        model_id: str,
+        engine_id: str,
+        wait_timeout: float,
+        poll_interval: float,
+    ) -> dict[str, Any]:
+        deadline = time.time() + max(wait_timeout, 1.0)
+        while time.time() < deadline:
+            cluster_status = cls._fetch_cluster_status(management_base)
+            engine = cls._find_engine_entry(cluster_status, model_id, engine_id=engine_id)
+            if engine:
+                status = str(engine.get("status") or engine.get("state") or "RUNNING").upper()
+                if status in {"RUNNING", "STARTING"}:
+                    return engine
+                if status in {"FAILED", "STOPPED"}:
+                    raise RuntimeError(
+                        f"Engine {engine_id} reported terminal status '{status}'. Check logs."
+                    )
+            time.sleep(max(poll_interval, 0.5))
+
+        raise RuntimeError(
+            f"Timed out ({wait_timeout:.0f}s) waiting for engine {engine_id} to become ready"
+        )
+
+    @staticmethod
+    def _build_engine_base_url(engine_info: dict[str, Any]) -> str:
+        host = str(engine_info.get("host") or "localhost")
+        port = engine_info.get("port") or engine_info.get("listen_port")
+        if port is None:
+            raise RuntimeError("Engine metadata is missing port information")
+        return f"http://{host}:{int(port)}/v1"
 
     def _get_default_llm_model(self) -> str:
         """Get default LLM model from server."""
