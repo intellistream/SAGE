@@ -1,11 +1,7 @@
 import os
 
 # flake8: noqa: E402
-# Auto-detect network region and configure HuggingFace mirror
-from sage.common.config import ensure_hf_mirror_configured
-
-ensure_hf_mirror_configured()
-
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import sys
 import time
 

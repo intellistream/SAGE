@@ -6,23 +6,16 @@
 This test module covers:
 - CoresetSelector: all strategies (loss_topk, diversity, hybrid, random)
 - OnlineContinualLearner: buffer management, replay sampling, edge cases
-
-Note: These components have been moved to sage.libs.sias but tests remain here
-for backward compatibility testing.
 """
 
 from __future__ import annotations
 
-import pytest
-
-from sage.libs.finetune.agent.dialog_processor import ProcessedDialog
-
-# Import from new SIAS location
-from sage.libs.sias import (
+from sage.libs.finetune.agent.continual import (
     CoresetSelector,
     OnlineContinualLearner,
     SelectionSummary,
 )
+from sage.libs.finetune.agent.dialog_processor import ProcessedDialog
 
 
 def _make_dialog(dialog_id: str, loss: float, text: str = "") -> ProcessedDialog:
@@ -280,10 +273,15 @@ class TestCoresetSelectorEdgeCases:
 
         assert len(selected) == 3
 
-    def test_unknown_strategy_raises_error(self) -> None:
-        """Test that unknown strategy raises ValueError (new behavior in SIAS)."""
-        with pytest.raises(ValueError, match="Unknown strategy"):
-            CoresetSelector(strategy="unknown_strategy", random_seed=42)
+    def test_unknown_strategy_falls_back_to_random(self) -> None:
+        """Test that unknown strategy falls back to random selection."""
+        samples = [_make_dialog(f"dlg{i}", i * 0.1) for i in range(10)]
+
+        selector = CoresetSelector(strategy="unknown_strategy", random_seed=42)
+        selected = selector.select(samples, target_size=3, metrics=None)
+
+        # Should still return correct number of samples (random fallback)
+        assert len(selected) == 3
 
 
 # ========================================================================

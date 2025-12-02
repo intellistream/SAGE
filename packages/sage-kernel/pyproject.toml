@@ -132,7 +132,7 @@ dev = [
     "pytest-timeout>=2.0.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
-    "ruff==0.14.6",  # Pinned to match tools/pre-commit-config.yaml
+    "ruff>=0.1.0",
 ]
 
 web = [

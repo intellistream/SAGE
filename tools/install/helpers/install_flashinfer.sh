@@ -12,29 +12,25 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 DIM='\033[2m'
 
-# 使用环境变量或默认值（与其他安装脚本保持一致）
-PYTHON_CMD="${PYTHON_CMD:-python3}"
-PIP_CMD="${PIP_CMD:-pip3}"
-
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}  FlashInfer 安装器 - 高性能 vLLM 采样加速${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
 # 检查是否已安装
-if $PYTHON_CMD -c "import flashinfer" 2>/dev/null; then
-    FLASHINFER_VERSION=$($PYTHON_CMD -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
+if python -c "import flashinfer" 2>/dev/null; then
+    FLASHINFER_VERSION=$(python -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
     echo -e "${GREEN}✅ FlashInfer $FLASHINFER_VERSION 已安装${NC}"
     exit 0
 fi
 
 # 检查 CUDA 版本
-if ! $PYTHON_CMD -c "import torch" 2>/dev/null; then
+if ! python -c "import torch" 2>/dev/null; then
     echo -e "${RED}❌ PyTorch 未安装，请先安装 PyTorch${NC}"
     exit 1
 fi
 
-CUDA_VERSION=$($PYTHON_CMD -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
+CUDA_VERSION=$(python -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
 if [ -z "$CUDA_VERSION" ]; then
     echo -e "${RED}❌ 未检测到 CUDA，FlashInfer 需要 CUDA 支持${NC}"
     exit 1
@@ -44,7 +40,7 @@ CUDA_MAJOR=$(echo "$CUDA_VERSION" | cut -d. -f1)
 echo -e "${DIM}检测到 CUDA 版本: $CUDA_VERSION${NC}"
 
 # 获取 PyTorch 版本
-TORCH_VERSION=$($PYTHON_CMD -c "import torch; print('.'.join(torch.__version__.split('.')[:2]))" 2>/dev/null || echo "")
+TORCH_VERSION=$(python -c "import torch; print('.'.join(torch.__version__.split('.')[:2]))" 2>/dev/null || echo "")
 TORCH_MAJOR_MINOR=$(echo "$TORCH_VERSION" | cut -d. -f1-2)
 echo -e "${DIM}检测到 PyTorch 版本: $TORCH_VERSION${NC}"
 
@@ -104,14 +100,14 @@ echo -e "${BLUE}正在从 $WHEEL_INDEX 安装 FlashInfer...${NC}"
 echo ""
 
 # 安装 FlashInfer
-if $PIP_CMD install flashinfer-python -i "$WHEEL_INDEX"; then
+if pip install flashinfer-python -i "$WHEEL_INDEX"; then
     echo ""
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}✅ FlashInfer 安装成功！${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
     # 验证安装
-    FLASHINFER_VERSION=$($PYTHON_CMD -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
+    FLASHINFER_VERSION=$(python -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
     echo -e "${DIM}已安装版本: $FLASHINFER_VERSION${NC}"
 else
     echo ""
@@ -125,6 +121,6 @@ else
     echo -e "  3. 系统不支持预编译的 wheel"
     echo ""
     echo -e "${DIM}手动安装命令:${NC}"
-    echo -e "  $PIP_CMD install flashinfer-python -i $WHEEL_INDEX"
+    echo -e "  pip install flashinfer-python -i $WHEEL_INDEX"
     exit 1
 fi

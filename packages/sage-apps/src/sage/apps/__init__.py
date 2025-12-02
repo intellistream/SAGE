@@ -8,7 +8,6 @@ capabilities across various domains:
 
 - video: Video intelligence and analysis
 - medical_diagnosis: AI-assisted medical imaging diagnosis
-- work_report_generator: Weekly/daily work report generator with GitHub integration
 
 Architecture:
 - L5 应用层，组合使用下层功能构建完整应用
@@ -18,12 +17,11 @@ Architecture:
 
 __layer__ = "L5"
 
-from . import medical_diagnosis, video, work_report_generator
+from . import medical_diagnosis, video
 from ._version import __version__
 
 __all__ = [
     "__version__",
     "medical_diagnosis",
     "video",
-    "work_report_generator",
 ]

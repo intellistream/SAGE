@@ -24,31 +24,15 @@ detect_conda_env_from_python_cmd() {
     fi
 }
 
-# 检查 conda 环境是否存在
-conda_env_exists() {
-    local env_name="$1"
-    if [ -z "$env_name" ]; then
-        return 1
-    fi
-    if ! command -v conda >/dev/null 2>&1; then
-        return 1
-    fi
-    conda env list 2>/dev/null | grep -q "^${env_name} " || \
-    conda env list 2>/dev/null | grep -q "^${env_name}$"
-}
-
 get_sage_cli_env() {
     if [ -n "$SAGE_ENV_NAME" ]; then
-        # 验证环境是否存在
-        if conda_env_exists "$SAGE_ENV_NAME"; then
-            echo "$SAGE_ENV_NAME"
-            return
-        fi
+        echo "$SAGE_ENV_NAME"
+        return
     fi
 
     local detected
     detected=$(detect_conda_env_from_python_cmd)
-    if [ -n "$detected" ] && conda_env_exists "$detected"; then
+    if [ -n "$detected" ]; then
         echo "$detected"
     fi
 }
@@ -60,15 +44,7 @@ run_sage_dev() {
     if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
         conda run -n "$env_name" sage-dev "$@"
     else
-        # 对于 pip 安装，CLI 工具可能在 ~/.local/bin 中
-        if command -v sage-dev >/dev/null 2>&1; then
-            sage-dev "$@"
-        elif [ -x "$HOME/.local/bin/sage-dev" ]; then
-            "$HOME/.local/bin/sage-dev" "$@"
-        else
-            echo "sage-dev 命令不可用" >&2
-            return 1
-        fi
+        sage-dev "$@"
     fi
 }
 
@@ -79,15 +55,7 @@ sage_dev_available() {
     if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
         conda run -n "$env_name" which sage-dev >/dev/null 2>&1
     else
-        # 检查 sage-dev 命令是否可用
-        # 对于 pip 安装，CLI 工具可能在 ~/.local/bin 中
-        if command -v sage-dev >/dev/null 2>&1; then
-            return 0
-        elif [ -x "$HOME/.local/bin/sage-dev" ]; then
-            return 0
-        else
-            return 1
-        fi
+        command -v sage-dev >/dev/null 2>&1
     fi
 }
 

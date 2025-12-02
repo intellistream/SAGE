@@ -1,4 +1,0 @@
-scanIncrementalStep
-scanDBSize
-scanVecDim
-scanVecDimCycles

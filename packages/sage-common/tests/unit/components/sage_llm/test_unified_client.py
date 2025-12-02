@@ -4,7 +4,7 @@
 """Unit tests for UnifiedInferenceClient.
 
 Tests the unified client that combines LLM and Embedding capabilities
-via Control Plane mode (unified entry point).
+with both Simple and Control Plane modes.
 """
 
 from __future__ import annotations
@@ -38,6 +38,7 @@ class TestUnifiedClientConfig:
         assert config.embedding_base_url is None
         assert config.embedding_model is None
         assert config.embedding_api_key == ""
+        assert config.mode == UnifiedClientMode.SIMPLE
         assert config.timeout == 60.0
         assert config.max_retries == 3
         assert config.temperature == 0.7
@@ -52,6 +53,7 @@ class TestUnifiedClientConfig:
             llm_api_key="test-key",  # pragma: allowlist secret
             embedding_base_url="http://localhost:8090/v1",
             embedding_model="bge-m3",
+            mode=UnifiedClientMode.CONTROL_PLANE,
             timeout=30.0,
             max_retries=5,
             temperature=0.5,
@@ -59,20 +61,13 @@ class TestUnifiedClientConfig:
 
         assert config.llm_base_url == "http://localhost:8001/v1"
         assert config.llm_model == "qwen-7b"
-        assert config.llm_api_key == "test-key"  # pragma: allowlist secret
+        assert config.llm_api_key == "test-key"
         assert config.embedding_base_url == "http://localhost:8090/v1"
         assert config.embedding_model == "bge-m3"
+        assert config.mode == UnifiedClientMode.CONTROL_PLANE
         assert config.timeout == 30.0
         assert config.max_retries == 5
         assert config.temperature == 0.5
-
-
-class TestUnifiedClientMode:
-    """Tests for UnifiedClientMode constants."""
-
-    def test_control_plane_mode(self):
-        """Test CONTROL_PLANE mode value."""
-        assert UnifiedClientMode.CONTROL_PLANE == "control_plane"
 
 
 class TestInferenceResult:
@@ -114,93 +109,80 @@ class TestInferenceResult:
         assert len(result.content) == 2
 
 
-class TestUnifiedInferenceClientCreate:
-    """Tests for UnifiedInferenceClient.create() factory method."""
+class TestUnifiedClientMode:
+    """Tests for UnifiedClientMode enum."""
 
-    def test_direct_init_blocked(self):
-        """Test that direct instantiation is blocked."""
-        with pytest.raises(RuntimeError, match="Use UnifiedInferenceClient.create"):
-            UnifiedInferenceClient(
-                llm_base_url="http://localhost:8001/v1",
-                llm_model="qwen-7b",
-            )
+    def test_simple_mode(self):
+        """Test SIMPLE mode value."""
+        assert UnifiedClientMode.SIMPLE.value == "simple"
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_create_with_auto_detection(self, mock_embed_detect, mock_llm_detect):
-        """Test create() with auto-detection of endpoints."""
-        mock_llm_detect.return_value = ("http://localhost:8001/v1", "qwen-7b", "")
-        mock_embed_detect.return_value = ("http://localhost:8090/v1", "bge-m3", "")
+    def test_control_plane_mode(self):
+        """Test CONTROL_PLANE mode value."""
+        assert UnifiedClientMode.CONTROL_PLANE.value == "control_plane"
 
-        client = UnifiedInferenceClient.create()
+
+class TestUnifiedInferenceClientInit:
+    """Tests for UnifiedInferenceClient initialization."""
+
+    def test_init_with_params(self):
+        """Test initialization with individual parameters."""
+        client = UnifiedInferenceClient(
+            llm_base_url="http://localhost:8001/v1",
+            llm_model="qwen-7b",
+            embedding_base_url="http://localhost:8090/v1",
+            embedding_model="bge-m3",
+        )
 
         assert client.config.llm_base_url == "http://localhost:8001/v1"
         assert client.config.llm_model == "qwen-7b"
         assert client.config.embedding_base_url == "http://localhost:8090/v1"
         assert client.config.embedding_model == "bge-m3"
+        assert client.mode == UnifiedClientMode.SIMPLE
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_create_with_explicit_models(self, mock_embed_detect, mock_llm_detect):
-        """Test create() with explicit model names."""
-        mock_llm_detect.return_value = ("http://localhost:8001/v1", None, "")
-        mock_embed_detect.return_value = ("http://localhost:8090/v1", None, "")
-
-        client = UnifiedInferenceClient.create(
-            default_llm_model="custom-llm",
-            default_embedding_model="custom-embed",
+    def test_init_with_config(self):
+        """Test initialization with config object."""
+        config = UnifiedClientConfig(
+            llm_base_url="http://localhost:8001/v1",
+            llm_model="qwen-7b",
+            mode=UnifiedClientMode.SIMPLE,
         )
+        client = UnifiedInferenceClient(config=config)
 
-        assert client.config.llm_model == "custom-llm"
-        assert client.config.embedding_model == "custom-embed"
+        assert client.config == config
+        assert client.mode == UnifiedClientMode.SIMPLE
+
+    def test_init_no_endpoints(self):
+        """Test initialization with no endpoints configured."""
+        client = UnifiedInferenceClient()
+
+        assert not client._llm_available
+        assert not client._embedding_available
 
 
 class TestUnifiedClientProperties:
     """Tests for UnifiedInferenceClient properties."""
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_is_llm_available(self, mock_embed_detect, mock_llm_detect):
+    def test_is_llm_available(self):
         """Test is_llm_available property."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient()
         assert client.is_llm_available == client._llm_available
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_is_embedding_available(self, mock_embed_detect, mock_llm_detect):
+    def test_is_embedding_available(self):
         """Test is_embedding_available property."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient()
         assert client.is_embedding_available == client._embedding_available
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_is_control_plane_mode(self, mock_embed_detect, mock_llm_detect):
-        """Test is_control_plane_mode property.
+    def test_is_control_plane_mode(self):
+        """Test is_control_plane_mode property."""
+        client = UnifiedInferenceClient()
+        assert client.is_control_plane_mode is False
 
-        Note: With the new unified create() entry point, Control Plane mode
-        is always enabled (manager is always initialized).
-        """
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
-        # New behavior: Control Plane mode is always enabled
-        assert client.is_control_plane_mode is True
-
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_get_status(self, mock_embed_detect, mock_llm_detect):
+    def test_get_status(self):
         """Test get_status method."""
-        mock_llm_detect.return_value = ("http://localhost:8001/v1", "qwen-7b", "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient(
+            llm_base_url="http://localhost:8001/v1",
+            llm_model="qwen-7b",
+        )
         status = client.get_status()
 
         assert "mode" in status
@@ -208,6 +190,7 @@ class TestUnifiedClientProperties:
         assert "embedding_available" in status
         assert "llm_base_url" in status
         assert "embedding_base_url" in status
+        assert status["mode"] == "simple"
 
 
 class TestUnifiedClientEndpointDetection:
@@ -228,7 +211,7 @@ class TestUnifiedClientEndpointDetection:
         {
             "SAGE_CHAT_BASE_URL": "http://test:8001/v1",
             "SAGE_CHAT_MODEL": "test-model",
-            "SAGE_CHAT_API_KEY": "test-key",  # pragma: allowlist secret
+            "SAGE_CHAT_API_KEY": "test-key",
         },
     )
     def test_detect_llm_endpoint_from_env(self):
@@ -237,7 +220,7 @@ class TestUnifiedClientEndpointDetection:
 
         assert base_url == "http://test:8001/v1"
         assert model == "test-model"
-        assert api_key == "test-key"  # pragma: allowlist secret
+        assert api_key == "test-key"
 
     @patch("sage.common.components.sage_llm.unified_client.os.environ", {})
     @patch.object(UnifiedInferenceClient, "_check_endpoint_health", return_value=True)
@@ -312,27 +295,20 @@ class TestUnifiedClientHealthCheck:
 class TestUnifiedClientChat:
     """Tests for chat method."""
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_chat_no_llm_available(self, mock_embed_detect, mock_llm_detect):
+    def test_chat_no_llm_available(self):
         """Test chat raises error when LLM not available."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient()
 
         with pytest.raises(RuntimeError, match="LLM endpoint not available"):
             client.chat([{"role": "user", "content": "Hello"}])
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
     @patch.object(UnifiedInferenceClient, "_get_default_llm_model", return_value="test-model")
-    def test_chat_mode(self, mock_get_model, mock_embed_detect, mock_llm_detect):
-        """Test chat method."""
-        mock_llm_detect.return_value = ("http://localhost:8001/v1", "qwen-7b", "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+    def test_chat_simple_mode(self, mock_get_model):
+        """Test chat in simple mode."""
+        client = UnifiedInferenceClient(
+            llm_base_url="http://localhost:8001/v1",
+            llm_model="qwen-7b",
+        )
         client._llm_available = True
 
         # Mock the OpenAI client
@@ -353,15 +329,13 @@ class TestUnifiedClientChat:
 
         assert result == "Hello."
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
     @patch.object(UnifiedInferenceClient, "_get_default_llm_model", return_value="test-model")
-    def test_chat_with_return_result(self, mock_get_model, mock_embed_detect, mock_llm_detect):
+    def test_chat_with_return_result(self, mock_get_model):
         """Test chat with return_result=True."""
-        mock_llm_detect.return_value = ("http://localhost:8001/v1", "qwen-7b", "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient(
+            llm_base_url="http://localhost:8001/v1",
+            llm_model="qwen-7b",
+        )
         client._llm_available = True
 
         mock_response = MagicMock()
@@ -390,27 +364,20 @@ class TestUnifiedClientChat:
 class TestUnifiedClientGenerate:
     """Tests for generate method."""
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_generate_no_llm_available(self, mock_embed_detect, mock_llm_detect):
+    def test_generate_no_llm_available(self):
         """Test generate raises error when LLM not available."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient()
 
         with pytest.raises(RuntimeError, match="LLM endpoint not available"):
             client.generate("Hello")
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
     @patch.object(UnifiedInferenceClient, "_get_default_llm_model", return_value="test-model")
-    def test_generate_mode(self, mock_get_model, mock_embed_detect, mock_llm_detect):
-        """Test generate method."""
-        mock_llm_detect.return_value = ("http://localhost:8001/v1", "qwen-7b", "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+    def test_generate_simple_mode(self, mock_get_model):
+        """Test generate in simple mode."""
+        client = UnifiedInferenceClient(
+            llm_base_url="http://localhost:8001/v1",
+            llm_model="qwen-7b",
+        )
         client._llm_available = True
 
         # Mock the OpenAI client (completions API)
@@ -435,27 +402,20 @@ class TestUnifiedClientGenerate:
 class TestUnifiedClientEmbed:
     """Tests for embed method."""
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_embed_no_embedding_available(self, mock_embed_detect, mock_llm_detect):
+    def test_embed_no_embedding_available(self):
         """Test embed raises error when embedding not available."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = (None, None, "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient()
 
         with pytest.raises(RuntimeError, match="Embedding endpoint not available"):
             client.embed(["Hello"])
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
     @patch.object(UnifiedInferenceClient, "_get_default_embedding_model", return_value="bge-m3")
-    def test_embed_single_text(self, mock_get_model, mock_embed_detect, mock_llm_detect):
+    def test_embed_single_text(self, mock_get_model):
         """Test embed with single text input."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = ("http://localhost:8090/v1", "bge-m3", "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient(
+            embedding_base_url="http://localhost:8090/v1",
+            embedding_model="bge-m3",
+        )
         client._embedding_available = True
 
         mock_embedding = MagicMock()
@@ -477,15 +437,13 @@ class TestUnifiedClientEmbed:
         assert len(result) == 1
         assert result[0] == [0.1, 0.2, 0.3]
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
     @patch.object(UnifiedInferenceClient, "_get_default_embedding_model", return_value="bge-m3")
-    def test_embed_multiple_texts(self, mock_get_model, mock_embed_detect, mock_llm_detect):
+    def test_embed_multiple_texts(self, mock_get_model):
         """Test embed with multiple texts."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = ("http://localhost:8090/v1", "bge-m3", "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient(
+            embedding_base_url="http://localhost:8090/v1",
+            embedding_model="bge-m3",
+        )
         client._embedding_available = True
 
         mock_embedding1 = MagicMock()
@@ -511,15 +469,13 @@ class TestUnifiedClientEmbed:
         assert result[0] == [0.1, 0.2, 0.3]
         assert result[1] == [0.4, 0.5, 0.6]
 
-    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
-    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
     @patch.object(UnifiedInferenceClient, "_get_default_embedding_model", return_value="bge-m3")
-    def test_embed_with_return_result(self, mock_get_model, mock_embed_detect, mock_llm_detect):
+    def test_embed_with_return_result(self, mock_get_model):
         """Test embed with return_result=True."""
-        mock_llm_detect.return_value = (None, None, "")
-        mock_embed_detect.return_value = ("http://localhost:8090/v1", "bge-m3", "")
-
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient(
+            embedding_base_url="http://localhost:8090/v1",
+            embedding_model="bge-m3",
+        )
         client._embedding_available = True
 
         mock_embedding = MagicMock()
@@ -549,7 +505,7 @@ class TestUnifiedClientSingleton:
         """Test get_instance creates new instance."""
         UnifiedInferenceClient.clear_instances()
 
-        with patch.object(UnifiedInferenceClient, "create") as mock_create:
+        with patch.object(UnifiedInferenceClient, "create_auto") as mock_create:
             mock_create.return_value = MagicMock(spec=UnifiedInferenceClient)
             _client = UnifiedInferenceClient.get_instance("test-key")  # noqa: F841
 
@@ -559,7 +515,7 @@ class TestUnifiedClientSingleton:
         """Test get_instance returns cached instance."""
         UnifiedInferenceClient.clear_instances()
 
-        with patch.object(UnifiedInferenceClient, "create") as mock_create:
+        with patch.object(UnifiedInferenceClient, "create_auto") as mock_create:
             mock_instance = MagicMock(spec=UnifiedInferenceClient)
             mock_create.return_value = mock_instance
 
@@ -573,7 +529,7 @@ class TestUnifiedClientSingleton:
         """Test clear_instances removes all cached instances."""
         UnifiedInferenceClient.clear_instances()
 
-        with patch.object(UnifiedInferenceClient, "create") as mock_create:
+        with patch.object(UnifiedInferenceClient, "create_auto") as mock_create:
             mock_create.return_value = MagicMock(spec=UnifiedInferenceClient)
             UnifiedInferenceClient.get_instance("key1")
             UnifiedInferenceClient.get_instance("key2")
@@ -590,12 +546,12 @@ class TestUnifiedClientFactoryMethods:
 
     @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
     @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
-    def test_create(self, mock_embed_detect, mock_llm_detect):
-        """Test create() factory method."""
+    def test_create_auto(self, mock_embed_detect, mock_llm_detect):
+        """Test create_auto factory method."""
         mock_llm_detect.return_value = ("http://localhost:8001/v1", "qwen-7b", "")
         mock_embed_detect.return_value = ("http://localhost:8090/v1", "bge-m3", "")
 
-        client = UnifiedInferenceClient.create()
+        client = UnifiedInferenceClient.create_auto()
 
         assert client.config.llm_base_url == "http://localhost:8001/v1"
         assert client.config.llm_model == "qwen-7b"
@@ -609,9 +565,9 @@ class TestUnifiedClientFactoryMethods:
             "SAGE_UNIFIED_MODEL": "unified-model",
         },
     )
-    def test_create_with_unified_env(self):
-        """Test create() with unified base URL from environment."""
-        client = UnifiedInferenceClient.create()
+    def test_create_auto_with_unified_env(self):
+        """Test create_auto with unified base URL from environment."""
+        client = UnifiedInferenceClient.create_auto()
 
         assert client.config.llm_base_url == "http://unified:8000/v1"
         assert client.config.embedding_base_url == "http://unified:8000/v1"

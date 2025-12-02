@@ -64,20 +64,10 @@ AgentTuning 多任务训练示例:
     evaluator = AgentCapabilityEvaluator()
     report = evaluator.evaluate(model, test_sets)
     print(report.summary())
-
-Note on SIAS Components:
-    CoresetSelector and OnlineContinualLearner have been moved to `sage.libs.sias`.
-    Import them from `sage.libs.sias` in new code:
-
-        from sage.libs.sias import CoresetSelector, OnlineContinualLearner
 """
 
-# NOTE: SIAS-specific components (CoresetSelector, OnlineContinualLearner)
-# have been moved to the `sage.libs.sias` package as they are Paper 2
-# contributions. They are NO LONGER re-exported here. Import them from
-# `sage.libs.sias` when you need them.
-
 from .config import AgentRewardConfig, AgentSFTConfig, RLTrainingConfig
+from .continual import CoresetSelector, OnlineContinualLearner
 from .dialog_processor import AgentDialogProcessor, ProcessedDialog
 from .multi_task import (
     AgentCapabilityEvaluator,
@@ -127,6 +117,8 @@ __all__ = [
     "AgentRewardConfig",
     # 训练组件
     "AgentSFTTrainer",
+    "CoresetSelector",
+    "OnlineContinualLearner",
     # 数据处理
     "AgentDialogProcessor",
     "ProcessedDialog",

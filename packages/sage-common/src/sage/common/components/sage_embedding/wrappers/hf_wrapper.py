@@ -3,7 +3,7 @@
 from typing import Any
 
 from ..base import BaseEmbedding
-from ..hf import hf_embed_batch_sync, hf_embed_sync  # 复用现有实现
+from ..hf import hf_embed_sync  # 复用现有实现
 
 
 class HFEmbedding(BaseEmbedding):
@@ -104,26 +104,19 @@ class HFEmbedding(BaseEmbedding):
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """批量将文本转换为 embedding 向量
 
-        使用真正的批量处理，通过一次前向传播处理多个文本，显著提高效率。
+        当前实现为逐个调用 embed()。
+        TODO: 实现真正的批量处理以提高效率。
+        Issue URL: https://github.com/intellistream/SAGE/issues/910
 
         Args:
             texts: 输入文本列表
 
         Returns:
             embedding 向量列表
-
-        Raises:
-            RuntimeError: 如果 embedding 失败
         """
-        if not texts:
-            return []
-
-        try:
-            return hf_embed_batch_sync(texts, self.tokenizer, self.embed_model)
-        except Exception as e:
-            raise RuntimeError(
-                f"HuggingFace batch embedding 失败: {e}\n文本数量: {len(texts)}"
-            ) from e
+        # TODO: 优化为真正的批量处理
+        # Issue URL: https://github.com/intellistream/SAGE/issues/909
+        return [self.embed(text) for text in texts]
 
     def get_dim(self) -> int:
         """获取向量维度

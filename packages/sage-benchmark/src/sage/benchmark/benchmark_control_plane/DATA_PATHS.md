@@ -6,10 +6,9 @@ Benchmark module.
 ## Overview
 
 The benchmark uses data files for:
-
 1. **Workload Configurations**: Define test scenarios (request rates, distributions, etc.)
-1. **Test Prompts**: LLM prompts and embedding texts for realistic testing
-1. **Results Output**: Benchmark results, metrics, and reports
+2. **Test Prompts**: LLM prompts and embedding texts for realistic testing
+3. **Results Output**: Benchmark results, metrics, and reports
 
 ## Directory Structure
 
@@ -50,20 +49,19 @@ Each line in a workload file is a JSON object defining test parameters:
 
 #### LLM Workload Fields
 
-| Field                   | Type   | Description                    | Default          |
-| ----------------------- | ------ | ------------------------------ | ---------------- |
-| `name`                  | string | Workload identifier            | required         |
-| `num_requests`          | int    | Total number of requests       | 100              |
-| `request_rate`          | float  | Requests per second            | 10.0             |
-| `arrival_pattern`       | string | "uniform", "poisson", "burst"  | "poisson"        |
-| `model_distribution`    | object | Model name → ratio mapping     | {"default": 1.0} |
-| `priority_distribution` | object | Priority → ratio mapping       | {"NORMAL": 1.0}  |
-| `prompt_len_range`      | array  | [min, max] prompt token length | [50, 500]        |
-| `output_len_range`      | array  | [min, max] output token length | [50, 200]        |
-| `timeout_seconds`       | float  | Request timeout                | 60.0             |
+| Field                | Type   | Description                              | Default      |
+| -------------------- | ------ | ---------------------------------------- | ------------ |
+| `name`               | string | Workload identifier                      | required     |
+| `num_requests`       | int    | Total number of requests                 | 100          |
+| `request_rate`       | float  | Requests per second                      | 10.0         |
+| `arrival_pattern`    | string | "uniform", "poisson", "burst"            | "poisson"    |
+| `model_distribution` | object | Model name → ratio mapping               | {"default": 1.0} |
+| `priority_distribution` | object | Priority → ratio mapping              | {"NORMAL": 1.0} |
+| `prompt_len_range`   | array  | [min, max] prompt token length           | [50, 500]    |
+| `output_len_range`   | array  | [min, max] output token length           | [50, 200]    |
+| `timeout_seconds`    | float  | Request timeout                          | 60.0         |
 
 **Example: `llm_workloads/medium.jsonl`**
-
 ```jsonl
 {"name": "medium_uniform", "num_requests": 1000, "request_rate": 100.0, "arrival_pattern": "uniform", "model_distribution": {"Qwen/Qwen2.5-7B-Instruct": 0.6, "meta-llama/Llama-2-7b-chat-hf": 0.4}, "priority_distribution": {"HIGH": 0.2, "NORMAL": 0.6, "LOW": 0.2}}
 {"name": "medium_poisson", "num_requests": 1000, "request_rate": 100.0, "arrival_pattern": "poisson", "model_distribution": {"Qwen/Qwen2.5-7B-Instruct": 1.0}}
@@ -74,17 +72,16 @@ Each line in a workload file is a JSON object defining test parameters:
 
 Additional fields for hybrid workloads:
 
-| Field                       | Type   | Description                     | Default       |
-| --------------------------- | ------ | ------------------------------- | ------------- |
-| `llm_ratio`                 | float  | Ratio of LLM requests (0.0-1.0) | 0.5           |
-| `embedding_ratio`           | float  | Ratio of embedding requests     | 0.5           |
-| `embedding_model`           | string | Embedding model name            | "BAAI/bge-m3" |
-| `embedding_batch_size`      | int    | Embedding batch size            | 32            |
-| `llm_slo_deadline_ms`       | int    | LLM SLO deadline (ms)           | 5000          |
-| `embedding_slo_deadline_ms` | int    | Embedding SLO deadline (ms)     | 500           |
+| Field                      | Type   | Description                        | Default      |
+| -------------------------- | ------ | ---------------------------------- | ------------ |
+| `llm_ratio`                | float  | Ratio of LLM requests (0.0-1.0)    | 0.5          |
+| `embedding_ratio`          | float  | Ratio of embedding requests        | 0.5          |
+| `embedding_model`          | string | Embedding model name               | "BAAI/bge-m3"|
+| `embedding_batch_size`     | int    | Embedding batch size               | 32           |
+| `llm_slo_deadline_ms`      | int    | LLM SLO deadline (ms)              | 5000         |
+| `embedding_slo_deadline_ms`| int    | Embedding SLO deadline (ms)        | 500          |
 
 **Example: `hybrid_workloads/balanced.jsonl`**
-
 ```jsonl
 {"name": "balanced_50_50", "num_requests": 1000, "request_rate": 100.0, "llm_ratio": 0.5, "embedding_ratio": 0.5, "llm_slo_deadline_ms": 5000, "embedding_slo_deadline_ms": 500}
 {"name": "balanced_slo_tight", "num_requests": 1000, "request_rate": 100.0, "llm_ratio": 0.5, "embedding_ratio": 0.5, "llm_slo_deadline_ms": 2000, "embedding_slo_deadline_ms": 200}
@@ -101,14 +98,14 @@ Additional fields for hybrid workloads:
 {"id": "prompt_004", "category": "analysis", "prompt": "Analyze the following text and summarize the key points: ...", "expected_tokens": 300}
 ```
 
-| Field             | Type   | Description                                  |
-| ----------------- | ------ | -------------------------------------------- |
-| `id`              | string | Unique prompt identifier                     |
-| `category`        | string | Category: qa, code, creative, analysis, etc. |
-| `prompt`          | string | The actual prompt text                       |
-| `expected_tokens` | int    | Expected output length (tokens)              |
-| `system_prompt`   | string | (optional) System prompt                     |
-| `priority`        | string | (optional) HIGH, NORMAL, LOW                 |
+| Field            | Type   | Description                     |
+| ---------------- | ------ | ------------------------------- |
+| `id`             | string | Unique prompt identifier        |
+| `category`       | string | Category: qa, code, creative, analysis, etc. |
+| `prompt`         | string | The actual prompt text          |
+| `expected_tokens`| int    | Expected output length (tokens) |
+| `system_prompt`  | string | (optional) System prompt        |
+| `priority`       | string | (optional) HIGH, NORMAL, LOW    |
 
 #### Embedding Texts: `prompts/embed_texts.jsonl`
 
@@ -118,12 +115,12 @@ Additional fields for hybrid workloads:
 {"id": "embed_003", "category": "code", "text": "def quicksort(arr): ...", "expected_dim": 1024}
 ```
 
-| Field          | Type   | Description                     |
-| -------------- | ------ | ------------------------------- |
-| `id`           | string | Unique text identifier          |
-| `category`     | string | Category: document, query, code |
-| `text`         | string | Text to embed                   |
-| `expected_dim` | int    | Expected embedding dimension    |
+| Field          | Type   | Description                       |
+| -------------- | ------ | --------------------------------- |
+| `id`           | string | Unique text identifier            |
+| `category`     | string | Category: document, query, code   |
+| `text`         | string | Text to embed                     |
+| `expected_dim` | int    | Expected embedding dimension      |
 
 ## Using the Data Loader
 
@@ -324,12 +321,12 @@ result = asyncio.run(runner.run())
 
 ## Environment Variables
 
-| Variable                 | Description                | Default                 |
-| ------------------------ | -------------------------- | ----------------------- |
-| `SAGE_BENCHMARK_DATA`    | Custom data directory path | (built-in)              |
-| `SAGE_BENCHMARK_OUTPUT`  | Default output directory   | `./benchmark_results`   |
-| `SAGE_CONTROL_PLANE_URL` | Default Control Plane URL  | `http://localhost:8080` |
+| Variable                 | Description                          | Default                    |
+| ------------------------ | ------------------------------------ | -------------------------- |
+| `SAGE_BENCHMARK_DATA`    | Custom data directory path           | (built-in)                 |
+| `SAGE_BENCHMARK_OUTPUT`  | Default output directory             | `./benchmark_results`      |
+| `SAGE_CONTROL_PLANE_URL` | Default Control Plane URL            | `http://localhost:8080`    |
 
-______________________________________________________________________
+---
 
 *Updated: 2025-11-28*

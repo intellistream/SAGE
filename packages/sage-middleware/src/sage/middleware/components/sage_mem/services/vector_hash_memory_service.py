@@ -1,4 +1,3 @@
-# 桶记忆 底层依赖LSH实现
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 

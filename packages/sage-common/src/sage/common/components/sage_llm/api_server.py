@@ -27,38 +27,6 @@ from sage.common.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
-def get_served_model_name(model_path: str) -> str:
-    """Convert model path to a friendly model name for API served_model_name.
-
-    Examples:
-        /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
-        Qwen/Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct (unchanged if no local path indicators)
-
-    Args:
-        model_path: Model path or name
-
-    Returns:
-        Friendly model name suitable for API calls
-    """
-    # Check if it looks like a local path (contains path separators that indicate absolute/relative path)
-    # We need to distinguish between:
-    # - Local paths: /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct
-    # - HuggingFace model names: Qwen/Qwen2.5-0.5B-Instruct (single slash, no leading /)
-    is_local_path = model_path.startswith("/") or model_path.startswith("\\") or "\\" in model_path
-
-    if is_local_path:
-        # Local path, extract basename and convert __ to /
-        model_basename = os.path.basename(model_path)
-        # Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
-        if "__" in model_basename:
-            return model_basename.replace("__", "/", 1)
-        else:
-            return model_basename
-
-    # Not a local path, return as-is (e.g., HuggingFace model name)
-    return model_path
-
-
 class LLMServerConfig:
     """Configuration for LLM API Server
 
@@ -72,7 +40,7 @@ class LLMServerConfig:
         backend: Literal["vllm", "ollama", "lmdeploy"] = "vllm",
         host: str = "0.0.0.0",
         port: int | None = None,
-        gpu_memory_utilization: float = 0.7,
+        gpu_memory_utilization: float = 0.9,
         max_model_len: int = 4096,
         tensor_parallel_size: int = 1,
         disable_log_stats: bool = True,
@@ -84,8 +52,8 @@ class LLMServerConfig:
             model: Model name or path
             backend: Inference backend ("vllm", "ollama", "lmdeploy")
             host: Server host
-            port: Server port (default: SagePorts.BENCHMARK_LLM = 8901)
-            gpu_memory_utilization: GPU memory utilization (default 0.7 for consumer GPUs)
+            port: Server port (default: SagePorts.LLM_DEFAULT)
+            gpu_memory_utilization: GPU memory utilization (vLLM specific)
             max_model_len: Maximum model sequence length
             tensor_parallel_size: Number of GPUs for tensor parallelism
             disable_log_stats: Disable logging statistics (vLLM specific)
@@ -94,7 +62,7 @@ class LLMServerConfig:
         self.model = model
         self.backend = backend
         self.host = host
-        self.port = port if port is not None else SagePorts.BENCHMARK_LLM
+        self.port = port if port is not None else SagePorts.LLM_DEFAULT
         self.gpu_memory_utilization = gpu_memory_utilization
         self.max_model_len = max_model_len
         self.tensor_parallel_size = tensor_parallel_size
@@ -148,11 +116,6 @@ class LLMAPIServer:
         """
         if self.is_running():
             logger.warning(f"LLM API server already running on port {self.config.port}")
-            # Try to find the PID of the existing service
-            existing_pid = self._find_existing_service_pid()
-            if existing_pid:
-                self.pid = existing_pid
-                logger.info(f"Found existing LLM service with PID: {existing_pid}")
             return True
 
         # Prepare log file
@@ -220,17 +183,12 @@ class LLMAPIServer:
 
     def _build_vllm_command(self) -> list[str]:
         """Build command for vLLM backend"""
-        # Use the public function to get friendly model name
-        served_model_name = get_served_model_name(self.config.model)
-
         cmd = [
             sys.executable,
             "-m",
             "vllm.entrypoints.openai.api_server",
             "--model",
             self.config.model,
-            "--served-model-name",
-            served_model_name,
             "--host",
             self.config.host,
             "--port",
@@ -331,34 +289,6 @@ class LLMAPIServer:
         self.stop()
         time.sleep(2)  # Wait a bit before restart
         return self.start(background=background)
-
-    def _find_existing_service_pid(self) -> int | None:
-        """Find PID of existing service running on the configured port.
-
-        Returns:
-            PID if found, None otherwise
-        """
-        try:
-            for conn in psutil.net_connections(kind="inet"):
-                if conn.laddr.port == self.config.port and conn.status == "LISTEN":
-                    return conn.pid
-        except (psutil.AccessDenied, psutil.NoSuchProcess):
-            pass
-
-        # Fallback: search for vllm process with this port
-        try:
-            for proc in psutil.process_iter(["pid", "cmdline"]):
-                try:
-                    cmdline = proc.info.get("cmdline") or []
-                    cmdline_str = " ".join(cmdline)
-                    if "vllm" in cmdline_str and f"--port {self.config.port}" in cmdline_str:
-                        return proc.info["pid"]
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
-        except Exception:
-            pass
-
-        return None
 
     def is_running(self) -> bool:
         """Check if the LLM API server is running

@@ -2,19 +2,17 @@
 Agent Training Pipeline
 
 Provides training infrastructure for Agent models including:
-
-Note: CoresetSelector and OnlineContinualLearner have been moved to sage.libs.sias.
-They are re-exported here for backward compatibility.
+- SFT (Supervised Fine-Tuning) with tool-calling data
+- RL (Reinforcement Learning) with DPO/PPO/GRPO
+- Evaluation against agent benchmarks
 """
-
-# SIAS components - re-exported for backward compatibility
-# New code should import from sage.libs.sias directly
 
 from .config import (
     AgentRewardConfig,
     AgentSFTConfig,
     RLTrainingConfig,
 )
+from .continual import CoresetSelector, OnlineContinualLearner
 from .data_formatter import AgentSFTFormatter
 from .dialog_processor import AgentDialogProcessor
 from .evaluator import AgentTrainingEvaluator
@@ -30,7 +28,8 @@ __all__ = [
     "AgentSFTFormatter",
     "AgentDialogProcessor",
     "AgentSFTTrainer",
-    # SIAS components (re-exported for compatibility)
+    "CoresetSelector",
+    "OnlineContinualLearner",
     # Training
     # "AgentSFTTrainer",  # TODO
     # "AgentRLTrainer",   # TODO

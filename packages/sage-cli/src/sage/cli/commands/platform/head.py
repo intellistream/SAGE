@@ -6,8 +6,6 @@ Ray Head节点管理相关命令
 
 import subprocess
 import time
-import sys
-import os
 from pathlib import Path
 
 import typer
@@ -66,18 +64,11 @@ def start_head():
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
     dashboard_port = head_config.get("dashboard_port", 8265)
-    ray_client_server_port = head_config.get("ray_client_server_port", 10001)
     dashboard_host = head_config.get("dashboard_host", "0.0.0.0")
     head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
     head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
 
-    # 优先使用配置中的ray命令，否则尝试使用当前环境的ray
-    ray_command = head_config.get("ray_command")
-    if not ray_command:
-        ray_command = os.path.join(os.path.dirname(sys.executable), "ray")
-        if not os.path.exists(ray_command):
-            ray_command = "ray"  # Fallback to PATH
-
+    ray_command = head_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
     conda_env = head_config.get("conda_env", "sage")
 
     typer.echo("📋 配置信息:")
@@ -89,9 +80,6 @@ def start_head():
 
     start_command = f"""
 export PYTHONUNBUFFERED=1
-
-# 确保不因命令失败而退出
-set +e
 
 # 创建必要目录
 LOG_DIR='{head_log_dir}'
@@ -109,27 +97,10 @@ echo "===============================================" | tee -a "$LOG_DIR/head.l
 # 初始化conda环境
 {get_conda_init_code(conda_env)}
 
-# 停止现有的ray进程 (使用自定义清理代替全局ray stop，避免多用户环境下的权限问题)
-# echo "[INFO] 停止现有Ray进程..." | tee -a "$LOG_DIR/head.log"
-# {ray_command} stop >> "$LOG_DIR/head.log" 2>&1 || true
-# sleep 2
-
-# 强制清理残留进程和Redis数据
-echo "[INFO] 强制清理残留进程和Redis数据..." | tee -a "$LOG_DIR/head.log"
-# 尝试清理残留进程 (仅当存在时)
-# 使用 -x 精确匹配二进制文件
-pgrep -u $(whoami) -x raylet | xargs -r kill -9 || true
-pgrep -u $(whoami) -x gcs_server | xargs -r kill -9 || true
-# 使用 regex trick 匹配 python 脚本，避免匹配到当前脚本或 pgrep 命令本身
-pgrep -u $(whoami) -f "ray/dashboard/[d]ashboard.py" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray/dashboard/[a]gent.py" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray.util.client.[s]erver" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray/autoscaler/_private/[m]onitor.py" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray/_private/[l]og_monitor.py" | xargs -r kill -9 || true
-
-rm -rf "$HEAD_TEMP_DIR"/* 2>/dev/null || true
-# 清理可能的Redis持久化文件
-rm -f dump.rdb 2>/dev/null || true
+# 停止现有的ray进程
+echo "[INFO] 停止现有Ray进程..." | tee -a "$LOG_DIR/head.log"
+{ray_command} stop >> "$LOG_DIR/head.log" 2>&1 || true
+sleep 2
 
 # 设置环境变量
 export RAY_TMPDIR="$HEAD_TEMP_DIR"
@@ -137,7 +108,7 @@ export RAY_DISABLE_IMPORT_WARNING=1
 
 # 启动ray head
 echo "[INFO] 启动Ray Head进程..." | tee -a "$LOG_DIR/head.log"
-RAY_START_CMD="{ray_command} start --head --port={head_port} --ray-client-server-port={ray_client_server_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
+RAY_START_CMD="{ray_command} start --head --port={head_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/head.log"
 
 # 执行启动命令并捕获所有输出

@@ -7,38 +7,9 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 import yaml  # type: ignore[import-untyped]
-
-
-class ConfigProtocol(Protocol):
-    """配置对象协议"""
-
-    def get(self, key: str) -> Any:
-        """获取配置值"""
-        ...
-
-
-def get_required_config(config: ConfigProtocol, key: str, context: str = "") -> Any:
-    """获取必需配置，缺失则报错
-
-    Args:
-        config: 配置对象，需要有 get(key) 方法
-        key: 配置键路径，如 "operators.pre_insert.action"
-        context: 上下文说明，用于错误消息
-
-    Returns:
-        配置值
-
-    Raises:
-        ValueError: 配置缺失时抛出
-    """
-    value = config.get(key)
-    if value is None:
-        ctx = f" ({context})" if context else ""
-        raise ValueError(f"缺少必需配置: {key}{ctx}")
-    return value
 
 
 class RuntimeConfig:
@@ -50,7 +21,7 @@ class RuntimeConfig:
     3. 提供统一的参数访问接口 config.get("key")
     """
 
-    def __init__(self, config_path: str | None, **runtime_params):
+    def __init__(self, config_path: str, **runtime_params):
         """初始化运行时配置
 
         Args:
@@ -60,8 +31,7 @@ class RuntimeConfig:
         self.config_path = config_path
         self.runtime_params = runtime_params
         self._config: dict[str, Any] = {}
-        if config_path is not None:
-            self._load()
+        self._load()
 
     def _load(self) -> None:
         """加载配置文件"""

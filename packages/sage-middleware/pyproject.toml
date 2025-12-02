@@ -108,6 +108,10 @@ sage = [
 ]
 
 # VLLM支持（可选，需要CUDA）
+vllm = [
+    "vllm>=0.9.2",
+]
+
 # 基础数据库支持
 database = [
     "sqlalchemy>=2.0.0",

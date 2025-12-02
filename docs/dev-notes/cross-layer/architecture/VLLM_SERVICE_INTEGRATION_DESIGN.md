@@ -14,7 +14,7 @@ Issue [#809](https://github.com/intellistream/SAGE/issues/809) asks us to promot
 - Provide a SAGE operator/service interface that exposes both generation and embedding tasks through the Service API.
 - Offer a fine-tuning entry point (initially a stub) so downstream contributors have a stable hook.
 - Expose an `execute` interface toward the kernel to schedule vLLM workloads via existing service dispatching.
-- Legacy `sage llm start/stop/status` commands were removed in Dec 2025; all flows now rely on the blocking `sage llm run` interface.
+- Maintain compatibility with existing `sage llm start/stop/status` flows while nudging users toward the new integrated path.
 
 ## 2. Current State & Gaps
 
@@ -32,7 +32,7 @@ Issue [#809](https://github.com/intellistream/SAGE/issues/809) asks us to promot
 |  sage llm (Typer commands)    |
 |   • llm model show/download   |
 |   • llm model delete          |
-|   • llm run (blocking service)|
+|   • llm run / start-stop      |
 +---------------+---------------+
                 |
                 v
@@ -184,7 +184,7 @@ Add `register_vllm_service(env, service_name, config)` utility (probably under `
 
 ## 7. Backward Compatibility & Migration
 
-- Legacy `sage llm start/stop/status` were removed after the migration window; script authors must switch to `sage llm run` (blocking) or `sage llm serve` (background daemon) for managed services.
+- Existing `sage llm start/stop/status` remain functional but emit warnings encouraging migration.
 - New documentation in `tools/install/VLLM_INSTALLATION_GUIDE.md` and `docs-public` describing the service-based workflow.
 - Provide sample pipeline `examples/service/vllm/vllm_service_demo.py` demonstrating registration + operator usage.
 

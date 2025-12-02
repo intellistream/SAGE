@@ -135,9 +135,7 @@ class JobManagerServer(BaseTcpServer):
                 import base64
 
                 serialized_data = base64.b64decode(serialized_data_b64)
-                self.logger.debug("[SUBMIT-1] Starting deserialization")
                 self.logger.debug("Deserializing environment from base64 + dill format")
-                self.logger.debug("[SUBMIT-2] Deserialization completed")
                 env = deserialize_object(serialized_data)
             else:
                 # 兼容旧格式
@@ -170,9 +168,7 @@ class JobManagerServer(BaseTcpServer):
             self.logger.debug(
                 f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')} (autostop={autostop})"
             )
-            self.logger.debug(f"[SUBMIT-3] Calling jobmanager.submit_job, env={getattr(env, 'name', 'Unknown')}")
             job_uuid = self.jobmanager.submit_job(env, autostop=autostop)
-            self.logger.debug(f"[SUBMIT-4] submit_job returned UUID: {job_uuid}")
 
             return {
                 "status": "success",

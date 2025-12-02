@@ -50,38 +50,13 @@ image_processing:
 
   # 分割模型
   segmentation:
-    enabled: false  # 没有GPU或模型权重时可以暂时关闭
     model: "SAM"  # Segment Anything Model
-    checkpoint_path: ".sage/models/sam_vit_h.pth"  # SAM 权重路径
-    sam_variant: "vit_h"  # vit_b / vit_l / vit_h
-    points_per_side: 16
-    pred_iou_thresh: 0.86
-    stability_score_thresh: 0.92
-    min_mask_region_area: 200
-    pixel_spacing_mm: 180.0  # MRI 像素间距估计（mm）
-    baseline_disc_height_mm: 9.0  # 正常椎间盘高度（mm）
-    irregularity_threshold: 0.35
-    lateral_shift_threshold: 0.18
-    disc_levels:
-    - L1/L2
-    - L2/L3
-    - L3/L4
-    - L4/L5
-    - L5/S1
-    thresholds:
-      min_height_ratio: 0.02
-      max_height_ratio: 0.18
-      min_aspect_ratio: 1.5
-      min_width_ratio: 0.12
-      min_vertical_pos: 0.08
-      max_vertical_pos: 0.95
-      min_confidence: 0.35
-      min_separation_ratio: 0.05
+    enabled: false  # 如果没有GPU可以禁用
 
   # 特征提取
   feature_extraction:
-    method: "clip"  # 特征提取方法: "clip" (推荐) 或 "dinov2"
-    dimension: 768  # 特征向量维度 (CLIP: 512, DINOv2: 768)
+    method: "clip"  # 或使用医学影像专用模型
+    dimension: 768
 
 diagnosis:
   # 诊断阈值

@@ -5,11 +5,10 @@ Section 5.2.2: Task Planning Experiment (RQ2)
 研究问题: 现有方法将复杂任务分解为执行步骤的能力如何?
 
 测试方法:
-- planner.simple       : 简单贪心匹配 (Baseline)
-- planner.hierarchical : 层次化分解 (HuggingGPT, ICML'23)
+- planner.simple       : 简单贪心匹配
+- planner.hierarchical : 层次化分解 (HuggingGPT)
 - planner.llm_based    : LLM 生成计划 (CoT Prompting)
-- planner.react        : 交错执行 (ReAct, Yao et al., ICLR'23)
-- planner.tot          : 树搜索 (Tree-of-Thoughts, NeurIPS'23)
+- planner.react        : 交错执行 (ReAct)
 
 目标指标:
 - Primary: Plan Success Rate ≥ 90%
@@ -110,17 +109,15 @@ def run_planning_experiment(
         print(f"  ❌ Failed to import adapter registry: {e}")
         return ExperimentSummary(section="5_2_main", challenge="planning")
 
-    # 定义测试策略 - 包含主流 SOTA 方法
+    # 定义测试策略
     strategies = [
-        ("planner.simple", "Simple (Greedy)"),
-        ("planner.hierarchical", "Hierarchical (HuggingGPT)"),
-        ("planner.llm_based", "LLM-based (CoT)"),
-        ("planner.react", "ReAct (Yao et al.)"),
-        ("planner.tot", "Tree-of-Thoughts"),
+        ("planner.simple", "Simple"),
+        ("planner.hierarchical", "Hierarchical"),
+        ("planner.llm_based", "LLM-based"),
     ]
 
     # 跳过 LLM 策略
-    LLM_STRATEGIES = {"planner.llm_based", "planner.react", "planner.tot"}
+    LLM_STRATEGIES = {"planner.llm_based", "planner.react"}
     if skip_llm:
         strategies = [(name, display) for name, display in strategies if name not in LLM_STRATEGIES]
         print("  ⚠️  Skipping LLM-based strategies")

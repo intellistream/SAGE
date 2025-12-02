@@ -33,7 +33,7 @@
 
 1. **补齐 L5 教程示例**：`examples/tutorials/L5-apps/` 仍缺少代码示例，可考虑从 `examples/apps` 中提炼裁剪版。（阻塞：需要确定可开源的业务逻辑子集）。
 2. **修复数据符号链接**：`examples/data -> tutorials/agents/data` 目前指向不存在的目录，后续需要移除该符号链接并更新仍引用老路径的配置（在 `tools/pre-commit-config.yaml` 中尚有遗留）。
-3. ~~**更新 `examples/apps/README.md`**：文件仍只提到 2 个应用，需要覆盖当前 5 个入口及对应依赖标签。~~ ✅ 已更新（2025-11-29）
+3. **更新 `examples/apps/README.md`**：文件仍只提到 2 个应用，需要覆盖当前 5 个入口及对应依赖标签。
 
 ## 参考资料
 

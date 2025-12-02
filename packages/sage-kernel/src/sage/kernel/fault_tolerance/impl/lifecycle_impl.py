@@ -101,7 +101,6 @@ class LifecycleManagerImpl:
         tasks: dict[TaskID, Any],
         services: dict[str, Any] | None = None,
         cleanup_timeout: float = DEFAULT_CLEANUP_TIMEOUT,
-        no_restart: bool = True,
     ) -> dict[str, tuple[bool, bool]]:
         """
         清理所有任务和服务
@@ -110,7 +109,6 @@ class LifecycleManagerImpl:
             tasks: 任务字典 {task_id: task_wrapper}
             services: 服务字典 {service_id: service_wrapper}
             cleanup_timeout: 清理超时时间（秒）
-            no_restart: 是否禁止 Ray Actor 重启（默认True）
 
         Returns:
             结果字典 {id: (cleanup_success, kill_success)}
@@ -119,7 +117,7 @@ class LifecycleManagerImpl:
 
         # 清理任务
         for task_id, task in tasks.items():
-            result = self.cleanup_actor(task, cleanup_timeout, no_restart=no_restart)
+            result = self.cleanup_actor(task, cleanup_timeout)
             results[task_id] = result
 
             if self.logger:
@@ -132,7 +130,7 @@ class LifecycleManagerImpl:
         # 清理服务
         if services:
             for service_id, service in services.items():
-                result = self.cleanup_actor(service, cleanup_timeout, no_restart=no_restart)
+                result = self.cleanup_actor(service, cleanup_timeout)
                 results[service_id] = result
 
                 if self.logger:

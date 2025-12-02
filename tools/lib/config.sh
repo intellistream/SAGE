@@ -8,7 +8,7 @@ export SAGE_LOG_TIMESTAMP=0            # 设置为1启用时间戳
 
 # Conda 配置
 export SAGE_CONDA_PATH="$HOME/miniconda3"          # Miniconda 安装路径
-export SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"          # 默认为空，由安装流程设置
+export SAGE_ENV_NAME="sage"                        # 默认环境名称
 export SAGE_PYTHON_VERSION="3.11"                  # 默认Python版本
 
 # 项目配置

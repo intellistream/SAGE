@@ -9,7 +9,7 @@ from pathlib import Path
 
 import torch
 from peft import LoraConfig as PeftLoraConfig
-from peft import get_peft_model, prepare_model_for_kbit_training
+from peft import get_peft_model
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -52,23 +52,10 @@ class LoRATrainer:
         print("🤖 加载模型和分词器...")
 
         # 量化配置
-        if self.config.load_in_8bit or self.config.load_in_4bit:
-            # 检查 bitsandbytes 是否可用
-            try:
-                import bitsandbytes  # noqa: F401
-            except ImportError as e:
-                raise ImportError(
-                    "使用量化训练需要安装 bitsandbytes 库。\n"
-                    "请运行: pip install -U bitsandbytes\n"
-                    "或安装完整依赖: pip install 'isage-libs[finetune-gpu]'"
-                ) from e
-
         if self.config.load_in_8bit:
             print("⚠️  使用 8-bit 量化加载（节省显存）")
-            from transformers import BitsAndBytesConfig
-
             load_kwargs = {
-                "quantization_config": BitsAndBytesConfig(load_in_8bit=True),
+                "load_in_8bit": True,
                 "device_map": "auto",
                 "torch_dtype": torch.float16,
             }
@@ -101,14 +88,6 @@ class LoRATrainer:
         # 设置 pad_token
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        # 为量化训练准备模型（必须在应用 LoRA 之前）
-        if self.config.load_in_8bit or self.config.load_in_4bit:
-            print("🔧 为量化训练准备模型...")
-            self.model = prepare_model_for_kbit_training(
-                self.model,
-                use_gradient_checkpointing=self.config.gradient_checkpointing,
-            )
 
         print(f"✅ 模型加载完成: {self.config.model_name}\n")
 

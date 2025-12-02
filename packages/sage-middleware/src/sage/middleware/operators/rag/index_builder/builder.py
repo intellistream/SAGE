@@ -5,7 +5,6 @@ Layer: L4 (sage-middleware/operators/rag)
 
 import logging
 from collections.abc import Callable
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,61 +13,6 @@ from sage.middleware.operators.rag.index_builder.manifest import IndexManifest
 from sage.middleware.operators.rag.index_builder.storage import VectorStore
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def _optional_progress(show: bool, description: str, total: int | None = None):
-    """Context manager for optional Rich progress bar.
-
-    Args:
-        show: Whether to show progress bar (False = silent mode)
-        description: Task description
-        total: Total number of items (None for indeterminate)
-
-    Yields:
-        Progress task update function: update(advance=1)
-    """
-    if not show:
-        # Silent mode - yield a no-op update function
-        def noop(**kwargs):
-            pass
-
-        yield noop
-        return
-
-    try:
-        from rich.progress import (
-            BarColumn,
-            Progress,
-            SpinnerColumn,
-            TaskProgressColumn,
-            TextColumn,
-            TimeRemainingColumn,
-        )
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]{task.description}"),
-            BarColumn(bar_width=30),
-            TaskProgressColumn(),
-            TimeRemainingColumn(),
-            transient=True,  # Clear after completion
-        ) as progress:
-            task = progress.add_task(description, total=total)
-
-            def update(advance: int = 1, **kwargs):
-                progress.update(task, advance=advance, **kwargs)
-
-            yield update
-
-    except ImportError:
-        # Fallback if rich is not available
-        logger.info(f"[Progress] {description}")
-
-        def fallback_update(**kwargs):
-            pass
-
-        yield fallback_update
 
 
 class IndexBuilder:
@@ -123,7 +67,6 @@ class IndexBuilder:
         chunk_overlap: int = 160,
         document_processor: Callable[[Path], list[dict[str, Any]]] | None = None,
         max_documents: int | None = None,
-        show_progress: bool = True,
     ) -> IndexManifest:
         """Build vector index from document directory.
 
@@ -150,7 +93,6 @@ class IndexBuilder:
                     - "content": str (text content)
                     - "metadata": dict (doc_path, title, heading, etc.)
             max_documents: Optional limit on number of documents to process
-            show_progress: Show Rich progress bar (False = quiet mode)
 
         Returns:
             IndexManifest with build statistics and metadata
@@ -181,19 +123,19 @@ class IndexBuilder:
         if not source_dir.exists():
             raise FileNotFoundError(f"Source directory not found: {source_dir}")
 
-        logger.debug(f"Building index from {source_dir}")
-        logger.debug(f"Backend: {self.backend_factory}")
-        logger.debug(f"Chunk size: {chunk_size}, overlap: {chunk_overlap}")
+        logger.info(f"Building index from {source_dir}")
+        logger.info(f"Backend: {self.backend_factory}")
+        logger.info(f"Chunk size: {chunk_size}, overlap: {chunk_overlap}")
 
         # Create vector store backend
         dim = embedding_model.get_dim()
         store = self.backend_factory(persist_path, dim)
-        logger.debug(f"Created vector store with dimension {dim}")
+        logger.info(f"Created vector store with dimension {dim}")
 
         # Process documents
         if document_processor is None:
             # Default: simple text file processing
-            logger.debug(
+            logger.warning(
                 "No document_processor provided, using default text extraction. "
                 "For better results, provide a custom processor."
             )
@@ -203,7 +145,7 @@ class IndexBuilder:
             if max_documents:
                 processed_docs = processed_docs[:max_documents]
 
-        logger.debug(f"Processed {len(processed_docs)} document sections")
+        logger.info(f"Processed {len(processed_docs)} document sections")
 
         # Import chunking utility
         try:
@@ -213,7 +155,7 @@ class IndexBuilder:
                 truncate_text,
             )
         except ImportError:
-            logger.debug("Cannot import chunking utilities from sage.common, using simple split")
+            logger.warning("Cannot import chunking utilities from sage.common, using simple split")
 
             def chunk_text(text: str, size: int, overlap: int) -> list[str]:
                 # Fallback: simple fixed-size chunking
@@ -226,24 +168,16 @@ class IndexBuilder:
                 return chunks
 
             def sanitize_metadata_value(val: str) -> str:
-                # Remove problematic chars for JSON/C++ parser
-                return (
-                    val.replace("\\", "")
-                    .replace("\n", " ")
-                    .replace('"', "'")
-                    .replace("{", "(")
-                    .replace("}", ")")
-                )
+                return val.replace("\n", " ").replace('"', "'")
 
             def truncate_text(text: str, limit: int = 480) -> str:
                 return text[:limit] if len(text) > limit else text
 
         # Embed and store (with chunking)
-        # First pass: count total chunks for accurate progress
-        all_chunks_data = []  # List of (chunk_text, base_metadata)
+        total_chunks = 0
         unique_docs = set()
 
-        for doc in processed_docs:
+        for idx, doc in enumerate(processed_docs, start=1):
             content = doc["content"]
             base_metadata = doc["metadata"]
 
@@ -254,15 +188,8 @@ class IndexBuilder:
             # Chunk the content
             content_chunks = chunk_text(content, chunk_size, chunk_overlap)
 
+            # Process each chunk
             for chunk_idx, chunk in enumerate(content_chunks):
-                all_chunks_data.append((chunk, base_metadata, chunk_idx))
-
-        total_chunks = len(all_chunks_data)
-        logger.debug(f"Total chunks to embed: {total_chunks}")
-
-        # Second pass: embed with accurate progress
-        with _optional_progress(show_progress, "Embedding", total=total_chunks) as progress_update:
-            for idx, (chunk, base_metadata, chunk_idx) in enumerate(all_chunks_data, start=1):
                 # Generate embedding
                 vector = embedding_model.embed(chunk)
 
@@ -281,19 +208,21 @@ class IndexBuilder:
 
                 # Store vector with metadata
                 store.add(vector, metadata)
-                progress_update(advance=1)
+                total_chunks += 1
 
-                if idx % 500 == 0:
-                    logger.debug(f"Embedded {idx}/{total_chunks} chunks")
+            if idx % 100 == 0:
+                logger.info(
+                    f"Processed {idx}/{len(processed_docs)} sections → {total_chunks} chunks"
+                )
 
-        logger.debug(f"Added {total_chunks} vectors from {len(unique_docs)} documents")
+        logger.info(f"Added {total_chunks} vectors from {len(unique_docs)} documents")
 
         # Build index
-        logger.debug("Building vector index...")
+        logger.info("Building vector index...")
         store.build_index()
 
         # Persist to disk
-        logger.debug(f"Saving index to {persist_path}")
+        logger.info(f"Saving index to {persist_path}")
         store.save(str(persist_path))
 
         # Create manifest
@@ -313,7 +242,7 @@ class IndexBuilder:
             created_at=datetime.utcnow().isoformat(),
         )
 
-        logger.debug(f"Index built successfully: {manifest}")
+        logger.info(f"Index built successfully: {manifest}")
         return manifest
 
     def _default_document_processor(
