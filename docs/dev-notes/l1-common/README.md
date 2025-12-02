@@ -283,8 +283,6 @@ Embedding 服务和工厂：
 
 - **[control-plane-enhancement.md](./control-plane-enhancement.md)** - Control Plane 动态引擎管理增强（GPU/Lifecycle/预设/`use_gpu` 支持）
 - **[control-plane-roadmap-tasks.md](./control-plane-roadmap-tasks.md)** - Control Plane 任务路线图（已完成）
-- **[hybrid-scheduler/README.md](./hybrid-scheduler/README.md)** - sageLLM 混合调度器项目总结
-- **[hybrid-scheduler/PULL_REQUEST.md](./hybrid-scheduler/PULL_REQUEST.md)** - PR 详细说明
 
 ### 工具文档
 

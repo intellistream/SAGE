@@ -45,13 +45,6 @@ client = UnifiedInferenceClient.create(
 ~~**文件**: `packages/sage-common/src/sage/common/components/sage_embedding/client.py`~~
 
 **状态**: 已删除。请使用 `UnifiedInferenceClient.create().embed()` 替代。
-)
-
-# 单例缓存（避免重复加载模型）
-client = IntelligentLLMClient.get_cached("my_key", model="Qwen/Qwen2.5-7B-Instruct")
-```
-
-**注意**: Embedded 模式需要 GPU + vLLM 安装。
 
 ---
 
@@ -140,9 +133,8 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 
 如果你的代码使用了以下功能，请检查：
 
-- [ ] **新项目**: 推荐使用 `UnifiedInferenceClient` 统一管理 LLM + Embedding
+- [ ] **新项目**: 使用 `UnifiedInferenceClient.create()` 统一管理 LLM + Embedding
 - [ ] **使用 EmbeddingFactory**: 考虑使用 `adapt_embedding_client()` 获得批量接口
-- [ ] **使用 IntelligentLLMClient**: 了解新的 Embedded 模式（可选）
 - [ ] **自定义 Embedding 实现**: 可以实现 `EmbeddingProtocol` 接口
 
 ---
@@ -158,6 +150,4 @@ client = adapt_embedding_client(raw_embedder)  # 自动检测并适配
 
 ---
 
-*最后更新: 2025-11-29*
-
-*如有问题，请联系 @shuhao 或在 GitHub Issues 中提问。*
+*最后更新: 2025-12-02*
