@@ -151,7 +151,7 @@ class ShortTermMemoryService(BaseService):
             vec = np.array(vector, dtype=np.float32)
             self.collection.insert(
                 index_name="global_index",
-                text=entry,
+                raw_data=entry,
                 vector=vec,
                 metadata=full_metadata,
             )

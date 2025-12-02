@@ -243,6 +243,7 @@ class GraphMemoryService(BaseService):
             formatted_results.append(
                 {
                     "text": item.get("data", ""),
+                    "entry_id": item.get("node_id", ""),  # 添加 entry_id 字段
                     "node_id": item.get("node_id", ""),
                     "depth": item.get("depth", 0),
                     "score": 1.0 / (1 + item.get("depth", 0)),  # 深度越小分数越高

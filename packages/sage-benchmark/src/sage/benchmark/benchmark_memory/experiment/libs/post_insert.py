@@ -98,88 +98,83 @@ class PostInsert(MapFunction):
             配置参数字典，将传递给服务的 optimize() 方法
         """
         cfg = "operators.post_insert"
-        action_config: dict[str, Any] = {}
 
-        if self.action == "reflection":
-            action_config = {
-                "trigger_mode": self.config.get(f"{cfg}.trigger_mode", "threshold"),
-                "importance_threshold": self.config.get(f"{cfg}.importance_threshold", 100),
-                "importance_field": self.config.get(f"{cfg}.importance_field", "importance_score"),
-                "reset_after_reflection": self.config.get(f"{cfg}.reset_after_reflection", True),
-                "interval_minutes": self.config.get(f"{cfg}.interval_minutes", 60),
-                "memory_count_trigger": self.config.get(f"{cfg}.memory_count", 50),
-                "reflection_prompt": self.config.get(f"{cfg}.reflection_prompt"),
-                "reflection_depth": self.config.get(f"{cfg}.reflection_depth", 1),
-                "max_reflections": self.config.get(f"{cfg}.max_reflections", 5),
-                "reflection_type": self.config.get(f"{cfg}.reflection_type", "general"),
-                "self_reflection_prompt": self.config.get(f"{cfg}.self_reflection_prompt"),
-                "other_reflection_prompt": self.config.get(f"{cfg}.other_reflection_prompt"),
-                "store_reflection": self.config.get(f"{cfg}.store_reflection", True),
-                "reflection_importance": self.config.get(f"{cfg}.reflection_importance", 8),
-            }
+        # 通用配置收集器：定义每个 action 需要收集的配置键
+        config_keys = {
+            "reflection": [
+                "trigger_mode",
+                "importance_threshold",
+                "importance_field",
+                "reset_after_reflection",
+                "interval_minutes",
+                "memory_count",
+                "reflection_prompt",
+                "reflection_depth",
+                "max_reflections",
+                "reflection_type",
+                "self_reflection_prompt",
+                "other_reflection_prompt",
+                "store_reflection",
+                "reflection_importance",
+            ],
+            "link_evolution": [
+                "link_policy",
+                "knn_k",
+                "similarity_threshold",
+                "edge_weight",
+                "strengthen_factor",
+                "decay_factor",
+                "max_weight",
+                "activation_depth",
+                "activation_decay",
+                "auto_link_prompt",
+                "max_auto_links",
+            ],
+            "forgetting": [
+                "decay_type",
+                "decay_rate",
+                "decay_floor",
+                "max_memories",
+                "evict_count",
+                "heat_threshold",
+                "heat_decay",
+                "initial_strength",
+                "forgetting_curve",
+                "review_boost",
+                "factors",
+                "retention_min",
+                "archive_before_delete",
+            ],
+            "summarize": [
+                "trigger_condition",
+                "overflow_threshold",
+                "periodic_interval",
+                "summary_strategy",
+                "hierarchy_levels",
+                "incremental_prompt",
+                "summarize_prompt",
+                "replace_originals",
+                "store_as_new",
+                "summary_importance",
+            ],
+            "migrate": [
+                "migrate_policy",
+                "heat_upgrade_threshold",
+                "cold_threshold",
+                "session_gap",
+                "tier_capacities",
+                "upgrade_transform",
+                "downgrade_transform",
+            ],
+        }
 
-        elif self.action == "link_evolution":
-            action_config = {
-                "link_policy": self.config.get(f"{cfg}.link_policy", "synonym_edge"),
-                "knn_k": self.config.get(f"{cfg}.knn_k", 10),
-                "similarity_threshold": self.config.get(f"{cfg}.similarity_threshold", 0.8),
-                "edge_weight": self.config.get(f"{cfg}.edge_weight", 1.0),
-                "strengthen_factor": self.config.get(f"{cfg}.strengthen_factor", 0.1),
-                "decay_factor": self.config.get(f"{cfg}.decay_factor", 0.01),
-                "max_weight": self.config.get(f"{cfg}.max_weight", 10.0),
-                "activation_depth": self.config.get(f"{cfg}.activation_depth", 2),
-                "activation_decay": self.config.get(f"{cfg}.activation_decay", 0.5),
-                "auto_link_prompt": self.config.get(f"{cfg}.auto_link_prompt"),
-                "max_auto_links": self.config.get(f"{cfg}.max_auto_links", 5),
-            }
-
-        elif self.action == "forgetting":
-            action_config = {
-                "decay_type": self.config.get(f"{cfg}.decay_type", "time_decay"),
-                "decay_rate": self.config.get(f"{cfg}.decay_rate", 0.1),
-                "decay_floor": self.config.get(f"{cfg}.decay_floor", 0.1),
-                "max_memories": self.config.get(f"{cfg}.max_memories", 1000),
-                "evict_count": self.config.get(f"{cfg}.evict_count", 100),
-                "heat_threshold": self.config.get(f"{cfg}.heat_threshold", 0.3),
-                "heat_decay": self.config.get(f"{cfg}.heat_decay", 0.1),
-                "initial_strength": self.config.get(f"{cfg}.initial_strength", 1.0),
-                "forgetting_curve": self.config.get(f"{cfg}.forgetting_curve", "exponential"),
-                "review_boost": self.config.get(f"{cfg}.review_boost", 0.5),
-                "hybrid_factors": self.config.get(f"{cfg}.factors"),
-                "retention_min": self.config.get(f"{cfg}.retention_min", 50),
-                "archive_before_delete": self.config.get(f"{cfg}.archive_before_delete", True),
-            }
-
-        elif self.action == "summarize":
-            action_config = {
-                "trigger_condition": self.config.get(f"{cfg}.trigger_condition", "overflow"),
-                "overflow_threshold": self.config.get(f"{cfg}.overflow_threshold", 100),
-                "periodic_interval": self.config.get(f"{cfg}.periodic_interval", 3600),
-                "summary_strategy": self.config.get(f"{cfg}.summary_strategy", "single"),
-                "hierarchy_levels": self.config.get(f"{cfg}.hierarchy_levels"),
-                "incremental_prompt": self.config.get(f"{cfg}.incremental_prompt"),
-                "summarize_prompt": self.config.get(f"{cfg}.summarize_prompt"),
-                "replace_originals": self.config.get(f"{cfg}.replace_originals", False),
-                "store_as_new": self.config.get(f"{cfg}.store_as_new", True),
-                "summary_importance": self.config.get(f"{cfg}.summary_importance", 7),
-            }
-
-        elif self.action == "migrate":
-            action_config = {
-                "migrate_policy": self.config.get(f"{cfg}.migrate_policy", "heat"),
-                "heat_upgrade_threshold": self.config.get(f"{cfg}.heat_upgrade_threshold", 5.0),
-                "cold_threshold": self.config.get(f"{cfg}.cold_threshold", 0.1),
-                "session_gap": self.config.get(f"{cfg}.session_gap", 1800),
-                "tier_capacities": self.config.get(f"{cfg}.tier_capacities"),
-                "upgrade_transform": self.config.get(f"{cfg}.upgrade_transform", "none"),
-                "downgrade_transform": self.config.get(f"{cfg}.downgrade_transform", "summarize"),
-            }
-
-        return action_config
+        # 根据 action 收集配置
+        keys = config_keys.get(self.action, [])
+        return {key: self.config.get(f"{cfg}.{key}") for key in keys}
 
     # ==================== 主执行方法 ====================
 
-    def execute(self, data):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行后处理
 
         Args:
@@ -192,33 +187,38 @@ class PostInsert(MapFunction):
         Returns:
             处理后的数据
         """
-        if self.action == "none":
-            # 透传
-            pass
-        elif self.action == "log":
-            self._log_data(data)
-        elif self.action == "stats":
-            self._analyze_stats(data)
-        elif self.action == "distillation":
-            self._distill_memory(data)
+        # 算子级操作处理器映射
+        operator_handlers = {
+            "none": self._execute_none,
+            "log": self._execute_log,
+            "stats": self._execute_stats,
+            "distillation": self._execute_distillation,
+        }
+
+        if self.action in operator_handlers:
+            operator_handlers[self.action](data)
         elif self.action in SERVICE_LEVEL_ACTIONS:
-            # 服务级操作：委托给服务
-            self._trigger_service_optimize(data)
+            # 服务级操作统一入口
+            self._execute_service_optimize(data)
         else:
-            print(f"未知的 action: {self.action}，跳过处理")
+            print(f"[WARNING] Unknown action: {self.action}, skipping")
 
         return data
 
     # ==================== 算子级操作 ====================
 
-    def _log_data(self, data):
+    def _execute_none(self, data: dict[str, Any]) -> None:
+        """无操作，直接透传"""
+        pass
+
+    def _execute_log(self, data: dict[str, Any]) -> None:
         """日志记录"""
         log_level = self.config.get("operators.post_insert.log_level", "INFO")
         entries = data.get("memory_entries", [])
         log_msg = f"PostInsert 处理了 {len(entries)} 条记忆条目"
         print(f"[{log_level}] {log_msg}")
 
-    def _analyze_stats(self, data):
+    def _execute_stats(self, data: dict[str, Any]) -> None:
         """统计分析"""
         stats_fields = self.config.get("operators.post_insert.stats_fields", ["count", "avg_len"])
         entries = data.get("memory_entries", [])
@@ -235,10 +235,10 @@ class PostInsert(MapFunction):
 
     # ==================== Distillation 实现（符合规范）====================
 
-    def _distill_memory(self, data):
-        """执行记忆蒸馏（符合"一次 检索->删除->插入"规范）
+    def _execute_distillation(self, data: dict[str, Any]) -> None:
+        """执行记忆蒸馏（符合"一次 检索→删除→插入"规范）
 
-        流程：
+        流程（严格顺序，每步只执行一次）：
         1. 检索相似记忆（一次检索）
         2. LLM 判断需要合并/删除的记忆
         3. 删除旧记忆（一次删除，批量）
@@ -248,64 +248,69 @@ class PostInsert(MapFunction):
             data: 包含 memory_entries 的数据字典
         """
         for entry_dict in data.get("memory_entries", []):
+            # 获取当前条目的文本和向量
+            text = entry_dict.get("refactor", "") or entry_dict.get("text", "")
             vector = entry_dict.get("embedding")
-            if vector is None:
+
+            if not text or vector is None:
                 continue
 
-            # Step 1: 检索（一次）
+            # ========== 第一步：检索（仅一次）==========
             similar_entries = self.call_service(
                 self.service_name,
                 method="retrieve",
+                query=text,
                 vector=vector,
-                topk=self.distillation_topk,
+                top_k=self.distillation_topk,
                 threshold=self.distillation_threshold,
                 timeout=10.0,
             )
 
-            if not similar_entries or len(similar_entries) < self.distillation_topk:
+            if not similar_entries:
                 continue
 
-            # Step 2: LLM 蒸馏
-            distilled_text, to_delete = self._llm_distill(entry_dict, similar_entries)
+            # ========== 第二步：LLM 分析 ==========
+            distilled_text, to_delete = self._analyze_for_distillation(entry_dict, similar_entries)
 
-            if not distilled_text or not to_delete:
+            if not distilled_text and not to_delete:
                 continue
 
-            # Step 3: 删除（一次，批量）
-            for entry_text in to_delete:
+            # ========== 第三步：删除（仅一次，批量）==========
+            for entry_id in to_delete:
                 self.call_service(
                     self.service_name,
                     method="delete",
-                    entry=entry_text,
+                    entry_id=entry_id,
+                    timeout=5.0,
+                )
+
+            # ========== 第四步：插入（仅一次）==========
+            if distilled_text:
+                distilled_vector = self._embedding_generator.embed(distilled_text)
+                self.call_service(
+                    self.service_name,
+                    method="insert",
+                    entry=distilled_text,
+                    vector=distilled_vector,
+                    metadata={"distilled": True, "source_count": len(to_delete) + 1},
                     timeout=10.0,
                 )
 
-            # Step 4: 插入（一次）
-            new_vector = self._embedding_generator.embed(distilled_text)
-            self.call_service(
-                self.service_name,
-                method="insert",
-                entry=distilled_text,
-                vector=new_vector,
-                metadata={"type": "distilled"},
-                timeout=10.0,
-            )
-
-    def _llm_distill(
+    def _analyze_for_distillation(
         self, entry_dict: dict, similar_entries: list[dict]
     ) -> tuple[str | None, list[str]]:
-        """调用 LLM 进行蒸馏
+        """分析需要蒸馏的内容（内联实现）
 
         Args:
             entry_dict: 当前条目
             similar_entries: 相似记忆列表
 
         Returns:
-            (蒸馏后的文本, 需要删除的文本列表)
+            (蒸馏后的文本, 需要删除的记忆ID列表)
         """
         memory_texts = [r.get("text", "") for r in similar_entries]
-        memory_texts_set = set(memory_texts)
-        memory_list_str = "\n".join(memory_texts)
+        memory_ids = [r.get("entry_id", "") for r in similar_entries]
+        memory_list_str = "\n".join(f"[{i}] {t}" for i, t in enumerate(memory_texts))
 
         prompt = self.distillation_prompt.replace("{memory_list}", memory_list_str)
         response = self._generator.generate(prompt)
@@ -314,41 +319,19 @@ class PostInsert(MapFunction):
         if not result:
             return None, []
 
-        to_delete_raw = result.get("to_delete", [])
-        to_insert_raw = result.get("to_insert", [])
+        # 解析 to_delete（索引列表）
+        to_delete_indices = result.get("to_delete", [])
+        to_delete_ids = [memory_ids[i] for i in to_delete_indices if i < len(memory_ids)]
 
-        # 处理 to_delete: 只保留存在于原始记忆中的文本
-        to_delete_set = set()
-        for t in to_delete_raw:
-            if isinstance(t, str) and t.strip() in memory_texts_set:
-                to_delete_set.add(t.strip())
+        # 解析 to_insert（合并后的文本）
+        distilled_text = result.get("distilled_text", result.get("to_insert"))
 
-        # 处理 to_insert: 过滤无效文本
-        new_texts = []
-        seen = set()
-        for t in to_insert_raw:
-            if not isinstance(t, str):
-                continue
-            t = t.strip()
-            # 过滤包含括号的文本（可能是无效格式）
-            if "(" in t or ")" in t:
-                continue
-            # 过滤已存在的文本
-            if t in memory_texts_set:
-                continue
-            # 去重
-            if t and t not in seen and t not in to_delete_set:
-                seen.add(t)
-                new_texts.append(t)
-
-        # 返回第一个蒸馏文本和需要删除的列表
-        distilled_text = new_texts[0] if new_texts else None
-        return distilled_text, list(to_delete_set)
+        return distilled_text, to_delete_ids
 
     # ==================== 服务级操作（委托给服务）====================
 
-    def _trigger_service_optimize(self, data):
-        """触发服务优化（服务级操作统一入口）
+    def _execute_service_optimize(self, data: dict[str, Any]) -> None:
+        """执行服务级优化操作
 
         将 reflection, link_evolution, forgetting, summarize, migrate
         等复杂操作委托给记忆服务的 optimize() 方法
@@ -358,22 +341,21 @@ class PostInsert(MapFunction):
         """
         entries = data.get("memory_entries", [])
 
-        # 构造优化参数
-        optimize_params = {
-            "trigger": self.action,
-            "entries": entries,
-            "config": getattr(self, "_action_config", {}),
-        }
+        # 收集配置参数
+        config = self._collect_action_config()
 
         # 调用服务的 optimize 方法
         try:
             result = self.call_service(
                 self.service_name,
+                trigger=self.action,
+                config=config,
+                entries=entries,
                 method="optimize",
-                params=optimize_params,
                 timeout=30.0,
             )
 
+            # 记录结果
             if result:
                 data["optimize_result"] = result
                 print(f"服务优化完成: {self.action}")

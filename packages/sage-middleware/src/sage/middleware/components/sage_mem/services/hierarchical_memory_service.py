@@ -137,7 +137,6 @@ class HierarchicalMemoryService(BaseService):
         entry: str,
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
-        target_tier: str | None = None,
         *,
         insert_mode: Literal["active", "passive"] = "passive",
         insert_params: dict | None = None,
@@ -154,10 +153,9 @@ class HierarchicalMemoryService(BaseService):
             metadata: 元数据，可包含:
                 - importance: 重要性分数 (0-1)
                 - tier: 指定目标层级
-            target_tier: 目标层级（覆盖 metadata 中的 tier）
             insert_mode: 插入模式 ("active" | "passive")
             insert_params: 主动插入参数
-                - target_tier: 目标层级 (覆盖 target_tier 参数)
+                - target_tier: 目标层级
                 - priority: 优先级
                 - force: 是否强制插入（跳过容量检查）
 
@@ -167,19 +165,23 @@ class HierarchicalMemoryService(BaseService):
         metadata = metadata or {}
 
         # 处理插入模式
+        effective_tier = None
         if insert_mode == "active" and insert_params:
             # 主动插入：从 insert_params 获取参数
-            effective_tier = insert_params.get("target_tier", target_tier)
+            effective_tier = insert_params.get("target_tier")
             force_insert = insert_params.get("force", False)
             if "priority" in insert_params:
                 metadata["priority"] = insert_params["priority"]
         else:
             # 被动插入：使用默认行为
-            effective_tier = target_tier
             force_insert = False
 
+        # 如果 insert_params 没有指定，从 metadata 获取
+        if effective_tier is None:
+            effective_tier = metadata.get("tier")
+
         # 确定目标层级
-        tier_name = effective_tier or metadata.get("tier", self.tier_names[0])
+        tier_name = effective_tier or self.tier_names[0]
         if tier_name not in self.tier_collections:
             tier_name = self.tier_names[0]
 
@@ -205,11 +207,12 @@ class HierarchicalMemoryService(BaseService):
             vec = np.array(vector, dtype=np.float32)
             collection.insert(
                 index_name="global_index",
-                text=entry,
+                raw_data=entry,
                 vector=vec,
                 metadata=full_metadata,
             )
         else:
+            # 没有向量时，调用父类 BaseMemoryCollection 的 insert
             collection.insert(entry, full_metadata)
 
         self._tier_counts[tier_name] += 1
