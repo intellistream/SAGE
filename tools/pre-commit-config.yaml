@@ -369,6 +369,7 @@ repos:
         ".sage"
         ".vscode"
         "build"
+        "config"
         "docs"
         "docs-public"
         "examples"
