@@ -1,7 +1,10 @@
 """Key-Value Memory Service - 键值对记忆服务
 
 支持精确匹配、模糊匹配和语义匹配。
-使用 KVMemoryCollection 作为底层存储。
+
+设计原则:
+- Service : Collection = 1 : 1
+- 使用 KVMemoryCollection 作为底层存储
 """
 
 from __future__ import annotations
@@ -9,9 +12,6 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Any, Literal
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.kv_collection import (
-    KVMemoryCollection,
-)
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
@@ -54,8 +54,8 @@ class KeyValueMemoryService(BaseService):
         # 创建或获取 KVMemoryCollection
         if self.manager.has_collection(collection_name):
             collection = self.manager.get_collection(collection_name)
-            if not isinstance(collection, KVMemoryCollection):
-                raise TypeError(f"Collection '{collection_name}' is not a KVMemoryCollection")
+            if collection is None:
+                raise RuntimeError(f"Failed to get collection '{collection_name}'")
             self.collection = collection
         else:
             self.collection = self.manager.create_collection(
@@ -66,16 +66,18 @@ class KeyValueMemoryService(BaseService):
                 }
             )
 
+        if self.collection is None:
+            raise RuntimeError(f"Failed to create KVMemoryCollection '{collection_name}'")
+
         # 确保有默认索引
-        if isinstance(self.collection, KVMemoryCollection):
-            if index_name not in self.collection.indexes:
-                self.collection.create_index(
-                    {
-                        "name": index_name,
-                        "index_type": index_type,
-                        "description": "Default KV index",
-                    }
-                )
+        if index_name not in self.collection.indexes:
+            self.collection.create_index(
+                {
+                    "name": index_name,
+                    "index_type": index_type,
+                    "description": "Default KV index",
+                }
+            )
 
         self.logger.info(
             f"KeyValueMemoryService initialized: collection={collection_name}, "
@@ -238,7 +240,7 @@ class KeyValueMemoryService(BaseService):
                 }
             )
 
-            if isinstance(self.collection, KVMemoryCollection):
+            if self.collection is not None:
                 self.collection.create_index(
                     {
                         "name": self.index_name,

@@ -1,24 +1,30 @@
+"""NeuroMem VDB Service - VDB 记忆服务
+
+设计原则:
+- 支持连接多个现有的 Collection (只读模式)
+- 每个 Collection 使用统一接口
+"""
+
 import os
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
-)
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
 if TYPE_CHECKING:
-    pass
+    from sage.middleware.components.sage_mem.neuromem.memory_collection.base_collection import (
+        BaseMemoryCollection,
+    )
 
 
 class NeuroMemVDBService(BaseService):
     def __init__(self, collection_name: str | list[str]):
         super().__init__()
         self.manager = MemoryManager(self._get_default_data_dir())
-        self.online_register_collections: dict[str, VDBMemoryCollection] = {}
+        self.online_register_collections: dict[str, BaseMemoryCollection] = {}
 
         # 处理collection_name参数，支持单个字符串或字符串列表
         if isinstance(collection_name, str):
@@ -32,14 +38,15 @@ class NeuroMemVDBService(BaseService):
                 collection = self.manager.get_collection(name)
                 if collection is None:
                     raise ValueError(f"Collection '{name}' not found")
-                if not isinstance(collection, VDBMemoryCollection):
-                    raise TypeError(f"Collection '{name}' is not a VDBMemoryCollection")
 
                 self.online_register_collections[name] = collection
                 self.logger.info(f"Successfully connected to collection: {name}")
 
                 # 检查是否有global_index，没有就创建一个
-                if "global_index" not in collection.index_info:
+                if (
+                    hasattr(collection, "index_info")
+                    and "global_index" not in collection.index_info
+                ):
                     self.logger.info(f"Creating global_index for collection: {name}")
                     index_config = {
                         "name": "global_index",

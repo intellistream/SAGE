@@ -1,7 +1,11 @@
 """Short-Term Memory Service - 短期记忆服务
 
 基于滑动窗口的短期记忆存储，用于保存最近的对话历史。
-使用 VDBMemoryCollection 作为底层存储。
+
+设计原则:
+- Service : Collection = 1 : 1
+- 使用 VDBMemoryCollection 作为底层存储
+- FIFO 淘汰最旧的记忆
 """
 
 from __future__ import annotations
@@ -12,14 +16,13 @@ import uuid
 from collections import deque
 from typing import TYPE_CHECKING, Any, Literal
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
-)
+import numpy as np
+
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
 if TYPE_CHECKING:
-    import numpy as np
+    pass
 
 
 class ShortTermMemoryService(BaseService):
@@ -57,8 +60,11 @@ class ShortTermMemoryService(BaseService):
                 }
             )
 
+        if self.collection is None:
+            raise RuntimeError(f"Failed to create VDBMemoryCollection '{collection_name}'")
+
         # 确保有 global_index
-        if isinstance(self.collection, VDBMemoryCollection):
+        if hasattr(self.collection, "index_info"):
             if "global_index" not in self.collection.index_info:
                 self.collection.create_index(
                     {
@@ -133,11 +139,10 @@ class ShortTermMemoryService(BaseService):
                 if old_id:
                     self._id_set.discard(old_id)
                     # 从底层 collection 删除
-                    if isinstance(self.collection, VDBMemoryCollection):
-                        try:
-                            self.collection.delete(old_id)
-                        except Exception:
-                            pass  # 忽略删除错误
+                    try:
+                        self.collection.delete(old_id)
+                    except Exception:
+                        pass  # 忽略删除错误
 
         # 准备元数据
         full_metadata = metadata.copy() if metadata else {}
@@ -145,9 +150,7 @@ class ShortTermMemoryService(BaseService):
         full_metadata["entry_id"] = entry_id
 
         # 插入到 NeuroMem collection
-        if isinstance(self.collection, VDBMemoryCollection) and vector is not None:
-            import numpy as np
-
+        if vector is not None and hasattr(self.collection, "index_info"):
             vec = np.array(vector, dtype=np.float32)
             self.collection.insert(
                 index_name="global_index",
@@ -194,9 +197,7 @@ class ShortTermMemoryService(BaseService):
             list[dict]: 检索结果列表 [{"text": ..., "metadata": ..., "score": ...}, ...]
         """
         # 如果有向量，进行语义检索
-        if vector is not None and isinstance(self.collection, VDBMemoryCollection):
-            import numpy as np
-
+        if vector is not None and hasattr(self.collection, "index_info"):
             query_vec = np.array(vector, dtype=np.float32)
             results = self.collection.retrieve(
                 query_text=query,
@@ -242,11 +243,10 @@ class ShortTermMemoryService(BaseService):
         self._id_set.discard(entry_id)
 
         # 从底层 collection 删除
-        if isinstance(self.collection, VDBMemoryCollection):
-            try:
-                self.collection.delete(entry_id)
-            except Exception:
-                pass
+        try:
+            self.collection.delete(entry_id)
+        except Exception:
+            pass
 
         self.logger.debug(f"Deleted entry {entry_id} from STM")
         return True
@@ -276,7 +276,7 @@ class ShortTermMemoryService(BaseService):
             }
         )
 
-        if isinstance(self.collection, VDBMemoryCollection):
+        if self.collection is not None and hasattr(self.collection, "create_index"):
             self.collection.create_index(
                 {
                     "name": "global_index",

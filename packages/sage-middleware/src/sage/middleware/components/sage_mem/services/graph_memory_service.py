@@ -4,7 +4,10 @@
 1. knowledge_graph: 知识图谱模式 (参考 HippoRAG)
 2. link_graph: 链接图模式 (参考 A-mem / Zettelkasten)
 
-使用 GraphMemoryCollection 作为底层存储。
+设计原则:
+- Service : Collection = 1 : 1
+- 使用 GraphMemoryCollection 作为底层存储
+- 支持 PPR (Personalized PageRank) 检索
 """
 
 from __future__ import annotations
@@ -13,9 +16,6 @@ import hashlib
 import os
 from typing import TYPE_CHECKING, Any, Literal
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.graph_collection import (
-    GraphMemoryCollection,
-)
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
@@ -69,8 +69,8 @@ class GraphMemoryService(BaseService):
         # 创建或获取 GraphMemoryCollection
         if self.manager.has_collection(collection_name):
             collection = self.manager.get_collection(collection_name)
-            if not isinstance(collection, GraphMemoryCollection):
-                raise TypeError(f"Collection '{collection_name}' is not a GraphMemoryCollection")
+            if collection is None:
+                raise RuntimeError(f"Failed to get collection '{collection_name}'")
             self.collection = collection
         else:
             self.collection = self.manager.create_collection(
@@ -81,10 +81,12 @@ class GraphMemoryService(BaseService):
                 }
             )
 
+        if self.collection is None:
+            raise RuntimeError(f"Failed to create GraphMemoryCollection '{collection_name}'")
+
         # 确保有默认索引
-        if isinstance(self.collection, GraphMemoryCollection):
-            if index_name not in self.collection.indexes:
-                self.collection.create_index({"name": index_name})
+        if index_name not in self.collection.indexes:
+            self.collection.create_index({"name": index_name})
 
         self.logger.info(
             f"GraphMemoryService initialized: collection={collection_name}, "
@@ -293,6 +295,86 @@ class GraphMemoryService(BaseService):
         """
         self._add_link(from_node, to_node, weight)
         return True
+
+    def get_neighbors(self, node_id: str, k: int = 10) -> list[dict[str, Any]]:
+        """获取节点的邻居
+
+        Args:
+            node_id: 节点 ID
+            k: 返回数量
+
+        Returns:
+            邻居列表 [{"node_id": ..., "text": ..., "weight": ...}, ...]
+        """
+        results = self.collection.get_neighbors(
+            node_id=node_id,
+            k=k,
+            index_name=self.index_name,
+        )
+        return results
+
+    def ppr_retrieve(
+        self,
+        seed_nodes: list[str],
+        alpha: float = 0.15,
+        max_iter: int = 100,
+        top_k: int = 10,
+    ) -> list[dict[str, Any]]:
+        """PPR (Personalized PageRank) 检索
+
+        用于 HippoRAG 等基于图的检索场景。
+
+        Args:
+            seed_nodes: 种子节点 ID 列表
+            alpha: 重启概率 (0.15 typical)
+            max_iter: 最大迭代次数
+            top_k: 返回数量
+
+        Returns:
+            检索结果列表 [{"node_id": ..., "text": ..., "score": ...}, ...]
+        """
+        if self.index_name not in self.collection.indexes:
+            self.logger.warning(f"Index '{self.index_name}' not found")
+            return []
+
+        graph_index = self.collection.indexes[self.index_name]
+
+        # 执行 PPR
+        if not hasattr(graph_index, "ppr"):
+            self.logger.warning("Graph index does not support PPR")
+            return []
+
+        ppr_results = graph_index.ppr(
+            seed_nodes=seed_nodes,
+            alpha=alpha,
+            max_iter=max_iter,
+            top_k=top_k,
+        )
+
+        # 组装返回结果
+        formatted_results = []
+        for node_id, score in ppr_results:
+            text = (
+                self.collection.text_storage.get(node_id)
+                if hasattr(self.collection, "text_storage")
+                else ""
+            )
+            metadata = (
+                self.collection.metadata_storage.get(node_id)
+                if hasattr(self.collection, "metadata_storage")
+                else {}
+            )
+            formatted_results.append(
+                {
+                    "node_id": node_id,
+                    "entry_id": node_id,
+                    "text": text or "",
+                    "score": score,
+                    "metadata": metadata or {},
+                }
+            )
+
+        return formatted_results
 
     def optimize(self, trigger: str = "auto") -> dict[str, Any]:
         """优化图结构
