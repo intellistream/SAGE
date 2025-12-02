@@ -9,7 +9,7 @@ from pathlib import Path
 
 import torch
 from peft import LoraConfig as PeftLoraConfig
-from peft import get_peft_model
+from peft import get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -101,6 +101,14 @@ class LoRATrainer:
         # 设置 pad_token
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        # 为量化训练准备模型（必须在应用 LoRA 之前）
+        if self.config.load_in_8bit or self.config.load_in_4bit:
+            print("🔧 为量化训练准备模型...")
+            self.model = prepare_model_for_kbit_training(
+                self.model,
+                use_gradient_checkpointing=self.config.gradient_checkpointing,
+            )
 
         print(f"✅ 模型加载完成: {self.config.model_name}\n")
 
