@@ -7,9 +7,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from sage.libs.finetune.agent.continual import CoresetSelector, OnlineContinualLearner
 from sage.libs.finetune.agent.data_formatter import AgentSFTFormatter
 from sage.libs.finetune.agent.dialog_processor import AgentDialogProcessor, ProcessedDialog
+
+# Import SIAS components from new location
+from sage.libs.sias import CoresetSelector, OnlineContinualLearner
 
 
 def _make_turn(role: str, **kwargs):

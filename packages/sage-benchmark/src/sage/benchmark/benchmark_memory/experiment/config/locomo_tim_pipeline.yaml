@@ -9,7 +9,7 @@ runtime:
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
     Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
-    
+
     Question: {question}
     Answer:
 
@@ -46,7 +46,7 @@ operators:
   pre_insert:
     action: "tri_embed"  # tri_embed先通过llm进行三元组提取实体后进行embedding
     triple_extraction_prompt: |
-      You are a factual knowledge extractor.  
+      You are a factual knowledge extractor.
       Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
 
       Guidelines:
@@ -80,21 +80,21 @@ operators:
       1. REMOVE duplicates and near-duplicates (same meaning, different wording)
       2. MERGE related facts into more complete statements
       3. REMOVE logically subsumed facts (if A contains B's meaning, remove B)
-      
+
       EXAMPLES of what to consolidate:
       - "Alice likes coffee" + "Alice likes coffee a lot" → keep only "Alice likes coffee a lot"
       - "Bob works at Google" + "Bob works at Google as engineer" → keep only "Bob works at Google as engineer"
       - "Carol plans to travel" + "Carol plans to travel to Japan" → keep only "Carol plans to travel to Japan"
-      
+
       RULES:
       - to_delete: List EXACT original texts to remove (duplicates, subsumed facts)
       - to_insert: Only if you need to CREATE a new merged fact not in original list
       - Prefer keeping the most informative version rather than creating new text
       - If a fact appears multiple times, delete all but one
-      
+
       Facts:
       {memory_list}
-      
+
       Respond with JSON only:
       {"to_delete": ["exact text 1", "exact text 2"], "to_insert": []}
   post_retrieval:

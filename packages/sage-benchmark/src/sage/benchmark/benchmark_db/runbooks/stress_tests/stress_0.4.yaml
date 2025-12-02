@@ -1,0 +1,32 @@
+sift:
+  max_pts: 1000000
+  1:
+    operation: "startHPC"
+  2:
+    operation: "initial"
+    start: 0
+    end: 50000
+  3:
+    operation: "stress_test"
+    start: 50000
+    end: 1000000
+    warmup_batch: 500
+    warmup_events: 10
+    ramp_initial_batch: 500
+    ramp_scale: 1.6
+    ramp_events: 60
+    search_events: 60
+    search_tol_pct: 5
+    steady_events: 600
+    steady_eps_pct: 5
+    steady_backoff_pct: 0.1
+    grace_events: 1
+    deadline_us: 70000
+    query_ratio: 0.01
+  4:
+    operation: "waitPending"
+  5:
+    operation: "search"
+  6:
+    operation: "endHPC"
+  gt_url: "none"

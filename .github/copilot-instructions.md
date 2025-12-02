@@ -69,17 +69,41 @@ Config: `tools/pytest.ini`, cache: `.sage/cache/pytest/`, env: `SAGE_TEST_MODE=t
 sage-dev quality                              # Auto-fix
 sage-dev quality --check-only                 # Check only
 pre-commit run --all-files --config tools/pre-commit-config.yaml
+./tools/install/check_tool_versions.sh        # Check version consistency
+./tools/install/check_tool_versions.sh --fix  # Auto-fix version mismatch
 ```
 
 Tools: Ruff (format+lint, line 100), Mypy (types, warning mode), Shellcheck Config:
 `tools/pre-commit-config.yaml`, `tools/ruff.toml`
+
+**Tool Version Consistency** - CRITICAL:
+- `ruff` version is pinned in both `tools/pre-commit-config.yaml` (rev) and
+  `packages/sage-tools/pyproject.toml` (==x.y.z) to ensure local and CI consistency.
+- Run `./tools/install/check_tool_versions.sh` to verify versions match.
 
 **Make shortcuts**: `make help`, `make test`, `make format`, `make clean`, `make docs`
 
 ## CI/CD (.github/workflows/)
 
 **Main workflows**: build-test.yml (45m), examples-test.yml (30m), code-quality.yml (10m),
-installation-test.yml, publish-pypi.yml
+installation-test.yml, publish-pypi.yml, paper1-experiments.yml (GPU, manual)
+
+**CI Installation Standards** - CRITICAL for new workflows:
+
+| 场景 | 推荐安装方式 | 说明 |
+|------|-------------|------|
+| GitHub Actions (ubuntu-latest) | `./tools/install/ci_install_wrapper.sh --dev --yes` | 标准 CI，安装到 `~/.local` |
+| GitHub Actions + Conda | `unset CI GITHUB_ACTIONS && ./quickstart.sh --dev --yes --pip` | 需取消 CI 变量，安装到 conda env |
+| Self-hosted GPU runner (中国) | `unset CI GITHUB_ACTIONS && SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip` | 强制使用中国镜像 |
+
+**为什么需要 `unset CI GITHUB_ACTIONS`**：
+- `quickstart.sh` 在检测到 CI 环境时会添加 `--user` 参数，安装到 `~/.local`
+- 如果使用 conda 环境，需要取消这些变量让包安装到当前激活的环境
+
+**`SAGE_FORCE_CHINA_MIRROR=true`**：
+- 强制使用中国镜像（清华 PyPI + hf-mirror.com）
+- 适用于位于中国的 self-hosted runner
+- 会覆盖 CI 环境的默认官方源设置
 
 **CI uses**: Ubuntu latest, Python 3.11, GitHub Secrets (OPENAI_API_KEY, HF_TOKEN), pip cache
 
@@ -166,6 +190,12 @@ port = 8001  # 不要这样写
 
 **配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
 
+## Features
+
+**CPU Node Support**: SAGE fully supports CPU-only compute nodes via JobManager + NodeSelector.
+Tasks can specify `cpu_required`, `memory_required`, `gpu_required=0` for CPU-only execution. See
+`examples/tutorials/L3-kernel/cpu_node_demo.py` and `docs/dev-notes/l3-kernel/cpu-node-setup.md`.
+
 ## Development Workflow
 
 **Setup**: `./quickstart.sh --dev --yes` → `./manage.sh` (if C++ needed)
@@ -238,21 +268,49 @@ client = UnifiedInferenceClient.create_auto()
 
 ### 启动服务栈
 
-```bash
-# 推荐：一键启动/管理
-sage stack start                                   # 默认模型（LLM + Embedding）
-python -m sage.common.components.sage_embedding.embedding_server \
-    --model BAAI/bge-m3 --port 8090
-sage stack status                                  # 查看状态
-sage stack stop                                    # 停止服务
-sage stack logs --follow                           # 查看日志
+> ⚠️ `sage llm run` 与 `VLLMService` 依赖 `isage-common[vllm]`（带 vLLM 0.10.x 与 torch 2.4+）。如需本地阻塞式服务，请先运行 `pip install isage-common[vllm]`。
 
-# 手动启动（按需）
-# 启动 LLM 服务 (vLLM)
+```bash
+# 推荐：一键启动/管理（后台守护进程）
+sage llm serve                                     # 启动 LLM + Embedding 服务（默认）
+sage llm serve --no-embedding                      # 仅启动 LLM，不启动 Embedding
+sage llm status                                    # 查看状态
+sage llm stop                                      # 停止服务
+sage llm logs --follow                             # 查看日志
+
+# 阻塞式交互模式（开发调试用）
+sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
+
+# 引擎管理（通过 Control Plane）
+sage llm engine start BAAI/bge-m3 --engine-kind embedding           # 默认 CPU
+sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu # 使用 GPU
+sage llm engine list                                                 # 查看引擎列表
+sage llm engine stop <engine-id>                                     # 停止引擎
 
 # 查看运行状态
 ps aux | grep -E "vllm|embedding_server"
 ```
+
+### Embedding 引擎 GPU 支持
+
+默认情况下，Embedding 引擎运行在 CPU 上。对于大型 Embedding 模型（如 BGE-M3），可以显式启用 GPU：
+
+```python
+# CLI 方式
+# sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu
+
+# 预设文件 (preset.yaml)
+engines:
+  - name: embed-gpu
+    kind: embedding
+    model: BAAI/bge-m3
+    use_gpu: true  # 显式使用 GPU
+```
+
+**`use_gpu` 参数行为**：
+- `use_gpu=None` (默认): LLM 使用 GPU，Embedding 不使用
+- `use_gpu=True`: 强制使用 GPU
+- `use_gpu=False`: 强制不使用 GPU（即使是 LLM）
 
 ### Control Plane 核心组件
 
@@ -324,8 +382,32 @@ SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 
 # === HuggingFace ===
 HF_TOKEN=hf_xxx
-HF_ENDPOINT=https://hf-mirror.com     # 中国镜像
+# HF_ENDPOINT 无需手动设置，SAGE 会自动检测网络并配置镜像
 ```
+
+### 网络检测和 HuggingFace 镜像自动配置
+
+SAGE 会在运行时自动检测网络区域，如果检测到中国大陆网络，会自动设置 `HF_ENDPOINT=https://hf-mirror.com`。
+
+```python
+from sage.common.config import (
+    detect_china_mainland,      # 检测是否在中国大陆
+    get_hf_endpoint,            # 获取推荐的 HF endpoint
+    ensure_hf_mirror_configured,  # 自动配置 HF 镜像（推荐在 CLI 命令入口调用）
+)
+
+# 检测网络区域
+is_china = detect_china_mainland()  # True/False
+
+# 自动配置（如果在中国大陆，设置 HF_ENDPOINT 环境变量）
+ensure_hf_mirror_configured()  # 只会在首次调用时检测，结果会缓存
+```
+
+**自动配置的命令**：
+- `sage llm run` - 运行 vLLM 服务
+- `sage llm model download` - 下载模型
+- `sage llm fine-tune` - 微调模型
+- Embedding 相关服务
 
 ### EmbeddingFactory (本地模型，无需服务)
 
@@ -357,10 +439,13 @@ embedder.embed(texts=["a", "b"])  # TypeError: embed() got unexpected keyword ar
 
 ## sage-benchmark 组件
 
-Agent 能力评测框架，位于 `packages/sage-benchmark/`：
+Agent 能力和 Control Plane 评测框架，位于 `packages/sage-benchmark/`：
 
-### 核心模块
+### benchmark_agent (Agent 能力评测)
 
+评估 Agent 三个核心能力：工具选择、任务规划、时机判断。
+
+**核心模块**:
 ```
 src/sage/benchmark/benchmark_agent/
   adapter_registry.py      # 策略注册表 (selector.*, planner.*, timing.*)
@@ -368,30 +453,44 @@ src/sage/benchmark/benchmark_agent/
     base_experiment.py     # 实验基类 + 数据模型
     tool_selection_exp.py  # 工具选择评测
     planning_exp.py        # 任务规划评测
-    timing_exp.py          # 时机决策评测
+    timing_detection_exp.py # 时机决策评测
   evaluation/
     metrics.py             # 评测指标 (accuracy, precision, recall, etc.)
-  data/                    # 评测数据 (JSONL)
-scripts/
-  test_tool_selection_e2e.py  # 工具选择端到端测试
-  test_planning_e2e.py        # 规划端到端测试
+  scripts/                 # 评测脚本
 ```
 
-### 使用示例
-
+**使用示例**:
 ```python
-from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+from sage.benchmark.benchmark_agent import get_adapter_registry
 
 registry = get_adapter_registry()
 
 # 工具选择策略
-selector = registry.create_adapter("selector.keyword")  # keyword, embedding, hybrid
+selector = registry.get("selector.keyword")  # keyword, embedding, hybrid, gorilla, dfsdt
 
-# 任务规划策略 (使用 UnifiedInferenceClient)
-planner = registry.create_adapter("planner.llm_based")  # simple, hierarchical, llm_based
+# 任务规划策略
+planner = registry.get("planner.react")  # simple, hierarchical, llm_based, react, tot
 
 # 时机决策策略
-decider = registry.create_adapter("timing.threshold")   # threshold, embedding, llm
+decider = registry.get("timing.rule_based")  # rule_based, llm_based, hybrid
 ```
+
+### benchmark_control_plane (调度策略评测)
+
+评估 sageLLM Control Plane 的调度策略性能（吞吐量、延迟、SLO 合规率）。
+
+**CLI**:
+```bash
+# LLM 调度评测
+sage-cp-bench run --mode llm --policy fifo --requests 100
+
+# Hybrid (LLM + Embedding) 评测
+sage-cp-bench run --mode hybrid --policy hybrid_slo --llm-ratio 0.7
+
+# 策略对比
+sage-cp-bench compare --mode llm --policies fifo,priority,slo_aware
+```
+
+**详细文档**: `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md`
 
 **Trust these instructions** - search only if incomplete, errors occur, or deep architecture needed.

@@ -12,6 +12,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Optional
 
+try:  # Support both `python -m experiments...` and standalone usage
+    from . import exp_utils as _exp_utils
+except ImportError:  # pragma: no cover - fallback for direct script execution
+    import exp_utils as _exp_utils  # type: ignore
+
 import numpy as np
 
 # =============================================================================
@@ -81,6 +86,23 @@ FIGURE_SIZES = {
     "square": (6, 6),  # 方形
     "tall": (6, 8),  # 高图
 }
+
+
+# =============================================================================
+# 输出目录辅助函数
+# =============================================================================
+
+
+def get_figures_dir(output_dir: Optional[Path] = None) -> Path:
+    """Delegate to exp_utils so legacy imports keep working."""
+
+    return _exp_utils.get_figures_dir(output_dir)
+
+
+def get_tables_dir(output_dir: Optional[Path] = None) -> Path:
+    """Delegate to exp_utils so legacy imports keep working."""
+
+    return _exp_utils.get_tables_dir(output_dir)
 
 
 # =============================================================================
@@ -634,7 +656,7 @@ def generate_all_figures(
     cross_data = load_json(section_5_4 / "cross_dataset_results.json")
     if cross_data:
         path = output_dir / "fig7_cross_dataset.pdf"
-        plot_cross_dataset_comparison(cross_data, output_path=path)
+        plot_cross_dataset_comparison(cross_data, metric="top5_accuracy", output_path=path)
         generated["cross_dataset"] = path
         print(f"    Generated: {path.name}")
 
