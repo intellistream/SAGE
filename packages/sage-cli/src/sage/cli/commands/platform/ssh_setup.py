@@ -1,78 +1,45 @@
-"""SSH 免密登录自动配置工具"""
+"""SSH Key Setup Tool for SAGE Cluster.
+
+This module provides SSH key generation and distribution utilities.
+Only SSH key authentication is supported (no passwords).
+
+Usage:
+    sage cluster setup-ssh          # Interactive setup
+    sage cluster setup-ssh --verify # Verify existing setup
+"""
 
 import os
 import subprocess
 from pathlib import Path
-from typing import Optional
 
-import typer
+from rich.console import Console
+from rich.table import Table
 
-
-def check_sshpass_installed() -> bool:
-    """检查 sshpass 是否已安装"""
-    try:
-        subprocess.run(
-            ["which", "sshpass"],
-            capture_output=True,
-            check=True,
-            timeout=5,
-        )
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+console = Console()
 
 
-def install_sshpass() -> bool:
-    """安装 sshpass 工具"""
-    typer.echo("[blue]📦 安装 sshpass 工具...[/blue]")
+def generate_ssh_key(key_path: str, force: bool = False) -> bool:
+    """Generate SSH key pair if not exists."""
+    key_path = os.path.expanduser(key_path)
+    key_file = Path(key_path)
 
-    # 检测包管理器并安装
-    if Path("/usr/bin/apt-get").exists():
-        try:
-            subprocess.run(
-                ["sudo", "apt-get", "update"],
-                capture_output=True,
-                timeout=60,
-            )
-            subprocess.run(
-                ["sudo", "apt-get", "install", "-y", "sshpass"],
-                check=True,
-                timeout=120,
-            )
-            typer.echo("[green]✅ sshpass 安装成功[/green]")
-            return True
-        except subprocess.CalledProcessError:
-            typer.echo("[red]❌ sshpass 安装失败（apt-get）[/red]")
-            return False
-    elif Path("/usr/bin/yum").exists():
-        try:
-            subprocess.run(
-                ["sudo", "yum", "install", "-y", "sshpass"],
-                check=True,
-                timeout=120,
-            )
-            typer.echo("[green]✅ sshpass 安装成功[/green]")
-            return True
-        except subprocess.CalledProcessError:
-            typer.echo("[red]❌ sshpass 安装失败（yum）[/red]")
-            return False
-    else:
-        typer.echo("[red]❌ 无法自动安装 sshpass，请手动安装[/red]")
-        typer.echo("[yellow]   Ubuntu/Debian: sudo apt-get install sshpass[/yellow]")
-        typer.echo("[yellow]   CentOS/RHEL: sudo yum install sshpass[/yellow]")
-        return False
-
-
-def generate_ssh_key(key_path: str) -> bool:
-    """生成 SSH 密钥对"""
-    if Path(key_path).exists():
-        typer.echo(f"[green]✅ SSH 密钥已存在: {key_path}[/green]")
+    if key_file.exists() and not force:
+        console.print(f"[green]SSH key already exists: {key_path}[/green]")
         return True
 
-    typer.echo("[blue]🔑 生成 SSH 密钥对...[/blue]")
+    if key_file.exists() and force:
+        console.print(f"[yellow]Regenerating SSH key: {key_path}[/yellow]")
+        key_file.unlink()
+        Path(f"{key_path}.pub").unlink(missing_ok=True)
+
+    console.print("[blue]Generating SSH key pair...[/blue]")
 
     try:
-        subprocess.run(
+        ssh_dir = key_file.parent
+        ssh_dir.mkdir(parents=True, exist_ok=True)
+        os.chmod(ssh_dir, 0o700)
+
+        result = subprocess.run(
             [
                 "ssh-keygen",
                 "-t",
@@ -84,97 +51,35 @@ def generate_ssh_key(key_path: str) -> bool:
                 "-N",
                 "",
                 "-C",
-                f"sage-cluster-{os.getenv('USER', 'user')}",
+                "sage-cluster-key",
             ],
-            check=True,
             capture_output=True,
+            text=True,
             timeout=30,
         )
-        typer.echo(f"[green]✅ SSH 密钥生成成功: {key_path}[/green]")
+
+        if result.returncode != 0:
+            console.print(f"[red]Failed to generate SSH key: {result.stderr}[/red]")
+            return False
+
+        os.chmod(key_path, 0o600)
+        os.chmod(f"{key_path}.pub", 0o644)
+
+        console.print(f"[green]SSH key generated: {key_path}[/green]")
         return True
-    except subprocess.CalledProcessError as e:
-        typer.echo(f"[red]❌ SSH 密钥生成失败: {e}[/red]")
+
+    except subprocess.TimeoutExpired:
+        console.print("[red]SSH key generation timed out[/red]")
         return False
-
-
-def test_ssh_connection(
-    host: str,
-    user: str,
-    password: str,
-    port: int = 22,
-) -> bool:
-    """测试 SSH 连接（使用密码）"""
-    try:
-        result = subprocess.run(
-            [
-                "sshpass",
-                "-p",
-                password,
-                "ssh",
-                "-o",
-                "StrictHostKeyChecking=no",
-                "-o",
-                "ConnectTimeout=5",
-                "-p",
-                str(port),
-                f"{user}@{host}",
-                "echo 'Connection OK'",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
-
-
-def copy_ssh_key(
-    host: str,
-    user: str,
-    password: str,
-    key_path: str,
-    port: int = 22,
-) -> bool:
-    """复制 SSH 公钥到远程主机"""
-    pub_key_path = f"{key_path}.pub"
-
-    if not Path(pub_key_path).exists():
-        typer.echo(f"[red]❌ 公钥文件不存在: {pub_key_path}[/red]")
-        return False
-
-    try:
-        result = subprocess.run(
-            [
-                "sshpass",
-                "-p",
-                password,
-                "ssh-copy-id",
-                "-o",
-                "StrictHostKeyChecking=no",
-                "-i",
-                pub_key_path,
-                "-p",
-                str(port),
-                f"{user}@{host}",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        return result.returncode == 0
     except Exception as e:
-        typer.echo(f"[yellow]复制密钥时出错: {e}[/yellow]")
+        console.print(f"[red]Error generating SSH key: {e}[/red]")
         return False
 
 
-def verify_passwordless_login(
-    host: str,
-    user: str,
-    key_path: str,
-    port: int = 22,
-) -> bool:
-    """验证免密登录"""
+def verify_ssh_connection(host: str, user: str, key_path: str, port: int = 22) -> bool:
+    """Test SSH connection without password."""
+    key_path = os.path.expanduser(key_path)
+
     try:
         result = subprocess.run(
             [
@@ -182,121 +87,139 @@ def verify_passwordless_login(
                 "-i",
                 key_path,
                 "-o",
-                "StrictHostKeyChecking=no",
-                "-o",
-                "ConnectTimeout=5",
-                "-o",
                 "BatchMode=yes",
+                "-o",
+                "ConnectTimeout=10",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
                 "-p",
                 str(port),
                 f"{user}@{host}",
-                "echo 'Passwordless login works'",
+                "echo SSH_OK",
             ],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=15,
         )
-        return result.returncode == 0
-    except Exception:
+        return result.returncode == 0 and "SSH_OK" in result.stdout
+    except (subprocess.TimeoutExpired, Exception):
         return False
 
 
-def setup_ssh_for_host(
-    host: str,
-    user: str,
-    password: str,
-    key_path: str,
-    port: int = 22,
-) -> bool:
-    """为单个主机配置 SSH 免密登录"""
-    typer.echo(f"[blue]🔧 配置 {host}...[/blue]")
+def deploy_ssh_key(host: str, user: str, key_path: str, port: int = 22) -> bool:
+    """Deploy SSH public key to remote host."""
+    key_path = os.path.expanduser(key_path)
+    pub_key_path = f"{key_path}.pub"
 
-    # 1. 测试连接
-    typer.echo("  1. 测试 SSH 连接...")
-    if not test_ssh_connection(host, user, password, port):
-        typer.echo(f"[red]  ❌ 无法连接到 {host}[/red]")
+    if verify_ssh_connection(host, user, key_path, port):
+        console.print(f"[green]SSH key already deployed to {host}[/green]")
+        return True
+
+    console.print(f"[blue]Deploying SSH key to {user}@{host}...[/blue]")
+
+    try:
+        with open(pub_key_path) as f:
+            pub_key = f.read().strip()
+    except FileNotFoundError:
+        console.print(f"[red]Public key not found: {pub_key_path}[/red]")
         return False
-    typer.echo("[green]  ✅ 连接成功[/green]")
 
-    # 2. 复制公钥
-    typer.echo("  2. 复制 SSH 公钥...")
-    if not copy_ssh_key(host, user, password, key_path, port):
-        typer.echo("[red]  ❌ 公钥复制失败[/red]")
-        return False
-    typer.echo("[green]  ✅ 公钥复制成功[/green]")
+    console.print(f"[yellow]Please enter password for {user}@{host} when prompted[/yellow]")
+    try:
+        result = subprocess.run(
+            [
+                "ssh-copy-id",
+                "-i",
+                pub_key_path,
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "-p",
+                str(port),
+                f"{user}@{host}",
+            ],
+            timeout=60,
+        )
+        if result.returncode == 0:
+            console.print(f"[green]SSH key deployed to {host}[/green]")
+            return True
+    except subprocess.TimeoutExpired:
+        console.print("[yellow]ssh-copy-id timed out[/yellow]")
+    except FileNotFoundError:
+        console.print("[yellow]ssh-copy-id not available[/yellow]")
 
-    # 3. 验证免密登录
-    typer.echo("  3. 验证免密登录...")
-    if not verify_passwordless_login(host, user, key_path, port):
-        typer.echo("[red]  ❌ 免密登录验证失败[/red]")
-        return False
-    typer.echo(f"[green]  ✅ 免密登录配置成功: {user}@{host}[/green]")
-
-    return True
+    console.print(f"\n[yellow]Manual setup required for {host}:[/yellow]")
+    console.print(f"1. SSH to the host: ssh -p {port} {user}@{host}")
+    console.print("2. Run: mkdir -p ~/.ssh && chmod 700 ~/.ssh")
+    console.print(f"3. Add this to ~/.ssh/authorized_keys:\n   {pub_key}")
+    console.print("4. Run: chmod 600 ~/.ssh/authorized_keys")
+    return False
 
 
-def auto_setup_ssh_keys(
-    hosts: list[tuple[str, int]],
-    user: str = "sage",
-    password: str = "123",
-    key_path: Optional[str] = None,
-) -> tuple[int, int]:
-    """自动配置 SSH 免密登录
+def test_passwordless_login(host: str, user: str, key_path: str, port: int = 22) -> dict:
+    """Test passwordless SSH login and return details."""
+    key_path = os.path.expanduser(key_path)
 
-    Args:
-        hosts: [(host, port), ...] 列表
-        user: SSH 用户名
-        password: SSH 密码
-        key_path: SSH 密钥路径
+    result = {
+        "host": host,
+        "user": user,
+        "port": port,
+        "key_path": key_path,
+        "success": False,
+        "message": "",
+    }
 
-    Returns:
-        (成功数量, 总数量)
-    """
-    if key_path is None:
-        key_path = os.path.expanduser("~/.ssh/id_rsa")
+    if not Path(key_path).exists():
+        result["message"] = "Private key not found"
+        return result
 
-    typer.echo("\n[cyan]═══════════════════════════════════════[/cyan]")
-    typer.echo("[cyan]  SSH 免密登录自动配置[/cyan]")
-    typer.echo("[cyan]═══════════════════════════════════════[/cyan]\n")
+    if not Path(f"{key_path}.pub").exists():
+        result["message"] = "Public key not found"
+        return result
 
-    # 1. 检查并安装 sshpass
-    if not check_sshpass_installed():
-        typer.echo("[yellow]⚠️  未安装 sshpass[/yellow]")
-        if not install_sshpass():
-            typer.echo("[red]❌ SSH 配置失败: 无法安装 sshpass[/red]")
-            return (0, len(hosts))
+    if verify_ssh_connection(host, user, key_path, port):
+        result["success"] = True
+        result["message"] = "Passwordless login works"
+    else:
+        result["message"] = "Connection failed (key not deployed or host unreachable)"
 
-    # 2. 生成 SSH 密钥
-    if not generate_ssh_key(key_path):
-        typer.echo("[red]❌ SSH 配置失败: 无法生成密钥[/red]")
-        return (0, len(hosts))
+    return result
 
-    # 3. 配置每个主机
-    typer.echo(f"\n[cyan]配置 {len(hosts)} 个主机...[/cyan]\n")
-    success_count = 0
+
+def setup_ssh_for_hosts(hosts: list, user: str, key_path: str, generate_key: bool = True) -> dict:
+    """Setup SSH keys for multiple hosts."""
+    results = {"key_generated": False, "hosts": {}}
+
+    if generate_key:
+        results["key_generated"] = generate_ssh_key(key_path)
+        if not results["key_generated"]:
+            console.print("[red]Failed to generate SSH key[/red]")
+            return results
 
     for host, port in hosts:
-        # 先检查是否已经配置了免密登录
-        if verify_passwordless_login(host, user, key_path, port):
-            typer.echo(f"[green]✅ {host}: 免密登录已配置[/green]\n")
-            success_count += 1
-            continue
+        host_key = f"{host}:{port}"
+        deployed = deploy_ssh_key(host, user, key_path, port)
+        results["hosts"][host_key] = {
+            "deployed": deployed,
+            "verified": verify_ssh_connection(host, user, key_path, port),
+        }
 
-        # 配置免密登录
-        if setup_ssh_for_host(host, user, password, key_path, port):
-            success_count += 1
-        typer.echo("")
+    return results
 
-    # 4. 总结
-    typer.echo("[cyan]═══════════════════════════════════════[/cyan]")
-    typer.echo(f"[cyan]配置完成: {success_count}/{len(hosts)} 成功[/cyan]")
-    typer.echo("[cyan]═══════════════════════════════════════[/cyan]\n")
 
-    if success_count == len(hosts):
-        typer.echo("[green]🎉 所有主机配置成功！[/green]\n")
-    elif success_count > 0:
-        typer.echo("[yellow]⚠️  部分主机配置失败[/yellow]\n")
-    else:
-        typer.echo("[red]❌ 所有主机配置失败[/red]\n")
+def print_status_table(results: dict, user: str, key_path: str):
+    """Print a formatted status table."""
+    table = Table(title="SSH Setup Status")
+    table.add_column("Host", style="cyan")
+    table.add_column("Port", style="blue")
+    table.add_column("Deployed", style="green")
+    table.add_column("Verified", style="green")
 
-    return (success_count, len(hosts))
+    for host_key, status in results.get("hosts", {}).items():
+        host, port = host_key.rsplit(":", 1)
+        deployed = "Y" if status.get("deployed") else "N"
+        verified = "Y" if status.get("verified") else "N"
+        table.add_row(host, port, deployed, verified)
+
+    console.print(table)
+    console.print(f"\n[dim]User: {user}[/dim]")
+    console.print(f"[dim]Key: {key_path}[/dim]")

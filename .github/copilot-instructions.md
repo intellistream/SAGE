@@ -134,11 +134,38 @@ tools/
   ruff.toml             # Linter
 .env.template           # API keys template
 .pre-commit-config.yaml # → tools/pre-commit-config.yaml
-.sage/                  # Build artifacts, cache, logs (gitignored)
+.sage/                  # Build artifacts, cache, logs (gitignored, project-level)
 manage.sh               # Submodule wrapper
 quickstart.sh           # Installer
 Makefile                # Shortcuts
 ```
+
+## User Paths - XDG Standard
+
+**CRITICAL**: User configuration and data follow [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/).
+
+```python
+from sage.common.config.user_paths import get_user_paths
+
+paths = get_user_paths()
+log_file = paths.logs_dir / "app.log"  # ~/.local/state/sage/logs/app.log
+model_dir = paths.models_dir           # ~/.local/share/sage/models/
+```
+
+**Project Configuration**: Edit `config/config.yaml` and `config/cluster.yaml` directly in project root.
+
+**Directory Structure**:
+| Path | Purpose |
+|------|---------|
+| `config/config.yaml` | Main configuration (LLM, gateway, studio) |
+| `config/cluster.yaml` | Cluster configuration (nodes, SSH, Ray) |
+| `~/.local/share/sage/` | Persistent data (models, sessions, vector_db) |
+| `~/.local/state/sage/` | Runtime state (logs) |
+| `~/.cache/sage/` | Cached data (can be deleted) |
+
+**Project-level** `.sage/` (gitignored): Build artifacts, pytest cache, temp files.
+
+**DO NOT** use `~/.sage/` for new code. Use `get_user_paths()` for user data.
 
 ## Common Issues
 
