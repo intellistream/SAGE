@@ -1,0 +1,91 @@
+# SAGE Cluster Configuration
+# ==============================================================================
+#
+# Location: <project_root>/config/cluster.yaml
+# Edit this file to configure your cluster nodes, SSH, and Ray settings.
+#
+# Documentation: https://docs.ray.io/en/latest/cluster/vms/user-guides/launching-clusters/on-premises.html
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Cluster Identity
+# ------------------------------------------------------------------------------
+cluster_name: sage-cluster
+max_workers: 10
+
+# ------------------------------------------------------------------------------
+# Provider Configuration (On-Premise)
+# ------------------------------------------------------------------------------
+provider:
+  type: local
+
+  # Head node IP (where Ray GCS runs)
+  head_ip: 192.168.1.100
+
+  # Worker node IPs
+  worker_ips:
+  - 192.168.1.101
+  - 192.168.1.102
+  - 192.168.1.103
+
+# ------------------------------------------------------------------------------
+# SSH Authentication
+# ------------------------------------------------------------------------------
+# IMPORTANT: Use SSH key authentication, NOT passwords!
+# Setup: ssh-keygen && ssh-copy-id user@host
+auth:
+  ssh_user: sage
+  ssh_private_key: ~/.ssh/id_rsa
+  connect_timeout: 10
+
+# ------------------------------------------------------------------------------
+# Ray Configuration
+# ------------------------------------------------------------------------------
+ray:
+  head_port: 6379
+  dashboard_port: 8265
+  dashboard_host: 0.0.0.0
+  temp_dir: /tmp/ray
+
+  # Optional: Resource overrides
+  # head_resources:
+  #   CPU: 4
+  #   memory: 8589934592  # 8GB
+  # worker_resources:
+  #   CPU: 8
+  #   GPU: 1
+
+# ------------------------------------------------------------------------------
+# Remote Environment
+# ------------------------------------------------------------------------------
+remote:
+  conda_env: sage
+  sage_home: /home/sage/SAGE
+  auto_sync_ray_version: true
+  # python_path: /opt/conda/envs/sage/bin/python  # Auto-detected
+  # ray_command: /opt/conda/envs/sage/bin/ray     # Auto-detected
+
+# ------------------------------------------------------------------------------
+# Worker Configuration
+# ------------------------------------------------------------------------------
+worker:
+  log_dir: /tmp/sage_worker_logs
+  bind_host: 0.0.0.0
+
+# ------------------------------------------------------------------------------
+# JobManager
+# ------------------------------------------------------------------------------
+jobmanager:
+  port: 19001
+  timeout: 30
+  retry_attempts: 3
+
+# ------------------------------------------------------------------------------
+# Output Settings
+# ------------------------------------------------------------------------------
+output:
+  format: table  # table, json, yaml
+  colors: true
+
+monitor:
+  refresh_interval: 5
