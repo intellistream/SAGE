@@ -1,0 +1,32 @@
+name: Lint
+
+on:
+  push:
+    branches: ["main", "0.*"]
+  pull_request:
+    branches: ["main", "0.*"]
+  workflow_dispatch:
+
+jobs:
+  clang-tidy-check:
+    name: Lint
+    runs-on: ubuntu-latest
+    # runs-on: self-hosted
+    container:
+      image: vsaglib/vsag:ci-x86
+    concurrency:
+      group: lint-${{ github.event.pull_request.number }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Install clang-tidy
+      run: sudo apt install clang-tidy-15 -y && sudo ln -s /usr/bin/clang-tidy-15 /usr/bin/clang-tidy
+    - name: Load Cache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        max-size: "5G"
+        save: ${{ github.event_name != 'pull_request' }}
+        key: build-lint-${{ hashFiles('./CMakeLists.txt') }}-${{ hashFiles('./.circleci/fresh_ci_cache.commit') }}
+    - name: Run lint
+      run: export CMAKE_GENERATOR="Ninja" && make release && make lint

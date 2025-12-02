@@ -1,0 +1,17 @@
+random-xs:
+  gti:
+    module: benchmark_anns.bench.algorithms.gti.gti
+    constructor: Gti
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{
+            "capacity_up_i": 164,
+            "capacity_up_l": 2,
+            "m": 4
+          }]
+        query-args: |
+          [{
+            "L": 60
+          }]
