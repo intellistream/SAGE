@@ -1,0 +1,73 @@
+random-xs:
+  vsag_hnsw:
+    module: benchmark_anns.bench.algorithms.vsag_hnsw.vsag_hnsw
+    constructor: VsagHnsw
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [
+            {
+              "index_name": "hnsw",
+              "index_config": {
+                "hnsw": {
+                  "max_degree": 32,
+                  "ef_construction": 120,
+                  "use_static": false
+                },
+                "optimizer": {
+                  "prefetch_stride_codes": 2,
+                  "prefetch_stride_visit": 2,
+                  "prefetch_depth_codes": 2
+                }
+              }
+            }
+          ]
+        query-args: |
+          [
+            {
+              "search_params": {
+                "hnsw": {
+                  "ef_search": 80
+                }
+              }
+            }
+          ]
+
+sift:
+  vsag_hnsw:
+    module: benchmark_anns.bench.algorithms.vsag_hnsw.vsag_hnsw
+    constructor: VsagHnsw
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [
+            {
+              "index_name": "hnsw",
+              "index_config": {
+                "hnsw": {
+                  "max_degree": 48,
+                  "ef_construction": 200,
+                  "skip_ratio": 0.1
+                },
+                "optimizer": {
+                  "prefetch_stride_codes": 1,
+                  "prefetch_stride_visit": 2,
+                  "prefetch_depth_codes": 2
+                }
+              }
+            }
+          ]
+        query-args: |
+          [
+            {
+              "search_params": {
+                "hnsw": {
+                  "ef_search": 128,
+                  "searcher_type": "parallel"
+                }
+              }
+            }
+          ]
+*** End of File

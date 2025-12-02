@@ -1,0 +1,65 @@
+# Git相关
+.git
+.gitignore
+.gitmodules
+
+# Python缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# 构建产物
+build/
+dist/
+*.egg-info/
+algorithms_impl/build/
+algorithms_impl/*/build/
+
+# 数据文件（太大）
+raw_data/
+results/
+*.data
+*.fvecs
+*.ivecs
+*.bvecs
+*.hdf5
+*.h5
+
+# 日志
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 文档（可选）
+docs/_build/
+*.pdf
+
+# 测试覆盖率
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb

@@ -1,0 +1,23 @@
+random-xs:
+  candy_lshapg:
+    module: benchmark_anns.bench.algorithms.candy_lshapg.candy_lshapg
+    constructor: CandyLshapg
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "LSHAPG"}]
+        query-args: |
+          [{"ef": 30}]
+
+sift:
+  candy_lshapg:
+    module: benchmark_anns.bench.algorithms.candy_lshapg.candy_lshapg
+    constructor: CandyLshapg
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "LSHAPG"}]
+        query-args: |
+          [{"ef": 30}]

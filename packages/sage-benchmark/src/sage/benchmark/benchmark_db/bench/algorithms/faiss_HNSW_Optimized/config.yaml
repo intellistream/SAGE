@@ -1,0 +1,56 @@
+random-xs:
+  faiss_HNSW_Optimized:
+    module: benchmark_anns.bench.algorithms.faiss_HNSW_Optimized.faiss_HNSW_Optimized
+    constructor: FaissHnswOptimized
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"efConstruction": 120, "indexkey": "HNSWOptimized16", "gorder_window": 5, "apply_gorder": true}]
+        query-args: |
+          [{"ef": 40}]
+
+sift:
+  faiss_HNSW_Optimized:
+    module: benchmark_anns.bench.algorithms.faiss_HNSW_Optimized.faiss_HNSW_Optimized
+    constructor: FaissHnswOptimized
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSWOptimized32", "gorder_window": 5, "apply_gorder": true}]
+        query-args: |
+          [{"ef": 16}, {"ef": 32}, {"ef": 64}]
+
+      # 不同 M 值测试
+      M16:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSWOptimized16", "gorder_window": 5, "apply_gorder": true}]
+        query-args: |
+          [{"ef": 16}, {"ef": 32}, {"ef": 64}]
+
+      M64:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSWOptimized64", "gorder_window": 5, "apply_gorder": true}]
+        query-args: |
+          [{"ef": 32}, {"ef": 64}, {"ef": 128}]
+
+      # Gorder 窗口大小对比
+      gorder-window3:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSWOptimized32", "gorder_window": 3, "apply_gorder": true}]
+        query-args: |
+          [{"ef": 40}]
+
+      gorder-window7:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSWOptimized32", "gorder_window": 7, "apply_gorder": true}]
+        query-args: |
+          [{"ef": 40}]
+
+      # 不使用 Gorder（用于对比）
+      no-gorder:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSWOptimized32", "apply_gorder": false}]
+        query-args: |
+          [{"ef": 40}]
