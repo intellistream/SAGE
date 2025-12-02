@@ -7,22 +7,24 @@
 1. 多索引支持: 语义向量、情感向量、BM25关键词等
 2. 融合策略: weighted, rrf (Reciprocal Rank Fusion), learned
 
-使用 VDBMemoryCollection + KVMemoryCollection 作为底层存储。
+设计原则:
+- Service : Collection = 1 : 1
+- 使用单一 HybridCollection，支持 VDB + KV + Graph 多种索引类型
+- Collection = 一份数据 + 多种类型的索引
 """
 
 from __future__ import annotations
 
 import os
-import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.kv_collection import (
-    KVMemoryCollection,
+from sage.middleware.components.sage_mem.neuromem.memory_collection.base_collection import (
+    IndexType,
 )
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
+from sage.middleware.components.sage_mem.neuromem.memory_collection.hybrid_collection import (
+    HybridCollection,
 )
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
@@ -34,57 +36,51 @@ if TYPE_CHECKING:
 class HybridMemoryService(BaseService):
     """混合记忆服务
 
-    支持多索引和多路检索融合。
-    底层使用 MemoryManager + VDBMemoryCollection + KVMemoryCollection 存储。
+    设计原则: Service : Collection = 1 : 1
+    底层使用单一 HybridCollection，支持创建多种类型的索引（VDB, KV, Graph）。
+    数据只存一份，可以通过多种索引访问。
     """
 
     def __init__(
         self,
         indexes: list[dict] | None = None,
-        fusion_strategy: Literal["weighted", "rrf", "learned"] = "weighted",
-        fusion_weights: list[float] | None = None,
+        fusion_strategy: Literal["weighted", "rrf", "union"] = "rrf",
+        fusion_weights: dict[str, float] | None = None,
         rrf_k: int = 60,
-        collection_prefix: str = "hybrid_memory",
+        collection_name: str = "hybrid_memory",
     ):
         """初始化混合记忆服务
 
         Args:
             indexes: 索引配置列表，每个配置包含:
                 - name: 索引名称
-                - type: 索引类型 ("vector" | "bm25" | "keyword")
-                - dim: 向量维度 (vector 类型)
-            fusion_strategy: 融合策略
-            fusion_weights: 融合权重 (weighted 策略)
+                - type: 索引类型 ("vdb" | "kv" | "graph")
+                - dim: 向量维度 (vdb 类型必需)
+                - index_type: 子类型 (kv: "bm25s", graph: "simple")
+            fusion_strategy: 融合策略 ("weighted" | "rrf" | "union")
+            fusion_weights: 索引权重 {"index_name": weight} (weighted 策略)
             rrf_k: RRF 参数 (rrf 策略)
-            collection_prefix: Collection 名称前缀
+            collection_name: Collection 名称
         """
         super().__init__()
 
         # 默认索引配置
         default_indexes = [
-            {"name": "semantic", "type": "vector", "dim": 768},
-            {"name": "keyword", "type": "bm25"},
+            {"name": "semantic", "type": "vdb", "dim": 768},
+            {"name": "keyword", "type": "kv", "index_type": "bm25s"},
         ]
 
         self.index_configs = indexes or default_indexes
         self.fusion_strategy = fusion_strategy
-        self.fusion_weights = fusion_weights or [1.0 / len(self.index_configs)] * len(
-            self.index_configs
-        )
+        self.fusion_weights = fusion_weights or {}
         self.rrf_k = rrf_k
-        self.collection_prefix = collection_prefix
+        self.collection_name = collection_name
 
         # 初始化 MemoryManager
         self.manager = MemoryManager(self._get_default_data_dir())
 
-        # 创建索引对应的 collections
-        self.vector_collection: VDBMemoryCollection | None = None
-        self.kv_collection: KVMemoryCollection | None = None
-
-        self._init_collections()
-
-        # 文档存储（entry_id -> 文档信息）
-        self._documents: dict[str, dict[str, Any]] = {}
+        # 创建或获取单一 HybridCollection (Service:Collection = 1:1)
+        self._init_collection()
 
         self.logger.info(
             f"HybridMemoryService initialized: strategy={fusion_strategy}, "
@@ -99,65 +95,54 @@ class HybridMemoryService(BaseService):
         os.makedirs(data_dir, exist_ok=True)
         return data_dir
 
-    def _init_collections(self) -> None:
-        """初始化 collections"""
+    def _init_collection(self) -> None:
+        """初始化 HybridCollection 并创建索引"""
+        # 创建或获取 HybridCollection
+        if self.manager.has_collection(self.collection_name):
+            collection = self.manager.get_collection(self.collection_name)
+            if not isinstance(collection, HybridCollection):
+                raise TypeError(
+                    f"Collection '{self.collection_name}' exists but is not a HybridCollection"
+                )
+            self.collection = collection
+        else:
+            self.collection = self.manager.create_collection(
+                {
+                    "name": self.collection_name,
+                    "backend_type": "hybrid",
+                    "rrf_k": self.rrf_k,
+                    "description": "Hybrid memory with multiple index types",
+                }
+            )
+
+        if self.collection is None:
+            raise RuntimeError(f"Failed to create HybridCollection '{self.collection_name}'")
+
+        # 创建配置的索引
         for config in self.index_configs:
-            index_type = config.get("type", "vector")
+            index_name = config.get("name")
+            if not index_name:
+                continue
 
-            if index_type == "vector":
-                # 创建 VDB collection
-                vdb_name = f"{self.collection_prefix}_vdb"
-                if self.manager.has_collection(vdb_name):
-                    collection = self.manager.get_collection(vdb_name)
-                else:
-                    collection = self.manager.create_collection(
-                        {
-                            "name": vdb_name,
-                            "backend_type": "VDB",
-                            "description": "Hybrid memory vector index",
-                        }
-                    )
+            # 检查索引是否已存在
+            existing_indexes = {idx["name"] for idx in self.collection.list_indexes()}
+            if index_name in existing_indexes:
+                continue
 
-                if isinstance(collection, VDBMemoryCollection):
-                    self.vector_collection = collection
-                    # 创建向量索引
-                    index_name = config.get("name", "semantic")
-                    if index_name not in collection.index_info:
-                        collection.create_index(
-                            {
-                                "name": index_name,
-                                "dim": config.get("dim", 768),
-                                "backend_type": "FAISS",
-                                "description": f"Vector index: {index_name}",
-                            }
-                        )
+            # 确定索引类型
+            type_str = config.get("type", "vdb").lower()
+            if type_str in ("vdb", "vector"):
+                index_type = IndexType.VDB
+            elif type_str in ("kv", "text", "bm25", "keyword"):
+                index_type = IndexType.KV
+            elif type_str == "graph":
+                index_type = IndexType.GRAPH
+            else:
+                self.logger.warning(f"Unknown index type: {type_str}, skipping")
+                continue
 
-            elif index_type in ("bm25", "keyword"):
-                # 创建 KV collection
-                kv_name = f"{self.collection_prefix}_kv"
-                if self.manager.has_collection(kv_name):
-                    collection = self.manager.get_collection(kv_name)
-                else:
-                    collection = self.manager.create_collection(
-                        {
-                            "name": kv_name,
-                            "backend_type": "KV",
-                            "description": "Hybrid memory keyword index",
-                        }
-                    )
-
-                if isinstance(collection, KVMemoryCollection):
-                    self.kv_collection = collection
-                    # 创建 BM25 索引
-                    index_name = config.get("name", "keyword")
-                    if index_name not in collection.indexes:
-                        collection.create_index(
-                            {
-                                "name": index_name,
-                                "index_type": "bm25s",
-                                "description": f"BM25 index: {index_name}",
-                            }
-                        )
+            # 创建索引
+            self.collection.create_index(config, index_type)
 
     def insert(
         self,
@@ -170,78 +155,65 @@ class HybridMemoryService(BaseService):
     ) -> str:
         """插入文档到多个索引
 
+        数据只存一份，同时加入多个索引。
+
         支持两种插入模式：
-        - passive: 由服务自行决定存储方式（默认）
+        - passive: 由服务自行决定存储方式（默认插入所有索引）
         - active: 根据 insert_params 指定存储方式
 
         Args:
             entry: 文本内容
-            vector: embedding 向量（用于向量索引）
+            vector: embedding 向量（用于 VDB 索引）
             metadata: 元数据，可包含:
                 - vectors: 多个向量 {"index_name": vector}
-                - keywords: 关键词列表
+                - edges: 图边 [(target_id, weight, relation)]
             insert_mode: 插入模式 ("active" | "passive")
             insert_params: 主动插入参数
                 - target_indexes: 目标索引列表（仅插入到指定索引）
                 - priority: 优先级
 
         Returns:
-            str: 文档 ID
+            str: 文档 ID (stable_id)
         """
         metadata = metadata or {}
 
         # 处理插入模式
-        target_indexes = None
+        target_indexes: list[str] | None = None
         if insert_mode == "active" and insert_params:
             target_indexes = insert_params.get("target_indexes")
             if "priority" in insert_params:
                 metadata["priority"] = insert_params["priority"]
 
-        # 生成文档 ID
-        entry_id = metadata.get("id", str(uuid.uuid4()))
+        # 确定要插入的索引
+        if target_indexes is None:
+            target_indexes = [c["name"] for c in self.index_configs if c.get("name")]
 
-        # 存储文档信息
-        self._documents[entry_id] = {
-            "text": entry,
-            "metadata": metadata,
-        }
-
-        # 插入到向量索引（根据 target_indexes 过滤）
-        if self.vector_collection is not None:
-            vectors = metadata.get("vectors", {})
-            if vector is not None:
-                # 使用默认向量
-                default_index = next(
-                    (c["name"] for c in self.index_configs if c.get("type") == "vector"), "semantic"
-                )
-                vectors[default_index] = vector
-
-            for index_name, vec in vectors.items():
-                # 如果指定了 target_indexes，只插入到指定索引
-                if target_indexes and index_name not in target_indexes:
-                    continue
-                if index_name in self.vector_collection.index_info:
-                    vec_array = np.array(vec, dtype=np.float32)
-                    self.vector_collection.insert(
-                        index_name=index_name,
-                        raw_data=entry,
-                        vector=vec_array,
-                        metadata={"entry_id": entry_id, **metadata},
-                    )
-
-        # 插入到关键词索引（根据 target_indexes 过滤）
-        if self.kv_collection is not None:
+        # 准备多向量支持
+        vectors_map = metadata.get("vectors", {})
+        if vector is not None:
+            # 为所有 VDB 索引设置默认向量
             for config in self.index_configs:
-                if config.get("type") in ("bm25", "keyword"):
-                    index_name = config.get("name", "keyword")
-                    # 如果指定了 target_indexes，只插入到指定索引
-                    if target_indexes and index_name not in target_indexes:
-                        continue
-                    if index_name in self.kv_collection.indexes:
-                        self.kv_collection.insert(entry, {"entry_id": entry_id}, index_name)
+                if config.get("type", "vdb").lower() in ("vdb", "vector"):
+                    idx_name = config.get("name")
+                    if idx_name and idx_name not in vectors_map:
+                        vectors_map[idx_name] = vector
 
-        self.logger.debug(f"Inserted document to hybrid memory: {entry_id[:16]}...")
-        return entry_id
+        # 图边信息
+        edges = metadata.get("edges", [])
+
+        # 使用 HybridCollection 的 insert 方法
+        # 数据只存一份，同时加入多个索引
+        stable_id = self.collection.insert(
+            content=entry,
+            index_names=target_indexes,
+            vector=vector,
+            metadata=metadata,
+            vectors=vectors_map,
+            edges=edges,
+        )
+
+        self.logger.debug(f"Inserted document to hybrid memory: {stable_id[:16]}...")
+        return stable_id
 
     def retrieve(
         self,
@@ -253,128 +225,126 @@ class HybridMemoryService(BaseService):
         """多路检索并融合结果
 
         Args:
-            query: 查询文本
-            vector: 查询向量
+            query: 查询文本（用于 KV 索引）
+            vector: 查询向量（用于 VDB 索引）
             metadata: 查询参数:
-                - vectors: 多个查询向量
+                - indexes: 要检索的索引列表（默认所有）
+                - vectors: 多个查询向量 {"index_name": vector}
                 - fusion_weights: 覆盖默认权重
+                - start_node: 图检索起始节点
             top_k: 返回结果数量
 
         Returns:
             list[dict]: 融合后的检索结果
         """
         metadata = metadata or {}
-        all_results: dict[str, list[tuple[str, float]]] = {}  # index_name -> [(entry_id, score)]
 
-        # 向量检索
-        if self.vector_collection is not None:
-            vectors = metadata.get("vectors", {})
-            if vector is not None:
-                default_index = next(
-                    (c["name"] for c in self.index_configs if c.get("type") == "vector"), "semantic"
-                )
-                vectors[default_index] = vector
+        # 确定要检索的索引
+        indexes_to_search = metadata.get("indexes")
+        if indexes_to_search is None:
+            indexes_to_search = [c["name"] for c in self.index_configs if c.get("name")]
 
-            for index_name, vec in vectors.items():
-                if index_name in self.vector_collection.index_info:
-                    vec_array = np.array(vec, dtype=np.float32)
-                    results = self.vector_collection.retrieve(
-                        query_text=query,
-                        query_vector=vec_array,
-                        index_name=index_name,
-                        topk=top_k * 2,  # 获取更多以便融合
-                        with_metadata=True,
-                    )
-                    if results:
-                        all_results[index_name] = [
-                            (r.get("metadata", {}).get("entry_id", ""), r.get("score", 0))
-                            for r in results
-                            if isinstance(r, dict)
-                        ]
+        # 准备查询
+        queries: dict[str, Any] = {}
+        vectors_map = metadata.get("vectors", {})
 
-        # 关键词检索
-        if self.kv_collection is not None and query:
-            for config in self.index_configs:
-                if config.get("type") in ("bm25", "keyword"):
-                    index_name = config.get("name", "keyword")
-                    if index_name in self.kv_collection.indexes:
-                        results = self.kv_collection.retrieve(
-                            raw_text=query,
-                            topk=top_k * 2,
-                            with_metadata=True,
-                            index_name=index_name,
-                        )
-                        if results:
-                            all_results[index_name] = [
-                                (r.get("metadata", {}).get("entry_id", ""), 1.0 / (i + 1))
-                                for i, r in enumerate(results)
-                                if isinstance(r, dict)
-                            ]
+        for idx_name in indexes_to_search:
+            idx_type = self.collection.get_index_type(idx_name)
+            if idx_type is None:
+                continue
 
-        # 融合结果
-        fused_scores = self._fuse_results(all_results, metadata.get("fusion_weights"))
+            if idx_type == IndexType.VDB:
+                # VDB 索引使用向量查询
+                vec = vectors_map.get(idx_name, vector)
+                if vec is not None:
+                    queries[idx_name] = np.array(vec, dtype=np.float32)
+            elif idx_type == IndexType.KV:
+                # KV 索引使用文本查询
+                if query:
+                    queries[idx_name] = query
+            elif idx_type == IndexType.GRAPH:
+                # Graph 索引使用起始节点或文本查询
+                start_node = metadata.get("start_node")
+                if start_node:
+                    queries[idx_name] = start_node
+                elif query:
+                    queries[idx_name] = query
 
-        # 按分数排序并返回
-        sorted_entries = sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
-        results = []
-        for entry_id, score in sorted_entries[:top_k]:
-            if entry_id in self._documents:
-                doc = self._documents[entry_id]
-                results.append(
-                    {
-                        "text": doc["text"],
-                        "score": score,
-                        "entry_id": entry_id,
-                        "metadata": doc.get("metadata", {}),
-                    }
-                )
+        if not queries:
+            self.logger.warning("No valid queries for retrieval")
+            return []
 
-        return results
+        # 使用 HybridCollection 的 retrieve_multi 方法
+        results = self.collection.retrieve_multi(
+            queries=queries,
+            top_k=top_k,
+            fusion_strategy=self.fusion_strategy,
+            weights=metadata.get("fusion_weights", self.fusion_weights),
+        )
 
-    def _fuse_results(
+        # 格式化结果
+        formatted_results = []
+        for item in results:
+            formatted_results.append(
+                {
+                    "text": item.get("text", ""),
+                    "score": item.get("fused_score", item.get("score", 0.0)),
+                    "entry_id": item.get("id", ""),
+                    "metadata": item.get("metadata", {}),
+                }
+            )
+
+        return formatted_results
+
+    def retrieve_single(
         self,
-        all_results: dict[str, list[tuple[str, float]]],
-        weights: list[float] | None = None,
-    ) -> dict[str, float]:
-        """融合多路检索结果
+        query: str | np.ndarray | None = None,
+        index_name: str | None = None,
+        top_k: int = 10,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        """单索引检索（不融合）
 
         Args:
-            all_results: 各索引的检索结果
-            weights: 融合权重
+            query: 查询（文本或向量）
+            index_name: 索引名称
+            top_k: 返回数量
+            **kwargs: 额外参数（传递给 Collection.retrieve）
 
         Returns:
-            dict: entry_id -> 融合分数
+            检索结果列表
         """
-        weights = weights or self.fusion_weights
-        fused_scores: dict[str, float] = {}
+        if index_name is None:
+            # 默认使用第一个索引
+            index_name = self.index_configs[0].get("name") if self.index_configs else None
 
-        if self.fusion_strategy == "weighted":
-            # 加权融合
-            for i, (index_name, results) in enumerate(all_results.items()):
-                weight = weights[i] if i < len(weights) else 1.0 / len(all_results)
-                for entry_id, score in results:
-                    if entry_id:
-                        fused_scores[entry_id] = fused_scores.get(entry_id, 0) + weight * score
+        if index_name is None:
+            return []
 
-        elif self.fusion_strategy == "rrf":
-            # Reciprocal Rank Fusion
-            for results in all_results.values():
-                for rank, (entry_id, _) in enumerate(results):
-                    if entry_id:
-                        rrf_score = 1.0 / (self.rrf_k + rank + 1)
-                        fused_scores[entry_id] = fused_scores.get(entry_id, 0) + rrf_score
+        results = self.collection.retrieve(
+            query=query,
+            index_name=index_name,
+            top_k=top_k,
+            with_metadata=True,
+            **kwargs,
+        )
 
-        else:
-            # 默认：简单合并
-            for results in all_results.values():
-                for entry_id, score in results:
-                    if entry_id:
-                        fused_scores[entry_id] = max(fused_scores.get(entry_id, 0), score)
+        # 格式化结果
+        formatted_results = []
+        for item in results:
+            formatted_results.append(
+                {
+                    "text": item.get("text", ""),
+                    "score": item.get("score", 0.0),
+                    "entry_id": item.get("id", ""),
+                    "metadata": item.get("metadata", {}),
+                }
+            )
 
-        return fused_scores
+        return formatted_results
 
     def delete(self, entry_id: str) -> bool:
-        """删除文档
+        """删除文档（从数据存储和所有索引中移除）
 
         Args:
             entry_id: 文档 ID
@@ -382,33 +352,83 @@ class HybridMemoryService(BaseService):
         Returns:
             bool: 是否删除成功
         """
-        if entry_id not in self._documents:
-            return False
+        return self.collection.delete(entry_id)
 
-        doc = self._documents.pop(entry_id)
-        text = doc.get("text", "")
+    def remove_from_index(self, entry_id: str, index_name: str) -> bool:
+        """从指定索引移除（保留数据）
 
-        # 从各索引删除
-        if self.vector_collection is not None:
-            try:
-                self.vector_collection.delete(text)
-            except Exception:
-                pass
+        用于 MemoryOS 场景：从一个索引移除，加入另一个索引。
 
-        if self.kv_collection is not None:
-            try:
-                self.kv_collection.delete(text)
-            except Exception:
-                pass
+        Args:
+            entry_id: 文档 ID
+            index_name: 索引名称
 
-        self.logger.debug(f"Deleted document from hybrid memory: {entry_id[:16]}...")
-        return True
+        Returns:
+            bool: 是否成功
+        """
+        return self.collection.remove_from_index(entry_id, index_name)
+
+    def insert_to_index(
+        self,
+        entry_id: str,
+        index_name: str,
+        vector: np.ndarray | None = None,
+        **kwargs: Any,
+    ) -> bool:
+        """将已有数据加入索引
+
+        用于 MemoryOS 场景：数据已存在，加入新索引。
+
+        Args:
+            entry_id: 数据 ID
+            index_name: 目标索引名
+            vector: 向量（VDB 索引需要）
+            **kwargs: 额外参数
+
+        Returns:
+            bool: 是否成功
+        """
+        return self.collection.insert_to_index(entry_id, index_name, vector, **kwargs)
+
+    def optimize(self, trigger: str = "auto") -> dict[str, Any]:
+        """优化记忆结构
+
+        Args:
+            trigger: 触发类型
+
+        Returns:
+            dict: 优化统计信息
+        """
+        stats = {
+            "success": True,
+            "trigger": trigger,
+            "indexes": {},
+        }
+
+        for idx_info in self.collection.list_indexes():
+            idx_name = idx_info["name"]
+            idx_count = self.collection.get_index_count(idx_name)
+            stats["indexes"][idx_name] = {
+                "type": idx_info["type"].value,
+                "count": idx_count,
+            }
+
+        return stats
 
     def get_stats(self) -> dict[str, Any]:
         """获取统计信息"""
+        index_stats = {}
+        for idx_info in self.collection.list_indexes():
+            idx_name = idx_info["name"]
+            index_stats[idx_name] = {
+                "type": idx_info["type"].value,
+                "count": self.collection.get_index_count(idx_name),
+            }
+
         return {
-            "memory_count": len(self._documents),
+            "memory_count": len(self.collection.get_all_ids()),
             "fusion_strategy": self.fusion_strategy,
             "index_count": len(self.index_configs),
-            "indexes": [c["name"] for c in self.index_configs],
+            "indexes": index_stats,
+            "collection_name": self.collection_name,
         }

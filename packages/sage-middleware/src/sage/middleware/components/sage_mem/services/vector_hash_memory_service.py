@@ -1,7 +1,10 @@
 """Vector Hash Memory Service - 向量哈希桶记忆服务
 
 基于 FAISS LSH 的向量哈希桶服务，支持高效的近似最近邻搜索。
-使用 VDBMemoryCollection 作为底层存储。
+
+设计原则:
+- Service : Collection = 1 : 1
+- 使用 VDBMemoryCollection 作为底层存储
 """
 
 from __future__ import annotations
@@ -10,9 +13,6 @@ import os
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
-)
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
@@ -53,8 +53,8 @@ class VectorHashMemoryService(BaseService):
         # 创建 VDB collection
         if self.manager.has_collection(collection_name):
             collection = self.manager.get_collection(collection_name)
-            if not isinstance(collection, VDBMemoryCollection):
-                raise TypeError(f"Collection '{collection_name}' is not a VDBMemoryCollection")
+            if collection is None:
+                raise RuntimeError(f"Failed to get collection '{collection_name}'")
             self.collection = collection
         else:
             self.collection = self.manager.create_collection(
@@ -69,7 +69,7 @@ class VectorHashMemoryService(BaseService):
             raise RuntimeError("Failed to create VectorHashMemory collection")
 
         # 创建 LSH 索引
-        if isinstance(self.collection, VDBMemoryCollection):
+        if hasattr(self.collection, "index_info"):
             if "lsh_index" not in self.collection.index_info:
                 result = self.collection.create_index(
                     {

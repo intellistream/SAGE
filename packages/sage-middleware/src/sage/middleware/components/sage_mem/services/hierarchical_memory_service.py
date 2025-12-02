@@ -5,7 +5,11 @@
 2. three_tier: 三层 (STM + MTM + LTM)
 3. functional: 功能分区 (episodic + semantic + procedural)
 
-使用多个 VDBMemoryCollection 作为底层存储。
+设计原则:
+- Service : Collection = 1 : 1
+- 使用单一 HybridCollection，通过 tier 元数据区分层级
+- 每层使用独立的 VDB 索引（如 stm_index, mtm_index, ltm_index）
+- 支持跨层迁移（remove_from_index + insert_to_index）
 """
 
 from __future__ import annotations
@@ -17,8 +21,11 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.vdb_collection import (
-    VDBMemoryCollection,
+from sage.middleware.components.sage_mem.neuromem.memory_collection.base_collection import (
+    IndexType,
+)
+from sage.middleware.components.sage_mem.neuromem.memory_collection.hybrid_collection import (
+    HybridCollection,
 )
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
@@ -30,8 +37,10 @@ if TYPE_CHECKING:
 class HierarchicalMemoryService(BaseService):
     """分层记忆服务
 
-    底层使用 MemoryManager + 多个 VDBMemoryCollection 存储。
-    支持记忆在各层之间的迁移。
+    设计原则: Service : Collection = 1 : 1
+    底层使用单一 HybridCollection，每个层级对应一个 VDB 索引。
+    数据只存一份，通过 tier 元数据和多索引实现分层。
+    支持层间迁移（remove_from_index + insert_to_index）。
     """
 
     def __init__(
@@ -40,7 +49,7 @@ class HierarchicalMemoryService(BaseService):
         tier_capacities: dict[str, int] | None = None,
         migration_policy: Literal["overflow", "importance", "time"] = "overflow",
         embedding_dim: int = 384,
-        collection_prefix: str = "hierarchical",
+        collection_name: str = "hierarchical_memory",
     ):
         """初始化分层记忆服务
 
@@ -55,14 +64,14 @@ class HierarchicalMemoryService(BaseService):
                 - "importance": 按重要性迁移
                 - "time": 按时间迁移
             embedding_dim: 向量维度
-            collection_prefix: Collection 名称前缀
+            collection_name: Collection 名称
         """
         super().__init__()
 
         self.tier_mode = tier_mode
         self.migration_policy = migration_policy
         self.embedding_dim = embedding_dim
-        self.collection_prefix = collection_prefix
+        self.collection_name = collection_name
 
         # 根据模式确定层级名称
         if tier_mode == "two_tier":
@@ -88,36 +97,12 @@ class HierarchicalMemoryService(BaseService):
         # 初始化 MemoryManager
         self.manager = MemoryManager(self._get_default_data_dir())
 
-        # 为每一层创建 VDBMemoryCollection
-        self.tier_collections: dict[str, VDBMemoryCollection] = {}
-        for tier_name in self.tier_names:
-            collection_name = f"{collection_prefix}_{tier_name}"
-            if self.manager.has_collection(collection_name):
-                collection = self.manager.get_collection(collection_name)
-            else:
-                collection = self.manager.create_collection(
-                    {
-                        "name": collection_name,
-                        "backend_type": "VDB",
-                        "description": f"Hierarchical memory tier: {tier_name}",
-                    }
-                )
-
-            if isinstance(collection, VDBMemoryCollection):
-                # 确保有 global_index
-                if "global_index" not in collection.index_info:
-                    collection.create_index(
-                        {
-                            "name": "global_index",
-                            "dim": embedding_dim,
-                            "backend_type": "FAISS",
-                            "description": f"Index for {tier_name} tier",
-                        }
-                    )
-                self.tier_collections[tier_name] = collection
+        # 创建或获取单一 HybridCollection (Service:Collection = 1:1)
+        self._init_collection()
 
         # 记录每层的条目数量（用于溢出检测）
-        self._tier_counts: dict[str, int] = dict.fromkeys(self.tier_names, 0)
+        self._tier_counts: dict[str, int] = {}
+        self._update_tier_counts()
 
         self.logger.info(
             f"HierarchicalMemoryService initialized: mode={tier_mode}, "
@@ -132,6 +117,55 @@ class HierarchicalMemoryService(BaseService):
         os.makedirs(data_dir, exist_ok=True)
         return data_dir
 
+    def _get_tier_index_name(self, tier_name: str) -> str:
+        """获取层级对应的索引名"""
+        return f"{tier_name}_index"
+
+    def _init_collection(self) -> None:
+        """初始化 HybridCollection 并为每个层级创建索引"""
+        # 创建或获取 HybridCollection
+        if self.manager.has_collection(self.collection_name):
+            collection = self.manager.get_collection(self.collection_name)
+            if not isinstance(collection, HybridCollection):
+                raise TypeError(
+                    f"Collection '{self.collection_name}' exists but is not a HybridCollection"
+                )
+            self.collection = collection
+        else:
+            self.collection = self.manager.create_collection(
+                {
+                    "name": self.collection_name,
+                    "backend_type": "hybrid",
+                    "description": f"Hierarchical memory ({self.tier_mode})",
+                }
+            )
+
+        if self.collection is None:
+            raise RuntimeError(f"Failed to create HybridCollection '{self.collection_name}'")
+
+        # 为每个层级创建 VDB 索引
+        existing_indexes = {idx["name"] for idx in self.collection.list_indexes()}
+
+        for tier_name in self.tier_names:
+            index_name = self._get_tier_index_name(tier_name)
+            if index_name not in existing_indexes:
+                self.collection.create_index(
+                    {
+                        "name": index_name,
+                        "type": "vdb",
+                        "dim": self.embedding_dim,
+                        "backend_type": "FAISS",
+                        "description": f"VDB index for tier: {tier_name}",
+                    },
+                    IndexType.VDB,
+                )
+
+    def _update_tier_counts(self) -> None:
+        """更新各层的计数"""
+        for tier_name in self.tier_names:
+            index_name = self._get_tier_index_name(tier_name)
+            self._tier_counts[tier_name] = self.collection.get_index_count(index_name)
+
     def insert(
         self,
         entry: str,
@@ -142,6 +176,8 @@ class HierarchicalMemoryService(BaseService):
         insert_params: dict | None = None,
     ) -> str:
         """插入记忆条目
+
+        数据只存一份，加入对应层级的索引。
 
         支持两种插入模式：
         - passive: 由服务自行决定存储方式（默认存入第一层）
@@ -166,15 +202,12 @@ class HierarchicalMemoryService(BaseService):
 
         # 处理插入模式
         effective_tier = None
+        force_insert = False
         if insert_mode == "active" and insert_params:
-            # 主动插入：从 insert_params 获取参数
             effective_tier = insert_params.get("target_tier")
             force_insert = insert_params.get("force", False)
             if "priority" in insert_params:
                 metadata["priority"] = insert_params["priority"]
-        else:
-            # 被动插入：使用默认行为
-            force_insert = False
 
         # 如果 insert_params 没有指定，从 metadata 获取
         if effective_tier is None:
@@ -182,7 +215,7 @@ class HierarchicalMemoryService(BaseService):
 
         # 确定目标层级
         tier_name = effective_tier or self.tier_names[0]
-        if tier_name not in self.tier_collections:
+        if tier_name not in self.tier_names:
             tier_name = self.tier_names[0]
 
         # 生成 ID
@@ -198,30 +231,31 @@ class HierarchicalMemoryService(BaseService):
 
         # 检查容量，必要时触发迁移（force_insert 跳过容量检查）
         capacity = self.tier_capacities.get(tier_name, -1)
-        if not force_insert and capacity > 0 and self._tier_counts[tier_name] >= capacity:
+        if not force_insert and capacity > 0 and self._tier_counts.get(tier_name, 0) >= capacity:
             self._migrate_overflow(tier_name)
 
-        # 插入到目标层的 collection
-        collection = self.tier_collections[tier_name]
-        if vector is not None:
-            vec = np.array(vector, dtype=np.float32)
-            collection.insert(
-                index_name="global_index",
-                raw_data=entry,
-                vector=vec,
-                metadata=full_metadata,
-            )
-        else:
-            # 没有向量时，调用父类 BaseMemoryCollection 的 insert
-            collection.insert(entry, full_metadata)
+        # 获取目标层级的索引名
+        index_name = self._get_tier_index_name(tier_name)
 
-        self._tier_counts[tier_name] += 1
+        # 使用 HybridCollection 的 insert 方法
+        # 数据只存一份，只加入对应层级的索引
+        stable_id = self.collection.insert(
+            content=entry,
+            index_names=[index_name],
+            vector=np.array(vector, dtype=np.float32) if vector is not None else None,
+            metadata=full_metadata,
+        )
 
-        self.logger.debug(f"Inserted entry to {tier_name}: {entry_id[:16]}...")
-        return entry_id
+        # 更新计数
+        self._tier_counts[tier_name] = self._tier_counts.get(tier_name, 0) + 1
+
+        self.logger.debug(f"Inserted entry to {tier_name}: {stable_id[:16]}...")
+        return stable_id
 
     def _migrate_overflow(self, from_tier: str) -> int:
         """处理容量溢出迁移
+
+        从 from_tier 索引移除，加入下一层索引（数据保留）。
 
         Args:
             from_tier: 源层级
@@ -234,11 +268,60 @@ class HierarchicalMemoryService(BaseService):
             # 已经是最后一层，执行遗忘
             return self._forget_oldest(from_tier, count=1)
 
-        # 迁移到下一层
         to_tier = self.tier_names[tier_idx + 1]
-        # TODO: 实现具体的迁移逻辑
-        self.logger.info(f"Migration triggered: {from_tier} -> {to_tier}")
-        return 0
+        from_index = self._get_tier_index_name(from_tier)
+        to_index = self._get_tier_index_name(to_tier)
+
+        # 查找要迁移的条目（最旧的）
+        oldest_items = self._find_oldest_items(from_tier, count=1)
+
+        migrated = 0
+        for item_id, item_vector in oldest_items:
+            # 从源索引移除
+            if self.collection.remove_from_index(item_id, from_index):
+                # 加入目标索引
+                if self.collection.insert_to_index(item_id, to_index, item_vector):
+                    # 更新元数据中的 tier
+                    old_meta = self.collection.get_metadata(item_id) or {}
+                    old_meta["tier"] = to_tier
+                    old_meta["migrated_at"] = time.time()
+                    self.collection.update(item_id, new_metadata=old_meta)
+
+                    # 更新计数
+                    self._tier_counts[from_tier] = max(0, self._tier_counts.get(from_tier, 1) - 1)
+                    self._tier_counts[to_tier] = self._tier_counts.get(to_tier, 0) + 1
+                    migrated += 1
+
+        self.logger.info(f"Migrated {migrated} entries: {from_tier} -> {to_tier}")
+        return migrated
+
+    def _find_oldest_items(
+        self, tier_name: str, count: int = 1
+    ) -> list[tuple[str, np.ndarray | None]]:
+        """查找某层最旧的条目
+
+        Args:
+            tier_name: 层级名称
+            count: 返回数量
+
+        Returns:
+            [(item_id, vector), ...]
+        """
+        # 获取所有数据 ID
+        all_ids = self.collection.get_all_ids()
+
+        # 过滤属于该层的条目
+        tier_items = []
+        for item_id in all_ids:
+            meta = self.collection.get_metadata(item_id)
+            if meta and meta.get("tier") == tier_name:
+                timestamp = meta.get("timestamp", 0)
+                tier_items.append((item_id, timestamp, None))
+
+        # 按时间排序（最旧的在前）
+        tier_items.sort(key=lambda x: x[1])
+
+        return [(item_id, vec) for item_id, _, vec in tier_items[:count]]
 
     def _forget_oldest(self, tier_name: str, count: int = 1) -> int:
         """遗忘最旧的条目
@@ -250,9 +333,16 @@ class HierarchicalMemoryService(BaseService):
         Returns:
             int: 实际遗忘的数量
         """
-        # TODO: 实现遗忘逻辑
-        self.logger.info(f"Forgetting {count} oldest entries from {tier_name}")
-        return 0
+        oldest_items = self._find_oldest_items(tier_name, count)
+        forgotten = 0
+
+        for item_id, _ in oldest_items:
+            if self.collection.delete(item_id):
+                self._tier_counts[tier_name] = max(0, self._tier_counts.get(tier_name, 1) - 1)
+                forgotten += 1
+
+        self.logger.info(f"Forgot {forgotten} oldest entries from {tier_name}")
+        return forgotten
 
     def retrieve(
         self,
@@ -267,7 +357,7 @@ class HierarchicalMemoryService(BaseService):
             query: 查询文本
             vector: 查询向量
             metadata: 检索参数:
-                - tiers: 要搜索的层级列表
+                - tiers: 要搜索的层级列表（默认所有层）
                 - method: "semantic" | "recent"
             top_k: 返回结果数量
 
@@ -278,38 +368,106 @@ class HierarchicalMemoryService(BaseService):
         tiers_to_search = metadata.get("tiers", self.tier_names)
         method = metadata.get("method", "semantic" if vector is not None else "recent")
 
-        all_results = []
+        all_results: list[dict[str, Any]] = []
 
-        for tier_name in tiers_to_search:
-            if tier_name not in self.tier_collections:
-                continue
+        if method == "semantic" and vector is not None:
+            query_vec = np.array(vector, dtype=np.float32)
 
-            collection = self.tier_collections[tier_name]
+            for tier_name in tiers_to_search:
+                if tier_name not in self.tier_names:
+                    continue
 
-            if method == "semantic" and vector is not None:
-                query_vec = np.array(vector, dtype=np.float32)
-                results = collection.retrieve(
-                    query_text=query,
-                    query_vector=query_vec,
-                    index_name="global_index",
-                    topk=top_k,
+                index_name = self._get_tier_index_name(tier_name)
+
+                results = self.collection.retrieve(
+                    query=query_vec,
+                    index_name=index_name,
+                    top_k=top_k,
                     with_metadata=True,
                 )
-                if results:
-                    for r in results:
-                        if isinstance(r, dict):
-                            r["tier"] = tier_name
-                    all_results.extend(results)
-            else:
-                # 获取最近的记忆（按时间）
-                # TODO: 实现基于时间的检索
-                pass
+
+                for item in results:
+                    item["tier"] = tier_name
+                    all_results.append(item)
+
+        elif method == "recent":
+            # 按时间获取最近的记忆
+            for tier_name in tiers_to_search:
+                items = self._find_oldest_items(tier_name, count=top_k)
+                items.reverse()  # 最新的在前
+
+                for item_id, _ in items:
+                    text = self.collection.get_text(item_id)
+                    item_meta = self.collection.get_metadata(item_id) or {}
+                    all_results.append(
+                        {
+                            "id": item_id,
+                            "text": text,
+                            "metadata": item_meta,
+                            "score": 1.0,  # 按时间排序，分数无意义
+                            "tier": tier_name,
+                        }
+                    )
 
         # 按分数排序
-        all_results.sort(
-            key=lambda x: x.get("score", 0) if isinstance(x, dict) else 0, reverse=True
-        )
-        return all_results[:top_k]
+        all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+        # 格式化结果
+        formatted_results = []
+        for item in all_results[:top_k]:
+            formatted_results.append(
+                {
+                    "text": item.get("text", ""),
+                    "score": item.get("score", 0.0),
+                    "entry_id": item.get("id", ""),
+                    "metadata": item.get("metadata", {}),
+                    "tier": item.get("tier", ""),
+                }
+            )
+
+        return formatted_results
+
+    def migrate(self, entry_id: str, from_tier: str, to_tier: str) -> bool:
+        """手动迁移条目
+
+        Args:
+            entry_id: 条目 ID
+            from_tier: 源层级
+            to_tier: 目标层级
+
+        Returns:
+            bool: 是否成功
+        """
+        if from_tier not in self.tier_names or to_tier not in self.tier_names:
+            return False
+
+        from_index = self._get_tier_index_name(from_tier)
+        to_index = self._get_tier_index_name(to_tier)
+
+        # 从源索引移除
+        if not self.collection.remove_from_index(entry_id, from_index):
+            return False
+
+        # 加入目标索引（需要向量，从存储获取）
+        # 注意：VDB 索引需要向量，这里需要重新计算或从外部获取
+        # 暂时传 None，由 insert_to_index 处理
+        if not self.collection.insert_to_index(entry_id, to_index, vector=None):
+            # 回滚：加回源索引
+            self.collection.insert_to_index(entry_id, from_index, vector=None)
+            return False
+
+        # 更新元数据
+        meta = self.collection.get_metadata(entry_id) or {}
+        meta["tier"] = to_tier
+        meta["migrated_at"] = time.time()
+        self.collection.update(entry_id, new_metadata=meta)
+
+        # 更新计数
+        self._tier_counts[from_tier] = max(0, self._tier_counts.get(from_tier, 1) - 1)
+        self._tier_counts[to_tier] = self._tier_counts.get(to_tier, 0) + 1
+
+        self.logger.info(f"Migrated {entry_id[:16]}... from {from_tier} to {to_tier}")
+        return True
 
     def delete(self, entry_id: str) -> bool:
         """删除记忆条目
@@ -320,15 +478,14 @@ class HierarchicalMemoryService(BaseService):
         Returns:
             bool: 是否删除成功
         """
-        for tier_name, collection in self.tier_collections.items():
-            try:
-                # 尝试在每一层删除
-                collection.delete(entry_id)
+        # 获取元数据以更新计数
+        meta = self.collection.get_metadata(entry_id)
+        tier_name = meta.get("tier") if meta else None
+
+        if self.collection.delete(entry_id):
+            if tier_name and tier_name in self._tier_counts:
                 self._tier_counts[tier_name] = max(0, self._tier_counts[tier_name] - 1)
-                self.logger.debug(f"Deleted entry {entry_id[:16]}... from {tier_name}")
-                return True
-            except Exception:
-                continue
+            return True
 
         return False
 
@@ -352,7 +509,8 @@ class HierarchicalMemoryService(BaseService):
             # 检查各层是否需要迁移
             for tier_name in self.tier_names[:-1]:
                 capacity = self.tier_capacities.get(tier_name, -1)
-                if capacity > 0 and self._tier_counts[tier_name] > capacity:
+                current_count = self._tier_counts.get(tier_name, 0)
+                if capacity > 0 and current_count > capacity:
                     migrated = self._migrate_overflow(tier_name)
                     stats["migrated"] += migrated
 
@@ -360,7 +518,8 @@ class HierarchicalMemoryService(BaseService):
             # 检查最后一层是否需要遗忘
             last_tier = self.tier_names[-1]
             capacity = self.tier_capacities.get(last_tier, -1)
-            if capacity > 0 and self._tier_counts[last_tier] > capacity:
+            current_count = self._tier_counts.get(last_tier, 0)
+            if capacity > 0 and current_count > capacity:
                 forgotten = self._forget_oldest(last_tier)
                 stats["forgotten"] += forgotten
 
@@ -369,6 +528,9 @@ class HierarchicalMemoryService(BaseService):
 
     def get_stats(self) -> dict[str, Any]:
         """获取统计信息"""
+        # 刷新计数
+        self._update_tier_counts()
+
         tier_stats = {}
         for tier_name in self.tier_names:
             tier_stats[tier_name] = {
@@ -381,10 +543,12 @@ class HierarchicalMemoryService(BaseService):
             "tier_mode": self.tier_mode,
             "tier_distribution": tier_stats,
             "migration_policy": self.migration_policy,
+            "collection_name": self.collection_name,
         }
 
     def get_tier_stats(self) -> dict[str, dict]:
         """获取各层统计信息"""
+        self._update_tier_counts()
         stats = {}
         for tier_name in self.tier_names:
             stats[tier_name] = {
