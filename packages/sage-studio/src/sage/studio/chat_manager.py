@@ -223,13 +223,15 @@ class ChatModeManager(StudioManager):
         ]
 
         try:
-            with open(embedding_log, "w") as log_file:
-                proc = subprocess.Popen(
-                    embedding_cmd,
-                    stdout=log_file,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,
-                )
+            log_handle = open(embedding_log, "w")
+            proc = subprocess.Popen(
+                embedding_cmd,
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            # 注意：不关闭 log_handle，让子进程继承并管理它
 
             # Save PID for later cleanup
             embedding_pid_file = log_dir / "embedding.pid"
@@ -338,6 +340,7 @@ class ChatModeManager(StudioManager):
             log_handle = open(self.gateway_log_file, "w")
             process = subprocess.Popen(
                 [sys.executable, "-m", "sage.gateway.server"],
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid if os.name != "nt" else None,

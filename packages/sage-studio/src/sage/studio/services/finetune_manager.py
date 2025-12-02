@@ -364,13 +364,15 @@ class FinetuneManager:
             log_file = Path(task.output_dir) / "training.log"
             log_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(log_file, "w") as f:
-                process = subprocess.Popen(
-                    ["python", str(script_path)],
-                    stdout=f,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,  # 创建新的进程组，脱离父进程
-                )
+            log_handle = open(log_file, "w")
+            process = subprocess.Popen(
+                ["python", str(script_path)],
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,  # 创建新的进程组，脱离父进程
+            )
+            # 注意：不关闭 log_handle，让子进程继承并管理它
 
             # 保存进程 ID
             task.process_id = process.pid
