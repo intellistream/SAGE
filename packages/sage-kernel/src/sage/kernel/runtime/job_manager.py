@@ -321,7 +321,7 @@ class JobManager:  # Job Manager
 
     def receive_stop_signal(self, env_uuid: str):
         """接收停止信号"""
-        self.logger.debug(f"[JM-1] submit_job called for env: {getattr(env, 'name', 'Unknown')}")
+        self.logger.debug(f"[JM] receive_stop_signal called for env_uuid: {env_uuid}")
         job_info = self.jobs.get(env_uuid)
         if job_info is None:
             self.logger.warning(f"Job {env_uuid} not found")
