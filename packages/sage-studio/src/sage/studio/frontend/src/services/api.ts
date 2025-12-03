@@ -396,14 +396,75 @@ export interface PipelineRecommendation {
 }
 
 /**
+ * 推理步骤事件类型
+ */
+export interface ReasoningStepEvent {
+    type: 'reasoning_step'
+    step: {
+        id: string
+        type: 'thinking' | 'retrieval' | 'workflow' | 'analysis' | 'conclusion' | 'tool_call'
+        title: string
+        content: string
+        status: 'pending' | 'running' | 'completed' | 'error'
+        timestamp: string
+        duration?: number
+        metadata?: Record<string, any>
+    }
+}
+
+/**
+ * 推理步骤更新事件
+ */
+export interface ReasoningStepUpdateEvent {
+    type: 'reasoning_step_update'
+    step_id: string
+    updates: {
+        content?: string
+        status?: 'pending' | 'running' | 'completed' | 'error'
+        duration?: number
+    }
+}
+
+/**
+ * 推理内容追加事件
+ */
+export interface ReasoningContentEvent {
+    type: 'reasoning_content'
+    step_id: string
+    content: string  // 追加的内容片段
+}
+
+/**
+ * 推理阶段结束事件
+ */
+export interface ReasoningEndEvent {
+    type: 'reasoning_end'
+}
+
+/**
+ * 聊天消息回调集合
+ */
+export interface ChatMessageCallbacks {
+    onChunk: (chunk: string) => void
+    onError: (error: Error) => void
+    onComplete: () => void
+    onReasoningStep?: (step: ReasoningStepEvent['step']) => void
+    onReasoningStepUpdate?: (stepId: string, updates: ReasoningStepUpdateEvent['updates']) => void
+    onReasoningContent?: (stepId: string, content: string) => void
+    onReasoningEnd?: () => void
+}
+
+/**
  * 发送聊天消息（SSE 流式响应）
+ * 支持推理步骤事件
  */
 export async function sendChatMessage(
     message: string,
     sessionId: string,
     onChunk: (chunk: string) => void,
     onError: (error: Error) => void,
-    onComplete: () => void
+    onComplete: () => void,
+    callbacks?: Partial<ChatMessageCallbacks>
 ): Promise<void> {
     try {
         const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
@@ -457,6 +518,32 @@ export async function sendChatMessage(
 
                     try {
                         const parsed = JSON.parse(data)
+
+                        // 处理推理步骤事件
+                        if (parsed.type === 'reasoning_step' && callbacks?.onReasoningStep) {
+                            callbacks.onReasoningStep(parsed.step)
+                            continue
+                        }
+
+                        // 处理推理步骤更新事件
+                        if (parsed.type === 'reasoning_step_update' && callbacks?.onReasoningStepUpdate) {
+                            callbacks.onReasoningStepUpdate(parsed.step_id, parsed.updates)
+                            continue
+                        }
+
+                        // 处理推理内容追加事件
+                        if (parsed.type === 'reasoning_content' && callbacks?.onReasoningContent) {
+                            callbacks.onReasoningContent(parsed.step_id, parsed.content)
+                            continue
+                        }
+
+                        // 处理推理结束事件
+                        if (parsed.type === 'reasoning_end' && callbacks?.onReasoningEnd) {
+                            callbacks.onReasoningEnd()
+                            continue
+                        }
+
+                        // 处理标准 OpenAI 格式的内容
                         const content = parsed.choices?.[0]?.delta?.content
                         if (content) {
                             onChunk(content)
