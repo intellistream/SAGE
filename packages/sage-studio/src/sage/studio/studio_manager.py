@@ -284,9 +284,15 @@ class StudioManager:
                 console.print(f"[green]Node.js: {node_version}[/green]")
             else:
                 console.print("[red]Node.js 未找到[/red]")
+                console.print("[yellow]💡 安装方法:[/yellow]")
+                console.print("   conda install -y nodejs=20 -c conda-forge")
+                console.print("   # 或 apt install nodejs npm")
                 return False
         except FileNotFoundError:
             console.print("[red]Node.js 未安装[/red]")
+            console.print("[yellow]💡 安装方法:[/yellow]")
+            console.print("   conda install -y nodejs=20 -c conda-forge")
+            console.print("   # 或 apt install nodejs npm")
             return False
 
         # 检查 npm
@@ -297,9 +303,11 @@ class StudioManager:
                 console.print(f"[green]npm: {npm_version}[/green]")
             else:
                 console.print("[red]npm 未找到[/red]")
+                console.print("[yellow]💡 npm 通常随 Node.js 一起安装[/yellow]")
                 return False
         except (FileNotFoundError, subprocess.CalledProcessError):
             console.print("[red]npm 未安装[/red]")
+            console.print("[yellow]💡 npm 通常随 Node.js 一起安装[/yellow]")
             return False
 
         return True
@@ -378,7 +386,19 @@ class StudioManager:
                 "version": "1.2.4",
                 "required": ["build", "build/index.js"],
                 "reason": "PostCSS SourceMap helper (Vite dev server)",
-            }
+            },
+            {
+                "name": "typescript",
+                "version": "^5.2.2",
+                "required": ["bin/tsc"],
+                "reason": "TypeScript compiler for build",
+            },
+            {
+                "name": "vite",
+                "version": "^5.0.8",
+                "required": ["bin/vite.js"],
+                "reason": "Vite build tool",
+            },
         ]
 
         broken: list[tuple[dict, list[str]]] = []
@@ -1188,10 +1208,10 @@ if __name__ == "__main__":
                 self.stop_backend()
                 return False
 
-            if not self._ensure_frontend_dependency_integrity(auto_fix=auto_install):
-                console.print("[red]前端依赖损坏，已停止启动流程[/red]")
-                self.stop_backend()
-                return False
+        if not self._ensure_frontend_dependency_integrity(auto_fix=auto_install):
+            console.print("[red]前端依赖损坏，已停止启动流程[/red]")
+            self.stop_backend()
+            return False
 
         # 使用提供的参数或配置文件中的默认值
         config = self.load_config()
