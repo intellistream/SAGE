@@ -87,14 +87,16 @@ def get_conda_init_code(conda_env: str = "sage") -> str:
     """获取Conda环境初始化代码"""
     return f"""
 # 多种conda安装路径尝试
+CONDA_BASE=""
 for conda_path in \\
-    "$HOME/miniconda3/etc/profile.d/conda.sh" \\
-    "$HOME/anaconda3/etc/profile.d/conda.sh" \\
-    "/opt/conda/etc/profile.d/conda.sh" \\
-    "/usr/local/miniconda3/etc/profile.d/conda.sh" \\
-    "/usr/local/anaconda3/etc/profile.d/conda.sh"; do
-    if [ -f "$conda_path" ]; then
-        source "$conda_path"
+    "$HOME/miniconda3" \\
+    "$HOME/anaconda3" \\
+    "/opt/conda" \\
+    "/usr/local/miniconda3" \\
+    "/usr/local/anaconda3"; do
+    if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+        source "$conda_path/etc/profile.d/conda.sh"
+        CONDA_BASE="$conda_path"
         echo "[INFO] 找到conda: $conda_path"
         CONDA_FOUND=true
         break
@@ -106,7 +108,7 @@ if [ -z "$CONDA_FOUND" ]; then
     exit 1
 fi
 
-# 激活sage环境
+# 激活环境
 if ! conda activate {conda_env}; then
     echo "[ERROR] 无法激活conda环境: {conda_env}"
     echo "[INFO] 可用的conda环境:"
@@ -115,6 +117,14 @@ if ! conda activate {conda_env}; then
 fi
 
 echo "[SUCCESS] 已激活conda环境: {conda_env}"
+
+# 设置 RAY_CMD 变量（使用 conda 环境中的 ray）
+RAY_CMD="$CONDA_BASE/envs/{conda_env}/bin/ray"
+if [ ! -f "$RAY_CMD" ]; then
+    # 如果 conda env 中没有 ray，尝试使用 PATH 中的
+    RAY_CMD=$(which ray 2>/dev/null || echo "ray")
+fi
+echo "[INFO] RAY_CMD: $RAY_CMD"
 """
 
 
@@ -139,7 +149,7 @@ def start_workers():
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
 
-    ray_command = remote_config.get("ray_command", "ray")
+    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     typer.echo("📋 配置信息:")
@@ -187,11 +197,11 @@ echo "===============================================" | tee -a "$LOG_DIR/worker
 
 # 记录版本信息
 echo "[INFO] Python版本: $(python --version 2>&1)" | tee -a "$LOG_DIR/worker.log"
-echo "[INFO] Ray版本: $({ray_command} --version 2>&1)" | tee -a "$LOG_DIR/worker.log"
+echo "[INFO] Ray版本: $($RAY_CMD --version 2>&1)" | tee -a "$LOG_DIR/worker.log"
 
 # 停止现有的ray进程
 echo "[INFO] 停止现有Ray进程..." | tee -a "$LOG_DIR/worker.log"
-{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+$RAY_CMD stop >> "$LOG_DIR/worker.log" 2>&1 || true
 sleep 2
 
 # 强制清理残留进程
@@ -242,7 +252,7 @@ fi
 
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
-RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP"
+RAY_START_CMD="$RAY_CMD start --address={head_host}:{head_port} --node-ip-address=$NODE_IP"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
 # 执行Ray启动命令并捕获输出和退出码
@@ -264,7 +274,7 @@ if [[ -n "$RAY_PIDS" ]]; then
     echo "[INFO] 节点已连接到集群: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
 
     # 验证Ray状态
-    if timeout 10 {ray_command} status > /dev/null 2>&1; then
+    if timeout 10 $RAY_CMD status > /dev/null 2>&1; then
         echo "[SUCCESS] Ray集群连接验证成功" | tee -a "$LOG_DIR/worker.log"
     else
         echo "[WARNING] Ray集群连接验证失败，但进程正在运行" | tee -a "$LOG_DIR/worker.log"
@@ -316,7 +326,7 @@ def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     success_count = 0
@@ -374,7 +384,7 @@ echo "===============================================" | tee -a "$LOG_DIR/worker
 
 # 优雅停止
 echo "[INFO] 正在优雅停止Ray进程..." | tee -a "$LOG_DIR/worker.log"
-{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+$RAY_CMD stop >> "$LOG_DIR/worker.log" 2>&1 || true
 sleep 2
 
 # 强制停止残留进程
@@ -427,7 +437,7 @@ def status_workers():
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     running_count = 0
@@ -459,7 +469,7 @@ if [[ -n "$RAY_PIDS" ]]; then
 
     echo ""
     echo "--- Ray集群连接状态 ---"
-    timeout 10 {ray_command} status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"
+    timeout 10 $RAY_CMD status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"
     exit 0
 else
     echo "[已停止] 未发现Ray进程"
@@ -607,7 +617,7 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
         worker_bind_host = worker_config.get("bind_host", "localhost")
         worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
         worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-        ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+        ray_command = remote_config.get("ray_command") or "ray"
         conda_env = remote_config.get("conda_env", "sage")
 
         start_command = f"""set -e
@@ -628,7 +638,7 @@ echo "===============================================" | tee -a "$LOG_DIR/worker
 {get_conda_init_code(conda_env)}
 
 # 停止现有的ray进程
-{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+$RAY_CMD stop >> "$LOG_DIR/worker.log" 2>&1 || true
 sleep 2
 
 # 设置节点IP
@@ -642,7 +652,7 @@ export RAY_DISABLE_IMPORT_WARNING=1
 
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
-RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
+RAY_START_CMD="$RAY_CMD start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
 # 执行Ray启动命令并捕获输出和退出码
@@ -715,7 +725,7 @@ def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     stop_command = f'''set +e
@@ -728,7 +738,7 @@ echo "停止Worker节点 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/work
 {get_conda_init_code(conda_env)}
 
 # 停止Ray
-{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+$RAY_CMD stop >> "$LOG_DIR/worker.log" 2>&1 || true
 
 # 强制清理
 for pattern in 'ray.*start' 'raylet' 'core_worker'; do
