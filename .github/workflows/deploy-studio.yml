@@ -319,13 +319,45 @@ jobs:
           fi
           conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
 
-          # 确保 Node.js 可用
-          if ! command -v node &> /dev/null; then
-            echo "📦 安装 Node.js..."
-            conda install -y nodejs=20 -c conda-forge
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "PATH (first 3): $(echo $PATH | tr ':' '\n' | head -3 | tr '\n' ':')"
+
+          # 确保 Node.js 20+ 可用（TypeScript 5.x 需要 Node.js 14+，推荐 20+）
+          # 检查版本号而不是仅检查命令是否存在，因为系统可能有旧版本 Node.js
+          NODE_VERSION=""
+          if command -v node &> /dev/null; then
+            NODE_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+            echo "当前 Node.js: $(node --version) at $(which node)"
           fi
+
+          if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 18 ]; then
+            echo "📦 安装 Node.js 20（当前版本: ${NODE_VERSION:-未安装}，需要 18+）..."
+            conda install -y nodejs=20 -c conda-forge
+
+            # 强制重新激活 conda 环境以更新 PATH
+            conda deactivate
+            conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+            # 刷新命令缓存
+            hash -r
+
+            echo "安装后 Node.js: $(node --version) at $(which node)"
+          fi
+
           echo "Node.js: $(node --version)"
           echo "npm: $(npm --version)"
+
+          # 验证 Node.js 版本满足要求
+          FINAL_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+          if [ "$FINAL_VERSION" -lt 18 ]; then
+            echo "❌ Node.js 版本过低: $(node --version)，需要 18+"
+            echo "   当前 Node.js 路径: $(which node)"
+            echo "   conda 环境: $CONDA_PREFIX"
+            echo "   检查是否存在 conda node: ls -la $CONDA_PREFIX/bin/node"
+            ls -la "$CONDA_PREFIX/bin/node" 2>/dev/null || echo "   conda 中未找到 node"
+            echo "   请确保 conda 环境的 bin 目录在 PATH 前面"
+            exit 1
+          fi
 
           # 安装前端依赖
           sage studio install
@@ -345,6 +377,14 @@ jobs:
             done
           fi
           conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+          # 验证 Node.js 版本（必须在 conda 环境中）
+          echo "Node.js: $(node --version) at $(which node)"
+          NODE_MAJOR=$(node --version | sed 's/v//' | cut -d. -f1)
+          if [ "$NODE_MAJOR" -lt 18 ]; then
+            echo "❌ Node.js 版本过低，需要 18+"
+            exit 1
+          fi
 
           # 构建生产版本
           sage studio build

@@ -276,11 +276,28 @@ class StudioManager:
 
     def check_dependencies(self) -> bool:
         """检查依赖"""
+        MIN_NODE_VERSION = 18  # TypeScript 5.x 需要 Node.js 14+，推荐 18+
+
         # 检查 Node.js
         try:
             result = subprocess.run(["node", "--version"], capture_output=True, text=True)
             if result.returncode == 0:
                 node_version = result.stdout.strip()
+                # 解析版本号（例如 v12.22.9 -> 12）
+                version_str = node_version.lstrip("v").split(".")[0]
+                try:
+                    major_version = int(version_str)
+                except ValueError:
+                    major_version = 0
+
+                if major_version < MIN_NODE_VERSION:
+                    console.print(
+                        f"[red]Node.js 版本过低: {node_version}（需要 v{MIN_NODE_VERSION}+）[/red]"
+                    )
+                    console.print("[yellow]💡 请升级 Node.js:[/yellow]")
+                    console.print("   conda install -y nodejs=20 -c conda-forge")
+                    console.print("   # 或通过 nvm 安装: nvm install 20 && nvm use 20")
+                    return False
                 console.print(f"[green]Node.js: {node_version}[/green]")
             else:
                 console.print("[red]Node.js 未找到[/red]")

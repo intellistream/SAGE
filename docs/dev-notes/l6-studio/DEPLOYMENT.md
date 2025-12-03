@@ -8,14 +8,21 @@ SAGE Studio 是一个基于 React + Vite 的前端应用，配合 Python 后端 
 
 ### 系统依赖
 
-1. **Node.js 20+** 和 **npm**
+1. **Node.js 18+** 和 **npm**（TypeScript 5.x 需要 Node.js 14+，推荐 18+）
    ```bash
-   # 推荐通过 conda 安装
+   # 推荐通过 conda 安装（确保版本正确）
    conda install -y nodejs=20 -c conda-forge
 
-   # 或通过系统包管理器
-   apt install nodejs npm
+   # 检查版本
+   node --version  # 应该显示 v18+ 或 v20+
+
+   # 如果系统有旧版本 Node.js，确保 conda 环境的优先级更高
+   which node  # 应该指向 conda 环境中的 node
    ```
+
+   **常见问题**：如果系统通过 apt 安装了旧版 Node.js（如 v12），可能会导致 TypeScript 编译失败（`SyntaxError: Unexpected token '?'`）。解决方法：
+   - 使用 conda 安装 Node.js 20+
+   - 或使用 nvm 管理 Node.js 版本：`nvm install 20 && nvm use 20`
 
 2. **Python 3.10+** 和 SAGE 开发环境
    ```bash
