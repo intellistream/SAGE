@@ -35,6 +35,88 @@ body {
     background-color: #ffffff;
 }
 
+/* ==========================================
+   Chat Message Prose Styles - 确保文字颜色正确
+   ========================================== */
+
+/* AI 消息容器中的所有文本都使用深色 */
+.prose.prose-gray {
+    --tw-prose-body: #374151;
+    --tw-prose-headings: #111827;
+    --tw-prose-lead: #4b5563;
+    --tw-prose-links: #2563eb;
+    --tw-prose-bold: #111827;
+    --tw-prose-counters: #6b7280;
+    --tw-prose-bullets: #6b7280;
+    --tw-prose-hr: #d1d5db;
+    --tw-prose-quotes: #374151;
+    --tw-prose-quote-borders: #60a5fa;
+    --tw-prose-captions: #6b7280;
+    --tw-prose-code: #1f2937;
+    --tw-prose-pre-code: #f3f4f6;
+    --tw-prose-pre-bg: #1f2937;
+    --tw-prose-th-borders: #d1d5db;
+    --tw-prose-td-borders: #e5e7eb;
+}
+
+/* 确保嵌套元素颜色正确 */
+.prose.prose-gray p,
+.prose.prose-gray li,
+.prose.prose-gray span {
+    color: #374151;
+}
+
+.prose.prose-gray strong {
+    color: #111827;
+}
+
+.prose.prose-gray em {
+    color: #374151;
+}
+
+.prose.prose-gray h1,
+.prose.prose-gray h2,
+.prose.prose-gray h3,
+.prose.prose-gray h4,
+.prose.prose-gray h5,
+.prose.prose-gray h6 {
+    color: #111827;
+}
+
+/* 引用块样式 */
+.prose.prose-gray blockquote {
+    color: #4b5563;
+    border-left-color: #60a5fa;
+    background-color: #eff6ff;
+}
+
+.prose.prose-gray blockquote p {
+    color: #4b5563;
+}
+
+/* 行内代码样式 */
+.prose.prose-gray code:not(pre code) {
+    color: #1f2937;
+    background-color: #e5e7eb;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+/* 表格样式 */
+.prose.prose-gray table {
+    color: #374151;
+}
+
+.prose.prose-gray th {
+    color: #111827;
+    background-color: #f9fafb;
+}
+
+.prose.prose-gray td {
+    color: #374151;
+}
+
 /* Custom node styles */
 .custom-node {
     padding: 10px;
