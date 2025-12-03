@@ -459,7 +459,7 @@ class ChatModeManager(StudioManager):
             pass
         return None
 
-    def _start_gateway(self, port: int | None = None) -> bool:
+    def _start_gateway(self, port: int | None = None, llm_base_url: str | None = None) -> bool:
         if self._is_gateway_running():
             console.print("[green]✅ sage-gateway 已运行[/green]")
             return True
@@ -469,6 +469,11 @@ class ChatModeManager(StudioManager):
         gateway_port = port or self.gateway_port
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
+
+        # Pass LLM endpoint to Gateway if local LLM is running
+        if llm_base_url:
+            env["SAGE_CHAT_BASE_URL"] = llm_base_url
+            console.print(f"[dim]   Gateway 将使用 LLM: {llm_base_url}[/dim]")
 
         console.print(f"[blue]🚀 启动 sage-gateway (端口: {gateway_port})...[/blue]")
         try:
@@ -586,14 +591,17 @@ class ChatModeManager(StudioManager):
             console.print("[dim]   提示：vLLM 需要 NVIDIA GPU 支持[/dim]")
             start_llm = False
 
+        # Track LLM URL for Gateway
+        llm_base_url: str | None = None
+
         # Start local LLM service first (if enabled)
         if start_llm:
             model = llm_model if not use_finetuned else None
             llm_started = self._start_llm_service(model=model, use_finetuned=use_finetuned)
             if llm_started:
-                console.print(
-                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 UnifiedInferenceClient 自动检测）[/green]"
-                )
+                # Set LLM URL for Gateway to use
+                llm_base_url = f"http://localhost:{self.llm_port}/v1"
+                console.print(f"[green]💡 Gateway 将使用本地 LLM 服务: {llm_base_url}[/green]")
             else:
                 console.print(
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
@@ -603,8 +611,8 @@ class ChatModeManager(StudioManager):
         if start_embedding:
             self._start_embedding_service(model=embedding_model)
 
-        # Start Gateway
-        if not self._start_gateway(port=self.gateway_port):
+        # Start Gateway (pass LLM URL if local service is running)
+        if not self._start_gateway(port=self.gateway_port, llm_base_url=llm_base_url):
             return False
 
         # Start Studio UI (use parent class method)

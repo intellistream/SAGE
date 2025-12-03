@@ -17,6 +17,98 @@ from pathlib import Path
 from typing import Any
 
 
+def check_gpu_resources() -> dict[str, Any]:
+    """检查 GPU 资源使用情况
+
+    Returns:
+        dict with keys:
+        - available: bool, 是否有足够资源进行微调
+        - total_memory_gb: float, 总显存
+        - used_memory_gb: float, 已用显存
+        - free_memory_gb: float, 可用显存
+        - running_services: list[str], 正在运行的服务名称
+        - warning: str | None, 警告信息
+    """
+    result = {
+        "available": False,
+        "total_memory_gb": 0.0,
+        "used_memory_gb": 0.0,
+        "free_memory_gb": 0.0,
+        "running_services": [],
+        "warning": None,
+    }
+
+    try:
+        import torch
+
+        if not torch.cuda.is_available():
+            result["warning"] = "No GPU detected"
+            return result
+
+        # 获取 GPU 显存信息
+        props = torch.cuda.get_device_properties(0)
+        total_mem = props.total_memory / (1024**3)
+        # 使用 nvidia-smi 获取实际使用情况（更准确）
+        try:
+            import subprocess as sp
+
+            output = sp.check_output(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.used,memory.total",
+                    "--format=csv,nounits,noheader",
+                ],
+                encoding="utf-8",
+            )
+            used, total = map(float, output.strip().split(","))
+            used_mem = used / 1024  # MB to GB
+            total_mem = total / 1024
+        except Exception:
+            # 回退到 torch 的方法
+            used_mem = torch.cuda.memory_allocated(0) / (1024**3)
+
+        free_mem = total_mem - used_mem
+
+        result["total_memory_gb"] = round(total_mem, 2)
+        result["used_memory_gb"] = round(used_mem, 2)
+        result["free_memory_gb"] = round(free_mem, 2)
+
+        # 检查正在运行的服务
+        try:
+            import subprocess as sp
+
+            # 检查 vLLM 服务
+            ps_output = sp.check_output(["ps", "aux"], encoding="utf-8")
+            if "vllm" in ps_output.lower():
+                result["running_services"].append("vLLM (推理服务)")
+            if "embedding_server" in ps_output.lower():
+                result["running_services"].append("Embedding 服务")
+        except Exception:
+            pass
+
+        # 判断是否有足够资源
+        # 微调至少需要 4GB 可用显存（8-bit 量化的小模型）
+        MIN_FREE_MEMORY_GB = 4.0
+        if free_mem >= MIN_FREE_MEMORY_GB:
+            result["available"] = True
+        else:
+            result["warning"] = (
+                f"可用显存不足: {free_mem:.1f}GB < {MIN_FREE_MEMORY_GB}GB。"
+                f"建议停止推理服务后再开始微调。"
+            )
+            if result["running_services"]:
+                result["warning"] += f" 当前运行的服务: {', '.join(result['running_services'])}"
+
+        return result
+
+    except ImportError:
+        result["warning"] = "PyTorch not installed"
+        return result
+    except Exception as e:
+        result["warning"] = f"Failed to check GPU: {e}"
+        return result
+
+
 class FinetuneStatus(str, Enum):
     """Fine-tune task status"""
 
@@ -364,13 +456,18 @@ class FinetuneManager:
             log_file = Path(task.output_dir) / "training.log"
             log_file.parent.mkdir(parents=True, exist_ok=True)
 
-            log_handle = open(log_file, "w")
+            # 设置环境变量确保 Python unbuffered 输出
+            env = os.environ.copy()
+            env["PYTHONUNBUFFERED"] = "1"
+
+            log_handle = open(log_file, "w", buffering=1)  # 行缓冲
             process = subprocess.Popen(
-                ["python", str(script_path)],
+                ["python", "-u", str(script_path)],  # -u 表示 unbuffered
                 stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,  # 创建新的进程组，脱离父进程
+                env=env,
             )
             # 注意：不关闭 log_handle，让子进程继承并管理它
 
@@ -481,14 +578,24 @@ class FinetuneManager:
         script_path = Path(task.output_dir) / "train.py"
         script_path.parent.mkdir(parents=True, exist_ok=True)
 
-        script_content = f'''"""
+        script_content = f'''#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
 Auto-generated training script for task {task.task_id}
 With OOM protection and auto-recovery
 """
 import sys
+import os
 import gc
 import torch
 from pathlib import Path
+
+# 强制使用行缓冲，确保日志即时输出
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+# 设置环境变量确保子进程也使用 unbuffered
+os.environ["PYTHONUNBUFFERED"] = "1"
+
 from sage.libs.finetune import LoRATrainer, TrainingConfig
 
 def clear_gpu_memory():

@@ -267,9 +267,10 @@ class Dispatcher:
 
         if self.remote:
             # 清理 Ray 服务 (使用生命周期管理器)
+            # 明确禁止 Ray Actor 重启，确保完全清理
             try:
                 self.lifecycle_manager.cleanup_all(
-                    tasks={}, services=self.services, cleanup_timeout=5.0
+                    tasks={}, services=self.services, cleanup_timeout=5.0, no_restart=True
                 )
             except Exception as e:
                 self.logger.error(f"Error cleaning up Ray services: {e}")
@@ -703,8 +704,9 @@ class Dispatcher:
 
             if self.remote:
                 # 使用生命周期管理器清理所有Ray资源
+                # 明确禁止 Ray Actor 重启，确保完全清理
                 self.lifecycle_manager.cleanup_all(
-                    tasks=self.tasks, services=self.services, cleanup_timeout=5.0
+                    tasks=self.tasks, services=self.services, cleanup_timeout=5.0, no_restart=True
                 )
             else:
                 # 清理本地任务
