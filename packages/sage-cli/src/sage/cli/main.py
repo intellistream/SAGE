@@ -134,6 +134,7 @@ try:
         bench_app,
         chat_app,
         embedding_app,
+        gateway_app,
         inference_app,
         llm_app,
         pipeline_app,
@@ -179,6 +180,11 @@ try:
             bench_app,
             name="bench",
             help="🧪 Benchmark - 统一入口 (Agent、Control Plane 等 Benchmarks)",
+    if gateway_app:
+        app.add_typer(
+            gateway_app,
+            name="gateway",
+            help="🌐 API Gateway - 统一推理网关服务 (start, stop, status, logs, restart)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

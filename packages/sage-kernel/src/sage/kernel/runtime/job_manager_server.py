@@ -170,7 +170,9 @@ class JobManagerServer(BaseTcpServer):
             self.logger.debug(
                 f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')} (autostop={autostop})"
             )
-            self.logger.debug(f"[SUBMIT-3] Calling jobmanager.submit_job, env={getattr(env, 'name', 'Unknown')}")
+            self.logger.debug(
+                f"[SUBMIT-3] Calling jobmanager.submit_job, env={getattr(env, 'name', 'Unknown')}"
+            )
             job_uuid = self.jobmanager.submit_job(env, autostop=autostop)
             self.logger.debug(f"[SUBMIT-4] submit_job returned UUID: {job_uuid}")
 
