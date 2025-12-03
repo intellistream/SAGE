@@ -484,6 +484,15 @@ repos:
     files: ^packages/sage-benchmark/src/sage/data/(sources|usages)/.*\.(yaml|py)$
     description: Validate that datasets follow the two-layer architecture
 
+  # SAGE Benchmark Architecture Validation
+  - id: validate-benchmark-architecture
+    name: Validate SAGE Benchmark Architecture (warnings only)
+    entry: python tools/hooks/validate_benchmark_architecture.py
+    language: system
+    pass_filenames: false
+    files: ^packages/sage-(benchmark|cli)/.*\.(py)$
+    description: Check that benchmarks are registered under `sage bench` CLI
+
 # To install pre-commit hooks:
 #   pre-commit install
 #

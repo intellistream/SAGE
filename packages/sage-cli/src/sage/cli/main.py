@@ -131,6 +131,7 @@ except ImportError as e:
 
 try:
     from .commands.apps import (
+        bench_app,
         chat_app,
         embedding_app,
         inference_app,
@@ -172,6 +173,12 @@ try:
             inference_app,
             name="inference",
             help="🔮 统一推理服务 - LLM 和 Embedding 混合调度 (start, stop, status, config)",
+        )
+    if bench_app:
+        app.add_typer(
+            bench_app,
+            name="bench",
+            help="🧪 Benchmark - 统一入口 (Agent、Control Plane 等 Benchmarks)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

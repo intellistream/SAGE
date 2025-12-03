@@ -83,6 +83,8 @@ Repository = "https://github.com/intellistream/SAGE"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
+# Agent Benchmark CLI (Paper 1)
+sage-agent-bench = "sage.benchmark.benchmark_agent.scripts.experiments.sage_bench_cli:main"
 # Control Plane Benchmark CLI
 sage-cp-bench = "sage.benchmark.benchmark_control_plane.cli:main"
 
