@@ -77,9 +77,47 @@ jobs:
             command -v cmake && command -v git && echo "✅ 必要工具已存在"
           fi
 
-      - name: Install/Update SAGE
+      - name: Check existing SAGE installation
+        id: check-sage
         run: |
-          echo "📦 安装 SAGE（开发模式）..."
+          echo "🔍 检查现有 SAGE 安装..."
+          export PATH="$HOME/.local/bin:$PATH"
+
+          CURRENT_COMMIT="${{ github.sha }}"
+          DEPLOYED_COMMIT_FILE="$HOME/.sage_deployed_commit"
+
+          # 检查是否已安装并可导入
+          if python -c "import sage.studio; import sage.gateway" 2>/dev/null; then
+            echo "sage_installed=true" >> $GITHUB_OUTPUT
+            echo "✅ SAGE 已安装"
+
+            # 检查上次部署的 commit
+            if [ -f "$DEPLOYED_COMMIT_FILE" ]; then
+              DEPLOYED_COMMIT=$(cat "$DEPLOYED_COMMIT_FILE")
+              echo "上次部署 commit: $DEPLOYED_COMMIT"
+              echo "当前部署 commit: $CURRENT_COMMIT"
+
+              if [ "$DEPLOYED_COMMIT" = "$CURRENT_COMMIT" ]; then
+                echo "needs_update=false" >> $GITHUB_OUTPUT
+                echo "✅ 版本一致，无需重新安装"
+              else
+                echo "needs_update=true" >> $GITHUB_OUTPUT
+                echo "📦 版本不同，需要更新"
+              fi
+            else
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "📦 首次部署记录，需要更新"
+            fi
+          else
+            echo "sage_installed=false" >> $GITHUB_OUTPUT
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "📦 SAGE 未安装，需要完整安装"
+          fi
+
+      - name: Install/Update SAGE
+        if: steps.check-sage.outputs.needs_update == 'true'
+        run: |
+          echo "📦 安装/更新 SAGE（开发模式）..."
 
           export PATH="$HOME/.local/bin:$PATH"
           chmod +x ./quickstart.sh
@@ -88,10 +126,37 @@ jobs:
           export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
           export PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
 
-          ./quickstart.sh --dev --yes
+          # 如果已安装，使用增量更新模式
+          if [ "${{ steps.check-sage.outputs.sage_installed }}" = "true" ]; then
+            echo "🔄 执行增量更新..."
+            # 只重新安装 editable 包，不重装依赖
+            pip install -e packages/sage-common --no-deps -q
+            pip install -e packages/sage-platform --no-deps -q
+            pip install -e packages/sage-kernel --no-deps -q
+            pip install -e packages/sage-libs --no-deps -q
+            pip install -e packages/sage-middleware --no-deps -q
+            pip install -e packages/sage-apps --no-deps -q
+            pip install -e packages/sage-studio --no-deps -q
+            pip install -e packages/sage-gateway --no-deps -q
+            pip install -e packages/sage-cli --no-deps -q
+            pip install -e packages/sage-tools --no-deps -q
+            pip install -e packages/sage --no-deps -q
+            echo "✅ 增量更新完成"
+          else
+            echo "📦 执行完整安装..."
+            ./quickstart.sh --dev --yes
+          fi
 
-          echo "✅ SAGE 安装完成"
+          # 记录部署的 commit，用于下次增量检测
+          echo "${{ github.sha }}" > "$HOME/.sage_deployed_commit"
+
+          echo "✅ SAGE 安装/更新完成"
         timeout-minutes: 45
+
+      - name: Skip installation (up to date)
+        if: steps.check-sage.outputs.needs_update != 'true'
+        run: |
+          echo "⏭️ SAGE 已是最新版本，跳过安装步骤"
 
       - name: Verify Installation
         run: |
@@ -110,6 +175,7 @@ jobs:
           fi
 
       - name: Build Studio (Production)
+        if: steps.check-sage.outputs.needs_update == 'true'
         run: |
           echo "🏗️  构建 SAGE Studio（生产模式）..."
 
@@ -118,6 +184,11 @@ jobs:
           sage studio build
 
           echo "✅ Studio 构建完成"
+
+      - name: Skip build (up to date)
+        if: steps.check-sage.outputs.needs_update != 'true'
+        run: |
+          echo "⏭️ 代码无变化，跳过前端构建"
 
       - name: Start SAGE Studio
         run: |
