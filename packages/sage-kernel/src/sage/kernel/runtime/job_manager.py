@@ -131,13 +131,13 @@ class JobManager:  # Job Manager
 
         # 创建执行图
         graph = self._create_execution_graph(env)
-        self.logger.debug(f"[JM-3] Creating execution graph")
+        self.logger.debug("[JM-3] Creating execution graph")
 
         # 创建 JobInfo 对象，传递 autostop 参数
         job_info = self._create_job_info(env, graph, job_uuid, autostop)
-        self.logger.debug(f"[JM-4] Created JobInfo")
+        self.logger.debug("[JM-4] Created JobInfo")
 
-        self.logger.debug(f"[JM-5] Submitting to dispatcher")
+        self.logger.debug("[JM-5] Submitting to dispatcher")
         # 提交到调度器
         success = self._submit_to_dispatcher(job_info)
         self.logger.debug(f"[JM-6] Dispatcher submit returned: {success}")
