@@ -26,7 +26,8 @@ env:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    # 强制使用 A100 runner，确保环境一致性（与 paper1-experiments.yml 相同）
+    runs-on: [self-hosted, A100]
     timeout-minutes: 120  # 首次安装 NVIDIA CUDA 包需要较长时间
 
     # Define secrets as env vars at job level for conditional checks
@@ -35,8 +36,8 @@ jobs:
       DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      # Conda 环境名称（持久化，复用已安装的包）
-      CONDA_ENV_NAME: sage-studio
+      # Conda 环境名称（统一使用 sage，与开发环境一致）
+      CONDA_ENV_NAME: sage
 
     # 默认使用 bash，并自动激活 conda 环境
     defaults:
