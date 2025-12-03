@@ -38,11 +38,14 @@ services:
     indexes:
     - name: "semantic"
       type: "vector"
+      dim: 1024                       # BAAI/bge-m3 输出 1024 维向量
       embedding_model: "BAAI/bge-m3"
     - name: "keyword"
       type: "bm25"
     fusion_strategy: "weighted"
-    fusion_weights: [0.7, 0.3]
+    fusion_weights:
+      semantic: 0.7
+      keyword: 0.3
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
@@ -57,6 +60,7 @@ operators:
   pre_insert:
     action: "extract"
     extract_type: "entity"
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity/noun 提取
     entity_types: ["PERSON", "ORG", "LOC", "DATE", "EVENT"]
     add_to_metadata: true
 

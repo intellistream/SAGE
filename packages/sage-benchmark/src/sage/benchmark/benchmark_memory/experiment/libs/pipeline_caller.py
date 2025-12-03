@@ -31,6 +31,9 @@ class PipelineCaller(MapFunction):
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
 
+        # 服务调用超时时间（秒），默认 90 秒
+        self.service_timeout = config.get("runtime.service_timeout", 90.0)
+
         # 根据数据集类型初始化加载器
         if self.dataset == "locomo":
             self.loader = LocomoDataLoader()
@@ -114,6 +117,8 @@ class PipelineCaller(MapFunction):
             "session_id": session_id,
             "dialog_id": dialog_id,
             "dialogs": dialogs,
+            "packet_idx": packet_idx,
+            "total_packets": total_packets,
         }
 
         # 调用记忆存储服务（阻塞等待）
@@ -121,7 +126,7 @@ class PipelineCaller(MapFunction):
             "memory_insert_service",
             insert_data,
             method="process",
-            timeout=90.0,
+            timeout=self.service_timeout,
         )
 
         # 累计插入的对话数
@@ -215,7 +220,7 @@ class PipelineCaller(MapFunction):
                 "memory_test_service",
                 test_data,
                 method="process",
-                timeout=90.0,
+                timeout=self.service_timeout,
             )
 
             # PipelineService 返回的是纯数据（已由 PipelineServiceSink 处理）

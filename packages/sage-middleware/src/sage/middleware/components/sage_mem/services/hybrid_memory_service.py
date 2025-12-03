@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
@@ -89,11 +88,16 @@ class HybridMemoryService(BaseService):
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "hybrid_memory")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录
+
+        使用 SAGE 标准目录结构: .sage/data/hybrid_memory
+        """
+        from sage.common.config.output_paths import get_appropriate_sage_dir
+
+        sage_dir = get_appropriate_sage_dir()
+        data_dir = sage_dir / "data" / "hybrid_memory"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
     def _init_collection(self) -> None:
         """初始化 HybridCollection 并创建索引"""
@@ -221,6 +225,8 @@ class HybridMemoryService(BaseService):
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """多路检索并融合结果
 
@@ -233,10 +239,14 @@ class HybridMemoryService(BaseService):
                 - fusion_weights: 覆盖默认权重
                 - start_node: 图检索起始节点
             top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
             list[dict]: 融合后的检索结果
         """
+        _ = hints  # 保留用于未来扩展
+        _ = threshold  # 融合检索使用融合分数，暂不使用 threshold
         metadata = metadata or {}
 
         # 确定要检索的索引

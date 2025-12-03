@@ -170,6 +170,33 @@ class PreInsert(MapFunction):
             if "insert_mode" not in entry:
                 entry["insert_mode"] = "passive"
 
+        # 为所有 entry 生成 embedding（如果还没有）
+        # 按优先级选择文本字段用于 embedding
+        if self._embedding_generator and self._embedding_generator.is_available():
+            for entry in entries:
+                if "embedding" not in entry or entry["embedding"] is None:
+                    # 按优先级选择文本字段
+                    text_for_embed = (
+                        entry.get("summary", "")
+                        or entry.get("compressed_text", "")
+                        or entry.get("chunk_text", "")
+                        or entry.get("segment_text", "")
+                        or entry.get("fact", "")
+                        or entry.get("refactor", "")
+                        or entry.get("text", "")
+                    )
+                    # 如果还是没有文本，尝试从 dialogs 格式化
+                    if not text_for_embed and "dialogs" in entry:
+                        text_for_embed = self._dialogue_parser.format(entry.get("dialogs", []))
+
+                    if text_for_embed:
+                        try:
+                            embedding = self._embedding_generator.embed(text_for_embed)
+                            if embedding:
+                                entry["embedding"] = embedding
+                        except Exception as e:
+                            print("[WARNING] " + str(f"Embedding generation failed: {e}"))
+
         # 在原字典基础上添加 memory_entries 队列
         data["memory_entries"] = entries
         return data
@@ -460,7 +487,7 @@ class PreInsert(MapFunction):
             # ==== Summarize 逻辑内联 ====
             # 使用 LLM 生成摘要
             prompt_template = get_required_config(
-                self.config, "operators.pre_insert.summary_prompt", "transform_type=summarize"
+                self.config, "operators.pre_insert.summarize_prompt", "transform_type=summarize"
             )
             prompt = prompt_template.replace("{dialogue}", text)
 
@@ -479,6 +506,7 @@ class PreInsert(MapFunction):
             entry["insert_method"] = "summary_insert"
             entry["insert_mode"] = "active"  # 摘要通常主动插入到 LTM
             entry["insert_params"] = {"target_tier": "ltm"}
+            # embedding 在 execute() 末尾统一生成
             return [entry]
 
         elif transform_type == "compress":
@@ -558,6 +586,8 @@ class PreInsert(MapFunction):
         text = self._dialogue_parser.format(dialogs)
 
         entry = data.copy()
+        # 设置 refactor 字段供 MemoryInsert 使用
+        entry["refactor"] = text
         extracted_info: dict[str, Any] = {}
 
         # ==== Keyword Extraction ====
@@ -695,6 +725,12 @@ Entities:"""
             entry.setdefault("metadata", {}).update(extracted_info)
         else:
             entry.update(extracted_info)
+
+        # 生成 embedding 用于向量检索
+        if text and self._embedding_generator:
+            embedding = self._embedding_generator.embed(text)
+            if embedding:
+                entry["embedding"] = embedding
 
         # 添加插入方法
         entry["insert_method"] = "extract_insert"
@@ -1103,6 +1139,10 @@ Result:"""
                 "triple": triple,
                 "refactor": refactor,
                 "embedding": embeddings[i] if embeddings is not None else None,
+                # HippoRAG: 存储原始对话文本，用于检索时返回
+                "metadata": {
+                    "original_text": dialogue,  # 原始对话文本
+                },
             }
             memory_entries.append(entry)
 

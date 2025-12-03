@@ -49,6 +49,10 @@ class PostInsert(MapFunction):
     - 只与单一记忆服务交互
     - 复杂优化逻辑委托给服务的 optimize() 方法
     - distillation 执行一次 检索→删除→插入（符合规范）
+
+    优化策略（HippoRAG 对齐）：
+    - link_evolution 等服务级操作仅在 session_id 变化时执行（而非每次插入）
+    - 这与 HippoRAG 的"索引完成后一次性优化"策略对齐
     """
 
     def __init__(self, config):
@@ -67,6 +71,9 @@ class PostInsert(MapFunction):
         # 共通工具
         self._generator = LLMGenerator.from_config(self.config)
         self._embedding_generator = EmbeddingGenerator.from_config(self.config)
+
+        # 用于追踪 session_id 变化（HippoRAG 优化策略）
+        self._last_session_id: int | None = None
 
         # 根据 action 初始化配置
         self._init_for_action()
@@ -181,6 +188,9 @@ class PostInsert(MapFunction):
             data: 由 MemoryInsert 输出的数据，格式：
                 {
                     "memory_entries": [条目1, 条目2, ...],  # 已插入但未清空的队列
+                    "session_id": int,  # 当前会话 ID
+                    "packet_idx": int,  # 当前数据包索引
+                    "total_packets": int,  # 总数据包数
                     ...其他字段
                 }
 
@@ -198,8 +208,24 @@ class PostInsert(MapFunction):
         if self.action in operator_handlers:
             operator_handlers[self.action](data)
         elif self.action in SERVICE_LEVEL_ACTIONS:
-            # 服务级操作统一入口
-            self._execute_service_optimize(data)
+            # 服务级操作：只在所有数据插入完成后执行一次优化
+            # 原因：link_evolution 是 O(n²) 操作，每个 session 都执行太慢
+            # HippoRAG 论文也是在所有 indexing 完成后才一次性执行 add_synonymy_edges
+            packet_idx = data.get("packet_idx", 0)
+            total_packets = data.get("total_packets", 1)
+            is_last_packet = (packet_idx + 1) >= total_packets
+            current_session_id = data.get("session_id")
+
+            # 只在最后一个 packet 时执行一次优化（所有数据都插入完成）
+            if is_last_packet:
+                print(
+                    f"[PostInsert] All data inserted (final packet in session {current_session_id}), "
+                    f"triggering {self.action} optimization"
+                )
+                self._execute_service_optimize(data)
+
+            # 更新追踪的 session_id（用于其他可能的用途）
+            self._last_session_id = current_session_id
         else:
             print(f"[WARNING] Unknown action: {self.action}, skipping")
 
@@ -319,8 +345,14 @@ class PostInsert(MapFunction):
         if not result:
             return None, []
 
-        # 解析 to_delete（索引列表）
-        to_delete_indices = result.get("to_delete", [])
+        # 解析 to_delete（索引列表），确保转换为整数
+        to_delete_indices_raw = result.get("to_delete", [])
+        to_delete_indices = []
+        for idx in to_delete_indices_raw:
+            try:
+                to_delete_indices.append(int(idx))
+            except (ValueError, TypeError):
+                pass  # 忽略无法转换为整数的值
         to_delete_ids = [memory_ids[i] for i in to_delete_indices if i < len(memory_ids)]
 
         # 解析 to_insert（合并后的文本）
@@ -345,6 +377,8 @@ class PostInsert(MapFunction):
         config = self._collect_action_config()
 
         # 调用服务的 optimize 方法
+        # link_evolution 需要更长超时（O(n²) 复杂度，数据量大时可能需要10分钟以上）
+        timeout = 600.0 if self.action == "link_evolution" else 30.0
         try:
             result = self.call_service(
                 self.service_name,
@@ -352,7 +386,7 @@ class PostInsert(MapFunction):
                 config=config,
                 entries=entries,
                 method="optimize",
-                timeout=30.0,
+                timeout=timeout,
             )
 
             # 记录结果

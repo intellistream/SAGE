@@ -138,12 +138,19 @@ class PostRetrieval(MapFunction):
                 f"{cfg_prefix}.cross_encoder_model"
             )
             self.cross_encoder_batch_size: int = self.config.get(f"{cfg_prefix}.batch_size", 32)
-            self.time_decay_rate: float = float(
-                get_required_config(
-                    self.config, f"{cfg_prefix}.time_decay_rate", "rerank_type=time_weighted"
-                ),
-            )
+
+            # time_weighted 相关配置：仅在 rerank_type=time_weighted 时必需
+            if self.rerank_type == "time_weighted":
+                self.time_decay_rate: float = float(
+                    get_required_config(
+                        self.config, f"{cfg_prefix}.time_decay_rate", "rerank_type=time_weighted"
+                    ),
+                )
+            else:
+                self.time_decay_rate = self.config.get(f"{cfg_prefix}.time_decay_rate", 0.1)
             self.time_field: str = self.config.get(f"{cfg_prefix}.time_field", "timestamp")
+
+            # PPR 相关配置：仅在 rerank_type=ppr 时使用
             self.ppr_damping_factor: float = float(
                 self.config.get(f"{cfg_prefix}.damping_factor", 0.5)
             )
@@ -154,6 +161,8 @@ class PostRetrieval(MapFunction):
             self.ppr_personalization_nodes: str = self.config.get(
                 f"{cfg_prefix}.personalization_nodes", "query_entities"
             )
+
+            # weighted 相关配置：仅在 rerank_type=weighted 时必需
             self.weighted_factors: list[dict[str, Any]] = self.config.get(f"{cfg_prefix}.factors")
             if self.rerank_type == "weighted" and not self.weighted_factors:
                 raise ValueError(
@@ -324,7 +333,12 @@ class PostRetrieval(MapFunction):
             if not text:
                 continue
             score = entry.get("score")
-            metadata = entry.get("metadata") or {}
+            # 合并 metadata，同时保留顶层的 node_id/entry_id
+            metadata = dict(entry.get("metadata") or {})
+            # 将顶层字段复制到 metadata 中，方便后续访问
+            for key in ("node_id", "entry_id", "depth"):
+                if key in entry and key not in metadata:
+                    metadata[key] = entry[key]
             items.append(MemoryItem(text=text, score=score, metadata=metadata, original_index=idx))
         return items
 
@@ -332,17 +346,24 @@ class PostRetrieval(MapFunction):
         """将 MemoryItem list 转换回 dict list。"""
         result: list[dict[str, Any]] = []
         for item in items:
-            result.append(
-                {
-                    "text": item.text,
-                    "score": item.score,
-                    "metadata": item.metadata,
-                }
-            )
+            entry = {
+                "text": item.text,
+                "score": item.score,
+                "metadata": item.metadata,
+            }
+            # 将 node_id/entry_id 同时放在顶层，保持与服务返回格式一致
+            for key in ("node_id", "entry_id", "depth"):
+                if key in item.metadata:
+                    entry[key] = item.metadata[key]
+            result.append(entry)
         return result
 
     def _format_dialog_history(self, data: dict[str, Any]) -> dict[str, Any]:
-        """格式化对话历史为结构化文本（阶段一：Prompt 拼接）。"""
+        """格式化对话历史为结构化文本（阶段一：Prompt 拼接）。
+
+        HippoRAG 对齐：优先返回原始对话文本而非三元组描述。
+        检索到的三元组用于 PPR 图遍历，但最终返回给 LLM 的应该是原始文本。
+        """
 
         memory_data = data.get("memory_data", []) or []
 
@@ -350,10 +371,26 @@ class PostRetrieval(MapFunction):
         if self.conversation_format_prompt:
             history_parts.append(self.conversation_format_prompt.strip())
 
+        # 使用 set 去重，避免重复的原始文本
+        seen_texts = set()
+
         for entry in memory_data:
-            text = entry.get("text", "") if isinstance(entry, dict) else ""
-            if text:
-                history_parts.append(text)
+            if not isinstance(entry, dict):
+                continue
+
+            # HippoRAG: 优先使用原始对话文本
+            metadata = entry.get("metadata", {}) or {}
+            original_text = metadata.get("original_text", "")
+
+            if original_text and original_text not in seen_texts:
+                history_parts.append(original_text)
+                seen_texts.add(original_text)
+            else:
+                # 回退到三元组描述
+                text = entry.get("text", "")
+                if text and text not in seen_texts:
+                    history_parts.append(text)
+                    seen_texts.add(text)
 
         history_text = "\n".join(history_parts) if history_parts else ""
         data["history_text"] = history_text
@@ -434,10 +471,84 @@ class PostRetrieval(MapFunction):
                 scored_items.append((item, final_score))
 
         elif rerank_type == "ppr":
-            # ---- ppr 重排内联（占位实现）----
-            # PPR 需要图结构，这里使用简单近似
-            print("[INFO] PPR rerank is not wired to a graph backend yet, keep original order")
-            scored_items = [(item, item.score or 0.5) for item in items]
+            # ---- ppr 重排内联（调用 GraphMemoryService.ppr_retrieve）----
+            # 从检索结果中提取种子节点 ID
+            seed_nodes = []
+            for item in items:
+                node_id = item.metadata.get("node_id") or item.metadata.get("entry_id")
+                if node_id:
+                    seed_nodes.append(node_id)
+
+            if not seed_nodes:
+                # 如果没有节点 ID，回退到原始顺序
+                print("[WARNING] PPR rerank: no node_id in memory_data, keep original order")
+                scored_items = [(item, item.score or 0.5) for item in items]
+            else:
+                try:
+                    # 调用服务的 ppr_retrieve 方法
+                    # PPR 可能需要较长时间，增加超时到 60 秒
+                    ppr_results = self.call_service(
+                        self.service_name,
+                        method="ppr_retrieve",
+                        timeout=60.0,
+                        seed_nodes=seed_nodes,
+                        alpha=1.0 - self.ppr_damping_factor,  # HippoRAG: damping=0.5 -> alpha=0.5
+                        max_iter=self.ppr_max_iterations,
+                        top_k=self.rerank_top_k or len(items) * 2,  # 获取更多结果以扩展上下文
+                    )
+
+                    if ppr_results and isinstance(ppr_results, list):
+                        # 构建 node_id -> PPR score 的映射
+                        ppr_scores = {}
+                        for r in ppr_results:
+                            if isinstance(r, dict):
+                                node_id = r.get("node_id") or r.get("entry_id")
+                                score = r.get("score", 0.0)
+                                if node_id:
+                                    ppr_scores[node_id] = score
+
+                        # 更新原有 items 的分数，并添加新发现的节点
+                        seen_nodes = set()
+                        for item in items:
+                            node_id = item.metadata.get("node_id") or item.metadata.get("entry_id")
+                            if node_id:
+                                seen_nodes.add(node_id)
+                                ppr_score = ppr_scores.get(node_id, 0.0)
+                                # 组合原始分数和 PPR 分数
+                                base_score = item.score if item.score is not None else 0.5
+                                final_score = 0.5 * base_score + 0.5 * ppr_score
+                                scored_items.append((item, final_score))
+                            else:
+                                scored_items.append((item, item.score or 0.5))
+
+                        # 添加 PPR 发现的新节点（图遍历扩展）
+                        for r in ppr_results:
+                            if isinstance(r, dict):
+                                node_id = r.get("node_id") or r.get("entry_id")
+                                if node_id and node_id not in seen_nodes:
+                                    text = r.get("text", "")
+                                    if text:
+                                        new_item = MemoryItem(
+                                            text=text,
+                                            score=r.get("score", 0.0),
+                                            metadata={"node_id": node_id, **r.get("metadata", {})},
+                                            original_index=-1,
+                                        )
+                                        scored_items.append((new_item, r.get("score", 0.0)))
+                                        seen_nodes.add(node_id)
+
+                        print(
+                            f"[INFO] PPR rerank: {len(seed_nodes)} seeds -> {len(scored_items)} results"
+                        )
+                    else:
+                        print(
+                            "[WARNING] PPR rerank: ppr_retrieve returned empty, keep original order"
+                        )
+                        scored_items = [(item, item.score or 0.5) for item in items]
+
+                except Exception as e:  # noqa: BLE001
+                    print(f"[WARNING] PPR rerank failed: {e}, keep original order")
+                    scored_items = [(item, item.score or 0.5) for item in items]
 
         elif rerank_type == "weighted":
             # ---- weighted 重排内联 ----
