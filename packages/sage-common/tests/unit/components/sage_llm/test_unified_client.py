@@ -321,7 +321,7 @@ class TestUnifiedClientChat:
 
         client = UnifiedInferenceClient.create()
 
-        with pytest.raises(RuntimeError, match="LLM endpoint not available"):
+        with pytest.raises(RuntimeError, match="No LLM backend available"):
             client.chat([{"role": "user", "content": "Hello"}])
 
     @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
@@ -444,7 +444,7 @@ class TestUnifiedClientEmbed:
 
         client = UnifiedInferenceClient.create()
 
-        with pytest.raises(RuntimeError, match="Embedding endpoint not available"):
+        with pytest.raises(RuntimeError, match="No Embedding backend available"):
             client.embed(["Hello"])
 
     @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")

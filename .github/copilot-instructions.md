@@ -257,9 +257,9 @@ tools/pytest.ini, tools/pre-commit-config.yaml
 │        │  (直连后端 API)      │  (通过调度器路由)    │  ← 推荐           │
 │        └─────────────────────┴─────────────────────┘                    │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                       UnifiedAPIServer                                   │
-│              (OpenAI-Compatible REST API Gateway)                        │
-│   /v1/chat/completions | /v1/completions | /v1/embeddings | /v1/models  │
+│                       sage-gateway (统一 Gateway)                          │
+│              (OpenAI-Compatible REST API + Control Plane)               │
+│   /v1/chat/completions | /v1/embeddings | /v1/management/* | /sessions │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                    sageLLM Control Plane (核心)                          │
 │   ┌─────────────────────────────────────────────────────────────────┐   │
@@ -298,7 +298,13 @@ client = UnifiedInferenceClient.create_auto()
 > ⚠️ `sage llm run` 与 `VLLMService` 依赖 `isage-common[vllm]`（带 vLLM 0.10.x 与 torch 2.4+）。如需本地阻塞式服务，请先运行 `pip install isage-common[vllm]`。
 
 ```bash
-# 推荐：一键启动/管理（后台守护进程）
+# 推荐：启动 Gateway（包含 Control Plane）
+sage gateway start                                 # 启动 Gateway（端口 8000）
+sage gateway status                                # 查看 Gateway 状态
+sage gateway stop                                  # 停止 Gateway
+sage gateway logs --follow                         # 查看日志
+
+# LLM 服务管理
 sage llm serve                                     # 启动 LLM + Embedding 服务（默认）
 sage llm serve --no-embedding                      # 仅启动 LLM，不启动 Embedding
 sage llm status                                    # 查看状态
@@ -308,7 +314,7 @@ sage llm logs --follow                             # 查看日志
 # 阻塞式交互模式（开发调试用）
 sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
 
-# 引擎管理（通过 Control Plane）
+# 引擎管理（通过 Gateway Control Plane）
 sage llm engine start BAAI/bge-m3 --engine-kind embedding           # 默认 CPU
 sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu # 使用 GPU
 sage llm engine list                                                 # 查看引擎列表
@@ -355,7 +361,6 @@ engines:
 packages/sage-common/src/sage/common/components/
   sage_llm/
     unified_client.py         # UnifiedInferenceClient (统一客户端)
-    unified_api_server.py     # UnifiedAPIServer (API Gateway)
     control_plane_service.py  # Control Plane SAGE 封装
     service.py                # VLLMService (内嵌模式，批处理用)
     sageLLM/control_plane/    # ← Control Plane 核心实现
@@ -368,6 +373,14 @@ packages/sage-common/src/sage/common/components/
   sage_embedding/
     embedding_server.py       # OpenAI 兼容 Embedding 服务器
     factory.py                # EmbeddingFactory (本地模型)
+
+packages/sage-gateway/src/sage/gateway/
+  app.py                      # FastAPI 应用入口
+  routes/
+    control_plane.py          # Control Plane 管理 API
+    llm.py                    # LLM 代理
+    embedding.py              # Embedding 代理
+    sessions.py               # 会话管理
 ```
 
 ### 两种模式对比

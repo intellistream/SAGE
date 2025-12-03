@@ -39,7 +39,11 @@ class TestGPUResourceManagerMockMode:
         """Test getting system status in mock mode."""
         with patch.dict(
             os.environ,
-            {"SAGE_DISABLE_NVML": "true", "SAGE_GPU_MOCK_COUNT": "2", "SAGE_GPU_MOCK_MEMORY_GB": "16"},
+            {
+                "SAGE_DISABLE_NVML": "true",
+                "SAGE_GPU_MOCK_COUNT": "2",
+                "SAGE_GPU_MOCK_MEMORY_GB": "16",
+            },
             clear=False,
         ):
             manager = GPUResourceManager()
@@ -58,7 +62,11 @@ class TestGPUResourceManagerMockMode:
         """Test checking resource availability in mock mode."""
         with patch.dict(
             os.environ,
-            {"SAGE_DISABLE_NVML": "true", "SAGE_GPU_MOCK_COUNT": "4", "SAGE_GPU_MOCK_MEMORY_GB": "24"},
+            {
+                "SAGE_DISABLE_NVML": "true",
+                "SAGE_GPU_MOCK_COUNT": "4",
+                "SAGE_GPU_MOCK_MEMORY_GB": "24",
+            },
             clear=False,
         ):
             manager = GPUResourceManager()
@@ -81,7 +89,11 @@ class TestGPUResourceManagerMockMode:
         """Test allocating and releasing GPU resources."""
         with patch.dict(
             os.environ,
-            {"SAGE_DISABLE_NVML": "true", "SAGE_GPU_MOCK_COUNT": "2", "SAGE_GPU_MOCK_MEMORY_GB": "24"},
+            {
+                "SAGE_DISABLE_NVML": "true",
+                "SAGE_GPU_MOCK_COUNT": "2",
+                "SAGE_GPU_MOCK_MEMORY_GB": "24",
+            },
             clear=False,
         ):
             manager = GPUResourceManager()
@@ -106,7 +118,11 @@ class TestGPUResourceManagerMockMode:
         """Test allocation failure when resources are insufficient in mock mode."""
         with patch.dict(
             os.environ,
-            {"SAGE_DISABLE_NVML": "true", "SAGE_GPU_MOCK_COUNT": "1", "SAGE_GPU_MOCK_MEMORY_GB": "8"},
+            {
+                "SAGE_DISABLE_NVML": "true",
+                "SAGE_GPU_MOCK_COUNT": "1",
+                "SAGE_GPU_MOCK_MEMORY_GB": "8",
+            },
             clear=False,
         ):
             manager = GPUResourceManager()
