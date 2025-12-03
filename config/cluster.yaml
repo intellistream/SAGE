@@ -20,13 +20,14 @@ provider:
   type: local
 
   # Head node IP (where Ray GCS runs)
-  head_ip: 192.168.1.100
+  # sage1 is the current primary node
+  head_ip: 10.0.1.18
 
   # Worker node IPs
   worker_ips:
-  - 192.168.1.101
-  - 192.168.1.102
-  - 192.168.1.103
+  - 10.0.1.10   # sage2
+  - 10.0.1.6    # sage3
+  - 10.0.1.8    # sage4
 
 # ------------------------------------------------------------------------------
 # SSH Authentication
@@ -34,7 +35,7 @@ provider:
 # IMPORTANT: Use SSH key authentication, NOT passwords!
 # Setup: ssh-keygen && ssh-copy-id user@host
 auth:
-  ssh_user: sage
+  ssh_user: shuhao
   ssh_private_key: ~/.ssh/id_rsa
   connect_timeout: 10
 
@@ -60,7 +61,7 @@ ray:
 # ------------------------------------------------------------------------------
 remote:
   conda_env: sage
-  sage_home: /home/sage/SAGE
+  sage_home: /home/shuhao/SAGE
   auto_sync_ray_version: true
   # python_path: /opt/conda/envs/sage/bin/python  # Auto-detected
   # ray_command: /opt/conda/envs/sage/bin/ray     # Auto-detected
@@ -101,16 +102,19 @@ studio:
   # Deployment nodes (subset of cluster nodes or separate servers)
   # If empty, uses head_ip only
   nodes:
-  - host: 192.168.1.100
+  - host: 10.0.1.18       # sage1 (当前主节点)
     role: primary          # Primary node with Cloudflare Tunnel
     port: 5173
     tunnel_domain: studio.sage.org.ai
-    # - host: 192.168.1.101
-    #   role: replica        # Replica nodes (optional, for load balancing)
-    #   port: 5173
-    # - host: 192.168.1.102
-    #   role: replica
-    #   port: 5173
+  - host: 10.0.1.10       # sage2
+    role: replica          # Replica nodes (optional, for load balancing)
+    port: 5173
+  - host: 10.0.1.6        # sage3
+    role: replica
+    port: 5173
+  - host: 10.0.1.8        # sage4
+    role: replica
+    port: 5173
 
   # LLM service configuration
   llm:
