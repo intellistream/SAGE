@@ -56,20 +56,11 @@ jobs:
       - name: Setup Conda Environment
         run: |
           echo "🐍 设置 Conda 环境..."
-          echo "HOME=$HOME, USER=$(whoami)"
-
-          # 调试：检查 conda 目录是否存在
-          echo "检查已存在的 conda 安装..."
-          for p in "$HOME/miniconda3" "$HOME/anaconda3" "/home/shuhao/miniconda3" "/home/shuhao/anaconda3" "/opt/conda"; do
-            ls -la "$p/etc/profile.d/conda.sh" 2>/dev/null && echo "✅ 找到 $p" || echo "❌ $p 不存在"
-          done
 
           # 定义 conda 初始化函数
-          # 优先使用裸机上 shuhao 用户的 conda（通过 volume 挂载）
           init_conda() {
-            for conda_path in "/home/shuhao/miniconda3" "/home/shuhao/anaconda3" "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3"; do
+            for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3"; do
               if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
-                echo "Found conda at: $conda_path"
                 source "$conda_path/etc/profile.d/conda.sh"
                 return 0
               fi
@@ -80,12 +71,10 @@ jobs:
           # 尝试初始化 conda
           if ! init_conda; then
             echo "📦 未找到 conda，正在安装 Miniconda..."
-            # 使用清华镜像加速下载
             wget -q https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
             bash /tmp/miniconda.sh -b -p $HOME/miniconda3
             source "$HOME/miniconda3/etc/profile.d/conda.sh"
             rm /tmp/miniconda.sh
-            echo "✅ Miniconda 安装完成"
           fi
 
           conda --version
@@ -96,22 +85,10 @@ jobs:
           conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ 2>/dev/null || true
           conda config --set channel_priority flexible 2>/dev/null || true
 
-          # 列出所有可见的 conda 环境（调试）
-          echo ""
-          echo "📋 可见的 Conda 环境列表:"
-          conda env list
-          echo ""
-
-          # 检查 shuhao 用户的 sage 环境是否存在且可访问
-          if [ -d "/home/shuhao/miniconda3/envs/sage" ]; then
-            echo "📁 发现 /home/shuhao/miniconda3/envs/sage 目录"
-            ls -la /home/shuhao/miniconda3/envs/sage/bin/python 2>/dev/null && echo "✅ Python 可执行" || echo "❌ 无法访问 Python"
-          fi
-
           # 确定使用的环境名（优先使用已有的 sage 环境）
           if conda env list | grep -q "^sage "; then
             ACTUAL_ENV="sage"
-            echo "✅ 使用已有的 'sage' 环境（包含已安装的依赖）"
+            echo "✅ 复用已有的 'sage' 环境"
           elif conda env list | grep -q "^${CONDA_ENV_NAME} "; then
             ACTUAL_ENV="${CONDA_ENV_NAME}"
             echo "✅ 使用 '${CONDA_ENV_NAME}' 环境"
@@ -123,26 +100,21 @@ jobs:
 
           # 验证环境
           conda run -n ${ACTUAL_ENV} python --version
-          echo "✅ Conda 环境 '${ACTUAL_ENV}' 已就绪"
+          echo "✅ Conda 环境就绪"
 
-          # 检查环境中是否已安装核心依赖（用于判断是否需要完整安装）
-          echo ""
-          echo "📦 检查已安装的核心依赖..."
-          NVIDIA_INSTALLED=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c -i "nvidia" || echo "0")
-          TORCH_INSTALLED=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c "^torch " || echo "0")
-          echo "NVIDIA 相关包数量: $NVIDIA_INSTALLED"
-          echo "PyTorch 已安装: $TORCH_INSTALLED"
+          # 检查核心依赖是否已安装
+          NVIDIA_COUNT=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c -i "nvidia" || echo "0")
+          TORCH_COUNT=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c "^torch " || echo "0")
 
-          # 如果已有 NVIDIA 包（>5个）和 torch，说明核心依赖已装好
-          if [ "$NVIDIA_INSTALLED" -gt 5 ] && [ "$TORCH_INSTALLED" -gt 0 ]; then
+          if [ "$NVIDIA_COUNT" -gt 5 ] && [ "$TORCH_COUNT" -gt 0 ]; then
             echo "deps_installed=true" >> $GITHUB_ENV
-            echo "✅ 核心依赖已安装，将跳过完整安装"
+            echo "✅ 核心依赖已安装（NVIDIA: $NVIDIA_COUNT, PyTorch: $TORCH_COUNT）"
           else
             echo "deps_installed=false" >> $GITHUB_ENV
             echo "📦 需要安装核心依赖"
           fi
 
-          # 保存 conda 路径和环境名，供后续步骤使用
+          # 保存环境信息供后续步骤使用
           echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
           echo "ACTUAL_CONDA_ENV=${ACTUAL_ENV}" >> $GITHUB_ENV
 
