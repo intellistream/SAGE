@@ -89,3 +89,43 @@ output:
 
 monitor:
   refresh_interval: 5
+
+# ------------------------------------------------------------------------------
+# SAGE Studio Deployment
+# ------------------------------------------------------------------------------
+# Configuration for deploying SAGE Studio to multiple nodes
+studio:
+  # Enable multi-node deployment
+  enabled: true
+
+  # Deployment nodes (subset of cluster nodes or separate servers)
+  # If empty, uses head_ip only
+  nodes:
+  - host: 192.168.1.100
+    role: primary          # Primary node with Cloudflare Tunnel
+    port: 5173
+    tunnel_domain: studio.sage.org.ai
+    # - host: 192.168.1.101
+    #   role: replica        # Replica nodes (optional, for load balancing)
+    #   port: 5173
+    # - host: 192.168.1.102
+    #   role: replica
+    #   port: 5173
+
+  # LLM service configuration
+  llm:
+    enabled: true
+    model: Qwen/Qwen2.5-0.5B-Instruct
+    # For larger deployments, can use different models per node
+    # gpu_memory_utilization: 0.9
+
+  # Embedding service configuration
+  embedding:
+    enabled: true
+    model: BAAI/bge-m3
+
+  # Deployment settings
+  deploy:
+    branch: main           # Branch to deploy (stable)
+    auto_update: false     # Auto-update on push to branch
+    health_check_interval: 60  # seconds

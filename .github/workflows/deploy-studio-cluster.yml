@@ -1,0 +1,209 @@
+name: Deploy SAGE Studio to Cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      nodes:
+        description: 'Target nodes (comma-separated IPs, or "all" for all configured nodes)'
+        required: false
+        default: 'all'
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        default: 'main'
+      skip_llm:
+        description: 'Skip LLM service startup'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  DEFAULT_TUNNEL_DOMAIN: 'studio.sage.org.ai'
+
+jobs:
+  # Read cluster configuration
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.parse-config.outputs.matrix }}
+      primary_node: ${{ steps.parse-config.outputs.primary_node }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'main' }}
+
+      - name: Parse cluster config
+        id: parse-config
+        run: |
+          # Install yq for YAML parsing
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+          # Read studio nodes from cluster.yaml
+          if [ "${{ github.event.inputs.nodes }}" == "all" ]; then
+            # Get all configured nodes
+            NODES=$(yq -r '.studio.nodes[] | .host' config/cluster.yaml 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+          else
+            NODES="${{ github.event.inputs.nodes }}"
+          fi
+
+          # If no nodes configured, use head_ip
+          if [ -z "$NODES" ]; then
+            NODES=$(yq -r '.provider.head_ip' config/cluster.yaml)
+          fi
+
+          echo "Deploying to nodes: $NODES"
+
+          # Create matrix JSON
+          MATRIX_JSON=$(echo "$NODES" | tr ',' '\n' | jq -R -s -c 'split("\n") | map(select(length > 0)) | {node: .}')
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
+          # Get primary node (first node with tunnel)
+          PRIMARY=$(yq -r '.studio.nodes[] | select(.role == "primary") | .host' config/cluster.yaml 2>/dev/null | head -1)
+          if [ -z "$PRIMARY" ]; then
+            PRIMARY=$(echo "$NODES" | cut -d',' -f1)
+          fi
+          echo "primary_node=$PRIMARY" >> $GITHUB_OUTPUT
+
+          echo "Matrix: $MATRIX_JSON"
+          echo "Primary node: $PRIMARY"
+
+  # Deploy to each node
+  deploy:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'main' }}
+          submodules: recursive
+
+      - name: Deploy to ${{ matrix.node }}
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CLUSTER_SSH_PRIVATE_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          PRIMARY_NODE: ${{ needs.prepare.outputs.primary_node }}
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ matrix.node }} >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Read SSH user from config
+          SSH_USER=$(yq -r '.auth.ssh_user' config/cluster.yaml)
+          REMOTE_SAGE_HOME=$(yq -r '.remote.sage_home' config/cluster.yaml)
+          CONDA_ENV=$(yq -r '.remote.conda_env' config/cluster.yaml)
+
+          echo "🚀 Deploying to ${{ matrix.node }} as $SSH_USER..."
+
+          # Determine if this is the primary node (needs tunnel)
+          IS_PRIMARY="false"
+          if [ "${{ matrix.node }}" == "$PRIMARY_NODE" ]; then
+            IS_PRIMARY="true"
+          fi
+
+          # Deploy script
+          ssh ${SSH_USER}@${{ matrix.node }} << DEPLOY_SCRIPT
+            set -e
+            echo "📦 Starting deployment on \$(hostname)..."
+
+            # Activate conda environment
+            source ~/.bashrc
+            conda activate ${CONDA_ENV} || source activate ${CONDA_ENV}
+
+            # Navigate to SAGE directory
+            cd ${REMOTE_SAGE_HOME}
+
+            # Pull latest code
+            git fetch origin
+            git checkout ${{ github.event.inputs.branch || 'main' }}
+            git pull origin ${{ github.event.inputs.branch || 'main' }}
+            git submodule update --init --recursive
+
+            # Stop existing services
+            echo "🛑 Stopping existing services..."
+            pkill -f "sage studio" || true
+            pkill -f "sage-gateway" || true
+            if [ "${IS_PRIMARY}" == "true" ]; then
+              pkill -f "cloudflared tunnel" || true
+            fi
+            sleep 2
+
+            # Install/update SAGE
+            echo "📦 Installing SAGE..."
+            export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+            ./quickstart.sh --dev --yes
+
+            # Build Studio
+            echo "🏗️ Building Studio..."
+            export PATH="\$HOME/.local/bin:\$PATH"
+            sage studio build
+
+            # Start Studio
+            echo "🚀 Starting Studio..."
+            export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY}"
+            export OPENAI_API_KEY="${OPENAI_API_KEY}"
+            export HF_TOKEN="${HF_TOKEN}"
+
+            SKIP_LLM="${{ github.event.inputs.skip_llm }}"
+            if [ "\$SKIP_LLM" == "true" ]; then
+              nohup sage studio start --prod --host 0.0.0.0 --port 5173 --no-llm -y > ~/sage-studio-deploy.log 2>&1 &
+            else
+              nohup sage studio start --prod --host 0.0.0.0 --port 5173 -y > ~/sage-studio-deploy.log 2>&1 &
+            fi
+
+            sleep 10
+
+            # Start Cloudflare Tunnel on primary node only
+            if [ "${IS_PRIMARY}" == "true" ] && [ -n "${CLOUDFLARE_TUNNEL_TOKEN}" ]; then
+              echo "🌐 Starting Cloudflare Tunnel (primary node)..."
+              nohup cloudflared tunnel run --token "${CLOUDFLARE_TUNNEL_TOKEN}" > ~/cloudflared.log 2>&1 &
+              sleep 5
+            fi
+
+            echo "✅ Deployment complete on \$(hostname)"
+          DEPLOY_SCRIPT
+
+      - name: Health check for ${{ matrix.node }}
+        run: |
+          SSH_USER=$(yq -r '.auth.ssh_user' config/cluster.yaml)
+
+          echo "🔍 Running health check on ${{ matrix.node }}..."
+
+          ssh ${SSH_USER}@${{ matrix.node }} << 'HEALTH_CHECK'
+            if curl -f http://localhost:5173 2>/dev/null; then
+              echo "✅ Studio is healthy on $(hostname)"
+            else
+              echo "⚠️ Studio health check failed on $(hostname)"
+              tail -30 ~/sage-studio-deploy.log || true
+            fi
+          HEALTH_CHECK
+
+  # Summary
+  summary:
+    needs: [prepare, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## 🎉 SAGE Studio Cluster Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📍 Deployed Nodes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Node | Role | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ needs.prepare.outputs.primary_node }} | Primary (Tunnel) | ${{ needs.deploy.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Access" >> $GITHUB_STEP_SUMMARY
+          echo "- **Public URL**: https://${{ env.DEFAULT_TUNNEL_DOMAIN }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.event.inputs.branch || 'main' }}" >> $GITHUB_STEP_SUMMARY
