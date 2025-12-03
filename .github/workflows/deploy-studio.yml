@@ -54,25 +54,30 @@ jobs:
       - name: Setup Conda Environment
         run: |
           echo "🐍 设置 Conda 环境..."
+          echo "HOME=$HOME, USER=$(whoami)"
 
           # 初始化 conda（支持多种安装位置，包括特定用户目录）
           CONDA_SH=""
           CONDA_PATHS=(
+            "/home/shuhao/miniconda3/etc/profile.d/conda.sh"
             "$HOME/miniconda3/etc/profile.d/conda.sh"
             "$HOME/anaconda3/etc/profile.d/conda.sh"
             "$HOME/miniforge3/etc/profile.d/conda.sh"
-            "/home/shuhao/miniconda3/etc/profile.d/conda.sh"
             "/opt/conda/etc/profile.d/conda.sh"
             "/usr/local/conda/etc/profile.d/conda.sh"
             "/root/miniconda3/etc/profile.d/conda.sh"
             "/root/anaconda3/etc/profile.d/conda.sh"
           )
 
+          echo "检查 conda 路径..."
           for path in "${CONDA_PATHS[@]}"; do
+            echo "  检查: $path"
             if [ -f "$path" ]; then
               CONDA_SH="$path"
-              echo "✅ 找到 conda: $path"
+              echo "  ✅ 找到 conda: $path"
               break
+            else
+              echo "  ❌ 不存在"
             fi
           done
 
