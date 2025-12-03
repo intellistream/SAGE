@@ -156,7 +156,9 @@ jobs:
           ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
 
       - name: Setup Cloudflare Tunnel
-        if: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        env:
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+        if: env.CLOUDFLARE_TUNNEL_TOKEN != ''
         run: |
           echo "🌐 配置 Cloudflare Tunnel..."
 
@@ -172,9 +174,9 @@ jobs:
           echo "✅ cloudflared 已就绪"
 
       - name: Start Cloudflare Tunnel
-        if: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN != '' }}
         env:
           CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+        if: env.CLOUDFLARE_TUNNEL_TOKEN != ''
         run: |
           echo "🚀 启动 Cloudflare Tunnel..."
 
