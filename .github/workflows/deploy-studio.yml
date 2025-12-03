@@ -57,15 +57,16 @@ jobs:
           echo "🐍 设置 Conda 环境..."
           echo "HOME=$HOME, USER=$(whoami)"
 
-          # 调试：检查 miniconda 目录是否存在
+          # 调试：检查 conda 目录是否存在
           echo "检查已存在的 conda 安装..."
-          ls -la $HOME/miniconda3/etc/profile.d/conda.sh 2>/dev/null && echo "✅ 找到 $HOME/miniconda3" || echo "❌ $HOME/miniconda3 不存在"
-          ls -la /home/action-runner/miniconda3/etc/profile.d/conda.sh 2>/dev/null && echo "✅ 找到 /home/action-runner/miniconda3" || echo "❌ /home/action-runner/miniconda3 不存在"
+          for p in "$HOME/miniconda3" "$HOME/anaconda3" "/home/shuhao/miniconda3" "/home/shuhao/anaconda3" "/opt/conda"; do
+            ls -la "$p/etc/profile.d/conda.sh" 2>/dev/null && echo "✅ 找到 $p" || echo "❌ $p 不存在"
+          done
 
-          # 定义 conda 初始化函数（参考 paper1-experiments.yml）
+          # 定义 conda 初始化函数
+          # 优先使用裸机上 shuhao 用户的 conda（通过 volume 挂载）
           init_conda() {
-            # Common conda locations on self-hosted runners
-            for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3" "/home/action-runner/miniconda3"; do
+            for conda_path in "/home/shuhao/miniconda3" "/home/shuhao/anaconda3" "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3"; do
               if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
                 echo "Found conda at: $conda_path"
                 source "$conda_path/etc/profile.d/conda.sh"
@@ -93,6 +94,18 @@ jobs:
           conda config --set show_channel_urls yes 2>/dev/null || true
           conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ 2>/dev/null || true
           conda config --set channel_priority flexible 2>/dev/null || true
+
+          # 列出所有可见的 conda 环境（调试）
+          echo ""
+          echo "📋 可见的 Conda 环境列表:"
+          conda env list
+          echo ""
+
+          # 检查 shuhao 用户的 sage 环境是否存在且可访问
+          if [ -d "/home/shuhao/miniconda3/envs/sage" ]; then
+            echo "📁 发现 /home/shuhao/miniconda3/envs/sage 目录"
+            ls -la /home/shuhao/miniconda3/envs/sage/bin/python 2>/dev/null && echo "✅ Python 可执行" || echo "❌ 无法访问 Python"
+          fi
 
           # 确定使用的环境名（优先使用已有的 sage 环境）
           if conda env list | grep -q "^sage "; then
