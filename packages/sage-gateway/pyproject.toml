@@ -26,11 +26,13 @@ classifiers = [
 dependencies = [
     # 注意: sage-* 依赖在开发模式下需要先安装对应包
     # pip install -e packages/sage-common -e packages/sage-kernel -e packages/sage-libs
+    "isage-common>=0.1.0",  # Required for Control Plane integration
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
     "sse-starlette>=1.8.0",
     "python-multipart>=0.0.6",
+    "aiohttp>=3.9.0",  # Required for health checks and proxying
 ]
 
 [project.optional-dependencies]
