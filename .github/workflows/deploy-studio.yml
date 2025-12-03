@@ -59,58 +59,53 @@ jobs:
           # 初始化 conda（支持多种安装位置，包括特定用户目录）
           CONDA_SH=""
           CONDA_PATHS=(
-            "/home/shuhao/miniconda3/etc/profile.d/conda.sh"
             "$HOME/miniconda3/etc/profile.d/conda.sh"
+            "/home/shuhao/miniconda3/etc/profile.d/conda.sh"
             "$HOME/anaconda3/etc/profile.d/conda.sh"
             "$HOME/miniforge3/etc/profile.d/conda.sh"
             "/opt/conda/etc/profile.d/conda.sh"
             "/usr/local/conda/etc/profile.d/conda.sh"
-            "/root/miniconda3/etc/profile.d/conda.sh"
-            "/root/anaconda3/etc/profile.d/conda.sh"
           )
 
           echo "检查 conda 路径..."
           for path in "${CONDA_PATHS[@]}"; do
-            echo "  检查: $path"
             if [ -f "$path" ]; then
               CONDA_SH="$path"
-              echo "  ✅ 找到 conda: $path"
+              echo "✅ 找到 conda: $path"
               break
-            else
-              echo "  ❌ 不存在"
             fi
           done
 
-          # 如果没找到，尝试用 which conda 或 find 查找
+          # 如果没找到，自动安装 miniconda
           if [ -z "$CONDA_SH" ]; then
-            if command -v conda &> /dev/null; then
-              CONDA_BASE=$(conda info --base 2>/dev/null)
-              if [ -n "$CONDA_BASE" ] && [ -f "$CONDA_BASE/etc/profile.d/conda.sh" ]; then
-                CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
-                echo "✅ 通过 conda info 找到: $CONDA_SH"
-              fi
-            fi
-          fi
+            echo "📦 未找到 conda，正在安装 Miniconda..."
+            MINICONDA_PATH="$HOME/miniconda3"
 
-          # 最后尝试 find
-          if [ -z "$CONDA_SH" ]; then
-            FOUND_CONDA=$(find /home /opt -path "*/etc/profile.d/conda.sh" 2>/dev/null | head -1)
-            if [ -n "$FOUND_CONDA" ]; then
-              CONDA_SH="$FOUND_CONDA"
-              echo "✅ 通过 find 找到: $CONDA_SH"
-            fi
-          fi
+            # 检查是否已经有安装程序缓存
+            INSTALLER="$HOME/.cache/miniconda_installer.sh"
+            mkdir -p "$HOME/.cache"
 
-          if [ -z "$CONDA_SH" ]; then
-            echo "❌ 未找到 conda，输出诊断信息："
-            echo "HOME=$HOME"
-            echo "USER=$(whoami)"
-            echo "which conda: $(which conda 2>/dev/null || echo 'not found')"
-            echo "PATH=$PATH"
-            exit 1
+            if [ ! -f "$INSTALLER" ]; then
+              echo "下载 Miniconda 安装程序..."
+              # 使用清华镜像加速下载
+              curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh -o "$INSTALLER"
+            fi
+
+            echo "安装 Miniconda 到 $MINICONDA_PATH..."
+            bash "$INSTALLER" -b -p "$MINICONDA_PATH"
+
+            CONDA_SH="$MINICONDA_PATH/etc/profile.d/conda.sh"
+            echo "✅ Miniconda 安装完成"
           fi
 
           source "$CONDA_SH"
+          echo "✅ Conda 已初始化"
+
+          # 配置 conda 使用清华镜像
+          conda config --set show_channel_urls yes
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+          conda config --set channel_priority flexible
 
           # 优先使用已有的 sage 环境（服务器上已经存在），否则使用 CONDA_ENV_NAME
           if conda env list | grep -q "^sage "; then
