@@ -8,6 +8,7 @@
 - head_analysis: 注意力头分析
 - visualization: 可视化工具
 - statistical: 统计显著性检验
+- latex_export: LaTeX 表格导出
 """
 
 from sage.benchmark.benchmark_refiner.analysis.head_analysis import (
@@ -15,6 +16,15 @@ from sage.benchmark.benchmark_refiner.analysis.head_analysis import (
     HeadwiseEvaluator,
     MetricsAggregator,
     mean_normalized_rank,
+)
+from sage.benchmark.benchmark_refiner.analysis.latex_export import (
+    TableConfig,
+    export_all_tables,
+    generate_ablation_table,
+    generate_case_study_table,
+    generate_latency_breakdown_table,
+    generate_main_results_table,
+    generate_significance_table,
 )
 from sage.benchmark.benchmark_refiner.analysis.statistical import (
     SignificanceResult,
@@ -28,7 +38,15 @@ from sage.benchmark.benchmark_refiner.analysis.statistical import (
     paired_t_test,
     wilcoxon_test,
 )
-from sage.benchmark.benchmark_refiner.analysis.visualization import plot_mnr_curve
+from sage.benchmark.benchmark_refiner.analysis.visualization import (
+    generate_visualization_report,
+    plot_algorithm_comparison,
+    plot_dataset_heatmap,
+    plot_latency_breakdown,
+    plot_mnr_curve,
+    plot_pareto_frontier,
+    plot_radar_chart,
+)
 
 __all__ = [
     # 核心类
@@ -37,8 +55,15 @@ __all__ = [
     "MetricsAggregator",
     # 指标
     "mean_normalized_rank",
-    # 可视化
+    # 可视化 - 注意力头分析
     "plot_mnr_curve",
+    # 可视化 - 算法对比
+    "plot_algorithm_comparison",
+    "plot_pareto_frontier",
+    "plot_latency_breakdown",
+    "plot_dataset_heatmap",
+    "plot_radar_chart",
+    "generate_visualization_report",
     # 统计检验
     "TTestResult",
     "SignificanceResult",
@@ -50,4 +75,12 @@ __all__ = [
     "generate_significance_report",
     "compute_all_statistics",
     "wilcoxon_test",
+    # LaTeX 导出
+    "TableConfig",
+    "generate_main_results_table",
+    "generate_ablation_table",
+    "generate_significance_table",
+    "generate_case_study_table",
+    "generate_latency_breakdown_table",
+    "export_all_tables",
 ]

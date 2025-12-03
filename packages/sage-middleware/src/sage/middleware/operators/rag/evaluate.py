@@ -16,9 +16,7 @@ def _get_results_collector():
         ResultsCollector 实例，如果不可用则返回 None
     """
     try:
-        from sage.benchmark.benchmark_refiner.experiments.results_collector import (
-            ResultsCollector,
-        )
+        from sage.common.utils.results_collector import ResultsCollector
 
         return ResultsCollector()
     except ImportError:

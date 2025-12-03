@@ -248,6 +248,53 @@ Examples:
         help="Number of top heads to report",
     )
 
+    # ========================================================================
+    # report command - LaTeX table export
+    # ========================================================================
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Generate LaTeX tables from experiment results",
+    )
+    report_parser.add_argument(
+        "results_file",
+        type=str,
+        help="Path to results JSON file",
+    )
+    report_parser.add_argument(
+        "--format",
+        "-f",
+        type=str,
+        default="latex",
+        choices=["latex", "markdown", "both"],
+        help="Output format",
+    )
+    report_parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        default="./tables",
+        help="Output directory for generated tables",
+    )
+    report_parser.add_argument(
+        "--baseline",
+        "-b",
+        type=str,
+        default="baseline",
+        help="Baseline algorithm name for significance tests",
+    )
+    report_parser.add_argument(
+        "--metrics",
+        "-m",
+        type=str,
+        default="f1,compression_rate,total_time",
+        help="Comma-separated metrics to include in main table",
+    )
+    report_parser.add_argument(
+        "--no-significance",
+        action="store_true",
+        help="Disable significance markers in tables",
+    )
+
     return parser
 
 
@@ -431,6 +478,186 @@ def cmd_heads(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def cmd_report(args: argparse.Namespace) -> int:
+    """Generate LaTeX tables from experiment results."""
+    import json
+
+    from sage.benchmark.benchmark_refiner.analysis.latex_export import (
+        generate_latency_breakdown_table,
+        generate_main_results_table,
+        generate_significance_table,
+    )
+    from sage.benchmark.benchmark_refiner.experiments.base_experiment import (
+        AlgorithmMetrics,
+    )
+
+    results_path = Path(args.results_file)
+    if not results_path.exists():
+        print(f"❌ Results file not found: {results_path}")
+        return 1
+
+    print(f"\n📄 Loading results from: {results_path}")
+
+    with open(results_path) as f:
+        data = json.load(f)
+
+    # 解析结果数据
+    # 支持两种格式:
+    # 1. 单数据集: {"algorithm_metrics": {...}, "raw_results": [...]}
+    # 2. 多数据集: {"datasets": {"nq": {...}, "hotpotqa": {...}}}
+
+    results: dict[str, dict[str, AlgorithmMetrics]] = {}
+    raw_results: dict[str, dict[str, list[dict[str, Any]]]] = {}
+
+    if "datasets" in data:
+        # 多数据集格式
+        for ds_name, ds_data in data["datasets"].items():
+            results[ds_name] = {}
+            raw_results[ds_name] = {}
+            algo_metrics = ds_data.get("algorithm_metrics", {})
+            for algo_name, metrics_dict in algo_metrics.items():
+                results[ds_name][algo_name] = _dict_to_algorithm_metrics(
+                    algo_name, metrics_dict
+                )
+            # 原始结果按算法分组
+            for sample in ds_data.get("raw_results", []):
+                algo = sample.get("algorithm", "unknown")
+                if algo not in raw_results[ds_name]:
+                    raw_results[ds_name][algo] = []
+                raw_results[ds_name][algo].append(sample)
+    elif "algorithm_metrics" in data:
+        # 单数据集格式
+        ds_name = data.get("config", {}).get("dataset", "default")
+        results[ds_name] = {}
+        raw_results[ds_name] = {}
+        for algo_name, metrics_dict in data["algorithm_metrics"].items():
+            results[ds_name][algo_name] = _dict_to_algorithm_metrics(
+                algo_name, metrics_dict
+            )
+        # 原始结果按算法分组
+        for sample in data.get("raw_results", []):
+            algo = sample.get("algorithm", "unknown")
+            if algo not in raw_results[ds_name]:
+                raw_results[ds_name][algo] = []
+            raw_results[ds_name][algo].append(sample)
+    else:
+        print("❌ Unrecognized results format")
+        return 1
+
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    metrics = [m.strip() for m in args.metrics.split(",")]
+
+    print("\n📊 Generating tables...")
+    print(f"   Baseline: {args.baseline}")
+    print(f"   Metrics: {metrics}")
+    print(f"   Datasets: {list(results.keys())}")
+    print(f"   Output: {output_dir}")
+
+    if args.format in ("latex", "both"):
+        # 生成主结果表格
+        main_table = generate_main_results_table(
+            results,
+            baseline=args.baseline,
+            metrics=metrics,
+            include_significance=not args.no_significance,
+            raw_results=raw_results if not args.no_significance else None,
+        )
+        main_path = output_dir / "main_results.tex"
+        main_path.write_text(main_table, encoding="utf-8")
+        print(f"   ✅ Main results: {main_path}")
+
+        # 延迟分解表格 (使用第一个数据集)
+        if results:
+            first_ds = list(results.keys())[0]
+            latency_table = generate_latency_breakdown_table(results[first_ds])
+            latency_path = output_dir / "latency_breakdown.tex"
+            latency_path.write_text(latency_table, encoding="utf-8")
+            print(f"   ✅ Latency breakdown: {latency_path}")
+
+        # 显著性表格
+        if raw_results and not args.no_significance:
+            first_ds = list(raw_results.keys())[0]
+            sig_table = generate_significance_table(
+                raw_results[first_ds],
+                baseline=args.baseline,
+            )
+            sig_path = output_dir / "significance.tex"
+            sig_path.write_text(sig_table, encoding="utf-8")
+            print(f"   ✅ Significance: {sig_path}")
+
+    if args.format in ("markdown", "both"):
+        # 生成 Markdown 格式的报告
+        from sage.benchmark.benchmark_refiner.analysis.statistical import (
+            generate_significance_report,
+        )
+
+        if raw_results:
+            first_ds = list(raw_results.keys())[0]
+            # 将原始结果转换为分数列表
+            f1_results = {}
+            for algo, samples in raw_results[first_ds].items():
+                f1_results[algo] = [
+                    s.get("f1", s.get("avg_f1", 0)) for s in samples
+                ]
+
+            if f1_results:
+                md_report = generate_significance_report(
+                    f1_results,
+                    baseline_name=args.baseline,
+                )
+                md_path = output_dir / "significance_report.md"
+                md_path.write_text(md_report, encoding="utf-8")
+                print(f"   ✅ Markdown report: {md_path}")
+
+    print(f"\n✅ Tables generated in: {output_dir}")
+    return 0
+
+
+def _dict_to_algorithm_metrics(name: str, data: dict[str, Any]):
+    """将字典转换为 AlgorithmMetrics 对象"""
+    from sage.benchmark.benchmark_refiner.experiments.base_experiment import (
+        AlgorithmMetrics,
+    )
+
+    # 处理嵌套结构
+    quality = data.get("quality", {})
+    compression = data.get("compression", {})
+    latency = data.get("latency", {})
+
+    return AlgorithmMetrics(
+        algorithm=name,
+        num_samples=data.get("num_samples", 0),
+        avg_f1=quality.get("avg_f1", data.get("avg_f1", 0)),
+        avg_recall=quality.get("avg_recall", data.get("avg_recall", 0)),
+        avg_rouge_l=quality.get("avg_rouge_l", data.get("avg_rouge_l", 0)),
+        avg_accuracy=quality.get("avg_accuracy", data.get("avg_accuracy", 0)),
+        avg_compression_rate=compression.get(
+            "avg_compression_rate", data.get("avg_compression_rate", 0)
+        ),
+        avg_original_tokens=compression.get(
+            "avg_original_tokens", data.get("avg_original_tokens", 0)
+        ),
+        avg_compressed_tokens=compression.get(
+            "avg_compressed_tokens", data.get("avg_compressed_tokens", 0)
+        ),
+        avg_retrieve_time=latency.get(
+            "avg_retrieve_time", data.get("avg_retrieve_time", 0)
+        ),
+        avg_refine_time=latency.get("avg_refine_time", data.get("avg_refine_time", 0)),
+        avg_generate_time=latency.get(
+            "avg_generate_time", data.get("avg_generate_time", 0)
+        ),
+        avg_total_time=latency.get("avg_total_time", data.get("avg_total_time", 0)),
+        std_f1=quality.get("std_f1", data.get("std_f1", 0)),
+        std_compression_rate=compression.get(
+            "std_compression_rate", data.get("std_compression_rate", 0)
+        ),
+        std_total_time=latency.get("std_total_time", data.get("std_total_time", 0)),
+    )
+
+
 def main() -> int:
     """Main entry point."""
     parser = create_parser()
@@ -446,6 +673,7 @@ def main() -> int:
         "sweep": cmd_sweep,
         "config": cmd_config,
         "heads": cmd_heads,
+        "report": cmd_report,
     }
 
     handler = commands.get(args.command)
