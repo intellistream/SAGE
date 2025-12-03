@@ -10,6 +10,7 @@ from sage.benchmark.benchmark_memory.experiment.utils.calculation_table import (
 from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
 from sage.data.sources.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.memagentbench.conflict_resolution_loader import ConflictResolutionDataLoader
 
 
 class PipelineCaller(MapFunction):
@@ -38,6 +39,8 @@ class PipelineCaller(MapFunction):
         # 根据数据集类型初始化加载器
         if self.dataset == "locomo":
             self.loader = LocomoDataLoader()
+        elif self.dataset == "conflict_resolution":
+            self.loader = ConflictResolutionDataLoader()
         else:
             raise ValueError(f"不支持的数据集: {self.dataset}")
 

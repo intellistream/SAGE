@@ -6,6 +6,7 @@
 
 from sage.common.core import BatchFunction
 from sage.data.sources.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.memagentbench.conflict_resolution_loader import ConflictResolutionDataLoader
 
 
 class MemorySource(BatchFunction):
@@ -35,6 +36,8 @@ class MemorySource(BatchFunction):
         # 创建数据加载器
         if self.dataset == "locomo":
             self.loader = LocomoDataLoader()
+        elif self.dataset == "conflict_resolution":
+            self.loader = ConflictResolutionDataLoader()
         else:
             raise ValueError(f"不支持的数据集: {self.dataset}")
 
