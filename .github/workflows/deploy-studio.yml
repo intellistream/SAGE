@@ -26,7 +26,8 @@ env:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    # 强制使用 A100 runner，确保环境一致性（与 paper1-experiments.yml 相同）
+    runs-on: [self-hosted, A100]
     timeout-minutes: 120  # 首次安装 NVIDIA CUDA 包需要较长时间
 
     # Define secrets as env vars at job level for conditional checks
@@ -35,8 +36,8 @@ jobs:
       DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      # Conda 环境名称（持久化，复用已安装的包）
-      CONDA_ENV_NAME: sage-studio
+      # Conda 环境名称（统一使用 sage，与开发环境一致）
+      CONDA_ENV_NAME: sage
 
     # 默认使用 bash，并自动激活 conda 环境
     defaults:
@@ -124,10 +125,22 @@ jobs:
           conda run -n ${ACTUAL_ENV} python --version
           echo "✅ Conda 环境 '${ACTUAL_ENV}' 已就绪"
 
-          # 检查已安装的 NVIDIA 包（验证缓存是否生效）
+          # 检查环境中是否已安装核心依赖（用于判断是否需要完整安装）
           echo ""
-          echo "📦 已安装的 NVIDIA CUDA 包："
-          conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -i nvidia || echo "（暂无，首次安装时会下载）"
+          echo "📦 检查已安装的核心依赖..."
+          NVIDIA_INSTALLED=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c -i "nvidia" || echo "0")
+          TORCH_INSTALLED=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c "^torch " || echo "0")
+          echo "NVIDIA 相关包数量: $NVIDIA_INSTALLED"
+          echo "PyTorch 已安装: $TORCH_INSTALLED"
+
+          # 如果已有 NVIDIA 包（>5个）和 torch，说明核心依赖已装好
+          if [ "$NVIDIA_INSTALLED" -gt 5 ] && [ "$TORCH_INSTALLED" -gt 0 ]; then
+            echo "deps_installed=true" >> $GITHUB_ENV
+            echo "✅ 核心依赖已安装，将跳过完整安装"
+          else
+            echo "deps_installed=false" >> $GITHUB_ENV
+            echo "📦 需要安装核心依赖"
+          fi
 
           # 保存 conda 路径和环境名，供后续步骤使用
           echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
@@ -242,7 +255,7 @@ jobs:
 
           # 如果已安装，使用增量更新模式
           if [ "${{ steps.check-sage.outputs.sage_installed }}" = "true" ]; then
-            echo "🔄 执行增量更新..."
+            echo "🔄 执行增量更新（仅更新 SAGE 包，不重装依赖）..."
             # 只重新安装 editable 包，不重装依赖
             pip install -e packages/sage-common --no-deps -q
             pip install -e packages/sage-platform --no-deps -q
@@ -256,8 +269,23 @@ jobs:
             pip install -e packages/sage-tools --no-deps -q
             pip install -e packages/sage --no-deps -q
             echo "✅ 增量更新完成"
+          elif [ "$deps_installed" = "true" ]; then
+            echo "🔄 核心依赖已存在，仅安装 SAGE 包（带依赖检查）..."
+            # 依赖已存在，只安装 SAGE 包，pip 会自动跳过已安装的依赖
+            pip install -e packages/sage-common -q
+            pip install -e packages/sage-platform -q
+            pip install -e packages/sage-kernel -q
+            pip install -e packages/sage-libs -q
+            pip install -e packages/sage-middleware -q
+            pip install -e packages/sage-apps -q
+            pip install -e packages/sage-studio -q
+            pip install -e packages/sage-gateway -q
+            pip install -e packages/sage-cli -q
+            pip install -e packages/sage-tools -q
+            pip install -e packages/sage -q
+            echo "✅ SAGE 包安装完成（复用已有依赖）"
           else
-            echo "📦 执行完整安装..."
+            echo "📦 执行完整安装（首次安装，需要下载所有依赖）..."
             # 强制使用中国镜像 + 使用当前 conda 环境的 pip
             export SAGE_FORCE_CHINA_MIRROR=true
             # 取消 CI 变量，让 quickstart.sh 安装到当前 conda 环境
