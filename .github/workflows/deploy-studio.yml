@@ -57,6 +57,11 @@ jobs:
           echo "🐍 设置 Conda 环境..."
           echo "HOME=$HOME, USER=$(whoami)"
 
+          # 调试：检查 miniconda 目录是否存在
+          echo "检查已存在的 conda 安装..."
+          ls -la $HOME/miniconda3/etc/profile.d/conda.sh 2>/dev/null && echo "✅ 找到 $HOME/miniconda3" || echo "❌ $HOME/miniconda3 不存在"
+          ls -la /home/action-runner/miniconda3/etc/profile.d/conda.sh 2>/dev/null && echo "✅ 找到 /home/action-runner/miniconda3" || echo "❌ /home/action-runner/miniconda3 不存在"
+
           # 定义 conda 初始化函数（参考 paper1-experiments.yml）
           init_conda() {
             # Common conda locations on self-hosted runners
