@@ -29,6 +29,13 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
 
+    # Define secrets as env vars at job level for conditional checks
+    env:
+      CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,10 +112,6 @@ jobs:
           echo "✅ Studio 构建完成"
 
       - name: Start SAGE Studio
-        env:
-          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           echo "🚀 启动 SAGE Studio（生产模式）..."
 
@@ -156,9 +159,7 @@ jobs:
           ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
 
       - name: Setup Cloudflare Tunnel
-        env:
-          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
-        if: env.CLOUDFLARE_TUNNEL_TOKEN != ''
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
         run: |
           echo "🌐 配置 Cloudflare Tunnel..."
 
@@ -174,9 +175,7 @@ jobs:
           echo "✅ cloudflared 已就绪"
 
       - name: Start Cloudflare Tunnel
-        env:
-          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
-        if: env.CLOUDFLARE_TUNNEL_TOKEN != ''
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
         run: |
           echo "🚀 启动 Cloudflare Tunnel..."
 
