@@ -97,10 +97,11 @@ exit 1
 
         # 创建干净的环境变量
         import os
+
         clean_env = os.environ.copy()
         clean_env["LC_ALL"] = "C"
         clean_env["LANG"] = "C"
-        
+
         result = subprocess.run(
             ssh_cmd,
             input=detect_cmd,
@@ -112,9 +113,9 @@ exit 1
 
         # 从 stdout 提取版本号
         if result.stdout:
-            for line in result.stdout.strip().split('\n'):
+            for line in result.stdout.strip().split("\n"):
                 line = line.strip()
-                if not line or 'warning' in line.lower() or 'setlocale' in line.lower():
+                if not line or "warning" in line.lower() or "setlocale" in line.lower():
                     continue
                 match = re.search(r"ray,?\s*version\s+([\d.]+)", line, re.IGNORECASE)
                 if match:
@@ -135,7 +136,7 @@ def install_ray_on_remote(
     conda_env: str = "sage",
 ) -> bool:
     """在远程主机上安装指定版本的 Ray
-    
+
     优先安装到 conda 环境中。
     """
     typer.echo(f"📦 在 {host} 上安装 Ray {target_version}...")
@@ -225,12 +226,12 @@ echo "安装完成."
         )
 
         if result.stdout:
-            for line in result.stdout.split('\n'):
-                if 'setlocale' not in line.lower() and 'warning' not in line.lower():
+            for line in result.stdout.split("\n"):
+                if "setlocale" not in line.lower() and "warning" not in line.lower():
                     typer.echo(line)
         if result.stderr:
-            for line in result.stderr.split('\n'):
-                if 'setlocale' not in line.lower() and 'warning' not in line.lower():
+            for line in result.stderr.split("\n"):
+                if "setlocale" not in line.lower() and "warning" not in line.lower():
                     if line.strip():
                         typer.echo(line, err=True)
 

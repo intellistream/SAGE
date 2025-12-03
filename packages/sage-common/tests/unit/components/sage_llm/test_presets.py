@@ -318,9 +318,7 @@ class TestPresetEngineUseGpuBehavior:
 
     def test_use_gpu_true_forces_gpu(self):
         """Test that use_gpu=True forces GPU usage."""
-        engine = PresetEngine(
-            name="embed-gpu", model="BAAI/bge-m3", kind="embedding", use_gpu=True
-        )
+        engine = PresetEngine(name="embed-gpu", model="BAAI/bge-m3", kind="embedding", use_gpu=True)
 
         assert engine.use_gpu is True
         payload = engine.to_payload()

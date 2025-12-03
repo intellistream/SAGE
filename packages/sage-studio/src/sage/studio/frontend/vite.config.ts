@@ -12,6 +12,9 @@ export default defineConfig({
     },
     server: {
         port: 5173,
+        // Allow all external hosts (Cloudflare Tunnel, custom domains, etc.)
+        // 'true' means allow any host - necessary for reverse proxy setups
+        allowedHosts: true,
         proxy: {
             // Chat API 转发到 Gateway (8000)
             '/api/chat': {
@@ -30,5 +33,11 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         sourcemap: true,
+    },
+    // Preview server config (for production mode: vite preview)
+    preview: {
+        port: 5173,
+        // Allow all external hosts (Cloudflare Tunnel, custom domains, etc.)
+        allowedHosts: true,
     },
 })
