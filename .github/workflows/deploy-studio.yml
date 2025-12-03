@@ -154,7 +154,8 @@ jobs:
           echo "🛑 Stopping existing SAGE Studio services..."
           pkill -f "sage studio" || true
           pkill -f "sage-gateway" || true
-          pkill -f "cloudflared tunnel" || true
+          # 注意：不停止 cloudflared tunnel，保持公网访问连续性
+          # Tunnel 会在后面的 Start Cloudflare Tunnel 步骤中按需重启
           sleep 2
 
       - name: Install System Dependencies
