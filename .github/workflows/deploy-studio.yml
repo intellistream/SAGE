@@ -27,7 +27,7 @@ env:
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 120  # 首次安装 NVIDIA CUDA 包需要较长时间
 
     # Define secrets as env vars at job level for conditional checks
     env:
@@ -35,6 +35,13 @@ jobs:
       DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      # Conda 环境名称（持久化，复用已安装的包）
+      CONDA_ENV_NAME: sage-studio
+
+    # 默认使用 bash，并自动激活 conda 环境
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
       - name: Checkout code
@@ -43,11 +50,103 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+      # 使用持久化的 conda 环境，避免每次重新下载大包
+      - name: Setup Conda Environment
+        run: |
+          echo "🐍 设置 Conda 环境..."
+          echo "HOME=$HOME, USER=$(whoami)"
+
+          # 初始化 conda（支持多种安装位置，包括特定用户目录）
+          CONDA_SH=""
+          CONDA_PATHS=(
+            "$HOME/miniconda3/etc/profile.d/conda.sh"
+            "/home/shuhao/miniconda3/etc/profile.d/conda.sh"
+            "$HOME/anaconda3/etc/profile.d/conda.sh"
+            "$HOME/miniforge3/etc/profile.d/conda.sh"
+            "/opt/conda/etc/profile.d/conda.sh"
+            "/usr/local/conda/etc/profile.d/conda.sh"
+          )
+
+          echo "检查 conda 路径..."
+          for path in "${CONDA_PATHS[@]}"; do
+            if [ -f "$path" ]; then
+              CONDA_SH="$path"
+              echo "✅ 找到 conda: $path"
+              break
+            fi
+          done
+
+          # 如果没找到，自动安装 miniconda
+          if [ -z "$CONDA_SH" ]; then
+            echo "📦 未找到 conda，正在安装 Miniconda..."
+            MINICONDA_PATH="$HOME/miniconda3"
+
+            # 检查是否已经有安装程序缓存
+            INSTALLER="$HOME/.cache/miniconda_installer.sh"
+            mkdir -p "$HOME/.cache"
+
+            if [ ! -f "$INSTALLER" ]; then
+              echo "下载 Miniconda 安装程序..."
+              # 使用清华镜像加速下载
+              curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh -o "$INSTALLER"
+            fi
+
+            echo "安装 Miniconda 到 $MINICONDA_PATH..."
+            bash "$INSTALLER" -b -p "$MINICONDA_PATH"
+
+            CONDA_SH="$MINICONDA_PATH/etc/profile.d/conda.sh"
+            echo "✅ Miniconda 安装完成"
+          fi
+
+          source "$CONDA_SH"
+          echo "✅ Conda 已初始化"
+
+          # 配置 conda 使用清华镜像
+          conda config --set show_channel_urls yes
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+          conda config --set channel_priority flexible
+
+          # 优先使用已有的 sage 环境（服务器上已经存在），否则使用 CONDA_ENV_NAME
+          if conda env list | grep -q "^sage "; then
+            ACTUAL_ENV="sage"
+            echo "✅ 使用已有的 'sage' 环境（包含已安装的依赖）"
+          elif conda env list | grep -q "^${CONDA_ENV_NAME} "; then
+            ACTUAL_ENV="${CONDA_ENV_NAME}"
+            echo "✅ 使用 '${CONDA_ENV_NAME}' 环境"
+          else
+            ACTUAL_ENV="${CONDA_ENV_NAME}"
+            echo "📦 创建新的 Conda 环境 '${ACTUAL_ENV}'..."
+            conda create -n ${ACTUAL_ENV} python=3.11 -y
+          fi
+
+          # 激活环境并显示信息
+          conda activate ${ACTUAL_ENV}
+
+          echo "Python 版本: $(python --version)"
+          echo "Python 路径: $(which python)"
+          echo "pip 路径: $(which pip)"
+
+          # 检查已安装的 NVIDIA 包（验证缓存是否生效）
+          echo ""
+          echo "📦 已安装的 NVIDIA CUDA 包："
+          pip list 2>/dev/null | grep -i nvidia || echo "（暂无，首次安装时会下载）"
+
+          # 导出实际使用的环境名，供后续步骤使用
+          echo "ACTUAL_CONDA_ENV=${ACTUAL_ENV}" >> $GITHUB_ENV
+
+          # 将 conda 初始化命令写入 ~/.bashrc，供后续步骤自动加载
+          # 这样配合 shell: bash -el {0} 可以自动激活环境
+          if ! grep -q "conda.sh" ~/.bashrc 2>/dev/null; then
+            echo "source ${CONDA_SH}" >> ~/.bashrc
+          fi
+          # 使用实际的环境名
+          if ! grep -q "conda activate ${ACTUAL_ENV}" ~/.bashrc 2>/dev/null; then
+            # 先移除旧的 conda activate 行
+            sed -i '/conda activate/d' ~/.bashrc 2>/dev/null || true
+            echo "conda activate ${ACTUAL_ENV}" >> ~/.bashrc
+          fi
+          echo "✅ Conda 环境 '${ACTUAL_ENV}' 配置完成，后续步骤将自动激活"
 
       - name: Stop existing services
         continue-on-error: true
@@ -55,7 +154,8 @@ jobs:
           echo "🛑 Stopping existing SAGE Studio services..."
           pkill -f "sage studio" || true
           pkill -f "sage-gateway" || true
-          pkill -f "cloudflared tunnel" || true
+          # 注意：不停止 cloudflared tunnel，保持公网访问连续性
+          # Tunnel 会在后面的 Start Cloudflare Tunnel 步骤中按需重启
           sleep 2
 
       - name: Install System Dependencies
@@ -77,27 +177,100 @@ jobs:
             command -v cmake && command -v git && echo "✅ 必要工具已存在"
           fi
 
-      - name: Install/Update SAGE
+      - name: Check existing SAGE installation
+        id: check-sage
         run: |
-          echo "📦 安装 SAGE（开发模式）..."
+          echo "🔍 检查现有 SAGE 安装..."
+          echo "当前 Python: $(which python)"
+          echo "当前 Conda 环境: ${ACTUAL_CONDA_ENV:-未设置}"
 
-          export PATH="$HOME/.local/bin:$PATH"
+          CURRENT_COMMIT="${{ github.sha }}"
+          DEPLOYED_COMMIT_FILE="$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
+
+          # 检查是否已安装并可导入
+          if python -c "import sage.studio; import sage.gateway" 2>/dev/null; then
+            echo "sage_installed=true" >> $GITHUB_OUTPUT
+            echo "✅ SAGE 已安装"
+
+            # 检查上次部署的 commit
+            if [ -f "$DEPLOYED_COMMIT_FILE" ]; then
+              DEPLOYED_COMMIT=$(cat "$DEPLOYED_COMMIT_FILE")
+              echo "上次部署 commit: $DEPLOYED_COMMIT"
+              echo "当前部署 commit: $CURRENT_COMMIT"
+
+              if [ "$DEPLOYED_COMMIT" = "$CURRENT_COMMIT" ]; then
+                echo "needs_update=false" >> $GITHUB_OUTPUT
+                echo "✅ 版本一致，无需重新安装"
+              else
+                echo "needs_update=true" >> $GITHUB_OUTPUT
+                echo "📦 版本不同，需要更新"
+              fi
+            else
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "📦 首次部署记录，需要更新"
+            fi
+          else
+            echo "sage_installed=false" >> $GITHUB_OUTPUT
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "📦 SAGE 未安装，需要完整安装"
+          fi
+
+      - name: Install/Update SAGE
+        if: steps.check-sage.outputs.needs_update == 'true'
+        run: |
+          echo "📦 安装/更新 SAGE（开发模式）..."
+          echo "当前 Python: $(which python)"
+          echo "当前 pip: $(which pip)"
+
           chmod +x ./quickstart.sh
 
-          # 配置国内 PyPI 镜像加速
+          # 配置国内 PyPI 镜像加速（清华源）
           export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
           export PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+          # 增加超时和重试配置
+          export PIP_DEFAULT_TIMEOUT=300
+          export PIP_RETRIES=5
 
-          ./quickstart.sh --dev --yes
+          # 如果已安装，使用增量更新模式
+          if [ "${{ steps.check-sage.outputs.sage_installed }}" = "true" ]; then
+            echo "🔄 执行增量更新..."
+            # 只重新安装 editable 包，不重装依赖
+            pip install -e packages/sage-common --no-deps -q
+            pip install -e packages/sage-platform --no-deps -q
+            pip install -e packages/sage-kernel --no-deps -q
+            pip install -e packages/sage-libs --no-deps -q
+            pip install -e packages/sage-middleware --no-deps -q
+            pip install -e packages/sage-apps --no-deps -q
+            pip install -e packages/sage-studio --no-deps -q
+            pip install -e packages/sage-gateway --no-deps -q
+            pip install -e packages/sage-cli --no-deps -q
+            pip install -e packages/sage-tools --no-deps -q
+            pip install -e packages/sage --no-deps -q
+            echo "✅ 增量更新完成"
+          else
+            echo "📦 执行完整安装..."
+            # 强制使用中国镜像 + 使用当前 conda 环境的 pip
+            export SAGE_FORCE_CHINA_MIRROR=true
+            # 取消 CI 变量，让 quickstart.sh 安装到当前 conda 环境
+            unset CI GITHUB_ACTIONS
+            ./quickstart.sh --dev --yes --pip
+          fi
 
-          echo "✅ SAGE 安装完成"
-        timeout-minutes: 45
+          # 记录部署的 commit，用于下次增量检测（按环境名区分）
+          echo "${{ github.sha }}" > "$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
+
+          echo "✅ SAGE 安装/更新完成"
+        timeout-minutes: 90  # NVIDIA CUDA 包很大，需要更长时间
+
+      - name: Skip installation (up to date)
+        if: steps.check-sage.outputs.needs_update != 'true'
+        run: |
+          echo "⏭️ SAGE 已是最新版本，跳过安装步骤"
 
       - name: Verify Installation
         run: |
           echo "✅ 验证 SAGE 安装..."
-
-          export PATH="$HOME/.local/bin:$PATH"
+          echo "当前 Python: $(which python)"
 
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.cli; print('✅ sage.cli imported')"
@@ -110,20 +283,22 @@ jobs:
           fi
 
       - name: Build Studio (Production)
+        if: steps.check-sage.outputs.needs_update == 'true'
         run: |
           echo "🏗️  构建 SAGE Studio（生产模式）..."
-
-          export PATH="$HOME/.local/bin:$PATH"
 
           sage studio build
 
           echo "✅ Studio 构建完成"
 
+      - name: Skip build (up to date)
+        if: steps.check-sage.outputs.needs_update != 'true'
+        run: |
+          echo "⏭️ 代码无变化，跳过前端构建"
+
       - name: Start SAGE Studio
         run: |
           echo "🚀 启动 SAGE Studio（生产模式）..."
-
-          export PATH="$HOME/.local/bin:$PATH"
 
           # Production mode for better performance and stability
           # 1. Builds RAG index from docs-public if needed
@@ -171,14 +346,15 @@ jobs:
         run: |
           echo "🌐 配置 Cloudflare Tunnel..."
 
+          # 确保 ~/.local/bin 在 PATH 中（cloudflared 安装位置）
+          export PATH="$HOME/.local/bin:$PATH"
+
           # 检查是否已安装 cloudflared
           if ! command -v cloudflared &> /dev/null; then
             echo "📦 安装 cloudflared..."
-            # Install to user's local bin (no sudo required)
             mkdir -p ~/.local/bin
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/.local/bin/cloudflared
             chmod +x ~/.local/bin/cloudflared
-            export PATH="$HOME/.local/bin:$PATH"
           fi
 
           cloudflared --version
