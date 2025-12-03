@@ -5,7 +5,7 @@
  */
 
 import axios from 'axios'
-import type { Edge, Node } from 'reactflow'
+import type { Node } from 'reactflow'
 
 // API 基础 URL (由 Vite 代理到 localhost:8080)
 const API_BASE_URL = '/api'
