@@ -29,6 +29,13 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
 
+    # Define secrets as env vars at job level for conditional checks
+    env:
+      CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,15 +59,23 @@ jobs:
           sleep 2
 
       - name: Install System Dependencies
+        continue-on-error: true
         run: |
-          echo "📦 安装系统依赖..."
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            cmake \
-            pkg-config \
-            git
-          echo "✅ 系统依赖安装完成"
+          echo "📦 检查/安装系统依赖..."
+          # Try with sudo if available, skip if not (dependencies should be pre-installed on self-hosted runner)
+          if sudo -n true 2>/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends \
+              build-essential \
+              cmake \
+              pkg-config \
+              git
+            echo "✅ 系统依赖安装完成"
+          else
+            echo "⚠️ 无 sudo 权限，跳过系统依赖安装（假设已预装）"
+            # Verify essential commands exist
+            command -v cmake && command -v git && echo "✅ 必要工具已存在"
+          fi
 
       - name: Install/Update SAGE
         run: |
@@ -105,10 +120,6 @@ jobs:
           echo "✅ Studio 构建完成"
 
       - name: Start SAGE Studio
-        env:
-          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           echo "🚀 启动 SAGE Studio（生产模式）..."
 
@@ -156,27 +167,29 @@ jobs:
           ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
 
       - name: Setup Cloudflare Tunnel
-        if: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
         run: |
           echo "🌐 配置 Cloudflare Tunnel..."
 
           # 检查是否已安装 cloudflared
           if ! command -v cloudflared &> /dev/null; then
             echo "📦 安装 cloudflared..."
-            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-            sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
-            rm /tmp/cloudflared
+            # Install to user's local bin (no sudo required)
+            mkdir -p ~/.local/bin
+            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/.local/bin/cloudflared
+            chmod +x ~/.local/bin/cloudflared
+            export PATH="$HOME/.local/bin:$PATH"
           fi
 
           cloudflared --version
           echo "✅ cloudflared 已就绪"
 
       - name: Start Cloudflare Tunnel
-        if: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN != '' }}
-        env:
-          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
         run: |
           echo "🚀 启动 Cloudflare Tunnel..."
+
+          export PATH="$HOME/.local/bin:$PATH"
 
           # 停止可能存在的旧 tunnel 进程
           pkill -f "cloudflared tunnel" || true
@@ -220,15 +233,17 @@ jobs:
             echo "❌ ${SERVER_IP}:${PORT} 不可访问"
           fi
 
-          # 检查防火墙规则
+          # 检查防火墙规则（可选，仅供参考）
           echo ""
           echo "🔥 防火墙检查："
-          if command -v ufw &> /dev/null; then
+          if command -v ufw &> /dev/null && sudo -n true 2>/dev/null; then
             echo "UFW 状态："
             sudo ufw status | grep -E "Status|${PORT}" || echo "端口 ${PORT} 未在 UFW 规则中"
+          else
+            echo "⚠️ 跳过 UFW 检查（无 sudo 权限或未安装）"
           fi
 
-          if command -v iptables &> /dev/null; then
+          if command -v iptables &> /dev/null && sudo -n true 2>/dev/null; then
             echo ""
             echo "IPTables 入站规则（端口 ${PORT}）："
             sudo iptables -L INPUT -n -v 2>/dev/null | grep -E "dpt:${PORT}|ACCEPT.*all" | head -5 || echo "未找到相关规则"
@@ -261,9 +276,9 @@ jobs:
             TUNNEL_STATUS="✅ 运行中"
           fi
 
-          # 检测防火墙状态
-          FIREWALL_STATUS="未知"
-          if command -v ufw &> /dev/null; then
+          # 检测防火墙状态（可选）
+          FIREWALL_STATUS="未检查"
+          if command -v ufw &> /dev/null && sudo -n true 2>/dev/null; then
             if sudo ufw status | grep -q "Status: active"; then
               if sudo ufw status | grep -q "$PORT"; then
                 FIREWALL_STATUS="✅ UFW: 端口 $PORT 已开放"
