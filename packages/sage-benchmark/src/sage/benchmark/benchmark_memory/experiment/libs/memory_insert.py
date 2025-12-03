@@ -46,15 +46,15 @@ class MemoryInsert(MapFunction):
 
         # 明确服务后端
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
+        print(f"[DEBUG] MemoryInsert.__init__: self.service_name = {self.service_name}")
 
         # 从配置读取提取模式
         self.adapter = (
             config.get("services.memory_insert_adapter", "to_dialogs") if config else "to_dialogs"
         )
 
-        # 初始化对话解析器（仅 to_dialogs 模式需要）
-        if self.adapter == "to_dialogs":
-            self.dialogue_parser = DialogueParser()
+        # 初始化对话解析器（to_dialogs 模式需要，其他模式可能也需要作为回退）
+        self.dialogue_parser = DialogueParser()
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行记忆插入
@@ -100,11 +100,30 @@ class MemoryInsert(MapFunction):
         insert_params = (entry_dict.get("insert_params") or {}).copy()
 
         # 提取文本内容
+        # 根据不同的 transform_type，文本可能存储在不同字段：
+        # - refactor: refactor 处理后的文本
+        # - text: 原始文本
+        # - summary: summarize 生成的摘要
+        # - compressed_text: compress 压缩后的文本
+        # - chunk_text: chunking 分块后的文本
+        # - segment_text: topic_segment 分段后的文本
         if self.adapter == "to_dialogs":
             dialogs = entry_dict.get("dialogs", [])
             entry = self.dialogue_parser.format(dialogs) if dialogs else ""
         else:
-            entry = entry_dict.get("refactor", "") or entry_dict.get("text", "")
+            # 按优先级尝试获取文本内容
+            entry = (
+                entry_dict.get("refactor", "")
+                or entry_dict.get("summary", "")
+                or entry_dict.get("compressed_text", "")
+                or entry_dict.get("chunk_text", "")
+                or entry_dict.get("segment_text", "")
+                or entry_dict.get("text", "")
+            )
+            # 如果没有转换后的文本，回退到 dialogs
+            if not entry and "dialogs" in entry_dict:
+                dialogs = entry_dict.get("dialogs", [])
+                entry = self.dialogue_parser.format(dialogs) if dialogs else ""
 
         if not entry:
             return None
@@ -117,8 +136,14 @@ class MemoryInsert(MapFunction):
 
         if insert_method == "triple_insert":
             # 三元组插入（图服务）
+            # 支持两种格式：
+            # - "triples": [(s, r, o), ...] - 复数列表格式
+            # - "triple": (s, r, o) - 单数格式（来自 PreInsert tri_embed）
             if "triples" in entry_dict:
                 metadata["triples"] = entry_dict["triples"]
+            elif "triple" in entry_dict:
+                # 将单个三元组包装为列表
+                metadata["triples"] = [entry_dict["triple"]]
             metadata.setdefault("node_type", "fact")
 
         elif insert_method == "chunk_insert":

@@ -60,13 +60,6 @@ Answer:""",
 
         prompt = full_prompt
 
-        # # # Debug: 打印最终的完整Prompt
-        # print(f"\n{'='*80}")
-        # print(f"[DEBUG] Final Prompt for Question: {question}...")
-        # print(f"{'='*80}")
-        # print(prompt)
-        # print(f"{'='*80}\n")
-
         # 调用 LLM 生成答案
         answer_text = self.generator.generate(prompt)
         # answer_text = "yes"

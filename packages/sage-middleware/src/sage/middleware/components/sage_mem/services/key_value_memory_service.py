@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING, Any, Literal
 
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
@@ -86,11 +85,16 @@ class KeyValueMemoryService(BaseService):
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "kv_memory")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录
+
+        使用 SAGE 标准目录结构: .sage/data/kv_memory
+        """
+        from sage.common.config.output_paths import get_appropriate_sage_dir
+
+        sage_dir = get_appropriate_sage_dir()
+        data_dir = sage_dir / "data" / "kv_memory"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
     def insert(
         self,
@@ -139,6 +143,8 @@ class KeyValueMemoryService(BaseService):
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """检索值
 
@@ -148,10 +154,14 @@ class KeyValueMemoryService(BaseService):
             metadata: 查询参数:
                 - with_metadata: 是否返回元数据
             top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
             list[dict]: 检索结果 [{"text": ..., "metadata": ..., "score": ...}, ...]
         """
+        _ = hints  # 保留用于未来扩展
+        _ = threshold  # KV 检索暂不使用相似度阈值
         if query is None:
             return []
 
@@ -161,8 +171,8 @@ class KeyValueMemoryService(BaseService):
 
         # 使用 KVMemoryCollection 的检索功能
         results = self.collection.retrieve(
-            raw_text=query,
-            topk=top_k,
+            query=query,
+            top_k=top_k,
             with_metadata=with_metadata,
             index_name=self.index_name,
         )

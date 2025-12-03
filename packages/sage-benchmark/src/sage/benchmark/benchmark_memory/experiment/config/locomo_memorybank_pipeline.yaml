@@ -43,6 +43,7 @@ services:
       ltm: -1                         # 无限
     migration_policy: "heat"          # 基于热度迁移
     migration_threshold: 0.7
+    embedding_dim: 1024               # bge-m3 模型输出 1024 维向量
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 

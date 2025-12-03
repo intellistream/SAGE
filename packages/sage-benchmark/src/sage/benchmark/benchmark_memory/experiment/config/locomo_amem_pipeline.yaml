@@ -52,16 +52,29 @@ operators:
   # ----------------------------------------------------------
   pre_insert:
     action: "extract"
-    extract_type: "all"               # 提取 keyword + entity + context
+    extract_type: "all"               # 提取 keyword + entity + noun + persona
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity/noun 提取
     keyword_prompt: |
-      Extract key concepts, entities, and contextual tags from this conversation.
-      Output format:
-      Keywords: word1, word2, ...
-      Entities: entity1, entity2, ...
-      Context: A brief description of the conversation context
+      Extract key concepts and contextual tags from this conversation.
+      Output format (JSON):
+      {"keywords": ["word1", "word2", ...]}
 
       Conversation:
       {dialogue}
+    persona_prompt: |
+      Extract persona information for each speaker in this conversation.
+      Output format (JSON):
+      {
+        "Speaker1": {"traits": [...], "preferences": [...], "facts": [...]},
+        "Speaker2": {"traits": [...], "preferences": [...], "facts": [...]}
+      }
+
+      Conversation:
+      {dialogue}
+    persona_fields:
+    - traits
+    - preferences
+    - facts
     max_keywords: 10
     add_to_metadata: true
 

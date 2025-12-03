@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import os
 import time
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
@@ -111,11 +110,16 @@ class HierarchicalMemoryService(BaseService):
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "hierarchical_memory")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录
+
+        使用 SAGE 标准目录结构: .sage/data/hierarchical_memory
+        """
+        from sage.common.config.output_paths import get_appropriate_sage_dir
+
+        sage_dir = get_appropriate_sage_dir()
+        data_dir = sage_dir / "data" / "hierarchical_memory"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
     def _get_tier_index_name(self, tier_name: str) -> str:
         """获取层级对应的索引名"""
@@ -145,11 +149,12 @@ class HierarchicalMemoryService(BaseService):
 
         # 为每个层级创建 VDB 索引
         existing_indexes = {idx["name"] for idx in self.collection.list_indexes()}
+        self.logger.debug(f"Existing indexes: {existing_indexes}")
 
         for tier_name in self.tier_names:
             index_name = self._get_tier_index_name(tier_name)
             if index_name not in existing_indexes:
-                self.collection.create_index(
+                success = self.collection.create_index(
                     {
                         "name": index_name,
                         "type": "vdb",
@@ -159,6 +164,16 @@ class HierarchicalMemoryService(BaseService):
                     },
                     IndexType.VDB,
                 )
+                if success:
+                    self.logger.info(
+                        f"Created VDB index '{index_name}' for tier '{tier_name}' (dim={self.embedding_dim})"
+                    )
+                else:
+                    self.logger.error(
+                        f"Failed to create VDB index '{index_name}' for tier '{tier_name}'"
+                    )
+            else:
+                self.logger.debug(f"Index '{index_name}' already exists for tier '{tier_name}'")
 
     def _update_tier_counts(self) -> None:
         """更新各层的计数"""
@@ -228,6 +243,12 @@ class HierarchicalMemoryService(BaseService):
         full_metadata["timestamp"] = timestamp
         full_metadata["tier"] = tier_name
         full_metadata["importance"] = metadata.get("importance", 0.5)
+        # 保存向量用于迁移（注意：这会增加存储开销）
+        if vector is not None:
+            vec_arr = (
+                np.array(vector, dtype=np.float32) if not isinstance(vector, np.ndarray) else vector
+            )
+            full_metadata["_vector"] = vec_arr.tolist()  # 转为 list 便于序列化
 
         # 检查容量，必要时触发迁移（force_insert 跳过容量检查）
         capacity = self.tier_capacities.get(tier_name, -1)
@@ -316,7 +337,10 @@ class HierarchicalMemoryService(BaseService):
             meta = self.collection.get_metadata(item_id)
             if meta and meta.get("tier") == tier_name:
                 timestamp = meta.get("timestamp", 0)
-                tier_items.append((item_id, timestamp, None))
+                # 获取保存的向量
+                vec_list = meta.get("_vector")
+                vec = np.array(vec_list, dtype=np.float32) if vec_list else None
+                tier_items.append((item_id, timestamp, vec))
 
         # 按时间排序（最旧的在前）
         tier_items.sort(key=lambda x: x[1])
@@ -350,6 +374,8 @@ class HierarchicalMemoryService(BaseService):
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """检索记忆
 
@@ -360,10 +386,13 @@ class HierarchicalMemoryService(BaseService):
                 - tiers: 要搜索的层级列表（默认所有层）
                 - method: "semantic" | "recent"
             top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
             list[dict]: 检索结果
         """
+        _ = hints  # 保留用于未来扩展
         metadata = metadata or {}
         tiers_to_search = metadata.get("tiers", self.tier_names)
         method = metadata.get("method", "semantic" if vector is not None else "recent")
@@ -425,6 +454,10 @@ class HierarchicalMemoryService(BaseService):
                 }
             )
 
+        # 应用相似度阈值过滤
+        if threshold is not None:
+            formatted_results = [r for r in formatted_results if r.get("score", 0) >= threshold]
+
         return formatted_results
 
     def migrate(self, entry_id: str, from_tier: str, to_tier: str) -> bool:
@@ -448,12 +481,16 @@ class HierarchicalMemoryService(BaseService):
         if not self.collection.remove_from_index(entry_id, from_index):
             return False
 
-        # 加入目标索引（需要向量，从存储获取）
-        # 注意：VDB 索引需要向量，这里需要重新计算或从外部获取
-        # 暂时传 None，由 insert_to_index 处理
-        if not self.collection.insert_to_index(entry_id, to_index, vector=None):
+        # 获取该条目的向量（从元数据或重新计算）
+        # 注意：VDB 索引需要向量，需要从存储获取
+        meta = self.collection.get_metadata(entry_id) or {}
+        vec_list = meta.get("_vector")
+        vector = np.array(vec_list, dtype=np.float32) if vec_list else None
+
+        # 加入目标索引
+        if not self.collection.insert_to_index(entry_id, to_index, vector=vector):
             # 回滚：加回源索引
-            self.collection.insert_to_index(entry_id, from_index, vector=None)
+            self.collection.insert_to_index(entry_id, from_index, vector=vector)
             return False
 
         # 更新元数据
@@ -489,15 +526,26 @@ class HierarchicalMemoryService(BaseService):
 
         return False
 
-    def optimize(self, trigger: str = "auto") -> dict[str, Any]:
+    def optimize(
+        self,
+        trigger: str = "auto",
+        config: dict[str, Any] | None = None,
+        entries: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """优化记忆结构
 
         Args:
             trigger: 触发类型 ("auto" | "migrate" | "forgetting")
+            config: 来自 PostInsert 的配置参数（预留扩展）
+            entries: 相关记忆条目（预留扩展）
 
         Returns:
             dict: 优化统计信息
         """
+        # 预留：config 和 entries 可用于更复杂的优化策略
+        _ = config
+        _ = entries
+
         stats = {
             "success": True,
             "trigger": trigger,

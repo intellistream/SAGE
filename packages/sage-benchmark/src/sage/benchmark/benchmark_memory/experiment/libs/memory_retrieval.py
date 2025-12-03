@@ -28,6 +28,13 @@ class MemoryRetrieval(MapFunction):
 
         # 1. 明确服务后端
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
+        print(f"[DEBUG] MemoryRetrieval.__init__: self.service_name = {self.service_name}")
+
+        # 2. 检索参数（从服务配置读取）
+        service_cfg = f"services.{self.service_name}"
+        self.retrieval_top_k = config.get(f"{service_cfg}.retrieval_top_k", 10)
+        self.num_start_nodes = config.get(f"{service_cfg}.num_start_nodes", 3)
+        self.max_depth = config.get(f"{service_cfg}.max_depth", 2)
 
     def execute(self, data):
         """执行记忆检索
@@ -48,21 +55,30 @@ class MemoryRetrieval(MapFunction):
         """
         query = data["question"]
         vector = data.get("query_embedding", None)
-        metadata = data.get("metadata", None)
+        base_metadata = data.get("metadata") or {}
+
+        # 合并检索参数到 metadata
+        metadata = {
+            **base_metadata,
+            "num_start_nodes": self.num_start_nodes,
+            "max_depth": self.max_depth,
+        }
 
         # 提取 retrieval_hints（如有，由 PreRetrieval route action 生成）
         # hints 包含检索策略建议，服务可根据 hints 调整检索行为
         hints = data.get("retrieval_hints", None)
 
         # 调用记忆服务检索对话（统一接口：传入 query 参数）
+        # 增加超时时间以适应复杂图检索场景
         result = self.call_service(
             self.service_name,
             query=query,
             vector=vector,
             metadata=metadata,
             hints=hints,  # 传递给服务，让服务决定如何使用
+            top_k=self.retrieval_top_k,
             method="retrieve",
-            timeout=10.0,
+            timeout=60.0,
         )
 
         data["memory_data"] = result

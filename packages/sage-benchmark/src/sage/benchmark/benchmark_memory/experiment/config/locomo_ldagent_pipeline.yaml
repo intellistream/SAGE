@@ -35,13 +35,12 @@ runtime:
 services:
   register_memory_service: "hierarchical_memory"
   hierarchical_memory:
-    tier_mode: "two_tier"
-    tier_names: ["stm", "ltm"]
+    tier_mode: "two_tier"             # 双层模式会自动使用 ["stm", "ltm"]
     tier_capacities:
       stm: 50                         # 当前会话缓存
       ltm: -1                         # 事件摘要库
-    migration_policy: "time"
-    session_gap: 3600                 # 超过1小时触发迁移
+    migration_policy: "time"          # 按时间迁移
+    embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
@@ -56,7 +55,7 @@ operators:
   pre_insert:
     action: "transform"
     transform_type: "summarize"
-    summarize_prompt: |
+    summary_prompt: |
       Summarize the key events from this dialogue as a brief event description.
       Focus on: What happened? Who was involved? What was decided/planned?
 
@@ -84,6 +83,7 @@ operators:
     action: "optimize"
     optimize_type: "keyword_extract"
     extractor: "spacy"
+    spacy_model: "en_core_web_sm"     # spaCy 模型名称
     extract_types: ["NOUN", "PROPN"]
     max_keywords: 15
 

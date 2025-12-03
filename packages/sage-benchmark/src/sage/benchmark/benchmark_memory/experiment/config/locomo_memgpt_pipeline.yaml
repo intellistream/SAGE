@@ -9,6 +9,7 @@ runtime:
   memory_insert_verbose: false
   memory_test_verbose: true
   test_segments: 10
+  service_timeout: 120.0  # 服务调用超时（秒），MemGPT 需要 LLM 调用，设置更长超时
 
   prompt_template: |
     Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
@@ -42,6 +43,7 @@ services:
       archival: -1                    # 无限
       recall: 100                     # FIFO 队列
     migration_policy: "overflow"      # 溢出时迁移
+    embedding_dim: 1024               # bge-m3 输出 1024 维向量
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
@@ -56,6 +58,7 @@ operators:
   pre_insert:
     action: "extract"
     extract_type: "entity"
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity extraction
     entity_types: ["PERSON", "ORG", "LOC", "EVENT", "DATE"]
     add_to_metadata: true
 
@@ -91,6 +94,7 @@ operators:
     action: "optimize"
     optimize_type: "keyword_extract"
     extractor: "spacy"
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 keyword extraction
     extract_types: ["NOUN", "PROPN"]
     max_keywords: 10
 

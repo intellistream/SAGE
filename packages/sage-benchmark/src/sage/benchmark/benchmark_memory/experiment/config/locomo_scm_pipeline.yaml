@@ -31,12 +31,13 @@ runtime:
 
 # ============================================================
 # 服务配置
+# SCM 使用 Memory Stream，本质是一个大容量的短期记忆
 # ============================================================
 services:
-  register_memory_service: "neuromem_vdb"
-  neuromem_vdb:
-    collection_name: "scm_memory_stream"
-    dim: 1024
+  register_memory_service: "short_term_memory"
+  short_term_memory:
+    max_dialog: 1000  # Memory Stream 容量，SCM 会自己控制 token budget
+    embedding_dim: 1024  # BAAI/bge-m3 模型的向量维度
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 

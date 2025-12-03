@@ -135,6 +135,8 @@ class NeuroMemVDBService(BaseService):
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """检索记忆
 
@@ -145,6 +147,8 @@ class NeuroMemVDBService(BaseService):
                 - collection: 指定 collection 名称
                 - with_metadata: 是否返回元数据（默认 True）
             top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
             list[dict]: 检索结果，每个结果包含:
@@ -153,6 +157,8 @@ class NeuroMemVDBService(BaseService):
                 - metadata: 元数据（可选）
                 - entry_id: 条目 ID（如果有）
         """
+        _ = hints  # 保留用于未来扩展
+        _ = threshold  # 暂不使用相似度阈值
         if not self.online_register_collections:
             self.logger.warning("No collections are registered")
             return []
@@ -182,7 +188,7 @@ class NeuroMemVDBService(BaseService):
             try:
                 results = collection.retrieve(
                     query,
-                    topk=top_k,
+                    top_k=top_k,
                     index_name="global_index",
                     with_metadata=with_metadata,
                 )

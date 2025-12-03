@@ -10,14 +10,13 @@
 
 from __future__ import annotations
 
-import os
 import time
-import uuid
 from collections import deque
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
+from sage.common.config.output_paths import get_appropriate_sage_dir
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
@@ -34,16 +33,23 @@ class ShortTermMemoryService(BaseService):
     底层使用 MemoryManager + VDBMemoryCollection 存储。
     """
 
-    def __init__(self, max_dialog: int, collection_name: str = "stm_collection"):
+    def __init__(
+        self,
+        max_dialog: int,
+        collection_name: str = "stm_collection",
+        embedding_dim: int = 1024,
+    ):
         """初始化短期记忆服务
 
         Args:
             max_dialog: 最大对话数量（队列长度）
             collection_name: NeuroMem collection 名称
+            embedding_dim: embedding 向量维度（默认 1024，适配 BAAI/bge-m3）
         """
         super().__init__()
         self.max_dialog = max_dialog
         self.collection_name = collection_name
+        self.embedding_dim = embedding_dim
 
         # 初始化 MemoryManager
         self.manager = MemoryManager(self._get_default_data_dir())
@@ -69,7 +75,7 @@ class ShortTermMemoryService(BaseService):
                 self.collection.create_index(
                     {
                         "name": "global_index",
-                        "dim": 384,  # 默认维度
+                        "dim": self.embedding_dim,
                         "backend_type": "FAISS",
                         "description": "Global index for STM",
                     }
@@ -83,11 +89,14 @@ class ShortTermMemoryService(BaseService):
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "stm_memory")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录
+
+        使用 SAGE 标准目录结构: .sage/data/stm_memory
+        """
+        sage_dir = get_appropriate_sage_dir()
+        data_dir = sage_dir / "data" / "stm_memory"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
     def insert(
         self,
@@ -127,15 +136,13 @@ class ShortTermMemoryService(BaseService):
                 metadata = metadata.copy() if metadata else {}
                 metadata["priority"] = insert_params["priority"]
 
-        # 生成唯一 ID
-        entry_id = metadata.get("id", str(uuid.uuid4())) if metadata else str(uuid.uuid4())
         timestamp = time.time()
 
         # 如果队列已满，先删除最旧的条目（force_insert 跳过容量检查）
         if not force_insert:
             while len(self._order_queue) >= self.max_dialog:
                 oldest = self._order_queue.popleft()
-                old_id = oldest.get("entry_id")
+                old_id = oldest.get("stable_id")  # 使用 stable_id 而不是 entry_id
                 if old_id:
                     self._id_set.discard(old_id)
                     # 从底层 collection 删除
@@ -147,36 +154,35 @@ class ShortTermMemoryService(BaseService):
         # 准备元数据
         full_metadata = metadata.copy() if metadata else {}
         full_metadata["timestamp"] = timestamp
-        full_metadata["entry_id"] = entry_id
 
-        # 插入到 NeuroMem collection
+        # 插入到 NeuroMem collection，使用返回的 stable_id
         if vector is not None and hasattr(self.collection, "index_info"):
             vec = np.array(vector, dtype=np.float32)
-            self.collection.insert(
-                index_name="global_index",
-                raw_data=entry,
+            stable_id = self.collection.insert(
+                content=entry,
+                index_names="global_index",
                 vector=vec,
                 metadata=full_metadata,
             )
         else:
-            # 没有向量时，只存储到 BaseMemoryCollection
-            self.collection.insert(entry, full_metadata)
+            # 没有向量时，只存储到 BaseMemoryCollection（不传 index_names 和 vector）
+            stable_id = self.collection.insert(content=entry, metadata=full_metadata)
 
-        # 记录到时间队列
+        # 记录到时间队列，使用 collection 返回的 stable_id
         self._order_queue.append(
             {
-                "entry_id": entry_id,
+                "stable_id": stable_id,
                 "timestamp": timestamp,
                 "text": entry,
             }
         )
-        self._id_set.add(entry_id)
+        self._id_set.add(stable_id)
 
         self.logger.debug(
             f"Inserted dialog. Current queue size: {len(self._order_queue)}/{self.max_dialog}"
         )
 
-        return entry_id
+        return stable_id
 
     def retrieve(
         self,
@@ -184,6 +190,8 @@ class ShortTermMemoryService(BaseService):
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """检索短期记忆中的对话
 
@@ -192,20 +200,31 @@ class ShortTermMemoryService(BaseService):
             vector: 查询向量（可选，用于向量检索）
             metadata: 查询条件（可选）
             top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+                   当前版本暂未使用，保留用于未来扩展
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
             list[dict]: 检索结果列表 [{"text": ..., "metadata": ..., "score": ...}, ...]
         """
+        # 后续可根据 hints 调整检索策略
+        _ = hints  # 暂时忽略，避免 unused variable 警告
         # 如果有向量，进行语义检索
         if vector is not None and hasattr(self.collection, "index_info"):
             query_vec = np.array(vector, dtype=np.float32)
             results = self.collection.retrieve(
-                query_text=query,
-                query_vector=query_vec,
+                query=query_vec,
                 index_name="global_index",
-                topk=min(top_k, len(self._order_queue)),
+                top_k=min(top_k, len(self._order_queue)),
                 with_metadata=True,
             )
+            # 应用相似度阈值过滤
+            if results and threshold is not None:
+                results = [
+                    r
+                    for r in results
+                    if r.get("score", 0) >= threshold or r.get("similarity", 0) >= threshold
+                ]
             return results if results else []
 
         # 否则返回按时间顺序的结果
@@ -216,39 +235,39 @@ class ShortTermMemoryService(BaseService):
                     "text": item.get("text", ""),
                     "metadata": {
                         "timestamp": item.get("timestamp"),
-                        "entry_id": item.get("entry_id"),
+                        "stable_id": item.get("stable_id"),
                     },
                     "score": None,
                 }
             )
         return results
 
-    def delete(self, entry_id: str) -> bool:
+    def delete(self, item_id: str) -> bool:
         """删除指定的记忆条目
 
         Args:
-            entry_id: 记忆条目 ID
+            item_id: 记忆条目 ID (stable_id)
 
         Returns:
             bool: 是否删除成功
         """
-        if entry_id not in self._id_set:
+        if item_id not in self._id_set:
             return False
 
         # 从队列中删除
         self._order_queue = deque(
-            [item for item in self._order_queue if item.get("entry_id") != entry_id],
+            [item for item in self._order_queue if item.get("stable_id") != item_id],
             maxlen=self.max_dialog,
         )
-        self._id_set.discard(entry_id)
+        self._id_set.discard(item_id)
 
         # 从底层 collection 删除
         try:
-            self.collection.delete(entry_id)
+            self.collection.delete(item_id)
         except Exception:
             pass
 
-        self.logger.debug(f"Deleted entry {entry_id} from STM")
+        self.logger.debug(f"Deleted entry {item_id} from STM")
         return True
 
     def get_stats(self) -> dict[str, Any]:
@@ -280,7 +299,7 @@ class ShortTermMemoryService(BaseService):
             self.collection.create_index(
                 {
                     "name": "global_index",
-                    "dim": 384,
+                    "dim": self.embedding_dim,
                     "backend_type": "FAISS",
                     "description": "Global index for STM",
                 }

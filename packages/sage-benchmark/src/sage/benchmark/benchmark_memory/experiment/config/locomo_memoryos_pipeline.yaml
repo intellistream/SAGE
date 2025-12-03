@@ -44,6 +44,7 @@ services:
     migration_policy: "heat"
     heat_threshold: 0.7
     cold_threshold: 0.3
+    embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
@@ -93,6 +94,7 @@ operators:
     action: "optimize"
     optimize_type: "keyword_extract"
     extractor: "spacy"
+    spacy_model: "en_core_web_sm"     # spaCy 模型名称
     extract_types: ["NOUN", "PROPN"]
     max_keywords: 10
 

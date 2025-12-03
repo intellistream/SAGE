@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -93,11 +92,16 @@ class VectorHashMemoryService(BaseService):
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
-        """获取默认数据目录"""
-        cur_dir = os.getcwd()
-        data_dir = os.path.join(cur_dir, "data", "vector_hash_memory")
-        os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        """获取默认数据目录
+
+        使用 SAGE 标准目录结构: .sage/data/vector_hash_memory
+        """
+        from sage.common.config.output_paths import get_appropriate_sage_dir
+
+        sage_dir = get_appropriate_sage_dir()
+        data_dir = sage_dir / "data" / "vector_hash_memory"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
 
     def insert(
         self,
@@ -146,8 +150,8 @@ class VectorHashMemoryService(BaseService):
         # 插入数据
         vec = np.array(vector, dtype=np.float32)
         self.collection.insert(
-            index_name="lsh_index",
-            text=entry,
+            content=entry,
+            index_names="lsh_index",
             vector=vec,
             metadata=insert_metadata,
         )
@@ -162,6 +166,8 @@ class VectorHashMemoryService(BaseService):
         vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
         top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """通过向量检索相似的文档
 
@@ -170,10 +176,13 @@ class VectorHashMemoryService(BaseService):
             vector: 查询向量
             metadata: 查询参数
             top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
             list[dict]: 检索结果
         """
+        _ = hints  # 保留用于未来扩展
         if vector is None:
             return []
 
@@ -181,12 +190,19 @@ class VectorHashMemoryService(BaseService):
 
         query_vec = np.array(vector, dtype=np.float32)
         results = self.collection.retrieve(
-            query_text=query,
-            query_vector=query_vec,
+            query=query_vec,
             index_name="lsh_index",
-            topk=top_k,
+            top_k=top_k,
             with_metadata=True,
         )
+
+        # 应用相似度阈值过滤
+        if results and threshold is not None:
+            results = [
+                r
+                for r in results
+                if r.get("score", 0) >= threshold or r.get("similarity", 0) >= threshold
+            ]
 
         return results if results else []
 

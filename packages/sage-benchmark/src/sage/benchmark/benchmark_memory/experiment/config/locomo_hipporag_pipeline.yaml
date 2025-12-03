@@ -39,6 +39,10 @@ services:
     triple_store: "igraph"
     node_embedding_dim: 1024
     edge_types: ["relation", "synonym", "temporal"]
+    # 检索参数：增加起始节点和遍历深度以获取更多上下文
+    retrieval_top_k: 20              # 初始向量检索返回数量
+    num_start_nodes: 10              # 使用更多种子节点启动图遍历
+    max_depth: 3                     # 增加遍历深度
   memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
@@ -53,13 +57,36 @@ operators:
   pre_insert:
     action: "tri_embed"
     triple_extraction_prompt: |
-      You are a knowledge graph builder. Extract all factual triples from the dialogue.
+      You are a knowledge graph builder. Extract ALL factual triples from the dialogue, focusing on information that could answer questions about WHO, WHAT, WHEN, WHERE, WHY, and HOW.
 
-      Rules:
-      - Output format: (Subject, Predicate, Object)
-      - Resolve all pronouns to actual entity names
-      - Use natural language predicates
-      - Include temporal/location info in predicate when relevant
+      CRITICAL Rules:
+      1. Output format: (Subject, Predicate, Object) - one triple per line
+      2. Resolve ALL pronouns (he, she, it, they, etc.) to actual entity names
+      3. Extract TEMPORAL information as separate triples:
+         - (Event, happened_on, time/date)
+         - (Person, did_action_at, time)
+      4. Extract LOCATION information:
+         - (Event, took_place_at, location)
+         - (Person, was_at, place)
+      5. Extract ATTRIBUTES and PROPERTIES:
+         - (Entity, has_property, value)
+         - (Person, is_a, role/occupation)
+      6. Extract RELATIONSHIPS between people:
+         - (Person1, relationship_with, Person2)
+      7. Extract REASONS and PURPOSES:
+         - (Action, was_for, purpose)
+         - (Person, supports, cause/group)
+      8. Be EXHAUSTIVE - extract every fact, even implicit ones
+      9. Use specific predicates (e.g., "painted_at_lake" not just "painted")
+
+      Example:
+      Dialogue: "Yesterday, Sarah told me she painted a sunrise at the lake for her mom's birthday."
+      Triples:
+      (Sarah, painted, sunrise)
+      (Sarah, painted_at, lake)
+      (painting, happened_on, yesterday)
+      (painting, was_for, mom's birthday)
+      (Sarah, has_mom, mentioned)
 
       Dialogue:
       {dialogue}
@@ -68,7 +95,8 @@ operators:
 
   # ----------------------------------------------------------
   # PostInsert: Synonym Edge 建立
-  # HippoRAG 会在相似实体间建立同义边
+  # HippoRAG 原版在 indexing 阶段结束后才一次性创建 synonym edges
+  # 现在 PostInsert 会自动检测：仅在 session 结束或最后一个 packet 时执行
   # ----------------------------------------------------------
   post_insert:
     action: "link_evolution"
@@ -78,26 +106,26 @@ operators:
     edge_weight: 1.0
 
   # ----------------------------------------------------------
-  # PreRetrieval: 实体抽取 + Instruction prefix
-  # HippoRAG 先从 query 中识别实体，作为 PPR 的起点
+  # PreRetrieval: Query Embedding
+  # HippoRAG 需要 embedding 来通过向量相似度找到图中的起始节点
   # ----------------------------------------------------------
   pre_retrieval:
-    action: "optimize"
-    optimize_type: "instruction"
-    instruction_prefix: "Retrieve passages that help answer the question: "
-    instruction_suffix: ""
+    action: "embedding"
+    # embedding 配置（使用默认的 embedding 模型）
 
   # ----------------------------------------------------------
-  # PostRetrieval: PPR 重排序
+  # PostRetrieval: PPR 重排序（暂时禁用）
   # HippoRAG 使用 Personalized PageRank 排序检索结果
+  # 注意：PPR 在服务单线程下容易超时，暂时禁用
   # ----------------------------------------------------------
   post_retrieval:
-    action: "rerank"
-    rerank_type: "ppr"
-    damping_factor: 0.5
-    max_iterations: 100
-    convergence_threshold: 1e-6
-    personalization_nodes: "query_entities"
+    action: "none"
+    # action: "rerank"
+    # rerank_type: "ppr"
+    # damping_factor: 0.5
+    # max_iterations: 100
+    # convergence_threshold: 1e-6
+    # personalization_nodes: "query_entities"
     top_k: 10
     conversation_format_prompt: |
       The following is relevant knowledge from the graph.
