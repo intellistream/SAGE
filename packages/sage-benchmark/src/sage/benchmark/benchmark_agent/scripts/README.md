@@ -1,284 +1,559 @@
-# SAGE Agent Bench 实验脚本# sage-benchmark 实验脚本# SAGE-Bench 评测框架# SAGE-Bench 评测框架
+# SAGE-Bench 评测框架# SAGE Agent Bench 实验脚本# sage-benchmark 实验脚本# SAGE-Bench 评测框架# SAGE-Bench 评测框架
 
-本目录包含 Paper 1 (Agent 能力评测框架) 的完整实验脚本，按论文章节组织。
+本目录包含 Paper 1 (Agent 能力评测框架) 的完整实验脚本，按论文章节组织。本目录包含 Paper 1 (Agent 能力评测框架) 的完整实验脚本，按论文章节组织。
 
-## 目录结构本目录包含 Paper 1 (Agent 能力评测框架) 的完整实验脚本，按论文章节组织。> 支持 **15+ 种方法** 和 **8+ 数据集** 的 Agent 能力评测框架> 支持 **15+ 种方法** 和 **6+ 外部数据集** 的 Agent 能力评测框架
+> 支持 **15+ 种方法** 和 **6+ 外部数据集** 的 Agent 能力评测框架## 目录结构本目录包含 Paper 1 (Agent 能力评测框架) 的完整实验脚本，按论文章节组织。>
+> 支持 **15+ 种方法** 和 **8+ 数据集** 的 Agent 能力评测框架> 支持 **15+ 种方法** 和 **6+ 外部数据集** 的 Agent 能力评测框架
 
-````
+---\`\`\`\`
 
-scripts/
+## CLI 使用scripts/
 
-├── sage-agent-bench              # CLI 入口脚本 (可执行)## 目录结构本框架服务于两篇论文：本框架服务于两篇论文：
+### 完整命令路径├── sage-agent-bench # CLI 入口脚本 (可执行)## 目录结构本框架服务于两篇论文：本框架服务于两篇论文：
 
-├── README.md                     # 本文件
+````bash├── README.md                     # 本文件
 
-└── experiments/                  # 实验模块包
+sage bench agent paper1 run --quick         # 快速测试
 
-    ├── __init__.py
+sage bench agent paper1 run --section 5.2   # 主要评测└── experiments/                  # 实验模块包
 
-    │```1. **Paper 1 (Benchmark)**: SAGE-Bench - 统一评测框架，对比现有 SOTA 方法1. **Paper 1 (Benchmark)**: SAGE-Bench -
+sage bench agent paper1 eval --dataset sage # 工具选择评测
 
-    │  === 核心工具 ===
+sage bench agent paper1 train --dry-run     # 训练方法对比 (模拟)    ├── __init__.py
 
-    ├── exp_utils.py              # 共享工具 (环境、数据、保存、LLM客户端)scripts/   统一评测框架，对比现有 SOTA 方法
+sage bench agent paper1 llm status          # LLM 服务状态
 
-    ├── figure_generator.py       # 学术图表生成器 (PDF/PNG)
+sage bench agent paper1 list experiments    # 列出可用实验    │```1. **Paper 1 (Benchmark)**: SAGE-Bench - 统一评测框架，对比现有 SOTA 方法1. **Paper 1 (Benchmark)**: SAGE-Bench -
 
-    ├── table_generator.py        # LaTeX 表格生成器├── sage_bench                    # CLI 入口脚本 (可执行)
+sage bench agent paper1 figures             # 生成图表
 
-    ├── llm_service.py            # LLM 服务管理 (vLLM)
-
-    ├── sage_bench_cli.py         # CLI 实现├── README.md                     # 本文件1. **Paper 2 (Method)**: SAGE-Agent - Streaming Adaptive Learning 框架1. **Paper 2 (Method)**:
-
-    │
-
-    │  === Section 5.2: 主要评测 ===└── experiments/                  # 实验模块包   SAGE-Agent - Streaming Adaptive Learning 框架
-
-    ├── exp_main_timing.py        # 工具调用时机评测
-
-    ├── exp_main_planning.py      # 任务规划能力评测    ├── __init__.py
-
-    ├── exp_main_selection.py     # 工具选择准确率评测
-
-    │    │---\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-    │  === Section 5.3: 深度分析 ===
-
-    ├── exp_analysis_error.py     # 错误类型分布分析    │  === 核心工具 ===
-
-    ├── exp_analysis_scaling.py   # 工具数量扩展性分析
-
-    ├── exp_analysis_robustness.py # 鲁棒性分析    ├── exp_utils.py              # 共享工具 (环境、数据、保存、LLM客户端)## 🚀 快速开始## 📁 脚本架构
-
-    ├── exp_analysis_ablation.py  # 消融实验
-
-    │    ├── figure_generator.py       # 学术图表生成器 (PDF/PNG)
-
-    │  === Section 5.4: 跨数据集 ===
-
-    ├── exp_cross_dataset.py      # 跨数据集泛化评测    ├── table_generator.py        # LaTeX 表格生成器### 统一 CLI 入口 (推荐)### 统一入口 (推荐)
-
-    │
-
-    │  === Section 5.5: 训练方法对比 ===    ├── llm_service.py            # LLM 服务管理 (vLLM)
-
-    ├── exp_training_comparison.py # 训练方法对比 (A-D)
-
-    │    ├── sage_bench_cli.py         # CLI 实现所有功能通过 `sage-bench` CLI 访问：\`\`\`bash
-
-    │  === 主运行器 ===
-
-    └── run_paper1_experiments.py  # Paper 1 全流程运行器    │
+sage bench agent paper1 tables              # 生成 LaTeX 表格    │  === 核心工具 ===
 
 ````
 
 ```
-│  === Section 5.2: 主要评测 ===# 交互式运行
+├── exp_utils.py              # 共享工具 (环境、数据、保存、LLM客户端)scripts/   统一评测框架，对比现有 SOTA 方法
+```
+
+### 快捷方式 (向后兼容)
+
+```
+├── figure_generator.py       # 学术图表生成器 (PDF/PNG)
+```
+
+`````bash
+
+sage bench run --quick                      # 等同于 sage bench agent paper1 run --quick    ├── table_generator.py        # LaTeX 表格生成器├── sage_bench                    # CLI 入口脚本 (可执行)
+
+sage bench eval --dataset sage              # 等同于 sage bench agent paper1 eval
+
+sage bench train --dry-run                  # 等同于 sage bench agent paper1 train    ├── llm_service.py            # LLM 服务管理 (vLLM)
+
+sage bench list experiments                 # 等同于 sage bench agent paper1 list
+
+sage bench figures                          # 等同于 sage bench agent paper1 figures    ├── sage_bench_cli.py         # CLI 实现├── README.md                     # 本文件1. **Paper 2 (Method)**: SAGE-Agent - Streaming Adaptive Learning 框架1. **Paper 2 (Method)**:
+
+sage bench tables                           # 等同于 sage bench agent paper1 tables
+
+```    │
+
+
+
+### 其他 Benchmark    │  === Section 5.2: 主要评测 ===└── experiments/                  # 实验模块包   SAGE-Agent - Streaming Adaptive Learning 框架
+
+
+
+```bash    ├── exp_main_timing.py        # 工具调用时机评测
+
+sage bench agent list                       # 列出所有 Agent papers
+
+sage bench agent paper2                     # Paper 2 状态    ├── exp_main_planning.py      # 任务规划能力评测    ├── __init__.py
+
+sage bench control-plane --help             # Control Plane Benchmark
+
+```    ├── exp_main_selection.py     # 工具选择准确率评测
+
+
+
+---    │    │---\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+
+
+## 目录结构    │  === Section 5.3: 深度分析 ===
+
+
+
+```    ├── exp_analysis_error.py     # 错误类型分布分析    │  === 核心工具 ===
+
+scripts/
+
+├── sage_bench                    # CLI 入口脚本 (可执行)    ├── exp_analysis_scaling.py   # 工具数量扩展性分析
+
+├── README.md                     # 本文件
+
+└── experiments/                  # 实验模块包    ├── exp_analysis_robustness.py # 鲁棒性分析    ├── exp_utils.py              # 共享工具 (环境、数据、保存、LLM客户端)## 🚀 快速开始## 📁 脚本架构
+
+    ├── __init__.py
+
+    │    ├── exp_analysis_ablation.py  # 消融实验
+
+    │  === 核心工具 ===
+
+    ├── exp_utils.py              # 共享工具 (环境、数据、保存、LLM客户端)    │    ├── figure_generator.py       # 学术图表生成器 (PDF/PNG)
+
+    ├── figure_generator.py       # 学术图表生成器 (PDF/PNG)
+
+    ├── table_generator.py        # LaTeX 表格生成器    │  === Section 5.4: 跨数据集 ===
+
+    ├── llm_service.py            # LLM 服务管理 (vLLM)
+
+    ├── sage_bench_cli.py         # CLI 实现    ├── exp_cross_dataset.py      # 跨数据集泛化评测    ├── table_generator.py        # LaTeX 表格生成器### 统一 CLI 入口 (推荐)### 统一入口 (推荐)
+
+    │
+
+    │  === Section 5.2: 主要评测 ===    │
+
+    ├── exp_main_timing.py        # 工具调用时机评测
+
+    ├── exp_main_planning.py      # 任务规划能力评测    │  === Section 5.5: 训练方法对比 ===    ├── llm_service.py            # LLM 服务管理 (vLLM)
+
+    ├── exp_main_selection.py     # 工具选择准确率评测
+
+    │    ├── exp_training_comparison.py # 训练方法对比 (A-D)
+
+    │  === Section 5.3: 深度分析 ===
+
+    ├── exp_analysis_error.py     # 错误类型分布分析    │    ├── sage_bench_cli.py         # CLI 实现所有功能通过 `sage-bench` CLI 访问：\`\`\`bash
+
+    ├── exp_analysis_scaling.py   # 工具数量扩展性分析
+
+    ├── exp_analysis_robustness.py # 鲁棒性分析    │  === 主运行器 ===
+
+    ├── exp_analysis_ablation.py  # 消融实验
+
+    │    └── run_paper1_experiments.py  # Paper 1 全流程运行器    │
+
+    │  === Section 5.4: 跨数据集 ===
+
+    ├── exp_cross_dataset.py      # 跨数据集泛化评测````
+
+    │
+
+    │  === Section 5.5: 训练方法对比 ===```
+
+    ├── exp_training_comparison.py # 训练方法对比 (A-D)│  === Section 5.2: 主要评测 ===# 交互式运行
+
+    │```
+
+    │  === 主运行器 ===
+
+    └── run_paper1_experiments.py  # Paper 1 全流程运行器## 快速开始
+
+`````
+
+```
+
+---├── exp_main_timing.py        # 工具调用时机评测
+
 ```
 
 ## 快速开始
 
-```
-├── exp_main_timing.py        # 工具调用时机评测
-```
+### 1. 环境准备
 
 ### 1. 环境准备
 
-`````
-├── exp_main_planning.py      # 任务规划能力评测````bashpython sage_benchmark_cli.py
-`````
+``````
 
-````bash
+```bash├── exp_main_planning.py      # 任务规划能力评测````bashpython sage_benchmark_cli.py
 
-# 安装 sage-benchmark    ├── exp_main_selection.py     # 工具选择准确率评测
+# 安装 sage-benchmark`````
 
 cd /path/to/SAGE
 
-./quickstart.sh --dev --yes    │# 列出可用数据集
+./quickstart.sh --dev --yes````bash
 
 
 
-# 设置环境变量    │  === Section 5.3: 深度分析 ===
+# 设置环境变量# 安装 sage-benchmark    ├── exp_main_selection.py     # 工具选择准确率评测
 
 export SAGE_TEST_MODE=true  # 可选：启用测试模式
 
-```    ├── exp_analysis_error.py     # 错误类型分布分析sage-bench list datasets# 或直接指定实验
+```cd /path/to/SAGE
 
 
 
-### 2. 使用 CLI    ├── exp_analysis_scaling.py   # 工具数量扩展性分析
+### 2. LLM 服务管理./quickstart.sh --dev --yes    │# 列出可用数据集
 
 
-
-```bash    ├── exp_analysis_robustness.py # 鲁棒性分析python sage_benchmark_cli.py --paper 1 --experiment tool_selection
-
-# 查看帮助
-
-./sage-agent-bench --help    ├── exp_analysis_ablation.py  # 消融实验
-
-
-
-# === LLM 服务管理 ===    │# 列出可用方法python sage_benchmark_cli.py --paper 2 --experiment sage_agent_full
-
-./sage-agent-bench llm start                    # 启动 vLLM 服务
-
-./sage-agent-bench llm status                   # 检查服务状态    │  === Section 5.4: 跨数据集 ===
-
-./sage-agent-bench llm stop                     # 停止服务
-
-    ├── exp_cross_dataset.py      # 跨数据集泛化评测sage-bench list methods```
-
-# === 运行实验 ===
-
-# 运行单个章节    │
-
-./sage-agent-bench run --section 5.2            # 主要评测
-
-./sage-agent-bench run --section 5.3            # 深度分析    │  === Section 5.5: 训练方法对比 ===
-
-./sage-agent-bench run --section 5.4            # 跨数据集
-
-./sage-agent-bench run --section 5.5            # 训练方法对比    ├── exp_training_comparison.py # 训练方法对比 (A-D)
-
-
-
-# 运行全部实验    │# 工具选择评测### 脚本对照表
-
-./sage-agent-bench run --all
-
-    │  === 主运行器 ===
-
-# 快速测试
-
-./sage-agent-bench run --quick    └── run_paper1_experiments.py  # Paper 1 全流程运行器sage-bench eval --dataset sage --samples 100
-
-
-
-# === 列出资源 ===```
-
-./sage-agent-bench list datasets                # 列出数据集
-
-./sage-agent-bench list methods                 # 列出方法sage-bench eval --dataset acebench --methods keyword,embedding,gorilla| 脚本                              | Paper | 用途                                    |
-
-./sage-agent-bench list experiments             # 列出实验
-
-```## 快速开始
-
-
-
-### 3. 使用 Python APIsage-bench eval --dataset all        # 跨数据集对比| --------------------------------- | ----- | --------------------------------------- |
-
-
-
-```python### 1. 环境准备
-
-# 运行单个实验
-
-from sage.benchmark.benchmark_agent.scripts.experiments import exp_main_timing| `sage_benchmark_cli.py`           | 1 & 2 | **统一交互式入口**                      |
-
-exp_main_timing.main()
 
 ```bash
 
+sage bench agent paper1 llm start                    # 启动 vLLM 服务
+
+sage bench agent paper1 llm status                   # 检查服务状态# 设置环境变量    │  === Section 5.3: 深度分析 ===
+
+sage bench agent paper1 llm stop                     # 停止服务
+
+```export SAGE_TEST_MODE=true  # 可选：启用测试模式
+
+
+
+### 3. 运行实验```    ├── exp_analysis_error.py     # 错误类型分布分析sage-bench list datasets# 或直接指定实验
+
+
+
+```bash
+
+# 运行单个章节
+
+sage bench agent paper1 run --section 5.2            # 主要评测### 2. 使用 CLI    ├── exp_analysis_scaling.py   # 工具数量扩展性分析
+
+sage bench agent paper1 run --section 5.3            # 深度分析
+
+sage bench agent paper1 run --section 5.4            # 跨数据集
+
+sage bench agent paper1 run --section 5.5            # 训练方法对比
+
+```bash    ├── exp_analysis_robustness.py # 鲁棒性分析python sage_benchmark_cli.py --paper 1 --experiment tool_selection
+
 # 运行全部实验
 
-from sage.benchmark.benchmark_agent.scripts.experiments import run_paper1_experiments# 安装 sage-benchmark# 运行完整 Benchmark (三个 Challenge)| `run_all_experiments.py`          | 1     | Benchmark: 三个 Challenge 全量评测      |
-
-run_paper1_experiments.main(sections=["5.2", "5.3", "5.4", "5.5"])
-
-cd /path/to/SAGE
-
-# 生成表格
-
-from sage.benchmark.benchmark_agent.scripts.experiments.table_generator import (./quickstart.sh --dev --yessage-bench run --quick               # 快速模式| `run_unified_eval.py`             | 1     | Benchmark: 跨数据集 Tool Selection 对比 |
-
-    generate_main_results_table,
-
-    generate_training_comparison_table,
-
-)
-
-latex = generate_main_results_table(results_data)# 设置环境变量sage-bench run --challenge timing    # 单个 Challenge| `run_full_training_comparison.py` | 2     | Method: SAGE-Agent 方法对比             |
+sage bench agent paper1 run --section all# 查看帮助
 
 
 
-# 管理 LLM 服务export SAGE_TEST_MODE=true  # 可选：启用测试模式
+# 快速测试./sage-agent-bench --help    ├── exp_analysis_ablation.py  # 消融实验
 
-from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (
+sage bench agent paper1 run --quick
 
-    start_llm_service, stop_llm_service, check_llm_status```| `run_acebench_comparison.py`      | 1     | Benchmark: 外部数据集验证               |
 
-)
 
-start_llm_service(model="Qwen/Qwen2.5-7B-Instruct")
+# 列出资源
 
-````
+sage bench agent paper1 list datasets                # 列出数据集# === LLM 服务管理 ===    │# 列出可用方法python sage_benchmark_cli.py --paper 2 --experiment sage_agent_full
 
-### 2. 使用 CLI# 训练方法对比 (Paper 2)
+sage bench agent paper1 list methods                 # 列出方法
 
-## 控制常量
+sage bench agent paper1 list experiments             # 列出实验./sage-agent-bench llm start                    # 启动 vLLM 服务
 
-所有实验使用统一的控制常量，定义在 `exp_utils.py`：
+```
 
-````bashsage-bench train --quick______________________________________________________________________
+./sage-agent-bench llm status                   # 检查服务状态    │  === Section 5.4: 跨数据集 ===
+
+### 4. 使用 Python API
+
+./sage-agent-bench llm stop                     # 停止服务
 
 ```python
 
-RANDOM_SEED = 42                                    # 随机种子# 查看帮助
+# 运行单个实验    ├── exp_cross_dataset.py      # 跨数据集泛化评测sage-bench list methods```
 
-BENCHMARK_EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"  # Embedding 模型
+from sage.benchmark.benchmark_agent.scripts.experiments import exp_main_timing
 
-BENCHMARK_LLM_TEMPERATURE = 0.1                     # LLM 温度./sage_bench --helpsage-bench train --methods A_baseline,D_combined
+exp_main_timing.main()# === 运行实验 ===
 
-````
 
-## 输出目录
 
-# === LLM 服务管理 ===## 🎯 方法分类
+# 运行全部实验# 运行单个章节    │
+
+from sage.benchmark.benchmark_agent.scripts.experiments import run_paper1_experiments
+
+run_paper1_experiments.main(sections=["5.2", "5.3", "5.4", "5.5"])./sage-agent-bench run --section 5.2            # 主要评测
+
+
+
+# 生成表格./sage-agent-bench run --section 5.3            # 深度分析    │  === Section 5.5: 训练方法对比 ===
+
+from sage.benchmark.benchmark_agent.scripts.experiments.table_generator import (
+
+    generate_main_results_table,./sage-agent-bench run --section 5.4            # 跨数据集
+
+    generate_training_comparison_table,
+
+)./sage-agent-bench run --section 5.5            # 训练方法对比    ├── exp_training_comparison.py # 训练方法对比 (A-D)
+
+latex = generate_main_results_table(results_data)
+
+
+
+# 管理 LLM 服务
+
+from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (# 运行全部实验    │# 工具选择评测### 脚本对照表
+
+    start_llm_service, stop_llm_service, check_llm_status
+
+)./sage-agent-bench run --all
+
+start_llm_service(model="Qwen/Qwen2.5-7B-Instruct")
+
+```    │  === 主运行器 ===
+
+
+
+---# 快速测试
+
+
+
+## 控制常量./sage-agent-bench run --quick    └── run_paper1_experiments.py  # Paper 1 全流程运行器sage-bench eval --dataset sage --samples 100
+
+
+
+所有实验使用统一的控制常量，定义在 `exp_utils.py`：
+
+
+
+```python# === 列出资源 ===```
+
+RANDOM_SEED = 42                                    # 随机种子
+
+BENCHMARK_EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"  # Embedding 模型./sage-agent-bench list datasets                # 列出数据集
+
+BENCHMARK_LLM_TEMPERATURE = 0.1                     # LLM 温度
+
+```./sage-agent-bench list methods                 # 列出方法sage-bench eval --dataset acebench --methods keyword,embedding,gorilla| 脚本                              | Paper | 用途                                    |
+
+
+
+---./sage-agent-bench list experiments             # 列出实验
+
+
+
+## 输出目录```## 快速开始
+
+
 
 所有输出保存在 `.sage/benchmark/paper1/`：
 
-./sage_bench llm start # 启动 vLLM 服务
 
-`````
 
-.sage/benchmark/paper1/./sage_bench llm status                   # 检查服务状态# LLM 服务管理
+```### 3. 使用 Python APIsage-bench eval --dataset all        # 跨数据集对比| --------------------------------- | ----- | --------------------------------------- |
+
+.sage/benchmark/paper1/
 
 ├── section_5_2_main/           # 主要评测结果
 
+│   ├── timing_results.json
+
+│   ├── planning_results.json```python### 1. 环境准备
+
+│   └── selection_results.json
+
+├── section_5_3_analysis/       # 深度分析结果# 运行单个实验
+
+│   ├── error_analysis.json
+
+│   ├── scaling_analysis.jsonfrom sage.benchmark.benchmark_agent.scripts.experiments import exp_main_timing| `sage_benchmark_cli.py`           | 1 & 2 | **统一交互式入口**                      |
+
+│   ├── robustness_analysis.json
+
+│   └── ablation_results.jsonexp_main_timing.main()
+
+├── section_5_4_generalization/ # 跨数据集结果
+
+│   └── cross_dataset_results.json```bash
+
+├── section_5_5_training/       # 训练对比结果
+
+│   └── training_comparison.json# 运行全部实验
+
+├── figures/                    # 生成的图表 (PDF/PNG)
+
+└── tables/                     # 生成的 LaTeX 表格from sage.benchmark.benchmark_agent.scripts.experiments import run_paper1_experiments# 安装 sage-benchmark# 运行完整 Benchmark (三个 Challenge)| `run_all_experiments.py`          | 1     | Benchmark: 三个 Challenge 全量评测      |
+
+```
+
+run_paper1_experiments.main(sections=["5.2", "5.3", "5.4", "5.5"])
+
+---
+
+cd /path/to/SAGE
+
+## 论文章节对应
+
+# 生成表格
+
+| 章节 | 实验脚本 | 描述 |
+
+|------|----------|------|from sage.benchmark.benchmark_agent.scripts.experiments.table_generator import (./quickstart.sh --dev --yessage-bench run --quick               # 快速模式| `run_unified_eval.py`             | 1     | Benchmark: 跨数据集 Tool Selection 对比 |
+
+| 5.2.1 | `exp_main_timing.py` | 工具调用时机评测 |
+
+| 5.2.2 | `exp_main_planning.py` | 任务规划能力评测 |    generate_main_results_table,
+
+| 5.2.3 | `exp_main_selection.py` | 工具选择准确率评测 |
+
+| 5.3.1 | `exp_analysis_error.py` | 错误类型分布分析 |    generate_training_comparison_table,
+
+| 5.3.2 | `exp_analysis_scaling.py` | 工具数量扩展性分析 |
+
+| 5.3.3 | `exp_analysis_robustness.py` | 鲁棒性分析 |)
+
+| 5.3.4 | `exp_analysis_ablation.py` | 消融实验 |
+
+| 5.4 | `exp_cross_dataset.py` | 跨数据集泛化评测 |latex = generate_main_results_table(results_data)# 设置环境变量sage-bench run --challenge timing    # 单个 Challenge| `run_full_training_comparison.py` | 2     | Method: SAGE-Agent 方法对比             |
+
+| 5.5 | `exp_training_comparison.py` | 训练方法对比 |
+
+
+
+---
+
+# 管理 LLM 服务export SAGE_TEST_MODE=true  # 可选：启用测试模式
+
+## 训练方法说明 (Section 5.5)
+
+from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (
+
+| 方法 | 名称 | 描述 |
+
+|------|------|------|    start_llm_service, stop_llm_service, check_llm_status```| `run_acebench_comparison.py`      | 1     | Benchmark: 外部数据集验证               |
+
+| A | Baseline SFT | 基础监督微调 |
+
+| B1 | Random Coreset | 随机采样核心集 |)
+
+| B2 | Stratified Coreset | 分层采样核心集 |
+
+| B3 | Embedding Coreset | 嵌入聚类核心集 |start_llm_service(model="Qwen/Qwen2.5-7B-Instruct")
+
+| B4 | Difficulty Coreset | 难度平衡核心集 |
+
+| C | Continual Learning | 持续学习 |````
+
+| D | Combined | 组合方法 (B3 + C) |
+
+### 2. 使用 CLI# 训练方法对比 (Paper 2)
+
+---
+
+## 控制常量
+
+## LLM 服务配置
+
+所有实验使用统一的控制常量，定义在 `exp_utils.py`：
+
+实验默认使用 vLLM 在端口 8901 (SagePorts.BENCHMARK_LLM)：
+
+````bashsage-bench train --quick______________________________________________________________________
+
+```bash
+
+# 默认配置```python
+
+Model: Qwen/Qwen2.5-7B-Instruct
+
+Port: 8901RANDOM_SEED = 42                                    # 随机种子# 查看帮助
+
+GPU Memory: 90%
+
+BENCHMARK_EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"  # Embedding 模型
+
+# 自定义模型
+
+sage bench agent paper1 llm start --model "meta-llama/Llama-3.1-8B-Instruct"BENCHMARK_LLM_TEMPERATURE = 0.1                     # LLM 温度./sage_bench --helpsage-bench train --methods A_baseline,D_combined
+
+```
+
+````
+
+---
+
+## 输出目录
+
+## 依赖关系
+
+# === LLM 服务管理 ===## 🎯 方法分类
+
+```
+
+exp_utils.py ← 所有实验脚本依赖所有输出保存在 `.sage/benchmark/paper1/`：
+
+    ↑
+
+figure_generator.py, table_generator.py ← 可视化工具./sage_bench llm start # 启动 vLLM 服务
+
+    ↑
+
+llm_service.py ← LLM 管理`````
+
+    ↑
+
+run_paper1_experiments.py ← 主运行器.sage/benchmark/paper1/./sage_bench llm status                   # 检查服务状态# LLM 服务管理
+
+    ↑
+
+sage_bench_cli.py ← CLI 实现├── section_5_2_main/           # 主要评测结果
+
+```
+
 │   ├── timing_results.json./sage_bench llm stop                     # 停止服务
+
+---
 
 │   ├── planning_results.json
 
+## 故障排除
+
 │   └── selection_results.jsonsage-bench llm status### 📘 Paper 1: Benchmark (现有 SOTA 方法对比)
+
+### LLM 服务无法启动
 
 ├── section_5_3_analysis/       # 深度分析结果
 
-│   ├── error_analysis.json# === 运行实验 ===
+```bash
+
+# 检查端口占用│   ├── error_analysis.json# === 运行实验 ===
+
+lsof -i :8901
 
 │   ├── scaling_analysis.json
 
-│   ├── robustness_analysis.json# 运行单个章节sage-bench llm start --model Qwen/Qwen2.5-7B-Instruct
+# 检查 GPU 显存
 
-│   └── ablation_results.json
-
-├── section_5_4_generalization/ # 跨数据集结果./sage_bench run --section 5.2            # 主要评测
-
-│   └── cross_dataset_results.json
-
-├── section_5_5_training/       # 训练对比结果./sage_bench run --section 5.3            # 深度分析sage-bench llm stop这些是 **文献中已有的方法**，用于建立 baseline 对比。 **Benchmark 论文不提出新方法，只做系统性评测。**
-
-│   └── training_comparison.json
-
-├── figures/                    # 生成的图表 (PDF/PNG)./sage_bench run --section 5.4            # 跨数据集
-
-└── tables/                     # 生成的 LaTeX 表格
-
-```./sage_bench run --section 5.5            # 训练方法对比
+nvidia-smi│   ├── robustness_analysis.json# 运行单个章节sage-bench llm start --model Qwen/Qwen2.5-7B-Instruct
 
 
 
-## 论文章节对应
+# 手动停止│   └── ablation_results.json
+
+pkill -f vllm
+
+```├── section_5_4_generalization/ # 跨数据集结果./sage_bench run --section 5.2            # 主要评测
+
+
+
+### 实验失败│   └── cross_dataset_results.json
+
+
+
+```bash├── section_5_5_training/       # 训练对比结果./sage_bench run --section 5.3            # 深度分析sage-bench llm stop这些是 **文献中已有的方法**，用于建立 baseline 对比。 **Benchmark 论文不提出新方法，只做系统性评测。**
+
+# 检查日志
+
+cat .sage/logs/benchmark.log│   └── training_comparison.json
+
+
+
+# 重置环境├── figures/                    # 生成的图表 (PDF/PNG)./sage_bench run --section 5.4            # 跨数据集
+
+rm -rf .sage/benchmark/paper1/
+
+```└── tables/                     # 生成的 LaTeX 表格
+
+
+
+### 导入错误```./sage_bench run --section 5.5            # 训练方法对比
+
+
+
+```bash
+
+# 确保正确安装
+
+pip install -e packages/sage-benchmark## 论文章节对应
+
+```
 
 
 
@@ -412,7 +687,7 @@ nvidia-smi
 
 vllm serve Qwen/Qwen2.5-7B-Instruct --port 8901 --gpu-memory-utilization 0.9# 管理 LLM 服务
 
-`````
+``````
 
 from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (├── run_unified_eval.py
 \# 功能模块 (支持直接调用，建议用 CLI)| `planner.react` | ReAct | SOTA | Yao et al., 2023 |
