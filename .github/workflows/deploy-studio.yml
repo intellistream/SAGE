@@ -55,28 +55,73 @@ jobs:
         run: |
           echo "🐍 设置 Conda 环境..."
 
-          # 初始化 conda（支持多种安装位置）
-          if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/miniconda3/etc/profile.d/conda.sh"
-          elif [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
-            source "$HOME/anaconda3/etc/profile.d/conda.sh"
-          elif [ -f "/opt/conda/etc/profile.d/conda.sh" ]; then
-            source "/opt/conda/etc/profile.d/conda.sh"
-          else
-            echo "❌ 未找到 conda，请先在 runner 上安装 miniconda"
+          # 初始化 conda（支持多种安装位置，包括特定用户目录）
+          CONDA_SH=""
+          CONDA_PATHS=(
+            "$HOME/miniconda3/etc/profile.d/conda.sh"
+            "$HOME/anaconda3/etc/profile.d/conda.sh"
+            "$HOME/miniforge3/etc/profile.d/conda.sh"
+            "/home/shuhao/miniconda3/etc/profile.d/conda.sh"
+            "/opt/conda/etc/profile.d/conda.sh"
+            "/usr/local/conda/etc/profile.d/conda.sh"
+            "/root/miniconda3/etc/profile.d/conda.sh"
+            "/root/anaconda3/etc/profile.d/conda.sh"
+          )
+
+          for path in "${CONDA_PATHS[@]}"; do
+            if [ -f "$path" ]; then
+              CONDA_SH="$path"
+              echo "✅ 找到 conda: $path"
+              break
+            fi
+          done
+
+          # 如果没找到，尝试用 which conda 或 find 查找
+          if [ -z "$CONDA_SH" ]; then
+            if command -v conda &> /dev/null; then
+              CONDA_BASE=$(conda info --base 2>/dev/null)
+              if [ -n "$CONDA_BASE" ] && [ -f "$CONDA_BASE/etc/profile.d/conda.sh" ]; then
+                CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
+                echo "✅ 通过 conda info 找到: $CONDA_SH"
+              fi
+            fi
+          fi
+
+          # 最后尝试 find
+          if [ -z "$CONDA_SH" ]; then
+            FOUND_CONDA=$(find /home /opt -path "*/etc/profile.d/conda.sh" 2>/dev/null | head -1)
+            if [ -n "$FOUND_CONDA" ]; then
+              CONDA_SH="$FOUND_CONDA"
+              echo "✅ 通过 find 找到: $CONDA_SH"
+            fi
+          fi
+
+          if [ -z "$CONDA_SH" ]; then
+            echo "❌ 未找到 conda，输出诊断信息："
+            echo "HOME=$HOME"
+            echo "USER=$(whoami)"
+            echo "which conda: $(which conda 2>/dev/null || echo 'not found')"
+            echo "PATH=$PATH"
             exit 1
           fi
 
-          # 检查环境是否存在，不存在则创建
-          if conda env list | grep -q "^${CONDA_ENV_NAME} "; then
-            echo "✅ Conda 环境 '${CONDA_ENV_NAME}' 已存在，复用现有环境"
+          source "$CONDA_SH"
+
+          # 优先使用已有的 sage 环境（服务器上已经存在），否则使用 CONDA_ENV_NAME
+          if conda env list | grep -q "^sage "; then
+            ACTUAL_ENV="sage"
+            echo "✅ 使用已有的 'sage' 环境（包含已安装的依赖）"
+          elif conda env list | grep -q "^${CONDA_ENV_NAME} "; then
+            ACTUAL_ENV="${CONDA_ENV_NAME}"
+            echo "✅ 使用 '${CONDA_ENV_NAME}' 环境"
           else
-            echo "📦 创建新的 Conda 环境 '${CONDA_ENV_NAME}'..."
-            conda create -n ${CONDA_ENV_NAME} python=3.11 -y
+            ACTUAL_ENV="${CONDA_ENV_NAME}"
+            echo "📦 创建新的 Conda 环境 '${ACTUAL_ENV}'..."
+            conda create -n ${ACTUAL_ENV} python=3.11 -y
           fi
 
           # 激活环境并显示信息
-          conda activate ${CONDA_ENV_NAME}
+          conda activate ${ACTUAL_ENV}
 
           echo "Python 版本: $(python --version)"
           echo "Python 路径: $(which python)"
@@ -87,16 +132,21 @@ jobs:
           echo "📦 已安装的 NVIDIA CUDA 包："
           pip list 2>/dev/null | grep -i nvidia || echo "（暂无，首次安装时会下载）"
 
+          # 导出实际使用的环境名，供后续步骤使用
+          echo "ACTUAL_CONDA_ENV=${ACTUAL_ENV}" >> $GITHUB_ENV
+
           # 将 conda 初始化命令写入 ~/.bashrc，供后续步骤自动加载
           # 这样配合 shell: bash -el {0} 可以自动激活环境
-          CONDA_SH=$(conda info --base)/etc/profile.d/conda.sh
           if ! grep -q "conda.sh" ~/.bashrc 2>/dev/null; then
             echo "source ${CONDA_SH}" >> ~/.bashrc
           fi
-          if ! grep -q "conda activate ${CONDA_ENV_NAME}" ~/.bashrc 2>/dev/null; then
-            echo "conda activate ${CONDA_ENV_NAME}" >> ~/.bashrc
+          # 使用实际的环境名
+          if ! grep -q "conda activate ${ACTUAL_ENV}" ~/.bashrc 2>/dev/null; then
+            # 先移除旧的 conda activate 行
+            sed -i '/conda activate/d' ~/.bashrc 2>/dev/null || true
+            echo "conda activate ${ACTUAL_ENV}" >> ~/.bashrc
           fi
-          echo "✅ Conda 环境配置完成，后续步骤将自动激活"
+          echo "✅ Conda 环境 '${ACTUAL_ENV}' 配置完成，后续步骤将自动激活"
 
       - name: Stop existing services
         continue-on-error: true
@@ -131,9 +181,10 @@ jobs:
         run: |
           echo "🔍 检查现有 SAGE 安装..."
           echo "当前 Python: $(which python)"
+          echo "当前 Conda 环境: ${ACTUAL_CONDA_ENV:-未设置}"
 
           CURRENT_COMMIT="${{ github.sha }}"
-          DEPLOYED_COMMIT_FILE="$HOME/.sage_deployed_commit_${CONDA_ENV_NAME}"
+          DEPLOYED_COMMIT_FILE="$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
 
           # 检查是否已安装并可导入
           if python -c "import sage.studio; import sage.gateway" 2>/dev/null; then
@@ -205,7 +256,7 @@ jobs:
           fi
 
           # 记录部署的 commit，用于下次增量检测（按环境名区分）
-          echo "${{ github.sha }}" > "$HOME/.sage_deployed_commit_${CONDA_ENV_NAME}"
+          echo "${{ github.sha }}" > "$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
 
           echo "✅ SAGE 安装/更新完成"
         timeout-minutes: 90  # NVIDIA CUDA 包很大，需要更长时间
