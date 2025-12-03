@@ -246,10 +246,7 @@ def generate_main_results_table(
     header_datasets = (
         "& "
         + " & ".join(
-            [
-                f"\\multicolumn{{{n_metrics}}}{{c}}{{{_format_dataset_name(ds)}}}"
-                for ds in datasets
-            ]
+            [f"\\multicolumn{{{n_metrics}}}{{c}}{{{_format_dataset_name(ds)}}}" for ds in datasets]
         )
         + " \\\\"
     )
@@ -258,7 +255,10 @@ def generate_main_results_table(
     # cmidrule 分隔线
     if config.use_booktabs:
         cmidrules = " ".join(
-            [f"\\cmidrule(lr){{{2 + i * n_metrics}-{1 + (i + 1) * n_metrics}}}" for i in range(n_datasets)]
+            [
+                f"\\cmidrule(lr){{{2 + i * n_metrics}-{1 + (i + 1) * n_metrics}}}"
+                for i in range(n_datasets)
+            ]
         )
         lines.append(cmidrules)
 
@@ -323,9 +323,7 @@ def generate_main_results_table(
                 # 添加显著性标记
                 sig_marker = ""
                 if include_significance and algo != baseline and raw_results:
-                    p_value = _compute_p_value(
-                        raw_results, ds, baseline, algo, m
-                    )
+                    p_value = _compute_p_value(raw_results, ds, baseline, algo, m)
                     sig_marker = _get_significance_marker(p_value)
 
                 # 组合最终格式
@@ -448,7 +446,9 @@ def generate_ablation_table(
     else:
         lines.append("\\hline")
 
-    lines.append("Configuration & F1 $\\uparrow$ & Comp. $\\uparrow$ & Time (s) $\\downarrow$ & $\\Delta$ F1 \\\\")
+    lines.append(
+        "Configuration & F1 $\\uparrow$ & Comp. $\\uparrow$ & Time (s) $\\downarrow$ & $\\Delta$ F1 \\\\"
+    )
 
     if config.use_booktabs:
         lines.append("\\midrule")
@@ -604,9 +604,7 @@ def generate_significance_table(
         # p-value
         try:
             min_len = min(len(baseline_scores), len(method_scores))
-            t_result = paired_t_test(
-                baseline_scores[:min_len], method_scores[:min_len]
-            )
+            t_result = paired_t_test(baseline_scores[:min_len], method_scores[:min_len])
             p_val = t_result.p_value
             p_str = _format_p_value_latex(p_val)
         except ValueError:
@@ -813,9 +811,9 @@ def generate_latency_breakdown_table(
         lines.append("\\hline")
 
     # 找出最快的总时间
-    best_total = min(
-        m.avg_total_time for m in results.values() if m.avg_total_time > 0
-    ) if results else 0
+    best_total = (
+        min(m.avg_total_time for m in results.values() if m.avg_total_time > 0) if results else 0
+    )
 
     # 数据行
     for algo, metrics in results.items():

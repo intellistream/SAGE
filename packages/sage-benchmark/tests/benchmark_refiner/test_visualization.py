@@ -253,9 +253,7 @@ class TestPlotAlgorithmComparison:
 
     def test_custom_title(self, sample_results):
         """测试自定义标题"""
-        fig = plot_algorithm_comparison(
-            sample_results, metric="f1", title="Custom Title Test"
-        )
+        fig = plot_algorithm_comparison(sample_results, metric="f1", title="Custom Title Test")
         assert isinstance(fig, plt.Figure)
         # 检查标题
         ax = fig.axes[0]
@@ -302,9 +300,7 @@ class TestPlotParetoFrontier:
 
     def test_custom_metrics(self, sample_results):
         """测试自定义 X/Y 指标"""
-        fig = plot_pareto_frontier(
-            sample_results, x_metric="compression_rate", y_metric="f1"
-        )
+        fig = plot_pareto_frontier(sample_results, x_metric="compression_rate", y_metric="f1")
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
 
@@ -491,9 +487,7 @@ class TestGenerateVisualizationReport:
 
     def test_generates_all_files(self, sample_results, tmp_path):
         """测试生成所有文件"""
-        files = generate_visualization_report(
-            sample_results, output_dir=tmp_path, formats=["png"]
-        )
+        files = generate_visualization_report(sample_results, output_dir=tmp_path, formats=["png"])
         assert len(files) > 0
         # 检查文件存在
         for name, path in files.items():

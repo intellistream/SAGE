@@ -17,11 +17,8 @@ involve time.sleep() and actual model loading.
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
 from typing import Any
 from unittest.mock import patch
-
-import pytest
 
 from sage.benchmark.benchmark_refiner.experiments import (
     AVAILABLE_DATASETS,
@@ -321,9 +318,7 @@ class TestComparisonExperimentMultiDataset:
             exp = ComparisonExperiment(config)
 
             # Mock _execute_pipeline to avoid real Pipeline calls
-            with patch.object(
-                ComparisonExperiment, "_execute_pipeline", mock_execute_pipeline
-            ):
+            with patch.object(ComparisonExperiment, "_execute_pipeline", mock_execute_pipeline):
                 result = exp.run_full()
 
             # Should succeed
@@ -366,9 +361,7 @@ class TestComparisonExperimentMultiDataset:
             )
             exp = ComparisonExperiment(config)
 
-            with patch.object(
-                ComparisonExperiment, "_execute_pipeline", mock_execute_pipeline
-            ):
+            with patch.object(ComparisonExperiment, "_execute_pipeline", mock_execute_pipeline):
                 exp.run_full()
 
             assert exp.multi_dataset_result is not None

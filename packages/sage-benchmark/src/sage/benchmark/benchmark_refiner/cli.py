@@ -516,9 +516,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             raw_results[ds_name] = {}
             algo_metrics = ds_data.get("algorithm_metrics", {})
             for algo_name, metrics_dict in algo_metrics.items():
-                results[ds_name][algo_name] = _dict_to_algorithm_metrics(
-                    algo_name, metrics_dict
-                )
+                results[ds_name][algo_name] = _dict_to_algorithm_metrics(algo_name, metrics_dict)
             # 原始结果按算法分组
             for sample in ds_data.get("raw_results", []):
                 algo = sample.get("algorithm", "unknown")
@@ -531,9 +529,7 @@ def cmd_report(args: argparse.Namespace) -> int:
         results[ds_name] = {}
         raw_results[ds_name] = {}
         for algo_name, metrics_dict in data["algorithm_metrics"].items():
-            results[ds_name][algo_name] = _dict_to_algorithm_metrics(
-                algo_name, metrics_dict
-            )
+            results[ds_name][algo_name] = _dict_to_algorithm_metrics(algo_name, metrics_dict)
         # 原始结果按算法分组
         for sample in data.get("raw_results", []):
             algo = sample.get("algorithm", "unknown")
@@ -598,9 +594,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             # 将原始结果转换为分数列表
             f1_results = {}
             for algo, samples in raw_results[first_ds].items():
-                f1_results[algo] = [
-                    s.get("f1", s.get("avg_f1", 0)) for s in samples
-                ]
+                f1_results[algo] = [s.get("f1", s.get("avg_f1", 0)) for s in samples]
 
             if f1_results:
                 md_report = generate_significance_report(
@@ -642,13 +636,9 @@ def _dict_to_algorithm_metrics(name: str, data: dict[str, Any]):
         avg_compressed_tokens=compression.get(
             "avg_compressed_tokens", data.get("avg_compressed_tokens", 0)
         ),
-        avg_retrieve_time=latency.get(
-            "avg_retrieve_time", data.get("avg_retrieve_time", 0)
-        ),
+        avg_retrieve_time=latency.get("avg_retrieve_time", data.get("avg_retrieve_time", 0)),
         avg_refine_time=latency.get("avg_refine_time", data.get("avg_refine_time", 0)),
-        avg_generate_time=latency.get(
-            "avg_generate_time", data.get("avg_generate_time", 0)
-        ),
+        avg_generate_time=latency.get("avg_generate_time", data.get("avg_generate_time", 0)),
         avg_total_time=latency.get("avg_total_time", data.get("avg_total_time", 0)),
         std_f1=quality.get("std_f1", data.get("std_f1", 0)),
         std_compression_rate=compression.get(
