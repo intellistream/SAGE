@@ -8,6 +8,7 @@ SAGE Application Commands
 - pipeline: Pipeline构建器
 - studio: 可视化编辑器
 - inference: 统一推理服务管理
+- bench: Benchmark 统一入口 (Agent、Control Plane 等)
 """
 
 from rich.console import Console
@@ -52,10 +53,10 @@ except ImportError as e:
     inference_app = None
 
 try:
-    from .gateway import app as gateway_app
+    from .bench import app as bench_app
 except ImportError as e:
-    console.print(f"[yellow]警告: 无法导入 gateway 命令: {e}[/yellow]")
-    gateway_app = None
+    console.print(f"[yellow]警告: 无法导入 bench 命令: {e}[/yellow]")
+    bench_app = None
 
 # 导出所有命令
 __all__ = [
@@ -65,5 +66,5 @@ __all__ = [
     "pipeline_app",
     "studio_app",
     "inference_app",
-    "gateway_app",
+    "bench_app",
 ]
