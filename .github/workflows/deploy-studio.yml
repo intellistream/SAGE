@@ -1,26 +1,33 @@
 name: Deploy SAGE Studio to Self-Hosted Server
 
 on:
+  # Manual trigger - recommended for production deployment
   workflow_dispatch:
     inputs:
       port:
         description: 'Studio port (default: 5173)'
         required: false
         default: '5173'
+      tunnel_domain:
+        description: 'Cloudflare Tunnel domain (e.g., sage-studio.example.com)'
+        required: false
+        default: ''
+  # Auto deploy only on main branch (stable releases)
   push:
     branches:
       - main
-      - main-dev
-      - feat/unified-chat-canvas-rebased
     paths:
       - 'packages/sage-studio/**'
       - 'packages/sage-gateway/**'
-      - '.github/workflows/deploy-studio.yml'
+
+env:
+  # Default Cloudflare Tunnel domain
+  DEFAULT_TUNNEL_DOMAIN: 'studio.sage.org.ai'
 
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -41,11 +48,12 @@ jobs:
           echo "🛑 Stopping existing SAGE Studio services..."
           pkill -f "sage studio" || true
           pkill -f "sage-gateway" || true
+          pkill -f "cloudflared tunnel" || true
           sleep 2
 
       - name: Install System Dependencies
         run: |
-          echo "� 安装系统依赖..."
+          echo "📦 安装系统依赖..."
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             build-essential \
@@ -109,8 +117,12 @@ jobs:
           # Production mode for better performance and stability
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
-          # 3. Builds and serves optimized frontend on port 5173 (Vite default)
-          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} > ~/sage-studio-deploy.log 2>&1 &
+          # 3. Starts local LLM service via sageLLM (default: Qwen2.5-0.5B-Instruct)
+          # 4. Builds and serves optimized frontend on port 5173 (Vite default)
+          #
+          # CI Mode Options:
+          # -y: Non-interactive mode (skip all prompts, use default LLM/Embedding config)
+          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y > ~/sage-studio-deploy.log 2>&1 &
 
           sleep 15  # Production build needs more time
 
@@ -118,7 +130,7 @@ jobs:
 
       - name: Health check
         run: |
-          PORT="${{ github.event.inputs.port || '4200' }}"
+          PORT="${{ github.event.inputs.port || '5173' }}"
           echo "🔍 检查服务健康状态..."
 
           # 检查服务是否启动
@@ -143,10 +155,51 @@ jobs:
           echo "🔧 检查 SAGE Studio 进程..."
           ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
 
+      - name: Setup Cloudflare Tunnel
+        if: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        run: |
+          echo "🌐 配置 Cloudflare Tunnel..."
+
+          # 检查是否已安装 cloudflared
+          if ! command -v cloudflared &> /dev/null; then
+            echo "📦 安装 cloudflared..."
+            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+            sudo install -m 755 /tmp/cloudflared /usr/local/bin/cloudflared
+            rm /tmp/cloudflared
+          fi
+
+          cloudflared --version
+          echo "✅ cloudflared 已就绪"
+
+      - name: Start Cloudflare Tunnel
+        if: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        env:
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+        run: |
+          echo "🚀 启动 Cloudflare Tunnel..."
+
+          # 停止可能存在的旧 tunnel 进程
+          pkill -f "cloudflared tunnel" || true
+          sleep 2
+
+          # 启动 tunnel
+          nohup cloudflared tunnel run --token "${CLOUDFLARE_TUNNEL_TOKEN}" > ~/cloudflared.log 2>&1 &
+
+          sleep 5
+
+          # 验证 tunnel 是否启动
+          if pgrep -f "cloudflared tunnel" > /dev/null; then
+            echo "✅ Cloudflare Tunnel 已启动"
+          else
+            echo "❌ Cloudflare Tunnel 启动失败"
+            tail -20 ~/cloudflared.log || echo "暂无日志"
+            exit 1
+          fi
+
       - name: Network accessibility check
         continue-on-error: true
         run: |
-          PORT="${{ github.event.inputs.port || '4200' }}"
+          PORT="${{ github.event.inputs.port || '5173' }}"
           SERVER_IP=$(hostname -I | awk '{print $1}')
 
           echo "🌐 测试网络可达性..."
@@ -194,12 +247,19 @@ jobs:
 
       - name: Deployment summary
         run: |
-          PORT="${{ github.event.inputs.port || '4200' }}"
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          TUNNEL_DOMAIN="${{ github.event.inputs.tunnel_domain || env.DEFAULT_TUNNEL_DOMAIN }}"
 
           # 获取服务器网络信息
           SERVER_IP=$(hostname -I | awk '{print $1}')
           HOSTNAME=$(hostname -f)
           PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "N/A")
+
+          # 检测 Cloudflare Tunnel 状态
+          TUNNEL_STATUS="❌ 未运行"
+          if pgrep -f "cloudflared tunnel" > /dev/null; then
+            TUNNEL_STATUS="✅ 运行中"
+          fi
 
           # 检测防火墙状态
           FIREWALL_STATUS="未知"
@@ -224,6 +284,7 @@ jobs:
           部署时间: $(date '+%Y-%m-%d %H:%M:%S %Z')
 
           访问地址:
+          - Cloudflare Tunnel: https://${TUNNEL_DOMAIN} (推荐，全球可访问)
           - 内网IP: http://${SERVER_IP}:${PORT}
           - 主机名: http://${HOSTNAME}:${PORT}
           - 公网IP: http://${PUBLIC_IP}:${PORT} (如果可用)
@@ -231,20 +292,16 @@ jobs:
           服务状态:
           - 端口: ${PORT}
           - 监听: 0.0.0.0 (所有网络接口)
+          - Cloudflare Tunnel: ${TUNNEL_STATUS}
           - 防火墙: ${FIREWALL_STATUS}
 
-          校园网访问建议:
-          1. 如果在校园网内，使用内网IP: http://${SERVER_IP}:${PORT}
-          2. 如果需要校外访问，需要配置VPN或端口转发
-          3. 请联系网络管理员确认防火墙配置
-
           日志文件:
-          - 部署日志: ~/sage-studio-deploy.log
-          - 服务日志: 运行 'journalctl -f' 查看
+          - Studio 日志: ~/sage-studio-deploy.log
+          - Tunnel 日志: ~/cloudflared.log
 
           管理命令:
-          - 查看状态: ps aux | grep "sage studio"
-          - 停止服务: pkill -f "sage studio"
+          - 查看状态: ps aux | grep -E "sage studio|cloudflared"
+          - 停止服务: pkill -f "sage studio" && pkill -f "cloudflared tunnel"
           - 重启服务: 重新运行此 workflow
           ======================================
           EOF
@@ -253,35 +310,42 @@ jobs:
           cat "$DEPLOY_INFO_FILE"
 
           # 输出到 GitHub Actions Summary
-          echo "## 🎉 SAGE Studio 部署成功！" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 SAGE Studio 部署成功" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📍 访问地址" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 访问地址" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| 网络环境 | 访问地址 | 说明 |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|---------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏫 校园网内 | \`http://${SERVER_IP}:${PORT}\` | **推荐使用** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 方式 | 访问地址 | 说明 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ☁️ **Cloudflare Tunnel** | [\`https://${TUNNEL_DOMAIN}\`](https://${TUNNEL_DOMAIN}) | **推荐 - 全球可访问，自动 HTTPS** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏫 校园网内 | \`http://${SERVER_IP}:${PORT}\` | 内网直连 |" >> $GITHUB_STEP_SUMMARY
           echo "| 🖥️ 主机名 | \`http://${HOSTNAME}:${PORT}\` | 如果DNS配置正确 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 公网访问 | \`http://${PUBLIC_IP}:${PORT}\` | 需要配置防火墙/VPN |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 服务器信息" >> $GITHUB_STEP_SUMMARY
-          echo "- **内网IP**: ${SERVER_IP}" >> $GITHUB_STEP_SUMMARY
-          echo "- **主机名**: ${HOSTNAME}" >> $GITHUB_STEP_SUMMARY
-          echo "- **监听端口**: ${PORT}" >> $GITHUB_STEP_SUMMARY
-          echo "- **防火墙状态**: ${FIREWALL_STATUS}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> 💡 **部署信息已保存**: 登录服务器后可查看 \`~/sage-studio-deployment-info.txt\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 服务状态" >> $GITHUB_STEP_SUMMARY
+          echo "| 服务 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| SAGE Studio | ✅ 运行中 (端口 ${PORT}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cloudflare Tunnel | ${TUNNEL_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 防火墙 | ${FIREWALL_STATUS} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✨ 功能特性" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 可视化流水线编辑器" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ AI 对话（基于 SAGE 文档的 RAG）" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AI 对话（本地 LLM + RAG）" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 工作流自动生成" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 交互式调试" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔍 故障排查" >> $GITHUB_STEP_SUMMARY
+          echo "### � 日志" >> $GITHUB_STEP_SUMMARY
           echo "<details>" >> $GITHUB_STEP_SUMMARY
-          echo "<summary>点击展开最近30行日志</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>Studio 日志（最近30行）</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -30 ~/sage-studio-deploy.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>Cloudflare Tunnel 日志（最近20行）</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -20 ~/cloudflared.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Tunnel logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
