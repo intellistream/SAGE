@@ -1,6 +1,7 @@
 name: Deploy SAGE Studio to Self-Hosted Server
 
 on:
+  # Manual trigger - recommended for production deployment
   workflow_dispatch:
     inputs:
       port:
@@ -11,15 +12,13 @@ on:
         description: 'Cloudflare Tunnel domain (e.g., sage-studio.example.com)'
         required: false
         default: ''
+  # Auto deploy only on main branch (stable releases)
   push:
     branches:
       - main
-      - main-dev
-      - feat/unified-chat-canvas-rebased
     paths:
       - 'packages/sage-studio/**'
       - 'packages/sage-gateway/**'
-      - '.github/workflows/deploy-studio.yml'
 
 env:
   # Default Cloudflare Tunnel domain
