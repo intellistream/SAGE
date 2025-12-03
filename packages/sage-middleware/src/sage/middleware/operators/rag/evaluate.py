@@ -1,3 +1,5 @@
+import re
+import string
 from collections import Counter
 
 from rouge import Rouge
@@ -6,6 +8,74 @@ from transformers import AutoModel, AutoTokenizer
 
 from sage.common.core.functions import MapFunction as MapOperator
 from sage.kernel.runtime.communication.packet import StopSignal
+
+# =============================================================================
+# RECOMP-style Answer Normalization (标准化答案文本)
+# =============================================================================
+
+
+def normalize_answer(s: str) -> str:
+    """RECOMP 风格的答案标准化
+
+    步骤:
+    1. 转小写
+    2. 移除标点符号
+    3. 移除冠词 (a, an, the)
+    4. 修复空白字符
+
+    Args:
+        s: 原始答案文本
+
+    Returns:
+        标准化后的答案文本
+    """
+
+    def remove_articles(text: str) -> str:
+        return re.sub(r"\b(a|an|the)\b", " ", text)
+
+    def white_space_fix(text: str) -> str:
+        return " ".join(text.split())
+
+    def remove_punc(text: str) -> str:
+        exclude = set(string.punctuation)
+        return "".join(ch for ch in text if ch not in exclude)
+
+    def lower(text: str) -> str:
+        return text.lower()
+
+    return white_space_fix(remove_articles(remove_punc(lower(s))))
+
+
+def get_normalized_tokens(s: str) -> list[str]:
+    """获取标准化后的 token 列表
+
+    Args:
+        s: 原始文本
+
+    Returns:
+        标准化后的 token 列表
+    """
+    if not s:
+        return []
+    return normalize_answer(s).split()
+
+
+def answer_extract(pred: str) -> str:
+    """提取答案文本
+
+    支持 "answer is" 前缀格式的答案提取。
+
+    Args:
+        pred: 预测文本
+
+    Returns:
+        提取后的答案文本
+    """
+    prefix = "answer is "
+    if prefix in pred.lower():
+        idx = pred.lower().rfind(prefix)
+        return pred[idx + len(prefix) :].strip()
+    return pred.strip()
 
 
 def _get_results_collector():
@@ -38,6 +108,7 @@ class MetricsAggregator:
         """重置所有统计数据"""
         self.metrics = {
             "f1_scores": [],
+            "em_scores": [],  # Exact Match scores
             "token_counts": [],
             "retrieve_times": [],
             "refine_times": [],
@@ -49,6 +120,10 @@ class MetricsAggregator:
 
     def add_f1(self, score):
         self.metrics["f1_scores"].append(score)
+
+    def add_em(self, score):
+        """添加 Exact Match 分数"""
+        self.metrics["em_scores"].append(score)
 
     def add_token_count(self, count):
         self.metrics["token_counts"].append(count)
@@ -75,6 +150,11 @@ class MetricsAggregator:
         print(f"SUMMARY STATISTICS ({self.sample_count} samples)")
         print("=" * 80)
 
+        # Exact Match Score
+        if self.metrics["em_scores"]:
+            avg_em = sum(self.metrics["em_scores"]) / len(self.metrics["em_scores"])
+            print(f"\033[92m[Average EM Score]        : {avg_em:.4f}\033[0m")
+
         # F1 Score
         if self.metrics["f1_scores"]:
             avg_f1 = sum(self.metrics["f1_scores"]) / len(self.metrics["f1_scores"])
@@ -95,9 +175,8 @@ class MetricsAggregator:
             print(f"\033[92m[Average Retrieve Time]   : {avg_retrieve:.2f}s\033[0m")
             print(f"\033[92m[Average Refine Time]     : {avg_refine:.2f}s\033[0m")
             print(f"\033[92m[Average Generate Time]   : {avg_generate:.2f}s\033[0m")
-            print(
-                f"\033[92m[Average Total Latency]   : {avg_total:.2f}s ({avg_total / 60:.2f} min)\033[0m"
-            )
+            avg_min = avg_total / 60
+            print(f"\033[92m[Average Total Latency]   : {avg_total:.2f}s ({avg_min:.2f}m)\033[0m")
 
         # Compression Rate
         if self.metrics["compression_rates"]:
@@ -110,7 +189,10 @@ class MetricsAggregator:
 
 
 class F1Evaluate(MapOperator):
-    """F1分数评估器
+    """F1分数评估器（RECOMP 标准）
+
+    使用 RECOMP 风格的答案标准化进行 F1 分数计算。
+    标准化步骤：转小写、移除标点、移除冠词、修复空白。
 
     输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
     """
@@ -118,22 +200,38 @@ class F1Evaluate(MapOperator):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.aggregator = MetricsAggregator()
+        # 是否提取 "answer is" 前缀后的答案
+        self.extract_answer = config.get("extract_answer", False) if config else False
 
-    def _get_tokens(self, text: str):
-        return text.lower().split()
+    def _f1_score(self, pred: str, ref: str) -> float:
+        """计算 F1 分数（RECOMP 标准）
 
-    def _f1_score(self, pred: str, ref: str):
-        r = Counter(self._get_tokens(ref))
-        p = Counter(self._get_tokens(pred))
-        common = r & p
-        if not r or not p:
-            return float(r == p)
-        num_common = sum(common.values())
-        if num_common == 0:
+        使用标准化后的 token 进行计算。
+
+        Args:
+            pred: 预测答案
+            ref: 参考答案
+
+        Returns:
+            F1 分数
+        """
+        gold_toks = get_normalized_tokens(ref)
+        pred_toks = get_normalized_tokens(pred)
+
+        common = Counter(gold_toks) & Counter(pred_toks)
+        num_same = sum(common.values())
+
+        if len(gold_toks) == 0 or len(pred_toks) == 0:
+            # If either is no-answer, then F1 is 1 if they agree, 0 otherwise
+            return float(gold_toks == pred_toks)
+
+        if num_same == 0:
             return 0.0
-        prec = num_common / sum(p.values())
-        rec = num_common / sum(r.values())
-        return 2 * prec * rec / (prec + rec)
+
+        precision = 1.0 * num_same / len(pred_toks)
+        recall = 1.0 * num_same / len(gold_toks)
+        f1 = (2 * precision * recall) / (precision + recall)
+        return f1
 
     def execute(self, data):
         # Handle StopSignal - 不输出,让 CompressionRateEvaluate 最后统一输出
@@ -142,7 +240,12 @@ class F1Evaluate(MapOperator):
 
         golds = data.get("references", [])
         pred = data.get("generated", "")
-        best = max(self._f1_score(pred, g) for g in golds) if golds else 0.0
+
+        # 可选：提取 "answer is" 后的答案
+        if self.extract_answer:
+            pred = answer_extract(pred)
+
+        best = max((self._f1_score(pred, g) for g in golds), default=0.0) if golds else 0.0
 
         # Add to aggregator
         self.aggregator.add_f1(best)
@@ -154,6 +257,56 @@ class F1Evaluate(MapOperator):
             collector.update_sample(sample_id, f1=best)
 
         print(f"\033[93m[F1] : {best:.4f}\033[0m")
+        return data
+
+
+class EMEvaluate(MapOperator):
+    """Exact Match 评估器（RECOMP 标准）
+
+    使用 RECOMP 风格的答案标准化进行精确匹配计算。
+    标准化步骤：转小写、移除标点、移除冠词、修复空白。
+
+    输入数据格式：{"query": str, "results": List[Any], "generated": str, "references": List[str]}
+    """
+
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+        self.aggregator = MetricsAggregator()
+        # 是否提取 "answer is" 前缀后的答案
+        self.extract_answer = config.get("extract_answer", False) if config else False
+
+    def _exact_match(self, pred: str, gold: str) -> int:
+        """计算 Exact Match（RECOMP 标准）
+
+        使用标准化后的文本进行精确匹配。
+
+        Args:
+            pred: 预测答案
+            gold: 参考答案
+
+        Returns:
+            1 如果匹配，否则 0
+        """
+        return int(normalize_answer(pred) == normalize_answer(gold))
+
+    def execute(self, data):
+        # Handle StopSignal - 不输出,让 CompressionRateEvaluate 最后统一输出
+        if isinstance(data, StopSignal):
+            return data
+
+        golds = data.get("references", [])
+        pred = data.get("generated", "")
+
+        # 可选：提取 "answer is" 后的答案
+        if self.extract_answer:
+            pred = answer_extract(pred)
+
+        best = max((self._exact_match(pred, g) for g in golds), default=0) if golds else 0
+
+        # Add to aggregator
+        self.aggregator.add_em(best)
+
+        print(f"\033[93m[EM] : {best}\033[0m")
         return data
 
 
@@ -353,7 +506,9 @@ class TokenCountEvaluate(MapOperator):
 class LatencyEvaluate(MapOperator):
     """延迟评估器
 
-    输入数据格式：{"query": str, "retrieve_time": float, "refine_time": float, "generate_time": float, ...}
+    输入数据格式:
+        {"query": str, "retrieve_time": float, "refine_time": float,
+         "generate_time": float, ...}
     """
 
     def __init__(self, config=None, **kwargs):
@@ -433,9 +588,13 @@ class CompressionRateEvaluate(MapOperator):
 
     压缩率 = 原始文档token数 / 压缩后文档token数
 
-    输入数据格式：{"query": str, "retrieval_results": List[Dict], "refining_results": List[str], ...}
-    - retrieval_results: 原始检索的文档（用于计算原始token数）
-    - refining_results: 压缩后的文档文本（用于计算压缩后token数）
+    输入数据格式:
+        {"query": str, "retrieval_results": List[Dict],
+         "refining_results": List[str], ...}
+
+    Args:
+        retrieval_results: 原始检索的文档（用于计算原始token数）
+        refining_results: 压缩后的文档文本（用于计算压缩后token数）
     """
 
     def __init__(self, config=None, **kwargs):

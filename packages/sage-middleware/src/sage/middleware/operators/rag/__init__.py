@@ -81,6 +81,7 @@ _IMPORTS = {
     ),
     # Evaluation
     "F1Evaluate": ("sage.middleware.operators.rag.evaluate", "F1Evaluate"),
+    "EMEvaluate": ("sage.middleware.operators.rag.evaluate", "EMEvaluate"),
     "RecallEvaluate": ("sage.middleware.operators.rag.evaluate", "RecallEvaluate"),
     "BertRecallEvaluate": (
         "sage.middleware.operators.rag.evaluate",

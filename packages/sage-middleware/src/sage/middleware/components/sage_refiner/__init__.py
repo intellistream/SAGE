@@ -59,6 +59,12 @@ from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms
 from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.provence import (
     ProvenceRefinerOperator,
 )
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_abst import (
+    RECOMPAbstractiveCompressor,
+)
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_extr import (
+    RECOMPExtractiveCompressor,
+)
 from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.reform import (
     AttentionHookExtractor,
     REFORMRefinerOperator,
@@ -106,6 +112,10 @@ __all__ = [
     "REFORMCompressor",
     "REFORMRefinerOperator",
     "AttentionHookExtractor",
+    # RECOMP Extractive算法
+    "RECOMPExtractiveCompressor",
+    # RECOMP Abstractive算法
+    "RECOMPAbstractiveCompressor",
     # LongRefiner算法
     "LongRefinerCompressor",
     "LongRefinerOperator",
@@ -120,5 +130,25 @@ __all__ = [
     "LongLLMLinguaOperator",
     "DEFAULT_LONG_LLMLINGUA_CONFIG",
 ]
+
+# Optional: RECOMP Extractive Operator (requires SAGE framework)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_extr import (
+        RECOMPExtractiveOperator,
+    )
+
+    __all__.append("RECOMPExtractiveOperator")
+except ImportError:
+    RECOMPExtractiveOperator = None
+
+# Optional: RECOMP Abstractive Operator (requires SAGE framework)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_abst import (
+        RECOMPAbstractiveOperator,
+    )
+
+    __all__.append("RECOMPAbstractiveOperator")
+except ImportError:
+    RECOMPAbstractiveOperator = None
 
 __version__ = "0.1.0"
