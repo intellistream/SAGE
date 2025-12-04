@@ -10,10 +10,10 @@
 
 | 依赖项 | 来源 | 用途 |
 |--------|------|------|
-| `InferenceBackend` | `sageInfer/interfaces/inference_backend.py` | 推理后端抽象接口，解耦 vLLM |
-| `CapabilityDescriptor` | `sageInfer/interfaces/schemas.py` | 实例能力描述，用于调度决策 |
-| `KVCacheSchema` | `sageInfer/interfaces/schemas.py` | KV 数据格式定义 |
-| `VLLMBackendAdapter` | `sageInfer/backends/vllm_adapter.py` | vLLM 适配器（验证用） |
+| `InferenceBackend` | `sageLLM/sage_infer/interfaces/inference_backend.py` | 推理后端抽象接口，解耦 vLLM |
+| `CapabilityDescriptor` | `sageLLM/sage_infer/interfaces/schemas.py` | 实例能力描述，用于调度决策 |
+| `KVCacheSchema` | `sageLLM/sage_infer/interfaces/schemas.py` | KV 数据格式定义 |
+| `VLLMBackendAdapter` | `sageLLM/sage_infer/backends/vllm_adapter.py` | vLLM 适配器（验证用） |
 
 ### 与其他课题的关系
 - **依赖课题一**：跨节点 KV Cache 迁移需要调用 `TransportEngine`（Phase 1 可用 Mock）
@@ -77,15 +77,26 @@ sageLLM Control Plane 已具备：
 - 支持异构芯片池的任务亲和性匹配与资源隔离
 
 ### 2. 分层 KV Cache 管理器
-**实现位置**：`sageLLM/control_plane/memory_manager/`（新建）
+
+> **分层设计**：策略层在 `control_plane/memory_manager/`，实现层在 `sage_infer/kv_cache/`
+
+**策略层**：`sageLLM/control_plane/memory_manager/`（新建）
 
 | 模块 | 描述 |
 |------|------|
-| `cache_tier.py` | 分层缓存定义（HBM Tier / DRAM Tier / SSD Spill） |
-| `pool_manager.py` | KV Cache 池化管理，统一分配与回收 |
-| `admission_controller.py` | 准入控制，基于预测的请求准入决策 |
-| `quota_allocator.py` | 内存配额分配，LLM/Embedding 动态预算 |
+| `admission_controller.py` | 准入控制策略，基于预测的请求准入决策 |
+| `quota_allocator.py` | 内存配额分配策略，LLM/Embedding 动态预算 |
 | `eviction_policy.py` | 驱逐策略（LRU/热点感知/SLO 感知） |
+| `migration_planner.py` | 迁移决策，决定何时在 HBM↔DRAM↔SSD 间迁移 |
+
+**实现层**：`sageLLM/sage_infer/kv_cache/`（新建，与课题三共建）
+
+| 模块 | 描述 |
+|------|------|
+| `store.py` | KVStore 基类，定义存储接口 |
+| `paged_store.py` | 分页存储实现，兼容 vLLM PagedAttention |
+| `tiered_backend.py` | 分层存储后端（HBM Tier / DRAM Tier / SSD Spill）|
+| `slice_registry.py` | KV Slice 注册表，索引可复用的上下文片段 |
 | `block_manager_wrapper.py` | vLLM BlockManager 适配层，Hook 驱逐事件 |
 
 **关键能力**：
@@ -94,14 +105,23 @@ sageLLM Control Plane 已具备：
 - 与 `gpu_manager.py` 集成，实时监控各层利用率
 
 ### 3. 跨批次复用与热点预取
-**实现位置**：`sageLLM/control_plane/cache_reuse/`（新建）
+
+> **分层设计**：策略层在 `control_plane/cache_reuse/`，实现层在 `sage_infer/kv_cache/`
+
+**策略层**：`sageLLM/control_plane/cache_reuse/`（新建）
+
+| 模块 | 描述 |
+|------|------|
+| `reuse_policy.py` | 复用策略（精确前缀匹配 / 语义相似匹配） |
+| `prefetch_scheduler.py` | 预取调度，根据访问热点决定预取时机 |
+
+**实现层**：`sageLLM/sage_infer/kv_cache/`（复用上节模块）
 
 | 模块 | 描述 |
 |------|------|
 | `prompt_fingerprint.py` | Prompt 指纹计算（prefix hash / semantic hash） |
-| `kv_slice_registry.py` | KV Slice 注册表，索引可复用的上下文片段 |
-| `reuse_policy.py` | 复用策略（精确前缀匹配 / 语义相似匹配） |
-| `prefetch_worker.py` | 后台预取工作器，根据访问热点提前加载 KV |
+| `slice_registry.py` | KV Slice 注册表，索引可复用的上下文片段 |
+| `prefetch_worker.py` | 后台预取工作器，执行实际的数据加载 |
 
 **关键能力**：
 - 跨批次识别相同/相似 prompt 前缀，复用已计算的 KV Cache
@@ -142,39 +162,59 @@ sageLLM Control Plane 已具备：
 
 ---
 
-## 实现路径（sageLLM 内）
+## 实现路径
+
+> **分层架构**：策略层在 `control_plane/`，实现层在 `sage_infer/kv_cache/`
 
 ```
-sageLLM/control_plane/
-├── queues/                      # 【新建】专用队列
-│   ├── __init__.py
-│   ├── prefill_queue.py
-│   └── decode_queue.py
-├── chip_pool/                   # 【新建】异构芯片池
-│   ├── __init__.py
-│   ├── pool_manager.py
-│   └── device_capability.py
-├── memory_manager/              # 【新建】KV Cache 管理
-│   ├── __init__.py
-│   ├── cache_tier.py
-│   ├── pool_manager.py
-│   ├── admission_controller.py
-│   ├── quota_allocator.py
-│   ├── eviction_policy.py
-│   └── block_manager_wrapper.py
-├── cache_reuse/                 # 【新建】缓存复用
-│   ├── __init__.py
-│   ├── prompt_fingerprint.py
-│   ├── kv_slice_registry.py
-│   ├── reuse_policy.py
-│   └── prefetch_worker.py
-├── strategies/
-│   └── pd_separation.py         # 【新建】PD/AF 分离策略
-├── pd_routing.py                # 【增强】AF 路由支持
-├── manager.py                   # 【增强】多队列调度循环
-├── types.py                     # 【增强】KV Cache 相关字段
-├── metrics_collector.py         # 【增强】缓存指标
-└── monitoring.py                # 【增强】遥测端点
+sageLLM/
+├── control_plane/                   # 策略层
+│   ├── queues/                      # 【新建】专用队列
+│   │   ├── __init__.py
+│   │   ├── prefill_queue.py
+│   │   └── decode_queue.py
+│   ├── chip_pool/                   # 【新建】异构芯片池
+│   │   ├── __init__.py
+│   │   ├── pool_manager.py
+│   │   └── device_capability.py
+│   ├── memory_manager/              # 【新建】KV Cache 调度策略
+│   │   ├── __init__.py
+│   │   ├── admission_controller.py  # 准入控制策略
+│   │   ├── quota_allocator.py       # 配额分配策略
+│   │   ├── eviction_policy.py       # 驱逐策略
+│   │   └── migration_planner.py     # 迁移决策
+│   ├── cache_reuse/                 # 【新建】缓存复用策略
+│   │   ├── __init__.py
+│   │   ├── reuse_policy.py          # 复用决策
+│   │   └── prefetch_scheduler.py    # 预取调度
+│   ├── strategies/
+│   │   └── pd_separation.py         # 【新建】PD/AF 分离策略
+│   ├── pd_routing.py                # 【增强】AF 路由支持
+│   ├── manager.py                   # 【增强】多队列调度循环
+│   ├── types.py                     # 【增强】KV Cache 相关字段
+│   ├── metrics_collector.py         # 【增强】缓存指标
+│   └── monitoring.py                # 【增强】遥测端点
+│
+└── sage_infer/
+    ├── interfaces/                  # 【Phase 0 提供，本课题引用】
+    │   ├── schemas.py               # KVCacheSchema, CapabilityDescriptor
+    │   │   # - KVCacheSchema: 定义 KV 数据格式，用于分层存储配置
+    │   │   # - CapabilityDescriptor: 实例能力描述，用于 PD 路由决策
+    │   ├── inference_backend.py     # InferenceBackend Protocol
+    │   │   # - get_kv_schema(): 获取后端 KV 格式
+    │   │   # - get_capability(): 获取实例能力
+    │   └── transport_contract.py    # KVChunk, TransportPlan
+    │       # - 跨节点迁移时调用（依赖课题一）
+    │
+    └── kv_cache/                    # 【新建】KV Cache 存储实现
+        ├── __init__.py
+        ├── store.py                 # KVStore 基类
+        ├── paged_store.py           # 分页存储实现
+        ├── tiered_backend.py        # 分层存储后端
+        ├── slice_registry.py        # KV Slice 索引
+        ├── prompt_fingerprint.py    # Prompt 指纹计算
+        ├── prefetch_worker.py       # 预取工作器
+        └── block_manager_wrapper.py # vLLM 适配层
 ```
 
 ---
@@ -182,6 +222,6 @@ sageLLM/control_plane/
 ## 使用方式
 
 1. 将本 Prompt 作为课题二的研究/实现入口
-2. 按上述模块拆分任务，所有代码实现在 `sageLLM/control_plane/` 内
+2. 策略层代码在 `sageLLM/control_plane/`，实现层代码在 `sageLLM/sage_infer/kv_cache/`
 3. 在 PR/里程碑中引用本文档，确保与课题一（KV 传输库）、课题三（模型压缩）协同
-4. 评测扩展在 `sage-benchmark/benchmark_control_plane/` 中进行，但核心功能全部在 sageLLM 实现
+4. 评测扩展在 `sage-benchmark/benchmark_control_plane/` 中进行
