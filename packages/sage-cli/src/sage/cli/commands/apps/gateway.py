@@ -22,6 +22,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
 
 if TYPE_CHECKING:
@@ -137,6 +138,7 @@ def start(
         sage gateway start --no-control-plane # 禁用 Control Plane
     """
     _ensure_dirs()
+    ensure_hf_mirror_configured()  # Set HF_ENDPOINT for China mirror if needed
 
     # Check if already running
     existing_pid = _get_gateway_pid()

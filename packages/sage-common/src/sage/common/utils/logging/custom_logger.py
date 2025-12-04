@@ -137,7 +137,15 @@ class CustomLogger:
         if resolved_name is None:
             resolved_name = "Logger"
         if resolved_outputs is None:
-            resolved_outputs = [("console", "INFO")]
+            # Check if running in CLI mode (non-verbose)
+            # In CLI mode, default to WARNING to avoid noisy startup logs
+            if os.environ.get("SAGE_LOG_LEVEL"):
+                default_level = os.environ["SAGE_LOG_LEVEL"].upper()
+            elif not os.environ.get("SAGE_CLI_VERBOSE"):
+                default_level = "WARNING"
+            else:
+                default_level = "INFO"
+            resolved_outputs = [("console", default_level)]
 
         self.name = resolved_name
         self.log_base_folder = log_base_folder
