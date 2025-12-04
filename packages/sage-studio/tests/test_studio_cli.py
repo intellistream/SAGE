@@ -36,7 +36,10 @@ class FakeStudioManager:
         dev=True,
         llm=None,
         llm_model=None,
+        embedding=None,
+        embedding_model=None,
         use_finetuned=False,
+        interactive=None,
     ):
         if frontend_port:
             self._config["port"] = frontend_port

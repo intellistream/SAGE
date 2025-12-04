@@ -190,10 +190,10 @@ def test_graph_index_operations(cleanup_data):
     index.add_edge("n1", "n3", 0.5)
     index.add_edge("n2", "n3", 0.8)
 
-    # Get neighbors
+    # Get neighbors (returns list of (node_id, weight) tuples)
     neighbors = index.get_neighbors("n1", k=10)
     assert len(neighbors) == 2
-    assert neighbors[0] == "n2"  # Higher weight
+    assert neighbors[0][0] == "n2"  # Higher weight
 
     # Get incoming neighbors
     incoming = index.get_incoming_neighbors("n3", k=10)
@@ -209,7 +209,7 @@ def test_graph_index_operations(cleanup_data):
     index.remove_edge("n1", "n2")
     neighbors = index.get_neighbors("n1", k=10)
     assert len(neighbors) == 1
-    assert neighbors[0] == "n3"
+    assert neighbors[0][0] == "n3"
 
     # Remove node
     index.remove_node("n3")
