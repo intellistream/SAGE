@@ -57,7 +57,7 @@ def start(
     """启动 SAGE Studio（默认启动本地 LLM + Embedding）
 
     自动化功能（可通过选项禁用）：
-    - 自动启动 Gateway 服务（如未运行）
+    - 自动启动 Gateway 服务（如未运行，包含 Control Plane 调度器）
     - 自动启动本地 LLM 服务（通过 sageLLM，使用 0.5B 小模型）
     - 自动启动 Embedding 服务（默认使用 BAAI/bge-m3）
     - 自动下载模型（从 HuggingFace，缓存到 ~/.sage/models/）
@@ -156,7 +156,8 @@ def start(
             if not no_embedding:
                 console.print("  • Embedding 服务已启动")
             console.print("  • 使用 'sage studio status' 查看服务状态")
-            console.print("  • Chat 模式需要 Gateway 服务支持")
+            console.print("  • Gateway 服务已启动（包含 Control Plane 调度器）")
+            console.print("  • 使用 'sage gateway status' 查看 Gateway 状态")
             console.print("  • 使用 'sage studio stop' 停止服务")
         else:
             console.print("[red]❌ Studio 启动失败[/red]")
@@ -166,7 +167,7 @@ def start(
 
 @app.command()
 def stop():
-    """停止 SAGE Studio（包括 Gateway 和 LLM 服务）
+    """停止 SAGE Studio（包括 Gateway + Control Plane 和 LLM 服务）
 
     默认会停止所有服务（前端、Gateway、LLM）。
     """
@@ -201,7 +202,7 @@ def restart(
         help="🎓 使用最新的微调模型",
     ),
 ):
-    """重启 SAGE Studio（包括 Gateway 和 LLM 服务）
+    """重启 SAGE Studio（包括 Gateway + Control Plane 和 LLM 服务）
 
     默认使用开发模式并清理前端构建缓存以确保使用最新代码。
     使用 --no-clean 可跳过清理步骤。
