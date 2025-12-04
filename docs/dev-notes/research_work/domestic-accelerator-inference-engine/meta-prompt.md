@@ -50,10 +50,10 @@
 
 | 阶段/课题 | 名称 | 产出模块 | 负责人 | 状态 |
 |-----------|------|----------|--------|------|
-| **Phase 0** | 公共基础设施与接口解耦 | `sageInfer/interfaces/` + `sageInfer/backends/` | TBD | 🔴 必需前置 |
-| 课题一 | 高性能通信库与 KV 传输 | `sageInfer/transport/` | TBD | 依赖 Phase 0 |
-| 课题二 | KV Cache 管理与调度优化 | `sageLLM/control_plane/` + `sageInfer/kv_cache/` | TBD | 依赖 Phase 0 |
-| 课题三 | 模型压缩技术 | `sageInfer/quantization/` + `sageInfer/pruning/` | TBD | 依赖 Phase 0 |
+| **Phase 0** | 公共基础设施与接口解耦 | `sageLLM/sage_infer/interfaces/` + `sageLLM/sage_infer/backends/` | TBD | 🔴 必需前置 |
+| 课题一 | 高性能通信库与 KV 传输 | `sageLLM/sage_infer/transport/` | TBD | 依赖 Phase 0 |
+| 课题二 | KV Cache 管理与调度优化 | `sageLLM/control_plane/` + `sageLLM/sage_infer/kv_cache/` | TBD | 依赖 Phase 0 |
+| 课题三 | 模型压缩技术 | `sageLLM/sage_infer/quantization/` + `sageLLM/sage_infer/pruning/` | TBD | 依赖 Phase 0 |
 
 ---
 
@@ -61,30 +61,36 @@
 
 ### 目标
 在正式启动三个课题之前，必须先完成 Phase 0，建立统一的接口层与数据结构，确保：
-1. **解耦 vLLM 依赖**：定义 `InferenceBackend` 抽象接口，实现 `VLLMBackendAdapter`
+1. **解耦 vLLM 依赖**：定义 `InferenceBackend` 抽象接口，实现 `VLLMBackendAdapter`和 `sageInferAdapter`.
 2. **统一数据结构**：`KVCacheSchema`、`CapabilityDescriptor`、`TransportPlan`、`QuantizationProfile`
-3. **硬件抽象层**：`sageInfer/hal/` 提供国产硬件能力查询的统一 API
+3. **硬件抽象层**：`sageLLM/sage_infer/hal/` 提供国产硬件能力查询的统一 API
 4. **CLI 扩展**：`sage infer` 命令空间
 
 ### 产出模块
+
+> **架构说明**：`sage_infer` 与 `control_plane` 同级，均位于 `sageLLM/` 下。Control Plane 负责调度，`sage_infer` 负责实际推理执行。
+
 ```
-sageInfer/
-├── interfaces/
-│   ├── inference_backend.py    # InferenceBackend Protocol
-│   ├── schemas.py              # 共享数据结构
-│   └── transport_contract.py   # KVChunk / TransportPlan
-├── backends/
-│   └── vllm_adapter.py         # vLLM 适配器（验证解耦有效）
-├── hal/
-│   └── accelerator_descriptor.py
-└── cli/
-    └── commands.py             # sage infer ...
+sageLLM/
+├── control_plane/              # 现有调度层（不变）
+│
+└── sage_infer/                 # 推理引擎抽象层
+    ├── interfaces/
+    │   ├── inference_backend.py    # InferenceBackend Protocol
+    │   ├── schemas.py              # 共享数据结构
+    │   └── transport_contract.py   # KVChunk / TransportPlan
+    ├── backends/
+    │   └── vllm_adapter.py         # vLLM 适配器（验证解耦有效）
+    ├── hal/
+    │   └── accelerator_descriptor.py
+    └── cli/
+        └── commands.py             # sage infer ...
 ```
 
 ### 完成标准
 - [ ] `InferenceBackend` 接口能驱动 vLLM 正常推理，性能无回退 (±3%)
 - [ ] 三个课题的 prompt 均引用 Phase 0 定义的接口，无重复定义
-- [ ] `sage infer backends:list` 命令可用
+- [ ] `sage infer backend list` 命令可用
 
 ### Prompt 文件
 - `task0-common-infrastructure/prompt.md`
@@ -224,7 +230,7 @@ sageInfer/
 
 ### 产出模块
 ```
-sageInfer/
+sageLLM/sage_infer/
 └── transport/
     ├── __init__.py
     ├── engine.py              # 传输引擎
@@ -272,7 +278,7 @@ sageInfer/
 
 ### 产出模块
 ```
-sageInfer/
+sageLLM/sage_infer/
 └── kv_cache/
     ├── __init__.py
     ├── pool_manager.py        # 池化管理器
@@ -315,7 +321,7 @@ sageLLM/control_plane/
 
 ### 产出模块
 ```
-sageInfer/
+sageLLM/sage_infer/
 └── quantization/
     ├── __init__.py
     ├── weight_quant.py        # 权重量化
@@ -324,7 +330,7 @@ sageInfer/
     ├── calibration.py         # 校准工具
     └── kernels/               # 量化算子内核
 
-sageInfer/
+sageLLM/sage_infer/
 └── pruning/
     ├── __init__.py
     ├── structured.py          # 结构化剪枝
@@ -403,7 +409,8 @@ sageInfer/
 
 ### SAGE 代码库位置
 - sageLLM Control Plane: `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/control_plane/`
-- sageInfer (待创建): `packages/sage-common/src/sage/common/components/sage_infer/`
+- sageInfer (待创建): `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/sage_infer/`
+  > 注：`sage_infer` 与 `control_plane` 同级，Control Plane 负责调度，`sage_infer` 负责实际推理执行。
 
 ### 相关论文/项目
 - vLLM: PagedAttention, Prefix Caching

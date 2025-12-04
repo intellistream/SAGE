@@ -10,10 +10,11 @@
 
 | 依赖项 | 来源 | 用途 |
 |--------|------|------|
-| `KVCacheSchema` | `sageInfer/interfaces/schemas.py` | KV 数据格式定义（dtype, page_size 等） |
-| `TransportPlan` / `KVChunk` | `sageInfer/interfaces/transport_contract.py` | 传输契约基础类型 |
-| `AcceleratorDescriptor` | `sageInfer/hal/accelerator_descriptor.py` | 硬件能力描述 |
-| `InferenceBackend` | `sageInfer/interfaces/inference_backend.py` | 推理后端接口（用于集成测试） |
+| `KVCacheSchema` | `sageLLM/sage_infer/interfaces/schemas.py` | KV 数据格式定义（dtype, page_size 等） |
+| `TransportPlan` / `KVChunk` | `sageLLM/sage_infer/interfaces/transport_contract.py` | 传输契约基础类型 |
+| `AcceleratorDescriptor` | `sageLLM/sage_infer/hal/accelerator_descriptor.py` | 硬件能力描述 |
+| `HardwareDetector` | `sageLLM/sage_infer/hal/hw_detect/base.py` | 通用硬件探测基类（算力/显存/拓扑） |
+| `InferenceBackend` | `sageLLM/sage_infer/interfaces/inference_backend.py` | 推理后端接口（用于集成测试） |
 
 ### 与其他课题的关系
 - **被课题二依赖**：课题二的 KV Cache 管理需要调用本课题的 `TransportEngine` 进行跨节点传输
@@ -24,7 +25,7 @@
 ## 背景（Background）
 
 ### 项目定位
-- 课题一聚焦 **sageInfer/transport** 子系统，负责长上下文 KV Cache 在多 GPU / 多节点之间的高速搬移与格式转换，是国产算力推理栈的“数据血管”。
+- 课题一聚焦 **sage_infer/transport** 子系统，负责长上下文 KV Cache 在多 GPU / 多节点之间的高速搬移与格式转换，是国产算力推理栈的“数据血管”。
 - 该模块需向下适配华为昇腾（HCCS + PCIe）、寒武纪 MLU（MLU-Link）、海光 DCU（xGMI）、昆仑芯等互联拓扑，并向上暴露统一的 `TransportEngine` API 给 sageLLM Control Plane。
 - 成果需与 `sage llm serve` CLI、`sage-gateway` 监控面板一键联动，让运维可按硬件/业务需求快速切换通信策略。
 
@@ -44,8 +45,9 @@
 
 ### 1. 国产硬件互联拓扑适配
 - 构建 `hardware.topology` 探测器：自动识别 HCCS、MLU-Link、xGMI、PCIe 等链路，采集带宽、延迟、Hop 数、最大包长、SRAM window、NUMA 亲和性。
-- 设计 `AcceleratorDescriptor`：封装 DMA 对齐、页表能力、可用 API（昇腾 ACL、寒武纪 CNRT、海光 ROCm、昆仑芯 XPU）。
-- 输出统一的 `HardwareProfile`（JSON/schema），供 CLI 及控制平面加载。
+- **复用 Phase 0 的 `hal/hw_detect/`**：获取 `AcceleratorDescriptor` 静态能力描述。
+- **扩展 `transport/hardware/domestic/`**：在基础能力上添加传输专用配置（DMA 对齐、RDMA QP 类型、zero-copy 标志）。
+- 输出 `TransportProfile`（JSON/schema），供 `TransportEngine` 和 CLI 加载。
 
 ### 2. 高性能 KV 传输引擎
 - 定义 `TransportEngine` 抽象，提供 `send_kv_chunk`、`recv_kv_chunk`、`stream_pipeline` 等接口，支持 chunking + overlap + 优先队列。
@@ -65,41 +67,88 @@
 ### 5. CLI / Preset 配置
 - 新增 `KVTransportConfig`（支持 `preset`, `backend`, `target_dtype`, `prefetch_depth`, `zero_copy`, `compression` 等字段）。
 - 在 `sage llm serve` 中加入 `--kv-transport preset`、`--kv-transport backend=rdma` 等选项；提供不少于 3 个 preset（High-BW、Low-Latency、Low-Cost）。
-- 提供 `sage transport probe` demo 命令，输出硬件探测结果与推荐配置。
+- 提供 `sage infer transport probe` demo 命令，输出硬件探测结果与推荐配置。
 
 ---
 
 ## 模块设计（Module Design）
 
 ### 目录结构建议
+
+> **设计原则**：`sage_infer` 与 `control_plane` 同级，位于 `sageLLM/` 下。`transport/` 作为 `sage_infer` 的子模块。
+
 ```
-sage/common/components/sage_infer/
-└── transport/
-    ├── __init__.py
-    ├── config.py                  # KVTransportConfig / presets
-    ├── engine.py                  # TransportEngine + planner
-    ├── telemetry.py               # 遥测采集/上报
-    ├── hardware/
-    │   ├── __init__.py
-    │   ├── topology.py            # 链路探测
-    │   ├── accelerator_descriptor.py
-    │   └── domestic/
-    │       ├── ascend.py
+sageLLM/
+├── control_plane/                 # 现有调度层（不变）
+│
+└── sage_infer/
+    ├── hal/                       # 【Phase 0 提供】通用硬件抽象
+    │   └── hw_detect/             # 静态能力探测（算力/显存/拓扑）
+    │       ├── base.py            # HardwareDetector 基类
+    │       ├── ascend.py          # → AcceleratorDescriptor
     │       ├── cambricon.py
     │       ├── hygon.py
     │       └── kunlunxin.py
-    ├── backends/
-    │   ├── __init__.py
-    │   ├── rdma.py
-    │   ├── pcie.py
-    │   └── shm.py
-    └── format/
+    │
+    └── transport/                 # 【本课题实现】KV 传输子系统
         ├── __init__.py
-        ├── converter.py
-        └── kernels/
-            ├── fp8_convert.cu
-            ├── int4_pack.cu
-            └── ascend_kernel.cc
+        ├── config.py              # KVTransportConfig / presets
+        ├── engine.py              # TransportEngine + planner
+        ├── telemetry.py           # 遥测采集/上报
+        ├── hardware/              # 【传输专用】硬件适配层
+        │   ├── __init__.py
+        │   ├── topology.py        # 链路探测（带宽/延迟/Hop 数）
+        │   ├── transport_profile.py  # TransportProfile（DMA/RDMA 配置）
+        │   └── domestic/          # 国产硬件传输适配
+        │       ├── __init__.py
+        │       ├── ascend.py      # 昇腾 HCCS/PCIe DMA 配置
+        │       ├── cambricon.py   # 寒武纪 MLU-Link 配置
+        │       ├── hygon.py       # 海光 xGMI/RoCE 配置
+        │       └── kunlunxin.py   # 昆仑芯 XPU-Link 配置
+        │       # ⚠️ 职责分离说明：
+        │       # - 引用 hal/hw_detect/ 获取静态能力（AcceleratorDescriptor）
+        │       # - 扩展传输专用配置（DMA 对齐、RDMA QP、zero-copy flag 等）
+        │       # - 输出 TransportProfile 供 TransportEngine 使用
+        ├── backends/
+        │   ├── __init__.py
+        │   ├── rdma.py
+        │   ├── pcie.py
+        │   └── shm.py
+        └── format/
+            ├── __init__.py
+            ├── converter.py
+            └── kernels/
+                ├── fp8_convert.cu
+                ├── int4_pack.cu
+                └── ascend_kernel.cc
+```
+
+### 硬件模块职责分离
+
+| 模块 | 位置 | 职责 | 输出 |
+|------|------|------|------|
+| **通用能力探测** | `hal/hw_detect/` | 算力、显存、互联拓扑、NUMA 亲和 | `AcceleratorDescriptor` |
+| **传输专用配置** | `transport/hardware/domestic/` | DMA 对齐、RDMA QP、最大包长、zero-copy | `TransportProfile` |
+
+```python
+# 使用示例：transport/hardware/domestic/ascend.py
+from sage_infer.hal.hw_detect.ascend import AscendDetector
+
+class AscendTransportAdapter:
+    def __init__(self):
+        # 复用 Phase 0 的通用探测
+        self.detector = AscendDetector()
+        self.capability = self.detector.detect()  # AcceleratorDescriptor
+
+    def get_transport_profile(self) -> TransportProfile:
+        """扩展传输专用配置"""
+        return TransportProfile(
+            dma_alignment=self.capability.dma_alignment,
+            max_packet_size=64 * 1024,  # HCCS 最大包长
+            rdma_qp_type="RC",
+            zero_copy_enabled=self.capability.supports_peer2peer,
+            hccs_bandwidth_gbps=self._probe_hccs_bandwidth(),
+        )
 ```
 
 ### 核心接口草案
@@ -148,7 +197,7 @@ class TransportEngine(Protocol):
 
 ## 交付物清单
 1. **设计文档**：含架构、硬件描述矩阵、传输协议、格式转换方案、遥测接口。
-2. **核心代码**：`sageInfer/transport/` 全量实现 + `sage-cli` / `sage-gateway` 扩展 + vendored kernel（如需）。
+2. **核心代码**：`sageLLM/sage_infer/transport/` 全量实现 + `sage-cli` / `sage-gateway` 扩展 + vendored kernel（如需）。
 3. **性能评估报告**：覆盖吞吐、TTFT/TPOT、带宽利用率、格式转换开销，与 vLLM baseline 对比（≥32K 上下文、RAG 负载）。
 4. **可重复实验脚本**：硬件探测 demo、KV 传输 micro-benchmark、端到端推理 benchmark、遥测验证脚本。
 5. **Preset 配置**：`kv_transport_presets.yaml`（High-BW / Low-Latency / Low-Cost），附推荐硬件清单。
