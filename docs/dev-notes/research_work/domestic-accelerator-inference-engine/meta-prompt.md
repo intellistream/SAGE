@@ -1,4 +1,29 @@
-# Meta Prompt：面向国产算力的高性能推理引擎研究课题
+# Meta Prompt：**架构定位**：
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  sage-gateway / sage-cli (用户接口层)                            │
+├─────────────────────────────────────────────────────────────────┤
+│  sageLLM Control Plane (调度/路由/PD分离/多实例管理)              │
+│  - HybridSchedulingPolicy: LLM + Embedding 混合调度              │
+├─────────────────────────────────────────────────────────────────┤
+│  ⭐ sageInfer - 新的推理执行引擎 ⭐                               │
+│  ┌─────────────┬─────────────┬─────────────┬─────────────┐     │
+│  │ KV Cache    │ Attention   │ 通信库       │ 硬件适配层   │     │
+│  │ Manager     │ Backend     │ (RDMA/PCIe) │ (国产算力)   │     │
+│  └─────────────┴─────────────┴─────────────┴─────────────┘     │
+│  ┌─────────────┬─────────────┐                                  │
+│  │ model_router│ Embedding   │ ← 【新增】多模型混合部署支持        │
+│  │ (请求路由)   │ Backend     │                                  │
+│  └─────────────┴─────────────┘                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  底层算子库 (C++/CUDA/国产SDK)                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**混合推理支持**：sageInfer 原生支持 LLM + Embedding 混合部署，实现：
+- 单 GPU 显存分片：70% LLM + 30% Embedding
+- 多 GPU 资源隔离：LLM 4卡 TP + Embedding 独立 1 卡
+- RAG 场景一站式服务：Embedding 检索 + LLM 生成联合调度课题
 
 > 本文档是分配给其他 Agent 撰写具体课题 prompt 的元提示。
 
@@ -64,7 +89,8 @@
 1. **解耦 vLLM 依赖**：定义 `InferenceBackend` 抽象接口，实现 `VLLMBackendAdapter`和 `sageInferAdapter`.
 2. **统一数据结构**：`KVCacheSchema`、`CapabilityDescriptor`、`TransportPlan`、`QuantizationProfile`
 3. **硬件抽象层**：`sageLLM/sage_infer/hal/` 提供国产硬件能力查询的统一 API
-4. **CLI 扩展**：`sage infer` 命令空间
+4. **混合推理支持**：`HybridInferenceBackend`、`EmbeddingBackend`、`model_router/` 实现 LLM + Embedding 混合部署
+5. **CLI 扩展**：`sage infer` 命令空间
 
 ### 产出模块
 
@@ -80,7 +106,13 @@ sageLLM/
     │   ├── schemas.py              # 共享数据结构
     │   └── transport_contract.py   # KVChunk / TransportPlan
     ├── backends/
-    │   └── vllm_adapter.py         # vLLM 适配器（验证解耦有效）
+    │   ├── vllm_adapter.py         # vLLM 适配器（验证解耦有效）
+    │   └── embedding_adapter.py    # Embedding 适配器
+    ├── model_router/               # 【新增】多模型路由与混合部署
+    │   ├── router.py               # ModelRouter - 请求路由
+    │   ├── model_registry.py       # 已加载模型注册表
+    │   ├── memory_planner.py       # 多模型显存分配
+    │   └── hybrid_backend.py       # HybridInferenceBackend 实现
     ├── hal/
     │   └── accelerator_descriptor.py
     └── cli/
@@ -89,6 +121,8 @@ sageLLM/
 
 ### 完成标准
 - [ ] `InferenceBackend` 接口能驱动 vLLM 正常推理，性能无回退 (±3%)
+- [ ] `HybridInferenceBackend` 支持 LLM + Embedding 同时服务
+- [ ] `sage infer serve --llm qwen-7b --embedding bge-m3` 命令可用
 - [ ] 三个课题的 prompt 均引用 Phase 0 定义的接口，无重复定义
 - [ ] `sage infer backend list` 命令可用
 
@@ -102,21 +136,28 @@ sageLLM/
 ### 依赖关系图
 ```
                          Phase 0 (公共基础设施)
-                                │
-                ┌───────────────┼───────────────┐
-                │               │               │
-                ▼               ▼               ▼
-           课题二           课题一           课题三
-        (PD分离/Cache)    (通信库)        (模型压缩)
-              │               │               │
-              │◄──────────────┤               │
-              │   需要传输接口 │               │
-              │               │◄──────────────┤
-              │               │   需要量化格式 │
-              └───────────────┴───────────────┘
-                              │
-                              ▼
-                     sageInfer 集成测试
+                          ┌─────────────────┐
+                          │ InferenceBackend│
+                          │ EmbeddingBackend│
+                          │ HybridBackend   │ ← 【新增】混合推理接口
+                          │ model_router/   │
+                          └────────┬────────┘
+                                   │
+                ┌──────────────────┼──────────────────┐
+                │                  │                  │
+                ▼                  ▼                  ▼
+           课题二              课题一              课题三
+        (PD分离/Cache)       (通信库)          (模型压缩)
+              │                  │                  │
+              │◄─────────────────┤                  │
+              │   需要传输接口    │                  │
+              │                  │◄─────────────────┤
+              │                  │   需要量化格式    │
+              └──────────────────┴──────────────────┘
+                                 │
+                                 ▼
+                       sageInfer 集成测试
+                 (含 LLM + Embedding 混合推理)
 ```
 
 ### 推荐执行策略
