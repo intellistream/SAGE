@@ -1113,12 +1113,7 @@ def _find_existing_engine(
             return None
         data = resp.json()
         # Get engines from various possible locations in the response
-        engines = (
-            data.get("engines")
-            or data.get("engine_instances")
-            or data.get("instances")
-            or []
-        )
+        engines = data.get("engines") or data.get("engine_instances") or data.get("instances") or []
         if isinstance(engines, dict):
             engines = list(engines.values())
         for engine in engines:
@@ -1388,7 +1383,7 @@ def serve_llm(
     pid, config = _load_gateway_info()
     if pid and _is_gateway_running(pid):
         console.print(f"[yellow]⚠️  Control Plane Gateway 已在运行 (PID: {pid})[/yellow]")
-        console.print(f"   端口: {config.get('gateway_port', gateway_port)}") # type: ignore
+        console.print(f"   端口: {config.get('gateway_port', gateway_port)}")  # type: ignore
         console.print("   使用 'sage llm stop' 停止后重试，或使用 'sage llm engine start' 添加引擎")
         raise typer.Exit(0)
 
@@ -1653,7 +1648,7 @@ def serve_llm(
 
         import uvicorn
 
-        from sage.gateway.server import app as gateway_app # type: ignore
+        from sage.gateway.server import app as gateway_app  # type: ignore
 
         try:
             uvicorn.run(
