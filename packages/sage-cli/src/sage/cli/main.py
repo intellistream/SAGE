@@ -133,6 +133,7 @@ try:
     from .commands.apps import (
         chat_app,
         embedding_app,
+        gateway_app,
         inference_app,
         llm_app,
         pipeline_app,
@@ -172,6 +173,12 @@ try:
             inference_app,
             name="inference",
             help="🔮 统一推理服务 - LLM 和 Embedding 混合调度 (start, stop, status, config)",
+        )
+    if gateway_app:
+        app.add_typer(
+            gateway_app,
+            name="gateway",
+            help="🌐 API Gateway - 统一推理网关服务 (start, stop, status, logs, restart)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

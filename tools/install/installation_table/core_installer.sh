@@ -221,6 +221,9 @@ for raw_line in deps_block.splitlines():
     line = raw_line.strip()
     if not line or line.startswith('#'):
         continue
+    # 去除行内注释（先处理注释，再处理逗号）
+    if '#' in line:
+        line = line.split('#')[0].strip()
     if line.endswith(','):
         line = line[:-1].strip()
     if line.startswith(('"', "'")) and line.endswith(('"', "'")) and len(line) >= 2:

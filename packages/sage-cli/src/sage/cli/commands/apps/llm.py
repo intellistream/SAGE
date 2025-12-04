@@ -45,14 +45,13 @@ except Exception:  # pragma: no cover
     LLMLauncher = None  # type: ignore
     LLMServerConfig = None  # type: ignore
 
+# sage-gateway is now the unified gateway (includes Control Plane)
+# UnifiedAPIServer has been removed from sage-common
+GATEWAY_AVAILABLE = True
 try:
-    from sage.common.components.sage_llm import (
-        UnifiedAPIServer,
-        UnifiedServerConfig,
-    )
-except Exception:  # pragma: no cover
-    UnifiedAPIServer = None  # type: ignore
-    UnifiedServerConfig = None  # type: ignore
+    from sage.gateway.server import main as gateway_main  # noqa: F401
+except ImportError:  # pragma: no cover
+    GATEWAY_AVAILABLE = False
 
 # Import config subcommands
 from sage.cli.commands.platform.llm_config import app as config_app
@@ -93,7 +92,7 @@ def _print_management_api_hint(api_base: str) -> None:
         "[yellow]💡 控制平面管理 API 未运行或不可达。[/yellow]",
     )
     console.print(
-        "   请先启动 Unified API Server（gateway），例如运行 [cyan]sage llm serve[/cyan]",
+        "   请先启动 Gateway 服务，运行 [cyan]sage gateway start[/cyan]",
     )
     console.print(
         f"   默认管理地址: http://{host}:{port}/v1，可用 --api-port 或 --api-base 自行覆盖。",
@@ -717,20 +716,40 @@ def stop_engine(
         "--api-base",
         help="覆盖控制平面 API 基地址",
     ),
+    drain: bool = typer.Option(
+        False,
+        "--drain",
+        "-d",
+        help="优雅关闭：等待现有请求完成后再停止引擎",
+    ),
     timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
 ):
-    """请求停止指定的 LLM 引擎。"""
+    """请求停止指定的 LLM 引擎。
 
+    使用 --drain 选项可以优雅关闭引擎：引擎将停止接受新请求，
+    等待现有请求处理完成后再停止。
+    """
     base_url = _resolve_api_base(api_base, api_port)
+
+    # Build URL with drain query parameter
+    endpoint = f"/management/engines/{engine_id}"
+    if drain:
+        endpoint += "?drain=true"
+
     response = _management_request(
         "DELETE",
-        f"/management/engines/{engine_id}",
+        endpoint,
         api_base=base_url,
         timeout=timeout,
     )
 
     status_text = response.get("status") or response.get("state") or "STOPPED"
-    console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
+    drained = response.get("drained", False)
+
+    if drained:
+        console.print(f"[green]✅ 引擎 {engine_id} 已优雅关闭 (状态: {status_text}).[/green]")
+    else:
+        console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
 
 
 @app.command("gpu")
@@ -947,6 +966,23 @@ def _is_gateway_running(pid: int | None = None) -> bool:
     return psutil.pid_exists(pid)
 
 
+def _check_existing_gateway(port: int) -> bool:
+    """Check if there's already a SAGE Gateway running on the given port.
+
+    Returns:
+        True if a SAGE Gateway is running and healthy on this port
+    """
+    try:
+        resp = httpx.get(f"http://localhost:{port}/health", timeout=2.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            # Check if it's a SAGE Gateway (has 'status' field)
+            return data.get("status") == "healthy"
+    except Exception:
+        pass
+    return False
+
+
 def _wait_for_gateway(port: int, timeout: float = 30.0) -> bool:
     """Wait for gateway to be ready."""
     import time
@@ -1086,17 +1122,18 @@ def serve_llm(
         client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])
     """
+    import os
     import subprocess
     import sys
 
-    if UnifiedAPIServer is None:
-        console.print("[red]❌ UnifiedAPIServer 不可用，请确保已安装 sage-common[/red]")
+    if not GATEWAY_AVAILABLE:
+        console.print("[red]❌ sage-gateway 不可用，请确保已安装 sage-gateway[/red]")
         raise typer.Exit(1)
 
     _ensure_dirs()
     ensure_hf_mirror_configured()
 
-    # Check if gateway is already running
+    # Check if gateway is already running (by our PID file)
     pid, config = _load_gateway_info()
     if pid and _is_gateway_running(pid):
         console.print(f"[yellow]⚠️  Control Plane Gateway 已在运行 (PID: {pid})[/yellow]")
@@ -1104,28 +1141,101 @@ def serve_llm(
         console.print("   使用 'sage llm stop' 停止后重试，或使用 'sage llm engine start' 添加引擎")
         raise typer.Exit(0)
 
+    # Check if there's an existing SAGE Gateway on the port (started by another user)
+    existing_gateway = _check_existing_gateway(gateway_port)
+    if existing_gateway:
+        console.print(f"[green]✓[/green] 检测到现有 Gateway 运行在端口 {gateway_port}")
+        console.print("   将复用现有 Gateway，直接启动引擎...")
+        # Skip gateway startup, just start engines
+        api_base = f"http://localhost:{gateway_port}/v1"
+
+        # Start LLM engine (let Control Plane auto-assign port if needed)
+        console.print("\n[blue]🎯 启动 LLM 引擎[/blue]")
+        console.print(f"   模型: {model}")
+
+        # Check if the specified LLM port is available
+        llm_port_to_use: int | None = llm_port
+        if not SagePorts.is_available(llm_port):
+            console.print(f"   [yellow]端口 {llm_port} 已占用，将自动分配可用端口[/yellow]")
+            llm_port_to_use = None  # Let Control Plane auto-assign
+
+        extra_args = [
+            f"--gpu-memory-utilization={gpu_memory}",
+            f"--max-model-len={max_model_len}",
+        ]
+
+        llm_result = _start_engine_via_api(
+            api_base=api_base,
+            model_id=model,
+            engine_kind="llm",
+            port=llm_port_to_use,
+            tensor_parallel_size=tensor_parallel,
+            extra_args=extra_args,
+            timeout=120.0,
+        )
+
+        if llm_result:
+            actual_port = llm_result.get("port", llm_port_to_use)
+            engine_id = llm_result.get("engine_id", "unknown")
+            console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+        else:
+            console.print("[yellow]⚠️  LLM 引擎启动失败[/yellow]")
+
+        # Optionally start Embedding engine
+        if with_embedding:
+            console.print("\n[blue]🎯 启动 Embedding 引擎[/blue]")
+            console.print(f"   模型: {embedding_model}")
+
+            embed_port_to_use: int | None = embedding_port
+            if not SagePorts.is_available(embedding_port):
+                console.print(f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]")
+                embed_port_to_use = None
+
+            embed_result = _start_engine_via_api(
+                api_base=api_base,
+                model_id=embedding_model,
+                engine_kind="embedding",
+                port=embed_port_to_use,
+                use_gpu=False,
+                timeout=60.0,
+            )
+
+            if embed_result:
+                actual_port = embed_result.get("port", embed_port_to_use)
+                engine_id = embed_result.get("engine_id", "unknown")
+                console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+            else:
+                console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")
+
+        console.print("\n[green]✅ 引擎启动完成[/green]")
+        console.print(f"   API Gateway: http://localhost:{gateway_port}/v1")
+        console.print("\n[dim]使用 'sage llm engine list' 查看所有引擎[/dim]")
+        return
+
     # Build extra args for vLLM
     extra_args = [
         f"--gpu-memory-utilization={gpu_memory}",
         f"--max-model-len={max_model_len}",
     ]
 
-    console.print("[blue]🚀 启动 Control Plane Gateway[/blue]")
+    console.print("[blue]🚀 启动 SAGE Gateway (Control Plane)[/blue]")
     console.print(f"   Gateway 端口: {gateway_port}")
     console.print(f"   主机: {host}")
 
-    # Start gateway as subprocess
+    # Start sage-gateway as subprocess
     gateway_log = LOG_DIR / "gateway.log"
     gateway_cmd = [
         sys.executable,
         "-m",
-        "sage.common.components.sage_llm.unified_api_server",
-        "--host",
-        host,
-        "--port",
-        str(gateway_port),
-        "--enable-control-plane",
+        "sage.gateway.server",
     ]
+    # Set environment variables for gateway configuration
+    gateway_env = {
+        **dict(os.environ),
+        "SAGE_GATEWAY_ENABLE_CONTROL_PLANE": "true",
+        "SAGE_GATEWAY_HOST": host,
+        "SAGE_GATEWAY_PORT": str(gateway_port),
+    }
 
     if background:
         with open(gateway_log, "w") as log_file:
@@ -1134,6 +1244,7 @@ def serve_llm(
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
+                env=gateway_env,
             )
         gateway_pid = proc.pid
         console.print(f"   [green]✓[/green] Gateway 进程已启动 (PID: {gateway_pid})")
@@ -1163,23 +1274,31 @@ def serve_llm(
         api_base = f"http://localhost:{gateway_port}/v1"
         console.print("\n[blue]🎯 启动 LLM 引擎[/blue]")
         console.print(f"   模型: {model}")
-        console.print(f"   端口: {llm_port}")
         console.print(f"   TP: {tensor_parallel}")
+
+        # Check if the specified LLM port is available
+        llm_port_to_use: int | None = llm_port
+        if not SagePorts.is_available(llm_port):
+            console.print(f"   [yellow]端口 {llm_port} 已占用，将自动分配可用端口[/yellow]")
+            llm_port_to_use = None  # Let Control Plane auto-assign
+        else:
+            console.print(f"   端口: {llm_port}")
 
         llm_result = _start_engine_via_api(
             api_base=api_base,
             model_id=model,
             engine_kind="llm",
-            port=llm_port,
+            port=llm_port_to_use,
             tensor_parallel_size=tensor_parallel,
             extra_args=extra_args,
             timeout=120.0,  # LLM 启动可能需要较长时间
         )
 
         if llm_result:
+            actual_port = llm_result.get("port", llm_port_to_use)
             engine_id = llm_result.get("engine_id", "unknown")
-            console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id})")
-            gateway_config["engines"].append({"id": engine_id, "kind": "llm", "model": model})
+            console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+            gateway_config["engines"].append({"id": engine_id, "kind": "llm", "model": model, "port": actual_port})
         else:
             console.print("[yellow]⚠️  LLM 引擎启动失败，Gateway 仍在运行[/yellow]")
 
@@ -1187,22 +1306,29 @@ def serve_llm(
         if with_embedding:
             console.print("\n[blue]🎯 启动 Embedding 引擎[/blue]")
             console.print(f"   模型: {embedding_model}")
-            console.print(f"   端口: {embedding_port}")
+
+            embed_port_to_use: int | None = embedding_port
+            if not SagePorts.is_available(embedding_port):
+                console.print(f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]")
+                embed_port_to_use = None
+            else:
+                console.print(f"   端口: {embedding_port}")
 
             embed_result = _start_engine_via_api(
                 api_base=api_base,
                 model_id=embedding_model,
                 engine_kind="embedding",
-                port=embedding_port,
+                port=embed_port_to_use,
                 use_gpu=False,  # Embedding 默认不使用 GPU
                 timeout=60.0,
             )
 
             if embed_result:
+                actual_port = embed_result.get("port", embed_port_to_use)
                 engine_id = embed_result.get("engine_id", "unknown")
-                console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id})")
+                console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
                 gateway_config["engines"].append(
-                    {"id": engine_id, "kind": "embedding", "model": embedding_model}
+                    {"id": engine_id, "kind": "embedding", "model": embedding_model, "port": actual_port}
                 )
             else:
                 console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")
@@ -1219,17 +1345,19 @@ def serve_llm(
         # Foreground mode - run gateway directly (blocking)
         console.print("[dim]前台模式，Ctrl+C 退出[/dim]")
 
-        config = UnifiedServerConfig(
-            host=host,
-            port=gateway_port,
-            enable_control_plane=True,
-        )
-        server = UnifiedAPIServer(config)
+        import uvicorn
+
+        from sage.gateway.server import app as gateway_app
+
         try:
-            server.start(block=True)
+            uvicorn.run(
+                gateway_app,
+                host=host,
+                port=gateway_port,
+                log_level="info",
+            )
         except KeyboardInterrupt:
             console.print("\n[yellow]收到中断信号，正在停止...[/yellow]")
-            server.stop()
 
 
 @app.command("stop")

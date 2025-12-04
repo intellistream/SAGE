@@ -72,7 +72,7 @@ jobs:
 
     # Use dedicated conda environment to avoid conflicts with any existing "sage" env
     env:
-      CONDA_ENV_NAME: sage-paper1-ci
+      CONDA_ENV_NAME: sage
 
     # Use login shell to ensure conda is initialized
     defaults:

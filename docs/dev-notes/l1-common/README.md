@@ -7,16 +7,17 @@
 ### 1. 启动服务
 
 ```bash
-# 方式一：一键启动 LLM + Embedding 服务（推荐）
+# 方式一：启动 Gateway 服务（推荐，包含 Control Plane）
+sage gateway start
+
+# 方式二：仅启动 LLM + Embedding 服务（不含 Control Plane）
 sage llm serve
 
-# 方式二：仅启动 LLM 服务
-sage llm serve --no-embedding
-
-# 方式三：指定模型
-sage llm serve -m Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
+# 方式三：指定端口
+sage gateway start -p 9000
 
 # 查看服务状态
+sage gateway status
 sage llm status
 ```
 
@@ -39,36 +40,15 @@ vectors = client.embed(["Hello world", "你好世界"])
 print(f"向量维度: {len(vectors[0])}")  # 向量维度: 512
 ```
 
-### 3. 高级：启动 Control Plane Gateway
+### 3. 使用引擎管理命令
 
-> ⚠️ **注意**：当前 SAGE 有两个 Gateway 服务，功能不同：
->
-> | Gateway | 端口 | 启动方式 | 功能 |
-> |---------|------|----------|------|
-> | **sage-gateway** | 8000 | `sage studio start` | Chat 代理、会话管理、RAG |
-> | **UnifiedAPIServer** | 8000 | 手动启动（见下方） | Control Plane、引擎管理 |
->
-> `sage llm engine list/start/stop` 命令需要 **UnifiedAPIServer**，不是 sage-gateway。
+> ℹ️ **说明**：`sage gateway` 是统一的 API Gateway，包含 Control Plane 引擎管理功能。
 
 ```bash
-# 先启动 LLM 和 Embedding 服务
-sage llm serve
+# 启动 Gateway（包含 Control Plane）
+sage gateway start
 
-# 然后启动 UnifiedAPIServer（Control Plane Gateway）
-python -c "
-from sage.common.components.sage_llm.unified_api_server import (
-    UnifiedAPIServer, UnifiedServerConfig, BackendInstanceConfig
-)
-server = UnifiedAPIServer(UnifiedServerConfig(
-    port=8000,
-    llm_backends=[BackendInstanceConfig(host='localhost', port=8901, model_name='Qwen/Qwen2.5-0.5B-Instruct', instance_type='llm')],
-    embedding_backends=[BackendInstanceConfig(host='localhost', port=8090, model_name='BAAI/bge-small-zh-v1.5', instance_type='embedding')],
-    enable_control_plane=True,
-))
-server.start()
-"
-
-# 现在可以使用引擎管理命令
+# 引擎管理命令
 sage llm gpu                    # 查看 GPU 状态
 sage llm engine list            # 列出引擎
 sage llm engine start <model>   # 启动新引擎
@@ -127,10 +107,9 @@ sage llm gpu                                # 显示 GPU 资源状态
 
 ### 引擎管理
 
-> ⚠️ **重要**：引擎管理命令需要 **UnifiedAPIServer** 运行在端口 8000，不是 sage-gateway。
+> ℹ️ **说明**：引擎管理命令需要 Gateway 运行（`sage gateway start`）。
 >
-> - `sage studio start` 启动的是 **sage-gateway**（不支持引擎管理）
-> - 需要手动启动 **UnifiedAPIServer**（参见 Quickstart 第 3 步）
+> `sage studio start` 也会自动启动 Gateway（包含 Control Plane）。
 
 ```bash
 # 列出引擎
@@ -220,10 +199,11 @@ sage llm model list                         # 列出已下载模型
 | 模块 | 描述 |
 |------|------|
 | `unified_client.py` | `UnifiedInferenceClient` - 统一推理客户端（**唯一入口**） |
-| `unified_api_server.py` | `UnifiedAPIServer` - OpenAI 兼容 API Gateway |
 | `control_plane_service.py` | Control Plane SAGE 封装层 |
 | `compat.py` | `LLMClientAdapter`, `EmbeddingClientAdapter` - vLLM 引擎适配器 |
 | `sageLLM/control_plane/` | 核心调度框架（GPU 管理、引擎生命周期、预设系统） |
+
+> **注意**：`UnifiedAPIServer` 已移除，Control Plane 功能现由 `sage-gateway` 提供。
 
 **统一入口 API**:
 ```python
@@ -291,44 +271,55 @@ Embedding 服务和工厂：
 
 ## 🏗️ Gateway 架构说明
 
-> ⚠️ **当前状态**：SAGE 有两个 Gateway 服务，功能不同，尚未合并。
+`sage-gateway` 是 SAGE 的**统一 API Gateway**，提供：
+
+- **OpenAI 兼容 API**：`/v1/chat/completions`、`/v1/completions`、`/v1/embeddings`
+- **Control Plane 引擎管理**：`/v1/management/engines/*`、`/v1/management/gpu`
+- **会话管理**：`/sessions/*`（多轮对话持久化）
+- **RAG 索引**：`/admin/index/*`（文档索引和检索）
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          Gateway 对比                                    │
+│                         sage-gateway (统一 Gateway)                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  ┌─────────────────────────────┐    ┌─────────────────────────────┐    │
-│  │      sage-gateway          │    │    UnifiedAPIServer         │    │
-│  │      (sage-gateway 包)      │    │    (sage-common 包)         │    │
-│  ├─────────────────────────────┤    ├─────────────────────────────┤    │
-│  │ 启动: sage studio start    │    │ 启动: 手动 Python 代码      │    │
-│  │ 端口: 8000                 │    │ 端口: 8000（需手动指定）    │    │
-│  ├─────────────────────────────┤    ├─────────────────────────────┤    │
-│  │ ✅ /v1/chat/completions    │    │ ✅ /v1/chat/completions     │    │
-│  │ ✅ /sessions (会话管理)    │    │ ✅ /v1/completions          │    │
-│  │ ✅ /admin/index/* (RAG)    │    │ ✅ /v1/embeddings           │    │
-│  │ ❌ 引擎管理 API            │    │ ✅ /v1/management/* (引擎)  │    │
-│  │ ❌ Control Plane           │    │ ✅ Control Plane 集成       │    │
-│  └─────────────────────────────┘    └─────────────────────────────┘    │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │                     API 端点                                     │   │
+│   ├─────────────────────────────────────────────────────────────────┤   │
+│   │  ✅ /v1/chat/completions       ← OpenAI 兼容                    │   │
+│   │  ✅ /v1/completions            ← OpenAI 兼容                    │   │
+│   │  ✅ /v1/embeddings             ← OpenAI 兼容                    │   │
+│   │  ✅ /v1/management/engines     ← Control Plane 引擎管理         │   │
+│   │  ✅ /v1/management/gpu         ← GPU 资源监控                   │   │
+│   │  ✅ /v1/management/backends    ← 后端发现                       │   │
+│   │  ✅ /sessions                  ← 会话管理                       │   │
+│   │  ✅ /admin/index               ← RAG 索引管理                   │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
-│  适用场景:                          适用场景:                          │
-│  • Studio Chat 功能                 • 动态引擎管理                     │
-│  • 多轮对话会话                     • sage llm engine list/start/stop │
-│  • RAG 文档索引                     • GPU 资源监控                     │
-│                                     • 预设系统                         │
+│   启动方式:                                                              │
+│     • sage gateway start           # 直接启动 Gateway                  │
+│     • sage studio start            # 启动 Studio（自动启动 Gateway）    │
+│                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**使用建议**：
+**CLI 命令参考**：
 
-| 场景 | 推荐方案 |
-|------|----------|
-| Studio Chat + RAG | `sage studio start`（使用 sage-gateway）|
-| 动态引擎管理 | 手动启动 `UnifiedAPIServer` |
-| 纯 LLM/Embedding 推理 | `sage llm serve` + `UnifiedInferenceClient.create()` |
+```bash
+# Gateway 管理
+sage gateway start                  # 启动 Gateway（后台）
+sage gateway start --foreground     # 前台运行（调试用）
+sage gateway stop                   # 停止 Gateway
+sage gateway status                 # 查看状态和已注册引擎
+sage gateway logs --follow          # 查看日志
 
-**未来计划**：考虑将两个 Gateway 合并为统一服务。
+# 引擎管理（需要 Gateway 运行）
+sage llm engine list               # 列出引擎
+sage llm engine start <model>      # 启动引擎
+sage llm engine stop <id>          # 停止引擎
+sage llm gpu                       # GPU 资源状态
+sage llm preset list               # 查看预设
+```
 
 ## 🎯 快速导航
 
@@ -350,4 +341,248 @@ Embedding 服务和工厂：
 
 ---
 
-**最后更新**: 2025-12-02
+---
+
+## 🎓 CLI 使用教程
+
+本教程演示如何使用 SAGE Gateway 和 LLM CLI 命令完成完整的推理流程。
+
+### 教程 1: 基础服务启动与对话
+
+**目标**: 启动 Gateway 服务，完成一次 LLM 对话
+
+```bash
+# 第一步: 启动 Gateway（包含 Control Plane）
+sage gateway start
+
+# 输出示例:
+# ✅ Gateway 已启动 (PID: 12345)
+#    地址: http://localhost:8000
+#    Control Plane: 已启用
+#    健康检查: http://localhost:8000/health
+
+# 第二步: 确认 Gateway 状态
+sage gateway status
+
+# 输出示例:
+# Gateway: ✅ 运行中 (PID 12345)
+#   地址: http://localhost:8000
+#   Control Plane: ✅ 可用
+#   已注册引擎: 0
+
+# 第三步: 启动 LLM 引擎
+sage llm engine start Qwen/Qwen2.5-0.5B-Instruct
+
+# 输出示例:
+# ✅ 引擎启动成功
+#    ID: engine-abc123
+#    模型: Qwen/Qwen2.5-0.5B-Instruct
+#    端口: 8901
+#    状态: READY
+
+# 第四步: 验证引擎已注册
+sage llm engine list
+
+# 输出示例:
+#           引擎列表
+# ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┓
+# ┃ ID             ┃ 模型                    ┃ 端口    ┃ 状态   ┃
+# ┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━┩
+# │ engine-abc123  │ Qwen/Qwen2.5-0.5B-Inst..│ 8901    │ ✅ READY│
+# └────────────────┴─────────────────────────┴─────────┴────────┘
+
+# 第五步: 测试对话
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "messages": [{"role": "user", "content": "你好"}]
+  }'
+```
+
+### 教程 2: 完整服务栈（LLM + Embedding）
+
+**目标**: 启动 LLM 和 Embedding 引擎，使用 Python 客户端
+
+```bash
+# 第一步: 启动 Gateway
+sage gateway start
+
+# 第二步: 启动 LLM 引擎
+sage llm engine start Qwen/Qwen2.5-0.5B-Instruct
+
+# 第三步: 启动 Embedding 引擎（CPU 模式）
+sage llm engine start BAAI/bge-m3 --engine-kind embedding
+
+# 或使用 GPU 加速 Embedding
+sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu
+
+# 第四步: 确认所有引擎就绪
+sage llm engine list
+
+# 输出示例:
+#           引擎列表
+# ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┓
+# ┃ ID             ┃ 模型                    ┃ 端口    ┃ 状态   ┃
+# ┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━┩
+# │ engine-abc123  │ Qwen/Qwen2.5-0.5B-Inst..│ 8901    │ ✅ READY│
+# │ engine-xyz789  │ BAAI/bge-m3             │ 8090    │ ✅ READY│
+# └────────────────┴─────────────────────────┴─────────┴────────┘
+```
+
+**使用 Python 客户端** (详见 `examples/tutorials/L1-common/unified_inference_client_example.py`):
+
+```python
+from sage.common.components.sage_llm import UnifiedInferenceClient
+
+# 创建客户端，连接到 Gateway
+client = UnifiedInferenceClient.create(
+    control_plane_url="http://localhost:8000/v1"
+)
+
+# 对话
+response = client.chat([
+    {"role": "user", "content": "什么是人工智能？"}
+])
+print(response)
+
+# Embedding
+vectors = client.embed(["Hello world", "你好世界"])
+print(f"向量维度: {len(vectors[0])}")
+```
+
+### 教程 3: GPU 资源监控与引擎管理
+
+**目标**: 监控 GPU 使用情况，管理多个引擎
+
+```bash
+# 查看 GPU 资源状态
+sage llm gpu
+
+# 输出示例:
+#                          GPU 资源  
+# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┓
+# ┃ GPU                      ┃ 内存 (已用/总量)  ┃  空闲   ┃ 利用率 ┃ 关联引擎 ┃
+# ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━┩
+# │ 0: NVIDIA A100 80GB PCIe │ 12.5 GB / 80.0 GB │ 67.5 GB │  12%   │ engine-1 │
+# │ 1: NVIDIA A100 80GB PCIe │ 0.0 GB / 80.0 GB  │ 80.0 GB │  0%    │ -        │
+# └──────────────────────────┴───────────────────┴─────────┴────────┴──────────┘
+
+# 使用多 GPU 并行启动大模型
+sage llm engine start Qwen/Qwen2.5-72B-Instruct -tp 4
+
+# 停止特定引擎（优雅关闭）
+sage llm engine stop engine-abc123
+
+# 强制停止引擎
+sage llm engine stop engine-abc123 --force
+```
+
+### 教程 4: 使用预设系统
+
+**目标**: 使用预设快速部署多引擎配置
+
+```bash
+# 列出可用预设
+sage llm preset list
+
+# 输出示例:
+#           可用预设
+# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+# ┃ 名称                       ┃ 描述                                          ┃
+# ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+# │ qwen-lite                  │ 单个 Qwen 0.5B 引擎（无 Embedding）            │
+# │ qwen-mini-with-embeddings  │ Qwen 1.5B + BGE-small Embedding               │
+# └────────────────────────────┴───────────────────────────────────────────────┘
+
+# 预览预设（不实际执行）
+sage llm preset apply --name qwen-lite --dry-run
+
+# 应用预设
+sage llm preset apply --name qwen-mini-with-embeddings
+```
+
+**自定义预设文件** (`my-preset.yaml`):
+
+```yaml
+version: 1
+name: production-stack
+description: 生产环境多引擎配置
+engines:
+  - name: chat-main
+    kind: llm
+    model: Qwen/Qwen2.5-7B-Instruct
+    tensor_parallel: 2
+    port: 8901
+    max_concurrent: 256
+    label: main-chat
+  - name: chat-backup
+    kind: llm
+    model: Qwen/Qwen2.5-7B-Instruct
+    tensor_parallel: 2
+    port: 8902
+    label: backup-chat
+  - name: embed
+    kind: embedding
+    model: BAAI/bge-m3
+    port: 8090
+    use_gpu: true
+    label: main-embed
+```
+
+```bash
+# 应用自定义预设
+sage llm preset apply --file my-preset.yaml -y
+```
+
+### 教程 5: 服务诊断与日志
+
+**目标**: 排查服务问题
+
+```bash
+# 查看 Gateway 日志
+sage gateway logs --follow
+
+# 查看 Gateway 详细状态
+sage gateway status
+
+# 常见问题诊断
+# 问题 1: Gateway 启动失败
+sage gateway start --foreground  # 前台运行查看错误
+
+# 问题 2: 引擎启动失败
+sage llm engine list  # 检查引擎状态是否为 ERROR
+
+# 问题 3: 端口冲突
+lsof -i :8000  # 检查 Gateway 端口
+lsof -i :8901  # 检查 LLM 端口
+lsof -i :8090  # 检查 Embedding 端口
+
+# 问题 4: 重启所有服务
+sage gateway stop
+sage llm stop
+sage gateway start
+```
+
+### 常用命令速查表
+
+| 命令 | 描述 |
+|------|------|
+| `sage gateway start` | 启动 Gateway（后台） |
+| `sage gateway start --foreground` | 启动 Gateway（前台调试） |
+| `sage gateway stop` | 停止 Gateway |
+| `sage gateway status` | 查看 Gateway 状态 |
+| `sage gateway logs --follow` | 实时查看日志 |
+| `sage llm engine list` | 列出所有引擎 |
+| `sage llm engine start <model>` | 启动 LLM 引擎 |
+| `sage llm engine start <model> --engine-kind embedding` | 启动 Embedding 引擎 |
+| `sage llm engine start <model> --engine-kind embedding --use-gpu` | GPU Embedding |
+| `sage llm engine stop <id>` | 停止引擎 |
+| `sage llm gpu` | 查看 GPU 状态 |
+| `sage llm preset list` | 列出预设 |
+| `sage llm preset apply --name <preset>` | 应用预设 |
+| `sage llm status` | 查看 LLM 服务状态 |
+
+---
+
+**最后更新**: 2025-12-03

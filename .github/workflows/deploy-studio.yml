@@ -26,7 +26,8 @@ env:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    # 强制使用 A100 runner，确保环境一致性（与 paper1-experiments.yml 相同）
+    runs-on: [self-hosted, A100]
     timeout-minutes: 120  # 首次安装 NVIDIA CUDA 包需要较长时间
 
     # Define secrets as env vars at job level for conditional checks
@@ -35,8 +36,8 @@ jobs:
       DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      # Conda 环境名称（持久化，复用已安装的包）
-      CONDA_ENV_NAME: sage-studio
+      # Conda 环境名称（统一使用 sage，与开发环境一致）
+      CONDA_ENV_NAME: sage
 
     # 默认使用 bash，并自动激活 conda 环境
     defaults:
@@ -55,20 +56,11 @@ jobs:
       - name: Setup Conda Environment
         run: |
           echo "🐍 设置 Conda 环境..."
-          echo "HOME=$HOME, USER=$(whoami)"
-
-          # 调试：检查 conda 目录是否存在
-          echo "检查已存在的 conda 安装..."
-          for p in "$HOME/miniconda3" "$HOME/anaconda3" "/home/shuhao/miniconda3" "/home/shuhao/anaconda3" "/opt/conda"; do
-            ls -la "$p/etc/profile.d/conda.sh" 2>/dev/null && echo "✅ 找到 $p" || echo "❌ $p 不存在"
-          done
 
           # 定义 conda 初始化函数
-          # 优先使用裸机上 shuhao 用户的 conda（通过 volume 挂载）
           init_conda() {
-            for conda_path in "/home/shuhao/miniconda3" "/home/shuhao/anaconda3" "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3"; do
+            for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3"; do
               if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
-                echo "Found conda at: $conda_path"
                 source "$conda_path/etc/profile.d/conda.sh"
                 return 0
               fi
@@ -79,12 +71,10 @@ jobs:
           # 尝试初始化 conda
           if ! init_conda; then
             echo "📦 未找到 conda，正在安装 Miniconda..."
-            # 使用清华镜像加速下载
             wget -q https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
             bash /tmp/miniconda.sh -b -p $HOME/miniconda3
             source "$HOME/miniconda3/etc/profile.d/conda.sh"
             rm /tmp/miniconda.sh
-            echo "✅ Miniconda 安装完成"
           fi
 
           conda --version
@@ -95,22 +85,10 @@ jobs:
           conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ 2>/dev/null || true
           conda config --set channel_priority flexible 2>/dev/null || true
 
-          # 列出所有可见的 conda 环境（调试）
-          echo ""
-          echo "📋 可见的 Conda 环境列表:"
-          conda env list
-          echo ""
-
-          # 检查 shuhao 用户的 sage 环境是否存在且可访问
-          if [ -d "/home/shuhao/miniconda3/envs/sage" ]; then
-            echo "📁 发现 /home/shuhao/miniconda3/envs/sage 目录"
-            ls -la /home/shuhao/miniconda3/envs/sage/bin/python 2>/dev/null && echo "✅ Python 可执行" || echo "❌ 无法访问 Python"
-          fi
-
           # 确定使用的环境名（优先使用已有的 sage 环境）
           if conda env list | grep -q "^sage "; then
             ACTUAL_ENV="sage"
-            echo "✅ 使用已有的 'sage' 环境（包含已安装的依赖）"
+            echo "✅ 复用已有的 'sage' 环境"
           elif conda env list | grep -q "^${CONDA_ENV_NAME} "; then
             ACTUAL_ENV="${CONDA_ENV_NAME}"
             echo "✅ 使用 '${CONDA_ENV_NAME}' 环境"
@@ -122,26 +100,21 @@ jobs:
 
           # 验证环境
           conda run -n ${ACTUAL_ENV} python --version
-          echo "✅ Conda 环境 '${ACTUAL_ENV}' 已就绪"
+          echo "✅ Conda 环境就绪"
 
-          # 检查环境中是否已安装核心依赖（用于判断是否需要完整安装）
-          echo ""
-          echo "📦 检查已安装的核心依赖..."
-          NVIDIA_INSTALLED=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c -i "nvidia" || echo "0")
-          TORCH_INSTALLED=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c "^torch " || echo "0")
-          echo "NVIDIA 相关包数量: $NVIDIA_INSTALLED"
-          echo "PyTorch 已安装: $TORCH_INSTALLED"
+          # 检查核心依赖是否已安装
+          NVIDIA_COUNT=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c -i "nvidia" || echo "0")
+          TORCH_COUNT=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c "^torch " || echo "0")
 
-          # 如果已有 NVIDIA 包（>5个）和 torch，说明核心依赖已装好
-          if [ "$NVIDIA_INSTALLED" -gt 5 ] && [ "$TORCH_INSTALLED" -gt 0 ]; then
+          if [ "$NVIDIA_COUNT" -gt 5 ] && [ "$TORCH_COUNT" -gt 0 ]; then
             echo "deps_installed=true" >> $GITHUB_ENV
-            echo "✅ 核心依赖已安装，将跳过完整安装"
+            echo "✅ 核心依赖已安装（NVIDIA: $NVIDIA_COUNT, PyTorch: $TORCH_COUNT）"
           else
             echo "deps_installed=false" >> $GITHUB_ENV
             echo "📦 需要安装核心依赖"
           fi
 
-          # 保存 conda 路径和环境名，供后续步骤使用
+          # 保存环境信息供后续步骤使用
           echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
           echo "ACTUAL_CONDA_ENV=${ACTUAL_ENV}" >> $GITHUB_ENV
 
@@ -330,8 +303,68 @@ jobs:
             echo "⚠️  sage 命令不可用"
           fi
 
+
+
+      - name: Install Frontend Dependencies
+        run: |
+          echo "📦 安装前端依赖..."
+
+          # 初始化并激活 conda
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "PATH (first 3): $(echo $PATH | tr ':' '\n' | head -3 | tr '\n' ':')"
+
+          # 确保 Node.js 20+ 可用（TypeScript 5.x 需要 Node.js 14+，推荐 20+）
+          # 检查版本号而不是仅检查命令是否存在，因为系统可能有旧版本 Node.js
+          NODE_VERSION=""
+          if command -v node &> /dev/null; then
+            NODE_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+            echo "当前 Node.js: $(node --version) at $(which node)"
+          fi
+
+          if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 18 ]; then
+            echo "📦 安装 Node.js 20（当前版本: ${NODE_VERSION:-未安装}，需要 18+）..."
+            conda install -y nodejs=20 -c conda-forge
+
+            # 强制重新激活 conda 环境以更新 PATH
+            conda deactivate
+            conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+            # 刷新命令缓存
+            hash -r
+
+            echo "安装后 Node.js: $(node --version) at $(which node)"
+          fi
+
+          echo "Node.js: $(node --version)"
+          echo "npm: $(npm --version)"
+
+          # 验证 Node.js 版本满足要求
+          FINAL_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+          if [ "$FINAL_VERSION" -lt 18 ]; then
+            echo "❌ Node.js 版本过低: $(node --version)，需要 18+"
+            echo "   当前 Node.js 路径: $(which node)"
+            echo "   conda 环境: $CONDA_PREFIX"
+            echo "   检查是否存在 conda node: ls -la $CONDA_PREFIX/bin/node"
+            ls -la "$CONDA_PREFIX/bin/node" 2>/dev/null || echo "   conda 中未找到 node"
+            echo "   请确保 conda 环境的 bin 目录在 PATH 前面"
+            exit 1
+          fi
+
+          # 安装前端依赖
+          sage studio install
+
+          echo "✅ 前端依赖就绪"
+
       - name: Build Studio (Production)
-        if: steps.check-sage.outputs.needs_update == 'true'
         run: |
           echo "🏗️  构建 SAGE Studio（生产模式）..."
 
@@ -345,14 +378,18 @@ jobs:
           fi
           conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
 
+          # 验证 Node.js 版本（必须在 conda 环境中）
+          echo "Node.js: $(node --version) at $(which node)"
+          NODE_MAJOR=$(node --version | sed 's/v//' | cut -d. -f1)
+          if [ "$NODE_MAJOR" -lt 18 ]; then
+            echo "❌ Node.js 版本过低，需要 18+"
+            exit 1
+          fi
+
+          # 构建生产版本
           sage studio build
 
           echo "✅ Studio 构建完成"
-
-      - name: Skip build (up to date)
-        if: steps.check-sage.outputs.needs_update != 'true'
-        run: |
-          echo "⏭️ 代码无变化，跳过前端构建"
 
       - name: Start SAGE Studio
         run: |
@@ -368,17 +405,19 @@ jobs:
           fi
           conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
 
-          # Production mode for better performance and stability
+          # 使用生产模式启动（Vite preview，基于构建产物）
+          #
+          # 功能流程：
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
           # 3. Starts local LLM service via sageLLM (default: Qwen2.5-0.5B-Instruct)
-          # 4. Builds and serves optimized frontend on port 5173 (Vite default)
+          # 4. Starts Vite preview server on port 5173 (from built assets)
           #
           # CI Mode Options:
           # -y: Non-interactive mode (skip all prompts, use default LLM/Embedding config)
           nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y > ~/sage-studio-deploy.log 2>&1 &
 
-          sleep 15  # Production build needs more time
+          sleep 20  # Wait for services to start
 
           echo "✅ Studio 已启动"
 

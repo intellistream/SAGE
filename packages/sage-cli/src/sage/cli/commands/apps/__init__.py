@@ -51,6 +51,12 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 inference 命令: {e}[/yellow]")
     inference_app = None
 
+try:
+    from .gateway import app as gateway_app
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 gateway 命令: {e}[/yellow]")
+    gateway_app = None
+
 # 导出所有命令
 __all__ = [
     "llm_app",
@@ -59,4 +65,5 @@ __all__ = [
     "pipeline_app",
     "studio_app",
     "inference_app",
+    "gateway_app",
 ]
