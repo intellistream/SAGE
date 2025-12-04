@@ -329,8 +329,8 @@ class ParallelVDBService(BaseService):
                     vector_np = np.array(vector, dtype=np.float32)
 
                     result = self._collection.insert(
-                        index_name=index_name,
-                        raw_data=text,
+                        content=text,
+                        index_names=index_name,
                         vector=vector_np,
                         metadata=metadata,
                     )
