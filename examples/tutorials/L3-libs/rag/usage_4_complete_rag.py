@@ -95,11 +95,11 @@ class RAGUnlearningSystem(BaseService):
                 self.logger.error("Collection is not a VDB collection")
                 return False
 
-            # 插入文档 - VDBMemoryCollection.insert(index_name, raw_data, vector, metadata)
+            # 插入文档 - VDBMemoryCollection.insert(content, index_names, vector, metadata)
             for doc in documents:
                 collection.insert(
-                    index_name="content_index",
-                    raw_data=doc["content"],
+                    content=doc["content"],
+                    index_names="content_index",
                     vector=doc["vector"],
                     metadata=doc.get("metadata", {}),
                 )
@@ -452,7 +452,8 @@ def example_basic_rag():
     print(f"  Success: {result['success']}")
     if result["success"]:
         print(f"  Deleted: {result['num_forgotten']} documents")
-        print(f"  Privacy cost: ε={result['privacy_cost']['epsilon']:.4f}")
+        if "privacy_cost" in result:
+            print(f"  Privacy cost: ε={result['privacy_cost']['epsilon']:.4f}")
 
     print()
 
