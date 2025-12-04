@@ -24,7 +24,7 @@ jobs:
   code-quality:
     name: Code Quality & Style Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15  # 增加到 15 分钟，首次安装 pre-commit 环境需要时间
     # Skip version bump commits - no code changes to check
     if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
@@ -39,6 +39,14 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('tools/pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
 
       - name: Install Code Quality Tools
         run: |
