@@ -26,7 +26,7 @@ def example_basic_graph_collection():
     print("=" * 70)
 
     # Create a graph collection
-    collection = GraphMemoryCollection("knowledge_graph")
+    collection = GraphMemoryCollection({"name": "knowledge_graph"})
 
     # Create an index for the graph
     collection.create_index({"name": "concepts"})
@@ -99,7 +99,7 @@ def example_knowledge_graph_rag():
     print("Example 2: Knowledge Graph for RAG")
     print("=" * 70)
 
-    collection = GraphMemoryCollection("rag_knowledge_graph")
+    collection = GraphMemoryCollection({"name": "rag_knowledge_graph"})
     collection.create_index({"name": "documents"})
 
     # Add document nodes
@@ -185,9 +185,10 @@ def example_with_memory_manager():
     print("\n1. Papers citing 'attention_paper':")
     # Note: We need to get incoming neighbors for citations
     index = collection.indexes["papers"]  # type: ignore[union-attr]
-    citing_papers = index.get_incoming_neighbors("attention_paper", k=10)  # type: ignore[union-attr]
-    for paper_id in citing_papers:
-        data = index.get_node_data(paper_id)  # type: ignore[union-attr]
+    # Use get_neighbors with direction="incoming" to get papers that cite attention_paper
+    citing_papers = index.get_neighbors("attention_paper", k=10, direction="incoming")
+    for paper_id, weight in citing_papers:
+        data = index.get_node_data(paper_id)
         print(f"  - {paper_id}: {data}")
 
     # Store the collection
