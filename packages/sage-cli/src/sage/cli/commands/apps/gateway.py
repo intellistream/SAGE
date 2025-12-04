@@ -195,7 +195,9 @@ def start(
                 console.print(f"[blue]🌐 访问地址: http://localhost:{port}[/blue]")
                 console.print(f"[dim]📝 日志文件: {LOG_FILE}[/dim]")
                 if enable_control_plane:
-                    console.print("[cyan]💡 Control Plane 已启用，可使用 'sage llm engine' 管理引擎[/cyan]")
+                    console.print(
+                        "[cyan]💡 Control Plane 已启用，可使用 'sage llm engine' 管理引擎[/cyan]"
+                    )
                 return
 
         console.print("[red]❌ Gateway 启动超时[/red]")
@@ -326,7 +328,9 @@ def status(
                     kind = engine.get("engine_kind") or engine.get("runtime") or "llm"
                     state = engine.get("status") or engine.get("state") or "-"
                     engine_port = engine.get("port") or engine.get("listen_port") or "-"
-                    table.add_row(str(engine_id), str(model), str(kind), str(state), str(engine_port))
+                    table.add_row(
+                        str(engine_id), str(model), str(kind), str(state), str(engine_port)
+                    )
 
                 console.print(table)
             else:

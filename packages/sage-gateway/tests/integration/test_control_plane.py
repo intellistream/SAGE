@@ -23,7 +23,6 @@ from fastapi.testclient import TestClient
 # Import app at module level - package may not be installed in all environments
 from sage.gateway.server import app as gateway_app  # type: ignore[import-not-found]
 
-
 # =============================================================================
 # Test Fixtures
 # =============================================================================
@@ -117,14 +116,16 @@ def mock_control_plane_manager():
 def client_with_control_plane(mock_control_plane_manager):
     """Create a test client with mocked Control Plane."""
     # Patch the control plane module before creating client
-    with patch(
-        "sage.gateway.routes.control_plane.CONTROL_PLANE_AVAILABLE", True
-    ), patch(
-        "sage.gateway.routes.control_plane._control_plane_manager",
-        mock_control_plane_manager,
-    ), patch(
-        "sage.gateway.routes.control_plane.init_control_plane",
-        return_value=True,
+    with (
+        patch("sage.gateway.routes.control_plane.CONTROL_PLANE_AVAILABLE", True),
+        patch(
+            "sage.gateway.routes.control_plane._control_plane_manager",
+            mock_control_plane_manager,
+        ),
+        patch(
+            "sage.gateway.routes.control_plane.init_control_plane",
+            return_value=True,
+        ),
     ):
         client = TestClient(gateway_app)
         yield client
@@ -133,10 +134,9 @@ def client_with_control_plane(mock_control_plane_manager):
 @pytest.fixture
 def client_without_control_plane():
     """Create a test client without Control Plane enabled."""
-    with patch(
-        "sage.gateway.routes.control_plane.CONTROL_PLANE_AVAILABLE", False
-    ), patch(
-        "sage.gateway.routes.control_plane._control_plane_manager", None
+    with (
+        patch("sage.gateway.routes.control_plane.CONTROL_PLANE_AVAILABLE", False),
+        patch("sage.gateway.routes.control_plane._control_plane_manager", None),
     ):
         client = TestClient(gateway_app)
         yield client
@@ -177,9 +177,7 @@ class TestControlPlaneRoot:
 class TestEngineList:
     """Tests for listing registered engines."""
 
-    def test_list_engines_success(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_list_engines_success(self, client_with_control_plane, mock_control_plane_manager):
         """Test GET /v1/management/engines returns engine list."""
         response = client_with_control_plane.get("/v1/management/engines")
         assert response.status_code == 200
@@ -209,9 +207,7 @@ class TestEngineList:
 class TestEngineRegistration:
     """Tests for engine registration."""
 
-    def test_register_engine_success(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_register_engine_success(self, client_with_control_plane, mock_control_plane_manager):
         """Test POST /v1/management/engines/register successfully registers an engine."""
         response = client_with_control_plane.post(
             "/v1/management/engines/register",
@@ -229,9 +225,7 @@ class TestEngineRegistration:
         assert "engine_id" in data
         mock_control_plane_manager.register_engine.assert_called_once()
 
-    def test_register_engine_duplicate(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_register_engine_duplicate(self, client_with_control_plane, mock_control_plane_manager):
         """Test registering a duplicate engine returns 409 conflict."""
         mock_control_plane_manager.register_engine.side_effect = ValueError(
             "Engine already registered"
@@ -268,9 +262,7 @@ class TestEngineRegistration:
 class TestEngineStart:
     """Tests for starting new engines."""
 
-    def test_start_engine_success(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_start_engine_success(self, client_with_control_plane, mock_control_plane_manager):
         """Test POST /v1/management/engines starts a new engine."""
         response = client_with_control_plane.post(
             "/v1/management/engines",
@@ -289,9 +281,7 @@ class TestEngineStart:
     def test_start_engine_invalid_instance_type(self, client_with_control_plane):
         """Test starting engine with invalid instance_type returns 400."""
         # Need to mock _ExecutionInstanceType to test this
-        with patch(
-            "sage.gateway.routes.control_plane._ExecutionInstanceType"
-        ) as mock_type:
+        with patch("sage.gateway.routes.control_plane._ExecutionInstanceType") as mock_type:
             mock_type.__getitem__.side_effect = KeyError("INVALID")
             mock_type.__iter__ = lambda self: iter([])
 
@@ -330,46 +320,32 @@ class TestEngineStart:
 class TestEngineStop:
     """Tests for stopping engines."""
 
-    def test_stop_engine_success(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_stop_engine_success(self, client_with_control_plane, mock_control_plane_manager):
         """Test DELETE /v1/management/engines/{id} stops an engine."""
         response = client_with_control_plane.delete("/v1/management/engines/engine-1")
         assert response.status_code == 200
 
         data = response.json()
         assert data["stopped"] is True
-        mock_control_plane_manager.request_engine_shutdown.assert_called_once_with(
-            "engine-1"
-        )
+        mock_control_plane_manager.request_engine_shutdown.assert_called_once_with("engine-1")
 
-    def test_stop_engine_with_drain(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_stop_engine_with_drain(self, client_with_control_plane, mock_control_plane_manager):
         """Test DELETE /v1/management/engines/{id}?drain=true gracefully drains."""
-        response = client_with_control_plane.delete(
-            "/v1/management/engines/engine-1?drain=true"
-        )
+        response = client_with_control_plane.delete("/v1/management/engines/engine-1?drain=true")
         assert response.status_code == 200
 
         data = response.json()
         assert data["drained"] is True
-        mock_control_plane_manager.stop_engine_gracefully.assert_called_once_with(
-            "engine-1"
-        )
+        mock_control_plane_manager.stop_engine_gracefully.assert_called_once_with("engine-1")
 
-    def test_stop_engine_not_found(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_stop_engine_not_found(self, client_with_control_plane, mock_control_plane_manager):
         """Test stopping non-existent engine returns appropriate error."""
         mock_control_plane_manager.request_engine_shutdown.return_value = {
             "engine_id": "nonexistent",
             "stopped": False,
         }
 
-        response = client_with_control_plane.delete(
-            "/v1/management/engines/nonexistent"
-        )
+        response = client_with_control_plane.delete("/v1/management/engines/nonexistent")
         assert response.status_code == 409
 
 
@@ -381,9 +357,7 @@ class TestEngineStop:
 class TestClusterStatus:
     """Tests for cluster status endpoint."""
 
-    def test_cluster_status_success(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_cluster_status_success(self, client_with_control_plane, mock_control_plane_manager):
         """Test GET /v1/management/status returns cluster status."""
         response = client_with_control_plane.get("/v1/management/status")
         assert response.status_code == 200
@@ -402,9 +376,7 @@ class TestClusterStatus:
 class TestBackendDiscovery:
     """Tests for backend discovery endpoint."""
 
-    def test_list_backends_success(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_list_backends_success(self, client_with_control_plane, mock_control_plane_manager):
         """Test GET /v1/management/backends returns categorized backends."""
         response = client_with_control_plane.get("/v1/management/backends")
         assert response.status_code == 200
@@ -434,9 +406,7 @@ class TestBackendDiscovery:
 class TestGPUResources:
     """Tests for GPU resource endpoint."""
 
-    def test_gpu_resources_with_info(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_gpu_resources_with_info(self, client_with_control_plane, mock_control_plane_manager):
         """Test GET /v1/management/gpu returns GPU info when available."""
         # Add get_gpu_info method to mock
         mock_control_plane_manager.get_gpu_info = MagicMock(
@@ -455,9 +425,7 @@ class TestGPUResources:
         data = response.json()
         assert "gpus" in data
 
-    def test_gpu_resources_fallback(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_gpu_resources_fallback(self, client_with_control_plane, mock_control_plane_manager):
         """Test GET /v1/management/gpu returns fallback when no GPU info."""
         # Remove get_gpu_info to trigger fallback
         if hasattr(mock_control_plane_manager, "get_gpu_info"):
@@ -478,9 +446,7 @@ class TestGPUResources:
 class TestEngineLifecycle:
     """Tests for engine lifecycle state transitions."""
 
-    def test_engine_states_in_list(
-        self, client_with_control_plane, mock_control_plane_manager
-    ):
+    def test_engine_states_in_list(self, client_with_control_plane, mock_control_plane_manager):
         """Test that engine list includes state information."""
         response = client_with_control_plane.get("/v1/management/engines")
         assert response.status_code == 200
@@ -495,9 +461,7 @@ class TestEngineLifecycle:
     ):
         """Test that graceful stop transitions engine to DRAINING state."""
         # This is implicitly tested by the drain=true parameter
-        response = client_with_control_plane.delete(
-            "/v1/management/engines/engine-1?drain=true"
-        )
+        response = client_with_control_plane.delete("/v1/management/engines/engine-1?drain=true")
         assert response.status_code == 200
         assert response.json()["drained"] is True
 
