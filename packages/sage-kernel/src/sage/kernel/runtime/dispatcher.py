@@ -707,16 +707,16 @@ class Dispatcher:
                     tasks=self.tasks, services=self.services, cleanup_timeout=5.0
                 )
             else:
-                # 清理本地任务
-                for node_name, task in self.tasks.items():
+                # 清理本地任务（使用列表副本避免迭代时字典大小改变）
+                for node_name, task in list(self.tasks.items()):
                     try:
                         task.cleanup()
                         self.logger.debug(f"Cleaned up task: {node_name}")
                     except Exception as e:
                         self.logger.error(f"Error cleaning up task {node_name}: {e}")
 
-                # 清理本地服务任务
-                for service_name, service_task in self.services.items():
+                # 清理本地服务任务（使用列表副本避免迭代时字典大小改变）
+                for service_name, service_task in list(self.services.items()):
                     try:
                         if hasattr(service_task, "cleanup"):
                             service_task.cleanup()

@@ -48,11 +48,24 @@ def main():
     print(f"[DEBUG] memory_test_pipeline: factory.service_class = {factory.service_class}")
     env.register_service_factory(service_name, factory)
 
+    # 获取服务超时配置（默认 300 秒，足够 link_evolution 等耗时操作）
+    pipeline_service_timeout = config.get("runtime.pipeline_service_timeout", 300.0)
+
     insert_bridge = PipelineBridge()
-    env.register_service("memory_insert_service", PipelineService, insert_bridge)
+    env.register_service(
+        "memory_insert_service",
+        PipelineService,
+        insert_bridge,
+        request_timeout=pipeline_service_timeout,
+    )
 
     test_bridge = PipelineBridge()
-    env.register_service("memory_test_service", PipelineService, test_bridge)
+    env.register_service(
+        "memory_test_service",
+        PipelineService,
+        test_bridge,
+        request_timeout=pipeline_service_timeout,
+    )
 
     # 创建 Pipeline
     # 记忆插入Pipeline

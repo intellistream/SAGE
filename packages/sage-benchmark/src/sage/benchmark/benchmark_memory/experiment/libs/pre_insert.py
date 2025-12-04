@@ -28,6 +28,7 @@ D2 维度：PreInsert 开发
 - score: 重要性评分（importance, emotion）
 - multi_embed: 多维向量编码
 - validate: 输入验证
+- scm_embed: SCM 样式的摘要 + 原文 + embedding（同时保存）
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from typing import Any
 
 from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
@@ -136,6 +138,21 @@ class PreInsert(MapFunction):
         elif self.action == "validate":
             self._content_hashes: set[str] = set()
 
+        elif self.action == "scm_embed":
+            # SCM 样式：同时生成摘要和 embedding，保留原文
+            # summarize prompt
+            self._scm_summarize_prompt = get_required_config(
+                self.config,
+                "operators.pre_insert.summarize_prompt",
+                "action=scm_embed",
+            )
+            # 是否对摘要做 embedding（默认对原文）
+            self._scm_embed_summary = self.config.get("operators.pre_insert.embed_summary", False)
+            # 原文 token 阈值，超过才生成摘要
+            self._scm_summary_threshold = self.config.get(
+                "operators.pre_insert.summary_threshold", 300
+            )
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行预处理
 
@@ -154,6 +171,7 @@ class PreInsert(MapFunction):
             "score": self._execute_score,
             "multi_embed": self._execute_multi_embed,
             "validate": self._execute_validate,
+            "scm_embed": self._execute_scm_embed,
         }
 
         handler = action_handlers.get(self.action)
@@ -1080,6 +1098,97 @@ Result:"""
         return None
 
     # ========================================================================
+    # SCM Embed Action (SCM4LLMs)
+    # 同时保存原文、摘要、embedding，用于后续三元决策
+    # ========================================================================
+
+    def _execute_scm_embed(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """执行 SCM 样式的预处理
+
+        SCM 论文核心逻辑：
+        1. 每轮对话同时保存：原文（带轮次索引）、摘要、embedding
+        2. embedding 默认对原文计算（embed_summary=False 时）
+        3. 只有当原文超过阈值时才生成摘要
+
+        参考: SCM4LLMs/dialogue_test.py - summarize_embed_one_turn()
+
+        配置参数:
+        - summarize_prompt: 摘要生成 prompt
+        - embed_summary: 是否对摘要做 embedding（默认 False，对原文）
+        - summary_threshold: 原文 token 数超过此值才生成摘要（默认 300）
+        """
+        dialogs = data.get("dialogs", [])
+        text = self._dialogue_parser.format(dialogs)
+
+        if not text:
+            entry = data.copy()
+            entry["insert_method"] = "default"
+            entry["insert_mode"] = "passive"
+            return [entry]
+
+        # 构建带轮次索引的原文（SCM 格式）
+        # SCM 原文: "[Turn X]\n\nUser: ...\n\nAssistant: ..."
+        turn_index = data.get("turn_index", data.get("segment_index", 0))
+        text_with_index = f"[Turn {turn_index + 1}]\n\n{text}"
+
+        # 计算原文 token 数
+        original_tokens = len(text)  # 简化：用字符数代替
+
+        # 判断是否需要生成摘要
+        summary = ""
+        if original_tokens > self._scm_summary_threshold:
+            # 生成摘要
+            prompt = self._scm_summarize_prompt.replace("{dialogue}", text)
+            # 兼容 SCM 原始模板变量
+            prompt = prompt.replace("{input}", text)
+
+            try:
+                summary = self._generator.generate(prompt, max_tokens=200)
+                summary = summary.strip()
+                print(f"[INFO] SCM summary generated ({len(summary)} chars)")
+            except Exception as e:
+                print(f"[WARNING] SCM summarization failed: {e}")
+                summary = ""
+        else:
+            # 原文很短，保留原文作为摘要（SCM 原文逻辑）
+            summary = text_with_index
+            print("[INFO] SCM: original text is short, keep as summary")
+
+        # 选择用于 embedding 的文本
+        if self._scm_embed_summary and summary:
+            text_for_embed = summary
+        else:
+            text_for_embed = text_with_index
+
+        # 生成 embedding
+        embedding = None
+        if self._embedding_generator and self._embedding_generator.is_available():
+            try:
+                embedding = self._embedding_generator.embed(text_for_embed)
+            except Exception as e:
+                print(f"[WARNING] SCM embedding failed: {e}")
+
+        # 构建条目：同时包含原文和摘要
+        entry = data.copy()
+        entry["text"] = text_with_index  # 带索引的原文，用于存储和检索
+        entry["original_text"] = text_with_index  # 元数据中保留原文
+        entry["summary"] = summary  # 元数据中保留摘要
+        entry["embedding"] = embedding
+        entry["original_tokens"] = original_tokens
+        entry["summary_tokens"] = len(summary) if summary else 0
+        entry["insert_method"] = "scm_insert"
+        entry["insert_mode"] = "passive"
+
+        # 将原文和摘要也放入 metadata，便于后续 PostRetrieval 访问
+        if "metadata" not in entry:
+            entry["metadata"] = {}
+        entry["metadata"]["original_text"] = text_with_index
+        entry["metadata"]["summary"] = summary
+        entry["metadata"]["turn_index"] = turn_index
+
+        return [entry]
+
+    # ========================================================================
     # Tri-Embed Action (HippoRAG)
     # ========================================================================
 
@@ -1102,6 +1211,8 @@ Result:"""
         return entries
 
     def _extract_and_embed_triples(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        start_time = time.time()
+        print("[TIMING-PRE] Extract and embed triples started")
         """提取三元组并进行 Embedding
 
         Args:
@@ -1115,7 +1226,11 @@ Result:"""
 
         # 使用 LLM 提取三元组
         prompt = self._triple_extraction_prompt.replace("{dialogue}", dialogue)
+        llm_start = time.time()
+        print(f"[TIMING-PRE]   Format dialogue: {llm_start - start_time:.3f}s")
         triples_text = self._generator.generate(prompt)
+        llm_time = time.time() - llm_start
+        print(f"[TIMING-PRE]   LLM triple extraction: {llm_time:.3f}s")
 
         # 解析三元组并重构为自然语言描述
         triples, refactor_descriptions = self._triple_parser.parse_and_refactor(triples_text)
@@ -1130,6 +1245,8 @@ Result:"""
 
         # 生成 Embedding
         embeddings = self._embedding_generator.embed_batch(unique_refactors)
+        embed_time = time.time() - llm_start - llm_time
+        print(f"[TIMING-PRE]   Embedding {len(unique_refactors)} triples: {embed_time:.3f}s")
 
         # 构建记忆条目列表
         memory_entries = []
@@ -1146,6 +1263,10 @@ Result:"""
             }
             memory_entries.append(entry)
 
+        total_time = time.time() - start_time
+        print(
+            f"[TIMING-PRE] Extract and embed finished: {total_time:.3f}s, {len(memory_entries)} entries"
+        )
         return memory_entries
 
     # ========================================================================

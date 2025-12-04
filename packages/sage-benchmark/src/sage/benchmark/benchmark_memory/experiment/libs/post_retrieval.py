@@ -18,6 +18,7 @@ R3 重构：修正职责边界，确保不实现应属于记忆服务的功能�
 - augment: 结果增强（context / metadata / temporal）
 - compress: 结果压缩（extractive）
 - format: 最终格式化输出（template / structured / chat / xml）
+- scm_three_way: SCM 三元决策（drop / summary / raw）
 """
 
 from __future__ import annotations
@@ -273,6 +274,43 @@ class PostRetrieval(MapFunction):
             if not hasattr(self, "xml_tags"):
                 self.xml_tags = {}
 
+        elif self.action == "scm_three_way":
+            # SCM 三元决策配置
+            # token budget 相关
+            self.scm_max_history_tokens = self.config.get(f"{cfg_prefix}.max_history_tokens", 2500)
+            self.scm_max_pre_turn_tokens = self.config.get(f"{cfg_prefix}.max_pre_turn_tokens", 500)
+            self.token_counter = self.config.get(f"{cfg_prefix}.token_counter", "char")
+
+            # 三元决策 prompt
+            self.scm_judge_prompt = self.config.get(
+                f"{cfg_prefix}.judge_prompt",
+                """Given the [Conversation Content] and [User Question], please answer the instruction question.
+
+[Conversation Content]:
+```
+{content}
+```
+
+[User Question]:
+```
+{query}
+```
+
+Instruction Question:
+```
+Based on [Conversation Content], can you answer [User Question]? If yes, please answer `(A) Yes`, otherwise please answer `(B) No`.
+```
+
+Please answer now. The output must strictly follow this format:
+
+[Answer]: The final answer is: (A) Yes / (B) No""",
+            )
+
+            # 初始化 LLM generator
+            from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
+
+            self._scm_generator = LLMGenerator.from_config(self.config)
+
     # =============================================================
     # 公共入口
     # =============================================================
@@ -296,6 +334,7 @@ class PostRetrieval(MapFunction):
             "augment": self._execute_augment,
             "compress": self._execute_compress,
             "format": self._execute_format,
+            "scm_three_way": self._execute_scm_three_way,
         }
 
         handler = action_handlers.get(self.action)
@@ -724,6 +763,157 @@ class PostRetrieval(MapFunction):
             items = [item for item in items if (item.score or 0.0) >= threshold]
 
         data["memory_data"] = self._convert_from_memory_items(items)
+        return data
+
+    def _execute_scm_three_way(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行 SCM 三元决策（scm_three_way action）
+
+        SCM (Self-Controlled Memory) 论文的核心逻辑：
+        1. 检索 top-k 相似历史轮次
+        2. 检查是否超过 token budget
+        3. 如果超过，对每条记忆调用 LLM 判断：
+           - 原文能回答问题吗？不能 → drop
+           - 摘要能回答问题吗？能 → summary，不能 → raw
+
+        参考: SCM4LLMs/core/chat.py - get_related_turn() 和 judge_drop_or_summary()
+        """
+        memory_data = data.get("memory_data", [])
+        if not memory_data:
+            return data
+
+        items = self._convert_to_memory_items(memory_data)
+        question = data.get("question", "")
+
+        # Token 计数函数
+        def count_tokens(text: str) -> int:
+            if self.token_counter == "char":
+                return len(text)
+            if self.token_counter == "word":
+                return len(text.split())
+            # tiktoken 暂不实现，回退到字符计数
+            return len(text)
+
+        # 计算每条记忆的原文 token 数和摘要 token 数
+        turn_info: list[dict] = []
+        for item in items:
+            original_text = item.metadata.get("original_text", item.text)
+            summary_text = item.metadata.get("summary", "")
+
+            turn_info.append(
+                {
+                    "item": item,
+                    "original_text": original_text,
+                    "summary_text": summary_text,
+                    "original_tokens": count_tokens(original_text),
+                    "summary_tokens": count_tokens(summary_text) if summary_text else 0,
+                    "decision": "raw",  # 默认使用原文
+                }
+            )
+
+        # 检查是否超过 token budget
+        def is_too_long(info_list: list[dict]) -> bool:
+            total = sum(
+                t["summary_tokens"]
+                if t["decision"] == "summary"
+                else 0
+                if t["decision"] == "drop"
+                else t["original_tokens"]
+                for t in info_list
+            )
+            return total > self.scm_max_history_tokens
+
+        # 三元决策：调用 LLM 判断
+        def judge_drop_or_summary(original_text: str, summary_text: str, query: str) -> str:
+            """SCM 三元决策逻辑
+
+            1. 先用原文问：能回答当前问题吗？不能 → drop
+            2. 再用摘要问：摘要能回答吗？能 → summary，不能 → raw
+            """
+            if not hasattr(self, "_scm_generator") or self._scm_generator is None:
+                # 没有 LLM，直接返回 raw
+                return "raw"
+
+            # 判断原文是否能回答
+            prompt_raw = self.scm_judge_prompt.format(content=original_text, query=query)
+            try:
+                response = self._scm_generator.generate(prompt_raw, max_tokens=50)
+                # 解析响应：(B) No 表示不能回答
+                if "(B)" in response or "No" in response:
+                    return "drop"
+            except Exception as e:
+                print(f"[WARNING] SCM judge (raw) failed: {e}")
+                return "raw"
+
+            # 如果原文能回答，判断摘要是否也能回答
+            if summary_text:
+                prompt_summary = self.scm_judge_prompt.format(content=summary_text, query=query)
+                try:
+                    response = self._scm_generator.generate(prompt_summary, max_tokens=50)
+                    # (A) Yes 表示摘要也能回答，使用摘要节省 token
+                    if "(A)" in response or "Yes" in response:
+                        return "summary"
+                    else:
+                        return "raw"
+                except Exception as e:
+                    print(f"[WARNING] SCM judge (summary) failed: {e}")
+                    return "raw"
+
+            return "raw"
+
+        # 如果超过 token budget，进行三元决策
+        first_round = True
+        while is_too_long(turn_info):
+            for i, info in enumerate(turn_info):
+                # 最后一条保持 raw（SCM 原文逻辑）
+                if first_round:
+                    if i < len(turn_info) - 1:
+                        decision = judge_drop_or_summary(
+                            info["original_text"], info["summary_text"], question
+                        )
+                        info["decision"] = decision
+                    else:
+                        info["decision"] = "raw"
+                else:
+                    # 第二轮：将 raw 降级为 summary
+                    if info["decision"] == "raw":
+                        info["decision"] = "summary"
+
+                # 非首轮时，每次决策后检查是否满足 budget
+                if not first_round and not is_too_long(turn_info):
+                    break
+
+            if first_round:
+                first_round = False
+
+            # 防止无限循环：如果所有都是 drop 或 summary 仍然超出，停止
+            if all(t["decision"] in ("drop", "summary") for t in turn_info):
+                break
+
+        # 根据决策构建最终结果
+        result_items: list[MemoryItem] = []
+        for info in turn_info:
+            if info["decision"] == "drop":
+                continue
+            elif info["decision"] == "summary" and info["summary_text"]:
+                # 使用摘要
+                new_item = MemoryItem(
+                    text=info["summary_text"],
+                    score=info["item"].score,
+                    metadata={**info["item"].metadata, "scm_decision": "summary"},
+                    original_index=info["item"].original_index,
+                )
+                result_items.append(new_item)
+            else:
+                # 使用原文
+                new_item = MemoryItem(
+                    text=info["original_text"],
+                    score=info["item"].score,
+                    metadata={**info["item"].metadata, "scm_decision": "raw"},
+                    original_index=info["item"].original_index,
+                )
+                result_items.append(new_item)
+
+        data["memory_data"] = self._convert_from_memory_items(result_items)
         return data
 
     def _execute_merge(self, data: dict[str, Any]) -> dict[str, Any]:

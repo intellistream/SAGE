@@ -215,7 +215,8 @@ class BaseServiceTask(ABC):
         # 等待线程结束（最多等待5秒）
         self._queue_listener_thread.join(timeout=5.0)
 
-        if self._queue_listener_thread.is_alive():
+        # 再次检查线程是否存在（可能在 join 后被其他逻辑置为 None）
+        if self._queue_listener_thread is not None and self._queue_listener_thread.is_alive():
             self.logger.warning(
                 f"Queue listener thread did not stop gracefully for service '{self.service_name}'"
             )
@@ -681,6 +682,22 @@ class BaseServiceTask(ABC):
             self.logger.debug(
                 f"Retrieved method '{method_name}' from service instance '{self.service_name}'"
             )
+
+            # DEBUG: 记录方法调用参数（仅对 insert 方法）
+            if method_name == "insert":
+                self.logger.debug(
+                    f"[SERVICE_TASK] Calling {self.service_name}.{method_name} with "
+                    f"args types: {[type(a).__name__ for a in args]}, "
+                    f"kwargs keys: {list(kwargs.keys())}, "
+                    f"kwargs types: {[(k, type(v).__name__) for k, v in kwargs.items()]}"
+                )
+                # 详细记录 entry 参数
+                if "entry" in kwargs:
+                    entry_val = kwargs["entry"]
+                    self.logger.debug(
+                        f"[SERVICE_TASK] entry type: {type(entry_val)}, "
+                        f"value preview: {str(entry_val)[:200]}"
+                    )
 
             start_time = time.time()
             result = method(*args, **kwargs)

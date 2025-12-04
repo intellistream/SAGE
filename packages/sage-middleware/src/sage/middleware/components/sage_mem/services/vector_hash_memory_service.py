@@ -129,6 +129,26 @@ class VectorHashMemoryService(BaseService):
         Returns:
             str: 插入的条目 ID
         """
+        # DEBUG: 记录所有参数的类型和值
+        self.logger.debug(
+            f"[VectorHashMemoryService.insert] entry type: {type(entry)}, "
+            f"vector type: {type(vector)}, metadata: {metadata}, "
+            f"insert_mode: {insert_mode}"
+        )
+        if not isinstance(entry, str):
+            self.logger.error(
+                f"[VectorHashMemoryService.insert] INVALID entry type. "
+                f"Expected str, got {type(entry).__name__}. "
+                f"Value preview: {str(entry)[:200]}"
+            )
+
+        # 类型检查：确保 entry 是字符串
+        if not isinstance(entry, str):
+            raise TypeError(
+                f"VectorHashMemoryService.insert() requires 'entry' to be str, "
+                f"got {type(entry).__name__}: {entry}"
+            )
+
         if vector is None:
             raise ValueError("Vector is required for VectorHashMemoryService")
 
