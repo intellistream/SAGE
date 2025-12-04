@@ -36,6 +36,10 @@ jobs:
       DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      # 云端 Chat API 配置（当 --no-llm 时使用）
+      SAGE_CHAT_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      SAGE_CHAT_MODEL: qwen-turbo-2025-02-11
+      SAGE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
       # Conda 环境名称（统一使用 sage，与开发环境一致）
       CONDA_ENV_NAME: sage
 
@@ -410,43 +414,135 @@ jobs:
           # 功能流程：
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
-          # 3. Starts local LLM service via sageLLM (default: Qwen2.5-0.5B-Instruct)
-          # 4. Starts Vite preview server on port 5173 (from built assets)
+          # 3. Starts Vite preview server on port 5173 (from built assets)
           #
           # CI Mode Options:
-          # -y: Non-interactive mode (skip all prompts, use default LLM/Embedding config)
-          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y > ~/sage-studio-deploy.log 2>&1 &
+          # -y: Non-interactive mode (skip all prompts)
+          # --no-llm: Skip local LLM service (use cloud API via DASHSCOPE_API_KEY)
+          # --no-embedding: Skip local embedding service (use cloud API)
+          #
+          # 注意：CI 环境跳过本地 LLM/Embedding 启动，避免 vLLM 初始化问题
+          # Chat 功能将使用云端 DashScope API（需配置 DASHSCOPE_API_KEY secret）
+          
+          # 启动服务（后台运行，跳过本地 LLM 和 Embedding）
+          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y --no-llm --no-embedding 2>&1 | tee ~/sage-studio-deploy.log &
 
-          sleep 20  # Wait for services to start
+          # 等待服务启动（轮询检查端口，增加等待时间）
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          MAX_WAIT=60  # 增加到 60 次，共 120 秒
+          for i in $(seq 1 $MAX_WAIT); do
+            if curl -sf http://localhost:$PORT > /dev/null 2>&1; then
+              echo "✅ Studio 服务已就绪（第 $i 次检查）"
+              break
+            fi
+            # 每 10 次输出一次详细状态
+            if [ $((i % 10)) -eq 0 ]; then
+              echo "⏳ 等待服务启动... ($i/$MAX_WAIT)"
+              echo "   检查日志最后 5 行:"
+              tail -5 ~/sage-studio-deploy.log 2>/dev/null || true
+            else
+              echo "⏳ 等待服务启动... ($i/$MAX_WAIT)"
+            fi
+            sleep 2
+          done
 
           echo "✅ Studio 已启动"
 
+
+          # 输出 Studio 状态
+          sage studio status || true
       - name: Health check
         run: |
+          # 禁用 errexit，防止检查命令的非零返回值导致脚本失败
+          set +e
+          
           PORT="${{ github.event.inputs.port || '5173' }}"
+          BACKEND_PORT="8080"
           echo "🔍 检查服务健康状态..."
-
-          # 检查服务是否启动
-          if curl -f http://localhost:${PORT} 2>/dev/null; then
-            echo "✅ Studio 服务健康，端口 ${PORT} 可访问"
-          else
-            echo "⚠️  Studio 健康检查失败，查看日志..."
-            tail -50 ~/sage-studio-deploy.log || echo "暂无日志"
-          fi
-
-          # 检查端口监听状态
           echo ""
-          echo "📡 检查端口监听状态..."
-          if command -v netstat &> /dev/null; then
-            netstat -tlnp 2>/dev/null | grep ":${PORT}" || echo "⚠️ 端口 ${PORT} 未在监听"
-          elif command -v ss &> /dev/null; then
-            ss -tlnp 2>/dev/null | grep ":${PORT}" || echo "⚠️ 端口 ${PORT} 未在监听"
+
+          # === 前端服务检查 ===
+          echo "=== 前端服务检查 (端口 ${PORT}) ==="
+          if curl -sf http://localhost:${PORT} > /dev/null 2>&1; then
+            echo "✅ 前端服务健康，端口 ${PORT} 可访问"
+          else
+            echo "⚠️  前端健康检查失败"
+            tail -30 ~/sage-studio-deploy.log 2>/dev/null || echo "暂无日志"
           fi
 
-          # 检查进程状态
+          # === 后端 API 检查 ===
+          echo ""
+          echo "=== 后端 API 检查 (端口 ${BACKEND_PORT}) ==="
+          BACKEND_HEALTH=$(curl -sf http://localhost:${BACKEND_PORT}/health 2>/dev/null || echo "")
+          if [ -n "$BACKEND_HEALTH" ]; then
+            echo "✅ 后端 API 健康，端口 ${BACKEND_PORT} 可访问"
+            echo "   响应: $BACKEND_HEALTH"
+          else
+            # 检查端口是否在监听
+            BACKEND_PID=$(lsof -ti:${BACKEND_PORT} 2>/dev/null || true)
+            if [ -n "$BACKEND_PID" ]; then
+              echo "⚠️  后端 API 端口 ${BACKEND_PORT} 有进程监听 (PID: $BACKEND_PID)，但健康检查无响应"
+              echo "   进程可能仍在初始化中..."
+            else
+              echo "⚠️  后端 API 未运行（端口 ${BACKEND_PORT} 无监听）"
+            fi
+          fi
+
+          # === 端口监听状态汇总 ===
+          echo ""
+          echo "📡 端口监听状态汇总..."
+          echo "| 端口 | 服务 | 状态 |"
+          echo "|------|------|------|"
+          
+          # 前端端口
+          if lsof -ti:${PORT} > /dev/null 2>&1; then
+            echo "| ${PORT} | Frontend (Vite) | ✅ 监听中 |"
+          else
+            echo "| ${PORT} | Frontend (Vite) | ❌ 未监听 |"
+          fi
+          
+          # 后端端口
+          if lsof -ti:${BACKEND_PORT} > /dev/null 2>&1; then
+            echo "| ${BACKEND_PORT} | Backend API | ✅ 监听中 |"
+          else
+            echo "| ${BACKEND_PORT} | Backend API | ❌ 未监听 |"
+          fi
+          
+          # Gateway 端口
+          if lsof -ti:8000 > /dev/null 2>&1; then
+            echo "| 8000 | Gateway | ✅ 监听中 |"
+          else
+            echo "| 8000 | Gateway | ⚠️ 未监听 |"
+          fi
+
+          # === 进程状态检查 ===
           echo ""
           echo "🔧 检查 SAGE Studio 进程..."
-          ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
+          # 前端进程
+          STUDIO_PID=$(lsof -ti:${PORT} 2>/dev/null || true)
+          if [ -n "$STUDIO_PID" ]; then
+            echo "✅ 前端进程运行中 (PID: $STUDIO_PID)"
+            ps -p $STUDIO_PID -o pid,cmd --no-headers 2>/dev/null || true
+          else
+            if pgrep -f "vite preview" > /dev/null 2>&1; then
+              echo "✅ Vite preview 进程运行中"
+              pgrep -af "vite preview" | head -2
+            elif pgrep -f "node.*preview" > /dev/null 2>&1; then
+              echo "✅ Node preview 进程运行中"
+              pgrep -af "node.*preview" | head -2
+            else
+              echo "⚠️ 未找到前端进程"
+            fi
+          fi
+          
+          # 后端进程
+          BACKEND_PID=$(lsof -ti:${BACKEND_PORT} 2>/dev/null || true)
+          if [ -n "$BACKEND_PID" ]; then
+            echo "✅ 后端进程运行中 (PID: $BACKEND_PID)"
+            ps -p $BACKEND_PID -o pid,cmd --no-headers 2>/dev/null || true
+          else
+            echo "⚠️ 未找到后端进程"
+          fi
 
       - name: Setup Cloudflare Tunnel
         if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
@@ -478,19 +574,112 @@ jobs:
           pkill -f "cloudflared tunnel" || true
           sleep 2
 
-          # 启动 tunnel
+          # 启动 tunnel（增加 --protocol http2 提高兼容性）
+          echo "启动命令: cloudflared tunnel run --token <hidden>"
           nohup cloudflared tunnel run --token "${CLOUDFLARE_TUNNEL_TOKEN}" > ~/cloudflared.log 2>&1 &
+          TUNNEL_PID=$!
+          echo "Tunnel 进程 PID: $TUNNEL_PID"
 
-          sleep 5
+          # 等待 Tunnel 连接（检查日志中的连接状态）
+          echo ""
+          echo "⏳ 等待 Tunnel 连接到 Cloudflare..."
+          TUNNEL_CONNECTED=false
+          for i in $(seq 1 30); do
+            # 检查进程是否存在
+            if ! pgrep -f "cloudflared tunnel" > /dev/null; then
+              echo "❌ Tunnel 进程已退出"
+              echo "=== 最后 30 行日志 ==="
+              tail -30 ~/cloudflared.log || true
+              exit 1
+            fi
+            
+            # 检查是否成功连接（日志中会出现 "Registered tunnel connection"）
+            if grep -q "Registered tunnel connection" ~/cloudflared.log 2>/dev/null; then
+              TUNNEL_CONNECTED=true
+              echo "✅ Tunnel 已连接到 Cloudflare (第 $i 次检查)"
+              break
+            fi
+            
+            # 检查是否有错误
+            if grep -qi "error\|failed\|unauthorized" ~/cloudflared.log 2>/dev/null; then
+              echo "⚠️  检测到可能的错误，继续等待..."
+            fi
+            
+            echo "   等待中... ($i/30)"
+            sleep 2
+          done
 
-          # 验证 tunnel 是否启动
-          if pgrep -f "cloudflared tunnel" > /dev/null; then
-            echo "✅ Cloudflare Tunnel 已启动"
-          else
-            echo "❌ Cloudflare Tunnel 启动失败"
-            tail -20 ~/cloudflared.log || echo "暂无日志"
-            exit 1
+          if [ "$TUNNEL_CONNECTED" = "false" ]; then
+            echo ""
+            echo "⚠️  Tunnel 进程运行中，但未检测到连接确认"
+            echo "   可能原因："
+            echo "   1. Token 无效或已过期"
+            echo "   2. Tunnel 配置未正确指向本地端口"
+            echo "   3. 网络问题导致连接延迟"
+            echo ""
+            echo "=== cloudflared 日志 ==="
+            tail -50 ~/cloudflared.log || true
+            echo ""
+            echo "继续执行，请检查 Cloudflare Dashboard 确认 Tunnel 状态"
           fi
+
+          # 显示 Tunnel 信息
+          echo ""
+          echo "=== Tunnel 连接信息 ==="
+          grep -E "Registered|connection|INF" ~/cloudflared.log 2>/dev/null | tail -10 || echo "暂无连接信息"
+          
+      - name: Verify Tunnel connectivity
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        continue-on-error: true
+        run: |
+          TUNNEL_DOMAIN="${{ github.event.inputs.tunnel_domain || env.DEFAULT_TUNNEL_DOMAIN }}"
+          echo "🔍 验证 Tunnel 连接..."
+          echo ""
+          
+          # 检查 cloudflared 进程
+          echo "=== cloudflared 进程状态 ==="
+          if pgrep -f "cloudflared tunnel" > /dev/null; then
+            echo "✅ cloudflared 进程运行中"
+            pgrep -af "cloudflared" | head -3
+          else
+            echo "❌ cloudflared 进程未运行"
+          fi
+          
+          # 检查本地服务
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          echo ""
+          echo "=== 本地服务状态 ==="
+          if curl -sf http://localhost:${PORT} > /dev/null 2>&1; then
+            echo "✅ 本地服务 http://localhost:${PORT} 可访问"
+          else
+            echo "❌ 本地服务 http://localhost:${PORT} 不可访问"
+            echo "   这可能是 Tunnel 无法转发请求的原因"
+          fi
+          
+          # 尝试通过公网访问（可能需要等待 DNS 传播）
+          echo ""
+          echo "=== 公网访问测试 ==="
+          echo "尝试访问: https://${TUNNEL_DOMAIN}"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://${TUNNEL_DOMAIN}" 2>/dev/null || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ https://${TUNNEL_DOMAIN} 可访问 (HTTP $HTTP_CODE)"
+          elif [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
+            echo "⚠️  https://${TUNNEL_DOMAIN} 返回 $HTTP_CODE"
+            echo "   可能原因: Tunnel 已连接但本地服务不可达"
+          elif [ "$HTTP_CODE" = "000" ]; then
+            echo "⚠️  无法连接到 https://${TUNNEL_DOMAIN}"
+            echo "   可能原因: DNS 尚未传播或 Tunnel 未正确配置"
+          else
+            echo "⚠️  https://${TUNNEL_DOMAIN} 返回 HTTP $HTTP_CODE"
+          fi
+          
+          # 显示诊断建议
+          echo ""
+          echo "📝 如果遇到 Host error，请检查："
+          echo "   1. Cloudflare Dashboard -> Zero Trust -> Access -> Tunnels"
+          echo "   2. 确认 Tunnel 状态为 HEALTHY"
+          echo "   3. 检查 Public Hostname 配置是否指向 http://localhost:${PORT}"
+          echo "   4. 确认 DNS 记录已正确设置 (CNAME 到 tunnel UUID)"
 
       - name: Network accessibility check
         continue-on-error: true
@@ -647,3 +836,143 @@ jobs:
           tail -20 ~/cloudflared.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Tunnel logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+      - name: Final service verification
+        continue-on-error: false
+        run: |
+          # 禁用 errexit，防止中间命令的非零返回值导致脚本提前退出
+          set +e
+          
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          echo "🔍 最终服务验证..."
+          echo ""
+
+          # === 前端进程检查 ===
+          echo "=== 前端服务检查 ==="
+          FRONTEND_OK=false
+
+          # 检查端口监听
+          FRONTEND_PID=$(lsof -ti:${PORT} 2>/dev/null || true)
+          if [ -n "$FRONTEND_PID" ]; then
+            echo "✅ 前端进程存在 (PID: $FRONTEND_PID)"
+            echo "   进程详情:"
+            ps -p $FRONTEND_PID -o pid,user,%cpu,%mem,start,cmd --no-headers 2>/dev/null | head -1
+            FRONTEND_OK=true
+          else
+            echo "❌ 前端端口 ${PORT} 无进程监听"
+          fi
+
+          # 检查 Vite/Node 进程
+          echo ""
+          echo "Vite/Node 相关进程:"
+          pgrep -af "vite|node.*preview" 2>/dev/null | head -3 || echo "   未找到 Vite/Node 进程"
+
+          # 检查端口响应
+          echo ""
+          echo "端口响应测试:"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:${PORT} 2>/dev/null || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ http://localhost:${PORT} 响应正常 (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️  http://localhost:${PORT} 响应异常 (HTTP $HTTP_CODE)"
+          fi
+
+          # === 后端进程检查 ===
+          echo ""
+          echo "=== 后端服务检查 ==="
+
+          # 检查 Gateway (端口 8000)
+          GATEWAY_PID=$(lsof -ti:8000 2>/dev/null || true)
+          if [ -n "$GATEWAY_PID" ]; then
+            echo "✅ Gateway 进程存在 (PID: $GATEWAY_PID, 端口 8000)"
+          else
+            echo "⚠️  Gateway 端口 8000 无进程监听"
+          fi
+
+          # 检查 LLM 服务 (端口 8901)
+          LLM_PID=$(lsof -ti:8901 2>/dev/null || true)
+          if [ -n "$LLM_PID" ]; then
+            echo "✅ LLM 服务进程存在 (PID: $LLM_PID, 端口 8901)"
+          else
+            echo "ℹ️  LLM 服务端口 8901 无进程监听（可能使用云端 API）"
+          fi
+
+          # 检查 Embedding 服务 (端口 8090)
+          EMBED_PID=$(lsof -ti:8090 2>/dev/null || true)
+          if [ -n "$EMBED_PID" ]; then
+            echo "✅ Embedding 服务进程存在 (PID: $EMBED_PID, 端口 8090)"
+          else
+            echo "ℹ️  Embedding 服务端口 8090 无进程监听（可能使用云端 API）"
+          fi
+
+          # === 汇总 ===
+          echo ""
+          echo "=== 服务状态汇总 ==="
+          echo "| 服务 | 端口 | 状态 |"
+          echo "|------|------|------|"
+
+          if [ "$FRONTEND_OK" = "true" ]; then
+            echo "| Frontend (Vite) | ${PORT} | ✅ 运行中 |"
+          else
+            echo "| Frontend (Vite) | ${PORT} | ❌ 未运行 |"
+          fi
+
+          if [ -n "$GATEWAY_PID" ]; then
+            echo "| Gateway | 8000 | ✅ 运行中 |"
+          else
+            echo "| Gateway | 8000 | ⚠️ 未检测到 |"
+          fi
+
+          if [ -n "$LLM_PID" ]; then
+            echo "| LLM Service | 8901 | ✅ 运行中 |"
+          else
+            echo "| LLM Service | 8901 | ℹ️ 未启动 |"
+          fi
+
+          if [ -n "$EMBED_PID" ]; then
+            echo "| Embedding | 8090 | ✅ 运行中 |"
+          else
+            echo "| Embedding | 8090 | ℹ️ 未启动 |"
+          fi
+
+          # 写入 GitHub Summary
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 最终服务验证" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 服务 | 端口 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$FRONTEND_OK" = "true" ]; then
+            echo "| Frontend (Vite) | ${PORT} | ✅ 运行中 (PID: $FRONTEND_PID) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Frontend (Vite) | ${PORT} | ❌ 未运行 |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -n "$GATEWAY_PID" ]; then
+            echo "| Gateway | 8000 | ✅ 运行中 (PID: $GATEWAY_PID) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Gateway | 8000 | ⚠️ 未检测到 |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -n "$LLM_PID" ]; then
+            echo "| LLM Service | 8901 | ✅ 运行中 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| LLM Service | 8901 | ℹ️ 未启动（使用云端API） |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -n "$EMBED_PID" ]; then
+            echo "| Embedding | 8090 | ✅ 运行中 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Embedding | 8090 | ℹ️ 未启动（使用云端API） |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # 最终状态判断
+          echo ""
+          if [ "$FRONTEND_OK" = "true" ]; then
+            echo "🎉 部署验证通过：前端服务正常运行"
+            exit 0
+          else
+            echo "❌ 部署验证失败：前端服务未能正常启动"
+            echo "   请检查日志: ~/sage-studio-deploy.log"
+            exit 1
+          fi
