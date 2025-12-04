@@ -24,7 +24,7 @@ class IntermediateResultsChecker:
 
         # 定义不应该在根目录出现的中间结果模式
         self.forbidden_patterns = [
-            ".benchmarks",
+            # ".benchmarks",  # Now configured to use .sage/benchmarks via pytest-benchmark
             ".pytest_cache",
             "__pycache__",
             "*.pyc",
