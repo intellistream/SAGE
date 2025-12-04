@@ -193,7 +193,7 @@ def test_graph_index_operations(cleanup_data):
     # Get neighbors (returns list of (node_id, weight) tuples)
     neighbors = index.get_neighbors("n1", k=10)
     assert len(neighbors) == 2
-    assert neighbors[0][0] == "n2"  # Higher weight, now returns (node_id, weight)
+    assert neighbors[0][0] == "n2"  # Higher weight
 
     # NOTE: get_incoming_neighbors was removed from SimpleGraphIndex
     # Skip testing incoming neighbors
@@ -206,7 +206,7 @@ def test_graph_index_operations(cleanup_data):
     index.remove_edge("n1", "n2")
     neighbors = index.get_neighbors("n1", k=10)
     assert len(neighbors) == 1
-    assert neighbors[0][0] == "n3"  # Now returns (node_id, weight)
+    assert neighbors[0][0] == "n3"
 
     # Remove node
     index.remove_node("n3")
