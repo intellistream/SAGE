@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# SAGE pre-commit hook: Always check all files to match CI behavior
+#
+# Why check all files?
+# - CI/CD runs `pre-commit run --all-files` on every push
+# - Only checking staged files leads to local passing but CI failing
+# - This ensures local and CI checks are consistent
+#
+# To skip hooks temporarily:
+#   git commit --no-verify
+#
+# To reinstall after pre-commit updates:
+#   ./manage.sh setup-hooks --force
+
+set -euo pipefail
+
+# Find pre-commit executable
+if command -v pre-commit &> /dev/null; then
+    PRE_COMMIT_CMD="pre-commit"
+elif [[ -x "${HOME}/.local/bin/pre-commit" ]]; then
+    PRE_COMMIT_CMD="${HOME}/.local/bin/pre-commit"
+else
+    echo "❌ pre-commit not found. Install it with: pip install pre-commit" >&2
+    exit 1
+fi
+
+# Get repository root
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$REPO_ROOT" ]]; then
+    echo "❌ Unable to detect repository root" >&2
+    exit 1
+fi
+
+# Configuration file path
+CONFIG_FILE="$REPO_ROOT/tools/pre-commit-config.yaml"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "❌ Pre-commit config not found: $CONFIG_FILE" >&2
+    exit 1
+fi
+
+# Run pre-commit on ALL files (not just staged)
+# This matches CI behavior and prevents "works locally but fails in CI" issues
+exec "$PRE_COMMIT_CMD" run --all-files --config "$CONFIG_FILE"

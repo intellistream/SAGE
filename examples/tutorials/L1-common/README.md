@@ -39,10 +39,10 @@
 完成本层示例后，你将掌握：
 
 1. SAGE 的基本概念和术语
-2. 如何使用 **UnifiedInferenceClient** 进行 LLM 对话和 Embedding
-3. 如何使用配置系统
-4. 如何使用日志系统
-5. 为后续学习 Kernel 层做好准备
+1. 如何使用 **UnifiedInferenceClient** 进行 LLM 对话和 Embedding
+1. 如何使用配置系统
+1. 如何使用日志系统
+1. 为后续学习 Kernel 层做好准备
 
 ## 🚀 快速开始 (UnifiedInferenceClient)
 
