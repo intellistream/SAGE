@@ -28,8 +28,9 @@ class TestCustomLogger:
     def test_logger_default_level(self):
         """Test default logging level"""
         logger = CustomLogger()
-        # Default should be INFO
-        assert logger.logger.level <= logging.INFO
+        # Default is WARNING in non-verbose mode (to reduce noisy startup logs)
+        # or respects SAGE_LOG_LEVEL environment variable
+        assert logger.logger.level <= logging.WARNING
 
     def test_debug_logging(self):
         """Test debug level logging"""
