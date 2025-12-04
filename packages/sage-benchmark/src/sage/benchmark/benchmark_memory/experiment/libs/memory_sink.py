@@ -87,8 +87,14 @@ class MemorySink(SinkFunction):
             self.test_results.append(test_result)
 
         # 检查是否完成
+        print(
+            f"\n[DEBUG MemorySink] 收到数据: completed={data.get('completed')}, keys={list(data.keys())}"
+        )
         if data.get("completed", False):
+            print("[DEBUG MemorySink] completed=True，调用 _save_results")
             self._save_results(data)
+        else:
+            print("[DEBUG MemorySink] completed=False，不保存")
 
     def _save_results(self, data):
         """保存最终结果
@@ -118,10 +124,17 @@ class MemorySink(SinkFunction):
         }
 
         # 保存为 JSON
-        with open(self.output_file, "w", encoding="utf-8") as f:
-            json.dump(output_data, f, indent=2, ensure_ascii=False)
+        print(f"[DEBUG MemorySink] 准备保存到: {self.output_file}")
+        print(f"[DEBUG MemorySink] test_results 数量: {len(self.test_results)}")
+        try:
+            with open(self.output_file, "w", encoding="utf-8") as f:
+                json.dump(output_data, f, indent=2, ensure_ascii=False)
+            print(f"\n✅ 测试结果已保存至: {self.output_file}")
+        except Exception as e:
+            print(f"[DEBUG MemorySink] 保存失败: {e}")
+            import traceback
 
-        print(f"\n✅ 测试结果已保存至: {self.output_file}")
+            traceback.print_exc()
 
     def _format_test_results(self, test_results):
         """格式化测试结果为通用格式

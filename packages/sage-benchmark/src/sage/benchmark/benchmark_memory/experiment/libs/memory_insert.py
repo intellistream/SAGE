@@ -180,6 +180,18 @@ class MemoryInsert(MapFunction):
                 insert_params["target_indexes"] = entry_dict["target_indexes"]
                 insert_mode = "active"
 
+        elif insert_method == "scm_insert":
+            # SCM 样式插入：同时保存原文和摘要
+            # 原文和摘要已在 pre_insert 中处理，这里确保 metadata 包含这些信息
+            if "original_text" in entry_dict:
+                metadata["original_text"] = entry_dict["original_text"]
+            if "summary" in entry_dict:
+                metadata["summary"] = entry_dict["summary"]
+            if "original_tokens" in entry_dict:
+                metadata["original_tokens"] = entry_dict["original_tokens"]
+            if "summary_tokens" in entry_dict:
+                metadata["summary_tokens"] = entry_dict["summary_tokens"]
+
         # 统一调用服务
         return self.call_service(
             self.service_name,

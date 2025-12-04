@@ -38,6 +38,9 @@ OPERATOR_LEVEL_ACTIONS = {"none", "log", "stats", "distillation"}
 SERVICE_LEVEL_ACTIONS = {"reflection", "link_evolution", "forgetting", "summarize", "migrate"}
 
 
+import time
+
+
 class PostInsert(MapFunction):
     """记忆插入后的后处理算子
 
@@ -273,6 +276,11 @@ class PostInsert(MapFunction):
         Args:
             data: 包含 memory_entries 的数据字典
         """
+        start_time = time.time()
+        print(
+            f"[TIMING-POST] Distillation started for {len(data.get('memory_entries', []))} entries"
+        )
+
         for entry_dict in data.get("memory_entries", []):
             # 获取当前条目的文本和向量
             text = entry_dict.get("refactor", "") or entry_dict.get("text", "")
@@ -282,6 +290,7 @@ class PostInsert(MapFunction):
                 continue
 
             # ========== 第一步：检索（仅一次）==========
+            retrieve_start = time.time()
             similar_entries = self.call_service(
                 self.service_name,
                 method="retrieve",
@@ -291,17 +300,26 @@ class PostInsert(MapFunction):
                 threshold=self.distillation_threshold,
                 timeout=10.0,
             )
+            retrieve_time = time.time() - retrieve_start
+            print(
+                f"[TIMING-POST]   Retrieve: {retrieve_time:.3f}s, found {len(similar_entries) if similar_entries else 0} similar entries"
+            )
 
-            if not similar_entries:
+            # 只有相似记忆数量达到 topk 时才进行蒸馏（避免不必要的 LLM 调用）
+            if not similar_entries or len(similar_entries) < self.distillation_topk:
                 continue
 
             # ========== 第二步：LLM 分析 ==========
+            llm_start = time.time()
             distilled_text, to_delete = self._analyze_for_distillation(entry_dict, similar_entries)
+            llm_time = time.time() - llm_start
+            print(f"[TIMING-POST]   LLM analysis: {llm_time:.3f}s, to_delete={len(to_delete)}")
 
             if not distilled_text and not to_delete:
                 continue
 
             # ========== 第三步：删除（仅一次，批量）==========
+            delete_start = time.time()
             for entry_id in to_delete:
                 self.call_service(
                     self.service_name,
@@ -309,18 +327,41 @@ class PostInsert(MapFunction):
                     entry_id=entry_id,
                     timeout=5.0,
                 )
+            delete_time = time.time() - delete_start
+            print(f"[TIMING-POST]   Delete: {delete_time:.3f}s, deleted {len(to_delete)} entries")
 
             # ========== 第四步：插入（仅一次）==========
-            if distilled_text:
+            # 确保 distilled_text 是有效的字符串
+            if distilled_text and isinstance(distilled_text, str) and distilled_text.strip():
+                insert_start = time.time()
                 distilled_vector = self._embedding_generator.embed(distilled_text)
-                self.call_service(
-                    self.service_name,
-                    method="insert",
-                    entry=distilled_text,
-                    vector=distilled_vector,
-                    metadata={"distilled": True, "source_count": len(to_delete) + 1},
-                    timeout=10.0,
-                )
+                if distilled_vector is not None:  # 确保 embedding 成功
+                    # DEBUG: 记录参数类型
+                    self.logger.debug(
+                        f"[DISTILLATION_INSERT] distilled_text type: {type(distilled_text)}, "
+                        f"value: {distilled_text[:100] if isinstance(distilled_text, str) else distilled_text}"
+                    )
+                    self.logger.debug(
+                        f"[DISTILLATION_INSERT] distilled_vector type: {type(distilled_vector)}, "
+                        f"length: {len(distilled_vector) if hasattr(distilled_vector, '__len__') else 'N/A'}"
+                    )
+                    self.call_service(
+                        self.service_name,
+                        method="insert",
+                        entry=distilled_text,
+                        vector=distilled_vector,
+                        metadata={"distilled": True, "source_count": len(to_delete) + 1},
+                        timeout=10.0,
+                    )
+                    insert_time = time.time() - insert_start
+                    print(f"[TIMING-POST]   Insert: {insert_time:.3f}s")
+                else:
+                    self.logger.warning(
+                        f"Failed to generate embedding for distilled text: {distilled_text[:50]}..."
+                    )
+
+        total_time = time.time() - start_time
+        print(f"[TIMING-POST] Distillation finished: {total_time:.3f}s")
 
     def _analyze_for_distillation(
         self, entry_dict: dict, similar_entries: list[dict]
@@ -356,7 +397,34 @@ class PostInsert(MapFunction):
         to_delete_ids = [memory_ids[i] for i in to_delete_indices if i < len(memory_ids)]
 
         # 解析 to_insert（合并后的文本）
-        distilled_text = result.get("distilled_text", result.get("to_insert"))
+        # 注意：LLM 返回的可能是字符串、列表或字典，需要规范化为字符串
+        raw_distilled = result.get("distilled_text", result.get("to_insert"))
+        distilled_text: str | None = None
+
+        if raw_distilled is not None:
+            if isinstance(raw_distilled, str):
+                # 情况 1：已经是字符串
+                distilled_text = raw_distilled.strip() if raw_distilled.strip() else None
+            elif isinstance(raw_distilled, list) and raw_distilled:
+                # 情况 2：是列表，提取其中的文本
+                texts = []
+                for item in raw_distilled:
+                    if isinstance(item, str):
+                        texts.append(item)
+                    elif isinstance(item, dict):
+                        text = item.get("new_entry") or item.get("text") or item.get("content")
+                        if text and isinstance(text, str):
+                            texts.append(text)
+                distilled_text = " ".join(texts).strip() if texts else None
+            elif isinstance(raw_distilled, dict):
+                # 情况 3：是字典，尝试常见的键名
+                text = (
+                    raw_distilled.get("new_entry")
+                    or raw_distilled.get("text")
+                    or raw_distilled.get("content")
+                )
+                if text and isinstance(text, str):
+                    distilled_text = text.strip()
 
         return distilled_text, to_delete_ids
 

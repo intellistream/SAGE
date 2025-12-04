@@ -579,18 +579,33 @@ class GraphMemoryService(BaseService):
         HippoRAG 核心：如果两个三元组共享相同的 subject 或 object，
         则它们应该通过边连接。
 
+        优化：
+        1. 跳过空 node_id 避免 metadata_storage 校验错误
+        2. 限制每个实体最多连接 max_connections 个节点，避免 O(n²) 爆炸
+
         Args:
             index: 图索引
             config: 配置参数
         """
         edge_weight = config.get("edge_weight", 1.0)
+        # 限制每个实体的最大连接数，避免常见词导致 O(n²) 爆炸
+        max_connections = config.get("max_entity_connections", 50)
 
         # 构建实体到节点的映射
         entity_to_nodes: dict[str, list[str]] = {}
 
         for node_id in index.nodes:
+            # 跳过空 node_id，避免 metadata_storage.get() 校验错误
+            if not node_id or not isinstance(node_id, str):
+                continue
+
             # 从 collection 的 metadata_storage 获取元数据
-            metadata = self.collection.metadata_storage.get(node_id) or {}
+            try:
+                metadata = self.collection.metadata_storage.get(node_id) or {}
+            except ValueError:
+                # 跳过无效的 node_id
+                continue
+
             triples = metadata.get("triples", [])
 
             for triple in triples:
@@ -610,6 +625,14 @@ class GraphMemoryService(BaseService):
         for entity, node_ids in entity_to_nodes.items():
             if len(node_ids) < 2:
                 continue
+
+            # 优化：如果一个实体被太多节点共享（如常见词），只连接前 max_connections 个
+            # 避免 O(n²) 导致的性能问题
+            if len(node_ids) > max_connections:
+                self.logger.debug(
+                    f"Entity '{entity}' has {len(node_ids)} nodes, limiting to {max_connections}"
+                )
+                node_ids = node_ids[:max_connections]
 
             # 连接所有共享该实体的节点
             for i in range(len(node_ids)):

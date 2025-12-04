@@ -9,8 +9,8 @@ Usage: python run_locomo_cross_method_analysis.py
 # ============================================================================
 # CONFIGURATION - Modify these paths as needed
 # ============================================================================
-INPUT_BASE_DIR = ".sage/benchmarks/benchmark_memory/locomo/251203"
-OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251203/cross_method"
+INPUT_BASE_DIR = ".sage/benchmarks/benchmark_memory/locomo/251204"
+OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251204/cross_method"
 # ============================================================================
 
 import json

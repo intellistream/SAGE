@@ -55,7 +55,7 @@ operators:
   pre_insert:
     action: "transform"
     transform_type: "summarize"
-    summary_prompt: |
+    summarize_prompt: |
       Summarize the key events from this dialogue as a brief event description.
       Focus on: What happened? Who was involved? What was decided/planned?
 
