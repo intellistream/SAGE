@@ -9,6 +9,25 @@ SAGE CLI 主入口
 注意：Dev 开发工具命令由 sage-tools 包提供，不在此包中
 """
 
+import logging
+import os
+
+# Suppress noisy INFO logs during CLI startup unless SAGE_CLI_VERBOSE is set
+# This must be done BEFORE importing any sage modules
+if not os.environ.get("SAGE_CLI_VERBOSE"):
+    logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    # Also suppress specific noisy loggers
+    for logger_name in [
+        "sage.platform",
+        "sage.middleware",
+        "sage.kernel",
+        "sage.common",
+        "faiss",
+        "httpx",
+        "httpcore",
+    ]:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
+
 import typer
 from rich.console import Console
 
@@ -133,6 +152,7 @@ try:
     from .commands.apps import (
         chat_app,
         embedding_app,
+        gateway_app,
         inference_app,
         llm_app,
         pipeline_app,
@@ -172,6 +192,12 @@ try:
             inference_app,
             name="inference",
             help="🔮 统一推理服务 - LLM 和 Embedding 混合调度 (start, stop, status, config)",
+        )
+    if gateway_app:
+        app.add_typer(
+            gateway_app,
+            name="gateway",
+            help="🌐 API Gateway - 统一推理网关服务 (start, stop, status, logs, restart)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

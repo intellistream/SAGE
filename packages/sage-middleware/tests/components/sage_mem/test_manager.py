@@ -62,8 +62,8 @@ def test_neuromem_manager():
             vector = vector / norm
 
         vdb_collection.insert(  # type: ignore[union-attr]
-            index_name="test_index",
-            raw_data=text,
+            content=text,
+            index_names="test_index",
             vector=vector,
             metadata=metadata,
         )
@@ -85,8 +85,8 @@ def test_neuromem_manager():
         query_vector = query_vector / norm
 
     results = vdb_collection.retrieve(  # type: ignore[union-attr]
+        query=query_vector,
         index_name="test_index",
-        query_vector=query_vector,
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )
@@ -140,8 +140,8 @@ def test_neuromem_manager():
         query_vector = query_vector / norm
 
     results = vdb_collection.retrieve(  # type: ignore[union-attr]
+        query=query_vector,
         index_name="test_index",
-        query_vector=query_vector,
         with_metadata=True,
         threshold=0.3,  # 使用合理的阈值
     )
