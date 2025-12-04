@@ -9,6 +9,25 @@ SAGE CLI 主入口
 注意：Dev 开发工具命令由 sage-tools 包提供，不在此包中
 """
 
+import logging
+import os
+
+# Suppress noisy INFO logs during CLI startup unless SAGE_CLI_VERBOSE is set
+# This must be done BEFORE importing any sage modules
+if not os.environ.get("SAGE_CLI_VERBOSE"):
+    logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    # Also suppress specific noisy loggers
+    for logger_name in [
+        "sage.platform",
+        "sage.middleware",
+        "sage.kernel",
+        "sage.common",
+        "faiss",
+        "httpx",
+        "httpcore",
+    ]:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
+
 import typer
 from rich.console import Console
 

@@ -183,6 +183,19 @@ async def start_control_plane() -> None:
         await _control_plane_manager.start()
         logger.info("Control Plane Manager started")
 
+        # Discover and register existing engines
+        if _control_plane_manager.lifecycle_manager:
+            try:
+                discovered = _control_plane_manager.lifecycle_manager.discover_running_engines()
+                if discovered:
+                    logger.info(
+                        "Auto-discovered %d running engines: %s",
+                        len(discovered),
+                        ", ".join(e["engine_id"] for e in discovered),
+                    )
+            except Exception as e:
+                logger.warning("Failed to discover running engines: %s", e)
+
 
 async def stop_control_plane() -> None:
     """Stop the Control Plane Manager (called during app shutdown)."""
@@ -397,6 +410,26 @@ async def stop_engine(
         raise
     except Exception as exc:
         logger.error("Engine shutdown failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@control_plane_router.post("/engines/prune")
+async def prune_engines() -> dict[str, Any]:
+    """Remove all STOPPED/FAILED engine records from the registry.
+
+    This endpoint cleans up stale engine records that are no longer running.
+    Running engines are not affected.
+
+    Returns:
+        Count of pruned engines.
+    """
+    manager = _require_control_plane_manager()
+
+    try:
+        pruned = manager.prune_stopped_engines()
+        return {"pruned_count": pruned, "status": "success"}
+    except Exception as exc:
+        logger.error("Engine prune failed: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
