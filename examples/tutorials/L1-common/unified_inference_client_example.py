@@ -235,9 +235,7 @@ def example_error_handling():
 
     try:
         # 尝试连接不存在的服务
-        client = UnifiedInferenceClient.create(
-            control_plane_url="http://localhost:9999/v1"
-        )
+        client = UnifiedInferenceClient.create(control_plane_url="http://localhost:9999/v1")
         client.chat([{"role": "user", "content": "test"}])
     except ConnectionError as e:
         print(f"\n捕获到连接错误: {e}")
@@ -262,7 +260,9 @@ def main():
         print("\n运行前请确保:")
         print("  1. Gateway 已启动: sage gateway start")
         print("  2. LLM 引擎已启动: sage llm engine start Qwen/Qwen2.5-0.5B-Instruct")
-        print("  3. Embedding 引擎已启动: sage llm engine start BAAI/bge-m3 --engine-kind embedding")
+        print(
+            "  3. Embedding 引擎已启动: sage llm engine start BAAI/bge-m3 --engine-kind embedding"
+        )
         print("\n如需跳过连接测试，设置环境变量: SAGE_TEST_MODE=true")
 
     example_basic_chat()

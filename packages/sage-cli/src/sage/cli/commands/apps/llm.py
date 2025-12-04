@@ -1433,9 +1433,13 @@ def serve_llm(
             if llm_result.get("reused"):
                 pass  # Already printed in _start_engine_via_api
             elif llm_result.get("ready", True):
-                console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+                console.print(
+                    f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                )
             else:
-                console.print(f"   [yellow]⚠️[/yellow] LLM 引擎启动中 (ID: {engine_id}, 端口: {actual_port})，可能需要更多时间")
+                console.print(
+                    f"   [yellow]⚠️[/yellow] LLM 引擎启动中 (ID: {engine_id}, 端口: {actual_port})，可能需要更多时间"
+                )
         else:
             console.print("[yellow]⚠️  LLM 引擎启动失败[/yellow]")
 
@@ -1446,7 +1450,9 @@ def serve_llm(
 
             embed_port_to_use: int | None = embedding_port
             if not SagePorts.is_available(embedding_port):
-                console.print(f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]")
+                console.print(
+                    f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]"
+                )
                 embed_port_to_use = None
 
             embed_result = _start_engine_via_api(
@@ -1466,9 +1472,13 @@ def serve_llm(
                 if embed_result.get("reused"):
                     pass  # Already printed in _start_engine_via_api
                 elif embed_result.get("ready", True):
-                    console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+                    console.print(
+                        f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                    )
                 else:
-                    console.print(f"   [yellow]⚠️[/yellow] Embedding 引擎启动中 (ID: {engine_id}, 端口: {actual_port})")
+                    console.print(
+                        f"   [yellow]⚠️[/yellow] Embedding 引擎启动中 (ID: {engine_id}, 端口: {actual_port})"
+                    )
             else:
                 console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")
 
@@ -1567,10 +1577,16 @@ def serve_llm(
             if llm_result.get("reused"):
                 pass  # Already printed
             elif llm_result.get("ready", True):
-                console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+                console.print(
+                    f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                )
             else:
-                console.print(f"   [yellow]⚠️[/yellow] LLM 引擎启动中 (ID: {engine_id}, 端口: {actual_port})，可能需要更多时间")
-            gateway_config["engines"].append({"id": engine_id, "kind": "llm", "model": model, "port": actual_port})
+                console.print(
+                    f"   [yellow]⚠️[/yellow] LLM 引擎启动中 (ID: {engine_id}, 端口: {actual_port})，可能需要更多时间"
+                )
+            gateway_config["engines"].append(
+                {"id": engine_id, "kind": "llm", "model": model, "port": actual_port}
+            )
         else:
             console.print("[yellow]⚠️  LLM 引擎启动失败，Gateway 仍在运行[/yellow]")
 
@@ -1581,7 +1597,9 @@ def serve_llm(
 
             embed_port_to_use: int | None = embedding_port
             if not SagePorts.is_available(embedding_port):
-                console.print(f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]")
+                console.print(
+                    f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]"
+                )
                 embed_port_to_use = None
             else:
                 console.print(f"   端口: {embedding_port}")
@@ -1603,11 +1621,20 @@ def serve_llm(
                 if embed_result.get("reused"):
                     pass  # Already printed
                 elif embed_result.get("ready", True):
-                    console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})")
+                    console.print(
+                        f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                    )
                 else:
-                    console.print(f"   [yellow]⚠️[/yellow] Embedding 引擎启动中 (ID: {engine_id}, 端口: {actual_port})")
+                    console.print(
+                        f"   [yellow]⚠️[/yellow] Embedding 引擎启动中 (ID: {engine_id}, 端口: {actual_port})"
+                    )
                 gateway_config["engines"].append(
-                    {"id": engine_id, "kind": "embedding", "model": embedding_model, "port": actual_port}
+                    {
+                        "id": engine_id,
+                        "kind": "embedding",
+                        "model": embedding_model,
+                        "port": actual_port,
+                    }
                 )
             else:
                 console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")

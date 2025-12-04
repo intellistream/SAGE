@@ -41,6 +41,8 @@ if TYPE_CHECKING:
 try:
     from sage.common.components.sage_llm.sageLLM.control_plane import (
         ControlPlaneManager as _ControlPlaneManager,
+    )
+    from sage.common.components.sage_llm.sageLLM.control_plane import (
         ExecutionInstanceType as _ExecutionInstanceType,
     )
 
@@ -233,8 +235,7 @@ def _parse_instance_type(type_name: str) -> ExecutionInstanceType:
         raise HTTPException(
             status_code=400,
             detail=(
-                "Invalid instance_type. Expected one of "
-                f"{[t.name for t in _ExecutionInstanceType]}"
+                f"Invalid instance_type. Expected one of {[t.name for t in _ExecutionInstanceType]}"
             ),
         ) from exc
 
