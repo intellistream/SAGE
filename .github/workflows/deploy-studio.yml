@@ -1,26 +1,48 @@
 name: Deploy SAGE Studio to Self-Hosted Server
 
 on:
+  # Manual trigger - recommended for production deployment
   workflow_dispatch:
     inputs:
       port:
         description: 'Studio port (default: 5173)'
         required: false
         default: '5173'
+      tunnel_domain:
+        description: 'Cloudflare Tunnel domain (e.g., sage-studio.example.com)'
+        required: false
+        default: ''
+  # Auto deploy only on main branch (stable releases)
   push:
     branches:
       - main
-      - main-dev
-      - feat/unified-chat-canvas-rebased
     paths:
       - 'packages/sage-studio/**'
       - 'packages/sage-gateway/**'
-      - '.github/workflows/deploy-studio.yml'
+
+env:
+  # Default Cloudflare Tunnel domain
+  DEFAULT_TUNNEL_DOMAIN: 'studio.sage.org.ai'
 
 jobs:
   deploy:
-    runs-on: self-hosted
-    timeout-minutes: 30
+    # 强制使用 A100 runner，确保环境一致性（与 paper1-experiments.yml 相同）
+    runs-on: [self-hosted, A100]
+    timeout-minutes: 120  # 首次安装 NVIDIA CUDA 包需要较长时间
+
+    # Define secrets as env vars at job level for conditional checks
+    env:
+      CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      # Conda 环境名称（统一使用 sage，与开发环境一致）
+      CONDA_ENV_NAME: sage
+
+    # 默认使用 bash，并自动激活 conda 环境
+    defaults:
+      run:
+        shell: bash -el {0}
 
     steps:
       - name: Checkout code
@@ -29,11 +51,72 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+      # 使用持久化的 conda 环境，避免每次重新下载大包
+      # 参考 paper1-experiments.yml 的模式
+      - name: Setup Conda Environment
+        run: |
+          echo "🐍 设置 Conda 环境..."
+
+          # 定义 conda 初始化函数
+          init_conda() {
+            for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda" "/usr/local/miniconda3"; do
+              if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+                source "$conda_path/etc/profile.d/conda.sh"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          # 尝试初始化 conda
+          if ! init_conda; then
+            echo "📦 未找到 conda，正在安装 Miniconda..."
+            wget -q https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
+            bash /tmp/miniconda.sh -b -p $HOME/miniconda3
+            source "$HOME/miniconda3/etc/profile.d/conda.sh"
+            rm /tmp/miniconda.sh
+          fi
+
+          conda --version
+          echo "✅ Conda 已初始化"
+
+          # 配置 conda 使用清华镜像
+          conda config --set show_channel_urls yes 2>/dev/null || true
+          conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ 2>/dev/null || true
+          conda config --set channel_priority flexible 2>/dev/null || true
+
+          # 确定使用的环境名（优先使用已有的 sage 环境）
+          if conda env list | grep -q "^sage "; then
+            ACTUAL_ENV="sage"
+            echo "✅ 复用已有的 'sage' 环境"
+          elif conda env list | grep -q "^${CONDA_ENV_NAME} "; then
+            ACTUAL_ENV="${CONDA_ENV_NAME}"
+            echo "✅ 使用 '${CONDA_ENV_NAME}' 环境"
+          else
+            ACTUAL_ENV="${CONDA_ENV_NAME}"
+            echo "📦 创建新的 Conda 环境 '${ACTUAL_ENV}'..."
+            conda create -n ${ACTUAL_ENV} python=3.11 -y
+          fi
+
+          # 验证环境
+          conda run -n ${ACTUAL_ENV} python --version
+          echo "✅ Conda 环境就绪"
+
+          # 检查核心依赖是否已安装
+          NVIDIA_COUNT=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c -i "nvidia" || echo "0")
+          TORCH_COUNT=$(conda run -n ${ACTUAL_ENV} pip list 2>/dev/null | grep -c "^torch " || echo "0")
+
+          if [ "$NVIDIA_COUNT" -gt 5 ] && [ "$TORCH_COUNT" -gt 0 ]; then
+            echo "deps_installed=true" >> $GITHUB_ENV
+            echo "✅ 核心依赖已安装（NVIDIA: $NVIDIA_COUNT, PyTorch: $TORCH_COUNT）"
+          else
+            echo "deps_installed=false" >> $GITHUB_ENV
+            echo "📦 需要安装核心依赖"
+          fi
+
+          # 保存环境信息供后续步骤使用
+          echo "CONDA_PATH=$(dirname $(dirname $(which conda)))" >> $GITHUB_ENV
+          echo "ACTUAL_CONDA_ENV=${ACTUAL_ENV}" >> $GITHUB_ENV
 
       - name: Stop existing services
         continue-on-error: true
@@ -41,40 +124,174 @@ jobs:
           echo "🛑 Stopping existing SAGE Studio services..."
           pkill -f "sage studio" || true
           pkill -f "sage-gateway" || true
+          # 注意：不停止 cloudflared tunnel，保持公网访问连续性
+          # Tunnel 会在后面的 Start Cloudflare Tunnel 步骤中按需重启
           sleep 2
 
       - name: Install System Dependencies
+        continue-on-error: true
         run: |
-          echo "� 安装系统依赖..."
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            cmake \
-            pkg-config \
-            git
-          echo "✅ 系统依赖安装完成"
+          echo "📦 检查/安装系统依赖..."
+          # Try with sudo if available, skip if not (dependencies should be pre-installed on self-hosted runner)
+          if sudo -n true 2>/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends \
+              build-essential \
+              cmake \
+              pkg-config \
+              git
+            echo "✅ 系统依赖安装完成"
+          else
+            echo "⚠️ 无 sudo 权限，跳过系统依赖安装（假设已预装）"
+            # Verify essential commands exist
+            command -v cmake && command -v git && echo "✅ 必要工具已存在"
+          fi
+
+      - name: Check existing SAGE installation
+        id: check-sage
+        run: |
+          echo "🔍 检查现有 SAGE 安装..."
+
+          # 初始化并激活 conda（参考 paper1-experiments.yml）
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+          echo "当前 Python: $(which python)"
+          echo "当前 Conda 环境: ${ACTUAL_CONDA_ENV:-未设置}"
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+
+          CURRENT_COMMIT="${{ github.sha }}"
+          DEPLOYED_COMMIT_FILE="$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
+
+          # 检查是否已安装并可导入
+          if python -c "import sage.studio; import sage.gateway" 2>/dev/null; then
+            echo "sage_installed=true" >> $GITHUB_OUTPUT
+            echo "✅ SAGE 已安装"
+
+            # 检查上次部署的 commit
+            if [ -f "$DEPLOYED_COMMIT_FILE" ]; then
+              DEPLOYED_COMMIT=$(cat "$DEPLOYED_COMMIT_FILE")
+              echo "上次部署 commit: $DEPLOYED_COMMIT"
+              echo "当前部署 commit: $CURRENT_COMMIT"
+
+              if [ "$DEPLOYED_COMMIT" = "$CURRENT_COMMIT" ]; then
+                echo "needs_update=false" >> $GITHUB_OUTPUT
+                echo "✅ 版本一致，无需重新安装"
+              else
+                echo "needs_update=true" >> $GITHUB_OUTPUT
+                echo "📦 版本不同，需要更新"
+              fi
+            else
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+              echo "📦 首次部署记录，需要更新"
+            fi
+          else
+            echo "sage_installed=false" >> $GITHUB_OUTPUT
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "📦 SAGE 未安装，需要完整安装"
+          fi
 
       - name: Install/Update SAGE
+        if: steps.check-sage.outputs.needs_update == 'true'
         run: |
-          echo "📦 安装 SAGE（开发模式）..."
+          echo "📦 安装/更新 SAGE（开发模式）..."
 
-          export PATH="$HOME/.local/bin:$PATH"
+          # 初始化并激活 conda（参考 paper1-experiments.yml）
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+          echo "当前 Python: $(which python)"
+          echo "当前 pip: $(which pip)"
+          echo "CONDA_PREFIX: ${CONDA_PREFIX:-未设置}"
+
           chmod +x ./quickstart.sh
 
-          # 配置国内 PyPI 镜像加速
+          # 配置国内 PyPI 镜像加速（清华源）
           export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
           export PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+          # 增加超时和重试配置
+          export PIP_DEFAULT_TIMEOUT=300
+          export PIP_RETRIES=5
 
-          ./quickstart.sh --dev --yes
+          # 如果已安装，使用增量更新模式
+          if [ "${{ steps.check-sage.outputs.sage_installed }}" = "true" ]; then
+            echo "🔄 执行增量更新（仅更新 SAGE 包，不重装依赖）..."
+            # 只重新安装 editable 包，不重装依赖
+            pip install -e packages/sage-common --no-deps -q
+            pip install -e packages/sage-platform --no-deps -q
+            pip install -e packages/sage-kernel --no-deps -q
+            pip install -e packages/sage-libs --no-deps -q
+            pip install -e packages/sage-middleware --no-deps -q
+            pip install -e packages/sage-apps --no-deps -q
+            pip install -e packages/sage-studio --no-deps -q
+            pip install -e packages/sage-gateway --no-deps -q
+            pip install -e packages/sage-cli --no-deps -q
+            pip install -e packages/sage-tools --no-deps -q
+            pip install -e packages/sage --no-deps -q
+            echo "✅ 增量更新完成"
+          elif [ "$deps_installed" = "true" ]; then
+            echo "🔄 核心依赖已存在，仅安装 SAGE 包（带依赖检查）..."
+            # 依赖已存在，只安装 SAGE 包，pip 会自动跳过已安装的依赖
+            pip install -e packages/sage-common -q
+            pip install -e packages/sage-platform -q
+            pip install -e packages/sage-kernel -q
+            pip install -e packages/sage-libs -q
+            pip install -e packages/sage-middleware -q
+            pip install -e packages/sage-apps -q
+            pip install -e packages/sage-studio -q
+            pip install -e packages/sage-gateway -q
+            pip install -e packages/sage-cli -q
+            pip install -e packages/sage-tools -q
+            pip install -e packages/sage -q
+            echo "✅ SAGE 包安装完成（复用已有依赖）"
+          else
+            echo "📦 执行完整安装（首次安装，需要下载所有依赖）..."
+            # 强制使用中国镜像 + 使用当前 conda 环境的 pip
+            export SAGE_FORCE_CHINA_MIRROR=true
+            # 取消 CI 变量，让 quickstart.sh 安装到当前 conda 环境
+            unset CI GITHUB_ACTIONS
+            ./quickstart.sh --dev --yes --pip
+          fi
 
-          echo "✅ SAGE 安装完成"
-        timeout-minutes: 45
+          # 记录部署的 commit，用于下次增量检测（按环境名区分）
+          echo "${{ github.sha }}" > "$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
+
+          echo "✅ SAGE 安装/更新完成"
+        timeout-minutes: 90  # NVIDIA CUDA 包很大，需要更长时间
+
+      - name: Skip installation (up to date)
+        if: steps.check-sage.outputs.needs_update != 'true'
+        run: |
+          echo "⏭️ SAGE 已是最新版本，跳过安装步骤"
 
       - name: Verify Installation
         run: |
           echo "✅ 验证 SAGE 安装..."
 
-          export PATH="$HOME/.local/bin:$PATH"
+          # 初始化并激活 conda
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+          echo "当前 Python: $(which python)"
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
 
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.cli; print('✅ sage.cli imported')"
@@ -86,39 +303,127 @@ jobs:
             echo "⚠️  sage 命令不可用"
           fi
 
+
+
+      - name: Install Frontend Dependencies
+        run: |
+          echo "📦 安装前端依赖..."
+
+          # 初始化并激活 conda
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "PATH (first 3): $(echo $PATH | tr ':' '\n' | head -3 | tr '\n' ':')"
+
+          # 确保 Node.js 20+ 可用（TypeScript 5.x 需要 Node.js 14+，推荐 20+）
+          # 检查版本号而不是仅检查命令是否存在，因为系统可能有旧版本 Node.js
+          NODE_VERSION=""
+          if command -v node &> /dev/null; then
+            NODE_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+            echo "当前 Node.js: $(node --version) at $(which node)"
+          fi
+
+          if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 18 ]; then
+            echo "📦 安装 Node.js 20（当前版本: ${NODE_VERSION:-未安装}，需要 18+）..."
+            conda install -y nodejs=20 -c conda-forge
+
+            # 强制重新激活 conda 环境以更新 PATH
+            conda deactivate
+            conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
+
+            # 刷新命令缓存
+            hash -r
+
+            echo "安装后 Node.js: $(node --version) at $(which node)"
+          fi
+
+          echo "Node.js: $(node --version)"
+          echo "npm: $(npm --version)"
+
+          # 验证 Node.js 版本满足要求
+          FINAL_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+          if [ "$FINAL_VERSION" -lt 18 ]; then
+            echo "❌ Node.js 版本过低: $(node --version)，需要 18+"
+            echo "   当前 Node.js 路径: $(which node)"
+            echo "   conda 环境: $CONDA_PREFIX"
+            echo "   检查是否存在 conda node: ls -la $CONDA_PREFIX/bin/node"
+            ls -la "$CONDA_PREFIX/bin/node" 2>/dev/null || echo "   conda 中未找到 node"
+            echo "   请确保 conda 环境的 bin 目录在 PATH 前面"
+            exit 1
+          fi
+
+          # 安装前端依赖
+          sage studio install
+
+          echo "✅ 前端依赖就绪"
+
       - name: Build Studio (Production)
         run: |
           echo "🏗️  构建 SAGE Studio（生产模式）..."
 
-          export PATH="$HOME/.local/bin:$PATH"
+          # 初始化并激活 conda
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
 
+          # 验证 Node.js 版本（必须在 conda 环境中）
+          echo "Node.js: $(node --version) at $(which node)"
+          NODE_MAJOR=$(node --version | sed 's/v//' | cut -d. -f1)
+          if [ "$NODE_MAJOR" -lt 18 ]; then
+            echo "❌ Node.js 版本过低，需要 18+"
+            exit 1
+          fi
+
+          # 构建生产版本
           sage studio build
 
           echo "✅ Studio 构建完成"
 
       - name: Start SAGE Studio
-        env:
-          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           echo "🚀 启动 SAGE Studio（生产模式）..."
 
-          export PATH="$HOME/.local/bin:$PATH"
+          # 初始化并激活 conda
+          if [ -n "$CONDA_PATH" ]; then
+            source "$CONDA_PATH/etc/profile.d/conda.sh"
+          else
+            for p in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+              [ -f "$p/etc/profile.d/conda.sh" ] && source "$p/etc/profile.d/conda.sh" && break
+            done
+          fi
+          conda activate ${ACTUAL_CONDA_ENV:-sage-studio}
 
-          # Production mode for better performance and stability
+          # 使用生产模式启动（Vite preview，基于构建产物）
+          #
+          # 功能流程：
           # 1. Builds RAG index from docs-public if needed
           # 2. Starts Gateway on port 8000
-          # 3. Builds and serves optimized frontend on port 5173 (Vite default)
-          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} > ~/sage-studio-deploy.log 2>&1 &
+          # 3. Starts local LLM service via sageLLM (default: Qwen2.5-0.5B-Instruct)
+          # 4. Starts Vite preview server on port 5173 (from built assets)
+          #
+          # CI Mode Options:
+          # -y: Non-interactive mode (skip all prompts, use default LLM/Embedding config)
+          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y > ~/sage-studio-deploy.log 2>&1 &
 
-          sleep 15  # Production build needs more time
+          sleep 20  # Wait for services to start
 
           echo "✅ Studio 已启动"
 
       - name: Health check
         run: |
-          PORT="${{ github.event.inputs.port || '4200' }}"
+          PORT="${{ github.event.inputs.port || '5173' }}"
           echo "🔍 检查服务健康状态..."
 
           # 检查服务是否启动
@@ -143,10 +448,54 @@ jobs:
           echo "🔧 检查 SAGE Studio 进程..."
           ps aux | grep "[s]age studio" || echo "⚠️ 未找到 SAGE Studio 进程"
 
+      - name: Setup Cloudflare Tunnel
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        run: |
+          echo "🌐 配置 Cloudflare Tunnel..."
+
+          # 确保 ~/.local/bin 在 PATH 中（cloudflared 安装位置）
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 检查是否已安装 cloudflared
+          if ! command -v cloudflared &> /dev/null; then
+            echo "📦 安装 cloudflared..."
+            mkdir -p ~/.local/bin
+            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/.local/bin/cloudflared
+            chmod +x ~/.local/bin/cloudflared
+          fi
+
+          cloudflared --version
+          echo "✅ cloudflared 已就绪"
+
+      - name: Start Cloudflare Tunnel
+        if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
+        run: |
+          echo "🚀 启动 Cloudflare Tunnel..."
+
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 停止可能存在的旧 tunnel 进程
+          pkill -f "cloudflared tunnel" || true
+          sleep 2
+
+          # 启动 tunnel
+          nohup cloudflared tunnel run --token "${CLOUDFLARE_TUNNEL_TOKEN}" > ~/cloudflared.log 2>&1 &
+
+          sleep 5
+
+          # 验证 tunnel 是否启动
+          if pgrep -f "cloudflared tunnel" > /dev/null; then
+            echo "✅ Cloudflare Tunnel 已启动"
+          else
+            echo "❌ Cloudflare Tunnel 启动失败"
+            tail -20 ~/cloudflared.log || echo "暂无日志"
+            exit 1
+          fi
+
       - name: Network accessibility check
         continue-on-error: true
         run: |
-          PORT="${{ github.event.inputs.port || '4200' }}"
+          PORT="${{ github.event.inputs.port || '5173' }}"
           SERVER_IP=$(hostname -I | awk '{print $1}')
 
           echo "🌐 测试网络可达性..."
@@ -167,15 +516,17 @@ jobs:
             echo "❌ ${SERVER_IP}:${PORT} 不可访问"
           fi
 
-          # 检查防火墙规则
+          # 检查防火墙规则（可选，仅供参考）
           echo ""
           echo "🔥 防火墙检查："
-          if command -v ufw &> /dev/null; then
+          if command -v ufw &> /dev/null && sudo -n true 2>/dev/null; then
             echo "UFW 状态："
             sudo ufw status | grep -E "Status|${PORT}" || echo "端口 ${PORT} 未在 UFW 规则中"
+          else
+            echo "⚠️ 跳过 UFW 检查（无 sudo 权限或未安装）"
           fi
 
-          if command -v iptables &> /dev/null; then
+          if command -v iptables &> /dev/null && sudo -n true 2>/dev/null; then
             echo ""
             echo "IPTables 入站规则（端口 ${PORT}）："
             sudo iptables -L INPUT -n -v 2>/dev/null | grep -E "dpt:${PORT}|ACCEPT.*all" | head -5 || echo "未找到相关规则"
@@ -194,16 +545,23 @@ jobs:
 
       - name: Deployment summary
         run: |
-          PORT="${{ github.event.inputs.port || '4200' }}"
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          TUNNEL_DOMAIN="${{ github.event.inputs.tunnel_domain || env.DEFAULT_TUNNEL_DOMAIN }}"
 
           # 获取服务器网络信息
           SERVER_IP=$(hostname -I | awk '{print $1}')
           HOSTNAME=$(hostname -f)
           PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "N/A")
 
-          # 检测防火墙状态
-          FIREWALL_STATUS="未知"
-          if command -v ufw &> /dev/null; then
+          # 检测 Cloudflare Tunnel 状态
+          TUNNEL_STATUS="❌ 未运行"
+          if pgrep -f "cloudflared tunnel" > /dev/null; then
+            TUNNEL_STATUS="✅ 运行中"
+          fi
+
+          # 检测防火墙状态（可选）
+          FIREWALL_STATUS="未检查"
+          if command -v ufw &> /dev/null && sudo -n true 2>/dev/null; then
             if sudo ufw status | grep -q "Status: active"; then
               if sudo ufw status | grep -q "$PORT"; then
                 FIREWALL_STATUS="✅ UFW: 端口 $PORT 已开放"
@@ -224,6 +582,7 @@ jobs:
           部署时间: $(date '+%Y-%m-%d %H:%M:%S %Z')
 
           访问地址:
+          - Cloudflare Tunnel: https://${TUNNEL_DOMAIN} (推荐，全球可访问)
           - 内网IP: http://${SERVER_IP}:${PORT}
           - 主机名: http://${HOSTNAME}:${PORT}
           - 公网IP: http://${PUBLIC_IP}:${PORT} (如果可用)
@@ -231,20 +590,16 @@ jobs:
           服务状态:
           - 端口: ${PORT}
           - 监听: 0.0.0.0 (所有网络接口)
+          - Cloudflare Tunnel: ${TUNNEL_STATUS}
           - 防火墙: ${FIREWALL_STATUS}
 
-          校园网访问建议:
-          1. 如果在校园网内，使用内网IP: http://${SERVER_IP}:${PORT}
-          2. 如果需要校外访问，需要配置VPN或端口转发
-          3. 请联系网络管理员确认防火墙配置
-
           日志文件:
-          - 部署日志: ~/sage-studio-deploy.log
-          - 服务日志: 运行 'journalctl -f' 查看
+          - Studio 日志: ~/sage-studio-deploy.log
+          - Tunnel 日志: ~/cloudflared.log
 
           管理命令:
-          - 查看状态: ps aux | grep "sage studio"
-          - 停止服务: pkill -f "sage studio"
+          - 查看状态: ps aux | grep -E "sage studio|cloudflared"
+          - 停止服务: pkill -f "sage studio" && pkill -f "cloudflared tunnel"
           - 重启服务: 重新运行此 workflow
           ======================================
           EOF
@@ -253,35 +608,42 @@ jobs:
           cat "$DEPLOY_INFO_FILE"
 
           # 输出到 GitHub Actions Summary
-          echo "## 🎉 SAGE Studio 部署成功！" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 SAGE Studio 部署成功" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📍 访问地址" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 访问地址" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| 网络环境 | 访问地址 | 说明 |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|---------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏫 校园网内 | \`http://${SERVER_IP}:${PORT}\` | **推荐使用** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 方式 | 访问地址 | 说明 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ☁️ **Cloudflare Tunnel** | [\`https://${TUNNEL_DOMAIN}\`](https://${TUNNEL_DOMAIN}) | **推荐 - 全球可访问，自动 HTTPS** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏫 校园网内 | \`http://${SERVER_IP}:${PORT}\` | 内网直连 |" >> $GITHUB_STEP_SUMMARY
           echo "| 🖥️ 主机名 | \`http://${HOSTNAME}:${PORT}\` | 如果DNS配置正确 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 公网访问 | \`http://${PUBLIC_IP}:${PORT}\` | 需要配置防火墙/VPN |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 服务器信息" >> $GITHUB_STEP_SUMMARY
-          echo "- **内网IP**: ${SERVER_IP}" >> $GITHUB_STEP_SUMMARY
-          echo "- **主机名**: ${HOSTNAME}" >> $GITHUB_STEP_SUMMARY
-          echo "- **监听端口**: ${PORT}" >> $GITHUB_STEP_SUMMARY
-          echo "- **防火墙状态**: ${FIREWALL_STATUS}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> 💡 **部署信息已保存**: 登录服务器后可查看 \`~/sage-studio-deployment-info.txt\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 服务状态" >> $GITHUB_STEP_SUMMARY
+          echo "| 服务 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| SAGE Studio | ✅ 运行中 (端口 ${PORT}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cloudflare Tunnel | ${TUNNEL_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 防火墙 | ${FIREWALL_STATUS} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✨ 功能特性" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 可视化流水线编辑器" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ AI 对话（基于 SAGE 文档的 RAG）" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AI 对话（本地 LLM + RAG）" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 工作流自动生成" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ 交互式调试" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔍 故障排查" >> $GITHUB_STEP_SUMMARY
+          echo "### � 日志" >> $GITHUB_STEP_SUMMARY
           echo "<details>" >> $GITHUB_STEP_SUMMARY
-          echo "<summary>点击展开最近30行日志</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>Studio 日志（最近30行）</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -30 ~/sage-studio-deploy.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>Cloudflare Tunnel 日志（最近20行）</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -20 ~/cloudflared.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Tunnel logs will appear shortly..." >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY

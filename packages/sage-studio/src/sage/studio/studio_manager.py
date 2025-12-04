@@ -4,6 +4,7 @@ SAGE Studio 管理器 - 从 studio/cli.py 提取的业务逻辑
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -71,6 +72,18 @@ class StudioManager:
 
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
+
+    def _get_node_modules_root(self) -> Path | None:
+        """Locate the effective node_modules directory."""
+
+        if self.node_modules_dir.exists():
+            return self.node_modules_dir
+
+        fallback = self.frontend_dir / "node_modules"
+        if fallback.exists():
+            return fallback
+
+        return None
 
     def load_config(self) -> dict:
         """加载配置"""
@@ -263,17 +276,40 @@ class StudioManager:
 
     def check_dependencies(self) -> bool:
         """检查依赖"""
+        MIN_NODE_VERSION = 18  # TypeScript 5.x 需要 Node.js 14+，推荐 18+
+
         # 检查 Node.js
         try:
             result = subprocess.run(["node", "--version"], capture_output=True, text=True)
             if result.returncode == 0:
                 node_version = result.stdout.strip()
+                # 解析版本号（例如 v12.22.9 -> 12）
+                version_str = node_version.lstrip("v").split(".")[0]
+                try:
+                    major_version = int(version_str)
+                except ValueError:
+                    major_version = 0
+
+                if major_version < MIN_NODE_VERSION:
+                    console.print(
+                        f"[red]Node.js 版本过低: {node_version}（需要 v{MIN_NODE_VERSION}+）[/red]"
+                    )
+                    console.print("[yellow]💡 请升级 Node.js:[/yellow]")
+                    console.print("   conda install -y nodejs=20 -c conda-forge")
+                    console.print("   # 或通过 nvm 安装: nvm install 20 && nvm use 20")
+                    return False
                 console.print(f"[green]Node.js: {node_version}[/green]")
             else:
                 console.print("[red]Node.js 未找到[/red]")
+                console.print("[yellow]💡 安装方法:[/yellow]")
+                console.print("   conda install -y nodejs=20 -c conda-forge")
+                console.print("   # 或 apt install nodejs npm")
                 return False
         except FileNotFoundError:
             console.print("[red]Node.js 未安装[/red]")
+            console.print("[yellow]💡 安装方法:[/yellow]")
+            console.print("   conda install -y nodejs=20 -c conda-forge")
+            console.print("   # 或 apt install nodejs npm")
             return False
 
         # 检查 npm
@@ -284,9 +320,11 @@ class StudioManager:
                 console.print(f"[green]npm: {npm_version}[/green]")
             else:
                 console.print("[red]npm 未找到[/red]")
+                console.print("[yellow]💡 npm 通常随 Node.js 一起安装[/yellow]")
                 return False
         except (FileNotFoundError, subprocess.CalledProcessError):
             console.print("[red]npm 未安装[/red]")
+            console.print("[yellow]💡 npm 通常随 Node.js 一起安装[/yellow]")
             return False
 
         return True
@@ -351,6 +389,143 @@ class StudioManager:
         else:
             console.print("[yellow]警告: 目标 node_modules 不存在[/yellow]")
             return False
+
+    def _ensure_frontend_dependency_integrity(self, auto_fix: bool = True) -> bool:
+        """Detect and optionally repair broken critical frontend dependencies."""
+
+        modules_root = self._get_node_modules_root()
+        if modules_root is None:
+            return True  # Nothing to check yet
+
+        critical_packages = [
+            {
+                "name": "lines-and-columns",
+                "version": "1.2.4",
+                "required": ["build", "build/index.js"],
+                "reason": "PostCSS SourceMap helper (Vite dev server)",
+            },
+            {
+                "name": "typescript",
+                "version": "^5.2.2",
+                "required": ["bin/tsc"],
+                "reason": "TypeScript compiler for build",
+            },
+            {
+                "name": "vite",
+                "version": "^5.0.8",
+                "required": ["bin/vite.js"],
+                "reason": "Vite build tool",
+            },
+        ]
+
+        broken: list[tuple[dict, list[str]]] = []
+
+        for pkg in critical_packages:
+            pkg_dir = modules_root / pkg["name"]
+            missing: list[str] = []
+
+            if not pkg_dir.exists():
+                missing.append("package directory")
+            else:
+                for rel_path in pkg["required"]:
+                    if not (pkg_dir / rel_path).exists():
+                        missing.append(rel_path)
+
+            if missing:
+                broken.append((pkg, missing))
+
+        if not broken:
+            return True
+
+        console.print("[yellow]⚠️  检测到前端依赖缺少关键文件，Vite 可能无法启动[/yellow]")
+        for pkg, missing in broken:
+            missing_display = ", ".join(missing)
+            console.print(
+                f"   • {pkg['name']}: 缺少 {missing_display} ({pkg.get('reason', '必需文件')})"
+            )
+
+        if not auto_fix:
+            console.print(
+                "[yellow]自动修复已禁用，请运行 'sage studio install' 或在"
+                f" {self.frontend_dir} 执行: npm cache clean --force && "
+                "npm install --no-save <package>@<version>[/yellow]"
+            )
+            return False
+
+        for pkg, _missing in broken:
+            if not self._repair_node_package(pkg):
+                return False
+
+        return self._ensure_frontend_dependency_integrity(auto_fix=False)
+
+    def _repair_node_package(self, package_meta: dict) -> bool:
+        """Attempt to self-heal a corrupted npm package installation."""
+
+        package_name = package_meta["name"]
+        version = package_meta.get("version")
+        spec = f"{package_name}@{version}" if version else package_name
+
+        modules_root = self._get_node_modules_root()
+        if modules_root is None:
+            console.print("[red]node_modules 尚未安装，无法修复依赖[/red]")
+            return False
+
+        console.print(f"[blue]🧹 修复前端依赖 {spec}...[/blue]")
+
+        targets = {
+            modules_root / package_name,
+            (self.frontend_dir / "node_modules") / package_name,
+        }
+
+        for target in targets:
+            if target.exists() or target.is_symlink():
+                try:
+                    if target.is_symlink() or target.is_file():
+                        target.unlink()
+                    else:
+                        shutil.rmtree(target)
+                    console.print(f"   [green]✓[/green] 已清理 {target}")
+                except Exception as exc:  # pragma: no cover - best effort cleanup
+                    console.print(f"[red]清理 {target} 失败: {exc}[/red]")
+                    return False
+
+        env = os.environ.copy()
+        env["npm_config_cache"] = str(self.npm_cache_dir)
+
+        def run_npm(args: list[str], label: str) -> bool:
+            try:
+                subprocess.run(
+                    ["npm", *args],
+                    cwd=self.frontend_dir,
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                return True
+            except subprocess.CalledProcessError as exc:  # pragma: no cover - runtime failure
+                console.print(f"[red]npm {label} 失败 (exit {exc.returncode})[/red]")
+                if exc.stdout:
+                    console.print(exc.stdout.strip())
+                if exc.stderr:
+                    console.print(exc.stderr.strip())
+                return False
+
+        console.print("   [blue]刷新 npm 缓存...[/blue]")
+        if not run_npm(["cache", "clean", "--force"], "cache clean"):
+            return False
+
+        console.print("   [blue]重新安装依赖文件...[/blue]")
+        install_args = ["install", "--no-save", spec]
+        if not run_npm(install_args, f"install {spec}"):
+            return False
+
+        # 仅在 .sage/studio/node_modules 已存在时尝试创建符号链接，
+        # 避免误删项目目录中的实际依赖目录
+        if self.node_modules_dir.exists():
+            self.ensure_node_modules_link()
+        console.print(f"[green]✅ {spec} 修复完成[/green]")
+        return True
 
     def install_dependencies(
         self,
@@ -439,6 +614,10 @@ class StudioManager:
         # 安装所有依赖
         if not self.install_dependencies():
             console.print("[red]❌ 依赖安装失败[/red]")
+            return False
+
+        if not self._ensure_frontend_dependency_integrity(auto_fix=True):
+            console.print("[red]❌ 依赖完整性检查失败[/red]")
             return False
 
         # 检查 TypeScript 编译
@@ -1045,6 +1224,11 @@ if __name__ == "__main__":
                 console.print("[yellow]未安装依赖，请先运行: sage studio install[/yellow]")
                 self.stop_backend()
                 return False
+
+        if not self._ensure_frontend_dependency_integrity(auto_fix=auto_install):
+            console.print("[red]前端依赖损坏，已停止启动流程[/red]")
+            self.stop_backend()
+            return False
 
         # 使用提供的参数或配置文件中的默认值
         config = self.load_config()

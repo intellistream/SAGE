@@ -148,6 +148,11 @@ class LLMAPIServer:
         """
         if self.is_running():
             logger.warning(f"LLM API server already running on port {self.config.port}")
+            # Try to find the PID of the existing service
+            existing_pid = self._find_existing_service_pid()
+            if existing_pid:
+                self.pid = existing_pid
+                logger.info(f"Found existing LLM service with PID: {existing_pid}")
             return True
 
         # Prepare log file
@@ -326,6 +331,34 @@ class LLMAPIServer:
         self.stop()
         time.sleep(2)  # Wait a bit before restart
         return self.start(background=background)
+
+    def _find_existing_service_pid(self) -> int | None:
+        """Find PID of existing service running on the configured port.
+
+        Returns:
+            PID if found, None otherwise
+        """
+        try:
+            for conn in psutil.net_connections(kind="inet"):
+                if conn.laddr.port == self.config.port and conn.status == "LISTEN":
+                    return conn.pid
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            pass
+
+        # Fallback: search for vllm process with this port
+        try:
+            for proc in psutil.process_iter(["pid", "cmdline"]):
+                try:
+                    cmdline = proc.info.get("cmdline") or []
+                    cmdline_str = " ".join(cmdline)
+                    if "vllm" in cmdline_str and f"--port {self.config.port}" in cmdline_str:
+                        return proc.info["pid"]
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception:
+            pass
+
+        return None
 
     def is_running(self) -> bool:
         """Check if the LLM API server is running

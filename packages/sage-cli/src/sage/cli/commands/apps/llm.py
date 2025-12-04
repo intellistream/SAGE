@@ -45,14 +45,13 @@ except Exception:  # pragma: no cover
     LLMLauncher = None  # type: ignore
     LLMServerConfig = None  # type: ignore
 
+# sage-gateway is now the unified gateway (includes Control Plane)
+# UnifiedAPIServer has been removed from sage-common
+GATEWAY_AVAILABLE = True
 try:
-    from sage.common.components.sage_llm import (
-        UnifiedAPIServer,
-        UnifiedServerConfig,
-    )
-except Exception:  # pragma: no cover
-    UnifiedAPIServer = None  # type: ignore
-    UnifiedServerConfig = None  # type: ignore
+    from sage.gateway.server import main as gateway_main  # type: ignore # noqa: F401
+except ImportError:  # pragma: no cover
+    GATEWAY_AVAILABLE = False
 
 # Import config subcommands
 from sage.cli.commands.platform.llm_config import app as config_app
@@ -93,7 +92,7 @@ def _print_management_api_hint(api_base: str) -> None:
         "[yellow]💡 控制平面管理 API 未运行或不可达。[/yellow]",
     )
     console.print(
-        "   请先启动 Unified API Server（gateway），例如运行 [cyan]sage llm serve[/cyan]",
+        "   请先启动 Gateway 服务，运行 [cyan]sage gateway start[/cyan]",
     )
     console.print(
         f"   默认管理地址: http://{host}:{port}/v1，可用 --api-port 或 --api-base 自行覆盖。",
@@ -124,6 +123,7 @@ def _management_request(
     api_base: str,
     timeout: float,
     payload: dict[str, Any] | None = None,
+    _silent: bool = False,
 ) -> dict[str, Any]:
     endpoint_path = endpoint if endpoint.startswith("/") else f"/{endpoint}"
     url = f"{api_base.rstrip('/')}{endpoint_path}"
@@ -135,13 +135,15 @@ def _management_request(
     try:
         response = httpx.request(method, url, **request_kwargs)
     except httpx.RequestError as exc:
-        console.print(f"[red]❌ 无法连接到管理 API: {exc}[/red]")
-        _print_management_api_hint(api_base)
+        if not _silent:
+            console.print(f"[red]❌ 无法连接到管理 API: {exc}[/red]")
+            _print_management_api_hint(api_base)
         raise typer.Exit(1) from exc
 
     if response.status_code >= 400:
-        detail = _extract_error_detail(response)
-        console.print(f"[red]❌ 管理 API 请求失败 ({response.status_code}): {detail}[/red]")
+        if not _silent:
+            detail = _extract_error_detail(response)
+            console.print(f"[red]❌ 管理 API 请求失败 ({response.status_code}): {detail}[/red]")
         raise typer.Exit(1)
 
     if not response.content:
@@ -150,7 +152,8 @@ def _management_request(
     try:
         return response.json()
     except ValueError as exc:  # pragma: no cover - defensive
-        console.print(f"[red]❌ 无法解析服务响应: {exc}[/red]")
+        if not _silent:
+            console.print(f"[red]❌ 无法解析服务响应: {exc}[/red]")
         raise typer.Exit(1)
 
 
@@ -717,20 +720,133 @@ def stop_engine(
         "--api-base",
         help="覆盖控制平面 API 基地址",
     ),
+    drain: bool = typer.Option(
+        False,
+        "--drain",
+        "-d",
+        help="优雅关闭：等待现有请求完成后再停止引擎",
+    ),
     timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
 ):
-    """请求停止指定的 LLM 引擎。"""
+    """请求停止指定的 LLM 引擎。
 
+    使用 --drain 选项可以优雅关闭引擎：引擎将停止接受新请求，
+    等待现有请求处理完成后再停止。
+    """
     base_url = _resolve_api_base(api_base, api_port)
+
+    # Build URL with drain query parameter
+    endpoint = f"/management/engines/{engine_id}"
+    if drain:
+        endpoint += "?drain=true"
+
     response = _management_request(
         "DELETE",
-        f"/management/engines/{engine_id}",
+        endpoint,
         api_base=base_url,
         timeout=timeout,
     )
 
     status_text = response.get("status") or response.get("state") or "STOPPED"
-    console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
+    drained = response.get("drained", False)
+
+    if drained:
+        console.print(f"[green]✅ 引擎 {engine_id} 已优雅关闭 (状态: {status_text}).[/green]")
+    else:
+        console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
+
+
+@engine_app.command("prune")
+def prune_engines(
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址",
+    ),
+    yes: bool = typer.Option(False, "-y", "--yes", help="跳过确认提示"),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+):
+    """批量清理所有 STOPPED/FAILED 状态的引擎记录。
+
+    这个命令会从 Control Plane 中移除已停止或失败的引擎记录，
+    不会影响正在运行的引擎。
+    """
+    base_url = _resolve_api_base(api_base, api_port)
+
+    # 先获取引擎列表显示给用户
+    try:
+        cluster_status = _fetch_cluster_status(base_url, timeout=timeout)
+    except typer.Exit:
+        return
+
+    engines = _ensure_dict_list(
+        cluster_status.get("engines")
+        or cluster_status.get("engine_instances")
+        or cluster_status.get("instances")
+        or []
+    )
+
+    # 找出 STOPPED/FAILED 状态的引擎
+    to_prune = []
+    for e in engines:
+        state = (e.get("status") or e.get("state") or "").upper()
+        if state in ("STOPPED", "FAILED", "ERROR"):
+            to_prune.append(e)
+
+    if not to_prune:
+        console.print("[green]✓[/green] 没有需要清理的引擎")
+        return
+
+    console.print(f"[yellow]找到 {len(to_prune)} 个待清理的引擎:[/yellow]")
+    for e in to_prune[:10]:  # 只显示前 10 个
+        eid = e.get("engine_id") or e.get("id", "?")
+        state = e.get("status") or e.get("state", "?")
+        model = e.get("model_id") or e.get("model", "?")
+        console.print(f"  - {eid} ({model}) [{state}]")
+    if len(to_prune) > 10:
+        console.print(f"  ... 还有 {len(to_prune) - 10} 个")
+
+    if not yes:
+        confirm = typer.confirm(f"确认清理这 {len(to_prune)} 个引擎记录?")
+        if not confirm:
+            console.print("[dim]已取消[/dim]")
+            raise typer.Exit(0)
+
+    # 调用专用的 prune API（一次性清理所有）
+    try:
+        result = _management_request(
+            "POST",
+            "/management/engines/prune",
+            api_base=base_url,
+            timeout=timeout,
+        )
+        pruned_count = result.get("pruned_count", 0)
+        console.print(f"[green]✓[/green] 已清理 {pruned_count} 个引擎记录")
+    except typer.Exit:
+        # Fallback: 逐个删除
+        console.print("[dim]使用逐个删除模式...[/dim]")
+        success_count = 0
+        for e in to_prune:
+            eid = e.get("engine_id") or e.get("id")
+            if not eid:
+                continue
+            try:
+                _management_request(
+                    "DELETE",
+                    f"/management/engines/{eid}",
+                    api_base=base_url,
+                    timeout=2.0,
+                    _silent=True,
+                )
+                success_count += 1
+            except Exception:
+                pass
+        console.print(f"[green]✓[/green] 已清理 {success_count} 个引擎记录")
 
 
 @app.command("gpu")
@@ -947,6 +1063,23 @@ def _is_gateway_running(pid: int | None = None) -> bool:
     return psutil.pid_exists(pid)
 
 
+def _check_existing_gateway(port: int) -> bool:
+    """Check if there's already a SAGE Gateway running on the given port.
+
+    Returns:
+        True if a SAGE Gateway is running and healthy on this port
+    """
+    try:
+        resp = httpx.get(f"http://localhost:{port}/health", timeout=2.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            # Check if it's a SAGE Gateway (has 'status' field)
+            return data.get("status") == "healthy"
+    except Exception:
+        pass
+    return False
+
+
 def _wait_for_gateway(port: int, timeout: float = 30.0) -> bool:
     """Wait for gateway to be ready."""
     import time
@@ -963,6 +1096,113 @@ def _wait_for_gateway(port: int, timeout: float = 30.0) -> bool:
     return False
 
 
+def _find_existing_engine(
+    api_base: str,
+    model_id: str,
+    engine_kind: str = "llm",
+) -> dict[str, Any] | None:
+    """Find an existing healthy engine for the given model.
+
+    Returns:
+        Engine info dict if found, None otherwise.
+    """
+    try:
+        # Use /management/status which contains engine data from lifecycle manager
+        resp = httpx.get(f"{api_base}/management/status", timeout=5.0)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        # Get engines from various possible locations in the response
+        engines = data.get("engines") or data.get("engine_instances") or data.get("instances") or []
+        if isinstance(engines, dict):
+            engines = list(engines.values())
+        for engine in engines:
+            if not isinstance(engine, dict):
+                continue
+            # Check if model matches and engine is healthy
+            engine_model = engine.get("model_id") or engine.get("model_name") or engine.get("model")
+            if engine_model != model_id:
+                continue
+            state = (engine.get("status") or engine.get("state") or "").upper()
+            # Get engine kind from various possible locations
+            kind = engine.get("runtime") or engine.get("engine_kind")
+            if not kind:
+                metadata = engine.get("metadata") or {}
+                kind = metadata.get("engine_kind")
+            kind = kind or "llm"
+            # Match engine kind
+            if kind != engine_kind:
+                continue
+            # Only consider healthy engines
+            if state in ("RUNNING", "READY", "STARTING"):
+                return engine
+        return None
+    except Exception:
+        return None
+
+
+def _wait_for_engine_ready(
+    api_base: str,
+    engine_id: str,
+    engine_port: int,
+    engine_kind: str = "llm",
+    timeout: float = 120.0,
+    poll_interval: float = 2.0,
+) -> bool:
+    """Wait for an engine to become ready.
+
+    This function polls the engine's health endpoint directly until it responds
+    with HTTP 200, indicating the engine is truly ready to serve requests.
+
+    Args:
+        api_base: Control Plane API base URL (used only for failure detection)
+        engine_id: Engine ID to wait for
+        engine_port: Port the engine is expected to listen on
+        engine_kind: Type of engine ('llm' or 'embedding')
+        timeout: Maximum time to wait in seconds
+        poll_interval: Time between health checks in seconds
+
+    Returns:
+        True if engine became ready, False if timeout or error
+    """
+    import time
+
+    start_time = time.time()
+    health_endpoint = f"http://localhost:{engine_port}/health"
+
+    while time.time() - start_time < timeout:
+        # Primary check: directly probe the engine's health endpoint
+        # This is the definitive test - if /health returns 200, the engine is ready
+        try:
+            resp = httpx.get(health_endpoint, timeout=2.0)
+            if resp.status_code == 200:
+                return True
+        except Exception:
+            pass
+
+        # Secondary check: detect if engine has failed/stopped (early exit)
+        # We only use Control Plane status to detect failures, NOT to detect readiness
+        try:
+            status_resp = httpx.get(f"{api_base}/management/status", timeout=3.0)
+            if status_resp.status_code == 200:
+                data = status_resp.json()
+                engines = data.get("engines", [])
+                for engine in engines:
+                    eid = engine.get("engine_id")
+                    if eid == engine_id:
+                        state = (engine.get("status") or engine.get("state") or "").upper()
+                        # Only check for failure states - do NOT trust RUNNING/READY
+                        # because Control Plane may report RUNNING during grace period
+                        if state in ("FAILED", "ERROR", "STOPPED"):
+                            return False
+        except Exception:
+            pass
+
+        time.sleep(poll_interval)
+
+    return False
+
+
 def _start_engine_via_api(
     api_base: str,
     model_id: str,
@@ -972,8 +1212,30 @@ def _start_engine_via_api(
     use_gpu: bool | None = None,
     extra_args: list[str] | None = None,
     timeout: float = 10.0,
+    skip_if_exists: bool = True,
+    wait_ready: bool = True,
+    wait_timeout: float = 120.0,
 ) -> dict[str, Any] | None:
-    """Start an engine via Control Plane management API."""
+    """Start an engine via Control Plane management API.
+
+    Args:
+        skip_if_exists: If True, check for existing healthy engine first
+                        and return it instead of starting a new one.
+        wait_ready: If True, wait for the engine to become ready before returning.
+        wait_timeout: Maximum time to wait for engine to become ready.
+    """
+    # Check for existing healthy engine first
+    if skip_if_exists:
+        existing = _find_existing_engine(api_base, model_id, engine_kind)
+        if existing:
+            engine_id = existing.get("engine_id", existing.get("instance_id", "unknown"))
+            existing_port = existing.get("port", "unknown")
+            console.print(
+                f"   [green]✓[/green] 已有 {engine_kind.upper()} 引擎运行中 "
+                f"(ID: {engine_id}, 端口: {existing_port})，跳过启动"
+            )
+            return {"engine_id": engine_id, "port": existing_port, "reused": True}
+
     payload = {
         "model_id": model_id,
         "engine_kind": engine_kind,
@@ -992,11 +1254,31 @@ def _start_engine_via_api(
             json=payload,
             timeout=timeout,
         )
-        if resp.status_code == 200:
-            return resp.json()
-        else:
+        if resp.status_code != 200:
             console.print(f"[red]❌ 启动引擎失败: {_extract_error_detail(resp)}[/red]")
             return None
+
+        result = resp.json()
+        engine_id = result.get("engine_id", "unknown")
+        engine_port = result.get("port")
+
+        # Wait for engine to become ready if requested
+        if wait_ready and engine_port:
+            console.print(f"   [dim]等待 {engine_kind.upper()} 引擎就绪...[/dim]")
+            if not _wait_for_engine_ready(
+                api_base=api_base,
+                engine_id=engine_id,
+                engine_port=engine_port,
+                engine_kind=engine_kind,
+                timeout=wait_timeout,
+            ):
+                console.print(f"[yellow]⚠️  引擎 {engine_id} 启动超时，可能仍在加载中[/yellow]")
+                result["ready"] = False
+            else:
+                result["ready"] = True
+
+        return result
+
     except Exception as e:
         console.print(f"[red]❌ 启动引擎失败: {e}[/red]")
         return None
@@ -1086,23 +1368,119 @@ def serve_llm(
         client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])
     """
+    import os
     import subprocess
     import sys
 
-    if UnifiedAPIServer is None:
-        console.print("[red]❌ UnifiedAPIServer 不可用，请确保已安装 sage-common[/red]")
+    if not GATEWAY_AVAILABLE:
+        console.print("[red]❌ sage-gateway 不可用，请确保已安装 sage-gateway[/red]")
         raise typer.Exit(1)
 
     _ensure_dirs()
     ensure_hf_mirror_configured()
 
-    # Check if gateway is already running
+    # Check if gateway is already running (by our PID file)
     pid, config = _load_gateway_info()
     if pid and _is_gateway_running(pid):
         console.print(f"[yellow]⚠️  Control Plane Gateway 已在运行 (PID: {pid})[/yellow]")
-        console.print(f"   端口: {config.get('gateway_port', gateway_port)}")
+        console.print(f"   端口: {config.get('gateway_port', gateway_port)}")  # type: ignore
         console.print("   使用 'sage llm stop' 停止后重试，或使用 'sage llm engine start' 添加引擎")
         raise typer.Exit(0)
+
+    # Check if there's an existing SAGE Gateway on the port (started by another user)
+    existing_gateway = _check_existing_gateway(gateway_port)
+    if existing_gateway:
+        console.print(f"[green]✓[/green] 检测到现有 Gateway 运行在端口 {gateway_port}")
+        console.print("   将复用现有 Gateway，直接启动引擎...")
+        # Skip gateway startup, just start engines
+        api_base = f"http://localhost:{gateway_port}/v1"
+
+        # Start LLM engine (let Control Plane auto-assign port if needed)
+        console.print("\n[blue]🎯 启动 LLM 引擎[/blue]")
+        console.print(f"   模型: {model}")
+
+        # Check if the specified LLM port is available
+        llm_port_to_use: int | None = llm_port
+        if not SagePorts.is_available(llm_port):
+            console.print(f"   [yellow]端口 {llm_port} 已占用，将自动分配可用端口[/yellow]")
+            llm_port_to_use = None  # Let Control Plane auto-assign
+
+        extra_args = [
+            f"--gpu-memory-utilization={gpu_memory}",
+            f"--max-model-len={max_model_len}",
+        ]
+
+        llm_result = _start_engine_via_api(
+            api_base=api_base,
+            model_id=model,
+            engine_kind="llm",
+            port=llm_port_to_use,
+            tensor_parallel_size=tensor_parallel,
+            extra_args=extra_args,
+            timeout=30.0,  # HTTP request timeout
+            wait_ready=True,
+            wait_timeout=180.0,  # Wait up to 3 minutes for LLM to start
+        )
+
+        if llm_result:
+            actual_port = llm_result.get("port", llm_port_to_use)
+            engine_id = llm_result.get("engine_id", "unknown")
+            if llm_result.get("reused"):
+                pass  # Already printed in _start_engine_via_api
+            elif llm_result.get("ready", True):
+                console.print(
+                    f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                )
+            else:
+                console.print(
+                    f"   [yellow]⚠️[/yellow] LLM 引擎启动中 (ID: {engine_id}, 端口: {actual_port})，可能需要更多时间"
+                )
+        else:
+            console.print("[yellow]⚠️  LLM 引擎启动失败[/yellow]")
+
+        # Optionally start Embedding engine
+        if with_embedding:
+            console.print("\n[blue]🎯 启动 Embedding 引擎[/blue]")
+            console.print(f"   模型: {embedding_model}")
+
+            embed_port_to_use: int | None = embedding_port
+            if not SagePorts.is_available(embedding_port):
+                console.print(
+                    f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]"
+                )
+                embed_port_to_use = None
+
+            embed_result = _start_engine_via_api(
+                api_base=api_base,
+                model_id=embedding_model,
+                engine_kind="embedding",
+                port=embed_port_to_use,
+                use_gpu=False,
+                timeout=30.0,
+                wait_ready=True,
+                wait_timeout=60.0,  # Embedding usually starts faster
+            )
+
+            if embed_result:
+                actual_port = embed_result.get("port", embed_port_to_use)
+                engine_id = embed_result.get("engine_id", "unknown")
+                if embed_result.get("reused"):
+                    pass  # Already printed in _start_engine_via_api
+                elif embed_result.get("ready", True):
+                    console.print(
+                        f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                    )
+                else:
+                    console.print(
+                        f"   [yellow]⚠️[/yellow] Embedding 引擎启动中 (ID: {engine_id}, 端口: {actual_port})"
+                    )
+            else:
+                console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")
+
+        console.print("\n[green]✅ 引擎启动完成[/green]")
+        console.print(f"   API Gateway: http://localhost:{gateway_port}/v1")
+        console.print("\n[dim]使用 'sage llm engine list' 查看所有引擎[/dim]")
+        return
 
     # Build extra args for vLLM
     extra_args = [
@@ -1110,22 +1488,24 @@ def serve_llm(
         f"--max-model-len={max_model_len}",
     ]
 
-    console.print("[blue]🚀 启动 Control Plane Gateway[/blue]")
+    console.print("[blue]🚀 启动 SAGE Gateway (Control Plane)[/blue]")
     console.print(f"   Gateway 端口: {gateway_port}")
     console.print(f"   主机: {host}")
 
-    # Start gateway as subprocess
+    # Start sage-gateway as subprocess
     gateway_log = LOG_DIR / "gateway.log"
     gateway_cmd = [
         sys.executable,
         "-m",
-        "sage.common.components.sage_llm.unified_api_server",
-        "--host",
-        host,
-        "--port",
-        str(gateway_port),
-        "--enable-control-plane",
+        "sage.gateway.server",
     ]
+    # Set environment variables for gateway configuration
+    gateway_env = {
+        **dict(os.environ),
+        "SAGE_GATEWAY_ENABLE_CONTROL_PLANE": "true",
+        "SAGE_GATEWAY_HOST": host,
+        "SAGE_GATEWAY_PORT": str(gateway_port),
+    }
 
     if background:
         with open(gateway_log, "w") as log_file:
@@ -1134,6 +1514,7 @@ def serve_llm(
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
+                env=gateway_env,
             )
         gateway_pid = proc.pid
         console.print(f"   [green]✓[/green] Gateway 进程已启动 (PID: {gateway_pid})")
@@ -1163,23 +1544,44 @@ def serve_llm(
         api_base = f"http://localhost:{gateway_port}/v1"
         console.print("\n[blue]🎯 启动 LLM 引擎[/blue]")
         console.print(f"   模型: {model}")
-        console.print(f"   端口: {llm_port}")
         console.print(f"   TP: {tensor_parallel}")
+
+        # Check if the specified LLM port is available
+        llm_port_to_use: int | None = llm_port
+        if not SagePorts.is_available(llm_port):
+            console.print(f"   [yellow]端口 {llm_port} 已占用，将自动分配可用端口[/yellow]")
+            llm_port_to_use = None  # Let Control Plane auto-assign
+        else:
+            console.print(f"   端口: {llm_port}")
 
         llm_result = _start_engine_via_api(
             api_base=api_base,
             model_id=model,
             engine_kind="llm",
-            port=llm_port,
+            port=llm_port_to_use,
             tensor_parallel_size=tensor_parallel,
             extra_args=extra_args,
-            timeout=120.0,  # LLM 启动可能需要较长时间
+            timeout=30.0,
+            wait_ready=True,
+            wait_timeout=180.0,  # LLM 启动可能需要较长时间
         )
 
         if llm_result:
+            actual_port = llm_result.get("port", llm_port_to_use)
             engine_id = llm_result.get("engine_id", "unknown")
-            console.print(f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id})")
-            gateway_config["engines"].append({"id": engine_id, "kind": "llm", "model": model})
+            if llm_result.get("reused"):
+                pass  # Already printed
+            elif llm_result.get("ready", True):
+                console.print(
+                    f"   [green]✓[/green] LLM 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                )
+            else:
+                console.print(
+                    f"   [yellow]⚠️[/yellow] LLM 引擎启动中 (ID: {engine_id}, 端口: {actual_port})，可能需要更多时间"
+                )
+            gateway_config["engines"].append(
+                {"id": engine_id, "kind": "llm", "model": model, "port": actual_port}
+            )
         else:
             console.print("[yellow]⚠️  LLM 引擎启动失败，Gateway 仍在运行[/yellow]")
 
@@ -1187,22 +1589,47 @@ def serve_llm(
         if with_embedding:
             console.print("\n[blue]🎯 启动 Embedding 引擎[/blue]")
             console.print(f"   模型: {embedding_model}")
-            console.print(f"   端口: {embedding_port}")
+
+            embed_port_to_use: int | None = embedding_port
+            if not SagePorts.is_available(embedding_port):
+                console.print(
+                    f"   [yellow]端口 {embedding_port} 已占用，将自动分配可用端口[/yellow]"
+                )
+                embed_port_to_use = None
+            else:
+                console.print(f"   端口: {embedding_port}")
 
             embed_result = _start_engine_via_api(
                 api_base=api_base,
                 model_id=embedding_model,
                 engine_kind="embedding",
-                port=embedding_port,
+                port=embed_port_to_use,
                 use_gpu=False,  # Embedding 默认不使用 GPU
-                timeout=60.0,
+                timeout=30.0,
+                wait_ready=True,
+                wait_timeout=60.0,
             )
 
             if embed_result:
+                actual_port = embed_result.get("port", embed_port_to_use)
                 engine_id = embed_result.get("engine_id", "unknown")
-                console.print(f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id})")
+                if embed_result.get("reused"):
+                    pass  # Already printed
+                elif embed_result.get("ready", True):
+                    console.print(
+                        f"   [green]✓[/green] Embedding 引擎已启动 (ID: {engine_id}, 端口: {actual_port})"
+                    )
+                else:
+                    console.print(
+                        f"   [yellow]⚠️[/yellow] Embedding 引擎启动中 (ID: {engine_id}, 端口: {actual_port})"
+                    )
                 gateway_config["engines"].append(
-                    {"id": engine_id, "kind": "embedding", "model": embedding_model}
+                    {
+                        "id": engine_id,
+                        "kind": "embedding",
+                        "model": embedding_model,
+                        "port": actual_port,
+                    }
                 )
             else:
                 console.print("[yellow]⚠️  Embedding 引擎启动失败[/yellow]")
@@ -1219,17 +1646,19 @@ def serve_llm(
         # Foreground mode - run gateway directly (blocking)
         console.print("[dim]前台模式，Ctrl+C 退出[/dim]")
 
-        config = UnifiedServerConfig(
-            host=host,
-            port=gateway_port,
-            enable_control_plane=True,
-        )
-        server = UnifiedAPIServer(config)
+        import uvicorn
+
+        from sage.gateway.server import app as gateway_app  # type: ignore
+
         try:
-            server.start(block=True)
+            uvicorn.run(
+                gateway_app,
+                host=host,
+                port=gateway_port,
+                log_level="info",
+            )
         except KeyboardInterrupt:
             console.print("\n[yellow]收到中断信号，正在停止...[/yellow]")
-            server.stop()
 
 
 @app.command("stop")

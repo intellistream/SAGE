@@ -27,7 +27,7 @@ import {
     Sparkles,
     ArrowRightCircle,
 } from 'lucide-react'
-import { useChatStore, type ChatMessage } from '../store/chatStore'
+import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
 import {
     sendChatMessage,
@@ -72,6 +72,10 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         clearCurrentSession,
         setMessages,
         updateSessionStats,
+        addReasoningStep,
+        updateReasoningStep,
+        appendToReasoningStep,
+        setMessageReasoning,
     } = useChatStore()
     const { setNodes, setEdges } = useFlowStore()
 
@@ -138,13 +142,22 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const loadSessionMessages = async (sessionId: string) => {
         try {
             const detail = await getChatSessionDetail(sessionId)
-            const mappedMessages: ChatMessage[] = detail.messages.map((msg, index) => ({
-                id: `server_${index}_${msg.timestamp}`,
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp,
-                metadata: msg.metadata,
-            }))
+
+            const mappedMessages: ChatMessage[] = detail.messages.map((msg, index) => {
+                // 从后端 metadata.reasoningSteps 读取推理步骤（方案A：后端存储）
+                const reasoningSteps = msg.metadata?.reasoningSteps as ReasoningStep[] | undefined
+
+                return {
+                    id: `server_${index}_${msg.timestamp}`,
+                    role: msg.role,
+                    content: msg.content,
+                    timestamp: msg.timestamp,
+                    metadata: msg.metadata,
+                    // 从后端 metadata 恢复推理步骤
+                    reasoningSteps: reasoningSteps,
+                    isReasoning: false,
+                }
+            })
             setMessages(sessionId, mappedMessages)
             updateSessionStats(sessionId, {
                 message_count: mappedMessages.length,
@@ -198,6 +211,8 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 content: '',
                 timestamp: new Date().toISOString(),
                 isStreaming: true,
+                isReasoning: true,  // 初始处于推理状态
+                reasoningSteps: [],
             }
             addMessage(sessionId, assistantMessage)
 
@@ -219,17 +234,39 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     antMessage.error(`发送失败: ${error.message}`)
                     setIsStreaming(false)
                     setStreamingMessageId(null)
+                    setMessageReasoning(sessionId, assistantMessageId, false)
                 },
                 () => {
                     // 完成回调
                     setIsStreaming(false)
                     setStreamingMessageId(null)
+                    setMessageReasoning(sessionId, assistantMessageId, false)
 
                     // 更新会话列表（消息数+1）
+                    // 注：推理步骤已由后端保存到 metadata，刷新页面后会自动恢复
                     updateSessionStats(sessionId!, {
                         message_count: (messages[sessionId!] || []).length,
                         last_active: new Date().toISOString(),
                     })
+                },
+                // 推理步骤回调
+                {
+                    onReasoningStep: (step) => {
+                        // 添加新的推理步骤
+                        addReasoningStep(sessionId, assistantMessageId, step as ReasoningStep)
+                    },
+                    onReasoningStepUpdate: (stepId, updates) => {
+                        // 更新推理步骤状态
+                        updateReasoningStep(sessionId, assistantMessageId, stepId, updates)
+                    },
+                    onReasoningContent: (stepId, content) => {
+                        // 追加推理内容
+                        appendToReasoningStep(sessionId, assistantMessageId, stepId, content)
+                    },
+                    onReasoningEnd: () => {
+                        // 推理阶段结束
+                        setMessageReasoning(sessionId, assistantMessageId, false)
+                    },
                 }
             )
         } catch (error) {
@@ -548,6 +585,8 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                                     isStreaming={msg.isStreaming}
                                                     streamingMessageId={streamingMessageId}
                                                     messageId={msg.id}
+                                                    reasoningSteps={msg.reasoningSteps}
+                                                    isReasoning={msg.isReasoning}
                                                 />
                                             </div>
 

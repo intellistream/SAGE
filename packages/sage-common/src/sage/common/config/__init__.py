@@ -42,6 +42,14 @@ from .ports import (
     DEFAULT_LLM_PORT,
     SagePorts,
 )
+from .user_paths import (
+    SageUserPaths,
+    get_user_cache_dir,
+    get_user_config_dir,
+    get_user_data_dir,
+    get_user_paths,
+    get_user_state_dir,
+)
 
 __all__ = [
     # Output paths
@@ -79,4 +87,11 @@ __all__ = [
     "ensure_hf_mirror_configured",
     "get_network_region",
     "NetworkRegion",
+    # User paths (XDG standard)
+    "SageUserPaths",
+    "get_user_paths",
+    "get_user_config_dir",
+    "get_user_data_dir",
+    "get_user_state_dir",
+    "get_user_cache_dir",
 ]

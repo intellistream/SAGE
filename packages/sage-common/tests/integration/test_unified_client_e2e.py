@@ -315,7 +315,7 @@ class TestBasicMode:
 
             client = UnifiedInferenceClient.create()
 
-        with pytest.raises(RuntimeError, match="LLM.*not available"):
+        with pytest.raises(RuntimeError, match="No LLM backend available"):
             client.chat([{"role": "user", "content": "Hello"}])
 
     def test_embedding_not_available_error(self):
@@ -329,7 +329,7 @@ class TestBasicMode:
 
             client = UnifiedInferenceClient.create()
 
-        with pytest.raises(RuntimeError, match="Embedding.*not available"):
+        with pytest.raises(RuntimeError, match="No Embedding backend available"):
             client.embed(["text"])
 
 
