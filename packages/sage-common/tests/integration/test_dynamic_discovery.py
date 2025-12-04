@@ -150,11 +150,8 @@ class TestBackendDiscoveryEndpoint:
 
     def test_backends_endpoint_returns_categorized_list(self, mock_backends_response):
         """Test that backends endpoint returns LLM and Embedding backends separately."""
-        with patch(
-            "sage.gateway.routes.control_plane._control_plane_manager"
-        ) as mock_manager:
+        with patch("sage.gateway.routes.control_plane._control_plane_manager") as mock_manager:
             mock_manager.get_registered_backends.return_value = mock_backends_response
-
 
             with patch(
                 "sage.gateway.routes.control_plane._require_control_plane_manager",
@@ -321,9 +318,7 @@ class TestNewEngineDiscovery:
         # Find new engine
         initial_ids = {b["engine_id"] for b in initial_backends["llm_backends"]}
         new_engines = [
-            b
-            for b in updated_backends["llm_backends"]
-            if b["engine_id"] not in initial_ids
+            b for b in updated_backends["llm_backends"] if b["engine_id"] not in initial_ids
         ]
         assert len(new_engines) == 1
         assert new_engines[0]["engine_id"] == "llm-2"
@@ -384,7 +379,8 @@ class TestBackendStateTransitions:
 
         # For new requests, only route to READY backends
         routable = [
-            b for b in backends["llm_backends"]
+            b
+            for b in backends["llm_backends"]
             if b.get("healthy", False) and b.get("state") == "READY"
         ]
         assert len(routable) == 1
@@ -443,6 +439,7 @@ class TestDiscoveryErrorHandling:
 
     def test_discovery_endpoint_unavailable(self):
         """Test handling when discovery endpoint is unavailable."""
+
         # Simulate network error
         def mock_fetch_backends():
             raise ConnectionError("Connection refused")
@@ -509,10 +506,7 @@ class TestConcurrentDiscovery:
             with lock:
                 backends["llm_backends"].append({"engine_id": engine_id})
 
-        threads = [
-            threading.Thread(target=add_backend, args=(f"llm-{i}",))
-            for i in range(10)
-        ]
+        threads = [threading.Thread(target=add_backend, args=(f"llm-{i}",)) for i in range(10)]
 
         for t in threads:
             t.start()
