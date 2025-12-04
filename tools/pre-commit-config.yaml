@@ -361,7 +361,7 @@ repos:
 
       # Allowed directories in project root (whitelist)
       allowed_dirs=(
-        ".benchmarks"
+        # ".benchmarks"  # Deprecated - now uses .sage/benchmarks
         ".git"
         ".github"
         ".mypy_cache"
