@@ -114,6 +114,12 @@ sage/common/components/sage_llm/sageLLM/
     │       └── kunlunxin.py        # 昆仑芯 XPU 能力探测
     │       # ⚠️ 注意：仅输出静态能力描述（AcceleratorDescriptor）
     │       # 传输专用配置（DMA/RDMA 参数）由课题一 transport/hardware/ 扩展
+    ├── model_router/              # 【新增】多模型路由与混合部署
+    │   ├── __init__.py
+    │   ├── router.py               # ModelRouter - 请求路由到正确模型
+    │   ├── model_registry.py       # ModelRegistry - 已加载模型注册表
+    │   ├── memory_planner.py       # MemoryPlanner - 多模型显存分配
+    │   └── hybrid_backend.py       # HybridInferenceBackend 实现
     ├── common/
     │   ├── __init__.py
     │   ├── capability_registry.py  # 供 Control Plane 查询
@@ -125,26 +131,38 @@ sage/common/components/sage_llm/sageLLM/
 
 ### 架构关系图
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         sageLLM                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│  control_plane/                    │  sage_infer/                    │
-│  ┌─────────────────────────────┐   │  ┌─────────────────────────┐   │
-│  │ ControlPlaneManager         │   │  │ InferenceBackend        │   │
-│  │ - 请求调度                   │──▶│  │ (Protocol)              │   │
-│  │ - PD 分离决策                │   │  │ - prefill()             │   │
-│  │ - 负载均衡                   │   │  │ - decode()              │   │
-│  └─────────────────────────────┘   │  │ - generate()            │   │
-│                                    │  └───────────┬─────────────┘   │
-│                                    │              │                  │
-│                                    │  ┌───────────▼─────────────┐   │
-│                                    │  │ backends/               │   │
-│                                    │  │ ├─ VLLMBackendAdapter   │   │
-│                                    │  │ ├─ AscendBackend        │   │
-│                                    │  │ ├─ CambriconBackend     │   │
-│                                    │  │ └─ ...                  │   │
-│                                    │  └─────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              sageLLM                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  control_plane/                     │  sage_infer/                           │
+│  ┌──────────────────────────────┐   │  ┌────────────────────────────────┐   │
+│  │ ControlPlaneManager          │   │  │ InferenceBackend (Protocol)    │   │
+│  │ - 请求调度                    │──▶│  │ - prefill() / decode()         │   │
+│  │ - PD 分离决策                 │   │  │ - generate()                   │   │
+│  │ - 负载均衡                    │   │  └───────────┬──────────────────┘   │
+│  └──────────────────────────────┘   │              │                        │
+│                                     │  ┌───────────▼──────────────────────┐ │
+│  ┌──────────────────────────────┐   │  │ HybridInferenceBackend (Protocol)│ │
+│  │ HybridSchedulingPolicy       │   │  │ - generate(model=...) 【LLM】    │ │
+│  │ - LLM/Embedding 混合调度      │──▶│  │ - embed(model=...)    【Embed】 │ │
+│  │ - RAG 场景联合调度            │   │  │ - load_model() / unload_model()│ │
+│  └──────────────────────────────┘   │  └───────────┬──────────────────────┘ │
+│                                     │              │                        │
+│                                     │  ┌───────────▼──────────────────────┐ │
+│                                     │  │ model_router/                    │ │
+│                                     │  │ ├─ ModelRouter (请求路由)         │ │
+│                                     │  │ ├─ ModelRegistry (模型注册)       │ │
+│                                     │  │ └─ MemoryPlanner (显存规划)       │ │
+│                                     │  └─────────────────────────────────┘  │
+│                                     │                                       │
+│                                     │  ┌───────────────────────────────────┐│
+│                                     │  │ backends/                         ││
+│                                     │  │ ├─ VLLMBackendAdapter (LLM)       ││
+│                                     │  │ ├─ EmbeddingBackendAdapter (Embed)││
+│                                     │  │ ├─ AscendBackend / CambriconBackend││
+│                                     │  │ └─ ...                            ││
+│                                     │  └───────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 核心接口草案
@@ -164,7 +182,7 @@ class CapabilityDescriptor:
     """实例能力描述符 - 统一定义，供所有课题使用"""
     # 基础信息
     backend_name: str
-    instance_type: Literal["prefill", "decode", "general"]
+    instance_type: Literal["prefill", "decode", "general", "embedding", "hybrid"]
     hardware_backend: Literal["cuda", "ascend", "cambricon", "hygon", "kunlunxin"]
 
     # 容量限制
@@ -183,6 +201,54 @@ class CapabilityDescriptor:
     # 性能提示
     throughput_hint_tps: float = 0.0
     ttft_hint_ms: float = 0.0
+
+@dataclass
+class ModelDescriptor:
+    """模型描述符 - 支持多模型混合部署"""
+    model_id: str
+    model_type: Literal["llm", "embedding", "reranker", "multimodal"]
+    model_path: str
+
+    # 资源配置
+    device_ids: list[int]              # 占用的 GPU/NPU
+    memory_gb: float                   # 显存占用
+
+    # 能力描述
+    max_batch_size: int
+    max_sequence_length: int
+    supported_precisions: list[str]
+
+    # Embedding 专用字段
+    embedding_dim: int | None = None   # 输出向量维度
+    pooling_type: Literal["mean", "cls", "last"] | None = None
+
+    # Reranker 专用字段
+    max_pair_length: int | None = None
+
+@dataclass
+class HybridCapabilityDescriptor:
+    """混合实例能力描述符 - 支持 LLM + Embedding 同时服务"""
+    # 基础能力（继承 CapabilityDescriptor 的核心字段）
+    backend_name: str
+    instance_type: Literal["hybrid", "llm_embedding"] = "hybrid"
+    hardware_backend: Literal["cuda", "ascend", "cambricon", "hygon", "kunlunxin"] = "cuda"
+
+    # 多模型支持
+    loaded_models: list[ModelDescriptor] = field(default_factory=list)
+
+    # 资源共享策略
+    gpu_sharing_mode: Literal["exclusive", "mps", "time_slice"] = "time_slice"
+    memory_isolation: bool = False
+
+    # 聚合能力
+    total_memory_gb: float = 0.0
+    available_memory_gb: float = 0.0
+
+    def get_llm_models(self) -> list[ModelDescriptor]:
+        return [m for m in self.loaded_models if m.model_type == "llm"]
+
+    def get_embedding_models(self) -> list[ModelDescriptor]:
+        return [m for m in self.loaded_models if m.model_type == "embedding"]
 
 @dataclass
 class QuantizationProfile:
@@ -212,12 +278,141 @@ class QuantizationProfile:
     max_sequence_length: int = 8192
 
 class InferenceBackend(Protocol):
+    """单模型推理后端接口"""
     async def prefill(self, prompts: list[str], *, request_id: str) -> PrefillResult: ...
     async def decode(self, state: DecodeState, *, request_id: str) -> DecodeResult: ...
     async def generate(self, prompts: list[str], params: SamplingParams) -> list[TokenStream]: ...
     def get_capability(self) -> CapabilityDescriptor: ...
     def get_kv_schema(self) -> KVCacheSchema: ...
     def load_quant_profile(self, profile: QuantizationProfile) -> None: ...
+
+class EmbeddingBackend(Protocol):
+    """Embedding 推理后端接口"""
+    async def embed(self, texts: list[str]) -> list[list[float]]: ...
+    async def embed_batch(self, texts: list[str], batch_size: int = 32) -> list[list[float]]: ...
+    def get_embedding_dim(self) -> int: ...
+    def get_max_length(self) -> int: ...
+
+class HybridInferenceBackend(Protocol):
+    """混合推理后端 - 支持 LLM + Embedding 同时服务
+
+    使用场景：
+    1. 单 GPU 上同时部署 LLM + Embedding（显存分片）
+    2. 多 GPU 分别部署不同模型（资源隔离）
+    3. RAG 场景：Embedding 检索 + LLM 生成一站式服务
+    """
+
+    # === LLM 接口 ===
+    async def generate(
+        self,
+        prompts: list[str],
+        params: SamplingParams,
+        model: str | None = None,  # 指定 LLM 模型，None 使用默认
+    ) -> list[TokenStream]: ...
+
+    async def chat(
+        self,
+        messages: list[dict],
+        params: SamplingParams,
+        model: str | None = None,
+    ) -> ChatResponse: ...
+
+    # === Embedding 接口 ===
+    async def embed(
+        self,
+        texts: list[str],
+        model: str | None = None,  # 指定 Embedding 模型，None 使用默认
+    ) -> list[list[float]]: ...
+
+    # === 模型管理 ===
+    def list_models(self) -> list[ModelDescriptor]: ...
+    def load_model(self, model: ModelDescriptor) -> None: ...
+    def unload_model(self, model_id: str) -> None: ...
+    def get_model_status(self, model_id: str) -> dict: ...
+
+    # === 能力查询 ===
+    def get_hybrid_capability(self) -> HybridCapabilityDescriptor: ...
+```
+
+### 混合推理使用示例
+
+```python
+# === 场景 1: 单 GPU 显存分片部署 ===
+from sage_infer.backends.hybrid_backend import HybridBackend
+
+backend = HybridBackend(
+    llm_config={
+        "model_id": "Qwen/Qwen2.5-7B-Instruct",
+        "device_ids": [0],
+        "memory_fraction": 0.7,  # 70% 显存给 LLM
+    },
+    embedding_config={
+        "model_id": "BAAI/bge-m3",
+        "device_ids": [0],
+        "memory_fraction": 0.3,  # 30% 显存给 Embedding
+    },
+    sharing_mode="time_slice",
+)
+
+# 同一后端同时处理两种请求
+embeddings = await backend.embed(["查询文本"])
+response = await backend.generate(["基于检索结果回答..."], params)
+
+# === 场景 2: 多 GPU 资源隔离部署 ===
+backend = HybridBackend(
+    llm_config={
+        "model_id": "Qwen/Qwen2.5-72B-Instruct",
+        "device_ids": [0, 1, 2, 3],  # 4 卡 TP 部署
+    },
+    embedding_config={
+        "model_id": "BAAI/bge-m3",
+        "device_ids": [4],  # 独立 1 卡
+    },
+    sharing_mode="exclusive",
+)
+
+# === 场景 3: 动态加载多模型 ===
+backend = HybridBackend()
+backend.load_model(ModelDescriptor(
+    model_id="qwen-7b",
+    model_type="llm",
+    model_path="Qwen/Qwen2.5-7B-Instruct",
+    device_ids=[0],
+    memory_gb=14.0,
+    max_batch_size=32,
+    max_sequence_length=32768,
+    supported_precisions=["fp16", "fp8_e4m3"],
+))
+backend.load_model(ModelDescriptor(
+    model_id="bge-m3",
+    model_type="embedding",
+    model_path="BAAI/bge-m3",
+    device_ids=[0],
+    memory_gb=2.0,
+    max_batch_size=256,
+    max_sequence_length=8192,
+    supported_precisions=["fp16"],
+    embedding_dim=1024,
+    pooling_type="cls",
+))
+
+# 指定模型调用
+embeddings = await backend.embed(texts, model="bge-m3")
+response = await backend.generate(prompts, params, model="qwen-7b")
+```
+
+### 与 Control Plane 集成
+
+```python
+# Control Plane 根据 HybridCapabilityDescriptor 做智能调度
+capability = backend.get_hybrid_capability()
+
+# 调度决策考虑因素：
+# 1. 请求类型 → 路由到对应模型
+# 2. 各模型当前负载 → 负载均衡
+# 3. GPU 显存使用率 → 避免 OOM
+# 4. 请求优先级和 SLO → 优先级调度
+# 5. RAG 场景 → Embedding + LLM 联合调度
 ```
 
 ### 交互示例
@@ -225,6 +420,7 @@ class InferenceBackend(Protocol):
 2. `sageLLM Control Plane` 调用 `backend.get_capability()`，根据 `instance_type` 和 `kv_schema` 进行 PD/AF 调度。
 3. 课题一实现的 `TransportEngine` 使用 Phase 0 的 `KVChunk`，无需关心调度细节。
 4. 课题三产出的 `QuantizationProfile` 能被任意 InferenceBackend 加载。
+5. **混合部署**：`sage infer serve --llm qwen-7b --embedding bge-m3 --sharing time_slice` 启动混合推理服务。
 
 ---
 
