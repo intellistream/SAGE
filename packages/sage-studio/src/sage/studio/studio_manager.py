@@ -276,17 +276,40 @@ class StudioManager:
 
     def check_dependencies(self) -> bool:
         """检查依赖"""
+        MIN_NODE_VERSION = 18  # TypeScript 5.x 需要 Node.js 14+，推荐 18+
+
         # 检查 Node.js
         try:
             result = subprocess.run(["node", "--version"], capture_output=True, text=True)
             if result.returncode == 0:
                 node_version = result.stdout.strip()
+                # 解析版本号（例如 v12.22.9 -> 12）
+                version_str = node_version.lstrip("v").split(".")[0]
+                try:
+                    major_version = int(version_str)
+                except ValueError:
+                    major_version = 0
+
+                if major_version < MIN_NODE_VERSION:
+                    console.print(
+                        f"[red]Node.js 版本过低: {node_version}（需要 v{MIN_NODE_VERSION}+）[/red]"
+                    )
+                    console.print("[yellow]💡 请升级 Node.js:[/yellow]")
+                    console.print("   conda install -y nodejs=20 -c conda-forge")
+                    console.print("   # 或通过 nvm 安装: nvm install 20 && nvm use 20")
+                    return False
                 console.print(f"[green]Node.js: {node_version}[/green]")
             else:
                 console.print("[red]Node.js 未找到[/red]")
+                console.print("[yellow]💡 安装方法:[/yellow]")
+                console.print("   conda install -y nodejs=20 -c conda-forge")
+                console.print("   # 或 apt install nodejs npm")
                 return False
         except FileNotFoundError:
             console.print("[red]Node.js 未安装[/red]")
+            console.print("[yellow]💡 安装方法:[/yellow]")
+            console.print("   conda install -y nodejs=20 -c conda-forge")
+            console.print("   # 或 apt install nodejs npm")
             return False
 
         # 检查 npm
@@ -297,9 +320,11 @@ class StudioManager:
                 console.print(f"[green]npm: {npm_version}[/green]")
             else:
                 console.print("[red]npm 未找到[/red]")
+                console.print("[yellow]💡 npm 通常随 Node.js 一起安装[/yellow]")
                 return False
         except (FileNotFoundError, subprocess.CalledProcessError):
             console.print("[red]npm 未安装[/red]")
+            console.print("[yellow]💡 npm 通常随 Node.js 一起安装[/yellow]")
             return False
 
         return True
@@ -378,7 +403,19 @@ class StudioManager:
                 "version": "1.2.4",
                 "required": ["build", "build/index.js"],
                 "reason": "PostCSS SourceMap helper (Vite dev server)",
-            }
+            },
+            {
+                "name": "typescript",
+                "version": "^5.2.2",
+                "required": ["bin/tsc"],
+                "reason": "TypeScript compiler for build",
+            },
+            {
+                "name": "vite",
+                "version": "^5.0.8",
+                "required": ["bin/vite.js"],
+                "reason": "Vite build tool",
+            },
         ]
 
         broken: list[tuple[dict, list[str]]] = []
@@ -1188,10 +1225,10 @@ if __name__ == "__main__":
                 self.stop_backend()
                 return False
 
-            if not self._ensure_frontend_dependency_integrity(auto_fix=auto_install):
-                console.print("[red]前端依赖损坏，已停止启动流程[/red]")
-                self.stop_backend()
-                return False
+        if not self._ensure_frontend_dependency_integrity(auto_fix=auto_install):
+            console.print("[red]前端依赖损坏，已停止启动流程[/red]")
+            self.stop_backend()
+            return False
 
         # 使用提供的参数或配置文件中的默认值
         config = self.load_config()

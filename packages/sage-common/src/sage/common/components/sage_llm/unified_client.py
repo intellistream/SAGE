@@ -37,12 +37,13 @@ Example:
 
 from __future__ import annotations
 
+import atexit
 import importlib
 import logging
 import os
 import time
 from dataclasses import dataclass, field
-from threading import Lock
+from threading import Event, Lock, Thread
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import httpx
@@ -244,6 +245,20 @@ class UnifiedInferenceClient:
         self._llm_available = False
         self._embedding_available = False
 
+        # Backend discovery configuration
+        self._management_base_url: str | None = None
+        self._backend_refresh_interval: float = 30.0  # seconds
+        self._backend_refresh_enabled: bool = False
+
+        # Multi-backend support for failover
+        self._llm_backends: list[dict[str, Any]] = []
+        self._embedding_backends: list[dict[str, Any]] = []
+        self._backends_lock = Lock()
+
+        # Background refresh thread
+        self._refresh_thread: Thread | None = None
+        self._refresh_stop_event = Event()
+
         # Initialize Control Plane mode
         self._init_control_plane_mode()
 
@@ -345,6 +360,308 @@ class UnifiedInferenceClient:
             len(self._control_plane_config["llm_backends"]),
             len(self._control_plane_config["embedding_backends"]),
         )
+
+    # ==================== Backend Discovery ====================
+
+    def enable_backend_discovery(
+        self,
+        management_base_url: str | None = None,
+        refresh_interval: float = 30.0,
+    ) -> None:
+        """Enable dynamic backend discovery with automatic refresh.
+
+        When enabled, the client will periodically query the Control Plane
+        for available backends and update routing accordingly. This allows
+        the client to discover newly started engines and handle backend
+        failures automatically.
+
+        Args:
+            management_base_url: Base URL for the Control Plane management API.
+                Defaults to http://localhost:8000/v1 if not provided.
+            refresh_interval: How often to refresh the backend list (seconds).
+                Defaults to 30 seconds.
+
+        Example:
+            >>> client = UnifiedInferenceClient.create()
+            >>> client.enable_backend_discovery(refresh_interval=15.0)
+        """
+        if self._backend_refresh_enabled:
+            logger.warning("Backend discovery is already enabled")
+            return
+
+        self._management_base_url = self._normalize_management_base(management_base_url)
+        self._backend_refresh_interval = max(5.0, refresh_interval)  # Minimum 5 seconds
+        self._backend_refresh_enabled = True
+
+        # Do initial refresh
+        self._refresh_backends()
+
+        # Start background refresh thread
+        self._refresh_stop_event.clear()
+        self._refresh_thread = Thread(
+            target=self._backend_refresh_loop,
+            name="UnifiedClient-BackendRefresh",
+            daemon=True,
+        )
+        self._refresh_thread.start()
+
+        # Register cleanup on exit
+        atexit.register(self.disable_backend_discovery)
+
+        logger.info(
+            "Backend discovery enabled (management_url=%s, interval=%.1fs)",
+            self._management_base_url,
+            self._backend_refresh_interval,
+        )
+
+    def disable_backend_discovery(self) -> None:
+        """Disable dynamic backend discovery and stop the refresh thread."""
+        if not self._backend_refresh_enabled:
+            return
+
+        self._backend_refresh_enabled = False
+        self._refresh_stop_event.set()
+
+        if self._refresh_thread and self._refresh_thread.is_alive():
+            self._refresh_thread.join(timeout=5.0)
+            self._refresh_thread = None
+
+        logger.info("Backend discovery disabled")
+
+    def _backend_refresh_loop(self) -> None:
+        """Background loop that periodically refreshes the backend list."""
+        while not self._refresh_stop_event.is_set():
+            try:
+                self._refresh_backends()
+            except Exception as e:
+                logger.warning("Backend refresh failed: %s", e)
+
+            # Wait for next refresh interval or stop event
+            self._refresh_stop_event.wait(timeout=self._backend_refresh_interval)
+
+    def _refresh_backends(self) -> None:
+        """Fetch and update the list of available backends from Control Plane.
+
+        This method queries the /v1/management/backends endpoint and updates
+        the internal backend lists. It also handles switching to healthy
+        backends if the current one becomes unavailable.
+        """
+        if not self._management_base_url:
+            return
+
+        url = f"{self._management_base_url}/management/backends"
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(url)
+                response.raise_for_status()
+                data = response.json()
+        except httpx.RequestError as e:
+            logger.debug("Failed to fetch backends from %s: %s", url, e)
+            return
+        except httpx.HTTPStatusError as e:
+            logger.debug("Backend list request failed (%d): %s", e.response.status_code, e)
+            return
+        except ValueError:
+            logger.debug("Invalid JSON response from backends endpoint")
+            return
+
+        llm_backends = data.get("llm_backends", [])
+        embedding_backends = data.get("embedding_backends", [])
+
+        with self._backends_lock:
+            old_llm_count = len(self._llm_backends)
+            old_embed_count = len(self._embedding_backends)
+
+            self._llm_backends = llm_backends
+            self._embedding_backends = embedding_backends
+
+            # Log changes
+            new_llm_count = len(llm_backends)
+            new_embed_count = len(embedding_backends)
+
+            if new_llm_count != old_llm_count or new_embed_count != old_embed_count:
+                logger.info(
+                    "Backend list updated: LLM %d->%d, Embedding %d->%d",
+                    old_llm_count,
+                    new_llm_count,
+                    old_embed_count,
+                    new_embed_count,
+                )
+
+        # Check if current backends are still healthy and switch if needed
+        self._update_clients_from_discovered_backends()
+
+    def _update_clients_from_discovered_backends(self) -> None:
+        """Update LLM and Embedding clients based on discovered backends.
+
+        If the current backend is unhealthy, this method will attempt to
+        switch to a healthy alternative.
+        """
+        with self._backends_lock:
+            # Update LLM client if needed
+            healthy_llm = [b for b in self._llm_backends if b.get("is_healthy", False)]
+            if healthy_llm:
+                # Check if current LLM is still healthy
+                current_url = self.config.llm_base_url
+                current_healthy = any(b.get("base_url") == current_url for b in healthy_llm)
+
+                if not current_healthy and self._llm_available:
+                    # Current backend is unhealthy, switch to first healthy one
+                    new_backend = healthy_llm[0]
+                    self._switch_llm_backend(new_backend)
+            elif self._llm_backends and not healthy_llm:
+                # All LLM backends are unhealthy
+                logger.warning("All LLM backends are unhealthy")
+                self._llm_available = False
+
+            # Update Embedding client if needed
+            healthy_embed = [b for b in self._embedding_backends if b.get("is_healthy", False)]
+            if healthy_embed:
+                current_url = self.config.embedding_base_url
+                current_healthy = any(b.get("base_url") == current_url for b in healthy_embed)
+
+                if not current_healthy and self._embedding_available:
+                    new_backend = healthy_embed[0]
+                    self._switch_embedding_backend(new_backend)
+            elif self._embedding_backends and not healthy_embed:
+                logger.warning("All Embedding backends are unhealthy")
+                self._embedding_available = False
+
+    def _switch_llm_backend(self, backend: dict[str, Any]) -> None:
+        """Switch to a new LLM backend.
+
+        Args:
+            backend: Backend info dict with base_url and model_name.
+        """
+        new_url = backend.get("base_url")
+        new_model = backend.get("model_name")
+
+        if not new_url:
+            return
+
+        logger.info(
+            "Switching LLM backend: %s -> %s",
+            self.config.llm_base_url,
+            new_url,
+        )
+
+        try:
+            self._llm_client = OpenAI(
+                base_url=new_url,
+                api_key=self.config.llm_api_key or "not-needed",
+                timeout=self.config.timeout,
+                max_retries=self.config.max_retries,
+            )
+            self.config.llm_base_url = new_url
+            if new_model:
+                self.config.llm_model = new_model
+            self._llm_available = True
+        except Exception as e:
+            logger.error("Failed to switch LLM backend to %s: %s", new_url, e)
+            self._llm_available = False
+
+    def _switch_embedding_backend(self, backend: dict[str, Any]) -> None:
+        """Switch to a new Embedding backend.
+
+        Args:
+            backend: Backend info dict with base_url and model_name.
+        """
+        new_url = backend.get("base_url")
+        new_model = backend.get("model_name")
+
+        if not new_url:
+            return
+
+        logger.info(
+            "Switching Embedding backend: %s -> %s",
+            self.config.embedding_base_url,
+            new_url,
+        )
+
+        try:
+            self._embedding_client = OpenAI(
+                base_url=new_url,
+                api_key=self.config.embedding_api_key or "not-needed",
+                timeout=self.config.timeout,
+                max_retries=self.config.max_retries,
+            )
+            self.config.embedding_base_url = new_url
+            if new_model:
+                self.config.embedding_model = new_model
+            self._embedding_available = True
+        except Exception as e:
+            logger.error("Failed to switch Embedding backend to %s: %s", new_url, e)
+            self._embedding_available = False
+
+    def get_discovered_backends(self) -> dict[str, Any]:
+        """Get the current list of discovered backends.
+
+        Returns:
+            Dictionary with llm_backends and embedding_backends lists.
+        """
+        with self._backends_lock:
+            return {
+                "llm_backends": list(self._llm_backends),
+                "embedding_backends": list(self._embedding_backends),
+                "discovery_enabled": self._backend_refresh_enabled,
+                "management_url": self._management_base_url,
+            }
+
+    def _try_llm_failover(self) -> bool:
+        """Attempt to switch to a healthy LLM backend.
+
+        Returns:
+            True if successfully switched to a new backend, False otherwise.
+        """
+        # First, refresh the backend list
+        if self._management_base_url:
+            self._refresh_backends()
+
+        with self._backends_lock:
+            # Find healthy backends excluding the current one
+            current_url = self.config.llm_base_url
+            healthy_backends = [
+                b
+                for b in self._llm_backends
+                if b.get("is_healthy", False) and b.get("base_url") != current_url
+            ]
+
+            if not healthy_backends:
+                # No alternative healthy backends available
+                logger.warning("No healthy LLM backends available for failover")
+                return False
+
+            # Switch to the first healthy alternative
+            new_backend = healthy_backends[0]
+            self._switch_llm_backend(new_backend)
+            return self._llm_available
+
+    def _try_embedding_failover(self) -> bool:
+        """Attempt to switch to a healthy Embedding backend.
+
+        Returns:
+            True if successfully switched to a new backend, False otherwise.
+        """
+        # First, refresh the backend list
+        if self._management_base_url:
+            self._refresh_backends()
+
+        with self._backends_lock:
+            # Find healthy backends excluding the current one
+            current_url = self.config.embedding_base_url
+            healthy_backends = [
+                b
+                for b in self._embedding_backends
+                if b.get("is_healthy", False) and b.get("base_url") != current_url
+            ]
+
+            if not healthy_backends:
+                logger.warning("No healthy Embedding backends available for failover")
+                return False
+
+            new_backend = healthy_backends[0]
+            self._switch_embedding_backend(new_backend)
+            return self._embedding_available
 
     # ==================== Factory Methods ====================
 
@@ -754,7 +1071,7 @@ class UnifiedInferenceClient:
             Response string (default) or InferenceResult if return_result=True.
 
         Raises:
-            RuntimeError: If LLM endpoint is not available.
+            RuntimeError: If no LLM backend is available after failover attempts.
             Exception: If API call fails.
 
         Example:
@@ -766,9 +1083,14 @@ class UnifiedInferenceClient:
             "2+2 equals 4."
         """
         if not self._llm_available:
-            raise RuntimeError(
-                "LLM endpoint not available. Check configuration or start a local server."
-            )
+            # Try failover if backend discovery is enabled
+            if self._backend_refresh_enabled:
+                self._try_llm_failover()
+            if not self._llm_available:
+                raise RuntimeError(
+                    "No LLM backend available. "
+                    "Check configuration or start a local server with 'sage llm serve'."
+                )
 
         return_result = kwargs.pop("return_result", False)
         start_time = time.time()
@@ -788,35 +1110,70 @@ class UnifiedInferenceClient:
             for msg in messages
         ]
 
-        # Note: stream=False for non-streaming to get ChatCompletion response
-        response = self._llm_client.chat.completions.create(
-            model=actual_model,
-            messages=typed_messages,
-            temperature=temperature or self.config.temperature,
-            max_tokens=max_tokens or self.config.max_tokens,
-            top_p=top_p or self.config.top_p,
-            stream=False,  # Always use non-streaming for this method
-            **kwargs,
-        )
+        # Try request with failover on connection errors
+        last_error: Exception | None = None
+        max_failover_attempts = 3
 
-        latency_ms = (time.time() - start_time) * 1000
-        content = response.choices[0].message.content or ""
+        for attempt in range(max_failover_attempts):
+            try:
+                # Note: stream=False for non-streaming to get ChatCompletion response
+                response = self._llm_client.chat.completions.create(
+                    model=actual_model,
+                    messages=typed_messages,
+                    temperature=temperature or self.config.temperature,
+                    max_tokens=max_tokens or self.config.max_tokens,
+                    top_p=top_p or self.config.top_p,
+                    stream=False,  # Always use non-streaming for this method
+                    **kwargs,
+                )
 
-        if return_result:
-            return InferenceResult(
-                request_id=response.id,
-                request_type="chat",
-                content=content,
-                model=response.model,
-                usage={
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
-                    "total_tokens": response.usage.total_tokens if response.usage else 0,
-                },
-                latency_ms=latency_ms,
-            )
+                latency_ms = (time.time() - start_time) * 1000
+                content = response.choices[0].message.content or ""
 
-        return content
+                if return_result:
+                    return InferenceResult(
+                        request_id=response.id,
+                        request_type="chat",
+                        content=content,
+                        model=response.model,
+                        usage={
+                            "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                            "completion_tokens": (
+                                response.usage.completion_tokens if response.usage else 0
+                            ),
+                            "total_tokens": response.usage.total_tokens if response.usage else 0,
+                        },
+                        latency_ms=latency_ms,
+                    )
+
+                return content
+
+            except Exception as e:
+                last_error = e
+                # Check if this is a connection error that warrants failover
+                error_str = str(e).lower()
+                is_connection_error = any(
+                    keyword in error_str
+                    for keyword in ["connection", "timeout", "refused", "unreachable"]
+                )
+
+                if is_connection_error and self._backend_refresh_enabled:
+                    logger.warning(
+                        "LLM request failed (attempt %d/%d): %s. Attempting failover...",
+                        attempt + 1,
+                        max_failover_attempts,
+                        e,
+                    )
+                    if self._try_llm_failover():
+                        # Successfully switched to new backend, retry
+                        continue
+                # Non-connection error or failover failed, raise immediately
+                raise
+
+        # All attempts exhausted
+        if last_error:
+            raise last_error
+        raise RuntimeError("LLM request failed after all failover attempts")
 
     def generate(
         self,
@@ -934,7 +1291,7 @@ class UnifiedInferenceClient:
             List of embedding vectors or InferenceResult if return_result=True.
 
         Raises:
-            RuntimeError: If Embedding endpoint is not available.
+            RuntimeError: If no Embedding backend is available after failover attempts.
 
         Example:
             >>> client = UnifiedInferenceClient.create()
@@ -945,10 +1302,14 @@ class UnifiedInferenceClient:
             768
         """
         if not self._embedding_available:
-            raise RuntimeError(
-                "Embedding endpoint not available. "
-                "Check configuration or start a local embedding server."
-            )
+            # Try failover if backend discovery is enabled
+            if self._backend_refresh_enabled:
+                self._try_embedding_failover()
+            if not self._embedding_available:
+                raise RuntimeError(
+                    "No Embedding backend available. "
+                    "Check configuration or start a local embedding server."
+                )
 
         # Normalize input
         if isinstance(texts, str):
@@ -969,29 +1330,58 @@ class UnifiedInferenceClient:
         if not hasattr(self._embedding_client, "embeddings"):
             raise RuntimeError("Embedding client does not have embeddings attribute")
 
-        response = self._embedding_client.embeddings.create(  # type: ignore[union-attr]
-            model=actual_model,
-            input=texts,
-            **kwargs,
-        )
+        # Try request with failover on connection errors
+        last_error: Exception | None = None
+        max_failover_attempts = 3
 
-        latency_ms = (time.time() - start_time) * 1000
-        embeddings = [item.embedding for item in response.data]
+        for attempt in range(max_failover_attempts):
+            try:
+                response = self._embedding_client.embeddings.create(  # type: ignore[union-attr]
+                    model=actual_model,
+                    input=texts,
+                    **kwargs,
+                )
 
-        if return_result:
-            return InferenceResult(
-                request_id=f"emb-{int(start_time * 1000)}",
-                request_type="embed",
-                content=embeddings,
-                model=response.model,
-                usage={
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "total_tokens": response.usage.total_tokens if response.usage else 0,
-                },
-                latency_ms=latency_ms,
-            )
+                latency_ms = (time.time() - start_time) * 1000
+                embeddings = [item.embedding for item in response.data]
 
-        return embeddings
+                if return_result:
+                    return InferenceResult(
+                        request_id=f"emb-{int(start_time * 1000)}",
+                        request_type="embed",
+                        content=embeddings,
+                        model=response.model,
+                        usage={
+                            "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                            "total_tokens": response.usage.total_tokens if response.usage else 0,
+                        },
+                        latency_ms=latency_ms,
+                    )
+
+                return embeddings
+
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
+                is_connection_error = any(
+                    keyword in error_str
+                    for keyword in ["connection", "timeout", "refused", "unreachable"]
+                )
+
+                if is_connection_error and self._backend_refresh_enabled:
+                    logger.warning(
+                        "Embedding request failed (attempt %d/%d): %s. Attempting failover...",
+                        attempt + 1,
+                        max_failover_attempts,
+                        e,
+                    )
+                    if self._try_embedding_failover():
+                        continue
+                raise
+
+        if last_error:
+            raise last_error
+        raise RuntimeError("Embedding request failed after all failover attempts")
 
     # ==================== Helper Methods ====================
 

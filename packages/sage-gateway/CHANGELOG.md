@@ -1,6 +1,64 @@
 # SAGE Gateway Changelog
 
-## [Unreleased] - 2025-11-21
+## [Unreleased] - 2025-12-03
+
+### Breaking Changes
+
+- **Removed `UnifiedAPIServer`**: The `unified_api_server.py` module has been removed from
+  `sage-common`. Control Plane functionality is now integrated into `sage-gateway`.
+  - Users should use `sage gateway start` instead of manually starting UnifiedAPIServer.
+  - All `/v1/management/*` endpoints are now served by sage-gateway.
+
+### Added
+
+- **`sage gateway` CLI command group**: New unified CLI for Gateway management
+
+  - `sage gateway start` - Start Gateway (background by default, port 8000)
+  - `sage gateway stop` - Stop Gateway (graceful/force)
+  - `sage gateway status` - Show status, engines, and backends
+  - `sage gateway logs` - View logs (with `--follow` support)
+  - `sage gateway restart` - Restart Gateway
+
+- **Control Plane integration**: sage-gateway now includes full Control Plane functionality
+
+  - `GET /v1/management/engines` - List engines
+  - `POST /v1/management/engines/start` - Start engine
+  - `POST /v1/management/engines/stop` - Stop engine
+  - `GET /v1/management/backends` - List registered backends
+  - `GET /v1/management/gpu` - GPU resource status
+
+- **Dynamic backend discovery**: UnifiedInferenceClient can now discover backends dynamically
+
+  - Backend list refresh every 30 seconds
+  - Automatic failover when backends become unavailable
+
+### Changed
+
+- **Updated CLI hints**: `sage llm engine` commands now hint to use `sage gateway start`
+- **Updated `sage studio start`**: Now indicates Gateway includes Control Plane scheduler
+- Renamed package from `sage-gateway` to `isage-gateway` for consistency
+- Use dynamic version from `_version.py` instead of hardcoded version
+- Auto-start Gateway when running `sage studio start` (unless `--no-gateway`)
+- Improved startup workflow with auto-install and auto-build features
+
+### Developer Notes
+
+The Gateway unification addresses the previous split architecture:
+
+- Before: Two separate gateways (sage-gateway for Chat/RAG, UnifiedAPIServer for Control Plane)
+- After: Single unified gateway (`sage-gateway`) with all functionality
+
+Migration guide:
+
+```bash
+# Before
+python -c "from sage.common.components.sage_llm.unified_api_server import ..."
+
+# After
+sage gateway start
+```
+
+## [0.1.1] - 2025-11-21
 
 ### Changed
 
