@@ -165,7 +165,7 @@ class LLMLauncher:
                 console.print("   [green]✓[/green] 使用本地模型路径")
             return model, True
 
-        # Try to resolve from vLLM cache
+        # Try to resolve from SAGE vLLM cache first
         try:
             from sage.common.model_registry import vllm_registry
 
@@ -175,13 +175,29 @@ class LLMLauncher:
                     console.print(f"   [green]✓[/green] 使用本地缓存: {cached_path}")
                 return str(cached_path), True
             except Exception:
-                if verbose:
-                    console.print("   [yellow]⚠️  模型未缓存，将从 HuggingFace 下载...[/yellow]")
-                    console.print(f"   下载位置: ~/.sage/models/vllm/{model.replace('/', '__')}/")
-                return model, False
+                pass  # Not in SAGE cache, check HuggingFace cache below
         except ImportError:
-            # Registry not available
-            return model, False
+            pass  # Registry not available
+
+        # Check HuggingFace Hub cache (vLLM uses this by default)
+        try:
+            from huggingface_hub import try_to_load_from_cache
+            from huggingface_hub.constants import HF_HUB_CACHE
+
+            # Check if model config exists in HF cache (indicates model is cached)
+            cached_config = try_to_load_from_cache(model, "config.json")
+            if cached_config is not None:
+                if verbose:
+                    console.print(f"   [green]✓[/green] 使用 HuggingFace 缓存: {HF_HUB_CACHE}")
+                return model, True
+        except Exception:
+            pass  # HF cache check failed, assume not cached
+
+        # Model not found in any cache
+        if verbose:
+            console.print("   [yellow]⚠️  模型未缓存，将从 HuggingFace 下载...[/yellow]")
+            console.print("   下载位置: ~/.cache/huggingface/hub/")
+        return model, False
 
     @classmethod
     def is_running(cls) -> tuple[bool, int | None]:

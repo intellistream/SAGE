@@ -415,18 +415,66 @@ class ChatModeManager(StudioManager):
             )
             return False
 
-        # 等待服务就绪
+        # 等待服务就绪 - Gateway 需要加载 MemoryManager 和 FAISS 索引，需要更长时间
         url = f"http://localhost:{gateway_port}/health"
-        for _ in range(20):
+        max_attempts = 120  # 最多等待 60 秒 (120 * 0.5)
+        console.print("[blue]   等待 Gateway 服务就绪...[/blue]")
+        for i in range(max_attempts):
             try:
-                response = requests.get(url, timeout=1)
+                response = requests.get(url, timeout=2)
                 if response.status_code == 200:
-                    console.print("[green]✅ gateway 已就绪[/green]")
+                    console.print(f"[green]✅ Gateway 已就绪 (耗时 {(i + 1) * 0.5:.1f}秒)[/green]")
                     return True
             except requests.RequestException:
-                time.sleep(0.5)
-        console.print("[yellow]⚠️ gateway 仍在启动，请稍后检查[/yellow]")
-        return True
+                pass
+            # 每 10 秒输出一次状态
+            if (i + 1) % 20 == 0:
+                console.print(
+                    f"[blue]   等待 Gateway 响应... ({(i + 1) * 0.5:.0f}/{max_attempts * 0.5:.0f}秒)[/blue]"
+                )
+                # 检查进程是否还在
+                if self.gateway_pid_file.exists():
+                    try:
+                        pid = int(self.gateway_pid_file.read_text().strip())
+                        if not psutil.pid_exists(pid):
+                            console.print("[red]❌ Gateway 进程已退出[/red]")
+                            # 输出日志帮助调试
+                            if self.gateway_log_file.exists():
+                                console.print("[yellow]Gateway 日志（最后 20 行）:[/yellow]")
+                                try:
+                                    lines = self.gateway_log_file.read_text().splitlines()
+                                    for line in lines[-20:]:
+                                        console.print(f"[dim]  {line}[/dim]")
+                                except Exception:
+                                    pass
+                            return False
+                    except Exception:
+                        pass
+            time.sleep(0.5)
+
+        # 超时，检查进程状态
+        console.print("[yellow]⚠️ Gateway 启动超时[/yellow]")
+        if self.gateway_pid_file.exists():
+            try:
+                pid = int(self.gateway_pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    console.print(f"[yellow]   进程仍在运行 (PID: {pid})，可能仍在初始化[/yellow]")
+                    # 输出日志帮助调试
+                    if self.gateway_log_file.exists():
+                        console.print("[yellow]   Gateway 日志（最后 30 行）:[/yellow]")
+                        try:
+                            lines = self.gateway_log_file.read_text().splitlines()
+                            for line in lines[-30:]:
+                                console.print(f"[dim]  {line}[/dim]")
+                        except Exception:
+                            pass
+                    return True  # 进程还在，可能只是启动慢
+                else:
+                    console.print("[red]❌ Gateway 进程已退出[/red]")
+                    return False
+            except Exception:
+                pass
+        return False
 
     def _stop_gateway(self) -> bool:
         pid = self._is_gateway_running()
