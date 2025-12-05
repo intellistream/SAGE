@@ -129,6 +129,7 @@ activate_sage.sh
 .venv/
 # Benchmark and test reports (now stored in .sage/benchmarks/)
 # .benchmarks/ - deprecated, use .sage/benchmarks/
+.benchmarks/
 **/benchmark_report_*.json
 **/test_results_*.json
 **.egg-info

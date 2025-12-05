@@ -27,6 +27,46 @@ from sage.common.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
+def _select_available_gpus(
+    required_memory_gb: float,
+    tensor_parallel_size: int = 1,
+) -> list[int] | None:
+    """Select GPUs with sufficient available memory.
+
+    Uses GPUResourceManager to find GPUs with enough free memory for LLM inference.
+
+    Args:
+        required_memory_gb: Required free memory per GPU in GB
+        tensor_parallel_size: Number of GPUs needed
+
+    Returns:
+        List of GPU IDs with sufficient memory, or None if not available
+    """
+    try:
+        from sage.common.components.sage_llm.sageLLM.control_plane import GPUResourceManager
+    except ImportError:
+        logger.debug("GPUResourceManager not available, using default GPU selection")
+        return None
+
+    try:
+        gpu_manager = GPUResourceManager()
+        available_gpus = gpu_manager.allocate_resources(required_memory_gb, tensor_parallel_size)
+        if available_gpus and len(available_gpus) >= tensor_parallel_size:
+            logger.info(f"Selected GPUs with sufficient memory: {available_gpus}")
+            # NOTE: We don't actually reserve the memory since we're just selecting
+            # Release the "allocation" immediately - we only needed to find available GPUs
+            gpu_manager.release_resources(available_gpus, required_memory_gb)
+            return available_gpus
+        else:
+            logger.warning(
+                f"Could not find {tensor_parallel_size} GPUs with {required_memory_gb}GB free"
+            )
+            return None
+    except Exception as e:
+        logger.debug(f"GPU selection failed: {e}")
+        return None
+
+
 def get_served_model_name(model_path: str) -> str:
     """Convert model path to a friendly model name for API served_model_name.
 
@@ -170,6 +210,27 @@ class LLMAPIServer:
 
         logger.info(f"Starting LLM API server ({self.config.backend}): {' '.join(cmd)}")
 
+        # Auto-select GPUs with sufficient free memory
+        # Estimate required memory: gpu_memory_utilization * 80GB (typical GPU size)
+        # For safety, require at least 40GB free to avoid OOM during startup
+        estimated_required_gb = max(40.0, 80.0 * self.config.gpu_memory_utilization)
+        selected_gpus = _select_available_gpus(
+            required_memory_gb=estimated_required_gb,
+            tensor_parallel_size=self.config.tensor_parallel_size,
+        )
+
+        # Prepare environment with GPU selection
+        env = os.environ.copy()
+        if selected_gpus:
+            cuda_devices = ",".join(str(gpu) for gpu in selected_gpus)
+            env["CUDA_VISIBLE_DEVICES"] = cuda_devices
+            logger.info(f"Set CUDA_VISIBLE_DEVICES={cuda_devices}")
+        else:
+            logger.warning(
+                "Could not auto-select GPUs, using system default. "
+                "This may fail if default GPU has insufficient memory."
+            )
+
         try:
             # Start process
             if background:
@@ -180,6 +241,7 @@ class LLMAPIServer:
                     stdout=log_handle,
                     stderr=subprocess.STDOUT,
                     preexec_fn=os.setsid if os.name != "nt" else None,
+                    env=env,  # Use environment with CUDA_VISIBLE_DEVICES
                 )
                 self.pid = self.process.pid
                 logger.info(f"LLM API server started in background (PID: {self.pid})")
@@ -189,7 +251,7 @@ class LLMAPIServer:
                 return self._wait_for_ready(timeout=120)
             else:
                 # Foreground mode - blocking
-                self.process = subprocess.Popen(cmd)
+                self.process = subprocess.Popen(cmd, env=env)
                 self.pid = self.process.pid
                 logger.info(f"LLM API server started in foreground (PID: {self.pid})")
                 self.process.wait()
