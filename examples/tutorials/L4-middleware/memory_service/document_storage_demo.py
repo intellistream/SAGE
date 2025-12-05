@@ -299,7 +299,7 @@ def example_3_hybrid_search():
         index_name="tech_index",
         topk=5,
         with_metadata=True,
-        metadata_filter_func=lambda m: m.get("language") == "Python" and m.get("year", 0) >= 2020,
+        metadata_filter=lambda m: m.get("language") == "Python" and m.get("year", 0) >= 2020,
     )
 
     for i, result in enumerate(results, 1):
@@ -314,7 +314,7 @@ def example_3_hybrid_search():
         index_name="tech_index",
         topk=5,
         with_metadata=True,
-        metadata_filter_func=lambda m: m.get("category") == "language",
+        metadata_filter=lambda m: m.get("category") == "language",
     )
 
     for i, result in enumerate(results, 1):
@@ -416,9 +416,15 @@ def example_5_persistence():
     # Step 1: Create and save
     print("\n📝 步骤1: 创建并保存数据")
     manager1 = MemoryManager(data_dir=data_dir)
+
+    # Delete existing collection if it exists (for demo repeatability)
+    collection_name = "persistent_docs"
+    if manager1.get_collection(collection_name):
+        manager1.delete_collection(collection_name)
+
     collection1 = manager1.create_collection(
         {
-            "name": "persistent_docs",
+            "name": collection_name,
             "backend_type": "VDB",
             "description": "Persistent collection",
         }
