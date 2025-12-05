@@ -28,7 +28,7 @@ jobs:
   build-and-test:
     name: Build, Test & Coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60  # 278 个测试需要更多时间
     # Skip version bump commits to avoid unnecessary CI runs
     if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
@@ -110,7 +110,8 @@ jobs:
           for submodule in \
             "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
             "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
-            "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"; do
+            "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB" \
+            "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"; do
             if [ -d "$submodule" ]; then
               # Check if directory is not empty
               if [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then

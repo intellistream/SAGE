@@ -31,6 +31,7 @@ from . import (
     benchmark_libamm,
     benchmark_memory,
     benchmark_rag,
+    benchmark_refiner,
     benchmark_scheduler,
 )
 from ._version import __version__
@@ -42,4 +43,5 @@ __all__ = [
     "benchmark_scheduler",
     "benchmark_libamm",
     "benchmark_control_plane",
+    "benchmark_refiner",
 ]
