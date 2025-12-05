@@ -441,19 +441,20 @@ jobs:
           #
           # 功能流程：
           # 1. Builds RAG index from docs-public if needed
-          # 2. Starts Gateway on port 8000
-          # 3. Starts Vite preview server on port 5173 (from built assets)
+          # 2. Starts Gateway on port 8000 (auto-detects existing LLM/Embedding services)
+          # 3. Starts local LLM service via sageLLM (if not already running)
+          # 4. Starts local Embedding service (if not already running)
+          # 5. Starts Vite preview server on port 5173 (from built assets)
           #
-          # CI Mode Options:
+          # Self-hosted Runner Mode:
           # -y: Non-interactive mode (skip all prompts)
-          # --no-llm: Skip local LLM service (use cloud API via DASHSCOPE_API_KEY)
-          # --no-embedding: Skip local embedding service (use cloud API)
+          # Gateway 会自动扫描并连接已运行的 LLM/Embedding 服务
           #
-          # 注意：CI 环境跳过本地 LLM/Embedding 启动，避免 vLLM 初始化问题
-          # Chat 功能将使用云端 DashScope API（需配置 DASHSCOPE_API_KEY secret）
+          # 注意：Self-hosted runner 有 GPU，支持本地 LLM/Embedding
+          # 如果服务已在运行，Gateway 会自动检测并复用
 
-          # 启动服务（后台运行，跳过本地 LLM 和 Embedding）
-          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y --no-llm --no-embedding 2>&1 | tee ~/sage-studio-deploy.log &
+          # 启动服务（后台运行）
+          nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y 2>&1 | tee ~/sage-studio-deploy.log &
 
           # 等待服务启动（轮询检查端口，增加等待时间）
           PORT="${{ github.event.inputs.port || '5173' }}"
