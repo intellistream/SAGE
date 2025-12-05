@@ -2,6 +2,7 @@ import threading
 import time
 
 from sage.common.core.functions import BaseFunction, SinkFunction, SourceFunction
+from sage.common.core.signals import StopSignal
 from sage.kernel.api.local_environment import LocalEnvironment
 
 # 添加全局打印锁来防止并发输出混乱
@@ -134,7 +135,8 @@ class ChunkCollector(SinkFunction):
         with self._lock:
             self._ensure_chunks_list()
 
-            if chunks is None:  # Stop signal
+            # 过滤掉 StopSignal 和 None
+            if chunks is None or isinstance(chunks, StopSignal):
                 return
 
             if isinstance(chunks, list):
