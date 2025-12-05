@@ -221,6 +221,12 @@ class LLMAPIServer:
 
         # Prepare environment with GPU selection
         env = os.environ.copy()
+
+        # CRITICAL: Disable user site-packages to avoid version conflicts
+        # This prevents loading packages from ~/.local/ which may have
+        # incompatible versions (e.g., vLLM version mismatch)
+        env["PYTHONNOUSERSITE"] = "1"
+
         if selected_gpus:
             cuda_devices = ",".join(str(gpu) for gpu in selected_gpus)
             env["CUDA_VISIBLE_DEVICES"] = cuda_devices

@@ -282,6 +282,10 @@ class ChatModeManager(StudioManager):
             str(port),
         ]
 
+        # Prepare environment: disable user site-packages to avoid version conflicts
+        env = os.environ.copy()
+        env["PYTHONNOUSERSITE"] = "1"
+
         try:
             log_handle = open(embedding_log, "w")
             proc = subprocess.Popen(
@@ -290,6 +294,7 @@ class ChatModeManager(StudioManager):
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
+                env=env,  # Pass environment with PYTHONNOUSERSITE
             )
             # 注意：不关闭 log_handle，让子进程继承并管理它
 
@@ -300,9 +305,9 @@ class ChatModeManager(StudioManager):
             console.print(f"   [green]✓[/green] Embedding 服务已启动 (PID: {proc.pid})")
             console.print(f"   日志: {embedding_log}")
 
-            # Wait for service to be ready (up to 60 seconds)
-            console.print("   [dim]等待服务就绪...[/dim]")
-            for i in range(60):
+            # Wait for service to be ready (up to 180 seconds for model download)
+            console.print("   [dim]等待服务就绪 (首次可能需要下载模型)...[/dim]")
+            for i in range(180):
                 try:
                     resp = requests.get(f"http://localhost:{port}/v1/models", timeout=1)
                     if resp.status_code == 200:
