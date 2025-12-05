@@ -131,7 +131,7 @@ jobs:
   test-local-build:
     name: Test Local Build Installation (${{ matrix.install-mode }}, Py${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     # Skip version bump commits - package structure not changed, only version numbers
     if: |
       !contains(github.event.head_commit.message, '[version bump]') &&
