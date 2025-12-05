@@ -253,6 +253,15 @@ class StudioManager:
         host = host or self.default_host
         port = port or self.gateway_port
 
+        # 检查是否已经运行
+        existing_pid = self.is_gateway_running()
+        if existing_pid:
+            if existing_pid == -1:
+                console.print("[green]✅ Gateway 已在运行中（外部启动）[/green]")
+            else:
+                console.print(f"[green]✅ Gateway 已在运行中 (PID: {existing_pid})[/green]")
+            return True
+
         console.print(f"[blue]🚀 启动 Gateway 服务 ({host}:{port})...[/blue]")
 
         try:
@@ -281,24 +290,66 @@ class StudioManager:
             with open(self.gateway_pid_file, "w") as f:
                 f.write(str(process.pid))
 
-            # 等待服务启动
+            # 等待服务启动 - 增加到 60 秒，因为 Gateway 需要加载 studio routes
             console.print("[blue]等待 Gateway 服务启动...[/blue]")
-            for i in range(10):  # 最多等待10秒
-                time.sleep(1)
+            max_wait = 60  # 最多等待 60 秒
+
+            # 创建不使用代理的 session
+            session = requests.Session()
+            session.trust_env = False
+
+            for i in range(max_wait):
+                # 检查进程是否还在运行
+                if not psutil.pid_exists(process.pid):
+                    console.print("[red]❌ Gateway 进程已退出[/red]")
+                    # 输出日志帮助调试
+                    if self.gateway_log_file.exists():
+                        console.print("[yellow]Gateway 日志（最后 30 行）:[/yellow]")
+                        try:
+                            with open(self.gateway_log_file) as f:
+                                lines = f.readlines()
+                                for line in lines[-30:]:
+                                    console.print(f"[dim]  {line.rstrip()}[/dim]")
+                        except Exception:
+                            pass
+                    return False
+
                 try:
-                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    response = session.get(f"http://localhost:{port}/health", timeout=2)
                     if response.status_code == 200:
                         console.print(
-                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid})[/green]"
+                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid}, 耗时 {i + 1} 秒)[/green]"
                         )
                         console.print(f"[blue]📡 Gateway API: http://{host}:{port}[/blue]")
                         return True
                 except Exception:
                     pass
 
-            console.print("[yellow]⚠️  Gateway 可能未完全启动，请检查日志[/yellow]")
-            console.print(f"[blue]日志文件: {self.gateway_log_file}[/blue]")
-            return True  # 进程启动了，即使 health check 失败
+                # 每 10 秒输出一次状态
+                if (i + 1) % 10 == 0:
+                    console.print(f"[blue]   等待 Gateway 响应... ({i + 1}/{max_wait}秒)[/blue]")
+
+                time.sleep(1)
+
+            # 超时但进程还在，可能只是启动慢
+            if psutil.pid_exists(process.pid):
+                console.print("[yellow]⚠️  Gateway 启动超时，但进程仍在运行[/yellow]")
+                console.print(f"[yellow]   请检查日志: {self.gateway_log_file}[/yellow]")
+                # 输出日志最后几行
+                if self.gateway_log_file.exists():
+                    try:
+                        with open(self.gateway_log_file) as f:
+                            lines = f.readlines()
+                            if lines:
+                                console.print("[yellow]   Gateway 日志（最后 10 行）:[/yellow]")
+                                for line in lines[-10:]:
+                                    console.print(f"[dim]     {line.rstrip()}[/dim]")
+                    except Exception:
+                        pass
+                return True  # 进程还在，认为可能成功
+
+            console.print("[red]❌ Gateway 启动失败[/red]")
+            return False
 
         except Exception as e:
             console.print(f"[red]❌ Gateway 启动失败: {e}[/red]")
