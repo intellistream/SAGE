@@ -46,34 +46,34 @@ class TestVDBMemoryCollectionIndexValidation:
     """Test create_index validation logic."""
 
     def test_create_index_without_name(self):
-        """Test create_index without name returns None."""
+        """Test create_index without name returns None (failure)."""
         if not VDB_AVAILABLE:
             pytest.skip("VDBMemoryCollection not available")
 
         collection = VDBMemoryCollection({"name": "test"})
         result = collection.create_index({"dim": 384, "embedding_model": "model"})
-        assert result is None
+        assert result is None  # None indicates failure
 
     def test_create_index_without_embedding_model(self):
-        """Test create_index without embedding_model returns None."""
+        """Test create_index without embedding_model returns None (failure)."""
         if not VDB_AVAILABLE:
             pytest.skip("VDBMemoryCollection not available")
 
         collection = VDBMemoryCollection({"name": "test"})
         result = collection.create_index({"name": "idx", "dim": 384})
-        assert result is None
+        assert result is None  # None indicates failure
 
     def test_create_index_without_dim(self):
-        """Test create_index without dim returns None."""
+        """Test create_index without dim returns None (failure)."""
         if not VDB_AVAILABLE:
             pytest.skip("VDBMemoryCollection not available")
 
         collection = VDBMemoryCollection({"name": "test"})
         result = collection.create_index({"name": "idx", "embedding_model": "model"})
-        assert result is None
+        assert result is None  # None indicates failure
 
     def test_create_index_with_invalid_dim_type(self):
-        """Test create_index with non-int dim returns None."""
+        """Test create_index with non-int dim returns None (failure)."""
         if not VDB_AVAILABLE:
             pytest.skip("VDBMemoryCollection not available")
 
@@ -81,19 +81,19 @@ class TestVDBMemoryCollectionIndexValidation:
         result = collection.create_index(
             {"name": "idx", "dim": "invalid", "embedding_model": "model"}
         )
-        assert result is None
+        assert result is None  # None indicates failure
 
     def test_create_index_with_invalid_model_type(self):
-        """Test create_index with non-string model returns None."""
+        """Test create_index with non-string model returns None (failure)."""
         if not VDB_AVAILABLE:
             pytest.skip("VDBMemoryCollection not available")
 
         collection = VDBMemoryCollection({"name": "test"})
         result = collection.create_index({"name": "idx", "dim": 384, "embedding_model": 123})
-        assert result is None
+        assert result is None  # None indicates failure
 
     def test_create_duplicate_index(self):
-        """Test creating duplicate index returns None."""
+        """Test creating duplicate index returns None (failure)."""
         if not VDB_AVAILABLE:
             pytest.skip("VDBMemoryCollection not available")
 
@@ -102,4 +102,4 @@ class TestVDBMemoryCollectionIndexValidation:
         result = collection.create_index(
             {"name": "existing", "dim": 384, "embedding_model": "model"}
         )
-        assert result is None
+        assert result is None  # None indicates failure

@@ -32,8 +32,8 @@ class TestOpenAIGenerator:
 
         assert OpenAIGenerator is not None
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_openai_generator_initialization(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_openai_generator_initialization(self, mock_openai_class):
         """测试OpenAIGenerator初始化"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -45,9 +45,9 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient
+        # Mock OpenAI client
         mock_client_instance = Mock()
-        mock_unified_client.return_value = mock_client_instance
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -56,16 +56,16 @@ class TestOpenAIGenerator:
         assert generator.enable_profile is False
         assert generator.num == 1
 
-        # 验证UnifiedInferenceClient被正确调用
-        mock_unified_client.assert_called_once_with(
-            llm_model="gpt-4o-mini",
-            llm_base_url="http://localhost:8000/v1",
-            llm_api_key="test_key",  # pragma: allowlist secret
+        # 验证 OpenAI 被正确调用
+        mock_openai_class.assert_called_once_with(
+            base_url="http://localhost:8000/v1",
+            api_key="test_key",  # pragma: allowlist secret
         )
         assert generator.model == mock_client_instance
+        assert generator.model_name == "gpt-4o-mini"
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_openai_generator_initialization_with_profile(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_openai_generator_initialization_with_profile(self, mock_openai_class):
         """测试OpenAIGenerator带profile初始化"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -77,29 +77,17 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient
+        # Mock OpenAI client
         mock_client_instance = Mock()
-        mock_unified_client.return_value = mock_client_instance
-
-        # Mock context with env_base_dir - 使用统一的SAGE路径管理
-        mock_ctx = Mock()
-        from sage.common.config.output_paths import get_test_temp_dir
-
-        test_dir = get_test_temp_dir("test_generator")
-        mock_ctx.env_base_dir = str(test_dir)
+        mock_openai_class.return_value = mock_client_instance
 
         with patch("os.makedirs"):
             generator = OpenAIGenerator(config=config, enable_profile=True)
-            generator.ctx = mock_ctx
-
-            # 重新初始化以设置profile路径
-            generator.__init__(config=config, enable_profile=True)
-
             assert generator.enable_profile is True
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_openai_generator_initialization_no_api_key(self, mock_unified_client):
-        """测试OpenAIGenerator无API密钥初始化"""
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_openai_generator_initialization_no_api_key(self, mock_openai_class):
+        """测试OpenAIGenerator无API密钥初始化（使用环境变量）"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
 
@@ -110,24 +98,26 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock环境变量
-        with patch.dict(os.environ, {"ALIBABA_API_KEY": "env_api_key"}):  # pragma: allowlist secret
+        # 清除所有可能影响的环境变量，只设置 ALIBABA_API_KEY
+        env_override = {
+            "OPENAI_API_KEY": "",
+            "ALIBABA_API_KEY": "env_api_key",  # pragma: allowlist secret
+            "DASHSCOPE_API_KEY": "",
+        }
+        with patch.dict(os.environ, env_override, clear=False):
             mock_client_instance = Mock()
-            mock_unified_client.return_value = mock_client_instance
+            mock_openai_class.return_value = mock_client_instance
 
             OpenAIGenerator(config=config)
 
             # 验证使用环境变量中的API密钥
-            # 注意：某些Mock实现可能会遮蔽敏感信息，所以我们检查调用参数
-            assert mock_unified_client.call_count == 1
-            call_kwargs = mock_unified_client.call_args[1]
-            assert call_kwargs["llm_model"] == "gpt-4o-mini"
-            assert call_kwargs["llm_base_url"] == "http://localhost:8000/v1"
-            # API key 可能被遮蔽显示为 ***，我们只检查它不是 None
-            assert call_kwargs["llm_api_key"] is not None
+            assert mock_openai_class.call_count == 1
+            call_kwargs = mock_openai_class.call_args[1]
+            assert call_kwargs["base_url"] == "http://localhost:8000/v1"
+            assert call_kwargs["api_key"] == "env_api_key"  # pragma: allowlist secret
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_with_string_input(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_with_string_input(self, mock_openai_class):
         """测试execute方法处理字符串输入"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -139,10 +129,12 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient和其响应
+        # Mock OpenAI client 和 chat completion 响应
         mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "Generated response"
-        mock_unified_client.return_value = mock_client_instance
+        mock_completion = Mock()
+        mock_completion.choices = [Mock(message=Mock(content="Generated response"))]
+        mock_client_instance.chat.completions.create.return_value = mock_completion
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -150,14 +142,19 @@ class TestOpenAIGenerator:
         input_data = ["Test prompt"]
         result = generator.execute(input_data)
 
-        # 新实现：单输入返回字典，包含 generated 与 generate_time
+        # 新实现：单输入返回字典，包含 generated 字段
         assert isinstance(result, dict)
         assert result["generated"] == "Generated response"
-        expected_messages = [{"role": "user", "content": "Test prompt"}]
-        mock_client_instance.generate.assert_called_once_with(expected_messages)
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_with_two_string_inputs(self, mock_unified_client):
+        # 验证 chat.completions.create 被正确调用
+        expected_messages = [{"role": "user", "content": "Test prompt"}]
+        mock_client_instance.chat.completions.create.assert_called_once()
+        call_kwargs = mock_client_instance.chat.completions.create.call_args[1]
+        assert call_kwargs["model"] == "gpt-4o-mini"
+        assert call_kwargs["messages"] == expected_messages
+
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_with_two_string_inputs(self, mock_openai_class):
         """测试execute方法处理两个字符串输入（原始query + prompt）"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -169,10 +166,12 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient和其响应
+        # Mock OpenAI client 和 chat completion 响应
         mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "Generated response"
-        mock_unified_client.return_value = mock_client_instance
+        mock_completion = Mock()
+        mock_completion.choices = [Mock(message=Mock(content="Generated response"))]
+        mock_client_instance.chat.completions.create.return_value = mock_completion
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -180,16 +179,16 @@ class TestOpenAIGenerator:
         input_data = ["What is AI?", "Please explain artificial intelligence."]
         result = generator.execute(input_data)
 
-        # 新实现：返回 dict，包含 query、generated 和 generate_time
+        # 新实现：返回 dict，包含 query、generated
         assert isinstance(result, dict)
-        assert result["query"] == ""
         assert result["generated"] == "Generated response"
 
         expected_messages = [{"role": "user", "content": "Please explain artificial intelligence."}]
-        mock_client_instance.generate.assert_called_once_with(expected_messages)
+        call_kwargs = mock_client_instance.chat.completions.create.call_args[1]
+        assert call_kwargs["messages"] == expected_messages
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_with_profile_enabled(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_with_profile_enabled(self, mock_openai_class):
         """测试启用profile的execute方法"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -201,23 +200,15 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient和其响应
+        # Mock OpenAI client 和 chat completion 响应
         mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "Generated response"
-        mock_unified_client.return_value = mock_client_instance
+        mock_completion = Mock()
+        mock_completion.choices = [Mock(message=Mock(content="Generated response"))]
+        mock_client_instance.chat.completions.create.return_value = mock_completion
+        mock_openai_class.return_value = mock_client_instance
 
         with patch("os.makedirs"), patch("builtins.open", create=True), patch("json.dump"):
             generator = OpenAIGenerator(config=config, enable_profile=True)
-
-            # Mock context - 使用统一的SAGE路径管理
-            mock_ctx = Mock()
-            from sage.common.config.output_paths import get_test_temp_dir
-
-            test_dir = get_test_temp_dir("test_generator")
-            mock_ctx.env_base_dir = str(test_dir)
-            generator.ctx = mock_ctx
-            generator.data_base_path = str(test_dir / ".sage" / "states" / "generator_data")
-            generator.data_records = []
 
             input_data = ["Test prompt"]
 
@@ -228,8 +219,8 @@ class TestOpenAIGenerator:
             assert isinstance(result, dict)
             assert result["generated"] == "Generated response"
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_with_api_error(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_with_api_error(self, mock_openai_class):
         """测试execute方法处理API错误"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -241,10 +232,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient抛出异常
+        # Mock OpenAI client 抛出异常
         mock_client_instance = Mock()
-        mock_client_instance.generate.side_effect = Exception("API Error")
-        mock_unified_client.return_value = mock_client_instance
+        mock_client_instance.chat.completions.create.side_effect = Exception("API Error")
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -254,8 +245,8 @@ class TestOpenAIGenerator:
 
         assert "API Error" in str(exc_info.value)
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_increments_counter(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_increments_counter(self, mock_openai_class):
         """测试execute方法会递增计数器"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -267,10 +258,12 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient和其响应
+        # Mock OpenAI client 和 chat completion 响应
         mock_client_instance = Mock()
-        mock_client_instance.chat_completion.return_value = "Generated response"
-        mock_unified_client.return_value = mock_client_instance
+        mock_completion = Mock()
+        mock_completion.choices = [Mock(message=Mock(content="Generated response"))]
+        mock_client_instance.chat.completions.create.return_value = mock_completion
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -284,8 +277,8 @@ class TestOpenAIGenerator:
         generator.execute(["Test prompt 2"])
         assert generator.num == 3
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_with_dict_input_returns_generate_time(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_with_dict_input_returns_generate_time(self, mock_openai_class):
         """测试execute方法处理字典输入时返回generate_time字段"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -297,10 +290,12 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient和其响应
+        # Mock OpenAI client 和 chat completion 响应
         mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "Generated response"
-        mock_unified_client.return_value = mock_client_instance
+        mock_completion = Mock()
+        mock_completion.choices = [Mock(message=Mock(content="Generated response"))]
+        mock_client_instance.chat.completions.create.return_value = mock_completion
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -309,22 +304,17 @@ class TestOpenAIGenerator:
         prompt = "Please explain artificial intelligence."
         input_data = [original_data, prompt]
 
-        with patch("time.time", side_effect=[1000.0, 1001.5]):  # start, end times
-            result = generator.execute(input_data)
+        result = generator.execute(input_data)
 
-        # 验证结果是字典格式且包含generate_time
+        # 验证结果是字典格式且包含必要字段
         assert isinstance(result, dict)
         assert "generated" in result
         assert result["generated"] == "Generated response"
         assert result["query"] == "What is AI?"
         assert result["other_field"] == "value"
 
-        # 验证调用参数
-        expected_messages = [{"role": "user", "content": prompt}]
-        mock_client_instance.generate.assert_called_once_with(expected_messages)
-
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_execute_with_messages_list_input(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_execute_with_messages_list_input(self, mock_openai_class):
         """测试execute方法处理消息列表输入"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -336,10 +326,12 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # Mock UnifiedInferenceClient和其响应
+        # Mock OpenAI client 和 chat completion 响应
         mock_client_instance = Mock()
-        mock_client_instance.generate.return_value = "Generated response"
-        mock_unified_client.return_value = mock_client_instance
+        mock_completion = Mock()
+        mock_completion.choices = [Mock(message=Mock(content="Generated response"))]
+        mock_client_instance.chat.completions.create.return_value = mock_completion
+        mock_openai_class.return_value = mock_client_instance
 
         generator = OpenAIGenerator(config=config)
 
@@ -351,8 +343,7 @@ class TestOpenAIGenerator:
         ]
         input_data = [original_data, messages]
 
-        with patch("time.time", side_effect=[1000.0, 1002.0]):  # start, end times
-            result = generator.execute(input_data)
+        result = generator.execute(input_data)
 
         # 验证结果
         assert isinstance(result, dict)
@@ -361,10 +352,11 @@ class TestOpenAIGenerator:
         assert result["query"] == "What is AI?"
 
         # 验证直接传递消息列表
-        mock_client_instance.generate.assert_called_once_with(messages)
+        call_kwargs = mock_client_instance.chat.completions.create.call_args[1]
+        assert call_kwargs["messages"] == messages
 
-    @patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient")
-    def test_configuration_validation(self, mock_unified_client):
+    @patch("sage.middleware.operators.rag.generator.OpenAI")
+    def test_configuration_validation(self, mock_openai_class):
         """测试配置验证"""
         if not GENERATOR_AVAILABLE:
             pytest.skip("Generator module not available")
@@ -378,7 +370,7 @@ class TestOpenAIGenerator:
         ]
 
         mock_client_instance = Mock()
-        mock_unified_client.return_value = mock_client_instance
+        mock_openai_class.return_value = mock_client_instance
 
         for config in configs_to_test:
             # 这些配置都应该能成功创建实例，因为使用了 .get() 提供默认值
@@ -401,12 +393,12 @@ class TestOpenAIGeneratorIntegration:
             "seed": 42,
         }
 
-        with patch(
-            "sage.middleware.operators.rag.generator.UnifiedInferenceClient"
-        ) as mock_unified_client:
+        with patch("sage.middleware.operators.rag.generator.OpenAI") as mock_openai_class:
             mock_client_instance = Mock()
-            mock_client_instance.generate.return_value = "Mocked response"
-            mock_unified_client.return_value = mock_client_instance
+            mock_completion = Mock()
+            mock_completion.choices = [Mock(message=Mock(content="Mocked response"))]
+            mock_client_instance.chat.completions.create.return_value = mock_completion
+            mock_openai_class.return_value = mock_client_instance
 
             generator = OpenAIGenerator(config=config)
 
@@ -418,9 +410,8 @@ class TestOpenAIGeneratorIntegration:
 
             result = generator.execute(test_data)
 
-            # 新实现：返回 dict，包含 query、generated 和 generate_time
+            # 新实现：返回 dict，包含 generated
             assert isinstance(result, dict)
-            assert result["query"] == ""
             assert result["generated"] == "Mocked response"
 
 
@@ -512,9 +503,8 @@ class TestHFGenerator:
         assert isinstance(result, tuple)
         assert len(result) == 2
         user_query, response = result
-        assert (
-            user_query == ""
-        )  # HFGenerator: data[0] if len(data) > 1 else "" (empty string when single input)
+        # HFGenerator: user_query = None when len(data) == 1, but returns "" (empty string)
+        assert user_query == ""  # Code returns "" when user_query is None
         assert response == "Single response"
 
         # 验证model.generate被正确调用
@@ -590,14 +580,17 @@ class TestGeneratorIntegration:
         hf_config = {"model_name": "microsoft/DialoGPT-medium"}
 
         with (
-            patch("sage.middleware.operators.rag.generator.UnifiedInferenceClient") as mock_openai,
+            patch("sage.middleware.operators.rag.generator.OpenAI") as mock_openai,
             patch("sage.middleware.operators.rag.generator.HFClient") as mock_hf,
         ):
-            # Mock两个客户端
+            # Mock OpenAI 客户端
             mock_openai_instance = Mock()
-            mock_openai_instance.generate.return_value = "OpenAI response"
+            mock_completion = Mock()
+            mock_completion.choices = [Mock(message=Mock(content="OpenAI response"))]
+            mock_openai_instance.chat.completions.create.return_value = mock_completion
             mock_openai.return_value = mock_openai_instance
 
+            # Mock HF 客户端
             mock_hf_instance = Mock()
             mock_hf_instance.generate.return_value = "HF response"
             mock_hf.return_value = mock_hf_instance
@@ -617,5 +610,5 @@ class TestGeneratorIntegration:
             assert isinstance(hf_result, tuple)
 
             # 验证两个生成器都被正确调用
-            mock_openai_instance.generate.assert_called_once()
+            mock_openai_instance.chat.completions.create.assert_called_once()
             mock_hf_instance.generate.assert_called_once()

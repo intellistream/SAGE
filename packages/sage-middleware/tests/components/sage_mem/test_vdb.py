@@ -81,9 +81,9 @@ def test_vdb_collection():
 
     # 搜索测试
     results = test_collection.retrieve(
-        query_vector=query_vector,
+        query=query_vector,  # 参数名改为 query
         index_name="test_index",
-        topk=3,  # 注意：这里使用topk而不是top_k
+        top_k=3,  # 参数名改为 top_k
         threshold=0.3,  # 使用合理的阈值
         with_metadata=True,
     )
