@@ -129,7 +129,7 @@ class LLMBenchmarkConfig(BaseBenchmarkConfig):
             output_dir = Path(output_dir)
 
         return cls(
-            control_plane_url=data.get("control_plane_url", "http://localhost:8000"),
+            control_plane_url=data.get("control_plane_url", "http://localhost:8888"),
             policies=data.get("policies", ["fifo", "priority", "slo_aware"]),
             num_requests=data.get("num_requests", 100),
             request_rate=data.get("request_rate", 10.0),

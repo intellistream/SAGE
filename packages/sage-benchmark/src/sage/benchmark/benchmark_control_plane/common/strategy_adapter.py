@@ -296,7 +296,7 @@ class StrategyAdapter:
         This sends a policy switch request to the Control Plane API.
 
         Args:
-            control_plane_url: Control Plane URL (e.g., "http://localhost:8000")
+            control_plane_url: Control Plane URL (e.g., "http://localhost:8888")
             policy_name: Name of policy to switch to
             timeout: Request timeout in seconds
 

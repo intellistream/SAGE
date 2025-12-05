@@ -24,7 +24,7 @@ Usage:
     )
 
     config = LLMBenchmarkConfig(
-        control_plane_url="http://localhost:8000",
+        control_plane_url="http://localhost:8888",
         policies=["fifo", "priority", "slo_aware"],
         num_requests=1000,
     )

@@ -284,7 +284,7 @@ export const usePlaygroundStore = create<PlaygroundState>((set, get) => ({
             code = `import requests
 
 # SAGE Studio API Configuration
-API_URL = "http://localhost:8000/api"
+API_URL = "http://localhost:8888/api"
 FLOW_ID = "${flowId}"
 API_KEY = "${apiKey}"
 
@@ -312,7 +312,7 @@ else:
         } else {
             code = `# Execute SAGE Studio Flow
 
-curl -X POST "http://localhost:8000/api/playground/execute/${flowId}" \\
+curl -X POST "http://localhost:8888/api/playground/execute/${flowId}" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -H "Content-Type: application/json" \\
   -d '{
