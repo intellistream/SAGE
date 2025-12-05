@@ -480,15 +480,16 @@ jobs:
           export PYTHONNOUSERSITE=1
           echo "已设置 PYTHONNOUSERSITE=1，禁用 ~/.local 中的用户包"
 
+          # 删除用户目录下可能冲突的包（vLLM 版本冲突是常见问题）
+          if [ -d "$HOME/.local/lib/python3.11/site-packages/vllm" ]; then
+            echo "⚠️  发现用户目录有 vLLM 安装，删除以避免版本冲突..."
+            rm -rf "$HOME/.local/lib/python3.11/site-packages/vllm"*
+            echo "✅ 已删除 ~/.local 中的 vLLM"
+          fi
+
           # 验证 vLLM 来源
           echo "验证 vLLM 安装位置..."
           python -c "import vllm; print(f'vLLM path: {vllm.__file__}')" 2>/dev/null || echo "vLLM 未安装在当前环境"
-
-          # 检查是否有冲突的用户安装
-          if [ -d "$HOME/.local/lib/python3.11/site-packages/vllm" ]; then
-            echo "⚠️  发现用户目录有 vLLM 安装: ~/.local/lib/python3.11/site-packages/vllm"
-            echo "   已通过 PYTHONNOUSERSITE=1 禁用"
-          fi
 
           # 使用生产模式启动（Vite preview，基于构建产物）
           #
