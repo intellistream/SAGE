@@ -136,7 +136,7 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
-        ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT, 8080]
+        ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT]
 
         for p in ports_to_check:
             if p is None:

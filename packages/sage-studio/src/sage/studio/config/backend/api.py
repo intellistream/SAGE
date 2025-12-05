@@ -2706,4 +2706,6 @@ async def test_dataset_source(source_name: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)  # 修改为监听所有网络接口
+    # NOTE: 后端 API 已合并到 Gateway，推荐通过 sage gateway start 启动。
+    # 此处保留用于独立调试，生产环境请使用 Gateway (端口 8000)。
+    uvicorn.run(app, host="0.0.0.0", port=8080)

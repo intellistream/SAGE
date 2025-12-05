@@ -16,13 +16,7 @@ export default defineConfig({
         // 'true' means allow any host - necessary for reverse proxy setups
         allowedHosts: true,
         proxy: {
-            // Chat API 转发到 Gateway (8000)
-            '/api/chat': {
-                target: 'http://localhost:8000',
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api\/chat/, ''),
-            },
-            // 其他 API 转发到 Studio 后端 (8080)
+            // 所有 Studio API 统一转发到 Gateway (8080)
             '/api': {
                 target: 'http://localhost:8080',
                 changeOrigin: true,
