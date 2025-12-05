@@ -26,6 +26,9 @@ def start(
         False, "--no-auto-build", help="禁用自动构建（生产模式下如缺少构建会提示失败）"
     ),
     no_llm: bool = typer.Option(False, "--no-llm", help="禁用本地 LLM 服务（默认启动 sageLLM）"),
+    no_embedding: bool = typer.Option(
+        False, "--no-embedding", help="禁用本地 Embedding 服务（用于无 GPU 的 CI/CD 环境）"
+    ),
     llm_model: str | None = typer.Option(
         None,
         "--llm-model",
@@ -41,6 +44,7 @@ def start(
         "--list-finetuned",
         help="📋 列出可用的微调模型",
     ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="自动确认所有提示（用于 CI/CD 或脚本）"),
 ):
     """启动 SAGE Studio（默认启动本地 LLM）
 
@@ -125,6 +129,8 @@ def start(
             llm=False if no_llm else None,
             llm_model=llm_model,
             use_finetuned=use_finetuned,
+            skip_confirm=yes,
+            no_embedding=no_embedding,
         )
 
         if success:
