@@ -232,33 +232,61 @@ jobs:
           # 如果已安装，使用增量更新模式
           if [ "${{ steps.check-sage.outputs.sage_installed }}" = "true" ]; then
             echo "🔄 执行增量更新（仅更新 SAGE 包，不重装依赖）..."
-            # 只重新安装 editable 包，不重装依赖
-            pip install -e packages/sage-common --no-deps -q
-            pip install -e packages/sage-platform --no-deps -q
-            pip install -e packages/sage-kernel --no-deps -q
-            pip install -e packages/sage-libs --no-deps -q
-            pip install -e packages/sage-middleware --no-deps -q
-            pip install -e packages/sage-apps --no-deps -q
-            pip install -e packages/sage-studio --no-deps -q
-            pip install -e packages/sage-gateway --no-deps -q
-            pip install -e packages/sage-cli --no-deps -q
-            pip install -e packages/sage-tools --no-deps -q
-            pip install -e packages/sage --no-deps -q
+            echo "   这可能需要 1-2 分钟，请耐心等待..."
+
+            # 定义要更新的包列表
+            packages=(
+              "sage-common"
+              "sage-platform"
+              "sage-kernel"
+              "sage-libs"
+              "sage-middleware"
+              "sage-apps"
+              "sage-studio"
+              "sage-gateway"
+              "sage-cli"
+              "sage-tools"
+              "sage"
+            )
+
+            total=${#packages[@]}
+            current=0
+
+            for pkg in "${packages[@]}"; do
+              current=$((current + 1))
+              echo "   [$current/$total] 更新 $pkg..."
+              pip install -e "packages/$pkg" --no-deps -q 2>&1 || echo "      ⚠️  $pkg 更新可能有警告"
+            done
+
             echo "✅ 增量更新完成"
           elif [ "$deps_installed" = "true" ]; then
             echo "🔄 核心依赖已存在，仅安装 SAGE 包（带依赖检查）..."
-            # 依赖已存在，只安装 SAGE 包，pip 会自动跳过已安装的依赖
-            pip install -e packages/sage-common -q
-            pip install -e packages/sage-platform -q
-            pip install -e packages/sage-kernel -q
-            pip install -e packages/sage-libs -q
-            pip install -e packages/sage-middleware -q
-            pip install -e packages/sage-apps -q
-            pip install -e packages/sage-studio -q
-            pip install -e packages/sage-gateway -q
-            pip install -e packages/sage-cli -q
-            pip install -e packages/sage-tools -q
-            pip install -e packages/sage -q
+            echo "   这可能需要 2-5 分钟，请耐心等待..."
+
+            # 定义要安装的包列表
+            packages=(
+              "sage-common"
+              "sage-platform"
+              "sage-kernel"
+              "sage-libs"
+              "sage-middleware"
+              "sage-apps"
+              "sage-studio"
+              "sage-gateway"
+              "sage-cli"
+              "sage-tools"
+              "sage"
+            )
+
+            total=${#packages[@]}
+            current=0
+
+            for pkg in "${packages[@]}"; do
+              current=$((current + 1))
+              echo "   [$current/$total] 安装 $pkg..."
+              pip install -e "packages/$pkg" -q 2>&1 || echo "      ⚠️  $pkg 安装可能有警告"
+            done
+
             echo "✅ SAGE 包安装完成（复用已有依赖）"
           else
             echo "📦 执行完整安装（首次安装，需要下载所有依赖）..."
@@ -423,7 +451,7 @@ jobs:
           #
           # 注意：CI 环境跳过本地 LLM/Embedding 启动，避免 vLLM 初始化问题
           # Chat 功能将使用云端 DashScope API（需配置 DASHSCOPE_API_KEY secret）
-          
+
           # 启动服务（后台运行，跳过本地 LLM 和 Embedding）
           nohup sage studio start --prod --host 0.0.0.0 --port ${{ github.event.inputs.port || '5173' }} -y --no-llm --no-embedding 2>&1 | tee ~/sage-studio-deploy.log &
 
@@ -455,7 +483,7 @@ jobs:
         run: |
           # 禁用 errexit，防止检查命令的非零返回值导致脚本失败
           set +e
-          
+
           PORT="${{ github.event.inputs.port || '5173' }}"
           BACKEND_PORT="8080"
           echo "🔍 检查服务健康状态..."
@@ -493,21 +521,21 @@ jobs:
           echo "📡 端口监听状态汇总..."
           echo "| 端口 | 服务 | 状态 |"
           echo "|------|------|------|"
-          
+
           # 前端端口
           if lsof -ti:${PORT} > /dev/null 2>&1; then
             echo "| ${PORT} | Frontend (Vite) | ✅ 监听中 |"
           else
             echo "| ${PORT} | Frontend (Vite) | ❌ 未监听 |"
           fi
-          
+
           # 后端端口
           if lsof -ti:${BACKEND_PORT} > /dev/null 2>&1; then
             echo "| ${BACKEND_PORT} | Backend API | ✅ 监听中 |"
           else
             echo "| ${BACKEND_PORT} | Backend API | ❌ 未监听 |"
           fi
-          
+
           # Gateway 端口
           if lsof -ti:8000 > /dev/null 2>&1; then
             echo "| 8000 | Gateway | ✅ 监听中 |"
@@ -534,7 +562,7 @@ jobs:
               echo "⚠️ 未找到前端进程"
             fi
           fi
-          
+
           # 后端进程
           BACKEND_PID=$(lsof -ti:${BACKEND_PORT} 2>/dev/null || true)
           if [ -n "$BACKEND_PID" ]; then
@@ -592,19 +620,19 @@ jobs:
               tail -30 ~/cloudflared.log || true
               exit 1
             fi
-            
+
             # 检查是否成功连接（日志中会出现 "Registered tunnel connection"）
             if grep -q "Registered tunnel connection" ~/cloudflared.log 2>/dev/null; then
               TUNNEL_CONNECTED=true
               echo "✅ Tunnel 已连接到 Cloudflare (第 $i 次检查)"
               break
             fi
-            
+
             # 检查是否有错误
             if grep -qi "error\|failed\|unauthorized" ~/cloudflared.log 2>/dev/null; then
               echo "⚠️  检测到可能的错误，继续等待..."
             fi
-            
+
             echo "   等待中... ($i/30)"
             sleep 2
           done
@@ -627,7 +655,7 @@ jobs:
           echo ""
           echo "=== Tunnel 连接信息 ==="
           grep -E "Registered|connection|INF" ~/cloudflared.log 2>/dev/null | tail -10 || echo "暂无连接信息"
-          
+
       - name: Verify Tunnel connectivity
         if: ${{ env.CLOUDFLARE_TUNNEL_TOKEN != '' }}
         continue-on-error: true
@@ -635,7 +663,7 @@ jobs:
           TUNNEL_DOMAIN="${{ github.event.inputs.tunnel_domain || env.DEFAULT_TUNNEL_DOMAIN }}"
           echo "🔍 验证 Tunnel 连接..."
           echo ""
-          
+
           # 检查 cloudflared 进程
           echo "=== cloudflared 进程状态 ==="
           if pgrep -f "cloudflared tunnel" > /dev/null; then
@@ -644,7 +672,7 @@ jobs:
           else
             echo "❌ cloudflared 进程未运行"
           fi
-          
+
           # 检查本地服务
           PORT="${{ github.event.inputs.port || '5173' }}"
           echo ""
@@ -655,7 +683,7 @@ jobs:
             echo "❌ 本地服务 http://localhost:${PORT} 不可访问"
             echo "   这可能是 Tunnel 无法转发请求的原因"
           fi
-          
+
           # 尝试通过公网访问（可能需要等待 DNS 传播）
           echo ""
           echo "=== 公网访问测试 ==="
@@ -672,7 +700,7 @@ jobs:
           else
             echo "⚠️  https://${TUNNEL_DOMAIN} 返回 HTTP $HTTP_CODE"
           fi
-          
+
           # 显示诊断建议
           echo ""
           echo "📝 如果遇到 Host error，请检查："
@@ -842,7 +870,7 @@ jobs:
         run: |
           # 禁用 errexit，防止中间命令的非零返回值导致脚本提前退出
           set +e
-          
+
           PORT="${{ github.event.inputs.port || '5173' }}"
           echo "🔍 最终服务验证..."
           echo ""
