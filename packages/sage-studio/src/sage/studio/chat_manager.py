@@ -102,6 +102,55 @@ class ChatModeManager(StudioManager):
         return None
 
     # ------------------------------------------------------------------
+    # Service Detection helpers
+    # ------------------------------------------------------------------
+    def _detect_existing_llm_service(self) -> tuple[bool, str | None]:
+        """Detect if LLM service is already running at known ports.
+
+        Checks common LLM ports (8901, 8001, 8000) for existing service.
+
+        Returns:
+            Tuple of (is_running, base_url) - base_url is set if service found
+        """
+        # Ports to check in order of preference
+        llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
+
+        for port in llm_ports:
+            try:
+                resp = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
+                if resp.status_code == 200:
+                    return (True, f"http://localhost:{port}/v1")
+            except Exception:
+                continue
+
+        return (False, None)
+
+    def _detect_existing_embedding_service(
+        self, port: int | None = None
+    ) -> tuple[bool, str | None]:
+        """Detect if Embedding service is already running.
+
+        Args:
+            port: Specific port to check, or None to check common ports
+
+        Returns:
+            Tuple of (is_running, base_url) - base_url is set if service found
+        """
+        ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT, 8080]
+
+        for p in ports_to_check:
+            if p is None:
+                continue
+            try:
+                resp = requests.get(f"http://localhost:{p}/v1/models", timeout=2)
+                if resp.status_code == 200:
+                    return (True, f"http://localhost:{p}/v1")
+            except Exception:
+                continue
+
+        return (False, None)
+
+    # ------------------------------------------------------------------
     # Local LLM Service helpers (via sageLLM LLMLauncher)
     # ------------------------------------------------------------------
     def _start_llm_service(self, model: str | None = None, use_finetuned: bool = False) -> bool:
@@ -110,13 +159,23 @@ class ChatModeManager(StudioManager):
         Uses sageLLM's unified LLMLauncher to start a local LLM HTTP server.
         The server provides OpenAI-compatible API at http://localhost:{port}/v1
 
+        If an LLM service is already running at known ports, it will be reused
+        instead of starting a new one.
+
         Args:
             model: Model name/path to load (can be HF model or local path)
             use_finetuned: If True, try to use a fine-tuned model
 
         Returns:
-            True if started successfully, False otherwise
+            True if started successfully or existing service found, False otherwise
         """
+        # First, check if LLM service is already running
+        is_running, existing_url = self._detect_existing_llm_service()
+        if is_running:
+            console.print(f"[green]✅ 发现已运行的 LLM 服务: {existing_url}[/green]")
+            console.print("[dim]   跳过启动新服务，将复用现有服务[/dim]")
+            return True
+
         try:
             from sage.common.components.sage_llm import LLMLauncher
         except ImportError:
@@ -146,7 +205,7 @@ class ChatModeManager(StudioManager):
             use_finetuned=use_finetuned,
             finetuned_models=finetuned_models,
             verbose=True,
-            check_existing=False,  # We handle existing check at Studio level
+            check_existing=True,  # Let LLMLauncher also check for duplicates
         )
 
         if result.success:
@@ -186,24 +245,25 @@ class ChatModeManager(StudioManager):
     def _start_embedding_service(self, model: str = "BAAI/bge-m3", port: int | None = None) -> bool:
         """Start Embedding service as a background process.
 
+        If an Embedding service is already running at known ports, it will be reused
+        instead of starting a new one.
+
         Args:
             model: Embedding model name (default: BAAI/bge-m3)
             port: Server port (default: SagePorts.EMBEDDING_DEFAULT = 8090)
 
         Returns:
-            True if started successfully
+            True if started successfully or existing service found
         """
         if port is None:
             port = SagePorts.EMBEDDING_DEFAULT  # 8090
 
-        # Check if already running
-        try:
-            resp = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
-            if resp.status_code == 200:
-                console.print(f"[green]✅ Embedding 服务已在运行 (localhost:{port})[/green]")
-                return True
-        except Exception:
-            pass  # Not running, continue to start
+        # Check if already running (use the new detection method for consistent output)
+        is_running, existing_url = self._detect_existing_embedding_service(port)
+        if is_running:
+            console.print(f"[green]✅ 发现已运行的 Embedding 服务: {existing_url}[/green]")
+            console.print("[dim]   跳过启动新服务，将复用现有服务[/dim]")
+            return True
 
         console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model}, 端口: {port})[/blue]")
 
