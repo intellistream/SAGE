@@ -1,0 +1,122 @@
+# ============================================================
+# SCM (Self-Controlled Memory) Pipeline 配置
+# 论文: SCM4LLMs - Enhancing Large Language Model with Self-Controlled Memory Framework
+# 特点: Memory Stream + Token Budget + 三元决策 (drop/summary/raw)
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "SCM"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# SCM 使用 Memory Stream，本质是一个大容量的短期记忆
+# ============================================================
+services:
+  register_memory_service: "short_term_memory"
+  short_term_memory:
+    max_dialog: 1000  # Memory Stream 容量
+    embedding_dim: 1024  # BAAI/bge-m3 模型的向量维度
+    retrieval_top_k: 6  # SCM 默认 similar_top_k=6
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: SCM 样式 - 同时保存原文、摘要、embedding
+  # 参考 SCM4LLMs/dialogue_test.py - summarize_embed_one_turn()
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "scm_embed"
+    # SCM 摘要 prompt (参考 SCM4LLMs/prompts/dialogue.py)
+    summarize_prompt: |
+      Below is a conversation between a user and an AI assistant. Please write a summary for each of them in one sentence and list them in separate paragraphs, while trying to preserve the key information of the user's question and the assistant's answer as much as possible.
+
+      conversation content:
+
+      {dialogue}
+
+      Summary:
+
+    # 是否对摘要做 embedding（SCM 默认对原文）
+    embed_summary: false
+    # 原文 token 数超过此值才生成摘要（SCM 默认 300）
+    summary_threshold: 300
+
+  # ----------------------------------------------------------
+  # PostInsert: 无（SCM 不做插入后优化）
+  # ----------------------------------------------------------
+  post_insert:
+    action: "none"
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 基础 embedding
+  # SCM 检索范围是 [0, 上一轮)，上一轮直接拼接
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+
+  # ----------------------------------------------------------
+  # PostRetrieval: SCM 三元决策
+  # 参考 SCM4LLMs/core/chat.py - get_related_turn() + judge_drop_or_summary()
+  # 超过 token budget 时对每条记忆判断: drop / summary / raw
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "scm_three_way"
+    # Token budget 配置（SCM 默认值）
+    max_history_tokens: 2500  # SCM: MAX_HISTORY_TOKENS = 2500
+    max_pre_turn_tokens: 500  # SCM: MAX_PRE_TURN_TOKENS = 500
+    token_counter: "char"  # char | word | tiktoken
+
+    # 三元决策 prompt (参考 SCM4LLMs/prompts/dialogue.py - judge_answerable_prompt)
+    judge_prompt: |
+      Given the [Conversation Content] and [User Question], please answer the instruction question.
+
+      [Conversation Content]:
+      ```
+      {content}
+      ```
+
+      [User Question]:
+      ```
+      {query}
+      ```
+
+      Instruction Question:
+      ```
+      Based on [Conversation Content], can you answer [User Question]? If yes, please answer `(A) Yes`, otherwise please answer `(B) No`.
+      ```
+
+      Please answer now. The output must strictly follow this format:
+
+      [Answer]: The final answer is: (A) Yes / (B) No
+
+    # 对话格式化 prompt
+    conversation_format_prompt: |
+      The following is a conversation between a user and an AI assistant. Please answer the current question based on the history of the conversation:
+
+      Related conversation history:

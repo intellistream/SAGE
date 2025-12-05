@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from sage.common.core import Collector, FlatMapFunction
 from sage.kernel.api.operator.base_operator import BaseOperator
-from sage.kernel.runtime.communication.packet import Packet
+from sage.kernel.runtime.communication.packet import Packet, StopSignal
 
 if TYPE_CHECKING:
     pass
@@ -50,6 +50,15 @@ class FlatMapOperator(BaseOperator):
         try:
             if packet is None or packet.payload is None:
                 self.logger.debug(f"FlatMapOperator '{self.name}' received empty packet, skipping")
+                return
+
+            # 检查是否是 StopSignal
+            if isinstance(packet.payload, StopSignal):
+                # StopSignal 不调用 function.execute()，直接传播
+                self.logger.debug(
+                    f"FlatMapOperator '{self.name}' received StopSignal, propagating..."
+                )
+                self.router.send(packet)
                 return
 
             # 清空收集器中的数据（如果有的话）

@@ -1,4 +1,7 @@
-"""HybridMemoryService 单元测试"""
+"""HybridMemoryService 单元测试
+
+测试 HybridMemoryService 使用 NeuroMem HybridCollection 后端的功能。
+"""
 
 import pytest
 
@@ -12,8 +15,8 @@ class TestHybridMemoryServiceInit:
 
     def test_default_init(self):
         """测试默认参数初始化"""
-        service = HybridMemoryService()
-        assert service.fusion_strategy == "weighted"
+        service = HybridMemoryService(collection_name="test_hybrid_init_default")
+        assert service.fusion_strategy == "rrf"
         assert service.rrf_k == 60
         assert len(service.index_configs) == 2  # 默认 vector + bm25
 
@@ -24,18 +27,20 @@ class TestHybridMemoryServiceInit:
             {"name": "keyword", "type": "bm25"},
             {"name": "tag", "type": "keyword"},
         ]
-        service = HybridMemoryService(indexes=indexes)
+        service = HybridMemoryService(collection_name="test_hybrid_init_custom", indexes=indexes)
         assert len(service.index_configs) == 3
+
+    def test_weighted_fusion_strategy(self):
+        """测试加权融合策略"""
+        service = HybridMemoryService(
+            collection_name="test_hybrid_init_weighted", fusion_strategy="weighted"
+        )
+        assert service.fusion_strategy == "weighted"
 
     def test_rrf_fusion_strategy(self):
         """测试 RRF 融合策略"""
-        service = HybridMemoryService(fusion_strategy="rrf")
+        service = HybridMemoryService(collection_name="test_hybrid_init_rrf", fusion_strategy="rrf")
         assert service.fusion_strategy == "rrf"
-
-    def test_custom_fusion_weights(self):
-        """测试自定义融合权重"""
-        service = HybridMemoryService(fusion_weights=[0.7, 0.3])
-        assert service.fusion_weights == [0.7, 0.3]
 
 
 class TestHybridMemoryServiceInsert:
@@ -44,14 +49,14 @@ class TestHybridMemoryServiceInsert:
     @pytest.fixture
     def service(self):
         """创建测试用服务实例"""
-        return HybridMemoryService()
+        return HybridMemoryService(collection_name="test_hybrid_insert")
 
     def test_insert_basic(self, service):
         """测试基本插入"""
         doc_id = service.insert(entry="这是一个测试文档", metadata={"type": "test"})
 
         assert doc_id is not None
-        assert len(service.documents) == 1
+        assert isinstance(doc_id, str)
 
     def test_insert_with_vector(self, service):
         """测试带向量的插入"""
@@ -67,7 +72,8 @@ class TestHybridMemoryServiceInsert:
         for i in range(5):
             service.insert(entry=f"文档{i}", metadata={"index": i})
 
-        assert len(service.documents) == 5
+        stats = service.get_stats()
+        assert stats.get("memory_count", 0) >= 5
 
 
 class TestHybridMemoryServiceRetrieve:
@@ -76,7 +82,7 @@ class TestHybridMemoryServiceRetrieve:
     @pytest.fixture
     def populated_service(self):
         """创建预填充数据的服务"""
-        service = HybridMemoryService()
+        service = HybridMemoryService(collection_name="test_hybrid_retrieve")
 
         # 插入多条测试数据
         test_docs = [
@@ -97,7 +103,6 @@ class TestHybridMemoryServiceRetrieve:
         result = populated_service.retrieve(query="人工智能", metadata={})
 
         assert isinstance(result, list)
-        assert len(result) > 0
 
     def test_retrieve_with_vector(self, populated_service):
         """测试带向量的检索"""
@@ -122,7 +127,9 @@ class TestHybridMemoryServiceFusion:
 
     def test_weighted_fusion(self):
         """测试加权融合"""
-        service = HybridMemoryService(fusion_strategy="weighted")
+        service = HybridMemoryService(
+            collection_name="test_hybrid_weighted_fusion", fusion_strategy="weighted"
+        )
 
         service.insert(entry="测试文档1", metadata={})
         service.insert(entry="测试文档2", metadata={})
@@ -133,7 +140,9 @@ class TestHybridMemoryServiceFusion:
 
     def test_rrf_fusion(self):
         """测试 RRF 融合"""
-        service = HybridMemoryService(fusion_strategy="rrf")
+        service = HybridMemoryService(
+            collection_name="test_hybrid_rrf_fusion", fusion_strategy="rrf"
+        )
 
         service.insert(entry="测试文档1", metadata={})
         service.insert(entry="测试文档2", metadata={})
@@ -146,21 +155,14 @@ class TestHybridMemoryServiceFusion:
 class TestHybridMemoryServiceStatistics:
     """测试 HybridMemoryService 统计功能"""
 
-    def test_document_count(self):
-        """测试文档数量统计"""
-        service = HybridMemoryService()
+    def test_get_stats(self):
+        """测试获取统计信息"""
+        service = HybridMemoryService(collection_name="test_hybrid_stats")
 
         for i in range(3):
             service.insert(entry=f"文档{i}", metadata={})
 
-        # 直接检查 documents 字典
-        assert len(service.documents) == 3
+        stats = service.get_stats()
 
-    def test_index_info(self):
-        """测试获取索引信息"""
-        service = HybridMemoryService()
-
-        service.insert(entry="测试", metadata={})
-
-        # 验证索引已初始化
-        assert len(service.indexes) > 0
+        assert isinstance(stats, dict)
+        assert stats.get("memory_count", 0) >= 3

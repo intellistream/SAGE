@@ -1,15 +1,24 @@
 """后检索处理模块 - 在记忆检索后的后处理（可选）
 
+R3 重构：修正职责边界，确保不实现应属于记忆服务的功能。
+
+职责边界（R3 规范）：
+- 检索结果后处理（rerank, filter, augment, compress, format）
+- 允许多次查询记忆服务以拼接完整 prompt
+- 不自己计算 embedding（由服务完成）
+- 不从 data 读取多个记忆源（只与单一服务交互）
+- filter 不支持 dedup（应由服务返回去重结果）
+- merge 通过多次调用服务实现，而非从 data 读取多源
+
 当前支持的 action：
 - none: 仅做基础格式化（保持向后兼容）
 - rerank: 对检索结果进行重排序（语义 / 时间衰减 / PPR / 加权 / cross-encoder）
-
-后续将扩展：
-- filter: 结果筛选（token budget / 阈值 / top-k / 去重等）
-- merge: 多源结果融合
-- augment: 结果增强（反思 / 上下文 / 元数据 / 时间）
-- compress: 结果压缩（LLMLingua / 抽取式 / 生成式）
-- format: 最终格式化输出（模板 / 结构化 / chat / xml）
+- filter: 结果筛选（token budget / 阈值 / top-k / llm）
+- merge: 多次查询服务合并（link_expand / multi_query）
+- augment: 结果增强（context / metadata / temporal）
+- compress: 结果压缩（extractive）
+- format: 最终格式化输出（template / structured / chat / xml）
+- scm_three_way: SCM 三元决策（drop / summary / raw）
 """
 
 from __future__ import annotations
@@ -19,9 +28,6 @@ from datetime import UTC, datetime
 from typing import Any, Optional
 
 from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
-from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
-    EmbeddingGenerator,
-)
 from sage.common.core import MapFunction
 
 
@@ -76,17 +82,20 @@ class MemoryItem:
 class PostRetrieval(MapFunction):
     """记忆检索后的后处理算子
 
-    职责：
-    - 结果重排序（rerank）
-    - 结果过滤（filter, TODO）
-    - 多源融合（merge, TODO）
-    - 结果增强（augment, TODO）
-    - 内容压缩（compress, TODO）
-    - 格式化输出（format, TODO）
+    职责边界：
+    - 检索结果后处理（rerank, filter, augment, compress, format）
+    - 允许多次查询记忆服务以拼接完整 prompt
+    - 构建最终 history_text
 
-    当前实现优先保证：
+    约束（R3 重构）：
+    - 不自己计算 embedding（由服务完成）
+    - 不从 data 读取多个记忆源（只与单一服务交互）
+    - filter 不再支持 dedup（应由服务返回去重结果）
+    - merge 通过多次调用服务实现，而非从 data 读取多源
+
+    当前实现：
     - 默认 `none` 行为不变，仅做基础 history_text 拼接
-    - 在此基础上按 action 追加 /改写 memory_data，并最终统一生成 history_text
+    - 在此基础上按 action 追加/改写 memory_data，并最终统一生成 history_text
     """
 
     def __init__(self, config):  # noqa: D401
@@ -110,9 +119,8 @@ class PostRetrieval(MapFunction):
             ),
         )
 
-        # 默认初始化共通工具（Embedding）
-        # 这些工具依赖外部模型部署，持有句柄没有问题
-        self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
+        # 服务名称（用于多次查询）
+        self.service_name = config.get("services.register_memory_service", "short_term_memory")
 
         # 根据 action 初始化特定配置
         self._init_for_action()
@@ -131,12 +139,19 @@ class PostRetrieval(MapFunction):
                 f"{cfg_prefix}.cross_encoder_model"
             )
             self.cross_encoder_batch_size: int = self.config.get(f"{cfg_prefix}.batch_size", 32)
-            self.time_decay_rate: float = float(
-                get_required_config(
-                    self.config, f"{cfg_prefix}.time_decay_rate", "rerank_type=time_weighted"
-                ),
-            )
+
+            # time_weighted 相关配置：仅在 rerank_type=time_weighted 时必需
+            if self.rerank_type == "time_weighted":
+                self.time_decay_rate: float = float(
+                    get_required_config(
+                        self.config, f"{cfg_prefix}.time_decay_rate", "rerank_type=time_weighted"
+                    ),
+                )
+            else:
+                self.time_decay_rate = self.config.get(f"{cfg_prefix}.time_decay_rate", 0.1)
             self.time_field: str = self.config.get(f"{cfg_prefix}.time_field", "timestamp")
+
+            # PPR 相关配置：仅在 rerank_type=ppr 时使用
             self.ppr_damping_factor: float = float(
                 self.config.get(f"{cfg_prefix}.damping_factor", 0.5)
             )
@@ -147,6 +162,8 @@ class PostRetrieval(MapFunction):
             self.ppr_personalization_nodes: str = self.config.get(
                 f"{cfg_prefix}.personalization_nodes", "query_entities"
             )
+
+            # weighted 相关配置：仅在 rerank_type=weighted 时必需
             self.weighted_factors: list[dict[str, Any]] = self.config.get(f"{cfg_prefix}.factors")
             if self.rerank_type == "weighted" and not self.weighted_factors:
                 raise ValueError(
@@ -158,36 +175,50 @@ class PostRetrieval(MapFunction):
             )
 
         elif self.action == "filter":
-            # filter 配置
+            # filter 配置（R3: 移除 dedup，由服务返回去重结果）
             self.filter_type = get_required_config(
                 self.config, f"{cfg_prefix}.filter_type", "action=filter"
             )
-            self.token_budget = get_required_config(
-                self.config, f"{cfg_prefix}.token_budget", "filter_type=token_budget"
-            )
-            self.token_counter = self.config.get(f"{cfg_prefix}.token_counter", "char")
-            self.overflow_strategy = self.config.get(f"{cfg_prefix}.overflow_strategy", "truncate")
-            self.score_threshold = get_required_config(
-                self.config, f"{cfg_prefix}.score_threshold", "filter_type=threshold"
-            )
-            self.top_k = get_required_config(self.config, f"{cfg_prefix}.k", "filter_type=top_k")
-            self.dedup_threshold = self.config.get(f"{cfg_prefix}.dedup_threshold", 0.9)
-            self.dedup_strategy = self.config.get(f"{cfg_prefix}.dedup_strategy", "keep_first")
+            # 根据 filter_type 加载对应配置
+            if self.filter_type == "token_budget":
+                self.token_budget = get_required_config(
+                    self.config, f"{cfg_prefix}.token_budget", "filter_type=token_budget"
+                )
+                self.token_counter = self.config.get(f"{cfg_prefix}.token_counter", "char")
+                self.overflow_strategy = self.config.get(
+                    f"{cfg_prefix}.overflow_strategy", "truncate"
+                )
+            elif self.filter_type == "threshold":
+                self.score_threshold = get_required_config(
+                    self.config, f"{cfg_prefix}.score_threshold", "filter_type=threshold"
+                )
+            elif self.filter_type == "top_k":
+                self.top_k = get_required_config(
+                    self.config, f"{cfg_prefix}.k", "filter_type=top_k"
+                )
+
+            # 为其他类型设置默认值（避免属性缺失）
+            if not hasattr(self, "token_budget"):
+                self.token_budget = 1000
+            if not hasattr(self, "token_counter"):
+                self.token_counter = "char"
+            if not hasattr(self, "overflow_strategy"):
+                self.overflow_strategy = "truncate"
+            if not hasattr(self, "score_threshold"):
+                self.score_threshold = 0.0
+            if not hasattr(self, "top_k"):
+                self.top_k = 10
 
         elif self.action == "merge":
-            # merge 配置
+            # merge 配置（R3 重构：基于多次查询服务，而非从 data 读取多源）
             self.merge_type = get_required_config(
                 self.config, f"{cfg_prefix}.merge_type", "action=merge"
             )
-            self.merge_sources = self.config.get(
-                f"{cfg_prefix}.merge_sources", ["memory_data", "context_data"]
-            )
-            self.rrf_k = self.config.get(f"{cfg_prefix}.rrf_k", 60)
-            self.merge_weights = self.config.get(f"{cfg_prefix}.merge_weights", None)
-            if self.merge_type == "weighted" and not self.merge_weights:
-                raise ValueError(
-                    "缺少必需配置: operators.post_retrieval.merge_weights (merge_type=weighted)"
-                )
+            # link_expand 专用配置
+            self.expand_top_n = self.config.get(f"{cfg_prefix}.expand_top_n", 5)
+            self.max_depth = self.config.get(f"{cfg_prefix}.max_depth", 1)
+            # multi_query 专用配置
+            self.secondary_queries = self.config.get(f"{cfg_prefix}.secondary_queries", [])
 
         elif self.action == "augment":
             # augment 配置
@@ -213,16 +244,72 @@ class PostRetrieval(MapFunction):
             self.format_type = get_required_config(
                 self.config, f"{cfg_prefix}.format_type", "action=format"
             )
-            self.format_template = get_required_config(
-                self.config, f"{cfg_prefix}.template", "format_type=template"
+            # 根据 format_type 加载对应配置
+            if self.format_type == "template":
+                self.format_template = self.config.get(f"{cfg_prefix}.template", "")
+                self.memory_template = self.config.get(
+                    f"{cfg_prefix}.memory_template", "- {{text}}"
+                )
+            elif self.format_type == "structured":
+                self.format_structure = get_required_config(
+                    self.config, f"{cfg_prefix}.structure", "format_type=structured"
+                )
+            elif self.format_type == "chat":
+                self.role_mapping = self.config.get(f"{cfg_prefix}.role_mapping", {})
+                self.include_timestamps = self.config.get(f"{cfg_prefix}.include_timestamps", False)
+            elif self.format_type == "xml":
+                self.xml_tags = self.config.get(f"{cfg_prefix}.xml_tags", {})
+
+            # 为其他类型设置默认值（避免属性缺失）
+            if not hasattr(self, "format_template"):
+                self.format_template = ""
+            if not hasattr(self, "memory_template"):
+                self.memory_template = "- {text}"
+            if not hasattr(self, "format_structure"):
+                self.format_structure = []
+            if not hasattr(self, "role_mapping"):
+                self.role_mapping = {}
+            if not hasattr(self, "include_timestamps"):
+                self.include_timestamps = False
+            if not hasattr(self, "xml_tags"):
+                self.xml_tags = {}
+
+        elif self.action == "scm_three_way":
+            # SCM 三元决策配置
+            # token budget 相关
+            self.scm_max_history_tokens = self.config.get(f"{cfg_prefix}.max_history_tokens", 2500)
+            self.scm_max_pre_turn_tokens = self.config.get(f"{cfg_prefix}.max_pre_turn_tokens", 500)
+            self.token_counter = self.config.get(f"{cfg_prefix}.token_counter", "char")
+
+            # 三元决策 prompt
+            self.scm_judge_prompt = self.config.get(
+                f"{cfg_prefix}.judge_prompt",
+                """Given the [Conversation Content] and [User Question], please answer the instruction question.
+
+[Conversation Content]:
+```
+{content}
+```
+
+[User Question]:
+```
+{query}
+```
+
+Instruction Question:
+```
+Based on [Conversation Content], can you answer [User Question]? If yes, please answer `(A) Yes`, otherwise please answer `(B) No`.
+```
+
+Please answer now. The output must strictly follow this format:
+
+[Answer]: The final answer is: (A) Yes / (B) No""",
             )
-            self.memory_template = self.config.get(f"{cfg_prefix}.memory_template", "- {{text}}")
-            self.format_structure = get_required_config(
-                self.config, f"{cfg_prefix}.structure", "format_type=structured"
-            )
-            self.role_mapping = self.config.get(f"{cfg_prefix}.role_mapping", {})
-            self.include_timestamps = self.config.get(f"{cfg_prefix}.include_timestamps", False)
-            self.xml_tags = self.config.get(f"{cfg_prefix}.xml_tags", {})
+
+            # 初始化 LLM generator
+            from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
+
+            self._scm_generator = LLMGenerator.from_config(self.config)
 
     # =============================================================
     # 公共入口
@@ -239,66 +326,37 @@ class PostRetrieval(MapFunction):
         if not data:
             return data
 
-        action = self.action or "none"
+        action_handlers = {
+            "none": self._execute_none,
+            "rerank": self._execute_rerank,
+            "filter": self._execute_filter,
+            "merge": self._execute_merge,
+            "augment": self._execute_augment,
+            "compress": self._execute_compress,
+            "format": self._execute_format,
+            "scm_three_way": self._execute_scm_three_way,
+        }
 
-        if action == "none":
-            processed = data
-        elif action == "rerank":
-            processed = self._execute_rerank(data)
-        elif action == "filter":
-            processed = self._execute_filter_action(data)
-        elif action == "merge":
-            processed = self._execute_merge_action(data)
-        elif action == "augment":
-            processed = self._execute_augment_action(data)
-        elif action == "compress":
-            processed = self._execute_compress_action(data)
-        elif action == "format":
-            # format action 直接设置 history_text，不需要再调用 _format_dialog_history
-            return self._execute_format_action(data)
+        handler = action_handlers.get(self.action)
+        if handler:
+            data = handler(data)
         else:
-            # 其他 action 尚未实现时，保持向后兼容：仅做基础格式化
-            print("PostRetrieval action '%s' not implemented, fallback to 'none'", action)
-            processed = data
+            print(f"[WARNING] Unknown action: {self.action}, using default format")
+            data = self._execute_none(data)
 
-        # 无论如何，最终都生成 history_text 供下游 LLM 使用
-        return self._format_dialog_history(processed)
+        # 最终格式化（如果还没有 history_text）
+        if "history_text" not in data:
+            data = self._format_dialog_history(data)
+
+        return data
 
     # =============================================================
-    # Action 包装方法：从 data 提取 memory_data，调用对应 _execute_*，再放回 data
+    # 大类操作方法 (Action Methods)
     # =============================================================
 
-    def _execute_filter_action(self, data: dict[str, Any]) -> dict[str, Any]:
-        """filter action 包装：提取、过滤、放回。"""
-        memory_data = data.get("memory_data", []) or []
-        items = self._convert_to_memory_items(memory_data)
-        filtered_items = self._execute_filter(items, data)
-        data["memory_data"] = self._convert_from_memory_items(filtered_items)
-        return self._format_dialog_history(data)
-
-    def _execute_merge_action(self, data: dict[str, Any]) -> dict[str, Any]:
-        """merge action 包装：提取、合并、放回。"""
-        memory_data = data.get("memory_data", []) or []
-        items = self._convert_to_memory_items(memory_data)
-        merged_items = self._execute_merge(items, data)
-        data["memory_data"] = self._convert_from_memory_items(merged_items)
-        return self._format_dialog_history(data)
-
-    def _execute_augment_action(self, data: dict[str, Any]) -> dict[str, Any]:
-        """augment action 包装：提取、增强、放回。"""
-        memory_data = data.get("memory_data", []) or []
-        items = self._convert_to_memory_items(memory_data)
-        augmented_items = self._execute_augment(items, data)
-        data["memory_data"] = self._convert_from_memory_items(augmented_items)
-        return self._format_dialog_history(data)
-
-    def _execute_compress_action(self, data: dict[str, Any]) -> dict[str, Any]:
-        """compress action 包装：提取、压缩、放回。"""
-        memory_data = data.get("memory_data", []) or []
-        items = self._convert_to_memory_items(memory_data)
-        compressed_items = self._execute_compress(items, data)
-        data["memory_data"] = self._convert_from_memory_items(compressed_items)
-        return self._format_dialog_history(data)
+    def _execute_none(self, data: dict[str, Any]) -> dict[str, Any]:
+        """无操作，仅做基础格式化（保持向后兼容）"""
+        return data
 
     # =============================================================
     # 基础格式化：保持原有行为
@@ -314,7 +372,12 @@ class PostRetrieval(MapFunction):
             if not text:
                 continue
             score = entry.get("score")
-            metadata = entry.get("metadata") or {}
+            # 合并 metadata，同时保留顶层的 node_id/entry_id
+            metadata = dict(entry.get("metadata") or {})
+            # 将顶层字段复制到 metadata 中，方便后续访问
+            for key in ("node_id", "entry_id", "depth"):
+                if key in entry and key not in metadata:
+                    metadata[key] = entry[key]
             items.append(MemoryItem(text=text, score=score, metadata=metadata, original_index=idx))
         return items
 
@@ -322,17 +385,24 @@ class PostRetrieval(MapFunction):
         """将 MemoryItem list 转换回 dict list。"""
         result: list[dict[str, Any]] = []
         for item in items:
-            result.append(
-                {
-                    "text": item.text,
-                    "score": item.score,
-                    "metadata": item.metadata,
-                }
-            )
+            entry = {
+                "text": item.text,
+                "score": item.score,
+                "metadata": item.metadata,
+            }
+            # 将 node_id/entry_id 同时放在顶层，保持与服务返回格式一致
+            for key in ("node_id", "entry_id", "depth"):
+                if key in item.metadata:
+                    entry[key] = item.metadata[key]
+            result.append(entry)
         return result
 
     def _format_dialog_history(self, data: dict[str, Any]) -> dict[str, Any]:
-        """格式化对话历史为结构化文本（阶段一：Prompt 拼接）。"""
+        """格式化对话历史为结构化文本（阶段一：Prompt 拼接）。
+
+        HippoRAG 对齐：优先返回原始对话文本而非三元组描述。
+        检索到的三元组用于 PPR 图遍历，但最终返回给 LLM 的应该是原始文本。
+        """
 
         memory_data = data.get("memory_data", []) or []
 
@@ -340,1088 +410,948 @@ class PostRetrieval(MapFunction):
         if self.conversation_format_prompt:
             history_parts.append(self.conversation_format_prompt.strip())
 
+        # 使用 set 去重，避免重复的原始文本
+        seen_texts = set()
+
         for entry in memory_data:
-            text = entry.get("text", "") if isinstance(entry, dict) else ""
-            if text:
-                history_parts.append(text)
+            if not isinstance(entry, dict):
+                continue
+
+            # HippoRAG: 优先使用原始对话文本
+            metadata = entry.get("metadata", {}) or {}
+            original_text = metadata.get("original_text", "")
+
+            if original_text and original_text not in seen_texts:
+                history_parts.append(original_text)
+                seen_texts.add(original_text)
+            else:
+                # 回退到三元组描述
+                text = entry.get("text", "")
+                if text and text not in seen_texts:
+                    history_parts.append(text)
+                    seen_texts.add(text)
 
         history_text = "\n".join(history_parts) if history_parts else ""
         data["history_text"] = history_text
         return data
 
-    # =============================================================
-    # rerank: 结果重排序
-    # =============================================================
-
     def _execute_rerank(self, data: dict[str, Any]) -> dict[str, Any]:
-        """根据 rerank_type 对 memory_data 进行重排序。"""
+        """执行结果重排序（rerank action）
 
-        memory_data_raw = data.get("memory_data", []) or []
-        if not memory_data_raw:
+        支持的 rerank_type:
+        - semantic: 语义相似度重排
+        - time_weighted: 时间衰减重排
+        - ppr: Personalized PageRank（占位）
+        - weighted: 多因子加权
+        - cross_encoder: 交叉编码器重排（占位）
+        """
+        memory_data = data.get("memory_data", [])
+        if not memory_data:
             return data
 
-        # 标准化为 MemoryItem
-        items: list[MemoryItem] = []
-        for idx, entry in enumerate(memory_data_raw):
-            if not isinstance(entry, dict):
-                continue
-            text = entry.get("text", "")
-            if not text:
-                continue
-            score = entry.get("score")
-            metadata = entry.get("metadata") or {}
-            items.append(MemoryItem(text=text, score=score, metadata=metadata, original_index=idx))
+        items = self._convert_to_memory_items(memory_data)
+        rerank_type = self.rerank_type
 
-        if not items:
-            return data
-
-        rerank_type = (self.rerank_type or "weighted").lower()
+        # 根据 rerank_type 内联处理逻辑
+        scored_items: list[tuple[MemoryItem, float]] = []
 
         if rerank_type == "semantic":
-            scored = self._rerank_semantic(items, data)
+            # ---- semantic 重排内联 ----
+            query_embedding = data.get("query_embedding")
+
+            if query_embedding is None:
+                # 注意：不自己计算 embedding，跳过语义重排
+                print(
+                    "[WARNING] Semantic rerank: query_embedding not provided, fallback to original score"
+                )
+                scored_items = [(item, item.score or 0.5) for item in items]
+            else:
+                # 使用已有的 query_embedding 计算相似度
+                import math
+
+                def cosine(a: list[float], b: list[float]) -> float:
+                    if not a or not b or len(a) != len(b):
+                        return 0.0
+                    dot = sum(x * y for x, y in zip(a, b))
+                    na = math.sqrt(sum(x * x for x in a))
+                    nb = math.sqrt(sum(y * y for y in b))
+                    if na == 0.0 or nb == 0.0:
+                        return 0.0
+                    return dot / (na * nb)
+
+                for item in items:
+                    item_embedding = item.metadata.get("embedding")
+                    if item_embedding is not None:
+                        score = cosine(query_embedding, item_embedding)
+                    else:
+                        score = item.score or 0.5
+                    scored_items.append((item, float(score)))
+
         elif rerank_type == "time_weighted":
-            scored = self._rerank_time_weighted(items, data)
+            # ---- time_weighted 重排内联 ----
+            now = datetime.now(UTC)
+            decay_rate = float(self.time_decay_rate)
+            time_field = self.time_field
+
+            for item in items:
+                ts = item.get_timestamp(time_field)
+                if ts is None:
+                    recency = 1.0
+                else:
+                    hours = max((now - ts).total_seconds() / 3600.0, 0.0)
+                    recency = (
+                        pow(0.995, hours)
+                        if decay_rate <= 0
+                        else pow(1.0 - min(decay_rate, 0.99), hours)
+                    )
+
+                base_score = item.score if item.score is not None else 1.0
+                final_score = float(recency * base_score)
+                scored_items.append((item, final_score))
+
         elif rerank_type == "ppr":
-            scored = self._rerank_ppr_placeholder(items, data)
+            # ---- ppr 重排内联（调用 GraphMemoryService.ppr_retrieve）----
+            # 从检索结果中提取种子节点 ID
+            seed_nodes = []
+            for item in items:
+                node_id = item.metadata.get("node_id") or item.metadata.get("entry_id")
+                if node_id:
+                    seed_nodes.append(node_id)
+
+            if not seed_nodes:
+                # 如果没有节点 ID，回退到原始顺序
+                print("[WARNING] PPR rerank: no node_id in memory_data, keep original order")
+                scored_items = [(item, item.score or 0.5) for item in items]
+            else:
+                try:
+                    # 调用服务的 ppr_retrieve 方法
+                    # PPR 可能需要较长时间，增加超时到 60 秒
+                    ppr_results = self.call_service(
+                        self.service_name,
+                        method="ppr_retrieve",
+                        timeout=60.0,
+                        seed_nodes=seed_nodes,
+                        alpha=1.0 - self.ppr_damping_factor,  # HippoRAG: damping=0.5 -> alpha=0.5
+                        max_iter=self.ppr_max_iterations,
+                        top_k=self.rerank_top_k or len(items) * 2,  # 获取更多结果以扩展上下文
+                    )
+
+                    if ppr_results and isinstance(ppr_results, list):
+                        # 构建 node_id -> PPR score 的映射
+                        ppr_scores = {}
+                        for r in ppr_results:
+                            if isinstance(r, dict):
+                                node_id = r.get("node_id") or r.get("entry_id")
+                                score = r.get("score", 0.0)
+                                if node_id:
+                                    ppr_scores[node_id] = score
+
+                        # 更新原有 items 的分数，并添加新发现的节点
+                        seen_nodes = set()
+                        for item in items:
+                            node_id = item.metadata.get("node_id") or item.metadata.get("entry_id")
+                            if node_id:
+                                seen_nodes.add(node_id)
+                                ppr_score = ppr_scores.get(node_id, 0.0)
+                                # 组合原始分数和 PPR 分数
+                                base_score = item.score if item.score is not None else 0.5
+                                final_score = 0.5 * base_score + 0.5 * ppr_score
+                                scored_items.append((item, final_score))
+                            else:
+                                scored_items.append((item, item.score or 0.5))
+
+                        # 添加 PPR 发现的新节点（图遍历扩展）
+                        for r in ppr_results:
+                            if isinstance(r, dict):
+                                node_id = r.get("node_id") or r.get("entry_id")
+                                if node_id and node_id not in seen_nodes:
+                                    text = r.get("text", "")
+                                    if text:
+                                        new_item = MemoryItem(
+                                            text=text,
+                                            score=r.get("score", 0.0),
+                                            metadata={"node_id": node_id, **r.get("metadata", {})},
+                                            original_index=-1,
+                                        )
+                                        scored_items.append((new_item, r.get("score", 0.0)))
+                                        seen_nodes.add(node_id)
+
+                        print(
+                            f"[INFO] PPR rerank: {len(seed_nodes)} seeds -> {len(scored_items)} results"
+                        )
+                    else:
+                        print(
+                            "[WARNING] PPR rerank: ppr_retrieve returned empty, keep original order"
+                        )
+                        scored_items = [(item, item.score or 0.5) for item in items]
+
+                except Exception as e:  # noqa: BLE001
+                    print(f"[WARNING] PPR rerank failed: {e}, keep original order")
+                    scored_items = [(item, item.score or 0.5) for item in items]
+
         elif rerank_type == "weighted":
-            scored = self._rerank_weighted(items, data)
+            # ---- weighted 重排内联 ----
+            now = datetime.now(UTC)
+
+            if not self.weighted_factors:
+                # 没有配置时退化为 time_weighted 行为
+                print("[WARNING] No weighted_factors configured, fallback to time_weighted")
+                for item in items:
+                    ts = item.get_timestamp(self.time_field)
+                    if ts is None:
+                        recency = 1.0
+                    else:
+                        hours = max((now - ts).total_seconds() / 3600.0, 0.0)
+                        recency = pow(0.995, hours)
+                    base_score = item.score if item.score is not None else 1.0
+                    scored_items.append((item, float(recency * base_score)))
+            else:
+                # 多因子加权
+                for item in items:
+                    total_score = 0.0
+
+                    for factor in self.weighted_factors:
+                        name = (factor.get("name") or "").lower()
+                        weight = float(factor.get("weight", 0.0))
+
+                        if weight == 0.0:
+                            continue
+
+                        # 计算因子分数
+                        if name == "recency":
+                            decay_type = factor.get("decay_type", "exponential")
+                            decay_rate = float(factor.get("decay_rate", 0.995))
+                            ts = item.get_timestamp(self.time_field)
+                            if ts is None:
+                                factor_score = 1.0
+                            else:
+                                hours = max((now - ts).total_seconds() / 3600.0, 0.0)
+                                if decay_type == "exponential":
+                                    factor_score = pow(decay_rate, hours)
+                                else:
+                                    factor_score = 1.0 / (1.0 + hours)
+
+                        elif name == "importance":
+                            field = factor.get("field", "importance_score")
+                            raw = item.metadata.get(field)
+                            try:
+                                val = float(raw)
+                                factor_score = max(min(val / 10.0, 1.0), 0.0)
+                            except Exception:  # noqa: BLE001
+                                factor_score = 0.0
+
+                        elif name == "relevance":
+                            # R3: 只使用已有 score，不计算 embedding
+                            factor_score = float(item.score) if item.score is not None else 0.0
+
+                        else:
+                            # 未知因子默认 0
+                            factor_score = 0.0
+
+                        total_score += weight * factor_score
+
+                    scored_items.append((item, float(total_score)))
+
         elif rerank_type == "cross_encoder":
-            scored = self._rerank_cross_encoder_placeholder(items, data)
+            # ---- cross_encoder 重排内联（占位实现）----
+            # 需要加载 cross-encoder 模型，这里使用原始分数
+            print(
+                "[INFO] cross_encoder rerank is not implemented in benchmark, keep original score"
+            )
+            scored_items = [(item, item.score or 0.5) for item in items]
+
         else:
-            print("Unknown rerank_type '%s', skip rerank", rerank_type)
+            print(f"[WARNING] Unknown rerank_type: {rerank_type}, skip rerank")
             return data
 
-        # 按分数排序
-        scored_sorted = sorted(scored, key=lambda x: x[1], reverse=True)
+        # 排序
+        scored_items.sort(key=lambda x: x[1], reverse=True)
 
-        if self.rerank_top_k is not None and self.rerank_top_k > 0:
-            scored_sorted = scored_sorted[: self.rerank_top_k]
+        # 应用 top_k
+        if self.rerank_top_k:
+            scored_items = scored_items[: self.rerank_top_k]
 
-        # 回写到 memory_data（保持原有结构）
-        new_memory_data: list[dict[str, Any]] = []
-        for item, score in scored_sorted:
-            original = memory_data_raw[item.original_index]
-            if isinstance(original, dict):
-                original = dict(original)
-                original.setdefault("metadata", {})[self.rerank_score_field] = float(score)
-                new_memory_data.append(original)
+        # 更新分数并转换回字典格式
+        result_items = []
+        for item, score in scored_items:
+            item.score = score
+            item.metadata[self.rerank_score_field] = score
+            result_items.append(item)
 
-        data["memory_data"] = new_memory_data
+        data["memory_data"] = self._convert_from_memory_items(result_items)
         return data
 
-    # ---------------------- semantic ----------------------
+    def _execute_filter(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行结果筛选（filter action）
 
-    def _rerank_semantic(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[tuple[MemoryItem, float]]:
-        """基于 embedding 相似度的语义重排。
-
-        - 如果上游已经提供 `query_embedding`，优先使用
-        - 否则使用 EmbeddingGenerator 对 `question` 做一次 embedding（如果可用）
-        """
-
-        if not self._embedding_generator.is_available():
-            print("Semantic rerank requires embedding service, but none is available")
-            return [(item, item.score or 0.0) for item in items]
-
-        query_vec = data.get("query_embedding")
-        if query_vec is None:
-            question = data.get("question")
-            if not isinstance(question, str) or not question.strip():
-                print(
-                    "Semantic rerank: missing question/query_embedding, fallback to original score"
-                )
-                return [(item, item.score or 0.0) for item in items]
-            query_vec = self._embedding_generator.embed(question)
-
-        if not query_vec:
-            return [(item, item.score or 0.0) for item in items]
-
-        import math
-
-        def cosine(a: list[float], b: list[float]) -> float:
-            if not a or not b or len(a) != len(b):
-                return 0.0
-            dot = sum(x * y for x, y in zip(a, b))
-            na = math.sqrt(sum(x * x for x in a))
-            nb = math.sqrt(sum(y * y for y in b))
-            if na == 0.0 or nb == 0.0:
-                return 0.0
-            return dot / (na * nb)
-
-        item_embeddings = self._embedding_generator.embed_batch([i.text for i in items]) or []
-        if len(item_embeddings) != len(items):
-            print("Semantic rerank: embedding_batch length mismatch, fallback to original score")
-            return [(item, item.score or 0.0) for item in items]
-
-        scored: list[tuple[MemoryItem, float]] = []
-        for item, emb in zip(items, item_embeddings):
-            sim = cosine(query_vec, emb)
-            scored.append((item, float(sim)))
-        return scored
-
-    # ------------------- time_weighted --------------------
-
-    def _rerank_time_weighted(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[tuple[MemoryItem, float]]:
-        """时间衰减 + 原相关性组合（受 LD-Agent 启发）。"""
-
-        now = datetime.now(UTC)
-        decay_rate = float(self.time_decay_rate)
-
-        scored: list[tuple[MemoryItem, float]] = []
-        for item in items:
-            ts = item.get_timestamp(self.time_field)
-            if ts is None:
-                recency = 1.0
-            else:
-                hours = max((now - ts).total_seconds() / 3600.0, 0.0)
-                recency = (
-                    pow(0.995, hours)
-                    if decay_rate <= 0
-                    else pow(1.0 - min(decay_rate, 0.99), hours)
-                )
-
-            base_score = item.score if item.score is not None else 1.0
-            scored.append((item, float(recency * base_score)))
-
-        return scored
-
-    # ------------------------ ppr ------------------------
-
-    def _rerank_ppr_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[tuple[MemoryItem, float]]:
-        """PPR 占位实现。
-
-        真实 PPR 需要图存储支持，这里仅保留接口并返回原顺序，
-        方便未来与 HippoRAG 图后端集成时无缝替换。
-        """
-
-        print("PPR rerank is not wired to a graph backend yet, keep original order")
-        return [(item, item.score or 0.0) for item in items]
-
-    # ---------------------- weighted ----------------------
-
-    def _rerank_weighted(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[tuple[MemoryItem, float]]:
-        """多因子加权重排（参考 Generative Agents 的 recency/importance/relevance）。"""
-
-        now = datetime.now(UTC)
-
-        def get_relevance(item: MemoryItem) -> float:
-            # 优先使用已有 score，其次使用 embedding 相似度（如果可用），否则为 0
-            if item.score is not None:
-                return float(item.score)
-            if not self._embedding_generator.is_available():
-                return 0.0
-            query_vec = data.get("query_embedding")
-            question = data.get("question")
-            if query_vec is None and isinstance(question, str) and question.strip():
-                query_vec = self._embedding_generator.embed(question)
-            if not query_vec:
-                return 0.0
-            emb = self._embedding_generator.embed(item.text)
-            if not emb:
-                return 0.0
-
-            import math
-
-            dot = sum(x * y for x, y in zip(query_vec, emb))
-            na = math.sqrt(sum(x * x for x in query_vec))
-            nb = math.sqrt(sum(y * y for y in emb))
-            if na == 0.0 or nb == 0.0:
-                return 0.0
-            return float(dot / (na * nb))
-
-        def compute_factor_score(item: MemoryItem, factor_cfg: dict[str, Any]) -> float:
-            name = (factor_cfg.get("name") or "").lower()
-
-            if name == "recency":
-                decay_type = factor_cfg.get("decay_type", "exponential")
-                decay_rate = float(factor_cfg.get("decay_rate", 0.995))
-                ts = item.get_timestamp(self.time_field)
-                if ts is None:
-                    return 1.0
-                hours = max((now - ts).total_seconds() / 3600.0, 0.0)
-                if decay_type == "exponential":
-                    return pow(decay_rate, hours)
-                return 1.0 / (1.0 + hours)
-
-            if name == "importance":
-                field = factor_cfg.get("field", "importance_score")
-                raw = item.metadata.get(field)
-                try:
-                    val = float(raw)
-                except Exception:  # noqa: BLE001
-                    return 0.0
-                return max(min(val / 10.0, 1.0), 0.0)
-
-            if name == "relevance":
-                return get_relevance(item)
-
-            # 未知因子默认 0
-            return 0.0
-
-        scored: list[tuple[MemoryItem, float]] = []
-
-        if not self.weighted_factors:
-            # 没有配置时退化为 time_weighted 行为
-            return self._rerank_time_weighted(items, data)
-
-        for item in items:
-            total = 0.0
-            for factor in self.weighted_factors:
-                weight = float(factor.get("weight", 0.0))
-                if weight == 0.0:
-                    continue
-                val = compute_factor_score(item, factor)
-                total += weight * val
-            scored.append((item, float(total)))
-
-        return scored
-
-    # ------------------- cross_encoder -------------------
-
-    def _rerank_cross_encoder_placeholder(
-        self,
-        items: list[MemoryItem],
-        data: dict[str, Any],
-    ) -> list[tuple[MemoryItem, float]]:
-        """cross-encoder 占位实现。
-
-        真正的 cross-encoder 通常需要加载较大的 transformer 模型，
-        这里仅保留接口以免引入沉重依赖，默认返回原 score。
-        """
-
-        print("cross_encoder rerank is not implemented in benchmark; keep original score")
-        return [(item, item.score or 0.0) for item in items]
-
-    # ========================================================================
-    # FILTER ACTION
-    # ========================================================================
-
-    def _execute_filter(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """filter 执行分发。
-
-        支持的子类型：
-        - token_budget: 按 token 预算过滤（参考 SCM4LLMs）
+        支持的 filter_type:
+        - token_budget: 按 token 预算过滤
         - threshold: 按分数阈值过滤
         - top_k: 取 top-k
         - llm: 占位，由 LLM 判断相关性
-        - dedup: 去重
+
+        注意：dedup 已移除，应由服务返回去重结果。
         """
-        if self.filter_type == "token_budget":
-            return self._filter_token_budget(items, data)
-        if self.filter_type == "threshold":
-            return self._filter_threshold(items, data)
-        if self.filter_type == "top_k":
-            return self._filter_top_k(items, data)
-        if self.filter_type == "llm":
-            return self._filter_llm_placeholder(items, data)
-        if self.filter_type == "dedup":
-            return self._filter_dedup(items, data)
+        memory_data = data.get("memory_data", [])
+        if not memory_data:
+            return data
 
-        print(f"Unknown filter_type: {self.filter_type}, fallback to threshold")
-        return self._filter_threshold(items, data)
+        items = self._convert_to_memory_items(memory_data)
+        filter_type = self.filter_type
 
-    def _filter_token_budget(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """按 token 预算过滤（参考 SCM4LLMs）。
+        if filter_type == "token_budget":
+            # ---- token_budget 过滤内联 ----
+            def count_tokens(text: str) -> int:
+                if self.token_counter == "char":
+                    return len(text)
+                if self.token_counter == "word":
+                    return len(text.split())
+                # tiktoken 等暂不实现
+                return len(text)
 
-        token_counter:
-        - "char": len(text)
-        - "word": len(text.split())
-        - "tiktoken": (需要 tiktoken 库，暂不实现)
+            budget = int(self.token_budget)
+            used = 0
+            result: list[MemoryItem] = []
 
-        overflow_strategy:
-        - "truncate": 超出预算的 item 截断保留
-        - "drop": 超出预算的 item 直接丢弃
+            for item in items:
+                tokens = count_tokens(item.text)
+                if used + tokens <= budget:
+                    result.append(item)
+                    used += tokens
+                elif self.overflow_strategy == "truncate":
+                    # 截断 item.text
+                    remain = budget - used
+                    if remain <= 0:
+                        break
+                    truncated_text = (
+                        item.text[:remain]
+                        if self.token_counter == "char"
+                        else " ".join(item.text.split()[:remain])
+                    )
+                    truncated_item = MemoryItem(
+                        text=truncated_text,
+                        score=item.score,
+                        metadata=item.metadata,
+                        original_index=item.original_index,
+                    )
+                    result.append(truncated_item)
+                    break
+                # overflow_strategy == "drop": 直接不加，继续尝试下一个
+                elif self.overflow_strategy == "drop":
+                    break
+
+            items = result
+
+        elif filter_type == "threshold":
+            # ---- threshold 过滤内联 ----
+            threshold = float(self.score_threshold)
+            items = [item for item in items if (item.score or 0.0) >= threshold]
+
+        elif filter_type == "top_k":
+            # ---- top_k 过滤内联 ----
+            k = int(self.top_k)
+            items = items[:k]
+
+        elif filter_type == "llm":
+            # ---- llm 过滤内联（占位实现）----
+            # 真实实现需要调用 LLMGenerator
+            print("[INFO] LLM-based filter is not implemented in benchmark; keep all items")
+
+        else:
+            print(f"[WARNING] Unknown filter_type: {filter_type}, fallback to threshold")
+            threshold = float(getattr(self, "score_threshold", 0.0))
+            items = [item for item in items if (item.score or 0.0) >= threshold]
+
+        data["memory_data"] = self._convert_from_memory_items(items)
+        return data
+
+    def _execute_scm_three_way(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行 SCM 三元决策（scm_three_way action）
+
+        SCM (Self-Controlled Memory) 论文的核心逻辑：
+        1. 检索 top-k 相似历史轮次
+        2. 检查是否超过 token budget
+        3. 如果超过，对每条记忆调用 LLM 判断：
+           - 原文能回答问题吗？不能 → drop
+           - 摘要能回答问题吗？能 → summary，不能 → raw
+
+        参考: SCM4LLMs/core/chat.py - get_related_turn() 和 judge_drop_or_summary()
         """
+        memory_data = data.get("memory_data", [])
+        if not memory_data:
+            return data
 
+        items = self._convert_to_memory_items(memory_data)
+        question = data.get("question", "")
+
+        # Token 计数函数
         def count_tokens(text: str) -> int:
             if self.token_counter == "char":
                 return len(text)
             if self.token_counter == "word":
                 return len(text.split())
-            # tiktoken 等暂不实现
+            # tiktoken 暂不实现，回退到字符计数
             return len(text)
 
-        budget = int(self.token_budget)
-        used = 0
-        result: list[MemoryItem] = []
-
+        # 计算每条记忆的原文 token 数和摘要 token 数
+        turn_info: list[dict] = []
         for item in items:
-            tokens = count_tokens(item.text)
-            if used + tokens <= budget:
-                result.append(item)
-                used += tokens
-            elif self.overflow_strategy == "truncate":
-                # 截断 item.text
-                remain = budget - used
-                if remain <= 0:
+            original_text = item.metadata.get("original_text", item.text)
+            summary_text = item.metadata.get("summary", "")
+
+            turn_info.append(
+                {
+                    "item": item,
+                    "original_text": original_text,
+                    "summary_text": summary_text,
+                    "original_tokens": count_tokens(original_text),
+                    "summary_tokens": count_tokens(summary_text) if summary_text else 0,
+                    "decision": "raw",  # 默认使用原文
+                }
+            )
+
+        # 检查是否超过 token budget
+        def is_too_long(info_list: list[dict]) -> bool:
+            total = sum(
+                t["summary_tokens"]
+                if t["decision"] == "summary"
+                else 0
+                if t["decision"] == "drop"
+                else t["original_tokens"]
+                for t in info_list
+            )
+            return total > self.scm_max_history_tokens
+
+        # 三元决策：调用 LLM 判断
+        def judge_drop_or_summary(original_text: str, summary_text: str, query: str) -> str:
+            """SCM 三元决策逻辑
+
+            1. 先用原文问：能回答当前问题吗？不能 → drop
+            2. 再用摘要问：摘要能回答吗？能 → summary，不能 → raw
+            """
+            if not hasattr(self, "_scm_generator") or self._scm_generator is None:
+                # 没有 LLM，直接返回 raw
+                return "raw"
+
+            # 判断原文是否能回答
+            prompt_raw = self.scm_judge_prompt.format(content=original_text, query=query)
+            try:
+                response = self._scm_generator.generate(prompt_raw, max_tokens=50)
+                # 解析响应：(B) No 表示不能回答
+                if "(B)" in response or "No" in response:
+                    return "drop"
+            except Exception as e:
+                print(f"[WARNING] SCM judge (raw) failed: {e}")
+                return "raw"
+
+            # 如果原文能回答，判断摘要是否也能回答
+            if summary_text:
+                prompt_summary = self.scm_judge_prompt.format(content=summary_text, query=query)
+                try:
+                    response = self._scm_generator.generate(prompt_summary, max_tokens=50)
+                    # (A) Yes 表示摘要也能回答，使用摘要节省 token
+                    if "(A)" in response or "Yes" in response:
+                        return "summary"
+                    else:
+                        return "raw"
+                except Exception as e:
+                    print(f"[WARNING] SCM judge (summary) failed: {e}")
+                    return "raw"
+
+            return "raw"
+
+        # 如果超过 token budget，进行三元决策
+        first_round = True
+        while is_too_long(turn_info):
+            for i, info in enumerate(turn_info):
+                # 最后一条保持 raw（SCM 原文逻辑）
+                if first_round:
+                    if i < len(turn_info) - 1:
+                        decision = judge_drop_or_summary(
+                            info["original_text"], info["summary_text"], question
+                        )
+                        info["decision"] = decision
+                    else:
+                        info["decision"] = "raw"
+                else:
+                    # 第二轮：将 raw 降级为 summary
+                    if info["decision"] == "raw":
+                        info["decision"] = "summary"
+
+                # 非首轮时，每次决策后检查是否满足 budget
+                if not first_round and not is_too_long(turn_info):
                     break
-                truncated_text = (
-                    item.text[:remain]
-                    if self.token_counter == "char"
-                    else " ".join(item.text.split()[:remain])
+
+            if first_round:
+                first_round = False
+
+            # 防止无限循环：如果所有都是 drop 或 summary 仍然超出，停止
+            if all(t["decision"] in ("drop", "summary") for t in turn_info):
+                break
+
+        # 根据决策构建最终结果
+        result_items: list[MemoryItem] = []
+        for info in turn_info:
+            if info["decision"] == "drop":
+                continue
+            elif info["decision"] == "summary" and info["summary_text"]:
+                # 使用摘要
+                new_item = MemoryItem(
+                    text=info["summary_text"],
+                    score=info["item"].score,
+                    metadata={**info["item"].metadata, "scm_decision": "summary"},
+                    original_index=info["item"].original_index,
                 )
-                truncated_item = MemoryItem(
-                    text=truncated_text,
+                result_items.append(new_item)
+            else:
+                # 使用原文
+                new_item = MemoryItem(
+                    text=info["original_text"],
+                    score=info["item"].score,
+                    metadata={**info["item"].metadata, "scm_decision": "raw"},
+                    original_index=info["item"].original_index,
+                )
+                result_items.append(new_item)
+
+        data["memory_data"] = self._convert_from_memory_items(result_items)
+        return data
+
+    def _execute_merge(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行结果合并（merge action）
+
+        通过多次查询服务实现合并，而非从 data 读取多源
+
+        支持的 merge_type:
+        - link_expand: 基于链接扩展
+        - multi_query: 多次查询合并
+        """
+        memory_data = data.get("memory_data", [])
+        items = self._convert_to_memory_items(memory_data)
+        merge_type = self.merge_type
+
+        if merge_type == "link_expand":
+            # ---- link_expand 内联 ----
+            expand_top_n = int(getattr(self, "expand_top_n", 5))
+            max_depth = int(getattr(self, "max_depth", 1))
+
+            # 收集已有的 text，用于去重
+            seen_texts = {item.text for item in items}
+
+            # 只扩展 top N 条记忆
+            for item in items[:expand_top_n]:
+                # 调用服务获取关联记忆
+                try:
+                    related = self.call_service(
+                        self.service_name,
+                        method="retrieve",
+                        query=item.text,
+                        metadata={"expand_links": True, "max_depth": max_depth},
+                    )
+                    if related and isinstance(related, list):
+                        for r in related:
+                            if isinstance(r, dict):
+                                text = r.get("text", "")
+                                if text and text not in seen_texts:
+                                    items.append(
+                                        MemoryItem(
+                                            text=text,
+                                            score=r.get("score"),
+                                            metadata=r.get("metadata", {}),
+                                            original_index=-1,
+                                        )
+                                    )
+                                    seen_texts.add(text)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[WARNING] link_expand: call_service failed: {e}")
+                    continue
+
+        elif merge_type == "multi_query":
+            # ---- multi_query 内联 ----
+            secondary_queries = getattr(self, "secondary_queries", []) or []
+
+            # 收集已有的 text，用于去重
+            seen_texts = {item.text for item in items}
+
+            for query_cfg in secondary_queries:
+                if not isinstance(query_cfg, dict):
+                    continue
+
+                # 构造查询
+                query_template = query_cfg.get("query_template", "")
+                query_metadata = query_cfg.get("metadata", {})
+
+                # 替换模板变量
+                query = query_template
+                for key in ["user", "question", "user_name"]:
+                    value = data.get(key, "")
+                    query = query.replace("{" + key + "}", str(value))
+
+                if not query.strip():
+                    query = data.get("question", "")
+
+                if not query:
+                    continue
+
+                # 调用服务
+                try:
+                    secondary_result = self.call_service(
+                        self.service_name,
+                        method="retrieve",
+                        query=query,
+                        metadata=query_metadata,
+                    )
+                    if secondary_result and isinstance(secondary_result, list):
+                        for r in secondary_result:
+                            if isinstance(r, dict):
+                                text = r.get("text", "")
+                                if text and text not in seen_texts:
+                                    items.append(
+                                        MemoryItem(
+                                            text=text,
+                                            score=r.get("score"),
+                                            metadata=r.get("metadata", {}),
+                                            original_index=-1,
+                                        )
+                                    )
+                                    seen_texts.add(text)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[WARNING] multi_query: call_service failed: {e}")
+                    continue
+
+        else:
+            print(f"[WARNING] Unknown merge_type: {merge_type}, no merge applied")
+
+        data["memory_data"] = self._convert_from_memory_items(items)
+        return data
+
+    def _execute_augment(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行结果增强（augment action）
+
+        支持的 augment_type:
+        - reflection: 占位，为记忆生成反思
+        - context: 添加上下文信息
+        - metadata: 将 metadata 转换为自然语言描述
+        - temporal: 添加时间信息
+        """
+        memory_data = data.get("memory_data", [])
+        items = self._convert_to_memory_items(memory_data)
+        augment_type = self.augment_type
+
+        if augment_type == "reflection":
+            # ---- reflection 内联（占位实现）----
+            # 真实实现需要调用 LLMGenerator
+            print("[INFO] reflection augment is not implemented in benchmark; keep original items")
+
+        elif augment_type == "context":
+            # ---- context 内联 ----
+            if self.augment_fields:
+                context_parts = []
+                for field in self.augment_fields:
+                    value = data.get(field)
+                    if value is not None:
+                        context_parts.append(f"{field}: {value}")
+
+                if context_parts:
+                    context_str = "[" + ", ".join(context_parts) + "] "
+
+                    result: list[MemoryItem] = []
+                    for item in items:
+                        augmented_item = MemoryItem(
+                            text=context_str + item.text,
+                            score=item.score,
+                            metadata=item.metadata,
+                            original_index=item.original_index,
+                        )
+                        result.append(augmented_item)
+                    items = result
+
+        elif augment_type == "metadata":
+            # ---- metadata 内联 ----
+            result: list[MemoryItem] = []
+            for item in items:
+                if not item.metadata:
+                    result.append(item)
+                    continue
+
+                meta_parts = [f"{k}: {v}" for k, v in item.metadata.items()]
+                meta_str = "[" + ", ".join(meta_parts) + "] "
+
+                augmented_item = MemoryItem(
+                    text=meta_str + item.text,
                     score=item.score,
                     metadata=item.metadata,
                     original_index=item.original_index,
                 )
-                result.append(truncated_item)
-                break
-            # overflow_strategy == "drop": 直接不加，继续尝试下一个
-            # 但已经超预算就不再继续了
-            elif self.overflow_strategy == "drop":
-                break
+                result.append(augmented_item)
+            items = result
 
-        return result
-
-    def _filter_threshold(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """按分数阈值过滤。"""
-        threshold = float(self.score_threshold)
-        return [item for item in items if (item.score or 0.0) >= threshold]
-
-    def _filter_top_k(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """取 top-k（按当前顺序）。"""
-        k = int(self.top_k)
-        return items[:k]
-
-    def _filter_llm_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """LLM 判断相关性过滤（占位）。
-
-        真实实现需要调用 LLMGenerator，构造 prompt 让 LLM 判断每条记忆是否相关。
-        这里仅保留接口，默认返回所有 items。
-        """
-        print("LLM-based filter is not implemented in benchmark; keep all items")
-        return items
-
-    def _filter_dedup(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """去重过滤。
-
-        dedup_strategy:
-        - "keep_first": 重复时保留第一次出现的
-        - "keep_last": 重复时保留最后一次出现的
-        - "keep_highest_score": 重复时保留得分最高的
-        """
-        if not items:
-            return []
-
-        threshold = float(self.dedup_threshold)
-        strategy = self.dedup_strategy
-
-        # 使用 embedding 计算相似度进行去重
-        if not self._embedding_generator.is_available():
-            print(
-                "Dedup filter requires embedding service, but none is available; fallback to text equality"
-            )
-            # 退化为严格文本去重
-            seen: set[str] = set()
+        elif augment_type == "temporal":
+            # ---- temporal 内联 ----
+            now = datetime.now(UTC)
             result: list[MemoryItem] = []
+
             for item in items:
-                if item.text not in seen:
+                ts = item.get_timestamp(self.time_field)
+                if ts is None:
                     result.append(item)
-                    seen.add(item.text)
-            return result
-
-        # 使用 embedding 去重
-        embeddings = self._embedding_generator.embed_batch([i.text for i in items]) or []
-        if len(embeddings) != len(items):
-            print("Dedup: embedding_batch length mismatch, fallback to text equality")
-            seen = set()
-            result = []
-            for item in items:
-                if item.text not in seen:
-                    result.append(item)
-                    seen.add(item.text)
-            return result
-
-        import math
-
-        def cosine(a: list[float], b: list[float]) -> float:
-            if not a or not b or len(a) != len(b):
-                return 0.0
-            dot = sum(x * y for x, y in zip(a, b))
-            na = math.sqrt(sum(x * x for x in a))
-            nb = math.sqrt(sum(y * y for y in b))
-            if na == 0.0 or nb == 0.0:
-                return 0.0
-            return dot / (na * nb)
-
-        # 策略实现
-        clusters: list[tuple[MemoryItem, list[float]]] = []  # (representative_item, embedding)
-        result = []
-
-        for item, emb in zip(items, embeddings):
-            # 检查与已有 cluster 的相似度
-            matched_cluster_idx = None
-            for idx, (rep_item, rep_emb) in enumerate(clusters):
-                sim = cosine(emb, rep_emb)
-                if sim >= threshold:
-                    matched_cluster_idx = idx
-                    break
-
-            if matched_cluster_idx is None:
-                # 新 cluster
-                clusters.append((item, emb))
-                result.append(item)
-            else:
-                # 已有 cluster，根据策略决定是否替换
-                rep_item, rep_emb = clusters[matched_cluster_idx]
-                if strategy == "keep_first":
-                    pass  # 保留原有代表
-                elif strategy == "keep_last":
-                    # 替换代表
-                    clusters[matched_cluster_idx] = (item, emb)
-                    result[matched_cluster_idx] = item
-                elif strategy == "keep_highest_score":
-                    # 比较得分
-                    if (item.score or 0.0) > (rep_item.score or 0.0):
-                        clusters[matched_cluster_idx] = (item, emb)
-                        result[matched_cluster_idx] = item
-
-        return result
-
-    # ========================================================================
-    # MERGE ACTION
-    # ========================================================================
-
-    def _execute_merge(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """merge 执行分发。
-
-        支持的子类型：
-        - concat: 简单拼接多个来源（参考 MemoryOS 的 multi-tier）
-        - interleave: 交错合并
-        - weighted: 加权合并（按来源权重）
-        - rrf: Reciprocal Rank Fusion
-        - link_expand: 占位，扩展图链接（参考 A-mem）
-        - multi_aspect: 占位，多维度记忆合并（参考 EmotionalRAG）
-        """
-        if self.merge_type == "concat":
-            return self._merge_concat(items, data)
-        if self.merge_type == "interleave":
-            return self._merge_interleave(items, data)
-        if self.merge_type == "weighted":
-            return self._merge_weighted(items, data)
-        if self.merge_type == "rrf":
-            return self._merge_rrf(items, data)
-        if self.merge_type == "link_expand":
-            return self._merge_link_expand_placeholder(items, data)
-        if self.merge_type == "multi_aspect":
-            return self._merge_multi_aspect_placeholder(items, data)
-
-        print(f"Unknown merge_type: {self.merge_type}, fallback to concat")
-        return self._merge_concat(items, data)
-
-    def _merge_concat(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """简单拼接多个来源。
-
-        merge_sources: ["memory_data", "context_data", ...]
-        从 data 中取各来源的 memory item list，依次拼接。
-        如果 items 已有内容，也会被保留在最前面。
-        """
-        result = list(items)
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        result.append(
-                            MemoryItem(
-                                text=obj.get("text", ""),
-                                score=obj.get("score"),
-                                metadata=obj.get("metadata", {}),
-                                original_index=obj.get("original_index", -1),
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        result.append(obj)
-        return result
-
-    def _merge_interleave(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """交错合并多个来源。
-
-        例如：source1[0], source2[0], source1[1], source2[1], ...
-        """
-        sources: list[list[MemoryItem]] = [list(items)]
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                converted: list[MemoryItem] = []
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        converted.append(
-                            MemoryItem(
-                                text=obj.get("text", ""),
-                                score=obj.get("score"),
-                                metadata=obj.get("metadata", {}),
-                                original_index=obj.get("original_index", -1),
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        converted.append(obj)
-                sources.append(converted)
-
-        # 交错合并
-        result: list[MemoryItem] = []
-        max_len = max((len(s) for s in sources), default=0)
-        for i in range(max_len):
-            for s in sources:
-                if i < len(s):
-                    result.append(s[i])
-        return result
-
-    def _merge_weighted(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """加权合并多个来源，对 score 进行加权平均。
-
-        merge_weights: {"memory_data": 0.7, "context_data": 0.3, ...}
-        如果 merge_weights 未配置，则退化为 concat。
-        """
-        if not self.merge_weights:
-            return self._merge_concat(items, data)
-
-        # 收集所有来源的 items 并标记来源
-        all_items: list[tuple[MemoryItem, str]] = [(item, "items") for item in items]
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        all_items.append(
-                            (
-                                MemoryItem(
-                                    text=obj.get("text", ""),
-                                    score=obj.get("score"),
-                                    metadata=obj.get("metadata", {}),
-                                    original_index=obj.get("original_index", -1),
-                                ),
-                                src,
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        all_items.append((obj, src))
-
-        # 按 text 合并相同的 item，对 score 进行加权平均
-        text_to_items: dict[str, list[tuple[MemoryItem, str]]] = {}
-        for item, src in all_items:
-            text_to_items.setdefault(item.text, []).append((item, src))
-
-        result: list[MemoryItem] = []
-        for text, group in text_to_items.items():
-            # 计算加权平均得分
-            total_weight = 0.0
-            weighted_score = 0.0
-            representative_item = group[0][0]
-            for item, src in group:
-                weight = float(self.merge_weights.get(src, 1.0))
-                total_weight += weight
-                weighted_score += weight * (item.score or 0.0)
-
-            avg_score = weighted_score / total_weight if total_weight > 0 else 0.0
-            merged_item = MemoryItem(
-                text=representative_item.text,
-                score=avg_score,
-                metadata=representative_item.metadata,
-                original_index=representative_item.original_index,
-            )
-            result.append(merged_item)
-
-        # 按 score 降序
-        result.sort(key=lambda x: x.score or 0.0, reverse=True)
-        return result
-
-    def _merge_rrf(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """Reciprocal Rank Fusion 合并多个来源。
-
-        RRF score = sum(1 / (k + rank_in_source_i))
-        其中 k 默认为 60。
-        """
-        k = int(self.rrf_k)
-
-        # 收集所有来源的 ranked lists
-        sources: list[list[MemoryItem]] = [list(items)]
-        for src in self.merge_sources:
-            src_items = data.get(src)
-            if isinstance(src_items, list):
-                converted: list[MemoryItem] = []
-                for obj in src_items:
-                    if isinstance(obj, dict):
-                        converted.append(
-                            MemoryItem(
-                                text=obj.get("text", ""),
-                                score=obj.get("score"),
-                                metadata=obj.get("metadata", {}),
-                                original_index=obj.get("original_index", -1),
-                            )
-                        )
-                    elif isinstance(obj, MemoryItem):
-                        converted.append(obj)
-                sources.append(converted)
-
-        # 为每个 item (by text) 计算 RRF score
-        text_to_rrf: dict[str, float] = {}
-        text_to_item: dict[str, MemoryItem] = {}
-
-        for src_list in sources:
-            for rank, item in enumerate(src_list, start=1):
-                rrf_contribution = 1.0 / (k + rank)
-                text_to_rrf[item.text] = text_to_rrf.get(item.text, 0.0) + rrf_contribution
-                if item.text not in text_to_item:
-                    text_to_item[item.text] = item
-
-        # 构建结果
-        result: list[MemoryItem] = []
-        for text, rrf_score in text_to_rrf.items():
-            item = text_to_item[text]
-            merged_item = MemoryItem(
-                text=item.text,
-                score=rrf_score,
-                metadata=item.metadata,
-                original_index=item.original_index,
-            )
-            result.append(merged_item)
-
-        # 按 RRF score 降序
-        result.sort(key=lambda x: x.score or 0.0, reverse=True)
-        return result
-
-    def _merge_link_expand_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """link_expand 占位实现（参考 A-mem 的图扩展）。
-
-        真实实现需要图存储支持，从 items 中的节点扩展出关联节点。
-        这里仅保留接口，默认返回原 items。
-        """
-        print("link_expand merge is not wired to a graph backend; keep original items")
-        return items
-
-    def _merge_multi_aspect_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """multi_aspect 占位实现（参考 EmotionalRAG 的多维度记忆）。
-
-        真实实现需要从多个维度（事实、情感、社会等）的记忆存储中检索并合并。
-        这里仅保留接口，默认返回原 items。
-        """
-        print("multi_aspect merge is not implemented in benchmark; keep original items")
-        return items
-
-    # ========================================================================
-    # AUGMENT ACTION
-    # ========================================================================
-
-    def _execute_augment(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """augment 执行分发。
-
-        支持的子类型：
-        - reflection: 占位，为记忆生成反思（参考 LoCoMo, Generative Agents）
-        - context: 添加上下文信息（如对话历史、用户画像）
-        - metadata: 将 metadata 转换为自然语言描述并添加到 text
-        - temporal: 添加时间信息到 text
-        """
-        if self.augment_type == "reflection":
-            return self._augment_reflection_placeholder(items, data)
-        if self.augment_type == "context":
-            return self._augment_context(items, data)
-        if self.augment_type == "metadata":
-            return self._augment_metadata(items, data)
-        if self.augment_type == "temporal":
-            return self._augment_temporal(items, data)
-
-        print(f"Unknown augment_type: {self.augment_type}, no augmentation")
-        return items
-
-    def _augment_reflection_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """reflection 占位实现。
-
-        真实实现需要调用 LLMGenerator，为每条记忆生成高层次的反思摘要。
-        这里仅保留接口，默认返回原 items。
-        """
-        print("reflection augment is not implemented in benchmark; keep original items")
-        return items
-
-    def _augment_context(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """添加上下文信息。
-
-        从 data 中提取配置的 augment_fields，拼接到每个 item 的 text 前面。
-        例如：augment_fields = ["user_name", "user_age"]
-        结果：[User: John, Age: 30] original_text
-        """
-        if not self.augment_fields:
-            return items
-
-        context_parts = []
-        for field in self.augment_fields:
-            value = data.get(field)
-            if value is not None:
-                context_parts.append(f"{field}: {value}")
-
-        if not context_parts:
-            return items
-
-        context_str = "[" + ", ".join(context_parts) + "] "
-
-        result: list[MemoryItem] = []
-        for item in items:
-            augmented_item = MemoryItem(
-                text=context_str + item.text,
-                score=item.score,
-                metadata=item.metadata,
-                original_index=item.original_index,
-            )
-            result.append(augmented_item)
-        return result
-
-    def _augment_metadata(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """将 metadata 转换为自然语言描述并添加到 text。
-
-        例如：metadata = {"importance": 8, "emotion": "happy"}
-        结果：[importance: 8, emotion: happy] original_text
-        """
-        result: list[MemoryItem] = []
-        for item in items:
-            if not item.metadata:
-                result.append(item)
-                continue
-
-            meta_parts = [f"{k}: {v}" for k, v in item.metadata.items()]
-            meta_str = "[" + ", ".join(meta_parts) + "] "
-
-            augmented_item = MemoryItem(
-                text=meta_str + item.text,
-                score=item.score,
-                metadata=item.metadata,
-                original_index=item.original_index,
-            )
-            result.append(augmented_item)
-        return result
-
-    def _augment_temporal(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """添加时间信息到 text。
-
-        从 metadata 中提取 time_field 字段，转换为自然语言时间描述。
-        例如：[2 hours ago] original_text
-        """
-        now = datetime.now(UTC)
-        result: list[MemoryItem] = []
-
-        for item in items:
-            ts = item.get_timestamp(self.time_field)
-            if ts is None:
-                result.append(item)
-                continue
-
-            delta = now - ts
-            if delta.total_seconds() < 60:
-                time_str = "just now"
-            elif delta.total_seconds() < 3600:
-                minutes = int(delta.total_seconds() / 60)
-                time_str = f"{minutes} minute{'s' if minutes != 1 else ''} ago"
-            elif delta.total_seconds() < 86400:
-                hours = int(delta.total_seconds() / 3600)
-                time_str = f"{hours} hour{'s' if hours != 1 else ''} ago"
-            else:
-                days = int(delta.total_seconds() / 86400)
-                time_str = f"{days} day{'s' if days != 1 else ''} ago"
-
-            augmented_item = MemoryItem(
-                text=f"[{time_str}] {item.text}",
-                score=item.score,
-                metadata=item.metadata,
-                original_index=item.original_index,
-            )
-            result.append(augmented_item)
-        return result
-
-    # ========================================================================
-    # COMPRESS ACTION
-    # ========================================================================
-
-    def _execute_compress(self, items: list[MemoryItem], data: dict[str, Any]) -> list[MemoryItem]:
-        """compress 执行分发。
-
-        支持的子类型：
-        - llmlingua: 占位，基于 LLMLingua 的提示词压缩（参考 SeCom）
-        - extractive: 抽取式压缩（保留关键句子）
-        - abstractive: 占位，生成式压缩（用 LLM 改写摘要）
-        """
-        if self.compress_type == "llmlingua":
-            return self._compress_llmlingua_placeholder(items, data)
-        if self.compress_type == "extractive":
-            return self._compress_extractive(items, data)
-        if self.compress_type == "abstractive":
-            return self._compress_abstractive_placeholder(items, data)
-
-        print(f"Unknown compress_type: {self.compress_type}, no compression")
-        return items
-
-    def _compress_llmlingua_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """llmlingua 占位实现（参考 SeCom）。
-
-        真实实现需要调用 LLMLingua 库进行提示词压缩，去除冗余 tokens。
-        这里仅保留接口，默认返回原 items。
-        """
-        print("llmlingua compress is not implemented in benchmark; keep original items")
-        return items
-
-    def _compress_extractive(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """抽取式压缩，保留每个 item 的关键句子。
-
-        compress_ratio: 保留的比例（0-1）
-        compress_max_length: 每个 item 压缩后的最大长度（字符数）
-        """
-        ratio = float(self.compress_ratio)
-        max_len = int(self.compress_max_length)
-
-        result: list[MemoryItem] = []
-        for item in items:
-            text = item.text
-            if len(text) <= max_len:
-                result.append(item)
-                continue
-
-            # 简单按句子切分（按 . ! ? 换行符）
-            import re
-
-            sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
-            sentences = [s.strip() for s in sentences if s.strip()]
-
-            if not sentences:
-                result.append(item)
-                continue
-
-            # 计算保留多少句子
-            target_count = max(1, int(len(sentences) * ratio))
-            # 简单策略：保留前 target_count 句
-            kept_sentences = sentences[:target_count]
-            compressed_text = " ".join(kept_sentences)
-
-            # 如果还是超长，按字符截断
-            if len(compressed_text) > max_len:
-                compressed_text = compressed_text[:max_len] + "..."
-
-            compressed_item = MemoryItem(
-                text=compressed_text,
-                score=item.score,
-                metadata=item.metadata,
-                original_index=item.original_index,
-            )
-            result.append(compressed_item)
-
-        return result
-
-    def _compress_abstractive_placeholder(
-        self, items: list[MemoryItem], data: dict[str, Any]
-    ) -> list[MemoryItem]:
-        """abstractive 占位实现。
-
-        真实实现需要调用 LLMGenerator，为每个 item 生成摘要。
-        这里仅保留接口，默认返回原 items。
-        """
-        print("abstractive compress is not implemented in benchmark; keep original items")
-        return items
-
-    # ========================================================================
-    # FORMAT ACTION
-    # ========================================================================
-
-    def _execute_format_action(self, data: dict[str, Any]) -> dict[str, Any]:
-        """format action 包装：提取、格式化、直接设置 history_text。"""
-        memory_data = data.get("memory_data", []) or []
-        items = self._convert_to_memory_items(memory_data)
-        history_text = self._execute_format(items, data)
-        data["history_text"] = history_text
+                    continue
+
+                delta = now - ts
+                if delta.total_seconds() < 60:
+                    time_str = "just now"
+                elif delta.total_seconds() < 3600:
+                    minutes = int(delta.total_seconds() / 60)
+                    time_str = f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+                elif delta.total_seconds() < 86400:
+                    hours = int(delta.total_seconds() / 3600)
+                    time_str = f"{hours} hour{'s' if hours != 1 else ''} ago"
+                else:
+                    days = int(delta.total_seconds() / 86400)
+                    time_str = f"{days} day{'s' if days != 1 else ''} ago"
+
+                augmented_item = MemoryItem(
+                    text=f"[{time_str}] {item.text}",
+                    score=item.score,
+                    metadata=item.metadata,
+                    original_index=item.original_index,
+                )
+                result.append(augmented_item)
+            items = result
+
+        else:
+            print(f"[WARNING] Unknown augment_type: {augment_type}, no augmentation")
+
+        data["memory_data"] = self._convert_from_memory_items(items)
         return data
 
-    def _execute_format(self, items: list[MemoryItem], data: dict[str, Any]) -> str:
-        """format 执行分发。
+    def _execute_compress(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行结果压缩（compress action）
 
-        支持的子类型：
-        - template: 模板格式化（参考 MemGPT, MemoryBank）
+        支持的 compress_type:
+        - llmlingua: 占位，基于 LLMLingua 的提示词压缩
+        - extractive: 抽取式压缩（保留关键句子）
+        - abstractive: 占位，生成式压缩
+        """
+        memory_data = data.get("memory_data", [])
+        items = self._convert_to_memory_items(memory_data)
+        compress_type = self.compress_type
+
+        if compress_type == "llmlingua":
+            # ---- llmlingua 内联（占位实现）----
+            print("[INFO] llmlingua compress is not implemented in benchmark; keep original items")
+
+        elif compress_type == "extractive":
+            # ---- extractive 内联 ----
+            ratio = float(self.compress_ratio)
+            max_len = int(self.compress_max_length)
+
+            result: list[MemoryItem] = []
+            for item in items:
+                text = item.text
+                if len(text) <= max_len:
+                    result.append(item)
+                    continue
+
+                # 简单按句子切分（按 . ! ? 换行符）
+                import re
+
+                sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
+                sentences = [s.strip() for s in sentences if s.strip()]
+
+                if not sentences:
+                    result.append(item)
+                    continue
+
+                # 计算保留多少句子
+                target_count = max(1, int(len(sentences) * ratio))
+                # 简单策略：保留前 target_count 句
+                kept_sentences = sentences[:target_count]
+                compressed_text = " ".join(kept_sentences)
+
+                # 如果还是超长，按字符截断
+                if len(compressed_text) > max_len:
+                    compressed_text = compressed_text[:max_len] + "..."
+
+                compressed_item = MemoryItem(
+                    text=compressed_text,
+                    score=item.score,
+                    metadata=item.metadata,
+                    original_index=item.original_index,
+                )
+                result.append(compressed_item)
+
+            items = result
+
+        elif compress_type == "abstractive":
+            # ---- abstractive 内联（占位实现）----
+            print(
+                "[INFO] abstractive compress is not implemented in benchmark; keep original items"
+            )
+
+        else:
+            print(f"[WARNING] Unknown compress_type: {compress_type}, no compression")
+
+        data["memory_data"] = self._convert_from_memory_items(items)
+        return data
+
+    def _execute_format(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行最终格式化（format action）
+
+        支持的 format_type:
+        - template: 模板格式化
         - structured: 结构化分区格式化
         - chat: 对话格式化
-        - xml: XML 标签包装（Claude style）
+        - xml: XML 标签包装
         """
-        if self.format_type == "template":
-            return self._format_template(items, data)
-        if self.format_type == "structured":
-            return self._format_structured(items, data)
-        if self.format_type == "chat":
-            return self._format_chat(items, data)
-        if self.format_type == "xml":
-            return self._format_xml(items, data)
+        memory_data = data.get("memory_data", [])
+        items = self._convert_to_memory_items(memory_data)
+        format_type = self.format_type
+        history_text = ""
 
-        print(f"Unknown format_type: {self.format_type}, fallback to template")
-        return self._format_template(items, data)
+        if format_type == "template":
+            # ---- template 内联 ----
+            # 格式化记忆列表
+            memory_lines: list[str] = []
+            for item in items:
+                # 使用 memory_template 格式化每条记忆
+                try:
+                    # 准备格式化参数
+                    format_vars = {
+                        "text": item.text,
+                        "score": item.score or 0.0,
+                    }
+                    # 添加 metadata 中的字段
+                    format_vars.update(item.metadata)
 
-    def _format_template(self, items: list[MemoryItem], data: dict[str, Any]) -> str:
-        """模板格式化（参考 MemGPT, MemoryBank）。
+                    line = self.memory_template.format(**format_vars)
+                    memory_lines.append(line)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[WARNING] Failed to format memory item with template: {e}")
+                    memory_lines.append(f"- {item.text}")
 
-        支持变量替换：
-        - {memories}: 格式化后的记忆列表
-        - {profile}: 用户画像（从 data 中提取）
-        - {question}: 当前问题
-        - 其他 data 中的字段
-        """
-        # 格式化记忆列表
-        memory_lines: list[str] = []
-        for item in items:
-            # 使用 memory_template 格式化每条记忆
-            try:
-                # 准备格式化参数
-                format_vars = {
-                    "text": item.text,
-                    "score": item.score or 0.0,
-                }
-                # 添加 metadata 中的字段
-                format_vars.update(item.metadata)
+            memories_str = "\n".join(memory_lines) if memory_lines else "(No memories)"
 
-                line = self.memory_template.format(**format_vars)
-                memory_lines.append(line)
-            except Exception as e:  # noqa: BLE001
-                print(f"Failed to format memory item with template: {e}")
-                memory_lines.append(f"- {item.text}")
-
-        memories_str = "\n".join(memory_lines) if memory_lines else "(No memories)"
-
-        # 如果没有配置 template，返回默认格式
-        if not self.format_template:
-            return memories_str
-
-        # 准备变量替换
-        template_vars = {
-            "memories": memories_str,
-            "profile": data.get("user_profile", ""),
-            "question": data.get("question", ""),
-        }
-        # 添加 data 中的其他字段
-        for key, value in data.items():
-            if key not in template_vars and isinstance(value, (str, int, float, bool)):
-                template_vars[key] = value
-
-        # 模板替换
-        try:
-            return self.format_template.format(**template_vars)
-        except Exception as e:  # noqa: BLE001
-            print(f"Failed to format template: {e}")
-            return memories_str
-
-    def _format_structured(self, items: list[MemoryItem], data: dict[str, Any]) -> str:
-        """结构化分区格式化。
-
-        根据 structure 配置，将记忆分为多个 section。
-        每个 section 可以指定 source、max_items。
-        """
-        if not self.format_structure:
-            # 没有配置结构，返回默认格式
-            return "\n".join([item.text for item in items])
-
-        sections: list[str] = []
-
-        for section_cfg in self.format_structure:
-            section_name = section_cfg.get("section", "Memories")
-            source = section_cfg.get("source", "memory_data")
-            max_items = section_cfg.get("max_items", 10)
-
-            # 从 data 中提取对应源的数据
-            if source == "memory_data":
-                section_items = items[:max_items]
+            # 如果没有配置 template，返回默认格式
+            if not self.format_template:
+                history_text = memories_str
             else:
-                source_data = data.get(source, [])
-                if isinstance(source_data, list):
-                    section_items = self._convert_to_memory_items(source_data)[:max_items]
-                elif isinstance(source_data, str):
-                    # 如果是字符串（如 user_profile），直接使用
-                    sections.append(f"## {section_name}\n{source_data}")
-                    continue
-                else:
-                    section_items = []
+                # 准备变量替换
+                template_vars = {
+                    "memories": memories_str,
+                    "profile": data.get("user_profile", ""),
+                    "question": data.get("question", ""),
+                }
+                # 添加 data 中的其他字段
+                for key, value in data.items():
+                    if key not in template_vars and isinstance(value, (str, int, float, bool)):
+                        template_vars[key] = value
 
-            if not section_items:
-                continue
+                # 模板替换
+                try:
+                    history_text = self.format_template.format(**template_vars)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[WARNING] Failed to format template: {e}")
+                    history_text = memories_str
 
-            # 格式化 section
-            section_lines = [f"## {section_name}"]
-            for item in section_items:
-                section_lines.append(f"- {item.text}")
+        elif format_type == "structured":
+            # ---- structured 内联 ----
+            if not self.format_structure:
+                # 没有配置结构，返回默认格式
+                history_text = "\n".join([item.text for item in items])
+            else:
+                sections: list[str] = []
 
-            sections.append("\n".join(section_lines))
+                for section_cfg in self.format_structure:
+                    section_name = section_cfg.get("section", "Memories")
+                    source = section_cfg.get("source", "memory_data")
+                    max_items = section_cfg.get("max_items", 10)
 
-        return "\n\n".join(sections) if sections else "(No content)"
+                    # 从 data 中提取对应源的数据
+                    if source == "memory_data":
+                        section_items = items[:max_items]
+                    else:
+                        source_data = data.get(source, [])
+                        if isinstance(source_data, list):
+                            section_items = self._convert_to_memory_items(source_data)[:max_items]
+                        elif isinstance(source_data, str):
+                            # 如果是字符串（如 user_profile），直接使用
+                            sections.append(f"## {section_name}\n{source_data}")
+                            continue
+                        else:
+                            section_items = []
 
-    def _format_chat(self, items: list[MemoryItem], data: dict[str, Any]) -> str:
-        """对话格式化。
+                    if not section_items:
+                        continue
 
-        将记忆格式化为对话形式，支持角色映射和时间戳。
-        """
-        chat_lines: list[str] = []
+                    # 格式化 section
+                    section_lines = [f"## {section_name}"]
+                    for item in section_items:
+                        section_lines.append(f"- {item.text}")
 
-        for item in items:
-            # 提取角色
-            role = item.metadata.get("role", "user")
-            # 应用角色映射
-            display_role = self.role_mapping.get(role, role.capitalize())
+                    sections.append("\n".join(section_lines))
 
-            # 构建对话行
-            if self.include_timestamps:
-                timestamp = item.metadata.get("timestamp", "")
-                if timestamp:
-                    chat_lines.append(f"[{timestamp}] {display_role}: {item.text}")
+                history_text = "\n\n".join(sections) if sections else "(No content)"
+
+        elif format_type == "chat":
+            # ---- chat 内联 ----
+            chat_lines: list[str] = []
+
+            for item in items:
+                # 提取角色
+                role = item.metadata.get("role", "user")
+                # 应用角色映射
+                display_role = self.role_mapping.get(role, role.capitalize())
+
+                # 构建对话行
+                if self.include_timestamps:
+                    timestamp = item.metadata.get("timestamp", "")
+                    if timestamp:
+                        chat_lines.append(f"[{timestamp}] {display_role}: {item.text}")
+                    else:
+                        chat_lines.append(f"{display_role}: {item.text}")
                 else:
                     chat_lines.append(f"{display_role}: {item.text}")
-            else:
-                chat_lines.append(f"{display_role}: {item.text}")
 
-        return "\n".join(chat_lines) if chat_lines else "(No conversation)"
+            history_text = "\n".join(chat_lines) if chat_lines else "(No conversation)"
 
-    def _format_xml(self, items: list[MemoryItem], data: dict[str, Any]) -> str:
-        """XML 标签包装（Claude style）。
+        elif format_type == "xml":
+            # ---- xml 内联 ----
+            # 默认标签
+            memories_tag = self.xml_tags.get("memories", "relevant_context")
+            profile_tag = self.xml_tags.get("profile", "user_profile")
 
-        将记忆和其他信息包装在 XML 标签中。
-        """
-        # 默认标签
-        memories_tag = self.xml_tags.get("memories", "relevant_context")
-        profile_tag = self.xml_tags.get("profile", "user_profile")
+            xml_parts: list[str] = []
 
-        xml_parts: list[str] = []
+            # 记忆部分
+            if items:
+                xml_parts.append(f"<{memories_tag}>")
+                for item in items:
+                    xml_parts.append("  <memory>")
+                    xml_parts.append(f"    <text>{item.text}</text>")
+                    if item.score is not None:
+                        xml_parts.append(f"    <score>{item.score}</score>")
+                    if item.metadata:
+                        xml_parts.append("    <metadata>")
+                        for key, value in item.metadata.items():
+                            xml_parts.append(f"      <{key}>{value}</{key}>")
+                        xml_parts.append("    </metadata>")
+                    xml_parts.append("  </memory>")
+                xml_parts.append(f"</{memories_tag}>")
 
-        # 记忆部分
-        if items:
-            xml_parts.append(f"<{memories_tag}>")
-            for item in items:
-                xml_parts.append("  <memory>")
-                xml_parts.append(f"    <text>{item.text}</text>")
-                if item.score is not None:
-                    xml_parts.append(f"    <score>{item.score}</score>")
-                if item.metadata:
-                    xml_parts.append("    <metadata>")
-                    for key, value in item.metadata.items():
-                        xml_parts.append(f"      <{key}>{value}</{key}>")
-                    xml_parts.append("    </metadata>")
-                xml_parts.append("  </memory>")
-            xml_parts.append(f"</{memories_tag}>")
+            # 用户画像部分
+            profile = data.get("user_profile")
+            if profile:
+                xml_parts.append(f"<{profile_tag}>")
+                xml_parts.append(f"  {profile}")
+                xml_parts.append(f"</{profile_tag}>")
 
-        # 用户画像部分
-        profile = data.get("user_profile")
-        if profile:
-            xml_parts.append(f"<{profile_tag}>")
-            xml_parts.append(f"  {profile}")
-            xml_parts.append(f"</{profile_tag}>")
+            history_text = "\n".join(xml_parts) if xml_parts else "<empty/>"
 
-        return "\n".join(xml_parts) if xml_parts else "<empty/>"
+        else:
+            print(f"[WARNING] Unknown format_type: {format_type}, fallback to template")
+            # 默认模板格式
+            memory_lines = [f"- {item.text}" for item in items]
+            history_text = "\n".join(memory_lines) if memory_lines else "(No memories)"
+
+        data["history_text"] = history_text
+        return data

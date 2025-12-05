@@ -1,0 +1,113 @@
+# ============================================================
+# MemGPT Pipeline 配置
+# 论文: MemGPT: Towards LLMs as Operating Systems
+# 特点: Working Context + FIFO Queue + Recall Storage + Replace
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+  service_timeout: 120.0  # 服务调用超时（秒），MemGPT 需要 LLM 调用，设置更长超时
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "MemGPT"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# ============================================================
+services:
+  register_memory_service: "hierarchical_memory"
+  hierarchical_memory:
+    tier_mode: "functional"           # 功能分层: core / archival / recall
+    tier_names: ["core", "archival", "recall"]
+    tier_capacities:
+      core: 20                        # Working context 较小
+      archival: -1                    # 无限
+      recall: 100                     # FIFO 队列
+    migration_policy: "overflow"      # 溢出时迁移
+    embedding_dim: 1024               # bge-m3 输出 1024 维向量
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 实体/事实抽取
+  # MemGPT 会从对话中提取关键事实存入 Working Context
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "extract"
+    extract_type: "entity"
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity extraction
+    entity_types: ["PERSON", "ORG", "LOC", "EVENT", "DATE"]
+    add_to_metadata: true
+
+  # ----------------------------------------------------------
+  # PostInsert: Replace 操作（更新旧事实）
+  # MemGPT 的核心是 replace(old, new)
+  # ----------------------------------------------------------
+  post_insert:
+    action: "distillation"
+    distillation_topk: 5
+    distillation_threshold:           # 不使用阈值，纯语义
+    distillation_prompt: |
+      You are updating a knowledge base. Given a new fact and existing facts,
+      determine if any existing fact should be REPLACED by the new one.
+
+      New fact: {new_entry}
+
+      Existing facts:
+      {memory_list}
+
+      If the new fact updates/corrects an existing fact, respond:
+      {"to_delete": ["exact old fact text"], "to_insert": []}
+
+      If the new fact is entirely new information, respond:
+      {"to_delete": [], "to_insert": []}
+
+      Respond with JSON only:
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 关键词提取 + embedding
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "optimize"
+    optimize_type: "keyword_extract"
+    extractor: "spacy"
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 keyword extraction
+    extract_types: ["NOUN", "PROPN"]
+    max_keywords: 10
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 多次查询合并（Working + Recall + Archival）
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "merge"
+    merge_type: "multi_query"
+    secondary_queries:
+    - query_template: "{question}"
+      metadata: {tier: "core"}
+    - query_template: "{question}"
+      metadata: {tier: "recall"}
+    conversation_format_prompt: |
+      The following is the relevant context from memory.

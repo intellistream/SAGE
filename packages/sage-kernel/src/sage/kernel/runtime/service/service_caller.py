@@ -202,6 +202,14 @@ class ServiceManager:
                 f"Getting response queue for service call: {service_name}.{method_name}"
             )
             response_queue = self._get_response_queue()
+
+            # DEBUG: 记录 insert 方法的参数
+            if method_name == "insert":
+                self.logger.debug(
+                    f"[SERVICE_CALLER] {service_name}.{method_name} kwargs: "
+                    f"{[(k, type(v).__name__, str(v)[:100]) for k, v in kwargs.items()]}"
+                )
+
             request_data = {
                 "request_id": request_id,
                 "service_name": service_name,

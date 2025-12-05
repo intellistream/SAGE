@@ -66,6 +66,7 @@ class MemoryServiceFactory:
             factory = MemoryServiceFactory.create(service_name, config)
             env.register_service_factory(service_name, factory)
         """
+        print(f"[DEBUG] MemoryServiceFactory.create called with service_name = {service_name}")
         # 验证服务名称
         if service_name not in MemoryServiceFactory.SERVICE_CLASSES:
             supported = ", ".join(MemoryServiceFactory.SERVICE_CLASSES.keys())
@@ -105,11 +106,14 @@ class MemoryServiceFactory:
         if max_dialog is None:
             raise ValueError(f"配置缺失: services.{service_name}.max_dialog")
 
+        # 获取 embedding 维度，默认 1024（适配 BAAI/bge-m3）
+        embedding_dim = config.get(f"services.{service_name}.embedding_dim", 1024)
+
         # 创建并返回 ServiceFactory
         return ServiceFactory(
             service_name=service_name,
             service_class=ShortTermMemoryService,
-            service_kwargs={"max_dialog": max_dialog},
+            service_kwargs={"max_dialog": max_dialog, "embedding_dim": embedding_dim},
         )
 
     @staticmethod
@@ -152,6 +156,7 @@ class MemoryServiceFactory:
         Returns:
             ServiceFactory 实例
         """
+        print(f"[DEBUG] _create_graph_memory called with service_name = {service_name}")
         # 获取配置参数（均有默认值）
         graph_type = config.get(f"services.{service_name}.graph_type", "knowledge_graph")
         node_embedding_dim = config.get(f"services.{service_name}.node_embedding_dim", 768)
@@ -205,14 +210,11 @@ class MemoryServiceFactory:
             tier_capacities = None
 
         migration_policy = config.get(f"services.{service_name}.migration_policy", "overflow")
-        migration_threshold = config.get(f"services.{service_name}.migration_threshold", 0.7)
-        migration_interval = config.get(f"services.{service_name}.migration_interval", 3600)
         embedding_dim = config.get(f"services.{service_name}.embedding_dim", 768)
-        heat_alpha = config.get(f"services.{service_name}.heat_alpha", 1.0)
-        heat_beta = config.get(f"services.{service_name}.heat_beta", 1.0)
-        heat_gamma = config.get(f"services.{service_name}.heat_gamma", 1.0)
 
         # 创建并返回 ServiceFactory
+        # 注意: HierarchicalMemoryService.__init__ 只接受以下参数:
+        #   tier_mode, tier_capacities, migration_policy, embedding_dim, collection_name
         return ServiceFactory(
             service_name=service_name,
             service_class=HierarchicalMemoryService,
@@ -220,12 +222,7 @@ class MemoryServiceFactory:
                 "tier_mode": tier_mode,
                 "tier_capacities": tier_capacities,
                 "migration_policy": migration_policy,
-                "migration_threshold": migration_threshold,
-                "migration_interval": migration_interval,
                 "embedding_dim": embedding_dim,
-                "heat_alpha": heat_alpha,
-                "heat_beta": heat_beta,
-                "heat_gamma": heat_gamma,
             },
         )
 
@@ -246,13 +243,25 @@ class MemoryServiceFactory:
 
         fusion_strategy = config.get(f"services.{service_name}.fusion_strategy", "weighted")
         fusion_weights_raw = config.get(f"services.{service_name}.fusion_weights")
+
+        # fusion_weights 应该是 dict[str, float] 格式
+        fusion_weights: dict[str, float] | None = None
         if fusion_weights_raw:
-            if isinstance(fusion_weights_raw, str):
-                fusion_weights = [float(x.strip()) for x in fusion_weights_raw.split(",")]
-            else:
-                fusion_weights = list(fusion_weights_raw)
-        else:
-            fusion_weights = None
+            if isinstance(fusion_weights_raw, dict):
+                # 已经是字典格式，直接使用
+                fusion_weights = {k: float(v) for k, v in fusion_weights_raw.items()}
+            elif isinstance(fusion_weights_raw, list) and indexes:
+                # 兼容列表格式：按索引顺序映射
+                fusion_weights = {}
+                for i, idx_config in enumerate(indexes):
+                    if i < len(fusion_weights_raw):
+                        idx_name = (
+                            idx_config.get("name")
+                            if isinstance(idx_config, dict)
+                            else str(idx_config)
+                        )
+                        if idx_name:
+                            fusion_weights[idx_name] = float(fusion_weights_raw[i])
 
         rrf_k = config.get(f"services.{service_name}.rrf_k", 60)
 
