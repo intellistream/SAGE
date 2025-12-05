@@ -36,8 +36,8 @@ class ChatModeManager(StudioManager):
         self.llm_service = None  # Will be VLLMService or other sageLLM service
         # Default to enabling LLM with a small model
         self.llm_enabled = os.getenv("SAGE_STUDIO_LLM", "true").lower() in ("true", "1", "yes")
-        # Use Qwen2.5-0.5B as default - very small and fast
-        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+        # Use Qwen2.5-7B as default - good balance of quality and speed on A100
+        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
         self.llm_port = SagePorts.BENCHMARK_LLM  # Unified default port (8901)
 
     # ------------------------------------------------------------------
@@ -199,7 +199,7 @@ class ChatModeManager(StudioManager):
         result = LLMLauncher.launch(
             model=model_name,
             port=self.llm_port,
-            gpu_memory=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.7")),
+            gpu_memory=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
             tensor_parallel=int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
             background=True,
             use_finetuned=use_finetuned,
