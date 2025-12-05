@@ -126,11 +126,49 @@ jobs:
         continue-on-error: true
         run: |
           echo "🛑 Stopping existing SAGE Studio services..."
+
+          # 停止 Studio 相关进程
           pkill -f "sage studio" || true
           pkill -f "sage-gateway" || true
+          pkill -f "vite preview" || true
+          pkill -f "vite.*preview" || true
+
+          # 停止后端 API（端口 8080）
+          echo "   停止后端 API..."
+          fuser -k 8080/tcp 2>/dev/null || true
+
+          # 停止 LLM 服务（端口 8901）
+          echo "   停止 LLM 服务..."
+          pkill -f "vllm.entrypoints" || true
+          fuser -k 8901/tcp 2>/dev/null || true
+
+          # 停止 Embedding 服务（端口 8090）
+          echo "   停止 Embedding 服务..."
+          pkill -f "embedding_server" || true
+          fuser -k 8090/tcp 2>/dev/null || true
+
+          # 停止 Gateway（端口 8000）
+          echo "   停止 Gateway..."
+          fuser -k 8000/tcp 2>/dev/null || true
+
+          # 清理 PID 文件
+          rm -f ~/.sage/gateway.pid ~/.sage/logs/*.pid 2>/dev/null || true
+
           # 注意：不停止 cloudflared tunnel，保持公网访问连续性
           # Tunnel 会在后面的 Start Cloudflare Tunnel 步骤中按需重启
-          sleep 2
+
+          echo "   等待进程完全退出..."
+          sleep 3
+
+          # 验证端口已释放
+          echo "   验证端口状态..."
+          for port in 5173 8080 8000 8901 8090; do
+            if fuser $port/tcp 2>/dev/null; then
+              echo "   ⚠️  端口 $port 仍被占用"
+            else
+              echo "   ✅ 端口 $port 已释放"
+            fi
+          done
 
       - name: Install System Dependencies
         continue-on-error: true
