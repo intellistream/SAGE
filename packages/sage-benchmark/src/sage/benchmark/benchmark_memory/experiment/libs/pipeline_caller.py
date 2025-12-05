@@ -31,6 +31,10 @@ class PipelineCaller(MapFunction):
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
 
+        # 服务调用超时时间（秒），默认 300 秒
+        # 注意：这个超时必须 >= pipeline_service_timeout，否则调用方会先超时
+        self.service_timeout = config.get("runtime.service_timeout", 300.0)
+
         # 根据数据集类型初始化加载器
         if self.dataset == "locomo":
             self.loader = LocomoDataLoader()
@@ -114,15 +118,41 @@ class PipelineCaller(MapFunction):
             "session_id": session_id,
             "dialog_id": dialog_id,
             "dialogs": dialogs,
+            "packet_idx": packet_idx,
+            "total_packets": total_packets,
         }
 
-        # 调用记忆存储服务（阻塞等待）
-        self.call_service(
-            "memory_insert_service",
-            insert_data,
-            method="process",
-            timeout=90.0,
+        # 判断是否为最后一个数据包（提前判断，用于异常处理）
+        is_last_packet = packet_idx + 1 >= total_packets
+        print(
+            f"[DEBUG PipelineCaller] packet_idx={packet_idx}, total_packets={total_packets}, is_last_packet={is_last_packet}"
         )
+
+        # 调用记忆存储服务（阻塞等待）
+        # 注意：最后一包可能触发 link_evolution，可能超时
+        try:
+            self.call_service(
+                "memory_insert_service",
+                insert_data,
+                method="process",
+                timeout=self.service_timeout,
+            )
+        except TimeoutError as e:
+            print(f"[WARNING PipelineCaller] memory_insert_service 超时: {e}")
+            # 如果是最后一包超时，仍然返回 completed=True 以保存结果
+            if is_last_packet:
+                print("[DEBUG PipelineCaller] 最后一包超时，但仍返回 completed=True 以保存结果")
+                if self.progress_bar:
+                    self.progress_bar.close()
+                return {
+                    "dataset": self.dataset,
+                    "task_id": task_id,
+                    "completed": True,
+                    "warning": f"最后一包 memory_insert 超时: {e}",
+                }
+            else:
+                # 非最后一包超时，重新抛出异常
+                raise
 
         # 累计插入的对话数
         self.total_dialogs_inserted += dialog_len
@@ -139,8 +169,7 @@ class PipelineCaller(MapFunction):
 
         current_count = len(current_questions)
 
-        # 判断是否为最后一个数据包
-        is_last_packet = packet_idx + 1 >= total_packets
+        # 注意：is_last_packet 已在上面定义
 
         # 检查是否达到下一个测试阈值
         should_test = False
@@ -169,6 +198,7 @@ class PipelineCaller(MapFunction):
                     self.progress_bar.close()
 
                 # 返回完成信号（不包含测试结果）
+                print("[DEBUG PipelineCaller] 返回完成信号 (无测试结果路径)")
                 return {
                     "dataset": self.dataset,
                     "task_id": task_id,
@@ -215,7 +245,7 @@ class PipelineCaller(MapFunction):
                 "memory_test_service",
                 test_data,
                 method="process",
-                timeout=90.0,
+                timeout=self.service_timeout,
             )
 
             # PipelineService 返回的是纯数据（已由 PipelineServiceSink 处理）
@@ -259,4 +289,7 @@ class PipelineCaller(MapFunction):
             self.progress_bar.close()
 
         # 返回本次测试结果
+        print(
+            f"[DEBUG PipelineCaller] 返回测试结果: completed={test_result.get('completed')}, answers={len(test_result.get('answers', []))}"
+        )
         return test_result

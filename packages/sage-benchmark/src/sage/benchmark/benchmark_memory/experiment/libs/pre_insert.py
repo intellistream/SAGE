@@ -1,4 +1,23 @@
-"""预插入处理模块 - 在记忆插入前的预处理（可选）
+"""预插入处理模块 - 记忆插入前的预处理操作
+
+记忆体架构说明：
+================
+记忆体分为【记忆操作】和【记忆数据结构】两部分：
+
+记忆操作（4 种）：
+- 插入前操作 (PreInsert): 预处理记忆数据，决定插入方式，仅允许检索记忆数据结构
+- 插入后操作 (PostInsert): 优化记忆数据结构，允许进行检索-删除-插入（replace）
+- 检索前操作 (PreRetrieval): 预处理提问，不允许访问记忆数据结构
+- 检索后操作 (PostRetrieval): 处理返回结果，允许多次查询并拼接成 prompt
+
+记忆数据结构：
+- 存储结构 + 插入/检索/删除接口
+- 插入可提供多种方法，检索和删除方法固定
+
+本模块职责（PreInsert - 插入前操作）：
+- 预处理记忆数据
+- 决定如何插入
+- 过程中仅允许对记忆数据结构进行检索（通过 service_name 访问）
 
 D2 维度：PreInsert 开发
 支持的 action：
@@ -9,6 +28,7 @@ D2 维度：PreInsert 开发
 - score: 重要性评分（importance, emotion）
 - multi_embed: 多维向量编码
 - validate: 输入验证
+- scm_embed: SCM 样式的摘要 + 原文 + embedding（同时保存）
 """
 
 from __future__ import annotations
@@ -16,6 +36,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from typing import Any
 
 from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
@@ -31,7 +52,14 @@ from sage.common.core import MapFunction
 class PreInsert(MapFunction):
     """记忆插入前的预处理算子
 
+    作为记忆操作的一部分，负责在记忆插入前进行预处理。
+
     职责：
+    - 预处理记忆数据
+    - 决定如何插入（通过 memory_entries 返回插入方法和数据）
+    - 过程中仅允许对记忆数据结构进行检索（通过 service_name 访问）
+
+    具体操作：
     - 数据验证 (validate)
     - 格式转换 (transform)
     - 信息抽取 (extract)
@@ -47,6 +75,9 @@ class PreInsert(MapFunction):
     - multi_embed: 多维向量编码 (EmotionalRAG)
     - validate: 输入验证
 
+    Attributes:
+        service_name: 要访问的记忆服务名称，用于在预处理过程中检索记忆数据结构
+
     注：短期记忆通常使用 none，长期记忆需要更多预处理
     """
 
@@ -58,6 +89,9 @@ class PreInsert(MapFunction):
         """
         super().__init__()
         self.config = config
+
+        # 注册要访问的记忆服务名称（插入前操作允许对记忆数据结构进行检索）
+        self.service_name = config.get("services.register_memory_service", "short_term_memory")
 
         # 此处默认初始化共通工具（对外请求服务的和内部都使用的，比如共用解析器、LLM 和 Embedding）
         self._dialogue_parser = DialogueParser()
@@ -104,6 +138,21 @@ class PreInsert(MapFunction):
         elif self.action == "validate":
             self._content_hashes: set[str] = set()
 
+        elif self.action == "scm_embed":
+            # SCM 样式：同时生成摘要和 embedding，保留原文
+            # summarize prompt
+            self._scm_summarize_prompt = get_required_config(
+                self.config,
+                "operators.pre_insert.summarize_prompt",
+                "action=scm_embed",
+            )
+            # 是否对摘要做 embedding（默认对原文）
+            self._scm_embed_summary = self.config.get("operators.pre_insert.embed_summary", False)
+            # 原文 token 阈值，超过才生成摘要
+            self._scm_summary_threshold = self.config.get(
+                "operators.pre_insert.summary_threshold", 300
+            )
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行预处理
 
@@ -113,36 +162,80 @@ class PreInsert(MapFunction):
         Returns:
             处理后的数据（字典格式），包含 memory_entries 队列
         """
-        # 根据 action 模式生成记忆条目队列
-        if self.action == "none":
-            entries = [data]
+        # 根据 action 调用对应的大类方法
+        action_handlers = {
+            "none": self._execute_none,
+            "tri_embed": self._execute_tri_embed,
+            "transform": self._execute_transform,
+            "extract": self._execute_extract,
+            "score": self._execute_score,
+            "multi_embed": self._execute_multi_embed,
+            "validate": self._execute_validate,
+            "scm_embed": self._execute_scm_embed,
+        }
 
-        elif self.action == "tri_embed":
-            entries = self._extract_and_embed_triples(data)
-
-        elif self.action == "transform":
-            entries = self._execute_transform(data)
-
-        elif self.action == "extract":
-            entries = self._execute_extract(data)
-
-        elif self.action == "score":
-            entries = self._execute_score(data)
-
-        elif self.action == "multi_embed":
-            entries = self._execute_multi_embed(data)
-
-        elif self.action == "validate":
-            entries = self._execute_validate(data)
-
+        handler = action_handlers.get(self.action)
+        if handler:
+            entries = handler(data)
         else:
-            # 未知操作模式，原样返回
             print("[WARNING] " + str(f"Unknown action: {self.action}, passing through"))
             entries = [data]
+
+        # 确保每个 entry 都有 insert_method
+        for entry in entries:
+            if "insert_method" not in entry:
+                entry["insert_method"] = "default"
+            if "insert_mode" not in entry:
+                entry["insert_mode"] = "passive"
+
+        # 为所有 entry 生成 embedding（如果还没有）
+        # 按优先级选择文本字段用于 embedding
+        if self._embedding_generator and self._embedding_generator.is_available():
+            for entry in entries:
+                if "embedding" not in entry or entry["embedding"] is None:
+                    # 按优先级选择文本字段
+                    text_for_embed = (
+                        entry.get("summary", "")
+                        or entry.get("compressed_text", "")
+                        or entry.get("chunk_text", "")
+                        or entry.get("segment_text", "")
+                        or entry.get("fact", "")
+                        or entry.get("refactor", "")
+                        or entry.get("text", "")
+                    )
+                    # 如果还是没有文本，尝试从 dialogs 格式化
+                    if not text_for_embed and "dialogs" in entry:
+                        text_for_embed = self._dialogue_parser.format(entry.get("dialogs", []))
+
+                    if text_for_embed:
+                        try:
+                            embedding = self._embedding_generator.embed(text_for_embed)
+                            if embedding:
+                                entry["embedding"] = embedding
+                        except Exception as e:
+                            print("[WARNING] " + str(f"Embedding generation failed: {e}"))
 
         # 在原字典基础上添加 memory_entries 队列
         data["memory_entries"] = entries
         return data
+
+    # ========================================================================
+    # None Action
+    # ========================================================================
+
+    def _execute_none(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """直接透传数据
+
+        Args:
+            data: 原始数据
+
+        Returns:
+            包含原始数据的列表
+        """
+        entry = data.copy()
+        entry["insert_method"] = "default"
+        entry["insert_mode"] = "passive"
+        return [entry]
 
     # ========================================================================
     # Transform Action (D2-1)
@@ -151,7 +244,14 @@ class PreInsert(MapFunction):
     # ========================================================================
 
     def _execute_transform(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """执行内容转换
+        """执行内容转换（transform action）
+
+        支持的 transform_type:
+        - chunking: 分块处理
+        - topic_segment: 主题分段
+        - fact_extract: 事实抽取
+        - summarize: 摘要
+        - compress: 压缩
 
         Args:
             data: 原始数据
@@ -163,351 +263,315 @@ class PreInsert(MapFunction):
             self.config, "operators.pre_insert.transform_type", "action=transform"
         )
 
-        if transform_type == "chunking":
-            return self._transform_chunking(data)
-        elif transform_type == "topic_segment":
-            return self._transform_topic_segment(data)
-        elif transform_type == "fact_extract":
-            return self._transform_fact_extract(data)
-        elif transform_type == "summarize":
-            return self._transform_summarize(data)
-        elif transform_type == "compress":
-            return self._transform_compress(data)
-        else:
-            print("[WARNING] " + str(f"Unknown transform_type: {transform_type}, using chunking"))
-            return self._transform_chunking(data)
-
-    def _transform_chunking(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """分块处理 - 参考 MemGPT
-
-        将长文本分割成固定大小的块，支持重叠窗口
-
-        必需配置参数:
-        - chunk_size: 每个块的最大字符数
-        - chunk_overlap: 块之间的重叠字符数
-        - chunk_strategy: 分块策略 (fixed/sentence/paragraph)
-        """
-        chunk_size = get_required_config(
-            self.config, "operators.pre_insert.chunk_size", "transform_type=chunking"
-        )
-        chunk_overlap = get_required_config(
-            self.config, "operators.pre_insert.chunk_overlap", "transform_type=chunking"
-        )
-        chunk_strategy = self.config.get("operators.pre_insert.chunk_strategy", "fixed")
-
         # 获取文本内容
         dialogs = data.get("dialogs", [])
         text = self._dialogue_parser.format(dialogs)
 
         if not text:
-            return [data]
-
-        # 根据策略分块
-        if chunk_strategy == "sentence":
-            chunks = self._chunk_by_sentence(text, chunk_size, chunk_overlap)
-        elif chunk_strategy == "paragraph":
-            chunks = self._chunk_by_paragraph(text, chunk_size, chunk_overlap)
-        else:  # fixed
-            chunks = self._chunk_fixed(text, chunk_size, chunk_overlap)
-
-        # 构建条目
-        entries = []
-        for i, chunk in enumerate(chunks):
             entry = data.copy()
-            entry["chunk_text"] = chunk
-            entry["chunk_index"] = i
-            entry["total_chunks"] = len(chunks)
-            entries.append(entry)
+            entry["insert_method"] = "default"
+            entry["insert_mode"] = "passive"
+            return [entry]
 
-        return entries if entries else [data]
+        # 根据 transform_type 处理
+        if transform_type == "chunking":
+            # ==== Chunking 逻辑内联 ====
+            chunk_size = get_required_config(
+                self.config, "operators.pre_insert.chunk_size", "transform_type=chunking"
+            )
+            chunk_overlap = get_required_config(
+                self.config, "operators.pre_insert.chunk_overlap", "transform_type=chunking"
+            )
+            chunk_strategy = self.config.get("operators.pre_insert.chunk_strategy", "fixed")
 
-    def _chunk_fixed(self, text: str, size: int, overlap: int) -> list[str]:
-        """固定大小分块"""
-        chunks = []
-        start = 0
-        while start < len(text):
-            end = start + size
-            chunk = text[start:end]
-            if chunk.strip():
-                chunks.append(chunk)
-            start = end - overlap
-        return chunks
+            # 根据策略分块
+            chunks = []
+            if chunk_strategy == "sentence":
+                # 按句子边界分块
+                sentence_endings = re.compile(r"[.!?。！？]+[\s]*")
+                sentences = sentence_endings.split(text)
+                sentences = [s.strip() for s in sentences if s.strip()]
 
-    def _chunk_by_sentence(self, text: str, size: int, overlap: int) -> list[str]:
-        """按句子边界分块"""
-        # 简单的句子分割 (支持中英文)
-        sentence_endings = re.compile(r"[.!?。！？]+[\s]*")
-        sentences = sentence_endings.split(text)
-        sentences = [s.strip() for s in sentences if s.strip()]
-
-        chunks = []
-        current_chunk = []
-        current_size = 0
-
-        for sentence in sentences:
-            sentence_len = len(sentence)
-            if current_size + sentence_len > size and current_chunk:
-                chunks.append(" ".join(current_chunk))
-                # 保留部分句子作为重叠
-                overlap_sentences = []
-                overlap_size = 0
-                for s in reversed(current_chunk):
-                    if overlap_size + len(s) <= overlap:
-                        overlap_sentences.insert(0, s)
-                        overlap_size += len(s)
-                    else:
-                        break
-                current_chunk = overlap_sentences
-                current_size = overlap_size
-
-            current_chunk.append(sentence)
-            current_size += sentence_len
-
-        if current_chunk:
-            chunks.append(" ".join(current_chunk))
-
-        return chunks
-
-    def _chunk_by_paragraph(self, text: str, size: int, overlap: int) -> list[str]:
-        """按段落边界分块"""
-        paragraphs = text.split("\n\n")
-        paragraphs = [p.strip() for p in paragraphs if p.strip()]
-
-        chunks = []
-        current_chunk = []
-        current_size = 0
-
-        for para in paragraphs:
-            para_len = len(para)
-            if current_size + para_len > size and current_chunk:
-                chunks.append("\n\n".join(current_chunk))
                 current_chunk = []
                 current_size = 0
 
-            current_chunk.append(para)
-            current_size += para_len
+                for sentence in sentences:
+                    sentence_len = len(sentence)
+                    if current_size + sentence_len > chunk_size and current_chunk:
+                        chunks.append(" ".join(current_chunk))
+                        # 保留部分句子作为重叠
+                        overlap_sentences = []
+                        overlap_size = 0
+                        for s in reversed(current_chunk):
+                            if overlap_size + len(s) <= chunk_overlap:
+                                overlap_sentences.insert(0, s)
+                                overlap_size += len(s)
+                            else:
+                                break
+                        current_chunk = overlap_sentences
+                        current_size = overlap_size
 
-        if current_chunk:
-            chunks.append("\n\n".join(current_chunk))
+                    current_chunk.append(sentence)
+                    current_size += sentence_len
 
-        return chunks
+                if current_chunk:
+                    chunks.append(" ".join(current_chunk))
 
-    def _transform_topic_segment(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """话题分段 - 参考 SeCom
+            elif chunk_strategy == "paragraph":
+                # 按段落边界分块
+                paragraphs = text.split("\n\n")
+                paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
-        使用 LLM 识别对话中的话题边界，将对话分成不同的话题段落
+                current_chunk = []
+                current_size = 0
 
-        配置参数:
-        - segment_prompt: 分段 prompt 模板
-        - min_segment_size: 最小段落大小
-        - max_segment_size: 最大段落大小
-        """
-        dialogs = data.get("dialogs", [])
-        if not dialogs:
-            return [data]
+                for para in paragraphs:
+                    para_len = len(para)
+                    if current_size + para_len > chunk_size and current_chunk:
+                        chunks.append("\n\n".join(current_chunk))
+                        current_chunk = []
+                        current_size = 0
 
-        # 格式化对话（带索引）
-        formatted_dialogs = []
-        for i, dialog in enumerate(dialogs):
-            speaker = dialog.get("speaker", "Unknown")
-            text = dialog.get("text", dialog.get("clean_text", ""))
-            formatted_dialogs.append(f"[Exchange {i}]: {speaker}: {text}")
-        dialogue_text = "\n".join(formatted_dialogs)
+                    current_chunk.append(para)
+                    current_size += para_len
 
-        # 使用 LLM 识别话题边界
-        prompt_template = get_required_config(
-            self.config, "operators.pre_insert.segment_prompt", "transform_type=topic_segment"
-        )
-        prompt = prompt_template.replace("{dialogue}", dialogue_text)
+                if current_chunk:
+                    chunks.append("\n\n".join(current_chunk))
 
-        try:
-            response = self._generator.generate(prompt)
-            segments = self._parse_json_response(response, default=[])
-        except Exception as e:
-            print(
-                "[WARNING] "
-                + str(f"Topic segmentation failed: {e}, falling back to single segment")
-            )
-            return [data]
+            else:  # fixed
+                # 固定大小分块
+                start = 0
+                while start < len(text):
+                    end = start + chunk_size
+                    chunk = text[start:end]
+                    if chunk.strip():
+                        chunks.append(chunk)
+                    start = end - chunk_overlap
 
-        if not segments:
-            return [data]
-
-        # 构建分段条目
-        min_size = self.config.get("operators.pre_insert.min_segment_size", 100)
-        max_size = self.config.get("operators.pre_insert.max_segment_size", 500)
-
-        entries = []
-        for i, segment in enumerate(segments):
-            exchange_indices = segment.get("exchanges", [])
-            topic = segment.get("topic", f"segment_{i}")
-
-            # 提取该段的对话
-            segment_dialogs = [dialogs[idx] for idx in exchange_indices if idx < len(dialogs)]
-            segment_text = self._dialogue_parser.format(segment_dialogs)
-
-            # 检查大小约束
-            if len(segment_text) < min_size:
-                continue
-            if len(segment_text) > max_size:
-                # 进一步分块
-                sub_entries = self._transform_chunking({**data, "dialogs": segment_dialogs})
-                for sub in sub_entries:
-                    sub["topic"] = topic
-                    sub["segment_index"] = i
-                entries.extend(sub_entries)
-            else:
+            # 构建条目
+            entries = []
+            for i, chunk in enumerate(chunks):
                 entry = data.copy()
-                entry["segment_dialogs"] = segment_dialogs
-                entry["segment_text"] = segment_text
-                entry["topic"] = topic
-                entry["segment_index"] = i
-                entry["total_segments"] = len(segments)
+                entry["chunk_text"] = chunk
+                entry["chunk_index"] = i
+                entry["total_chunks"] = len(chunks)
+                entry["insert_method"] = "chunk_insert"
+                entry["insert_mode"] = "passive"
                 entries.append(entry)
 
-        return entries if entries else [data]
+            return entries if entries else [data]
 
-    def _transform_fact_extract(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """事实提取 - 参考 LoCoMo
+        elif transform_type == "topic_segment":
+            # ==== Topic Segment 逻辑内联 ====
+            if not dialogs:
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
 
-        从对话中提取事实性陈述
+            # 格式化对话（带索引）
+            formatted_dialogs = []
+            for i, dialog in enumerate(dialogs):
+                speaker = dialog.get("speaker", "Unknown")
+                dialog_text = dialog.get("text", dialog.get("clean_text", ""))
+                formatted_dialogs.append(f"[Exchange {i}]: {speaker}: {dialog_text}")
+            dialogue_text = "\n".join(formatted_dialogs)
 
-        配置参数:
-        - fact_prompt: 事实提取 prompt 模板
-        - fact_format: 输出格式 (statement/triple/json)
-        """
-        dialogs = data.get("dialogs", [])
-        if not dialogs:
-            return [data]
+            # 使用 LLM 识别话题边界
+            prompt_template = get_required_config(
+                self.config, "operators.pre_insert.segment_prompt", "transform_type=topic_segment"
+            )
+            prompt = prompt_template.replace("{dialogue}", dialogue_text)
 
-        # 格式化对话（带 dialog_id）
-        formatted_dialogs = []
-        for i, dialog in enumerate(dialogs):
-            speaker = dialog.get("speaker", "Unknown")
-            text = dialog.get("text", dialog.get("clean_text", ""))
-            dia_id = dialog.get("dia_id", i)
-            formatted_dialogs.append(f"[{dia_id}] {speaker}: {text}")
-        dialogue_text = "\n".join(formatted_dialogs)
+            try:
+                response = self._generator.generate(prompt)
+                segments = self._parse_json_response(response, default=[])
+            except Exception as e:
+                print(
+                    "[WARNING] "
+                    + str(f"Topic segmentation failed: {e}, falling back to single segment")
+                )
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
 
-        # 使用 LLM 提取事实
-        prompt_template = get_required_config(
-            self.config, "operators.pre_insert.fact_prompt", "transform_type=fact_extract"
-        )
-        prompt = prompt_template.replace("{dialogue}", dialogue_text)
+            if not segments:
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
 
-        try:
-            response = self._generator.generate(prompt)
-            facts = self._parse_json_response(response, default=[])
-        except Exception as e:
-            print("[WARNING] " + str(f"Fact extraction failed: {e}"))
-            return [data]
+            # 构建分段条目
+            min_size = self.config.get("operators.pre_insert.min_segment_size", 100)
+            max_size = self.config.get("operators.pre_insert.max_segment_size", 500)
 
-        if not facts:
-            return [data]
+            entries = []
+            for i, segment in enumerate(segments):
+                exchange_indices = segment.get("exchanges", [])
+                topic = segment.get("topic", f"segment_{i}")
 
-        # 根据格式构建条目
-        fact_format = self.config.get("operators.pre_insert.fact_format", "statement")
-        entries = []
+                # 提取该段的对话
+                segment_dialogs = [dialogs[idx] for idx in exchange_indices if idx < len(dialogs)]
+                segment_text = self._dialogue_parser.format(segment_dialogs)
 
-        for fact_item in facts:
-            if isinstance(fact_item, str):
-                fact_text = fact_item
-                speaker = "general"
-                dialog_id = None
-            else:
-                fact_text = fact_item.get("fact", str(fact_item))
-                speaker = fact_item.get("speaker", "general")
-                dialog_id = fact_item.get("dialog_id")
+                # 检查大小约束
+                if len(segment_text) < min_size:
+                    continue
+                if len(segment_text) > max_size:
+                    # 递归使用 chunking（通过修改配置临时调用）
+                    # 为避免递归问题，这里简化为直接创建条目
+                    entry = data.copy()
+                    entry["segment_dialogs"] = segment_dialogs
+                    entry["segment_text"] = segment_text
+                    entry["topic"] = topic
+                    entry["segment_index"] = i
+                    entry["total_segments"] = len(segments)
+                    entry["insert_method"] = "segment_insert"
+                    entry["insert_mode"] = "passive"
+                    entries.append(entry)
+                else:
+                    entry = data.copy()
+                    entry["segment_dialogs"] = segment_dialogs
+                    entry["segment_text"] = segment_text
+                    entry["topic"] = topic
+                    entry["segment_index"] = i
+                    entry["total_segments"] = len(segments)
+                    entry["insert_method"] = "segment_insert"
+                    entry["insert_mode"] = "passive"
+                    entries.append(entry)
+
+            return entries if entries else [data]
+
+        elif transform_type == "fact_extract":
+            # ==== Fact Extract 逻辑内联 ====
+            if not dialogs:
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
+
+            # 格式化对话（带 dialog_id）
+            formatted_dialogs = []
+            for i, dialog in enumerate(dialogs):
+                speaker = dialog.get("speaker", "Unknown")
+                dialog_text = dialog.get("text", dialog.get("clean_text", ""))
+                dia_id = dialog.get("dia_id", i)
+                formatted_dialogs.append(f"[{dia_id}] {speaker}: {dialog_text}")
+            dialogue_text = "\n".join(formatted_dialogs)
+
+            # 使用 LLM 提取事实
+            prompt_template = get_required_config(
+                self.config, "operators.pre_insert.fact_prompt", "transform_type=fact_extract"
+            )
+            prompt = prompt_template.replace("{dialogue}", dialogue_text)
+
+            try:
+                response = self._generator.generate(prompt)
+                facts = self._parse_json_response(response, default=[])
+            except Exception as e:
+                print("[WARNING] " + str(f"Fact extraction failed: {e}"))
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
+
+            if not facts:
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
+
+            # 根据格式构建条目
+            fact_format = self.config.get("operators.pre_insert.fact_format", "statement")
+            entries = []
+
+            for fact_item in facts:
+                if isinstance(fact_item, str):
+                    fact_text = fact_item
+                    speaker = "general"
+                    dialog_id = None
+                else:
+                    fact_text = fact_item.get("fact", str(fact_item))
+                    speaker = fact_item.get("speaker", "general")
+                    dialog_id = fact_item.get("dialog_id")
+
+                entry = data.copy()
+                entry["fact"] = fact_text
+                entry["fact_speaker"] = speaker
+                entry["fact_dialog_id"] = dialog_id
+                entry["fact_format"] = fact_format
+                entry["insert_method"] = "fact_insert"
+                entry["insert_mode"] = "passive"
+                entries.append(entry)
+
+            return entries if entries else [data]
+
+        elif transform_type == "summarize":
+            # ==== Summarize 逻辑内联 ====
+            # 使用 LLM 生成摘要
+            prompt_template = get_required_config(
+                self.config, "operators.pre_insert.summarize_prompt", "transform_type=summarize"
+            )
+            prompt = prompt_template.replace("{dialogue}", text)
+
+            try:
+                max_tokens = self.config.get("operators.pre_insert.summary_max_tokens", 200)
+                summary = self._generator.generate(prompt, max_tokens=max_tokens)
+            except Exception as e:
+                print("[WARNING] " + str(f"Summarization failed: {e}"))
+                entry = data.copy()
+                entry["insert_method"] = "default"
+                return [entry]
 
             entry = data.copy()
-            entry["fact"] = fact_text
-            entry["fact_speaker"] = speaker
-            entry["fact_dialog_id"] = dialog_id
-            entry["fact_format"] = fact_format
-            entries.append(entry)
+            entry["summary"] = summary.strip()
+            entry["original_text"] = text
+            entry["insert_method"] = "summary_insert"
+            entry["insert_mode"] = "active"  # 摘要通常主动插入到 LTM
+            entry["insert_params"] = {"target_tier": "ltm"}
+            # embedding 在 execute() 末尾统一生成
+            return [entry]
 
-        return entries if entries else [data]
+        elif transform_type == "compress":
+            # ==== Compress 逻辑内联 ====
+            compression_ratio = self.config.get("operators.pre_insert.compression_ratio", 0.5)
 
-    def _transform_summarize(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """内容摘要
+            try:
+                # 尝试使用 LLMLingua
+                from llmlingua import PromptCompressor
 
-        配置参数:
-        - summary_prompt: 摘要 prompt 模板
-        - summary_max_tokens: 摘要最大 token 数
-        """
-        dialogs = data.get("dialogs", [])
-        dialogue_text = self._dialogue_parser.format(dialogs)
+                model_name = self.config.get(
+                    "operators.pre_insert.compression_model",
+                    "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
+                )
+                compressor = PromptCompressor(model_name, use_llmlingua2=True)
 
-        if not dialogue_text:
-            return [data]
+                result = compressor.compress_prompt(
+                    text,
+                    rate=compression_ratio,
+                    use_context_level_filter=False,
+                    force_tokens=["\n", ".", "[human]", "[bot]"],
+                )
+                compressed_text = result.get("compressed_prompt", text)
 
-        # 使用 LLM 生成摘要
-        prompt_template = get_required_config(
-            self.config, "operators.pre_insert.summary_prompt", "transform_type=summarize"
-        )
-        prompt = prompt_template.replace("{dialogue}", dialogue_text)
+            except ImportError:
+                print("[WARNING] " + "LLMLingua not installed, using simple truncation")
+                # 简单截断作为后备
+                target_len = int(len(text) * compression_ratio)
+                compressed_text = text[:target_len]
+            except Exception as e:
+                print("[WARNING] " + str(f"Compression failed: {e}, using original text"))
+                compressed_text = text
 
-        try:
-            max_tokens = self.config.get("operators.pre_insert.summary_max_tokens", 200)
-            summary = self._generator.generate(prompt, max_tokens=max_tokens)
-        except Exception as e:
-            print("[WARNING] " + str(f"Summarization failed: {e}"))
-            return [data]
+            entry = data.copy()
+            entry["compressed_text"] = compressed_text
+            entry["original_text"] = text
+            entry["compression_ratio"] = len(compressed_text) / len(text) if text else 1.0
+            entry["insert_method"] = "default"
+            entry["insert_mode"] = "passive"
+            return [entry]
 
-        entry = data.copy()
-        entry["summary"] = summary.strip()
-        entry["original_text"] = dialogue_text
-        return [entry]
-
-    def _transform_compress(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """内容压缩 - 参考 SeCom (LLMLingua)
-
-        使用压缩模型减少文本长度同时保留关键信息
-
-        配置参数:
-        - compression_ratio: 目标压缩率 (0-1)
-        - compression_model: 压缩模型名称
-        """
-        dialogs = data.get("dialogs", [])
-        text = self._dialogue_parser.format(dialogs)
-
-        if not text:
-            return [data]
-
-        compression_ratio = self.config.get("operators.pre_insert.compression_ratio", 0.5)
-
-        try:
-            # 尝试使用 LLMLingua
-            from llmlingua import PromptCompressor
-
-            model_name = self.config.get(
-                "operators.pre_insert.compression_model",
-                "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
-            )
-            compressor = PromptCompressor(model_name, use_llmlingua2=True)
-
-            result = compressor.compress_prompt(
-                text,
-                rate=compression_ratio,
-                use_context_level_filter=False,
-                force_tokens=["\n", ".", "[human]", "[bot]"],
-            )
-            compressed_text = result.get("compressed_prompt", text)
-
-        except ImportError:
-            print("[WARNING] " + "LLMLingua not installed, using simple truncation")
-            # 简单截断作为后备
-            target_len = int(len(text) * compression_ratio)
-            compressed_text = text[:target_len]
-        except Exception as e:
-            print("[WARNING] " + str(f"Compression failed: {e}, using original text"))
-            compressed_text = text
-
-        entry = data.copy()
-        entry["compressed_text"] = compressed_text
-        entry["original_text"] = text
-        entry["compression_ratio"] = len(compressed_text) / len(text) if text else 1.0
-        return [entry]
+        else:
+            print("[WARNING] " + str(f"Unknown transform_type: {transform_type}, using default"))
+            entry = data.copy()
+            entry["insert_method"] = "default"
+            entry["insert_mode"] = "passive"
+            return [entry]
 
     # ========================================================================
     # Extract Action (D2-2)
@@ -516,7 +580,14 @@ class PreInsert(MapFunction):
     # ========================================================================
 
     def _execute_extract(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """执行信息抽取
+        """执行信息抽取（extract action）
+
+        支持的 extract_type:
+        - keyword: 关键词提取
+        - entity: 实体抽取
+        - noun: 名词提取
+        - persona: 人格特征提取
+        - all: 全部提取
 
         Args:
             data: 原始数据
@@ -528,20 +599,143 @@ class PreInsert(MapFunction):
             self.config, "operators.pre_insert.extract_type", "action=extract"
         )
 
+        # 获取文本内容
+        dialogs = data.get("dialogs", [])
+        text = self._dialogue_parser.format(dialogs)
+
         entry = data.copy()
+        # 设置 refactor 字段供 MemoryInsert 使用
+        entry["refactor"] = text
         extracted_info: dict[str, Any] = {}
 
-        if extract_type == "keyword" or extract_type == "all":
-            extracted_info["keywords"] = self._extract_keywords(data)
+        # ==== Keyword Extraction ====
+        if extract_type in ["keyword", "all"]:
+            if text:
+                prompt_template = get_required_config(
+                    self.config, "operators.pre_insert.keyword_prompt", "extract_type=keyword"
+                )
+                prompt = prompt_template.replace("{text}", text)
 
-        if extract_type == "entity" or extract_type == "all":
-            extracted_info["entities"] = self._extract_entities(data)
+                try:
+                    response = self._generator.generate(prompt)
+                    result = self._parse_json_response(response, default={"keywords": []})
+                    keywords = result.get("keywords", [])
 
-        if extract_type == "noun" or extract_type == "all":
-            extracted_info["nouns"] = self._extract_nouns(data)
+                    # 限制数量
+                    max_keywords = self.config.get("operators.pre_insert.max_keywords", 10)
+                    extracted_info["keywords"] = keywords[:max_keywords]
 
-        if extract_type == "persona" or extract_type == "all":
-            extracted_info["personas"] = self._extract_personas(data)
+                except Exception as e:
+                    print("[WARNING] " + str(f"Keyword extraction failed: {e}"))
+                    extracted_info["keywords"] = []
+            else:
+                extracted_info["keywords"] = []
+
+        # ==== Entity Extraction ====
+        if extract_type in ["entity", "all"]:
+            if text:
+                ner_model = self.config.get("operators.pre_insert.ner_model", "spacy")
+                entity_types = self.config.get(
+                    "operators.pre_insert.entity_types",
+                    ["PERSON", "ORG", "LOC", "EVENT", "GPE", "DATE", "TIME"],
+                )
+
+                entities = []
+
+                if ner_model == "spacy" and getattr(self, "_spacy_nlp", None):
+                    doc = self._spacy_nlp(text)
+                    for ent in doc.ents:
+                        if ent.label_ in entity_types:
+                            entities.append({"text": ent.text, "type": ent.label_})
+
+                elif ner_model == "llm":
+                    # 使用 LLM 进行 NER
+                    prompt = f"""Extract named entities from the following text.
+Entity types to extract: {", ".join(entity_types)}
+
+Text: {text}
+
+Return a JSON list of entities: [{{"text": "entity text", "type": "ENTITY_TYPE"}}]
+
+Entities:"""
+                    try:
+                        response = self._generator.generate(prompt)
+                        entities = self._parse_json_response(response, default=[])
+                    except Exception as e:
+                        print("[WARNING] " + str(f"LLM NER failed: {e}"))
+
+                # 去重
+                seen = set()
+                unique_entities = []
+                for ent in entities:
+                    key = (ent.get("text", "").lower(), ent.get("type", ""))
+                    if key not in seen:
+                        seen.add(key)
+                        unique_entities.append(ent)
+
+                extracted_info["entities"] = unique_entities
+            else:
+                extracted_info["entities"] = []
+
+        # ==== Noun Extraction ====
+        if extract_type in ["noun", "all"]:
+            if text and getattr(self, "_spacy_nlp", None):
+                include_proper_nouns = self.config.get(
+                    "operators.pre_insert.include_proper_nouns", True
+                )
+
+                doc = self._spacy_nlp(text)
+                nouns = []
+
+                for token in doc:
+                    if token.pos_ == "NOUN":
+                        nouns.append(token.lemma_)
+                    elif token.pos_ == "PROPN" and include_proper_nouns:
+                        nouns.append(token.text)
+
+                # 去重并保持顺序
+                seen = set()
+                unique_nouns = []
+                for noun in nouns:
+                    if noun.lower() not in seen:
+                        seen.add(noun.lower())
+                        unique_nouns.append(noun)
+
+                extracted_info["nouns"] = unique_nouns
+            else:
+                extracted_info["nouns"] = []
+
+        # ==== Persona Extraction ====
+        if extract_type in ["persona", "all"]:
+            if text:
+                prompt_template = get_required_config(
+                    self.config, "operators.pre_insert.persona_prompt", "extract_type=persona"
+                )
+                prompt = prompt_template.replace("{dialogue}", text)
+
+                persona_fields = self.config.get(
+                    "operators.pre_insert.persona_fields", ["traits", "preferences", "facts"]
+                )
+
+                try:
+                    response = self._generator.generate(prompt)
+                    personas = self._parse_json_response(response, default={})
+
+                    # 只保留配置的字段
+                    filtered_personas = {}
+                    for speaker, info in personas.items():
+                        if isinstance(info, dict):
+                            filtered_personas[speaker] = {
+                                k: v for k, v in info.items() if k in persona_fields
+                            }
+
+                    extracted_info["personas"] = filtered_personas
+
+                except Exception as e:
+                    print("[WARNING] " + str(f"Persona extraction failed: {e}"))
+                    extracted_info["personas"] = {}
+            else:
+                extracted_info["personas"] = {}
 
         # 添加到 metadata 或直接到 entry
         add_to_metadata = self.config.get("operators.pre_insert.add_to_metadata", True)
@@ -550,158 +744,17 @@ class PreInsert(MapFunction):
         else:
             entry.update(extracted_info)
 
+        # 生成 embedding 用于向量检索
+        if text and self._embedding_generator:
+            embedding = self._embedding_generator.embed(text)
+            if embedding:
+                entry["embedding"] = embedding
+
+        # 添加插入方法
+        entry["insert_method"] = "extract_insert"
+        entry["insert_mode"] = "passive"
+
         return [entry]
-
-    def _extract_keywords(self, data: dict[str, Any]) -> list[str]:
-        """关键词提取 - 参考 A-mem
-
-        使用 LLM 提取关键概念和术语
-        """
-        dialogs = data.get("dialogs", [])
-        text = self._dialogue_parser.format(dialogs)
-
-        if not text:
-            return []
-
-        prompt_template = get_required_config(
-            self.config, "operators.pre_insert.keyword_prompt", "extract_type=keyword"
-        )
-        prompt = prompt_template.replace("{text}", text)
-
-        try:
-            response = self._generator.generate(prompt)
-            result = self._parse_json_response(response, default={"keywords": []})
-            keywords = result.get("keywords", [])
-
-            # 限制数量
-            max_keywords = self.config.get("operators.pre_insert.max_keywords", 10)
-            return keywords[:max_keywords]
-
-        except Exception as e:
-            print("[WARNING] " + str(f"Keyword extraction failed: {e}"))
-            return []
-
-    def _extract_entities(self, data: dict[str, Any]) -> list[dict[str, str]]:
-        """实体抽取 - 参考 HippoRAG, LAPS
-
-        使用 spaCy 或 LLM 识别命名实体
-        """
-        dialogs = data.get("dialogs", [])
-        text = self._dialogue_parser.format(dialogs)
-
-        if not text:
-            return []
-
-        ner_model = self.config.get("operators.pre_insert.ner_model", "spacy")
-        entity_types = self.config.get(
-            "operators.pre_insert.entity_types",
-            ["PERSON", "ORG", "LOC", "EVENT", "GPE", "DATE", "TIME"],
-        )
-
-        entities = []
-
-        if ner_model == "spacy" and getattr(self, "_spacy_nlp", None):
-            doc = self._spacy_nlp(text)
-            for ent in doc.ents:
-                if ent.label_ in entity_types:
-                    entities.append({"text": ent.text, "type": ent.label_})
-
-        elif ner_model == "llm":
-            # 使用 LLM 进行 NER
-            prompt = f"""Extract named entities from the following text.
-Entity types to extract: {", ".join(entity_types)}
-
-Text: {text}
-
-Return a JSON list of entities: [{{"text": "entity text", "type": "ENTITY_TYPE"}}]
-
-Entities:"""
-            try:
-                response = self._generator.generate(prompt)
-                entities = self._parse_json_response(response, default=[])
-            except Exception as e:
-                print("[WARNING] " + str(f"LLM NER failed: {e}"))
-
-        # 去重
-        seen = set()
-        unique_entities = []
-        for ent in entities:
-            key = (ent.get("text", "").lower(), ent.get("type", ""))
-            if key not in seen:
-                seen.add(key)
-                unique_entities.append(ent)
-
-        return unique_entities
-
-    def _extract_nouns(self, data: dict[str, Any]) -> list[str]:
-        """名词提取 - 参考 LD-Agent
-
-        使用 spaCy 提取名词短语
-        """
-        dialogs = data.get("dialogs", [])
-        text = self._dialogue_parser.format(dialogs)
-
-        if not text or not getattr(self, "_spacy_nlp", None):
-            return []
-
-        include_proper_nouns = self.config.get("operators.pre_insert.include_proper_nouns", True)
-
-        doc = self._spacy_nlp(text)
-        nouns = []
-
-        for token in doc:
-            if token.pos_ == "NOUN":
-                nouns.append(token.lemma_)
-            elif token.pos_ == "PROPN" and include_proper_nouns:
-                nouns.append(token.text)
-
-        # 去重并保持顺序
-        seen = set()
-        unique_nouns = []
-        for noun in nouns:
-            if noun.lower() not in seen:
-                seen.add(noun.lower())
-                unique_nouns.append(noun)
-
-        return unique_nouns
-
-    def _extract_personas(self, data: dict[str, Any]) -> dict[str, dict[str, list[str]]]:
-        """人格特征提取 - 参考 LD-Agent
-
-        从对话中提取说话者的性格特征、偏好和事实信息
-        """
-        dialogs = data.get("dialogs", [])
-        dialogue_text = self._dialogue_parser.format(dialogs)
-
-        if not dialogue_text:
-            return {}
-
-        prompt_template = get_required_config(
-            self.config, "operators.pre_insert.persona_prompt", "extract_type=persona"
-        )
-        prompt = prompt_template.replace("{dialogue}", dialogue_text)
-
-        persona_fields = self.config.get(
-            "operators.pre_insert.persona_fields", ["traits", "preferences", "facts"]
-        )
-
-        try:
-            response = self._generator.generate(prompt)
-            personas = self._parse_json_response(response, default={})
-
-            # 只保留配置的字段
-            filtered_personas = {}
-            for speaker, info in personas.items():
-                if isinstance(info, dict):
-                    filtered_personas[speaker] = {
-                        k: v for k, v in info.items() if k in persona_fields
-                    }
-
-            return filtered_personas
-
-        except Exception as e:
-            print("[WARNING] " + str(f"Persona extraction failed: {e}"))
-            return {}
 
     # ========================================================================
     # Score Action (D2-3)
@@ -710,7 +763,11 @@ Entities:"""
     # ========================================================================
 
     def _execute_score(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """执行重要性评分
+        """执行重要性评分（score action）
+
+        支持的 score_type:
+        - importance: 重要性评分
+        - emotion: 情感评分
 
         Args:
             data: 原始数据
@@ -721,85 +778,73 @@ Entities:"""
         score_type = get_required_config(
             self.config, "operators.pre_insert.score_type", "action=score"
         )
+
+        # 获取文本内容
+        text = self._get_text_content(data)
+
         entry = data.copy()
+        score_result = {}
 
         if score_type == "importance":
-            score_result = self._score_importance(data)
+            # ==== Importance 逻辑内联 ====
+            if not text:
+                score_result = {"score": 5, "reason": "Empty content"}
+            else:
+                prompt_template = get_required_config(
+                    self.config, "operators.pre_insert.importance_prompt", "score_type=importance"
+                )
+                prompt = prompt_template.replace("{text}", text)
+
+                importance_scale = self.config.get("operators.pre_insert.importance_scale", [1, 10])
+                min_score, max_score = importance_scale
+
+                try:
+                    response = self._generator.generate(prompt)
+                    result = self._parse_json_response(
+                        response, default={"score": 5, "reason": "Default score"}
+                    )
+
+                    score = result.get("score", 5)
+                    # 确保分数在范围内
+                    score = max(min_score, min(max_score, int(score)))
+                    result["score"] = score
+
+                    score_result = result
+
+                except Exception as e:
+                    print("[WARNING] " + str(f"Importance scoring failed: {e}"))
+                    score_result = {"score": 5, "reason": f"Scoring failed: {e}"}
+
+            # 根据分数决定插入方法和参数
+            score = score_result.get("score", 5)
+            if score >= 8:
+                entry["insert_mode"] = "active"
+                entry["insert_params"] = {"target_tier": "ltm", "priority": score}
+                entry["insert_method"] = "priority_insert"
+            elif score >= 5:
+                entry["insert_mode"] = "passive"
+                entry["insert_params"] = {"target_tier": "mtm"}
+                entry["insert_method"] = "priority_insert"
+            else:
+                entry["insert_mode"] = "passive"
+                entry["insert_method"] = "default"
+
         elif score_type == "emotion":
-            score_result = self._score_emotion(data)
-        else:
-            print("[WARNING] " + str(f"Unknown score_type: {score_type}"))
-            score_result = {}
+            # ==== Emotion 逻辑内联 ====
+            if not text:
+                score_result = {"category": "neutral", "intensity": 0.5, "vector": None}
+            else:
+                emotion_categories = self.config.get(
+                    "operators.pre_insert.emotion_categories",
+                    ["joy", "sadness", "anger", "fear", "surprise", "neutral"],
+                )
 
-        # 添加评分到 metadata
-        add_to_metadata = self.config.get("operators.pre_insert.add_to_metadata", True)
-        score_field = self.config.get("operators.pre_insert.score_field", "importance_score")
+                # 尝试使用情感分类模型
+                emotion_model = self.config.get("operators.pre_insert.emotion_model", "llm")
 
-        if add_to_metadata:
-            entry.setdefault("metadata", {})[score_field] = score_result
-        else:
-            entry[score_field] = score_result
-
-        return [entry]
-
-    def _score_importance(self, data: dict[str, Any]) -> dict[str, Any]:
-        """重要性评分 - 参考 Generative Agents
-
-        使用 LLM 评估记忆的重要性 (1-10)
-        """
-        dialogs = data.get("dialogs", [])
-        text = self._dialogue_parser.format(dialogs)
-
-        if not text:
-            return {"score": 5, "reason": "Empty content"}
-
-        prompt_template = get_required_config(
-            self.config, "operators.pre_insert.importance_prompt", "score_type=importance"
-        )
-        prompt = prompt_template.replace("{text}", text)
-
-        importance_scale = self.config.get("operators.pre_insert.importance_scale", [1, 10])
-        min_score, max_score = importance_scale
-
-        try:
-            response = self._generator.generate(prompt)
-            result = self._parse_json_response(
-                response, default={"score": 5, "reason": "Default score"}
-            )
-
-            score = result.get("score", 5)
-            # 确保分数在范围内
-            score = max(min_score, min(max_score, int(score)))
-            result["score"] = score
-
-            return result
-
-        except Exception as e:
-            print("[WARNING] " + str(f"Importance scoring failed: {e}"))
-            return {"score": 5, "reason": f"Scoring failed: {e}"}
-
-    def _score_emotion(self, data: dict[str, Any]) -> dict[str, Any]:
-        """情感评分 - 参考 EmotionalRAG
-
-        识别文本的情感类别和强度
-        """
-        dialogs = data.get("dialogs", [])
-        text = self._dialogue_parser.format(dialogs)
-
-        if not text:
-            return {"category": "neutral", "intensity": 0.5, "vector": None}
-
-        emotion_categories = self.config.get(
-            "operators.pre_insert.emotion_categories",
-            ["joy", "sadness", "anger", "fear", "surprise", "neutral"],
-        )
-
-        # 尝试使用情感分类模型
-        emotion_model = self.config.get("operators.pre_insert.emotion_model", "llm")
-
-        if emotion_model == "llm":
-            # 使用 LLM 进行情感分类
-            prompt = f"""Analyze the emotion in the following text.
+                if emotion_model == "llm":
+                    # 使用 LLM 进行情感分类
+                    prompt = f"""Analyze the emotion in the following text.
 Categories: {", ".join(emotion_categories)}
 
 Text: {text}
@@ -811,30 +856,45 @@ Return a JSON object with:
 
 Result:"""
 
-            try:
-                response = self._generator.generate(prompt)
-                result = self._parse_json_response(
-                    response,
-                    default={"category": "neutral", "intensity": 0.5},
-                )
-                return result
+                    try:
+                        response = self._generator.generate(prompt)
+                        result = self._parse_json_response(
+                            response,
+                            default={"category": "neutral", "intensity": 0.5},
+                        )
+                        score_result = result
 
-            except Exception as e:
-                print("[WARNING] " + str(f"Emotion scoring failed: {e}"))
+                    except Exception as e:
+                        print("[WARNING] " + str(f"Emotion scoring failed: {e}"))
+                        score_result = {"category": "neutral", "intensity": 0.5, "vector": None}
 
-        # 如果配置了情感 embedding 模型，生成情感向量
-        if self._embedding_generator and self._embedding_generator.is_available():
-            try:
-                emotion_vector = self._embedding_generator.embed(text)
-                return {
-                    "category": "unknown",
-                    "intensity": 0.5,
-                    "vector": emotion_vector,
-                }
-            except Exception as e:
-                print("[WARNING] " + str(f"Emotion embedding failed: {e}"))
+                # 如果配置了情感 embedding 模型，生成情感向量
+                if self._embedding_generator and self._embedding_generator.is_available():
+                    try:
+                        emotion_vector = self._embedding_generator.embed(text)
+                        score_result["vector"] = emotion_vector
+                    except Exception as e:
+                        print("[WARNING] " + str(f"Emotion embedding failed: {e}"))
 
-        return {"category": "neutral", "intensity": 0.5, "vector": None}
+            entry["insert_method"] = "emotion_insert"
+            entry["insert_mode"] = "passive"
+
+        else:
+            print("[WARNING] " + str(f"Unknown score_type: {score_type}"))
+            score_result = {}
+            entry["insert_method"] = "default"
+            entry["insert_mode"] = "passive"
+
+        # 添加评分到 metadata
+        add_to_metadata = self.config.get("operators.pre_insert.add_to_metadata", True)
+        score_field = self.config.get("operators.pre_insert.score_field", "importance_score")
+
+        if add_to_metadata:
+            entry.setdefault("metadata", {})[score_field] = score_result
+        else:
+            entry[score_field] = score_result
+
+        return [entry]
 
     # ========================================================================
     # Multi-Embed Action (D2-4)
@@ -909,6 +969,10 @@ Result:"""
             for name, vector in embeddings_result.items():
                 entry[f"embedding_{name}"] = vector
 
+        # 添加插入方法
+        entry["insert_method"] = "multi_index_insert"
+        entry["insert_mode"] = "passive"
+
         return [entry]
 
     # ========================================================================
@@ -947,6 +1011,8 @@ Result:"""
                 print("[WARNING] " + str(f"Validation warnings: {validation_errors}"))
                 entry = data.copy()
                 entry["validation_warnings"] = validation_errors
+                entry["insert_method"] = "default"
+                entry["insert_mode"] = "passive"
                 return [entry]
             elif on_fail == "error":
                 raise ValueError(f"Validation failed: {validation_errors}")
@@ -970,7 +1036,10 @@ Result:"""
                         )
                 return entries
 
-        return [data]
+        entry = data.copy()
+        entry["insert_method"] = "default"
+        entry["insert_mode"] = "passive"
+        return [entry]
 
     def _validate_rule(self, text: str, data: dict[str, Any], rule: dict[str, Any]) -> str | None:
         """验证单个规则
@@ -1029,10 +1098,121 @@ Result:"""
         return None
 
     # ========================================================================
-    # 原有的 tri_embed 实现
+    # SCM Embed Action (SCM4LLMs)
+    # 同时保存原文、摘要、embedding，用于后续三元决策
     # ========================================================================
 
+    def _execute_scm_embed(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """执行 SCM 样式的预处理
+
+        SCM 论文核心逻辑：
+        1. 每轮对话同时保存：原文（带轮次索引）、摘要、embedding
+        2. embedding 默认对原文计算（embed_summary=False 时）
+        3. 只有当原文超过阈值时才生成摘要
+
+        参考: SCM4LLMs/dialogue_test.py - summarize_embed_one_turn()
+
+        配置参数:
+        - summarize_prompt: 摘要生成 prompt
+        - embed_summary: 是否对摘要做 embedding（默认 False，对原文）
+        - summary_threshold: 原文 token 数超过此值才生成摘要（默认 300）
+        """
+        dialogs = data.get("dialogs", [])
+        text = self._dialogue_parser.format(dialogs)
+
+        if not text:
+            entry = data.copy()
+            entry["insert_method"] = "default"
+            entry["insert_mode"] = "passive"
+            return [entry]
+
+        # 构建带轮次索引的原文（SCM 格式）
+        # SCM 原文: "[Turn X]\n\nUser: ...\n\nAssistant: ..."
+        turn_index = data.get("turn_index", data.get("segment_index", 0))
+        text_with_index = f"[Turn {turn_index + 1}]\n\n{text}"
+
+        # 计算原文 token 数
+        original_tokens = len(text)  # 简化：用字符数代替
+
+        # 判断是否需要生成摘要
+        summary = ""
+        if original_tokens > self._scm_summary_threshold:
+            # 生成摘要
+            prompt = self._scm_summarize_prompt.replace("{dialogue}", text)
+            # 兼容 SCM 原始模板变量
+            prompt = prompt.replace("{input}", text)
+
+            try:
+                summary = self._generator.generate(prompt, max_tokens=200)
+                summary = summary.strip()
+                print(f"[INFO] SCM summary generated ({len(summary)} chars)")
+            except Exception as e:
+                print(f"[WARNING] SCM summarization failed: {e}")
+                summary = ""
+        else:
+            # 原文很短，保留原文作为摘要（SCM 原文逻辑）
+            summary = text_with_index
+            print("[INFO] SCM: original text is short, keep as summary")
+
+        # 选择用于 embedding 的文本
+        if self._scm_embed_summary and summary:
+            text_for_embed = summary
+        else:
+            text_for_embed = text_with_index
+
+        # 生成 embedding
+        embedding = None
+        if self._embedding_generator and self._embedding_generator.is_available():
+            try:
+                embedding = self._embedding_generator.embed(text_for_embed)
+            except Exception as e:
+                print(f"[WARNING] SCM embedding failed: {e}")
+
+        # 构建条目：同时包含原文和摘要
+        entry = data.copy()
+        entry["text"] = text_with_index  # 带索引的原文，用于存储和检索
+        entry["original_text"] = text_with_index  # 元数据中保留原文
+        entry["summary"] = summary  # 元数据中保留摘要
+        entry["embedding"] = embedding
+        entry["original_tokens"] = original_tokens
+        entry["summary_tokens"] = len(summary) if summary else 0
+        entry["insert_method"] = "scm_insert"
+        entry["insert_mode"] = "passive"
+
+        # 将原文和摘要也放入 metadata，便于后续 PostRetrieval 访问
+        if "metadata" not in entry:
+            entry["metadata"] = {}
+        entry["metadata"]["original_text"] = text_with_index
+        entry["metadata"]["summary"] = summary
+        entry["metadata"]["turn_index"] = turn_index
+
+        return [entry]
+
+    # ========================================================================
+    # Tri-Embed Action (HippoRAG)
+    # ========================================================================
+
+    def _execute_tri_embed(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """执行三元组提取和 Embedding
+
+        Args:
+            data: 原始数据
+
+        Returns:
+            包含三元组的记忆条目列表
+        """
+        entries = self._extract_and_embed_triples(data)
+
+        # 为每个 entry 添加插入方法
+        for entry in entries:
+            entry["insert_method"] = "triple_insert"
+            entry["insert_mode"] = "passive"
+
+        return entries
+
     def _extract_and_embed_triples(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        start_time = time.time()
+        print("[TIMING-PRE] Extract and embed triples started")
         """提取三元组并进行 Embedding
 
         Args:
@@ -1046,7 +1226,11 @@ Result:"""
 
         # 使用 LLM 提取三元组
         prompt = self._triple_extraction_prompt.replace("{dialogue}", dialogue)
+        llm_start = time.time()
+        print(f"[TIMING-PRE]   Format dialogue: {llm_start - start_time:.3f}s")
         triples_text = self._generator.generate(prompt)
+        llm_time = time.time() - llm_start
+        print(f"[TIMING-PRE]   LLM triple extraction: {llm_time:.3f}s")
 
         # 解析三元组并重构为自然语言描述
         triples, refactor_descriptions = self._triple_parser.parse_and_refactor(triples_text)
@@ -1061,6 +1245,8 @@ Result:"""
 
         # 生成 Embedding
         embeddings = self._embedding_generator.embed_batch(unique_refactors)
+        embed_time = time.time() - llm_start - llm_time
+        print(f"[TIMING-PRE]   Embedding {len(unique_refactors)} triples: {embed_time:.3f}s")
 
         # 构建记忆条目列表
         memory_entries = []
@@ -1070,9 +1256,17 @@ Result:"""
                 "triple": triple,
                 "refactor": refactor,
                 "embedding": embeddings[i] if embeddings is not None else None,
+                # HippoRAG: 存储原始对话文本，用于检索时返回
+                "metadata": {
+                    "original_text": dialogue,  # 原始对话文本
+                },
             }
             memory_entries.append(entry)
 
+        total_time = time.time() - start_time
+        print(
+            f"[TIMING-PRE] Extract and embed finished: {total_time:.3f}s, {len(memory_entries)} entries"
+        )
         return memory_entries
 
     # ========================================================================

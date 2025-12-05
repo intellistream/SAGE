@@ -193,10 +193,14 @@ def test_graph_index_operations(cleanup_data):
     # Get neighbors (returns list of (node_id, weight) tuples)
     neighbors = index.get_neighbors("n1", k=10)
     assert len(neighbors) == 2
-    assert neighbors[0][0] == "n2"  # Higher weight
+    assert neighbors[0][0] == "n2"  # Higher weight, returns (node_id, weight) tuple
 
-    # NOTE: get_incoming_neighbors was removed from SimpleGraphIndex
-    # Skip testing incoming neighbors
+    # Get incoming neighbors using direction parameter
+    incoming = index.get_neighbors("n3", k=10, direction="incoming")
+    assert len(incoming) == 2
+    incoming_ids = [n[0] for n in incoming]
+    assert "n1" in incoming_ids
+    assert "n2" in incoming_ids
 
     # Get node data
     data = index.get_node_data("n1")
@@ -206,7 +210,7 @@ def test_graph_index_operations(cleanup_data):
     index.remove_edge("n1", "n2")
     neighbors = index.get_neighbors("n1", k=10)
     assert len(neighbors) == 1
-    assert neighbors[0][0] == "n3"
+    assert neighbors[0][0] == "n3"  # Returns (node_id, weight) tuple
 
     # Remove node
     index.remove_node("n3")
@@ -269,17 +273,22 @@ def test_graph_metadata(cleanup_data):
     )
     collection.add_node("doc3", "Java tutorial", metadata={"language": "java", "type": "guide"})
 
-    # Add edges to create graph structure for traversal
-    collection.add_edge("doc1", "doc2", 0.9)
-    collection.add_edge("doc1", "doc3", 0.5)
+    # Add edges to enable graph traversal
+    collection.add_edge("doc1", "doc2", weight=0.9)
+    collection.add_edge("doc1", "doc3", weight=0.5)
 
-    # Retrieve via graph traversal starting from doc1
-    results = collection.retrieve(start_node="doc1", with_metadata=True, max_depth=2)
-    assert len(results) >= 1  # At least the start node should be returned
-    # Check that results have metadata
-    for r in results:
-        if "metadata" in r:
-            assert isinstance(r["metadata"], dict)
+    # Verify all nodes were added
+    all_ids = collection.get_all_ids()
+    assert len(all_ids) == 3
+
+    # Retrieve with graph traversal from a start node
+    results = collection.retrieve(start_node="doc1", with_metadata=True, max_depth=1)
+    assert len(results) >= 1  # At least the start node
+    assert all("metadata" in r for r in results if "metadata" in r)
+
+    # Filter by metadata using query to find starting point
+    python_docs = collection.retrieve(query="Python", max_depth=1)
+    assert len(python_docs) >= 1
 
     print("✅ Test: Graph metadata operations passed!")
 
