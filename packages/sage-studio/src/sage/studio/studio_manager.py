@@ -180,6 +180,34 @@ class StudioManager:
 
         return None
 
+    def _is_port_in_use(self, port: int) -> bool:
+        """检查端口是否被占用"""
+        import socket
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("0.0.0.0", port))
+                return False  # 可以绑定，说明端口空闲
+            except OSError:
+                return True  # 无法绑定，说明端口被占用
+
+    def _kill_process_on_port(self, port: int) -> bool:
+        """杀死占用指定端口的进程"""
+        try:
+            for conn in psutil.net_connections(kind="inet"):
+                if hasattr(conn, "laddr") and conn.laddr and conn.laddr.port == port:
+                    if conn.pid:
+                        try:
+                            proc = psutil.Process(conn.pid)
+                            console.print(f"[dim]   杀死进程 {conn.pid} ({proc.name()})[/dim]")
+                            proc.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+            return True
+        except Exception as e:
+            console.print(f"[dim]   无法杀死端口 {port} 上的进程: {e}[/dim]")
+            return False
+
     def is_gateway_running(self) -> int | None:
         """检查 Gateway 是否运行中"""
         # 方法1: 检查 PID 文件
@@ -965,6 +993,22 @@ if __name__ == "__main__":
         # 更新配置
         config["backend_port"] = backend_port
         self.save_config(config)
+
+        # 检查端口是否被占用（可能是僵尸进程或其他服务）
+        if self._is_port_in_use(backend_port):
+            console.print(f"[yellow]⚠️  端口 {backend_port} 被占用，尝试释放...[/yellow]")
+            self._kill_process_on_port(backend_port)
+            # 等待端口释放
+            import time
+
+            for _ in range(5):
+                time.sleep(1)
+                if not self._is_port_in_use(backend_port):
+                    console.print(f"[green]✅ 端口 {backend_port} 已释放[/green]")
+                    break
+            else:
+                console.print(f"[red]❌ 无法释放端口 {backend_port}，请手动检查[/red]")
+                return False
 
         console.print(f"[blue]正在启动后端API (端口: {backend_port})...[/blue]")
 
