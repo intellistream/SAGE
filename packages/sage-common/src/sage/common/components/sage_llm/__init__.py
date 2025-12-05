@@ -29,13 +29,6 @@ from .compat import (
 )
 from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
-from .unified_api_server import (
-    BackendInstanceConfig,
-    SchedulingPolicyType,
-    UnifiedAPIServer,
-    UnifiedServerConfig,
-    create_unified_server,
-)
 from .unified_client import (
     InferenceResult,
     UnifiedClient,
@@ -67,12 +60,6 @@ try:
         "UnifiedClientConfig",
         "UnifiedClientMode",
         "InferenceResult",
-        # Unified API Server
-        "UnifiedAPIServer",
-        "UnifiedServerConfig",
-        "BackendInstanceConfig",
-        "SchedulingPolicyType",
-        "create_unified_server",
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
@@ -93,12 +80,6 @@ except ImportError:
         "UnifiedClientConfig",
         "UnifiedClientMode",
         "InferenceResult",
-        # Unified API Server
-        "UnifiedAPIServer",
-        "UnifiedServerConfig",
-        "BackendInstanceConfig",
-        "SchedulingPolicyType",
-        "create_unified_server",
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
