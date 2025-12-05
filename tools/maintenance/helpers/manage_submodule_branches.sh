@@ -198,6 +198,150 @@ switch_submodule_branch() {
     return 0
 }
 
+# 检查目录是否存在残留文件（非空且不是有效的 git 仓库）
+check_dir_has_residual_files() {
+    local dir_path="$1"
+
+    # 目录不存在，无残留
+    if [ ! -d "$dir_path" ]; then
+        return 1
+    fi
+
+    # 目录存在但是有效的 git 仓库（有 .git 目录或文件）
+    if [ -d "$dir_path/.git" ] || [ -f "$dir_path/.git" ]; then
+        return 1
+    fi
+
+    # 目录为空，无残留
+    if [ -z "$(ls -A "$dir_path" 2>/dev/null)" ]; then
+        return 1
+    fi
+
+    # 目录存在且非空，且不是有效的 git 仓库 → 有残留文件
+    return 0
+}
+
+# 显示目录内容摘要
+show_dir_contents_summary() {
+    local dir_path="$1"
+    local max_items=5
+
+    echo -e "${DIM}  目录内容:${NC}"
+    local count=0
+    for item in "$dir_path"/*; do
+        if [ -e "$item" ]; then
+            local item_name=$(basename "$item")
+            if [ -d "$item" ]; then
+                echo -e "${DIM}    📁 ${item_name}/${NC}"
+            else
+                echo -e "${DIM}    📄 ${item_name}${NC}"
+            fi
+            ((count++))
+            if [ $count -ge $max_items ]; then
+                local total=$(ls -A "$dir_path" 2>/dev/null | wc -l)
+                local remaining=$((total - max_items))
+                if [ $remaining -gt 0 ]; then
+                    echo -e "${DIM}    ... 还有 ${remaining} 个文件/目录${NC}"
+                fi
+                break
+            fi
+        fi
+    done
+}
+
+# 询问用户是否删除残留目录
+# 返回: 0 = 用户同意删除, 1 = 用户拒绝或非交互模式
+ask_delete_residual_dir() {
+    local dir_path="$1"
+    local submodule_name="$2"
+
+    # 检查是否在非交互模式（CI 环境或 --yes 参数）
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || "$SAGE_AUTO_YES" == "true" ]]; then
+        echo -e "${YELLOW}  ⚠️  非交互模式，自动删除残留目录${NC}"
+        return 0
+    fi
+
+    # 检查 stdin 是否是终端
+    if [ ! -t 0 ]; then
+        echo -e "${YELLOW}  ⚠️  非交互式环境，跳过删除确认${NC}"
+        return 1
+    fi
+
+    echo ""
+    echo -e "${YELLOW}  ❓ 是否删除残留目录并重新初始化 ${submodule_name}? [y/N]${NC}"
+    read -r -n 1 response </dev/tty
+    echo ""
+
+    case "$response" in
+        [yY])
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# 尝试初始化单个 submodule，处理残留目录的情况
+try_init_submodule() {
+    local submodule_path="$1"
+    local submodule_name=$(basename "$submodule_path")
+
+    # 检查是否有残留文件
+    if check_dir_has_residual_files "$submodule_path"; then
+        echo -e "${YELLOW}  ⚠️  检测到 ${submodule_name} 目录存在残留文件${NC}"
+        show_dir_contents_summary "$submodule_path"
+
+        if ask_delete_residual_dir "$submodule_path" "$submodule_name"; then
+            echo -e "${DIM}  正在删除残留目录...${NC}"
+            if rm -rf "$submodule_path"; then
+                echo -e "${GREEN}  ${CHECK} 残留目录已删除${NC}"
+            else
+                echo -e "${RED}  ${CROSS} 无法删除残留目录${NC}"
+                return 1
+            fi
+        else
+            echo -e "${YELLOW}  ⚠️  跳过 ${submodule_name}，请手动处理残留目录${NC}"
+            echo -e "${DIM}  手动命令: rm -rf ${submodule_path} && git submodule update --init ${submodule_path}${NC}"
+            return 1
+        fi
+    fi
+
+    # 尝试初始化 submodule
+    echo -e "${DIM}  初始化 ${submodule_name}...${NC}"
+    local init_output
+    if init_output=$(git submodule update --init "$submodule_path" 2>&1); then
+        echo -e "${GREEN}  ${CHECK} ${submodule_name} 初始化成功${NC}"
+        return 0
+    else
+        # 初始化失败，检查是否是 "already exists and is not an empty directory" 错误
+        if echo "$init_output" | grep -q "already exists and is not an empty directory"; then
+            echo -e "${YELLOW}  ⚠️  检测到 ${submodule_name} 目录存在但不为空${NC}"
+            show_dir_contents_summary "$submodule_path"
+
+            if ask_delete_residual_dir "$submodule_path" "$submodule_name"; then
+                echo -e "${DIM}  正在删除残留目录...${NC}"
+                if rm -rf "$submodule_path"; then
+                    echo -e "${GREEN}  ${CHECK} 残留目录已删除${NC}"
+                    # 重新尝试初始化
+                    echo -e "${DIM}  重新初始化 ${submodule_name}...${NC}"
+                    if git submodule update --init "$submodule_path" >/dev/null 2>&1; then
+                        echo -e "${GREEN}  ${CHECK} ${submodule_name} 初始化成功${NC}"
+                        return 0
+                    fi
+                fi
+            else
+                echo -e "${YELLOW}  ⚠️  跳过 ${submodule_name}，请手动处理残留目录${NC}"
+                echo -e "${DIM}  手动命令: rm -rf ${submodule_path} && git submodule update --init ${submodule_path}${NC}"
+            fi
+        fi
+
+        echo -e "${RED}  ${CROSS} ${submodule_name} 初始化失败${NC}"
+        echo -e "${DIM}  错误信息: ${init_output}${NC}"
+        return 1
+    fi
+}
+
 # 检查 submodules 是否已初始化，如果未初始化则自动初始化
 check_submodules_initialized() {
     echo -e "${BLUE}🔍 检查 submodule 初始化状态...${NC}"
@@ -212,16 +356,17 @@ check_submodules_initialized() {
     if [ ${#uninit_submodules[@]} -gt 0 ]; then
         echo -e "${YELLOW}  ⚠️  发现 ${#uninit_submodules[@]} 个未初始化的 submodules，正在自动初始化...${NC}"
 
+        local failed_count=0
         for submodule_path in "${uninit_submodules[@]}"; do
-            local submodule_name=$(basename "$submodule_path")
-            echo -e "${DIM}  初始化 ${submodule_name}...${NC}"
-            if git submodule update --init "$submodule_path" >/dev/null 2>&1; then
-                echo -e "${GREEN}  ${CHECK} ${submodule_name} 初始化成功${NC}"
-            else
-                echo -e "${RED}  ${CROSS} ${submodule_name} 初始化失败${NC}"
-                return 1
+            if ! try_init_submodule "$submodule_path"; then
+                ((failed_count++))
             fi
         done
+
+        if [ $failed_count -gt 0 ]; then
+            echo -e "${RED}${CROSS} ${failed_count} 个 submodules 初始化失败${NC}"
+            return 1
+        fi
 
         echo -e "${GREEN}${CHECK} 所有 submodules 已自动初始化${NC}"
         return 0
