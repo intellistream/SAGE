@@ -30,11 +30,11 @@ Module Structure (Post-Refactor):
 Usage:
 ------
 From command line:
-    sage-cp-bench run --control-plane http://localhost:8080 --policy aegaeon --requests 1000
+    sage-cp-bench run --control-plane http://localhost:8000 --policy aegaeon --requests 1000
 
 From Python:
     from sage.benchmark.benchmark_control_plane import BenchmarkRunner, BenchmarkConfig
-    config = BenchmarkConfig(control_plane_url="http://localhost:8080", ...)
+    config = BenchmarkConfig(control_plane_url="http://localhost:8000", ...)
     runner = BenchmarkRunner(config)
     results = await runner.run()
 

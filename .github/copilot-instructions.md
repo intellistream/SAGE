@@ -188,7 +188,7 @@ from sage.common.config.ports import SagePorts
 
 # ✅ 正确用法
 port = SagePorts.LLM_DEFAULT           # 8001
-gateway_port = SagePorts.GATEWAY_DEFAULT  # 8080
+gateway_port = SagePorts.GATEWAY_DEFAULT` | 8000
 
 # ✅ WSL2 环境推荐用法
 port = SagePorts.get_recommended_llm_port()  # 自动检测 WSL2 并选择合适端口
@@ -200,15 +200,15 @@ port = 8001  # 不要这样写
 **端口分配表**:
 | 常量 | 端口 | 用途 |
 |------|------|------|
-| `GATEWAY_DEFAULT` | 8080 | sage-gateway (OpenAI 兼容 API Gateway) |
+| `GATEWAY_DEFAULT` | 8000 | sage-gateway (OpenAI 兼容 API Gateway) |
 | `LLM_DEFAULT` | 8001 | vLLM 推理服务 |
 | `LLM_WSL_FALLBACK` | 8901 | WSL2 备用 LLM 端口 |
-| `STUDIO_BACKEND` | 8080 | sage-studio 后端 API |
+| `STUDIO_BACKEND` | 8000 | sage-studio 后端 API |
 | `STUDIO_FRONTEND` | 5173 | sage-studio 前端 (Vite) |
 | `EMBEDDING_DEFAULT` | 8090 | Embedding 服务 |
 | `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
 
-**架构**: `User → Gateway (8080) → LLM (8001)`
+**架构**: `User → Gateway (8000) → LLM (8001)`
 
 **WSL2 已知问题**:
 - 端口 8001 在 WSL2 上可能出现"端口监听但连接被拒绝"的问题
@@ -299,7 +299,7 @@ client = UnifiedInferenceClient.create()
 
 ```bash
 # 推荐：启动 Gateway（包含 Control Plane）
-sage gateway start                                 # 启动 Gateway（端口 8080）
+sage gateway start                                 # 启动 Gateway（端口 8000）
 sage gateway status                                # 查看 Gateway 状态
 sage gateway stop                                  # 停止 Gateway
 sage gateway logs --follow                         # 查看日志

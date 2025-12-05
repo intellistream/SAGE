@@ -24,7 +24,7 @@ class TestBenchmarkConfig:
     def test_default_config_creation(self):
         """Test that default configuration can be created."""
         config = BenchmarkConfig()
-        assert config.control_plane_url == "http://localhost:8080"
+        assert config.control_plane_url == "http://localhost:8000"
         assert config.num_requests == 100
         assert config.request_rate == 10.0
         assert config.arrival_pattern == ArrivalPattern.POISSON

@@ -16,9 +16,9 @@ export default defineConfig({
         // 'true' means allow any host - necessary for reverse proxy setups
         allowedHosts: true,
         proxy: {
-            // 所有 Studio API 统一转发到 Gateway (8080)
+            // 所有 Studio API 统一转发到 Gateway (8000)
             '/api': {
-                target: 'http://localhost:8080',
+                target: 'http://localhost:8000',
                 changeOrigin: true,
                 rewrite: (path) => path,
             },

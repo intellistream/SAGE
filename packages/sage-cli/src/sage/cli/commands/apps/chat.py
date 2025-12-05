@@ -32,6 +32,7 @@ from sage.cli.commands.apps.pipeline_knowledge import get_default_knowledge_base
 from sage.common.components.sage_embedding import get_embedding_model
 from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
 from sage.common.config.output_paths import find_sage_project_root
+from sage.common.config.ports import SagePorts
 
 # Import document processing utilities from sage-common (L1)
 from sage.common.utils.document_processing import (
@@ -81,7 +82,7 @@ DEFAULT_EMBEDDING_METHOD = "openai"  # 使用 OpenAI 兼容接口连接本地 em
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-m3"  # 默认 embedding 模型
 DEFAULT_FIXED_DIM = 384  # 仅用于 hash 方法的回退
 DEFAULT_FINETUNE_MODEL = "sage_code_expert"
-DEFAULT_FINETUNE_PORT = 8000
+DEFAULT_FINETUNE_PORT = SagePorts.GATEWAY_DEFAULT
 
 # Note: SUPPORTED_MARKDOWN_SUFFIXES now imported from sage.common.utils.document_processing
 

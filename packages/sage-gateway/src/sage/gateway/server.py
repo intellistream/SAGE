@@ -86,7 +86,7 @@ session_manager = get_session_manager()
 
 # 挂载 Control Plane 管理路由
 app.include_router(control_plane_router)
-# 挂载 Studio Backend 路由（原 8080 服务现合并到 Gateway）
+# 挂载 Studio Backend 路由（原 Studio Backend 服务现合并到 Gateway）
 app.include_router(studio_router)
 
 
