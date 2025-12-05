@@ -108,8 +108,12 @@ if PYTEST_AVAILABLE:
         text2 = "Test document 2"
         vec1 = normalize_vector(embedding_model.encode(text1))
         vec2 = normalize_vector(embedding_model.encode(text2))
-        collection_with_index.insert("test_index", text1, vec1, metadata={"type": "test"})
-        collection_with_index.insert("test_index", text2, vec2, metadata={"type": "test"})
+        collection_with_index.insert(
+            content=text1, index_names="test_index", vector=vec1, metadata={"type": "test"}
+        )
+        collection_with_index.insert(
+            content=text2, index_names="test_index", vector=vec2, metadata={"type": "test"}
+        )
 
         stats = collection_with_index.get_statistics()
 
@@ -146,7 +150,7 @@ if PYTEST_AVAILABLE:
 
         # Perform retrieval
         query_vec = normalize_vector(embedding_model.encode("programming"))
-        collection_with_index.retrieve(query_vec, "test_index", topk=2)
+        collection_with_index.retrieve(query=query_vec, index_name="test_index", top_k=2)
 
         stats = collection_with_index.get_statistics()
 
@@ -173,7 +177,7 @@ if PYTEST_AVAILABLE:
         # Perform multiple retrievals
         query_vec = normalize_vector(embedding_model.encode("AI"))
         for _ in range(5):
-            collection_with_index.retrieve(query_vec, "test_index", topk=1)
+            collection_with_index.retrieve(query=query_vec, index_name="test_index", top_k=1)
             time.sleep(0.01)  # Small delay to ensure different timestamps
 
         stats = collection_with_index.get_statistics()
@@ -226,7 +230,7 @@ if PYTEST_AVAILABLE:
         # Perform retrievals
         query_vec = normalize_vector(embedding_model.encode("test"))
         for _ in range(3):
-            collection_with_index.retrieve(query_vec, "test_index")
+            collection_with_index.retrieve(query=query_vec, index_name="test_index")
 
         retrieve_stats = collection_with_index.get_retrieve_stats()
 
@@ -263,7 +267,9 @@ def test_reset_statistics(collection_with_index, embedding_model):
     # Insert data and perform operations - insert adds to index directly
     text1 = "Test"
     vec1 = normalize_vector(embedding_model.encode(text1))
-    collection_with_index.insert("test_index", text1, vec1, metadata={"key": "value"})
+    collection_with_index.insert(
+        content=text1, index_names="test_index", vector=vec1, metadata={"key": "value"}
+    )
 
     # Batch insert more data - only stores, doesn't add to index yet
     texts = ["Data1", "Data2"]
@@ -276,7 +282,7 @@ def test_reset_statistics(collection_with_index, embedding_model):
     collection_with_index.init_index("test_index", vectors, all_ids)
 
     query_vec = normalize_vector(embedding_model.encode("test"))
-    collection_with_index.retrieve(query_vec, "test_index")
+    collection_with_index.retrieve(query=query_vec, index_name="test_index")
 
     # Reset statistics
     collection_with_index.reset_statistics()
@@ -298,7 +304,7 @@ def test_statistics_persistence(collection_with_index, test_dir, embedding_model
     # Perform operations
     text1 = "Test document"
     vec1 = normalize_vector(embedding_model.encode(text1))
-    collection_with_index.insert("test_index", text1, vec1)
+    collection_with_index.insert(content=text1, index_names="test_index", vector=vec1)
 
     texts = ["Doc1", "Doc2"]
     collection_with_index.batch_insert_data(texts, None)
@@ -307,7 +313,7 @@ def test_statistics_persistence(collection_with_index, test_dir, embedding_model
     collection_with_index.init_index("test_index", vectors, item_ids)
 
     query_vec = normalize_vector(embedding_model.encode("test"))
-    collection_with_index.retrieve(query_vec, "test_index")
+    collection_with_index.retrieve(query=query_vec, index_name="test_index")
 
     # Get statistics before saving
     stats_before = collection_with_index.get_statistics()
@@ -349,8 +355,8 @@ def test_statistics_with_multiple_indexes(collection, embedding_model):
     text1 = "Document for index 1"
     vec0 = normalize_vector(embedding_model.encode(text0))
     vec1 = normalize_vector(embedding_model.encode(text1))
-    collection.insert("index_0", text0, vec0)
-    collection.insert("index_1", text1, vec1)
+    collection.insert(content=text0, index_names="index_0", vector=vec0)
+    collection.insert(content=text1, index_names="index_1", vector=vec1)
 
     stats = collection.get_statistics()
 
@@ -374,14 +380,14 @@ def test_statistics_accuracy_after_operations(collection_with_index, embedding_m
     text5 = "Doc5"
     vec4 = normalize_vector(embedding_model.encode(text4))
     vec5 = normalize_vector(embedding_model.encode(text5))
-    collection_with_index.insert("test_index", text4, vec4)
-    collection_with_index.insert("test_index", text5, vec5)
+    collection_with_index.insert(content=text4, index_names="test_index", vector=vec4)
+    collection_with_index.insert(content=text5, index_names="test_index", vector=vec5)
 
     # Perform retrievals
     query_vec1 = normalize_vector(embedding_model.encode("test"))
     query_vec2 = normalize_vector(embedding_model.encode("doc"))
-    collection_with_index.retrieve(query_vec1, "test_index", topk=3)
-    collection_with_index.retrieve(query_vec2, "test_index", topk=2)
+    collection_with_index.retrieve(query=query_vec1, index_name="test_index", top_k=3)
+    collection_with_index.retrieve(query=query_vec2, index_name="test_index", top_k=2)
 
     stats = collection_with_index.get_statistics()
 
@@ -428,7 +434,9 @@ if __name__ == "__main__":
     # Test insert
     text1 = "Test document 1"
     vec1 = normalize_vector_main(embedding_model.encode(text1))
-    collection.insert("test_index", text1, vec1, metadata={"type": "test"})
+    collection.insert(
+        content=text1, index_names="test_index", vector=vec1, metadata={"type": "test"}
+    )
 
     # Test batch insert
     texts = ["Doc A", "Doc B", "Doc C"]
@@ -439,7 +447,7 @@ if __name__ == "__main__":
 
     # Test retrieve
     query_vec = normalize_vector_main(embedding_model.encode("test"))
-    collection.retrieve(query_vec, "test_index", topk=2)
+    collection.retrieve(query=query_vec, index_name="test_index", top_k=2)
 
     # Print statistics
     print("\n=== Statistics ===")
