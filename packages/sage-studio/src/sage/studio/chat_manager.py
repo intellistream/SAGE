@@ -282,6 +282,10 @@ class ChatModeManager(StudioManager):
             str(port),
         ]
 
+        # Prepare environment: disable user site-packages to avoid version conflicts
+        env = os.environ.copy()
+        env["PYTHONNOUSERSITE"] = "1"
+
         try:
             log_handle = open(embedding_log, "w")
             proc = subprocess.Popen(
@@ -290,6 +294,7 @@ class ChatModeManager(StudioManager):
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
+                env=env,  # Pass environment with PYTHONNOUSERSITE
             )
             # 注意：不关闭 log_handle，让子进程继承并管理它
 
