@@ -50,9 +50,7 @@ def _select_available_gpus(
 
     try:
         gpu_manager = GPUResourceManager()
-        available_gpus = gpu_manager.allocate_resources(
-            required_memory_gb, tensor_parallel_size
-        )
+        available_gpus = gpu_manager.allocate_resources(required_memory_gb, tensor_parallel_size)
         if available_gpus and len(available_gpus) >= tensor_parallel_size:
             logger.info(f"Selected GPUs with sufficient memory: {available_gpus}")
             # NOTE: We don't actually reserve the memory since we're just selecting

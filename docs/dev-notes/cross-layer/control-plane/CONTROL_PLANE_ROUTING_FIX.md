@@ -44,7 +44,7 @@ RAG Pipeline 使用端口扫描作为 fallback，但无法区分 LLM 和 Embeddi
 ```python
 def stop_engine_gracefully(self, engine_id: str) -> bool:
     # ... 停止引擎进程 ...
-    
+
     # 释放资源 (port, GPU, instance registration)
     engine_entry = self._pop_engine_metadata(engine_id)
     if engine_entry:
@@ -108,7 +108,7 @@ def _init_engine_lifecycle_manager(self) -> EngineLifecycleManager | None:
 ```python
 def register_engine(self, engine_id, model_id, host, port, engine_kind, metadata):
     # ... 原有的 _registered_engines 注册 ...
-    
+
     # 创建并注册 ExecutionInstance 用于请求路由
     instance = ExecutionInstance(
         instance_id=engine_id,
@@ -116,8 +116,8 @@ def register_engine(self, engine_id, model_id, host, port, engine_kind, metadata
         port=port,
         model_name=model_id,
         instance_type=(
-            ExecutionInstanceType.EMBEDDING 
-            if engine_kind == "embedding" 
+            ExecutionInstanceType.EMBEDDING
+            if engine_kind == "embedding"
             else ExecutionInstanceType.GENERAL
         ),
         # ...
@@ -245,11 +245,11 @@ tail -20 ~/.sage/gateway/gateway.log | grep "LLM backend"
 
 **错误现象**:
 ```
-ValueError: The model's max seq len (131072) is larger than the maximum number of 
-tokens that can be stored in KV cache (42192). Try increasing `gpu_memory_utilization` 
+ValueError: The model's max seq len (131072) is larger than the maximum number of
+tokens that can be stored in KV cache (42192). Try increasing `gpu_memory_utilization`
 or decreasing `max_model_len` when initializing the engine.
 
-Free memory on device (21.96/79.25 GiB) on startup is less than 
+Free memory on device (21.96/79.25 GiB) on startup is less than
 desired GPU memory utilization (0.7, 55.48 GiB)
 ```
 

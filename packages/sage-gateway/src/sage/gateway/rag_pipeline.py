@@ -220,7 +220,7 @@ class RAGChatMap(MapFunction):
         - 负载均衡（未来可以选择负载最低的后端）
         """
         try:
-            from sage.gateway.routes.control_plane import get_control_plane_manager # type: ignore
+            from sage.gateway.routes.control_plane import get_control_plane_manager  # type: ignore
 
             manager = get_control_plane_manager()
             if manager is None:
@@ -247,9 +247,7 @@ class RAGChatMap(MapFunction):
                         return f"http://{host}:{port}/v1"
 
             # 所有后端都不健康
-            logger.warning(
-                "All %d LLM backends are unhealthy", len(llm_backends)
-            )
+            logger.warning("All %d LLM backends are unhealthy", len(llm_backends))
             return None
 
         except Exception as e:
@@ -304,7 +302,7 @@ class RAGChatMap(MapFunction):
             context = GenerationContext(
                 user_input=user_input,
                 conversation_history=[],  # 如果需要，可以从 requirements 中提取对话历史
-                constraints=requirements.get("constraints"), # type: ignore
+                constraints=requirements.get("constraints"),  # type: ignore
             )
 
             # 使用 sage-libs LLM 生成器
@@ -504,7 +502,7 @@ class RAGChatMap(MapFunction):
                 messages.append({"role": "system", "content": f"对话历史:\n{memory_context}"})
             messages.append({"role": "user", "content": user_input})
 
-            return client.chat(messages, temperature=0.7, stream=False) # type: ignore
+            return client.chat(messages, temperature=0.7, stream=False)  # type: ignore
 
         except Exception as e:
             logger.error(f"Fallback LLM error: {e}", exc_info=True)
