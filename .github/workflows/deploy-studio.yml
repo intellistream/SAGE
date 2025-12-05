@@ -208,41 +208,44 @@ jobs:
           echo "当前 Conda 环境: ${ACTUAL_CONDA_ENV:-未设置}"
           echo "CONDA_PREFIX: $CONDA_PREFIX"
 
-          CURRENT_COMMIT="${{ github.sha }}"
-          DEPLOYED_COMMIT_FILE="$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
-
           # 检查是否已安装并可导入
           if python -c "import sage.studio; import sage.gateway" 2>/dev/null; then
             echo "sage_installed=true" >> $GITHUB_OUTPUT
             echo "✅ SAGE 已安装"
 
-            # 检查上次部署的 commit
-            if [ -f "$DEPLOYED_COMMIT_FILE" ]; then
-              DEPLOYED_COMMIT=$(cat "$DEPLOYED_COMMIT_FILE")
-              echo "上次部署 commit: $DEPLOYED_COMMIT"
-              echo "当前部署 commit: $CURRENT_COMMIT"
+            # 检查是否是 editable 安装且指向当前目录
+            # editable 安装会创建 .egg-link 文件，内容是源码路径
+            SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+            CURRENT_DIR=$(pwd)
 
-              if [ "$DEPLOYED_COMMIT" = "$CURRENT_COMMIT" ]; then
-                echo "needs_update=false" >> $GITHUB_OUTPUT
-                echo "✅ 版本一致，无需重新安装"
+            if [ -f "$SITE_PACKAGES/sage-common.egg-link" ]; then
+              LINKED_PATH=$(head -1 "$SITE_PACKAGES/sage-common.egg-link")
+              echo "当前 egg-link 指向: $LINKED_PATH"
+              echo "当前工作目录: $CURRENT_DIR"
+
+              # 检查 egg-link 是否指向当前 checkout 的目录
+              if [[ "$LINKED_PATH" == "$CURRENT_DIR"* ]] || [[ "$CURRENT_DIR" == "$LINKED_PATH"* ]]; then
+                echo "needs_install=false" >> $GITHUB_OUTPUT
+                echo "✅ Editable 安装指向当前目录，代码改动自动生效，无需重新安装"
               else
-                echo "needs_update=true" >> $GITHUB_OUTPUT
-                echo "📦 版本不同，需要更新"
+                echo "needs_install=true" >> $GITHUB_OUTPUT
+                echo "⚠️  Editable 安装指向其他目录，需要重新安装"
               fi
             else
-              echo "needs_update=true" >> $GITHUB_OUTPUT
-              echo "📦 首次部署记录，需要更新"
+              # 不是 editable 安装，需要重新安装为 editable
+              echo "needs_install=true" >> $GITHUB_OUTPUT
+              echo "⚠️  不是 editable 安装，需要重新安装"
             fi
           else
             echo "sage_installed=false" >> $GITHUB_OUTPUT
-            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "needs_install=true" >> $GITHUB_OUTPUT
             echo "📦 SAGE 未安装，需要完整安装"
           fi
 
-      - name: Install/Update SAGE
-        if: steps.check-sage.outputs.needs_update == 'true'
+      - name: Install SAGE (if needed)
+        if: steps.check-sage.outputs.needs_install == 'true'
         run: |
-          echo "📦 安装/更新 SAGE（开发模式）..."
+          echo "📦 安装 SAGE（开发模式）..."
 
           # 初始化并激活 conda（参考 paper1-experiments.yml）
           if [ -n "$CONDA_PATH" ]; then
@@ -267,12 +270,11 @@ jobs:
           export PIP_DEFAULT_TIMEOUT=300
           export PIP_RETRIES=5
 
-          # 如果已安装，使用增量更新模式
+          # 如果已安装（但 egg-link 指向错误），只需重新链接
           if [ "${{ steps.check-sage.outputs.sage_installed }}" = "true" ]; then
-            echo "🔄 执行增量更新（仅更新 SAGE 包，不重装依赖）..."
-            echo "   这可能需要 1-2 分钟，请耐心等待..."
+            echo "🔄 重新链接 SAGE 包到当前目录..."
+            echo "   （依赖已存在，仅更新 egg-link）"
 
-            # 定义要更新的包列表
             packages=(
               "sage-common"
               "sage-platform"
@@ -287,21 +289,16 @@ jobs:
               "sage"
             )
 
-            total=${#packages[@]}
-            current=0
-
             for pkg in "${packages[@]}"; do
-              current=$((current + 1))
-              echo "   [$current/$total] 更新 $pkg..."
-              pip install -e "packages/$pkg" --no-deps -q 2>&1 || echo "      ⚠️  $pkg 更新可能有警告"
+              echo "   链接 $pkg..."
+              pip install -e "packages/$pkg" --no-deps -q 2>&1 || true
             done
 
-            echo "✅ 增量更新完成"
+            echo "✅ 重新链接完成"
           elif [ "$deps_installed" = "true" ]; then
             echo "🔄 核心依赖已存在，仅安装 SAGE 包（带依赖检查）..."
             echo "   这可能需要 2-5 分钟，请耐心等待..."
 
-            # 定义要安装的包列表
             packages=(
               "sage-common"
               "sage-platform"
@@ -316,13 +313,9 @@ jobs:
               "sage"
             )
 
-            total=${#packages[@]}
-            current=0
-
             for pkg in "${packages[@]}"; do
-              current=$((current + 1))
-              echo "   [$current/$total] 安装 $pkg..."
-              pip install -e "packages/$pkg" -q 2>&1 || echo "      ⚠️  $pkg 安装可能有警告"
+              echo "   安装 $pkg..."
+              pip install -e "packages/$pkg" -q 2>&1 || true
             done
 
             echo "✅ SAGE 包安装完成（复用已有依赖）"
@@ -335,16 +328,14 @@ jobs:
             ./quickstart.sh --dev --yes --pip
           fi
 
-          # 记录部署的 commit，用于下次增量检测（按环境名区分）
-          echo "${{ github.sha }}" > "$HOME/.sage_deployed_commit_${ACTUAL_CONDA_ENV:-sage}"
-
-          echo "✅ SAGE 安装/更新完成"
+          echo "✅ SAGE 安装完成"
         timeout-minutes: 90  # NVIDIA CUDA 包很大，需要更长时间
 
-      - name: Skip installation (up to date)
-        if: steps.check-sage.outputs.needs_update != 'true'
+      - name: Skip installation (editable mode)
+        if: steps.check-sage.outputs.needs_install != 'true'
         run: |
-          echo "⏭️ SAGE 已是最新版本，跳过安装步骤"
+          echo "⏭️ SAGE 使用 editable 安装且指向当前目录"
+          echo "   git pull 后代码改动自动生效，无需重新安装"
 
       - name: Verify Installation
         run: |
