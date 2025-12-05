@@ -23,10 +23,12 @@ on:
   push:
     branches:
       - main
+      - feature/studio_deployment
     paths:
       - 'packages/sage-studio/**'
       - 'packages/sage-gateway/**'
       - 'docker/studio/**'
+      - '.github/workflows/deploy-studio-docker.yml'
 
 env:
   REGISTRY: ghcr.io
