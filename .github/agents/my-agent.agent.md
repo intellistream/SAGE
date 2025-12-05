@@ -208,7 +208,7 @@ client = UnifiedInferenceClient.create_with_control_plane(
 )
 
 # Simple 模式（自动检测本地/云端）
-auto_client = UnifiedInferenceClient.create_auto()
+auto_client = UnifiedInferenceClient.create()
 
 response = client.chat([{"role": "user", "content": "Hello"}])
 vectors = client.embed(["text1", "text2"])

@@ -291,7 +291,7 @@ client = UnifiedInferenceClient.create_with_control_plane(
 )
 
 # 方式 2: 自动检测（Simple 模式，适合简单场景）
-client = UnifiedInferenceClient.create_auto()
+client = UnifiedInferenceClient.create()
 
 ### 启动服务栈
 

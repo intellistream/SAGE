@@ -221,11 +221,13 @@ for raw_line in deps_block.splitlines():
     line = raw_line.strip()
     if not line or line.startswith('#'):
         continue
-    # 去除行内注释（先处理注释，再处理逗号）
+    # 先移除行内注释 (例如: "pkg>=1.0",  # comment)
     if '#' in line:
         line = line.split('#')[0].strip()
+    # 移除尾部逗号
     if line.endswith(','):
         line = line[:-1].strip()
+    # 移除引号
     if line.startswith(('"', "'")) and line.endswith(('"', "'")) and len(line) >= 2:
         line = line[1:-1]
     # 跳过自引用依赖（如 isage-libs[xxx]）

@@ -1,32 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the SAGE project
 
-"""Specialized adapters for LLM and Embedding clients.
+"""Backward compatibility adapters for unified inference client.
 
-This module provides adapter classes that extend UnifiedInferenceClient
-for specialized use cases (LLM-only or Embedding-only operations).
-
-The adapters ensure that:
-1. Specialized interfaces are available for specific use cases
-2. Full functionality of UnifiedInferenceClient is inherited
-3. Additional convenience methods are provided
+This module provides adapter classes (LLMClientAdapter and EmbeddingClientAdapter)
+that inherit from UnifiedInferenceClient and provide specialized interfaces
+for LLM-only or Embedding-only use cases.
 
 Example:
-    >>> # LLM-focused usage
-    >>> from sage.common.components.sage_llm import LLMClientAdapter
-    >>> client = LLMClientAdapter.create()
-    >>> response = client.chat([{"role": "user", "content": "Hello"}])
-    >>>
-    >>> # Embedding-focused usage
-    >>> from sage.common.components.sage_llm import EmbeddingClientAdapter
-    >>> client = EmbeddingClientAdapter.create()
-    >>> vectors = client.embed(["text1", "text2"])
-    >>>
-    >>> # Or use the unified client directly (recommended)
+    >>> # Unified client (recommended)
     >>> from sage.common.components.sage_llm import UnifiedInferenceClient
     >>> client = UnifiedInferenceClient.create()
     >>> response = client.chat([{"role": "user", "content": "Hello"}])
     >>> vectors = client.embed(["text1", "text2"])
+    >>>
+    >>> # LLM-focused adapter (legacy compatibility)
+    >>> from sage.common.components.sage_llm import LLMClientAdapter
+    >>> adapter = LLMClientAdapter.create()
+    >>> response = adapter.chat([{"role": "user", "content": "Hello"}])
 """
 
 from __future__ import annotations
@@ -46,11 +37,14 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClientAdapter(UnifiedInferenceClient):
-    """Adapter for LLM-focused operations.
+    """Adapter providing LLM-focused interface.
 
-    This adapter extends UnifiedInferenceClient with a focus on LLM operations.
-    It provides the same interface as UnifiedInferenceClient but with LLM-specific
-    defaults and convenience methods.
+    This adapter wraps UnifiedInferenceClient to provide a specialized interface
+    for LLM-only use cases. It:
+
+    1. Provides convenient factory methods (create, create_auto)
+    2. Exposes legacy properties (model_name, base_url, api_key)
+    3. Inherits all UnifiedInferenceClient capabilities
 
     Example:
         >>> adapter = LLMClientAdapter.create()
@@ -79,20 +73,15 @@ class LLMClientAdapter(UnifiedInferenceClient):
             max_retries: Maximum number of retries for failed requests.
             **kwargs: Additional arguments passed to UnifiedInferenceClient.
         """
-        # Allow init for adapter classes
-        UnifiedInferenceClient._allow_init = True
-        try:
-            # Map old parameter names to new ones
-            super().__init__(
-                llm_base_url=base_url,
-                llm_model=model_name,
-                llm_api_key=api_key,
-                timeout=timeout,
-                max_retries=max_retries,
-                **kwargs,
-            )
-        finally:
-            UnifiedInferenceClient._allow_init = False
+        # Map old parameter names to new ones
+        super().__init__(
+            llm_base_url=base_url,
+            llm_model=model_name,
+            llm_api_key=api_key,
+            timeout=timeout,
+            max_retries=max_retries,
+            **kwargs,
+        )
 
         # Store original parameters for backward compatibility
         self._model_name = model_name
@@ -114,6 +103,34 @@ class LLMClientAdapter(UnifiedInferenceClient):
     def api_key(self) -> str:
         """Get the API key (legacy property)."""
         return self.config.llm_api_key
+
+    @classmethod
+    def create_auto(
+        cls,
+        *,
+        timeout: float = 60.0,
+        **kwargs: Any,
+    ) -> LLMClientAdapter:
+        """Create adapter with auto-detection.
+
+        .. deprecated::
+            Use :meth:`create` instead. This method will be removed in a future version.
+
+        Args:
+            timeout: Request timeout in seconds.
+            **kwargs: Additional arguments.
+
+        Returns:
+            Configured LLMClientAdapter instance.
+        """
+        import warnings
+
+        warnings.warn(
+            "create_auto() is deprecated, use create() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls.create(timeout=timeout, **kwargs)
 
     @classmethod
     def create(
@@ -147,13 +164,17 @@ class LLMClientAdapter(UnifiedInferenceClient):
 
 
 class EmbeddingClientAdapter(UnifiedInferenceClient):
-    """Adapter for Embedding-focused operations.
+    """Adapter to provide IntelligentEmbeddingClient-compatible interface.
 
-    This adapter extends UnifiedInferenceClient with a focus on Embedding operations.
-    It provides the same interface as UnifiedInferenceClient but with embedding-specific
-    defaults and convenience methods.
+    This adapter wraps UnifiedInferenceClient to provide backward compatibility
+    with the existing IntelligentEmbeddingClient API. It:
+
+    1. Maintains the same method signatures as IntelligentEmbeddingClient
+    2. Uses UnifiedInferenceClient internally for actual operations
+    3. Supports both API and embedded modes
 
     Example:
+        >>> # Works exactly like IntelligentEmbeddingClient
         >>> adapter = EmbeddingClientAdapter.create()
         >>> vectors = adapter.embed(["text1", "text2"])
         >>>
@@ -188,18 +209,13 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
             timeout: Request timeout in seconds.
             **kwargs: Additional arguments passed to UnifiedInferenceClient.
         """
-        # Allow init for adapter classes
-        UnifiedInferenceClient._allow_init = True
-        try:
-            super().__init__(
-                embedding_base_url=base_url,
-                embedding_model=model,
-                embedding_api_key=api_key,
-                timeout=timeout,
-                **kwargs,
-            )
-        finally:
-            UnifiedInferenceClient._allow_init = False
+        super().__init__(
+            embedding_base_url=base_url,
+            embedding_model=model,
+            embedding_api_key=api_key,
+            timeout=timeout,
+            **kwargs,
+        )
 
         self._mode = mode
         self._embedded_embedder: Any = None
@@ -261,6 +277,36 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
 
         # Otherwise use parent's API-based implementation
         return super().embed(texts, model=model, **kwargs)
+
+    @classmethod
+    def create_auto(
+        cls,
+        *,
+        fallback_model: str = "BAAI/bge-small-zh-v1.5",
+        timeout: float = 60.0,
+        **kwargs: Any,
+    ) -> EmbeddingClientAdapter:
+        """Create adapter with auto-detection.
+
+        .. deprecated::
+            Use :meth:`create` instead. This method will be removed in a future version.
+
+        Args:
+            fallback_model: Model to use for embedded mode if no server found.
+            timeout: Request timeout in seconds.
+            **kwargs: Additional arguments.
+
+        Returns:
+            Configured EmbeddingClientAdapter instance.
+        """
+        import warnings
+
+        warnings.warn(
+            "create_auto() is deprecated, use create() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls.create(fallback_model=fallback_model, timeout=timeout, **kwargs)
 
     @classmethod
     def create(

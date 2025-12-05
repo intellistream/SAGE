@@ -10,14 +10,16 @@ Services:
     - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
     - UnifiedInferenceClient: Unified client for both LLM and Embedding
 
-Note:
-    UnifiedAPIServer has been migrated to sage-gateway as part of the unified
-    gateway architecture. Use `sage gateway start` to run the gateway server.
-
 Architecture:
     - Designed to be used by L2 (Platform) and higher layers
     - Provides blocking service interface for LLM generation and embeddings
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
+
+Example:
+    >>> from sage.common.components.sage_llm import UnifiedInferenceClient
+    >>> client = UnifiedInferenceClient.create()
+    >>> response = client.chat([{"role": "user", "content": "Hello"}])
+    >>> vectors = client.embed(["text1", "text2"])
 """
 
 from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
@@ -27,6 +29,13 @@ from .compat import (
 )
 from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
+from .unified_api_server import (
+    BackendInstanceConfig,
+    SchedulingPolicyType,
+    UnifiedAPIServer,
+    UnifiedServerConfig,
+    create_unified_server,
+)
 from .unified_client import (
     InferenceResult,
     UnifiedClient,
@@ -58,6 +67,12 @@ try:
         "UnifiedClientConfig",
         "UnifiedClientMode",
         "InferenceResult",
+        # Unified API Server
+        "UnifiedAPIServer",
+        "UnifiedServerConfig",
+        "BackendInstanceConfig",
+        "SchedulingPolicyType",
+        "create_unified_server",
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
@@ -78,6 +93,12 @@ except ImportError:
         "UnifiedClientConfig",
         "UnifiedClientMode",
         "InferenceResult",
+        # Unified API Server
+        "UnifiedAPIServer",
+        "UnifiedServerConfig",
+        "BackendInstanceConfig",
+        "SchedulingPolicyType",
+        "create_unified_server",
         # Compatibility adapters
         "LLMClientAdapter",
         "EmbeddingClientAdapter",
