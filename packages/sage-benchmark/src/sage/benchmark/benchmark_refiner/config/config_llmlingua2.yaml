@@ -1,0 +1,82 @@
+pipeline:
+  name: "sage-benchmark-llmlingua2-rag"
+  description: "LLMLingua-2 RAG Pipeline with BERT Token Classification"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 100
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "/home/cyb/wiki18_maxp.index"
+    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
+    mapping_path: "/home/cyb/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+llmlingua2:
+  # LLMLingua-2 压缩配置
+  enabled: true  # 设为 false 即为 baseline 模式
+
+  # 模型配置
+  # 可选模型:
+  #   - microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank (默认，多语言)
+  #   - microsoft/llmlingua-2-xlm-roberta-large-meetingbank (更强但更慢)
+  model_name: "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
+  device: "cuda:0"
+
+  # 压缩参数
+  rate: 0.5                        # 压缩率 (0-1)，0.5 表示压缩到 50%
+  target_token: -1                 # 目标 token 数，-1 表示使用 rate
+
+  # 过滤选项
+  use_context_level_filter: true   # 启用上下文级别过滤（粗粒度）
+  use_token_level_filter: true     # 启用 token 级别过滤（细粒度）
+
+  # Token 保留选项
+  force_tokens:                    # 强制保留的 token 列表
+  - "\n"
+  - "."
+  - "?"
+  - "!"
+  force_reserve_digit: false       # 是否保留包含数字的 token
+  drop_consecutive: false          # 是否丢弃连续的强制保留 token
+
+  # 批处理配置
+  max_batch_size: 50               # 推理时的最大批处理大小
+  max_force_token: 100             # 最大强制保留 token 数
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

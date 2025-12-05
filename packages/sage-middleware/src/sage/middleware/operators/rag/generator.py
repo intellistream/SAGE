@@ -3,7 +3,8 @@ import os
 import time
 from typing import Any
 
-from sage.common.components.sage_llm import UnifiedInferenceClient
+from openai import OpenAI
+
 from sage.common.config.output_paths import get_states_file
 from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.integrations.huggingface import HFClient
@@ -50,11 +51,12 @@ class OpenAIGenerator(MapOperator):
         model_name = os.path.expandvars(model_name)
         base_url = self.config.get("base_url", "https://api.openai.com/v1")
 
-        self.model = UnifiedInferenceClient(
-            llm_model=model_name,
-            llm_base_url=base_url,
-            llm_api_key=api_key,
+        # 直接使用 OpenAI 客户端（支持 vLLM 等 OpenAI 兼容 API）
+        self.model = OpenAI(
+            base_url=base_url,
+            api_key=api_key or "EMPTY",  # vLLM 本地服务可用任意 key
         )
+        self.model_name = model_name
         self.num = 1
 
         # 只有启用profile时才设置数据存储路径
@@ -150,7 +152,13 @@ class OpenAIGenerator(MapOperator):
             if param in self.config:
                 generate_kwargs[param] = self.config[param]
 
-        response = self.model.generate(messages, **generate_kwargs)
+        # 使用 OpenAI 客户端调用 chat completions API
+        completion = self.model.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            **generate_kwargs,
+        )
+        response = completion.choices[0].message.content
 
         self.num += 1
 

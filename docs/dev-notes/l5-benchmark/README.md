@@ -12,9 +12,34 @@
 | `benchmark_memory` | `.../benchmark_memory/` | 内存系统（SAGE Memory Service）吞吐/延迟评测 | `python -m sage.benchmark.benchmark_memory.experiment.run_memory_experiment` | 依赖 `sage.middleware.components.sage_mem` |
 | `benchmark_libamm` | `.../benchmark_libamm/` | LibAMM 矩阵乘性能基准 & C++ 评测 | `cmake .. && cmake --build .`、`python pythonTest.py` | 数据存放于 `sage/data/libamm-benchmark/` |
 | `benchmark_scheduler` | `.../benchmark_scheduler/` | 调度策略比较（Ray vs Local 等） | `python -m sage.benchmark.benchmark_scheduler.scheduler_comparison` | 依赖 `sage.kernel` 调度接口 |
-| `benchmark_refiner` | `.../benchmark_refiner/` | Refiner 组件评测 | - | - |
+| `benchmark_refiner` | `.../benchmark_refiner/` | Refiner 上下文压缩算法评测 | `sage-refiner-bench compare --algorithms baseline,longrefiner` | 依赖 `sageRefiner` 子模块、FlashRAG 数据 |
 
 ## 新增套件详情
+
+### benchmark_refiner (Refiner 压缩算法评测)
+
+评估 RAG 上下文压缩算法的性能（ICML 2025 投稿）：
+
+| 算法 | 类型 | 描述 |
+|------|------|------|
+| **Baseline** | 截断 | 无压缩基线 |
+| **LongRefiner** | LLM-based | 三阶段压缩 |
+| **REFORM** | Attention-based | 注意力头驱动 token 选择 |
+| **Provence** | Provenance-aware | 句子级上下文剪枝 |
+| **LongLLMLingua** | LLM-PPL | 问题感知长文档压缩 |
+| **LLMLingua-2** | BERT-based | 快速 token 分类压缩 |
+
+**CLI**：
+```bash
+# 多算法对比
+sage-refiner-bench compare \
+    --algorithms baseline,longrefiner,reform,longllmlingua,llmlingua2 \
+    --samples 100
+```
+
+**文档**：
+- [benchmark_refiner/README.md](../../../packages/sage-benchmark/src/sage/benchmark/benchmark_refiner/README.md)
+- [ICML_REFINER_TASKS.md](./ICML_REFINER_TASKS.md) - ICML 投稿任务分解
 
 ### benchmark_agent (Agent 能力评测)
 
