@@ -198,22 +198,33 @@ switch_submodule_branch() {
     return 0
 }
 
-# 检查 submodules 是否已初始化
+# 检查 submodules 是否已初始化，如果未初始化则自动初始化
 check_submodules_initialized() {
     echo -e "${BLUE}🔍 检查 submodule 初始化状态...${NC}"
 
-    local need_init=false
+    local uninit_submodules=()
     while IFS= read -r submodule_path; do
         if [ ! -d "$submodule_path/.git" ] && [ ! -f "$submodule_path/.git" ]; then
-            need_init=true
-            break
+            uninit_submodules+=("$submodule_path")
         fi
     done < <(get_submodules)
 
-    if [ "$need_init" = true ]; then
-        echo -e "${YELLOW}  ⚠️  发现未初始化的 submodules${NC}"
-        echo -e "${DIM}  请先运行: ./manage.sh 或 ./quickstart.sh --sync-submodules${NC}"
-        return 1
+    if [ ${#uninit_submodules[@]} -gt 0 ]; then
+        echo -e "${YELLOW}  ⚠️  发现 ${#uninit_submodules[@]} 个未初始化的 submodules，正在自动初始化...${NC}"
+
+        for submodule_path in "${uninit_submodules[@]}"; do
+            local submodule_name=$(basename "$submodule_path")
+            echo -e "${DIM}  初始化 ${submodule_name}...${NC}"
+            if git submodule update --init "$submodule_path" >/dev/null 2>&1; then
+                echo -e "${GREEN}  ${CHECK} ${submodule_name} 初始化成功${NC}"
+            else
+                echo -e "${RED}  ${CROSS} ${submodule_name} 初始化失败${NC}"
+                return 1
+            fi
+        done
+
+        echo -e "${GREEN}${CHECK} 所有 submodules 已自动初始化${NC}"
+        return 0
     else
         echo -e "${CHECK} 所有 submodules 已初始化${NC}"
         return 0
