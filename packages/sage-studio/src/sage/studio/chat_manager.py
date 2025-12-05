@@ -12,7 +12,6 @@ from pathlib import Path
 import psutil
 import requests
 from rich.console import Console
-from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from sage.common.config.ports import SagePorts
@@ -21,18 +20,6 @@ from .studio_manager import StudioManager
 from .utils.gpu_check import is_gpu_available
 
 console = Console()
-
-
-def is_ci_environment() -> bool:
-    """Check if running in a CI environment."""
-    return bool(
-        os.getenv("CI")
-        or os.getenv("GITHUB_ACTIONS")
-        or os.getenv("GITLAB_CI")
-        or os.getenv("JENKINS_URL")
-        or os.getenv("TRAVIS")
-        or os.getenv("CIRCLECI")
-    )
 
 
 class ChatModeManager(StudioManager):
@@ -115,70 +102,13 @@ class ChatModeManager(StudioManager):
         return None
 
     # ------------------------------------------------------------------
-    # Local LLM Service helpers (via Control Plane or fallback to LLMLauncher)
+    # Local LLM Service helpers (via sageLLM LLMLauncher)
     # ------------------------------------------------------------------
-    def _is_control_plane_running(self, port: int | None = None) -> bool:
-        """Check if Control Plane Gateway is running."""
-        gateway_port = port or SagePorts.GATEWAY_DEFAULT
-        try:
-            resp = requests.get(f"http://localhost:{gateway_port}/health", timeout=2)
-            return resp.status_code == 200
-        except Exception:
-            return False
-
-    def _start_llm_via_control_plane(
-        self,
-        model: str,
-        gateway_port: int | None = None,
-        llm_port: int | None = None,
-    ) -> bool:
-        """Start LLM engine via Control Plane API.
-
-        Args:
-            model: Model name to load
-            gateway_port: Gateway port (default: SagePorts.GATEWAY_DEFAULT)
-            llm_port: LLM engine port (default: self.llm_port)
-
-        Returns:
-            True if started successfully
-        """
-        gateway_port = gateway_port or SagePorts.GATEWAY_DEFAULT
-        llm_port = llm_port or self.llm_port
-
-        api_base = f"http://localhost:{gateway_port}/v1"
-
-        payload = {
-            "model_id": model,
-            "engine_kind": "llm",
-            "port": llm_port,
-            "tensor_parallel_size": int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
-        }
-
-        try:
-            resp = requests.post(
-                f"{api_base}/management/engines",
-                json=payload,
-                timeout=120.0,
-            )
-            if resp.status_code == 200:
-                engine_info = resp.json()
-                console.print(
-                    f"[green]✓[/green] LLM 引擎已通过 Control Plane 启动 "
-                    f"(ID: {engine_info.get('engine_id', 'unknown')})"
-                )
-                return True
-            else:
-                console.print(f"[yellow]⚠️  Control Plane 启动 LLM 失败: {resp.text}[/yellow]")
-                return False
-        except Exception as e:
-            console.print(f"[yellow]⚠️  Control Plane API 调用失败: {e}[/yellow]")
-            return False
-
     def _start_llm_service(self, model: str | None = None, use_finetuned: bool = False) -> bool:
-        """Start local LLM service via Control Plane or fallback to LLMLauncher.
+        """Start local LLM service via sageLLM.
 
-        Uses Control Plane if available, otherwise falls back to sageLLM's
-        unified LLMLauncher to start a local LLM HTTP server.
+        Uses sageLLM's unified LLMLauncher to start a local LLM HTTP server.
+        The server provides OpenAI-compatible API at http://localhost:{port}/v1
 
         Args:
             model: Model name/path to load (can be HF model or local path)
@@ -187,6 +117,15 @@ class ChatModeManager(StudioManager):
         Returns:
             True if started successfully, False otherwise
         """
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+        except ImportError:
+            console.print(
+                "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
+                "提示：确保已安装 sage-common 包"
+            )
+            return False
+
         # Determine which model to use
         model_name = model or self.llm_model
 
@@ -196,24 +135,6 @@ class ChatModeManager(StudioManager):
             finetuned_models = self.list_finetuned_models()
             if not finetuned_models:
                 console.print("[yellow]⚠️  未找到可用的微调模型，使用默认模型[/yellow]")
-            elif finetuned_models:
-                # Use the most recent finetuned model
-                model_name = finetuned_models[0]["path"]
-
-        # Check if Control Plane is already running
-        if self._is_control_plane_running():
-            console.print("[blue]📡 检测到 Control Plane Gateway，通过 API 启动 LLM 引擎[/blue]")
-            return self._start_llm_via_control_plane(model_name)
-
-        # Fallback to LLMLauncher
-        try:
-            from sage.common.components.sage_llm import LLMLauncher
-        except ImportError:
-            console.print(
-                "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
-                "提示：确保已安装 sage-common 包"
-            )
-            return False
 
         # Use unified launcher
         result = LLMLauncher.launch(
@@ -262,56 +183,8 @@ class ChatModeManager(StudioManager):
     # ------------------------------------------------------------------
     # Embedding Service helpers
     # ------------------------------------------------------------------
-    def _start_embedding_via_control_plane(
-        self,
-        model: str,
-        gateway_port: int | None = None,
-        embedding_port: int | None = None,
-    ) -> bool:
-        """Start Embedding engine via Control Plane API.
-
-        Args:
-            model: Embedding model name
-            gateway_port: Gateway port (default: SagePorts.GATEWAY_DEFAULT)
-            embedding_port: Embedding engine port (default: SagePorts.EMBEDDING_DEFAULT)
-
-        Returns:
-            True if started successfully
-        """
-        gateway_port = gateway_port or SagePorts.GATEWAY_DEFAULT
-        embedding_port = embedding_port or SagePorts.EMBEDDING_DEFAULT
-
-        api_base = f"http://localhost:{gateway_port}/v1"
-
-        payload = {
-            "model_id": model,
-            "engine_kind": "embedding",
-            "port": embedding_port,
-            "use_gpu": False,  # Embedding 默认不使用 GPU
-        }
-
-        try:
-            resp = requests.post(
-                f"{api_base}/management/engines",
-                json=payload,
-                timeout=60.0,
-            )
-            if resp.status_code == 200:
-                engine_info = resp.json()
-                console.print(
-                    f"[green]✓[/green] Embedding 引擎已通过 Control Plane 启动 "
-                    f"(ID: {engine_info.get('engine_id', 'unknown')})"
-                )
-                return True
-            else:
-                console.print(f"[yellow]⚠️  Control Plane 启动 Embedding 失败: {resp.text}[/yellow]")
-                return False
-        except Exception as e:
-            console.print(f"[yellow]⚠️  Control Plane API 调用失败: {e}[/yellow]")
-            return False
-
     def _start_embedding_service(self, model: str = "BAAI/bge-m3", port: int | None = None) -> bool:
-        """Start Embedding service via Control Plane or as a background process.
+        """Start Embedding service as a background process.
 
         Args:
             model: Embedding model name (default: BAAI/bge-m3)
@@ -332,14 +205,6 @@ class ChatModeManager(StudioManager):
         except Exception:
             pass  # Not running, continue to start
 
-        # Try Control Plane first if available
-        if self._is_control_plane_running():
-            console.print(
-                "[blue]📡 检测到 Control Plane Gateway，通过 API 启动 Embedding 引擎[/blue]"
-            )
-            return self._start_embedding_via_control_plane(model, embedding_port=port)
-
-        # Fallback to direct process start
         console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model}, 端口: {port})[/blue]")
 
         # Ensure log directory exists
@@ -459,7 +324,7 @@ class ChatModeManager(StudioManager):
             pass
         return None
 
-    def _start_gateway(self, port: int | None = None, llm_base_url: str | None = None) -> bool:
+    def _start_gateway(self, port: int | None = None) -> bool:
         if self._is_gateway_running():
             console.print("[green]✅ sage-gateway 已运行[/green]")
             return True
@@ -469,11 +334,6 @@ class ChatModeManager(StudioManager):
         gateway_port = port or self.gateway_port
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
-
-        # Pass LLM endpoint to Gateway if local LLM is running
-        if llm_base_url:
-            env["SAGE_CHAT_BASE_URL"] = llm_base_url
-            console.print(f"[dim]   Gateway 将使用 LLM: {llm_base_url}[/dim]")
 
         console.print(f"[blue]🚀 启动 sage-gateway (端口: {gateway_port})...[/blue]")
         try:
@@ -543,10 +403,7 @@ class ChatModeManager(StudioManager):
         dev: bool = True,
         llm: bool | None = None,
         llm_model: str | None = None,
-        embedding: bool | None = None,
-        embedding_model: str | None = None,
         use_finetuned: bool = False,
-        interactive: bool | None = None,
     ) -> bool:
         """Start Studio Chat Mode services.
 
@@ -558,10 +415,7 @@ class ChatModeManager(StudioManager):
             dev: Run in development mode
             llm: Enable local LLM service via sageLLM (default: from SAGE_STUDIO_LLM env)
             llm_model: Model to load (default: from SAGE_STUDIO_LLM_MODEL env)
-            embedding: Enable Embedding service (default: True when LLM is enabled)
-            embedding_model: Embedding model to use (default: BAAI/bge-m3)
             use_finetuned: Use latest fine-tuned model (overrides llm_model if True)
-            interactive: Enable interactive mode for engine selection (auto-disabled in CI)
 
         Returns:
             True if all services started successfully
@@ -569,21 +423,13 @@ class ChatModeManager(StudioManager):
         if gateway_port:
             self.gateway_port = gateway_port
 
-        # Determine interactive mode (disabled in CI by default)
-        is_interactive = interactive if interactive is not None else not is_ci_environment()
-
-        # Interactive engine selection if in interactive mode and not explicit args
-        start_llm, start_embedding, llm_model, embedding_model = self._select_engines_interactive(
-            llm=llm,
-            llm_model=llm_model,
-            embedding=embedding,
-            embedding_model=embedding_model,
-            use_finetuned=use_finetuned,
-            interactive=is_interactive,
-        )
+        # Determine if local LLM should be started
+        start_llm = llm if llm is not None else self.llm_enabled
 
         # DEBUG
-        console.print(f"[dim]DEBUG: start_llm={start_llm}, start_embedding={start_embedding}[/dim]")
+        console.print(
+            f"[dim]DEBUG: llm arg={llm}, llm_enabled={self.llm_enabled}, start_llm={start_llm}[/dim]"
+        )
 
         # Force disable LLM if no GPU is detected (vLLM requires GPU)
         if start_llm and not is_gpu_available():
@@ -591,28 +437,24 @@ class ChatModeManager(StudioManager):
             console.print("[dim]   提示：vLLM 需要 NVIDIA GPU 支持[/dim]")
             start_llm = False
 
-        # Track LLM URL for Gateway
-        llm_base_url: str | None = None
-
         # Start local LLM service first (if enabled)
         if start_llm:
-            model = llm_model if not use_finetuned else None
+            model = llm_model or self.llm_model if not use_finetuned else None
             llm_started = self._start_llm_service(model=model, use_finetuned=use_finetuned)
             if llm_started:
-                # Set LLM URL for Gateway to use
-                llm_base_url = f"http://localhost:{self.llm_port}/v1"
-                console.print(f"[green]💡 Gateway 将使用本地 LLM 服务: {llm_base_url}[/green]")
+                console.print(
+                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 UnifiedInferenceClient 自动检测）[/green]"
+                )
             else:
                 console.print(
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
                 )
 
-        # Start Embedding service (if enabled)
-        if start_embedding:
-            self._start_embedding_service(model=embedding_model)
+            # Start Embedding service alongside LLM
+            self._start_embedding_service()
 
-        # Start Gateway (pass LLM URL if local service is running)
-        if not self._start_gateway(port=self.gateway_port, llm_base_url=llm_base_url):
+        # Start Gateway
+        if not self._start_gateway(port=self.gateway_port):
             return False
 
         # Start Studio UI (use parent class method)
@@ -630,144 +472,11 @@ class ChatModeManager(StudioManager):
             console.print("[green]🎉 Chat 模式就绪！[/green]")
             if start_llm and self.llm_service:
                 console.print("[green]🤖 本地 LLM: 由 sageLLM 管理[/green]")
-            if start_embedding:
-                console.print("[green]📊 Embedding 服务: 已启动[/green]")
             console.print(f"[green]🌐 Gateway API: http://localhost:{self.gateway_port}[/green]")
             console.print("[green]💬 打开顶部 Chat 标签即可体验[/green]")
             console.print("=" * 70)
 
         return success
-
-    def _select_engines_interactive(
-        self,
-        llm: bool | None,
-        llm_model: str | None,
-        embedding: bool | None,
-        embedding_model: str | None,
-        use_finetuned: bool,
-        interactive: bool,
-    ) -> tuple[bool, bool, str | None, str | None]:
-        """Interactive engine selection.
-
-        Args:
-            llm: Explicit LLM enable flag (None = ask user)
-            llm_model: Explicit LLM model (None = ask user or use default)
-            embedding: Explicit Embedding enable flag (None = ask user)
-            embedding_model: Explicit Embedding model (None = use default)
-            use_finetuned: Use fine-tuned model
-            interactive: Whether to prompt user interactively
-
-        Returns:
-            Tuple of (start_llm, start_embedding, llm_model, embedding_model)
-        """
-        # Default values
-        default_llm_model = self.llm_model
-        default_embedding_model = "BAAI/bge-m3"
-
-        # If all options are explicitly set, no interaction needed
-        if llm is not None and embedding is not None:
-            start_llm = llm
-            start_embedding = embedding
-            final_llm_model = llm_model or default_llm_model
-            final_embedding_model = embedding_model or default_embedding_model
-            return start_llm, start_embedding, final_llm_model, final_embedding_model
-
-        # Use defaults if not interactive
-        if not interactive:
-            start_llm = llm if llm is not None else self.llm_enabled
-            start_embedding = embedding if embedding is not None else start_llm
-            final_llm_model = llm_model or default_llm_model
-            final_embedding_model = embedding_model or default_embedding_model
-            return start_llm, start_embedding, final_llm_model, final_embedding_model
-
-        # Interactive mode: prompt user
-        console.print("\n[cyan]🔧 引擎配置[/cyan]")
-        console.print("[dim]提示：在 CI 环境中此交互会被跳过，使用默认配置[/dim]\n")
-
-        # LLM selection
-        if llm is None:
-            has_gpu = is_gpu_available()
-            if has_gpu:
-                start_llm = Confirm.ask(
-                    "[cyan]启动本地 LLM 服务?[/cyan]",
-                    default=self.llm_enabled,
-                )
-            else:
-                console.print("[yellow]⚠️  未检测到 GPU，LLM 服务需要 NVIDIA GPU[/yellow]")
-                start_llm = False
-        else:
-            start_llm = llm
-
-        # LLM model selection (if LLM enabled)
-        if start_llm and llm_model is None and not use_finetuned:
-            console.print("\n[cyan]可用的 LLM 模型:[/cyan]")
-            llm_options = [
-                ("1", "Qwen/Qwen2.5-0.5B-Instruct", "轻量级 (0.5B, ~1GB VRAM)"),
-                ("2", "Qwen/Qwen2.5-1.5B-Instruct", "小型 (1.5B, ~3GB VRAM)"),
-                ("3", "Qwen/Qwen2.5-7B-Instruct", "标准 (7B, ~14GB VRAM)"),
-                ("4", "custom", "自定义模型路径"),
-            ]
-            for opt, model, desc in llm_options:
-                marker = "✓" if model == default_llm_model else " "
-                console.print(f"  {opt}. [{marker}] {model} - {desc}")
-
-            choice = Prompt.ask(
-                "\n[cyan]选择 LLM 模型[/cyan]",
-                choices=["1", "2", "3", "4"],
-                default="1",
-            )
-
-            if choice == "4":
-                final_llm_model = Prompt.ask("[cyan]输入模型路径或 HuggingFace ID[/cyan]")
-            else:
-                final_llm_model = llm_options[int(choice) - 1][1]
-        else:
-            final_llm_model = llm_model or default_llm_model
-
-        # Embedding selection
-        if embedding is None:
-            start_embedding = Confirm.ask(
-                "[cyan]启动 Embedding 服务?[/cyan]",
-                default=start_llm,  # Default to same as LLM
-            )
-        else:
-            start_embedding = embedding
-
-        # Embedding model selection (if enabled)
-        if start_embedding and embedding_model is None:
-            console.print("\n[cyan]可用的 Embedding 模型:[/cyan]")
-            embed_options = [
-                ("1", "BAAI/bge-m3", "多语言 (推荐)"),
-                ("2", "BAAI/bge-small-zh-v1.5", "中文小型"),
-                ("3", "BAAI/bge-large-zh-v1.5", "中文大型"),
-                ("4", "custom", "自定义模型"),
-            ]
-            for opt, model, desc in embed_options:
-                marker = "✓" if model == default_embedding_model else " "
-                console.print(f"  {opt}. [{marker}] {model} - {desc}")
-
-            choice = Prompt.ask(
-                "\n[cyan]选择 Embedding 模型[/cyan]",
-                choices=["1", "2", "3", "4"],
-                default="1",
-            )
-
-            if choice == "4":
-                final_embedding_model = Prompt.ask("[cyan]输入模型名称[/cyan]")
-            else:
-                final_embedding_model = embed_options[int(choice) - 1][1]
-        else:
-            final_embedding_model = embedding_model or default_embedding_model
-
-        # Summary
-        console.print("\n[cyan]📋 配置摘要:[/cyan]")
-        console.print(f"  • LLM: {'✅ ' + final_llm_model if start_llm else '❌ 禁用'}")
-        console.print(
-            f"  • Embedding: {'✅ ' + final_embedding_model if start_embedding else '❌ 禁用'}"
-        )
-        console.print()
-
-        return start_llm, start_embedding, final_llm_model, final_embedding_model
 
     def stop(self) -> bool:
         """Stop all Studio Chat Mode services."""

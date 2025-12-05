@@ -241,8 +241,6 @@ _register_all_methods()
 
 
 # 向后兼容：保留旧的 EmbeddingModel 和 apply_embedding_model
-import warnings
-
 from .embedding_model import (
     EmbeddingModel,  # noqa: E402
     apply_embedding_model,

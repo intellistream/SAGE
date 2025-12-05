@@ -565,12 +565,27 @@ prompt_start_llm_service() {
                 echo ""
 
                 if command -v sage &>/dev/null; then
-                    sage llm serve 2>&1 | head -25
+                    # 不使用 head 截断，避免 SIGPIPE 导致服务启动不完整
+                    local llm_log="/tmp/sage_llm_serve_$$.log"
+                    sage llm serve > "$llm_log" 2>&1
+                    local exit_code=$?
+
+                    # 显示关键信息（最后 10 行）
+                    if [ -f "$llm_log" ]; then
+                        tail -10 "$llm_log"
+                        rm -f "$llm_log"
+                    fi
+
                     echo ""
-                    echo -e "${GREEN}✅ LLM 服务已启动${NC}"
-                    echo -e "${DIM}   API 地址: http://localhost:8901/v1${NC}"
-                    echo -e "${DIM}   状态查看: sage llm status${NC}"
-                    echo -e "${DIM}   停止服务: sage llm stop${NC}"
+                    if [ $exit_code -eq 0 ]; then
+                        echo -e "${GREEN}✅ LLM 服务已启动${NC}"
+                        echo -e "${DIM}   API 地址: http://localhost:8901/v1${NC}"
+                        echo -e "${DIM}   状态查看: sage llm status${NC}"
+                        echo -e "${DIM}   停止服务: sage llm stop${NC}"
+                    else
+                        echo -e "${YELLOW}⚠️  LLM 服务启动可能未完全成功，请检查状态${NC}"
+                        echo -e "${DIM}   状态查看: sage llm status${NC}"
+                    fi
                     echo ""
                     # 询问是否运行 LLM Demo
                     echo -ne "${BOLD}是否运行 LLM Demo 体验? [y/N]: ${NC}"
@@ -597,17 +612,34 @@ prompt_start_llm_service() {
                 echo -e "${INFO} 正在启动 SAGE Studio..."
                 echo -e "${DIM}   这将同时启动前端界面和后端服务${NC}"
                 if [ "$has_gpu" = true ]; then
-                    echo -e "${DIM}   首次启动会下载 LLM 模型...${NC}"
+                    echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）...${NC}"
                 fi
                 echo ""
 
                 if command -v sage &>/dev/null; then
-                    sage studio start 2>&1 | head -30
+                    # 不使用 head 截断，避免 SIGPIPE 导致服务启动不完整
+                    # 将日志重定向到临时文件，完成后显示关键信息
+                    local studio_log="/tmp/sage_studio_start_$$.log"
+                    sage studio start > "$studio_log" 2>&1
+                    local exit_code=$?
+
+                    # 显示关键信息（最后 15 行）
+                    if [ -f "$studio_log" ]; then
+                        tail -15 "$studio_log"
+                        rm -f "$studio_log"
+                    fi
+
                     echo ""
-                    echo -e "${GREEN}✅ Studio 已启动${NC}"
-                    echo -e "${DIM}   访问地址: http://localhost:5173${NC}"
-                    echo -e "${DIM}   状态查看: sage studio status${NC}"
-                    echo -e "${DIM}   停止服务: sage studio stop${NC}"
+                    if [ $exit_code -eq 0 ]; then
+                        echo -e "${GREEN}✅ Studio 已启动${NC}"
+                        echo -e "${DIM}   访问地址: http://localhost:5173${NC}"
+                        echo -e "${DIM}   状态查看: sage studio status${NC}"
+                        echo -e "${DIM}   停止服务: sage studio stop${NC}"
+                    else
+                        echo -e "${YELLOW}⚠️  Studio 启动可能未完全成功，请检查状态${NC}"
+                        echo -e "${DIM}   状态查看: sage studio status${NC}"
+                        echo -e "${DIM}   重新启动: sage studio start${NC}"
+                    fi
                 else
                     echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
                     echo -e "  ${CYAN}sage studio start${NC}"
