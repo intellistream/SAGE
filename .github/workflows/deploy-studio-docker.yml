@@ -1,0 +1,252 @@
+# SAGE Studio Docker 部署
+#
+# 这个 workflow 构建 Docker 镜像并部署到 self-hosted runner
+#
+# 架构:
+#   GitHub Actions (ubuntu-latest) → 构建镜像 → 推送到 GHCR
+#   Self-hosted Runner (A100) → 拉取镜像 → 启动容器
+#   cloudflared (Host systemd) → 转发请求到容器
+
+name: Deploy SAGE Studio (Docker)
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_build:
+        description: '跳过构建，仅部署已有镜像'
+        type: boolean
+        default: false
+      image_tag:
+        description: '镜像标签（默认 latest）'
+        default: 'latest'
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/sage-studio/**'
+      - 'packages/sage-gateway/**'
+      - 'docker/studio/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: intellistream/sage-studio
+
+jobs:
+  # Job 1: 构建 Docker 镜像（在 GitHub hosted runner 上）
+  build:
+    if: ${{ github.event.inputs.skip_build != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=
+            type=ref,event=branch
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/studio/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # 不包含 GPU 层，运行时使用 NVIDIA runtime
+          build-args: |
+            CUDA_VERSION=12.1.0
+            UBUNTU_VERSION=22.04
+
+      - name: Image summary
+        run: |
+          echo "## 🐳 Docker 镜像构建完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 属性 | 值 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| 镜像 | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 标签 | \`${{ steps.meta.outputs.tags }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Digest | \`${{ steps.build.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # Job 2: 部署到 self-hosted runner
+  deploy:
+    needs: [build]
+    if: always() && (needs.build.result == 'success' || github.event.inputs.skip_build == 'true')
+    runs-on: [self-hosted, A100]
+    timeout-minutes: 30
+
+    env:
+      IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+
+    steps:
+      - name: Checkout (for docker-compose.yml)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docker/studio
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Stop existing container
+        continue-on-error: true
+        run: |
+          echo "🛑 停止现有容器..."
+          docker stop sage-studio 2>/dev/null || true
+          docker rm sage-studio 2>/dev/null || true
+
+      - name: Pull latest image
+        run: |
+          echo "📥 拉取镜像: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Start container
+        run: |
+          echo "🚀 启动容器..."
+
+          docker run -d \
+            --name sage-studio \
+            --restart unless-stopped \
+            --gpus all \
+            -p 5173:5173 \
+            -p 8888:8888 \
+            -v sage-models:/root/.cache/huggingface \
+            -v sage-data:/root/.sage \
+            -v sage-local-share:/root/.local/share/sage \
+            -v sage-local-state:/root/.local/state/sage \
+            -e HF_ENDPOINT=https://hf-mirror.com \
+            -e SAGE_STUDIO_LLM_MODEL=Qwen/Qwen2.5-7B-Instruct \
+            -e SAGE_STUDIO_LLM_GPU_MEMORY=0.9 \
+            -e SAGE_LLM_STARTUP_TIMEOUT=600 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+          echo "✅ 容器已启动"
+
+      - name: Wait for service
+        run: |
+          echo "⏳ 等待服务启动..."
+
+          MAX_WAIT=120
+          for i in $(seq 1 $MAX_WAIT); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "✅ Studio 服务就绪（第 $i 秒）"
+              break
+            fi
+
+            if [ $((i % 30)) -eq 0 ]; then
+              echo "⏳ 等待中... ($i/$MAX_WAIT 秒)"
+              echo "   容器状态:"
+              docker ps --filter name=sage-studio --format "table {{.Status}}\t{{.Ports}}"
+              echo "   最近日志:"
+              docker logs --tail 10 sage-studio 2>&1 || true
+            fi
+
+            sleep 1
+          done
+
+          # 最终检查
+          if ! curl -sf http://localhost:5173 > /dev/null 2>&1; then
+            echo "❌ 服务启动超时"
+            echo ""
+            echo "=== 容器日志 ==="
+            docker logs --tail 100 sage-studio
+            exit 1
+          fi
+
+      - name: Health check
+        run: |
+          echo "🔍 健康检查..."
+          echo ""
+
+          # 检查各服务
+          echo "| 服务 | 端口 | 状态 |"
+          echo "|------|------|------|"
+
+          if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+            echo "| Studio 前端 | 5173 | ✅ 正常 |"
+          else
+            echo "| Studio 前端 | 5173 | ❌ 异常 |"
+          fi
+
+          if curl -sf http://localhost:8888/health > /dev/null 2>&1; then
+            echo "| Gateway | 8888 | ✅ 正常 |"
+          else
+            echo "| Gateway | 8888 | ⚠️ 启动中 |"
+          fi
+
+          # GPU 状态
+          echo ""
+          echo "=== GPU 状态 ==="
+          docker exec sage-studio nvidia-smi --query-gpu=name,memory.used,memory.free --format=csv 2>/dev/null || echo "GPU 信息不可用"
+
+      - name: Verify Cloudflare Tunnel
+        continue-on-error: true
+        run: |
+          echo "🌐 检查 Cloudflare Tunnel..."
+
+          if systemctl is-active --quiet cloudflared; then
+            echo "✅ cloudflared 系统服务运行中"
+          else
+            echo "⚠️ cloudflared 未运行"
+          fi
+
+          # 测试公网访问
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://studio.sage.org.ai 2>/dev/null || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ https://studio.sage.org.ai 可访问"
+          else
+            echo "⚠️ 公网访问返回 HTTP $HTTP_CODE"
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "## 🎉 SAGE Studio 部署完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 访问地址" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 方式 | 地址 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ☁️ Cloudflare Tunnel | https://studio.sage.org.ai |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏠 本地 | http://localhost:5173 |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🐳 容器信息" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          docker ps --filter name=sage-studio --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 管理命令" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 查看日志: \`docker logs -f sage-studio\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 重启: \`docker restart sage-studio\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 停止: \`docker stop sage-studio\`" >> $GITHUB_STEP_SUMMARY
