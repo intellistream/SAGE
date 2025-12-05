@@ -404,6 +404,8 @@ class ChatModeManager(StudioManager):
         llm: bool | None = None,
         llm_model: str | None = None,
         use_finetuned: bool = False,
+        skip_confirm: bool = False,
+        no_embedding: bool = False,
     ) -> bool:
         """Start Studio Chat Mode services.
 
@@ -416,6 +418,8 @@ class ChatModeManager(StudioManager):
             llm: Enable local LLM service via sageLLM (default: from SAGE_STUDIO_LLM env)
             llm_model: Model to load (default: from SAGE_STUDIO_LLM_MODEL env)
             use_finetuned: Use latest fine-tuned model (overrides llm_model if True)
+            skip_confirm: Skip all interactive confirmations (for CI/CD)
+            no_embedding: Disable Embedding service (for CI/CD without GPU)
 
         Returns:
             True if all services started successfully
@@ -450,8 +454,11 @@ class ChatModeManager(StudioManager):
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
                 )
 
-            # Start Embedding service alongside LLM
-            self._start_embedding_service()
+            # Start Embedding service alongside LLM (unless disabled)
+            if not no_embedding:
+                self._start_embedding_service()
+            else:
+                console.print("[yellow]⚠️  Embedding 服务已禁用 (--no-embedding)[/yellow]")
 
         # Start Gateway
         if not self._start_gateway(port=self.gateway_port):
@@ -465,6 +472,7 @@ class ChatModeManager(StudioManager):
             dev=dev,
             backend_port=backend_port,
             auto_gateway=False,  # We manage gateway ourselves
+            skip_confirm=skip_confirm,  # Pass through for auto-confirm in CI/CD
         )
 
         if success:
