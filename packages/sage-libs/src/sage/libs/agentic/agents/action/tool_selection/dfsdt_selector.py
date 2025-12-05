@@ -242,8 +242,8 @@ class DFSDTSelector(BaseToolSelector):
             root.children.append(node)
 
         # Score all nodes using LLM or fallback
-        scored_nodes = []
-        visited_tools = []
+        scored_nodes: list[SearchNode] = []
+        visited_tools: list[str] = []
 
         for node in root.children:
             score = self._score_tool(query, node, visited_tools)
