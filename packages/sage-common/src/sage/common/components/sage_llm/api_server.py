@@ -286,7 +286,10 @@ class LLMAPIServer:
                 logger.info(f"Logs: {self.log_file}")
 
                 # Wait for server to be ready
-                return self._wait_for_ready(timeout=120)
+                # Use longer timeout for first-time model downloads (7B model ~14GB)
+                # Can be configured via SAGE_LLM_STARTUP_TIMEOUT env var
+                startup_timeout = int(os.environ.get("SAGE_LLM_STARTUP_TIMEOUT", "300"))
+                return self._wait_for_ready(timeout=startup_timeout)
             else:
                 # Foreground mode - blocking
                 self.process = subprocess.Popen(cmd, env=env)
@@ -516,16 +519,17 @@ class LLMAPIServer:
             "api_url": f"http://{self.config.host}:{self.config.port}/v1",
         }
 
-    def _wait_for_ready(self, timeout: int = 120) -> bool:
+    def _wait_for_ready(self, timeout: int = 300) -> bool:
         """Wait for server to be ready
 
         Args:
-            timeout: Maximum seconds to wait
+            timeout: Maximum seconds to wait (default 300s for model downloads)
 
         Returns:
             True if server is ready, False if timeout
         """
         logger.info(f"Waiting for LLM API server to be ready (timeout: {timeout}s)...")
+        logger.info("Note: First-time model download may take 5-10 minutes for 7B models")
         logger.info(f"Health check URL: http://127.0.0.1:{self.config.port}/health")
         logger.info(f"Log file: {self.log_file}")
 
