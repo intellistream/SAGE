@@ -117,14 +117,14 @@ class NeuroMemVDBService(BaseService):
         if vector is not None:
             vec = np.array(vector, dtype=np.float32)
             collection.insert(
-                index_name="global_index",
-                raw_data=entry,
+                index_names="global_index",
+                content=entry,
                 vector=vec,
                 metadata=metadata,
             )
         else:
-            # 没有向量时，调用父类 BaseMemoryCollection 的 insert
-            collection.insert(entry, metadata)
+            # 没有向量时，只存数据不建索引
+            collection.insert(index_names=None, content=entry, metadata=metadata)
 
         self.logger.debug(f"Inserted entry to collection '{collection_name}': {entry_id[:16]}...")
         return entry_id

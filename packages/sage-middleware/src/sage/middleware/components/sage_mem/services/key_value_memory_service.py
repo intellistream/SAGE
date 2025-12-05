@@ -132,7 +132,9 @@ class KeyValueMemoryService(BaseService):
                 metadata["priority"] = insert_params["priority"]
 
         # 插入到 KVMemoryCollection
-        entry_id = self.collection.insert(entry, metadata, self.index_name)
+        entry_id = self.collection.insert(
+            content=entry, index_names=self.index_name, metadata=metadata
+        )
 
         self.logger.debug(f"Inserted entry to KV memory: {entry_id[:16]}...")
         return entry_id

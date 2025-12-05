@@ -447,20 +447,18 @@ class SessionManager:
 
             # 存储到 collection
             if self._memory_backend == "vdb":
-                # VDB 需要 index_name 参数
+                # VDB 需要 index_names 和 content 参数
                 index_name = getattr(memory_service, "_gateway_index_name", None)
                 if index_name:
                     memory_service.insert(
-                        index_name=index_name, raw_data=combined_text, metadata=metadata
+                        index_names=index_name, content=combined_text, metadata=metadata
                     )
             elif self._memory_backend == "kv":
-                # KV 需要 index_names 参数（可变参数）
-                index_name = getattr(memory_service, "_gateway_index_name", None)
-                if index_name:
-                    memory_service.insert(combined_text, metadata, index_name)
+                # KV 需要 content 参数
+                memory_service.insert(content=combined_text, metadata=metadata)
             else:
-                # Graph 使用 BaseMemoryCollection 的 insert 接口
-                memory_service.insert(raw_text=combined_text, metadata=metadata)
+                # Graph 使用 content 参数
+                memory_service.insert(content=combined_text, metadata=metadata)
 
     def retrieve_memory_history(self, session_id: str) -> str:
         """获取会话的历史记忆

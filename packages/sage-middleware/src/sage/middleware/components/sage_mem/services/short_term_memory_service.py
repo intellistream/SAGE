@@ -165,8 +165,10 @@ class ShortTermMemoryService(BaseService):
                 metadata=full_metadata,
             )
         else:
-            # 没有向量时，只存储到 BaseMemoryCollection（不传 index_names 和 vector）
-            stable_id = self.collection.insert(content=entry, metadata=full_metadata)
+            # 没有向量时，只存储到 BaseMemoryCollection（index_names=None）
+            stable_id = self.collection.insert(
+                index_names=None, content=entry, metadata=full_metadata
+            )
 
         # 记录到时间队列，使用 collection 返回的 stable_id
         self._order_queue.append(
