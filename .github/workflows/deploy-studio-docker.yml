@@ -1,10 +1,9 @@
-# SAGE Studio Docker 部署
+# SAGE Studio Docker 部署（本地构建模式）
 #
-# 这个 workflow 构建 Docker 镜像并部署到 self-hosted runner
+# 在 self-hosted runner 上直接构建和运行，不推送到 registry
 #
 # 架构:
-#   GitHub Actions (ubuntu-latest) → 构建镜像 → 推送到 GHCR
-#   Self-hosted Runner (A100) → 拉取镜像 → 启动容器
+#   Self-hosted Runner (A100) → 本地构建镜像 → 本地运行容器
 #   cloudflared (Host systemd) → 转发请求到容器
 
 name: Deploy SAGE Studio (Docker)
@@ -12,13 +11,10 @@ name: Deploy SAGE Studio (Docker)
 on:
   workflow_dispatch:
     inputs:
-      skip_build:
-        description: '跳过构建，仅部署已有镜像'
+      force_rebuild:
+        description: '强制重新构建镜像（忽略缓存）'
         type: boolean
         default: false
-      image_tag:
-        description: '镜像标签（默认 latest）'
-        default: 'latest'
 
   push:
     branches:
@@ -30,22 +26,10 @@ on:
       - 'docker/studio/**'
       - '.github/workflows/deploy-studio-docker.yml'
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: intellistream/sage-studio
-
 jobs:
-  # Job 1: 构建 Docker 镜像（在 GitHub hosted runner 上）
-  build:
-    if: ${{ github.event.inputs.skip_build != 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
-      image_digest: ${{ steps.build.outputs.digest }}
+  deploy:
+    runs-on: [self-hosted, A100]
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -53,72 +37,19 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=
-            type=ref,event=branch
-
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/studio/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          # 不包含 GPU 层，运行时使用 NVIDIA runtime
-          build-args: |
-            CUDA_VERSION=12.1.0
-            UBUNTU_VERSION=22.04
-
-      - name: Image summary
+      - name: Check Docker
         run: |
-          echo "## 🐳 Docker 镜像构建完成" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| 属性 | 值 |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| 镜像 | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| 标签 | \`${{ steps.meta.outputs.tags }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Digest | \`${{ steps.build.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "🐳 检查 Docker 环境..."
+          docker --version
+          docker info --format '{{.Driver}}'
 
-  # Job 2: 部署到 self-hosted runner
-  deploy:
-    needs: [build]
-    if: always() && (needs.build.result == 'success' || github.event.inputs.skip_build == 'true')
-    runs-on: [self-hosted, A100]
-    timeout-minutes: 30
-
-    env:
-      IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
-
-    steps:
-      - name: Checkout (for docker-compose.yml)
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            docker/studio
-
-      - name: Login to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          # 检查 NVIDIA Container Toolkit
+          if docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi > /dev/null 2>&1; then
+            echo "✅ NVIDIA Container Toolkit 正常"
+          else
+            echo "❌ NVIDIA Container Toolkit 不可用"
+            exit 1
+          fi
 
       - name: Stop existing container
         continue-on-error: true
@@ -127,10 +58,25 @@ jobs:
           docker stop sage-studio 2>/dev/null || true
           docker rm sage-studio 2>/dev/null || true
 
-      - name: Pull latest image
+      - name: Build Docker image
         run: |
-          echo "📥 拉取镜像: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          echo "🔨 构建 Docker 镜像..."
+
+          BUILD_ARGS=""
+          if [ "${{ github.event.inputs.force_rebuild }}" = "true" ]; then
+            echo "⚠️ 强制重新构建（--no-cache）"
+            BUILD_ARGS="--no-cache"
+          fi
+
+          docker build \
+            $BUILD_ARGS \
+            -t sage-studio:latest \
+            -t sage-studio:${{ github.sha }} \
+            -f docker/studio/Dockerfile \
+            .
+
+          echo "✅ 镜像构建完成"
+          docker images sage-studio
 
       - name: Start container
         run: |
@@ -150,15 +96,16 @@ jobs:
             -e SAGE_STUDIO_LLM_MODEL=Qwen/Qwen2.5-7B-Instruct \
             -e SAGE_STUDIO_LLM_GPU_MEMORY=0.9 \
             -e SAGE_LLM_STARTUP_TIMEOUT=600 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            sage-studio:latest
 
           echo "✅ 容器已启动"
+          docker ps --filter name=sage-studio
 
       - name: Wait for service
         run: |
           echo "⏳ 等待服务启动..."
 
-          MAX_WAIT=120
+          MAX_WAIT=180
           for i in $(seq 1 $MAX_WAIT); do
             if curl -sf http://localhost:5173 > /dev/null 2>&1; then
               echo "✅ Studio 服务就绪（第 $i 秒）"
@@ -252,3 +199,15 @@ jobs:
           echo "- 查看日志: \`docker logs -f sage-studio\`" >> $GITHUB_STEP_SUMMARY
           echo "- 重启: \`docker restart sage-studio\`" >> $GITHUB_STEP_SUMMARY
           echo "- 停止: \`docker stop sage-studio\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cleanup old images
+        continue-on-error: true
+        run: |
+          echo "🧹 清理旧镜像..."
+          # 保留最新的 2 个版本，删除其他的
+          docker images sage-studio --format "{{.ID}} {{.CreatedAt}}" | \
+            sort -k2 -r | \
+            tail -n +3 | \
+            awk '{print $1}' | \
+            xargs -r docker rmi 2>/dev/null || true
+          echo "✅ 清理完成"
