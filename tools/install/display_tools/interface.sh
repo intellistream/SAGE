@@ -351,26 +351,37 @@ PY
             if [[ ! "$start_services" =~ ^[Nn] ]]; then
                 echo ""
                 echo -e "${INFO} 启动 LLM + Embedding 服务..."
-                echo -e "${DIM}   首次启动会下载模型（LLM + Embedding）...${NC}"
+                echo -e "${DIM}   首次启动需要下载模型并加载到 GPU，可能需要 2-4 分钟${NC}"
+                echo -e "${DIM}   • LLM 模型: Qwen2.5-0.5B (~300MB)${NC}"
+                echo -e "${DIM}   • Embedding 模型: bge-small-zh (~100MB)${NC}"
                 echo ""
-                # 后台启动服务，使用 subshell 彻底隔离 job control 输出
+                # 后台启动服务
                 # 注意: sage llm serve 默认已包含 embedding 服务
-                ( sage llm serve &>/dev/null & )
-                # 等待 Embedding 服务就绪
-                start_spinner "   等待服务启动"
+                sage llm serve &>/dev/null &
+                local serve_pid=$!
+
+                # 等待 Embedding 服务就绪，同时显示进度
                 local wait_count=0
-                while [ $wait_count -lt 60 ]; do
+                local max_wait=90  # 最多等待 180 秒 (90 * 2)
+                echo -e "   ${CYAN}⏳ 等待服务启动（LLM 加载到 GPU 需要时间）...${NC}"
+                while [ $wait_count -lt $max_wait ]; do
                     if curl -s --connect-timeout 2 "http://localhost:${embedding_port}/v1/models" 2>/dev/null | grep -q '"data"'; then
                         embedding_running=true
                         break
                     fi
+                    # 显示经过时间
+                    local elapsed=$((wait_count * 2))
+                    printf "\r   ${DIM}已等待 %ds...${NC}" $elapsed
                     sleep 2
                     wait_count=$((wait_count + 1))
                 done
+                printf "\r\033[K"  # 清除进度行
+
                 if [ "$embedding_running" = true ]; then
-                    stop_spinner "   ${GREEN}✅ Embedding 服务已就绪${NC}"
+                    echo -e "   ${GREEN}✅ Embedding 服务已就绪${NC}"
                 else
-                    stop_spinner "   ${YELLOW}⚠️  Embedding 服务启动超时，使用本地 HF 模型${NC}"
+                    echo -e "   ${YELLOW}⚠️  Embedding 服务启动超时，使用本地 HF 模型${NC}"
+                    echo -e "   ${DIM}提示: 服务可能仍在后台启动中，可稍后检查 sage llm status${NC}"
                 fi
             fi
         else
@@ -561,18 +572,60 @@ prompt_start_llm_service() {
             if [ "$has_gpu" = true ]; then
                 echo ""
                 echo -e "${INFO} 正在启动 LLM 服务..."
-                echo -e "${DIM}   首次启动会下载模型（Qwen2.5-0.5B，约 300MB）...${NC}"
+                echo -e "${DIM}   首次启动会下载模型并加载到 GPU，可能需要 1-3 分钟${NC}"
+                echo -e "${DIM}   • 模型下载: Qwen2.5-0.5B (~300MB)${NC}"
+                echo -e "${DIM}   • GPU 加载: vLLM 初始化${NC}"
                 echo ""
 
                 if command -v sage &>/dev/null; then
-                    # 不使用 head 截断，避免 SIGPIPE 导致服务启动不完整
+                    # 后台启动并实时显示进度
                     local llm_log="/tmp/sage_llm_serve_$$.log"
-                    sage llm serve > "$llm_log" 2>&1
+
+                    # 启动服务（后台运行）
+                    sage llm serve > "$llm_log" 2>&1 &
+                    local sage_pid=$!
+
+                    # 显示实时进度，同时监控日志
+                    local elapsed=0
+                    local max_wait=180  # 最多等待 3 分钟
+                    local last_status=""
+
+                    while kill -0 $sage_pid 2>/dev/null && [ $elapsed -lt $max_wait ]; do
+                        # 尝试从日志中获取当前状态
+                        if [ -f "$llm_log" ]; then
+                            # 检测关键状态
+                            if grep -q "下载位置" "$llm_log" 2>/dev/null && [ "$last_status" != "downloading" ]; then
+                                printf "\r\033[K"
+                                echo -e "   ${CYAN}⏳ 正在下载模型...${NC}"
+                                last_status="downloading"
+                            elif grep -q "启动 LLM 服务" "$llm_log" 2>/dev/null && [ "$last_status" != "starting" ]; then
+                                printf "\r\033[K"
+                                echo -e "   ${CYAN}⏳ 正在启动 vLLM 服务...${NC}"
+                                last_status="starting"
+                            elif grep -q "启动中" "$llm_log" 2>/dev/null && [ "$last_status" != "loading" ]; then
+                                printf "\r\033[K"
+                                echo -e "   ${CYAN}⏳ 正在加载模型到 GPU（这步较慢，请耐心等待）...${NC}"
+                                last_status="loading"
+                            fi
+                        fi
+
+                        # 显示经过时间
+                        printf "\r   ${DIM}已等待 %ds...${NC}" $elapsed
+                        sleep 2
+                        elapsed=$((elapsed + 2))
+                    done
+
+                    # 等待命令完成
+                    wait $sage_pid 2>/dev/null
                     local exit_code=$?
+
+                    # 清除进度行
+                    printf "\r\033[K"
 
                     # 显示关键信息（最后 10 行）
                     if [ -f "$llm_log" ]; then
-                        tail -10 "$llm_log"
+                        # 过滤掉进度条行，只显示重要信息
+                        grep -v "启动中 \[" "$llm_log" | tail -10
                         rm -f "$llm_log"
                     fi
 

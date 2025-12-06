@@ -1,0 +1,189 @@
+# SAGE Studio 知识源配置
+# =========================
+#
+# 本配置文件定义了 SAGE Studio Multi-Agent 架构中可用的知识源。
+# 所有知识源默认 auto_load: false，表示按需加载，不会在启动时自动加载。
+#
+# 路径说明:
+# - 相对路径：相对于 SAGE 项目根目录
+# - ~ 路径：会自动展开为用户主目录
+#
+# file_patterns 使用 glob 语法:
+# - "*.md" 匹配当前目录下的 .md 文件
+# - "**/*.md" 递归匹配所有子目录下的 .md 文件
+
+knowledge_sources:
+  # SAGE 官方文档
+  sage_docs:
+    type: markdown
+    path: "docs-public/docs_src"
+    description: "SAGE 官方文档，包含架构设计、安装指南、使用教程等"
+    enabled: true
+    auto_load: false
+    file_patterns:
+    - "*.md"
+    - "**/*.md"
+    metadata:
+      language: "zh"
+      category: "documentation"
+
+  # SAGE 示例代码
+  examples:
+    type: python_code
+    path: "examples/"
+    description: "SAGE 示例代码，包含各层级的使用示例"
+    enabled: true
+    auto_load: false
+    file_patterns:
+    - "*.py"
+    - "**/*.py"
+    metadata:
+      language: "python"
+      category: "examples"
+
+  # SAGE API 文档 (从 docstring 提取)
+  api_reference:
+    type: python_code
+    path: "packages/"
+    description: "SAGE API 文档，从源代码 docstring 中提取"
+    enabled: true
+    auto_load: false
+    file_patterns:
+    - "**/src/**/*.py"
+    metadata:
+      extract_docstrings: true
+      language: "python"
+      category: "api_reference"
+
+  # 用户上传的文档
+  user_uploads:
+    type: user_upload
+    path: "~/.local/share/sage/studio/uploads/"
+    description: "用户上传的自定义文档"
+    enabled: true
+    auto_load: false
+    is_dynamic: true
+    file_patterns:
+    - "*.pdf"
+    - "*.md"
+    - "*.txt"
+    - "*.py"
+    - "*.json"
+    - "*.yaml"
+    - "*.yml"
+    metadata:
+      category: "user_content"
+      max_file_size_mb: 10
+
+  # 研究指导文档 (导师上传)
+  research_guidance:
+    type: user_upload
+    path: "~/.local/share/sage/studio/research/"
+    description: "研究方法论、写作经验等指导性文档"
+    enabled: true
+    auto_load: false
+    is_dynamic: true
+    file_patterns:
+    - "*.pdf"
+    - "*.md"
+    - "*.txt"
+    metadata:
+      category: "research_guidance"
+      knowledge_domain: "research_guidance"
+
+
+# 记忆系统配置
+# ============
+memory:
+  enabled: true
+  default_backend: "short_term"
+
+  backends:
+    short_term:
+      max_items: 20
+
+    long_term:
+      enabled: true
+      collection_name: "studio_long_term"
+
+    vdb:
+      collection_prefix: "studio_memory_"
+      embedding_model: "BAAI/bge-small-zh-v1.5"
+
+
+# 向量存储配置
+# =============
+vector_store:
+  # 向量数据库类型: chroma, milvus, faiss
+  type: "chroma"
+
+  # 持久化目录 (支持 ~ 展开)
+  persist_dir: "~/.local/share/sage/studio/vector_db/"
+
+  # Collection 名称前缀
+  collection_prefix: "studio_kb_"
+
+  # 相似度度量: cosine, l2, ip (inner product)
+  distance_metric: "cosine"
+
+
+# Embedding 配置
+# ==============
+embedding:
+  # Embedding 模型
+  # 推荐中文模型: BAAI/bge-small-zh-v1.5, BAAI/bge-m3
+  # 推荐多语言模型: sentence-transformers/all-MiniLM-L6-v2
+  model: "BAAI/bge-m3"
+
+  # 向量维度 (根据模型设置)
+  # bge-small-zh-v1.5: 512, bge-m3: 1024, all-MiniLM-L6-v2: 384
+  dim: 1024
+
+  # 批处理大小
+  batch_size: 32
+
+  # 最大序列长度
+  max_length: 512
+
+  # 是否使用 GPU (如果可用)
+  use_gpu: false
+
+
+# 文档分块配置
+# ============
+chunking:
+  # 默认配置
+  default:
+    chunk_size: 500
+    chunk_overlap: 50
+
+  # Markdown 文档分块配置
+  markdown:
+    chunk_size: 500
+    chunk_overlap: 50
+    # 按标题分块
+    split_by_heading: true
+    heading_levels: [1, 2, 3]
+
+  # Python 代码分块配置
+  python_code:
+    chunk_size: 1000
+    chunk_overlap: 100
+    # 按函数/类分块
+    split_by_definition: true
+
+
+# 检索配置
+# =========
+retrieval:
+  # 默认返回结果数量
+  default_top_k: 5
+
+  # 默认相似度阈值 (0-1)
+  default_score_threshold: 0.6
+
+  # 是否启用重排序 (reranking)
+  enable_reranking: false
+
+  # 重排序模型 (如果启用)
+  reranking_model: "BAAI/bge-reranker-base"

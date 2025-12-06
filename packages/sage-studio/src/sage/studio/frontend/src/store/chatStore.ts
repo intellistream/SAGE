@@ -1,10 +1,21 @@
 /**
  * Chat Mode Store - Zustand state management for Chat UI
+ *
+ * 支持 Multi-Agent 架构的状态管理：
+ * - 消息管理（按会话分组）
+ * - 推理步骤（ReasoningStep）管理
+ * - 工具调用可视化状态
+ * - 流式响应状态
  */
 
 import { create } from 'zustand'
 import type { ChatSessionSummary } from '../services/api'
-import type { ReasoningStep, ReasoningStepType, ReasoningStepStatus } from '../components/ReasoningAccordion'
+import type {
+    ReasoningStep,
+    ReasoningStepType,
+    ReasoningStepStatus,
+    ToolCallMetadata,
+} from '../components/ReasoningAccordion'
 
 type SetState<T> = (partial: T | Partial<T> | ((state: T) => T | Partial<T>)) => void
 type GetState<T> = () => T
@@ -17,11 +28,11 @@ export interface ChatMessage {
     isStreaming?: boolean
     isReasoning?: boolean  // 是否正在推理中
     reasoningSteps?: ReasoningStep[]  // 推理步骤
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
 }
 
 // 导出类型供其他组件使用
-export type { ReasoningStep, ReasoningStepType, ReasoningStepStatus }
+export type { ReasoningStep, ReasoningStepType, ReasoningStepStatus, ToolCallMetadata }
 
 interface ChatState {
     // 当前会话
