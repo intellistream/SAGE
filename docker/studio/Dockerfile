@@ -117,34 +117,28 @@ RUN rm -rf node_modules .npm
 WORKDIR /app
 
 # 创建启动脚本
-RUN cat > /app/start.sh << 'EOF'
-#!/bin/bash
-set -e
-
-echo "🚀 Starting SAGE Studio..."
-echo ""
-echo "Configuration:"
-echo "  - Studio Port: ${STUDIO_PORT:-5173}"
-echo "  - Gateway Port: ${GATEWAY_PORT:-8888}"
-echo "  - LLM Port: ${LLM_PORT:-8901}"
-echo "  - Embedding Port: ${EMBEDDING_PORT:-8090}"
-echo ""
-
-# 检查 GPU 可用性
-if command -v nvidia-smi &> /dev/null; then
-    echo "GPU Status:"
-    nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv
-    echo ""
-fi
-
-# 启动 Studio（包含 Gateway + LLM + Embedding + Frontend）
-exec sage studio start \
-    --prod \
-    --host 0.0.0.0 \
-    --port ${STUDIO_PORT:-5173} \
-    -y
-EOF
-RUN chmod +x /app/start.sh
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'echo "Starting SAGE Studio..."' >> /app/start.sh && \
+    echo 'echo ""' >> /app/start.sh && \
+    echo 'echo "Configuration:"' >> /app/start.sh && \
+    echo 'echo "  - Studio Port: ${STUDIO_PORT:-5173}"' >> /app/start.sh && \
+    echo 'echo "  - Gateway Port: ${GATEWAY_PORT:-8888}"' >> /app/start.sh && \
+    echo 'echo "  - LLM Port: ${LLM_PORT:-8901}"' >> /app/start.sh && \
+    echo 'echo "  - Embedding Port: ${EMBEDDING_PORT:-8090}"' >> /app/start.sh && \
+    echo 'echo ""' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Check GPU availability' >> /app/start.sh && \
+    echo 'if command -v nvidia-smi > /dev/null 2>&1; then' >> /app/start.sh && \
+    echo '    echo "GPU Status:"' >> /app/start.sh && \
+    echo '    nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv' >> /app/start.sh && \
+    echo '    echo ""' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Start Studio (includes Gateway + LLM + Embedding + Frontend)' >> /app/start.sh && \
+    echo 'exec sage studio start --prod --host 0.0.0.0 --port ${STUDIO_PORT:-5173} -y' >> /app/start.sh && \
+    chmod +x /app/start.sh
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
