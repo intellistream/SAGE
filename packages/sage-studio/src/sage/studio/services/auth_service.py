@@ -37,11 +37,16 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 class UserCreate(BaseModel):
     username: str
     password: str = Field(..., min_length=6)
+
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        return v.strip()
 
 
 class AuthService:

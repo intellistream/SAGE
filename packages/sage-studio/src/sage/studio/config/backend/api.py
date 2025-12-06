@@ -337,7 +337,10 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
 ):
-    user = auth_service.get_user(form_data.username)
+    # Strip whitespace from username to match registration behavior
+    username = form_data.username.strip()
+    user = auth_service.get_user(username)
+    
     if not user or not auth_service.verify_password(
         form_data.password, user.hashed_password
     ):
