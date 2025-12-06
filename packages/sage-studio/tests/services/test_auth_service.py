@@ -1,16 +1,9 @@
-import os
-import sqlite3
 from datetime import timedelta
-from pathlib import Path
 
 import pytest
-from jose import jwt
 
 from sage.studio.services.auth_service import (
-    ALGORITHM,
-    SECRET_KEY,
     AuthService,
-    get_auth_service,
 )
 
 
@@ -24,7 +17,7 @@ def auth_service(tmp_path):
 
 
 def test_password_hashing(auth_service):
-    password = "testpassword"
+    password = "testpassword"  # pragma: allowlist secret
     hashed = auth_service.get_password_hash(password)
     assert hashed != password
     assert auth_service.verify_password(password, hashed)
@@ -56,7 +49,7 @@ def test_get_user(auth_service):
 def test_token_creation_and_verification(auth_service):
     data = {"sub": "testuser"}
     token = auth_service.create_access_token(data)
-    
+
     username = auth_service.verify_token(token)
     assert username == "testuser"
 
@@ -65,7 +58,7 @@ def test_token_expiration(auth_service):
     data = {"sub": "testuser"}
     # Create a token that expired 1 minute ago
     token = auth_service.create_access_token(data, expires_delta=timedelta(minutes=-1))
-    
+
     username = auth_service.verify_token(token)
     assert username is None
 
@@ -74,8 +67,10 @@ def test_invalid_token(auth_service):
     username = auth_service.verify_token("invalidtoken")
     assert username is None
 
+
 def test_short_password():
     from pydantic import ValidationError
+
     from sage.studio.services.auth_service import UserCreate
 
     with pytest.raises(ValidationError):
