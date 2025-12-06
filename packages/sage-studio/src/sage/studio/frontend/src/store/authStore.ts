@@ -16,6 +16,21 @@ interface AuthState {
     clearError: () => void
 }
 
+const getErrorMessage = (error: any): string => {
+    if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+            return detail;
+        }
+        if (Array.isArray(detail)) {
+            // Handle FastAPI validation errors
+            return detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ');
+        }
+        return JSON.stringify(detail);
+    }
+    return error.message || 'An unknown error occurred';
+};
+
 export const useAuthStore = create<AuthState>()(
     persist(
         (set, get) => ({
@@ -37,9 +52,8 @@ export const useAuthStore = create<AuthState>()(
                     // Fetch user details immediately after login
                     await get().checkAuth()
                 } catch (error: any) {
-                    const errorMessage = error.response?.data?.detail || error.message || 'Login failed';
                     set({ 
-                        error: errorMessage,
+                        error: getErrorMessage(error),
                         isLoading: false 
                     })
                     throw error
@@ -52,9 +66,8 @@ export const useAuthStore = create<AuthState>()(
                     await register(credentials)
                     set({ isLoading: false })
                 } catch (error: any) {
-                    const errorMessage = error.response?.data?.detail || error.message || 'Registration failed';
                     set({ 
-                        error: errorMessage,
+                        error: getErrorMessage(error),
                         isLoading: false 
                     })
                     throw error
