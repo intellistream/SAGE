@@ -452,7 +452,7 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                         ) : mode === 'chat' ? (
                             // Chat 模式: 显示提示信息
                             <div style={{ color: '#888', fontSize: 14 }}>
-                                💬 Chat Mode - AI 自动生成工作流
+                                💬 Chat Mode - 智能对话与 RAG 检索增强
                             </div>
                         ) : (
                             // Finetune 模式: 显示提示信息
