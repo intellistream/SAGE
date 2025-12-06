@@ -17,25 +17,17 @@ const { Header, Footer } = Layout
 export type AppMode = 'chat' | 'canvas' | 'finetune'
 
 function RequireAuth({ children }: { children: JSX.Element }) {
-    const { isAuthenticated, isLoading, checkAuth, loginAsGuest } = useAuthStore()
+    const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
     const location = useLocation()
     const [isChecking, setIsChecking] = useState(true)
 
     useEffect(() => {
         const initAuth = async () => {
             await checkAuth()
-            // If not authenticated after check, try guest login
-            if (!useAuthStore.getState().isAuthenticated) {
-                try {
-                    await loginAsGuest()
-                } catch (e) {
-                    console.error("Auto guest login failed", e)
-                }
-            }
             setIsChecking(false)
         }
         initAuth()
-    }, [checkAuth, loginAsGuest])
+    }, [checkAuth])
 
     if (isChecking || isLoading) {
         return (
