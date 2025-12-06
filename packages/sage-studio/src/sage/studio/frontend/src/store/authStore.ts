@@ -37,8 +37,9 @@ export const useAuthStore = create<AuthState>()(
                     // Fetch user details immediately after login
                     await get().checkAuth()
                 } catch (error: any) {
+                    const errorMessage = error.response?.data?.detail || error.message || 'Login failed';
                     set({ 
-                        error: error.response?.data?.detail || 'Login failed',
+                        error: errorMessage,
                         isLoading: false 
                     })
                     throw error
@@ -51,8 +52,9 @@ export const useAuthStore = create<AuthState>()(
                     await register(credentials)
                     set({ isLoading: false })
                 } catch (error: any) {
+                    const errorMessage = error.response?.data?.detail || error.message || 'Registration failed';
                     set({ 
-                        error: error.response?.data?.detail || 'Registration failed',
+                        error: errorMessage,
                         isLoading: false 
                     })
                     throw error
