@@ -181,8 +181,6 @@ class UnifiedInferenceClient:
     # Class-level singleton cache for instances
     _instances: ClassVar[dict[str, UnifiedInferenceClient]] = {}
     _lock: ClassVar[Lock] = Lock()
-    # Flag to track if __init__ was called via create()
-    _allow_init: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -198,7 +196,8 @@ class UnifiedInferenceClient:
     ) -> None:
         """Initialize the unified inference client.
 
-        NOTE: This constructor is private. Use `create()` to instantiate.
+        NOTE: For UnifiedInferenceClient itself, use `create()` to instantiate.
+        Subclasses can be instantiated directly.
 
         Args:
             llm_base_url: Base URL for LLM API endpoint.
@@ -212,10 +211,12 @@ class UnifiedInferenceClient:
             config: Full configuration object (overrides individual params).
 
         Raises:
-            RuntimeError: If called directly instead of via create().
+            RuntimeError: If UnifiedInferenceClient is instantiated directly
+                instead of via create(). Subclasses are allowed.
         """
-        # Check if init was called via create()
-        if not UnifiedInferenceClient._allow_init:
+        # Only block direct instantiation of UnifiedInferenceClient itself.
+        # Subclasses (like LLMClientAdapter, EmbeddingClientAdapter) are allowed.
+        if type(self) is UnifiedInferenceClient:
             raise RuntimeError(
                 "UnifiedInferenceClient cannot be instantiated directly. "
                 "Use UnifiedInferenceClient.create() instead."
@@ -800,20 +801,16 @@ class UnifiedInferenceClient:
                 llm_model = llm_model or llm_model_detected
                 embedding_model = embedding_model or embedding_model_detected
 
-        # Create the instance using the internal flag
-        try:
-            cls._allow_init = True
-            instance = cls(
-                llm_base_url=llm_base_url,
-                llm_model=llm_model,
-                llm_api_key=llm_api_key,
-                embedding_base_url=embedding_base_url,
-                embedding_model=embedding_model,
-                embedding_api_key=embedding_api_key,
-                timeout=timeout,
-            )
-        finally:
-            cls._allow_init = False
+        # Create the instance using a private subclass to bypass the direct instantiation check
+        instance = _CreatableUnifiedClient(
+            llm_base_url=llm_base_url,
+            llm_model=llm_model,
+            llm_api_key=llm_api_key,
+            embedding_base_url=embedding_base_url,
+            embedding_model=embedding_model,
+            embedding_api_key=embedding_api_key,
+            timeout=timeout,
+        )
 
         return instance
 
@@ -1654,6 +1651,16 @@ class UnifiedInferenceClient:
             "embedding_base_url": self.config.embedding_base_url,
             "embedding_model": self.config.embedding_model,
         }
+
+
+class _CreatableUnifiedClient(UnifiedInferenceClient):
+    """Private subclass that allows direct instantiation.
+
+    This class is used internally by UnifiedInferenceClient.create() to bypass
+    the direct instantiation check. It should not be used directly.
+    """
+
+    pass
 
 
 # ==================== Convenience Aliases ====================
