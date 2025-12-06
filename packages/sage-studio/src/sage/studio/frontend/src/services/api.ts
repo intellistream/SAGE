@@ -185,10 +185,14 @@ export interface JobLogs {
 
 // Auth API
 export const login = async (credentials: LoginCredentials): Promise<TokenResponse> => {
-    const formData = new FormData()
-    formData.append('username', credentials.username)
-    formData.append('password', credentials.password)
-    const response = await apiClient.post<TokenResponse>('/auth/login', formData)
+    const params = new URLSearchParams()
+    params.append('username', credentials.username)
+    params.append('password', credentials.password)
+    const response = await apiClient.post<TokenResponse>('/auth/login', params, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    })
     return response.data
 }
 
