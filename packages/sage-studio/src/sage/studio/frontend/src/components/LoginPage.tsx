@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Form, Input, Button, Card, Typography, Alert, Tabs } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store/authStore'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 
 const { Title, Text } = Typography
 
@@ -44,6 +44,18 @@ export const LoginPage: React.FC = () => {
         setActiveTab(key)
         clearError()
     }
+
+    // If user is already authenticated and NOT a guest, redirect to home
+    // If user is guest, allow them to see login page to upgrade/switch
+    const { isAuthenticated, user } = useAuthStore()
+    if (isAuthenticated && !user?.is_guest) {
+        // Use useEffect to avoid render loop warning, but direct return is also common for redirects
+        // Better to use Navigate component
+        return <Navigate to="/" replace />
+    }
+    
+    // Need to import Navigate
+    // import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 
     return (
         <div style={{ 

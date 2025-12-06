@@ -527,6 +527,12 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                     {
                                         type: 'divider',
                                     },
+                                    ...(user?.is_guest ? [{
+                                        key: 'login',
+                                        label: 'Login / Sign up',
+                                        icon: <UserOutlined />,
+                                        onClick: () => window.location.href = '/login',
+                                    }] : []),
                                     {
                                         key: 'logout',
                                         label: user?.is_guest ? 'Exit Guest Mode' : 'Logout',
