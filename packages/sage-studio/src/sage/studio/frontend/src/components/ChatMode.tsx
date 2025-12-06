@@ -166,8 +166,19 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 message_count: mappedMessages.length,
                 last_active: detail.last_active,
             })
-        } catch (error) {
-            console.error('Failed to load sessions:', error)
+        } catch (error: any) {
+            console.error('Failed to load session messages:', error)
+            // 如果是 404 错误，会话可能已被删除
+            if (error?.response?.status === 404) {
+                antMessage.error('会话不存在或已过期，请创建新会话')
+                removeSession(sessionId)
+            } else {
+                antMessage.error('加载会话消息失败')
+            }
+            // 清空当前选择，避免 UI 卡住
+            if (currentSessionId === sessionId) {
+                setCurrentSessionId(null)
+            }
         }
     }
 
