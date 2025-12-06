@@ -47,7 +47,7 @@ export const LoginPage: React.FC = () => {
             <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
                     <Title level={2}>SAGE Studio</Title>
-                    <Text type="secondary">AI Pipeline Development Environment</Text>
+                    <Text type="secondary">Generative AI & Dataflow Studio</Text>
                 </div>
 
                 {error && (
