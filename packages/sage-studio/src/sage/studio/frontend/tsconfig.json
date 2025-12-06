@@ -8,7 +8,8 @@
             "DOM.Iterable"
         ],
         "types": [
-            "vite/client"
+            "vite/client",
+            "node"
         ],
         "module": "ESNext",
         "skipLibCheck": true,
