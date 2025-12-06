@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { User, LoginCredentials, RegisterCredentials, login, register, getCurrentUser } from '../services/api'
+import { User, LoginCredentials, RegisterCredentials, login, loginGuest, register, logout as apiLogout, getCurrentUser } from '../services/api'
 
 interface AuthState {
     user: User | null
@@ -10,8 +10,9 @@ interface AuthState {
     error: string | null
     
     login: (credentials: LoginCredentials) => Promise<void>
+    loginAsGuest: () => Promise<void>
     register: (credentials: RegisterCredentials) => Promise<void>
-    logout: () => void
+    logout: () => Promise<void>
     checkAuth: () => Promise<void>
     clearError: () => void
 }
@@ -60,6 +61,25 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
+            loginAsGuest: async () => {
+                set({ isLoading: true, error: null })
+                try {
+                    const response = await loginGuest()
+                    set({ 
+                        token: response.access_token,
+                        isAuthenticated: true,
+                        isLoading: false 
+                    })
+                    await get().checkAuth()
+                } catch (error: any) {
+                    set({ 
+                        error: getErrorMessage(error),
+                        isLoading: false 
+                    })
+                    throw error
+                }
+            },
+
             register: async (credentials) => {
                 set({ isLoading: true, error: null })
                 try {
@@ -74,7 +94,12 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
-            logout: () => {
+            logout: async () => {
+                try {
+                    await apiLogout()
+                } catch (e) {
+                    console.error("Logout failed", e)
+                }
                 set({ user: null, token: null, isAuthenticated: false })
                 localStorage.removeItem('sage-auth-storage')
                 // Force reload to clear all in-memory states (Zustand stores)

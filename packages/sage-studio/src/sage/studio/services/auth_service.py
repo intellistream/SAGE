@@ -22,6 +22,7 @@ class User(BaseModel):
     id: int
     username: str
     created_at: datetime
+    is_guest: bool = False
 
 
 class UserInDB(User):
@@ -63,7 +64,8 @@ class AuthService:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
                     hashed_password TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_guest BOOLEAN DEFAULT 0
                 )
             """
             )
@@ -81,7 +83,7 @@ class AuthService:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO users (username, hashed_password, created_at) VALUES (?, ?, ?)",
+                    "INSERT INTO users (username, hashed_password, created_at, is_guest) VALUES (?, ?, ?, 0)",
                     (username, hashed_password, datetime.utcnow()),
                 )
                 user_id = cursor.lastrowid
@@ -89,24 +91,55 @@ class AuthService:
 
                 # Fetch the created user to get the timestamp
                 cursor.execute(
-                    "SELECT id, username, created_at FROM users WHERE id = ?", (user_id,)
+                    "SELECT id, username, created_at, is_guest FROM users WHERE id = ?", (user_id,)
                 )
                 row = cursor.fetchone()
-                return User(id=row[0], username=row[1], created_at=row[2])
+                return User(id=row[0], username=row[1], created_at=row[2], is_guest=bool(row[3]))
         except sqlite3.IntegrityError:
             raise ValueError("Username already registered")
+
+    def create_guest_user(self) -> User:
+        import uuid
+        username = f"guest_{uuid.uuid4().hex[:8]}"
+        password = uuid.uuid4().hex
+        hashed_password = self.get_password_hash(password)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO users (username, hashed_password, created_at, is_guest) VALUES (?, ?, ?, 1)",
+                (username, hashed_password, datetime.utcnow()),
+            )
+            user_id = cursor.lastrowid
+            conn.commit()
+            
+            cursor.execute(
+                "SELECT id, username, created_at, is_guest FROM users WHERE id = ?", (user_id,)
+            )
+            row = cursor.fetchone()
+            return User(id=row[0], username=row[1], created_at=row[2], is_guest=bool(row[3]))
+
+    def delete_user(self, user_id: int):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            conn.commit()
 
     def get_user(self, username: str) -> Optional[UserInDB]:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id, username, hashed_password, created_at FROM users WHERE username = ?",
+                "SELECT id, username, hashed_password, created_at, is_guest FROM users WHERE username = ?",
                 (username,),
             )
             row = cursor.fetchone()
             if row:
                 return UserInDB(
-                    id=row[0], username=row[1], hashed_password=row[2], created_at=row[3]
+                    id=row[0],
+                    username=row[1],
+                    hashed_password=row[2],
+                    created_at=row[3],
+                    is_guest=bool(row[4])
                 )
             return None
 

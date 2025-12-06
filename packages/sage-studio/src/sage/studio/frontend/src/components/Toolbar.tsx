@@ -529,7 +529,7 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                     },
                                     {
                                         key: 'logout',
-                                        label: 'Logout',
+                                        label: user?.is_guest ? 'Exit Guest Mode' : 'Logout',
                                         icon: <LogoutOutlined />,
                                         onClick: logout,
                                         danger: true,

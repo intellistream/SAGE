@@ -356,6 +356,18 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@app.post("/api/auth/guest", response_model=Token)
+async def login_guest(
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    user = auth_service.create_guest_user()
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 @app.get("/api/auth/me", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -364,7 +376,26 @@ async def read_users_me(
 
 
 @app.post("/api/auth/logout")
-async def logout():
+async def logout(
+    current_user: Annotated[User, Depends(get_current_user)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    if getattr(current_user, "is_guest", False):
+        # Clean up guest data
+        import shutil
+        
+        # Delete user from DB
+        auth_service.delete_user(current_user.id)
+        
+        # Delete user data directory
+        # Use the local get_user_data_dir function defined in this file
+        user_dir = get_user_data_dir(str(current_user.id))
+        if user_dir.exists():
+            try:
+                shutil.rmtree(user_dir)
+            except Exception as e:
+                print(f"Error deleting guest data: {e}")
+
     return {"message": "Successfully logged out"}
 
 
@@ -1781,6 +1812,7 @@ async def create_chat_session(
         "title": payload.title or "New Session",
         "created_at": now,
         "last_active": now,
+        "message_count": 0,
         "messages": [],
         "metadata": {}
     }

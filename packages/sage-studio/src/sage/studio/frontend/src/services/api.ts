@@ -70,6 +70,7 @@ export interface User {
     id: number
     username: string
     created_at: string
+    is_guest?: boolean
 }
 
 export interface LoginCredentials {
@@ -194,6 +195,15 @@ export const login = async (credentials: LoginCredentials): Promise<TokenRespons
         }
     })
     return response.data
+}
+
+export const loginGuest = async (): Promise<TokenResponse> => {
+    const response = await apiClient.post<TokenResponse>('/auth/guest')
+    return response.data
+}
+
+export const logout = async (): Promise<void> => {
+    await apiClient.post('/auth/logout')
 }
 
 export const register = async (credentials: RegisterCredentials): Promise<User> => {

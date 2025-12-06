@@ -8,7 +8,7 @@ const { Title, Text } = Typography
 
 export const LoginPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('login')
-    const { login, register, isLoading, error, clearError } = useAuthStore()
+    const { login, loginAsGuest, register, isLoading, error, clearError } = useAuthStore()
     const navigate = useNavigate()
     const location = useLocation()
 
@@ -28,6 +28,15 @@ export const LoginPage: React.FC = () => {
             }
         } catch (e) {
             // Error is handled in store
+        }
+    }
+
+    const handleGuestLogin = async () => {
+        try {
+            await loginAsGuest()
+            navigate(from, { replace: true })
+        } catch (e) {
+            // Error handled in store
         }
     }
 
@@ -93,6 +102,18 @@ export const LoginPage: React.FC = () => {
                         </Button>
                     </Form.Item>
                 </Form>
+
+                <div style={{ marginTop: 16, textAlign: 'center' }}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Or</Text>
+                    <Button 
+                        type="default" 
+                        onClick={handleGuestLogin} 
+                        loading={isLoading}
+                        block
+                    >
+                        Continue as Guest
+                    </Button>
+                </div>
             </Card>
         </div>
     )
