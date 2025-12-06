@@ -297,7 +297,10 @@ class SessionManager:
 
         else:
             # 默认使用短期记忆
-            return ShortTermMemoryService(max_dialog=self._max_memory_dialogs)
+            return ShortTermMemoryService(
+                max_dialog=self._max_memory_dialogs,
+                collection_name=f"stm_{session_id}",
+            )
 
     def get_or_create(self, session_id: str | None = None) -> ChatSession:
         """获取或创建会话"""

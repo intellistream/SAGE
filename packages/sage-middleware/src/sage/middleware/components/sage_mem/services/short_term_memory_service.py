@@ -57,6 +57,16 @@ class ShortTermMemoryService(BaseService):
         # 创建或获取 VDBMemoryCollection
         if self.manager.has_collection(collection_name):
             self.collection = self.manager.get_collection(collection_name)
+            # Handle corrupted state: metadata exists but load failed (e.g. directory missing)
+            if self.collection is None:
+                self.manager.delete_collection(collection_name)
+                self.collection = self.manager.create_collection(
+                    {
+                        "name": collection_name,
+                        "backend_type": "VDB",
+                        "description": "Short-term memory collection",
+                    }
+                )
         else:
             self.collection = self.manager.create_collection(
                 {
