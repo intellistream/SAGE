@@ -69,6 +69,8 @@ fix_middleware_cpp_extensions() {
             local search_paths=(
                 "$project_root/packages/sage-middleware/build"
                 "$project_root/packages/sage-middleware/src/sage/middleware/components/${ext}"
+                "$project_root/.sage/build/${ext}"
+                "$project_root/.sage/build/middleware"
             )
 
             for search_path in "${search_paths[@]}"; do
