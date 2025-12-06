@@ -300,9 +300,9 @@ class ChatModeManager(StudioManager):
             console.print(f"   [green]✓[/green] Embedding 服务已启动 (PID: {proc.pid})")
             console.print(f"   日志: {embedding_log}")
 
-            # Wait for service to be ready (up to 60 seconds)
-            console.print("   [dim]等待服务就绪...[/dim]")
-            for i in range(60):
+            # Wait for service to be ready (up to 180 seconds for model download)
+            console.print("   [dim]等待服务就绪 (首次可能需要下载模型)...[/dim]")
+            for i in range(180):
                 try:
                     resp = requests.get(f"http://localhost:{port}/v1/models", timeout=1)
                     if resp.status_code == 200:
@@ -514,11 +514,11 @@ class ChatModeManager(StudioManager):
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
                 )
 
-            # Start Embedding service alongside LLM (unless disabled)
-            if not no_embedding:
-                self._start_embedding_service()
-            else:
-                console.print("[yellow]⚠️  Embedding 服务已禁用 (--no-embedding)[/yellow]")
+        # Start Embedding service (needed for knowledge indexing, independent of LLM)
+        if not no_embedding:
+            self._start_embedding_service()
+        else:
+            console.print("[yellow]⚠️  Embedding 服务已禁用 (--no-embedding)[/yellow]")
 
         # Start Gateway
         if not self._start_gateway(port=self.gateway_port):

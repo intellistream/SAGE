@@ -18,6 +18,7 @@ def start(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="自动确认所有提示（用于 CI/CD 或脚本）"),
     no_gateway: bool = typer.Option(False, "--no-gateway", help="不自动启动 Gateway"),
     no_auto_install: bool = typer.Option(
         False, "--no-auto-install", help="禁用自动安装依赖（如缺少依赖会提示失败）"
@@ -44,7 +45,6 @@ def start(
         "--list-finetuned",
         help="📋 列出可用的微调模型",
     ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="自动确认所有提示（用于 CI/CD 或脚本）"),
 ):
     """启动 SAGE Studio（默认启动本地 LLM）
 

@@ -26,9 +26,11 @@ import {
     Loader,
     Sparkles,
     ArrowRightCircle,
+    Upload as UploadIcon,
 } from 'lucide-react'
 import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
+import FileUpload from './FileUpload'
 import {
     sendChatMessage,
     getChatSessions,
@@ -86,6 +88,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const [recommendationSummary, setRecommendationSummary] = useState<string | null>(null)
     const [recommendationInsights, setRecommendationInsights] = useState<string[]>([])
     const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null)
+    const [isUploadVisible, setIsUploadVisible] = useState(false)
 
     //自动滚动到底部
     useEffect(() => {
@@ -203,7 +206,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             }
             addMessage(sessionId, userMessage)
 
-            // 创建 AI 消息占位符
+            // 创建 AI 消消息占位符
             const assistantMessageId = `msg_${Date.now()}_assistant`
             const assistantMessage: ChatMessage = {
                 id: assistantMessageId,
@@ -616,6 +619,12 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                         <div className="border-t border-gray-200 p-4">
                             <div className="max-w-3xl mx-auto">
                                 <div className="flex gap-2">
+                                    <Tooltip title="Upload Knowledge Base">
+                                        <Button
+                                            icon={<UploadIcon size={16} />}
+                                            onClick={() => setIsUploadVisible(true)}
+                                        />
+                                    </Tooltip>
                                     <TextArea
                                         ref={textAreaRef}
                                         value={currentInput}
@@ -644,6 +653,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     </>
                 )}
             </div>
+            <FileUpload visible={isUploadVisible} onClose={() => setIsUploadVisible(false)} />
         </div>
     )
 }
