@@ -92,6 +92,25 @@ knowledge_sources:
       knowledge_domain: "research_guidance"
 
 
+# 记忆系统配置
+# ============
+memory:
+  enabled: true
+  default_backend: "short_term"
+
+  backends:
+    short_term:
+      max_items: 20
+
+    long_term:
+      enabled: true
+      collection_name: "studio_long_term"
+
+    vdb:
+      collection_prefix: "studio_memory_"
+      embedding_model: "BAAI/bge-small-zh-v1.5"
+
+
 # 向量存储配置
 # =============
 vector_store:

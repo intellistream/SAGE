@@ -196,6 +196,14 @@ class SessionManager:
     def _persist(self) -> None:
         self._storage.save([session.to_dict() for session in self._sessions.values()])
 
+        # 持久化所有记忆服务
+        for service in self._memory_services.values():
+            if hasattr(service, "persist"):
+                try:
+                    service.persist()
+                except Exception as e:
+                    logger.warning(f"Failed to persist memory service: {e}")
+
     def persist(self) -> None:
         """公开持久化方法，便于外部在批量更新后落盘"""
         self._persist()

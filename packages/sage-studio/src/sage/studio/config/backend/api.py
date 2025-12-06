@@ -19,6 +19,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from sage.common.config.ports import SagePorts
+from sage.studio.services.agent_orchestrator import get_orchestrator
+from sage.studio.services.file_upload_service import get_file_upload_service
+from sage.studio.services.memory_integration import get_memory_service
+from sage.studio.services.stream_handler import get_stream_handler
 
 # Gateway URL for API calls
 GATEWAY_BASE_URL = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}"
@@ -1392,6 +1396,14 @@ class ChatRequest(BaseModel):
     stream: bool = False
 
 
+class AgentChatRequest(BaseModel):
+    """Agent 聊天请求"""
+
+    message: str
+    session_id: str
+    history: list[dict[str, str]] | None = None
+
+
 class ChatResponse(BaseModel):
     """Chat 模式响应"""
 
@@ -1472,6 +1484,53 @@ async def send_chat_message(request: ChatRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat 请求失败: {str(e)}")
+
+
+@app.post("/api/chat/agent")
+async def agent_chat(request: AgentChatRequest):
+    """Multi-Agent 聊天接口"""
+    orchestrator = get_orchestrator()
+    stream_handler = get_stream_handler()
+
+    source = orchestrator.process_message(
+        message=request.message,
+        session_id=request.session_id,
+        history=request.history,
+    )
+
+    return stream_handler.create_response(source)
+
+
+@app.post("/api/chat/agent/sync")
+async def agent_chat_sync(request: AgentChatRequest):
+    """非流式 Agent 聊天接口（调试用）"""
+    orchestrator = get_orchestrator()
+
+    steps = []
+    text_parts = []
+
+    async for item in orchestrator.process_message(
+        message=request.message,
+        session_id=request.session_id,
+        history=request.history,
+    ):
+        if hasattr(item, "step_id"):  # AgentStep
+            # Handle both dataclass and Pydantic models
+            if hasattr(item, "to_dict"):
+                steps.append(item.to_dict())
+            elif hasattr(item, "dict"):
+                steps.append(item.dict())
+            else:
+                from dataclasses import asdict
+
+                steps.append(asdict(item))
+        else:  # str
+            text_parts.append(item)
+
+    return {
+        "steps": steps,
+        "response": "".join(text_parts),
+    }
 
 
 @app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
@@ -1581,6 +1640,95 @@ async def delete_chat_session(session_id: str):
             status_code=503,
             detail="无法连接到 SAGE Gateway",
         )
+
+
+@app.get("/api/studio/memory/config")
+async def get_memory_config():
+    """获取记忆配置"""
+    import logging
+    from pathlib import Path
+
+    import yaml
+
+    # 默认配置
+    config = {
+        "enabled": True,
+        "backends": ["short_term", "long_term"],
+        "short_term": {"max_items": 20},
+        "long_term": {"enabled": True},
+    }
+
+    try:
+        # 尝试加载配置文件
+        # api.py 在 sage/studio/config/backend/
+        # knowledge_sources.yaml 在 sage/studio/config/
+        current_dir = Path(__file__).parent
+        config_path = current_dir.parent / "knowledge_sources.yaml"
+
+        if config_path.exists():
+            with open(config_path, encoding="utf-8") as f:
+                yaml_data = yaml.safe_load(f)
+                if "memory" in yaml_data:
+                    mem_config = yaml_data["memory"]
+                    config["enabled"] = mem_config.get("enabled", True)
+
+                    # 更新 backends 列表
+                    if "backends" in mem_config:
+                        config["backends"] = list(mem_config["backends"].keys())
+
+                        # 更新具体后端配置
+                        if "short_term" in mem_config["backends"]:
+                            config["short_term"] = mem_config["backends"]["short_term"]
+                        if "long_term" in mem_config["backends"]:
+                            config["long_term"] = mem_config["backends"]["long_term"]
+    except Exception as e:
+        logging.error(f"Failed to load memory config: {e}")
+
+    logging.info(f"Returning memory config: {config}")
+    return config
+
+
+@app.get("/api/chat/memory/stats")
+async def get_memory_stats(session_id: str):
+    """获取记忆统计"""
+    service = get_memory_service(session_id)
+    return await service.get_summary()
+
+
+@app.post("/api/uploads")
+async def upload_file(file: UploadFile = File(...)):
+    """上传文件"""
+    from dataclasses import asdict
+
+    service = get_file_upload_service()
+    try:
+        # UploadFile.file is a SpooledTemporaryFile which is a file-like object
+        metadata = await service.upload_file(file.file, file.filename)
+        return asdict(metadata)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@app.get("/api/uploads")
+async def list_uploaded_files():
+    """获取已上传文件列表"""
+    from dataclasses import asdict
+
+    service = get_file_upload_service()
+    files = service.list_files()
+    return [asdict(f) for f in files]
+
+
+@app.delete("/api/uploads/{file_id}")
+async def delete_uploaded_file(file_id: str):
+    """删除已上传文件"""
+    service = get_file_upload_service()
+    success = service.delete_file(file_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"success": True, "file_id": file_id}
 
 
 class WorkflowGenerateRequest(BaseModel):
