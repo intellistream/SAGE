@@ -44,7 +44,7 @@ class SLOComplianceExperiment(BaseExperiment):
     Example:
         exp = SLOComplianceExperiment(
             name="slo_compliance",
-            control_plane_url="http://localhost:8000",
+            control_plane_url="http://localhost:8888",
             load_levels=[50, 100, 200],
         )
         result = await exp.run_full()
@@ -53,7 +53,7 @@ class SLOComplianceExperiment(BaseExperiment):
     def __init__(
         self,
         name: str,
-        control_plane_url: str = "http://localhost:8000",
+        control_plane_url: str = "http://localhost:8888",
         load_levels: list[int] | None = None,
         num_requests: int = 500,
         llm_ratio: float = 0.5,

@@ -120,6 +120,7 @@ repos:
         "^docs/assets/"
         "^docs/security/"
         "^docs-public/"
+        "^docker/.*\.md$"  # Allow any .md in docker directory (deployment docs)
         "^packages/.*/README\.md$"
         "^packages/.*README.*\.md$"  # Allow README variants like README_LIBAMM.md
         "^packages/.*/CHANGELOG\.md$"
@@ -371,6 +372,7 @@ repos:
         ".vscode"
         "build"
         "config"
+        "docker"
         "docs"
         "docs-public"
         "examples"

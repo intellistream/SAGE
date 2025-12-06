@@ -7,8 +7,26 @@
 import axios from 'axios'
 import type { Node } from 'reactflow'
 
-// API 基础 URL (由 Vite 代理到 localhost:8080)
-const API_BASE_URL = '/api'
+// API 基础 URL
+// 开发模式: 使用 Vite 代理 /api -> localhost:8888
+// 生产模式: 直接请求 Gateway（同域或通过环境变量配置）
+const getApiBaseUrl = (): string => {
+    // 如果有环境变量配置，优先使用
+    if (import.meta.env.VITE_API_BASE_URL) {
+        return import.meta.env.VITE_API_BASE_URL
+    }
+    // 生产模式下，假设 Gateway 与前端同域（通过反向代理）
+    // 或者前端与 Gateway 在同一台机器上
+    if (import.meta.env.PROD) {
+        // 使用相对路径，依赖反向代理或同域部署
+        // 如果前端和 Gateway 分离，需要配置 VITE_API_BASE_URL
+        return '/api'
+    }
+    // 开发模式使用代理
+    return '/api'
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 // Axios 实例
 const apiClient = axios.create({
@@ -19,7 +37,56 @@ const apiClient = axios.create({
     },
 })
 
+// Auth Interceptor
+apiClient.interceptors.request.use((config) => {
+    try {
+        const storage = localStorage.getItem('sage-auth-storage')
+        if (storage) {
+            const { state } = JSON.parse(storage)
+            if (state?.token) {
+                config.headers.Authorization = `Bearer ${state.token}`
+            }
+        }
+    } catch (e) {
+        // Ignore parsing errors
+    }
+    return config
+})
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+        }
+        return Promise.reject(error)
+    }
+)
+
 // ==================== 类型定义 ====================
+
+// Auth Types
+export interface User {
+    id: number
+    username: string
+    created_at: string
+    is_guest?: boolean
+}
+
+export interface LoginCredentials {
+    username: string
+    password: string
+}
+
+export interface RegisterCredentials {
+    username: string
+    password: string
+}
+
+export interface TokenResponse {
+    access_token: string
+    token_type: string
+}
 
 // 参数配置接口
 export interface ParameterConfig {
@@ -116,6 +183,38 @@ export interface JobLogs {
 }
 
 // ==================== API 方法 ====================
+
+// Auth API
+export const login = async (credentials: LoginCredentials): Promise<TokenResponse> => {
+    const params = new URLSearchParams()
+    params.append('username', credentials.username)
+    params.append('password', credentials.password)
+    const response = await apiClient.post<TokenResponse>('/auth/login', params, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    })
+    return response.data
+}
+
+export const loginGuest = async (): Promise<TokenResponse> => {
+    const response = await apiClient.post<TokenResponse>('/auth/guest')
+    return response.data
+}
+
+export const logout = async (): Promise<void> => {
+    await apiClient.post('/auth/logout')
+}
+
+export const register = async (credentials: RegisterCredentials): Promise<User> => {
+    const response = await apiClient.post<User>('/auth/register', credentials)
+    return response.data
+}
+
+export const getCurrentUser = async (): Promise<User> => {
+    const response = await apiClient.get<User>('/auth/me')
+    return response.data
+}
 
 /**
  * 健康检查

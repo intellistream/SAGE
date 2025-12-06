@@ -233,7 +233,7 @@ python -m sage.common.components.sage_embedding.embedding_server \
 ### 端口与配置
 
 - 端口全部来自 `sage.common.config.ports.SagePorts`（禁止硬编码）
-- 常用端口：`SagePorts.GATEWAY_DEFAULT=8000`, `SagePorts.LLM_DEFAULT=8001`,
+- 常用端口：`SagePorts.GATEWAY_DEFAULT` | 8888`, `SagePorts.LLM_DEFAULT=8001`,
   `SagePorts.BENCHMARK_LLM=8901`, `SagePorts.EMBEDDING_DEFAULT=8090`
 - WSL2 建议使用 `SagePorts.get_recommended_llm_port()` 获取可用 LLM 端口
 

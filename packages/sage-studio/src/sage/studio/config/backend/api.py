@@ -17,6 +17,21 @@ import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from datetime import timedelta
+from typing import Annotated
+
+from fastapi import Depends, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
+from sage.common.config.user_paths import get_user_data_dir as get_common_user_data_dir
+from sage.studio.services.auth_service import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    AuthService,
+    Token,
+    User,
+    UserCreate,
+    get_auth_service,
+)
 
 from sage.common.config.ports import SagePorts
 from sage.studio.services.agent_orchestrator import get_orchestrator
@@ -25,7 +40,8 @@ from sage.studio.services.memory_integration import get_memory_service
 from sage.studio.services.stream_handler import get_stream_handler
 
 # Gateway URL for API calls
-GATEWAY_BASE_URL = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}"
+# Use 127.0.0.1 instead of localhost to avoid IPv6 issues and ensure consistent behavior
+GATEWAY_BASE_URL = f"http://127.0.0.1:{SagePorts.GATEWAY_DEFAULT}"
 
 # Load environment variables from .env file
 try:
@@ -181,6 +197,29 @@ def _get_sage_dir() -> Path:
     return sage_dir
 
 
+def get_user_data_dir(user_id: str) -> Path:
+    """Get user-specific data directory."""
+    # Use the common user data dir as base
+    base_dir = get_common_user_data_dir()
+    user_dir = base_dir / "users" / str(user_id)
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
+
+
+def get_user_pipelines_dir(user_id: str) -> Path:
+    """Get user-specific pipelines directory."""
+    pipelines_dir = get_user_data_dir(user_id) / "pipelines"
+    pipelines_dir.mkdir(parents=True, exist_ok=True)
+    return pipelines_dir
+
+
+def get_user_sessions_dir(user_id: str) -> Path:
+    """Get user-specific sessions directory."""
+    sessions_dir = get_user_data_dir(user_id) / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    return sessions_dir
+
+
 # Pydantic 模型定义
 class Job(BaseModel):
     jobId: str
@@ -232,6 +271,31 @@ class OperatorInfo(BaseModel):
     parameters: list[ParameterConfig] | None = []  # 添加参数配置字段
 
 
+# Auth Dependency
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> User:
+    username = auth_service.verify_token(token)
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = auth_service.get_user(username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return User(id=user.id, username=user.username, created_at=user.created_at)
+
+
 # 创建 FastAPI 应用
 app = FastAPI(
     title="SAGE Studio Backend",
@@ -245,6 +309,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite 开发服务器默认端口
         "http://localhost:4173",  # Vite preview 服务器默认端口
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:4173",
         "http://0.0.0.0:5173",
         "http://0.0.0.0:4173",
     ],
@@ -254,14 +320,101 @@ app.add_middleware(
 )
 
 
-def _read_sage_data_from_files():
+# Auth Endpoints
+@app.post("/api/auth/register", response_model=User)
+async def register(
+    user: UserCreate,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    db_user = auth_service.get_user(user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return auth_service.create_user(user.username, user.password)
+
+
+@app.post("/api/auth/login", response_model=Token)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    # Strip whitespace from username to match registration behavior
+    username = form_data.username.strip()
+    user = auth_service.get_user(username)
+    
+    if not user or not auth_service.verify_password(
+        form_data.password, user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/api/auth/guest", response_model=Token)
+async def login_guest(
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    user = auth_service.create_guest_user()
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/auth/me", response_model=User)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return current_user
+
+
+@app.post("/api/auth/logout")
+async def logout(
+    current_user: Annotated[User, Depends(get_current_user)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    if getattr(current_user, "is_guest", False):
+        # Clean up guest data
+        import shutil
+        
+        # Delete user from DB
+        auth_service.delete_user(current_user.id)
+        
+        # Delete user data directory
+        # Use the local get_user_data_dir function defined in this file
+        user_dir = get_user_data_dir(str(current_user.id))
+        if user_dir.exists():
+            try:
+                shutil.rmtree(user_dir)
+            except Exception as e:
+                print(f"Error deleting guest data: {e}")
+
+    return {"message": "Successfully logged out"}
+
+
+def _read_sage_data_from_files(user_id: str | None = None):
     """从 .sage 目录的文件中读取实际的 SAGE 数据"""
-    sage_dir = _get_sage_dir()
+    # Global dir for system data
+    global_sage_dir = _get_sage_dir()
+
+    # User dir for user data
+    if user_id:
+        user_sage_dir = get_user_data_dir(user_id)
+    else:
+        user_sage_dir = global_sage_dir
+
     data = {"jobs": [], "operators": [], "pipelines": []}
 
     try:
         # 读取作业信息
-        states_dir = sage_dir / "states"
+        states_dir = user_sage_dir / "states"
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
@@ -272,7 +425,7 @@ def _read_sage_data_from_files():
                     print(f"Error reading job file {job_file}: {e}")
 
         # 读取保存的拓扑图并转换为 Job 格式
-        pipelines_dir = sage_dir / "pipelines"
+        pipelines_dir = user_sage_dir / "pipelines"
         if pipelines_dir.exists():
             for pipeline_file in pipelines_dir.glob("pipeline_*.json"):
                 try:
@@ -287,7 +440,7 @@ def _read_sage_data_from_files():
                     print(f"Error reading pipeline file {pipeline_file}: {e}")
 
         # 读取操作符信息
-        operators_file = sage_dir / "output" / "operators.json"
+        operators_file = global_sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
                 with open(operators_file, encoding="utf-8") as f:
@@ -297,7 +450,7 @@ def _read_sage_data_from_files():
                 print(f"Error reading operators file: {e}")
 
         # 读取管道信息
-        pipelines_file = sage_dir / "output" / "pipelines.json"
+        pipelines_file = global_sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
                 with open(pipelines_file) as f:
@@ -319,13 +472,15 @@ async def root():
 
 
 @app.get("/api/jobs/all", response_model=list[Job])
-async def get_all_jobs():
+async def get_all_jobs(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取所有作业信息"""
     try:
-        sage_data = _read_sage_data_from_files()
+        sage_data = _read_sage_data_from_files(user_id=str(current_user.id))
         jobs = sage_data.get("jobs", [])
 
-        print(f"DEBUG: Read {len(jobs)} jobs from files")
+        print(f"DEBUG: Read {len(jobs)} jobs from files for user {current_user.username}")
         print(f"DEBUG: sage_data = {sage_data}")
 
         # 如果没有实际数据，返回一些示例数据（用于开发）
@@ -610,15 +765,16 @@ async def get_pipelines():
 
 
 @app.post("/api/pipeline/submit")
-async def submit_pipeline(topology_data: dict):
+async def submit_pipeline(
+    topology_data: dict,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """提交拓扑图/管道配置"""
     try:
-        print(f"Received pipeline submission: {topology_data}")
+        print(f"Received pipeline submission from {current_user.username}: {topology_data}")
 
         # 这里可以添加保存到文件或数据库的逻辑
-        sage_dir = _get_sage_dir()
-        pipelines_dir = sage_dir / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
+        pipelines_dir = get_user_pipelines_dir(str(current_user.id))
 
         # 生成文件名（使用时间戳）
         import time
@@ -930,13 +1086,15 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
 # ==================== Playground API ====================
 
 
-def _load_flow_data(flow_id: str) -> dict | None:
+def _load_flow_data(flow_id: str, user_id: str | None = None) -> dict | None:
     """加载 Flow 数据"""
-    sage_dir = _get_sage_dir()
-    pipelines_dir = sage_dir / "pipelines"
+    if user_id:
+        pipelines_dir = get_user_pipelines_dir(user_id)
+    else:
+        sage_dir = _get_sage_dir()
+        pipelines_dir = sage_dir / "pipelines"
 
     print(f"🔍 Looking for flow: {flow_id}")
-    print(f"📁 Sage dir: {sage_dir}")
     print(f"📁 Pipelines dir: {pipelines_dir}")
     print(f"📁 Pipelines dir exists: {pipelines_dir.exists()}")
 
@@ -1103,7 +1261,10 @@ class PlaygroundExecuteResponse(BaseModel):
 
 
 @app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
-async def execute_playground(request: PlaygroundExecuteRequest):
+async def execute_playground(
+    request: PlaygroundExecuteRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """执行 Playground Flow - 使用增强的 PipelineBuilder"""
     try:
         import sys
@@ -1121,13 +1282,14 @@ async def execute_playground(request: PlaygroundExecuteRequest):
 
         print(f"\n{'=' * 60}")
         print("🎯 Playground 执行开始")
+        print(f"   User: {current_user.username}")
         print(f"   Flow ID: {request.flowId}")
         print(f"   Session: {request.sessionId}")
         print(f"   Input: {request.input[:100]}...")
         print(f"{'=' * 60}\n")
 
         # 1. 加载 Flow 定义
-        flow_data = _load_flow_data(request.flowId)
+        flow_data = _load_flow_data(request.flowId, user_id=str(current_user.id))
         if not flow_data:
             raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
 
@@ -1221,10 +1383,13 @@ async def get_node_output(flow_id: str, node_id: str):
 
 # 2. Flow 导入/导出
 @app.get("/api/flows/{flow_id}/export")
-async def export_flow(flow_id: str):
+async def export_flow(
+    flow_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """导出 Flow 为 JSON 文件"""
     try:
-        flow_data = _load_flow_data(flow_id)
+        flow_data = _load_flow_data(flow_id, user_id=str(current_user.id))
         if not flow_data:
             raise HTTPException(404, f"Flow not found: {flow_id}")
 
@@ -1254,7 +1419,10 @@ async def export_flow(flow_id: str):
 
 
 @app.post("/api/flows/import")
-async def import_flow(file: UploadFile = File(...)):
+async def import_flow(
+    current_user: Annotated[User, Depends(get_current_user)],
+    file: UploadFile = File(...),
+):
     """导入 Flow JSON 文件"""
     try:
         import json
@@ -1275,9 +1443,7 @@ async def import_flow(file: UploadFile = File(...)):
         new_flow_id = f"pipeline_{timestamp}"
 
         # 保存到本地
-        sage_dir = _get_sage_dir()
-        pipelines_dir = sage_dir / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
+        pipelines_dir = get_user_pipelines_dir(str(current_user.id))
 
         flow_file = pipelines_dir / f"{new_flow_id}.json"
         with open(flow_file, "w", encoding="utf-8") as f:
@@ -1435,27 +1601,86 @@ class ChatSessionTitleUpdate(BaseModel):
     title: str
 
 
+def _get_session_path(user_id: str, session_id: str) -> Path:
+    return get_user_sessions_dir(user_id) / f"{session_id}.json"
+
+
+def _load_session(user_id: str, session_id: str) -> dict | None:
+    path = _get_session_path(user_id, session_id)
+    if path.exists():
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading session {path}: {e}")
+    return None
+
+
+def _save_session(user_id: str, session_id: str, data: dict):
+    path = _get_session_path(user_id, session_id)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
 @app.post("/api/chat/message", response_model=ChatResponse)
-async def send_chat_message(request: ChatRequest):
+async def send_chat_message(
+    request: ChatRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """
     发送聊天消息（调用 sage-gateway）
 
     注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
     """
     from datetime import datetime
+    import uuid
 
     import httpx
 
+    # 1. Handle Session
+    session_id = request.session_id
+    session_data = None
+    user_id = str(current_user.id)
+    
+    if session_id:
+        session_data = _load_session(user_id, session_id)
+    
+    if not session_data:
+        # Create new session if not found or not provided
+        session_id = session_id or str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        session_data = {
+            "id": session_id,
+            "title": "New Chat",
+            "created_at": now,
+            "last_active": now,
+            "messages": [],
+            "metadata": {}
+        }
+
+    # 2. Append User Message
+    user_msg = {
+        "role": "user",
+        "content": request.message,
+        "timestamp": datetime.now().isoformat()
+    }
+    session_data["messages"].append(user_msg)
+    session_data["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session_data)
+
     try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        # We pass the session_id to gateway as well, so it can maintain its own state if needed,
+        # or we can pass full history if gateway is stateless.
+        # For now, let's pass session_id.
+        async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
                     "model": request.model,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
-                    "session_id": request.session_id,
+                    "session_id": session_id, # Pass session_id to gateway
                 },
             )
 
@@ -1468,11 +1693,20 @@ async def send_chat_message(request: ChatRequest):
             data = gateway_response.json()
 
             # 提取响应内容
-            assistant_message = data["choices"][0]["message"]["content"]
-            session_id = data.get("id", request.session_id or "default")
+            assistant_content = data["choices"][0]["message"]["content"]
+            
+            # 3. Append Assistant Message
+            assistant_msg = {
+                "role": "assistant",
+                "content": assistant_content,
+                "timestamp": datetime.now().isoformat()
+            }
+            session_data["messages"].append(assistant_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
 
             return ChatResponse(
-                content=assistant_message,
+                content=assistant_content,
                 session_id=session_id,
                 timestamp=datetime.now().isoformat(),
             )
@@ -1534,112 +1768,131 @@ async def agent_chat_sync(request: AgentChatRequest):
 
 
 @app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
-async def list_chat_sessions():
+async def list_chat_sessions(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取所有聊天会话"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{GATEWAY_BASE_URL}/sessions")
-            data = response.json()
-            return data.get("sessions", [])
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503,
-            detail="无法连接到 SAGE Gateway",
-        )
+    sessions_dir = get_user_sessions_dir(str(current_user.id))
+    sessions = []
+    if sessions_dir.exists():
+        for session_file in sessions_dir.glob("*.json"):
+            try:
+                with open(session_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Convert to summary
+                    sessions.append(ChatSessionSummary(
+                        id=data["id"],
+                        title=data.get("title", "Untitled Session"),
+                        created_at=data.get("created_at", ""),
+                        last_active=data.get("last_active", ""),
+                        message_count=len(data.get("messages", []))
+                    ))
+            except Exception as e:
+                print(f"Error reading session {session_file}: {e}")
+    
+    # Sort by last_active desc
+    sessions.sort(key=lambda x: x.last_active, reverse=True)
+    return sessions
 
 
 @app.post("/api/chat/sessions", response_model=ChatSessionDetail)
-async def create_chat_session(payload: ChatSessionCreateRequest):
+async def create_chat_session(
+    payload: ChatSessionCreateRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """创建新的聊天会话"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(f"{GATEWAY_BASE_URL}/sessions", json=payload.model_dump())
-            if response.status_code >= 400:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    import uuid
+    from datetime import datetime
+    
+    session_id = str(uuid.uuid4())
+    now = datetime.now().isoformat()
+    
+    session_data = {
+        "id": session_id,
+        "title": payload.title or "New Session",
+        "created_at": now,
+        "last_active": now,
+        "message_count": 0,
+        "messages": [],
+        "metadata": {}
+    }
+    
+    _save_session(str(current_user.id), session_id, session_data)
+    
+    return ChatSessionDetail(**session_data)
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
-async def get_chat_session(session_id: str):
+async def get_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取单个会话详情"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    session = _load_session(str(current_user.id), session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return ChatSessionDetail(**session)
 
 
 @app.post("/api/chat/sessions/{session_id}/clear")
-async def clear_chat_session(session_id: str):
+async def clear_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """清空会话历史"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(f"{GATEWAY_BASE_URL}/sessions/{session_id}/clear")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    from datetime import datetime
+    
+    user_id = str(current_user.id)
+    session = _load_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    
+    session["messages"] = []
+    session["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session)
+    
+    return {"status": "success", "message": "Session cleared"}
 
 
 @app.patch("/api/chat/sessions/{session_id}/title", response_model=ChatSessionSummary)
-async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUpdate):
+async def update_chat_session_title(
+    session_id: str,
+    payload: ChatSessionTitleUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """更新会话标题"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.patch(
-                f"{GATEWAY_BASE_URL}/sessions/{session_id}/title",
-                json=payload.model_dump(),
-            )
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            # 更新后重新获取一次会话摘要，避免缺字段
-            detail_resp = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            detail_resp.raise_for_status()
-            detail = detail_resp.json()
-            return ChatSessionSummary(
-                id=detail["id"],
-                title=detail.get("metadata", {}).get("title", payload.title),
-                created_at=detail.get("created_at"),
-                last_active=detail.get("last_active"),
-                message_count=len(detail.get("messages", [])),
-            )
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    from datetime import datetime
+    
+    user_id = str(current_user.id)
+    session = _load_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    
+    session["title"] = payload.title
+    session["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session)
+    
+    return ChatSessionSummary(
+        id=session["id"],
+        title=session["title"],
+        created_at=session["created_at"],
+        last_active=session["last_active"],
+        message_count=len(session["messages"])
+    )
 
 
 @app.delete("/api/chat/sessions/{session_id}")
-async def delete_chat_session(session_id: str):
+async def delete_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """删除聊天会话"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.delete(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503,
-            detail="无法连接到 SAGE Gateway",
-        )
+    user_id = str(current_user.id)
+    path = _get_session_path(user_id, session_id)
+    if path.exists():
+        path.unlink()
+        return {"status": "success", "message": "Session deleted"}
+    raise HTTPException(404, "Session not found")
 
 
 @app.get("/api/studio/memory/config")
@@ -1900,7 +2153,7 @@ async def generate_workflow_advanced(request: WorkflowGenerateRequest):
     session_messages = None
     if request.session_id:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
                 response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{request.session_id}")
                 if response.status_code == 200:
                     session = response.json()
@@ -2706,4 +2959,6 @@ async def test_dataset_source(source_name: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)  # 修改为监听所有网络接口
+    # NOTE: 后端 API 已合并到 Gateway，推荐通过 sage gateway start 启动。
+    # 此处保留用于独立调试，生产环境请使用 Gateway。
+    uvicorn.run(app, host="0.0.0.0", port=SagePorts.GATEWAY_DEFAULT)
