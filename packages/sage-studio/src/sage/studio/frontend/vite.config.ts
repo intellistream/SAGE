@@ -33,5 +33,13 @@ export default defineConfig({
         port: 5173,
         // Allow all external hosts (Cloudflare Tunnel, custom domains, etc.)
         allowedHosts: true,
+        proxy: {
+            // 所有 Studio API 统一转发到 Gateway (8000)
+            '/api': {
+                target: 'http://localhost:8888',
+                changeOrigin: true,
+                rewrite: (path) => path,
+            },
+        },
     },
 })

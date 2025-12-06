@@ -25,7 +25,8 @@ from sage.studio.services.memory_integration import get_memory_service
 from sage.studio.services.stream_handler import get_stream_handler
 
 # Gateway URL for API calls
-GATEWAY_BASE_URL = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}"
+# Use 127.0.0.1 instead of localhost to avoid IPv6 issues and ensure consistent behavior
+GATEWAY_BASE_URL = f"http://127.0.0.1:{SagePorts.GATEWAY_DEFAULT}"
 
 # Load environment variables from .env file
 try:
@@ -1448,7 +1449,7 @@ async def send_chat_message(request: ChatRequest):
 
     try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
@@ -1539,7 +1540,7 @@ async def list_chat_sessions():
     import httpx
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.get(f"{GATEWAY_BASE_URL}/sessions")
             data = response.json()
             return data.get("sessions", [])
@@ -1556,7 +1557,7 @@ async def create_chat_session(payload: ChatSessionCreateRequest):
     import httpx
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.post(f"{GATEWAY_BASE_URL}/sessions", json=payload.model_dump())
             if response.status_code >= 400:
                 raise HTTPException(status_code=response.status_code, detail=response.text)
@@ -1571,7 +1572,7 @@ async def get_chat_session(session_id: str):
     import httpx
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="会话不存在")
@@ -1587,7 +1588,7 @@ async def clear_chat_session(session_id: str):
     import httpx
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.post(f"{GATEWAY_BASE_URL}/sessions/{session_id}/clear")
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="会话不存在")
@@ -1603,7 +1604,7 @@ async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUp
     import httpx
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.patch(
                 f"{GATEWAY_BASE_URL}/sessions/{session_id}/title",
                 json=payload.model_dump(),
@@ -1632,7 +1633,7 @@ async def delete_chat_session(session_id: str):
     import httpx
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.delete(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
             return response.json()
     except httpx.ConnectError:
@@ -1900,7 +1901,7 @@ async def generate_workflow_advanced(request: WorkflowGenerateRequest):
     session_messages = None
     if request.session_id:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
                 response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{request.session_id}")
                 if response.status_code == 200:
                     session = response.json()
