@@ -73,38 +73,17 @@ jobs:
           echo "✅ Conda 环境: $(conda info --envs | grep '*')"
           python --version
 
-      - name: Stop existing services
+      # NOTE: 服务会在 "Stop and restart services" 步骤中停止
+      # 这样可以减少停机时间：先完成构建，再停止旧服务并启动新服务
+      - name: Check current service status
         continue-on-error: true
         run: |
-          echo "🛑 停止现有服务..."
-
-          # 停止新的多服务架构
-          for svc in sage-frontend sage-gateway sage-embedding sage-llm sage-studio; do
-            sudo systemctl stop $svc 2>/dev/null || true
+          echo "📊 检查当前服务状态..."
+          for svc in sage-frontend sage-gateway sage-embedding sage-llm; do
+            status=$(systemctl is-active $svc 2>/dev/null || echo "not-found")
+            echo "  $svc: $status"
           done
-          # 停止 nginx（可能是独立安装的）
-          sudo systemctl stop nginx 2>/dev/null || true
-
-          # 清理残留进程
-          pkill -f "sage studio" || true
-          pkill -f "vllm.entrypoints" || true
-          pkill -f "embedding_server" || true
-          pkill -f "sage-gateway" || true
-          pkill -f "npm.*preview" || true
-
-          # 清理端口
-          for port in 5173 8888 8901 8090; do
-            fuser -k $port/tcp 2>/dev/null || true
-          done
-
-          # 清理 GPU
-          echo "🔧 清理 GPU 显存..."
-          GPU_PIDS=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | tr -d ' ' | sort -u)
-          for pid in $GPU_PIDS; do
-            [ -n "$pid" ] && sudo kill -9 $pid 2>/dev/null || true
-          done
-          sleep 3
-
+          echo ""
           echo "GPU 状态:"
           nvidia-smi --query-gpu=index,memory.used,memory.free --format=csv 2>/dev/null || true
 
@@ -529,6 +508,34 @@ jobs:
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python --version
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.gateway; print('Gateway import OK')"
 
+
+      - name: Stop existing services before restart
+        run: |
+          echo "🛑 停止现有服务（准备重启）..."
+
+          # 按反向依赖顺序停止
+          for svc in sage-frontend sage-gateway sage-embedding sage-llm; do
+            if systemctl is-active --quiet $svc 2>/dev/null; then
+              echo "停止 $svc..."
+              sudo systemctl stop $svc || true
+            else
+              echo "$svc 未运行"
+            fi
+          done
+
+          # 释放 GPU 显存
+          echo "🧹 清理 GPU 显存..."
+          pkill -f "vllm" || true
+          pkill -f "embedding" || true
+          sleep 3
+
+          # 显示 GPU 状态
+          if command -v nvidia-smi &> /dev/null; then
+            echo "📊 GPU 状态："
+            nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
+          fi
+
+          echo "✅ 服务已停止，GPU 显存已释放"
 
       - name: Start services
         run: |
