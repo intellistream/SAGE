@@ -26,7 +26,6 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import Playground from './Playground'
 import Settings from './Settings'
 import type { AppMode } from '../App'
-import type { MenuProps } from 'antd'
 
 interface ToolbarProps {
     mode: AppMode
