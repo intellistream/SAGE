@@ -61,11 +61,15 @@ class AgentOrchestrator:
         try:
             from sage.studio.tools.arxiv_search import ArxivSearchTool
             from sage.studio.tools.knowledge_search import KnowledgeSearchTool
+            from sage.studio.tools.middleware_adapter import NatureNewsTool
 
             self.tools.register(KnowledgeSearchTool(self.knowledge_manager))
             self.tools.register(ArxivSearchTool())
-        except ImportError:
-            logger.warning("Builtin tools not found, skipping registration.")
+            
+            # 注册新的 Middleware 适配工具
+            self.tools.register(NatureNewsTool())
+        except ImportError as e:
+            logger.warning(f"Builtin tools not found or failed to load: {e}")
 
     def _make_step(
         self, type: str, content: str, status: str = "completed", **metadata
