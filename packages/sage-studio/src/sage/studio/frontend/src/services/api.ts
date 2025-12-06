@@ -188,17 +188,17 @@ export const login = async (credentials: LoginCredentials): Promise<TokenRespons
     const formData = new FormData()
     formData.append('username', credentials.username)
     formData.append('password', credentials.password)
-    const response = await apiClient.post<TokenResponse>('/token', formData)
+    const response = await apiClient.post<TokenResponse>('/auth/login', formData)
     return response.data
 }
 
 export const register = async (credentials: RegisterCredentials): Promise<User> => {
-    const response = await apiClient.post<User>('/register', credentials)
+    const response = await apiClient.post<User>('/auth/register', credentials)
     return response.data
 }
 
 export const getCurrentUser = async (): Promise<User> => {
-    const response = await apiClient.get<User>('/users/me')
+    const response = await apiClient.get<User>('/auth/me')
     return response.data
 }
 
