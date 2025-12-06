@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Button, Space, Tooltip, Modal, Input, message, List, Upload, Segmented } from 'antd'
+import { Button, Space, Tooltip, Modal, Input, message, List, Upload, Segmented, Dropdown, Avatar } from 'antd'
+import { UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import {
     Play,
     Square,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
+import { useAuthStore } from '../store/authStore'
 import { submitFlow, getAllJobs, startJob, stopJob, exportFlow, importFlow } from '../services/api'
 import { useJobStatusPolling } from '../hooks/useJobStatusPolling'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -48,6 +50,7 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
     } = useFlowStore()
 
     const { setIsOpen: setPlaygroundOpen } = usePlaygroundStore()
+    const { user, logout, isAuthenticated } = useAuthStore()
 
     const [saveModalOpen, setSaveModalOpen] = useState(false)
     const [loadModalOpen, setLoadModalOpen] = useState(false)
@@ -510,6 +513,51 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                 onClick={() => setSettingsOpen(true)}
                             />
                         </Tooltip>
+
+                        {/* 如果未认证，显示登录按钮；已认证（包括 guest）显示头像菜单 */}
+                        {!isAuthenticated ? (
+                            <Button type="primary" onClick={() => (window.location.href = '/login')}>
+                                Login
+                            </Button>
+                        ) : (
+                            <Dropdown
+                                menu={{
+                                    items: [
+                                        {
+                                            key: 'user',
+                                            label: user?.username || 'User',
+                                            icon: <UserOutlined />,
+                                            disabled: true,
+                                        },
+                                        {
+                                            type: 'divider',
+                                        },
+                                        ...(user?.is_guest
+                                            ? [
+                                                  {
+                                                      key: 'login',
+                                                      label: 'Login / Sign up',
+                                                      icon: <UserOutlined />,
+                                                      onClick: () => (window.location.href = '/login'),
+                                                  },
+                                              ]
+                                            : []),
+                                        {
+                                            key: 'logout',
+                                            label: user?.is_guest ? 'Exit Guest Mode' : 'Logout',
+                                            icon: <LogoutOutlined />,
+                                            onClick: logout,
+                                            danger: true,
+                                        },
+                                    ],
+                                }}
+                                placement="bottomRight"
+                            >
+                                <Avatar style={{ backgroundColor: '#1890ff', cursor: 'pointer' }} icon={<UserOutlined />}>
+                                    {user?.username?.[0]?.toUpperCase()}
+                                </Avatar>
+                            </Dropdown>
+                        )}
                     </Space>
                 </div>
             </div>

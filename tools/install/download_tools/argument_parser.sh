@@ -66,7 +66,7 @@ source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
-AUTO_CONFIRM=false
+AUTO_CONFIRM=${AUTO_CONFIRM:-false}
 SHOW_HELP=false
 CLEAN_PIP_CACHE=true
 RUN_DOCTOR=false

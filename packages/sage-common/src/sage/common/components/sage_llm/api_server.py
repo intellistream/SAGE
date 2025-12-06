@@ -28,40 +28,79 @@ logger = get_logger(__name__)
 
 
 def _select_available_gpus(
-    required_memory_gb: float,
+    required_memory_gb: float | None = None,
     tensor_parallel_size: int = 1,
 ) -> list[int] | None:
-    """Select GPUs with sufficient available memory.
+    """Select GPUs with most available memory.
 
-    Uses GPUResourceManager to find GPUs with enough free memory for LLM inference.
+    If required_memory_gb is specified, selects GPUs with at least that much free memory.
+    Otherwise, selects the GPU(s) with the most free memory available.
 
     Args:
-        required_memory_gb: Required free memory per GPU in GB
+        required_memory_gb: Minimum required free memory per GPU in GB (optional)
         tensor_parallel_size: Number of GPUs needed
 
     Returns:
-        List of GPU IDs with sufficient memory, or None if not available
+        List of GPU IDs sorted by free memory (descending), or None if not available
     """
     try:
-        from sage.common.components.sage_llm.sageLLM.control_plane import GPUResourceManager
-    except ImportError:
-        logger.debug("GPUResourceManager not available, using default GPU selection")
-        return None
+        import subprocess
 
-    try:
-        gpu_manager = GPUResourceManager()
-        available_gpus = gpu_manager.allocate_resources(required_memory_gb, tensor_parallel_size)
-        if available_gpus and len(available_gpus) >= tensor_parallel_size:
-            logger.info(f"Selected GPUs with sufficient memory: {available_gpus}")
-            # NOTE: We don't actually reserve the memory since we're just selecting
-            # Release the "allocation" immediately - we only needed to find available GPUs
-            gpu_manager.release_resources(available_gpus, required_memory_gb)
-            return available_gpus
-        else:
-            logger.warning(
-                f"Could not find {tensor_parallel_size} GPUs with {required_memory_gb}GB free"
-            )
+        # Use nvidia-smi to get GPU memory info
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            logger.debug("nvidia-smi failed, using default GPU selection")
             return None
+
+        # Parse output: "0, 79000\n1, 22000\n"
+        gpu_memory = []
+        for line in result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split(",")
+                if len(parts) >= 2:
+                    gpu_id = int(parts[0].strip())
+                    free_mb = int(parts[1].strip())
+                    free_gb = free_mb / 1024.0
+                    gpu_memory.append((gpu_id, free_gb))
+
+        if not gpu_memory:
+            logger.debug("No GPUs found")
+            return None
+
+        # Sort by free memory (descending)
+        gpu_memory.sort(key=lambda x: x[1], reverse=True)
+
+        logger.info(f"GPU memory status: {[(f'GPU{g[0]}: {g[1]:.1f}GB free') for g in gpu_memory]}")
+
+        # Select GPUs with most free memory
+        if required_memory_gb:
+            # Filter GPUs with enough memory
+            suitable_gpus = [g for g in gpu_memory if g[1] >= required_memory_gb]
+            if len(suitable_gpus) < tensor_parallel_size:
+                logger.warning(
+                    f"Only {len(suitable_gpus)} GPUs have >= {required_memory_gb}GB free, "
+                    f"need {tensor_parallel_size}"
+                )
+                # Fall back to GPUs with most memory anyway
+                selected = [g[0] for g in gpu_memory[:tensor_parallel_size]]
+            else:
+                selected = [g[0] for g in suitable_gpus[:tensor_parallel_size]]
+        else:
+            # Just select GPUs with most free memory
+            selected = [g[0] for g in gpu_memory[:tensor_parallel_size]]
+
+        logger.info(f"Selected GPU(s): {selected} (most free memory)")
+        return selected
+
     except Exception as e:
         logger.debug(f"GPU selection failed: {e}")
         return None
@@ -210,12 +249,11 @@ class LLMAPIServer:
 
         logger.info(f"Starting LLM API server ({self.config.backend}): {' '.join(cmd)}")
 
-        # Auto-select GPUs with sufficient free memory
-        # Estimate required memory: gpu_memory_utilization * 80GB (typical GPU size)
-        # For safety, require at least 40GB free to avoid OOM during startup
-        estimated_required_gb = max(40.0, 80.0 * self.config.gpu_memory_utilization)
+        # Auto-select GPU with most free memory
+        # vLLM runs on single GPU by default (tensor_parallel_size=1)
+        # Just pick the GPU with the most free memory available
         selected_gpus = _select_available_gpus(
-            required_memory_gb=estimated_required_gb,
+            required_memory_gb=None,  # Don't require specific amount, just pick best GPU
             tensor_parallel_size=self.config.tensor_parallel_size,
         )
 
@@ -248,7 +286,10 @@ class LLMAPIServer:
                 logger.info(f"Logs: {self.log_file}")
 
                 # Wait for server to be ready
-                return self._wait_for_ready(timeout=120)
+                # Use longer timeout for first-time model downloads (7B model ~14GB)
+                # Can be configured via SAGE_LLM_STARTUP_TIMEOUT env var
+                startup_timeout = int(os.environ.get("SAGE_LLM_STARTUP_TIMEOUT", "300"))
+                return self._wait_for_ready(timeout=startup_timeout)
             else:
                 # Foreground mode - blocking
                 self.process = subprocess.Popen(cmd, env=env)
@@ -478,16 +519,17 @@ class LLMAPIServer:
             "api_url": f"http://{self.config.host}:{self.config.port}/v1",
         }
 
-    def _wait_for_ready(self, timeout: int = 120) -> bool:
+    def _wait_for_ready(self, timeout: int = 300) -> bool:
         """Wait for server to be ready
 
         Args:
-            timeout: Maximum seconds to wait
+            timeout: Maximum seconds to wait (default 300s for model downloads)
 
         Returns:
             True if server is ready, False if timeout
         """
         logger.info(f"Waiting for LLM API server to be ready (timeout: {timeout}s)...")
+        logger.info("Note: First-time model download may take 5-10 minutes for 7B models")
         logger.info(f"Health check URL: http://127.0.0.1:{self.config.port}/health")
         logger.info(f"Log file: {self.log_file}")
 
