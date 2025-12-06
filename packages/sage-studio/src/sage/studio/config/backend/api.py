@@ -1384,8 +1384,8 @@ async def export_flow(
 
 @app.post("/api/flows/import")
 async def import_flow(
-    file: UploadFile = File(...),
     current_user: Annotated[User, Depends(get_current_user)],
+    file: UploadFile = File(...),
 ):
     """导入 Flow JSON 文件"""
     try:
@@ -1565,19 +1565,78 @@ class ChatSessionTitleUpdate(BaseModel):
     title: str
 
 
+def _get_session_path(user_id: str, session_id: str) -> Path:
+    return get_user_sessions_dir(user_id) / f"{session_id}.json"
+
+
+def _load_session(user_id: str, session_id: str) -> dict | None:
+    path = _get_session_path(user_id, session_id)
+    if path.exists():
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading session {path}: {e}")
+    return None
+
+
+def _save_session(user_id: str, session_id: str, data: dict):
+    path = _get_session_path(user_id, session_id)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
 @app.post("/api/chat/message", response_model=ChatResponse)
-async def send_chat_message(request: ChatRequest):
+async def send_chat_message(
+    request: ChatRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """
     发送聊天消息（调用 sage-gateway）
 
     注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
     """
     from datetime import datetime
+    import uuid
 
     import httpx
 
+    # 1. Handle Session
+    session_id = request.session_id
+    session_data = None
+    user_id = str(current_user.id)
+    
+    if session_id:
+        session_data = _load_session(user_id, session_id)
+    
+    if not session_data:
+        # Create new session if not found or not provided
+        session_id = session_id or str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        session_data = {
+            "id": session_id,
+            "title": "New Chat",
+            "created_at": now,
+            "last_active": now,
+            "messages": [],
+            "metadata": {}
+        }
+
+    # 2. Append User Message
+    user_msg = {
+        "role": "user",
+        "content": request.message,
+        "timestamp": datetime.now().isoformat()
+    }
+    session_data["messages"].append(user_msg)
+    session_data["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session_data)
+
     try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
+        # We pass the session_id to gateway as well, so it can maintain its own state if needed,
+        # or we can pass full history if gateway is stateless.
+        # For now, let's pass session_id.
         async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
@@ -1585,7 +1644,7 @@ async def send_chat_message(request: ChatRequest):
                     "model": request.model,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
-                    "session_id": request.session_id,
+                    "session_id": session_id, # Pass session_id to gateway
                 },
             )
 
@@ -1598,11 +1657,20 @@ async def send_chat_message(request: ChatRequest):
             data = gateway_response.json()
 
             # 提取响应内容
-            assistant_message = data["choices"][0]["message"]["content"]
-            session_id = data.get("id", request.session_id or "default")
+            assistant_content = data["choices"][0]["message"]["content"]
+            
+            # 3. Append Assistant Message
+            assistant_msg = {
+                "role": "assistant",
+                "content": assistant_content,
+                "timestamp": datetime.now().isoformat()
+            }
+            session_data["messages"].append(assistant_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
 
             return ChatResponse(
-                content=assistant_message,
+                content=assistant_content,
                 session_id=session_id,
                 timestamp=datetime.now().isoformat(),
             )
@@ -1664,121 +1732,130 @@ async def agent_chat_sync(request: AgentChatRequest):
 
 
 @app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
-async def list_chat_sessions():
+async def list_chat_sessions(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取所有聊天会话"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
-            response = await client.get(f"{GATEWAY_BASE_URL}/sessions")
-            data = response.json()
-            return data.get("sessions", [])
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503,
-            detail="无法连接到 SAGE Gateway",
-        )
+    sessions_dir = get_user_sessions_dir(str(current_user.id))
+    sessions = []
+    if sessions_dir.exists():
+        for session_file in sessions_dir.glob("*.json"):
+            try:
+                with open(session_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Convert to summary
+                    sessions.append(ChatSessionSummary(
+                        id=data["id"],
+                        title=data.get("title", "Untitled Session"),
+                        created_at=data.get("created_at", ""),
+                        last_active=data.get("last_active", ""),
+                        message_count=len(data.get("messages", []))
+                    ))
+            except Exception as e:
+                print(f"Error reading session {session_file}: {e}")
+    
+    # Sort by last_active desc
+    sessions.sort(key=lambda x: x.last_active, reverse=True)
+    return sessions
 
 
 @app.post("/api/chat/sessions", response_model=ChatSessionDetail)
-async def create_chat_session(payload: ChatSessionCreateRequest):
+async def create_chat_session(
+    payload: ChatSessionCreateRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """创建新的聊天会话"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
-            response = await client.post(f"{GATEWAY_BASE_URL}/sessions", json=payload.model_dump())
-            if response.status_code >= 400:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    import uuid
+    from datetime import datetime
+    
+    session_id = str(uuid.uuid4())
+    now = datetime.now().isoformat()
+    
+    session_data = {
+        "id": session_id,
+        "title": payload.title or "New Session",
+        "created_at": now,
+        "last_active": now,
+        "messages": [],
+        "metadata": {}
+    }
+    
+    _save_session(str(current_user.id), session_id, session_data)
+    
+    return ChatSessionDetail(**session_data)
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
-async def get_chat_session(session_id: str):
+async def get_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取单个会话详情"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
-            response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            
-            data = response.json()
-            # Polyfill missing fields required by ChatSessionDetail (inherited from ChatSessionSummary)
-            # Gateway's to_dict() returns metadata but not top-level title/message_count
-            if "title" not in data and "metadata" in data:
-                data["title"] = data["metadata"].get("title", "New Chat")
-            if "message_count" not in data and "messages" in data:
-                data["message_count"] = len(data["messages"])
-                
-            return data
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    session = _load_session(str(current_user.id), session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return ChatSessionDetail(**session)
 
 
 @app.post("/api/chat/sessions/{session_id}/clear")
-async def clear_chat_session(session_id: str):
+async def clear_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """清空会话历史"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
-            response = await client.post(f"{GATEWAY_BASE_URL}/sessions/{session_id}/clear")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    from datetime import datetime
+    
+    user_id = str(current_user.id)
+    session = _load_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    
+    session["messages"] = []
+    session["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session)
+    
+    return {"status": "success", "message": "Session cleared"}
 
 
 @app.patch("/api/chat/sessions/{session_id}/title", response_model=ChatSessionSummary)
-async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUpdate):
+async def update_chat_session_title(
+    session_id: str,
+    payload: ChatSessionTitleUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """更新会话标题"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
-            response = await client.patch(
-                f"{GATEWAY_BASE_URL}/sessions/{session_id}/title",
-                json=payload.model_dump(),
-            )
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            # 更新后重新获取一次会话摘要，避免缺字段
-            detail_resp = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            detail_resp.raise_for_status()
-            detail = detail_resp.json()
-            return ChatSessionSummary(
-                id=detail["id"],
-                title=detail.get("metadata", {}).get("title", payload.title),
-                created_at=detail.get("created_at"),
-                last_active=detail.get("last_active"),
-                message_count=len(detail.get("messages", [])),
-            )
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    from datetime import datetime
+    
+    user_id = str(current_user.id)
+    session = _load_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    
+    session["title"] = payload.title
+    session["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session)
+    
+    return ChatSessionSummary(
+        id=session["id"],
+        title=session["title"],
+        created_at=session["created_at"],
+        last_active=session["last_active"],
+        message_count=len(session["messages"])
+    )
 
 
 @app.delete("/api/chat/sessions/{session_id}")
-async def delete_chat_session(session_id: str):
+async def delete_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """删除聊天会话"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
-            response = await client.delete(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503,
-            detail="无法连接到 SAGE Gateway",
-        )
+    user_id = str(current_user.id)
+    path = _get_session_path(user_id, session_id)
+    if path.exists():
+        path.unlink()
+        return {"status": "success", "message": "Session deleted"}
+    raise HTTPException(404, "Session not found")
 
 
 @app.get("/api/studio/memory/config")

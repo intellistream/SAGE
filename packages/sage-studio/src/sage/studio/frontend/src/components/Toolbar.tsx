@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Button, Space, Tooltip, Modal, Input, message, List, Upload, Segmented } from 'antd'
+import { Button, Space, Tooltip, Modal, Input, message, List, Upload, Segmented, Dropdown, Avatar } from 'antd'
+import { UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import {
     Play,
     Square,
@@ -18,12 +19,14 @@ import {
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
+import { useAuthStore } from '../store/authStore'
 import { submitFlow, getAllJobs, startJob, stopJob, exportFlow, importFlow } from '../services/api'
 import { useJobStatusPolling } from '../hooks/useJobStatusPolling'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import Playground from './Playground'
 import Settings from './Settings'
 import type { AppMode } from '../App'
+import type { MenuProps } from 'antd'
 
 interface ToolbarProps {
     mode: AppMode
@@ -48,6 +51,7 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
     } = useFlowStore()
 
     const { setIsOpen: setPlaygroundOpen } = usePlaygroundStore()
+    const { user, logout } = useAuthStore()
 
     const [saveModalOpen, setSaveModalOpen] = useState(false)
     const [loadModalOpen, setLoadModalOpen] = useState(false)
@@ -510,6 +514,38 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                 onClick={() => setSettingsOpen(true)}
                             />
                         </Tooltip>
+
+                        {/* 用户菜单 */}
+                        <Dropdown
+                            menu={{
+                                items: [
+                                    {
+                                        key: 'user',
+                                        label: user?.username || 'User',
+                                        icon: <UserOutlined />,
+                                        disabled: true,
+                                    },
+                                    {
+                                        type: 'divider',
+                                    },
+                                    {
+                                        key: 'logout',
+                                        label: 'Logout',
+                                        icon: <LogoutOutlined />,
+                                        onClick: logout,
+                                        danger: true,
+                                    },
+                                ],
+                            }}
+                            placement="bottomRight"
+                        >
+                            <Avatar 
+                                style={{ backgroundColor: '#1890ff', cursor: 'pointer' }} 
+                                icon={<UserOutlined />} 
+                            >
+                                {user?.username?.[0]?.toUpperCase()}
+                            </Avatar>
+                        </Dropdown>
                     </Space>
                 </div>
             </div>

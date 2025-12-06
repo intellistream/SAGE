@@ -37,7 +37,55 @@ const apiClient = axios.create({
     },
 })
 
+// Auth Interceptor
+apiClient.interceptors.request.use((config) => {
+    try {
+        const storage = localStorage.getItem('sage-auth-storage')
+        if (storage) {
+            const { state } = JSON.parse(storage)
+            if (state?.token) {
+                config.headers.Authorization = `Bearer ${state.token}`
+            }
+        }
+    } catch (e) {
+        // Ignore parsing errors
+    }
+    return config
+})
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+        }
+        return Promise.reject(error)
+    }
+)
+
 // ==================== 类型定义 ====================
+
+// Auth Types
+export interface User {
+    id: number
+    username: string
+    created_at: string
+}
+
+export interface LoginCredentials {
+    username: string
+    password: string
+}
+
+export interface RegisterCredentials {
+    username: string
+    password: string
+}
+
+export interface TokenResponse {
+    access_token: string
+    token_type: string
+}
 
 // 参数配置接口
 export interface ParameterConfig {
@@ -134,6 +182,25 @@ export interface JobLogs {
 }
 
 // ==================== API 方法 ====================
+
+// Auth API
+export const login = async (credentials: LoginCredentials): Promise<TokenResponse> => {
+    const formData = new FormData()
+    formData.append('username', credentials.username)
+    formData.append('password', credentials.password)
+    const response = await apiClient.post<TokenResponse>('/token', formData)
+    return response.data
+}
+
+export const register = async (credentials: RegisterCredentials): Promise<User> => {
+    const response = await apiClient.post<User>('/register', credentials)
+    return response.data
+}
+
+export const getCurrentUser = async (): Promise<User> => {
+    const response = await apiClient.get<User>('/users/me')
+    return response.data
+}
 
 /**
  * 健康检查
