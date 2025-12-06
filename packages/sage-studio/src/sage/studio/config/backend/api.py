@@ -17,6 +17,21 @@ import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from datetime import timedelta
+from typing import Annotated
+
+from fastapi import Depends, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
+from sage.common.config.user_paths import get_user_data_dir as get_common_user_data_dir
+from sage.studio.services.auth_service import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    AuthService,
+    Token,
+    User,
+    UserCreate,
+    get_auth_service,
+)
 
 from sage.common.config.ports import SagePorts
 from sage.studio.services.agent_orchestrator import get_orchestrator
@@ -182,6 +197,29 @@ def _get_sage_dir() -> Path:
     return sage_dir
 
 
+def get_user_data_dir(user_id: str) -> Path:
+    """Get user-specific data directory."""
+    # Use the common user data dir as base
+    base_dir = get_common_user_data_dir()
+    user_dir = base_dir / "users" / str(user_id)
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
+
+
+def get_user_pipelines_dir(user_id: str) -> Path:
+    """Get user-specific pipelines directory."""
+    pipelines_dir = get_user_data_dir(user_id) / "pipelines"
+    pipelines_dir.mkdir(parents=True, exist_ok=True)
+    return pipelines_dir
+
+
+def get_user_sessions_dir(user_id: str) -> Path:
+    """Get user-specific sessions directory."""
+    sessions_dir = get_user_data_dir(user_id) / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    return sessions_dir
+
+
 # Pydantic 模型定义
 class Job(BaseModel):
     jobId: str
@@ -233,6 +271,31 @@ class OperatorInfo(BaseModel):
     parameters: list[ParameterConfig] | None = []  # 添加参数配置字段
 
 
+# Auth Dependency
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> User:
+    username = auth_service.verify_token(token)
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = auth_service.get_user(username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return User(id=user.id, username=user.username, created_at=user.created_at)
+
+
 # 创建 FastAPI 应用
 app = FastAPI(
     title="SAGE Studio Backend",
@@ -255,14 +318,67 @@ app.add_middleware(
 )
 
 
-def _read_sage_data_from_files():
+# Auth Endpoints
+@app.post("/api/auth/register", response_model=User)
+async def register(
+    user: UserCreate,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    db_user = auth_service.get_user(user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return auth_service.create_user(user.username, user.password)
+
+
+@app.post("/api/auth/login", response_model=Token)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    user = auth_service.get_user(form_data.username)
+    if not user or not auth_service.verify_password(
+        form_data.password, user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/auth/me", response_model=User)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return current_user
+
+
+@app.post("/api/auth/logout")
+async def logout():
+    return {"message": "Successfully logged out"}
+
+
+def _read_sage_data_from_files(user_id: str | None = None):
     """从 .sage 目录的文件中读取实际的 SAGE 数据"""
-    sage_dir = _get_sage_dir()
+    # Global dir for system data
+    global_sage_dir = _get_sage_dir()
+
+    # User dir for user data
+    if user_id:
+        user_sage_dir = get_user_data_dir(user_id)
+    else:
+        user_sage_dir = global_sage_dir
+
     data = {"jobs": [], "operators": [], "pipelines": []}
 
     try:
         # 读取作业信息
-        states_dir = sage_dir / "states"
+        states_dir = user_sage_dir / "states"
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
@@ -273,7 +389,7 @@ def _read_sage_data_from_files():
                     print(f"Error reading job file {job_file}: {e}")
 
         # 读取保存的拓扑图并转换为 Job 格式
-        pipelines_dir = sage_dir / "pipelines"
+        pipelines_dir = user_sage_dir / "pipelines"
         if pipelines_dir.exists():
             for pipeline_file in pipelines_dir.glob("pipeline_*.json"):
                 try:
@@ -288,7 +404,7 @@ def _read_sage_data_from_files():
                     print(f"Error reading pipeline file {pipeline_file}: {e}")
 
         # 读取操作符信息
-        operators_file = sage_dir / "output" / "operators.json"
+        operators_file = global_sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
                 with open(operators_file, encoding="utf-8") as f:
@@ -298,7 +414,7 @@ def _read_sage_data_from_files():
                 print(f"Error reading operators file: {e}")
 
         # 读取管道信息
-        pipelines_file = sage_dir / "output" / "pipelines.json"
+        pipelines_file = global_sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
                 with open(pipelines_file) as f:
@@ -320,13 +436,15 @@ async def root():
 
 
 @app.get("/api/jobs/all", response_model=list[Job])
-async def get_all_jobs():
+async def get_all_jobs(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取所有作业信息"""
     try:
-        sage_data = _read_sage_data_from_files()
+        sage_data = _read_sage_data_from_files(user_id=str(current_user.id))
         jobs = sage_data.get("jobs", [])
 
-        print(f"DEBUG: Read {len(jobs)} jobs from files")
+        print(f"DEBUG: Read {len(jobs)} jobs from files for user {current_user.username}")
         print(f"DEBUG: sage_data = {sage_data}")
 
         # 如果没有实际数据，返回一些示例数据（用于开发）
@@ -611,15 +729,16 @@ async def get_pipelines():
 
 
 @app.post("/api/pipeline/submit")
-async def submit_pipeline(topology_data: dict):
+async def submit_pipeline(
+    topology_data: dict,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """提交拓扑图/管道配置"""
     try:
-        print(f"Received pipeline submission: {topology_data}")
+        print(f"Received pipeline submission from {current_user.username}: {topology_data}")
 
         # 这里可以添加保存到文件或数据库的逻辑
-        sage_dir = _get_sage_dir()
-        pipelines_dir = sage_dir / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
+        pipelines_dir = get_user_pipelines_dir(str(current_user.id))
 
         # 生成文件名（使用时间戳）
         import time
@@ -931,13 +1050,15 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
 # ==================== Playground API ====================
 
 
-def _load_flow_data(flow_id: str) -> dict | None:
+def _load_flow_data(flow_id: str, user_id: str | None = None) -> dict | None:
     """加载 Flow 数据"""
-    sage_dir = _get_sage_dir()
-    pipelines_dir = sage_dir / "pipelines"
+    if user_id:
+        pipelines_dir = get_user_pipelines_dir(user_id)
+    else:
+        sage_dir = _get_sage_dir()
+        pipelines_dir = sage_dir / "pipelines"
 
     print(f"🔍 Looking for flow: {flow_id}")
-    print(f"📁 Sage dir: {sage_dir}")
     print(f"📁 Pipelines dir: {pipelines_dir}")
     print(f"📁 Pipelines dir exists: {pipelines_dir.exists()}")
 
@@ -1104,7 +1225,10 @@ class PlaygroundExecuteResponse(BaseModel):
 
 
 @app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
-async def execute_playground(request: PlaygroundExecuteRequest):
+async def execute_playground(
+    request: PlaygroundExecuteRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """执行 Playground Flow - 使用增强的 PipelineBuilder"""
     try:
         import sys
@@ -1122,13 +1246,14 @@ async def execute_playground(request: PlaygroundExecuteRequest):
 
         print(f"\n{'=' * 60}")
         print("🎯 Playground 执行开始")
+        print(f"   User: {current_user.username}")
         print(f"   Flow ID: {request.flowId}")
         print(f"   Session: {request.sessionId}")
         print(f"   Input: {request.input[:100]}...")
         print(f"{'=' * 60}\n")
 
         # 1. 加载 Flow 定义
-        flow_data = _load_flow_data(request.flowId)
+        flow_data = _load_flow_data(request.flowId, user_id=str(current_user.id))
         if not flow_data:
             raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
 
@@ -1222,10 +1347,13 @@ async def get_node_output(flow_id: str, node_id: str):
 
 # 2. Flow 导入/导出
 @app.get("/api/flows/{flow_id}/export")
-async def export_flow(flow_id: str):
+async def export_flow(
+    flow_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """导出 Flow 为 JSON 文件"""
     try:
-        flow_data = _load_flow_data(flow_id)
+        flow_data = _load_flow_data(flow_id, user_id=str(current_user.id))
         if not flow_data:
             raise HTTPException(404, f"Flow not found: {flow_id}")
 
@@ -1255,7 +1383,10 @@ async def export_flow(flow_id: str):
 
 
 @app.post("/api/flows/import")
-async def import_flow(file: UploadFile = File(...)):
+async def import_flow(
+    file: UploadFile = File(...),
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """导入 Flow JSON 文件"""
     try:
         import json
@@ -1276,9 +1407,7 @@ async def import_flow(file: UploadFile = File(...)):
         new_flow_id = f"pipeline_{timestamp}"
 
         # 保存到本地
-        sage_dir = _get_sage_dir()
-        pipelines_dir = sage_dir / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
+        pipelines_dir = get_user_pipelines_dir(str(current_user.id))
 
         flow_file = pipelines_dir / f"{new_flow_id}.json"
         with open(flow_file, "w", encoding="utf-8") as f:
@@ -1577,7 +1706,16 @@ async def get_chat_session(session_id: str):
             if response.status_code == 404:
                 raise HTTPException(status_code=404, detail="会话不存在")
             response.raise_for_status()
-            return response.json()
+            
+            data = response.json()
+            # Polyfill missing fields required by ChatSessionDetail (inherited from ChatSessionSummary)
+            # Gateway's to_dict() returns metadata but not top-level title/message_count
+            if "title" not in data and "metadata" in data:
+                data["title"] = data["metadata"].get("title", "New Chat")
+            if "message_count" not in data and "messages" in data:
+                data["message_count"] = len(data["messages"])
+                
+            return data
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
 
