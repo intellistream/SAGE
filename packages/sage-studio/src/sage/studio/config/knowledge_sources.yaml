@@ -133,7 +133,11 @@ embedding:
   # Embedding 模型
   # 推荐中文模型: BAAI/bge-small-zh-v1.5, BAAI/bge-m3
   # 推荐多语言模型: sentence-transformers/all-MiniLM-L6-v2
-  model: "BAAI/bge-small-zh-v1.5"
+  model: "BAAI/bge-m3"
+
+  # 向量维度 (根据模型设置)
+  # bge-small-zh-v1.5: 512, bge-m3: 1024, all-MiniLM-L6-v2: 384
+  dim: 1024
 
   # 批处理大小
   batch_size: 32

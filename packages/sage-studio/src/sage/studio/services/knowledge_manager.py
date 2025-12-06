@@ -153,11 +153,13 @@ class EmbeddingConfig:
 
     Attributes:
         model: Embedding 模型名称
+        dim: 向量维度
         batch_size: 批处理大小
         max_length: 最大序列长度
     """
 
-    model: str = "BAAI/bge-small-zh-v1.5"
+    model: str = "BAAI/bge-m3"
+    dim: int = 1024
     batch_size: int = 32
     max_length: int = 512
 
@@ -249,7 +251,8 @@ class KnowledgeManager:
             if "embedding" in config_data:
                 emb_config = config_data["embedding"]
                 self.config.embedding = EmbeddingConfig(
-                    model=emb_config.get("model", "BAAI/bge-small-zh-v1.5"),
+                    model=emb_config.get("model", "BAAI/bge-m3"),
+                    dim=emb_config.get("dim", 1024),
                     batch_size=emb_config.get("batch_size", 32),
                     max_length=emb_config.get("max_length", 512),
                 )
@@ -323,6 +326,7 @@ class KnowledgeManager:
         vs = VectorStore(
             collection_name=collection_name,
             embedding_model=self.config.embedding.model,
+            embedding_dim=self.config.embedding.dim,
             persist_dir=self.config.vector_store.persist_dir,
         )
 

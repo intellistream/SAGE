@@ -94,8 +94,8 @@ class VectorStore:
     def __init__(
         self,
         collection_name: str,
-        embedding_model: str = "BAAI/bge-small-zh-v1.5",
-        embedding_dim: int = 512,
+        embedding_model: str = "BAAI/bge-m3",
+        embedding_dim: int = 1024,
         persist_dir: str | Path | None = None,
         embedder: EmbeddingProtocol | None = None,
     ):
@@ -168,6 +168,18 @@ class VectorStore:
         self._collection = self._manager.get_collection(self.collection_name)
 
         if self._collection is None:
+            # 如果元数据存在但 collection 获取失败（磁盘数据被删除），先清理元数据
+            if self.collection_name in self._manager.collection_metadata:
+                import logging
+
+                logging.warning(
+                    f"Collection '{self.collection_name}' metadata exists but data is missing. "
+                    "Cleaning up stale metadata..."
+                )
+                # 直接从元数据中删除
+                del self._manager.collection_metadata[self.collection_name]
+                self._manager._save_manager()
+
             # 创建新的 VDB collection
             # MemoryManager.create_collection 需要 config dict 包含所有参数
             collection_config = {

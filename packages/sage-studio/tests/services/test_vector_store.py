@@ -116,8 +116,8 @@ class TestVectorStoreInit:
                 persist_dir=tmpdir,
             )
             assert store.collection_name == "test_collection"
-            assert store.embedding_model == "BAAI/bge-small-zh-v1.5"
-            assert store.embedding_dim == 512
+            assert store.embedding_model == "BAAI/bge-m3"
+            assert store.embedding_dim == 1024
             assert store.persist_dir == Path(tmpdir)
 
     def test_custom_parameters(self):
@@ -157,12 +157,12 @@ class TestVectorStoreOperations:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Mock embedder - return multiple vectors for batch operations
             mock_embedder = MagicMock()
-            mock_embedder.embed.side_effect = lambda texts: [[0.1] * 512 for _ in texts]
-            mock_embedder.get_dim.return_value = 512
+            mock_embedder.embed.side_effect = lambda texts: [[0.1] * 1024 for _ in texts]
+            mock_embedder.get_dim.return_value = 1024
 
             store = VectorStore(
                 collection_name="mock_test",
-                embedding_dim=512,
+                embedding_dim=1024,
                 persist_dir=tmpdir,
                 embedder=mock_embedder,
             )
@@ -259,8 +259,8 @@ class TestVectorStoreOperations:
         stats = mock_store.get_stats()
 
         assert stats["collection_name"] == "mock_test"
-        assert stats["embedding_model"] == "BAAI/bge-small-zh-v1.5"
-        assert stats["embedding_dim"] == 512
+        assert stats["embedding_model"] == "BAAI/bge-m3"
+        assert stats["embedding_dim"] == 1024
         assert "total_vectors" in stats
 
     def test_close(self, mock_store):

@@ -514,11 +514,11 @@ class ChatModeManager(StudioManager):
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
                 )
 
-            # Start Embedding service alongside LLM (unless disabled)
-            if not no_embedding:
-                self._start_embedding_service()
-            else:
-                console.print("[yellow]⚠️  Embedding 服务已禁用 (--no-embedding)[/yellow]")
+        # Start Embedding service (needed for knowledge indexing, independent of LLM)
+        if not no_embedding:
+            self._start_embedding_service()
+        else:
+            console.print("[yellow]⚠️  Embedding 服务已禁用 (--no-embedding)[/yellow]")
 
         # Start Gateway
         if not self._start_gateway(port=self.gateway_port):

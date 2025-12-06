@@ -1721,6 +1721,137 @@ async def list_uploaded_files():
     return [asdict(f) for f in files]
 
 
+@app.get("/api/uploads/{file_id}")
+async def get_uploaded_file(file_id: str):
+    """获取单个文件的元数据"""
+    from dataclasses import asdict
+
+    service = get_file_upload_service()
+    metadata = service.get_file(file_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail="File not found")
+    return asdict(metadata)
+
+
+@app.get("/api/uploads/{file_id}/content")
+async def get_uploaded_file_content(file_id: str):
+    """获取上传文件的内容"""
+    service = get_file_upload_service()
+    file_path = service.get_file_path(file_id)
+    if not file_path or not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # 读取文件内容
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            content = f.read()
+        return {"file_id": file_id, "content": content}
+    except UnicodeDecodeError:
+        # 二进制文件
+        raise HTTPException(status_code=400, detail="Binary file cannot be read as text")
+
+
+class IndexFileRequest(BaseModel):
+    """索引文件请求"""
+
+    source_name: str = "user_uploads"  # 知识源名称
+
+
+@app.post("/api/uploads/{file_id}/index")
+async def index_uploaded_file(file_id: str, request: IndexFileRequest):
+    """将上传的文件索引到知识库
+
+    这会将文件内容分块并存入向量数据库，使其可通过语义搜索检索。
+    """
+    from sage.studio.services.knowledge_manager import KnowledgeManager
+
+    service = get_file_upload_service()
+    metadata = service.get_file(file_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    file_path = service.get_file_path(file_id)
+    if not file_path or not file_path.exists():
+        raise HTTPException(status_code=404, detail="File path not found")
+
+    # 索引到知识库
+    try:
+        km = KnowledgeManager()
+        success = await km.add_document(file_path, source_name=request.source_name)
+
+        if success:
+            # 标记文件已索引
+            service.mark_indexed(file_id)
+            return {
+                "success": True,
+                "file_id": file_id,
+                "source_name": request.source_name,
+                "message": f"File indexed to '{request.source_name}' knowledge source",
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to index file")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+
+
+@app.get("/api/knowledge/sources")
+async def list_knowledge_sources():
+    """列出可用的知识源"""
+    from sage.studio.services.knowledge_manager import KnowledgeManager
+
+    km = KnowledgeManager()
+    sources = []
+    for name, source in km.sources.items():
+        sources.append(
+            {
+                "name": name,
+                "type": source.type.value,
+                "description": source.description,
+                "enabled": source.enabled,
+                "is_dynamic": source.is_dynamic,
+            }
+        )
+    return sources
+
+
+class KnowledgeSearchRequest(BaseModel):
+    """知识检索请求"""
+
+    query: str
+    sources: list[str] | None = None  # None 表示所有已加载的源
+    limit: int = 5
+    score_threshold: float = 0.6
+
+
+@app.post("/api/knowledge/search")
+async def search_knowledge(request: KnowledgeSearchRequest):
+    """在知识库中检索"""
+    from sage.studio.services.knowledge_manager import KnowledgeManager
+
+    km = KnowledgeManager()
+    try:
+        results = await km.search(
+            query=request.query,
+            sources=request.sources,
+            limit=request.limit,
+            score_threshold=request.score_threshold,
+        )
+        return {
+            "query": request.query,
+            "results": [
+                {
+                    "content": r.content,
+                    "score": r.score,
+                    "source": r.source,
+                    "metadata": r.metadata,
+                }
+                for r in results
+            ],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
 @app.delete("/api/uploads/{file_id}")
 async def delete_uploaded_file(file_id: str):
     """删除已上传文件"""
