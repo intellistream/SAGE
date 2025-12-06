@@ -201,18 +201,15 @@ jobs:
 
           FRONTEND_DIR="packages/sage-studio/src/sage/studio/frontend"
 
-          if [ ! -d "$FRONTEND_DIR/dist" ] || [ "${{ github.event.inputs.force_reinstall }}" = "true" ]; then
-            echo "🔨 构建前端..."
-            cd "$FRONTEND_DIR"
-            npm ci --prefer-offline 2>/dev/null || npm install
+          # 总是重新构建前端（代码可能已经更新）
+          echo "🔨 构建前端..."
+          cd "$FRONTEND_DIR"
+          npm ci --prefer-offline 2>/dev/null || npm install
 
-            # 使用相对路径 /api，由 nginx 反向代理到 Gateway
-            # 不设置 VITE_API_BASE_URL，使用默认的 /api
-            npm run build
-            echo "✅ 前端构建完成"
-          else
-            echo "✅ 前端已构建，跳过"
-          fi
+          # 使用相对路径 /api，由 nginx 反向代理到 Gateway
+          # 不设置 VITE_API_BASE_URL，使用默认的 /api
+          npm run build
+          echo "✅ 前端构建完成"
 
       - name: Setup nginx reverse proxy
         run: |
