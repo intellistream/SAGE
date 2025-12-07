@@ -33,20 +33,27 @@ class MemorySource(BatchFunction):
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
 
-        # 创建数据加载器
+        # Create data loader
         if self.dataset == "locomo":
             self.loader = LocomoDataLoader()
         elif self.dataset == "conflict_resolution":
             self.loader = ConflictResolutionDataLoader()
         else:
-            raise ValueError(f"不支持的数据集: {self.dataset}")
+            raise ValueError(f"Unsupported dataset: {self.dataset}")
 
         # 获取数据集核心信息
         self.turns = self.loader.get_turn(self.task_id)
 
         # 统计总的dialog数量和数据包数量
         self.total_dialogs = sum((max_dialog_idx + 1) for _, max_dialog_idx in self.turns)
-        self.total_packets = sum((max_dialog_idx // 2) + 1 for _, max_dialog_idx in self.turns)
+        
+        # Calculate total packets based on dataset type
+        # - conflict_resolution: 1 fact per packet (increment by 1)
+        # - locomo: 2 dialogs per packet (increment by 2)
+        if self.dataset == "conflict_resolution":
+            self.total_packets = self.total_dialogs  # Each fact is one packet
+        else:
+            self.total_packets = sum((max_dialog_idx // 2) + 1 for _, max_dialog_idx in self.turns)
 
         # 打印当前任务信息
         print(f"📊 样本 {self.task_id} 统计信息:")
@@ -80,40 +87,46 @@ class MemorySource(BatchFunction):
             print(f"🏁 MemorySource 已完成：所有 {len(self.turns)} 个会话已处理完毕")
             return None
 
-        # 获取当前session信息
+        # Get current session info
         session_id, max_dialog_idx = self.turns[self.session_idx]
 
-        # 检查当前session是否已经遍历完
+        # Check if current session is complete
         if self.dialog_ptr > max_dialog_idx:
-            # 移动到下一个session
+            # Move to next session
             self.session_idx += 1
             self.dialog_ptr = 0
 
-            # 检查是否还有更多session
+            # Check if there are more sessions
             if self.session_idx >= len(self.turns):
                 return None
 
-            # 更新到新session的信息
+            # Update to new session info
             session_id, max_dialog_idx = self.turns[self.session_idx]
 
-        # 获取当前对话
+        # Get current dialog
         dialogs = self.loader.get_dialog(
             self.task_id, session_x=session_id, dialog_y=self.dialog_ptr
         )
 
-        # 准备返回数据（包含序号信息）
+        # Prepare return data (with sequence information)
         result = {
             "task_id": self.task_id,
             "session_id": session_id,
             "dialog_id": self.dialog_ptr,
             "dialogs": dialogs,
             "dialog_len": len(dialogs),
-            "packet_idx": self.packet_idx,  # 当前数据包序号（从0开始）
-            "total_packets": self.total_packets,  # 总数据包数
+            "packet_idx": self.packet_idx,  # Current packet index (from 0)
+            "total_packets": self.total_packets,  # Total packets
         }
 
-        # 移动指针到下一组对话（每次+2，因为一组对话包含问答两轮）
-        self.dialog_ptr += 2
-        self.packet_idx += 1  # 数据包序号递增
+        # Move pointer to next dialog
+        # For conflict_resolution: each dialog has 1 fact, so increment by 1
+        # For locomo: each dialog has 2 turns (Q&A), so increment by 2
+        if self.dataset == "conflict_resolution":
+            self.dialog_ptr += 1  # Single fact per dialog
+        else:
+            self.dialog_ptr += 2  # Pair of dialogs (Q&A)
+        
+        self.packet_idx += 1  # Packet index increment
 
         return result
