@@ -223,6 +223,8 @@ class LLMLauncher:
         gpu_memory: float = 0.7,
         max_model_len: int = 4096,
         tensor_parallel: int = 1,
+        speculative_model: str | None = None,
+        speculative_config: dict[str, Any] | None = None,
         background: bool = True,
         use_finetuned: bool = False,
         finetuned_models: list[dict[str, Any]] | None = None,
@@ -238,6 +240,7 @@ class LLMLauncher:
             gpu_memory: GPU memory utilization (default: 0.7 for consumer GPUs)
             max_model_len: Maximum sequence length (default: 4096)
             tensor_parallel: Number of GPUs for tensor parallelism
+            speculative_model: Draft model for speculative decoding (optional)
             background: Run in background (default: True)
             use_finetuned: Try to use a fine-tuned model
             finetuned_models: Available fine-tuned models list
@@ -275,14 +278,34 @@ class LLMLauncher:
             verbose=verbose,
         )
 
+        # Resolve speculative model path if provided
+        resolved_speculative_model = None
+        if speculative_model:
+            resolved_speculative_model, _ = cls.resolve_model_path(
+                speculative_model,
+                verbose=verbose,
+            )
+
         if verbose:
             console.print("[blue]🚀 启动 LLM 服务 (sageLLM)[/blue]")
             console.print(f"   模型: {resolved_model}")
+            if resolved_speculative_model:
+                console.print(f"   投机模型: {resolved_speculative_model}")
             console.print(f"   端口: {port}")
             console.print(f"   GPU 内存: {gpu_memory:.0%}")
             console.print(f"   模式: {'后台' if background else '前台'}")
 
         # Create server config
+        # Note: speculative_model is passed via kwargs to LLMServerConfig -> extra_args
+        server_kwargs = {}
+        if resolved_speculative_model:
+            server_kwargs["speculative_model"] = resolved_speculative_model
+            # Auto-set num_speculative_tokens if not provided (vLLM default is usually 5)
+            server_kwargs["num_speculative_tokens"] = 5
+
+        if speculative_config:
+            server_kwargs["speculative_config"] = json.dumps(speculative_config)
+
         config = LLMServerConfig(
             model=resolved_model,
             backend="vllm",
@@ -291,6 +314,7 @@ class LLMLauncher:
             gpu_memory_utilization=gpu_memory,
             max_model_len=max_model_len,
             tensor_parallel_size=tensor_parallel,
+            **server_kwargs,
         )
 
         # Create and start server
@@ -360,11 +384,12 @@ class LLMLauncher:
             return LLMLauncherResult(success=False, error=str(exc))
 
     @classmethod
-    def stop(cls, verbose: bool = True) -> bool:
+    def stop(cls, verbose: bool = True, force: bool = False) -> bool:
         """Stop running LLM service.
 
         Args:
             verbose: Print status messages
+            force: If True, attempt to find and stop services on default ports even if PID file is missing.
 
         Returns:
             True if stopped successfully
@@ -373,59 +398,85 @@ class LLMLauncher:
 
         pid, config = cls.load_service_info()
 
-        if not pid:
+        # Helper to kill process by PID
+        def _kill_pid(target_pid: int, name: str) -> bool:
+            if not psutil.pid_exists(target_pid):
+                return False
+            try:
+                if verbose:
+                    console.print(f"[blue]🛑 停止 {name} (PID: {target_pid})...[/blue]")
+                proc = psutil.Process(target_pid)
+                proc.terminate()
+                try:
+                    proc.wait(timeout=10)
+                except psutil.TimeoutExpired:
+                    if verbose:
+                        console.print("[yellow]⚠️  强制终止...[/yellow]")
+                    proc.kill()
+                    proc.wait()
+                return True
+            except Exception as e:
+                if verbose:
+                    console.print(f"[yellow]⚠️  停止 {name} 失败: {e}[/yellow]")
+                return False
+
+        stopped_any = False
+
+        # 1. Stop recorded service
+        if pid:
+            if psutil.pid_exists(pid):
+                # Stop Embedding service if recorded
+                if config and "embedding_pid" in config:
+                    _kill_pid(config["embedding_pid"], "Embedding 服务")
+
+                if _kill_pid(pid, "LLM 服务"):
+                    stopped_any = True
+                    if verbose:
+                        console.print("[green]✅ LLM 服务已停止[/green]")
+            else:
+                if verbose:
+                    console.print(f"[yellow]ℹ️  记录的 LLM 服务 (PID: {pid}) 已不存在[/yellow]")
+
+            cls.clear_service_info()
+
+        # 2. If force is True, check default ports for orphan services
+        if force:
+            ports_to_check = [
+                SagePorts.LLM_DEFAULT,
+                SagePorts.BENCHMARK_LLM,
+                SagePorts.EMBEDDING_DEFAULT,
+            ]
+
+            # Get all listening connections
+            try:
+                connections = psutil.net_connections(kind="inet")
+                for conn in connections:
+                    if conn.status == "LISTEN" and conn.laddr.port in ports_to_check:
+                        orphan_pid = conn.pid
+                        # Skip if it's the one we just killed (though pid check handles it)
+                        # or if it's None (permission denied)
+                        if orphan_pid and orphan_pid != pid:
+                            if verbose:
+                                console.print(
+                                    f"[yellow]⚠️  发现端口 {conn.laddr.port} 上的孤儿服务 (PID: {orphan_pid})[/yellow]"
+                                )
+
+                            if _kill_pid(orphan_pid, f"孤儿服务 (Port {conn.laddr.port})"):
+                                stopped_any = True
+                                if verbose:
+                                    console.print(
+                                        f"[green]✅ 孤儿服务 (Port {conn.laddr.port}) 已停止[/green]"
+                                    )
+            except Exception as e:
+                if verbose:
+                    console.print(f"[yellow]⚠️  扫描孤儿服务失败: {e}[/yellow]")
+
+        if not pid and not stopped_any:
             if verbose:
                 console.print("[yellow]ℹ️  没有找到运行中的 LLM 服务[/yellow]")
             return True
 
-        if not psutil.pid_exists(pid):
-            if verbose:
-                console.print("[yellow]ℹ️  LLM 服务已不存在，清理记录[/yellow]")
-            cls.clear_service_info()
-            return True
-
-        try:
-            if verbose:
-                console.print(f"[blue]🛑 停止 LLM 服务 (PID: {pid})...[/blue]")
-
-            # Stop Embedding service if recorded
-            if config and "embedding_pid" in config:
-                emb_pid = config["embedding_pid"]
-                if psutil.pid_exists(emb_pid):
-                    try:
-                        if verbose:
-                            console.print(
-                                f"[blue]🛑 停止 Embedding 服务 (PID: {emb_pid})...[/blue]"
-                            )
-                        emb_proc = psutil.Process(emb_pid)
-                        emb_proc.terminate()
-                        emb_proc.wait(timeout=5)
-                    except Exception as e:
-                        if verbose:
-                            console.print(f"[yellow]⚠️  停止 Embedding 服务失败: {e}[/yellow]")
-
-            proc = psutil.Process(pid)
-            proc.terminate()
-
-            try:
-                proc.wait(timeout=10)
-                if verbose:
-                    console.print("[green]✅ LLM 服务已停止[/green]")
-            except psutil.TimeoutExpired:
-                if verbose:
-                    console.print("[yellow]⚠️  强制终止...[/yellow]")
-                proc.kill()
-                proc.wait()
-                if verbose:
-                    console.print("[green]✅ LLM 服务已强制停止[/green]")
-
-            cls.clear_service_info()
-            return True
-
-        except Exception as exc:
-            if verbose:
-                console.print(f"[red]❌ 停止失败: {exc}[/red]")
-            return False
+        return True
 
     @classmethod
     def status(cls, verbose: bool = True) -> dict[str, Any] | None:
@@ -443,7 +494,7 @@ class LLMLauncher:
 
         if not pid:
             if verbose:
-                console.print("[yellow]ℹ️  LLM 服务未运行[/yellow]")
+                console.print("[yellow]ℹ️  没有找到运行中的 LLM 服务[/yellow]")
             return None
 
         if not psutil.pid_exists(pid):

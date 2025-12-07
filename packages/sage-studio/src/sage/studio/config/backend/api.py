@@ -10,20 +10,20 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-
-import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from datetime import timedelta
 from typing import Annotated
 
-from fastapi import Depends, status
+import uvicorn
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
 
+from sage.common.config.ports import SagePorts
 from sage.common.config.user_paths import get_user_data_dir as get_common_user_data_dir
+from sage.studio.services.agent_orchestrator import get_orchestrator
 from sage.studio.services.auth_service import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     AuthService,
@@ -32,9 +32,6 @@ from sage.studio.services.auth_service import (
     UserCreate,
     get_auth_service,
 )
-
-from sage.common.config.ports import SagePorts
-from sage.studio.services.agent_orchestrator import get_orchestrator
 from sage.studio.services.file_upload_service import get_file_upload_service
 from sage.studio.services.memory_integration import get_memory_service
 from sage.studio.services.stream_handler import get_stream_handler
@@ -303,17 +300,40 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# 动态构建允许的来源列表
+allowed_origins = [
+    "http://localhost:5173",  # Vite 开发服务器默认端口
+    "http://localhost:4173",  # Vite preview 服务器默认端口
+    f"http://localhost:{SagePorts.STUDIO_FRONTEND}",
+    f"http://127.0.0.1:{SagePorts.STUDIO_FRONTEND}",
+    f"http://0.0.0.0:{SagePorts.STUDIO_FRONTEND}",
+]
+
+# 添加常用开发端口
+for port in [5173, 4173, 35180]:
+    if port != SagePorts.STUDIO_FRONTEND:
+        allowed_origins.extend(
+            [
+                f"http://localhost:{port}",
+                f"http://127.0.0.1:{port}",
+                f"http://0.0.0.0:{port}",
+            ]
+        )
+
+# 从环境变量添加额外来源
+extra_origins = os.getenv("SAGE_STUDIO_ALLOWED_ORIGINS", "")
+if extra_origins:
+    allowed_origins.extend(
+        [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+    )
+
+# 去重
+allowed_origins = list(set(allowed_origins))
+
 # 添加 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite 开发服务器默认端口
-        "http://localhost:4173",  # Vite preview 服务器默认端口
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:4173",
-        "http://0.0.0.0:5173",
-        "http://0.0.0.0:4173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -340,10 +360,8 @@ async def login(
     # Strip whitespace from username to match registration behavior
     username = form_data.username.strip()
     user = auth_service.get_user(username)
-    
-    if not user or not auth_service.verify_password(
-        form_data.password, user.hashed_password
-    ):
+
+    if not user or not auth_service.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -383,10 +401,10 @@ async def logout(
     if getattr(current_user, "is_guest", False):
         # Clean up guest data
         import shutil
-        
+
         # Delete user from DB
         auth_service.delete_user(current_user.id)
-        
+
         # Delete user data directory
         # Use the local get_user_data_dir function defined in this file
         user_dir = get_user_data_dir(str(current_user.id))
@@ -1622,6 +1640,40 @@ def _save_session(user_id: str, session_id: str, data: dict):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+@app.post("/api/chat/v1/chat/completions")
+async def proxy_chat_completions(request: Request):
+    """Proxy for OpenAI-compatible chat completions used by Studio frontend"""
+    import httpx
+
+    try:
+        # Get the raw body
+        body = await request.json()
+
+        # Forward to Gateway
+        # We use a stream to support SSE
+        async def event_generator():
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{GATEWAY_BASE_URL}/v1/chat/completions",
+                        json=body,
+                    ) as response:
+                        if response.status_code != 200:
+                            error_msg = await response.aread()
+                            yield f"data: {json.dumps({'error': f'Gateway error: {response.status_code} - {error_msg.decode()}'})}\n\n"
+                            return
+
+                        async for chunk in response.aiter_bytes():
+                            yield chunk
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/chat/message", response_model=ChatResponse)
 async def send_chat_message(
     request: ChatRequest,
@@ -1632,8 +1684,8 @@ async def send_chat_message(
 
     注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
     """
-    from datetime import datetime
     import uuid
+    from datetime import datetime
 
     import httpx
 
@@ -1641,10 +1693,10 @@ async def send_chat_message(
     session_id = request.session_id
     session_data = None
     user_id = str(current_user.id)
-    
+
     if session_id:
         session_data = _load_session(user_id, session_id)
-    
+
     if not session_data:
         # Create new session if not found or not provided
         session_id = session_id or str(uuid.uuid4())
@@ -1655,15 +1707,11 @@ async def send_chat_message(
             "created_at": now,
             "last_active": now,
             "messages": [],
-            "metadata": {}
+            "metadata": {},
         }
 
     # 2. Append User Message
-    user_msg = {
-        "role": "user",
-        "content": request.message,
-        "timestamp": datetime.now().isoformat()
-    }
+    user_msg = {"role": "user", "content": request.message, "timestamp": datetime.now().isoformat()}
     session_data["messages"].append(user_msg)
     session_data["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session_data)
@@ -1680,7 +1728,7 @@ async def send_chat_message(
                     "model": request.model,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
-                    "session_id": session_id, # Pass session_id to gateway
+                    "session_id": session_id,  # Pass session_id to gateway
                 },
             )
 
@@ -1694,12 +1742,12 @@ async def send_chat_message(
 
             # 提取响应内容
             assistant_content = data["choices"][0]["message"]["content"]
-            
+
             # 3. Append Assistant Message
             assistant_msg = {
                 "role": "assistant",
                 "content": assistant_content,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
             session_data["messages"].append(assistant_msg)
             session_data["last_active"] = datetime.now().isoformat()
@@ -1780,16 +1828,18 @@ async def list_chat_sessions(
                 with open(session_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # Convert to summary
-                    sessions.append(ChatSessionSummary(
-                        id=data["id"],
-                        title=data.get("title", "Untitled Session"),
-                        created_at=data.get("created_at", ""),
-                        last_active=data.get("last_active", ""),
-                        message_count=len(data.get("messages", []))
-                    ))
+                    sessions.append(
+                        ChatSessionSummary(
+                            id=data["id"],
+                            title=data.get("title", "Untitled Session"),
+                            created_at=data.get("created_at", ""),
+                            last_active=data.get("last_active", ""),
+                            message_count=len(data.get("messages", [])),
+                        )
+                    )
             except Exception as e:
                 print(f"Error reading session {session_file}: {e}")
-    
+
     # Sort by last_active desc
     sessions.sort(key=lambda x: x.last_active, reverse=True)
     return sessions
@@ -1803,23 +1853,27 @@ async def create_chat_session(
     """创建新的聊天会话"""
     import uuid
     from datetime import datetime
-    
-    session_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
-    
-    session_data = {
-        "id": session_id,
-        "title": payload.title or "New Session",
-        "created_at": now,
-        "last_active": now,
-        "message_count": 0,
-        "messages": [],
-        "metadata": {}
-    }
-    
-    _save_session(str(current_user.id), session_id, session_data)
-    
-    return ChatSessionDetail(**session_data)
+
+    try:
+        session_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+
+        session_data = {
+            "id": session_id,
+            "title": payload.title or "New Session",
+            "created_at": now,
+            "last_active": now,
+            "message_count": 0,
+            "messages": [],
+            "metadata": {},
+        }
+
+        _save_session(str(current_user.id), session_id, session_data)
+
+        return ChatSessionDetail(**session_data)
+    except Exception as e:
+        print(f"Error creating session: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
@@ -1841,16 +1895,16 @@ async def clear_chat_session(
 ):
     """清空会话历史"""
     from datetime import datetime
-    
+
     user_id = str(current_user.id)
     session = _load_session(user_id, session_id)
     if not session:
         raise HTTPException(404, "Session not found")
-    
+
     session["messages"] = []
     session["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session)
-    
+
     return {"status": "success", "message": "Session cleared"}
 
 
@@ -1862,22 +1916,22 @@ async def update_chat_session_title(
 ):
     """更新会话标题"""
     from datetime import datetime
-    
+
     user_id = str(current_user.id)
     session = _load_session(user_id, session_id)
     if not session:
         raise HTTPException(404, "Session not found")
-    
+
     session["title"] = payload.title
     session["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session)
-    
+
     return ChatSessionSummary(
         id=session["id"],
         title=session["title"],
         created_at=session["created_at"],
         last_active=session["last_active"],
-        message_count=len(session["messages"])
+        message_count=len(session["messages"]),
     )
 
 
@@ -2704,9 +2758,17 @@ async def get_llm_status():
     try:
         import requests
 
-        # 读取环境变量
-        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-        model_name = os.getenv("SAGE_CHAT_MODEL", "")
+        from sage.common.components.sage_llm import UnifiedInferenceClient
+
+        # 优先使用 UnifiedInferenceClient 自动检测的状态
+        try:
+            client = UnifiedInferenceClient.create()
+            base_url = client.config.llm_base_url or ""
+            model_name = client.config.llm_model or ""
+        except Exception:
+            # 回退到环境变量
+            base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+            model_name = os.getenv("SAGE_CHAT_MODEL", "")
 
         # 检测是否是本地服务
         is_local = "localhost" in base_url or "127.0.0.1" in base_url
