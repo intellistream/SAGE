@@ -96,6 +96,7 @@ Significant improvements to the developer experience and environment stability.
 
 ### Track 4: Tool Standardization (The Bridge)
 **Objective**: Ensure Middleware tools have proper Pydantic schemas for L3 agents to consume.
+**Status**: ✅ Completed
 **Files**: `packages/sage-studio/src/sage/studio/tools/middleware_adapter.py`
 *   Implement a robust schema generator that inspects the `input_types` dictionary of Middleware tools.
 *   Map string types (e.g., "int", "str", "bool") to actual Python types.
@@ -103,9 +104,26 @@ Significant improvements to the developer experience and environment stability.
 
 ### Track 5: Context Refinement (The Optimizer)
 **Objective**: Integrate `sage-refiner` to compress search results before passing them to the LLM.
+**Status**: ✅ Completed
 **Files**: `packages/sage-libs/src/sage/libs/agentic/agents/bots/searcher_bot.py`
 *   Import `RefinerService` from `sage.middleware.components.sage_refiner`.
 *   In `SearcherBot.execute`, call `refiner.refine(query=query, documents=results)`.
+
+### Track 6: Streaming & Service Management (The Experience)
+**Objective**: Enable real-time feedback in Studio and robust service lifecycle management.
+**Status**: ✅ Completed
+**Files**:
+*   `packages/sage-studio/src/sage/studio/chat_manager.py`
+*   `packages/sage-libs/src/sage/libs/agentic/agents/bots/searcher_bot.py`
+*   `packages/sage-middleware/src/sage/middleware/agent/runtime.py`
+*   **Service Management**:
+    *   `sage studio start` now intelligently detects existing services via `SAGE_*_BASE_URL` env vars.
+    *   `sage studio stop` defaults to preserving LLM/Embedding services (use `--all` to stop them).
+    *   Fixed CORS issues in Backend API to support custom frontend ports (e.g., 35180).
+*   **Streaming**:
+    *   Implemented `search_generator` in `SearcherBot` for real-time search progress.
+    *   Implemented `step_stream` in `AgentRuntime` to yield thought/action events.
+    *   Studio backend now streams these events to the frontend for "Thinking..." UI.
 
 ## Verification Status
 
@@ -120,6 +138,10 @@ Significant improvements to the developer experience and environment stability.
 *   [x] **Gateway Updates**:
     *   OpenAI Adapter updated to import and utilize `RefinedSearcherOperator` and `AgentRuntime`.
     *   Verified code paths in `packages/sage-gateway/src/sage/gateway/adapters/openai.py`.
+*   [x] **Service Management**:
+    *   Verified `sage studio stop` preserves LLM services.
+    *   Verified `sage studio start` reuses existing services.
+    *   Verified CORS support for custom frontend ports.
 
 ## Next Steps
 
