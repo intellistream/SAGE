@@ -116,11 +116,13 @@ sage studio npm run lint   # 运行前端脚本
 SAGE Studio v2.0 引入了完整的用户认证和数据隔离系统：
 
 ### 1. 用户认证
+
 - **注册/登录**：首次使用需注册账号。
 - **JWT Token**：使用 JWT 进行会话管理，Token 自动过期。
 - **安全存储**：密码使用 Argon2 算法哈希存储。
 
 ### 2. 数据隔离
+
 - **多用户支持**：每个用户拥有独立的工作区。
 - **数据路径**：用户数据存储在 `~/.local/share/sage/users/{user_id}/`。
   - `pipelines/`: 保存的流水线配置

@@ -53,15 +53,15 @@ export const LoginPage: React.FC = () => {
         // Better to use Navigate component
         return <Navigate to="/" replace />
     }
-    
+
     // Need to import Navigate
     // import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 
     return (
-        <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             minHeight: '100vh',
             background: '#f0f2f5'
         }}>
@@ -72,11 +72,11 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 {error && (
-                    <Alert 
-                        message={error} 
-                        type="error" 
-                        showIcon 
-                        style={{ marginBottom: 24 }} 
+                    <Alert
+                        message={error}
+                        type="error"
+                        showIcon
+                        style={{ marginBottom: 24 }}
                         onClose={clearError}
                     />
                 )}
@@ -117,9 +117,9 @@ export const LoginPage: React.FC = () => {
 
                 <div style={{ marginTop: 16, textAlign: 'center' }}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Or</Text>
-                    <Button 
-                        type="default" 
-                        onClick={handleGuestLogin} 
+                    <Button
+                        type="default"
+                        onClick={handleGuestLogin}
                         loading={isLoading}
                         block
                     >

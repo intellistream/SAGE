@@ -72,7 +72,7 @@ class PipelineCaller(MapFunction):
             test_segments = config.get("runtime.test_segments", 10)
             self.test_thresholds = calculate_test_thresholds(self.total_questions, test_segments)
             self.test_based_on_facts = False
-        
+
         self.next_threshold_idx = 0  # 下一个要触发的阈值索引
 
         # 测试统计
@@ -196,7 +196,7 @@ class PipelineCaller(MapFunction):
 
         if self.next_threshold_idx < len(self.test_thresholds):
             next_threshold = self.test_thresholds[self.next_threshold_idx]
-            
+
             # 根据数据集类型选择触发条件
             if self.test_based_on_facts:
                 # For conflict_resolution: trigger based on facts inserted
@@ -211,11 +211,15 @@ class PipelineCaller(MapFunction):
         if not should_test:
             if self.memory_test_verbose:
                 if self.test_based_on_facts:
-                    threshold_info = f"下一个阈值：{next_threshold} facts" if next_threshold else "无更多阈值"
+                    threshold_info = (
+                        f"下一个阈值：{next_threshold} facts" if next_threshold else "无更多阈值"
+                    )
                     print(f"\n>> 已插入facts数：{self.total_dialogs_inserted}")
                     print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
                 else:
-                    threshold_info = f"下一个阈值：{next_threshold} 个问题" if next_threshold else "无更多阈值"
+                    threshold_info = (
+                        f"下一个阈值：{next_threshold} 个问题" if next_threshold else "无更多阈值"
+                    )
                     print(f"\n>> 当前可见问题数：{current_count}/{self.total_questions}")
                 print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
 

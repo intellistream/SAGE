@@ -46,7 +46,7 @@ class MemorySource(BatchFunction):
 
         # 统计总的dialog数量和数据包数量
         self.total_dialogs = sum((max_dialog_idx + 1) for _, max_dialog_idx in self.turns)
-        
+
         # Calculate total packets based on dataset type
         # - conflict_resolution: 1 fact per packet (increment by 1)
         # - locomo: 2 dialogs per packet (increment by 2)
@@ -126,7 +126,7 @@ class MemorySource(BatchFunction):
             self.dialog_ptr += 1  # Single fact per dialog
         else:
             self.dialog_ptr += 2  # Pair of dialogs (Q&A)
-        
+
         self.packet_idx += 1  # Packet index increment
 
         return result

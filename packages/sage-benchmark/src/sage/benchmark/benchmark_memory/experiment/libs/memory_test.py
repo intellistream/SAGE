@@ -61,8 +61,8 @@ Answer:""",
         prompt = full_prompt
 
         # 调用 LLM 生成答案
-        # answer_text = self.generator.generate(prompt)
-        answer_text = "yes"
+        answer_text = self.generator.generate(prompt)
+        # answer_text = "yes"
 
         # 返回答案和元数据
         data["answer"] = answer_text

@@ -59,7 +59,9 @@ class MemorySink(SinkFunction):
 
             return LocomoDataLoader()
         elif dataset == "conflict_resolution":
-            from sage.data.sources.memagentbench.conflict_resolution_loader import ConflictResolutionDataLoader
+            from sage.data.sources.memagentbench.conflict_resolution_loader import (
+                ConflictResolutionDataLoader,
+            )
 
             return ConflictResolutionDataLoader()
         elif dataset == "conflict_resolution_v1":
