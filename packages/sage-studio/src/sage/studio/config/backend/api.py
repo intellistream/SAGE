@@ -10,20 +10,19 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-
-import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from datetime import timedelta
 from typing import Annotated
 
-from fastapi import Depends, status
+import uvicorn
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
 
+from sage.common.config.ports import SagePorts
 from sage.common.config.user_paths import get_user_data_dir as get_common_user_data_dir
+from sage.studio.services.agent_orchestrator import get_orchestrator
 from sage.studio.services.auth_service import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     AuthService,
@@ -32,9 +31,6 @@ from sage.studio.services.auth_service import (
     UserCreate,
     get_auth_service,
 )
-
-from sage.common.config.ports import SagePorts
-from sage.studio.services.agent_orchestrator import get_orchestrator
 from sage.studio.services.file_upload_service import get_file_upload_service
 from sage.studio.services.memory_integration import get_memory_service
 from sage.studio.services.stream_handler import get_stream_handler
@@ -340,10 +336,8 @@ async def login(
     # Strip whitespace from username to match registration behavior
     username = form_data.username.strip()
     user = auth_service.get_user(username)
-    
-    if not user or not auth_service.verify_password(
-        form_data.password, user.hashed_password
-    ):
+
+    if not user or not auth_service.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -383,10 +377,10 @@ async def logout(
     if getattr(current_user, "is_guest", False):
         # Clean up guest data
         import shutil
-        
+
         # Delete user from DB
         auth_service.delete_user(current_user.id)
-        
+
         # Delete user data directory
         # Use the local get_user_data_dir function defined in this file
         user_dir = get_user_data_dir(str(current_user.id))
@@ -1632,8 +1626,8 @@ async def send_chat_message(
 
     注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
     """
-    from datetime import datetime
     import uuid
+    from datetime import datetime
 
     import httpx
 
@@ -1641,10 +1635,10 @@ async def send_chat_message(
     session_id = request.session_id
     session_data = None
     user_id = str(current_user.id)
-    
+
     if session_id:
         session_data = _load_session(user_id, session_id)
-    
+
     if not session_data:
         # Create new session if not found or not provided
         session_id = session_id or str(uuid.uuid4())
@@ -1655,15 +1649,11 @@ async def send_chat_message(
             "created_at": now,
             "last_active": now,
             "messages": [],
-            "metadata": {}
+            "metadata": {},
         }
 
     # 2. Append User Message
-    user_msg = {
-        "role": "user",
-        "content": request.message,
-        "timestamp": datetime.now().isoformat()
-    }
+    user_msg = {"role": "user", "content": request.message, "timestamp": datetime.now().isoformat()}
     session_data["messages"].append(user_msg)
     session_data["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session_data)
@@ -1680,7 +1670,7 @@ async def send_chat_message(
                     "model": request.model,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
-                    "session_id": session_id, # Pass session_id to gateway
+                    "session_id": session_id,  # Pass session_id to gateway
                 },
             )
 
@@ -1694,12 +1684,12 @@ async def send_chat_message(
 
             # 提取响应内容
             assistant_content = data["choices"][0]["message"]["content"]
-            
+
             # 3. Append Assistant Message
             assistant_msg = {
                 "role": "assistant",
                 "content": assistant_content,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
             session_data["messages"].append(assistant_msg)
             session_data["last_active"] = datetime.now().isoformat()
@@ -1780,16 +1770,18 @@ async def list_chat_sessions(
                 with open(session_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # Convert to summary
-                    sessions.append(ChatSessionSummary(
-                        id=data["id"],
-                        title=data.get("title", "Untitled Session"),
-                        created_at=data.get("created_at", ""),
-                        last_active=data.get("last_active", ""),
-                        message_count=len(data.get("messages", []))
-                    ))
+                    sessions.append(
+                        ChatSessionSummary(
+                            id=data["id"],
+                            title=data.get("title", "Untitled Session"),
+                            created_at=data.get("created_at", ""),
+                            last_active=data.get("last_active", ""),
+                            message_count=len(data.get("messages", [])),
+                        )
+                    )
             except Exception as e:
                 print(f"Error reading session {session_file}: {e}")
-    
+
     # Sort by last_active desc
     sessions.sort(key=lambda x: x.last_active, reverse=True)
     return sessions
@@ -1803,10 +1795,10 @@ async def create_chat_session(
     """创建新的聊天会话"""
     import uuid
     from datetime import datetime
-    
+
     session_id = str(uuid.uuid4())
     now = datetime.now().isoformat()
-    
+
     session_data = {
         "id": session_id,
         "title": payload.title or "New Session",
@@ -1814,11 +1806,11 @@ async def create_chat_session(
         "last_active": now,
         "message_count": 0,
         "messages": [],
-        "metadata": {}
+        "metadata": {},
     }
-    
+
     _save_session(str(current_user.id), session_id, session_data)
-    
+
     return ChatSessionDetail(**session_data)
 
 
@@ -1841,16 +1833,16 @@ async def clear_chat_session(
 ):
     """清空会话历史"""
     from datetime import datetime
-    
+
     user_id = str(current_user.id)
     session = _load_session(user_id, session_id)
     if not session:
         raise HTTPException(404, "Session not found")
-    
+
     session["messages"] = []
     session["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session)
-    
+
     return {"status": "success", "message": "Session cleared"}
 
 
@@ -1862,22 +1854,22 @@ async def update_chat_session_title(
 ):
     """更新会话标题"""
     from datetime import datetime
-    
+
     user_id = str(current_user.id)
     session = _load_session(user_id, session_id)
     if not session:
         raise HTTPException(404, "Session not found")
-    
+
     session["title"] = payload.title
     session["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session)
-    
+
     return ChatSessionSummary(
         id=session["id"],
         title=session["title"],
         created_at=session["created_at"],
         last_active=session["last_active"],
-        message_count=len(session["messages"])
+        message_count=len(session["messages"]),
     )
 
 

@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from sage.studio.config.backend import api
 from sage.studio.services.auth_service import User
-from datetime import datetime
 
 client = TestClient(api.app)
+
 
 def mock_get_current_user():
     return User(id=1, username="testuser", created_at=datetime.now())
@@ -71,7 +72,7 @@ def test_submit_pipeline_persists_file(tmp_path: Path, monkeypatch):
     assert response.status_code == 200
     result = response.json()
     assert result["status"] == "success"
-    
+
     # Clean up override
     api.app.dependency_overrides = {}
 
