@@ -175,10 +175,14 @@ main() {
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
+    local install_vllm=$(should_install_vllm)
+    local vllm_from_source=$(should_install_vllm_from_source)
 
     # 导出 pip 镜像配置为环境变量，供子脚本使用
     export USE_PIP_MIRROR="$use_mirror"
     export MIRROR_SOURCE="$mirror_source"
+    # 导出 vLLM 源码安装配置
+    export SAGE_VLLM_FROM_SOURCE="$vllm_from_source"
 
     # 执行安装前清理（如果启用）
     if [ "$clean_before_install" = "true" ]; then
@@ -258,7 +262,7 @@ main() {
     fi
 
     # 执行安装
-    install_sage "$mode" "$environment" "$clean_cache"
+    install_sage "$mode" "$environment" "$clean_cache" "$install_vllm"
 
     # 验证安装
     if run_comprehensive_verification; then
@@ -292,10 +296,15 @@ main() {
             if [ -n "$SAGE_ENV_NAME" ]; then
                 # 如果使用 conda 环境，使用 conda run 确保在正确的环境中运行
                 sage_dev_cmd="conda run -n $SAGE_ENV_NAME sage-dev"
+            elif [ -x "$HOME/.local/bin/sage-dev" ]; then
+                # pip 安装模式：使用 ~/.local/bin 中的 sage-dev
+                sage_dev_cmd="$HOME/.local/bin/sage-dev"
             fi
 
             # 检查 sage-dev 是否可用
-            if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; }; then
+            if { [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || \
+               { [ -z "$SAGE_ENV_NAME" ] && command -v sage-dev >/dev/null 2>&1; } || \
+               { [ -z "$SAGE_ENV_NAME" ] && [ -x "$HOME/.local/bin/sage-dev" ]; }; then
                 # 确定是否后台运行
                 local run_background=false
                 if [ "$hooks_mode" = "background" ]; then
@@ -326,6 +335,15 @@ main() {
                         echo -e "${DIM}   • 代码质量检查: black, isort, ruff 等${NC}"
                         echo -e "${DIM}   • 架构合规性: 包依赖、导入路径等${NC}"
                         echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
+
+                        # 检查工具版本一致性
+                        if [ -f "$SAGE_ROOT/tools/install/check_tool_versions.sh" ]; then
+                            echo ""
+                            if ! bash "$SAGE_ROOT/tools/install/check_tool_versions.sh" --quiet 2>/dev/null; then
+                                echo -e "${YELLOW}⚠️  检测到工具版本不一致${NC}"
+                                echo -e "${DIM}   运行 ./tools/install/check_tool_versions.sh --fix 自动修复${NC}"
+                            fi
+                        fi
                     else
                         echo -e "${YELLOW}⚠️  Git hooks 安装失败（可能不在 Git 仓库中）${NC}"
                         echo -e "${DIM}   可稍后手动运行: sage-dev maintain hooks install${NC}"
@@ -369,8 +387,8 @@ main() {
         echo ""
         echo -e "${INFO} 检查依赖版本兼容性..."
         if [ -f "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh" ]; then
-            # 非交互模式检查（在 CI 环境中）
-            if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+            # 非交互模式检查（在 CI 环境中或自动确认模式）
+            if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$(get_auto_confirm)" = "true" ]; then
                 source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies --non-interactive || {
                     echo -e "${DIM}  ⚠️  依赖检查完成（可能存在警告）${NC}"

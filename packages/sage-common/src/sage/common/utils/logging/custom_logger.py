@@ -137,7 +137,15 @@ class CustomLogger:
         if resolved_name is None:
             resolved_name = "Logger"
         if resolved_outputs is None:
-            resolved_outputs = [("console", "INFO")]
+            # Check if running in CLI mode (non-verbose)
+            # In CLI mode, default to WARNING to avoid noisy startup logs
+            if os.environ.get("SAGE_LOG_LEVEL"):
+                default_level = os.environ["SAGE_LOG_LEVEL"].upper()
+            elif not os.environ.get("SAGE_CLI_VERBOSE"):
+                default_level = "WARNING"
+            else:
+                default_level = "INFO"
+            resolved_outputs = [("console", default_level)]
 
         self.name = resolved_name
         self.log_base_folder = log_base_folder
@@ -494,6 +502,40 @@ class CustomLogger:
     def get_available_levels(cls) -> list:
         """获取所有可用的日志级别"""
         return list(cls._LEVEL_MAPPING.keys())
+
+    @classmethod
+    def get_logger(
+        cls,
+        name: str | None = None,
+        *,
+        level: str | int = "INFO",
+        outputs: list[tuple[str, str | int]] | None = None,
+        log_base_folder: str | None = None,
+    ) -> logging.Logger:
+        """兼容旧版 API 的便捷方法，返回 ``logging.Logger`` 实例。
+
+        旧的示例（例如 ``examples/apps/run_work_report.py``）使用
+        ``CustomLogger.get_logger(__name__)`` 获取标准 logger。本方法保持
+        该接口，同时复用新的 ``CustomLogger`` 配置能力。
+
+        Args:
+            name: Logger 名称，默认 "Logger"。
+            level: 当 ``outputs`` 未提供时，用于 console 输出的级别。
+            outputs: 可选的输出配置列表，与 ``CustomLogger`` 构造函数一致。
+            log_base_folder: 提供相对路径输出时使用的日志根目录。
+
+        Returns:
+            logging.Logger: 配置好的 logger。
+        """
+
+        resolved_outputs: list[tuple[str, str | int]] = outputs if outputs else [("console", level)]
+
+        instance = cls(
+            name=name,
+            outputs=resolved_outputs,
+            log_base_folder=log_base_folder,
+        )
+        return instance.logger
 
     @classmethod
     def disable_global_console_debug(cls):

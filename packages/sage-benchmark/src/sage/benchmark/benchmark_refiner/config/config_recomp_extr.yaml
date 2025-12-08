@@ -1,0 +1,72 @@
+pipeline:
+  name: "sage-benchmark-recomp-extr-rag"
+  description: "RECOMP Extractive RAG Pipeline with Sentence-Level Compression"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 100
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "/home/cyb/wiki18_maxp.index"
+    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
+    mapping_path: "/home/cyb/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+recomp_extr:
+  # RECOMP Extractive压缩配置
+  enabled: true  # 设为false即为baseline模式
+
+  # 模型配置
+  # 支持的模型:
+  # - fangyuan/nq_extractive_compressor (NQ 数据集微调，推荐用于 NQ)
+  # - fangyuan/tqa_extractive_compressor (TriviaQA 微调)
+  # - fangyuan/hotpotqa_extractive_compressor (HotpotQA 微调)
+  # - facebook/contriever-msmarco (通用检索模型)
+  model_path: "fangyuan/nq_extractive_compressor"
+  device: "cuda"           # 运行设备 ("cuda", "cpu", 或 null 自动检测)
+
+  # 压缩参数
+  top_k: 5                 # 选择与query最相关的top-k句子
+  score_threshold: 0.0     # 分数阈值，低于此阈值的句子不会被选中
+  max_length: 512          # tokenizer最大序列长度
+  use_l2_norm: false       # 是否使用L2归一化（默认false，使用mean pooling）
+
+  # 可选：模型缓存目录
+  # cache_dir: "/path/to/model/cache"
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

@@ -3,26 +3,21 @@
 
 """Backward compatibility adapters for unified inference client.
 
-This module provides adapter classes that maintain backward compatibility
-with the existing IntelligentLLMClient and IntelligentEmbeddingClient APIs
-while internally using the new UnifiedInferenceClient.
-
-The adapters ensure that:
-1. Existing code continues to work without modifications
-2. New code can use the unified client interface
-3. Gradual migration path is available
+This module provides adapter classes (LLMClientAdapter and EmbeddingClientAdapter)
+that inherit from UnifiedInferenceClient and provide specialized interfaces
+for LLM-only or Embedding-only use cases.
 
 Example:
-    >>> # Existing code (unchanged)
-    >>> from sage.common.components.sage_llm import IntelligentLLMClient
-    >>> client = IntelligentLLMClient.create_auto()
-    >>> response = client.chat([{"role": "user", "content": "Hello"}])
-    >>>
-    >>> # New unified code
+    >>> # Unified client (recommended)
     >>> from sage.common.components.sage_llm import UnifiedInferenceClient
-    >>> client = UnifiedInferenceClient.create_auto()
+    >>> client = UnifiedInferenceClient.create()
     >>> response = client.chat([{"role": "user", "content": "Hello"}])
     >>> vectors = client.embed(["text1", "text2"])
+    >>>
+    >>> # LLM-focused adapter (legacy compatibility)
+    >>> from sage.common.components.sage_llm import LLMClientAdapter
+    >>> adapter = LLMClientAdapter.create()
+    >>> response = adapter.chat([{"role": "user", "content": "Hello"}])
 """
 
 from __future__ import annotations
@@ -42,24 +37,21 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClientAdapter(UnifiedInferenceClient):
-    """Adapter to provide IntelligentLLMClient-compatible interface.
+    """Adapter providing LLM-focused interface.
 
-    This adapter wraps UnifiedInferenceClient to provide backward compatibility
-    with the existing IntelligentLLMClient API. It:
+    This adapter wraps UnifiedInferenceClient to provide a specialized interface
+    for LLM-only use cases. It:
 
-    1. Maintains the same method signatures as IntelligentLLMClient
-    2. Uses UnifiedInferenceClient internally for actual operations
-    3. Provides deprecation warnings for legacy methods
-
-    The adapter is designed to be a drop-in replacement for IntelligentLLMClient.
+    1. Provides convenient factory methods (create, create_auto)
+    2. Exposes legacy properties (model_name, base_url, api_key)
+    3. Inherits all UnifiedInferenceClient capabilities
 
     Example:
-        >>> # Works exactly like IntelligentLLMClient
-        >>> adapter = LLMClientAdapter.create_auto()
+        >>> adapter = LLMClientAdapter.create()
         >>> response = adapter.chat([{"role": "user", "content": "Hello"}])
         >>>
-        >>> # But also supports embedding (new capability)
-        >>> vectors = adapter.embed(["text"])  # Available but logs warning
+        >>> # Also supports embedding (inherited from UnifiedInferenceClient)
+        >>> vectors = adapter.embed(["text"])
     """
 
     def __init__(
@@ -119,9 +111,35 @@ class LLMClientAdapter(UnifiedInferenceClient):
         timeout: float = 60.0,
         **kwargs: Any,
     ) -> LLMClientAdapter:
-        """Create adapter with auto-detection (backward compatible).
+        """Create adapter with auto-detection.
 
-        This method matches the signature of IntelligentLLMClient.create_auto().
+        .. deprecated::
+            Use :meth:`create` instead. This method will be removed in a future version.
+
+        Args:
+            timeout: Request timeout in seconds.
+            **kwargs: Additional arguments.
+
+        Returns:
+            Configured LLMClientAdapter instance.
+        """
+        import warnings
+
+        warnings.warn(
+            "create_auto() is deprecated, use create() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls.create(timeout=timeout, **kwargs)
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        timeout: float = 60.0,
+        **kwargs: Any,
+    ) -> LLMClientAdapter:
+        """Create adapter with auto-detection.
 
         Args:
             timeout: Request timeout in seconds.
@@ -157,7 +175,7 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
 
     Example:
         >>> # Works exactly like IntelligentEmbeddingClient
-        >>> adapter = EmbeddingClientAdapter.create_auto()
+        >>> adapter = EmbeddingClientAdapter.create()
         >>> vectors = adapter.embed(["text1", "text2"])
         >>>
         >>> # API mode
@@ -270,6 +288,36 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
     ) -> EmbeddingClientAdapter:
         """Create adapter with auto-detection.
 
+        .. deprecated::
+            Use :meth:`create` instead. This method will be removed in a future version.
+
+        Args:
+            fallback_model: Model to use for embedded mode if no server found.
+            timeout: Request timeout in seconds.
+            **kwargs: Additional arguments.
+
+        Returns:
+            Configured EmbeddingClientAdapter instance.
+        """
+        import warnings
+
+        warnings.warn(
+            "create_auto() is deprecated, use create() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls.create(fallback_model=fallback_model, timeout=timeout, **kwargs)
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        fallback_model: str = "BAAI/bge-small-zh-v1.5",
+        timeout: float = 60.0,
+        **kwargs: Any,
+    ) -> EmbeddingClientAdapter:
+        """Create adapter with auto-detection.
+
         Detection order:
         1. SAGE_EMBEDDING_BASE_URL environment variable
         2. Local embedding server (ports 8090, 8080)
@@ -360,106 +408,5 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
             model=model,
             mode="embedded",
             timeout=timeout,
-            **kwargs,
-        )
-
-
-# Factory function for creating backward-compatible clients
-def create_llm_client_compat(
-    model_name: str | None = None,
-    base_url: str | None = None,
-    api_key: str = "",
-    use_unified: bool = True,
-    **kwargs: Any,
-) -> LLMClientAdapter | Any:
-    """Create an LLM client with backward compatibility.
-
-    This factory function creates either:
-    1. LLMClientAdapter (unified, recommended) if use_unified=True
-    2. Original IntelligentLLMClient if use_unified=False
-
-    Args:
-        model_name: Model name for requests.
-        base_url: Base URL for the API.
-        api_key: API key for authentication.
-        use_unified: Whether to use the new unified client.
-        **kwargs: Additional arguments.
-
-    Returns:
-        Configured client instance.
-    """
-    if use_unified:
-        return LLMClientAdapter(
-            model_name=model_name,
-            base_url=base_url,
-            api_key=api_key,
-            **kwargs,
-        )
-
-    # Import original client
-    from .client import IntelligentLLMClient
-
-    return IntelligentLLMClient(
-        model_name=model_name or "",
-        base_url=base_url or "",
-        api_key=api_key,
-        **kwargs,
-    )
-
-
-def create_embedding_client_compat(
-    base_url: str | None = None,
-    model: str | None = None,
-    api_key: str = "",
-    mode: str = "auto",
-    use_unified: bool = True,
-    **kwargs: Any,
-) -> EmbeddingClientAdapter | Any:
-    """Create an embedding client with backward compatibility.
-
-    This factory function creates either:
-    1. EmbeddingClientAdapter (unified, recommended) if use_unified=True
-    2. Original IntelligentEmbeddingClient if use_unified=False
-
-    Args:
-        base_url: Base URL for the API.
-        model: Model name for embeddings.
-        api_key: API key for authentication.
-        mode: Operation mode ("api", "embedded", or "auto").
-        use_unified: Whether to use the new unified client.
-        **kwargs: Additional arguments.
-
-    Returns:
-        Configured client instance.
-    """
-    if use_unified:
-        if mode == "auto":
-            return EmbeddingClientAdapter.create_auto(**kwargs)
-        elif mode == "embedded":
-            return EmbeddingClientAdapter.create_embedded(
-                model=model or "BAAI/bge-small-zh-v1.5", **kwargs
-            )
-        else:
-            return EmbeddingClientAdapter(
-                base_url=base_url,
-                model=model,
-                api_key=api_key,
-                mode="api",
-                **kwargs,
-            )
-
-    # Import original client
-    from ..sage_embedding import IntelligentEmbeddingClient
-
-    if mode == "auto":
-        return IntelligentEmbeddingClient.create_auto(**kwargs)
-    elif mode == "embedded":
-        return IntelligentEmbeddingClient.create_embedded(
-            model=model or "BAAI/bge-small-zh-v1.5", **kwargs
-        )
-    else:
-        return IntelligentEmbeddingClient.create_api(
-            base_url=base_url or "",
-            model=model or "",
             **kwargs,
         )

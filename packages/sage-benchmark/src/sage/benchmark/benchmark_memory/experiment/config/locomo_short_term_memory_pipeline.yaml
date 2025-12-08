@@ -9,7 +9,7 @@ runtime:
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
     Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
-    
+
     Question: {question}
     Answer:
 
@@ -20,13 +20,20 @@ runtime:
   max_tokens: 80
   temperature: 0.3
   seed: 42
+  # api_key: "e02683ea96b3fbc29971ad8233fd39bca7b0b71e42adcc73df8ed798a0a030d2"
+  # base_url: "http://127.0.0.1:1040/v1/chat/completions"
+  # model_name: "pangu_embedded_1b"
+  # max_tokens: 80
+  # temperature: 0.3
+  # seed: 42
   memory_name: "stm"
 
 # 服务配置
 services:
   register_memory_service: "short_term_memory"  # 注册的记忆服务名称，可切换为其他服务
   short_term_memory:
-    max_dialog: 3  # 短期记忆窗口大小（轮次）
+    max_dialog: 5  # 短期记忆窗口大小（轮次）
+    embedding_dim: 1024  # BAAI/bge-m3 模型的向量维度
   memory_insert_adapter: "to_dialogs"
   memory_retrieval_adapter: "none"
 

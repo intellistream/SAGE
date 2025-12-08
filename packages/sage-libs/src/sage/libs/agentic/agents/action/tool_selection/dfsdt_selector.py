@@ -164,15 +164,9 @@ class DFSDTSelector(BaseToolSelector):
         """Lazy initialization of LLM client."""
         if not self._llm_initialized:
             try:
-                from sage.common.components.sage_llm.client import IntelligentLLMClient
+                from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                if self.config.llm_model == "auto":
-                    self._llm_client = IntelligentLLMClient.create_auto()
-                else:
-                    self._llm_client = IntelligentLLMClient(
-                        model_name=self.config.llm_model,
-                        temperature=self.config.temperature,
-                    )
+                self._llm_client = UnifiedInferenceClient.create()
                 self._llm_initialized = True
                 self.logger.info("DFSDT: LLM client initialized")
             except Exception as e:
@@ -248,8 +242,8 @@ class DFSDTSelector(BaseToolSelector):
             root.children.append(node)
 
         # Score all nodes using LLM or fallback
-        scored_nodes = []
-        visited_tools = []
+        scored_nodes: list[SearchNode] = []
+        visited_tools: list[str] = []
 
         for node in root.children:
             score = self._score_tool(query, node, visited_tools)

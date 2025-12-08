@@ -208,7 +208,7 @@ client = UnifiedInferenceClient.create_with_control_plane(
 )
 
 # Simple 模式（自动检测本地/云端）
-auto_client = UnifiedInferenceClient.create_auto()
+auto_client = UnifiedInferenceClient.create()
 
 response = client.chat([{"role": "user", "content": "Hello"}])
 vectors = client.embed(["text1", "text2"])
@@ -218,22 +218,22 @@ vectors = client.embed(["text1", "text2"])
 
 ```bash
 # 推荐：一键管理
-sage stack start                       # 启动 vLLM + Embedding（默认模型）
-sage stack start -l Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
-sage stack status                      # 查看服务状态
-sage stack stop                        # 停止所有服务
-sage stack logs --follow               # 追踪日志
+sage llm serve                         # 启动 LLM（默认模型）
+sage llm serve --with-embedding -m Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
+sage llm status                        # 查看服务状态
+sage llm stop                          # 停止服务
+sage llm logs --follow                 # 追踪日志
 
 # 手动方式（按需）
-sage llm start --model "Qwen/Qwen2.5-0.5B-Instruct" --port 8901
+sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
 python -m sage.common.components.sage_embedding.embedding_server \
-    --model BAAI/bge-m3 --port 8090
+  --model BAAI/bge-m3 --port 8090
 ```
 
 ### 端口与配置
 
 - 端口全部来自 `sage.common.config.ports.SagePorts`（禁止硬编码）
-- 常用端口：`SagePorts.GATEWAY_DEFAULT=8000`, `SagePorts.LLM_DEFAULT=8001`,
+- 常用端口：`SagePorts.GATEWAY_DEFAULT` | 8888`, `SagePorts.LLM_DEFAULT=8001`,
   `SagePorts.BENCHMARK_LLM=8901`, `SagePorts.EMBEDDING_DEFAULT=8090`
 - WSL2 建议使用 `SagePorts.get_recommended_llm_port()` 获取可用 LLM 端口
 

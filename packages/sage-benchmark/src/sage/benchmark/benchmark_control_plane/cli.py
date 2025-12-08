@@ -169,7 +169,7 @@ def create_app() -> Any:
             help="Benchmark mode: llm (LLM only) or hybrid (LLM + Embedding)",
         ),
         control_plane: str = Option(
-            "http://localhost:8080",
+            "http://localhost:8888",
             "--control-plane",
             "-c",
             help="Control Plane URL",
@@ -414,7 +414,7 @@ def create_app() -> Any:
             help="Benchmark mode: llm or hybrid",
         ),
         control_plane: str = Option(
-            "http://localhost:8080",
+            "http://localhost:8888",
             "--control-plane",
             "-c",
             help="Control Plane URL",
@@ -645,7 +645,7 @@ def create_app() -> Any:
             help="Benchmark mode: llm or hybrid",
         ),
         control_plane: str = Option(
-            "http://localhost:8080",
+            "http://localhost:8888",
             "--control-plane",
             "-c",
             help="Control Plane URL",
@@ -845,7 +845,7 @@ def create_app() -> Any:
             help="Experiment name: throughput, latency, slo, mixed_ratio",
         ),
         control_plane: str = Option(
-            "http://localhost:8080",
+            "http://localhost:8888",
             "--control-plane",
             "-c",
             help="Control Plane URL",

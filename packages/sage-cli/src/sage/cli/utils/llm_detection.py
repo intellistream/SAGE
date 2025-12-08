@@ -13,6 +13,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from urllib import error, request
 
+from sage.common.config.ports import SagePorts
+
 
 @dataclass
 class LLMServiceInfo:
@@ -100,10 +102,11 @@ def detect_vllm(
     """Detect a running vLLM service by probing the OpenAI-compatible models API."""
 
     if base_urls is None:
+        gateway_port = SagePorts.GATEWAY_DEFAULT
         base_urls = (
-            "http://127.0.0.1:8000",
-            "http://localhost:8000",
-            "http://0.0.0.0:8000",
+            f"http://127.0.0.1:{gateway_port}",
+            f"http://localhost:{gateway_port}",
+            f"http://0.0.0.0:{gateway_port}",
         )
 
     # If user provides auth_token, use it; otherwise try common defaults

@@ -1,5 +1,5 @@
 from sage.kernel.api.operator.base_operator import BaseOperator
-from sage.kernel.runtime.communication.packet import Packet
+from sage.kernel.runtime.communication.packet import Packet, StopSignal
 
 
 class SinkOperator(BaseOperator):
@@ -17,6 +17,13 @@ class SinkOperator(BaseOperator):
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
             else:
+                # 检查是否是 StopSignal，如果是则跳过 execute()
+                if isinstance(packet.payload, StopSignal):
+                    self.logger.debug(
+                        f"Operator {self.name} received StopSignal in process_packet, skipping execute()"
+                    )
+                    return
+
                 result = self.function.execute(packet.payload)
                 self.logger.debug(f"Operator {self.name} processed data with result: {result}")
                 # Queue机制自动提供背压控制，无需显式同步

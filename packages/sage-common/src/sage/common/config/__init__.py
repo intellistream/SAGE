@@ -4,6 +4,15 @@ SAGE Common Config
 Configuration management utilities.
 """
 
+from .network import (
+    HF_MIRROR_CN,
+    NetworkRegion,
+    configure_hf_mirror,
+    detect_china_mainland,
+    ensure_hf_mirror_configured,
+    get_hf_endpoint,
+    get_network_region,
+)
 from .output_paths import (
     SageOutputPaths,
     find_sage_project_root,
@@ -32,6 +41,14 @@ from .ports import (
     DEFAULT_EMBEDDING_PORT,
     DEFAULT_LLM_PORT,
     SagePorts,
+)
+from .user_paths import (
+    SageUserPaths,
+    get_user_cache_dir,
+    get_user_config_dir,
+    get_user_data_dir,
+    get_user_paths,
+    get_user_state_dir,
 )
 
 __all__ = [
@@ -62,4 +79,19 @@ __all__ = [
     "DEFAULT_LLM_PORT",
     "DEFAULT_EMBEDDING_PORT",
     "DEFAULT_BENCHMARK_LLM_PORT",
+    # Network detection and HuggingFace mirror
+    "HF_MIRROR_CN",
+    "detect_china_mainland",
+    "get_hf_endpoint",
+    "configure_hf_mirror",
+    "ensure_hf_mirror_configured",
+    "get_network_region",
+    "NetworkRegion",
+    # User paths (XDG standard)
+    "SageUserPaths",
+    "get_user_paths",
+    "get_user_config_dir",
+    "get_user_data_dir",
+    "get_user_state_dir",
+    "get_user_cache_dir",
 ]

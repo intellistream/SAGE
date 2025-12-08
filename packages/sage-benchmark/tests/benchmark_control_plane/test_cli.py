@@ -61,7 +61,7 @@ class TestLoadConfigFile:
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / "config.json"
             config_data = {
-                "control_plane_url": "http://localhost:8080",
+                "control_plane_url": "http://localhost:8888",
                 "num_requests": 100,
                 "request_rate": 10.0,
             }
@@ -70,7 +70,7 @@ class TestLoadConfigFile:
 
             loaded = load_config_file(config_path)
 
-            assert loaded["control_plane_url"] == "http://localhost:8080"
+            assert loaded["control_plane_url"] == "http://localhost:8888"
             assert loaded["num_requests"] == 100
             assert loaded["request_rate"] == 10.0
 
@@ -81,7 +81,7 @@ class TestLoadConfigFile:
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / "config.yaml"
             yaml_content = """
-control_plane_url: http://localhost:8080
+control_plane_url: http://localhost:8888
 num_requests: 100
 request_rate: 10.0
 policies:
@@ -93,7 +93,7 @@ policies:
 
             loaded = load_config_file(config_path)
 
-            assert loaded["control_plane_url"] == "http://localhost:8080"
+            assert loaded["control_plane_url"] == "http://localhost:8888"
             assert loaded["num_requests"] == 100
             assert loaded["policies"] == ["fifo", "priority"]
 
@@ -234,7 +234,7 @@ class TestValidateCommandIntegration:
         from sage.benchmark.benchmark_control_plane.llm_scheduler import LLMBenchmarkConfig
 
         config_data = {
-            "control_plane_url": "http://localhost:8080",
+            "control_plane_url": "http://localhost:8888",
             "num_requests": 100,
             "request_rate": 10.0,
         }
@@ -252,7 +252,7 @@ class TestValidateCommandIntegration:
         )
 
         config_data = {
-            "control_plane_url": "http://localhost:8080",
+            "control_plane_url": "http://localhost:8888",
             "num_requests": 100,
             "request_rate": 10.0,
             "llm_ratio": 0.7,

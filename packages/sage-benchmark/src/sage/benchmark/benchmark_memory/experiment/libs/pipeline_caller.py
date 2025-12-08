@@ -10,6 +10,9 @@ from sage.benchmark.benchmark_memory.experiment.utils.calculation_table import (
 from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
 from sage.data.sources.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.memagentbench.conflict_resolution_loader import (
+    ConflictResolutionDataLoader,
+)
 
 
 class PipelineCaller(MapFunction):
@@ -31,11 +34,17 @@ class PipelineCaller(MapFunction):
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
 
+        # 服务调用超时时间（秒），默认 300 秒
+        # 注意：这个超时必须 >= pipeline_service_timeout，否则调用方会先超时
+        self.service_timeout = config.get("runtime.service_timeout", 300.0)
+
         # 根据数据集类型初始化加载器
         if self.dataset == "locomo":
             self.loader = LocomoDataLoader()
+        elif self.dataset == "conflict_resolution":
+            self.loader = ConflictResolutionDataLoader()
         else:
-            raise ValueError(f"不支持的数据集: {self.dataset}")
+            raise ValueError(f"Unsupported dataset: {self.dataset}")
 
         # 进度条将在第一个数据包到达时初始化（因为需要从数据中获取总数）
         self.progress_bar = None
@@ -46,10 +55,24 @@ class PipelineCaller(MapFunction):
         )  # 该task的总问题数
         self.last_tested_count = 0  # 上次测试时的问题数量
 
-        # 从配置中读取测试分段数（默认10段）
-        test_segments = config.get("runtime.test_segments", 10)
-        # 计算测试阈值数组
-        self.test_thresholds = calculate_test_thresholds(self.total_questions, test_segments)
+        # Calculate test thresholds based on dataset type
+        if self.dataset == "conflict_resolution":
+            # For conflict_resolution: test every 455 facts
+            # Generate thresholds: 455, 910, 1365, 1820, 2275, 2730, 3185, 3640, 4095, 4550, 5005, 5460 (up to 5530)
+            self.test_thresholds = []
+            facts_per_test = 455
+            current_threshold = facts_per_test
+            total_facts = 5530
+            while current_threshold <= total_facts:
+                self.test_thresholds.append(current_threshold)
+                current_threshold += facts_per_test
+            self.test_based_on_facts = True
+        else:
+            # For other datasets (like locomo): test based on question count
+            test_segments = config.get("runtime.test_segments", 10)
+            self.test_thresholds = calculate_test_thresholds(self.total_questions, test_segments)
+            self.test_based_on_facts = False
+
         self.next_threshold_idx = 0  # 下一个要触发的阈值索引
 
         # 测试统计
@@ -114,15 +137,41 @@ class PipelineCaller(MapFunction):
             "session_id": session_id,
             "dialog_id": dialog_id,
             "dialogs": dialogs,
+            "packet_idx": packet_idx,
+            "total_packets": total_packets,
         }
 
-        # 调用记忆存储服务（阻塞等待）
-        self.call_service(
-            "memory_insert_service",
-            insert_data,
-            method="process",
-            timeout=90.0,
+        # 判断是否为最后一个数据包（提前判断，用于异常处理）
+        is_last_packet = packet_idx + 1 >= total_packets
+        print(
+            f"[DEBUG PipelineCaller] packet_idx={packet_idx}, total_packets={total_packets}, is_last_packet={is_last_packet}"
         )
+
+        # 调用记忆存储服务（阻塞等待）
+        # 注意：最后一包可能触发 link_evolution，可能超时
+        try:
+            self.call_service(
+                "memory_insert_service",
+                insert_data,
+                method="process",
+                timeout=self.service_timeout,
+            )
+        except TimeoutError as e:
+            print(f"[WARNING PipelineCaller] memory_insert_service 超时: {e}")
+            # 如果是最后一包超时，仍然返回 completed=True 以保存结果
+            if is_last_packet:
+                print("[DEBUG PipelineCaller] 最后一包超时，但仍返回 completed=True 以保存结果")
+                if self.progress_bar:
+                    self.progress_bar.close()
+                return {
+                    "dataset": self.dataset,
+                    "task_id": task_id,
+                    "completed": True,
+                    "warning": f"最后一包 memory_insert 超时: {e}",
+                }
+            else:
+                # 非最后一包超时，重新抛出异常
+                raise
 
         # 累计插入的对话数
         self.total_dialogs_inserted += dialog_len
@@ -139,8 +188,7 @@ class PipelineCaller(MapFunction):
 
         current_count = len(current_questions)
 
-        # 判断是否为最后一个数据包
-        is_last_packet = packet_idx + 1 >= total_packets
+        # 注意：is_last_packet 已在上面定义
 
         # 检查是否达到下一个测试阈值
         should_test = False
@@ -148,14 +196,31 @@ class PipelineCaller(MapFunction):
 
         if self.next_threshold_idx < len(self.test_thresholds):
             next_threshold = self.test_thresholds[self.next_threshold_idx]
-            if current_count >= next_threshold:
-                should_test = True
+
+            # 根据数据集类型选择触发条件
+            if self.test_based_on_facts:
+                # For conflict_resolution: trigger based on facts inserted
+                if self.total_dialogs_inserted >= next_threshold:
+                    should_test = True
+            else:
+                # For other datasets: trigger based on question count
+                if current_count >= next_threshold:
+                    should_test = True
 
         # 如果未达到阈值，跳过测试
         if not should_test:
             if self.memory_test_verbose:
-                threshold_info = f"下一个阈值：{next_threshold}" if next_threshold else "无更多阈值"
-                print(f"\n>> 当前可见问题数：{current_count}/{self.total_questions}")
+                if self.test_based_on_facts:
+                    threshold_info = (
+                        f"下一个阈值：{next_threshold} facts" if next_threshold else "无更多阈值"
+                    )
+                    print(f"\n>> 已插入facts数：{self.total_dialogs_inserted}")
+                    print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
+                else:
+                    threshold_info = (
+                        f"下一个阈值：{next_threshold} 个问题" if next_threshold else "无更多阈值"
+                    )
+                    print(f"\n>> 当前可见问题数：{current_count}/{self.total_questions}")
                 print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
 
             # 如果是最后一个包，发送完成信号
@@ -169,6 +234,7 @@ class PipelineCaller(MapFunction):
                     self.progress_bar.close()
 
                 # 返回完成信号（不包含测试结果）
+                print("[DEBUG PipelineCaller] 返回完成信号 (无测试结果路径)")
                 return {
                     "dataset": self.dataset,
                     "task_id": task_id,
@@ -183,12 +249,21 @@ class PipelineCaller(MapFunction):
         # 达到阈值，触发测试
         if self.memory_test_verbose:
             print(f"\n{'+' * 60}")
-            print("【QA】：问题驱动测试触发")
-            print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
-            print(f">> 已测试问题数：{self.last_tested_count}")
-            print(
-                f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）"
-            )
+            if self.test_based_on_facts:
+                print("【QA】：Facts数量驱动测试触发")
+                print(f">> 已插入facts数：{self.total_dialogs_inserted}")
+                print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
+                print(f">> 已测试问题数：{self.last_tested_count}")
+                print(
+                    f">> 触发阈值：{next_threshold} facts（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）"
+                )
+            else:
+                print("【QA】：问题驱动测试触发")
+                print(f">> 当前可见问题数：{current_count}/{self.total_questions}")
+                print(f">> 已测试问题数：{self.last_tested_count}")
+                print(
+                    f">> 触发阈值：{next_threshold}（第 {self.next_threshold_idx + 1}/{len(self.test_thresholds)} 个阈值）"
+                )
             print(f">> 测试范围：问题 1 到 {current_count}")
 
         # 逐个问题调用记忆测试服务
@@ -215,7 +290,7 @@ class PipelineCaller(MapFunction):
                 "memory_test_service",
                 test_data,
                 method="process",
-                timeout=90.0,
+                timeout=self.service_timeout,
             )
 
             # PipelineService 返回的是纯数据（已由 PipelineServiceSink 处理）
@@ -259,4 +334,7 @@ class PipelineCaller(MapFunction):
             self.progress_bar.close()
 
         # 返回本次测试结果
+        print(
+            f"[DEBUG PipelineCaller] 返回测试结果: completed={test_result.get('completed')}, answers={len(test_result.get('answers', []))}"
+        )
         return test_result

@@ -9,6 +9,10 @@ from sage.kernel.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     pass
 
+from .graph_memory_service import GraphMemoryService
+from .hierarchical_memory_service import HierarchicalMemoryService
+from .hybrid_memory_service import HybridMemoryService
+from .key_value_memory_service import KeyValueMemoryService
 from .short_term_memory_service import ShortTermMemoryService
 from .vector_hash_memory_service import VectorHashMemoryService
 
@@ -37,9 +41,10 @@ class MemoryServiceFactory:
     SERVICE_CLASSES = {
         "short_term_memory": ShortTermMemoryService,
         "vector_hash_memory": VectorHashMemoryService,
-        # 未来可以添加其他服务：
-        # "long_term_memory": LongTermMemoryService,
-        # "hybrid_memory": HybridMemoryService,
+        "graph_memory": GraphMemoryService,
+        "hierarchical_memory": HierarchicalMemoryService,
+        "hybrid_memory": HybridMemoryService,
+        "key_value_memory": KeyValueMemoryService,
     }
 
     @staticmethod
@@ -61,6 +66,7 @@ class MemoryServiceFactory:
             factory = MemoryServiceFactory.create(service_name, config)
             env.register_service_factory(service_name, factory)
         """
+        print(f"[DEBUG] MemoryServiceFactory.create called with service_name = {service_name}")
         # 验证服务名称
         if service_name not in MemoryServiceFactory.SERVICE_CLASSES:
             supported = ", ".join(MemoryServiceFactory.SERVICE_CLASSES.keys())
@@ -71,9 +77,14 @@ class MemoryServiceFactory:
             return MemoryServiceFactory._create_short_term_memory(service_name, config)
         elif service_name == "vector_hash_memory":
             return MemoryServiceFactory._create_vector_hash_memory(service_name, config)
-        # 未来可以添加其他服务的创建逻辑
-        # elif service_name == "long_term_memory":
-        #     return MemoryServiceFactory._create_long_term_memory(service_name, config)
+        elif service_name == "graph_memory":
+            return MemoryServiceFactory._create_graph_memory(service_name, config)
+        elif service_name == "hierarchical_memory":
+            return MemoryServiceFactory._create_hierarchical_memory(service_name, config)
+        elif service_name == "hybrid_memory":
+            return MemoryServiceFactory._create_hybrid_memory(service_name, config)
+        elif service_name == "key_value_memory":
+            return MemoryServiceFactory._create_key_value_memory(service_name, config)
 
         raise NotImplementedError(f"未实现服务创建逻辑: {service_name}")
 
@@ -95,11 +106,14 @@ class MemoryServiceFactory:
         if max_dialog is None:
             raise ValueError(f"配置缺失: services.{service_name}.max_dialog")
 
+        # 获取 embedding 维度，默认 1024（适配 BAAI/bge-m3）
+        embedding_dim = config.get(f"services.{service_name}.embedding_dim", 1024)
+
         # 创建并返回 ServiceFactory
         return ServiceFactory(
             service_name=service_name,
             service_class=ShortTermMemoryService,
-            service_kwargs={"max_dialog": max_dialog},
+            service_kwargs={"max_dialog": max_dialog, "embedding_dim": embedding_dim},
         )
 
     @staticmethod
@@ -129,6 +143,171 @@ class MemoryServiceFactory:
             service_name=service_name,
             service_class=VectorHashMemoryService,
             service_kwargs={"dim": dim, "nbits": nbits},
+        )
+
+    @staticmethod
+    def _create_graph_memory(service_name: str, config: Any) -> ServiceFactory:
+        """创建图记忆服务的 ServiceFactory
+
+        Args:
+            service_name: 服务名称
+            config: RuntimeConfig 对象
+
+        Returns:
+            ServiceFactory 实例
+        """
+        print(f"[DEBUG] _create_graph_memory called with service_name = {service_name}")
+        # 获取配置参数（均有默认值）
+        graph_type = config.get(f"services.{service_name}.graph_type", "knowledge_graph")
+        node_embedding_dim = config.get(f"services.{service_name}.node_embedding_dim", 768)
+        edge_types_raw = config.get(f"services.{service_name}.edge_types")
+        edge_types = list(edge_types_raw) if edge_types_raw else None
+
+        link_policy = config.get(f"services.{service_name}.link_policy", "bidirectional")
+        max_links_per_node = config.get(f"services.{service_name}.max_links_per_node", 50)
+        link_weight_init = config.get(f"services.{service_name}.link_weight_init", 1.0)
+        synonymy_threshold = config.get(f"services.{service_name}.synonymy_threshold", 0.8)
+        damping = config.get(f"services.{service_name}.damping", 0.5)
+
+        # 创建并返回 ServiceFactory
+        return ServiceFactory(
+            service_name=service_name,
+            service_class=GraphMemoryService,
+            service_kwargs={
+                "graph_type": graph_type,
+                "node_embedding_dim": node_embedding_dim,
+                "edge_types": edge_types,
+                "link_policy": link_policy,
+                "max_links_per_node": max_links_per_node,
+                "link_weight_init": link_weight_init,
+                "synonymy_threshold": synonymy_threshold,
+                "damping": damping,
+            },
+        )
+
+    @staticmethod
+    def _create_hierarchical_memory(service_name: str, config: Any) -> ServiceFactory:
+        """创建分层记忆服务的 ServiceFactory
+
+        Args:
+            service_name: 服务名称
+            config: RuntimeConfig 对象
+
+        Returns:
+            ServiceFactory 实例
+        """
+        # 获取配置参数（均有默认值）
+        tier_mode = config.get(f"services.{service_name}.tier_mode", "three_tier")
+
+        # 解析 tier_capacities
+        tier_capacities_raw = config.get(f"services.{service_name}.tier_capacities")
+        if tier_capacities_raw is not None:
+            if isinstance(tier_capacities_raw, dict):
+                tier_capacities = tier_capacities_raw
+            else:
+                tier_capacities = None
+        else:
+            tier_capacities = None
+
+        migration_policy = config.get(f"services.{service_name}.migration_policy", "overflow")
+        embedding_dim = config.get(f"services.{service_name}.embedding_dim", 768)
+
+        # 创建并返回 ServiceFactory
+        # 注意: HierarchicalMemoryService.__init__ 只接受以下参数:
+        #   tier_mode, tier_capacities, migration_policy, embedding_dim, collection_name
+        return ServiceFactory(
+            service_name=service_name,
+            service_class=HierarchicalMemoryService,
+            service_kwargs={
+                "tier_mode": tier_mode,
+                "tier_capacities": tier_capacities,
+                "migration_policy": migration_policy,
+                "embedding_dim": embedding_dim,
+            },
+        )
+
+    @staticmethod
+    def _create_hybrid_memory(service_name: str, config: Any) -> ServiceFactory:
+        """创建混合记忆服务的 ServiceFactory
+
+        Args:
+            service_name: 服务名称
+            config: RuntimeConfig 对象
+
+        Returns:
+            ServiceFactory 实例
+        """
+        # 获取配置参数
+        indexes_raw = config.get(f"services.{service_name}.indexes")
+        indexes = indexes_raw if isinstance(indexes_raw, list) else None
+
+        fusion_strategy = config.get(f"services.{service_name}.fusion_strategy", "weighted")
+        fusion_weights_raw = config.get(f"services.{service_name}.fusion_weights")
+
+        # fusion_weights 应该是 dict[str, float] 格式
+        fusion_weights: dict[str, float] | None = None
+        if fusion_weights_raw:
+            if isinstance(fusion_weights_raw, dict):
+                # 已经是字典格式，直接使用
+                fusion_weights = {k: float(v) for k, v in fusion_weights_raw.items()}
+            elif isinstance(fusion_weights_raw, list) and indexes:
+                # 兼容列表格式：按索引顺序映射
+                fusion_weights = {}
+                for i, idx_config in enumerate(indexes):
+                    if i < len(fusion_weights_raw):
+                        idx_name = (
+                            idx_config.get("name")
+                            if isinstance(idx_config, dict)
+                            else str(idx_config)
+                        )
+                        if idx_name:
+                            fusion_weights[idx_name] = float(fusion_weights_raw[i])
+
+        rrf_k = config.get(f"services.{service_name}.rrf_k", 60)
+
+        # 创建并返回 ServiceFactory
+        return ServiceFactory(
+            service_name=service_name,
+            service_class=HybridMemoryService,
+            service_kwargs={
+                "indexes": indexes,
+                "fusion_strategy": fusion_strategy,
+                "fusion_weights": fusion_weights,
+                "rrf_k": rrf_k,
+            },
+        )
+
+    @staticmethod
+    def _create_key_value_memory(service_name: str, config: Any) -> ServiceFactory:
+        """创建键值记忆服务的 ServiceFactory
+
+        Args:
+            service_name: 服务名称
+            config: RuntimeConfig 对象
+
+        Returns:
+            ServiceFactory 实例
+        """
+        # 获取配置参数（均有默认值）
+        match_type = config.get(f"services.{service_name}.match_type", "exact")
+        key_extractor = config.get(f"services.{service_name}.key_extractor", "entity")
+        fuzzy_threshold = config.get(f"services.{service_name}.fuzzy_threshold", 0.8)
+        semantic_threshold = config.get(f"services.{service_name}.semantic_threshold", 0.7)
+        embedding_dim = config.get(f"services.{service_name}.embedding_dim", 768)
+        case_sensitive = config.get(f"services.{service_name}.case_sensitive", False)
+
+        # 创建并返回 ServiceFactory
+        return ServiceFactory(
+            service_name=service_name,
+            service_class=KeyValueMemoryService,
+            service_kwargs={
+                "match_type": match_type,
+                "key_extractor": key_extractor,
+                "fuzzy_threshold": fuzzy_threshold,
+                "semantic_threshold": semantic_threshold,
+                "embedding_dim": embedding_dim,
+                "case_sensitive": case_sensitive,
+            },
         )
 
     @staticmethod

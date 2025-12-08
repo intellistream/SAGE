@@ -1,190 +1,257 @@
+"""Vector Hash Memory Service - 向量哈希桶记忆服务
+
+基于 FAISS LSH 的向量哈希桶服务，支持高效的近似最近邻搜索。
+
+设计原则:
+- Service : Collection = 1 : 1
+- 使用 VDBMemoryCollection 作为底层存储
+"""
+
+from __future__ import annotations
+
+import uuid
+from typing import TYPE_CHECKING, Any, Literal
+
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 from sage.platform.service import BaseService
 
+if TYPE_CHECKING:
+    import numpy as np
+
 
 class VectorHashMemoryService(BaseService):
-    def __init__(self, dim: int, nbits: int):
-        """
-        基于 Faiss LSH 的向量哈希桶服务
+    """向量哈希桶记忆服务
+
+    基于 FAISS LSH 实现的向量哈希桶服务，支持高效的近似最近邻搜索。
+    使用汉明距离作为相似度度量。
+    底层使用 MemoryManager + VDBMemoryCollection 存储。
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        nbits: int,
+        collection_name: str = "vector_hash_memory",
+    ):
+        """初始化向量哈希桶服务
 
         Args:
             dim: 向量维度
             nbits: LSH 哈希位数
+            collection_name: NeuroMem collection 名称
         """
         super().__init__()
 
         self.dim = dim
         self.nbits = nbits
-        self.manager = MemoryManager()
+        self.collection_name = collection_name
 
-        # 创建 VDB collection（失败时 manager 内部已记录日志）
-        collection_config = {
-            "name": "VectorHashMemory",
-            "backend_type": "VDB",
-            "description": "for vector hash memory with LSH index",
-        }
-        self.collection = self.manager.create_collection(collection_config)
+        # 初始化 MemoryManager
+        self.manager = MemoryManager(self._get_default_data_dir())
+
+        # 创建 VDB collection
+        if self.manager.has_collection(collection_name):
+            collection = self.manager.get_collection(collection_name)
+            if collection is None:
+                raise RuntimeError(f"Failed to get collection '{collection_name}'")
+            self.collection = collection
+        else:
+            self.collection = self.manager.create_collection(
+                {
+                    "name": collection_name,
+                    "backend_type": "VDB",
+                    "description": "Vector hash memory with LSH index",
+                }
+            )
+
         if self.collection is None:
             raise RuntimeError("Failed to create VectorHashMemory collection")
 
-        # 创建 LSH 索引（失败时 collection 内部已记录日志）
-        index_config = {
-            "name": "lsh_index",
-            "dim": dim,
-            "backend_type": "FAISS",
-            "description": "LSH index for vector hashing",
-            "index_parameter": {
-                "index_type": "IndexLSH",
-                "LSH_NBITS": nbits,
-            },
-        }
-        result = self.collection.create_index(config=index_config)
-        if not result:
-            raise RuntimeError("Failed to create LSH index")
+        # 创建 LSH 索引
+        if hasattr(self.collection, "index_info"):
+            if "lsh_index" not in self.collection.index_info:
+                result = self.collection.create_index(
+                    {
+                        "name": "lsh_index",
+                        "dim": dim,
+                        "backend_type": "FAISS",
+                        "description": "LSH index for vector hashing",
+                        "index_parameter": {
+                            "index_type": "IndexLSH",
+                            "LSH_NBITS": nbits,
+                        },
+                    }
+                )
+                if not result:
+                    raise RuntimeError("Failed to create LSH index")
 
-    def insert(self, entry: str, vector, metadata: dict | None = None):
+        # entry_id -> text 映射
+        self._id_to_text: dict[str, str] = {}
+
+        self.logger.info(f"VectorHashMemoryService initialized: dim={dim}, nbits={nbits}")
+
+    @classmethod
+    def _get_default_data_dir(cls) -> str:
+        """获取默认数据目录
+
+        使用 SAGE 标准目录结构: .sage/data/vector_hash_memory
         """
-        插入文本和对应的向量到 LSH 索引
+        from sage.common.config.output_paths import get_appropriate_sage_dir
+
+        sage_dir = get_appropriate_sage_dir()
+        data_dir = sage_dir / "data" / "vector_hash_memory"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return str(data_dir)
+
+    def insert(
+        self,
+        entry: str,
+        vector: np.ndarray | list[float] | None = None,
+        metadata: dict | None = None,
+        *,
+        insert_mode: Literal["active", "passive"] = "passive",
+        insert_params: dict | None = None,
+    ) -> str:
+        """插入文本和对应的向量到 LSH 索引
+
+        支持两种插入模式：
+        - passive: 由服务自行决定存储方式（默认）
+        - active: 根据 insert_params 指定存储方式
 
         Args:
             entry: 原始文本数据
-            vector: 预先生成的向量（numpy.ndarray）
+            vector: 预先生成的向量
             metadata: 元数据（可选）
+            insert_mode: 插入模式 ("active" | "passive")
+            insert_params: 主动插入参数
+                - priority: 优先级
 
         Returns:
-            bool: 插入是否成功
+            str: 插入的条目 ID
         """
-        result = self.collection.insert("lsh_index", entry, vector, metadata=metadata)
-        return result is not None
+        # DEBUG: 记录所有参数的类型和值
+        self.logger.debug(
+            f"[VectorHashMemoryService.insert] entry type: {type(entry)}, "
+            f"vector type: {type(vector)}, metadata: {metadata}, "
+            f"insert_mode: {insert_mode}"
+        )
+        if not isinstance(entry, str):
+            self.logger.error(
+                f"[VectorHashMemoryService.insert] INVALID entry type. "
+                f"Expected str, got {type(entry).__name__}. "
+                f"Value preview: {str(entry)[:200]}"
+            )
 
-    def delete(self, entry: str):
-        """
-        删除指定的文本条目（同时从 text_storage、metadata_storage 和所有索引中删除）
+        # 类型检查：确保 entry 是字符串
+        if not isinstance(entry, str):
+            raise TypeError(
+                f"VectorHashMemoryService.insert() requires 'entry' to be str, "
+                f"got {type(entry).__name__}: {entry}"
+            )
 
-        Args:
-            entry: 要删除的文本数据
+        if vector is None:
+            raise ValueError("Vector is required for VectorHashMemoryService")
 
-        Returns:
-            bool: 删除是否成功
-        """
-        return self.collection.delete(entry)
+        import numpy as np
+
+        # 处理插入模式
+        if insert_mode == "active" and insert_params:
+            if "priority" in insert_params:
+                metadata = metadata.copy() if metadata else {}
+                metadata["priority"] = insert_params["priority"]
+
+        # 生成唯一 ID
+        entry_id = metadata.get("id", str(uuid.uuid4())) if metadata else str(uuid.uuid4())
+
+        # 准备元数据
+        insert_metadata = metadata.copy() if metadata else {}
+        insert_metadata["entry_id"] = entry_id
+
+        # 插入数据
+        vec = np.array(vector, dtype=np.float32)
+        self.collection.insert(
+            content=entry,
+            index_names="lsh_index",
+            vector=vec,
+            metadata=insert_metadata,
+        )
+
+        self._id_to_text[entry_id] = entry
+        self.logger.debug(f"Inserted entry to LSH: {entry_id[:16]}...")
+        return entry_id
 
     def retrieve(
         self,
-        query=None,
-        vector=None,
+        query: str | None = None,
+        vector: np.ndarray | list[float] | None = None,
         metadata: dict | None = None,
-        topk: int = 10,
-        threshold: int | None = None,
-    ):
-        """
-        使用查询向量检索相似的数据
+        top_k: int = 10,
+        hints: dict | None = None,
+        threshold: float | None = None,
+    ) -> list[dict[str, Any]]:
+        """通过向量检索相似的文档
 
         Args:
-            query: 查询参数（为统一接口保留，但 VectorHashMemory 不使用）
-            vector: 查询向量（numpy.ndarray）
-            metadata: 元数据（为统一接口保留）
-            topk: 返回的最大结果数
-            threshold: 汉明距离阈值，即最多接受多少位不同（范围 [0, nbits]）
-                      默认为 nbits/2，表示最多接受一半的位不同。
-                      例如 nbits=128 时，默认值为 64，表示最多接受 64 位不同。
+            query: 查询文本（可选）
+            vector: 查询向量
+            metadata: 查询参数
+            top_k: 返回结果数量
+            hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
+            threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
-            list[dict[str, Any]]: 检索结果列表，每个元素包含 text 和 metadata
-
-        Note:
-            LSH 索引使用汉明距离作为相似度度量：
-            - 汉明距离 = 哈希码中不同的位数
-            - 范围: [0, nbits]，0 表示完全相同，nbits 表示完全不同
-            - threshold=64 表示：最多允许 64 位不同，超过则过滤
+            list[dict]: 检索结果
         """
+        _ = hints  # 保留用于未来扩展
         if vector is None:
             return []
 
-        # 使用默认值：nbits 的一半
-        if threshold is None:
-            threshold = self.nbits // 2
+        import numpy as np
 
+        query_vec = np.array(vector, dtype=np.float32)
         results = self.collection.retrieve(
-            vector,
-            "lsh_index",
-            topk=topk,
-            threshold=threshold,
+            query=query_vec,
+            index_name="lsh_index",
+            top_k=top_k,
             with_metadata=True,
         )
+
+        # 应用相似度阈值过滤
+        if results and threshold is not None:
+            results = [
+                r
+                for r in results
+                if r.get("score", 0) >= threshold or r.get("similarity", 0) >= threshold
+            ]
+
         return results if results else []
 
+    def delete(self, entry_id: str) -> bool:
+        """删除指定条目
 
-if __name__ == "__main__":
-    import numpy as np
+        Args:
+            entry_id: 条目 ID
 
-    from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
+        Returns:
+            bool: 是否删除成功
+        """
+        if entry_id not in self._id_to_text:
+            return False
 
-    def test_vector_hash_memory():
-        print("\n" + "=" * 70)
-        print("向量哈希记忆服务测试")
-        print("=" * 70 + "\n")
+        try:
+            text = self._id_to_text.pop(entry_id)
+            self.collection.delete(text)
+            self.logger.debug(f"Deleted entry {entry_id[:16]}...")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to delete entry {entry_id}: {e}")
+            return False
 
-        # 1. 创建服务
-        print("📝 步骤1: 创建 VectorHashMemoryService")
-        dim = 128
-        nbits = 64
-        service = VectorHashMemoryService(dim=dim, nbits=nbits)
-        print(f"   ✅ 创建成功 (dim={dim}, nbits={nbits})\n")
-
-        # 2. 插入数据
-        print("=" * 70)
-        print("📝 步骤2: 插入数据")
-        print("=" * 70)
-
-        # 创建 embedding 模型
-        embedding_model = apply_embedding_model("mockembedder")
-
-        texts = [
-            "机器学习是人工智能的一个分支",
-            "深度学习使用神经网络进行训练",
-            "自然语言处理用于理解人类语言",
-        ]
-
-        print(f"插入 {len(texts)} 条数据:")
-        for i, text in enumerate(texts, 1):
-            # 生成并归一化向量
-            vector = embedding_model.encode(text)
-            vector = vector / np.linalg.norm(vector)
-
-            # 插入数据
-            success = service.insert(text, vector)
-            status = "✅ 成功" if success else "❌ 失败"
-            print(f"  {i}. {status} - {text}")
-        print()
-
-        # 3. 检索数据
-        print("=" * 70)
-        print("📝 步骤3: 检索数据")
-        print("=" * 70)
-
-        query_text = "什么是深度学习和神经网络"
-        print(f'查询文本: "{query_text}"')
-
-        # 生成查询向量
-        query_vector = embedding_model.encode(query_text)
-        query_vector = query_vector / np.linalg.norm(query_vector)
-
-        # 检索（max_hamming_distance 表示最多接受多少位不同）
-        # 对于 nbits=64，默认值为 32，表示最多接受 32 位不同（50%相似度）
-        # 不传参数则使用默认值 nbits/2
-        results = service.retrieve(vector=query_vector, topk=2)
-
-        print(f"\n检索结果 (Top {len(results)}):")
-        if results:
-            for i, result in enumerate(results, 1):
-                print(f"  {i}. text: {result['text']}")
-                print(f"     metadata: {result.get('metadata', {})}")
-        else:
-            print("  (未找到结果)")
-
-        print("\n" + "=" * 70)
-        print("✅ 测试完成！")
-        print("=" * 70 + "\n")
-
-    test_vector_hash_memory()
+    def get_stats(self) -> dict[str, Any]:
+        """获取统计信息"""
+        return {
+            "memory_count": len(self._id_to_text),
+            "dim": self.dim,
+            "nbits": self.nbits,
+            "collection_name": self.collection_name,
+        }

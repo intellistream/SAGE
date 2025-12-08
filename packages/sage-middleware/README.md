@@ -20,7 +20,7 @@
 pip install isage-middleware
 
 # 可选：VLLM 支持（需要 CUDA）
-pip install isage-middleware[vllm]
+pip install isage-common[vllm]
 
 # 可选：与完整 SAGE 框架集成
 pip install isage-middleware[sage]

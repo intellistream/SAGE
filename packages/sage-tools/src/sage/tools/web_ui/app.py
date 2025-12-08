@@ -13,6 +13,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from sage.common.config.ports import SagePorts
+
 
 def _load_version():
     """加载版本信息"""
@@ -344,8 +346,10 @@ async def get_pipelines():
         raise HTTPException(status_code=500, detail=f"获取管道信息失败: {str(e)}")
 
 
-def start_server(host: str = "127.0.0.1", port: int = 8080, reload: bool = False):
+def start_server(host: str = "127.0.0.1", port: int | None = None, reload: bool = False):
     """启动服务器"""
+    if port is None:
+        port = SagePorts.GATEWAY_DEFAULT
     uvicorn.run(
         "sage.tools.web_ui.app:app",
         host=host,
@@ -359,7 +363,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="SAGE Web UI Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind")
-    parser.add_argument("--port", type=int, default=8080, help="Port to bind")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=SagePorts.GATEWAY_DEFAULT,
+        help="Port to bind",
+    )
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     args = parser.parse_args()
 

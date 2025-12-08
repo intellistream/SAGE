@@ -26,9 +26,11 @@ import {
     Loader,
     Sparkles,
     ArrowRightCircle,
+    Upload as UploadIcon,
 } from 'lucide-react'
-import { useChatStore, type ChatMessage } from '../store/chatStore'
+import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
+import FileUpload from './FileUpload'
 import {
     sendChatMessage,
     getChatSessions,
@@ -72,6 +74,10 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         clearCurrentSession,
         setMessages,
         updateSessionStats,
+        addReasoningStep,
+        updateReasoningStep,
+        appendToReasoningStep,
+        setMessageReasoning,
     } = useChatStore()
     const { setNodes, setEdges } = useFlowStore()
 
@@ -82,6 +88,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const [recommendationSummary, setRecommendationSummary] = useState<string | null>(null)
     const [recommendationInsights, setRecommendationInsights] = useState<string[]>([])
     const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null)
+    const [isUploadVisible, setIsUploadVisible] = useState(false)
 
     //自动滚动到底部
     useEffect(() => {
@@ -138,20 +145,40 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const loadSessionMessages = async (sessionId: string) => {
         try {
             const detail = await getChatSessionDetail(sessionId)
-            const mappedMessages: ChatMessage[] = detail.messages.map((msg, index) => ({
-                id: `server_${index}_${msg.timestamp}`,
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp,
-                metadata: msg.metadata,
-            }))
+
+            const mappedMessages: ChatMessage[] = detail.messages.map((msg, index) => {
+                // 从后端 metadata.reasoningSteps 读取推理步骤（方案A：后端存储）
+                const reasoningSteps = msg.metadata?.reasoningSteps as ReasoningStep[] | undefined
+
+                return {
+                    id: `server_${index}_${msg.timestamp}`,
+                    role: msg.role,
+                    content: msg.content,
+                    timestamp: msg.timestamp,
+                    metadata: msg.metadata,
+                    // 从后端 metadata 恢复推理步骤
+                    reasoningSteps: reasoningSteps,
+                    isReasoning: false,
+                }
+            })
             setMessages(sessionId, mappedMessages)
             updateSessionStats(sessionId, {
                 message_count: mappedMessages.length,
                 last_active: detail.last_active,
             })
-        } catch (error) {
-            console.error('Failed to load sessions:', error)
+        } catch (error: any) {
+            console.error('Failed to load session messages:', error)
+            // 如果是 404 错误，会话可能已被删除
+            if (error?.response?.status === 404) {
+                antMessage.error('会话不存在或已过期，请创建新会话')
+                removeSession(sessionId)
+            } else {
+                antMessage.error('加载会话消息失败')
+            }
+            // 清空当前选择，避免 UI 卡住
+            if (currentSessionId === sessionId) {
+                setCurrentSessionId(null)
+            }
         }
     }
 
@@ -190,7 +217,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             }
             addMessage(sessionId, userMessage)
 
-            // 创建 AI 消息占位符
+            // 创建 AI 消消息占位符
             const assistantMessageId = `msg_${Date.now()}_assistant`
             const assistantMessage: ChatMessage = {
                 id: assistantMessageId,
@@ -198,6 +225,8 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 content: '',
                 timestamp: new Date().toISOString(),
                 isStreaming: true,
+                isReasoning: true,  // 初始处于推理状态
+                reasoningSteps: [],
             }
             addMessage(sessionId, assistantMessage)
 
@@ -219,17 +248,39 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     antMessage.error(`发送失败: ${error.message}`)
                     setIsStreaming(false)
                     setStreamingMessageId(null)
+                    setMessageReasoning(sessionId, assistantMessageId, false)
                 },
                 () => {
                     // 完成回调
                     setIsStreaming(false)
                     setStreamingMessageId(null)
+                    setMessageReasoning(sessionId, assistantMessageId, false)
 
                     // 更新会话列表（消息数+1）
+                    // 注：推理步骤已由后端保存到 metadata，刷新页面后会自动恢复
                     updateSessionStats(sessionId!, {
                         message_count: (messages[sessionId!] || []).length,
                         last_active: new Date().toISOString(),
                     })
+                },
+                // 推理步骤回调
+                {
+                    onReasoningStep: (step) => {
+                        // 添加新的推理步骤
+                        addReasoningStep(sessionId, assistantMessageId, step as ReasoningStep)
+                    },
+                    onReasoningStepUpdate: (stepId, updates) => {
+                        // 更新推理步骤状态
+                        updateReasoningStep(sessionId, assistantMessageId, stepId, updates)
+                    },
+                    onReasoningContent: (stepId, content) => {
+                        // 追加推理内容
+                        appendToReasoningStep(sessionId, assistantMessageId, stepId, content)
+                    },
+                    onReasoningEnd: () => {
+                        // 推理阶段结束
+                        setMessageReasoning(sessionId, assistantMessageId, false)
+                    },
                 }
             )
         } catch (error) {
@@ -548,6 +599,8 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                                     isStreaming={msg.isStreaming}
                                                     streamingMessageId={streamingMessageId}
                                                     messageId={msg.id}
+                                                    reasoningSteps={msg.reasoningSteps}
+                                                    isReasoning={msg.isReasoning}
                                                 />
                                             </div>
 
@@ -577,6 +630,12 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                         <div className="border-t border-gray-200 p-4">
                             <div className="max-w-3xl mx-auto">
                                 <div className="flex gap-2">
+                                    <Tooltip title="Upload Knowledge Base">
+                                        <Button
+                                            icon={<UploadIcon size={16} />}
+                                            onClick={() => setIsUploadVisible(true)}
+                                        />
+                                    </Tooltip>
                                     <TextArea
                                         ref={textAreaRef}
                                         value={currentInput}
@@ -605,6 +664,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     </>
                 )}
             </div>
+            <FileUpload visible={isUploadVisible} onClose={() => setIsUploadVisible(false)} />
         </div>
     )
 }

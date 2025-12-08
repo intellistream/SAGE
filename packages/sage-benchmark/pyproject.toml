@@ -45,6 +45,10 @@ dependencies = [
     "sentence-transformers>=2.2.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
+
+    # Visualization dependencies (required by benchmark_refiner, benchmark_control_plane)
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
 ]
 
 license = {text = "MIT"}
@@ -62,14 +66,13 @@ sage-deps = [
 agent-training = [
     "isage-libs>=0.1.0",  # 核心依赖已包含 peft, accelerate, tensorboard, trl
     "isage-libs[finetune-gpu]>=0.1.0",  # GPU 加速（bitsandbytes, wandb）
-    "matplotlib>=3.7.0",  # for generating comparison charts
 ]
 
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
-    "ruff>=0.1.0",
+    "ruff==0.14.6",  # Pinned to match tools/pre-commit-config.yaml
 ]
 
 all = [
@@ -85,6 +88,8 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 [project.scripts]
 # Control Plane Benchmark CLI
 sage-cp-bench = "sage.benchmark.benchmark_control_plane.cli:main"
+# Refiner Benchmark CLI
+sage-refiner-bench = "sage.benchmark.benchmark_refiner.cli:main"
 
 [tool.setuptools]
 # Automatically discover all packages under src/

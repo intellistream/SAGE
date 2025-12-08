@@ -70,7 +70,7 @@ dependencies = [
 
     # ========== LLM & Finetune 核心依赖 (原可选依赖，现为必选) ==========
     # Transformers 生态
-    "transformers>=4.52.0,<5.0.0",  # 4.52.0+ 包含 modeling_layers
+    "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
     "tokenizers>=0.21.0,<0.24.0",   # 兼容 transformers 4.52-4.57
 
     # LoRA/PEFT 支持
@@ -82,8 +82,8 @@ dependencies = [
     # 监控和可视化
     "tensorboard>=2.14.0",
 
-    # TRL for RLHF/DPO
-    "trl>=0.23.0",
+    # TRL for RLHF/DPO (0.22.x compatible with transformers<4.56)
+    "trl>=0.22.0,<0.23.0",
 ]
 
 [project.optional-dependencies]
@@ -146,7 +146,7 @@ video = [
     "opencv-python>=4.5.0",  # Video processing
     "torch>=2.0.0",  # PyTorch for models
     "torchvision>=0.15.0",  # Vision models
-    "transformers>=4.52.0,<5.0.0",  # 4.52.0+ 包含 modeling_layers
+    "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
     "Pillow>=9.0.0",  # Image processing
 ]
 

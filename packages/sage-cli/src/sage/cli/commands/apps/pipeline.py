@@ -233,20 +233,25 @@ def _slugify(value: str) -> str:
 
 
 def _extract_json_object(text: str) -> dict[str, Any]:
+    console.print(f"[dim]LLM response (first 500 chars): {text[:500]}[/dim]")  # Debug
     candidate = text.strip()
     if candidate.startswith("```"):
         candidate = re.sub(r"^```(?:json)?", "", candidate, count=1).strip()
         candidate = re.sub(r"```$", "", candidate, count=1).strip()
 
     try:
-        return json.loads(candidate)
+        result = json.loads(candidate)
+        console.print(f"[dim]Parsed JSON keys: {list(result.keys())}[/dim]")  # Debug
+        return result
     except json.JSONDecodeError:
         pass
 
     brace_match = re.search(r"\{.*\}", candidate, re.DOTALL)
     if brace_match:
         try:
-            return json.loads(brace_match.group())
+            result = json.loads(brace_match.group())
+            console.print(f"[dim]Parsed JSON keys (from brace match): {list(result.keys())}[/dim]")
+            return result
         except json.JSONDecodeError as exc:  # pragma: no cover - defensive
             raise PipelineBuilderError(f"LLM returned invalid JSON: {exc}") from exc
 
@@ -544,11 +549,9 @@ class PipelinePlanGenerator:
             if not OPENAI_AVAILABLE:
                 message = f"未能导入 UnifiedInferenceClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
-            # UnifiedInferenceClient accepts llm_model, llm_base_url, llm_api_key
-            self._client = UnifiedInferenceClient(
-                llm_model=self.config.model,
-                llm_base_url=self.config.base_url,
-                llm_api_key=self.config.api_key,
+            # 使用工厂方法创建 UnifiedInferenceClient
+            self._client = UnifiedInferenceClient.create(
+                default_llm_model=self.config.model,
             )
 
     def generate(
@@ -612,7 +615,7 @@ class PipelinePlanGenerator:
         ]
 
         console.print("🤖 正在请求大模型生成配置...", style="cyan")
-        response = self._client.generate(messages, max_tokens=1200, temperature=0.2)
+        response = self._client.chat(messages, max_tokens=1200, temperature=0.2)
         plan = _extract_json_object(response)
         _validate_plan(plan)
         return plan
@@ -688,10 +691,9 @@ class GraphPlanGenerator:
             if not OPENAI_AVAILABLE:
                 message = f"未能导入 UnifiedInferenceClient：{OPENAI_IMPORT_ERROR}"
                 raise PipelineBuilderError(message)
-            self._client = UnifiedInferenceClient(
-                llm_model=self.config.model,
-                llm_base_url=self.config.base_url,
-                llm_api_key=self.config.api_key,
+            # 使用工厂方法创建 UnifiedInferenceClient
+            self._client = UnifiedInferenceClient.create(
+                default_llm_model=self.config.model,
             )
 
     def generate(
@@ -754,7 +756,7 @@ class GraphPlanGenerator:
         ]
 
         console.print("🤖 正在请求大模型设计图谱...", style="cyan")
-        response = self._client.generate(messages, max_tokens=1600, temperature=0.35)
+        response = self._client.chat(messages, max_tokens=1600, temperature=0.35)
         plan = _extract_json_object(response)
         return plan
 

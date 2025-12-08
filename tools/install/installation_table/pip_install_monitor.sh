@@ -65,20 +65,25 @@ analyze_pip_log() {
 
     # 检测是否从 PyPI 下载了本地包
     for package in "${LOCAL_PACKAGES[@]}"; do
-        # 检查各种下载模式
-        # 1. "Downloading isage-xxx-0.1.0.tar.gz"
-        # 2. "Collecting isage-xxx" (从 PyPI)
-        # 3. "Downloading https://files.pythonhosted.org/.../isage-xxx"
-
-        # 注意：跳过 JSON 格式的日志行（包含 "level":），只检查实际的 pip 输出
-        # JSON 日志行的 message 字段可能包含嵌套的 pip 输出，但这不是实际的下载操作
+        # 检查真正的 PyPI 下载行为
+        # 只检测以下模式（实际从 PyPI 下载）：
+        # 1. "Downloading https://files.pythonhosted.org/.../isage-xxx"
+        # 2. "Downloading isage-xxx-0.1.0.tar.gz" (从 PyPI 镜像)
+        #
+        # 排除以下模式（不是实际下载）：
+        # 1. "Collecting isage-xxx" - 这只是依赖解析，不一定从 PyPI 下载
+        # 2. "Requirement already satisfied: isage-xxx" - 已安装，不需要下载
+        # 3. JSON 格式的日志行（包含 "level":）
+        # 4. 本地安装（editable, file://, /packages/）
+        # 5. "Using cached" - 使用本地缓存，不是新下载
 
         echo -e "${BLUE}🐛 DEBUG - 检查包: ${package}${NC}"
 
-        # 显示所有匹配行（包括被排除的）- 排除JSON格式日志
-        local all_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' || true)
-        local excluded_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' | grep -E "(editable|file://|/packages/)" || true)
-        local violation_matches=$(grep -E "(Downloading|Collecting).*${package}[-_]" "$log_file" | grep -v '"level":' | grep -vE "(editable|file://|/packages/)" || true)
+        # 只检测实际的下载行为，排除 Collecting（依赖解析）
+        # 真正的违规是从 PyPI 下载 .whl 或 .tar.gz 文件
+        local all_matches=$(grep -E "Downloading.*${package}[-_].*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' || true)
+        local excluded_matches=$(grep -E "Downloading.*${package}[-_].*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | grep -E "(editable|file://|/packages/|Using cached)" || true)
+        local violation_matches=$(grep -E "Downloading.*${package}[-_].*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | grep -vE "(editable|file://|/packages/|Using cached)" || true)
 
         if [ -n "$all_matches" ]; then
             echo -e "${YELLOW}   所有匹配（$(echo "$all_matches" | wc -l) 行）：${NC}"
@@ -108,9 +113,10 @@ analyze_pip_log() {
     # 额外检查：从 PyPI 下载任何 sage/isage 相关包
     echo -e "${BLUE}📊 所有下载记录（包括合法的外部依赖）：${NC}"
     # 排除JSON格式日志，只统计实际的pip输出
-    local download_count=$(grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | grep -vc '"level":' || echo "0")
+    local download_count
+    download_count=$(grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || download_count=0
     echo "   总下载数（非JSON日志）: $download_count"
-    if [ "$download_count" -gt 0 ]; then
+    if [ "$download_count" -gt 0 ] 2>/dev/null; then
         echo "   前 20 条下载："
         grep -E "Downloading.*\.(whl|tar\.gz)" "$log_file" | grep -v '"level":' | head -n 20 | sed 's/^/     /'
         echo ""
@@ -121,9 +127,10 @@ analyze_pip_log() {
 
     # 检查 editable 安装（应该有）
     echo -e "${BLUE}📦 Editable 安装记录（应该存在）：${NC}"
-    local editable_count=$(grep -E "(Installing|Preparing|Building).*editable" "$log_file" | grep -vc '"level":' || echo "0")
+    local editable_count
+    editable_count=$(grep -E "(Installing|Preparing|Building).*editable" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || editable_count=0
     echo "   Editable 安装数（非JSON日志）: $editable_count"
-    if [ "$editable_count" -gt 0 ]; then
+    if [ "$editable_count" -gt 0 ] 2>/dev/null; then
         echo "   前 10 条记录："
         grep -E "(Installing|Preparing|Building).*editable" "$log_file" | grep -v '"level":' | head -n 10 | sed 's/^/     /'
         echo ""
@@ -134,11 +141,17 @@ analyze_pip_log() {
 
     # DEBUG: 显示日志文件的关键统计
     echo -e "${BLUE}🐛 DEBUG - 日志文件统计（排除JSON格式）：${NC}"
-    echo "   'Downloading' 出现次数: $(grep "Downloading" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   'Collecting' 出现次数: $(grep "Collecting" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   'Installing' 出现次数: $(grep "Installing" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   'editable' 出现次数: $(grep "editable" "$log_file" | grep -vc '"level":' || echo "0")"
-    echo "   包含 'sage' 的行数: $(grep -i "sage" "$log_file" | grep -vc '"level":' || echo "0")"
+    local stat_downloading stat_collecting stat_installing stat_editable stat_sage
+    stat_downloading=$(grep "Downloading" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_downloading=0
+    stat_collecting=$(grep "Collecting" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_collecting=0
+    stat_installing=$(grep "Installing" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_installing=0
+    stat_editable=$(grep "editable" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_editable=0
+    stat_sage=$(grep -i "sage" "$log_file" 2>/dev/null | grep -cv '"level":' 2>/dev/null) || stat_sage=0
+    echo "   'Downloading' 出现次数: $stat_downloading"
+    echo "   'Collecting' 出现次数: $stat_collecting"
+    echo "   'Installing' 出现次数: $stat_installing"
+    echo "   'editable' 出现次数: $stat_editable"
+    echo "   包含 'sage' 的行数: $stat_sage"
     echo ""
 
     # 返回结果
@@ -154,15 +167,15 @@ analyze_pip_log() {
 
         echo -e "${YELLOW}🐛 DEBUG - 详细诊断信息：${NC}"
         echo "   日志文件: ${log_file}"
-        echo "   检测模式: grep -E \"(Downloading|Collecting).*PACKAGE[-_]\" | grep -v '\"level\":' | grep -vE \"(editable|file://|/packages/)\""
+        echo "   检测模式: grep -E \"Downloading.*PACKAGE[-_].*\\.(whl|tar\\.gz)\" | grep -v '\"level\":' | grep -vE \"(editable|file://|/packages/|Using cached)\""
         echo ""
 
         echo -e "${YELLOW}🔍 原始匹配详情（每个违规包）：${NC}"
         for pkg in "${violations[@]}"; do
             echo "   === ${pkg} ==="
-            grep -E "(Downloading|Collecting).*${pkg}[-_]" "$log_file" | \
+            grep -E "Downloading.*${pkg}[-_].*\.(whl|tar\.gz)" "$log_file" | \
                 grep -v '"level":' | \
-                grep -vE "(editable|file://|/packages/)" | \
+                grep -vE "(editable|file://|/packages/|Using cached)" | \
                 sed 's/^/     /' || echo "     （无法重现匹配，可能是并发问题）"
             echo ""
         done

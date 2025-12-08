@@ -100,8 +100,8 @@ class TestNeuroMemVDBServiceInit:
             NeuroMemVDBService("nonexistent")
 
     @patch("sage.middleware.components.sage_mem.services.neuromem_vdb_service.MemoryManager")
-    def test_init_fails_on_wrong_collection_type(self, mock_manager_class):
-        """Test initialization fails when collection is not VDBMemoryCollection"""
+    def test_init_accepts_duck_typed_collection(self, mock_manager_class):
+        """Test initialization accepts any collection with index_info (duck typing)"""
         from sage.middleware.components.sage_mem.services.neuromem_vdb_service import (
             NeuroMemVDBService,
         )
@@ -109,12 +109,14 @@ class TestNeuroMemVDBServiceInit:
         mock_manager = MagicMock()
         mock_manager_class.return_value = mock_manager
 
-        # Return a non-VDBMemoryCollection object
-        mock_collection = Mock()  # Not a VDBMemoryCollection
+        # Return a duck-typed object with index_info
+        mock_collection = Mock()
+        mock_collection.index_info = {"global_index": {}}  # Has global_index
         mock_manager.get_collection.return_value = mock_collection
 
-        with pytest.raises(TypeError, match="is not a VDBMemoryCollection"):
-            NeuroMemVDBService("test_collection")
+        # Should succeed with duck typing
+        service = NeuroMemVDBService("test_collection")
+        assert "test_collection" in service.online_register_collections
 
 
 class TestNeuroMemVDBServiceRetrieve:
@@ -136,7 +138,7 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
-        results = service.retrieve("test query", topk=3)
+        results = service.retrieve("test query", top_k=3)
 
         assert len(results) == 3
         mock_collection.retrieve.assert_called_once()
@@ -160,7 +162,7 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
-        results = service.retrieve("test query", topk=2, with_metadata=True)
+        results = service.retrieve("test query", top_k=2, metadata={"with_metadata": True})
 
         assert len(results) == 2
         assert all("source_collection" in r for r in results)
@@ -187,7 +189,7 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager.get_collection.side_effect = [mock_collection1, mock_collection2]
 
         service = NeuroMemVDBService(["collection1", "collection2"])
-        service.retrieve("test query", topk=5, collection_name="collection1")
+        service.retrieve("test query", top_k=5, metadata={"collection": "collection1"})
 
         # Should only retrieve from collection1
         mock_collection1.retrieve.assert_called_once()
@@ -231,7 +233,7 @@ class TestNeuroMemVDBServiceRetrieve:
         service = NeuroMemVDBService("test_collection")
 
         with pytest.raises(ValueError, match="Collection 'invalid' is not registered"):
-            service.retrieve("test query", collection_name="invalid")
+            service.retrieve("test query", metadata={"collection": "invalid"})
 
     @patch("sage.middleware.components.sage_mem.services.neuromem_vdb_service.MemoryManager")
     def test_retrieve_limits_to_topk(self, mock_manager_class):
@@ -249,9 +251,9 @@ class TestNeuroMemVDBServiceRetrieve:
         mock_manager.get_collection.return_value = mock_collection
 
         service = NeuroMemVDBService("test_collection")
-        results = service.retrieve("test query", topk=3)
+        results = service.retrieve("test query", top_k=3)
 
-        # Results should be limited to topk (3), but we added source info, so check length
+        # Results should be limited to top_k (3), but we added source info, so check length
         assert len(results) <= 3
 
 

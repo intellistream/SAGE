@@ -130,10 +130,10 @@ class RAGMemoryService(BaseService):
         # Generate vector externally
         vector = self._normalize_vector(self._embedding_model.encode(data))
 
-        # VDBMemoryCollection.insert 方法签名
+        # VDBMemoryCollection.insert 方法签名: insert(content, index_names, vector, metadata)
         result = self.rag_collection.insert(
-            index_name="test_index",
-            raw_data=data,
+            content=data,
+            index_names="test_index",
             vector=vector,
             metadata=metadata,
         )
