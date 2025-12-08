@@ -8,7 +8,7 @@ interface AuthState {
     isAuthenticated: boolean
     isLoading: boolean
     error: string | null
-    
+
     login: (credentials: LoginCredentials) => Promise<void>
     loginAsGuest: () => Promise<void>
     register: (credentials: RegisterCredentials) => Promise<void>
@@ -45,17 +45,17 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, error: null })
                 try {
                     const response = await login(credentials)
-                    set({ 
+                    set({
                         token: response.access_token,
                         isAuthenticated: true,
-                        isLoading: false 
+                        isLoading: false
                     })
                     // Fetch user details immediately after login
                     await get().checkAuth()
                 } catch (error: any) {
-                    set({ 
+                    set({
                         error: getErrorMessage(error),
-                        isLoading: false 
+                        isLoading: false
                     })
                     throw error
                 }
@@ -65,16 +65,16 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, error: null })
                 try {
                     const response = await loginGuest()
-                    set({ 
+                    set({
                         token: response.access_token,
                         isAuthenticated: true,
-                        isLoading: false 
+                        isLoading: false
                     })
                     await get().checkAuth()
                 } catch (error: any) {
-                    set({ 
+                    set({
                         error: getErrorMessage(error),
-                        isLoading: false 
+                        isLoading: false
                     })
                     throw error
                 }
@@ -86,9 +86,9 @@ export const useAuthStore = create<AuthState>()(
                     await register(credentials)
                     set({ isLoading: false })
                 } catch (error: any) {
-                    set({ 
+                    set({
                         error: getErrorMessage(error),
-                        isLoading: false 
+                        isLoading: false
                     })
                     throw error
                 }
