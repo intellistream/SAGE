@@ -24,9 +24,9 @@ except ImportError:
 
 try:
     from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-    from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+    from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
     from sage.libs.agentic.agents.profile.profile import BaseProfile
-    from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+    from sage.middleware.agent.runtime import AgentRuntime
 
     SAGE_COMPONENTS_AVAILABLE = True
 except ImportError:
@@ -182,7 +182,7 @@ class TestAgentWorkflowIntegration:
             )
 
             generator = self.create_mock_generator()
-            planner = LLMPlanner(generator=generator, max_steps=5)
+            planner = SimpleLLMPlanner(generator=generator, max_steps=5)
 
             registry = MCPRegistry()
             arxiv_tool = self.create_mock_arxiv_tool()
@@ -258,7 +258,7 @@ class TestAgentWorkflowIntegration:
 
         # Set up components
         profile = BaseProfile(language="zh")
-        planner = LLMPlanner(generator=mock_generator)
+        planner = SimpleLLMPlanner(generator=mock_generator)
 
         registry = MCPRegistry()
         registry.register(mock_tool)
@@ -304,7 +304,7 @@ class TestAgentWorkflowIntegration:
         mock_generator.execute = failing_generator
 
         profile = BaseProfile(language="zh")
-        planner = LLMPlanner(generator=mock_generator)
+        planner = SimpleLLMPlanner(generator=mock_generator)
 
         registry = MCPRegistry()
         registry.register(failing_tool)
@@ -347,7 +347,7 @@ class TestAgentWorkflowIntegration:
         message_validator.execute = validate_and_respond
 
         profile = BaseProfile(language="zh")
-        planner = LLMPlanner(generator=message_validator)
+        planner = SimpleLLMPlanner(generator=message_validator)
         registry = MCPRegistry()
 
         runtime = AgentRuntime(

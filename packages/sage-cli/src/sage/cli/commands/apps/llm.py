@@ -810,6 +810,9 @@ def gpu_status(
 @app.command("run")
 def run_vllm_service(
     model: str = typer.Option("Qwen/Qwen2.5-1.5B-Instruct", "--model", "-m", help="生成模型"),
+    speculative_model: str | None = typer.Option(
+        None, "--speculative-model", help="投机采样模型 (Draft Model)"
+    ),
     embedding_model: str | None = typer.Option(
         None, "--embedding-model", help="嵌入模型（默认同生成模型）"
     ),
@@ -832,6 +835,7 @@ def run_vllm_service(
 
     config_dict: dict[str, Any] = {
         "model_id": model,
+        "speculative_model_id": speculative_model,
         "embedding_model_id": embedding_model,
         "auto_download": auto_download,
         "sampling": {
@@ -942,6 +946,11 @@ def serve_llm(
         "-tp",
         help="Tensor 并行 GPU 数量",
     ),
+    speculative_model: str = typer.Option(
+        None,
+        "--speculative-model",
+        help="投机采样（Speculative Decoding）使用的草稿模型 (Draft Model)",
+    ),
     background: bool = typer.Option(
         True,
         "--background/--foreground",
@@ -994,6 +1003,7 @@ def serve_llm(
         gpu_memory=gpu_memory,
         max_model_len=max_model_len,
         tensor_parallel=tensor_parallel,
+        speculative_model=speculative_model,
         background=background,
         verbose=True,
     )
@@ -1053,14 +1063,14 @@ def serve_llm(
 
 @app.command("stop")
 def stop_llm(
-    force: bool = typer.Option(False, "--force", "-f", help="强制停止"),
+    force: bool = typer.Option(False, "--force", "-f", help="强制停止 (包括未记录的孤儿服务)"),
 ):
     """停止 LLM 推理服务。"""
     if LLMLauncher is None:
         console.print("[red]❌ LLMLauncher 不可用[/red]")
         raise typer.Exit(1)
 
-    success = LLMLauncher.stop(verbose=True)
+    success = LLMLauncher.stop(verbose=True, force=force)
     if not success:
         raise typer.Exit(1)
 

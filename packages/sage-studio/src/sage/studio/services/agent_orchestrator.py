@@ -14,6 +14,7 @@ from typing import AsyncGenerator
 from sage.studio.models.agent_step import (
     AgentStep,
 )
+from sage.studio.services.agents.researcher import ResearcherAgent
 from sage.studio.services.intent_classifier import (
     IntentClassifier,
     IntentResult,
@@ -32,8 +33,8 @@ class AgentOrchestrator:
     """
 
     def __init__(self):
-        # 使用 keyword 模式初始化，避免依赖 embedding 模型
-        self.intent_classifier = IntentClassifier(mode="keyword")
+        # 优先使用 LLM 模式以获得 Agentic 体验，内部会自动降级到 keyword
+        self.intent_classifier = IntentClassifier(mode="llm")
         self.knowledge_manager = KnowledgeManager()
 
         # 尝试获取工具注册表
@@ -51,21 +52,32 @@ class AgentOrchestrator:
                 def register(self, tool):
                     pass
 
+                def list_tools(self):
+                    return []
+
             self.tools = MockRegistry()
 
         # 注册内置工具
         self._register_builtin_tools()
+
+        # Initialize Agents (Swarm Architecture)
+        # Pass all available tools to the researcher agent
+        self.researcher_agent = ResearcherAgent(self.tools.list_tools())
 
     def _register_builtin_tools(self):
         """注册内置工具"""
         try:
             from sage.studio.tools.arxiv_search import ArxivSearchTool
             from sage.studio.tools.knowledge_search import KnowledgeSearchTool
+            from sage.studio.tools.middleware_adapter import NatureNewsTool
 
             self.tools.register(KnowledgeSearchTool(self.knowledge_manager))
             self.tools.register(ArxivSearchTool())
-        except ImportError:
-            logger.warning("Builtin tools not found, skipping registration.")
+
+            # 注册新的 Middleware 适配工具
+            self.tools.register(NatureNewsTool())
+        except ImportError as e:
+            logger.warning(f"Builtin tools not found or failed to load: {e}")
 
     def _make_step(
         self, type: str, content: str, status: str = "completed", **metadata
@@ -155,82 +167,42 @@ class AgentOrchestrator:
         history: list[dict],
     ) -> AsyncGenerator[AgentStep | str, None]:
         """处理知识库查询（包括 SAGE 文档、研究指导等）"""
-        # 调用知识检索工具
-        yield self._make_step(
-            "tool_call", "调用知识库检索...", status="running", tool_name="knowledge_search"
-        )
+        # Delegate to Researcher Agent (Swarm Architecture)
+        async for step in self.researcher_agent.run(message, history):
+            yield step
 
-        tool = self.tools.get("knowledge_search")
-        if tool:
-            # 使用 intent 中的 knowledge_domains
-            sources = (
-                intent.get_search_sources()
-                if hasattr(intent, "get_search_sources")
-                else ["sage_docs", "examples"]
-            )
+    async def _handle_sage_coding(
+        self,
+        message: str,
+        intent: IntentResult,
+        history: list[dict],
+    ) -> AsyncGenerator[AgentStep | str, None]:
+        """处理代码生成请求"""
+        # TODO: Implement CoderAgent
+        yield self._make_step("reasoning", "正在分析代码需求...")
+        yield "代码生成功能开发中..."
 
-            try:
-                result = await tool.run(query=message, sources=sources)
+    async def _handle_system_operation(
+        self,
+        message: str,
+        intent: IntentResult,
+        history: list[dict],
+    ) -> AsyncGenerator[AgentStep | str, None]:
+        """处理系统操作"""
+        # TODO: Implement OpsAgent
+        yield self._make_step("reasoning", "正在分析系统指令...")
+        yield "系统操作功能开发中..."
 
-                if result["status"] == "success":
-                    docs = result["result"]
-                    yield self._make_step(
-                        "tool_result",
-                        f"找到 {len(docs)} 个相关文档",
-                        tool_name="knowledge_search",
-                        documents=docs,
-                    )
-
-                    # 生成回复
-                    context = "\n\n".join([d["content"][:500] for d in docs[:3]])
-                    yield self._make_step("reasoning", "正在生成回复...")
-
-                    # TODO: 调用 LLM 生成回复
-                    # 暂时使用简单的模板回复
-                    response = (
-                        f"根据检索到的资料：\n\n{context[:1000]}...\n\n(LLM 生成功能尚未连接)"
-                    )
-
-                    for char in response:
-                        yield char
-                        await asyncio.sleep(0.005)  # 打字机效果
-                else:
-                    yield self._make_step(
-                        "tool_result",
-                        f"检索失败: {result.get('error')}",
-                        status="failed",
-                        tool_name="knowledge_search",
-                    )
-                    yield "抱歉，知识库检索遇到问题。"
-            except Exception as e:
-                logger.error(f"Tool execution failed: {e}")
-                yield self._make_step(
-                    "tool_result",
-                    f"工具执行异常: {str(e)}",
-                    status="failed",
-                    tool_name="knowledge_search",
-                )
-                yield "抱歉，检索过程中发生错误。"
-        else:
-            # 降级策略：直接使用 KnowledgeManager
-            yield self._make_step(
-                "reasoning", "知识检索工具未注册，尝试直接检索...", status="running"
-            )
-            try:
-                sources = intent.get_search_sources()
-                results = await self.knowledge_manager.search(message, sources=sources)
-                yield self._make_step(
-                    "tool_result", f"找到 {len(results)} 条结果", tool_name="knowledge_manager"
-                )
-
-                context = "\n\n".join([r.content[:500] for r in results[:3]])
-                response = f"根据检索结果：\n\n{context[:1000]}...\n\n(LLM 生成功能尚未连接)"
-                for char in response:
-                    yield char
-                    await asyncio.sleep(0.005)
-            except Exception as e:
-                logger.error(f"Direct search failed: {e}")
-                yield "抱歉，无法访问知识库。"
+    async def _handle_general_chat(
+        self,
+        message: str,
+        intent: IntentResult,
+        history: list[dict],
+    ) -> AsyncGenerator[AgentStep | str, None]:
+        """处理通用闲聊"""
+        yield self._make_step("reasoning", "进入通用对话模式...")
+        # TODO: Connect to LLM
+        yield "我是 SAGE 智能助手，有什么可以帮您？(LLM 连接中...)"
 
     async def _handle_sage_coding(
         self,

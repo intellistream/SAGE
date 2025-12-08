@@ -29,7 +29,15 @@
 | [cross-layer/architecture/VLLM_SERVICE_INTEGRATION_DESIGN.md](cross-layer/architecture/VLLM_SERVICE_INTEGRATION_DESIGN.md) | vLLM 服务集成设计 | ✅ 活跃 |
 | [cross-layer/architecture/SAGE_CHAT_ARCHITECTURE.md](cross-layer/architecture/SAGE_CHAT_ARCHITECTURE.md) | Chat 命令架构 | ✅ 活跃 |
 | [l3-kernel/KERNEL_REFACTORING_COMPLETED.md](l3-kernel/KERNEL_REFACTORING_COMPLETED.md) | Kernel 层重构完成报告 (Issue #1041) | ✅ 活跃 |
-| [cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md](cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md) | sageLLM Control Plane 集成 | ✅ 活跃 |
+| [cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md](cross-layer/architecture/SAGE_VLLM_CONTROL_PLANE_INTEGRATION.md) | sageLLM Control Plane 集成设计 | ✅ 活跃 |
+
+### 📅 开发计划 (Development Plans)
+
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [cross-layer/plans/feature_studio_middleware_integration.md](cross-layer/plans/feature_studio_middleware_integration.md) | Studio-Middleware 集成与 Agentic 框架升级计划 | 🚧 进行中 |
+
+## 📝 文档原则
 
 ### 📋 系统文档
 

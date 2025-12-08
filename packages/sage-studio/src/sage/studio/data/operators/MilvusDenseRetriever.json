@@ -1,0 +1,42 @@
+{
+    "id": 101,
+    "name": "MilvusDenseRetriever",
+    "description": "Milvus 稠密向量检索",
+    "module_path": "sage.middleware.operators.rag",
+    "class_name": "MilvusDenseRetriever",
+    "isCustom": false,
+    "parameters": [
+        {
+            "name": "collection_name",
+            "label": "集合名称",
+            "type": "text",
+            "required": true,
+            "defaultValue": "sage_collection",
+            "description": "Milvus 中的集合名称"
+        },
+        {
+            "name": "uri",
+            "label": "连接 URI",
+            "type": "text",
+            "required": true,
+            "defaultValue": "http://localhost:19530",
+            "description": "Milvus 服务地址"
+        },
+        {
+            "name": "top_k",
+            "label": "Top K",
+            "type": "number",
+            "required": false,
+            "defaultValue": 5,
+            "description": "返回的最相似文档数量"
+        },
+        {
+            "name": "search_params",
+            "label": "搜索参数",
+            "type": "json",
+            "required": false,
+            "defaultValue": "{\"metric_type\": \"L2\", \"params\": {\"nprobe\": 10}}",
+            "description": "Milvus 特定搜索参数 (JSON)"
+        }
+    ]
+}

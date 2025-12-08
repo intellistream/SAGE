@@ -10,9 +10,9 @@ from typing import Any, Iterable
 from sage.cli.utils.env import get_api_key, load_environment_file, should_use_real_api
 from sage.common.utils.config.loader import load_config
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
-from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+from sage.middleware.agent.runtime import AgentRuntime
 from sage.middleware.operators.rag import OpenAIGenerator
 
 # 添加项目路径到 sys.path
@@ -150,7 +150,7 @@ def main():
 
     generator = OpenAIGenerator(gen_cfg)  # ====== Planner ======
     planner_cfg = config["planner"]
-    planner = LLMPlanner(
+    planner = SimpleLLMPlanner(
         generator=generator,
         max_steps=planner_cfg.get("max_steps", 6),
         enable_repair=planner_cfg.get("enable_repair", True),

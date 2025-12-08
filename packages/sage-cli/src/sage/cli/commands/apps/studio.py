@@ -149,15 +149,18 @@ def start(
 
 
 @app.command()
-def stop():
-    """停止 SAGE Studio（包括 Gateway 和 LLM 服务）
+def stop(
+    all: bool = typer.Option(False, "--all", help="同时停止 LLM 和 Embedding 基础设施服务"),
+):
+    """停止 SAGE Studio（默认保留 LLM/Embedding 服务）
 
-    默认会停止所有服务（前端、Gateway、LLM）。
+    默认只停止 Studio 前端和 Gateway。
+    使用 --all 选项可同时停止 LLM 和 Embedding 服务。
     """
     console.print("[blue]🛑 停止 SAGE Studio...[/blue]")
 
     try:
-        success = studio_manager.stop()
+        success = studio_manager.stop(stop_infrastructure=all)
 
         if success:
             console.print("[green]✅ Studio 已停止[/green]")

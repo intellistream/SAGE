@@ -182,8 +182,79 @@ class SagePorts:
                 pass
         return default
 
+    @classmethod
+    def check_port_status(cls, port: int, host: str = "localhost") -> dict:
+        """
+        Check detailed status of a port.
+
+        Returns:
+            dict: {
+                "port": int,
+                "is_available": bool,  # True if port is free (can bind), False if in use
+                "is_listening": bool,  # True if something is listening (connect success)
+            }
+        """
+        is_listening = False
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.5)
+                result = s.connect_ex((host, port))
+                if result == 0:
+                    is_listening = True
+        except OSError:
+            pass
+
+        return {
+            "port": port,
+            "is_available": not is_listening,
+            "is_listening": is_listening,
+        }
+
+    @classmethod
+    def diagnose(cls) -> None:
+        """Print a diagnostic report of all SAGE ports."""
+        print("=" * 65)
+        print("🔍 SAGE Port Diagnostic Tool")
+        print("=" * 65)
+
+        if is_wsl():
+            print("⚠️  Environment: WSL2 Detected (Port 8001 might be unreliable)")
+        else:
+            print("✅ Environment: Standard Linux/Unix")
+
+        print("-" * 65)
+        print(f"{'Service':<20} | {'Port':<6} | {'Status':<15} | {'Recommendation':<15}")
+        print("-" * 65)
+
+        services = [
+            ("Gateway", cls.GATEWAY_DEFAULT),
+            ("LLM (Default)", cls.LLM_DEFAULT),
+            ("LLM (WSL/Bench)", cls.LLM_WSL_FALLBACK),
+            ("Embedding", cls.EMBEDDING_DEFAULT),
+            ("Studio Frontend", cls.STUDIO_FRONTEND),
+        ]
+
+        for name, port in services:
+            status = cls.check_port_status(port)
+            state = "🔴 In Use" if status["is_listening"] else "🟢 Available"
+
+            rec = ""
+            if name == "LLM (Default)" and is_wsl():
+                rec = "Avoid (WSL)"
+            elif name == "LLM (WSL/Bench)" and is_wsl():
+                rec = "Recommended"
+            elif status["is_listening"]:
+                rec = "Check PID"
+
+            print(f"{name:<20} | {port:<6} | {state:<15} | {rec:<15}")
+
+        print("-" * 65)
+
 
 # Convenience aliases
 DEFAULT_LLM_PORT = SagePorts.LLM_DEFAULT
 DEFAULT_EMBEDDING_PORT = SagePorts.EMBEDDING_DEFAULT
 DEFAULT_BENCHMARK_LLM_PORT = SagePorts.BENCHMARK_LLM
+
+if __name__ == "__main__":
+    SagePorts.diagnose()
