@@ -94,5 +94,5 @@ gateway:
 # Studio (Web UI)
 # ------------------------------------------------------------------------------
 studio:
-  backend_port: 8080
+  backend_port: 8888
   frontend_port: 5173

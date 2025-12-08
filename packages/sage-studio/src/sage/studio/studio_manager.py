@@ -109,43 +109,104 @@ class StudioManager:
             console.print(f"[red]保存配置失败: {e}[/red]")
 
     def is_running(self) -> int | None:
-        """检查 Studio 前端是否运行中"""
-        if not self.pid_file.exists():
-            return None
+        """检查 Studio 前端是否运行中
 
+        Returns:
+            int: 进程 PID
+            -1: 服务在运行但无法确定 PID（外部启动）
+            None: 服务未运行
+        """
+        # 方法1: 检查 PID 文件
+        if self.pid_file.exists():
+            try:
+                with open(self.pid_file) as f:
+                    pid = int(f.read().strip())
+
+                if psutil.pid_exists(pid):
+                    return pid
+                else:
+                    # PID 文件存在但进程不存在，清理文件
+                    self.pid_file.unlink()
+            except Exception:
+                pass
+
+        # 方法2: 通过端口检查（检测外部启动的服务）
+        config = self.load_config()
+        port = config.get("port", self.default_port)
         try:
-            with open(self.pid_file) as f:
-                pid = int(f.read().strip())
-
-            if psutil.pid_exists(pid):
-                return pid
-            else:
-                # PID 文件存在但进程不存在，清理文件
-                self.pid_file.unlink()
-                return None
+            response = requests.get(f"http://localhost:{port}/", timeout=1)
+            # Vite dev server 或 preview server 会返回 HTML
+            if response.status_code == 200:
+                return -1  # 运行中但无 PID 文件
         except Exception:
-            return None
+            pass
+
+        return None
 
     def is_backend_running(self) -> int | None:
-        """检查 Studio 后端API是否运行中"""
-        if not self.backend_pid_file.exists():
-            return None
+        """检查 Studio 后端API是否运行中
 
+        Returns:
+            int: 进程 PID
+            -1: 服务在运行但无法确定 PID（外部启动）
+            None: 服务未运行
+        """
+        # 方法1: 检查 PID 文件
+        if self.backend_pid_file.exists():
+            try:
+                with open(self.backend_pid_file) as f:
+                    pid = int(f.read().strip())
+
+                if psutil.pid_exists(pid):
+                    proc = psutil.Process(pid)
+                    # 检查是否是Python进程且包含api.py
+                    if "python" in proc.name().lower() and "api.py" in " ".join(proc.cmdline()):
+                        return pid
+
+                # PID 文件存在但进程不存在，清理文件
+                self.backend_pid_file.unlink()
+            except Exception:
+                pass
+
+        # 方法2: 通过端口健康检查（检测外部启动的服务）
+        config = self.load_config()
+        backend_port = config.get("backend_port", self.backend_port)
         try:
-            with open(self.backend_pid_file) as f:
-                pid = int(f.read().strip())
-
-            if psutil.pid_exists(pid):
-                proc = psutil.Process(pid)
-                # 检查是否是Python进程且包含api.py
-                if "python" in proc.name().lower() and "api.py" in " ".join(proc.cmdline()):
-                    return pid
-
-            # PID 文件存在但进程不存在，清理文件
-            self.backend_pid_file.unlink()
-            return None
+            response = requests.get(f"http://localhost:{backend_port}/health", timeout=1)
+            if response.status_code == 200:
+                return -1  # 运行中但无 PID 文件
         except Exception:
-            return None
+            pass
+
+        return None
+
+    def _is_port_in_use(self, port: int) -> bool:
+        """检查端口是否被占用"""
+        import socket
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("0.0.0.0", port))
+                return False  # 可以绑定，说明端口空闲
+            except OSError:
+                return True  # 无法绑定，说明端口被占用
+
+    def _kill_process_on_port(self, port: int) -> bool:
+        """杀死占用指定端口的进程"""
+        try:
+            for conn in psutil.net_connections(kind="inet"):
+                if hasattr(conn, "laddr") and conn.laddr and conn.laddr.port == port:
+                    if conn.pid:
+                        try:
+                            proc = psutil.Process(conn.pid)
+                            console.print(f"[dim]   杀死进程 {conn.pid} ({proc.name()})[/dim]")
+                            proc.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+            return True
+        except Exception as e:
+            console.print(f"[dim]   无法杀死端口 {port} 上的进程: {e}[/dim]")
+            return False
 
     def is_gateway_running(self) -> int | None:
         """检查 Gateway 是否运行中"""
@@ -192,6 +253,15 @@ class StudioManager:
         host = host or self.default_host
         port = port or self.gateway_port
 
+        # 检查是否已经运行
+        existing_pid = self.is_gateway_running()
+        if existing_pid:
+            if existing_pid == -1:
+                console.print("[green]✅ Gateway 已在运行中（外部启动）[/green]")
+            else:
+                console.print(f"[green]✅ Gateway 已在运行中 (PID: {existing_pid})[/green]")
+            return True
+
         console.print(f"[blue]🚀 启动 Gateway 服务 ({host}:{port})...[/blue]")
 
         try:
@@ -220,24 +290,66 @@ class StudioManager:
             with open(self.gateway_pid_file, "w") as f:
                 f.write(str(process.pid))
 
-            # 等待服务启动
+            # 等待服务启动 - 增加到 60 秒，因为 Gateway 需要加载 studio routes
             console.print("[blue]等待 Gateway 服务启动...[/blue]")
-            for i in range(10):  # 最多等待10秒
-                time.sleep(1)
+            max_wait = 60  # 最多等待 60 秒
+
+            # 创建不使用代理的 session
+            session = requests.Session()
+            session.trust_env = False
+
+            for i in range(max_wait):
+                # 检查进程是否还在运行
+                if not psutil.pid_exists(process.pid):
+                    console.print("[red]❌ Gateway 进程已退出[/red]")
+                    # 输出日志帮助调试
+                    if self.gateway_log_file.exists():
+                        console.print("[yellow]Gateway 日志（最后 30 行）:[/yellow]")
+                        try:
+                            with open(self.gateway_log_file) as f:
+                                lines = f.readlines()
+                                for line in lines[-30:]:
+                                    console.print(f"[dim]  {line.rstrip()}[/dim]")
+                        except Exception:
+                            pass
+                    return False
+
                 try:
-                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    response = session.get(f"http://localhost:{port}/health", timeout=2)
                     if response.status_code == 200:
                         console.print(
-                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid})[/green]"
+                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid}, 耗时 {i + 1} 秒)[/green]"
                         )
                         console.print(f"[blue]📡 Gateway API: http://{host}:{port}[/blue]")
                         return True
                 except Exception:
                     pass
 
-            console.print("[yellow]⚠️  Gateway 可能未完全启动，请检查日志[/yellow]")
-            console.print(f"[blue]日志文件: {self.gateway_log_file}[/blue]")
-            return True  # 进程启动了，即使 health check 失败
+                # 每 10 秒输出一次状态
+                if (i + 1) % 10 == 0:
+                    console.print(f"[blue]   等待 Gateway 响应... ({i + 1}/{max_wait}秒)[/blue]")
+
+                time.sleep(1)
+
+            # 超时但进程还在，可能只是启动慢
+            if psutil.pid_exists(process.pid):
+                console.print("[yellow]⚠️  Gateway 启动超时，但进程仍在运行[/yellow]")
+                console.print(f"[yellow]   请检查日志: {self.gateway_log_file}[/yellow]")
+                # 输出日志最后几行
+                if self.gateway_log_file.exists():
+                    try:
+                        with open(self.gateway_log_file) as f:
+                            lines = f.readlines()
+                            if lines:
+                                console.print("[yellow]   Gateway 日志（最后 10 行）:[/yellow]")
+                                for line in lines[-10:]:
+                                    console.print(f"[dim]     {line.rstrip()}[/dim]")
+                    except Exception:
+                        pass
+                return True  # 进程还在，认为可能成功
+
+            console.print("[red]❌ Gateway 启动失败[/red]")
+            return False
 
         except Exception as e:
             console.print(f"[red]❌ Gateway 启动失败: {e}[/red]")
@@ -390,7 +502,9 @@ class StudioManager:
             console.print("[yellow]警告: 目标 node_modules 不存在[/yellow]")
             return False
 
-    def _ensure_frontend_dependency_integrity(self, auto_fix: bool = True) -> bool:
+    def _ensure_frontend_dependency_integrity(
+        self, auto_fix: bool = True, skip_confirm: bool = False
+    ) -> bool:
         """Detect and optionally repair broken critical frontend dependencies."""
 
         modules_root = self._get_node_modules_root()
@@ -863,12 +977,58 @@ if __name__ == "__main__":
             console.print(f"[red]构建过程出错: {e}[/red]")
             return False
 
+    def _print_backend_log_tail(self, lines: int = 20, prefix: str = "") -> None:
+        """输出后端日志的最后几行"""
+        try:
+            if self.backend_log_file.exists():
+                with open(self.backend_log_file, encoding="utf-8", errors="replace") as f:
+                    all_lines = f.readlines()
+                    tail_lines = all_lines[-lines:] if len(all_lines) >= lines else all_lines
+                    if tail_lines:
+                        console.print(
+                            f"[dim]{prefix}--- 后端日志 (最后 {len(tail_lines)} 行) ---[/dim]"
+                        )
+                        for line in tail_lines:
+                            console.print(f"[dim]{prefix}{line.rstrip()}[/dim]")
+                        console.print(f"[dim]{prefix}--- 日志结束 ---[/dim]")
+        except Exception as e:
+            console.print(f"[dim]{prefix}读取日志失败: {e}[/dim]")
+
+    def _print_backend_log_incremental(self, last_pos: int = 0) -> int:
+        """增量输出后端日志（从上次位置开始的新内容）
+
+        Returns:
+            当前日志文件位置，用于下次调用
+        """
+        try:
+            if not self.backend_log_file.exists():
+                return 0
+
+            with open(self.backend_log_file, encoding="utf-8", errors="replace") as f:
+                f.seek(last_pos)
+                new_content = f.read()
+                current_pos = f.tell()
+
+                if new_content.strip():
+                    # 输出新增内容，每行添加前缀
+                    for line in new_content.splitlines():
+                        if line.strip():
+                            console.print(f"[dim]   [后端] {line}[/dim]")
+
+                return current_pos
+        except Exception as e:
+            console.print(f"[dim]   读取后端日志失败: {e}[/dim]")
+            return last_pos
+
     def start_backend(self, port: int | None = None) -> bool:
         """启动后端API服务"""
         # 检查是否已运行
         running_pid = self.is_backend_running()
         if running_pid:
-            console.print(f"[yellow]后端API已经在运行 (PID: {running_pid})[/yellow]")
+            if running_pid == -1:
+                console.print("[green]✅ 检测到后端API已在运行（外部启动），直接复用[/green]")
+            else:
+                console.print(f"[yellow]后端API已经在运行 (PID: {running_pid})[/yellow]")
             return True
 
         # 检查后端文件是否存在
@@ -884,6 +1044,22 @@ if __name__ == "__main__":
         # 更新配置
         config["backend_port"] = backend_port
         self.save_config(config)
+
+        # 检查端口是否被占用（可能是僵尸进程或其他服务）
+        if self._is_port_in_use(backend_port):
+            console.print(f"[yellow]⚠️  端口 {backend_port} 被占用，尝试释放...[/yellow]")
+            self._kill_process_on_port(backend_port)
+            # 等待端口释放
+            import time
+
+            for _ in range(5):
+                time.sleep(1)
+                if not self._is_port_in_use(backend_port):
+                    console.print(f"[green]✅ 端口 {backend_port} 已释放[/green]")
+                    break
+            else:
+                console.print(f"[red]❌ 无法释放端口 {backend_port}，请手动检查[/red]")
+                return False
 
         console.print(f"[blue]正在启动后端API (端口: {backend_port})...[/blue]")
 
@@ -913,26 +1089,75 @@ if __name__ == "__main__":
             session = requests.Session()
             session.trust_env = False  # 忽略环境变量中的代理设置
 
-            for _i in range(15):  # 最多等待15秒
+            # CI 环境首次启动可能较慢，增加等待时间
+            # 设置较长的超时时间，确保服务有足够时间启动
+            max_wait = 120  # 最多等待120秒（2分钟）
+            last_log_pos = 0  # 记录上次读取日志的位置
+
+            for i in range(max_wait):
+                # 首先检查进程是否还存在
+                if not psutil.pid_exists(process.pid):
+                    console.print("[red]❌ 后端API进程已退出[/red]")
+                    # 输出完整日志帮助调试
+                    self._print_backend_log_tail(20, prefix="[后端日志] ")
+                    return False
+
                 try:
                     # 使用 localhost 而不是 0.0.0.0，避免代理问题
                     health_url = f"http://localhost:{backend_port}/health"
-                    response = session.get(health_url, timeout=1)
+                    response = session.get(health_url, timeout=2)
                     if response.status_code == 200:
                         startup_success = True
+                        console.print(f"[green]✅ 后端API启动成功 (耗时 {i + 1} 秒)[/green]")
                         break
                 except requests.RequestException:
                     pass
+
+                # 每 5 秒输出一次等待状态和新增的日志
+                if (i + 1) % 5 == 0:
+                    console.print(f"[blue]   等待后端响应... ({i + 1}/{max_wait}秒)[/blue]")
+                    # 实时输出后端日志的新增内容
+                    last_log_pos = self._print_backend_log_incremental(last_log_pos)
+
                 time.sleep(1)
 
             if not startup_success:
-                console.print("[yellow]⚠️ 后端API启动超时，但进程已启动[/yellow]")
-                console.print(
-                    f"[yellow]   请稍后访问 http://{config['host']}:{backend_port}/health 检查状态[/yellow]"
-                )
-                return True  # 仍然返回 True，因为进程已启动
+                # 最后再检查一次健康状态
+                try:
+                    response = session.get(f"http://localhost:{backend_port}/health", timeout=5)
+                    if response.status_code == 200:
+                        console.print("[green]✅ 后端API启动成功[/green]")
+                        return True
+                except requests.RequestException:
+                    pass
 
-            console.print("[green]✅ 后端API启动成功[/green]")
+                # 检查端口是否在监听（更可靠的检查方式）
+                import socket
+
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                port_open = sock.connect_ex(("localhost", backend_port)) == 0
+                sock.close()
+
+                if port_open:
+                    console.print("[yellow]⚠️ 后端API端口已监听，但健康检查未响应[/yellow]")
+                    console.print(
+                        f"[yellow]   服务可能仍在初始化，请访问 http://localhost:{backend_port}/health 检查[/yellow]"
+                    )
+                    return True  # 端口已监听，认为启动成功
+                elif psutil.pid_exists(process.pid):
+                    console.print("[yellow]⚠️ 后端API进程存在但端口未监听[/yellow]")
+                    console.print("[yellow]   进程可能启动失败，请检查日志[/yellow]")
+                    # 输出后端日志帮助调试
+                    console.print("[yellow]   === 后端日志（最后50行）===[/yellow]")
+                    self._print_backend_log_tail(lines=50, prefix="   ")
+                    return False  # 进程存在但端口未监听，认为启动失败
+                else:
+                    console.print("[red]❌ 后端API进程已退出[/red]")
+                    # 输出后端日志帮助调试
+                    console.print("[red]   === 后端日志（最后50行）===[/red]")
+                    self._print_backend_log_tail(lines=50, prefix="   ")
+                    return False
             return True
 
         except Exception as e:
@@ -1176,10 +1401,7 @@ if __name__ == "__main__":
             else:
                 console.print(f"[green]✅ Gateway 已在运行中 (PID: {gateway_pid})[/green]")
 
-        # 首先启动后端API
-        if not self.start_backend(port=backend_port):
-            console.print("[red]后端API启动失败，无法启动Studio[/red]")
-            return False
+        # 后端 API 已合并进 Gateway，不再单独启动
 
         # 检查前端是否已运行
         if self.is_running():
@@ -1195,39 +1417,36 @@ if __name__ == "__main__":
         if not node_modules.exists():
             if auto_install:
                 console.print("[blue]📦 检测到未安装前端依赖[/blue]")
-                console.print("[yellow]是否立即安装？这可能需要几分钟时间...[/yellow]")
 
-                # 交互式确认
-                try:
-                    from rich.prompt import Confirm
+                # 交互式确认（除非 skip_confirm=True）
+                should_install = skip_confirm  # 如果跳过确认，直接安装
 
-                    if Confirm.ask("[cyan]开始安装依赖?[/cyan]", default=True):
-                        console.print("[blue]开始安装依赖...[/blue]")
-                        if not self.install_dependencies():
-                            console.print("[red]依赖安装失败[/red]")
-                            self.stop_backend()
-                            return False
-                    else:
-                        console.print(
-                            "[yellow]跳过安装，请稍后手动运行: sage studio install[/yellow]"
-                        )
-                        self.stop_backend()
-                        return False
-                except ImportError:
-                    # 如果没有 rich.prompt，直接安装
+                if not skip_confirm:
+                    console.print("[yellow]是否立即安装？这可能需要几分钟时间...[/yellow]")
+                    try:
+                        from rich.prompt import Confirm
+
+                        should_install = Confirm.ask("[cyan]开始安装依赖?[/cyan]", default=True)
+                    except ImportError:
+                        # 如果没有 rich.prompt，直接安装
+                        should_install = True
+
+                if should_install:
                     console.print("[blue]开始安装依赖...[/blue]")
                     if not self.install_dependencies():
                         console.print("[red]依赖安装失败[/red]")
-                        self.stop_backend()
                         return False
+                else:
+                    console.print("[yellow]跳过安装，请稍后手动运行: sage studio install[/yellow]")
+                    return False
             else:
                 console.print("[yellow]未安装依赖，请先运行: sage studio install[/yellow]")
-                self.stop_backend()
                 return False
 
-        if not self._ensure_frontend_dependency_integrity(auto_fix=auto_install):
+        if not self._ensure_frontend_dependency_integrity(
+            auto_fix=auto_install, skip_confirm=skip_confirm
+        ):
             console.print("[red]前端依赖损坏，已停止启动流程[/red]")
-            self.stop_backend()
             return False
 
         # 使用提供的参数或配置文件中的默认值
@@ -1280,17 +1499,14 @@ if __name__ == "__main__":
                             console.print("[blue]开始构建...[/blue]")
                             if not self.build():
                                 console.print("[red]构建失败，无法启动生产模式[/red]")
-                                self.stop_backend()
                                 return False
                         else:
                             console.print(
                                 "[yellow]跳过构建，请稍后手动运行: sage studio build[/yellow]"
                             )
-                            self.stop_backend()
                             return False
                     else:
                         console.print("[yellow]未构建，请先运行: sage studio build[/yellow]")
-                        self.stop_backend()
                         return False
 
                 console.print("[blue]启动生产服务器（Vite Preview）...[/blue]")
@@ -1339,13 +1555,12 @@ if __name__ == "__main__":
             return False
 
     def stop(self, stop_gateway: bool = False) -> bool:
-        """停止 Studio（前端和后端）
+        """停止 Studio（前端）
 
         Args:
             stop_gateway: 是否同时停止 Gateway（默认不停止，因为可能被其他服务使用）
         """
         frontend_pid = self.is_running()
-        backend_running = self.is_backend_running()
 
         stopped_services = []
 
@@ -1378,10 +1593,7 @@ if __name__ == "__main__":
             except Exception as e:
                 console.print(f"[red]前端停止失败: {e}[/red]")
 
-        # 停止后端
-        if backend_running:
-            if self.stop_backend():
-                stopped_services.append("后端API")
+        # 后端已合并到 Gateway，不需要单独停止
 
         # 可选：停止 Gateway
         if stop_gateway:
@@ -1452,7 +1664,6 @@ if __name__ == "__main__":
     def status(self):
         """显示状态"""
         frontend_pid = self.is_running()
-        backend_running = self.is_backend_running()
         gateway_pid = self.is_gateway_running()
         config = self.load_config()
 
@@ -1485,23 +1696,7 @@ if __name__ == "__main__":
 
         console.print(frontend_table)
 
-        # 创建后端状态表格
-        backend_table = Table(title="SAGE Studio 后端API状态")
-        backend_table.add_column("属性", style="cyan", width=12)
-        backend_table.add_column("值", style="white")
-
-        if backend_running:
-            backend_table.add_row("状态", "[green]运行中[/green]")
-            backend_table.add_row("端口", str(self.backend_port))
-            backend_table.add_row("PID文件", str(self.backend_pid_file))
-            backend_table.add_row("日志文件", str(self.backend_log_file))
-        else:
-            backend_table.add_row("状态", "[red]未运行[/red]")
-            backend_table.add_row("端口", str(self.backend_port))
-
-        console.print(backend_table)
-
-        # 创建 Gateway 状态表格
+        # 创建 Gateway 状态表格（后端 API 已合并到 Gateway）
         gateway_table = Table(title="SAGE Gateway 状态")
         gateway_table.add_column("属性", style="cyan", width=12)
         gateway_table.add_column("值", style="white")
@@ -1540,19 +1735,22 @@ if __name__ == "__main__":
             except requests.RequestException as e:
                 console.print(f"[red]❌ 前端服务不可访问: {e}[/red]")
 
-        # 检查后端是否可访问
-        if backend_running:
+        # 检查 Gateway 是否可访问（后端 API 通过 Gateway 提供）
+        if gateway_pid:
             try:
                 session = requests.Session()
                 session.trust_env = False  # 忽略环境代理
-                backend_url = f"http://localhost:{self.backend_port}/health"
-                response = session.get(backend_url, timeout=5)
+                gateway_url = f"http://localhost:{self.gateway_port}/health"
+                response = session.get(gateway_url, timeout=5)
                 if response.status_code == 200:
-                    console.print(f"[green]✅ 后端API可访问: {backend_url}[/green]")
+                    console.print(f"[green]✅ Gateway可访问: {gateway_url}[/green]")
+                    console.print(
+                        "[dim]   (后端 API 已合并到 Gateway: /api/chat, /api/config 等)[/dim]"
+                    )
                 else:
-                    console.print(f"[yellow]⚠️ 后端API响应异常: {response.status_code}[/yellow]")
+                    console.print(f"[yellow]⚠️ Gateway响应异常: {response.status_code}[/yellow]")
             except requests.RequestException as e:
-                console.print(f"[red]❌ 后端API不可访问: {e}[/red]")
+                console.print(f"[red]❌ Gateway不可访问: {e}[/red]")
 
     def logs(self, follow: bool = False, backend: bool = False):
         """显示日志"""

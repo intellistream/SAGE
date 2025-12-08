@@ -166,12 +166,7 @@ class DFSDTSelector(BaseToolSelector):
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                # UnifiedInferenceClient.create() handles model auto-detection
-                self._llm_client = UnifiedInferenceClient.create(
-                    default_llm_model=None
-                    if self.config.llm_model == "auto"
-                    else self.config.llm_model,
-                )
+                self._llm_client = UnifiedInferenceClient.create()
                 self._llm_initialized = True
                 self.logger.info("DFSDT: LLM client initialized")
             except Exception as e:
@@ -247,8 +242,8 @@ class DFSDTSelector(BaseToolSelector):
             root.children.append(node)
 
         # Score all nodes using LLM or fallback
-        scored_nodes = []
-        visited_tools = []
+        scored_nodes: list[SearchNode] = []
+        visited_tools: list[str] = []
 
         for node in root.children:
             score = self._score_tool(query, node, visited_tools)

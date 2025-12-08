@@ -47,7 +47,7 @@ dependencies = [
     "opencv-python-headless>=4.5.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
-    "transformers>=4.52.0,<5.0.0",  # 放宽版本限制
+    "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
     # Medical 应用依赖
     "scikit-learn>=1.3.0",
 ]
@@ -65,7 +65,7 @@ video = [
     "opencv-python-headless>=4.5.0",
     "torch>=2.0.0",
     "torchvision>=0.15.0",
-    "transformers>=4.52.0,<5.0.0",
+    "transformers>=4.52.0,<4.56.0",
 ]
 medical = [
     "pillow>=10.0.0",

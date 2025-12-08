@@ -26,14 +26,14 @@ repos:
     exclude: '\.svg$'
   - id: check-yaml
     args: [--unsafe]      # Allow custom YAML tags
-    exclude: ^(.*/benchmark_db/(DiskANN|algorithms_impl)/)
+    exclude: ^(.*/benchmark_db/)
   - id: check-json
   - id: check-toml
   - id: check-added-large-files
     args: ['--maxkb=1000']
   - id: check-merge-conflict
   - id: check-case-conflict
-    exclude: ^(.*/benchmark_(libamm)/|.*/(libamm|sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    exclude: ^(.*/benchmark_(libamm|db)/|.*/(libamm|sageLLM|sageDB|sageFlow|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
   - id: mixed-line-ending
     args: [--fix=lf]
   - id: detect-private-key
@@ -64,11 +64,11 @@ repos:
   - id: ruff
     name: ruff check
     args: [--fix, --exit-non-zero-on-fix, --config, tools/ruff.toml]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm)/|.*/benchmark_db/(DiskANN|algorithms_impl)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
   - id: ruff-format
     name: ruff format
     args: [--config, tools/ruff.toml]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm)/|.*/benchmark_db/(DiskANN|algorithms_impl)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/)
 
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
@@ -86,7 +86,7 @@ repos:
     - --explicit-package-bases
     - --warn-unused-ignores
     - --namespace-packages
-    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/benchmark_(libamm)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py)
+    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py)
     # This hook will always succeed (exit 0) to avoid blocking commits/CI
     # Errors are shown but treated as warnings
   - id: markdown-files-location-check
@@ -120,6 +120,7 @@ repos:
         "^docs/assets/"
         "^docs/security/"
         "^docs-public/"
+        "^docker/.*\.md$"  # Allow any .md in docker directory (deployment docs)
         "^packages/.*/README\.md$"
         "^packages/.*README.*\.md$"  # Allow README variants like README_LIBAMM.md
         "^packages/.*/CHANGELOG\.md$"
@@ -371,6 +372,7 @@ repos:
         ".vscode"
         "build"
         "config"
+        "docker"
         "docs"
         "docs-public"
         "examples"
@@ -440,7 +442,7 @@ repos:
   - id: shellcheck
     args: [-x, -e, SC1091, -S, error]      # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
     files: \.(sh|bash)$
-    exclude: ^(tools/conda/|.*/benchmark_db/(DiskANN|algorithms_impl)/)
+    exclude: ^(tools/conda/|.*/benchmark_db/)
 
   # YAML formatting
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
@@ -448,7 +450,7 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent=2, --preserve-quotes]
-    exclude: ^(\.github/|examples/config/|.*/benchmark_db/(DiskANN|algorithms_impl)/)
+    exclude: ^(\.github/|examples/config/|.*/benchmark_db/)
 
   # Markdown formatting
 - repo: https://github.com/executablebooks/mdformat
@@ -471,7 +473,7 @@ repos:
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/secrets.baseline]
-    exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_db/(DiskANN|algorithms_impl)/.*)
+    exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_db/.*)
 
   # SAGE Data Architecture Validation
 - repo: local

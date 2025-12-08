@@ -48,8 +48,8 @@ license = {text = "MIT"}
 
 [project.optional-dependencies]
 vllm = [
-    "vllm>=0.10.1",
-    # vLLM 0.10.x+ requires torch >= 2.4.0 for torch._inductor.config
+    "vllm>=0.10.1,<0.13",
+    # vLLM 0.12.x requires torch >= 2.4.0, transformers >= 4.56.0
     "torch>=2.4.0",
     "torchaudio>=2.4.0",
     "torchvision>=0.17.0",

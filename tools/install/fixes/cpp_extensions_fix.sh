@@ -2,7 +2,8 @@
 # C++ 扩展库修复工具
 # 处理 editable install 模式下 C++ 扩展库(.so)的安装问题
 
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+# 加载日志和颜色函数（logging.sh 会自动 source colors.sh）
+source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
 
 # 修复 sage-middleware C++ 扩展库的安装
 fix_middleware_cpp_extensions() {
@@ -69,6 +70,8 @@ fix_middleware_cpp_extensions() {
             local search_paths=(
                 "$project_root/packages/sage-middleware/build"
                 "$project_root/packages/sage-middleware/src/sage/middleware/components/${ext}"
+                "$project_root/.sage/build/${ext}"
+                "$project_root/.sage/build/middleware"
             )
 
             for search_path in "${search_paths[@]}"; do

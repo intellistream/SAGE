@@ -134,7 +134,8 @@ class ChunkCollector(SinkFunction):
         with self._lock:
             self._ensure_chunks_list()
 
-            if chunks is None:  # Stop signal
+            # 过滤掉 None
+            if chunks is None:
                 return
 
             if isinstance(chunks, list):

@@ -233,7 +233,10 @@ class PreRetrieval(MapFunction):
                 "operators.pre_retrieval.allow_multi_route", True
             )
             self.max_routes = self.config.get("operators.pre_retrieval.max_routes", 2)
-            self.default_route = get_required_config(
+            # 注意：default_route 改名为 default_strategy 以避免歧义
+            self.default_strategy = self.config.get(
+                "operators.pre_retrieval.default_strategy"
+            ) or get_required_config(
                 self.config, "operators.pre_retrieval.default_route", "action=route"
             )
 
@@ -275,7 +278,7 @@ class PreRetrieval(MapFunction):
 
     # ==================== 执行方法 ====================
 
-    def execute(self, data):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行预处理
 
         Args:
@@ -286,27 +289,31 @@ class PreRetrieval(MapFunction):
         Returns:
             处理后的数据，根据 action 不同添加不同字段
         """
-        # 根据 action 模式执行不同操作
-        if self.action == "none":
-            return data
-        elif self.action == "embedding":
-            return self._embed_question(data)
-        elif self.action == "optimize":
-            return self._optimize_query(data)
-        elif self.action == "multi_embed":
-            return self._multi_embed_query(data)
-        elif self.action == "decompose":
-            return self._decompose_query(data)
-        elif self.action == "route":
-            return self._route_query(data)
-        elif self.action == "validate":
-            return self._validate_query(data)
+        action_handlers = {
+            "none": self._execute_none,
+            "embedding": self._execute_embedding,
+            "optimize": self._execute_optimize,
+            "multi_embed": self._execute_multi_embed,
+            "decompose": self._execute_decompose,
+            "route": self._execute_route,
+            "validate": self._execute_validate,
+        }
+
+        handler = action_handlers.get(self.action)
+        if handler:
+            return handler(data)
         else:
-            # 未知操作模式，透传
+            print(f"[WARNING] Unknown action: {self.action}, passing through")
             return data
 
-    def _embed_question(self, data):
-        """对查询问题进行 Embedding
+    # ==================== 大类操作方法 ====================
+
+    def _execute_none(self, data: dict[str, Any]) -> dict[str, Any]:
+        """none action: 透传数据"""
+        return data
+
+    def _execute_embedding(self, data: dict[str, Any]) -> dict[str, Any]:
+        """embedding action: 对查询问题进行 Embedding
 
         Args:
             data: 检索请求数据，包含 "question" 字段
@@ -315,170 +322,131 @@ class PreRetrieval(MapFunction):
             添加了 "query_embedding" 字段的数据
         """
         question = data.get("question")
-        embedding = self._embedding_generator.embed(question)
-        data["query_embedding"] = embedding
+        if question:
+            embedding = self._embedding_generator.embed(question)
+            data["query_embedding"] = embedding
         return data
 
     # ==================== optimize action 实现 ====================
 
-    def _optimize_query(self, data) -> dict[str, Any]:
-        """执行查询优化
+    def _execute_optimize(self, data: dict[str, Any]) -> dict[str, Any]:
+        """执行查询优化（optimize action）
 
-        根据 optimize_type 调用不同的优化方法
+        支持的 optimize_type:
+        - keyword_extract: 关键词提取
+        - expand: 查询扩展
+        - rewrite: 查询改写
+        - instruction: 指令增强
         """
         question = data.get("question", "")
+        if not question:
+            return data
+
+        optimized_query = question  # 默认值
 
         if self.optimize_type == "keyword_extract":
-            optimized = self._extract_keywords(question)
+            # ---- keyword_extract 逻辑内联 ----
+            if self.extractor == "spacy":
+                # spaCy 关键词提取内联
+                doc = self._nlp(question)
+                keywords = []
+                for token in doc:
+                    if token.pos_ in self.extract_types:
+                        keywords.append(token.lemma_)
+                keywords = list(dict.fromkeys(keywords))[: self.max_keywords]
+                optimized_query = ",".join(keywords) if keywords else question
+
+            elif self.extractor == "nltk":
+                # NLTK 关键词提取内联
+                tokens = self._word_tokenize(question)
+                tagged = self._pos_tag(tokens)
+                keywords = []
+                for word, tag in tagged:
+                    universal_tag = self._nltk_pos_mapping.get(tag, "")
+                    if universal_tag in self.extract_types:
+                        lemma = self._lemmatizer.lemmatize(word.lower())
+                        keywords.append(lemma)
+                keywords = list(dict.fromkeys(keywords))[: self.max_keywords]
+                optimized_query = ",".join(keywords) if keywords else question
+
+            elif self.extractor == "llm":
+                # LLM 关键词提取内联
+                prompt = self.keyword_prompt or (
+                    f"Extract the key search terms from this query. "
+                    f"Return only the keywords separated by commas, nothing else.\n\n"
+                    f"Query: {question}\n\nKeywords:"
+                )
+                prompt = prompt.format(query=question)
+                try:
+                    result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
+                    keywords = [k.strip() for k in result.strip().split(",")]
+                    keywords = keywords[: self.max_keywords]
+                    optimized_query = ",".join(keywords) if keywords else question
+                except Exception as e:
+                    print(f"LLM keyword extraction failed: {e}")
+                    optimized_query = question
+
         elif self.optimize_type == "expand":
-            optimized = self._expand_query(question)
+            # ---- expand 逻辑内联 ----
+            prompt = self.expand_prompt.format(query=question, count=self.expand_count)
+            try:
+                result = self._generator.generate(prompt, max_tokens=300, temperature=0.7)
+                lines = result.strip().split("\n")
+                expanded_queries = [
+                    line.strip().lstrip("0123456789.-) ") for line in lines if line.strip()
+                ]
+                expanded_queries = expanded_queries[: self.expand_count]
+
+                if self.merge_strategy == "union":
+                    optimized_query = [question] + expanded_queries
+                else:
+                    optimized_query = expanded_queries if expanded_queries else [question]
+            except Exception as e:
+                print(f"Query expansion failed: {e}")
+                optimized_query = [question]
+
         elif self.optimize_type == "rewrite":
-            optimized = self._rewrite_query(question)
+            # ---- rewrite 逻辑内联 ----
+            prompt = self.rewrite_prompt.format(query=question)
+            try:
+                result = self._generator.generate(prompt, max_tokens=200, temperature=0.5)
+                optimized_query = result.strip() or question
+            except Exception as e:
+                print(f"Query rewrite failed: {e}")
+                optimized_query = question
+
         elif self.optimize_type == "instruction":
-            optimized = self._add_instruction(question)
-        else:
-            optimized = question
+            # ---- instruction 逻辑内联 ----
+            optimized_query = f"{self.instruction_prefix}{question}{self.instruction_suffix}"
 
         # 存储优化结果
         if self.store_optimized:
-            data["optimized_query"] = optimized
+            data["optimized_query"] = optimized_query
             data["original_query"] = question
 
         # 是否替换原始查询
         if self.replace_original:
-            data["question"] = optimized
+            if isinstance(optimized_query, list):
+                data["question"] = optimized_query[0] if optimized_query else question
+            else:
+                data["question"] = optimized_query
 
-        # 是否对优化后的查询进行 embedding
+        # 对优化后的查询进行 embedding
         if self._embedding_generator is not None:
-            query_to_embed = optimized if self.replace_original else question
-            data["query_embedding"] = self._embedding_generator.embed(query_to_embed)
+            query_to_embed = optimized_query if self.replace_original else question
+            if isinstance(query_to_embed, str):
+                data["query_embedding"] = self._embedding_generator.embed(query_to_embed)
+            elif isinstance(query_to_embed, list):
+                # 多查询场景
+                embeddings = [self._embedding_generator.embed(q) for q in query_to_embed]
+                data["query_embeddings"] = embeddings
 
         return data
 
-    def _extract_keywords(self, query: str) -> str:
-        """关键词提取
-
-        参考 LD-Agent 实现，使用 spaCy/NLTK/LLM 提取名词等关键词
-        """
-        if self.extractor == "spacy":
-            return self._extract_keywords_spacy(query)
-        elif self.extractor == "nltk":
-            return self._extract_keywords_nltk(query)
-        elif self.extractor == "llm":
-            return self._extract_keywords_llm(query)
-        else:
-            return query
-
-    def _extract_keywords_spacy(self, query: str) -> str:
-        """使用 spaCy 提取关键词
-
-        参考 LD-Agent 实现：
-        tokenized_item = self.lemma_tokenizer(query_item)
-        query_nouns_item = list(set([token.lemma_ for token in tokenized_item if token.pos_ == "NOUN"]))
-        """
-        doc = self._nlp(query)
-
-        # 提取指定词性的词元
-        keywords = []
-        for token in doc:
-            if token.pos_ in self.extract_types:
-                keywords.append(token.lemma_)
-
-        # 去重并限制数量
-        keywords = list(dict.fromkeys(keywords))[: self.max_keywords]
-
-        return ",".join(keywords) if keywords else query
-
-    def _extract_keywords_nltk(self, query: str) -> str:
-        """使用 NLTK 提取关键词"""
-        tokens = self._word_tokenize(query)
-        tagged = self._pos_tag(tokens)
-
-        keywords = []
-        for word, tag in tagged:
-            universal_tag = self._nltk_pos_mapping.get(tag, "")
-            if universal_tag in self.extract_types:
-                lemma = self._lemmatizer.lemmatize(word.lower())
-                keywords.append(lemma)
-
-        # 去重并限制数量
-        keywords = list(dict.fromkeys(keywords))[: self.max_keywords]
-
-        return ",".join(keywords) if keywords else query
-
-    def _extract_keywords_llm(self, query: str) -> str:
-        """使用 LLM 提取关键词"""
-        prompt = self.keyword_prompt or (
-            f"Extract the key search terms from this query. "
-            f"Return only the keywords separated by commas, nothing else.\n\n"
-            f"Query: {query}\n\nKeywords:"
-        )
-        prompt = prompt.format(query=query)
-
-        try:
-            result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
-            # 清理结果
-            keywords = [k.strip() for k in result.strip().split(",")]
-            keywords = keywords[: self.max_keywords]
-            return ",".join(keywords) if keywords else query
-        except Exception as e:
-            print(f"LLM keyword extraction failed: {e}")
-            return query
-
-    def _expand_query(self, query: str) -> str | list[str]:
-        """查询扩展
-
-        使用 LLM 生成多个替代查询表述
-        """
-        prompt = self.expand_prompt.format(query=query, count=self.expand_count)
-
-        try:
-            result = self._generator.generate(prompt, max_tokens=300, temperature=0.7)
-
-            # 解析扩展查询
-            lines = result.strip().split("\n")
-            expanded_queries = [
-                line.strip().lstrip("0123456789.-) ") for line in lines if line.strip()
-            ]
-            expanded_queries = expanded_queries[: self.expand_count]
-
-            # 根据合并策略返回
-            if self.merge_strategy == "union":
-                return [query] + expanded_queries
-            else:
-                return expanded_queries if expanded_queries else [query]
-
-        except Exception as e:
-            print(f"Query expansion failed: {e}")
-            return [query]
-
-    def _rewrite_query(self, query: str) -> str:
-        """查询改写
-
-        参考 HippoRAG Query2Doc，使用 LLM 改写查询
-        """
-        prompt = self.rewrite_prompt.format(query=query)
-
-        try:
-            result = self._generator.generate(prompt, max_tokens=200, temperature=0.5)
-            return result.strip() or query
-        except Exception as e:
-            print(f"Query rewrite failed: {e}")
-            return query
-
-    def _add_instruction(self, query: str) -> str:
-        """添加检索指令
-
-        参考 HippoRAG 实现，添加指令前缀/后缀以增强检索效果
-        instruction = "Retrieve passages that help answer the question: "
-        augmented_query = instruction + query
-        """
-        return f"{self.instruction_prefix}{query}{self.instruction_suffix}"
-
     # ==================== multi_embed action 实现 ====================
 
-    def _multi_embed_query(self, data) -> dict[str, Any]:
-        """多维向量生成
+    def _execute_multi_embed(self, data: dict[str, Any]) -> dict[str, Any]:
+        """多维向量生成（multi_embed action）
 
         参考 EmotionalRAG 实现，生成多个维度的 embedding：
         - semantic: 语义向量
@@ -486,6 +454,8 @@ class PreRetrieval(MapFunction):
         - 其他自定义维度
         """
         question = data.get("question", "")
+        if not question:
+            return data
 
         embeddings: dict[str, Any] = {}
         weights: dict[str, float] = {}
@@ -526,24 +496,87 @@ class PreRetrieval(MapFunction):
 
     # ==================== decompose action 实现 ====================
 
-    def _decompose_query(self, data) -> dict[str, Any]:
-        """查询分解
+    def _execute_decompose(self, data: dict[str, Any]) -> dict[str, Any]:
+        """查询分解（decompose action）
 
         将复杂查询分解为多个子查询
         """
         question = data.get("question", "")
+        if not question:
+            return data
+
+        sub_queries = [question]  # 默认值
 
         if self.decompose_strategy == "llm":
-            sub_queries = self._decompose_with_llm(question)
+            # ---- LLM 分解逻辑内联 ----
+            prompt = self.decompose_prompt.format(query=question)
+            try:
+                result = self._generator.generate(prompt, max_tokens=500, temperature=0.5)
+
+                # 尝试解析 JSON 数组
+                try:
+                    match = re.search(r"\[.*?\]", result, re.DOTALL)
+                    if match:
+                        parsed_queries = json.loads(match.group())
+                        if isinstance(parsed_queries, list):
+                            sub_queries = parsed_queries[: self.max_sub_queries]
+                except json.JSONDecodeError:
+                    pass
+
+                # 如果不是 JSON，尝试按行解析
+                if sub_queries == [question]:
+                    lines = result.strip().split("\n")
+                    parsed_lines = []
+                    for line in lines:
+                        line = line.strip().lstrip("0123456789.-) ")
+                        if line and not line.startswith("[") and not line.endswith("]"):
+                            parsed_lines.append(line)
+                    if parsed_lines:
+                        sub_queries = parsed_lines[: self.max_sub_queries]
+
+            except Exception as e:
+                print(f"Query decomposition failed: {e}")
+                sub_queries = [question]
+
         elif self.decompose_strategy == "rule":
-            sub_queries = self._decompose_with_rules(question)
+            # ---- 规则分解逻辑内联 ----
+            pattern = r"\b(?:" + "|".join(re.escape(kw) for kw in self.split_keywords) + r")\b"
+            parts = re.split(pattern, question, flags=re.IGNORECASE)
+            parsed_parts = [p.strip() for p in parts if p.strip()]
+            if parsed_parts:
+                sub_queries = parsed_parts[: self.max_sub_queries]
+
         elif self.decompose_strategy == "hybrid":
-            # 先用规则，如果没有分解成功再用 LLM
-            sub_queries = self._decompose_with_rules(question)
-            if len(sub_queries) <= 1:
-                sub_queries = self._decompose_with_llm(question)
-        else:
-            sub_queries = [question]
+            # ---- 混合策略内联 ----
+            # 先用规则
+            pattern = r"\b(?:" + "|".join(re.escape(kw) for kw in self.split_keywords) + r")\b"
+            parts = re.split(pattern, question, flags=re.IGNORECASE)
+            parsed_parts = [p.strip() for p in parts if p.strip()]
+
+            if len(parsed_parts) > 1:
+                sub_queries = parsed_parts[: self.max_sub_queries]
+            else:
+                # 规则失败，使用 LLM
+                prompt = self.decompose_prompt.format(query=question)
+                try:
+                    result = self._generator.generate(prompt, max_tokens=500, temperature=0.5)
+                    try:
+                        match = re.search(r"\[.*?\]", result, re.DOTALL)
+                        if match:
+                            parsed_queries = json.loads(match.group())
+                            if isinstance(parsed_queries, list):
+                                sub_queries = parsed_queries[: self.max_sub_queries]
+                    except json.JSONDecodeError:
+                        lines = result.strip().split("\n")
+                        parsed_lines = []
+                        for line in lines:
+                            line = line.strip().lstrip("0123456789.-) ")
+                            if line and not line.startswith("[") and not line.endswith("]"):
+                                parsed_lines.append(line)
+                        if parsed_lines:
+                            sub_queries = parsed_lines[: self.max_sub_queries]
+                except Exception as e:
+                    print(f"Hybrid decomposition (LLM fallback) failed: {e}")
 
         data["sub_queries"] = sub_queries
         data["original_query"] = question
@@ -553,7 +586,7 @@ class PreRetrieval(MapFunction):
         if self._embedding_generator is not None:
             if self.sub_query_action == "parallel":
                 # 并行生成所有子查询的 embedding
-                sub_embeddings = self._embedding_generator.embed_batch(sub_queries)
+                sub_embeddings = [self._embedding_generator.embed(q) for q in sub_queries]
                 data["sub_query_embeddings"] = sub_embeddings
             else:
                 # 串行处理时只生成第一个的 embedding
@@ -561,162 +594,203 @@ class PreRetrieval(MapFunction):
 
         return data
 
-    def _decompose_with_llm(self, query: str) -> list[str]:
-        """使用 LLM 分解查询"""
-        prompt = self.decompose_prompt.format(query=query)
-
-        try:
-            result = self._generator.generate(prompt, max_tokens=500, temperature=0.5)
-
-            # 尝试解析 JSON 数组
-            try:
-                # 查找 JSON 数组
-                match = re.search(r"\[.*?\]", result, re.DOTALL)
-                if match:
-                    sub_queries = json.loads(match.group())
-                    if isinstance(sub_queries, list):
-                        return sub_queries[: self.max_sub_queries]
-            except json.JSONDecodeError:
-                pass
-
-            # 如果不是 JSON，尝试按行解析
-            lines = result.strip().split("\n")
-            sub_queries = []
-            for line in lines:
-                line = line.strip().lstrip("0123456789.-) ")
-                if line and not line.startswith("[") and not line.endswith("]"):
-                    sub_queries.append(line)
-
-            return sub_queries[: self.max_sub_queries] if sub_queries else [query]
-
-        except Exception as e:
-            print(f"Query decomposition failed: {e}")
-            return [query]
-
-    def _decompose_with_rules(self, query: str) -> list[str]:
-        """使用规则分解查询"""
-        # 构建分割正则
-        pattern = r"\b(?:" + "|".join(re.escape(kw) for kw in self.split_keywords) + r")\b"
-
-        # 分割查询
-        parts = re.split(pattern, query, flags=re.IGNORECASE)
-        sub_queries = [p.strip() for p in parts if p.strip()]
-
-        return sub_queries[: self.max_sub_queries] if sub_queries else [query]
-
     # ==================== route action 实现 ====================
 
-    def _route_query(self, data) -> dict[str, Any]:
-        """检索路由
+    def _execute_route(self, data: dict[str, Any]) -> dict[str, Any]:
+        """检索路由（route action）- 输出检索策略提示
 
-        根据查询内容决定查询哪些记忆源
-        参考 MemoryOS（并行查询所有源）和 MemGPT（函数调用决定）
+        根据查询内容决定使用哪些检索策略。
+        注意：这里输出的是"策略提示"(hints)，而非服务选择。
+        单一服务将根据这些提示调整检索行为。
+
+        参考实现:
+        - MemoryOS: 并行查询所有源
+        - MemGPT: 函数调用决定
+
+        输出:
+        - retrieval_hints: 包含 strategies 和 params 的提示信息
         """
         question = data.get("question", "")
+        if not question:
+            return data
+
+        strategies: list[str] = []
+        params: dict[str, Any] = {}
 
         if self.route_strategy == "keyword":
-            routes = self._route_by_keyword(question)
+            # ---- keyword 路由内联 ----
+            query_lower = question.lower()
+            matched_strategies: list[str] = []
+            merged_params: dict[str, Any] = {}
+
+            for rule in self.keyword_rules:
+                keywords = rule.get("keywords", [])
+                strategy = rule.get("strategy") or rule.get("target")
+                rule_params = rule.get("params", {})
+
+                for keyword in keywords:
+                    if keyword.lower() in query_lower:
+                        if strategy and strategy not in matched_strategies:
+                            matched_strategies.append(strategy)
+                            merged_params.update(rule_params)
+                        break
+
+            strategies = matched_strategies if matched_strategies else [self.default_strategy]
+            params = merged_params
+
         elif self.route_strategy == "classifier":
-            routes = self._route_by_classifier(question)
+            # ---- classifier 路由内联 ----
+            # TODO: 实现分类器路由
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1267
+            print("Classifier routing not implemented, using default strategy")
+            strategies = [self.default_strategy]
+            params = {}
+
         elif self.route_strategy == "llm":
-            routes = self._route_by_llm(question)
-        else:
-            routes = [self.default_route]
+            # ---- LLM 路由内联 ----
+            prompt = self.route_prompt.format(query=question)
+            try:
+                result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
 
-        # 限制路由数量
+                # 尝试解析 JSON 对象（新格式：包含 strategies 和 params）
+                try:
+                    match = re.search(r"\{.*?\}", result, re.DOTALL)
+                    if match:
+                        parsed = json.loads(match.group())
+                        if isinstance(parsed, dict):
+                            parsed_strategies = parsed.get("strategies", [])
+                            parsed_params = parsed.get("params", {})
+                            if parsed_strategies:
+                                strategies = parsed_strategies
+                                params = parsed_params
+                except json.JSONDecodeError:
+                    pass
+
+                # 尝试解析 JSON 数组（旧格式兼容）
+                if not strategies:
+                    try:
+                        match = re.search(r"\[.*?\]", result, re.DOTALL)
+                        if match:
+                            parsed_array = json.loads(match.group())
+                            if isinstance(parsed_array, list):
+                                strategies = [r for r in parsed_array if isinstance(r, str)]
+                    except json.JSONDecodeError:
+                        pass
+
+                # 如果不是 JSON，尝试解析文本中的策略关键词
+                if not strategies:
+                    known_strategies = [
+                        "deep_search",
+                        "temporal_search",
+                        "persona_search",
+                        "semantic_search",
+                        "short_term_memory",
+                        "long_term_memory",
+                        "knowledge_base",
+                    ]
+                    for strategy in known_strategies:
+                        if strategy in result.lower():
+                            strategies.append(strategy)
+
+                if not strategies:
+                    strategies = [self.default_strategy]
+
+            except Exception as e:
+                print(f"LLM routing failed: {e}")
+                strategies = [self.default_strategy]
+                params = {}
+
+        else:
+            strategies = [self.default_strategy]
+            params = {}
+
+        # 限制策略数量
         if not self.allow_multi_route:
-            routes = routes[:1]
+            strategies = strategies[:1]
         else:
-            routes = routes[: self.max_routes]
+            strategies = strategies[: self.max_routes]
 
-        # 确保至少有一个路由
-        if not routes:
-            routes = [self.default_route]
+        # 确保至少有一个策略
+        if not strategies:
+            strategies = [self.default_strategy]
 
-        data["retrieval_routes"] = routes
-        data["route_strategy"] = self.route_strategy
+        # 输出 retrieval_hints（语义清晰，表示"提示"而非"路由目标"）
+        data["retrieval_hints"] = {
+            "strategies": strategies,
+            "params": params,
+            "route_strategy": self.route_strategy,
+        }
 
         return data
 
-    def _route_by_keyword(self, query: str) -> list[str]:
-        """基于关键词的路由
-
-        检查查询中是否包含特定关键词，决定路由目标
-        """
-        query_lower = query.lower()
-        matched_routes = []
-
-        for rule in self.keyword_rules:
-            keywords = rule.get("keywords", [])
-            target = rule.get("target")
-
-            for keyword in keywords:
-                if keyword.lower() in query_lower:
-                    if target not in matched_routes:
-                        matched_routes.append(target)
-                    break
-
-        return matched_routes if matched_routes else [self.default_route]
-
-    def _route_by_classifier(self, query: str) -> list[str]:
-        """基于分类器的路由
-
-        使用预训练分类器判断查询意图
-        """
-        # TODO: 实现分类器路由
-        # Issue URL: https://github.com/intellistream/SAGE/issues/1267
-        # 这里需要加载和使用意图分类模型
-        print("Classifier routing not implemented, using default route")
-        return [self.default_route]
-
-    def _route_by_llm(self, query: str) -> list[str]:
-        """基于 LLM 的路由
-
-        使用 LLM 判断应该查询哪些记忆源
-        """
-        prompt = self.route_prompt.format(query=query)
-
-        try:
-            result = self._generator.generate(prompt, max_tokens=100, temperature=0.3)
-
-            # 尝试解析 JSON 数组
-            try:
-                match = re.search(r"\[.*?\]", result, re.DOTALL)
-                if match:
-                    routes = json.loads(match.group())
-                    if isinstance(routes, list):
-                        return [r for r in routes if isinstance(r, str)]
-            except json.JSONDecodeError:
-                pass
-
-            # 如果不是 JSON，尝试解析文本
-            routes = []
-            for source in ["short_term_memory", "long_term_memory", "knowledge_base"]:
-                if source in result.lower():
-                    routes.append(source)
-
-            return routes if routes else [self.default_route]
-
-        except Exception as e:
-            print(f"LLM routing failed: {e}")
-            return [self.default_route]
-
     # ==================== validate action 实现 ====================
 
-    def _validate_query(self, data) -> dict[str, Any]:
-        """查询验证和预处理
+    def _execute_validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        """查询验证和预处理（validate action）
 
         验证查询是否符合要求，并进行必要的预处理
         """
         question = data.get("question", "")
         original_question = question
 
-        # 预处理
-        question = self._preprocess_query(question)
+        # ---- 预处理逻辑内联 ----
+        if self.preprocessing.get("strip_whitespace", True):
+            question = question.strip()
 
-        # 验证
-        is_valid, error_message = self._validate_rules(question)
+        if self.preprocessing.get("lowercase", False):
+            question = question.lower()
 
+        if self.preprocessing.get("remove_punctuation", False):
+            question = re.sub(r"[^\w\s]", "", question)
+
+        # ---- 验证规则逻辑内联 ----
+        is_valid = True
+        error_message = ""
+
+        for rule in self.validation_rules:
+            rule_type = rule.get("type")
+
+            if rule_type == "length":
+                min_len = rule.get("min", 1)
+                max_len = rule.get("max", 10000)
+                if len(question) < min_len:
+                    is_valid = False
+                    error_message = f"Query too short (min: {min_len})"
+                    break
+                if len(question) > max_len:
+                    is_valid = False
+                    error_message = f"Query too long (max: {max_len})"
+                    break
+
+            elif rule_type == "language":
+                allowed = rule.get("allowed", [])
+                if allowed:
+                    # ---- 语言检测逻辑内联 ----
+                    detected = None
+                    if re.search(r"[\u4e00-\u9fff]", question):
+                        detected = "zh"
+                    elif re.search(r"[\u3040-\u309f\u30a0-\u30ff]", question):
+                        detected = "ja"
+                    elif re.search(r"[\uac00-\ud7af]", question):
+                        detected = "ko"
+                    elif re.search(r"[a-zA-Z]", question):
+                        detected = "en"
+
+                    if detected and detected not in allowed:
+                        is_valid = False
+                        error_message = f"Language {detected} not allowed"
+                        break
+
+            elif rule_type == "safety":
+                for pattern in self.blocked_patterns:
+                    if pattern.lower() in question.lower():
+                        is_valid = False
+                        error_message = "Query contains blocked pattern"
+                        break
+                if not is_valid:
+                    break
+
+        # 处理验证结果
         if not is_valid:
             data["validation_error"] = error_message
             data["is_valid"] = False
@@ -737,66 +811,3 @@ class PreRetrieval(MapFunction):
             data["question"] = question
 
         return data
-
-    def _preprocess_query(self, query: str) -> str:
-        """预处理查询"""
-        if self.preprocessing.get("strip_whitespace", True):
-            query = query.strip()
-
-        if self.preprocessing.get("lowercase", False):
-            query = query.lower()
-
-        if self.preprocessing.get("remove_punctuation", False):
-            query = re.sub(r"[^\w\s]", "", query)
-
-        return query
-
-    def _validate_rules(self, query: str) -> tuple[bool, str]:
-        """验证查询规则"""
-        for rule in self.validation_rules:
-            rule_type = rule.get("type")
-
-            if rule_type == "length":
-                min_len = rule.get("min", 1)
-                max_len = rule.get("max", 10000)
-                if len(query) < min_len:
-                    return False, f"Query too short (min: {min_len})"
-                if len(query) > max_len:
-                    return False, f"Query too long (max: {max_len})"
-
-            elif rule_type == "language":
-                allowed = rule.get("allowed", [])
-                if allowed:
-                    detected = self._detect_language(query)
-                    if detected and detected not in allowed:
-                        return False, f"Language {detected} not allowed"
-
-            elif rule_type == "safety":
-                for pattern in self.blocked_patterns:
-                    if pattern.lower() in query.lower():
-                        return False, "Query contains blocked pattern"
-
-        return True, ""
-
-    def _detect_language(self, text: str) -> str | None:
-        """简单的语言检测
-
-        基于字符集的启发式检测
-        """
-        # 检测中文
-        if re.search(r"[\u4e00-\u9fff]", text):
-            return "zh"
-
-        # 检测日文
-        if re.search(r"[\u3040-\u309f\u30a0-\u30ff]", text):
-            return "ja"
-
-        # 检测韩文
-        if re.search(r"[\uac00-\ud7af]", text):
-            return "ko"
-
-        # 默认英文
-        if re.search(r"[a-zA-Z]", text):
-            return "en"
-
-        return None

@@ -29,6 +29,7 @@ from sage.gateway.routes.control_plane import (
     start_control_plane,
     stop_control_plane,
 )
+from sage.gateway.routes.studio import studio_router
 from sage.gateway.session import get_session_manager
 
 # 配置日志
@@ -85,6 +86,8 @@ session_manager = get_session_manager()
 
 # 挂载 Control Plane 管理路由
 app.include_router(control_plane_router)
+# 挂载 Studio Backend 路由（原 Studio Backend 服务现合并到 Gateway）
+app.include_router(studio_router)
 
 
 class SessionCreatePayload(BaseModel):

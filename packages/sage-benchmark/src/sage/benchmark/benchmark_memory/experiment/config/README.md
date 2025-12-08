@@ -1,15 +1,65 @@
 # 配置文件说明
 
+## 可用的 Pipeline 配置
+
+| 配置文件                                 | 对应论文   | 服务类型           | 核心特点                     |
+| ---------------------------------------- | ---------- | ------------------ | ---------------------------- |
+| `locomo_short_term_memory_pipeline.yaml` | Baseline   | ShortTermMemory    | 滑动窗口 STM                 |
+| `locomo_tim_pipeline.yaml`               | TiM        | VectorHashMemory   | 三元组 + LSH + 蒸馏          |
+| `locomo_memorybank_pipeline.yaml`        | MemoryBank | HierarchicalMemory | 分层 + Ebbinghaus 遗忘       |
+| `locomo_memgpt_pipeline.yaml`            | MemGPT     | HierarchicalMemory | 功能分层 + Replace           |
+| `locomo_amem_pipeline.yaml`              | A-Mem      | GraphMemory        | 链接图 + Link Evolution      |
+| `locomo_hipporag_pipeline.yaml`          | HippoRAG   | GraphMemory        | 知识图谱 + PPR               |
+| `locomo_memoryos_pipeline.yaml`          | MemoryOS   | HierarchicalMemory | 三层 + Heat Score            |
+| `locomo_ldagent_pipeline.yaml`           | LD-Agent   | HierarchicalMemory | STM+LTM + 话题重叠           |
+| `locomo_scm_pipeline.yaml`               | SCM        | NeuroMemVDB        | Memory Stream + Token Budget |
+| `locomo_mem0_pipeline.yaml`              | Mem0       | HybridMemory       | 事实库 + ADD/UPDATE/DELETE   |
+
 ## 目录结构
 
 ```
 config/
-├── README.md              # 本文档
-├── template_full.yaml     # 完整配置模板（包含所有选项）
-└── [your_config].yaml     # 用户自定义配置
+├── README.md                              # 本文档
+├── template_full.yaml                     # 完整配置模板（包含所有选项）
+├── locomo_short_term_memory_pipeline.yaml # STM Baseline
+├── locomo_tim_pipeline.yaml               # TiM
+├── locomo_memorybank_pipeline.yaml        # MemoryBank
+├── locomo_memgpt_pipeline.yaml            # MemGPT
+├── locomo_amem_pipeline.yaml              # A-Mem
+├── locomo_hipporag_pipeline.yaml          # HippoRAG
+├── locomo_memoryos_pipeline.yaml          # MemoryOS
+├── locomo_ldagent_pipeline.yaml           # LD-Agent
+├── locomo_scm_pipeline.yaml               # SCM
+├── locomo_mem0_pipeline.yaml              # Mem0
+└── [your_config].yaml                     # 用户自定义配置
 ```
 
 ## 快速开始
+
+### 运行 Pipeline
+
+```bash
+cd /home/zrc/develop_item/SAGE
+
+# STM Baseline
+python packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/memory_test_pipeline.py \
+  --config packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/config/locomo_short_term_memory_pipeline.yaml \
+  --task_id conv-26
+
+# TiM
+python packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/memory_test_pipeline.py \
+  --config packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/config/locomo_tim_pipeline.yaml \
+  --task_id conv-26
+
+# MemoryBank
+python packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/memory_test_pipeline.py \
+  --config packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/config/locomo_memorybank_pipeline.yaml \
+  --task_id conv-26
+
+# 其他配置类似，替换配置文件名即可
+```
+
+### 创建自定义配置
 
 1. **复制配置模板**
 
@@ -172,3 +222,111 @@ A:
 ### Q: 可以使用环境变量吗？
 
 A: 是的，可以在 YAML 中使用 `${ENV_VAR}` 语法引用环境变量。
+
+______________________________________________________________________
+
+## Action 兼容性矩阵
+
+### 1. PreInsert ↔ MemoryInsert Adapter 兼容性
+
+| PreInsert.action | 必须配合的 adapter | 说明                   |
+| ---------------- | ------------------ | ---------------------- |
+| `none`           | `to_dialogs`       | 保持原始对话格式       |
+| `tri_embed`      | `to_refactor`      | 输出三元组 + embedding |
+| `transform`      | `to_refactor`      | 输出处理后文本         |
+| `extract`        | `to_refactor`      | 输出带 metadata 的文本 |
+| `score`          | `to_refactor`      | 输出带评分的文本       |
+| `validate`       | 任意               | 只做校验，不改格式     |
+
+### 2. PostInsert.action ↔ Service 兼容性
+
+| PostInsert.action | 兼容的服务类型                               | 说明         |
+| ----------------- | -------------------------------------------- | ------------ |
+| `none`            | 全部                                         | 透传         |
+| `log` / `stats`   | 全部                                         | 仅日志/统计  |
+| `distillation`    | 向量类服务 (VectorHash, NeuroMemVDB, Hybrid) | 需要向量检索 |
+| `link_evolution`  | GraphMemory                                  | 需要图结构   |
+| `forgetting`      | Hierarchical                                 | 需要分层结构 |
+| `summarize`       | Hierarchical                                 | 需要分层结构 |
+| `migrate`         | Hierarchical                                 | 需要分层结构 |
+| `reflection`      | 实现了 optimize() 的服务                     | 委托服务执行 |
+
+### 3. PreRetrieval.action ↔ Service 兼容性
+
+| PreRetrieval.action | 要求           | 说明                                    |
+| ------------------- | -------------- | --------------------------------------- |
+| `none`              | 无             | 服务自行处理（如 STM 不需要 embedding） |
+| `embedding`         | Embedding 服务 | 生成查询向量                            |
+| `multi_embed`       | Embedding 服务 | 多维查询向量                            |
+| `optimize`          | LLM 或 spaCy   | 关键词/查询改写                         |
+| `decompose`         | LLM            | 复杂查询分解                            |
+| `route`             | LLM 或规则     | 生成检索策略 hints                      |
+| `validate`          | 无             | 查询校验                                |
+
+### 4. PostRetrieval.action 兼容性
+
+| PostRetrieval.action | 依赖                | 说明                         |
+| -------------------- | ------------------- | ---------------------------- |
+| `none`               | 无                  | 基础格式化                   |
+| `rerank`             | 视 rerank_type 而定 | PPR 需要 Graph 服务          |
+| `filter`             | 无                  | top_k/threshold/token_budget |
+| `merge`              | 服务支持多次检索    | link_expand 需要 Graph       |
+| `augment`            | 服务支持额外查询    | 添加 persona 等              |
+| `compress`           | LLM                 | 压缩内容                     |
+| `format`             | 无                  | 自定义格式化                 |
+
+______________________________________________________________________
+
+## 常见兼容组合
+
+### 组合 1: 纯 STM（最简单）
+
+```yaml
+services:
+  register_memory_service: "short_term_memory"
+  memory_insert_adapter: "to_dialogs"
+operators:
+  pre_insert: { action: "none" }
+  post_insert: { action: "none" }
+  pre_retrieval: { action: "none" }
+  post_retrieval: { action: "none" }
+```
+
+### 组合 2: 向量检索 + 蒸馏
+
+```yaml
+services:
+  register_memory_service: "vector_hash_memory"
+  memory_insert_adapter: "to_refactor"
+operators:
+  pre_insert: { action: "tri_embed" }
+  post_insert: { action: "distillation" }
+  pre_retrieval: { action: "embedding" }
+  post_retrieval: { action: "none" }
+```
+
+### 组合 3: 分层 + 遗忘
+
+```yaml
+services:
+  register_memory_service: "hierarchical_memory"
+  memory_insert_adapter: "to_refactor"
+operators:
+  pre_insert: { action: "transform", transform_type: "summarize" }
+  post_insert: { action: "forgetting" }
+  pre_retrieval: { action: "embedding" }
+  post_retrieval: { action: "rerank", rerank_type: "time_weighted" }
+```
+
+### 组合 4: 图记忆 + 链接演化
+
+```yaml
+services:
+  register_memory_service: "graph_memory"
+  memory_insert_adapter: "to_refactor"
+operators:
+  pre_insert: { action: "tri_embed" }
+  post_insert: { action: "link_evolution" }
+  pre_retrieval: { action: "embedding" }
+  post_retrieval: { action: "merge", merge_type: "link_expand" }
+```

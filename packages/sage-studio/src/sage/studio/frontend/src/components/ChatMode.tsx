@@ -26,9 +26,11 @@ import {
     Loader,
     Sparkles,
     ArrowRightCircle,
+    Upload as UploadIcon,
 } from 'lucide-react'
 import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
+import FileUpload from './FileUpload'
 import {
     sendChatMessage,
     getChatSessions,
@@ -86,6 +88,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const [recommendationSummary, setRecommendationSummary] = useState<string | null>(null)
     const [recommendationInsights, setRecommendationInsights] = useState<string[]>([])
     const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null)
+    const [isUploadVisible, setIsUploadVisible] = useState(false)
 
     //自动滚动到底部
     useEffect(() => {
@@ -163,8 +166,19 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 message_count: mappedMessages.length,
                 last_active: detail.last_active,
             })
-        } catch (error) {
-            console.error('Failed to load sessions:', error)
+        } catch (error: any) {
+            console.error('Failed to load session messages:', error)
+            // 如果是 404 错误，会话可能已被删除
+            if (error?.response?.status === 404) {
+                antMessage.error('会话不存在或已过期，请创建新会话')
+                removeSession(sessionId)
+            } else {
+                antMessage.error('加载会话消息失败')
+            }
+            // 清空当前选择，避免 UI 卡住
+            if (currentSessionId === sessionId) {
+                setCurrentSessionId(null)
+            }
         }
     }
 
@@ -203,7 +217,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             }
             addMessage(sessionId, userMessage)
 
-            // 创建 AI 消息占位符
+            // 创建 AI 消消息占位符
             const assistantMessageId = `msg_${Date.now()}_assistant`
             const assistantMessage: ChatMessage = {
                 id: assistantMessageId,
@@ -616,6 +630,12 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                         <div className="border-t border-gray-200 p-4">
                             <div className="max-w-3xl mx-auto">
                                 <div className="flex gap-2">
+                                    <Tooltip title="Upload Knowledge Base">
+                                        <Button
+                                            icon={<UploadIcon size={16} />}
+                                            onClick={() => setIsUploadVisible(true)}
+                                        />
+                                    </Tooltip>
                                     <TextArea
                                         ref={textAreaRef}
                                         value={currentInput}
@@ -644,6 +664,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     </>
                 )}
             </div>
+            <FileUpload visible={isUploadVisible} onClose={() => setIsUploadVisible(false)} />
         </div>
     )
 }

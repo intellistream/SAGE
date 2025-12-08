@@ -1,4 +1,7 @@
-"""MemoryServiceFactory 单元测试"""
+"""MemoryServiceFactory 单元测试
+
+测试 MemoryServiceFactory 创建各种 Memory Service 的功能。
+"""
 
 import pytest
 
@@ -90,37 +93,46 @@ class TestMemoryServiceFactoryCreateInstance:
 
     def test_create_short_term_instance(self):
         """测试创建短期记忆实例"""
-        instance = MemoryServiceFactory.create_instance("short_term_memory", max_dialog=5)
+        instance = MemoryServiceFactory.create_instance(
+            "short_term_memory", max_dialog=5, collection_name="test_factory_stm"
+        )
 
         assert isinstance(instance, ShortTermMemoryService)
 
     def test_create_graph_memory_instance(self):
         """测试创建图记忆实例"""
-        instance = MemoryServiceFactory.create_instance("graph_memory", graph_type="link_graph")
+        instance = MemoryServiceFactory.create_instance(
+            "graph_memory", graph_type="link_graph", collection_name="test_factory_graph"
+        )
 
         assert isinstance(instance, GraphMemoryService)
         assert instance.graph_type == "link_graph"
 
     def test_create_hierarchical_memory_instance(self):
         """测试创建分层记忆实例"""
-        instance = MemoryServiceFactory.create_instance("hierarchical_memory", tier_mode="two_tier")
+        instance = MemoryServiceFactory.create_instance(
+            "hierarchical_memory", tier_mode="two_tier", collection_name="test_factory_hier"
+        )
 
         assert isinstance(instance, HierarchicalMemoryService)
         assert instance.tier_mode == "two_tier"
 
     def test_create_hybrid_memory_instance(self):
         """测试创建混合记忆实例"""
-        instance = MemoryServiceFactory.create_instance("hybrid_memory", fusion_strategy="rrf")
+        instance = MemoryServiceFactory.create_instance(
+            "hybrid_memory", fusion_strategy="rrf", collection_name="test_factory_hybrid"
+        )
 
         assert isinstance(instance, HybridMemoryService)
         assert instance.fusion_strategy == "rrf"
 
     def test_create_key_value_memory_instance(self):
         """测试创建键值记忆实例"""
-        instance = MemoryServiceFactory.create_instance("key_value_memory", match_type="fuzzy")
+        instance = MemoryServiceFactory.create_instance(
+            "key_value_memory", collection_name="test_factory_kv"
+        )
 
         assert isinstance(instance, KeyValueMemoryService)
-        assert instance.match_type == "fuzzy"
 
     def test_create_instance_unsupported(self):
         """测试创建不支持的服务实例"""

@@ -133,18 +133,42 @@ submodule_init_steps() {
     # --jobs 4: 并行克隆 4 个仓库
     # --depth 1: 只克隆最新提交，大幅减少下载量（节省 ~80% 时间）
     echo -e "${DIM}开始克隆 submodules（浅克隆）...${NC}"
-    if ! git submodule update --init --recursive --jobs 4 --depth 1 2>&1 | while IFS= read -r line; do
-        echo -e "${DIM}  $line${NC}"
-    done; then
-        echo ""
-        echo -e "${YELLOW}${WARNING} 浅克隆失败，尝试完整克隆...${NC}"
-        git submodule update --init --recursive --jobs 4
+
+    local init_output
+    local init_failed=false
+
+    # 捕获初始化输出以检测残留目录问题
+    if ! init_output=$(git submodule update --init --recursive --jobs 4 --depth 1 2>&1); then
+        # 检查是否是残留目录导致的失败
+        if echo "$init_output" | grep -q "already exists and is not an empty directory"; then
+            echo ""
+            echo -e "${YELLOW}${WARNING} 检测到 submodule 目录存在残留文件${NC}"
+            echo -e "${DIM}将使用智能初始化处理残留目录...${NC}"
+            init_failed=true
+        else
+            # 其他原因失败，尝试完整克隆
+            echo ""
+            echo -e "${YELLOW}${WARNING} 浅克隆失败，尝试完整克隆...${NC}"
+            if ! git submodule update --init --recursive --jobs 4 2>&1; then
+                init_failed=true
+            fi
+        fi
+    else
+        # 显示输出
+        echo "$init_output" | while IFS= read -r line; do
+            echo -e "${DIM}  $line${NC}"
+        done
+    fi
+
+    if [ "$init_failed" = true ]; then
+        echo -e "${YELLOW}${WARNING} 部分 submodules 初始化失败，尝试智能修复...${NC}"
     fi
 
     echo -e "${GREEN}${CHECK} Submodules 初始化完成${NC}"
     echo ""
 
     # 自动切换到正确的分支（作为额外保障）
+    # 这一步会调用 check_submodules_initialized()，处理任何残留目录问题
     # 即使使用了 --remote，也再次确认所有 submodule 都在正确的分支上
     echo -e "${BLUE}${INFO} 验证并切换 submodules 到正确的分支...${NC}"
     bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch

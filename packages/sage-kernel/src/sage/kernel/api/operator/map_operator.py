@@ -77,12 +77,9 @@ class MapOperator(BaseOperator):
             else:
                 # 检查是否是 StopSignal
                 if isinstance(packet.payload, StopSignal):
-                    # 传递给 function 处理(例如打印统计信息)
-                    result = self.function.execute(packet.payload)
-                    # 继续传播 StopSignal
-                    result_packet = packet.inherit_partition_info(result)
-                    if result_packet is not None:
-                        self.router.send(result_packet)
+                    # StopSignal 不调用 function.execute()，直接传播
+                    self.logger.debug(f"Operator {self.name} received StopSignal, propagating...")
+                    self.router.send(packet)
                     return
 
                 # 执行前记录时间

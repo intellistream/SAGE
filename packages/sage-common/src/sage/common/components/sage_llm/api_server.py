@@ -27,6 +27,85 @@ from sage.common.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
+def _select_available_gpus(
+    required_memory_gb: float | None = None,
+    tensor_parallel_size: int = 1,
+) -> list[int] | None:
+    """Select GPUs with most available memory.
+
+    If required_memory_gb is specified, selects GPUs with at least that much free memory.
+    Otherwise, selects the GPU(s) with the most free memory available.
+
+    Args:
+        required_memory_gb: Minimum required free memory per GPU in GB (optional)
+        tensor_parallel_size: Number of GPUs needed
+
+    Returns:
+        List of GPU IDs sorted by free memory (descending), or None if not available
+    """
+    try:
+        import subprocess
+
+        # Use nvidia-smi to get GPU memory info
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            logger.debug("nvidia-smi failed, using default GPU selection")
+            return None
+
+        # Parse output: "0, 79000\n1, 22000\n"
+        gpu_memory = []
+        for line in result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split(",")
+                if len(parts) >= 2:
+                    gpu_id = int(parts[0].strip())
+                    free_mb = int(parts[1].strip())
+                    free_gb = free_mb / 1024.0
+                    gpu_memory.append((gpu_id, free_gb))
+
+        if not gpu_memory:
+            logger.debug("No GPUs found")
+            return None
+
+        # Sort by free memory (descending)
+        gpu_memory.sort(key=lambda x: x[1], reverse=True)
+
+        logger.info(f"GPU memory status: {[(f'GPU{g[0]}: {g[1]:.1f}GB free') for g in gpu_memory]}")
+
+        # Select GPUs with most free memory
+        if required_memory_gb:
+            # Filter GPUs with enough memory
+            suitable_gpus = [g for g in gpu_memory if g[1] >= required_memory_gb]
+            if len(suitable_gpus) < tensor_parallel_size:
+                logger.warning(
+                    f"Only {len(suitable_gpus)} GPUs have >= {required_memory_gb}GB free, "
+                    f"need {tensor_parallel_size}"
+                )
+                # Fall back to GPUs with most memory anyway
+                selected = [g[0] for g in gpu_memory[:tensor_parallel_size]]
+            else:
+                selected = [g[0] for g in suitable_gpus[:tensor_parallel_size]]
+        else:
+            # Just select GPUs with most free memory
+            selected = [g[0] for g in gpu_memory[:tensor_parallel_size]]
+
+        logger.info(f"Selected GPU(s): {selected} (most free memory)")
+        return selected
+
+    except Exception as e:
+        logger.debug(f"GPU selection failed: {e}")
+        return None
+
+
 def get_served_model_name(model_path: str) -> str:
     """Convert model path to a friendly model name for API served_model_name.
 
@@ -170,6 +249,26 @@ class LLMAPIServer:
 
         logger.info(f"Starting LLM API server ({self.config.backend}): {' '.join(cmd)}")
 
+        # Auto-select GPU with most free memory
+        # vLLM runs on single GPU by default (tensor_parallel_size=1)
+        # Just pick the GPU with the most free memory available
+        selected_gpus = _select_available_gpus(
+            required_memory_gb=None,  # Don't require specific amount, just pick best GPU
+            tensor_parallel_size=self.config.tensor_parallel_size,
+        )
+
+        # Prepare environment with GPU selection
+        env = os.environ.copy()
+        if selected_gpus:
+            cuda_devices = ",".join(str(gpu) for gpu in selected_gpus)
+            env["CUDA_VISIBLE_DEVICES"] = cuda_devices
+            logger.info(f"Set CUDA_VISIBLE_DEVICES={cuda_devices}")
+        else:
+            logger.warning(
+                "Could not auto-select GPUs, using system default. "
+                "This may fail if default GPU has insufficient memory."
+            )
+
         try:
             # Start process
             if background:
@@ -180,16 +279,20 @@ class LLMAPIServer:
                     stdout=log_handle,
                     stderr=subprocess.STDOUT,
                     preexec_fn=os.setsid if os.name != "nt" else None,
+                    env=env,  # Use environment with CUDA_VISIBLE_DEVICES
                 )
                 self.pid = self.process.pid
                 logger.info(f"LLM API server started in background (PID: {self.pid})")
                 logger.info(f"Logs: {self.log_file}")
 
                 # Wait for server to be ready
-                return self._wait_for_ready(timeout=120)
+                # Use longer timeout for first-time model downloads (7B model ~14GB)
+                # Can be configured via SAGE_LLM_STARTUP_TIMEOUT env var
+                startup_timeout = int(os.environ.get("SAGE_LLM_STARTUP_TIMEOUT", "300"))
+                return self._wait_for_ready(timeout=startup_timeout)
             else:
                 # Foreground mode - blocking
-                self.process = subprocess.Popen(cmd)
+                self.process = subprocess.Popen(cmd, env=env)
                 self.pid = self.process.pid
                 logger.info(f"LLM API server started in foreground (PID: {self.pid})")
                 self.process.wait()
@@ -416,16 +519,17 @@ class LLMAPIServer:
             "api_url": f"http://{self.config.host}:{self.config.port}/v1",
         }
 
-    def _wait_for_ready(self, timeout: int = 120) -> bool:
+    def _wait_for_ready(self, timeout: int = 300) -> bool:
         """Wait for server to be ready
 
         Args:
-            timeout: Maximum seconds to wait
+            timeout: Maximum seconds to wait (default 300s for model downloads)
 
         Returns:
             True if server is ready, False if timeout
         """
         logger.info(f"Waiting for LLM API server to be ready (timeout: {timeout}s)...")
+        logger.info("Note: First-time model download may take 5-10 minutes for 7B models")
         logger.info(f"Health check URL: http://127.0.0.1:{self.config.port}/health")
         logger.info(f"Log file: {self.log_file}")
 

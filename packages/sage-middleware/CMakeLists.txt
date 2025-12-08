@@ -48,6 +48,23 @@ set(SAGE_DB_SUBMODULE "${SAGE_DB_DIR}/sageDB")
 # 设置统一的构建输出目录到 .sage/build/
 set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
 
+# ============================================================================
+# 统一安装目录配置（解决 editable install 时 .so 位置不一致问题）
+# ============================================================================
+# 在 editable install 模式下，.so 文件应该安装到源码的 python/ 目录
+# 这些变量会传递给子模块的 CMakeLists.txt
+set(SAGE_DB_INSTALL_DIR "${SAGE_DB_DIR}/python" CACHE PATH "sage_db .so install dir")
+set(SAGE_FLOW_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_flow/python" CACHE PATH "sage_flow .so install dir")
+set(SAGE_TSDB_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_tsdb/python" CACHE PATH "sage_tsdb .so install dir")
+
+message(STATUS "")
+message(STATUS "=== Unified Install Directories (for editable mode) ===")
+message(STATUS "  sage_db:   ${SAGE_DB_INSTALL_DIR}")
+message(STATUS "  sage_flow: ${SAGE_FLOW_INSTALL_DIR}")
+message(STATUS "  sage_tsdb: ${SAGE_TSDB_INSTALL_DIR}")
+message(STATUS "========================================================")
+message(STATUS "")
+
 if(EXISTS "${SAGE_DB_SUBMODULE}/CMakeLists.txt")
     message(STATUS "Adding sage_db submodule...")
     message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_db")
