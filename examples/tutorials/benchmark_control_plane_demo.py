@@ -43,7 +43,10 @@ def demo_1_llm_benchmark_config():
         timeout_seconds=30.0,
         arrival_pattern=ArrivalPattern.POISSON,
         policies=[SchedulingPolicy.FIFO, SchedulingPolicy.PRIORITY],
-        model_distribution={"Qwen/Qwen2.5-7B-Instruct": 0.7, "meta-llama/Llama-3-8B": 0.3},
+        model_distribution={
+            "Qwen/Qwen2.5-7B-Instruct": 0.7,
+            "meta-llama/Llama-3-8B": 0.3,
+        },
         priority_distribution={"HIGH": 0.2, "NORMAL": 0.6, "LOW": 0.2},
         slo_config=LLMSLOConfig(
             high_priority_deadline_ms=500,

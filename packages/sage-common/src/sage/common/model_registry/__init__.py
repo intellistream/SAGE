@@ -10,6 +10,7 @@ Architecture:
     Used by components like sage_llm for model lifecycle management.
 """
 
+from .recommended import fetch_recommended_models
 from .vllm_registry import (
     ModelInfo,
     delete_model,
@@ -28,4 +29,5 @@ __all__ = [
     "get_model_path",
     "touch_model",
     "ensure_model_available",
+    "fetch_recommended_models",
 ]

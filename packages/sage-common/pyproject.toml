@@ -40,6 +40,7 @@ dependencies = [
     "pyyaml>=6.0",
     "colorama>=0.4.6",
     "psutil>=6.1.0",
+    "nvidia-ml-py>=12.535.108",
     "dill>=0.3.8",
     "numpy>=1.24",
 ]
@@ -47,8 +48,8 @@ license = {text = "MIT"}
 
 [project.optional-dependencies]
 vllm = [
-    "vllm>=0.10.1",
-    # vLLM 0.10.x+ requires torch >= 2.4.0 for torch._inductor.config
+    "vllm>=0.10.1,<0.13",
+    # vLLM 0.12.x requires torch >= 2.4.0, transformers >= 4.56.0
     "torch>=2.4.0",
     "torchaudio>=2.4.0",
     "torchvision>=0.17.0",

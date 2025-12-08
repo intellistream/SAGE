@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Layout } from 'antd'
+import { Layout, Spin } from 'antd'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Toolbar from './components/Toolbar'
 import NodePalette from './components/NodePalette'
 import FlowEditor from './components/FlowEditor'
@@ -8,12 +9,42 @@ import StatusBar from './components/StatusBar'
 import LogViewer from './components/LogViewer'
 import ChatMode from './components/ChatMode'
 import FinetunePanel from './components/FinetunePanel'
+import { LoginPage } from './components/LoginPage'
+import { useAuthStore } from './store/authStore'
 
 const { Header, Footer } = Layout
 
 export type AppMode = 'chat' | 'canvas' | 'finetune'
 
-function App() {
+function RequireAuth({ children }: { children: JSX.Element }) {
+    const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
+    const location = useLocation()
+    const [isChecking, setIsChecking] = useState(true)
+
+    useEffect(() => {
+        const initAuth = async () => {
+            await checkAuth()
+            setIsChecking(false)
+        }
+        initAuth()
+    }, [checkAuth])
+
+    if (isChecking || isLoading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <Spin size="large" tip="Loading..." />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" state={{ from: location }} replace />
+    }
+
+    return children
+}
+
+function StudioLayout() {
     const [mode, setMode] = useState<AppMode>('chat')
     const [leftWidth, setLeftWidth] = useState(280)
     const [rightWidth, setRightWidth] = useState(320)
@@ -303,6 +334,24 @@ function App() {
                 </Footer>
             )}
         </div>
+    )
+}
+
+function App() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                    path="/"
+                    element={
+                        <RequireAuth>
+                            <StudioLayout />
+                        </RequireAuth>
+                    }
+                />
+            </Routes>
+        </BrowserRouter>
     )
 }
 

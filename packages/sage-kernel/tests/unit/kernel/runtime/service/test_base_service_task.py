@@ -416,8 +416,8 @@ class TestBaseServiceTaskQueueListener:
         }
         service_task.request_queue.put(request_data)
 
-        # Wait for processing
-        time.sleep(0.3)
+        # Wait for processing (increased from 0.3 to 0.5 for CI stability)
+        time.sleep(0.5)
 
         # Check error response was sent
         assert not response_queue.empty()

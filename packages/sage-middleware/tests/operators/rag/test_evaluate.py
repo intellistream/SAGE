@@ -22,6 +22,7 @@ try:
         RecallEvaluate,
         RougeLEvaluate,
         TokenCountEvaluate,
+        get_normalized_tokens,  # 模块级函数，用于 token 提取
     )
 
     EVALUATE_AVAILABLE = True
@@ -54,17 +55,17 @@ class TestF1Evaluate:
             pytest.skip("Evaluate module not available")
 
         evaluator = F1Evaluate()
-        assert hasattr(evaluator, "_get_tokens")
+        # F1Evaluate uses module-level get_normalized_tokens function, not _get_tokens method
         assert hasattr(evaluator, "_f1_score")
         assert hasattr(evaluator, "execute")
 
     def test_get_tokens(self):
-        """测试token提取"""
+        """测试token提取 (使用模块级函数)"""
         if not EVALUATE_AVAILABLE:
             pytest.skip("Evaluate module not available")
 
-        evaluator = F1Evaluate()
-        tokens = evaluator._get_tokens("Hello World Test")
+        # Test the module-level get_normalized_tokens function
+        tokens = get_normalized_tokens("Hello World Test")
 
         assert tokens == ["hello", "world", "test"]
 

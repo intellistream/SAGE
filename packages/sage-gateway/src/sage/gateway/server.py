@@ -1,12 +1,19 @@
 """
 SAGE Gateway FastAPI Server
 
-提供 OpenAI/Anthropic 兼容的 REST API
+提供 OpenAI/Anthropic 兼容的 REST API，并集成 Control Plane 管理功能。
+
+Key Features:
+- OpenAI 兼容的 /v1/chat/completions 端点
+- 会话管理 (Session Management)
+- RAG 索引管理
+- Control Plane 引擎管理 (/v1/management/*)
 """
 
 # pyright: reportMissingImports=false
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -16,6 +23,13 @@ from pydantic import BaseModel
 
 from sage.common.config.ports import SagePorts
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
+from sage.gateway.routes.control_plane import (
+    control_plane_router,
+    init_control_plane,
+    start_control_plane,
+    stop_control_plane,
+)
+from sage.gateway.routes.studio import studio_router
 from sage.gateway.session import get_session_manager
 
 # 配置日志
@@ -29,7 +43,23 @@ logger = logging.getLogger("sage.gateway")
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     logger.info("🚀 SAGE Gateway starting...")
+
+    # Initialize and start Control Plane if enabled
+    enable_control_plane = os.getenv("SAGE_GATEWAY_ENABLE_CONTROL_PLANE", "true").lower() == "true"
+    if enable_control_plane:
+        scheduling_policy = os.getenv("SAGE_GATEWAY_SCHEDULING_POLICY", "adaptive")
+        if init_control_plane(scheduling_policy=scheduling_policy):
+            await start_control_plane()
+            logger.info("✅ Control Plane enabled")
+        else:
+            logger.warning("⚠️ Control Plane initialization failed, continuing without it")
+
     yield
+
+    # Stop Control Plane on shutdown
+    if enable_control_plane:
+        await stop_control_plane()
+
     logger.info("👋 SAGE Gateway shutting down...")
 
 
@@ -53,6 +83,11 @@ app.add_middleware(
 # 初始化适配器
 openai_adapter = OpenAIAdapter()
 session_manager = get_session_manager()
+
+# 挂载 Control Plane 管理路由
+app.include_router(control_plane_router)
+# 挂载 Studio Backend 路由（原 Studio Backend 服务现合并到 Gateway）
+app.include_router(studio_router)
 
 
 class SessionCreatePayload(BaseModel):
@@ -79,13 +114,25 @@ async def root():
     return {
         "service": "SAGE Gateway",
         "version": "0.1.0",
-        "endpoints": [
-            "/v1/chat/completions",
-            "/health",
-            "/sessions",
-            "/admin/index/status",
-            "/admin/index/build",
-        ],
+        "endpoints": {
+            "chat": "/v1/chat/completions",
+            "embeddings": "/v1/embeddings",
+            "health": "/health",
+            "sessions": "/sessions",
+            "index": {
+                "status": "/admin/index/status",
+                "build": "/admin/index/build",
+            },
+            "control_plane": {
+                "engines": "/v1/management/engines",
+                "start_engine": "POST /v1/management/engines",
+                "register_engine": "POST /v1/management/engines/register",
+                "stop_engine": "DELETE /v1/management/engines/{engine_id}",
+                "status": "/v1/management/status",
+                "backends": "/v1/management/backends",
+                "gpu": "/v1/management/gpu",
+            },
+        },
     }
 
 
@@ -130,6 +177,82 @@ async def chat_completions(request: ChatCompletionRequest):
 
     except Exception as e:
         logger.error(f"Error processing chat request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class EmbeddingRequest(BaseModel):
+    """OpenAI 兼容的 Embedding 请求"""
+
+    input: str | list[str]
+    model: str | None = None
+    encoding_format: str = "float"
+
+
+@app.post("/v1/embeddings")
+async def create_embeddings(request: EmbeddingRequest):
+    """
+    OpenAI 兼容的 embeddings 端点
+
+    通过 Control Plane 将请求路由到可用的 Embedding 后端。
+    """
+    import httpx
+
+    try:
+        # 获取 Control Plane manager
+        from sage.gateway.routes.control_plane import get_control_plane_manager
+
+        manager = get_control_plane_manager()
+        if manager is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Control Plane not initialized. Start Gateway with --control-plane",
+            )
+
+        # 获取可用的 embedding 后端
+        backends_info = manager.get_registered_backends()
+        embedding_backends = backends_info.get("embedding_backends", [])
+
+        if not embedding_backends:
+            raise HTTPException(
+                status_code=503,
+                detail="No embedding backend available",
+            )
+
+        # 选择第一个健康的后端
+        backend = None
+        for b in embedding_backends:
+            if b.get("healthy", False):
+                backend = b
+                break
+
+        if not backend:
+            # 如果没有健康的，使用第一个
+            backend = embedding_backends[0]
+
+        # 构建后端 URL
+        host = backend.get("host", "localhost")
+        port = backend.get("port", 8090)
+        backend_url = f"http://{host}:{port}/v1/embeddings"
+
+        logger.info(f"Proxying embedding request to {backend_url}")
+
+        # 代理请求到后端
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                backend_url,
+                json={
+                    "input": request.input,
+                    "model": request.model or backend.get("model_id", "default"),
+                    "encoding_format": request.encoding_format,
+                },
+            )
+            response.raise_for_status()
+            return response.json()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing embedding request: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -401,11 +524,15 @@ def main():
     """主入口"""
     import uvicorn
 
-    logger.info("Starting SAGE Gateway server...")
+    # Support environment variable configuration
+    host = os.getenv("SAGE_GATEWAY_HOST", "0.0.0.0")
+    port = int(os.getenv("SAGE_GATEWAY_PORT", str(SagePorts.GATEWAY_DEFAULT)))
+
+    logger.info(f"Starting SAGE Gateway server on {host}:{port}...")
     uvicorn.run(
         "sage.gateway.server:app",
-        host="0.0.0.0",
-        port=SagePorts.GATEWAY_DEFAULT,
+        host=host,
+        port=port,
         reload=False,
         log_level="info",
     )

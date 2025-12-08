@@ -1,9 +1,13 @@
 """OpenAI embedding wrapper."""
 
+import logging
 import os
 from typing import Any
 
 from ..base import BaseEmbedding
+
+# 抑制 httpx 的 INFO 日志（每次 HTTP 请求都会打印）
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class OpenAIEmbedding(BaseEmbedding):

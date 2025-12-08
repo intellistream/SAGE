@@ -1,7 +1,8 @@
 # sageLLM Control Plane Benchmark
 
 This module provides comprehensive benchmarking tools for evaluating different scheduling policies
-in sageLLM's Control Plane. It supports both **LLM-only** and **Hybrid (LLM + Embedding)** workloads.
+in sageLLM's Control Plane. It supports both **LLM-only** and **Hybrid (LLM + Embedding)**
+workloads.
 
 ## Overview
 
@@ -76,15 +77,15 @@ sage-cp-bench experiment --name throughput --policies fifo,priority
 
 ### Commands Overview
 
-| Command      | Description                                      |
-| ------------ | ------------------------------------------------ |
-| `run`        | Run benchmark for a single scheduling policy     |
-| `compare`    | Compare multiple scheduling policies             |
-| `sweep`      | Sweep across multiple request rates              |
-| `experiment` | Run predefined experiments                       |
-| `visualize`  | Generate charts from existing results            |
-| `config`     | Show/save example configuration                  |
-| `validate`   | Validate a configuration file                    |
+| Command      | Description                                  |
+| ------------ | -------------------------------------------- |
+| `run`        | Run benchmark for a single scheduling policy |
+| `compare`    | Compare multiple scheduling policies         |
+| `sweep`      | Sweep across multiple request rates          |
+| `experiment` | Run predefined experiments                   |
+| `visualize`  | Generate charts from existing results        |
+| `config`     | Show/save example configuration              |
+| `validate`   | Validate a configuration file                |
 
 ### `run` Command
 
@@ -185,12 +186,12 @@ Options:
 
 **Available Experiments:**
 
-| Experiment     | Description                                     |
-| -------------- | ----------------------------------------------- |
-| `throughput`   | Sweep request rates to find max throughput      |
-| `latency`      | Analyze latency distribution under fixed load   |
-| `slo`          | Compare SLO compliance across policies          |
-| `mixed_ratio`  | Test different LLM/Embedding ratios             |
+| Experiment    | Description                                   |
+| ------------- | --------------------------------------------- |
+| `throughput`  | Sweep request rates to find max throughput    |
+| `latency`     | Analyze latency distribution under fixed load |
+| `slo`         | Compare SLO compliance across policies        |
+| `mixed_ratio` | Test different LLM/Embedding ratios           |
 
 **Examples:**
 
@@ -395,14 +396,14 @@ report_gen.generate_markdown_report(Path("./report.md"))
 
 ### Hybrid Benchmark Configuration
 
-| Option                    | Description                        | Default              |
-| ------------------------- | ---------------------------------- | -------------------- |
-| `llm_ratio`               | Ratio of LLM requests (0.0-1.0)    | `0.5`                |
-| `embedding_ratio`         | Ratio of Embedding requests        | `0.5`                |
-| `embedding_model`         | Embedding model name               | `BAAI/bge-m3`        |
-| `embedding_batch_size`    | Batch size for embedding requests  | `32`                 |
-| `llm_slo_deadline_ms`     | SLO deadline for LLM requests      | `5000`               |
-| `embedding_slo_deadline_ms` | SLO deadline for embedding       | `500`                |
+| Option                      | Description                       | Default       |
+| --------------------------- | --------------------------------- | ------------- |
+| `llm_ratio`                 | Ratio of LLM requests (0.0-1.0)   | `0.5`         |
+| `embedding_ratio`           | Ratio of Embedding requests       | `0.5`         |
+| `embedding_model`           | Embedding model name              | `BAAI/bge-m3` |
+| `embedding_batch_size`      | Batch size for embedding requests | `32`          |
+| `llm_slo_deadline_ms`       | SLO deadline for LLM requests     | `5000`        |
+| `embedding_slo_deadline_ms` | SLO deadline for embedding        | `500`         |
 
 ## Output Formats
 
@@ -428,6 +429,7 @@ Best Embedding SLO: hybrid_slo (98.2%)
 ### JSON Report
 
 Full results saved to `report_<timestamp>.json` including:
+
 - Configuration summary
 - Per-policy metrics
 - Raw request results
@@ -501,20 +503,22 @@ benchmark_control_plane/
 
 - [DATA_PATHS.md](./DATA_PATHS.md) - Data directory structure and formats
 - [VISUALIZATION.md](./VISUALIZATION.md) - Chart types and report formats
-- [examples/run_llm_benchmark.py](../../../../examples/benchmark/run_llm_benchmark.py) - LLM benchmark example
-- [examples/run_hybrid_benchmark.py](../../../../examples/benchmark/run_hybrid_benchmark.py) - Hybrid benchmark example
+- [examples/run_llm_benchmark.py](../../../../examples/benchmark/run_llm_benchmark.py) - LLM
+  benchmark example
+- [examples/run_hybrid_benchmark.py](../../../../examples/benchmark/run_hybrid_benchmark.py) -
+  Hybrid benchmark example
 
 ## Control Plane Integration
 
 ### Required API Endpoints
 
-| Endpoint               | Method | Description                           |
-| ---------------------- | ------ | ------------------------------------- |
-| `/health`              | GET    | Health check                          |
-| `/v1/chat/completions` | POST   | OpenAI-compatible LLM endpoint        |
-| `/v1/embeddings`       | POST   | OpenAI-compatible embedding endpoint  |
-| `/admin/set_policy`    | POST   | Switch scheduling policy              |
-| `/admin/metrics`       | GET    | Get Control Plane metrics             |
+| Endpoint               | Method | Description                          |
+| ---------------------- | ------ | ------------------------------------ |
+| `/health`              | GET    | Health check                         |
+| `/v1/chat/completions` | POST   | OpenAI-compatible LLM endpoint       |
+| `/v1/embeddings`       | POST   | OpenAI-compatible embedding endpoint |
+| `/admin/set_policy`    | POST   | Switch scheduling policy             |
+| `/admin/metrics`       | GET    | Get Control Plane metrics            |
 
 ### Request Headers
 
@@ -528,9 +532,9 @@ benchmark_control_plane/
 ### Common Issues
 
 1. **Connection refused**: Ensure Control Plane is running at the specified URL
-2. **Timeout errors**: Increase `--timeout` or reduce `--rate`
-3. **No visualization**: Install matplotlib: `pip install matplotlib`
-4. **YAML config error**: Install pyyaml: `pip install pyyaml`
+1. **Timeout errors**: Increase `--timeout` or reduce `--rate`
+1. **No visualization**: Install matplotlib: `pip install matplotlib`
+1. **YAML config error**: Install pyyaml: `pip install pyyaml`
 
 ### Debug Mode
 
@@ -540,6 +544,6 @@ export SAGE_LOG_LEVEL=DEBUG
 sage-cp-bench run --mode llm --policy fifo --requests 10
 ```
 
----
+______________________________________________________________________
 
 *Updated: 2025-11-28*

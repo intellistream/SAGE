@@ -126,14 +126,13 @@ class GorillaSelector(BaseToolSelector):
     def _create_llm_client(self) -> Any:
         """Create LLM client for selection stage."""
         try:
-            from sage.common.components.sage_llm.client import IntelligentLLMClient
+            from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            # Always use create_auto() for automatic local-first detection
-            # config.llm_model is informational only; actual model determined by endpoint
-            return IntelligentLLMClient.create_auto()
+            # Always use create() for automatic local-first detection
+            return UnifiedInferenceClient.create()
         except ImportError:
             logger.warning(
-                "IntelligentLLMClient not available. GorillaSelector will use "
+                "UnifiedInferenceClient not available. GorillaSelector will use "
                 "embedding-only mode (no LLM reranking)."
             )
             return None

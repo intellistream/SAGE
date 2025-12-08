@@ -130,15 +130,33 @@ class RAGChatMap(MapFunction):
 
             db_path = P(self._manifest_data["db_path"])
 
-            # Initialize embedder
+            # Initialize embedder - 根据 manifest 中的配置选择正确的方法
             embed_config = self._manifest_data.get("embedding", {})
-            embedding_method = embed_config.get("method", "hash")
-            embedding_model = embed_config.get("model_name")
+            embedding_method = embed_config.get("method", "openai")  # 默认使用 openai
+            # 兼容两种格式：params.model 或直接 model
+            embed_params = embed_config.get("params", {})
+            embedding_model = embed_params.get("model") or embed_config.get("model")
+            embedding_dim = embed_params.get("dim") or embed_config.get("dim", 384)
 
-            if embedding_method in ["hf", "openai", "jina"]:
-                self._embedder = get_embedding_model(embedding_method, model_name=embedding_model)
+            if embedding_method == "openai":
+                # 使用本地 embedding 服务
+                from sage.common.config.ports import SagePorts
+
+                embedding_port = SagePorts.EMBEDDING_DEFAULT
+                # 优先使用 manifest 中的 base_url，否则使用默认端口
+                base_url = embed_params.get("base_url", f"http://localhost:{embedding_port}/v1")
+                self._embedder = get_embedding_model(
+                    "openai",
+                    model=embedding_model or "BAAI/bge-m3",
+                    base_url=base_url,
+                    api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
+                )
+                logger.info(f"Using OpenAI-compatible embedding service: {base_url}")
+            elif embedding_method in ["hf", "jina"]:
+                self._embedder = get_embedding_model(embedding_method, model=embedding_model)
             else:
-                self._embedder = get_embedding_model(embedding_method, dim=384)
+                # hash 或其他方法
+                self._embedder = get_embedding_model(embedding_method, dim=embedding_dim)
 
             # Load SageDB
             self._db = SageDB(self._embedder.get_dim())
@@ -152,21 +170,89 @@ class RAGChatMap(MapFunction):
             self._embedder = None
 
     def _get_llm_client(self):
-        """获取智能 LLM 客户端（延迟初始化，带缓存）
+        """获取通过 Control Plane 路由的 LLM 客户端（延迟初始化，带缓存）
 
-        使用 sage-common (L1) 的 IntelligentLLMClient，自动检测并选择最佳服务：
-        1. 用户配置的端点（SAGE_CHAT_BASE_URL）
-        2. 本地 vLLM 服务（端口 8001, 8000）
-        3. 云端 API 降级（阿里云 DashScope）
+        完全依赖 Control Plane 进行服务发现和路由：
+        - 通过 /v1/management/backends 获取可用的 LLM 引擎列表
+        - 选择健康的后端直接调用（避免递归调用 /v1/chat/completions）
+        - 支持多引擎、动态端口、负载均衡
 
         Returns:
             UnifiedInferenceClient 实例
+
+        Raises:
+            RuntimeError: 如果 Control Plane 没有可用的 LLM 后端
         """
         if self._llm_client is None:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            self._llm_client = UnifiedInferenceClient.create_auto()
+            # 从 Control Plane 获取可用的 LLM 后端
+            llm_base_url = self._get_llm_backend_url()
+
+            if llm_base_url:
+                logger.info(f"Using LLM backend from Control Plane: {llm_base_url}")
+                # 使用内部标志创建实例（与 compat.py 模式一致）
+                UnifiedInferenceClient._allow_init = True
+                try:
+                    self._llm_client = UnifiedInferenceClient(
+                        llm_base_url=llm_base_url,
+                        llm_model=None,  # 让后端决定模型
+                        llm_api_key="",
+                    )
+                finally:
+                    UnifiedInferenceClient._allow_init = False
+            else:
+                # Control Plane 没有可用的 LLM 后端
+                raise RuntimeError(
+                    "No LLM backend available in Control Plane. "
+                    "Start an LLM engine with: sage llm engine start <model_name>"
+                )
+
         return self._llm_client
+
+    def _get_llm_backend_url(self) -> str | None:
+        """从 Control Plane 获取可用的 LLM 后端 URL
+
+        仅查询 Control Plane 注册的后端，不做端口扫描。
+        Control Plane 负责：
+        - 服务发现（知道所有引擎的位置）
+        - 健康检查（只返回健康的后端）
+        - 负载均衡（未来可以选择负载最低的后端）
+        """
+        try:
+            from sage.gateway.routes.control_plane import get_control_plane_manager  # type: ignore
+
+            manager = get_control_plane_manager()
+            if manager is None:
+                logger.warning("Control Plane manager not available")
+                return None
+
+            backends_info = manager.get_registered_backends()
+            llm_backends = backends_info.get("llm_backends", [])
+
+            if not llm_backends:
+                logger.warning("No LLM backends registered in Control Plane")
+                return None
+
+            # 选择第一个健康的后端（未来可扩展为负载均衡）
+            for backend in llm_backends:
+                if backend.get("is_healthy", False):
+                    base_url = backend.get("base_url")
+                    if base_url:
+                        return base_url
+                    # 或者从 host/port 构建
+                    host = backend.get("host", "localhost")
+                    port = backend.get("port")
+                    if port:
+                        return f"http://{host}:{port}/v1"
+
+            # 所有后端都不健康
+            logger.warning("All %d LLM backends are unhealthy", len(llm_backends))
+            return None
+
+        except Exception as e:
+            logger.warning(f"Failed to get LLM backend from Control Plane: {e}")
+            return None
 
     def _detect_workflow_intent(self, user_input: str) -> bool:
         """Detect if user wants to create a workflow.
@@ -216,7 +302,7 @@ class RAGChatMap(MapFunction):
             context = GenerationContext(
                 user_input=user_input,
                 conversation_history=[],  # 如果需要，可以从 requirements 中提取对话历史
-                constraints=requirements.get("constraints"),
+                constraints=requirements.get("constraints"),  # type: ignore
             )
 
             # 使用 sage-libs LLM 生成器
@@ -261,6 +347,52 @@ class RAGChatMap(MapFunction):
         Returns:
             Dict with 'content' (answer) and 'sources' (retrieved documents)
         """
+        # 检测是否是简单闲聊（不需要检索）
+        casual_patterns = [
+            "你好",
+            "hi",
+            "hello",
+            "嗨",
+            "hey",
+            "谢谢",
+            "thanks",
+            "thank you",
+            "再见",
+            "bye",
+            "拜拜",
+            "test",
+            "测试",
+            "试试",
+            "ok",
+            "好的",
+            "嗯",
+        ]
+        user_lower = user_input.strip().lower()
+        is_casual = (
+            any(
+                user_lower == p or user_lower.startswith(p + " ") or user_lower.endswith(" " + p)
+                for p in casual_patterns
+            )
+            and len(user_input.strip()) < 20
+        )
+
+        if is_casual:
+            # 闲聊模式：跳过检索，直接生成简单回答
+            try:
+                client = self._get_llm_client()
+                messages = [
+                    {
+                        "role": "system",
+                        "content": "你是 SAGE 智能助手。用户在和你打招呼或闲聊，请自然友好地回应，不要输出代码。",
+                    },
+                    {"role": "user", "content": user_input.strip()},
+                ]
+                response = client.chat(messages, temperature=0.7, stream=False)
+                return {"content": response, "sources": [], "type": "chat"}
+            except Exception as e:
+                logger.error(f"Casual chat error: {e}")
+                return {"content": "你好！有什么我可以帮助你的吗？", "sources": [], "type": "chat"}
+
         self._ensure_rag_initialized()
 
         if self._db is None or self._embedder is None:
@@ -307,12 +439,13 @@ class RAGChatMap(MapFunction):
 
             system_instructions = textwrap.dedent(
                 """
-                You are SAGE 内嵌编程助手。回答用户关于 SAGE 的问题，依据提供的上下文进行解释。
-                - 如果上下文不足以回答，请坦诚说明并给出下一步建议。
-                - 引用时使用 [编号] 表示，例如 [1], [2]。
-                - 回答保持简洁，直接给出步骤或示例代码。
-                - 在回答末尾简要说明引用来源的文档标题。
-                - 注意用户之前的对话历史，保持上下文连贯性。
+                你是 SAGE 智能助手。根据用户问题和提供的文档上下文回答。
+
+                规则：
+                - 依据上下文回答，引用时用 [编号] 标注
+                - 可以给出示例代码
+                - 如果上下文不足，坦诚说明
+                - 注意对话历史，保持上下文连贯
                 """
             ).strip()
 
@@ -369,7 +502,7 @@ class RAGChatMap(MapFunction):
                 messages.append({"role": "system", "content": f"对话历史:\n{memory_context}"})
             messages.append({"role": "user", "content": user_input})
 
-            return client.chat(messages, temperature=0.7, stream=False)
+            return client.chat(messages, temperature=0.7, stream=False)  # type: ignore
 
         except Exception as e:
             logger.error(f"Fallback LLM error: {e}", exc_info=True)

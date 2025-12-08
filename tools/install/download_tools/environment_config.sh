@@ -43,11 +43,27 @@ detect_mainland_china_ip() {
 configure_pip_mirror() {
     local mirror_source="${1:-auto}"
 
+    # 如果设置了 SAGE_FORCE_CHINA_MIRROR=true，强制使用中国镜像（适用于中国的 self-hosted runner）
+    if [ "$SAGE_FORCE_CHINA_MIRROR" = "true" ]; then
+        export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+        export PIP_EXTRA_INDEX_URL=""
+        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用清华镜像${NC}"
+        return 0
+    fi
+
     # CI环境自动禁用镜像（使用官方PyPI以确保稳定性）
+    # 但如果检测到中国大陆 IP，仍然使用镜像加速
     if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # 在 CI 中也尝试检测是否在中国
+        if detect_mainland_china_ip; then
+            export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+            export PIP_EXTRA_INDEX_URL=""
+            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用清华镜像加速${NC}"
+            return 0
+        fi
         export PIP_INDEX_URL="https://pypi.org/simple/"
         export PIP_EXTRA_INDEX_URL=""
-        echo -e "${INFO} CI环境检测：使用官方 PyPI（禁用镜像）"
+        echo -e "${INFO} CI环境检测：使用官方 PyPI（国际网络）"
         return 0
     fi
 
@@ -324,6 +340,8 @@ configure_installation_environment() {
             echo -e "${INFO} 使用系统 Python 环境安装"
             export PIP_CMD="python3 -m pip"
             export PYTHON_CMD="python3"
+            # 清除 SAGE_ENV_NAME 以避免验证脚本尝试使用不存在的 conda 环境
+            export SAGE_ENV_NAME=""
             ;;
         *)
             echo -e "${CROSS} 未知的安装环境: $install_environment"

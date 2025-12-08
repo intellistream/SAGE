@@ -34,6 +34,9 @@ from sage.common.utils.document_processing import (
 # Export logging utilities
 from sage.common.utils.logging import CustomFormatter, CustomLogger, get_logger
 
+# Export results collector
+from sage.common.utils.results_collector import ResultsCollector, get_collector
+
 __all__ = [
     "__version__",
     "__author__",
@@ -50,4 +53,7 @@ __all__ = [
     "CustomLogger",
     "CustomFormatter",
     "get_logger",
+    # Results Collector
+    "ResultsCollector",
+    "get_collector",
 ]

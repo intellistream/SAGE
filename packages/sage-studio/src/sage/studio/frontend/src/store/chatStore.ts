@@ -1,9 +1,21 @@
 /**
  * Chat Mode Store - Zustand state management for Chat UI
+ *
+ * 支持 Multi-Agent 架构的状态管理：
+ * - 消息管理（按会话分组）
+ * - 推理步骤（ReasoningStep）管理
+ * - 工具调用可视化状态
+ * - 流式响应状态
  */
 
 import { create } from 'zustand'
 import type { ChatSessionSummary } from '../services/api'
+import type {
+    ReasoningStep,
+    ReasoningStepType,
+    ReasoningStepStatus,
+    ToolCallMetadata,
+} from '../components/ReasoningAccordion'
 
 type SetState<T> = (partial: T | Partial<T> | ((state: T) => T | Partial<T>)) => void
 type GetState<T> = () => T
@@ -14,8 +26,13 @@ export interface ChatMessage {
     content: string
     timestamp: string
     isStreaming?: boolean
-    metadata?: Record<string, any>
+    isReasoning?: boolean  // 是否正在推理中
+    reasoningSteps?: ReasoningStep[]  // 推理步骤
+    metadata?: Record<string, unknown>
 }
+
+// 导出类型供其他组件使用
+export type { ReasoningStep, ReasoningStepType, ReasoningStepStatus, ToolCallMetadata }
 
 interface ChatState {
     // 当前会话
@@ -49,6 +66,12 @@ interface ChatState {
     addMessage: (sessionId: string, message: ChatMessage) => void
     updateMessage: (sessionId: string, messageId: string, content: string) => void
     appendToMessage: (sessionId: string, messageId: string, chunk: string) => void
+
+    // 推理步骤相关
+    addReasoningStep: (sessionId: string, messageId: string, step: ReasoningStep) => void
+    updateReasoningStep: (sessionId: string, messageId: string, stepId: string, updates: Partial<ReasoningStep>) => void
+    appendToReasoningStep: (sessionId: string, messageId: string, stepId: string, chunk: string) => void
+    setMessageReasoning: (sessionId: string, messageId: string, isReasoning: boolean) => void
 
     setCurrentInput: (input: string) => void
     setIsStreaming: (isStreaming: boolean) => void
@@ -146,6 +169,74 @@ export const useChatStore = create<ChatState>((
                     msg.id === messageId
                         ? { ...msg, content: msg.content + chunk }
                         : msg
+                ),
+            },
+        }
+    }),
+
+    // 推理步骤相关方法
+    addReasoningStep: (sessionId: string, messageId: string, step: ReasoningStep) => set((state: ChatState) => {
+        const sessionMessages = state.messages[sessionId] || []
+        return {
+            messages: {
+                ...state.messages,
+                [sessionId]: sessionMessages.map((msg: ChatMessage) =>
+                    msg.id === messageId
+                        ? {
+                            ...msg,
+                            reasoningSteps: [...(msg.reasoningSteps || []), step],
+                        }
+                        : msg
+                ),
+            },
+        }
+    }),
+
+    updateReasoningStep: (sessionId: string, messageId: string, stepId: string, updates: Partial<ReasoningStep>) => set((state: ChatState) => {
+        const sessionMessages = state.messages[sessionId] || []
+        return {
+            messages: {
+                ...state.messages,
+                [sessionId]: sessionMessages.map((msg: ChatMessage) =>
+                    msg.id === messageId
+                        ? {
+                            ...msg,
+                            reasoningSteps: (msg.reasoningSteps || []).map((step: ReasoningStep) =>
+                                step.id === stepId ? { ...step, ...updates } : step
+                            ),
+                        }
+                        : msg
+                ),
+            },
+        }
+    }),
+
+    appendToReasoningStep: (sessionId: string, messageId: string, stepId: string, chunk: string) => set((state: ChatState) => {
+        const sessionMessages = state.messages[sessionId] || []
+        return {
+            messages: {
+                ...state.messages,
+                [sessionId]: sessionMessages.map((msg: ChatMessage) =>
+                    msg.id === messageId
+                        ? {
+                            ...msg,
+                            reasoningSteps: (msg.reasoningSteps || []).map((step: ReasoningStep) =>
+                                step.id === stepId ? { ...step, content: step.content + chunk } : step
+                            ),
+                        }
+                        : msg
+                ),
+            },
+        }
+    }),
+
+    setMessageReasoning: (sessionId: string, messageId: string, isReasoning: boolean) => set((state: ChatState) => {
+        const sessionMessages = state.messages[sessionId] || []
+        return {
+            messages: {
+                ...state.messages,
+                [sessionId]: sessionMessages.map((msg: ChatMessage) =>
+                    msg.id === messageId ? { ...msg, isReasoning } : msg
                 ),
             },
         }

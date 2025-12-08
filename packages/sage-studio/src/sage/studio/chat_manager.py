@@ -36,9 +36,9 @@ class ChatModeManager(StudioManager):
         self.llm_service = None  # Will be VLLMService or other sageLLM service
         # Default to enabling LLM with a small model
         self.llm_enabled = os.getenv("SAGE_STUDIO_LLM", "true").lower() in ("true", "1", "yes")
-        # Use Qwen2.5-0.5B as default - very small and fast
-        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-        self.llm_port = SagePorts.LLM_DEFAULT  # OpenAI-compatible API port
+        # Use Qwen2.5-7B as default - good balance of quality and speed on A100
+        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+        self.llm_port = SagePorts.BENCHMARK_LLM  # Unified default port (8901)
 
     # ------------------------------------------------------------------
     # Fine-tuned Model Discovery
@@ -102,26 +102,85 @@ class ChatModeManager(StudioManager):
         return None
 
     # ------------------------------------------------------------------
-    # Local LLM Service helpers (via sageLLM)
+    # Service Detection helpers
+    # ------------------------------------------------------------------
+    def _detect_existing_llm_service(self) -> tuple[bool, str | None]:
+        """Detect if LLM service is already running at known ports.
+
+        Checks common LLM ports (8901, 8001, 8000) for existing service.
+
+        Returns:
+            Tuple of (is_running, base_url) - base_url is set if service found
+        """
+        # Ports to check in order of preference
+        llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
+
+        for port in llm_ports:
+            try:
+                resp = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
+                if resp.status_code == 200:
+                    return (True, f"http://localhost:{port}/v1")
+            except Exception:
+                continue
+
+        return (False, None)
+
+    def _detect_existing_embedding_service(
+        self, port: int | None = None
+    ) -> tuple[bool, str | None]:
+        """Detect if Embedding service is already running.
+
+        Args:
+            port: Specific port to check, or None to check common ports
+
+        Returns:
+            Tuple of (is_running, base_url) - base_url is set if service found
+        """
+        ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT]
+
+        for p in ports_to_check:
+            if p is None:
+                continue
+            try:
+                resp = requests.get(f"http://localhost:{p}/v1/models", timeout=2)
+                if resp.status_code == 200:
+                    return (True, f"http://localhost:{p}/v1")
+            except Exception:
+                continue
+
+        return (False, None)
+
+    # ------------------------------------------------------------------
+    # Local LLM Service helpers (via sageLLM LLMLauncher)
     # ------------------------------------------------------------------
     def _start_llm_service(self, model: str | None = None, use_finetuned: bool = False) -> bool:
         """Start local LLM service via sageLLM.
 
-        Uses sageLLM's API server to start a local LLM HTTP server.
+        Uses sageLLM's unified LLMLauncher to start a local LLM HTTP server.
         The server provides OpenAI-compatible API at http://localhost:{port}/v1
+
+        If an LLM service is already running at known ports, it will be reused
+        instead of starting a new one.
 
         Args:
             model: Model name/path to load (can be HF model or local path)
             use_finetuned: If True, try to use a fine-tuned model
 
         Returns:
-            True if started successfully, False otherwise
+            True if started successfully or existing service found, False otherwise
         """
+        # First, check if LLM service is already running
+        is_running, existing_url = self._detect_existing_llm_service()
+        if is_running:
+            console.print(f"[green]✅ 发现已运行的 LLM 服务: {existing_url}[/green]")
+            console.print("[dim]   跳过启动新服务，将复用现有服务[/dim]")
+            return True
+
         try:
-            from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+            from sage.common.components.sage_llm import LLMLauncher
         except ImportError:
             console.print(
-                "[yellow]⚠️  sageLLM API Server 不可用，跳过本地 LLM 启动[/yellow]\n"
+                "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
                 "提示：确保已安装 sage-common 包"
             )
             return False
@@ -129,145 +188,179 @@ class ChatModeManager(StudioManager):
         # Determine which model to use
         model_name = model or self.llm_model
 
-        # If use_finetuned is requested, try to use a fine-tuned model
+        # Get finetuned models list if needed
+        finetuned_models = None
         if use_finetuned and not model:
             finetuned_models = self.list_finetuned_models()
-            if finetuned_models:
-                # Use the most recent fine-tuned model
-                latest_model = sorted(
-                    finetuned_models, key=lambda m: m["completed_at"] or "", reverse=True
-                )[0]
-                model_name = latest_model["path"]
-                console.print(f"[cyan]🎓 使用微调模型: {latest_model['name']}[/cyan]")
-                console.print(f"   基础模型: {latest_model['base_model']}")
-                console.print(f"   类型: {latest_model['type']}")
-            else:
+            if not finetuned_models:
                 console.print("[yellow]⚠️  未找到可用的微调模型，使用默认模型[/yellow]")
 
-        # Check if this is a local path (fine-tuned model)
-        is_local_path = Path(model_name).exists()
+        # Use unified launcher
+        result = LLMLauncher.launch(
+            model=model_name,
+            port=self.llm_port,
+            gpu_memory=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
+            tensor_parallel=int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
+            background=True,
+            use_finetuned=use_finetuned,
+            finetuned_models=finetuned_models,
+            verbose=True,
+            check_existing=True,  # Let LLMLauncher also check for duplicates
+        )
 
-        console.print("[blue]🚀 启动本地 LLM 服务（通过 sageLLM）...[/blue]")
-        console.print(f"   模型: {model_name}")
-        console.print(f"   端口: {self.llm_port}")
-
-        # Resolve model path - use cache if available
-        resolved_model_path = model_name
-        if not is_local_path:
-            try:
-                from sage.common.model_registry import vllm_registry
-
-                try:
-                    cached_path = vllm_registry.get_model_path(model_name)
-                    console.print(f"   [green]✓[/green] 使用本地缓存: {cached_path}")
-                    resolved_model_path = str(cached_path)  # Convert Path to string for vLLM
-                except Exception:
-                    console.print("   [yellow]⚠️  模型未缓存，将从 HuggingFace 下载...[/yellow]")
-                    console.print(
-                        f"   下载位置: ~/.sage/models/vllm/{model_name.replace('/', '__')}/"
-                    )
-                    # Keep original model_name, vLLM will download it
-            except ImportError:
-                pass  # Registry not available, will download during setup
+        if result.success:
+            self.llm_service = result.server
+            return True
         else:
-            console.print("   [green]✓[/green] 使用本地微调模型")
-
-        try:
-            # Create sageLLM API server configuration
-            # Use resolved_model_path which points to local cache if available
-            config = LLMServerConfig(
-                model=resolved_model_path,  # Use cached path to avoid re-download
-                backend="vllm",  # Default to vLLM, can be made configurable
-                host="0.0.0.0",
-                port=self.llm_port,
-                gpu_memory_utilization=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
-                max_model_len=4096,
-                tensor_parallel_size=int(os.getenv("SAGE_STUDIO_LLM_TENSOR_PARALLEL", "1")),
-                disable_log_stats=True,
-            )
-
-            # Create and start API server
-            self.llm_service = LLMAPIServer(config)
-            success = self.llm_service.start(background=True)
-
-            if success:
-                console.print("[green]✅ 本地 LLM 服务已启动[/green]")
-
-                # Set environment variables for IntelligentLLMClient
-                os.environ["SAGE_CHAT_BASE_URL"] = f"http://127.0.0.1:{self.llm_port}/v1"
-                # Set model name to match what vLLM is actually serving
-                # vLLM registers the model with the path we pass (resolved_model_path)
-                os.environ["SAGE_CHAT_MODEL"] = resolved_model_path
-
-                return True
-            else:
-                console.print("[red]❌ LLM 服务启动失败[/red]")
-                return False
-
-        except Exception as exc:
-            console.print(f"[red]❌ 启动 LLM 服务失败: {exc}[/red]")
             console.print("[yellow]💡 提示：安装推理引擎后可使用本地服务[/yellow]")
             console.print("   示例：pip install vllm  # 安装 vLLM 引擎")
             return False
 
     def _stop_llm_service(self) -> bool:
         """Stop local LLM service."""
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+        except ImportError:
+            return True
+
         # First, try to stop via self.llm_service if it exists
         if self.llm_service is not None:
             console.print("[blue]🛑 停止本地 LLM 服务...[/blue]")
             try:
                 self.llm_service.stop()
                 self.llm_service = None
+                LLMLauncher.clear_service_info()
                 console.print("[green]✅ 本地 LLM 服务已停止[/green]")
                 return True
             except Exception as exc:
                 console.print(f"[red]❌ 停止 LLM 服务失败: {exc}[/red]")
                 return False
 
-        # If llm_service is None, check if there's an orphaned vLLM process
-        # This handles restart scenarios where the old process wasn't tracked
-        import subprocess
+        # Use LLMLauncher to stop any running service
+        return LLMLauncher.stop(verbose=True)
+
+    # ------------------------------------------------------------------
+    # Embedding Service helpers
+    # ------------------------------------------------------------------
+    def _start_embedding_service(self, model: str = "BAAI/bge-m3", port: int | None = None) -> bool:
+        """Start Embedding service as a background process.
+
+        If an Embedding service is already running at known ports, it will be reused
+        instead of starting a new one.
+
+        Args:
+            model: Embedding model name (default: BAAI/bge-m3)
+            port: Server port (default: SagePorts.EMBEDDING_DEFAULT = 8090)
+
+        Returns:
+            True if started successfully or existing service found
+        """
+        if port is None:
+            port = SagePorts.EMBEDDING_DEFAULT  # 8090
+
+        # Check if already running (use the new detection method for consistent output)
+        is_running, existing_url = self._detect_existing_embedding_service(port)
+        if is_running:
+            console.print(f"[green]✅ 发现已运行的 Embedding 服务: {existing_url}[/green]")
+            console.print("[dim]   跳过启动新服务，将复用现有服务[/dim]")
+            return True
+
+        console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model}, 端口: {port})[/blue]")
+
+        # Ensure log directory exists
+        log_dir = Path.home() / ".sage" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        embedding_log = log_dir / "embedding.log"
+
+        embedding_cmd = [
+            sys.executable,
+            "-m",
+            "sage.common.components.sage_embedding.embedding_server",
+            "--model",
+            model,
+            "--port",
+            str(port),
+        ]
 
         try:
-            # Check for vLLM processes on the LLM port
-            llm_port_str = f":{SagePorts.LLM_DEFAULT}"
-            result = subprocess.run(
-                ["lsof", "-ti", llm_port_str],
-                capture_output=True,
-                text=True,
-                timeout=5,
+            log_handle = open(embedding_log, "w")
+            proc = subprocess.Popen(
+                embedding_cmd,
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
             )
-            if result.returncode == 0 and result.stdout.strip():
-                pid = int(result.stdout.strip().split()[0])
-                console.print(f"[yellow]发现遗留的 LLM 进程 (PID: {pid})，正在清理...[/yellow]")
-                subprocess.run(["kill", str(pid)], timeout=5)
-                import time
+            # 注意：不关闭 log_handle，让子进程继承并管理它
 
-                # Wait for port to actually be freed (up to 10 seconds)
-                for i in range(10):
-                    time.sleep(1)
-                    check_result = subprocess.run(
-                        ["lsof", "-ti", llm_port_str],
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                    )
-                    if check_result.returncode != 0 or not check_result.stdout.strip():
-                        # Port is free
-                        console.print("[green]✅ 遗留 LLM 进程已清理[/green]")
+            # Save PID for later cleanup
+            embedding_pid_file = log_dir / "embedding.pid"
+            embedding_pid_file.write_text(str(proc.pid))
+
+            console.print(f"   [green]✓[/green] Embedding 服务已启动 (PID: {proc.pid})")
+            console.print(f"   日志: {embedding_log}")
+
+            # Wait for service to be ready (up to 180 seconds for model download)
+            console.print("   [dim]等待服务就绪 (首次可能需要下载模型)...[/dim]")
+            for i in range(180):
+                try:
+                    resp = requests.get(f"http://localhost:{port}/v1/models", timeout=1)
+                    if resp.status_code == 200:
+                        console.print("   [green]✓[/green] Embedding 服务已就绪")
                         return True
+                except Exception:
+                    pass
+                time.sleep(1)
 
-                # Timeout - force kill
-                console.print("[yellow]⚠️  进程未响应 SIGTERM，使用 SIGKILL 强制终止...[/yellow]")
-                subprocess.run(["kill", "-9", str(pid)], timeout=5)
-                time.sleep(2)
-                console.print("[green]✅ 遗留 LLM 进程已清理[/green]")
-                return True
-        except Exception as exc:
-            console.print(f"[yellow]检查遗留进程失败: {exc}[/yellow]")
+            console.print("[yellow]⚠️  Embedding 服务启动超时，但进程仍在运行[/yellow]")
+            return True  # Process started, might just be slow to load model
 
-        console.print("[yellow]本地 LLM 服务未运行[/yellow]")
-        return True
+        except Exception as e:
+            console.print(f"[red]❌ 启动 Embedding 服务失败: {e}[/red]")
+            return False
+
+    def _stop_embedding_service(self) -> bool:
+        """Stop Embedding service if running."""
+        port = SagePorts.EMBEDDING_DEFAULT
+        log_dir = Path.home() / ".sage" / "logs"
+        embedding_pid_file = log_dir / "embedding.pid"
+
+        stopped = False
+
+        # Try to stop via PID file first
+        if embedding_pid_file.exists():
+            try:
+                pid = int(embedding_pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    console.print(f"[blue]🛑 停止 Embedding 服务 (PID: {pid})...[/blue]")
+                    os.kill(pid, signal.SIGTERM)
+                    # Wait for graceful shutdown
+                    for _ in range(5):
+                        if not psutil.pid_exists(pid):
+                            break
+                        time.sleep(0.5)
+                    # Force kill if still running
+                    if psutil.pid_exists(pid):
+                        os.kill(pid, signal.SIGKILL)
+                    console.print("[green]✅ Embedding 服务已停止[/green]")
+                    stopped = True
+                embedding_pid_file.unlink()
+            except Exception as e:
+                console.print(f"[yellow]⚠️  清理 Embedding PID 文件失败: {e}[/yellow]")
+
+        # Also try to find and kill any orphan embedding server processes
+        for proc in psutil.process_iter(["pid", "cmdline"]):
+            try:
+                cmdline = proc.info.get("cmdline") or []
+                if "embedding_server" in " ".join(cmdline) and str(port) in " ".join(cmdline):
+                    console.print(f"[blue]🛑 停止孤儿 Embedding 进程 (PID: {proc.pid})...[/blue]")
+                    proc.terminate()
+                    proc.wait(timeout=5)
+                    stopped = True
+            except (psutil.NoSuchProcess, psutil.TimeoutExpired):
+                pass
+
+        return stopped
 
     # ------------------------------------------------------------------
     # Gateway helpers
@@ -307,6 +400,7 @@ class ChatModeManager(StudioManager):
             log_handle = open(self.gateway_log_file, "w")
             process = subprocess.Popen(
                 [sys.executable, "-m", "sage.gateway.server"],
+                stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid if os.name != "nt" else None,
@@ -321,18 +415,66 @@ class ChatModeManager(StudioManager):
             )
             return False
 
-        # 等待服务就绪
+        # 等待服务就绪 - Gateway 需要加载 MemoryManager 和 FAISS 索引，需要更长时间
         url = f"http://localhost:{gateway_port}/health"
-        for _ in range(20):
+        max_attempts = 120  # 最多等待 60 秒 (120 * 0.5)
+        console.print("[blue]   等待 Gateway 服务就绪...[/blue]")
+        for i in range(max_attempts):
             try:
-                response = requests.get(url, timeout=1)
+                response = requests.get(url, timeout=2)
                 if response.status_code == 200:
-                    console.print("[green]✅ gateway 已就绪[/green]")
+                    console.print(f"[green]✅ Gateway 已就绪 (耗时 {(i + 1) * 0.5:.1f}秒)[/green]")
                     return True
             except requests.RequestException:
-                time.sleep(0.5)
-        console.print("[yellow]⚠️ gateway 仍在启动，请稍后检查[/yellow]")
-        return True
+                pass
+            # 每 10 秒输出一次状态
+            if (i + 1) % 20 == 0:
+                console.print(
+                    f"[blue]   等待 Gateway 响应... ({(i + 1) * 0.5:.0f}/{max_attempts * 0.5:.0f}秒)[/blue]"
+                )
+                # 检查进程是否还在
+                if self.gateway_pid_file.exists():
+                    try:
+                        pid = int(self.gateway_pid_file.read_text().strip())
+                        if not psutil.pid_exists(pid):
+                            console.print("[red]❌ Gateway 进程已退出[/red]")
+                            # 输出日志帮助调试
+                            if self.gateway_log_file.exists():
+                                console.print("[yellow]Gateway 日志（最后 20 行）:[/yellow]")
+                                try:
+                                    lines = self.gateway_log_file.read_text().splitlines()
+                                    for line in lines[-20:]:
+                                        console.print(f"[dim]  {line}[/dim]")
+                                except Exception:
+                                    pass
+                            return False
+                    except Exception:
+                        pass
+            time.sleep(0.5)
+
+        # 超时，检查进程状态
+        console.print("[yellow]⚠️ Gateway 启动超时[/yellow]")
+        if self.gateway_pid_file.exists():
+            try:
+                pid = int(self.gateway_pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    console.print(f"[yellow]   进程仍在运行 (PID: {pid})，可能仍在初始化[/yellow]")
+                    # 输出日志帮助调试
+                    if self.gateway_log_file.exists():
+                        console.print("[yellow]   Gateway 日志（最后 30 行）:[/yellow]")
+                        try:
+                            lines = self.gateway_log_file.read_text().splitlines()
+                            for line in lines[-30:]:
+                                console.print(f"[dim]  {line}[/dim]")
+                        except Exception:
+                            pass
+                    return True  # 进程还在，可能只是启动慢
+                else:
+                    console.print("[red]❌ Gateway 进程已退出[/red]")
+                    return False
+            except Exception:
+                pass
+        return False
 
     def _stop_gateway(self) -> bool:
         pid = self._is_gateway_running()
@@ -370,6 +512,8 @@ class ChatModeManager(StudioManager):
         llm: bool | None = None,
         llm_model: str | None = None,
         use_finetuned: bool = False,
+        skip_confirm: bool = False,
+        no_embedding: bool = False,
     ) -> bool:
         """Start Studio Chat Mode services.
 
@@ -382,6 +526,8 @@ class ChatModeManager(StudioManager):
             llm: Enable local LLM service via sageLLM (default: from SAGE_STUDIO_LLM env)
             llm_model: Model to load (default: from SAGE_STUDIO_LLM_MODEL env)
             use_finetuned: Use latest fine-tuned model (overrides llm_model if True)
+            skip_confirm: Skip all interactive confirmations (for CI/CD)
+            no_embedding: Disable Embedding service (for CI/CD without GPU)
 
         Returns:
             True if all services started successfully
@@ -409,12 +555,18 @@ class ChatModeManager(StudioManager):
             llm_started = self._start_llm_service(model=model, use_finetuned=use_finetuned)
             if llm_started:
                 console.print(
-                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 IntelligentLLMClient 自动检测）[/green]"
+                    "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 UnifiedInferenceClient 自动检测）[/green]"
                 )
             else:
                 console.print(
                     "[yellow]⚠️  本地 LLM 未启动，Gateway 将使用云端 API（如已配置）[/yellow]"
                 )
+
+        # Start Embedding service (needed for knowledge indexing, independent of LLM)
+        if not no_embedding:
+            self._start_embedding_service()
+        else:
+            console.print("[yellow]⚠️  Embedding 服务已禁用 (--no-embedding)[/yellow]")
 
         # Start Gateway
         if not self._start_gateway(port=self.gateway_port):
@@ -428,6 +580,7 @@ class ChatModeManager(StudioManager):
             dev=dev,
             backend_port=backend_port,
             auto_gateway=False,  # We manage gateway ourselves
+            skip_confirm=skip_confirm,  # Pass through for auto-confirm in CI/CD
         )
 
         if success:
@@ -446,28 +599,66 @@ class ChatModeManager(StudioManager):
         frontend_backend = super().stop(stop_gateway=False)  # Don't stop gateway via parent
         gateway = self._stop_gateway()
         llm = self._stop_llm_service()
-        return frontend_backend and gateway and llm
+        embedding = self._stop_embedding_service()
+        return frontend_backend and gateway and llm and embedding
 
     def status(self):
         """Display status of all Studio Chat Mode services."""
         super().status()  # Show Studio status first
 
-        # Local LLM Service status (via sageLLM)
+        # Local LLM Service status - check via HTTP instead of self.llm_service
         llm_table = Table(title="本地 LLM 服务状态（sageLLM）")
         llm_table.add_column("属性", style="cyan", width=14)
         llm_table.add_column("值", style="white")
 
-        if self.llm_service:
+        llm_port = SagePorts.BENCHMARK_LLM  # 8901
+        llm_running = False
+        llm_model_name = None
+        try:
+            resp = requests.get(f"http://localhost:{llm_port}/v1/models", timeout=2)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                if models:
+                    llm_running = True
+                    llm_model_name = models[0].get("id", "unknown")
+        except Exception:
+            pass
+
+        if llm_running:
             llm_table.add_row("状态", "[green]运行中[/green]")
-            llm_table.add_row("引擎", "sageLLM (可配置不同 vendor)")
-            llm_table.add_row("模型", self.llm_model)
-            llm_table.add_row("说明", "由 IntelligentLLMClient 自动检测使用")
+            llm_table.add_row("端口", str(llm_port))
+            llm_table.add_row("模型", llm_model_name or "unknown")
+            llm_table.add_row("说明", "由 UnifiedInferenceClient 自动检测使用")
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
+            llm_table.add_row("端口", str(llm_port))
             llm_table.add_row("提示", "使用 --llm 启动本地服务")
-            llm_table.add_row("说明", "支持通过 sageLLM 配置不同推理引擎")
 
         console.print(llm_table)
+
+        # Embedding Service status
+        embedding_table = Table(title="Embedding 服务状态")
+        embedding_table.add_column("属性", style="cyan", width=14)
+        embedding_table.add_column("值", style="white")
+
+        embedding_port = SagePorts.EMBEDDING_DEFAULT
+        try:
+            resp = requests.get(f"http://localhost:{embedding_port}/v1/models", timeout=2)
+            if resp.status_code == 200:
+                models = resp.json().get("data", [])
+                model_name = models[0].get("id", "unknown") if models else "unknown"
+                embedding_table.add_row("状态", "[green]运行中[/green]")
+                embedding_table.add_row("端口", str(embedding_port))
+                embedding_table.add_row("模型", model_name)
+            else:
+                embedding_table.add_row("状态", "[red]未运行[/red]")
+                embedding_table.add_row("端口", str(embedding_port))
+        except Exception:
+            embedding_table.add_row("状态", "[red]未运行[/red]")
+            embedding_table.add_row("端口", str(embedding_port))
+            embedding_table.add_row("提示", "将随 LLM 服务自动启动")
+
+        console.print(embedding_table)
 
         # Gateway status
         table = Table(title="sage-gateway 状态")

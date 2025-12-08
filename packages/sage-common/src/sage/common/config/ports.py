@@ -4,9 +4,8 @@ SAGE Port Configuration
 Centralized port configuration for all SAGE services to avoid conflicts.
 
 Port Allocation Strategy:
-- 8000: sage-gateway (OpenAI-compatible API Gateway)
+- 8888: sage-gateway (OpenAI-compatible API Gateway)
 - 8001: vLLM/LLM inference service (SAGE recommended, may have issues on WSL2)
-- 8080: sage-studio backend API
 - 5173: sage-studio frontend (Vite dev server)
 - 8090: Embedding service
 - 8900-8999: Benchmark & testing services
@@ -57,14 +56,16 @@ class SagePorts:
     All port numbers are defined here to prevent conflicts between services.
 
     Architecture:
-        User → Gateway (8000) → LLM (8001)
-        User → Studio Frontend (5173) → Studio Backend (8080) → Gateway (8000)
+        User → Gateway (8888) → LLM (8001)
+        User → Studio Frontend (5173) → Gateway (8888)
+
+    Note: Studio Backend has been merged into Gateway.
     """
 
     # =========================================================================
     # sage-gateway (OpenAI-compatible API Gateway)
     # =========================================================================
-    GATEWAY_DEFAULT: ClassVar[int] = 8000  # API Gateway main port
+    GATEWAY_DEFAULT: ClassVar[int] = 8888  # API Gateway main port
 
     # =========================================================================
     # LLM Services (vLLM, etc.)
@@ -74,9 +75,9 @@ class SagePorts:
     LLM_WSL_FALLBACK: ClassVar[int] = 8901  # Fallback for WSL2 (same as BENCHMARK_LLM)
 
     # =========================================================================
-    # sage-studio (Frontend + Backend)
+    # sage-studio (Frontend only, Backend merged into Gateway)
     # =========================================================================
-    STUDIO_BACKEND: ClassVar[int] = 8080  # Studio backend API
+    STUDIO_BACKEND: ClassVar[int] = 8888  # Deprecated: now same as GATEWAY_DEFAULT
     STUDIO_FRONTEND: ClassVar[int] = 5173  # Studio frontend (Vite dev server)
 
     # =========================================================================

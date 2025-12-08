@@ -27,6 +27,117 @@ from sage.common.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
+def _select_available_gpus(
+    required_memory_gb: float | None = None,
+    tensor_parallel_size: int = 1,
+) -> list[int] | None:
+    """Select GPUs with most available memory.
+
+    If required_memory_gb is specified, selects GPUs with at least that much free memory.
+    Otherwise, selects the GPU(s) with the most free memory available.
+
+    Args:
+        required_memory_gb: Minimum required free memory per GPU in GB (optional)
+        tensor_parallel_size: Number of GPUs needed
+
+    Returns:
+        List of GPU IDs sorted by free memory (descending), or None if not available
+    """
+    try:
+        import subprocess
+
+        # Use nvidia-smi to get GPU memory info
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            logger.debug("nvidia-smi failed, using default GPU selection")
+            return None
+
+        # Parse output: "0, 79000\n1, 22000\n"
+        gpu_memory = []
+        for line in result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split(",")
+                if len(parts) >= 2:
+                    gpu_id = int(parts[0].strip())
+                    free_mb = int(parts[1].strip())
+                    free_gb = free_mb / 1024.0
+                    gpu_memory.append((gpu_id, free_gb))
+
+        if not gpu_memory:
+            logger.debug("No GPUs found")
+            return None
+
+        # Sort by free memory (descending)
+        gpu_memory.sort(key=lambda x: x[1], reverse=True)
+
+        logger.info(f"GPU memory status: {[(f'GPU{g[0]}: {g[1]:.1f}GB free') for g in gpu_memory]}")
+
+        # Select GPUs with most free memory
+        if required_memory_gb:
+            # Filter GPUs with enough memory
+            suitable_gpus = [g for g in gpu_memory if g[1] >= required_memory_gb]
+            if len(suitable_gpus) < tensor_parallel_size:
+                logger.warning(
+                    f"Only {len(suitable_gpus)} GPUs have >= {required_memory_gb}GB free, "
+                    f"need {tensor_parallel_size}"
+                )
+                # Fall back to GPUs with most memory anyway
+                selected = [g[0] for g in gpu_memory[:tensor_parallel_size]]
+            else:
+                selected = [g[0] for g in suitable_gpus[:tensor_parallel_size]]
+        else:
+            # Just select GPUs with most free memory
+            selected = [g[0] for g in gpu_memory[:tensor_parallel_size]]
+
+        logger.info(f"Selected GPU(s): {selected} (most free memory)")
+        return selected
+
+    except Exception as e:
+        logger.debug(f"GPU selection failed: {e}")
+        return None
+
+
+def get_served_model_name(model_path: str) -> str:
+    """Convert model path to a friendly model name for API served_model_name.
+
+    Examples:
+        /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
+        Qwen/Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct (unchanged if no local path indicators)
+
+    Args:
+        model_path: Model path or name
+
+    Returns:
+        Friendly model name suitable for API calls
+    """
+    # Check if it looks like a local path (contains path separators that indicate absolute/relative path)
+    # We need to distinguish between:
+    # - Local paths: /home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct
+    # - HuggingFace model names: Qwen/Qwen2.5-0.5B-Instruct (single slash, no leading /)
+    is_local_path = model_path.startswith("/") or model_path.startswith("\\") or "\\" in model_path
+
+    if is_local_path:
+        # Local path, extract basename and convert __ to /
+        model_basename = os.path.basename(model_path)
+        # Qwen__Qwen2.5-0.5B-Instruct -> Qwen/Qwen2.5-0.5B-Instruct
+        if "__" in model_basename:
+            return model_basename.replace("__", "/", 1)
+        else:
+            return model_basename
+
+    # Not a local path, return as-is (e.g., HuggingFace model name)
+    return model_path
+
+
 class LLMServerConfig:
     """Configuration for LLM API Server
 
@@ -40,7 +151,7 @@ class LLMServerConfig:
         backend: Literal["vllm", "ollama", "lmdeploy"] = "vllm",
         host: str = "0.0.0.0",
         port: int | None = None,
-        gpu_memory_utilization: float = 0.9,
+        gpu_memory_utilization: float = 0.7,
         max_model_len: int = 4096,
         tensor_parallel_size: int = 1,
         disable_log_stats: bool = True,
@@ -52,8 +163,8 @@ class LLMServerConfig:
             model: Model name or path
             backend: Inference backend ("vllm", "ollama", "lmdeploy")
             host: Server host
-            port: Server port (default: SagePorts.LLM_DEFAULT)
-            gpu_memory_utilization: GPU memory utilization (vLLM specific)
+            port: Server port (default: SagePorts.BENCHMARK_LLM = 8901)
+            gpu_memory_utilization: GPU memory utilization (default 0.7 for consumer GPUs)
             max_model_len: Maximum model sequence length
             tensor_parallel_size: Number of GPUs for tensor parallelism
             disable_log_stats: Disable logging statistics (vLLM specific)
@@ -62,7 +173,7 @@ class LLMServerConfig:
         self.model = model
         self.backend = backend
         self.host = host
-        self.port = port if port is not None else SagePorts.LLM_DEFAULT
+        self.port = port if port is not None else SagePorts.BENCHMARK_LLM
         self.gpu_memory_utilization = gpu_memory_utilization
         self.max_model_len = max_model_len
         self.tensor_parallel_size = tensor_parallel_size
@@ -116,6 +227,11 @@ class LLMAPIServer:
         """
         if self.is_running():
             logger.warning(f"LLM API server already running on port {self.config.port}")
+            # Try to find the PID of the existing service
+            existing_pid = self._find_existing_service_pid()
+            if existing_pid:
+                self.pid = existing_pid
+                logger.info(f"Found existing LLM service with PID: {existing_pid}")
             return True
 
         # Prepare log file
@@ -133,6 +249,26 @@ class LLMAPIServer:
 
         logger.info(f"Starting LLM API server ({self.config.backend}): {' '.join(cmd)}")
 
+        # Auto-select GPU with most free memory
+        # vLLM runs on single GPU by default (tensor_parallel_size=1)
+        # Just pick the GPU with the most free memory available
+        selected_gpus = _select_available_gpus(
+            required_memory_gb=None,  # Don't require specific amount, just pick best GPU
+            tensor_parallel_size=self.config.tensor_parallel_size,
+        )
+
+        # Prepare environment with GPU selection
+        env = os.environ.copy()
+        if selected_gpus:
+            cuda_devices = ",".join(str(gpu) for gpu in selected_gpus)
+            env["CUDA_VISIBLE_DEVICES"] = cuda_devices
+            logger.info(f"Set CUDA_VISIBLE_DEVICES={cuda_devices}")
+        else:
+            logger.warning(
+                "Could not auto-select GPUs, using system default. "
+                "This may fail if default GPU has insufficient memory."
+            )
+
         try:
             # Start process
             if background:
@@ -143,16 +279,20 @@ class LLMAPIServer:
                     stdout=log_handle,
                     stderr=subprocess.STDOUT,
                     preexec_fn=os.setsid if os.name != "nt" else None,
+                    env=env,  # Use environment with CUDA_VISIBLE_DEVICES
                 )
                 self.pid = self.process.pid
                 logger.info(f"LLM API server started in background (PID: {self.pid})")
                 logger.info(f"Logs: {self.log_file}")
 
                 # Wait for server to be ready
-                return self._wait_for_ready(timeout=120)
+                # Use longer timeout for first-time model downloads (7B model ~14GB)
+                # Can be configured via SAGE_LLM_STARTUP_TIMEOUT env var
+                startup_timeout = int(os.environ.get("SAGE_LLM_STARTUP_TIMEOUT", "300"))
+                return self._wait_for_ready(timeout=startup_timeout)
             else:
                 # Foreground mode - blocking
-                self.process = subprocess.Popen(cmd)
+                self.process = subprocess.Popen(cmd, env=env)
                 self.pid = self.process.pid
                 logger.info(f"LLM API server started in foreground (PID: {self.pid})")
                 self.process.wait()
@@ -183,12 +323,17 @@ class LLMAPIServer:
 
     def _build_vllm_command(self) -> list[str]:
         """Build command for vLLM backend"""
+        # Use the public function to get friendly model name
+        served_model_name = get_served_model_name(self.config.model)
+
         cmd = [
             sys.executable,
             "-m",
             "vllm.entrypoints.openai.api_server",
             "--model",
             self.config.model,
+            "--served-model-name",
+            served_model_name,
             "--host",
             self.config.host,
             "--port",
@@ -290,6 +435,34 @@ class LLMAPIServer:
         time.sleep(2)  # Wait a bit before restart
         return self.start(background=background)
 
+    def _find_existing_service_pid(self) -> int | None:
+        """Find PID of existing service running on the configured port.
+
+        Returns:
+            PID if found, None otherwise
+        """
+        try:
+            for conn in psutil.net_connections(kind="inet"):
+                if conn.laddr.port == self.config.port and conn.status == "LISTEN":
+                    return conn.pid
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            pass
+
+        # Fallback: search for vllm process with this port
+        try:
+            for proc in psutil.process_iter(["pid", "cmdline"]):
+                try:
+                    cmdline = proc.info.get("cmdline") or []
+                    cmdline_str = " ".join(cmdline)
+                    if "vllm" in cmdline_str and f"--port {self.config.port}" in cmdline_str:
+                        return proc.info["pid"]
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception:
+            pass
+
+        return None
+
     def is_running(self) -> bool:
         """Check if the LLM API server is running
 
@@ -346,16 +519,17 @@ class LLMAPIServer:
             "api_url": f"http://{self.config.host}:{self.config.port}/v1",
         }
 
-    def _wait_for_ready(self, timeout: int = 120) -> bool:
+    def _wait_for_ready(self, timeout: int = 300) -> bool:
         """Wait for server to be ready
 
         Args:
-            timeout: Maximum seconds to wait
+            timeout: Maximum seconds to wait (default 300s for model downloads)
 
         Returns:
             True if server is ready, False if timeout
         """
         logger.info(f"Waiting for LLM API server to be ready (timeout: {timeout}s)...")
+        logger.info("Note: First-time model download may take 5-10 minutes for 7B models")
         logger.info(f"Health check URL: http://127.0.0.1:{self.config.port}/health")
         logger.info(f"Log file: {self.log_file}")
 

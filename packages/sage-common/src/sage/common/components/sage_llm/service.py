@@ -32,11 +32,27 @@ from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
 from sage.common.service import BaseService
 
-try:  # Optional dependency – raise during setup if unavailable
-    from vllm import LLM, SamplingParams
-except ImportError:  # pragma: no cover - allows unit tests to stub vllm
-    LLM = None  # type: ignore
-    SamplingParams = None  # type: ignore
+# Lazy import for vLLM to avoid slow CLI startup
+# vLLM imports torch which takes ~10 seconds
+LLM = None
+SamplingParams = None
+_vllm_imported = False
+
+
+def _ensure_vllm_imported():
+    """Lazily import vLLM on first use."""
+    global LLM, SamplingParams, _vllm_imported
+    if _vllm_imported:
+        return
+    try:
+        from vllm import LLM as _LLM
+        from vllm import SamplingParams as _SamplingParams
+
+        LLM = _LLM
+        SamplingParams = _SamplingParams
+    except ImportError:
+        pass
+    _vllm_imported = True
 
 
 _DEFAULT_SAMPLING = {
@@ -49,7 +65,7 @@ _DEFAULT_SAMPLING = {
 _DEFAULT_ENGINE = {
     "dtype": "auto",
     "tensor_parallel_size": 1,
-    "gpu_memory_utilization": 0.9,
+    "gpu_memory_utilization": 0.7,  # Lower default for consumer GPUs (e.g., RTX 3060)
     "max_model_len": 4096,
 }
 
@@ -105,9 +121,10 @@ class VLLMService(BaseService):
     # SAGE lifecycle hooks
     # ------------------------------------------------------------------
     def setup(self) -> None:
+        _ensure_vllm_imported()
         if LLM is None:
             raise RuntimeError(
-                "vLLM is not installed. Install the 'isage-middleware[vllm]' extra to enable this service."
+                "vLLM is not installed. Install the 'isage-common[vllm]' extra to enable this service."
             )
 
         self.logger.info("VLLMService setup starting")

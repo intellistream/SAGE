@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from sage.studio.config.backend import api
+from sage.studio.services.auth_service import User
 
 client = TestClient(api.app)
+
+
+def mock_get_current_user():
+    return User(id=1, username="testuser", created_at=datetime.now())
 
 
 def test_convert_pipeline_to_job_infers_metadata(tmp_path: Path):
@@ -49,7 +55,16 @@ def test_read_sage_data_from_files_handles_missing(tmp_path: Path, monkeypatch):
 
 
 def test_submit_pipeline_persists_file(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(api, "_get_sage_dir", lambda: tmp_path)
+    # Mock auth
+    api.app.dependency_overrides[api.get_current_user] = mock_get_current_user
+
+    # Mock user dir
+    def fake_get_user_pipelines_dir(user_id: str) -> Path:
+        d = tmp_path / "users" / user_id / "pipelines"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    monkeypatch.setattr(api, "get_user_pipelines_dir", fake_get_user_pipelines_dir)
 
     payload = {"name": "Flow", "nodes": [], "edges": []}
 
@@ -58,6 +73,9 @@ def test_submit_pipeline_persists_file(tmp_path: Path, monkeypatch):
     result = response.json()
     assert result["status"] == "success"
 
-    pipelines_dir = tmp_path / "pipelines"
+    # Clean up override
+    api.app.dependency_overrides = {}
+
+    pipelines_dir = tmp_path / "users" / "1" / "pipelines"
     saved_files = list(pipelines_dir.glob("pipeline_*.json"))
     assert saved_files, "Pipeline file should be saved"
