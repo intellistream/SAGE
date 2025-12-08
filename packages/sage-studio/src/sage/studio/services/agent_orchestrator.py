@@ -179,6 +179,7 @@ class AgentOrchestrator:
     ) -> AsyncGenerator[AgentStep | str, None]:
         """处理代码生成请求"""
         # TODO: Implement CoderAgent
+        # Issue URL: https://github.com/intellistream/SAGE/issues/1330
         yield self._make_step("reasoning", "正在分析代码需求...")
         yield "代码生成功能开发中..."
 
@@ -190,6 +191,7 @@ class AgentOrchestrator:
     ) -> AsyncGenerator[AgentStep | str, None]:
         """处理系统操作"""
         # TODO: Implement OpsAgent
+        # Issue URL: https://github.com/intellistream/SAGE/issues/1329
         yield self._make_step("reasoning", "正在分析系统指令...")
         yield "系统操作功能开发中..."
 
@@ -202,6 +204,7 @@ class AgentOrchestrator:
         """处理通用闲聊"""
         yield self._make_step("reasoning", "进入通用对话模式...")
         # TODO: Connect to LLM
+        # Issue URL: https://github.com/intellistream/SAGE/issues/1328
         yield "我是 SAGE 智能助手，有什么可以帮您？(LLM 连接中...)"
 
     async def _handle_sage_coding(
