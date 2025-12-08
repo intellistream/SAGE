@@ -51,19 +51,29 @@ class KeyValueMemoryService(BaseService):
         self.manager = MemoryManager(self._get_default_data_dir())
 
         # 创建或获取 KVMemoryCollection
+        # 注意：has_collection 可能返回 True，但 get_collection 返回 None（磁盘数据丢失）
+        # 这种情况下需要删除旧记录并重新创建
+        collection = None
         if self.manager.has_collection(collection_name):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
-                raise RuntimeError(f"Failed to get collection '{collection_name}'")
-            self.collection = collection
-        else:
-            self.collection = self.manager.create_collection(
+                # Collection 元数据存在但磁盘数据丢失，需要清理并重建
+                self.logger.warning(
+                    f"Collection '{collection_name}' metadata exists but data is missing, "
+                    "will recreate."
+                )
+                self.manager.delete_collection(collection_name)
+
+        if collection is None:
+            collection = self.manager.create_collection(
                 {
                     "name": collection_name,
                     "backend_type": "KV",
                     "description": "Key-value memory collection",
                 }
             )
+
+        self.collection = collection
 
         if self.collection is None:
             raise RuntimeError(f"Failed to create KVMemoryCollection '{collection_name}'")

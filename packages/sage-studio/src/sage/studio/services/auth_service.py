@@ -1,17 +1,16 @@
 import sqlite3
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from sage.common.config.user_paths import get_user_data_dir
 
 # Configuration
 # TODO: Move SECRET_KEY to config/env
-SECRET_KEY = "sage-studio-secret-key-change-me-in-production"
+SECRET_KEY = "sage-studio-secret-key-change-me-in-production"  # pragma: allowlist secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
@@ -38,13 +37,11 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-from pydantic import Field, field_validator
-
 class UserCreate(BaseModel):
     username: str
     password: str = Field(..., min_length=6)
 
-    @field_validator('username')
+    @field_validator("username")
     @classmethod
     def validate_username(cls, v: str) -> str:
         return v.strip()
@@ -100,10 +97,11 @@ class AuthService:
 
     def create_guest_user(self) -> User:
         import uuid
+
         username = f"guest_{uuid.uuid4().hex[:8]}"
         password = uuid.uuid4().hex
         hashed_password = self.get_password_hash(password)
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -112,7 +110,7 @@ class AuthService:
             )
             user_id = cursor.lastrowid
             conn.commit()
-            
+
             cursor.execute(
                 "SELECT id, username, created_at, is_guest FROM users WHERE id = ?", (user_id,)
             )
@@ -139,13 +137,11 @@ class AuthService:
                     username=row[1],
                     hashed_password=row[2],
                     created_at=row[3],
-                    is_guest=bool(row[4])
+                    is_guest=bool(row[4]),
                 )
             return None
 
-    def create_access_token(
-        self, data: dict, expires_delta: Optional[timedelta] = None
-    ) -> str:
+    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.utcnow() + expires_delta

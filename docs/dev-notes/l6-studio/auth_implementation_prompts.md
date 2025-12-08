@@ -2,6 +2,7 @@
 
 This file contains the specific prompts for the 4 tasks required to implement user authentication in SAGE Studio.
 These prompts are designed to be used with an AI coding assistant.
+
 ---
 
 ## Task 1: Backend Authentication System

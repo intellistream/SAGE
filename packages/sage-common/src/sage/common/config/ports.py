@@ -65,7 +65,7 @@ class SagePorts:
     # =========================================================================
     # sage-gateway (OpenAI-compatible API Gateway)
     # =========================================================================
-    GATEWAY_DEFAULT: ClassVar[int] = 8899  # API Gateway main port (Dev: 8899)
+    GATEWAY_DEFAULT: ClassVar[int] = 8888  # API Gateway main port
 
     # =========================================================================
     # LLM Services (vLLM, etc.)
@@ -77,8 +77,8 @@ class SagePorts:
     # =========================================================================
     # sage-studio (Frontend only, Backend merged into Gateway)
     # =========================================================================
-    STUDIO_BACKEND: ClassVar[int] = 8899  # Deprecated: now same as GATEWAY_DEFAULT
-    STUDIO_FRONTEND: ClassVar[int] = 5179  # Studio frontend (Dev: 5179)
+    STUDIO_BACKEND: ClassVar[int] = 8888  # Deprecated: now same as GATEWAY_DEFAULT
+    STUDIO_FRONTEND: ClassVar[int] = 5173  # Studio frontend (Vite dev server)
 
     # =========================================================================
     # Embedding Services
