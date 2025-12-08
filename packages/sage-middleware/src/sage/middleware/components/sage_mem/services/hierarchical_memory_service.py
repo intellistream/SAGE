@@ -128,21 +128,37 @@ class HierarchicalMemoryService(BaseService):
     def _init_collection(self) -> None:
         """初始化 HybridCollection 并为每个层级创建索引"""
         # 创建或获取 HybridCollection
+        # 注意：has_collection 可能返回 True，但 get_collection 返回 None（磁盘数据丢失）
+        # 或者返回的不是 HybridCollection，这种情况下需要删除旧记录并重新创建
+        collection = None
         if self.manager.has_collection(self.collection_name):
             collection = self.manager.get_collection(self.collection_name)
-            if not isinstance(collection, HybridCollection):
-                raise TypeError(
-                    f"Collection '{self.collection_name}' exists but is not a HybridCollection"
+            if collection is None:
+                # Collection 元数据存在但磁盘数据丢失
+                self.logger.warning(
+                    f"Collection '{self.collection_name}' metadata exists but data is missing, "
+                    "will recreate."
                 )
-            self.collection = collection
-        else:
-            self.collection = self.manager.create_collection(
+                self.manager.delete_collection(self.collection_name)
+            elif not isinstance(collection, HybridCollection):
+                # Collection 存在但类型不对
+                self.logger.warning(
+                    f"Collection '{self.collection_name}' exists but is not a HybridCollection, "
+                    "will recreate."
+                )
+                self.manager.delete_collection(self.collection_name)
+                collection = None
+
+        if collection is None:
+            collection = self.manager.create_collection(
                 {
                     "name": self.collection_name,
                     "backend_type": "hybrid",
                     "description": f"Hierarchical memory ({self.tier_mode})",
                 }
             )
+
+        self.collection = collection
 
         if self.collection is None:
             raise RuntimeError(f"Failed to create HybridCollection '{self.collection_name}'")
