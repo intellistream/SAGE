@@ -202,6 +202,18 @@ def _run_agent_experiments(
         sage bench run --quick                      # 快捷方式
     """
     try:
+        # 添加实验脚本**父目录**到 sys.path，使得 run_paper1_experiments.py
+        # 中的 "from experiments.xxx" 导入能正常工作
+        # 注意：必须是父目录，因为 Python 需要从 sys.path 下查找 "experiments" 模块
+        from pathlib import Path
+
+        import sage.benchmark.benchmark_agent.scripts.experiments as exp_module
+
+        exp_dir = Path(exp_module.__file__).parent
+        scripts_dir = exp_dir.parent  # .../scripts/ 目录
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
         from sage.benchmark.benchmark_agent.scripts.experiments.run_paper1_experiments import (
             main as run_main,
         )
@@ -280,6 +292,16 @@ def _run_agent_evaluation(dataset: str, samples: int, top_k: int) -> None:
         sage bench eval --dataset sage              # 快捷方式
     """
     try:
+        # 添加实验脚本父目录到 sys.path
+        from pathlib import Path
+
+        import sage.benchmark.benchmark_agent.scripts.experiments as exp_module
+
+        exp_dir = Path(exp_module.__file__).parent
+        scripts_dir = exp_dir.parent
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
         from sage.benchmark.benchmark_agent.scripts.experiments.exp_utils import (
             setup_experiment_env,
         )
@@ -345,6 +367,16 @@ def _run_agent_training(
         sage bench train --quick                         # 快捷方式
     """
     try:
+        # 添加实验脚本父目录到 sys.path
+        from pathlib import Path
+
+        import sage.benchmark.benchmark_agent.scripts.experiments as exp_module
+
+        exp_dir = Path(exp_module.__file__).parent
+        scripts_dir = exp_dir.parent
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
         from sage.benchmark.benchmark_agent.scripts.experiments.exp_training_comparison import (
             run_training_comparison,
         )
@@ -391,6 +423,16 @@ app.add_typer(llm_app, name="llm", hidden=True)
 def llm_status():
     """查看 LLM 服务状态"""
     try:
+        # 添加实验脚本父目录到 sys.path
+        from pathlib import Path
+
+        import sage.benchmark.benchmark_agent.scripts.experiments as exp_module
+
+        exp_dir = Path(exp_module.__file__).parent
+        scripts_dir = exp_dir.parent
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
         from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (
             print_llm_status,
         )
@@ -410,6 +452,16 @@ def llm_start(
 ):
     """启动 LLM 服务"""
     try:
+        # 添加实验脚本父目录到 sys.path
+        from pathlib import Path
+
+        import sage.benchmark.benchmark_agent.scripts.experiments as exp_module
+
+        exp_dir = Path(exp_module.__file__).parent
+        scripts_dir = exp_dir.parent
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
         from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (
             start_llm_service,
         )
@@ -431,6 +483,16 @@ def llm_start(
 def llm_stop():
     """停止 LLM 服务"""
     try:
+        # 添加实验脚本父目录到 sys.path
+        from pathlib import Path
+
+        import sage.benchmark.benchmark_agent.scripts.experiments as exp_module
+
+        exp_dir = Path(exp_module.__file__).parent
+        scripts_dir = exp_dir.parent
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
         from sage.benchmark.benchmark_agent.scripts.experiments.llm_service import (
             stop_llm_service,
         )
