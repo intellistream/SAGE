@@ -53,6 +53,12 @@ except ImportError as e:
     inference_app = None
 
 try:
+    from .gateway import app as gateway_app
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 gateway 命令: {e}[/yellow]")
+    gateway_app = None
+
+try:
     from .bench import app as bench_app
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 bench 命令: {e}[/yellow]")
@@ -66,5 +72,6 @@ __all__ = [
     "pipeline_app",
     "studio_app",
     "inference_app",
+    "gateway_app",
     "bench_app",
 ]
