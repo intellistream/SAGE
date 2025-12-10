@@ -51,7 +51,6 @@ reform:
   model_path: "/home/cyb/Llama-3.1-8B-Instruct"
   dtype: "bfloat16"
   device: "cuda"  # CUDA_VISIBLE_DEVICES=1会映射到cuda:0
-  gpu_memory_utilization: 0.5
   layer_range: [0, 32]  # Llama-3.1-8B有32层
 
   # 选定的heads (从head selection实验中得出)

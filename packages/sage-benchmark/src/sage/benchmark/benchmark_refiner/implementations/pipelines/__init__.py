@@ -25,6 +25,7 @@ Refiner RAG Pipelines
 - provence_rag: Provence 算法 (Sentence-level pruning)
 - llmlingua2_rag: LLMLingua-2 算法 (BERT token classification, fast)
 - longllmlingua_rag: LongLLMLingua 算法 (Question-aware long context compression)
+- attention_graph_rag: AttentionGraph 算法 (Attention and graph search based compression)
 """
 
 __all__: list[str] = []

@@ -151,4 +151,35 @@ try:
 except ImportError:
     RECOMPAbstractiveOperator = None
 
+# AttentionGraph 算法 (基于注意力和图搜索的硬压缩)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.attention_graph import (
+        AttentionGraphCompressor,
+        AttentionGraphOperator,
+        CompressionInput,
+        CompressionOutput,
+        Span,
+    )
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.attention_graph import (
+        CompressConfig as AttentionGraphConfig,
+    )
+
+    __all__.extend(
+        [
+            "AttentionGraphCompressor",
+            "AttentionGraphOperator",
+            "AttentionGraphConfig",
+            "CompressionInput",
+            "CompressionOutput",
+            "Span",
+        ]
+    )
+except ImportError:
+    AttentionGraphCompressor = None
+    AttentionGraphOperator = None
+    AttentionGraphConfig = None
+    CompressionInput = None
+    CompressionOutput = None
+    Span = None
+
 __version__ = "0.1.0"

@@ -1,0 +1,88 @@
+pipeline:
+  name: "sage-benchmark-attention-graph-rag"
+  description: "Attention Graph RAG Pipeline with Graph-based Context Compression"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # HuggingFace Dataset 参数
+  hf_dataset_name: "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "nq"  # Natural Questions dataset
+  hf_split: "test"
+  max_samples: 20
+
+retriever:
+  # 检索器类型: wiki18_faiss
+  type: "wiki18_faiss"
+
+  # 通用配置
+  dimension: 1024    # BGE-Large-EN-v1.5模型的维度
+  top_k: 8
+
+  # Wiki18 FAISS 专用配置
+  faiss:
+    index_path: "/home/cyb/wiki18_maxp.index"
+    documents_path: "/home/cyb/wiki18_fulldoc.jsonl"
+    mapping_path: "/home/cyb/wiki18_maxp_maxp_mapping.json"  # 段落到文档的映射
+
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "BAAI/bge-large-en-v1.5"  # BGE-Large-EN-v1.5模型
+    gpu_device: 0
+
+generator:
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+    base_url: "http://sage2:8000/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+attention_graph:
+  # AttentionGraph 压缩配置
+  enabled: true  # 设为 false 即为 baseline 模式
+
+  # 模型配置 (用于获取注意力和隐状态)
+  model_path: "/home/cyb/Llama-3.1-8B-Instruct"
+  dtype: "bfloat16"
+  device: "cuda"
+  layer_range: [0, 32]  # Llama-3.1-8B 有 32 层
+
+  # 压缩预算
+  max_tokens: 2048  # 压缩后最大 token 数
+
+  # Span 划分配置
+  span_len: 64       # 每个 span 的 token 长度
+  span_stride: 64    # 滑动步长 (=span_len 表示不重叠)
+  min_span_len: 8    # 最小 span 长度
+
+  # 注意力层和头配置
+  layers_for_attn: [14, 15, 16, 17]  # 使用的注意力层索引
+  # heads_per_layer:  # 每层使用的 head 索引，null 表示使用所有 heads
+  #   14: [0, 1, 2, 3]
+  #   15: [0, 1, 2, 3]
+
+  # 图构建参数
+  topk_neighbors: 5  # 每个 span 保留的最近邻数量
+
+  # 温度和权重参数
+  tau_q: 1.0         # query 相关性的 softmax 温度
+  tau_span: 2.0      # 文档内位置先验的衰减系数
+  lambda_cross: 0.3  # 跨文档边的基础权重
+  tau_len: 100.0     # 长度惩罚的尺度参数
+
+  # Log-linear 模型权重
+  beta: 1.0          # span 相似度权重
+  gamma: 0.5         # 结构先验权重
+  delta: -0.1        # 长度惩罚权重 (负值表示惩罚长 span)
+
+sink:
+  platform: "local"
+
+evaluate:
+  platform: "local"

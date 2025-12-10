@@ -11,6 +11,7 @@ Benchmark Refiner Implementations
 - provence_rag: Provence句子级剪枝
 - llmlingua2_rag: LLMLingua-2 BERT token分类压缩 (快速)
 - longllmlingua_rag: LongLLMLingua问题感知长文档压缩
+- attention_graph_rag: AttentionGraph基于注意力和图搜索的硬压缩
 
 运行方式:
     # 直接运行
@@ -20,6 +21,7 @@ Benchmark Refiner Implementations
     python -m sage.benchmark.benchmark_refiner.implementations.pipelines.provence_rag
     python -m sage.benchmark.benchmark_refiner.implementations.pipelines.llmlingua2_rag
     python -m sage.benchmark.benchmark_refiner.implementations.pipelines.longllmlingua_rag
+    python -m sage.benchmark.benchmark_refiner.implementations.pipelines.attention_graph_rag
 
 配置文件:
     各Pipeline对应的配置文件位于 ../config/ 目录
