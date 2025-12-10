@@ -20,6 +20,29 @@ Note: `sage-gateway` is published to PyPI as `isage-gateway` (OpenAI/Anthropic c
 
 All in `/packages/<name>/`. L6 imports L1-L5, L5 imports L1-L4, etc.
 
+## How Copilot Should Learn SAGE (Readme-First)
+
+When answering questions or making code changes in this repo, the assistant **must first rely on the project docs/READMEs instead of guessing**.
+
+**Before doing any non-trivial work, Copilot should at least skim:**
+
+- Root overview: `README.md` (features, quick start)  
+- Dev workflow: `DEVELOPER.md`, `CONTRIBUTING.md`  
+- Architecture: `docs-public/docs_src/dev-notes/package-architecture.md`  
+- Cross-layer index: `docs-public/docs_src/dev-notes/cross-layer/README.md`
+
+**When working on a specific layer/package, Copilot should additionally read:**
+
+- The corresponding dev-notes README, e.g.  
+  - `docs-public/docs_src/dev-notes/l1-common/README.md`  
+  - `docs-public/docs_src/dev-notes/l2-platform/README.md`  
+  - `docs-public/docs_src/dev-notes/l3-kernel/README.md` / `l3-libs/README.md`  
+  - `docs-public/docs_src/dev-notes/l4-middleware/README.md`  
+  - `docs-public/docs_src/dev-notes/l5-apps/README.md`, `l5-benchmark/README.md`  
+  - `docs-public/docs_src/dev-notes/l6-cli/README.md`, `l6-studio/README.md`, `l6-gateway/README.md`
+
+Only after consulting these READMEs should the assistant propose designs, refactors, or architectural explanations. If documentation and code appear inconsistent, Copilot should **call it out explicitly** in the answer and, when in doubt, ask the user which source of truth to follow.
+
 ## Installation
 
 **Prerequisites**: Python 3.10+, Git, build-essential, cmake, pkg-config, libopenblas-dev,
