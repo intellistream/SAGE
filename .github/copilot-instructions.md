@@ -121,7 +121,7 @@ pre-commit run --all-files --config tools/pre-commit-config.yaml
 
 ```
 .github/workflows/      # CI/CD
-docs/dev-notes/         # Dev docs (by layer: l0-l6, cross-layer)
+docs-public/docs_src/dev-notes/ # Dev docs (by layer: l1-l6, cross-layer)
 examples/               # apps/, tutorials/ (by layer)
 packages/               # 11 packages + meta
   sage-*/src/sage/      # Source

@@ -787,12 +787,13 @@ if __name__ == "__main__":
             import os
 
             from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+            from sage.common.config.ports import SagePorts
 
             config = LLMServerConfig(
                 model=model_path,
                 backend="vllm",
                 host="0.0.0.0",
-                port=8001,
+                port=SagePorts.LLM_DEFAULT,
                 gpu_memory_utilization=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
                 max_model_len=4096,
                 disable_log_stats=True,
