@@ -114,11 +114,11 @@ repos:
         "^CONTRIBUTING\.md$"
         "^LICENSE\.md$"
         "^DEVELOPER\.md$"
-        "^docs/dev-notes/README\.md$"
-        "^docs/dev-notes/TEMPLATE\.md$"
-        "^docs/dev-notes/.+/"
-        "^docs/assets/"
-        "^docs/security/"
+        "^docs-public/docs_src/dev-notes/README\.md$"
+        "^docs-public/docs_src/dev-notes/TEMPLATE\.md$"
+        "^docs-public/docs_src/dev-notes/.+/"
+        "^docs-public/docs_src/assets/"
+        "^docs-public/docs_src/security/"
         "^docs-public/"
         "^docker/.*\.md$"  # Allow any .md in docker directory (deployment docs)
         "^packages/.*/README\.md$"
@@ -229,30 +229,30 @@ repos:
     files: \.py$
   - id: devnotes-check
     name: dev-notes documentation standards
-    entry: bash -c 'if git diff --cached --name-only --diff-filter=ACM | grep -q "^docs/dev-notes/.*\.md$"; then sage-dev quality devnotes || true; else exit 0; fi'
+    entry: bash -c 'if git diff --cached --name-only --diff-filter=ACM | grep -q "^docs-public/docs_src/dev-notes/.*\.md$"; then sage-dev quality devnotes || true; else exit 0; fi'
     language: system
     pass_filenames: false
     always_run: false
-    files: ^docs/dev-notes/.*\.md$
+    files: ^docs-public/docs_src/dev-notes/.*\.md$
   - id: devnotes-structure-check
     name: dev-notes directory structure validation
     entry: bash -c
     args:
     - |
-      # Check if any files were staged in docs/dev-notes/
+      # Check if any files were staged in docs-public/docs_src/dev-notes/
       if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
         # Running with --all-files or during push
-        staged_files=$(git ls-files "docs/dev-notes/*")
+        staged_files=$(git ls-files "docs-public/docs_src/dev-notes/*")
       else
         # Running in normal commit mode
-        staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs/dev-notes/" || true)
+        staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs-public/docs_src/dev-notes/" || true)
       fi
 
       if [ -z "$staged_files" ]; then
         exit 0
       fi
 
-      # Allowed top-level directories under docs/dev-notes/
+      # Allowed top-level directories under docs-public/docs_src/dev-notes/
       # NOTE: When adding new directories, update this list
       allowed_dirs=(
         "l1-common"
@@ -272,12 +272,12 @@ repos:
         "research_work"
       )
 
-      # Get all first-level directories under docs/dev-notes/
+      # Get all first-level directories under docs-public/docs_src/dev-notes/
       violations=""
       for file in $staged_files; do
-        # Extract the first directory component after docs/dev-notes/
-        # e.g., docs/dev-notes/foo/bar.md -> foo
-        dir_component=$(echo "$file" | sed -n 's|^docs/dev-notes/\([^/]*\)/.*|\1|p')
+        # Extract the first directory component after docs-public/docs_src/dev-notes/
+        # e.g., docs-public/docs_src/dev-notes/foo/bar.md -> foo
+        dir_component=$(echo "$file" | sed -n 's|^docs-public/docs_src/dev-notes/\([^/]*\)/.*|\1|p')
 
         # Skip root-level files (README.md, TEMPLATE.md)
         if [ -z "$dir_component" ]; then
@@ -303,7 +303,7 @@ repos:
 
       # Report violations
       if [ -n "$violations" ]; then
-        echo "❌ 错误: docs/dev-notes/ 下存在未授权的目录:"
+        echo "❌ 错误: docs-public/docs_src/dev-notes/ 下存在未授权的目录:"
         echo -e "$violations" | sort -u | sed "s/^/  - /"
         echo ""
         echo "📁 允许的目录:"
@@ -319,7 +319,7 @@ repos:
     language: system
     pass_filenames: false
     always_run: false
-    files: ^docs/dev-notes/
+    files: ^docs-public/docs_src/dev-notes/
   - id: installation-consistency-check
     name: installation consistency check (local vs CI/CD)
     entry: bash tools/install/examination_tools/installation_consistency_check.sh

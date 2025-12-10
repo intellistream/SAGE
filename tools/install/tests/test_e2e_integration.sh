@@ -254,7 +254,7 @@ step8_verify_documentation() {
 
     # 检查文档文件
     local docs_to_check=(
-        "docs/dev-notes/l0-infra/cleanup-automation.md"
+        "docs-public/docs_src/dev-notes/l1-common/CLEANUP_AUTOMATION.md"
     )
 
     for doc in "${docs_to_check[@]}"; do
