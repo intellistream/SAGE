@@ -28,6 +28,9 @@ def start_cluster(
     ssh_password: str = typer.Option(
         None, "--ssh-password", "-p", help="SSH密码（用于自动配置免密登录）"
     ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="强制重启：如果Ray已运行，先停止再启动"
+    ),
 ):
     """启动整个Ray集群（Head + 所有Workers）"""
     config_manager = get_config_manager()
@@ -107,7 +110,7 @@ def start_cluster(
     try:
         from .head import start_head
 
-        start_head()
+        start_head(force=force)
     except Exception as e:
         typer.echo(f"❌ Head节点启动失败: {e}")
         raise typer.Exit(1)
