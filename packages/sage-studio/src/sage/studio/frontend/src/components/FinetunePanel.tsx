@@ -1,11 +1,14 @@
 /**
- * Fine-tune Panel Component - Model fine-tuning interface
+ * Fine-tune Panel Component - Gemini-style model fine-tuning interface
+ *
+ * Design follows the Gemini design system:
+ * - Clean white background with centered content
+ * - Consistent colors with ChatMode (#F0F4F9, #1a73e8, etc.)
+ * - Icons instead of emojis
  */
 
 import { useEffect, useState } from 'react'
 import {
-    Button,
-    Card,
     Form,
     InputNumber,
     Progress,
@@ -14,14 +17,10 @@ import {
     Tag,
     Upload,
     message,
-    Space,
-    Typography,
-    Divider,
     Switch,
     Collapse,
     Radio,
     Modal,
-    Alert,
 } from 'antd'
 import {
     Upload as UploadIcon,
@@ -33,10 +32,21 @@ import {
     AlertCircle,
     Download,
     ArrowRightCircle,
+    Zap,
+    Settings,
+    Lightbulb,
+    FileText,
+    FolderOpen,
+    Shield,
+    Gauge,
+    Rocket,
+    Sparkles,
+    MessageSquare,
+    ChevronDown,
+    Trash2,
 } from 'lucide-react'
 import type { UploadFile, UploadProps } from 'antd'
 
-const { Title, Text, Paragraph } = Typography
 const { Panel } = Collapse
 const { Option } = Select
 
@@ -66,6 +76,155 @@ interface Model {
     created_at?: string
 }
 
+// ============================================================================
+// Gemini-Style UI Components
+// ============================================================================
+
+/** Section Card with Gemini styling */
+function SectionCard({
+    title,
+    icon,
+    children,
+    className = '',
+}: {
+    title: string
+    icon?: React.ReactNode
+    children: React.ReactNode
+    className?: string
+}) {
+    return (
+        <div className={`bg-white rounded-2xl border border-[#E8EAED] p-6 ${className}`}>
+            {title && (
+                <div className="flex items-center gap-2 mb-4">
+                    {icon && <span className="text-[#1a73e8]">{icon}</span>}
+                    <h3 className="text-base font-medium text-[#1F1F1F]">{title}</h3>
+                </div>
+            )}
+            {children}
+        </div>
+    )
+}
+
+/** Gemini-style primary button */
+function PrimaryButton({
+    children,
+    onClick,
+    disabled = false,
+    loading = false,
+    icon,
+    size = 'default',
+}: {
+    children: React.ReactNode
+    onClick?: () => void
+    disabled?: boolean
+    loading?: boolean
+    icon?: React.ReactNode
+    size?: 'small' | 'default' | 'large'
+}) {
+    const sizeClasses = {
+        small: 'px-3 py-1.5 text-sm',
+        default: 'px-4 py-2 text-sm',
+        large: 'px-6 py-3 text-base',
+    }
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled || loading}
+            className={`
+                flex items-center gap-2 rounded-full font-medium
+                bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:shadow-md
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-all duration-200 ease-out
+                ${sizeClasses[size]}
+            `}
+        >
+            {loading ? (
+                <span className="animate-spin">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                </span>
+            ) : icon}
+            {children}
+        </button>
+    )
+}
+
+/** Gemini-style secondary button */
+function SecondaryButton({
+    children,
+    onClick,
+    disabled = false,
+    icon,
+    danger = false,
+    size = 'default',
+}: {
+    children: React.ReactNode
+    onClick?: () => void
+    disabled?: boolean
+    icon?: React.ReactNode
+    danger?: boolean
+    size?: 'small' | 'default' | 'large'
+}) {
+    const sizeClasses = {
+        small: 'px-3 py-1.5 text-sm',
+        default: 'px-4 py-2 text-sm',
+        large: 'px-6 py-3 text-base',
+    }
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`
+                flex items-center gap-2 rounded-full font-medium
+                border transition-all duration-200 ease-out
+                disabled:opacity-50 disabled:cursor-not-allowed
+                ${danger
+                    ? 'border-red-200 text-red-600 hover:bg-red-50'
+                    : 'border-[#E8EAED] text-[#444746] hover:bg-[#F0F4F9]'
+                }
+                ${sizeClasses[size]}
+            `}
+        >
+            {icon}
+            {children}
+        </button>
+    )
+}
+
+/** Info banner component */
+function InfoBanner({
+    icon,
+    children,
+    type = 'info',
+}: {
+    icon?: React.ReactNode
+    children: React.ReactNode
+    type?: 'info' | 'warning' | 'success'
+}) {
+    const bgColors = {
+        info: 'bg-[#E8F0FE]',
+        warning: 'bg-amber-50',
+        success: 'bg-green-50',
+    }
+    const iconColors = {
+        info: 'text-[#1a73e8]',
+        warning: 'text-amber-600',
+        success: 'text-green-600',
+    }
+    return (
+        <div className={`${bgColors[type]} rounded-xl p-4 flex items-start gap-3 my-4`}>
+            {icon && <span className={`${iconColors[type]} flex-shrink-0 mt-0.5`}>{icon}</span>}
+            <div className="text-sm text-[#1F1F1F]">{children}</div>
+        </div>
+    )
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export default function FinetunePanel() {
     const [form] = Form.useForm()
     const [tasks, setTasks] = useState<FinetuneTask[]>([])
@@ -88,7 +247,6 @@ export default function FinetunePanel() {
         loadCurrentModel()
         loadGpuInfo()
 
-        // Auto-refresh every 3 seconds when training
         const interval = setInterval(() => {
             loadTasks()
         }, 3000)
@@ -200,16 +358,16 @@ export default function FinetunePanel() {
             if (response.ok) {
                 const data = await response.json()
 
-                // 显示 OOM 警告（如果有）
                 if (data.warnings && data.warnings.length > 0) {
                     Modal.warning({
-                        title: '⚠️ 显存警告',
+                        title: '显存警告',
+                        icon: <AlertCircle className="text-amber-500" />,
                         content: (
                             <div className="space-y-2">
                                 {data.warnings.map((warning: string, index: number) => (
                                     <div key={index}>{warning}</div>
                                 ))}
-                                <div className="mt-4 text-gray-600">
+                                <div className="mt-4 text-[#444746]">
                                     任务已创建，但建议重新配置参数以降低 OOM 风险。
                                 </div>
                             </div>
@@ -247,29 +405,9 @@ export default function FinetunePanel() {
                 hide()
 
                 if (data.llm_service_restarted) {
-                    message.success({
-                        content: (
-                            <div>
-                                <div>✅ 模型已切换并生效</div>
-                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                    LLM 服务已自动重启，可直接使用新模型
-                                </div>
-                            </div>
-                        ),
-                        duration: 3
-                    })
+                    message.success('模型已切换并生效，LLM 服务已自动重启')
                 } else {
-                    message.warning({
-                        content: (
-                            <div>
-                                <div>⚠️ 模型已切换</div>
-                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                    LLM 服务未重启，需要重启 Studio 后生效
-                                </div>
-                            </div>
-                        ),
-                        duration: 5
-                    })
+                    message.warning('模型已切换，需要重启 Studio 后生效')
                 }
 
                 loadCurrentModel()
@@ -295,14 +433,12 @@ export default function FinetunePanel() {
             if (response.ok) {
                 const data = await response.json()
                 setUploadedFile(data.data_file)
-                message.success(`SAGE 文档已准备完成！共 ${data.stats.total_samples} 条训练数据`)
+                message.success(`SAGE 文档已准备完成，共 ${data.stats.total_samples} 条训练数据`)
             } else {
                 const error = await response.json().catch(() => ({ detail: response.statusText }))
                 message.error(error.detail || '准备文档失败')
-                console.error('Prepare docs error:', error)
             }
         } catch (error) {
-            console.error('Prepare docs exception:', error)
             message.error(`准备文档失败: ${error instanceof Error ? error.message : '未知错误'}`)
         } finally {
             hide()
@@ -317,18 +453,15 @@ export default function FinetunePanel() {
             cancelText: '取消',
             onOk: async () => {
                 try {
-                    const response = await fetch(
-                        '/api/finetune/use-as-backend',
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ task_id: taskId }),
-                        }
-                    )
+                    const response = await fetch('/api/finetune/use-as-backend', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: taskId }),
+                    })
 
                     if (response.ok) {
                         const data = await response.json()
-                        message.success(`✅ ${data.message}`)
+                        message.success(data.message)
                         message.info('请在对话面板测试微调后的模型效果', 5)
                     } else {
                         const error = await response.json()
@@ -347,11 +480,7 @@ export default function FinetunePanel() {
             queued: { color: 'warning', icon: <Clock className="w-3 h-3" />, text: '排队中' },
             preparing: { color: 'processing', icon: <Cpu className="w-3 h-3" />, text: '准备中' },
             training: { color: 'processing', icon: <Cpu className="w-3 h-3" />, text: '训练中' },
-            completed: {
-                color: 'success',
-                icon: <CheckCircle className="w-3 h-3" />,
-                text: '已完成',
-            },
+            completed: { color: 'success', icon: <CheckCircle className="w-3 h-3" />, text: '已完成' },
             failed: { color: 'error', icon: <XCircle className="w-3 h-3" />, text: '失败' },
             cancelled: { color: 'default', icon: <AlertCircle className="w-3 h-3" />, text: '已取消' },
         }
@@ -363,107 +492,6 @@ export default function FinetunePanel() {
             </Tag>
         )
     }
-
-    const taskColumns = [
-        {
-            title: '任务 ID',
-            dataIndex: 'task_id',
-            key: 'task_id',
-            width: 200,
-            render: (text: string) => <Text code>{text}</Text>,
-        },
-        {
-            title: '基础模型',
-            dataIndex: 'model_name',
-            key: 'model_name',
-            width: 200,
-        },
-        {
-            title: '状态',
-            dataIndex: 'status',
-            key: 'status',
-            width: 100,
-            render: (status: FinetuneTask['status']) => getStatusTag(status),
-        },
-        {
-            title: '进度',
-            key: 'progress',
-            width: 200,
-            render: (_: any, record: FinetuneTask) => (
-                <div>
-                    <Progress
-                        percent={Math.round(record.progress)}
-                        size="small"
-                        status={record.status === 'failed' ? 'exception' : 'active'}
-                    />
-                    <Text type="secondary" className="text-xs">
-                        Epoch {record.current_epoch}/{record.total_epochs} • Loss: {record.loss.toFixed(4)}
-                    </Text>
-                </div>
-            ),
-        },
-        {
-            title: '创建时间',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            width: 150,
-            render: (text: string) => new Date(text).toLocaleString('zh-CN'),
-        },
-        {
-            title: '操作',
-            key: 'action',
-            width: 280,
-            render: (_: any, record: FinetuneTask) => (
-                <Space>
-                    {record.status === 'completed' && (
-                        <>
-                            <Button
-                                size="small"
-                                type="primary"
-                                icon={<ArrowRightCircle className="w-3 h-3" />}
-                                onClick={() => handleSwitchModel(record.output_dir)}
-                            >
-                                应用到 Chat
-                            </Button>
-                            <Button
-                                size="small"
-                                type="default"
-                                onClick={() => handleUseAsBackend(record.task_id)}
-                            >
-                                设为后端
-                            </Button>
-                            <Button
-                                size="small"
-                                icon={<Download className="w-3 h-3" />}
-                                onClick={() => handleDownloadModel(record.task_id)}
-                            >
-                                下载
-                            </Button>
-                        </>
-                    )}
-                    {(record.status === 'training' || record.status === 'preparing' || record.status === 'queued') && (
-                        <Button
-                            size="small"
-                            danger
-                            onClick={() => handleCancelTask(record.task_id)}
-                        >
-                            取消
-                        </Button>
-                    )}
-                    {(record.status === 'failed' || record.status === 'completed' || record.status === 'cancelled') && (
-                        <Button
-                            size="small"
-                            danger
-                            icon={<XCircle className="w-3 h-3" />}
-                            onClick={() => handleDeleteTask(record.task_id)}
-                        >
-                            删除
-                        </Button>
-                    )}
-                </Space>
-            ),
-        },
-    ]
 
     const handleDownloadModel = async (taskId: string) => {
         try {
@@ -501,7 +529,7 @@ export default function FinetunePanel() {
                     })
                     if (response.ok) {
                         message.success('任务已删除')
-                        loadTasks() // 刷新任务列表
+                        loadTasks()
                     } else {
                         const error = await response.json().catch(() => ({ detail: '删除失败' }))
                         message.error(error.detail || '删除失败')
@@ -527,7 +555,7 @@ export default function FinetunePanel() {
                     })
                     if (response.ok) {
                         message.success('任务已取消')
-                        loadTasks() // 刷新任务列表
+                        loadTasks()
                     } else {
                         const error = await response.json().catch(() => ({ detail: '取消失败' }))
                         message.error(error.detail || '取消失败')
@@ -539,88 +567,175 @@ export default function FinetunePanel() {
         })
     }
 
-    return (
-        <div className="h-full overflow-auto p-6 bg-gray-50">
-            <div className="max-w-7xl mx-auto space-y-6">
+    const taskColumns = [
+        {
+            title: '任务 ID',
+            dataIndex: 'task_id',
+            key: 'task_id',
+            width: 200,
+            render: (text: string) => <code className="text-xs bg-[#F0F4F9] px-2 py-1 rounded">{text}</code>,
+        },
+        {
+            title: '基础模型',
+            dataIndex: 'model_name',
+            key: 'model_name',
+            width: 200,
+        },
+        {
+            title: '状态',
+            dataIndex: 'status',
+            key: 'status',
+            width: 100,
+            render: (status: FinetuneTask['status']) => getStatusTag(status),
+        },
+        {
+            title: '进度',
+            key: 'progress',
+            width: 200,
+            render: (_: any, record: FinetuneTask) => (
                 <div>
-                    <Title level={2}>🔧 模型微调</Title>
-                    <Paragraph type="secondary">
-                        使用自定义数据微调 LLM 模型，提升特定任务的性能。微调后的模型可直接用于 RAG Pipeline。
-                        <br />
-                        💡 <Text strong>{gpuInfo ? gpuInfo.recommendation : '正在检测 GPU...'}</Text>
-                    </Paragraph>
+                    <Progress
+                        percent={Math.round(record.progress)}
+                        size="small"
+                        status={record.status === 'failed' ? 'exception' : 'active'}
+                        strokeColor="#1a73e8"
+                    />
+                    <span className="text-xs text-[#444746]">
+                        Epoch {record.current_epoch}/{record.total_epochs} | Loss: {record.loss.toFixed(4)}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            title: '创建时间',
+            dataIndex: 'created_at',
+            key: 'created_at',
+            width: 150,
+            render: (text: string) => <span className="text-sm">{new Date(text).toLocaleString('zh-CN')}</span>,
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 320,
+            render: (_: any, record: FinetuneTask) => (
+                <div className="flex items-center gap-2 flex-wrap">
+                    {record.status === 'completed' && (
+                        <>
+                            <SecondaryButton
+                                size="small"
+                                icon={<ArrowRightCircle size={14} />}
+                                onClick={() => handleSwitchModel(record.output_dir)}
+                            >
+                                应用
+                            </SecondaryButton>
+                            <SecondaryButton
+                                size="small"
+                                icon={<MessageSquare size={14} />}
+                                onClick={() => handleUseAsBackend(record.task_id)}
+                            >
+                                设为后端
+                            </SecondaryButton>
+                            <SecondaryButton
+                                size="small"
+                                icon={<Download size={14} />}
+                                onClick={() => handleDownloadModel(record.task_id)}
+                            >
+                                下载
+                            </SecondaryButton>
+                        </>
+                    )}
+                    {(record.status === 'training' || record.status === 'preparing' || record.status === 'queued') && (
+                        <SecondaryButton
+                            size="small"
+                            danger
+                            onClick={() => handleCancelTask(record.task_id)}
+                        >
+                            取消
+                        </SecondaryButton>
+                    )}
+                    {(record.status === 'failed' || record.status === 'completed' || record.status === 'cancelled') && (
+                        <SecondaryButton
+                            size="small"
+                            danger
+                            icon={<Trash2 size={14} />}
+                            onClick={() => handleDeleteTask(record.task_id)}
+                        >
+                            删除
+                        </SecondaryButton>
+                    )}
+                </div>
+            ),
+        },
+    ]
+
+    return (
+        <div className="h-full overflow-auto bg-white">
+            {/* Centered content container - matches ChatMode's max-w-[830px] style */}
+            <div className="max-w-4xl mx-auto py-8 px-6 space-y-6">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                            <Zap size={20} className="text-white" />
+                        </div>
+                        <h1 className="text-2xl font-medium text-[#1F1F1F]">模型微调</h1>
+                    </div>
+                    <p className="text-[#444746] ml-[52px]">
+                        使用自定义数据微调 LLM 模型，提升特定任务的性能
+                    </p>
+                    {gpuInfo && (
+                        <div className="ml-[52px] mt-2 flex items-center gap-2 text-sm text-[#1a73e8]">
+                            <Cpu size={14} />
+                            <span>{gpuInfo.recommendation}</span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Current Model */}
-                <Card>
-                    <Space direction="vertical" className="w-full" size="large">
-                        <div>
-                            <Text strong>当前使用的模型</Text>
-                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                Chat 模式会优先使用本地 LLM 服务的模型
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                            <div style={{ flex: 1 }}>
-                                <Text type="secondary" style={{ fontSize: '12px' }}>基础模型（用于微调）</Text>
-                                <Select
-                                    value={currentModel}
-                                    onChange={(value) => setCurrentModel(value)}
-                                    style={{ width: '100%', marginTop: '4px' }}
-                                    placeholder="选择基础模型"
-                                    optionLabelProp="label"
-                                >
-                                    {models.map((model) => (
-                                        <Option
-                                            key={model.name}
-                                            value={model.name}
-                                            label={
-                                                <span style={{ fontSize: '13px' }}>
-                                                    {model.name.length > 35 ? `${model.name.substring(0, 35)}...` : model.name}
-                                                </span>
-                                            }
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                                <span style={{
-                                                    fontSize: '13px',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap',
-                                                    flex: 1
-                                                }}>
-                                                    {model.name}
-                                                </span>
-                                                <Tag color={model.type === 'base' ? 'blue' : 'green'} style={{ margin: 0 }}>
-                                                    {model.type === 'base' ? '基础' : '微调'}
-                                                </Tag>
-                                            </div>
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </div>
-                            <Button
-                                type="primary"
-                                onClick={() => handleSwitchModel(currentModel)}
-                                icon={<ArrowRightCircle size={16} />}
-                                style={{ marginTop: '20px' }}
+                {/* Current Model Section */}
+                <SectionCard title="当前模型" icon={<Settings size={18} />}>
+                    <p className="text-sm text-[#444746] mb-4">
+                        Chat 模式会优先使用本地 LLM 服务的模型
+                    </p>
+                    <div className="flex items-end gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm text-[#444746] mb-2">基础模型（用于微调）</label>
+                            <Select
+                                value={currentModel}
+                                onChange={(value) => setCurrentModel(value)}
+                                style={{ width: '100%' }}
+                                placeholder="选择基础模型"
+                                optionLabelProp="label"
                             >
-                                应用到 Chat
-                            </Button>
+                                {models.map((model) => (
+                                    <Option
+                                        key={model.name}
+                                        value={model.name}
+                                        label={model.name.length > 35 ? `${model.name.substring(0, 35)}...` : model.name}
+                                    >
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-sm truncate flex-1">{model.name}</span>
+                                            <Tag color={model.type === 'base' ? 'blue' : 'green'} style={{ margin: 0 }}>
+                                                {model.type === 'base' ? '基础' : '微调'}
+                                            </Tag>
+                                        </div>
+                                    </Option>
+                                ))}
+                            </Select>
                         </div>
-                        <div style={{
-                            background: '#f6f8fa',
-                            padding: '12px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            color: '#666'
-                        }}>
-                            💡 <strong>提示</strong>：选择模型后点击"应用到 Chat"，LLM 服务会自动重启并加载新模型，无需重启 Studio
-                        </div>
-                    </Space>
-                </Card>
+                        <PrimaryButton
+                            onClick={() => handleSwitchModel(currentModel)}
+                            icon={<ArrowRightCircle size={16} />}
+                        >
+                            应用到 Chat
+                        </PrimaryButton>
+                    </div>
+                    <InfoBanner icon={<Lightbulb size={16} />} type="info">
+                        <strong>提示</strong>：选择模型后点击"应用到 Chat"，LLM 服务会自动重启并加载新模型，无需重启 Studio
+                    </InfoBanner>
+                </SectionCard>
 
                 {/* Create Fine-tune Task */}
-                <Card title="创建微调任务">
+                <SectionCard title="创建微调任务" icon={<Sparkles size={18} />}>
                     <Form
                         form={form}
                         layout="vertical"
@@ -636,182 +751,194 @@ export default function FinetunePanel() {
                         }}
                     >
                         <Form.Item
-                            label="基础模型"
+                            label={<span className="text-[#1F1F1F]">基础模型</span>}
                             name="model_name"
                             tooltip="选择要微调的基础模型（推荐使用 1.5B 模型适配 RTX 3060）"
                             rules={[{ required: true }]}
                         >
                             <Select placeholder="选择基础模型" style={{ width: '100%' }}>
                                 <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>✨ Qwen 2.5 Coder 1.5B (推荐)</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 6-8GB | 时间: 2-4h
-                                        </Text>
+                                    <div className="py-1">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Sparkles size={14} className="text-[#1a73e8]" />
+                                            Qwen 2.5 Coder 1.5B (推荐)
+                                        </div>
+                                        <div className="text-xs text-[#444746] ml-5">显存: 6-8GB | 时间: 2-4h</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-Coder-0.5B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>🚀 Qwen 2.5 Coder 0.5B (超快)</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 2-4GB | 时间: 1-2h | ✅ 推荐新手
-                                        </Text>
-                                    </div>
-                                </Option>
-                                <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>✨ Qwen 2.5 Coder 1.5B</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 4-6GB | 时间: 2-4h | ✅ RTX 3060
-                                        </Text>
+                                    <div className="py-1">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Rocket size={14} className="text-green-500" />
+                                            Qwen 2.5 Coder 0.5B (超快)
+                                        </div>
+                                        <div className="text-xs text-[#444746] ml-5">显存: 2-4GB | 时间: 1-2h | 推荐新手</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-0.5B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>🚀 Qwen 2.5 0.5B (超快)</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 2-4GB | 时间: 1-2h
-                                        </Text>
+                                    <div className="py-1">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Rocket size={14} className="text-green-500" />
+                                            Qwen 2.5 0.5B (超快)
+                                        </div>
+                                        <div className="text-xs text-[#444746] ml-5">显存: 2-4GB | 时间: 1-2h</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-1.5B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>💬 Qwen 2.5 1.5B (通用)</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 4-6GB | 时间: 2-4h
-                                        </Text>
+                                    <div className="py-1">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <MessageSquare size={14} className="text-blue-500" />
+                                            Qwen 2.5 1.5B (通用)
+                                        </div>
+                                        <div className="text-xs text-[#444746] ml-5">显存: 4-6GB | 时间: 2-4h</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-3B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>⚡ Qwen 2.5 3B (高级)</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 8-10GB | 时间: 4-6h | ⚠️ 可能 OOM
-                                        </Text>
+                                    <div className="py-1">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Zap size={14} className="text-amber-500" />
+                                            Qwen 2.5 3B (高级)
+                                        </div>
+                                        <div className="text-xs text-[#444746] ml-5">显存: 8-10GB | 时间: 4-6h | 可能 OOM</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-7B-Instruct">
-                                    <div style={{ lineHeight: '1.4' }}>
-                                        <div style={{ fontSize: '14px', marginBottom: '2px' }}>🔥 Qwen 2.5 7B (需要强卡)</div>
-                                        <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                            显存: 14-16GB | 时间: 8-12h | ❌ RTX 3060
-                                        </Text>
+                                    <div className="py-1">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <AlertCircle size={14} className="text-red-500" />
+                                            Qwen 2.5 7B (需要强卡)
+                                        </div>
+                                        <div className="text-xs text-[#444746] ml-5">显存: 14-16GB | 时间: 8-12h | 不适合 RTX 3060</div>
                                     </div>
                                 </Option>
                             </Select>
                         </Form.Item>
 
-                        <Form.Item label="训练数据集" required>
-                            <Space direction="vertical" style={{ width: '100%' }}>
+                        <Form.Item label={<span className="text-[#1F1F1F]">训练数据集</span>} required>
+                            <div className="space-y-3">
                                 <Radio.Group
                                     onChange={async (e) => {
-                                        const useSageDocs = e.target.value === 'sage-docs'
-                                        if (useSageDocs) {
+                                        if (e.target.value === 'sage-docs') {
                                             await handlePrepareSageDocs()
                                         }
                                     }}
                                     defaultValue="upload"
                                 >
-                                    <Space direction="vertical">
-                                        <Radio value="upload">
-                                            📁 上传本地数据集
-                                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
-                                                支持 JSON/JSONL (Alpaca 格式)
-                                            </Text>
+                                    <div className="space-y-2">
+                                        <Radio value="upload" className="flex items-center">
+                                            <div className="flex items-center gap-2 ml-2">
+                                                <FolderOpen size={16} className="text-[#444746]" />
+                                                <span>上传本地数据集</span>
+                                                <span className="text-xs text-[#444746]">支持 JSON/JSONL (Alpaca 格式)</span>
+                                            </div>
                                         </Radio>
-                                        <Radio value="sage-docs">
-                                            📚 使用 SAGE 官方文档
-                                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
-                                                自动从 GitHub 下载并准备训练数据
-                                            </Text>
+                                        <Radio value="sage-docs" className="flex items-center">
+                                            <div className="flex items-center gap-2 ml-2">
+                                                <FileText size={16} className="text-[#444746]" />
+                                                <span>使用 SAGE 官方文档</span>
+                                                <span className="text-xs text-[#444746]">自动从 GitHub 下载</span>
+                                            </div>
                                         </Radio>
-                                    </Space>
+                                    </div>
                                 </Radio.Group>
 
                                 {uploadedFile && (
-                                    <Text type="success" style={{ fontSize: 12 }}>
-                                        ✅ 数据已准备: {uploadedFile.split('/').pop()}
-                                    </Text>
+                                    <div className="flex items-center gap-2 text-sm text-green-600">
+                                        <CheckCircle size={14} />
+                                        数据已准备: {uploadedFile.split('/').pop()}
+                                    </div>
                                 )}
 
                                 <Upload {...uploadProps}>
-                                    <Button icon={<UploadIcon className="w-4 h-4" />}>点击上传数据集</Button>
+                                    <SecondaryButton icon={<UploadIcon size={16} />}>
+                                        点击上传数据集
+                                    </SecondaryButton>
                                 </Upload>
-                                <Text type="secondary" className="text-xs">
-                                    Alpaca 格式: {'{instruction, input, output}'}
-                                </Text>
-                            </Space>
+                                <p className="text-xs text-[#444746]">
+                                    Alpaca 格式: {'{ instruction, input, output }'}
+                                </p>
+                            </div>
                         </Form.Item>
 
-                        {/* 安全模式预设 */}
-                        <Alert
-                            message="💡 配置建议"
-                            description={
-                                <div className="space-y-2">
-                                    <div>
-                                        针对 RTX 3060 12GB 显卡，推荐使用以下配置以避免 OOM（显存不足）错误：
-                                    </div>
-                                    <Space>
-                                        <Button
-                                            size="small"
-                                            type="primary"
-                                            onClick={() => {
-                                                form.setFieldsValue({
-                                                    num_epochs: 3,
-                                                    batch_size: 1,
-                                                    gradient_accumulation_steps: 16,
-                                                    learning_rate: 0.00005,
-                                                    max_length: 512,
-                                                    load_in_8bit: true,
-                                                })
-                                                message.success('已应用安全配置（推荐）')
-                                            }}
-                                        >
-                                            🛡️ 应用安全配置
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            onClick={() => {
-                                                form.setFieldsValue({
-                                                    num_epochs: 3,
-                                                    batch_size: 2,
-                                                    gradient_accumulation_steps: 8,
-                                                    learning_rate: 0.00005,
-                                                    max_length: 1024,
-                                                    load_in_8bit: true,
-                                                })
-                                                message.success('已应用平衡配置')
-                                            }}
-                                        >
-                                            ⚖️ 平衡配置
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            onClick={() => {
-                                                form.setFieldsValue({
-                                                    num_epochs: 3,
-                                                    batch_size: 4,
-                                                    gradient_accumulation_steps: 4,
-                                                    learning_rate: 0.00005,
-                                                    max_length: 2048,
-                                                    load_in_8bit: false,
-                                                })
-                                                message.warning('高性能配置可能导致 OOM')
-                                            }}
-                                        >
-                                            🚀 高性能配置
-                                        </Button>
-                                    </Space>
+                        {/* Configuration Presets */}
+                        <InfoBanner icon={<Lightbulb size={16} />} type="info">
+                            <div className="space-y-3">
+                                <div>
+                                    针对 RTX 3060 12GB 显卡，推荐使用以下配置以避免 OOM（显存不足）错误：
                                 </div>
-                            }
-                            type="info"
-                            showIcon
-                            className="mb-4"
-                        />
+                                <div className="flex flex-wrap gap-2">
+                                    <SecondaryButton
+                                        size="small"
+                                        icon={<Shield size={14} />}
+                                        onClick={() => {
+                                            form.setFieldsValue({
+                                                num_epochs: 3,
+                                                batch_size: 1,
+                                                gradient_accumulation_steps: 16,
+                                                learning_rate: 0.00005,
+                                                max_length: 512,
+                                                load_in_8bit: true,
+                                            })
+                                            message.success('已应用安全配置（推荐）')
+                                        }}
+                                    >
+                                        安全配置
+                                    </SecondaryButton>
+                                    <SecondaryButton
+                                        size="small"
+                                        icon={<Gauge size={14} />}
+                                        onClick={() => {
+                                            form.setFieldsValue({
+                                                num_epochs: 3,
+                                                batch_size: 2,
+                                                gradient_accumulation_steps: 8,
+                                                learning_rate: 0.00005,
+                                                max_length: 1024,
+                                                load_in_8bit: true,
+                                            })
+                                            message.success('已应用平衡配置')
+                                        }}
+                                    >
+                                        平衡配置
+                                    </SecondaryButton>
+                                    <SecondaryButton
+                                        size="small"
+                                        icon={<Rocket size={14} />}
+                                        onClick={() => {
+                                            form.setFieldsValue({
+                                                num_epochs: 3,
+                                                batch_size: 4,
+                                                gradient_accumulation_steps: 4,
+                                                learning_rate: 0.00005,
+                                                max_length: 2048,
+                                                load_in_8bit: false,
+                                            })
+                                            message.warning('高性能配置可能导致 OOM')
+                                        }}
+                                    >
+                                        高性能配置
+                                    </SecondaryButton>
+                                </div>
+                            </div>
+                        </InfoBanner>
 
-                        <Collapse ghost>
-                            <Panel header="高级配置" key="1">
-                                <div className="grid grid-cols-2 gap-4">
+                        <Collapse
+                            ghost
+                            className="mt-4"
+                            expandIcon={({ isActive }) => (
+                                <ChevronDown size={16} className={`transition-transform ${isActive ? 'rotate-180' : ''}`} />
+                            )}
+                        >
+                            <Panel
+                                header={
+                                    <span className="flex items-center gap-2 text-[#444746]">
+                                        <Settings size={16} />
+                                        高级配置
+                                    </span>
+                                }
+                                key="1"
+                            >
+                                <div className="grid grid-cols-2 gap-4 pt-2">
                                     <Form.Item label="训练轮数 (Epochs)" name="num_epochs">
                                         <InputNumber min={1} max={10} className="w-full" />
                                     </Form.Item>
@@ -839,50 +966,49 @@ export default function FinetunePanel() {
                             </Panel>
                         </Collapse>
 
-                        <Divider />
-
-                        <Form.Item>
-                            <Button
-                                type="primary"
-                                htmlType="submit"
+                        <div className="border-t border-[#E8EAED] pt-6 mt-6">
+                            <PrimaryButton
                                 loading={loading}
-                                icon={<Play className="w-4 h-4" />}
+                                icon={<Play size={16} />}
                                 size="large"
+                                onClick={() => form.submit()}
                             >
                                 开始微调
-                            </Button>
-                        </Form.Item>
+                            </PrimaryButton>
+                        </div>
                     </Form>
-                </Card>
+                </SectionCard>
 
                 {/* Task List */}
-                <Card title="微调任务列表">
+                <SectionCard title="微调任务列表" icon={<FileText size={18} />}>
                     <Table
                         dataSource={tasks}
                         columns={taskColumns}
                         rowKey="task_id"
                         pagination={{ pageSize: 10 }}
+                        className="gemini-table"
                         expandable={{
                             expandedRowRender: (record) => (
-                                <div className="bg-gray-50 p-4 rounded">
-                                    <Title level={5}>训练日志</Title>
-                                    <div className="bg-black text-green-400 p-4 rounded font-mono text-sm max-h-64 overflow-auto">
+                                <div className="bg-[#F0F4F9] p-4 rounded-xl">
+                                    <h4 className="text-sm font-medium text-[#1F1F1F] mb-2">训练日志</h4>
+                                    <div className="bg-[#1F1F1F] text-green-400 p-4 rounded-lg font-mono text-xs max-h-64 overflow-auto">
                                         {record.logs.length > 0 ? (
                                             record.logs.map((log, idx) => <div key={idx}>{log}</div>)
                                         ) : (
-                                            <Text type="secondary">暂无日志</Text>
+                                            <span className="text-[#444746]">暂无日志</span>
                                         )}
                                     </div>
                                     {record.error_message && (
-                                        <div className="mt-4">
-                                            <Text type="danger">错误信息: {record.error_message}</Text>
+                                        <div className="mt-4 flex items-center gap-2 text-red-600 text-sm">
+                                            <XCircle size={14} />
+                                            错误信息: {record.error_message}
                                         </div>
                                     )}
                                 </div>
                             ),
                         }}
                     />
-                </Card>
+                </SectionCard>
             </div>
         </div>
     )

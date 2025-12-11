@@ -151,6 +151,7 @@ function StudioLayout() {
                     height: 64,
                     lineHeight: 'normal',
                     flexShrink: 0,
+                    background: '#FFFFFF',
                 }}
             >
                 <Toolbar mode={mode} onModeChange={setMode} />

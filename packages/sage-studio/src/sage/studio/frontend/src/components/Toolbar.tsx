@@ -1,5 +1,15 @@
+/**
+ * Toolbar Component - Gemini-style navigation bar for SAGE Studio
+ *
+ * Design follows the Gemini design system:
+ * - Clean white background with subtle border
+ * - Pill-shaped buttons with smooth hover transitions
+ * - Accent color: #1a73e8 (Gemini blue)
+ * - Consistent with ChatMode's visual language
+ */
+
 import { useState, useEffect } from 'react'
-import { Button, Space, Tooltip, Modal, Input, message, List, Upload, Segmented, Dropdown, Avatar } from 'antd'
+import { Modal, Input, message, List, Upload, Button } from 'antd'
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import {
     Play,
@@ -16,6 +26,7 @@ import {
     Settings as SettingsIcon,
     Layout as LayoutIcon,
     Zap,
+    User,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
@@ -26,6 +37,178 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import Playground from './Playground'
 import Settings from './Settings'
 import type { AppMode } from '../App'
+
+// ============================================================================
+// Gemini-Style UI Components
+// ============================================================================
+
+/** SAGE Logo for the toolbar */
+function SageLogo() {
+    return (
+        <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Zap size={16} className="text-white" />
+            </div>
+            <span className="text-lg font-medium text-[#1F1F1F]">SAGE Studio</span>
+        </div>
+    )
+}
+
+/** Gemini-style icon button */
+function IconButton({
+    icon,
+    label,
+    onClick,
+    disabled = false,
+    primary = false,
+    loading = false,
+}: {
+    icon: React.ReactNode
+    label: string
+    onClick?: () => void
+    disabled?: boolean
+    primary?: boolean
+    loading?: boolean
+}) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled || loading}
+            className={`
+                flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium
+                transition-all duration-200 ease-out
+                disabled:opacity-50 disabled:cursor-not-allowed
+                ${primary
+                    ? 'bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:shadow-md'
+                    : 'text-[#444746] hover:bg-[#E3E8EE]'
+                }
+            `}
+            title={label}
+        >
+            {loading ? (
+                <span className="animate-spin">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                </span>
+            ) : icon}
+            <span className="hidden sm:inline">{label}</span>
+        </button>
+    )
+}
+
+/** Mode switcher pill component */
+function ModeSwitcher({
+    mode,
+    onModeChange,
+}: {
+    mode: AppMode
+    onModeChange: (mode: AppMode) => void
+}) {
+    const modes = [
+        { value: 'chat' as const, label: 'Chat', icon: <MessageSquare size={16} /> },
+        { value: 'canvas' as const, label: 'Canvas', icon: <LayoutIcon size={16} /> },
+        { value: 'finetune' as const, label: 'Finetune', icon: <Zap size={16} /> },
+    ]
+
+    return (
+        <div className="flex items-center bg-[#F0F4F9] rounded-full p-1">
+            {modes.map(({ value, label, icon }) => (
+                <button
+                    key={value}
+                    onClick={() => onModeChange(value)}
+                    className={`
+                        flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium
+                        transition-all duration-200 ease-out
+                        ${mode === value
+                            ? 'bg-white text-[#1a73e8] shadow-sm'
+                            : 'text-[#444746] hover:text-[#1F1F1F]'
+                        }
+                    `}
+                >
+                    {icon}
+                    <span>{label}</span>
+                </button>
+            ))}
+        </div>
+    )
+}
+
+/** User menu dropdown */
+function UserMenu({
+    user,
+    isAuthenticated,
+    onLogout,
+}: {
+    user: any
+    isAuthenticated: boolean
+    onLogout: () => void
+}) {
+    const [isOpen, setIsOpen] = useState(false)
+
+    if (!isAuthenticated) {
+        return (
+            <button
+                onClick={() => (window.location.href = '/login')}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#1a73e8] text-white hover:bg-[#1557b0] transition-all duration-200"
+            >
+                Login
+            </button>
+        )
+    }
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 p-1 rounded-full hover:bg-[#E3E8EE] transition-all duration-200"
+            >
+                <div className="w-8 h-8 rounded-full bg-[#1a73e8] flex items-center justify-center text-white text-sm font-medium">
+                    {user?.username?.[0]?.toUpperCase() || <User size={16} />}
+                </div>
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8EAED] py-2 z-50">
+                        <div className="px-4 py-2 border-b border-[#E8EAED]">
+                            <div className="text-sm font-medium text-[#1F1F1F]">{user?.username || 'User'}</div>
+                            {user?.is_guest && <div className="text-xs text-[#444746]">Guest Mode</div>}
+                        </div>
+                        {user?.is_guest && (
+                            <button
+                                onClick={() => {
+                                    setIsOpen(false)
+                                    window.location.href = '/login'
+                                }}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#444746] hover:bg-[#F0F4F9] transition-colors"
+                            >
+                                <UserOutlined className="text-base" />
+                                Login / Sign up
+                            </button>
+                        )}
+                        <button
+                            onClick={() => {
+                                setIsOpen(false)
+                                onLogout()
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogoutOutlined className="text-base" />
+                            {user?.is_guest ? 'Exit Guest Mode' : 'Logout'}
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
+    )
+}
+
+// ============================================================================
+// Main Toolbar Component
+// ============================================================================
 
 interface ToolbarProps {
     mode: AppMode
@@ -327,242 +510,126 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
 
     return (
         <>
-            <div className="toolbar">
-                <div className="flex items-center justify-between w-full">
-                    {/* 左侧: Logo */}
-                    <div className="flex items-center gap-4">
-                        <span className="text-lg font-bold text-gray-800 ml-4">
-                            SAGE Studio
-                        </span>
-                    </div>
+            {/* Gemini-style Toolbar */}
+            <div className="h-16 px-4 flex items-center justify-between bg-white border-b border-[#E8EAED]">
+                {/* Left: Logo */}
+                <SageLogo />
 
-                    {/* 中间: 根据模式显示不同的工具 */}
-                    <Space size="small">
-                        {mode === 'canvas' ? (
-                            // Canvas 模式: 显示编辑工具
-                            <>
-                                <Tooltip title="运行流程">
-                                    <Button
-                                        type="primary"
-                                        icon={<Play size={16} />}
-                                        onClick={handleRun}
-                                        disabled={nodes.length === 0 || running}
-                                        loading={running}
-                                    >
-                                        运行
-                                    </Button>
-                                </Tooltip>
-
-                                <Tooltip title="停止">
-                                    <Button
-                                        icon={<Square size={16} />}
-                                        onClick={handleStop}
-                                        disabled={!currentJobId}
-                                    >
-                                        停止
-                                    </Button>
-                                </Tooltip>
-
-                                <Tooltip title="Playground">
-                                    <Button
-                                        icon={<MessageSquare size={16} />}
-                                        onClick={() => setPlaygroundOpen(true)}
-                                        disabled={nodes.length === 0}
-                                    >
-                                        Playground
-                                    </Button>
-                                </Tooltip>
-
-                                <div className="h-6 w-px bg-gray-300 mx-2" />
-
-                                <Tooltip title="保存流程">
-                                    <Button
-                                        icon={<Save size={16} />}
-                                        onClick={() => setSaveModalOpen(true)}
-                                        disabled={nodes.length === 0}
-                                    >
-                                        保存
-                                    </Button>
-                                </Tooltip>
-
-                                <Tooltip title="打开流程">
-                                    <Button
-                                        icon={<FolderOpen size={16} />}
-                                        onClick={handleOpenLoadModal}
-                                    >
-                                        打开
-                                    </Button>
-                                </Tooltip>
-
-                                <Tooltip title="导出流程">
-                                    <Button
-                                        icon={<Download size={16} />}
-                                        onClick={handleExport}
-                                        disabled={!currentJobId}
-                                    >
-                                        导出
-                                    </Button>
-                                </Tooltip>
-
-                                <Tooltip title="导入流程">
-                                    <Upload
-                                        accept=".json"
-                                        showUploadList={false}
-                                        beforeUpload={handleImport}
-                                    >
-                                        <Button icon={<UploadIcon size={16} />}>
-                                            导入
-                                        </Button>
-                                    </Upload>
-                                </Tooltip>
-
-                                <div className="h-6 w-px bg-gray-300 mx-2" />
-
-                                <Tooltip title="撤销">
-                                    <Button
-                                        icon={<UndoIcon size={16} />}
-                                        onClick={undo}
-                                        disabled={!canUndo}
-                                    />
-                                </Tooltip>
-
-                                <Tooltip title="重做">
-                                    <Button
-                                        icon={<RedoIcon size={16} />}
-                                        onClick={redo}
-                                        disabled={!canRedo}
-                                    />
-                                </Tooltip>
-
-                                <div className="h-6 w-px bg-gray-300 mx-2" />
-
-                                <Tooltip title="放大">
-                                    <Button
-                                        icon={<ZoomIn size={16} />}
-                                        onClick={() => reactFlowInstance?.zoomIn()}
-                                    />
-                                </Tooltip>
-
-                                <Tooltip title="缩小">
-                                    <Button
-                                        icon={<ZoomOut size={16} />}
-                                        onClick={() => reactFlowInstance?.zoomOut()}
-                                    />
-                                </Tooltip>
-
-                                <div className="h-6 w-px bg-gray-300 mx-2" />
-                            </>
-                        ) : mode === 'chat' ? (
-                            // Chat 模式: 显示提示信息
-                            <div style={{ color: '#888', fontSize: 14 }}>
-                                💬 Chat Mode - 智能对话与 RAG 检索增强
-                            </div>
-                        ) : (
-                            // Finetune 模式: 显示提示信息
-                            <div style={{ color: '#888', fontSize: 14 }}>
-                                🔧 Finetune Mode - 模型微调与管理
-                            </div>
-                        )}
-                    </Space>
-
-                    {/* 🆕 右侧: 模式切换按钮 (醒目位置) */}
-                    <Space size="middle">
-                        {/* 模式切换 */}
-                        <Segmented
-                            value={mode}
-                            onChange={(value) => onModeChange(value as AppMode)}
-                            options={[
-                                {
-                                    label: (
-                                        <div className="flex items-center gap-2">
-                                            <MessageSquare size={16} />
-                                            <span>Chat</span>
-                                        </div>
-                                    ),
-                                    value: 'chat',
-                                },
-                                {
-                                    label: (
-                                        <div className="flex items-center gap-2">
-                                            <LayoutIcon size={16} />
-                                            <span>Canvas</span>
-                                        </div>
-                                    ),
-                                    value: 'canvas',
-                                },
-                                {
-                                    label: (
-                                        <div className="flex items-center gap-2">
-                                            <Zap size={16} />
-                                            <span>Finetune</span>
-                                        </div>
-                                    ),
-                                    value: 'finetune',
-                                },
-                            ]}
-                            style={{
-                                background: '#1890ff',
-                                padding: 2,
-                            }}
-                        />
-
-                        {/* 设置按钮 */}
-                        <Tooltip title="设置">
-                            <Button
-                                icon={<SettingsIcon size={16} />}
-                                onClick={() => setSettingsOpen(true)}
+                {/* Center: Mode-specific tools */}
+                <div className="flex items-center gap-2">
+                    {mode === 'canvas' && (
+                        // Canvas mode: Show editing tools
+                        <>
+                            <IconButton
+                                icon={<Play size={16} />}
+                                label="运行"
+                                onClick={handleRun}
+                                disabled={nodes.length === 0 || running}
+                                loading={running}
+                                primary
                             />
-                        </Tooltip>
+                            <IconButton
+                                icon={<Square size={16} />}
+                                label="停止"
+                                onClick={handleStop}
+                                disabled={!currentJobId}
+                            />
+                            <IconButton
+                                icon={<MessageSquare size={16} />}
+                                label="Playground"
+                                onClick={() => setPlaygroundOpen(true)}
+                                disabled={nodes.length === 0}
+                            />
 
-                        {/* 如果未认证，显示登录按钮；已认证（包括 guest）显示头像菜单 */}
-                        {!isAuthenticated ? (
-                            <Button type="primary" onClick={() => (window.location.href = '/login')}>
-                                Login
-                            </Button>
-                        ) : (
-                            <Dropdown
-                                menu={{
-                                    items: [
-                                        {
-                                            key: 'user',
-                                            label: user?.username || 'User',
-                                            icon: <UserOutlined />,
-                                            disabled: true,
-                                        },
-                                        {
-                                            type: 'divider',
-                                        },
-                                        ...(user?.is_guest
-                                            ? [
-                                                  {
-                                                      key: 'login',
-                                                      label: 'Login / Sign up',
-                                                      icon: <UserOutlined />,
-                                                      onClick: () => (window.location.href = '/login'),
-                                                  },
-                                              ]
-                                            : []),
-                                        {
-                                            key: 'logout',
-                                            label: user?.is_guest ? 'Exit Guest Mode' : 'Logout',
-                                            icon: <LogoutOutlined />,
-                                            onClick: logout,
-                                            danger: true,
-                                        },
-                                    ],
-                                }}
-                                placement="bottomRight"
+                            <div className="h-6 w-px bg-[#E8EAED] mx-1" />
+
+                            <IconButton
+                                icon={<Save size={16} />}
+                                label="保存"
+                                onClick={() => setSaveModalOpen(true)}
+                                disabled={nodes.length === 0}
+                            />
+                            <IconButton
+                                icon={<FolderOpen size={16} />}
+                                label="打开"
+                                onClick={handleOpenLoadModal}
+                            />
+                            <IconButton
+                                icon={<Download size={16} />}
+                                label="导出"
+                                onClick={handleExport}
+                                disabled={!currentJobId}
+                            />
+                            <Upload
+                                accept=".json"
+                                showUploadList={false}
+                                beforeUpload={handleImport}
                             >
-                                <Avatar style={{ backgroundColor: '#1890ff', cursor: 'pointer' }} icon={<UserOutlined />}>
-                                    {user?.username?.[0]?.toUpperCase()}
-                                </Avatar>
-                            </Dropdown>
-                        )}
-                    </Space>
+                                <IconButton
+                                    icon={<UploadIcon size={16} />}
+                                    label="导入"
+                                />
+                            </Upload>
+
+                            <div className="h-6 w-px bg-[#E8EAED] mx-1" />
+
+                            <button
+                                onClick={undo}
+                                disabled={!canUndo}
+                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                title="撤销"
+                            >
+                                <UndoIcon size={16} />
+                            </button>
+                            <button
+                                onClick={redo}
+                                disabled={!canRedo}
+                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                title="重做"
+                            >
+                                <RedoIcon size={16} />
+                            </button>
+
+                            <div className="h-6 w-px bg-[#E8EAED] mx-1" />
+
+                            <button
+                                onClick={() => reactFlowInstance?.zoomIn()}
+                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] transition-all duration-200"
+                                title="放大"
+                            >
+                                <ZoomIn size={16} />
+                            </button>
+                            <button
+                                onClick={() => reactFlowInstance?.zoomOut()}
+                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] transition-all duration-200"
+                                title="缩小"
+                            >
+                                <ZoomOut size={16} />
+                            </button>
+                        </>
+                    )}
+                </div>
+
+                {/* Right: Mode switcher (always) + Settings + User */}
+                <div className="flex items-center gap-3">
+                    <ModeSwitcher mode={mode} onModeChange={onModeChange} />
+
+                    <button
+                        onClick={() => setSettingsOpen(true)}
+                        className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] transition-all duration-200"
+                        title="设置"
+                    >
+                        <SettingsIcon size={18} />
+                    </button>
+
+                    <UserMenu
+                        user={user}
+                        isAuthenticated={isAuthenticated}
+                        onLogout={logout}
+                    />
                 </div>
             </div>
 
-            {/* Modals */}
             {/* Modals */}
             <Playground />
             <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />

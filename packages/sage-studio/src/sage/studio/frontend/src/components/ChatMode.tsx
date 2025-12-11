@@ -1,32 +1,36 @@
 /**
- * Chat Mode Component - ChatGPT-style interface for SAGE
+ * Chat Mode Component - Gemini-style interface for SAGE
+ *
+ * Design inspired by Google Gemini's clean, modern aesthetic:
+ * - Sidebar: #F0F4F9 background with rounded-full hover states
+ * - Main area: Pure white (#FFFFFF) with centered content (max-w-[830px])
+ * - Floating capsule input bar with focus transitions
+ * - User messages: Right-aligned with light grey bubbles
+ * - AI messages: Left-aligned, no bubble, clean typography
  */
 
 import React, { useEffect, useRef, useState } from 'react'
 import type { Edge, Node } from 'reactflow'
 import {
-    Button,
-    Input,
     Tooltip,
     Dropdown,
-    Empty,
     Spin,
     message as antMessage,
-    Typography,
-    Space,
 } from 'antd'
 import {
     Send,
     Plus,
     Trash2,
     MessageSquare,
-    User,
-    Bot,
-    MoreVertical,
+    MoreHorizontal,
     Loader,
     Sparkles,
-    ArrowRightCircle,
-    Upload as UploadIcon,
+    ArrowRight,
+    PanelLeftClose,
+    PanelLeft,
+    Mic,
+    ChevronDown,
+    Zap,
 } from 'lucide-react'
 import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
@@ -46,7 +50,307 @@ import {
 import { useFlowStore } from '../store/flowStore'
 import type { AppMode } from '../App'
 
-const { TextArea } = Input
+// ============================================================================
+// Sub-Components
+// ============================================================================
+
+/** SAGE Logo Icon for AI messages */
+function SageLogo({ className = '' }: { className?: string }) {
+    return (
+        <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ${className}`}>
+            <Zap size={16} className="text-white" />
+        </div>
+    )
+}
+
+/** Session list item in sidebar */
+function SessionItem({
+    session,
+    isActive,
+    onClick,
+    onDelete,
+}: {
+    session: ChatSessionSummary
+    isActive: boolean
+    onClick: () => void
+    onDelete: () => void
+}) {
+    return (
+        <div
+            className={`
+                group flex items-center gap-3 px-3 py-2.5 mx-2 rounded-full cursor-pointer
+                transition-all duration-200 ease-out
+                ${isActive
+                    ? 'bg-[#D3E3FD] text-[#1F1F1F]'
+                    : 'hover:bg-[#E3E8EE] text-[#444746]'
+                }
+            `}
+            onClick={onClick}
+        >
+            <MessageSquare size={18} className="flex-shrink-0" />
+            <span className="flex-1 text-sm truncate font-medium">
+                {session.title}
+            </span>
+            <Dropdown
+                menu={{
+                    items: [
+                        {
+                            key: 'delete',
+                            label: 'Delete',
+                            danger: true,
+                            onClick: (e) => {
+                                e.domEvent.stopPropagation()
+                                onDelete()
+                            },
+                        },
+                    ],
+                }}
+                trigger={['click']}
+            >
+                <button
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-[#D3E3FD] transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <MoreHorizontal size={16} />
+                </button>
+            </Dropdown>
+        </div>
+    )
+}
+
+/** Model selector dropdown in header */
+function ModelSelector({ llmStatus }: { llmStatus: LLMStatus | null }) {
+    const modelName = llmStatus?.model_name
+        ? (llmStatus.model_name.split('/').pop() || llmStatus.model_name.split('__').pop() || 'Unknown')
+        : 'SAGE'
+
+    const isLocal = llmStatus?.is_local
+    const isHealthy = llmStatus?.healthy
+
+    return (
+        <Dropdown
+            menu={{
+                items: [
+                    {
+                        key: 'current',
+                        label: (
+                            <div className="py-1">
+                                <div className="font-medium">{modelName}</div>
+                                <div className="text-xs text-gray-500">
+                                    {isLocal ? 'Local Model' : 'Cloud Model'} · {isHealthy ? 'Connected' : 'Disconnected'}
+                                </div>
+                            </div>
+                        ),
+                        disabled: true,
+                    },
+                ],
+            }}
+            trigger={['click']}
+        >
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F0F4F9] transition-colors">
+                <span className="text-sm font-medium text-[#1F1F1F]">
+                    {modelName}
+                </span>
+                <ChevronDown size={16} className="text-[#444746]" />
+                {isHealthy && (
+                    <span className="w-2 h-2 bg-green-500 rounded-full" />
+                )}
+            </button>
+        </Dropdown>
+    )
+}
+
+/** Floating input bar - Gemini style */
+function ChatInput({
+    value,
+    onChange,
+    onSend,
+    onUpload,
+    disabled,
+    isSending,
+}: {
+    value: string
+    onChange: (value: string) => void
+    onSend: () => void
+    onUpload: () => void
+    disabled: boolean
+    isSending: boolean
+}) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const [isFocused, setIsFocused] = useState(false)
+
+    // Auto-resize textarea
+    useEffect(() => {
+        const textarea = textareaRef.current
+        if (textarea) {
+            textarea.style.height = 'auto'
+            textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+        }
+    }, [value])
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            onSend()
+        }
+    }
+
+    return (
+        <div className="w-full max-w-[830px] mx-auto px-4 pb-6">
+            <div
+                className={`
+                    relative flex flex-col rounded-[28px] transition-all duration-200
+                    ${isFocused
+                        ? 'bg-white shadow-lg ring-1 ring-gray-200'
+                        : 'bg-[#F0F4F9]'
+                    }
+                `}
+            >
+                {/* Textarea */}
+                <textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder="Ask SAGE anything..."
+                    disabled={disabled}
+                    rows={1}
+                    className={`
+                        w-full px-6 pt-4 pb-2 bg-transparent resize-none outline-none
+                        text-[#1F1F1F] text-base placeholder:text-[#444746]/60
+                        min-h-[24px] max-h-[200px]
+                    `}
+                />
+
+                {/* Bottom toolbar */}
+                <div className="flex items-center justify-between px-3 pb-3">
+                    {/* Left: Upload button */}
+                    <div className="flex items-center gap-1">
+                        <Tooltip title="Upload files">
+                            <button
+                                onClick={onUpload}
+                                className="p-2.5 rounded-full hover:bg-[#E3E8EE] transition-colors text-[#444746]"
+                            >
+                                <Plus size={20} />
+                            </button>
+                        </Tooltip>
+                        <Tooltip title="Voice input (coming soon)">
+                            <button
+                                className="p-2.5 rounded-full hover:bg-[#E3E8EE] transition-colors text-[#444746] opacity-50 cursor-not-allowed"
+                                disabled
+                            >
+                                <Mic size={20} />
+                            </button>
+                        </Tooltip>
+                    </div>
+
+                    {/* Right: Send button */}
+                    <button
+                        onClick={onSend}
+                        disabled={!value.trim() || disabled}
+                        className={`
+                            p-2.5 rounded-full transition-all duration-200
+                            ${value.trim() && !disabled
+                                ? 'bg-[#1F1F1F] text-white hover:bg-[#444746]'
+                                : 'bg-[#E8EAED] text-[#444746]/40 cursor-not-allowed'
+                            }
+                        `}
+                    >
+                        {isSending ? (
+                            <Loader size={20} className="animate-spin" />
+                        ) : (
+                            <Send size={20} />
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Disclaimer */}
+            <p className="text-center text-xs text-[#444746]/70 mt-3">
+                SAGE may display inaccurate info, including about people, so double-check its responses.
+            </p>
+        </div>
+    )
+}
+
+/** Single message bubble */
+function MessageBubble({
+    message,
+    isStreaming,
+    streamingMessageId,
+}: {
+    message: ChatMessage
+    isStreaming: boolean
+    streamingMessageId: string | null
+}) {
+    const isUser = message.role === 'user'
+
+    if (isUser) {
+        // User message: Right-aligned, light grey bubble
+        return (
+            <div className="flex justify-end mb-6">
+                <div className="flex items-start gap-3 max-w-[80%]">
+                    <div
+                        className={`
+                            px-5 py-3 rounded-[20px] rounded-tr-sm
+                            bg-[#F0F4F9] text-[#1F1F1F]
+                        `}
+                    >
+                        <p className="whitespace-pre-wrap break-words text-base leading-relaxed">
+                            {message.content}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // AI message: Left-aligned, no bubble, with SAGE logo
+    return (
+        <div className="flex justify-start mb-8">
+            <div className="flex items-start gap-4 max-w-full">
+                {/* SAGE Avatar */}
+                <SageLogo className="flex-shrink-0 mt-1" />
+
+                {/* Message content */}
+                <div className="flex-1 min-w-0">
+                    <MessageContent
+                        content={message.content}
+                        isUser={false}
+                        isStreaming={isStreaming && streamingMessageId === message.id}
+                        streamingMessageId={streamingMessageId}
+                        messageId={message.id}
+                        reasoningSteps={message.reasoningSteps}
+                        isReasoning={message.isReasoning}
+                    />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/** Empty state when no messages */
+function EmptyState() {
+    return (
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6">
+                <Zap size={32} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-normal text-[#1F1F1F] mb-2">
+                Hello, how can I help you today?
+            </h2>
+            <p className="text-[#444746] text-base">
+                Start a conversation with SAGE
+            </p>
+        </div>
+    )
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 interface ChatModeProps {
     onModeChange?: (mode: AppMode) => void
@@ -82,15 +386,15 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const { setNodes, setEdges } = useFlowStore()
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
-    const textAreaRef = useRef<any>(null)
     const [isSending, setIsSending] = useState(false)
     const [isConverting, setIsConverting] = useState(false)
     const [recommendationSummary, setRecommendationSummary] = useState<string | null>(null)
     const [recommendationInsights, setRecommendationInsights] = useState<string[]>([])
     const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null)
     const [isUploadVisible, setIsUploadVisible] = useState(false)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-    //自动滚动到底部
+    // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages[currentSessionId || '']])
@@ -98,7 +402,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     useEffect(() => {
         loadSessions()
         loadLLMStatus()
-        // 每 10 秒刷新一次 LLM 状态
         const interval = setInterval(loadLLMStatus, 10000)
         return () => clearInterval(interval)
     }, [])
@@ -112,13 +415,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         }
     }
 
-    // 自动聚焦输入框
-    useEffect(() => {
-        if (!isStreaming && textAreaRef.current) {
-            textAreaRef.current.focus()
-        }
-    }, [isStreaming])
-
     useEffect(() => {
         setRecommendationSummary(null)
         setRecommendationInsights([])
@@ -130,7 +426,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             const sessionList = await getChatSessions()
             setSessions(sessionList)
 
-            // 如果没有当前会话且有会话列表，选择第一个
             if (!currentSessionId && sessionList.length > 0) {
                 setCurrentSessionId(sessionList[0].id)
                 await loadSessionMessages(sessionList[0].id)
@@ -147,7 +442,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             const detail = await getChatSessionDetail(sessionId)
 
             const mappedMessages: ChatMessage[] = detail.messages.map((msg, index) => {
-                // 从后端 metadata.reasoningSteps 读取推理步骤（方案A：后端存储）
                 const reasoningSteps = msg.metadata?.reasoningSteps as ReasoningStep[] | undefined
 
                 return {
@@ -156,7 +450,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                     content: msg.content,
                     timestamp: msg.timestamp,
                     metadata: msg.metadata,
-                    // 从后端 metadata 恢复推理步骤
                     reasoningSteps: reasoningSteps,
                     isReasoning: false,
                 }
@@ -168,14 +461,12 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             })
         } catch (error: any) {
             console.error('Failed to load session messages:', error)
-            // 如果是 404 错误，会话可能已被删除
             if (error?.response?.status === 404) {
-                antMessage.error('会话不存在或已过期，请创建新会话')
+                antMessage.error('Session not found or expired')
                 removeSession(sessionId)
             } else {
-                antMessage.error('加载会话消息失败')
+                antMessage.error('Failed to load messages')
             }
-            // 清空当前选择，避免 UI 卡住
             if (currentSessionId === sessionId) {
                 setCurrentSessionId(null)
             }
@@ -192,7 +483,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         setIsSending(true)
 
         try {
-            // 如果没有当前会话，创建一个新会话
             let sessionId = currentSessionId
             if (!sessionId) {
                 const newSession = await createChatSession()
@@ -208,7 +498,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 setCurrentSessionId(sessionId)
             }
 
-            // 添加用户消息
             const userMessage: ChatMessage = {
                 id: `msg_${Date.now()}_user`,
                 role: 'user',
@@ -217,7 +506,6 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             }
             addMessage(sessionId, userMessage)
 
-            // 创建 AI 消消息占位符
             const assistantMessageId = `msg_${Date.now()}_assistant`
             const assistantMessage: ChatMessage = {
                 id: assistantMessageId,
@@ -225,76 +513,57 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 content: '',
                 timestamp: new Date().toISOString(),
                 isStreaming: true,
-                isReasoning: true,  // 初始处于推理状态
+                isReasoning: true,
                 reasoningSteps: [],
             }
             addMessage(sessionId, assistantMessage)
 
-            // 开始流式响应
             setIsStreaming(true)
             setStreamingMessageId(assistantMessageId)
 
-            // 调用 API（SSE 流式）
             await sendChatMessage(
                 userMessageContent,
                 sessionId,
                 (chunk: string) => {
-                    // 流式更新消息内容
                     appendToMessage(sessionId, assistantMessageId, chunk)
                 },
                 (error: Error) => {
-                    // 错误处理
                     console.error('Streaming error:', error)
-                    antMessage.error(`发送失败: ${error.message}`)
+                    antMessage.error(`Failed: ${error.message}`)
                     setIsStreaming(false)
                     setStreamingMessageId(null)
                     setMessageReasoning(sessionId, assistantMessageId, false)
                 },
                 () => {
-                    // 完成回调
                     setIsStreaming(false)
                     setStreamingMessageId(null)
                     setMessageReasoning(sessionId, assistantMessageId, false)
 
-                    // 更新会话列表（消息数+1）
-                    // 注：推理步骤已由后端保存到 metadata，刷新页面后会自动恢复
                     updateSessionStats(sessionId!, {
                         message_count: (messages[sessionId!] || []).length,
                         last_active: new Date().toISOString(),
                     })
                 },
-                // 推理步骤回调
                 {
                     onReasoningStep: (step) => {
-                        // 添加新的推理步骤
                         addReasoningStep(sessionId, assistantMessageId, step as ReasoningStep)
                     },
                     onReasoningStepUpdate: (stepId, updates) => {
-                        // 更新推理步骤状态
                         updateReasoningStep(sessionId, assistantMessageId, stepId, updates)
                     },
                     onReasoningContent: (stepId, content) => {
-                        // 追加推理内容
                         appendToReasoningStep(sessionId, assistantMessageId, stepId, content)
                     },
                     onReasoningEnd: () => {
-                        // 推理阶段结束
                         setMessageReasoning(sessionId, assistantMessageId, false)
                     },
                 }
             )
         } catch (error) {
             console.error('Send message error:', error)
-            antMessage.error('发送消息失败')
+            antMessage.error('Failed to send message')
         } finally {
             setIsSending(false)
-        }
-    }
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            handleSendMessage()
         }
     }
 
@@ -313,7 +582,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             setCurrentSessionId(newSession.id)
             setCurrentInput('')
         } catch (error) {
-            antMessage.error('创建会话失败')
+            antMessage.error('Failed to create chat')
         } finally {
             setIsLoading(false)
         }
@@ -323,10 +592,10 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         try {
             await deleteChatSession(sessionId)
             removeSession(sessionId)
-            antMessage.success('会话已删除')
+            antMessage.success('Chat deleted')
         } catch (error) {
             console.error('Delete session error:', error)
-            antMessage.error('删除会话失败')
+            antMessage.error('Failed to delete chat')
         }
     }
 
@@ -335,9 +604,9 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
         try {
             await clearSessionApi(currentSessionId)
             clearCurrentSession()
-            antMessage.success('当前会话已清空')
+            antMessage.success('Chat cleared')
         } catch (_error) {
-            antMessage.error('清空会话失败')
+            antMessage.error('Failed to clear chat')
         }
     }
 
@@ -350,12 +619,11 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             const recommendation = await convertChatSessionToPipeline(currentSessionId)
 
             if (!recommendation.success) {
-                throw new Error(recommendation.error || '工作流生成失败')
+                throw new Error(recommendation.error || 'Failed to generate workflow')
             }
 
             const { visual_pipeline } = recommendation
 
-            // 转换 connections 为 edges 格式
             const edges = visual_pipeline.connections.map((conn) => ({
                 id: conn.id,
                 source: conn.source,
@@ -367,11 +635,11 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
             setNodes(visual_pipeline.nodes as Node[])
             setEdges(edges as Edge[])
             setRecommendationSummary(recommendation.message || visual_pipeline.description)
-            setRecommendationInsights([`工作流: ${visual_pipeline.name}`])
-            antMessage.success(`已生成推荐：${visual_pipeline.name}`)
+            setRecommendationInsights([`Workflow: ${visual_pipeline.name}`])
+            antMessage.success(`Generated: ${visual_pipeline.name}`)
         } catch (error) {
             console.error('Convert error', error)
-            antMessage.error(error instanceof Error ? error.message : '无法生成推荐管道')
+            antMessage.error(error instanceof Error ? error.message : 'Cannot generate pipeline')
         } finally {
             setIsConverting(false)
         }
@@ -380,290 +648,180 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const currentMessages = messages[currentSessionId || ''] || []
 
     return (
-        <div className="h-full flex">
-            {/* 左侧会话列表 */}
-            <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
-                {/* 新建按钮 */}
-                <div className="p-4 border-b border-gray-200">
-                    <Button
-                        type="primary"
-                        icon={<Plus size={16} />}
+        <div className="h-full flex bg-white">
+            {/* ================================================================
+                Sidebar - Gemini Style
+            ================================================================ */}
+            <div
+                className={`
+                    flex flex-col bg-[#F0F4F9] transition-all duration-300 ease-out
+                    ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[280px]'}
+                `}
+            >
+                {/* New Chat Button */}
+                <div className="p-3">
+                    <button
                         onClick={handleNewChat}
-                        block
                         disabled={isStreaming}
+                        className={`
+                            flex items-center gap-3 w-full px-4 py-3 rounded-full
+                            bg-[#DDE3EA] text-[#444746] font-medium text-sm
+                            hover:bg-white hover:shadow-md transition-all duration-200
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                        `}
                     >
-                        New Chat
-                    </Button>
+                        <Plus size={20} />
+                        <span>New chat</span>
+                    </button>
                 </div>
 
-                {/* 会话列表 */}
-                <div className="flex-1 overflow-y-auto p-2">
+                {/* Session List */}
+                <div className="flex-1 overflow-y-auto gemini-scrollbar py-2">
                     {isLoading ? (
                         <div className="flex justify-center items-center h-32">
                             <Spin />
                         </div>
                     ) : sessions.length === 0 ? (
-                        <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description="No chats yet"
-                            className="mt-8"
-                        />
+                        <div className="text-center text-[#444746]/60 text-sm py-8 px-4">
+                            No conversations yet
+                        </div>
                     ) : (
-                        sessions.map((session: ChatSessionSummary) => (
-                            <div
-                                key={session.id}
-                                className={`
-                                    group p-3 mb-2 rounded-lg cursor-pointer
-                                    transition-colors duration-200
-                                    ${currentSessionId === session.id
-                                        ? 'bg-blue-100 border border-blue-300'
-                                        : 'bg-white hover:bg-gray-100 border border-gray-200'
-                                    }
-                                `}
-                                onClick={() => {
-                                    setCurrentSessionId(session.id)
-                                    loadSessionMessages(session.id)
-                                }}
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <MessageSquare size={14} className="text-gray-500 flex-shrink-0" />
-                                            <span className="text-sm font-medium text-gray-800 truncate">
-                                                {session.title}
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-gray-500 mt-1">
-                                            {session.message_count} messages
-                                        </div>
-                                    </div>
-
-                                    <Dropdown
-                                        menu={{
-                                            items: [
-                                                {
-                                                    key: 'delete',
-                                                    label: 'Delete',
-                                                    danger: true,
-                                                    onClick: () => handleDeleteSession(session.id),
-                                                },
-                                            ],
-                                        }}
-                                        trigger={['click']}
-                                    >
-                                        <Button
-                                            type="text"
-                                            size="small"
-                                            icon={<MoreVertical size={14} />}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                                        />
-                                    </Dropdown>
-                                </div>
-                            </div>
-                        ))
+                        <div className="space-y-1">
+                            {sessions.map((session: ChatSessionSummary) => (
+                                <SessionItem
+                                    key={session.id}
+                                    session={session}
+                                    isActive={currentSessionId === session.id}
+                                    onClick={() => {
+                                        setCurrentSessionId(session.id)
+                                        loadSessionMessages(session.id)
+                                    }}
+                                    onDelete={() => handleDeleteSession(session.id)}
+                                />
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* 右侧聊天区域 */}
-            <div className="flex-1 flex flex-col bg-white">
-                {!currentSessionId ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description="Select or create a chat to get started"
-                        />
+            {/* ================================================================
+                Main Chat Area
+            ================================================================ */}
+            <div className="flex-1 flex flex-col min-w-0 bg-white">
+                {/* Header */}
+                <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-white/80 backdrop-blur-md border-b border-transparent">
+                    <div className="flex items-center gap-2">
+                        {/* Sidebar Toggle */}
+                        <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
+                            <button
+                                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                                className="p-2 rounded-full hover:bg-[#F0F4F9] transition-colors text-[#444746]"
+                            >
+                                {sidebarCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
+                            </button>
+                        </Tooltip>
+
+                        {/* Model Selector */}
+                        <ModelSelector llmStatus={llmStatus} />
                     </div>
-                ) : (
-                    <>
-                        {/* 顶部工具栏 */}
-                        <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6">
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <MessageSquare size={18} className="text-gray-600" />
-                                    <span className="font-medium text-gray-800">
-                                        {sessions.find(s => s.id === currentSessionId)?.title || 'Chat'}
-                                    </span>
-                                </div>
 
-                                {/* LLM 状态显示 */}
-                                {llmStatus && (
-                                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-md border border-gray-200">
-                                        <Bot size={14} className={
-                                            llmStatus.healthy ? 'text-green-500' : 'text-gray-400'
-                                        } />
-                                        <Tooltip title={
-                                            llmStatus.is_local
-                                                ? `本地模型: ${llmStatus.details?.model_id || llmStatus.model_name}`
-                                                : `云端模型: ${llmStatus.model_name}`
-                                        }>
-                                            <span className="text-xs text-gray-600 max-w-xs truncate">
-                                                {llmStatus.is_local ? '🚀 Local' : '☁️ Cloud'}: {
-                                                    llmStatus.model_name.split('/').pop() ||
-                                                    llmStatus.model_name.split('__').pop() ||
-                                                    'Unknown'
-                                                }
-                                            </span>
-                                        </Tooltip>
-                                        {llmStatus.healthy && (
-                                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <Space>
+                    {/* Right Actions */}
+                    <div className="flex items-center gap-1">
+                        {currentMessages.length > 0 && (
+                            <>
                                 <Tooltip title="Convert to pipeline">
-                                    <Button
-                                        type="default"
-                                        icon={<Sparkles size={16} />}
+                                    <button
                                         onClick={handleConvertToPipeline}
-                                        disabled={currentMessages.length === 0 || isStreaming}
-                                        loading={isConverting}
+                                        disabled={isStreaming || isConverting}
+                                        className={`
+                                            flex items-center gap-2 px-3 py-2 rounded-full text-sm
+                                            transition-colors duration-200
+                                            ${isConverting
+                                                ? 'bg-[#E8EAED] text-[#444746]/50'
+                                                : 'hover:bg-[#F0F4F9] text-[#444746]'
+                                            }
+                                        `}
                                     >
-                                        Convert
-                                    </Button>
-                                </Tooltip>
-
-                                <Tooltip title="Clear current chat">
-                                    <Button
-                                        type="text"
-                                        icon={<Trash2 size={16} />}
-                                        onClick={handleClearCurrentSession}
-                                        disabled={currentMessages.length === 0 || isStreaming}
-                                    >
-                                        Clear
-                                    </Button>
-                                </Tooltip>
-                            </Space>
-                        </div>
-
-                        {/* 消息列表 */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {recommendationSummary && (
-                                <div className="max-w-3xl mx-auto space-y-2">
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                                        <Typography.Text>{recommendationSummary}</Typography.Text>
-                                        {recommendationInsights.length > 0 && (
-                                            <ul className="mt-2 list-disc list-inside text-sm text-gray-600">
-                                                {recommendationInsights.map((tip) => (
-                                                    <li key={tip}>{tip}</li>
-                                                ))}
-                                            </ul>
+                                        {isConverting ? (
+                                            <Loader size={16} className="animate-spin" />
+                                        ) : (
+                                            <Sparkles size={16} />
                                         )}
-                                        <Button
-                                            type="link"
-                                            icon={<ArrowRightCircle size={16} />}
-                                            onClick={() => onModeChange?.('canvas')}
-                                            className="px-0 mt-2"
-                                        >
-                                            Go to Canvas
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                            {currentMessages.length === 0 ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <div className="text-center">
-                                        <Bot size={48} className="text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500">Start a conversation with SAGE</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="max-w-3xl mx-auto space-y-6">
-                                    {currentMessages.map((msg) => (
-                                        <div
-                                            key={msg.id}
-                                            className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'
-                                                }`}
-                                        >
-                                            {msg.role === 'assistant' && (
-                                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                                    <Bot size={18} className="text-white" />
-                                                </div>
-                                            )}
+                                        <span className="hidden sm:inline">Convert</span>
+                                    </button>
+                                </Tooltip>
 
-                                            <div
-                                                className={`
-                                                    max-w-2xl px-4 py-3 rounded-lg
-                                                    ${msg.role === 'user'
-                                                        ? 'bg-blue-500 text-white'
-                                                        : 'bg-gray-100 text-gray-800'
-                                                    }
-                                                `}
-                                            >
-                                                <MessageContent
-                                                    content={msg.content}
-                                                    isUser={msg.role === 'user'}
-                                                    isStreaming={msg.isStreaming}
-                                                    streamingMessageId={streamingMessageId}
-                                                    messageId={msg.id}
-                                                    reasoningSteps={msg.reasoningSteps}
-                                                    isReasoning={msg.isReasoning}
-                                                />
-                                            </div>
-
-                                            {msg.role === 'user' && (
-                                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
-                                                    <User size={18} className="text-white" />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    {isStreaming && (
-                                        <div className="flex gap-4 justify-start">
-                                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                                                <Loader size={18} className="text-white animate-spin" />
-                                            </div>
-                                            <div className="text-gray-500 italic">Thinking...</div>
-                                        </div>
-                                    )}
-
-                                    <div ref={messagesEndRef} />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 底部输入框 */}
-                        <div className="border-t border-gray-200 p-4">
-                            <div className="max-w-3xl mx-auto">
-                                <div className="flex gap-2">
-                                    <Tooltip title="Upload Knowledge Base">
-                                        <Button
-                                            icon={<UploadIcon size={16} />}
-                                            onClick={() => setIsUploadVisible(true)}
-                                        />
-                                    </Tooltip>
-                                    <TextArea
-                                        ref={textAreaRef}
-                                        value={currentInput}
-                                        onChange={(e) => setCurrentInput(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-                                        autoSize={{ minRows: 1, maxRows: 6 }}
-                                        disabled={isStreaming || isSending}
-                                        className="flex-1"
-                                    />
-                                    <Button
-                                        type="primary"
-                                        icon={<Send size={16} />}
-                                        onClick={handleSendMessage}
-                                        disabled={!currentInput.trim() || isStreaming || isSending}
-                                        loading={isSending || isStreaming}
+                                <Tooltip title="Clear chat">
+                                    <button
+                                        onClick={handleClearCurrentSession}
+                                        disabled={isStreaming}
+                                        className="p-2 rounded-full hover:bg-[#F0F4F9] transition-colors text-[#444746]"
                                     >
-                                        Send
-                                    </Button>
-                                </div>
-                                <div className="text-xs text-gray-400 mt-2">
-                                    SAGE can make mistakes. Consider checking important information.
-                                </div>
+                                        <Trash2 size={18} />
+                                    </button>
+                                </Tooltip>
+                            </>
+                        )}
+                    </div>
+                </header>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto gemini-scrollbar">
+                    <div className="max-w-[830px] mx-auto px-4 py-6">
+                        {/* Recommendation Banner */}
+                        {recommendationSummary && (
+                            <div className="mb-6 p-4 bg-[#E8F0FE] rounded-2xl border border-[#D2E3FC]">
+                                <p className="text-[#1F1F1F] text-sm mb-2">{recommendationSummary}</p>
+                                {recommendationInsights.length > 0 && (
+                                    <ul className="text-xs text-[#444746] mb-3">
+                                        {recommendationInsights.map((tip) => (
+                                            <li key={tip}>• {tip}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                                <button
+                                    onClick={() => onModeChange?.('canvas')}
+                                    className="flex items-center gap-2 text-sm font-medium text-[#1a73e8] hover:underline"
+                                >
+                                    Go to Canvas
+                                    <ArrowRight size={16} />
+                                </button>
                             </div>
-                        </div>
-                    </>
-                )}
+                        )}
+
+                        {/* Empty State or Messages */}
+                        {currentMessages.length === 0 ? (
+                            <EmptyState />
+                        ) : (
+                            <>
+                                {currentMessages.map((msg) => (
+                                    <MessageBubble
+                                        key={msg.id}
+                                        message={msg}
+                                        isStreaming={isStreaming}
+                                        streamingMessageId={streamingMessageId}
+                                    />
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Input Area */}
+                <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent pt-4">
+                    <ChatInput
+                        value={currentInput}
+                        onChange={setCurrentInput}
+                        onSend={handleSendMessage}
+                        onUpload={() => setIsUploadVisible(true)}
+                        disabled={isStreaming || isSending}
+                        isSending={isSending || isStreaming}
+                    />
+                </div>
             </div>
+
+            {/* File Upload Modal */}
             <FileUpload visible={isUploadVisible} onClose={() => setIsUploadVisible(false)} />
         </div>
     )
