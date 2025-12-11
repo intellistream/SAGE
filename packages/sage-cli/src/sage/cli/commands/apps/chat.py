@@ -711,18 +711,24 @@ class ResponseGenerator:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
 
                 if base_url and api_key:
-                    # Explicit configuration
-                    self.client = UnifiedInferenceClient(
-                        llm_model=model,
-                        llm_base_url=base_url,
-                        llm_api_key=api_key,
-                    )
+                    # Explicit configuration — use factory and inject API key via env
+                    old_key = os.environ.get("SAGE_UNIFIED_API_KEY")
+                    try:
+                        os.environ["SAGE_UNIFIED_API_KEY"] = api_key
+                        self.client = UnifiedInferenceClient.create(
+                            control_plane_url=base_url,
+                            default_llm_model=model,
+                        )
+                    finally:
+                        if old_key is None:
+                            os.environ.pop("SAGE_UNIFIED_API_KEY", None)
+                        else:
+                            os.environ["SAGE_UNIFIED_API_KEY"] = old_key
                 elif base_url:
                     # Only base_url provided
-                    self.client = UnifiedInferenceClient(
-                        llm_model=model,
-                        llm_base_url=base_url,
-                        llm_api_key="",
+                    self.client = UnifiedInferenceClient.create(
+                        control_plane_url=base_url,
+                        default_llm_model=model,
                     )
                 else:
                     # Auto-detection mode
@@ -760,10 +766,9 @@ class ResponseGenerator:
                     )
                     from sage.common.components.sage_llm import UnifiedInferenceClient
 
-                    self.client = UnifiedInferenceClient(
-                        llm_model=local_model,
-                        llm_base_url=f"http://localhost:{port}/v1",
-                        llm_api_key="",
+                    self.client = UnifiedInferenceClient.create(
+                        control_plane_url=f"http://localhost:{port}/v1",
+                        default_llm_model=local_model,
                     )
                     self.model = local_model
                     self.backend = "local"
@@ -919,10 +924,10 @@ class ResponseGenerator:
         try:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            self.client = UnifiedInferenceClient(
-                llm_model=model_to_use or str(merged_path),
-                llm_base_url=f"http://localhost:{port}/v1",
-                llm_api_key="",
+            # Connect to local finetune LLM via factory
+            self.client = UnifiedInferenceClient.create(
+                control_plane_url=f"http://localhost:{port}/v1",
+                default_llm_model=model_to_use or str(merged_path),
             )
             self.model = model_to_use or str(merged_path)
             console.print(f"[green]✅ 已连接到微调模型: {model_name}[/green]\n")

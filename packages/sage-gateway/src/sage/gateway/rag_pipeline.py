@@ -192,15 +192,13 @@ class RAGChatMap(MapFunction):
             if llm_base_url:
                 logger.info(f"Using LLM backend from Control Plane: {llm_base_url}")
                 # 使用内部标志创建实例（与 compat.py 模式一致）
-                UnifiedInferenceClient._allow_init = True
-                try:
-                    self._llm_client = UnifiedInferenceClient(
-                        llm_base_url=llm_base_url,
-                        llm_model=None,  # 让后端决定模型
-                        llm_api_key="",
-                    )
-                finally:
-                    UnifiedInferenceClient._allow_init = False
+                # Use the official factory method to create a client pointing
+                # at the selected backend. Avoid direct instantiation which
+                # is intentionally blocked by the unified client API.
+                self._llm_client = UnifiedInferenceClient.create(
+                    control_plane_url=llm_base_url,
+                    default_llm_model=None,
+                )
             else:
                 # Control Plane 没有可用的 LLM 后端
                 raise RuntimeError(
