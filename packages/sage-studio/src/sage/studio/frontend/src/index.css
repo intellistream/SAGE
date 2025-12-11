@@ -10,7 +10,7 @@
    ========================================== */
 
 :root {
-    /* Gemini Color Palette */
+    /* Gemini Color Palette - Light Mode */
     --gemini-sidebar-bg: #F0F4F9;
     --gemini-main-bg: #FFFFFF;
     --gemini-user-bubble: #F0F4F9;
@@ -36,17 +36,41 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark Mode CSS Variables */
+.dark {
+    --gemini-sidebar-bg: #1e1e1e;
+    --gemini-main-bg: #121212;
+    --gemini-user-bubble: #2d2d2d;
+    --gemini-text-primary: #e5e5e5;
+    --gemini-text-secondary: #a3a3a3;
+    --gemini-accent: #8ab4f8;
+    --gemini-hover-bg: #333333;
+    --gemini-input-bg: #2d2d2d;
+    --gemini-border: #404040;
+
+    color-scheme: dark;
+    color: var(--gemini-text-primary);
+    background-color: var(--gemini-main-bg);
+}
+
+html,
 body {
     margin: 0;
-    display: flex;
-    min-width: 320px;
-    min-height: 100vh;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     background-color: var(--gemini-main-bg);
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior: none;
 }
 
 #root {
     width: 100%;
-    height: 100vh;
+    height: 100%;
+    /* Use dvh for mobile compatibility (handles address bar) */
+    height: 100dvh;
+    overflow: hidden;
     background-color: var(--gemini-main-bg);
 }
 
@@ -61,6 +85,10 @@ body {
 
 .gemini-scrollbar:hover {
     scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.dark .gemini-scrollbar:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .gemini-scrollbar::-webkit-scrollbar {
@@ -82,8 +110,16 @@ body {
     background: rgba(0, 0, 0, 0.2);
 }
 
+.dark .gemini-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 .gemini-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.3);
+}
+
+.dark .gemini-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* ==========================================
@@ -108,25 +144,25 @@ body {
    Chat Message Prose Styles - Gemini Theme
    ========================================== */
 
-/* AI 消息容器中的所有文本都使用深色 */
+/* AI 消息容器中的所有文本都使用主题颜色 */
 .prose.prose-gray,
 .gemini-prose {
-    --tw-prose-body: #1F1F1F;
-    --tw-prose-headings: #1F1F1F;
-    --tw-prose-lead: #444746;
-    --tw-prose-links: #1a73e8;
-    --tw-prose-bold: #1F1F1F;
-    --tw-prose-counters: #444746;
-    --tw-prose-bullets: #444746;
-    --tw-prose-hr: #E8EAED;
-    --tw-prose-quotes: #1F1F1F;
-    --tw-prose-quote-borders: #1a73e8;
-    --tw-prose-captions: #444746;
-    --tw-prose-code: #1F1F1F;
+    --tw-prose-body: var(--gemini-text-primary);
+    --tw-prose-headings: var(--gemini-text-primary);
+    --tw-prose-lead: var(--gemini-text-secondary);
+    --tw-prose-links: var(--gemini-accent);
+    --tw-prose-bold: var(--gemini-text-primary);
+    --tw-prose-counters: var(--gemini-text-secondary);
+    --tw-prose-bullets: var(--gemini-text-secondary);
+    --tw-prose-hr: var(--gemini-border);
+    --tw-prose-quotes: var(--gemini-text-primary);
+    --tw-prose-quote-borders: var(--gemini-accent);
+    --tw-prose-captions: var(--gemini-text-secondary);
+    --tw-prose-code: var(--gemini-text-primary);
     --tw-prose-pre-code: #f3f4f6;
     --tw-prose-pre-bg: #1F1F1F;
-    --tw-prose-th-borders: #E8EAED;
-    --tw-prose-td-borders: #E8EAED;
+    --tw-prose-th-borders: var(--gemini-border);
+    --tw-prose-td-borders: var(--gemini-border);
 }
 
 /* 确保嵌套元素颜色正确 */
@@ -136,17 +172,17 @@ body {
 .gemini-prose p,
 .gemini-prose li,
 .gemini-prose span {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 .prose.prose-gray strong,
 .gemini-prose strong {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 .prose.prose-gray em,
 .gemini-prose em {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 .prose.prose-gray h1,
@@ -161,27 +197,32 @@ body {
 .gemini-prose h4,
 .gemini-prose h5,
 .gemini-prose h6 {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 /* 引用块样式 - Gemini Blue */
 .prose.prose-gray blockquote,
 .gemini-prose blockquote {
-    color: #1F1F1F;
-    border-left-color: #1a73e8;
-    background-color: #E8F0FE;
+    color: var(--gemini-text-primary);
+    border-left-color: var(--gemini-accent);
+    background-color: rgba(26, 115, 232, 0.1);
+}
+
+.dark .prose.prose-gray blockquote,
+.dark .gemini-prose blockquote {
+    background-color: rgba(138, 180, 248, 0.1);
 }
 
 .prose.prose-gray blockquote p,
 .gemini-prose blockquote p {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 /* 行内代码样式 - Gemini Style */
 .prose.prose-gray code:not(pre code),
 .gemini-prose code:not(pre code) {
-    color: #1F1F1F;
-    background-color: #F0F4F9;
+    color: var(--gemini-text-primary);
+    background-color: var(--gemini-sidebar-bg);
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     font-size: 0.875em;
@@ -190,32 +231,60 @@ body {
 /* 表格样式 - Gemini */
 .prose.prose-gray table,
 .gemini-prose table {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 .prose.prose-gray th,
 .gemini-prose th {
-    color: #1F1F1F;
-    background-color: #F8F9FA;
+    color: var(--gemini-text-primary);
+    background-color: var(--gemini-sidebar-bg);
 }
 
 .prose.prose-gray td,
 .gemini-prose td {
-    color: #1F1F1F;
+    color: var(--gemini-text-primary);
 }
 
 /* Custom node styles */
 .custom-node {
     padding: 10px;
     border-radius: 8px;
-    background: white;
-    border: 2px solid #1890ff;
+    background: var(--gemini-main-bg);
+    border: 2px solid var(--gemini-accent);
     min-width: 150px;
+    color: var(--gemini-text-primary);
+}
+
+/* Custom Node Card styles */
+.custom-node-card,
+.custom-node .ant-card {
+    background: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+}
+
+.custom-node-card .ant-card-head,
+.custom-node .ant-card-head {
+    background: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+}
+
+.custom-node-card .ant-card-head-title,
+.custom-node .ant-card-head-title {
+    color: var(--gemini-text-primary);
+}
+
+.custom-node-card .ant-card-body,
+.custom-node .ant-card-body {
+    background: var(--gemini-main-bg);
 }
 
 .custom-node.selected {
-    border-color: #0050b3;
-    box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.2);
+    border-color: var(--gemini-accent);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+}
+
+.dark .custom-node.selected {
+    box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3);
 }
 
 .custom-node.running {
@@ -252,24 +321,101 @@ body {
 
 /* Node palette */
 .node-palette {
-    background: white;
-    border-right: 1px solid #d9d9d9;
+    background: var(--gemini-main-bg);
+    border-right: 1px solid var(--gemini-border);
     padding: 16px;
     overflow-y: auto;
+    overflow-x: hidden;
+    color: var(--gemini-text-primary);
+}
+
+.node-palette .ant-input-affix-wrapper,
+.node-palette .ant-input {
+    background: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.node-palette .ant-input::placeholder {
+    color: var(--gemini-text-secondary);
+}
+
+/* Node categories collapse */
+.node-categories .ant-collapse-header {
+    color: var(--gemini-text-primary) !important;
+}
+
+.node-categories .ant-collapse-header-text {
+    color: var(--gemini-text-primary) !important;
+}
+
+.node-categories .ant-collapse-expand-icon {
+    color: var(--gemini-text-secondary) !important;
+}
+
+.node-categories .ant-collapse-content {
+    color: var(--gemini-text-primary);
+}
+
+.node-palette .ant-collapse-header {
+    color: var(--gemini-text-primary);
+}
+
+.node-item {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--gemini-border);
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.2s;
+    background: var(--gemini-sidebar-bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.node-item:hover {
+    border-color: var(--gemini-accent);
+    background: var(--gemini-hover-bg);
+}
+
+.node-item:active {
+    cursor: grabbing;
+}
+
+.node-icon {
+    color: var(--gemini-text-secondary);
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.node-name {
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .node-palette-item {
     padding: 8px 12px;
     margin-bottom: 8px;
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--gemini-border);
     border-radius: 4px;
     cursor: grab;
     transition: all 0.2s;
+    color: var(--gemini-text-primary);
 }
 
 .node-palette-item:hover {
-    border-color: #1890ff;
-    background: #e6f7ff;
+    border-color: var(--gemini-accent);
+    background: var(--gemini-hover-bg);
 }
 
 .node-palette-item:active {
@@ -278,21 +424,101 @@ body {
 
 /* Properties panel */
 .properties-panel {
-    background: white;
-    border-left: 1px solid #d9d9d9;
+    background: var(--gemini-main-bg);
+    border-left: 1px solid var(--gemini-border);
     padding: 16px;
     overflow-y: auto;
+    color: var(--gemini-text-primary);
+}
+
+.properties-panel .ant-form-item-label>label {
+    color: var(--gemini-text-primary);
+}
+
+.properties-panel .ant-tabs-tab {
+    color: var(--gemini-text-secondary);
+}
+
+.properties-panel .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: var(--gemini-accent);
 }
 
 /* Status bar */
 .status-bar {
-    background: #f0f0f0;
-    border-top: 1px solid #d9d9d9;
+    background: var(--gemini-sidebar-bg);
+    border-top: 1px solid var(--gemini-border);
     padding: 8px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
+    color: var(--gemini-text-secondary);
+}
+
+/* ==========================================
+   React Flow Canvas Styles
+   ========================================== */
+
+.react-flow-canvas {
+    background-color: var(--gemini-main-bg);
+}
+
+.react-flow-canvas .react-flow__pane {
+    background-color: var(--gemini-main-bg);
+}
+
+/* Background dots color */
+.react-flow__background pattern circle {
+    fill: var(--gemini-text-secondary);
+}
+
+/* Dark mode specific adjustments */
+.dark .react-flow__background {
+    background-color: var(--gemini-main-bg);
+}
+
+.dark .react-flow__background pattern circle {
+    fill: #404040;
+}
+
+/* React Flow Controls */
+.react-flow-controls,
+.react-flow__controls {
+    background: var(--gemini-sidebar-bg);
+    border: 1px solid var(--gemini-border);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+    background: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.react-flow__controls-button:hover {
+    background: var(--gemini-hover-bg);
+}
+
+.react-flow__controls-button svg {
+    fill: var(--gemini-text-primary);
+}
+
+/* React Flow MiniMap */
+.react-flow__minimap {
+    background: var(--gemini-sidebar-bg);
+    border: 1px solid var(--gemini-border);
+    border-radius: 8px;
+}
+
+/* React Flow Edges */
+.react-flow__edge-path {
+    stroke: var(--gemini-accent);
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+    stroke: var(--gemini-accent);
+    stroke-width: 2;
 }
 
 /* 自定义滚动条样式 - Gemini Style */
@@ -320,10 +546,27 @@ body {
     background: rgba(0, 0, 0, 0.35);
 }
 
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.dark ::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.35);
+}
+
 /* Firefox 滚动条样式 */
 * {
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.dark * {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 /* 拖拽手柄激活时的光标 */
@@ -344,4 +587,525 @@ body {
     height: 100%;
     overflow: auto;
     position: relative;
+}
+
+/* ==========================================
+   Ant Design Component Overrides for Dark Mode
+   ========================================== */
+
+/* Progress bar with theme-aware colors */
+.gemini-progress .ant-progress-bg {
+    background-color: var(--gemini-accent);
+}
+
+.gemini-progress .ant-progress-inner {
+    background-color: var(--gemini-hover-bg);
+}
+
+/* Table styles for dark mode */
+.dark .ant-table {
+    background-color: var(--gemini-main-bg);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-table-thead>tr>th {
+    background-color: var(--gemini-sidebar-bg);
+    color: var(--gemini-text-primary);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-table-tbody>tr>td {
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-table-tbody>tr:hover>td {
+    background-color: var(--gemini-hover-bg);
+}
+
+/* Form styles for dark mode */
+.dark .ant-form-item-label>label {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-input,
+.dark .ant-input-number,
+.dark .ant-select-selector,
+.dark .ant-picker {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-input:hover,
+.dark .ant-input-number:hover,
+.dark .ant-select-selector:hover,
+.dark .ant-picker:hover {
+    border-color: var(--gemini-accent);
+}
+
+.dark .ant-input:focus,
+.dark .ant-input-focused,
+.dark .ant-input-number:focus,
+.dark .ant-input-number-focused,
+.dark .ant-select-focused .ant-select-selector {
+    border-color: var(--gemini-accent);
+    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+.dark .ant-input::placeholder {
+    color: var(--gemini-text-secondary);
+}
+
+/* Collapse/Accordion styles for dark mode */
+.dark .ant-collapse {
+    background-color: transparent;
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-collapse-header {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-collapse-content {
+    background-color: transparent;
+    border-color: var(--gemini-border);
+}
+
+/* Switch styles for dark mode */
+.dark .ant-switch {
+    background-color: var(--gemini-border);
+}
+
+.dark .ant-switch-checked {
+    background-color: var(--gemini-accent);
+}
+
+/* Select dropdown for dark mode */
+.dark .ant-select-dropdown {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-select-item {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+    background-color: var(--gemini-hover-bg);
+}
+
+.dark .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    background-color: var(--gemini-accent);
+    color: white;
+}
+
+/* Radio styles for dark mode */
+.dark .ant-radio-wrapper {
+    color: var(--gemini-text-primary);
+}
+
+/* Modal styles for dark mode */
+.dark .ant-modal-content {
+    background-color: var(--gemini-main-bg);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-modal-header {
+    background-color: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-modal-title {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-modal-close {
+    color: var(--gemini-text-secondary);
+}
+
+/* Tabs styles for dark mode */
+.dark .ant-tabs-tab {
+    color: var(--gemini-text-secondary);
+}
+
+.dark .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: var(--gemini-accent);
+}
+
+.dark .ant-tabs-ink-bar {
+    background-color: var(--gemini-accent);
+}
+
+/* Upload styles for dark mode */
+.dark .ant-upload-drag {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-upload-drag:hover {
+    border-color: var(--gemini-accent);
+}
+
+/* Badge/Tag styles for dark mode */
+.dark .ant-tag {
+    background-color: var(--gemini-hover-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+/* Divider for dark mode */
+.dark .ant-divider {
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-divider-inner-text {
+    color: var(--gemini-text-secondary);
+}
+
+/* LogViewer Card styles */
+.log-viewer-card.ant-card {
+    background: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+}
+
+.log-viewer-card .ant-card-head {
+    background: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.log-viewer-card .ant-card-head-title {
+    color: var(--gemini-text-primary);
+}
+
+.log-viewer-card .ant-card-extra {
+    color: var(--gemini-text-secondary);
+}
+
+/* ==========================================
+   Ant Design Table Dark Mode
+   ========================================== */
+
+.dark .ant-table {
+    background-color: var(--gemini-main-bg);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-table-thead>tr>th {
+    background-color: var(--gemini-sidebar-bg) !important;
+    color: var(--gemini-text-primary) !important;
+    border-color: var(--gemini-border) !important;
+}
+
+.dark .ant-table-tbody>tr>td {
+    background-color: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-table-tbody>tr:hover>td {
+    background-color: var(--gemini-hover-bg) !important;
+}
+
+.dark .ant-table-tbody>tr.ant-table-row:hover>td {
+    background-color: var(--gemini-hover-bg) !important;
+}
+
+.dark .ant-table-cell-row-hover {
+    background-color: var(--gemini-hover-bg) !important;
+}
+
+.dark .ant-table-placeholder {
+    background-color: var(--gemini-main-bg) !important;
+}
+
+.dark .ant-table-placeholder .ant-table-cell {
+    background-color: var(--gemini-main-bg) !important;
+}
+
+/* Empty state in dark mode */
+.dark .ant-empty {
+    color: var(--gemini-text-secondary);
+}
+
+.dark .ant-empty-description {
+    color: var(--gemini-text-secondary);
+}
+
+.dark .ant-empty-image svg {
+    fill: var(--gemini-text-secondary);
+}
+
+/* Table pagination */
+.dark .ant-pagination-item {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-pagination-item a {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-pagination-item-active {
+    background-color: var(--gemini-accent);
+    border-color: var(--gemini-accent);
+}
+
+.dark .ant-pagination-item-active a {
+    color: white;
+}
+
+.dark .ant-pagination-prev .ant-pagination-item-link,
+.dark .ant-pagination-next .ant-pagination-item-link {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+/* Card styles for dark mode */
+.dark .ant-card {
+    background-color: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-card-head {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-card-head-title {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-card-body {
+    background-color: var(--gemini-main-bg);
+    color: var(--gemini-text-primary);
+}
+
+/* Expanded row in table */
+.dark .ant-table-expanded-row>td {
+    background-color: var(--gemini-sidebar-bg) !important;
+}
+
+.dark .ant-table-expanded-row-fixed {
+    background-color: var(--gemini-sidebar-bg) !important;
+}
+
+/* Table wrapper */
+.dark .ant-table-wrapper {
+    background-color: var(--gemini-main-bg);
+}
+
+.dark .ant-table-container {
+    background-color: var(--gemini-main-bg);
+}
+
+/* Select in dark mode - ensure it works in tables */
+.dark .ant-select {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-select-selector {
+    background-color: var(--gemini-sidebar-bg) !important;
+    border-color: var(--gemini-border) !important;
+    color: var(--gemini-text-primary) !important;
+}
+
+.dark .ant-select-selection-item {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-select-arrow {
+    color: var(--gemini-text-secondary);
+}
+
+/* InputNumber in dark mode */
+.dark .ant-input-number {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-input-number-input {
+    background-color: transparent;
+    color: var(--gemini-text-primary);
+}
+
+/* Finetune specific: gemini-table class */
+.dark .gemini-table .ant-table {
+    background-color: var(--gemini-main-bg);
+}
+
+.dark .gemini-table .ant-table-thead>tr>th {
+    background-color: var(--gemini-sidebar-bg) !important;
+    color: var(--gemini-text-primary) !important;
+}
+
+.dark .gemini-table .ant-table-tbody>tr>td {
+    background-color: var(--gemini-main-bg);
+    color: var(--gemini-text-primary);
+}
+
+.dark .gemini-table .ant-table-placeholder .ant-table-cell {
+    background-color: var(--gemini-main-bg) !important;
+}
+
+/* ==========================================
+   Settings Modal Dark Mode (系统设置弹窗)
+   ========================================== */
+
+/* Modal footer buttons container */
+.dark .ant-modal-footer {
+    background-color: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+}
+
+/* Button default styles in dark mode */
+.dark .ant-btn-default {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-btn-default:hover {
+    background-color: var(--gemini-hover-bg);
+    border-color: var(--gemini-accent);
+    color: var(--gemini-accent);
+}
+
+/* Dashed button (添加环境变量) */
+.dark .ant-btn-dashed {
+    background-color: var(--gemini-main-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-btn-dashed:hover {
+    background-color: var(--gemini-hover-bg);
+    border-color: var(--gemini-accent);
+    color: var(--gemini-accent);
+}
+
+/* Input inside Modal */
+.dark .ant-modal .ant-input {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-modal .ant-input:hover {
+    border-color: var(--gemini-accent);
+}
+
+.dark .ant-modal .ant-input:focus,
+.dark .ant-modal .ant-input-focused {
+    border-color: var(--gemini-accent);
+    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+.dark .ant-modal .ant-input::placeholder {
+    color: var(--gemini-text-secondary);
+}
+
+/* Input with password toggle (Input.Password) */
+.dark .ant-input-password {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-input-password .ant-input {
+    background-color: transparent;
+}
+
+.dark .ant-input-password .ant-input-suffix {
+    color: var(--gemini-text-secondary);
+}
+
+.dark .ant-input-password:hover {
+    border-color: var(--gemini-accent);
+}
+
+.dark .ant-input-affix-wrapper {
+    background-color: var(--gemini-sidebar-bg);
+    border-color: var(--gemini-border);
+}
+
+.dark .ant-input-affix-wrapper:hover {
+    border-color: var(--gemini-accent);
+}
+
+.dark .ant-input-affix-wrapper-focused {
+    border-color: var(--gemini-accent);
+    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+/* Tabs inside Modal */
+.dark .ant-modal .ant-tabs-nav::before {
+    border-color: var(--gemini-border);
+}
+
+/* Popconfirm (删除确认框) */
+.dark .ant-popover-inner {
+    background-color: var(--gemini-sidebar-bg);
+}
+
+.dark .ant-popconfirm-message-title {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-popconfirm-message-icon {
+    color: #faad14;
+}
+
+.dark .ant-popover-arrow::before {
+    background-color: var(--gemini-sidebar-bg);
+}
+
+/* Text button danger in dark mode */
+.dark .ant-btn-text:not(:disabled):hover {
+    background-color: var(--gemini-hover-bg);
+}
+
+/* Space component alignment fix */
+.dark .ant-space-item {
+    color: var(--gemini-text-primary);
+}
+
+/* ==========================================
+   Statistic Component Dark Mode (记忆管理统计)
+   ========================================== */
+
+.dark .ant-statistic-title {
+    color: var(--gemini-text-secondary) !important;
+}
+
+.dark .ant-statistic-content {
+    color: var(--gemini-text-primary);
+}
+
+.dark .ant-statistic-content-value {
+    color: inherit;
+}
+
+.dark .ant-statistic-content-suffix {
+    color: var(--gemini-text-secondary);
+}
+
+/* Card title icon color in dark mode */
+.dark .ant-card-head-title svg {
+    color: var(--gemini-text-primary);
+}
+
+/* Paragraph text in cards */
+.dark .ant-card p {
+    color: var(--gemini-text-primary);
+}
+
+/* Pre/code blocks in dark mode */
+.dark pre {
+    background-color: var(--gemini-sidebar-bg);
+    color: var(--gemini-text-primary);
+    border-color: var(--gemini-border);
 }

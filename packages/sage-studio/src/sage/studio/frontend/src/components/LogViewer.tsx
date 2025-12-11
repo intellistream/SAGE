@@ -156,21 +156,21 @@ export default function LogViewer() {
                     </Button>
                 </Space>
             }
-            className="h-full"
+            className="h-full log-viewer-card"
             bodyStyle={{ padding: 0, height: 'calc(100% - 57px)', overflow: 'hidden' }}
         >
             <div
-                className="h-full overflow-y-auto p-4 bg-gray-900 font-mono text-sm"
+                className="h-full overflow-y-auto p-4 bg-gray-900 dark:bg-black font-mono text-sm"
                 style={{ fontFamily: 'Consolas, Monaco, monospace' }}
             >
                 {filteredLogs.length === 0 ? (
-                    <div className="text-gray-500 text-center py-8">
+                    <div className="text-gray-400 text-center py-8">
                         {currentJobId ? '暂无日志' : '请先运行流程以查看日志'}
                     </div>
                 ) : (
                     filteredLogs.map((log, index) => (
-                        <div key={index} className="mb-2 text-gray-300">
-                            <span className="text-gray-500">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
+                        <div key={index} className="mb-2 text-gray-200">
+                            <span className="text-gray-400">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
                             <Tag color={getLevelColor(log.level)} className="font-bold">
                                 {log.level}
                             </Tag>

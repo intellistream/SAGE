@@ -104,9 +104,9 @@ export default function MessageContent({
                         if (!isInline && language) {
                             const codeString = String(children).replace(/\n$/, '')
                             return (
-                                <div className="my-4 rounded-xl overflow-hidden border border-[#E8EAED]">
-                                    <div className="bg-[#1F1F1F] text-gray-300 text-xs px-4 py-2.5 flex justify-between items-center">
-                                        <span className="font-mono text-[#1a73e8]">{language}</span>
+                                <div className="my-4 rounded-xl overflow-hidden border border-[--gemini-border]">
+                                    <div className="bg-gray-900 dark:bg-black text-gray-300 text-xs px-4 py-2.5 flex justify-between items-center">
+                                        <span className="font-mono text-[--gemini-accent]">{language}</span>
                                         <CopyButton text={codeString} />
                                     </div>
                                     <SyntaxHighlighter
@@ -130,7 +130,7 @@ export default function MessageContent({
                         // 行内代码 - Gemini style
                         return (
                             <code
-                                className="px-1.5 py-0.5 bg-[#F0F4F9] text-[#1F1F1F] rounded-md text-[0.9em] font-mono"
+                                className="px-1.5 py-0.5 bg-[--gemini-sidebar-bg] text-[--gemini-text-primary] rounded-md text-[0.9em] font-mono"
                                 {...props}
                             >
                                 {children}
@@ -142,7 +142,7 @@ export default function MessageContent({
                     a({ children, ...props }: any) {
                         return (
                             <a
-                                className="text-[#1a73e8] hover:text-[#1557b0] underline decoration-1 underline-offset-2"
+                                className="text-[--gemini-accent] hover:text-[--gemini-accent]/80 underline decoration-1 underline-offset-2"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 {...props}
@@ -155,8 +155,8 @@ export default function MessageContent({
                     // 表格样式
                     table({ children, ...props }: any) {
                         return (
-                            <div className="overflow-x-auto my-4 rounded-xl border border-[#E8EAED]">
-                                <table className="min-w-full divide-y divide-[#E8EAED]" {...props}>
+                            <div className="overflow-x-auto my-4 rounded-xl border border-[--gemini-border]">
+                                <table className="min-w-full divide-y divide-[--gemini-border]" {...props}>
                                     {children}
                                 </table>
                             </div>
@@ -165,7 +165,7 @@ export default function MessageContent({
 
                     thead({ children, ...props }: any) {
                         return (
-                            <thead className="bg-[#F8F9FA]" {...props}>
+                            <thead className="bg-[--gemini-sidebar-bg]" {...props}>
                                 {children}
                             </thead>
                         )
@@ -173,7 +173,7 @@ export default function MessageContent({
 
                     th({ children, ...props }: any) {
                         return (
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-[#1F1F1F]" {...props}>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </th>
                         )
@@ -181,7 +181,7 @@ export default function MessageContent({
 
                     td({ children, ...props }: any) {
                         return (
-                            <td className="px-4 py-3 text-sm text-[#444746] border-t border-[#E8EAED]" {...props}>
+                            <td className="px-4 py-3 text-sm text-[--gemini-text-secondary] border-t border-[--gemini-border]" {...props}>
                                 {children}
                             </td>
                         )
@@ -190,7 +190,7 @@ export default function MessageContent({
                     // 列表样式
                     ul({ children, ...props }: any) {
                         return (
-                            <ul className="list-disc pl-6 space-y-2 my-4 text-[#1F1F1F]" {...props}>
+                            <ul className="list-disc pl-6 space-y-2 my-4 text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </ul>
                         )
@@ -198,7 +198,7 @@ export default function MessageContent({
 
                     ol({ children, ...props }: any) {
                         return (
-                            <ol className="list-decimal pl-6 space-y-2 my-4 text-[#1F1F1F]" {...props}>
+                            <ol className="list-decimal pl-6 space-y-2 my-4 text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </ol>
                         )
@@ -206,7 +206,7 @@ export default function MessageContent({
 
                     li({ children, ...props }: any) {
                         return (
-                            <li className="text-[#1F1F1F] leading-relaxed pl-1" {...props}>
+                            <li className="text-[--gemini-text-primary] leading-relaxed pl-1" {...props}>
                                 {children}
                             </li>
                         )
@@ -216,7 +216,7 @@ export default function MessageContent({
                     blockquote({ children, ...props }: any) {
                         return (
                             <blockquote
-                                className="border-l-4 border-[#1a73e8] bg-[#E8F0FE] pl-4 pr-4 py-3 my-4 rounded-r-xl text-[#1F1F1F]"
+                                className="border-l-4 border-[--gemini-accent] bg-[--gemini-accent]/10 pl-4 pr-4 py-3 my-4 rounded-r-xl text-[--gemini-text-primary]"
                                 {...props}
                             >
                                 {children}
@@ -227,7 +227,7 @@ export default function MessageContent({
                     // 标题样式
                     h1({ children, ...props }: any) {
                         return (
-                            <h1 className="text-2xl font-semibold mt-6 mb-3 text-[#1F1F1F]" {...props}>
+                            <h1 className="text-2xl font-semibold mt-6 mb-3 text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </h1>
                         )
@@ -235,7 +235,7 @@ export default function MessageContent({
 
                     h2({ children, ...props }: any) {
                         return (
-                            <h2 className="text-xl font-semibold mt-5 mb-2.5 text-[#1F1F1F]" {...props}>
+                            <h2 className="text-xl font-semibold mt-5 mb-2.5 text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </h2>
                         )
@@ -243,7 +243,7 @@ export default function MessageContent({
 
                     h3({ children, ...props }: any) {
                         return (
-                            <h3 className="text-lg font-semibold mt-4 mb-2 text-[#1F1F1F]" {...props}>
+                            <h3 className="text-lg font-semibold mt-4 mb-2 text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </h3>
                         )
@@ -251,7 +251,7 @@ export default function MessageContent({
 
                     h4({ children, ...props }: any) {
                         return (
-                            <h4 className="text-base font-semibold mt-4 mb-2 text-[#1F1F1F]" {...props}>
+                            <h4 className="text-base font-semibold mt-4 mb-2 text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </h4>
                         )
@@ -260,7 +260,7 @@ export default function MessageContent({
                     // 段落样式 - 关键：使用较大的行高
                     p({ children, ...props }: any) {
                         return (
-                            <p className="my-3 leading-7 text-[#1F1F1F] text-base" {...props}>
+                            <p className="my-3 leading-7 text-[--gemini-text-primary] text-base" {...props}>
                                 {children}
                             </p>
                         )
@@ -269,7 +269,7 @@ export default function MessageContent({
                     // 强调文字样式
                     strong({ children, ...props }: any) {
                         return (
-                            <strong className="font-semibold text-[#1F1F1F]" {...props}>
+                            <strong className="font-semibold text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </strong>
                         )
@@ -278,7 +278,7 @@ export default function MessageContent({
                     // 斜体文字样式
                     em({ children, ...props }: any) {
                         return (
-                            <em className="italic text-[#1F1F1F]" {...props}>
+                            <em className="italic text-[--gemini-text-primary]" {...props}>
                                 {children}
                             </em>
                         )
@@ -287,14 +287,14 @@ export default function MessageContent({
                     // 水平线样式
                     hr({ ...props }: any) {
                         return (
-                            <hr className="my-6 border-[#E8EAED]" {...props} />
+                            <hr className="my-6 border-[--gemini-border]" {...props} />
                         )
                     },
 
                     // 预格式化文本
                     pre({ children, ...props }: any) {
                         return (
-                            <pre className="bg-[#1F1F1F] text-gray-100 rounded-xl overflow-x-auto" {...props}>
+                            <pre className="bg-gray-900 dark:bg-black text-gray-100 rounded-xl overflow-x-auto" {...props}>
                                 {children}
                             </pre>
                         )
@@ -306,7 +306,7 @@ export default function MessageContent({
 
             {/* 流式输入光标 - Gemini style */}
             {isStreaming && streamingMessageId === messageId && (
-                <span className="inline-block w-0.5 h-5 ml-0.5 bg-[#1a73e8] animate-pulse rounded-sm" />
+                <span className="inline-block w-0.5 h-5 ml-0.5 bg-[--gemini-accent] animate-pulse rounded-sm" />
             )}
         </div>
     )

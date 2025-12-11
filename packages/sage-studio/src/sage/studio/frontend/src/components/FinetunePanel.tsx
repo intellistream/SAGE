@@ -93,11 +93,11 @@ function SectionCard({
     className?: string
 }) {
     return (
-        <div className={`bg-white rounded-2xl border border-[#E8EAED] p-6 ${className}`}>
+        <div className={`bg-[--gemini-main-bg] rounded-2xl border border-[--gemini-border] p-6 ${className}`}>
             {title && (
                 <div className="flex items-center gap-2 mb-4">
-                    {icon && <span className="text-[#1a73e8]">{icon}</span>}
-                    <h3 className="text-base font-medium text-[#1F1F1F]">{title}</h3>
+                    {icon && <span className="text-[--gemini-accent]">{icon}</span>}
+                    <h3 className="text-base font-medium text-[--gemini-text-primary]">{title}</h3>
                 </div>
             )}
             {children}
@@ -132,7 +132,7 @@ function PrimaryButton({
             disabled={disabled || loading}
             className={`
                 flex items-center gap-2 rounded-full font-medium
-                bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:shadow-md
+                bg-[--gemini-accent] text-white hover:opacity-90 hover:shadow-md
                 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-all duration-200 ease-out
                 ${sizeClasses[size]}
@@ -181,8 +181,8 @@ function SecondaryButton({
                 border transition-all duration-200 ease-out
                 disabled:opacity-50 disabled:cursor-not-allowed
                 ${danger
-                    ? 'border-red-200 text-red-600 hover:bg-red-50'
-                    : 'border-[#E8EAED] text-[#444746] hover:bg-[#F0F4F9]'
+                    ? 'border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                    : 'border-[--gemini-border] text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg]'
                 }
                 ${sizeClasses[size]}
             `}
@@ -204,19 +204,19 @@ function InfoBanner({
     type?: 'info' | 'warning' | 'success'
 }) {
     const bgColors = {
-        info: 'bg-[#E8F0FE]',
-        warning: 'bg-amber-50',
-        success: 'bg-green-50',
+        info: 'bg-[#E8F0FE] dark:bg-[#1e3a5f]',
+        warning: 'bg-amber-50 dark:bg-amber-900/20',
+        success: 'bg-green-50 dark:bg-green-900/20',
     }
     const iconColors = {
-        info: 'text-[#1a73e8]',
-        warning: 'text-amber-600',
-        success: 'text-green-600',
+        info: 'text-[--gemini-accent]',
+        warning: 'text-amber-600 dark:text-amber-400',
+        success: 'text-green-600 dark:text-green-400',
     }
     return (
         <div className={`${bgColors[type]} rounded-xl p-4 flex items-start gap-3 my-4`}>
             {icon && <span className={`${iconColors[type]} flex-shrink-0 mt-0.5`}>{icon}</span>}
-            <div className="text-sm text-[#1F1F1F]">{children}</div>
+            <div className="text-sm text-[--gemini-text-primary]">{children}</div>
         </div>
     )
 }
@@ -367,7 +367,7 @@ export default function FinetunePanel() {
                                 {data.warnings.map((warning: string, index: number) => (
                                     <div key={index}>{warning}</div>
                                 ))}
-                                <div className="mt-4 text-[#444746]">
+                                <div className="mt-4 text-[--gemini-text-secondary]">
                                     任务已创建，但建议重新配置参数以降低 OOM 风险。
                                 </div>
                             </div>
@@ -573,7 +573,7 @@ export default function FinetunePanel() {
             dataIndex: 'task_id',
             key: 'task_id',
             width: 200,
-            render: (text: string) => <code className="text-xs bg-[#F0F4F9] px-2 py-1 rounded">{text}</code>,
+            render: (text: string) => <code className="text-xs bg-[--gemini-input-bg] px-2 py-1 rounded text-[--gemini-text-primary]">{text}</code>,
         },
         {
             title: '基础模型',
@@ -598,9 +598,9 @@ export default function FinetunePanel() {
                         percent={Math.round(record.progress)}
                         size="small"
                         status={record.status === 'failed' ? 'exception' : 'active'}
-                        strokeColor="#1a73e8"
+                        className="gemini-progress"
                     />
-                    <span className="text-xs text-[#444746]">
+                    <span className="text-xs text-[--gemini-text-secondary]">
                         Epoch {record.current_epoch}/{record.total_epochs} | Loss: {record.loss.toFixed(4)}
                     </span>
                 </div>
@@ -669,7 +669,7 @@ export default function FinetunePanel() {
     ]
 
     return (
-        <div className="h-full overflow-auto bg-white">
+        <div className="h-full overflow-auto bg-[--gemini-main-bg]">
             {/* Centered content container - matches ChatMode's max-w-[830px] style */}
             <div className="max-w-4xl mx-auto py-8 px-6 space-y-6">
                 {/* Header */}
@@ -678,13 +678,13 @@ export default function FinetunePanel() {
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                             <Zap size={20} className="text-white" />
                         </div>
-                        <h1 className="text-2xl font-medium text-[#1F1F1F]">模型微调</h1>
+                        <h1 className="text-2xl font-medium text-[--gemini-text-primary]">模型微调</h1>
                     </div>
-                    <p className="text-[#444746] ml-[52px]">
+                    <p className="text-[--gemini-text-secondary] ml-[52px]">
                         使用自定义数据微调 LLM 模型，提升特定任务的性能
                     </p>
                     {gpuInfo && (
-                        <div className="ml-[52px] mt-2 flex items-center gap-2 text-sm text-[#1a73e8]">
+                        <div className="ml-[52px] mt-2 flex items-center gap-2 text-sm text-[--gemini-accent]">
                             <Cpu size={14} />
                             <span>{gpuInfo.recommendation}</span>
                         </div>
@@ -693,12 +693,12 @@ export default function FinetunePanel() {
 
                 {/* Current Model Section */}
                 <SectionCard title="当前模型" icon={<Settings size={18} />}>
-                    <p className="text-sm text-[#444746] mb-4">
+                    <p className="text-sm text-[--gemini-text-secondary] mb-4">
                         Chat 模式会优先使用本地 LLM 服务的模型
                     </p>
                     <div className="flex items-end gap-4">
                         <div className="flex-1">
-                            <label className="block text-sm text-[#444746] mb-2">基础模型（用于微调）</label>
+                            <label className="block text-sm text-[--gemini-text-secondary] mb-2">基础模型（用于微调）</label>
                             <Select
                                 value={currentModel}
                                 onChange={(value) => setCurrentModel(value)}
@@ -751,7 +751,7 @@ export default function FinetunePanel() {
                         }}
                     >
                         <Form.Item
-                            label={<span className="text-[#1F1F1F]">基础模型</span>}
+                            label={<span className="text-[--gemini-text-primary]">基础模型</span>}
                             name="model_name"
                             tooltip="选择要微调的基础模型（推荐使用 1.5B 模型适配 RTX 3060）"
                             rules={[{ required: true }]}
@@ -760,10 +760,10 @@ export default function FinetunePanel() {
                                 <Option value="Qwen/Qwen2.5-Coder-1.5B-Instruct">
                                     <div className="py-1">
                                         <div className="flex items-center gap-2 text-sm">
-                                            <Sparkles size={14} className="text-[#1a73e8]" />
+                                            <Sparkles size={14} className="text-[--gemini-accent]" />
                                             Qwen 2.5 Coder 1.5B (推荐)
                                         </div>
-                                        <div className="text-xs text-[#444746] ml-5">显存: 6-8GB | 时间: 2-4h</div>
+                                        <div className="text-xs text-[--gemini-text-secondary] ml-5">显存: 6-8GB | 时间: 2-4h</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-Coder-0.5B-Instruct">
@@ -772,7 +772,7 @@ export default function FinetunePanel() {
                                             <Rocket size={14} className="text-green-500" />
                                             Qwen 2.5 Coder 0.5B (超快)
                                         </div>
-                                        <div className="text-xs text-[#444746] ml-5">显存: 2-4GB | 时间: 1-2h | 推荐新手</div>
+                                        <div className="text-xs text-[--gemini-text-secondary] ml-5">显存: 2-4GB | 时间: 1-2h | 推荐新手</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-0.5B-Instruct">
@@ -781,7 +781,7 @@ export default function FinetunePanel() {
                                             <Rocket size={14} className="text-green-500" />
                                             Qwen 2.5 0.5B (超快)
                                         </div>
-                                        <div className="text-xs text-[#444746] ml-5">显存: 2-4GB | 时间: 1-2h</div>
+                                        <div className="text-xs text-[--gemini-text-secondary] ml-5">显存: 2-4GB | 时间: 1-2h</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-1.5B-Instruct">
@@ -790,7 +790,7 @@ export default function FinetunePanel() {
                                             <MessageSquare size={14} className="text-blue-500" />
                                             Qwen 2.5 1.5B (通用)
                                         </div>
-                                        <div className="text-xs text-[#444746] ml-5">显存: 4-6GB | 时间: 2-4h</div>
+                                        <div className="text-xs text-[--gemini-text-secondary] ml-5">显存: 4-6GB | 时间: 2-4h</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-3B-Instruct">
@@ -799,7 +799,7 @@ export default function FinetunePanel() {
                                             <Zap size={14} className="text-amber-500" />
                                             Qwen 2.5 3B (高级)
                                         </div>
-                                        <div className="text-xs text-[#444746] ml-5">显存: 8-10GB | 时间: 4-6h | 可能 OOM</div>
+                                        <div className="text-xs text-[--gemini-text-secondary] ml-5">显存: 8-10GB | 时间: 4-6h | 可能 OOM</div>
                                     </div>
                                 </Option>
                                 <Option value="Qwen/Qwen2.5-7B-Instruct">
@@ -808,13 +808,13 @@ export default function FinetunePanel() {
                                             <AlertCircle size={14} className="text-red-500" />
                                             Qwen 2.5 7B (需要强卡)
                                         </div>
-                                        <div className="text-xs text-[#444746] ml-5">显存: 14-16GB | 时间: 8-12h | 不适合 RTX 3060</div>
+                                        <div className="text-xs text-[--gemini-text-secondary] ml-5">显存: 14-16GB | 时间: 8-12h | 不适合 RTX 3060</div>
                                     </div>
                                 </Option>
                             </Select>
                         </Form.Item>
 
-                        <Form.Item label={<span className="text-[#1F1F1F]">训练数据集</span>} required>
+                        <Form.Item label={<span className="text-[--gemini-text-primary]">训练数据集</span>} required>
                             <div className="space-y-3">
                                 <Radio.Group
                                     onChange={async (e) => {
@@ -827,16 +827,16 @@ export default function FinetunePanel() {
                                     <div className="space-y-2">
                                         <Radio value="upload" className="flex items-center">
                                             <div className="flex items-center gap-2 ml-2">
-                                                <FolderOpen size={16} className="text-[#444746]" />
+                                                <FolderOpen size={16} className="text-[--gemini-text-secondary]" />
                                                 <span>上传本地数据集</span>
-                                                <span className="text-xs text-[#444746]">支持 JSON/JSONL (Alpaca 格式)</span>
+                                                <span className="text-xs text-[--gemini-text-secondary]">支持 JSON/JSONL (Alpaca 格式)</span>
                                             </div>
                                         </Radio>
                                         <Radio value="sage-docs" className="flex items-center">
                                             <div className="flex items-center gap-2 ml-2">
-                                                <FileText size={16} className="text-[#444746]" />
+                                                <FileText size={16} className="text-[--gemini-text-secondary]" />
                                                 <span>使用 SAGE 官方文档</span>
-                                                <span className="text-xs text-[#444746]">自动从 GitHub 下载</span>
+                                                <span className="text-xs text-[--gemini-text-secondary]">自动从 GitHub 下载</span>
                                             </div>
                                         </Radio>
                                     </div>
@@ -854,7 +854,7 @@ export default function FinetunePanel() {
                                         点击上传数据集
                                     </SecondaryButton>
                                 </Upload>
-                                <p className="text-xs text-[#444746]">
+                                <p className="text-xs text-[--gemini-text-secondary]">
                                     Alpaca 格式: {'{ instruction, input, output }'}
                                 </p>
                             </div>
@@ -931,7 +931,7 @@ export default function FinetunePanel() {
                         >
                             <Panel
                                 header={
-                                    <span className="flex items-center gap-2 text-[#444746]">
+                                    <span className="flex items-center gap-2 text-[--gemini-text-secondary]">
                                         <Settings size={16} />
                                         高级配置
                                     </span>
@@ -966,7 +966,7 @@ export default function FinetunePanel() {
                             </Panel>
                         </Collapse>
 
-                        <div className="border-t border-[#E8EAED] pt-6 mt-6">
+                        <div className="border-t border-[--gemini-border] pt-6 mt-6">
                             <PrimaryButton
                                 loading={loading}
                                 icon={<Play size={16} />}
@@ -989,13 +989,13 @@ export default function FinetunePanel() {
                         className="gemini-table"
                         expandable={{
                             expandedRowRender: (record) => (
-                                <div className="bg-[#F0F4F9] p-4 rounded-xl">
-                                    <h4 className="text-sm font-medium text-[#1F1F1F] mb-2">训练日志</h4>
-                                    <div className="bg-[#1F1F1F] text-green-400 p-4 rounded-lg font-mono text-xs max-h-64 overflow-auto">
+                                <div className="bg-[--gemini-sidebar-bg] p-4 rounded-xl">
+                                    <h4 className="text-sm font-medium text-[--gemini-text-primary] mb-2">训练日志</h4>
+                                    <div className="bg-gray-900 dark:bg-black text-green-400 p-4 rounded-lg font-mono text-xs max-h-64 overflow-auto">
                                         {record.logs.length > 0 ? (
                                             record.logs.map((log, idx) => <div key={idx}>{log}</div>)
                                         ) : (
-                                            <span className="text-[#444746]">暂无日志</span>
+                                            <span className="text-[--gemini-text-secondary]">暂无日志</span>
                                         )}
                                     </div>
                                     {record.error_message && (

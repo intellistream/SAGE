@@ -123,7 +123,7 @@ export default function NodePalette() {
                         <Panel
                             key={category}
                             header={
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between text-[--gemini-text-primary]">
                                     <span>{category}</span>
                                     <Badge count={categoryNodes.length} showZero color="#1890ff" />
                                 </div>
@@ -139,9 +139,9 @@ export default function NodePalette() {
                                         title={node.description}
                                     >
                                         <div className="node-icon">{iconMap[category]}</div>
-                                        <div className="flex-1">
-                                            <div className="node-name">{node.name}</div>
-                                            <div className="text-xs text-gray-400 truncate">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="node-name text-[--gemini-text-primary] truncate">{node.name}</div>
+                                            <div className="text-xs text-[--gemini-text-secondary] truncate">
                                                 {node.description}
                                             </div>
                                         </div>
@@ -154,7 +154,7 @@ export default function NodePalette() {
             )}
 
             {!loading && !error && filteredNodes.length === 0 && (
-                <div className="text-center py-4 text-gray-500">
+                <div className="text-center py-4 text-[--gemini-text-secondary]">
                     没有找到匹配的节点
                 </div>
             )}

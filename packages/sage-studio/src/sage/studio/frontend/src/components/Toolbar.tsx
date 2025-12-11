@@ -27,10 +27,13 @@ import {
     Layout as LayoutIcon,
     Zap,
     User,
+    Sun,
+    Moon,
 } from 'lucide-react'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
 import { useAuthStore } from '../store/authStore'
+import { useThemeStore } from '../store/themeStore'
 import { submitFlow, getAllJobs, startJob, stopJob, exportFlow, importFlow } from '../services/api'
 import { useJobStatusPolling } from '../hooks/useJobStatusPolling'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -49,8 +52,24 @@ function SageLogo() {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Zap size={16} className="text-white" />
             </div>
-            <span className="text-lg font-medium text-[#1F1F1F]">SAGE Studio</span>
+            <span className="text-lg font-medium text-[--gemini-text-primary]">SAGE Studio</span>
         </div>
+    )
+}
+
+/** Theme toggle button */
+function ThemeToggle() {
+    const { resolvedTheme, toggleTheme } = useThemeStore()
+
+    return (
+        <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] transition-all duration-200"
+            title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+        >
+            {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
     )
 }
 
@@ -79,8 +98,8 @@ function IconButton({
                 transition-all duration-200 ease-out
                 disabled:opacity-50 disabled:cursor-not-allowed
                 ${primary
-                    ? 'bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:shadow-md'
-                    : 'text-[#444746] hover:bg-[#E3E8EE]'
+                    ? 'bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:shadow-md dark:bg-[#8ab4f8] dark:text-[#1a1a1a] dark:hover:bg-[#aecbfa]'
+                    : 'text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg]'
                 }
             `}
             title={label}
@@ -113,7 +132,7 @@ function ModeSwitcher({
     ]
 
     return (
-        <div className="flex items-center bg-[#F0F4F9] rounded-full p-1">
+        <div className="flex items-center bg-[--gemini-sidebar-bg] rounded-full p-1">
             {modes.map(({ value, label, icon }) => (
                 <button
                     key={value}
@@ -122,8 +141,8 @@ function ModeSwitcher({
                         flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium
                         transition-all duration-200 ease-out
                         ${mode === value
-                            ? 'bg-white text-[#1a73e8] shadow-sm'
-                            : 'text-[#444746] hover:text-[#1F1F1F]'
+                            ? 'bg-[--gemini-main-bg] text-[--gemini-accent] shadow-sm'
+                            : 'text-[--gemini-text-secondary] hover:text-[--gemini-text-primary]'
                         }
                     `}
                 >
@@ -151,7 +170,7 @@ function UserMenu({
         return (
             <button
                 onClick={() => (window.location.href = '/login')}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#1a73e8] text-white hover:bg-[#1557b0] transition-all duration-200"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[--gemini-accent] text-white hover:opacity-90 transition-all duration-200"
             >
                 Login
             </button>
@@ -162,9 +181,9 @@ function UserMenu({
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 p-1 rounded-full hover:bg-[#E3E8EE] transition-all duration-200"
+                className="flex items-center gap-2 p-1 rounded-full hover:bg-[--gemini-hover-bg] transition-all duration-200"
             >
-                <div className="w-8 h-8 rounded-full bg-[#1a73e8] flex items-center justify-center text-white text-sm font-medium">
+                <div className="w-8 h-8 rounded-full bg-[--gemini-accent] flex items-center justify-center text-white text-sm font-medium">
                     {user?.username?.[0]?.toUpperCase() || <User size={16} />}
                 </div>
             </button>
@@ -172,10 +191,10 @@ function UserMenu({
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#E8EAED] py-2 z-50">
-                        <div className="px-4 py-2 border-b border-[#E8EAED]">
-                            <div className="text-sm font-medium text-[#1F1F1F]">{user?.username || 'User'}</div>
-                            {user?.is_guest && <div className="text-xs text-[#444746]">Guest Mode</div>}
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-[--gemini-main-bg] rounded-xl shadow-lg border border-[--gemini-border] py-2 z-50">
+                        <div className="px-4 py-2 border-b border-[--gemini-border]">
+                            <div className="text-sm font-medium text-[--gemini-text-primary]">{user?.username || 'User'}</div>
+                            {user?.is_guest && <div className="text-xs text-[--gemini-text-secondary]">Guest Mode</div>}
                         </div>
                         {user?.is_guest && (
                             <button
@@ -183,7 +202,7 @@ function UserMenu({
                                     setIsOpen(false)
                                     window.location.href = '/login'
                                 }}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#444746] hover:bg-[#F0F4F9] transition-colors"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] transition-colors"
                             >
                                 <UserOutlined className="text-base" />
                                 Login / Sign up
@@ -194,7 +213,7 @@ function UserMenu({
                                 setIsOpen(false)
                                 onLogout()
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
                         >
                             <LogoutOutlined className="text-base" />
                             {user?.is_guest ? 'Exit Guest Mode' : 'Logout'}
@@ -511,7 +530,7 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
     return (
         <>
             {/* Gemini-style Toolbar */}
-            <div className="h-16 px-4 flex items-center justify-between bg-white border-b border-[#E8EAED]">
+            <div className="h-16 px-4 flex items-center justify-between bg-[--gemini-main-bg] border-b border-[--gemini-border]">
                 {/* Left: Logo */}
                 <SageLogo />
 
@@ -541,7 +560,7 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                 disabled={nodes.length === 0}
                             />
 
-                            <div className="h-6 w-px bg-[#E8EAED] mx-1" />
+                            <div className="h-6 w-px bg-[--gemini-border] mx-1" />
 
                             <IconButton
                                 icon={<Save size={16} />}
@@ -571,12 +590,12 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                                 />
                             </Upload>
 
-                            <div className="h-6 w-px bg-[#E8EAED] mx-1" />
+                            <div className="h-6 w-px bg-[--gemini-border] mx-1" />
 
                             <button
                                 onClick={undo}
                                 disabled={!canUndo}
-                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                className="p-2 rounded-full text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                 title="撤销"
                             >
                                 <UndoIcon size={16} />
@@ -584,24 +603,24 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                             <button
                                 onClick={redo}
                                 disabled={!canRedo}
-                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                className="p-2 rounded-full text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                 title="重做"
                             >
                                 <RedoIcon size={16} />
                             </button>
 
-                            <div className="h-6 w-px bg-[#E8EAED] mx-1" />
+                            <div className="h-6 w-px bg-[--gemini-border] mx-1" />
 
                             <button
                                 onClick={() => reactFlowInstance?.zoomIn()}
-                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] transition-all duration-200"
+                                className="p-2 rounded-full text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] transition-all duration-200"
                                 title="放大"
                             >
                                 <ZoomIn size={16} />
                             </button>
                             <button
                                 onClick={() => reactFlowInstance?.zoomOut()}
-                                className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] transition-all duration-200"
+                                className="p-2 rounded-full text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] transition-all duration-200"
                                 title="缩小"
                             >
                                 <ZoomOut size={16} />
@@ -610,13 +629,15 @@ export default function Toolbar({ mode, onModeChange }: ToolbarProps) {
                     )}
                 </div>
 
-                {/* Right: Mode switcher (always) + Settings + User */}
+                {/* Right: Mode switcher (always) + Theme toggle + Settings + User */}
                 <div className="flex items-center gap-3">
                     <ModeSwitcher mode={mode} onModeChange={onModeChange} />
 
+                    <ThemeToggle />
+
                     <button
                         onClick={() => setSettingsOpen(true)}
-                        className="p-2 rounded-full text-[#444746] hover:bg-[#E3E8EE] transition-all duration-200"
+                        className="p-2 rounded-full text-[--gemini-text-secondary] hover:bg-[--gemini-hover-bg] transition-all duration-200"
                         title="设置"
                     >
                         <SettingsIcon size={18} />

@@ -7,6 +7,11 @@
  * - Floating capsule input bar with focus transitions
  * - User messages: Right-aligned with light grey bubbles
  * - AI messages: Left-aligned, no bubble, clean typography
+ *
+ * Mobile support:
+ * - Drawer-style sidebar
+ * - Simplified header
+ * - Touch-friendly input area
  */
 
 import React, { useEffect, useRef, useState } from 'react'
@@ -35,6 +40,8 @@ import {
 import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
 import FileUpload from './FileUpload'
+import MobileHeader from './MobileHeader'
+import MobileSidebar from './MobileSidebar'
 import {
     sendChatMessage,
     getChatSessions,
@@ -81,8 +88,8 @@ function SessionItem({
                 group flex items-center gap-3 px-3 py-2.5 mx-2 rounded-full cursor-pointer
                 transition-all duration-200 ease-out
                 ${isActive
-                    ? 'bg-[#D3E3FD] text-[#1F1F1F]'
-                    : 'hover:bg-[#E3E8EE] text-[#444746]'
+                    ? 'bg-[#D3E3FD] dark:bg-[#394457] text-[--gemini-text-primary]'
+                    : 'hover:bg-[--gemini-hover-bg] text-[--gemini-text-secondary]'
                 }
             `}
             onClick={onClick}
@@ -108,7 +115,7 @@ function SessionItem({
                 trigger={['click']}
             >
                 <button
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-[#D3E3FD] transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-[#D3E3FD] dark:hover:bg-[#4a5568] transition-opacity"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <MoreHorizontal size={16} />
@@ -136,7 +143,7 @@ function ModelSelector({ llmStatus }: { llmStatus: LLMStatus | null }) {
                         label: (
                             <div className="py-1">
                                 <div className="font-medium">{modelName}</div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-[--gemini-text-secondary]">
                                     {isLocal ? 'Local Model' : 'Cloud Model'} · {isHealthy ? 'Connected' : 'Disconnected'}
                                 </div>
                             </div>
@@ -147,11 +154,11 @@ function ModelSelector({ llmStatus }: { llmStatus: LLMStatus | null }) {
             }}
             trigger={['click']}
         >
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#F0F4F9] transition-colors">
-                <span className="text-sm font-medium text-[#1F1F1F]">
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[--gemini-hover-bg] transition-colors">
+                <span className="text-sm font-medium text-[--gemini-text-primary]">
                     {modelName}
                 </span>
-                <ChevronDown size={16} className="text-[#444746]" />
+                <ChevronDown size={16} className="text-[--gemini-text-secondary]" />
                 {isHealthy && (
                     <span className="w-2 h-2 bg-green-500 rounded-full" />
                 )}
@@ -168,6 +175,7 @@ function ChatInput({
     onUpload,
     disabled,
     isSending,
+    isMobile = false,
 }: {
     value: string
     onChange: (value: string) => void
@@ -175,6 +183,7 @@ function ChatInput({
     onUpload: () => void
     disabled: boolean
     isSending: boolean
+    isMobile?: boolean
 }) {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const [isFocused, setIsFocused] = useState(false)
@@ -196,13 +205,14 @@ function ChatInput({
     }
 
     return (
-        <div className="w-full max-w-[830px] mx-auto px-4 pb-6">
+        <div className={`w-full mx-auto ${isMobile ? 'px-3 pb-3' : 'max-w-[830px] px-4 pb-6'}`}>
             <div
                 className={`
-                    relative flex flex-col rounded-[28px] transition-all duration-200
+                    relative flex flex-col transition-all duration-200
+                    ${isMobile ? 'rounded-[24px]' : 'rounded-[28px]'}
                     ${isFocused
-                        ? 'bg-white shadow-lg ring-1 ring-gray-200'
-                        : 'bg-[#F0F4F9]'
+                        ? 'bg-[--gemini-main-bg] shadow-lg ring-1 ring-[--gemini-border]'
+                        : 'bg-[--gemini-input-bg]'
                     }
                 `}
             >
@@ -218,32 +228,36 @@ function ChatInput({
                     disabled={disabled}
                     rows={1}
                     className={`
-                        w-full px-6 pt-4 pb-2 bg-transparent resize-none outline-none
-                        text-[#1F1F1F] text-base placeholder:text-[#444746]/60
+                        w-full bg-transparent resize-none outline-none
+                        text-[--gemini-text-primary] placeholder:text-[--gemini-text-secondary]/60
                         min-h-[24px] max-h-[200px]
+                        ${isMobile ? 'px-4 pt-3 pb-2 text-base' : 'px-6 pt-4 pb-2 text-base'}
                     `}
+                    style={{ fontSize: '16px' }} // Prevent iOS zoom on focus
                 />
 
                 {/* Bottom toolbar */}
-                <div className="flex items-center justify-between px-3 pb-3">
+                <div className={`flex items-center justify-between ${isMobile ? 'px-2 pb-2' : 'px-3 pb-3'}`}>
                     {/* Left: Upload button */}
                     <div className="flex items-center gap-1">
                         <Tooltip title="Upload files">
                             <button
                                 onClick={onUpload}
-                                className="p-2.5 rounded-full hover:bg-[#E3E8EE] transition-colors text-[#444746]"
+                                className={`rounded-full hover:bg-[--gemini-hover-bg] transition-colors text-[--gemini-text-secondary] ${isMobile ? 'p-2' : 'p-2.5'}`}
                             >
-                                <Plus size={20} />
+                                <Plus size={isMobile ? 18 : 20} />
                             </button>
                         </Tooltip>
-                        <Tooltip title="Voice input (coming soon)">
-                            <button
-                                className="p-2.5 rounded-full hover:bg-[#E3E8EE] transition-colors text-[#444746] opacity-50 cursor-not-allowed"
-                                disabled
-                            >
-                                <Mic size={20} />
-                            </button>
-                        </Tooltip>
+                        {!isMobile && (
+                            <Tooltip title="Voice input (coming soon)">
+                                <button
+                                    className="p-2.5 rounded-full hover:bg-[--gemini-hover-bg] transition-colors text-[--gemini-text-secondary] opacity-50 cursor-not-allowed"
+                                    disabled
+                                >
+                                    <Mic size={20} />
+                                </button>
+                            </Tooltip>
+                        )}
                     </div>
 
                     {/* Right: Send button */}
@@ -251,26 +265,29 @@ function ChatInput({
                         onClick={onSend}
                         disabled={!value.trim() || disabled}
                         className={`
-                            p-2.5 rounded-full transition-all duration-200
+                            rounded-full transition-all duration-200
+                            ${isMobile ? 'p-2' : 'p-2.5'}
                             ${value.trim() && !disabled
-                                ? 'bg-[#1F1F1F] text-white hover:bg-[#444746]'
-                                : 'bg-[#E8EAED] text-[#444746]/40 cursor-not-allowed'
+                                ? 'bg-[--gemini-text-primary] text-[--gemini-main-bg] hover:opacity-80 active:scale-95'
+                                : 'bg-[--gemini-border] text-[--gemini-text-secondary]/40 cursor-not-allowed'
                             }
                         `}
                     >
                         {isSending ? (
-                            <Loader size={20} className="animate-spin" />
+                            <Loader size={isMobile ? 18 : 20} className="animate-spin" />
                         ) : (
-                            <Send size={20} />
+                            <Send size={isMobile ? 18 : 20} />
                         )}
                     </button>
                 </div>
             </div>
 
-            {/* Disclaimer */}
-            <p className="text-center text-xs text-[#444746]/70 mt-3">
-                SAGE may display inaccurate info, including about people, so double-check its responses.
-            </p>
+            {/* Disclaimer - Hide on mobile */}
+            {!isMobile && (
+                <p className="text-center text-xs text-[--gemini-text-secondary]/70 mt-3">
+                    SAGE may display inaccurate info, including about people, so double-check its responses.
+                </p>
+            )}
         </div>
     )
 }
@@ -295,7 +312,7 @@ function MessageBubble({
                     <div
                         className={`
                             px-5 py-3 rounded-[20px] rounded-tr-sm
-                            bg-[#F0F4F9] text-[#1F1F1F]
+                            bg-[--gemini-user-bubble] text-[--gemini-text-primary]
                         `}
                     >
                         <p className="whitespace-pre-wrap break-words text-base leading-relaxed">
@@ -338,10 +355,10 @@ function EmptyState() {
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6">
                 <Zap size={32} className="text-white" />
             </div>
-            <h2 className="text-2xl font-normal text-[#1F1F1F] mb-2">
+            <h2 className="text-2xl font-normal text-[--gemini-text-primary] mb-2">
                 Hello, how can I help you today?
             </h2>
-            <p className="text-[#444746] text-base">
+            <p className="text-[--gemini-text-secondary] text-base">
                 Start a conversation with SAGE
             </p>
         </div>
@@ -354,9 +371,10 @@ function EmptyState() {
 
 interface ChatModeProps {
     onModeChange?: (mode: AppMode) => void
+    isMobile?: boolean
 }
 
-export default function ChatMode({ onModeChange }: ChatModeProps) {
+export default function ChatMode({ onModeChange, isMobile = false }: ChatModeProps) {
     const {
         currentSessionId,
         sessions,
@@ -393,6 +411,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
     const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null)
     const [isUploadVisible, setIsUploadVisible] = useState(false)
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -647,133 +666,166 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
 
     const currentMessages = messages[currentSessionId || ''] || []
 
-    return (
-        <div className="h-full flex bg-white">
-            {/* ================================================================
-                Sidebar - Gemini Style
-            ================================================================ */}
-            <div
-                className={`
-                    flex flex-col bg-[#F0F4F9] transition-all duration-300 ease-out
-                    ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[280px]'}
-                `}
-            >
-                {/* New Chat Button */}
-                <div className="p-3">
-                    <button
-                        onClick={handleNewChat}
-                        disabled={isStreaming}
-                        className={`
-                            flex items-center gap-3 w-full px-4 py-3 rounded-full
-                            bg-[#DDE3EA] text-[#444746] font-medium text-sm
-                            hover:bg-white hover:shadow-md transition-all duration-200
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                        `}
-                    >
-                        <Plus size={20} />
-                        <span>New chat</span>
-                    </button>
-                </div>
+    // Get current session title for mobile header
+    const currentSessionTitle = sessions.find(s => s.id === currentSessionId)?.title
 
-                {/* Session List */}
-                <div className="flex-1 overflow-y-auto gemini-scrollbar py-2">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-32">
-                            <Spin />
-                        </div>
-                    ) : sessions.length === 0 ? (
-                        <div className="text-center text-[#444746]/60 text-sm py-8 px-4">
-                            No conversations yet
-                        </div>
-                    ) : (
-                        <div className="space-y-1">
-                            {sessions.map((session: ChatSessionSummary) => (
-                                <SessionItem
-                                    key={session.id}
-                                    session={session}
-                                    isActive={currentSessionId === session.id}
-                                    onClick={() => {
-                                        setCurrentSessionId(session.id)
-                                        loadSessionMessages(session.id)
-                                    }}
-                                    onDelete={() => handleDeleteSession(session.id)}
-                                />
-                            ))}
-                        </div>
-                    )}
+    return (
+        <div className={`flex bg-[--gemini-main-bg] ${isMobile ? 'flex-col h-full overflow-hidden' : 'h-full'}`}>
+            {/* ================================================================
+                Mobile Header & Sidebar Drawer
+            ================================================================ */}
+            {isMobile && (
+                <>
+                    <MobileHeader
+                        onMenuClick={() => setMobileSidebarOpen(true)}
+                        onNewChat={handleNewChat}
+                        title={currentSessionTitle}
+                    />
+                    <MobileSidebar
+                        isOpen={mobileSidebarOpen}
+                        onClose={() => setMobileSidebarOpen(false)}
+                        sessions={sessions}
+                        currentSessionId={currentSessionId}
+                        isLoading={isLoading}
+                        onSessionClick={(sessionId) => {
+                            setCurrentSessionId(sessionId)
+                            loadSessionMessages(sessionId)
+                        }}
+                        onDeleteSession={handleDeleteSession}
+                        onNewChat={handleNewChat}
+                    />
+                </>
+            )}
+
+            {/* ================================================================
+                Desktop Sidebar - Gemini Style (Hidden on mobile)
+            ================================================================ */}
+            {!isMobile && (
+                <div
+                    className={`
+                        flex flex-col bg-[--gemini-sidebar-bg] transition-all duration-300 ease-out
+                        ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[280px]'}
+                    `}
+                >
+                    {/* New Chat Button */}
+                    <div className="p-3">
+                        <button
+                            onClick={handleNewChat}
+                            disabled={isStreaming}
+                            className={`
+                                flex items-center gap-3 w-full px-4 py-3 rounded-full
+                                bg-[--gemini-hover-bg] text-[--gemini-text-secondary] font-medium text-sm
+                                hover:bg-[--gemini-main-bg] hover:shadow-md transition-all duration-200
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                        >
+                            <Plus size={20} />
+                            <span>New chat</span>
+                        </button>
+                    </div>
+
+                    {/* Session List */}
+                    <div className="flex-1 overflow-y-auto gemini-scrollbar py-2">
+                        {isLoading ? (
+                            <div className="flex justify-center items-center h-32">
+                                <Spin />
+                            </div>
+                        ) : sessions.length === 0 ? (
+                            <div className="text-center text-[--gemini-text-secondary]/60 text-sm py-8 px-4">
+                                No conversations yet
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                {sessions.map((session: ChatSessionSummary) => (
+                                    <SessionItem
+                                        key={session.id}
+                                        session={session}
+                                        isActive={currentSessionId === session.id}
+                                        onClick={() => {
+                                            setCurrentSessionId(session.id)
+                                            loadSessionMessages(session.id)
+                                        }}
+                                        onDelete={() => handleDeleteSession(session.id)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* ================================================================
                 Main Chat Area
             ================================================================ */}
-            <div className="flex-1 flex flex-col min-w-0 bg-white">
-                {/* Header */}
-                <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-white/80 backdrop-blur-md border-b border-transparent">
-                    <div className="flex items-center gap-2">
-                        {/* Sidebar Toggle */}
-                        <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
-                            <button
-                                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                                className="p-2 rounded-full hover:bg-[#F0F4F9] transition-colors text-[#444746]"
-                            >
-                                {sidebarCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
-                            </button>
-                        </Tooltip>
+            <div className={`flex-1 flex flex-col min-w-0 bg-[--gemini-main-bg] ${isMobile ? 'pt-14' : ''}`}>
+                {/* Header - Hidden on mobile (MobileHeader is used instead) */}
+                {!isMobile && (
+                    <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-[--gemini-main-bg]/80 backdrop-blur-md border-b border-transparent">
+                        <div className="flex items-center gap-2">
+                            {/* Sidebar Toggle */}
+                            <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
+                                <button
+                                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                                    className="p-2 rounded-full hover:bg-[--gemini-hover-bg] transition-colors text-[--gemini-text-secondary]"
+                                >
+                                    {sidebarCollapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
+                                </button>
+                            </Tooltip>
 
-                        {/* Model Selector */}
-                        <ModelSelector llmStatus={llmStatus} />
-                    </div>
+                            {/* Model Selector */}
+                            <ModelSelector llmStatus={llmStatus} />
+                        </div>
 
-                    {/* Right Actions */}
-                    <div className="flex items-center gap-1">
-                        {currentMessages.length > 0 && (
-                            <>
-                                <Tooltip title="Convert to pipeline">
-                                    <button
-                                        onClick={handleConvertToPipeline}
-                                        disabled={isStreaming || isConverting}
-                                        className={`
+                        {/* Right Actions */}
+                        <div className="flex items-center gap-1">
+                            {currentMessages.length > 0 && (
+                                <>
+                                    <Tooltip title="Convert to pipeline">
+                                        <button
+                                            onClick={handleConvertToPipeline}
+                                            disabled={isStreaming || isConverting}
+                                            className={`
                                             flex items-center gap-2 px-3 py-2 rounded-full text-sm
                                             transition-colors duration-200
                                             ${isConverting
-                                                ? 'bg-[#E8EAED] text-[#444746]/50'
-                                                : 'hover:bg-[#F0F4F9] text-[#444746]'
-                                            }
+                                                    ? 'bg-[--gemini-border] text-[--gemini-text-secondary]/50'
+                                                    : 'hover:bg-[--gemini-hover-bg] text-[--gemini-text-secondary]'
+                                                }
                                         `}
-                                    >
-                                        {isConverting ? (
-                                            <Loader size={16} className="animate-spin" />
-                                        ) : (
-                                            <Sparkles size={16} />
-                                        )}
-                                        <span className="hidden sm:inline">Convert</span>
-                                    </button>
-                                </Tooltip>
+                                        >
+                                            {isConverting ? (
+                                                <Loader size={16} className="animate-spin" />
+                                            ) : (
+                                                <Sparkles size={16} />
+                                            )}
+                                            <span className="hidden sm:inline">Convert</span>
+                                        </button>
+                                    </Tooltip>
 
-                                <Tooltip title="Clear chat">
-                                    <button
-                                        onClick={handleClearCurrentSession}
-                                        disabled={isStreaming}
-                                        className="p-2 rounded-full hover:bg-[#F0F4F9] transition-colors text-[#444746]"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </Tooltip>
-                            </>
-                        )}
-                    </div>
-                </header>
+                                    <Tooltip title="Clear chat">
+                                        <button
+                                            onClick={handleClearCurrentSession}
+                                            disabled={isStreaming}
+                                            className="p-2 rounded-full hover:bg-[--gemini-hover-bg] transition-colors text-[--gemini-text-secondary]"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </Tooltip>
+                                </>
+                            )}
+                        </div>
+                    </header>
+                )}
 
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto gemini-scrollbar">
-                    <div className="max-w-[830px] mx-auto px-4 py-6">
+                    <div className={`mx-auto px-4 py-6 ${isMobile ? 'max-w-full' : 'max-w-[830px]'}`}>
                         {/* Recommendation Banner */}
                         {recommendationSummary && (
-                            <div className="mb-6 p-4 bg-[#E8F0FE] rounded-2xl border border-[#D2E3FC]">
-                                <p className="text-[#1F1F1F] text-sm mb-2">{recommendationSummary}</p>
+                            <div className="mb-6 p-4 bg-[#E8F0FE] dark:bg-[#394457] rounded-2xl border border-[#D2E3FC] dark:border-[#4a5568]">
+                                <p className="text-[--gemini-text-primary] text-sm mb-2">{recommendationSummary}</p>
                                 {recommendationInsights.length > 0 && (
-                                    <ul className="text-xs text-[#444746] mb-3">
+                                    <ul className="text-xs text-[--gemini-text-secondary] mb-3">
                                         {recommendationInsights.map((tip) => (
                                             <li key={tip}>• {tip}</li>
                                         ))}
@@ -781,7 +833,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                                 )}
                                 <button
                                     onClick={() => onModeChange?.('canvas')}
-                                    className="flex items-center gap-2 text-sm font-medium text-[#1a73e8] hover:underline"
+                                    className="flex items-center gap-2 text-sm font-medium text-[--gemini-accent] hover:underline"
                                 >
                                     Go to Canvas
                                     <ArrowRight size={16} />
@@ -809,7 +861,10 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                 </div>
 
                 {/* Input Area */}
-                <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent pt-4">
+                <div
+                    className={`flex-shrink-0 bg-gradient-to-t from-[--gemini-main-bg] via-[--gemini-main-bg] to-transparent ${isMobile ? 'pt-2 px-2' : 'pt-4'}`}
+                    style={isMobile ? { paddingBottom: 'max(16px, env(safe-area-inset-bottom))' } : undefined}
+                >
                     <ChatInput
                         value={currentInput}
                         onChange={setCurrentInput}
@@ -817,6 +872,7 @@ export default function ChatMode({ onModeChange }: ChatModeProps) {
                         onUpload={() => setIsUploadVisible(true)}
                         disabled={isStreaming || isSending}
                         isSending={isSending || isStreaming}
+                        isMobile={isMobile}
                     />
                 </div>
             </div>

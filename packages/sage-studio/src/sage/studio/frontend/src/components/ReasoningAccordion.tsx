@@ -86,7 +86,7 @@ function getStepIcon(type: ReasoningStepType, status: ReasoningStepStatus) {
     }
 
     if (status === 'running') {
-        return <Loader size={14} className={`${baseClass} text-[#1a73e8] animate-spin`} />
+        return <Loader size={14} className={`${baseClass} text-[--gemini-accent] animate-spin`} />
     }
 
     const iconMap: Record<ReasoningStepType, JSX.Element> = {
@@ -95,12 +95,12 @@ function getStepIcon(type: ReasoningStepType, status: ReasoningStepStatus) {
         workflow: <Workflow size={14} className={`${baseClass} text-orange-500`} />,
         analysis: <Lightbulb size={14} className={`${baseClass} text-amber-500`} />,
         conclusion: <CheckCircle size={14} className={`${baseClass} text-green-600`} />,
-        tool_call: <Wrench size={14} className={`${baseClass} text-[#1a73e8]`} />,
+        tool_call: <Wrench size={14} className={`${baseClass} text-[--gemini-accent]`} />,
         tool_result: <FileText size={14} className={`${baseClass} text-teal-600`} />,
         response: <MessageSquare size={14} className={`${baseClass} text-indigo-500`} />,
     }
 
-    return iconMap[type] || <Brain size={14} className={`${baseClass} text-[#444746]`} />
+    return iconMap[type] || <Brain size={14} className={`${baseClass} text-[--gemini-text-secondary]`} />
 }
 
 /**
@@ -171,7 +171,7 @@ function JsonCodeBlock({
     }
 
     const variantStyles = {
-        default: 'bg-[#1F1F1F]',
+        default: 'bg-gray-900 dark:bg-black',
         success: 'bg-emerald-900/80',
         error: 'bg-red-900/80',
     }
@@ -179,10 +179,10 @@ function JsonCodeBlock({
     return (
         <div className="mt-2">
             <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-[#444746]">{label}</span>
+                <span className="text-xs font-medium text-[--gemini-text-secondary]">{label}</span>
                 <button
                     onClick={handleCopy}
-                    className="text-xs text-[#1a73e8] hover:underline px-1.5 py-0.5"
+                    className="text-xs text-[--gemini-accent] hover:underline px-1.5 py-0.5"
                 >
                     {copied ? 'Copied' : 'Copy'}
                 </button>
@@ -225,12 +225,12 @@ function ToolCallDetails({
         <div className="mt-1.5 ml-5">
             {tool_name && (
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#E8F0FE] text-[#1a73e8]">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[--gemini-accent]/10 text-[--gemini-accent]">
                         <Wrench size={10} className="mr-1" />
                         {tool_name}
                     </span>
                     {confidence !== undefined && (
-                        <span className="text-xs text-[#444746]/60">
+                        <span className="text-xs text-[--gemini-text-secondary]/60">
                             {(confidence * 100).toFixed(0)}% confidence
                         </span>
                     )}
@@ -240,7 +240,7 @@ function ToolCallDetails({
                                 e.stopPropagation()
                                 setShowDetails(!showDetails)
                             }}
-                            className="text-xs text-[#1a73e8] hover:underline"
+                            className="text-xs text-[--gemini-accent] hover:underline"
                         >
                             {showDetails ? 'Hide JSON' : 'Show JSON'}
                         </button>
@@ -291,7 +291,7 @@ function StepItem({ step, isLast }: { step: ReasoningStep; isLast: boolean }) {
         <div className={`relative ${!isLast ? 'pb-2' : ''}`}>
             {/* 连接线 */}
             {!isLast && (
-                <div className="absolute left-[7px] top-6 bottom-0 w-px bg-[#E8EAED]" />
+                <div className="absolute left-[7px] top-6 bottom-0 w-px bg-[--gemini-border]" />
             )}
 
             {/* 步骤头部 */}
@@ -299,27 +299,27 @@ function StepItem({ step, isLast }: { step: ReasoningStep; isLast: boolean }) {
                 className={`
                     flex items-center gap-2 cursor-pointer rounded-lg px-2 py-1.5 -ml-1
                     transition-colors duration-150
-                    hover:bg-[#F0F4F9]
-                    ${step.status === 'error' ? 'bg-red-50' : ''}
+                    hover:bg-[--gemini-hover-bg]
+                    ${step.status === 'error' ? 'bg-red-50 dark:bg-red-900/20' : ''}
                 `}
                 onClick={() => hasExpandableContent && setExpanded(!expanded)}
             >
                 {getStepIcon(step.type, step.status)}
-                <span className="text-sm text-[#1F1F1F]">
+                <span className="text-sm text-[--gemini-text-primary]">
                     {step.title || getStepTypeName(step.type)}
                 </span>
                 {isToolStep && step.metadata?.tool_name && !expanded && (
-                    <span className="text-xs text-[#1a73e8] font-mono">
+                    <span className="text-xs text-[--gemini-accent] font-mono">
                         [{step.metadata.tool_name}]
                     </span>
                 )}
                 {step.duration && step.status === 'completed' && (
-                    <span className="text-xs text-[#444746]/60">
+                    <span className="text-xs text-[--gemini-text-secondary]/60">
                         {formatDuration(step.duration)}
                     </span>
                 )}
                 {hasExpandableContent && (
-                    <span className="text-[#444746]/60 ml-auto">
+                    <span className="text-[--gemini-text-secondary]/60 ml-auto">
                         {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </span>
                 )}
@@ -328,12 +328,12 @@ function StepItem({ step, isLast }: { step: ReasoningStep; isLast: boolean }) {
             {/* 步骤内容 */}
             {expanded && step.content && (
                 <div className={`
-                    ml-6 mt-1 text-sm text-[#444746] rounded-lg p-3 whitespace-pre-wrap
-                    bg-[#F8F9FA] leading-relaxed
+                    ml-6 mt-1 text-sm text-[--gemini-text-secondary] rounded-lg p-3 whitespace-pre-wrap
+                    bg-[--gemini-sidebar-bg] leading-relaxed
                 `}>
                     {step.content}
                     {step.status === 'running' && (
-                        <span className="inline-block w-1.5 h-4 ml-0.5 bg-[#1a73e8] animate-pulse rounded-sm" />
+                        <span className="inline-block w-1.5 h-4 ml-0.5 bg-[--gemini-accent] animate-pulse rounded-sm" />
                     )}
                 </div>
             )}
@@ -387,8 +387,8 @@ export default function ReasoningAccordion({
                     flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer
                     transition-all duration-200 ease-out
                     ${isStreaming
-                        ? 'bg-[#E8F0FE] animate-pulse'
-                        : 'bg-[#F0F4F9] hover:bg-[#E3E8EE]'
+                        ? 'bg-[--gemini-accent]/10 animate-pulse'
+                        : 'bg-[--gemini-sidebar-bg] hover:bg-[--gemini-hover-bg]'
                     }
                 `}
                 onClick={() => setExpanded(!expanded)}
@@ -396,30 +396,30 @@ export default function ReasoningAccordion({
                 {/* 图标 */}
                 <div className={`
                     flex items-center justify-center w-6 h-6 rounded-full
-                    ${isStreaming ? 'bg-[#D2E3FC]' : 'bg-[#E3E8EE]'}
+                    ${isStreaming ? 'bg-[--gemini-accent]/20' : 'bg-[--gemini-hover-bg]'}
                 `}>
                     {isStreaming ? (
-                        <Sparkles size={14} className="text-[#1a73e8] animate-pulse" />
+                        <Sparkles size={14} className="text-[--gemini-accent] animate-pulse" />
                     ) : (
-                        <Brain size={14} className="text-[#444746]" />
+                        <Brain size={14} className="text-[--gemini-text-secondary]" />
                     )}
                 </div>
 
                 {/* 标题 */}
-                <span className={`text-sm font-medium ${isStreaming ? 'text-[#1a73e8]' : 'text-[#1F1F1F]'}`}>
+                <span className={`text-sm font-medium ${isStreaming ? 'text-[--gemini-accent]' : 'text-[--gemini-text-primary]'}`}>
                     {isStreaming ? 'Thinking...' : 'Thought process'}
                 </span>
 
                 {/* 统计信息 */}
                 {!isStreaming && (
-                    <span className="text-xs text-[#444746]/60">
+                    <span className="text-xs text-[--gemini-text-secondary]/60">
                         {completedSteps} step{completedSteps !== 1 ? 's' : ''}
                         {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
                     </span>
                 )}
 
                 {/* 展开/折叠图标 */}
-                <span className="ml-auto text-[#444746]/60">
+                <span className="ml-auto text-[--gemini-text-secondary]/60">
                     {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 </span>
             </div>
@@ -431,7 +431,7 @@ export default function ReasoningAccordion({
                     ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
                 `}
             >
-                <div className="mt-2 ml-3 pl-3 border-l-2 border-[#E8EAED] space-y-1">
+                <div className="mt-2 ml-3 pl-3 border-l-2 border-[--gemini-border] space-y-1">
                     {steps.map((step, index) => (
                         <StepItem
                             key={step.id}
