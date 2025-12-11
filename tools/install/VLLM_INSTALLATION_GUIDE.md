@@ -72,7 +72,7 @@ python tools/install/verify_dependencies.py
 ```
 
 详细说明请参考:
-[docs/dev-notes/l0-infra/vllm-torch-version-conflict.md](../../docs/dev-notes/l0-infra/vllm-torch-version-conflict.md)
+[docs-public/docs_src/dev-notes/l1-common/VLLM_TORCH_VERSION_CONFLICT.md](../../docs-public/docs_src/dev-notes/l1-common/VLLM_TORCH_VERSION_CONFLICT.md)
 
 ### 错误: `outlines_core` 版本冲突
 

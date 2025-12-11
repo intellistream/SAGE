@@ -16,7 +16,7 @@
 - **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
   `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
-- **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
+- **[docs-public/docs_src/dev-notes/](docs-public/docs_src/dev-notes/)** - 开发笔记和修复总结
 
 **快速开始开发**:
 

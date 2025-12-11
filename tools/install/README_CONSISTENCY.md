@@ -200,8 +200,9 @@ git commit
 ## 详细文档
 
 - **完整指南**:
-  [docs/dev-notes/INSTALLATION_CONSISTENCY.md](../../docs/dev-notes/INSTALLATION_CONSISTENCY.md)
-- **解决方案总结**: [docs/dev-notes/ISSUE_1121_SOLUTION.md](../../docs/dev-notes/ISSUE_1121_SOLUTION.md)
+  [docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md](../../docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md)
+- **解决方案总结**:
+  [docs-public/docs_src/dev-notes/l2-platform/ISSUE_1121_SOLUTION.md](../../docs-public/docs_src/dev-notes/l2-platform/ISSUE_1121_SOLUTION.md)
 - **开发者指南**: [DEVELOPER.md](../../DEVELOPER.md)
 
 ## 相关 Issue
