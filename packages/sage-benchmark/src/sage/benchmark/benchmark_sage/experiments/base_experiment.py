@@ -18,23 +18,9 @@ from pathlib import Path
 
 import numpy as np
 
-from sage.benchmark.benchmark_icml.config.config_loader import ExperimentConfig
-
-
-@dataclass
-class RequestResult:
-    """Result of a single request."""
-
-    request_id: str
-    request_type: str  # "llm" or "embedding"
-    start_time: float
-    end_time: float
-    latency_ms: float
-    success: bool
-    error: str | None = None
-    tokens_in: int = 0
-    tokens_out: int = 0
-    metadata: dict = field(default_factory=dict)
+from sage.benchmark.benchmark_sage.experiments.common import RequestResult
+from sage.benchmark.benchmark_sage.experiments.config import ExperimentConfig
+from sage.benchmark.benchmark_sage.experiments.plotting import Plotter
 
 
 @dataclass
@@ -158,7 +144,6 @@ class BaseExperiment(ABC):
     def _run_warmup(self) -> None:
         """Run warmup requests (not counted in results)."""
         # Default: run a fraction of requests as warmup
-        warmup_results = []
         # Subclasses should implement actual warmup
         pass
 
@@ -262,43 +247,29 @@ class BaseExperiment(ABC):
     def _generate_plots(self, result: ExperimentResult) -> None:
         """Generate visualization plots."""
         try:
-            import matplotlib.pyplot as plt
+            plotter = Plotter()
 
-            # Latency distribution
+            # 1. Latency Distribution (Histogram -> CDF is better for papers, but let's keep simple for now or use Plotter)
+            # Using the new Plotter class
+
+            # Prepare data for Plotter (it expects list of dicts for comparison, but here we have one result)
+            # We wrap current result in a list
+            result_dict = self._result_to_full_dict(result)
+            result_dict["config_name"] = self.config.name  # Ensure name is present
+
+            # Latency CDF
+            plotter.plot_latency_cdf(
+                [result_dict],
+                self.output_dir / "latency_cdf.png",
+                title=f"Latency CDF - {self.config.name}",
+            )
+
+            # Timeline (Waterfall)
             if result.raw_results:
-                latencies = [r["latency_ms"] for r in result.raw_results if r.get("success")]
+                plotter.plot_timeline(result.raw_results, self.output_dir / "timeline.png")
 
-                fig, ax = plt.subplots(figsize=(10, 6))
-                ax.hist(latencies, bins=50, edgecolor="black", alpha=0.7)
-                ax.axvline(
-                    result.latency_p50_ms,
-                    color="g",
-                    linestyle="--",
-                    label=f"p50: {result.latency_p50_ms:.1f}ms",
-                )
-                ax.axvline(
-                    result.latency_p95_ms,
-                    color="orange",
-                    linestyle="--",
-                    label=f"p95: {result.latency_p95_ms:.1f}ms",
-                )
-                ax.axvline(
-                    result.latency_p99_ms,
-                    color="r",
-                    linestyle="--",
-                    label=f"p99: {result.latency_p99_ms:.1f}ms",
-                )
-                ax.set_xlabel("Latency (ms)")
-                ax.set_ylabel("Count")
-                ax.set_title(f"Latency Distribution - {self.config.name}")
-                ax.legend()
-                fig.savefig(
-                    self.output_dir / "latency_distribution.png", dpi=150, bbox_inches="tight"
-                )
-                plt.close(fig)
-
-        except ImportError:
-            self.log("matplotlib not available, skipping plots")
+        except Exception as e:
+            self.log(f"Error generating plots: {e}")
 
     def _generate_summary(self, result: ExperimentResult) -> str:
         """Generate human-readable summary."""
@@ -419,75 +390,3 @@ SLO Satisfaction & {result.slo_satisfaction_rate * 100:.1f}\\% \\\\
             "raw_results": result.raw_results,
             "baseline_results": result.baseline_results,
         }
-
-
-class WorkloadGenerator:
-    """Generate workloads for experiments."""
-
-    def __init__(self, config: ExperimentConfig):
-        self.config = config
-        random.seed(config.workload.seed)
-        np.random.seed(config.workload.seed)
-
-    def generate_mixed_workload(self, n_requests: int) -> list[dict]:
-        """Generate mixed LLM and embedding requests."""
-        requests = []
-        n_llm = int(n_requests * self.config.workload.llm_ratio)
-        n_embedding = n_requests - n_llm
-
-        # Generate LLM requests
-        for i in range(n_llm):
-            requests.append(
-                {
-                    "id": f"llm_{i:06d}",
-                    "type": "llm",
-                    "input_tokens": random.randint(
-                        self.config.workload.input_tokens_min, self.config.workload.input_tokens_max
-                    ),
-                    "max_output_tokens": random.randint(
-                        self.config.workload.output_tokens_min,
-                        self.config.workload.output_tokens_max,
-                    ),
-                }
-            )
-
-        # Generate embedding requests
-        for i in range(n_embedding):
-            requests.append(
-                {
-                    "id": f"emb_{i:06d}",
-                    "type": "embedding",
-                    "input_tokens": random.randint(
-                        self.config.workload.input_tokens_min, self.config.workload.input_tokens_max
-                    ),
-                }
-            )
-
-        # Shuffle
-        random.shuffle(requests)
-        return requests
-
-    def generate_arrival_times(self, n_requests: int, pattern: str = "poisson") -> list[float]:
-        """Generate request arrival times."""
-        if pattern == "constant":
-            interval = 1.0 / self.config.workload.request_rate
-            return [i * interval for i in range(n_requests)]
-        elif pattern == "poisson":
-            intervals = np.random.exponential(1.0 / self.config.workload.request_rate, n_requests)
-            return list(np.cumsum(intervals))
-        elif pattern == "bursty":
-            # Implement bursty pattern
-            times = []
-            t = 0
-            while len(times) < n_requests:
-                # Baseline period
-                for _ in range(min(10, n_requests - len(times))):
-                    t += np.random.exponential(0.1)  # Low rate
-                    times.append(t)
-                # Burst period
-                for _ in range(min(50, n_requests - len(times))):
-                    t += np.random.exponential(0.005)  # High rate
-                    times.append(t)
-            return times[:n_requests]
-        else:
-            raise ValueError(f"Unknown arrival pattern: {pattern}")
