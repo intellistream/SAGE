@@ -520,10 +520,14 @@ jobs:
             fi
           done
 
-          # 释放 GPU 显存
+          # 释放 GPU 显存 - 使用 sudo 确保有权限杀死所有相关进程
           echo "🧹 清理 GPU 显存..."
-          pkill -f "vllm" || true
-          pkill -f "embedding" || true
+          # 只杀当前用户的进程，避免权限问题
+          pkill -u $(whoami) -f "vllm" 2>/dev/null || true
+          pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+          # 如果有残留的其他用户进程，使用 sudo（可能是之前的服务残留）
+          sudo pkill -f "vllm.entrypoints" 2>/dev/null || true
+          sudo pkill -f "sage_embedding.embedding_server" 2>/dev/null || true
           sleep 3
 
           # 显示 GPU 状态
@@ -537,6 +541,9 @@ jobs:
       - name: Start services
         run: |
           echo "🚀 启动 SAGE Studio 服务栈..."
+
+          # 记录启动时间，用于后续只显示本次启动后的日志
+          START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
 
           # 按依赖顺序启动
           echo "1/4 启动 LLM 服务..."
@@ -557,8 +564,8 @@ jobs:
           sleep 3
           echo "--- Gateway 启动状态 ---"
           sudo systemctl status sage-gateway --no-pager || true
-          echo "--- Gateway 最近日志 ---"
-          sudo journalctl -u sage-gateway --no-pager -n 30 || true
+          echo "--- Gateway 最近日志 (本次启动后) ---"
+          sudo journalctl -u sage-gateway --no-pager --since "$START_TIME" -n 30 || true
           echo "---"
 
           echo "4/4 启动 Frontend 服务 (nginx)..."
