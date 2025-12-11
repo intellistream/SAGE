@@ -2,18 +2,29 @@
 
 ## 可用的 Pipeline 配置
 
-| 配置文件                                 | 对应论文   | 服务类型           | 核心特点                     |
-| ---------------------------------------- | ---------- | ------------------ | ---------------------------- |
-| `locomo_short_term_memory_pipeline.yaml` | Baseline   | ShortTermMemory    | 滑动窗口 STM                 |
-| `locomo_tim_pipeline.yaml`               | TiM        | VectorHashMemory   | 三元组 + LSH + 蒸馏          |
-| `locomo_memorybank_pipeline.yaml`        | MemoryBank | HierarchicalMemory | 分层 + Ebbinghaus 遗忘       |
-| `locomo_memgpt_pipeline.yaml`            | MemGPT     | HierarchicalMemory | 功能分层 + Replace           |
-| `locomo_amem_pipeline.yaml`              | A-Mem      | GraphMemory        | 链接图 + Link Evolution      |
-| `locomo_hipporag_pipeline.yaml`          | HippoRAG   | GraphMemory        | 知识图谱 + PPR               |
-| `locomo_memoryos_pipeline.yaml`          | MemoryOS   | HierarchicalMemory | 三层 + Heat Score            |
-| `locomo_ldagent_pipeline.yaml`           | LD-Agent   | HierarchicalMemory | STM+LTM + 话题重叠           |
-| `locomo_scm_pipeline.yaml`               | SCM        | NeuroMemVDB        | Memory Stream + Token Budget |
-| `locomo_mem0_pipeline.yaml`              | Mem0       | HybridMemory       | 事实库 + ADD/UPDATE/DELETE   |
+### 基础版本
+
+| 配置文件                                 | 对应论文    | 服务类型           | 核心特点                     |
+| ---------------------------------------- | ----------- | ------------------ | ---------------------------- |
+| `locomo_short_term_memory_pipeline.yaml` | Baseline    | ShortTermMemory    | 滑动窗口 STM                 |
+| `locomo_tim_pipeline.yaml`               | TiM-distill | VectorHashMemory   | 三元组 + LSH + 蒸馏          |
+| `locomo_memorybank_pipeline.yaml`        | MemoryBank  | HierarchicalMemory | 分层 + Ebbinghaus 遗忘       |
+| `locomo_memgpt_pipeline.yaml`            | MemGPT      | HierarchicalMemory | 功能分层 + Replace           |
+| `locomo_amem_pipeline.yaml`              | A-Mem       | GraphMemory        | 链接图 + Link Evolution      |
+| `locomo_hipporag_pipeline.yaml`          | HippoRAG    | GraphMemory        | 知识图谱 + PPR               |
+| `locomo_memoryos_pipeline.yaml`          | MemoryOS    | HierarchicalMemory | 三层 + Heat Score            |
+| `locomo_ldagent_pipeline.yaml`           | LD-Agent    | HierarchicalMemory | STM+LTM + 话题重叠           |
+| `locomo_scm_pipeline.yaml`               | SCM         | NeuroMemVDB        | Memory Stream + Token Budget |
+| `locomo_mem0_pipeline.yaml`              | Mem0        | HybridMemory       | 事实库 + ADD/UPDATE/DELETE   |
+
+### 论文变体版本
+
+| 配置文件                            | 对应论文变体 | 服务类型           | 与基础版的区别        |
+| ----------------------------------- | ------------ | ------------------ | --------------------- |
+| `locomo_mem0g_pipeline.yaml`        | Mem0ᵍ        | HybridMemory       | 向量+图索引+实体链接  |
+| `locomo_hipporag2_pipeline.yaml`    | HippoRAG2    | GraphMemory        | 更深 PPR + 增强重排序 |
+| `locomo_tim_basic_pipeline.yaml`    | TiM          | VectorHashMemory   | 无蒸馏（基础版）      |
+| `locomo_memgpt_agent_pipeline.yaml` | MemGPT-agent | HierarchicalMemory | 工具调用模式          |
 
 ## 目录结构
 
@@ -22,15 +33,19 @@ config/
 ├── README.md                              # 本文档
 ├── template_full.yaml                     # 完整配置模板（包含所有选项）
 ├── locomo_short_term_memory_pipeline.yaml # STM Baseline
-├── locomo_tim_pipeline.yaml               # TiM
+├── locomo_tim_pipeline.yaml               # TiM (带蒸馏)
+├── locomo_tim_basic_pipeline.yaml         # TiM (基础版，无蒸馏)
 ├── locomo_memorybank_pipeline.yaml        # MemoryBank
-├── locomo_memgpt_pipeline.yaml            # MemGPT
+├── locomo_memgpt_pipeline.yaml            # MemGPT (基础版)
+├── locomo_memgpt_agent_pipeline.yaml      # MemGPT (Agent 工具调用版)
 ├── locomo_amem_pipeline.yaml              # A-Mem
-├── locomo_hipporag_pipeline.yaml          # HippoRAG
+├── locomo_hipporag_pipeline.yaml          # HippoRAG (基础版)
+├── locomo_hipporag2_pipeline.yaml         # HippoRAG2 (改进版)
 ├── locomo_memoryos_pipeline.yaml          # MemoryOS
 ├── locomo_ldagent_pipeline.yaml           # LD-Agent
 ├── locomo_scm_pipeline.yaml               # SCM
-├── locomo_mem0_pipeline.yaml              # Mem0
+├── locomo_mem0_pipeline.yaml              # Mem0 (基础版)
+├── locomo_mem0g_pipeline.yaml             # Mem0ᵍ (图记忆版)
 └── [your_config].yaml                     # 用户自定义配置
 ```
 

@@ -8,11 +8,18 @@
 - Service : Collection = 1 : 1
 - 使用 GraphMemoryCollection 作为底层存储
 - 支持 PPR (Personalized PageRank) 检索
+
+论文算法实现:
+- A-Mem: Link Generation (自动链接相似记忆)
+- A-Mem: Memory Evolution (记忆演化更新)
+- HippoRAG: Synonym Edge (同义词边建立)
+- HippoRAG: PPR 检索优化
 """
 
 from __future__ import annotations
 
 import hashlib
+import time
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
@@ -36,6 +43,10 @@ class GraphMemoryService(BaseService):
 
     支持 knowledge_graph 和 link_graph 两种模式。
     底层使用 MemoryManager + GraphMemoryCollection 存储。
+
+    支持两种变体:
+    - HippoRAG 基础版: ppr_depth=2, enhanced_rerank=False
+    - HippoRAG2 改进版: ppr_depth=3, enhanced_rerank=True
     """
 
     def __init__(
@@ -50,6 +61,12 @@ class GraphMemoryService(BaseService):
         edge_types: list[str] | None = None,
         synonymy_threshold: float = 0.8,
         damping: float = 0.5,
+        ppr_depth: int = 2,
+        ppr_damping: float = 0.85,
+        enhanced_rerank: bool = False,
+        retrieval_top_k: int = 20,
+        num_start_nodes: int = 3,
+        max_depth: int = 2,
     ):
         """初始化图记忆服务
 
@@ -63,7 +80,13 @@ class GraphMemoryService(BaseService):
             node_embedding_dim: 节点 embedding 维度
             edge_types: 支持的边类型列表
             synonymy_threshold: 同义词边的相似度阈值
-            damping: PPR 阻尼系数
+            damping: PPR 阻尼系数（旧参数，保留兼容性）
+            ppr_depth: PPR 迭代深度（HippoRAG=2, HippoRAG2=3）
+            ppr_damping: PPR 阻尼系数（HippoRAG=0.85, HippoRAG2=0.9）
+            enhanced_rerank: 是否启用增强重排序（HippoRAG2 特有）
+            retrieval_top_k: 初始向量检索返回数量
+            num_start_nodes: PPR 起始节点数量
+            max_depth: 图遍历最大深度
         """
         super().__init__()
 
@@ -77,6 +100,14 @@ class GraphMemoryService(BaseService):
         self.edge_types = edge_types
         self.synonymy_threshold = synonymy_threshold
         self.damping = damping
+
+        # HippoRAG2 增强参数
+        self.ppr_depth = ppr_depth
+        self.ppr_damping = ppr_damping
+        self.enhanced_rerank = enhanced_rerank
+        self.retrieval_top_k = retrieval_top_k
+        self.num_start_nodes = num_start_nodes
+        self.max_depth = max_depth
 
         # 初始化 MemoryManager
         self.manager = MemoryManager(self._get_default_data_dir())
@@ -117,9 +148,16 @@ class GraphMemoryService(BaseService):
         # 格式: {node_id: np.ndarray}
         self._vector_index: dict[str, np.ndarray] = {}
 
+        # === 被动插入状态管理（A-Mem 链接/HippoRAG 同义边）===
+        # 用于存储待处理的新节点和链接候选，供 PostInsert 查询
+        self._pending_node: dict | None = None  # 新插入的节点
+        self._pending_candidates: list[dict] = []  # 链接/同义候选
+        self._pending_action: str | None = None  # "link" | "synonym" | None
+
         self.logger.info(
             f"GraphMemoryService initialized: collection={collection_name}, "
-            f"graph_type={graph_type}, index={index_name}"
+            f"graph_type={graph_type}, index={index_name}, "
+            f"ppr_depth={ppr_depth}, ppr_damping={ppr_damping}, enhanced_rerank={enhanced_rerank}"
         )
 
     @classmethod
@@ -217,8 +255,87 @@ class GraphMemoryService(BaseService):
             for target_id in metadata["links"]:
                 self._add_link(node_id, target_id, weight=self.link_weight_init)
 
+        # === 被动插入模式：查找候选并更新状态供 PostInsert 查询 ===
+        if insert_mode == "passive" and vector is not None:
+            self._update_pending_status(node_id, entry, vector, metadata)
+
         self.logger.debug(f"Inserted node {node_id} to graph")
         return node_id
+
+    def _update_pending_status(
+        self,
+        node_id: str,
+        entry: str,
+        vector: np.ndarray,
+        metadata: dict | None = None,
+    ) -> None:
+        """更新待处理状态（被动插入模式核心方法）
+
+        根据图类型查找候选，更新状态供 PostInsert 决策：
+        - link_graph (A-Mem): 查找链接候选
+        - knowledge_graph (HippoRAG): 查找同义词边候选
+
+        Args:
+            node_id: 新插入的节点 ID
+            entry: 节点文本内容
+            vector: 节点向量
+            metadata: 节点元数据
+        """
+        # 查找相似节点作为候选
+        candidates = self._find_similar_nodes(vector, top_k=10, threshold=0.5)
+        # 过滤掉自己
+        candidates = [c for c in candidates if c.get("node_id") != node_id]
+
+        if not candidates:
+            self.clear_pending_status()
+            return
+
+        # 设置待处理状态
+        self._pending_node = {
+            "node_id": node_id,
+            "text": entry,
+            "vector": vector.tolist() if isinstance(vector, np.ndarray) else list(vector),
+            "metadata": metadata or {},
+        }
+        self._pending_candidates = candidates
+
+        if self.graph_type == "link_graph":
+            # A-Mem: 链接建立
+            self._pending_action = "link"
+        else:
+            # knowledge_graph (HippoRAG): 同义边建立
+            self._pending_action = "synonym"
+
+        self.logger.debug(
+            f"Pending {self._pending_action} status updated: node={node_id[:16]}..., "
+            f"candidates={len(candidates)}"
+        )
+
+    def get_status(self) -> dict:
+        """查询服务状态（被动插入模式唯一对外接口）
+
+        供 PostInsert 算子查询待处理状态，决定是否需要 LLM 进行链接决策。
+
+        Returns:
+            dict: 服务状态字典
+                - pending_action: "link" | "synonym" | None
+                - pending_node: 新插入的节点信息
+                - pending_candidates: 链接/同义候选列表
+        """
+        return {
+            "pending_action": self._pending_action,
+            "pending_node": self._pending_node.copy() if self._pending_node else None,
+            "pending_candidates": self._pending_candidates.copy(),
+        }
+
+    def clear_pending_status(self) -> None:
+        """清除待处理状态
+
+        在 PostInsert 处理完成后调用，或无需处理时清除。
+        """
+        self._pending_node = None
+        self._pending_candidates = []
+        self._pending_action = None
 
     def _add_link(self, from_node: str, to_node: str, weight: float = 1.0) -> None:
         """添加链接（边）"""
@@ -259,9 +376,9 @@ class GraphMemoryService(BaseService):
             vector: 查询向量（优先使用，用于相似度检索起始节点）
             metadata: 检索参数:
                 - start_node: 起始节点 ID（直接指定，跳过向量检索）
-                - max_depth: 最大遍历深度 (默认 2)
-                - method: 检索方法 ("bfs" | "neighbors" | "vector_only")
-                - num_start_nodes: 使用多少个起始节点（默认 3）
+                - max_depth: 最大遍历深度（默认使用 self.max_depth）
+                - method: 检索方法 ("bfs" | "neighbors" | "vector_only" | "ppr")
+                - num_start_nodes: 使用多少个起始节点（默认使用 self.num_start_nodes）
             top_k: 返回结果数量
             hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
             threshold: 相似度阈值（可选，过滤低于阈值的结果）
@@ -272,9 +389,10 @@ class GraphMemoryService(BaseService):
         _ = hints  # 保留用于未来扩展
         metadata = metadata or {}
         start_node = metadata.get("start_node")
-        max_depth = metadata.get("max_depth", 2)
+        # 使用实例配置作为默认值（支持 HippoRAG2 的更深遍历）
+        max_depth = metadata.get("max_depth", self.max_depth)
         method = metadata.get("method", "bfs")
-        num_start_nodes = metadata.get("num_start_nodes", 3)
+        num_start_nodes = metadata.get("num_start_nodes", self.num_start_nodes)
 
         # 日志：检查向量索引状态
         self.logger.debug(
@@ -313,6 +431,22 @@ class GraphMemoryService(BaseService):
         # 如果只需要向量检索结果
         if method == "vector_only" and vector is not None:
             return self._find_similar_nodes(vector, top_k=top_k, threshold=threshold)
+
+        # PPR 检索方法（HippoRAG/HippoRAG2）
+        if method == "ppr" and vector is not None:
+            # 找到多个起始节点
+            start_nodes_list = self._find_similar_nodes(
+                vector, top_k=num_start_nodes, threshold=threshold
+            )
+            seed_node_ids = [n["node_id"] for n in start_nodes_list]
+            if seed_node_ids:
+                return self.ppr_retrieve(
+                    seed_nodes=seed_node_ids,
+                    alpha=1.0 - self.ppr_damping,  # alpha = 1 - damping
+                    max_iter=self.ppr_depth * 50,  # 迭代次数与深度相关
+                    top_k=top_k,
+                )
+            return []
 
         if method == "neighbors":
             # 只获取直接邻居
@@ -471,23 +605,32 @@ class GraphMemoryService(BaseService):
     def ppr_retrieve(
         self,
         seed_nodes: list[str],
-        alpha: float = 0.15,
-        max_iter: int = 100,
+        alpha: float | None = None,
+        max_iter: int | None = None,
         top_k: int = 10,
+        query_vector: np.ndarray | list[float] | None = None,
     ) -> list[dict[str, Any]]:
         """PPR (Personalized PageRank) 检索
 
-        用于 HippoRAG 等基于图的检索场景。
+        用于 HippoRAG/HippoRAG2 等基于图的检索场景。
+        HippoRAG2 支持 enhanced_rerank，结合 PPR 分数和语义相似度。
 
         Args:
             seed_nodes: 种子节点 ID 列表
-            alpha: 重启概率 (0.15 typical)
-            max_iter: 最大迭代次数
+            alpha: 重启概率（默认使用 1 - self.ppr_damping）
+            max_iter: 最大迭代次数（默认使用 self.ppr_depth * 50）
             top_k: 返回数量
+            query_vector: 查询向量（用于 enhanced_rerank）
 
         Returns:
             检索结果列表 [{"node_id": ..., "text": ..., "score": ...}, ...]
         """
+        # 使用实例配置作为默认值
+        if alpha is None:
+            alpha = 1.0 - self.ppr_damping
+        if max_iter is None:
+            max_iter = self.ppr_depth * 50
+
         if self.index_name not in self.collection.indexes:
             self.logger.warning(f"Index '{self.index_name}' not found")
             return []
@@ -503,12 +646,12 @@ class GraphMemoryService(BaseService):
             seed_nodes=seed_nodes,
             alpha=alpha,
             max_iter=max_iter,
-            top_k=top_k,
+            top_k=top_k * 2 if self.enhanced_rerank else top_k,  # 增强重排时获取更多候选
         )
 
         # 组装返回结果
         formatted_results = []
-        for node_id, score in ppr_results:
+        for node_id, ppr_score in ppr_results:
             text = (
                 self.collection.text_storage.get(node_id)
                 if hasattr(self.collection, "text_storage")
@@ -519,17 +662,268 @@ class GraphMemoryService(BaseService):
                 if hasattr(self.collection, "metadata_storage")
                 else {}
             )
+
+            # 计算最终分数
+            final_score = ppr_score
+            if self.enhanced_rerank and query_vector is not None and node_id in self._vector_index:
+                # HippoRAG2 增强重排序：结合 PPR 分数和语义相似度
+                node_vector = self._vector_index[node_id]
+                if isinstance(query_vector, list):
+                    query_vector = np.array(query_vector)
+
+                # 计算余弦相似度
+                query_norm = np.linalg.norm(query_vector)
+                node_norm = np.linalg.norm(node_vector)
+                if query_norm > 0 and node_norm > 0:
+                    semantic_score = float(
+                        np.dot(query_vector, node_vector) / (query_norm * node_norm)
+                    )
+                else:
+                    semantic_score = 0.0
+
+                # 融合分数（PPR 权重 0.6，语义相似度权重 0.4）
+                final_score = 0.6 * ppr_score + 0.4 * semantic_score
+
             formatted_results.append(
                 {
                     "node_id": node_id,
                     "entry_id": node_id,
                     "text": text or "",
-                    "score": score,
+                    "score": final_score,
+                    "ppr_score": ppr_score,
                     "metadata": metadata or {},
                 }
             )
 
+        # 如果启用了增强重排序，按融合分数重新排序并截取
+        if self.enhanced_rerank:
+            formatted_results.sort(key=lambda x: x["score"], reverse=True)
+            formatted_results = formatted_results[:top_k]
+
         return formatted_results
+
+    # ==================== 论文算法实现 ====================
+
+    def _create_auto_links(
+        self,
+        node_id: str,
+        config: dict[str, Any] | None = None,
+    ) -> list[str]:
+        """A-Mem: 自动链接生成
+
+        论文要求:
+        1. 检索 top-k 最近邻
+        2. 基于相似度阈值建立链接
+        3. 建立双向链接
+
+        Args:
+            node_id: 新插入的节点 ID
+            config: 配置参数
+                - max_auto_links: 最大链接数，默认 5
+                - similarity_threshold: 相似度阈值，默认 0.7
+                - edge_weight: 边权重，默认 1.0
+
+        Returns:
+            新建立链接的目标节点 ID 列表
+        """
+        config = config or {}
+        max_links = int(config.get("max_auto_links", 5))
+        threshold = float(config.get("similarity_threshold", 0.7))
+        edge_weight = float(config.get("edge_weight", self.link_weight_init))
+
+        if node_id not in self._vector_index:
+            return []
+
+        query_vector = self._vector_index[node_id]
+        linked_nodes: list[str] = []
+
+        # 找到最相似的节点
+        similarities: list[tuple[str, float]] = []
+        for other_id, other_vector in self._vector_index.items():
+            if other_id == node_id:
+                continue
+
+            # 余弦相似度
+            sim = float(
+                np.dot(query_vector, other_vector)
+                / (np.linalg.norm(query_vector) * np.linalg.norm(other_vector) + 1e-8)
+            )
+            if sim >= threshold:
+                similarities.append((other_id, sim))
+
+        # 按相似度排序，取 top-k
+        similarities.sort(key=lambda x: x[1], reverse=True)
+
+        for other_id, sim in similarities[:max_links]:
+            # 建立双向链接
+            if self.link_policy == "bidirectional":
+                self.collection.add_edge(
+                    from_node=node_id,
+                    to_node=other_id,
+                    weight=edge_weight * sim,
+                    index_name=self.index_name,
+                )
+                self.collection.add_edge(
+                    from_node=other_id,
+                    to_node=node_id,
+                    weight=edge_weight * sim,
+                    index_name=self.index_name,
+                )
+            else:
+                self.collection.add_edge(
+                    from_node=node_id,
+                    to_node=other_id,
+                    weight=edge_weight * sim,
+                    index_name=self.index_name,
+                )
+            linked_nodes.append(other_id)
+
+        self.logger.debug(f"Auto-linked {node_id[:16]}... to {len(linked_nodes)} nodes")
+        return linked_nodes
+
+    def _memory_evolution(
+        self,
+        node_id: str,
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """A-Mem: 记忆演化
+
+        论文要求:
+        对新插入节点的每个邻居，判断是否需要更新其 keywords/tags/context
+
+        Args:
+            node_id: 新插入的节点 ID
+            config: 配置参数
+                - evolution_threshold: 演化相似度阈值，默认 0.8
+                - merge_keywords: 是否合并关键词，默认 True
+
+        Returns:
+            演化统计信息
+        """
+        config = config or {}
+        evolution_threshold = float(config.get("evolution_threshold", 0.8))
+        merge_keywords = config.get("merge_keywords", True)
+
+        stats = {"updated_nodes": 0, "merged_keywords": 0}
+
+        # 获取新节点的信息
+        if node_id not in self._vector_index:
+            return stats
+
+        new_vector = self._vector_index[node_id]
+        new_meta = self.collection.metadata_storage.get(node_id) or {}
+        new_keywords = set(new_meta.get("keywords", []))
+
+        # 获取邻居节点
+        if self.index_name not in self.collection.indexes:
+            return stats
+
+        index = self.collection.indexes[self.index_name]
+        neighbors = index.adjacency.get(node_id, {})
+
+        for neighbor_id in neighbors:
+            if neighbor_id not in self._vector_index:
+                continue
+
+            neighbor_vector = self._vector_index[neighbor_id]
+
+            # 计算相似度
+            sim = float(
+                np.dot(new_vector, neighbor_vector)
+                / (np.linalg.norm(new_vector) * np.linalg.norm(neighbor_vector) + 1e-8)
+            )
+
+            if sim >= evolution_threshold and merge_keywords:
+                # 合并关键词
+                neighbor_meta = self.collection.metadata_storage.get(neighbor_id) or {}
+                neighbor_keywords = set(neighbor_meta.get("keywords", []))
+
+                # 将新节点的关键词添加到邻居
+                merged = neighbor_keywords | new_keywords
+                if merged != neighbor_keywords:
+                    neighbor_meta["keywords"] = list(merged)
+                    neighbor_meta["evolved_at"] = time.time()
+                    self.collection.metadata_storage[neighbor_id] = neighbor_meta
+                    stats["updated_nodes"] += 1
+                    stats["merged_keywords"] += len(merged - neighbor_keywords)
+
+        self.logger.debug(
+            f"Memory evolution for {node_id[:16]}...: updated {stats['updated_nodes']} neighbors"
+        )
+        return stats
+
+    def _build_synonym_edges_batch(
+        self,
+        config: dict[str, Any] | None = None,
+    ) -> int:
+        """HippoRAG: 批量建立同义词边
+
+        论文要求:
+        对所有 Phrase Node，计算两两嵌入相似度，若 > τ，建立 synonym 边
+
+        优化:
+        - 仅在 session 结束时批量执行
+        - 避免重复建边
+
+        Args:
+            config: 配置参数
+                - synonymy_threshold: 同义词相似度阈值，默认使用实例的 synonymy_threshold
+
+        Returns:
+            新建立的边数量
+        """
+        config = config or {}
+        threshold = float(config.get("synonymy_threshold", self.synonymy_threshold))
+
+        if self.index_name not in self.collection.indexes:
+            return 0
+
+        index = self.collection.indexes[self.index_name]
+        node_ids = list(self._vector_index.keys())
+        edges_created = 0
+
+        # 记录已存在的边，避免重复
+        existing_edges: set[tuple[str, str]] = set()
+        for from_node, neighbors in index.adjacency.items():
+            for to_node in neighbors:
+                existing_edges.add((from_node, to_node))
+
+        # 计算两两相似度
+        for i, node_a in enumerate(node_ids):
+            vec_a = self._vector_index[node_a]
+
+            for node_b in node_ids[i + 1 :]:
+                vec_b = self._vector_index[node_b]
+
+                # 检查是否已有边
+                if (node_a, node_b) in existing_edges or (node_b, node_a) in existing_edges:
+                    continue
+
+                # 余弦相似度
+                sim = float(
+                    np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b) + 1e-8)
+                )
+
+                if sim >= threshold:
+                    # 建立双向同义词边
+                    self.collection.add_edge(
+                        from_node=node_a,
+                        to_node=node_b,
+                        weight=sim,
+                        edge_type="synonym",
+                        index_name=self.index_name,
+                    )
+                    self.collection.add_edge(
+                        from_node=node_b,
+                        to_node=node_a,
+                        weight=sim,
+                        edge_type="synonym",
+                        index_name=self.index_name,
+                    )
+                    edges_created += 2
+
+        self.logger.debug(f"Built {edges_created} synonym edges (threshold={threshold})")
+        return edges_created
 
     def optimize(
         self,
@@ -539,18 +933,33 @@ class GraphMemoryService(BaseService):
     ) -> dict[str, Any]:
         """优化图结构
 
+        支持的触发类型:
+        - auto: 自动执行所有优化
+        - link_evolution: 链接演化（synonym_edge, knn, auto_link）
+        - memory_evolution: 记忆演化（A-Mem）
+        - decay: 边权重衰减
+        - strengthen: 边权重增强
+
+        支持的配置参数 (通过 config 传入):
+        - link_policy: 链接策略 ("synonym_edge" | "knn" | "auto_link")
+        - similarity_threshold: 相似度阈值
+        - edge_weight: 默认边权重
+        - max_auto_links: 自动链接最大数量
+        - synonymy_threshold: 同义词边阈值
+        - evolution_threshold: 演化阈值
+        - decay_rate: 边衰减率
+        - strengthen_factor: 边增强因子
+
         Args:
-            trigger: 触发类型 ("auto" | "link_evolution" | "decay" | "strengthen")
-            config: 优化配置参数，支持:
-                - link_policy: 链接策略 ("synonym_edge" | "knn" | "semantic")
-                - similarity_threshold: 相似度阈值
-                - edge_weight: 默认边权重
+            trigger: 触发类型
+            config: 优化配置参数
             entries: 相关的记忆条目
 
         Returns:
             dict: 优化统计信息
         """
         config = config or {}
+        entries = entries or []
 
         if self.index_name not in self.collection.indexes:
             return {"success": False, "message": "Index not found"}
@@ -558,30 +967,121 @@ class GraphMemoryService(BaseService):
         index = self.collection.indexes[self.index_name]
         edges_before = sum(len(edges) for edges in index.adjacency.values())
 
+        stats: dict[str, Any] = {
+            "success": True,
+            "trigger": trigger,
+            "nodes_count": len(index.nodes),
+            "edges_before": edges_before,
+            "edges_created": 0,
+            "nodes_evolved": 0,
+        }
+
         # 根据触发类型执行不同的优化
-        if trigger == "link_evolution":
+        if trigger in ("auto", "link_evolution"):
             link_policy = config.get("link_policy", "synonym_edge")
 
             if link_policy == "synonym_edge":
-                # HippoRAG 风格：连接共享相同实体的节点
-                self._create_synonym_edges(index, config)
+                # HippoRAG: 批量建立同义词边
+                edges_created = self._build_synonym_edges_batch(config)
+                stats["edges_created"] += edges_created
+
             elif link_policy == "knn":
                 # KNN 链接：基于向量相似度
                 self._create_knn_edges(index, config)
 
+            elif link_policy == "auto_link":
+                # A-Mem: 对新插入的节点建立自动链接
+                for entry in entries:
+                    node_id = entry.get("node_id") or entry.get("entry_id")
+                    if node_id:
+                        linked = self._create_auto_links(node_id, config)
+                        stats["edges_created"] += len(linked) * 2  # 双向
+
+            # 同时执行原有的 synonym_edge 逻辑
+            if link_policy != "synonym_edge":
+                self._create_synonym_edges(index, config)
+
+        if trigger in ("auto", "memory_evolution"):
+            # A-Mem: 记忆演化
+            for entry in entries:
+                node_id = entry.get("node_id") or entry.get("entry_id")
+                if node_id:
+                    evo_stats = self._memory_evolution(node_id, config)
+                    stats["nodes_evolved"] += evo_stats.get("updated_nodes", 0)
+
+        if trigger == "decay":
+            # 边权重衰减
+            decay_rate = float(config.get("decay_rate", 0.95))
+            decayed = self._decay_edge_weights(decay_rate)
+            stats["edges_decayed"] = decayed
+
+        if trigger == "strengthen":
+            # 边权重增强
+            strengthen_factor = float(config.get("strengthen_factor", 1.1))
+            node_ids = [e.get("node_id") or e.get("entry_id") for e in entries if e]
+            strengthened = self._strengthen_edges(node_ids, strengthen_factor)
+            stats["edges_strengthened"] = strengthened
+
         edges_after = sum(len(edges) for edges in index.adjacency.values())
-        edges_created = edges_after - edges_before
+        stats["edges_after"] = edges_after
+        stats["edges_created"] = max(0, edges_after - edges_before)
 
-        stats = {
-            "success": True,
-            "trigger": trigger,
-            "nodes_count": len(index.nodes),
-            "edges_count": edges_after,
-            "edges_created": edges_created,
-        }
-
-        self.logger.info(f"Graph optimization triggered: {trigger}, created {edges_created} edges")
+        self.logger.info(
+            f"Graph optimization triggered: {trigger}, edges: {edges_before} -> {edges_after}"
+        )
         return stats
+
+    def _decay_edge_weights(self, decay_rate: float) -> int:
+        """衰减所有边的权重
+
+        Args:
+            decay_rate: 衰减率 (0-1)
+
+        Returns:
+            衰减的边数量
+        """
+        if self.index_name not in self.collection.indexes:
+            return 0
+
+        index = self.collection.indexes[self.index_name]
+        decayed = 0
+
+        for from_node in index.adjacency:
+            for to_node in index.adjacency[from_node]:
+                current_weight = index.adjacency[from_node][to_node]
+                new_weight = current_weight * decay_rate
+                index.adjacency[from_node][to_node] = new_weight
+                decayed += 1
+
+        return decayed
+
+    def _strengthen_edges(self, node_ids: list[str], factor: float) -> int:
+        """增强指定节点的边权重
+
+        Args:
+            node_ids: 要增强的节点 ID 列表
+            factor: 增强因子 (>1)
+
+        Returns:
+            增强的边数量
+        """
+        if self.index_name not in self.collection.indexes:
+            return 0
+
+        index = self.collection.indexes[self.index_name]
+        strengthened = 0
+
+        for node_id in node_ids:
+            if node_id not in index.adjacency:
+                continue
+
+            for to_node in index.adjacency[node_id]:
+                current_weight = index.adjacency[node_id][to_node]
+                new_weight = min(current_weight * factor, 10.0)  # 限制最大权重
+                index.adjacency[node_id][to_node] = new_weight
+                strengthened += 1
+
+        return strengthened
 
     def _create_synonym_edges(self, index: SimpleGraphIndex, config: dict[str, Any]) -> None:
         """创建 synonym edges - 连接共享相同实体的节点

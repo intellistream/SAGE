@@ -1,0 +1,125 @@
+# ============================================================
+# Mem0ᵍ Pipeline 配置 (图记忆版)
+# 论文: Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory
+# 变体: Mem0ᵍ - 向量 + 知识图谱 + 实体链接
+# 特点: 相比基础版 Mem0，增加了图索引支持，可以通过实体关系进行检索
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "Mem0g"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# Mem0ᵍ 使用 HybridMemoryService，同时启用向量和图索引
+# ============================================================
+services:
+  register_memory_service: "hybrid_memory"
+  hybrid_memory:
+    # 关键区别：Mem0ᵍ 同时使用向量、关键词和图索引
+    graph_enabled: true               # 启用图索引（与 Mem0 基础版的关键区别）
+    entity_extraction: true           # 启用实体抽取
+    relation_extraction: true         # 启用关系抽取
+    indexes:
+    - name: "semantic"
+      type: "vector"
+      dim: 1024                       # BAAI/bge-m3 输出 1024 维向量
+      embedding_model: "BAAI/bge-m3"
+    - name: "keyword"
+      type: "bm25"
+    - name: "entity_graph"
+      type: "graph"                   # 图索引用于实体关系检索
+    fusion_strategy: "weighted"
+    fusion_weights:
+      semantic: 0.5                   # 向量检索权重
+      keyword: 0.2                    # 关键词检索权重
+      entity_graph: 0.3               # 图检索权重（新增）
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 实体和关系抽取
+  # Mem0ᵍ 会抽取实体和关系用于构建知识图谱
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "tri_embed"               # 使用三元组抽取（比 extract 更完整）
+    triple_extraction_prompt: |
+      You are a knowledge graph builder. Extract factual triples from the dialogue.
+      Focus on entities (people, organizations, locations) and their relationships.
+
+      Rules:
+      1. Output format: (Subject, Predicate, Object) - one triple per line
+      2. Resolve ALL pronouns to actual entity names
+      3. Extract relationships, attributes, and temporal information
+      4. Be concise and factual
+
+      Dialogue:
+      {dialogue}
+
+      Triples:
+
+  # ----------------------------------------------------------
+  # PostInsert: ADD/UPDATE/DELETE 决策 + 实体链接
+  # Mem0ᵍ 的核心：LLM 决定对已有记忆的操作，同时建立实体链接
+  # ----------------------------------------------------------
+  post_insert:
+    action: "distillation"
+    distillation_topk: 10
+    distillation_threshold:
+    distillation_prompt: |
+      You are managing a fact database with entity linking. Given a new fact and similar existing facts,
+      decide the appropriate action:
+
+      - ADD: The new fact is entirely new information
+      - UPDATE: The new fact updates/extends an existing fact (delete old, keep new)
+      - DELETE: The new fact contradicts an existing fact (delete old, keep new)
+      - NOOP: The new fact is redundant (already covered by existing facts)
+
+      New fact: {new_entry}
+
+      Existing facts:
+      {memory_list}
+
+      Respond with JSON:
+      {"action": "ADD|UPDATE|DELETE|NOOP", "to_delete": ["fact to remove if any"], "reason": "brief explanation"}
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 基础 embedding + 实体识别
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 混合检索结果融合
+  # Mem0ᵍ 融合向量检索和图检索结果
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "none"
+    top_k: 10
+    conversation_format_prompt: |
+      The following is relevant context retrieved from memory.

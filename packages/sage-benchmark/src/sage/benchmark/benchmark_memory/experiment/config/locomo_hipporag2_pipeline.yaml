@@ -1,0 +1,135 @@
+# ============================================================
+# HippoRAG2 Pipeline 配置 (改进版)
+# 论文: HippoRAG: Neurobiologically Inspired Long-Term Memory for LLMs
+# 变体: HippoRAG2 - 更深的 PPR + 更好的 Rerank
+# 特点: 相比基础版 HippoRAG，增加了 PPR 深度和增强的重排序
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "HippoRAG2"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# HippoRAG2 使用增强的图检索参数
+# ============================================================
+services:
+  register_memory_service: "graph_memory"
+  graph_memory:
+    graph_type: "knowledge_graph"     # HippoRAG 使用知识图谱
+    triple_store: "igraph"
+    node_embedding_dim: 1024
+    edge_types: ["relation", "synonym", "temporal"]
+    # 关键区别：HippoRAG2 使用更深的 PPR 和更多起始节点
+    ppr_depth: 3                      # 更深的 PPR（HippoRAG 基础版为 2）
+    ppr_damping: 0.9                  # 更高的 damping（HippoRAG 基础版为 0.85）
+    enhanced_rerank: true             # 启用增强的重排序
+    # 检索参数：进一步增加起始节点和遍历深度
+    retrieval_top_k: 30               # 初始向量检索返回数量（基础版为 20）
+    num_start_nodes: 15               # 使用更多种子节点启动图遍历（基础版为 10）
+    max_depth: 4                      # 增加遍历深度（基础版为 3）
+  memory_insert_adapter: "to_refactor"
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 三元组抽取（与基础版相同）
+  # HippoRAG 的核心是从文本抽取 (S, P, O) 三元组
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "tri_embed"
+    triple_extraction_prompt: |
+      You are a knowledge graph builder. Extract ALL factual triples from the dialogue, focusing on information that could answer questions about WHO, WHAT, WHEN, WHERE, WHY, and HOW.
+
+      CRITICAL Rules:
+      1. Output format: (Subject, Predicate, Object) - one triple per line
+      2. Resolve ALL pronouns (he, she, it, they, etc.) to actual entity names
+      3. Extract TEMPORAL information as separate triples:
+         - (Event, happened_on, time/date)
+         - (Person, did_action_at, time)
+      4. Extract LOCATION information:
+         - (Event, took_place_at, location)
+         - (Person, was_at, place)
+      5. Extract ATTRIBUTES and PROPERTIES:
+         - (Entity, has_property, value)
+         - (Person, is_a, role/occupation)
+      6. Extract RELATIONSHIPS between people:
+         - (Person1, relationship_with, Person2)
+      7. Extract REASONS and PURPOSES:
+         - (Action, was_for, purpose)
+         - (Person, supports, cause/group)
+      8. Be EXHAUSTIVE - extract every fact, even implicit ones
+      9. Use specific predicates (e.g., "painted_at_lake" not just "painted")
+
+      Example:
+      Dialogue: "Yesterday, Sarah told me she painted a sunrise at the lake for her mom's birthday."
+      Triples:
+      (Sarah, painted, sunrise)
+      (Sarah, painted_at, lake)
+      (painting, happened_on, yesterday)
+      (painting, was_for, mom's birthday)
+      (Sarah, has_mom, mentioned)
+
+      Dialogue:
+      {dialogue}
+
+      Triples:
+
+  # ----------------------------------------------------------
+  # PostInsert: Synonym Edge 建立（与基础版相同）
+  # ----------------------------------------------------------
+  post_insert:
+    action: "link_evolution"
+    link_policy: "synonym_edge"
+    knn_k: 10
+    similarity_threshold: 0.7
+    edge_weight: 1.0
+
+  # ----------------------------------------------------------
+  # PreRetrieval: Query Embedding（与基础版相同）
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 增强的 PPR 重排序
+  # HippoRAG2 使用更深的 PPR 和增强的 rerank
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "rerank"
+    rerank_type: "ppr"
+    damping_factor: 0.9               # 更高的 damping（基础版为 0.5）
+    max_iterations: 150               # 更多迭代次数（基础版为 100）
+    convergence_threshold: 1e-7       # 更严格的收敛阈值
+    personalization_nodes: "query_entities"
+    # 增强的重排序：结合 PPR 分数和语义相似度
+    enhanced_rerank: true
+    rerank_weight_ppr: 0.6            # PPR 分数权重
+    rerank_weight_semantic: 0.4       # 语义相似度权重
+    top_k: 15                         # 返回更多结果（基础版为 10）
+    conversation_format_prompt: |
+      The following is relevant knowledge from the graph.

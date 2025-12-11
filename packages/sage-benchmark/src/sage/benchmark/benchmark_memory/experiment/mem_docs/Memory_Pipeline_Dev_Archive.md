@@ -5,8 +5,9 @@
 > - Pipeline 算子层规范化重构（R1-R6）
 > - NeuroMem 底层引擎重构（Part 1-6）
 > - 论文特性映射矩阵
+> - 论文复现优先级与 Action 配置
 >
-> 更新时间：2025-12-05
+> 更新时间：2025-12-11
 
 ______________________________________________________________________
 
@@ -107,9 +108,9 @@ ______________________________________________________________________
 
 ## 二、Pipeline 算子层规范化重构（R1-R6）
 
-> **状态：✅ R2-R5 已完成 (2025-12-02)，R1/R6 待完成**
+> **状态：✅ 全部完成 (2025-12-11)**
 >
-> 代码位置：`sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/mem_docs/refactor/`
+> 代码位置：`sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/libs/`
 
 ### 2.1 R1: MemoryService 统一接口规范
 
@@ -186,6 +187,24 @@ class BaseMemoryService:
             优化结果
         """
         ...
+
+    def get_status(self) -> dict:
+        """
+        查询服务状态（供 PostInsert 查询待处理项）
+
+        Returns:
+            Dict: {
+                "pending_action": str | None,  # 待处理动作类型
+                "pending_items": List[Dict],   # 待处理条目
+                ...其他服务特定字段
+            }
+
+        说明：
+            - insert() 内部自动检测溢出/冲突等，更新内部状态
+            - PostInsert 通过 get_status() 查询状态
+            - 根据状态调用 LLM 决策后，再次调用 insert() 执行主动插入
+        """
+        return {"pending_action": None, "pending_items": []}
 ```
 
 **各服务特化扩展**：
@@ -197,9 +216,17 @@ class BaseMemoryService:
 | HybridMemoryService       | `multi_index_retrieve()`            | 多索引融合检索   |
 | KeyValueMemoryService     | `get_by_key()`, `fuzzy_search()`    | 精确/模糊查询    |
 
+**各服务的 get_status() 状态字段**：
+
+| 服务                      | pending_action       | 特有字段                         | 触发场景           |
+| ------------------------- | -------------------- | -------------------------------- | ------------------ |
+| HierarchicalMemoryService | "migrate" / "forget" | source_tier, target_tier         | 容量溢出/遗忘触发  |
+| HybridMemoryService       | "crud"               | pending_similar                  | 新事实与旧事实冲突 |
+| GraphMemoryService        | "link" / "synonym"   | pending_node, pending_candidates | 新节点需建立链接   |
+
 ### 2.2 R2: PreInsert 算子重构 ✅
 
-**完成时间**：2025-12-02
+**完成时间**：2025-12-11
 
 **核心改动**：
 
@@ -209,15 +236,16 @@ class BaseMemoryService:
 
 **支持的 Action**：
 
-| Action      | 说明                     | 输出的 insert_method          |
-| ----------- | ------------------------ | ----------------------------- |
-| none        | 透传                     | default                       |
-| tri_embed   | 三元组抽取 + 向量化      | triple_insert                 |
-| transform   | 分块/分段/事实抽取/摘要  | chunk_insert / summary_insert |
-| extract     | 关键词/实体/Persona 抽取 | default                       |
-| score       | 重要性/情绪评分          | priority_insert               |
-| multi_embed | 多路 embedding           | multi_index_insert            |
-| validate    | 合法性检查               | default                       |
+| Action      | 说明                        | 输出的 insert_method          |
+| ----------- | --------------------------- | ----------------------------- |
+| none        | 透传                        | default                       |
+| tri_embed   | 三元组抽取 + 向量化         | triple_insert                 |
+| transform   | 分块/分段/事实抽取/摘要     | chunk_insert / summary_insert |
+| extract     | 关键词/实体/Persona 抽取    | default                       |
+| score       | 重要性/情绪评分             | priority_insert               |
+| multi_embed | 多路 embedding              | multi_index_insert            |
+| validate    | 合法性检查                  | default                       |
+| scm_embed   | SCM 样式摘要+原文+embedding | default                       |
 
 **数据流示例**：
 
@@ -236,27 +264,28 @@ data["memory_entries"] = [
 
 ### 2.3 R3: PostInsert 算子重构 ✅
 
-**完成时间**：2025-12-02
+**完成时间**：2025-12-11
 
 **核心改动**：
 
-- 算子级操作：none, log, stats, distillation
+- 算子级操作：none, log, stats, distillation, mem0_crud
 - 服务级操作：委托给 `service.optimize()`
 - distillation 严格遵循"一次 检索→删除→插入"
 
 **Action 分类**：
 
-| 类型   | Action         | 说明                            |
-| ------ | -------------- | ------------------------------- |
-| 算子级 | none           | 透传                            |
-| 算子级 | log            | 记录日志                        |
-| 算子级 | stats          | 统计插入数据                    |
-| 算子级 | distillation   | 检索→删除→插入（一次循环）      |
-| 服务级 | reflection     | 高阶反思生成                    |
-| 服务级 | link_evolution | 链接演化                        |
-| 服务级 | forgetting     | 遗忘（Ebbinghaus/LRU/LFU/Heat） |
-| 服务级 | summarize      | 摘要（单层/分层/增量）          |
-| 服务级 | migrate        | 层间迁移（STM→MTM→LTM）         |
+| 类型   | Action         | 说明                                     |
+| ------ | -------------- | ---------------------------------------- |
+| 算子级 | none           | 透传                                     |
+| 算子级 | log            | 记录日志                                 |
+| 算子级 | stats          | 统计插入数据                             |
+| 算子级 | distillation   | 检索→删除→插入（一次循环）               |
+| 算子级 | mem0_crud      | Mem0 CRUD 决策（ADD/UPDATE/DELETE/NOOP） |
+| 服务级 | reflection     | 高阶反思生成                             |
+| 服务级 | link_evolution | 链接演化                                 |
+| 服务级 | forgetting     | 遗忘（Ebbinghaus/LRU/LFU/Heat）          |
+| 服务级 | summarize      | 摘要（单层/分层/增量）                   |
+| 服务级 | migrate        | 层间迁移（STM→MTM→LTM）                  |
 
 **服务级调用示例**：
 
@@ -275,7 +304,7 @@ def _trigger_service_optimize(self, data):
 
 ### 2.4 R4: PreRetrieval 算子重构 ✅
 
-**完成时间**：2025-12-02
+**完成时间**：2025-12-11
 
 **核心改动**：
 
@@ -294,6 +323,7 @@ def _trigger_service_optimize(self, data):
 | decompose   | 复杂查询分解                      |
 | route       | 检索策略路由（输出 hints）        |
 | validate    | 查询长度/语言/安全检查            |
+| scm_gate    | SCM 记忆激活判断（是否需要检索）  |
 
 **route 输出 hints 示例**：
 
@@ -307,7 +337,7 @@ data["retrieval_hints"] = {
 
 ### 2.5 R5: PostRetrieval 算子重构 ✅
 
-**完成时间**：2025-12-02
+**完成时间**：2025-12-11
 
 **核心改动**：
 
@@ -317,19 +347,20 @@ data["retrieval_hints"] = {
 
 **支持的 Action**：
 
-| Action   | 说明                                          |
-| -------- | --------------------------------------------- |
-| none     | 基础格式化                                    |
-| rerank   | 重排序（semantic/time_weighted/ppr/weighted） |
-| filter   | 过滤（token_budget/threshold/top_k）          |
-| merge    | 多次查询合并（link_expand/multi_query）       |
-| augment  | 补充上下文（persona/traits/events）           |
-| compress | 压缩/摘要                                     |
-| format   | 格式化输出（template/structured/chat/xml）    |
+| Action        | 说明                                          |
+| ------------- | --------------------------------------------- |
+| none          | 基础格式化                                    |
+| rerank        | 重排序（semantic/time_weighted/ppr/weighted） |
+| filter        | 过滤（token_budget/threshold/top_k）          |
+| merge         | 多次查询合并（link_expand/multi_query）       |
+| augment       | 补充上下文（persona/traits/events）           |
+| compress      | 压缩/摘要                                     |
+| format        | 格式化输出（template/structured/chat/xml）    |
+| scm_three_way | SCM 三元决策（drop/summary/raw）              |
 
-### 2.6 R6: MemoryInsert 插入方法扩展
+### 2.6 R6: MemoryInsert 插入方法扩展 ✅
 
-**状态**：待完成
+**完成时间**：2025-12-11
 
 **核心改动**：
 
@@ -774,3 +805,153 @@ ______________________________________________________________________
 ______________________________________________________________________
 
 *本档案后续如有架构/实现变更，应同步更新，以保持文档与代码的一致性。*
+
+______________________________________________________________________
+
+## 九、论文复现优先级与 Action 配置
+
+> 基于学术影响力、实现创新性和与 SAGE 框架的匹配度，给出复现优先级排序。
+>
+> **核心原则**：大类对应 action 参数，小类由配置参数控制，可模块化复现。
+
+### 9.1 工作五维度 Action 配置总览
+
+| 工作              | D1 Service            | D2 PreInsert | D3 PostInsert    | D4 PreRetrieval | D5 PostRetrieval | Stars |
+| ----------------- | --------------------- | ------------ | ---------------- | --------------- | ---------------- | ----- |
+| HippoRAG          | `graph_memory`        | `tri_embed`  | `link_evolution` | `embedding`     | `rerank`         | 3k+   |
+| Generative Agents | `neuromem_vdb`        | `none`       | `reflection`     | `embedding`     | `rerank`         | 20k+  |
+| MemGPT            | `hierarchical_memory` | `transform`  | `distillation`   | `none`          | `none`           | 19k+  |
+| MemoryBank        | `hierarchical_memory` | `none`       | `forgetting`     | `embedding`     | `none`           | 500+  |
+| A-mem             | `graph_memory`        | `tri_embed`  | `link_evolution` | `embedding`     | `merge`          | 200+  |
+| MemoryOS          | `hierarchical_memory` | `none`       | `forgetting`     | `embedding`     | `merge`          | 300+  |
+| SCM4LLMs          | `short_term_memory`   | `none`       | `distillation`   | `embedding`     | `filter`         | -     |
+| SeCom             | `neuromem_vdb`        | `transform`  | `distillation`   | `none`          | `none`           | -     |
+| EmotionalRAG      | `neuromem_vdb`        | `tri_embed`  | `none`           | `embedding`     | `merge`          | -     |
+| LD-Agent          | `hierarchical_memory` | `tri_embed`  | `forgetting`     | `optimize`      | `rerank`         | -     |
+| LoCoMo            | `neuromem_vdb`        | `transform`  | `reflection`     | `embedding`     | `summarize`      | -     |
+
+### 9.2 复现优先级排序
+
+#### Tier 1: 核心工作（必须复现）
+
+| 优先级     | 工作              | Action 配置                                                  | 复现价值                      |
+| ---------- | ----------------- | ------------------------------------------------------------ | ----------------------------- |
+| ⭐⭐⭐⭐⭐ | HippoRAG          | `(graph_memory, tri_embed, link_evolution, embedding, ppr)`  | 知识图谱 + PPR，多跳推理 SOTA |
+| ⭐⭐⭐⭐⭐ | Generative Agents | `(neuromem_vdb, none, reflection, embedding, weighted)`      | 记忆领域奠基性工作，反思机制  |
+| ⭐⭐⭐⭐⭐ | MemGPT/Letta      | `(hierarchical_memory, transform, distillation, none, none)` | LLM OS 概念开创者，19k+ stars |
+
+#### Tier 2: 重要工作（推荐复现）
+
+| 优先级   | 工作       | Action 配置                                                   | 复现价值                |
+| -------- | ---------- | ------------------------------------------------------------- | ----------------------- |
+| ⭐⭐⭐⭐ | MemoryBank | `(hierarchical_memory, none, forgetting, embedding, none)`    | 心理学启发的遗忘机制    |
+| ⭐⭐⭐⭐ | A-mem      | `(graph_memory, tri_embed, link_evolution, embedding, merge)` | Zettelkasten 原则应用   |
+| ⭐⭐⭐⭐ | MemoryOS   | `(hierarchical_memory, none, forgetting, embedding, merge)`   | 完整三层架构 + 热度机制 |
+
+#### Tier 3: 补充工作（选择复现）
+
+| 优先级 | 工作         | Action 配置                                                      | 复现价值            |
+| ------ | ------------ | ---------------------------------------------------------------- | ------------------- |
+| ⭐⭐⭐ | SCM4LLMs     | `(short_term_memory, none, distillation, embedding, filter)`     | 自控制压缩机制      |
+| ⭐⭐⭐ | SeCom        | `(neuromem_vdb, transform, distillation, none, none)`            | 分段 + 压缩组合     |
+| ⭐⭐⭐ | EmotionalRAG | `(neuromem_vdb, tri_embed, none, embedding, merge)`              | 多维向量融合策略    |
+| ⭐⭐⭐ | LD-Agent     | `(hierarchical_memory, tri_embed, forgetting, optimize, rerank)` | 时间感知的层级迁移  |
+| ⭐⭐⭐ | LoCoMo       | `(neuromem_vdb, transform, reflection, embedding, summarize)`    | 事实提取 + 双向反思 |
+
+### 9.3 Action 实现清单
+
+#### D1 Memory Service Actions
+
+| Action                | 实现状态  | 参考工作         | 核心参数                           |
+| --------------------- | --------- | ---------------- | ---------------------------------- |
+| `short_term_memory`   | ✅ 已实现 | SCM4LLMs         | `maxlen`                           |
+| `vector_hash_memory`  | ✅ 已实现 | TiM              | `lsh_nbits`, `k_nearest`           |
+| `neuromem_vdb`        | ✅ 已实现 | MemGPT, GA       | `collection_name`, `top_k`         |
+| `graph_memory`        | ✅ 已实现 | HippoRAG, A-mem  | `graph_type`, `edge_policy`        |
+| `hierarchical_memory` | ✅ 已实现 | MemoryOS, MemGPT | `tier_count`, `migration_policy`   |
+| `hybrid_memory`       | ✅ 已实现 | Mem0, Mem0ᵍ      | `graph_enabled`, `fusion_strategy` |
+
+#### D2 PreInsert Actions
+
+| Action      | 实现状态  | 参考工作      | 核心参数                            |
+| ----------- | --------- | ------------- | ----------------------------------- |
+| `none`      | ✅ 已实现 | -             | -                                   |
+| `tri_embed` | ✅ 已实现 | HippoRAG, TiM | `triple_extraction_prompt`          |
+| `transform` | ✅ 已实现 | MemGPT, SeCom | `transform_type`, `chunk_size`      |
+| `extract`   | ✅ 已实现 | A-Mem, Mem0   | `extract_type: keyword/entity/noun` |
+| `scm_embed` | ✅ 已实现 | SCM           | `embed_type: three_way`             |
+| `validate`  | ✅ 已实现 | -             | `validation_rules`                  |
+
+#### D3 PostInsert Actions
+
+| Action           | 实现状态  | 参考工作          | 核心参数                              |
+| ---------------- | --------- | ----------------- | ------------------------------------- |
+| `none`           | ✅ 已实现 | -                 | -                                     |
+| `distillation`   | ✅ 已实现 | SCM4LLMs, TiM     | `topk`, `threshold`, `prompt`         |
+| `reflection`     | ✅ 已实现 | Generative Agents | `trigger_mode`, `threshold`, `prompt` |
+| `link_evolution` | ✅ 已实现 | A-mem, HippoRAG   | `link_policy`, `strengthen_factor`    |
+| `forgetting`     | ✅ 已实现 | MemoryBank        | `decay_type: ebbinghaus/lfu/heat`     |
+| `migrate`        | ✅ 已实现 | MemoryOS          | `migrate_policy: heat`                |
+| `mem0_crud`      | ✅ 已实现 | Mem0              | ADD/UPDATE/DELETE/NOOP 决策           |
+
+#### D4 PreRetrieval Actions
+
+| Action      | 实现状态  | 参考工作     | 核心参数                                        |
+| ----------- | --------- | ------------ | ----------------------------------------------- |
+| `none`      | ✅ 已实现 | -            | -                                               |
+| `embedding` | ✅ 已实现 | HippoRAG, GA | `embedding_model`                               |
+| `optimize`  | ✅ 已实现 | LD-Agent     | `optimize_type: keyword_extract/expand/rewrite` |
+| `scm_gate`  | ✅ 已实现 | SCM          | 是否激活记忆检索判断                            |
+| `validate`  | ✅ 已实现 | -            | `validation_rules`                              |
+
+#### D5 PostRetrieval Actions
+
+| Action          | 实现状态  | 参考工作     | 核心参数                                           |
+| --------------- | --------- | ------------ | -------------------------------------------------- |
+| `none`          | ✅ 已实现 | -            | `conversation_format_prompt`                       |
+| `rerank`        | ✅ 已实现 | HippoRAG, GA | `rerank_type: semantic/time_weighted/ppr/weighted` |
+| `filter`        | ✅ 已实现 | SCM4LLMs     | `filter_type: token_budget/threshold/top_k`        |
+| `merge`         | ✅ 已实现 | MemoryOS     | `merge_strategy: link_expand/multi_query`          |
+| `augment`       | ✅ 已实现 | -            | `augment_type: context/metadata/temporal`          |
+| `compress`      | ✅ 已实现 | -            | `compress_type: extractive`                        |
+| `format`        | ✅ 已实现 | -            | `format_type: template/structured/chat/xml`        |
+| `scm_three_way` | ✅ 已实现 | SCM          | drop/summary/raw 三元决策                          |
+
+### 9.4 推荐复现顺序
+
+```
+阶段1 (Week 1-2):  本地项目快速验证
+  - SCM4LLMs: 验证 Token Budget Filtering
+  - SeCom:    验证 Topic Segmentation + Compression
+
+阶段2 (Week 3-4):  经典反思机制
+  - Generative Agents: 重要性 + 反思 + 时间加权
+
+阶段3 (Week 5-7):  知识图谱方向
+  - HippoRAG: KG + OpenIE + PPR
+
+阶段4 (Week 8-10): 分层记忆系统
+  - MemGPT:   功能分层 + 摘要
+  - MemoryOS: 三层 + 热度迁移
+
+阶段5 (Week 11-12): 遗忘机制
+  - MemoryBank: Ebbinghaus Forgetting
+
+阶段6 (Week 13+): 按需补充
+  - A-mem:       链接图 + 链接演化
+  - EmotionalRAG: 多维向量
+  - LD-Agent:    时间迁移 + 名词查询
+```
+
+### 9.5 论文变体配置清单
+
+| 基础论文 | 变体             | 配置文件                            | 关键差异                              |
+| -------- | ---------------- | ----------------------------------- | ------------------------------------- |
+| Mem0     | Mem0 (基础版)    | `locomo_mem0_pipeline.yaml`         | 向量存储 + CRUD                       |
+| Mem0     | Mem0ᵍ (图增强版) | `locomo_mem0g_pipeline.yaml`        | `graph_enabled: true`                 |
+| HippoRAG | HippoRAG         | `locomo_hipporag_pipeline.yaml`     | `ppr_depth: 2`                        |
+| HippoRAG | HippoRAG2        | `locomo_hipporag2_pipeline.yaml`    | `ppr_depth: 3, enhanced_rerank: true` |
+| TiM      | TiM (带蒸馏)     | `locomo_tim_pipeline.yaml`          | `post_insert.action: distillation`    |
+| TiM      | TiM (基础版)     | `locomo_tim_basic_pipeline.yaml`    | `post_insert.action: none`            |
+| MemGPT   | MemGPT           | `locomo_memgpt_pipeline.yaml`       | `tool_use: false`                     |
+| MemGPT   | MemGPT-agent     | `locomo_memgpt_agent_pipeline.yaml` | `tool_use: true`                      |

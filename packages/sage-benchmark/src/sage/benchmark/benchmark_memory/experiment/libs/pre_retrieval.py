@@ -276,6 +276,24 @@ class PreRetrieval(MapFunction):
                 if rule.get("type") == "safety":
                     self.blocked_patterns.extend(rule.get("blocked_patterns", []))
 
+        elif self.action == "scm_gate":
+            # SCM Memory Controller: 判断是否需要激活记忆
+            # 论文要求: LLM 判断是否需要检索，若不需要则跳过
+            self.gate_prompt = self.config.get(
+                "operators.pre_retrieval.gate_prompt",
+                """Given the following question, determine if memory retrieval is needed to answer it.
+
+Question: {question}
+
+Consider:
+1. Is this a question about past conversations or personal information?
+2. Does it require context from previous interactions?
+3. Is it a simple greeting or general knowledge question?
+
+Answer with JSON: {{"need_memory": true/false, "reason": "brief explanation"}}""",
+            )
+            self.gate_default = self.config.get("operators.pre_retrieval.gate_default", True)
+
     # ==================== 执行方法 ====================
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -297,6 +315,7 @@ class PreRetrieval(MapFunction):
             "decompose": self._execute_decompose,
             "route": self._execute_route,
             "validate": self._execute_validate,
+            "scm_gate": self._execute_scm_gate,
         }
 
         handler = action_handlers.get(self.action)
@@ -811,3 +830,100 @@ class PreRetrieval(MapFunction):
             data["question"] = question
 
         return data
+
+    def _execute_scm_gate(self, data: dict[str, Any]) -> dict[str, Any]:
+        """SCM Memory Controller: 判断是否需要激活记忆检索
+
+        论文要求 (SCM4LLMs):
+        检索前判断：
+        - 是否需要激活记忆？
+        - LLM 回答 yes/no
+        - 若 no，跳过检索
+
+        流程:
+        1. 构建 gate prompt
+        2. 调用 LLM 判断
+        3. 解析结果，设置 skip_retrieval 标志
+
+        Args:
+            data: 检索请求数据，包含 "question" 字段
+
+        Returns:
+            处理后的数据，添加 gate_result 和可能的 skip_retrieval 标志
+        """
+        question = data.get("question", "")
+
+        if not question:
+            # 空查询，使用默认行为
+            data["skip_retrieval"] = not self.gate_default
+            data["gate_result"] = {
+                "need_memory": self.gate_default,
+                "reason": "Empty question, using default",
+            }
+            return data
+
+        # 构建 prompt
+        prompt = self.gate_prompt.replace("{question}", question)
+
+        try:
+            response = self._generator.generate(prompt)
+            result = self._parse_gate_response(response)
+
+            need_memory = result.get("need_memory", self.gate_default)
+            reason = result.get("reason", "")
+
+            data["gate_result"] = {
+                "need_memory": need_memory,
+                "reason": reason,
+            }
+
+            if not need_memory:
+                data["skip_retrieval"] = True
+                print(f"[SCM_GATE] Skipping retrieval: {reason}")
+
+        except Exception as e:  # noqa: BLE001
+            # LLM 调用失败，使用默认行为
+            print(f"[SCM_GATE] LLM call failed: {e}, using default={self.gate_default}")
+            data["gate_result"] = {
+                "need_memory": self.gate_default,
+                "reason": f"LLM error: {e}",
+            }
+            if not self.gate_default:
+                data["skip_retrieval"] = True
+
+        return data
+
+    def _parse_gate_response(self, response: str) -> dict:
+        """解析 gate LLM 响应
+
+        Args:
+            response: LLM 响应文本
+
+        Returns:
+            解析后的字典，包含 need_memory 和 reason
+        """
+        try:
+            # 尝试解析 JSON
+            result_text = response.strip()
+            start_idx = result_text.find("{")
+            end_idx = result_text.rfind("}") + 1
+
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = result_text[start_idx:end_idx]
+                result = json.loads(json_str)
+                return {
+                    "need_memory": bool(result.get("need_memory", True)),
+                    "reason": str(result.get("reason", "")),
+                }
+        except json.JSONDecodeError:
+            pass
+
+        # JSON 解析失败，尝试关键词匹配
+        response_lower = response.lower()
+        if "no" in response_lower or "false" in response_lower:
+            return {"need_memory": False, "reason": "Detected 'no' in response"}
+        elif "yes" in response_lower or "true" in response_lower:
+            return {"need_memory": True, "reason": "Detected 'yes' in response"}
+
+        # 默认需要记忆
+        return {"need_memory": True, "reason": "Could not parse response"}

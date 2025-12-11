@@ -397,6 +397,49 @@ Please answer now. The output must strictly follow this format:
             result.append(entry)
         return result
 
+    def _calculate_topic_overlap(self, data: dict[str, Any], item: MemoryItem) -> float:
+        """计算话题重叠度（Jaccard 相似度）
+
+        论文公式 (LD-Agent):
+            topic_overlap = |V_q ∩ V_m| / |V_q ∪ V_m|
+            其中 V_q: query 名词集合, V_m: 记忆名词集合
+
+        Args:
+            data: 包含 query_keywords 的数据字典
+            item: 记忆条目
+
+        Returns:
+            Jaccard 相似度 (0.0 - 1.0)
+        """
+        # 从 data 获取 query 的关键词
+        # 关键词应该由 PreRetrieval 的 keyword_extract 提取并存储在 data 中
+        query_keywords = data.get("query_keywords", [])
+        if not query_keywords:
+            # 回退：尝试从 optimized_query 获取
+            optimized = data.get("optimized_query", {})
+            if isinstance(optimized, dict):
+                query_keywords = optimized.get("keywords", [])
+
+        # 从 item metadata 获取记忆的关键词
+        memory_keywords = item.metadata.get("keywords", [])
+
+        # 如果没有关键词，返回默认分数
+        if not query_keywords and not memory_keywords:
+            return 0.0
+
+        # 规范化为小写集合
+        q_set = {kw.lower().strip() for kw in query_keywords if isinstance(kw, str)}
+        m_set = {kw.lower().strip() for kw in memory_keywords if isinstance(kw, str)}
+
+        # 计算 Jaccard 相似度
+        if not q_set and not m_set:
+            return 0.0
+
+        intersection = len(q_set & m_set)
+        union = len(q_set | m_set)
+
+        return intersection / union if union > 0 else 0.0
+
     def _format_dialog_history(self, data: dict[str, Any]) -> dict[str, Any]:
         """格式化对话历史为结构化文本（阶段一：Prompt 拼接）。
 
@@ -643,6 +686,12 @@ Please answer now. The output must strictly follow this format:
                         elif name == "relevance":
                             # R3: 只使用已有 score，不计算 embedding
                             factor_score = float(item.score) if item.score is not None else 0.0
+
+                        elif name == "topic_overlap":
+                            # LD-Agent: 话题重叠度（Jaccard 相似度）
+                            # 论文公式: score = |V_q ∩ V_m| / |V_q ∪ V_m|
+                            # 其中 V_q: query 名词集合, V_m: 记忆名词集合
+                            factor_score = self._calculate_topic_overlap(data, item)
 
                         else:
                             # 未知因子默认 0
