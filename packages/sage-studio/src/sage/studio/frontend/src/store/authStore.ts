@@ -107,8 +107,13 @@ export const useAuthStore = create<AuthState>()(
             },
 
             checkAuth: async () => {
-                const { token } = get()
-                if (!token) return
+                const { token, isAuthenticated } = get()
+                if (!token) {
+                    if (isAuthenticated) {
+                        set({ user: null, token: null, isAuthenticated: false })
+                    }
+                    return
+                }
 
                 try {
                     const user = await getCurrentUser()

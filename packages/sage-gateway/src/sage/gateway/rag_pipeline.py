@@ -410,7 +410,21 @@ class RAGChatMap(MapFunction):
             # Extract contexts and build sources list
             contexts = []
             sources = []
+
+            # Relevance Threshold (L2 Distance)
+            # For normalized vectors (like bge-m3), L2 distance ranges from 0 to 2.
+            # 0.0 = identical
+            # ~0.7-0.8 = relevant
+            # > 1.0 = usually irrelevant (cosine < 0.5)
+            # We use a conservative threshold to avoid showing unrelated docs.
+            RELEVANCE_THRESHOLD = 1.1
+
             for idx, item in enumerate(results, start=1):
+                # Check relevance score if available
+                distance = getattr(item, "distance", 0.0)
+                if distance > RELEVANCE_THRESHOLD:
+                    continue
+
                 metadata = dict(item.metadata) if hasattr(item, "metadata") else {}
                 text = metadata.get("text", "")
 
@@ -419,14 +433,25 @@ class RAGChatMap(MapFunction):
                     # Build source info for display
                     sources.append(
                         {
-                            "id": idx,
+                            "id": len(sources) + 1,  # Re-index after filtering
                             "text": text[:500] + ("..." if len(text) > 500 else ""),  # Preview
                             "full_text": text,
                             "doc_path": metadata.get("doc_path", "unknown"),
                             "heading": metadata.get("heading", ""),
                             "chunk": metadata.get("chunk", "0"),
+                            "score": distance,
                         }
                     )
+
+            # If no relevant documents found, fallback to direct LLM (no RAG)
+            if not sources:
+                return {
+                    "content": self._fallback_direct_llm(user_input, memory_context),
+                    "sources": [],
+                    "type": "chat",
+                }
+
+            # 2. Build RAG prompt with memory context
 
             # 2. Build RAG prompt with memory context
             context_block = "\n\n".join(

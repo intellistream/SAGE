@@ -2,9 +2,9 @@
 import json
 
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
-from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+from sage.middleware.agent.runtime import AgentRuntime
 
 
 # ---- Dummy 生成器：返回固定 JSON 计划 ----
@@ -59,7 +59,7 @@ def test_runtime_basic_flow():
     tools = MCPRegistry()
     tools.register(DummyCalc())
 
-    planner = LLMPlanner(generator=DummyGeneratorPlan())
+    planner = SimpleLLMPlanner(generator=DummyGeneratorPlan())
     profile = BaseProfile(language="zh")
 
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
@@ -78,10 +78,9 @@ def test_runtime_no_reply_uses_template_summary():
     tools = MCPRegistry()
     tools.register(DummyCalc())
     runtime = AgentRuntime(
-        profile=BaseProfile(language="zh"),
-        planner=LLMPlanner(generator=GenNoReply()),
-        tools=tools,
-        summarizer=None,
+        profile=BaseProfile(name="TestBot"),
+        planner=SimpleLLMPlanner(generator=GenNoReply()),
+        tools=MCPRegistry(),
     )
     out = runtime.step("算下 41+1")
     assert "成功" in out and "42" in out
@@ -115,7 +114,7 @@ def test_runtime_with_message_format_summarizer():
 
     runtime = AgentRuntime(
         profile=BaseProfile(language="zh"),
-        planner=LLMPlanner(generator=GenNoReply()),
+        planner=SimpleLLMPlanner(generator=GenNoReply()),
         tools=tools,
         summarizer=SummarizerWithMessages(),
     )
@@ -129,7 +128,7 @@ def test_runtime_memory_disabled():
     tools = MCPRegistry()
     tools.register(DummyCalc())
 
-    planner = LLMPlanner(generator=DummyGeneratorWithMessages())
+    planner = SimpleLLMPlanner(generator=DummyGeneratorWithMessages())
     profile = BaseProfile(language="zh")
 
     # The memory parameter should be commented out/disabled
@@ -144,7 +143,7 @@ def test_runtime_with_new_planner_message_format():
     tools = MCPRegistry()
     tools.register(DummyCalc())
 
-    planner = LLMPlanner(generator=DummyGeneratorWithMessages())
+    planner = SimpleLLMPlanner(generator=DummyGeneratorWithMessages())
     profile = BaseProfile(language="zh")
 
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)

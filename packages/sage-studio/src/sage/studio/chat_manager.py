@@ -112,6 +112,13 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
+        # Check environment variables first
+        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url:
+            return (True, env_base_url)
+
         # Ports to check in order of preference
         llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
 
@@ -136,6 +143,13 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
+        # Check environment variables first (align with UnifiedInferenceClient)
+        env_base_url = os.environ.get("SAGE_EMBEDDING_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url:
+            return (True, env_base_url)
+
         ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT]
 
         for p in ports_to_check:
@@ -320,8 +334,11 @@ class ChatModeManager(StudioManager):
             return False
 
     def _stop_embedding_service(self) -> bool:
-        """Stop Embedding service if running."""
-        port = SagePorts.EMBEDDING_DEFAULT
+        """Stop Embedding service if running.
+
+        NOTE: Only stops the service if it was started by Studio (has PID file).
+        Does NOT kill orphan processes to allow reuse of manually started services.
+        """
         log_dir = Path.home() / ".sage" / "logs"
         embedding_pid_file = log_dir / "embedding.pid"
 
@@ -348,17 +365,9 @@ class ChatModeManager(StudioManager):
             except Exception as e:
                 console.print(f"[yellow]⚠️  清理 Embedding PID 文件失败: {e}[/yellow]")
 
-        # Also try to find and kill any orphan embedding server processes
-        for proc in psutil.process_iter(["pid", "cmdline"]):
-            try:
-                cmdline = proc.info.get("cmdline") or []
-                if "embedding_server" in " ".join(cmdline) and str(port) in " ".join(cmdline):
-                    console.print(f"[blue]🛑 停止孤儿 Embedding 进程 (PID: {proc.pid})...[/blue]")
-                    proc.terminate()
-                    proc.wait(timeout=5)
-                    stopped = True
-            except (psutil.NoSuchProcess, psutil.TimeoutExpired):
-                pass
+        # NOTE: We intentionally do NOT kill orphan processes here anymore.
+        # This allows users to manually start an embedding service (e.g. via sage llm serve)
+        # and have it persist across Studio restarts.
 
         return stopped
 
@@ -594,12 +603,26 @@ class ChatModeManager(StudioManager):
 
         return success
 
-    def stop(self) -> bool:
-        """Stop all Studio Chat Mode services."""
+    def stop(self, stop_infrastructure: bool = False) -> bool:
+        """Stop Studio Chat Mode services.
+
+        Args:
+            stop_infrastructure: If True, also stop LLM and Embedding services.
+                               If False (default), leave them running.
+        """
         frontend_backend = super().stop(stop_gateway=False)  # Don't stop gateway via parent
         gateway = self._stop_gateway()
-        llm = self._stop_llm_service()
-        embedding = self._stop_embedding_service()
+
+        llm = True
+        embedding = True
+
+        if stop_infrastructure:
+            llm = self._stop_llm_service()
+            embedding = self._stop_embedding_service()
+        else:
+            # Inform user that infrastructure is preserved
+            console.print("[dim]ℹ️  保留 LLM/Embedding 服务运行 (使用 --all 停止所有)[/dim]")
+
         return frontend_backend and gateway and llm and embedding
 
     def status(self):

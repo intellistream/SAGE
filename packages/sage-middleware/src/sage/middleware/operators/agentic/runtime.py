@@ -5,9 +5,8 @@ from typing import Any
 
 from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
-from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+from sage.middleware.agent.runtime import AgentRuntime
 from sage.middleware.operators.rag.generator import HFGenerator, OpenAIGenerator
 
 
@@ -33,16 +32,16 @@ def _build_generator(config: Any):
     return OpenAIGenerator(config)
 
 
+from sage.middleware.agent.planning.router import PlannerRouter
+
+
 def _build_planner(config: Any, generator):
     if hasattr(config, "plan"):
         return config
-    planner_conf = config or {}
-    return LLMPlanner(
-        generator=generator,
-        max_steps=planner_conf.get("max_steps", 6),
-        enable_repair=planner_conf.get("enable_repair", True),
-        topk_tools=planner_conf.get("topk_tools", 6),
-    )
+    # planner_conf = config or {}
+
+    # Use PlannerRouter instead of direct LLMPlanner
+    return PlannerRouter(generator=generator)
 
 
 def _build_profile(config: Any) -> BaseProfile:

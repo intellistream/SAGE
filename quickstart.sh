@@ -114,10 +114,14 @@ main() {
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
 
             if [ "$fix_environment" = "true" ]; then
-                run_full_diagnosis
+                run_full_diagnosis || true
                 run_auto_fixes
             else
-                run_full_diagnosis
+                # 如果诊断发现问题，自动提示修复
+                if ! run_full_diagnosis; then
+                    echo ""
+                    run_auto_fixes
+                fi
             fi
 
             if [ "$doctor_only" = "true" ]; then

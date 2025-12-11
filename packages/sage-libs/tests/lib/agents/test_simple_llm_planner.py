@@ -1,7 +1,7 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_llm_planner.py
 import json
 
-from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
 
 class DummyGeneratorOK:
@@ -31,7 +31,8 @@ class DummyGeneratorBadThenFix:
             return (data[0], json.dumps(fixed, ensure_ascii=False))
 
 
-def test_llm_planner_ok():
+def test_planner_basic():
+    planner = SimpleLLMPlanner(generator=DummyGeneratorOK(), max_steps=3)
     tools = {
         "calculator": {
             "description": "Do math",
@@ -42,25 +43,18 @@ def test_llm_planner_ok():
             },
         }
     }
-    planner = LLMPlanner(generator=DummyGeneratorOK(), max_steps=3)
     plan = planner.plan("SYS", "计算 21*2+5", tools)
     assert len(plan) == 2
     assert plan[0]["type"] == "tool" and plan[0]["name"] == "calculator"
     assert plan[1]["type"] == "reply"
 
 
-def test_llm_planner_repair():
-    tools = {
-        "calculator": {
-            "description": "Do math",
-            "input_schema": {
-                "type": "object",
-                "properties": {"expr": {"type": "string"}},
-                "required": ["expr"],
-            },
-        }
-    }
-    planner = LLMPlanner(generator=DummyGeneratorBadThenFix(), max_steps=3, enable_repair=True)
+def test_planner_repair():
+    planner = SimpleLLMPlanner(
+        generator=DummyGeneratorBadThenFix(), max_steps=3, enable_repair=True
+    )
+    tools = {"t1": {"description": "d1"}}
+
     plan = planner.plan("SYS", "计算 1+1", tools)
     assert plan and plan[0]["type"] == "tool" and plan[0]["name"] == "calculator"
     assert plan[1]["type"] == "reply"
@@ -90,8 +84,8 @@ class DummyGeneratorWithMessages:
         return (user_query, json.dumps(plan, ensure_ascii=False))
 
 
-def test_llm_planner_message_format():
-    """Test that LLMPlanner uses the new message format."""
+def test_planner_uses_new_message_format():
+    """Test that SimpleLLMPlanner uses the new message format."""
     tools = {
         "calculator": {
             "description": "Do math",
@@ -103,7 +97,7 @@ def test_llm_planner_message_format():
         }
     }
 
-    planner = LLMPlanner(generator=DummyGeneratorWithMessages(), max_steps=3)
+    planner = SimpleLLMPlanner(generator=DummyGeneratorWithMessages(), max_steps=3)
     plan = planner.plan("System prompt here", "计算 2+2", tools)
 
     assert len(plan) == 2
@@ -138,7 +132,7 @@ def test_llm_planner_prompt_includes_tool_requirement():
         }
     }
 
-    planner = LLMPlanner(generator=generator, max_steps=3)
+    planner = SimpleLLMPlanner(generator=generator, max_steps=3)
     planner.plan("Profile prompt", "test query", tools)
 
     # Check that the system prompt includes the new rule

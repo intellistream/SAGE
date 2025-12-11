@@ -283,29 +283,6 @@ INTENT_TOOLS: list[IntentTool] = [
         - Code examples and tutorials: how to implement features, where are examples
         """,
         keywords=[
-            # Chinese question patterns
-            "怎么",
-            "如何",
-            "什么是",
-            "是什么",
-            "为什么",
-            "哪里",
-            "在哪",
-            "请问",
-            "告诉我",
-            "解释",
-            "说明",
-            "介绍",
-            # English question patterns
-            "what",
-            "how",
-            "why",
-            "where",
-            "when",
-            "which",
-            "explain",
-            "describe",
-            "tell me",
             # SAGE-specific terms
             "SAGE",
             "operator",
@@ -320,14 +297,26 @@ INTENT_TOOLS: list[IntentTool] = [
             "配置",
             "config",
             "configuration",
-            # Examples and tutorials
-            "示例",
-            "example",
-            "examples",
+            "RAG",
+            "检索增强生成",
+            # Actions/Topics (Specific to SAGE/Tech)
+            "安装",
+            "install",
+            "installation",
+            "部署",
+            "deploy",
+            "setup",
+            "使用",
+            "usage",
+            "use",
             "教程",
             "tutorial",
             "guide",
             "指南",
+            "示例",
+            "example",
+            "examples",
+            "demo",
             # Research guidance
             "论文",
             "paper",
@@ -337,6 +326,8 @@ INTENT_TOOLS: list[IntentTool] = [
             "methodology",
             "写作",
             "writing",
+            "投稿",
+            "submission",
         ],
         capabilities=[
             "documentation_search",
@@ -574,6 +565,9 @@ INTENT_TOOLS: list[IntentTool] = [
             "bye",
             "goodbye",
             "see you",
+            "how are you",
+            "how do you do",
+            "what's up",
             # Politeness - Chinese
             "谢谢",
             "感谢",
@@ -756,6 +750,7 @@ class IntentClassifier:
     Supported modes:
         - "keyword": Fast keyword-based matching using TF-IDF
         - "embedding": Semantic matching using embeddings (requires embedding client)
+        - "llm": Intelligent classification using LLM (requires LLM client)
         - "hybrid": Combination of keyword and embedding (future)
 
     Example:
@@ -779,7 +774,7 @@ class IntentClassifier:
         """Initialize the intent classifier.
 
         Args:
-            mode: Selector mode. Currently supports "keyword".
+            mode: Selector mode. Currently supports "keyword", "llm".
                 "embedding" and "hybrid" require additional setup.
             embedding_model: Embedding model identifier for embedding-based
                 modes. Ignored for "keyword" mode.
@@ -791,9 +786,10 @@ class IntentClassifier:
         self.embedding_model = embedding_model
         self._selector = None
         self._initialized = False
+        self._llm_client = None
 
         # Validate mode
-        supported_modes = {"keyword", "embedding", "hybrid"}
+        supported_modes = {"keyword", "embedding", "hybrid", "llm"}
         if mode not in supported_modes:
             msg = f"Unsupported mode: {mode}. Must be one of {supported_modes}"
             raise ValueError(msg)
@@ -805,6 +801,24 @@ class IntentClassifier:
 
         # Initialize selector lazily or eagerly based on mode
         if mode == "keyword":
+            self._initialize_keyword_selector()
+        elif mode == "llm":
+            self._initialize_llm_client()
+
+    def _initialize_llm_client(self) -> None:
+        """Initialize the LLM client."""
+        try:
+            from sage.common.components.sage_llm import UnifiedInferenceClient
+
+            self._llm_client = UnifiedInferenceClient.create()
+            self._initialized = True
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Failed to initialize LLM client: {e}. Falling back to simple keyword matching."
+            )
+            self.mode = "keyword"
             self._initialize_keyword_selector()
 
     def _initialize_keyword_selector(self) -> None:
@@ -884,9 +898,79 @@ class IntentClassifier:
             )
 
         # Use appropriate classification method
-        if self._selector is not None:
+        if self.mode == "llm" and self._llm_client:
+            return await self._classify_with_llm(message, history)
+        elif self._selector is not None:
             return self._classify_with_selector(message, history, context)
         else:
+            return self._classify_simple(message)
+
+    async def _classify_with_llm(
+        self,
+        message: str,
+        history: list[dict[str, str]] | None = None,
+    ) -> IntentResult:
+        """Classify using LLM."""
+        import asyncio
+
+        prompt = f"""
+You are an intent classifier for the SAGE AI framework.
+Classify the user's message into one of the following intents:
+
+1. knowledge_query: Questions requiring knowledge base search (SAGE docs, research papers, examples).
+2. sage_coding: SAGE framework programming tasks (pipeline generation, debugging, API usage).
+3. system_operation: System management (start/stop services, check status).
+4. general_chat: General conversation, greetings, or questions not related to SAGE.
+
+User Message: {message}
+
+Return ONLY the intent name (e.g., "knowledge_query").
+"""
+        try:
+            # Run synchronous LLM call in thread pool
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None, lambda: self._llm_client.chat([{"role": "user", "content": prompt}])
+            )
+
+            # UnifiedInferenceClient.chat returns a string by default
+            content = response.strip().lower()
+
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info(f"LLM Intent Classification Raw Response: '{content}'")
+
+            # Normalize content to handle spaces vs underscores (e.g. "knowledge query" -> "knowledge_query")
+            content_normalized = content.replace(" ", "_")
+
+            # Extract intent
+            for intent in UserIntent:
+                # Check both original and normalized
+                if intent.value in content or intent.value in content_normalized:
+                    # Determine knowledge domains if needed
+                    knowledge_domains = None
+                    if intent == UserIntent.KNOWLEDGE_QUERY:
+                        # Default domains for LLM classification
+                        knowledge_domains = [KnowledgeDomain.SAGE_DOCS, KnowledgeDomain.EXAMPLES]
+
+                    return IntentResult(
+                        intent=intent,
+                        confidence=0.9,  # High confidence for LLM
+                        knowledge_domains=knowledge_domains,
+                        matched_keywords=[],
+                    )
+
+            # Fallback if LLM output is unclear
+            logger.warning(
+                f"LLM output '{content}' did not match any known intent. Falling back to simple classification."
+            )
+            return self._classify_simple(message)
+
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).error(f"LLM classification failed: {e}")
             return self._classify_simple(message)
 
     def _classify_with_selector(
@@ -968,7 +1052,9 @@ class IntentClassifier:
 
             # Normalize by number of keywords
             if tool.keywords:
-                normalized_score = min(score / len(tool.keywords) * 3, 1.0)
+                # Improved scoring: match count / sqrt(total) to favor matches but penalize very long lists less
+                # Or just simple match count for now, but capped
+                normalized_score = min(score * 0.5, 1.0)  # Each keyword adds 0.5 confidence
             else:
                 normalized_score = 0.0
 

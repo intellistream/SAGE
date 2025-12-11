@@ -38,17 +38,18 @@ function CustomNode({ data, selected }: NodeProps<CustomNodeData>) {
                 size="small"
                 title={
                     <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm">{data.label}</span>
+                        <span className="font-semibold text-sm text-[--gemini-text-primary]">{data.label}</span>
                         {getStatusIcon()}
                     </div>
                 }
                 bordered={false}
                 style={{ minWidth: 180 }}
+                className="custom-node-card"
             >
                 {data.description && (
-                    <p className="text-xs text-gray-500 mt-1">{data.description}</p>
+                    <p className="text-xs text-[--gemini-text-secondary] mt-1">{data.description}</p>
                 )}
-                <div className="text-xs text-gray-400 mt-2">
+                <div className="text-xs text-[--gemini-text-secondary] mt-2">
                     ID: {data.nodeId}
                 </div>
             </Card>
