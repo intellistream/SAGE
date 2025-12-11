@@ -21,14 +21,13 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
-from sage.benchmark.benchmark_memory.experiment.utils.config_loader import get_required_config
-from sage.benchmark.benchmark_memory.experiment.utils.embedding_generator import (
+from sage.benchmark.benchmark_memory.experiment.utils import (
     EmbeddingGenerator,
+    LLMGenerator,
+    get_required_config,
 )
-from sage.benchmark.benchmark_memory.experiment.utils.llm_generator import LLMGenerator
 from sage.common.core import MapFunction
 
 # 算子级操作列表（PostInsert 自己实现）
@@ -413,9 +412,8 @@ Respond with JSON:
         memory_list_str = "\n".join(f"[{i}] {t}" for i, t in enumerate(memory_texts))
 
         prompt = self.distillation_prompt.replace("{memory_list}", memory_list_str)
-        response = self._generator.generate(prompt)
 
-        result = self._parse_json_response(response)
+        result = self._generator.generate_json(prompt)
         if not result:
             return None, []
 
@@ -578,8 +576,7 @@ Respond with JSON:
         prompt = self.crud_prompt.replace("{new_entry}", new_text)
         prompt = prompt.replace("{memory_list}", memory_list_str)
 
-        response = self._generator.generate(prompt)
-        result = self._parse_json_response(response)
+        result = self._generator.generate_json(prompt)
 
         if not result:
             return "ADD", []
@@ -846,8 +843,7 @@ Respond JSON: {{"action": "ADD|UPDATE|DELETE|NOOP", "to_delete": [indices]}}"""
         prompt = prompt.replace("{memory_list}", memory_list_str)
 
         try:
-            response = self._generator.generate(prompt)
-            result = self._parse_json_response(response)
+            result = self._generator.generate_json(prompt)
         except Exception:
             return "ADD", []
 
@@ -942,8 +938,7 @@ Respond JSON: {{"links": [indices of candidates to link]}}"""
         prompt = prompt.replace("{candidate_list}", candidate_list_str)
 
         try:
-            response = self._generator.generate(prompt)
-            result = self._parse_json_response(response)
+            result = self._generator.generate_json(prompt)
         except Exception:
             return []
 
@@ -1033,8 +1028,7 @@ Respond JSON: {{"synonyms": [indices of synonym candidates]}}"""
         prompt = prompt.replace("{candidate_list}", candidate_list_str)
 
         try:
-            response = self._generator.generate(prompt)
-            result = self._parse_json_response(response)
+            result = self._generator.generate_json(prompt)
         except Exception:
             return []
 
@@ -1088,30 +1082,6 @@ Respond JSON: {{"synonyms": [indices of synonym candidates]}}"""
 
         except Exception as e:
             print(f"服务优化失败 ({self.action}): {e}")
-
-    # ==================== 辅助方法 ====================
-
-    def _parse_json_response(self, response: str) -> dict | None:
-        """解析 JSON 格式的响应
-
-        Args:
-            response: LLM 响应文本
-
-        Returns:
-            解析后的字典，失败返回 None
-        """
-        try:
-            result_text = response.strip()
-            start_idx = result_text.find("{")
-            end_idx = result_text.rfind("}") + 1
-
-            if start_idx == -1 or end_idx == 0:
-                return None
-
-            json_str = result_text[start_idx:end_idx]
-            return json.loads(json_str)
-        except json.JSONDecodeError:
-            return None
 
     def get_state(self) -> dict[str, Any]:
         """获取当前状态（用于调试）

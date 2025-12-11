@@ -45,7 +45,6 @@ services:
     heat_threshold: 0.7
     cold_threshold: 0.3
     embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

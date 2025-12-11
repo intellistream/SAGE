@@ -2,33 +2,60 @@
 
 """实验工具模块
 
-包含各种工具类：
-- args_parser: 命令行参数解析
-- config_loader: 配置文件加载器（含 get_required_config 工具函数）
-- dialogue_parser: 对话解析器（对话格式化，独立可复用）
-- triple_parser: 三元组解析器（三元组解析和重构，独立可复用）
-- embedding_generator: Embedding 生成器
-- llm_generator: LLM 文本生成器
-- path_finder: 路径查找器
-- prompt_builder: Prompt 构建器
-- progress_bar: 进度条
-- calculation_table: 计算表格
-- time_geter: 时间获取器
+模块分组：
+- [A] LLM 调用层 (generators)
+  - LLMGenerator: LLM 文本生成，内置 JSON/三元组解析
+  - EmbeddingGenerator: Embedding 生成
+
+- [B] 格式化工具 (formatters)
+  - format_dialogue(): 对话格式化
+  - build_prompt(): Prompt 构建
+  - DialogueParser: 向后兼容类（已废弃）
+
+- [C] 配置与参数 (config)
+  - RuntimeConfig: 运行时配置
+  - get_required_config(): 必需配置校验
+  - parse_args(): 命令行参数解析
+
+- [D] 其他辅助
+  - path_finder, progress_bar, calculation_table, time_geter
 """
 
+# === [A] LLM 调用层 ===
 from .args_parser import parse_args
+
+# === [C] 配置与参数 ===
 from .config_loader import RuntimeConfig, get_required_config
-from .dialogue_parser import DialogueParser
 from .embedding_generator import EmbeddingGenerator
+
+# === [B] 格式化工具 ===
+from .formatters import (
+    DialogueParser,  # 向后兼容
+    build_prompt,
+    format_dialogue,
+    format_dialogue_batch,
+)
+
+# === 向后兼容：旧模块的导出 ===
+# 这些导入保留用于向后兼容，新代码请使用上面的统一接口
+from .json_parser import parse_json_response  # 已废弃，请使用 LLMGenerator.generate_json()
 from .llm_generator import LLMGenerator
-from .triple_parser import TripleParser
+from .triple_parser import TripleParser  # 已废弃，请使用 LLMGenerator.generate_triples()
 
 __all__ = [
-    "parse_args",
+    # LLM 调用层
+    "LLMGenerator",
+    "EmbeddingGenerator",
+    # 格式化工具
+    "format_dialogue",
+    "format_dialogue_batch",
+    "build_prompt",
+    "DialogueParser",  # 向后兼容
+    # 配置与参数
     "RuntimeConfig",
     "get_required_config",
-    "DialogueParser",
+    "parse_args",
+    # 向后兼容
+    "parse_json_response",
     "TripleParser",
-    "EmbeddingGenerator",
-    "LLMGenerator",
 ]

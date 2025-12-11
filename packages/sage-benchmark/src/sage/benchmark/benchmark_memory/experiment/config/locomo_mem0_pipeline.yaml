@@ -46,7 +46,6 @@ services:
     fusion_weights:
       semantic: 0.7
       keyword: 0.3
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

@@ -49,7 +49,6 @@ services:
     retrieval_top_k: 30               # 初始向量检索返回数量（基础版为 20）
     num_start_nodes: 15               # 使用更多种子节点启动图遍历（基础版为 10）
     max_depth: 4                      # 增加遍历深度（基础版为 3）
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

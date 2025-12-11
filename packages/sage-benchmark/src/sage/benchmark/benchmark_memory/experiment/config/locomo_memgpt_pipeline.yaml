@@ -44,7 +44,6 @@ services:
       recall: 100                     # FIFO 队列
     migration_policy: "overflow"      # 溢出时迁移
     embedding_dim: 1024               # bge-m3 输出 1024 维向量
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

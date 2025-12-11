@@ -1,82 +1,145 @@
-"""记忆插入模块 - 负责将对话存储到记忆服务中
+"""
+================================================================================
+MemoryInsert - 记忆插入算子
+================================================================================
 
-支持多种插入方法：
-- default: 默认插入
-- triple_insert: 三元组插入（图服务）
-- chunk_insert: 分块插入
-- summary_insert: 摘要插入
-- priority_insert: 优先级插入
-- multi_index_insert: 多索引插入
+[架构定位]
+Pipeline: PreInsert → MemoryInsert(当前) → PostInsert → PreRetrieval → PostRetrieval
+前驱: PreInsert（负责数据预处理，设置 text/embedding/metadata）
+后继: PostInsert（插入后处理，如摘要生成、时间衰减）
 
-支持两种插入模式：
-- passive: 被动插入，由服务内部决定如何存储（默认）
-- active: 主动插入，根据 insert_params 指定存储方式
+[核心职责]
+纯透传模式：遍历 PreInsert 输出的 memory_entries，调用记忆服务的 insert 方法
+
+[输入数据结构] (由 PreInsert 生成)
+data = {
+    "memory_entries": [
+        {
+            "text": str,                    # 必须：要存储的文本内容
+            "embedding": list[float],       # 可选：预计算的向量
+            "metadata": {                   # 可选：元数据
+                "timestamp": str,           # 时间戳
+                "source": str,              # 来源
+                "triples": list,            # 知识三元组（tri_embed）
+                "vectors": list,            # 多向量（multi_embed）
+                "is_summary": bool,         # 是否为摘要（summarize）
+                "chunk_index": int,         # 分块索引（chunk_insert）
+                ...
+            },
+            "insert_mode": str,             # 插入模式: "passive" | "active" | ...
+            "insert_params": dict,          # 插入参数（服务特定）
+        },
+        ...
+    ],
+    ...其他透传字段...
+}
+
+[输出数据结构]
+data（原样透传）+ insert_stats = {
+    "inserted": int,                        # 成功插入数量
+    "failed": int,                          # 失败数量
+    "entry_ids": list[str],                 # 插入的条目 ID 列表
+}
+
+[设计原则]
+1. 单一职责：只负责调用服务的 insert 方法，不做数据转换
+2. 纯透传：PreInsert 已统一设置 text 字段，MemoryInsert 直接使用
+3. 错误容忍：单条插入失败不影响其他条目
+4. 可追溯：返回插入统计信息供 PostInsert 使用
+
+[PreInsert Action 与条目数量关系]
+不同的 PreInsert action 会产生不同数量的 memory_entries：
+
+┌─────────────────┬──────────────────┬───────────────────────────────────────┐
+│ Action          │ 条目数量         │ 说明                                  │
+├─────────────────┼──────────────────┼───────────────────────────────────────┤
+│ none            │ 1 条             │ 透传原始对话                          │
+│ transform       │ 1 条             │ 文本转换后的单条记录                  │
+│ extract         │ N 条             │ 提取多个事实/实体，每个一条           │
+│ score           │ 1 条             │ 带重要性评分的单条记录                │
+│ multi_embed     │ 1 条             │ 单条文本 + 多向量存于 metadata        │
+│ scm_embed       │ 1 条             │ SCM 语义压缩后的单条记录              │
+│ tri_embed       │ N 条             │ 每个三元组独立成一条                  │
+└─────────────────┴──────────────────┴───────────────────────────────────────┘
+
+示例场景：
+- 单条插入 (none/transform/score):
+  用户说 "我喜欢吃苹果" → 1 条 memory_entry
+
+- 多条插入 (extract):
+  用户说 "我叫张三，今年25岁，住在北京"
+  → 3 条: ["用户名字是张三", "用户年龄25岁", "用户住在北京"]
+
+- 多条插入 (tri_embed):
+  提取三元组 [(张三, 年龄, 25), (张三, 居住地, 北京)]
+  → 2 条，每条 metadata 含对应 triple
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from sage.benchmark.benchmark_memory.experiment.utils.dialogue_parser import DialogueParser
 from sage.common.core import MapFunction
 
-if TYPE_CHECKING:
-    pass
+# ==============================================================================
+# MemoryInsert 类
+# ==============================================================================
 
 
 class MemoryInsert(MapFunction):
-    """将对话插入记忆服务
+    """记忆插入算子 - 纯透传模式
 
     职责：
-    1. 接收 PreInsert 输出的 memory_entries
-    2. 根据 insert_method 执行具体插入逻辑
-    3. 根据 insert_mode 决定调用方式
-    4. 调用配置的记忆服务存储
-    5. 透传数据给下游
+    1. 遍历 PreInsert 输出的 memory_entries
+    2. 调用记忆服务的 insert 方法
+    3. 统计插入结果，透传给 PostInsert
     """
+
+    # --------------------------------------------------------------------------
+    # 初始化
+    # --------------------------------------------------------------------------
 
     def __init__(self, config=None):
         """初始化 MemoryInsert
 
         Args:
-            config: RuntimeConfig 对象
+            config: RuntimeConfig 对象，用于获取服务名称
         """
         super().__init__()
         self.config = config
-
-        # 明确服务后端
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
-        print(f"[DEBUG] MemoryInsert.__init__: self.service_name = {self.service_name}")
 
-        # 从配置读取提取模式
-        self.adapter = (
-            config.get("services.memory_insert_adapter", "to_dialogs") if config else "to_dialogs"
-        )
-
-        # 初始化对话解析器（to_dialogs 模式需要，其他模式可能也需要作为回退）
-        self.dialogue_parser = DialogueParser()
+    # --------------------------------------------------------------------------
+    # 主执行流程
+    # --------------------------------------------------------------------------
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行记忆插入
 
+        流程：
+        1. 遍历 memory_entries
+        2. 逐条调用 _insert_entry
+        3. 统计结果并返回
+
         Args:
-            data: 由 PreInsert 输出的数据
+            data: 由 PreInsert 输出的数据，包含 memory_entries
 
         Returns:
-            原始数据 + 插入统计
+            原始数据 + insert_stats 统计信息
         """
         inserted_ids = []
         failed_count = 0
 
         for entry_dict in data.get("memory_entries", []):
             try:
-                entry_id = self._insert_single_entry(entry_dict)
+                entry_id = self._insert_entry(entry_dict)
                 if entry_id:
                     inserted_ids.append(entry_id)
             except Exception as e:
                 self.logger.warning(f"Insert failed: {e}")
                 failed_count += 1
 
+        # 添加插入统计（供 PostInsert 使用）
         data["insert_stats"] = {
             "inserted": len(inserted_ids),
             "failed": failed_count,
@@ -85,121 +148,89 @@ class MemoryInsert(MapFunction):
 
         return data
 
-    def _insert_single_entry(self, entry_dict: dict[str, Any]) -> str | None:
-        """插入单条记忆条目（所有插入方法逻辑内联）
+    # --------------------------------------------------------------------------
+    # 单条插入
+    # --------------------------------------------------------------------------
+
+    def _insert_entry(self, entry_dict: dict[str, Any]) -> str | None:
+        """插入单条记忆到服务
+
+        字段说明：
+        - text: 必须，要存储的文本（由 PreInsert 统一设置）
+        - embedding: 可选，预计算的向量
+        - metadata: 可选，包含时间戳、来源、三元组等
+        - insert_mode: 插入模式，默认 "passive"
+        - insert_params: 服务特定的插入参数
 
         Args:
-            entry_dict: 记忆条目字典，由 PreInsert 生成
+            entry_dict: 记忆条目字典
 
         Returns:
-            str | None: 插入的条目 ID，失败返回 None
+            插入成功返回条目 ID，失败返回 None
         """
-        # 提取插入配置
-        insert_method = entry_dict.get("insert_method", "default")
-        insert_mode = entry_dict.get("insert_mode", "passive")
-        insert_params = (entry_dict.get("insert_params") or {}).copy()
-
-        # 提取文本内容
-        # 根据不同的 transform_type，文本可能存储在不同字段：
-        # - refactor: refactor 处理后的文本
-        # - text: 原始文本
-        # - summary: summarize 生成的摘要
-        # - compressed_text: compress 压缩后的文本
-        # - chunk_text: chunking 分块后的文本
-        # - segment_text: topic_segment 分段后的文本
-        if self.adapter == "to_dialogs":
-            dialogs = entry_dict.get("dialogs", [])
-            entry = self.dialogue_parser.format(dialogs) if dialogs else ""
-        else:
-            # 按优先级尝试获取文本内容
-            entry = (
-                entry_dict.get("refactor", "")
-                or entry_dict.get("summary", "")
-                or entry_dict.get("compressed_text", "")
-                or entry_dict.get("chunk_text", "")
-                or entry_dict.get("segment_text", "")
-                or entry_dict.get("text", "")
-            )
-            # 如果没有转换后的文本，回退到 dialogs
-            if not entry and "dialogs" in entry_dict:
-                dialogs = entry_dict.get("dialogs", [])
-                entry = self.dialogue_parser.format(dialogs) if dialogs else ""
-
+        # 1. 提取文本（PreInsert 已统一设置）
+        entry = entry_dict.get("text", "")
         if not entry:
             return None
 
-        # 提取向量和元数据
+        # 2. 提取向量和元数据
         vector = entry_dict.get("embedding")
-        metadata = (entry_dict.get("metadata") or {}).copy()
+        metadata = entry_dict.get("metadata", {})
 
-        # ========== 根据 insert_method 内联处理逻辑 ==========
+        # 3. 提取插入模式和参数
+        insert_mode = entry_dict.get("insert_mode", "passive")
+        insert_params = entry_dict.get("insert_params")
 
-        if insert_method == "triple_insert":
-            # 三元组插入（图服务）
-            # 支持两种格式：
-            # - "triples": [(s, r, o), ...] - 复数列表格式
-            # - "triple": (s, r, o) - 单数格式（来自 PreInsert tri_embed）
-            if "triples" in entry_dict:
-                metadata["triples"] = entry_dict["triples"]
-            elif "triple" in entry_dict:
-                # 将单个三元组包装为列表
-                metadata["triples"] = [entry_dict["triple"]]
-            metadata.setdefault("node_type", "fact")
-
-        elif insert_method == "chunk_insert":
-            # 分块插入
-            if "chunk_text" in entry_dict:
-                entry = entry_dict["chunk_text"]
-            if "chunk_index" in entry_dict:
-                metadata["chunk_index"] = entry_dict["chunk_index"]
-                metadata["total_chunks"] = entry_dict.get("total_chunks", 1)
-
-        elif insert_method == "summary_insert":
-            # 摘要插入
-            metadata["is_summary"] = True
-            if insert_mode == "passive":
-                insert_mode = "active"
-                insert_params.setdefault("target_tier", "ltm")
-
-        elif insert_method == "priority_insert":
-            # 优先级插入
-            importance = entry_dict.get("importance_score")
-            if importance is not None:
-                insert_params["priority"] = importance
-                if importance >= 8:
-                    insert_params["target_tier"] = "ltm"
-                elif importance >= 5:
-                    insert_params["target_tier"] = "mtm"
-                insert_mode = "active"
-
-        elif insert_method == "multi_index_insert":
-            # 多索引插入（混合服务）
-            if "embeddings" in entry_dict:
-                metadata["vectors"] = entry_dict["embeddings"]
-            if "target_indexes" in entry_dict:
-                insert_params["target_indexes"] = entry_dict["target_indexes"]
-                insert_mode = "active"
-
-        elif insert_method == "scm_insert":
-            # SCM 样式插入：同时保存原文和摘要
-            # 原文和摘要已在 pre_insert 中处理，这里确保 metadata 包含这些信息
-            if "original_text" in entry_dict:
-                metadata["original_text"] = entry_dict["original_text"]
-            if "summary" in entry_dict:
-                metadata["summary"] = entry_dict["summary"]
-            if "original_tokens" in entry_dict:
-                metadata["original_tokens"] = entry_dict["original_tokens"]
-            if "summary_tokens" in entry_dict:
-                metadata["summary_tokens"] = entry_dict["summary_tokens"]
-
-        # 统一调用服务
+        # 4. 调用记忆服务
         return self.call_service(
             self.service_name,
             entry=entry,
             vector=vector,
             metadata=metadata,
             insert_mode=insert_mode,
-            insert_params=insert_params if insert_params else None,
+            insert_params=insert_params,
             method="insert",
             timeout=10.0,
         )
+
+
+# ==============================================================================
+# 附录：特殊插入模式说明
+# ==============================================================================
+#
+# [insert_mode 取值]
+# ┌──────────┬──────────────────────────────────────────────────────────────────┐
+# │ 模式     │ 说明                                                             │
+# ├──────────┼──────────────────────────────────────────────────────────────────┤
+# │ passive  │ 被动插入（默认），由记忆服务自行决定存储层级                     │
+# │ active   │ 主动插入，明确指定目标层级（如 LTM），通常用于高价值信息         │
+# └──────────┴──────────────────────────────────────────────────────────────────┘
+#
+# [insert_params 示例]
+# ┌─────────────────────────────────────┬───────────────────────────────────────┐
+# │ 参数组合                            │ 使用场景                              │
+# ├─────────────────────────────────────┼───────────────────────────────────────┤
+# │ {"target_tier": "ltm"}              │ 摘要插入，直接存入长期记忆            │
+# │ {"target_tier": "ltm", "priority":8}│ 高分记忆(≥8)，优先级插入 LTM          │
+# │ {"target_tier": "mtm"}              │ 中等分数(5-7)，插入中期记忆           │
+# │ None (无参数)                       │ 普通插入，由服务决定层级              │
+# └─────────────────────────────────────┴───────────────────────────────────────┘
+#
+# [PreInsert Action 与特殊插入的对应关系]
+#
+# 1. transform (summarize) → active + {"target_tier": "ltm"}
+#    摘要是高度浓缩的信息，通常主动插入 LTM
+#
+# 2. score (importance) → 根据评分动态决定：
+#    - score ≥ 8: active + {"target_tier": "ltm", "priority": score}
+#    - score 5-7: passive + {"target_tier": "mtm"}
+#    - score < 5: passive + 无特殊参数（STM）
+#
+# 3. 其他 action (none, extract, multi_embed, scm_embed, tri_embed):
+#    - 默认: passive + 无特殊参数
+#
+# [记忆服务如何使用这些参数]
+# 记忆服务的 insert 方法接收 insert_mode 和 insert_params，根据这些参数
+# 决定将记忆存入 STM (短期) / MTM (中期) / LTM (长期) 哪个层级。
+# 具体实现取决于各个记忆服务的策略。
+#

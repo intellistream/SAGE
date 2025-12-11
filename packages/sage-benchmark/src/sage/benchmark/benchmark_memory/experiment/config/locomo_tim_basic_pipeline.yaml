@@ -40,7 +40,6 @@ services:
   vector_hash_memory:
     dim: 1024                         # 向量维度（需要与 embedding 模型输出维度一致）
     nbits: 128                        # LSH 哈希位数
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

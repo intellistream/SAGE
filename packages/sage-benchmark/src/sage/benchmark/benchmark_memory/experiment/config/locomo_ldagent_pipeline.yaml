@@ -41,7 +41,6 @@ services:
       ltm: -1                         # 事件摘要库
     migration_policy: "time"          # 按时间迁移
     embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

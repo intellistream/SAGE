@@ -39,7 +39,6 @@ services:
     link_policy: "bidirectional"
     max_links_per_node: 50
     link_weight_init: 1.0
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

@@ -104,6 +104,58 @@ collection.delete(item_id)
 | MemoryRetrieval | ✅      | ❌      | ❌      | 执行检索               |
 | PostRetrieval   | ✅ 多次 | ❌      | ❌      | 结果处理，可多次查询   |
 
+### 1.4 双阶段主动插入机制
+
+SAGE 的记忆分层插入由**两个阶段**共同决定，形成"前瞻+响应"的智能分层策略：
+
+```
+用户对话
+    ↓
+PreInsert ──[LLM/规则分析内容]──→ 决定 insert_mode/insert_params
+    ↓                              (内容驱动：摘要→LTM, 高分→LTM)
+MemoryInsert ──[透传]──→ 调用记忆服务 insert()
+    ↓
+PostInsert ←──[服务返回状态]──── 记忆服务反馈 pending_items/target_tier
+    ↓
+PostInsert ──[LLM/规则处理反馈]──→ 执行迁移/遗忘等操作
+                                   (状态驱动：STM满→迁移到MTM)
+```
+
+#### 阶段对比
+
+| 阶段           | 决策者     | 信息来源             | 典型场景                               |
+| -------------- | ---------- | -------------------- | -------------------------------------- |
+| **PreInsert**  | LLM / 规则 | **内容本身**         | "这条信息看起来很重要，应该直接存 LTM" |
+| **PostInsert** | LLM / 规则 | **记忆服务状态反馈** | "STM 满了，服务说这些条目该迁移了"     |
+
+#### PreInsert 阶段（内容驱动）
+
+根据**内容特征**预判插入目标层级：
+
+| 触发条件               | insert_mode | insert_params                               | 说明                           |
+| ---------------------- | ----------- | ------------------------------------------- | ------------------------------ |
+| transform (summarize)  | `active`    | `{"target_tier": "ltm"}`                    | 摘要是高度浓缩信息，直接存 LTM |
+| score (importance ≥ 8) | `active`    | `{"target_tier": "ltm", "priority": score}` | 高分记忆优先存 LTM             |
+| score (importance 5-7) | `passive`   | `{"target_tier": "mtm"}`                    | 中等重要性存 MTM               |
+| score (importance < 5) | `passive`   | 无                                          | 低重要性存 STM                 |
+| 其他 action            | `passive`   | 无                                          | 默认由服务决定                 |
+
+#### PostInsert 阶段（状态驱动）
+
+根据**记忆服务反馈**动态调整：
+
+| 服务反馈                      | PostInsert 行为                 | insert_params                            | 说明                       |
+| ----------------------------- | ------------------------------- | ---------------------------------------- | -------------------------- |
+| `pending_action: "migrate"`   | 调用 `_handle_migrate_action`   | `{"target_tier": target, "force": True}` | 将待迁移条目主动插入目标层 |
+| `pending_action: "forget"`    | 调用 `_handle_forget_action`    | -                                        | 删除低价值/过期条目        |
+| `pending_action: "summarize"` | 调用 `_handle_summarize_action` | -                                        | 对相关记忆生成摘要         |
+
+#### 设计优势
+
+1. **PreInsert（前瞻性）**：基于"这条信息有多重要"做初始分层
+1. **PostInsert（响应式）**：基于"当前记忆状态需要怎么调整"做动态调整
+1. **双阶段配合**：既能在插入时做智能分层，又能在插入后根据实际状态做优化
+
 ______________________________________________________________________
 
 ## 二、Pipeline 算子层规范化重构（R1-R6）

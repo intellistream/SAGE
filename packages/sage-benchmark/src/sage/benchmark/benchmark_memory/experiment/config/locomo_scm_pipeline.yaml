@@ -39,7 +39,6 @@ services:
     max_dialog: 1000  # Memory Stream 容量
     embedding_dim: 1024  # BAAI/bge-m3 模型的向量维度
     retrieval_top_k: 6  # SCM 默认 similar_top_k=6
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

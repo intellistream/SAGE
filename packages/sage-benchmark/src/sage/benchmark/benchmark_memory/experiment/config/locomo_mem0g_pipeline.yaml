@@ -55,7 +55,6 @@ services:
       semantic: 0.5                   # 向量检索权重
       keyword: 0.2                    # 关键词检索权重
       entity_graph: 0.3               # 图检索权重（新增）
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

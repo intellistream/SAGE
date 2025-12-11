@@ -48,7 +48,6 @@ services:
     embedding_dim: 1024               # bge-m3 输出 1024 维向量
     # 关键区别：启用工具调用模式
     tool_use: true                    # Agent 版启用工具调用
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================

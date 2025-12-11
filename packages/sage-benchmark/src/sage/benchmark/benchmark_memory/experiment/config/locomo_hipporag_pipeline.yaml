@@ -43,7 +43,6 @@ services:
     retrieval_top_k: 20              # 初始向量检索返回数量
     num_start_nodes: 10              # 使用更多种子节点启动图遍历
     max_depth: 3                     # 增加遍历深度
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================
