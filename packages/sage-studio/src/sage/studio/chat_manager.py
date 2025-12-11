@@ -375,22 +375,43 @@ class ChatModeManager(StudioManager):
     # Gateway helpers
     # ------------------------------------------------------------------
     def _is_gateway_running(self) -> int | None:
-        if not self.gateway_pid_file.exists():
-            return None
+        # 1. Check PID file first
+        if self.gateway_pid_file.exists():
+            try:
+                pid = int(self.gateway_pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    return pid
+            except Exception:
+                pass
 
+            # Clean up invalid PID file
+            try:
+                self.gateway_pid_file.unlink()
+            except OSError:
+                pass
+
+        # 2. Fallback: Check if port is in use
+        # This handles cases where PID file is lost but process is still running
         try:
-            pid = int(self.gateway_pid_file.read_text().strip())
+            for proc in psutil.process_iter(["pid", "name"]):
+                try:
+                    for conn in proc.connections(kind="inet"):
+                        if (
+                            conn.laddr.port == self.gateway_port
+                            and conn.status == psutil.CONN_LISTEN
+                        ):
+                            # Found process listening on gateway port
+                            # Re-create PID file for future reference
+                            try:
+                                self.gateway_pid_file.write_text(str(proc.pid))
+                            except Exception:
+                                pass
+                            return proc.pid
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
         except Exception:
-            return None
-
-        if psutil.pid_exists(pid):
-            return pid
-
-        # 清理脏 PID 文件
-        try:
-            self.gateway_pid_file.unlink()
-        except OSError:
             pass
+
         return None
 
     def _start_gateway(self, port: int | None = None) -> bool:
