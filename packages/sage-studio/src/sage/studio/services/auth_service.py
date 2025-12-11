@@ -4,7 +4,7 @@ from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from sage.common.config.user_paths import get_user_data_dir
 
@@ -35,9 +35,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
-
-
-from pydantic import Field, field_validator
 
 
 class UserCreate(BaseModel):

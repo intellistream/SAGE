@@ -51,7 +51,7 @@ export default function PropertiesPanel() {
     if (!selectedNode) {
         return (
             <div className="properties-panel">
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-[--gemini-text-secondary]">
                     <p>选择一个节点查看属性</p>
                 </div>
             </div>
@@ -72,8 +72,8 @@ export default function PropertiesPanel() {
         <div className="properties-panel">
             <div className="mb-4 flex justify-between items-center">
                 <div>
-                    <h3 className="text-lg font-semibold">节点属性</h3>
-                    <p className="text-sm text-gray-500">{selectedNode.data.label}</p>
+                    <h3 className="text-lg font-semibold text-[--gemini-text-primary]">节点属性</h3>
+                    <p className="text-sm text-[--gemini-text-secondary]">{selectedNode.data.label}</p>
                 </div>
                 {saveStatus === 'saved' && (
                     <div className="flex items-center text-green-600 text-sm">
@@ -83,7 +83,7 @@ export default function PropertiesPanel() {
                 )}
             </div>
 
-            <div className="text-xs text-gray-400 mb-2 px-2 py-1 bg-blue-50 rounded">
+            <div className="text-xs text-[--gemini-text-secondary] mb-2 px-2 py-1 bg-[--gemini-accent]/10 rounded">
                 💡 提示：所有修改都会自动保存，无需手动操作
             </div>
 
@@ -121,7 +121,7 @@ export default function PropertiesPanel() {
 
                             if (nodeParameters.length === 0) {
                                 return (
-                                    <div className="text-sm text-gray-500 text-center py-4">
+                                    <div className="text-sm text-[--gemini-text-secondary] text-center py-4">
                                         <p>该节点类型暂无可配置参数</p>
                                     </div>
                                 )
@@ -253,7 +253,7 @@ export default function PropertiesPanel() {
 
             <Divider />
 
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-[--gemini-text-secondary]">
                 <p>位置: ({Math.round(selectedNode.position.x)}, {Math.round(selectedNode.position.y)})</p>
                 <p>ID: {selectedNode.id}</p>
             </div>

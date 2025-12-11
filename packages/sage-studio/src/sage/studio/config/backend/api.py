@@ -15,8 +15,9 @@ from pathlib import Path
 from typing import Annotated
 
 import uvicorn
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
@@ -299,17 +300,40 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# 动态构建允许的来源列表
+allowed_origins = [
+    "http://localhost:5173",  # Vite 开发服务器默认端口
+    "http://localhost:4173",  # Vite preview 服务器默认端口
+    f"http://localhost:{SagePorts.STUDIO_FRONTEND}",
+    f"http://127.0.0.1:{SagePorts.STUDIO_FRONTEND}",
+    f"http://0.0.0.0:{SagePorts.STUDIO_FRONTEND}",
+]
+
+# 添加常用开发端口
+for port in [5173, 4173, 35180]:
+    if port != SagePorts.STUDIO_FRONTEND:
+        allowed_origins.extend(
+            [
+                f"http://localhost:{port}",
+                f"http://127.0.0.1:{port}",
+                f"http://0.0.0.0:{port}",
+            ]
+        )
+
+# 从环境变量添加额外来源
+extra_origins = os.getenv("SAGE_STUDIO_ALLOWED_ORIGINS", "")
+if extra_origins:
+    allowed_origins.extend(
+        [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+    )
+
+# 去重
+allowed_origins = list(set(allowed_origins))
+
 # 添加 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite 开发服务器默认端口
-        "http://localhost:4173",  # Vite preview 服务器默认端口
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:4173",
-        "http://0.0.0.0:5173",
-        "http://0.0.0.0:4173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1616,6 +1640,40 @@ def _save_session(user_id: str, session_id: str, data: dict):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+@app.post("/api/chat/v1/chat/completions")
+async def proxy_chat_completions(request: Request):
+    """Proxy for OpenAI-compatible chat completions used by Studio frontend"""
+    import httpx
+
+    try:
+        # Get the raw body
+        body = await request.json()
+
+        # Forward to Gateway
+        # We use a stream to support SSE
+        async def event_generator():
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{GATEWAY_BASE_URL}/v1/chat/completions",
+                        json=body,
+                    ) as response:
+                        if response.status_code != 200:
+                            error_msg = await response.aread()
+                            yield f"data: {json.dumps({'error': f'Gateway error: {response.status_code} - {error_msg.decode()}'})}\n\n"
+                            return
+
+                        async for chunk in response.aiter_bytes():
+                            yield chunk
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/chat/message", response_model=ChatResponse)
 async def send_chat_message(
     request: ChatRequest,
@@ -1796,22 +1854,26 @@ async def create_chat_session(
     import uuid
     from datetime import datetime
 
-    session_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
+    try:
+        session_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
 
-    session_data = {
-        "id": session_id,
-        "title": payload.title or "New Session",
-        "created_at": now,
-        "last_active": now,
-        "message_count": 0,
-        "messages": [],
-        "metadata": {},
-    }
+        session_data = {
+            "id": session_id,
+            "title": payload.title or "New Session",
+            "created_at": now,
+            "last_active": now,
+            "message_count": 0,
+            "messages": [],
+            "metadata": {},
+        }
 
-    _save_session(str(current_user.id), session_id, session_data)
+        _save_session(str(current_user.id), session_id, session_data)
 
-    return ChatSessionDetail(**session_data)
+        return ChatSessionDetail(**session_data)
+    except Exception as e:
+        print(f"Error creating session: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
@@ -2696,9 +2758,17 @@ async def get_llm_status():
     try:
         import requests
 
-        # 读取环境变量
-        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-        model_name = os.getenv("SAGE_CHAT_MODEL", "")
+        from sage.common.components.sage_llm import UnifiedInferenceClient
+
+        # 优先使用 UnifiedInferenceClient 自动检测的状态
+        try:
+            client = UnifiedInferenceClient.create()
+            base_url = client.config.llm_base_url or ""
+            model_name = client.config.llm_model or ""
+        except Exception:
+            # 回退到环境变量
+            base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+            model_name = os.getenv("SAGE_CHAT_MODEL", "")
 
         # 检测是否是本地服务
         is_local = "localhost" in base_url or "127.0.0.1" in base_url

@@ -1210,168 +1210,13 @@ if __name__ == "__main__":
             return False
 
     def _ensure_rag_index(self) -> bool:
-        """确保 RAG 索引就绪（自动 ingest）
+        """(已弃用) 确保 RAG 索引就绪
 
-        检查 ~/.sage/cache/chat/ 下的索引，如果不存在则自动构建。
-        这样用户无需手动运行 sage chat ingest。
+        注意：索引构建逻辑已移交 AgentPlanner 动态决策，不再硬编码。
+        此方法保留仅作参考，不再自动调用。
         """
-        index_root = Path.home() / ".sage" / "cache" / "chat"
-        index_name = "docs-public"
-        manifest_file = index_root / f"{index_name}_manifest.json"
-
-        # 如果索引已存在，直接返回
-        if manifest_file.exists():
-            console.print(f"[green]✅ RAG 索引已就绪: {manifest_file}[/green]")
-            return True
-
-        console.print("[blue]📚 RAG 索引不存在，开始自动构建...[/blue]")
-
-        try:
-            # 查找文档源
-            from sage.common.config.output_paths import find_sage_project_root
-
-            project_root = find_sage_project_root()
-            if not project_root:
-                console.print("[yellow]⚠️  未找到 SAGE 项目根目录，跳过索引构建[/yellow]")
-                return False
-
-            source_dir = project_root / "docs-public" / "docs_src"
-            if not source_dir.exists():
-                console.print(f"[yellow]⚠️  文档源不存在: {source_dir}[/yellow]")
-                return False
-
-            # 导入必要的组件
-            from sage.common.components.sage_embedding import get_embedding_model
-            from sage.common.config.ports import SagePorts
-            from sage.common.utils.document_processing import parse_markdown_sections
-            from sage.middleware.components.sage_db.backend import SageDBBackend
-            from sage.middleware.operators.rag.index_builder import IndexBuilder
-
-            # 创建输出路径
-            index_root.mkdir(parents=True, exist_ok=True)
-            db_path = index_root / f"{index_name}.sagedb"
-
-            # 创建 embedder - 优先使用运行中的 embedding 服务
-            embedding_method = "hash"
-            embedding_dim = 384
-            embedding_model_name = None
-
-            # 检查 embedding 服务是否运行
-            embedding_port = SagePorts.EMBEDDING_DEFAULT
-            try:
-                import httpx
-
-                resp = httpx.get(
-                    f"http://localhost:{embedding_port}/v1/models",
-                    timeout=2.0,
-                )
-                if resp.status_code == 200:
-                    models = resp.json().get("data", [])
-                    if models:
-                        embedding_method = "openai"
-                        embedding_model_name = models[0].get("id", "BAAI/bge-m3")
-                        embedding_dim = 1024  # BGE-M3 默认维度
-                        console.print(
-                            f"[green]✅ 检测到 Embedding 服务 (localhost:{embedding_port})[/green]"
-                        )
-                        console.print(f"[blue]   使用模型: {embedding_model_name}[/blue]")
-            except Exception:
-                pass  # 服务未运行，使用 hash fallback
-
-            if embedding_method == "openai":
-                console.print(
-                    f"[blue]初始化 embedder (openai @ localhost:{embedding_port})...[/blue]"
-                )
-                embedder = get_embedding_model(
-                    "openai",
-                    model=embedding_model_name,
-                    base_url=f"http://localhost:{embedding_port}/v1",
-                    api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
-                )
-            else:
-                console.print("[blue]初始化 embedder (hash-384)...[/blue]")
-                console.print(
-                    "[dim]   提示: 运行 'sage llm serve --with-embedding' 可使用真正的 embedding[/dim]"
-                )
-                embedder = get_embedding_model("hash", dim=embedding_dim)
-
-            # Backend factory
-            def backend_factory(persist_path: Path, dim: int):
-                return SageDBBackend(persist_path, dim)
-
-            # Document processor
-            def document_processor(source_dir: Path):
-                console.print(f"[blue]正在处理文档: {source_dir}...[/blue]")
-                documents = []  # 使用列表而不是生成器
-                for md_file in source_dir.rglob("*.md"):
-                    try:
-                        with open(md_file, encoding="utf-8") as f:
-                            content = f.read()
-                        sections = parse_markdown_sections(content)
-                        for section in sections:
-                            documents.append(
-                                {
-                                    "content": f"{section['heading']}\n\n{section['content']}",
-                                    "metadata": {
-                                        "doc_path": str(md_file.relative_to(source_dir)),
-                                        "heading": section["heading"],
-                                    },
-                                }
-                            )
-                    except Exception as e:
-                        console.print(f"[yellow]跳过 {md_file}: {e}[/yellow]")
-                        continue
-                console.print(f"[green]处理了 {len(documents)} 个文档片段[/green]")
-                return documents  # 返回列表
-
-            # Build index
-            console.print("[blue]构建索引中...[/blue]")
-            builder = IndexBuilder(backend_factory=backend_factory)
-            index_manifest = builder.build_from_docs(
-                source_dir=source_dir,
-                persist_path=db_path,
-                embedding_model=embedder,
-                index_name=index_name,
-                chunk_size=800,
-                chunk_overlap=160,
-                document_processor=document_processor,
-            )
-
-            # Save manifest
-            manifest_data = {
-                "index_name": index_name,
-                "db_path": str(db_path),
-                "created_at": index_manifest.created_at,
-                "source_dir": str(source_dir),
-                "embedding": {
-                    "method": embedding_method,
-                    "dim": embedding_dim,
-                    "model": embedding_model_name,
-                },
-                "chunk_size": 800,
-                "chunk_overlap": 160,
-                "num_documents": index_manifest.num_documents,
-                "num_chunks": index_manifest.num_chunks,
-            }
-
-            import json
-
-            with open(manifest_file, "w") as f:
-                json.dump(manifest_data, f, indent=2)
-
-            console.print(
-                f"[green]✅ 索引构建成功: {index_manifest.num_chunks} 个片段 "
-                f"来自 {index_manifest.num_documents} 个文档[/green]"
-            )
-            return True
-
-        except Exception as e:
-            console.print(f"[yellow]⚠️  索引构建失败: {e}[/yellow]")
-            console.print("[yellow]   RAG 功能可能不可用，但 Studio 会继续启动[/yellow]")
-            import traceback
-
-            traceback.print_exc()
-            return False
+        console.print("[dim]ℹ️  RAG 索引构建已移交 AgentPlanner，跳过硬编码检查[/dim]")
+        return True
 
     def start(
         self,
@@ -1385,7 +1230,7 @@ if __name__ == "__main__":
         skip_confirm: bool = False,  # 新增：跳过确认（用于 restart）
     ) -> bool:
         """启动 Studio（前端和后端）"""
-        # 🆕 步骤0: 确保 RAG 索引就绪（自动 ingest）
+        # 🆕 步骤0: RAG 索引构建已移交 AgentPlanner 动态决策
         self._ensure_rag_index()
 
         # 检查并启动 Gateway（如果需要 Chat 模式）
@@ -1402,6 +1247,39 @@ if __name__ == "__main__":
                 console.print(f"[green]✅ Gateway 已在运行中 (PID: {gateway_pid})[/green]")
 
         # 后端 API 已合并进 Gateway，不再单独启动
+
+        # 🆕 智能端口冲突解决 (Smart Port Conflict Resolution)
+        # 解决场景：配置文件中保存了旧端口 (如 5173)，但该端口被其他服务占用 (如 Prod 环境)，
+        # 而当前代码的默认端口已更新 (如 5179)。此时应自动切换到新默认端口。
+        if port is None:
+            config = self.load_config()
+            config_port = config.get("port", self.default_port)
+
+            # 如果配置端口 != 默认端口 (说明可能是旧配置)
+            if config_port != self.default_port:
+                # 检查配置端口是否被占用
+                if self._is_port_in_use(config_port):
+                    # 检查是否是我们的 PID (如果是我们自己，就不算冲突)
+                    pid_exists = False
+                    if self.pid_file.exists():
+                        try:
+                            with open(self.pid_file) as f:
+                                pid = int(f.read().strip())
+                            if psutil.pid_exists(pid):
+                                pid_exists = True
+                        except Exception:
+                            pass
+
+                    if not pid_exists:
+                        # 端口被占用且不是我们的 PID -> 冲突
+                        # 检查默认端口是否空闲
+                        if not self._is_port_in_use(self.default_port):
+                            console.print(
+                                f"[yellow]⚠️  检测到配置端口 {config_port} 被占用 (可能是旧配置)，自动切换到默认端口 {self.default_port}[/yellow]"
+                            )
+                            # 更新配置文件
+                            config["port"] = self.default_port
+                            self.save_config(config)
 
         # 检查前端是否已运行
         if self.is_running():
@@ -1525,6 +1403,14 @@ if __name__ == "__main__":
                     str(self.dist_dir),  # 指定构建输出目录
                 ]
 
+            # 准备环境变量
+            env = os.environ.copy()
+            env["npm_config_cache"] = str(self.npm_cache_dir)
+            # 传递 Gateway 端口给 Vite (用于 proxy target)
+            env["VITE_GATEWAY_PORT"] = str(self.gateway_port)
+            # 传递 PORT 给 Vite (虽然 CLI 参数也会覆盖，但保持一致更好)
+            env["PORT"] = str(port)
+
             # 启动进程 - 使用独立的日志文件句柄
             # 关键修复: 使用 with 语句确保文件句柄正确管理，并设置 stdin=DEVNULL
             # 防止 npm/Vite 进程尝试读取终端输入导致卡顿
@@ -1532,6 +1418,7 @@ if __name__ == "__main__":
             process = subprocess.Popen(
                 cmd,
                 cwd=self.frontend_dir,
+                env=env,  # 传递环境变量
                 stdin=subprocess.DEVNULL,  # 关键：阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=log_handle,
@@ -1606,7 +1493,7 @@ if __name__ == "__main__":
             console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
             return True
         else:
-            console.print("[yellow]Studio 未运行[/yellow]")
+            console.print("[yellow]Studio 未运行或停止失败[/yellow]")
             return False
 
     def clean_frontend_cache(self) -> bool:

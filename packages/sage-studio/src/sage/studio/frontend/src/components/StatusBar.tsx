@@ -35,7 +35,7 @@ export default function StatusBar({ showLogs, onToggleLogs }: StatusBarProps) {
                     <Circle size={10} fill="#1890ff" stroke="#1890ff" />
                     <span>连接: {edges.length}</span>
                 </Space>
-                <Tag color="#1890ff">SAGE Studio-alpha</Tag>
+                <Tag color="#1890ff">SAGE-alpha</Tag>
             </Space>
         </div>
     )
