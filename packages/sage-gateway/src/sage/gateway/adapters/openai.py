@@ -1414,14 +1414,24 @@ class OpenAIAdapter:
         if not api_key:
             return "[配置错误] 请设置 DASHSCOPE_API_KEY 环境变量"
 
-        client = UnifiedInferenceClient(
-            llm_model=model_name,
-            llm_base_url=base_url,
-            llm_api_key=api_key,
-        )
+        # Create client via factory to respect the unified creation contract.
+        # Set temporary env var so the factory picks up API key for this call.
+        old_key = os.environ.get("SAGE_UNIFIED_API_KEY")
+        try:
+            os.environ["SAGE_UNIFIED_API_KEY"] = api_key
+            client = UnifiedInferenceClient.create(
+                control_plane_url=base_url,
+                default_llm_model=model_name,
+            )
 
-        messages = [{"role": "user", "content": user_input}]
-        return client.chat(messages)
+            messages = [{"role": "user", "content": user_input}]
+            return client.chat(messages)
+        finally:
+            # restore previous env var
+            if old_key is None:
+                os.environ.pop("SAGE_UNIFIED_API_KEY", None)
+            else:
+                os.environ["SAGE_UNIFIED_API_KEY"] = old_key
 
     async def _build_sage_chat_index(self, index_root: Path, index_name: str):
         """后台构建 sage chat 索引（与 sage chat ingest 相同）"""
