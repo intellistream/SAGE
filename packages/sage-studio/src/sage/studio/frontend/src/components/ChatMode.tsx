@@ -35,8 +35,8 @@ import {
     PanelLeft,
     Mic,
     ChevronDown,
-    Zap,
 } from 'lucide-react'
+import { SageIcon } from './SageIcon'
 import { useChatStore, type ChatMessage, type ReasoningStep } from '../store/chatStore'
 import MessageContent from './MessageContent'
 import FileUpload from './FileUpload'
@@ -65,7 +65,7 @@ import type { AppMode } from '../App'
 function SageLogo({ className = '' }: { className?: string }) {
     return (
         <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ${className}`}>
-            <Zap size={16} className="text-white" />
+            <SageIcon size={16} className="text-white" />
         </div>
     )
 }
@@ -353,7 +353,7 @@ function EmptyState() {
     return (
         <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6">
-                <Zap size={32} className="text-white" />
+                <SageIcon size={32} className="text-white" />
             </div>
             <h2 className="text-2xl font-normal text-[--gemini-text-primary] mb-2">
                 Hello, how can I help you today?

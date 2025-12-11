@@ -25,11 +25,12 @@ import {
     Upload as UploadIcon,
     Settings as SettingsIcon,
     Layout as LayoutIcon,
-    Zap,
     User,
     Sun,
     Moon,
+    Zap,
 } from 'lucide-react'
+import { SageIcon } from './SageIcon'
 import { useFlowStore } from '../store/flowStore'
 import { usePlaygroundStore } from '../store/playgroundStore'
 import { useAuthStore } from '../store/authStore'
@@ -50,9 +51,9 @@ function SageLogo() {
     return (
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Zap size={16} className="text-white" />
+                <SageIcon size={16} className="text-white" />
             </div>
-            <span className="text-lg font-medium text-[--gemini-text-primary]">SAGE Studio</span>
+            <span className="text-lg font-medium text-[--gemini-text-primary]">SAGE</span>
         </div>
     )
 }

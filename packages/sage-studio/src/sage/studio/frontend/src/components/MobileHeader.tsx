@@ -7,7 +7,8 @@
  * - Right: Theme toggle + New chat button
  */
 
-import { Menu, Plus, Zap, Sun, Moon } from 'lucide-react'
+import { Menu, Plus, Sun, Moon } from 'lucide-react'
+import { SageIcon } from './SageIcon'
 import { useThemeStore } from '../store/themeStore'
 
 interface MobileHeaderProps {
@@ -36,7 +37,7 @@ export default function MobileHeader({ onMenuClick, onNewChat, title }: MobileHe
             {/* Center: Logo & Title */}
             <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <Zap size={14} className="text-white" />
+                    <SageIcon size={14} className="text-white" />
                 </div>
                 <span className="text-base font-medium text-[--gemini-text-primary] truncate max-w-[150px]">
                     {title || 'SAGE'}
