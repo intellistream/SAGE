@@ -58,17 +58,22 @@ export const LoginPage: React.FC = () => {
     // import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 
     return (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh',
-            background: '#f0f2f5'
-        }}>
-            <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div
+            className="bg-[--gemini-sidebar-bg]"
+            style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+            }}
+        >
+            <Card
+                className="bg-[--gemini-main-bg] border-[--gemini-border]"
+                style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+            >
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                    <Title level={2}>SAGE</Title>
-                    <Text type="secondary">Generative AI & Dataflow Studio</Text>
+                    <Title level={2} className="!text-[--gemini-text-primary]">SAGE</Title>
+                    <Text className="!text-[--gemini-text-secondary]">Generative AI & Dataflow Studio</Text>
                 </div>
 
                 {error && (
@@ -116,7 +121,7 @@ export const LoginPage: React.FC = () => {
                 </Form>
 
                 <div style={{ marginTop: 16, textAlign: 'center' }}>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Or</Text>
+                    <Text className="!text-[--gemini-text-secondary]" style={{ display: 'block', marginBottom: 8 }}>Or</Text>
                     <Button
                         type="default"
                         onClick={handleGuestLogin}
