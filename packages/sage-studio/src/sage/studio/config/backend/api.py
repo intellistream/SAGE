@@ -1641,13 +1641,60 @@ def _save_session(user_id: str, session_id: str, data: dict):
 
 
 @app.post("/api/chat/v1/chat/completions")
-async def proxy_chat_completions(request: Request):
+async def proxy_chat_completions(
+    request: Request, current_user: Annotated[User, Depends(get_current_user)]
+):
     """Proxy for OpenAI-compatible chat completions used by Studio frontend"""
+    from datetime import datetime
+
     import httpx
 
     try:
         # Get the raw body
         body = await request.json()
+        session_id = body.get("session_id")
+        user_id = str(current_user.id)
+
+        # Extract user message from request
+        messages = body.get("messages", [])
+        user_message_content = None
+        if messages:
+            # Get the last user message
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    user_message_content = msg.get("content")
+                    break
+
+        # Load or create session
+        session_data = None
+        if session_id:
+            session_data = _load_session(user_id, session_id)
+
+        if not session_data and session_id:
+            # Create new session
+            now = datetime.now().isoformat()
+            session_data = {
+                "id": session_id,
+                "title": "New Chat",
+                "created_at": now,
+                "last_active": now,
+                "messages": [],
+                "metadata": {},
+            }
+
+        # Save user message to session
+        if session_data and user_message_content:
+            user_msg = {
+                "role": "user",
+                "content": user_message_content,
+                "timestamp": datetime.now().isoformat(),
+            }
+            session_data["messages"].append(user_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
+
+        # Collect assistant response
+        collected_content = []
 
         # Forward to Gateway
         # We use a stream to support SSE
@@ -1665,7 +1712,36 @@ async def proxy_chat_completions(request: Request):
                             return
 
                         async for chunk in response.aiter_bytes():
+                            # Parse SSE to collect assistant content
+                            chunk_str = chunk.decode("utf-8", errors="ignore")
+                            for line in chunk_str.split("\n"):
+                                if line.startswith("data: "):
+                                    data = line[6:].strip()
+                                    if data and data != "[DONE]":
+                                        try:
+                                            parsed = json.loads(data)
+                                            content = (
+                                                parsed.get("choices", [{}])[0]
+                                                .get("delta", {})
+                                                .get("content")
+                                            )
+                                            if content:
+                                                collected_content.append(content)
+                                        except Exception:
+                                            pass
                             yield chunk
+
+                # Save assistant message after streaming completes
+                if session_data and collected_content:
+                    assistant_msg = {
+                        "role": "assistant",
+                        "content": "".join(collected_content),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    session_data["messages"].append(assistant_msg)
+                    session_data["last_active"] = datetime.now().isoformat()
+                    _save_session(user_id, session_id, session_data)
+
             except Exception as e:
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
 

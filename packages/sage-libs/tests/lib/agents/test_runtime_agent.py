@@ -64,8 +64,10 @@ def test_runtime_basic_flow():
 
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
     out = runtime.step("计算 21*2+5")
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
     # 因为计划里包含 reply，runtime 将直接返回 "完成。"
-    assert "完成" in out
+    assert isinstance(out, dict)
+    assert "完成" in out["reply"]
 
 
 def test_runtime_no_reply_uses_template_summary():
@@ -80,10 +82,13 @@ def test_runtime_no_reply_uses_template_summary():
     runtime = AgentRuntime(
         profile=BaseProfile(name="TestBot"),
         planner=SimpleLLMPlanner(generator=GenNoReply()),
-        tools=MCPRegistry(),
+        tools=tools,  # Fixed: use the tools with registered DummyCalc
     )
     out = runtime.step("算下 41+1")
-    assert "成功" in out and "42" in out
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
+    assert isinstance(out, dict)
+    reply = out["reply"]
+    assert "成功" in reply and "42" in reply
 
 
 # New tests for the message format changes in commit 12aec700c63407e1f5d79455b2d64a60a6688e96
@@ -120,7 +125,9 @@ def test_runtime_with_message_format_summarizer():
     )
 
     out = runtime.step("计算 45+2")
-    assert "总结: 计算结果是47" in out
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
+    assert isinstance(out, dict)
+    assert "总结: 计算结果是47" in out["reply"]
 
 
 def test_runtime_memory_disabled():
@@ -149,5 +156,7 @@ def test_runtime_with_new_planner_message_format():
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
 
     out = runtime.step("计算 21*2+5")
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
     # Should work with the new message format in planner
-    assert "完成" in out
+    assert isinstance(out, dict)
+    assert "完成" in out["reply"]

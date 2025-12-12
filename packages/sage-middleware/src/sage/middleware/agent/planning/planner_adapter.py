@@ -33,6 +33,7 @@ class SageLibsPlannerAdapter:
                     tool_id=name,
                     name=name,
                     description=meta.get("description", ""),
+                    category=meta.get("category", "general"),
                     input_schema=meta.get("input_schema", {}),
                 )
             )

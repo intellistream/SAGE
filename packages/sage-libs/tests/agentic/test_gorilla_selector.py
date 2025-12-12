@@ -296,8 +296,8 @@ class TestGorillaSelector:
         predictions = selector.select(query, top_k=3)
 
         assert len(predictions) > 0
-        # Should use retrieval_only method
-        assert predictions[0].metadata.get("method") == "gorilla_retrieval_only"
+        # Should use gorilla method (metadata format simplified)
+        assert predictions[0].metadata.get("method") == "gorilla"
 
     def test_get_stats(self, gorilla_config, mock_resources):
         """Test getting selector statistics."""

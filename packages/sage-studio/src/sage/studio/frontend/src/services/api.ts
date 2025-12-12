@@ -28,6 +28,32 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl()
 
+// Helper function to get auth token for fetch requests
+function getAuthToken(): string | null {
+    try {
+        const storage = localStorage.getItem('sage-auth-storage')
+        if (storage) {
+            const { state } = JSON.parse(storage)
+            return state?.token || null
+        }
+    } catch (e) {
+        // Ignore parsing errors
+    }
+    return null
+}
+
+// Helper function to get headers with auth token for fetch requests
+function getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    }
+    const token = getAuthToken()
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+    return headers
+}
+
 // Axios 实例
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -39,16 +65,9 @@ const apiClient = axios.create({
 
 // Auth Interceptor
 apiClient.interceptors.request.use((config) => {
-    try {
-        const storage = localStorage.getItem('sage-auth-storage')
-        if (storage) {
-            const { state } = JSON.parse(storage)
-            if (state?.token) {
-                config.headers.Authorization = `Bearer ${state.token}`
-            }
-        }
-    } catch (e) {
-        // Ignore parsing errors
+    const token = getAuthToken()
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
     }
     return config
 })
@@ -708,9 +727,7 @@ export async function sendChatMessage(
     try {
         const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 model: 'sage-default',
                 messages: [{ role: 'user', content: message }],
@@ -880,9 +897,7 @@ export async function sendChatMessageWithAgent(
     try {
         const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 model: options?.model || 'sage-default',
                 messages: [

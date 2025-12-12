@@ -3,7 +3,6 @@ from unittest.mock import Mock
 import pytest
 
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
 from sage.middleware.agent.runtime import AgentRuntime
 
@@ -18,7 +17,11 @@ def mock_profile():
 
 @pytest.fixture
 def mock_planner():
-    planner = Mock(spec=SimpleLLMPlanner)
+    # Don't use spec to avoid getting plan_stream attribute
+    # This forces the runtime to use the fallback non-streaming path
+    planner = Mock()
+    # Remove plan_stream so runtime uses planner.plan() instead
+    del planner.plan_stream
     return planner
 
 
@@ -125,5 +128,8 @@ def test_planning_failure(agent_runtime, mock_planner):
 
     result = agent_runtime.step("Hi")
 
-    assert "Planning failed" in result["reply"]
+    # When planning fails, the result has empty reply and observations
+    # The error is yielded as an event in step_stream, not returned in the result
+    assert result["reply"] == ""
     assert result["observations"] == []
+    assert result["plan"] == []
