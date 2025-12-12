@@ -16,7 +16,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -70,6 +70,24 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def api_prefix_middleware(request: Request, call_next):
+    """
+    Middleware to handle /api prefix for Gateway routes.
+
+    In some deployment scenarios (e.g. production without Vite proxy),
+    requests might reach the Gateway with /api prefix (e.g. /api/v1/chat/completions).
+    We strip this prefix for specific Gateway routes to ensure they match.
+    """
+    path = request.url.path
+    if path.startswith("/api/v1/") or path.startswith("/api/sessions") or path == "/api/health":
+        request.scope["path"] = path.replace("/api", "", 1)
+
+    response = await call_next(request)
+    return response
+
 
 # CORS 配置（允许 sage-studio 调用）
 app.add_middleware(

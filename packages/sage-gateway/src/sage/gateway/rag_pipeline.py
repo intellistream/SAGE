@@ -187,17 +187,19 @@ class RAGChatMap(MapFunction):
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
             # 从 Control Plane 获取可用的 LLM 后端
-            llm_base_url = self._get_llm_backend_url()
+            llm_base_url, llm_model = self._get_llm_backend_info()
 
             if llm_base_url:
-                logger.info(f"Using LLM backend from Control Plane: {llm_base_url}")
+                logger.info(
+                    f"Using LLM backend from Control Plane: {llm_base_url} (model: {llm_model})"
+                )
                 # 使用内部标志创建实例（与 compat.py 模式一致）
                 # Use the official factory method to create a client pointing
                 # at the selected backend. Avoid direct instantiation which
                 # is intentionally blocked by the unified client API.
                 self._llm_client = UnifiedInferenceClient.create(
                     control_plane_url=llm_base_url,
-                    default_llm_model=None,
+                    default_llm_model=llm_model,
                 )
             else:
                 # Control Plane 没有可用的 LLM 后端
@@ -208,8 +210,8 @@ class RAGChatMap(MapFunction):
 
         return self._llm_client
 
-    def _get_llm_backend_url(self) -> str | None:
-        """从 Control Plane 获取可用的 LLM 后端 URL
+    def _get_llm_backend_info(self) -> tuple[str | None, str | None]:
+        """从 Control Plane 获取可用的 LLM 后端 URL 和模型名称
 
         仅查询 Control Plane 注册的后端，不做端口扫描。
         Control Plane 负责：
@@ -223,34 +225,37 @@ class RAGChatMap(MapFunction):
             manager = get_control_plane_manager()
             if manager is None:
                 logger.warning("Control Plane manager not available")
-                return None
+                return None, None
 
             backends_info = manager.get_registered_backends()
             llm_backends = backends_info.get("llm_backends", [])
 
             if not llm_backends:
                 logger.warning("No LLM backends registered in Control Plane")
-                return None
+                return None, None
 
             # 选择第一个健康的后端（未来可扩展为负载均衡）
             for backend in llm_backends:
                 if backend.get("is_healthy", False):
                     base_url = backend.get("base_url")
+                    model_name = backend.get("model_name")
+
                     if base_url:
-                        return base_url
+                        return base_url, model_name
+
                     # 或者从 host/port 构建
                     host = backend.get("host", "localhost")
                     port = backend.get("port")
                     if port:
-                        return f"http://{host}:{port}/v1"
+                        return f"http://{host}:{port}/v1", model_name
 
             # 所有后端都不健康
             logger.warning("All %d LLM backends are unhealthy", len(llm_backends))
-            return None
+            return None, None
 
         except Exception as e:
             logger.warning(f"Failed to get LLM backend from Control Plane: {e}")
-            return None
+            return None, None
 
     def _detect_workflow_intent(self, user_input: str) -> bool:
         """Detect if user wants to create a workflow.

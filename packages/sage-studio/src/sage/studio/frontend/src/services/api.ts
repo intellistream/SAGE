@@ -706,7 +706,7 @@ export async function sendChatMessage(
     callbacks?: Partial<ChatMessageCallbacks>
 ): Promise<void> {
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
+        const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -878,7 +878,7 @@ export async function sendChatMessageWithAgent(
     const { onStep, onStepUpdate, onStepContent, onContent, onReasoningEnd, onError, onComplete } = callbacks
 
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
+        const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
