@@ -53,7 +53,17 @@ def test_planner_repair():
     planner = SimpleLLMPlanner(
         generator=DummyGeneratorBadThenFix(), max_steps=3, enable_repair=True
     )
-    tools = {"t1": {"description": "d1"}}
+    # The generator returns tool name "calculator", so we need it in tools
+    tools = {
+        "calculator": {
+            "description": "Do math",
+            "input_schema": {
+                "type": "object",
+                "properties": {"expr": {"type": "string"}},
+                "required": ["expr"],
+            },
+        }
+    }
 
     plan = planner.plan("SYS", "计算 1+1", tools)
     assert plan and plan[0]["type"] == "tool" and plan[0]["name"] == "calculator"
