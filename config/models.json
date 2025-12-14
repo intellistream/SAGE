@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Qwen/Qwen2.5-0.5B-Instruct",
+        "base_url": "http://localhost:8001/v1",
+        "is_local": true,
+        "description": "Local Small Model (Fast, CPU-friendly)"
+    },
+    {
+        "name": "Qwen/Qwen2.5-7B-Instruct",
+        "base_url": "http://localhost:8001/v1",
+        "is_local": true,
+        "description": "Local Standard Model (Requires GPU)"
+    },
+    {
+        "name": "pangu_embedded_1b",
+        "base_url": "http://0.0.0.0:1040/v1",
+        "is_local": true,
+        "description": "Huawei Pangu 1B"
+    },
+    {
+        "name": "pangu_embedded_7b",
+        "base_url": "http://0.0.0.0:1041/v1",
+        "is_local": true,
+        "description": "Huawei Pangu 7B"
+    }
+]

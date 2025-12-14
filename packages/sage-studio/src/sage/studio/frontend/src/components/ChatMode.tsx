@@ -51,6 +51,7 @@ import {
     clearChatSession as clearSessionApi,
     convertChatSessionToPipeline,
     getLLMStatus,
+    selectLLMModel,
     type ChatSessionSummary,
     type LLMStatus,
 } from '../services/api'
@@ -126,7 +127,13 @@ function SessionItem({
 }
 
 /** Model selector dropdown in header */
-function ModelSelector({ llmStatus }: { llmStatus: LLMStatus | null }) {
+function ModelSelector({
+    llmStatus,
+    onSelectModel
+}: {
+    llmStatus: LLMStatus | null
+    onSelectModel: (modelName: string, baseUrl: string) => void
+}) {
     const modelName = llmStatus?.model_name
         ? (llmStatus.model_name.split('/').pop() || llmStatus.model_name.split('__').pop() || 'Unknown')
         : 'SAGE'
@@ -134,23 +141,47 @@ function ModelSelector({ llmStatus }: { llmStatus: LLMStatus | null }) {
     const isLocal = llmStatus?.is_local
     const isHealthy = llmStatus?.healthy
 
+    const handleMenuClick = (e: any) => {
+        const selectedModel = llmStatus?.available_models?.find(m => m.name === e.key)
+        if (selectedModel) {
+            onSelectModel(selectedModel.name, selectedModel.base_url)
+        }
+    }
+
+    const items = llmStatus?.available_models?.map(model => ({
+        key: model.name,
+        label: (
+            <div className="py-1 flex items-center justify-between min-w-[200px]">
+                <div>
+                    <div className="font-medium">{model.name}</div>
+                    <div className="text-xs text-[--gemini-text-secondary]">
+                        {model.description || (model.is_local ? 'Local Model' : 'Cloud Model')}
+                    </div>
+                </div>
+                {/* Status Indicator */}
+                <div className={`w-2 h-2 rounded-full ${model.healthy ? 'bg-green-500' : 'bg-red-400'}`} title={model.healthy ? 'Running' : 'Stopped/Unreachable'} />
+            </div>
+        ),
+    })) || [
+        {
+            key: 'current',
+            label: (
+                <div className="py-1">
+                    <div className="font-medium">{modelName}</div>
+                    <div className="text-xs text-[--gemini-text-secondary]">
+                        {isLocal ? 'Local Model' : 'Cloud Model'} · {isHealthy ? 'Connected' : 'Disconnected'}
+                    </div>
+                </div>
+            ),
+            disabled: true,
+        },
+    ]
+
     return (
         <Dropdown
             menu={{
-                items: [
-                    {
-                        key: 'current',
-                        label: (
-                            <div className="py-1">
-                                <div className="font-medium">{modelName}</div>
-                                <div className="text-xs text-[--gemini-text-secondary]">
-                                    {isLocal ? 'Local Model' : 'Cloud Model'} · {isHealthy ? 'Connected' : 'Disconnected'}
-                                </div>
-                            </div>
-                        ),
-                        disabled: true,
-                    },
-                ],
+                items,
+                onClick: handleMenuClick,
             }}
             trigger={['click']}
         >
@@ -431,6 +462,18 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
             setLlmStatus(status)
         } catch (error) {
             console.error('Failed to load LLM status:', error)
+        }
+    }
+
+    const handleModelSelect = async (modelName: string, baseUrl: string) => {
+        try {
+            await selectLLMModel(modelName, baseUrl)
+            antMessage.success(`Switched to model: ${modelName}`)
+            // Refresh status immediately
+            await loadLLMStatus()
+        } catch (error) {
+            console.error('Failed to switch model:', error)
+            antMessage.error('Failed to switch model')
         }
     }
 
@@ -773,7 +816,7 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
                             </Tooltip>
 
                             {/* Model Selector */}
-                            <ModelSelector llmStatus={llmStatus} />
+                            <ModelSelector llmStatus={llmStatus} onSelectModel={handleModelSelect} />
                         </div>
 
                         {/* Right Actions */}
