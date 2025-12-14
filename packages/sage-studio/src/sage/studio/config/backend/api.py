@@ -2845,9 +2845,41 @@ async def select_llm_model(request: SelectModelRequest):
         os.environ["SAGE_CHAT_MODEL"] = request.model_name
         os.environ["SAGE_CHAT_BASE_URL"] = request.base_url
 
-        print(f"Switched model to {request.model_name} at {request.base_url}")
+        # 尝试从 available_models 中查找对应的 API Key
+        # 注意：这里需要重新读取配置，或者从请求中传递 API Key
+        # 为了简单起见，我们再次读取配置
+        api_key = ""
+        try:
+            # 1. 尝试从配置文件读取
+            from sage.common.config import find_sage_project_root
 
-        return {"status": "success", "model": request.model_name}
+            project_root = find_sage_project_root()
+            if project_root:
+                models_config_file = project_root / "config" / "models.json"
+                if models_config_file.exists():
+                    import json
+
+                    with open(models_config_file, encoding="utf-8") as f:
+                        custom_models = json.load(f)
+                        for m in custom_models:
+                            if (
+                                m["name"] == request.model_name
+                                and m["base_url"] == request.base_url
+                            ):
+                                api_key = m.get("api_key", "")
+                                break
+        except Exception:
+            pass
+
+        if api_key:
+            os.environ["SAGE_CHAT_API_KEY"] = api_key
+            print(f"Set API key for model {request.model_name}")
+        else:
+            # 如果没有找到特定的 API Key，清除环境变量，以免使用旧的
+            if "SAGE_CHAT_API_KEY" in os.environ:
+                del os.environ["SAGE_CHAT_API_KEY"]
+
+        return {"status": "success", "message": f"已切换到模型: {request.model_name}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
 
@@ -2862,7 +2894,12 @@ async def get_llm_status():
 
         # 优先使用 UnifiedInferenceClient 自动检测的状态
         try:
-            client = UnifiedInferenceClient.create()
+            from sage.common.config.ports import SagePorts
+
+            # Explicitly check local Gateway first
+            client = UnifiedInferenceClient.create(
+                control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+            )
             base_url = client.config.llm_base_url or ""
             model_name = client.config.llm_model or ""
         except Exception:
@@ -3006,26 +3043,67 @@ async def get_llm_status():
             if not model.get("is_local") and model.get("healthy"):
                 return model
 
+            # 准备请求头 (支持 API Key)
+            headers = {}
+            if model.get("api_key"):
+                headers["Authorization"] = f"Bearer {model['api_key']}"
+
+            # 辅助函数：处理 URL (0.0.0.0 -> 127.0.0.1)
+            def prepare_url(url):
+                if "0.0.0.0" in url:
+                    return url.replace("0.0.0.0", "127.0.0.1")
+                return url
+
+            # 策略 1: 尝试 /health (vLLM 标准)
             try:
-                # 简单的健康检查：尝试连接 base_url
-                # 注意：这里只检查端口是否通，不进行完整的 API 调用以加快速度
-                check_url = model["base_url"].replace("/v1", "/health")
-                # 如果是 vLLM，通常有 /health 接口
-                # 如果是其他服务，可能需要调整
-
-                # 对于 0.0.0.0，尝试连接 127.0.0.1
-                if "0.0.0.0" in check_url:
-                    check_url = check_url.replace("0.0.0.0", "127.0.0.1")
-
-                resp = requests.get(check_url, timeout=0.5)
-                model["healthy"] = resp.status_code == 200
+                check_url = prepare_url(model["base_url"].replace("/v1", "/health"))
+                resp = requests.get(check_url, headers=headers, timeout=0.5)
+                if resp.status_code == 200:
+                    model["healthy"] = True
+                    return model
             except Exception:
-                model["healthy"] = False
+                pass
+
+            # 策略 2: 尝试 /v1/models (OpenAI 标准)
+            try:
+                check_url = prepare_url(f"{model['base_url']}/models")
+                resp = requests.get(check_url, headers=headers, timeout=0.5)
+                if resp.status_code == 200:
+                    model["healthy"] = True
+                    return model
+            except Exception:
+                pass
+
+            # 策略 3: 简单的 TCP 端口检查 (作为最后的兜底)
+            # 如果 HTTP 检查都失败了，但端口是通的，我们也认为它可能是活着的
+            # (可能是路径不对或者认证失败，但服务在运行)
+            try:
+                import socket
+                from urllib.parse import urlparse
+
+                parsed = urlparse(model["base_url"])
+                host = parsed.hostname
+                port = parsed.port
+
+                if host == "0.0.0.0":
+                    host = "127.0.0.1"
+
+                if host and port:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(0.5)
+                        result = s.connect_ex((host, port))
+                        if result == 0:
+                            model["healthy"] = True
+                            # 标记为 Warning 状态可能更好，但目前 UI 只支持 boolean
+                            return model
+            except Exception:
+                pass
+
+            model["healthy"] = False
             return model
 
         # 并行检查所有模型状态
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            # 创建副本以避免修改原始列表（如果它是全局的）
             models_to_check = [m.copy() for m in available_models]
             available_models = list(executor.map(check_model_health, models_to_check))
 
