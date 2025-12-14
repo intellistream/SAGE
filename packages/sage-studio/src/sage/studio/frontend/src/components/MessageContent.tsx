@@ -102,7 +102,10 @@ export default function MessageContent({
                         const isInline = !className
 
                         if (!isInline && language) {
-                            const codeString = String(children).replace(/\n$/, '')
+                            // 正确处理 children，可能是数组或字符串
+                            const codeString = Array.isArray(children)
+                                ? children.join('')
+                                : String(children).replace(/\n$/, '')
                             return (
                                 <div className="my-4 rounded-xl overflow-hidden border border-[--gemini-border]">
                                     <div className="bg-gray-900 dark:bg-black text-gray-300 text-xs px-4 py-2.5 flex justify-between items-center">

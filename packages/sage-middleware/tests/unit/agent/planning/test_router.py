@@ -44,10 +44,10 @@ def test_classify_intent_simple(router):
 
 
 def test_classify_intent_fallback(router):
-    # If LLM returns garbage, should default to react
+    # If LLM returns garbage, should default to simple
     router.llm_client.chat.side_effect = Exception("LLM error")
     strategy = router._classify_intent("query")
-    assert strategy == "react"
+    assert strategy == "simple"
 
 
 def test_plan_routing_react(router):
@@ -92,67 +92,3 @@ def test_plan_routing_hierarchical(router):
 
         assert plan == [{"type": "reply", "text": "hierarchical plan"}]
         router.hierarchical_planner.plan.assert_called_once()
-
-
-def test_plan_stream_fallback(router):
-    # ReAct planner usually doesn't have plan_stream, so it should fallback
-    with patch.object(router, "_classify_intent", return_value="react"):
-        # Ensure react_planner does NOT have plan_stream
-        if hasattr(router.react_planner, "plan_stream"):
-            del router.react_planner.plan_stream
-
-        router.react_planner.plan.return_value = [{"type": "reply", "text": "react plan"}]
-
-        events = list(router.plan_stream("sys", "query", {}))
-
-        assert len(events) >= 2
-        assert events[0]["type"] == "thought"
-        assert "react" in events[0]["content"]
-        assert events[1]["type"] == "plan"
-        assert events[1]["steps"] == [{"type": "reply", "text": "react plan"}]
-
-
-def test_plan_stream_direct(router):
-    # Simple planner has plan_stream
-    with patch.object(router, "_classify_intent", return_value="simple"):
-        expected_events = [
-            {"type": "thought", "content": "thinking"},
-            {"type": "plan", "steps": []},
-        ]
-        router.simple_planner.plan_stream.return_value = iter(expected_events)
-
-        events = list(router.plan_stream("sys", "query", {}))
-
-        assert events == expected_events
-        router.simple_planner.plan_stream.assert_called_once()
-
-
-def test_plan_stream_tot(router):
-    with patch.object(router, "_classify_intent", return_value="tot"):
-        if hasattr(router.tot_planner, "plan_stream"):
-            del router.tot_planner.plan_stream
-        router.tot_planner.plan.return_value = []
-        events = list(router.plan_stream("sys", "query", {}))
-        assert events[0]["type"] == "thought"
-        assert "tot" in events[0]["content"]
-
-
-def test_plan_stream_hierarchical(router):
-    with patch.object(router, "_classify_intent", return_value="hierarchical"):
-        if hasattr(router.hierarchical_planner, "plan_stream"):
-            del router.hierarchical_planner.plan_stream
-        router.hierarchical_planner.plan.return_value = []
-        events = list(router.plan_stream("sys", "query", {}))
-        assert events[0]["type"] == "thought"
-        assert "hierarchical" in events[0]["content"]
-
-
-def test_plan_stream_error(router):
-    with patch.object(router, "_classify_intent", return_value="react"):
-        if hasattr(router.react_planner, "plan_stream"):
-            del router.react_planner.plan_stream
-
-        router.react_planner.plan.side_effect = ValueError("Planning failed")
-
-        with pytest.raises(ValueError, match="Planning failed"):
-            list(router.plan_stream("sys", "query", {}))

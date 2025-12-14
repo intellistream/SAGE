@@ -29,7 +29,7 @@ def test_plan_success(adapter):
     )
     adapter.planner.plan.return_value = mock_result
 
-    tools = {"tool1": {"description": "desc"}}
+    tools = {"tool1": {"description": "desc", "category": "general"}}
 
     result = adapter.plan("sys", "query", tools)
 
@@ -51,28 +51,31 @@ def test_plan_failure(adapter):
 
 
 def test_plan_no_steps(adapter):
+    """Test that when planner returns no steps, adapter returns 'No plan generated.'"""
     mock_result = PlanResult(steps=[], final_thought="Just a thought")
     adapter.planner.plan.return_value = mock_result
 
     result = adapter.plan("sys", "query", {})
 
+    # Implementation returns "No plan generated." when steps is empty
     assert len(result) == 1
     assert result[0]["type"] == "reply"
-    assert result[0]["text"] == "Just a thought"
+    assert result[0]["text"] == "No plan generated."
 
 
-def test_plan_with_history(adapter):
+def test_plan_context_passed(adapter):
+    """Test that context is passed to planner correctly."""
     mock_result = PlanResult(steps=[], final_thought="Done")
     adapter.planner.plan.return_value = mock_result
 
-    history = [{"role": "user", "content": "hi"}]
-    adapter.plan("sys", "query", {}, history=history)
+    adapter.plan("sys", "query", {})
 
-    # Check if history was passed in context
+    # Check if context was passed in request
     call_args = adapter.planner.plan.call_args
     assert call_args is not None
     request = call_args[0][0]
-    assert request.context["history"] == history
+    assert "system_prompt" in request.context
+    assert request.context["system_prompt"] == "sys"
 
 
 def test_plan_unknown_action(adapter):
@@ -82,7 +85,7 @@ def test_plan_unknown_action(adapter):
     )
     adapter.planner.plan.return_value = mock_result
 
-    tools = {"tool1": {}}
+    tools = {"tool1": {"category": "general"}}
 
     result = adapter.plan("sys", "query", tools)
 

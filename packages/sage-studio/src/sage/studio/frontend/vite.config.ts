@@ -16,23 +16,8 @@ export default defineConfig({
         // 'true' means allow any host - necessary for reverse proxy setups
         allowedHosts: true,
         proxy: {
-            // Gateway routes (strip /api prefix)
-            '/api/v1': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-            '/api/sessions': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-            '/api/health': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-            // Studio API routes (keep /api prefix)
+            // 所有 Studio API 统一转发到 Gateway
+            // 优先使用环境变量 VITE_GATEWAY_PORT，否则默认为 8888
             '/api': {
                 target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
                 changeOrigin: true,
@@ -50,23 +35,7 @@ export default defineConfig({
         // Allow all external hosts (Cloudflare Tunnel, custom domains, etc.)
         allowedHosts: true,
         proxy: {
-            // Gateway routes (strip /api prefix)
-            '/api/v1': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-            '/api/sessions': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-            '/api/health': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-            // Studio API routes (keep /api prefix)
+            // 所有 Studio API 统一转发到 Gateway
             '/api': {
                 target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
                 changeOrigin: true,

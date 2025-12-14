@@ -670,7 +670,7 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
     const currentSessionTitle = sessions.find(s => s.id === currentSessionId)?.title
 
     return (
-        <div className={`flex bg-[--gemini-main-bg] ${isMobile ? 'flex-col h-full overflow-hidden' : 'h-full'}`}>
+        <div className={`flex bg-[--gemini-main-bg] ${isMobile ? 'flex-col h-full' : 'h-full'}`}>
             {/* ================================================================
                 Mobile Header & Sidebar Drawer
             ================================================================ */}
@@ -757,7 +757,7 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
             {/* ================================================================
                 Main Chat Area
             ================================================================ */}
-            <div className={`flex-1 flex flex-col min-w-0 bg-[--gemini-main-bg] ${isMobile ? 'pt-14' : ''}`}>
+            <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-[--gemini-main-bg] ${isMobile ? 'pt-14' : ''}`}>
                 {/* Header - Hidden on mobile (MobileHeader is used instead) */}
                 {!isMobile && (
                     <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-[--gemini-main-bg]/80 backdrop-blur-md border-b border-transparent">
@@ -818,7 +818,10 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
                 )}
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto gemini-scrollbar">
+                <div
+                    className={`flex-1 overflow-y-auto gemini-scrollbar ${isMobile ? 'min-h-0' : ''}`}
+                    style={isMobile ? { WebkitOverflowScrolling: 'touch' } : undefined}
+                >
                     <div className={`mx-auto px-4 py-6 ${isMobile ? 'max-w-full' : 'max-w-[830px]'}`}>
                         {/* Recommendation Banner */}
                         {recommendationSummary && (
