@@ -2828,6 +2828,30 @@ async def get_gpu_info():
         }
 
 
+# ==================== LLM 状态 API ====================
+
+
+class SelectModelRequest(BaseModel):
+    model_name: str
+    base_url: str
+
+
+@app.post("/api/llm/select")
+async def select_llm_model(request: SelectModelRequest):
+    """选择要使用的 LLM 模型"""
+    try:
+        # 更新环境变量，这样后续的 get_llm_status 调用（会创建新的 UnifiedInferenceClient）
+        # 就会使用新的配置
+        os.environ["SAGE_CHAT_MODEL"] = request.model_name
+        os.environ["SAGE_CHAT_BASE_URL"] = request.base_url
+
+        print(f"Switched model to {request.model_name} at {request.base_url}")
+
+        return {"status": "success", "model": request.model_name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
+
+
 @app.get("/api/llm/status")
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
@@ -2896,6 +2920,137 @@ async def get_llm_status():
             # 没有配置
             status["service_type"] = "not_configured"
             status["model_name"] = "未配置 LLM 服务"
+
+        # 添加可用模型列表
+        # 优先级: 1. 配置文件 2. 硬编码默认值
+        available_models = []
+
+        # 1. 尝试从配置文件读取 (config/models.json)
+        try:
+            from sage.common.config import find_sage_project_root
+
+            project_root = find_sage_project_root()
+            if project_root:
+                models_config_file = project_root / "config" / "models.json"
+                if models_config_file.exists():
+                    import json
+
+                    with open(models_config_file, encoding="utf-8") as f:
+                        custom_models = json.load(f)
+                        if isinstance(custom_models, list):
+                            available_models.extend(custom_models)
+        except Exception as e:
+            print(f"Error reading models config: {e}")
+
+        # 2. 如果配置文件为空或不存在，使用默认的硬编码列表
+        if not available_models:
+            available_models = [
+                {
+                    "name": "Qwen/Qwen2.5-0.5B-Instruct",
+                    "base_url": "http://localhost:8001/v1",
+                    "is_local": True,
+                    "description": "Local Small Model (Fast, CPU-friendly)",
+                },
+                {
+                    "name": "Qwen/Qwen2.5-7B-Instruct",
+                    "base_url": "http://localhost:8001/v1",
+                    "is_local": True,
+                    "description": "Local Standard Model (Requires GPU)",
+                },
+                {
+                    "name": "pangu_embedded_1b",
+                    "base_url": "http://0.0.0.0:1040/v1",
+                    "is_local": True,
+                    "description": "Huawei Pangu 1B",
+                },
+                {
+                    "name": "pangu_embedded_7b",
+                    "base_url": "http://0.0.0.0:1041/v1",
+                    "is_local": True,
+                    "description": "Huawei Pangu 7B",
+                },
+            ]
+
+        # 3. 检查环境变量中的云端 API 配置 (.env)
+        cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
+        if cloud_api_key:
+            # 默认使用 DashScope 配置，如果环境变量有设置则覆盖
+            cloud_model = os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11")
+            cloud_base_url = os.getenv(
+                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            )
+
+            # 检查是否已经存在于列表中 (避免重复)
+            exists = False
+            for m in available_models:
+                if m["name"] == cloud_model and m["base_url"] == cloud_base_url:
+                    exists = True
+                    break
+
+            if not exists:
+                available_models.append(
+                    {
+                        "name": cloud_model,
+                        "base_url": cloud_base_url,
+                        "is_local": False,
+                        "description": "Cloud API (Configured in .env)",
+                        "healthy": True,  # 云端模型默认视为健康，稍后检查
+                    }
+                )
+
+        # 检查每个模型的健康状态
+        import concurrent.futures
+
+        def check_model_health(model):
+            # 如果已经是标记为健康的云端模型，且没有本地 URL 特征，跳过检查
+            if not model.get("is_local") and model.get("healthy"):
+                return model
+
+            try:
+                # 简单的健康检查：尝试连接 base_url
+                # 注意：这里只检查端口是否通，不进行完整的 API 调用以加快速度
+                check_url = model["base_url"].replace("/v1", "/health")
+                # 如果是 vLLM，通常有 /health 接口
+                # 如果是其他服务，可能需要调整
+
+                # 对于 0.0.0.0，尝试连接 127.0.0.1
+                if "0.0.0.0" in check_url:
+                    check_url = check_url.replace("0.0.0.0", "127.0.0.1")
+
+                resp = requests.get(check_url, timeout=0.5)
+                model["healthy"] = resp.status_code == 200
+            except Exception:
+                model["healthy"] = False
+            return model
+
+        # 并行检查所有模型状态
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            # 创建副本以避免修改原始列表（如果它是全局的）
+            models_to_check = [m.copy() for m in available_models]
+            available_models = list(executor.map(check_model_health, models_to_check))
+
+        # 如果当前检测到的模型不在列表中，添加它
+        current_in_list = False
+        for model in available_models:
+            if model["name"] == status["model_name"] and model["base_url"] == status["base_url"]:
+                current_in_list = True
+                # 更新当前模型的健康状态
+                status["healthy"] = model["healthy"]
+                break
+
+        if not current_in_list and status["model_name"] and status["base_url"]:
+            available_models.insert(
+                0,
+                {
+                    "name": status["model_name"],
+                    "base_url": status["base_url"],
+                    "is_local": status["is_local"],
+                    "description": "Current Model",
+                    "healthy": status["healthy"],
+                },
+            )
+
+        status["available_models"] = available_models
 
         return status
 

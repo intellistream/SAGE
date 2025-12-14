@@ -1228,12 +1228,23 @@ export interface LLMStatus {
         max_model_len: number
         owned_by: string
     }
+    available_models?: Array<{
+        name: string
+        base_url: string
+        is_local: boolean
+        description?: string
+        healthy?: boolean
+    }>
     error?: string
 }
 
 export async function getLLMStatus(): Promise<LLMStatus> {
     const response = await apiClient.get('/llm/status')
     return response.data
+}
+
+export async function selectLLMModel(modelName: string, baseUrl: string): Promise<void> {
+    await apiClient.post('/llm/select', { model_name: modelName, base_url: baseUrl })
 }
 
 export default apiClient
