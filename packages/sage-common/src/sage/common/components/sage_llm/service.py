@@ -28,6 +28,10 @@ import numpy as np
 os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
 os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
 
+from sage.common.components.sage_llm.speculative import (
+    DraftModelStrategy,
+    SpeculativeStrategy,
+)
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
 from sage.common.service import BaseService
@@ -75,6 +79,7 @@ class VLLMServiceConfig:
     """Configuration payload accepted by :class:`VLLMService`."""
 
     model_id: str
+    speculative_strategy: SpeculativeStrategy | None = None
     embedding_model_id: str | None = None
     auto_download: bool = False
     auto_reload: bool = True
@@ -94,8 +99,17 @@ class VLLMServiceConfig:
         embedding_engine = dict(engine)
         embedding_engine.update(data.get("embedding_engine", {}))
 
+        # Parse speculative strategy
+        speculative_strategy = None
+        if data.get("speculative_model_id"):
+            speculative_strategy = DraftModelStrategy(
+                draft_model_id=data["speculative_model_id"],
+                auto_download=bool(data.get("auto_download", False)),
+            )
+
         return cls(
             model_id=data["model_id"],
+            speculative_strategy=speculative_strategy,
             embedding_model_id=data.get("embedding_model_id"),
             auto_download=bool(data.get("auto_download", False)),
             auto_reload=bool(data.get("auto_reload", True)),
@@ -114,7 +128,7 @@ class VLLMService(BaseService):
         self.config = VLLMServiceConfig.from_dict(config)
         self._text_engine: LLM | None = None  # type: ignore
         self._embedding_engine: LLM | None = None  # type: ignore
-        self._sampling_defaults = self._build_sampling_params(self.config.sampling)
+        self._sampling_defaults = None
         self._lock = threading.RLock()
 
     # ------------------------------------------------------------------
@@ -126,6 +140,9 @@ class VLLMService(BaseService):
             raise RuntimeError(
                 "vLLM is not installed. Install the 'isage-common[vllm]' extra to enable this service."
             )
+
+        # Initialize sampling defaults after vLLM is imported
+        self._sampling_defaults = self._build_sampling_params(self.config.sampling)
 
         self.logger.info("VLLMService setup starting")
         self._load_text_engine(force_reload=False)
@@ -332,6 +349,10 @@ class VLLMService(BaseService):
             engine_kwargs = dict(self.config.engine)
             engine_kwargs.setdefault("model", str(path))
             engine_kwargs["model"] = str(path)
+
+            # Apply Speculative Decoding Strategy if configured
+            if self.config.speculative_strategy:
+                self.config.speculative_strategy.apply(engine_kwargs)
 
             self._text_engine = LLM(**engine_kwargs)  # type: ignore[operator-not-callable]
             self._sampling_defaults = self._build_sampling_params(self.config.sampling)

@@ -465,7 +465,7 @@ class TestGetAllIntentKeywords:
         keywords = get_all_intent_keywords()
         # Knowledge query should have SAGE-related keywords
         assert "SAGE" in keywords["knowledge_query"]
-        assert "怎么" in keywords["knowledge_query"]
+        assert "文档" in keywords["knowledge_query"]  # "documentation" in Chinese
         # Coding should have code-related keywords
         assert "代码" in keywords["sage_coding"]
         assert "pipeline" in keywords["sage_coding"]

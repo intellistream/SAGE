@@ -102,7 +102,7 @@ class RAGChatMap(MapFunction):
         self._db = None
         self._embedder = None
         self._manifest_data = None
-        self._llm_client = None  # Lazy-initialized LLM client
+        self._llm_clients = {}  # Lazy-initialized LLM clients cache
 
     def _ensure_rag_initialized(self):
         """Lazy initialization of RAG components."""
@@ -169,7 +169,7 @@ class RAGChatMap(MapFunction):
             self._db = None
             self._embedder = None
 
-    def _get_llm_client(self):
+    def _get_llm_client(self, model_name: str | None = None):
         """获取通过 Control Plane 路由的 LLM 客户端（延迟初始化，带缓存）
 
         完全依赖 Control Plane 进行服务发现和路由：
@@ -177,41 +177,49 @@ class RAGChatMap(MapFunction):
         - 选择健康的后端直接调用（避免递归调用 /v1/chat/completions）
         - 支持多引擎、动态端口、负载均衡
 
+        Args:
+            model_name: Specific model to target (optional)
+
         Returns:
             UnifiedInferenceClient 实例
 
         Raises:
             RuntimeError: 如果 Control Plane 没有可用的 LLM 后端
         """
-        if self._llm_client is None:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
+        cache_key = model_name or "default"
+        if cache_key in self._llm_clients:
+            return self._llm_clients[cache_key]
 
-            # 从 Control Plane 获取可用的 LLM 后端
-            llm_base_url = self._get_llm_backend_url()
+        from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            if llm_base_url:
-                logger.info(f"Using LLM backend from Control Plane: {llm_base_url}")
-                # 使用内部标志创建实例（与 compat.py 模式一致）
-                UnifiedInferenceClient._allow_init = True
-                try:
-                    self._llm_client = UnifiedInferenceClient(
-                        llm_base_url=llm_base_url,
-                        llm_model=None,  # 让后端决定模型
-                        llm_api_key="",
-                    )
-                finally:
-                    UnifiedInferenceClient._allow_init = False
-            else:
-                # Control Plane 没有可用的 LLM 后端
-                raise RuntimeError(
-                    "No LLM backend available in Control Plane. "
-                    "Start an LLM engine with: sage llm engine start <model_name>"
-                )
+        # 从 Control Plane 获取可用的 LLM 后端
+        llm_base_url, llm_model = self._get_llm_backend_info(model_name)
 
-        return self._llm_client
+        if llm_base_url:
+            logger.info(
+                f"Using LLM backend from Control Plane: {llm_base_url} (model: {llm_model})"
+            )
+            # 使用内部标志创建实例（与 compat.py 模式一致）
+            # Use the official factory method to create a client pointing
+            # at the selected backend. Avoid direct instantiation which
+            # is intentionally blocked by the unified client API.
+            client = UnifiedInferenceClient.create(
+                control_plane_url=llm_base_url,
+                default_llm_model=llm_model,
+            )
+            self._llm_clients[cache_key] = client
+            return client
+        else:
+            # Control Plane 没有可用的 LLM 后端
+            raise RuntimeError(
+                f"No LLM backend available in Control Plane for model {model_name}. "
+                "Start an LLM engine with: sage llm engine start <model_name>"
+            )
 
-    def _get_llm_backend_url(self) -> str | None:
-        """从 Control Plane 获取可用的 LLM 后端 URL
+    def _get_llm_backend_info(
+        self, target_model: str | None = None
+    ) -> tuple[str | None, str | None]:
+        """从 Control Plane 获取可用的 LLM 后端 URL 和模型名称
 
         仅查询 Control Plane 注册的后端，不做端口扫描。
         Control Plane 负责：
@@ -225,34 +233,52 @@ class RAGChatMap(MapFunction):
             manager = get_control_plane_manager()
             if manager is None:
                 logger.warning("Control Plane manager not available")
-                return None
+                return None, None
 
             backends_info = manager.get_registered_backends()
             llm_backends = backends_info.get("llm_backends", [])
 
             if not llm_backends:
                 logger.warning("No LLM backends registered in Control Plane")
+                return None, None
+
+            # Helper to extract URL
+            def get_url(backend):
+                base_url = backend.get("base_url")
+                if base_url:
+                    return base_url
+                host = backend.get("host", "localhost")
+                port = backend.get("port")
+                if port:
+                    return f"http://{host}:{port}/v1"
                 return None
 
-            # 选择第一个健康的后端（未来可扩展为负载均衡）
+            # 1. Try to find exact model match if requested
+            if target_model:
+                for backend in llm_backends:
+                    if backend.get("is_healthy", False):
+                        model_name = backend.get("model_name")
+                        # Check exact match or ID match
+                        if model_name == target_model:
+                            url = get_url(backend)
+                            if url:
+                                return url, model_name
+
+            # 2. Fallback: Select first healthy backend (or if no target model specified)
             for backend in llm_backends:
                 if backend.get("is_healthy", False):
-                    base_url = backend.get("base_url")
-                    if base_url:
-                        return base_url
-                    # 或者从 host/port 构建
-                    host = backend.get("host", "localhost")
-                    port = backend.get("port")
-                    if port:
-                        return f"http://{host}:{port}/v1"
+                    url = get_url(backend)
+                    model_name = backend.get("model_name")
+                    if url:
+                        return url, model_name
 
             # 所有后端都不健康
             logger.warning("All %d LLM backends are unhealthy", len(llm_backends))
-            return None
+            return None, None
 
         except Exception as e:
             logger.warning(f"Failed to get LLM backend from Control Plane: {e}")
-            return None
+            return None, None
 
     def _detect_workflow_intent(self, user_input: str) -> bool:
         """Detect if user wants to create a workflow.
@@ -337,12 +363,15 @@ class RAGChatMap(MapFunction):
             logger.error(f"Workflow generation failed: {e}", exc_info=True)
             return {"type": "error", "error": str(e), "message": f"抱歉，工作流生成失败：{e}"}
 
-    def _perform_rag_chat(self, user_input: str, memory_context: str = "") -> dict:
+    def _perform_rag_chat(
+        self, user_input: str, memory_context: str = "", model: str | None = None
+    ) -> dict:
         """Perform RAG-based chat response with memory context.
 
         Args:
             user_input: Current user question
             memory_context: Historical conversation context from sage-memory
+            model: Specific model to use (optional)
 
         Returns:
             Dict with 'content' (answer) and 'sources' (retrieved documents)
@@ -379,7 +408,7 @@ class RAGChatMap(MapFunction):
         if is_casual:
             # 闲聊模式：跳过检索，直接生成简单回答
             try:
-                client = self._get_llm_client()
+                client = self._get_llm_client(model)
                 messages = [
                     {
                         "role": "system",
@@ -387,7 +416,7 @@ class RAGChatMap(MapFunction):
                     },
                     {"role": "user", "content": user_input.strip()},
                 ]
-                response = client.chat(messages, temperature=0.7, stream=False)
+                response = client.chat(messages, temperature=0.7, stream=False, model=model)
                 return {"content": response, "sources": [], "type": "chat"}
             except Exception as e:
                 logger.error(f"Casual chat error: {e}")
@@ -398,7 +427,7 @@ class RAGChatMap(MapFunction):
         if self._db is None or self._embedder is None:
             # Fallback to direct LLM
             return {
-                "content": self._fallback_direct_llm(user_input, memory_context),
+                "content": self._fallback_direct_llm(user_input, memory_context, model=model),
                 "sources": [],
                 "type": "chat",
             }
@@ -412,7 +441,21 @@ class RAGChatMap(MapFunction):
             # Extract contexts and build sources list
             contexts = []
             sources = []
+
+            # Relevance Threshold (L2 Distance)
+            # For normalized vectors (like bge-m3), L2 distance ranges from 0 to 2.
+            # 0.0 = identical
+            # ~0.7-0.8 = relevant
+            # > 1.0 = usually irrelevant (cosine < 0.5)
+            # We use a conservative threshold to avoid showing unrelated docs.
+            RELEVANCE_THRESHOLD = 1.1
+
             for idx, item in enumerate(results, start=1):
+                # Check relevance score if available
+                distance = getattr(item, "distance", 0.0)
+                if distance > RELEVANCE_THRESHOLD:
+                    continue
+
                 metadata = dict(item.metadata) if hasattr(item, "metadata") else {}
                 text = metadata.get("text", "")
 
@@ -421,14 +464,25 @@ class RAGChatMap(MapFunction):
                     # Build source info for display
                     sources.append(
                         {
-                            "id": idx,
+                            "id": len(sources) + 1,  # Re-index after filtering
                             "text": text[:500] + ("..." if len(text) > 500 else ""),  # Preview
                             "full_text": text,
                             "doc_path": metadata.get("doc_path", "unknown"),
                             "heading": metadata.get("heading", ""),
                             "chunk": metadata.get("chunk", "0"),
+                            "score": distance,
                         }
                     )
+
+            # If no relevant documents found, fallback to direct LLM (no RAG)
+            if not sources:
+                return {
+                    "content": self._fallback_direct_llm(user_input, memory_context, model=model),
+                    "sources": [],
+                    "type": "chat",
+                }
+
+            # 2. Build RAG prompt with memory context
 
             # 2. Build RAG prompt with memory context
             context_block = "\n\n".join(
@@ -464,8 +518,8 @@ class RAGChatMap(MapFunction):
             # 3. Generate response using intelligent LLM client (L1)
             # 自动检测并使用最佳可用服务（本地 vLLM 或云端 API）
             try:
-                client = self._get_llm_client()
-                response = client.chat(messages, temperature=0.2, stream=False)
+                client = self._get_llm_client(model)
+                response = client.chat(messages, temperature=0.2, stream=False, model=model)
 
             except Exception as e:
                 logger.error(f"LLM generation error: {e}", exc_info=True)
@@ -481,20 +535,23 @@ class RAGChatMap(MapFunction):
         except Exception as e:
             logger.error(f"RAG chat error: {e}", exc_info=True)
             return {
-                "content": self._fallback_direct_llm(user_input, memory_context),
+                "content": self._fallback_direct_llm(user_input, memory_context, model=model),
                 "sources": [],
                 "type": "chat",
             }
 
-    def _fallback_direct_llm(self, user_input: str, memory_context: str = "") -> str:
+    def _fallback_direct_llm(
+        self, user_input: str, memory_context: str = "", model: str | None = None
+    ) -> str:
         """Fallback: Direct LLM call without RAG.
 
         Args:
             user_input: Current user question
             memory_context: Historical conversation context from sage-memory
+            model: Specific model to use (optional)
         """
         try:
-            client = self._get_llm_client()
+            client = self._get_llm_client(model)
 
             # Build messages with memory context
             messages = []
@@ -502,7 +559,7 @@ class RAGChatMap(MapFunction):
                 messages.append({"role": "system", "content": f"对话历史:\n{memory_context}"})
             messages.append({"role": "user", "content": user_input})
 
-            return client.chat(messages, temperature=0.7, stream=False)  # type: ignore
+            return client.chat(messages, temperature=0.7, stream=False, model=model)  # type: ignore
 
         except Exception as e:
             logger.error(f"Fallback LLM error: {e}", exc_info=True)
@@ -525,6 +582,7 @@ class RAGChatMap(MapFunction):
 
         user_input = messages[-1].get("content", "")
         memory_context = payload.get("memory_context", "")  # 获取记忆上下文
+        model = payload.get("model")  # 获取请求的模型
 
         # Detect intent: workflow creation vs. conversation
         if self._detect_workflow_intent(user_input):
@@ -552,7 +610,7 @@ class RAGChatMap(MapFunction):
             }
         else:
             # RAG chat mode with memory context
-            rag_result = self._perform_rag_chat(user_input, memory_context)
+            rag_result = self._perform_rag_chat(user_input, memory_context, model=model)
 
             return {
                 "payload": {

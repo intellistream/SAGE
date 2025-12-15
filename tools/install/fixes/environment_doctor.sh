@@ -177,6 +177,40 @@ check_package_manager_conflicts() {
     fi
 }
 
+# 2.5. CLI 工具冲突检查 (CI 残留检测)
+check_cli_conflicts() {
+    echo -e "\n${PURPLE}${BOLD}🛠️  CLI 工具冲突诊断${NC}"
+
+    local conflict_found=false
+    local local_bin="$HOME/.local/bin"
+
+    # 仅在非 CI 环境或明确处于虚拟环境中时检查
+    # 避免误删 CI 正在使用的工具
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        return 0
+    fi
+
+    # 检查 sage 和 sage-dev
+    for tool in "sage" "sage-dev"; do
+        if [ -f "$local_bin/$tool" ]; then
+            # 检查是否在虚拟环境中
+            if [[ -n "$VIRTUAL_ENV" || -n "$CONDA_PREFIX" ]]; then
+                # 如果在虚拟环境中，且 ~/.local/bin/$tool 存在，这通常是 CI 残留
+                # 进一步检查：如果 which $tool 指向的是 ~/.local/bin/$tool，那么肯定有冲突
+                # 或者如果当前环境应该有自己的 $tool 但被 ~/.local/bin 覆盖了
+
+                echo -e "  ${YELLOW}${WARNING_MARK}${NC} 检测到 $local_bin/$tool"
+                report_issue "cli_conflict_$tool" "检测到 CI/CD 残留的 $tool 命令，可能与当前开发环境冲突" "major" "fix_cli_conflicts"
+                conflict_found=true
+            fi
+        fi
+    done
+
+    if [ "$conflict_found" = "false" ]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 未发现 CLI 工具冲突"
+    fi
+}
+
 # 3. 核心依赖检查
 check_core_dependencies() {
     echo -e "\n${CYAN}${BOLD}🔍 核心依赖诊断${NC}"
@@ -321,6 +355,22 @@ fix_mixed_packages() {
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
 }
 
+# CLI 工具冲突修复
+fix_cli_conflicts() {
+    echo -e "\n${TOOL_MARK} 清理 CLI 工具冲突..."
+    local local_bin="$HOME/.local/bin"
+
+    for tool in "sage" "sage-dev"; do
+        if [ -f "$local_bin/$tool" ]; then
+            echo -e "  移除 $local_bin/$tool..."
+            rm -f "$local_bin/$tool"
+        fi
+    done
+
+    echo -e "  ${GREEN}${CHECK_MARK}${NC} CLI 工具冲突清理完成"
+    FIXES_APPLIED=$((FIXES_APPLIED + 1))
+}
+
 # 环境优化建议
 suggest_environment_optimization() {
     echo -e "\n${BLUE}${BOLD}💡 环境优化建议${NC}"
@@ -357,6 +407,10 @@ register_all_issues() {
     for package in "numpy" "torch" "transformers"; do
         register_issue "mixed_package_$package" "包管理器冲突" "major" "fix_mixed_packages"
     done
+
+    # 注册 CLI 冲突问题
+    register_issue "cli_conflict_sage" "CLI 工具冲突 (sage)" "major" "fix_cli_conflicts"
+    register_issue "cli_conflict_sage-dev" "CLI 工具冲突 (sage-dev)" "major" "fix_cli_conflicts"
 }
 
 # 执行完整诊断
@@ -374,6 +428,7 @@ run_full_diagnosis() {
     # 执行所有检查
     check_python_environment
     check_package_manager_conflicts
+    check_cli_conflicts
     check_core_dependencies
     check_specific_issues
 
@@ -402,8 +457,17 @@ run_auto_fixes() {
     echo -e "${DIM}SAGE 可以尝试自动修复某些检测到的问题${NC}\n"
 
     # 询问是否进行自动修复
-    read -p "是否允许 SAGE 尝试自动修复环境问题？[Y/n] " -r response
-    response=${response,,}
+    local response=""
+
+    if [ "$AUTO_CONFIRM_FIX" = "true" ]; then
+        response="y"
+    elif [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+        echo -e "${YELLOW}CI 环境检测到问题，跳过交互式修复${NC}"
+        return 0
+    else
+        read -p "是否允许 SAGE 尝试自动修复环境问题？[Y/n] " -r response
+        response=${response,,}
+    fi
 
     if [[ "$response" =~ ^(n|no)$ ]]; then
         echo -e "${YELLOW}跳过自动修复${NC}"

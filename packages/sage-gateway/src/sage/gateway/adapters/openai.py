@@ -13,6 +13,20 @@ from pydantic import BaseModel, Field
 
 from sage.gateway.session import get_session_manager
 
+# Try to import Agentic components (L3)
+try:
+    from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
+    from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner as LLMPlanner
+    from sage.libs.agentic.agents.profile.profile import BaseProfile
+    from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+    from sage.middleware.operators.agentic.refined_searcher import RefinedSearcherOperator
+    from sage.middleware.operators.rag.generator import OpenAIGenerator
+    from sage.middleware.operators.tools.arxiv_searcher import ArxivSearcher
+
+    HAS_AGENTIC = True
+except ImportError:
+    HAS_AGENTIC = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -284,6 +298,326 @@ class OpenAIAdapter:
                 pass
         return None
 
+    def _is_research_intent_rule_based(self, query: str) -> bool:
+        """Detect if the query requires research capabilities (Rule-based fallback)."""
+        keywords = [
+            "research",
+            "investigate",
+            "find papers",
+            "search for",
+            "analyze",
+            "study",
+            "report on",
+            "latest news",
+            "研究",
+            "调查",
+            "搜索",
+            "分析",
+            "查找",
+            "论文",
+            "最新新闻",
+            "课题",
+            "了解",
+            "检索",
+            "查询",
+        ]
+        q = query.lower()
+        return any(k in q for k in keywords) or (len(q) > 20 and "?" in q and "how" in q)
+
+    async def _is_research_intent(self, query: str) -> bool:
+        """Detect if the query requires research capabilities using LLM."""
+        import asyncio
+        import os
+
+        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.common.config.ports import SagePorts
+
+        # Define sync function to run in executor
+        def _check_intent_sync():
+            try:
+                # Explicitly configure client to match running service (same as AgentRuntime)
+                base_url = os.getenv("SAGE_CHAT_BASE_URL")
+                if not base_url:
+                    # Try 8901 first as seen in logs, then 8001
+                    base_url = f"http://localhost:{SagePorts.BENCHMARK_LLM}/v1"
+
+                client = UnifiedInferenceClient(
+                    llm_base_url=base_url,
+                    llm_model=None,
+                    llm_api_key="dummy",  # pragma: allowlist secret
+                )
+
+                # Use a very concise prompt
+                prompt = (
+                    f"Classify intent: '{query}'.\n"
+                    "Does this require external research/search/tools? Answer YES or NO."
+                )
+
+                # Use the configured model
+                response = client.chat(
+                    messages=[{"role": "user", "content": prompt}], temperature=0.0, max_tokens=5
+                )
+                content = response.choices[0].message.content.strip().upper()
+                return "YES" in content
+            except Exception as e:
+                logger.error(f"LLM intent check failed: {e}")
+                return False  # Fail safe to False if LLM fails, do not use rules
+
+        # Run in thread pool
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, _check_intent_sync)
+
+        logger.info(f"Intent detection (LLM): '{query[:20]}...' -> {result}")
+        return result
+
+    def _create_agent_runtime(self, request: ChatCompletionRequest):
+        """Helper to create AgentRuntime instance"""
+        import os
+
+        # 1. Setup Tools (Using L4 Operator)
+        try:
+            tools = [ArxivSearcher()]
+        except Exception:
+            tools = []
+
+        # Use RefinedSearcherOperator which wraps SearcherBot + Refiner
+        search_operator = RefinedSearcherOperator(
+            tools=tools, refiner_config={"algorithm": "simple", "max_tokens": 2000}
+        )
+
+        registry = MCPRegistry()
+        registry.register(search_operator)
+
+        # 2. Setup Planner & Generator
+        # Try to get base_url from SagePorts or env
+        from sage.common.config.ports import SagePorts
+
+        base_url = os.getenv("SAGE_CHAT_BASE_URL")
+        if not base_url:
+            # Try to detect local vLLM
+            base_url = f"http://localhost:{SagePorts.LLM_DEFAULT}/v1"
+            # Or check if 8901 is active (WSL fallback)
+            # For now, default to 8001 or 8901 based on what we saw in logs
+            # Logs showed 8901
+            base_url = f"http://localhost:{SagePorts.BENCHMARK_LLM}/v1"
+
+        gen_config = {
+            "method": "openai",
+            "model_name": self._resolve_model_name(request.model),
+            "base_url": base_url,
+            "api_key": os.getenv("SAGE_CHAT_API_KEY", "dummy"),
+        }
+
+        try:
+            generator = OpenAIGenerator(gen_config)
+        except Exception as e:
+            logger.error(f"Failed to init OpenAIGenerator: {e}")
+            raise e
+
+        planner = LLMPlanner(generator=generator)
+
+        # 3. Setup Profile
+        profile = BaseProfile(
+            name="SageResearcher",
+            role="Research Assistant",
+            goals=["Provide accurate information based on search results."],
+            constraints=["Verify sources."],
+        )
+
+        return AgentRuntime(profile=profile, planner=planner, tools=registry)
+
+    async def _execute_agent_runtime(self, request: ChatCompletionRequest, session) -> str:
+        """Execute request using L3 AgentRuntime"""
+        if not HAS_AGENTIC:
+            return "Agentic capabilities are not available (missing dependencies)."
+
+        import asyncio
+
+        user_query = request.messages[-1].content
+
+        try:
+            runtime = self._create_agent_runtime(request)
+        except Exception:
+            return "Failed to initialize Agent Runtime."
+
+        # 4. Run Agent
+        # Run in thread
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, runtime.execute, user_query)
+
+        return result.get("reply", "No reply generated.")
+
+    async def _stream_agent_runtime(
+        self, request: ChatCompletionRequest, session
+    ) -> AsyncIterator[str]:
+        """Stream execution of L3 AgentRuntime with reasoning steps"""
+        import json
+
+        if not HAS_AGENTIC:
+            yield f"data: {json.dumps({'choices': [{'delta': {'content': 'Agentic capabilities missing.'}}]}, ensure_ascii=False)}\n\n"
+            return
+
+        import asyncio
+        import time
+        import uuid
+
+        user_query = request.messages[-1].content
+
+        try:
+            runtime = self._create_agent_runtime(request)
+        except Exception as e:
+            yield f"data: {json.dumps({'choices': [{'delta': {'content': f'Failed to init agent: {e}'}}]}, ensure_ascii=False)}\n\n"
+            return
+
+        # Helper to run step() generator in a thread and yield events
+        # Since we can't easily iterate a sync generator in a thread and yield async,
+        # we will collect events in chunks or just run it synchronously for now (blocking loop)
+        # OR better: use a queue and a worker thread.
+
+        queue = asyncio.Queue()
+
+        def worker():
+            try:
+                for event in runtime.step(user_query):
+                    asyncio.run_coroutine_threadsafe(queue.put(event), loop)
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)  # Sentinel
+            except Exception as e:
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"type": "error", "content": str(e)}), loop
+                )
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
+        loop = asyncio.get_running_loop()
+        # Start worker thread
+        import threading
+
+        t = threading.Thread(target=worker)
+        t.start()
+
+        # Consume queue
+        while True:
+            event = await queue.get()
+            if event is None:
+                break
+
+            event_type = event.get("type")
+
+            if event_type == "plan":
+                # Convert plan to reasoning step
+                steps = event.get("steps", [])
+                plan_text = "\n".join(
+                    [f"{i + 1}. {s.get('type')}: {s.get('name', '')}" for i, s in enumerate(steps)]
+                )
+
+                step_id = str(uuid.uuid4())[:8]
+                reasoning_step = {
+                    "type": "reasoning_step",
+                    "step": {
+                        "id": step_id,
+                        "type": "plan",
+                        "title": "生成计划",
+                        "content": f"已生成执行计划:\n{plan_text}",
+                        "status": "completed",
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    },
+                }
+                yield f"data: {json.dumps(reasoning_step, ensure_ascii=False)}\n\n"
+
+            elif event_type == "action":
+                # Tool call started
+                tool_name = event.get("tool")
+                tool_args = event.get("args")
+
+                step_id = str(uuid.uuid4())[:8]
+                reasoning_step = {
+                    "type": "reasoning_step",
+                    "step": {
+                        "id": step_id,
+                        "type": "tool",
+                        "title": f"调用工具: {tool_name}",
+                        "content": f"参数: {json.dumps(tool_args, ensure_ascii=False)}",
+                        "status": "running",
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    },
+                }
+                yield f"data: {json.dumps(reasoning_step, ensure_ascii=False)}\n\n"
+
+                # Store step_id to update it later (simplified: just emit a new completed step for observation)
+
+            elif event_type == "observation":
+                # Tool output
+                content = str(event.get("content"))
+                # Emit a completed step or update previous?
+                # For simplicity, emit a new "Observation" step
+                step_id = str(uuid.uuid4())[:8]
+                reasoning_step = {
+                    "type": "reasoning_step",
+                    "step": {
+                        "id": step_id,
+                        "type": "observation",
+                        "title": "工具输出",
+                        "content": content[:500] + "..." if len(content) > 500 else content,
+                        "status": "completed",
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    },
+                }
+                yield f"data: {json.dumps(reasoning_step, ensure_ascii=False)}\n\n"
+
+            elif event_type == "reply":
+                # Final answer - stream it
+                content = event.get("content", "")
+                # Simulate streaming the content
+                chunk_size = 10
+                for i in range(0, len(content), chunk_size):
+                    chunk = content[i : i + chunk_size]
+                    yield f"data: {json.dumps({'choices': [{'delta': {'content': chunk}}]}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0.01)
+
+            elif event_type == "error":
+                error_content = event.get("content")
+                yield f"data: {json.dumps({'choices': [{'delta': {'content': f'Error: {error_content}'}}]}, ensure_ascii=False)}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    def _resolve_model_name(self, model_name: str) -> str:
+        """Resolve 'sage-default' to the actual model name running on the backend."""
+        if model_name != "sage-default":
+            return model_name
+
+        # 1. Try to get default model from RAG pipeline's client
+        try:
+            if hasattr(self, "rag_pipeline") and hasattr(self.rag_pipeline, "chat_map"):
+                client = self.rag_pipeline.chat_map._get_llm_client()
+                # Force refresh/fetch of default model
+                resolved = client._get_default_llm_model()
+                if resolved and resolved != "default":
+                    return resolved
+        except Exception as e:
+            logger.warning(f"Failed to resolve default model via RAG pipeline: {e}")
+
+        # 2. Try to query vLLM directly
+        try:
+            import httpx
+
+            from sage.common.config.ports import SagePorts
+
+            # Try common ports
+            ports = [SagePorts.LLM_DEFAULT, SagePorts.BENCHMARK_LLM]
+            for port in ports:
+                try:
+                    with httpx.Client(timeout=1.0) as client:
+                        resp = client.get(f"http://localhost:{port}/v1/models")
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if data.get("data") and len(data["data"]) > 0:
+                                return data["data"][0]["id"]
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.warning(f"Failed to resolve default model via direct query: {e}")
+
+        return "gpt-3.5-turbo"  # Fallback if resolution fails
+
     async def chat_completions(
         self, request: ChatCompletionRequest
     ) -> ChatCompletionResponse | AsyncIterator[str]:
@@ -291,12 +625,34 @@ class OpenAIAdapter:
         # 确保 Pipeline 已启动
         self._ensure_pipeline_started()
 
+        # Resolve model name
+        request.model = self._resolve_model_name(request.model)
+
         # 1. 获取或创建会话
         session = self.session_manager.get_or_create(request.session_id)
 
         # 2. 添加用户消息到会话
         user_message = request.messages[-1]  # 最后一条消息
         session.add_message(user_message.role, user_message.content)
+
+        # Check for Agentic Intent (Track 3)
+        if HAS_AGENTIC and await self._is_research_intent(user_message.content):
+            logger.info("Detected Agentic Intent. Switching to AgentRuntime.")
+
+            if request.stream:
+                return self._stream_agent_runtime(request, session)
+            else:
+                try:
+                    assistant_response = await self._execute_agent_runtime(request, session)
+                    session.add_message("assistant", assistant_response)
+                    self.session_manager.store_dialog_to_memory(
+                        session.id, user_message.content, assistant_response
+                    )
+                    self.session_manager.persist()
+                    return self._create_response(request, session, assistant_response)
+                except Exception as e:
+                    logger.error(f"Agent execution failed: {e}. Fallback to RAG.")
+                    # Fallback to normal flow
 
         # 3. 如果是流式请求，使用增强版流式响应（包含推理步骤）
         if request.stream:
@@ -573,7 +929,9 @@ class OpenAIAdapter:
             retrieval_start = time.time()
             try:
                 # 执行检索
-                rag_result = await asyncio.to_thread(self._perform_rag_retrieval, user_input)
+                rag_result = await asyncio.to_thread(
+                    self._perform_rag_retrieval, user_input, request.model
+                )
                 sources = rag_result.get("sources", [])
                 retrieval_duration = int((time.time() - retrieval_start) * 1000)
 
@@ -614,7 +972,7 @@ class OpenAIAdapter:
                 # 生成回答
                 memory_history = self.session_manager.retrieve_memory_history(session.id)
                 answer = await asyncio.to_thread(
-                    self._generate_rag_answer, user_input, sources, memory_history
+                    self._generate_rag_answer, user_input, sources, memory_history, request.model
                 )
                 analysis_duration = int((time.time() - analysis_start) * 1000)
 
@@ -822,6 +1180,8 @@ class OpenAIAdapter:
     def _generate_workflow_direct(self, user_input: str) -> dict:
         """直接调用 LLMWorkflowGenerator 生成工作流"""
         try:
+            import os
+
             from sage.libs.agentic.workflow import GenerationContext
             from sage.libs.agentic.workflow.generators import LLMWorkflowGenerator
 
@@ -832,7 +1192,31 @@ class OpenAIAdapter:
                 conversation_history=[],
             )
 
-            generator = LLMWorkflowGenerator()
+            # Try to get base_url from SagePorts or env
+            import httpx
+
+            from sage.common.config.ports import SagePorts
+
+            base_url = os.getenv("SAGE_CHAT_BASE_URL")
+            if not base_url:
+                # Try 8901 first as seen in logs, then 8001
+                base_url = f"http://localhost:{SagePorts.BENCHMARK_LLM}/v1"
+
+            # Auto-detect model
+            model_name = self._resolve_model_name("sage-default")
+            try:
+                # Use a short timeout to avoid blocking
+                with httpx.Client(timeout=2.0) as client:
+                    resp = client.get(f"{base_url}/models")
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("data") and len(data["data"]) > 0:
+                            model_name = data["data"][0]["id"]
+                            logger.info(f"Auto-detected LLM model: {model_name}")
+            except Exception as e:
+                logger.warning(f"Failed to auto-detect model from {base_url}: {e}")
+
+            generator = LLMWorkflowGenerator(base_url=base_url, model=model_name, api_key="dummy")
             logger.info(
                 f"LLMWorkflowGenerator config: model={generator.model}, "
                 f"base_url={generator.base_url}, api_key={'set' if generator.api_key else 'NOT SET'}"
@@ -878,7 +1262,7 @@ class OpenAIAdapter:
                 return {"type": "chat", "content": value}
         return {"type": "chat", "content": "你好！有什么可以帮助你的吗？"}
 
-    def _perform_rag_retrieval(self, user_input: str) -> dict:
+    def _perform_rag_retrieval(self, user_input: str, model: str | None = None) -> dict:
         """执行 RAG 检索"""
         try:
             # 调用 RAG Pipeline 的检索功能
@@ -888,7 +1272,7 @@ class OpenAIAdapter:
                 # 回退到完整处理
                 request_data = {
                     "messages": [{"role": "user", "content": user_input}],
-                    "model": "sage-default",
+                    "model": model or self._resolve_model_name("sage-default"),
                 }
                 result = self.rag_pipeline.process(request_data, timeout=60.0)
                 sources = result.get("sources", [])
@@ -897,12 +1281,14 @@ class OpenAIAdapter:
             logger.error(f"RAG retrieval failed: {e}", exc_info=True)
             return {"sources": []}
 
-    def _generate_rag_answer(self, user_input: str, sources: list, memory_history: str) -> str:
+    def _generate_rag_answer(
+        self, user_input: str, sources: list, memory_history: str, model: str | None = None
+    ) -> str:
         """基于检索结果生成回答"""
         try:
             request_data = {
                 "messages": [{"role": "user", "content": user_input}],
-                "model": "sage-default",
+                "model": model or self._resolve_model_name("sage-default"),
                 "memory_context": memory_history,
             }
             result = self.rag_pipeline.process(request_data, timeout=120.0)
@@ -931,9 +1317,25 @@ class OpenAIAdapter:
         else:
             content = response.get("content", "")
             sources = response.get("sources", sources)
-            if sources:
+
+            # Filter sources based on relevance score
+            # Only show sources with score >= 0.4 (if score exists)
+            valid_sources = []
+            for source in sources:
+                score = source.get("score")
+                if score is not None:
+                    try:
+                        if float(score) >= 0.4:
+                            valid_sources.append(source)
+                    except (ValueError, TypeError):
+                        valid_sources.append(source)
+                else:
+                    # If no score provided, keep it (assume relevant)
+                    valid_sources.append(source)
+
+            if valid_sources:
                 content += "\n\n---\n\n**参考文档：**\n\n"
-                for i, source in enumerate(sources[:5]):  # 最多显示5个
+                for i, source in enumerate(valid_sources[:3]):  # Limit to 3 sources
                     doc_path = source.get("doc_path", "unknown")
                     heading = source.get("heading", "")
                     text_preview = source.get("text", "")[:150]
@@ -997,21 +1399,34 @@ class OpenAIAdapter:
                 content = response.get("content", "")
                 sources = response.get("sources", [])
 
+                # Filter sources based on relevance score
+                valid_sources = []
+                for source in sources:
+                    score = source.get("score")
+                    if score is not None:
+                        try:
+                            if float(score) >= 0.4:
+                                valid_sources.append(source)
+                        except (ValueError, TypeError):
+                            valid_sources.append(source)
+                    else:
+                        valid_sources.append(source)
+
                 # If sources are available, append them to the response
-                if sources:
+                if valid_sources:
                     content += "\n\n---\n\n**参考文档：**\n\n"
-                    for source in sources:
+                    for i, source in enumerate(valid_sources[:3]):  # Limit to 3
                         doc_path = source.get("doc_path", "unknown")
                         heading = source.get("heading", "")
-                        source_id = source.get("id", 0)
-                        text_preview = source.get("text", "")
+                        source_id = source.get("id", i + 1)
+                        text_preview = source.get("text", "")[:150]
 
                         # Format source citation
                         if heading:
                             content += f"[{source_id}] **{heading}** ({doc_path})\n"
                         else:
                             content += f"[{source_id}] {doc_path}\n"
-                        content += f"> {text_preview}\n\n"
+                        content += f"> {text_preview}...\n\n"
 
                 return content
 
@@ -1045,14 +1460,24 @@ class OpenAIAdapter:
         if not api_key:
             return "[配置错误] 请设置 DASHSCOPE_API_KEY 环境变量"
 
-        client = UnifiedInferenceClient(
-            llm_model=model_name,
-            llm_base_url=base_url,
-            llm_api_key=api_key,
-        )
+        # Create client via factory to respect the unified creation contract.
+        # Set temporary env var so the factory picks up API key for this call.
+        old_key = os.environ.get("SAGE_UNIFIED_API_KEY")
+        try:
+            os.environ["SAGE_UNIFIED_API_KEY"] = api_key
+            client = UnifiedInferenceClient.create(
+                control_plane_url=base_url,
+                default_llm_model=model_name,
+            )
 
-        messages = [{"role": "user", "content": user_input}]
-        return client.chat(messages)
+            messages = [{"role": "user", "content": user_input}]
+            return client.chat(messages)
+        finally:
+            # restore previous env var
+            if old_key is None:
+                os.environ.pop("SAGE_UNIFIED_API_KEY", None)
+            else:
+                os.environ["SAGE_UNIFIED_API_KEY"] = old_key
 
     async def _build_sage_chat_index(self, index_root: Path, index_name: str):
         """后台构建 sage chat 索引（与 sage chat ingest 相同）"""

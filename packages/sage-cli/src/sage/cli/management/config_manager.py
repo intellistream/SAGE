@@ -180,6 +180,7 @@ class ConfigManager:
         self.save_config(config)
         return True
 
+
     def create_default_config(self):
         """创建默认配置文件"""
         default_config = {
@@ -235,6 +236,33 @@ class ConfigManager:
 
         self.save_config(default_config)
         return default_config
+
+    def add_worker_ssh_host(self, host: str, port: int = 22) -> bool:
+        """添加新的worker SSH主机 (host:port格式)
+
+        Args:
+            host: 主机名或IP
+            port: SSH端口 (当前配置格式仅存储IP，端口默认22)
+
+        Returns:
+            True if added, False if already exists
+        """
+        # 当前配置格式只存储IP，不存储端口
+        # 如果需要非标准端口，可以扩展配置格式
+        return self.add_worker_ip(host)
+
+    def remove_worker_ssh_host(self, host: str, port: int = 22) -> bool:
+        """移除worker SSH主机
+
+        Args:
+            host: 主机名或IP
+            port: SSH端口 (当前配置格式仅存储IP)
+
+        Returns:
+            True if removed, False if not found
+        """
+        return self.remove_worker_ip(host)
+
 
 
 def get_config_manager(config_path: str | None = None) -> ConfigManager:

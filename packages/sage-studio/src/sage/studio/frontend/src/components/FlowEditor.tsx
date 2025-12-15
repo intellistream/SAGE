@@ -111,7 +111,7 @@ export default function FlowEditor() {
     }, [selectNode])
 
     return (
-        <div ref={reactFlowWrapper} style={{ width: '100%', height: '100%', backgroundColor: '#ffffff' }}>
+        <div ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }} className="bg-[--gemini-main-bg]">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -131,15 +131,15 @@ export default function FlowEditor() {
                     type: 'smoothstep',
                     animated: true,
                 }}
-                style={{ backgroundColor: '#ffffff' }}
+                className="react-flow-canvas"
             >
                 <Background
                     variant={BackgroundVariant.Dots}
                     gap={12}
                     size={1}
-                    color="#c6c6c6ff"
+                    className="react-flow-background"
                 />
-                <Controls />
+                <Controls className="react-flow-controls" />
                 <MiniMap
                     nodeColor={(node) => {
                         if (node.data.status === 'running') return '#52c41a'

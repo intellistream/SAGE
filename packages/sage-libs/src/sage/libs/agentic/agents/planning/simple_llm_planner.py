@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 PlanStep = dict[
     str, Any
@@ -171,7 +174,7 @@ def _validate_steps(
     return valid
 
 
-class LLMPlanner:
+class SimpleLLMPlanner:
     """
     用.rag.generator 中的 Generator（OpenAIGenerator / HFGenerator）产出 MCP 风格计划。
     统一接口：plan(profile_prompt, user_query, tools) -> List[PlanStep]
@@ -203,23 +206,33 @@ class LLMPlanner:
         _, out = self.generator.execute([user_query, messages])
         return out
 
-    def plan(
+    def plan_stream(
         self,
         profile_system_prompt: str,
         user_query: str,
         tools: dict[str, dict[str, Any]],
-    ) -> list[PlanStep]:
+    ):
+        """
+        流式规划接口，Yield 规划过程中的思考和最终计划
+        """
         # 1) 缩小工具集合，减少上下文
+        yield {"type": "thought", "content": "正在筛选相关工具..."}
         tools_subset = _top_k_tools(user_query, tools, k=self.topk_tools)
+        yield {
+            "type": "thought",
+            "content": f"已选定 {len(tools_subset)} 个工具: {', '.join(tools_subset.keys())}",
+        }
 
         # 2) 首次请求
+        yield {"type": "thought", "content": "正在生成执行计划..."}
         prompt = _build_prompt(profile_system_prompt, user_query, tools_subset)
         out = self._ask_llm(prompt, user_query)
         steps = _coerce_json_array(out)
 
         # 调试信息：记录原始输出
         if steps is None:
-            print(f"🐛 Debug: 无法解析计划 JSON。原始输出:\n{out[:500]}...")
+            logger.debug(f"🐛 Debug: 无法解析计划 JSON。原始输出:\n{out[:500]}...")
+            yield {"type": "thought", "content": "计划解析失败，尝试自动修复..."}
 
         # 3) 自动修复（仅一次）
         if steps is None and self.enable_repair:
@@ -234,18 +247,35 @@ class LLMPlanner:
 
             # 调试信息：记录修复后的输出
             if steps is None:
-                print(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")
+                logger.debug(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")
+                yield {"type": "thought", "content": "自动修复失败，将直接回复。"}
 
         # 4) 兜底：若仍无法解析，直接把原文作为 reply
         if steps is None:
-            print("🐛 Debug: 使用兜底策略，返回原文作为回复")
-            return [{"type": "reply", "text": out.strip()[:2000]}][: self.max_steps]
+            logger.debug("🐛 Debug: 使用兜底策略，返回原文作为回复")
+            final_steps = [{"type": "reply", "text": out.strip()[:2000]}][: self.max_steps]
+            yield {"type": "plan", "steps": final_steps}
+            return
 
         # 5) 轻量合法化（结构+必填参数）
         steps = _validate_steps(steps, tools_subset)
 
         # 6) 截断并返回
-        return steps[: self.max_steps]
+        final_steps = steps[: self.max_steps]
+        yield {"type": "plan", "steps": final_steps}
+
+    def plan(
+        self,
+        profile_system_prompt: str,
+        user_query: str,
+        tools: dict[str, dict[str, Any]],
+    ) -> list[PlanStep]:
+        # 兼容旧接口，直接收集流式结果
+        final_plan = []
+        for event in self.plan_stream(profile_system_prompt, user_query, tools):
+            if event["type"] == "plan":
+                final_plan = event["steps"]
+        return final_plan
 
     def _tools_to_manifest(self, tools_like: Any) -> dict[str, dict[str, Any]]:
         """
@@ -262,7 +292,7 @@ class LLMPlanner:
                 raise TypeError(f"Expected describe() to return dict, got {type(result).__name__}")
             return result
         raise TypeError(
-            "LLMPlanner expects `tools` as a dict manifest or an object with .describe()."
+            "SimplePlanner expects `tools` as a dict manifest or an object with .describe()."
         )
 
     def execute(self, data: Any) -> list[PlanStep]:
@@ -291,7 +321,7 @@ class LLMPlanner:
                 or tools_like is None
             ):
                 raise ValueError(
-                    "LLMPlanner.execute(dict) requires 'profile_prompt' (or 'profile_system_prompt'), "
+                    "SimplePlanner.execute(dict) requires 'profile_prompt' (or 'profile_system_prompt'), "
                     "'user_query' (or 'query'), and 'tools' (or 'registry')."
                 )
 
@@ -318,7 +348,7 @@ class LLMPlanner:
             return self.plan(profile_prompt, user_query, tools_manifest)
 
         raise TypeError(
-            "LLMPlanner.execute expects either a dict with keys "
+            "SimplePlanner.execute expects either a dict with keys "
             "('profile_prompt'/'profile_system_prompt', 'user_query'/'query', 'tools'/'registry') "
             "or a tuple (profile_prompt, user_query, tools_or_registry)."
         )

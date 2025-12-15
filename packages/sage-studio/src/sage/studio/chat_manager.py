@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -36,8 +37,8 @@ class ChatModeManager(StudioManager):
         self.llm_service = None  # Will be VLLMService or other sageLLM service
         # Default to enabling LLM with a small model
         self.llm_enabled = os.getenv("SAGE_STUDIO_LLM", "true").lower() in ("true", "1", "yes")
-        # Use Qwen2.5-7B as default - good balance of quality and speed on A100
-        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+        # Use Qwen2.5-0.5B as default - lightweight for local development
+        self.llm_model = os.getenv("SAGE_STUDIO_LLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
         self.llm_port = SagePorts.BENCHMARK_LLM  # Unified default port (8901)
 
     # ------------------------------------------------------------------
@@ -112,6 +113,13 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
+        # Check environment variables first
+        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url:
+            return (True, env_base_url)
+
         # Ports to check in order of preference
         llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
 
@@ -136,6 +144,13 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
+        # Check environment variables first (align with UnifiedInferenceClient)
+        env_base_url = os.environ.get("SAGE_EMBEDDING_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url:
+            return (True, env_base_url)
+
         ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT]
 
         for p in ports_to_check:
@@ -320,8 +335,11 @@ class ChatModeManager(StudioManager):
             return False
 
     def _stop_embedding_service(self) -> bool:
-        """Stop Embedding service if running."""
-        port = SagePorts.EMBEDDING_DEFAULT
+        """Stop Embedding service if running.
+
+        NOTE: Only stops the service if it was started by Studio (has PID file).
+        Does NOT kill orphan processes to allow reuse of manually started services.
+        """
         log_dir = Path.home() / ".sage" / "logs"
         embedding_pid_file = log_dir / "embedding.pid"
 
@@ -348,17 +366,9 @@ class ChatModeManager(StudioManager):
             except Exception as e:
                 console.print(f"[yellow]⚠️  清理 Embedding PID 文件失败: {e}[/yellow]")
 
-        # Also try to find and kill any orphan embedding server processes
-        for proc in psutil.process_iter(["pid", "cmdline"]):
-            try:
-                cmdline = proc.info.get("cmdline") or []
-                if "embedding_server" in " ".join(cmdline) and str(port) in " ".join(cmdline):
-                    console.print(f"[blue]🛑 停止孤儿 Embedding 进程 (PID: {proc.pid})...[/blue]")
-                    proc.terminate()
-                    proc.wait(timeout=5)
-                    stopped = True
-            except (psutil.NoSuchProcess, psutil.TimeoutExpired):
-                pass
+        # NOTE: We intentionally do NOT kill orphan processes here anymore.
+        # This allows users to manually start an embedding service (e.g. via sage llm serve)
+        # and have it persist across Studio restarts.
 
         return stopped
 
@@ -366,22 +376,43 @@ class ChatModeManager(StudioManager):
     # Gateway helpers
     # ------------------------------------------------------------------
     def _is_gateway_running(self) -> int | None:
-        if not self.gateway_pid_file.exists():
-            return None
+        # 1. Check PID file first
+        if self.gateway_pid_file.exists():
+            try:
+                pid = int(self.gateway_pid_file.read_text().strip())
+                if psutil.pid_exists(pid):
+                    return pid
+            except Exception:
+                pass
 
+            # Clean up invalid PID file
+            try:
+                self.gateway_pid_file.unlink()
+            except OSError:
+                pass
+
+        # 2. Fallback: Check if port is in use
+        # This handles cases where PID file is lost but process is still running
         try:
-            pid = int(self.gateway_pid_file.read_text().strip())
+            for proc in psutil.process_iter(["pid", "name"]):
+                try:
+                    for conn in proc.connections(kind="inet"):
+                        if (
+                            conn.laddr.port == self.gateway_port
+                            and conn.status == psutil.CONN_LISTEN
+                        ):
+                            # Found process listening on gateway port
+                            # Re-create PID file for future reference
+                            try:
+                                self.gateway_pid_file.write_text(str(proc.pid))
+                            except Exception:
+                                pass
+                            return proc.pid
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
         except Exception:
-            return None
-
-        if psutil.pid_exists(pid):
-            return pid
-
-        # 清理脏 PID 文件
-        try:
-            self.gateway_pid_file.unlink()
-        except OSError:
             pass
+
         return None
 
     def _start_gateway(self, port: int | None = None) -> bool:
@@ -500,6 +531,146 @@ class ChatModeManager(StudioManager):
             return False
 
     # ------------------------------------------------------------------
+    # Auto-Scaling Logic
+    # ------------------------------------------------------------------
+    def _get_gpu_memory(self) -> list[dict[str, int]]:
+        """Get GPU memory info for all GPUs.
+
+        Returns:
+            List of dicts: [{'index': 0, 'total': 81920, 'free': 81920}, ...]
+        """
+        try:
+            # Check if nvidia-smi exists
+            if shutil.which("nvidia-smi") is None:
+                return []
+
+            # Get info for all GPUs
+            output = subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=index,memory.total,memory.free",
+                    "--format=csv,noheader,nounits",
+                ],
+                encoding="utf-8",
+            )
+
+            gpus = []
+            for line in output.strip().split("\n"):
+                if not line.strip():
+                    continue
+                parts = line.split(",")
+                if len(parts) >= 3:
+                    gpus.append(
+                        {
+                            "index": int(parts[0].strip()),
+                            "total": int(parts[1].strip()),
+                            "free": int(parts[2].strip()),
+                        }
+                    )
+
+            return gpus
+        except Exception:
+            return []
+
+    def _auto_start_llms(self) -> bool:
+        """Automatically start multiple LLMs to fill GPU memory."""
+        gpus = self._get_gpu_memory()
+        if not gpus:
+            return False
+
+        total_system_mem = sum(g["total"] for g in gpus)
+        free_system_mem = sum(g["free"] for g in gpus)
+
+        console.print(
+            f"[blue]🧠 检测到 {len(gpus)} 个 GPU: 总计 {total_system_mem} MB, 可用 {free_system_mem} MB[/blue]"
+        )
+        for gpu in gpus:
+            console.print(
+                f"[dim]   GPU {gpu['index']}: {gpu['free']} MB free / {gpu['total']} MB total[/dim]"
+            )
+
+        console.print("[blue]🚀 正在根据显存自动调度模型 (Auto-Scaling)...[/blue]")
+
+        # Candidates: Name, Approx Memory (MB) (BF16 + Cache overhead)
+        # 32B ~ 65GB, 14B ~ 30GB, 7B ~ 16GB, 1.5B ~ 4GB, 0.5B ~ 2GB
+        candidates = [
+            ("Qwen/Qwen2.5-32B-Instruct", 65000),
+            ("Qwen/Qwen2.5-14B-Instruct", 30000),
+            ("Qwen/Qwen2.5-7B-Instruct", 16000),
+            ("Qwen/Qwen2.5-1.5B-Instruct", 4000),
+            ("Qwen/Qwen2.5-0.5B-Instruct", 2000),
+        ]
+
+        started_count = 0
+        current_port = self.llm_port  # 8901
+
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+        except ImportError:
+            console.print("[yellow]⚠️  sageLLM 不可用，跳过自动调度[/yellow]")
+            return False
+
+        for model_name, required_mem in candidates:
+            # Sort GPUs by free memory descending (to match api_server.py selection logic)
+            gpus.sort(key=lambda x: x["free"], reverse=True)
+
+            # Try to find a GPU that fits the model
+            target_gpu = None
+            for gpu in gpus:
+                # Check if we have enough remaining memory (leave 2GB buffer)
+                if gpu["free"] > (required_mem + 2000):
+                    target_gpu = gpu
+                    break
+
+            if target_gpu:
+                # vLLM gpu_memory_utilization is based on TOTAL memory of the specific GPU
+                # Add 4GB buffer to utilization to ensure enough space for KV cache + overhead
+                utilization = (required_mem + 4000) / target_gpu["total"]
+                # Cap at 0.95 to be safe (vLLM default is 0.9)
+                if utilization > 0.95:
+                    utilization = 0.95
+                # Min utilization 0.1
+                if utilization < 0.1:
+                    utilization = 0.1
+
+                console.print(
+                    f"[blue]   尝试启动 {model_name} (端口 {current_port}, 显存 {utilization:.1%})...[/blue]"
+                )
+
+                try:
+                    result = LLMLauncher.launch(
+                        model=model_name,
+                        port=current_port,
+                        gpu_memory=utilization,
+                        background=True,
+                        verbose=True,
+                        check_existing=True,
+                    )
+
+                    if result.success:
+                        console.print(f"[green]✅ {model_name} 启动成功[/green]")
+                        # Update virtual free memory for the target GPU
+                        target_gpu["free"] -= required_mem
+                        started_count += 1
+                        current_port += 1  # Increment port for next model
+
+                        # If this was the first one, set it as self.llm_service
+                        if self.llm_service is None:
+                            self.llm_service = result.server
+                    else:
+                        console.print(f"[yellow]⚠️ {model_name} 启动失败，尝试下一个...[/yellow]")
+
+                except Exception as e:
+                    console.print(f"[red]❌ 启动 {model_name} 出错: {e}[/red]")
+
+        if started_count > 0:
+            console.print(f"[green]✨ 自动调度完成，共启动 {started_count} 个模型[/green]")
+            return True
+
+        console.print("[yellow]⚠️ 自动调度未启动任何模型 (可能是显存不足)[/yellow]")
+        return False
+
+    # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
     def start(
@@ -551,8 +722,26 @@ class ChatModeManager(StudioManager):
 
         # Start local LLM service first (if enabled)
         if start_llm:
-            model = llm_model or self.llm_model if not use_finetuned else None
-            llm_started = self._start_llm_service(model=model, use_finetuned=use_finetuned)
+            llm_started = False
+
+            # Check if user requested specific model or finetuned
+            is_specific_request = (llm_model is not None) or use_finetuned
+
+            # Try Auto-Scaling if:
+            # 1. No specific model requested
+            # 2. GPU is available
+            # 3. No existing service running (to avoid conflicts)
+            if not is_specific_request and is_gpu_available():
+                is_running, _ = self._detect_existing_llm_service()
+                if not is_running:
+                    llm_started = self._auto_start_llms()
+
+            # Fallback / Standard Mode
+            # If auto-scaling skipped or failed, use standard start logic
+            if not llm_started:
+                model = llm_model or self.llm_model if not use_finetuned else None
+                llm_started = self._start_llm_service(model=model, use_finetuned=use_finetuned)
+
             if llm_started:
                 console.print(
                     "[green]💡 Gateway 将自动使用本地 LLM 服务（通过 UnifiedInferenceClient 自动检测）[/green]"
@@ -594,12 +783,26 @@ class ChatModeManager(StudioManager):
 
         return success
 
-    def stop(self) -> bool:
-        """Stop all Studio Chat Mode services."""
+    def stop(self, stop_infrastructure: bool = False) -> bool:
+        """Stop Studio Chat Mode services.
+
+        Args:
+            stop_infrastructure: If True, also stop LLM and Embedding services.
+                               If False (default), leave them running.
+        """
         frontend_backend = super().stop(stop_gateway=False)  # Don't stop gateway via parent
         gateway = self._stop_gateway()
-        llm = self._stop_llm_service()
-        embedding = self._stop_embedding_service()
+
+        llm = True
+        embedding = True
+
+        if stop_infrastructure:
+            llm = self._stop_llm_service()
+            embedding = self._stop_embedding_service()
+        else:
+            # Inform user that infrastructure is preserved
+            console.print("[dim]ℹ️  保留 LLM/Embedding 服务运行 (使用 --all 停止所有)[/dim]")
+
         return frontend_backend and gateway and llm and embedding
 
     def status(self):
@@ -611,27 +814,31 @@ class ChatModeManager(StudioManager):
         llm_table.add_column("属性", style="cyan", width=14)
         llm_table.add_column("值", style="white")
 
-        llm_port = SagePorts.BENCHMARK_LLM  # 8901
-        llm_running = False
-        llm_model_name = None
-        try:
-            resp = requests.get(f"http://localhost:{llm_port}/v1/models", timeout=2)
-            if resp.status_code == 200:
-                models = resp.json().get("data", [])
-                if models:
-                    llm_running = True
-                    llm_model_name = models[0].get("id", "unknown")
-        except Exception:
-            pass
+        # Scan for running LLMs on ports 8901-8910
+        found_llms = []
+        for port in range(8901, 8911):
+            try:
+                resp = requests.get(f"http://localhost:{port}/v1/models", timeout=0.5)
+                if resp.status_code == 200:
+                    models = resp.json().get("data", [])
+                    if models:
+                        model_name = models[0].get("id", "unknown")
+                        found_llms.append({"port": port, "model": model_name})
+            except Exception:
+                pass
 
-        if llm_running:
-            llm_table.add_row("状态", "[green]运行中[/green]")
-            llm_table.add_row("端口", str(llm_port))
-            llm_table.add_row("模型", llm_model_name or "unknown")
-            llm_table.add_row("说明", "由 UnifiedInferenceClient 自动检测使用")
+        if found_llms:
+            for i, llm in enumerate(found_llms):
+                if i > 0:
+                    llm_table.add_section()
+                llm_table.add_row("状态", "[green]运行中[/green]")
+                llm_table.add_row("端口", str(llm["port"]))
+                llm_table.add_row("模型", llm["model"])
+                if i == 0:
+                    llm_table.add_row("说明", "由 UnifiedInferenceClient 自动检测使用")
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
-            llm_table.add_row("端口", str(llm_port))
+            llm_table.add_row("端口", str(SagePorts.BENCHMARK_LLM))
             llm_table.add_row("提示", "使用 --llm 启动本地服务")
 
         console.print(llm_table)

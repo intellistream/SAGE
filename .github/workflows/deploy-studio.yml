@@ -510,8 +510,9 @@ jobs:
         run: |
           echo "🛑 停止现有服务（准备重启）..."
 
-          # 按反向依赖顺序停止
-          for svc in sage-frontend sage-gateway sage-embedding sage-llm; do
+          # 仅停止 Studio 相关服务 (Frontend + Gateway)
+          # 注意：不停止 LLM/Embedding 服务，以保持基础设施运行
+          for svc in sage-frontend sage-gateway; do
             if systemctl is-active --quiet $svc 2>/dev/null; then
               echo "停止 $svc..."
               sudo systemctl stop $svc || true
@@ -520,11 +521,13 @@ jobs:
             fi
           done
 
-          # 释放 GPU 显存
-          echo "🧹 清理 GPU 显存..."
-          pkill -f "vllm" || true
-          pkill -f "embedding" || true
-          sleep 3
+          # 释放 GPU 显存 - 仅在需要时手动执行
+          # echo "🧹 清理 GPU 显存..."
+          # pkill -u $(whoami) -f "vllm" 2>/dev/null || true
+          # pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+          # sudo pkill -f "vllm.entrypoints" 2>/dev/null || true
+          # sudo pkill -f "sage_embedding.embedding_server" 2>/dev/null || true
+          # sleep 3
 
           # 显示 GPU 状态
           if command -v nvidia-smi &> /dev/null; then
@@ -532,11 +535,14 @@ jobs:
             nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
           fi
 
-          echo "✅ 服务已停止，GPU 显存已释放"
+          echo "✅ Studio 服务已停止"
 
       - name: Start services
         run: |
           echo "🚀 启动 SAGE Studio 服务栈..."
+
+          # 记录启动时间，用于后续只显示本次启动后的日志
+          START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
 
           # 按依赖顺序启动
           echo "1/4 启动 LLM 服务..."
@@ -557,8 +563,8 @@ jobs:
           sleep 3
           echo "--- Gateway 启动状态 ---"
           sudo systemctl status sage-gateway --no-pager || true
-          echo "--- Gateway 最近日志 ---"
-          sudo journalctl -u sage-gateway --no-pager -n 30 || true
+          echo "--- Gateway 最近日志 (本次启动后) ---"
+          sudo journalctl -u sage-gateway --no-pager --since "$START_TIME" -n 30 || true
           echo "---"
 
           echo "4/4 启动 Frontend 服务 (nginx)..."

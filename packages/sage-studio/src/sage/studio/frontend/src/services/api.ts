@@ -28,6 +28,32 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl()
 
+// Helper function to get auth token for fetch requests
+function getAuthToken(): string | null {
+    try {
+        const storage = localStorage.getItem('sage-auth-storage')
+        if (storage) {
+            const { state } = JSON.parse(storage)
+            return state?.token || null
+        }
+    } catch (e) {
+        // Ignore parsing errors
+    }
+    return null
+}
+
+// Helper function to get headers with auth token for fetch requests
+function getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    }
+    const token = getAuthToken()
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+    return headers
+}
+
 // Axios 实例
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -39,16 +65,9 @@ const apiClient = axios.create({
 
 // Auth Interceptor
 apiClient.interceptors.request.use((config) => {
-    try {
-        const storage = localStorage.getItem('sage-auth-storage')
-        if (storage) {
-            const { state } = JSON.parse(storage)
-            if (state?.token) {
-                config.headers.Authorization = `Bearer ${state.token}`
-            }
-        }
-    } catch (e) {
-        // Ignore parsing errors
+    const token = getAuthToken()
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
     }
     return config
 })
@@ -703,16 +722,15 @@ export async function sendChatMessage(
     onChunk: (chunk: string) => void,
     onError: (error: Error) => void,
     onComplete: () => void,
-    callbacks?: Partial<ChatMessageCallbacks>
+    callbacks?: Partial<ChatMessageCallbacks>,
+    model?: string
 ): Promise<void> {
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
+        const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
-                model: 'sage-default',
+                model: model,
                 messages: [{ role: 'user', content: message }],
                 session_id: sessionId,
                 stream: true,
@@ -878,13 +896,11 @@ export async function sendChatMessageWithAgent(
     const { onStep, onStepUpdate, onStepContent, onContent, onReasoningEnd, onError, onComplete } = callbacks
 
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/v1/chat/completions`, {
+        const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
-                model: options?.model || 'sage-default',
+                model: options?.model,
                 messages: [
                     ...(options?.systemPrompt ? [{ role: 'system', content: options.systemPrompt }] : []),
                     { role: 'user', content: message }
@@ -1213,12 +1229,23 @@ export interface LLMStatus {
         max_model_len: number
         owned_by: string
     }
+    available_models?: Array<{
+        name: string
+        base_url: string
+        is_local: boolean
+        description?: string
+        healthy?: boolean
+    }>
     error?: string
 }
 
 export async function getLLMStatus(): Promise<LLMStatus> {
     const response = await apiClient.get('/llm/status')
     return response.data
+}
+
+export async function selectLLMModel(modelName: string, baseUrl: string): Promise<void> {
+    await apiClient.post('/llm/select', { model_name: modelName, base_url: baseUrl })
 }
 
 export default apiClient

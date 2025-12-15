@@ -615,3 +615,58 @@ class TestUnifiedClientFactoryMethods:
 
         assert client.config.llm_base_url == "http://unified:8000/v1"
         assert client.config.embedding_base_url == "http://unified:8000/v1"
+
+    def test_create_with_control_plane_url(self):
+        """Test create() with explicit control_plane_url."""
+        client = UnifiedInferenceClient.create(
+            control_plane_url="http://my-control-plane:8000/v1",
+            default_llm_model="my-model",
+        )
+
+        # Both LLM and Embedding should point to the control plane
+        assert client.config.llm_base_url == "http://my-control-plane:8000/v1"
+        assert client.config.embedding_base_url == "http://my-control-plane:8000/v1"
+        assert client.config.llm_model == "my-model"
+
+    def test_create_control_plane_url_and_embedded_mutually_exclusive(self):
+        """Test that control_plane_url and embedded=True are mutually exclusive."""
+        with pytest.raises(ValueError, match="Cannot specify both"):
+            UnifiedInferenceClient.create(
+                control_plane_url="http://external:8000/v1",
+                embedded=True,
+            )
+
+    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
+    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
+    def test_create_with_custom_ports(self, mock_embed_detect, mock_llm_detect):
+        """Test create() with custom ports for local detection."""
+        mock_llm_detect.return_value = ("http://localhost:9001/v1", "custom-llm", "")
+        mock_embed_detect.return_value = ("http://localhost:9090/v1", "custom-embed", "")
+
+        _client = UnifiedInferenceClient.create(
+            llm_ports=(9001, 9002),
+            embedding_ports=(9090, 9091),
+        )
+
+        # Verify detection was called with custom ports
+        mock_llm_detect.assert_called_once()
+        call_args = mock_llm_detect.call_args
+        assert call_args[1]["ports"] == (9001, 9002)
+
+        mock_embed_detect.assert_called_once()
+        call_args = mock_embed_detect.call_args
+        assert call_args[1]["ports"] == (9090, 9091)
+
+        # Suppress unused variable warning - client creation is side effect
+        assert _client is not None
+
+    @patch.object(UnifiedInferenceClient, "_detect_llm_endpoint")
+    @patch.object(UnifiedInferenceClient, "_detect_embedding_endpoint")
+    def test_create_with_timeout(self, mock_embed_detect, mock_llm_detect):
+        """Test create() with custom timeout."""
+        mock_llm_detect.return_value = (None, None, "")
+        mock_embed_detect.return_value = (None, None, "")
+
+        client = UnifiedInferenceClient.create(timeout=120.0)
+
+        assert client.config.timeout == 120.0

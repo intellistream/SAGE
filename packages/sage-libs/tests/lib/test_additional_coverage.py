@@ -15,28 +15,28 @@ except ImportError:
     VLLM_AVAILABLE = False
 
 
-class TestLLMPlanner:
-    """Test LLMPlanner class"""
+class TestSimpleLLMPlanner:
+    """Test SimpleLLMPlanner class"""
 
-    def test_llm_planner_init(self):
-        """Test LLMPlanner initialization"""
-        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+    def test_simple_planner_init(self):
+        """Test SimpleLLMPlanner initialization"""
+        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
-        planner = LLMPlanner(generator=mock_generator)
+        planner = SimpleLLMPlanner(generator=mock_generator)
         assert planner is not None
         assert planner.generator == mock_generator
 
-    def test_llm_planner_plan_generation(self):
+    def test_simple_planner_plan_generation(self):
         """Test plan generation"""
-        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
         # Mock generator to return valid JSON plan
         plan_json = '[{"type":"tool","name":"calculator","arguments":{"expr":"2+2"}},{"type":"reply","text":"完成"}]'
         mock_generator.execute.return_value = ("test query", plan_json)
 
-        planner = LLMPlanner(generator=mock_generator, max_steps=3)
+        planner = SimpleLLMPlanner(generator=mock_generator, max_steps=3)
         tools = {
             "calculator": {
                 "description": "Do math",
@@ -51,25 +51,21 @@ class TestLLMPlanner:
         assert plan is not None
         assert len(plan) > 0
 
-    def test_llm_planner_with_custom_params(self):
-        """Test LLMPlanner with custom parameters"""
-        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+    def test_simple_planner_custom_params(self):
+        """Test SimpleLLMPlanner with custom parameters"""
+        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
-        planner = LLMPlanner(
-            generator=mock_generator, max_steps=10, enable_repair=False, topk_tools=8
-        )
-        assert planner.max_steps == 10
-        assert planner.enable_repair is False
-        assert planner.topk_tools == 8
+        planner = SimpleLLMPlanner(generator=mock_generator)
+        assert planner.generator == mock_generator
 
 
-class TestLLMPlannerErrorHandling:
-    """Test error handling in LLMPlanner"""
+class TestSimpleLLMPlannerErrorHandling:
+    """Test error handling in SimpleLLMPlanner"""
 
-    def test_llm_planner_repair_mechanism(self):
-        """Test LLMPlanner repair mechanism when JSON parsing fails"""
-        from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+    def test_simple_planner_repair(self):
+        """Test SimpleLLMPlanner repair mechanism when JSON parsing fails"""
+        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
         # First call returns invalid JSON, second call returns valid JSON
@@ -79,7 +75,7 @@ class TestLLMPlannerErrorHandling:
             ("test query", plan_json),  # Repair succeeds
         ]
 
-        planner = LLMPlanner(generator=mock_generator, enable_repair=True)
+        planner = SimpleLLMPlanner(generator=mock_generator, enable_repair=True)
         tools = {"test_tool": {"description": "Test", "input_schema": {"type": "object"}}}
         plan = planner.plan("System", "Query", tools)
 

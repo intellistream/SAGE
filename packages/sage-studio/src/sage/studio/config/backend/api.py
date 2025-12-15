@@ -15,8 +15,9 @@ from pathlib import Path
 from typing import Annotated
 
 import uvicorn
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
@@ -299,17 +300,40 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# 动态构建允许的来源列表
+allowed_origins = [
+    "http://localhost:5173",  # Vite 开发服务器默认端口
+    "http://localhost:4173",  # Vite preview 服务器默认端口
+    f"http://localhost:{SagePorts.STUDIO_FRONTEND}",
+    f"http://127.0.0.1:{SagePorts.STUDIO_FRONTEND}",
+    f"http://0.0.0.0:{SagePorts.STUDIO_FRONTEND}",
+]
+
+# 添加常用开发端口
+for port in [5173, 4173, 35180]:
+    if port != SagePorts.STUDIO_FRONTEND:
+        allowed_origins.extend(
+            [
+                f"http://localhost:{port}",
+                f"http://127.0.0.1:{port}",
+                f"http://0.0.0.0:{port}",
+            ]
+        )
+
+# 从环境变量添加额外来源
+extra_origins = os.getenv("SAGE_STUDIO_ALLOWED_ORIGINS", "")
+if extra_origins:
+    allowed_origins.extend(
+        [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+    )
+
+# 去重
+allowed_origins = list(set(allowed_origins))
+
 # 添加 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite 开发服务器默认端口
-        "http://localhost:4173",  # Vite preview 服务器默认端口
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:4173",
-        "http://0.0.0.0:5173",
-        "http://0.0.0.0:4173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1616,6 +1640,116 @@ def _save_session(user_id: str, session_id: str, data: dict):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+@app.post("/api/chat/v1/chat/completions")
+async def proxy_chat_completions(
+    request: Request, current_user: Annotated[User, Depends(get_current_user)]
+):
+    """Proxy for OpenAI-compatible chat completions used by Studio frontend"""
+    from datetime import datetime
+
+    import httpx
+
+    try:
+        # Get the raw body
+        body = await request.json()
+        session_id = body.get("session_id")
+        user_id = str(current_user.id)
+
+        # Extract user message from request
+        messages = body.get("messages", [])
+        user_message_content = None
+        if messages:
+            # Get the last user message
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    user_message_content = msg.get("content")
+                    break
+
+        # Load or create session
+        session_data = None
+        if session_id:
+            session_data = _load_session(user_id, session_id)
+
+        if not session_data and session_id:
+            # Create new session
+            now = datetime.now().isoformat()
+            session_data = {
+                "id": session_id,
+                "title": "New Chat",
+                "created_at": now,
+                "last_active": now,
+                "messages": [],
+                "metadata": {},
+            }
+
+        # Save user message to session
+        if session_data and user_message_content:
+            user_msg = {
+                "role": "user",
+                "content": user_message_content,
+                "timestamp": datetime.now().isoformat(),
+            }
+            session_data["messages"].append(user_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
+
+        # Collect assistant response
+        collected_content = []
+
+        # Forward to Gateway
+        # We use a stream to support SSE
+        async def event_generator():
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{GATEWAY_BASE_URL}/v1/chat/completions",
+                        json=body,
+                    ) as response:
+                        if response.status_code != 200:
+                            error_msg = await response.aread()
+                            yield f"data: {json.dumps({'error': f'Gateway error: {response.status_code} - {error_msg.decode()}'})}\n\n"
+                            return
+
+                        async for chunk in response.aiter_bytes():
+                            # Parse SSE to collect assistant content
+                            chunk_str = chunk.decode("utf-8", errors="ignore")
+                            for line in chunk_str.split("\n"):
+                                if line.startswith("data: "):
+                                    data = line[6:].strip()
+                                    if data and data != "[DONE]":
+                                        try:
+                                            parsed = json.loads(data)
+                                            content = (
+                                                parsed.get("choices", [{}])[0]
+                                                .get("delta", {})
+                                                .get("content")
+                                            )
+                                            if content:
+                                                collected_content.append(content)
+                                        except Exception:
+                                            pass
+                            yield chunk
+
+                # Save assistant message after streaming completes
+                if session_data and collected_content:
+                    assistant_msg = {
+                        "role": "assistant",
+                        "content": "".join(collected_content),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    session_data["messages"].append(assistant_msg)
+                    session_data["last_active"] = datetime.now().isoformat()
+                    _save_session(user_id, session_id, session_data)
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/chat/message", response_model=ChatResponse)
 async def send_chat_message(
     request: ChatRequest,
@@ -1658,6 +1792,31 @@ async def send_chat_message(
     session_data["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session_data)
 
+    # Resolve model if "sage-default"
+    model_to_use = request.model
+    if model_to_use == "sage-default":
+        # 1. Try environment variable (set by select_llm_model)
+        model_to_use = os.getenv("SAGE_CHAT_MODEL")
+
+        # 2. If not set, try to detect from Gateway
+        if not model_to_use:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.common.config.ports import SagePorts
+
+                client = UnifiedInferenceClient.create(
+                    control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+                )
+                detected = client._get_default_llm_model()
+                if detected and detected != "default":
+                    model_to_use = detected
+            except Exception:
+                pass
+
+        # 3. Fallback to original if still failed
+        if not model_to_use:
+            model_to_use = request.model
+
     try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
         # We pass the session_id to gateway as well, so it can maintain its own state if needed,
@@ -1667,7 +1826,7 @@ async def send_chat_message(
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
-                    "model": request.model,
+                    "model": model_to_use,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
                     "session_id": session_id,  # Pass session_id to gateway
@@ -1796,22 +1955,26 @@ async def create_chat_session(
     import uuid
     from datetime import datetime
 
-    session_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
+    try:
+        session_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
 
-    session_data = {
-        "id": session_id,
-        "title": payload.title or "New Session",
-        "created_at": now,
-        "last_active": now,
-        "message_count": 0,
-        "messages": [],
-        "metadata": {},
-    }
+        session_data = {
+            "id": session_id,
+            "title": payload.title or "New Session",
+            "created_at": now,
+            "last_active": now,
+            "message_count": 0,
+            "messages": [],
+            "metadata": {},
+        }
 
-    _save_session(str(current_user.id), session_id, session_data)
+        _save_session(str(current_user.id), session_id, session_data)
 
-    return ChatSessionDetail(**session_data)
+        return ChatSessionDetail(**session_data)
+    except Exception as e:
+        print(f"Error creating session: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
@@ -2690,15 +2853,119 @@ async def get_gpu_info():
         }
 
 
+# ==================== LLM 状态 API ====================
+
+
+class SelectModelRequest(BaseModel):
+    model_name: str
+    base_url: str
+
+
+@app.post("/api/llm/select")
+async def select_llm_model(request: SelectModelRequest):
+    """选择要使用的 LLM 模型"""
+    try:
+        # 更新环境变量，这样后续的 get_llm_status 调用（会创建新的 UnifiedInferenceClient）
+        # 就会使用新的配置
+        os.environ["SAGE_CHAT_MODEL"] = request.model_name
+        os.environ["SAGE_CHAT_BASE_URL"] = request.base_url
+
+        # 尝试从 available_models 中查找对应的 API Key
+        # 注意：这里需要重新读取配置，或者从请求中传递 API Key
+        # 为了简单起见，我们再次读取配置
+        api_key = ""
+        try:
+            # 1. 尝试从配置文件读取
+            from sage.common.config import find_sage_project_root
+
+            project_root = find_sage_project_root()
+            if project_root:
+                models_config_file = project_root / "config" / "models.json"
+                if models_config_file.exists():
+                    import json
+
+                    with open(models_config_file, encoding="utf-8") as f:
+                        custom_models = json.load(f)
+                        for m in custom_models:
+                            if (
+                                m["name"] == request.model_name
+                                and m["base_url"] == request.base_url
+                            ):
+                                api_key = m.get("api_key", "")
+                                break
+        except Exception:
+            pass
+
+        if api_key:
+            os.environ["SAGE_CHAT_API_KEY"] = api_key
+            print(f"Set API key for model {request.model_name}")
+        else:
+            # 如果没有找到特定的 API Key，清除环境变量，以免使用旧的
+            if "SAGE_CHAT_API_KEY" in os.environ:
+                del os.environ["SAGE_CHAT_API_KEY"]
+
+        # Register with Control Plane
+        try:
+            from urllib.parse import urlparse
+
+            import requests
+
+            from sage.common.config.ports import SagePorts
+
+            register_url = (
+                f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1/management/engines/register"
+            )
+            parsed = urlparse(request.base_url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or 80
+
+            payload = {
+                "engine_id": f"ext-{request.model_name}",
+                "model_id": request.model_name,
+                "host": host,
+                "port": port,
+                "engine_kind": "llm",
+                "metadata": {"source": "studio_select"},
+            }
+
+            requests.post(register_url, json=payload, timeout=2)
+            print(f"Registered model {request.model_name} with Control Plane")
+        except Exception as e:
+            print(f"Failed to register model with Control Plane: {e}")
+
+        return {"status": "success", "message": f"已切换到模型: {request.model_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
+
+
 @app.get("/api/llm/status")
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
     try:
         import requests
 
-        # 读取环境变量
-        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-        model_name = os.getenv("SAGE_CHAT_MODEL", "")
+        from sage.common.components.sage_llm import UnifiedInferenceClient
+
+        # 优先使用 UnifiedInferenceClient 自动检测的状态
+        try:
+            from sage.common.config.ports import SagePorts
+
+            # Explicitly check local Gateway first
+            client = UnifiedInferenceClient.create(
+                control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+            )
+            base_url = client.config.llm_base_url or ""
+            model_name = client.config.llm_model or ""
+
+            # If Gateway returns empty model, try env vars (User selection in Studio)
+            if not model_name:
+                model_name = os.getenv("SAGE_CHAT_MODEL", "")
+            if not base_url:
+                base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+        except Exception:
+            # 回退到环境变量
+            base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+            model_name = os.getenv("SAGE_CHAT_MODEL", "")
 
         # 检测是否是本地服务
         is_local = "localhost" in base_url or "127.0.0.1" in base_url
@@ -2750,6 +3017,257 @@ async def get_llm_status():
             # 没有配置
             status["service_type"] = "not_configured"
             status["model_name"] = "未配置 LLM 服务"
+
+        # 添加可用模型列表
+        # 优先级: 1. 配置文件 2. 硬编码默认值
+        available_models = []
+
+        # 1. 尝试从配置文件读取 (config/models.json)
+        try:
+            from sage.common.config import find_sage_project_root
+
+            project_root = find_sage_project_root()
+            if project_root:
+                models_config_file = project_root / "config" / "models.json"
+                if models_config_file.exists():
+                    import json
+
+                    with open(models_config_file, encoding="utf-8") as f:
+                        custom_models = json.load(f)
+                        if isinstance(custom_models, list):
+                            available_models.extend(custom_models)
+        except Exception as e:
+            print(f"Error reading models config: {e}")
+
+        # 2. 如果配置文件为空或不存在，使用默认的硬编码列表
+        if not available_models:
+            # 动态检测当前运行的模型
+            current_running_model = status.get("details", {}).get("model_id")
+
+            available_models = []
+
+            # 如果有正在运行的本地模型，优先添加到列表
+            if current_running_model and is_local:
+                available_models.append(
+                    {
+                        "name": current_running_model,
+                        "base_url": base_url,
+                        "is_local": True,
+                        "description": "Currently Running Model",
+                        "healthy": True,
+                    }
+                )
+
+            # 添加标准备选列表
+            standard_models = [
+                {
+                    "name": "Qwen/Qwen2.5-0.5B-Instruct",
+                    "base_url": "http://localhost:8901/v1",  # Use unified port
+                    "is_local": True,
+                    "description": "Local Small Model (Fast, CPU-friendly)",
+                },
+                {
+                    "name": "Qwen/Qwen2.5-7B-Instruct",
+                    "base_url": "http://localhost:8901/v1",  # Use unified port
+                    "is_local": True,
+                    "description": "Local Standard Model (Requires GPU)",
+                },
+            ]
+
+            # 避免重复添加
+            existing_names = {m["name"] for m in available_models}
+            for m in standard_models:
+                if m["name"] not in existing_names:
+                    available_models.append(m)
+
+        # 2.5 动态发现本地模型 (端口 8901-8910)
+        # 确保列表反映实际运行的模型，即使 models.json 过期
+        try:
+            # 使用较短的超时进行快速扫描
+            for port in range(8901, 8911):
+                try:
+                    check_url = f"http://localhost:{port}/v1/models"
+                    resp = requests.get(check_url, timeout=0.2)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("data") and len(data["data"]) > 0:
+                            real_model_name = data["data"][0]["id"]
+                            base_url = f"http://localhost:{port}/v1"
+
+                            # 检查是否已存在 (按端口/base_url 或 名称)
+                            found = False
+                            for m in available_models:
+                                # 匹配逻辑:
+                                # 1. 如果 config 中有 base_url，则必须匹配 base_url
+                                # 2. 如果 config 中没有 base_url (仅作为元数据模板)，则匹配 name
+                                url_match = m.get("base_url") == base_url
+                                name_match = (not m.get("base_url")) and (
+                                    m["name"] == real_model_name
+                                )
+
+                                if url_match or name_match:
+                                    # 如果是 name 匹配 (填补 URL)
+                                    if name_match:
+                                        m["base_url"] = base_url
+                                        m["is_local"] = True
+
+                                    # 更新模型名称以匹配实际运行的 (针对 URL 匹配但名称不一致的情况)
+                                    if m["name"] != real_model_name:
+                                        # 保留原有描述，但更新名称
+                                        m["original_name"] = m["name"]  # 备份
+                                        m["name"] = real_model_name
+                                        # 如果描述是旧的硬编码描述，更新它
+                                        if "CPU-friendly" in m.get(
+                                            "description", ""
+                                        ) or "Requires GPU" in m.get("description", ""):
+                                            m["description"] = "Auto-detected Local Model"
+
+                                    m["healthy"] = True  # 标记为健康
+                                    found = True
+                                    break
+
+                            if not found:
+                                available_models.append(
+                                    {
+                                        "name": real_model_name,
+                                        "base_url": base_url,
+                                        "is_local": True,
+                                        "description": "Auto-detected Local Model",
+                                        "healthy": True,
+                                    }
+                                )
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"Error during dynamic discovery: {e}")
+
+        # 3. 检查环境变量中的云端 API 配置 (.env)
+        cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
+        if cloud_api_key:
+            # 默认使用 DashScope 配置，如果环境变量有设置则覆盖
+            cloud_model = os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11")
+            cloud_base_url = os.getenv(
+                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            )
+
+            # 检查是否已经存在于列表中 (避免重复)
+            exists = False
+            for m in available_models:
+                if m["name"] == cloud_model and m["base_url"] == cloud_base_url:
+                    exists = True
+                    break
+
+            if not exists:
+                available_models.append(
+                    {
+                        "name": cloud_model,
+                        "base_url": cloud_base_url,
+                        "is_local": False,
+                        "description": "Cloud API (Configured in .env)",
+                        "healthy": True,  # 云端模型默认视为健康，稍后检查
+                    }
+                )
+
+        # 检查每个模型的健康状态
+        import concurrent.futures
+
+        def check_model_health(model):
+            # 如果没有 base_url，说明是仅配置了元数据但未被自动发现的本地模型
+            # 标记为不健康/未运行
+            if not model.get("base_url"):
+                model["healthy"] = False
+                return model
+
+            # 如果已经是标记为健康的云端模型，且没有本地 URL 特征，跳过检查
+            if not model.get("is_local") and model.get("healthy"):
+                return model
+
+            # 准备请求头 (支持 API Key)
+            headers = {}
+            if model.get("api_key"):
+                headers["Authorization"] = f"Bearer {model['api_key']}"
+
+            # 辅助函数：处理 URL (0.0.0.0 -> 127.0.0.1)
+            def prepare_url(url):
+                if "0.0.0.0" in url:
+                    return url.replace("0.0.0.0", "127.0.0.1")
+                return url
+
+            # 策略 1: 尝试 /health (vLLM 标准)
+            try:
+                check_url = prepare_url(model["base_url"].replace("/v1", "/health"))
+                resp = requests.get(check_url, headers=headers, timeout=2.0)
+                if resp.status_code == 200:
+                    model["healthy"] = True
+                    return model
+            except Exception:
+                pass
+
+            # 策略 2: 尝试 /v1/models (OpenAI 标准)
+            try:
+                check_url = prepare_url(f"{model['base_url']}/models")
+                resp = requests.get(check_url, headers=headers, timeout=2.0)
+                if resp.status_code == 200:
+                    model["healthy"] = True
+                    return model
+            except Exception:
+                pass
+
+            # 策略 3: 简单的 TCP 端口检查 (作为最后的兜底)
+            # 如果 HTTP 检查都失败了，但端口是通的，我们也认为它可能是活着的
+            # (可能是路径不对或者认证失败，但服务在运行)
+            try:
+                import socket
+                from urllib.parse import urlparse
+
+                parsed = urlparse(model["base_url"])
+                host = parsed.hostname
+                port = parsed.port
+
+                if host == "0.0.0.0":
+                    host = "127.0.0.1"
+
+                if host and port:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(2.0)
+                        result = s.connect_ex((host, port))
+                        if result == 0:
+                            model["healthy"] = True
+                            # 标记为 Warning 状态可能更好，但目前 UI 只支持 boolean
+                            return model
+            except Exception:
+                pass
+
+            model["healthy"] = False
+            return model
+
+        # 并行检查所有模型状态
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            models_to_check = [m.copy() for m in available_models]
+            available_models = list(executor.map(check_model_health, models_to_check))
+
+        # 如果当前检测到的模型不在列表中，添加它
+        current_in_list = False
+        for model in available_models:
+            if model["name"] == status["model_name"] and model["base_url"] == status["base_url"]:
+                current_in_list = True
+                # 更新当前模型的健康状态
+                status["healthy"] = model["healthy"]
+                break
+
+        if not current_in_list and status["model_name"] and status["base_url"]:
+            available_models.insert(
+                0,
+                {
+                    "name": status["model_name"],
+                    "base_url": status["base_url"],
+                    "is_local": status["is_local"],
+                    "description": "Current Model",
+                    "healthy": status["healthy"],
+                },
+            )
+
+        status["available_models"] = available_models
 
         return status
 
