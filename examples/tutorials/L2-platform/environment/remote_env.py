@@ -17,11 +17,11 @@ from sage.kernel.api.remote_environment import RemoteEnvironment
 
 class SimpleSource(SourceFunction):
     """简单数据源"""
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.count = 0
         self.max_count = 100  # 限制生成的数据量
+
 
     def execute(self, data=None):
         if self.count >= self.max_count:

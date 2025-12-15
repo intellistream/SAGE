@@ -4,19 +4,13 @@ SAGE Cluster Manager CLI
 统一的Ray集群管理工具
 """
 
-from pathlib import Path
+import os
 
 import typer
 
 from ...management.config_manager import get_config_manager
 from ...management.deployment_manager import DeploymentManager
 from .head import app as head_app
-from .ssh_setup import (
-    generate_ssh_key,
-    print_status_table,
-    setup_ssh_for_hosts,
-    test_passwordless_login,
-)
 from .worker import app as worker_app
 
 app = typer.Typer(name="cluster", help="🏗️ Ray集群统一管理")
@@ -27,8 +21,88 @@ app.add_typer(worker_app, name="worker", help="👥 Worker节点管理")
 
 
 @app.command("start")
-def start_cluster():
+def start_cluster(
+    skip_ssh_check: bool = typer.Option(
+        False, "--skip-ssh-check", help="跳过SSH免密登录检查"
+    ),
+    ssh_password: str = typer.Option(
+        None, "--ssh-password", "-p", help="SSH密码（用于自动配置免密登录）"
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="强制重启：如果Ray已运行，先停止再启动"
+    ),
+):
     """启动整个Ray集群（Head + 所有Workers）"""
+    config_manager = get_config_manager()
+    workers = config_manager.get_workers_ssh_hosts()
+    ssh_config = config_manager.get_ssh_config()
+
+    # 0. SSH免密登录检查（仅当有worker节点时）
+    if workers and not skip_ssh_check:
+        typer.echo("🔐 第0步: 检查SSH免密登录...")
+
+        from .ssh_setup import auto_setup_ssh_keys, verify_passwordless_login
+
+        user = ssh_config.get("user", "sage")
+        key_path = ssh_config.get("key_path", "~/.ssh/id_rsa")
+        key_path = os.path.expanduser(key_path)
+
+        # 检查每个worker的SSH连接
+        failed_hosts = []
+        for host, port in workers:
+            if not verify_passwordless_login(host, user, key_path, port):
+                failed_hosts.append((host, port))
+
+        if failed_hosts:
+            typer.echo(
+                f"[yellow]⚠️  发现 {len(failed_hosts)} 个节点未配置免密登录:[/yellow]"
+            )
+            for host, port in failed_hosts:
+                typer.echo(f"   - {host}:{port}")
+
+            # 如果提供了密码，自动配置
+            if ssh_password:
+                typer.echo("\n[cyan]🔧 使用提供的密码自动配置SSH免密登录...[/cyan]")
+                success, total = auto_setup_ssh_keys(
+                    hosts=failed_hosts,
+                    user=user,
+                    password=ssh_password,
+                    key_path=key_path,
+                )
+                if success < total:
+                    typer.echo(
+                        f"[red]❌ SSH配置失败: {total - success} 个节点无法配置[/red]"
+                    )
+                    typer.echo(
+                        "[yellow]提示: 使用 --skip-ssh-check 跳过检查，或手动配置SSH[/yellow]"
+                    )
+                    raise typer.Exit(1)
+            else:
+                # 交互式询问是否配置
+                typer.echo("\n[cyan]是否现在配置SSH免密登录？[/cyan]")
+                try:
+                    password = typer.prompt(
+                        f"请输入SSH密码（用户: {user}）", hide_input=True
+                    )
+                    success, total = auto_setup_ssh_keys(
+                        hosts=failed_hosts,
+                        user=user,
+                        password=password,
+                        key_path=key_path,
+                    )
+                    if success < total:
+                        typer.echo(
+                            f"[red]❌ SSH配置失败: {total - success} 个节点无法配置[/red]"
+                        )
+                        raise typer.Exit(1)
+                except typer.Abort:
+                    typer.echo(
+                        "[yellow]\n⚠️  跳过SSH配置。使用 --skip-ssh-check 避免此检查[/yellow]"
+                    )
+                    raise typer.Exit(1)
+        else:
+            typer.echo("[green]✅ 所有节点SSH免密登录正常[/green]")
+
     typer.echo("🚀 启动Ray集群...")
 
     # 1. 启动Head节点
@@ -36,7 +110,7 @@ def start_cluster():
     try:
         from .head import start_head
 
-        start_head()
+        start_head(force=force)
     except Exception as e:
         typer.echo(f"❌ Head节点启动失败: {e}")
         raise typer.Exit(1)
@@ -50,12 +124,7 @@ def start_cluster():
     # 2. 启动所有Worker节点
     typer.echo("第2步: 启动所有Worker节点")
     try:
-        from ...management.config_manager import get_config_manager
         from .worker import start_workers
-
-        # 检查是否配置了worker节点
-        config_manager = get_config_manager()
-        workers = config_manager.get_workers_ssh_hosts()
 
         if not workers:
             typer.echo("💡 未配置worker节点，跳过worker启动")
@@ -67,13 +136,13 @@ def start_cluster():
         typer.echo("💡 Head节点已启动，可尝试手动启动Worker节点")
         raise typer.Exit(1)
 
-    typer.echo("✅ Ray集群启动完成！")
+    typer.echo("✅ Ray集群启动完成!")
 
 
 @app.command("stop")
 def stop_cluster():
     """停止整个Ray集群（所有Workers + Head）"""
-    typer.echo("🛑 停止Ray集群...")
+    typer.echo("�� 停止Ray集群...")
 
     # 1. 先停止所有Worker节点
     typer.echo("第1步: 停止所有Worker节点")
@@ -100,7 +169,7 @@ def stop_cluster():
     except Exception as e:
         typer.echo(f"⚠️  Head节点停止遇到问题: {e}")
 
-    typer.echo("✅ Ray集群停止完成！")
+    typer.echo("✅ Ray集群停止完成!")
 
 
 @app.command("restart")
@@ -122,7 +191,7 @@ def restart_cluster():
     typer.echo("第2阶段: 启动集群")
     start_cluster()
 
-    typer.echo("✅ Ray集群重启完成！")
+    typer.echo("✅ Ray集群重启完成!")
 
 
 @app.command("status")
@@ -138,7 +207,7 @@ def status_cluster():
     dashboard_port = head_config.get("dashboard_port", 8265)
 
     # 1. 检查Head节点
-    typer.echo("\n🏠 Head节点状态:")
+    typer.echo("\n�� Head节点状态:")
     try:
         from .head import status_head
 
@@ -172,7 +241,7 @@ def deploy_cluster():
     success_count, total_count = deployment_manager.deploy_to_all_workers()
 
     if success_count == total_count:
-        typer.echo("✅ 集群部署成功！")
+        typer.echo("✅ 集群部署成功!")
     else:
         typer.echo(f"⚠️  部分节点部署失败 ({success_count}/{total_count})")
         raise typer.Exit(1)
@@ -259,285 +328,6 @@ def version_command():
     typer.echo("Version: 1.0.1")
     typer.echo("Author: IntelliStream Team")
     typer.echo("Repository: https://github.com/intellistream/SAGE")
-
-
-@app.command("init")
-def init_cluster(
-    output: str = typer.Option(
-        "config/config.yaml",
-        "--output",
-        "-o",
-        help="Output configuration file path",
-    ),
-    template: str = typer.Option(
-        "local",
-        "--template",
-        "-t",
-        help="Template type: local, multi-node, cloud",
-    ),
-    interactive: bool = typer.Option(
-        True,
-        "--interactive/--no-interactive",
-        "-i/-I",
-        help="Interactive mode for configuration",
-    ),
-):
-    """Initialize cluster configuration (interactive or template-based)."""
-    from rich.console import Console
-    from rich.prompt import Confirm, Prompt
-
-    console = Console()
-    config_path = Path(output)
-
-    # Check if config exists
-    if config_path.exists():
-        if not Confirm.ask(f"[yellow]{config_path} already exists. Overwrite?[/yellow]"):
-            raise typer.Exit(0)
-
-    console.print("[blue]🚀 SAGE Cluster Configuration Wizard[/blue]\n")
-
-    if interactive:
-        # Interactive configuration
-        cluster_name = Prompt.ask("Cluster name", default="sage-cluster")
-        head_ip = Prompt.ask("Head node IP", default="192.168.1.100")
-        ssh_user = Prompt.ask("SSH username", default="sage")
-        ssh_key = Prompt.ask("SSH private key path", default="~/.ssh/id_rsa")
-
-        # Worker nodes
-        console.print("\n[blue]Worker nodes (enter IPs, empty to finish):[/blue]")
-        worker_ips = []
-        while True:
-            worker_ip = Prompt.ask(f"Worker {len(worker_ips) + 1} IP", default="")
-            if not worker_ip:
-                break
-            worker_ips.append(worker_ip)
-
-        # LLM settings
-        console.print("\n[blue]LLM Service Settings:[/blue]")
-        llm_model = Prompt.ask("LLM model", default="Qwen/Qwen2.5-7B-Instruct")
-        llm_port = Prompt.ask("LLM port", default="8001")
-
-        # Embedding settings
-        console.print("\n[blue]Embedding Service Settings:[/blue]")
-        embed_model = Prompt.ask("Embedding model", default="BAAI/bge-m3")
-        embed_port = Prompt.ask("Embedding port", default="8090")
-
-    else:
-        # Template-based defaults
-        templates = {
-            "local": {
-                "head_ip": "127.0.0.1",
-                "worker_ips": [],
-                "ssh_user": "sage",
-            },
-            "multi-node": {
-                "head_ip": "192.168.1.100",
-                "worker_ips": ["192.168.1.101", "192.168.1.102"],
-                "ssh_user": "sage",
-            },
-            "cloud": {
-                "head_ip": "10.0.0.1",
-                "worker_ips": ["10.0.0.2", "10.0.0.3", "10.0.0.4"],
-                "ssh_user": "ubuntu",
-            },
-        }
-
-        if template not in templates:
-            console.print(f"[red]Unknown template: {template}[/red]")
-            console.print(f"Available templates: {', '.join(templates.keys())}")
-            raise typer.Exit(1)
-
-        t = templates[template]
-        cluster_name = "sage-cluster"
-        head_ip = t["head_ip"]
-        worker_ips = t["worker_ips"]
-        ssh_user = t["ssh_user"]
-        ssh_key = "~/.ssh/id_rsa"
-        llm_model = "Qwen/Qwen2.5-7B-Instruct"
-        llm_port = "8001"
-        embed_model = "BAAI/bge-m3"
-        embed_port = "8090"
-
-    # Generate YAML
-    worker_ips_yaml = (
-        "\n".join(f"    - {ip}" for ip in worker_ips)
-        if worker_ips
-        else "    # No workers configured"
-    )
-
-    config_content = f"""# SAGE Configuration
-# Generated by: sage cluster init
-# ==============================================================================
-
-# ==============================================================================
-# CLUSTER CONFIGURATION
-# ==============================================================================
-
-cluster_name: {cluster_name}
-max_workers: 10
-
-provider:
-  type: local
-  head_ip: {head_ip}
-  worker_ips:
-{worker_ips_yaml}
-
-auth:
-  ssh_user: {ssh_user}
-  ssh_private_key: {ssh_key}
-  connect_timeout: 10
-
-ray:
-  head_port: 6379
-  dashboard_port: 8265
-  dashboard_host: 0.0.0.0
-  object_store_memory: null
-  num_cpus: null
-  num_gpus: null
-
-remote:
-  sage_home: ~/SAGE
-  python_path: python
-  ray_command: ray
-  conda_env: sage
-
-# ==============================================================================
-# SERVICE CONFIGURATION
-# ==============================================================================
-
-llm:
-  model: {llm_model}
-  port: {llm_port}
-  max_model_len: 4096
-  gpu_memory_utilization: 0.9
-  tensor_parallel_size: 1
-
-embedding:
-  model: {embed_model}
-  port: {embed_port}
-  use_gpu: false
-
-gateway:
-  port: 8000
-  session_backend: file
-
-studio:
-  backend_port: 8080
-  frontend_port: 5173
-"""
-
-    # Write config
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(config_content)
-
-    console.print(f"\n[green]✓[/green] Configuration saved to: {config_path}")
-    console.print("\n[blue]Next steps:[/blue]")
-    console.print("  1. Review the configuration file")
-    console.print("  2. Setup SSH keys: [cyan]sage cluster setup-ssh[/cyan]")
-    console.print("  3. Start cluster: [cyan]sage cluster start[/cyan]")
-
-
-@app.command("setup-ssh")
-def setup_ssh(
-    verify_only: bool = typer.Option(
-        False,
-        "--verify",
-        "-v",
-        help="Only verify existing SSH setup, don't deploy keys",
-    ),
-    generate: bool = typer.Option(
-        True,
-        "--generate/--no-generate",
-        "-g/-G",
-        help="Generate SSH key if not exists",
-    ),
-    force_regenerate: bool = typer.Option(
-        False,
-        "--force-regenerate",
-        "-f",
-        help="Force regenerate SSH key even if exists",
-    ),
-):
-    """Setup SSH key authentication for cluster nodes.
-
-    This command:
-    1. Generates SSH key pair (if not exists)
-    2. Deploys public key to all cluster nodes
-    3. Verifies passwordless SSH login
-
-    Note: Only SSH key authentication is supported (no passwords).
-    """
-    from rich.console import Console
-
-    console = Console()
-    config_manager = get_config_manager()
-
-    # Get SSH config
-    ssh_config = config_manager.get_ssh_config()
-    ssh_user = ssh_config.get("user", "sage")
-    key_path = ssh_config.get("key_path", "~/.ssh/id_rsa")
-
-    # Get all hosts
-    head_config = config_manager.get_head_config()
-    workers = config_manager.get_workers_ssh_hosts()
-
-    hosts = []
-
-    # Add head node
-    head_host = head_config.get("host", "localhost")
-    if head_host not in ("localhost", "127.0.0.1"):
-        hosts.append((head_host, 22))
-
-    # Add workers
-    for host, _port in workers:
-        hosts.append((host, 22))
-
-    if not hosts:
-        console.print("[yellow]No remote hosts configured in cluster config.[/yellow]")
-        console.print("For local-only setup, SSH keys are not required.")
-        raise typer.Exit(0)
-
-    console.print(f"[blue]🔐 SSH Setup for {len(hosts)} host(s)[/blue]")
-    console.print(f"   User: {ssh_user}")
-    console.print(f"   Key: {key_path}\n")
-
-    if verify_only:
-        # Only verify existing setup
-        console.print("[blue]Verifying SSH connections...[/blue]\n")
-        all_ok = True
-        for host, port in hosts:
-            result = test_passwordless_login(host, ssh_user, key_path, port)
-            status = "[green]✓[/green]" if result["success"] else "[red]✗[/red]"
-            console.print(f"  {status} {host}:{port} - {result['message']}")
-            if not result["success"]:
-                all_ok = False
-
-        if all_ok:
-            console.print("\n[green]✓ All SSH connections verified.[/green]")
-        else:
-            console.print("\n[red]✗ Some SSH connections failed.[/red]")
-            console.print("Run [cyan]sage cluster setup-ssh[/cyan] to deploy keys.")
-            raise typer.Exit(1)
-    else:
-        # Generate key if needed
-        if generate or force_regenerate:
-            if not generate_ssh_key(key_path, force=force_regenerate):
-                console.print("[red]✗ Failed to generate SSH key[/red]")
-                raise typer.Exit(1)
-
-        # Deploy to all hosts
-        results = setup_ssh_for_hosts(hosts, ssh_user, key_path, generate_key=False)
-        print_status_table(results, ssh_user, key_path)
-
-        # Summary
-        verified_count = sum(1 for h in results.get("hosts", {}).values() if h.get("verified"))
-        if verified_count == len(hosts):
-            console.print("\n[green]✓ SSH setup complete for all hosts.[/green]")
-        else:
-            console.print(
-                f"\n[yellow]⚠ SSH verified for {verified_count}/{len(hosts)} hosts.[/yellow]"
-            )
-            console.print("For failed hosts, you may need to manually deploy keys.")
 
 
 if __name__ == "__main__":
