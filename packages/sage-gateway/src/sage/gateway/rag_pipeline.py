@@ -102,7 +102,7 @@ class RAGChatMap(MapFunction):
         self._db = None
         self._embedder = None
         self._manifest_data = None
-        self._llm_client = None  # Lazy-initialized LLM client
+        self._llm_clients = {}  # Lazy-initialized LLM clients cache
 
     def _ensure_rag_initialized(self):
         """Lazy initialization of RAG components."""
@@ -169,7 +169,7 @@ class RAGChatMap(MapFunction):
             self._db = None
             self._embedder = None
 
-    def _get_llm_client(self):
+    def _get_llm_client(self, model_name: str | None = None):
         """获取通过 Control Plane 路由的 LLM 客户端（延迟初始化，带缓存）
 
         完全依赖 Control Plane 进行服务发现和路由：
@@ -177,40 +177,48 @@ class RAGChatMap(MapFunction):
         - 选择健康的后端直接调用（避免递归调用 /v1/chat/completions）
         - 支持多引擎、动态端口、负载均衡
 
+        Args:
+            model_name: Specific model to target (optional)
+
         Returns:
             UnifiedInferenceClient 实例
 
         Raises:
             RuntimeError: 如果 Control Plane 没有可用的 LLM 后端
         """
-        if self._llm_client is None:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
+        cache_key = model_name or "default"
+        if cache_key in self._llm_clients:
+            return self._llm_clients[cache_key]
 
-            # 从 Control Plane 获取可用的 LLM 后端
-            llm_base_url, llm_model = self._get_llm_backend_info()
+        from sage.common.components.sage_llm import UnifiedInferenceClient
 
-            if llm_base_url:
-                logger.info(
-                    f"Using LLM backend from Control Plane: {llm_base_url} (model: {llm_model})"
-                )
-                # 使用内部标志创建实例（与 compat.py 模式一致）
-                # Use the official factory method to create a client pointing
-                # at the selected backend. Avoid direct instantiation which
-                # is intentionally blocked by the unified client API.
-                self._llm_client = UnifiedInferenceClient.create(
-                    control_plane_url=llm_base_url,
-                    default_llm_model=llm_model,
-                )
-            else:
-                # Control Plane 没有可用的 LLM 后端
-                raise RuntimeError(
-                    "No LLM backend available in Control Plane. "
-                    "Start an LLM engine with: sage llm engine start <model_name>"
-                )
+        # 从 Control Plane 获取可用的 LLM 后端
+        llm_base_url, llm_model = self._get_llm_backend_info(model_name)
 
-        return self._llm_client
+        if llm_base_url:
+            logger.info(
+                f"Using LLM backend from Control Plane: {llm_base_url} (model: {llm_model})"
+            )
+            # 使用内部标志创建实例（与 compat.py 模式一致）
+            # Use the official factory method to create a client pointing
+            # at the selected backend. Avoid direct instantiation which
+            # is intentionally blocked by the unified client API.
+            client = UnifiedInferenceClient.create(
+                control_plane_url=llm_base_url,
+                default_llm_model=llm_model,
+            )
+            self._llm_clients[cache_key] = client
+            return client
+        else:
+            # Control Plane 没有可用的 LLM 后端
+            raise RuntimeError(
+                f"No LLM backend available in Control Plane for model {model_name}. "
+                "Start an LLM engine with: sage llm engine start <model_name>"
+            )
 
-    def _get_llm_backend_info(self) -> tuple[str | None, str | None]:
+    def _get_llm_backend_info(
+        self, target_model: str | None = None
+    ) -> tuple[str | None, str | None]:
         """从 Control Plane 获取可用的 LLM 后端 URL 和模型名称
 
         仅查询 Control Plane 注册的后端，不做端口扫描。
@@ -234,20 +242,35 @@ class RAGChatMap(MapFunction):
                 logger.warning("No LLM backends registered in Control Plane")
                 return None, None
 
-            # 选择第一个健康的后端（未来可扩展为负载均衡）
+            # Helper to extract URL
+            def get_url(backend):
+                base_url = backend.get("base_url")
+                if base_url:
+                    return base_url
+                host = backend.get("host", "localhost")
+                port = backend.get("port")
+                if port:
+                    return f"http://{host}:{port}/v1"
+                return None
+
+            # 1. Try to find exact model match if requested
+            if target_model:
+                for backend in llm_backends:
+                    if backend.get("is_healthy", False):
+                        model_name = backend.get("model_name")
+                        # Check exact match or ID match
+                        if model_name == target_model:
+                            url = get_url(backend)
+                            if url:
+                                return url, model_name
+
+            # 2. Fallback: Select first healthy backend (or if no target model specified)
             for backend in llm_backends:
                 if backend.get("is_healthy", False):
-                    base_url = backend.get("base_url")
+                    url = get_url(backend)
                     model_name = backend.get("model_name")
-
-                    if base_url:
-                        return base_url, model_name
-
-                    # 或者从 host/port 构建
-                    host = backend.get("host", "localhost")
-                    port = backend.get("port")
-                    if port:
-                        return f"http://{host}:{port}/v1", model_name
+                    if url:
+                        return url, model_name
 
             # 所有后端都不健康
             logger.warning("All %d LLM backends are unhealthy", len(llm_backends))
@@ -385,7 +408,7 @@ class RAGChatMap(MapFunction):
         if is_casual:
             # 闲聊模式：跳过检索，直接生成简单回答
             try:
-                client = self._get_llm_client()
+                client = self._get_llm_client(model)
                 messages = [
                     {
                         "role": "system",
@@ -495,7 +518,7 @@ class RAGChatMap(MapFunction):
             # 3. Generate response using intelligent LLM client (L1)
             # 自动检测并使用最佳可用服务（本地 vLLM 或云端 API）
             try:
-                client = self._get_llm_client()
+                client = self._get_llm_client(model)
                 response = client.chat(messages, temperature=0.2, stream=False, model=model)
 
             except Exception as e:
@@ -528,7 +551,7 @@ class RAGChatMap(MapFunction):
             model: Specific model to use (optional)
         """
         try:
-            client = self._get_llm_client()
+            client = self._get_llm_client(model)
 
             # Build messages with memory context
             messages = []
