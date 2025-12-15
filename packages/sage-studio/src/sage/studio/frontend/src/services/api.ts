@@ -722,14 +722,15 @@ export async function sendChatMessage(
     onChunk: (chunk: string) => void,
     onError: (error: Error) => void,
     onComplete: () => void,
-    callbacks?: Partial<ChatMessageCallbacks>
+    callbacks?: Partial<ChatMessageCallbacks>,
+    model?: string
 ): Promise<void> {
     try {
         const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
-                model: 'sage-default',
+                model: model,
                 messages: [{ role: 'user', content: message }],
                 session_id: sessionId,
                 stream: true,
@@ -899,7 +900,7 @@ export async function sendChatMessageWithAgent(
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
-                model: options?.model || 'sage-default',
+                model: options?.model,
                 messages: [
                     ...(options?.systemPrompt ? [{ role: 'system', content: options.systemPrompt }] : []),
                     { role: 'user', content: message }

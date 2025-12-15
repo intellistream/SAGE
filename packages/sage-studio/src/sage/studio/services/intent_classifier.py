@@ -809,8 +809,12 @@ class IntentClassifier:
         """Initialize the LLM client."""
         try:
             from sage.common.components.sage_llm import UnifiedInferenceClient
+            from sage.common.config.ports import SagePorts
 
-            self._llm_client = UnifiedInferenceClient.create()
+            # Explicitly connect to local Gateway to avoid accidental cloud fallback
+            # The Gateway (port 8888) now supports /v1/models, so this is safe
+            gateway_url = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+            self._llm_client = UnifiedInferenceClient.create(control_plane_url=gateway_url)
             self._initialized = True
         except Exception as e:
             import logging

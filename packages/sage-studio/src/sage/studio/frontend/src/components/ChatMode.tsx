@@ -619,7 +619,8 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
                     onReasoningEnd: () => {
                         setMessageReasoning(sessionId, assistantMessageId, false)
                     },
-                }
+                },
+                llmStatus?.model_name // Pass the selected model
             )
         } catch (error) {
             console.error('Send message error:', error)
