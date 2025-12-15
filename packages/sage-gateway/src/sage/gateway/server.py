@@ -14,6 +14,7 @@ Key Features:
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -25,6 +26,7 @@ from sage.common.config.ports import SagePorts
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
 from sage.gateway.routes.control_plane import (
     control_plane_router,
+    get_control_plane_manager,
     init_control_plane,
     start_control_plane,
     stop_control_plane,
@@ -162,6 +164,42 @@ async def health():
         "status": "healthy",
         "sessions": stats,
     }
+
+
+@app.get("/v1/models")
+async def list_models():
+    """
+    OpenAI-compatible models endpoint.
+    Returns list of available models from Control Plane.
+    """
+    manager = get_control_plane_manager()
+    models = []
+
+    if manager:
+        # Get status which includes engines
+        status = manager.get_cluster_status()
+        engines = status.get("engines", []) or status.get("engine_instances", [])
+
+        seen_models = set()
+        for engine in engines:
+            # Support both dict and object access if needed, though usually dict here
+            if isinstance(engine, dict):
+                model_id = engine.get("model_id") or engine.get("model_name")
+            else:
+                model_id = getattr(engine, "model_id", None)
+
+            if model_id and model_id not in seen_models:
+                seen_models.add(model_id)
+                models.append(
+                    {
+                        "id": model_id,
+                        "object": "model",
+                        "created": int(time.time()),
+                        "owned_by": "sage",
+                    }
+                )
+
+    return {"object": "list", "data": models}
 
 
 @app.post("/v1/chat/completions")
