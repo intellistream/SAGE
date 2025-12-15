@@ -16,6 +16,7 @@
 | `locomo_ldagent_pipeline.yaml`           | LD-Agent    | HierarchicalMemory | STM+LTM + 话题重叠           |
 | `locomo_scm_pipeline.yaml`               | SCM         | NeuroMemVDB        | Memory Stream + Token Budget |
 | `locomo_mem0_pipeline.yaml`              | Mem0        | HybridMemory       | 事实库 + ADD/UPDATE/DELETE   |
+| `locomo_secom_pipeline.yaml`             | SeCom       | HierarchicalMemory | Segment 记忆 + 压缩去噪      |
 
 ### 论文变体版本
 
@@ -46,6 +47,7 @@ config/
 ├── locomo_scm_pipeline.yaml               # SCM
 ├── locomo_mem0_pipeline.yaml              # Mem0 (基础版)
 ├── locomo_mem0g_pipeline.yaml             # Mem0ᵍ (图记忆版)
+├── locomo_secom_pipeline.yaml             # SeCom
 └── [your_config].yaml                     # 用户自定义配置
 ```
 

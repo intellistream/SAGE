@@ -111,16 +111,20 @@ operators:
   pre_insert:
     # REQUIRED: 操作类型
     # - none: 直接透传
-    # - tri_embed: HippoRAG/TiM 三元组提取 + embedding
-    # - transform: 内容转换 (chunking, topic_segment, fact_extract, summarize, compress)
-    # - extract: 信息抽取 (keyword, entity, noun, persona, all)
-    # - score: 重要性评分 (importance, emotion)
-    # - multi_embed: 多维向量编码
-    # - scm_embed: [NEW] SCM 样式 - 同时保存原文、摘要、embedding
+    # - transform.chunking: 文本分块
+    # - transform.segment: 主题分段
+    # - transform.summarize: 摘要提取
+    # - extract.keyword: 关键词提取
+    # - extract.entity: 命名实体识别
+    # - extract.noun: 名词短语提取
+    # - extract.triple: 三元组提取（用于 TiM, HippoRAG, HippoRAG2）
+    # - score.importance: 重要性评分
+    # - score.heat: 热度评分
+    # - tri_embed: [DEPRECATED] 使用 extract.triple 代替
     action: "none"
 
-    # -------------------- tri_embed action --------------------
-    # REQUIRED when action=tri_embed
+    # -------------------- extract.triple action --------------------
+    # REQUIRED when action=extract.triple (或向后兼容的 tri_embed)
     triple_extraction_prompt: |
       Extract knowledge triples from the following conversation.
       Each triple should be in the format (subject, predicate, object).

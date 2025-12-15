@@ -1,7 +1,8 @@
 # ============================================================
-# MemGPT Pipeline 配置
+# MemGPT Agent Pipeline 配置 (Agent 版)
 # 论文: MemGPT: Towards LLMs as Operating Systems
-# 特点: Working Context + FIFO Queue + Recall Storage + Replace
+# 变体: MemGPT-agent - 带工具调用的 Agent 版本
+# 特点: 相比基础版 MemGPT，启用工具调用模式，LLM 可以主动调用记忆操作
 # ============================================================
 
 runtime:
@@ -9,7 +10,7 @@ runtime:
   memory_insert_verbose: false
   memory_test_verbose: true
   test_segments: 10
-  service_timeout: 120.0  # 服务调用超时（秒），MemGPT 需要 LLM 调用，设置更长超时
+  service_timeout: 180.0              # Agent 版需要更长超时（多轮工具调用）
 
   prompt_template: |
     Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
@@ -24,7 +25,7 @@ runtime:
   max_tokens: 512
   temperature: 0.3
   seed: 42
-  memory_name: "MemGPT"
+  memory_name: "MemGPT-Agent"
 
   # Embedding 配置
   embedding_base_url: "http://localhost:8091/v1"
@@ -32,6 +33,7 @@ runtime:
 
 # ============================================================
 # 服务配置
+# MemGPT-Agent 使用工具调用模式
 # ============================================================
 services:
   register_memory_service: "hierarchical_memory"
@@ -44,31 +46,66 @@ services:
       recall: 100                     # FIFO 队列
     migration_policy: "overflow"      # 溢出时迁移
     embedding_dim: 1024               # bge-m3 输出 1024 维向量
+    # 关键区别：启用工具调用模式
+    tool_use: true                    # Agent 版启用工具调用
   memory_retrieval_adapter: "none"
+
+# ============================================================
+# 工具配置（Agent 版特有）
+# MemGPT 论文定义的标准工具集
+# ============================================================
+tools:
+  enabled: true                       # 启用工具调用
+  tool_list:
+  - name: "core_memory_append"
+    description: "Append content to the core memory (working context)"
+    parameters:
+      content: "string"
+      name: "string (optional)"
+  - name: "core_memory_replace"
+    description: "Replace content in core memory"
+    parameters:
+      old_content: "string"
+      new_content: "string"
+  - name: "archival_memory_insert"
+    description: "Insert content into archival memory for long-term storage"
+    parameters:
+      content: "string"
+      metadata: "object (optional)"
+  - name: "archival_memory_search"
+    description: "Search archival memory for relevant content"
+    parameters:
+      query: "string"
+      top_k: "integer (default: 5)"
+  - name: "recall_memory_search"
+    description: "Search recent conversation history (recall memory)"
+    parameters:
+      query: "string"
+      top_k: "integer (default: 5)"
+  tool_choice: "auto"                 # LLM 自动决定是否调用工具
 
 # ============================================================
 # Operator 配置
 # ============================================================
 operators:
   # ----------------------------------------------------------
-  # PreInsert: 实体/事实抽取
-  # MemGPT 会从对话中提取关键事实存入 Working Context
+  # PreInsert: 实体/事实抽取（与基础版相同）
   # ----------------------------------------------------------
   pre_insert:
     action: "extract"
     extract_type: "entity"
-    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity extraction
+    spacy_model: "en_core_web_sm"
     entity_types: ["PERSON", "ORG", "LOC", "EVENT", "DATE"]
     add_to_metadata: true
 
   # ----------------------------------------------------------
-  # PostInsert: Replace 操作（更新旧事实）
-  # MemGPT 的核心是 replace(old, new)
+  # PostInsert: Replace 操作（与基础版相同）
+  # Agent 版的 replace 可以通过工具调用触发
   # ----------------------------------------------------------
   post_insert:
     action: "distillation"
     distillation_topk: 5
-    distillation_threshold:           # 不使用阈值，纯语义
+    distillation_threshold:
     distillation_prompt: |
       You are updating a knowledge base. Given a new fact and existing facts,
       determine if any existing fact should be REPLACED by the new one.
@@ -87,22 +124,26 @@ operators:
       Respond with JSON only:
 
   # ----------------------------------------------------------
-  # PreRetrieval: 关键词提取 + embedding
+  # PreRetrieval: 关键词提取 + embedding（与基础版相同）
   # ----------------------------------------------------------
   pre_retrieval:
     action: "optimize"
     optimize_type: "keyword_extract"
     extractor: "spacy"
-    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 keyword extraction
+    spacy_model: "en_core_web_sm"
     extract_types: ["NOUN", "PROPN"]
     max_keywords: 10
 
   # ----------------------------------------------------------
-  # PostRetrieval: 多次查询合并（Working + Recall + Archival）
+  # PostRetrieval: 多层查询合并 + 工具决策
+  # Agent 版可以通过工具调用进行额外的检索
   # ----------------------------------------------------------
   post_retrieval:
     action: "merge"
     merge_type: "multi_query"
+    # Agent 版特有：启用迭代式工具调用
+    enable_tool_iteration: true       # 允许 LLM 迭代调用工具
+    max_tool_iterations: 3            # 最多 3 次工具调用迭代
     secondary_queries:
     - query_template: "{question}"
       metadata: {tier: "core"}
@@ -110,3 +151,4 @@ operators:
       metadata: {tier: "recall"}
     conversation_format_prompt: |
       The following is the relevant context from memory.
+      You can use tools to search for more information if needed.

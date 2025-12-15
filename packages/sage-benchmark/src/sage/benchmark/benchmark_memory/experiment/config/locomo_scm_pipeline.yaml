@@ -119,3 +119,61 @@ operators:
       The following is a conversation between a user and an AI assistant. Please answer the current question based on the history of the conversation:
 
       Related conversation history:
+
+# ============================================================
+# SCM (Self-Controlled Memory) 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. Memory Stream: 大容量短期记忆流
+#   2. Token Budget: 上下文长度限制管理
+#   3. 三元决策: drop / summary / raw（每条记忆）
+#   4. 同时存储原文和摘要: 灵活选择使用哪个版本
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 SCM 操作         │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Dual Storage          │ scm_embed    │
+# │  - 原文存储        │ 保存原始对话          │ raw_text     │
+# │  - 摘要生成        │ 超过阈值生成摘要      │ summarize    │
+# │  - 向量化          │ embedding 原文        │ BGE-M3       │
+# │  - Token 计数      │ 判断是否需要摘要      │ threshold    │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Stream Insert         │ ShortTermMem │
+# │  - 大容量 STM      │ max_dialog=1000       │ Memory Stream│
+# │  - 同时存储        │ raw + summary         │ metadata     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ None                  │ none         │
+# │  - 无后处理        │ SCM 不做插入优化      │              │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding       │ embedding    │
+# │  - 查询向量化      │ 用于相似度检索        │ BGE-M3       │
+# │  - 检索范围        │ [0, 上一轮)           │ exclude_last │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Similar Top-k         │ ShortTermMem │
+# │  - 向量检索        │ 相似度排序            │ top_k=6      │
+# │  - 排除上一轮      │ 上一轮直接拼接        │ auto-exclude │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Three-way Decision    │ scm_three_way│
+# │  - Token Budget    │ max_history=2500      │ token_limit  │
+# │  - LLM 判断        │ (A) Yes = raw         │ judge_prompt │
+# │  - LLM 判断        │ (B) No → drop/summary │ judge_prompt │
+# │  - 上一轮直接加    │ 最近对话不判断        │ append_last  │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - max_dialog=1000: Memory Stream 容量
+#   - retrieval_top_k=6: SCM 论文默认值
+#   - summary_threshold=300: 超过 300 token 生成摘要
+#   - max_history_tokens=2500: SCM 默认 context budget
+#   - max_pre_turn_tokens=500: 上一轮最大 token 数
+#
+# 与论文的差异：
+#   1. 论文使用 CharacterTextSplitter 分词，SAGE 使用 char 计数
+#   2. SAGE 的 judge_prompt 直接采用论文原始 prompt
+#   3. SAGE 支持配置化的 token budget 和阈值
+#   4. SAGE 增加了 scm_embed 和 scm_three_way 专用算子
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_scm_pipeline.yaml --task_id conv-26

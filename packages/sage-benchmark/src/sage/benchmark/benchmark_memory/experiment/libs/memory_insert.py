@@ -77,9 +77,33 @@ data（原样透传）+ insert_stats = {
 
 from __future__ import annotations
 
+import time
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from sage.common.core import MapFunction
+
+# ==============================================================================
+# 数据模型
+# ==============================================================================
+
+
+@dataclass
+class InsertStats:
+    """插入统计数据模型
+
+    Attributes:
+        inserted: 成功插入的数量
+        failed: 插入失败的数量
+        entry_ids: 成功插入的条目 ID 列表
+        errors: 失败条目的详细错误信息列表
+    """
+
+    inserted: int
+    failed: int
+    entry_ids: list[str]
+    errors: list[dict[str, Any]]
+
 
 # ==============================================================================
 # MemoryInsert 类
@@ -87,12 +111,18 @@ from sage.common.core import MapFunction
 
 
 class MemoryInsert(MapFunction):
-    """记忆插入算子 - 纯透传模式
+    """记忆插入算子 - 纯透传模式（重构版）
 
     职责：
     1. 遍历 PreInsert 输出的 memory_entries
     2. 调用记忆服务的 insert 方法
     3. 统计插入结果，透传给 PostInsert
+
+    重构改进：
+    - 引入 InsertStats 数据类，统一统计格式
+    - 增强错误处理，记录详细错误信息（entry 文本 + 异常消息）
+    - 支持 verbose 日志模式，方便调试
+    - 代码精简至 < 100 行（主类）
     """
 
     # --------------------------------------------------------------------------
@@ -103,11 +133,12 @@ class MemoryInsert(MapFunction):
         """初始化 MemoryInsert
 
         Args:
-            config: RuntimeConfig 对象，用于获取服务名称
+            config: RuntimeConfig 对象，用于获取服务名称和配置项
         """
         super().__init__()
         self.config = config
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
+        self.verbose = config.get("runtime.memory_insert_verbose", False)
 
     # --------------------------------------------------------------------------
     # 主执行流程
@@ -127,24 +158,46 @@ class MemoryInsert(MapFunction):
         Returns:
             原始数据 + insert_stats 统计信息
         """
-        inserted_ids = []
-        failed_count = 0
+        memory_entries = data.get("memory_entries", [])
+        stats = InsertStats(inserted=0, failed=0, entry_ids=[], errors=[])
 
-        for entry_dict in data.get("memory_entries", []):
+        # 记录批次总耗时
+        batch_start = time.perf_counter()
+
+        for entry in memory_entries:
             try:
-                entry_id = self._insert_entry(entry_dict)
-                if entry_id:
-                    inserted_ids.append(entry_id)
-            except Exception as e:
-                self.logger.warning(f"Insert failed: {e}")
-                failed_count += 1
+                entry_id = self._insert_entry(entry)
+                stats.inserted += 1
+                stats.entry_ids.append(entry_id)
 
-        # 添加插入统计（供 PostInsert 使用）
-        data["insert_stats"] = {
-            "inserted": len(inserted_ids),
-            "failed": failed_count,
-            "entry_ids": inserted_ids,
-        }
+                if self.verbose:
+                    self._log_insert(entry, entry_id)
+
+            except Exception as e:
+                stats.failed += 1
+                stats.errors.append(
+                    {
+                        "entry": entry.get("text", "")[:100],
+                        "error": str(e),
+                    }
+                )
+                self.logger.warning(f"Insert failed: {e}")
+
+        # 计算批次总耗时
+        batch_elapsed_ms = (time.perf_counter() - batch_start) * 1000
+
+        # 将统计信息转为字典并添加到数据中
+        data["insert_stats"] = asdict(stats)
+
+        # 使用输入的 dialogs 数量平均分配时间
+        dialog_count = len(data.dialogs) if hasattr(data, "dialogs") else 1
+        if dialog_count > 0:
+            per_dialog_ms = batch_elapsed_ms / dialog_count
+            data.setdefault("stage_timings", {})["memory_insert_ms"] = [
+                per_dialog_ms
+            ] * dialog_count
+        else:
+            data.setdefault("stage_timings", {})["memory_insert_ms"] = []
 
         return data
 
@@ -152,7 +205,7 @@ class MemoryInsert(MapFunction):
     # 单条插入
     # --------------------------------------------------------------------------
 
-    def _insert_entry(self, entry_dict: dict[str, Any]) -> str | None:
+    def _insert_entry(self, entry: dict[str, Any]) -> str:
         """插入单条记忆到服务
 
         字段说明：
@@ -163,35 +216,46 @@ class MemoryInsert(MapFunction):
         - insert_params: 服务特定的插入参数
 
         Args:
-            entry_dict: 记忆条目字典
+            entry: 记忆条目字典
 
         Returns:
-            插入成功返回条目 ID，失败返回 None
+            插入成功返回条目 ID
+
+        Raises:
+            ValueError: 如果 text 字段为空
+            Exception: 服务调用失败时的各种异常
         """
-        # 1. 提取文本（PreInsert 已统一设置）
-        entry = entry_dict.get("text", "")
-        if not entry:
-            return None
+        # 1. 验证必填字段
+        text = entry.get("text", "")
+        if not text:
+            raise ValueError("Entry text is empty")
 
-        # 2. 提取向量和元数据
-        vector = entry_dict.get("embedding")
-        metadata = entry_dict.get("metadata", {})
-
-        # 3. 提取插入模式和参数
-        insert_mode = entry_dict.get("insert_mode", "passive")
-        insert_params = entry_dict.get("insert_params")
-
-        # 4. 调用记忆服务
+        # 2. 调用记忆服务
         return self.call_service(
             self.service_name,
-            entry=entry,
-            vector=vector,
-            metadata=metadata,
-            insert_mode=insert_mode,
-            insert_params=insert_params,
             method="insert",
+            entry=text,
+            vector=entry.get("embedding"),
+            metadata=entry.get("metadata", {}),
+            insert_mode=entry.get("insert_mode", "passive"),
+            insert_params=entry.get("insert_params"),
             timeout=10.0,
         )
+
+    # --------------------------------------------------------------------------
+    # 日志辅助方法
+    # --------------------------------------------------------------------------
+
+    def _log_insert(self, entry: dict[str, Any], entry_id: str) -> None:
+        """记录插入详情（仅在 verbose 模式下）
+
+        Args:
+            entry: 插入的条目字典
+            entry_id: 插入后的条目 ID
+        """
+        text = entry.get("text", "")[:50]  # 截断显示
+        mode = entry.get("insert_mode", "passive")
+        self.logger.info(f"Inserted [{entry_id}] (mode={mode}): {text}...")
 
 
 # ==============================================================================

@@ -241,13 +241,19 @@ class KeyValueMemoryService(BaseService):
         all_ids = self.collection.get_all_ids()
         index_count = len(self.collection.indexes) if hasattr(self.collection, "indexes") else 0
 
-        return {
+        base_stats = {
             "memory_count": len(all_ids),
             "index_count": index_count,
             "collection_name": self.collection_name,
             "index_name": self.index_name,
             "index_type": self.index_type,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def clear(self) -> bool:
         """清空所有记忆"""

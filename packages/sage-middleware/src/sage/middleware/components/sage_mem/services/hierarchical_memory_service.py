@@ -985,13 +985,19 @@ class HierarchicalMemoryService(BaseService):
                 "capacity": self.tier_capacities.get(tier_name, -1),
             }
 
-        return {
+        base_stats = {
             "memory_count": sum(self._tier_counts.values()),
             "tier_mode": self.tier_mode,
             "tier_distribution": tier_stats,
             "migration_policy": self.migration_policy,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def get_tier_stats(self) -> dict[str, dict]:
         """获取各层统计信息"""

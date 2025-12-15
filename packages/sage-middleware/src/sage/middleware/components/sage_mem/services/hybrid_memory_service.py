@@ -571,10 +571,16 @@ class HybridMemoryService(BaseService):
                 "count": self.collection.get_index_count(idx_name),
             }
 
-        return {
+        base_stats = {
             "memory_count": len(self.collection.get_all_ids()),
             "fusion_strategy": self.fusion_strategy,
             "index_count": len(self.index_configs),
             "indexes": index_stats,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats

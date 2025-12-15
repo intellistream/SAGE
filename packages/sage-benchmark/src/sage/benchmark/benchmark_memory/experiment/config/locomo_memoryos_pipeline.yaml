@@ -113,3 +113,59 @@ operators:
       metadata: {tier: "lpm", type: "persona"}
     conversation_format_prompt: |
       The following is relevant context from different memory tiers.
+
+# ============================================================
+# MemoryOS 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. 三层架构：STM (FIFO) → MTM (Segment-Page) → LPM (Persona)
+#   2. Heat Score：基于访问频率、交互长度、时间衰减
+#   3. 热度迁移：高热记忆升级，低热记忆降级或淘汰
+#   4. Segment 聚类：MTM 中按主题将对话分组
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 MemoryOS 操作   │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Importance Scoring   │ score        │
+# │  - 重要性评分      │ 用于 Heat 计算       │ LLM Prompt   │
+# │  - 元数据标注      │ 添加 importance      │ metadata     │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Multi-tier Insert    │ Hierarchical │
+# │  - STM 追加        │ 先进入短期记忆       │ stm tier     │
+# │  - 自动分配层级    │ 被动插入             │ tier_mode    │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Heat-based Migration │ migrate      │
+# │  - 计算 Heat Score │ Nvisit + Linteract + │ heat policy  │
+# │                    │ Rrecency             │              │
+# │  - STM→MTM 升级    │ heat > 0.7           │ threshold    │
+# │  - MTM→LPM 升级    │ 提取 Persona/KB      │ persona      │
+# │  - 低热淘汰        │ heat < 0.3 删除      │ cold_thresh  │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Keyword Extraction   │ optimize     │
+# │  - 名词提取        │ 用于 Fscore 计算     │ spacy        │
+# │  - 话题识别        │ Jaccard 相似度       │ NOUN/PROPN   │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Two-stage Search     │ Hierarchical │
+# │  - Segment 选择    │ 按 Fscore 选 top-m   │ Fscore       │
+# │  - Page 检索       │ Segment 内相似度     │ FAISS        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Multi-tier Merge     │ merge        │
+# │  - 三层合并        │ STM + MTM + LPM      │ multi_query  │
+# │  - Persona 增强    │ 添加用户画像         │ persona      │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - tier_mode="three_tier": 三层架构
+#   - heat_threshold=0.7: 高热升级阈值
+#   - cold_threshold=0.3: 低热淘汰阈值
+#   - tier_capacities: {stm:20, mtm:200, lpm:-1}
+#
+# 与论文的差异：
+#   1. 论文使用 Fscore (语义+关键词)，SAGE 简化为关键词提取
+#   2. SAGE 的 Heat Score 计算简化（只考虑访问次数和时间）
+#   3. SAGE 使用 BGE-M3 embedding，论文可能用其他编码器
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_memoryos_pipeline.yaml --task_id conv-26

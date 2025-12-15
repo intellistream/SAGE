@@ -1217,18 +1217,24 @@ class GraphMemoryService(BaseService):
     def get_stats(self) -> dict[str, Any]:
         """获取统计信息"""
         if self.index_name not in self.collection.indexes:
-            return {
+            base_stats = {
                 "memory_count": 0,
                 "edges_count": 0,
                 "graph_type": self.graph_type,
                 "collection_name": self.collection_name,
             }
+        else:
+            index = self.collection.indexes[self.index_name]
+            base_stats = {
+                "memory_count": len(index.nodes),
+                "edges_count": sum(len(edges) for edges in index.adjacency.values()),
+                "graph_type": self.graph_type,
+                "collection_name": self.collection_name,
+                "index_name": self.index_name,
+            }
 
-        index = self.collection.indexes[self.index_name]
-        return {
-            "memory_count": len(index.nodes),
-            "edges_count": sum(len(edges) for edges in index.adjacency.values()),
-            "graph_type": self.graph_type,
-            "collection_name": self.collection_name,
-            "index_name": self.index_name,
-        }
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats

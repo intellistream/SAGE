@@ -66,7 +66,7 @@ operators:
   # Mem0ᵍ 会抽取实体和关系用于构建知识图谱
   # ----------------------------------------------------------
   pre_insert:
-    action: "tri_embed"               # 使用三元组抽取（比 extract 更完整）
+    action: "extract.triple"          # 使用三元组抽取（比 entity 更完整）
     triple_extraction_prompt: |
       You are a knowledge graph builder. Extract factual triples from the dialogue.
       Focus on entities (people, organizations, locations) and their relationships.
@@ -122,3 +122,86 @@ operators:
     top_k: 10
     conversation_format_prompt: |
       The following is relevant context retrieved from memory.
+
+# ============================================================
+# Mem0ᵍ 复现说明（图记忆版）
+# ============================================================
+# 论文核心特性（图版）：
+#   1. ADD/UPDATE/DELETE 决策（与基础版相同）
+#   2. **图索引支持**：增加实体关系检索（与基础版的关键区别）
+#   3. **三重索引**：向量 + BM25 + 知识图谱
+#   4. **实体抽取**：识别实体并建立关系链接
+#   5. **混合检索**：融合三种检索结果（加权融合）
+#
+# SAGE 实现方式：
+# ┌───────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 Mem0ᵍ 操作        │ 实现组件     │
+# ├───────────────────────────────────────────────────────────┤
+# │ PreInsert          │ **Triple Extraction**  │ extract.triple│
+# │  - 实体识别          │ 识别实体节点            │ NER/LLM      │
+# │  - 关系抽取          │ 抽取实体间关系          │ Relation Ex  │
+# │  - 三元组生成        │ (Subject, Pred, Obj)   │ LLM Prompt   │
+# ├───────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Hybrid Insert          │ HybridMemory │
+# │  - **向量索引**      │ 语义相似度检索          │ Vector Index │
+# │  - **关键词索引**    │ BM25 文本匹配          │ BM25 Index   │
+# │  - **图索引**        │ 实体关系检索（新增）    │ Graph Index  │
+# ├───────────────────────────────────────────────────────────┤
+# │ PostInsert         │ ADD/UPDATE/DELETE      │ distillation │
+# │  - 检索相似记忆      │ topk=10 相似事实       │ hybrid search│
+# │  - LLM 决策          │ 判断操作类型            │ LLM Prompt   │
+# │  - 执行操作          │ 更新/删除/保留          │ Service      │
+# │  - **实体链接**      │ 建立实体间关系（新增）  │ Entity Link  │
+# ├───────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Processing       │ embedding    │
+# │  - 查询向量化        │ 用于向量检索            │ BGE-M3       │
+# │  - **实体识别**      │ 识别查询中的实体（新增）│ NER          │
+# ├───────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ **Hybrid Retrieval**   │ HybridMemory │
+# │  - **向量检索**      │ 语义相似度 (权重 0.5)  │ Vector Search│
+# │  - **关键词检索**    │ BM25 匹配 (权重 0.2)   │ BM25 Search  │
+# │  - **图检索**        │ 实体关系 (权重 0.3)    │ Graph Search │
+# │  - **结果融合**      │ 加权融合三种结果        │ Weighted Fuse│
+# ├───────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Context Integration    │ none         │
+# │  - 基础格式化        │ 拼接为 prompt          │ 默认格式     │
+# └───────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   graph_enabled: true             # 启用图索引（与基础版的核心区别）
+#   entity_extraction: true         # 启用实体抽取
+#   relation_extraction: true       # 启用关系抽取
+#   indexes:                        # 三重索引配置
+#     - semantic (vector, 权重 0.5)
+#     - keyword (BM25, 权重 0.2)
+#     - entity_graph (graph, 权重 0.3)  # 新增
+#   fusion_strategy: "weighted"     # 加权融合策略
+#   triple_extraction_prompt        # 三元组抽取 prompt
+#
+# 与 Mem0 基础版的差异：
+#   1. **索引类型**：基础版仅 vector+BM25，图版增加 graph 索引
+#   2. **PreInsert**：基础版用 extract.entity，图版用 extract.triple（更完整）
+#   3. **实体链接**：图版在 PostInsert 时建立实体间关系
+#   4. **检索策略**：图版融合三种检索结果，基础版仅两种
+#   5. **适用场景**：图版更适合实体密集的对话（人名、地点等）
+#   → 优势：能通过实体关系找到间接相关的记忆
+#   → 代价：需要额外的实体抽取和图索引维护开销
+#
+# 实体关系检索示例：
+#   查询: "Sarah 的妈妈喜欢什么？"
+#   1. 向量检索：找到包含 "Sarah" 和 "妈妈" 的记忆
+#   2. 关键词检索：匹配 "喜欢" 关键词
+#   3. **图检索**：
+#      - 识别实体: Sarah, 妈妈
+#      - 遍历关系: Sarah -[has_mom]-> 妈妈 -[likes]-> ?
+#      - 找到答案: 妈妈 -[likes]-> 绘画
+#   4. 融合结果: 0.5*向量分数 + 0.2*BM25分数 + 0.3*图分数
+#
+# 与论文的差异：
+#   - 论文使用 Neo4j 等专业图数据库，SAGE 使用轻量级 igraph
+#   - 论文支持更复杂的实体链接算法，SAGE 使用基于相似度的简化版
+#   - 图索引权重 (0.3) 是经验值，论文中可能需要根据任务调整
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_mem0g_pipeline.yaml --task_id conv-26

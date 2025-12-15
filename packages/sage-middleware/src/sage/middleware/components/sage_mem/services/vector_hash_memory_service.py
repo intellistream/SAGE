@@ -249,9 +249,15 @@ class VectorHashMemoryService(BaseService):
 
     def get_stats(self) -> dict[str, Any]:
         """获取统计信息"""
-        return {
+        base_stats = {
             "memory_count": len(self._id_to_text),
             "dim": self.dim,
             "nbits": self.nbits,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
