@@ -43,10 +43,10 @@ class MemorySink(SinkFunction):
         self.test_results = []
 
         # 分离存储两种 timing 数据
-        self.all_insert_timings = []  # 插入阶段：每个 dialog 的 timing
-        self.all_test_timings = []  # 检索阶段：每次测试的平均 timing
+        self.all_insert_timings = []  # 插入阶段：每个 dialog 的 timing（214条）
+        self.all_test_timings = []  # 检索阶段：每次测试的 timing（10次测试）
 
-        # 收集记忆体统计数据
+        # 收集记忆体统计数据（每次测试一条）
         self.all_memory_stats = []
 
         # 初始化 DataLoader（用于获取统计信息）
@@ -192,15 +192,14 @@ class MemorySink(SinkFunction):
         # 从 DataLoader 获取数据集统计信息
         dataset_stats = self.loader.get_dataset_statistics(task_id)
 
-        # 分别计算 insert 和 test 的 timing_summary
-        insert_timing_summary = self._calculate_timing_summary(self.all_insert_timings)
-        test_timing_summary = self._calculate_timing_summary(self.all_test_timings)
+        # 构造新的 timing_summary 格式
+        timing_summary = {
+            "insert_timings": self._format_insert_timings(),  # pre_insert, memory_insert, post_insert 的详细统计
+            "retrieval_timings": self._format_retrieval_timings(),  # pre_retrieval, memory_retrieval, post_retrieval 的详细统计
+        }
 
-        # 合并 timing_summary
-        timing_summary = {**insert_timing_summary, **test_timing_summary}
-
-        # 计算 memory_summary（保留原始的 10 条记录）
-        memory_summary = self.all_memory_stats  # 不再计算平均值，直接使用列表
+        # 格式化 memory_snapshots（按 test_index 组织）
+        memory_snapshots = self._format_memory_snapshots()
 
         # 构造输出 JSON 结构
         output_data = {
@@ -214,9 +213,9 @@ class MemorySink(SinkFunction):
                 "test_segments": self.test_segments,
                 "test_threshold": f"1/{self.test_segments} of total questions",
             },
-            "timing_summary": timing_summary,
-            "memory_snapshots": memory_summary,  # 改名为 memory_snapshots，表示每次测试的快照列表
             "test_results": self._format_test_results(self.test_results),
+            "timing_summary": timing_summary,
+            "memory_snapshots": memory_snapshots,
         }
 
         # 保存为 JSON
@@ -283,40 +282,32 @@ class MemorySink(SinkFunction):
 
         return formatted_results
 
-    def _calculate_timing_summary(
-        self, all_timings: list[dict[str, float]]
-    ) -> dict[str, dict[str, float]]:
-        """计算各阶段的平均、最大、最小耗时
-
-        Args:
-            all_timings: 所有测试的时间数据列表
-                - 插入阶段：列表（每个对话的耗时）
-                - 检索阶段：float（每个问题的耗时）
+    def _format_insert_timings(self) -> dict:
+        """格式化插入阶段的 timing 统计
 
         Returns:
-            dict: 按阶段组织的统计数据
+            dict: 包含总统计和每条记录的详细统计
+            {
+                "summary": {
+                    "pre_insert_ms": {"avg": ..., "min": ..., "max": ..., "count": 214},
+                    "memory_insert_ms": {...},
+                    "post_insert_ms": {...}
+                },
+                "details": [
+                    {"pre_insert_ms": 0.01, "memory_insert_ms": 3.2, "post_insert_ms": 0.02},
+                    ...  # 214条记录
+                ]
+            }
         """
-        if not all_timings:
-            return {}
+        if not self.all_insert_timings:
+            return {"summary": {}, "details": []}
 
-        # 收集所有阶段的时间数据
-        stage_data = {}
-        for timing in all_timings:
-            for stage_name, elapsed_ms in timing.items():
-                if stage_name not in stage_data:
-                    stage_data[stage_name] = []
-
-                # 处理两种格式
-                if isinstance(elapsed_ms, list):
-                    # 插入阶段：展开列表，统计所有对话
-                    stage_data[stage_name].extend(elapsed_ms)
-                else:
-                    # 检索阶段：直接添加
-                    stage_data[stage_name].append(elapsed_ms)
-
-        # 计算统计数据
+        # 计算总统计
         summary = {}
-        for stage_name, values in stage_data.items():
+        stage_names = ["pre_insert_ms", "memory_insert_ms", "post_insert_ms"]
+
+        for stage_name in stage_names:
+            values = [timing.get(stage_name, 0) for timing in self.all_insert_timings]
             if values:
                 summary[stage_name] = {
                     "avg_ms": sum(values) / len(values),
@@ -325,55 +316,74 @@ class MemorySink(SinkFunction):
                     "count": len(values),
                 }
 
-        return summary
-
-    def _calculate_memory_summary(self, all_stats: list[dict]) -> dict:
-        """计算存储统计的平均值
-
-        Args:
-            all_stats: 所有测试点的记忆体统计数据
-
-        Returns:
-            dict: 存储统计汇总
-        """
-        if not all_stats:
-            return {}
-
-        # 提取 storage 字段
-        storage_data = []
-        for stats in all_stats:
-            if "storage" in stats:
-                storage_data.append(stats["storage"])
-
-        if not storage_data:
-            return {}
-
-        # 计算平均值
-        total_entries_sum = sum(s.get("total_entries", 0) for s in storage_data)
-        total_size_sum = sum(s.get("total_size_bytes", 0) for s in storage_data)
-
-        avg_entries = total_entries_sum / len(storage_data)
-        avg_size = total_size_sum / len(storage_data)
-
-        # 获取最后一个测试点的值作为 final 值
-        final_stats = storage_data[-1]
-
         return {
-            "total_entries": {
-                "avg": avg_entries,
-                "final": final_stats.get("total_entries", 0),
-            },
-            "total_size_bytes": {
-                "avg": avg_size,
-                "final": final_stats.get("total_size_bytes", 0),
-            },
-            "total_size_human": self._format_bytes(final_stats.get("total_size_bytes", 0)),
+            "summary": summary,
+            "details": self.all_insert_timings,  # 214条记录
         }
 
-    def _format_bytes(self, bytes_val: float) -> str:
-        """格式化字节数为人类可读格式"""
-        for unit in ["B", "KB", "MB", "GB"]:
-            if bytes_val < 1024.0:
-                return f"{bytes_val:.2f} {unit}"
-            bytes_val /= 1024.0
-        return f"{bytes_val:.2f} TB"
+    def _format_retrieval_timings(self) -> dict:
+        """格式化检索阶段的 timing 统计
+
+        Returns:
+            dict: 包含总统计和每次测试的详细统计
+            {
+                "summary": {
+                    "pre_retrieval_ms": {"avg": ..., "min": ..., "max": ..., "count": 10},
+                    "memory_retrieval_ms": {...},
+                    "post_retrieval_ms": {...}
+                },
+                "details": [
+                    {"test_index": 1, "pre_retrieval_ms": 0.03, "memory_retrieval_ms": 4.2, "post_retrieval_ms": 0.18},
+                    ...  # 10条记录
+                ]
+            }
+        """
+        if not self.all_test_timings:
+            return {"summary": {}, "details": []}
+
+        # 计算总统计
+        summary = {}
+        stage_names = ["pre_retrieval_ms", "memory_retrieval_ms", "post_retrieval_ms"]
+
+        for stage_name in stage_names:
+            values = [timing.get(stage_name, 0) for timing in self.all_test_timings]
+            if values:
+                summary[stage_name] = {
+                    "avg_ms": sum(values) / len(values),
+                    "min_ms": min(values),
+                    "max_ms": max(values),
+                    "count": len(values),
+                }
+
+        # 格式化详细记录（添加 test_index）
+        details = []
+        for idx, timing in enumerate(self.all_test_timings, start=1):
+            detail = {"test_index": idx}
+            detail.update(timing)
+            details.append(detail)
+
+        return {
+            "summary": summary,
+            "details": details,  # 10条记录
+        }
+
+    def _format_memory_snapshots(self) -> list[dict]:
+        """格式化内存快照（按 test_index 组织）
+
+        Returns:
+            list: 每次测试的内存快照
+            [
+                {"test_index": 1, "memory_count": 5, "max_capacity": 5, ...},
+                ...  # 10条记录
+            ]
+        """
+        if not self.all_memory_stats:
+            return []
+
+        snapshots = []
+        for idx, stats in enumerate(self.all_memory_stats, start=1):
+            snapshot = {"test_index": idx}
+            snapshot.update(stats)
+            snapshots.append(snapshot)
+
+        return snapshots
