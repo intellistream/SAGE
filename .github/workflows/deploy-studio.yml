@@ -510,8 +510,9 @@ jobs:
         run: |
           echo "🛑 停止现有服务（准备重启）..."
 
-          # 按反向依赖顺序停止
-          for svc in sage-frontend sage-gateway sage-embedding sage-llm; do
+          # 仅停止 Studio 相关服务 (Frontend + Gateway)
+          # 注意：不停止 LLM/Embedding 服务，以保持基础设施运行
+          for svc in sage-frontend sage-gateway; do
             if systemctl is-active --quiet $svc 2>/dev/null; then
               echo "停止 $svc..."
               sudo systemctl stop $svc || true
@@ -520,15 +521,13 @@ jobs:
             fi
           done
 
-          # 释放 GPU 显存 - 使用 sudo 确保有权限杀死所有相关进程
-          echo "🧹 清理 GPU 显存..."
-          # 只杀当前用户的进程，避免权限问题
-          pkill -u $(whoami) -f "vllm" 2>/dev/null || true
-          pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
-          # 如果有残留的其他用户进程，使用 sudo（可能是之前的服务残留）
-          sudo pkill -f "vllm.entrypoints" 2>/dev/null || true
-          sudo pkill -f "sage_embedding.embedding_server" 2>/dev/null || true
-          sleep 3
+          # 释放 GPU 显存 - 仅在需要时手动执行
+          # echo "🧹 清理 GPU 显存..."
+          # pkill -u $(whoami) -f "vllm" 2>/dev/null || true
+          # pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+          # sudo pkill -f "vllm.entrypoints" 2>/dev/null || true
+          # sudo pkill -f "sage_embedding.embedding_server" 2>/dev/null || true
+          # sleep 3
 
           # 显示 GPU 状态
           if command -v nvidia-smi &> /dev/null; then
@@ -536,7 +535,7 @@ jobs:
             nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
           fi
 
-          echo "✅ 服务已停止，GPU 显存已释放"
+          echo "✅ Studio 服务已停止"
 
       - name: Start services
         run: |
