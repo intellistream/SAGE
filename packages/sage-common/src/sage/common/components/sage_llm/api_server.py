@@ -382,12 +382,18 @@ class LLMAPIServer:
         # For local vLLM server, we do NOT pass --api-key to disable authentication
         # vLLM docs: "If provided, the server will require this key" (i.e., no key = no auth)
         # Users can enable auth by setting VLLM_API_KEY environment variable
+        # NOTE: We only enable auth if explicitly requested or for specific models (e.g. Pangu)
         api_key = os.getenv("VLLM_API_KEY")
-        if api_key:
+        is_pangu = "pangu" in self.config.model.lower()
+
+        if api_key and is_pangu:
             cmd.extend(["--api-key", api_key])
-            logger.info("🔐 启用 vLLM 认证 (API key from VLLM_API_KEY)")
+            logger.info("🔐 启用 vLLM 认证 (Pangu model detected)")
+        elif api_key and os.getenv("SAGE_LLM_FORCE_AUTH", "false").lower() == "true":
+            cmd.extend(["--api-key", api_key])
+            logger.info("🔐 启用 vLLM 认证 (SAGE_LLM_FORCE_AUTH=true)")
         else:
-            logger.info("🔓 禁用 vLLM 认证 (no --api-key parameter)")
+            logger.info("🔓 禁用 vLLM 认证 (Standard local model)")
 
         # Add extra args
         for key, value in self.config.extra_args.items():
