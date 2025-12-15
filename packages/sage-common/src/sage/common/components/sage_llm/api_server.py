@@ -216,6 +216,28 @@ class LLMAPIServer:
         self.pid: int | None = None
         self.log_file: Path | None = None
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+    def _resolve_health_host(self) -> str:
+        """Return a concrete host that can be used for local health checks."""
+        host = self.config.host or "127.0.0.1"
+        if host in {"0.0.0.0", "::", "", "*"}:
+            return "127.0.0.1"
+        return host
+
+    def _format_host_for_url(self, host: str) -> str:
+        """Wrap IPv6 literals so requests/urls remain valid."""
+        if ":" in host and not host.startswith("["):
+            return f"[{host}]"
+        return host
+
+    def _health_url(self, path: str = "/health") -> str:
+        """Build a health-check URL that respects bound host/port settings."""
+        host = self._format_host_for_url(self._resolve_health_host())
+        normalized_path = path if path.startswith("/") else f"/{path}"
+        return f"http://{host}:{self.config.port}{normalized_path}"
+
     def start(self, background: bool = True, log_file: Path | None = None) -> bool:
         """Start the LLM API server
 
@@ -499,8 +521,7 @@ class LLMAPIServer:
             return False
 
         try:
-            url = f"http://{self.config.host}:{self.config.port}/health"
-            response = requests.get(url, timeout=2)
+            response = requests.get(self._health_url("/health"), timeout=2)
             return response.status_code == 200
         except Exception:
             return False
@@ -535,10 +556,11 @@ class LLMAPIServer:
         """
         logger.info(f"Waiting for LLM API server to be ready (timeout: {timeout}s)...")
         logger.info("Note: First-time model download may take 5-10 minutes for 7B models")
-        logger.info(f"Health check URL: http://127.0.0.1:{self.config.port}/health")
+        health_url = self._health_url("/health")
+        logger.info(f"Health check URL: {health_url}")
         logger.info(f"Log file: {self.log_file}")
 
-        url = f"http://127.0.0.1:{self.config.port}/health"
+        url = health_url
         start_time = time.time()
         attempt = 0
 
@@ -607,9 +629,14 @@ class LLMAPIServer:
         """Check if the port is open"""
         import socket
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            result = sock.connect_ex(("127.0.0.1", self.config.port))
-            return result == 0
+        try:
+            with socket.create_connection(
+                (self._resolve_health_host(), self.config.port),
+                timeout=1.0,
+            ):
+                return True
+        except OSError:
+            return False
 
     def __enter__(self):
         """Context manager support"""
