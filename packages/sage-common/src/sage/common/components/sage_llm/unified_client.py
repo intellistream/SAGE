@@ -674,6 +674,8 @@ class UnifiedInferenceClient:
         embedded: bool = False,
         default_llm_model: str | None = None,
         default_embedding_model: str | None = None,
+        llm_api_key: str | None = None,
+        embedding_api_key: str | None = None,
         scheduling_policy: str = "adaptive",
         timeout: float = 60.0,
         prefer_local: bool = True,
@@ -750,10 +752,10 @@ class UnifiedInferenceClient:
         # Determine endpoints based on mode
         llm_base_url: str | None = None
         llm_model: str | None = default_llm_model
-        llm_api_key: str = ""
+        llm_api_key = llm_api_key or ""
         embedding_base_url: str | None = None
         embedding_model: str | None = default_embedding_model
-        embedding_api_key: str = ""
+        embedding_api_key = embedding_api_key or ""
 
         if control_plane_url:
             # Use external Control Plane URL for both LLM and Embedding
@@ -951,7 +953,8 @@ class UnifiedInferenceClient:
                 base_url = f"http://localhost:{port}/v1"
                 if cls._check_endpoint_health(base_url):
                     logger.info("Found local LLM server at %s", base_url)
-                    return (base_url, None, "")
+                    model_name = cls._fetch_model_name(base_url)
+                    return (base_url, model_name, "")
 
         # Fall back to cloud API (DashScope)
         if not ignore_cloud_fallback:
@@ -1003,7 +1006,8 @@ class UnifiedInferenceClient:
                 base_url = f"http://localhost:{port}/v1"
                 if cls._check_endpoint_health(base_url, endpoint_type="embedding"):
                     logger.info("Found local Embedding server at %s", base_url)
-                    return (base_url, None, "")
+                    model_name = cls._fetch_model_name(base_url)
+                    return (base_url, model_name, "")
 
         if not ignore_cloud_fallback:
             # Fall back to cloud API (DashScope) - Embedding
@@ -1065,6 +1069,20 @@ class UnifiedInferenceClient:
             pass
 
         return False
+
+    @classmethod
+    def _fetch_model_name(cls, base_url: str, timeout: float = 2.0) -> str | None:
+        """Fetch the first available model name from the endpoint."""
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                response = client.get(f"{base_url}/models")
+                if response.status_code == 200:
+                    data = response.json()
+                    if "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
+                        return data["data"][0]["id"]
+        except Exception:
+            pass
+        return None
 
     # ==================== Core Inference Methods ====================
 

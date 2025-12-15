@@ -6,14 +6,17 @@ A simple FastAPI backend service that provides real SAGE data to the Studio fron
 
 import importlib
 import inspect
+import ipaddress
 import json
 import os
 import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
+from urllib.parse import urlparse, urlunparse
 
+import requests
 import uvicorn
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,7 +41,8 @@ from sage.studio.services.stream_handler import get_stream_handler
 
 # Gateway URL for API calls
 # Use 127.0.0.1 instead of localhost to avoid IPv6 issues and ensure consistent behavior
-GATEWAY_BASE_URL = f"http://127.0.0.1:{SagePorts.GATEWAY_DEFAULT}"
+GATEWAY_HOST = os.getenv("SAGE_GATEWAY_HOST", "127.0.0.1")
+GATEWAY_BASE_URL = f"http://{GATEWAY_HOST}:{SagePorts.GATEWAY_DEFAULT}"
 
 # Load environment variables from .env file
 try:
@@ -2861,6 +2865,245 @@ class SelectModelRequest(BaseModel):
     base_url: str
 
 
+def _get_models_config_path(create_dir: bool = False) -> Path | None:
+    """Locate config/models.json, optionally creating the directory."""
+    try:
+        from sage.common.config import find_sage_project_root
+
+        project_root = find_sage_project_root()
+    except Exception:
+        project_root = None
+
+    base_dir = project_root or Path.cwd()
+    config_dir = base_dir / "config"
+
+    if create_dir:
+        config_dir.mkdir(parents=True, exist_ok=True)
+    elif not config_dir.exists():
+        return None
+
+    return config_dir / "models.json"
+
+
+def _expand_api_key(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    if value.startswith("${") and value.endswith("}"):
+        env_var = value[2:-1]
+        return os.getenv(env_var, "")
+    return value
+
+
+def _load_models_config() -> tuple[list[dict[str, Any]], Path | None]:
+    path = _get_models_config_path()
+    if not path or not path.exists():
+        return ([], path)
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            models: list[dict[str, Any]] = []
+            for entry in data:
+                if isinstance(entry, dict):
+                    entry_copy = dict(entry)
+                    entry_copy["api_key"] = _expand_api_key(entry_copy.get("api_key"))
+                    models.append(entry_copy)
+            return models, path
+    except Exception:
+        pass
+    return ([], path)
+
+
+def _save_models_config(path: Path | None, models: list[dict[str, Any]]) -> None:
+    if not path:
+        return
+    target_path = path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(json.dumps(models, indent=4, ensure_ascii=False), encoding="utf-8")
+
+
+def _persist_model_selection(model_name: str, base_url: str) -> str:
+    """Update config/models.json default selection and return API key."""
+    models, path = _load_models_config()
+    if path is None:
+        path = _get_models_config_path(create_dir=True)
+    target_entry: dict[str, Any] | None = None
+
+    for entry in models:
+        names_match = entry.get("name") == model_name
+        url_match = (
+            _base_urls_match(entry.get("base_url"), base_url) if entry.get("base_url") else False
+        )
+        if names_match and (url_match or not entry.get("base_url")):
+            entry["base_url"] = base_url
+            target_entry = entry
+            break
+
+    if target_entry is None:
+        target_entry = {
+            "name": model_name,
+            "base_url": base_url,
+            "is_local": _is_loopback_url(base_url),
+        }
+        models.append(target_entry)
+    else:
+        target_entry["is_local"] = _is_loopback_url(base_url)
+
+    for entry in models:
+        entry["default"] = entry is target_entry
+
+    _save_models_config(path, models)
+    return _expand_api_key(target_entry.get("api_key"))
+
+
+def _discover_launcher_models() -> list[dict[str, Any]]:
+    try:
+        from sage.common.components.sage_llm import LLMLauncher
+    except ImportError:
+        return []
+
+    models: list[dict[str, Any]] = []
+    for service in LLMLauncher.discover_running_services():
+        models.append(
+            {
+                "name": service.get("served_model_name") or service.get("model") or "local-llm",
+                "base_url": service.get("base_url"),
+                "is_local": True,
+                "description": "Auto-detected Local Model",
+            }
+        )
+    return models
+
+
+def _normalize_base_url(base_url: str | None) -> str | None:
+    return base_url.rstrip("/") if base_url else base_url
+
+
+def _normalize_probe_base_url(base_url: str | None) -> str | None:
+    if not base_url:
+        return None
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    replacement = None
+    if not host or host in {"0.0.0.0", "*"}:
+        replacement = "127.0.0.1"
+    elif host in {"::", "[::]"}:
+        replacement = "::1"
+
+    if replacement:
+        host_token = replacement
+        if ":" in host_token and not host_token.startswith("["):
+            host_token = f"[{host_token}]"
+        if parsed.port:
+            netloc = f"{host_token}:{parsed.port}"
+        else:
+            netloc = host_token
+        parsed = parsed._replace(netloc=netloc)
+        return urlunparse(parsed).rstrip("/")
+
+    return base_url.rstrip("/")
+
+
+def _canon_host(host: str | None) -> str | None:
+    if not host:
+        return None
+    host = host.lower()
+    if host in {"0.0.0.0", "*"}:
+        return "127.0.0.1"
+    if host in {"::", "[::]"}:
+        return "::1"
+    return host
+
+
+def _base_url_signature(base_url: str | None) -> tuple[str, str, int, str] | None:
+    if not base_url:
+        return None
+
+    candidate = base_url.strip()
+    if not candidate:
+        return None
+
+    parsed = urlparse(candidate if "://" in candidate else f"http://{candidate}")
+    scheme = parsed.scheme or "http"
+    host = _canon_host(parsed.hostname) or ""
+    port = parsed.port
+    if port is None:
+        port = 443 if scheme == "https" else 80
+
+    path = parsed.path.rstrip("/")
+    if path in ("", "/v1"):
+        path = ""
+
+    return (scheme, host, port, path)
+
+
+def _base_urls_match(a: str | None, b: str | None) -> bool:
+    sig_a = _base_url_signature(a)
+    sig_b = _base_url_signature(b)
+    return bool(sig_a and sig_b and sig_a == sig_b)
+
+
+def _build_health_url(base_url: str) -> str:
+    parsed = urlparse(base_url)
+    path = parsed.path.rstrip("/")
+    if path.endswith("/v1"):
+        health_path = path[:-3] + "/health"
+    else:
+        health_path = path + "/health"
+    return urlunparse(parsed._replace(path=health_path, query="", fragment=""))
+
+
+def _is_loopback_url(base_url: str | None) -> bool:
+    if not base_url:
+        return False
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    if not host:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _probe_llm_endpoint(base_url: str | None, headers: dict[str, str] | None = None) -> bool:
+    normalized = _normalize_probe_base_url(base_url)
+    if not normalized:
+        return False
+    headers = headers or {}
+
+    try:
+        health_url = _build_health_url(normalized)
+        resp = requests.get(health_url, headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    try:
+        resp = requests.get(f"{normalized}/models", headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    try:
+        parsed = urlparse(normalized)
+        host = parsed.hostname
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if host:
+            import socket
+
+            with socket.create_connection((host, port), timeout=2.0):
+                return True
+    except Exception:
+        pass
+
+    return False
+
+
 @app.post("/api/llm/select")
 async def select_llm_model(request: SelectModelRequest):
     """选择要使用的 LLM 模型"""
@@ -2870,31 +3113,11 @@ async def select_llm_model(request: SelectModelRequest):
         os.environ["SAGE_CHAT_MODEL"] = request.model_name
         os.environ["SAGE_CHAT_BASE_URL"] = request.base_url
 
-        # 尝试从 available_models 中查找对应的 API Key
-        # 注意：这里需要重新读取配置，或者从请求中传递 API Key
-        # 为了简单起见，我们再次读取配置
         api_key = ""
         try:
-            # 1. 尝试从配置文件读取
-            from sage.common.config import find_sage_project_root
-
-            project_root = find_sage_project_root()
-            if project_root:
-                models_config_file = project_root / "config" / "models.json"
-                if models_config_file.exists():
-                    import json
-
-                    with open(models_config_file, encoding="utf-8") as f:
-                        custom_models = json.load(f)
-                        for m in custom_models:
-                            if (
-                                m["name"] == request.model_name
-                                and m["base_url"] == request.base_url
-                            ):
-                                api_key = m.get("api_key", "")
-                                break
-        except Exception:
-            pass
+            api_key = _persist_model_selection(request.model_name, request.base_url)
+        except Exception as exc:
+            print(f"Failed to persist selected model: {exc}")
 
         if api_key:
             os.environ["SAGE_CHAT_API_KEY"] = api_key
@@ -2906,18 +3129,10 @@ async def select_llm_model(request: SelectModelRequest):
 
         # Register with Control Plane
         try:
-            from urllib.parse import urlparse
-
-            import requests
-
-            from sage.common.config.ports import SagePorts
-
-            register_url = (
-                f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1/management/engines/register"
-            )
             parsed = urlparse(request.base_url)
             host = parsed.hostname or "localhost"
-            port = parsed.port or 80
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            register_url = f"{GATEWAY_BASE_URL}/v1/management/engines/register"
 
             payload = {
                 "engine_id": f"ext-{request.model_name}",
@@ -2925,7 +3140,7 @@ async def select_llm_model(request: SelectModelRequest):
                 "host": host,
                 "port": port,
                 "engine_kind": "llm",
-                "metadata": {"source": "studio_select"},
+                "metadata": {"source": "studio_select", "scheme": parsed.scheme or "http"},
             }
 
             requests.post(register_url, json=payload, timeout=2)
@@ -2942,320 +3157,150 @@ async def select_llm_model(request: SelectModelRequest):
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
     try:
-        import requests
-
         from sage.common.components.sage_llm import UnifiedInferenceClient
+    except Exception:
+        UnifiedInferenceClient = None  # type: ignore[assignment]
 
-        # 优先使用 UnifiedInferenceClient 自动检测的状态
-        try:
-            from sage.common.config.ports import SagePorts
+    try:
+        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+        model_name = os.getenv("SAGE_CHAT_MODEL", "")
 
-            # Explicitly check local Gateway first
-            client = UnifiedInferenceClient.create(
-                control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
-            )
-            base_url = client.config.llm_base_url or ""
-            model_name = client.config.llm_model or ""
+        if UnifiedInferenceClient:
+            try:
+                client = UnifiedInferenceClient.create(control_plane_url=f"{GATEWAY_BASE_URL}/v1")
+                base_url = client.config.llm_base_url or base_url
+                model_name = client.config.llm_model or model_name
 
-            # If Gateway returns empty model, try env vars (User selection in Studio)
-            if not model_name:
-                model_name = os.getenv("SAGE_CHAT_MODEL", "")
-            if not base_url:
-                base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-        except Exception:
-            # 回退到环境变量
-            base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-            model_name = os.getenv("SAGE_CHAT_MODEL", "")
+                # Try to fetch model name if missing
+                if not model_name and base_url:
+                    model_name = UnifiedInferenceClient._fetch_model_name(base_url) or model_name
+            except Exception:
+                pass
 
-        # 检测是否是本地服务
-        is_local = "localhost" in base_url or "127.0.0.1" in base_url
+        normalized_base_url = _normalize_base_url(base_url)
+        is_local = _is_loopback_url(normalized_base_url)
+        display_model_name = model_name or ("未配置 LLM 服务" if not base_url else "未命名模型")
 
-        # 初始化状态
         status = {
             "running": False,
             "healthy": False,
-            "service_type": "unknown",
-            "model_name": model_name,
-            "base_url": base_url,
+            "service_type": "not_configured" if not base_url else "remote_api",
+            "model_name": display_model_name,
+            "base_url": normalized_base_url or base_url,
             "is_local": is_local,
             "details": {},
         }
 
-        # 如果是本地服务，尝试获取详细信息
+        if base_url:
+            status["running"] = True
+
+        # Local detailed status
         if is_local and base_url:
-            try:
-                # 检查健康状态
-                health_url = base_url.replace("/v1", "/health")
-                health_response = requests.get(health_url, timeout=2)
-                status["healthy"] = health_response.status_code == 200
-                status["running"] = True
-                status["service_type"] = "local_vllm"
+            probe_url = _normalize_probe_base_url(base_url)
+            if probe_url:
+                status["base_url"] = probe_url
+                try:
+                    health_resp = requests.get(_build_health_url(probe_url), timeout=2)
+                    status["healthy"] = health_resp.status_code == 200
+                    status["service_type"] = "local_vllm"
 
-                # 获取模型列表
-                models_url = f"{base_url}/models"
-                models_response = requests.get(models_url, timeout=2)
-                if models_response.status_code == 200:
-                    models_data = models_response.json()
-                    if models_data.get("data"):
-                        # 获取第一个模型的详细信息
-                        first_model = models_data["data"][0]
-                        status["details"] = {
-                            "model_id": first_model.get("id", ""),
-                            "max_model_len": first_model.get("max_model_len", 0),
-                            "owned_by": first_model.get("owned_by", ""),
-                        }
-                        # 使用实际注册的模型 ID
-                        status["model_name"] = first_model.get("id", model_name)
+                    models_resp = requests.get(f"{probe_url}/models", timeout=2)
+                    if models_resp.status_code == 200:
+                        models_data = models_resp.json()
+                        if models_data.get("data"):
+                            first_model = models_data["data"][0]
+                            status["details"] = {
+                                "model_id": first_model.get("id", ""),
+                                "max_model_len": first_model.get("max_model_len", 0),
+                                "owned_by": first_model.get("owned_by", ""),
+                            }
+                            status["model_name"] = first_model.get("id", status["model_name"])
+                except Exception as exc:
+                    status["error"] = str(exc)
 
-            except Exception as e:
-                status["error"] = str(e)
-        elif base_url:
-            # 远程服务
-            status["service_type"] = "remote_api"
-            status["running"] = True  # 假设配置了就是可用的
-        else:
-            # 没有配置
-            status["service_type"] = "not_configured"
-            status["model_name"] = "未配置 LLM 服务"
+        # Build available model list
+        config_models, _ = _load_models_config()
+        available_models = [dict(model) for model in config_models]
 
-        # 添加可用模型列表
-        # 优先级: 1. 配置文件 2. 硬编码默认值
-        available_models = []
+        def _merge_model(entry: dict[str, Any]) -> None:
+            entry_url = entry.get("base_url")
+            for existing in available_models:
+                existing_url = existing.get("base_url")
+                names_match = entry.get("name") and entry.get("name") == existing.get("name")
+                urls_match = _base_urls_match(entry_url, existing_url)
+                if urls_match or (not entry_url and not existing_url and names_match):
+                    existing.update({k: v for k, v in entry.items() if v is not None})
+                    return
+            available_models.append(entry)
 
-        # 1. 尝试从配置文件读取 (config/models.json)
-        try:
-            from sage.common.config import find_sage_project_root
+        for detected in _discover_launcher_models():
+            _merge_model(detected)
 
-            project_root = find_sage_project_root()
-            if project_root:
-                models_config_file = project_root / "config" / "models.json"
-                if models_config_file.exists():
-                    import json
-
-                    with open(models_config_file, encoding="utf-8") as f:
-                        custom_models = json.load(f)
-                        if isinstance(custom_models, list):
-                            available_models.extend(custom_models)
-        except Exception as e:
-            print(f"Error reading models config: {e}")
-
-        # 2. 如果配置文件为空或不存在，使用默认的硬编码列表
         if not available_models:
-            # 动态检测当前运行的模型
-            current_running_model = status.get("details", {}).get("model_id")
-
-            available_models = []
-
-            # 如果有正在运行的本地模型，优先添加到列表
-            if current_running_model and is_local:
-                available_models.append(
-                    {
-                        "name": current_running_model,
-                        "base_url": base_url,
-                        "is_local": True,
-                        "description": "Currently Running Model",
-                        "healthy": True,
-                    }
-                )
-
-            # 添加标准备选列表
-            standard_models = [
+            default_base = f"http://127.0.0.1:{SagePorts.BENCHMARK_LLM}/v1"
+            defaults = [
                 {
                     "name": "Qwen/Qwen2.5-0.5B-Instruct",
-                    "base_url": "http://localhost:8901/v1",  # Use unified port
+                    "base_url": default_base,
                     "is_local": True,
                     "description": "Local Small Model (Fast, CPU-friendly)",
                 },
                 {
                     "name": "Qwen/Qwen2.5-7B-Instruct",
-                    "base_url": "http://localhost:8901/v1",  # Use unified port
+                    "base_url": default_base,
                     "is_local": True,
                     "description": "Local Standard Model (Requires GPU)",
                 },
             ]
+            for entry in defaults:
+                _merge_model(entry)
 
-            # 避免重复添加
-            existing_names = {m["name"] for m in available_models}
-            for m in standard_models:
-                if m["name"] not in existing_names:
-                    available_models.append(m)
-
-        # 2.5 动态发现本地模型 (端口 8901-8910)
-        # 确保列表反映实际运行的模型，即使 models.json 过期
-        try:
-            # 使用较短的超时进行快速扫描
-            for port in range(8901, 8911):
-                try:
-                    check_url = f"http://localhost:{port}/v1/models"
-                    resp = requests.get(check_url, timeout=0.2)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        if data.get("data") and len(data["data"]) > 0:
-                            real_model_name = data["data"][0]["id"]
-                            base_url = f"http://localhost:{port}/v1"
-
-                            # 检查是否已存在 (按端口/base_url 或 名称)
-                            found = False
-                            for m in available_models:
-                                # 匹配逻辑:
-                                # 1. 如果 config 中有 base_url，则必须匹配 base_url
-                                # 2. 如果 config 中没有 base_url (仅作为元数据模板)，则匹配 name
-                                url_match = m.get("base_url") == base_url
-                                name_match = (not m.get("base_url")) and (
-                                    m["name"] == real_model_name
-                                )
-
-                                if url_match or name_match:
-                                    # 如果是 name 匹配 (填补 URL)
-                                    if name_match:
-                                        m["base_url"] = base_url
-                                        m["is_local"] = True
-
-                                    # 更新模型名称以匹配实际运行的 (针对 URL 匹配但名称不一致的情况)
-                                    if m["name"] != real_model_name:
-                                        # 保留原有描述，但更新名称
-                                        m["original_name"] = m["name"]  # 备份
-                                        m["name"] = real_model_name
-                                        # 如果描述是旧的硬编码描述，更新它
-                                        if "CPU-friendly" in m.get(
-                                            "description", ""
-                                        ) or "Requires GPU" in m.get("description", ""):
-                                            m["description"] = "Auto-detected Local Model"
-
-                                    m["healthy"] = True  # 标记为健康
-                                    found = True
-                                    break
-
-                            if not found:
-                                available_models.append(
-                                    {
-                                        "name": real_model_name,
-                                        "base_url": base_url,
-                                        "is_local": True,
-                                        "description": "Auto-detected Local Model",
-                                        "healthy": True,
-                                    }
-                                )
-                except Exception:
-                    pass
-        except Exception as e:
-            print(f"Error during dynamic discovery: {e}")
-
-        # 3. 检查环境变量中的云端 API 配置 (.env)
         cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
         if cloud_api_key:
-            # 默认使用 DashScope 配置，如果环境变量有设置则覆盖
-            cloud_model = os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11")
-            cloud_base_url = os.getenv(
-                "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            )
+            cloud_entry = {
+                "name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                "base_url": os.getenv(
+                    "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                ),
+                "is_local": False,
+                "description": "Cloud API (Configured in .env)",
+                "api_key": cloud_api_key,
+                "healthy": True,
+            }
+            _merge_model(cloud_entry)
 
-            # 检查是否已经存在于列表中 (避免重复)
-            exists = False
-            for m in available_models:
-                if m["name"] == cloud_model and m["base_url"] == cloud_base_url:
-                    exists = True
-                    break
-
-            if not exists:
-                available_models.append(
-                    {
-                        "name": cloud_model,
-                        "base_url": cloud_base_url,
-                        "is_local": False,
-                        "description": "Cloud API (Configured in .env)",
-                        "healthy": True,  # 云端模型默认视为健康，稍后检查
-                    }
-                )
-
-        # 检查每个模型的健康状态
         import concurrent.futures
 
-        def check_model_health(model):
-            # 如果没有 base_url，说明是仅配置了元数据但未被自动发现的本地模型
-            # 标记为不健康/未运行
-            if not model.get("base_url"):
-                model["healthy"] = False
-                return model
-
-            # 如果已经是标记为健康的云端模型，且没有本地 URL 特征，跳过检查
-            if not model.get("is_local") and model.get("healthy"):
-                return model
-
-            # 准备请求头 (支持 API Key)
+        def evaluate_model(model: dict[str, Any]) -> dict[str, Any]:
+            entry = dict(model)
+            base = entry.get("base_url")
             headers = {}
-            if model.get("api_key"):
-                headers["Authorization"] = f"Bearer {model['api_key']}"
+            if entry.get("api_key"):
+                headers["Authorization"] = f"Bearer {entry['api_key']}"
 
-            # 辅助函数：处理 URL (0.0.0.0 -> 127.0.0.1)
-            def prepare_url(url):
-                if "0.0.0.0" in url:
-                    return url.replace("0.0.0.0", "127.0.0.1")
-                return url
+            if not base:
+                entry["healthy"] = False
+                return entry
 
-            # 策略 1: 尝试 /health (vLLM 标准)
-            try:
-                check_url = prepare_url(model["base_url"].replace("/v1", "/health"))
-                resp = requests.get(check_url, headers=headers, timeout=2.0)
-                if resp.status_code == 200:
-                    model["healthy"] = True
-                    return model
-            except Exception:
-                pass
+            if not entry.get("is_local") and entry.get("healthy"):
+                return entry
 
-            # 策略 2: 尝试 /v1/models (OpenAI 标准)
-            try:
-                check_url = prepare_url(f"{model['base_url']}/models")
-                resp = requests.get(check_url, headers=headers, timeout=2.0)
-                if resp.status_code == 200:
-                    model["healthy"] = True
-                    return model
-            except Exception:
-                pass
+            entry["healthy"] = _probe_llm_endpoint(base, headers=headers)
+            return entry
 
-            # 策略 3: 简单的 TCP 端口检查 (作为最后的兜底)
-            # 如果 HTTP 检查都失败了，但端口是通的，我们也认为它可能是活着的
-            # (可能是路径不对或者认证失败，但服务在运行)
-            try:
-                import socket
-                from urllib.parse import urlparse
-
-                parsed = urlparse(model["base_url"])
-                host = parsed.hostname
-                port = parsed.port
-
-                if host == "0.0.0.0":
-                    host = "127.0.0.1"
-
-                if host and port:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.settimeout(2.0)
-                        result = s.connect_ex((host, port))
-                        if result == 0:
-                            model["healthy"] = True
-                            # 标记为 Warning 状态可能更好，但目前 UI 只支持 boolean
-                            return model
-            except Exception:
-                pass
-
-            model["healthy"] = False
-            return model
-
-        # 并行检查所有模型状态
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            models_to_check = [m.copy() for m in available_models]
-            available_models = list(executor.map(check_model_health, models_to_check))
+            available_models = list(executor.map(evaluate_model, available_models))
 
-        # 如果当前检测到的模型不在列表中，添加它
-        current_in_list = False
+        status_base_url = status.get("base_url")
+        match_found = False
         for model in available_models:
-            if model["name"] == status["model_name"] and model["base_url"] == status["base_url"]:
-                current_in_list = True
-                # 更新当前模型的健康状态
-                status["healthy"] = model["healthy"]
+            if _base_urls_match(status_base_url, model.get("base_url")):
+                status["healthy"] = model.get("healthy", False)
+                status["model_name"] = model.get("name", status["model_name"])
+                match_found = True
                 break
 
-        if not current_in_list and status["model_name"] and status["base_url"]:
+        if not match_found and status["model_name"] and status.get("base_url"):
             available_models.insert(
                 0,
                 {
