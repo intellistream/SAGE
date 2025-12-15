@@ -1792,6 +1792,31 @@ async def send_chat_message(
     session_data["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session_data)
 
+    # Resolve model if "sage-default"
+    model_to_use = request.model
+    if model_to_use == "sage-default":
+        # 1. Try environment variable (set by select_llm_model)
+        model_to_use = os.getenv("SAGE_CHAT_MODEL")
+
+        # 2. If not set, try to detect from Gateway
+        if not model_to_use:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.common.config.ports import SagePorts
+
+                client = UnifiedInferenceClient.create(
+                    control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+                )
+                detected = client._get_default_llm_model()
+                if detected and detected != "default":
+                    model_to_use = detected
+            except Exception:
+                pass
+
+        # 3. Fallback to original if still failed
+        if not model_to_use:
+            model_to_use = request.model
+
     try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
         # We pass the session_id to gateway as well, so it can maintain its own state if needed,
@@ -1801,7 +1826,7 @@ async def send_chat_message(
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
-                    "model": request.model,
+                    "model": model_to_use,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
                     "session_id": session_id,  # Pass session_id to gateway
@@ -2879,6 +2904,35 @@ async def select_llm_model(request: SelectModelRequest):
             if "SAGE_CHAT_API_KEY" in os.environ:
                 del os.environ["SAGE_CHAT_API_KEY"]
 
+        # Register with Control Plane
+        try:
+            from urllib.parse import urlparse
+
+            import requests
+
+            from sage.common.config.ports import SagePorts
+
+            register_url = (
+                f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1/management/engines/register"
+            )
+            parsed = urlparse(request.base_url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or 80
+
+            payload = {
+                "engine_id": f"ext-{request.model_name}",
+                "model_id": request.model_name,
+                "host": host,
+                "port": port,
+                "engine_kind": "llm",
+                "metadata": {"source": "studio_select"},
+            }
+
+            requests.post(register_url, json=payload, timeout=2)
+            print(f"Registered model {request.model_name} with Control Plane")
+        except Exception as e:
+            print(f"Failed to register model with Control Plane: {e}")
+
         return {"status": "success", "message": f"已切换到模型: {request.model_name}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
@@ -2902,6 +2956,12 @@ async def get_llm_status():
             )
             base_url = client.config.llm_base_url or ""
             model_name = client.config.llm_model or ""
+
+            # If Gateway returns empty model, try env vars (User selection in Studio)
+            if not model_name:
+                model_name = os.getenv("SAGE_CHAT_MODEL", "")
+            if not base_url:
+                base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
         except Exception:
             # 回退到环境变量
             base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
@@ -2981,32 +3041,44 @@ async def get_llm_status():
 
         # 2. 如果配置文件为空或不存在，使用默认的硬编码列表
         if not available_models:
-            available_models = [
+            # 动态检测当前运行的模型
+            current_running_model = status.get("details", {}).get("model_id")
+
+            available_models = []
+
+            # 如果有正在运行的本地模型，优先添加到列表
+            if current_running_model and is_local:
+                available_models.append(
+                    {
+                        "name": current_running_model,
+                        "base_url": base_url,
+                        "is_local": True,
+                        "description": "Currently Running Model",
+                        "healthy": True,
+                    }
+                )
+
+            # 添加标准备选列表
+            standard_models = [
                 {
                     "name": "Qwen/Qwen2.5-0.5B-Instruct",
-                    "base_url": "http://localhost:8001/v1",
+                    "base_url": "http://localhost:8901/v1",  # Use unified port
                     "is_local": True,
                     "description": "Local Small Model (Fast, CPU-friendly)",
                 },
                 {
                     "name": "Qwen/Qwen2.5-7B-Instruct",
-                    "base_url": "http://localhost:8001/v1",
+                    "base_url": "http://localhost:8901/v1",  # Use unified port
                     "is_local": True,
                     "description": "Local Standard Model (Requires GPU)",
                 },
-                {
-                    "name": "pangu_embedded_1b",
-                    "base_url": "http://0.0.0.0:1040/v1",
-                    "is_local": True,
-                    "description": "Huawei Pangu 1B",
-                },
-                {
-                    "name": "pangu_embedded_7b",
-                    "base_url": "http://0.0.0.0:1041/v1",
-                    "is_local": True,
-                    "description": "Huawei Pangu 7B",
-                },
             ]
+
+            # 避免重复添加
+            existing_names = {m["name"] for m in available_models}
+            for m in standard_models:
+                if m["name"] not in existing_names:
+                    available_models.append(m)
 
         # 3. 检查环境变量中的云端 API 配置 (.env)
         cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")

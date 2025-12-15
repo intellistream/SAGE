@@ -87,43 +87,87 @@ class LLMLauncher:
         LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def save_service_info(pid: int, config: dict[str, Any]) -> None:
+    def _get_pid_file(port: int) -> Path:
+        return SAGE_DIR / f"llm_service_{port}.pid"
+
+    @staticmethod
+    def _get_config_file(port: int) -> Path:
+        return SAGE_DIR / f"llm_service_config_{port}.json"
+
+    @staticmethod
+    def save_service_info(pid: int, config: dict[str, Any], port: int | None = None) -> None:
         """Save service PID and config for later management.
 
         Args:
             pid: Process ID of the running service
             config: Service configuration dict
+            port: Service port (optional, for multi-instance support)
         """
         LLMLauncher._ensure_dirs()
-        LLM_PID_FILE.write_text(str(pid))
-        LLM_CONFIG_FILE.write_text(json.dumps(config, indent=2))
+
+        # If port is provided, use port-specific file
+        if port is not None:
+            LLMLauncher._get_pid_file(port).write_text(str(pid))
+            LLMLauncher._get_config_file(port).write_text(json.dumps(config, indent=2))
+
+        # Also update default file if it's the default port or port is None
+        # This maintains backward compatibility for tools expecting the default file
+        if port is None or port == SagePorts.BENCHMARK_LLM:
+            LLM_PID_FILE.write_text(str(pid))
+            LLM_CONFIG_FILE.write_text(json.dumps(config, indent=2))
 
     @staticmethod
-    def load_service_info() -> tuple[int | None, dict[str, Any] | None]:
+    def load_service_info(port: int | None = None) -> tuple[int | None, dict[str, Any] | None]:
         """Load saved service info.
+
+        Args:
+            port: Service port (optional)
 
         Returns:
             Tuple of (pid, config) or (None, None) if not found
         """
         pid = None
         config = None
-        if LLM_PID_FILE.exists():
+
+        # Determine which file to read
+        if port is not None:
+            pid_file = LLMLauncher._get_pid_file(port)
+            config_file = LLMLauncher._get_config_file(port)
+            # Fallback to default file if port-specific not found and port is default
+            if not pid_file.exists() and port == SagePorts.BENCHMARK_LLM:
+                pid_file = LLM_PID_FILE
+                config_file = LLM_CONFIG_FILE
+        else:
+            pid_file = LLM_PID_FILE
+            config_file = LLM_CONFIG_FILE
+
+        if pid_file.exists():
             try:
-                pid = int(LLM_PID_FILE.read_text().strip())
+                pid = int(pid_file.read_text().strip())
             except (ValueError, OSError):
                 pass
-        if LLM_CONFIG_FILE.exists():
+        if config_file.exists():
             try:
-                config = json.loads(LLM_CONFIG_FILE.read_text())
+                config = json.loads(config_file.read_text())
             except (json.JSONDecodeError, OSError):
                 pass
         return pid, config
 
     @staticmethod
-    def clear_service_info() -> None:
-        """Clear saved service info."""
-        LLM_PID_FILE.unlink(missing_ok=True)
-        LLM_CONFIG_FILE.unlink(missing_ok=True)
+    def clear_service_info(port: int | None = None) -> None:
+        """Clear saved service info.
+
+        Args:
+            port: Service port (optional)
+        """
+        if port is not None:
+            LLMLauncher._get_pid_file(port).unlink(missing_ok=True)
+            LLMLauncher._get_config_file(port).unlink(missing_ok=True)
+
+        # Also clear default if it matches
+        if port is None or port == SagePorts.BENCHMARK_LLM:
+            LLM_PID_FILE.unlink(missing_ok=True)
+            LLM_CONFIG_FILE.unlink(missing_ok=True)
 
     @staticmethod
     def resolve_model_path(
@@ -200,15 +244,18 @@ class LLMLauncher:
         return model, False
 
     @classmethod
-    def is_running(cls) -> tuple[bool, int | None]:
+    def is_running(cls, port: int | None = None) -> tuple[bool, int | None]:
         """Check if LLM service is already running.
+
+        Args:
+            port: Service port (optional)
 
         Returns:
             Tuple of (is_running, pid)
         """
         import psutil
 
-        pid, _ = cls.load_service_info()
+        pid, _ = cls.load_service_info(port)
         if pid and psutil.pid_exists(pid):
             return True, pid
         return False, None
@@ -260,10 +307,12 @@ class LLMLauncher:
 
         # Check if already running
         if check_existing:
-            is_running, existing_pid = cls.is_running()
+            is_running, existing_pid = cls.is_running(port)
             if is_running:
                 if verbose:
-                    console.print(f"[yellow]⚠️  LLM 服务已在运行中 (PID: {existing_pid})[/yellow]")
+                    console.print(
+                        f"[yellow]⚠️  LLM 服务已在运行中 (PID: {existing_pid}, 端口: {port})[/yellow]"
+                    )
                     console.print("使用 'sage llm stop' 停止现有服务")
                 return LLMLauncherResult(
                     success=False,
@@ -340,6 +389,7 @@ class LLMLauncher:
                         "gpu_memory": gpu_memory,
                         "log_file": str(log_file),
                     },
+                    port=port,
                 )
 
                 # Set environment variables for client auto-detection
@@ -384,19 +434,18 @@ class LLMLauncher:
             return LLMLauncherResult(success=False, error=str(exc))
 
     @classmethod
-    def stop(cls, verbose: bool = True, force: bool = False) -> bool:
+    def stop(cls, verbose: bool = True, force: bool = False, port: int | None = None) -> bool:
         """Stop running LLM service.
 
         Args:
             verbose: Print status messages
             force: If True, attempt to find and stop services on default ports even if PID file is missing.
+            port: Specific port to stop. If None, stops default or all found.
 
         Returns:
             True if stopped successfully
         """
         import psutil
-
-        pid, config = cls.load_service_info()
 
         # Helper to kill process by PID
         def _kill_pid(target_pid: int, name: str) -> bool:
@@ -422,22 +471,56 @@ class LLMLauncher:
 
         stopped_any = False
 
-        # 1. Stop recorded service
-        if pid:
+        # Find PIDs to stop
+        pids_to_stop = []
+
+        if port is not None:
+            # Stop specific port
+            pid, config = cls.load_service_info(port)
+            if pid:
+                pids_to_stop.append((pid, config, port))
+        else:
+            # Stop default port
+            pid, config = cls.load_service_info(None)
+            if pid:
+                pids_to_stop.append((pid, config, None))
+
+            # Also scan for other pid files
+            for pid_file in SAGE_DIR.glob("llm_service_*.pid"):
+                try:
+                    # Extract port from filename llm_service_8902.pid
+                    fname = pid_file.name
+                    if fname == "llm_service.pid":
+                        continue  # Already handled
+                    p_str = fname.replace("llm_service_", "").replace(".pid", "")
+                    if p_str.isdigit():
+                        p = int(p_str)
+                        pid_val = int(pid_file.read_text().strip())
+                        # Load config if exists
+                        cfg_file = LLMLauncher._get_config_file(p)
+                        cfg = None
+                        if cfg_file.exists():
+                            cfg = json.loads(cfg_file.read_text())
+                        pids_to_stop.append((pid_val, cfg, p))
+                except Exception:
+                    pass
+
+        # Execute stop
+        for pid, config, p in pids_to_stop:
             if psutil.pid_exists(pid):
                 # Stop Embedding service if recorded
                 if config and "embedding_pid" in config:
                     _kill_pid(config["embedding_pid"], "Embedding 服务")
 
-                if _kill_pid(pid, "LLM 服务"):
+                if _kill_pid(pid, f"LLM 服务 (端口 {p or 'default'})"):
                     stopped_any = True
                     if verbose:
-                        console.print("[green]✅ LLM 服务已停止[/green]")
+                        console.print(f"[green]✅ LLM 服务已停止 (端口 {p or 'default'})[/green]")
             else:
                 if verbose:
                     console.print(f"[yellow]ℹ️  记录的 LLM 服务 (PID: {pid}) 已不存在[/yellow]")
 
-            cls.clear_service_info()
+            cls.clear_service_info(p)
 
         # 2. If force is True, check default ports for orphan services
         if force:
@@ -446,6 +529,8 @@ class LLMLauncher:
                 SagePorts.BENCHMARK_LLM,
                 SagePorts.EMBEDDING_DEFAULT,
             ]
+            if port:
+                ports_to_check = [port]
 
             # Get all listening connections
             try:

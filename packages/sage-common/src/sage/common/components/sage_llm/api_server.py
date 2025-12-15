@@ -21,6 +21,7 @@ from typing import Any, Literal
 import psutil
 import requests
 
+from sage.common.config.network import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
 from sage.common.utils.logging import get_logger
 
@@ -256,6 +257,10 @@ class LLMAPIServer:
             required_memory_gb=None,  # Don't require specific amount, just pick best GPU
             tensor_parallel_size=self.config.tensor_parallel_size,
         )
+
+        # Ensure HF mirror is configured for China mainland users
+        # This sets HF_ENDPOINT in os.environ if needed
+        ensure_hf_mirror_configured()
 
         # Prepare environment with GPU selection
         env = os.environ.copy()
