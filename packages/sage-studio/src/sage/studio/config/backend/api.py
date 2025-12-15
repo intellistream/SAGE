@@ -3080,6 +3080,67 @@ async def get_llm_status():
                 if m["name"] not in existing_names:
                     available_models.append(m)
 
+        # 2.5 动态发现本地模型 (端口 8901-8910)
+        # 确保列表反映实际运行的模型，即使 models.json 过期
+        try:
+            # 使用较短的超时进行快速扫描
+            for port in range(8901, 8911):
+                try:
+                    check_url = f"http://localhost:{port}/v1/models"
+                    resp = requests.get(check_url, timeout=0.2)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("data") and len(data["data"]) > 0:
+                            real_model_name = data["data"][0]["id"]
+                            base_url = f"http://localhost:{port}/v1"
+
+                            # 检查是否已存在 (按端口/base_url 或 名称)
+                            found = False
+                            for m in available_models:
+                                # 匹配逻辑:
+                                # 1. 如果 config 中有 base_url，则必须匹配 base_url
+                                # 2. 如果 config 中没有 base_url (仅作为元数据模板)，则匹配 name
+                                url_match = m.get("base_url") == base_url
+                                name_match = (not m.get("base_url")) and (
+                                    m["name"] == real_model_name
+                                )
+
+                                if url_match or name_match:
+                                    # 如果是 name 匹配 (填补 URL)
+                                    if name_match:
+                                        m["base_url"] = base_url
+                                        m["is_local"] = True
+
+                                    # 更新模型名称以匹配实际运行的 (针对 URL 匹配但名称不一致的情况)
+                                    if m["name"] != real_model_name:
+                                        # 保留原有描述，但更新名称
+                                        m["original_name"] = m["name"]  # 备份
+                                        m["name"] = real_model_name
+                                        # 如果描述是旧的硬编码描述，更新它
+                                        if "CPU-friendly" in m.get(
+                                            "description", ""
+                                        ) or "Requires GPU" in m.get("description", ""):
+                                            m["description"] = "Auto-detected Local Model"
+
+                                    m["healthy"] = True  # 标记为健康
+                                    found = True
+                                    break
+
+                            if not found:
+                                available_models.append(
+                                    {
+                                        "name": real_model_name,
+                                        "base_url": base_url,
+                                        "is_local": True,
+                                        "description": "Auto-detected Local Model",
+                                        "healthy": True,
+                                    }
+                                )
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"Error during dynamic discovery: {e}")
+
         # 3. 检查环境变量中的云端 API 配置 (.env)
         cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
         if cloud_api_key:
@@ -3111,6 +3172,12 @@ async def get_llm_status():
         import concurrent.futures
 
         def check_model_health(model):
+            # 如果没有 base_url，说明是仅配置了元数据但未被自动发现的本地模型
+            # 标记为不健康/未运行
+            if not model.get("base_url"):
+                model["healthy"] = False
+                return model
+
             # 如果已经是标记为健康的云端模型，且没有本地 URL 特征，跳过检查
             if not model.get("is_local") and model.get("healthy"):
                 return model
@@ -3129,7 +3196,7 @@ async def get_llm_status():
             # 策略 1: 尝试 /health (vLLM 标准)
             try:
                 check_url = prepare_url(model["base_url"].replace("/v1", "/health"))
-                resp = requests.get(check_url, headers=headers, timeout=0.5)
+                resp = requests.get(check_url, headers=headers, timeout=2.0)
                 if resp.status_code == 200:
                     model["healthy"] = True
                     return model
@@ -3139,7 +3206,7 @@ async def get_llm_status():
             # 策略 2: 尝试 /v1/models (OpenAI 标准)
             try:
                 check_url = prepare_url(f"{model['base_url']}/models")
-                resp = requests.get(check_url, headers=headers, timeout=0.5)
+                resp = requests.get(check_url, headers=headers, timeout=2.0)
                 if resp.status_code == 200:
                     model["healthy"] = True
                     return model
@@ -3162,7 +3229,7 @@ async def get_llm_status():
 
                 if host and port:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.settimeout(0.5)
+                        s.settimeout(2.0)
                         result = s.connect_ex((host, port))
                         if result == 0:
                             model["healthy"] = True
