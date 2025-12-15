@@ -273,8 +273,12 @@ class ChatModeManager(StudioManager):
             console.print("   示例：pip install vllm  # 安装 vLLM 引擎")
             return False
 
-    def _stop_llm_service(self) -> bool:
-        """Stop local LLM service."""
+    def _stop_llm_service(self, force: bool = False) -> bool:
+        """Stop local LLM service.
+
+        Args:
+            force: If True, aggressively scan and stop services on related ports.
+        """
         try:
             from sage.common.components.sage_llm import LLMLauncher
         except ImportError:
@@ -294,7 +298,42 @@ class ChatModeManager(StudioManager):
                 return False
 
         # Use LLMLauncher to stop any running service
-        return LLMLauncher.stop(verbose=True)
+        stopped = LLMLauncher.stop(verbose=True, force=force)
+
+        # If force is enabled, also scan the benchmark range (8901-8910)
+        if force:
+            for port in range(8901, 8911):
+                # Skip if already checked by LLMLauncher (8901 is in BENCHMARK_LLM)
+                if port == SagePorts.BENCHMARK_LLM:
+                    continue
+
+                try:
+                    for conn in psutil.net_connections(kind="inet"):
+                        if conn.status == "LISTEN" and conn.laddr.port == port:
+                            pid = conn.pid
+                            if pid:
+                                console.print(
+                                    f"[blue]🛑 发现端口 {port} 上的残留服务 (PID: {pid})...[/blue]"
+                                )
+                                try:
+                                    proc = psutil.Process(pid)
+                                    proc.terminate()
+                                    try:
+                                        proc.wait(timeout=5)
+                                    except psutil.TimeoutExpired:
+                                        proc.kill()
+                                    console.print(f"[green]✅ 服务已停止 (端口 {port})[/green]")
+                                    stopped = True
+                                except Exception as e:
+                                    console.print(f"[yellow]⚠️ 停止失败: {e}[/yellow]")
+                                    try:
+                                        os.kill(pid, signal.SIGKILL)
+                                    except Exception:
+                                        pass
+                except Exception:
+                    pass
+
+        return stopped
 
     # ------------------------------------------------------------------
     # Embedding Service helpers
@@ -429,11 +468,15 @@ class ChatModeManager(StudioManager):
             console.print(f"[red]❌ 启动 Embedding 服务失败: {e}[/red]")
             return False
 
-    def _stop_embedding_service(self) -> bool:
+    def _stop_embedding_service(self, force: bool = False) -> bool:
         """Stop Embedding service if running.
 
+        Args:
+            force: If True, kill process on embedding port even if PID file is missing.
+
         NOTE: Only stops the service if it was started by Studio (has PID file).
-        Does NOT kill orphan processes to allow reuse of manually started services.
+        Does NOT kill orphan processes to allow reuse of manually started services,
+        unless force=True is specified.
         """
         log_dir = Path.home() / ".sage" / "logs"
         embedding_pid_file = log_dir / "embedding.pid"
@@ -461,9 +504,36 @@ class ChatModeManager(StudioManager):
             except Exception as e:
                 console.print(f"[yellow]⚠️  清理 Embedding PID 文件失败: {e}[/yellow]")
 
-        # NOTE: We intentionally do NOT kill orphan processes here anymore.
-        # This allows users to manually start an embedding service (e.g. via sage llm serve)
-        # and have it persist across Studio restarts.
+        if force and not stopped:
+            # Check default embedding port
+            port = SagePorts.EMBEDDING_DEFAULT  # 8090
+            try:
+                for conn in psutil.net_connections(kind="inet"):
+                    if conn.status == "LISTEN" and conn.laddr.port == port:
+                        pid = conn.pid
+                        if pid:
+                            console.print(
+                                f"[blue]🛑 发现 Embedding 端口 {port} 上的残留服务 (PID: {pid})...[/blue]"
+                            )
+                            try:
+                                proc = psutil.Process(pid)
+                                proc.terminate()
+                                try:
+                                    proc.wait(timeout=5)
+                                except psutil.TimeoutExpired:
+                                    proc.kill()
+                                console.print(
+                                    f"[green]✅ Embedding 服务已停止 (端口 {port})[/green]"
+                                )
+                                stopped = True
+                            except Exception as e:
+                                console.print(f"[yellow]⚠️ 停止失败: {e}[/yellow]")
+                                try:
+                                    os.kill(pid, signal.SIGKILL)
+                                except Exception:
+                                    pass
+            except Exception:
+                pass
 
         return stopped
 
@@ -997,8 +1067,8 @@ class ChatModeManager(StudioManager):
         embedding = True
 
         if stop_infrastructure:
-            llm = self._stop_llm_service()
-            embedding = self._stop_embedding_service()
+            llm = self._stop_llm_service(force=True)
+            embedding = self._stop_embedding_service(force=True)
         else:
             # Inform user that infrastructure is preserved
             console.print("[dim]ℹ️  保留 LLM/Embedding 服务运行 (使用 --all 停止所有)[/dim]")
