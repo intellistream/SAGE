@@ -585,9 +585,9 @@ def list_engines(
 
         gpu_ids = engine.get("gpu_ids") or engine.get("gpus") or engine.get("devices")
         if isinstance(gpu_ids, list):
-            gpu_text = ",".join(str(item) for item in gpu_ids) or "-"
+            gpu_text = ",".join(str(item) for item in gpu_ids) if gpu_ids else "CPU"
         else:
-            gpu_text = str(gpu_ids) if gpu_ids is not None else "-"
+            gpu_text = str(gpu_ids) if gpu_ids is not None else "CPU"
 
         table.add_row(
             str(engine_id),
@@ -733,6 +733,34 @@ def stop_engine(
 
     status_text = response.get("status") or response.get("state") or "STOPPED"
     console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
+
+
+@engine_app.command("prune")
+def prune_engines(
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址",
+    ),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+):
+    """清理所有已停止或失败的引擎记录。"""
+
+    base_url = _resolve_api_base(api_base, api_port)
+    response = _management_request(
+        "POST",
+        "/management/engines/prune",
+        api_base=base_url,
+        timeout=timeout,
+    )
+
+    pruned_count = response.get("pruned_count", 0)
+    console.print(f"[green]✅ 已清理 {pruned_count} 个已停止/失败的引擎记录。[/green]")
 
 
 @app.command("gpu")
