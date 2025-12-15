@@ -343,7 +343,7 @@ class OpenAIAdapter:
 
                 client = UnifiedInferenceClient(
                     llm_base_url=base_url,
-                    llm_model="sage-default",
+                    llm_model=None,
                     llm_api_key="dummy",  # pragma: allowlist secret
                 )
 
@@ -403,7 +403,7 @@ class OpenAIAdapter:
 
         gen_config = {
             "method": "openai",
-            "model_name": request.model if request.model != "sage-default" else "gpt-3.5-turbo",
+            "model_name": self._resolve_model_name(request.model),
             "base_url": base_url,
             "api_key": os.getenv("SAGE_CHAT_API_KEY", "dummy"),
         }
@@ -579,12 +579,54 @@ class OpenAIAdapter:
 
         yield "data: [DONE]\n\n"
 
+    def _resolve_model_name(self, model_name: str) -> str:
+        """Resolve 'sage-default' to the actual model name running on the backend."""
+        if model_name != "sage-default":
+            return model_name
+
+        # 1. Try to get default model from RAG pipeline's client
+        try:
+            if hasattr(self, "rag_pipeline") and hasattr(self.rag_pipeline, "chat_map"):
+                client = self.rag_pipeline.chat_map._get_llm_client()
+                # Force refresh/fetch of default model
+                resolved = client._get_default_llm_model()
+                if resolved and resolved != "default":
+                    return resolved
+        except Exception as e:
+            logger.warning(f"Failed to resolve default model via RAG pipeline: {e}")
+
+        # 2. Try to query vLLM directly
+        try:
+            import httpx
+
+            from sage.common.config.ports import SagePorts
+
+            # Try common ports
+            ports = [SagePorts.LLM_DEFAULT, SagePorts.BENCHMARK_LLM]
+            for port in ports:
+                try:
+                    with httpx.Client(timeout=1.0) as client:
+                        resp = client.get(f"http://localhost:{port}/v1/models")
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if data.get("data") and len(data["data"]) > 0:
+                                return data["data"][0]["id"]
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.warning(f"Failed to resolve default model via direct query: {e}")
+
+        return "gpt-3.5-turbo"  # Fallback if resolution fails
+
     async def chat_completions(
         self, request: ChatCompletionRequest
     ) -> ChatCompletionResponse | AsyncIterator[str]:
         """处理 chat completions 请求"""
         # 确保 Pipeline 已启动
         self._ensure_pipeline_started()
+
+        # Resolve model name
+        request.model = self._resolve_model_name(request.model)
 
         # 1. 获取或创建会话
         session = self.session_manager.get_or_create(request.session_id)
@@ -887,7 +929,9 @@ class OpenAIAdapter:
             retrieval_start = time.time()
             try:
                 # 执行检索
-                rag_result = await asyncio.to_thread(self._perform_rag_retrieval, user_input)
+                rag_result = await asyncio.to_thread(
+                    self._perform_rag_retrieval, user_input, request.model
+                )
                 sources = rag_result.get("sources", [])
                 retrieval_duration = int((time.time() - retrieval_start) * 1000)
 
@@ -928,7 +972,7 @@ class OpenAIAdapter:
                 # 生成回答
                 memory_history = self.session_manager.retrieve_memory_history(session.id)
                 answer = await asyncio.to_thread(
-                    self._generate_rag_answer, user_input, sources, memory_history
+                    self._generate_rag_answer, user_input, sources, memory_history, request.model
                 )
                 analysis_duration = int((time.time() - analysis_start) * 1000)
 
@@ -1159,7 +1203,7 @@ class OpenAIAdapter:
                 base_url = f"http://localhost:{SagePorts.BENCHMARK_LLM}/v1"
 
             # Auto-detect model
-            model_name = "sage-default"
+            model_name = self._resolve_model_name("sage-default")
             try:
                 # Use a short timeout to avoid blocking
                 with httpx.Client(timeout=2.0) as client:
@@ -1218,7 +1262,7 @@ class OpenAIAdapter:
                 return {"type": "chat", "content": value}
         return {"type": "chat", "content": "你好！有什么可以帮助你的吗？"}
 
-    def _perform_rag_retrieval(self, user_input: str) -> dict:
+    def _perform_rag_retrieval(self, user_input: str, model: str | None = None) -> dict:
         """执行 RAG 检索"""
         try:
             # 调用 RAG Pipeline 的检索功能
@@ -1228,7 +1272,7 @@ class OpenAIAdapter:
                 # 回退到完整处理
                 request_data = {
                     "messages": [{"role": "user", "content": user_input}],
-                    "model": "sage-default",
+                    "model": model or self._resolve_model_name("sage-default"),
                 }
                 result = self.rag_pipeline.process(request_data, timeout=60.0)
                 sources = result.get("sources", [])
@@ -1237,12 +1281,14 @@ class OpenAIAdapter:
             logger.error(f"RAG retrieval failed: {e}", exc_info=True)
             return {"sources": []}
 
-    def _generate_rag_answer(self, user_input: str, sources: list, memory_history: str) -> str:
+    def _generate_rag_answer(
+        self, user_input: str, sources: list, memory_history: str, model: str | None = None
+    ) -> str:
         """基于检索结果生成回答"""
         try:
             request_data = {
                 "messages": [{"role": "user", "content": user_input}],
-                "model": "sage-default",
+                "model": model or self._resolve_model_name("sage-default"),
                 "memory_context": memory_history,
             }
             result = self.rag_pipeline.process(request_data, timeout=120.0)
