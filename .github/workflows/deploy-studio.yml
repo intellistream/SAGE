@@ -141,9 +141,11 @@ jobs:
 
           candidate_urls = set()
 
-            # 0) Default LLM port 8001
-            add_candidate("http://127.0.0.1:8001/v1", candidate_urls)
+          # 0) Default LLM port 8001
+          add_candidate("http://127.0.0.1:8001/v1", candidate_urls)
 
+          # 1) Default benchmark ports 8901-8910
+          for port in range(8901, 8911):
             add_candidate(f"http://127.0.0.1:{port}/v1", candidate_urls)
 
           # 2) llm_service_config files recorded by LLMLauncher
