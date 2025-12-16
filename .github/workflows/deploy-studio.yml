@@ -179,7 +179,13 @@ jobs:
               echo "使用 conda 安装 Node.js..."
               source "$CONDA_PATH/etc/profile.d/conda.sh"
               conda activate sage
-              conda install -y -c conda-forge nodejs=20
+
+              # 配置 conda-forge 镜像 (针对国内网络环境)
+              conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+              conda config --set show_channel_urls yes
+
+              # 安装 nodejs (不指定 -c conda-forge，使用配置的镜像)
+              conda install -y nodejs=20
             fi
           fi
 
