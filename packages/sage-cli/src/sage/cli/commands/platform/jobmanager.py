@@ -40,7 +40,7 @@ app = typer.Typer(
 class JobManagerController:
     """JobManager控制器"""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 19001):
+    def __init__(self, host: str = "0.0.0.0", port: int = 19001):
         self.host = host
         self.port = port
         self.process_names = ["job_manager.py", "jobmanager_daemon.py"]
@@ -478,7 +478,7 @@ class JobManagerController:
 
 @app.command()
 def start(
-    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    host: str = typer.Option("0.0.0.0", help="JobManager host address (use 0.0.0.0 for cluster access)"),
     port: int = typer.Option(19001, help="JobManager port"),
     foreground: bool = typer.Option(False, "--foreground", help="Start in the foreground"),
     no_wait: bool = typer.Option(
@@ -506,7 +506,7 @@ def start(
 
 @app.command()
 def stop(
-    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    host: str = typer.Option("0.0.0.0", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
     force: bool = typer.Option(
         False,
@@ -539,7 +539,7 @@ def stop(
 
 @app.command()
 def restart(
-    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    host: str = typer.Option("0.0.0.0", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
     force: bool = typer.Option(False, "--force", "-f", help="Force the restart"),
     no_wait: bool = typer.Option(
@@ -558,7 +558,7 @@ def restart(
 
 @app.command()
 def status(
-    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    host: str = typer.Option("0.0.0.0", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
 ):
     """
@@ -571,7 +571,7 @@ def status(
 
 @app.command()
 def kill(
-    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    host: str = typer.Option("0.0.0.0", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
 ):
     """

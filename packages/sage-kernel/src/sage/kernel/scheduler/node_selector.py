@@ -238,6 +238,9 @@ class NodeSelector:
             节点资源信息列表
         """
         self._update_node_cache()
+        # 同步最新的 task_count（因为缓存期间 task_count 可能已更新）
+        for node_id, node_res in self.node_cache.items():
+            node_res.task_count = self.node_task_count.get(node_id, 0)
         return list(self.node_cache.values())
 
     def get_node(self, node_id: str) -> NodeResources | None:
