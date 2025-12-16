@@ -378,6 +378,7 @@ jobs:
           WORKSPACE="${{ github.workspace }}"
           RUNNER_USER=$(whoami)
           HF_TOKEN_VAL="${{ secrets.HF_TOKEN }}"
+          NODE_BIN_VAL="${{ env.NODE_BIN }}"
           FRONTEND_DIR="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend"
 
           # 创建 wrapper 脚本目录
@@ -444,6 +445,7 @@ jobs:
           PIDFile=/home/$RUNNER_USER/.local/state/sage/studio.pid
           User=$RUNNER_USER
           WorkingDirectory=$WORKSPACE
+          Environment=PATH=$NODE_BIN_VAL:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
           Environment=HF_ENDPOINT=https://hf-mirror.com
           Environment=HF_TOKEN=$HF_TOKEN_VAL
           Environment=PYTHONPATH=$SAGE_PYTHONPATH
