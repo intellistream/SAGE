@@ -2980,9 +2980,13 @@ def _discover_launcher_models() -> list[dict[str, Any]]:
         if service.get("config", {}).get("engine_kind") == "embedding":
             continue
 
+        model_name = service.get("served_model_name") or service.get("model") or "local-llm"
+        if "embedding" in model_name.lower():
+            continue
+
         models.append(
             {
-                "name": service.get("served_model_name") or service.get("model") or "local-llm",
+                "name": model_name,
                 "base_url": service.get("base_url"),
                 "is_local": True,
                 "description": "Auto-detected Local Model",
@@ -3236,9 +3240,17 @@ async def get_llm_status():
 
         # Build available model list
         config_models, _ = _load_models_config(filter_missing=True)
-        available_models = [
-            dict(model) for model in config_models if model.get("engine_kind") != "embedding"
-        ]
+        available_models = []
+        for model in config_models:
+            # Filter out embedding models
+            if model.get("engine_kind") == "embedding":
+                continue
+            # Double check for embedding in name/description if engine_kind is missing
+            if "embedding" in model.get("name", "").lower():
+                continue
+            if "embedding" in model.get("description", "").lower():
+                continue
+            available_models.append(dict(model))
 
         def _merge_model(entry: dict[str, Any]) -> None:
             entry_url = entry.get("base_url")
