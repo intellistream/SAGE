@@ -39,7 +39,6 @@ services:
     link_policy: "bidirectional"
     max_links_per_node: 50
     link_weight_init: 1.0
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -117,3 +116,58 @@ operators:
     max_depth: 1
     conversation_format_prompt: |
       The following is relevant memory with associated context.
+
+# ============================================================
+# A-Mem (Agentic Memory) 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. Note 结构：keywords + tags + context + links
+#   2. Link Evolution: 动态建立/更新记忆链接
+#   3. Memory Evolution: 基于链接的记忆演化
+#   4. 链接扩展检索：从相关记忆获取上下文
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 A-Mem 操作      │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Note Generation      │ extract      │
+# │  - 关键词提取      │ keywords             │ spacy        │
+# │  - 实体提取        │ entities/tags        │ entity_types │
+# │  - 人物画像提取    │ persona info         │ persona_prom │
+# │  - 元数据标注      │ 构造 Note 结构       │ metadata     │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Insert as Node       │ GraphMemory  │
+# │  - 节点创建        │ Note 作为图节点      │ link_graph   │
+# │  - 向量存储        │ 向量索引             │ embedding    │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Link Generation      │ link_evol    │
+# │  - KNN 检索        │ 找到相关记忆        │ knn_k=10     │
+# │  - LLM 决策        │ 判断是否建立链接    │ auto_link    │
+# │  - 建立双向链接    │ bidirectional links  │ max_links=50 │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding      │ embedding    │
+# │  - 查询向量化      │ 用于相似度检索      │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Vector Search        │ GraphMemory  │
+# │  - 向量检索        │ 找到相关 Notes      │ FAISS        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Link Expansion       │ merge        │
+# │  - 链接扩展        │ 跟随链接获取上下文  │ link_expand  │
+# │  - 多层扩展        │ max_depth=1          │ expand_top_n │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - graph_type="link_graph": 链接图类型
+#   - link_policy="bidirectional": 双向链接
+#   - max_links_per_node=50: 每个节点最多链接数
+#   - auto_link_prompt: LLM 决策链接的 prompt
+#   - expand_top_n=5: 链接扩展数量
+#
+# 与论文的差异：
+#   1. SAGE 使用 spaCy + LLM 提取关键词和实体
+#   2. SAGE 的 Link Evolution 通过 auto_link + LLM 判断实现
+#   3. SAGE 支持配置化的链接数量和扩展深度
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_amem_pipeline.yaml --task_id conv-26

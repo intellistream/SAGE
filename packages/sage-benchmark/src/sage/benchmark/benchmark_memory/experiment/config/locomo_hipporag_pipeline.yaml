@@ -43,7 +43,6 @@ services:
     retrieval_top_k: 20              # 初始向量检索返回数量
     num_start_nodes: 10              # 使用更多种子节点启动图遍历
     max_depth: 3                     # 增加遍历深度
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -55,7 +54,7 @@ operators:
   # HippoRAG 的核心是从文本抽取 (S, P, O) 三元组
   # ----------------------------------------------------------
   pre_insert:
-    action: "tri_embed"
+    action: "extract.triple"
     triple_extraction_prompt: |
       You are a knowledge graph builder. Extract ALL factual triples from the dialogue, focusing on information that could answer questions about WHO, WHAT, WHEN, WHERE, WHY, and HOW.
 
@@ -129,3 +128,61 @@ operators:
     top_k: 10
     conversation_format_prompt: |
       The following is relevant knowledge from the graph.
+
+# ============================================================
+# HippoRAG 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. 知识图谱存储：(Subject, Predicate, Object) 三元组
+#   2. Synonym Edges: 连接语义相近的节点
+#   3. PPR 检索：Personalized PageRank 图遍历
+#   4. 两阶段检索：向量查找起始节点 + PPR 扩展
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 HippoRAG 操作   │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ OpenIE Triple Extract│ extract.triple│
+# │  - 三元组提取      │ (S, P, O) 抽取       │ LLM Prompt   │
+# │  - 节点 Embedding    │ 为每个实体生成向量   │ BGE-M3       │
+# │  - 谓词关系标注    │ 边类型标记          │ metadata     │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Graph Insert         │ GraphMemory  │
+# │  - 节点创建        │ 添加 S/O 实体节点    │ igraph       │
+# │  - 边创建          │ 添加 P 关系边       │ edge_types   │
+# │  - 向量存储        │ 节点 embedding       │ FAISS        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Synonym Edge Build   │ link_evol    │
+# │  - 语义相似计算    │ 找到相近节点        │ knn_k=10     │
+# │  - 建立 synonym 边  │ 连接语义相近实体    │ threshold    │
+# │  - 批量处理        │ session 结束时执行   │ auto-detect  │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding      │ embedding    │
+# │  - 查询向量化      │ 用于找起始节点      │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Vector + Graph       │ GraphMemory  │
+# │  - 向量查起始节点  │ top-k 最相关节点    │ top_k=20     │
+# │  - 图遍历          │ 从起始节点扩展      │ max_depth=3  │
+# │  - 收集上下文      │ 返回相关三元组      │ num_start=10 │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ PPR Rerank (禁用)   │ none         │
+# │  - PPR 重排序      │ PageRank 权重       │ 超时禁用     │
+# │  - 基础格式化      │ 拼接三元组          │ top_k=10     │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - graph_type="knowledge_graph": 知识图谱类型
+#   - retrieval_top_k=20: 初始向量检索数量
+#   - num_start_nodes=10: 图遍历起始节点数
+#   - max_depth=3: 图遍历最大深度
+#   - link_policy="synonym_edge": Synonym 边建立策略
+#
+# 与论文的差异：
+#   1. 论文使用 ColBERT，SAGE 使用 BGE-M3（更通用）
+#   2. PPR 重排序暂时禁用（单线程易超时）
+#   3. SAGE 增加了更详细的三元组提取 prompt
+#   4. SAGE 支持自动检测 session 结束才建立 synonym 边
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_hipporag_pipeline.yaml --task_id conv-26
