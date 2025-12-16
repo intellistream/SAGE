@@ -87,6 +87,120 @@ jobs:
           echo "GPU 状态:"
           nvidia-smi --query-gpu=index,memory.used,memory.free --format=csv 2>/dev/null || true
 
+      - name: Detect and dedupe existing LLM services
+        run: |
+          echo "🔍 探活并去重本地 LLM 服务 (优先保留健康实例，按模型去重)"
+          set -euo pipefail
+          cat <<'PY' | sed 's/^          //' | python - | tee /tmp/llm_detect.env
+          import glob
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          workspace = os.environ.get("GITHUB_WORKSPACE", ".")
+
+          def add_candidate(url, dest):
+            if not url:
+              return
+            url = url.rstrip("/")
+            if url.endswith("/v1"):
+              dest.add(url)
+            elif url.endswith("/v1/"):
+              dest.add(url[:-1])
+
+          def probe(url):
+            for path in ("/health", "/models", "/v1/models"):
+              try:
+                req = urllib.request.Request(url + path, headers={"Accept": "application/json"})
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                  data = resp.read().decode("utf-8", "ignore")
+                  if resp.status == 200:
+                    model = None
+                    try:
+                      payload = json.loads(data)
+                      if isinstance(payload, dict):
+                        if isinstance(payload.get("data"), list) and payload["data"]:
+                          first = payload["data"][0]
+                          if isinstance(first, dict):
+                            model = first.get("id") or first.get("model")
+                        if not model:
+                          model = payload.get("model") or payload.get("model_id")
+                    except Exception:
+                      model = None
+                    return True, model
+              except urllib.error.HTTPError:
+                return True, None
+              except Exception:
+                continue
+            return False, None
+
+          candidate_urls = set()
+
+          # 1) Default benchmark ports 8901-8910
+          for port in range(8901, 8911):
+            add_candidate(f"http://127.0.0.1:{port}/v1", candidate_urls)
+
+          # 2) llm_service_config files recorded by LLMLauncher
+          for path in glob.glob(os.path.expanduser("~/.sage/llm_service_config_*.json")):
+            try:
+              cfg = json.loads(open(path, encoding="utf-8").read())
+              base = cfg.get("base_url")
+              if base:
+                add_candidate(base, candidate_urls)
+              else:
+                port = cfg.get("port")
+                host = cfg.get("host") or "127.0.0.1"
+                if port:
+                  add_candidate(f"http://{host}:{port}/v1", candidate_urls)
+            except Exception:
+              continue
+
+          # 3) config/models.json entries (LLM only)
+          config_path = os.path.join(workspace, "config", "models.json")
+          try:
+            with open(config_path, encoding="utf-8") as f:
+              entries = json.load(f)
+            if isinstance(entries, list):
+              for ent in entries:
+                if not isinstance(ent, dict):
+                  continue
+                kind = ent.get("engine_kind") or "llm"
+                if kind and kind.lower() == "embedding":
+                  continue
+                add_candidate(ent.get("base_url"), candidate_urls)
+          except Exception:
+            pass
+
+          keep = []
+          kill = []
+          seen_models = set()
+
+          for url in sorted(candidate_urls):
+            ok, model = probe(url)
+            parsed = urllib.parse.urlparse(url)
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            if not ok:
+              kill.append(str(port))
+              continue
+            model_key = (model or "unknown").lower()
+            if model_key in seen_models:
+              kill.append(str(port))
+              continue
+            seen_models.add(model_key)
+            keep.append(str(port))
+
+          print(f"KEEP_PORTS={','.join(keep)}")
+          print(f"KILL_PORTS={','.join(kill)}")
+          PY
+
+          source /tmp/llm_detect.env
+          echo "KEEP_PORTS=${KEEP_PORTS}" >> $GITHUB_ENV
+          echo "KILL_PORTS=${KILL_PORTS}" >> $GITHUB_ENV
+          echo "保持的 LLM 端口: ${KEEP_PORTS:-<none>}"
+          echo "需要清理的 LLM 端口: ${KILL_PORTS:-<none>}"
+
       - name: Install SAGE
         run: |
           source "$CONDA_PATH/etc/profile.d/conda.sh"
