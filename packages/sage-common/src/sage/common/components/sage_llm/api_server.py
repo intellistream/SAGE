@@ -296,6 +296,16 @@ class LLMAPIServer:
                 "This may fail if default GPU has insufficient memory."
             )
 
+        # CRITICAL: Explicitly unset VLLM_API_KEY in environment unless we want auth.
+        # vLLM will enable auth if this env var is present, even if --api-key is not passed.
+        is_pangu = "pangu" in self.config.model.lower()
+        force_auth = os.getenv("SAGE_LLM_FORCE_AUTH", "false").lower() == "true"
+
+        if not is_pangu and not force_auth:
+            if "VLLM_API_KEY" in env:
+                del env["VLLM_API_KEY"]
+                logger.debug("Unset VLLM_API_KEY from environment to disable auth")
+
         try:
             # Start process
             if background:
