@@ -440,3 +440,186 @@ def check_tcp_connection(host: str, port: int, timeout: int = 5) -> dict[str, An
             "message": f"Connection test failed: {e}",
             "response_time": 0,
         }
+
+
+# =============================================================================
+# 兼容性函数 - 统一接口
+# =============================================================================
+
+
+def is_port_available(host: str, port: int) -> bool:
+    """
+    检查端口是否可用（与 is_port_occupied 相反的语义）
+
+    这是 is_port_occupied 的反向语义版本，用于需要 "available" 语义的场景。
+
+    Args:
+        host: 主机地址
+        port: 端口号
+
+    Returns:
+        bool: True表示端口可用（空闲），False表示端口不可用（被占用）
+    """
+    return not is_port_occupied(host, port)
+
+
+def wait_for_port_ready(
+    host: str, port: int, timeout: int = 30, check_interval: float = 1.0
+) -> bool:
+    """
+    等待端口变为可用（服务启动完成）
+
+    与 wait_for_port_release 相反，此函数等待服务启动并开始监听端口。
+
+    Args:
+        host: 主机地址
+        port: 端口号
+        timeout: 超时时间（秒）
+        check_interval: 检查间隔（秒）
+
+    Returns:
+        bool: True表示端口已就绪（服务已启动），False表示超时
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if is_port_occupied(host, port):
+            return True
+        time.sleep(check_interval)
+    return False
+
+
+def get_process_on_port(port: int) -> dict | None:
+    """
+    获取占用指定端口的进程信息
+
+    Args:
+        port: 端口号
+
+    Returns:
+        包含进程信息的字典 (pid, name, cmdline) 或 None
+    """
+    processes = find_port_processes(port)
+    if not processes:
+        return None
+
+    proc = processes[0]
+    try:
+        return {
+            "pid": proc.pid,
+            "name": proc.name(),
+            "cmdline": " ".join(proc.cmdline()),
+        }
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return {
+            "pid": proc.pid,
+            "name": "unknown",
+            "cmdline": "unknown",
+        }
+
+
+# =============================================================================
+# HTTP Health Check Utilities
+# =============================================================================
+
+
+def check_http_health(
+    host: str = "localhost",
+    port: int = 8000,
+    path: str = "/health",
+    timeout: float = 5.0,
+    expected_status: int = 200,
+) -> dict:
+    """
+    检查 HTTP 服务健康状态
+
+    Args:
+        host: 主机地址
+        port: 端口号
+        path: 健康检查路径
+        timeout: 超时时间（秒）
+        expected_status: 预期的 HTTP 状态码
+
+    Returns:
+        包含检查结果的字典:
+            - healthy: bool, 服务是否健康
+            - status_code: int | None, HTTP 状态码
+            - response_time: float, 响应时间（秒）
+            - error: str | None, 错误信息
+    """
+    import urllib.request
+    import urllib.error
+
+    url = f"http://{host}:{port}{path}"
+    start_time = time.time()
+
+    try:
+        request = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            elapsed = time.time() - start_time
+            status_code = response.getcode()
+            return {
+                "healthy": status_code == expected_status,
+                "status_code": status_code,
+                "response_time": elapsed,
+                "error": None,
+            }
+    except urllib.error.HTTPError as e:
+        elapsed = time.time() - start_time
+        return {
+            "healthy": False,
+            "status_code": e.code,
+            "response_time": elapsed,
+            "error": str(e),
+        }
+    except urllib.error.URLError as e:
+        elapsed = time.time() - start_time
+        return {
+            "healthy": False,
+            "status_code": None,
+            "response_time": elapsed,
+            "error": f"Connection failed: {e.reason}",
+        }
+    except TimeoutError:
+        return {
+            "healthy": False,
+            "status_code": None,
+            "response_time": timeout,
+            "error": "Connection timeout",
+        }
+    except Exception as e:
+        elapsed = time.time() - start_time
+        return {
+            "healthy": False,
+            "status_code": None,
+            "response_time": elapsed,
+            "error": str(e),
+        }
+
+
+def wait_for_http_health(
+    host: str = "localhost",
+    port: int = 8000,
+    path: str = "/health",
+    timeout: int = 30,
+    check_interval: float = 1.0,
+) -> bool:
+    """
+    等待 HTTP 服务健康就绪
+
+    Args:
+        host: 主机地址
+        port: 端口号
+        path: 健康检查路径
+        timeout: 总超时时间（秒）
+        check_interval: 检查间隔（秒）
+
+    Returns:
+        bool: True 表示服务健康就绪，False 表示超时
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        result = check_http_health(host, port, path, timeout=min(5.0, check_interval))
+        if result["healthy"]:
+            return True
+        time.sleep(check_interval)
+    return False

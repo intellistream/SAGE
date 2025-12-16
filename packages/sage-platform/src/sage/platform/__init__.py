@@ -19,12 +19,26 @@ Architecture:
 __layer__ = "L2"
 
 # Public API
-from sage.platform import queue, service, storage
+from sage.platform import queue, service, storage, utils
 from sage.platform._version import __version__
+from sage.platform.utils import (
+    LazyLoggerProxy,
+    get_component_logger,
+    retry_with_backoff,
+    retry_with_config,
+    share_queue_instance_on_clone,
+)
 
 __all__ = [
     "__version__",
     "queue",
     "service",
     "storage",
+    "utils",
+    # Utility functions
+    "retry_with_backoff",
+    "retry_with_config",
+    "get_component_logger",
+    "LazyLoggerProxy",
+    "share_queue_instance_on_clone",
 ]

@@ -57,3 +57,25 @@ __all__ = [
     "ResultsCollector",
     "get_collector",
 ]
+
+# Export formatting utilities
+from sage.common.utils.formatting import (
+    format_count,
+    format_duration,
+    format_duration_verbose,
+    format_percentage,
+    format_size,
+    format_size_compact,
+    format_timestamp,
+)
+
+# Update __all__ with formatting utilities
+__all__.extend([
+    "format_size",
+    "format_size_compact",
+    "format_duration",
+    "format_duration_verbose",
+    "format_timestamp",
+    "format_percentage",
+    "format_count",
+])
