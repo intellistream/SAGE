@@ -98,7 +98,7 @@ class ShortTermMemoryService(BaseService):
         # 尝试从持久化存储恢复队列
         self._restore_queue()
 
-        self.logger.info(f"ShortTermMemoryService initialized with max_dialog={max_dialog}")
+        self.logger.debug(f"ShortTermMemoryService initialized with max_dialog={max_dialog}")
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
