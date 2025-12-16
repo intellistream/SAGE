@@ -1,0 +1,180 @@
+# ============================================================
+# SeCom Pipeline 配置
+# 论文: On Memory Construction and Retrieval for Personalized Conversational Agents
+# 特点: Segment-level 记忆 + 压缩式去噪 + 语义聚类
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "SeCom"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# SeCom 使用 segment-level 记忆单元
+# ============================================================
+services:
+  register_memory_service: "hierarchical_memory"
+  hierarchical_memory:
+    tier_mode: "two_tier"             # 双层模式：segments + raw pages
+    tier_names: ["segments", "raw"]
+    tier_capacities:
+      segments: 100                   # Segment 数量限制
+      raw: -1                         # 原始对话无限
+    migration_policy: "semantic"      # 基于语义聚类迁移
+    semantic_threshold: 0.75          # 语义相似度阈值
+    embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: Segmentation + Compression-based Denoising
+  # SeCom 的核心：将对话分段并去噪
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "transform"
+    transform_type: "segment_denoise"
+    # 分段策略
+    segmentation:
+      method: "semantic_clustering"   # 语义聚类分段
+      min_segment_length: 3           # 最小段落长度（轮次）
+      max_segment_length: 10          # 最大段落长度
+      similarity_threshold: 0.75      # 段内相似度阈值
+    # 压缩式去噪 prompt
+    denoising_prompt: |
+      You are a conversation compression expert. Remove noise and redundancy from the dialogue segment below while preserving all factual information.
+
+      Rules:
+      1. Remove conversational fillers (e.g., "um", "uh", "like")
+      2. Consolidate repeated or paraphrased information
+      3. Keep all factual content, preferences, and important details
+      4. Maintain chronological order
+      5. Output a clean, compressed version of the segment
+
+      Original segment:
+      {dialogue}
+
+      Compressed segment:
+
+  # ----------------------------------------------------------
+  # PostInsert: Segment Merging (Replace)
+  # SeCom 支持将新 segment 与已有相似 segment 合并
+  # ----------------------------------------------------------
+  post_insert:
+    action: "distillation"
+    distillation_topk: 5              # 检索相似 segment 数量
+    distillation_threshold: 0.8       # 高相似度阈值表示可合并
+    distillation_prompt: |
+      You are managing a segmented memory database. Given a new segment and existing similar segments, decide the action:
+
+      - MERGE: The new segment and an existing segment cover the same topic/event and should be merged
+      - ADD: The new segment is distinct enough to be stored separately
+      - NOOP: The new segment is redundant (already fully covered)
+
+      New segment: {new_entry}
+
+      Existing segments:
+      {memory_list}
+
+      If MERGE, specify which segment to merge with and provide the merged version.
+      Respond with JSON:
+      {
+        "action": "MERGE|ADD|NOOP",
+        "merge_with_index": <index or null>,
+        "merged_content": "<merged text or null>",
+        "to_delete": ["<exact segment text to remove>"],
+        "reason": "<brief explanation>"
+      }
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 基础 embedding
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+
+  # ----------------------------------------------------------
+  # PostRetrieval: Segment 拼接
+  # SeCom 将检索到的 segments 直接拼接为上下文
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "none"
+    top_k: 10
+    conversation_format_prompt: |
+      The following are relevant conversation segments from memory.
+
+# ============================================================
+# SeCom 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. Segment-level 记忆单元：语义连贯的对话片段
+#   2. 压缩式去噪：去除冗余和噪声，保留关键信息
+#   3. 语义聚类：按主题自动分段
+#   4. Segment 合并：相似 segment 可以合并优化
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 SeCom 操作       │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Segmentation          │ transform    │
+# │  - 语义聚类分段    │ 主题一致性分组        │ clustering   │
+# │  - 压缩式去噪      │ 去除冗余保留关键信息  │ LLM Prompt   │
+# │  - 段落边界检测    │ 自动识别话题转换      │ similarity   │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Segment Insert        │ Hierarchical │
+# │  - 存入 segment 层 │ 结构化存储            │ segments     │
+# │  - 保留原始对话    │ raw 层备份            │ raw tier     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Segment Merge         │ distillation │
+# │  - 检索相似 segment│ 查找可合并的段落      │ topk=5       │
+# │  - LLM 决策合并    │ MERGE/ADD/NOOP        │ LLM Prompt   │
+# │  - 执行合并        │ 删除旧段插入新段      │ replace      │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding       │ embedding    │
+# │  - 查询向量化      │ 用于语义检索          │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Semantic Search       │ Hierarchical │
+# │  - Segment 检索    │ 基于嵌入相似度        │ FAISS        │
+# │  - Top-k 排序      │ 最相关段落            │ top_k        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Context Assembly      │ none         │
+# │  - 段落拼接        │ 构建 prompt           │ format       │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - tier_mode="two_tier": Segment 层 + Raw 层
+#   - segmentation.method="semantic_clustering": 语义聚类分段
+#   - similarity_threshold=0.75: 段内相似度阈值
+#   - distillation_threshold=0.8: 段间合并阈值
+#
+# 与论文的差异：
+#   1. 论文使用 MPNet 编码器，SAGE 使用 BGE-M3（性能更好）
+#   2. 论文可选 BM25 检索，SAGE 主要使用向量检索
+#   3. SAGE 增加了分层存储（segment + raw），论文未明确分层
+#   4. 去噪和分段逻辑通过 LLM prompt 实现，论文可能用规则
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_secom_pipeline.yaml --task_id conv-26

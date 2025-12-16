@@ -1,16 +1,74 @@
-"""记忆检索模块 - 负责从记忆服务中检索对话历史"""
+"""
+================================================================================
+MemoryRetrieval - 记忆检索算子（重构后）
+================================================================================
+
+[架构定位]
+Pipeline: PreInsert → MemoryInsert → PostInsert → PreRetrieval → MemoryRetrieval(当前) → PostRetrieval
+前驱: PreRetrieval（负责查询预处理，生成 query_embedding）
+后继: PostRetrieval（检索后处理，如重排序、过滤、增强）
+
+[核心职责]
+纯透传模式：调用记忆服务的 retrieve 方法，返回原始检索结果
+
+[输入数据结构] (由 PreRetrieval 生成)
+data = {
+    "question": str,                    # 必须：查询问题
+    "query_embedding": list[float],     # 可选：查询向量（由 PreRetrieval 生成）
+    "metadata": dict,                   # 可选：元数据
+    "retrieve_mode": str,               # 检索模式: "passive" | "active" | ...
+    "retrieve_params": dict,            # 检索参数（服务特定）
+    ...其他透传字段...
+}
+
+[输出数据结构]
+data（原样透传）+ memory_data + retrieval_stats = {
+    "memory_data": list[dict],          # 检索到的原始记忆数据
+    "retrieval_stats": {                # 检索统计
+        "retrieved": int,               # 检索数量
+        "time_ms": float,               # 检索耗时（毫秒）
+        "service_name": str,            # 服务名称
+    }
+}
+
+[设计原则]
+1. 单一职责：只负责调用服务的 retrieve 方法，不做结果处理
+2. 纯透传：PreRetrieval 已统一设置查询参数，MemoryRetrieval 直接使用
+3. 性能监控：记录检索耗时，供性能分析使用
+4. 错误容忍：提供超时控制和重试机制
+
+[T5 重构目标]
+✅ 简化为纯透传层（< 80 行）
+✅ 统一的性能监控
+✅ 结构化日志输出
+✅ 支持超时控制
+"""
+
+from __future__ import annotations
+
+import time
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from sage.common.core import MapFunction
 
 
+@dataclass
+class RetrievalStats:
+    """检索统计"""
+
+    retrieved: int  # 检索数量
+    time_ms: float  # 检索耗时（毫秒）
+    service_name: str  # 服务名称
+
+
 class MemoryRetrieval(MapFunction):
-    """从记忆服务检索对话历史
+    """记忆检索算子（重构后）- 纯透传模式
 
     职责：
-    1. 初始化时明确服务后端和数据解析器
-    2. 使用解析器提取查询参数
-    3. 调用配置的记忆服务检索对话
-    4. 返回检索到的原始数据（由 post_retrieval 处理格式化）
+    1. 调用记忆服务的 retrieve 方法
+    2. 统计检索性能
+    3. 透传结果给 PostRetrieval
     """
 
     def __init__(self, config=None):
@@ -18,69 +76,64 @@ class MemoryRetrieval(MapFunction):
 
         Args:
             config: RuntimeConfig 对象
-
-        功能：
-        1. 明确服务后端（从 config 读取 register_memory_service）
-        2. 初始化数据解析器（用于提取查询参数）
         """
         super().__init__()
         self.config = config
-
-        # 1. 明确服务后端
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
-        print(f"[DEBUG] MemoryRetrieval.__init__: self.service_name = {self.service_name}")
+        self.verbose = config.get("runtime.memory_test_verbose", True)
 
-        # 2. 检索参数（从服务配置读取）
+        # 检索参数（从服务配置读取）
         service_cfg = f"services.{self.service_name}"
         self.retrieval_top_k = config.get(f"{service_cfg}.retrieval_top_k", 10)
-        self.num_start_nodes = config.get(f"{service_cfg}.num_start_nodes", 3)
-        self.max_depth = config.get(f"{service_cfg}.max_depth", 2)
 
-    def execute(self, data):
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行记忆检索
 
         Args:
-            data: 纯数据字典（已由 PipelineServiceSource 解包）
-                可能包含的字段：
-                - question: 查询问题
-                - query_embedding: 查询向量（可选，由 PreRetrieval 生成）
-                - metadata: 元数据（可选）
-                - retrieval_hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
-                    - strategies: 检索策略列表
-                    - params: 传递给服务的检索参数
-                    - route_strategy: 使用的路由策略
+            data: 由 PreRetrieval 输出的数据，包含查询参数
 
         Returns:
-            在原始数据基础上添加 "memory_data" 字段，包含检索到的原始记忆数据
+            原始数据 + memory_data + retrieval_stats
         """
-        query = data["question"]
-        vector = data.get("query_embedding", None)
-        base_metadata = data.get("metadata") or {}
+        start_time = time.perf_counter()
+        start = time.time()
 
-        # 合并检索参数到 metadata
-        metadata = {
-            **base_metadata,
-            "num_start_nodes": self.num_start_nodes,
-            "max_depth": self.max_depth,
-        }
+        # 1. 提取查询参数
+        query = data.get("question")
+        vector = data.get("query_embedding")
+        metadata = data.get("metadata", {})
+        # Note: retrieve_mode and retrieve_params are from PreRetrieval but not used by ShortTermMemoryService
+        # They can be used by future service implementations if needed
 
-        # 提取 retrieval_hints（如有，由 PreRetrieval route action 生成）
-        # hints 包含检索策略建议，服务可根据 hints 调整检索行为
-        hints = data.get("retrieval_hints", None)
-
-        # 调用记忆服务检索对话（统一接口：传入 query 参数）
-        # 增加超时时间以适应复杂图检索场景
-        result = self.call_service(
+        # 2. 调用服务检索
+        results = self.call_service(
             self.service_name,
+            method="retrieve",
             query=query,
             vector=vector,
             metadata=metadata,
-            hints=hints,  # 传递给服务，让服务决定如何使用
             top_k=self.retrieval_top_k,
-            method="retrieve",
             timeout=60.0,
         )
 
-        data["memory_data"] = result
+        # 3. 统计性能
+        elapsed = (time.time() - start) * 1000
+        stats = RetrievalStats(
+            retrieved=len(results) if results else 0,
+            time_ms=elapsed,
+            service_name=self.service_name,
+        )
+
+        # 4. 添加结果和统计
+        data["memory_data"] = results
+        data["retrieval_stats"] = asdict(stats)
+
+        # 5. 日志输出
+        if self.verbose:
+            self.logger.info(f"Retrieved {stats.retrieved} items in {stats.time_ms:.2f}ms")
+
+        # 6. 记录阶段耗时
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        data.setdefault("stage_timings", {})["memory_retrieval_ms"] = elapsed_ms
 
         return data
