@@ -11,7 +11,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
 # Python 脚本的相对路径
 PYTHON_SCRIPT="$SCRIPT_DIR/../memory_test_pipeline.py"
 # 配置文件路径
-CONFIG_FILE="$SCRIPT_DIR/../config/locomo_secom_pipeline.yaml"
+CONFIG_FILE="$SCRIPT_DIR/../config/primitive_memory_model/locomo_secom_pipeline.yaml"
 
 # 定义所有任务 ID
 TASK_IDS=(
