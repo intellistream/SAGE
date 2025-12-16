@@ -5,10 +5,28 @@ Tests gateway, kernel integration, session management, and NeuroMem storage.
 
 import tempfile
 
+import httpx
 import pytest
 
+from sage.common.config.ports import SagePorts
 from sage.gateway.adapters import ChatCompletionRequest, ChatMessage, OpenAIAdapter
 from sage.gateway.session.neuromem_storage import NeuroMemSessionStorage
+
+
+def get_local_llm_model():
+    """Check if local LLM service is available and return model name."""
+    ports = [SagePorts.LLM_DEFAULT, SagePorts.BENCHMARK_LLM]
+    for port in ports:
+        try:
+            with httpx.Client(timeout=1.0) as client:
+                resp = client.get(f"http://localhost:{port}/v1/models")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("data") and len(data["data"]) > 0:
+                        return data["data"][0]["id"]
+        except Exception:
+            continue
+    return None
 
 
 class TestE2EChatFlow:
@@ -17,6 +35,10 @@ class TestE2EChatFlow:
     @pytest.mark.asyncio
     async def test_complete_chat_flow_dev_mode(self, monkeypatch):
         """Test full chat flow in development mode (no API key)"""
+        local_model = get_local_llm_model()
+        if not local_model:
+            pytest.skip("No local LLM service detected")
+
         # Clear API keys to use dev mode
         monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
         monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
@@ -25,7 +47,7 @@ class TestE2EChatFlow:
 
         # Create a chat request
         request = ChatCompletionRequest(
-            model="sage-default",
+            model=local_model,
             messages=[ChatMessage(role="user", content="What is 2+2?")],
             session_id="e2e-test-session",
             stream=False,
@@ -35,7 +57,7 @@ class TestE2EChatFlow:
         response = await adapter.chat_completions(request)
 
         # Verify response structure
-        assert response.model == "sage-default"
+        assert response.model == local_model
         assert len(response.choices) == 1
         assert response.choices[0].message.role == "assistant"
         assert len(response.choices[0].message.content) > 0
@@ -48,6 +70,10 @@ class TestE2EChatFlow:
     @pytest.mark.asyncio
     async def test_multi_turn_conversation(self, monkeypatch):
         """Test multi-turn conversation with context"""
+        local_model = get_local_llm_model()
+        if not local_model:
+            pytest.skip("No local LLM service detected")
+
         monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
         monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
 
@@ -56,7 +82,7 @@ class TestE2EChatFlow:
 
         # First turn
         request1 = ChatCompletionRequest(
-            model="sage-default",
+            model=local_model,
             messages=[ChatMessage(role="user", content="My name is Alice")],
             session_id=session_id,
             stream=False,
@@ -65,7 +91,7 @@ class TestE2EChatFlow:
 
         # Second turn
         request2 = ChatCompletionRequest(
-            model="sage-default",
+            model=local_model,
             messages=[ChatMessage(role="user", content="What is my name?")],
             session_id=session_id,
             stream=False,
@@ -88,13 +114,17 @@ class TestE2EChatFlow:
     @pytest.mark.asyncio
     async def test_streaming_chat_flow(self, monkeypatch):
         """Test streaming chat responses"""
+        local_model = get_local_llm_model()
+        if not local_model:
+            pytest.skip("No local LLM service detected")
+
         monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
         monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
 
         adapter = OpenAIAdapter()
 
         request = ChatCompletionRequest(
-            model="sage-default",
+            model=local_model,
             messages=[ChatMessage(role="user", content="Count to 5")],
             stream=True,
         )
@@ -144,6 +174,10 @@ class TestE2EChatFlow:
     @pytest.mark.asyncio
     async def test_session_persistence_across_adapters(self, monkeypatch):
         """Test that sessions persist across different adapter instances"""
+        local_model = get_local_llm_model()
+        if not local_model:
+            pytest.skip("No local LLM service detected")
+
         monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
         monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
 
@@ -152,7 +186,7 @@ class TestE2EChatFlow:
         # First adapter creates session
         adapter1 = OpenAIAdapter()
         request1 = ChatCompletionRequest(
-            model="sage-default",
+            model=local_model,
             messages=[ChatMessage(role="user", content="Remember: blue")],
             session_id=session_id,
             stream=False,
@@ -162,7 +196,7 @@ class TestE2EChatFlow:
         # Second adapter should see the same session
         adapter2 = OpenAIAdapter()
         request2 = ChatCompletionRequest(
-            model="sage-default",
+            model=local_model,
             messages=[ChatMessage(role="user", content="What color?")],
             session_id=session_id,
             stream=False,
@@ -209,6 +243,10 @@ class TestE2EChatFlow:
     @pytest.mark.asyncio
     async def test_session_stats_accuracy(self, monkeypatch):
         """Test session statistics are accurate"""
+        local_model = get_local_llm_model()
+        if not local_model:
+            pytest.skip("No local LLM service detected")
+
         monkeypatch.delenv("SAGE_CHAT_API_KEY", raising=False)
         monkeypatch.delenv("ALIBABA_API_KEY", raising=False)
 
@@ -218,7 +256,7 @@ class TestE2EChatFlow:
         # Send 3 messages
         for i in range(3):
             request = ChatCompletionRequest(
-                model="sage-default",
+                model=local_model,
                 messages=[ChatMessage(role="user", content=f"Message {i}")],
                 session_id=session_id,
                 stream=False,
