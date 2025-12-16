@@ -47,6 +47,10 @@ class Dispatcher:
             "max_restart_attempts": 3,  # 最大重启次数
         }
 
+        # 对于 remote 环境，先确保 Ray 已初始化，这样 NodeSelector 才能获取节点信息
+        if env.platform == "remote":
+            ensure_ray_initialized()
+
         # 使用调度器和容错管理器（重构后架构）
         # 调度器：纯决策者（返回 PlacementDecision）
         # PlacementExecutor：纯执行者（接收决策，执行放置）
@@ -85,7 +89,6 @@ class Dispatcher:
             self.logger.info(f"Fault tolerance enabled: strategy={strategy}")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
-            ensure_ray_initialized()
 
     def enable_fault_tolerance(
         self,

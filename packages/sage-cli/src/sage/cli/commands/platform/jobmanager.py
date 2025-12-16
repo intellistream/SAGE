@@ -15,6 +15,7 @@ import psutil  # type: ignore[import-untyped]
 import typer
 
 # 导入系统工具模块
+from sage.cli.management.config_manager import ConfigManager
 from sage.common.utils.system.network import (
     aggressive_port_cleanup,
     check_port_binding_permission,
@@ -45,6 +46,18 @@ class JobManagerController:
         self.port = port
         self.process_names = ["job_manager.py", "jobmanager_daemon.py"]
         self.sudo_manager = create_sudo_manager()
+
+    def _get_ray_address(self) -> str | None:
+        """从 cluster.yaml 获取 Ray 集群地址"""
+        try:
+            config_manager = ConfigManager()
+            config = config_manager.load_config()
+            head_config = config.get("head", {})
+            head_host = head_config.get("host", "localhost")
+            head_port = head_config.get("head_port", 6379)
+            return f"{head_host}:{head_port}"
+        except Exception:
+            return None
 
     def check_health(self) -> dict[str, Any]:
         """检查JobManager健康状态"""
@@ -297,6 +310,15 @@ class JobManagerController:
             str(self.port),
         ]
 
+        # 准备环境变量，设置 RAY_ADDRESS 以连接到 Ray 集群
+        env = os.environ.copy()
+        ray_address = self._get_ray_address()
+        if ray_address:
+            env["RAY_ADDRESS"] = ray_address
+            typer.echo(f"Setting RAY_ADDRESS={ray_address} for Ray cluster connection")
+        else:
+            typer.echo("⚠️  Could not determine Ray address from cluster config")
+
         try:
             # 启动JobManager进程
             if daemon:
@@ -307,12 +329,13 @@ class JobManagerController:
                     stderr=subprocess.PIPE,
                     stdin=subprocess.PIPE,
                     start_new_session=True,
+                    env=env,
                 )
                 typer.echo(f"JobManager started as daemon process (PID: {process.pid})")
             else:
                 # 在前台启动
                 typer.echo("Starting JobManager in foreground mode...")
-                process = subprocess.Popen(cmd)
+                process = subprocess.Popen(cmd, env=env)
                 typer.echo(f"JobManager started in foreground (PID: {process.pid})")
                 return True  # 前台模式直接返回
 

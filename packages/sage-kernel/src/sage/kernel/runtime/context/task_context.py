@@ -64,9 +64,11 @@ class TaskContext(BaseRuntimeContext):
         self.stop_signal_num = graph_node.stop_signal_num
 
         # 保存JobManager的网络地址信息而不是直接引用
-        self.jobmanager_host = getattr(env, "jobmanager_host", "127.0.0.1")
+        self.jobmanager_host = getattr(env, "jobmanager_host", "sage-node-1")
         self.jobmanager_port = getattr(env, "jobmanager_port", 19001)
-
+        self.logger.debug(
+            f"JobManager address set to {self.jobmanager_host}:{self.jobmanager_port}"
+        )
         # 为本地环境保存JobManager的弱引用
         if hasattr(env, "_jobmanager") and env._jobmanager is not None:
             import weakref

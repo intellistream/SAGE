@@ -227,7 +227,7 @@ class NodeSelector:
             self.last_update = current_time
 
         except Exception:
-            # Ray 未初始化或其他错误
+            # Ray 未初始化或其他错误，静默忽略
             pass
 
     def get_all_nodes(self) -> list[NodeResources]:
