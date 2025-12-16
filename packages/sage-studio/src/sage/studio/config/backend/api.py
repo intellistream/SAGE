@@ -2894,7 +2894,7 @@ def _expand_api_key(value: Any) -> str:
     return value
 
 
-def _load_models_config() -> tuple[list[dict[str, Any]], Path | None]:
+def _load_models_config(filter_missing: bool = False) -> tuple[list[dict[str, Any]], Path | None]:
     path = _get_models_config_path()
     if not path or not path.exists():
         return ([], path)
@@ -2906,7 +2906,19 @@ def _load_models_config() -> tuple[list[dict[str, Any]], Path | None]:
             for entry in data:
                 if isinstance(entry, dict):
                     entry_copy = dict(entry)
-                    entry_copy["api_key"] = _expand_api_key(entry_copy.get("api_key"))
+                    raw_key = entry_copy.get("api_key")
+                    expanded_key = _expand_api_key(raw_key)
+
+                    # Skip if API key is required (variable reference) but missing/empty
+                    if (
+                        filter_missing
+                        and isinstance(raw_key, str)
+                        and raw_key.startswith("${")
+                        and not expanded_key
+                    ):
+                        continue
+
+                    entry_copy["api_key"] = expanded_key
                     models.append(entry_copy)
             return models, path
     except Exception:
@@ -3219,7 +3231,7 @@ async def get_llm_status():
                     status["error"] = str(exc)
 
         # Build available model list
-        config_models, _ = _load_models_config()
+        config_models, _ = _load_models_config(filter_missing=True)
         available_models = [dict(model) for model in config_models]
 
         def _merge_model(entry: dict[str, Any]) -> None:
@@ -3268,6 +3280,18 @@ async def get_llm_status():
                 "healthy": True,
             }
             _merge_model(cloud_entry)
+
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key:
+            openai_entry = {
+                "name": os.getenv("OPENAI_MODEL_NAME", "gpt-3.5-turbo"),
+                "base_url": os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+                "is_local": False,
+                "description": "OpenAI API (Configured in .env)",
+                "api_key": openai_api_key,
+                "healthy": True,
+            }
+            _merge_model(openai_entry)
 
         import concurrent.futures
 
