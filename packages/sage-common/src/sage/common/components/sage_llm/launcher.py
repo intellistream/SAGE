@@ -424,6 +424,8 @@ class LLMLauncher:
             verbose=verbose,
         )
 
+        served_model_name = get_served_model_name(resolved_model)
+
         # Resolve speculative model path if provided
         resolved_speculative_model = None
         if speculative_model:
@@ -431,6 +433,20 @@ class LLMLauncher:
                 speculative_model,
                 verbose=verbose,
             )
+
+        # Avoid launching duplicate instances of the same model
+        if check_existing:
+            for svc in cls.discover_running_services():
+                if svc.get("served_model_name") != served_model_name:
+                    continue
+                if cls._is_port_listening(svc.get("host"), svc.get("port")):
+                    return LLMLauncherResult(
+                        success=False,
+                        error=(
+                            f"Model {served_model_name} already running at "
+                            f"{svc.get('base_url', 'unknown')}"
+                        ),
+                    )
 
         if verbose:
             console.print("[blue]🚀 启动 LLM 服务 (sageLLM)[/blue]")
@@ -471,10 +487,6 @@ class LLMLauncher:
             success = server.start(background=background, log_file=log_file)
 
             if success and background:
-                # Get the friendly model name for API clients
-                # e.g., /home/user/.sage/models/vllm/Qwen__X -> Qwen/X
-                served_model_name = get_served_model_name(resolved_model)
-
                 # Save service info for management
                 cls.save_service_info(
                     server.pid,
