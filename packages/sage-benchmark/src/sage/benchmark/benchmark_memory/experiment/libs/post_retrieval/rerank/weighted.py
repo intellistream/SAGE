@@ -9,6 +9,8 @@ import math
 from datetime import UTC, datetime
 from typing import Any, Optional
 
+UTC = UTC
+
 from ..base import BasePostRetrievalAction, PostRetrievalInput, PostRetrievalOutput
 
 
