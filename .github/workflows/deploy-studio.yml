@@ -87,6 +87,138 @@ jobs:
           echo "GPU 状态:"
           nvidia-smi --query-gpu=index,memory.used,memory.free --format=csv 2>/dev/null || true
 
+      - name: Detect and dedupe existing LLM services
+        run: |
+          echo "🔍 探活并去重本地 LLM 服务 (优先保留健康实例，按模型去重)"
+          set -euo pipefail
+          python3 - <<'PY' | tee /tmp/llm_detect.env
+          import glob
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          workspace = os.environ.get("GITHUB_WORKSPACE", ".")
+
+
+          def add_candidate(url, dest):
+            if not url:
+              return
+            url = url.rstrip("/")
+            if url.endswith("/v1"):
+              pass
+            elif url.endswith("/v1/"):
+              url = url[:-1]
+
+            try:
+              parsed = urllib.parse.urlparse(url)
+              port = parsed.port or (443 if parsed.scheme == "https" else 80)
+              # Deduplicate by port: overwrite if exists (last one wins)
+              dest[port] = url
+            except Exception:
+              pass
+
+
+          def probe(url):
+            for path in ("/health", "/models", "/v1/models"):
+              try:
+                req = urllib.request.Request(url + path, headers={"Accept": "application/json"})
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                  data = resp.read().decode("utf-8", "ignore")
+                  if resp.status == 200:
+                    model = None
+                    try:
+                      payload = json.loads(data)
+                      if isinstance(payload, dict):
+                        if isinstance(payload.get("data"), list) and payload["data"]:
+                          first = payload["data"][0]
+                          if isinstance(first, dict):
+                            model = first.get("id") or first.get("model")
+                        if not model:
+                          model = payload.get("model") or payload.get("model_id")
+                    except Exception:
+                      model = None
+                    return True, model
+              except urllib.error.HTTPError:
+                return True, None
+              except Exception:
+                continue
+            return False, None
+
+
+          # Use dict for deduplication by port
+          candidate_map = {}
+
+          # 0) Default LLM port 8001
+          add_candidate("http://127.0.0.1:8001/v1", candidate_map)
+
+          # 1) Default benchmark ports 8901-8910
+          for port in range(8901, 8911):
+            add_candidate(f"http://127.0.0.1:{port}/v1", candidate_map)
+
+          # 2) llm_service_config files recorded by LLMLauncher
+          for path in glob.glob(os.path.expanduser("~/.sage/llm_service_config_*.json")):
+            try:
+              cfg = json.loads(open(path, encoding="utf-8").read())
+              base = cfg.get("base_url")
+              if base:
+                add_candidate(base, candidate_map)
+              else:
+                port = cfg.get("port")
+                host = cfg.get("host") or "127.0.0.1"
+                if port:
+                  add_candidate(f"http://{host}:{port}/v1", candidate_map)
+            except Exception:
+              continue
+
+          # 3) config/models.json entries (LLM only)
+          config_path = os.path.join(workspace, "config", "models.json")
+          try:
+            with open(config_path, encoding="utf-8") as f:
+              entries = json.load(f)
+            if isinstance(entries, list):
+              for ent in entries:
+                if not isinstance(ent, dict):
+                  continue
+                kind = ent.get("engine_kind") or "llm"
+                if kind and kind.lower() == "embedding":
+                  continue
+                add_candidate(ent.get("base_url"), candidate_map)
+          except Exception:
+            pass
+
+          keep = []
+          kill = []
+          seen_models = set()
+
+          for port in sorted(candidate_map.keys()):
+            url = candidate_map[port]
+            ok, model = probe(url)
+
+            if not ok:
+              kill.append(str(port))
+              continue
+
+            model_key = (model or "unknown").lower()
+            if model_key in seen_models:
+              # Duplicate model instance (on a different port)
+              kill.append(str(port))
+              continue
+
+            seen_models.add(model_key)
+            keep.append(str(port))
+
+          print(f"KEEP_PORTS={','.join(keep)}")
+          print(f"KILL_PORTS={','.join(kill)}")
+          PY
+
+          source /tmp/llm_detect.env
+          echo "KEEP_PORTS=${KEEP_PORTS}" >> $GITHUB_ENV
+          echo "KILL_PORTS=${KILL_PORTS}" >> $GITHUB_ENV
+          echo "保持的 LLM 端口: ${KEEP_PORTS:-<none>}"
+          echo "需要清理的 LLM 端口: ${KILL_PORTS:-<none>}"
+
       - name: Install SAGE
         run: |
           source "$CONDA_PATH/etc/profile.d/conda.sh"
@@ -179,7 +311,13 @@ jobs:
               echo "使用 conda 安装 Node.js..."
               source "$CONDA_PATH/etc/profile.d/conda.sh"
               conda activate sage
-              conda install -y -c conda-forge nodejs=20
+
+              # 配置 conda-forge 镜像 (针对国内网络环境)
+              conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+              conda config --set show_channel_urls yes
+
+              # 安装 nodejs (不指定 -c conda-forge，使用配置的镜像)
+              conda install -y nodejs=20
             fi
           fi
 
@@ -362,6 +500,54 @@ jobs:
           sudo systemctl disable nginx 2>/dev/null || true
           echo "✅ sage-frontend.service 已创建（基于 nginx）"
 
+      - name: Stop existing services before restart
+        run: |
+          echo "🛑 停止现有服务（准备重启）..."
+
+          # 使用 Detect 步骤的结果 (KEEP_PORTS)
+          KEEP_LLM=false
+          if [ -n "$KEEP_PORTS" ]; then
+            KEEP_LLM=true
+            echo "✅ 检测到健康的 LLM (端口 $KEEP_PORTS)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM"
+          fi
+
+          echo "LLM 探测结果: KEEP_LLM=${KEEP_LLM}, PORTS=${KEEP_PORTS}"
+
+          # 停止 frontend/gateway/embedding/studio（LLM 根据探测决定）
+          for svc in sage-frontend sage-gateway sage-embedding sage-studio; do
+            echo "停止 $svc..."
+            sudo systemctl stop $svc || true
+          done
+
+          # 有健康的 LLM 则跳过杀进程；否则停止 systemd LLM + 杀不健康的 vLLM 进程
+          if [ "$KEEP_LLM" = "true" ]; then
+            echo "✅ 检测到健康的 LLM (端口 $HEALTHY_LLM_PORT)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM，清理可能的残留"
+            sudo systemctl stop sage-llm || true
+            pkill -u $(whoami) -f "vllm" 2>/dev/null || true
+          fi
+
+          # 清理 Studio 相关残留进程
+          pkill -u $(whoami) -f "sage studio" 2>/dev/null || true
+          pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+
+          # 清理 PID 文件 (防止误判)
+          rm -f ~/.local/state/sage/studio.pid || true
+          rm -f ~/.local/state/sage/studio_backend.pid || true
+
+          sleep 3
+
+          # 显示 GPU 状态
+          if command -v nvidia-smi &> /dev/null; then
+            echo "📊 GPU 状态："
+            nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
+          fi
+
+          echo "✅ 服务已停止（LLM 保持运行：${KEEP_LLM}）"
+
       - name: Create systemd services
         run: |
           echo "🔧 创建系统级 systemd 服务（多服务架构）..."
@@ -372,6 +558,7 @@ jobs:
           WORKSPACE="${{ github.workspace }}"
           RUNNER_USER=$(whoami)
           HF_TOKEN_VAL="${{ secrets.HF_TOKEN }}"
+          NODE_BIN_VAL="${{ env.NODE_BIN }}"
           FRONTEND_DIR="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend"
 
           # 创建 wrapper 脚本目录
@@ -398,55 +585,10 @@ jobs:
             > "$WRAPPER_DIR/conda-run.sh"
           chmod +x "$WRAPPER_DIR/conda-run.sh"
 
-          # === 1. LLM 服务 (vLLM) ===
-          cat > /tmp/sage-llm.service << EOF
-          [Unit]
-          Description=SAGE LLM Service (vLLM)
-          After=network.target
+          # === 1. SAGE Studio 服务 (All-in-One) ===
+          # 使用 sage studio start --yes 启动所有组件 (Gateway, LLM, Embedding, Frontend)
+          # 利用 Studio 内置的 auto-scale 逻辑自动管理 LLM 资源
 
-          [Service]
-          Type=simple
-          User=$RUNNER_USER
-          WorkingDirectory=$WORKSPACE
-          Environment=HF_ENDPOINT=https://hf-mirror.com
-          Environment=HF_TOKEN=$HF_TOKEN_VAL
-          Environment=CUDA_VISIBLE_DEVICES=0
-          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen2.5-7B-Instruct --served-model-name Qwen/Qwen2.5-7B-Instruct --host 0.0.0.0 --port 8901 --gpu-memory-utilization 0.9 --max-model-len 4096 --disable-log-stats
-          Restart=on-failure
-          RestartSec=30
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-          # 去除 systemd 文件行首空格
-          sed -i 's/^[[:space:]]*//' /tmp/sage-llm.service
-          sudo cp /tmp/sage-llm.service /etc/systemd/system/sage-llm.service
-          echo "✅ sage-llm.service 已创建"
-
-          # === 2. Embedding 服务 ===
-          cat > /tmp/sage-embedding.service << EOF
-          [Unit]
-          Description=SAGE Embedding Service
-          After=network.target
-
-          [Service]
-          Type=simple
-          User=$RUNNER_USER
-          WorkingDirectory=$WORKSPACE
-          Environment=HF_ENDPOINT=https://hf-mirror.com
-          Environment=HF_TOKEN=$HF_TOKEN_VAL
-          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage python -m sage.common.components.sage_embedding.embedding_server --model BAAI/bge-m3 --port 8090 --host 0.0.0.0
-          Restart=on-failure
-          RestartSec=10
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-          sed -i 's/^[[:space:]]*//' /tmp/sage-embedding.service
-          sudo cp /tmp/sage-embedding.service /etc/systemd/system/sage-embedding.service
-          echo "✅ sage-embedding.service 已创建"
-
-          # === 3. Gateway 服务 ===
           # 获取 Python site-packages 路径
           SITE_PACKAGES=$($CONDA_BIN/python -c "import site; print(site.getsitepackages()[0])")
 
@@ -468,33 +610,38 @@ jobs:
           # 将 C++ 扩展路径加入 PYTHONPATH
           SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$SAGE_FLOW_PATH:$SAGE_DB_PATH:$SAGE_TSDB_PATH"
 
-          cat > /tmp/sage-gateway.service << EOF
+          # 清理旧服务文件
+          sudo rm -f /etc/systemd/system/sage-llm*.service
+          sudo rm -f /etc/systemd/system/sage-embedding.service
+          sudo rm -f /etc/systemd/system/sage-gateway.service
+
+          cat > /tmp/sage-studio.service << EOF
           [Unit]
-          Description=SAGE Gateway Service
-          After=network.target sage-llm.service sage-embedding.service
-          Wants=sage-llm.service sage-embedding.service
+          Description=SAGE Studio Service (All-in-One)
+          After=network.target
 
           [Service]
-          Type=simple
+          Type=forking
+          TimeoutStartSec=600
+          PIDFile=/home/$RUNNER_USER/.local/state/sage/studio.pid
           User=$RUNNER_USER
           WorkingDirectory=$WORKSPACE
+          Environment=PATH=$NODE_BIN_VAL:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
           Environment=HF_ENDPOINT=https://hf-mirror.com
           Environment=HF_TOKEN=$HF_TOKEN_VAL
-          Environment=SAGE_GATEWAY_HOST=0.0.0.0
-          Environment=SAGE_GATEWAY_PORT=8888
-          Environment=SAGE_CHAT_BASE_URL=http://localhost:8901/v1
-          Environment=SAGE_CHAT_MODEL=Qwen/Qwen2.5-7B-Instruct
           Environment=PYTHONPATH=$SAGE_PYTHONPATH
-          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage-gateway
+          # 运行在 5174 端口，让 Nginx (5173) 代理到这里
+          # --yes: 自动确认所有提示 (包括 auto-scale)
+          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174
           Restart=on-failure
           RestartSec=10
 
           [Install]
           WantedBy=multi-user.target
           EOF
-          sed -i 's/^[[:space:]]*//' /tmp/sage-gateway.service
-          sudo cp /tmp/sage-gateway.service /etc/systemd/system/sage-gateway.service
-          echo "✅ sage-gateway.service 已创建"
+          sed -i 's/^[[:space:]]*//' /tmp/sage-studio.service
+          sudo cp /tmp/sage-studio.service /etc/systemd/system/sage-studio.service
+          echo "✅ sage-studio.service 已创建"
 
           # 重新加载 systemd
           sudo systemctl daemon-reload
@@ -505,91 +652,43 @@ jobs:
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python --version
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.gateway; print('Gateway import OK')"
 
-
-      - name: Stop existing services before restart
-        run: |
-          echo "🛑 停止现有服务（准备重启）..."
-
-          # 仅停止 Studio 相关服务 (Frontend + Gateway)
-          # 注意：不停止 LLM/Embedding 服务，以保持基础设施运行
-          for svc in sage-frontend sage-gateway; do
-            if systemctl is-active --quiet $svc 2>/dev/null; then
-              echo "停止 $svc..."
-              sudo systemctl stop $svc || true
-            else
-              echo "$svc 未运行"
-            fi
-          done
-
-          # 释放 GPU 显存 - 仅在需要时手动执行
-          # echo "🧹 清理 GPU 显存..."
-          # pkill -u $(whoami) -f "vllm" 2>/dev/null || true
-          # pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
-          # sudo pkill -f "vllm.entrypoints" 2>/dev/null || true
-          # sudo pkill -f "sage_embedding.embedding_server" 2>/dev/null || true
-          # sleep 3
-
-          # 显示 GPU 状态
-          if command -v nvidia-smi &> /dev/null; then
-            echo "📊 GPU 状态："
-            nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
-          fi
-
-          echo "✅ Studio 服务已停止"
-
       - name: Start services
         run: |
           echo "🚀 启动 SAGE Studio 服务栈..."
 
-          # 记录启动时间，用于后续只显示本次启动后的日志
+          # 记录启动时间
           START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
 
-          # 按依赖顺序启动
-          echo "1/4 启动 LLM 服务..."
-          sudo systemctl start sage-llm
-          sudo systemctl enable sage-llm
+          # 1. 启动 Studio (All-in-One)
+          echo "1/2 启动 Studio 服务 (Manager + Gateway + LLM + Embedding)..."
+          sudo systemctl start sage-studio
+          sudo systemctl enable sage-studio
 
-          echo "2/4 启动 Embedding 服务..."
-          sudo systemctl start sage-embedding
-          sudo systemctl enable sage-embedding
-
-          # 等待 LLM 和 Embedding 一会儿，Gateway 依赖它们
+          # 立即检查 Studio 状态
           sleep 5
-
-          echo "3/4 启动 Gateway 服务..."
-          sudo systemctl start sage-gateway
-          sudo systemctl enable sage-gateway
-          # 立即检查 Gateway 状态
-          sleep 3
-          echo "--- Gateway 启动状态 ---"
-          sudo systemctl status sage-gateway --no-pager || true
-          echo "--- Gateway 最近日志 (本次启动后) ---"
-          sudo journalctl -u sage-gateway --no-pager --since "$START_TIME" -n 30 || true
+          echo "--- Studio 启动状态 ---"
+          sudo systemctl status sage-studio --no-pager || true
+          echo "--- Studio 最近日志 ---"
+          sudo journalctl -u sage-studio --no-pager --since "$START_TIME" -n 50 || true
           echo "---"
 
-          echo "4/4 启动 Frontend 服务 (nginx)..."
+          # 2. 启动 Frontend (Nginx)
+          echo "2/2 启动 Frontend 服务 (nginx)..."
           sudo systemctl start sage-frontend
           sudo systemctl enable sage-frontend
-          # 立即检查 Frontend 状态
-          sleep 2
-          echo "--- Frontend 启动状态 ---"
-          sudo systemctl status sage-frontend --no-pager || true
-          echo "---"
 
           echo "✅ 所有服务已启动"
 
           echo ""
           echo "=== 服务状态 ==="
-          for svc in sage-llm sage-embedding sage-gateway sage-frontend; do
+          for svc in sage-studio sage-frontend; do
             status=$(systemctl is-active $svc 2>/dev/null || echo "unknown")
             echo "$svc: $status"
           done
 
           echo ""
           echo "=== 查看日志命令 ==="
-          echo "sudo journalctl -u sage-llm -f        # LLM 日志"
-          echo "sudo journalctl -u sage-embedding -f  # Embedding 日志"
-          echo "sudo journalctl -u sage-gateway -f    # Gateway 日志"
+          echo "sudo journalctl -u sage-studio -f     # Studio (含 Gateway/LLM) 日志"
           echo "sudo journalctl -u sage-frontend -f   # Frontend 日志 (nginx)"
           echo "sudo tail -f /var/log/nginx/*.log    # nginx 详细日志"
 
@@ -602,13 +701,14 @@ jobs:
           # 等待 LLM 服务（最长 10 分钟，因为要加载模型）
           echo "等待 LLM 服务 (最长 600 秒)..."
           for i in $(seq 1 600); do
-            if curl -sf http://localhost:8901/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
+               curl -sf http://localhost:8901/health > /dev/null 2>&1; then
               echo "✅ LLM 服务就绪（第 $i 秒）"
               break
             fi
             if [ $((i % 60)) -eq 0 ]; then
               echo "⏳ LLM 等待中... ($i/600 秒)"
-              sudo journalctl -u sage-llm --no-pager -n 5 2>/dev/null || true
+              sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
             fi
             sleep 1
           done
@@ -633,7 +733,7 @@ jobs:
             fi
             if [ $((i % 30)) -eq 0 ]; then
               echo "⏳ Gateway 等待中... ($i/120 秒)"
-              sudo journalctl -u sage-gateway --no-pager -n 5 2>/dev/null || true
+              sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
             fi
             sleep 1
           done
@@ -659,7 +759,7 @@ jobs:
 
           echo ""
           echo "=== 服务状态 ==="
-          for svc in sage-llm sage-embedding sage-gateway sage-frontend; do
+          for svc in sage-studio sage-frontend; do
             status=$(systemctl is-active $svc 2>/dev/null || echo "unknown")
             echo "$svc: $status"
           done
@@ -668,7 +768,7 @@ jobs:
           echo "| 服务 | 端口 | 状态 |"
           echo "|------|------|------|"
 
-          for svc_port in "Frontend:$PORT" "Gateway:8888" "LLM:8901" "Embedding:8090"; do
+          for svc_port in "Frontend:$PORT" "Gateway:8888" "LLM(Default):8001" "LLM(Benchmark):8901" "Embedding:8090"; do
             name="${svc_port%%:*}"
             port="${svc_port##*:}"
             # 尝试多个端点：/ 和 /health
@@ -679,7 +779,10 @@ jobs:
             else
               echo "| $name | $port | ⚠️ |"
               # 打印失败服务的最近日志
-              svc_name="sage-$(echo $name | tr '[:upper:]' '[:lower:]')"
+              svc_name="sage-studio"
+              if [ "$name" = "Frontend" ]; then
+                svc_name="sage-frontend"
+              fi
               echo ""
               echo "--- $svc_name 最近日志 ---"
               sudo journalctl -u $svc_name --no-pager -n 20 2>/dev/null || true
@@ -725,18 +828,16 @@ jobs:
           echo "### 📋 管理命令" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
           echo "# 查看所有服务状态" >> $GITHUB_STEP_SUMMARY
-          echo "for svc in sage-llm sage-embedding sage-gateway sage-frontend; do sudo systemctl status \$svc; done" >> $GITHUB_STEP_SUMMARY
+          echo "for svc in sage-studio sage-frontend; do sudo systemctl status \$svc; done" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "# 查看日志" >> $GITHUB_STEP_SUMMARY
-          echo "sudo journalctl -u sage-llm -f        # LLM 日志" >> $GITHUB_STEP_SUMMARY
-          echo "sudo journalctl -u sage-embedding -f  # Embedding 日志" >> $GITHUB_STEP_SUMMARY
-          echo "sudo journalctl -u sage-gateway -f    # Gateway 日志" >> $GITHUB_STEP_SUMMARY
+          echo "sudo journalctl -u sage-studio -f     # Studio (含 Gateway/LLM) 日志" >> $GITHUB_STEP_SUMMARY
           echo "sudo journalctl -u sage-frontend -f   # Frontend 日志 (nginx)" >> $GITHUB_STEP_SUMMARY
           echo "sudo tail -f /var/log/nginx/*.log    # nginx 详细日志" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "# 重启所有服务" >> $GITHUB_STEP_SUMMARY
-          echo "for svc in sage-llm sage-embedding sage-gateway sage-frontend; do sudo systemctl restart \$svc; done" >> $GITHUB_STEP_SUMMARY
+          echo "for svc in sage-studio sage-frontend; do sudo systemctl restart \$svc; done" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "# 停止所有服务" >> $GITHUB_STEP_SUMMARY
-          echo "for svc in sage-frontend sage-gateway sage-embedding sage-llm; do sudo systemctl stop \$svc; done" >> $GITHUB_STEP_SUMMARY
+          echo "for svc in sage-frontend sage-studio; do sudo systemctl stop \$svc; done" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

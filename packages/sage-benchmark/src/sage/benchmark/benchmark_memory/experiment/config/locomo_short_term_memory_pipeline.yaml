@@ -34,7 +34,6 @@ services:
   short_term_memory:
     max_dialog: 5  # 短期记忆窗口大小（轮次）
     embedding_dim: 1024  # BAAI/bge-m3 模型的向量维度
-  memory_insert_adapter: "to_dialogs"
   memory_retrieval_adapter: "none"
 
 

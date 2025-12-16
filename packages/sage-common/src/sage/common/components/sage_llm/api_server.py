@@ -216,6 +216,28 @@ class LLMAPIServer:
         self.pid: int | None = None
         self.log_file: Path | None = None
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+    def _resolve_health_host(self) -> str:
+        """Return a concrete host that can be used for local health checks."""
+        host = self.config.host or "127.0.0.1"
+        if host in {"0.0.0.0", "::", "", "*"}:
+            return "127.0.0.1"
+        return host
+
+    def _format_host_for_url(self, host: str) -> str:
+        """Wrap IPv6 literals so requests/urls remain valid."""
+        if ":" in host and not host.startswith("["):
+            return f"[{host}]"
+        return host
+
+    def _health_url(self, path: str = "/health") -> str:
+        """Build a health-check URL that respects bound host/port settings."""
+        host = self._format_host_for_url(self._resolve_health_host())
+        normalized_path = path if path.startswith("/") else f"/{path}"
+        return f"http://{host}:{self.config.port}{normalized_path}"
+
     def start(self, background: bool = True, log_file: Path | None = None) -> bool:
         """Start the LLM API server
 
@@ -273,6 +295,16 @@ class LLMAPIServer:
                 "Could not auto-select GPUs, using system default. "
                 "This may fail if default GPU has insufficient memory."
             )
+
+        # CRITICAL: Explicitly unset VLLM_API_KEY in environment unless we want auth.
+        # vLLM will enable auth if this env var is present, even if --api-key is not passed.
+        is_pangu = "pangu" in self.config.model.lower()
+        force_auth = os.getenv("SAGE_LLM_FORCE_AUTH", "false").lower() == "true"
+
+        if not is_pangu and not force_auth:
+            if "VLLM_API_KEY" in env:
+                del env["VLLM_API_KEY"]
+                logger.debug("Unset VLLM_API_KEY from environment to disable auth")
 
         try:
             # Start process
@@ -360,12 +392,18 @@ class LLMAPIServer:
         # For local vLLM server, we do NOT pass --api-key to disable authentication
         # vLLM docs: "If provided, the server will require this key" (i.e., no key = no auth)
         # Users can enable auth by setting VLLM_API_KEY environment variable
+        # NOTE: We only enable auth if explicitly requested or for specific models (e.g. Pangu)
         api_key = os.getenv("VLLM_API_KEY")
-        if api_key:
+        is_pangu = "pangu" in self.config.model.lower()
+
+        if api_key and is_pangu:
             cmd.extend(["--api-key", api_key])
-            logger.info("🔐 启用 vLLM 认证 (API key from VLLM_API_KEY)")
+            logger.info("🔐 启用 vLLM 认证 (Pangu model detected)")
+        elif api_key and os.getenv("SAGE_LLM_FORCE_AUTH", "false").lower() == "true":
+            cmd.extend(["--api-key", api_key])
+            logger.info("🔐 启用 vLLM 认证 (SAGE_LLM_FORCE_AUTH=true)")
         else:
-            logger.info("🔓 禁用 vLLM 认证 (no --api-key parameter)")
+            logger.info("🔓 禁用 vLLM 认证 (Standard local model)")
 
         # Add extra args
         for key, value in self.config.extra_args.items():
@@ -499,8 +537,7 @@ class LLMAPIServer:
             return False
 
         try:
-            url = f"http://{self.config.host}:{self.config.port}/health"
-            response = requests.get(url, timeout=2)
+            response = requests.get(self._health_url("/health"), timeout=2)
             return response.status_code == 200
         except Exception:
             return False
@@ -535,10 +572,11 @@ class LLMAPIServer:
         """
         logger.info(f"Waiting for LLM API server to be ready (timeout: {timeout}s)...")
         logger.info("Note: First-time model download may take 5-10 minutes for 7B models")
-        logger.info(f"Health check URL: http://127.0.0.1:{self.config.port}/health")
+        health_url = self._health_url("/health")
+        logger.info(f"Health check URL: {health_url}")
         logger.info(f"Log file: {self.log_file}")
 
-        url = f"http://127.0.0.1:{self.config.port}/health"
+        url = health_url
         start_time = time.time()
         attempt = 0
 
@@ -607,9 +645,14 @@ class LLMAPIServer:
         """Check if the port is open"""
         import socket
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            result = sock.connect_ex(("127.0.0.1", self.config.port))
-            return result == 0
+        try:
+            with socket.create_connection(
+                (self._resolve_health_host(), self.config.port),
+                timeout=1.0,
+            ):
+                return True
+        except OSError:
+            return False
 
     def __enter__(self):
         """Context manager support"""

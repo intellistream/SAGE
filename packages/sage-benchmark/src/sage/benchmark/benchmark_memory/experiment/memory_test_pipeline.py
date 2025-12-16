@@ -6,18 +6,19 @@
 
 from __future__ import annotations
 
+from sage.benchmark.benchmark_memory.experiment.libs.memory_evaluation import (
+    MemoryEvaluation,
+)
 from sage.benchmark.benchmark_memory.experiment.libs.memory_insert import MemoryInsert
 from sage.benchmark.benchmark_memory.experiment.libs.memory_retrieval import MemoryRetrieval
 from sage.benchmark.benchmark_memory.experiment.libs.memory_sink import MemorySink
 from sage.benchmark.benchmark_memory.experiment.libs.memory_source import MemorySource
-from sage.benchmark.benchmark_memory.experiment.libs.memory_test import MemoryTest
 from sage.benchmark.benchmark_memory.experiment.libs.pipeline_caller import PipelineCaller
 from sage.benchmark.benchmark_memory.experiment.libs.post_insert import PostInsert
 from sage.benchmark.benchmark_memory.experiment.libs.post_retrieval import PostRetrieval
 from sage.benchmark.benchmark_memory.experiment.libs.pre_insert import PreInsert
 from sage.benchmark.benchmark_memory.experiment.libs.pre_retrieval import PreRetrieval
-from sage.benchmark.benchmark_memory.experiment.utils.args_parser import parse_args
-from sage.benchmark.benchmark_memory.experiment.utils.config_loader import RuntimeConfig
+from sage.benchmark.benchmark_memory.experiment.utils import RuntimeConfig, parse_args
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.service import (
@@ -83,7 +84,7 @@ def main():
         .map(PreRetrieval, config)
         .map(MemoryRetrieval, config)
         .map(PostRetrieval, config)
-        .map(MemoryTest, config)
+        .map(MemoryEvaluation, config)
         .sink(PipelineServiceSink)
     )
 

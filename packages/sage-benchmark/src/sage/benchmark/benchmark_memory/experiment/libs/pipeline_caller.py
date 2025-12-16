@@ -4,10 +4,10 @@
 注意：修改代码时请同步更新该文档
 """
 
-from sage.benchmark.benchmark_memory.experiment.utils.calculation_table import (
+from sage.benchmark.benchmark_memory.experiment.utils import (
+    ProgressBar,
     calculate_test_thresholds,
 )
-from sage.benchmark.benchmark_memory.experiment.utils.progress_bar import ProgressBar
 from sage.common.core import MapFunction
 from sage.data.sources.locomo.dataloader import LocomoDataLoader
 from sage.data.sources.memagentbench.conflict_resolution_loader import (
@@ -33,6 +33,11 @@ class PipelineCaller(MapFunction):
         super().__init__()
         self.dataset = config.get("dataset")
         self.task_id = config.get("task_id")
+
+        # 获取实际的 memory service 名称（用于统计信息）
+        self.memory_service_name = config.get(
+            "services.register_memory_service", "short_term_memory"
+        )
 
         # 服务调用超时时间（秒），默认 300 秒
         # 注意：这个超时必须 >= pipeline_service_timeout，否则调用方会先超时
@@ -77,6 +82,16 @@ class PipelineCaller(MapFunction):
 
         # 测试统计
         self.total_dialogs_inserted = 0  # 累计插入的对话数
+
+        # 累积所有 batch 的 timing 数据（不清空）
+        self.accumulated_insert_timings = {
+            "pre_insert_ms": [],
+            "memory_insert_ms": [],
+            "post_insert_ms": [],
+        }
+
+        # 跟踪已发送的 timing 位置（只返回增量）
+        self.sent_insert_timing_count = 0
 
         # 调试打印开关（默认False）
         self.memory_insert_verbose = config.get("runtime.memory_insert_verbose", False)
@@ -149,8 +164,9 @@ class PipelineCaller(MapFunction):
 
         # 调用记忆存储服务（阻塞等待）
         # 注意：最后一包可能触发 link_evolution，可能超时
+        insert_result = None
         try:
-            self.call_service(
+            insert_result = self.call_service(
                 "memory_insert_service",
                 insert_data,
                 method="process",
@@ -172,6 +188,19 @@ class PipelineCaller(MapFunction):
             else:
                 # 非最后一包超时，重新抛出异常
                 raise
+
+        # 收集并累积插入阶段的时间数据
+        if insert_result and "stage_timings" in insert_result:
+            batch_timings = insert_result["stage_timings"]
+            print(f"[DEBUG PipelineCaller] Batch {packet_idx + 1}: 收集 timing 数据")
+            for key in ["pre_insert_ms", "memory_insert_ms", "post_insert_ms"]:
+                if key in batch_timings:
+                    timing_list = batch_timings[key]
+                    if isinstance(timing_list, list):
+                        self.accumulated_insert_timings[key].extend(timing_list)
+                        print(f"[DEBUG PipelineCaller]   {key}: 累积 {len(timing_list)} 个时间点")
+                    else:
+                        print(f"[DEBUG PipelineCaller]   {key}: 警告 - 不是列表格式！")
 
         # 累计插入的对话数
         self.total_dialogs_inserted += dialog_len
@@ -223,23 +252,46 @@ class PipelineCaller(MapFunction):
                     print(f"\n>> 当前可见问题数：{current_count}/{self.total_questions}")
                 print(f">> 已测试问题数：{self.last_tested_count}，{threshold_info}（未触发测试）")
 
-            # 如果是最后一个包，发送完成信号
+            # 如果是最后一个包，发送完成信号（包含剩余的 timing 数据）
             if is_last_packet:
                 if self.memory_test_verbose:
-                    print(">> 最后一个数据包，发送完成信号")
+                    print(">> 最后一个数据包，发送剩余 timing 数据")
                     print(f"{'=' * 60}")
 
                 # 关闭进度条
                 if self.progress_bar:
                     self.progress_bar.close()
 
-                # 返回完成信号（不包含测试结果）
-                print("[DEBUG PipelineCaller] 返回完成信号 (无测试结果路径)")
-                return {
-                    "dataset": self.dataset,
-                    "task_id": task_id,
-                    "completed": True,
-                }
+                # 提取剩余的增量 timing 数据
+                current_count = len(self.accumulated_insert_timings["pre_insert_ms"])
+                remaining_count = current_count - self.sent_insert_timing_count
+                print(f"[DEBUG PipelineCaller] 最后一包：剩余 {remaining_count} 个 timing 未发送")
+
+                if remaining_count > 0:
+                    # 有剩余数据，发送包含 timing 的完成信号
+                    incremental_insert_timings = {
+                        key: values[self.sent_insert_timing_count :]
+                        for key, values in self.accumulated_insert_timings.items()
+                    }
+
+                    print("[DEBUG PipelineCaller] 返回完成信号（包含剩余 timing）")
+                    return {
+                        "dataset": self.dataset,
+                        "task_id": task_id,
+                        "completed": True,
+                        "stage_timings": {
+                            "insert": incremental_insert_timings,
+                            "test": [],  # 最后一包没有测试结果
+                        },
+                    }
+                else:
+                    # 没有剩余数据，返回简单的完成信号
+                    print("[DEBUG PipelineCaller] 返回完成信号（无剩余 timing）")
+                    return {
+                        "dataset": self.dataset,
+                        "task_id": task_id,
+                        "completed": True,
+                    }
 
             if self.memory_test_verbose:
                 print(f"{'=' * 60}\n")
@@ -266,14 +318,38 @@ class PipelineCaller(MapFunction):
                 )
             print(f">> 测试范围：问题 1 到 {current_count}")
 
+        # 获取记忆体统计信息
+        memory_stats = None
+        try:
+            # 调用实际的记忆体服务（如 short_term_memory）的 get_stats() 方法
+            # 注意: get_stats() 不接受任何参数，所以不传递 data
+            stats_result = self.call_service(
+                self.memory_service_name,  # 使用实际的 memory service 名称
+                method="get_stats",
+                timeout=self.service_timeout,
+            )
+            if stats_result:
+                memory_stats = stats_result
+        except Exception as e:
+            if self.memory_test_verbose:
+                print(f">> 警告：获取记忆体统计失败: {e}")
+
         # 逐个问题调用记忆测试服务
         test_answers = []
+
+        # 用于累积本次测试的 timing 数据（用于计算平均值）
+        test_timing_accumulator = {
+            "pre_retrieval_ms": [],
+            "memory_retrieval_ms": [],
+            "post_retrieval_ms": [],
+        }
+
         for q_idx, qa in enumerate(current_questions):
             question = qa["question"]
 
             # 构造单个问题的测试请求
             # 注意：只传递通用字段（question），不传递数据集私有属性
-            # 如果需要 metadata（如 evidence, category），由 MemoryTest 从 qa 对象获取
+            # 如果需要 metadata（如 evidence, category），由 MemoryEvaluation 从 qa 对象获取
             test_data = {
                 "task_id": task_id,
                 "session_id": session_id,
@@ -295,6 +371,13 @@ class PipelineCaller(MapFunction):
 
             # PipelineService 返回的是纯数据（已由 PipelineServiceSink 处理）
             if "answer" in result:
+                # 累积时间数据（用于计算本次测试的平均值）
+                if "stage_timings" in result:
+                    stage_timings = result["stage_timings"]
+                    for key in ["pre_retrieval_ms", "memory_retrieval_ms", "post_retrieval_ms"]:
+                        if key in stage_timings:
+                            test_timing_accumulator[key].append(stage_timings[key])
+
                 # 构造标准化的答案记录
                 answer_record = {
                     "question_index": q_idx + 1,
@@ -309,6 +392,17 @@ class PipelineCaller(MapFunction):
                     print(f">> Question {q_idx + 1}：{question}")
                     print(f">> Answer：{result['answer']}")
 
+        # 计算本次测试的平均 timing（一次测试一个值）
+        avg_test_timing = {}
+        for key, values in test_timing_accumulator.items():
+            if values:
+                avg_test_timing[key] = sum(values) / len(values)
+                print(
+                    f"[DEBUG PipelineCaller] {key} 平均值: {avg_test_timing[key]:.4f}ms (基于 {len(values)} 个问题)"
+                )
+            else:
+                avg_test_timing[key] = 0.0
+
         # 构造本次测试结果
         test_result = {
             "dataset": self.dataset,
@@ -321,6 +415,32 @@ class PipelineCaller(MapFunction):
             "answers": test_answers,
             "completed": is_last_packet,  # 标记是否为最后一个包
         }
+
+        # 添加时间统计数据（只返回自上次以来的增量）
+        current_count = len(self.accumulated_insert_timings["pre_insert_ms"])
+        print(f"[DEBUG PipelineCaller] 当前累积 timing 总数: {current_count}")
+        print(f"[DEBUG PipelineCaller] 已发送 timing 数: {self.sent_insert_timing_count}")
+        print(
+            f"[DEBUG PipelineCaller] 本次返回增量: {current_count - self.sent_insert_timing_count}"
+        )
+
+        # 提取增量数据
+        incremental_insert_timings = {
+            key: values[self.sent_insert_timing_count :]
+            for key, values in self.accumulated_insert_timings.items()
+        }
+
+        test_result["stage_timings"] = {
+            "insert": incremental_insert_timings,  # 增量 insert timing（列表）
+            "test": avg_test_timing,  # 本次测试的平均 retrieval timing（单个字典）
+            "memory_stats": memory_stats,  # 本次测试的内存统计（单个字典）
+        }
+
+        # 更新已发送位置
+        self.sent_insert_timing_count = current_count
+        print(
+            f"[DEBUG PipelineCaller] 更新 sent_insert_timing_count = {self.sent_insert_timing_count}"
+        )
 
         # 更新测试状态
         self.last_tested_count = current_count

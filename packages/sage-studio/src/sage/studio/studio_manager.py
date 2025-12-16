@@ -17,6 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 from sage.common.config.ports import SagePorts
+from sage.common.config.user_paths import get_user_paths
 
 console = Console()
 
@@ -33,23 +34,27 @@ class StudioManager:
         self.frontend_dir = self.studio_package_dir / "frontend"
         self.backend_dir = Path(__file__).parent / "config" / "backend"
 
-        # 统一的 .sage 目录管理
-        self.sage_dir = Path.home() / ".sage"
-        self.studio_sage_dir = self.sage_dir / "studio"
+        # Use XDG paths via sage-common
+        user_paths = get_user_paths()
 
-        self.pid_file = self.sage_dir / "studio.pid"
-        self.backend_pid_file = self.sage_dir / "studio_backend.pid"
-        self.gateway_pid_file = self.sage_dir / "gateway.pid"  # Gateway PID 文件
-        self.log_file = self.sage_dir / "studio.log"
-        self.backend_log_file = self.sage_dir / "studio_backend.log"
-        self.gateway_log_file = self.sage_dir / "gateway.log"  # Gateway 日志文件
-        self.config_file = self.sage_dir / "studio.config.json"
+        # State (PIDs, Logs)
+        self.pid_file = user_paths.state_dir / "studio.pid"
+        self.backend_pid_file = user_paths.state_dir / "studio_backend.pid"
+        self.gateway_pid_file = user_paths.state_dir / "gateway.pid"
 
-        # 缓存和构建目录（React + Vite）
-        self.node_modules_dir = self.studio_sage_dir / "node_modules"
-        self.vite_cache_dir = self.studio_sage_dir / ".vite"  # Vite 缓存
-        self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
-        self.dist_dir = self.studio_sage_dir / "dist"  # 构建产物统一放在 .sage/studio/
+        self.log_file = user_paths.logs_dir / "studio.log"
+        self.backend_log_file = user_paths.logs_dir / "studio_backend.log"
+        self.gateway_log_file = user_paths.logs_dir / "gateway.log"
+
+        # Config
+        self.config_file = user_paths.config_dir / "studio.config.json"
+
+        # Cache (Build artifacts)
+        self.studio_cache_dir = user_paths.cache_dir / "studio"
+        self.node_modules_dir = self.studio_cache_dir / "node_modules"
+        self.vite_cache_dir = self.studio_cache_dir / ".vite"
+        self.npm_cache_dir = self.studio_cache_dir / "npm"
+        self.dist_dir = self.studio_cache_dir / "dist"
 
         # React + Vite 默认端口是 5173
         self.default_port = SagePorts.STUDIO_FRONTEND
@@ -63,9 +68,8 @@ class StudioManager:
     def ensure_sage_directories(self):
         """确保所有 .sage 相关目录存在"""
         directories = [
-            self.sage_dir,
-            self.studio_sage_dir,
-            self.vite_cache_dir,  # Vite 缓存目录
+            self.studio_cache_dir,
+            self.vite_cache_dir,
             self.npm_cache_dir,
             self.dist_dir,
         ]
@@ -832,7 +836,7 @@ class StudioManager:
 
     def create_spa_server_script(self, port: int, host: str) -> Path:
         """创建用于 SPA 的自定义服务器脚本"""
-        server_script = self.studio_sage_dir / "spa_server.py"
+        server_script = self.studio_cache_dir / "spa_server.py"
 
         server_code = f'''#!/usr/bin/env python3
 """
@@ -1282,8 +1286,13 @@ if __name__ == "__main__":
                             self.save_config(config)
 
         # 检查前端是否已运行
-        if self.is_running():
-            console.print("[yellow]Studio前端已经在运行中[/yellow]")
+        running_pid = self.is_running()
+        if running_pid:
+            if running_pid == -1:
+                console.print("[yellow]⚠️  检测到 Studio 端口被占用 (孤儿进程)[/yellow]")
+                console.print("[dim]   请运行 'sage studio stop' 来清理它[/dim]")
+            else:
+                console.print(f"[yellow]Studio前端已经在运行中 (PID: {running_pid})[/yellow]")
             return True
 
         if not self.check_dependencies():
@@ -1452,7 +1461,7 @@ if __name__ == "__main__":
         stopped_services = []
 
         # 停止前端
-        if frontend_pid:
+        if frontend_pid and frontend_pid != -1:
             try:
                 # 发送终止信号
                 os.killpg(os.getpgid(frontend_pid), signal.SIGTERM)
@@ -1472,13 +1481,25 @@ if __name__ == "__main__":
                     self.pid_file.unlink()
 
                 # 清理临时服务器脚本
-                spa_server_script = self.studio_sage_dir / "spa_server.py"
+                spa_server_script = self.studio_cache_dir / "spa_server.py"
                 if spa_server_script.exists():
                     spa_server_script.unlink()
 
                 stopped_services.append("前端")
             except Exception as e:
                 console.print(f"[red]前端停止失败: {e}[/red]")
+
+        # 补充检查：通过端口清理孤儿进程 (Orphaned Process Cleanup)
+        # 即使 PID 文件不存在或已处理，端口可能仍被占用 (如 frontend_pid == -1 或僵尸进程)
+        config = self.load_config()
+        port = config.get("port", self.default_port)
+        if self._is_port_in_use(port):
+            console.print(f"[yellow]检测到端口 {port} 仍被占用，尝试清理孤儿进程...[/yellow]")
+            if self._kill_process_on_port(port):
+                stopped_services.append(f"前端(端口{port})")
+                # 再次确保 PID 文件被清理
+                if self.pid_file.exists():
+                    self.pid_file.unlink()
 
         # 后端已合并到 Gateway，不需要单独停止
 
@@ -1560,18 +1581,23 @@ if __name__ == "__main__":
         frontend_table.add_column("值", style="white")
 
         if frontend_pid:
-            try:
-                process = psutil.Process(frontend_pid)
-                frontend_table.add_row("状态", "[green]运行中[/green]")
-                frontend_table.add_row("PID", str(frontend_pid))
-                frontend_table.add_row(
-                    "启动时间",
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
-                )
-                frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
-                frontend_table.add_row("内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB")
-            except psutil.NoSuchProcess:
-                frontend_table.add_row("状态", "[red]进程不存在[/red]")
+            if frontend_pid == -1:
+                frontend_table.add_row("状态", "[yellow]运行中（PID未知）[/yellow]")
+            else:
+                try:
+                    process = psutil.Process(frontend_pid)
+                    frontend_table.add_row("状态", "[green]运行中[/green]")
+                    frontend_table.add_row("PID", str(frontend_pid))
+                    frontend_table.add_row(
+                        "启动时间",
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
+                    )
+                    frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
+                    frontend_table.add_row(
+                        "内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB"
+                    )
+                except psutil.NoSuchProcess:
+                    frontend_table.add_row("状态", "[red]进程不存在[/red]")
         else:
             frontend_table.add_row("状态", "[red]未运行[/red]")
 

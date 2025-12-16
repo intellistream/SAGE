@@ -27,7 +27,6 @@ services:
   register_memory_service: "short_term_memory"  # Registered memory service name, can switch to other services
   short_term_memory:
     max_dialog: 5530  # Short-term memory window size (set to total facts so tests can access all facts)
-  memory_insert_adapter: "to_dialogs"
   memory_retrieval_adapter: "none"
 
 

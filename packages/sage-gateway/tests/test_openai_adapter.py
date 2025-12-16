@@ -26,6 +26,12 @@ def adapter(monkeypatch, tmp_path):
         "content": "Echo: Hello",
     }
 
+    # Fix: Configure mock to return a string for model name resolution
+    # This prevents pydantic validation error where a MagicMock is passed as model name
+    dummy_pipeline.chat_map._get_llm_client.return_value._get_default_llm_model.return_value = (
+        "sage-default"
+    )
+
     monkeypatch.setattr(
         "sage.gateway.rag_pipeline.RAGPipelineService",
         lambda: dummy_pipeline,
