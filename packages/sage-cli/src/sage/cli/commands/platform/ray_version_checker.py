@@ -32,7 +32,7 @@ def get_remote_ray_version(
     """获取远程主机的 Ray 版本
 
     检测顺序：
-    1. conda 环境中的 ray (miniconda3/envs/{conda_env})
+    1. conda 环境中的 ray (base: miniconda3/bin, 其他: miniconda3/envs/{conda_env}/bin)
     2. 系统级 ray 命令
     3. 系统 python3/python 导入
     """
@@ -43,8 +43,14 @@ def get_remote_ray_version(
 exec 2>/dev/null
 
 # 1. 优先检测 conda 环境中的 ray
-CONDA_RAY="$HOME/miniconda3/envs/{conda_env}/bin/ray"
-CONDA_PYTHON="$HOME/miniconda3/envs/{conda_env}/bin/python3"
+# base 环境路径不同：$CONDA_BASE/bin vs $CONDA_BASE/envs/{conda_env}/bin
+if [ "{conda_env}" = "base" ]; then
+    CONDA_RAY="$HOME/miniconda3/bin/ray"
+    CONDA_PYTHON="$HOME/miniconda3/bin/python3"
+else
+    CONDA_RAY="$HOME/miniconda3/envs/{conda_env}/bin/ray"
+    CONDA_PYTHON="$HOME/miniconda3/envs/{conda_env}/bin/python3"
+fi
 
 if [ -x "$CONDA_RAY" ]; then
     "$CONDA_RAY" --version 2>/dev/null && exit 0
@@ -152,8 +158,14 @@ export PYTHONUNBUFFERED=1
 echo "检测 Python 环境..."
 
 # 优先使用 conda 环境
-CONDA_PYTHON="$HOME/miniconda3/envs/{conda_env}/bin/python3"
-CONDA_PIP="$HOME/miniconda3/envs/{conda_env}/bin/pip"
+# base 环境路径不同：$CONDA_BASE/bin vs $CONDA_BASE/envs/{conda_env}/bin
+if [ "{conda_env}" = "base" ]; then
+    CONDA_PYTHON="$HOME/miniconda3/bin/python3"
+    CONDA_PIP="$HOME/miniconda3/bin/pip"
+else
+    CONDA_PYTHON="$HOME/miniconda3/envs/{conda_env}/bin/python3"
+    CONDA_PIP="$HOME/miniconda3/envs/{conda_env}/bin/pip"
+fi
 
 if [ -x "$CONDA_PIP" ]; then
     echo "使用 conda 环境: {conda_env}"
