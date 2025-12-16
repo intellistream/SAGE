@@ -310,8 +310,7 @@ def validate_function_type(
             type(function).__name__ if hasattr(function, "__name__") else str(type(function))
         )
         raise TypeError(
-            f"{function_type_name} function requires {type_attr}={expected_value}, "
-            f"got {func_name}"
+            f"{function_type_name} function requires {type_attr}={expected_value}, got {func_name}"
         )
 
 

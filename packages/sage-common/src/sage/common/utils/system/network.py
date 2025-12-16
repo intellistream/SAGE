@@ -546,8 +546,8 @@ def check_http_health(
             - response_time: float, 响应时间（秒）
             - error: str | None, 错误信息
     """
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     url = f"http://{host}:{port}{path}"
     start_time = time.time()

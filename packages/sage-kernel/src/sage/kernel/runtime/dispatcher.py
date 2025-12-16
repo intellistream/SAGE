@@ -2,7 +2,6 @@ import os
 import time
 from typing import TYPE_CHECKING, Any
 
-from sage.kernel.utils.helpers import wait_for_all_stopped
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.fault_tolerance.factory import (
     create_fault_handler_from_config,
@@ -10,6 +9,7 @@ from sage.kernel.fault_tolerance.factory import (
 )
 from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
+from sage.kernel.utils.helpers import wait_for_all_stopped
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 

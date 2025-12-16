@@ -99,18 +99,20 @@ def format_duration_verbose(seconds: float) -> str:
         secs = int(seconds % 60)
         if secs == 0:
             return f"{minutes} minute{'s' if minutes > 1 else ''}"
-        return f"{minutes} minute{'s' if minutes > 1 else ''} {secs} second{'s' if secs > 1 else ''}"
+        return (
+            f"{minutes} minute{'s' if minutes > 1 else ''} {secs} second{'s' if secs > 1 else ''}"
+        )
     else:
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         if minutes == 0:
             return f"{hours} hour{'s' if hours > 1 else ''}"
-        return f"{hours} hour{'s' if hours > 1 else ''} {minutes} minute{'s' if minutes > 1 else ''}"
+        return (
+            f"{hours} hour{'s' if hours > 1 else ''} {minutes} minute{'s' if minutes > 1 else ''}"
+        )
 
 
-def format_timestamp(
-    timestamp: Union[float, str, datetime], fmt: str = "%Y-%m-%d %H:%M:%S"
-) -> str:
+def format_timestamp(timestamp: Union[float, str, datetime], fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
     """
     格式化时间戳为人类可读格式
 

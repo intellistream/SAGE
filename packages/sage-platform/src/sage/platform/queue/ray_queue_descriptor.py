@@ -4,7 +4,6 @@ Ray Queue Descriptor - Ray分布式队列描述符
 支持Ray分布式队列和Ray Actor队列
 """
 
-import os
 import queue
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -13,7 +12,7 @@ import ray
 from .base_queue_descriptor import BaseQueueDescriptor
 
 if TYPE_CHECKING:
-    from sage.common.utils.logging.custom_logger import CustomLogger
+    pass
 
 from sage.platform.utils import LazyLoggerProxy
 

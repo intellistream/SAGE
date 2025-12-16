@@ -67,7 +67,7 @@ for HOST in "${HOSTS[@]}"; do
     echo "----------------------------------------"
     echo "🔧 配置主机: $HOST"
     echo "----------------------------------------"
-    
+
     # 测试连接
     echo "1. 测试 SSH 连接..."
     if ! sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "$USER@$HOST" "echo 'Connection OK'" 2>/dev/null; then
@@ -75,7 +75,7 @@ for HOST in "${HOSTS[@]}"; do
         continue
     fi
     echo "✅ 连接成功"
-    
+
     # 复制公钥
     echo "2. 复制 SSH 公钥..."
     if sshpass -p "$PASSWORD" ssh-copy-id -o StrictHostKeyChecking=no -i "$SSH_KEY.pub" "$USER@$HOST" 2>/dev/null; then
@@ -84,7 +84,7 @@ for HOST in "${HOSTS[@]}"; do
         echo "❌ 公钥复制失败"
         continue
     fi
-    
+
     # 验证免密登录
     echo "3. 验证免密登录..."
     if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "$USER@$HOST" "echo 'Passwordless login works.'" 2>/dev/null; then
@@ -93,7 +93,7 @@ for HOST in "${HOSTS[@]}"; do
     else
         echo "❌ 免密登录验证失败"
     fi
-    
+
     echo ""
 done
 

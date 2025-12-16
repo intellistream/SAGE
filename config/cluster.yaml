@@ -25,12 +25,12 @@ ssh:
   key_path: "~/.ssh/id_rsa"      # SSH 私钥路径
   connect_timeout: 10            # 连接超时（秒）
   workers:
-    - host: "sage2"
-      port: 22
-    - host: "sage3"
-      port: 22
-    - host: "sage4"
-      port: 22
+  - host: "sage2"
+    port: 22
+  - host: "sage3"
+    port: 22
+  - host: "sage4"
+    port: 22
 
 # 远程节点配置
 remote:

@@ -16,11 +16,11 @@ echo "======================================"
 for worker in "${WORKERS[@]}"; do
     IFS=':' read -r user_host port <<< "$worker"
     IFS='@' read -r user host <<< "$user_host"
-    
+
     echo ""
     echo "🔧 处理节点: $host"
     echo "--------------------------------------"
-    
+
     # SSH 执行升级命令
     ssh -o StrictHostKeyChecking=no -p "$port" "${user}@${host}" << EOF
 set -e
@@ -54,7 +54,7 @@ sleep 2
 if [ "\$CURRENT_VERSION" != "$TARGET_RAY_VERSION" ]; then
     echo "[INFO] 升级 Ray 到 $TARGET_RAY_VERSION..."
     pip install --upgrade "ray[default]==$TARGET_RAY_VERSION"
-    
+
     # 验证安装
     NEW_VERSION=\$(python -c "import ray; print(ray.__version__)")
     if [ "\$NEW_VERSION" = "$TARGET_RAY_VERSION" ]; then
@@ -72,7 +72,7 @@ echo "[INFO] 清理 Ray 临时文件..."
 rm -rf /tmp/ray_* 2>/dev/null || true
 
 EOF
-    
+
     if [ $? -eq 0 ]; then
         echo "✅ 节点 $host 升级成功"
     else

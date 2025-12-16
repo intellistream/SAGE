@@ -73,9 +73,7 @@ def retry_with_backoff(
                         time.sleep(delay)
                         delay *= backoff_factor
                     else:
-                        logger.error(
-                            f"All {max_attempts} attempts failed for {func.__name__}"
-                        )
+                        logger.error(f"All {max_attempts} attempts failed for {func.__name__}")
 
             if last_exception:
                 raise last_exception
@@ -135,9 +133,7 @@ def retry_with_config(
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:
-                        logger.error(
-                            f"All {max_attempts + 1} attempts failed for {func.__name__}"
-                        )
+                        logger.error(f"All {max_attempts + 1} attempts failed for {func.__name__}")
 
             if last_exception:
                 raise last_exception
@@ -216,7 +212,7 @@ class LazyLoggerProxy:
 
     def __init__(self, component_name: str):
         self._component_name = component_name
-        self._logger: Optional["CustomLogger"] = None
+        self._logger: Optional[CustomLogger] = None
 
     def _get_logger(self) -> "CustomLogger":
         if self._logger is None:

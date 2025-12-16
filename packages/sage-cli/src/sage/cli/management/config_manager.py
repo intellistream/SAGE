@@ -37,44 +37,45 @@ class ConfigManager:
             # 2. 当前目录/config/cluster.yaml
             # 3. ~/.sage/cluster.yaml (用户级别配置)
             # 4. 兼容旧路径: ~/.sage/config.yaml
-            
+
             paths_to_check = []
-            
+
             # 1. 项目根目录
             project_root = find_project_root()
             if project_root:
                 paths_to_check.append(project_root / "config" / self.CONFIG_FILENAME)
-            
+
             # 2. 当前目录
             paths_to_check.append(Path.cwd() / "config" / self.CONFIG_FILENAME)
-            
+
             # 3. 用户目录 (新路径)
             paths_to_check.append(Path.home() / ".sage" / self.CONFIG_FILENAME)
-            
+
             # 4. 兼容旧路径
             paths_to_check.append(Path.home() / ".sage" / "config.yaml")
-            
+
             # 默认值: 项目根目录或用户目录
             if project_root:
                 default_path = project_root / "config" / self.CONFIG_FILENAME
             else:
                 default_path = Path.home() / ".sage" / self.CONFIG_FILENAME
-            
+
             selected_path = default_path
-            
+
             for p in paths_to_check:
                 if p.exists():
                     selected_path = p
                     break
-            
+
             self.config_path = selected_path
         self._config: dict[str, Any] | None = None
 
     def load_config(self) -> dict[str, Any]:
         """加载配置文件"""
         if not self.config_path.exists():
-            raise FileNotFoundError(f"配置文件不存在: {self.config_path}\n"
-                                    f"请运行 'sage config create' 创建默认配置")
+            raise FileNotFoundError(
+                f"配置文件不存在: {self.config_path}\n请运行 'sage config create' 创建默认配置"
+            )
 
         try:
             with open(self.config_path, encoding="utf-8") as f:
@@ -146,40 +147,6 @@ class ConfigManager:
                 port = 22  # 默认SSH端口
             nodes.append((host, port))
         return nodes
-
-    def add_worker_ssh_host(self, host: str, port: int = 22):
-        """添加新的worker SSH主机"""
-        current_hosts = self.get_workers_ssh_hosts()
-        new_host = (host, port)
-
-        # 检查是否已存在
-        if new_host in current_hosts:
-            return False
-
-        current_hosts.append(new_host)
-        hosts_str = ",".join([f"{h}:{p}" for h, p in current_hosts])
-
-        config = self.config.copy()
-        config["workers_ssh_hosts"] = hosts_str
-        self.save_config(config)
-        return True
-
-    def remove_worker_ssh_host(self, host: str, port: int = 22):
-        """移除worker SSH主机"""
-        current_hosts = self.get_workers_ssh_hosts()
-        target_host = (host, port)
-
-        if target_host not in current_hosts:
-            return False
-
-        current_hosts.remove(target_host)
-        hosts_str = ",".join([f"{h}:{p}" for h, p in current_hosts])
-
-        config = self.config.copy()
-        config["workers_ssh_hosts"] = hosts_str
-        self.save_config(config)
-        return True
-
 
     def create_default_config(self):
         """创建默认配置文件"""
@@ -264,7 +231,6 @@ class ConfigManager:
         return self.remove_worker_ip(host)
 
 
-
 def get_config_manager(config_path: str | None = None) -> ConfigManager:
     """获取配置管理器实例"""
     return ConfigManager(config_path)
@@ -285,6 +251,7 @@ def show(
         config = config_manager.load_config()
         print("\n当前配置:")
         import pprint
+
         pprint.pprint(config)
     except FileNotFoundError as e:
         print(f"\n{e}")
@@ -297,12 +264,12 @@ def create(
 ):
     """创建默认配置"""
     config_manager = get_config_manager(config_path)
-    
+
     if config_manager.config_path.exists() and not force:
         print(f"配置文件已存在: {config_manager.config_path}")
         print("使用 --force 覆盖")
         return
-    
+
     config_manager.create_default_config()
     print(f"默认配置已创建: {config_manager.config_path}")
 
@@ -333,7 +300,7 @@ def set_value(
             if k not in current:
                 current[k] = {}
             current = current[k]
-        
+
         # 尝试转换类型
         try:
             if value.lower() == "true":
@@ -346,7 +313,7 @@ def set_value(
                 value = float(value)
         except (ValueError, AttributeError):
             pass
-        
+
         current[keys[-1]] = value
         config_manager.save_config(config)
         print(f"配置已更新: {key} = {value}")
@@ -364,19 +331,19 @@ def add_worker(
     config_manager = get_config_manager(config_path)
     try:
         config = config_manager.load_config()
-        
+
         # 确保 ssh.workers 存在
         if "ssh" not in config:
             config["ssh"] = {}
         if "workers" not in config["ssh"]:
             config["ssh"]["workers"] = []
-        
+
         # 检查是否已存在
         for w in config["ssh"]["workers"]:
             if w["host"] == host and w.get("port", 22) == port:
                 print(f"Worker 已存在: {host}:{port}")
                 return
-        
+
         config["ssh"]["workers"].append({"host": host, "port": port})
         config_manager.save_config(config)
         print(f"已添加 worker: {host}:{port}")
@@ -394,15 +361,14 @@ def remove_worker(
     config_manager = get_config_manager(config_path)
     try:
         config = config_manager.load_config()
-        
+
         workers = config.get("ssh", {}).get("workers", [])
         original_len = len(workers)
-        
+
         config["ssh"]["workers"] = [
-            w for w in workers 
-            if not (w["host"] == host and w.get("port", 22) == port)
+            w for w in workers if not (w["host"] == host and w.get("port", 22) == port)
         ]
-        
+
         if len(config["ssh"]["workers"]) < original_len:
             config_manager.save_config(config)
             print(f"已移除 worker: {host}:{port}")

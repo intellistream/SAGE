@@ -70,12 +70,14 @@ from sage.common.utils.formatting import (
 )
 
 # Update __all__ with formatting utilities
-__all__.extend([
-    "format_size",
-    "format_size_compact",
-    "format_duration",
-    "format_duration_verbose",
-    "format_timestamp",
-    "format_percentage",
-    "format_count",
-])
+__all__.extend(
+    [
+        "format_size",
+        "format_size_compact",
+        "format_duration",
+        "format_duration_verbose",
+        "format_timestamp",
+        "format_percentage",
+        "format_count",
+    ]
+)

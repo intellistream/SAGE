@@ -4,7 +4,6 @@ Actor 和 Task 生命周期管理实现
 负责管理 Actor 和 Task 的创建、监控、清理和终止的具体实现。
 """
 
-import time
 from typing import Any, Protocol
 
 from sage.common.core import DEFAULT_CLEANUP_TIMEOUT, TaskID
