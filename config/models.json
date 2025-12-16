@@ -42,6 +42,7 @@
         "base_url": "http://172.17.0.1:1040/v1",
         "is_local": false,
         "description": "Huawei Pangu 1B (Container: base-sage)",
+        "engine_kind": "embedding",
         "api_key": "${PANGU_API_KEY}",
         "default": false
     },
@@ -50,6 +51,7 @@
         "base_url": "http://172.17.0.1:1041/v1",
         "is_local": false,
         "description": "Huawei Pangu 7B (Container: base-sage)",
+        "engine_kind": "embedding",
         "api_key": "${PANGU_API_KEY}",
         "default": true
     },

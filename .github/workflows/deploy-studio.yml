@@ -440,7 +440,8 @@ jobs:
           After=network.target
 
           [Service]
-          Type=simple
+          Type=forking
+          PIDFile=/home/$RUNNER_USER/.local/state/sage/studio.pid
           User=$RUNNER_USER
           WorkingDirectory=$WORKSPACE
           Environment=HF_ENDPOINT=https://hf-mirror.com
@@ -473,18 +474,22 @@ jobs:
         run: |
           echo "🛑 停止现有服务（准备重启）..."
 
-          # 停止所有相关服务
+          # 停止所有相关服务 (无条件停止，防止僵尸状态)
           for svc in sage-frontend sage-gateway sage-embedding sage-llm sage-studio; do
-            if systemctl is-active --quiet $svc 2>/dev/null; then
-              echo "停止 $svc..."
-              sudo systemctl stop $svc || true
-            fi
+            echo "停止 $svc..."
+            sudo systemctl stop $svc || true
           done
 
-          # 释放 GPU 显存 (确保干净启动)
-          echo "🧹 清理 GPU 显存..."
+          # 强制清理残留进程
+          echo "🧹 清理残留进程..."
+          pkill -u $(whoami) -f "sage studio" 2>/dev/null || true
           pkill -u $(whoami) -f "vllm" 2>/dev/null || true
           pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+
+          # 清理 PID 文件 (防止误判)
+          rm -f ~/.local/state/sage/studio.pid || true
+          rm -f ~/.local/state/sage/studio_backend.pid || true
+
           sleep 3
 
           # 显示 GPU 状态
