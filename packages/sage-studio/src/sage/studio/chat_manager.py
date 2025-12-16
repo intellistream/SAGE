@@ -804,9 +804,11 @@ class ChatModeManager(StudioManager):
         return ports
 
     def _find_free_llm_port(self, start_port: int, used_ports: set[int]) -> int | None:
-        """Return the next available TCP port for LLM services."""
-        port = start_port
-        max_port = start_port + 32
+        """Return the next available TCP port for LLM services (clamped to 8901-8910)."""
+        from sage.common.config.ports import SagePorts
+
+        port = max(start_port, SagePorts.BENCHMARK_LLM)
+        max_port = SagePorts.BENCHMARK_LLM + 9  # 8901-8910 inclusive
         while port <= max_port:
             if port not in used_ports and not self._is_port_in_use(port):
                 return port

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +81,9 @@ class LLMLauncher:
         ```
     """
 
+    # Allow a small, fixed port window to avoid endless config files
+    _ALLOWED_PORTS = tuple(SagePorts.BENCHMARK_LLM + i for i in range(10))  # 8901-8910
+
     @staticmethod
     def _ensure_dirs() -> None:
         """Ensure required directories exist."""
@@ -110,8 +114,23 @@ class LLMLauncher:
         return f"http://{resolved_host}:{port}/v1"
 
     @classmethod
+    def _is_port_allowed(cls, port: int | None) -> bool:
+        return port is not None and port in cls._ALLOWED_PORTS
+
+    @classmethod
+    def _is_port_listening(cls, host: str | None, port: int | None) -> bool:
+        if port is None:
+            return False
+        target_host = cls._resolve_client_host(host)
+        try:
+            with socket.create_connection((target_host, port), timeout=1.5):
+                return True
+        except Exception:
+            return False
+
+    @classmethod
     def discover_running_services(cls) -> list[dict[str, Any]]:
-        """List services recorded in llm_service_config files."""
+        """List services recorded in llm_service_config files and prune stale ones."""
         services: list[dict[str, Any]] = []
         if not SAGE_DIR.exists():
             return services
@@ -120,11 +139,36 @@ class LLMLauncher:
             try:
                 config = json.loads(config_file.read_text())
                 port_value = config.get("port")
-                if port_value is None:
+                if port_value is None or not cls._is_port_allowed(int(port_value)):
+                    # Skip configs outside the allowed port window
                     continue
                 port = int(port_value)
                 host = config.get("host")
                 base_url = cls.build_base_url(host, port)
+
+                # Skip stale entries: missing pid or dead process and no listener
+                pid_file = cls._get_pid_file(port)
+                pid_value: int | None = None
+                if pid_file.exists():
+                    try:
+                        pid_value = int(pid_file.read_text().strip())
+                    except Exception:
+                        pid_value = None
+
+                alive = False
+                if pid_value is not None:
+                    try:
+                        import psutil
+
+                        alive = psutil.pid_exists(pid_value)
+                    except Exception:
+                        alive = False
+
+                if not alive and not cls._is_port_listening(host, port):
+                    # Clean up stale records to avoid UI clutter
+                    cls.clear_service_info(port)
+                    continue
+
                 services.append(
                     {
                         "base_url": base_url,
@@ -346,6 +390,13 @@ class LLMLauncher:
         # Use unified default port
         if port is None:
             port = SagePorts.BENCHMARK_LLM  # 8901
+
+        # Enforce allowed port window to avoid unbounded configs
+        if not cls._is_port_allowed(port):
+            return LLMLauncherResult(
+                success=False,
+                error=f"Port {port} is not allowed. Use ports in {cls._ALLOWED_PORTS}.",
+            )
 
         # Auto-configure HuggingFace mirror
         ensure_hf_mirror_configured()
