@@ -107,9 +107,17 @@ jobs:
               return
             url = url.rstrip("/")
             if url.endswith("/v1"):
-              dest.add(url)
+              pass
             elif url.endswith("/v1/"):
-              dest.add(url[:-1])
+              url = url[:-1]
+
+            try:
+              parsed = urllib.parse.urlparse(url)
+              port = parsed.port or (443 if parsed.scheme == "https" else 80)
+              # Deduplicate by port: overwrite if exists (last one wins)
+              dest[port] = url
+            except Exception:
+              pass
 
 
           def probe(url):
@@ -139,14 +147,15 @@ jobs:
             return False, None
 
 
-          candidate_urls = set()
+          # Use dict for deduplication by port
+          candidate_map = {}
 
           # 0) Default LLM port 8001
-          add_candidate("http://127.0.0.1:8001/v1", candidate_urls)
+          add_candidate("http://127.0.0.1:8001/v1", candidate_map)
 
           # 1) Default benchmark ports 8901-8910
           for port in range(8901, 8911):
-            add_candidate(f"http://127.0.0.1:{port}/v1", candidate_urls)
+            add_candidate(f"http://127.0.0.1:{port}/v1", candidate_map)
 
           # 2) llm_service_config files recorded by LLMLauncher
           for path in glob.glob(os.path.expanduser("~/.sage/llm_service_config_*.json")):
@@ -154,12 +163,12 @@ jobs:
               cfg = json.loads(open(path, encoding="utf-8").read())
               base = cfg.get("base_url")
               if base:
-                add_candidate(base, candidate_urls)
+                add_candidate(base, candidate_map)
               else:
                 port = cfg.get("port")
                 host = cfg.get("host") or "127.0.0.1"
                 if port:
-                  add_candidate(f"http://{host}:{port}/v1", candidate_urls)
+                  add_candidate(f"http://{host}:{port}/v1", candidate_map)
             except Exception:
               continue
 
@@ -175,7 +184,7 @@ jobs:
                 kind = ent.get("engine_kind") or "llm"
                 if kind and kind.lower() == "embedding":
                   continue
-                add_candidate(ent.get("base_url"), candidate_urls)
+                add_candidate(ent.get("base_url"), candidate_map)
           except Exception:
             pass
 
@@ -183,17 +192,20 @@ jobs:
           kill = []
           seen_models = set()
 
-          for url in sorted(candidate_urls):
+          for port in sorted(candidate_map.keys()):
+            url = candidate_map[port]
             ok, model = probe(url)
-            parsed = urllib.parse.urlparse(url)
-            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+
             if not ok:
               kill.append(str(port))
               continue
+
             model_key = (model or "unknown").lower()
             if model_key in seen_models:
+              # Duplicate model instance (on a different port)
               kill.append(str(port))
               continue
+
             seen_models.add(model_key)
             keep.append(str(port))
 
