@@ -1581,18 +1581,23 @@ if __name__ == "__main__":
         frontend_table.add_column("值", style="white")
 
         if frontend_pid:
-            try:
-                process = psutil.Process(frontend_pid)
-                frontend_table.add_row("状态", "[green]运行中[/green]")
-                frontend_table.add_row("PID", str(frontend_pid))
-                frontend_table.add_row(
-                    "启动时间",
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
-                )
-                frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
-                frontend_table.add_row("内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB")
-            except psutil.NoSuchProcess:
-                frontend_table.add_row("状态", "[red]进程不存在[/red]")
+            if frontend_pid == -1:
+                frontend_table.add_row("状态", "[yellow]运行中（PID未知）[/yellow]")
+            else:
+                try:
+                    process = psutil.Process(frontend_pid)
+                    frontend_table.add_row("状态", "[green]运行中[/green]")
+                    frontend_table.add_row("PID", str(frontend_pid))
+                    frontend_table.add_row(
+                        "启动时间",
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
+                    )
+                    frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
+                    frontend_table.add_row(
+                        "内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB"
+                    )
+                except psutil.NoSuchProcess:
+                    frontend_table.add_row("状态", "[red]进程不存在[/red]")
         else:
             frontend_table.add_row("状态", "[red]未运行[/red]")
 
