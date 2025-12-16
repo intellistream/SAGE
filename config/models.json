@@ -1,15 +1,39 @@
 [
     {
-        "name": "Qwen/Qwen2.5-0.5B-Instruct",
+        "name": "Qwen/Qwen2.5-32B-Instruct",
+        "base_url": "http://127.0.0.1:8901/v1",
         "is_local": true,
-        "description": "Local Small Model (Fast, CPU-friendly)",
-        "api_key": "",
-        "default": false
+        "default": false,
+        "api_key": ""
+    },
+    {
+        "name": "Qwen/Qwen2.5-14B-Instruct",
+        "base_url": "http://127.0.0.1:8902/v1",
+        "is_local": true,
+        "default": false,
+        "api_key": ""
     },
     {
         "name": "Qwen/Qwen2.5-7B-Instruct",
         "is_local": true,
-        "description": "Local Standard Model (Requires GPU)",
+        "base_url": "http://127.0.0.1:8903/v1",
+        "description": "Local Standard Model",
+        "api_key": "",
+        "default": false
+    },
+    {
+        "name": "Qwen/Qwen2.5-1.5B-Instruct",
+        "is_local": true,
+        "base_url": "http://127.0.0.1:8904/v1",
+        "description": "Local Middle Model",
+        "api_key": "",
+        "default": false
+    },
+    {
+        "name": "Qwen/Qwen2.5-0.5B-Instruct",
+        "base_url": "http://127.0.0.1:8905/v1",
+        "is_local": true,
+        "description": "Local Small Model",
         "api_key": "",
         "default": false
     },
@@ -34,14 +58,7 @@
         "is_local": true,
         "description": "Large Embedding Model (Recommended)",
         "engine_kind": "embedding",
-        "default": false,
-        "api_key": ""
-    },
-    {
-        "name": "Qwen/Qwen2.5-32B-Instruct",
-        "base_url": "http://127.0.0.1:8901/v1",
-        "is_local": true,
-        "default": false,
+        "default": true,
         "api_key": ""
     }
 ]
