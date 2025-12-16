@@ -500,6 +500,54 @@ jobs:
           sudo systemctl disable nginx 2>/dev/null || true
           echo "✅ sage-frontend.service 已创建（基于 nginx）"
 
+      - name: Stop existing services before restart
+        run: |
+          echo "🛑 停止现有服务（准备重启）..."
+
+          # 使用 Detect 步骤的结果 (KEEP_PORTS)
+          KEEP_LLM=false
+          if [ -n "$KEEP_PORTS" ]; then
+            KEEP_LLM=true
+            echo "✅ 检测到健康的 LLM (端口 $KEEP_PORTS)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM"
+          fi
+
+          echo "LLM 探测结果: KEEP_LLM=${KEEP_LLM}, PORTS=${KEEP_PORTS}"
+
+          # 停止 frontend/gateway/embedding/studio（LLM 根据探测决定）
+          for svc in sage-frontend sage-gateway sage-embedding sage-studio; do
+            echo "停止 $svc..."
+            sudo systemctl stop $svc || true
+          done
+
+          # 有健康的 LLM 则跳过杀进程；否则停止 systemd LLM + 杀不健康的 vLLM 进程
+          if [ "$KEEP_LLM" = "true" ]; then
+            echo "✅ 检测到健康的 LLM (端口 $HEALTHY_LLM_PORT)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM，清理可能的残留"
+            sudo systemctl stop sage-llm || true
+            pkill -u $(whoami) -f "vllm" 2>/dev/null || true
+          fi
+
+          # 清理 Studio 相关残留进程
+          pkill -u $(whoami) -f "sage studio" 2>/dev/null || true
+          pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+
+          # 清理 PID 文件 (防止误判)
+          rm -f ~/.local/state/sage/studio.pid || true
+          rm -f ~/.local/state/sage/studio_backend.pid || true
+
+          sleep 3
+
+          # 显示 GPU 状态
+          if command -v nvidia-smi &> /dev/null; then
+            echo "📊 GPU 状态："
+            nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
+          fi
+
+          echo "✅ 服务已停止（LLM 保持运行：${KEEP_LLM}）"
+
       - name: Create systemd services
         run: |
           echo "🔧 创建系统级 systemd 服务（多服务架构）..."
@@ -603,55 +651,6 @@ jobs:
           echo "🔍 验证 conda wrapper..."
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python --version
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.gateway; print('Gateway import OK')"
-
-
-      - name: Stop existing services before restart
-        run: |
-          echo "🛑 停止现有服务（准备重启）..."
-
-          # 使用 Detect 步骤的结果 (KEEP_PORTS)
-          KEEP_LLM=false
-          if [ -n "$KEEP_PORTS" ]; then
-            KEEP_LLM=true
-            echo "✅ 检测到健康的 LLM (端口 $KEEP_PORTS)，跳过停止 sage-llm 与 vLLM 进程"
-          else
-            echo "⚠️ 未检测到健康的 LLM"
-          fi
-
-          echo "LLM 探测结果: KEEP_LLM=${KEEP_LLM}, PORTS=${KEEP_PORTS}"
-
-          # 停止 frontend/gateway/embedding/studio（LLM 根据探测决定）
-          for svc in sage-frontend sage-gateway sage-embedding sage-studio; do
-            echo "停止 $svc..."
-            sudo systemctl stop $svc || true
-          done
-
-          # 有健康的 LLM 则跳过杀进程；否则停止 systemd LLM + 杀不健康的 vLLM 进程
-          if [ "$KEEP_LLM" = "true" ]; then
-            echo "✅ 检测到健康的 LLM (端口 $HEALTHY_LLM_PORT)，跳过停止 sage-llm 与 vLLM 进程"
-          else
-            echo "⚠️ 未检测到健康的 LLM，清理可能的残留"
-            sudo systemctl stop sage-llm || true
-            pkill -u $(whoami) -f "vllm" 2>/dev/null || true
-          fi
-
-          # 清理 Studio 相关残留进程
-          pkill -u $(whoami) -f "sage studio" 2>/dev/null || true
-          pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
-
-          # 清理 PID 文件 (防止误判)
-          rm -f ~/.local/state/sage/studio.pid || true
-          rm -f ~/.local/state/sage/studio_backend.pid || true
-
-          sleep 3
-
-          # 显示 GPU 状态
-          if command -v nvidia-smi &> /dev/null; then
-            echo "📊 GPU 状态："
-            nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
-          fi
-
-          echo "✅ 服务已停止（LLM 保持运行：${KEEP_LLM}）"
 
       - name: Start services
         run: |
