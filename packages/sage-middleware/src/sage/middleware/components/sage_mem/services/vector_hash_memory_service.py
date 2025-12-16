@@ -49,11 +49,11 @@ class VectorHashMemoryService(BaseService):
         # 初始化 MemoryManager
         self.manager = MemoryManager(self._get_default_data_dir())
 
-        # 创建 VDB collection
+        # 创建或加载 VDB collection
         if self.manager.has_collection(collection_name):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
-                raise RuntimeError(f"Failed to get collection '{collection_name}'")
+                raise RuntimeError(f"Failed to load collection '{collection_name}'")
             self.collection = collection
         else:
             self.collection = self.manager.create_collection(
@@ -179,6 +179,26 @@ class VectorHashMemoryService(BaseService):
         self._id_to_text[entry_id] = entry
         self.logger.debug(f"Inserted entry to LSH: {entry_id[:16]}...")
         return entry_id
+
+    def get(self, entry_id: str) -> dict[str, Any] | None:
+        """获取指定 ID 的记忆条目
+
+        Args:
+            entry_id: 条目 ID
+
+        Returns:
+            dict: 条目数据（包含 text, metadata, embedding 等），不存在返回 None
+        """
+        if entry_id not in self._id_to_text:
+            return None
+
+        text = self._id_to_text[entry_id]
+        # TODO: 从 collection 中获取完整数据（embedding, metadata）
+        # 当前简化实现，仅返回文本
+        return {
+            "id": entry_id,
+            "text": text,
+        }
 
     def retrieve(
         self,

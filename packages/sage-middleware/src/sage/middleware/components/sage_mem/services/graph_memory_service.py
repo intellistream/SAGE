@@ -160,6 +160,38 @@ class GraphMemoryService(BaseService):
             f"ppr_depth={ppr_depth}, ppr_damping={ppr_damping}, enhanced_rerank={enhanced_rerank}"
         )
 
+    def get(self, entry_id: str) -> dict[str, Any] | None:
+        """获取指定 ID 的记忆条目（节点）
+
+        Args:
+            entry_id: 条目 ID（节点 ID）
+
+        Returns:
+            dict: 条目数据（包含 text, metadata, vector 等），不存在返回 None
+        """
+        if not hasattr(self.collection, "text_storage"):
+            return None
+
+        text = self.collection.text_storage.get(entry_id)
+        if text is None:
+            return None
+
+        metadata = None
+        if hasattr(self.collection, "metadata_storage"):
+            metadata = self.collection.metadata_storage.get(entry_id)
+
+        result = {
+            "id": entry_id,
+            "text": text,
+            "metadata": metadata or {},
+        }
+
+        # 如果存在 vector_index，添加 embedding
+        if entry_id in self._vector_index:
+            result["embedding"] = self._vector_index[entry_id]
+
+        return result
+
     @classmethod
     def _get_default_data_dir(cls) -> str:
         """获取默认数据目录
