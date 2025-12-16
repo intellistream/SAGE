@@ -91,7 +91,7 @@ jobs:
         run: |
           echo "🔍 探活并去重本地 LLM 服务 (优先保留健康实例，按模型去重)"
           set -euo pipefail
-          cat <<'PY' | sed 's/^          //' | python - | tee /tmp/llm_detect.env
+          cat <<'PY' | sed 's/^          //' | python3 - | tee /tmp/llm_detect.env
           import glob
           import json
           import os
