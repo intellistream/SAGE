@@ -2976,6 +2976,10 @@ def _discover_launcher_models() -> list[dict[str, Any]]:
 
     models: list[dict[str, Any]] = []
     for service in LLMLauncher.discover_running_services():
+        # Filter out embedding models
+        if service.get("config", {}).get("engine_kind") == "embedding":
+            continue
+
         models.append(
             {
                 "name": service.get("served_model_name") or service.get("model") or "local-llm",
@@ -3232,7 +3236,9 @@ async def get_llm_status():
 
         # Build available model list
         config_models, _ = _load_models_config(filter_missing=True)
-        available_models = [dict(model) for model in config_models]
+        available_models = [
+            dict(model) for model in config_models if model.get("engine_kind") != "embedding"
+        ]
 
         def _merge_model(entry: dict[str, Any]) -> None:
             entry_url = entry.get("base_url")
