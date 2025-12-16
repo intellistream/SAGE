@@ -91,112 +91,113 @@ jobs:
         run: |
           echo "🔍 探活并去重本地 LLM 服务 (优先保留健康实例，按模型去重)"
           set -euo pipefail
-            python3 - <<'PY' | tee /tmp/llm_detect.env
-            import glob
-            import json
-            import os
-            import urllib.error
-            import urllib.parse
-            import urllib.request
+          python3 - <<'PY' | tee /tmp/llm_detect.env
+          import glob
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
 
-            workspace = os.environ.get("GITHUB_WORKSPACE", ".")
-
-
-            def add_candidate(url, dest):
-              if not url:
-                return
-              url = url.rstrip("/")
-              if url.endswith("/v1"):
-                dest.add(url)
-              elif url.endswith("/v1/"):
-                dest.add(url[:-1])
+          workspace = os.environ.get("GITHUB_WORKSPACE", ".")
 
 
-            def probe(url):
-              for path in ("/health", "/models", "/v1/models"):
-                try:
-                  req = urllib.request.Request(url + path, headers={"Accept": "application/json"})
-                  with urllib.request.urlopen(req, timeout=2) as resp:
-                    data = resp.read().decode("utf-8", "ignore")
-                    if resp.status == 200:
-                      model = None
-                      try:
-                        payload = json.loads(data)
-                        if isinstance(payload, dict):
-                          if isinstance(payload.get("data"), list) and payload["data"]:
-                            first = payload["data"][0]
-                            if isinstance(first, dict):
-                              model = first.get("id") or first.get("model")
-                          if not model:
-                            model = payload.get("model") or payload.get("model_id")
-                      except Exception:
-                        model = None
-                      return True, model
-                except urllib.error.HTTPError:
-                  return True, None
-                except Exception:
-                  continue
-              return False, None
+          def add_candidate(url, dest):
+            if not url:
+              return
+            url = url.rstrip("/")
+            if url.endswith("/v1"):
+              dest.add(url)
+            elif url.endswith("/v1/"):
+              dest.add(url[:-1])
 
 
-            candidate_urls = set()
-
-            # 1) Default benchmark ports 8901-8910
-            for port in range(8901, 8911):
-              add_candidate(f"http://127.0.0.1:{port}/v1", candidate_urls)
-
-            # 2) llm_service_config files recorded by LLMLauncher
-            for path in glob.glob(os.path.expanduser("~/.sage/llm_service_config_*.json")):
+          def probe(url):
+            for path in ("/health", "/models", "/v1/models"):
               try:
-                cfg = json.loads(open(path, encoding="utf-8").read())
-                base = cfg.get("base_url")
-                if base:
-                  add_candidate(base, candidate_urls)
-                else:
-                  port = cfg.get("port")
-                  host = cfg.get("host") or "127.0.0.1"
-                  if port:
-                    add_candidate(f"http://{host}:{port}/v1", candidate_urls)
+                req = urllib.request.Request(url + path, headers={"Accept": "application/json"})
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                  data = resp.read().decode("utf-8", "ignore")
+                  if resp.status == 200:
+                    model = None
+                    try:
+                      payload = json.loads(data)
+                      if isinstance(payload, dict):
+                        if isinstance(payload.get("data"), list) and payload["data"]:
+                          first = payload["data"][0]
+                          if isinstance(first, dict):
+                            model = first.get("id") or first.get("model")
+                        if not model:
+                          model = payload.get("model") or payload.get("model_id")
+                    except Exception:
+                      model = None
+                    return True, model
+              except urllib.error.HTTPError:
+                return True, None
               except Exception:
                 continue
+            return False, None
 
-            # 3) config/models.json entries (LLM only)
-            config_path = os.path.join(workspace, "config", "models.json")
+
+          candidate_urls = set()
+
+            # 0) Default LLM port 8001
+            add_candidate("http://127.0.0.1:8001/v1", candidate_urls)
+
+            add_candidate(f"http://127.0.0.1:{port}/v1", candidate_urls)
+
+          # 2) llm_service_config files recorded by LLMLauncher
+          for path in glob.glob(os.path.expanduser("~/.sage/llm_service_config_*.json")):
             try:
-              with open(config_path, encoding="utf-8") as f:
-                entries = json.load(f)
-              if isinstance(entries, list):
-                for ent in entries:
-                  if not isinstance(ent, dict):
-                    continue
-                  kind = ent.get("engine_kind") or "llm"
-                  if kind and kind.lower() == "embedding":
-                    continue
-                  add_candidate(ent.get("base_url"), candidate_urls)
+              cfg = json.loads(open(path, encoding="utf-8").read())
+              base = cfg.get("base_url")
+              if base:
+                add_candidate(base, candidate_urls)
+              else:
+                port = cfg.get("port")
+                host = cfg.get("host") or "127.0.0.1"
+                if port:
+                  add_candidate(f"http://{host}:{port}/v1", candidate_urls)
             except Exception:
-              pass
+              continue
 
-            keep = []
-            kill = []
-            seen_models = set()
+          # 3) config/models.json entries (LLM only)
+          config_path = os.path.join(workspace, "config", "models.json")
+          try:
+            with open(config_path, encoding="utf-8") as f:
+              entries = json.load(f)
+            if isinstance(entries, list):
+              for ent in entries:
+                if not isinstance(ent, dict):
+                  continue
+                kind = ent.get("engine_kind") or "llm"
+                if kind and kind.lower() == "embedding":
+                  continue
+                add_candidate(ent.get("base_url"), candidate_urls)
+          except Exception:
+            pass
 
-            for url in sorted(candidate_urls):
-              ok, model = probe(url)
-              parsed = urllib.parse.urlparse(url)
-              port = parsed.port or (443 if parsed.scheme == "https" else 80)
-              if not ok:
-                kill.append(str(port))
-                continue
-              model_key = (model or "unknown").lower()
-              if model_key in seen_models:
-                kill.append(str(port))
-                continue
-              seen_models.add(model_key)
-              keep.append(str(port))
+          keep = []
+          kill = []
+          seen_models = set()
 
-            print(f"KEEP_PORTS={','.join(keep)}")
-            print(f"KILL_PORTS={','.join(kill)}")
-            PY
+          for url in sorted(candidate_urls):
+            ok, model = probe(url)
+            parsed = urllib.parse.urlparse(url)
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            if not ok:
+              kill.append(str(port))
+              continue
+            model_key = (model or "unknown").lower()
+            if model_key in seen_models:
+              kill.append(str(port))
+              continue
+            seen_models.add(model_key)
+            keep.append(str(port))
+
+          print(f"KEEP_PORTS={','.join(keep)}")
+          print(f"KILL_PORTS={','.join(kill)}")
+          PY
 
           source /tmp/llm_detect.env
           echo "KEEP_PORTS=${KEEP_PORTS}" >> $GITHUB_ENV
@@ -594,18 +595,16 @@ jobs:
         run: |
           echo "🛑 停止现有服务（准备重启）..."
 
-          # 先探测 8901-8910 是否有健康的 LLM，在可用时避免停机
+          # 使用 Detect 步骤的结果 (KEEP_PORTS)
           KEEP_LLM=false
-          HEALTHY_LLM_PORT=""
-          for p in $(seq 8901 8910); do
-            if curl -sf --max-time 2 "http://127.0.0.1:${p}/health" >/dev/null; then
-              KEEP_LLM=true
-              HEALTHY_LLM_PORT=$p
-              break
-            fi
-          done
+          if [ -n "$KEEP_PORTS" ]; then
+            KEEP_LLM=true
+            echo "✅ 检测到健康的 LLM (端口 $KEEP_PORTS)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM"
+          fi
 
-          echo "LLM 探测结果: KEEP_LLM=${KEEP_LLM}, PORT=${HEALTHY_LLM_PORT}"
+          echo "LLM 探测结果: KEEP_LLM=${KEEP_LLM}, PORTS=${KEEP_PORTS}"
 
           # 停止 frontend/gateway/embedding/studio（LLM 根据探测决定）
           for svc in sage-frontend sage-gateway sage-embedding sage-studio; do
@@ -689,7 +688,8 @@ jobs:
           # 等待 LLM 服务（最长 10 分钟，因为要加载模型）
           echo "等待 LLM 服务 (最长 600 秒)..."
           for i in $(seq 1 600); do
-            if curl -sf http://localhost:8901/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
+               curl -sf http://localhost:8901/health > /dev/null 2>&1; then
               echo "✅ LLM 服务就绪（第 $i 秒）"
               break
             fi
@@ -755,7 +755,7 @@ jobs:
           echo "| 服务 | 端口 | 状态 |"
           echo "|------|------|------|"
 
-          for svc_port in "Frontend:$PORT" "Gateway:8888" "LLM:8901" "Embedding:8090"; do
+          for svc_port in "Frontend:$PORT" "Gateway:8888" "LLM(Default):8001" "LLM(Benchmark):8901" "Embedding:8090"; do
             name="${svc_port%%:*}"
             port="${svc_port##*:}"
             # 尝试多个端点：/ 和 /health
