@@ -442,6 +442,7 @@ jobs:
 
           [Service]
           Type=forking
+          TimeoutStartSec=600
           PIDFile=/home/$RUNNER_USER/.local/state/sage/studio.pid
           User=$RUNNER_USER
           WorkingDirectory=$WORKSPACE
