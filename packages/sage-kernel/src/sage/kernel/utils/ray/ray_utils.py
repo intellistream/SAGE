@@ -75,7 +75,9 @@ def ensure_ray_initialized(runtime_env=None):
             # 首先尝试连接到现有的 Ray 集群
             try:
                 ray.init(address="auto", ignore_reinit_error=True)  # type: ignore[union-attr]
-                print("Connected to existing Ray cluster")
+                nodes = ray.nodes()
+                alive_nodes = [n for n in nodes if n.get("Alive", False)]
+                print(f"Connected to existing Ray cluster with {len(alive_nodes)} nodes")
                 return
             except ConnectionError:
                 print("No existing Ray cluster found, starting local Ray instance")
@@ -127,7 +129,13 @@ def ensure_ray_initialized(runtime_env=None):
             print(f"Failed to initialize Ray: {e}")
             raise
     else:
-        print("Ray is already initialized.")
+        # Ray 已经初始化，检查节点数量
+        try:
+            nodes = ray.nodes()
+            alive_nodes = [n for n in nodes if n.get("Alive", False)]
+            print(f"Ray is already initialized with {len(alive_nodes)} nodes")
+        except Exception:
+            print("Ray is already initialized.")
 
 
 def is_distributed_environment() -> bool:

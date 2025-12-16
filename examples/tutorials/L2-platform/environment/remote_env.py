@@ -138,6 +138,9 @@ def example_default_scheduler():
     )
     
     env = RemoteEnvironment(name="distributed_scheduler_demo", scheduler=scheduler)
+    # 设置 JobManager 的可访问主机名（worker 节点通过此地址连接回 JobManager）
+    # 注意：JobManager 启动时使用 0.0.0.0 监听，但 worker 需要实际可访问的主机名
+    env.jobmanager_host = "sage-node-1"
     step_duration = time.time() - step_start
     print(f"   ✅ 环境创建完成 (耗时: {step_duration:.3f}秒)")
     print(f"   📋 调度策略: SPREAD (分散放置到多个节点)\n")

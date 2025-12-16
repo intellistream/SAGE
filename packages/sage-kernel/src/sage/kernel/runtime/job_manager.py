@@ -121,13 +121,19 @@ class JobManager:  # Job Manager
         self.setup_env_logging(env)
 
         # 向环境注入JobManager的网络地址信息
+        # 注意：如果 env 已经设置了 jobmanager_host（例如在 RemoteEnvironment 中指定了集群可访问的主机名），
+        # 则保留用户设置的值，不要用 server.host（可能是 0.0.0.0）覆盖
         if self.server:
-            env.jobmanager_host = self.server.host
-            env.jobmanager_port = self.server.port
+            if env.jobmanager_host is None:
+                env.jobmanager_host = self.server.host
+            if env.jobmanager_port is None:
+                env.jobmanager_port = self.server.port
         else:
             # 如果没有daemon，使用默认地址
-            env.jobmanager_host = "127.0.0.1"
-            env.jobmanager_port = 19001
+            if env.jobmanager_host is None:
+                env.jobmanager_host = "127.0.0.1"
+            if env.jobmanager_port is None:
+                env.jobmanager_port = 19001
 
         # 创建执行图
         graph = self._create_execution_graph(env)
