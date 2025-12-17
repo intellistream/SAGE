@@ -120,20 +120,20 @@ def retry_with_config(
             last_exception: Optional[Exception] = None
             current_delay = delay
 
-            for attempt in range(max_attempts + 1):
+            for attempt in range(max_attempts):
                 try:
                     return func(self, *args, **kwargs)
                 except Exception as e:
                     last_exception = e
-                    if attempt < max_attempts:
+                    if attempt < max_attempts - 1:
                         logger.warning(
-                            f"Attempt {attempt + 1}/{max_attempts + 1} failed: {e}. "
+                            f"Attempt {attempt + 1}/{max_attempts} failed: {e}. "
                             f"Retrying in {current_delay:.2f}s..."
                         )
                         time.sleep(current_delay)
                         current_delay *= backoff
                     else:
-                        logger.error(f"All {max_attempts + 1} attempts failed for {func.__name__}")
+                        logger.error(f"All {max_attempts} attempts failed for {func.__name__}")
 
             if last_exception:
                 raise last_exception
