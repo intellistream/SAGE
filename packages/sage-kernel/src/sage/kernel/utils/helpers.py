@@ -356,9 +356,6 @@ def retry_with_backoff(
             else:
                 raise
 
-    # 这行理论上不会执行，但为了类型检查
-    if last_exception:
-        raise last_exception
 
 
 __all__ = [
