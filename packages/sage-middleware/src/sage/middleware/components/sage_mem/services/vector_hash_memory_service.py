@@ -220,7 +220,7 @@ class VectorHashMemoryService(BaseService):
             threshold: 相似度阈值（可选，过滤低于阈值的结果）
 
         Returns:
-            list[dict]: 检索结果
+            list[dict]: 检索结果，包含完整的记忆信息
         """
         _ = hints  # 保留用于未来扩展
         if vector is None:

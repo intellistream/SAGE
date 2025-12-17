@@ -36,6 +36,14 @@ class TripleExtractAction(BasePreInsertAction):
         # 是否保留原始文本
         self.keep_original = self.config.get("keep_original", True)
 
+        # LLM相关配置
+        self.triple_extraction_prompt = self.config.get("triple_extraction_prompt", "")
+        self.llm_generator = None
+
+    def set_llm_generator(self, llm_generator):
+        """设置LLM生成器"""
+        self.llm_generator = llm_generator
+
     def execute(self, input_data: PreInsertInput) -> PreInsertOutput:
         """执行三元组提取和重构
 
@@ -172,20 +180,79 @@ class TripleExtractAction(BasePreInsertAction):
     def _extract_by_llm(self, text: str) -> list[dict[str, str]]:
         """使用 LLM 提取三元组
 
-        TODO: 集成 LLM 调用
-
-        Prompt 示例：
-        "Extract subject-predicate-object triplets from the following text.
-        Return as JSON array:\n\n{text}\n\nTriplets:"
-
         Args:
             text: 输入文本
 
         Returns:
             三元组列表
         """
-        # 当前回退到简单方法
-        return self._extract_simple(text)
+        if not self.llm_generator:
+            print("[WARNING] LLM not available, falling back to simple extraction")
+            return self._extract_simple(text)
+
+        if not self.triple_extraction_prompt:
+            print(
+                "[WARNING] No triple_extraction_prompt configured, falling back to simple extraction"
+            )
+            return self._extract_simple(text)
+
+        try:
+            # 格式化prompt
+            prompt = self.triple_extraction_prompt.format(dialogue=text)
+
+            # 调用LLM
+            response = self.llm_generator.generate(prompt)
+
+            # 解析LLM输出
+            triplets = self._parse_llm_response(response)
+
+            # 限制数量
+            return triplets[: self.max_triplets]
+
+        except Exception as e:
+            print(f"[ERROR] LLM extraction failed: {e}, falling back to simple extraction")
+            return self._extract_simple(text)
+
+    def _parse_llm_response(self, response: str) -> list[dict[str, str]]:
+        """解析LLM返回的三元组
+
+        期望格式：
+        (Subject, Predicate, Object)
+        (Subject2, Predicate2, Object2)
+        或者：
+        None
+        """
+        import re
+
+        triplets = []
+
+        # 如果LLM返回"None"，表示没有提取到三元组
+        if response.strip().lower() in ["none", "无", "没有"]:
+            return triplets
+
+        # 使用正则表达式匹配三元组格式 (Subject, Predicate, Object)
+        pattern = r"\(([^,]+),\s*([^,]+),\s*([^)]+)\)"
+        matches = re.findall(pattern, response, re.MULTILINE)
+
+        for match in matches:
+            subject = match[0].strip()
+            predicate = match[1].strip()
+            obj = match[2].strip()
+
+            # 清理引号
+            for item in [subject, predicate, obj]:
+                item = item.strip('"').strip("'").strip()
+
+            triplets.append({"subject": subject, "predicate": predicate, "object": obj})
+
+        # 如果正则匹配失败，尝试其他格式或回退到简单方法
+        if not triplets:
+            print(
+                f"[WARNING] Could not parse LLM response, trying simple extraction. Response: {response[:200]}..."
+            )
+            # 不直接回退，而是返回空列表，让上层处理
+
+        return triplets
 
     def _reconstruct_triplet(self, triplet: dict[str, str]) -> str:
         """重构三元组为自然语言文本

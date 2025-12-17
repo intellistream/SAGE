@@ -11,7 +11,10 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from sage.benchmark.benchmark_memory.experiment.utils import EmbeddingGenerator
+from sage.benchmark.benchmark_memory.experiment.utils import (
+    EmbeddingGenerator,
+    LLMGenerator,
+)
 from sage.common.core import MapFunction
 
 from .base import BasePreInsertAction, PreInsertInput, PreInsertOutput
@@ -26,6 +29,7 @@ class PreInsert(MapFunction):
         self.config = config
         self.service_name = config.get("services.register_memory_service", "short_term_memory")
         self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
+        self._llm_generator: LLMGenerator = LLMGenerator.from_config(self.config)
 
         action_config = config.get("operators.pre_insert", {})
         self.action_name = action_config.get("action", "none")
@@ -45,6 +49,12 @@ class PreInsert(MapFunction):
             from .none_action import NoneAction
 
             self.action = NoneAction(action_config)
+
+        # 传递generators给action
+        if hasattr(self.action, "set_llm_generator"):
+            self.action.set_llm_generator(self._llm_generator)
+        if hasattr(self.action, "set_embedding_generator"):
+            self.action.set_embedding_generator(self._embedding_generator)
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         start_time = time.perf_counter()

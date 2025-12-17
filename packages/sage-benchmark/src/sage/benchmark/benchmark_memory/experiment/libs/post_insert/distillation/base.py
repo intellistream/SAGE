@@ -29,8 +29,9 @@ class DistillationAction(BasePostInsertAction):
 
     def _init_action(self) -> None:
         """Initialize distillation action configuration."""
-        self.similarity_threshold = self._get_config("similarity_threshold", 0.85)
-        self.max_merge_count = self._get_config("max_merge_count", 5)
+        # 数据量驱动的蒸馏策略（TiM 核心思路）
+        self.retrieve_count = self._get_config("retrieve_count", 10)  # 检索候选数量
+        self.min_merge_count = self._get_config("min_merge_count", 3)  # 最少需要多少条才蒸馏
         self.merge_prompt = self._get_config(
             "merge_prompt", "请将以下多条相似记忆合并为一条简洁的记忆：\n{memories}\n合并后的记忆："
         )
@@ -58,9 +59,9 @@ class DistillationAction(BasePostInsertAction):
                 details={"error": "LLM client required for distillation"},
             )
 
-        # Extract entry IDs from insert stats
-        entry_ids = input_data.insert_stats.get("entry_ids", [])
-        if not entry_ids:
+        # Extract complete entries from insert stats (includes embedding)
+        entries = input_data.insert_stats.get("entries", [])
+        if not entries:
             return PostInsertOutput(
                 success=True,
                 action="distillation",
@@ -71,25 +72,31 @@ class DistillationAction(BasePostInsertAction):
         deleted_count = 0
 
         # Process each newly inserted memory
-        for entry_id in entry_ids:
+        for entry in entries:
             try:
-                # Retrieve similar memories from service
+                # Retrieve similar memories from service (数据量驱动，不用阈值过滤)
                 similar_memories = self._retrieve_similar_memories(
-                    service, entry_id, self.similarity_threshold, self.max_merge_count
+                    service, entry, self.retrieve_count
                 )
 
-                if len(similar_memories) > 1:  # Found duplicates
+                # TiM 核心：数据量足够才蒸馏，否则跳过（避免小概率重复的过度处理）
+                if len(similar_memories) >= self.min_merge_count:
                     # Use LLM to merge memories
                     merged_text = self._merge_memories(llm, similar_memories)
 
                     # Delete old memories
                     for mem in similar_memories:
-                        service.delete_entry(mem["id"])
+                        service.delete(mem["id"])
                         deleted_count += 1
 
-                    # Insert merged memory
-                    service.insert_entry(
-                        text=merged_text,
+                    # Insert merged memory (need vector for VectorHashMemoryService)
+                    # Use first memory's embedding as the merged embedding
+                    merged_embedding = (
+                        similar_memories[0].get("embedding") if similar_memories else None
+                    )
+                    service.insert(
+                        entry=merged_text,
+                        vector=merged_embedding,
                         metadata={"merged_from": [m["id"] for m in similar_memories]},
                     )
                     merged_count += 1
@@ -99,7 +106,7 @@ class DistillationAction(BasePostInsertAction):
                 details = input_data.data.setdefault("errors", [])
                 details.append(
                     {
-                        "entry_id": entry_id,
+                        "entry_id": entry.get("id", "unknown"),
                         "action": "distillation",
                         "error": str(e),
                     }
@@ -111,34 +118,33 @@ class DistillationAction(BasePostInsertAction):
             details={
                 "merged_count": merged_count,
                 "deleted_count": deleted_count,
-                "processed_entries": len(entry_ids),
+                "processed_entries": len(entries),
             },
         )
 
     def _retrieve_similar_memories(
-        self, service: Any, entry_id: str, threshold: float, max_count: int
+        self, service: Any, entry: dict[str, Any], retrieve_count: int
     ) -> list[dict[str, Any]]:
         """Retrieve memories similar to the given entry.
 
         Args:
             service: Memory service
-            entry_id: Target entry ID
-            threshold: Similarity threshold
-            max_count: Maximum number of results
+            entry: Complete entry dict with id, text, embedding, metadata
+            retrieve_count: Number of similar memories to retrieve
 
         Returns:
-            List of similar memory entries
+            List of similar memory entries (让服务返回 top-k，不做阈值过滤)
         """
-        # Get entry embedding
-        entry = service.get_entry(entry_id)
-        if not entry or "embedding" not in entry:
+        # Use embedding directly from entry (no need to query service)
+        embedding = entry.get("embedding")
+        if not embedding:
             return []
 
-        # Search for similar memories
-        results = service.search(
-            query_embedding=entry["embedding"],
-            top_k=max_count,
-            threshold=threshold,
+        # Search for similar memories (不用 threshold，让服务返回 top-k)
+        results = service.retrieve(
+            vector=embedding,
+            top_k=retrieve_count,
+            # 移除 threshold 参数，让服务返回所有 top-k 结果
         )
 
         return results

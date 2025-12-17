@@ -44,6 +44,10 @@ services:
 operators:
   pre_insert:
     action: "extract.triple"  # 先通过llm进行三元组提取实体后进行embedding
+    # Use LLM-based triple extraction (falls back to simple if not available)
+    extraction_method: "llm"
+    max_triplets: 10
+    keep_original: false  # TiM论文：只存储三元组，不存储原始对话
     triple_extraction_prompt: |
       You are a factual knowledge extractor.
       Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
@@ -72,9 +76,10 @@ operators:
     action: "embedding"  # 检索前操作: none, optimize, validate
   post_insert:
     action: "distillation"  # 插入后操作
-    distillation_topk: 10  # 检索相似记忆的数量
-    distillation_threshold: 16  # 汉明距离阈值：最多接受多少位不同（nbits=128时，16表示约87.5%相似度）
-    distillation_prompt: |
+    # TiM 数据量驱动的蒸馏策略（不依赖底层服务阈值实现）
+    retrieve_count: 20      # 检索候选记忆的数量
+    min_merge_count: 10     # 最少需要多少条相似记忆才执行蒸馏（避免小概率重复的过度处理）
+    merge_prompt: |
       You are a memory consolidation expert. Given a list of facts about a person, your job is to:
       1. REMOVE duplicates and near-duplicates (same meaning, different wording)
       2. MERGE related facts into more complete statements
@@ -92,12 +97,15 @@ operators:
       - If a fact appears multiple times, delete all but one
 
       Facts:
-      {memory_list}
+      {memories}
 
       Respond with JSON only:
       {"to_delete": ["exact text 1", "exact text 2"], "to_insert": []}
   post_retrieval:
     action: "none"  # 后检索操作: none（默认会格式化对话历史）
+    # 阶段一：对话历史格式化Prompt（PostRetrieval）
+    conversation_format_prompt: |
+      The following is some history information.
 
 # ============================================================
 # TiM (Think-in-Memory) 复现说明
@@ -149,6 +157,3 @@ operators:
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \
 #     --config .../locomo_tim_pipeline.yaml --task_id conv-26
-    # 阶段一：对话历史格式化Prompt（PostRetrieval）
-    conversation_format_prompt: |
-      The following is some history information.

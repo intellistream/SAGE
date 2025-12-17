@@ -61,9 +61,9 @@ class CRUDAction(BasePostInsertAction):
                 details={"error": "LLM client required for CRUD decision"},
             )
 
-        # Extract entry IDs
-        entry_ids = input_data.insert_stats.get("entry_ids", [])
-        if not entry_ids:
+        # Extract complete entries from insert stats (includes embedding)
+        entries = input_data.insert_stats.get("entries", [])
+        if not entries:
             return PostInsertOutput(
                 success=True,
                 action="crud",
@@ -73,12 +73,10 @@ class CRUDAction(BasePostInsertAction):
         operations = {"ADD": 0, "UPDATE": 0, "DELETE": 0, "NOOP": 0}
 
         # Process each newly inserted memory
-        for entry_id in entry_ids:
+        for new_memory in entries:
             try:
-                # Get the new memory
-                new_memory = service.get_entry(entry_id)
-                if not new_memory:
-                    continue
+                # new_memory already contains: id, text, embedding, metadata
+                # No need to query service.get_entry()
 
                 # Retrieve similar existing memories
                 similar_memories = self._retrieve_similar_memories(service, new_memory, self.top_k)
@@ -94,7 +92,7 @@ class CRUDAction(BasePostInsertAction):
                 details = input_data.data.setdefault("errors", [])
                 details.append(
                     {
-                        "entry_id": entry_id,
+                        "entry_id": new_memory.get("id", "unknown"),
                         "action": "crud",
                         "error": str(e),
                     }
@@ -105,7 +103,7 @@ class CRUDAction(BasePostInsertAction):
             action="crud",
             details={
                 "operations": operations,
-                "processed_entries": len(entry_ids),
+                "processed_entries": len(entries),
             },
         )
 
@@ -196,12 +194,12 @@ class CRUDAction(BasePostInsertAction):
             # Update existing memory with new content
             target_id = decision.get("target_id")
             if target_id:
-                service.update_entry(target_id, text=new_memory.get("text"))
+                service.update(entry_id=target_id, entry=new_memory.get("text"))
                 # Delete the newly inserted one (it was a duplicate)
-                service.delete_entry(new_memory.get("id"))
+                service.delete(new_memory.get("id"))
         elif action == "DELETE":
             # Delete the newly inserted memory (it's redundant or incorrect)
-            service.delete_entry(new_memory.get("id"))
+            service.delete(new_memory.get("id"))
         elif action == "NOOP":
             # Do nothing
             pass

@@ -22,18 +22,15 @@ from .registry import PostInsertActionRegistry
 
 
 class _ServiceProxy:
-    """Service proxy to wrap call_service calls into method-like interface"""
+    """Service proxy to wrap call_service calls into method-like interface
+
+    Note: get_entry() removed - Actions should use insert_stats["entries"] from data flow
+    instead of querying the service for data that was just inserted.
+    """
 
     def __init__(self, operator: MapFunction, service_name: str):
         self._operator = operator
         self._service_name = service_name
-
-    def get_entry(self, entry_id: str) -> dict[str, Any] | None:
-        """Get a memory entry by ID"""
-        try:
-            return self._operator.call_service(self._service_name, method="get", entry_id=entry_id)
-        except Exception:
-            return None
 
     def search(self, **kwargs) -> list[dict[str, Any]]:
         """Search for similar memories"""
