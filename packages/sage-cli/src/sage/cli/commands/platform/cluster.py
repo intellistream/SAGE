@@ -22,9 +22,7 @@ app.add_typer(worker_app, name="worker", help="👥 Worker节点管理")
 
 @app.command("start")
 def start_cluster(
-    skip_ssh_check: bool = typer.Option(
-        False, "--skip-ssh-check", help="跳过SSH免密登录检查"
-    ),
+    skip_ssh_check: bool = typer.Option(False, "--skip-ssh-check", help="跳过SSH免密登录检查"),
     ssh_password: str = typer.Option(
         None, "--ssh-password", "-p", help="SSH密码（用于自动配置免密登录）"
     ),
@@ -54,9 +52,7 @@ def start_cluster(
                 failed_hosts.append((host, port))
 
         if failed_hosts:
-            typer.echo(
-                f"[yellow]⚠️  发现 {len(failed_hosts)} 个节点未配置免密登录:[/yellow]"
-            )
+            typer.echo(f"[yellow]⚠️  发现 {len(failed_hosts)} 个节点未配置免密登录:[/yellow]")
             for host, port in failed_hosts:
                 typer.echo(f"   - {host}:{port}")
 
@@ -70,9 +66,7 @@ def start_cluster(
                     key_path=key_path,
                 )
                 if success < total:
-                    typer.echo(
-                        f"[red]❌ SSH配置失败: {total - success} 个节点无法配置[/red]"
-                    )
+                    typer.echo(f"[red]❌ SSH配置失败: {total - success} 个节点无法配置[/red]")
                     typer.echo(
                         "[yellow]提示: 使用 --skip-ssh-check 跳过检查，或手动配置SSH[/yellow]"
                     )
@@ -81,9 +75,7 @@ def start_cluster(
                 # 交互式询问是否配置
                 typer.echo("\n[cyan]是否现在配置SSH免密登录？[/cyan]")
                 try:
-                    password = typer.prompt(
-                        f"请输入SSH密码（用户: {user}）", hide_input=True
-                    )
+                    password = typer.prompt(f"请输入SSH密码（用户: {user}）", hide_input=True)
                     success, total = auto_setup_ssh_keys(
                         hosts=failed_hosts,
                         user=user,
@@ -91,9 +83,7 @@ def start_cluster(
                         key_path=key_path,
                     )
                     if success < total:
-                        typer.echo(
-                            f"[red]❌ SSH配置失败: {total - success} 个节点无法配置[/red]"
-                        )
+                        typer.echo(f"[red]❌ SSH配置失败: {total - success} 个节点无法配置[/red]")
                         raise typer.Exit(1)
                 except typer.Abort:
                     typer.echo(

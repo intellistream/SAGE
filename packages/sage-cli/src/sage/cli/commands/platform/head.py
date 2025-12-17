@@ -8,8 +8,6 @@ import os
 import subprocess
 import sys
 import time
-import sys
-import os
 from pathlib import Path
 
 import typer
@@ -58,66 +56,77 @@ fi
 
 def check_ray_running(head_port: int) -> tuple[bool, list[int]]:
     """检查Ray Head是否已经在运行
-    
+
     返回: (是否运行, 进程ID列表)
-    
+
     使用 ps + grep 检查进程，避免匹配到自身
     """
     pids = []
-    
+
     # 使用 grep 技巧避免匹配自身: [g]cs_server 不会匹配包含 "gcs_server" 字符串的 grep 命令
     try:
         result = subprocess.run(
-            ["bash", "-c", """
+            [
+                "bash",
+                "-c",
+                """
 ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep -E '[g]cs_server.*--gcs_server_port|[r]aylet.*--raylet_socket_name' | awk '{print $1}'
-"""],
-            capture_output=True, text=True, timeout=5
+""",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
-            for line in result.stdout.strip().split('\n'):
+            for line in result.stdout.strip().split("\n"):
                 pid_str = line.strip()
                 if pid_str.isdigit():
                     pids.append(int(pid_str))
     except Exception:
         pass
-    
+
     # 备选：检查端口是否被占用
     if not pids:
         try:
             result = subprocess.run(
-                ["bash", "-c", f"ss -tlnp 2>/dev/null | grep ':{head_port}' | grep -oP 'pid=\\K[0-9]+'"],
-                capture_output=True, text=True, timeout=5
+                [
+                    "bash",
+                    "-c",
+                    f"ss -tlnp 2>/dev/null | grep ':{head_port}' | grep -oP 'pid=\\K[0-9]+'",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             if result.returncode == 0 and result.stdout.strip():
-                for pid_str in result.stdout.strip().split('\n'):
+                for pid_str in result.stdout.strip().split("\n"):
                     if pid_str.strip().isdigit():
                         pids.append(int(pid_str.strip()))
         except Exception:
             pass
-    
+
     return len(pids) > 0, pids
 
 
 def force_cleanup_ray_processes(head_log_dir: str, ray_command: str, verbose: bool = True) -> bool:
     """强制清理所有Ray相关进程
-    
+
     返回: 是否成功清理
     """
     # 首先使用 ray stop 命令
     try:
         result = subprocess.run(
-            ["bash", "-c", f"{ray_command} stop 2>&1"],
-            capture_output=True, text=True, timeout=30
+            ["bash", "-c", f"{ray_command} stop 2>&1"], capture_output=True, text=True, timeout=30
         )
         if verbose and result.stdout:
             typer.echo(result.stdout.strip())
     except Exception:
         pass
-    
+
     time.sleep(2)
-    
+
     # 然后使用 ps + grep 找到并清理残留进程
-    cleanup_command = f'''
+    cleanup_command = f"""
 set +e
 LOG_DIR='{head_log_dir}'
 mkdir -p "$LOG_DIR"
@@ -159,12 +168,11 @@ else
     echo "[WARNING] 仍有残留进程: $REMAINING" | tee -a "$LOG_DIR/head.log"
     exit 1
 fi
-'''
-    
+"""
+
     try:
         result = subprocess.run(
-            ["bash", "-c", cleanup_command],
-            capture_output=True, text=True, timeout=30
+            ["bash", "-c", cleanup_command], capture_output=True, text=True, timeout=30
         )
         if verbose and result.stdout:
             typer.echo(result.stdout)

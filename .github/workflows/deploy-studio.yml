@@ -558,6 +558,7 @@ jobs:
           WORKSPACE="${{ github.workspace }}"
           RUNNER_USER=$(whoami)
           HF_TOKEN_VAL="${{ secrets.HF_TOKEN }}"
+          PANGU_API_KEY_VAL="${{ secrets.PANGU_API_KEY }}"
           NODE_BIN_VAL="${{ env.NODE_BIN }}"
           FRONTEND_DIR="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend"
 
@@ -629,6 +630,7 @@ jobs:
           Environment=PATH=$NODE_BIN_VAL:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
           Environment=HF_ENDPOINT=https://hf-mirror.com
           Environment=HF_TOKEN=$HF_TOKEN_VAL
+          Environment=PANGU_API_KEY=$PANGU_API_KEY_VAL
           Environment=PYTHONPATH=$SAGE_PYTHONPATH
           # 运行在 5174 端口，让 Nginx (5173) 代理到这里
           # --yes: 自动确认所有提示 (包括 auto-scale)

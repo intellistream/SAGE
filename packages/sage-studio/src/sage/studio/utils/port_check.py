@@ -1,10 +1,14 @@
 """Port availability check utilities for SAGE Studio"""
 
-import socket
-import subprocess
 from typing import Optional
 
 from rich.console import Console
+
+# Import unified network utilities from sage-common
+from sage.common.utils.system.network import (
+    find_port_processes,
+    is_port_occupied,
+)
 
 console = Console()
 
@@ -18,17 +22,11 @@ def is_port_in_use(port: int, host: str = "0.0.0.0") -> bool:
 
     Returns:
         True if port is in use, False otherwise
+
+    Note:
+        This is a wrapper around sage.common.utils.system.network.is_port_occupied
     """
-    # Try to bind to the port
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(1)
-        try:
-            # SO_REUSEADDR allows binding to recently closed ports
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind((host, port))
-            return False
-        except OSError:
-            return True
+    return is_port_occupied(host, port)
 
 
 def get_process_using_port(port: int) -> Optional[dict]:
@@ -39,38 +37,30 @@ def get_process_using_port(port: int) -> Optional[dict]:
 
     Returns:
         Dictionary with process info (pid, name, cmdline) or None if not found
+
+    Note:
+        This is a wrapper around sage.common.utils.system.network.find_port_processes
     """
     try:
-        # Use lsof to find the process
-        result = subprocess.run(
-            ["lsof", "-ti", f":{port}"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
+        import psutil
 
-        if result.returncode == 0 and result.stdout.strip():
-            pid = int(result.stdout.strip().split()[0])
+        processes = find_port_processes(port)
+        if not processes:
+            return None
 
-            # Get process details
-            try:
-                import psutil
-
-                proc = psutil.Process(pid)
-                return {
-                    "pid": pid,
-                    "name": proc.name(),
-                    "cmdline": " ".join(proc.cmdline()),
-                }
-            except (ImportError, Exception):
-                # Fallback without psutil
-                return {
-                    "pid": pid,
-                    "name": "unknown",
-                    "cmdline": "unknown",
-                }
-
-        return None
+        proc = processes[0]
+        try:
+            return {
+                "pid": proc.pid,
+                "name": proc.name(),
+                "cmdline": " ".join(proc.cmdline()),
+            }
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return {
+                "pid": proc.pid,
+                "name": "unknown",
+                "cmdline": "unknown",
+            }
     except Exception:
         return None
 
