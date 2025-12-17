@@ -83,6 +83,10 @@ class MemorySink(SinkFunction):
             )
 
             return ConflictResolutionDataLoaderV2()
+        elif dataset == "longmemeval":
+            from sage.data.sources.longmemeval import LongMemEvalDataLoader
+
+            return LongMemEvalDataLoader()
         else:
             raise ValueError(f"不支持的数据集: {dataset}")
 
