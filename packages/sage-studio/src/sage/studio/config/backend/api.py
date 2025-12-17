@@ -3028,7 +3028,7 @@ def _canon_host(host: str | None) -> str | None:
     if not host:
         return None
     host = host.lower()
-    if host in {"0.0.0.0", "*"}:
+    if host in {"0.0.0.0", "*", "localhost"}:
         return "127.0.0.1"
     if host in {"::", "[::]"}:
         return "::1"
@@ -3239,7 +3239,7 @@ async def get_llm_status():
                     status["error"] = str(exc)
 
         # Build available model list
-        config_models, _ = _load_models_config(filter_missing=True)
+        config_models, _ = _load_models_config(filter_missing=False)
         available_models = []
         for model in config_models:
             # Filter out embedding models
