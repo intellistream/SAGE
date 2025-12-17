@@ -49,6 +49,11 @@ class RemoteEnvironment(BaseEnvironment):
         self.daemon_host = host
         self.daemon_port = port
 
+        # 设置 jobmanager_host/port，让 worker 节点知道如何回连 JobManager
+        # 这会覆盖 BaseEnvironment 的 None 值，避免被 JobManager 用 0.0.0.0 覆盖
+        self.jobmanager_host = host
+        self.jobmanager_port = port
+
         # 客户端连接（延迟初始化）
         self._engine_client: JobManagerClient | None = None
 
@@ -83,7 +88,7 @@ class RemoteEnvironment(BaseEnvironment):
             logger.info(
                 f"Submitting environment '{self.name}' to remote JobManager (autostop={autostop})"
             )
-
+            logger.info("Daemon host: %s, port: %d", self.daemon_host, self.daemon_port)
             # 第一步：使用 trim_object_for_ray 清理环境，排除不可序列化的内容
             logger.debug("Trimming environment for serialization")
             trimmed_env = trim_object_for_ray(self)
