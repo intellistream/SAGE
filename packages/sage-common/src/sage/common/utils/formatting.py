@@ -157,6 +157,8 @@ def format_percentage(value: float, decimals: int = 1, is_decimal: bool = True) 
         return f"{value * 100:.{decimals}f}%"
     else:
         return f"{value:.{decimals}f}%"
+
+
 def format_count(count: int) -> str:
     """
     格式化大数字为人类可读格式

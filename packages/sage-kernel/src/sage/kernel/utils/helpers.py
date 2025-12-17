@@ -344,18 +344,15 @@ def retry_with_backoff(
         ...     return requests.get(url)
         >>> result = retry_with_backoff(unstable_operation, max_retries=3)
     """
-    last_exception = None
 
     for attempt in range(max_retries):
         try:
             return func()
-        except exceptions as e:
-            last_exception = e
+        except exceptions:
             if attempt < max_retries - 1:
                 time.sleep(base_delay * (attempt + 1))
             else:
                 raise
-
 
 
 __all__ = [
