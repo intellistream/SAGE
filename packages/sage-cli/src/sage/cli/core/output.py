@@ -12,11 +12,7 @@ from typing import Any
 
 from sage.common.utils.formatting import (
     format_duration as _format_duration,
-)
-from sage.common.utils.formatting import (
     format_size_compact as _format_size_compact,
-)
-from sage.common.utils.formatting import (
     format_timestamp as _format_timestamp,
 )
 
