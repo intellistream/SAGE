@@ -149,7 +149,6 @@ def start_workers():
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
 
-    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     typer.echo("📋 配置信息:")
@@ -167,7 +166,7 @@ def start_workers():
         try:
             node_ip = socket.gethostbyname(host)
         except Exception:
-            node_ip = host # Fallback to hostname if resolution fails
+            node_ip = host  # Fallback to hostname if resolution fails
 
         typer.echo(f"\n🔧 启动Worker节点 {i}/{total_count}: {host}:{port} (IP: {node_ip})")
 
@@ -326,7 +325,6 @@ def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     success_count = 0
@@ -437,7 +435,6 @@ def status_workers():
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     running_count = 0
@@ -617,7 +614,6 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
         worker_bind_host = worker_config.get("bind_host", "localhost")
         worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
         worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-        ray_command = remote_config.get("ray_command") or "ray"
         conda_env = remote_config.get("conda_env", "sage")
 
         # 解析主机名为IP，避免 --node-ip-address 传入不可用的占位值
@@ -750,7 +746,6 @@ def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
-    ray_command = remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     stop_command = f'''set +e
