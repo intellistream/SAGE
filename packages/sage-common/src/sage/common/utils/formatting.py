@@ -135,23 +135,28 @@ def format_timestamp(timestamp: Union[float, str, datetime], fmt: str = "%Y-%m-%
     return dt.strftime(fmt)
 
 
-def format_percentage(value: float, decimals: int = 1) -> str:
+def format_percentage(value: float, decimals: int = 1, is_decimal: bool = True) -> str:
     """
     格式化百分比
 
     Args:
-        value: 小数值 (0.0 - 1.0) 或百分比值
+        value: 百分比的数值。如果 is_decimal=True，则应为小数 (0.0 - 1.0)；如果 is_decimal=False，则应为百分比值 (0.0 - 100.0)。
         decimals: 小数位数
+        is_decimal: 指示 value 是否为小数（True，默认）或已为百分比（False）
 
     Returns:
         格式化后的百分比字符串
+
+    Examples:
+        >>> format_percentage(0.85)
+        '85.0%'
+        >>> format_percentage(85, is_decimal=False)
+        '85.0%'
     """
-    # If value is already a percentage (> 1), don't multiply
-    if value > 1:
+    if is_decimal:
+        return f"{value * 100:.{decimals}f}%"
+    else:
         return f"{value:.{decimals}f}%"
-    return f"{value * 100:.{decimals}f}%"
-
-
 def format_count(count: int) -> str:
     """
     格式化大数字为人类可读格式
