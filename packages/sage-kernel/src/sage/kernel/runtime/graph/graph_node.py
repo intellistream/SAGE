@@ -80,17 +80,21 @@ class TaskNode:
 
     def _create_queue_descriptors(self, env: BaseEnvironment):
         """在节点构造时创建队列描述符"""
+        # 使用 env.name 作为队列前缀，确保不同 job 的队列隔离
+        # env.name 在 Environment 创建时就已确定，且对于同一 pipeline 唯一
+        env_prefix = env.name
+
         # 为每个节点创建单一的输入队列描述符（被所有上游复用）
         if not self.is_spout:  # 源节点不需要输入队列
             self.input_qd = _create_queue_descriptor(
-                env=env, name=f"input_{self.name}", maxsize=10000
+                env=env, name=f"{env_prefix}__input_{self.name}", maxsize=10000
             )
         else:
             self.input_qd = None
 
         # 为每个graph node创建service response queue descriptor
         self.service_response_qd = _create_queue_descriptor(
-            env=env, name=f"service_response_{self.name}", maxsize=10000
+            env=env, name=f"{env_prefix}__service_response_{self.name}", maxsize=10000
         )
 
     def _create_task_factory(self) -> TaskFactory:

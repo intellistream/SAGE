@@ -166,6 +166,12 @@ class JobManagerServer(BaseTcpServer):
                     "request_id": request.get("request_id"),
                 }
 
+            # 调试: 检查反序列化后的 jobmanager_host 值
+            self.logger.debug(
+                f"[SUBMIT-DEBUG] env.jobmanager_host={getattr(env, 'jobmanager_host', 'NOT_SET')}, "
+                f"env.jobmanager_port={getattr(env, 'jobmanager_port', 'NOT_SET')}"
+            )
+
             # 调用JobManager的submit_job方法，传递 autostop 参数
             self.logger.debug(
                 f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')} (autostop={autostop})"

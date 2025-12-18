@@ -245,7 +245,10 @@ class RemoteEnvironment(BaseEnvironment):
 
     def close(self) -> dict[str, Any]:
         """
-        关闭远程环境
+        关闭远程环境并释放所有资源（包括 Ray Actors）
+
+        注意：此方法会删除 job 并清理所有 Ray Actors。
+        如果只想暂停而不释放资源，请使用 stop() 方法。
 
         Returns:
             关闭操作的结果
@@ -256,14 +259,16 @@ class RemoteEnvironment(BaseEnvironment):
 
         try:
             logger.info(f"Closing remote environment {self.env_uuid}")
-            response = self.client.pause_job(self.env_uuid)
+            # 使用 delete_job 而不是 pause_job，以确保 Ray Actors 被 kill
+            # delete_job 会调用 dispatcher.cleanup() → lifecycle_manager.cleanup_all() → ray.kill()
+            response = self.client.delete_job(self.env_uuid, force=True)
 
             # 清理本地资源
             self.is_running = False
             self.env_uuid = None
             self.pipeline.clear()
 
-            logger.info("Remote environment closed and local resources cleaned")
+            logger.info("Remote environment closed and all resources released")
             return response
 
         except Exception as e:
