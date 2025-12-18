@@ -14,14 +14,14 @@ from .neuromem_vdb import NeuroMemVDB
 from .neuromem_vdb_service import NeuroMemVDBService
 from .parallel_vdb_service import ParallelInsertResult, ParallelVDBService, parallel_insert_to_vdb
 from .short_term_memory_service import ShortTermMemoryService
-from .vector_hash_memory_service import VectorHashMemoryService
+from .vector_memory_service import VectorMemoryService
 
 __all__ = [
     # Service implementations (all inherit from BaseService)
     "NeuroMemVDB",
     "NeuroMemVDBService",
     "ShortTermMemoryService",
-    "VectorHashMemoryService",
+    "VectorMemoryService",
     "GraphMemoryService",
     "HierarchicalMemoryService",
     "HybridMemoryService",

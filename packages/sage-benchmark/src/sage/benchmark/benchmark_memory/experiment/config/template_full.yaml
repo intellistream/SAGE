@@ -42,7 +42,7 @@ runtime:
 # ============================================================
 services:
   # REQUIRED: 主存储后端名称
-  # 可选值: short_term_memory | neuromem_vdb | graph_memory | hierarchical_memory | hybrid_memory | vector_hash_memory | kv_memory
+  # 可选值: short_term_memory | neuromem_vdb | graph_memory | hierarchical_memory | hybrid_memory | vector_memory | kv_memory
   register_memory_service: ""
 
   # 图存储服务名称 (用于 link_evolution)

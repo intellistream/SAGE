@@ -8,7 +8,7 @@ runtime:
 
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
-    Based on the above context, answer the following question concisely using exact words from the context whenever possible.
+    Based on the above context, answer the following question concisely.
 
     Question: {question}
     Answer:

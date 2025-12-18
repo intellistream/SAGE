@@ -14,7 +14,7 @@ from .hierarchical_memory_service import HierarchicalMemoryService
 from .hybrid_memory_service import HybridMemoryService
 from .key_value_memory_service import KeyValueMemoryService
 from .short_term_memory_service import ShortTermMemoryService
-from .vector_hash_memory_service import VectorHashMemoryService
+from .vector_memory_service import VectorMemoryService
 
 
 class MemoryServiceFactory:
@@ -40,7 +40,7 @@ class MemoryServiceFactory:
     # 服务类型映射表
     SERVICE_CLASSES = {
         "short_term_memory": ShortTermMemoryService,
-        "vector_hash_memory": VectorHashMemoryService,
+        "vector_memory": VectorMemoryService,
         "graph_memory": GraphMemoryService,
         "hierarchical_memory": HierarchicalMemoryService,
         "hybrid_memory": HybridMemoryService,
@@ -75,8 +75,8 @@ class MemoryServiceFactory:
         # 根据服务类型读取配置并创建 ServiceFactory
         if service_name == "short_term_memory":
             return MemoryServiceFactory._create_short_term_memory(service_name, config)
-        elif service_name == "vector_hash_memory":
-            return MemoryServiceFactory._create_vector_hash_memory(service_name, config)
+        elif service_name == "vector_memory":
+            return MemoryServiceFactory._create_vector_memory(service_name, config)
         elif service_name == "graph_memory":
             return MemoryServiceFactory._create_graph_memory(service_name, config)
         elif service_name == "hierarchical_memory":
@@ -117,8 +117,8 @@ class MemoryServiceFactory:
         )
 
     @staticmethod
-    def _create_vector_hash_memory(service_name: str, config: Any) -> ServiceFactory:
-        """创建向量哈希记忆服务的 ServiceFactory
+    def _create_vector_memory(service_name: str, config: Any) -> ServiceFactory:
+        """创建向量记忆服务的 ServiceFactory
 
         Args:
             service_name: 服务名称
@@ -128,21 +128,36 @@ class MemoryServiceFactory:
             ServiceFactory 实例
 
         Raises:
-            ValueError: 如果 dim 或 nbits 参数缺失
+            ValueError: 如果 dim 参数缺失
+
+        配置示例:
+            services:
+              vector_memory:
+                dim: 1024
+                index_type: "IndexLSH"  # 可选，默认 IndexFlatL2
+                index_config:  # 可选，索引特定配置
+                  nbits: 128  # LSH 参数
         """
         dim = config.get(f"services.{service_name}.dim")
-        nbits = config.get(f"services.{service_name}.nbits")
-
         if dim is None:
             raise ValueError(f"配置缺失: services.{service_name}.dim")
-        if nbits is None:
-            raise ValueError(f"配置缺失: services.{service_name}.nbits")
 
-        # 创建并返回 ServiceFactory
+        # 获取索引类型和配置
+        index_type = config.get(f"services.{service_name}.index_type", "IndexFlatL2")
+        index_config = config.get(f"services.{service_name}.index_config", {})
+        collection_name = config.get(f"services.{service_name}.collection_name", "vector_memory")
+        index_name = config.get(f"services.{service_name}.index_name", "main_index")
+
         return ServiceFactory(
             service_name=service_name,
-            service_class=VectorHashMemoryService,
-            service_kwargs={"dim": dim, "nbits": nbits},
+            service_class=VectorMemoryService,
+            service_kwargs={
+                "dim": dim,
+                "index_type": index_type,
+                "index_config": index_config,
+                "collection_name": collection_name,
+                "index_name": index_name,
+            },
         )
 
     @staticmethod

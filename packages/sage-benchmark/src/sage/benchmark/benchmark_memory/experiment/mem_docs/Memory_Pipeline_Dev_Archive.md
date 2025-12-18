@@ -37,7 +37,7 @@ ______________________________________________________________________
 │  ├── GraphMemoryService         → 知识图谱存储                   │
 │  ├── HierarchicalMemoryService  → 分层记忆（STM/MTM/LTM）         │
 │  ├── HybridMemoryService        → 多索引融合检索                  │
-│  ├── VectorHashMemoryService    → 哈希桶近似检索                  │
+│  ├── VectorMemoryService        → 统一向量记忆（支持多种索引）      │
 │  └── NeuroMemVDBService         → 通用向量数据库服务               │
 ├─────────────────────────────────────────────────────────────────┤
 │  NeuroMem 引擎层 (sage-middleware/neuromem)                      │
@@ -699,20 +699,20 @@ ______________________________________________________________________
 
 ### 2.1 记忆体总览与五维度配置
 
-| #   | 记忆体     | D1 Service            | D2 PreInsert     | D3 PostInsert        | D4 PreRetrieval | D5 PostRetrieval |
-| --- | ---------- | --------------------- | ---------------- | -------------------- | --------------- | ---------------- |
-| 1   | TiM        | `vector_hash_memory`  | `extract.triple` | `distillation`       | `embedding`     | `rerank`         |
-| 2   | MemoryBank | `hierarchical_memory` | `none`           | `forgetting`         | `embedding`     | `augment`        |
-| 3   | MemGPT     | `hierarchical_memory` | `transform`      | `distillation`       | `optimize`      | `merge`          |
-| 4   | A-Mem      | `graph_memory`        | `extract.entity` | `link_evolution`     | `embedding`     | `merge`          |
-| 5   | MemoryOS   | `hierarchical_memory` | `score`          | `migrate+forgetting` | `embedding`     | `merge+augment`  |
-| 6   | HippoRAG   | `graph_memory`        | `extract.triple` | `link_evolution`     | `optimize`      | `none`           |
-| 7   | HippoRAG2  | `graph_memory`        | `extract.triple` | `none`               | `embedding`     | `none`           |
-| 8   | LD-Agent   | `hierarchical_memory` | `score`          | `forgetting`         | `optimize`      | `rerank`         |
-| 9   | SCM        | `short_term_memory`   | `none`           | `none`               | `validate`      | `filter`         |
-| 10  | Mem0       | `hybrid_memory`       | `extract.entity` | `crud`               | `none`          | `none`           |
-| 11  | Mem0ᵍ      | `graph_memory`        | `extract.entity` | `crud`               | `none`          | `merge`          |
-| 12  | SeCom      | `neuromem_vdb`        | `transform`      | `distillation`       | `embedding`     | `none`           |
+| #   | 记忆体     | D1 Service                     | D2 PreInsert     | D3 PostInsert        | D4 PreRetrieval | D5 PostRetrieval |
+| --- | ---------- | ------------------------------ | ---------------- | -------------------- | --------------- | ---------------- |
+| 1   | TiM        | `vector_hash_memory`（哈希桶） | `extract.triple` | `distillation`       | `embedding`     | `rerank`         |
+| 2   | MemoryBank | `hierarchical_memory`          | `none`           | `forgetting`         | `embedding`     | `augment`        |
+| 3   | MemGPT     | `hierarchical_memory`          | `transform`      | `distillation`       | `optimize`      | `merge`          |
+| 4   | A-Mem      | `graph_memory`                 | `extract.entity` | `link_evolution`     | `embedding`     | `merge`          |
+| 5   | MemoryOS   | `hierarchical_memory`          | `score`          | `migrate+forgetting` | `embedding`     | `merge+augment`  |
+| 6   | HippoRAG   | `graph_memory`                 | `extract.triple` | `link_evolution`     | `optimize`      | `none`           |
+| 7   | HippoRAG2  | `graph_memory`                 | `extract.triple` | `none`               | `embedding`     | `none`           |
+| 8   | LD-Agent   | `hierarchical_memory`          | `score`          | `forgetting`         | `optimize`      | `rerank`         |
+| 9   | SCM        | `short_term_memory`            | `none`           | `none`               | `validate`      | `filter`         |
+| 10  | Mem0       | `hybrid_memory`                | `extract.entity` | `crud`               | `none`          | `none`           |
+| 11  | Mem0ᵍ      | `graph_memory`                 | `extract.entity` | `crud`               | `none`          | `merge`          |
+| 12  | SeCom      | `neuromem_vdb`                 | `transform`      | `distillation`       | `embedding`     | `none`           |
 
 ### 2.2 各维度 Action 实现清单
 
@@ -725,14 +725,16 @@ ______________________________________________________________________
 
 #### D1: Memory Service（数据结构）
 
-| Action                | 参考记忆体                             | 核心参数                           |
-| --------------------- | -------------------------------------- | ---------------------------------- |
-| `short_term_memory`   | SCM                                    | `maxlen`                           |
-| `vector_hash_memory`  | TiM                                    | `lsh_nbits`, `k_nearest`           |
-| `neuromem_vdb`        | SeCom                                  | `collection_name`, `top_k`         |
-| `graph_memory`        | HippoRAG, HippoRAG2, A-Mem, Mem0ᵍ      | `graph_type`, `edge_policy`        |
-| `hierarchical_memory` | MemoryOS, MemGPT, MemoryBank, LD-Agent | `tier_count`, `migration_policy`   |
-| `hybrid_memory`       | Mem0                                   | `graph_enabled`, `fusion_strategy` |
+| Action                         | 参考记忆体                             | 核心参数                                                  |
+| ------------------------------ | -------------------------------------- | --------------------------------------------------------- |
+| `short_term_memory`            | SCM                                    | `maxlen`                                                  |
+| `vector_hash_memory`（哈希桶） | TiM                                    | `index_type: IndexLSH`, `index_config.nbits`, `k_nearest` |
+| `vector_memory`（通用）        | SeCom 等                               | `index_type`, `index_config`                              |
+| `graph_memory`                 | HippoRAG, HippoRAG2, A-Mem, Mem0ᵍ      | `graph_type`, `edge_policy`                               |
+| `hierarchical_memory`          | MemoryOS, MemGPT, MemoryBank, LD-Agent | `tier_count`, `migration_policy`                          |
+| `hybrid_memory`                | Mem0                                   | `graph_enabled`, `fusion_strategy`                        |
+
+> 说明：`vector_memory（哈希桶）` 在当前实现中由 `vector_memory` 配置 `IndexLSH` 等价实现（即 `index_type: IndexLSH`）。
 
 #### D2: PreInsert（插入前处理）
 
@@ -990,7 +992,7 @@ post_retrieval/
 D1 Service              → D3 PostInsert 可用 Action
 ─────────────────────────────────────────────────────
 short_term_memory       → none
-vector_hash_memory      → none, distillation
+vector_hash_memory（哈希桶，= vector_memory[IndexLSH]） → none, distillation
 neuromem_vdb            → none, distillation
 graph_memory            → none, link_evolution, crud
 hierarchical_memory     → none, distillation, migrate, forgetting
@@ -1017,13 +1019,13 @@ hybrid_memory           → none, distillation, crud
 
 > 📄 论文: *Think-in-Memory: Recalling and Post-thinking Enable LLMs with Long-Term Memory*
 
-| 维度     | 论文设计                 | SAGE 实现                                      |
-| -------- | ------------------------ | ---------------------------------------------- |
-| 数据结构 | LSH 哈希桶 + thoughts    | `VectorHashMemoryService` + VDB Collection     |
-| 插入前   | Q-R → inductive thoughts | `PreInsert.tri_embed / extract`                |
-| 插入后   | 桶内 Forget / Merge      | `PostInsert.distillation + optimize.summarize` |
-| 检索前   | query embedding          | `PreRetrieval.embedding / multi_embed`         |
-| 检索后   | thoughts → prompt        | `PostRetrieval.merge + augment + format`       |
+| 维度     | 论文设计                 | SAGE 实现                                                                  |
+| -------- | ------------------------ | -------------------------------------------------------------------------- |
+| 数据结构 | LSH 哈希桶 + thoughts    | `vector_hash_memory（哈希桶，= vector_memory[IndexLSH]）` + VDB Collection |
+| 插入前   | Q-R → inductive thoughts | `PreInsert.tri_embed / extract`                                            |
+| 插入后   | 桶内 Forget / Merge      | `PostInsert.distillation + optimize.summarize`                             |
+| 检索前   | query embedding          | `PreRetrieval.embedding / multi_embed`                                     |
+| 检索后   | thoughts → prompt        | `PostRetrieval.merge + augment + format`                                   |
 
 #### 2.4.2 MemoryBank
 
@@ -1166,20 +1168,20 @@ hybrid_memory           → none, distillation, crud
 
 ### 2.5 记忆体配置清单
 
-| 记忆体     | 配置文件                          | 关键配置                                                          |
-| ---------- | --------------------------------- | ----------------------------------------------------------------- |
-| TiM        | `locomo_tim_pipeline.yaml`        | `service: vector_hash_memory`, `post_insert: distillation`        |
-| MemoryBank | `locomo_memorybank_pipeline.yaml` | `service: hierarchical_memory`, `post_insert: forgetting`         |
-| MemGPT     | `locomo_memgpt_pipeline.yaml`     | `service: hierarchical_memory`, `post_insert: distillation`       |
-| A-Mem      | `locomo_amem_pipeline.yaml`       | `service: graph_memory`, `post_insert: link_evolution`            |
-| MemoryOS   | `locomo_memoryos_pipeline.yaml`   | `service: hierarchical_memory`, `post_insert: migrate+forgetting` |
-| HippoRAG   | `locomo_hipporag_pipeline.yaml`   | `service: graph_memory`, `post_insert: link_evolution`            |
-| HippoRAG2  | `locomo_hipporag2_pipeline.yaml`  | `service: graph_memory`, `post_insert: none`                      |
-| LD-Agent   | `locomo_ldagent_pipeline.yaml`    | `service: hierarchical_memory`, `post_insert: forgetting`         |
-| SCM        | `locomo_scm_pipeline.yaml`        | `service: short_term_memory`, `post_insert: none`                 |
-| Mem0       | `locomo_mem0_pipeline.yaml`       | `service: hybrid_memory`, `post_insert: crud`                     |
-| Mem0ᵍ      | `locomo_mem0g_pipeline.yaml`      | `service: graph_memory`, `post_insert: crud`                      |
-| SeCom      | `locomo_secom_pipeline.yaml`      | `service: neuromem_vdb`, `post_insert: distillation`              |
+| 记忆体     | 配置文件                          | 关键配置                                                                                          |
+| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| TiM        | `locomo_tim_pipeline.yaml`        | `service: vector_memory（IndexLSH，等价于 vector_memory（哈希桶））`, `post_insert: distillation` |
+| MemoryBank | `locomo_memorybank_pipeline.yaml` | `service: hierarchical_memory`, `post_insert: forgetting`                                         |
+| MemGPT     | `locomo_memgpt_pipeline.yaml`     | `service: hierarchical_memory`, `post_insert: distillation`                                       |
+| A-Mem      | `locomo_amem_pipeline.yaml`       | `service: graph_memory`, `post_insert: link_evolution`                                            |
+| MemoryOS   | `locomo_memoryos_pipeline.yaml`   | `service: hierarchical_memory`, `post_insert: migrate+forgetting`                                 |
+| HippoRAG   | `locomo_hipporag_pipeline.yaml`   | `service: graph_memory`, `post_insert: link_evolution`                                            |
+| HippoRAG2  | `locomo_hipporag2_pipeline.yaml`  | `service: graph_memory`, `post_insert: none`                                                      |
+| LD-Agent   | `locomo_ldagent_pipeline.yaml`    | `service: hierarchical_memory`, `post_insert: forgetting`                                         |
+| SCM        | `locomo_scm_pipeline.yaml`        | `service: short_term_memory`, `post_insert: none`                                                 |
+| Mem0       | `locomo_mem0_pipeline.yaml`       | `service: hybrid_memory`, `post_insert: crud`                                                     |
+| Mem0ᵍ      | `locomo_mem0g_pipeline.yaml`      | `service: graph_memory`, `post_insert: crud`                                                      |
+| SeCom      | `locomo_secom_pipeline.yaml`      | `service: neuromem_vdb`, `post_insert: distillation`                                              |
 
 ______________________________________________________________________
 
@@ -1842,7 +1844,7 @@ def get_stats(self) -> dict[str, Any]:
 - `graph_memory_service.py`
 - `hierarchical_memory_service.py` (需聚合各层统计)
 - `hybrid_memory_service.py`
-- `vector_hash_memory_service.py`
+- `vector_memory_service.py`（替代原 `vector_hash_memory_service.py`，配置 `IndexLSH` 即 TiM 哈希桶）
 - `neuromem_vdb_service.py` (新增方法)
 
 **步骤3: PipelineCaller调用get_stats()**
@@ -2014,7 +2016,7 @@ packages/sage-middleware/src/sage/middleware/components/sage_mem/
     ├── graph_memory_service.py         ← 修改：扩展get_stats()
     ├── hierarchical_memory_service.py  ← 修改：扩展get_stats()
     ├── hybrid_memory_service.py        ← 修改：扩展get_stats()
-    ├── vector_hash_memory_service.py   ← 修改：扩展get_stats()
+    ├── vector_memory_service.py        ← 修改：扩展get_stats()（原 hash 版本重命名，IndexLSH=哈希桶）
     └── neuromem_vdb_service.py         ← 修改：扩展get_stats()
 
 packages/sage-benchmark/tests/unit/benchmark_memory/

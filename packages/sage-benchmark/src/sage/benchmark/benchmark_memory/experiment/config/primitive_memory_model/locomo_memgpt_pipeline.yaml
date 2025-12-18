@@ -13,7 +13,7 @@ runtime:
   service_timeout: 180.0              # Agent 版需要更长超时（多轮工具调用）
 
   prompt_template: |
-    Based on the above context, answer the following question concisely using exact words from the context whenever possible.
+    Based on the above context, answer the following question concisely.
 
     Question: {question}
     Answer:

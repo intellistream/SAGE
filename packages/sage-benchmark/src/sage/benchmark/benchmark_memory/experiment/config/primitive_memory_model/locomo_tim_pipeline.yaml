@@ -9,7 +9,7 @@ runtime:
 
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
-    Based on the above context, answer the following question concisely using exact words from the context whenever possible.
+    Based on the above context, answer the following question concisely.
 
     Question: {question}
     Answer:
@@ -38,12 +38,14 @@ runtime:
 
 # 服务配置
 services:
-  register_memory_service: "vector_hash_memory"  # 注册的记忆服务名称，可切换为其他服务
-  short_term_memory:
-    max_dialog: 3  # 短期记忆窗口大小（轮次）
-  vector_hash_memory:
+  register_memory_service: "vector_memory"  # 统一向量记忆服务（推荐）
+  vector_memory:
     dim: 1024  # 向量维度（需要与 embedding 模型输出维度一致）
-    nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
+    index_type: "IndexLSH"  # TiM 使用 LSH 哈希索引
+    index_config:
+      nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
+      rotate_data: true  # 是否旋转数据（提高哈希质量）
+      train_thresholds: false  # 是否训练阈值
   memory_retrieval_adapter: "none"
 
 
@@ -132,9 +134,9 @@ operators:
 # │  - 三元组提取      │ 生成归纳性思想        │ LLM Prompt   │
 # │  - Embedding       │ 向量化以备 LSH        │ BGE-M3       │
 # ├─────────────────────────────────────────────────────────┤
-# │ MemoryInsert       │ Insert (LSH)         │ VectorHash   │
-# │  - LSH 哈希        │ 计算哈希桶            │ nbits=128    │
-# │  - 存入对应桶      │ 追加到 bucket         │ Service      │
+# │ MemoryInsert       │ Insert (LSH)         │ VectorMemory │
+# │  - LSH 哈希        │ 计算哈希桶            │ index_type=  │
+# │  - 存入对应桶      │ 追加到 bucket         │  IndexLSH    │
 # ├─────────────────────────────────────────────────────────┤
 # │ PostInsert         │ Forget + Merge       │ distillation │
 # │  - 检索相似记忆    │ 查询同桶内容          │ topk=10      │
@@ -144,7 +146,7 @@ operators:
 # │ PreRetrieval       │ Query Embedding      │ embedding    │
 # │  - 查询向量化      │ 用于 LSH 计算         │ BGE-M3       │
 # ├─────────────────────────────────────────────────────────┤
-# │ MemoryRetrieval    │ Two-stage Retrieve   │ VectorHash   │
+# │ MemoryRetrieval    │ Two-stage Retrieve   │ VectorMemory │
 # │  - LSH 定位桶      │ 找到候选 bucket       │ Hamming Dist │
 # │  - 桶内相似度计算  │ top-k 最相关记忆      │ Cosine Sim   │
 # ├─────────────────────────────────────────────────────────┤
@@ -153,14 +155,14 @@ operators:
 # └─────────────────────────────────────────────────────────┘
 #
 # 关键配置参数：
-#   - nbits=128: LSH 哈希位数，影响精度和速度的平衡
-#   - distillation_threshold=16: 汉明距离阈值（16/128 = 87.5% 相似度）
-#   - distillation_topk=10: 检索相似记忆的数量
+#   - index_type: IndexLSH (TiM 使用 LSH 哈希索引)
+#   - nbits: 128 (LSH 哈希位数，影响精度和速度的平衡)
+#   - distillation: 记忆蒸馏策略（去重/合并相似记忆）
 #
-# 与论文的差异：
-#   1. 论文使用 SimHash，SAGE 使用通用 LSH（功能等价）
-#   2. 论文的 Merge 操作通过 distillation_prompt 实现
-#   3. SAGE 支持配置化的阈值和 top-k，论文为固定值
+# 索引类型对比：
+#   - IndexLSH (TiM): 快速近似检索，适合大规模数据
+#   - IndexHNSWFlat: 更高精度，但速度稍慢
+#   - IndexFlatL2: 精确 KNN，适合小规模数据
 #
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \
