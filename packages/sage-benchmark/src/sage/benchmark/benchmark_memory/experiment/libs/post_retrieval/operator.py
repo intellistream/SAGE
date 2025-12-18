@@ -89,10 +89,10 @@ class PostRetrieval(MapFunction):
         result = formatted.rstrip()
 
         # [DEBUG] 打印post_retrieval生成的历史对话部分
-        print("\n" + "=" * 80)
-        print("[DEBUG] PostRetrieval - 历史对话部分 (阶段一):")
-        print("=" * 80)
-        print(result)
-        print("=" * 80 + "\n")
+        # print("\n" + "=" * 80)
+        # print("[DEBUG] PostRetrieval - 历史对话部分 (阶段一):")
+        # print("=" * 80)
+        # print(result)
+        # print("=" * 80 + "\n")
 
         return result

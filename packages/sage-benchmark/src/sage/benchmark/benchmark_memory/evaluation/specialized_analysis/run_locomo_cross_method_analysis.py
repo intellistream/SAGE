@@ -93,10 +93,25 @@ def eval_question_answering(qas):
         output = q["prediction"].strip()
         category = q["category"]
 
-        # Category 5: 优先判断"信息未提及"
+        # Category 5: 判断是否正确选择 (b) 或识别"信息未提及"
         if category == 5:
+            output_lower = output.lower()
+
+            # 方式1: 检查是否选择了选项 (b)
+            selected_b = any(
+                pattern in output_lower
+                for pattern in [
+                    "(b)",
+                    "option b",
+                    "answer is b",
+                    "select b",
+                    "choice b",
+                ]
+            )
+
+            # 方式2: 检查是否包含 "not mentioned" 关键字（兜底）
             is_not_mentioned = any(
-                keyword in output.lower()
+                keyword in output_lower
                 for keyword in [
                     "not mentioned",
                     "no information",
@@ -104,7 +119,9 @@ def eval_question_answering(qas):
                     "cannot be determined",
                 ]
             )
-            score = 1 if is_not_mentioned else 0
+
+            # 只要选择了 (b) 或者说明了"未提及"，就算正确
+            score = 1 if (selected_b or is_not_mentioned) else 0
             f1_scores.append(score)
             category_scores[5].append(score)
             continue

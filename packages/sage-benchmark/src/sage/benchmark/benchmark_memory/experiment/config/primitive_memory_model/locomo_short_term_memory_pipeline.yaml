@@ -8,7 +8,14 @@ runtime:
 
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
-    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Based on the above context, answer the following question.
 
     Question: {question}
     Answer:

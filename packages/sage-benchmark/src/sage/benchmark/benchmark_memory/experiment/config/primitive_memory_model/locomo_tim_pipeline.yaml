@@ -5,10 +5,18 @@ runtime:
   memory_insert_verbose: false  # 是否打印记忆插入的详细信息（Memory Source部分）
   memory_test_verbose: true    # 是否打印记忆测试的详细信息（QA部分）
   test_segments: 10             # 测试分段数，将总问题数分成几段进行测试
+  service_timeout: 600.0        # 服务调用超时时间（秒）- TiM需要LLM三元组提取和蒸馏操作，需要更长超时
 
   # Prompt 模板配置（阶段二：MemoryTest）
   prompt_template: |
-    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Based on the above context, answer the following question.
 
     Question: {question}
     Answer:
@@ -77,8 +85,8 @@ operators:
   post_insert:
     action: "distillation"  # 插入后操作
     # TiM 数据量驱动的蒸馏策略（不依赖底层服务阈值实现）
-    retrieve_count: 20      # 检索候选记忆的数量
-    min_merge_count: 10     # 最少需要多少条相似记忆才执行蒸馏（避免小概率重复的过度处理）
+    retrieve_count: 10      # 检索候选记忆的数量（降低以减少处理时间）
+    min_merge_count: 5      # 最少需要多少条相似记忆才执行蒸馏（降低阈值，更早触发合并）
     merge_prompt: |
       You are a memory consolidation expert. Given a list of facts about a person, your job is to:
       1. REMOVE duplicates and near-duplicates (same meaning, different wording)
