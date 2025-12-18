@@ -137,10 +137,10 @@ def example_default_scheduler():
         strategy="spread",  # 使用 SPREAD 策略分散到不同节点
     )
     
-    env = RemoteEnvironment(name="distributed_scheduler_demo", scheduler=scheduler)
+    env = RemoteEnvironment(name="distributed_scheduler_demo", scheduler=scheduler,host="sage-node-1")
     # 设置 JobManager 的可访问主机名（worker 节点通过此地址连接回 JobManager）
     # 注意：JobManager 启动时使用 0.0.0.0 监听，但 worker 需要实际可访问的主机名
-    env.jobmanager_host = "sage-node-1"
+    # env.jobmanager_host = "sage-node-1"
     step_duration = time.time() - step_start
     print(f"   ✅ 环境创建完成 (耗时: {step_duration:.3f}秒)")
     print(f"   📋 调度策略: SPREAD (分散放置到多个节点)\n")
@@ -218,6 +218,18 @@ def example_default_scheduler():
     except Exception as e:
         print(f"   ⚠️  无法获取指标: {e}")
     print()
+
+    # 步骤6: 清理资源（关键步骤）
+    print("🧹 [6/6] 清理资源...")
+    step_start = time.time()
+    try:
+        env.close()
+        step_duration = time.time() - step_start
+        print(f"   ✅ 资源清理完成 (耗时: {step_duration:.3f}秒)\n")
+    except Exception as e:
+        step_duration = time.time() - step_start
+        print(f"   ⚠️  资源清理异常 (耗时: {step_duration:.3f}秒)")
+        print(f"   错误: {e}\n")
 
     # 总体统计
     total_duration = time.time() - total_start

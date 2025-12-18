@@ -76,14 +76,17 @@ class ServiceNode:
 
     def _create_queue_descriptors(self, env: BaseEnvironment):
         """在服务节点构造时创建队列描述符"""
+        # 使用 env.name 作为队列前缀，确保不同 job 的队列隔离
+        env_prefix = env.name
+
         # 为每个service创建request queue descriptor
         self.service_qd = _create_queue_descriptor(
-            env=env, name=f"service_request_{self.service_name}", maxsize=10000
+            env=env, name=f"{env_prefix}__service_request_{self.service_name}", maxsize=10000
         )
 
         # 为每个service node创建service response queue descriptor (与graph node一样)
         self.service_response_qd = _create_queue_descriptor(
-            env=env, name=f"service_response_{self.name}", maxsize=10000
+            env=env, name=f"{env_prefix}__service_response_{self.name}", maxsize=10000
         )
 
     def __repr__(self) -> str:
