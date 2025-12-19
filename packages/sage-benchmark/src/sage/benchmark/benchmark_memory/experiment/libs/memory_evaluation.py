@@ -97,9 +97,26 @@ Answer:""",
         full_prompt += question_prompt
 
         prompt = full_prompt
-        print(f"📝 生成的 Prompt:{prompt}")
+
+        # ============ DEBUG: Prompt和答案打印 ============
+        print("\n" + "=" * 80)
+        print("📝 [MemoryEvaluation] 生成答案")
+        print("=" * 80)
+        print(f"问题: {question}")
+        print("\n完整 Prompt:")
+        print("-" * 80)
+        print(prompt)
+        print("-" * 80)
+        # ============ DEBUG END ============
+
         # 调用 LLM 生成答案
         answer_text = self.generator.generate(prompt)
+
+        # ============ DEBUG: 答案打印 ============
+        print(f"\n✅ 生成的答案: {answer_text}")
+        print("=" * 80)
+        # ============ DEBUG END ============
+
         # answer_text = "yes"
 
         # 返回答案和元数据

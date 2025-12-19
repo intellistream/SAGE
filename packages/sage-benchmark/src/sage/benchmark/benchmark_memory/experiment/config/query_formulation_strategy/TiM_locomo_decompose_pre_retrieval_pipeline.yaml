@@ -1,0 +1,145 @@
+# ============================================================
+# PreRetrieval 实验: TiM + 查询分解
+# 记忆体结构: TiM (LSH哈希桶 + 向量检索)
+# PreRetrieval 策略: enhancement.decompose
+# 配置名称: TiM_locomo_decompose_pre_retrieval_pipeline.yaml
+# 说明: 将复杂查询分解为多个子查询，适合多跳三元组检索
+# ============================================================
+
+# 运行时参数配置
+runtime:
+  dataset: "locomo"  # 数据集名称
+  # task_id: "conv-26"  # 任务ID，可通过命令行 --task_id 覆盖
+  memory_insert_verbose: false  # 是否打印记忆插入的详细信息（Memory Source部分）
+  memory_test_verbose: true    # 是否打印记忆测试的详细信息（QA部分）
+  test_segments: 10             # 测试分段数，将总问题数分成几段进行测试
+  service_timeout: 600.0        # 服务调用超时时间（秒）- TiM需要LLM三元组提取和蒸馏操作，需要更长超时
+
+  # Prompt 模板配置（阶段二：MemoryTest）
+  prompt_template: |
+    Based on the above context, answer the following question concisely.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Based on the above context, answer the following question.
+
+    Question: {question}
+    Answer:
+
+  # LLM Generator 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: "TiM-decompose"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"  # Embedding 服务器地址
+  embedding_model: "BAAI/bge-m3"  # Embedding 模型名称
+
+
+
+# 服务配置
+services:
+  register_memory_service: "vector_memory"  # 统一向量记忆服务（推荐）
+  vector_memory:
+    dim: 1024  # 向量维度（需要与 embedding 模型输出维度一致）
+    index_type: "IndexLSH"  # TiM 使用 LSH 哈希索引
+    index_config:
+      nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
+      rotate_data: true  # 是否旋转数据（提高哈希质量）
+      train_thresholds: false  # 是否训练阈值
+  memory_retrieval_adapter: "none"
+
+
+
+# Operator 配置
+operators:
+  pre_insert:
+    action: "extract.triple"  # 先通过llm进行三元组提取实体后进行embedding
+    # Use LLM-based triple extraction (falls back to simple if not available)
+    extraction_method: "llm"
+    max_triplets: 10
+    keep_original: false  # TiM论文：只存储三元组，不存储原始对话
+    triple_extraction_prompt: |
+      You are a factual knowledge extractor.
+      Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
+
+      Guidelines:
+      - Map "I", "me", "my" to the name of the speaker provided in the dialogue log.
+      - Include personal states, plans, or situations if clearly described (e.g., "I'm busy" → (Speaker, is, busy)).
+      - Handle colloquialisms and omitted subjects: If a subject is implied but omitted, infer the subject from context.
+      - Resolve pronouns to specific entities; if the referent is ambiguous, skip the triple. Never output pronouns as subject or object.
+      - Avoid redundancy by consolidating repeated or fragmented details into a single, most specific triple, and ignore non-informative conversational fillers.
+      - Use natural-language predicates in active voice. Capture specific nuances like time and location directly in the predicate (e.g., "starts at 5 PM", "lives in Tokyo").
+      - Do NOT assume external knowledge; base everything on what is said or immediately implied.
+
+      Output ONLY in this format:
+
+      If one or more facts exist:
+      (Subject, Predicate, Object)
+      ...
+
+      If no extractable facts:
+      None
+
+      Dialogue:
+      {dialogue}
+
+  # ============================================================
+  # PreRetrieval: 实验变量 - 查询分解
+  # ============================================================
+  pre_retrieval:
+    action: "enhancement.decompose"
+    # 参数需要直接在 pre_retrieval 下，而不是嵌套在 decompose 下
+    decompose_strategy: "llm"        # 分解策略: llm | rule | hybrid
+    max_sub_queries: 3
+    sub_query_action: "sequential"   # 子查询处理方式: parallel | sequential
+    embed_sub_queries: false          # 是否为子查询生成向量
+    decompose_prompt: |
+      Decompose this complex question into 2-3 simpler sub-questions that can be answered by retrieving related knowledge triples.
+      Each sub-question should focus on one specific entity or relationship.
+
+      Question: {query}
+
+      Return a JSON array of sub-questions. Example: ["sub-question 1", "sub-question 2"]
+      Sub-questions:
+
+  post_insert:
+    action: "distillation"  # 插入后操作
+    # TiM 数据量驱动的蒸馏策略（不依赖底层服务阈值实现）
+    retrieve_count: 10      # 检索候选记忆的数量（降低以减少处理时间）
+    min_merge_count: 5      # 最少需要多少条相似记忆才执行蒸馏（降低阈值，更早触发合并）
+    merge_prompt: |
+      You are a memory consolidation expert. Given a list of facts about a person, your job is to:
+      1. REMOVE duplicates and near-duplicates (same meaning, different wording)
+      2. MERGE related facts into more complete statements
+      3. REMOVE logically subsumed facts (if A contains B's meaning, remove B)
+
+      EXAMPLES of what to consolidate:
+      - "Alice likes coffee" + "Alice likes coffee a lot" → keep only "Alice likes coffee a lot"
+      - "Bob works at Google" + "Bob works at Google as engineer" → keep only "Bob works at Google as engineer"
+      - "Carol plans to travel" + "Carol plans to travel to Japan" → keep only "Carol plans to travel to Japan"
+
+      RULES:
+      - to_delete: List EXACT original texts to remove (duplicates, subsumed facts)
+      - to_insert: Only if you need to CREATE a new merged fact not in original list
+      - Prefer keeping the most informative version rather than creating new text
+      - If a fact appears multiple times, delete all but one
+
+      Facts:
+      {memories}
+
+      Respond with JSON only:
+      {"to_delete": ["exact text 1", "exact text 2"], "to_insert": []}
+
+  post_retrieval:
+    action: "none"  # 后检索操作: none（默认会格式化对话历史）
+    # 阶段一：对话历史格式化Prompt（PostRetrieval）
+    conversation_format_prompt: |
+      The following is some history information.

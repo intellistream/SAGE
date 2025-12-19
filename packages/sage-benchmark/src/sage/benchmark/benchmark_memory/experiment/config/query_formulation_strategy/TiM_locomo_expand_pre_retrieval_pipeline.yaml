@@ -1,0 +1,160 @@
+# ============================================================
+# PreRetrieval 实验: TiM + 查询扩展
+# 记忆体结构: TiM (LSH哈希桶 + 向量检索)
+# PreRetrieval 策略: optimize.expand
+# 配置名称: TiM_locomo_expand_pre_retrieval_pipeline.yaml
+# ============================================================
+
+runtime:
+  dataset: locomo
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+  service_timeout: 600.0
+  prompt_template: 'Based on the above context, answer the following question concisely.
+
+
+    Question: {question}
+
+    Answer:
+
+    '
+  prompt_template_category5: 'Based on the above context, answer the following question.
+
+
+    Question: {question}
+
+    Answer:
+
+    '
+  api_key: token-abc123
+  base_url: http://sage2:8000/v1
+  model_name: /home/cyb/Llama-3.1-8B-Instruct
+  llm_base_url: http://sage2:8000/v1
+  llm_model: /home/cyb/Llama-3.1-8B-Instruct
+  max_tokens: 512
+  temperature: 0.3
+  seed: 42
+  memory_name: TiM-expand
+  embedding_base_url: http://localhost:8091/v1
+  embedding_model: BAAI/bge-m3
+services:
+  register_memory_service: vector_memory
+  vector_memory:
+    dim: 1024
+    index_type: IndexLSH
+    index_config:
+      nbits: 128
+      rotate_data: true
+      train_thresholds: false
+  memory_retrieval_adapter: none
+operators:
+  pre_insert:
+    action: extract.triple
+    extraction_method: llm
+    max_triplets: 10
+    keep_original: false
+    triple_extraction_prompt: 'You are a factual knowledge extractor.
+
+      Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
+
+
+      Guidelines:
+
+      - Map "I", "me", "my" to the name of the speaker provided in the dialogue log.
+
+      - Include personal states, plans, or situations if clearly described (e.g., "I''m busy" → (Speaker, is, busy)).
+
+      - Handle colloquialisms and omitted subjects: If a subject is implied but omitted, infer the subject from context.
+
+      - Resolve pronouns to specific entities; if the referent is ambiguous, skip the triple. Never output pronouns as subject or object.
+
+      - Avoid redundancy by consolidating repeated or fragmented details into a single, most specific triple, and ignore non-informative conversational fillers.
+
+      - Use natural-language predicates in active voice. Capture specific nuances like time and location directly in the predicate (e.g., "starts at 5 PM", "lives in Tokyo").
+
+      - Do NOT assume external knowledge; base everything on what is said or immediately implied.
+
+
+      Output ONLY in this format:
+
+
+      If one or more facts exist:
+
+      (Subject, Predicate, Object)
+
+      ...
+
+
+      If no extractable facts:
+
+      None
+
+
+      Dialogue:
+
+      {dialogue}
+
+      '
+  post_insert:
+    action: distillation
+    retrieve_count: 10
+    min_merge_count: 5
+    merge_prompt: 'You are a memory consolidation expert. Given a list of facts about a person, your job is to:
+
+      1. REMOVE duplicates and near-duplicates (same meaning, different wording)
+
+      2. MERGE related facts into more complete statements
+
+      3. REMOVE logically subsumed facts (if A contains B''s meaning, remove B)
+
+
+      EXAMPLES of what to consolidate:
+
+      - "Alice likes coffee" + "Alice likes coffee a lot" → keep only "Alice likes coffee a lot"
+
+      - "Bob works at Google" + "Bob works at Google as engineer" → keep only "Bob works at Google as engineer"
+
+      - "Carol plans to travel" + "Carol plans to travel to Japan" → keep only "Carol plans to travel to Japan"
+
+
+      RULES:
+
+      - to_delete: List EXACT original texts to remove (duplicates, subsumed facts)
+
+      - to_insert: Only if you need to CREATE a new merged fact not in original list
+
+      - Prefer keeping the most informative version rather than creating new text
+
+      - If a fact appears multiple times, delete all but one
+
+
+      Facts:
+
+      {memories}
+
+
+      Respond with JSON only:
+
+      {"to_delete": ["exact text 1", "exact text 2"], "to_insert": []}
+
+      '
+  pre_retrieval:
+    action: optimize.expand
+    expand_prompt: |
+      Generate {expand_count} related queries to help retrieve more comprehensive information.
+      Each query should explore a different aspect or perspective of the original question.
+
+      Original question: {question}
+
+      Return a JSON array of expanded queries. Example: ["query 1", "query 2", "query 3"]
+      Expanded queries:
+    expand_count: 3
+    merge_strategy: union
+    replace_original: false
+    store_optimized: true
+  post_retrieval:
+    action: none
+    conversation_format_prompt: 'The following is some history information.
+
+      '

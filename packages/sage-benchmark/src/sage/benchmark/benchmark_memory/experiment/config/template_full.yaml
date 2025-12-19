@@ -863,3 +863,169 @@ operators:
       The following is a conversation between a user and an AI assistant. Please answer the current question based on the history of the conversation:
 
       Related conversation history:
+
+  # ============================================================
+  # Examples: Enhancement Actions
+  # ============================================================
+  # 以下为查询增强（enhancement.*）的典型用法示例，集成到模板中方便参考。
+  # 这些示例为注释，仅用于说明；需要运行时，请复制到独立配置文件或取消注释并调整为实际环境。
+
+  # --- 示例1：enhancement.decompose（LLM分解） ---
+  # test_decompose:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "short_term_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "decompose"
+  #       decompose_strategy: "llm"
+  #       max_sub_queries: 5
+  #       sub_query_action: "parallel"
+  #       embed_sub_queries: false
+  #       decompose_prompt: |
+  #         Break down this complex question into simpler sub-questions that can be answered independently.
+  #         Each sub-question should be self-contained and searchable.
+  #
+  #         Question: {query}
+  #
+  #         Return a JSON array of sub-questions. Example: ["sub-question 1", "sub-question 2"]
+  #         Sub-questions:
+  #       split_keywords:
+  #         - "and"
+  #         - "or"
+  #         - "also"
+  #         - "additionally"
+  #         - "moreover"
+  #         - "furthermore"
+  #         - "besides"
+
+  # --- 示例2：enhancement.route（关键词路由） ---
+  # test_route:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "hierarchical_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "route"
+  #       route_strategy: "keyword"
+  #       allow_multi_route: true
+  #       max_routes: 2
+  #       default_route: "long_term_memory"
+  #       keyword_rules:
+  #         - keywords: ["remember", "recall", "last time", "before", "previously"]
+  #           target: "long_term_memory"
+  #           params:
+  #             time_range: "all"
+  #         - keywords: ["just", "now", "recently", "today", "moment ago"]
+  #           target: "short_term_memory"
+  #           params:
+  #             time_range: "1d"
+  #         - keywords: ["know", "fact", "what is", "who is", "define"]
+  #           target: "knowledge_base"
+  #           params:
+  #             search_type: "exact"
+
+  # --- 示例3：enhancement.multi_embed（多维向量） ---
+  # test_multi_embed:
+  #   runtime:
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #   services:
+  #     retrieve_memory_service: "vector_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "multi_embed"
+  #       embeddings:
+  #         - name: "semantic"
+  #           model: "BAAI/bge-m3"
+  #           weight: 0.6
+  #         - name: "keyword"
+  #           model: "BAAI/bge-m3"
+  #           weight: 0.4
+  #       output_format: "weighted"  # weighted | dict | concat
+  #       match_insert_config: true
+
+  # --- 示例4：enhancement.route（LLM路由） ---
+  # test_route_llm:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "hierarchical_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "route"
+  #       route_strategy: "llm"
+  #       allow_multi_route: true
+  #       max_routes: 3
+  #       default_route: "long_term_memory"
+  #       route_prompt: |
+  #         Determine which memory source(s) should be queried for this question.
+  #         Available sources:
+  #         - short_term_memory: Recent conversations and events (last 24 hours)
+  #         - long_term_memory: Historical memories and past experiences
+  #         - knowledge_base: Factual information and general knowledge
+  #
+  #         Question: {query}
+  #
+  #         Return a JSON array of source names to query. Example: ["long_term_memory", "knowledge_base"]
+  #         Sources:
+
+  # --- 示例4.1：enhancement.route（Classifier路由） ---
+  # test_route_classifier:
+  #   runtime:
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "hierarchical_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "route"
+  #       route_strategy: "classifier"
+  #       allow_multi_route: false
+  #       max_routes: 1
+  #       default_route: "long_term_memory"
+  #       classifier_model: "intent-classifier"
+  #       route_mapping:
+  #         factual: "knowledge_base"
+  #         personal: "long_term_memory"
+  #         recent: "short_term_memory"
+  #         historical: "long_term_memory"
+
+  # --- 示例5：enhancement.decompose（混合分解） ---
+  # test_decompose_hybrid:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #   services:
+  #     retrieve_memory_service: "short_term_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "decompose"
+  #       decompose_strategy: "hybrid"
+  #       max_sub_queries: 5
+  #       sub_query_action: "parallel"
+  #       decompose_prompt: |
+  #         Break down the complex question:
+  #         {query}
+  #
+  #         Sub-questions:
+  #       split_keywords:
+  #         - "and"
+  #         - "or"
+  #         - "also"

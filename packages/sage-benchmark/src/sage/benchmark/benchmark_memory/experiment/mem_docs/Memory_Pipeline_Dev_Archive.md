@@ -758,12 +758,59 @@ ______________________________________________________________________
 
 #### D4: PreRetrieval（检索前处理）
 
-| Action      | 子类型                                     | 实现方式  | 参考记忆体                                         | 说明                                                                                   |
-| ----------- | ------------------------------------------ | --------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `none`      | -                                          | -         | Mem0, Mem0ᵍ                                        | 无预处理                                                                               |
-| `embedding` | -                                          | 单一实现  | TiM, MemoryBank, A-Mem, MemoryOS, HippoRAG2, SeCom | 查询向量化<br>- 生成 query embedding                                                   |
-| `optimize`  | `keyword_extract`<br>`expand`<br>`rewrite` | 🗂️ 类继承 | MemGPT, HippoRAG, LD-Agent                         | 查询优化<br>- keyword_extract: 关键词提取<br>- expand: 查询扩展<br>- rewrite: 查询改写 |
-| `validate`  | -                                          | 单一实现  | SCM                                                | 检索激活判断<br>- 判断是否需要检索记忆                                                 |
+| Action        | 子类型                                     | 实现方式  | 参考记忆体                                         | 说明                                                                                   |
+| ------------- | ------------------------------------------ | --------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `none`        | -                                          | -         | Mem0, Mem0ᵍ                                        | 无预处理                                                                               |
+| `embedding`   | -                                          | 单一实现  | TiM, MemoryBank, A-Mem, MemoryOS, HippoRAG2, SeCom | 查询向量化<br>- 生成 query embedding                                                   |
+| `optimize`    | `keyword_extract`<br>`expand`<br>`rewrite` | 🗂️ 类继承 | MemGPT, HippoRAG, LD-Agent                         | 查询优化<br>- keyword_extract: 关键词提取<br>- expand: 查询扩展<br>- rewrite: 查询改写 |
+| `validate`    | -                                          | 单一实现  | SCM                                                | 检索激活判断<br>- 判断是否需要检索记忆                                                 |
+| `enhancement` | `decompose`<br>`route`<br>`multi_embed`    | 🗂️ 类继承 | 通用高级功能（不限特定记忆体）                     | 查询增强<br>- decompose: 复杂查询分解<br>- route: 检索路由<br>- multi_embed: 多维向量  |
+
+**Enhancement Actions 详细说明**（2025-12-19 新增）：
+
+| Action                    | 描述                 | 配置示例                                                                                                | 适用场景                   |
+| ------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `enhancement.decompose`   | 复杂查询分解为子查询 | `decompose_strategy: llm/rule/hybrid`<br>`max_sub_queries: 5`<br>`sub_query_action: parallel`           | 多步推理、复杂任务         |
+| `enhancement.route`       | 根据查询选择检索策略 | `route_strategy: keyword/classifier/llm`<br>`keyword_rules: [...]`<br>`default_route: long_term_memory` | 多源记忆系统、条件分支检索 |
+| `enhancement.multi_embed` | 多维度embedding组合  | `embeddings: [{name: semantic, weight: 0.6}, ...]`<br>`output_format: weighted/dict/concat`             | 精细化检索、多模态检索     |
+
+**Route策略详解**：
+
+- `keyword`: 基于关键词规则匹配（最快，适合明确规则）
+- `classifier`: 基于意图分类（平衡，支持factual/personal/recent/historical四类）
+- `llm`: 基于LLM决策（最灵活，但成本高）
+
+**使用示例**：
+
+```yaml
+# 查询分解
+operators:
+  pre_retrieval:
+    action: "enhancement"
+    enhancement_type: "decompose"
+    decompose_strategy: "llm"
+    max_sub_queries: 5
+
+# 检索路由
+operators:
+  pre_retrieval:
+    action: "enhancement"
+    enhancement_type: "route"
+    route_strategy: "keyword"
+    keyword_rules:
+      - keywords: ["remember", "recall"]
+        target: "long_term_memory"
+
+# 多维embedding
+operators:
+  pre_retrieval:
+    action: "enhancement"
+    enhancement_type: "multi_embed"
+    embeddings:
+      - name: "semantic"
+        model: "BAAI/bge-m3"
+        weight: 0.6
+```
 
 #### D5: PostRetrieval（检索后处理）
 

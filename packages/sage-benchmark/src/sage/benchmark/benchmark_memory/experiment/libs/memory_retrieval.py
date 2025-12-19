@@ -102,19 +102,88 @@ class MemoryRetrieval(MapFunction):
         query = data.get("question")
         vector = data.get("query_embedding")
         metadata = data.get("metadata", {})
-        # Note: retrieve_mode and retrieve_params are from PreRetrieval but not used by ShortTermMemoryService
-        # They can be used by future service implementations if needed
+        retrieve_params = data.get("retrieve_params", {})
 
-        # 2. 调用服务检索
-        results = self.call_service(
-            self.service_name,
-            method="retrieve",
-            query=query,
-            vector=vector,
-            metadata=metadata,
-            top_k=self.retrieval_top_k,
-            timeout=60.0,
-        )
+        # 检查是否有子查询（来自 decompose）或多查询（来自 expand）
+        sub_queries = retrieve_params.get("sub_queries", [])
+        multi_query = retrieve_params.get("multi_query", [])
+        queries = sub_queries or multi_query  # 优先使用 sub_queries
+        sub_query_action = retrieve_params.get("action", "sequential")
+
+        # ============ DEBUG: 检索前打印 ============
+        print("\n" + "=" * 80)
+        print("🔍 [MemoryRetrieval] 准备检索")
+        print("=" * 80)
+        print(f"查询问题: {query}")
+        print(f"Top-K: {self.retrieval_top_k}")
+        if queries:
+            query_type = "子查询" if sub_queries else "扩展查询"
+            print(f"\n检索模式: 多查询 ({sub_query_action})")
+            print(f"{query_type}数量: {len(queries)}")
+            for idx, sq in enumerate(queries, 1):
+                print(f"  {idx}. {sq}")
+        else:
+            print("检索模式: 单查询")
+        print("=" * 80)
+        # ============ DEBUG END ============
+
+        # 2. 调用服务检索（支持多查询）
+        if queries and len(queries) > 1:
+            # 多查询模式：对每个子查询/扩展查询独立检索
+            all_results = []
+            seen_texts = set()  # 用于去重
+
+            # 获取预生成的 embedding（来自 PreRetrieval action）
+            query_embeddings = retrieve_params.get(
+                "sub_query_embeddings", []
+            ) or retrieve_params.get("expanded_embeddings", [])
+
+            query_type = "子查询" if sub_queries else "扩展查询"
+            print(f"\n🔄 开始批量检索 {len(queries)} 个{query_type}...")
+
+            for idx, single_query in enumerate(queries, 1):
+                print(f"\n  → {query_type} {idx}/{len(queries)}: {single_query}")
+
+                # 使用预生成的 embedding
+                query_vector = query_embeddings[idx - 1] if idx <= len(query_embeddings) else None
+
+                if query_vector is not None:
+                    print(f"    ✓ 使用预生成 embedding (维度: {len(query_vector)})")
+                else:
+                    print("    ✗ 无预生成 embedding，将使用文本检索")
+
+                sub_results = self.call_service(
+                    self.service_name,
+                    method="retrieve",
+                    query=single_query,
+                    vector=query_vector,  # 使用预生成的向量
+                    metadata=metadata,
+                    top_k=self.retrieval_top_k,
+                    timeout=60.0,
+                )
+
+                print(f"    → 检索到 {len(sub_results) if sub_results else 0} 条结果")
+
+                # 去重合并结果
+                for result in sub_results or []:
+                    text = result.get("text", "")
+                    if text and text not in seen_texts:
+                        seen_texts.add(text)
+                        all_results.append(result)
+
+            print(f"\n✓ 批量检索完成，去重后共 {len(all_results)} 条结果\n")
+            results = all_results
+        else:
+            # 单查询模式：使用主查询
+            results = self.call_service(
+                self.service_name,
+                method="retrieve",
+                query=query,
+                vector=vector,
+                metadata=metadata,
+                top_k=self.retrieval_top_k,
+                timeout=60.0,
+            )
 
         # 3. 统计性能
         elapsed = (time.time() - start) * 1000
@@ -123,6 +192,30 @@ class MemoryRetrieval(MapFunction):
             time_ms=elapsed,
             service_name=self.service_name,
         )
+
+        # ============ DEBUG: 检索结果打印 ============
+        print("\n" + "=" * 80)
+        print("✅ [MemoryRetrieval] 检索完成")
+        print("=" * 80)
+        print(f"检索到 {stats.retrieved} 条结果，耗时 {stats.time_ms:.2f}ms")
+        if results:
+            print(f"\n检索结果 (显示全部 {len(results)} 条):")
+            for idx, result in enumerate(results, 1):
+                text = result.get("text", "")  # 显示完整文本
+                metadata_info = result.get("metadata", {})
+                print(f"\n  结果 #{idx}:")
+                print(f"    文本: {text}")
+                if metadata_info:
+                    triples = metadata_info.get("triples", [])
+                    if triples:
+                        print(f"    三元组: {triples}")
+                    other_meta = {k: v for k, v in metadata_info.items() if k != "triples"}
+                    if other_meta:
+                        print(f"    其他元数据: {other_meta}")
+        else:
+            print("⚠️  未检索到任何结果！")
+        print("=" * 80)
+        # ============ DEBUG END ============
 
         # 4. 添加结果和统计
         data["memory_data"] = results

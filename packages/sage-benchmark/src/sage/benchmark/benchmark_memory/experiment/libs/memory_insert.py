@@ -163,6 +163,26 @@ class MemoryInsert(MapFunction):
         memory_entries = data.get("memory_entries", [])
         stats = InsertStats(inserted=0, failed=0, entry_ids=[], entries=[], errors=[])
 
+        # ============ DEBUG: 插入前打印 ============
+        print("\n" + "=" * 80)
+        print(f"📥 [MemoryInsert] 准备插入 {len(memory_entries)} 条记忆")
+        print("=" * 80)
+        for idx, entry in enumerate(memory_entries, 1):
+            text = entry.get("text", "")  # 显示完整文本，不截断
+            metadata = entry.get("metadata", {})
+            triples = metadata.get("triples", [])
+            print(f"\n条目 #{idx}:")
+            print(f"  文本: {text}")
+            if triples:
+                print(f"  三元组: {triples}")
+            # 显示其他元数据（如果有）
+            if metadata:
+                other_meta = {k: v for k, v in metadata.items() if k != "triples"}
+                if other_meta:
+                    print(f"  其他元数据: {other_meta}")
+        print("\n" + "=" * 80)
+        # ============ DEBUG END ============
+
         # 记录批次总耗时
         batch_start = time.perf_counter()
 
@@ -197,6 +217,20 @@ class MemoryInsert(MapFunction):
 
         # 计算批次总耗时
         batch_elapsed_ms = (time.perf_counter() - batch_start) * 1000
+
+        # ============ DEBUG: 插入结果统计 ============
+        print("\n" + "=" * 80)
+        print("✅ [MemoryInsert] 插入完成")
+        print("=" * 80)
+        print(f"成功插入: {stats.inserted} 条")
+        print(f"插入失败: {stats.failed} 条")
+        print(f"总耗时: {batch_elapsed_ms:.2f}ms")
+        if stats.errors:
+            print("\n失败详情:")
+            for err in stats.errors[:3]:  # 只显示前3个错误
+                print(f"  ✗ {err['entry'][:50]}... - {err['error']}")
+        print("=" * 80)
+        # ============ DEBUG END ============
 
         # 将统计信息转为字典并添加到数据中
         data["insert_stats"] = asdict(stats)

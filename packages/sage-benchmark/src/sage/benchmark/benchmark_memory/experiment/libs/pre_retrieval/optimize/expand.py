@@ -39,6 +39,11 @@ class ExpandAction(BasePreRetrievalAction):
         # LLM生成器将由PreRetrieval主类提供
         self._llm_generator = None
 
+        # 初始化 Embedding 生成器（用于扩展查询向量化）
+        from sage.benchmark.benchmark_memory.experiment.utils import EmbeddingGenerator
+
+        self._embedding_generator = EmbeddingGenerator.from_config(self.config)
+
     def set_llm_generator(self, generator: LLMGenerator) -> None:
         """设置LLM生成器（由PreRetrieval主类调用）"""
         self._llm_generator = generator
@@ -71,15 +76,42 @@ class ExpandAction(BasePreRetrievalAction):
         # 根据配置决定最终查询
         if self.replace_original:
             # 使用扩展查询替换原查询
-            final_query = " | ".join(expanded_queries)
+            final_query = " | ".join(expanded_queries) if expanded_queries else question
+            queries_for_retrieval = expanded_queries if expanded_queries else [question]
         else:
             # 保留原查询并添加扩展
             final_query = question
+            # 将原查询作为第一个查询，扩展查询跟在后面
+            queries_for_retrieval = (
+                [question] + expanded_queries if expanded_queries else [question]
+            )
+
+        # 为所有查询生成 embedding（包括原查询）
+        all_embeddings = []
+        if queries_for_retrieval and self._embedding_generator:
+            print(f"\n🔄 开始为 {len(queries_for_retrieval)} 个查询生成 embedding...")
+            for idx, eq in enumerate(queries_for_retrieval, 1):
+                try:
+                    embedding = self._embedding_generator.embed(eq)
+                    all_embeddings.append(embedding)
+                    query_type = (
+                        "原始查询"
+                        if (not self.replace_original and idx == 1)
+                        else f"扩展查询 {idx if self.replace_original else idx - 1}"
+                    )
+                    print(f"  ✓ {query_type}: {eq[:50]}... (维度: {len(embedding)})")
+                except Exception as e:
+                    print(f"  ✗ 查询 {idx} embedding 生成失败: {e}")
+                    all_embeddings.append(None)
+        else:
+            all_embeddings = [None] * len(queries_for_retrieval)
 
         # 构建元数据
         metadata = {
             "original_query": question,
             "expanded_queries": expanded_queries,
+            "all_queries": queries_for_retrieval,
+            "all_embeddings": all_embeddings,
             "merge_strategy": self.merge_strategy,
             "needs_embedding": True,
         }
@@ -94,7 +126,8 @@ class ExpandAction(BasePreRetrievalAction):
             metadata=metadata,
             retrieve_mode="passive",
             retrieve_params={
-                "multi_query": expanded_queries if not self.replace_original else None,
+                "multi_query": queries_for_retrieval if len(queries_for_retrieval) > 1 else None,
+                "expanded_embeddings": all_embeddings,
                 "merge_strategy": self.merge_strategy,
             },
         )
