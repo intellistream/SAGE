@@ -48,7 +48,7 @@ services:
       stm: 50
       mtm: 500
       ltm: -1                         # 无限
-    migration_policy: "heat"          # 基于热度迁移
+    migration_policy: "overflow"      # 迁移策略: overflow | importance | time
     migration_threshold: 0.7
     embedding_dim: 1024               # bge-m3 模型输出 1024 维向量
   memory_retrieval_adapter: "none"
@@ -59,11 +59,22 @@ services:
 operators:
   # ----------------------------------------------------------
   # PreInsert: 生成摘要 + 重要性评分
-  # MemoryBank 会对每轮对话生成 daily summary
+  #
+  # 【差异说明】
+  # - 原始 MemoryBank: 使用独立的 summarize_memory.py 批量生成三种摘要
+  #   * Daily Summary: 每日事件摘要
+  #   * Personality Analysis: 用户性格分析
+  #   * Overall Summary: 全局记忆概览
+  #   运行时机: 离线/定期执行,而非每次对话实时生成
+  #
+  # - SAGE 实现: 支持两种模式
+  #   * only_on_session_end=false: 每次对话实时生成摘要 (默认)
+  #   * only_on_session_end=true: 仅在 session 结束时生成 (对齐原版)
   # ----------------------------------------------------------
   pre_insert:
     action: "transform"
     transform_type: "summarize"
+    only_on_session_end: true  # 仅在 session 结束时生成摘要 (对齐原版)
     summarize_prompt: |
       Summarize the key events and information from this conversation.
       Focus on: facts mentioned, preferences expressed, plans discussed.
@@ -80,12 +91,9 @@ operators:
   # ----------------------------------------------------------
   post_insert:
     action: "forgetting"
-    decay_type: "ebbinghaus"          # 艾宾浩斯遗忘曲线
-    initial_strength: 1.0
-    forgetting_curve: "exponential"
-    review_boost: 0.5                 # 被检索时增强
-    retention_min: 50                 # 最少保留条数
-    archive_before_delete: true
+    strategy: "ebbinghaus"            # 遗忘策略：ebbinghaus | heat_based | time_based
+    forget_threshold: 0.1             # 遗忘阈值 (R < 0.1 时删除)
+    only_on_session_end: true         # 仅在会话结束时执行遗忘
 
   # ----------------------------------------------------------
   # PreRetrieval: 基础 embedding
@@ -94,17 +102,28 @@ operators:
     action: "embedding"
 
   # ----------------------------------------------------------
-  # PostRetrieval: 时间加权重排序 + 增强（添加全局画像）
-  # MemoryBank 会同时返回相关记忆 + 全局用户画像
+  # PostRetrieval: 时间加权重排序
+  #
+  # 【差异说明】
+  # - 原始 MemoryBank: 仅使用日期排序 (按 metadata["source"] 日期升序)
+  #   检索结果直接按日期排序,无额外加权
+  #   代码: sorted(related_docs, key=lambda x: x.metadata["source"])
+  #
+  # - SAGE 增强: 添加时间加权 rerank (time_weighted)
+  #   公式: score = similarity * exp(-time_decay * elapsed_days)
+  #   效果: 近期记忆权重更高,更符合记忆遗忘规律
+  #   ⚠️ 这是 SAGE 的工程增强,原论文无此机制
   # ----------------------------------------------------------
   post_retrieval:
     action: "rerank"
-    rerank_type: "time_weighted"
-    time_decay_rate: 0.1
+    rerank_type: "time_weighted"      # [SAGE 增强] 原版仅用日期排序
+    time_decay_rate: 0.1              # [SAGE 增强] 时间衰减系数
     time_field: "timestamp"
     top_k: 10
-    conversation_format_prompt: |
-      The following is the user's conversation history and profile.
+    # 记忆强化配置 (MemoryBank 核心机制)
+    enable_reinforcement: true        # 启用检索后的记忆强化
+    reinforcement_increment: 1.0      # 强度增量 (S += 1)
+    reinforcement_reset_time: true    # 重置 last_recall_date
 
 # ============================================================
 # MemoryBank 复现说明
@@ -148,15 +167,31 @@ operators:
 #
 # 关键配置参数：
 #   - tier_mode="three_tier": 三层架构（STM/MTM/LTM）
-#   - decay_type="ebbinghaus": 艾宾浩斯遗忘曲线
-#   - initial_strength=1.0: 初始记忆强度
-#   - review_boost=0.5: 检索时的强度增量
+#   - strategy="ebbinghaus": 艾宾浩斯遗忘曲线
+#   - forget_threshold=0.1: 遗忘阈值 (R < 0.1 删除)
+#   - increment=1.0: 检索时的强度增量 (S += 1)
 #   - time_decay_rate=0.1: 时间衰减率
 #
 # 与论文的差异：
-#   1. 论文使用 MiniLM/Text2vec，SAGE 使用 BGE-M3（更强）
-#   2. 论文固定摘要策略，SAGE 支持可配置的摘要 prompt
-#   3. SAGE 增加了热度迁移（migration_policy="heat"）
+#   1. 【存储架构】
+#      - 原版: 平铺字典 history[date]=[dialogs]
+#      - SAGE: 三层架构 STM/MTM/LTM (工程增强,便于层级管理)
+#
+#   2. 【摘要生成】
+#      - 原版: 离线批量生成 (summarize_memory.py 脚本)
+#      - SAGE: 实时流式生成 (PreInsert 阶段)
+#
+#   3. 【检索重排序】
+#      - 原版: 仅日期排序 sorted(docs, key=lambda x: x.metadata["source"])
+#      - SAGE: 时间加权 rerank (工程增强,平衡相似度与时效性)
+#
+#   4. 【向量模型】
+#      - 原版: MiniLM/Text2vec
+#      - SAGE: BGE-M3 (1024维,性能更强)
+#
+#   5. 【可配置性】
+#      - 原版: 固定摘要模板和遗忘参数
+#      - SAGE: 支持可配置的 prompt、阈值、迁移策略
 #
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \

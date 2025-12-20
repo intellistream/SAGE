@@ -11,6 +11,7 @@ from .filter.top_k import TopKFilterAction
 from .merge.link_expand import LinkExpandMergeAction
 from .merge.multi_query import MultiQueryMergeAction
 from .none_action import NoneAction
+from .reinforce import ReinforceAction
 from .rerank.ppr import PPRRerankAction
 from .rerank.semantic import SemanticRerankAction
 from .rerank.time_weighted import TimeWeightedRerankAction
@@ -110,3 +111,6 @@ PostRetrievalActionRegistry.register("merge.multi_query", MultiQueryMergeAction)
 
 # Augment Action
 PostRetrievalActionRegistry.register("augment", AugmentAction)
+
+# Reinforce Action (MemoryBank)
+PostRetrievalActionRegistry.register("reinforce", ReinforceAction)

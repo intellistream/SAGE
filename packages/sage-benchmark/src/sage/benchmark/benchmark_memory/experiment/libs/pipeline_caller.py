@@ -147,6 +147,13 @@ class PipelineCaller(MapFunction):
         # ============================================================
         # 阶段1：记忆存储（总是执行）
         # ============================================================
+
+        # 从 data 中获取 is_session_end 标记 (由 MemorySource 提供)
+        is_session_end = data.get("is_session_end", False)
+
+        if self.memory_insert_verbose and is_session_end:
+            print(f"[DEBUG] Session {session_id} 结束, is_session_end=True")
+
         insert_data = {
             "task_id": task_id,
             "session_id": session_id,
@@ -154,6 +161,7 @@ class PipelineCaller(MapFunction):
             "dialogs": dialogs,
             "packet_idx": packet_idx,
             "total_packets": total_packets,
+            "is_session_end": is_session_end,  # 传递 session 结束标记
         }
 
         # 判断是否为最后一个数据包（提前判断，用于异常处理）

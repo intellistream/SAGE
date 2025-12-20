@@ -108,6 +108,15 @@ class MemorySource(BatchFunction):
             self.task_id, session_x=session_id, dialog_y=self.dialog_ptr
         )
 
+        # 计算下一个 dialog_ptr (用于判断是否为 session 最后一个包)
+        if self.dataset == "conflict_resolution":
+            next_dialog_ptr = self.dialog_ptr + 1
+        else:
+            next_dialog_ptr = self.dialog_ptr + 2
+
+        # 判断是否为当前 session 的最后一个数据包
+        is_session_end = next_dialog_ptr > max_dialog_idx
+
         # Prepare return data (with sequence information)
         result = {
             "task_id": self.task_id,
@@ -117,6 +126,7 @@ class MemorySource(BatchFunction):
             "dialog_len": len(dialogs),
             "packet_idx": self.packet_idx,  # Current packet index (from 0)
             "total_packets": self.total_packets,  # Total packets
+            "is_session_end": is_session_end,  # 是否为当前 session 的最后一个包
         }
 
         # Move pointer to next dialog

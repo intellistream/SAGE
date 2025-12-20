@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import math
+import random
 import time
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
@@ -108,6 +109,12 @@ class HierarchicalMemoryService(BaseService):
         # 记录每层的条目数量（用于溢出检测）
         self._tier_counts: dict[str, int] = {}
         self._update_tier_counts()
+
+        # === 插入顺序追踪（用于遗忘曲线时间模拟）===
+        self._insertion_counter: int = 0  # 全局插入计数器
+        # 动态计算dialogs_per_day,让整个数据集跨越约5天(避免过度遗忘)
+        # 例如: 419条对话 → dialogs_per_day ≈ 84 → 最早记忆5天前 → retention = e^(-5/1) ≈ 0.007
+        self._time_span_days: float = 5.0  # 数据集时间跨度(天)
 
         # === 被动插入状态管理 ===
         # 用于存储待处理的溢出/遗忘条目，供 PostInsert 查询
@@ -299,6 +306,12 @@ class HierarchicalMemoryService(BaseService):
         full_metadata["timestamp"] = timestamp
         full_metadata["tier"] = tier_name
         full_metadata["importance"] = metadata.get("importance", 0.5)
+        # MemoryBank: 记忆强度追踪 (初始值为 1)
+        full_metadata["memory_strength"] = metadata.get("memory_strength", 1.0)
+        full_metadata["last_recall_date"] = metadata.get("last_recall_date", timestamp)
+        # 插入顺序追踪：记录全局插入序号用于遗忘曲线时间模拟
+        full_metadata["insertion_order"] = self._insertion_counter
+        self._insertion_counter += 1
         # 保存向量用于迁移（注意：这会增加存储开销）
         if vector is not None:
             vec_arr = (
@@ -1036,3 +1049,192 @@ class HierarchicalMemoryService(BaseService):
                 "capacity": self.tier_capacities.get(tier_name, -1),
             }
         return stats
+
+    def forget_memories(
+        self,
+        strategy: Literal["ebbinghaus", "heat_based", "time_based"] = "ebbinghaus",
+        threshold: float = 0.1,
+        decay_factor: float = 0.1,
+        tiers: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """根据遗忘策略删除记忆 (MemoryBank 论文实现)
+
+        实现 Ebbinghaus 遗忘曲线: R = e^(-t/S)
+        - R: 记忆保留率 (retention)
+        - t: 距离上次检索的时间 (天)
+        - S: 记忆强度 (memory_strength)
+
+        Args:
+            strategy: 遗忘策略
+                - "ebbinghaus": 基于遗忘曲线 (MemoryBank)
+                - "heat_based": 基于热度评分 (MemoryOS)
+                - "time_based": 纯时间衰减
+            threshold: 遗忘阈值 (低于此值的记忆将被删除)
+            decay_factor: 时间衰减因子 (用于 heat_based 和 time_based)
+            tiers: 要处理的层级列表 (默认所有层)
+
+        Returns:
+            dict: 遗忘统计
+                - forgotten_count: 被遗忘的记忆数量
+                - remaining_count: 剩余记忆数量
+                - strategy: 使用的策略
+                - threshold: 阈值
+        """
+        tiers = tiers or self.tier_names
+        forgotten_ids = []
+        current_time = time.time()
+
+        # === MemoryBank: 遗忘日志开始 ===
+        print(f"\n{'=' * 60}")
+        print("[MemoryBank] 执行遗忘检查")
+        print(f"  策略: {strategy}")
+        print(f"  阈值: {threshold}")
+        print(f"  目标层级: {tiers}")
+        print(f"{'=' * 60}")
+
+        for tier_name in tiers:
+            if tier_name not in self.tier_names:
+                continue
+
+            index_name = self._get_tier_index_name(tier_name)
+
+            # 获取该层所有记忆
+            all_items = self._find_oldest_items(tier_name, count=9999999)
+
+            for item_id, item_vector in all_items:
+                meta = self.collection.get_metadata(item_id)
+                if not meta:
+                    continue
+
+                # 计算遗忘分数
+                should_forget = False
+
+                if strategy == "ebbinghaus":
+                    # Ebbinghaus 遗忘曲线: R = e^(-t/S)
+                    # 使用随机数模拟人脑记忆的随机性 (参考 MemoryBank 原实现)
+                    memory_strength = meta.get("memory_strength", 1.0)
+
+                    # 使用插入顺序模拟时间流逝（解决无日期/单session数据集问题）
+                    insertion_order = meta.get("insertion_order", 0)
+                    current_order = self._insertion_counter
+
+                    # 动态计算相对天数: 让整个数据集跨越time_span_days天
+                    # 例如: 419条对话跨越5天 → 最早的在5天前 → retention = e^(-5/1) ≈ 0.007
+                    if current_order > 0:
+                        time_elapsed_days = (
+                            (current_order - insertion_order) * self._time_span_days / current_order
+                        )
+                    else:
+                        time_elapsed_days = 0
+
+                    # 计算保留率
+                    retention = math.exp(-time_elapsed_days / memory_strength)
+
+                    # MemoryBank 原论文实现: 使用随机数与保留率比较
+                    # if random.random() > retention: forget
+                    # 这里保留 threshold 参数作为额外的遗忘控制
+                    random_value = random.random()
+                    should_forget = random_value > retention or retention < threshold
+
+                    self.logger.debug(
+                        f"Ebbinghaus: item={item_id[:16]}, t={time_elapsed_days:.2f}d, "
+                        f"S={memory_strength:.2f}, R={retention:.4f}, rand={random_value:.4f}, forget={should_forget}"
+                    )
+
+                elif strategy == "heat_based":
+                    # 基于热度评分（MemoryOS）
+                    heat_score = self._calculate_heat_score(meta, current_time)
+                    should_forget = heat_score < threshold
+
+                elif strategy == "time_based":
+                    # 纯时间衰减
+                    timestamp = meta.get("timestamp", current_time)
+                    time_elapsed_days = (current_time - timestamp) / 86400.0
+                    time_score = math.exp(-decay_factor * time_elapsed_days)
+                    should_forget = time_score < threshold
+
+                if should_forget:
+                    forgotten_ids.append((item_id, tier_name, index_name))
+
+        # 批量删除
+        deleted_count = 0
+        total_checked = len(forgotten_ids)
+
+        for item_id, tier_name, index_name in forgotten_ids:
+            # 直接删除数据（HybridCollection 会自动从所有索引中移除）
+            success = self.collection.delete(item_id)
+            if success:
+                deleted_count += 1
+                self._tier_counts[tier_name] = max(0, self._tier_counts.get(tier_name, 0) - 1)
+                self.logger.debug(f"Forgot memory: {item_id[:16]} from {tier_name}")
+
+        # 统计剩余数量
+        remaining_count = sum(self._tier_counts.values())
+
+        # === MemoryBank: 遗忘日志结束 ===
+        print("\n[MemoryBank] 遗忘执行结果:")
+        print(f"  检查记忆数: {total_checked}")
+        print(f"  遗忘记忆数: {deleted_count}")
+        print(f"  保留记忆数: {remaining_count}")
+        if deleted_count > 0:
+            print(f"  遗忘率: {deleted_count / max(total_checked, 1) * 100:.1f}%")
+        print(f"{'=' * 60}\n")
+
+        self.logger.info(
+            f"Forgetting complete: strategy={strategy}, forgotten={deleted_count}, "
+            f"remaining={remaining_count}, threshold={threshold}"
+        )
+
+        return {
+            "forgotten_count": deleted_count,
+            "remaining_count": remaining_count,
+            "strategy": strategy,
+            "threshold": threshold,
+        }
+
+    def update_memory_strength(
+        self,
+        entry_id: str,
+        increment: float = 1.0,
+        reset_time: bool = True,
+    ) -> bool:
+        """更新记忆强度 (MemoryBank 检索强化机制)
+
+        当记忆被检索时调用，增加记忆强度并重置时间。
+
+        Args:
+            entry_id: 记忆条目 ID
+            increment: 强度增量 (默认 +1)
+            reset_time: 是否重置 last_recall_date (默认 True)
+
+        Returns:
+            bool: 更新是否成功
+        """
+        meta = self.collection.get_metadata(entry_id)
+        if not meta:
+            self.logger.warning(f"Cannot update memory strength: entry {entry_id} not found")
+            return False
+
+        # 更新记忆强度
+        current_strength = meta.get("memory_strength", 1.0)
+        meta["memory_strength"] = current_strength + increment
+
+        # 重置时间
+        if reset_time:
+            meta["last_recall_date"] = time.time()
+
+        # 写回元数据
+        success = self.collection.update(entry_id, new_metadata=meta)
+
+        if success:
+            # === MemoryBank: 强化日志 ===
+            print(
+                f"[MemoryBank] 记忆强化: {entry_id[:8]}... 强度 {current_strength:.2f} → {meta['memory_strength']:.2f}"
+            )
+
+            self.logger.debug(
+                f"Updated memory strength: {entry_id[:16]}, "
+                f"strength={meta['memory_strength']:.2f} (+{increment})"
+            )
+
+        return success
