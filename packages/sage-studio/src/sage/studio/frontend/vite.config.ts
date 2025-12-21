@@ -11,20 +11,15 @@ export default defineConfig({
         },
     },
     server: {
-        port: 5173,
+        port: parseInt(process.env.PORT || '5173'),
         // Allow all external hosts (Cloudflare Tunnel, custom domains, etc.)
         // 'true' means allow any host - necessary for reverse proxy setups
         allowedHosts: true,
         proxy: {
-            // Chat API 转发到 Gateway (8000)
-            '/api/chat': {
-                target: 'http://localhost:8000',
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api\/chat/, ''),
-            },
-            // 其他 API 转发到 Studio 后端 (8080)
+            // 所有 Studio API 统一转发到 Gateway
+            // 优先使用环境变量 VITE_GATEWAY_PORT，否则默认为 8888
             '/api': {
-                target: 'http://localhost:8080',
+                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
                 changeOrigin: true,
                 rewrite: (path) => path,
             },
@@ -36,8 +31,16 @@ export default defineConfig({
     },
     // Preview server config (for production mode: vite preview)
     preview: {
-        port: 5173,
+        port: parseInt(process.env.PORT || '5173'),
         // Allow all external hosts (Cloudflare Tunnel, custom domains, etc.)
         allowedHosts: true,
+        proxy: {
+            // 所有 Studio API 统一转发到 Gateway
+            '/api': {
+                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
+                changeOrigin: true,
+                rewrite: (path) => path,
+            },
+        },
     },
 })

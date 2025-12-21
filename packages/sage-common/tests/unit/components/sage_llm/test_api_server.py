@@ -8,131 +8,141 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 
-class TestSelectAvailableGpus:
-    """Tests for _select_available_gpus function."""
+def _mock_nvidia_smi_result(stdout: str, returncode: int = 0):
+    """Helper to create mock subprocess result for nvidia-smi."""
+    mock_result = MagicMock()
+    mock_result.returncode = returncode
+    mock_result.stdout = stdout
+    return mock_result
 
-    def test_returns_none_when_import_fails(self):
-        """Should return None when GPUResourceManager import fails."""
+
+class TestSelectAvailableGpus:
+    """Tests for _select_available_gpus function.
+
+    The function uses nvidia-smi to query GPU memory and selects GPUs
+    with the most free memory.
+    """
+
+    def test_returns_none_when_nvidia_smi_fails(self):
+        """Should return None when nvidia-smi command fails."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        # Mock the import to raise ImportError
-        with patch.dict(
-            "sys.modules",
-            {"sage.common.components.sage_llm.sageLLM.control_plane": None},
-        ):
-            # Test the behavior - the function should gracefully handle import errors
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result("", returncode=1)
             result = _select_available_gpus(40.0, 1)
-            # Result could be None (if GPUResourceManager not available) or a list
-            assert result is None or isinstance(result, list)
+            assert result is None
 
     def test_returns_gpus_when_available(self):
         """Should return list of GPU IDs when sufficient memory is available."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.return_value = [0, 1]
+        # nvidia-smi output: GPU 0 has 80GB free, GPU 1 has 70GB free
+        nvidia_output = "0, 81920\n1, 71680\n"
 
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result(nvidia_output)
             result = _select_available_gpus(40.0, 2)
 
-            if result is not None:
-                assert result == [0, 1]
-                mock_gpu_manager.allocate_resources.assert_called_once_with(40.0, 2)
-                mock_gpu_manager.release_resources.assert_called_once_with([0, 1], 40.0)
+            assert result == [0, 1]
 
     def test_returns_none_when_insufficient_gpus(self):
-        """Should return None when not enough GPUs with sufficient memory."""
+        """Should still return available GPUs even if fewer than requested."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.return_value = [0]  # Only 1 GPU, but need 2
+        # Only 1 GPU available, but requesting 2
+        nvidia_output = "0, 81920\n"
 
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result(nvidia_output)
             result = _select_available_gpus(40.0, 2)
 
-            # Should return None since we need 2 GPUs but only 1 available
-            assert result is None or len(result) < 2
+            # Function returns what's available, even if less than requested
+            assert result == [0]
 
     def test_returns_none_when_no_gpus_available(self):
-        """Should return None when allocate_resources returns empty list."""
+        """Should return None when nvidia-smi returns empty output."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.return_value = []
-
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result("")
             result = _select_available_gpus(40.0, 1)
             assert result is None
 
-    def test_returns_none_when_allocate_returns_none(self):
-        """Should return None when allocate_resources returns None."""
+    def test_returns_none_when_nvidia_smi_times_out(self):
+        """Should return None when nvidia-smi times out."""
+        from subprocess import TimeoutExpired
+
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.return_value = None
-
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = TimeoutExpired("nvidia-smi", 10)
             result = _select_available_gpus(40.0, 1)
             assert result is None
 
     def test_returns_none_on_exception(self):
-        """Should return None when GPUResourceManager raises exception."""
+        """Should return None when subprocess raises exception."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.side_effect = RuntimeError("GPU error")
-
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = OSError("nvidia-smi not found")
             result = _select_available_gpus(40.0, 1)
             assert result is None
 
     def test_single_gpu_selection(self):
-        """Should correctly select single GPU."""
+        """Should correctly select single GPU with most free memory."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.return_value = [1]
+        # GPU 1 has more free memory than GPU 0
+        nvidia_output = "0, 20480\n1, 61440\n"
 
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result(nvidia_output)
             result = _select_available_gpus(60.0, 1)
 
-            if result is not None:
-                assert result == [1]
-                mock_gpu_manager.allocate_resources.assert_called_once_with(60.0, 1)
+            # Should select GPU 1 (60GB free) since it has more memory
+            assert result == [1]
 
     def test_default_tensor_parallel_size(self):
         """Should use default tensor_parallel_size of 1."""
         from sage.common.components.sage_llm.api_server import _select_available_gpus
 
-        mock_gpu_manager = MagicMock()
-        mock_gpu_manager.allocate_resources.return_value = [0]
+        nvidia_output = "0, 81920\n"
 
-        with patch(
-            "sage.common.components.sage_llm.sageLLM.control_plane.GPUResourceManager",
-            return_value=mock_gpu_manager,
-        ):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result(nvidia_output)
             result = _select_available_gpus(40.0)  # No tensor_parallel_size specified
 
-            if result is not None:
-                mock_gpu_manager.allocate_resources.assert_called_once_with(40.0, 1)
+            # Default should select 1 GPU
+            assert result == [0]
+
+    def test_selects_gpus_with_sufficient_memory(self):
+        """Should prefer GPUs that meet memory requirement."""
+        from sage.common.components.sage_llm.api_server import _select_available_gpus
+
+        # GPU 0: 50GB, GPU 1: 30GB, GPU 2: 60GB
+        nvidia_output = "0, 51200\n1, 30720\n2, 61440\n"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result(nvidia_output)
+            # Request 2 GPUs with at least 40GB each
+            result = _select_available_gpus(40.0, 2)
+
+            # Should select GPU 2 (60GB) and GPU 0 (50GB), sorted by free memory
+            assert result == [2, 0]
+
+    def test_falls_back_to_available_gpus_when_insufficient_memory(self):
+        """Should fall back to available GPUs when not enough meet memory requirement."""
+        from sage.common.components.sage_llm.api_server import _select_available_gpus
+
+        # Only GPU 0 has enough memory, but we need 2 GPUs
+        nvidia_output = "0, 51200\n1, 10240\n"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _mock_nvidia_smi_result(nvidia_output)
+            result = _select_available_gpus(40.0, 2)
+
+            # Should fall back to selecting top 2 GPUs by free memory
+            assert result == [0, 1]
 
 
 class TestGetServedModelName:

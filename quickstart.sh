@@ -114,10 +114,14 @@ main() {
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
 
             if [ "$fix_environment" = "true" ]; then
-                run_full_diagnosis
+                run_full_diagnosis || true
                 run_auto_fixes
             else
-                run_full_diagnosis
+                # 如果诊断发现问题，自动提示修复
+                if ! run_full_diagnosis; then
+                    echo ""
+                    run_auto_fixes
+                fi
             fi
 
             if [ "$doctor_only" = "true" ]; then
@@ -387,8 +391,8 @@ main() {
         echo ""
         echo -e "${INFO} 检查依赖版本兼容性..."
         if [ -f "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh" ]; then
-            # 非交互模式检查（在 CI 环境中）
-            if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+            # 非交互模式检查（在 CI 环境中或自动确认模式）
+            if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$(get_auto_confirm)" = "true" ]; then
                 source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies --non-interactive || {
                     echo -e "${DIM}  ⚠️  依赖检查完成（可能存在警告）${NC}"

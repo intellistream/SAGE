@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Layout } from 'antd'
+import { Layout, Spin } from 'antd'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Toolbar from './components/Toolbar'
 import NodePalette from './components/NodePalette'
 import FlowEditor from './components/FlowEditor'
@@ -8,12 +9,43 @@ import StatusBar from './components/StatusBar'
 import LogViewer from './components/LogViewer'
 import ChatMode from './components/ChatMode'
 import FinetunePanel from './components/FinetunePanel'
+import { LoginPage } from './components/LoginPage'
+import { useAuthStore } from './store/authStore'
+import { useIsMobile } from './hooks/useIsMobile'
 
 const { Header, Footer } = Layout
 
 export type AppMode = 'chat' | 'canvas' | 'finetune'
 
-function App() {
+function RequireAuth({ children }: { children: JSX.Element }) {
+    const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
+    const location = useLocation()
+    const [isChecking, setIsChecking] = useState(true)
+
+    useEffect(() => {
+        const initAuth = async () => {
+            await checkAuth()
+            setIsChecking(false)
+        }
+        initAuth()
+    }, [checkAuth])
+
+    if (isChecking || isLoading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <Spin size="large" tip="Loading..." />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" state={{ from: location }} replace />
+    }
+
+    return children
+}
+
+function StudioLayout() {
     const [mode, setMode] = useState<AppMode>('chat')
     const [leftWidth, setLeftWidth] = useState(280)
     const [rightWidth, setRightWidth] = useState(320)
@@ -23,6 +55,12 @@ function App() {
     const [isDraggingBottom, setIsDraggingBottom] = useState(false)
     const [showLogs, setShowLogs] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
+
+    // Mobile detection
+    const isMobile = useIsMobile()
+
+    // Force chat mode on mobile
+    const effectiveMode = isMobile ? 'chat' : mode
 
     // 左侧拖拽处理
     const handleLeftMouseDown = useCallback(() => {
@@ -106,27 +144,35 @@ function App() {
     return (
         <div
             ref={containerRef}
-            style={{
+            className={isMobile ? 'h-[100dvh]' : ''}
+            style={isMobile ? {
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+            } : {
                 height: '100vh',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
             }}
         >
-            {/* 顶部工具栏 - 固定 */}
-            <Header
-                style={{
-                    padding: 0,
-                    height: 64,
-                    lineHeight: 'normal',
-                    flexShrink: 0,
-                }}
-            >
-                <Toolbar mode={mode} onModeChange={setMode} />
-            </Header>
+            {/* Desktop Header - Hidden on mobile (ChatMode has its own mobile header) */}
+            {!isMobile && (
+                <Header
+                    style={{
+                        padding: 0,
+                        height: 64,
+                        lineHeight: 'normal',
+                        flexShrink: 0,
+                    }}
+                    className="bg-[--gemini-main-bg]"
+                >
+                    <Toolbar mode={mode} onModeChange={setMode} />
+                </Header>
+            )}
 
-            {/* 主要内容区域 - 根据模式切换 */}
-            {mode === 'canvas' ? (
+            {/* Main Content - Force Chat mode on mobile */}
+            {effectiveMode === 'canvas' ? (
                 <div
                     style={{
                         flex: 1,
@@ -149,11 +195,11 @@ function App() {
                             style={{
                                 width: leftWidth,
                                 height: '100%',
-                                backgroundColor: '#fff',
-                                borderRight: '1px solid #e8e8e8',
+                                borderRight: '1px solid var(--gemini-border)',
                                 overflow: 'auto',
                                 flexShrink: 0,
                             }}
+                            className="bg-[--gemini-main-bg]"
                         >
                             <NodePalette />
                         </div>
@@ -225,11 +271,11 @@ function App() {
                             style={{
                                 width: rightWidth,
                                 height: '100%',
-                                backgroundColor: '#fff',
-                                borderLeft: '1px solid #e8e8e8',
+                                borderLeft: '1px solid var(--gemini-border)',
                                 overflow: 'auto',
                                 flexShrink: 0,
                             }}
+                            className="bg-[--gemini-main-bg]"
                         >
                             <PropertiesPanel />
                         </div>
@@ -267,30 +313,31 @@ function App() {
                             <div
                                 style={{
                                     height: bottomHeight,
-                                    borderTop: '1px solid #e8e8e8',
+                                    borderTop: '1px solid var(--gemini-border)',
                                     overflow: 'hidden',
                                     flexShrink: 0,
                                 }}
+                                className="bg-[--gemini-main-bg]"
                             >
                                 <LogViewer />
                             </div>
                         </>
                     )}
                 </div>
-            ) : mode === 'chat' ? (
-                /* Chat 模式 - 全新界面 */
+            ) : effectiveMode === 'chat' ? (
+                /* Chat 模式 - 全新界面 (includes mobile support) */
                 <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <ChatMode onModeChange={setMode} />
+                    <ChatMode onModeChange={setMode} isMobile={isMobile} />
                 </div>
             ) : (
-                /* Finetune 模式 - 模型微调 */
-                <div style={{ flex: 1, overflow: 'hidden' }}>
+                /* Finetune 模式 - 模型微调 (Desktop only) */
+                <div style={{ flex: 1, overflow: 'hidden' }} className="bg-[--gemini-main-bg]">
                     <FinetunePanel />
                 </div>
             )}
 
-            {/* 底部状态栏 - 仅在 Canvas 模式显示 */}
-            {mode === 'canvas' && (
+            {/* 底部状态栏 - 仅在 Canvas 模式且非移动端显示 */}
+            {effectiveMode === 'canvas' && !isMobile && (
                 <Footer
                     style={{
                         padding: '8px 16px',
@@ -303,6 +350,24 @@ function App() {
                 </Footer>
             )}
         </div>
+    )
+}
+
+function App() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                    path="/"
+                    element={
+                        <RequireAuth>
+                            <StudioLayout />
+                        </RequireAuth>
+                    }
+                />
+            </Routes>
+        </BrowserRouter>
     )
 }
 

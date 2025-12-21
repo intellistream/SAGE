@@ -43,7 +43,7 @@ class ThroughputExperiment(BaseExperiment):
     Example:
         exp = ThroughputExperiment(
             name="throughput_sweep",
-            control_plane_url="http://localhost:8000",
+            control_plane_url="http://localhost:8888",
             request_rates=[50, 100, 200, 500],
         )
         result = await exp.run_full()
@@ -52,7 +52,7 @@ class ThroughputExperiment(BaseExperiment):
     def __init__(
         self,
         name: str,
-        control_plane_url: str = "http://localhost:8000",
+        control_plane_url: str = "http://localhost:8888",
         request_rates: list[int] | None = None,
         num_requests: int = 500,
         llm_ratio: float = 0.5,

@@ -27,7 +27,9 @@ def start(
         False, "--no-auto-build", help="禁用自动构建（生产模式下如缺少构建会提示失败）"
     ),
     no_llm: bool = typer.Option(False, "--no-llm", help="禁用本地 LLM 服务（默认启动 sageLLM）"),
-    no_embedding: bool = typer.Option(False, "--no-embedding", help="禁用 Embedding 服务"),
+    no_embedding: bool = typer.Option(
+        False, "--no-embedding", help="禁用本地 Embedding 服务（用于无 GPU 的 CI/CD 环境）"
+    ),
     llm_model: str | None = typer.Option(
         None,
         "--llm-model",
@@ -127,8 +129,8 @@ def start(
             llm=False if no_llm else None,
             llm_model=llm_model,
             use_finetuned=use_finetuned,
-            skip_confirm=yes,  # Pass -y/--yes flag for CI/CD auto-confirm
-            no_embedding=no_embedding,  # Pass --no-embedding flag
+            skip_confirm=yes,
+            no_embedding=no_embedding,
         )
 
         if success:
@@ -147,15 +149,18 @@ def start(
 
 
 @app.command()
-def stop():
-    """停止 SAGE Studio（包括 Gateway 和 LLM 服务）
+def stop(
+    all: bool = typer.Option(False, "--all", help="同时停止 LLM 和 Embedding 基础设施服务"),
+):
+    """停止 SAGE Studio（默认保留 LLM/Embedding 服务）
 
-    默认会停止所有服务（前端、Gateway、LLM）。
+    默认只停止 Studio 前端和 Gateway。
+    使用 --all 选项可同时停止 LLM 和 Embedding 服务。
     """
     console.print("[blue]🛑 停止 SAGE Studio...[/blue]")
 
     try:
-        success = studio_manager.stop()
+        success = studio_manager.stop(stop_infrastructure=all)
 
         if success:
             console.print("[green]✅ Studio 已停止[/green]")

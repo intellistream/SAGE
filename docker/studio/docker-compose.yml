@@ -1,0 +1,88 @@
+# SAGE Studio Docker Compose
+#
+# 使用方法:
+#   启动: docker-compose -f docker/studio/docker-compose.yml up -d
+#   停止: docker-compose -f docker/studio/docker-compose.yml down
+#   日志: docker-compose -f docker/studio/docker-compose.yml logs -f
+#   重建: docker-compose -f docker/studio/docker-compose.yml up -d --build
+
+version: '3.8'
+
+services:
+  sage-studio:
+    build:
+      context: ../..  # 项目根目录
+      dockerfile: docker/studio/Dockerfile
+    image: ghcr.io/intellistream/sage-studio:latest
+    container_name: sage-studio
+    restart: unless-stopped
+
+    # GPU 支持
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
+    # 端口映射
+    ports:
+    - "5173:5173"     # Studio 前端
+    - "8888:8888"     # Gateway API
+      # LLM 和 Embedding 端口仅内部使用，不对外暴露
+      # - "8901:8901"   # LLM Service
+      # - "8090:8090"   # Embedding Service
+
+    # 环境变量
+    environment:
+    - STUDIO_PORT=5173
+    - GATEWAY_PORT=8888
+    - LLM_PORT=8901
+    - EMBEDDING_PORT=8090
+      # HuggingFace 镜像（中国区）
+    - HF_ENDPOINT=https://hf-mirror.com
+      # LLM 模型配置
+    - SAGE_STUDIO_LLM_MODEL=Qwen/Qwen2.5-7B-Instruct
+    - SAGE_STUDIO_LLM_GPU_MEMORY=0.9
+    - SAGE_LLM_STARTUP_TIMEOUT=600
+      # 云端 API 备用（可选，填入后可在本地 LLM 不可用时降级）
+      # - SAGE_CHAT_API_KEY=sk-xxx
+      # - SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+      # - SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+
+    # 数据卷
+    volumes:
+      # 模型缓存（避免每次重新下载）
+    - sage-models:/root/.cache/huggingface
+      # SAGE 配置和日志
+    - sage-data:/root/.sage
+      # 用户数据（XDG 标准）
+    - sage-local-share:/root/.local/share/sage
+    - sage-local-state:/root/.local/state/sage
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # LLM 模型加载需要时间
+
+    # 日志配置
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+# 数据卷定义
+volumes:
+  sage-models:
+    name: sage-models
+  sage-data:
+    name: sage-data
+  sage-local-share:
+    name: sage-local-share
+  sage-local-state:
+    name: sage-local-state

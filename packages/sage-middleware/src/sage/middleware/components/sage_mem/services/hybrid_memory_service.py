@@ -38,6 +38,10 @@ class HybridMemoryService(BaseService):
     设计原则: Service : Collection = 1 : 1
     底层使用单一 HybridCollection，支持创建多种类型的索引（VDB, KV, Graph）。
     数据只存一份，可以通过多种索引访问。
+
+    支持两种模式:
+    - graph_enabled=False: 纯向量+关键词混合检索 (Mem0 基础版)
+    - graph_enabled=True: 向量+关键词+图检索 (Mem0ᵍ 图记忆版)
     """
 
     def __init__(
@@ -47,6 +51,9 @@ class HybridMemoryService(BaseService):
         fusion_weights: dict[str, float] | None = None,
         rrf_k: int = 60,
         collection_name: str = "hybrid_memory",
+        graph_enabled: bool = False,
+        entity_extraction: bool = False,
+        relation_extraction: bool = False,
     ):
         """初始化混合记忆服务
 
@@ -60,14 +67,26 @@ class HybridMemoryService(BaseService):
             fusion_weights: 索引权重 {"index_name": weight} (weighted 策略)
             rrf_k: RRF 参数 (rrf 策略)
             collection_name: Collection 名称
+            graph_enabled: 是否启用图索引（Mem0ᵍ 图记忆版）
+            entity_extraction: 是否启用实体抽取（与 graph_enabled 配合使用）
+            relation_extraction: 是否启用关系抽取（与 graph_enabled 配合使用）
         """
         super().__init__()
+
+        # 图索引相关配置
+        self.graph_enabled = graph_enabled
+        self.entity_extraction = entity_extraction
+        self.relation_extraction = relation_extraction
 
         # 默认索引配置
         default_indexes = [
             {"name": "semantic", "type": "vdb", "dim": 768},
             {"name": "keyword", "type": "kv", "index_type": "bm25s"},
         ]
+
+        # 如果启用图索引，添加图索引配置
+        if graph_enabled and indexes is None:
+            default_indexes.append({"name": "entity_graph", "type": "graph"})
 
         self.index_configs = indexes or default_indexes
         self.fusion_strategy = fusion_strategy
@@ -81,10 +100,43 @@ class HybridMemoryService(BaseService):
         # 创建或获取单一 HybridCollection (Service:Collection = 1:1)
         self._init_collection()
 
+        # === 被动插入状态管理（Mem0 CRUD 模式）===
+        # 用于存储待处理的新条目和相似条目，供 PostInsert 查询
+        self._pending_items: list[dict] = []  # 新插入的待决策条目
+        self._pending_similar: list[dict] = []  # 相似的已有条目
+        self._pending_action: str | None = None  # "crud" | None
+
         self.logger.info(
             f"HybridMemoryService initialized: strategy={fusion_strategy}, "
-            f"indexes={[c['name'] for c in self.index_configs]}"
+            f"indexes={[c['name'] for c in self.index_configs]}, "
+            f"graph_enabled={graph_enabled}"
         )
+
+    def get(self, entry_id: str) -> dict[str, Any] | None:
+        """获取指定 ID 的记忆条目
+
+        Args:
+            entry_id: 条目 ID
+
+        Returns:
+            dict: 条目数据（包含 text, metadata 等），不存在返回 None
+        """
+        if not hasattr(self.collection, "text_storage"):
+            return None
+
+        text = self.collection.text_storage.get(entry_id)
+        if text is None:
+            return None
+
+        metadata = None
+        if hasattr(self.collection, "metadata_storage"):
+            metadata = self.collection.metadata_storage.get(entry_id)
+
+        return {
+            "id": entry_id,
+            "text": text,
+            "metadata": metadata or {},
+        }
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
@@ -102,15 +154,29 @@ class HybridMemoryService(BaseService):
     def _init_collection(self) -> None:
         """初始化 HybridCollection 并创建索引"""
         # 创建或获取 HybridCollection
+        # 注意：has_collection 可能返回 True，但 get_collection 返回 None（磁盘数据丢失）
+        # 或者返回的不是 HybridCollection，这种情况下需要删除旧记录并重新创建
+        collection = None
         if self.manager.has_collection(self.collection_name):
             collection = self.manager.get_collection(self.collection_name)
-            if not isinstance(collection, HybridCollection):
-                raise TypeError(
-                    f"Collection '{self.collection_name}' exists but is not a HybridCollection"
+            if collection is None:
+                # Collection 元数据存在但磁盘数据丢失
+                self.logger.warning(
+                    f"Collection '{self.collection_name}' metadata exists but data is missing, "
+                    "will recreate."
                 )
-            self.collection = collection
-        else:
-            self.collection = self.manager.create_collection(
+                self.manager.delete_collection(self.collection_name)
+            elif not isinstance(collection, HybridCollection):
+                # Collection 存在但类型不对
+                self.logger.warning(
+                    f"Collection '{self.collection_name}' exists but is not a HybridCollection, "
+                    "will recreate."
+                )
+                self.manager.delete_collection(self.collection_name)
+                collection = None
+
+        if collection is None:
+            collection = self.manager.create_collection(
                 {
                     "name": self.collection_name,
                     "backend_type": "hybrid",
@@ -118,6 +184,8 @@ class HybridMemoryService(BaseService):
                     "description": "Hybrid memory with multiple index types",
                 }
             )
+
+        self.collection = collection
 
         if self.collection is None:
             raise RuntimeError(f"Failed to create HybridCollection '{self.collection_name}'")
@@ -216,8 +284,102 @@ class HybridMemoryService(BaseService):
             edges=edges,
         )
 
+        # === 被动插入模式：检测相似项，更新状态供 PostInsert 查询 ===
+        if insert_mode == "passive" and vector is not None:
+            self._update_pending_status(
+                entry=entry,
+                entry_id=stable_id,
+                vector=vector,
+                metadata=metadata,
+            )
+
         self.logger.debug(f"Inserted document to hybrid memory: {stable_id[:16]}...")
         return stable_id
+
+    def _update_pending_status(
+        self,
+        entry: str,
+        entry_id: str,
+        vector: np.ndarray | list[float],
+        metadata: dict | None = None,
+    ) -> None:
+        """更新待处理状态（被动插入模式核心方法）
+
+        在插入后检索相似项，更新状态供 PostInsert 的 Mem0 CRUD 决策。
+
+        Args:
+            entry: 插入的文本内容
+            entry_id: 插入后的条目 ID
+            vector: 插入的向量
+            metadata: 插入的元数据
+        """
+        # 检索相似条目（排除刚插入的条目）
+        try:
+            similar_results = self.retrieve_single(
+                query=np.array(vector, dtype=np.float32),
+                index_name=self.index_configs[0].get("name") if self.index_configs else "semantic",
+                top_k=10,
+            )
+
+            # 过滤掉刚插入的条目
+            similar_results = [r for r in similar_results if r.get("entry_id") != entry_id]
+
+            if similar_results:
+                # 有相似条目，设置待处理状态
+                self._pending_items = [
+                    {
+                        "entry_id": entry_id,
+                        "text": entry,
+                        "vector": (
+                            vector.tolist()
+                            if isinstance(vector, np.ndarray)
+                            else list(vector)
+                            if vector
+                            else None
+                        ),
+                        "metadata": metadata or {},
+                    }
+                ]
+                self._pending_similar = similar_results
+                self._pending_action = "crud"
+
+                self.logger.debug(
+                    f"Pending CRUD status updated: new_item={entry_id[:16]}..., "
+                    f"similar_count={len(similar_results)}"
+                )
+            else:
+                # 无相似条目，清除状态
+                self.clear_pending_status()
+
+        except Exception as e:
+            self.logger.warning(f"Failed to update pending status: {e}")
+            self.clear_pending_status()
+
+    def get_status(self) -> dict:
+        """查询服务状态（被动插入模式唯一对外接口）
+
+        供 PostInsert 算子查询待处理状态，决定是否需要 LLM 进行 CRUD 决策。
+
+        Returns:
+            dict: 服务状态字典
+                - pending_action: "crud" | None
+                - pending_items: 新插入的待决策条目
+                - pending_similar: 相似的已有条目
+        """
+        return {
+            "pending_action": self._pending_action,
+            "pending_items": self._pending_items.copy(),
+            "pending_similar": self._pending_similar.copy(),
+        }
+
+    def clear_pending_status(self) -> None:
+        """清除待处理状态
+
+        在 PostInsert 处理完成后调用，或无需处理时清除。
+        """
+        self._pending_items = []
+        self._pending_similar = []
+        self._pending_action = None
 
     def retrieve(
         self,
@@ -435,10 +597,16 @@ class HybridMemoryService(BaseService):
                 "count": self.collection.get_index_count(idx_name),
             }
 
-        return {
+        base_stats = {
             "memory_count": len(self.collection.get_all_ids()),
             "fusion_strategy": self.fusion_strategy,
             "index_count": len(self.index_configs),
             "indexes": index_stats,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats

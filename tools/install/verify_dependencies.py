@@ -226,7 +226,7 @@ def main(verbose: bool = False):
     else:
         print("❌ 存在依赖版本问题，请查看上面的错误信息并修复")
         print("\n💡 提示: 运行以下命令获取详细帮助:")
-        print("   cat docs/dev-notes/l0-infra/vllm-torch-version-conflict.md")
+        print("   cat docs-public/docs_src/dev-notes/l1-common/VLLM_TORCH_VERSION_CONFLICT.md")
         return 1
 
 

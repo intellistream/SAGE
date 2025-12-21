@@ -14,9 +14,10 @@ Key Features:
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -25,10 +26,12 @@ from sage.common.config.ports import SagePorts
 from sage.gateway.adapters import ChatCompletionRequest, OpenAIAdapter
 from sage.gateway.routes.control_plane import (
     control_plane_router,
+    get_control_plane_manager,
     init_control_plane,
     start_control_plane,
     stop_control_plane,
 )
+from sage.gateway.routes.studio import studio_router
 from sage.gateway.session import get_session_manager
 
 # 配置日志
@@ -70,6 +73,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.middleware("http")
+async def api_prefix_middleware(request: Request, call_next):
+    """
+    Middleware to handle /api prefix for Gateway routes.
+
+    In some deployment scenarios (e.g. production without Vite proxy),
+    requests might reach the Gateway with /api prefix (e.g. /api/v1/chat/completions).
+    We strip this prefix for specific Gateway routes to ensure they match.
+    """
+    path = request.url.path
+    if path.startswith("/api/v1/") or path.startswith("/api/sessions") or path == "/api/health":
+        request.scope["path"] = path.replace("/api", "", 1)
+
+    response = await call_next(request)
+    return response
+
+
 # CORS 配置（允许 sage-studio 调用）
 app.add_middleware(
     CORSMiddleware,
@@ -85,6 +106,8 @@ session_manager = get_session_manager()
 
 # 挂载 Control Plane 管理路由
 app.include_router(control_plane_router)
+# 挂载 Studio Backend 路由（原 Studio Backend 服务现合并到 Gateway）
+app.include_router(studio_router)
 
 
 class SessionCreatePayload(BaseModel):
@@ -141,6 +164,51 @@ async def health():
         "status": "healthy",
         "sessions": stats,
     }
+
+
+@app.get("/v1/models")
+async def list_models():
+    """
+    OpenAI-compatible models endpoint.
+    Returns list of available models from Control Plane.
+    """
+    manager = get_control_plane_manager()
+    models = []
+
+    if manager:
+        # Get status which includes engines
+        status = manager.get_cluster_status()
+        engines = status.get("engines", []) or status.get("engine_instances", [])
+
+        seen_models = set()
+        for engine in engines:
+            # Support both dict and object access if needed, though usually dict here
+            if isinstance(engine, dict):
+                model_id = engine.get("model_id") or engine.get("model_name")
+            else:
+                model_id = getattr(engine, "model_id", None)
+
+            if model_id and model_id not in seen_models:
+                # Filter out embedding models
+                runtime = (
+                    engine.get("runtime")
+                    if isinstance(engine, dict)
+                    else getattr(engine, "runtime", None)
+                )
+                if runtime == "embedding":
+                    continue
+
+                seen_models.add(model_id)
+                models.append(
+                    {
+                        "id": model_id,
+                        "object": "model",
+                        "created": int(time.time()),
+                        "owned_by": "sage",
+                    }
+                )
+
+    return {"object": "list", "data": models}
 
 
 @app.post("/v1/chat/completions")

@@ -40,6 +40,8 @@ class FakeStudioManager:
         embedding_model=None,
         use_finetuned=False,
         interactive=None,
+        skip_confirm=False,
+        no_embedding=False,
     ):
         if frontend_port:
             self._config["port"] = frontend_port
@@ -48,7 +50,7 @@ class FakeStudioManager:
         self._running = True
         return True
 
-    def stop(self, stop_gateway=False):
+    def stop(self, stop_infrastructure=False):
         was_running = self._running
         self._running = False
         return was_running

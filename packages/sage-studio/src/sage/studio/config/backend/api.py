@@ -6,22 +6,43 @@ A simple FastAPI backend service that provides real SAGE data to the Studio fron
 
 import importlib
 import inspect
+import ipaddress
 import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Annotated, Any
+from urllib.parse import urlparse, urlunparse
 
+import requests
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
 from sage.common.config.ports import SagePorts
+from sage.common.config.user_paths import get_user_data_dir as get_common_user_data_dir
+from sage.studio.services.agent_orchestrator import get_orchestrator
+from sage.studio.services.auth_service import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    AuthService,
+    Token,
+    User,
+    UserCreate,
+    get_auth_service,
+)
+from sage.studio.services.file_upload_service import get_file_upload_service
+from sage.studio.services.memory_integration import get_memory_service
+from sage.studio.services.stream_handler import get_stream_handler
 
 # Gateway URL for API calls
-GATEWAY_BASE_URL = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}"
+# Use 127.0.0.1 instead of localhost to avoid IPv6 issues and ensure consistent behavior
+GATEWAY_HOST = os.getenv("SAGE_GATEWAY_HOST", "127.0.0.1")
+GATEWAY_BASE_URL = f"http://{GATEWAY_HOST}:{SagePorts.GATEWAY_DEFAULT}"
 
 # Load environment variables from .env file
 try:
@@ -177,6 +198,29 @@ def _get_sage_dir() -> Path:
     return sage_dir
 
 
+def get_user_data_dir(user_id: str) -> Path:
+    """Get user-specific data directory."""
+    # Use the common user data dir as base
+    base_dir = get_common_user_data_dir()
+    user_dir = base_dir / "users" / str(user_id)
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
+
+
+def get_user_pipelines_dir(user_id: str) -> Path:
+    """Get user-specific pipelines directory."""
+    pipelines_dir = get_user_data_dir(user_id) / "pipelines"
+    pipelines_dir.mkdir(parents=True, exist_ok=True)
+    return pipelines_dir
+
+
+def get_user_sessions_dir(user_id: str) -> Path:
+    """Get user-specific sessions directory."""
+    sessions_dir = get_user_data_dir(user_id) / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    return sessions_dir
+
+
 # Pydantic 模型定义
 class Job(BaseModel):
     jobId: str
@@ -228,6 +272,31 @@ class OperatorInfo(BaseModel):
     parameters: list[ParameterConfig] | None = []  # 添加参数配置字段
 
 
+# Auth Dependency
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> User:
+    username = auth_service.verify_token(token)
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = auth_service.get_user(username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return User(id=user.id, username=user.username, created_at=user.created_at)
+
+
 # 创建 FastAPI 应用
 app = FastAPI(
     title="SAGE Studio Backend",
@@ -235,29 +304,139 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# 动态构建允许的来源列表
+allowed_origins = [
+    "http://localhost:5173",  # Vite 开发服务器默认端口
+    "http://localhost:4173",  # Vite preview 服务器默认端口
+    f"http://localhost:{SagePorts.STUDIO_FRONTEND}",
+    f"http://127.0.0.1:{SagePorts.STUDIO_FRONTEND}",
+    f"http://0.0.0.0:{SagePorts.STUDIO_FRONTEND}",
+]
+
+# 添加常用开发端口
+for port in [5173, 4173, 35180]:
+    if port != SagePorts.STUDIO_FRONTEND:
+        allowed_origins.extend(
+            [
+                f"http://localhost:{port}",
+                f"http://127.0.0.1:{port}",
+                f"http://0.0.0.0:{port}",
+            ]
+        )
+
+# 从环境变量添加额外来源
+extra_origins = os.getenv("SAGE_STUDIO_ALLOWED_ORIGINS", "")
+if extra_origins:
+    allowed_origins.extend(
+        [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+    )
+
+# 去重
+allowed_origins = list(set(allowed_origins))
+
 # 添加 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite 开发服务器默认端口
-        "http://localhost:4173",  # Vite preview 服务器默认端口
-        "http://0.0.0.0:5173",
-        "http://0.0.0.0:4173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-def _read_sage_data_from_files():
+# Auth Endpoints
+@app.post("/api/auth/register", response_model=User)
+async def register(
+    user: UserCreate,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    db_user = auth_service.get_user(user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return auth_service.create_user(user.username, user.password)
+
+
+@app.post("/api/auth/login", response_model=Token)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    # Strip whitespace from username to match registration behavior
+    username = form_data.username.strip()
+    user = auth_service.get_user(username)
+
+    if not user or not auth_service.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/api/auth/guest", response_model=Token)
+async def login_guest(
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    user = auth_service.create_guest_user()
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth_service.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/auth/me", response_model=User)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return current_user
+
+
+@app.post("/api/auth/logout")
+async def logout(
+    current_user: Annotated[User, Depends(get_current_user)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    if getattr(current_user, "is_guest", False):
+        # Clean up guest data
+        import shutil
+
+        # Delete user from DB
+        auth_service.delete_user(current_user.id)
+
+        # Delete user data directory
+        # Use the local get_user_data_dir function defined in this file
+        user_dir = get_user_data_dir(str(current_user.id))
+        if user_dir.exists():
+            try:
+                shutil.rmtree(user_dir)
+            except Exception as e:
+                print(f"Error deleting guest data: {e}")
+
+    return {"message": "Successfully logged out"}
+
+
+def _read_sage_data_from_files(user_id: str | None = None):
     """从 .sage 目录的文件中读取实际的 SAGE 数据"""
-    sage_dir = _get_sage_dir()
+    # Global dir for system data
+    global_sage_dir = _get_sage_dir()
+
+    # User dir for user data
+    if user_id:
+        user_sage_dir = get_user_data_dir(user_id)
+    else:
+        user_sage_dir = global_sage_dir
+
     data = {"jobs": [], "operators": [], "pipelines": []}
 
     try:
         # 读取作业信息
-        states_dir = sage_dir / "states"
+        states_dir = user_sage_dir / "states"
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
@@ -268,7 +447,7 @@ def _read_sage_data_from_files():
                     print(f"Error reading job file {job_file}: {e}")
 
         # 读取保存的拓扑图并转换为 Job 格式
-        pipelines_dir = sage_dir / "pipelines"
+        pipelines_dir = user_sage_dir / "pipelines"
         if pipelines_dir.exists():
             for pipeline_file in pipelines_dir.glob("pipeline_*.json"):
                 try:
@@ -283,7 +462,7 @@ def _read_sage_data_from_files():
                     print(f"Error reading pipeline file {pipeline_file}: {e}")
 
         # 读取操作符信息
-        operators_file = sage_dir / "output" / "operators.json"
+        operators_file = global_sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
                 with open(operators_file, encoding="utf-8") as f:
@@ -293,7 +472,7 @@ def _read_sage_data_from_files():
                 print(f"Error reading operators file: {e}")
 
         # 读取管道信息
-        pipelines_file = sage_dir / "output" / "pipelines.json"
+        pipelines_file = global_sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
                 with open(pipelines_file) as f:
@@ -315,13 +494,15 @@ async def root():
 
 
 @app.get("/api/jobs/all", response_model=list[Job])
-async def get_all_jobs():
+async def get_all_jobs(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取所有作业信息"""
     try:
-        sage_data = _read_sage_data_from_files()
+        sage_data = _read_sage_data_from_files(user_id=str(current_user.id))
         jobs = sage_data.get("jobs", [])
 
-        print(f"DEBUG: Read {len(jobs)} jobs from files")
+        print(f"DEBUG: Read {len(jobs)} jobs from files for user {current_user.username}")
         print(f"DEBUG: sage_data = {sage_data}")
 
         # 如果没有实际数据，返回一些示例数据（用于开发）
@@ -606,15 +787,16 @@ async def get_pipelines():
 
 
 @app.post("/api/pipeline/submit")
-async def submit_pipeline(topology_data: dict):
+async def submit_pipeline(
+    topology_data: dict,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """提交拓扑图/管道配置"""
     try:
-        print(f"Received pipeline submission: {topology_data}")
+        print(f"Received pipeline submission from {current_user.username}: {topology_data}")
 
         # 这里可以添加保存到文件或数据库的逻辑
-        sage_dir = _get_sage_dir()
-        pipelines_dir = sage_dir / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
+        pipelines_dir = get_user_pipelines_dir(str(current_user.id))
 
         # 生成文件名（使用时间戳）
         import time
@@ -926,13 +1108,15 @@ async def update_pipeline_config(pipeline_id: str, config: dict):
 # ==================== Playground API ====================
 
 
-def _load_flow_data(flow_id: str) -> dict | None:
+def _load_flow_data(flow_id: str, user_id: str | None = None) -> dict | None:
     """加载 Flow 数据"""
-    sage_dir = _get_sage_dir()
-    pipelines_dir = sage_dir / "pipelines"
+    if user_id:
+        pipelines_dir = get_user_pipelines_dir(user_id)
+    else:
+        sage_dir = _get_sage_dir()
+        pipelines_dir = sage_dir / "pipelines"
 
     print(f"🔍 Looking for flow: {flow_id}")
-    print(f"📁 Sage dir: {sage_dir}")
     print(f"📁 Pipelines dir: {pipelines_dir}")
     print(f"📁 Pipelines dir exists: {pipelines_dir.exists()}")
 
@@ -1099,7 +1283,10 @@ class PlaygroundExecuteResponse(BaseModel):
 
 
 @app.post("/api/playground/execute", response_model=PlaygroundExecuteResponse)
-async def execute_playground(request: PlaygroundExecuteRequest):
+async def execute_playground(
+    request: PlaygroundExecuteRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """执行 Playground Flow - 使用增强的 PipelineBuilder"""
     try:
         import sys
@@ -1117,13 +1304,14 @@ async def execute_playground(request: PlaygroundExecuteRequest):
 
         print(f"\n{'=' * 60}")
         print("🎯 Playground 执行开始")
+        print(f"   User: {current_user.username}")
         print(f"   Flow ID: {request.flowId}")
         print(f"   Session: {request.sessionId}")
         print(f"   Input: {request.input[:100]}...")
         print(f"{'=' * 60}\n")
 
         # 1. 加载 Flow 定义
-        flow_data = _load_flow_data(request.flowId)
+        flow_data = _load_flow_data(request.flowId, user_id=str(current_user.id))
         if not flow_data:
             raise HTTPException(status_code=404, detail=f"Flow not found: {request.flowId}")
 
@@ -1217,10 +1405,13 @@ async def get_node_output(flow_id: str, node_id: str):
 
 # 2. Flow 导入/导出
 @app.get("/api/flows/{flow_id}/export")
-async def export_flow(flow_id: str):
+async def export_flow(
+    flow_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """导出 Flow 为 JSON 文件"""
     try:
-        flow_data = _load_flow_data(flow_id)
+        flow_data = _load_flow_data(flow_id, user_id=str(current_user.id))
         if not flow_data:
             raise HTTPException(404, f"Flow not found: {flow_id}")
 
@@ -1250,7 +1441,10 @@ async def export_flow(flow_id: str):
 
 
 @app.post("/api/flows/import")
-async def import_flow(file: UploadFile = File(...)):
+async def import_flow(
+    current_user: Annotated[User, Depends(get_current_user)],
+    file: UploadFile = File(...),
+):
     """导入 Flow JSON 文件"""
     try:
         import json
@@ -1271,9 +1465,7 @@ async def import_flow(file: UploadFile = File(...)):
         new_flow_id = f"pipeline_{timestamp}"
 
         # 保存到本地
-        sage_dir = _get_sage_dir()
-        pipelines_dir = sage_dir / "pipelines"
-        pipelines_dir.mkdir(parents=True, exist_ok=True)
+        pipelines_dir = get_user_pipelines_dir(str(current_user.id))
 
         flow_file = pipelines_dir / f"{new_flow_id}.json"
         with open(flow_file, "w", encoding="utf-8") as f:
@@ -1392,6 +1584,14 @@ class ChatRequest(BaseModel):
     stream: bool = False
 
 
+class AgentChatRequest(BaseModel):
+    """Agent 聊天请求"""
+
+    message: str
+    session_id: str
+    history: list[dict[str, str]] | None = None
+
+
 class ChatResponse(BaseModel):
     """Chat 模式响应"""
 
@@ -1423,27 +1623,217 @@ class ChatSessionTitleUpdate(BaseModel):
     title: str
 
 
-@app.post("/api/chat/message", response_model=ChatResponse)
-async def send_chat_message(request: ChatRequest):
-    """
-    发送聊天消息（调用 sage-gateway）
+def _get_session_path(user_id: str, session_id: str) -> Path:
+    return get_user_sessions_dir(user_id) / f"{session_id}.json"
 
-    注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
-    """
+
+def _load_session(user_id: str, session_id: str) -> dict | None:
+    path = _get_session_path(user_id, session_id)
+    if path.exists():
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading session {path}: {e}")
+    return None
+
+
+def _save_session(user_id: str, session_id: str, data: dict):
+    path = _get_session_path(user_id, session_id)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+@app.post("/api/chat/v1/chat/completions")
+async def proxy_chat_completions(
+    request: Request, current_user: Annotated[User, Depends(get_current_user)]
+):
+    """Proxy for OpenAI-compatible chat completions used by Studio frontend"""
     from datetime import datetime
 
     import httpx
 
     try:
+        # Get the raw body
+        body = await request.json()
+        session_id = body.get("session_id")
+        user_id = str(current_user.id)
+
+        # Extract user message from request
+        messages = body.get("messages", [])
+        user_message_content = None
+        if messages:
+            # Get the last user message
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    user_message_content = msg.get("content")
+                    break
+
+        # Load or create session
+        session_data = None
+        if session_id:
+            session_data = _load_session(user_id, session_id)
+
+        if not session_data and session_id:
+            # Create new session
+            now = datetime.now().isoformat()
+            session_data = {
+                "id": session_id,
+                "title": "New Chat",
+                "created_at": now,
+                "last_active": now,
+                "messages": [],
+                "metadata": {},
+            }
+
+        # Save user message to session
+        if session_data and user_message_content:
+            user_msg = {
+                "role": "user",
+                "content": user_message_content,
+                "timestamp": datetime.now().isoformat(),
+            }
+            session_data["messages"].append(user_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
+
+        # Collect assistant response
+        collected_content = []
+
+        # Forward to Gateway
+        # We use a stream to support SSE
+        async def event_generator():
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{GATEWAY_BASE_URL}/v1/chat/completions",
+                        json=body,
+                    ) as response:
+                        if response.status_code != 200:
+                            error_msg = await response.aread()
+                            yield f"data: {json.dumps({'error': f'Gateway error: {response.status_code} - {error_msg.decode()}'})}\n\n"
+                            return
+
+                        async for chunk in response.aiter_bytes():
+                            # Parse SSE to collect assistant content
+                            chunk_str = chunk.decode("utf-8", errors="ignore")
+                            for line in chunk_str.split("\n"):
+                                if line.startswith("data: "):
+                                    data = line[6:].strip()
+                                    if data and data != "[DONE]":
+                                        try:
+                                            parsed = json.loads(data)
+                                            content = (
+                                                parsed.get("choices", [{}])[0]
+                                                .get("delta", {})
+                                                .get("content")
+                                            )
+                                            if content:
+                                                collected_content.append(content)
+                                        except Exception:
+                                            pass
+                            yield chunk
+
+                # Save assistant message after streaming completes
+                if session_data and collected_content:
+                    assistant_msg = {
+                        "role": "assistant",
+                        "content": "".join(collected_content),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    session_data["messages"].append(assistant_msg)
+                    session_data["last_active"] = datetime.now().isoformat()
+                    _save_session(user_id, session_id, session_data)
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/chat/message", response_model=ChatResponse)
+async def send_chat_message(
+    request: ChatRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    发送聊天消息（调用 sage-gateway）
+
+    注意：需要 sage-gateway 服务运行在 GATEWAY_BASE_URL
+    """
+    import uuid
+    from datetime import datetime
+
+    import httpx
+
+    # 1. Handle Session
+    session_id = request.session_id
+    session_data = None
+    user_id = str(current_user.id)
+
+    if session_id:
+        session_data = _load_session(user_id, session_id)
+
+    if not session_data:
+        # Create new session if not found or not provided
+        session_id = session_id or str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        session_data = {
+            "id": session_id,
+            "title": "New Chat",
+            "created_at": now,
+            "last_active": now,
+            "messages": [],
+            "metadata": {},
+        }
+
+    # 2. Append User Message
+    user_msg = {"role": "user", "content": request.message, "timestamp": datetime.now().isoformat()}
+    session_data["messages"].append(user_msg)
+    session_data["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session_data)
+
+    # Resolve model if "sage-default"
+    model_to_use = request.model
+    if model_to_use == "sage-default":
+        # 1. Try environment variable (set by select_llm_model)
+        model_to_use = os.getenv("SAGE_CHAT_MODEL")
+
+        # 2. If not set, try to detect from Gateway
+        if not model_to_use:
+            try:
+                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.common.config.ports import SagePorts
+
+                client = UnifiedInferenceClient.create(
+                    control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+                )
+                detected = client._get_default_llm_model()
+                if detected and detected != "default":
+                    model_to_use = detected
+            except Exception:
+                pass
+
+        # 3. Fallback to original if still failed
+        if not model_to_use:
+            model_to_use = request.model
+
+    try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        # We pass the session_id to gateway as well, so it can maintain its own state if needed,
+        # or we can pass full history if gateway is stateless.
+        # For now, let's pass session_id.
+        async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
-                    "model": request.model,
+                    "model": model_to_use,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
-                    "session_id": request.session_id,
+                    "session_id": session_id,  # Pass session_id to gateway
                 },
             )
 
@@ -1456,11 +1846,20 @@ async def send_chat_message(request: ChatRequest):
             data = gateway_response.json()
 
             # 提取响应内容
-            assistant_message = data["choices"][0]["message"]["content"]
-            session_id = data.get("id", request.session_id or "default")
+            assistant_content = data["choices"][0]["message"]["content"]
+
+            # 3. Append Assistant Message
+            assistant_msg = {
+                "role": "assistant",
+                "content": assistant_content,
+                "timestamp": datetime.now().isoformat(),
+            }
+            session_data["messages"].append(assistant_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
 
             return ChatResponse(
-                content=assistant_message,
+                content=assistant_content,
                 session_id=session_id,
                 timestamp=datetime.now().isoformat(),
             )
@@ -1474,113 +1873,405 @@ async def send_chat_message(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Chat 请求失败: {str(e)}")
 
 
-@app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
-async def list_chat_sessions():
-    """获取所有聊天会话"""
-    import httpx
+@app.post("/api/chat/agent")
+async def agent_chat(request: AgentChatRequest):
+    """Multi-Agent 聊天接口"""
+    orchestrator = get_orchestrator()
+    stream_handler = get_stream_handler()
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{GATEWAY_BASE_URL}/sessions")
-            data = response.json()
-            return data.get("sessions", [])
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503,
-            detail="无法连接到 SAGE Gateway",
-        )
+    source = orchestrator.process_message(
+        message=request.message,
+        session_id=request.session_id,
+        history=request.history,
+    )
+
+    return stream_handler.create_response(source)
+
+
+@app.post("/api/chat/agent/sync")
+async def agent_chat_sync(request: AgentChatRequest):
+    """非流式 Agent 聊天接口（调试用）"""
+    orchestrator = get_orchestrator()
+
+    steps = []
+    text_parts = []
+
+    async for item in orchestrator.process_message(
+        message=request.message,
+        session_id=request.session_id,
+        history=request.history,
+    ):
+        if hasattr(item, "step_id"):  # AgentStep
+            # Handle both dataclass and Pydantic models
+            if hasattr(item, "to_dict"):
+                steps.append(item.to_dict())
+            elif hasattr(item, "dict"):
+                steps.append(item.dict())
+            else:
+                from dataclasses import asdict
+
+                steps.append(asdict(item))
+        else:  # str
+            text_parts.append(item)
+
+    return {
+        "steps": steps,
+        "response": "".join(text_parts),
+    }
+
+
+@app.get("/api/chat/sessions", response_model=list[ChatSessionSummary])
+async def list_chat_sessions(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """获取所有聊天会话"""
+    sessions_dir = get_user_sessions_dir(str(current_user.id))
+    sessions = []
+    if sessions_dir.exists():
+        for session_file in sessions_dir.glob("*.json"):
+            try:
+                with open(session_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Convert to summary
+                    sessions.append(
+                        ChatSessionSummary(
+                            id=data["id"],
+                            title=data.get("title", "Untitled Session"),
+                            created_at=data.get("created_at", ""),
+                            last_active=data.get("last_active", ""),
+                            message_count=len(data.get("messages", [])),
+                        )
+                    )
+            except Exception as e:
+                print(f"Error reading session {session_file}: {e}")
+
+    # Sort by last_active desc
+    sessions.sort(key=lambda x: x.last_active, reverse=True)
+    return sessions
 
 
 @app.post("/api/chat/sessions", response_model=ChatSessionDetail)
-async def create_chat_session(payload: ChatSessionCreateRequest):
+async def create_chat_session(
+    payload: ChatSessionCreateRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """创建新的聊天会话"""
-    import httpx
+    import uuid
+    from datetime import datetime
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(f"{GATEWAY_BASE_URL}/sessions", json=payload.model_dump())
-            if response.status_code >= 400:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+        session_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+
+        session_data = {
+            "id": session_id,
+            "title": payload.title or "New Session",
+            "created_at": now,
+            "last_active": now,
+            "message_count": 0,
+            "messages": [],
+            "metadata": {},
+        }
+
+        _save_session(str(current_user.id), session_id, session_data)
+
+        return ChatSessionDetail(**session_data)
+    except Exception as e:
+        print(f"Error creating session: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
-async def get_chat_session(session_id: str):
+async def get_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """获取单个会话详情"""
-    import httpx
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    session = _load_session(str(current_user.id), session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return ChatSessionDetail(**session)
 
 
 @app.post("/api/chat/sessions/{session_id}/clear")
-async def clear_chat_session(session_id: str):
+async def clear_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """清空会话历史"""
-    import httpx
+    from datetime import datetime
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(f"{GATEWAY_BASE_URL}/sessions/{session_id}/clear")
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    user_id = str(current_user.id)
+    session = _load_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    session["messages"] = []
+    session["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session)
+
+    return {"status": "success", "message": "Session cleared"}
 
 
 @app.patch("/api/chat/sessions/{session_id}/title", response_model=ChatSessionSummary)
-async def update_chat_session_title(session_id: str, payload: ChatSessionTitleUpdate):
+async def update_chat_session_title(
+    session_id: str,
+    payload: ChatSessionTitleUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """更新会话标题"""
-    import httpx
+    from datetime import datetime
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.patch(
-                f"{GATEWAY_BASE_URL}/sessions/{session_id}/title",
-                json=payload.model_dump(),
-            )
-            if response.status_code == 404:
-                raise HTTPException(status_code=404, detail="会话不存在")
-            response.raise_for_status()
-            # 更新后重新获取一次会话摘要，避免缺字段
-            detail_resp = await client.get(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            detail_resp.raise_for_status()
-            detail = detail_resp.json()
-            return ChatSessionSummary(
-                id=detail["id"],
-                title=detail.get("metadata", {}).get("title", payload.title),
-                created_at=detail.get("created_at"),
-                last_active=detail.get("last_active"),
-                message_count=len(detail.get("messages", [])),
-            )
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="无法连接到 SAGE Gateway")
+    user_id = str(current_user.id)
+    session = _load_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    session["title"] = payload.title
+    session["last_active"] = datetime.now().isoformat()
+    _save_session(user_id, session_id, session)
+
+    return ChatSessionSummary(
+        id=session["id"],
+        title=session["title"],
+        created_at=session["created_at"],
+        last_active=session["last_active"],
+        message_count=len(session["messages"]),
+    )
 
 
 @app.delete("/api/chat/sessions/{session_id}")
-async def delete_chat_session(session_id: str):
+async def delete_chat_session(
+    session_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
     """删除聊天会话"""
-    import httpx
+    user_id = str(current_user.id)
+    path = _get_session_path(user_id, session_id)
+    if path.exists():
+        path.unlink()
+        return {"status": "success", "message": "Session deleted"}
+    raise HTTPException(404, "Session not found")
+
+
+@app.get("/api/studio/memory/config")
+async def get_memory_config():
+    """获取记忆配置"""
+    import logging
+    from pathlib import Path
+
+    import yaml
+
+    # 默认配置
+    config = {
+        "enabled": True,
+        "backends": ["short_term", "long_term"],
+        "short_term": {"max_items": 20},
+        "long_term": {"enabled": True},
+    }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.delete(f"{GATEWAY_BASE_URL}/sessions/{session_id}")
-            return response.json()
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=503,
-            detail="无法连接到 SAGE Gateway",
+        # 尝试加载配置文件
+        # api.py 在 sage/studio/config/backend/
+        # knowledge_sources.yaml 在 sage/studio/config/
+        current_dir = Path(__file__).parent
+        config_path = current_dir.parent / "knowledge_sources.yaml"
+
+        if config_path.exists():
+            with open(config_path, encoding="utf-8") as f:
+                yaml_data = yaml.safe_load(f)
+                if "memory" in yaml_data:
+                    mem_config = yaml_data["memory"]
+                    config["enabled"] = mem_config.get("enabled", True)
+
+                    # 更新 backends 列表
+                    if "backends" in mem_config:
+                        config["backends"] = list(mem_config["backends"].keys())
+
+                        # 更新具体后端配置
+                        if "short_term" in mem_config["backends"]:
+                            config["short_term"] = mem_config["backends"]["short_term"]
+                        if "long_term" in mem_config["backends"]:
+                            config["long_term"] = mem_config["backends"]["long_term"]
+    except Exception as e:
+        logging.error(f"Failed to load memory config: {e}")
+
+    logging.info(f"Returning memory config: {config}")
+    return config
+
+
+@app.get("/api/chat/memory/stats")
+async def get_memory_stats(session_id: str):
+    """获取记忆统计"""
+    service = get_memory_service(session_id)
+    return await service.get_summary()
+
+
+@app.post("/api/uploads")
+async def upload_file(file: UploadFile = File(...)):
+    """上传文件"""
+    from dataclasses import asdict
+
+    service = get_file_upload_service()
+    try:
+        # UploadFile.file is a SpooledTemporaryFile which is a file-like object
+        metadata = await service.upload_file(file.file, file.filename)
+        return asdict(metadata)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@app.get("/api/uploads")
+async def list_uploaded_files():
+    """获取已上传文件列表"""
+    from dataclasses import asdict
+
+    service = get_file_upload_service()
+    files = service.list_files()
+    return [asdict(f) for f in files]
+
+
+@app.get("/api/uploads/{file_id}")
+async def get_uploaded_file(file_id: str):
+    """获取单个文件的元数据"""
+    from dataclasses import asdict
+
+    service = get_file_upload_service()
+    metadata = service.get_file(file_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail="File not found")
+    return asdict(metadata)
+
+
+@app.get("/api/uploads/{file_id}/content")
+async def get_uploaded_file_content(file_id: str):
+    """获取上传文件的内容"""
+    service = get_file_upload_service()
+    file_path = service.get_file_path(file_id)
+    if not file_path or not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # 读取文件内容
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            content = f.read()
+        return {"file_id": file_id, "content": content}
+    except UnicodeDecodeError:
+        # 二进制文件
+        raise HTTPException(status_code=400, detail="Binary file cannot be read as text")
+
+
+class IndexFileRequest(BaseModel):
+    """索引文件请求"""
+
+    source_name: str = "user_uploads"  # 知识源名称
+
+
+@app.post("/api/uploads/{file_id}/index")
+async def index_uploaded_file(file_id: str, request: IndexFileRequest):
+    """将上传的文件索引到知识库
+
+    这会将文件内容分块并存入向量数据库，使其可通过语义搜索检索。
+    """
+    from sage.studio.services.knowledge_manager import KnowledgeManager
+
+    service = get_file_upload_service()
+    metadata = service.get_file(file_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    file_path = service.get_file_path(file_id)
+    if not file_path or not file_path.exists():
+        raise HTTPException(status_code=404, detail="File path not found")
+
+    # 索引到知识库
+    try:
+        km = KnowledgeManager()
+        success = await km.add_document(file_path, source_name=request.source_name)
+
+        if success:
+            # 标记文件已索引
+            service.mark_indexed(file_id)
+            return {
+                "success": True,
+                "file_id": file_id,
+                "source_name": request.source_name,
+                "message": f"File indexed to '{request.source_name}' knowledge source",
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to index file")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+
+
+@app.get("/api/knowledge/sources")
+async def list_knowledge_sources():
+    """列出可用的知识源"""
+    from sage.studio.services.knowledge_manager import KnowledgeManager
+
+    km = KnowledgeManager()
+    sources = []
+    for name, source in km.sources.items():
+        sources.append(
+            {
+                "name": name,
+                "type": source.type.value,
+                "description": source.description,
+                "enabled": source.enabled,
+                "is_dynamic": source.is_dynamic,
+            }
         )
+    return sources
+
+
+class KnowledgeSearchRequest(BaseModel):
+    """知识检索请求"""
+
+    query: str
+    sources: list[str] | None = None  # None 表示所有已加载的源
+    limit: int = 5
+    score_threshold: float = 0.6
+
+
+@app.post("/api/knowledge/search")
+async def search_knowledge(request: KnowledgeSearchRequest):
+    """在知识库中检索"""
+    from sage.studio.services.knowledge_manager import KnowledgeManager
+
+    km = KnowledgeManager()
+    try:
+        results = await km.search(
+            query=request.query,
+            sources=request.sources,
+            limit=request.limit,
+            score_threshold=request.score_threshold,
+        )
+        return {
+            "query": request.query,
+            "results": [
+                {
+                    "content": r.content,
+                    "score": r.score,
+                    "source": r.source,
+                    "metadata": r.metadata,
+                }
+                for r in results
+            ],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.delete("/api/uploads/{file_id}")
+async def delete_uploaded_file(file_id: str):
+    """删除已上传文件"""
+    service = get_file_upload_service()
+    success = service.delete_file(file_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"success": True, "file_id": file_id}
 
 
 class WorkflowGenerateRequest(BaseModel):
@@ -1621,7 +2312,7 @@ async def generate_workflow_advanced(request: WorkflowGenerateRequest):
     session_messages = None
     if request.session_id:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
                 response = await client.get(f"{GATEWAY_BASE_URL}/sessions/{request.session_id}")
                 if response.status_code == 200:
                     session = response.json()
@@ -2166,66 +2857,504 @@ async def get_gpu_info():
         }
 
 
+# ==================== LLM 状态 API ====================
+
+
+class SelectModelRequest(BaseModel):
+    model_name: str
+    base_url: str
+
+
+def _get_models_config_path(create_dir: bool = False) -> Path | None:
+    """Locate config/models.json, optionally creating the directory."""
+    try:
+        from sage.common.config import find_sage_project_root
+
+        project_root = find_sage_project_root()
+    except Exception:
+        project_root = None
+
+    base_dir = project_root or Path.cwd()
+    config_dir = base_dir / "config"
+
+    if create_dir:
+        config_dir.mkdir(parents=True, exist_ok=True)
+    elif not config_dir.exists():
+        return None
+
+    return config_dir / "models.json"
+
+
+def _expand_api_key(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    if value.startswith("${") and value.endswith("}"):
+        env_var = value[2:-1]
+        return os.getenv(env_var, "")
+    return value
+
+
+def _load_models_config(filter_missing: bool = False) -> tuple[list[dict[str, Any]], Path | None]:
+    path = _get_models_config_path()
+    if not path or not path.exists():
+        return ([], path)
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            models: list[dict[str, Any]] = []
+            for entry in data:
+                if isinstance(entry, dict):
+                    entry_copy = dict(entry)
+                    raw_key = entry_copy.get("api_key")
+                    expanded_key = _expand_api_key(raw_key)
+
+                    # Skip if API key is required (variable reference) but missing/empty
+                    if (
+                        filter_missing
+                        and isinstance(raw_key, str)
+                        and raw_key.startswith("${")
+                        and not expanded_key
+                    ):
+                        continue
+
+                    entry_copy["api_key"] = expanded_key
+                    models.append(entry_copy)
+            return models, path
+    except Exception:
+        pass
+    return ([], path)
+
+
+def _save_models_config(path: Path | None, models: list[dict[str, Any]]) -> None:
+    if not path:
+        return
+    target_path = path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(json.dumps(models, indent=4, ensure_ascii=False), encoding="utf-8")
+
+
+def _persist_model_selection(model_name: str, base_url: str) -> str:
+    """Update config/models.json default selection and return API key."""
+    models, path = _load_models_config()
+    if path is None:
+        path = _get_models_config_path(create_dir=True)
+    target_entry: dict[str, Any] | None = None
+
+    for entry in models:
+        names_match = entry.get("name") == model_name
+        url_match = (
+            _base_urls_match(entry.get("base_url"), base_url) if entry.get("base_url") else False
+        )
+        if names_match and (url_match or not entry.get("base_url")):
+            entry["base_url"] = base_url
+            target_entry = entry
+            break
+
+    if target_entry is None:
+        target_entry = {
+            "name": model_name,
+            "base_url": base_url,
+            "is_local": _is_loopback_url(base_url),
+        }
+        models.append(target_entry)
+    else:
+        target_entry["is_local"] = _is_loopback_url(base_url)
+
+    for entry in models:
+        entry["default"] = entry is target_entry
+
+    _save_models_config(path, models)
+    return _expand_api_key(target_entry.get("api_key"))
+
+
+def _discover_launcher_models() -> list[dict[str, Any]]:
+    try:
+        from sage.common.components.sage_llm import LLMLauncher
+    except ImportError:
+        return []
+
+    models: list[dict[str, Any]] = []
+    for service in LLMLauncher.discover_running_services():
+        # Filter out embedding models
+        if service.get("config", {}).get("engine_kind") == "embedding":
+            continue
+
+        model_name = service.get("served_model_name") or service.get("model") or "local-llm"
+        if "embedding" in model_name.lower():
+            continue
+
+        models.append(
+            {
+                "name": model_name,
+                "base_url": service.get("base_url"),
+                "is_local": True,
+                "description": "Auto-detected Local Model",
+            }
+        )
+    return models
+
+
+def _normalize_base_url(base_url: str | None) -> str | None:
+    return base_url.rstrip("/") if base_url else base_url
+
+
+def _normalize_probe_base_url(base_url: str | None) -> str | None:
+    if not base_url:
+        return None
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    replacement = None
+    if not host or host in {"0.0.0.0", "*"}:
+        replacement = "127.0.0.1"
+    elif host in {"::", "[::]"}:
+        replacement = "::1"
+
+    if replacement:
+        host_token = replacement
+        if ":" in host_token and not host_token.startswith("["):
+            host_token = f"[{host_token}]"
+        if parsed.port:
+            netloc = f"{host_token}:{parsed.port}"
+        else:
+            netloc = host_token
+        parsed = parsed._replace(netloc=netloc)
+        return urlunparse(parsed).rstrip("/")
+
+    return base_url.rstrip("/")
+
+
+def _canon_host(host: str | None) -> str | None:
+    if not host:
+        return None
+    host = host.lower()
+    if host in {"0.0.0.0", "*", "localhost"}:
+        return "127.0.0.1"
+    if host in {"::", "[::]"}:
+        return "::1"
+    return host
+
+
+def _base_url_signature(base_url: str | None) -> tuple[str, str, int, str] | None:
+    if not base_url:
+        return None
+
+    candidate = base_url.strip()
+    if not candidate:
+        return None
+
+    parsed = urlparse(candidate if "://" in candidate else f"http://{candidate}")
+    scheme = parsed.scheme or "http"
+    host = _canon_host(parsed.hostname) or ""
+    port = parsed.port
+    if port is None:
+        port = 443 if scheme == "https" else 80
+
+    path = parsed.path.rstrip("/")
+    if path in ("", "/v1"):
+        path = ""
+
+    return (scheme, host, port, path)
+
+
+def _base_urls_match(a: str | None, b: str | None) -> bool:
+    sig_a = _base_url_signature(a)
+    sig_b = _base_url_signature(b)
+    return bool(sig_a and sig_b and sig_a == sig_b)
+
+
+def _build_health_url(base_url: str) -> str:
+    parsed = urlparse(base_url)
+    path = parsed.path.rstrip("/")
+    if path.endswith("/v1"):
+        health_path = path[:-3] + "/health"
+    else:
+        health_path = path + "/health"
+    return urlunparse(parsed._replace(path=health_path, query="", fragment=""))
+
+
+def _is_loopback_url(base_url: str | None) -> bool:
+    if not base_url:
+        return False
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    if not host:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _probe_llm_endpoint(base_url: str | None, headers: dict[str, str] | None = None) -> bool:
+    normalized = _normalize_probe_base_url(base_url)
+    if not normalized:
+        return False
+    headers = headers or {}
+
+    try:
+        health_url = _build_health_url(normalized)
+        resp = requests.get(health_url, headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    try:
+        resp = requests.get(f"{normalized}/models", headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    try:
+        parsed = urlparse(normalized)
+        host = parsed.hostname
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if host:
+            import socket
+
+            with socket.create_connection((host, port), timeout=2.0):
+                return True
+    except Exception:
+        pass
+
+    return False
+
+
+@app.post("/api/llm/select")
+async def select_llm_model(request: SelectModelRequest):
+    """选择要使用的 LLM 模型"""
+    try:
+        # 更新环境变量，这样后续的 get_llm_status 调用（会创建新的 UnifiedInferenceClient）
+        # 就会使用新的配置
+        os.environ["SAGE_CHAT_MODEL"] = request.model_name
+        os.environ["SAGE_CHAT_BASE_URL"] = request.base_url
+
+        api_key = ""
+        try:
+            api_key = _persist_model_selection(request.model_name, request.base_url)
+        except Exception as exc:
+            print(f"Failed to persist selected model: {exc}")
+
+        if api_key:
+            os.environ["SAGE_CHAT_API_KEY"] = api_key
+            print(f"Set API key for model {request.model_name}")
+        else:
+            # 如果没有找到特定的 API Key，清除环境变量，以免使用旧的
+            if "SAGE_CHAT_API_KEY" in os.environ:
+                del os.environ["SAGE_CHAT_API_KEY"]
+
+        # Register with Control Plane
+        try:
+            parsed = urlparse(request.base_url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            register_url = f"{GATEWAY_BASE_URL}/v1/management/engines/register"
+
+            payload = {
+                "engine_id": f"ext-{request.model_name}",
+                "model_id": request.model_name,
+                "host": host,
+                "port": port,
+                "engine_kind": "llm",
+                "metadata": {"source": "studio_select", "scheme": parsed.scheme or "http"},
+            }
+
+            requests.post(register_url, json=payload, timeout=2)
+            print(f"Registered model {request.model_name} with Control Plane")
+        except Exception as e:
+            print(f"Failed to register model with Control Plane: {e}")
+
+        return {"status": "success", "message": f"已切换到模型: {request.model_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
+
+
 @app.get("/api/llm/status")
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
     try:
-        import requests
+        from sage.common.components.sage_llm import UnifiedInferenceClient
+    except Exception:
+        UnifiedInferenceClient = None  # type: ignore[assignment]
 
-        # 读取环境变量
+    try:
         base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
         model_name = os.getenv("SAGE_CHAT_MODEL", "")
 
-        # 检测是否是本地服务
-        is_local = "localhost" in base_url or "127.0.0.1" in base_url
+        if UnifiedInferenceClient:
+            try:
+                client = UnifiedInferenceClient.create(control_plane_url=f"{GATEWAY_BASE_URL}/v1")
+                base_url = client.config.llm_base_url or base_url
+                model_name = client.config.llm_model or model_name
 
-        # 初始化状态
+                # Try to fetch model name if missing
+                if not model_name and base_url:
+                    model_name = UnifiedInferenceClient._fetch_model_name(base_url) or model_name
+            except Exception:
+                pass
+
+        normalized_base_url = _normalize_base_url(base_url)
+        is_local = _is_loopback_url(normalized_base_url)
+        display_model_name = model_name or ("未配置 LLM 服务" if not base_url else "未命名模型")
+
         status = {
             "running": False,
             "healthy": False,
-            "service_type": "unknown",
-            "model_name": model_name,
-            "base_url": base_url,
+            "service_type": "not_configured" if not base_url else "remote_api",
+            "model_name": display_model_name,
+            "base_url": normalized_base_url or base_url,
             "is_local": is_local,
             "details": {},
         }
 
-        # 如果是本地服务，尝试获取详细信息
+        if base_url:
+            status["running"] = True
+
+        # Local detailed status
         if is_local and base_url:
-            try:
-                # 检查健康状态
-                health_url = base_url.replace("/v1", "/health")
-                health_response = requests.get(health_url, timeout=2)
-                status["healthy"] = health_response.status_code == 200
-                status["running"] = True
-                status["service_type"] = "local_vllm"
+            probe_url = _normalize_probe_base_url(base_url)
+            if probe_url:
+                status["base_url"] = probe_url
+                try:
+                    health_resp = requests.get(_build_health_url(probe_url), timeout=2)
+                    status["healthy"] = health_resp.status_code == 200
+                    status["service_type"] = "local_vllm"
 
-                # 获取模型列表
-                models_url = f"{base_url}/models"
-                models_response = requests.get(models_url, timeout=2)
-                if models_response.status_code == 200:
-                    models_data = models_response.json()
-                    if models_data.get("data"):
-                        # 获取第一个模型的详细信息
-                        first_model = models_data["data"][0]
-                        status["details"] = {
-                            "model_id": first_model.get("id", ""),
-                            "max_model_len": first_model.get("max_model_len", 0),
-                            "owned_by": first_model.get("owned_by", ""),
-                        }
-                        # 使用实际注册的模型 ID
-                        status["model_name"] = first_model.get("id", model_name)
+                    models_resp = requests.get(f"{probe_url}/models", timeout=2)
+                    if models_resp.status_code == 200:
+                        models_data = models_resp.json()
+                        if models_data.get("data"):
+                            first_model = models_data["data"][0]
+                            status["details"] = {
+                                "model_id": first_model.get("id", ""),
+                                "max_model_len": first_model.get("max_model_len", 0),
+                                "owned_by": first_model.get("owned_by", ""),
+                            }
+                            status["model_name"] = first_model.get("id", status["model_name"])
+                except Exception as exc:
+                    status["error"] = str(exc)
 
-            except Exception as e:
-                status["error"] = str(e)
-        elif base_url:
-            # 远程服务
-            status["service_type"] = "remote_api"
-            status["running"] = True  # 假设配置了就是可用的
-        else:
-            # 没有配置
-            status["service_type"] = "not_configured"
-            status["model_name"] = "未配置 LLM 服务"
+        # Build available model list
+        config_models, _ = _load_models_config(filter_missing=False)
+        available_models = []
+        for model in config_models:
+            # Filter out embedding models
+            if model.get("engine_kind") == "embedding":
+                continue
+            # Double check for embedding in name/description if engine_kind is missing
+            if "embedding" in model.get("name", "").lower():
+                continue
+            if "embedding" in model.get("description", "").lower():
+                continue
+            available_models.append(dict(model))
+
+        def _merge_model(entry: dict[str, Any]) -> None:
+            entry_url = entry.get("base_url")
+            for existing in available_models:
+                existing_url = existing.get("base_url")
+                names_match = entry.get("name") and entry.get("name") == existing.get("name")
+                urls_match = _base_urls_match(entry_url, existing_url)
+                if urls_match or (not entry_url and not existing_url and names_match):
+                    existing.update({k: v for k, v in entry.items() if v is not None})
+                    return
+            available_models.append(entry)
+
+        for detected in _discover_launcher_models():
+            _merge_model(detected)
+
+        if not available_models:
+            default_base = f"http://127.0.0.1:{SagePorts.BENCHMARK_LLM}/v1"
+            defaults = [
+                {
+                    "name": "Qwen/Qwen2.5-0.5B-Instruct",
+                    "base_url": default_base,
+                    "is_local": True,
+                    "description": "Local Small Model (Fast, CPU-friendly)",
+                },
+                {
+                    "name": "Qwen/Qwen2.5-7B-Instruct",
+                    "base_url": default_base,
+                    "is_local": True,
+                    "description": "Local Standard Model (Requires GPU)",
+                },
+            ]
+            for entry in defaults:
+                _merge_model(entry)
+
+        cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
+        if cloud_api_key:
+            cloud_entry = {
+                "name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                "base_url": os.getenv(
+                    "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                ),
+                "is_local": False,
+                "description": "Cloud API (Configured in .env)",
+                "api_key": cloud_api_key,
+                "healthy": True,
+            }
+            _merge_model(cloud_entry)
+
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key:
+            openai_entry = {
+                "name": os.getenv("OPENAI_MODEL_NAME", "gpt-3.5-turbo"),
+                "base_url": os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+                "is_local": False,
+                "description": "OpenAI API (Configured in .env)",
+                "api_key": openai_api_key,
+                "healthy": True,
+            }
+            _merge_model(openai_entry)
+
+        import concurrent.futures
+
+        def evaluate_model(model: dict[str, Any]) -> dict[str, Any]:
+            entry = dict(model)
+            base = entry.get("base_url")
+            headers = {}
+            if entry.get("api_key"):
+                headers["Authorization"] = f"Bearer {entry['api_key']}"
+
+            if not base:
+                entry["healthy"] = False
+                return entry
+
+            if not entry.get("is_local") and entry.get("healthy"):
+                return entry
+
+            entry["healthy"] = _probe_llm_endpoint(base, headers=headers)
+            return entry
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            available_models = list(executor.map(evaluate_model, available_models))
+
+        status_base_url = status.get("base_url")
+        match_found = False
+        for model in available_models:
+            if _base_urls_match(status_base_url, model.get("base_url")):
+                status["healthy"] = model.get("healthy", False)
+                status["model_name"] = model.get("name", status["model_name"])
+                match_found = True
+                break
+
+        if not match_found and status["model_name"] and status.get("base_url"):
+            available_models.insert(
+                0,
+                {
+                    "name": status["model_name"],
+                    "base_url": status["base_url"],
+                    "is_local": status["is_local"],
+                    "description": "Current Model",
+                    "healthy": status["healthy"],
+                },
+            )
+
+        status["available_models"] = available_models
 
         return status
 
@@ -2427,4 +3556,6 @@ async def test_dataset_source(source_name: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)  # 修改为监听所有网络接口
+    # NOTE: 后端 API 已合并到 Gateway，推荐通过 sage gateway start 启动。
+    # 此处保留用于独立调试，生产环境请使用 Gateway。
+    uvicorn.run(app, host="0.0.0.0", port=SagePorts.GATEWAY_DEFAULT)

@@ -181,8 +181,6 @@ class UnifiedInferenceClient:
     # Class-level singleton cache for instances
     _instances: ClassVar[dict[str, UnifiedInferenceClient]] = {}
     _lock: ClassVar[Lock] = Lock()
-    # Flag to track if __init__ was called via create()
-    _allow_init: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -198,7 +196,8 @@ class UnifiedInferenceClient:
     ) -> None:
         """Initialize the unified inference client.
 
-        NOTE: This constructor is private. Use `create()` to instantiate.
+        NOTE: For UnifiedInferenceClient itself, use `create()` to instantiate.
+        Subclasses can be instantiated directly.
 
         Args:
             llm_base_url: Base URL for LLM API endpoint.
@@ -212,10 +211,12 @@ class UnifiedInferenceClient:
             config: Full configuration object (overrides individual params).
 
         Raises:
-            RuntimeError: If called directly instead of via create().
+            RuntimeError: If UnifiedInferenceClient is instantiated directly
+                instead of via create(). Subclasses are allowed.
         """
-        # Check if init was called via create()
-        if not UnifiedInferenceClient._allow_init:
+        # Only block direct instantiation of UnifiedInferenceClient itself.
+        # Subclasses (like LLMClientAdapter, EmbeddingClientAdapter) are allowed.
+        if type(self) is UnifiedInferenceClient:
             raise RuntimeError(
                 "UnifiedInferenceClient cannot be instantiated directly. "
                 "Use UnifiedInferenceClient.create() instead."
@@ -673,11 +674,14 @@ class UnifiedInferenceClient:
         embedded: bool = False,
         default_llm_model: str | None = None,
         default_embedding_model: str | None = None,
+        llm_api_key: str | None = None,
+        embedding_api_key: str | None = None,
         scheduling_policy: str = "adaptive",
         timeout: float = 60.0,
         prefer_local: bool = True,
         llm_ports: Sequence[int] | None = None,
         embedding_ports: Sequence[int] | None = None,
+        ignore_cloud_fallback: bool = False,
     ) -> UnifiedInferenceClient:
         """Create a UnifiedInferenceClient instance.
 
@@ -703,6 +707,8 @@ class UnifiedInferenceClient:
             prefer_local: If True, prefer local servers over cloud APIs.
             llm_ports: Ports to check for local LLM servers. If None, uses SagePorts.
             embedding_ports: Ports to check for local Embedding servers. If None, uses SagePorts.
+            ignore_cloud_fallback: If True, do not fall back to cloud APIs if local
+                servers are not found. Useful for local-only tools like Studio.
 
         Returns:
             Configured UnifiedInferenceClient instance.
@@ -746,10 +752,10 @@ class UnifiedInferenceClient:
         # Determine endpoints based on mode
         llm_base_url: str | None = None
         llm_model: str | None = default_llm_model
-        llm_api_key: str = ""
+        llm_api_key = llm_api_key or ""
         embedding_base_url: str | None = None
         embedding_model: str | None = default_embedding_model
-        embedding_api_key: str = ""
+        embedding_api_key = embedding_api_key or ""
 
         if control_plane_url:
             # Use external Control Plane URL for both LLM and Embedding
@@ -763,11 +769,13 @@ class UnifiedInferenceClient:
             llm_base_url, llm_model_detected, llm_api_key = cls._detect_llm_endpoint(
                 prefer_local=prefer_local,
                 ports=llm_ports,
+                ignore_cloud_fallback=ignore_cloud_fallback,
             )
             embedding_base_url, embedding_model_detected, embedding_api_key = (
                 cls._detect_embedding_endpoint(
                     prefer_local=prefer_local,
                     ports=embedding_ports,
+                    ignore_cloud_fallback=ignore_cloud_fallback,
                 )
             )
             llm_model = llm_model or llm_model_detected
@@ -789,31 +797,29 @@ class UnifiedInferenceClient:
                 llm_base_url, llm_model_detected, llm_api_key = cls._detect_llm_endpoint(
                     prefer_local=prefer_local,
                     ports=llm_ports,
+                    ignore_cloud_fallback=ignore_cloud_fallback,
                 )
                 # Detect Embedding endpoint
                 embedding_base_url, embedding_model_detected, embedding_api_key = (
                     cls._detect_embedding_endpoint(
                         prefer_local=prefer_local,
                         ports=embedding_ports,
+                        ignore_cloud_fallback=ignore_cloud_fallback,
                     )
                 )
                 llm_model = llm_model or llm_model_detected
                 embedding_model = embedding_model or embedding_model_detected
 
-        # Create the instance using the internal flag
-        try:
-            cls._allow_init = True
-            instance = cls(
-                llm_base_url=llm_base_url,
-                llm_model=llm_model,
-                llm_api_key=llm_api_key,
-                embedding_base_url=embedding_base_url,
-                embedding_model=embedding_model,
-                embedding_api_key=embedding_api_key,
-                timeout=timeout,
-            )
-        finally:
-            cls._allow_init = False
+        # Create the instance using a private subclass to bypass the direct instantiation check
+        instance = _CreatableUnifiedClient(
+            llm_base_url=llm_base_url,
+            llm_model=llm_model,
+            llm_api_key=llm_api_key,
+            embedding_base_url=embedding_base_url,
+            embedding_model=embedding_model,
+            embedding_api_key=embedding_api_key,
+            timeout=timeout,
+        )
 
         return instance
 
@@ -924,6 +930,7 @@ class UnifiedInferenceClient:
         *,
         prefer_local: bool = True,
         ports: Sequence[int] = (8001, 8000),
+        ignore_cloud_fallback: bool = False,
     ) -> tuple[str | None, str | None, str]:
         """Detect LLM endpoint.
 
@@ -946,17 +953,19 @@ class UnifiedInferenceClient:
                 base_url = f"http://localhost:{port}/v1"
                 if cls._check_endpoint_health(base_url):
                     logger.info("Found local LLM server at %s", base_url)
-                    return (base_url, None, "")
+                    model_name = cls._fetch_model_name(base_url)
+                    return (base_url, model_name, "")
 
         # Fall back to cloud API (DashScope)
-        api_key = os.environ.get("SAGE_CHAT_API_KEY")
-        if api_key:
-            logger.info("Using DashScope cloud API for LLM")
-            return (
-                "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                os.environ.get("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                api_key,
-            )
+        if not ignore_cloud_fallback:
+            api_key = os.environ.get("SAGE_CHAT_API_KEY")
+            if api_key:
+                logger.info("Using DashScope cloud API for LLM")
+                return (
+                    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                    os.environ.get("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                    api_key,
+                )
 
         logger.warning(
             "No LLM endpoint found. Start services with:\n"
@@ -971,6 +980,7 @@ class UnifiedInferenceClient:
         *,
         prefer_local: bool = True,
         ports: Sequence[int] = (8090, 8080),
+        ignore_cloud_fallback: bool = False,
     ) -> tuple[str | None, str | None, str]:
         """Detect Embedding endpoint.
 
@@ -996,7 +1006,24 @@ class UnifiedInferenceClient:
                 base_url = f"http://localhost:{port}/v1"
                 if cls._check_endpoint_health(base_url, endpoint_type="embedding"):
                     logger.info("Found local Embedding server at %s", base_url)
-                    return (base_url, None, "")
+                    model_name = cls._fetch_model_name(base_url)
+                    return (base_url, model_name, "")
+
+        if not ignore_cloud_fallback:
+            # Fall back to cloud API (DashScope) - Embedding
+            # Note: DashScope embedding API might differ, but we use compatible mode
+            api_key = os.environ.get("SAGE_EMBEDDING_API_KEY") or os.environ.get(
+                "SAGE_CHAT_API_KEY"
+            )
+            if api_key:
+                # Only if we have a model explicitly set or default
+                model = os.environ.get("SAGE_EMBEDDING_MODEL", "text-embedding-v1")
+                logger.info("Using Cloud API for Embedding")
+                return (
+                    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                    model,
+                    api_key,
+                )
 
         logger.warning(
             "No Embedding endpoint found. Start services with:\n"
@@ -1042,6 +1069,20 @@ class UnifiedInferenceClient:
             pass
 
         return False
+
+    @classmethod
+    def _fetch_model_name(cls, base_url: str, timeout: float = 2.0) -> str | None:
+        """Fetch the first available model name from the endpoint."""
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                response = client.get(f"{base_url}/models")
+                if response.status_code == 200:
+                    data = response.json()
+                    if "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
+                        return data["data"][0]["id"]
+        except Exception:
+            pass
+        return None
 
     # ==================== Core Inference Methods ====================
 
@@ -1654,6 +1695,16 @@ class UnifiedInferenceClient:
             "embedding_base_url": self.config.embedding_base_url,
             "embedding_model": self.config.embedding_model,
         }
+
+
+class _CreatableUnifiedClient(UnifiedInferenceClient):
+    """Private subclass that allows direct instantiation.
+
+    This class is used internally by UnifiedInferenceClient.create() to bypass
+    the direct instantiation check. It should not be used directly.
+    """
+
+    pass
 
 
 # ==================== Convenience Aliases ====================

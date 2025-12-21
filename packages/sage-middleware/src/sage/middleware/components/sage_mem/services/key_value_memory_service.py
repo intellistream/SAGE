@@ -51,19 +51,29 @@ class KeyValueMemoryService(BaseService):
         self.manager = MemoryManager(self._get_default_data_dir())
 
         # 创建或获取 KVMemoryCollection
+        # 注意：has_collection 可能返回 True，但 get_collection 返回 None（磁盘数据丢失）
+        # 这种情况下需要删除旧记录并重新创建
+        collection = None
         if self.manager.has_collection(collection_name):
             collection = self.manager.get_collection(collection_name)
             if collection is None:
-                raise RuntimeError(f"Failed to get collection '{collection_name}'")
-            self.collection = collection
-        else:
-            self.collection = self.manager.create_collection(
+                # Collection 元数据存在但磁盘数据丢失，需要清理并重建
+                self.logger.warning(
+                    f"Collection '{collection_name}' metadata exists but data is missing, "
+                    "will recreate."
+                )
+                self.manager.delete_collection(collection_name)
+
+        if collection is None:
+            collection = self.manager.create_collection(
                 {
                     "name": collection_name,
                     "backend_type": "KV",
                     "description": "Key-value memory collection",
                 }
             )
+
+        self.collection = collection
 
         if self.collection is None:
             raise RuntimeError(f"Failed to create KVMemoryCollection '{collection_name}'")
@@ -82,6 +92,32 @@ class KeyValueMemoryService(BaseService):
             f"KeyValueMemoryService initialized: collection={collection_name}, "
             f"index={index_name}, type={index_type}"
         )
+
+    def get(self, entry_id: str) -> dict[str, Any] | None:
+        """获取指定 ID 的记忆条目
+
+        Args:
+            entry_id: 条目 ID
+
+        Returns:
+            dict: 条目数据（包含 text, metadata 等），不存在返回 None
+        """
+        if not hasattr(self.collection, "text_storage"):
+            return None
+
+        text = self.collection.text_storage.get(entry_id)
+        if text is None:
+            return None
+
+        metadata = None
+        if hasattr(self.collection, "metadata_storage"):
+            metadata = self.collection.metadata_storage.get(entry_id)
+
+        return {
+            "id": entry_id,
+            "text": text,
+            "metadata": metadata or {},
+        }
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
@@ -231,13 +267,19 @@ class KeyValueMemoryService(BaseService):
         all_ids = self.collection.get_all_ids()
         index_count = len(self.collection.indexes) if hasattr(self.collection, "indexes") else 0
 
-        return {
+        base_stats = {
             "memory_count": len(all_ids),
             "index_count": index_count,
             "collection_name": self.collection_name,
             "index_name": self.index_name,
             "index_type": self.index_type,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def clear(self) -> bool:
         """清空所有记忆"""

@@ -2,9 +2,9 @@
 import json
 
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
-from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+from sage.middleware.agent.runtime import AgentRuntime
 
 
 # ---- Dummy 生成器：返回固定 JSON 计划 ----
@@ -59,13 +59,15 @@ def test_runtime_basic_flow():
     tools = MCPRegistry()
     tools.register(DummyCalc())
 
-    planner = LLMPlanner(generator=DummyGeneratorPlan())
+    planner = SimpleLLMPlanner(generator=DummyGeneratorPlan())
     profile = BaseProfile(language="zh")
 
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
     out = runtime.step("计算 21*2+5")
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
     # 因为计划里包含 reply，runtime 将直接返回 "完成。"
-    assert "完成" in out
+    assert isinstance(out, dict)
+    assert "完成" in out["reply"]
 
 
 def test_runtime_no_reply_uses_template_summary():
@@ -78,13 +80,15 @@ def test_runtime_no_reply_uses_template_summary():
     tools = MCPRegistry()
     tools.register(DummyCalc())
     runtime = AgentRuntime(
-        profile=BaseProfile(language="zh"),
-        planner=LLMPlanner(generator=GenNoReply()),
-        tools=tools,
-        summarizer=None,
+        profile=BaseProfile(name="TestBot"),
+        planner=SimpleLLMPlanner(generator=GenNoReply()),
+        tools=tools,  # Fixed: use the tools with registered DummyCalc
     )
     out = runtime.step("算下 41+1")
-    assert "成功" in out and "42" in out
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
+    assert isinstance(out, dict)
+    reply = out["reply"]
+    assert "成功" in reply and "42" in reply
 
 
 # New tests for the message format changes in commit 12aec700c63407e1f5d79455b2d64a60a6688e96
@@ -115,13 +119,15 @@ def test_runtime_with_message_format_summarizer():
 
     runtime = AgentRuntime(
         profile=BaseProfile(language="zh"),
-        planner=LLMPlanner(generator=GenNoReply()),
+        planner=SimpleLLMPlanner(generator=GenNoReply()),
         tools=tools,
         summarizer=SummarizerWithMessages(),
     )
 
     out = runtime.step("计算 45+2")
-    assert "总结: 计算结果是47" in out
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
+    assert isinstance(out, dict)
+    assert "总结: 计算结果是47" in out["reply"]
 
 
 def test_runtime_memory_disabled():
@@ -129,7 +135,7 @@ def test_runtime_memory_disabled():
     tools = MCPRegistry()
     tools.register(DummyCalc())
 
-    planner = LLMPlanner(generator=DummyGeneratorWithMessages())
+    planner = SimpleLLMPlanner(generator=DummyGeneratorWithMessages())
     profile = BaseProfile(language="zh")
 
     # The memory parameter should be commented out/disabled
@@ -144,11 +150,13 @@ def test_runtime_with_new_planner_message_format():
     tools = MCPRegistry()
     tools.register(DummyCalc())
 
-    planner = LLMPlanner(generator=DummyGeneratorWithMessages())
+    planner = SimpleLLMPlanner(generator=DummyGeneratorWithMessages())
     profile = BaseProfile(language="zh")
 
     runtime = AgentRuntime(profile=profile, planner=planner, tools=tools, summarizer=None)
 
     out = runtime.step("计算 21*2+5")
+    # AgentRuntime.step() returns a dict with 'reply', 'observations', 'plan'
     # Should work with the new message format in planner
-    assert "完成" in out
+    assert isinstance(out, dict)
+    assert "完成" in out["reply"]

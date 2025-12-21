@@ -162,6 +162,25 @@ quickstart.sh           # Main installation script
 Makefile                # Development shortcuts
 ```
 
+### Readme-First Learning Rule
+
+Before answering non-trivial questions or modifying code, this agent **must first rely on the project READMEs instead of guessing**.
+
+- Read global docs first:
+  - Root overview: `README.md`
+  - Dev workflow: `DEVELOPER.md`, `CONTRIBUTING.md`
+  - Architecture: `docs-public/docs_src/dev-notes/package-architecture.md`
+  - Cross-layer index: `docs-public/docs_src/dev-notes/cross-layer/README.md`
+- When touching a specific layer/package, also skim its dev-notes README, for example:
+  - `docs-public/docs_src/dev-notes/l1-common/README.md`
+  - `docs-public/docs_src/dev-notes/l2-platform/README.md`
+  - `docs-public/docs_src/dev-notes/l3-kernel/README.md`, `l3-libs/README.md`
+  - `docs-public/docs_src/dev-notes/l4-middleware/README.md`
+  - `docs-public/docs_src/dev-notes/l5-apps/README.md`, `l5-benchmark/README.md`
+  - `docs-public/docs_src/dev-notes/l6-cli/README.md`, `l6-studio/README.md`, `l6-gateway/README.md`
+
+If documentation and code appear inconsistent, the agent should **explicitly call out the mismatch** in its answer and, when in doubt, ask the user which source of truth to follow.
+
 ### Critical Files (Review Before Modifying)
 
 - `quickstart.sh` - Installation script
@@ -233,7 +252,7 @@ python -m sage.common.components.sage_embedding.embedding_server \
 ### 端口与配置
 
 - 端口全部来自 `sage.common.config.ports.SagePorts`（禁止硬编码）
-- 常用端口：`SagePorts.GATEWAY_DEFAULT=8000`, `SagePorts.LLM_DEFAULT=8001`,
+- 常用端口：`SagePorts.GATEWAY_DEFAULT` | 8888`, `SagePorts.LLM_DEFAULT=8001`,
   `SagePorts.BENCHMARK_LLM=8901`, `SagePorts.EMBEDDING_DEFAULT=8090`
 - WSL2 建议使用 `SagePorts.get_recommended_llm_port()` 获取可用 LLM 端口
 

@@ -57,6 +57,16 @@ class ShortTermMemoryService(BaseService):
         # 创建或获取 VDBMemoryCollection
         if self.manager.has_collection(collection_name):
             self.collection = self.manager.get_collection(collection_name)
+            # Handle corrupted state: metadata exists but load failed (e.g. directory missing)
+            if self.collection is None:
+                self.manager.delete_collection(collection_name)
+                self.collection = self.manager.create_collection(
+                    {
+                        "name": collection_name,
+                        "backend_type": "VDB",
+                        "description": "Short-term memory collection",
+                    }
+                )
         else:
             self.collection = self.manager.create_collection(
                 {
@@ -85,7 +95,10 @@ class ShortTermMemoryService(BaseService):
         self._order_queue: deque[dict[str, Any]] = deque(maxlen=max_dialog)
         self._id_set: set[str] = set()
 
-        self.logger.info(f"ShortTermMemoryService initialized with max_dialog={max_dialog}")
+        # 尝试从持久化存储恢复队列
+        self._restore_queue()
+
+        self.logger.debug(f"ShortTermMemoryService initialized with max_dialog={max_dialog}")
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
@@ -242,6 +255,8 @@ class ShortTermMemoryService(BaseService):
                     "score": None,
                 }
             )
+
+        self.logger.debug(f"Retrieved {len(results)} items from ShortTermMemoryService")
         return results
 
     def delete(self, item_id: str) -> bool:
@@ -274,12 +289,18 @@ class ShortTermMemoryService(BaseService):
 
     def get_stats(self) -> dict[str, Any]:
         """获取服务统计信息"""
-        return {
+        base_stats = {
             "memory_count": len(self._order_queue),
             "max_capacity": self.max_dialog,
             "utilization": len(self._order_queue) / self.max_dialog if self.max_dialog > 0 else 0,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def clear(self) -> bool:
         """清空所有短期记忆"""
@@ -309,3 +330,47 @@ class ShortTermMemoryService(BaseService):
 
         self.logger.info("Cleared all short-term memories")
         return True
+
+    def _restore_queue(self):
+        """从底层 collection 恢复 _order_queue"""
+        if not hasattr(self.collection, "text_storage") or not hasattr(
+            self.collection, "metadata_storage"
+        ):
+            return
+
+        try:
+            all_ids = self.collection.text_storage.get_all_ids()
+            items = []
+            for item_id in all_ids:
+                metadata = self.collection.metadata_storage.get(item_id) or {}
+                text = self.collection.text_storage.get(item_id)
+                timestamp = metadata.get("timestamp", 0)
+
+                items.append(
+                    {
+                        "stable_id": item_id,
+                        "timestamp": timestamp,
+                        "text": text,
+                    }
+                )
+
+            # 按时间戳排序
+            items.sort(key=lambda x: x["timestamp"])
+
+            # 填充队列 (只保留最近的 max_dialog 个)
+            for item in items[-self.max_dialog :]:
+                self._order_queue.append(item)
+                self._id_set.add(item["stable_id"])
+
+            if items:
+                self.logger.info(f"Restored {len(self._order_queue)} items from persistent storage")
+        except Exception as e:
+            self.logger.warning(f"Failed to restore queue from storage: {e}")
+
+    def persist(self) -> None:
+        """持久化记忆到磁盘"""
+        if hasattr(self.collection, "store"):
+            self.collection.store()
+            self.logger.debug(
+                f"Persisted ShortTermMemoryService for collection {self.collection_name}"
+            )

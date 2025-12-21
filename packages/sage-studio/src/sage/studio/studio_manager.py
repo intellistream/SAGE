@@ -17,6 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 from sage.common.config.ports import SagePorts
+from sage.common.config.user_paths import get_user_paths
 
 console = Console()
 
@@ -33,23 +34,27 @@ class StudioManager:
         self.frontend_dir = self.studio_package_dir / "frontend"
         self.backend_dir = Path(__file__).parent / "config" / "backend"
 
-        # 统一的 .sage 目录管理
-        self.sage_dir = Path.home() / ".sage"
-        self.studio_sage_dir = self.sage_dir / "studio"
+        # Use XDG paths via sage-common
+        user_paths = get_user_paths()
 
-        self.pid_file = self.sage_dir / "studio.pid"
-        self.backend_pid_file = self.sage_dir / "studio_backend.pid"
-        self.gateway_pid_file = self.sage_dir / "gateway.pid"  # Gateway PID 文件
-        self.log_file = self.sage_dir / "studio.log"
-        self.backend_log_file = self.sage_dir / "studio_backend.log"
-        self.gateway_log_file = self.sage_dir / "gateway.log"  # Gateway 日志文件
-        self.config_file = self.sage_dir / "studio.config.json"
+        # State (PIDs, Logs)
+        self.pid_file = user_paths.state_dir / "studio.pid"
+        self.backend_pid_file = user_paths.state_dir / "studio_backend.pid"
+        self.gateway_pid_file = user_paths.state_dir / "gateway.pid"
 
-        # 缓存和构建目录（React + Vite）
-        self.node_modules_dir = self.studio_sage_dir / "node_modules"
-        self.vite_cache_dir = self.studio_sage_dir / ".vite"  # Vite 缓存
-        self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
-        self.dist_dir = self.studio_sage_dir / "dist"  # 构建产物统一放在 .sage/studio/
+        self.log_file = user_paths.logs_dir / "studio.log"
+        self.backend_log_file = user_paths.logs_dir / "studio_backend.log"
+        self.gateway_log_file = user_paths.logs_dir / "gateway.log"
+
+        # Config
+        self.config_file = user_paths.config_dir / "studio.config.json"
+
+        # Cache (Build artifacts)
+        self.studio_cache_dir = user_paths.cache_dir / "studio"
+        self.node_modules_dir = self.studio_cache_dir / "node_modules"
+        self.vite_cache_dir = self.studio_cache_dir / ".vite"
+        self.npm_cache_dir = self.studio_cache_dir / "npm"
+        self.dist_dir = self.studio_cache_dir / "dist"
 
         # React + Vite 默认端口是 5173
         self.default_port = SagePorts.STUDIO_FRONTEND
@@ -63,9 +68,8 @@ class StudioManager:
     def ensure_sage_directories(self):
         """确保所有 .sage 相关目录存在"""
         directories = [
-            self.sage_dir,
-            self.studio_sage_dir,
-            self.vite_cache_dir,  # Vite 缓存目录
+            self.studio_cache_dir,
+            self.vite_cache_dir,
             self.npm_cache_dir,
             self.dist_dir,
         ]
@@ -180,6 +184,34 @@ class StudioManager:
 
         return None
 
+    def _is_port_in_use(self, port: int) -> bool:
+        """检查端口是否被占用"""
+        import socket
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("0.0.0.0", port))
+                return False  # 可以绑定，说明端口空闲
+            except OSError:
+                return True  # 无法绑定，说明端口被占用
+
+    def _kill_process_on_port(self, port: int) -> bool:
+        """杀死占用指定端口的进程"""
+        try:
+            for conn in psutil.net_connections(kind="inet"):
+                if hasattr(conn, "laddr") and conn.laddr and conn.laddr.port == port:
+                    if conn.pid:
+                        try:
+                            proc = psutil.Process(conn.pid)
+                            console.print(f"[dim]   杀死进程 {conn.pid} ({proc.name()})[/dim]")
+                            proc.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+            return True
+        except Exception as e:
+            console.print(f"[dim]   无法杀死端口 {port} 上的进程: {e}[/dim]")
+            return False
+
     def is_gateway_running(self) -> int | None:
         """检查 Gateway 是否运行中"""
         # 方法1: 检查 PID 文件
@@ -225,6 +257,15 @@ class StudioManager:
         host = host or self.default_host
         port = port or self.gateway_port
 
+        # 检查是否已经运行
+        existing_pid = self.is_gateway_running()
+        if existing_pid:
+            if existing_pid == -1:
+                console.print("[green]✅ Gateway 已在运行中（外部启动）[/green]")
+            else:
+                console.print(f"[green]✅ Gateway 已在运行中 (PID: {existing_pid})[/green]")
+            return True
+
         console.print(f"[blue]🚀 启动 Gateway 服务 ({host}:{port})...[/blue]")
 
         try:
@@ -253,24 +294,66 @@ class StudioManager:
             with open(self.gateway_pid_file, "w") as f:
                 f.write(str(process.pid))
 
-            # 等待服务启动
+            # 等待服务启动 - 增加到 60 秒，因为 Gateway 需要加载 studio routes
             console.print("[blue]等待 Gateway 服务启动...[/blue]")
-            for i in range(10):  # 最多等待10秒
-                time.sleep(1)
+            max_wait = 60  # 最多等待 60 秒
+
+            # 创建不使用代理的 session
+            session = requests.Session()
+            session.trust_env = False
+
+            for i in range(max_wait):
+                # 检查进程是否还在运行
+                if not psutil.pid_exists(process.pid):
+                    console.print("[red]❌ Gateway 进程已退出[/red]")
+                    # 输出日志帮助调试
+                    if self.gateway_log_file.exists():
+                        console.print("[yellow]Gateway 日志（最后 30 行）:[/yellow]")
+                        try:
+                            with open(self.gateway_log_file) as f:
+                                lines = f.readlines()
+                                for line in lines[-30:]:
+                                    console.print(f"[dim]  {line.rstrip()}[/dim]")
+                        except Exception:
+                            pass
+                    return False
+
                 try:
-                    response = requests.get(f"http://localhost:{port}/health", timeout=1)
+                    response = session.get(f"http://localhost:{port}/health", timeout=2)
                     if response.status_code == 200:
                         console.print(
-                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid})[/green]"
+                            f"[green]✅ Gateway 服务启动成功 (PID: {process.pid}, 耗时 {i + 1} 秒)[/green]"
                         )
                         console.print(f"[blue]📡 Gateway API: http://{host}:{port}[/blue]")
                         return True
                 except Exception:
                     pass
 
-            console.print("[yellow]⚠️  Gateway 可能未完全启动，请检查日志[/yellow]")
-            console.print(f"[blue]日志文件: {self.gateway_log_file}[/blue]")
-            return True  # 进程启动了，即使 health check 失败
+                # 每 10 秒输出一次状态
+                if (i + 1) % 10 == 0:
+                    console.print(f"[blue]   等待 Gateway 响应... ({i + 1}/{max_wait}秒)[/blue]")
+
+                time.sleep(1)
+
+            # 超时但进程还在，可能只是启动慢
+            if psutil.pid_exists(process.pid):
+                console.print("[yellow]⚠️  Gateway 启动超时，但进程仍在运行[/yellow]")
+                console.print(f"[yellow]   请检查日志: {self.gateway_log_file}[/yellow]")
+                # 输出日志最后几行
+                if self.gateway_log_file.exists():
+                    try:
+                        with open(self.gateway_log_file) as f:
+                            lines = f.readlines()
+                            if lines:
+                                console.print("[yellow]   Gateway 日志（最后 10 行）:[/yellow]")
+                                for line in lines[-10:]:
+                                    console.print(f"[dim]     {line.rstrip()}[/dim]")
+                    except Exception:
+                        pass
+                return True  # 进程还在，认为可能成功
+
+            console.print("[red]❌ Gateway 启动失败[/red]")
+            return False
 
         except Exception as e:
             console.print(f"[red]❌ Gateway 启动失败: {e}[/red]")
@@ -753,7 +836,7 @@ class StudioManager:
 
     def create_spa_server_script(self, port: int, host: str) -> Path:
         """创建用于 SPA 的自定义服务器脚本"""
-        server_script = self.studio_sage_dir / "spa_server.py"
+        server_script = self.studio_cache_dir / "spa_server.py"
 
         server_code = f'''#!/usr/bin/env python3
 """
@@ -966,6 +1049,22 @@ if __name__ == "__main__":
         config["backend_port"] = backend_port
         self.save_config(config)
 
+        # 检查端口是否被占用（可能是僵尸进程或其他服务）
+        if self._is_port_in_use(backend_port):
+            console.print(f"[yellow]⚠️  端口 {backend_port} 被占用，尝试释放...[/yellow]")
+            self._kill_process_on_port(backend_port)
+            # 等待端口释放
+            import time
+
+            for _ in range(5):
+                time.sleep(1)
+                if not self._is_port_in_use(backend_port):
+                    console.print(f"[green]✅ 端口 {backend_port} 已释放[/green]")
+                    break
+            else:
+                console.print(f"[red]❌ 无法释放端口 {backend_port}，请手动检查[/red]")
+                return False
+
         console.print(f"[blue]正在启动后端API (端口: {backend_port})...[/blue]")
 
         try:
@@ -1115,168 +1214,13 @@ if __name__ == "__main__":
             return False
 
     def _ensure_rag_index(self) -> bool:
-        """确保 RAG 索引就绪（自动 ingest）
+        """(已弃用) 确保 RAG 索引就绪
 
-        检查 ~/.sage/cache/chat/ 下的索引，如果不存在则自动构建。
-        这样用户无需手动运行 sage chat ingest。
+        注意：索引构建逻辑已移交 AgentPlanner 动态决策，不再硬编码。
+        此方法保留仅作参考，不再自动调用。
         """
-        index_root = Path.home() / ".sage" / "cache" / "chat"
-        index_name = "docs-public"
-        manifest_file = index_root / f"{index_name}_manifest.json"
-
-        # 如果索引已存在，直接返回
-        if manifest_file.exists():
-            console.print(f"[green]✅ RAG 索引已就绪: {manifest_file}[/green]")
-            return True
-
-        console.print("[blue]📚 RAG 索引不存在，开始自动构建...[/blue]")
-
-        try:
-            # 查找文档源
-            from sage.common.config.output_paths import find_sage_project_root
-
-            project_root = find_sage_project_root()
-            if not project_root:
-                console.print("[yellow]⚠️  未找到 SAGE 项目根目录，跳过索引构建[/yellow]")
-                return False
-
-            source_dir = project_root / "docs-public" / "docs_src"
-            if not source_dir.exists():
-                console.print(f"[yellow]⚠️  文档源不存在: {source_dir}[/yellow]")
-                return False
-
-            # 导入必要的组件
-            from sage.common.components.sage_embedding import get_embedding_model
-            from sage.common.config.ports import SagePorts
-            from sage.common.utils.document_processing import parse_markdown_sections
-            from sage.middleware.components.sage_db.backend import SageDBBackend
-            from sage.middleware.operators.rag.index_builder import IndexBuilder
-
-            # 创建输出路径
-            index_root.mkdir(parents=True, exist_ok=True)
-            db_path = index_root / f"{index_name}.sagedb"
-
-            # 创建 embedder - 优先使用运行中的 embedding 服务
-            embedding_method = "hash"
-            embedding_dim = 384
-            embedding_model_name = None
-
-            # 检查 embedding 服务是否运行
-            embedding_port = SagePorts.EMBEDDING_DEFAULT
-            try:
-                import httpx
-
-                resp = httpx.get(
-                    f"http://localhost:{embedding_port}/v1/models",
-                    timeout=2.0,
-                )
-                if resp.status_code == 200:
-                    models = resp.json().get("data", [])
-                    if models:
-                        embedding_method = "openai"
-                        embedding_model_name = models[0].get("id", "BAAI/bge-m3")
-                        embedding_dim = 1024  # BGE-M3 默认维度
-                        console.print(
-                            f"[green]✅ 检测到 Embedding 服务 (localhost:{embedding_port})[/green]"
-                        )
-                        console.print(f"[blue]   使用模型: {embedding_model_name}[/blue]")
-            except Exception:
-                pass  # 服务未运行，使用 hash fallback
-
-            if embedding_method == "openai":
-                console.print(
-                    f"[blue]初始化 embedder (openai @ localhost:{embedding_port})...[/blue]"
-                )
-                embedder = get_embedding_model(
-                    "openai",
-                    model=embedding_model_name,
-                    base_url=f"http://localhost:{embedding_port}/v1",
-                    api_key="dummy",  # 本地服务不需要真实 key  # pragma: allowlist secret
-                )
-            else:
-                console.print("[blue]初始化 embedder (hash-384)...[/blue]")
-                console.print(
-                    "[dim]   提示: 运行 'sage llm serve --with-embedding' 可使用真正的 embedding[/dim]"
-                )
-                embedder = get_embedding_model("hash", dim=embedding_dim)
-
-            # Backend factory
-            def backend_factory(persist_path: Path, dim: int):
-                return SageDBBackend(persist_path, dim)
-
-            # Document processor
-            def document_processor(source_dir: Path):
-                console.print(f"[blue]正在处理文档: {source_dir}...[/blue]")
-                documents = []  # 使用列表而不是生成器
-                for md_file in source_dir.rglob("*.md"):
-                    try:
-                        with open(md_file, encoding="utf-8") as f:
-                            content = f.read()
-                        sections = parse_markdown_sections(content)
-                        for section in sections:
-                            documents.append(
-                                {
-                                    "content": f"{section['heading']}\n\n{section['content']}",
-                                    "metadata": {
-                                        "doc_path": str(md_file.relative_to(source_dir)),
-                                        "heading": section["heading"],
-                                    },
-                                }
-                            )
-                    except Exception as e:
-                        console.print(f"[yellow]跳过 {md_file}: {e}[/yellow]")
-                        continue
-                console.print(f"[green]处理了 {len(documents)} 个文档片段[/green]")
-                return documents  # 返回列表
-
-            # Build index
-            console.print("[blue]构建索引中...[/blue]")
-            builder = IndexBuilder(backend_factory=backend_factory)
-            index_manifest = builder.build_from_docs(
-                source_dir=source_dir,
-                persist_path=db_path,
-                embedding_model=embedder,
-                index_name=index_name,
-                chunk_size=800,
-                chunk_overlap=160,
-                document_processor=document_processor,
-            )
-
-            # Save manifest
-            manifest_data = {
-                "index_name": index_name,
-                "db_path": str(db_path),
-                "created_at": index_manifest.created_at,
-                "source_dir": str(source_dir),
-                "embedding": {
-                    "method": embedding_method,
-                    "dim": embedding_dim,
-                    "model": embedding_model_name,
-                },
-                "chunk_size": 800,
-                "chunk_overlap": 160,
-                "num_documents": index_manifest.num_documents,
-                "num_chunks": index_manifest.num_chunks,
-            }
-
-            import json
-
-            with open(manifest_file, "w") as f:
-                json.dump(manifest_data, f, indent=2)
-
-            console.print(
-                f"[green]✅ 索引构建成功: {index_manifest.num_chunks} 个片段 "
-                f"来自 {index_manifest.num_documents} 个文档[/green]"
-            )
-            return True
-
-        except Exception as e:
-            console.print(f"[yellow]⚠️  索引构建失败: {e}[/yellow]")
-            console.print("[yellow]   RAG 功能可能不可用，但 Studio 会继续启动[/yellow]")
-            import traceback
-
-            traceback.print_exc()
-            return False
+        console.print("[dim]ℹ️  RAG 索引构建已移交 AgentPlanner，跳过硬编码检查[/dim]")
+        return True
 
     def start(
         self,
@@ -1290,7 +1234,7 @@ if __name__ == "__main__":
         skip_confirm: bool = False,  # 新增：跳过确认（用于 restart）
     ) -> bool:
         """启动 Studio（前端和后端）"""
-        # 🆕 步骤0: 确保 RAG 索引就绪（自动 ingest）
+        # 🆕 步骤0: RAG 索引构建已移交 AgentPlanner 动态决策
         self._ensure_rag_index()
 
         # 检查并启动 Gateway（如果需要 Chat 模式）
@@ -1306,14 +1250,49 @@ if __name__ == "__main__":
             else:
                 console.print(f"[green]✅ Gateway 已在运行中 (PID: {gateway_pid})[/green]")
 
-        # 首先启动后端API
-        if not self.start_backend(port=backend_port):
-            console.print("[red]后端API启动失败，无法启动Studio[/red]")
-            return False
+        # 后端 API 已合并进 Gateway，不再单独启动
+
+        # 🆕 智能端口冲突解决 (Smart Port Conflict Resolution)
+        # 解决场景：配置文件中保存了旧端口 (如 5173)，但该端口被其他服务占用 (如 Prod 环境)，
+        # 而当前代码的默认端口已更新 (如 5179)。此时应自动切换到新默认端口。
+        if port is None:
+            config = self.load_config()
+            config_port = config.get("port", self.default_port)
+
+            # 如果配置端口 != 默认端口 (说明可能是旧配置)
+            if config_port != self.default_port:
+                # 检查配置端口是否被占用
+                if self._is_port_in_use(config_port):
+                    # 检查是否是我们的 PID (如果是我们自己，就不算冲突)
+                    pid_exists = False
+                    if self.pid_file.exists():
+                        try:
+                            with open(self.pid_file) as f:
+                                pid = int(f.read().strip())
+                            if psutil.pid_exists(pid):
+                                pid_exists = True
+                        except Exception:
+                            pass
+
+                    if not pid_exists:
+                        # 端口被占用且不是我们的 PID -> 冲突
+                        # 检查默认端口是否空闲
+                        if not self._is_port_in_use(self.default_port):
+                            console.print(
+                                f"[yellow]⚠️  检测到配置端口 {config_port} 被占用 (可能是旧配置)，自动切换到默认端口 {self.default_port}[/yellow]"
+                            )
+                            # 更新配置文件
+                            config["port"] = self.default_port
+                            self.save_config(config)
 
         # 检查前端是否已运行
-        if self.is_running():
-            console.print("[yellow]Studio前端已经在运行中[/yellow]")
+        running_pid = self.is_running()
+        if running_pid:
+            if running_pid == -1:
+                console.print("[yellow]⚠️  检测到 Studio 端口被占用 (孤儿进程)[/yellow]")
+                console.print("[dim]   请运行 'sage studio stop' 来清理它[/dim]")
+            else:
+                console.print(f"[yellow]Studio前端已经在运行中 (PID: {running_pid})[/yellow]")
             return True
 
         if not self.check_dependencies():
@@ -1343,22 +1322,18 @@ if __name__ == "__main__":
                     console.print("[blue]开始安装依赖...[/blue]")
                     if not self.install_dependencies():
                         console.print("[red]依赖安装失败[/red]")
-                        self.stop_backend()
                         return False
                 else:
                     console.print("[yellow]跳过安装，请稍后手动运行: sage studio install[/yellow]")
-                    self.stop_backend()
                     return False
             else:
                 console.print("[yellow]未安装依赖，请先运行: sage studio install[/yellow]")
-                self.stop_backend()
                 return False
 
         if not self._ensure_frontend_dependency_integrity(
             auto_fix=auto_install, skip_confirm=skip_confirm
         ):
             console.print("[red]前端依赖损坏，已停止启动流程[/red]")
-            self.stop_backend()
             return False
 
         # 使用提供的参数或配置文件中的默认值
@@ -1411,17 +1386,14 @@ if __name__ == "__main__":
                             console.print("[blue]开始构建...[/blue]")
                             if not self.build():
                                 console.print("[red]构建失败，无法启动生产模式[/red]")
-                                self.stop_backend()
                                 return False
                         else:
                             console.print(
                                 "[yellow]跳过构建，请稍后手动运行: sage studio build[/yellow]"
                             )
-                            self.stop_backend()
                             return False
                     else:
                         console.print("[yellow]未构建，请先运行: sage studio build[/yellow]")
-                        self.stop_backend()
                         return False
 
                 console.print("[blue]启动生产服务器（Vite Preview）...[/blue]")
@@ -1440,6 +1412,14 @@ if __name__ == "__main__":
                     str(self.dist_dir),  # 指定构建输出目录
                 ]
 
+            # 准备环境变量
+            env = os.environ.copy()
+            env["npm_config_cache"] = str(self.npm_cache_dir)
+            # 传递 Gateway 端口给 Vite (用于 proxy target)
+            env["VITE_GATEWAY_PORT"] = str(self.gateway_port)
+            # 传递 PORT 给 Vite (虽然 CLI 参数也会覆盖，但保持一致更好)
+            env["PORT"] = str(port)
+
             # 启动进程 - 使用独立的日志文件句柄
             # 关键修复: 使用 with 语句确保文件句柄正确管理，并设置 stdin=DEVNULL
             # 防止 npm/Vite 进程尝试读取终端输入导致卡顿
@@ -1447,6 +1427,7 @@ if __name__ == "__main__":
             process = subprocess.Popen(
                 cmd,
                 cwd=self.frontend_dir,
+                env=env,  # 传递环境变量
                 stdin=subprocess.DEVNULL,  # 关键：阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=log_handle,
@@ -1470,18 +1451,17 @@ if __name__ == "__main__":
             return False
 
     def stop(self, stop_gateway: bool = False) -> bool:
-        """停止 Studio（前端和后端）
+        """停止 Studio（前端）
 
         Args:
             stop_gateway: 是否同时停止 Gateway（默认不停止，因为可能被其他服务使用）
         """
         frontend_pid = self.is_running()
-        backend_running = self.is_backend_running()
 
         stopped_services = []
 
         # 停止前端
-        if frontend_pid:
+        if frontend_pid and frontend_pid != -1:
             try:
                 # 发送终止信号
                 os.killpg(os.getpgid(frontend_pid), signal.SIGTERM)
@@ -1501,7 +1481,7 @@ if __name__ == "__main__":
                     self.pid_file.unlink()
 
                 # 清理临时服务器脚本
-                spa_server_script = self.studio_sage_dir / "spa_server.py"
+                spa_server_script = self.studio_cache_dir / "spa_server.py"
                 if spa_server_script.exists():
                     spa_server_script.unlink()
 
@@ -1509,10 +1489,19 @@ if __name__ == "__main__":
             except Exception as e:
                 console.print(f"[red]前端停止失败: {e}[/red]")
 
-        # 停止后端
-        if backend_running:
-            if self.stop_backend():
-                stopped_services.append("后端API")
+        # 补充检查：通过端口清理孤儿进程 (Orphaned Process Cleanup)
+        # 即使 PID 文件不存在或已处理，端口可能仍被占用 (如 frontend_pid == -1 或僵尸进程)
+        config = self.load_config()
+        port = config.get("port", self.default_port)
+        if self._is_port_in_use(port):
+            console.print(f"[yellow]检测到端口 {port} 仍被占用，尝试清理孤儿进程...[/yellow]")
+            if self._kill_process_on_port(port):
+                stopped_services.append(f"前端(端口{port})")
+                # 再次确保 PID 文件被清理
+                if self.pid_file.exists():
+                    self.pid_file.unlink()
+
+        # 后端已合并到 Gateway，不需要单独停止
 
         # 可选：停止 Gateway
         if stop_gateway:
@@ -1525,7 +1514,7 @@ if __name__ == "__main__":
             console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
             return True
         else:
-            console.print("[yellow]Studio 未运行[/yellow]")
+            console.print("[yellow]Studio 未运行或停止失败[/yellow]")
             return False
 
     def clean_frontend_cache(self) -> bool:
@@ -1583,7 +1572,6 @@ if __name__ == "__main__":
     def status(self):
         """显示状态"""
         frontend_pid = self.is_running()
-        backend_running = self.is_backend_running()
         gateway_pid = self.is_gateway_running()
         config = self.load_config()
 
@@ -1593,18 +1581,23 @@ if __name__ == "__main__":
         frontend_table.add_column("值", style="white")
 
         if frontend_pid:
-            try:
-                process = psutil.Process(frontend_pid)
-                frontend_table.add_row("状态", "[green]运行中[/green]")
-                frontend_table.add_row("PID", str(frontend_pid))
-                frontend_table.add_row(
-                    "启动时间",
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
-                )
-                frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
-                frontend_table.add_row("内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB")
-            except psutil.NoSuchProcess:
-                frontend_table.add_row("状态", "[red]进程不存在[/red]")
+            if frontend_pid == -1:
+                frontend_table.add_row("状态", "[yellow]运行中（PID未知）[/yellow]")
+            else:
+                try:
+                    process = psutil.Process(frontend_pid)
+                    frontend_table.add_row("状态", "[green]运行中[/green]")
+                    frontend_table.add_row("PID", str(frontend_pid))
+                    frontend_table.add_row(
+                        "启动时间",
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())),
+                    )
+                    frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
+                    frontend_table.add_row(
+                        "内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB"
+                    )
+                except psutil.NoSuchProcess:
+                    frontend_table.add_row("状态", "[red]进程不存在[/red]")
         else:
             frontend_table.add_row("状态", "[red]未运行[/red]")
 
@@ -1616,23 +1609,7 @@ if __name__ == "__main__":
 
         console.print(frontend_table)
 
-        # 创建后端状态表格
-        backend_table = Table(title="SAGE Studio 后端API状态")
-        backend_table.add_column("属性", style="cyan", width=12)
-        backend_table.add_column("值", style="white")
-
-        if backend_running:
-            backend_table.add_row("状态", "[green]运行中[/green]")
-            backend_table.add_row("端口", str(self.backend_port))
-            backend_table.add_row("PID文件", str(self.backend_pid_file))
-            backend_table.add_row("日志文件", str(self.backend_log_file))
-        else:
-            backend_table.add_row("状态", "[red]未运行[/red]")
-            backend_table.add_row("端口", str(self.backend_port))
-
-        console.print(backend_table)
-
-        # 创建 Gateway 状态表格
+        # 创建 Gateway 状态表格（后端 API 已合并到 Gateway）
         gateway_table = Table(title="SAGE Gateway 状态")
         gateway_table.add_column("属性", style="cyan", width=12)
         gateway_table.add_column("值", style="white")
@@ -1671,19 +1648,22 @@ if __name__ == "__main__":
             except requests.RequestException as e:
                 console.print(f"[red]❌ 前端服务不可访问: {e}[/red]")
 
-        # 检查后端是否可访问
-        if backend_running:
+        # 检查 Gateway 是否可访问（后端 API 通过 Gateway 提供）
+        if gateway_pid:
             try:
                 session = requests.Session()
                 session.trust_env = False  # 忽略环境代理
-                backend_url = f"http://localhost:{self.backend_port}/health"
-                response = session.get(backend_url, timeout=5)
+                gateway_url = f"http://localhost:{self.gateway_port}/health"
+                response = session.get(gateway_url, timeout=5)
                 if response.status_code == 200:
-                    console.print(f"[green]✅ 后端API可访问: {backend_url}[/green]")
+                    console.print(f"[green]✅ Gateway可访问: {gateway_url}[/green]")
+                    console.print(
+                        "[dim]   (后端 API 已合并到 Gateway: /api/chat, /api/config 等)[/dim]"
+                    )
                 else:
-                    console.print(f"[yellow]⚠️ 后端API响应异常: {response.status_code}[/yellow]")
+                    console.print(f"[yellow]⚠️ Gateway响应异常: {response.status_code}[/yellow]")
             except requests.RequestException as e:
-                console.print(f"[red]❌ 后端API不可访问: {e}[/red]")
+                console.print(f"[red]❌ Gateway不可访问: {e}[/red]")
 
     def logs(self, follow: bool = False, backend: bool = False):
         """显示日志"""

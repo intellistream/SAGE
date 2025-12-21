@@ -4,6 +4,8 @@ Unit tests for Gorilla-style retrieval-augmented tool selector.
 Tests the two-stage approach: embedding retrieval + LLM selection.
 """
 
+import json
+
 import numpy as np
 import pytest
 
@@ -249,13 +251,18 @@ class TestGorillaSelector:
         mock_llm = MockLLMClient(return_tools=["weather_get"])
         selector = GorillaSelector(gorilla_config, mock_resources, llm_client=mock_llm)
 
+        # Get candidates and use actual candidate IDs in the response
         candidates = selector._retrieve_candidates(query="Weather", candidate_ids=None, top_k=5)
+        candidate_ids = [c.tool_id for c in candidates]
 
-        # Response with code block
-        response = '```json\n["weather_get", "weather_forecast"]\n```'
+        # Response with code block - use IDs from actual candidates
+        test_ids = candidate_ids[:2] if len(candidate_ids) >= 2 else candidate_ids
+        response = f"```json\n{json.dumps(test_ids)}\n```"
         parsed = selector._parse_llm_response(response, candidates)
 
-        assert "weather_get" in parsed or "weather_forecast" in parsed
+        # Verify the IDs from candidates are parsed correctly
+        assert len(parsed) > 0
+        assert all(pid in candidate_ids for pid in parsed)
 
     def test_select_with_llm(self, gorilla_config, mock_resources):
         """Test full selection flow with LLM."""
@@ -289,7 +296,7 @@ class TestGorillaSelector:
         predictions = selector.select(query, top_k=3)
 
         assert len(predictions) > 0
-        # Should use retrieval_only method
+        # Should use retrieval_only method when llm_client is None
         assert predictions[0].metadata.get("method") == "gorilla_retrieval_only"
 
     def test_get_stats(self, gorilla_config, mock_resources):

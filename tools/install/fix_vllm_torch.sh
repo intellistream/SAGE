@@ -220,7 +220,7 @@ main() {
         echo "  sage-dev --help"
         echo
         print_info "相关文档:"
-        echo "  see docs/dev-notes/l2-platform/DEPENDENCY_OPTIMIZATION.md (Torch & vLLM section)"
+        echo "  see docs-public/docs_src/dev-notes/l2-platform/DEPENDENCY_OPTIMIZATION.md (Torch & vLLM section)"
     else
         echo
         print_error "=========================================="

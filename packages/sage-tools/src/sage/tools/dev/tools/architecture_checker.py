@@ -91,7 +91,8 @@ ALLOWED_DEPENDENCIES = {
         "sage-kernel",
         "sage-libs",
         "sage-middleware",
-    },  # L6 -> L4, L3, L2, L1
+        "sage-studio",  # Gateway 集成 Studio Backend 路由
+    },  # L6 -> L6(studio), L4, L3, L2, L1
 }
 
 # 包的根目录映射
