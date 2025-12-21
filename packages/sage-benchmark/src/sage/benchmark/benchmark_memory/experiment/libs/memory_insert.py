@@ -164,23 +164,23 @@ class MemoryInsert(MapFunction):
         stats = InsertStats(inserted=0, failed=0, entry_ids=[], entries=[], errors=[])
 
         # ============ DEBUG: 插入前打印 ============
-        print("\n" + "=" * 80)
-        print(f"📥 [MemoryInsert] 准备插入 {len(memory_entries)} 条记忆")
-        print("=" * 80)
-        for idx, entry in enumerate(memory_entries, 1):
-            text = entry.get("text", "")  # 显示完整文本，不截断
-            metadata = entry.get("metadata", {})
-            triples = metadata.get("triples", [])
-            print(f"\n条目 #{idx}:")
-            print(f"  文本: {text}")
-            if triples:
-                print(f"  三元组: {triples}")
-            # 显示其他元数据（如果有）
-            if metadata:
-                other_meta = {k: v for k, v in metadata.items() if k != "triples"}
-                if other_meta:
-                    print(f"  其他元数据: {other_meta}")
-        print("\n" + "=" * 80)
+        # print("\n" + "=" * 80)
+        # print(f"📥 [MemoryInsert] 准备插入 {len(memory_entries)} 条记忆")
+        # print("=" * 80)
+        # for idx, entry in enumerate(memory_entries, 1):
+        #     text = entry.get("text", "")  # 显示完整文本，不截断
+        #     metadata = entry.get("metadata", {})
+        #     triples = metadata.get("triples", [])
+        #     print(f"\n条目 #{idx}:")
+        #     print(f"  文本: {text}")
+        #     if triples:
+        #         print(f"  三元组: {triples}")
+        #     # 显示其他元数据（如果有）
+        #     if metadata:
+        #         other_meta = {k: v for k, v in metadata.items() if k != "triples"}
+        #         if other_meta:
+        #             print(f"  其他元数据: {other_meta}")
+        # print("\n" + "=" * 80)
         # ============ DEBUG END ============
 
         # 记录批次总耗时

@@ -200,13 +200,13 @@ class PipelineCaller(MapFunction):
         # 收集并累积插入阶段的时间数据
         if insert_result and "stage_timings" in insert_result:
             batch_timings = insert_result["stage_timings"]
-            print(f"[DEBUG PipelineCaller] Batch {packet_idx + 1}: 收集 timing 数据")
+            # print(f"[DEBUG PipelineCaller] Batch {packet_idx + 1}: 收集 timing 数据")
             for key in ["pre_insert_ms", "memory_insert_ms", "post_insert_ms"]:
                 if key in batch_timings:
                     timing_list = batch_timings[key]
                     if isinstance(timing_list, list):
                         self.accumulated_insert_timings[key].extend(timing_list)
-                        print(f"[DEBUG PipelineCaller]   {key}: 累积 {len(timing_list)} 个时间点")
+                        # print(f"[DEBUG PipelineCaller]   {key}: 累积 {len(timing_list)} 个时间点")
                     else:
                         print(f"[DEBUG PipelineCaller]   {key}: 警告 - 不是列表格式！")
 

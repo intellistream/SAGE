@@ -55,6 +55,10 @@ class PreRetrieval(MapFunction):
         if hasattr(self.action, "set_llm_generator"):
             self.action.set_llm_generator(self._llm_generator)
 
+        # 设置Embedding生成器
+        if hasattr(self.action, "set_embedding_generator"):
+            self.action.set_embedding_generator(self._embedding_generator)
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         start_time = time.perf_counter()
 

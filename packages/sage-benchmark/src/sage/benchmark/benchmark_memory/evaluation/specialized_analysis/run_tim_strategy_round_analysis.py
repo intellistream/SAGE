@@ -24,8 +24,8 @@ ps = PorterStemmer()
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-INPUT_BASE_DIR = ".sage/benchmarks/benchmark_memory/locomo/251219"
-OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251219/tim_strategy_round_analysis"
+INPUT_BASE_DIR = ".sage/benchmarks/benchmark_memory/locomo/251220"
+OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251220/tim_strategy_round_analysis"
 
 # 策略名称映射和颜色
 STRATEGY_NAMES = {
@@ -102,10 +102,47 @@ def f1_multi(prediction, ground_truth):
 
 def calculate_f1(prediction, ground_truth, category):
     """Calculate F1 based on category."""
-    if category == 1:  # Multi-answer
+    # Category 5: 判断是否正确选择 (b) 或识别"信息未提及"
+    if category == 5:
+        prediction = str(prediction)
+        prediction_lower = prediction.lower()
+
+        # 方式1: 检查是否选择了选项 (b)
+        selected_b = any(
+            pattern in prediction_lower
+            for pattern in [
+                "(b)",
+                "option b",
+                "answer is b",
+                "select b",
+                "choice b",
+            ]
+        )
+
+        # 方式2: 检查是否包含 "not mentioned" 关键字（兜底）
+        is_not_mentioned = any(
+            keyword in prediction_lower
+            for keyword in [
+                "not mentioned",
+                "no information",
+                "not in the conversation",
+                "cannot be determined",
+            ]
+        )
+
+        # 只要选择了 (b) 或者说明了"未提及"，就算正确
+        return 1.0 if (selected_b or is_not_mentioned) else 0.0
+
+    # Category 1: Multi-answer
+    if category == 1:
         return f1_multi(prediction, ground_truth)
-    else:
-        return f1_score(prediction, ground_truth)
+
+    # Category 3: 清理分号后的注释部分
+    if category == 3:
+        prediction = str(prediction).split(";")[0].strip()
+        ground_truth = str(ground_truth).split(";")[0].strip()
+
+    return f1_score(prediction, ground_truth)
 
 
 # ============================================================================
@@ -114,7 +151,7 @@ def calculate_f1(prediction, ground_truth, category):
 
 
 def load_strategy_data(base_dir: str) -> dict:
-    """Load all strategy results."""
+    """Load all strategy results (支持多个任务)."""
     base_path = Path(base_dir)
     strategy_data = {}
 
@@ -129,28 +166,48 @@ def load_strategy_data(base_dir: str) -> dict:
             print(f"  ✗ {display_name}: No JSON files found")
             continue
 
-        json_file = json_files[0]
-        with open(json_file, encoding="utf-8") as f:
-            data = json.load(f)
+        # 加载所有JSON文件（多个任务）
+        all_tasks_data = []
+        for json_file in json_files:
+            with open(json_file, encoding="utf-8") as f:
+                data = json.load(f)
+                all_tasks_data.append(data)
 
         strategy_data[display_name] = {
-            "raw_data": data,
-            "file": json_file.name,
+            "all_tasks": all_tasks_data,
+            "num_tasks": len(json_files),
+            "files": [f.name for f in json_files],
         }
-        print(f"  ✓ {display_name}: {json_file.name}")
+        print(
+            f"  ✓ {display_name}: {len(json_files)} tasks ({', '.join([f.name for f in json_files])})"
+        )
 
     return strategy_data
 
 
-def analyze_strategy_by_round(strategy_name: str, data: dict) -> dict:
-    """分析单个策略的逐轮表现（包括类别细分）"""
-    test_results = data.get("test_results", [])
+def analyze_strategy_by_round(strategy_name: str, all_tasks_data: list) -> dict:
+    """分析单个策略的逐轮表现（聚合多个任务）"""
+    # 收集所有任务的轮次数据
+    # 结构: {round_idx: [task1_questions, task2_questions, ...]}
+    rounds_aggregated = {}
 
+    for task_data in all_tasks_data:
+        test_results = task_data.get("test_results", [])
+
+        for test in test_results:
+            round_idx = test.get("test_index", 0)
+            questions = test.get("questions", [])
+
+            if round_idx not in rounds_aggregated:
+                rounds_aggregated[round_idx] = []
+            rounds_aggregated[round_idx].extend(questions)
+
+    # 计算每个轮次的统计数据
     round_analyses = []
+    all_category_scores = {cat: [] for cat in CATEGORY_NAMES.keys()}
 
-    for test in test_results:
-        round_idx = test.get("test_index", 0)
-        questions = test.get("questions", [])
+    for round_idx in sorted(rounds_aggregated.keys()):
+        questions = rounds_aggregated[round_idx]
 
         # 整体F1
         all_f1_scores = []
@@ -166,8 +223,10 @@ def analyze_strategy_by_round(strategy_name: str, data: dict) -> dict:
             all_f1_scores.append(f1)
             if cat in category_f1:
                 category_f1[cat].append(f1)
+                # 收集用于加权平均
+                all_category_scores[cat].append(f1)
 
-        # 计算各类别平均分
+        # 计算各类别平均分（该轮）
         category_avg = {}
         for cat, scores in category_f1.items():
             if scores:
@@ -182,10 +241,17 @@ def analyze_strategy_by_round(strategy_name: str, data: dict) -> dict:
             }
         )
 
+    # 计算加权平均的类别分数（所有轮次合并）
+    weighted_category_avg = {}
+    for cat, scores in all_category_scores.items():
+        if scores:
+            weighted_category_avg[cat] = np.mean(scores)
+
     return {
         "strategy_name": strategy_name,
         "round_analyses": round_analyses,
         "average_f1": np.mean([r["f1_overall"] for r in round_analyses]) if round_analyses else 0,
+        "category_avg_weighted": weighted_category_avg,  # 加权平均
     }
 
 
@@ -198,9 +264,11 @@ def plot_round_comparison(analyses: dict, output_dir: Path):
     """折线图：各策略在各轮次的F1对比"""
     plt.figure(figsize=(14, 8))
 
+    all_scores = []
     for strategy_name, analysis in analyses.items():
         rounds = [r["round"] for r in analysis["round_analyses"]]
         f1_scores = [r["f1_overall"] for r in analysis["round_analyses"]]
+        all_scores.extend(f1_scores)
         color = STRATEGY_COLORS.get(strategy_name, "#95A5A6")
 
         plt.plot(
@@ -213,61 +281,20 @@ def plot_round_comparison(analyses: dict, output_dir: Path):
             color=color,
         )
 
+    # 自适应纵坐标
+    max_score = max(all_scores) if all_scores else 1.0
+    y_max = min(max_score * 1.15, 1.0)
+
     plt.xlabel("Round", fontsize=14, fontweight="bold")
     plt.ylabel("F1 Score", fontsize=14, fontweight="bold")
     plt.title("TiM Query Strategies: F1 Score by Round", fontsize=16, fontweight="bold")
     plt.legend(loc="best", fontsize=12)
     plt.grid(True, alpha=0.3, linestyle="--")
-    plt.ylim(0, 1.0)
+    plt.ylim(0, y_max)
     plt.tight_layout()
     plt.savefig(output_dir / "round_comparison.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("  ✓ round_comparison.png")
-
-
-def plot_round_heatmap(analyses: dict, output_dir: Path):
-    """热力图：策略×轮次的F1得分"""
-    strategies = list(analyses.keys())
-    max_rounds = max(len(a["round_analyses"]) for a in analyses.values())
-
-    data = np.zeros((len(strategies), max_rounds))
-
-    for i, (strategy_name, analysis) in enumerate(analyses.items()):
-        for r in analysis["round_analyses"]:
-            round_idx = r["round"] - 1
-            if 0 <= round_idx < max_rounds:
-                data[i, round_idx] = r["f1_overall"]
-
-    plt.figure(figsize=(14, 8))
-    im = plt.imshow(data, cmap="RdYlGn", aspect="auto", vmin=0, vmax=1)
-    plt.colorbar(im, label="F1 Score")
-
-    plt.yticks(range(len(strategies)), strategies, fontsize=12)
-    plt.xticks(range(max_rounds), [f"R{i + 1}" for i in range(max_rounds)], fontsize=11)
-    plt.xlabel("Round", fontsize=14, fontweight="bold")
-    plt.ylabel("Strategy", fontsize=14, fontweight="bold")
-    plt.title("TiM Strategies: F1 Heatmap (Strategy × Round)", fontsize=16, fontweight="bold")
-
-    # 添加数值标注
-    for i in range(len(strategies)):
-        for j in range(max_rounds):
-            if data[i, j] > 0:
-                text_color = "white" if data[i, j] < 0.5 else "black"
-                plt.text(
-                    j,
-                    i,
-                    f"{data[i, j]:.2f}",
-                    ha="center",
-                    va="center",
-                    fontsize=10,
-                    color=text_color,
-                    fontweight="bold",
-                )
-
-    plt.tight_layout()
-    plt.savefig(output_dir / "round_heatmap.png", dpi=300, bbox_inches="tight")
-    plt.close()
-    print("  ✓ round_heatmap.png")
 
 
 def plot_category_round_comparison(analyses: dict, output_dir: Path):
@@ -275,6 +302,7 @@ def plot_category_round_comparison(analyses: dict, output_dir: Path):
     for cat_id, cat_name in CATEGORY_NAMES.items():
         plt.figure(figsize=(14, 8))
 
+        all_scores = []
         for strategy_name, analysis in analyses.items():
             rounds = []
             scores = []
@@ -285,6 +313,7 @@ def plot_category_round_comparison(analyses: dict, output_dir: Path):
                     scores.append(r["category_f1"][cat_id])
 
             if rounds:
+                all_scores.extend(scores)
                 color = STRATEGY_COLORS.get(strategy_name, "#95A5A6")
                 plt.plot(
                     rounds,
@@ -296,6 +325,10 @@ def plot_category_round_comparison(analyses: dict, output_dir: Path):
                     color=color,
                 )
 
+        # 自适应纵坐标
+        max_score = max(all_scores) if all_scores else 1.0
+        y_max = min(max_score * 1.15, 1.0)
+
         plt.xlabel("Round", fontsize=14, fontweight="bold")
         plt.ylabel("F1 Score", fontsize=14, fontweight="bold")
         plt.title(
@@ -303,107 +336,12 @@ def plot_category_round_comparison(analyses: dict, output_dir: Path):
         )
         plt.legend(loc="best", fontsize=12)
         plt.grid(True, alpha=0.3, linestyle="--")
-        plt.ylim(0, 1.0)
+        plt.ylim(0, y_max)
         plt.tight_layout()
 
         filename = (
             f"category_{cat_id}_{cat_name.lower().replace(' ', '_').replace('/', '_')}_rounds.png"
         )
-        plt.savefig(output_dir / filename, dpi=300, bbox_inches="tight")
-        plt.close()
-        print(f"  ✓ {filename}")
-
-
-def plot_category_heatmaps(analyses: dict, output_dir: Path):
-    """为每个类别生成策略×轮次热力图"""
-    for cat_id, cat_name in CATEGORY_NAMES.items():
-        strategies = list(analyses.keys())
-        max_rounds = max(len(a["round_analyses"]) for a in analyses.values())
-
-        data = np.zeros((len(strategies), max_rounds))
-
-        for i, (strategy_name, analysis) in enumerate(analyses.items()):
-            for r in analysis["round_analyses"]:
-                round_idx = r["round"] - 1
-                if 0 <= round_idx < max_rounds and cat_id in r["category_f1"]:
-                    data[i, round_idx] = r["category_f1"][cat_id]
-
-        plt.figure(figsize=(14, 8))
-        im = plt.imshow(data, cmap="RdYlGn", aspect="auto", vmin=0, vmax=1)
-        plt.colorbar(im, label="F1 Score")
-
-        plt.yticks(range(len(strategies)), strategies, fontsize=12)
-        plt.xticks(range(max_rounds), [f"R{i + 1}" for i in range(max_rounds)], fontsize=11)
-        plt.xlabel("Round", fontsize=14, fontweight="bold")
-        plt.ylabel("Strategy", fontsize=14, fontweight="bold")
-        plt.title(
-            f"Category {cat_id}: {cat_name} - Strategy × Round Heatmap",
-            fontsize=16,
-            fontweight="bold",
-        )
-
-        # 添加数值标注
-        for i in range(len(strategies)):
-            for j in range(max_rounds):
-                if data[i, j] > 0:
-                    text_color = "white" if data[i, j] < 0.5 else "black"
-                    plt.text(
-                        j,
-                        i,
-                        f"{data[i, j]:.2f}",
-                        ha="center",
-                        va="center",
-                        fontsize=9,
-                        color=text_color,
-                        fontweight="bold",
-                    )
-
-        plt.tight_layout()
-        filename = (
-            f"category_{cat_id}_{cat_name.lower().replace(' ', '_').replace('/', '_')}_heatmap.png"
-        )
-        plt.savefig(output_dir / filename, dpi=300, bbox_inches="tight")
-        plt.close()
-        print(f"  ✓ {filename}")
-
-
-def plot_strategy_category_comparison(analyses: dict, output_dir: Path):
-    """每个策略的类别对比（折线图，展示各类别在轮次中的表现）"""
-    for strategy_name, analysis in analyses.items():
-        plt.figure(figsize=(14, 8))
-
-        for cat_id, cat_name in CATEGORY_NAMES.items():
-            rounds = []
-            scores = []
-
-            for r in analysis["round_analyses"]:
-                if cat_id in r["category_f1"]:
-                    rounds.append(r["round"])
-                    scores.append(r["category_f1"][cat_id])
-
-            if rounds:
-                color = CATEGORY_COLORS[cat_id]
-                plt.plot(
-                    rounds,
-                    scores,
-                    marker="o",
-                    linewidth=2.5,
-                    markersize=8,
-                    label=f"Cat{cat_id}: {cat_name}",
-                    color=color,
-                )
-
-        plt.xlabel("Round", fontsize=14, fontweight="bold")
-        plt.ylabel("F1 Score", fontsize=14, fontweight="bold")
-        plt.title(
-            f"{strategy_name}: Category Performance Across Rounds", fontsize=16, fontweight="bold"
-        )
-        plt.legend(loc="best", fontsize=11)
-        plt.grid(True, alpha=0.3, linestyle="--")
-        plt.ylim(0, 1.0)
-        plt.tight_layout()
-
-        filename = f"{strategy_name.lower()}_categories_by_round.png"
         plt.savefig(output_dir / filename, dpi=300, bbox_inches="tight")
         plt.close()
         print(f"  ✓ {filename}")
@@ -477,6 +415,16 @@ def save_json_report(analyses: dict, output_dir: Path):
             ]
             for strategy_name, data in analyses.items()
         },
+        "category_analysis": {
+            "weighted_average": {
+                strategy_name: {
+                    str(cat): round(score, 4)
+                    for cat, score in data["category_avg_weighted"].items()
+                }
+                for strategy_name, data in analyses.items()
+            },
+            "note": "Weighted average: calculated across all questions (not simple average of rounds)",
+        },
         "category_names": {str(k): v for k, v in CATEGORY_NAMES.items()},
     }
 
@@ -538,8 +486,8 @@ def main():
     print(f"\n{'=' * 80}\nAnalyzing Strategies\n{'=' * 80}\n")
     analyses = {}
     for strategy_name, data in strategy_data.items():
-        print(f"Analyzing {strategy_name}...")
-        analysis = analyze_strategy_by_round(strategy_name, data["raw_data"])
+        print(f"Analyzing {strategy_name} ({data['num_tasks']} tasks)...")
+        analysis = analyze_strategy_by_round(strategy_name, data["all_tasks"])
         analyses[strategy_name] = analysis
         print(f"  → Avg F1: {analysis['average_f1']:.4f}")
 
@@ -548,16 +496,9 @@ def main():
     print("Overall comparison:")
     plot_average_comparison(analyses, output_path)
     plot_round_comparison(analyses, output_path)
-    plot_round_heatmap(analyses, output_path)
 
     print("\nCategory-wise round comparison:")
     plot_category_round_comparison(analyses, output_path)
-
-    print("\nCategory-wise heatmaps:")
-    plot_category_heatmaps(analyses, output_path)
-
-    print("\nStrategy-specific category analysis:")
-    plot_strategy_category_comparison(analyses, output_path)
 
     # 保存报告
     print(f"\n{'=' * 80}\nSaving Report\n{'=' * 80}\n")
@@ -571,11 +512,9 @@ def main():
     print(f"{'=' * 80}")
     print(f"\nResults saved to: {OUTPUT_DIR}")
     print(f"  • {len(analyses)} strategies analyzed")
-    print(f"  • {3 + 5 + 5 + len(analyses)} visualization charts")
-    print("    - 3 overall comparison charts")
-    print("    - 5 category round comparison charts")
-    print("    - 5 category heatmaps")
-    print(f"    - {len(analyses)} strategy-specific category charts")
+    print("  • 7 visualization charts")
+    print("    - 2 overall comparison charts (average + round progression)")
+    print("    - 5 category-specific round comparison charts")
     print("  • 1 comprehensive JSON report\n")
 
 

@@ -39,10 +39,8 @@ class DecomposeAction(BasePreRetrievalAction):
 
         self.embed_sub_queries = self._get_config_value("embed_sub_queries", default=False)
 
-        # 初始化 Embedding 生成器（用于子查询向量化）
-        from sage.benchmark.benchmark_memory.experiment.utils import EmbeddingGenerator
-
-        self._embedding_generator = EmbeddingGenerator.from_config(self.config)
+        # Embedding 生成器将由 operator 通过 set_embedding_generator 传入
+        self._embedding_generator = None
 
         # LLM分解配置
         if self.decompose_strategy in ["llm", "hybrid"]:
@@ -71,6 +69,11 @@ Sub-questions:""",
         """设置LLM生成器（由PreRetrieval主类调用）"""
         self._llm_generator = generator
 
+    def set_embedding_generator(self, generator) -> None:
+        """设置Embedding生成器（由PreRetrieval主类调用）"""
+        self._embedding_generator = generator
+        print(f"\n✅ [DecomposeAction] Embedding生成器已设置: {generator}\n")
+
     def execute(self, input_data: PreRetrievalInput) -> PreRetrievalOutput:
         """分解查询
 
@@ -98,20 +101,32 @@ Sub-questions:""",
         if not sub_queries:
             sub_queries = [question]
 
-        # 为子查询生成 embedding
+        # 为子查询批量生成 embedding
         sub_query_embeddings = []
-        if self._embedding_generator:
-            print(f"\n🔄 开始为 {len(sub_queries)} 个子查询生成 embedding...")
-            for idx, sq in enumerate(sub_queries, 1):
-                try:
-                    embedding = self._embedding_generator.embed(sq)
-                    sub_query_embeddings.append(embedding)
-                    print(f"  ✓ 子查询 {idx}: {sq[:50]}... (维度: {len(embedding)})")
-                except Exception as e:
-                    print(f"  ✗ 子查询 {idx} embedding 生成失败: {e}")
-                    sub_query_embeddings.append(None)
+        if self._embedding_generator and self._embedding_generator.is_available():
+            print(f"\n🔄 开始批量生成 {len(sub_queries)} 个子查询的 embedding...")
+            try:
+                sub_query_embeddings = self._embedding_generator.embed_batch(sub_queries)
+                if sub_query_embeddings:
+                    for idx, (sq, emb) in enumerate(zip(sub_queries, sub_query_embeddings), 1):
+                        if emb:
+                            print(f"  ✓ 子查询 {idx}: {sq[:50]}... (维度: {len(emb)})")
+                        else:
+                            print(f"  ✗ 子查询 {idx}: embedding 生成失败")
+                else:
+                    print("  ⚠️  embed_batch 返回 None")
+                    sub_query_embeddings = [None] * len(sub_queries)
+            except Exception as e:
+                print(f"  ✗ 批量 embedding 生成失败: {e}")
+                import traceback
+
+                traceback.print_exc()
+                sub_query_embeddings = [None] * len(sub_queries)
         else:
-            print("⚠️  未初始化 EmbeddingGenerator，子查询将无 embedding")
+            if not self._embedding_generator:
+                print("⚠️  未初始化 EmbeddingGenerator，子查询将无 embedding")
+            else:
+                print("⚠️  EmbeddingGenerator 不可用，子查询将无 embedding")
             sub_query_embeddings = [None] * len(sub_queries)
 
         # ============ DEBUG: 分解后打印 ============

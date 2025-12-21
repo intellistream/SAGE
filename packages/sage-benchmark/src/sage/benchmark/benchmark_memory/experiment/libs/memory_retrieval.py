@@ -128,8 +128,8 @@ class MemoryRetrieval(MapFunction):
         # ============ DEBUG END ============
 
         # 2. 调用服务检索（支持多查询）
-        if queries and len(queries) > 1:
-            # 多查询模式：对每个子查询/扩展查询独立检索
+        if queries and len(queries) >= 1:
+            # 多查询模式（包括单个子查询的情况）：对每个子查询/扩展查询独立检索
             all_results = []
             seen_texts = set()  # 用于去重
 
@@ -200,18 +200,18 @@ class MemoryRetrieval(MapFunction):
         print(f"检索到 {stats.retrieved} 条结果，耗时 {stats.time_ms:.2f}ms")
         if results:
             print(f"\n检索结果 (显示全部 {len(results)} 条):")
-            for idx, result in enumerate(results, 1):
-                text = result.get("text", "")  # 显示完整文本
-                metadata_info = result.get("metadata", {})
-                print(f"\n  结果 #{idx}:")
-                print(f"    文本: {text}")
-                if metadata_info:
-                    triples = metadata_info.get("triples", [])
-                    if triples:
-                        print(f"    三元组: {triples}")
-                    other_meta = {k: v for k, v in metadata_info.items() if k != "triples"}
-                    if other_meta:
-                        print(f"    其他元数据: {other_meta}")
+            # for idx, result in enumerate(results, 1):
+            #     text = result.get("text", "")  # 显示完整文本
+            #     metadata_info = result.get("metadata", {})
+            #     print(f"\n  结果 #{idx}:")
+            #     print(f"    文本: {text}")
+            #     if metadata_info:
+            #         triples = metadata_info.get("triples", [])
+            #         if triples:
+            #             print(f"    三元组: {triples}")
+            #         other_meta = {k: v for k, v in metadata_info.items() if k != "triples"}
+            #         if other_meta:
+            #             print(f"    其他元数据: {other_meta}")
         else:
             print("⚠️  未检索到任何结果！")
         print("=" * 80)
