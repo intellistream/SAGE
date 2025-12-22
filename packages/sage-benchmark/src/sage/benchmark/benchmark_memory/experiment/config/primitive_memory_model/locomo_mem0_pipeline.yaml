@@ -75,9 +75,20 @@ operators:
   pre_insert:
     action: "extract"
     extract_type: "entity"
-    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity/noun 提取
+    # 抽取方法：改为 mem0_llm（参考 mem0 的实体抽取实现，支持回退到 simple/spacy）
+    method: "mem0_llm"
+    spacy_model: "en_core_web_sm"     # SpaCy 模型用于回退时的 entity/noun 提取
     entity_types: ["PERSON", "ORG", "LOC", "DATE", "EVENT"]
     add_to_metadata: true
+    normalize: true                    # 统一小写 + 空格转下划线（与 mem0 风格一致）
+    keep_original: true                # 保留原始文本条目，便于向量侧一致
+    mem0_llm_prompt: |
+      You are an assistant that extracts entities and their types from the given text.
+      Return a compact JSON with the following schema:
+      {
+        "entities": [ { "entity": "...", "entity_type": "..." } ]
+      }
+      Do not include any explanation.
 
   # ----------------------------------------------------------
   # PostInsert: ADD/UPDATE/DELETE 决策
