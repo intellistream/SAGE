@@ -48,7 +48,6 @@ class ExpandAction(BasePreRetrievalAction):
     def set_embedding_generator(self, generator) -> None:
         """设置Embedding生成器（由PreRetrieval主类调用）"""
         self._embedding_generator = generator
-        # print(f"\n✅ [ExpandAction] Embedding生成器已设置: {generator}\n")
 
     def execute(self, input_data: PreRetrievalInput) -> PreRetrievalOutput:
         """扩展查询

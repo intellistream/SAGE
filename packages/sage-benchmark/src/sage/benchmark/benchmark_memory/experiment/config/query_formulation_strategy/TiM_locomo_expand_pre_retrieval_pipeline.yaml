@@ -147,9 +147,9 @@ operators:
 
       Original question: {question}
 
-      Return a JSON array of expanded queries. Example: ["query 1", "query 2", "query 3"]
+      Return a JSON array of expanded queries. Example: ["query 1", "query 2"]
       Expanded queries:
-    expand_count: 3
+    expand_count: 2
     merge_strategy: union
     replace_original: false
     store_optimized: true

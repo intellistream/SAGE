@@ -84,11 +84,20 @@ class PreInsert(MapFunction):
         return data
 
     def _generate_embeddings(self, entries: list[dict[str, Any]]) -> None:
+        """批量生成 embeddings（使用批量接口优化性能）"""
         if not self._embedding_generator or not self._embedding_generator.is_available():
             return
-        for entry in entries:
+
+        # 收集需要生成 embedding 的文本和对应的索引
+        texts_to_embed: list[str] = []
+        indices_to_update: list[int] = []
+
+        for i, entry in enumerate(entries):
+            # 跳过已有 embedding 的 entry
             if "embedding" in entry and entry["embedding"] is not None:
                 continue
+
+            # 按优先级获取文本
             text_for_embed = (
                 entry.get("summary", "")
                 or entry.get("compressed_text", "")
@@ -98,10 +107,20 @@ class PreInsert(MapFunction):
                 or entry.get("reconstructed_text", "")
                 or entry.get("text", "")
             )
+
             if text_for_embed:
-                try:
-                    embedding = self._embedding_generator.embed(text_for_embed)
-                    if embedding:
-                        entry["embedding"] = embedding
-                except Exception as e:
-                    print(f"[WARNING] Embedding generation failed: {e}")
+                texts_to_embed.append(text_for_embed)
+                indices_to_update.append(i)
+
+        # 批量生成 embeddings（一次 HTTP 请求）
+        if texts_to_embed:
+            try:
+                embeddings = self._embedding_generator.embed_batch(texts_to_embed)
+                if embeddings:
+                    # 将生成的 embeddings 填充回对应的 entries
+                    for idx, embedding in zip(indices_to_update, embeddings):
+                        if embedding:
+                            entries[idx]["embedding"] = embedding
+            except Exception as e:
+                print(f"[WARNING] Batch embedding generation failed: {e}")
+                print(f"  Failed to generate embeddings for {len(texts_to_embed)} entries")
