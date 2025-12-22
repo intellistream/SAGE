@@ -130,17 +130,15 @@ class BasePostRetrievalAction(ABC):
     def execute(
         self,
         input_data: PostRetrievalInput,
-        service: Optional[Any] = None,
+        service: Any,
         llm: Optional[Any] = None,
-        embedding: Optional[Any] = None,
     ) -> PostRetrievalOutput:
         """执行 Action 逻辑
 
         Args:
             input_data: 输入数据
-            service: 记忆服务实例（用于多次查询）
-            llm: LLM 实例（用于语义处理）
-            embedding: Embedding 实例（用于向量计算）
+            service: 记忆服务代理（_ServiceProxy）用于多次查询
+            llm: LLM 生成器（用于语义处理）
 
         Returns:
             PostRetrievalOutput: 处理后的输出

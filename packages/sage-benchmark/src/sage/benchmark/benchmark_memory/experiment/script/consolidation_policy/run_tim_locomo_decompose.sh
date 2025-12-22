@@ -1,6 +1,6 @@
 #!/bin/bash
-# 运行 TiM Locomo PreRetrieval 实验 - expand
-# 使用方法: bash script/query_formulation_strategy/run_tim_locomo_expand.sh
+# 运行 TiM Locomo PreRetrieval 实验 - decompose
+# 使用方法: bash script/query_formulation_strategy/run_tim_locomo_decompose.sh
 
 set -e  # 遇到错误立即退出
 
@@ -11,11 +11,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../../../.." && pwd)"
 # Python 脚本的相对路径
 PYTHON_SCRIPT="$SCRIPT_DIR/../../memory_test_pipeline.py"
 # 配置文件路径
-CONFIG_FILE="$SCRIPT_DIR/../../config/query_formulation_strategy/TiM_locomo_expand_pre_retrieval_pipeline.yaml"
+CONFIG_FILE="$SCRIPT_DIR/../../config/query_formulation_strategy/TiM_locomo_decompose_pre_retrieval_pipeline.yaml"
 
 # 定义所有任务 ID
 TASK_IDS=(
-  # "conv-26"
+  "conv-26"
   "conv-30"
   "conv-41"
   "conv-42"
@@ -30,12 +30,12 @@ TASK_IDS=(
 # 创建日志目录结构
 DATASET="locomo"
 DATE=$(date +%Y%m%d)
-MEMORY_NAME="TiM-expand"
+MEMORY_NAME="TiM-decompose"
 LOG_BASE_DIR="$PROJECT_ROOT/.sage/output/benchmarks/benchmark_memory/$DATASET/$DATE/$MEMORY_NAME"
 mkdir -p "$LOG_BASE_DIR"
 
 echo "========================================================================"
-echo "TiM Locomo PreRetrieval 实验 - expand"
+echo "TiM Locomo PreRetrieval 实验 - decompose"
 echo "========================================================================"
 echo ""
 echo "项目根目录: $PROJECT_ROOT"
@@ -76,6 +76,6 @@ for i in "${!TASK_IDS[@]}"; do
 done
 
 echo "========================================================================"
-echo "🎉 所有任务执行完毕 - TiM-expand"
+echo "🎉 所有任务执行完毕 - TiM-decompose"
 echo "📁 所有日志已保存到: $LOG_BASE_DIR"
 echo "========================================================================"

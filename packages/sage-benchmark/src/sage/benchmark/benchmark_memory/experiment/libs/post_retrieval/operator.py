@@ -26,6 +26,22 @@ from .base import (
 from .registry import PostRetrievalActionRegistry
 
 
+class _ServiceProxy:
+    """Service proxy to wrap call_service calls into method-like interface
+
+    Note: PostRetrieval stage only allows search operations (multiple times allowed).
+    No insert/update/delete permissions according to pipeline design.
+    """
+
+    def __init__(self, operator: MapFunction, service_name: str):
+        self._operator = operator
+        self._service_name = service_name
+
+    def search(self, **kwargs) -> list[dict[str, Any]]:
+        """Search for similar memories (multiple searches allowed)"""
+        return self._operator.call_service(self._service_name, method="search", **kwargs)
+
+
 class PostRetrieval(MapFunction):
     """记忆检索后的后处理算子（重构版）"""
 
@@ -65,7 +81,13 @@ class PostRetrieval(MapFunction):
             config=self.config.get("operators.post_retrieval", {}),
             service_name=self.service_name,
         )
-        output: PostRetrievalOutput = self.action.execute(input_data)
+        # Create service proxy for actions that need multiple searches
+        service_proxy = _ServiceProxy(self, self.service_name)
+        output: PostRetrievalOutput = self.action.execute(
+            input_data,
+            service=service_proxy,
+            llm=self._llm_generator if self._llm_generator else None,
+        )
         formatted_memory = self._format_conversation_history(output.memory_items)
         data["history_text"] = formatted_memory
         if output.memory_items:

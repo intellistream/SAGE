@@ -8,7 +8,7 @@
 用途: MemoryBank 的 Ebbinghaus 遗忘曲线需要配合检索强化使用
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from ..base import BasePostRetrievalAction, MemoryItem, PostRetrievalInput, PostRetrievalOutput
 
@@ -30,12 +30,18 @@ class ReinforceAction(BasePostRetrievalAction):
         self.reset_time = self.config.get("reset_time", True)
         self.min_score_threshold = self.config.get("min_score_threshold", 0.0)
 
-    def execute(self, input_data: PostRetrievalInput, service: Any) -> PostRetrievalOutput:
+    def execute(
+        self,
+        input_data: PostRetrievalInput,
+        service: Any,
+        llm: Optional[Any] = None,
+    ) -> PostRetrievalOutput:
         """执行记忆强化
 
         Args:
             input_data: 包含检索结果的输入数据
-            service: 记忆服务实例 (需要有 update_memory_strength 方法)
+            service: 记忆服务代理（需要有 update_memory_strength 方法）
+            llm: LLM 生成器（未使用）
 
         Returns:
             PostRetrievalOutput: 原样返回记忆条目（不改变顺序和内容）

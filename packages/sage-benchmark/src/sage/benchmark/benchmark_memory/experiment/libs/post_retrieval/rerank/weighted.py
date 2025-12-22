@@ -32,19 +32,28 @@ class WeightedRerankAction(BasePostRetrievalAction):
         self.frequency_weight = self.config.get("frequency_weight", 0.1)
         self.time_decay_rate = self.config.get("time_decay_rate", 0.1)
         self.time_field = self.config.get("time_field", "timestamp")
+        self.embedding: Optional[Any] = None
+
+    def set_embedding_generator(self, embedding_generator: Any) -> None:
+        """设置 embedding 生成器
+
+        Args:
+            embedding_generator: Embedding 生成器实例
+        """
+        self.embedding = embedding_generator
 
     def execute(
         self,
         input_data: PostRetrievalInput,
-        service: Optional[Any] = None,
+        service: Any,
         llm: Optional[Any] = None,
-        embedding: Optional[Any] = None,
     ) -> PostRetrievalOutput:
         """使用多因子加权重排序
 
         Args:
             input_data: 输入数据
-            embedding: Embedding 生成器（用于计算语义相似度）
+            service: 记忆服务代理（未使用）
+            llm: LLM 生成器（未使用）
 
         Returns:
             PostRetrievalOutput: 重排序后的结果
@@ -57,9 +66,9 @@ class WeightedRerankAction(BasePostRetrievalAction):
 
         # 获取查询 embedding（用于计算相似度）
         query_embedding = input_data.data.get("query_embedding")
-        if query_embedding is None and embedding is not None:
+        if query_embedding is None and self.embedding is not None:
             question = input_data.data.get("question", "")
-            query_embedding = embedding.generate(question)
+            query_embedding = self.embedding.generate(question)
 
         # 计算每个条目的综合分数
         now = datetime.now(UTC)
