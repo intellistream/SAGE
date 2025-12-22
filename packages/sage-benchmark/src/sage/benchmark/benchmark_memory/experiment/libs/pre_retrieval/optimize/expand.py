@@ -67,8 +67,13 @@ class ExpandAction(BasePreRetrievalAction):
         question = input_data.question
 
         # 使用LLM生成扩展查询
+        import time
+
+        llm_start = time.perf_counter()
         prompt = self.expand_prompt.format(question=question, expand_count=self.expand_count)
         response = self._llm_generator.generate(prompt)
+        llm_elapsed = (time.perf_counter() - llm_start) * 1000
+        print(f"\n⏱️  [PreRetrieval.Expand] LLM 扩展查询生成耗时: {llm_elapsed:.2f}ms")
 
         # 解析扩展查询（过滤掉说明文字和格式标记）
         lines = response.split("\n")
@@ -141,9 +146,13 @@ class ExpandAction(BasePreRetrievalAction):
             and self._embedding_generator.is_available()
         ):
             print(f"\n🔄 开始批量生成 {len(queries_for_retrieval)} 个查询的 embedding...")
+            embed_start = time.perf_counter()
             try:
                 all_embeddings = self._embedding_generator.embed_batch(queries_for_retrieval)
+                embed_elapsed = (time.perf_counter() - embed_start) * 1000
+                print(f"⏱️  [PreRetrieval.Expand] Embedding 批量生成耗时: {embed_elapsed:.2f}ms")
                 if all_embeddings:
+                    print(f"✅ 成功生成 {len(all_embeddings)} 个 embedding")
                     for idx, (eq, emb) in enumerate(zip(queries_for_retrieval, all_embeddings), 1):
                         query_type = (
                             "原始查询"

@@ -21,18 +21,21 @@ runtime:
     Answer:
 
   # LLM Generator 配置
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 80
-  temperature: 0.3
-  seed: 42
-  # api_key: "e02683ea96b3fbc29971ad8233fd39bca7b0b71e42adcc73df8ed798a0a030d2"
-  # base_url: "http://127.0.0.1:1040/v1/chat/completions"
-  # model_name: "pangu_embedded_1b"
+  # 旧配置（已弃用）：
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 80
   # temperature: 0.3
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "stm"
 
 # 服务配置

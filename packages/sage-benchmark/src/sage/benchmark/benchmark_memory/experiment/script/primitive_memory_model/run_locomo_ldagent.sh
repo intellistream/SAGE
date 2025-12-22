@@ -6,12 +6,12 @@ set -e  # 遇到错误立即退出
 
 # 获取脚本所在目录的绝对路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# 获取项目根目录 (从 script/ 向上 7 层到 SAGE/)
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
+# 获取项目根目录 (从 script/primitive_memory_model/ 向上 8 层到 SAGE/)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../../.." && pwd)"
 # Python 脚本的相对路径
-PYTHON_SCRIPT="$SCRIPT_DIR/../memory_test_pipeline.py"
+PYTHON_SCRIPT="$SCRIPT_DIR/../../memory_test_pipeline.py"
 # 配置文件路径
-CONFIG_FILE="$SCRIPT_DIR/../config/primitive_memory_model/locomo_ldagent_pipeline.yaml"
+CONFIG_FILE="$SCRIPT_DIR/../../config/primitive_memory_model/locomo_ldagent_pipeline.yaml"
 
 # 定义所有任务 ID
 TASK_IDS=(

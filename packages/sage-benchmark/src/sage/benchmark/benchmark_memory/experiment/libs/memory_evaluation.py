@@ -103,14 +103,18 @@ Answer:""",
         print("📝 [MemoryEvaluation] 生成答案")
         print("=" * 80)
         print(f"问题: {question}")
-        print("\n完整 Prompt:")
-        print("-" * 80)
-        print(prompt)
-        print("-" * 80)
+        print(f"Prompt 长度: {len(prompt)} 字符")
+        # print("\n完整 Prompt:")
+        # print("-" * 80)
+        # print(prompt)
+        # print("-" * 80)
         # ============ DEBUG END ============
 
         # 调用 LLM 生成答案
+        llm_start = time.perf_counter()
         answer_text = self.generator.generate(prompt)
+        llm_elapsed = (time.perf_counter() - llm_start) * 1000
+        print(f"⏱️  [MemoryEvaluation] LLM 答案生成耗时: {llm_elapsed:.2f}ms")
 
         # ============ DEBUG: 答案打印 ============
         print(f"\n✅ 生成的答案: {answer_text}")
@@ -125,6 +129,8 @@ Answer:""",
 
         # 记录阶段耗时
         elapsed_ms = (time.perf_counter() - start_time) * 1000
-        data.setdefault("stage_timings", {})["memory_test_ms"] = elapsed_ms
+        data.setdefault("stage_timings", {})["memory_evaluation_ms"] = elapsed_ms
+        print(f"⏱️  [MemoryEvaluation] 总耗时: {elapsed_ms:.2f}ms (包含 LLM: {llm_elapsed:.2f}ms)")
+        print("=" * 80 + "\n")
 
         return data

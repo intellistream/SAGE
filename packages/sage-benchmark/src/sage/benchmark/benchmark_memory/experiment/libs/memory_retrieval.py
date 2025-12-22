@@ -197,7 +197,8 @@ class MemoryRetrieval(MapFunction):
         print("\n" + "=" * 80)
         print("✅ [MemoryRetrieval] 检索完成")
         print("=" * 80)
-        print(f"检索到 {stats.retrieved} 条结果，耗时 {stats.time_ms:.2f}ms")
+        print(f"检索到 {stats.retrieved} 条结果")
+        print(f"⏱️  [MemoryRetrieval] 检索耗时: {stats.time_ms:.2f}ms")
         if results:
             print(f"\n检索结果 (显示全部 {len(results)} 条):")
             # for idx, result in enumerate(results, 1):
@@ -228,5 +229,9 @@ class MemoryRetrieval(MapFunction):
         # 6. 记录阶段耗时
         elapsed_ms = (time.perf_counter() - start_time) * 1000
         data.setdefault("stage_timings", {})["memory_retrieval_ms"] = elapsed_ms
+        print(
+            f"⏱️  [MemoryRetrieval] 总耗时: {elapsed_ms:.2f}ms (包含服务调用: {stats.time_ms:.2f}ms)"
+        )
+        print("=" * 80 + "\n")
 
         return data
