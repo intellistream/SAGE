@@ -16,6 +16,7 @@
 """
 
 import time
+import uuid
 
 import numpy as np
 import pytest
@@ -26,12 +27,13 @@ class TestVectorHashMemoryServiceValidation:
 
     @pytest.fixture
     def service(self):
-        """创建测试用服务实例"""
+        """创建测试用服务实例，使用唯一 collection 名称避免测试干扰"""
         from sage.middleware.components.sage_mem.services.vector_hash_memory_service import (
             VectorHashMemoryService,
         )
 
-        return VectorHashMemoryService(dim=128, nbits=64, collection_name="test_validation_vhm")
+        unique_name = f"test_validation_vhm_{uuid.uuid4().hex[:8]}"
+        return VectorHashMemoryService(dim=128, nbits=64, collection_name=unique_name)
 
     def test_lsh_index_creation(self, service):
         """验证 LSH 索引被正确创建"""
@@ -74,17 +76,18 @@ class TestHierarchicalMemoryServiceValidation:
 
     @pytest.fixture
     def service(self):
-        """创建测试用服务实例"""
+        """创建测试用服务实例，使用唯一 collection 名称避免测试干扰"""
         from sage.middleware.components.sage_mem.services.hierarchical_memory_service import (
             HierarchicalMemoryService,
         )
 
+        unique_name = f"test_validation_hier_{uuid.uuid4().hex[:8]}"
         return HierarchicalMemoryService(
             tier_mode="three_tier",
             tier_capacities={"stm": 5, "mtm": 20, "ltm": -1},
             migration_policy="overflow",
             embedding_dim=128,
-            collection_name="test_validation_hier",
+            collection_name=unique_name,
         )
 
     def test_tier_structure_three_tier(self, service):
@@ -99,9 +102,10 @@ class TestHierarchicalMemoryServiceValidation:
             HierarchicalMemoryService,
         )
 
+        unique_name = f"test_validation_hier_two_{uuid.uuid4().hex[:8]}"
         service = HierarchicalMemoryService(
             tier_mode="two_tier",
-            collection_name="test_validation_hier_two",
+            collection_name=unique_name,
             embedding_dim=128,
         )
         assert service.tier_names == ["stm", "ltm"]
@@ -112,9 +116,10 @@ class TestHierarchicalMemoryServiceValidation:
             HierarchicalMemoryService,
         )
 
+        unique_name = f"test_validation_hier_func_{uuid.uuid4().hex[:8]}"
         service = HierarchicalMemoryService(
             tier_mode="functional",
-            collection_name="test_validation_hier_func",
+            collection_name=unique_name,
             embedding_dim=128,
         )
         assert service.tier_names == ["episodic", "semantic", "procedural"]
@@ -250,13 +255,14 @@ class TestGraphMemoryServiceValidation:
 
     @pytest.fixture
     def knowledge_graph_service(self):
-        """创建 knowledge_graph 模式服务"""
+        """创建 knowledge_graph 模式服务，使用唯一 collection 名称"""
         from sage.middleware.components.sage_mem.services.graph_memory_service import (
             GraphMemoryService,
         )
 
+        unique_name = f"test_validation_kg_{uuid.uuid4().hex[:8]}"
         return GraphMemoryService(
-            collection_name="test_validation_kg",
+            collection_name=unique_name,
             graph_type="knowledge_graph",
             node_embedding_dim=128,
             synonymy_threshold=0.7,
@@ -266,13 +272,14 @@ class TestGraphMemoryServiceValidation:
 
     @pytest.fixture
     def link_graph_service(self):
-        """创建 link_graph 模式服务 (A-Mem)"""
+        """创建 link_graph 模式服务 (A-Mem)，使用唯一 collection 名称"""
         from sage.middleware.components.sage_mem.services.graph_memory_service import (
             GraphMemoryService,
         )
 
+        unique_name = f"test_validation_lg_{uuid.uuid4().hex[:8]}"
         return GraphMemoryService(
-            collection_name="test_validation_lg",
+            collection_name=unique_name,
             graph_type="link_graph",
             node_embedding_dim=128,
             link_policy="bidirectional",
@@ -387,8 +394,9 @@ class TestGraphMemoryServiceValidation:
             GraphMemoryService,
         )
 
+        unique_name = f"test_validation_hipporag2_{uuid.uuid4().hex[:8]}"
         service = GraphMemoryService(
-            collection_name="test_validation_hipporag2",
+            collection_name=unique_name,
             graph_type="knowledge_graph",
             node_embedding_dim=128,
             ppr_depth=3,
@@ -427,11 +435,12 @@ class TestHybridMemoryServiceValidation:
 
     @pytest.fixture
     def service(self):
-        """创建测试用服务实例"""
+        """创建测试用服务实例，使用唯一 collection 名称"""
         from sage.middleware.components.sage_mem.services.hybrid_memory_service import (
             HybridMemoryService,
         )
 
+        unique_name = f"test_validation_hybrid_{uuid.uuid4().hex[:8]}"
         return HybridMemoryService(
             indexes=[
                 {"name": "semantic", "type": "vdb", "dim": 128},
@@ -439,19 +448,20 @@ class TestHybridMemoryServiceValidation:
             ],
             fusion_strategy="rrf",
             rrf_k=60,
-            collection_name="test_validation_hybrid",
+            collection_name=unique_name,
         )
 
     @pytest.fixture
     def graph_enabled_service(self):
-        """创建启用图索引的服务 (Mem0^g)"""
+        """创建启用图索引的服务 (Mem0^g)，使用唯一 collection 名称"""
         from sage.middleware.components.sage_mem.services.hybrid_memory_service import (
             HybridMemoryService,
         )
 
+        unique_name = f"test_validation_hybrid_graph_{uuid.uuid4().hex[:8]}"
         return HybridMemoryService(
             graph_enabled=True,
-            collection_name="test_validation_hybrid_graph",
+            collection_name=unique_name,
         )
 
     def test_multi_index_creation(self, service):
@@ -505,14 +515,13 @@ class TestShortTermMemoryServiceValidation:
 
     @pytest.fixture
     def service(self):
-        """创建测试用服务实例"""
+        """创建测试用服务实例，使用唯一 collection 名称"""
         from sage.middleware.components.sage_mem.services.short_term_memory_service import (
             ShortTermMemoryService,
         )
 
-        return ShortTermMemoryService(
-            max_dialog=5, collection_name="test_validation_stm", embedding_dim=128
-        )
+        unique_name = f"test_validation_stm_{uuid.uuid4().hex[:8]}"
+        return ShortTermMemoryService(max_dialog=5, collection_name=unique_name, embedding_dim=128)
 
     def test_window_size_limit(self, service):
         """验证窗口大小限制"""
@@ -596,7 +605,8 @@ class TestServiceOptimizeInterface:
             HierarchicalMemoryService,
         )
 
-        service = HierarchicalMemoryService(collection_name="test_opt_hier", embedding_dim=128)
+        unique_name = f"test_opt_hier_{uuid.uuid4().hex[:8]}"
+        service = HierarchicalMemoryService(collection_name=unique_name, embedding_dim=128)
 
         result = service.optimize(trigger="auto", config={})
 
@@ -610,7 +620,8 @@ class TestServiceOptimizeInterface:
             GraphMemoryService,
         )
 
-        service = GraphMemoryService(collection_name="test_opt_graph", node_embedding_dim=128)
+        unique_name = f"test_opt_graph_{uuid.uuid4().hex[:8]}"
+        service = GraphMemoryService(collection_name=unique_name, node_embedding_dim=128)
 
         result = service.optimize(trigger="auto", config={})
 
@@ -624,8 +635,9 @@ class TestServiceOptimizeInterface:
             HybridMemoryService,
         )
 
+        unique_name = f"test_opt_hybrid_{uuid.uuid4().hex[:8]}"
         service = HybridMemoryService(
-            collection_name="test_opt_hybrid",
+            collection_name=unique_name,
             indexes=[{"name": "semantic", "type": "vdb", "dim": 128}],
         )
 
