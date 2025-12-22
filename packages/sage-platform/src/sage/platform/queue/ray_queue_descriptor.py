@@ -4,6 +4,7 @@ Ray Queue Descriptor - Ray分布式队列描述符
 支持Ray分布式队列和Ray Actor队列
 """
 
+import os
 import queue
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -12,12 +13,49 @@ import ray
 from .base_queue_descriptor import BaseQueueDescriptor
 
 if TYPE_CHECKING:
-    pass
+    from sage.common.utils.logging.custom_logger import CustomLogger
 
-from sage.platform.utils import LazyLoggerProxy
+# 使用 SAGE 的 CustomLogger，输出到统一的日志目录
+_logger: "CustomLogger | None" = None
 
-# 使用统一的日志工具
-logger = LazyLoggerProxy("RayQueue")
+
+def _get_logger() -> "CustomLogger":
+    """获取或创建 CustomLogger 实例"""
+    global _logger
+    if _logger is None:
+        from sage.common.utils.logging.custom_logger import CustomLogger
+
+        # 获取日志目录：
+        # 1. 优先使用环境变量 SAGE_LOG_DIR（运行时设置，通常由 TaskContext 设置）
+        # 2. 否则使用当前工作目录下的 .sage/logs/ 目录
+        log_base_dir = os.environ.get("SAGE_LOG_DIR")
+        if not log_base_dir:
+            # 转换为绝对路径（CustomLogger 要求）
+            log_base_dir = os.path.abspath(".sage/logs")
+
+        os.makedirs(log_base_dir, exist_ok=True)
+
+        _logger = CustomLogger(
+            [
+                ("console", "DEBUG"),  # 控制台显示 DEBUG 及以上（与其他组件一致）
+                (os.path.join(log_base_dir, "ray_queue_debug.log"), "DEBUG"),  # 详细调试日志
+                (os.path.join(log_base_dir, "ray_queue_info.log"), "INFO"),  # 信息日志
+                (os.path.join(log_base_dir, "Error.log"), "ERROR"),  # 错误日志（统一文件名）
+            ],
+            name="RayQueue",
+        )
+    return _logger
+
+
+# 兼容性：提供 logger 变量，但实际使用时会调用 _get_logger()
+class _LoggerProxy:
+    """Logger 代理，延迟初始化 CustomLogger"""
+
+    def __getattr__(self, name):
+        return getattr(_get_logger(), name)
+
+
+logger = _LoggerProxy()
 
 
 class SimpleArrayQueue:
@@ -290,20 +328,25 @@ def get_global_queue_manager() -> Any:
     _start = time.time()
     logger.debug("[GET-MANAGER-START] Attempting to get global queue manager")
 
+    # 使用固定的 namespace，确保所有 job 都能访问同一个 Actor
+    QUEUE_MANAGER_NAMESPACE = "sage_global"
+
     # 先尝试获取现有的命名Actor
     try:
         _get_actor_start = time.time()
-        manager = ray.get_actor("global_ray_queue_manager")
+        manager = ray.get_actor("global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE)
         _get_actor_duration = time.time() - _get_actor_start
         _total_duration = time.time() - _start
         logger.debug(
-            f"[GET-MANAGER-FOUND] Found existing manager, "
+            f"[GET-MANAGER-FOUND] Found existing manager in namespace {QUEUE_MANAGER_NAMESPACE}, "
             f"get_actor_time={_get_actor_duration * 1000:.3f}ms, "
             f"total_time={_total_duration * 1000:.3f}ms"
         )
         return manager
     except ValueError:
-        logger.debug("[GET-MANAGER-NOT-FOUND] Manager does not exist, will create")
+        logger.debug(
+            f"[GET-MANAGER-NOT-FOUND] Manager does not exist in namespace {QUEUE_MANAGER_NAMESPACE}, will create"
+        )
         pass
 
     # 多次尝试创建命名Actor，处理并发冲突
@@ -321,19 +364,21 @@ def get_global_queue_manager() -> Any:
 
             # 如果不存在，创建新的命名Actor
             logger.debug(
-                f"[GET-MANAGER-CREATE] Attempt {attempt + 1}/{max_attempts} to create manager"
+                f"[GET-MANAGER-CREATE] Attempt {attempt + 1}/{max_attempts} to create manager in namespace {QUEUE_MANAGER_NAMESPACE}"
             )
             _create_start = time.time()
             global _global_queue_manager
             _global_queue_manager = RayQueueManager.options(
                 name="global_ray_queue_manager",
+                namespace=QUEUE_MANAGER_NAMESPACE,  # 使用固定 namespace
+                lifetime="detached",  # 独立于创建者进程，避免 owner 死亡导致 Actor 失效
                 max_restarts=-1,  # 无限重启
                 max_task_retries=-1,  # 无限重试
             ).remote()
             _create_duration = time.time() - _create_start
             _total_duration = time.time() - _start
             logger.debug(
-                f"[GET-MANAGER-CREATED] Successfully created manager, "
+                f"[GET-MANAGER-CREATED] Successfully created manager in namespace {QUEUE_MANAGER_NAMESPACE}, "
                 f"create_time={_create_duration * 1000:.3f}ms, "
                 f"total_time={_total_duration * 1000:.3f}ms"
             )
@@ -345,10 +390,12 @@ def get_global_queue_manager() -> Any:
                     f"[GET-MANAGER-CONFLICT] Attempt {attempt + 1}: Actor already exists, retrying get"
                 )
                 try:
-                    manager = ray.get_actor("global_ray_queue_manager")
+                    manager = ray.get_actor(
+                        "global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE
+                    )
                     _total_duration = time.time() - _start
                     logger.debug(
-                        f"[GET-MANAGER-FOUND-RETRY] Found manager after conflict, "
+                        f"[GET-MANAGER-FOUND-RETRY] Found manager after conflict in namespace {QUEUE_MANAGER_NAMESPACE}, "
                         f"total_time={_total_duration * 1000:.3f}ms"
                     )
                     return manager
@@ -378,10 +425,10 @@ def get_global_queue_manager() -> Any:
 
     # 如果仍然失败，尝试最后一次获取
     logger.debug("[GET-MANAGER-FINAL-ATTEMPT] Making final attempt to get manager")
-    manager = ray.get_actor("global_ray_queue_manager")
+    manager = ray.get_actor("global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE)
     _total_duration = time.time() - _start
     logger.debug(
-        f"[GET-MANAGER-FINAL-SUCCESS] Got manager on final attempt, "
+        f"[GET-MANAGER-FINAL-SUCCESS] Got manager on final attempt in namespace {QUEUE_MANAGER_NAMESPACE}, "
         f"total_time={_total_duration * 1000:.3f}ms"
     )
     return manager
