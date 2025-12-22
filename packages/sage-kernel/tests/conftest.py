@@ -13,14 +13,25 @@ import pytest
 # 获取项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
-COMMON_SRC_DIR = PROJECT_ROOT.parent / "sage-common" / "src"
+PACKAGES_DIR = PROJECT_ROOT.parent
 
-# 添加到Python路径
+# 需要添加的依赖包路径
+DEPENDENCY_PACKAGES = [
+    "sage-common",
+    "sage-platform",
+    "sage-libs",
+    "sage-middleware",
+]
+
+# 添加 sage-kernel 源码路径
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-if str(COMMON_SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(COMMON_SRC_DIR))
+# 添加所有依赖包的源码路径
+for pkg_name in DEPENDENCY_PACKAGES:
+    pkg_src_dir = PACKAGES_DIR / pkg_name / "src"
+    if pkg_src_dir.exists() and str(pkg_src_dir) not in sys.path:
+        sys.path.insert(0, str(pkg_src_dir))
 
 # 设置环境变量
 os.environ.setdefault("SAGE_TEST_MODE", "1")
