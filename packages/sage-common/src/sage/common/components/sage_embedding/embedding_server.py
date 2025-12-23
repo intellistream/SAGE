@@ -210,6 +210,16 @@ async def root():
     }
 
 
+@app.get("/health")
+async def health():
+    """健康检查端点（标准路径）"""
+    return {
+        "status": "ok",
+        "model": embedding_server.model_name if embedding_server else "not loaded",
+        "device": embedding_server.device if embedding_server else "unknown",
+    }
+
+
 @app.get("/v1/models")
 async def list_models():
     """列出可用模型（OpenAI 兼容）"""

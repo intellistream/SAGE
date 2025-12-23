@@ -24,21 +24,21 @@ runtime:
     Answer:
 
   # LLM 配置
-  # 旧配置（已弃用）：
-  # api_key: "token-abc123"
-  # base_url: "http://sage2:8000/v1"
-  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  # max_tokens: 512
-  # temperature: 0.3
-  # seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  api_key: "iloveshuhao"
-  base_url: "http://172.17.0.1:1040/v1"
-  model_name: "pangu_embedded_1b"
+  # 配置1（Llama-3.1-8B，用于对比）：
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   max_tokens: 256
   temperature: 0
   seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  # api_key: "iloveshuhao"
+  # base_url: "http://172.17.0.1:1040/v1"
+  # model_name: "pangu_embedded_1b"
+  # max_tokens: 256
+  # temperature: 0
+  # seed: 42
   memory_name: "MemoryOS"
 
   # Embedding 配置

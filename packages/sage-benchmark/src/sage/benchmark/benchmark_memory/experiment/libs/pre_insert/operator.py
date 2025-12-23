@@ -31,6 +31,26 @@ class PreInsert(MapFunction):
         self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
         self._llm_generator: LLMGenerator = LLMGenerator.from_config(self.config)
 
+        # 输出模型信息
+        print("\n" + "=" * 80)
+        print("📋 [PreInsert Init] 模型配置信息")
+        print("=" * 80)
+        print("🤖 LLM 模型:")
+        print(f"   - Model: {self._llm_generator.model_name}")
+        print(f"   - Base URL: {config.get('runtime.base_url')}")
+        print(f"   - Max Tokens: {self._llm_generator.max_tokens}")
+        print(f"   - Temperature: {self._llm_generator.temperature}")
+        if self._llm_generator.seed is not None:
+            print(f"   - Seed: {self._llm_generator.seed}")
+
+        print("\n🔢 Embedding 模型:")
+        if self._embedding_generator.is_available():
+            print(f"   - Model: {self._embedding_generator.model_name}")
+            print(f"   - Base URL: {self._embedding_generator.base_url}")
+        else:
+            print("   - Status: Disabled (no embedding_base_url configured)")
+        print("=" * 80 + "\n")
+
         action_config = config.get("operators.pre_insert", {})
         self.action_name = action_config.get("action", "none")
 

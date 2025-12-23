@@ -29,6 +29,31 @@ class PreRetrieval(MapFunction):
         super().__init__()
         self.config = config
         self.service_name = config.get("services.retrieve_memory_service", "short_term_memory")
+
+        # 先初始化 LLM 和 Embedding，以便输出模型信息
+        self._llm_generator = LLMGenerator.from_config(self.config)
+        self._embedding_generator = EmbeddingGenerator.from_config(self.config)
+
+        # 输出模型信息
+        print("\n" + "=" * 80)
+        print("📋 [PreRetrieval Init] 模型配置信息")
+        print("=" * 80)
+        print("🤖 LLM 模型:")
+        print(f"   - Model: {self._llm_generator.model_name}")
+        print(f"   - Base URL: {self.config.get('runtime.base_url')}")
+        print(f"   - Max Tokens: {self._llm_generator.max_tokens}")
+        print(f"   - Temperature: {self._llm_generator.temperature}")
+        if self._llm_generator.seed is not None:
+            print(f"   - Seed: {self._llm_generator.seed}")
+
+        print("\n🔢 Embedding 模型:")
+        if self._embedding_generator.is_available():
+            print(f"   - Model: {self._embedding_generator.model_name}")
+            print(f"   - Base URL: {self._embedding_generator.base_url}")
+        else:
+            print("   - Status: Disabled (no embedding_base_url configured)")
+        print("=" * 80 + "\n")
+
         action_config = self.config.get("operators.pre_retrieval", {})
         self.action_name = get_required_config(self.config, "operators.pre_retrieval.action")
         self.action_type = None
@@ -48,8 +73,6 @@ class PreRetrieval(MapFunction):
         )
         action_class = PreRetrievalActionRegistry.get(action_key)
         self.action: BasePreRetrievalAction = action_class(action_config)
-        self._llm_generator = LLMGenerator.from_config(self.config)
-        self._embedding_generator = EmbeddingGenerator.from_config(self.config)
 
         # 设置LLM生成器
         if hasattr(self.action, "set_llm_generator"):
