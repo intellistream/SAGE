@@ -23,8 +23,8 @@ echo "Conflict Resolution Memory Experiment - Short Term Memory (STM) Batch Test
 echo "========================================================================"
 echo ""
 echo "Project root: $PROJECT_ROOT"
-echo "Python script: $PYTHON_SCRIPT"
-echo "Config file: $CONFIG_FILE"
+echo "Python script: $(realpath "$PYTHON_SCRIPT")"
+echo "Config file: $(realpath "$CONFIG_FILE")"
 echo "Total tasks: ${#TASK_IDS[@]}"
 echo ""
 

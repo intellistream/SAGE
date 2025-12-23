@@ -31,8 +31,8 @@ ps = PorterStemmer()
 # ============================================================================
 # 配置区域
 # ============================================================================
-INPUT_BASE_DIR = ".sage/benchmarks/benchmark_memory/locomo/pangu"
-OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/pangu/category_round_charts"
+INPUT_BASE_DIR = ".sage/benchmarks/benchmark_memory/locomo/llama"
+OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/llama/category_round_charts"
 OUTPUT_PREFIX = "category_round_progression"
 
 # 方法颜色配置（13个方法）
