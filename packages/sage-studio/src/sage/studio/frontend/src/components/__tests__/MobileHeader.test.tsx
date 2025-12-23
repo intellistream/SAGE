@@ -25,8 +25,11 @@ describe('MobileHeader', () => {
         onNewChat: vi.fn(),
         llmStatus: {
             model_name: 'test-model',
-            status: 'online',
-            latency: 100,
+            running: true,
+            healthy: true,
+            service_type: 'local_vllm',
+            base_url: 'http://localhost:8001',
+            is_local: true,
         },
         onSelectModel: vi.fn(),
     }
