@@ -776,29 +776,39 @@ jobs:
           PORT="${{ github.event.inputs.port || '5173' }}"
 
           # 等待 LLM 服务（最长 10 分钟，因为要加载模型）
-          echo "等待 LLM 服务 (最长 600 秒)..."
-          for i in $(seq 1 600); do
-            if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
-               curl -sf http://localhost:8901/health > /dev/null 2>&1; then
-              echo "✅ LLM 服务就绪（第 $i 秒）"
-              break
-            fi
-            if [ $((i % 60)) -eq 0 ]; then
-              echo "⏳ LLM 等待中... ($i/600 秒)"
-              sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
-            fi
-            sleep 1
-          done
+          # 如果 KEEP_PORTS 存在，说明复用了已有 LLM，无需等待
+          if [ -n "$KEEP_PORTS" ]; then
+             echo "✅ 复用已有 LLM (端口 $KEEP_PORTS)，跳过 LLM 等待"
+          else
+              echo "等待 LLM 服务 (最长 600 秒)..."
+              for i in $(seq 1 600); do
+                if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
+                   curl -sf http://localhost:8901/health > /dev/null 2>&1; then
+                  echo "✅ LLM 服务就绪（第 $i 秒）"
+                  break
+                fi
+                if [ $((i % 60)) -eq 0 ]; then
+                  echo "⏳ LLM 等待中... ($i/600 秒)"
+                  sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
+                fi
+                sleep 1
+              done
+          fi
 
           # 等待 Embedding 服务
-          echo "等待 Embedding 服务..."
-          for i in $(seq 1 120); do
-            if curl -sf http://localhost:8090/health > /dev/null 2>&1; then
-              echo "✅ Embedding 服务就绪（第 $i 秒）"
-              break
-            fi
-            sleep 1
-          done
+          # 如果 KEEP_PORTS 存在，说明禁用了 Embedding，跳过等待
+          if [ -n "$KEEP_PORTS" ]; then
+             echo "⚠️ 复用 LLM 模式下禁用 Embedding，跳过等待"
+          else
+              echo "等待 Embedding 服务..."
+              for i in $(seq 1 120); do
+                if curl -sf http://localhost:8090/health > /dev/null 2>&1; then
+                  echo "✅ Embedding 服务就绪（第 $i 秒）"
+                  break
+                fi
+                sleep 1
+              done
+          fi
 
           # 等待 Gateway 服务
           echo "等待 Gateway 服务..."
@@ -845,7 +855,19 @@ jobs:
           echo "| 服务 | 端口 | 状态 |"
           echo "|------|------|------|"
 
-          for svc_port in "Frontend:$PORT" "Gateway:8888" "LLM(Default):8001" "LLM(Benchmark):8901" "Embedding:8090"; do
+          # 构建要检查的服务列表
+          CHECKS="Frontend:$PORT Gateway:8888"
+
+          if [ -n "$KEEP_PORTS" ]; then
+             # 如果复用 LLM，检查复用的端口
+             FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
+             CHECKS="$CHECKS LLM(Reused):$FIRST_PORT"
+          else
+             # 否则检查默认 LLM 和 Embedding
+             CHECKS="$CHECKS LLM(Default):8001 LLM(Benchmark):8901 Embedding:8090"
+          fi
+
+          for svc_port in $CHECKS; do
             name="${svc_port%%:*}"
             port="${svc_port##*:}"
             # 尝试多个端点：/ 和 /health
