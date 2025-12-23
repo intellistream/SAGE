@@ -27,6 +27,13 @@ TASK_IDS=(
 #   "conv-50"
 )
 
+# 创建日志目录结构
+DATASET="locomo"
+DATE=$(date +%Y%m%d)
+MEMORY_NAME="LD-Agent"
+LOG_BASE_DIR="$PROJECT_ROOT/.sage/output/benchmarks/benchmark_memory/$DATASET/$DATE/$MEMORY_NAME"
+mkdir -p "$LOG_BASE_DIR"
+
 echo "========================================================================"
 echo "Locomo 长轮对话记忆实验 - LD-Agent 批量测试"
 echo "========================================================================"
@@ -34,6 +41,7 @@ echo ""
 echo "项目根目录: $PROJECT_ROOT"
 echo "Python 脚本: $PYTHON_SCRIPT"
 echo "配置文件: $CONFIG_FILE"
+echo "日志目录: $LOG_BASE_DIR"
 echo "总任务数: ${#TASK_IDS[@]}"
 echo ""
 
@@ -45,16 +53,22 @@ for i in "${!TASK_IDS[@]}"; do
   TASK_ID="${TASK_IDS[$i]}"
   TASK_NUM=$((i + 1))
 
+  # 生成带时间戳的日志文件名
+  TIMESTAMP=$(date +%H%M%S)
+  LOG_FILE="$LOG_BASE_DIR/${TASK_ID}_${TIMESTAMP}.log"
+
   echo "--------------------------------------------------------------------"
   echo "🚀 开始运行任务 [$TASK_NUM/${#TASK_IDS[@]}]: $TASK_ID"
+  echo "📝 日志文件: $LOG_FILE"
   echo "--------------------------------------------------------------------"
 
-  python "$PYTHON_SCRIPT" --config "$CONFIG_FILE" --task_id "$TASK_ID"
+  # 运行任务并将输出重定向到日志文件（同时显示到终端）
+  python "$PYTHON_SCRIPT" --config "$CONFIG_FILE" --task_id "$TASK_ID" 2>&1 | tee "$LOG_FILE"
 
-  if [ $? -eq 0 ]; then
-    echo "✅ 任务 $TASK_ID 完成"
+  if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    echo "✅ 任务 $TASK_ID 完成，日志已保存到: $LOG_FILE"
   else
-    echo "❌ 任务 $TASK_ID 失败"
+    echo "❌ 任务 $TASK_ID 失败，日志已保存到: $LOG_FILE"
     exit 1
   fi
 
@@ -62,5 +76,6 @@ for i in "${!TASK_IDS[@]}"; do
 done
 
 echo "========================================================================"
-echo "🎉 所有任务执行完毕."
+echo "🎉 所有任务执行完毕 - LD-Agent"
+echo "📁 所有日志已保存到: $LOG_BASE_DIR"
 echo "========================================================================"
