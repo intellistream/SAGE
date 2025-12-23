@@ -57,6 +57,21 @@ class TripleExtractAction(BasePreInsertAction):
         dialogs = input_data.data.get("dialogs", [])
         text = self._format_dialogue(dialogs)
 
+        # 入口级调试：即使不走 LLM 路径也打印一次
+        try:
+            has_llm = bool(self.llm_generator is not None)
+            has_prompt = bool(self.triple_extraction_prompt)
+            print(
+                f"[DEBUG Triple] start method={self.extraction_method} has_llm={has_llm} has_prompt={has_prompt} max_triplets={self.max_triplets}"
+            )
+            # 若具备 LLM 与 prompt，但方法配置为 simple，提示配置可切换
+            if self.extraction_method != "llm" and has_llm and has_prompt:
+                print(
+                    "[DEBUG Triple] llm_available_but_method_is_simple — set extraction_method='llm' to enable LLM"
+                )
+        except Exception:
+            pass
+
         # 提取三元组
         triplets = self._extract_triplets(text)
 
@@ -188,17 +203,39 @@ class TripleExtractAction(BasePreInsertAction):
         """
         if not self.llm_generator:
             print("[WARNING] LLM not available, falling back to simple extraction")
+            # 调试：明确说明跳过 LLM 的原因
+            try:
+                print("[DEBUG Triple] llm_skipped cause=no_llm")
+            except Exception:
+                pass
             return self._extract_simple(text)
 
         if not self.triple_extraction_prompt:
             print(
                 "[WARNING] No triple_extraction_prompt configured, falling back to simple extraction"
             )
+            # 调试：明确说明跳过 LLM 的原因
+            try:
+                print("[DEBUG Triple] llm_skipped cause=no_prompt")
+            except Exception:
+                pass
             return self._extract_simple(text)
 
         try:
             # 格式化prompt
             prompt = self.triple_extraction_prompt.format(dialogue=text)
+
+            # 记录可用的模型/端点信息（若可获取）
+            try:
+                llm_model = getattr(self.llm_generator, "model_name", None)
+            except Exception:
+                llm_model = None
+            try:
+                llm_base_url = getattr(
+                    getattr(self.llm_generator, "client", object()), "base_url", None
+                )
+            except Exception:
+                llm_base_url = None
 
             # 调用LLM
             response = self.llm_generator.generate(prompt)
@@ -206,10 +243,42 @@ class TripleExtractAction(BasePreInsertAction):
             # 解析LLM输出
             triplets = self._parse_llm_response(response)
 
+            # 调试：打印调用情况
+            try:
+                print(
+                    f"[DEBUG Triple] LLM called=True model={llm_model or '-'} base={llm_base_url or '-'} triplets={len(triplets)}"
+                )
+            except Exception:
+                pass
+
+            # 若解析为空，稳健回退到启发式提取，避免下游无三元组
+            if not triplets:
+                print(
+                    "[WARNING] LLM returned no parseable triples, falling back to simple extraction"
+                )
+                return self._extract_simple(text)[: self.max_triplets]
+
             # 限制数量
             return triplets[: self.max_triplets]
 
         except Exception as e:
+            # 调试：打印错误并回退
+            try:
+                llm_model = getattr(self.llm_generator, "model_name", None)
+            except Exception:
+                llm_model = None
+            try:
+                llm_base_url = getattr(
+                    getattr(self.llm_generator, "client", object()), "base_url", None
+                )
+            except Exception:
+                llm_base_url = None
+            try:
+                print(
+                    f"[DEBUG Triple] LLM called=False error={type(e).__name__}: {e} model={llm_model or '-'} base={llm_base_url or '-'}"
+                )
+            except Exception:
+                pass
             print(f"[ERROR] LLM extraction failed: {e}, falling back to simple extraction")
             return self._extract_simple(text)
 
@@ -239,18 +308,32 @@ class TripleExtractAction(BasePreInsertAction):
             predicate = match[1].strip()
             obj = match[2].strip()
 
-            # 清理引号
-            for item in [subject, predicate, obj]:
-                item = item.strip('"').strip("'").strip()
+            # 清理引号（修复：确保赋值回变量）
+            def _clean_text(s: str) -> str:
+                return s.strip().strip('"').strip("'").strip()
+
+            subject = _clean_text(subject)
+            predicate = _clean_text(predicate)
+            obj = _clean_text(obj)
 
             triplets.append({"subject": subject, "predicate": predicate, "object": obj})
 
         # 如果正则匹配失败，尝试其他格式或回退到简单方法
         if not triplets:
-            print(
-                f"[WARNING] Could not parse LLM response, trying simple extraction. Response: {response[:200]}..."
-            )
-            # 不直接回退，而是返回空列表，让上层处理
+            # 解析失败时，尝试更宽松的格式，例如以分号/换行分隔的 'A, B, C' 形式
+            loose_lines = [line.strip() for line in response.splitlines() if line.strip()]
+            for line in loose_lines:
+                # 去掉前缀序号，如 "1. ..." 或 "- ..."
+                line = re.sub(r"^\s*(?:\d+\.|-\s+)", "", line)
+                parts = [p.strip() for p in re.split(r"\s*,\s*", line)]
+                if len(parts) == 3:
+                    s, p, o = parts
+                    s = s.strip('"').strip("'").strip()
+                    p = p.strip('"').strip("'").strip()
+                    o = o.strip('"').strip("'").strip()
+                    # 简单过滤：避免全为空或过短
+                    if s and p and o:
+                        triplets.append({"subject": s, "predicate": p, "object": o})
 
         return triplets
 

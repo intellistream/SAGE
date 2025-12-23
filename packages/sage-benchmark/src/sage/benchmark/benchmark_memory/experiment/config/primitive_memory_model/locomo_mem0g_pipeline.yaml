@@ -83,6 +83,7 @@ operators:
   # ----------------------------------------------------------
   pre_insert:
     action: "extract.triple"          # 使用三元组抽取（比 entity 更完整）
+    extraction_method: "llm"           # 启用 LLM 路径以触发三元组抽取的真实大模型调用
     triple_extraction_prompt: |
       You are a knowledge graph builder. Extract factual triples from the dialogue.
       Focus on entities (people, organizations, locations) and their relationships.
@@ -99,29 +100,38 @@ operators:
       Triples:
 
   # ----------------------------------------------------------
-  # PostInsert: ADD/UPDATE/DELETE 决策 + 实体链接
-  # Mem0ᵍ 的核心：LLM 决定对已有记忆的操作，同时建立实体链接
+  # PostInsert: CRUD 决策 + 实体链接占位（图版）
+  # Mem0ᵍ 的核心：LLM 决定对已有记忆的操作；图索引的链接在其他算子中维护
   # ----------------------------------------------------------
   post_insert:
-    action: "distillation"
-    distillation_topk: 10
-    distillation_threshold:
-    distillation_prompt: |
-      You are managing a fact database with entity linking. Given a new fact and similar existing facts,
-      decide the appropriate action:
+    action: "crud"
+    top_k: 10
+    debug_summary_only: true        # 仅输出 LLM 调用汇总行（抑制其他 CRUD 调试输出）
+    decision_prompt: |
+      You are a JSON decision API. Output ONLY a single minified JSON object, no prose, no markdown, no code fences.
 
-      - ADD: The new fact is entirely new information
-      - UPDATE: The new fact updates/extends an existing fact (delete old, keep new)
-      - DELETE: The new fact contradicts an existing fact (delete old, keep new)
-      - NOOP: The new fact is redundant (already covered by existing facts)
+      Schema:
+      {
+        "action": "ADD|UPDATE|DELETE|NOOP",
+        "to_delete": ["<id>", ...],
+        "reason": "<short explanation>"
+      }
 
-      New fact: {new_entry}
+      Rules:
+      - Use UPPERCASE for action exactly as one of ADD, UPDATE, DELETE, NOOP.
+      - If uncertain, default to {"action":"ADD","to_delete":[],"reason":"insufficient evidence"}.
+      - "to_delete" must contain only IDs present in the Existing facts list (the values inside square brackets []).
+      - UPDATE or DELETE: put the affected existing fact IDs into to_delete.
+      - NOOP: to_delete must be [].
+
+      Inputs:
+      New fact:
+      {new_memory}
 
       Existing facts:
-      {memory_list}
+      {existing_memories}
 
-      Respond with JSON:
-      {"action": "ADD|UPDATE|DELETE|NOOP", "to_delete": ["fact to remove if any"], "reason": "brief explanation"}
+      Now respond with ONLY the JSON object.
 
   # ----------------------------------------------------------
   # PreRetrieval: 基础 embedding + 实体识别
