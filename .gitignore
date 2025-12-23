@@ -248,4 +248,4 @@ packages/sage-middleware/_deps/*
 packages/sage-middleware/.cmake*
 coverage.json
 packages/sage-common/src/sage/common/components/sage_vllm/
-docs/dev-notes/research_work/*
+docs/*
