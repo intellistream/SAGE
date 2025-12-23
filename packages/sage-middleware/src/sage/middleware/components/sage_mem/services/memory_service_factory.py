@@ -227,9 +227,14 @@ class MemoryServiceFactory:
         migration_policy = config.get(f"services.{service_name}.migration_policy", "overflow")
         embedding_dim = config.get(f"services.{service_name}.embedding_dim", 768)
 
+        # MemGPT 特有配置
+        use_core_embedding = config.get(f"services.{service_name}.use_core_embedding", True)
+        use_recall_hybrid = config.get(f"services.{service_name}.use_recall_hybrid", False)
+        rrf_k = config.get(f"services.{service_name}.rrf_k", 60)
+        vector_weight = config.get(f"services.{service_name}.vector_weight", 0.5)
+        fts_weight = config.get(f"services.{service_name}.fts_weight", 0.5)
+
         # 创建并返回 ServiceFactory
-        # 注意: HierarchicalMemoryService.__init__ 只接受以下参数:
-        #   tier_mode, tier_capacities, migration_policy, embedding_dim, collection_name
         return ServiceFactory(
             service_name=service_name,
             service_class=HierarchicalMemoryService,
@@ -238,6 +243,11 @@ class MemoryServiceFactory:
                 "tier_capacities": tier_capacities,
                 "migration_policy": migration_policy,
                 "embedding_dim": embedding_dim,
+                "use_core_embedding": use_core_embedding,
+                "use_recall_hybrid": use_recall_hybrid,
+                "rrf_k": rrf_k,
+                "vector_weight": vector_weight,
+                "fts_weight": fts_weight,
             },
         )
 

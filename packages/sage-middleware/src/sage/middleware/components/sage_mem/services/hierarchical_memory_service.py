@@ -53,9 +53,15 @@ class HierarchicalMemoryService(BaseService):
         self,
         tier_mode: Literal["two_tier", "three_tier", "functional"] = "three_tier",
         tier_capacities: dict[str, int] | None = None,
-        migration_policy: Literal["overflow", "importance", "time"] = "overflow",
+        migration_policy: Literal["overflow", "importance", "time", "none"] = "overflow",
         embedding_dim: int = 384,
         collection_name: str = "hierarchical_memory",
+        # MemGPT 特有配置
+        use_core_embedding: bool = True,
+        use_recall_hybrid: bool = False,
+        rrf_k: int = 60,
+        vector_weight: float = 0.5,
+        fts_weight: float = 0.5,
     ):
         """初始化分层记忆服务
 
@@ -78,6 +84,13 @@ class HierarchicalMemoryService(BaseService):
         self.migration_policy = migration_policy
         self.embedding_dim = embedding_dim
         self.collection_name = collection_name
+
+        # MemGPT 特有配置
+        self.use_core_embedding = use_core_embedding
+        self.use_recall_hybrid = use_recall_hybrid
+        self.rrf_k = rrf_k
+        self.vector_weight = vector_weight
+        self.fts_weight = fts_weight
 
         # 根据模式确定层级名称
         if tier_mode == "two_tier":
@@ -528,7 +541,7 @@ class HierarchicalMemoryService(BaseService):
             vector: 查询向量
             metadata: 检索参数:
                 - tiers: 要搜索的层级列表（默认所有层）
-                - method: "semantic" | "recent"
+                - method: "semantic" | "recent" | "hybrid" (MemGPT)
             top_k: 返回结果数量
             hints: 检索策略提示（可选，由 PreRetrieval route action 生成）
             threshold: 相似度阈值（可选，过滤低于阈值的结果）
@@ -543,6 +556,51 @@ class HierarchicalMemoryService(BaseService):
 
         all_results: list[dict[str, Any]] = []
 
+        # MemGPT 特殊处理：Core memory 直接返回
+        if "core" in tiers_to_search and not self.use_core_embedding:
+            core_blocks = self._get_core_memory_blocks()
+            all_results.extend(core_blocks)
+            # Core memory 不参与后续检索，移除它
+            tiers_to_search = [t for t in tiers_to_search if t != "core"]
+
+        # MemGPT Recall 层：混合检索
+        if (
+            "recall" in tiers_to_search
+            and self.use_recall_hybrid
+            and method == "semantic"
+            and vector is not None
+        ):
+            # 执行混合检索（semantic + FTS + RRF）
+            query_vec = np.array(vector, dtype=np.float32)
+            index_name = self._get_tier_index_name("recall")
+
+            # 向量检索
+            vector_results = self.collection.retrieve(
+                query=query_vec,
+                index_name=index_name,
+                top_k=top_k * 2,  # 获取更多候选
+                with_metadata=True,
+            )
+
+            # 全文检索（如果支持）
+            # 注意：neuromem 的 HybridCollection 可能不支持 FTS
+            # 这里先用向量检索模拟，后续可以扩展
+            fts_results = []  # TODO: 实现真正的 FTS
+
+            # RRF 融合
+            if fts_results:
+                recall_results = self._rrf_fusion(vector_results, fts_results, top_k)
+            else:
+                recall_results = vector_results[:top_k]
+
+            for item in recall_results:
+                item["tier"] = "recall"
+            all_results.extend(recall_results)
+
+            # Recall 已处理，移除它
+            tiers_to_search = [t for t in tiers_to_search if t != "recall"]
+
+        # 其他层级：标准检索
         if method == "semantic" and vector is not None:
             query_vec = np.array(vector, dtype=np.float32)
 
@@ -595,6 +653,7 @@ class HierarchicalMemoryService(BaseService):
                     "entry_id": item.get("id", ""),
                     "metadata": item.get("metadata", {}),
                     "tier": item.get("tier", ""),
+                    "is_core_memory": item.get("is_core_memory", False),
                 }
             )
 
@@ -1226,15 +1285,99 @@ class HierarchicalMemoryService(BaseService):
         # 写回元数据
         success = self.collection.update(entry_id, new_metadata=meta)
 
-        if success:
-            # === MemoryBank: 强化日志 ===
-            print(
-                f"[MemoryBank] 记忆强化: {entry_id[:8]}... 强度 {current_strength:.2f} → {meta['memory_strength']:.2f}"
-            )
-
-            self.logger.debug(
-                f"Updated memory strength: {entry_id[:16]}, "
-                f"strength={meta['memory_strength']:.2f} (+{increment})"
-            )
-
         return success
+
+    # ===================================================================
+    # MemGPT 特有功能
+    # ===================================================================
+
+    def _rrf_fusion(
+        self,
+        vector_results: list[dict],
+        fts_results: list[dict],
+        top_k: int = 10,
+    ) -> list[dict]:
+        """RRF (Reciprocal Rank Fusion) 融合算法
+
+        与 Letta 的实现一致，用于混合检索结果融合。
+
+        Args:
+            vector_results: 向量检索结果
+            fts_results: 全文检索结果
+            top_k: 返回结果数量
+
+        Returns:
+            融合后的结果列表
+        """
+        # 构建排名映射
+        vector_ranks = {
+            r.get("id", r.get("entry_id")): rank + 1 for rank, r in enumerate(vector_results)
+        }
+        fts_ranks = {r.get("id", r.get("entry_id")): rank + 1 for rank, r in enumerate(fts_results)}
+
+        # 合并所有唯一项
+        all_items = {}
+        for r in vector_results:
+            item_id = r.get("id", r.get("entry_id"))
+            all_items[item_id] = r
+        for r in fts_results:
+            item_id = r.get("id", r.get("entry_id"))
+            if item_id not in all_items:
+                all_items[item_id] = r
+
+        # 计算 RRF 分数
+        rrf_scores = {}
+        for item_id in all_items:
+            score = 0.0
+            if item_id in vector_ranks:
+                score += self.vector_weight / (self.rrf_k + vector_ranks[item_id])
+            if item_id in fts_ranks:
+                score += self.fts_weight / (self.rrf_k + fts_ranks[item_id])
+            rrf_scores[item_id] = score
+
+        # 排序并返回
+        sorted_ids = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+
+        result = []
+        for item_id, score in sorted_ids:
+            item = all_items[item_id].copy()
+            item["score"] = score
+            item["metadata"] = item.get("metadata", {})
+            item["metadata"]["rrf_score"] = score
+            item["metadata"]["vector_rank"] = vector_ranks.get(item_id)
+            item["metadata"]["fts_rank"] = fts_ranks.get(item_id)
+            result.append(item)
+
+        return result
+
+    def _get_core_memory_blocks(self) -> list[dict]:
+        """获取 Core Memory 的所有 blocks
+
+        MemGPT 的 Core Memory 应该直接返回，不需要检索。
+        在 benchmark 场景下，我们返回 core 层的所有内容作为上下文。
+
+        Returns:
+            Core memory blocks 列表
+        """
+        if "core" not in self.tier_names:
+            return []
+
+        # 获取 core 层的所有条目
+        all_ids = self.collection.get_all_ids()
+        core_blocks = []
+
+        for item_id in all_ids:
+            meta = self.collection.get_metadata(item_id)
+            if meta and meta.get("tier") == "core":
+                text = self.collection.get_text(item_id)
+                core_blocks.append(
+                    {
+                        "id": item_id,
+                        "text": text,
+                        "metadata": meta,
+                        "tier": "core",
+                        "is_core_memory": True,  # 标记为 core memory
+                    }
+                )
+
+        return core_blocks

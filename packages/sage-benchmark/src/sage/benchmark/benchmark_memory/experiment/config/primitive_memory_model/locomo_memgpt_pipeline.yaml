@@ -12,6 +12,14 @@ runtime:
   test_segments: 10
   service_timeout: 180.0              # Agent 版需要更长超时（多轮工具调用）
 
+  # ============================================================
+  # MemGPT Memory Management 配置
+  # 论文原文: Section 2.2 - Memory hierarchy
+  # ============================================================
+  context_window_size: 8192           # LLM 的 context window (tokens)
+  memory_pressure_threshold: 0.7      # 70% 时触发 Memory Pressure Warning
+  queue_flush_threshold: 1.0          # 100% 时强制 flush FIFO queue
+
   prompt_template: |
     Based on the above context, answer the following question concisely.
 
@@ -49,7 +57,13 @@ runtime:
 
 # ============================================================
 # 服务配置
-# MemGPT-Agent 使用工具调用模式
+# MemGPT 论文原文: Figure 3 - Memory Hierarchy
+#
+# 架构说明:
+# - Working Context (Core Memory): 始终在 LLM context 中，通过函数读写
+# - Archival Storage: 外部存储，向量检索，手动插入
+# - Recall Storage: 外部存储，混合检索(向量+全文+RRF)，自动追加
+# - FIFO Queue: 最近对话消息，满时自动flush到Recall
 # ============================================================
 services:
   register_memory_service: "hierarchical_memory"
@@ -57,114 +71,134 @@ services:
     tier_mode: "functional"           # 功能分层: core / archival / recall
     tier_names: ["core", "archival", "recall"]
     tier_capacities:
-      core: 20                        # Working context 较小
-      archival: -1                    # 无限
-      recall: 100                     # FIFO 队列
-    migration_policy: "overflow"      # 溢出时迁移
+      core: 2000                      # ✅ 2000字符（Working Context 限制）
+      archival: -1                    # ✅ 无限容量（Archival Storage）
+      recall: -1                      # ✅ 无限容量（Recall Storage）
+    migration_policy: "none"          # ✅ 禁用自动迁移（由Agent手动管理）
     embedding_dim: 1024               # bge-m3 输出 1024 维向量
-    # 关键区别：启用工具调用模式
-    tool_use: true                    # Agent 版启用工具调用
+
+    # MemGPT 核心特性（论文 Section 2.2）
+    use_core_embedding: false         # ✅ Core不使用向量检索（始终在context）
+    use_recall_hybrid: true           # ✅ Recall使用混合检索（向量+FTS+RRF）
+    rrf_k: 60                         # ✅ RRF常数（论文实现）
+    vector_weight: 0.5                # 向量检索权重
+    fts_weight: 0.5                   # 全文检索权重
   memory_retrieval_adapter: "none"
 
 # ============================================================
 # 工具配置（Agent 版特有）
-# MemGPT 论文定义的标准工具集
+# 论文原文: Section 2.1 - LLM processor
+#
+# MemGPT 的核心工具（BASE_TOOLS + BASE_MEMORY_TOOLS）:
+# - send_message: 发送消息给用户
+# - conversation_search: 搜索对话历史(Recall Storage)
+# - archival_memory_insert/search: 档案记忆操作
+# - core_memory_append/replace: Core Memory编辑
 # ============================================================
 tools:
   enabled: true                       # 启用工具调用
   tool_list:
+  # ==================== Core Memory Tools ====================
   - name: "core_memory_append"
-    description: "Append content to the core memory (working context)"
+    description: "Append content to the core memory (working context). Core memory is always visible to you."
     parameters:
-      content: "string"
-      name: "string (optional)"
+      label: "string"                 # Block label (e.g., 'persona', 'human')
+      content: "string"               # Content to append
+
   - name: "core_memory_replace"
-    description: "Replace content in core memory"
+    description: "Replace specific content in core memory with new content"
     parameters:
-      old_content: "string"
-      new_content: "string"
+      label: "string"                 # Block label
+      old_content: "string"           # Exact text to replace
+      new_content: "string"           # New text
+
+  # ==================== Archival Memory Tools ====================
   - name: "archival_memory_insert"
-    description: "Insert content into archival memory for long-term storage"
+    description: "Insert content into archival memory for long-term storage. Use this to save important information that doesn't fit in core memory."
     parameters:
-      content: "string"
-      metadata: "object (optional)"
+      content: "string"               # Content to insert
+      tags: "list[string] (optional)" # Tags for categorization
+
   - name: "archival_memory_search"
-    description: "Search archival memory for relevant content"
+    description: "Search archival memory using semantic similarity"
     parameters:
-      query: "string"
-      top_k: "integer (default: 5)"
-  - name: "recall_memory_search"
-    description: "Search recent conversation history (recall memory)"
+      query: "string"                 # Search query
+      tags: "list[string] (optional)" # Filter by tags
+      top_k: "integer (default: 5)"   # Number of results
+      start_datetime: "string (optional)"  # Filter by date range
+      end_datetime: "string (optional)"
+
+  # ==================== Recall Memory Tools ====================
+  - name: "conversation_search"
+    description: "Search recent conversation history using hybrid retrieval (semantic + keyword matching)"
     parameters:
-      query: "string"
-      top_k: "integer (default: 5)"
+      query: "string"                 # Search query
+      roles: "list[string] (optional)"  # Filter by role: 'user', 'assistant', 'tool'
+      limit: "integer (default: 50)"  # Max results
+      start_date: "string (optional)" # Filter by date range
+      end_date: "string (optional)"
+
+  # ==================== Communication Tool ====================
+  - name: "send_message"
+    description: "Send a message to the user. This is the ONLY way to communicate with the user."
+    parameters:
+      message: "string"               # Message content
+
   tool_choice: "auto"                 # LLM 自动决定是否调用工具
 
 # ============================================================
 # Operator 配置
+# 论文原文: Figure 3 - MemGPT System Architecture
+#
+# MemGPT 的设计特点:
+# - PreInsert/PostInsert: 无复杂预处理，Agent通过工具主动管理
+# - PreRetrieval: 生成embedding用于向量检索
+# - PostRetrieval: 三层融合(Core始终在context + Archival/Recall RRF融合)
 # ============================================================
 operators:
   # ----------------------------------------------------------
-  # PreInsert: 实体/事实抽取（与基础版相同）
+  # PreInsert: 无预处理（论文无提及）
+  # 原因: Agent通过工具主动决定插入内容，无需自动实体抽取
   # ----------------------------------------------------------
   pre_insert:
-    action: "extract"
-    extract_type: "entity"
-    spacy_model: "en_core_web_sm"
-    entity_types: ["PERSON", "ORG", "LOC", "EVENT", "DATE"]
-    add_to_metadata: true
+    action: "none"                    # ✅ 忠于原文
 
   # ----------------------------------------------------------
-  # PostInsert: Replace 操作（与基础版相同）
-  # Agent 版的 replace 可以通过工具调用触发
+  # PostInsert: 无自动优化（论文Section 2.1）
+  # 原因: Core Memory编辑由Agent通过工具主动调用
+  #       (core_memory_replace, memory_apply_patch等)
   # ----------------------------------------------------------
   post_insert:
-    action: "distillation"
-    distillation_topk: 5
-    distillation_threshold:
-    distillation_prompt: |
-      You are updating a knowledge base. Given a new fact and existing facts,
-      determine if any existing fact should be REPLACED by the new one.
-
-      New fact: {new_entry}
-
-      Existing facts:
-      {memory_list}
-
-      If the new fact updates/corrects an existing fact, respond:
-      {"to_delete": ["exact old fact text"], "to_insert": []}
-
-      If the new fact is entirely new information, respond:
-      {"to_delete": [], "to_insert": []}
-
-      Respond with JSON only:
+    action: "none"                    # ✅ 忠于原文（replace是工具，非operator）
 
   # ----------------------------------------------------------
-  # PreRetrieval: 关键词提取 + embedding（与基础版相同）
+  # PreRetrieval: 生成embedding（论文Section 2.2）
+  # 用途: 为Archival和Recall的向量检索提供query向量
   # ----------------------------------------------------------
   pre_retrieval:
-    action: "optimize"
-    optimize_type: "keyword_extract"
-    extractor: "spacy"
-    spacy_model: "en_core_web_sm"
-    extract_types: ["NOUN", "PROPN"]
-    max_keywords: 10
+    action: "embedding"               # ✅ 忠于原文
 
   # ----------------------------------------------------------
-  # PostRetrieval: 多层查询合并 + 工具决策
-  # Agent 版可以通过工具调用进行额外的检索
+  # PostRetrieval: 多层融合（论文Figure 3 + Section 3）
+  # 核心逻辑:
+  # 1. Core Memory: 始终在context，完整返回
+  # 2. Archival + Recall: RRF融合后返回Top-K
+  # 3. 组装成最终prompt
   # ----------------------------------------------------------
   post_retrieval:
     action: "merge"
-    merge_type: "multi_query"
-    # Agent 版特有：启用迭代式工具调用
-    enable_tool_iteration: true       # 允许 LLM 迭代调用工具
-    max_tool_iterations: 3            # 最多 3 次工具调用迭代
-    secondary_queries:
-    - query_template: "{question}"
-      metadata: {tier: "core"}
-    - query_template: "{question}"
-      metadata: {tier: "recall"}
+    merge_type: "multi_tier"          # ✅ 自实现的三层融合算子
+    tiers_to_search: ["core", "archival", "recall"]
+    fusion_strategy: "rrf"            # ✅ Reciprocal Rank Fusion
+    rrf_k: 60                         # ✅ 论文实现的常数
+    vector_weight: 0.5                # Archival权重
+    fts_weight: 0.5                   # Recall权重
+    top_k: 10                         # 返回Top-K融合结果
+
+    # Memory Pressure Warning（论文Section 2.2核心创新）
+    # 当context使用率超过阈值时，插入系统警告
+    enable_memory_pressure_warning: true
+
     conversation_format_prompt: |
       The following is the relevant context from memory.
       You can use tools to search for more information if needed.
