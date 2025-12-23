@@ -1118,7 +1118,7 @@ class ChatModeManager(StudioManager):
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
             llm_table.add_row("端口", str(SagePorts.BENCHMARK_LLM))
-            llm_table.add_row("提示", "使用 --llm 启动本地服务")
+            llm_table.add_row("提示", "默认启动本地服务 (除非指定 --no-llm)")
 
         console.print(llm_table)
 

@@ -571,7 +571,7 @@ jobs:
             if [ -n "$FIRST_PORT" ]; then
               LLM_BASE_URL="http://127.0.0.1:${FIRST_PORT}/v1"
               LLM_MODEL="pangu_embedded_1b"
-              STUDIO_EXTRA_ARGS="--llm false --no-embedding"
+              STUDIO_EXTRA_ARGS="--no-llm --no-embedding"
               echo "🔗 复用已存在的 LLM: $LLM_BASE_URL"
             fi
           fi
