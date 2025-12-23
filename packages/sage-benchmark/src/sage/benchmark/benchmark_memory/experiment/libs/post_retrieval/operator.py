@@ -41,6 +41,10 @@ class _ServiceProxy:
         """Search for similar memories (multiple searches allowed)"""
         return self._operator.call_service(self._service_name, method="search", **kwargs)
 
+    def retrieve(self, **kwargs) -> list[dict[str, Any]]:
+        """Retrieve memories (GraphMemoryService)"""
+        return self._operator.call_service(self._service_name, method="retrieve", **kwargs)
+
 
 class PostRetrieval(MapFunction):
     """记忆检索后的后处理算子（重构版）"""

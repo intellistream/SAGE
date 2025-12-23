@@ -67,29 +67,37 @@ operators:
   # ----------------------------------------------------------
   pre_insert:
     action: "extract"
-    extract_type: "all"               # 提取 keyword + entity + noun + persona
-    spacy_model: "en_core_web_sm"     # SpaCy 模型用于 entity/noun 提取
-    keyword_prompt: |
-      Extract key concepts and contextual tags from this conversation.
-      Output format (JSON):
-      {"keywords": ["word1", "word2", ...]}
+    extract_type: "keyword"           # 使用 KeywordExtractAction（已迁移为 A-Mem Note 抽取）
+    # A-Mem Note 抽取提示词（LLM JSON 输出），可按需修改
+    analysis_prompt: |
+      Generate a structured analysis of the following content by:
+      1. Identifying the most salient keywords (focus on nouns, verbs, and key concepts)
+      2. Extracting core themes and contextual elements
+      3. Creating relevant categorical tags
 
-      Conversation:
-      {dialogue}
-    persona_prompt: |
-      Extract persona information for each speaker in this conversation.
-      Output format (JSON):
+      Format the response as a JSON object:
       {
-        "Speaker1": {"traits": [...], "preferences": [...], "facts": [...]},
-        "Speaker2": {"traits": [...], "preferences": [...], "facts": [...]}
+        "keywords": [
+          // several specific, distinct keywords that capture key concepts and terminology
+          // Order from most to least important
+          // Don't include keywords that are the name of the speaker or time
+          // At least three keywords, but don't be too redundant.
+        ],
+        "context":
+          // one sentence summarizing:
+          // - Main topic/domain
+          // - Key arguments/points
+          // - Intended audience/purpose
+        ,
+        "tags": [
+          // several broad categories/themes for classification
+          // Include domain, format, and type tags
+          // At least three tags, but don't be too redundant.
+        ]
       }
 
-      Conversation:
-      {dialogue}
-    persona_fields:
-    - traits
-    - preferences
-    - facts
+      Content for analysis:
+      {content}
     max_keywords: 10
     add_to_metadata: true
 
@@ -104,16 +112,26 @@ operators:
     similarity_threshold: 0.7
     max_auto_links: 5
     auto_link_prompt: |
-      Given a new memory and existing memories, identify which existing memories
-      should be linked to this new memory based on semantic relevance.
+      You are deciding links between a NEW memory and CANDIDATE memories.
+      Task: Select indices (0-based) of candidates that should be linked to the new memory based on relevance.
 
-      New memory: {new_entry}
+      STRICT OUTPUT REQUIREMENTS:
+      - Return ONLY a JSON object with a single key "links".
+      - "links" must be an array of integers (0-based indices from existing memories).
+      - Do NOT include any other keys. Do NOT add comments, text, or markdown.
+      - If no link is appropriate, return {"links": []}.
+      - Maximum count: up to {max_auto_links}.
 
-      Existing memories:
-      {memory_list}
+      NEW MEMORY:
+      {new_memory}
 
-      Return the indices of memories that should be linked (0-indexed):
-      [index1, index2, ...]
+      EXISTING MEMORIES (indexed):
+      {existing_memories}
+
+      OUTPUT EXAMPLES (valid):
+      {"links": [0, 2]}
+      {"links": []}
+      {"links": [1]}
 
   # ----------------------------------------------------------
   # PreRetrieval: 基础 embedding
@@ -130,6 +148,9 @@ operators:
     merge_type: "link_expand"
     expand_top_n: 5
     max_depth: 1
+    edge_types:
+    - "semantic"
+    - "temporal"
     conversation_format_prompt: |
       The following is relevant memory with associated context.
 

@@ -36,6 +36,10 @@ class _ServiceProxy:
         """Search for similar memories"""
         return self._operator.call_service(self._service_name, method="search", **kwargs)
 
+    def retrieve(self, **kwargs) -> list[dict[str, Any]]:
+        """Retrieve memories (GraphMemoryService) - supports vector-only and text modes"""
+        return self._operator.call_service(self._service_name, method="retrieve", **kwargs)
+
     def insert(self, **kwargs) -> str:
         """Insert a new memory entry"""
         return self._operator.call_service(self._service_name, method="insert", **kwargs)
@@ -47,6 +51,19 @@ class _ServiceProxy:
     def delete(self, entry_id: str) -> bool:
         """Delete a memory entry"""
         return self._operator.call_service(self._service_name, method="delete", entry_id=entry_id)
+
+    def add_edge(
+        self, from_node: str, to_node: str, weight: float = 1.0, edge_type: str = "relation"
+    ) -> bool:
+        """Add an edge between two nodes (GraphMemoryService)"""
+        return self._operator.call_service(
+            self._service_name,
+            method="add_edge",
+            from_node=from_node,
+            to_node=to_node,
+            weight=weight,
+            edge_type=edge_type,
+        )
 
 
 class PostInsert(MapFunction):
@@ -82,6 +99,18 @@ class PostInsert(MapFunction):
             is_session_end=data.get("is_session_end", False),
             config=self.config.get("operators.post_insert", {}),
         )
+        # Debug: 可见当前使用的后处理动作与条目数量
+        try:
+            entries_cnt = (
+                len(input_data.insert_stats.get("entries", []))
+                if isinstance(input_data.insert_stats, dict)
+                else 0
+            )
+            print(
+                f"[DEBUG PostInsert] action={self.action_name} service={self.service_name} entries={entries_cnt} session_end={input_data.is_session_end}"
+            )
+        except Exception:
+            pass
         # Create service proxy
         service_proxy = _ServiceProxy(self, self.service_name)
         output: PostInsertOutput = self.action.execute(
