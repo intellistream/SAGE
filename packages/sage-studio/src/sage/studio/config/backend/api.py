@@ -3182,16 +3182,39 @@ async def get_llm_status():
         UnifiedInferenceClient = None  # type: ignore[assignment]
 
     try:
-        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-        model_name = os.getenv("SAGE_CHAT_MODEL", "")
+        env_base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+        env_model_name = os.getenv("SAGE_CHAT_MODEL", "")
+
+        # Start with explicit environment variables (highest priority)
+        base_url = env_base_url
+        model_name = env_model_name
+
+        # Next, honor persisted default selection from config/models.json when env is not set
+        # This keeps frontend selections sticky across restarts without being overwritten by
+        # Control Plane discovery.
+        config_models, _ = _load_models_config(filter_missing=False)
+        persisted_default = next((m for m in config_models if m.get("default")), None)
+        persisted_base_url = (
+            _normalize_base_url(persisted_default.get("base_url")) if persisted_default else None
+        )
+        if not base_url and persisted_base_url:
+            base_url = persisted_base_url
+        if not model_name and persisted_default:
+            model_name = persisted_default.get("name", "")
+
+        use_control_plane = not base_url and not model_name and not persisted_default
 
         if UnifiedInferenceClient:
             try:
-                client = UnifiedInferenceClient.create(control_plane_url=f"{GATEWAY_BASE_URL}/v1")
-                base_url = client.config.llm_base_url or base_url
-                model_name = client.config.llm_model or model_name
+                # Only fall back to Control Plane when nothing is configured/persisted
+                if use_control_plane:
+                    client = UnifiedInferenceClient.create(
+                        control_plane_url=f"{GATEWAY_BASE_URL}/v1"
+                    )
+                    base_url = client.config.llm_base_url or base_url
+                    model_name = client.config.llm_model or model_name
 
-                # Try to fetch model name if missing
+                # Try to fetch model name if still missing but base_url is known
                 if not model_name and base_url:
                     model_name = UnifiedInferenceClient._fetch_model_name(base_url) or model_name
             except Exception:
@@ -3239,7 +3262,7 @@ async def get_llm_status():
                     status["error"] = str(exc)
 
         # Build available model list
-        config_models, _ = _load_models_config(filter_missing=False)
+        # 复用前面读取的配置，避免重复加载
         available_models = []
         for model in config_models:
             # Filter out embedding models
@@ -3332,6 +3355,33 @@ async def get_llm_status():
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             available_models = list(executor.map(evaluate_model, available_models))
+
+        # Prefer healthy local models even if cloud env vars are present; fall back to any healthy.
+        preferred_model: dict[str, Any] | None = None
+        for model in available_models:
+            if model.get("is_local") and model.get("healthy") and model.get("default"):
+                preferred_model = model
+                break
+        if not preferred_model:
+            for model in available_models:
+                if model.get("is_local") and model.get("healthy"):
+                    preferred_model = model
+                    break
+        if not preferred_model:
+            for model in available_models:
+                if model.get("healthy"):
+                    preferred_model = model
+                    break
+
+        if preferred_model:
+            status["base_url"] = preferred_model.get("base_url") or status.get("base_url")
+            status["model_name"] = preferred_model.get("name") or status.get("model_name")
+            status["is_local"] = preferred_model.get("is_local", status.get("is_local"))
+            status["service_type"] = (
+                "local_vllm" if preferred_model.get("is_local") else "remote_api"
+            )
+            if preferred_model.get("base_url"):
+                status["running"] = True
 
         status_base_url = status.get("base_url")
         match_found = False
