@@ -9,8 +9,8 @@ Usage: python run_f1_analysis.py
 # ============================================================================
 # CONFIGURATION - Modify these paths as needed
 # ============================================================================
-INPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/251126/TiM"
-OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251126/TiM"
+INPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/251223/MemGPT-Agent"
+OUTPUT_DIR = ".sage/benchmarks/benchmark_memory/locomo/output/251223/MemGPT-Agent"
 # ============================================================================
 
 import json
