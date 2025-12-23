@@ -651,9 +651,6 @@ jobs:
           ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS
           Restart=on-failure
           RestartSec=10
-
-          [Install]
-          WantedBy=multi-user.target
           EOF
 
           # 按需注入已存在 LLM 的环境变量（用于 Gateway/Studio 直接复用，而不是再次 auto-scale）
@@ -666,6 +663,14 @@ jobs:
           if [ -n "$PANGU_API_KEY_VAL" ]; then
             echo "Environment=SAGE_CHAT_API_KEY=$PANGU_API_KEY_VAL" >> /tmp/sage-studio.service
           fi
+
+          # 添加 Install 部分
+          cat >> /tmp/sage-studio.service << EOF
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
           sed -i 's/^[[:space:]]*//' /tmp/sage-studio.service
           sudo cp /tmp/sage-studio.service /etc/systemd/system/sage-studio.service
           echo "✅ sage-studio.service 已创建"
@@ -688,7 +693,46 @@ jobs:
 
           # 1. 启动 Studio (All-in-One)
           echo "1/2 启动 Studio 服务 (Manager + Gateway + LLM + Embedding)..."
-          sudo systemctl start sage-studio
+
+          # 强制清理端口 5174 (Studio Frontend) 和 8888 (Gateway)
+          echo "🧹 清理潜在的残留进程..."
+          sudo fuser -k 5174/tcp || true
+          sudo fuser -k 8888/tcp || true
+
+          # 调试信息：检查端口占用情况
+          echo "🔍 检查端口占用情况 (5174, 8888)..."
+          sudo lsof -i :5174 || echo "Port 5174 is free"
+          sudo lsof -i :8888 || echo "Port 8888 is free"
+
+          # 调试信息：检查 PID 文件
+          PID_FILE="/home/$(whoami)/.local/state/sage/studio.pid"
+          if [ -f "$PID_FILE" ]; then
+            echo "⚠️ 发现残留 PID 文件: $PID_FILE"
+            cat "$PID_FILE"
+            rm -f "$PID_FILE"
+            echo "🗑️ 已删除残留 PID 文件"
+          fi
+
+          if ! sudo systemctl start sage-studio; then
+            echo "❌ Studio 服务启动失败"
+            echo "--- Studio 状态 ---"
+            sudo systemctl status sage-studio --no-pager || true
+            echo "--- Studio 日志 (最后 100 行) ---"
+            sudo journalctl -u sage-studio --no-pager -n 100 || true
+
+            # 尝试手动运行一次以获取更多错误信息
+            echo "--- 尝试手动运行以诊断问题 ---"
+            $WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS || true
+
+            exit 1
+          fi
+            echo "❌ Studio 服务启动失败"
+            echo "--- Studio 状态 ---"
+            sudo systemctl status sage-studio --no-pager || true
+            echo "--- Studio 日志 ---"
+            sudo journalctl -u sage-studio --no-pager -n 100 || true
+            exit 1
+          fi
           sudo systemctl enable sage-studio
 
           # 立即检查 Studio 状态

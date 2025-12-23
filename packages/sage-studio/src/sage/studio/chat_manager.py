@@ -595,6 +595,24 @@ class ChatModeManager(StudioManager):
         # Skip slow import check - just try to start directly
         # If gateway is not installed, subprocess will fail anyway
         gateway_port = port or self.gateway_port
+
+        # Check if port is in use
+        if self._is_port_in_use(gateway_port):
+            console.print(f"[yellow]⚠️  端口 {gateway_port} 已被占用[/yellow]")
+            try:
+                for proc in psutil.process_iter(["pid", "name"]):
+                    try:
+                        for conn in proc.connections(kind="inet"):
+                            if conn.laddr.port == gateway_port:
+                                console.print(
+                                    f"[yellow]   占用进程: {proc.pid} ({proc.name()})[/yellow]"
+                                )
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except Exception:
+                pass
+            # Continue anyway, let uvicorn fail and report error
+
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
 
