@@ -27,7 +27,7 @@ describe('MobileHeader', () => {
             model_name: 'test-model',
             running: true,
             healthy: true,
-            service_type: 'local_vllm',
+            service_type: 'local_vllm' as const,
             base_url: 'http://localhost:8001',
             is_local: true,
         },
