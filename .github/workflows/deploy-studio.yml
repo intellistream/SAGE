@@ -562,6 +562,20 @@ jobs:
           NODE_BIN_VAL="${{ env.NODE_BIN }}"
           FRONTEND_DIR="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend"
 
+          # 如果探测到现有健康 LLM，则直接复用该端点，禁止再启动本地 LLM/Embedding，避免重复占用 GPU
+          STUDIO_EXTRA_ARGS=""
+          LLM_BASE_URL=""
+          LLM_MODEL=""
+          if [ -n "$KEEP_PORTS" ]; then
+            FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
+            if [ -n "$FIRST_PORT" ]; then
+              LLM_BASE_URL="http://127.0.0.1:${FIRST_PORT}/v1"
+              LLM_MODEL="pangu_embedded_1b"
+              STUDIO_EXTRA_ARGS="--llm false --no-embedding"
+              echo "🔗 复用已存在的 LLM: $LLM_BASE_URL"
+            fi
+          fi
+
           # 创建 wrapper 脚本目录
           WRAPPER_DIR="$WORKSPACE/.sage/bin"
           mkdir -p "$WRAPPER_DIR"
@@ -634,13 +648,24 @@ jobs:
           Environment=PYTHONPATH=$SAGE_PYTHONPATH
           # 运行在 5174 端口，让 Nginx (5173) 代理到这里
           # --yes: 自动确认所有提示 (包括 auto-scale)
-          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174
+          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS
           Restart=on-failure
           RestartSec=10
 
           [Install]
           WantedBy=multi-user.target
           EOF
+
+          # 按需注入已存在 LLM 的环境变量（用于 Gateway/Studio 直接复用，而不是再次 auto-scale）
+          if [ -n "$LLM_BASE_URL" ]; then
+            echo "Environment=SAGE_CHAT_BASE_URL=$LLM_BASE_URL" >> /tmp/sage-studio.service
+          fi
+          if [ -n "$LLM_MODEL" ]; then
+            echo "Environment=SAGE_CHAT_MODEL=$LLM_MODEL" >> /tmp/sage-studio.service
+          fi
+          if [ -n "$PANGU_API_KEY_VAL" ]; then
+            echo "Environment=SAGE_CHAT_API_KEY=$PANGU_API_KEY_VAL" >> /tmp/sage-studio.service
+          fi
           sed -i 's/^[[:space:]]*//' /tmp/sage-studio.service
           sudo cp /tmp/sage-studio.service /etc/systemd/system/sage-studio.service
           echo "✅ sage-studio.service 已创建"
