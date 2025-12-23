@@ -713,6 +713,13 @@ jobs:
             echo "🗑️ 已删除残留 PID 文件"
           fi
 
+          # 打印生成的服务文件内容以供调试
+          echo "📄 生成的 sage-studio.service 内容:"
+          cat /etc/systemd/system/sage-studio.service
+
+          # 重置失败状态
+          sudo systemctl reset-failed sage-studio || true
+
           if ! sudo systemctl start sage-studio; then
             echo "❌ Studio 服务启动失败"
             echo "--- Studio 状态 ---"
