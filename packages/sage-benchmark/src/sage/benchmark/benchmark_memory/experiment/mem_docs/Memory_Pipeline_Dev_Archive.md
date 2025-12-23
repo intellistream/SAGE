@@ -711,27 +711,48 @@ ______________________________________________________________________
 
 ## 二、论文记忆体五维度分类
 
-> 基于 Memory.md 文档，共 12 个论文记忆体，每个记忆体按五个维度分类实现。
+> 本章用于把“论文记忆体”映射到 SAGE 的 **可运行 Pipeline 组合**。
 >
-> **五维度**：D1 数据结构(Service) | D2 插入前(PreInsert) | D3 插入后(PostInsert) | D4 检索前(PreRetrieval) | D5
-> 检索后(PostRetrieval)
+> **重要**：本章以“当前代码注册表/工厂”为准，而不是旧版 `Memory.md` 或历史 YAML。
+>
+> - D1（MemoryService）来源：
+>   `packages/sage-middleware/src/sage/middleware/components/sage_mem/services/memory_service_factory.py`
+> - D2（PreInsert）来源：
+>   `packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/libs/pre_insert/registry.py`
+> - D3（PostInsert）来源：
+>   `packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/libs/post_insert/registry.py`
+> - D4（PreRetrieval）来源：
+>   `packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/libs/pre_retrieval/registry.py`
+> - D5（PostRetrieval）来源：
+>   `packages/sage-benchmark/src/sage/benchmark/benchmark_memory/experiment/libs/post_retrieval/registry.py`
+>
+> **五维度**：D1 数据结构（Service） | D2 插入前（PreInsert） | D3 插入后（PostInsert） | D4 检索前（PreRetrieval） | D5
+> 检索后（PostRetrieval）
 
 ### 2.1 记忆体总览与五维度配置
 
-| #   | 记忆体     | D1 Service                     | D2 PreInsert     | D3 PostInsert        | D4 PreRetrieval | D5 PostRetrieval |
-| --- | ---------- | ------------------------------ | ---------------- | -------------------- | --------------- | ---------------- |
-| 1   | TiM        | `vector_hash_memory`（哈希桶） | `extract.triple` | `distillation`       | `embedding`     | `rerank`         |
-| 2   | MemoryBank | `hierarchical_memory`          | `none`           | `forgetting`         | `embedding`     | `augment`        |
-| 3   | MemGPT     | `hierarchical_memory`          | `transform`      | `distillation`       | `optimize`      | `merge`          |
-| 4   | A-Mem      | `graph_memory`                 | `extract.entity` | `link_evolution`     | `embedding`     | `merge`          |
-| 5   | MemoryOS   | `hierarchical_memory`          | `score`          | `migrate+forgetting` | `embedding`     | `merge+augment`  |
-| 6   | HippoRAG   | `graph_memory`                 | `extract.triple` | `link_evolution`     | `optimize`      | `none`           |
-| 7   | HippoRAG2  | `graph_memory`                 | `extract.triple` | `none`               | `embedding`     | `none`           |
-| 8   | LD-Agent   | `hierarchical_memory`          | `score`          | `forgetting`         | `optimize`      | `rerank`         |
-| 9   | SCM        | `short_term_memory`            | `none`           | `none`               | `validate`      | `filter`         |
-| 10  | Mem0       | `hybrid_memory`                | `extract.entity` | `crud`               | `none`          | `none`           |
-| 11  | Mem0ᵍ      | `graph_memory`                 | `extract.entity` | `crud`               | `none`          | `merge`          |
-| 12  | SeCom      | `neuromem_vdb`                 | `transform`      | `distillation`       | `embedding`     | `none`           |
+下表给出 **SAGE 当前“可被注册/可被 Pipeline 调用”的实现映射**（等价于可写进 YAML 并实际生效的组合）。
+
+| #   | 记忆体         | D1 Service（可注册）                     | D2 PreInsert（可注册）                                       | D3 PostInsert（可注册）                                    | D4 PreRetrieval（可注册）    | D5 PostRetrieval（可注册）                  |
+| --- | -------------- | ---------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------- | ------------------------------------------- |
+| 1   | TiM            | `vector_memory`（IndexLSH 实现“哈希桶”） | `extract.triple`                                             | `distillation`                                             | `embedding`                  | `none`                                      |
+| 2   | MemoryBank     | `hierarchical_memory`                    | `transform.summarize`（或 `none`）                           | `forgetting`                                               | `embedding`                  | `rerank.time_weighted`（可选：`reinforce`） |
+| 3   | MemGPT (Agent) | `hierarchical_memory`                    | `extract.entity`                                             | `distillation`                                             | `optimize.keyword_extract`   | `merge.multi_query`                         |
+| 4   | A-Mem          | `graph_memory`                           | `extract.entity`（⚠️ 当前不支持 `extract.all`/persona 提取） | `link_evolution`                                           | `embedding`                  | `merge.link_expand`                         |
+| 5   | MemoryOS       | `hierarchical_memory`                    | `score.importance`（或 `score.heat`）                        | `migrate`（可与 `forgetting` 组合，但需分阶段配置）        | `optimize.keyword_extract`   | `merge.multi_query`                         |
+| 6   | HippoRAG       | `graph_memory`                           | `extract.triple`                                             | `link_evolution`                                           | `embedding`                  | `none`（PPR 重排需显式启用 `rerank.ppr`）   |
+| 7   | HippoRAG2      | `graph_memory`                           | `extract.triple`                                             | `link_evolution`                                           | `embedding`                  | `rerank.ppr`                                |
+| 8   | LD-Agent       | `hierarchical_memory`                    | `transform.summarize`                                        | `migrate`（time/heat 由服务侧策略实现）                    | `optimize.keyword_extract`   | `rerank.weighted`                           |
+| 9   | SCM            | `short_term_memory`                      | `none`                                                       | `none`                                                     | `validate`（或 `embedding`） | `filter.token_budget`                       |
+| 10  | Mem0           | `hybrid_memory`                          | `extract.entity`                                             | `distillation`（用 Mem0 风格 prompt 做 ADD/UPDATE/DELETE） | `embedding`                  | `none`                                      |
+| 11  | Mem0ᵍ          | `hybrid_memory`（包含 graph index）      | `extract.triple`                                             | `distillation`（同上）                                     | `embedding`                  | `none`（需要扩展可改 `merge.link_expand`）  |
+| 12  | SeCom          | `hierarchical_memory`                    | `transform.segment`（⚠️ 当前不支持 `segment_denoise`）       | `distillation`                                             | `embedding`                  | `none`                                      |
+
+> 兼容性说明：
+>
+> - 文档中旧称 `vector_hash_memory` 已并入 `vector_memory`：通过 `index_type: IndexLSH` 等价实现。
+> - `neuromem_vdb` / `neuromem_vdb_service` 相关组件在 middleware 层存在，但**当前未被 `MemoryServiceFactory`
+>   暴露为可注册的 `register_memory_service` 名称**，因此不应作为“D1 可用项”写入五维表。
 
 ### 2.2 各维度 Action 实现清单
 
@@ -742,38 +763,52 @@ ______________________________________________________________________
 >   - 🗂️ **类继承模式**：每个子类型独立类文件（子目录组织）- 用于逻辑差异大的场景
 >   - ⚙️ **参数驱动模式**：单个类通过 `config` 参数区分行为 - 用于逻辑相似、可共享代码的场景
 
-#### D1: Memory Service（数据结构）
+#### D1: Memory Service（数据结构 / 可被 Pipeline 注册）
 
-| Action                         | 参考记忆体                             | 核心参数                                                  |
-| ------------------------------ | -------------------------------------- | --------------------------------------------------------- |
-| `short_term_memory`            | SCM                                    | `maxlen`                                                  |
-| `vector_hash_memory`（哈希桶） | TiM                                    | `index_type: IndexLSH`, `index_config.nbits`, `k_nearest` |
-| `vector_memory`（通用）        | SeCom 等                               | `index_type`, `index_config`                              |
-| `graph_memory`                 | HippoRAG, HippoRAG2, A-Mem, Mem0ᵍ      | `graph_type`, `edge_policy`                               |
-| `hierarchical_memory`          | MemoryOS, MemGPT, MemoryBank, LD-Agent | `tier_count`, `migration_policy`                          |
-| `hybrid_memory`                | Mem0                                   | `graph_enabled`, `fusion_strategy`                        |
+| Action                      | 参考记忆体                             | 核心参数                                                                                                               |
+| --------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `short_term_memory`         | SCM                                    | `max_dialog`, `embedding_dim`                                                                                          |
+| `vector_memory`（通用向量） | TiM 等                                 | `dim`, `index_type`, `index_config`, `collection_name`, `index_name`                                                   |
+| `graph_memory`              | HippoRAG, HippoRAG2, A-Mem             | `graph_type`, `node_embedding_dim`, `edge_types`, `link_policy`, `max_links_per_node`, `synonymy_threshold`, `damping` |
+| `hierarchical_memory`       | MemoryOS, MemGPT, MemoryBank, LD-Agent | `tier_mode`, `tier_capacities`, `migration_policy`, `embedding_dim`                                                    |
+| `hybrid_memory`             | Mem0 / Mem0ᵍ                           | `indexes`, `fusion_strategy`, `fusion_weights`, `rrf_k`                                                                |
+| `key_value_memory`          | （可选）                               | `match_type`, `key_extractor`, `fuzzy_threshold`, `semantic_threshold`, `embedding_dim`, `case_sensitive`              |
 
-> 说明：`vector_memory（哈希桶）` 在当前实现中由 `vector_memory` 配置 `IndexLSH` 等价实现（即 `index_type: IndexLSH`）。
+> 说明：旧称 `vector_hash_memory（哈希桶）` 在当前实现中由 `vector_memory + IndexLSH` 等价实现（即 `index_type: IndexLSH`）。
 
 #### D2: PreInsert（插入前处理）
 
 | Action      | 子类型                                      | 实现方式  | 参考记忆体                                   | 说明                                                                                                                         |
 | ----------- | ------------------------------------------- | --------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `none`      | -                                           | -         | MemoryBank, SCM                              | 无预处理                                                                                                                     |
-| `transform` | `summarize`<br>`chunking`<br>`segment`      | 🗂️ 类继承 | MemGPT, SeCom                                | 文本转换<br>- summarize: 生成摘要<br>- chunking: 文本分块<br>- segment: 段落分割                                             |
+| `transform` | `summarize`<br>`chunking`<br>`segment`      | 🗂️ 类继承 | MemGPT, SeCom                                | 文本转换<br>- summarize: 生成摘要<br>- chunking: 文本分块<br>- segment: 主题/段落切分                                        |
 | `extract`   | `keyword`<br>`entity`<br>`noun`<br>`triple` | 🗂️ 类继承 | A-Mem, Mem0, Mem0ᵍ, TiM, HippoRAG, HippoRAG2 | 信息提取<br>- keyword: 关键词提取<br>- entity: 命名实体识别（NER）<br>- noun: 名词短语提取<br>- triple: 三元组提取（主谓宾） |
 | `score`     | `importance`<br>`heat`                      | 🗂️ 类继承 | MemoryOS, LD-Agent                           | 重要性评分<br>- importance: 基于 LLM 的重要性<br>- heat: 基于访问频率的热度                                                  |
 
+> 配置写法说明（两种都被当前 `PreInsert` 支持）：
+>
+> - 点号写法：`action: "extract.triple"`
+> - 二段写法：`action: "extract"` + `extract_type: "triple"`
+
+> 兼容性说明：当前实现 **不支持** `extract.all`、`transform.segment_denoise`、`scm_embed` 等旧/实验性名称；如配置中使用，会回退到
+> `none`（透传）。
+
 #### D3: PostInsert（插入后处理）
 
-| Action           | 子类型                                       | 实现方式    | 参考记忆体                     | 说明                                                 |
-| ---------------- | -------------------------------------------- | ----------- | ------------------------------ | ---------------------------------------------------- |
-| `none`           | -                                            | -           | HippoRAG2, SCM                 | 无后处理                                             |
-| `distillation`   | -                                            | 单一实现    | TiM, MemGPT, SeCom             | 记忆蒸馏与合并<br>- 检索相似记忆<br>- LLM 合并去重   |
-| `crud`           | -                                            | 单一实现    | Mem0, Mem0ᵍ                    | 实体级 CRUD 决策<br>- ADD/UPDATE/DELETE/NOOP         |
-| `link_evolution` | -                                            | 单一实现    | A-Mem, HippoRAG                | 知识图谱链接演化<br>- 同义词边生成<br>- 链接强度更新 |
-| `migrate`        | `heat`                                       | ⚙️ 参数驱动 | MemoryOS                       | 分层记忆迁移<br>- 当前仅支持 heat 策略               |
-| `forgetting`     | `ebbinghaus`<br>`heat_based`<br>`time_based` | ⚙️ 参数驱动 | MemoryBank, MemoryOS, LD-Agent | 主动遗忘策略<br>- 通过 `strategy` 参数选择           |
+| Action           | 子类型                                       | 实现方式    | 参考记忆体                 | 说明                                                                               |
+| ---------------- | -------------------------------------------- | ----------- | -------------------------- | ---------------------------------------------------------------------------------- |
+| `none`           | -                                            | -           | HippoRAG2, SCM             | 无后处理                                                                           |
+| `distillation`   | -                                            | 单一实现    | TiM, MemGPT, SeCom, Mem0\* | 记忆蒸馏与合并（数据量驱动）<br>- 检索 top-k 候选<br>- LLM 产出 delete/insert 列表 |
+| `crud`           | -                                            | 单一实现    | Mem0（可选）               | LLM 决策 CRUD（ADD/UPDATE/DELETE/NOOP）                                            |
+| `link_evolution` | -                                            | 单一实现    | A-Mem, HippoRAG            | 图链接演化（默认 session_end 执行）                                                |
+| `migrate`        | -                                            | 单一实现    | MemoryOS, LD-Agent         | 分层迁移（由服务侧 `migrate_memories` 支持）                                       |
+| `forgetting`     | `ebbinghaus`<br>`heat_based`<br>`time_based` | ⚙️ 参数驱动 | MemoryBank, MemoryOS       | 主动遗忘（由服务侧 `forget_memories` 支持）                                        |
+
+> 备注：Mem0 系列在当前 repo 的“可跑配置”里，通常用 `distillation` 搭配 Mem0 风格 prompt 来实现“ADD/UPDATE/DELETE”逻辑；`crud`
+> action 本身存在，但默认配置不一定启用。
+
+> 兼容性说明：部分历史 YAML 中出现的 `distillation_topk/distillation_threshold/link_policy/knn_k/...` 等键 **不会被当前
+> action 实现读取**；请以各 action 的 `*_action/base.py` 中 `_get_config(...)` 为准。
 
 #### D4: PreRetrieval（检索前处理）
 
@@ -781,7 +816,7 @@ ______________________________________________________________________
 | ------------- | ------------------------------------------ | --------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `none`        | -                                          | -         | Mem0, Mem0ᵍ                                        | 无预处理                                                                               |
 | `embedding`   | -                                          | 单一实现  | TiM, MemoryBank, A-Mem, MemoryOS, HippoRAG2, SeCom | 查询向量化<br>- 生成 query embedding                                                   |
-| `optimize`    | `keyword_extract`<br>`expand`<br>`rewrite` | 🗂️ 类继承 | MemGPT, HippoRAG, LD-Agent                         | 查询优化<br>- keyword_extract: 关键词提取<br>- expand: 查询扩展<br>- rewrite: 查询改写 |
+| `optimize`    | `keyword_extract`<br>`expand`<br>`rewrite` | 🗂️ 类继承 | MemGPT, MemoryOS, LD-Agent                         | 查询优化<br>- keyword_extract: 关键词提取<br>- expand: 查询扩展<br>- rewrite: 查询改写 |
 | `validate`    | -                                          | 单一实现  | SCM                                                | 检索激活判断<br>- 判断是否需要检索记忆                                                 |
 | `enhancement` | `decompose`<br>`route`<br>`multi_embed`    | 🗂️ 类继承 | 通用高级功能（不限特定记忆体）                     | 查询增强<br>- decompose: 复杂查询分解<br>- route: 检索路由<br>- multi_embed: 多维向量  |
 
@@ -840,6 +875,8 @@ operators:
 | `filter`  | `token_budget`<br>`threshold`<br>`top_k`             | 🗂️ 类继承   | SCM                              | 结果过滤<br>- token_budget: Token 数量预算<br>- threshold: 相似度阈值<br>- top_k: 保留前 K 个                                   |
 | `merge`   | `link_expand`<br>`multi_query`                       | 🗂️ 类继承   | A-Mem, MemoryOS, MemGPT, Mem0ᵍ   | 结果合并<br>- link_expand: 沿图链接扩展<br>- multi_query: 多次查询合并                                                          |
 | `augment` | `persona`<br>`traits`<br>`summary`<br>`metadata`     | ⚙️ 参数驱动 | MemoryBank, MemoryOS             | 结果增强<br>- 通过 `augment_type` 参数选择                                                                                      |
+
+> 补充：当前实现还包含 `reinforce`（MemoryBank 检索强化）Action（见 `post_retrieval/registry.py`），可按需启用。
 
 ### 2.3 实现模式与目录组织规范
 
