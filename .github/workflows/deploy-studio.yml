@@ -721,24 +721,23 @@ jobs:
           sudo systemctl reset-failed sage-studio || true
 
           if ! sudo systemctl start sage-studio; then
-            echo "❌ Studio 服务启动失败"
-            echo "--- Studio 状态 ---"
-            sudo systemctl status sage-studio --no-pager || true
-            echo "--- Studio 日志 (最后 100 行) ---"
-            sudo journalctl -u sage-studio --no-pager -n 100 || true
+            echo "⚠️ systemctl start returned error, checking if service is actually running..."
+            sleep 5
+            if sudo systemctl is-active --quiet sage-studio; then
+                echo "✅ Service is active despite start command exit code."
+            else
+                echo "❌ Studio 服务启动失败"
+                echo "--- Studio 状态 ---"
+                sudo systemctl status sage-studio --no-pager || true
+                echo "--- Studio 日志 (最后 100 行) ---"
+                sudo journalctl -u sage-studio --no-pager -n 100 || true
 
-            # 尝试手动运行一次以获取更多错误信息
-            echo "--- 尝试手动运行以诊断问题 ---"
-            $WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS || true
+                # 尝试手动运行一次以获取更多错误信息
+                echo "--- 尝试手动运行以诊断问题 ---"
+                $WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS || true
 
-            exit 1
-          fi
-            echo "❌ Studio 服务启动失败"
-            echo "--- Studio 状态 ---"
-            sudo systemctl status sage-studio --no-pager || true
-            echo "--- Studio 日志 ---"
-            sudo journalctl -u sage-studio --no-pager -n 100 || true
-            exit 1
+                exit 1
+            fi
           fi
           sudo systemctl enable sage-studio
 
