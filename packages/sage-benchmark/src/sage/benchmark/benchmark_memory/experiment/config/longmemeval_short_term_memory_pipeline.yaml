@@ -1,0 +1,53 @@
+# 运行时参数配置
+runtime:
+  dataset: "longmemeval"  # 数据集名称
+  # task_id: "group-1"  # 任务ID，可通过命令行 --task_id 覆盖
+  memory_insert_verbose: false  # 是否打印记忆插入的详细信息（Memory Source部分）
+  memory_test_verbose: true    # 是否打印记忆测试的详细信息（QA部分）
+  test_segments: 10             # 测试分段数，将总问题数分成几段进行测试
+
+  # Prompt 模板配置（阶段二：MemoryTest）
+  prompt_template: |
+    Based on the above context, answer the following question concisely using exact words from the context whenever possible. If the information is not mentioned in the conversation, respond with "Not mentioned in the conversation".
+
+    Question: {question}
+    Answer:
+
+  # LLM Generator 配置
+  api_key: "token-abc123"
+  base_url: "http://sage2:8000/v1"
+  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  max_tokens: 80
+  temperature: 0.3
+  seed: 42
+  # api_key: "e02683ea96b3fbc29971ad8233fd39bca7b0b71e42adcc73df8ed798a0a030d2"
+  # base_url: "http://127.0.0.1:1040/v1/chat/completions"
+  # model_name: "pangu_embedded_1b"
+  # max_tokens: 80
+  # temperature: 0.3
+  # seed: 42
+  memory_name: "stm"
+
+# 服务配置
+services:
+  register_memory_service: "short_term_memory"  # 注册的记忆服务名称，可切换为其他服务
+  short_term_memory:
+    max_dialog: 5  # 短期记忆窗口大小（轮次）
+    embedding_dim: 1024  # BAAI/bge-m3 模型的向量维度
+  memory_retrieval_adapter: "none"
+
+
+
+# Operator 配置
+operators:
+  pre_insert:
+    action: "none"  # 插入前操作: none, validate, transform
+  pre_retrieval:
+    action: "none"  # 检索前操作: none, optimize, validate
+  post_insert:
+    action: "none"  # 插入后操作
+  post_retrieval:
+    action: "none"  # 后检索操作: none（默认会格式化对话历史）
+    # 阶段一：对话历史格式化Prompt（PostRetrieval）
+    conversation_format_prompt: |
+      The following is some history information.
