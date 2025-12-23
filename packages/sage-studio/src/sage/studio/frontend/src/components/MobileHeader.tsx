@@ -23,7 +23,7 @@ interface MobileHeaderProps {
     onSelectModel?: (modelName: string, baseUrl: string) => void
 }
 
-export default function MobileHeader({ onMenuClick, onNewChat, title, llmStatus, onSelectModel }: MobileHeaderProps) {
+export default function MobileHeader({ onMenuClick, onNewChat, llmStatus, onSelectModel }: MobileHeaderProps) {
     const { resolvedTheme, toggleTheme } = useThemeStore()
     const { user, logout, isAuthenticated } = useAuthStore()
     const [showUserMenu, setShowUserMenu] = useState(false)
