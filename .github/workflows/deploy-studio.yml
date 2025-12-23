@@ -216,8 +216,8 @@ jobs:
           source /tmp/llm_detect.env
           echo "KEEP_PORTS=${KEEP_PORTS}" >> $GITHUB_ENV
           echo "KILL_PORTS=${KILL_PORTS}" >> $GITHUB_ENV
-          echo "保持的 LLM 端口: ${KEEP_PORTS:-<none>}"
-          echo "需要清理的 LLM 端口: ${KILL_PORTS:-<none>}"
+          echo "✅ 保持的 LLM 端口 (健康且唯一): ${KEEP_PORTS:-<none>}"
+          echo "⚠️ 未检测到或不健康的 LLM 端口 (将被忽略): ${KILL_PORTS:-<none>}"
 
       - name: Install SAGE
         run: |
