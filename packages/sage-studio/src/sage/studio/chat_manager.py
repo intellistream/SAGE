@@ -132,13 +132,6 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
-        # Check environment variables first
-        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
-            "SAGE_UNIFIED_BASE_URL"
-        )
-        if env_base_url:
-            return (True, env_base_url)
-
         candidates: list[str] = []
         seen: set[str] = set()
 
@@ -172,6 +165,20 @@ class ChatModeManager(StudioManager):
         for candidate in candidates:
             if self._probe_llm_endpoint(candidate):
                 return True, candidate
+
+        # Fallback: honor explicit env only if it is reachable AND loopback, to avoid
+        # blocking auto-start when a cloud endpoint is configured.
+        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url and self._probe_llm_endpoint(env_base_url):
+            try:
+                parsed = requests.utils.urlparse(env_base_url)
+                host = parsed.hostname
+                if host and host in {"127.0.0.1", "localhost", "::1"}:
+                    return True, env_base_url
+            except Exception:
+                pass
 
         return (False, None)
 
