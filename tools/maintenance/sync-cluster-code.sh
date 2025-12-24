@@ -8,6 +8,7 @@
 #   ./tools/maintenance/sync-cluster-code.sh --quick      # 快速同步（仅运行时关键包）
 #   ./tools/maintenance/sync-cluster-code.sh --package sage-kernel  # 同步指定包
 #   ./tools/maintenance/sync-cluster-code.sh --dry-run    # 仅显示将执行的命令
+#   ./tools/maintenance/sync-cluster-code.sh --clean-logs # 清理所有节点的日志文件
 #
 # ==============================================================================
 
@@ -50,6 +51,7 @@ DRY_RUN=false
 QUICK_MODE=false
 SPECIFIC_PACKAGE=""
 VERBOSE=false
+CLEAN_LOGS=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -69,6 +71,10 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift
             ;;
+        --clean-logs)
+            CLEAN_LOGS=true
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -76,6 +82,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --quick, -q          Quick sync (sage-platform, sage-kernel, sage-common only)"
             echo "  --package, -p NAME   Sync specific package only"
             echo "  --dry-run            Show commands without executing"
+            echo "  --clean-logs         Clean log files on all nodes (~/.sage/logs)"
             echo "  --verbose, -v        Verbose output"
             echo "  --help, -h           Show this help"
             echo ""
@@ -109,6 +116,76 @@ user = config.get('ssh', {}).get('user', 'sage')
 for w in workers:
     print(f\"{user}@{w['host']}\")
 "
+}
+
+# 清理单个节点的日志文件
+clean_logs_on_node() {
+    local node="$1"
+    local log_dir="~/SAGE/.sage/logs"
+    local cmd="ssh $node 'rm -rf $log_dir/*' 2>/dev/null"
+    
+    if $DRY_RUN; then
+        echo "  [DRY-RUN] $cmd"
+        return 0
+    else
+        if eval "$cmd"; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+# 清理所有节点的日志
+clean_all_logs() {
+    echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║       SAGE Cluster Log Cleanup                 ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    if $DRY_RUN; then
+        echo -e "${YELLOW}[DRY-RUN MODE - No changes will be made]${NC}"
+    fi
+    echo ""
+    
+    # 获取 worker 节点列表
+    echo -e "${BLUE}Parsing cluster configuration...${NC}"
+    local workers
+    workers=$(parse_workers)
+    
+    if [[ -z "$workers" ]]; then
+        echo -e "${RED}Error: No worker nodes found in $CLUSTER_CONFIG${NC}"
+        exit 1
+    fi
+    
+    local worker_count=$(echo "$workers" | wc -l)
+    echo -e "Found ${GREEN}$worker_count${NC} worker node(s)"
+    echo ""
+    
+    local success_count=0
+    local fail_count=0
+    
+    for node in $workers; do
+        local hostname=$(echo "$node" | cut -d@ -f2)
+        echo -ne "${BLUE}Cleaning logs on $hostname...${NC} "
+        
+        if clean_logs_on_node "$node"; then
+            echo -e "${GREEN}✓${NC}"
+            success_count=$((success_count + 1))
+        else
+            echo -e "${RED}✗${NC}"
+            fail_count=$((fail_count + 1))
+        fi
+    done
+    
+    echo ""
+    echo -e "${BLUE}════════════════════════════════════════════════${NC}"
+    if [[ $fail_count -eq 0 ]]; then
+        echo -e "${GREEN}✅ Log cleanup completed: $success_count/$worker_count nodes${NC}"
+    else
+        echo -e "${YELLOW}⚠ Log cleanup completed with errors: $success_count/$worker_count nodes succeeded${NC}"
+        exit 1
+    fi
 }
 
 # 同步单个包到单个节点
@@ -156,6 +233,12 @@ sync_package() {
 
 # 主函数
 main() {
+    # 如果只是清理日志，执行清理并退出
+    if $CLEAN_LOGS; then
+        clean_all_logs
+        exit 0
+    fi
+    
     echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║       SAGE Cluster Code Sync                   ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
