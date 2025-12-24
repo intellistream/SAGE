@@ -10,6 +10,7 @@ from .filter.token_budget import TokenBudgetFilterAction
 from .filter.top_k import TopKFilterAction
 from .merge.link_expand import LinkExpandMergeAction
 from .merge.multi_query import MultiQueryMergeAction
+from .merge.scm_three_way import SCMThreeWayMergeAction
 from .none_action import NoneAction
 from .reinforce import ReinforceAction
 from .rerank.ppr import PPRRerankAction
@@ -108,6 +109,7 @@ PostRetrievalActionRegistry.register("filter.top_k", TopKFilterAction)
 # Merge Actions
 PostRetrievalActionRegistry.register("merge.link_expand", LinkExpandMergeAction)
 PostRetrievalActionRegistry.register("merge.multi_query", MultiQueryMergeAction)
+PostRetrievalActionRegistry.register("scm_three_way", SCMThreeWayMergeAction)
 
 # Augment Action
 PostRetrievalActionRegistry.register("augment", AugmentAction)

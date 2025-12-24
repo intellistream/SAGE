@@ -62,25 +62,29 @@ services:
 # ============================================================
 operators:
   # ----------------------------------------------------------
-  # PreInsert: SCM 样式 - 同时保存原文、摘要、embedding
-  # 参考 SCM4LLMs/dialogue_test.py - summarize_embed_one_turn()
+  # PreInsert: SCM 样式 - 同时保存原文与摘要 + 向量化
+  # 实现：使用 transform.summarize 动作，并通过配置对齐 SCM 行为
+  # 参考 SCM4LLMs/dialogue_demo.py::summarize_embed_one_turn()
   # ----------------------------------------------------------
   pre_insert:
-    action: "scm_embed"
+    action: "transform"
+    transform_type: "summarize"
     # SCM 摘要 prompt (参考 SCM4LLMs/prompts/dialogue.py)
     summarize_prompt: |
-      Below is a conversation between a user and an AI assistant. Please write a summary for each of them in one sentence and list them in separate paragraphs, while trying to preserve the key information of the user's question and the assistant's answer as much as possible.
+      Below is a conversation between a user and an AI assistant. Please write a summary for each of them in one sentence and list them in separate paragraphs, while trying to preserve the key information of the user’s question and the assistant’s answer as much as possible.
 
       conversation content:
 
-      {dialogue}
+      {input}
 
       Summary:
 
-    # 是否对摘要做 embedding（SCM 默认对原文）
+    # 是否对摘要做 embedding（SCM 默认对原文，因此这里为 false）
     embed_summary: false
-    # 原文 token 数超过此值才生成摘要（SCM 默认 300）
+    # 原文长度超过此阈值才生成摘要（与 SCM 论文中 300 token 对齐；此处以字符近似）
     summary_threshold: 300
+    # 是否仅在会话结束时生成摘要（SCM 每轮即可摘要，置为 false）
+    only_on_session_end: false
 
   # ----------------------------------------------------------
   # PostInsert: 无（SCM 不做插入后优化）
@@ -105,7 +109,7 @@ operators:
     # Token budget 配置（SCM 默认值）
     max_history_tokens: 2500  # SCM: MAX_HISTORY_TOKENS = 2500
     max_pre_turn_tokens: 500  # SCM: MAX_PRE_TURN_TOKENS = 500
-    token_counter: "char"  # char | word | tiktoken
+    token_counter: "tiktoken"  # char | word | tiktoken
 
     # 三元决策 prompt (参考 SCM4LLMs/prompts/dialogue.py - judge_answerable_prompt)
     judge_prompt: |
