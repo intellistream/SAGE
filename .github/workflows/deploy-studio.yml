@@ -571,7 +571,8 @@ jobs:
             if [ -n "$FIRST_PORT" ]; then
               LLM_BASE_URL="http://127.0.0.1:${FIRST_PORT}/v1"
               LLM_MODEL="pangu_embedded_1b"
-              STUDIO_EXTRA_ARGS="--no-llm --no-embedding"
+              # 仅禁用 LLM 启动，允许 Studio 自动管理 Embedding (如果缺的话会启动)
+              STUDIO_EXTRA_ARGS="--no-llm"
               echo "🔗 复用已存在的 LLM: $LLM_BASE_URL"
             fi
           fi
@@ -796,19 +797,15 @@ jobs:
           fi
 
           # 等待 Embedding 服务
-          # 如果 KEEP_PORTS 存在，说明禁用了 Embedding，跳过等待
-          if [ -n "$KEEP_PORTS" ]; then
-             echo "⚠️ 复用 LLM 模式下禁用 Embedding，跳过等待"
-          else
-              echo "等待 Embedding 服务..."
-              for i in $(seq 1 120); do
-                if curl -sf http://localhost:8090/health > /dev/null 2>&1; then
-                  echo "✅ Embedding 服务就绪（第 $i 秒）"
-                  break
-                fi
-                sleep 1
-              done
-          fi
+          # 无论是否复用 LLM，Embedding 服务都应该可用 (复用或新启动)
+          echo "等待 Embedding 服务..."
+          for i in $(seq 1 120); do
+            if curl -sf http://localhost:8090/health > /dev/null 2>&1; then
+              echo "✅ Embedding 服务就绪（第 $i 秒）"
+              break
+            fi
+            sleep 1
+          done
 
           # 等待 Gateway 服务
           echo "等待 Gateway 服务..."
