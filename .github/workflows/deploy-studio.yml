@@ -798,9 +798,10 @@ jobs:
 
           # 等待 Embedding 服务
           # 无论是否复用 LLM，Embedding 服务都应该可用 (复用或新启动)
+          # 注意：embedding_server.py 使用 /v1/models 作为健康检查 (它没有 /health)
           echo "等待 Embedding 服务..."
           for i in $(seq 1 120); do
-            if curl -sf http://localhost:8090/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8090/v1/models > /dev/null 2>&1; then
               echo "✅ Embedding 服务就绪（第 $i 秒）"
               break
             fi
@@ -858,7 +859,8 @@ jobs:
           if [ -n "$KEEP_PORTS" ]; then
              # 如果复用 LLM，检查复用的端口
              FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
-             CHECKS="$CHECKS LLM(Reused):$FIRST_PORT"
+             # 复用模式下，Embedding 也会被 Studio 启动在 8090
+             CHECKS="$CHECKS LLM(Reused):$FIRST_PORT Embedding:8090"
           else
              # 否则检查默认 LLM 和 Embedding
              CHECKS="$CHECKS LLM(Default):8001 LLM(Benchmark):8901 Embedding:8090"
