@@ -61,6 +61,15 @@ services:
     heat_threshold: 0.7
     cold_threshold: 0.3
     embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
+    # MemoryOS 两阶段检索配置
+    use_two_stage_search: true        # 只用于 MTM 层 Segment 检索
+    segment_similarity_threshold: 0.1
+    page_similarity_threshold: 0.1
+    top_k_segments: 5
+    top_k_pages_per_segment: 3
+    fscore_alpha: 1.0
+    fscore_beta: 0.5
+    fscore_gamma: 0.1
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -68,48 +77,69 @@ services:
 # ============================================================
 operators:
   # ----------------------------------------------------------
-  # PreInsert: 重要性评分（用于计算 heat）
-  # MemoryOS 使用 Fscore 决定归入哪个 segment
+  # PreInsert: 多主题摘要 / 连续性检查（二选一）
+  # 选项1: 多主题摘要（适合混合话题对话）- 暂时禁用测试
+  # ----------------------------------------------------------
+  # pre_insert:
+  #   action: "extract"
+  #   extract_type: "multi_summary"
+  #   max_themes: 5                     # 最多识别5个主题
+  #   min_dialogue_turns: 3             # 最少3轮对话才拆分
+  #   enable_keywords: true             # 提取关键词
+  #   enable_summary: true              # 生成摘要
+  #
+  # 选项2: 连续性检查（适合连续对话，需要时替换上面的配置）
+  # pre_insert:
+  #   action: "transform"
+  #   transform_type: "continuity_check"
+  #   time_threshold_seconds: 3600    # 时间间隔阈值（1小时）
+  #   check_method: "llm"              # "llm" 或 "simple"
+  #   enable_meta_info: true           # 生成对话链概述
+  #   jaccard_threshold: 0.2           # Simple方法的相似度阈值
+  #
+  # ----------------------------------------------------------
+  # PreInsert: 禁用（MTM 中的普通对话也可用于两阶段检索）
+  # TODO: 后续在 PostInsert 迁移时批量生成 Segment 摘要
   # ----------------------------------------------------------
   pre_insert:
-    action: "score"
-    score_type: "importance"
-    importance_prompt: |
-      Rate the importance of this conversation on a scale of 1-10.
-      Consider: Does it contain personal facts? Future plans? Preferences?
-
-      Conversation:
-      {dialogue}
-
-      Importance score (1-10):
-    importance_scale: [1, 10]
-    score_field: "importance_score"
-    add_to_metadata: true
+    action: "none"
 
   # ----------------------------------------------------------
-  # PostInsert: 热度迁移
-  # MemoryOS 基于 heat score 决定 STM→MTM→LPM 迁移
+  # PostInsert: Profile提取 / 热度迁移（二选一）
+  # 选项1: Profile/Knowledge提取（适合长期用户画像）- 暂时禁用测试
   # ----------------------------------------------------------
+  # post_insert:
+  #   action: "enhance"
+  #   enhance_type: "profile_extraction"
+  #   heat_threshold: 5.0               # 触发提取的热度阈值
+  #   enable_profile_extraction: true   # 提取用户画像
+  #   enable_knowledge_extraction: true # 提取知识
+  #   target_tier: "lpm"                # 插入目标层级
+  #   reset_heat_after_extraction: true # 提取后重置热度
+  #   max_workers: 2                    # 并行LLM调用线程数
+  #
+  # 选项2: 热度迁移（使用原有实现进行测试）
+  # TODO: 实现 upgrade_transform="multi_summary" 在迁移时生成摘要
   post_insert:
     action: "migrate"
     migrate_policy: "heat"
-    heat_threshold: 0.7               # 高于此值升级
-    cold_threshold: 0.3               # 低于此值降级/淘汰
-    session_gap: 3600                 # 会话间隔(秒)
+    heat_threshold: 0.7
+    cold_threshold: 0.3
+    session_gap: 3600
     tier_capacities:
       stm: 20
       mtm: 200
-    upgrade_transform: "none"
+    upgrade_transform: "none"  # TODO: 改为 multi_summary
     downgrade_transform: "summarize"
 
   # ----------------------------------------------------------
-  # PreRetrieval: 关键词提取
+  # PreRetrieval: 关键词提取（两阶段检索的 MTM 层需要）
   # ----------------------------------------------------------
   pre_retrieval:
     action: "optimize"
     optimize_type: "keyword_extract"
     extractor: "spacy"
-    spacy_model: "en_core_web_sm"     # spaCy 模型名称
+    spacy_model: "en_core_web_sm"
     extract_types: ["NOUN", "PROPN"]
     max_keywords: 10
 
@@ -138,25 +168,30 @@ operators:
 #   2. Heat Score：基于访问频率、交互长度、时间衰减
 #   3. 热度迁移：高热记忆升级，低热记忆降级或淘汰
 #   4. Segment 聚类：MTM 中按主题将对话分组
+#   5. 两阶段检索：Segment Selection (Fscore) + Page Retrieval (FAISS)
+#   6. 多主题摘要：按主题拆分对话为独立段落
+#   7. 连续性检查：建立 Page 链接关系（pre_page/next_page）
+#   8. Profile提取：从热Session提取用户画像和知识
 #
 # SAGE 实现方式：
 # ┌─────────────────────────────────────────────────────────┐
 # │ Pipeline 阶段      │ 对应 MemoryOS 操作   │ 实现组件     │
 # ├─────────────────────────────────────────────────────────┤
-# │ PreInsert          │ Importance Scoring   │ score        │
-# │  - 重要性评分      │ 用于 Heat 计算       │ LLM Prompt   │
-# │  - 元数据标注      │ 添加 importance      │ metadata     │
+# │ PreInsert          │ Multi-Summary        │ extract      │
+# │  - 多主题摘要      │ 拆分混合话题对话     │ multi_summary│
+# │  或                │                      │              │
+# │  - 连续性检查      │ Page链接关系         │ continuity   │
 # ├─────────────────────────────────────────────────────────┤
 # │ MemoryInsert       │ Multi-tier Insert    │ Hierarchical │
 # │  - STM 追加        │ 先进入短期记忆       │ stm tier     │
 # │  - 自动分配层级    │ 被动插入             │ tier_mode    │
 # ├─────────────────────────────────────────────────────────┤
-# │ PostInsert         │ Heat-based Migration │ migrate      │
-# │  - 计算 Heat Score │ Nvisit + Linteract + │ heat policy  │
-# │                    │ Rrecency             │              │
-# │  - STM→MTM 升级    │ heat > 0.7           │ threshold    │
-# │  - MTM→LPM 升级    │ 提取 Persona/KB      │ persona      │
-# │  - 低热淘汰        │ heat < 0.3 删除      │ cold_thresh  │
+# │ PostInsert         │ Profile Extraction   │ enhance      │
+# │  - 监测热Session   │ H_segment >= 5.0     │ heat_thresh  │
+# │  - 并行LLM提取     │ Profile + Knowledge  │ ThreadPool   │
+# │  - 插入LPM         │ Persona/KB存储       │ lpm tier     │
+# │  或                │                      │              │
+# │  - 热度迁移        │ heat > 0.7 升级      │ migrate      │
 # ├─────────────────────────────────────────────────────────┤
 # │ PreRetrieval       │ Keyword Extraction   │ optimize     │
 # │  - 名词提取        │ 用于 Fscore 计算     │ spacy        │
@@ -173,15 +208,33 @@ operators:
 #
 # 关键配置参数：
 #   - tier_mode="three_tier": 三层架构
-#   - heat_threshold=0.7: 高热升级阈值
+#   - heat_threshold=0.7/5.0: 迁移/提取阈值
 #   - cold_threshold=0.3: 低热淘汰阈值
 #   - tier_capacities: {stm:20, mtm:200, lpm:-1}
+#   - use_two_stage_search=true: 启用两阶段检索
+#   - extract_type="multi_summary": 多主题摘要
+#   - enhance_type="profile_extraction": Profile提取
 #
-# 与论文的差异：
-#   1. 论文使用 Fscore (语义+关键词)，SAGE 简化为关键词提取
-#   2. SAGE 的 Heat Score 计算简化（只考虑访问次数和时间）
-#   3. SAGE 使用 BGE-M3 embedding，论文可能用其他编码器
+# P1 功能完成度：
+#   ✅ 多主题摘要（multi_summary）
+#   ✅ 连续性检查（continuity_check）
+#   ✅ Profile/Knowledge提取（profile_extraction）
+#   ✅ 两阶段检索（search_with_two_stage）
+#   ✅ Heat Score计算
 #
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \
 #     --config .../locomo_memoryos_pipeline.yaml --task_id conv-26
+#
+# 当前配置（简化版 MemoryOS）：
+#   ✅ 三层架构: STM (FIFO 20) → MTM (200) → LPM (无限)
+#   ✅ Heat Score 迁移: 高热升级，低热降级
+#   ✅ 标准向量检索: 语义相似度检索（FAISS）
+#   ✅ 多层合并: 同时检索 STM/MTM/LPM
+#   ⚠️  两阶段检索: 已禁用（需要 Segment 数据，每次插入调用 LLM 太慢）
+#   ⚠️  多主题摘要: 已禁用（TODO: 改为批量/周期性生成）
+#
+# 切换功能：
+#   - PreInsert: 注释/取消注释 multi_summary 或 continuity_check
+#   - PostInsert: 注释/取消注释 profile_extraction 或 migrate
+#   - 两阶段检索: 修改 use_two_stage_search 参数（需要先启用 multi_summary）

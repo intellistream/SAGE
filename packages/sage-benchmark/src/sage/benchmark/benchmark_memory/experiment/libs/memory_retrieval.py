@@ -86,6 +86,30 @@ class MemoryRetrieval(MapFunction):
         service_cfg = f"services.{self.service_name}"
         self.retrieval_top_k = config.get(f"{service_cfg}.retrieval_top_k", 10)
 
+        # MemoryOS 两阶段检索配置
+        self.use_two_stage_search = config.get(f"{service_cfg}.use_two_stage_search", False)
+        self.two_stage_config = {
+            "segment_similarity_threshold": config.get(
+                f"{service_cfg}.segment_similarity_threshold", 0.1
+            ),
+            "page_similarity_threshold": config.get(
+                f"{service_cfg}.page_similarity_threshold", 0.1
+            ),
+            "top_k_segments": config.get(f"{service_cfg}.top_k_segments", 5),
+            "top_k_pages_per_segment": config.get(f"{service_cfg}.top_k_pages_per_segment", 3),
+            "fscore_alpha": config.get(f"{service_cfg}.fscore_alpha", 1.0),
+            "fscore_beta": config.get(f"{service_cfg}.fscore_beta", 0.5),
+            "fscore_gamma": config.get(f"{service_cfg}.fscore_gamma", 0.1),
+        }
+
+        if self.use_two_stage_search:
+            print("[MemoryRetrieval] 启用 MemoryOS 两阶段检索")
+            print(
+                f"  Fscore权重: α={self.two_stage_config['fscore_alpha']}, "
+                f"β={self.two_stage_config['fscore_beta']}, "
+                f"γ={self.two_stage_config['fscore_gamma']}"
+            )
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行记忆检索
 
@@ -127,8 +151,42 @@ class MemoryRetrieval(MapFunction):
         print("=" * 80)
         # ============ DEBUG END ============
 
-        # 2. 调用服务检索（支持多查询）
-        if queries and len(queries) >= 1:
+        # 2. 调用服务检索（支持多查询和两阶段检索）
+
+        # 检查当前查询是否针对 MTM 层（两阶段检索专用）
+        is_mtm_query = metadata.get("tier") == "mtm" if metadata else False
+        use_two_stage = (
+            self.use_two_stage_search
+            and self.service_name == "hierarchical_memory"
+            and is_mtm_query  # 只对 MTM 层使用两阶段检索
+        )
+
+        if use_two_stage:
+            # MemoryOS 两阶段检索模式（仅 MTM 层）
+            print("\n🎯 使用 MemoryOS 两阶段检索 (MTM 层)")
+
+            # 提取关键词（由 PreRetrieval 生成）
+            query_keywords = retrieve_params.get("extracted_keywords", [])
+
+            results = self.call_service(
+                self.service_name,
+                method="search_with_two_stage",
+                query_text=query,
+                query_vector=vector,
+                query_keywords=query_keywords,
+                tier_name="mtm",
+                segment_similarity_threshold=self.two_stage_config["segment_similarity_threshold"],
+                page_similarity_threshold=self.two_stage_config["page_similarity_threshold"],
+                top_k_segments=self.two_stage_config["top_k_segments"],
+                top_k_pages_per_segment=self.two_stage_config["top_k_pages_per_segment"],
+                fscore_weights={
+                    "alpha": self.two_stage_config["fscore_alpha"],
+                    "beta": self.two_stage_config["fscore_beta"],
+                    "gamma": self.two_stage_config["fscore_gamma"],
+                },
+                timeout=60.0,
+            )
+        elif queries and len(queries) >= 1:
             # 多查询模式（包括单个子查询的情况）：对每个子查询/扩展查询独立检索
             all_results = []
             seen_texts = set()  # 用于去重

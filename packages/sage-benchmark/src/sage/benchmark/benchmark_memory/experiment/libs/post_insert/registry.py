@@ -8,6 +8,7 @@ Central registry for all PostInsert action strategies.
 from .base import BasePostInsertAction
 from .crud import CRUDAction
 from .distillation import DistillationAction
+from .enhance.profile_extraction import ProfileExtractionAction
 from .forgetting import ForgettingAction
 from .link_evolution import LinkEvolutionAction
 from .migrate import MigrateAction
@@ -106,6 +107,9 @@ PostInsertActionRegistry.register("migrate", MigrateAction)
 
 # [F] Forgetting - Active forgetting (MemoryBank, MemoryOS, LD-Agent)
 PostInsertActionRegistry.register("forgetting", ForgettingAction)
+
+# [G] Profile Extraction - Extract user profile and knowledge (MemoryOS)
+PostInsertActionRegistry.register("enhance.profile_extraction", ProfileExtractionAction)
 
 
 # ========================= Helper Functions =========================

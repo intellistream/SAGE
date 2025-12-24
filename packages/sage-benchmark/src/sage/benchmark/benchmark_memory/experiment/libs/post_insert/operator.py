@@ -77,8 +77,16 @@ class PostInsert(MapFunction):
         self._embedding_generator = EmbeddingGenerator.from_config(self.config)
         action_config = config.get("operators.post_insert", {})
         self.action_name = action_config.get("action", "none")
+
+        # 支持子类型 (enhance.profile_extraction 等)
+        action_type = None
+        if self.action_name == "enhance":
+            action_type = action_config.get("enhance_type")
+
+        action_key = f"{self.action_name}.{action_type}" if action_type else self.action_name
+
         try:
-            action_class = PostInsertActionRegistry.get(self.action_name)
+            action_class = PostInsertActionRegistry.get(action_key)
             self.action: BasePostInsertAction = action_class(action_config)
         except ValueError as e:
             print(f"[WARNING] {e}, using NoneAction as fallback")

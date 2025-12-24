@@ -113,6 +113,13 @@ class PreRetrieval(MapFunction):
             data["retrieve_mode"] = output.retrieve_mode
         if output.retrieve_params:
             data["retrieve_params"] = output.retrieve_params
+        else:
+            data["retrieve_params"] = {}
+
+        # 将关键词添加到 retrieve_params 中（用于两阶段检索）
+        if output.metadata and "keywords" in output.metadata:
+            data["retrieve_params"]["extracted_keywords"] = output.metadata["keywords"]
+
         if output.metadata:
             data.setdefault("metadata", {}).update(output.metadata)
         elapsed_ms = (time.perf_counter() - start_time) * 1000

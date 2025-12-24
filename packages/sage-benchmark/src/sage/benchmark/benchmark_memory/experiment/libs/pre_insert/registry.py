@@ -7,12 +7,14 @@ from .base import BasePreInsertAction
 from .extract import (
     EntityExtractAction,
     KeywordExtractAction,
+    MultiSummaryAction,
     NounExtractAction,
     TripleExtractAction,
 )
 from .none_action import NoneAction
 from .score import HeatScoreAction, ImportanceScoreAction
 from .transform import ChunkingAction, SummarizeAction, TopicSegmentAction
+from .transform.continuity_check import ContinuityCheckAction
 
 
 class PreInsertActionRegistry:
@@ -85,12 +87,14 @@ def _register_builtin_actions():
     PreInsertActionRegistry.register("transform.chunking", ChunkingAction)
     PreInsertActionRegistry.register("transform.summarize", SummarizeAction)
     PreInsertActionRegistry.register("transform.segment", TopicSegmentAction)
+    PreInsertActionRegistry.register("transform.continuity_check", ContinuityCheckAction)
 
     # Extract 类
     PreInsertActionRegistry.register("extract.keyword", KeywordExtractAction)
     PreInsertActionRegistry.register("extract.entity", EntityExtractAction)
     PreInsertActionRegistry.register("extract.noun", NounExtractAction)
     PreInsertActionRegistry.register("extract.triple", TripleExtractAction)
+    PreInsertActionRegistry.register("extract.multi_summary", MultiSummaryAction)
 
     # Score 类
     PreInsertActionRegistry.register("score.importance", ImportanceScoreAction)

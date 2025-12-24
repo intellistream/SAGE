@@ -5,6 +5,7 @@
 
 from .entity import EntityExtractAction
 from .keyword import KeywordExtractAction
+from .multi_summary import MultiSummaryAction
 from .noun import NounExtractAction
 from .triple import TripleExtractAction
 
@@ -13,4 +14,5 @@ __all__ = [
     "EntityExtractAction",
     "NounExtractAction",
     "TripleExtractAction",
+    "MultiSummaryAction",
 ]
