@@ -218,19 +218,10 @@ class MemoryInsert(MapFunction):
         # 计算批次总耗时
         batch_elapsed_ms = (time.perf_counter() - batch_start) * 1000
 
-        # ============ DEBUG: 插入结果统计 ============
-        print("\n" + "=" * 80)
-        print("✅ [MemoryInsert] 插入完成")
-        print("=" * 80)
-        print(f"成功插入: {stats.inserted} 条")
-        print(f"插入失败: {stats.failed} 条")
-        print(f"总耗时: {batch_elapsed_ms:.2f}ms")
-        if stats.errors:
-            print("\n失败详情:")
-            for err in stats.errors[:3]:  # 只显示前3个错误
-                print(f"  ✗ {err['entry'][:50]}... - {err['error']}")
-        print("=" * 80)
-        # ============ DEBUG END ============
+        # 简洁输出插入结果（一行）
+        print(
+            f"  [MemoryInsert] 插入: {stats.inserted}条 | 失败: {stats.failed}条 | 耗时: {batch_elapsed_ms:.2f}ms"
+        )
 
         # 将统计信息转为字典并添加到数据中
         data["insert_stats"] = asdict(stats)

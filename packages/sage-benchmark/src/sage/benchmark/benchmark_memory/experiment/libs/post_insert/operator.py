@@ -107,18 +107,6 @@ class PostInsert(MapFunction):
             is_session_end=data.get("is_session_end", False),
             config=self.config.get("operators.post_insert", {}),
         )
-        # Debug: 可见当前使用的后处理动作与条目数量
-        try:
-            entries_cnt = (
-                len(input_data.insert_stats.get("entries", []))
-                if isinstance(input_data.insert_stats, dict)
-                else 0
-            )
-            print(
-                f"[DEBUG PostInsert] action={self.action_name} service={self.service_name} entries={entries_cnt} session_end={input_data.is_session_end}"
-            )
-        except Exception:
-            pass
         # Create service proxy
         service_proxy = _ServiceProxy(self, self.service_name)
         output: PostInsertOutput = self.action.execute(
@@ -134,6 +122,9 @@ class PostInsert(MapFunction):
 
         # 使用输入的 dialogs 数量（而非 insert_stats）
         dialog_count = len(data.dialogs) if hasattr(data, "dialogs") else 1
+
+        # 简洁输出（一行）
+        print(f"  [PostInsert] 动作: {self.action_name} | 耗时: {elapsed_ms:.2f}ms")
 
         # 将批次耗时平均分配到每个对话，返回列表
         if dialog_count > 0:

@@ -94,6 +94,10 @@ class PreInsert(MapFunction):
         # 使用输入的 dialogs 数量（而非输出的 memory_entries）
         dialog_count = len(data.dialogs) if hasattr(data, "dialogs") else 1
 
+        # 简洁输出（一行）
+        entries_count = len(output.memory_entries)
+        print(f"  [PreInsert] 生成: {entries_count}条 | 耗时: {elapsed_ms:.2f}ms")
+
         # 将批次耗时平均分配到每个对话，返回列表
         if dialog_count > 0:
             per_entry_ms = elapsed_ms / dialog_count

@@ -43,10 +43,7 @@ def main():
 
     # 注册服务 - 使用工厂模式动态创建服务
     service_name = config.get("services.register_memory_service", "short_term_memory")
-    print(f"[DEBUG] memory_test_pipeline: service_name = {service_name}")
     factory = MemoryServiceFactory.create(service_name, config)
-    print(f"[DEBUG] memory_test_pipeline: factory.service_name = {factory.service_name}")
-    print(f"[DEBUG] memory_test_pipeline: factory.service_class = {factory.service_class}")
     env.register_service_factory(service_name, factory)
 
     # 获取服务超时配置（默认 300 秒，足够 link_evolution 等耗时操作）
