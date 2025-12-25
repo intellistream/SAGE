@@ -282,7 +282,12 @@ class CRUDAction(BasePostInsertAction):
                 # 若不是字符串，尽量转为字符串；失败则走解析失败兜底
                 if not isinstance(response, str):
                     response = json.dumps(response, ensure_ascii=False)
-                decision = json.loads(response)
+                try:
+                    decision = json.loads(response)
+                except json.JSONDecodeError:
+                    # 进一步尝试：提取首个 JSON 对象块
+                    extracted = self._extract_json_block(response)
+                    decision = json.loads(extracted)
             # 兼容不同字段：支持 target_id 或 to_delete 列表
             action = decision.get("action")
             if action not in ["ADD", "UPDATE", "DELETE", "NOOP"]:
@@ -298,9 +303,49 @@ class CRUDAction(BasePostInsertAction):
             else:
                 decision["to_delete"] = []
 
-            # 约束 to_delete 必须来自相似集的有效 ID；否则降级
+            # 约束 to_delete 必须来自相似集的有效 ID；支持序号/文本到 ID 的映射
             valid_ids = {m.get("id") for m in similar_memories if m.get("id")}
-            decision["to_delete"] = [tid for tid in decision["to_delete"] if tid in valid_ids]
+            # 序号映射："1" -> 第 1 条的 id
+            ordinal_map = {
+                str(i + 1): m.get("id") for i, m in enumerate(similar_memories) if m.get("id")
+            }
+            # 文本映射：完整文本 -> id（严格匹配）
+            text_map = {m.get("text", ""): m.get("id") for m in similar_memories if m.get("id")}
+
+            normalized_to_delete: list[str] = []
+            import re as _re
+
+            for raw in decision["to_delete"]:
+                if raw is None:
+                    continue
+                tid = str(raw).strip()
+                # 去除形如 "[id]" 的包裹
+                tid = _re.sub(r"^\[|\]$", "", tid)
+                # 若是有效 ID，直接使用
+                if tid in valid_ids:
+                    normalized_to_delete.append(tid)
+                    continue
+                # 若是序号，映射为 ID
+                if tid in ordinal_map:
+                    mapped = ordinal_map[tid]
+                    if mapped:
+                        normalized_to_delete.append(mapped)
+                    continue
+                # 若是文本，映射为 ID
+                if tid in text_map:
+                    mapped = text_map[tid]
+                    if mapped:
+                        normalized_to_delete.append(mapped)
+                    continue
+                # 若包含 "id="，尝试提取
+                m = _re.search(r"id\s*[:=]\s*([a-fA-F0-9]{16,})", tid)
+                if m:
+                    cand = m.group(1)
+                    if cand in valid_ids:
+                        normalized_to_delete.append(cand)
+                        continue
+
+            decision["to_delete"] = normalized_to_delete
             if decision["action"] in ["UPDATE", "DELETE"] and not decision["to_delete"]:
                 # 无有效目标则不执行破坏性操作，转为 NOOP
                 decision["action"] = "NOOP"
@@ -338,6 +383,35 @@ class CRUDAction(BasePostInsertAction):
                 pass
             return fallback
 
+    @staticmethod
+    def _extract_json_block(text: str) -> str:
+        """从返回文本中提取首个 JSON 对象字符串，可容忍前后噪声。"""
+        text = str(text).strip()
+        # 先尝试 ```json ... ```
+        import re as _re
+
+        m = _re.search(r"```(?:json)?\s*(.*?)\s*```", text, _re.DOTALL)
+        if m:
+            return m.group(1)
+        # 扫描提取首个平衡的大括号
+        start = text.find("{")
+        if start == -1:
+            return text
+        depth = 0
+        end = start
+        for i in range(start, len(text)):
+            ch = text[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+        if end > start:
+            return text[start:end]
+        return text
+
     def _execute_crud_operation(
         self, service: Any, decision: dict[str, Any], new_memory: dict[str, Any]
     ) -> None:
@@ -358,6 +432,8 @@ class CRUDAction(BasePostInsertAction):
             # 删除旧的（to_delete），保留新记忆
             for tid in decision.get("to_delete", []):
                 try:
+                    # 规范化 ID（去除首尾空白）并检查存在
+                    tid = str(tid).strip()
                     ok = bool(service.delete(tid))
                     if not ok:
                         try:
@@ -380,6 +456,7 @@ class CRUDAction(BasePostInsertAction):
             # 删除旧的（to_delete），保留新记忆（按 Mem0ᵍ 提示）
             for tid in decision.get("to_delete", []):
                 try:
+                    tid = str(tid).strip()
                     ok = bool(service.delete(tid))
                     if not ok:
                         try:
@@ -400,11 +477,19 @@ class CRUDAction(BasePostInsertAction):
         elif action == "NOOP":
             # 冗余：删除新插入的这一条，避免重复
             try:
-                ok = bool(service.delete(new_memory.get("id")))
+                nm_id = str(new_memory.get("id")) if new_memory.get("id") is not None else ""
+                nm_id = nm_id.strip()
+                if not nm_id:
+                    try:
+                        print("[WARN CRUD] noop_delete_skipped: new_memory has no id")
+                    except Exception:
+                        pass
+                    return
+                ok = bool(service.delete(nm_id))
                 if not ok:
                     try:
                         print(
-                            f"[WARN CRUD] delete_failed action=NOOP id={new_memory.get('id', 'unknown')}: service returned False"
+                            f"[WARN CRUD] delete_failed action=NOOP id={nm_id}: service returned False"
                         )
                     except Exception:
                         pass

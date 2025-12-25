@@ -153,7 +153,7 @@ operators:
 # ┌─────────────────────────────────────────────────────────┐
 # │ Pipeline 阶段      │ 对应 SCM 操作         │ 实现组件     │
 # ├─────────────────────────────────────────────────────────┤
-# │ PreInsert          │ Dual Storage          │ scm_embed    │
+# │ PreInsert          │ Dual Storage          │ transform    │
 # │  - 原文存储        │ 保存原始对话          │ raw_text     │
 # │  - 摘要生成        │ 超过阈值生成摘要      │ summarize    │
 # │  - 向量化          │ embedding 原文        │ BGE-M3       │
@@ -172,7 +172,7 @@ operators:
 # ├─────────────────────────────────────────────────────────┤
 # │ MemoryRetrieval    │ Similar Top-k         │ ShortTermMem │
 # │  - 向量检索        │ 相似度排序            │ top_k=6      │
-# │  - 排除上一轮      │ 上一轮直接拼接        │ auto-exclude │
+# │  - 排除上一轮      │ 上一轮直接拼接        │ exclude_last │
 # ├─────────────────────────────────────────────────────────┤
 # │ PostRetrieval      │ Three-way Decision    │ scm_three_way│
 # │  - Token Budget    │ max_history=2500      │ token_limit  │
@@ -193,6 +193,16 @@ operators:
 #   2. SAGE 的 judge_prompt 直接采用论文原始 prompt
 #   3. SAGE 支持配置化的 token budget 和阈值
 #   4. SAGE 增加了 scm_embed 和 scm_three_way 专用算子
+
+# 正确实现参考：
+#   - 代码路径：SCM4LLMs
+#   - 关键脚本：SCM4LLMs/core/chat.py、SCM4LLMs/prompts/dialogue.py、SCM4LLMs/dialogue_demo.py
+#   - 行为基线：Memory Stream、Token Budget 管理、逐条记忆三元决策（drop/summary/raw）
+
+# 与正确实现的差异：
+#   - Token 计数：SCM4LLMs 使用模型 tokenizer/tiktoken；SAGE 支持 tiktoken，同时提供 char 近似以便在本地缺少 tokenizer 时运行
+#   - 决策逻辑：SCM4LLMs 在 get_related_turn / judge_drop_or_summary 中综合多因素；SAGE 通过 scm_three_way 算子复刻核心流程但内部实现更轻量
+#   - 检索策略：两者均将“上一轮对话”直接拼接、历史部分做相似检索；SAGE 的阈值与 top-k 可通过配置灵活修改
 #
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \

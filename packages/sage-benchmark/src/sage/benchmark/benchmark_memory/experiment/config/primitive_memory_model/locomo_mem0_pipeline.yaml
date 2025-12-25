@@ -74,46 +74,54 @@ operators:
   # ----------------------------------------------------------
   pre_insert:
     action: "extract"
-    extract_type: "entity"
-    # 抽取方法：改为 mem0_llm（参考 mem0 的实体抽取实现，支持回退到 simple/spacy）
-    method: "mem0_llm"
-    spacy_model: "en_core_web_sm"     # SpaCy 模型用于回退时的 entity/noun 提取
-    entity_types: ["PERSON", "ORG", "LOC", "DATE", "EVENT"]
-    add_to_metadata: true
-    normalize: true                    # 统一小写 + 空格转下划线（与 mem0 风格一致）
-    keep_original: true                # 保留原始文本条目，便于向量侧一致
+    extract_type: "fact"              # Mem0 风格：抽取显著事实（salient facts）
+    method: "mem0_llm"               # LLM 抽取，失败回退到 simple
+    add_to_metadata: true             # 将抽取到的 facts 放入 metadata（便于后续 PostInsert 使用）
+    keep_original: true               # 保留原始对话文本
     mem0_llm_prompt: |
-      You are an assistant that extracts entities and their types from the given text.
-      Return a compact JSON with the following schema:
+      You are an assistant that extracts salient facts from the given conversation.
+      Return ONLY a compact JSON with the schema:
       {
-        "entities": [ { "entity": "...", "entity_type": "..." } ]
+        "facts": ["..."]
       }
-      Do not include any explanation.
+      Rules:
+      - Each fact should be concise and self-contained.
+      - Avoid duplicates; skip trivial greetings.
+      - Do NOT include any explanation or extra keys.
 
   # ----------------------------------------------------------
   # PostInsert: ADD/UPDATE/DELETE 决策
   # Mem0 的核心：LLM 决定对已有记忆的操作
   # ----------------------------------------------------------
   post_insert:
-    action: "distillation"
-    distillation_topk: 10
-    distillation_threshold:
-    distillation_prompt: |
-      You are managing a fact database. Given a new fact and similar existing facts,
-      decide the appropriate action:
+    action: "crud"
+    top_k: 10
+    debug_summary_only: true
+    decision_prompt: |
+      You are a JSON decision API. Output ONLY a single minified JSON object, no prose, no markdown, no code fences.
 
-      - ADD: The new fact is entirely new information
-      - UPDATE: The new fact updates/extends an existing fact (delete old, keep new)
-      - DELETE: The new fact contradicts an existing fact (delete old, keep new)
-      - NOOP: The new fact is redundant (already covered by existing facts)
+      Schema:
+      {
+        "action": "ADD|UPDATE|DELETE|NOOP",
+        "to_delete": ["<id>", ...],
+        "reason": "<short explanation>"
+      }
 
-      New fact: {new_entry}
+      Rules:
+      - Use UPPERCASE for action exactly as one of ADD, UPDATE, DELETE, NOOP.
+      - If uncertain, default to {"action":"ADD","to_delete":[],"reason":"insufficient evidence"}.
+      - "to_delete" must contain only IDs present in the Existing facts list (the values inside square brackets []).
+      - UPDATE or DELETE: put the affected existing fact IDs into to_delete.
+      - NOOP: to_delete must be [].
+
+      Inputs:
+      New fact:
+      {new_memory}
 
       Existing facts:
-      {memory_list}
+      {existing_memories}
 
-      Respond with JSON:
-      {"action": "ADD|UPDATE|DELETE|NOOP", "to_delete": ["fact to remove if any"], "reason": "brief explanation"}
+      Now respond with ONLY the JSON object.
 
   # ----------------------------------------------------------
   # PreRetrieval: 基础 embedding
@@ -125,7 +133,10 @@ operators:
   # PostRetrieval: 简单格式化（Mem0 基础版较简单）
   # ----------------------------------------------------------
   post_retrieval:
-    action: "none"
+    action: "filter"
+    filter_type: "threshold"
+    threshold: 0.5              # 低于该分数的记忆将被过滤（与 Mem0 的阈值策略一致）
+    score_field: "score"        # 从结果的 score 字段读取分数；若无则从 metadata[score] 读取
     conversation_format_prompt: |
       The following are relevant facts from memory.
 
@@ -143,13 +154,13 @@ operators:
 # │ Pipeline 阶段      │ 对应 Mem0 操作        │ 实现组件     │
 # ├─────────────────────────────────────────────────────────┤
 # │ PreInsert          │ Fact Extraction       │ extract      │
-# │  - 实体提取        │ 识别关键实体          │ spacy        │
-# │  - 名词提取        │ 候选事实              │ entity_types │
+# │  - 事实/实体提取    │ 显著事实候选          │ mem0_llm     │
+# │  - 回退策略        │ NER/名词短语          │ spaCy        │
 # │  - 元数据标注      │ 实体类型标记          │ metadata     │
 # ├─────────────────────────────────────────────────────────┤
 # │ MemoryInsert       │ Hybrid Insert         │ HybridMemory │
-# │  - 向量索引        │ semantic search       │ FAISS        │
-# │  - BM25 索引       │ keyword search        │ BM25         │
+# │  - 向量索引        │ 语义检索              │ vector       │
+# │  - BM25 索引       │ 关键词检索            │ bm25         │
 # │  - 融合权重        │ 0.7 semantic + 0.3 kw │ weighted     │
 # ├─────────────────────────────────────────────────────────┤
 # │ PostInsert         │ ADD/UPDATE/DELETE     │ distillation │
@@ -178,9 +189,20 @@ operators:
 #   - distillation_prompt: ADD/UPDATE/DELETE 决策 prompt
 #
 # 与论文的差异：
-#   1. 论文使用 Qdrant 作为向量数据库，SAGE 使用 FAISS
-#   2. SAGE 的 distillation_prompt 基于论文逻辑重新设计
-#   3. SAGE 支持配置化的融合权重
+#   1. 原论文常用云端向量数据库（如 Qdrant/Weaviate）；SAGE 使用内置向量索引（可通过配置切换）
+#   2. SAGE 的 distillation_prompt 参照论文逻辑进行简化与对齐
+#   3. 融合权重（semantic/keyword）可在配置中调整
+
+# 正确实现参考：
+#   - 源码路径：Mem0-memory/main.py
+#   - 相关模块：Mem0-memory/storage.py、Mem0-memory/utils.py
+#   - 行为基线：提取显著事实（salient facts）、LLM 决策 CRUD、混合检索（vector+BM25）、全局摘要维护
+
+# 与正确实现的差异：
+#   - 向量库：Mem0 原仓常用 Qdrant/Weaviate；SAGE 采用 FAISS（本地快速原型）
+#   - 检索融合：Mem0 支持 RRF/分数归一化等多策略；SAGE 当前为简单加权（weights: semantic 0.7, keyword 0.3）
+#   - 抽取策略：Mem0 可灵活配置抽取流水线；SAGE 提供 mem0_llm + spaCy 回退的轻量实现
+#   - 全局摘要：Mem0 维护用户画像/知识概要；SAGE 目前不在 pipeline 中自动维护（可通过自定义算子扩展）
 #
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \

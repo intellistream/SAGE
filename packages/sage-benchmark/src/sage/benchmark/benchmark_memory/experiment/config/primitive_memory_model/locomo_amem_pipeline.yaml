@@ -168,10 +168,8 @@ operators:
 # │ Pipeline 阶段      │ 对应 A-Mem 操作      │ 实现组件     │
 # ├─────────────────────────────────────────────────────────┤
 # │ PreInsert          │ Note Generation      │ extract      │
-# │  - 关键词提取      │ keywords             │ spacy        │
-# │  - 实体提取        │ entities/tags        │ entity_types │
-# │  - 人物画像提取    │ persona info         │ persona_prom │
-# │  - 元数据标注      │ 构造 Note 结构       │ metadata     │
+# │  - Note 抽取        │ keywords/tags/context│ LLM JSON     │
+# │  - 结构化结果      │ 作为节点属性          │ metadata     │
 # ├─────────────────────────────────────────────────────────┤
 # │ MemoryInsert       │ Insert as Node       │ GraphMemory  │
 # │  - 节点创建        │ Note 作为图节点      │ link_graph   │
@@ -186,7 +184,7 @@ operators:
 # │  - 查询向量化      │ 用于相似度检索      │ BGE-M3       │
 # ├─────────────────────────────────────────────────────────┤
 # │ MemoryRetrieval    │ Vector Search        │ GraphMemory  │
-# │  - 向量检索        │ 找到相关 Notes      │ FAISS        │
+# │  - 向量检索        │ 找到相关 Notes      │ embedding    │
 # ├─────────────────────────────────────────────────────────┤
 # │ PostRetrieval      │ Link Expansion       │ merge        │
 # │  - 链接扩展        │ 跟随链接获取上下文  │ link_expand  │
@@ -204,6 +202,16 @@ operators:
 #   1. SAGE 使用 spaCy + LLM 提取关键词和实体
 #   2. SAGE 的 Link Evolution 通过 auto_link + LLM 判断实现
 #   3. SAGE 支持配置化的链接数量和扩展深度
+
+# 正确实现参考：
+#   - 代码路径：A-mem
+#   - 关键模块：A-mem/agentic_memory/、A-mem/agentic_memory/memory_system.py、A-mem/agentic_memory/llm_controller.py
+#   - 行为基线：Note 结构（关键词/标签/上下文/链接）、Link Evolution、Memory Evolution、链接扩展检索
+
+# 与正确实现的差异：
+#   - Note 结构：A-mem 原仓 Note 更丰富（评分/优先级/多属性）；SAGE 以 keywords/tags/context 为主，便于轻量复现
+#   - 链接策略：A-mem 包含多种演化策略与调度；SAGE 提供 auto_link + KNN + Prompt 的简化管线，权重与阈值可配置
+#   - 扩展深度：A-mem 可进行多层扩展与演化；SAGE 默认 max_depth=1，面向单跳扩展，适合对话类任务快速复现
 #
 # 运行示例：
 #   python packages/sage-benchmark/.../memory_test_pipeline.py \
