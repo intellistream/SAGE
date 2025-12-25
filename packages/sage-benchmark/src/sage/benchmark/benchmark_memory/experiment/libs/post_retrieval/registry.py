@@ -10,6 +10,7 @@ from .filter.token_budget import TokenBudgetFilterAction
 from .filter.top_k import TopKFilterAction
 from .merge.link_expand import LinkExpandMergeAction
 from .merge.multi_query import MultiQueryMergeAction
+from .merge.multi_tier import MultiTierMergeAction
 from .merge.scm_three_way import SCMThreeWayMergeAction
 from .none_action import NoneAction
 from .reinforce import ReinforceAction
@@ -35,6 +36,7 @@ class PostRetrievalActionRegistry:
     - filter.top_k: Top-K 过滤
     - merge.link_expand: 链接扩展合并
     - merge.multi_query: 多查询合并
+    - merge.multi_tier: 多层融合（MemGPT）
     - augment: 结果增强
     """
 
@@ -109,6 +111,7 @@ PostRetrievalActionRegistry.register("filter.top_k", TopKFilterAction)
 # Merge Actions
 PostRetrievalActionRegistry.register("merge.link_expand", LinkExpandMergeAction)
 PostRetrievalActionRegistry.register("merge.multi_query", MultiQueryMergeAction)
+PostRetrievalActionRegistry.register("merge.multi_tier", MultiTierMergeAction)
 PostRetrievalActionRegistry.register("scm_three_way", SCMThreeWayMergeAction)
 
 # Augment Action

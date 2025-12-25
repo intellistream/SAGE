@@ -58,7 +58,8 @@ class HierarchicalMemoryService(BaseService):
 
     def __init__(
         self,
-        tier_mode: Literal["two_tier", "three_tier", "functional"] = "three_tier",
+        tier_mode: Literal["two_tier", "three_tier", "functional", "custom"] = "three_tier",
+        tier_names: list[str] | None = None,
         tier_capacities: dict[str, int] | None = None,
         migration_policy: Literal["overflow", "importance", "time", "none"] = "overflow",
         embedding_dim: int = 384,
@@ -77,6 +78,8 @@ class HierarchicalMemoryService(BaseService):
                 - "two_tier": STM + LTM
                 - "three_tier": STM + MTM + LTM
                 - "functional": episodic + semantic + procedural
+                - "custom": 自定义（需要提供 tier_names）
+            tier_names: 自定义层级名称列表（如 ["core", "archival", "recall"]）
             tier_capacities: 各层容量限制 (如 {"stm": 10, "mtm": 100, "ltm": -1})
             migration_policy: 迁移策略
                 - "overflow": 容量溢出时迁移
@@ -99,13 +102,18 @@ class HierarchicalMemoryService(BaseService):
         self.vector_weight = vector_weight
         self.fts_weight = fts_weight
 
-        # 根据模式确定层级名称
-        if tier_mode == "two_tier":
+        # 根据模式确定层级名称（优先使用配置的 tier_names）
+        if tier_names:
+            # 使用自定义层级名称
+            self.tier_names = tier_names
+        elif tier_mode == "two_tier":
             self.tier_names = ["stm", "ltm"]
         elif tier_mode == "three_tier":
             self.tier_names = ["stm", "mtm", "ltm"]
-        else:  # functional
+        elif tier_mode == "functional":
             self.tier_names = ["episodic", "semantic", "procedural"]
+        else:  # custom without tier_names
+            raise ValueError("tier_mode='custom' requires tier_names parameter")
 
         # 设置容量
         default_capacities = {

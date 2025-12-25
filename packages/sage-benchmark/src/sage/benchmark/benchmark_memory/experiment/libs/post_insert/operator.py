@@ -78,10 +78,12 @@ class PostInsert(MapFunction):
         action_config = config.get("operators.post_insert", {})
         self.action_name = action_config.get("action", "none")
 
-        # 支持子类型 (enhance.profile_extraction 等)
+        # 支持子类型 (enhance.profile_extraction, migrate.time_based 等)
         action_type = None
         if self.action_name == "enhance":
             action_type = action_config.get("enhance_type")
+        elif self.action_name == "migrate":
+            action_type = action_config.get("migrate_type")
 
         action_key = f"{self.action_name}.{action_type}" if action_type else self.action_name
 

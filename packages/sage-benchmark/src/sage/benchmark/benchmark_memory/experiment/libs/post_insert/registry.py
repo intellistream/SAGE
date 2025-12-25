@@ -11,7 +11,7 @@ from .distillation import DistillationAction
 from .enhance.profile_extraction import ProfileExtractionAction
 from .forgetting import ForgettingAction
 from .link_evolution import LinkEvolutionAction
-from .migrate import MigrateAction
+from .migrate import MigrateAction, TimeBasedMigrateAction
 from .none_action import NoneAction
 
 
@@ -102,8 +102,9 @@ PostInsertActionRegistry.register("crud", CRUDAction)
 # [D] Link Evolution - Graph edge creation (A-Mem, HippoRAG)
 PostInsertActionRegistry.register("link_evolution", LinkEvolutionAction)
 
-# [E] Migrate - Layer migration (MemoryOS)
+# [E] Migrate - Layer migration (MemoryOS, LD-Agent)
 PostInsertActionRegistry.register("migrate", MigrateAction)
+PostInsertActionRegistry.register("migrate.time_based", TimeBasedMigrateAction)
 
 # [F] Forgetting - Active forgetting (MemoryBank, MemoryOS, LD-Agent)
 PostInsertActionRegistry.register("forgetting", ForgettingAction)

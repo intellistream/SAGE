@@ -214,6 +214,10 @@ class MemoryServiceFactory:
         # 获取配置参数（均有默认值）
         tier_mode = config.get(f"services.{service_name}.tier_mode", "three_tier")
 
+        # 解析 tier_names（支持自定义层级名称）
+        tier_names_raw = config.get(f"services.{service_name}.tier_names")
+        tier_names = tier_names_raw if isinstance(tier_names_raw, list) else None
+
         # 解析 tier_capacities
         tier_capacities_raw = config.get(f"services.{service_name}.tier_capacities")
         if tier_capacities_raw is not None:
@@ -240,6 +244,7 @@ class MemoryServiceFactory:
             service_class=HierarchicalMemoryService,
             service_kwargs={
                 "tier_mode": tier_mode,
+                "tier_names": tier_names,
                 "tier_capacities": tier_capacities,
                 "migration_policy": migration_policy,
                 "embedding_dim": embedding_dim,

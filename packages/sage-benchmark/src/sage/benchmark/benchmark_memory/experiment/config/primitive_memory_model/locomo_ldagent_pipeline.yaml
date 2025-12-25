@@ -64,31 +64,47 @@ services:
 # ============================================================
 operators:
   # ----------------------------------------------------------
-  # PreInsert: 原文中无插入前操作
-  # 注意：事件摘要应在 PostInsert 的迁移时生成，而非插入前
+  # PreInsert: 会话摘要生成（参考 MemoryBank 做法）
+  # LD-Agent 的逻辑：
+  #   - 在 context_retrieve() 检测到会话间隔>1小时时触发
+  #   - 对整个 STM 生成一个事件摘要
+  #
+  # SAGE 实现：
+  #   - 使用 only_on_session_end=true 控制摘要生成时机
+  #   - 需要数据加载器传入 is_session_end 标记
   # ----------------------------------------------------------
   pre_insert:
-    action: "none"
+    action: "transform"
+    transform_type: "summarize"
+    only_on_session_end: true         # 仅在会话结束时生成摘要（对齐原版）
+    embed_summary: false              # 不对摘要做 embedding，保留原文
+    summarize_prompt: |
+      Summarize the key events from this dialogue session as a brief event description.
+      Focus on: What happened? Who was involved? What was discussed or decided?
+
+      Conversation:
+      {dialogue}
+
+      Event summary (within 20 words):
 
   # ----------------------------------------------------------
-  # PostInsert: 会话间隔触发迁移
-  # LD-Agent 在会话间隔>1小时时触发 STM→LTM 迁移
-  # 此时才生成事件摘要并提取名词集合
+  # PostInsert: 时间间隔触发的层级迁移
+  # LD-Agent 的逻辑：
+  #   - 当会话间隔>1小时时，将 STM 摘要迁移到 LTM
+  #   - 同时清空 STM
+  #
+  # SAGE 实现：
+  #   - 使用新实现的 TimeBasedMigrateAction
+  #   - 检测时间间隔并触发 STM → LTM 迁移
   # ----------------------------------------------------------
   post_insert:
     action: "migrate"
-    migrate_policy: "time"
-    session_gap: 3600                # 1小时 = 3600秒
-    upgrade_transform: "summarize"   # STM→LTM时生成摘要
-    downgrade_transform: "none"
-    summarize_prompt: |
-      Summarize the key events from this dialogue as a brief event description.
-      Focus on: What happened? Who was involved? What was decided/planned?
-
-      Dialogue:
-      {dialogue}
-
-      Event summary:
+    migrate_type: "time_based"        # 基于时间间隔的迁移
+    time_gap_threshold: 3600          # 1小时 = 3600秒
+    source_tier: "stm"                # 源层级
+    target_tier: "ltm"                # 目标层级
+    clear_source: true                # 迁移后清空源层级
+    only_on_session_end: true         # 仅在会话结束时检查并迁移
 
   # ----------------------------------------------------------
   # PreRetrieval: 名词/关键词提取（用于话题重叠）
@@ -146,18 +162,19 @@ operators:
 # ┌─────────────────────────────────────────────────────────┐
 # │ Pipeline 阶段      │ 对应 LD-Agent 操作    │ 实现组件     │
 # ├─────────────────────────────────────────────────────────┤
-# │ PreInsert          │ None                  │ none         │
-# │  【修正】原文无插入前操作                                │
+# │ PreInsert          │ Session Summary       │ transform    │
+# │  - 会话摘要生成    │ 对整个会话生成摘要    │ summarize    │
+# │  - 触发条件        │ only_on_session_end   │ config       │
 # ├─────────────────────────────────────────────────────────┤
 # │ MemoryInsert       │ Dual-tier Insert      │ Hierarchical │
 # │  - STM 插入        │ 当前会话缓存          │ stm=50       │
 # │  - LTM 预留        │ 事件摘要库            │ ltm=-1       │
 # ├─────────────────────────────────────────────────────────┤
-# │ PostInsert         │ Session-gap Migrate   │ migrate      │
-# │  - 时间间隔判断    │ >1小时触发迁移        │ gap=3600s    │
-# │  - 生成事件摘要    │ 整个会话摘要          │ summarize    │
-# │  - 提取名词集合    │ 用于 LTM 存储         │ topics       │
-# │  - STM → LTM       │ 摘要迁移到长期记忆    │ time policy  │
+# │ PostInsert         │ Time-based Migrate    │ migrate      │
+# │  - 会话结束检测    │ is_session_end 标记   │ time_based   │
+# │  - 触发迁移        │ 实际由服务层处理      │ 自动溢出     │
+# │  【说明】实际的时间间隔检测由 HierarchicalMemoryService │
+# │  在容量溢出时自动触发，此处为声明性配置                 │
 # ├─────────────────────────────────────────────────────────┤
 # │ PreRetrieval       │ Keyword Extraction    │ optimize     │
 # │  - 名词提取        │ spaCy NOUN/PROPN      │ spacy        │
@@ -177,25 +194,37 @@ operators:
 #
 # 关键配置参数：
 #   - tier_mode="two_tier": 双层架构（STM/LTM）
-#   - session_gap=3600: 会话间隔阈值（秒）
+#   - time_gap_threshold=3600: 会话间隔阈值（秒）
+#   - transform_type="conditional_summarize": 条件触发的摘要生成
 #   - extract_types=["NOUN", "PROPN"]: 名词和专有名词
 #   - rerank factors: relevance(0.4) + recency(0.3, rate=1e-7) + topic(0.3)
 #   - tier_retrieval_limits: stm=30, ltm=1
 #
-# 与原文的主要修正（2025-12-24）：
-#   1. 【关键】移除 pre_insert 的摘要生成
-#      - 原因：原文中摘要在会话间隔触发时（PostInsert）生成
-#      - 每条对话生成摘要开销过大且不符合原文设计
+# 与原文的主要修正（2025-12-25）：
+#   1. 【关键】PreInsert 改为条件触发的迁移
+#      - 原因：原文在 context_retrieve() 开始时检测时间间隔
+#      - 只有当 (当前时间 - STM最后记忆) > 1小时时才触发
+#      - 触发时执行：摘要生成 → 迁移 → 清空STM
+#      - 不是每次插入都执行，而是条件触发
 #
-#   2. 【关键】修正时间衰减参数：0.995 → 1e-7
+#   2. 【关键】PostInsert 改为 none
+#      - 原因：迁移逻辑已在 PreInsert 的条件触发中完成
+#      - 原文没有独立的插入后操作
+#
+#   3. 【关键】摘要是对整个会话批量生成
+#      - 不是对单条记忆生成摘要
+#      - 而是对 STM 中的所有对话生成一个事件摘要
+#      - 一次会话 → 一条 LTM 摘要记录
+#
+#   4. 【关键】修正时间衰减参数：0.995 → 1e-7
 #      - 原因：原文使用 decay_temp=1E-7，衰减非常缓慢
 #      - 原配置衰减过快，不符合长期对话场景
 #
-#   3. 【关键】区分 STM/LTM 检索数量：统一10 → 30/1
+#   5. 【关键】区分 STM/LTM 检索数量：统一10 → 30/1
 #      - 原因：原文 context_memory_number=30, relevance_memory_number=1
 #      - STM 需要较多上下文，LTM 只返回最优记忆
 #
-#   4. 【改进】完善 prompt 格式
+#   6. 【改进】完善 prompt 格式
 #      - 添加结构化 CONTEXT + MEMORY 分区
 #      - 便于后续添加 USER_TRAITS（人物画像功能待实现）
 #

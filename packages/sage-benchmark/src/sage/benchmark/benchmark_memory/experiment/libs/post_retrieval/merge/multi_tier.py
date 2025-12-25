@@ -8,7 +8,9 @@ MemGPT 风格的多层记忆融合：
 论文原文: Figure 3 - MemGPT System Architecture
 """
 
-from typing import Any
+from typing import Any, Optional
+
+from ..base import BasePostRetrievalAction, MemoryItem, PostRetrievalInput, PostRetrievalOutput
 
 
 class MemoryPressureMonitor:
@@ -157,6 +159,14 @@ class MultiTierMerge:
         # 详细日志开关
         self.verbose = config.get("runtime.memory_test_verbose", False)
 
+        # 读取层级映射配置（支持动态层级名称）
+        tier_mapping_config = config.get("operators.post_retrieval.tier_mapping")
+        if tier_mapping_config and isinstance(tier_mapping_config, dict):
+            self.tier_mapping = tier_mapping_config
+        else:
+            # 默认映射（MemGPT 风格）
+            self.tier_mapping = {"first": "core", "second": "archival", "third": "recall"}
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         """执行多层融合
 
@@ -176,18 +186,38 @@ class MultiTierMerge:
             }
             return data
 
-        # 1. 按 tier 分组
+        # 1. 按 tier 分组（动态检测层级名称）
         core_memories = []
         archival_memories = []
         recall_memories = []
 
+        # 从数据中推断实际层级名称
+        all_tiers = {item.get("tier", "") for item in memory_data if item.get("tier")}
+
+        # 尝试从配置的 tier_mapping 反向查找，或使用默认值
+        core_tier_names = [self.tier_mapping.get("first", "core")]
+        archival_tier_names = [self.tier_mapping.get("second", "archival")]
+        recall_tier_names = [self.tier_mapping.get("third", "recall")]
+
+        # 如果数据中没有配置的名称，尝试按顺序映射
+        if all_tiers and not any(
+            t in all_tiers for t in core_tier_names + archival_tier_names + recall_tier_names
+        ):
+            sorted_tiers = sorted(all_tiers)
+            if len(sorted_tiers) >= 1:
+                core_tier_names = [sorted_tiers[0]]
+            if len(sorted_tiers) >= 2:
+                archival_tier_names = [sorted_tiers[1]]
+            if len(sorted_tiers) >= 3:
+                recall_tier_names = [sorted_tiers[2]]
+
         for item in memory_data:
             tier = item.get("tier", "")
-            if item.get("is_core_memory", False) or tier == "core":
+            if item.get("is_core_memory", False) or tier in core_tier_names:
                 core_memories.append(item)
-            elif tier == "archival":
+            elif tier in archival_tier_names:
                 archival_memories.append(item)
-            elif tier == "recall":
+            elif tier in recall_tier_names:
                 recall_memories.append(item)
 
         if self.verbose:
@@ -337,3 +367,68 @@ class MultiTierMerge:
             result.append(item)
 
         return result
+
+
+class MultiTierMergeAction(BasePostRetrievalAction):
+    """Multi-Tier Merge Action（符合 Action 规范的包装类）
+
+    将 MultiTierMerge 包装为标准的 PostRetrievalAction
+    """
+
+    def _init_action(self) -> None:
+        """初始化 Action"""
+        # 创建内部 MultiTierMerge 实例
+        self.merger = MultiTierMerge(self.config)
+
+    def execute(
+        self,
+        input_data: PostRetrievalInput,
+        service: Any,
+        llm: Optional[Any] = None,
+    ) -> PostRetrievalOutput:
+        """执行多层融合
+
+        Args:
+            input_data: 输入数据
+            service: 记忆服务代理（未使用）
+            llm: LLM 生成器（未使用）
+
+        Returns:
+            PostRetrievalOutput: 融合后的结果
+        """
+        # 调用内部 MultiTierMerge
+        result_data = self.merger.execute(input_data.data)
+
+        # 从 enhanced_context 提取结果
+        enhanced_context = result_data.get("enhanced_context", {})
+        retrieved_memories = enhanced_context.get("retrieved_memories", [])
+
+        # 转换为 MemoryItem 列表
+        memory_items = []
+        for mem in retrieved_memories:
+            memory_items.append(
+                MemoryItem(
+                    text=mem.get("text", ""),
+                    score=mem.get("score", 0.0),
+                    metadata=mem.get("metadata", {}),
+                )
+            )
+
+        # 构建 metadata
+        metadata = {
+            "action": "merge.multi_tier",
+            "stats": enhanced_context.get("stats", {}),
+        }
+
+        # 添加 core_memory 到 metadata
+        if enhanced_context.get("core_memory"):
+            metadata["core_memory"] = enhanced_context["core_memory"]
+
+        # 添加 memory_pressure 信息
+        if enhanced_context.get("memory_pressure"):
+            metadata["memory_pressure"] = enhanced_context["memory_pressure"]
+
+        return PostRetrievalOutput(
+            memory_items=memory_items,
+            metadata=metadata,
+        )

@@ -77,6 +77,8 @@ class PostRetrieval(MapFunction):
         self._conversation_format_prompt = action_config.get(
             "conversation_format_prompt", "The following is some history information.\n"
         )
+        # 解析分层检索限制
+        self._tier_retrieval_limits = action_config.get("tier_retrieval_limits", {})
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         start_time = time.perf_counter()
@@ -96,6 +98,8 @@ class PostRetrieval(MapFunction):
             service=service_proxy,
             llm=self._llm_generator if self._llm_generator else None,
         )
+        # 应用分层检索限制
+        output.memory_items = self._apply_tier_limits(output.memory_items)
         formatted_memory = self._format_conversation_history(output.memory_items)
         data["history_text"] = formatted_memory
         if output.memory_items:
@@ -112,13 +116,74 @@ class PostRetrieval(MapFunction):
 
         return data
 
+    def _apply_tier_limits(self, items: list[MemoryItem]) -> list[MemoryItem]:
+        """应用分层检索限制
+
+        Args:
+            items: 原始记忆列表
+
+        Returns:
+            限制后的记忆列表
+        """
+        if not self._tier_retrieval_limits:
+            return items
+
+        # 按 tier 分组
+        tier_items = {}
+        for item in items:
+            tier = item.metadata.get("tier", "default")
+            if tier not in tier_items:
+                tier_items[tier] = []
+            tier_items[tier].append(item)
+
+        # 应用每层的限制
+        limited_items = []
+        for tier, tier_limit in self._tier_retrieval_limits.items():
+            if tier in tier_items:
+                limited_items.extend(tier_items[tier][:tier_limit])
+
+        # 保留未配置限制的层级
+        for tier, items_list in tier_items.items():
+            if tier not in self._tier_retrieval_limits:
+                limited_items.extend(items_list)
+
+        return limited_items
+
     def _format_conversation_history(self, items: list[MemoryItem]) -> str:
+        """格式化对话历史，支持 {stm_memories}/{ltm_memories} 占位符
+
+        Args:
+            items: 记忆列表
+
+        Returns:
+            格式化后的文本
+        """
         if not items:
             return ""
-        formatted = self._conversation_format_prompt
-        for item in items:
-            formatted += f"{item.text}\n"
-        result = formatted.rstrip()
+
+        # 检查是否有分层占位符
+        has_tier_placeholders = (
+            "{stm_memories}" in self._conversation_format_prompt
+            or "{ltm_memories}" in self._conversation_format_prompt
+        )
+
+        if has_tier_placeholders:
+            # 按层级分组
+            stm_items = [item for item in items if item.metadata.get("tier") == "stm"]
+            ltm_items = [item for item in items if item.metadata.get("tier") == "ltm"]
+
+            stm_text = "\n".join(item.text for item in stm_items) if stm_items else "None"
+            ltm_text = "\n".join(item.text for item in ltm_items) if ltm_items else "None"
+
+            result = self._conversation_format_prompt.replace("{stm_memories}", stm_text).replace(
+                "{ltm_memories}", ltm_text
+            )
+        else:
+            # 简单格式化（向后兼容）
+            formatted = self._conversation_format_prompt
+            for item in items:
+                formatted += f"{item.text}\n"
+            result = formatted.rstrip()
 
         # [DEBUG] 打印post_retrieval生成的历史对话部分
         # print("\n" + "=" * 80)
