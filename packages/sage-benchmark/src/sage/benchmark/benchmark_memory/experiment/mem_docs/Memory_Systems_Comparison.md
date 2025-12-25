@@ -14,6 +14,10 @@ ______________________________________________________________________
 | 3   | **MemoryOS**   | `hierarchical_memory`<br>(STM/MTM/LPM 三层)            | `none`<br>无预处理                                         | `enhance.profile_extraction`<br>热度触发Profile提取       | `none`<br>无预处理                               | `merge.multi_query`<br>三层并行检索合并     |
 | 3   | **MemoryOS**   | `hierarchical_memory`<br>(STM/MTM/LPM 三层)            | `none`<br>（可选：extract.multi_summary/continuity_check） | `migrate`<br>热度迁移（可选：enhance.profile_extraction） | `none`<br>无预处理                               | `merge.multi_query`<br>三层并行检索合并     |
 | 4   | **LD-Agent**   | `hierarchical_memory`<br>(STM/LTM 双层)                | `none`<br>无预处理                                         | `migrate`<br>时间间隔触发迁移+摘要                        | `optimize.keyword_extract`<br>名词提取(话题重叠) | `rerank.weighted`<br>语义+时间+话题综合排序 |
+| 5   | **Mem0**       | `hybrid_memory`<br>(vector+bm25)                       | `extract.fact`<br>显著事实抽取                             | `crud`<br>ADD/UPDATE/DELETE/NOOP                         | `embedding`<br>查询向量化                        | `filter.threshold`<br>阈值过滤               |
+| 6   | **Mem0ᵍ**      | `hybrid_memory`<br>(vector+bm25+graph)                 | `extract.triple`<br>三元组抽取                             | `crud`<br>ADD/UPDATE/DELETE/NOOP                         | `embedding`<br>查询向量化                        | `none`<br>基础格式化                         |
+| 7   | **SCM**        | `short_term_memory`<br>(Memory Stream)                 | `transform.summarize`<br>阈值摘要（原文保留）              | `none`<br>无插入后处理                                   | `embedding`<br>排除上一轮                          | `scm_three_way`<br>drop/summary/raw          |
+| 8   | **A-Mem**      | `graph_memory`<br>(link_graph)                          | `extract.keyword`<br>Note结构（keywords/tags/context）     | `link_evolution`<br>auto_link+KNN                        | `embedding`<br>查询向量化                        | `merge.link_expand`<br>链接扩展             |
 
 ______________________________________________________________________
 
@@ -447,6 +451,297 @@ post_retrieval:
 
 ______________________________________________________________________
 
+### 2.5 Mem0
+
+论文: Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory（Mem0 与 Mem0ᵍ 同属一篇论文）\
+核心特点: 显著事实存储 + LLM 决策 CRUD + 混合检索（向量+BM25）
+
+#### 记忆数据结构
+
+服务: `HybridMemoryService`（向量+BM25）
+
+```yaml
+services:
+  register_memory_service: "hybrid_memory"
+  hybrid_memory:
+    indexes:
+    - name: "semantic"
+      type: "vector"
+      dim: 1024
+      embedding_model: "BAAI/bge-m3"
+    - name: "keyword"
+      type: "bm25"
+    fusion_strategy: "weighted"
+    fusion_weights: {semantic: 0.7, keyword: 0.3}
+```
+
+存储内容:
+
+- Salient Facts（离散事实，含元数据）
+- 关键词反向索引（BM25）
+- 插入/更新/删除历史（用于可追溯）
+
+检索方法: 混合检索（向量+BM25 加权融合）
+
+#### 记忆操作
+
+PreInsert: 显著事实抽取（LLM）
+
+```yaml
+pre_insert:
+  action: "extract"
+  extract_type: "fact"
+  method: "mem0_llm"
+  add_to_metadata: true
+  keep_original: true
+```
+
+PostInsert: LLM 决策 CRUD（ADD/UPDATE/DELETE/NOOP）
+
+```yaml
+post_insert:
+  action: "crud"
+  top_k: 10
+  decision_prompt: |
+    { … 仅输出 JSON：{"action":"ADD|UPDATE|DELETE|NOOP","to_delete":[…],"reason":"…"} }
+```
+
+PreRetrieval: 查询向量化（BGE-M3）
+
+```yaml
+pre_retrieval:
+  action: "embedding"
+```
+
+PostRetrieval: 阈值过滤（基础版）
+
+```yaml
+post_retrieval:
+  action: "filter"
+  filter_type: "threshold"
+  threshold: 0.5
+```
+
+关键创新
+
+1. LLM 驱动的事实级 CRUD 生命周期
+1. 混合检索（向量+BM25）与可调融合权重
+1. 事实抽取区分用户/助手视角，元数据丰富
+1. 可选全局/过程性摘要，便于 agent 概览
+
+______________________________________________________________________
+
+### 2.6 Mem0ᵍ（图记忆）
+
+论文: Mem0（同上）\
+核心特点: 在 Mem0 基础上加入图索引，支持实体关系检索与三元组抽取
+
+#### 记忆数据结构
+
+服务: `HybridMemoryService`（向量+BM25+Graph）
+
+```yaml
+services:
+  register_memory_service: "hybrid_memory"
+  hybrid_memory:
+    graph_enabled: true
+    entity_extraction: true
+    relation_extraction: true
+    indexes:
+    - {name: semantic, type: vector, dim: 1024}
+    - {name: keyword, type: bm25}
+    - {name: entity_graph, type: graph}
+    fusion_strategy: "weighted"
+    fusion_weights: {semantic: 0.5, keyword: 0.2, entity_graph: 0.3}
+```
+
+存储内容:
+
+- 事实文本与嵌入
+- 实体与关系（三元组）
+- 图结构索引（实体节点、关系边）
+
+检索方法: 三重索引融合（向量+BM25+图）
+
+#### 记忆操作
+
+PreInsert: 三元组抽取（LLM）
+
+```yaml
+pre_insert:
+  action: "extract.triple"
+  extraction_method: "llm"
+```
+
+PostInsert: LLM 决策 CRUD（与基础版一致）
+
+```yaml
+post_insert:
+  action: "crud"
+  top_k: 10
+```
+
+PreRetrieval: 查询向量化
+
+```yaml
+pre_retrieval:
+  action: "embedding"
+```
+
+PostRetrieval: 基础格式化（融合在检索阶段完成）
+
+```yaml
+post_retrieval:
+  action: "none"
+```
+
+关键创新
+
+1. 三元组抽取 + 图索引，支持实体关系链路检索
+1. 三重索引融合，面向关系密集任务更稳健
+1. 与 CRUD 联动，保持事实一致性（删旧/改链）
+
+______________________________________________________________________
+
+### 2.7 SCM（Self-Controlled Memory）
+
+论文: SCM4LLMs - Enhancing Large Language Model with Self-Controlled Memory Framework\
+核心特点: Memory Stream + Token Budget + 三元决策（drop/summary/raw）
+
+#### 记忆数据结构
+
+服务: `ShortTermMemoryService`（大容量短期记忆流）
+
+```yaml
+services:
+  register_memory_service: "short_term_memory"
+  short_term_memory:
+    max_dialog: 1000
+    embedding_dim: 1024
+    retrieval_top_k: 6
+```
+
+存储内容:
+
+- 原文对话（逐轮）
+- 条件性摘要（超过阈值时生成）
+
+检索方法: 相似度检索（排除上一轮，上一轮直接拼接）
+
+#### 记忆操作
+
+PreInsert: 阈值摘要（同时保留原文）
+
+```yaml
+pre_insert:
+  action: "transform"
+  transform_type: "summarize"
+  embed_summary: false
+  summary_threshold: 300
+```
+
+PostInsert: 无（SCM 不做插入后优化）
+
+```yaml
+post_insert:
+  action: "none"
+```
+
+PreRetrieval: 查询向量化
+
+```yaml
+pre_retrieval:
+  action: "embedding"
+```
+
+PostRetrieval: 三元决策（token 预算控制）
+
+```yaml
+post_retrieval:
+  action: "scm_three_way"
+  max_history_tokens: 2500
+  max_pre_turn_tokens: 500
+```
+
+关键创新
+
+1. Memory Stream 结构，统一管理近期大量对话
+1. Token Budget 自控，按需保留 raw/summary/drop
+1. 上一轮直接拼接，历史相似检索，性价比高
+
+______________________________________________________________________
+
+### 2.8 A-Mem（Agentic Memory）
+
+论文: A-MEM: Agentic Memory for LLM Agents\
+核心特点: Note 结构（keywords/tags/context）+ Link Evolution + 链接扩展检索
+
+#### 记忆数据结构
+
+服务: `GraphMemoryService`（link_graph）
+
+```yaml
+services:
+  register_memory_service: "graph_memory"
+  graph_memory:
+    graph_type: "link_graph"
+    link_policy: "bidirectional"
+    max_links_per_node: 50
+```
+
+存储内容:
+
+- Note 节点（keywords/tags/context）
+- 语义链接（semantic/temporal 等）
+
+检索方法: 向量检索 + 链接扩展
+
+#### 记忆操作
+
+PreInsert: Note 结构抽取（关键词/标签/上下文）
+
+```yaml
+pre_insert:
+  action: "extract"
+  extract_type: "keyword"
+  add_to_metadata: true
+```
+
+PostInsert: Link Evolution（KNN 候选 + LLM auto_link）
+
+```yaml
+post_insert:
+  action: "link_evolution"
+  knn_k: 10
+  similarity_threshold: 0.7
+  max_auto_links: 5
+```
+
+PreRetrieval: 查询向量化
+
+```yaml
+pre_retrieval:
+  action: "embedding"
+```
+
+PostRetrieval: 链接扩展（单跳或多跳）
+
+```yaml
+post_retrieval:
+  action: "merge"
+  merge_type: "link_expand"
+  expand_top_n: 5
+  max_depth: 1
+```
+
+关键创新
+
+1. Note+Link 表示，天然支持语义关联与上下文扩展
+1. 自动建链（auto_link）与链接演化，结构随对话发展
+1. 检索后按链路扩展，召回更全面
+
+______________________________________________________________________
+
 ## 三、对比分析
 
 ### 3.1 PreInsert 阶段对比
@@ -457,6 +752,10 @@ ______________________________________________________________________
 | MemGPT     | `none`                                                     | 无                          | Agent 工具主动管理     |
 | MemoryOS   | `extract.multi_summary` 或<br>`transform.continuity_check` | 多主题识别 或<br>连续性判断 | 实时处理，支持复杂场景 |
 | LD-Agent   | `none`                                                     | 无                          | 摘要在 PostInsert 生成 |
+| Mem0       | `extract.fact`                                             | 抽取显著事实                | LLM 抽取，保留原文      |
+| Mem0ᵍ      | `extract.triple`                                           | 抽取实体与关系              | 三元组，用于图构建      |
+| SCM        | `transform.summarize`                                      | 超阈值摘要                  | 原文+摘要双存储         |
+| A-Mem      | `extract.keyword`                                          | Note 结构（关键词/标签）    | 结构化 JSON 入库        |
 
 **设计思路**:
 
@@ -473,6 +772,10 @@ ______________________________________________________________________
 | MemGPT     | `none`                       | 无                     | Agent 工具主动管理    |
 | MemoryOS   | `enhance.profile_extraction` | Profile/Knowledge 提取 | 热度触发，并行 LLM    |
 | LD-Agent   | `migrate`                    | 时间触发迁移           | 迁移时生成摘要        |
+| Mem0       | `crud`                       | 事实级 CRUD 管理       | LLM 决策 + 相似检索   |
+| Mem0ᵍ      | `crud`                       | 事实/图一致性维护      | LLM 决策 + 图信息辅助 |
+| SCM        | `none`                       | 无                     | 插入后不做处理        |
+| A-Mem      | `link_evolution`             | 自动建链/演化          | KNN + LLM auto_link   |
 
 **设计思路**:
 
@@ -489,6 +792,10 @@ ______________________________________________________________________
 | MemGPT     | `embedding`                | 查询向量化 | 支持混合检索       |
 | MemoryOS   | `none`                     | 无         | 直接使用原始 query |
 | LD-Agent   | `optimize.keyword_extract` | 名词提取   | 话题重叠准备       |
+| Mem0       | `embedding`                | 查询向量化 | 混合检索（vec+BM25) |
+| Mem0ᵍ      | `embedding`                | 查询向量化 | 融合图检索          |
+| SCM        | `embedding`                | 查询向量化 | 排除上一轮          |
+| A-Mem      | `embedding`                | 查询向量化 | 链接扩展前置        |
 
 **设计思路**:
 
@@ -505,6 +812,10 @@ ______________________________________________________________________
 | MemGPT     | `merge.multi_tier`     | 三层 RRF 融合    | Core始终在 + RRF |
 | MemoryOS   | `merge.multi_query`    | 三层并行检索合并 | ThreadPool 并行  |
 | LD-Agent   | `rerank.weighted`      | 多因子加权重排序 | 语义+时间+话题   |
+| Mem0       | `filter.threshold`     | 过滤低分结果     | 简单高效         |
+| Mem0ᵍ      | `none`                  | 基础格式化       | 融合已在检索阶段 |
+| SCM        | `scm_three_way`        | Token 预算控制   | drop/summary/raw |
+| A-Mem      | `merge.link_expand`    | 关联上下文扩展   | 单跳/多跳扩展    |
 
 **设计思路**:
 
@@ -521,6 +832,10 @@ ______________________________________________________________________
 | MemGPT     | Core/Archival/Recall (功能层) | Core 有限，其他无限       | 无（Agent 管理） | Core 始终在 context |
 | MemoryOS   | STM/MTM/LPM (三层)            | STM 20, MTM 200, LPM 无限 | FIFO + LFU       | Segment-Page 双层   |
 | LD-Agent   | STM/LTM (双层)                | STM 50, LTM 无限          | 时间触发迁移     | 名词集合            |
+| Mem0       | Hybrid (向量+BM25)            | 语义/关键词索引           | CRUD 清理         | 事实级条目          |
+| Mem0ᵍ      | Hybrid (向量+BM25+图)         | 三重索引                  | CRUD+图一致性     | 实体-关系图         |
+| SCM        | Memory Stream                 | 大容量流式队列            | Token 预算裁剪    | 原文+摘要双存储     |
+| A-Mem      | Link Graph                    | 节点/边按需增长           | 链接演化          | Note+Link 结构      |
 
 ______________________________________________________________________
 
@@ -532,6 +847,10 @@ ______________________________________________________________________
 | MemGPT     | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
 | MemoryOS   | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
 | LD-Agent   | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
+| Mem0       | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
+| Mem0ᵍ      | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
+| SCM        | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
+| A-Mem      | ? 已实现  | ? 已实现   | ? 已实现     | ? 已实现      | ? 已实现 | ? 完整 |
 
 **总代码量**:
 
@@ -550,6 +869,10 @@ ______________________________________________________________________
 | MemGPT     | `config/primitive_memory_model/locomo_memgpt_pipeline.yaml`     |
 | MemoryOS   | `config/primitive_memory_model/locomo_memoryos_pipeline.yaml`   |
 | LD-Agent   | `config/primitive_memory_model/locomo_ldagent_pipeline.yaml`    |
+| Mem0       | `config/primitive_memory_model/locomo_mem0_pipeline.yaml`       |
+| Mem0ᵍ      | `config/primitive_memory_model/locomo_mem0g_pipeline.yaml`      |
+| SCM        | `config/primitive_memory_model/locomo_scm_pipeline.yaml`        |
+| A-Mem      | `config/primitive_memory_model/locomo_amem_pipeline.yaml`       |
 
 ______________________________________________________________________
 
