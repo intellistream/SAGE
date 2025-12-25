@@ -9,7 +9,432 @@
 >    `retrieve(query, vector, metadata, top_k)`
 > 1. **配置从 from_config 读取** - Service 类自己负责配置解析
 
-**更新时间**：2025-12-23
+**更新时间**：2025-12-24
+
+**任务进度**：
+
+- ✅ 任务1：基础设施 + Registry（已完成，2025-12-24）
+- ✅ 任务2：Partitional 类 Service（已完成，2025-12-24）
+- ✅ 任务3：Hierarchical 类 Service（已完成，2025-12-24）
+- ✅ 任务4：Hybrid 类 Service（已完成，2025-12-24）
+- ⏳ 任务5：集成测试 + 文档（待开始）
+
+______________________________________________________________________
+
+## 📋 任务1完成报告（2025-12-24）
+
+### 核心成果
+
+**创建文件**（6个，约1440行）：
+
+- `base_service.py` - BaseMemoryService 抽象基类（~240行）
+- `registry.py` - MemoryServiceRegistry 注册表（~180行）
+- `__init__.py` - 模块导出（~50行）
+- `README.md` - 使用指南（~600行）
+- `examples.py` - 示例代码（~200行）
+- `test_registry_standalone.py` - 单元测试（~120行）
+
+### 关键设计决策
+
+1. **纯 Registry 模式** - 移除 Factory 层，与 PreInsert/PostInsert 保持一致
+1. **层级命名** - 支持 `category.service_name` 格式（partitional/hierarchical/hybrid）
+1. **避免循环导入** - 使用 `TYPE_CHECKING`，移除运行时类型检查
+1. **简化继承** - `BaseMemoryService` 直接继承 `BaseService`（不需要多重继承ABC）
+1. **统一接口** - 所有 Service 必须实现 `insert/retrieve/delete/get_stats/from_config`
+
+### 测试结果
+
+```
+✓ Registry 已清空
+✓ 注册 3 个服务成功
+✓ 所有服务: ['partitional.vector_memory', 'hierarchical.graph_memory', 'hybrid.multi_index']
+✓ Partitional 服务: ['partitional.vector_memory']
+✓ Hierarchical 服务: ['hierarchical.graph_memory']
+✓ Hybrid 服务: ['hybrid.multi_index']
+✓ 获取服务类: MockService
+✓ 注册状态检查正常
+✓ 获取类别: partitional
+✓ 所有类别: ['hierarchical', 'hybrid', 'partitional']
+✓ 注销服务成功: True
+✓ Registry 清空成功
+所有测试通过!
+```
+
+### 技术亮点
+
+1. **独立测试** - 使用 `importlib` 直接加载模块，避免 C++ 依赖问题
+1. **详细文档** - README 包含完整的 API 文档、迁移指南、FAQ
+1. **扩展性强** - 支持按类别过滤、列出所有服务、动态注册/注销
+
+### 遇到的问题与解决方案
+
+**问题1**: C++ 扩展依赖导致测试失败（`GLIBCXX_3.4.30' not found`）\
+**解决**: 创建独立测试脚本，使用 `importlib.util.spec_from_file_location` 直接加载模块
+
+**问题2**: Registry 循环导入问题\
+**解决**: 使用 `TYPE_CHECKING` 仅在类型检查时导入，移除运行时类型检查
+
+______________________________________________________________________
+
+## 📋 任务2完成报告（2025-12-24）
+
+### 核心成果
+
+**创建文件**（5个，约1200行）：
+
+- `partitional/short_term_memory.py` - ShortTermMemoryService（~290行）
+- `partitional/vector_memory.py` - VectorMemoryService（~320行）
+- `partitional/key_value_memory.py` - KeyValueMemoryService（~210行）
+- `partitional/vector_hash_memory.py` - VectorHashMemoryService（~260行）
+- `partitional/__init__.py` - 模块导出和注册（~35行）
+- `tests/.../test_partitional_services.py` - 单元测试（~200行）
+
+### 实现的 Service
+
+1. **partitional.short_term_memory** - 短期记忆（滑窗 FIFO）
+
+   - Collection: VDBMemoryCollection
+   - 特性：时间顺序队列、自动淘汰最旧记忆
+   - 配置：max_dialog, embedding_dim
+
+1. **partitional.vector_memory** - 向量记忆（多索引支持）
+
+   - Collection: VDBMemoryCollection
+   - 特性：支持 6 种 FAISS 索引（LSH/HNSW/Flat/IVF等）
+   - 配置：dim, index_type, index_config
+
+1. **partitional.key_value_memory** - 键值对记忆（文本检索）
+
+   - Collection: KVMemoryCollection
+   - 特性：BM25S 文本检索
+   - 配置：index_type, default_topk
+
+1. **partitional.vector_hash_memory** - 向量哈希（LSH 近似）
+
+   - Collection: VDBMemoryCollection + IndexLSH
+   - 特性：快速近似检索
+   - 配置：dim, nbits, rotate_data
+
+### 测试结果
+
+```
+✓ 注册状态测试 - 所有 4 个服务已注册
+✓ from_config 测试 - 配置加载正常
+✓ Service 导入测试 - 类导入成功
+✓ 所有测试通过
+```
+
+运行命令（使用 ksage conda 环境）：
+
+```bash
+conda run -n ksage python packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_partitional_services.py
+```
+
+### 技术亮点
+
+1. **统一接口** - 所有 Service 实现 insert/retrieve/delete/get_stats/from_config
+1. **配置驱动** - 支持从 RuntimeConfig 读取配置并创建 ServiceFactory
+1. **纯 Registry 模式** - 无 Factory 层，直接注册到 MemoryServiceRegistry
+1. **层级命名** - 使用 "partitional.xxx" 格式，清晰分类
+
+### 遇到的问题与解决方案
+
+**问题1**: C++ 扩展依赖（GLIBCXX_3.4.30 not found）\
+**解决**: 使用 ksage conda 环境运行测试
+
+**问题2**: ServiceFactory 参数传递方式\
+**解决**: 使用 `service_kwargs` 字典传递所有构造参数
+
+**问题3**: MockConfig 配置读取\
+**解决**: 修正配置结构为分层结构（services → partitional → service_name → params）
+
+### 文件位置
+
+- 实现:
+  `/packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/partitional/`
+- 测试:
+  `/packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_partitional_services.py`
+
+______________________________________________________________________
+
+## 📋 任务3完成报告（2025-12-24）
+
+### 核心成果
+
+**创建文件**（4个，共1264行）：
+
+- `hierarchical/three_tier.py` - ThreeTierMemoryService（433行）
+- `hierarchical/graph_memory.py` - GraphMemoryService（546行）
+- `hierarchical/__init__.py` - 模块导出和注册（20行）
+- `tests/.../test_hierarchical_services.py` - 单元测试（265行）
+
+### 实现的 Service
+
+1. **hierarchical.three_tier** - 三层记忆（STM/MTM/LTM）
+
+   - Collection: HybridCollection（单一 Collection，多索引代表层级）
+   - 特性：三层结构、层间迁移、容量管理
+   - 配置：tier_capacities, migration_policy, embedding_dim
+   - 迁移策略：overflow（溢出迁移）、importance（重要性）、time（遗忘曲线）
+   - MemGPT 特性：use_core_embedding, use_recall_hybrid
+
+1. **hierarchical.graph_memory** - 图记忆（HippoRAG/A-Mem）
+
+   - Collection: GraphMemoryCollection
+   - 特性：节点/边管理、PPR 检索、向量相似度起始节点查找
+   - 配置：graph_type, link_policy, ppr_depth, ppr_damping, enhanced_rerank
+   - 两种模式：knowledge_graph（HippoRAG）、link_graph（A-Mem）
+   - 被动插入状态管理：\_pending_node, \_pending_candidates, \_pending_action
+
+### 测试结果
+
+```
+============================================================
+测试 Hierarchical Services 注册状态
+============================================================
+✓ Hierarchical 包导入成功
+✓ hierarchical.three_tier: 已注册
+✓ hierarchical.graph_memory: 已注册
+
+所有 Hierarchical 服务:
+  - hierarchical.three_tier
+  - hierarchical.graph_memory
+
+============================================================
+测试 from_config 方法
+============================================================
+✓ ThreeTierMemoryService from_config 成功
+  - service_name: hierarchical.three_tier
+  - service_class: ThreeTierMemoryService
+  - kwargs: ['tier_capacities', 'migration_policy', 'embedding_dim', ...]
+
+✓ GraphMemoryService from_config 成功
+  - service_name: hierarchical.graph_memory
+  - service_class: GraphMemoryService
+  - kwargs: ['collection_name', 'graph_type', 'link_policy', ...]
+
+============================================================
+测试 Service 实例化
+============================================================
+✓ ThreeTierMemoryService 导入成功
+✓ GraphMemoryService 导入成功
+✓ 继承关系验证成功（都继承自 BaseMemoryService）
+✓ 必须方法验证成功: ['insert', 'retrieve', 'delete', 'get_stats', 'from_config']
+
+============================================================
+测试 Registry 列出功能
+============================================================
+✓ Hierarchical 服务列表: ['hierarchical.three_tier', 'hierarchical.graph_memory']
+✓ 类别验证成功
+
+🎉 所有测试通过!
+```
+
+运行命令（使用 ksage conda 环境）：
+
+```bash
+conda run -n ksage python packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_hierarchical_services.py
+```
+
+### 技术亮点
+
+1. **统一接口** - 所有 Service 实现 insert/retrieve/delete/get_stats/from_config
+1. **1:1 关系严格遵守** - ThreeTier 虽有三层，但仍是单一 HybridCollection（通过多索引区分）
+1. **层级命名** - 使用 "hierarchical.xxx" 格式，清晰分类
+1. **被动插入支持** - GraphMemory 实现 \_pending_status 管理，供 PostInsert 查询
+1. **完整的配置支持** - 支持所有论文算法的关键参数（MemGPT/HippoRAG/A-Mem）
+
+### 关键设计决策
+
+1. **三层记忆实现方式**：
+
+   - 使用单一 HybridCollection，每层对应独立的 VDB 索引（stm_index/mtm_index/ltm_index）
+   - 通过 metadata.tier 标记记忆所属层级
+   - 层间迁移使用 remove_from_index + insert_to_index
+
+1. **图记忆实现方式**：
+
+   - 使用 GraphMemoryCollection 存储节点和边
+   - \_vector_index 字典用于向量相似度查找起始节点
+   - 支持 BFS/neighbors/PPR 三种检索方法
+
+1. **被动插入状态管理**：
+
+   - \_pending_node: 新插入的节点信息
+   - \_pending_candidates: 候选链接/同义节点列表
+   - \_pending_action: "link"（A-Mem）或 "synonym"（HippoRAG）
+
+### 遇到的问题与解决方案
+
+**问题1**: C++ 扩展依赖（GLIBCXX_3.4.30 not found）\
+**解决**: 使用 ksage conda 环境运行测试
+
+**问题2**: 三层记忆的 Collection 选择\
+**解决**: 使用 HybridCollection 而非三个独立 Collection，符合 1:1 原则
+
+**问题3**: 图记忆的向量检索起始节点\
+**解决**: 维护独立的 \_vector_index 字典，用于快速向量相似度查找
+
+### 文件位置
+
+- 实现:
+  `/packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/hierarchical/`
+- 测试:
+  `/packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_hierarchical_services.py`
+
+______________________________________________________________________
+
+## 📋 任务4完成报告（2025-12-24）
+
+### 核心成果
+
+**创建文件**（3个，约800行）：
+
+- `hybrid/multi_index.py` - MultiIndexMemoryService（~700行）
+- `hybrid/__init__.py` - 模块导出和注册（~30行）
+- `tests/.../test_hybrid_services.py` - 单元测试（~150行）
+
+### 实现的 Service
+
+1. **hybrid.multi_index** - 多索引混合记忆（Mem0 / EmotionalRAG）
+   - Collection: HybridCollection（单一 Collection，多索引）
+   - 特性：多索引融合检索、被动插入 CRUD 决策、多向量支持
+   - 配置：indexes, fusion_strategy, fusion_weights, rrf_k, graph_enabled
+   - 融合策略：weighted（加权）、rrf（倒数排名）、union（合并）
+   - 支持模式：
+     - Mem0 基础版：VDB + KV（BM25）
+     - Mem0ᵍ 图增强版：VDB + KV + Graph
+     - EmotionalRAG：双向量索引（语义 + 情感）
+     - 自定义组合：任意 VDB/KV/Graph 索引组合
+
+### 测试结果
+
+```
+============================================================
+测试 Hybrid Services 注册状态
+============================================================
+✓ Hybrid 包导入成功
+✓ hybrid.multi_index: 已注册
+
+所有 Hybrid 服务:
+  - hybrid.multi_index
+
+============================================================
+测试 from_config 方法
+============================================================
+✓ MultiIndexMemoryService from_config 成功
+  - service_name: hybrid.multi_index
+  - service_class: MultiIndexMemoryService
+  - kwargs: ['indexes', 'fusion_strategy', 'fusion_weights', 'rrf_k', 'collection_name', ...]
+
+============================================================
+测试 Service 实例化
+============================================================
+✓ MultiIndexMemoryService 导入成功
+✓ 继承关系验证成功（都继承自 BaseMemoryService）
+✓ 必须方法验证成功: ['insert', 'retrieve', 'delete', 'get_stats', 'from_config']
+
+============================================================
+测试 Registry 列出功能
+============================================================
+✓ Hybrid 服务列表: ['hybrid.multi_index']
+✓ 类别验证成功
+
+🎉 所有测试通过!
+```
+
+运行命令（使用 ksage conda 环境）：
+
+```bash
+conda run -n ksage python packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_hybrid_services.py
+```
+
+### 技术亮点
+
+1. **统一接口** - 完整实现 insert/retrieve/delete/get_stats/from_config
+1. **1:1 关系严格遵守** - 单一 HybridCollection，多索引通过 index_configs 管理
+1. **层级命名** - 使用 "hybrid.xxx" 格式，清晰分类
+1. **被动插入支持** - 实现 \_pending_status 管理，供 PostInsert CRUD 决策
+1. **多索引融合** - 支持三种融合策略（weighted/rrf/union）
+1. **灵活配置** - 支持动态索引配置（VDB/KV/Graph 任意组合）
+1. **多向量支持** - 支持 EmotionalRAG 的双向量场景（metadata.vectors）
+
+### 关键设计决策
+
+1. **混合记忆实现方式**：
+
+   - 使用单一 HybridCollection，通过 index_configs 配置多个索引
+   - 数据只存一份（text_storage + metadata_storage），多索引共享
+   - 支持三种索引类型：VDB（向量）、KV（文本）、Graph（图结构）
+
+1. **融合检索策略**：
+
+   - weighted: 加权融合，需指定 fusion_weights
+   - rrf: 倒数排名融合（推荐，无需权重，参数 rrf_k=60）
+   - union: 合并所有结果（不排序）
+
+1. **被动插入状态管理**（Mem0 CRUD 模式）：
+
+   - \_pending_items: 新插入的待决策条目
+   - \_pending_similar: 相似的已有条目（自动检索）
+   - \_pending_action: "crud"（触发 PostInsert 决策）
+   - get_status(): 供 PostInsert 查询
+   - clear_pending_status(): 决策完成后清除
+
+1. **多向量支持**（EmotionalRAG 场景）：
+
+   - metadata.vectors: {"semantic": vec1, "emotional": vec2}
+   - 每个 VDB 索引可以有独立的向量
+   - retrieve 时也支持多向量查询
+
+### 遇到的问题与解决方案
+
+**问题1**: C++ 扩展依赖（GLIBCXX_3.4.30 not found）\
+**解决**: 使用 ksage conda 环境运行测试
+
+**问题2**: 多索引融合检索的实现\
+**解决**: 依赖 HybridCollection 的 retrieve_multi 方法，自动处理融合逻辑
+
+**问题3**: 被动插入状态管理的时机\
+**解决**: 在 insert 方法末尾，检测 insert_mode="passive" 时自动检索相似项并更新状态
+
+### 文件位置
+
+- 实现: `/packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/hybrid/`
+- 测试:
+  `/packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_hybrid_services.py`
+
+### 配置示例
+
+```yaml
+services:
+  register_memory_service: "hybrid.multi_index"
+  hybrid.multi_index:
+    indexes:
+      - name: semantic
+        type: vdb
+        dim: 768
+      - name: keyword
+        type: kv
+        index_type: bm25s
+      - name: entity_graph  # Mem0ᵍ 图增强
+        type: graph
+    fusion_strategy: rrf
+    rrf_k: 60
+    collection_name: hybrid_memory
+    graph_enabled: true
+    entity_extraction: true
+    relation_extraction: true
+```
+
+### 支持的算法
+
+| 算法           | 索引配置            | 融合策略           | 特性          |
+| -------------- | ------------------- | ------------------ | ------------- |
+| Mem0 基础版    | VDB + KV            | rrf                | CRUD 决策     |
+| Mem0ᵍ 图增强版 | VDB + KV + Graph    | rrf                | 实体/关系抽取 |
+| EmotionalRAG   | 双 VDB（语义+情感） | weighted           | 多向量融合    |
+| 自定义         | 任意组合            | weighted/rrf/union | 灵活配置      |
 
 ______________________________________________________________________
 
@@ -72,13 +497,50 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 任务 1: 基础设施 + Registry（核心，优先级最高）
+## 任务 1: 基础设施 + Registry（核心，优先级最高）✅ **已完成**
 
 **负责人**：资深开发者 A
 
 **工作量**：2-3 小时
 
 **目标**：搭建重构基础，供其他任务使用
+
+**完成时间**：2025-12-24
+
+**完成内容**：
+
+1. ✅ 创建 `base_service.py` - BaseMemoryService 抽象基类
+1. ✅ 创建 `registry.py` - MemoryServiceRegistry 注册表
+1. ✅ 创建 `__init__.py` - 导出接口
+1. ✅ 创建单元测试 `test_registry_standalone.py`
+1. ✅ 测试通过（所有功能验证成功）
+
+**文件位置**：
+
+- `/home/zrc/develop_item/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/base_service.py`
+- `/home/zrc/develop_item/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/registry.py`
+- `/home/zrc/develop_item/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/__init__.py`
+- `/home/zrc/develop_item/SAGE/packages/sage-middleware/tests/unit/components/sage_mem/memory_service/test_registry_standalone.py`
+
+**验收标准**：
+
+- ✅ `BaseMemoryService` 定义清晰的抽象接口（insert/retrieve/delete/get_stats/from_config）
+- ✅ `MemoryServiceRegistry` 支持注册和查询（支持层级命名）
+- ✅ 单元测试通过（测试 Registry 基本功能）
+  - ✅ 注册/注销服务
+  - ✅ 获取服务类
+  - ✅ 列出所有服务
+  - ✅ 按类别列出服务（partitional/hierarchical/hybrid）
+  - ✅ 检查注册状态
+  - ✅ 获取服务类别
+  - ✅ 清空注册表
+
+**关键设计决策**：
+
+1. 移除 Factory 层，采用纯 Registry 模式（与 PreInsert/PostInsert 一致）
+1. Service 类自己负责从配置创建实例（通过 `from_config` 类方法）
+1. 支持层级命名（如 "partitional.vector_memory"）
+1. Registry 不做运行时类型检查，避免循环导入问题
 
 ### 1.1 创建文件
 
@@ -98,18 +560,18 @@ packages/sage-middleware/src/sage/middleware/components/sage_mem/memory_service/
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
+from sage.platform.service import BaseService
+
 if TYPE_CHECKING:
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
 
-from sage.platform.service import BaseService as PlatformBaseService
 
-
-class BaseMemoryService(PlatformBaseService, ABC):
+class BaseMemoryService(BaseService):
     """MemoryService 统一抽象基类
 
     设计原则：
@@ -552,13 +1014,15 @@ __all__ = [
 
 ______________________________________________________________________
 
-## 任务 3: Hierarchical 类 Service（2个）
+## 任务 3: Hierarchical 类 Service（2个）✅ **已完成**
 
 **负责人**：开发者 F、G
 
 **工作量**：每个 Service 约 1.5-2 小时
 
 **目标**：实现 Hierarchical 类的 2 个 Service
+
+**完成时间**：2025-12-24
 
 ### 3.1 Service 列表
 

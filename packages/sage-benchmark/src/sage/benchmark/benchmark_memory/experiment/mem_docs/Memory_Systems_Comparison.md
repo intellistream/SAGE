@@ -14,10 +14,10 @@ ______________________________________________________________________
 | 3   | **MemoryOS**   | `hierarchical_memory`<br>(STM/MTM/LPM 三层)            | `none`<br>无预处理                                         | `enhance.profile_extraction`<br>热度触发Profile提取       | `none`<br>无预处理                               | `merge.multi_query`<br>三层并行检索合并     |
 | 3   | **MemoryOS**   | `hierarchical_memory`<br>(STM/MTM/LPM 三层)            | `none`<br>（可选：extract.multi_summary/continuity_check） | `migrate`<br>热度迁移（可选：enhance.profile_extraction） | `none`<br>无预处理                               | `merge.multi_query`<br>三层并行检索合并     |
 | 4   | **LD-Agent**   | `hierarchical_memory`<br>(STM/LTM 双层)                | `none`<br>无预处理                                         | `migrate`<br>时间间隔触发迁移+摘要                        | `optimize.keyword_extract`<br>名词提取(话题重叠) | `rerank.weighted`<br>语义+时间+话题综合排序 |
-| 5   | **Mem0**       | `hybrid_memory`<br>(vector+bm25)                       | `extract.fact`<br>显著事实抽取                             | `crud`<br>ADD/UPDATE/DELETE/NOOP                         | `embedding`<br>查询向量化                        | `filter.threshold`<br>阈值过滤               |
-| 6   | **Mem0ᵍ**      | `hybrid_memory`<br>(vector+bm25+graph)                 | `extract.triple`<br>三元组抽取                             | `crud`<br>ADD/UPDATE/DELETE/NOOP                         | `embedding`<br>查询向量化                        | `none`<br>基础格式化                         |
-| 7   | **SCM**        | `short_term_memory`<br>(Memory Stream)                 | `transform.summarize`<br>阈值摘要（原文保留）              | `none`<br>无插入后处理                                   | `embedding`<br>排除上一轮                          | `scm_three_way`<br>drop/summary/raw          |
-| 8   | **A-Mem**      | `graph_memory`<br>(link_graph)                          | `extract.keyword`<br>Note结构（keywords/tags/context）     | `link_evolution`<br>auto_link+KNN                        | `embedding`<br>查询向量化                        | `merge.link_expand`<br>链接扩展             |
+| 5   | **Mem0**       | `hybrid_memory`<br>(vector+bm25)                       | `extract.fact`<br>显著事实抽取                             | `crud`<br>ADD/UPDATE/DELETE/NOOP                          | `embedding`<br>查询向量化                        | `filter.threshold`<br>阈值过滤              |
+| 6   | **Mem0ᵍ**      | `hybrid_memory`<br>(vector+bm25+graph)                 | `extract.triple`<br>三元组抽取                             | `crud`<br>ADD/UPDATE/DELETE/NOOP                          | `embedding`<br>查询向量化                        | `none`<br>基础格式化                        |
+| 7   | **SCM**        | `short_term_memory`<br>(Memory Stream)                 | `transform.summarize`<br>阈值摘要（原文保留）              | `none`<br>无插入后处理                                    | `embedding`<br>排除上一轮                        | `scm_three_way`<br>drop/summary/raw         |
+| 8   | **A-Mem**      | `graph_memory`<br>(link_graph)                         | `extract.keyword`<br>Note结构（keywords/tags/context）     | `link_evolution`<br>auto_link+KNN                         | `embedding`<br>查询向量化                        | `merge.link_expand`<br>链接扩展             |
 
 ______________________________________________________________________
 
@@ -752,10 +752,10 @@ ______________________________________________________________________
 | MemGPT     | `none`                                                     | 无                          | Agent 工具主动管理     |
 | MemoryOS   | `extract.multi_summary` 或<br>`transform.continuity_check` | 多主题识别 或<br>连续性判断 | 实时处理，支持复杂场景 |
 | LD-Agent   | `none`                                                     | 无                          | 摘要在 PostInsert 生成 |
-| Mem0       | `extract.fact`                                             | 抽取显著事实                | LLM 抽取，保留原文      |
-| Mem0ᵍ      | `extract.triple`                                           | 抽取实体与关系              | 三元组，用于图构建      |
-| SCM        | `transform.summarize`                                      | 超阈值摘要                  | 原文+摘要双存储         |
-| A-Mem      | `extract.keyword`                                          | Note 结构（关键词/标签）    | 结构化 JSON 入库        |
+| Mem0       | `extract.fact`                                             | 抽取显著事实                | LLM 抽取，保留原文     |
+| Mem0ᵍ      | `extract.triple`                                           | 抽取实体与关系              | 三元组，用于图构建     |
+| SCM        | `transform.summarize`                                      | 超阈值摘要                  | 原文+摘要双存储        |
+| A-Mem      | `extract.keyword`                                          | Note 结构（关键词/标签）    | 结构化 JSON 入库       |
 
 **设计思路**:
 
@@ -786,12 +786,12 @@ ______________________________________________________________________
 
 ### 3.3 PreRetrieval 阶段对比
 
-| 记忆体     | PreRetrieval 操作          | 目的       | 特点               |
-| ---------- | -------------------------- | ---------- | ------------------ |
-| MemoryBank | `embedding`                | 查询向量化 | 基础向量检索       |
-| MemGPT     | `embedding`                | 查询向量化 | 支持混合检索       |
-| MemoryOS   | `none`                     | 无         | 直接使用原始 query |
-| LD-Agent   | `optimize.keyword_extract` | 名词提取   | 话题重叠准备       |
+| 记忆体     | PreRetrieval 操作          | 目的       | 特点                |
+| ---------- | -------------------------- | ---------- | ------------------- |
+| MemoryBank | `embedding`                | 查询向量化 | 基础向量检索        |
+| MemGPT     | `embedding`                | 查询向量化 | 支持混合检索        |
+| MemoryOS   | `none`                     | 无         | 直接使用原始 query  |
+| LD-Agent   | `optimize.keyword_extract` | 名词提取   | 话题重叠准备        |
 | Mem0       | `embedding`                | 查询向量化 | 混合检索（vec+BM25) |
 | Mem0ᵍ      | `embedding`                | 查询向量化 | 融合图检索          |
 | SCM        | `embedding`                | 查询向量化 | 排除上一轮          |
@@ -813,7 +813,7 @@ ______________________________________________________________________
 | MemoryOS   | `merge.multi_query`    | 三层并行检索合并 | ThreadPool 并行  |
 | LD-Agent   | `rerank.weighted`      | 多因子加权重排序 | 语义+时间+话题   |
 | Mem0       | `filter.threshold`     | 过滤低分结果     | 简单高效         |
-| Mem0ᵍ      | `none`                  | 基础格式化       | 融合已在检索阶段 |
+| Mem0ᵍ      | `none`                 | 基础格式化       | 融合已在检索阶段 |
 | SCM        | `scm_three_way`        | Token 预算控制   | drop/summary/raw |
 | A-Mem      | `merge.link_expand`    | 关联上下文扩展   | 单跳/多跳扩展    |
 
@@ -832,10 +832,10 @@ ______________________________________________________________________
 | MemGPT     | Core/Archival/Recall (功能层) | Core 有限，其他无限       | 无（Agent 管理） | Core 始终在 context |
 | MemoryOS   | STM/MTM/LPM (三层)            | STM 20, MTM 200, LPM 无限 | FIFO + LFU       | Segment-Page 双层   |
 | LD-Agent   | STM/LTM (双层)                | STM 50, LTM 无限          | 时间触发迁移     | 名词集合            |
-| Mem0       | Hybrid (向量+BM25)            | 语义/关键词索引           | CRUD 清理         | 事实级条目          |
-| Mem0ᵍ      | Hybrid (向量+BM25+图)         | 三重索引                  | CRUD+图一致性     | 实体-关系图         |
-| SCM        | Memory Stream                 | 大容量流式队列            | Token 预算裁剪    | 原文+摘要双存储     |
-| A-Mem      | Link Graph                    | 节点/边按需增长           | 链接演化          | Note+Link 结构      |
+| Mem0       | Hybrid (向量+BM25)            | 语义/关键词索引           | CRUD 清理        | 事实级条目          |
+| Mem0ᵍ      | Hybrid (向量+BM25+图)         | 三重索引                  | CRUD+图一致性    | 实体-关系图         |
+| SCM        | Memory Stream                 | 大容量流式队列            | Token 预算裁剪   | 原文+摘要双存储     |
+| A-Mem      | Link Graph                    | 节点/边按需增长           | 链接演化         | Note+Link 结构      |
 
 ______________________________________________________________________
 

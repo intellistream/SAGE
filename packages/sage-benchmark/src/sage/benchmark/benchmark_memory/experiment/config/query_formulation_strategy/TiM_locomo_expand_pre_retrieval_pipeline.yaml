@@ -142,13 +142,10 @@ operators:
   pre_retrieval:
     action: optimize.expand
     expand_prompt: |
-      Generate {expand_count} related queries to help retrieve more comprehensive information.
-      Each query should explore a different aspect or perspective of the original question.
-
       Original question: {question}
 
-      Return a JSON array of expanded queries. Example: ["query 1", "query 2"]
-      Expanded queries:
+      Generate {expand_count} related queries (different aspects). Return ONLY a JSON array, no explanation.
+      ["query1?", "query2?"]
     expand_count: 2
     merge_strategy: union
     replace_original: false

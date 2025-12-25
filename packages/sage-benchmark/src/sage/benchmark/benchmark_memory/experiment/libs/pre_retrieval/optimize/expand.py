@@ -75,45 +75,62 @@ class ExpandAction(BasePreRetrievalAction):
         llm_elapsed = (time.perf_counter() - llm_start) * 1000
         print(f"\n⏱️  [PreRetrieval.Expand] LLM 扩展查询生成耗时: {llm_elapsed:.2f}ms")
 
-        # 解析扩展查询（过滤掉说明文字和格式标记）
-        lines = response.split("\n")
+        # 解析扩展查询 - 优先尝试JSON格式
+        import json
+        import re
+
         expanded_queries = []
-        for line in lines:
-            line = line.strip()
-            # 跳过空行、代码块标记、说明性文字
-            if not line:
-                continue
-            if line.startswith("```"):
-                continue
-            if line in ["[", "]", "{", "}"]:
-                continue
-            # 过滤说明性文字（不以问号结尾的长句）
-            if any(
-                keyword in line.lower()
-                for keyword in [
-                    "related queries",
-                    "here are",
-                    "this query explores",
-                    "this focuses on",
-                    "query explores",
-                    "query focuses",
-                ]
-            ):
-                continue
-            # 移除列表编号和格式标记
-            import re
 
-            line = re.sub(r"^[\d\-\*]+[\.)\]\s]+", "", line)  # 1. 2) 3] - *
-            line = re.sub(
-                r"^\*\*Query\s+\d+:?\s*[\"\']?", "", line, flags=re.IGNORECASE
-            )  # **Query 1: "
-            line = re.sub(r"[\"\']\*\*$", "", line)  # 结尾的 "**
-            line = re.sub(r'^["\']|["\']$', "", line)  # 引号
-            line = line.strip()
+        # 方法1: 尝试直接解析JSON
+        try:
+            # 提取JSON数组（可能包含在其他文本中）
+            json_match = re.search(r"\[.*?\]", response, re.DOTALL)
+            if json_match:
+                queries = json.loads(json_match.group())
+                if isinstance(queries, list):
+                    expanded_queries = [
+                        q.strip() for q in queries if isinstance(q, str) and len(q) > 15
+                    ]
+        except (json.JSONDecodeError, ValueError):
+            pass
 
-            # 只保留长度 > 15 且以问号结尾的有效查询
-            if line and len(line) > 15 and line.endswith("?"):
-                expanded_queries.append(line)
+        # 方法2: 如果JSON解析失败，使用原有的行解析逻辑
+        if not expanded_queries:
+            lines = response.split("\n")
+            for line in lines:
+                line = line.strip()
+                # 跳过空行、代码块标记、说明性文字
+                if not line:
+                    continue
+                if line.startswith("```"):
+                    continue
+                if line in ["[", "]", "{", "}"]:
+                    continue
+                # 过滤说明性文字
+                if any(
+                    keyword in line.lower()
+                    for keyword in [
+                        "related queries",
+                        "here are",
+                        "this query explores",
+                        "this focuses on",
+                        "query explores",
+                        "query focuses",
+                    ]
+                ):
+                    continue
+                # 移除列表编号和格式标记
+                line = re.sub(r"^[\d\-\*]+[\.)\]\s]+", "", line)  # 1. 2) 3] - *
+                line = re.sub(
+                    r"^\*\*Query\s+\d+:?\s*[\"\']?", "", line, flags=re.IGNORECASE
+                )  # **Query 1: "
+                line = re.sub(r"[\"\']\*\*$", "", line)  # 结尾的 "**
+                line = re.sub(r'^["\']|["\']$', "", line)  # 引号
+                line = line.strip()
+
+                # 只保留长度 > 15 且以问号结尾的有效查询
+                if line and len(line) > 15 and line.endswith("?"):
+                    expanded_queries.append(line)
 
         expanded_queries = expanded_queries[: self.expand_count]
 
@@ -121,6 +138,7 @@ class ExpandAction(BasePreRetrievalAction):
         print("\n📝 LLM 扩展查询生成:")
         print(f"  原始查询: {question}")
         print(f"  LLM 响应长度: {len(response)} 字符")
+        print(f"  完整响应:\n{response}")
         print(f"  解析出 {len(expanded_queries)} 个扩展查询:")
         for idx, eq in enumerate(expanded_queries, 1):
             print(f"    {idx}. {eq}")
