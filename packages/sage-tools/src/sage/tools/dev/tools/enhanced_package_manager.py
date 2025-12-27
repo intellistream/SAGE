@@ -74,11 +74,18 @@ class EnhancedPackageManager:
                 "dependencies": ["sage-common", "sage-kernel", "sage-libs"],
                 "description": "Benchmarking tools",
             },
+            # L1.5: LLM core stack
+            "sage-llm-core": {
+                "path": self.packages_dir / "sage-llm-core",
+                "namespace": "sage.llm",
+                "dependencies": ["sage-common"],
+                "description": "LLM control plane and unified client",
+            },
             # L6: UI 和开发工具
-            "sage-gateway": {
-                "path": self.packages_dir / "sage-gateway",
-                "namespace": "sage.gateway",
-                "dependencies": ["sage-common", "sage-kernel", "sage-libs"],
+            "sage-llm-gateway": {
+                "path": self.packages_dir / "sage-llm-gateway",
+                "namespace": "sage.llm.gateway",
+                "dependencies": ["sage-common", "sage-llm-core", "sage-kernel", "sage-libs"],
                 "description": "OpenAI/Anthropic compatible API Gateway",
             },
             "sage-studio": {
@@ -99,9 +106,11 @@ class EnhancedPackageManager:
                 "namespace": "sage",
                 "dependencies": [
                     "sage-common",
+                    "sage-llm-core",
                     "sage-kernel",
                     "sage-libs",
                     "sage-middleware",
+                    "sage-llm-gateway",
                 ],
                 "description": "Meta package - all SAGE core components",
             },

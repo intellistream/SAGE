@@ -12,7 +12,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sage.common.components.sage_llm.sageLLM.control_plane.executors.embedding_executor import (
+pytest.importorskip(
+    "sage.llm.sageLLM.control_plane.executors.embedding_executor",
+    reason="sage-llm-core package not available; skip embedding executor tests.",
+)
+
+from sage.llm.sageLLM.control_plane.executors.embedding_executor import (
     EmbeddingExecutor,
     EmbeddingInstanceUnavailableError,
     EmbeddingMetrics,

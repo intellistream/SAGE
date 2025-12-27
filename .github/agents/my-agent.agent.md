@@ -216,7 +216,7 @@ If documentation and code appear inconsistent, the agent should **explicitly cal
 ### UnifiedInferenceClient 快速上手
 
 ```python
-from sage.common.components.sage_llm import UnifiedInferenceClient
+from sage.llm import UnifiedInferenceClient
 
 # 推荐：Control Plane 模式（支持智能调度）
 client = UnifiedInferenceClient.create_with_control_plane(

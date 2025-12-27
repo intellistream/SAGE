@@ -16,7 +16,7 @@ Architecture:
     - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
 
 Example:
-    >>> from sage.common.components.sage_llm import UnifiedInferenceClient
+    >>> from sage.llm import UnifiedInferenceClient
     >>> client = UnifiedInferenceClient.create()
     >>> response = client.chat([{"role": "user", "content": "Hello"}])
     >>> vectors = client.embed(["text1", "text2"])

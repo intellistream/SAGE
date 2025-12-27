@@ -1,0 +1,80 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-edge"
+dynamic = ["version"]
+description = "SAGE Edge aggregator shell - mounts LLM gateway under an optional prefix"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@github.com" },
+]
+keywords = ["sage", "edge", "gateway", "llm", "openai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "isage-llm-core>=0.1.0",  # ensures control plane client availability when gateway mounts
+    "isage-llm-gateway>=0.1.0",
+    "isage-common>=0.1.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.27.0",
+    "ruff==0.14.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+[project.scripts]
+sage-edge = "sage.edge.server:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "sage.edge._version.__version__" }
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"

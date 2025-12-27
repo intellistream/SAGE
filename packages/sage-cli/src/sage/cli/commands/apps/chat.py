@@ -708,7 +708,7 @@ class ResponseGenerator:
             self._setup_finetune_backend()
         else:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.llm import UnifiedInferenceClient
 
                 if base_url and api_key:
                     # Explicit configuration — use factory and inject API key via env
@@ -764,7 +764,7 @@ class ResponseGenerator:
                     console.print(
                         f"[green]✅ 检测到本地 LLM 服务 (端口 {port}, 模型: {local_model})[/green]"
                     )
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.llm import UnifiedInferenceClient
 
                     self.client = UnifiedInferenceClient.create(
                         control_plane_url=f"http://localhost:{port}/v1",
@@ -777,15 +777,10 @@ class ResponseGenerator:
                 pass
 
         # 2. 尝试云端 API（检查环境变量）
-        api_key = (
-            os.getenv("SAGE_CHAT_API_KEY")
-            or os.getenv("OPENAI_API_KEY")
-            or os.getenv("DASHSCOPE_API_KEY")
-            or os.getenv("ALIBABA_API_KEY")
-        )
+        api_key = os.getenv("SAGE_CHAT_API_KEY") or os.getenv("OPENAI_API_KEY")
         if api_key:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.llm import UnifiedInferenceClient
 
                 # 使用 create 会自动检测配置
                 self.client = UnifiedInferenceClient.create()
@@ -800,7 +795,7 @@ class ResponseGenerator:
         # 3. 回退到 mock 模式
         console.print(
             "[yellow]⚠️  未检测到可用的 LLM 服务，使用 mock 模式[/yellow]\n"
-            "[dim]提示: 启动本地服务 `sage llm serve` 或配置 SAGE_CHAT_API_KEY 环境变量[/dim]"
+            "[dim]提示: 启动本地服务 `sage llm serve` 或配置 SAGE_CHAT_API_KEY/OPENAI_API_KEY 环境变量[/dim]"
         )
         self.client = None
         self.backend = "mock"
@@ -886,7 +881,7 @@ class ResponseGenerator:
 
             # 使用 sageLLM LLMAPIServer 启动服务
             try:
-                from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+                from sage.llm import LLMAPIServer, LLMServerConfig
 
                 config = LLMServerConfig(
                     model=str(merged_path),
@@ -922,7 +917,7 @@ class ResponseGenerator:
 
         # 设置 LLM 客户端连接到本地服务
         try:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
+            from sage.llm import UnifiedInferenceClient
 
             # Connect to local finetune LLM via factory
             self.client = UnifiedInferenceClient.create(

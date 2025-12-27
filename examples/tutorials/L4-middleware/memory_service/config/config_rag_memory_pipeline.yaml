@@ -40,6 +40,6 @@ generator:
   vllm:
     api_key: ""
     method: "openai"
-    model_name: "qwen-turbo-2025-02-11"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "Qwen/Qwen2.5-7B-Instruct"
+    base_url: "http://127.0.0.1:8888/v1"
     seed: 42

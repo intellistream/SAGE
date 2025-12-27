@@ -163,7 +163,7 @@ def start(
     cmd = [
         sys.executable,
         "-m",
-        "sage.gateway",
+        "sage.llm.gateway",
         "--host",
         host,
         "--port",

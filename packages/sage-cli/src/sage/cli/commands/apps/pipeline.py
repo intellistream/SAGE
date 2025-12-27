@@ -34,7 +34,7 @@ from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.local_environment import LocalEnvironment
 
 try:  # pragma: no cover - optional dependency at runtime only
-    from sage.common.components.sage_llm import UnifiedInferenceClient
+    from sage.llm import UnifiedInferenceClient
 
     OPENAI_AVAILABLE = True
     OPENAI_IMPORT_ERROR: Exception | None = None

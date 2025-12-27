@@ -1,0 +1,73 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-llm-core"
+dynamic = ["version"]
+description = "SAGE LLM Core - Control Plane and Unified Client (L1)"
+readme = "README.md"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@github.com" },
+]
+keywords = ["sage", "llm", "control-plane", "unified-client"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "isage-common>=0.1.0",
+    "httpx>=0.27.0",
+    "openai>=1.99.1,<2.0.0",
+    "pydantic>=2.5.0",
+]
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.27.0",
+    "ruff==0.14.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic.version]
+attr = "sage.llm._version.__version__"
+
+[tool.ruff]
+extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

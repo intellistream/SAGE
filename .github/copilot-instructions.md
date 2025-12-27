@@ -8,15 +8,19 @@ dataflow. 11 functional packages + 1 meta-package, ~400MB dev install, uses C++ 
 **Architecture (L1-L6)** - CRITICAL: No upward dependencies
 
 ```
-L6: sage-cli, sage-studio, sage-tools, sage-gateway  # Interfaces, Dev Tools & API Gateway
+L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway, sage-edge  # Interfaces & gateways
 L5: sage-apps, sage-benchmark          # Apps & Benchmarks  
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
-L1: sage-common                        # Foundation
+L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 ```
 
-Note: `sage-gateway` is published to PyPI as `isage-gateway` (OpenAI/Anthropic compatible API Gateway).
+Notes:
+- `sage-llm-gateway` is published to PyPI as `isage-llm-gateway` (OpenAI/Anthropic-compatible API Gateway).
+- `sage-llm-core` is published to PyPI as `isage-llm-core` (Unified client + control plane).
+- `sage-edge` is an opt-in aggregator shell that can mount the LLM gateway; behavior is unchanged unless it is explicitly started.
+- Legacy `sage-gateway` has been superseded; do not add new code under that namespace.
 
 All in `/packages/<name>/`. L6 imports L1-L5, L5 imports L1-L4, etc.
 
@@ -47,24 +51,32 @@ Only after consulting these READMEs should the assistant propose designs, refact
 
 SAGE is an inference pipeline system, not just an LLM server. When writing docs, abstracts, design notes, or code changes, prefer describing/using these existing modules (and their correct layer placement) instead of inventing new components.
 
+Canonical namespaces (post-refactor):
+- Gateway: `sage.llm.gateway.*` (package: `sage-llm-gateway`)
+- Control plane + unified client: `sage.llm.*` (package: `sage-llm-core`)
+- Optional edge aggregator: `sage.edge.*` (package: `sage-edge`)
+- Avoid legacy `sage.gateway.*` imports; they have been superseded.
+
 **Gateway (L6, OpenAI/Anthropic-compatible + control plane + sessions)**
 
-- Entry point: `packages/sage-gateway/src/sage/gateway/server.py`
-- Control plane management API: `packages/sage-gateway/src/sage/gateway/routes/control_plane.py`
-- Studio backend routes (merged into gateway): `packages/sage-gateway/src/sage/gateway/routes/studio.py`
+- Entry point: `packages/sage-llm-gateway/src/sage/llm/gateway/server.py`
+- Control plane management API: `packages/sage-llm-gateway/src/sage/llm/gateway/routes/engine_control_plane.py`
+- Studio backend routes (merged into gateway): `packages/sage-llm-gateway/src/sage/llm/gateway/routes/studio.py`
 - OpenAI adapter (runs persistent RAG pipeline, can trigger agentic operators):
-  `packages/sage-gateway/src/sage/gateway/adapters/openai.py`
-- Pipeline-as-a-service for RAG: `packages/sage-gateway/src/sage/gateway/rag_pipeline.py`
+  `packages/sage-llm-gateway/src/sage/llm/gateway/adapters/openai.py`
+- Pipeline-as-a-service for RAG: `packages/sage-llm-gateway/src/sage/llm/gateway/rag_pipeline.py`
 - Session + memory backends (short-term + NeuroMem VDB/KV/Graph):
-  `packages/sage-gateway/src/sage/gateway/session/manager.py`
+  `packages/sage-llm-gateway/src/sage/llm/gateway/session/manager.py`
+- Edge aggregator (optional shell mounting the gateway, keeps /v1/* intact by default):
+  `packages/sage-edge/src/sage/edge/app.py`
 
 **Control Plane + Unified Client (L1, sageLLM integration)**
 
 - Unified LLM+Embedding client (must use factory):
-  `packages/sage-common/src/sage/common/components/sage_llm/unified_client.py`
+  `packages/sage-llm-core/src/sage/llm/unified_client.py`
 - Control plane implementation lives under:
-  `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/`
-  (tests: `.../sageLLM/tests/control_plane/`)
+  `packages/sage-llm-core/src/sage/llm/control_plane/`
+  (tests: `.../control_plane/tests/`)
 
 **Middleware inference building blocks (L4, including C++ extensions)**
 
@@ -273,7 +285,8 @@ port = 8001  # 不要这样写
 **端口分配表**:
 | 常量 | 端口 | 用途 |
 |------|------|------|
-| `GATEWAY_DEFAULT` | 8888 | sage-gateway (OpenAI 兼容 API Gateway) |
+| `GATEWAY_DEFAULT` | 8888 | sage-llm-gateway (OpenAI 兼容 API Gateway) |
+| `EDGE_DEFAULT` | 8899 | sage-edge 聚合器（可选，默认挂载 gateway 保持 /v1/*） |
 | `LLM_DEFAULT` | 8001 | vLLM 推理服务 |
 | `LLM_WSL_FALLBACK` | 8901 | WSL2 备用 LLM 端口 |
 | `STUDIO_BACKEND` | 8888 | sage-studio 后端 API |
@@ -281,7 +294,7 @@ port = 8001  # 不要这样写
 | `EMBEDDING_DEFAULT` | 8090 | Embedding 服务 |
 | `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
 
-**架构**: `User → Gateway (8888) → LLM (8001)`
+**架构**: `User → Edge (8899, 可选) → Gateway (8888) → LLM (8001)`（Edge 默认直通 Gateway，直接访问 Gateway 也有效）
 
 **WSL2 已知问题**:
 - 端口 8001 在 WSL2 上可能出现"端口监听但连接被拒绝"的问题
@@ -295,7 +308,7 @@ port = 8001  # 不要这样写
 **UnifiedInferenceClient must be created via the factory** (direct instantiation is intentionally blocked).
 
 ```python
-from sage.common.components.sage_llm import UnifiedInferenceClient
+from sage.llm import UnifiedInferenceClient
 
 client = UnifiedInferenceClient.create()
 ```
@@ -337,12 +350,10 @@ tools/pytest.ini, tools/pre-commit-config.yaml
 ├─────────────────────────────────────────────────────────────────────────┤
 │                      UnifiedInferenceClient                              │
 │                 chat() | generate() | embed()                            │
-│        ┌─────────────────────┬─────────────────────┐                    │
-│        │   Simple Mode       │  Control Plane Mode │                    │
-│        │  (直连后端 API)      │  (通过调度器路由)    │  ← 推荐           │
-│        └─────────────────────┴─────────────────────┘                    │
+│                    Control Plane Mode (唯一模式)                         │
+│              （所有请求通过调度器统一路由）                               │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                       sage-gateway (统一 Gateway)                          │
+│                 sage.llm.gateway (L6 Gateway)                              │
 │              (OpenAI-Compatible REST API + Control Plane)               │
 │   /v1/chat/completions | /v1/embeddings | /v1/management/* | /sessions │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -362,21 +373,25 @@ tools/pytest.ini, tools/pre-commit-config.yaml
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
+*可选 Edge 层*: `sage-edge` (8899) 可以将 `sage.llm.gateway` 挂载在 `/`（保持 `/v1/*` 兼容），或在自定义前缀下提供多域聚合。未启动 edge 时，直接访问 Gateway 即可。
+
 ### 推荐用法：Control Plane 模式
 
 ```python
-from sage.common.components.sage_llm import UnifiedInferenceClient
+from sage.llm import UnifiedInferenceClient
 
-# 方式 1: Control Plane 模式（推荐 - 支持智能调度）
-client = UnifiedInferenceClient.create_with_control_plane(
-    llm_base_url="http://localhost:8901/v1",      # vLLM 服务
-    llm_model="Qwen/Qwen2.5-7B-Instruct",
-    embedding_base_url="http://localhost:8090/v1", # Embedding 服务
-    embedding_model="BAAI/bge-m3",
+# 默认（推荐）: 自动检测本地/远端端点，优先本地
+client = UnifiedInferenceClient.create()
+
+# 外部 Control Plane: 指向已运行的 Control Plane/Gateway
+client = UnifiedInferenceClient.create(
+  control_plane_url="http://127.0.0.1:8888/v1",
+  default_llm_model="Qwen/Qwen2.5-7B-Instruct",
+  default_embedding_model="BAAI/bge-m3",
 )
 
-# 方式 2: 自动检测（Simple 模式，适合简单场景）
-client = UnifiedInferenceClient.create()
+# 内嵌 Control Plane: 在当前进程启动调度器（实验性，适合离线批处理）
+# embedded mode deprecated; use control_plane_url instead
 
 ### 启动服务栈
 
@@ -434,55 +449,60 @@ engines:
 
 | 组件 | 位置 | 功能 |
 |------|------|------|
-| `ControlPlaneManager` | `sageLLM/control_plane/manager.py` | 核心调度管理器 |
-| `RequestClassifier` | `sageLLM/control_plane/request_classifier.py` | 请求类型分类 |
-| `HybridSchedulingPolicy` | `sageLLM/control_plane/strategies/hybrid_policy.py` | 混合调度策略 |
-| `EmbeddingExecutor` | `sageLLM/control_plane/executors/embedding_executor.py` | Embedding 批处理 |
-| `ControlPlaneVLLMService` | `sage_llm/control_plane_service.py` | SAGE 封装层 |
+| `ControlPlaneManager` | `sage.llm.control_plane.manager` | 核心调度管理器 |
+| `RequestClassifier` | `sage.llm.control_plane.request_classifier` | 请求类型分类 |
+| `HybridSchedulingPolicy` | `sage.llm.control_plane.strategies.hybrid_policy` | 混合调度策略 |
+| `EmbeddingExecutor` | `sage.llm.control_plane.executors.embedding_executor` | Embedding 批处理 |
+| `ControlPlaneService` | `sage.llm.control_plane_service` | Control Plane SAGE 封装 |
 
 ### 关键文件位置
 
 ```
-packages/sage-common/src/sage/common/components/
-  sage_llm/
-    unified_client.py         # UnifiedInferenceClient (统一客户端)
-    control_plane_service.py  # Control Plane SAGE 封装
-    service.py                # VLLMService (内嵌模式，批处理用)
-    sageLLM/control_plane/    # ← Control Plane 核心实现
-      manager.py              # 调度管理器
-      request_classifier.py   # 请求分类器
-      strategies/             # 调度策略
-        hybrid_policy.py      # LLM + Embedding 混合调度
-      executors/              # 执行器
-        embedding_executor.py # Embedding 批处理执行
-  sage_embedding/
-    embedding_server.py       # OpenAI 兼容 Embedding 服务器
-    factory.py                # EmbeddingFactory (本地模型)
+packages/sage-llm-core/src/sage/llm/
+  unified_client.py         # UnifiedInferenceClient (factory-only construction)
+  control_plane_service.py  # Control Plane facade
+  control_plane/            # Control Plane core implementation
+    manager.py              # 调度管理器
+    request_classifier.py   # 请求分类器
+    strategies/hybrid_policy.py  # LLM + Embedding 混合调度
+    executors/embedding_executor.py # Embedding 批处理执行
 
-packages/sage-gateway/src/sage/gateway/
-  app.py                      # FastAPI 应用入口
+packages/sage-llm-gateway/src/sage/llm/gateway/
+  server.py                 # FastAPI 应用入口 (OpenAI/Anthropic-compatible)
   routes/
-    control_plane.py          # Control Plane 管理 API
-    llm.py                    # LLM 代理
-    embedding.py              # Embedding 代理
-    sessions.py               # 会话管理
+    engine_control_plane.py # Control Plane 管理 API
+    llm.py                  # LLM 代理
+    embedding.py            # Embedding 代理
+    studio.py               # Studio backend routes (merged)
+    sessions.py             # 会话管理
+  adapters/openai.py        # OpenAI adapter
+  rag_pipeline.py           # Pipeline-as-a-service
+  session/manager.py        # Session + memory backends
+
+packages/sage-edge/src/sage/edge/
+  app.py                    # FastAPI aggregator shell (mounts gateway, keeps /v1/* by default)
+  server.py                 # uvicorn entrypoint / CLI target
+
+packages/sage-common/src/sage/common/components/
+  sage_embedding/
+    embedding_server.py     # OpenAI 兼容 Embedding 服务器
+    factory.py              # EmbeddingFactory (本地模型)
 ```
 
-### 两种模式对比
+### 客户端模式对比（统一 Control Plane）
 
-| 特性 | Simple 模式 | Control Plane 模式 |
-|------|-------------|-------------------|
-| 创建方式 | `create_auto()` | `create_with_control_plane()` |
-| 调度 | 直连后端 | 智能路由 + 负载均衡 |
-| 多实例 | ❌ | ✅ 支持 |
-| 批处理聚合 | ❌ | ✅ Embedding 自动聚合 |
-| 优先级调度 | ❌ | ✅ 支持 |
-| 适用场景 | 开发测试、简单部署 | 生产环境、高并发 |
+> Simple 模式已移除；所有请求都经由 Control Plane。
+
+| 模式 | 创建方式 | 调度 | 适用场景 |
+|------|----------|------|---------|
+| 自动检测 | `UnifiedInferenceClient.create()` | 自动探测本地/远端端点，统一调度 | 默认推荐（本地开发、单机实验） |
+| 外部 Control Plane | `UnifiedInferenceClient.create(control_plane_url=...)` | 通过已运行的 Control Plane/Gateway 路由 | 生产部署、网关统一入口 |
+| 内嵌 Control Plane (deprecated) | 使用 control_plane_url 或本地 Gateway | 在进程内启动调度器 | 离线批处理/无外部服务时 |
 
 ### 内嵌模式 (VLLMService) - 批处理专用
 
 ```python
-from sage.common.components.sage_llm import VLLMService
+from sage.llm import VLLMService
 
 # 进程内加载模型，适合批处理任务
 service = VLLMService({
@@ -509,6 +529,8 @@ SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 HF_TOKEN=hf_xxx
 # HF_ENDPOINT 无需手动设置，SAGE 会自动检测网络并配置镜像
 ```
+
+> 提示：DashScope 变量仅作为显式回退使用，默认期望本地/自部署端点（端口来自 `SagePorts`）。不要依赖隐式云端回落；如需远端，请在配置中明确设置 base_url。
 
 ### 网络检测和 HuggingFace 镜像自动配置
 

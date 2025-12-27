@@ -9,13 +9,13 @@ for LLM-only or Embedding-only use cases.
 
 Example:
     >>> # Unified client (recommended)
-    >>> from sage.common.components.sage_llm import UnifiedInferenceClient
+    >>> from sage.llm import UnifiedInferenceClient
     >>> client = UnifiedInferenceClient.create()
     >>> response = client.chat([{"role": "user", "content": "Hello"}])
     >>> vectors = client.embed(["text1", "text2"])
     >>>
     >>> # LLM-focused adapter (legacy compatibility)
-    >>> from sage.common.components.sage_llm import LLMClientAdapter
+    >>> from sage.llm import LLMClientAdapter
     >>> adapter = LLMClientAdapter.create()
     >>> response = adapter.chat([{"role": "user", "content": "Hello"}])
 """
@@ -23,9 +23,10 @@ Example:
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Any
 
-from .unified_client import (
+from sage.llm.unified_client import (
     InferenceResult,
     UnifiedInferenceClient,
 )
@@ -111,7 +112,7 @@ class LLMClientAdapter(UnifiedInferenceClient):
         timeout: float = 60.0,
         **kwargs: Any,
     ) -> LLMClientAdapter:
-        """Create adapter with auto-detection.
+        """Create adapter (deprecated alias for create).
 
         .. deprecated::
             Use :meth:`create` instead. This method will be removed in a future version.
@@ -136,29 +137,40 @@ class LLMClientAdapter(UnifiedInferenceClient):
     def create(
         cls,
         *,
+        control_plane_url: str | None = None,
+        default_llm_model: str | None = None,
+        llm_api_key: str | None = None,
         timeout: float = 60.0,
+        max_retries: int = 3,
         **kwargs: Any,
     ) -> LLMClientAdapter:
-        """Create adapter with auto-detection.
+        """Create adapter pointing to the Control Plane/Gateway only.
 
         Args:
+            control_plane_url: Optional explicit Control Plane URL.
+            default_llm_model: Default model name for LLM requests.
+            llm_api_key: Optional API key override.
             timeout: Request timeout in seconds.
-            **kwargs: Additional arguments.
+            max_retries: Maximum retries for failed requests.
+            **kwargs: Additional arguments passed to the adapter constructor.
 
         Returns:
-            Configured LLMClientAdapter instance.
+            Configured LLMClientAdapter instance bound to the control plane.
         """
-        # Use parent's detection logic
-        llm_base_url, llm_model, llm_api_key = cls._detect_llm_endpoint(
-            prefer_local=True,
-            ports=(8001, 8000),
+
+        base_client = UnifiedInferenceClient.create(
+            control_plane_url=control_plane_url,
+            default_llm_model=default_llm_model,
+            llm_api_key=llm_api_key,
+            timeout=timeout,
         )
 
         return cls(
-            model_name=llm_model,
-            base_url=llm_base_url,
-            api_key=llm_api_key,
+            model_name=base_client.config.llm_model,
+            base_url=base_client.config.llm_base_url,
+            api_key=base_client.config.llm_api_key or "",
             timeout=timeout,
+            max_retries=max_retries,
             **kwargs,
         )
 
@@ -222,7 +234,12 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
 
         # Initialize embedded mode if requested
         if mode == "embedded" and model:
-            self._init_embedded_mode(model)
+            # Skip heavy model load during test runs to avoid long downloads
+            in_test = os.getenv("PYTEST_CURRENT_TEST") or os.getenv("SAGE_TEST_MODE") == "true"
+            if in_test:
+                logger.info("Test mode detected, skipping embedded embedder initialization")
+            else:
+                self._init_embedded_mode(model)
 
     def _init_embedded_mode(self, model: str) -> None:
         """Initialize embedded mode with HuggingFace model."""
@@ -282,17 +299,15 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
     def create_auto(
         cls,
         *,
-        fallback_model: str = "BAAI/bge-small-zh-v1.5",
         timeout: float = 60.0,
         **kwargs: Any,
     ) -> EmbeddingClientAdapter:
-        """Create adapter with auto-detection.
+        """Create adapter (deprecated alias for create).
 
         .. deprecated::
             Use :meth:`create` instead. This method will be removed in a future version.
 
         Args:
-            fallback_model: Model to use for embedded mode if no server found.
             timeout: Request timeout in seconds.
             **kwargs: Additional arguments.
 
@@ -306,53 +321,46 @@ class EmbeddingClientAdapter(UnifiedInferenceClient):
             DeprecationWarning,
             stacklevel=2,
         )
-        return cls.create(fallback_model=fallback_model, timeout=timeout, **kwargs)
+        return cls.create(timeout=timeout, **kwargs)
 
     @classmethod
     def create(
         cls,
         *,
-        fallback_model: str = "BAAI/bge-small-zh-v1.5",
+        control_plane_url: str | None = None,
+        default_embedding_model: str | None = None,
+        embedding_api_key: str | None = None,
         timeout: float = 60.0,
         **kwargs: Any,
     ) -> EmbeddingClientAdapter:
-        """Create adapter with auto-detection.
-
-        Detection order:
-        1. SAGE_EMBEDDING_BASE_URL environment variable
-        2. Local embedding server (ports 8090, 8080)
-        3. Embedded mode with fallback_model
+        """Create adapter pointing to the Control Plane/Gateway only.
 
         Args:
-            fallback_model: Model to use for embedded mode if no server found.
+            control_plane_url: Optional explicit Control Plane URL.
+            default_embedding_model: Default embedding model name.
+            embedding_api_key: Optional API key override.
             timeout: Request timeout in seconds.
-            **kwargs: Additional arguments.
+            **kwargs: Additional arguments passed to the adapter constructor.
 
         Returns:
-            Configured EmbeddingClientAdapter instance.
+            Configured EmbeddingClientAdapter instance bound to the control plane.
         """
-        # Try to detect API endpoint
-        base_url, model, api_key = cls._detect_embedding_endpoint(
-            prefer_local=True,
-            ports=(8090, 8080),
+
+        base_client = UnifiedInferenceClient.create(
+            control_plane_url=control_plane_url,
+            default_embedding_model=default_embedding_model,
+            embedding_api_key=embedding_api_key,
+            timeout=timeout,
         )
 
-        if base_url:
-            return cls(
-                base_url=base_url,
-                model=model,
-                api_key=api_key,
-                mode="api",
-                timeout=timeout,
-                **kwargs,
-            )
-
-        # Fall back to embedded mode
-        logger.info(
-            "No embedding server found, using embedded mode with model: %s",
-            fallback_model,
+        return cls(
+            base_url=base_client.config.embedding_base_url,
+            model=base_client.config.embedding_model,
+            api_key=base_client.config.embedding_api_key or "",
+            mode="api",
+            timeout=timeout,
+            **kwargs,
         )
-        return cls.create_embedded(model=fallback_model, timeout=timeout, **kwargs)
 
     @classmethod
     def create_api(

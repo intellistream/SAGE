@@ -263,7 +263,7 @@ jobs:
           # 验证安装
           echo "🔍 验证安装..."
           python -c "import sage.studio; print('sage.studio OK')"
-          python -c "import sage.gateway; print('sage.gateway OK')"
+          python -c "import sage.llm.gateway; print('sage.llm.gateway OK')"
           which sage
 
           # 验证 C++ 扩展
@@ -279,9 +279,9 @@ jobs:
 
           # 测试完整的 Gateway 导入链
           echo "测试 Gateway 完整导入链..."
-          python -c "from sage.gateway.server import app; print('sage.gateway.app OK')" || {
+          python -c "from sage.llm.gateway.server import app; print('sage.llm.gateway.app OK')" || {
             echo "⚠️ Gateway 导入失败，查看详细错误..."
-            python -c "from sage.gateway.server import app" 2>&1 | head -50
+            python -c "from sage.llm.gateway.server import app" 2>&1 | head -50
             exit 1
           }
 
@@ -683,7 +683,7 @@ jobs:
           # 验证 wrapper 脚本
           echo "🔍 验证 conda wrapper..."
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python --version
-          "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.gateway; print('Gateway import OK')"
+          "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.llm.gateway; print('Gateway import OK')"
 
       - name: Start services
         run: |

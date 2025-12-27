@@ -68,6 +68,11 @@ class SagePorts:
     GATEWAY_DEFAULT: ClassVar[int] = 8888  # API Gateway main port
 
     # =========================================================================
+    # sage-edge (L6 aggregator shell)
+    # =========================================================================
+    EDGE_DEFAULT: ClassVar[int] = 8899  # Edge aggregator (mounts LLM gateway by default)
+
+    # =========================================================================
     # LLM Services (vLLM, etc.)
     # =========================================================================
     LLM_DEFAULT: ClassVar[int] = 8001  # SAGE recommended vLLM port
@@ -228,6 +233,7 @@ class SagePorts:
 
         services = [
             ("Gateway", cls.GATEWAY_DEFAULT),
+            ("Edge", cls.EDGE_DEFAULT),
             ("LLM (Default)", cls.LLM_DEFAULT),
             ("LLM (WSL/Bench)", cls.LLM_WSL_FALLBACK),
             ("Embedding", cls.EMBEDDING_DEFAULT),

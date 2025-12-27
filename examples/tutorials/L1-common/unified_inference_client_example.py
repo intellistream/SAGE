@@ -26,8 +26,8 @@ from typing import TYPE_CHECKING, cast
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from sage.common.components.sage_llm import UnifiedInferenceClient
 from sage.common.config.ports import SagePorts
+from sage.llm import UnifiedInferenceClient
 
 if TYPE_CHECKING:
     pass

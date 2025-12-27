@@ -36,7 +36,7 @@ class SchedulingPolicy(str, Enum):
     """Supported scheduling policies.
 
     These map to the strategies defined in:
-    sage.common.components.sage_llm.sageLLM.control_plane.strategies
+    sage.llm.sageLLM.control_plane.strategies
     """
 
     FIFO = "fifo"

@@ -68,7 +68,7 @@ python examples/tutorials/L1-common/unified_inference_client_example.py
 ### 3. 或直接使用 Python
 
 ```python
-from sage.common.components.sage_llm import UnifiedInferenceClient
+from sage.llm import UnifiedInferenceClient
 
 # 连接到 Gateway Control Plane
 client = UnifiedInferenceClient.create(

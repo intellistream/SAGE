@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 
 # Try to import control plane types, but gracefully handle if submodule is not available
 try:
-    from sage.common.components.sage_llm.sageLLM.control_plane.types import (
+    from sage.llm.sageLLM.control_plane.types import (
         ExecutionInstance,
         ExecutionInstanceType,
         RequestMetadata,

@@ -38,7 +38,7 @@ def test_none_action():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
             "embedding_base_url": "http://localhost:8090/v1",
             "embedding_model": "BAAI/bge-m3",
         },
@@ -72,7 +72,7 @@ def test_transform_chunking():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
             "embedding_base_url": "http://localhost:8090/v1",
             "embedding_model": "BAAI/bge-m3",
         },
@@ -111,7 +111,7 @@ def test_extract_action():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
         },
     }
     config = MockConfig(config_dict)
@@ -136,7 +136,7 @@ def test_score_importance():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
         },
     }
     config = MockConfig(config_dict)
@@ -160,7 +160,7 @@ def test_multi_embed():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
             "embedding_base_url": "http://localhost:8090/v1",
             "embedding_model": "BAAI/bge-m3",
         },
@@ -186,7 +186,7 @@ def test_validate_action():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
             "embedding_base_url": "http://localhost:8090/v1",
             "embedding_model": "BAAI/bge-m3",
         },
@@ -228,7 +228,7 @@ def test_tri_embed_init():
         "runtime": {
             "api_key": "test-key",  # pragma: allowlist secret
             "model_name": "qwen-turbo",
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "base_url": "http://127.0.0.1:8001/v1",
             "embedding_base_url": "http://localhost:8090/v1",
             "embedding_model": "BAAI/bge-m3",
         },

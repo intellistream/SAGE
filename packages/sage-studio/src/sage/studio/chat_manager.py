@@ -144,7 +144,7 @@ class ChatModeManager(StudioManager):
 
         launcher_cls = None
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
 
             launcher_cls = LLMLauncher
             for service in LLMLauncher.discover_running_services():
@@ -153,7 +153,12 @@ class ChatModeManager(StudioManager):
             launcher_cls = None
 
         # Ports to check in order of preference
-        llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
+        llm_ports = [
+            self.llm_port,
+            SagePorts.get_recommended_llm_port(),
+            SagePorts.LLM_DEFAULT,
+            SagePorts.BENCHMARK_LLM,
+        ]
 
         for port in llm_ports:
             if launcher_cls:
@@ -197,10 +202,12 @@ class ChatModeManager(StudioManager):
         env_base_url = os.environ.get("SAGE_EMBEDDING_BASE_URL") or os.environ.get(
             "SAGE_UNIFIED_BASE_URL"
         )
-        if env_base_url:
+        if env_base_url and self._probe_llm_endpoint(env_base_url):
             return (True, env_base_url)
 
-        ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT]
+        ports_to_check = (
+            [port] if port else [SagePorts.EMBEDDING_DEFAULT, SagePorts.BENCHMARK_EMBEDDING]
+        )
 
         for p in ports_to_check:
             if p is None:
@@ -241,7 +248,7 @@ class ChatModeManager(StudioManager):
             return True
 
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
         except ImportError:
             console.print(
                 "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
@@ -287,7 +294,7 @@ class ChatModeManager(StudioManager):
             force: If True, aggressively scan and stop services on related ports.
         """
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
         except ImportError:
             return True
 
@@ -616,11 +623,11 @@ class ChatModeManager(StudioManager):
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
 
-        console.print(f"[blue]🚀 启动 sage-gateway (端口: {gateway_port})...[/blue]")
+        console.print(f"[blue]🚀 启动 sage-llm-gateway (端口: {gateway_port})...[/blue]")
         try:
             log_handle = open(self.gateway_log_file, "w")
             process = subprocess.Popen(
-                [sys.executable, "-m", "sage.gateway.server"],
+                [sys.executable, "-m", "sage.llm.gateway.server"],
                 stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
@@ -631,8 +638,8 @@ class ChatModeManager(StudioManager):
         except Exception as exc:
             console.print(f"[red]❌ 启动 gateway 失败: {exc}")
             console.print(
-                "[yellow]提示: 请确保已安装 sage-gateway: "
-                "pip install -e packages/sage-gateway[/yellow]"
+                "[yellow]提示: 请确保已安装 sage-llm-gateway: "
+                "pip install -e packages/sage-llm-gateway[/yellow]"
             )
             return False
 
@@ -818,7 +825,7 @@ class ChatModeManager(StudioManager):
     def _get_used_llm_ports(self) -> set[int]:
         ports: set[int] = set()
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
 
             for service in LLMLauncher.discover_running_services():
                 service_port = service.get("port")
@@ -874,7 +881,7 @@ class ChatModeManager(StudioManager):
         used_ports = self._get_used_llm_ports()
 
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
         except ImportError:
             console.print("[yellow]⚠️  sageLLM 不可用，跳过自动调度[/yellow]")
             return False

@@ -269,15 +269,23 @@ class StudioManager:
         console.print(f"[blue]🚀 启动 Gateway 服务 ({host}:{port})...[/blue]")
 
         try:
-            # 检查 sage-gateway 命令是否可用
-            result = subprocess.run(["which", "sage-gateway"], capture_output=True, text=True)
+            # 检查 sage-llm-gateway 命令是否可用
+            result = subprocess.run(["which", "sage-llm-gateway"], capture_output=True, text=True)
             if result.returncode != 0:
                 console.print(
-                    "[yellow]⚠️  sage-gateway 命令未找到，尝试使用 python -m sage.gateway.server[/yellow]"
+                    "[yellow]⚠️  sage-llm-gateway 命令未找到，尝试使用 python -m sage.llm.gateway.server[/yellow]"
                 )
-                cmd = ["python", "-m", "sage.gateway.server", "--host", host, "--port", str(port)]
+                cmd = [
+                    "python",
+                    "-m",
+                    "sage.llm.gateway.server",
+                    "--host",
+                    host,
+                    "--port",
+                    str(port),
+                ]
             else:
-                cmd = ["sage-gateway", "--host", host, "--port", str(port)]
+                cmd = ["sage-llm-gateway", "--host", host, "--port", str(port)]
 
             # 启动进程
             log_handle = open(self.gateway_log_file, "w")

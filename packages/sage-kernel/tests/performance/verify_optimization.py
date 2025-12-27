@@ -10,6 +10,8 @@ import time
 
 import ray
 
+from sage.kernel.utils.ray.ray_utils import init_ray_with_sage_temp
+
 
 def verify_optimization():
     """验证优化效果的快速脚本"""
@@ -18,7 +20,7 @@ def verify_optimization():
 
     # 初始化Ray
     if not ray.is_initialized():
-        ray.init(ignore_reinit_error=True)
+        init_ray_with_sage_temp(ignore_reinit_error=True)
         print("✅ Ray initialized")
 
     try:

@@ -6,8 +6,8 @@ SAGE Memory Backend 示例
 
 from pathlib import Path
 
-from sage.gateway.session.manager import SessionManager
-from sage.gateway.session.storage import FileSessionStore
+from sage.llm.gateway.session.manager import SessionManager
+from sage.llm.gateway.session.storage import FileSessionStore
 
 
 def demo_short_term_memory():

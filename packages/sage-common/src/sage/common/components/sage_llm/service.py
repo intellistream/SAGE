@@ -28,13 +28,13 @@ import numpy as np
 os.environ.setdefault("GLOO_SOCKET_IFNAME", "lo")
 os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
 
-from sage.common.components.sage_llm.speculative import (
-    DraftModelStrategy,
-    SpeculativeStrategy,
-)
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
 from sage.common.service import BaseService
+from sage.llm.speculative import (
+    DraftModelStrategy,
+    SpeculativeStrategy,
+)
 
 # Lazy import for vLLM to avoid slow CLI startup
 # vLLM imports torch which takes ~10 seconds

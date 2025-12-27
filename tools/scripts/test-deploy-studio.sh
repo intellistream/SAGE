@@ -158,7 +158,7 @@ stop_existing_services() {
 
     log_info "停止现有 SAGE Studio 服务..."
     pkill -f "sage studio" 2>/dev/null || true
-    pkill -f "sage-gateway" 2>/dev/null || true
+    pkill -f "sage-llm-gateway" 2>/dev/null || true
     pkill -f "vllm.entrypoints" 2>/dev/null || true
     sleep 2
     log_success "现有服务已停止"
@@ -170,7 +170,7 @@ stop_existing_services() {
 check_sage_installation() {
     log_step "Step 3: Check Existing SAGE Installation"
 
-    if python -c "import sage.studio; import sage.gateway" 2>/dev/null; then
+    if python -c "import sage.studio; import sage.llm.gateway" 2>/dev/null; then
         SAGE_INSTALLED=true
         log_success "SAGE 已安装"
     else
@@ -206,8 +206,9 @@ install_sage() {
         pip install -e packages/sage-libs --no-deps -q
         pip install -e packages/sage-middleware --no-deps -q
         pip install -e packages/sage-apps --no-deps -q
+        pip install -e packages/sage-llm-core --no-deps -q
         pip install -e packages/sage-studio --no-deps -q
-        pip install -e packages/sage-gateway --no-deps -q
+        pip install -e packages/sage-llm-gateway --no-deps -q
         pip install -e packages/sage-cli --no-deps -q
         pip install -e packages/sage-tools --no-deps -q
         pip install -e packages/sage --no-deps -q

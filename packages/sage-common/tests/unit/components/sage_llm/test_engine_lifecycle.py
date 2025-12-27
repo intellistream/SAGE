@@ -12,7 +12,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sage.common.components.sage_llm.sageLLM.control_plane.engine_lifecycle import (
+pytest.importorskip(
+    "sage.llm.sageLLM.control_plane.engine_lifecycle",
+    reason="sage-llm-core package not available; skip engine lifecycle tests.",
+)
+
+from sage.llm.sageLLM.control_plane.engine_lifecycle import (
     EngineLifecycleManager,
     EngineProcessInfo,
     EngineRuntime,

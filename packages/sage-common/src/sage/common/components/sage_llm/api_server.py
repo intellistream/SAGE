@@ -190,7 +190,7 @@ class LLMAPIServer:
 
     Example:
         ```python
-        from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
+        from sage.llm import LLMAPIServer, LLMServerConfig
 
         # vLLM backend (default)
         config = LLMServerConfig(

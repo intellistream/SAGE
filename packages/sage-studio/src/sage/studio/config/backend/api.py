@@ -1590,6 +1590,10 @@ class AgentChatRequest(BaseModel):
     message: str
     session_id: str
     history: list[dict[str, str]] | None = None
+    route: str | None = None
+    should_index: bool | None = None
+    metadata: dict[str, Any] | None = None
+    evidence: list[dict[str, Any]] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -1805,8 +1809,8 @@ async def send_chat_message(
         # 2. If not set, try to detect from Gateway
         if not model_to_use:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
                 from sage.common.config.ports import SagePorts
+                from sage.llm import UnifiedInferenceClient
 
                 client = UnifiedInferenceClient.create(
                     control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
@@ -1883,6 +1887,9 @@ async def agent_chat(request: AgentChatRequest):
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+        should_index=request.should_index or False,
+        metadata=request.metadata or {},
+        evidence=request.evidence or [],
     )
 
     return stream_handler.create_response(source)
@@ -1900,6 +1907,9 @@ async def agent_chat_sync(request: AgentChatRequest):
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+        should_index=request.should_index or False,
+        metadata=request.metadata or {},
+        evidence=request.evidence or [],
     ):
         if hasattr(item, "step_id"):  # AgentStep
             # Handle both dataclass and Pydantic models
@@ -2970,7 +2980,7 @@ def _persist_model_selection(model_name: str, base_url: str) -> str:
 
 def _discover_launcher_models() -> list[dict[str, Any]]:
     try:
-        from sage.common.components.sage_llm import LLMLauncher
+        from sage.llm import LLMLauncher
     except ImportError:
         return []
 
@@ -3177,7 +3187,7 @@ async def select_llm_model(request: SelectModelRequest):
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
     try:
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
     except Exception:
         UnifiedInferenceClient = None  # type: ignore[assignment]
 
@@ -3309,12 +3319,11 @@ async def get_llm_status():
                 _merge_model(entry)
 
         cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
-        if cloud_api_key:
+        cloud_base_url = os.getenv("SAGE_CHAT_BASE_URL")
+        if cloud_api_key and cloud_base_url:
             cloud_entry = {
                 "name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                "base_url": os.getenv(
-                    "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-                ),
+                "base_url": _normalize_base_url(cloud_base_url),
                 "is_local": False,
                 "description": "Cloud API (Configured in .env)",
                 "api_key": cloud_api_key,

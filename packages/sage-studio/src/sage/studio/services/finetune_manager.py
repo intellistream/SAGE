@@ -786,8 +786,8 @@ if __name__ == "__main__":
 
             import os
 
-            from sage.common.components.sage_llm import LLMAPIServer, LLMServerConfig
             from sage.common.config.ports import SagePorts
+            from sage.llm import LLMAPIServer, LLMServerConfig
 
             config = LLMServerConfig(
                 model=model_path,

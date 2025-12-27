@@ -66,7 +66,7 @@ class LLMLauncher:
 
     Example:
         ```python
-        from sage.common.components.sage_llm import LLMLauncher
+        from sage.llm import LLMLauncher
 
         # Simple launch
         result = LLMLauncher.launch("Qwen/Qwen2.5-0.5B-Instruct")
