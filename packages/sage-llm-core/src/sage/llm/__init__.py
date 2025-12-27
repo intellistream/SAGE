@@ -10,8 +10,8 @@ Architecture rules:
 
 Design principle (Flag-Day refactor):
 - sage.llm is the PUBLIC API namespace for LLM functionality
-- Implementation may live in sage.common.components.sage_llm (internal)
-- All external code should import from sage.llm, not sage.common.components.sage_llm
+- All LLM service implementations live in sage-llm-core package
+- External code should import from sage.llm, not internal paths
 """
 
 # Namespace package support
@@ -19,37 +19,35 @@ __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 __layer__ = "L1"
 
-# Re-export service classes from sage.common (implementation detail)
-# These are re-exported here to provide a unified sage.llm.* import path
-from sage.common.components.sage_llm import (
-    ControlPlaneVLLMService,
-    ControlPlaneVLLMServiceConfig,
-    LLMAPIServer,
-    LLMLauncher,
-    LLMLauncherResult,
-    LLMServerConfig,
-    VLLMService,
-    VLLMServiceConfig,
-    get_served_model_name,
-)
-
 from ._version import __version__
 
-# Primary unified client (new simplified version in this package)
+# vLLM service wrappers (now in sage-llm-core)
+from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
+
+# Advanced Control Plane service
+from .control_plane_service import (
+    ControlPlaneVLLMService,
+    ControlPlaneVLLMServiceConfig,
+)
+from .launcher import LLMLauncher, LLMLauncherResult
+from .service import VLLMService, VLLMServiceConfig
+
+# Primary unified client
 from .unified_client import UnifiedInferenceClient
 
 __all__ = [
     "__version__",
     # Primary API
     "UnifiedInferenceClient",
-    # Service classes (re-exported from sage.common)
-    "ControlPlaneVLLMService",
-    "ControlPlaneVLLMServiceConfig",
-    "LLMAPIServer",
-    "LLMLauncher",
-    "LLMLauncherResult",
-    "LLMServerConfig",
+    # Service classes (vLLM wrappers)
     "VLLMService",
     "VLLMServiceConfig",
+    "LLMAPIServer",
+    "LLMServerConfig",
+    "LLMLauncher",
+    "LLMLauncherResult",
     "get_served_model_name",
+    # Advanced services
+    "ControlPlaneVLLMService",
+    "ControlPlaneVLLMServiceConfig",
 ]

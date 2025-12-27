@@ -30,12 +30,12 @@ from pathlib import Path
 
 # 包的层级定义（根据 PACKAGE_ARCHITECTURE.md）
 LAYER_DEFINITION = {
-    "L1": ["sage-common"],
+    "L1": ["sage-common", "sage-llm-core"],
     "L2": ["sage-platform"],
     "L3": ["sage-kernel", "sage-libs"],
     "L4": ["sage-middleware"],
     "L5": ["sage-apps", "sage-benchmark"],
-    "L6": ["sage-studio", "sage-tools", "sage-gateway"],
+    "L6": ["sage-studio", "sage-tools", "sage-llm-gateway", "sage-edge"],
 }
 
 # 反向映射：包名 -> 层级
@@ -47,17 +47,20 @@ for layer, packages in LAYER_DEFINITION.items():
 # 允许的依赖关系（高层 -> 低层）
 ALLOWED_DEPENDENCIES = {
     "sage-common": set(),  # L1 不依赖任何包
-    "sage-platform": {"sage-common"},  # L2 -> L1
-    "sage-kernel": {"sage-common", "sage-platform"},  # L3 kernel 独立，不依赖 libs
-    "sage-libs": {"sage-common", "sage-platform"},  # L3 libs 独立，不依赖 kernel
+    "sage-llm-core": {"sage-common"},  # L1 LLM core，依赖 common foundation
+    "sage-platform": {"sage-common", "sage-llm-core"},  # L2 -> L1
+    "sage-kernel": {"sage-common", "sage-llm-core", "sage-platform"},  # L3 kernel 独立，不依赖 libs
+    "sage-libs": {"sage-common", "sage-llm-core", "sage-platform"},  # L3 libs 独立，不依赖 kernel
     "sage-middleware": {
         "sage-common",
+        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
     },  # L4 -> L3, L2, L1
     "sage-apps": {
         "sage-common",
+        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -65,6 +68,7 @@ ALLOWED_DEPENDENCIES = {
     },  # L5 -> L4, L3, L2, L1
     "sage-benchmark": {
         "sage-common",
+        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -72,6 +76,7 @@ ALLOWED_DEPENDENCIES = {
     },  # L5 -> L4, L3, L2, L1
     "sage-studio": {
         "sage-common",
+        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -79,25 +84,34 @@ ALLOWED_DEPENDENCIES = {
     },  # L6 -> L4, L3, L2, L1
     "sage-tools": {
         "sage-common",
+        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
         "sage-middleware",
         "sage-studio",
     },  # L6 -> L5(studio), L4, L3, L2, L1
-    "sage-gateway": {
+    "sage-llm-gateway": {
         "sage-common",
+        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
         "sage-middleware",
         "sage-studio",  # Gateway 集成 Studio Backend 路由
     },  # L6 -> L6(studio), L4, L3, L2, L1
+    "sage-edge": {
+        "sage-common",
+        "sage-llm-core",
+        "sage-llm-gateway",  # Edge can mount gateway
+        "sage-platform",
+    },  # L6 -> L6(gateway), L2, L1
 }
 
 # 包的根目录映射
 PACKAGE_PATHS = {
     "sage-common": "packages/sage-common/src",
+    "sage-llm-core": "packages/sage-llm-core/src",
     "sage-platform": "packages/sage-platform/src",
     "sage-kernel": "packages/sage-kernel/src",
     "sage-libs": "packages/sage-libs/src",
@@ -106,7 +120,8 @@ PACKAGE_PATHS = {
     "sage-benchmark": "packages/sage-benchmark/src",
     "sage-studio": "packages/sage-studio/src",
     "sage-tools": "packages/sage-tools/src",
-    "sage-gateway": "packages/sage-gateway/src",
+    "sage-llm-gateway": "packages/sage-llm-gateway/src",
+    "sage-edge": "packages/sage-edge/src",
 }
 
 # Submodules to exclude from checks (maintained in separate repositories)

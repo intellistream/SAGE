@@ -1,62 +1,54 @@
-"""SAGE's integrated vLLM component package.
+"""SAGE's integrated vLLM component package (DEPRECATED - moved to sage-llm-core).
+
+⚠️ DEPRECATION WARNING:
+This module has been moved to sage-llm-core. Please update your imports:
+
+OLD (deprecated):
+    from sage.common.components.sage_llm import VLLMService
+
+NEW (correct):
+    from sage.llm import VLLMService
 
 Layer: L1 (Foundation - Common Components)
 
-This module provides service wrappers for vLLM (Very Large Language Model inference),
-allowing SAGE to leverage high-performance LLM serving capabilities.
-
-Services:
-    - VLLMService: Simple single-instance vLLM service
-    - ControlPlaneVLLMService: Advanced multi-instance service with intelligent scheduling
-    - UnifiedInferenceClient: Unified client for both LLM and Embedding
-
-Architecture:
-    - Designed to be used by L2 (Platform) and higher layers
-    - Provides blocking service interface for LLM generation and embeddings
-    - Must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps
-
-Example:
-    >>> from sage.llm import UnifiedInferenceClient
-    >>> client = UnifiedInferenceClient.create()
-    >>> response = client.chat([{"role": "user", "content": "Hello"}])
-    >>> vectors = client.embed(["text1", "text2"])
+All LLM-related functionality has been consolidated into the sage-llm-core package
+for better organization and clearer architecture.
 """
 
-from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
-from .launcher import LLMLauncher, LLMLauncherResult
-from .service import VLLMService, VLLMServiceConfig
-from .unified_client import UnifiedInferenceClient
+import warnings
 
-# Optional: Advanced Control Plane service
-try:
-    from .control_plane_service import (
-        ControlPlaneVLLMService,
-        ControlPlaneVLLMServiceConfig,
-    )
+# Emit deprecation warning on module import
+warnings.warn(
+    "sage.common.components.sage_llm has been moved to sage-llm-core. "
+    "Please update your imports to use 'from sage.llm import ...' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-    __all__ = [
-        "VLLMService",
-        "VLLMServiceConfig",
-        "LLMAPIServer",
-        "LLMServerConfig",
-        "LLMLauncher",
-        "LLMLauncherResult",
-        "get_served_model_name",
-        "ControlPlaneVLLMService",
-        "ControlPlaneVLLMServiceConfig",
-        # Unified Client
-        "UnifiedInferenceClient",
-    ]
-except ImportError:
-    # Control Plane service not available
-    __all__ = [
-        "VLLMService",
-        "VLLMServiceConfig",
-        "LLMAPIServer",
-        "LLMServerConfig",
-        "LLMLauncher",
-        "LLMLauncherResult",
-        "get_served_model_name",
-        # Unified Client
-        "UnifiedInferenceClient",
-    ]
+# Flag-Day refactor: Re-export from new location for internal sage-common use only
+# External code MUST use sage.llm namespace
+from sage.llm import (
+    ControlPlaneVLLMService,
+    ControlPlaneVLLMServiceConfig,
+    LLMAPIServer,
+    LLMLauncher,
+    LLMLauncherResult,
+    LLMServerConfig,
+    UnifiedInferenceClient,
+    VLLMService,
+    VLLMServiceConfig,
+    get_served_model_name,
+)
+
+__all__ = [
+    "VLLMService",
+    "VLLMServiceConfig",
+    "LLMAPIServer",
+    "LLMServerConfig",
+    "LLMLauncher",
+    "LLMLauncherResult",
+    "get_served_model_name",
+    "ControlPlaneVLLMService",
+    "ControlPlaneVLLMServiceConfig",
+    "UnifiedInferenceClient",
+]
