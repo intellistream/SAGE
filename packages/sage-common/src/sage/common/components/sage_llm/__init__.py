@@ -23,19 +23,9 @@ Example:
 """
 
 from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
-from .compat import (
-    EmbeddingClientAdapter,
-    LLMClientAdapter,
-)
 from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
-from .unified_client import (
-    InferenceResult,
-    UnifiedClient,
-    UnifiedClientConfig,
-    UnifiedClientMode,
-    UnifiedInferenceClient,
-)
+from .unified_client import UnifiedInferenceClient
 
 # Optional: Advanced Control Plane service
 try:
@@ -56,13 +46,6 @@ try:
         "ControlPlaneVLLMServiceConfig",
         # Unified Client
         "UnifiedInferenceClient",
-        "UnifiedClient",
-        "UnifiedClientConfig",
-        "UnifiedClientMode",
-        "InferenceResult",
-        # Compatibility adapters
-        "LLMClientAdapter",
-        "EmbeddingClientAdapter",
     ]
 except ImportError:
     # Control Plane service not available
@@ -76,11 +59,4 @@ except ImportError:
         "get_served_model_name",
         # Unified Client
         "UnifiedInferenceClient",
-        "UnifiedClient",
-        "UnifiedClientConfig",
-        "UnifiedClientMode",
-        "InferenceResult",
-        # Compatibility adapters
-        "LLMClientAdapter",
-        "EmbeddingClientAdapter",
     ]

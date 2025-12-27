@@ -54,7 +54,7 @@ class ChatModeManager(StudioManager):
             List of fine-tuned model info dictionaries
         """
         try:
-            from sage.studio.services.finetune_manager import finetune_manager
+            from sage.libs.finetune import finetune_manager
 
             models = []
             for task in finetune_manager.tasks.values():
