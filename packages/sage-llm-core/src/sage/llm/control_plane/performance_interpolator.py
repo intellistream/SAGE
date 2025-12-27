@@ -45,6 +45,7 @@ class PrefillInterpolator:
     def _load_profile_data(self):
         """Load pre-profiling data from directory."""
         # TODO: Implement loading from profiling results
+        # Issue URL: https://github.com/intellistream/SAGE/issues/1373
         # Format: CSV or JSON with (isl, ttft, throughput) tuples
         logger.warning(f"Profile data loading not yet implemented for {self.profile_data_dir}")
         self._init_heuristic_model()
@@ -74,6 +75,7 @@ class PrefillInterpolator:
             ttft = self.base_ttft_ms + isl * self.token_latency_ms
         else:
             # TODO: Use interpolation from profile data
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1372
             ttft = self.base_ttft_ms + isl * self.token_latency_ms
 
         logger.debug(f"Interpolated TTFT for ISL={isl:.0f}: {ttft:.2f}ms")
@@ -96,6 +98,7 @@ class PrefillInterpolator:
             )
         else:
             # TODO: Use interpolation from profile data
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1371
             throughput = self.max_throughput_per_gpu * (
                 1.0 / (1.0 + self.throughput_decay_factor * isl)
             )
@@ -157,6 +160,7 @@ class DecodeInterpolator:
     def _load_profile_data(self):
         """Load pre-profiling data from directory."""
         # TODO: Implement loading from profiling results
+        # Issue URL: https://github.com/intellistream/SAGE/issues/1370
         logger.warning(f"Profile data loading not yet implemented for {self.profile_data_dir}")
         self._init_heuristic_model()
 
@@ -190,6 +194,7 @@ class DecodeInterpolator:
             )
         else:
             # TODO: Use interpolation from profile data
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1369
             itl = (
                 self.base_itl_ms
                 + self.concurrency_factor * concurrency
@@ -244,6 +249,7 @@ class DecodeInterpolator:
 
         else:
             # TODO: Use reverse interpolation from profile data
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1368
             max_concurrency = (
                 itl - self.base_itl_ms - self.context_factor * context_length
             ) / self.concurrency_factor
