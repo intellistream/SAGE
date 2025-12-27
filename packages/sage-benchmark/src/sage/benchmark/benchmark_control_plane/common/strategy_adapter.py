@@ -8,7 +8,7 @@ Strategy Adapter Module
 Provides adapters for Control Plane scheduling strategies.
 
 This module bridges the benchmark framework with the actual strategy
-implementations in sage.common.components.sage_llm.sageLLM.control_plane.strategies
+implementations in sage.llm.sageLLM.control_plane.strategies
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import strategies, provide fallback if not available
 try:
-    from sage.common.components.sage_llm.sageLLM.control_plane.strategies import (
+    from sage.llm.sageLLM.control_plane.strategies import (
         AdaptivePolicy,
         AegaeonPolicy,
         CostOptimizedPolicy,

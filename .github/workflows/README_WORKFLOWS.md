@@ -267,6 +267,5 @@ cd /path/to/SAGE
 
 在 GitHub Settings → Secrets 中配置：
 
-- `DASHSCOPE_API_KEY` - 阿里云 API Key (必需)
-- `OPENAI_API_KEY` - OpenAI API Key (可选)
+- `SAGE_CHAT_API_KEY` / `OPENAI_API_KEY` - OpenAI 兼容 API Key（云端或自托管都可，例如阿里云 DashScope 兼容端点）
 - `HF_TOKEN` - Hugging Face Token (可选)

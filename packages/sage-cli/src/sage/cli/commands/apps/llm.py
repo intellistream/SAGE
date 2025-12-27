@@ -19,23 +19,23 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from sage.common.components.sage_llm.presets import (
+from sage.common.config import ensure_hf_mirror_configured
+from sage.common.config.ports import SagePorts
+from sage.common.model_registry import fetch_recommended_models, vllm_registry
+from sage.llm.presets import (
     EnginePreset,
     get_builtin_preset,
     list_builtin_presets,
     load_preset_file,
 )
-from sage.common.config import ensure_hf_mirror_configured
-from sage.common.config.ports import SagePorts
-from sage.common.model_registry import fetch_recommended_models, vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
-    from sage.common.components.sage_llm import VLLMService
+    from sage.llm import VLLMService
 except Exception:  # pragma: no cover - handled gracefully at runtime
     VLLMService = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import (
+    from sage.llm import (
         LLMAPIServer,
         LLMLauncher,
         LLMServerConfig,
@@ -46,7 +46,7 @@ except Exception:  # pragma: no cover
     LLMServerConfig = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import (
+    from sage.llm import (
         BackendInstanceConfig,
         UnifiedAPIServer,
         UnifiedServerConfig,
@@ -1014,7 +1014,7 @@ def serve_llm(
 
     启动后可通过以下方式使用:
 
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
 
         client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])

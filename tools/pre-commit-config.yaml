@@ -96,6 +96,13 @@ repos:
     pass_filenames: false
     always_run: false
     files: \.md$
+  - id: control-plane-only-guard
+    name: prevent embedded/local inference paths
+    entry: tools/hooks/check_control_plane_only.py
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: \.py$
   - id: python-test-files-location-check
     name: check Python test files are in proper locations
     entry: bash -c
@@ -299,6 +306,7 @@ repos:
         "examples"
         "htmlcov"
         "packages"
+        "data"
         "tools"
       )
 

@@ -46,10 +46,10 @@ services:
     - SAGE_STUDIO_LLM_MODEL=Qwen/Qwen2.5-7B-Instruct
     - SAGE_STUDIO_LLM_GPU_MEMORY=0.9
     - SAGE_LLM_STARTUP_TIMEOUT=600
-      # 云端 API 备用（可选，填入后可在本地 LLM 不可用时降级）
+      # 云端 API 备用（可选，填入后可在本地 LLM 不可用时使用显式云端地址）
       # - SAGE_CHAT_API_KEY=sk-xxx
       # - SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
-      # - SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      # - SAGE_CHAT_BASE_URL=https://your-cloud-endpoint/v1
 
     # 数据卷
     volumes:

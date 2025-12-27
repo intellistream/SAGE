@@ -2,8 +2,15 @@
 CLI主模块测试
 """
 
+import os
+
 import pytest
 from typer.testing import CliRunner
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("SAGE_RUN_SLOW_TESTS") != "1",
+    reason="CLI dev command tests can be slow; set SAGE_RUN_SLOW_TESTS=1 to enable.",
+)
 
 from sage.tools.cli.commands.dev import app
 

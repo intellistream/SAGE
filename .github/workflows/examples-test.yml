@@ -53,6 +53,18 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Detect LLM endpoint (prefer local)
+        run: |
+          DEFAULT_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
+          SELECTED_BASE="$DEFAULT_BASE"
+          for port in 8888 8901; do
+            if curl -s "http://localhost:${port}/v1/models" > /dev/null 2>&1; then
+              SELECTED_BASE="http://localhost:${port}/v1"
+              break
+            fi
+          done
+          echo "OPENAI_BASE_URL=$SELECTED_BASE" >> $GITHUB_ENV
+
       - name: Create .env File from Secrets
         run: |
           echo "🔐 从 GitHub Secrets 创建 .env 文件..."
@@ -60,8 +72,8 @@ jobs:
           # CI Environment Configuration for Examples Testing
 
           # LLM Service API Keys
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
 
           SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}

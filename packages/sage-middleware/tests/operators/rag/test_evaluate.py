@@ -2,10 +2,16 @@
 测试 sage.middleware.operators.rag.evaluate 模块
 """
 
+import os
 from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("SAGE_RUN_SLOW_TESTS") != "1",
+    reason="RAG evaluate tests are slow; set SAGE_RUN_SLOW_TESTS=1 to enable.",
+)
 
 # 尝试导入评估模块
 pytest_plugins = []

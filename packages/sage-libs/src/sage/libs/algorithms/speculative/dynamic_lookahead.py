@@ -11,7 +11,7 @@ custom draft model selection) without modifying the core service infrastructure.
 import logging
 from typing import Any
 
-from sage.common.components.sage_llm.speculative import SpeculativeStrategy
+from sage.llm.speculative import SpeculativeStrategy
 
 logger = logging.getLogger(__name__)
 

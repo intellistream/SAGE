@@ -12,11 +12,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from sage.common.components.sage_llm.compat import (
+import pytest
+
+from sage.common.config.ports import SagePorts
+
+pytest.importorskip(
+    "sage.llm.compat",
+    reason="sage-llm-core package not available; skip compat adapter tests.",
+)
+
+from sage.llm.compat import (
     EmbeddingClientAdapter,
     LLMClientAdapter,
 )
-from sage.common.components.sage_llm.unified_client import (
+from sage.llm.unified_client import (
     UnifiedInferenceClient,
 )
 
@@ -60,19 +69,12 @@ class TestLLMClientAdapter:
         assert hasattr(adapter, "generate")
         assert hasattr(adapter, "embed")
 
-    @patch.object(LLMClientAdapter, "_detect_llm_endpoint")
-    def test_create(self, mock_detect):
-        """Test create factory method."""
-        mock_detect.return_value = (
-            "http://localhost:8001/v1",
-            "qwen-7b",
-            "",
-        )
-
+    def test_create(self):
+        """create() should use control-plane defaults."""
         adapter = LLMClientAdapter.create()
 
-        assert adapter.config.llm_base_url == "http://localhost:8001/v1"
-        assert adapter.config.llm_model == "qwen-7b"
+        expected = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+        assert adapter.config.llm_base_url == expected
 
 
 class TestEmbeddingClientAdapter:
@@ -109,29 +111,13 @@ class TestEmbeddingClientAdapter:
         assert hasattr(adapter, "chat")
         assert hasattr(adapter, "generate")
 
-    @patch.object(EmbeddingClientAdapter, "_detect_embedding_endpoint")
-    def test_create_api_mode(self, mock_detect):
-        """Test create returns API mode when endpoint found."""
-        mock_detect.return_value = (
-            "http://localhost:8090/v1",
-            "bge-m3",
-            "",
-        )
-
+    def test_create_api_mode(self):
+        """create() should produce API mode pointing at control plane."""
         adapter = EmbeddingClientAdapter.create()
 
+        expected = f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
         assert adapter._mode == "api"
-        assert adapter.config.embedding_base_url == "http://localhost:8090/v1"
-
-    @patch.object(EmbeddingClientAdapter, "_detect_embedding_endpoint")
-    @patch.object(EmbeddingClientAdapter, "_init_embedded_mode")
-    def test_create_embedded_mode(self, mock_init_embedded, mock_detect):
-        """Test create falls back to embedded mode."""
-        mock_detect.return_value = (None, None, "")
-
-        adapter = EmbeddingClientAdapter.create(fallback_model="BAAI/bge-small-zh-v1.5")
-
-        assert adapter._mode == "embedded"
+        assert adapter.config.embedding_base_url == expected
 
     def test_create_api(self):
         """Test create_api factory method."""

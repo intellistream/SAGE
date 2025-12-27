@@ -273,7 +273,7 @@ def get_llm_client():
         UnifiedInferenceClient 实例
     """
     try:
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
 
         return UnifiedInferenceClient.create()
     except ImportError as e:

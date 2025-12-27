@@ -86,8 +86,8 @@ LLM_BACKENDS = {
     ),
     "qwen-cloud": LLMBackendConfig(
         name="Qwen (Aliyun)",
-        api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        api_key_env="DASHSCOPE_API_KEY",  # pragma: allowlist secret
+        api_base="http://127.0.0.1:8001/v1",
+        api_key_env="SAGE_CHAT_API_KEY",  # pragma: allowlist secret
         model_id="qwen-plus",
         supports_function_calling=True,
         supports_json_mode=True,
