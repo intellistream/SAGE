@@ -1,9 +1,11 @@
-"""SAGE's integrated vLLM component package (DEPRECATED - moved to sage-llm-core).
+"""SAGE's integrated vLLM component package (MOVED to sage-llm-core).
 
-⚠️ DEPRECATION WARNING:
-This module has been moved to sage-llm-core. Please update your imports:
+⚠️ BREAKING CHANGE (Flag-Day Refactor):
+This module has been completely moved to sage-llm-core. Imports will fail.
 
-OLD (deprecated):
+Please update your imports:
+
+OLD (removed):
     from sage.common.components.sage_llm import VLLMService
 
 NEW (correct):
@@ -15,40 +17,15 @@ All LLM-related functionality has been consolidated into the sage-llm-core packa
 for better organization and clearer architecture.
 """
 
-import warnings
+# Flag-Day refactor: Explicitly fail imports to force migration
+# No backward compatibility - external code MUST update to sage.llm
 
-# Emit deprecation warning on module import
-warnings.warn(
-    "sage.common.components.sage_llm has been moved to sage-llm-core. "
-    "Please update your imports to use 'from sage.llm import ...' instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+__all__ = []
 
-# Flag-Day refactor: Re-export from new location for internal sage-common use only
-# External code MUST use sage.llm namespace
-from sage.llm import (
-    ControlPlaneVLLMService,
-    ControlPlaneVLLMServiceConfig,
-    LLMAPIServer,
-    LLMLauncher,
-    LLMLauncherResult,
-    LLMServerConfig,
-    UnifiedInferenceClient,
-    VLLMService,
-    VLLMServiceConfig,
-    get_served_model_name,
-)
 
-__all__ = [
-    "VLLMService",
-    "VLLMServiceConfig",
-    "LLMAPIServer",
-    "LLMServerConfig",
-    "LLMLauncher",
-    "LLMLauncherResult",
-    "get_served_model_name",
-    "ControlPlaneVLLMService",
-    "ControlPlaneVLLMServiceConfig",
-    "UnifiedInferenceClient",
-]
+def __getattr__(name: str):
+    """Explicitly fail all attribute access with a clear error message."""
+    raise ImportError(
+        f"sage.common.components.sage_llm.{name} has been moved to sage-llm-core.\n"
+        f"Please update your import to: from sage.llm import {name}"
+    )
