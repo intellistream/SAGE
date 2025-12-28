@@ -539,7 +539,7 @@ class StudioManager:
             {
                 "name": "vite",
                 "version": "^5.0.8",
-                "required": ["bin/vite.js"],
+                "required": ["bin/vite.js", "dist/node/cli.js"],
                 "reason": "Vite build tool",
             },
         ]
