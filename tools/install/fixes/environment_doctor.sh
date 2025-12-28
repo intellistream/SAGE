@@ -157,16 +157,23 @@ check_package_manager_conflicts() {
     for package in "numpy" "torch" "transformers" "scipy"; do
         local conda_installed=""
         local pip_installed=""
+        local conda_source=""
 
         if [ "$conda_available" = "true" ]; then
-            conda_installed=$(conda list "$package" 2>/dev/null | grep "^$package" | head -1 | awk '{print $2}' || echo "")
+            # 获取 conda 列表中的包信息（包括来源）
+            local conda_line=$(conda list "$package" 2>/dev/null | grep "^$package" | head -1)
+            if [ -n "$conda_line" ]; then
+                conda_installed=$(echo "$conda_line" | awk '{print $2}')
+                conda_source=$(echo "$conda_line" | awk '{print $4}')
+            fi
         fi
 
         if [ "$pip_available" = "true" ]; then
             pip_installed=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
         fi
 
-        if [ -n "$conda_installed" ] && [ -n "$pip_installed" ] && [ "$conda_installed" != "$pip_installed" ]; then
+        # 只有当 conda 中的包不是来自 pypi（即真正的 conda 安装），且版本与 pip 不一致时才报告冲突
+        if [ -n "$conda_installed" ] && [ -n "$pip_installed" ] && [ "$conda_source" != "pypi" ] && [ "$conda_installed" != "$pip_installed" ]; then
             mixed_packages+=("$package(conda:$conda_installed,pip:$pip_installed)")
             report_issue "mixed_package_$package" "包 $package 同时被 conda 和 pip 管理，版本不一致" "major"
         fi
