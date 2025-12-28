@@ -858,6 +858,20 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     echo -e "${CHECK} 本地依赖包安装完成"
     echo ""
 
+    # 预安装构建依赖（防止 pip build isolation 从镜像下载失败）
+    echo -e "${DIM}预安装构建依赖（setuptools, wheel, packaging）...${NC}"
+    log_info "开始预安装构建依赖" "INSTALL"
+    log_debug "PIP命令: $PIP_CMD install 'setuptools>=64' 'wheel' 'packaging>=24.2' $pip_args" "INSTALL"
+
+    if ! log_command "INSTALL" "BuildDeps" "$PIP_CMD install 'setuptools>=64' 'wheel' 'packaging>=24.2' $pip_args"; then
+        log_warn "构建依赖预安装失败，但继续尝试安装（可能已有足够版本）" "INSTALL"
+        echo -e "${WARNING} 构建依赖预安装失败（可能已有足够版本，继续...）"
+    else
+        log_info "构建依赖预安装成功" "INSTALL"
+        echo -e "${CHECK} 构建依赖预安装完成"
+    fi
+    echo ""
+
     # 第五步：安装主 SAGE meta-package
     echo -e "${DIM}步骤 5/5: 安装 SAGE meta-package...${NC}"
     log_phase_start_enhanced "SAGE meta-package 安装" "INSTALL" 60
