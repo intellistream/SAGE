@@ -400,7 +400,7 @@ class StudioManager:
 
     def check_dependencies(self) -> bool:
         """检查依赖"""
-        MIN_NODE_VERSION = 18  # TypeScript 5.x 需要 Node.js 14+，推荐 18+
+        MIN_NODE_VERSION = 20  # Vite 7.x 需要 Node.js 20.19+，推荐 22+
 
         # 检查 Node.js
         try:
@@ -419,8 +419,8 @@ class StudioManager:
                         f"[red]Node.js 版本过低: {node_version}（需要 v{MIN_NODE_VERSION}+）[/red]"
                     )
                     console.print("[yellow]💡 请升级 Node.js:[/yellow]")
-                    console.print("   conda install -y nodejs=20 -c conda-forge")
-                    console.print("   # 或通过 nvm 安装: nvm install 20 && nvm use 20")
+                    console.print("   conda install -y nodejs=22 -c conda-forge")
+                    console.print("   # 或通过 nvm 安装: nvm install 22 && nvm use 22")
                     return False
                 console.print(f"[green]Node.js: {node_version}[/green]")
             else:
