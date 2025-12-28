@@ -558,7 +558,9 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     # 第二步：安装基础包（L1-L2）
     echo -e "${DIM}步骤 2/5: 安装基础包 (L1-L2)...${NC}"
     log_info "步骤 2/5: 安装基础包 (L1-L2)" "INSTALL"
-    local base_packages=("packages/sage-common" "packages/sage-platform")
+    
+    # L1: Foundation + LLM Core
+    local base_packages=("packages/sage-common" "packages/sage-llm-core" "packages/sage-platform")
 
     for package_dir in "${base_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
@@ -640,30 +642,56 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
         # C++ 构建依赖（pybind11等）在 build-system.requires 中声明，通过环境已安装
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
-        echo -e "${DIM}    (包含 C++ 扩展构建，可能需要几分钟...)${NC}"
+        echo -e "${DIM}    ⏱️  包含 C++ 扩展构建，预计需要:${NC}"
+        echo -e "${DIM}       • 首次安装: 10-15 分钟${NC}"
+        echo -e "${DIM}       • 增量构建: 2-5 分钟${NC}"
+        echo ""
+        echo -e "${DIM}    💡 提示: 可在另一终端查看实时进度:${NC}"
+        echo -e "${DIM}       tail -f ~/.local/state/sage/logs/install_\$(date +%Y%m%d).log${NC}"
+        echo ""
 
         log_info "开始安装: packages/sage-middleware (包含 C++ 扩展)" "INSTALL"
         log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
         log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
 
-        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-middleware\" $pip_args --no-deps"; then
+        # 显示进度指示器
+        echo -ne "${DIM}    ⚙️  正在编译 C++ 扩展... "
+        
+        # 执行安装（使用临时日志文件）
+        local temp_install_log=$(mktemp)
+        if $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps > "$temp_install_log" 2>&1; then
+            echo -e "✓${NC}"
+            
+            # 将输出追加到主日志
+            if [ -f "$temp_install_log" ]; then
+                cat "$temp_install_log" >> "$SAGE_INSTALL_LOG"
+            fi
+            rm -f "$temp_install_log"
+            
+            log_info "安装成功: packages/sage-middleware" "INSTALL"
+            log_pip_package_info "isage-middleware" "INSTALL"
+            echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
+        else
+            echo -e "✗${NC}"
+            
             log_error "安装 sage-middleware 失败！" "INSTALL"
             log_error "这通常是由于 C++ 编译错误，请检查日志: $SAGE_INSTALL_LOG" "INSTALL"
 
-            # 尝试提取编译错误的关键信息
-            if [ -f "$SAGE_INSTALL_LOG" ]; then
-                local error_context=$(grep -A 5 -i "error:" "$SAGE_INSTALL_LOG" | tail -20 || echo "未找到具体错误信息")
+            # 将错误输出追加到主日志
+            if [ -f "$temp_install_log" ]; then
+                cat "$temp_install_log" >> "$SAGE_INSTALL_LOG"
+                
+                # 尝试提取编译错误的关键信息
+                local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
                 log_error "编译错误摘要:\n$error_context" "INSTALL"
             fi
+            
+            rm -f "$temp_install_log"
 
             echo -e "${CROSS} 安装 sage-middleware 失败！"
             echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $SAGE_INSTALL_LOG${NC}"
             return 1
         fi
-
-        log_info "安装成功: packages/sage-middleware" "INSTALL"
-        log_pip_package_info "isage-middleware" "INSTALL"
-        echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
 
         # 调试：检查 .so 文件位置（仅在 CI 环境）
         if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
@@ -714,21 +742,38 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 echo -e "${CHECK} sage-apps 安装完成"
             fi
 
-            # L5: gateway (API server)
-            if [ -d "packages/sage-gateway" ]; then
-                echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
-                log_info "开始安装: packages/sage-gateway" "INSTALL"
-                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
+            # L6: llm-gateway (LLM Gateway for OpenAI-compatible API)
+            if [ -d "packages/sage-llm-gateway" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-llm-gateway${NC}"
+                log_info "开始安装: packages/sage-llm-gateway" "INSTALL"
+                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-llm-gateway $pip_args --no-deps" "INSTALL"
 
-                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
-                    log_error "安装 sage-gateway 失败" "INSTALL"
-                    echo -e "${CROSS} 安装 sage-gateway 失败！"
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-llm-gateway\" $pip_args --no-deps"; then
+                    log_error "安装 sage-llm-gateway 失败" "INSTALL"
+                    echo -e "${CROSS} 安装 sage-llm-gateway 失败！"
                     return 1
                 fi
 
-                log_info "安装成功: packages/sage-gateway" "INSTALL"
-                log_pip_package_info "isage-gateway" "INSTALL"
-                echo -e "${CHECK} sage-gateway 安装完成"
+                log_info "安装成功: packages/sage-llm-gateway" "INSTALL"
+                log_pip_package_info "isage-llm-gateway" "INSTALL"
+                echo -e "${CHECK} sage-llm-gateway 安装完成"
+            fi
+
+            # L6: edge (Edge aggregator shell, optional)
+            if [ -d "packages/sage-edge" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-edge${NC}"
+                log_info "开始安装: packages/sage-edge" "INSTALL"
+                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-edge $pip_args --no-deps" "INSTALL"
+
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-edge\" $pip_args --no-deps"; then
+                    log_error "安装 sage-edge 失败" "INSTALL"
+                    echo -e "${CROSS} 安装 sage-edge 失败！"
+                    return 1
+                fi
+
+                log_info "安装成功: packages/sage-edge" "INSTALL"
+                log_pip_package_info "isage-edge" "INSTALL"
+                echo -e "${CHECK} sage-edge 安装完成"
             fi
         fi
 
@@ -805,23 +850,6 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             echo -e "${CHECK} sage-tools 安装完成"
         fi
     fi
-
-    # L6: gateway (dev 模式)
-    if [ "$install_mode" = "dev" ]; then
-        if [ -d "packages/sage-gateway" ]; then
-            echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
-            log_info "开始安装: packages/sage-gateway" "INSTALL"
-            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
-
-            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
-                log_error "安装 sage-gateway 失败" "INSTALL"
-                echo -e "${CROSS} 安装 sage-gateway 失败！"
-                return 1
-            fi
-
-            log_info "安装成功: packages/sage-gateway" "INSTALL"
-            log_pip_package_info "isage-gateway" "INSTALL"
-            echo -e "${CHECK} sage-gateway 安装完成"
         fi
     fi
 

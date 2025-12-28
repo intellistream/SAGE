@@ -14,14 +14,15 @@ This is a namespace package that includes:
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 # 动态加载版本信息
-# 优先从 sage.common 导入（因为 sage-common 是基础包，总是会被安装）
+# 策略：优先使用本包的版本，而不是依赖 sage.common
 try:
-    from sage.common._version import __author__, __email__, __version__
+    from sage._version import __author__, __email__, __version__
 except ImportError:
-    # 如果 sage.common 不可用，尝试从本地 _version 导入
+    # Fallback 1: 尝试从 sage.common 导入（如果可用）
     try:
-        from ._version import __author__, __email__, __version__
+        from sage.common._version import __author__, __email__, __version__
     except ImportError:
+        # Fallback 2: 设置默认值
         __version__ = "unknown"
         __author__ = "IntelliStream Team"
         __email__ = "shuhao_zhang@hust.edu.cn"
