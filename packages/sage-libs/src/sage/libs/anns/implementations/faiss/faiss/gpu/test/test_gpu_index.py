@@ -3,14 +3,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import math
 import unittest
-import numpy as np
+
 import faiss
-from faiss.contrib import datasets
-from faiss.contrib import ivf_tools
+import numpy as np
+from faiss.contrib import datasets, ivf_tools
 from faiss.contrib.evaluation import knn_intersection_measure
 
 
@@ -28,8 +27,8 @@ class TestIVFSearchPreassigned(unittest.TestCase):
         idx_gpu.nprobe = nprobe
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
-        xq = rs.rand(nq, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
+        xq = rs.rand(nq, d).astype("float32")
 
         idx_gpu.train(xb)
         idx_gpu.add(xb)
@@ -37,8 +36,7 @@ class TestIVFSearchPreassigned(unittest.TestCase):
         # Search separately using the same quantizer
         q_d, q_i = idx_gpu.quantizer.search(xq, nprobe)
 
-        preassigned_d, preassigned_i = ivf_tools.search_preassigned(
-            idx_gpu, xq, k, q_i, q_d)
+        preassigned_d, preassigned_i = ivf_tools.search_preassigned(idx_gpu, xq, k, q_i, q_d)
 
         # Search using the standard API
         d, i = idx_gpu.search(xq, k)
@@ -60,8 +58,8 @@ class TestIVFSearchPreassigned(unittest.TestCase):
         idx_gpu.nprobe = nprobe
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
-        xq = rs.rand(nq, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
+        xq = rs.rand(nq, d).astype("float32")
 
         idx_gpu.train(xb)
         idx_gpu.add(xb)
@@ -69,8 +67,7 @@ class TestIVFSearchPreassigned(unittest.TestCase):
         # Search separately using the same quantizer
         q_d, q_i = idx_gpu.quantizer.search(xq, nprobe)
 
-        preassigned_d, preassigned_i = ivf_tools.search_preassigned(
-            idx_gpu, xq, k, q_i, q_d)
+        preassigned_d, preassigned_i = ivf_tools.search_preassigned(idx_gpu, xq, k, q_i, q_d)
 
         # Search using the standard API
         d, i = idx_gpu.search(xq, k)
@@ -89,14 +86,13 @@ class TestIVFSearchPreassigned(unittest.TestCase):
         k = 50
 
         idx_gpu = faiss.GpuIndexIVFScalarQuantizer(
-            res, d, nlist,
-            faiss.ScalarQuantizer.QT_6bit,
-            faiss.METRIC_INNER_PRODUCT)
+            res, d, nlist, faiss.ScalarQuantizer.QT_6bit, faiss.METRIC_INNER_PRODUCT
+        )
         idx_gpu.nprobe = nprobe
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
-        xq = rs.rand(nq, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
+        xq = rs.rand(nq, d).astype("float32")
 
         idx_gpu.train(xb)
         idx_gpu.add(xb)
@@ -104,8 +100,7 @@ class TestIVFSearchPreassigned(unittest.TestCase):
         # Search separately using the same quantizer
         q_d, q_i = idx_gpu.quantizer.search(xq, nprobe)
 
-        preassigned_d, preassigned_i = ivf_tools.search_preassigned(
-            idx_gpu, xq, k, q_i, q_d)
+        preassigned_d, preassigned_i = ivf_tools.search_preassigned(idx_gpu, xq, k, q_i, q_d)
 
         # Search using the standard API
         d, i = idx_gpu.search(xq, k)
@@ -128,8 +123,8 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         idx_cpu = faiss.IndexIVFFlat(q, d, nlist)
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
-        xq = rs.rand(nq, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
+        xq = rs.rand(nq, d).astype("float32")
 
         idx_cpu.train(xb)
         idx_cpu.add(xb)
@@ -137,7 +132,7 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         # construct a GPU index using the same trained coarse quantizer
         # from the CPU index
         idx_gpu = faiss.GpuIndexIVFFlat(res, q, d, nlist, faiss.METRIC_L2)
-        assert(idx_gpu.is_trained)
+        assert idx_gpu.is_trained
         idx_gpu.add(xb)
 
         k = 20
@@ -161,12 +156,11 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         qtype = faiss.ScalarQuantizer.QT_8bit
 
         q = faiss.IndexFlatL2(d)
-        idx_cpu = faiss.IndexIVFScalarQuantizer(
-            q, d, nlist, qtype, faiss.METRIC_L2, use_residual)
+        idx_cpu = faiss.IndexIVFScalarQuantizer(q, d, nlist, qtype, faiss.METRIC_L2, use_residual)
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
-        xq = rs.rand(nq, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
+        xq = rs.rand(nq, d).astype("float32")
 
         idx_cpu.train(xb)
         idx_cpu.add(xb)
@@ -174,8 +168,9 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         # construct a GPU index using the same trained coarse quantizer
         # from the CPU index
         idx_gpu = faiss.GpuIndexIVFScalarQuantizer(
-            res, q, d, nlist, qtype, faiss.METRIC_L2, use_residual)
-        assert(not idx_gpu.is_trained)
+            res, q, d, nlist, qtype, faiss.METRIC_L2, use_residual
+        )
+        assert not idx_gpu.is_trained
         idx_gpu.train(xb)
         idx_gpu.add(xb)
 
@@ -202,11 +197,10 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         nprobe_lvl_2 = 10
 
         rs = np.random.RandomState(567)
-        coarse_centroids = rs.rand(nlist_lvl_2, d).astype('float32')
+        coarse_centroids = rs.rand(nlist_lvl_2, d).astype("float32")
 
         # Construct an IVFFlat index for usage as a coarse quantizer
-        idx_coarse_cpu = faiss.IndexIVFFlat(
-            faiss.IndexFlatL2(d), d, nlist_lvl_1)
+        idx_coarse_cpu = faiss.IndexIVFFlat(faiss.IndexFlatL2(d), d, nlist_lvl_1)
         idx_coarse_cpu.set_direct_map_type(faiss.DirectMap.Hashtable)
         idx_coarse_cpu.nprobe = nprobe_lvl_1
 
@@ -214,21 +208,19 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         idx_coarse_cpu.add(coarse_centroids)
         idx_coarse_cpu.make_direct_map()
 
-        assert(idx_coarse_cpu.ntotal == nlist_lvl_2)
+        assert idx_coarse_cpu.ntotal == nlist_lvl_2
 
-        idx_cpu = faiss.IndexIVFPQ(
-            idx_coarse_cpu, d, nlist_lvl_2, 4, 8)
+        idx_cpu = faiss.IndexIVFPQ(idx_coarse_cpu, d, nlist_lvl_2, 4, 8)
 
-        xb = rs.rand(nb, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
         idx_cpu.train(xb)
         idx_cpu.add(xb)
         idx_cpu.nprobe = nprobe_lvl_2
 
         # construct a GPU index using the same trained coarse quantizer
         # from the CPU index
-        idx_gpu = faiss.GpuIndexIVFPQ(
-            res, idx_coarse_cpu, d, nlist_lvl_2, 4, 8)
-        assert(not idx_gpu.is_trained)
+        idx_gpu = faiss.GpuIndexIVFPQ(res, idx_coarse_cpu, d, nlist_lvl_2, 4, 8)
+        assert not idx_gpu.is_trained
 
         idx_gpu.train(xb)
         idx_gpu.add(xb)
@@ -240,7 +232,7 @@ class TestIVFPluggableCoarseQuantizer(unittest.TestCase):
         for use_precomputed in [False, True]:
             idx_gpu.setPrecomputedCodes(use_precomputed)
 
-            xq = rs.rand(nq, d).astype('float32')
+            xq = rs.rand(nq, d).astype("float32")
             d_g, i_g = idx_gpu.search(xq, k)
             d_c, i_c = idx_cpu.search(xq, k)
 
@@ -257,8 +249,8 @@ class TestInterleavedIVFPQLayout(unittest.TestCase):
             nq = 20
 
             rs = np.random.RandomState(123)
-            xb = rs.rand(nb, d).astype('float32')
-            xq = rs.rand(nq, d).astype('float32')
+            xb = rs.rand(nb, d).astype("float32")
+            xq = rs.rand(nq, d).astype("float32")
 
             nlist = int(math.sqrt(nb))
             sub_q = 16
@@ -266,7 +258,9 @@ class TestInterleavedIVFPQLayout(unittest.TestCase):
 
             config = faiss.GpuIndexIVFPQConfig()
             config.interleavedLayout = True
-            idx_gpu = faiss.GpuIndexIVFPQ(res, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2, config)
+            idx_gpu = faiss.GpuIndexIVFPQ(
+                res, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2, config
+            )
             q = faiss.IndexFlatL2(d)
             idx_cpu = faiss.IndexIVFPQ(q, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2)
 
@@ -301,8 +295,8 @@ class TestInterleavedIVFPQLayout(unittest.TestCase):
             nq = 20
 
             rs = np.random.RandomState(234)
-            xb = rs.rand(nb, d).astype('float32')
-            xq = rs.rand(nq, d).astype('float32')
+            xb = rs.rand(nb, d).astype("float32")
+            xq = rs.rand(nq, d).astype("float32")
 
             nlist = int(math.sqrt(nb))
             sub_q = 16
@@ -311,7 +305,9 @@ class TestInterleavedIVFPQLayout(unittest.TestCase):
 
             config = faiss.GpuIndexIVFPQConfig()
             config.interleavedLayout = True
-            idx_gpu = faiss.GpuIndexIVFPQ(res, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2, config)
+            idx_gpu = faiss.GpuIndexIVFPQ(
+                res, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2, config
+            )
             q = faiss.IndexFlatL2(d)
             idx_cpu = faiss.IndexIVFPQ(q, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2)
 
@@ -345,8 +341,8 @@ class TestInterleavedIVFPQLayout(unittest.TestCase):
             nq = 20
 
             rs = np.random.RandomState(567)
-            xb = rs.rand(nb, d).astype('float32')
-            xq = rs.rand(nq, d).astype('float32')
+            xb = rs.rand(nb, d).astype("float32")
+            xq = rs.rand(nq, d).astype("float32")
 
             nlist = int(math.sqrt(nb))
             sub_q = 16
@@ -355,7 +351,9 @@ class TestInterleavedIVFPQLayout(unittest.TestCase):
 
             config = faiss.GpuIndexIVFPQConfig()
             config.interleavedLayout = True
-            idx_gpu = faiss.GpuIndexIVFPQ(res, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2, config)
+            idx_gpu = faiss.GpuIndexIVFPQ(
+                res, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2, config
+            )
             q = faiss.IndexFlatL2(d)
             idx_cpu = faiss.IndexIVFPQ(q, d, nlist, sub_q, bits_per_code, faiss.METRIC_L2)
 
@@ -390,11 +388,11 @@ class TestIVFIndices(unittest.TestCase):
         nlist = 10
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
         xb_indices_base = np.arange(nb, dtype=np.int64)
 
         # Force values to not be representable in int32
-        xb_indices = (xb_indices_base + 4294967296).astype('int64')
+        xb_indices = (xb_indices_base + 4294967296).astype("int64")
 
         config = faiss.GpuIndexIVFFlatConfig()
         idx = faiss.GpuIndexIVFFlat(res, d, nlist, faiss.METRIC_L2, config)
@@ -423,15 +421,14 @@ class TestIVFIndices(unittest.TestCase):
         nbits = 8
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
         xb_indices_base = np.arange(nb, dtype=np.int64)
 
         # Force values to not be representable in int32
-        xb_indices = (xb_indices_base + 4294967296).astype('int64')
+        xb_indices = (xb_indices_base + 4294967296).astype("int64")
 
         config = faiss.GpuIndexIVFPQConfig()
-        idx = faiss.GpuIndexIVFPQ(res, d, nlist, M, nbits,
-                                  faiss.METRIC_L2, config)
+        idx = faiss.GpuIndexIVFPQ(res, d, nlist, M, nbits, faiss.METRIC_L2, config)
         idx.train(xb)
         idx.add_with_ids(xb, xb_indices)
 
@@ -440,8 +437,7 @@ class TestIVFIndices(unittest.TestCase):
 
         # Store values using 32-bit indices instead
         config.indicesOptions = faiss.INDICES_32_BIT
-        idx = faiss.GpuIndexIVFPQ(res, d, nlist, M, nbits,
-                                  faiss.METRIC_L2, config)
+        idx = faiss.GpuIndexIVFPQ(res, d, nlist, M, nbits, faiss.METRIC_L2, config)
         idx.train(xb)
         idx.add_with_ids(xb, xb_indices)
 
@@ -457,15 +453,14 @@ class TestIVFIndices(unittest.TestCase):
         qtype = faiss.ScalarQuantizer.QT_4bit
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
         xb_indices_base = np.arange(nb, dtype=np.int64)
 
         # Force values to not be representable in int32
-        xb_indices = (xb_indices_base + 4294967296).astype('int64')
+        xb_indices = (xb_indices_base + 4294967296).astype("int64")
 
         config = faiss.GpuIndexIVFScalarQuantizerConfig()
-        idx = faiss.GpuIndexIVFScalarQuantizer(res, d, nlist, qtype,
-                                               faiss.METRIC_L2, True, config)
+        idx = faiss.GpuIndexIVFScalarQuantizer(res, d, nlist, qtype, faiss.METRIC_L2, True, config)
         idx.train(xb)
         idx.add_with_ids(xb, xb_indices)
 
@@ -474,8 +469,7 @@ class TestIVFIndices(unittest.TestCase):
 
         # Store values using 32-bit indices instead
         config.indicesOptions = faiss.INDICES_32_BIT
-        idx = faiss.GpuIndexIVFScalarQuantizer(res, d, nlist, qtype,
-                                               faiss.METRIC_L2, True, config)
+        idx = faiss.GpuIndexIVFScalarQuantizer(res, d, nlist, qtype, faiss.METRIC_L2, True, config)
         idx.train(xb)
         idx.add_with_ids(xb, xb_indices)
 
@@ -485,7 +479,6 @@ class TestIVFIndices(unittest.TestCase):
 
 
 class TestSQ_to_gpu(unittest.TestCase):
-
     def test_sq_cpu_to_gpu(self):
         res = faiss.StandardGpuResources()
         index = faiss.index_factory(32, "SQfp16")
@@ -495,7 +488,6 @@ class TestSQ_to_gpu(unittest.TestCase):
 
 
 class TestInvalidParams(unittest.TestCase):
-
     def test_indices_ivfpq(self):
         res = faiss.StandardGpuResources()
         d = 128
@@ -505,15 +497,14 @@ class TestInvalidParams(unittest.TestCase):
         nbits = 8
 
         rs = np.random.RandomState(567)
-        xb = rs.rand(nb, d).astype('float32')
+        xb = rs.rand(nb, d).astype("float32")
         xb_indices_base = np.arange(nb, dtype=np.int64)
 
         # Force values to not be representable in int32
-        xb_indices = (xb_indices_base + 4294967296).astype('int64')
+        xb_indices = (xb_indices_base + 4294967296).astype("int64")
 
         config = faiss.GpuIndexIVFPQConfig()
-        idx = faiss.GpuIndexIVFPQ(res, d, nlist, M, nbits,
-                                  faiss.METRIC_L2, config)
+        idx = faiss.GpuIndexIVFPQ(res, d, nlist, M, nbits, faiss.METRIC_L2, config)
         idx.train(xb)
         idx.add_with_ids(xb, xb_indices)
 
@@ -535,7 +526,6 @@ class TestInvalidParams(unittest.TestCase):
 
 
 class TestLSQIcmEncoder(unittest.TestCase):
-
     @staticmethod
     def eval_codec(q, xb):
         codes = q.compute_codes(xb)
@@ -574,7 +564,6 @@ class TestLSQIcmEncoder(unittest.TestCase):
 
 
 class TestGpuAutoTune(unittest.TestCase):
-
     def test_params(self):
         index = faiss.index_factory(32, "IVF65536_HNSW,PQ16")
         index = faiss.index_cpu_to_gpu(faiss.StandardGpuResources(), 0, index)

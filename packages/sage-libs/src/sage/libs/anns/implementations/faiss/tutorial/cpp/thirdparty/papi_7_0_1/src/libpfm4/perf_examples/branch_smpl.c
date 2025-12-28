@@ -268,7 +268,7 @@ mainloop(char **arg)
 
 	pollfds[0].fd = fds[0].fd;
 	pollfds[0].events = POLLIN;
-	
+
 	for(i=0; i < num_fds; i++) {
 		ret = ioctl(fds[i].fd, PERF_EVENT_IOC_ENABLE, 0);
 		if (ret)
@@ -462,7 +462,7 @@ main(int argc, char **argv)
 
 	if (!options.mmap_pages)
 		options.mmap_pages = 1;
-	
+
 	if (options.mmap_pages > 1 && ((options.mmap_pages) & 0x1))
 		errx(1, "number of pages must be power of 2 greater than 1\n");
 

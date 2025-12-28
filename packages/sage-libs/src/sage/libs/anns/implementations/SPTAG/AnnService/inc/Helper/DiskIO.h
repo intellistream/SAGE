@@ -68,14 +68,14 @@ namespace SPTAG
 
             // interface method for waiting for async read to complete when underlying callback support is not available.
             virtual void Wait(AsyncReadRequest& readRequest) { return; }
-            
+
             virtual bool BatchReadFile(AsyncReadRequest* readRequests, std::uint32_t requestCount) { return false; }
 
             virtual bool BatchCleanRequests(SPTAG::Helper::AsyncReadRequest* readRequests, std::uint32_t requestCount) { return false; }
 
             virtual std::uint64_t TellP() = 0;
 
-            virtual void ShutDown() = 0; 
+            virtual void ShutDown() = 0;
         };
 
         class SimpleFileIO : public DiskIO
@@ -257,8 +257,8 @@ namespace SPTAG
             }
 
             virtual std::uint64_t TellP()
-            { 
-                return m_handle->tellp(); 
+            {
+                return m_handle->tellp();
             }
 
             virtual void ShutDown() {}

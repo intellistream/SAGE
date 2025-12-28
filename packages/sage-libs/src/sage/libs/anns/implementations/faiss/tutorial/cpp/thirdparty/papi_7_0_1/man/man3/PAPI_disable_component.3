@@ -2,27 +2,27 @@
 .ad l
 .nh
 .SH NAME
-PAPI_disable_component \- 
+PAPI_disable_component \-
 .PP
-disables the specified component  
+disables the specified component
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIENOCMP\fP component does not exist 
+\fIENOCMP\fP component does not exist
 .br
 \fIENOINIT\fP cannot disable as PAPI has already been initialized
 .RE
 .PP
 \fBParameters:\fP
 .RS 4
-\fIcidx\fP component index of component to be disabled 
+\fIcidx\fP component index of component to be disabled
 .RE
 .PP
 \fBExamples:\fP
@@ -39,7 +39,7 @@ if (cidx>=0) {
    if (result==PAPI_OK)
       printf("The example component is disabled\n");
 }
-// \&.\&.\&. 
+// \&.\&.\&.
 PAPI_library_init();
 
 .fi
@@ -51,13 +51,13 @@ PAPI_library_init();
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_get_event_component\fP 
+\fBPAPI_get_event_component\fP
 .PP
-\fBPAPI_library_init\fP 
+\fBPAPI_library_init\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

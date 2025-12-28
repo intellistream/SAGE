@@ -2,15 +2,15 @@
 .ad l
 .nh
 .SH NAME
-PAPI_reset \- 
+PAPI_reset \-
 .PP
-Reset the hardware event counts in an event set\&.  
+Reset the hardware event counts in an event set\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 .nf
@@ -19,30 +19,30 @@ Reset the hardware event counts in an event set\&.
     int PAPI_reset( int EventSet );
 
 @param EventSet
-    an integer handle for a PAPI event set as created by PAPI_create_eventset 
+    an integer handle for a PAPI event set as created by PAPI_create_eventset
 
-@retval PAPI_OK 
-@retval PAPI_ESYS 
+@retval PAPI_OK
+@retval PAPI_ESYS
     A system or C library call failed inside PAPI, see the errno variable.
-@retval PAPI_ENOEVST 
-    The EventSet specified does not exist. 
+@retval PAPI_ENOEVST
+    The EventSet specified does not exist.
 
 
 
-PAPI_reset() zeroes the values of the counters contained in EventSet. 
-This call assumes an initialized PAPI library and a properly added event set 
+PAPI_reset() zeroes the values of the counters contained in EventSet.
+This call assumes an initialized PAPI library and a properly added event set
 
 @par Example:
 
 .fi
 .PP
- 
+
 .PP
 .nf
 int EventSet = PAPI_NULL;
 int Events[] = {PAPI_TOT_INS, PAPI_FP_OPS};
 int ret;
- 
+
 // Create an empty EventSet
 ret = PAPI_create_eventset(&EventSet);
 if (ret != PAPI_OK) handle_error(ret);
@@ -68,11 +68,11 @@ if (ret != PAPI_OK) handle_error(ret);
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_create_eventset\fP 
+\fBPAPI_create_eventset\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

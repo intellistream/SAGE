@@ -34,7 +34,7 @@ namespace SPTAG
             virtual float CosineDistance(const std::uint8_t* pX, const std::uint8_t* pY) const;
 
             virtual void QuantizeVector(const void* vec, std::uint8_t* vecout, bool ADC = true) const;
-            
+
             virtual SizeType QuantizeSize() const;
 
             void ReconstructVector(const std::uint8_t* qvec, void* vecout) const;
@@ -112,7 +112,7 @@ namespace SPTAG
             // pX must be query distance table for ADC
         {
             float out = 0;
-            if (GetEnableADC()) {          
+            if (GetEnableADC()) {
                 float* ptr = (float*)pX;
                 for (int i = 0; i < m_NumSubvectors; i++) {
                     out += ptr[pY[i]];
@@ -122,7 +122,7 @@ namespace SPTAG
             else {
                 for (int i = 0; i < m_NumSubvectors; i++) {
                     out += m_L2DistanceTables[m_DistIndexCalc(i, pX[i], pY[i])];
-                }                
+                }
             }
             return out;
         }
@@ -155,7 +155,7 @@ namespace SPTAG
                     subvec += m_DimPerSubvector;
                 }
             }
-            else 
+            else
             {
                 auto distCalc = DistanceCalcSelector<T>(DistCalcMethod::L2);
                 T* subvec = (T*)vec;
@@ -176,7 +176,7 @@ namespace SPTAG
                     vecout[i] = (std::uint8_t)bestIndex;
                     subvec += m_DimPerSubvector;
                 }
-            }           
+            }
         }
 
         template <typename T>
@@ -189,7 +189,7 @@ namespace SPTAG
             else
             {
                 return m_NumSubvectors;
-            }           
+            }
         }
 
         template <typename T>
@@ -206,7 +206,7 @@ namespace SPTAG
 
         template <typename T>
         SizeType PQQuantizer<T>::ReconstructSize() const
-        {       
+        {
             return sizeof(T) * ReconstructDim();
         }
 
@@ -219,7 +219,7 @@ namespace SPTAG
         template <typename T>
         std::uint64_t PQQuantizer<T>::BufferSize() const
         {
-            return sizeof(T) * m_NumSubvectors * m_KsPerSubvector * m_DimPerSubvector + 
+            return sizeof(T) * m_NumSubvectors * m_KsPerSubvector * m_DimPerSubvector +
                 sizeof(DimensionType) + sizeof(SizeType) + sizeof(DimensionType) + sizeof(VectorValueType) + sizeof(QuantizerType);
         }
 
@@ -351,7 +351,7 @@ namespace SPTAG
         float* PQQuantizer<T>::GetL2DistanceTables() {
             return (float*)(m_L2DistanceTables.get());
         }
- 
+
         template<typename T>
         T* PQQuantizer<T>::GetCodebooks() {
           return (T*)(m_codebooks.get());

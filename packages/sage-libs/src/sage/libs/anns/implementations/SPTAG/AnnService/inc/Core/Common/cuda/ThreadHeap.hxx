@@ -66,7 +66,7 @@ class ThreadHeap {
     int KVAL;
     DistPair<SUMTYPE>* vals;
     DistPair<SUMTYPE> temp;
-  
+
     // Enforce max-heap property on the entires
     __forceinline__ __device__ void heapify() {
       int i=0;
@@ -145,7 +145,7 @@ class ThreadHeap {
         }
         offset += levelSize;
         printf("\n");
-      } 
+      }
     }
 
 

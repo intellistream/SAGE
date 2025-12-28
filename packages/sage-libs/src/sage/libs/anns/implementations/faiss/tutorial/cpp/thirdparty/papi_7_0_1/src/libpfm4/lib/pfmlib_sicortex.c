@@ -64,7 +64,7 @@ static int compute_ice9_counters(int type)
   int i;
   int bound = 0;
   pme_gen_mips64_entry_t *gen_mips64_pe = NULL;
-  
+
   sicortex_support.pmd_count = 0;
   sicortex_support.pmc_count = 0;
   for (i=0;i<MAX_ICE9_PMDS;i++)
@@ -81,7 +81,7 @@ static int compute_ice9_counters(int type)
       if (access(tmp,F_OK) == 0)
 	sicortex_support.pmc_count++;
     }
-  
+
   /* Compute the max */
 
   if (type == PFMLIB_MIPS_ICE9A_PMU) {
@@ -200,7 +200,7 @@ static void stuff_sicortex_regs(pfmlib_event_t *e, int plm, pfmlib_reg_t *pc, pf
       pc[j].reg_addr    = cntr*2;
       pc[j].reg_value   = reg.val;
       pc[j].reg_num     = cntr;
-      
+
       __pfm_vbprintf("[CP0_25_%u(pmc%u)=0x%"PRIx64" event_mask=0x%x usr=%d os=%d sup=%d exl=%d int=1] %s\n",
 		     pc[j].reg_addr,
 		     pc[j].reg_num,
@@ -211,14 +211,14 @@ static void stuff_sicortex_regs(pfmlib_event_t *e, int plm, pfmlib_reg_t *pc, pf
 		     reg.sel_sup,
 		     reg.sel_exl,
 		     sicortex_pe[e[j].event].pme_name);
-      
+
       pd[j].reg_num  = cntr;
       pd[j].reg_addr = cntr*2 + 1;
-      
+
       __pfm_vbprintf("[CP0_25_%u(pmd%u)]\n",
 		     pc[j].reg_addr,
 		     pc[j].reg_num);
-      
+
     }
   /* SCB event */
   else
@@ -241,18 +241,18 @@ static void stuff_sicortex_regs(pfmlib_event_t *e, int plm, pfmlib_reg_t *pc, pf
 		     scbreg.sicortex_ScbPerfBucket_reg.event,
 		     scbreg.sicortex_ScbPerfBucket_reg.hist,
 		     scbreg.sicortex_ScbPerfBucket_reg.ifOther);
-      
+
       pc[j].reg_addr    = cntr;
       pc[j].reg_value   = scbreg.val;
       pc[j].reg_num     = cntr + 6;
-      
+
       pd[j].reg_addr = cntr;
       pd[j].reg_num  = cntr + 6;
-      
+
       __pfm_vbprintf("[ScbPerfCount[%u](pmd%u)]\n",
 		     pc[j].reg_addr,
 		     pc[j].reg_num);
-      
+
     }
 }
 
@@ -264,13 +264,13 @@ static int stuff_sicortex_scb_control_regs(pfmlib_reg_t *pc, pfmlib_reg_t *pd, i
   pmc_sicortex_scb_reg_t five;
 
   // __pfm_vbprintf("num = %d\n",num);
-  
+
   /* The kernel will enforce most of these, see perfmon_ice9.c in the kernel */
 
   /* ScbPerfCtl */
 
-  pc[num].reg_num = 2; 
-  pc[num].reg_addr = 2; 
+  pc[num].reg_num = 2;
+  pc[num].reg_addr = 2;
   two.val = 0;
   if (mod_in && (mod_in->flags & PFMLIB_SICORTEX_INPUT_SCB_INTERVAL))
     {
@@ -282,7 +282,7 @@ static int stuff_sicortex_scb_control_regs(pfmlib_reg_t *pc, pfmlib_reg_t *pd, i
     }
   if (mod_in && (mod_in->flags & PFMLIB_SICORTEX_INPUT_SCB_NOINC))
     {
-      two.sicortex_ScbPerfCtl_reg.NoInc = mod_in->pfp_sicortex_scb_global.NoInc;  
+      two.sicortex_ScbPerfCtl_reg.NoInc = mod_in->pfp_sicortex_scb_global.NoInc;
     }
   else
     {
@@ -305,7 +305,7 @@ static int stuff_sicortex_scb_control_regs(pfmlib_reg_t *pc, pfmlib_reg_t *pd, i
 
   /*ScbPerfHist */
 
-  pc[++num].reg_num = 3; 
+  pc[++num].reg_num = 3;
   pc[num].reg_addr = 3;
   three.val = 0;
   if (mod_in && (mod_in->flags & PFMLIB_SICORTEX_INPUT_SCB_HISTGTE))
@@ -321,7 +321,7 @@ static int stuff_sicortex_scb_control_regs(pfmlib_reg_t *pc, pfmlib_reg_t *pd, i
 
   /*ScbPerfBuckNum */
 
-  pc[++num].reg_num = 4; 
+  pc[++num].reg_num = 4;
   pc[num].reg_addr = 4;
   four.val = 0;
   if (mod_in && (mod_in->flags & PFMLIB_SICORTEX_INPUT_SCB_BUCKET))
@@ -336,7 +336,7 @@ static int stuff_sicortex_scb_control_regs(pfmlib_reg_t *pc, pfmlib_reg_t *pd, i
 
   /*ScbPerfEna */
 
-  pc[++num].reg_num = 5; 
+  pc[++num].reg_num = 5;
   pc[num].reg_addr = 5;
   five.val = 0;
   five.sicortex_ScbPerfEna_reg.ena = 1;
@@ -376,13 +376,13 @@ pfm_sicortex_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_sicortex_input_
 	  }
 	}
 
-      /* Do rank based allocation, counters that live on 1 reg 
+      /* Do rank based allocation, counters that live on 1 reg
 	   before counters that live on 2 regs etc. */
 
       /* CPU counters first */
 	for (i=1;i<=core_counters;i++)
 	  {
-	    for (j=0; j < cnt;j++) 
+	    for (j=0; j < cnt;j++)
 	      {
 		/* CPU counters first */
 		if ((sicortex_pe[e[j].event].pme_counters & ((1<<core_counters)-1)) && (pfmlib_popcnt(sicortex_pe[e[j].event].pme_counters) == i))
@@ -396,10 +396,10 @@ pfm_sicortex_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_sicortex_input_
 		    /* Pick one, mark as used*/
 		    cntr = ffs(avail) - 1;
 		    DPRINT("Rank %d: Chose counter %d\n",i,cntr);
-	    
+
 		    /* Update registers */
 		    stuff_sicortex_regs(e,inp->pfp_dfl_plm,pc,pd,cntr,j,mod_in);
-		    
+
 		    used |= (1 << cntr);
 		    DPRINT("Rank %d: Used counters 0x%x\n",i, used);
 		  }
@@ -407,9 +407,9 @@ pfm_sicortex_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_sicortex_input_
 	  }
 
       /* SCB counters can live anywhere */
-	
+
 	used = 0;
-	for (j=0; j < cnt;j++) 
+	for (j=0; j < cnt;j++)
 	  {
 	    unsigned int cntr;
 
@@ -433,7 +433,7 @@ pfm_sicortex_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_sicortex_input_
 		/* These counters can be used for this event */
 		avail = sicortex_support.num_cnt - core_counters - used;
 		DPRINT("SCB(%d): Counters available %d\n",j,avail);
-	    
+
 		cntr = (sicortex_support.num_cnt - core_counters) - avail;
 		DPRINT("SCB(%d): Chose SCB counter %d\n",j,cntr);
 
@@ -479,7 +479,7 @@ pfm_sicortex_get_event_code(unsigned int i, unsigned int cnt, int *code)
 	    if (cnt == -1)
 	      return(PFMLIB_ERR_INVAL);
 	  }
- 
+
 	/* if cnt == 1, shift right by 0, if cnt == 2, shift right by 8 */
 	/* Works on both 5k anf 20K */
 
@@ -493,7 +493,7 @@ pfm_sicortex_get_event_code(unsigned int i, unsigned int cnt, int *code)
 		  return PFMLIB_ERR_INVAL;
 	      }
 	    /* SCB event */
-	    else 
+	    else
 	      {
 		if ((cnt < 6) || (cnt >= sicortex_support.pmc_count))
 		  return PFMLIB_ERR_INVAL;
@@ -514,7 +514,7 @@ pfm_sicortex_get_event_umask(unsigned int i, unsigned long *umask)
 	*umask = 0; //evt_umask(i);
 	return PFMLIB_SUCCESS;
 }
-	
+
 static void
 pfm_sicortex_get_event_counters(unsigned int j, pfmlib_regmask_t *counters)
 {
@@ -535,7 +535,7 @@ pfm_sicortex_get_event_counters(unsigned int j, pfmlib_regmask_t *counters)
 	      }
 	  }
 	/* SCB counter, requires first 4, then 1 of the remaining */
-	else 
+	else
 	  {
 	    int i;
 	    for (i=6;i<sicortex_support.pmc_count;i++)
@@ -575,7 +575,7 @@ pfm_sicortex_get_impl_counters(pfmlib_regmask_t *impl_counters)
 	if (sicortex_support.pmd_count > core_counters)
 	  {
 	    /* counting pmds are not contiguous on ICE9*/
-	    for(i=6; i < sicortex_support.pmd_count; i++) 
+	    for(i=6; i < sicortex_support.pmd_count; i++)
 	      pfm_regmask_set(impl_counters, i);
 	  }
 }
@@ -614,7 +614,7 @@ pfm_sicortex_get_cycle_event(pfmlib_event_t *e)
 static int
 pfm_sicortex_get_inst_retired(pfmlib_event_t *e)
 {
-  return pfm_find_full_event("CPU_INSEXEC",e); 
+  return pfm_find_full_event("CPU_INSEXEC",e);
 }
 
 /* SiCortex specific functions */
@@ -658,7 +658,7 @@ int pfm_sicortex_support_vpc_pea(unsigned int i)
   if (i < sicortex_support.pme_count)
     {
       unsigned int tmp = sicortex_pe[i].pme_counters;
-      return (tmp & (1<<4));  
+      return (tmp & (1<<4));
     }
   return 0;
 }
@@ -673,7 +673,7 @@ static int
 pfm_sicortex_get_event_mask_desc(unsigned int ev, unsigned int midx, char **str)
 {
   char *s;
-  
+
   s = sicortex_pe[ev].pme_umasks[midx].pme_udesc;
   if (s) {
     *str = strdup(s);

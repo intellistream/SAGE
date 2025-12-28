@@ -71,7 +71,7 @@ get_value(char *fn, char *buffer, size_t maxlen)
 
 /*
  * This example shows how to retrieve the PMU register mapping information.
- * It does not use the libpfm library. 
+ * It does not use the libpfm library.
  * The mapping gives the translation between the logical register names,
  * as exposed by the perfmon interface, and the actual hardware registers.
  * Depending on the PMU and perfmon implementation, not all registers are
@@ -201,7 +201,7 @@ try_again:
 					i,
 					hw_addr,
 					name);
-		} else {	
+		} else {
 			printf("pmd%-3d | 0x%016llx | 0x%016llx | 0x%-8lx | %s\n",
 					i,
 					dfl,

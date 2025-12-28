@@ -85,7 +85,7 @@ Client::ConnectToServer(const std::string& p_address,
 }
 
 
-void 
+void
 Client::AsyncConnectToServer(const std::string& p_address,
                              const std::string& p_port,
                              ConnectCallback p_callback)

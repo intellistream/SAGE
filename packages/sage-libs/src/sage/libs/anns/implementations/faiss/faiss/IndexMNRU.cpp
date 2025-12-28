@@ -568,5 +568,3 @@ namespace faiss{
         is_trained = true;
     }
 }
-
-

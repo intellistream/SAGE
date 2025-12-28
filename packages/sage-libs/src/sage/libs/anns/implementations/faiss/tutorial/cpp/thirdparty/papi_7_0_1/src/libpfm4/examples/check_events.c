@@ -74,7 +74,7 @@ main(int argc, const char **argv)
 		ret = pfm_get_pmu_info(i, &pinfo);
 		if (ret != PFM_SUCCESS)
 			continue;
-		
+
 		printf("\t[%d, %s, \"%s\"]\n", i, pinfo.name, pinfo.desc);
 	}
 

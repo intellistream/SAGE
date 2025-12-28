@@ -1,30 +1,36 @@
-Faiss C API
-===========
+# Faiss C API
 
-Faiss provides a pure C interface, which can subsequently be used either in pure C programs or to produce bindings for programming languages with Foreign Function Interface (FFI) support. Although this is not required for the Python interface, some other programming languages (e.g. Rust and Julia) do not have SWIG support.
+Faiss provides a pure C interface, which can subsequently be used either in pure C programs or to
+produce bindings for programming languages with Foreign Function Interface (FFI) support. Although
+this is not required for the Python interface, some other programming languages (e.g. Rust and
+Julia) do not have SWIG support.
 
-Compilation instructions
-------------------------
+## Compilation instructions
 
-The full contents of the pure C API are in the ["c_api"](c_api/) folder.
-Please be sure to follow the instructions on [building the main C++ library](../INSTALL.md#step-1-compiling-the-c-faiss) first.
-Include `-DFAISS_ENABLE_C_API=ON` to the cmake command.
+The full contents of the pure C API are in the ["c_api"](c_api/) folder. Please be sure to follow
+the instructions on [building the main C++ library](../INSTALL.md#step-1-compiling-the-c-faiss)
+first. Include `-DFAISS_ENABLE_C_API=ON` to the cmake command.
 
 `make -C build`
 
+This builds the dynamic library "faiss_c", containing the full implementation of Faiss and the
+necessary wrappers for the C interface. It does not depend on libfaiss.a or the C++ standard
+library.
 
-This builds the dynamic library "faiss_c", containing the full implementation of Faiss and the necessary wrappers for the C interface. It does not depend on libfaiss.a or the C++ standard library. 
+To build the example program, you should run `make -C build example_c` at the top level of the faiss
+repo. The example program will be in `build/c_api/example_c` .
 
-To build the example program, you should run `make -C build example_c` at the top level of
-the faiss repo. The example program will be in `build/c_api/example_c` .
-
-Using the API
--------------
+## Using the API
 
 The C API is composed of:
 
-- A set of C header files comprising the main Faiss interfaces, converted for use in C. Each file follows the format `«name»_c.h`, where `«name»` is the respective name from the C++ API. For example, the file [Index_c.h](./Index_c.h) file corresponds to the base `Index` API. Functions are declared with the `faiss_` prefix (e.g. `faiss_IndexFlat_new`), whereas new types have the `Faiss` prefix (e.g. `FaissIndex`, `FaissMetricType`, ...).
-- A dynamic library, compiled from the sources in the same folder, encloses the implementation of the library and wrapper functions.
+- A set of C header files comprising the main Faiss interfaces, converted for use in C. Each file
+  follows the format `«name»_c.h`, where `«name»` is the respective name from the C++ API. For
+  example, the file [Index_c.h](./Index_c.h) file corresponds to the base `Index` API. Functions are
+  declared with the `faiss_` prefix (e.g. `faiss_IndexFlat_new`), whereas new types have the `Faiss`
+  prefix (e.g. `FaissIndex`, `FaissMetricType`, ...).
+- A dynamic library, compiled from the sources in the same folder, encloses the implementation of
+  the library and wrapper functions.
 
 The index factory is available via the `faiss_index_factory` function in `AutoTune_c.h`:
 
@@ -36,7 +42,8 @@ if (c) {
 }
 ```
 
-Most operations that you would find as member functions are available with the format `faiss_«classname»_«member»`.
+Most operations that you would find as member functions are available with the format
+`faiss_«classname»_«member»`.
 
 ```c
 idx_t ntotal = faiss_Index_ntotal(index);
@@ -49,7 +56,7 @@ faiss_Index_free(index);
 ```
 
 Error handling is done by examining the error code returned by operations with recoverable errors.
-The code identifies the type of exception that rose from the implementation. Fetching the 
+The code identifies the type of exception that rose from the implementation. Fetching the
 corresponding error message can be done by calling the function `faiss_get_last_error()` from
 `error_c.h`. Getter functions and `free` functions do not return an error code.
 
@@ -61,23 +68,22 @@ if (c) {
 }
 ```
 
-An example is included, which is built automatically for the target `all`. It can also be built separately:
+An example is included, which is built automatically for the target `all`. It can also be built
+separately:
 
-  `make bin/example_c`
+`make bin/example_c`
 
-Building with GPU support
--------------------------
+## Building with GPU support
 
 For GPU support, a separate dynamic library in the "c_api/gpu" directory needs to be built.
 
-  `make`
+`make`
 
 The "gpufaiss_c" dynamic library contains the GPU and CPU implementations of Faiss, which means that
 it can be used in place of "faiss_c". The same library will dynamically link with the CUDA runtime
 and cuBLAS.
 
-Using the GPU with the C API
-----------------------------
+## Using the GPU with the C API
 
 A standard GPU resources object can be obtained by the name `FaissStandardGpuResources`:
 

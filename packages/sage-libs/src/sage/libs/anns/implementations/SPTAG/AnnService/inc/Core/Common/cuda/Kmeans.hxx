@@ -43,7 +43,7 @@ __device__ __inline__ void distCASMax(float* oldDist, SizeType* oldIdx, float ne
         *oldDist = newDist;
         *oldIdx = newIdx;
     }
-    
+
     atomicExch(lock, 1); // Unlock
 }
 
@@ -59,7 +59,7 @@ __device__ __inline__ void distCASMin(float* oldDist, SizeType* oldIdx, float ne
         *oldDist = newDist;
         *oldIdx = newIdx;
     }
-    
+
     atomicExch(lock, 1); // Unlock
 }
 
@@ -121,7 +121,7 @@ __global__ void KmeansKernel(Point<T,SUMTYPE,MAX_DIM>* points, T* centers, size_
             for(DimensionType j=0; j<_D; ++j) {
                 atomicAdd(&(newCenters[clusterid+j]), v[j]);
             }
-           
+
             if(smallestDist > clusterDist[clusterid]) {
                 distCASMax(&clusterDist[clusterid], &clusterIdx[clusterid], smallestDist, points[i].id, &clusterLocks[clusterid]);
             }
@@ -138,8 +138,8 @@ template <typename T, typename SUMTYPE, int MAX_DIM>
 float computeKmeansGPU(const Dataset<T>& data,
                   std::vector<SizeType>& indices,
                   const SizeType first, const SizeType last,
-                  int _K, DimensionType _D, int _DK, float lambda, T* centers, int* label, 
-                  SizeType* counts, SizeType* newCounts, float* newCenters, SizeType* clusterIdx, 
+                  int _K, DimensionType _D, int _DK, float lambda, T* centers, int* label,
+                  SizeType* counts, SizeType* newCounts, float* newCenters, SizeType* clusterIdx,
                   float* clusterDist, float* weightedCounts, float* newWeightedCounts,
                   int distMetric, const bool updateCenters) {
 
@@ -149,7 +149,7 @@ float computeKmeansGPU(const Dataset<T>& data,
     CUDA_CHECK(cudaMalloc(&d_points, workSize*sizeof(Point<T,float,MAX_DIM>)));
 
     ConvertDatasetToPoints<T,float,MAX_DIM>(data, indices, d_points, workSize, _D);
-  
+
     T* d_centers;
     CUDA_CHECK(cudaMalloc(&d_centers, _K*_D*sizeof(T)));
     CUDA_CHECK(cudaMemcpy(d_centers, centers, _K*_D*sizeof(T), cudaMemcpyHostToDevice));
@@ -176,7 +176,7 @@ float computeKmeansGPU(const Dataset<T>& data,
 
     float* d_newCenters;
     CUDA_CHECK(cudaMalloc(&d_newCenters, _D*_K*sizeof(float)));
-    
+
 
     float* d_clusterDist;
     CUDA_CHECK(cudaMalloc(&d_clusterDist, _K*sizeof(float)));
@@ -187,7 +187,7 @@ float computeKmeansGPU(const Dataset<T>& data,
     CUDA_CHECK(cudaMemcpy(d_clusterIdx, clusterIdx, _K*sizeof(SizeType), cudaMemcpyHostToDevice));
 
     float* d_currDist;
-    CUDA_CHECK(cudaMalloc(&d_currDist, sizeof(float))); // just 1 aggregate float value 
+    CUDA_CHECK(cudaMalloc(&d_currDist, sizeof(float))); // just 1 aggregate float value
 
     KmeansKernel<T,float,MAX_DIM><<<1024, 128>>>(d_points, d_centers, workSize, d_label, d_counts, lambda, d_clusterDist, d_clusterIdx, d_newCounts, d_weightedCounts, d_newCenters, d_clusterLocks, d_currDist, _D, _DK, distMetric, updateCenters);
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -210,7 +210,7 @@ float computeKmeansGPU(const Dataset<T>& data,
     CUDA_CHECK(cudaFree(d_weightedCounts));
     CUDA_CHECK(cudaFree(d_newCenters));
     CUDA_CHECK(cudaFree(d_currDist));
-  
+
     return currDist;
 }
 

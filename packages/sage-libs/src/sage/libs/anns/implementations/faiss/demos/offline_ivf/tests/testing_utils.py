@@ -3,11 +3,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
-import yaml
-import numpy as np
-from typing import Dict, List, Optional
+from typing import Optional
 
-OIVF_TEST_ARGS: List[str] = [
+import numpy as np
+import yaml
+
+OIVF_TEST_ARGS: list[str] = [
     "--config",
     "--xb",
     "--xq",
@@ -30,14 +31,14 @@ class TestDataCreator:
         tempdir: str,
         dimension: int,
         data_type: np.dtype,
-        index_factory: Optional[List] = ["OPQ4,IVF256,PQ4"],
+        index_factory: Optional[list] = ["OPQ4,IVF256,PQ4"],
         training_sample: Optional[int] = 9984,
         index_shard_size: Optional[int] = 1000,
         query_batch_size: Optional[int] = 1000,
         evaluation_sample: Optional[int] = 100,
         num_files: Optional[int] = None,
         file_size: Optional[int] = None,
-        file_sizes: Optional[List] = None,
+        file_sizes: Optional[list] = None,
         nprobe: Optional[int] = 64,
         k: Optional[int] = 10,
         metric: Optional[str] = "METRIC_L2",
@@ -154,7 +155,7 @@ class TestDataCreator:
             ]
         )
 
-    def _create_data_files(self, name_of_file="my_data") -> List[str]:
+    def _create_data_files(self, name_of_file="my_data") -> list[str]:
         """
         Creates a dataset "my_test_data" with number of files (num_files), using padding in the files
         name. If self.with_queries is True, it adds an extra dataset "my_queries_data" with the same number of files
@@ -163,15 +164,13 @@ class TestDataCreator:
         filenames = []
         for i, file_size in enumerate(self.file_sizes):
             # np.random.seed(i)
-            db_vectors = np.random.random((file_size, self.dimension)).astype(
-                self.data_type
-            )
+            db_vectors = np.random.random((file_size, self.dimension)).astype(self.data_type)
             filename = name_of_file + f"{i:02}" + ".npy"
             filenames.append(filename)
             np.save(self.tempdir + "/" + filename, db_vectors)
         return filenames
 
-    def _create_config_yaml(self, dict_file: Dict[str, str]) -> None:
+    def _create_config_yaml(self, dict_file: dict[str, str]) -> None:
         """
         Creates a yaml file in dir (can be a temporary dir for tests).
         """

@@ -118,7 +118,7 @@ namespace SPTAG
 
 #include "inc/Core/KDT/ParameterDefinitionList.h"
 #undef DefineKDTParameter
-            
+
             IOSTRING(p_configOut, WriteString, "\n");
             return ErrorCode::Success;
         }
@@ -186,7 +186,7 @@ namespace SPTAG
             std::shared_lock<std::shared_timed_mutex> lock(*(m_pTrees.m_lock));
             m_pTrees.InitSearchTrees<T, Q>(m_pSamples, m_fComputeDistance, p_query, p_space);
             m_pTrees.SearchTrees<T, Q>(m_pSamples, m_fComputeDistance, p_query, p_space, m_iNumberOfInitialDynamicPivots);
-            while (!p_space.m_NGQueue.empty()) 
+            while (!p_space.m_NGQueue.empty())
             {
                 NodeDistPair gnode = p_space.m_NGQueue.pop();
                 const SizeType* node = m_pGraph[gnode.node];
@@ -197,10 +197,10 @@ namespace SPTAG
                     if (futureNode < 0) break;
                     _mm_prefetch((const char*)(m_pSamples)[futureNode], _MM_HINT_T0);
                 }
-                    
+
                 if (notDeleted(m_deletedID, gnode.node))
                 {
-                    if (!p_query.AddPoint(gnode.node, gnode.distance) && p_space.m_iNumberOfCheckedLeaves > p_space.m_iMaxCheck) 
+                    if (!p_query.AddPoint(gnode.node, gnode.distance) && p_space.m_iNumberOfCheckedLeaves > p_space.m_iMaxCheck)
                     {
                         p_query.SortResult();
                         return;
@@ -209,29 +209,29 @@ namespace SPTAG
 
                 float upperBound = max(p_query.worstDist(), gnode.distance);
                 bool bLocalOpt = true;
-                for (DimensionType i = 0; i < m_pGraph.m_iNeighborhoodSize; i++) 
+                for (DimensionType i = 0; i < m_pGraph.m_iNeighborhoodSize; i++)
                 {
                     SizeType nn_index = node[i];
                     if (nn_index < 0) break;
 
                     if (p_space.CheckAndSet(nn_index)) continue;
                     float distance2leaf = m_fComputeDistance(p_query.GetQuantizedTarget(), (m_pSamples)[nn_index], GetFeatureDim());
-                    if (distance2leaf <= upperBound) 
+                    if (distance2leaf <= upperBound)
                         bLocalOpt = false;
                     p_space.m_iNumberOfCheckedLeaves++;
                     p_space.m_NGQueue.insert(NodeDistPair(nn_index, distance2leaf));
                 }
-                if (bLocalOpt) 
+                if (bLocalOpt)
                     p_space.m_iNumOfContinuousNoBetterPropagation++;
-                else 
+                else
                     p_space.m_iNumOfContinuousNoBetterPropagation = 0;
-                if (p_space.m_iNumOfContinuousNoBetterPropagation > m_iThresholdOfNumberOfContinuousNoBetterPropagation) 
+                if (p_space.m_iNumOfContinuousNoBetterPropagation > m_iThresholdOfNumberOfContinuousNoBetterPropagation)
                 {
-                    if (p_space.m_iNumberOfTreeCheckedLeaves <= p_space.m_iNumberOfCheckedLeaves / 10) 
+                    if (p_space.m_iNumberOfTreeCheckedLeaves <= p_space.m_iNumberOfCheckedLeaves / 10)
                     {
                         m_pTrees.SearchTrees<T, Q>(m_pSamples, m_fComputeDistance, p_query, p_space, m_iNumberOfOtherDynamicPivots + p_space.m_iNumberOfCheckedLeaves);
                     }
-                    else if (gnode.distance > p_query.worstDist()) 
+                    else if (gnode.distance > p_query.worstDist())
                     {
                         break;
                     }
@@ -299,12 +299,12 @@ case VectorValueType::Name: \
                 }
             }
             else
-            {            
+            {
                 SearchIndex<T>(*p_results, *workSpace, p_searchDeleted);
             }
 
             m_workSpaceFactory->ReturnWorkSpace(std::move(workSpace));
-            
+
                 if (p_query.WithMeta() && nullptr != m_pMetadata)
             {
                 for (int i = 0; i < p_query.GetResultNum(); ++i)
@@ -757,5 +757,3 @@ template class SPTAG::KDT::Index<Type>; \
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
-
-

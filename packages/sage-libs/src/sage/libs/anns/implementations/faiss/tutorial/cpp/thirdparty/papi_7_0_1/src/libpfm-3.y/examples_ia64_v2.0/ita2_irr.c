@@ -185,7 +185,7 @@ main(int argc, char **argv)
 
 	fd = (struct fd *)saxpy2;
 	range_end   =  fd->addr;
-	
+
 	memset(pc, 0, sizeof(pc));
 	memset(pd, 0, sizeof(pd));
 	memset(ctx, 0, sizeof(ctx));
@@ -296,7 +296,7 @@ main(int argc, char **argv)
 	for (i=0; i < inp.pfp_event_count; i++) {
 		pd[i].reg_num   = pc[i].reg_num;
 	}
-	
+
 	/*
 	 * propagate the setup for the debug registers from the library to the arguments
 	 * to the perfmonctl() syscall. The library does not know the type of the syscall

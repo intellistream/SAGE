@@ -191,7 +191,7 @@ int Process(std::shared_ptr<SearcherOptions> options, VectorIndex& index)
             threads.reserve(options->m_threadNum);
             auto batchstart = std::chrono::high_resolution_clock::now();
 
-            for (std::uint32_t i = 0; i < options->m_threadNum; i++) { 
+            for (std::uint32_t i = 0; i < options->m_threadNum; i++) {
                 threads.emplace_back([&, i] {
                     NumaStrategy ns = (index.GetIndexAlgoType() == IndexAlgoType::SPANN)? NumaStrategy::SCATTER: NumaStrategy::LOCAL; // Only for SPANN, we need to avoid IO threads overlap with search threads.
                     Helper::SetThreadAffinity(i, threads[i], ns, OrderStrategy::ASC);

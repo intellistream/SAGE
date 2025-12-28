@@ -2,36 +2,36 @@
 .ad l
 .nh
 .SH NAME
-PAPI_assign_eventset_component \- 
+PAPI_assign_eventset_component \-
 .PP
-Assign a component index to an existing but empty EventSet\&.  
+Assign a component index to an existing but empty EventSet\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 \fBPAPI_assign_eventset_component( int  EventSet, int  cidx )\fP;
 .RE
 .PP
 \fBParameters:\fP
 .RS 4
-\fIEventSet\fP An integer identifier for an existing EventSet\&. 
+\fIEventSet\fP An integer identifier for an existing EventSet\&.
 .br
 \fIcidx\fP An integer identifier for a component\&. By convention, component 0 is always the cpu component\&.
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_ENOCMP\fP The argument cidx is not a valid component\&. 
+\fIPAPI_ENOCMP\fP The argument cidx is not a valid component\&.
 .br
-\fIPAPI_ENOEVST\fP The EventSet doesn't exist\&. 
+\fIPAPI_ENOEVST\fP The EventSet doesn't exist\&.
 .br
 \fIPAPI_ENOMEM\fP Insufficient memory to complete the operation\&.
 .RE
@@ -59,17 +59,17 @@ handle_error( 1 );
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_set_opt\fP 
+\fBPAPI_set_opt\fP
 .br
-\fBPAPI_create_eventset\fP 
+\fBPAPI_create_eventset\fP
 .br
-\fBPAPI_add_events\fP 
+\fBPAPI_add_events\fP
 .br
-\fBPAPI_set_multiplex\fP 
+\fBPAPI_set_multiplex\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

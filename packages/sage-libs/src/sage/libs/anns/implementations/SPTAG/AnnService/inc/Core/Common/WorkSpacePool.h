@@ -22,7 +22,7 @@ namespace SPTAG
         public:
             WorkSpacePool() {}
 
-            ~WorkSpacePool() 
+            ~WorkSpacePool()
             {
                 std::shared_ptr<T> workspace;
                 while (m_workSpacePool.try_pop(workspace))

@@ -1,4 +1,4 @@
-Example of using LD_PRELOAD with the CUDA component.  
+Example of using LD_PRELOAD with the CUDA component.
 Asim YarKhan (2015)
 
 A short example of using LD_PRELOAD on a Linux system to intercept
@@ -45,7 +45,7 @@ How to use this example... please read carefully to make sense of the following.
 Build:
 make cuda_ld_preload_example.so
 
-Trace the executable using ltrace to figure out where to intercept the calls: 
+Trace the executable using ltrace to figure out where to intercept the calls:
 # Do the tracing with a small example!
 # ( export PAPI_DIR=`pwd`/../../.. && export LIBPFM_LIBDIR=`pwd`/../../../libpfm4/lib && export LD_LIBRARY_PATH=./:${PAPI_DIR}:${LIBPFM_LIBDIR}:${LD_LIBRARY_PATH}  && ltrace --output ltrace.out --library /usr/lib64/libcuda.so.1 ./simpleMultiGPU_no_counters  )
 # ( export PAPI_DIR=`pwd`/../../.. && export LIBPFM_LIBDIR=`pwd`/../../../libpfm4/lib && export LD_LIBRARY_PATH=./:${PAPI_DIR}:${LIBPFM_LIBDIR}:${LD_LIBRARY_PATH} && LD_PRELOAD=./cuda_ld_preload_example.so ltrace ./simpleMultiGPU_no_counters )

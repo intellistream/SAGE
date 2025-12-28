@@ -153,7 +153,7 @@ class zlsh :public hashBase
 {
 private:
 	std::string index_file;
-	
+
 public:
 	int u = 0;//u bits per hash value
 	// Index structure: RB-Tree
@@ -178,4 +178,3 @@ public:
 	//bool isBuilt(const std::string& file);
 	~zlsh() {}
 };
-

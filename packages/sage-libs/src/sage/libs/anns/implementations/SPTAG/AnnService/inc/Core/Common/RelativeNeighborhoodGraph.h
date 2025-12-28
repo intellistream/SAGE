@@ -35,11 +35,11 @@ namespace SPTAG
             }
 
             void InsertNeighbors(VectorIndex* index, const SizeType node, SizeType insertNode, float insertDist)
-            {                
+            {
                 SizeType* nodes = m_pNeighborhoodGraph[node];
                 const void* nodeVec = index->GetSample(node);
                 const void* insertVec = index->GetSample(insertNode);
-                
+
                 std::lock_guard<std::mutex> lock(m_dataUpdateLock[node]);
 
                 _mm_prefetch((const char*)nodes, _MM_HINT_T0);

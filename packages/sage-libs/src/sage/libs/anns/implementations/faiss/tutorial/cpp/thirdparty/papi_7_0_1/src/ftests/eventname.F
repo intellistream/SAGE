@@ -37,4 +37,3 @@ preset
 end if
 call ftests_pass(__FILE__)
 end
-

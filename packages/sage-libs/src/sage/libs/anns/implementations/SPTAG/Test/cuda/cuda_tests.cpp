@@ -20,7 +20,7 @@ printf("outside\n");
 }
 
 /*
-int GPUTestDistance_All(); 
+int GPUTestDistance_All();
 
 BOOST_AUTO_TEST_CASE(DistanceTests) {
   int errs = GPUTestDistance_All();

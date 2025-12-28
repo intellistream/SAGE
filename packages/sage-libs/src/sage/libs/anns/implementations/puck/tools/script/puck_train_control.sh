@@ -3,11 +3,11 @@ function _usage(){
     usage_str="sh ${0} [-i init] [-b build] [-t train] [-f conf_file] [-h help]
     \n\t\t
     \n\toptions:
-    \n\t\t-i use for init method and init file name is necessary 
+    \n\t\t-i use for init method and init file name is necessary
     \n\t\t-b use for build method
     \n\t\t-t use for train method
     \n\t\t-f conf file name
-    \n\t\t-h use for help" 
+    \n\t\t-h use for help"
     echo -e ${usage_str}
 }
 
@@ -24,14 +24,14 @@ conf_file=conf/puck_train.conf
 while getopts "i:tbf:h" opt
 do
     case $opt in
-        t) 
+        t)
             is_train=1;;
-        b) 
+        b)
             is_build=1;;
-        i) 
+        i)
             is_init=1
             init_file=$OPTARG;;
-        f) 
+        f)
             conf_file=$OPTARG;;
         h)
             _usage
@@ -81,4 +81,3 @@ if [ $is_build -eq 1 ]; then
     [ $retcode -ne 0 ] && exit $retcode
     echo "build puck succ"
 fi
-

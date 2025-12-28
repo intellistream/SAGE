@@ -9,7 +9,6 @@ import faiss
 
 
 class TestDocumentation(unittest.TestCase):
-
     def test_io_error(self):
         index = faiss.IndexFlatL2(32)
 

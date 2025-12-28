@@ -194,4 +194,3 @@ format (F15
 .6, A15)
 call ftests_pass(__FILE__)
 end
-

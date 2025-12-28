@@ -181,14 +181,14 @@ PAPI_FP_STAL<br>
 <strong>PAPI and the Linux Kernel</strong>
 <p>For Linux kernels more recent than 2.6.32, the perf_events interface is built into the kernel and can be used directly.</p>
 <p>For Linux kernels before 2.6.32, PAPI requires your Linux kernel to be patched with either the PerfCtr patch or the Perfmon patch. For compatability reasons, we have included both of these patches in the tarball. You should patch your kernel with PerfCtr using the distribution found in the papi/src/perfctr-2.6.x directory for x86 hardware, and the papi/src/perfctr-2.7.x directory for IBM POWER hardware.
-If you prefer Perfmon for kernels older than 2.6.30, you should use the distribution found in the papi/src/libpfm-3.y. Prefmon is no longer supported as a Linux patch. 
+If you prefer Perfmon for kernels older than 2.6.30, you should use the distribution found in the papi/src/libpfm-3.y. Prefmon is no longer supported as a Linux patch.
 The most recent Perfctr distribution can&nbsp; be obtained from Mikael Petterson's web site although it is no longer actively supported and not guaranteed to work. <a href="http://user.it.uu.se/~mikpe/linux/perfctr/">http://user.it.uu.se/~mikpe/linux/perfctr/</a><br /> If you're not sure how to patch, recompile and reinstall your linux kernel, there are a variety of resources on the web.
- 
+
 Here's one that should help: <a href="http://answers.oreilly.com/topic/36-how-to-patch-a-linux-kernel/">http://answers.oreilly.com/topic/36-how-to-patch-a-linux-kernel/.</a></p>
 <p>&nbsp;</p><strong>Before you compile</strong>
 <p>cd perfctr<br>
 more INSTALL<br>
- 
+
 If you&#039;re getting compilation errors regarding not being able to find include files, then you&#039;re probably running a broken redhat installation.</p><p>Edit the path to your kernel include files at the top of either Makefile.linux-perfctr</p><strong>If you have already patched your kernel</strong>
 <p>If you have a properly functioning Perfctr patch from a previous release of PAPI, you will obviously not want to repatch your kernel. PAPI is compatible with PerfCtr 2.4.x and Perfctr 2.6.x.<br>
 <br>
@@ -220,20 +220,20 @@ KERNEL=="microcode", NAME="cpu/microcode", MODE="0600"</br>
 KERNEL=="perfctr", NAME="perfctr", MODE="0644"</br></p><p>These lines tell udev to always create the device file with the appropriate permissions. Use &#039;perfex -i&#039; from the perfctr distribution to test this fix.</p><strong>Hardware interrupt driven counters</strong>
 <p>YOU MUST COMPILE YOUR KERNEL WITH APIC SUPPORT IF YOU WANT
 INTERRUPT SUPPORT!<br>
- 
+
 With Perfctr 2.3.3 or later it is possible to make the performance counters
 generate an interrupt when the counter reaches a certain count. This requires
 support in the Linux kernel, Perfctr, PAPI and the CPU to work properly.<br>
- 
+
 The necessary kernel support is available if your kernel is compiled with
 SMP APIC support or uni-processor APIC support compiled in. This is true
 for 2.4-ac kernels and kernels 2.4.10 or later. This topic is discussed in
 more detail in Mikael Pettersson&#039;s installation instructions for PerfCtr.<br>
- 
+
 Your CPU must be a Pentium 686/AMD K7 or similar which can generate APIC
 interrupts for performance counter events. This is _not_ true for some mobile
 Pentiums and early revisions of the AMD K7 or Athlon.<br>
- 
+
 You can verify that all is working by running the perfctr/examples/perfex
 program with the -i flag. If you do not see "pcint" as one of the flags,
 you need to recompile your kernel or buy a real CPU. ;-)</p><strong>Why do PAPI_LD_INS and PAPI_SR_INS give identical results on Pentium 4?</strong>
@@ -255,13 +255,13 @@ unit;<br>
 operations.<br>
 &nbsp;<br>
 To minimize the overlap and maximize the usefulness of these two events
-on 
+on
 Pentium 4, we have made the following choices:<br>
 - PAPI_FP_INS always counts only x87 floating point operations.<br>
 - PAPI_FP_OPS counts can be customized as discussed below.<br>
 &nbsp;<br>
 Further complicating things is that the Pentium 4 hardware is too
-restrictive 
+restrictive
 to count all these modes at once, so a decision must be made about what
 to count.<br>
 In order to enable PAPI to count these various mixes, we support 2
@@ -309,7 +309,7 @@ are countable<br>
 &nbsp;&nbsp; at one time. Sorry folks.</p><strong>Vector instruction counts on the Pentium 4 series</strong>
 <p>PAPI can count 2 different types of vector instructions on the Pentium
 4.<br>
-Either MMX instructions or packed SSE floating point instructions. These 
+Either MMX instructions or packed SSE floating point instructions. These
 are supported with 2 methods, in a similar fashion to floating point
 events described above.<br>
 &nbsp;<br>
@@ -357,6 +357,6 @@ Makefile.linux-perfctr-p4 or<br>
 <strong>General Comments</strong>
 <p>Assembler stubs for get_tick() and cpu_sync() as well as the following defines have been blatantly stolen from the perfmon code. The author of the package "perfmon" is Richard J. Enbody and the home page for "perfmon" is <a href="http://www.cse.msu.edu/~enbody/perfmon.html">http://www.cse.msu.edu/~enbody/perfmon.html</a>. For *all* the native event names, run native_avail in the ctests subdirectory. For how to use the native event names, see native.c</p><strong>Bugs</strong>
 <p>1) Ultra I/II/III/III+ are currently supported;</p><p>2) Some of the cache events have documented bugs, see the Sun UltraSparc hardware reference manual.</p><p>3) WARNING FOR PEOPLE USING MULTITHREADED LIBRARIES ON SOLARIS 2.8:
- 
+
 There is a bug that prevents setitimer() from being called after the process has called pthread() create at any point in time. Therefore if you suspect your communication library is multithreaded, you had better start the instrumentation before initializing it. See multiplex3_pthreads for details.</p><strong>My Sun box doesn't have libcpc.h. What should I do?</strong>
 <p>You didn&#039;t check the <a href="http://icl.cs.utk.edu/papi/custom/index.html?lid=62&slid=96">PAPI Supported Platform Matrix</a>. The hardware counters on SunOS withUltraSparc are only available on Sun OS 5.8 and above. That&#039;s Solaris 2.8 for you SVR4 people.</p><hr>

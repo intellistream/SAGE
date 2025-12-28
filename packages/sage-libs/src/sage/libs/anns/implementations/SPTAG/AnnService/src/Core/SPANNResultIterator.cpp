@@ -20,7 +20,7 @@ namespace SPTAG
 			m_queryResult = std::make_unique<QueryResult>(p_target, 1, true);
 			m_isFirstResult = true;
 		}
-                
+
 		template<typename T>
 		SPANNResultIterator<T>::~SPANNResultIterator()
 		{

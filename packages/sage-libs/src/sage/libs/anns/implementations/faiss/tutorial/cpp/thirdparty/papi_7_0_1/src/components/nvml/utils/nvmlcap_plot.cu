@@ -12,19 +12,19 @@
 
  * This file reads power limits using NVML and writes them
  * every 50ms to nvmlcap_out.csv.
- * 
+ *
  * It takes at least one argument; the number of seconds to
- * run. 
- * 
- * If there is ONE additional argument, it is a power cap 
+ * run.
+ *
+ * If there is ONE additional argument, it is a power cap
  * and all GPUs will be set to it. This is good if the GPUs
- * are all the same model. 
- * 
+ * are all the same model.
+ *
  * If there are MULTIPLE additional arguments, there must be
  * one per GPU, and they are individual power limits for the
  * GPUs. This is useful if they are not all the same model.
- * 
- * The output is written as tab-seperated-values (TSV) in 
+ *
+ * The output is written as tab-seperated-values (TSV) in
  * PowerReadGPU.tsv.
  */
 
@@ -75,7 +75,7 @@ void helpText(void) {
     fprintf(stderr, "It will also output PowerReadGPU.gnuplot, a gnuplot     \n");
     fprintf(stderr, "script to plot the power usage for each GPU on the node.\n");
     fprintf(stderr, "This is just an ascii file and can be edited if needed. \n");
-}; 
+};
 
 // Host function
 int main( int argc, char** argv )
@@ -122,20 +122,20 @@ int main( int argc, char** argv )
 
     int numcmp = PAPI_num_components();
 
-   // Search for the NVML component. 
+   // Search for the NVML component.
    int cid = 0;
     for (cid=0; cid<numcmp; cid++) {
         cmpinfo = PAPI_get_component_info(cid);
         if (cmpinfo == NULL) {                                  // NULL?
-            fprintf(stderr, "PAPI error: PAPI reports %d components, but PAPI_get_component_info(%d) returns NULL pointer.\n", numcmp, cid); 
+            fprintf(stderr, "PAPI error: PAPI reports %d components, but PAPI_get_component_info(%d) returns NULL pointer.\n", numcmp, cid);
             test_fail( __FILE__, __LINE__,"PAPI_get_component_info failed\n",-1 );
         } else {
-            if ( strstr( cmpinfo->name, "nvml" ) ) break;       // If we found it, 
+            if ( strstr( cmpinfo->name, "nvml" ) ) break;       // If we found it,
         }
     }
 
     if ( cid==numcmp ) {                                        // If true we looped through all without finding nvml.
-        fprintf(stderr, "NVML PAPI Component was not found.\n");       
+        fprintf(stderr, "NVML PAPI Component was not found.\n");
         exit(-1);
     }
 
@@ -150,7 +150,7 @@ int main( int argc, char** argv )
     if (device_count < 1) {
         fprintf(stderr, "There are no GPUs to manage.\n");
         exit(-1);
-    } 
+    }
 
     FILE *myOut = fopen("PowerReadGPU.tsv", "w");               // Open the file.
     if (myOut == NULL) {                                        // If that failed,
@@ -163,7 +163,7 @@ int main( int argc, char** argv )
         fprintf(stderr, "Failed to open gnuplot output file PowerReadGPU.gnuplot.\n");
         exit(-1);
     }
- 
+
     // Scan events to find nvml power events.
     int code = PAPI_NATIVE_MASK;
     int ii=0;
@@ -173,7 +173,7 @@ int main( int argc, char** argv )
         event_modifier = PAPI_ENUM_EVENTS;
         if ( retval != PAPI_OK ) test_fail( __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
         retval = PAPI_event_code_to_name( code, event_name );
-        char *ss; 
+        char *ss;
 
         ss = strstr(event_name, "device_");                             // Look for the device id.
         if (ss == NULL) continue;                                       // Not a valid name.
@@ -182,7 +182,7 @@ int main( int argc, char** argv )
 
         // Have some event, anyway.
         ss = strstr(event_name, "power");                                       // First, see if we have power.
-        if (ss != NULL && ss[5] == 0) {                                         // If found and the last thing on the line, 
+        if (ss != NULL && ss[5] == 0) {                                         // If found and the last thing on the line,
             PowerEventName[did] = strdup(event_name);                           // .. remember the name, in device order.
             dprintf("Found powerEvent '%s' for device %i.\n", event_name, did);
             PowerEventCount++;                                                  // .. bump total power events.
@@ -190,7 +190,7 @@ int main( int argc, char** argv )
         }
 
         ss = strstr(event_name, "power_management_limit");                      // get position of this string.
-        if (ss != NULL && ss[22] == 0) {                                        // If found and last thing on the line, 
+        if (ss != NULL && ss[22] == 0) {                                        // If found and last thing on the line,
             LimitEventName[did] = strdup(event_name);                           // Valid! Remember the name.
             dprintf("Found limitEvent '%s' for device %i.\n", event_name, did); // Report what we found.
             LimitEventCount++;                                                  // Add to the number of events found.
@@ -198,7 +198,7 @@ int main( int argc, char** argv )
         }
 
         ss = strstr(event_name, "power_management_limit_constraint_min");       // get position of this string.
-        if (ss != NULL && ss[37] == 0) {                                        // If found and last thing on the line, 
+        if (ss != NULL && ss[37] == 0) {                                        // If found and last thing on the line,
             minEventName[did] = strdup(event_name);                             // Valid! Remember the name.
             dprintf("Found minEvent '%s' for device %i.\n", event_name, did);   // Report what we found.
             minEventCount++;                                                    // Add to the number of events found.
@@ -206,24 +206,24 @@ int main( int argc, char** argv )
         }
 
         ss = strstr(event_name, "power_management_limit_constraint_max");       // get position of this string.
-        if (ss != NULL && ss[37] == 0) {                                        // If found and last thing on the line, 
+        if (ss != NULL && ss[37] == 0) {                                        // If found and last thing on the line,
             maxEventName[did] = strdup(event_name);                             // Valid! Remember the name.
             dprintf("Found maxEvent '%s' for device %i.\n", event_name, did);   // Report what we found.
             maxEventCount++;                                                    // Add to the number of events found.
             continue;                                                           // Done with it.
         }
 
-    } // end of for each event. 
+    } // end of for each event.
 
 
-    if (PowerEventCount != device_count || 
+    if (PowerEventCount != device_count ||
         LimitEventCount != device_count ||
           minEventCount != device_count ||
           maxEventCount != device_count) {                              // If we did not get all the events,
         fprintf(stderr, "Too few NVML events found; %i devices, %i PowerEvents, %i LimitEvents, %i maxEvents, %i minEvents. Aborting\n",
                 device_count, PowerEventCount, LimitEventCount, minEventCount, maxEventCount);
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
@@ -239,7 +239,7 @@ int main( int argc, char** argv )
     if (runSeconds < 0) {
         fprintf(stderr, "First argument must be # seconds to run, or 0 to run until CTRL-z (=SIGTSTP). It cannot be negative.\n");
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
@@ -255,7 +255,7 @@ int main( int argc, char** argv )
         if (argc != device_count+2) {
             fprintf(stderr, "You have specified %i power limits, it doesn't match with %i devices.\n", argc-2, device_count);
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
@@ -269,7 +269,7 @@ int main( int argc, char** argv )
             if (UserLimitGiven[i] < 1) {                               // This could use the actual limits, as an improvement.
                 fprintf(stderr, "You have specified %i power limits, it doesn't match with %i devices.\n", argc-2, device_count);
                 for (j=0; j<device_count; j++) {                                // Clean up memory.
-                    free(PowerEventName[j]); 
+                    free(PowerEventName[j]);
                     free(LimitEventName[j]);
                     free(  minEventName[j]);
                     free(  maxEventName[j]);
@@ -277,7 +277,7 @@ int main( int argc, char** argv )
                 helpText();
                 exit(-1);
             }
-        }                
+        }
     }
 
     dprintf("UserLimitGiven[0] = %llu\n", UserLimitGiven[0]);
@@ -288,52 +288,52 @@ int main( int argc, char** argv )
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_event_name_to_code failure for event [%s] returned %i [%s].\n", PowerEventName[i], retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
             helpText();
-            exit(-1); 
+            exit(-1);
         }
 
         retval = PAPI_event_name_to_code( ( char * )LimitEventName[i], &limitEvents[i] );
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_event_name_to_code failure for event [%s] returned %i [%s].\n", LimitEventName[i], retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
             helpText();
-            exit(-1); 
+            exit(-1);
         }
 
         retval = PAPI_event_name_to_code( ( char * )minEventName[i], &minEvents[i] );
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_event_name_to_code failure for event [%s] returned %i [%s].\n", minEventName[i], retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
             helpText();
-            exit(-1); 
+            exit(-1);
         }
 
         retval = PAPI_event_name_to_code( ( char * )maxEventName[i], &maxEvents[i] );
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_event_name_to_code failure for event [%s] returned %i [%s].\n", maxEventName[i], retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
             helpText();
-            exit(-1); 
+            exit(-1);
         }
     }
 
@@ -349,13 +349,13 @@ int main( int argc, char** argv )
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_create_eventset failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
 
@@ -364,84 +364,84 @@ int main( int argc, char** argv )
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_add_events (minEvents) failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_start(EventSet);                          // Start the event set.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_start failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_stop(EventSet, minSetting);               // Read it, and get values.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_stop failed, returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
     PAPI_cleanup_eventset(EventSet);                        // get rid of those events.
-    
+
     // Get the maximum values we can set each device to.
     retval = PAPI_add_events(EventSet, maxEvents, device_count);  // Add the events in.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_add_events (maxEvents) failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_start(EventSet);                          // Start the event set.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_start failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_stop(EventSet, maxSetting);                // Read it, and get values.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_stop failed, returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         helpText();
-        exit(-1); 
+        exit(-1);
     }
 
-    // We have the min and max. 
+    // We have the min and max.
     for (i=0; i<device_count; i++) {
         printf("Device %i: MinSetting=%llu, MaxSetting=%llu.\n", i, minSetting[i], maxSetting[i]);
     }
@@ -459,13 +459,13 @@ int main( int argc, char** argv )
 
         if (retval > 0) {                                   // Any out of range, we get out.
             for (j=0; j<device_count; j++) {                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
 
-            exit(-1); 
+            exit(-1);
         }
     }
 
@@ -475,39 +475,39 @@ int main( int argc, char** argv )
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_add_events failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
 
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_start(EventSet);                          // Start the event set.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_start failure returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
 
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_read(EventSet, OrigLimitFound);           // Read it, and get values.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_read failed, returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
 
-        exit(-1); 
+        exit(-1);
     }
 
     for (i=0; i<device_count; i++) {
@@ -519,28 +519,28 @@ int main( int argc, char** argv )
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_write(User Limits) failed, returned %i [%s].\n", retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
 
-            exit(-1); 
+            exit(-1);
         }
-        
+
         retval = PAPI_stop(EventSet, values);               // Check it.
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_stop failed, returned %i [%s].\n", retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
 
-            exit(-1); 
+            exit(-1);
         }
-        
+
         for (i=0; i<device_count; i++) {
             printf("User Limit %lli set, readback new Limit: %lli for %s.\n", UserLimitGiven[i], values[i], LimitEventName[i]);
         }
@@ -549,7 +549,7 @@ int main( int argc, char** argv )
         for (i=0; i<device_count; i++) {                    // Make sure it worked.
             if (UserLimitGiven[i] != values[i]) {           // .. If this one did not,
                 fprintf(stderr, "Write Failure on device %i: Attempted to write %lli, readback was different at %lli.\n",
-                    i, UserLimitGiven[i], values[i]); 
+                    i, UserLimitGiven[i], values[i]);
                 retval++;                                   // .. count the errors.
             }
         }
@@ -557,26 +557,26 @@ int main( int argc, char** argv )
         if (retval > 0) {
             fprintf(stderr, "Aborting for %i write failure(s).\n", retval);
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
 
-            exit(-1); 
+            exit(-1);
         }
     } else {                                                // end if we wanted to write new power values. If we did not,
         retval = PAPI_stop(EventSet, values);               // stop reading.
         if( retval != PAPI_OK ) {
             fprintf(stderr, "PAPI_stop failed, returned %i [%s].\n", retval, PAPI_strerror(retval));
             for (j=0; j<device_count; j++) {                                // Clean up memory.
-                free(PowerEventName[j]); 
+                free(PowerEventName[j]);
                 free(LimitEventName[j]);
                 free(  minEventName[j]);
                 free(  maxEventName[j]);
             }
 
-            exit(-1); 
+            exit(-1);
         }
     } // end handling of whether we set power limits. Either way, eventset is stopped.
 
@@ -588,28 +588,28 @@ int main( int argc, char** argv )
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_add_events failure (for power reading events) returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         PAPI_cleanup_eventset(EventSet);                            // Empty it.
         PAPI_destroy_eventset(&EventSet);                           // Release memory.
-        exit(-1); 
+        exit(-1);
     }
 
     retval = PAPI_start(EventSet);                          // Start the event set.
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_start failure (for power reading events) returned %i [%s].\n", retval, PAPI_strerror(retval));
         for (j=0; j<device_count; j++) {                                // Clean up memory.
-            free(PowerEventName[j]); 
+            free(PowerEventName[j]);
             free(LimitEventName[j]);
             free(  minEventName[j]);
             free(  maxEventName[j]);
         }
         PAPI_cleanup_eventset(EventSet);                            // Empty it.
         PAPI_destroy_eventset(&EventSet);                           // Release memory.
-        exit(-1); 
+        exit(-1);
     }
 
 
@@ -629,7 +629,7 @@ int main( int argc, char** argv )
         PAPI_read(EventSet, values);                            // .. Read instantaneous power consumption.
         elapsedSec = ((double) (t2-t1))/1.e09;                  // .. convert elapsed nanoseconds to seconds.
         fprintf(myOut, "%.6f", elapsedSec);                     // .. Time first.
-        for (i=0; i<device_count; i++) {                        // .. for each device, 
+        for (i=0; i<device_count; i++) {                        // .. for each device,
             fprintf(myOut, "\t%llu", values[i]);                // .. print a value,
         }
         fprintf(myOut, "\n");                                   // .. Finish the line.
@@ -668,7 +668,7 @@ int main( int argc, char** argv )
         fprintf(myGnuplot, "set output 'plot_%s_%i.png'\n", Name, did);             // Unique output file.
         fprintf(myGnuplot, "plot 'PowerReadGPU.tsv' using 1:%i with lines\n", i+2); // Always time against value. (columns are 1 relative).
         free(Name);
-    }        
+    }
 
     fclose(myGnuplot);                                          // close file.
 
@@ -678,7 +678,7 @@ int main( int argc, char** argv )
     PAPI_destroy_eventset(&EventSet);                           // ..
 
     for (j=0; j<device_count; j++) {                            // Clean up memory for names.
-        free(PowerEventName[j]);                        
+        free(PowerEventName[j]);
         free(LimitEventName[j]);
         free(  minEventName[j]);
         free(  maxEventName[j]);
@@ -687,5 +687,3 @@ int main( int argc, char** argv )
     fclose(myOut);                                              // Close the file.
     return 0;
 } // end main.
-
-

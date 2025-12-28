@@ -80,7 +80,7 @@ def start_finetune_engine(
 ```python
 class EngineStartRequest(BaseModel):
     # ... existing LLM/Embedding fields ...
-    
+
     # Finetune-specific parameters
     dataset_path: str | None = Field(None, description="...")
     output_dir: str | None = Field(None, description="...")
@@ -125,7 +125,7 @@ async def start_engine(request: EngineStartRequest) -> dict[str, Any]:
             raise HTTPException(501, detail=str(exc)) from exc
         except RuntimeError as exc:
             raise HTTPException(409, detail=str(exc)) from exc
-        
+
         return _format_engine_start_response(engine_info)
 
     # Handle LLM/Embedding engines (existing code)
@@ -167,7 +167,7 @@ def start_engine(
     auto_download: bool = typer.Option(True, "--auto-download/--no-auto-download", help="..."),
 ):
     """请求启动新的 LLM, Embedding, 或 Finetune 引擎。"""
-    
+
     # Validate finetune-specific requirements
     if engine_kind_value == "finetune":
         if not dataset_path:
@@ -176,7 +176,7 @@ def start_engine(
         if not output_dir:
             console.print("[red]❌ --output 是 finetune 引擎的必需参数.[/red]")
             raise typer.Exit(1)
-        
+
         # Add finetune-specific parameters to payload
         payload["dataset_path"] = dataset_path
         payload["output_dir"] = output_dir

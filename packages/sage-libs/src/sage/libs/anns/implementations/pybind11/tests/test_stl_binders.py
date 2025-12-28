@@ -1,5 +1,4 @@
 import pytest
-
 from pybind11_tests import stl_binders as m
 
 

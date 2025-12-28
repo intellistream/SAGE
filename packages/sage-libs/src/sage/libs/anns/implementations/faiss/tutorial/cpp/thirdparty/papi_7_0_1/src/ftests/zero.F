@@ -178,4 +178,3 @@ endif
     call
 ftests_pass(__FILE__)
 end
-

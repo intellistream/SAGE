@@ -11,9 +11,9 @@
   *		papi_command_line < event > < event > ...
   *
   *	@section Description
-  *		papi_command_line is a PAPI utility program that adds named events from the 
-  *		command line to a PAPI EventSet and does some work with that EventSet. 
-  *		This serves as a handy way to see if events can be counted together, 
+  *		papi_command_line is a PAPI utility program that adds named events from the
+  *		command line to a PAPI EventSet and does some work with that EventSet.
+  *		This serves as a handy way to see if events can be counted together,
   *		and if they give reasonable results for known work.
   *
   *	@section Options

@@ -63,7 +63,7 @@ setup_cpu(int cpu)
 
 		if (options.excl && ((options.group && !i) || (!options.group)))
 			fds[i].hw.exclusive = 1;
-			
+
 		fds[i].hw.disabled = options.group ? !i : 1;
 
 		/* request timing information necessary for scaling counts */
@@ -110,7 +110,7 @@ measure(void)
 	 */
 	for(c=cmin ; c < cmax; c++) {
 		fds = all_fds[c];
-		if (options.group) 
+		if (options.group)
 			ret = ioctl(fds[0].fd, PERF_EVENT_IOC_ENABLE, 0);
 		else for(i=0; i < num_fds[c]; i++) {
 			ret = ioctl(fds[i].fd, PERF_EVENT_IOC_ENABLE, 0);
@@ -213,7 +213,7 @@ main(int argc, char **argv)
 	ret = pfm_initialize();
 	if (ret != PFM_SUCCESS)
 		errx(1, "libpfm initialization failed: %s\n", pfm_strerror(ret));
-	
+
 	measure();
 
 	/* free libpfm resources cleanly */

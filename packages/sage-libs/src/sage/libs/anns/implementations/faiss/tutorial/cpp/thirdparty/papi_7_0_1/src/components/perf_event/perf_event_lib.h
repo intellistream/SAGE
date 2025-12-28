@@ -47,5 +47,3 @@ typedef struct {
   int cidx;                       /* our component id              */
   struct native_event_table_t *event_table; /* our event table     */
 } pe_context_t;
-
-

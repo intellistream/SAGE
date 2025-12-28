@@ -1645,7 +1645,7 @@ double test_dp_scalar_VEC_FMA_12( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);
@@ -1711,7 +1711,7 @@ double test_dp_scalar_VEC_FMA_24( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);
@@ -1725,7 +1725,7 @@ double test_dp_scalar_VEC_FMA_24( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);
@@ -1791,7 +1791,7 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);
@@ -1805,7 +1805,7 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);
@@ -1819,7 +1819,7 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);
@@ -1833,7 +1833,7 @@ double test_dp_scalar_VEC_FMA_48( uint64 iterations ){
             FMA_VEC_SD(r3,r3,rA,rC);
             FMA_VEC_SD(r4,r4,rB,rD);
             FMA_VEC_SD(r5,r5,rC,rE);
-            
+
             FMA_VEC_SD(r0,r0,rD,rF);
             FMA_VEC_SD(r1,r1,rC,rE);
             FMA_VEC_SD(r2,r2,rB,rD);

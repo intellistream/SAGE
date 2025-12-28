@@ -3,17 +3,19 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
-from utils import (
-    load_config,
-    add_group_args,
-)
-from offline_ivf import OfflineIVF
+from typing import Callable
+
 import faiss
-from typing import List, Callable, Dict
 import submitit
+from utils import (
+    add_group_args,
+    load_config,
+)
+
+from offline_ivf import OfflineIVF
 
 
-def join_lists_in_dict(poss: List[str]) -> List[str]:
+def join_lists_in_dict(poss: list[str]) -> list[str]:
     """
     Joins two lists of prod and non-prod values, checking if the prod value is already included.
     If there is no non-prod list, it returns the prod list.
@@ -29,7 +31,7 @@ def join_lists_in_dict(poss: List[str]) -> List[str]:
 
 def main(
     args: argparse.Namespace,
-    cfg: Dict[str, str],
+    cfg: dict[str, str],
     nprobe: int,
     index_factory_str: str,
 ) -> None:
@@ -55,26 +57,20 @@ def process_options_and_run_jobs(args: argparse.Namespace) -> None:
                 for nprobe in all_nprobes:
                     launch_job(main, args, cfg, nprobe, index_factory_str)
         else:
-            launch_job(
-                main, args, cfg, nprobes["prod"][-1], index_strings["prod"][-1]
-            )
+            launch_job(main, args, cfg, nprobes["prod"][-1], index_strings["prod"][-1])
     else:
         if args.cluster_run:
             all_index_strings = join_lists_in_dict(index_strings)
             for index_factory_str in all_index_strings:
-                launch_job(
-                    main, args, cfg, nprobes["prod"][-1], index_factory_str
-                )
+                launch_job(main, args, cfg, nprobes["prod"][-1], index_factory_str)
         else:
-            launch_job(
-                main, args, cfg, nprobes["prod"][-1], index_strings["prod"][-1]
-            )
+            launch_job(main, args, cfg, nprobes["prod"][-1], index_strings["prod"][-1])
 
 
 def launch_job(
     func: Callable,
     args: argparse.Namespace,
-    cfg: Dict[str, str],
+    cfg: dict[str, str],
     n_probe: int,
     index_str: str,
 ) -> None:
@@ -115,9 +111,7 @@ if __name__ == "__main__":
         required=True,
         help="config yaml with the dataset specs",
     )
-    add_group_args(
-        group, "--nt", type=int, default=96, help="nb search threads"
-    )
+    add_group_args(group, "--nt", type=int, default=96, help="nb search threads")
     add_group_args(
         group,
         "--no_residuals",

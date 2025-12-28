@@ -3,9 +3,8 @@ import sys
 import threading
 import time
 
-import pytest
-
 import env
+import pytest
 from pybind11_tests import gil_scoped as m
 
 
@@ -157,9 +156,7 @@ def _run_in_process(target, *args, **kwargs):
         t_start = time.time()
         process.start()
         if timeout >= 100:  # For debugging.
-            print(
-                "\nprocess.pid STARTED", process.pid, (sys.argv, target, args, kwargs)
-            )
+            print("\nprocess.pid STARTED", process.pid, (sys.argv, target, args, kwargs))
             print(f"COPY-PASTE-THIS: gdb {sys.argv[0]} -p {process.pid}", flush=True)
         process.join(timeout=timeout)
         if timeout >= 100:

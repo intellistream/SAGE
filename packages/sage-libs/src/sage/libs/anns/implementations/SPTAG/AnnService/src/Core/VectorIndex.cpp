@@ -48,7 +48,7 @@ namespace SPTAG {
 
     bool copyfile(const char* oldpath, const char* newpath) {
         auto input = f_createIO(), output = f_createIO();
-        if (input == nullptr || !input->Initialize(oldpath, std::ios::binary | std::ios::in) || 
+        if (input == nullptr || !input->Initialize(oldpath, std::ios::binary | std::ios::in) ||
             output == nullptr || !output->Initialize(newpath, std::ios::binary | std::ios::out))
         {
             SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Unable to open files: %s %s\n", oldpath, newpath);
@@ -120,7 +120,7 @@ VectorIndex::~VectorIndex()
 }
 
 
-std::string 
+std::string
 VectorIndex::GetParameter(const std::string& p_param, const std::string& p_section) const
 {
     return GetParameter(p_param.c_str(), p_section.c_str());
@@ -134,7 +134,7 @@ VectorIndex::SetParameter(const std::string& p_param, const std::string& p_value
 }
 
 
-void 
+void
 VectorIndex::SetMetadata(MetadataSet* p_new) {
     m_pMetadata.reset(p_new);
 }
@@ -146,7 +146,7 @@ VectorIndex::GetMetadata() const {
 }
 
 
-ByteArray 
+ByteArray
 VectorIndex::GetMetadata(SizeType p_vectorID) const {
     if (nullptr != m_pMetadata)
     {
@@ -159,7 +159,7 @@ VectorIndex::GetMetadata(SizeType p_vectorID) const {
 std::shared_ptr<std::vector<std::uint64_t>> VectorIndex::CalculateBufferSize() const
 {
     std::shared_ptr<std::vector<std::uint64_t>> ret = BufferSize();
-    
+
     if (m_pMetadata != nullptr)
     {
         auto metasize = m_pMetadata->BufferSize();
@@ -285,17 +285,17 @@ VectorIndex::SaveIndex(std::string& p_config, const std::vector<ByteArray>& p_in
     {
         ret = RefineIndex(p_indexStreams, nullptr);
     }
-    else 
+    else
     {
         if (m_pMetadata != nullptr && p_indexStreams.size() >= metaStart + 2)
         {
-            
+
             ret = m_pMetadata->SaveMetadata(p_indexStreams[metaStart], p_indexStreams[metaStart + 1]);
         }
         if (ErrorCode::Success == ret) ret = SaveIndexData(p_indexStreams);
     }
     if (m_pMetadata != nullptr) metaStart += 2;
-    
+
     if (ErrorCode::Success == ret && m_pQuantizer && p_indexStreams.size() > metaStart) {
         ret = m_pQuantizer->SaveQuantizer(p_indexStreams[metaStart]);
     }
@@ -353,18 +353,18 @@ VectorIndex::SaveIndex(const std::string& p_folderPath)
     for (std::string& f : *indexfiles) {
         std::string newfile = folderPath + f;
         if (!direxists(newfile.substr(0, newfile.find_last_of(FolderSep)).c_str())) mkdir(newfile.substr(0, newfile.find_last_of(FolderSep)).c_str());
-        
+
         auto ptr = SPTAG::f_createIO();
         if (ptr == nullptr || !ptr->Initialize(newfile.c_str(), std::ios::binary | std::ios::out)) return ErrorCode::FailedCreateFile;
         handles.push_back(std::move(ptr));
     }
 
     size_t metaStart = GetIndexFiles()->size();
-    if (NeedRefine()) 
+    if (NeedRefine())
     {
         ret = RefineIndex(handles, nullptr);
     }
-    else 
+    else
     {
         if (m_pMetadata != nullptr) ret = m_pMetadata->SaveMetadata(handles[metaStart], handles[metaStart + 1]);
         if (ErrorCode::Success == ret) ret = SaveIndexData(handles);
@@ -463,7 +463,7 @@ VectorIndex::SearchIndex(const void* p_vector, int p_vectorCount, int p_neighbor
 }
 
 
-ErrorCode 
+ErrorCode
 VectorIndex::AddIndex(std::shared_ptr<VectorSet> p_vectorSet, std::shared_ptr<MetadataSet> p_metadataSet, bool p_withMetaIndex, bool p_normalized) {
     if (nullptr == p_vectorSet || p_vectorSet->GetValueType() != GetVectorValueType())
     {
@@ -503,7 +503,7 @@ VectorIndex::MergeIndex(VectorIndex* p_addindex, int p_threadnum, IAbortOperatio
                 AddIndex(p_addindex->GetSample(i), 1, p_addindex->GetFeatureDim(), p_metaSet);
             }
 
-            if (p_abort != nullptr && p_abort->ShouldAbort()) 
+            if (p_abort != nullptr && p_abort->ShouldAbort())
             {
                 ret = ErrorCode::ExternalAbort;
             }
@@ -511,7 +511,7 @@ VectorIndex::MergeIndex(VectorIndex* p_addindex, int p_threadnum, IAbortOperatio
     }
     else {
 #pragma omp parallel for num_threads(p_threadnum) schedule(dynamic,128)
-        for (SizeType i = 0; i < p_addindex->GetNumSamples(); i++) 
+        for (SizeType i = 0; i < p_addindex->GetNumSamples(); i++)
         {
             if (ret == ErrorCode::ExternalAbort) continue;
 
@@ -657,7 +657,7 @@ VectorIndex::LoadIndex(const std::string& p_loaderFilePath, std::shared_ptr<Vect
     size_t metaStart = p_vectorIndex->GetIndexFiles()->size();
     if (iniReader.DoesSectionExist("MetaData"))
     {
-        p_vectorIndex->SetMetadata(new MemMetadataSet(handles[metaStart], handles[metaStart + 1], 
+        p_vectorIndex->SetMetadata(new MemMetadataSet(handles[metaStart], handles[metaStart + 1],
             p_vectorIndex->m_iDataBlockSize, p_vectorIndex->m_iDataCapacity, p_vectorIndex->m_iMetaRecordSize));
 
         if (!(p_vectorIndex->GetMetadata()->Available()))
@@ -705,12 +705,12 @@ VectorIndex::LoadIndexFromFile(const std::string& p_file, std::shared_ptr<Vector
     ErrorCode ret = ErrorCode::Success;
 
     if ((p_vectorIndex = CreateInstance(algoType, valueType)) == nullptr) return ErrorCode::FailedParseValue;
-    
+
     if ((ret = p_vectorIndex->LoadIndexConfig(iniReader)) != ErrorCode::Success) return ret;
 
     std::uint64_t blobs;
     IOBINARY(fp, ReadBinary, sizeof(blobs), (char*)&blobs);
-   
+
     std::vector<std::shared_ptr<Helper::DiskIO>> p_indexStreams(blobs, fp);
     if ((ret = p_vectorIndex->LoadIndexData(p_indexStreams)) != ErrorCode::Success) return ret;
 
@@ -760,7 +760,7 @@ VectorIndex::LoadIndex(const std::string& p_config, const std::vector<ByteArray>
         p_vectorIndex->SetQuantizer(COMMON::IQuantizer::LoadIQuantizer(p_indexBlobs[4]));
         if (!p_vectorIndex->m_pQuantizer) return ErrorCode::FailedParseValue;
     }
-    
+
     if ((p_vectorIndex->LoadIndexConfig(iniReader)) != ErrorCode::Success) return ret;
 
     if ((ret = p_vectorIndex->LoadIndexDataFromMemory(p_indexBlobs)) != ErrorCode::Success) return ret;
@@ -771,7 +771,7 @@ VectorIndex::LoadIndex(const std::string& p_config, const std::vector<ByteArray>
         ByteArray pMetaIndex = p_indexBlobs[metaStart + 1];
         p_vectorIndex->SetMetadata(new MemMetadataSet(p_indexBlobs[metaStart],
             ByteArray(pMetaIndex.Data() + sizeof(SizeType), pMetaIndex.Length() - sizeof(SizeType), false),
-            *((SizeType*)pMetaIndex.Data()), 
+            *((SizeType*)pMetaIndex.Data()),
             p_vectorIndex->m_iDataBlockSize, p_vectorIndex->m_iDataCapacity, p_vectorIndex->m_iMetaRecordSize));
 
         if (!(p_vectorIndex->GetMetadata()->Available()))
@@ -861,7 +861,7 @@ void VectorIndex::ApproximateRNG(std::shared_ptr<VectorSet>& fullVectors, std::u
 #define DefineVectorValueType(Name, Type) \
         case VectorValueType::Name: \
             getTailNeighborsTPT<Type, SUMTYPE>((Type*)fullVectors->GetData(), fullVectors->Count(), this, exceptIDS, fullVectors->Dimension(), replicaCount, numThreads, numTrees, leafSize, metric, numGPUs, selections); \
-            break; 
+            break;
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
@@ -909,7 +909,7 @@ void VectorIndex::ApproximateRNG(std::shared_ptr<VectorSet>& fullVectors, std::u
                     {
                         continue;
                     }
-                    
+
                     void* reconstructed_vector = nullptr;
                     if (m_pQuantizer)
                     {

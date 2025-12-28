@@ -228,7 +228,7 @@ namespace SPTAG {
                 }
                 return ErrorCode::Success;
             }
-            
+
             std::string GetParameter(const char* p_section, const char* p_param) const
             {
                 if (nullptr == p_section || nullptr == p_param) return std::string();

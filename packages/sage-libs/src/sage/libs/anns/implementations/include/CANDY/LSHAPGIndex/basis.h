@@ -186,7 +186,7 @@ extern int _g_dist_mes;
 inline float cal_dist(float* v1, float* v2, int dim)
 {
   return calL2Sqr_fast(v1, v2, dim);
-	
+
 }
 
 inline float cal_distSqrt(float* v1, float* v2, int dim)
@@ -283,7 +283,7 @@ namespace threadPoollib
 			}
 		};
 
-		~VisitedList() { 
+		~VisitedList() {
 			//delete[] mass;
 		}
 	};

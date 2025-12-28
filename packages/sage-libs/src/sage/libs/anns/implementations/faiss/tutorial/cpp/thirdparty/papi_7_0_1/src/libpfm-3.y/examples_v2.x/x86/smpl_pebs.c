@@ -133,7 +133,7 @@ process_smpl_buf(smpl_hdr_t *hdr)
 	if (hdr->overflows == last_overflow && last_count == count) {
 		warnx("skipping identical set of samples %"PRIu64" = %"PRIu64"\n",
 			hdr->overflows, last_overflow);
-		return;	
+		return;
 	}
 	last_count = count;
 	last_overflow = hdr->overflows;
@@ -272,8 +272,8 @@ main(int argc, char **argv)
 		hdr+1,
 		hdr+1,
 		(hdr->version >> 16) & 0xff,
-		(hdr->version >> 8) & 0xff, 
-		hdr->version & 0xff, 
+		(hdr->version >> 8) & 0xff,
+		hdr->version & 0xff,
 		hdr->entry_size);
 
 	printf("max PEBS entries: %zu\n", (size_t)hdr->pebs_size / hdr->entry_size);
@@ -326,7 +326,7 @@ main(int argc, char **argv)
 		pd[i].reg_long_reset = -SMPL_PERIOD;
 		pd[i].reg_short_reset = -SMPL_PERIOD;
 	}
-	
+
 	/*
 	 * Now program the registers
 	 */

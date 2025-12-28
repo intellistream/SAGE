@@ -728,9 +728,7 @@ def start_engine(
     payload: dict[str, Any] = {"model_id": model_id}
     engine_kind_value = engine_kind.strip().lower()
     if engine_kind_value not in {"llm", "embedding", "finetune"}:
-        console.print(
-            "[red]engine-kind 仅支持 'llm', 'embedding', 或 'finetune'.[/red]"
-        )
+        console.print("[red]engine-kind 仅支持 'llm', 'embedding', 或 'finetune'.[/red]")
         raise typer.Exit(1)
 
     # Validate finetune-specific requirements
@@ -741,7 +739,7 @@ def start_engine(
         if not output_dir:
             console.print("[red]❌ --output 是 finetune 引擎的必需参数.[/red]")
             raise typer.Exit(1)
-        
+
         # Add finetune-specific parameters to payload
         payload["dataset_path"] = dataset_path
         payload["output_dir"] = output_dir

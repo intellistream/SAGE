@@ -1,8 +1,7 @@
 import os
 
-import pytest
-
 import env  # noqa: F401
+import pytest
 from pybind11_tests import eval_ as m
 
 

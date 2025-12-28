@@ -261,7 +261,7 @@ extern pfm_err_t pfm_get_inst_retired_event(pfmlib_event_t *e);
 #define	PFMLIB_CELL_PMU			100	/* CELL */
 
 #define PFMLIB_PPC970_PMU               110	/* IBM PowerPC 970(FX,GX) */
-#define PFMLIB_PPC970MP_PMU             111	/* IBM PowerPC 970MP */     
+#define PFMLIB_PPC970MP_PMU             111	/* IBM PowerPC 970MP */
 #define PFMLIB_POWER3_PMU               112	/* IBM POWER3 */
 #define PFMLIB_POWER4_PMU               113	/* IBM POWER4 */
 #define PFMLIB_POWER5_PMU               114	/* IBM POWER5 */

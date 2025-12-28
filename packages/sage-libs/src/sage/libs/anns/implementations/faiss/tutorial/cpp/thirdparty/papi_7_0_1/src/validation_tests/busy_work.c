@@ -28,4 +28,3 @@ do_cycles( int minimum_time )
 	}
 	return sum;
 }
-

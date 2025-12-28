@@ -2,15 +2,15 @@
 .ad l
 .nh
 .SH NAME
-PAPI_set_cmp_domain \- 
+PAPI_set_cmp_domain \-
 .PP
-Set the default counting domain for new event sets bound to the specified component\&.  
+Set the default counting domain for new event sets bound to the specified component\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 .nf
@@ -25,27 +25,27 @@ Set the default counting domain for new event sets bound to the specified compon
 @arg PAPI_DOM_SUPERVISOR Supervisor/hypervisor context counted
 @arg PAPI_DOM_ALL All above contexts counted
 @arg PAPI_DOM_MIN The smallest available context
-@arg PAPI_DOM_MAX The largest available context 
+@arg PAPI_DOM_MAX The largest available context
 @arg PAPI_DOM_HWSPEC Something other than CPU like stuff. Individual components can decode
 low order bits for more meaning
 
 @param cidx
-    An integer identifier for a component. 
-    By convention, component 0 is always the cpu component. 
+    An integer identifier for a component.
+    By convention, component 0 is always the cpu component.
 
 .fi
 .PP
-  
-    
+
+
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_OK\fP 
+\fIPAPI_OK\fP
 .br
-\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&. 
+\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.
 .br
-\fIPAPI_ENOCMP\fP The argument cidx is not a valid component\&.  
-    
+\fIPAPI_ENOCMP\fP The argument cidx is not a valid component\&.
+
 .RE
 .PP
 \fBPAPI_set_cmp_domain\fP sets the default counting domain for all new event sets in all threads, and requires an explicit component argument\&. Event sets that are already in existence are not affected\&. To change the domain of an existing event set, please see \fBPAPI_set_opt\fP\&. The reader should note that the domain of an event set affects only the mode in which the counter continues to run\&. Counts are still aggregated for the current process, and not for any other processes in the system\&. Thus when requesting PAPI_DOM_KERNEL , the user is asking for events that occur on behalf of the process, inside the kernel\&.
@@ -61,7 +61,7 @@ int ret;
 ret = PAPI_library_init(PAPI_VER_CURRENT);
 if (ret > 0 && ret != PAPI_VER_CURRENT) {
   fprintf(stderr,"PAPI library version mismatch!\n");
-  exit(1); 
+  exit(1);
 }
 if (ret < 0) handle_error(ret);
 
@@ -77,11 +77,11 @@ if (ret != PAPI_OK) handle_error(ret);
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_set_domain\fP \fBPAPI_set_granularity\fP \fBPAPI_set_opt\fP \fBPAPI_get_opt\fP 
+\fBPAPI_set_domain\fP \fBPAPI_set_granularity\fP \fBPAPI_set_opt\fP \fBPAPI_get_opt\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

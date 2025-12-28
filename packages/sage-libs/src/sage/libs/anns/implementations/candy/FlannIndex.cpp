@@ -70,4 +70,3 @@ std::vector<torch::Tensor> CANDY::FlannIndex::getTensorByIndex(std::vector<faiss
   }
   return ru;
 }
-

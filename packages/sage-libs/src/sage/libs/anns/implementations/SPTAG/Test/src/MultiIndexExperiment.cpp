@@ -13,7 +13,7 @@
 std::vector<int> VID2rid;
 
 
-// top number to query 
+// top number to query
 int topk = 50;
 //vector dimension
 SPTAG::DimensionType m = 1024;
@@ -74,7 +74,7 @@ void GenerateVectorDataSet(SPTAG::IndexAlgoType algo, std::string distCalcMethod
         std::uint64_t number = 0;
         std::string a = line.substr(0, line.find("\t"));
         for (size_t j = 0; j < a.length(); j++)
-            number = number * 10 + a[j] - '0'; 
+            number = number * 10 + a[j] - '0';
         VID2rid.push_back((int)number);
         meta.push_back(number);
 
@@ -143,7 +143,7 @@ void GenerateVectorDataSet(SPTAG::IndexAlgoType algo, std::string distCalcMethod
 template <typename T>
 void TestMultiIndexScanN(SPTAG::IndexAlgoType algo, std::string distCalcMethod, unsigned int n)
 {
-    
+
     std::vector<std::vector<T>> queries(n, std::vector<T>());
     std::vector<std::vector<T>> query_id(n, std::vector<T>());
 
@@ -163,7 +163,7 @@ void TestMultiIndexScanN(SPTAG::IndexAlgoType algo, std::string distCalcMethod, 
             std::cout << "Cannot open file out1" << std::endl;
             return ;
         }
-        
+
         std::ofstream out2;
         out2.open(output_lantency_path);
         if (!out2.is_open())
@@ -195,7 +195,7 @@ void TestMultiIndexScanN(SPTAG::IndexAlgoType algo, std::string distCalcMethod, 
             SPTAG::BasicResult result;
 
             std::set<FinalData> FinalResult;
-            
+
             for (int i = 0; i < topk; i++) {
                 bool hasResult = scan.Next(result);
                 if (!hasResult) break;

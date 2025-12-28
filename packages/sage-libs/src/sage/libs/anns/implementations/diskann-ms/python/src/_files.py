@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
+from typing import NamedTuple
+
 import numpy as np
 import numpy.typing as npt
-
-from typing import NamedTuple
 
 from ._common import VectorDType, _assert_existing_file
 
@@ -23,4 +23,3 @@ def vector_file_metadata(vector_file: str) -> Metadata:
 def vectors_from_binary(vector_file: str, dtype: VectorDType) -> npt.NDArray[VectorDType]:
     points, dims = vector_file_metadata(vector_file)
     return np.fromfile(file=vector_file, dtype=dtype, offset=8).reshape(points, dims)
-

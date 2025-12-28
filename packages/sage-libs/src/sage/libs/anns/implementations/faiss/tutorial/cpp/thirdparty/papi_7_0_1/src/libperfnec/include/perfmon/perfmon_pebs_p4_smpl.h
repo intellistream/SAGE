@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2005-2007 Hewlett-Packard Development Company, L.P.
  *               Contributed by Stephane Eranian <eranian@hpl.hp.com>
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of version 2 of the GNU General Public
  * License as published by the Free Software Foundation.
@@ -108,7 +108,7 @@ typedef struct {
 	unsigned long	pebs_abs_max;
 	unsigned long	pebs_intr_thres;
 	uint64_t	pebs_cnt_reset;
-} pfm_ds_area_p4_t; 
+} pfm_ds_area_p4_t;
 
 /*
  * This header is at the beginning of the sampling buffer returned to the user.

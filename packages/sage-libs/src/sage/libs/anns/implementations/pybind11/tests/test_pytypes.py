@@ -2,9 +2,8 @@ import contextlib
 import sys
 import types
 
-import pytest
-
 import env
+import pytest
 from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
@@ -464,9 +463,7 @@ def test_non_converting_constructors():
         for move in [True, False]:
             with pytest.raises(TypeError) as excinfo:
                 m.nonconverting_constructor(t, v, move)
-            expected_error = (
-                f"Object of type '{type(v).__name__}' is not an instance of '{t}'"
-            )
+            expected_error = f"Object of type '{type(v).__name__}' is not an instance of '{t}'"
             assert str(excinfo.value) == expected_error
 
 
@@ -832,9 +829,7 @@ def test_inplace_append(a, b):
     assert m.inplace_append(a, b) == expected
 
 
-@pytest.mark.parametrize(
-    ("a", "b"), [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))]
-)
+@pytest.mark.parametrize(("a", "b"), [(3, 2), (3.0, 2.0), (set(range(3)), set(range(2)))])
 def test_inplace_subtract(a, b):
     expected = a - b
     assert m.inplace_subtract(a, b) == expected
@@ -906,9 +901,7 @@ def test_tuple_nonempty_annotations(doc):
 
 
 def test_tuple_empty_annotations(doc):
-    assert (
-        doc(m.annotate_tuple_empty) == "annotate_tuple_empty(arg0: tuple[()]) -> None"
-    )
+    assert doc(m.annotate_tuple_empty) == "annotate_tuple_empty(arg0: tuple[()]) -> None"
 
 
 def test_tuple_variable_length_annotations(doc):
@@ -919,10 +912,7 @@ def test_tuple_variable_length_annotations(doc):
 
 
 def test_dict_annotations(doc):
-    assert (
-        doc(m.annotate_dict_str_int)
-        == "annotate_dict_str_int(arg0: dict[str, int]) -> None"
-    )
+    assert doc(m.annotate_dict_str_int) == "annotate_dict_str_int(arg0: dict[str, int]) -> None"
 
 
 def test_list_annotations(doc):
@@ -934,21 +924,12 @@ def test_set_annotations(doc):
 
 
 def test_iterable_annotations(doc):
-    assert (
-        doc(m.annotate_iterable_str)
-        == "annotate_iterable_str(arg0: Iterable[str]) -> None"
-    )
+    assert doc(m.annotate_iterable_str) == "annotate_iterable_str(arg0: Iterable[str]) -> None"
 
 
 def test_iterator_annotations(doc):
-    assert (
-        doc(m.annotate_iterator_int)
-        == "annotate_iterator_int(arg0: Iterator[int]) -> None"
-    )
+    assert doc(m.annotate_iterator_int) == "annotate_iterator_int(arg0: Iterator[int]) -> None"
 
 
 def test_fn_annotations(doc):
-    assert (
-        doc(m.annotate_fn)
-        == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"
-    )
+    assert doc(m.annotate_fn) == "annotate_fn(arg0: Callable[[list[str], str], int]) -> None"

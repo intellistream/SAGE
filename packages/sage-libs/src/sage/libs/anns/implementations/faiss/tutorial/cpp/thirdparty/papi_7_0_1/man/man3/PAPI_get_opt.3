@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_get_opt \- 
+PAPI_get_opt \-
 .PP
-Get PAPI library or event set options\&.  
+Get PAPI library or event set options\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
  int \fBPAPI_get_opt(  int option, PAPI_option_t * ptr )\fP;
 .RE
@@ -29,13 +29,13 @@ Get PAPI library or event set options\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_OK\fP 
+\fIPAPI_OK\fP
 .br
-\fIPAPI_EINVAL\fP The specified option or parameter is invalid\&. 
+\fIPAPI_EINVAL\fP The specified option or parameter is invalid\&.
 .br
-\fIPAPI_ENOEVST\fP The EventSet specified does not exist\&. 
+\fIPAPI_ENOEVST\fP The EventSet specified does not exist\&.
 .br
-\fIPAPI_ECMP\fP The option is not implemented for the current component\&. 
+\fIPAPI_ECMP\fP The option is not implemented for the current component\&.
 .br
 \fIPAPI_ENOINIT\fP specified option requires PAPI to be initialized first\&.
 .RE
@@ -53,11 +53,11 @@ The reader is encouraged to peruse the ctests code in the PAPI distribution for 
 .PP
 \fBPossible values for the PAPI_get_opt option parameter\fP
 .RS 4
- 
+
 OPTION          DEFINITION
 PAPI_DEFDOM     Get default counting domain for newly created event sets. Requires a component index.
 PAPI_DEFGRN     Get default counting granularity. Requires a component index.
-PAPI_DEBUG      Get the PAPI debug state and the debug handler. The debug state is specified in ptr->debug.level. The debug handler is specified in ptr->debug.handler. 
+PAPI_DEBUG      Get the PAPI debug state and the debug handler. The debug state is specified in ptr->debug.level. The debug handler is specified in ptr->debug.handler.
                 For further information regarding debug states and the behavior of the handler, see PAPI_set_debug.
 PAPI_MULTIPLEX  Get current multiplexing state for specified EventSet.
 PAPI_DEF_ITIMER Get the type of itimer used in software multiplexing, overflowing and profiling.
@@ -79,22 +79,22 @@ PAPI_MAX_HWCTRS Get number of counters. Requires a component index.
 PAPI_MAX_MPX_CTRS   Get maximum number of multiplexing counters. Requires a component index.
 PAPI_SHLIBINFO  Get shared library information used by the program.
 PAPI_COMPONENTINFO  Get the PAPI features the specified component supports. Requires a component index.
- 
+
 .RE
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_get_multiplex\fP 
+\fBPAPI_get_multiplex\fP
 .PP
-\fBPAPI_get_cmp_opt\fP 
+\fBPAPI_get_cmp_opt\fP
 .PP
-\fBPAPI_set_opt\fP 
+\fBPAPI_set_opt\fP
 .PP
-\fBPAPI_option_t\fP 
+\fBPAPI_option_t\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

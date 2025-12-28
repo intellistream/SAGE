@@ -9,9 +9,7 @@
 # causes a ton of useless warnings.
 
 import numpy as np
-
 from faiss.loader import *
-
 
 ###########################################
 # GPU functions
@@ -19,9 +17,9 @@ from faiss.loader import *
 
 
 def index_cpu_to_gpu_multiple_py(resources, index, co=None, gpus=None):
-    """ builds the C++ vectors for the GPU indices and the
+    """builds the C++ vectors for the GPU indices and the
     resources. Handles the case where the resources are assigned to
-    the list of GPUs """
+    the list of GPUs"""
     if gpus is None:
         gpus = range(len(resources))
     vres = GpuResourcesVector()
@@ -41,7 +39,7 @@ def index_cpu_to_all_gpus(index, co=None, ngpu=-1):
 
 
 def index_cpu_to_gpus_list(index, co=None, gpus=None, ngpu=-1):
-    """ Here we can pass list of GPU ids as a parameter or ngpu to
+    """Here we can pass list of GPU ids as a parameter or ngpu to
     use first n GPU's. gpus mut be a list or None.
     co is a GpuMultipleClonerOptions
     """
@@ -53,10 +51,23 @@ def index_cpu_to_gpus_list(index, co=None, gpus=None, ngpu=-1):
     index_gpu = index_cpu_to_gpu_multiple_py(res, index, co, gpus)
     return index_gpu
 
+
 # allows numpy ndarray usage with bfKnn
 
 
-def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raft=False, vectorsMemoryLimit=0, queriesMemoryLimit=0):
+def knn_gpu(
+    res,
+    xq,
+    xb,
+    k,
+    D=None,
+    I=None,
+    metric=METRIC_L2,
+    device=-1,
+    use_raft=False,
+    vectorsMemoryLimit=0,
+    queriesMemoryLimit=0,
+):
     """
     Compute the k nearest neighbors of a vector on one GPU without constructing an index
 
@@ -107,7 +118,7 @@ def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raf
         xq = xq.T
         xq_row_major = False
     else:
-        xq = np.ascontiguousarray(xq, dtype='float32')
+        xq = np.ascontiguousarray(xq, dtype="float32")
         xq_row_major = True
 
     xq_ptr = swig_ptr(xq)
@@ -117,7 +128,7 @@ def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raf
     elif xq.dtype == np.float16:
         xq_type = DistanceDataType_F16
     else:
-        raise TypeError('xq must be f32 or f16')
+        raise TypeError("xq must be f32 or f16")
 
     nb, d2 = xb.shape
     assert d2 == d
@@ -127,7 +138,7 @@ def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raf
         xb = xb.T
         xb_row_major = False
     else:
-        xb = np.ascontiguousarray(xb, dtype='float32')
+        xb = np.ascontiguousarray(xb, dtype="float32")
         xb_row_major = True
 
     xb_ptr = swig_ptr(xb)
@@ -137,7 +148,7 @@ def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raf
     elif xb.dtype == np.float16:
         xb_type = DistanceDataType_F16
     else:
-        raise TypeError('xb must be float32 or float16')
+        raise TypeError("xb must be float32 or float16")
 
     if D is None:
         D = np.empty((nq, k), dtype=np.float32)
@@ -160,7 +171,7 @@ def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raf
     elif I.dtype == I.dtype == np.int32:
         I_type = IndicesDataType_I32
     else:
-        raise TypeError('I must be i64 or i32')
+        raise TypeError("I must be i64 or i32")
 
     args = GpuDistanceParams()
     args.metric = metric
@@ -188,6 +199,7 @@ def knn_gpu(res, xq, xb, k, D=None, I=None, metric=METRIC_L2, device=-1, use_raf
         bfKnn(res, args)
 
     return D, I
+
 
 # allows numpy ndarray usage with bfKnn for all pairwise distances
 
@@ -229,8 +241,7 @@ def pairwise_distance_gpu(res, xq, xb, D=None, metric=METRIC_L2, device=-1):
         xq = xq.T
         xq_row_major = False
     else:
-        raise TypeError(
-            'xq matrix should be row (C) or column-major (Fortran)')
+        raise TypeError("xq matrix should be row (C) or column-major (Fortran)")
 
     xq_ptr = swig_ptr(xq)
 
@@ -239,7 +250,7 @@ def pairwise_distance_gpu(res, xq, xb, D=None, metric=METRIC_L2, device=-1):
     elif xq.dtype == np.float16:
         xq_type = DistanceDataType_F16
     else:
-        xq = np.ascontiguousarray(xb, dtype='float32')
+        xq = np.ascontiguousarray(xb, dtype="float32")
         xq_row_major = True
 
     nb, d2 = xb.shape
@@ -250,7 +261,7 @@ def pairwise_distance_gpu(res, xq, xb, D=None, metric=METRIC_L2, device=-1):
         xb = xb.T
         xb_row_major = False
     else:
-        xb = np.ascontiguousarray(xb, dtype='float32')
+        xb = np.ascontiguousarray(xb, dtype="float32")
         xb_row_major = True
 
     xb_ptr = swig_ptr(xb)
@@ -260,7 +271,7 @@ def pairwise_distance_gpu(res, xq, xb, D=None, metric=METRIC_L2, device=-1):
     elif xb.dtype == np.float16:
         xb_type = DistanceDataType_F16
     else:
-        raise TypeError('xb must be float32 or float16')
+        raise TypeError("xb must be float32 or float16")
 
     if D is None:
         D = np.empty((nq, nb), dtype=np.float32)

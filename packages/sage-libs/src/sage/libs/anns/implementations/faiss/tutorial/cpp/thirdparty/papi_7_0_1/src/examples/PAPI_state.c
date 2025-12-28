@@ -4,7 +4,7 @@
  *****************************************************************************/
 
 
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "papi.h" /* This needs to be included every time you use PAPI */
@@ -15,7 +15,7 @@
 int main()
 {
 
-   int retval; 
+   int retval;
    int status = 0;
    int EventSet = PAPI_NULL;
 
@@ -51,9 +51,9 @@ int main()
 
    if (PAPI_state(EventSet, &status) != PAPI_OK)
       ERROR_RETURN(retval);
-     
-   printstate(status);       
- 
+
+   printstate(status);
+
    /* free the resources used by PAPI */
    PAPI_shutdown();
 
@@ -68,13 +68,13 @@ int printstate(int status)
       printf("Eventset is currently running \n");
    if(status & PAPI_PAUSED)
       printf("Eventset is currently Paused \n");
-   if(status & PAPI_NOT_INIT) 
+   if(status & PAPI_NOT_INIT)
       printf(" Eventset defined but not initialized \n");
    if(status & PAPI_OVERFLOWING)
       printf(" Eventset has overflowing enabled \n");
    if(status & PAPI_PROFILING)
-      printf(" Eventset has profiling enabled \n"); 
+      printf(" Eventset has profiling enabled \n");
    if(status & PAPI_MULTIPLEXING)
-      printf(" Eventset has multiplexing enabled \n"); 
+      printf(" Eventset has multiplexing enabled \n");
    return 0;
 }

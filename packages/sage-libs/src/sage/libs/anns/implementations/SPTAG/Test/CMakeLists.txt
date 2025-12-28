@@ -27,7 +27,7 @@ if (NOT LIBRARYONLY)
     target_link_libraries(SPTAGTest SPTAGLibStatic ssdservingLib ${Boost_LIBRARIES})
 
     install(TARGETS SPTAGTest
-      RUNTIME DESTINATION bin  
+      RUNTIME DESTINATION bin
       ARCHIVE DESTINATION lib
       LIBRARY DESTINATION lib)
 endif()

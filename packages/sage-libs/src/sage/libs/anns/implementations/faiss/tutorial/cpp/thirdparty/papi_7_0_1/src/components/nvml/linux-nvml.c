@@ -611,7 +611,7 @@ detectDevices()
     /* So for each card, check whats querable */
     for (i = 0; i < device_count; i++) {
         features[i] = 0;
-        
+
         ret = (*nvmlDeviceGetHandleByIndexPtr)(i, &devices[i]);
         if (NVML_SUCCESS != ret) {
             SUBDBG("nvmlDeviceGetHandleByIndex(%d, &devices[%d]) failed.\n", i, i);
@@ -1072,7 +1072,7 @@ createNativeEvents()
 // Triggered by PAPI_shutdown(), but also if init fails to complete; for example due
 // to a missing library. We still need to clean up. The dynamic libs (dlxxx routines)
 // may have open mallocs that need to be free()d.
- 
+
 int _papi_nvml_shutdown_component()
 {
     SUBDBG("Enter:\n");
@@ -1163,7 +1163,7 @@ int _papi_nvml_init_private(void)
 
     /* A per device representation of what events are present */
     features = (int*)papi_malloc(sizeof(int) * device_count);
-    if (features == NULL) { 
+    if (features == NULL) {
         snprintf(_nvml_vector.cmp_info.disabled_reason, PAPI_MAX_STR_LEN-2,
                     "%s failed to alloc %lu bytes for features.", __func__, sizeof(int)*device_count);
                     _nvml_vector.cmp_info.disabled_reason[PAPI_MAX_STR_LEN-1]=0;    // force null termination.
@@ -1260,10 +1260,10 @@ linkCudaLibraries()
     // getenv returns NULL if environment variable is not found.
     char *cuda_root = getenv("PAPI_CUDA_ROOT");
 
-    // We need the NVML main library, normally libnvidia-ml.so. 
+    // We need the NVML main library, normally libnvidia-ml.so.
     dl3 = NULL;                                                 // Ensure reset to NULL.
 
-    // Step 1: Process override if given.   
+    // Step 1: Process override if given.
     if (strlen(nvml_main) > 0) {                                        // If override given, it MUST work.
         dl3 = dlopen(nvml_main, RTLD_NOW | RTLD_GLOBAL);                // Try to open that path.
         if (dl3 == NULL) {
@@ -1277,7 +1277,7 @@ linkCudaLibraries()
         dl3 = dlopen("libnvidia-ml.so", RTLD_NOW | RTLD_GLOBAL);    // Try system paths.
     }
 
-    // Step 3: Try the explicit install default. 
+    // Step 3: Try the explicit install default.
     if (dl3 == NULL && cuda_root != NULL) {                                         // If ROOT given, it doesn't HAVE to work.
         snprintf(path_lib, 1024, "%s/lib64/libnvidia-ml.so", cuda_root);            // PAPI Root check.
         dl3 = dlopen(path_lib, RTLD_NOW | RTLD_GLOBAL);                             // Try to open that path.
@@ -1817,4 +1817,3 @@ papi_vector_t _nvml_vector = {
     .ntv_code_to_info = _papi_nvml_ntv_code_to_info,
 
 };
-

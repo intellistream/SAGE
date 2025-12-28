@@ -17,7 +17,7 @@ int TPTKernelsTest(int rows) {
   h_ps.data = d_data;
 
   PointSet<T>* d_ps;
-  
+
   CUDA_CHECK(cudaMalloc(&d_ps, sizeof(PointSet<T>)));
   CUDA_CHECK(cudaMemcpy(d_ps, &h_ps, sizeof(PointSet<T>), cudaMemcpyHostToDevice));
 
@@ -29,7 +29,7 @@ int TPTKernelsTest(int rows) {
   CHECK_VAL(tptree->Dim,dim,errs)
   CHECK_VAL(tptree->levels,levels,errs)
   CHECK_VAL(tptree->N,rows,errs)
-  CHECK_VAL(tptree->num_leaves,pow(2,levels),errs)  
+  CHECK_VAL(tptree->num_leaves,pow(2,levels),errs)
 
   // Create TPT structure and random weights
   KEYTYPE* h_weights = new KEYTYPE[tptree->levels*tptree->Dim];

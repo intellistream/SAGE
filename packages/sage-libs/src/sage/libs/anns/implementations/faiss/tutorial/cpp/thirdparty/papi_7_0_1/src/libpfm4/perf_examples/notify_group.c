@@ -56,7 +56,7 @@ sigio_handler(int n, siginfo_t *info, struct sigcontext *sc)
 	struct perf_event_header ehdr;
 	uint64_t ip;
 	int id, ret;
-	
+
 	id = perf_fd2event(fds, num_fds, info->si_fd);
 	if (id == -1)
 		errx(1, "cannot find event for descriptor %d", info->si_fd);

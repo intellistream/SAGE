@@ -14,18 +14,18 @@
 #include "inc/SSDServing/main.h"
 #include "inc/SSDServing/Utils.h"
 #include "inc/SSDServing/SSDIndex.h"
- 
+
 using namespace SPTAG;
 
 namespace SPTAG {
 	namespace SSDServing {
 
-		int BootProgram(bool forANNIndexTestTool, 
-			std::map<std::string, std::map<std::string, std::string>>* config_map, 
-			const char* configurationPath, 
+		int BootProgram(bool forANNIndexTestTool,
+			std::map<std::string, std::map<std::string, std::string>>* config_map,
+			const char* configurationPath,
 			VectorValueType valueType,
 			DistCalcMethod distCalcMethod,
-			const char* dataFilePath, 
+			const char* dataFilePath,
 			const char* indexFilePath) {
 
 
@@ -178,7 +178,7 @@ namespace SPTAG {
 	}
 }
 
-// switch between exe and static library by _$(OutputType) 
+// switch between exe and static library by _$(OutputType)
 #ifdef _exe
 
 int main(int argc, char* argv[]) {

@@ -15,7 +15,7 @@ class BuilderOptions : public Helper::ReaderOptions
 {
 public:
     BuilderOptions() : Helper::ReaderOptions(VectorValueType::Float, 0, VectorFileType::TXT, "|", 32)
-    {        
+    {
         AddRequiredOption(m_outputFolder, "-o", "--outputfolder", "Output folder.");
         AddRequiredOption(m_indexAlgoType, "-a", "--algo", "Index Algorithm type.");
         AddOptionalOption(m_inputFiles, "-i", "--input", "Input raw data.");
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
             indexBuilder->SetParameter(iter.first.c_str(), iter.second.c_str(), sections[i]);
         }
     }
-    
+
     ErrorCode code;
     std::shared_ptr<VectorSet> vecset;
     if (options->m_inputFiles != "") {
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
     }
     else {
         indexBuilder->SetQuantizerFileName(options->m_quantizerFile.substr(options->m_quantizerFile.find_last_of("/\\") + 1));
-        code = indexBuilder->BuildIndex(options->m_normalized);    
+        code = indexBuilder->BuildIndex(options->m_normalized);
     }
     if (code == ErrorCode::Success)
     {

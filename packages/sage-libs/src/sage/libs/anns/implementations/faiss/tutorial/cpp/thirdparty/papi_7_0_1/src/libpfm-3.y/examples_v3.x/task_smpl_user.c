@@ -169,19 +169,19 @@ show_task_rusage(const struct timeval *start, const struct timeval *end, const s
 
   	suseconds = end_usec - start->tv_usec;
 
-	printf ("real %ldh%02ldm%02ld.%03lds user %ldh%02ldm%02ld.%03lds sys %ldh%02ldm%02ld.%03lds\n", 
-		secs / 3600, 
-		(secs % 3600) / 60, 
+	printf ("real %ldh%02ldm%02ld.%03lds user %ldh%02ldm%02ld.%03lds sys %ldh%02ldm%02ld.%03lds\n",
+		secs / 3600,
+		(secs % 3600) / 60,
 		secs % 60,
 		suseconds / 1000,
 
-		ru->ru_utime.tv_sec / 3600, 
-		(ru->ru_utime.tv_sec % 3600) / 60, 
+		ru->ru_utime.tv_sec / 3600,
+		(ru->ru_utime.tv_sec % 3600) / 60,
 		ru->ru_utime.tv_sec% 60,
 		(long)(ru->ru_utime.tv_usec / 1000),
 
-		ru->ru_stime.tv_sec / 3600, 
-		(ru->ru_stime.tv_sec % 3600) / 60, 
+		ru->ru_stime.tv_sec / 3600,
+		(ru->ru_stime.tv_sec % 3600) / 60,
 		ru->ru_stime.tv_sec% 60,
 		(long)(ru->ru_stime.tv_usec / 1000)
 		);
@@ -204,7 +204,7 @@ process_sample(int fd,  unsigned long ip, pid_t pid, pid_t tid, uint16_t cpu)
 		- pd[0].reg_last_value,
 		ip);
 
-	for(j=1; j < num_pmds; j++) {	
+	for(j=1; j < num_pmds; j++) {
 		printf("PMD%-2d = %"PRIu64"\n", pd[j].reg_num, pd[j].reg_value);
 	}
 done:
@@ -514,7 +514,7 @@ main(int argc, char **argv)
 	if (argv[optind] == NULL) {
 		fatal_error("You must specify a command to execute\n");
 	}
-	
+
 	/*
 	 * pass options to library (optional)
 	 */

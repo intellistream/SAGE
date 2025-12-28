@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_get_dmem_info \- 
+PAPI_get_dmem_info \-
 .PP
-Get information about the dynamic memory usage of the current program\&.  
+Get information about the dynamic memory usage of the current program\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Prototype:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
  int \fBPAPI_get_dmem_info( PAPI_dmem_info_t *dest )\fP;
 .RE
@@ -27,9 +27,9 @@ Get information about the dynamic memory usage of the current program\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_ECMP\fP The function is not implemented for the current component\&. 
+\fIPAPI_ECMP\fP The function is not implemented for the current component\&.
 .br
-\fIPAPI_EINVAL\fP Any value in the structure or array may be undefined as indicated by this error value\&. 
+\fIPAPI_EINVAL\fP Any value in the structure or array may be undefined as indicated by this error value\&.
 .br
 \fIPAPI_SYS\fP A system error occurred\&.
 .RE
@@ -41,11 +41,11 @@ This function is only implemented for the Linux operating system\&. This functio
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_get_executable_info\fP \fBPAPI_get_hardware_info\fP \fBPAPI_get_opt\fP \fBPAPI_library_init\fP 
+\fBPAPI_get_executable_info\fP \fBPAPI_get_hardware_info\fP \fBPAPI_get_opt\fP \fBPAPI_library_init\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

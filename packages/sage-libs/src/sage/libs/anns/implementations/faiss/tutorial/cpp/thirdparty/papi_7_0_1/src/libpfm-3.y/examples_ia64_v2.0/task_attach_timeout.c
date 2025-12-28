@@ -196,7 +196,7 @@ parent(pid_t pid, unsigned long delay)
 	/*
 	 * the task is stopped at this point
 	 */
-	
+
 	/*
 	 * now we load (i.e., attach) the context to ourself
 	 */

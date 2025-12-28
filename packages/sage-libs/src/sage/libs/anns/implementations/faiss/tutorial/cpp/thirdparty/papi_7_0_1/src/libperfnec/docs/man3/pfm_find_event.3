@@ -24,7 +24,7 @@ with unit masks.
 The library does not directly expose the event code, nor unit mask code,
 to user applications because it is not necessary. Instead applications
 use names to query the library for particular information about events.
-Given an event name, the library returns an opaque descriptor. 
+Given an event name, the library returns an opaque descriptor.
 Each descriptor is unique and has no relationship to the event code.
 .sp
 The set of functions described here can be used to get an event descriptor
@@ -46,7 +46,7 @@ separated list of unit mask names, exact values or value combinations.
 For instance, if event A supports unit masks M1 (0x1) and M2 (0x40), and
 both unit masks are to be measured, then the following values for
 \fBstr\fR are valid: "A:M1:M2", "A:M1:0x40", "A:M2:0x1", "A:0x1:0x40", "A:0x41".
-.sp 
+.sp
 The \fBpfm_find_event_bycode()\fR function searches for an event given
 its \fBcode\fR represented as an integer. It returns in \fBdesc\fR,
 the event code. Unit masks are ignored.
@@ -68,7 +68,7 @@ i.e., all bits must match. Some events do not have unit masks, in which case thi
 returns an error.
 .SH RETURN
 All functions return whether or not the call was successful.
-A return value of \fBPFMLIB_SUCCESS\fR indicates success, 
+A return value of \fBPFMLIB_SUCCESS\fR indicates success,
 otherwise the value is the error code.
 .SH ERRORS
 .B PFMLIB_ERR_NOINIT

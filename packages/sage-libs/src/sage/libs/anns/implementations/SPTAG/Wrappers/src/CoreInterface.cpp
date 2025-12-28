@@ -99,7 +99,7 @@ AnnIndex::BuildWithMetaData(ByteArray p_data, ByteArray p_meta, SizeType p_num, 
     {
         return false;
     }
-    
+
     auto vectorType = m_index->m_pQuantizer ? SPTAG::VectorValueType::UInt8 : m_inputValueType;
     auto vectorSize = m_index->m_pQuantizer ? m_index->m_pQuantizer->GetNumSubvectors() : m_dimension;
     std::shared_ptr<SPTAG::VectorSet> vectors(new SPTAG::BasicVectorSet(p_data,
@@ -118,12 +118,12 @@ AnnIndex::BuildWithMetaData(ByteArray p_data, ByteArray p_meta, SizeType p_num, 
 void
 AnnIndex::SetBuildParam(const char* p_name, const char* p_value, const char* p_section)
 {
-    if (nullptr == m_index) 
+    if (nullptr == m_index)
     {
-        if (SPTAG::IndexAlgoType::Undefined == m_algoType || 
+        if (SPTAG::IndexAlgoType::Undefined == m_algoType ||
             SPTAG::VectorValueType::Undefined == m_inputValueType)
         {
-            return;    
+            return;
         }
         m_index = SPTAG::VectorIndex::CreateInstance(m_algoType, m_inputValueType);
 
@@ -139,7 +139,7 @@ AnnIndex::SetSearchParam(const char* p_name, const char* p_value, const char* p_
 }
 
 
-std::shared_ptr<ResultIterator> 
+std::shared_ptr<ResultIterator>
 AnnIndex::GetIterator(ByteArray p_target)
 {
     if (nullptr != m_index) return m_index->GetIterator(p_target.Data());
@@ -176,7 +176,7 @@ AnnIndex::SetQuantizerADC(bool p_adc)
 }
 
 
-ByteArray 
+ByteArray
 AnnIndex::QuantizeVector(ByteArray p_data, int p_num)
 {
     if (nullptr != m_index && m_index->GetQuantizer() != nullptr) {
@@ -189,7 +189,7 @@ AnnIndex::QuantizeVector(ByteArray p_data, int p_num)
 }
 
 
-ByteArray 
+ByteArray
 AnnIndex::ReconstructVector(ByteArray p_data, int p_num)
 {
     if (nullptr != m_index && m_index->GetQuantizer() != nullptr) {
@@ -258,7 +258,7 @@ AnnIndex::Save(const char* p_savefile) const
 }
 
 
-bool 
+bool
 AnnIndex::Add(ByteArray p_data, SizeType p_num, bool p_normalized)
 {
     if (nullptr == m_index)
@@ -314,7 +314,7 @@ bool
 AnnIndex::DeleteByMetaData(ByteArray p_meta)
 {
     if (nullptr == m_index) return false;
-    
+
     return (SPTAG::ErrorCode::Success == m_index->DeleteIndex(p_meta));
 }
 

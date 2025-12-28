@@ -92,7 +92,7 @@ typedef struct {
  * Describe one pair of PEBS registers for use with the replay_event event.
  *
  * "p4_replay_regs" is a flat array of these structures
- * that defines all the PEBS pairs per Table A-10 of 
+ * that defines all the PEBS pairs per Table A-10 of
  * the Intel System Programming Guide Vol 3B.
  *
  * @enb:      value for the PEBS_ENABLE register for a given replay metric.
@@ -173,4 +173,3 @@ typedef struct {
 } pentium4_event_t;
 
 #endif
-

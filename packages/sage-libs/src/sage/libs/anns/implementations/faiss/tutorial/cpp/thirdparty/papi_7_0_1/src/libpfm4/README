@@ -7,7 +7,7 @@
 
  	  Copyright (c) 2001-2007 Hewlett-Packard Development Company, L.P.
 	                Contributed by Stephane Eranian <eranian@hpl.hp.com>
-	
+
 
 This package provides a library, called libpfm4 which is used to develop
 monitoring tools exploiting the performance monitoring events such as those
@@ -16,7 +16,7 @@ provided by the Performance Monitoring Unit (PMU) of modern processors.
 This is a complete rewrite of libpfm3 and it is NOT backward compatible
 with it.
 
-Libpfm4 helps convert from an event name, expressed as a string, to 
+Libpfm4 helps convert from an event name, expressed as a string, to
 the event encoding that is either the raw event as documented by HW vendor
 or the OS-specific encoding. In the latter case, the library is able to
 prepare the OS-specific data structures needed by the kernel to setup the
@@ -44,7 +44,7 @@ The library supports many PMUs. The current version can handle:
 		AMD64 Fam19h (Zen3) (core and L3)
 		AMD64 Fam19h (Zen4)
 
-	- For Intel X86: 
+	- For Intel X86:
 		Intel P6 (Pentium II, Pentium Pro, Pentium III, Pentium M)
 		Intel Yonah (Core Duo/Core Solo),
 		Intel Core (Merom, Penryn, Dunnington)

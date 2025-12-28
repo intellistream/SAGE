@@ -103,7 +103,7 @@ static void sample_one_cpu(unsigned int cpu)
 }
 
 static void sampling_timer_function(unsigned long interval)
-{	
+{
 	sample_all_cpus();
 	sampling_timer.expires = jiffies + interval;
 	add_timer(&sampling_timer);

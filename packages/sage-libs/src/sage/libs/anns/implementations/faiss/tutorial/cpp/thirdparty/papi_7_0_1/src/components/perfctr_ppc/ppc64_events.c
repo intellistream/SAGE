@@ -2,7 +2,7 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/* 
+/*
 * File:    ppc64_events.c
 * Author:  Maynard Johnson
 *          maynardj@us.ibm.com
@@ -96,7 +96,7 @@ perfctr_ppc64_setup_native_table(  )
 				}
 			}
 			if ( i == index ) {
-				//native_table[i].index=i; 
+				//native_table[i].index=i;
 				native_table[i].resources.selector |= 1 << pmc;
 				native_table[i].resources.counter_cmd[pmc] = wevp->event_num;
 				native_table[i].name =
@@ -172,9 +172,9 @@ check_native_name(  )
 	int i;
 
 	/* This should ensure that the cardinality of native_name is the same
-	   as that of native_name_map which may be true iff native_name 
-	   expresses the same data as native_name_map and there is a 1:1 
-	   mapping from one onto the other, though there is no guarantee of 
+	   as that of native_name_map which may be true iff native_name
+	   expresses the same data as native_name_map and there is a 1:1
+	   mapping from one onto the other, though there is no guarantee of
 	   order. */
 	if ( ( NATNAME_GUARD - PAPI_NATIVE_MASK ) != MAX_NATNAME_MAP_INDEX ) {
 		SUBDBG( "%i is the number of elements apparently in native_name, "

@@ -132,7 +132,7 @@ static void adjust__pfmlib_sys_base(int version)
 	switch(version) {
 		case 29:
 		case 28:
-		case 27:	
+		case 27:
 			_pfmlib_sys_base = 333;
 			break;
 		case 26:

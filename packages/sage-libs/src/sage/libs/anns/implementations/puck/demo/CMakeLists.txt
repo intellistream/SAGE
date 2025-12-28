@@ -8,7 +8,7 @@ file(
     "../puck/tinker/*.cpp"
     "../puck/tinker/*/*.cc"
     "../puck/*.cpp"
-    
+
 )
 
 add_executable(search_client)
@@ -34,7 +34,7 @@ target_link_libraries(insert_demo glog)
 
 set(CMAKE_INSTALL_BINDIR ${CMAKE_INSTALL_PREFIX}/bin)
 
-install(TARGETS search_client insert_demo 
+install(TARGETS search_client insert_demo
 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 

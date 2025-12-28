@@ -228,4 +228,3 @@ static intel_x86_entry_t intel_skx_unc_p_pe[]={
     .numasks= LIBPFM_ARRAY_SIZE(skx_unc_p_power_state_occupancy),
   },
 };
-

@@ -3,15 +3,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
+import sys
+import unittest
 
 import faiss
-import unittest
-import sys
-import gc
-
+import numpy as np
 from faiss.contrib import datasets
-from faiss.contrib.evaluation import sort_range_res_2, check_ref_range_results
+from faiss.contrib.evaluation import check_ref_range_results, sort_range_res_2
 
 faiss.omp_set_num_threads(4)
 
@@ -23,7 +21,7 @@ class TestSelector(unittest.TestCase):
     """
 
     def do_test_id_selector(self, index_key, id_selector_type="batch", mt=faiss.METRIC_L2):
-        """ Verify that the id selector returns the subset of results that are
+        """Verify that the id selector returns the subset of results that are
         members according to the IDSelector.
         Supports id_selector_type="batch", "bitmap", "range", "range_sorted", "and", "or", "xor"
         """
@@ -34,7 +32,7 @@ class TestSelector(unittest.TestCase):
 
         # reference result
         if "range" in id_selector_type:
-            subset = np.arange(30, 80).astype('int64')
+            subset = np.arange(30, 80).astype("int64")
         elif id_selector_type == "or":
             lhs_rs = np.random.RandomState(123)
             lhs_subset = lhs_rs.choice(ds.nb, 50, replace=False).astype("int64")
@@ -67,8 +65,7 @@ class TestSelector(unittest.TestCase):
 
         radius = float(Dref[Iref > 0].max()) * 1.01
         try:
-            Rlims_ref, RDref, RIref = index.range_search(
-                ds.get_queries(), radius)
+            Rlims_ref, RDref, RIref = index.range_search(ds.get_queries(), radius)
         except RuntimeError as e:
             if "not implemented" in str(e):
                 have_range_search = False
@@ -92,45 +89,40 @@ class TestSelector(unittest.TestCase):
         elif id_selector_type == "bitmap":
             bitmap = np.zeros(ds.nb, dtype=bool)
             bitmap[subset] = True
-            bitmap = np.packbits(bitmap, bitorder='little')
+            bitmap = np.packbits(bitmap, bitorder="little")
             sel = faiss.IDSelectorBitmap(bitmap)
         elif id_selector_type == "not":
             ssubset = set(subset)
-            inverse_subset = np.array([
-                i for i in range(ds.nb)
-                if i not in ssubset
-            ]).astype('int64')
+            inverse_subset = np.array([i for i in range(ds.nb) if i not in ssubset]).astype("int64")
             sel = faiss.IDSelectorNot(faiss.IDSelectorBatch(inverse_subset))
         elif id_selector_type == "or":
             sel = faiss.IDSelectorOr(
-                faiss.IDSelectorBatch(lhs_subset),
-                faiss.IDSelectorBatch(rhs_subset)
+                faiss.IDSelectorBatch(lhs_subset), faiss.IDSelectorBatch(rhs_subset)
             )
         elif id_selector_type == "and":
             sel = faiss.IDSelectorAnd(
-                faiss.IDSelectorBatch(lhs_subset),
-                faiss.IDSelectorBatch(rhs_subset)
+                faiss.IDSelectorBatch(lhs_subset), faiss.IDSelectorBatch(rhs_subset)
             )
         elif id_selector_type == "xor":
             sel = faiss.IDSelectorXOr(
-                faiss.IDSelectorBatch(lhs_subset),
-                faiss.IDSelectorBatch(rhs_subset)
+                faiss.IDSelectorBatch(lhs_subset), faiss.IDSelectorBatch(rhs_subset)
             )
         else:
             sel = faiss.IDSelectorBatch(subset)
 
         params = (
-            faiss.SearchParametersIVF(sel=sel) if "IVF" in index_key else
-            faiss.SearchParametersPQ(sel=sel) if "PQ" in index_key else
-            faiss.SearchParameters(sel=sel)
+            faiss.SearchParametersIVF(sel=sel)
+            if "IVF" in index_key
+            else faiss.SearchParametersPQ(sel=sel)
+            if "PQ" in index_key
+            else faiss.SearchParameters(sel=sel)
         )
         Dnew, Inew = index.search(ds.get_queries(), k, params=params)
         np.testing.assert_array_equal(Iref, Inew)
         np.testing.assert_almost_equal(Dref, Dnew, decimal=5)
 
         if have_range_search:
-            Rlims_new, RDnew, RInew = index.range_search(
-                ds.get_queries(), radius, params=params)
+            Rlims_new, RDnew, RInew = index.range_search(ds.get_queries(), radius, params=params)
             np.testing.assert_array_equal(Rlims_ref, Rlims_new)
             RDref, RIref = sort_range_res_2(Rlims_ref, RDref, RIref)
             np.testing.assert_array_equal(RIref, RInew)
@@ -164,19 +156,13 @@ class TestSelector(unittest.TestCase):
         self.do_test_id_selector("Flat", id_selector_type="range")
 
     def test_Flat_IP_id_range(self):
-        self.do_test_id_selector(
-            "Flat", id_selector_type="range",
-            mt=faiss.METRIC_INNER_PRODUCT
-        )
+        self.do_test_id_selector("Flat", id_selector_type="range", mt=faiss.METRIC_INNER_PRODUCT)
 
     def test_Flat_id_array(self):
         self.do_test_id_selector("Flat", id_selector_type="array")
 
     def test_Flat_IP_id_array(self):
-        self.do_test_id_selector(
-            "Flat", id_selector_type="array",
-            mt=faiss.METRIC_INNER_PRODUCT
-        )
+        self.do_test_id_selector("Flat", id_selector_type="array", mt=faiss.METRIC_INNER_PRODUCT)
 
     def test_Flat_id_bitmap(self):
         self.do_test_id_selector("Flat", id_selector_type="bitmap")
@@ -196,7 +182,7 @@ class TestSelector(unittest.TestCase):
     #    self.do_test_id_selector("RQ3x4")
 
     def do_test_id_selector_weak(self, index_key):
-        """ verify that the selected subset is the subset  in the list"""
+        """verify that the selected subset is the subset  in the list"""
         ds = datasets.SyntheticDataset(32, 1000, 100, 20)
         index = faiss.index_factory(ds.d, index_key)
         index.train(ds.get_train())
@@ -214,7 +200,7 @@ class TestSelector(unittest.TestCase):
         mask = np.zeros(ds.nb, dtype=bool)
         mask[subset] = True
         for q in range(len(Iref)):
-            mask_q, = np.where(mask[Iref[q]])
+            (mask_q,) = np.where(mask[Iref[q]])
             l = len(mask_q)
             np.testing.assert_array_equal(Iref[q, mask_q], Inew[q, :l])
             np.testing.assert_array_equal(Dref[q, mask_q], Dnew[q, :l])
@@ -239,29 +225,24 @@ class TestSelector(unittest.TestCase):
         index.add_with_ids(ds.get_database(), ids)
 
         valid_ids = ids[mask]
-        sel = faiss.IDSelectorTranslated(
-            index, faiss.IDSelectorBatch(valid_ids))
+        sel = faiss.IDSelectorTranslated(index, faiss.IDSelectorBatch(valid_ids))
 
-        Dnew, Inew = index.search(
-            ds.get_queries(), 10,
-            params=faiss.SearchParameters(sel=sel)
-        )
+        Dnew, Inew = index.search(ds.get_queries(), 10, params=faiss.SearchParameters(sel=sel))
         np.testing.assert_array_equal(Iref, Inew)
         np.testing.assert_array_almost_equal(Dref, Dnew, decimal=5)
 
         # let the IDMap::search add the translation...
         Dnew, Inew = index.search(
-            ds.get_queries(), 10,
-            params=faiss.SearchParameters(sel=faiss.IDSelectorBatch(valid_ids))
+            ds.get_queries(),
+            10,
+            params=faiss.SearchParameters(sel=faiss.IDSelectorBatch(valid_ids)),
         )
         np.testing.assert_array_equal(Iref, Inew)
         np.testing.assert_array_almost_equal(Dref, Dnew, decimal=5)
 
 
 class TestSearchParams(unittest.TestCase):
-
-    def do_test_with_param(
-            self, index_key, ps_params, params):
+    def do_test_with_param(self, index_key, ps_params, params):
         """
         Test equivalence between setting
         1. param_name_2 = value with ParameterSpace
@@ -283,46 +264,36 @@ class TestSearchParams(unittest.TestCase):
         self.assertFalse(np.all(Inew == I0))
 
         for param_name, value in ps_params.items():
-            faiss.ParameterSpace().set_index_parameter(
-                index, param_name, value)
+            faiss.ParameterSpace().set_index_parameter(index, param_name, value)
         Dref, Iref = index.search(ds.get_queries(), 10)
 
         np.testing.assert_array_equal(Iref, Inew)
         np.testing.assert_array_equal(Dref, Dnew)
 
     def test_nprobe(self):
-        self.do_test_with_param(
-                "IVF32,Flat", {"nprobe": 3},
-                faiss.SearchParametersIVF(nprobe=3))
+        self.do_test_with_param("IVF32,Flat", {"nprobe": 3}, faiss.SearchParametersIVF(nprobe=3))
 
     def test_efSearch(self):
-        self.do_test_with_param(
-            "HNSW", {"efSearch": 4},
-            faiss.SearchParametersHNSW(efSearch=4))
+        self.do_test_with_param("HNSW", {"efSearch": 4}, faiss.SearchParametersHNSW(efSearch=4))
 
     def test_quantizer_hnsw(self):
         self.do_test_with_param(
             "IVF200_HNSW,Flat",
             {"quantizer_efSearch": 5, "nprobe": 10},
             faiss.SearchParametersIVF(
-                nprobe=10,
-                quantizer_params=faiss.SearchParametersHNSW(
-                    efSearch=5)
-            )
+                nprobe=10, quantizer_params=faiss.SearchParametersHNSW(efSearch=5)
+            ),
         )
 
     def test_PQ_polysemous_ht(self):
         self.do_test_with_param(
             "PQ4x8",
             {"ht": 10},
-            faiss.SearchParametersPQ(
-                polysemous_ht=10,
-                search_type=faiss.IndexPQ.ST_polysemous
-            )
+            faiss.SearchParametersPQ(polysemous_ht=10, search_type=faiss.IndexPQ.ST_polysemous),
         )
 
     def test_max_codes(self):
-        " tests whether the max nb codes is taken into account "
+        "tests whether the max nb codes is taken into account"
         ds = datasets.SyntheticDataset(32, 1000, 100, 20)
         index = faiss.index_factory(ds.d, "IVF32,Flat")
         index.train(ds.get_train())
@@ -330,19 +301,15 @@ class TestSearchParams(unittest.TestCase):
 
         stats = faiss.cvar.indexIVF_stats
         stats.reset()
-        D0, I0 = index.search(
-            ds.get_queries(), 10,
-            params=faiss.SearchParametersIVF(nprobe=8)
-        )
+        D0, I0 = index.search(ds.get_queries(), 10, params=faiss.SearchParametersIVF(nprobe=8))
         ndis0 = stats.ndis
         target_ndis = ndis0 // ds.nq  # a few queries will be below, a few above
         for q in range(ds.nq):
             stats.reset()
             Dq, Iq = index.search(
-                ds.get_queries()[q:q + 1], 10,
-                params=faiss.SearchParametersIVF(
-                    nprobe=8, max_codes=target_ndis
-                )
+                ds.get_queries()[q : q + 1],
+                10,
+                params=faiss.SearchParametersIVF(nprobe=8, max_codes=target_ndis),
             )
             self.assertLessEqual(stats.ndis, target_ndis)
             if stats.ndis < target_ndis:
@@ -372,7 +339,6 @@ class TestSearchParams(unittest.TestCase):
 
 
 class TestSelectorCallback(unittest.TestCase):
-
     def test(self):
         ds = datasets.SyntheticDataset(32, 1000, 100, 20)
         index = faiss.index_factory(ds.d, "IVF32,Flat")
@@ -381,20 +347,14 @@ class TestSelectorCallback(unittest.TestCase):
         rs = np.random.RandomState(123)
         subset = rs.choice(ds.nb, 50, replace=False)
 
-        params = faiss.SearchParametersIVF(
-            sel=faiss.IDSelectorBatch(subset),
-            nprobe=4
-        )
+        params = faiss.SearchParametersIVF(sel=faiss.IDSelectorBatch(subset), nprobe=4)
 
         Dref, Iref = index.search(ds.get_queries(), k, params=params)
 
         def is_member(idx):
             return idx in subset
 
-        params = faiss.SearchParametersIVF(
-            sel=faiss.PyCallbackIDSelector(is_member),
-            nprobe=4
-        )
+        params = faiss.SearchParametersIVF(sel=faiss.PyCallbackIDSelector(is_member), nprobe=4)
 
         Dnew, Inew = index.search(ds.get_queries(), k, params=params)
 
@@ -403,20 +363,19 @@ class TestSelectorCallback(unittest.TestCase):
 
 
 class TestSortedIDSelectorRange(unittest.TestCase):
-    """ to test the sorted id bounds, there are a few cases to consider """
+    """to test the sorted id bounds, there are a few cases to consider"""
 
     def do_test_sorted(self, imin, imax, n=100):
         selr = faiss.IDSelectorRange(imin, imax, True)
         sp = faiss.swig_ptr
         for seed in range(10):
             rs = np.random.RandomState(seed)
-            ids = rs.choice(30, n).astype('int64')
+            ids = rs.choice(30, n).astype("int64")
             ids.sort()
-            j01 = np.zeros(2, dtype='uint64')
-            selr.find_sorted_ids_bounds(
-                len(ids), sp(ids), sp(j01[:1]), sp(j01[1:]))
+            j01 = np.zeros(2, dtype="uint64")
+            selr.find_sorted_ids_bounds(len(ids), sp(ids), sp(j01[:1]), sp(j01[1:]))
             j0, j1 = j01.astype(int)
-            ref_idx, = np.where((ids >= imin) & (ids < imax))
+            (ref_idx,) = np.where((ids >= imin) & (ids < imax))
             np.testing.assert_array_equal(ref_idx, np.arange(j0, j1))
 
     def test_sorted_in_range(self):
@@ -433,17 +392,15 @@ class TestSortedIDSelectorRange(unittest.TestCase):
 
     def test_12_92(self):
         selr = faiss.IDSelectorRange(30, 80, True)
-        ids = np.array([12, 92], dtype='int64')
-        j01 = np.zeros(2, dtype='uint64')
+        ids = np.array([12, 92], dtype="int64")
+        j01 = np.zeros(2, dtype="uint64")
         sp = faiss.swig_ptr
-        selr.find_sorted_ids_bounds(
-            len(ids), sp(ids), sp(j01[:1]), sp(j01[1:]))
+        selr.find_sorted_ids_bounds(len(ids), sp(ids), sp(j01[:1]), sp(j01[1:]))
         print(j01)
         assert j01[0] >= j01[1]
 
 
 class TestPrecomputed(unittest.TestCase):
-
     def do_test_knn_and_range(self, factory, range=True):
         ds = datasets.SyntheticDataset(32, 10000, 100, 20)
         index = faiss.index_factory(ds.d, factory)
@@ -460,13 +417,10 @@ class TestPrecomputed(unittest.TestCase):
         if range:
             r2 = float(np.median(Dref[:, 5]))
             Lref, Dref, Iref = index.range_search(ds.get_queries(), r2)
-            assert Lref.size > 10   # make sure there is something to test...
+            assert Lref.size > 10  # make sure there is something to test...
 
             Lnew, Dnew, Inew = index.range_search_preassigned(ds.get_queries(), r2, Iq, Dq)
-            check_ref_range_results(
-                Lref, Dref, Iref,
-                Lnew, Dnew, Inew
-            )
+            check_ref_range_results(Lref, Dref, Iref, Lnew, Dnew, Inew)
 
     def test_knn_and_range_Flat(self):
         self.do_test_knn_and_range("IVF32,Flat")

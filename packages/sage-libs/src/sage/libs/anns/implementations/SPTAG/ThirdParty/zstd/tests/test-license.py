@@ -10,7 +10,6 @@
 # You may select, at your option, one of the above-listed licenses.
 # ################################################################
 
-import enum
 import glob
 import os
 import re
@@ -31,8 +30,10 @@ REL_EXCLUDES = [
     "contrib/linux-kernel/test/include",
 ]
 
+
 def to_abs(d):
     return os.path.normpath(os.path.join(ROOT, d)) + "/"
+
 
 DIRS = [to_abs(d) for d in RELDIRS]
 EXCLUDES = [to_abs(d) for d in REL_EXCLUDES]
@@ -76,7 +77,7 @@ LICENSE_EXCEPTIONS = {
 
 
 def valid_copyright(lines):
-    YEAR_REGEX = re.compile("\d\d\d\d|present")
+    YEAR_REGEX = re.compile(r"\d\d\d\d|present")
     for line in lines:
         line = line.strip()
         if "Copyright" not in line:
@@ -87,7 +88,10 @@ def valid_copyright(lines):
             return (False, f"Copyright line '{line}' does not contain 'Meta Platforms, Inc'")
         year = YEAR_REGEX.search(line)
         if year is not None:
-            return (False, f"Copyright line '{line}' contains {year.group(0)}; it should be yearless")
+            return (
+                False,
+                f"Copyright line '{line}' contains {year.group(0)}; it should be yearless",
+            )
         if " (c) " not in line:
             return (False, f"Copyright line '{line}' does not contain ' (c) '!")
         return (True, "")
@@ -109,9 +113,9 @@ Actual: '{lines[b + l]}'"""
 
 
 def valid_file(filename):
-    with open(filename, "r") as f:
+    with open(filename) as f:
         lines = f.readlines(MAX_BYTES)
-    lines = lines[:min(len(lines), MAX_LINES)]
+    lines = lines[: min(len(lines), MAX_LINES)]
 
     ok = True
     if os.path.basename(filename) not in COPYRIGHT_EXCEPTIONS:
@@ -133,6 +137,7 @@ def exclude(filename):
             return True
     return False
 
+
 def main():
     invalid_files = []
     for directory in DIRS:
@@ -151,6 +156,7 @@ def main():
     else:
         print("Pass!", file=sys.stderr)
         return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

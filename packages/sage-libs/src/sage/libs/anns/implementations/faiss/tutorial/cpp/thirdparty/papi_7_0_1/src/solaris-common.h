@@ -61,8 +61,3 @@ extern rwlock_t lock[PAPI_MAX_LOCK];
 	SET_SIZE(get_tick)
 
 #endif
-
-
-
-
-

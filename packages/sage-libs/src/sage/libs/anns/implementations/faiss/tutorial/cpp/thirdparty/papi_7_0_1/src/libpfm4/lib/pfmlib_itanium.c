@@ -294,11 +294,11 @@ pfm_dispatch_iear(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in, p
 	pc[pos1].reg_addr    = 10;
 	pc[pos1].reg_alt_addr= 10;
 	pos1++;
-	pd[pos2].reg_num     = 0; 
+	pd[pos2].reg_num     = 0;
 	pd[pos2].reg_addr    = 0;
 	pd[pos2].reg_alt_addr  = 0;
 	pos2++;
-	pd[pos2].reg_num     = 1; 
+	pd[pos2].reg_num     = 1;
 	pd[pos2].reg_addr    = 1;
 	pd[pos2].reg_alt_addr  = 1;
 	pos2++;
@@ -383,15 +383,15 @@ pfm_dispatch_dear(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in, p
 	pc[pos1].reg_value   = reg.pmc_val;
 	pc[pos1].reg_addr    = 11;
 	pos1++;
-	pd[pos2].reg_num     = 2; 
+	pd[pos2].reg_num     = 2;
 	pd[pos2].reg_addr    = 2;
 	pd[pos2].reg_alt_addr  = 2;
 	pos2++;
-	pd[pos2].reg_num     = 3; 
+	pd[pos2].reg_num     = 3;
 	pd[pos2].reg_addr    = 3;
 	pd[pos2].reg_alt_addr  = 3;
 	pos2++;
-	pd[pos2].reg_num     = 17; 
+	pd[pos2].reg_num     = 17;
 	pd[pos2].reg_addr    = 17;
 	pd[pos2].reg_alt_addr  = 17;
 	pos2++;
@@ -399,7 +399,7 @@ pfm_dispatch_dear(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in, p
 	__pfm_vbprintf("[PMC11(pmc11)=0x%lx tlb=%s plm=%d pm=%d ism=0x%x umask=0x%x pt=%d]\n",
 			reg.pmc_val,
 			reg.pmc11_ita_reg.dear_tlb ? "Yes" : "No",
-			reg.pmc11_ita_reg.dear_plm,	
+			reg.pmc11_ita_reg.dear_plm,
 			reg.pmc11_ita_reg.dear_pm,
 			reg.pmc11_ita_reg.dear_ism,
 			reg.pmc11_ita_reg.dear_umask,
@@ -656,7 +656,7 @@ do_normal_rr(unsigned long start, unsigned long end,
 	}
 	l_size = l_addr - start;
 	r_size = end - l_addr-(1UL<<p2);
-	
+
 	DPRINT(">>largest chunk: 2^%d @0x%016lx-0x%016lx\n", p2, l_addr, l_addr+(1UL<<p2));
 	if (l_size && !l_offs) DPRINT(">>before: 0x%016lx-0x%016lx\n", start, l_addr);
 	if (r_size && !r_offs) DPRINT(">>after : 0x%016lx-0x%016lx\n", l_addr+(1UL<<p2), end);
@@ -829,7 +829,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in,
 	if (ret != PFMLIB_SUCCESS) return ret;
 
 	if (n_intervals < 1) return PFMLIB_ERR_IRRINVAL;
-	
+
 	DPRINT("n_intervals=%d\n", n_intervals);
 
 	ret = compute_normal_rr(irr, inp->pfp_dfl_plm, n_intervals, &base_idx, orr);
@@ -850,12 +850,12 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in,
 	pos++;
 
 	__pfm_vbprintf("[PMC13(pmc13)=0x%lx ta=%d]\n", reg.pmc_val, reg.pmc13_ita_reg.irange_ta);
-	
+
 	outp->pfp_pmc_count = pos;
 
 	return PFMLIB_SUCCESS;
 }
-	
+
 static int
 pfm_dispatch_drange(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in, pfmlib_output_param_t *outp, pfmlib_ita_output_param_t *mod_out)
 {
@@ -881,7 +881,7 @@ pfm_dispatch_drange(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in,
 	if (ret != PFMLIB_SUCCESS) return ret;
 
 	if (n_intervals < 1) return PFMLIB_ERR_DRRINVAL;
-	
+
 	DPRINT("n_intervals=%d\n", n_intervals);
 
 	ret = compute_normal_rr(irr, inp->pfp_dfl_plm, n_intervals, &base_idx, orr);
@@ -912,7 +912,7 @@ pfm_dispatch_drange(pfmlib_input_param_t *inp, pfmlib_ita_input_param_t *mod_in,
 	__pfm_vbprintf("[PMC11(pmc11)=0x%lx tlb=%s plm=%d pm=%d ism=0x%x umask=0x%x pt=%d]\n",
 			reg.pmc_val,
 			reg.pmc11_ita_reg.dear_tlb ? "Yes" : "No",
-			reg.pmc11_ita_reg.dear_plm,	
+			reg.pmc11_ita_reg.dear_plm,
 			reg.pmc11_ita_reg.dear_pm,
 			reg.pmc11_ita_reg.dear_ism,
 			reg.pmc11_ita_reg.dear_umask,
@@ -1036,13 +1036,13 @@ pfm_ita_is_dear_tlb(unsigned int i)
 {
 	return i >= PME_ITA_EVENT_COUNT || ! (is_dear(i) && is_ear_tlb(i)) ? 0 : 1;
 }
-	
+
 int
 pfm_ita_is_dear_cache(unsigned int i)
 {
 	return i >= PME_ITA_EVENT_COUNT || ! (is_dear(i) && !is_ear_tlb(i)) ? 0 : 1;
 }
-	
+
 int
 pfm_ita_is_iear(unsigned int i)
 {
@@ -1054,13 +1054,13 @@ pfm_ita_is_iear_tlb(unsigned int i)
 {
 	return i >= PME_ITA_EVENT_COUNT || ! (is_iear(i) && is_ear_tlb(i)) ? 0 : 1;
 }
-	
+
 int
 pfm_ita_is_iear_cache(unsigned int i)
 {
 	return i >= PME_ITA_EVENT_COUNT || ! (is_iear(i) && !is_ear_tlb(i)) ? 0 : 1;
 }
-	
+
 int
 pfm_ita_is_btb(unsigned int i)
 {
@@ -1119,7 +1119,7 @@ pfm_ita_get_event_umask(unsigned int i, unsigned long *umask)
 	*umask = evt_umask(i);
 	return PFMLIB_SUCCESS;
 }
-	
+
 static char *
 pfm_ita_get_event_name(unsigned int i)
 {
@@ -1170,7 +1170,7 @@ pfm_ita_get_impl_counters(pfmlib_regmask_t *impl_counters)
 	for(i=4; i < 8; i++)
 		pfm_regmask_set(impl_counters, i);
 }
-	
+
 static void
 pfm_ita_get_hw_counter_width(unsigned int *width)
 {

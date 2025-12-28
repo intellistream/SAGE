@@ -20,8 +20,8 @@
 // This is a modification of a cuda sample code; the original was found in
 // /sw/cuda/10.1/samples/4_Finance/BlackScholes/. It requires a modification to
 // the Makefile, ensure OSCONTEXT and OSLOCK are defined as given in
-// config.log. The point is to test thread safety in the CUDA component. 
-// 
+// config.log. The point is to test thread safety in the CUDA component.
+//
 // As written, the CUDA component only allows a single EventSet, so threads
 // cannot create multiple EventSets of their own, but they can all READ the
 // same eventset, which can contain multiple events. We use valgrind with tool
@@ -50,10 +50,10 @@
 // Different threads can all READ the EventSet, but it is up to the user to
 // force any kind of ordering on the threads or the reads. In experiments, even
 // though cuda serializes the kernel executions, we don't know in what order, and
-// even then the reads, on different threads, may be executed in any order. It 
+// even then the reads, on different threads, may be executed in any order. It
 // is not unusual for all three reads to occur after all the kernels execute and
 // report the same counter value.
-// 
+//
 // Mods by Tony Castaldo; 09/16/2020.
 //-----------------------------------------------------------------------------
 
@@ -111,7 +111,7 @@ int runBlackScholes(int opt_n, int doLocks);
 static threadInfo_t *threadInfo = NULL;      // Array of threadInfo_t[NUM_THREADS].
 
 //-----------------------------------------------------------------------------
-// black_scholes thread. 
+// black_scholes thread.
 //-----------------------------------------------------------------------------
 static void* blackScholesThread(void *given) {
     threadInfo_t *myInfo = (threadInfo_t*) given;
@@ -121,13 +121,13 @@ static void* blackScholesThread(void *given) {
 
     while (1) {
         _papi_hwi_lock( THREADS_LOCK );
-        // Unlock and try again if it is not my turn. 
+        // Unlock and try again if it is not my turn.
         if (spinWait != myInfo->myId && spinWait != NUM_THREADS) {
             _papi_hwi_unlock( THREADS_LOCK );
             continue;
         }
 
-        // It is my turn. Still locked. 
+        // It is my turn. Still locked.
         if (spinWait != NUM_THREADS) spinWait++;
         fprintf(stderr, "Thread %d is running.\n", myInfo->myId);
         _papi_hwi_unlock( THREADS_LOCK );
@@ -145,16 +145,16 @@ static void* blackScholesThread(void *given) {
                     fprintf(stderr, "%s:%s:%i runBlackScholes failed; second cudaDeviceSynchronize() failed.\n", __FILE__, __func__, __LINE__); break;
                 case -5: // cudaMemcpy device->host
                     fprintf(stderr, "%s:%s:%i runBlackScholes failed; cudaMemcpy() device->host failed.\n", __FILE__, __func__, __LINE__); break;
-                case -6: // cudaFree 
+                case -6: // cudaFree
                     fprintf(stderr, "%s:%s:%i runBlackScholes failed; cudaFree() failed.\n", __FILE__, __func__, __LINE__); break;
                 default: // Unknown error.
                     fprintf(stderr, "%s:%s:%i runBlackScholes failed; Unkown error=%d.\n", __FILE__, __func__, __LINE__, ret); break;
-            } 
+            }
 
-            myInfo->rc_read = PAPI_EMISC;   // Record miscellaneous error. 
+            myInfo->rc_read = PAPI_EMISC;   // Record miscellaneous error.
         } else { // success.
             _papi_hwi_lock( THREADS_LOCK );
-            fprintf(stderr, "%s:%i Thread %d papi_hwd_lock_data[THREADS_LOCK]=%i order=[%d,%d,%d].\n", __FILE__, __LINE__, 
+            fprintf(stderr, "%s:%i Thread %d papi_hwd_lock_data[THREADS_LOCK]=%i order=[%d,%d,%d].\n", __FILE__, __LINE__,
                 myInfo->myId, _papi_hwd_lock_data[THREADS_LOCK],
                 threadInfo[0].order, threadInfo[1].order, threadInfo[2].order);
             int i, max=-2;
@@ -167,13 +167,13 @@ static void* blackScholesThread(void *given) {
             fprintf(stderr, "Thread %d read %lli.\n", myInfo->myId, myInfo->myRead[0]);
 
             if( myInfo->rc_read != PAPI_OK ) {
-                fprintf(stderr, "%s:%s:%i Thread %d, PAPI_read failed; rc=%d='%s'\n", __FILE__, __func__, __LINE__, 
+                fprintf(stderr, "%s:%s:%i Thread %d, PAPI_read failed; rc=%d='%s'\n", __FILE__, __func__, __LINE__,
                     myInfo->myId, myInfo->rc_read, PAPI_strerror(myInfo->rc_read));
             }
         }
 
         // Exit infinite loop.
-        break; 
+        break;
     } // END WHILE.
 
     return(NULL);
@@ -252,10 +252,10 @@ int runBlackScholes(int opt_n, int doLocks) {
     h_OptionYears   = (float *)malloc(OPT_SZ);
 
     REPORT printf("...allocating GPU memory for options.\n");
-   
+
     // Explanation: valgrind --tools=helgrind indicates race conditions on the CPU side
-    // for cudaMalloc() and cudaFree(); without the source we cannot be sure if these 
-    // are real. So we do our own lock, just in case. 
+    // for cudaMalloc() and cudaFree(); without the source we cannot be sure if these
+    // are real. So we do our own lock, just in case.
     if (doLocks) _papi_hwi_lock( THREADS_LOCK );
     CUDA_CALL(cudaMalloc((void **)&d_CallResult,   OPT_SZ), if (doLocks) _papi_hwi_unlock( THREADS_LOCK ); return (-1));
     CUDA_CALL(cudaMalloc((void **)&d_PutResult,    OPT_SZ), if (doLocks) _papi_hwi_unlock( THREADS_LOCK ); return (-1));
@@ -331,7 +331,7 @@ int runBlackScholes(int opt_n, int doLocks) {
     CUDA_CALL(cudaMemcpy(h_PutResultGPU,  d_PutResult,  OPT_SZ, cudaMemcpyDeviceToHost), if (doLocks) _papi_hwi_unlock( THREADS_LOCK ); return (-5));
     if (doLocks) _papi_hwi_unlock( THREADS_LOCK );
 
-#if 0 // Whether to check Results 
+#if 0 // Whether to check Results
     double delta, ref, sum_delta, sum_ref, max_delta;
     REPORT printf("Checking the results...\n");
     REPORT printf("...running CPU calculations.\n\n");
@@ -371,7 +371,7 @@ int runBlackScholes(int opt_n, int doLocks) {
     L1norm = sum_delta / sum_ref;
     REPORT printf("L1 norm: %E\n", L1norm);
     REPORT printf("Max absolute error: %E\n\n", max_delta);
-#endif 
+#endif
 
     REPORT printf("Shutting down...\n");
     REPORT printf("...releasing GPU memory.\n");
@@ -409,7 +409,7 @@ int runBlackScholes(int opt_n, int doLocks) {
 ////////////////////////////////////////////////////////////////////////////////
 // Main program
 // Here we are threaded; we launch several threads; they all wait for a global
-// signal. 
+// signal.
 ////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv)
@@ -419,9 +419,9 @@ int main(int argc, char **argv)
     int EventSet = PAPI_NULL;
     int       *events;          // [numEvents] papi event ids.
     pthread_t *threadHandles = NULL;    // All my thread handles.
- 
-    // From original, looks for "device=" command line arg, sets device to use. 
-    // findCudaDevice(argc, (const char **)argv); 
+
+    // From original, looks for "device=" command line arg, sets device to use.
+    // findCudaDevice(argc, (const char **)argv);
    checkCudaErrors(cudaSetDevice(0));
 
     REPORT printf("[%s] - Starting...\n", argv[0]);
@@ -431,7 +431,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    numEvents = argc-1; 
+    numEvents = argc-1;
     events = (int *) calloc(numEvents, sizeof(int));
     long long *stopread = (long long*) calloc(numEvents, sizeof(long long));
     threadHandles = (pthread_t *) calloc(NUM_THREADS, sizeof(pthread_t));
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "PAPI_event_name_to_code failed; name='%s' ret=%d='%s'\n", argv[i+1], ret, PAPI_strerror(ret));
             if (numEvents==1) {printf("PAPI_event_name_to_code failed; name='%s' ret=%d='%s'\n", argv[i+1], ret, PAPI_strerror(ret)); fflush(stdout);}
             exit (-2);
-        }   
+        }
 
         REPORT printf("Name %s --- Code: %#x\n", argv[i+1], events[i]);
     }
@@ -468,9 +468,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "PAPI_create_eventset failed; ret=%d='%s'\n", ret, PAPI_strerror(ret));
         if (numEvents==1) {printf("PAPI_create_eventset failed; ret=%d='%s'\n", ret, PAPI_strerror(ret)); fflush(stdout);}
         exit (-2);
-    }    
+    }
 
-    // If multiple GPUs/contexts were being used, 
+    // If multiple GPUs/contexts were being used,
     // you need to switch to each device before adding its events
     // e.g. cudaSetDevice( 0 );
     ret = PAPI_add_events( EventSet, events, numEvents );
@@ -485,10 +485,10 @@ int main(int argc, char **argv)
         fprintf(stderr, "PAPI_start failed; ret=%d='%s'\n", ret, PAPI_strerror(ret));
         if (numEvents==1) {printf("PAPI_start failed; ret=%d='%s'\n", ret, PAPI_strerror(ret)); fflush(stdout);}
         exit (-2);
-    } 
+    }
 
     //-------------------------------------------------------------------------
-    // Deal with threads. 
+    // Deal with threads.
     //-------------------------------------------------------------------------
     for (i=0; i<NUM_THREADS; i++) {
         threadInfo[i].myId = i;
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
     }
 
     for (i=0; i<NUM_THREADS; i++) {
-        printf("Thread %1d: threadInfo[i].ret_read=%i, readOrder=%i, read values=[", 
+        printf("Thread %1d: threadInfo[i].ret_read=%i, readOrder=%i, read values=[",
           threadInfo[i].myId, threadInfo[i].rc_read, threadInfo[i].order);
 
         int j;
@@ -525,8 +525,8 @@ int main(int argc, char **argv)
             else                   printf("%lli]\n", threadInfo[i].myRead[j]);
         }
 
-        free(threadInfo[i].myRead);  
-    } 
+        free(threadInfo[i].myRead);
+    }
 
     ret = PAPI_stop(EventSet, stopread); // Ignore values on Stop.
     if( ret != PAPI_OK ) {
@@ -548,7 +548,7 @@ int main(int argc, char **argv)
 
     ret = PAPI_unregister_thread();
 
-    if (ret != PAPI_OK) 
+    if (ret != PAPI_OK)
         fprintf(stderr, "%s:%s:%i PAPI_unregister_thread() failed.\n", __FILE__, __func__, __LINE__);
 
     free(events);

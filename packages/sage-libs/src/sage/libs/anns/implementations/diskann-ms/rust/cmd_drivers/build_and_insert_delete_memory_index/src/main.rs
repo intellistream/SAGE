@@ -417,4 +417,3 @@ fn print_help() {
     println!("--build_PQ_bytes          Number of PQ bytes to build the index; 0 for full precision build (default: 0)");
     println!("--use_opq                 Set true for OPQ compression while using PQ distance comparisons for building the index, and false for PQ compression (default: false)");
 }
-

@@ -131,7 +131,7 @@ show_btb_reg(int j, pfm_ita2_pmd_reg_t reg, pfm_ita2_pmd_reg_t pmd16)
 	if (reg.pmd8_15_ita2_reg.btb_b) {
 		unsigned long addr;
 
-		
+
 		addr = (reg.pmd8_15_ita2_reg.btb_addr+b1)<<4;
 
 		addr |= reg.pmd8_15_ita2_reg.btb_slot < 3 ?  reg.pmd8_15_ita2_reg.btb_slot : 0;

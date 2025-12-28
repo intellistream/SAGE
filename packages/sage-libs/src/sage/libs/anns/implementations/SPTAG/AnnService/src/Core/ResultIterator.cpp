@@ -28,7 +28,7 @@
 	}
 
 	std::shared_ptr<QueryResult> ResultIterator::Next(int batch)
-	{		
+	{
 		if (m_queryResult == nullptr) {
 			m_queryResult = std::make_unique<QueryResult>(m_target, batch, true);
 		}
@@ -38,10 +38,10 @@
 		else {
 			batch = m_queryResult->GetResultNum();
 		}
-        
+
 		m_queryResult->Reset();
 		if (m_workspace == nullptr) return m_queryResult;
-		
+
 		int resultCount = 0;
 		m_index->SearchIndexIterativeNext(*m_queryResult, (((UniqueHandler*)m_workspace)->m_handler).get(), batch, resultCount, m_isFirstResult, m_searchDeleted);
 		m_isFirstResult = false;

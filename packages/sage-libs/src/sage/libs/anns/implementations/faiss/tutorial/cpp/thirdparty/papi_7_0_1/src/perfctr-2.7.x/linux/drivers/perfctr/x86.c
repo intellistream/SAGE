@@ -1427,7 +1427,7 @@ static void __init p4_ht_mask_setup_cpu(void *forbidden)
 		max_lp_per_package = (cpuid1_ebx >> 16) & 0xFF;
 	else				/* HT is not supported */
 		max_lp_per_package = 1;
-	
+
 	/* Find the max number of processor cores per physical processor package. */
 	if (cpuid_maxlev >= 4) {
 		/* For CPUID level 4 we need a zero in ecx as input to CPUID, but

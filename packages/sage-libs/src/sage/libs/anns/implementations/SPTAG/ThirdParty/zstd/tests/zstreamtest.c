@@ -758,7 +758,7 @@ static int basicUnitTests(U32 seed, double compressibility, int bigTests)
         }
         streaming2KSize = ZSTD_sizeof_DCtx(dctx);
         CHECK_Z(streaming2KSize);
-        
+
         CHECK_Z(ZSTD_DCtx_reset(dctx, ZSTD_reset_session_and_parameters));
         inBuff.pos = 0;
         outBuff.pos = 0;
@@ -769,7 +769,7 @@ static int basicUnitTests(U32 seed, double compressibility, int bigTests)
         }
         streamingSize = ZSTD_sizeof_DCtx(dctx);
         CHECK_Z(streamingSize);
-        
+
         CHECK_Z(ZSTD_DCtx_setParameter(dctx, ZSTD_d_maxBlockSize, 1024));
         inBuff.pos = 0;
         outBuff.pos = 0;
@@ -2503,7 +2503,7 @@ static int basicUnitTests(U32 seed, double compressibility, int bigTests)
         // Validate
         CHECK(outBuf.pos != srcSize, "decompressed size must match");
         CHECK(memcmp(src, val, srcSize) != 0, "decompressed data must match");
-        
+
         // Cleanup
         free(src); free(dst); free(val);
         ZSTD_freeCCtx(cctx);

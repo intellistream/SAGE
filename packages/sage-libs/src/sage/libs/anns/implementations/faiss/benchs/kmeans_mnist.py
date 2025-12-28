@@ -5,12 +5,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import print_function
-import numpy as np
-import time
-import faiss
 import sys
+import time
 
+import faiss
+import numpy as np
 
 # Get command-line arguments
 
@@ -19,29 +18,30 @@ ngpu = int(sys.argv[2])
 
 # Load Leon's file format
 
+
 def load_mnist(fname):
     print("load", fname)
     f = open(fname)
 
-    header = np.fromfile(f, dtype='int8', count=4*4)
-    header = header.reshape(4, 4)[:, ::-1].copy().view('int32')
+    header = np.fromfile(f, dtype="int8", count=4 * 4)
+    header = header.reshape(4, 4)[:, ::-1].copy().view("int32")
     print(header)
     nim, xd, yd = [int(x) for x in header[1:]]
 
-    data = np.fromfile(f, count=nim * xd * yd,
-                       dtype='uint8')
+    data = np.fromfile(f, count=nim * xd * yd, dtype="uint8")
 
     print(data.shape, nim, xd, yd)
     data = data.reshape(nim, xd, yd)
     return data
 
+
 basedir = "/path/to/mnist/data"
 
-x = load_mnist(basedir + 'mnist8m/mnist8m-patterns-idx3-ubyte')
+x = load_mnist(basedir + "mnist8m/mnist8m-patterns-idx3-ubyte")
 
 print("reshape")
 
-x = x.reshape(x.shape[0], -1).astype('float32')
+x = x.reshape(x.shape[0], -1).astype("float32")
 
 
 def train_kmeans(x, k, ngpu):
@@ -66,8 +66,7 @@ def train_kmeans(x, k, ngpu):
     if ngpu == 1:
         index = faiss.GpuIndexFlatL2(res[0], d, flat_config[0])
     else:
-        indexes = [faiss.GpuIndexFlatL2(res[i], d, flat_config[i])
-                   for i in range(ngpu)]
+        indexes = [faiss.GpuIndexFlatL2(res[i], d, flat_config[i]) for i in range(ngpu)]
         index = faiss.IndexReplicas()
         for sub_index in indexes:
             index.addIndex(sub_index)
@@ -80,6 +79,7 @@ def train_kmeans(x, k, ngpu):
     print("final objective: %.4g" % obj[-1])
 
     return centroids.reshape(k, d)
+
 
 print("run")
 t0 = time.time()

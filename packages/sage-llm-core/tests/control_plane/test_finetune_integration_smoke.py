@@ -12,19 +12,16 @@ actually running training (which requires GPU and real datasets).
 
 import asyncio
 import sys
-from pathlib import Path
 
 import pytest
 
-from sage.llm.control_plane.executors import FinetuneConfig, FinetuneEngine
 from sage.llm.control_plane.manager import ControlPlaneManager
-from sage.llm.control_plane.types import EngineInfo, EngineState
 
 
 @pytest.mark.asyncio
 async def test_control_plane_start_finetune_engine():
     """Test ControlPlaneManager.start_finetune_engine() method.
-    
+
     This test validates the integration path without requiring actual
     GPU resources. It checks that the method accepts parameters correctly
     and returns the expected structure.
@@ -76,7 +73,7 @@ async def test_control_plane_start_finetune_engine():
 
         # Clean up
         manager.request_engine_shutdown(engine_id)
-            
+
     finally:
         pass  # Don't call stop() since we didn't call start()
 
@@ -134,10 +131,10 @@ def test_cli_command_structure():
     print("\n✓ Testing CLI command structure...")
 
     # Import the CLI command function
-    from sage.cli.commands.apps.llm import start_engine
-
     # Verify function signature includes finetune parameters
     import inspect
+
+    from sage.cli.commands.apps.llm import start_engine
 
     sig = inspect.signature(start_engine)
     params = list(sig.parameters.keys())

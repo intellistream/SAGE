@@ -12,18 +12,12 @@ from bench_fw.descriptors import DatasetDescriptor, IndexDescriptor
 logging.basicConfig(level=logging.INFO)
 
 benchmark = Benchmark(
-    training_vectors=DatasetDescriptor(
-        namespace="std_d", tablename="sift1M"
-    ),
-    database_vectors=DatasetDescriptor(
-        namespace="std_d", tablename="sift1M"
-    ),
-    query_vectors=DatasetDescriptor(
-        namespace="std_q", tablename="sift1M"
-    ),
+    training_vectors=DatasetDescriptor(namespace="std_d", tablename="sift1M"),
+    database_vectors=DatasetDescriptor(namespace="std_d", tablename="sift1M"),
+    query_vectors=DatasetDescriptor(namespace="std_q", tablename="sift1M"),
     index_descs=[
         IndexDescriptor(
-            factory=f"IVF{2 ** nlist},Flat",
+            factory=f"IVF{2**nlist},Flat",
         )
         for nlist in range(8, 15)
     ],

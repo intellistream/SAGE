@@ -44,4 +44,3 @@ fn prepare_random_aligned_vectors() -> (Box<Vector32ByteAligned>, Box<Vector32By
 
 criterion_group!(benches, benchmark_l2_distance_float_rust,);
 criterion_main!(benches);
-

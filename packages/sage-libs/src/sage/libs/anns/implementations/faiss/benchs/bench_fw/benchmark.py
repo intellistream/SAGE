@@ -6,27 +6,23 @@
 import logging
 from dataclasses import dataclass
 from operator import itemgetter
-from statistics import median, mean
-from typing import Any, Dict, List, Optional
-
-from .index import Index, IndexFromCodec, IndexFromFactory
-from .descriptors import DatasetDescriptor, IndexDescriptor
+from statistics import mean, median
+from typing import Any, Optional
 
 import faiss  # @manual=//faiss/python:pyfaiss_gpu
+import numpy as np
 from faiss.contrib.evaluation import (  # @manual=//faiss/contrib:faiss_contrib_gpu
     knn_intersection_measure,
 )
-
-import numpy as np
-
 from scipy.optimize import curve_fit
+
+from .descriptors import DatasetDescriptor, IndexDescriptor
+from .index import Index, IndexFromCodec, IndexFromFactory
 
 logger = logging.getLogger(__name__)
 
 
-def range_search_pr_curve(
-    dist_ann: np.ndarray, metric_score: np.ndarray, gt_rsm: float
-):
+def range_search_pr_curve(dist_ann: np.ndarray, metric_score: np.ndarray, gt_rsm: float):
     assert dist_ann.shape == metric_score.shape
     assert dist_ann.ndim == 1
     l = len(dist_ann)
@@ -46,9 +42,7 @@ def range_search_pr_curve(
     precision = cum_score / np.arange(1, len(cum_score) + 1)
     recall = cum_score / gt_rsm
     unique_key = np.round(precision * 100) * 100 + np.round(recall * 100)
-    tbl = np.vstack(
-        [dist_ann, metric_score, cum_score, precision, recall, unique_key]
-    )
+    tbl = np.vstack([dist_ann, metric_score, cum_score, precision, recall, unique_key])
     group_by_dist_max_cum_score = np.empty(l, bool)
     group_by_dist_max_cum_score[-1] = True
     group_by_dist_max_cum_score[:-1] = dist_ann[1:] != dist_ann[:-1]
@@ -95,9 +89,7 @@ def optimizer(op, search, cost_metric, perf_metric):
             cost_metric,
             perf_metric,
         )
-        logger.info(
-            f"{cno=:4d} {str(parameters):50}: DONE, {cost=:.3f} {perf=:.3f}"
-        )
+        logger.info(f"{cno=:4d} {str(parameters):50}: DONE, {cost=:.3f} {perf=:.3f}")
         op.add_operating_point(key, perf, cost)
 
 
@@ -164,9 +156,7 @@ def get_range_search_metric_function(range_metric, D, R):
         popt, _ = curve_fit(sigmoid, aradius, ascore, [1, 5, 5])
 
         for r in np.arange(0, cutoff + 0.05, 0.05):
-            logger.info(
-                f"range_search_metric_function {r=} {sigmoid(r, *popt)=}"
-            )
+            logger.info(f"range_search_metric_function {r=} {sigmoid(r, *popt)=}")
 
         assert isinstance(cutoff, float)
         return (
@@ -185,9 +175,7 @@ def get_range_search_metric_function(range_metric, D, R):
             real_range = np.max(R).item()
         else:
             real_range = range_metric
-        logger.info(
-            f"range_search_metric_function {range_metric=} {real_range=}"
-        )
+        logger.info(f"range_search_metric_function {range_metric=} {real_range=}")
         assert isinstance(real_range, float)
         return real_range * 2, lambda x: np.where(x < real_range, 1, 0), [], []
 
@@ -197,7 +185,7 @@ class Benchmark:
     training_vectors: Optional[DatasetDescriptor] = None
     database_vectors: Optional[DatasetDescriptor] = None
     query_vectors: Optional[DatasetDescriptor] = None
-    index_descs: Optional[List[IndexDescriptor]] = None
+    index_descs: Optional[list[IndexDescriptor]] = None
     range_ref_index_desc: Optional[str] = None
     k: Optional[int] = None
     distance_metric: str = "L2"
@@ -276,7 +264,7 @@ class Benchmark:
     def range_search(
         self,
         index: Index,
-        search_parameters: Optional[Dict[str, int]],
+        search_parameters: Optional[dict[str, int]],
         radius: Optional[float] = None,
         gt_radius: Optional[float] = None,
     ):
@@ -313,7 +301,7 @@ class Benchmark:
 
     def range_search_benchmark(
         self,
-        results: Dict[str, Any],
+        results: dict[str, Any],
         index: Index,
         metric_key: str,
         radius: float,
@@ -341,9 +329,7 @@ class Benchmark:
                     gt_radius=gt_radius,
                 )
                 range_search_metric = range_search_metric_function(R)
-                range_search_pr = range_search_pr_curve(
-                    D, range_search_metric, gt_rsm
-                )
+                range_search_pr = range_search_pr_curve(D, range_search_metric, gt_rsm)
                 range_score_sum = np.sum(range_search_metric).item()
                 metrics = P | {
                     "range_score_sum": range_score_sum,
@@ -375,7 +361,7 @@ class Benchmark:
         )
         logger.info("knn_ground_truth: end")
 
-    def knn_search_benchmark(self, results: Dict[str, Any], index: Index):
+    def knn_search_benchmark(self, results: dict[str, Any], index: Index):
         index_name = index.get_index_name()
         logger.info(f"knn_search_benchmark: begin {index_name}")
 
@@ -390,13 +376,9 @@ class Benchmark:
             if key in results["experiments"]:
                 metrics = results["experiments"][key]
             else:
-                D, I, R, P = index.knn_search(
-                    parameters, self.query_vectors, self.k
-                )
+                D, I, R, P = index.knn_search(parameters, self.query_vectors, self.k)
                 metrics = P | {
-                    "knn_intersection": knn_intersection_measure(
-                        I, self.gt_knn_I
-                    ),
+                    "knn_intersection": knn_intersection_measure(I, self.gt_knn_I),
                     "distance_ratio": distance_ratio_measure(
                         I, R, self.gt_knn_D, self.distance_metric_type
                     ),
@@ -435,9 +417,7 @@ class Benchmark:
                 index.set_io(self.io)
                 index.train()
                 index_desc.index = index
-                results["indices"][index.get_codec_name()] = {
-                    "code_size": index.get_code_size()
-                }
+                results["indices"][index.get_codec_name()] = {"code_size": index.get_code_size()}
             else:
                 index = IndexFromCodec(
                     d=self.d,
@@ -450,9 +430,7 @@ class Benchmark:
                 )
                 index.set_io(self.io)
                 index_desc.index = index
-                results["indices"][index.get_codec_name()] = {
-                    "code_size": index.get_code_size()
-                }
+                results["indices"][index.get_codec_name()] = {"code_size": index.get_code_size()}
         return results
 
     def benchmark(self, result_file=None):
@@ -474,13 +452,9 @@ class Benchmark:
         if self.range_ref_index_desc is not None:
             index_desc = self.get_index_desc(self.range_ref_index_desc)
             if index_desc is None:
-                raise ValueError(
-                    f"Unknown range index {self.range_ref_index_desc}"
-                )
+                raise ValueError(f"Unknown range index {self.range_ref_index_desc}")
             if index_desc.range_metrics is None:
-                raise ValueError(
-                    f"Range index {index_desc.factory} has no radius_score"
-                )
+                raise ValueError(f"Range index {index_desc.factory} has no radius_score")
             results["metrics"] = {}
             for metric_key, range_metric in index_desc.range_metrics.items():
                 (
@@ -495,9 +469,7 @@ class Benchmark:
                     "coefficients": coefficients,
                     "training_data": coefficients_training_data,
                 }
-                gt_rsm = self.range_ground_truth(
-                    gt_radius, range_search_metric_function
-                )
+                gt_rsm = self.range_ground_truth(gt_radius, range_search_metric_function)
                 for index_desc in self.index_descs:
                     if not index_desc.index.supports_range_search():
                         continue

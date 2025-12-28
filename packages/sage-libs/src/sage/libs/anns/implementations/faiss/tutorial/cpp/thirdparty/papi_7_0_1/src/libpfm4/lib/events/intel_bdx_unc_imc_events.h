@@ -695,4 +695,3 @@ static intel_x86_entry_t intel_bdx_unc_m_pe[]={
     .numasks= LIBPFM_ARRAY_SIZE(bdx_unc_m_rd_cas_rank0), /* shared */
   },
 };
-

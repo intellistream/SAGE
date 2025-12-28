@@ -23,4 +23,4 @@ Trace:FileStat:  > UTIL_stat(-1, out/file.zst)
 Trace:FileStat:  < 0
 Trace:FileStat: < 0
 zstd: out/file.zst: Permission denied
-zstd: can't stat out/file.zst : Permission denied -- ignored 
+zstd: can't stat out/file.zst : Permission denied -- ignored

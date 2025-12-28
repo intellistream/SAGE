@@ -67,7 +67,7 @@
  * Description of the PMC register mappings:
  *
  * 0  -> PMC0  -> PERFEVTSEL0
- * 1  -> PMC1  -> PERFEVTSEL1 
+ * 1  -> PMC1  -> PERFEVTSEL1
  * 16 -> PMC16 -> FIXED_CTR_CTRL
  * 17 -> PMC17 -> PEBS_ENABLED
  *
@@ -291,7 +291,7 @@ pfm_intel_atom_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_intel_atom_in
 		}
 		/*
  		 * unit-mask level constraint checking (PMC0, PMC1, FIXED_CTR2)
- 		 */	
+ 		 */
 		for(j=0; j < e[i].num_masks; j++) {
 			unsigned int flags;
 

@@ -270,7 +270,7 @@ void ReconstructTest(IndexAlgoType algo, DistCalcMethod distMethod)
     std::shared_ptr<COMMON::IQuantizer> quantizer;
     GenerateReconstructData<R>(real_vecset, rec_vecset, quan_vecset, metaset, queryset, truth, distMethod, 10, quantizer);
     //LoadReconstructData<R>(real_vecset, rec_vecset, quan_vecset, metaset, queryset, truth, distMethod, 10);
-    
+
     auto real_idx = PerfBuild<R>(algo, Helper::Convert::ConvertToString<DistCalcMethod>(distMethod), real_vecset, metaset, queryset, 10, truth, "real_idx", nullptr);
     Search<R>(real_idx, queryset, 10, truth);
     auto rec_idx = PerfBuild<R>(algo, Helper::Convert::ConvertToString<DistCalcMethod>(distMethod), rec_vecset, metaset, queryset, 10, truth, "rec_idx", nullptr);
@@ -279,7 +279,7 @@ void ReconstructTest(IndexAlgoType algo, DistCalcMethod distMethod)
 
     SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Test search with SDC");
     Search<R>(quan_idx, queryset, 10, truth);
-    
+
     SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Test search with ADC");
     quan_idx->SetQuantizerADC(true);
     Search<R>(quan_idx, queryset, 10, truth);

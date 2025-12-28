@@ -2,31 +2,31 @@
 .ad l
 .nh
 .SH NAME
-PAPI_get_dev_attr \- 
+PAPI_get_dev_attr \-
 .PP
-returns device attributes  
+returns device attributes
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIENOSUPP\fP invalid/unsupported attribute 
+\fIENOSUPP\fP invalid/unsupported attribute
 .RE
 .PP
 \fBParameters:\fP
 .RS 4
-\fIhandle\fP opaque handle for device, obtained through \fBPAPI_enum_dev_type\fP 
+\fIhandle\fP opaque handle for device, obtained through \fBPAPI_enum_dev_type\fP
 .br
-\fIid\fP integer identifier of queried device 
+\fIid\fP integer identifier of queried device
 .br
-\fIattr\fP device attribute to query 
+\fIattr\fP device attribute to query
 .br
-\fIval\fP value of the requested device attribute 
+\fIval\fP value of the requested device attribute
 .RE
 .PP
 \fBExample:\fP
@@ -127,13 +127,13 @@ while (PAPI_OK == PAPI_enum_dev_type(enum_modifier, &handle)) {
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_enum_dev_type\fP 
+\fBPAPI_enum_dev_type\fP
 .PP
-\fBPAPI_get_dev_attr\fP 
+\fBPAPI_get_dev_attr\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

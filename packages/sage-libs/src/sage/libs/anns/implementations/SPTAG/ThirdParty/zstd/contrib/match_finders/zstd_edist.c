@@ -12,10 +12,10 @@
 *  Dependencies
 ***************************************/
 
-/* Currently relies on qsort when combining contiguous matches. This can probably 
- * be avoided but would require changes to the algorithm. The qsort is far from 
- * the bottleneck in this algorithm even for medium sized files so it's probably 
- * not worth trying to address */ 
+/* Currently relies on qsort when combining contiguous matches. This can probably
+ * be avoided but would require changes to the algorithm. The qsort is far from
+ * the bottleneck in this algorithm even for medium sized files so it's probably
+ * not worth trying to address */
 #include <stdlib.h>
 #include <assert.h>
 
@@ -29,8 +29,8 @@
 /* Just a sential for the entries of the diagonal matrix */
 #define ZSTD_EDIST_DIAG_MAX (S32)(1 << 30)
 
-/* How large should a snake be to be considered a 'big' snake. 
- * For an explanation of what a 'snake' is with respect to the 
+/* How large should a snake be to be considered a 'big' snake.
+ * For an explanation of what a 'snake' is with respect to the
  * edit distance matrix, see the linked paper in zstd_edist.h */
 #define ZSTD_EDIST_SNAKE_THRESH 20
 
@@ -38,8 +38,8 @@
  * based on 'big' snakes */
 #define ZSTD_EDIST_SNAKE_ITER_THRESH 200
 
-/* After how many iterations should be just give up and take 
- * the best available edit script for this round */ 
+/* After how many iterations should be just give up and take
+ * the best available edit script for this round */
 #define ZSTD_EDIST_EXPENSIVE_THRESH 1024
 
 /*-*************************************
@@ -59,19 +59,19 @@ typedef struct {
     size_t srcSize;
     S32* forwardDiag;            /* Entries of the forward diagonal stored here */
     S32* backwardDiag;           /* Entries of the backward diagonal stored here.
-                                  *   Note: this buffer and the 'forwardDiag' buffer 
+                                  *   Note: this buffer and the 'forwardDiag' buffer
                                   *   are contiguous. See the ZSTD_eDist_genSequences */
-    ZSTD_eDist_match* matches;   /* Accumulate matches of length 1 in this buffer. 
-                                  *   In a subsequence post-processing step, we combine 
+    ZSTD_eDist_match* matches;   /* Accumulate matches of length 1 in this buffer.
+                                  *   In a subsequence post-processing step, we combine
                                   *   contiguous matches. */
     U32 nbMatches;
 } ZSTD_eDist_state;
 
 typedef struct {
     S32 dictMid;           /* The mid diagonal for the dictionary */
-    S32 srcMid;            /* The mid diagonal for the source */ 
+    S32 srcMid;            /* The mid diagonal for the source */
     int lowUseHeuristics;  /* Should we use heuristics for the low part */
-    int highUseHeuristics; /* Should we use heuristics for the high part */ 
+    int highUseHeuristics; /* Should we use heuristics for the high part */
 } ZSTD_eDist_partition;
 
 /*-*************************************
@@ -80,7 +80,7 @@ typedef struct {
 
 static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
                     ZSTD_eDist_partition* partition,
-                    S32 dictLow, S32 dictHigh, S32 srcLow, 
+                    S32 dictLow, S32 dictHigh, S32 srcLow,
                     S32 srcHigh, int useHeuristics)
 {
     S32* const forwardDiag = state->forwardDiag;
@@ -103,13 +103,13 @@ static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
     forwardDiag[forwardMid] = dictLow;
     backwardDiag[backwardMid] = dictHigh;
 
-    /* Main loop for updating diag entries. Unless useHeuristics is 
-     * set to false, this loop will run until it finds the minimal 
-     * edit script */ 
+    /* Main loop for updating diag entries. Unless useHeuristics is
+     * set to false, this loop will run until it finds the minimal
+     * edit script */
     for (iterations = 1;;iterations++) {
         S32 diag;
         int bigSnake = 0;
-        
+
         if (forwardMin > diagMin) {
             forwardMin--;
             forwardDiag[forwardMin - 1] = -1;
@@ -192,17 +192,17 @@ static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
         if (!useHeuristics)
             continue;
 
-        /* Everything under this point is a heuristic. Using these will 
-         * substantially speed up the match finding. In some cases, taking 
+        /* Everything under this point is a heuristic. Using these will
+         * substantially speed up the match finding. In some cases, taking
          * the total match finding time from several minutes to seconds.
-         * Of course, the caveat is that the edit script found may no longer 
-         * be optimal */ 
+         * Of course, the caveat is that the edit script found may no longer
+         * be optimal */
 
-        /* Big snake heuristic */ 
+        /* Big snake heuristic */
         if (iterations > ZSTD_EDIST_SNAKE_ITER_THRESH && bigSnake) {
             {
                 S32 best = 0;
-                
+
                 for (diag = forwardMax; diag >= forwardMin; diag -= 2) {
                     S32 diagDiag = diag - forwardMid;
                     S32 dictIdx = forwardDiag[diag];
@@ -210,7 +210,7 @@ static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
                     S32 v = (dictIdx - dictLow) * 2 - diagDiag;
 
                     if (v > 12 * (iterations + (diagDiag < 0 ? -diagDiag : diagDiag))) {
-                        if (v > best 
+                        if (v > best
                           && dictLow + ZSTD_EDIST_SNAKE_THRESH <= dictIdx && dictIdx <= dictHigh
                           && srcLow + ZSTD_EDIST_SNAKE_THRESH <= srcIdx && srcIdx <= srcHigh) {
                             S32 k;
@@ -243,16 +243,16 @@ static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
                     S32 v = (dictHigh - dictIdx) * 2 + diagDiag;
 
                     if (v > 12 * (iterations + (diagDiag < 0 ? -diagDiag : diagDiag))) {
-                        if (v > best 
+                        if (v > best
                           && dictLow < dictIdx && dictIdx <= dictHigh - ZSTD_EDIST_SNAKE_THRESH
                           && srcLow < srcIdx && srcIdx <= srcHigh - ZSTD_EDIST_SNAKE_THRESH) {
                             int k;
                             for (k = 0; dict[dictIdx + k] == src[srcIdx + k]; k++) {
-                                if (k == ZSTD_EDIST_SNAKE_THRESH - 1) { 
+                                if (k == ZSTD_EDIST_SNAKE_THRESH - 1) {
                                     best = v;
                                     partition->dictMid = dictIdx;
                                     partition->srcMid = srcIdx;
-                                    break; 
+                                    break;
                                 }
                             }
                         }
@@ -267,7 +267,7 @@ static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
             }
         }
 
-        /* More general 'too expensive' heuristic */ 
+        /* More general 'too expensive' heuristic */
         if (iterations >= ZSTD_EDIST_EXPENSIVE_THRESH) {
             S32 forwardDictSrcBest;
             S32 forwardDictBest = 0;
@@ -322,7 +322,7 @@ static void ZSTD_eDist_diag(ZSTD_eDist_state* state,
     }
 }
 
-static void ZSTD_eDist_insertMatch(ZSTD_eDist_state* state, 
+static void ZSTD_eDist_insertMatch(ZSTD_eDist_state* state,
                     S32 const dictIdx, S32 const srcIdx)
 {
     state->matches[state->nbMatches].dictIdx = dictIdx;
@@ -338,7 +338,7 @@ static int ZSTD_eDist_compare(ZSTD_eDist_state* state,
     const BYTE* const dict = state->dict;
     const BYTE* const src = state->src;
 
-    /* Found matches while traversing from the low end */ 
+    /* Found matches while traversing from the low end */
     while (dictLow < dictHigh && srcLow < srcHigh && dict[dictLow] == src[srcLow]) {
         ZSTD_eDist_insertMatch(state, dictLow, srcLow);
         dictLow++;
@@ -351,32 +351,32 @@ static int ZSTD_eDist_compare(ZSTD_eDist_state* state,
         dictHigh--;
         srcHigh--;
     }
-    
-    /* If the low and high end end up touching. If we wanted to make 
-     * note of the differences like most diffing algorithms do, we would 
-     * do so here. In our case, we're only concerned with matches 
-     * Note: if you wanted to find the edit distance of the algorithm, 
-     *   you could just accumulate the cost for an insertion/deletion 
-     *   below. */ 
+
+    /* If the low and high end end up touching. If we wanted to make
+     * note of the differences like most diffing algorithms do, we would
+     * do so here. In our case, we're only concerned with matches
+     * Note: if you wanted to find the edit distance of the algorithm,
+     *   you could just accumulate the cost for an insertion/deletion
+     *   below. */
     if (dictLow == dictHigh) {
         while (srcLow < srcHigh) {
-            /* Reaching this point means inserting src[srcLow] into 
-             * the current position of dict */ 
+            /* Reaching this point means inserting src[srcLow] into
+             * the current position of dict */
             srcLow++;
         }
     } else if (srcLow == srcHigh) {
         while (dictLow < dictHigh) {
-            /* Reaching this point means deleting dict[dictLow] from 
-             * the current position of dict */ 
+            /* Reaching this point means deleting dict[dictLow] from
+             * the current position of dict */
             dictLow++;
         }
     } else {
         ZSTD_eDist_partition partition;
         partition.dictMid = 0;
         partition.srcMid = 0;
-        ZSTD_eDist_diag(state, &partition, dictLow, dictHigh, 
+        ZSTD_eDist_diag(state, &partition, dictLow, dictHigh,
             srcLow, srcHigh, useHeuristics);
-        if (ZSTD_eDist_compare(state, dictLow, partition.dictMid, 
+        if (ZSTD_eDist_compare(state, dictLow, partition.dictMid,
           srcLow, partition.srcMid, partition.lowUseHeuristics))
             return 1;
         if (ZSTD_eDist_compare(state, partition.dictMid, dictHigh,
@@ -394,31 +394,31 @@ static int ZSTD_eDist_matchComp(const void* p, const void* q)
     return (l - r);
 }
 
-/* The matches from the approach above will all be of the form 
- * (dictIdx, srcIdx, 1). This method combines contiguous matches 
- * of length MINMATCH or greater. Matches less than MINMATCH 
- * are discarded */ 
+/* The matches from the approach above will all be of the form
+ * (dictIdx, srcIdx, 1). This method combines contiguous matches
+ * of length MINMATCH or greater. Matches less than MINMATCH
+ * are discarded */
 static void ZSTD_eDist_combineMatches(ZSTD_eDist_state* state)
 {
-    /* Create a new buffer to put the combined matches into 
-     * and memcpy to state->matches after */ 
-    ZSTD_eDist_match* combinedMatches = 
-        ZSTD_malloc(state->nbMatches * sizeof(ZSTD_eDist_match), 
+    /* Create a new buffer to put the combined matches into
+     * and memcpy to state->matches after */
+    ZSTD_eDist_match* combinedMatches =
+        ZSTD_malloc(state->nbMatches * sizeof(ZSTD_eDist_match),
         ZSTD_defaultCMem);
 
     U32 nbCombinedMatches = 1;
     size_t i;
 
     /* Make sure that the srcIdx and dictIdx are in sorted order.
-     * The combination step won't work otherwise */ 
+     * The combination step won't work otherwise */
     qsort(state->matches, state->nbMatches, sizeof(ZSTD_eDist_match), ZSTD_eDist_matchComp);
 
     memcpy(combinedMatches, state->matches, sizeof(ZSTD_eDist_match));
     for (i = 1; i < state->nbMatches; i++) {
         ZSTD_eDist_match const match = state->matches[i];
-        ZSTD_eDist_match const combinedMatch = 
+        ZSTD_eDist_match const combinedMatch =
             combinedMatches[nbCombinedMatches - 1];
-        if (combinedMatch.srcIdx + combinedMatch.matchLength == match.srcIdx && 
+        if (combinedMatch.srcIdx + combinedMatch.matchLength == match.srcIdx &&
           combinedMatch.dictIdx + combinedMatch.matchLength == match.dictIdx) {
             combinedMatches[nbCombinedMatches - 1].matchLength++;
         } else {
@@ -427,7 +427,7 @@ static void ZSTD_eDist_combineMatches(ZSTD_eDist_state* state)
                 nbCombinedMatches--;
             }
 
-            memcpy(combinedMatches + nbCombinedMatches, 
+            memcpy(combinedMatches + nbCombinedMatches,
                 state->matches + i, sizeof(ZSTD_eDist_match));
             nbCombinedMatches++;
         }
@@ -437,7 +437,7 @@ static void ZSTD_eDist_combineMatches(ZSTD_eDist_state* state)
     ZSTD_free(combinedMatches, ZSTD_defaultCMem);
 }
 
-static size_t ZSTD_eDist_convertMatchesToSequences(ZSTD_Sequence* sequences, 
+static size_t ZSTD_eDist_convertMatchesToSequences(ZSTD_Sequence* sequences,
     ZSTD_eDist_state* state)
 {
     const ZSTD_eDist_match* matches = state->matches;
@@ -447,7 +447,7 @@ static size_t ZSTD_eDist_convertMatchesToSequences(ZSTD_Sequence* sequences,
     size_t i;
     for (i = 0; i < nbMatches; i++) {
         ZSTD_eDist_match const match = matches[i];
-        U32 const litLength = !i ? match.srcIdx : 
+        U32 const litLength = !i ? match.srcIdx :
             match.srcIdx - (matches[i - 1].srcIdx + matches[i - 1].matchLength);
         U32 const offset = (match.srcIdx + dictSize) - match.dictIdx;
         U32 const matchLength = match.matchLength;
@@ -470,11 +470,11 @@ static size_t ZSTD_eDist_hamingDist(const BYTE* const a,
     size_t dist = 0;
     for (i = 0; i < n; i++)
         dist += a[i] != b[i];
-    return dist; 
+    return dist;
 }
 
 /* This is a pretty naive recursive implementation that should only
- * be used for quick tests obviously. Don't try and run this on a 
+ * be used for quick tests obviously. Don't try and run this on a
  * GB file or something. There are faster implementations. Use those
  * if you need to run it for large files. */
 static size_t ZSTD_eDist_levenshteinDist(const BYTE* const s,
@@ -487,11 +487,11 @@ static size_t ZSTD_eDist_levenshteinDist(const BYTE* const s,
         return tn;
     if (!tn)
         return sn;
-    
+
     if (s[sn - 1] == t[tn - 1])
         return ZSTD_eDist_levenshteinDist(
             s, sn - 1, t, tn - 1);
-    
+
     a = ZSTD_eDist_levenshteinDist(s, sn - 1, t, tn - 1);
     b = ZSTD_eDist_levenshteinDist(s, sn, t, tn - 1);
     c = ZSTD_eDist_levenshteinDist(s, sn - 1, t, tn);
@@ -500,7 +500,7 @@ static size_t ZSTD_eDist_levenshteinDist(const BYTE* const s,
         a = b;
     if (a > c)
         a = c;
-    
+
     return a + 1;
 }
 
@@ -515,7 +515,7 @@ static void ZSTD_eDist_validateMatches(ZSTD_eDist_match* matches,
         U32 const dictIdx = match.dictIdx;
         U32 const srcIdx = match.srcIdx;
         U32 const matchLength = match.matchLength;
-        
+
         assert(dictIdx + matchLength < dictSize);
         assert(srcIdx + matchLength < srcSize);
         assert(!memcmp(dict + dictIdx, src + srcIdx, matchLength));
@@ -526,7 +526,7 @@ static void ZSTD_eDist_validateMatches(ZSTD_eDist_match* matches,
 *  API
 ***************************************/
 
-size_t ZSTD_eDist_genSequences(ZSTD_Sequence* sequences, 
+size_t ZSTD_eDist_genSequences(ZSTD_Sequence* sequences,
                         const void* dict, size_t dictSize,
                         const void* src, size_t srcSize,
                         int useHeuristics)

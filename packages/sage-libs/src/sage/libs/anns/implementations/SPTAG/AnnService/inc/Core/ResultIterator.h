@@ -19,13 +19,13 @@ public:
 	ResultIterator(const void* p_index, const void* p_target, bool p_searchDeleted, int p_workspaceBatch);
 
 	~ResultIterator();
-	
+
 	void* GetWorkSpace();
 
 	virtual std::shared_ptr<QueryResult> Next(int batch);
-	
+
 	virtual bool GetRelaxedMono();
-	
+
 	virtual void Close();
 
 	const void* GetTarget();

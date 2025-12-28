@@ -56,4 +56,3 @@ pfmlib_pmu_t power10_support={
 	.get_event_info		= pfm_gen_powerpc_get_event_info,
 	.get_event_attr_info	= pfm_gen_powerpc_get_event_attr_info,
 };
-

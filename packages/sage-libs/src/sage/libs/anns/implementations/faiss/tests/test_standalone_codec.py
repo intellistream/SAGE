@@ -3,19 +3,18 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-""" test byte codecs """
+"""test byte codecs"""
 
-from __future__ import print_function
-import numpy as np
 import unittest
-import faiss
 
+import faiss
+import numpy as np
 from common_faiss_tests import get_dataset_2
 from faiss.contrib.datasets import SyntheticDataset
 from faiss.contrib.inspect_tools import get_additive_quantizer_codebooks
 
-class TestEncodeDecode(unittest.TestCase):
 
+class TestEncodeDecode(unittest.TestCase):
     def do_encode_twice(self, factory_key):
         d = 96
         nb = 1000
@@ -35,7 +34,7 @@ class TestEncodeDecode(unittest.TestCase):
 
         codes2 = codec.sa_encode(x2)
 
-        if 'IVF' in factory_key or 'RQ' in factory_key:
+        if "IVF" in factory_key or "RQ" in factory_key:
             # some rows are not reconstructed exactly because they
             # flip into another quantization cell
             nrowdiff = (codes != codes2).any(axis=1).sum()
@@ -45,7 +44,7 @@ class TestEncodeDecode(unittest.TestCase):
 
         x3 = codec.sa_decode(codes2)
 
-        if 'IVF' in factory_key or 'RQ' in factory_key:
+        if "IVF" in factory_key or "RQ" in factory_key:
             diffs = np.abs(x2 - x3).sum(axis=1)
             avg = np.abs(x2).sum(axis=1).mean()
             diffs.sort()
@@ -54,32 +53,31 @@ class TestEncodeDecode(unittest.TestCase):
             self.assertTrue(np.allclose(x2, x3))
 
     def test_SQ8(self):
-        self.do_encode_twice('SQ8')
+        self.do_encode_twice("SQ8")
 
     def test_IVFSQ8(self):
-        self.do_encode_twice('IVF256,SQ8')
+        self.do_encode_twice("IVF256,SQ8")
 
     def test_PCAIVFSQ8(self):
-        self.do_encode_twice('PCAR32,IVF256,SQ8')
+        self.do_encode_twice("PCAR32,IVF256,SQ8")
 
     def test_PQ6x8(self):
-        self.do_encode_twice('PQ6np')
+        self.do_encode_twice("PQ6np")
 
     def test_PQ6x6(self):
-        self.do_encode_twice('PQ6x6np')
+        self.do_encode_twice("PQ6x6np")
 
     def test_IVFPQ6x8np(self):
-        self.do_encode_twice('IVF512,PQ6np')
+        self.do_encode_twice("IVF512,PQ6np")
 
     def test_LSH(self):
-        self.do_encode_twice('LSHrt')
+        self.do_encode_twice("LSHrt")
 
     def test_RQ6x8(self):
-        self.do_encode_twice('RQ6x8')
+        self.do_encode_twice("RQ6x8")
 
 
 class TestIndexEquiv(unittest.TestCase):
-
     def do_test(self, key1, key2):
         d = 96
         nb = 1000
@@ -110,8 +108,7 @@ class TestIndexEquiv(unittest.TestCase):
         self.assertTrue(np.all(code_new == code_ref))
         self.assertTrue(np.all(x_recons_new == x_recons_ref))
 
-        codec_new_2 = faiss.deserialize_index(
-            faiss.serialize_index(codec_new))
+        codec_new_2 = faiss.deserialize_index(faiss.serialize_index(codec_new))
 
         code_new = codec_new_2.sa_encode(x)
         x_recons_new = codec_new_2.sa_decode(code_new)
@@ -127,7 +124,7 @@ class TestIndexEquiv(unittest.TestCase):
 
 
 class TestAccuracy(unittest.TestCase):
-    """ comparative accuracy of a few types of indexes """
+    """comparative accuracy of a few types of indexes"""
 
     def compare_accuracy(self, lowac, highac, max_errs=(1e10, 1e10)):
         d = 96
@@ -140,9 +137,8 @@ class TestAccuracy(unittest.TestCase):
         errs = []
 
         for factory_string in lowac, highac:
-
             codec = faiss.index_factory(d, factory_string)
-            print('sa codec: code size %d' % codec.sa_code_size())
+            print("sa codec: code size %d" % codec.sa_code_size())
             codec.train(xt)
 
             codes = codec.sa_encode(x)
@@ -158,61 +154,56 @@ class TestAccuracy(unittest.TestCase):
         self.assertGreater(max_errs[1], errs[1])
 
         # just a small IndexLattice I/O test
-        if 'Lattice' in highac:
-            codec2 = faiss.deserialize_index(
-                faiss.serialize_index(codec))
+        if "Lattice" in highac:
+            codec2 = faiss.deserialize_index(faiss.serialize_index(codec))
             codes = codec2.sa_encode(x)
             x3 = codec2.sa_decode(codes)
             self.assertTrue(np.all(x2 == x3))
 
     def test_SQ(self):
-        self.compare_accuracy('SQ4', 'SQ8')
+        self.compare_accuracy("SQ4", "SQ8")
 
     def test_SQ2(self):
-        self.compare_accuracy('SQ6', 'SQ8')
+        self.compare_accuracy("SQ6", "SQ8")
 
     def test_SQ3(self):
-        self.compare_accuracy('SQ8', 'SQfp16')
+        self.compare_accuracy("SQ8", "SQfp16")
 
     def test_PQ(self):
-        self.compare_accuracy('PQ6x8np', 'PQ8x8np')
+        self.compare_accuracy("PQ6x8np", "PQ8x8np")
 
     def test_PQ2(self):
-        self.compare_accuracy('PQ8x6np', 'PQ8x8np')
+        self.compare_accuracy("PQ8x6np", "PQ8x8np")
 
     def test_IVFvsPQ(self):
-        self.compare_accuracy('PQ8np', 'IVF256,PQ8np')
+        self.compare_accuracy("PQ8np", "IVF256,PQ8np")
 
     def test_Lattice(self):
         # measured low/high: 20946.244, 5277.483
-        self.compare_accuracy('ZnLattice3x10_4',
-                              'ZnLattice3x20_4',
-                              (22000, 5400))
+        self.compare_accuracy("ZnLattice3x10_4", "ZnLattice3x20_4", (22000, 5400))
 
     def test_Lattice2(self):
         # here the difference is actually tiny
         # measured errs: [16403.072, 15967.735]
-        self.compare_accuracy('ZnLattice3x12_1',
-                              'ZnLattice3x12_7',
-                              (18000, 16000))
+        self.compare_accuracy("ZnLattice3x12_1", "ZnLattice3x12_7", (18000, 16000))
 
 
 swig_ptr = faiss.swig_ptr
 
 
 class LatticeTest(unittest.TestCase):
-    """ Low-level lattice tests """
+    """Low-level lattice tests"""
 
     def test_repeats(self):
         rs = np.random.RandomState(123)
         dim = 32
         for _i in range(1000):
-            vec = np.floor((rs.rand(dim) ** 7) * 3).astype('float32')
+            vec = np.floor((rs.rand(dim) ** 7) * 3).astype("float32")
             vecs = vec.copy()
             vecs.sort()
             repeats = faiss.Repeats(dim, swig_ptr(vecs))
             code = repeats.encode(swig_ptr(vec))
-            vec2 = np.zeros(dim, dtype='float32')
+            vec2 = np.zeros(dim, dtype="float32")
             repeats.decode(code, swig_ptr(vec2))
             # print(vec2)
             assert np.all(vec == vec2)
@@ -226,7 +217,7 @@ class LatticeTest(unittest.TestCase):
         assert ref_codec.nv == codec.nv
         s = set()
         for i in range(ref_codec.nv):
-            c = np.zeros(dim, dtype='float32')
+            c = np.zeros(dim, dtype="float32")
             ref_codec.decode(i, swig_ptr(c))
             code = codec.encode_centroid(swig_ptr(c))
             assert 0 <= code < codec.nv
@@ -239,7 +230,7 @@ class LatticeTest(unittest.TestCase):
         codec = faiss.ZnSphereCodecRec(dim, r2)
         # print("nv=", codec.nv)
         for i in range(codec.nv):
-            c = np.zeros(dim, dtype='float32')
+            c = np.zeros(dim, dtype="float32")
             codec.decode(i, swig_ptr(c))
             code = codec.encode_centroid(swig_ptr(c))
             assert code == i
@@ -250,10 +241,10 @@ class LatticeTest(unittest.TestCase):
         codec = faiss.ZnSphereCodecAlt(dim, r2)
         rs = np.random.RandomState(123)
         n = 100
-        codes = rs.randint(codec.nv, size=n, dtype='uint64')
-        x = np.empty((n, dim), dtype='float32')
+        codes = rs.randint(codec.nv, size=n, dtype="uint64")
+        x = np.empty((n, dim), dtype="float32")
         codec.decode_multi(n, swig_ptr(codes), swig_ptr(x))
-        codes2 = np.empty(n, dtype='uint64')
+        codes2 = np.empty(n, dtype="uint64")
         codec.encode_multi(n, swig_ptr(x), swig_ptr(codes2))
 
         assert np.all(codes == codes2)
@@ -266,18 +257,17 @@ class LatticeTest(unittest.TestCase):
 
 
 class TestBitstring(unittest.TestCase):
-
     def test_rw(self):
-        """ Low-level bit string tests """
+        """Low-level bit string tests"""
         rs = np.random.RandomState(1234)
         nbyte = 1000
         sz = 0
 
-        bs = np.ones(nbyte, dtype='uint8')
+        bs = np.ones(nbyte, dtype="uint8")
         bw = faiss.BitstringWriter(swig_ptr(bs), nbyte)
 
         if False:
-            ctrl = [(7, 0x35), (13, 0x1d74)]
+            ctrl = [(7, 0x35), (13, 0x1D74)]
             for nbit, x in ctrl:
                 bw.write(x, nbit)
         else:
@@ -286,7 +276,7 @@ class TestBitstring(unittest.TestCase):
                 nbit = int(1 + 62 * rs.rand() ** 4)
                 if sz + nbit > nbyte * 8:
                     break
-                x = int(rs.randint(1 << nbit, dtype='int64'))
+                x = int(rs.randint(1 << nbit, dtype="int64"))
                 bw.write(x, nbit)
                 ctrl.append((nbit, x))
                 sz += nbit
@@ -300,7 +290,7 @@ class TestBitstring(unittest.TestCase):
         for i in range(nbyte):
             self.assertTrue(((bignum >> (i * 8)) & 255) == bs[i])
 
-        #for i in range(nbyte):
+        # for i in range(nbyte):
         #    print(bin(bs[i] + 256)[3:], end=' ')
         # print()
 
@@ -316,7 +306,7 @@ class TestBitstring(unittest.TestCase):
         M = 10
         n = 20
         rs = np.random.RandomState(123)
-        a = rs.randint(1<<nbit, size=(n, M), dtype='int32')
+        a = rs.randint(1 << nbit, size=(n, M), dtype="int32")
         b = faiss.pack_bitstrings(a, nbit)
         c = faiss.unpack_bitstrings(b, M, nbit)
         np.testing.assert_array_equal(a, c)
@@ -325,7 +315,7 @@ class TestBitstring(unittest.TestCase):
         nbits = [10, 5, 3, 12, 6, 7, 4]
         n = 20
         rs = np.random.RandomState(123)
-        a = rs.randint(1<<16, size=(n, len(nbits)), dtype='int32')
+        a = rs.randint(1 << 16, size=(n, len(nbits)), dtype="int32")
         a &= (1 << np.array(nbits)) - 1
         b = faiss.pack_bitstrings(a, nbits)
         c = faiss.unpack_bitstrings(b, nbits)
@@ -333,9 +323,7 @@ class TestBitstring(unittest.TestCase):
 
 
 class TestIVFTransfer(unittest.TestCase):
-
     def test_transfer(self):
-
         ds = SyntheticDataset(32, 2000, 200, 100)
         index = faiss.index_factory(ds.d, "IVF20,SQ8")
         index.train(ds.get_train())
@@ -353,9 +341,8 @@ class TestIVFTransfer(unittest.TestCase):
 
 
 class TestRefine(unittest.TestCase):
-
     def test_refine(self):
-        """ Make sure that IndexRefine can function as a standalone codec """
+        """Make sure that IndexRefine can function as a standalone codec"""
 
         ds = SyntheticDataset(32, 500, 100, 0)
         index = faiss.index_factory(ds.d, "RQ2x5,Refine(ITQ,LSHt)")
@@ -368,13 +355,10 @@ class TestRefine(unittest.TestCase):
         codes1 = index1.sa_encode(ds.get_database())
         codes2 = index2.sa_encode(ds.get_database())
 
-        np.testing.assert_array_equal(
-            codes12,
-            np.hstack((codes1, codes2))
-        )
+        np.testing.assert_array_equal(codes12, np.hstack((codes1, codes2)))
 
     def test_equiv_rcq_rq(self):
-        """ make sure that the codes generated by the standalone codec are the same
+        """make sure that the codes generated by the standalone codec are the same
         between an
            IndexRefine with ResidualQuantizer
         and
@@ -400,8 +384,8 @@ class TestRefine(unittest.TestCase):
         np.testing.assert_array_equal(codes1, codes2)
 
     def test_equiv_sh(self):
-        """ make sure that the IVFSpectralHash sa_encode function gives the same
-        result as the concatenated RQ + LSH index sa_encode """
+        """make sure that the IVFSpectralHash sa_encode function gives the same
+        result as the concatenated RQ + LSH index sa_encode"""
         ds = SyntheticDataset(32, 500, 100, 0)
         index1 = faiss.index_factory(ds.d, "RQ1x4,Refine(ITQ16,LSH)")
         index1.train(ds.get_train())
@@ -419,11 +403,7 @@ class TestRefine(unittest.TestCase):
         period = -100000.0
 
         index2 = faiss.IndexIVFSpectralHash(
-            coarse_quantizer,
-            ds.d,
-            coarse_quantizer.ntotal,
-            encoder.sa_code_size() * 8,
-            period
+            coarse_quantizer, ds.d, coarse_quantizer.ntotal, encoder.sa_code_size() * 8, period
         )
 
         # replace with the vt of the encoder. Binarization is performed by

@@ -68,7 +68,7 @@ Connection::Stop()
     {
         m_heartbeatTimer.cancel(errCode);
     }
-    
+
     m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, errCode);
     m_socket.close(errCode);
 }
@@ -155,7 +155,7 @@ Connection::AsyncReadHeader()
                                                      sharedThis,
                                                      boost::asio::placeholders::error,
                                                      boost::asio::placeholders::bytes_transferred);
-                  
+
                           boost::asio::async_read(sharedThis->m_socket,
                                                   boost::asio::buffer(sharedThis->m_packetHeaderReadBuffer),
                                                   std::move(handler));
@@ -281,7 +281,7 @@ Connection::SendHeartbeat(std::size_t p_intervalSeconds)
     msg.Header().m_packetType = PacketType::HeartbeatRequest;
     msg.Header().m_processStatus = PacketProcessStatus::Ok;
     msg.Header().m_connectionID = 0;
-    
+
     msg.AllocateBuffer(0);
     msg.Header().WriteBuffer(msg.HeaderBuffer());
 

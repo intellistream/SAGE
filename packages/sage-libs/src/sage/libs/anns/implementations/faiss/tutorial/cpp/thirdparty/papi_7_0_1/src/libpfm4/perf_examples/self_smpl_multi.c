@@ -39,7 +39,7 @@
  *
  *  self_smpl_multi is a test program to stress signal delivery in the context
  *  of a multi-threaded self-sampling program which is common with PAPI and HPC.
- * 
+ *
  *  There is an issue with existing (as of 2.6.30) kernel which do not provide
  *  a reliable way of having the signal delivered to the thread in which the
  *  counter overflow occurred. This is problematic for many self-monitoring
@@ -87,7 +87,7 @@ static int buffer_pages = 1;
 /*
  *  the following definitions come
  *  from the F_SETOWN_EX patch from Peter Zijlstra
- * Check out: http://lkml.org/lkml/2009/8/4/128 
+ * Check out: http://lkml.org/lkml/2009/8/4/128
  */
 #ifndef F_SETOWN_EX
 #define F_SETOWN_EX	15
@@ -310,7 +310,7 @@ overflow_start(char *name)
 	fown_ex.type = F_OWNER_TID;
 	fown_ex.pid  = gettid();
 	ret = fcntl(fd,
-		    (fown ? F_SETOWN_EX : F_SETOWN), 
+		    (fown ? F_SETOWN_EX : F_SETOWN),
 		    (fown ? (unsigned long)&fown_ex: (unsigned long)gettid()));
 	if (ret)
 		err(1, "fcntl SETOWN failed");
@@ -321,7 +321,7 @@ overflow_start(char *name)
 	fds[0].buf = mmap(NULL, (buffer_pages + 1)* pgsz, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	if (fds[0].buf == MAP_FAILED)
 		err(1, "cannot mmap buffer");
-	
+
 	fds[0].pgmsk = (buffer_pages * pgsz) - 1;
 
 	printf("launch %s: fd: %d, tid: %d\n", name, fd, ov->tid);
@@ -348,7 +348,7 @@ void *
 my_thread(void *v)
 {
 	int retval = 0;
-	
+
 	myid = (unsigned long)v;
 
 	pthread_barrier_wait(&barrier);

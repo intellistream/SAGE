@@ -2,27 +2,26 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
+import os
+import sys
+
 import faiss
 import numpy as np
-import os
-from tqdm import tqdm, trange
-import sys
-import logging
-from faiss.contrib.ondisk import merge_ondisk
+from dataset import create_dataset_from_oivf_config
 from faiss.contrib.big_batch_search import big_batch_search
-from faiss.contrib.exhaustive_search import knn_ground_truth
 from faiss.contrib.evaluation import knn_intersection_measure
+from faiss.contrib.exhaustive_search import knn_ground_truth
+from faiss.contrib.ondisk import merge_ondisk
+from tqdm import tqdm, trange
 from utils import (
     get_intersection_cardinality_frequencies,
-    margin,
     is_pretransform_index,
+    margin,
 )
-from dataset import create_dataset_from_oivf_config
 
 logging.basicConfig(
-    format=(
-        "%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)-12s %(message)s"
-    ),
+    format=("%(asctime)s.%(msecs)03d %(levelname)-8s %(threadName)-12s %(message)s"),
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
     force=True,
@@ -73,18 +72,12 @@ class OfflineIVF:
         self.index = {}  # to keep a reference to opened indices,
         self.ivls = {}  # hstack inverted lists,
         self.index_shards = {}  # and index shards
-        self.index_shard_prefix = (
-            f"{xb_output_dir}/{self.index_factory_fn}.shard_"
-        )
-        self.xq_index_shard_prefix = (
-            f"{xq_output_dir}/{self.index_factory_fn}.shard_"
-        )
+        self.index_shard_prefix = f"{xb_output_dir}/{self.index_factory_fn}.shard_"
+        self.xq_index_shard_prefix = f"{xq_output_dir}/{self.index_factory_fn}.shard_"
         self.index_file = (  # TODO: added back temporarily for evaluate, handle name of non-sharded index file and remove.
             f"{xb_output_dir}/{self.index_factory_fn}.faissindex"
         )
-        self.xq_index_file = (
-            f"{xq_output_dir}/{self.index_factory_fn}.faissindex"
-        )
+        self.xq_index_file = f"{xq_output_dir}/{self.index_factory_fn}.faissindex"
         self.training_sample = cfg["training_sample"]
         self.evaluation_sample = cfg["evaluation_sample"]
         self.xq_ds = create_dataset_from_oivf_config(cfg, args.xq)
@@ -103,20 +96,16 @@ class OfflineIVF:
         if "deduper" in cfg:
             self.deduper = cfg["deduper"]
             self.deduper_codec_fn = [
-                f"{xb_output_dir}/deduper_codec_{codec.replace(',', '_')}"
-                for codec in self.deduper
+                f"{xb_output_dir}/deduper_codec_{codec.replace(',', '_')}" for codec in self.deduper
             ]
             self.deduper_idx_fn = [
-                f"{xb_output_dir}/deduper_idx_{codec.replace(',', '_')}"
-                for codec in self.deduper
+                f"{xb_output_dir}/deduper_idx_{codec.replace(',', '_')}" for codec in self.deduper
             ]
         else:
             self.deduper = None
         self.k = cfg["k"]
         assert self.k > 0, "Invalid number of neighbours parameter."
-        self.knn_output_file_suffix = (
-            f"{self.index_factory_fn}_np{self.nprobe}.npy"
-        )
+        self.knn_output_file_suffix = f"{self.index_factory_fn}_np{self.nprobe}.npy"
 
         fp = 32
         if self.dt == "float16":
@@ -128,7 +117,7 @@ class OfflineIVF:
 
         self.xq_bs = cfg["query_batch_size"]
         if "metric" in cfg:
-            self.metric = eval(f'faiss.{cfg["metric"]}')
+            self.metric = eval(f"faiss.{cfg['metric']}")
         else:
             self.metric = faiss.METRIC_L2
 
@@ -170,9 +159,7 @@ class OfflineIVF:
             else:
                 logging.info(f"training dedupe codec: {factory}")
                 codec = faiss.index_factory(self.input_d, factory)
-                xb_sample = np.unique(
-                    self.xb_ds.get_first_n(100_000, np.float32), axis=0
-                )
+                xb_sample = np.unique(self.xb_ds.get_first_n(100_000, np.float32), axis=0)
                 faiss.ParameterSpace().set_index_parameter(codec, "verbose", 1)
                 codec.train(xb_sample)
                 logging.info(f"writing trained dedupe codec: {filename}")
@@ -201,16 +188,11 @@ class OfflineIVF:
         Trains the index using a subsample of the first chunk of data in the database and saves it in the template file (with no vectors added).
         """
         assert not os.path.exists(self.index_template_file), (
-            "The train command has been ran, the index template file already"
-            " exists."
+            "The train command has been ran, the index template file already exists."
         )
-        xb_sample = np.unique(
-            self.xb_ds.get_first_n(self.training_sample, np.float32), axis=0
-        )
+        xb_sample = np.unique(self.xb_ds.get_first_n(self.training_sample, np.float32), axis=0)
         logging.info(f"input shape: {xb_sample.shape}")
-        index = faiss.index_factory(
-            self.input_d, self.index_factory, self.metric
-        )
+        index = faiss.index_factory(self.input_d, self.index_factory, self.metric)
         index_ivf = faiss.downcast_index(faiss.extract_index_ivf(index))
         index_ivf.by_residual = True
         faiss.ParameterSpace().set_index_parameter(index, "verbose", 1)
@@ -255,9 +237,7 @@ class OfflineIVF:
                     index.reset()
                     start = i * self.shard_size
                     j = 0
-                    quantizer = faiss.index_cpu_to_all_gpus(
-                        index_ivf.quantizer
-                    )
+                    quantizer = faiss.index_cpu_to_all_gpus(index_ivf.quantizer)
                     for xb_j in tqdm(
                         self._iterate_transformed(
                             self.xb_ds,
@@ -308,9 +288,7 @@ class OfflineIVF:
                 with open(sfn, "xb"):
                     start = i * self.shard_size
                     jj = 0
-                    embeddings_batch_size = min(
-                        EMBEDDINGS_BATCH_SIZE, self.shard_size
-                    )
+                    embeddings_batch_size = min(EMBEDDINGS_BATCH_SIZE, self.shard_size)
                     assert (
                         self.shard_size % embeddings_batch_size == 0
                         or EMBEDDINGS_BATCH_SIZE % embeddings_batch_size == 0
@@ -336,9 +314,7 @@ class OfflineIVF:
                         )
                         jj += xb_j.shape[0]
                         logging.info(jj)
-                        assert (
-                            jj <= self.shard_size
-                        ), f"jj {jj} and shard_zide {self.shard_size}"
+                        assert jj <= self.shard_size, f"jj {jj} and shard_zide {self.shard_size}"
                         if jj == self.shard_size:
                             break
                 logging.info(f"writing {sfn}...")
@@ -353,14 +329,12 @@ class OfflineIVF:
         ivf_file = f"{self.index_file}.ivfdata"
 
         assert os.path.exists(self.index_template_file)
-        assert not os.path.exists(
-            ivf_file
-        ), f"file with embeddings data {ivf_file} not found, check."
+        assert not os.path.exists(ivf_file), (
+            f"file with embeddings data {ivf_file} not found, check."
+        )
         assert not os.path.exists(self.index_file)
         index = faiss.read_index(self.index_template_file)
-        block_fnames = [
-            f"{self.index_shard_prefix}{i}" for i in range(self.nshards)
-        ]
+        block_fnames = [f"{self.index_shard_prefix}{i}" for i in range(self.nshards)]
         for fn in block_fnames:
             assert os.path.exists(fn)
         logging.info(block_fnames)
@@ -392,18 +366,14 @@ class OfflineIVF:
             else:
                 logging.info("ground truth computations")
                 db_iterator = xb_ds.iterate(0, 100_000, np.float32)
-                D, I = knn_ground_truth(
-                    xq, db_iterator, self.k, metric_type=self.metric
-                )
+                D, I = knn_ground_truth(xq, db_iterator, self.k, metric_type=self.metric)
                 assert np.amin(I) >= 0
 
             np.save(I_file, I)
             np.save(D_file, D)
         else:
             assert os.path.exists(idx_file), f"file {idx_file} does not exist "
-            assert os.path.exists(
-                vecs_file
-            ), f"file {vecs_file} does not exist "
+            assert os.path.exists(vecs_file), f"file {vecs_file} does not exist "
             assert os.path.exists(I_file), f"file {I_file} does not exist "
             assert os.path.exists(D_file), f"file {D_file} does not exist "
             I = np.load(I_file)
@@ -453,44 +423,24 @@ class OfflineIVF:
     def _evaluate(self, index_factory_fn, index_file, xq_index_file, nprobe):
         idx_a_file = f"{self.eval_dir}/idx_a.npy"
         idx_b_gt_file = f"{self.eval_dir}/idx_b_gt.npy"
-        idx_b_ann_file = (
-            f"{self.eval_dir}/idx_b_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
+        idx_b_ann_file = f"{self.eval_dir}/idx_b_ann_{index_factory_fn}_np{nprobe}.npy"
         vecs_a_file = f"{self.eval_dir}/vecs_a.npy"
         vecs_b_gt_file = f"{self.eval_dir}/vecs_b_gt.npy"
-        vecs_b_ann_file = (
-            f"{self.eval_dir}/vecs_b_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
+        vecs_b_ann_file = f"{self.eval_dir}/vecs_b_ann_{index_factory_fn}_np{nprobe}.npy"
         D_a_gt_file = f"{self.eval_dir}/D_a_gt.npy"
-        D_a_ann_file = (
-            f"{self.eval_dir}/D_a_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
+        D_a_ann_file = f"{self.eval_dir}/D_a_ann_{index_factory_fn}_np{nprobe}.npy"
         D_a_ann_refined_file = f"{self.eval_dir}/D_a_ann_refined_{index_factory_fn}_np{nprobe}.npy"
         D_b_gt_file = f"{self.eval_dir}/D_b_gt.npy"
-        D_b_ann_file = (
-            f"{self.eval_dir}/D_b_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
-        D_b_ann_gt_file = (
-            f"{self.eval_dir}/D_b_ann_gt_{index_factory_fn}_np{nprobe}.npy"
-        )
+        D_b_ann_file = f"{self.eval_dir}/D_b_ann_{index_factory_fn}_np{nprobe}.npy"
+        D_b_ann_gt_file = f"{self.eval_dir}/D_b_ann_gt_{index_factory_fn}_np{nprobe}.npy"
         I_a_gt_file = f"{self.eval_dir}/I_a_gt.npy"
-        I_a_ann_file = (
-            f"{self.eval_dir}/I_a_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
+        I_a_ann_file = f"{self.eval_dir}/I_a_ann_{index_factory_fn}_np{nprobe}.npy"
         I_b_gt_file = f"{self.eval_dir}/I_b_gt.npy"
-        I_b_ann_file = (
-            f"{self.eval_dir}/I_b_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
-        I_b_ann_gt_file = (
-            f"{self.eval_dir}/I_b_ann_gt_{index_factory_fn}_np{nprobe}.npy"
-        )
+        I_b_ann_file = f"{self.eval_dir}/I_b_ann_{index_factory_fn}_np{nprobe}.npy"
+        I_b_ann_gt_file = f"{self.eval_dir}/I_b_ann_gt_{index_factory_fn}_np{nprobe}.npy"
         margin_gt_file = f"{self.eval_dir}/margin_gt.npy"
-        margin_refined_file = (
-            f"{self.eval_dir}/margin_refined_{index_factory_fn}_np{nprobe}.npy"
-        )
-        margin_ann_file = (
-            f"{self.eval_dir}/margin_ann_{index_factory_fn}_np{nprobe}.npy"
-        )
+        margin_refined_file = f"{self.eval_dir}/margin_refined_{index_factory_fn}_np{nprobe}.npy"
+        margin_ann_file = f"{self.eval_dir}/margin_ann_{index_factory_fn}_np{nprobe}.npy"
 
         logging.info("exact search forward")
         # xq -> xb AKA a -> b
@@ -518,25 +468,18 @@ class OfflineIVF:
             nprobe,
         )
 
-        logging.info(
-            "calculate refined distances on approximate search forward"
-        )
+        logging.info("calculate refined distances on approximate search forward")
         if os.path.exists(D_a_ann_refined_file):
             D_a_ann_refined = np.load(D_a_ann_refined_file)
             assert D_a_ann.shape == D_a_ann_refined.shape
         else:
-            D_a_ann_refined = self._refine_distances(
-                self.xq_ds, idx_a, self.xb_ds, I_a_ann
-            )
+            D_a_ann_refined = self._refine_distances(self.xq_ds, idx_a, self.xb_ds, I_a_ann)
             np.save(D_a_ann_refined_file, D_a_ann_refined)
 
         if self.evaluate_by_margin:
             k_extract = self.k
             margin_threshold = 1.05
-            logging.info(
-                "exact search backward from the k_extract NN results of"
-                " forward search"
-            )
+            logging.info("exact search backward from the k_extract NN results of forward search")
             # xb -> xq AKA b -> a
             D_a_b_gt = D_a_gt[:, :k_extract].ravel()
             idx_b_gt = I_a_gt[:, :k_extract].ravel()
@@ -568,8 +511,7 @@ class OfflineIVF:
             np.save(margin_gt_file, margin_gt)
 
             logging.info(
-                "exact search backward from the k_extract NN results of"
-                " approximate forward search"
+                "exact search backward from the k_extract NN results of approximate forward search"
             )
             D_a_b_refined = D_a_ann_refined[:, :k_extract].ravel()
             idx_b_ann = I_a_ann[:, :k_extract].ravel()
@@ -634,9 +576,7 @@ class OfflineIVF:
         logging.info(I_a_ann)
 
         for i in range(1, self.k + 1):
-            logging.info(
-                f"{i}: {knn_intersection_measure(I_a_gt[:,:i], I_a_ann[:,:i])}"
-            )
+            logging.info(f"{i}: {knn_intersection_measure(I_a_gt[:, :i], I_a_ann[:, :i])}")
 
         logging.info(f"mean of gt distances: {D_a_gt.mean()}")
         logging.info(f"mean of approx distances: {D_a_ann.mean()}")
@@ -682,9 +622,7 @@ class OfflineIVF:
 
         ngpu = faiss.get_num_gpus()
         logging.info(f"number of gpus: {ngpu}")
-        self.all_gpu_resources = [
-            faiss.StandardGpuResources() for _ in range(ngpu)
-        ]
+        self.all_gpu_resources = [faiss.StandardGpuResources() for _ in range(ngpu)]
         self._knn_function(
             np.zeros((10, 10), dtype=np.float16),
             np.zeros((10, 10), dtype=np.float16),
@@ -705,53 +643,41 @@ class OfflineIVF:
 
             if slurm_job_id:
                 worker_record = (
-                    self.knn_dir
-                    + f"/record_{(i):010}_{self.knn_output_file_suffix}.txt"
+                    self.knn_dir + f"/record_{(i):010}_{self.knn_output_file_suffix}.txt"
                 )
                 if not os.path.exists(worker_record):
                     logging.info(
-                        f"creating record file {worker_record} and saving job"
-                        f" id: {slurm_job_id}"
+                        f"creating record file {worker_record} and saving job id: {slurm_job_id}"
                     )
                     with open(worker_record, "w") as h:
                         h.write(slurm_job_id)
                 else:
-                    old_slurm_id = open(worker_record, "r").read()
+                    old_slurm_id = open(worker_record).read()
                     logging.info(
-                        f"old job slurm id {old_slurm_id} and current job id:"
-                        f" {slurm_job_id}"
+                        f"old job slurm id {old_slurm_id} and current job id: {slurm_job_id}"
                     )
                     if old_slurm_id == slurm_job_id:
                         if os.path.getsize(Ifn) == 0:
-                            logging.info(
-                                f"cleaning up zero length files {Ifn} and"
-                                f" {Dfn}"
-                            )
+                            logging.info(f"cleaning up zero length files {Ifn} and {Dfn}")
                             os.remove(Ifn)
                             os.remove(Dfn)
 
             try:  # TODO: modify shape for pretransform case
                 with open(Ifn, "xb") as f, open(Dfn, "xb") as g:
-                    xq_i = np.empty(
-                        shape=(self.xq_bs, self.input_d), dtype=np.float16
-                    )
-                    q_assign = np.empty(
-                        (self.xq_bs, self.nprobe), dtype=np.int32
-                    )
+                    xq_i = np.empty(shape=(self.xq_bs, self.input_d), dtype=np.float16)
+                    q_assign = np.empty((self.xq_bs, self.nprobe), dtype=np.int32)
                     j = 0
-                    quantizer = faiss.index_cpu_to_all_gpus(
-                        index_ivf.quantizer
-                    )
+                    quantizer = faiss.index_cpu_to_all_gpus(index_ivf.quantizer)
                     for xq_i_j in tqdm(
                         self._iterate_transformed(
                             self.xq_ds, i, min(100_000, self.xq_bs), np.float16
                         ),
                         file=sys.stdout,
                     ):
-                        xq_i[j:j + xq_i_j.shape[0]] = xq_i_j
+                        xq_i[j : j + xq_i_j.shape[0]] = xq_i_j
                         (
                             _,
-                            q_assign[j:j + xq_i_j.shape[0]],
+                            q_assign[j : j + xq_i_j.shape[0]],
                         ) = quantizer.search(xq_i_j, self.nprobe)
                         j += xq_i_j.shape[0]
                         assert j <= xq_i.shape[0]
@@ -780,9 +706,7 @@ class OfflineIVF:
                         checkpoint=CPfn,
                         checkpoint_freq=7200,  # in seconds
                     )
-                    assert (
-                        np.amin(I) >= 0
-                    ), f"{I}, there exists negative indices, check"
+                    assert np.amin(I) >= 0, f"{I}, there exists negative indices, check"
                     logging.info(f"saving: {Ifn}")
                     np.save(f, I)
                     logging.info(f"saving: {Dfn}")
@@ -802,9 +726,7 @@ class OfflineIVF:
             index_shard = self.index_shards[fn]
         else:
             logging.info(f"open index shard: {fn}")
-            index_shard = faiss.read_index(
-                fn, faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY
-            )
+            index_shard = faiss.read_index(fn, faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY)
             self.index_shards[fn] = index_shard
         return index_shard
 
@@ -813,9 +735,9 @@ class OfflineIVF:
             index_shard_prefix = self.index_shard_prefix
         if index_shard_prefix in self.index:
             return self.index[index_shard_prefix]
-        assert os.path.exists(
-            self.index_template_file
-        ), f"file {self.index_template_file} does not exist "
+        assert os.path.exists(self.index_template_file), (
+            f"file {self.index_template_file} does not exist "
+        )
         logging.info(f"open index template: {self.index_template_file}")
         index = faiss.read_index(self.index_template_file)
         index_ivf = faiss.downcast_index(faiss.extract_index_ivf(index))
@@ -825,9 +747,7 @@ class OfflineIVF:
             assert os.path.exists(fn), f"file {fn} does not exist "
             logging.info(fn)
             index_shard = self._open_index_shard(fn)
-            il = faiss.downcast_index(
-                faiss.extract_index_ivf(index_shard)
-            ).invlists
+            il = faiss.downcast_index(faiss.extract_index_ivf(index_shard)).invlists
             ilv.push_back(il)
         hsil = faiss.HStackInvertedLists(ilv.size(), ilv.data())
         index_ivf.replace_invlists(hsil, False)
@@ -839,9 +759,7 @@ class OfflineIVF:
         for i in range(self.nshards):
             fn = f"{self.index_shard_prefix}{i}"
             assert os.path.exists(fn)
-            index = faiss.read_index(
-                fn, faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY
-            )
+            index = faiss.read_index(fn, faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY)
             index_ivf = faiss.downcast_index(faiss.extract_index_ivf(index))
             il = index_ivf.invlists
             il.print_stats()
@@ -880,8 +798,7 @@ class OfflineIVF:
             _, I = index.search(xb, 100)
             for j in range(SMALL_DATA_SAMPLE):
                 assert np.where(I[j] == j + r)[0].size > 0, (
-                    f"I[j]: {I[j]}, j: {j}, i: {i}, shard_size:"
-                    f" {self.shard_size}"
+                    f"I[j]: {I[j]}, j: {j}, i: {i}, shard_size: {self.shard_size}"
                 )
 
         logging.info("merged index...")
@@ -894,8 +811,7 @@ class OfflineIVF:
             _, I = index.search(xb, 100)
             for j in range(SMALL_DATA_SAMPLE):
                 assert np.where(I[j] == j + r)[0].size > 0, (
-                    f"I[j]: {I[j]}, j: {j}, i: {i}, shard_size:"
-                    f" {self.shard_size}"
+                    f"I[j]: {I[j]}, j: {j}, i: {i}, shard_size: {self.shard_size}"
                 )
 
         logging.info("search results...")
@@ -921,8 +837,7 @@ class OfflineIVF:
             xq = next(self.xq_ds.iterate(i, SMALL_DATA_SAMPLE, np.float32))
             D_online, I_online = index.search(xq, self.k)
             assert (
-                np.where(I[:SMALL_DATA_SAMPLE] == I_online)[0].size
-                / (self.k * SMALL_DATA_SAMPLE)
+                np.where(I[:SMALL_DATA_SAMPLE] == I_online)[0].size / (self.k * SMALL_DATA_SAMPLE)
                 > 0.95
             ), (
                 "the ratio is"
@@ -932,10 +847,7 @@ class OfflineIVF:
                 D[:SMALL_DATA_SAMPLE].sum(axis=1),
                 D_online.sum(axis=1),
                 rtol=0.01,
-            ), (
-                "the difference is"
-                f" {D[:SMALL_DATA_SAMPLE].sum(axis=1), D_online.sum(axis=1)}"
-            )
+            ), f"the difference is {D[:SMALL_DATA_SAMPLE].sum(axis=1), D_online.sum(axis=1)}"
 
         logging.info("done")
 
@@ -951,9 +863,7 @@ class OfflineIVF:
         The assumption about the input files are all of size xq_bs except possible for the last one, that can be shorter.
         """
 
-        logging.info(
-            f"split_npy_files, output dir in {self.postprocess_output_dir}"
-        )
+        logging.info(f"split_npy_files, output dir in {self.postprocess_output_dir}")
         if not os.path.exists(self.postprocess_output_dir):
             os.makedirs(self.postprocess_output_dir)
 
@@ -964,17 +874,16 @@ class OfflineIVF:
         last_input_file = np.load(I_files[-1], mmap_mode="r")
         I_dtype = last_input_file.dtype
         remainder = total_output_size - (num_input_files - 1) * self.xq_bs
-        assert (
-            last_input_file.shape[0] == remainder
-            and last_input_file.shape[1] == self.k
-        ), f"wrong size for input data file, check file: {I_files[-1]}"
+        assert last_input_file.shape[0] == remainder and last_input_file.shape[1] == self.k, (
+            f"wrong size for input data file, check file: {I_files[-1]}"
+        )
         for i in range(
             num_input_files - 1
         ):  # check all files except the last one, which is checked above
             I_matrix = np.load(I_files[i], mmap_mode="r")
-            assert (
-                I_matrix.shape[0] == self.xq_bs and I_matrix.shape[1] == self.k
-            ), f"wrong size for input data file , check file: {I_files[i]} "
+            assert I_matrix.shape[0] == self.xq_bs and I_matrix.shape[1] == self.k, (
+                f"wrong size for input data file , check file: {I_files[i]} "
+            )
 
         output_files = []
 
@@ -984,9 +893,7 @@ class OfflineIVF:
             output_file = np.empty((0, self.k), dtype=I_dtype)
             while output_file.shape[0] < current_output_file_size:
                 still_need = current_output_file_size - output_file.shape[0]
-                I_current_file = np.load(
-                    I_files[current_input_file_index], mmap_mode="r"
-                )
+                I_current_file = np.load(I_files[current_input_file_index], mmap_mode="r")
                 max_we_can_read_from_current_input = min(
                     I_current_file.shape[0],
                     current_input_file_offset + still_need,
@@ -1000,12 +907,9 @@ class OfflineIVF:
                     current_input_file_index += 1
                     current_input_file_offset = 0
             output_files.append(output_file)
-            logging.info(
-                f"saving files: mm5_p5.x2y.{(jj):03}.{save_output_id}"
-            )
+            logging.info(f"saving files: mm5_p5.x2y.{(jj):03}.{save_output_id}")
             np.save(
-                f"{self.postprocess_output_dir}"
-                + f"/mm5_p5.x2y.{(jj):03}.{save_output_id}",
+                f"{self.postprocess_output_dir}" + f"/mm5_p5.x2y.{(jj):03}.{save_output_id}",
                 output_file,
             )
 
@@ -1017,10 +921,7 @@ class OfflineIVF:
         I_files = self._get_output_files(file_type)
         for I_file in I_files:
             I_matrix = np.load(I_file, mmap_mode="r")
-            assert (
-                np.all(I_matrix) >= 0
-                and np.all(I_matrix) < np.iinfo(np.uint32).max
-            ), (
+            assert np.all(I_matrix) >= 0 and np.all(I_matrix) < np.iinfo(np.uint32).max, (
                 "Some indices are less than zero or exceed"
                 f" {np.iinfo(np.uint32).max}, canno cast to uint32"
             )

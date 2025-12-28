@@ -224,7 +224,7 @@ IniReader::SetParameter(const std::string& p_section, const std::string& p_param
     std::string name(p_section);
     StrUtils::ToLowerInPlace(name);
     auto sectionIter = m_parameters.find(name);
-    if (sectionIter == m_parameters.cend() || sectionIter->second == nullptr) 
+    if (sectionIter == m_parameters.cend() || sectionIter->second == nullptr)
     {
         m_parameters[name] = std::shared_ptr<ParameterValueMap>(new ParameterValueMap);
     }

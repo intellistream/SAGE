@@ -20,7 +20,7 @@ namespace SPTAG
         class OPQQuantizer : public PQQuantizer<OPQMatrixType>
         {
         public:
-            
+
 
             OPQQuantizer();
 
@@ -43,7 +43,7 @@ namespace SPTAG
             virtual int GetBase() const;
 
 
-            QuantizerType GetQuantizerType() const 
+            QuantizerType GetQuantizerType() const
             {
                 return QuantizerType::OPQQuantizer;
             }
@@ -145,7 +145,7 @@ namespace SPTAG
             SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Saving quantizer: Subvectors:%d KsPerSubvector:%d DimPerSubvector:%d\n", m_NumSubvectors, m_KsPerSubvector, m_DimPerSubvector);
             return ErrorCode::Success;
         }
-        
+
         template <typename T>
         ErrorCode OPQQuantizer<T>::LoadQuantizer(std::shared_ptr<Helper::DiskIO> p_in)
         {

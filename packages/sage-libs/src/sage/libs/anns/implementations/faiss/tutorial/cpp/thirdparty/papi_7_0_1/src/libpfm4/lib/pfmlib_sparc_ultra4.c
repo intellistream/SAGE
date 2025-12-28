@@ -30,7 +30,7 @@
 pfmlib_pmu_t sparc_ultra4plus_support={
 	.desc			= "Ultra Sparc 4+",
 	.name			= "ultra4p",
-	.pmu			= PFM_PMU_SPARC_ULTRA4PLUS, 
+	.pmu			= PFM_PMU_SPARC_ULTRA4PLUS,
 	.pme_count		= LIBPFM_ARRAY_SIZE(ultra4plus_pe),
 	.type			= PFM_PMU_TYPE_CORE,
 	.supported_plm		= SPARC_PLM,

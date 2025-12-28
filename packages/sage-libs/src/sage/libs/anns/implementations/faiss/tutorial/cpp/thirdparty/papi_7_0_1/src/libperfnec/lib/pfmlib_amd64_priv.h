@@ -107,7 +107,7 @@ static const char *amd64_cpu_strs[] = {
 	"AMD64 (Family 15h RevB)",
 };
 
-/* 
+/*
  * pme_flags values
  */
 #define PFMLIB_AMD64_UMASK_COMBO	0x1 /* unit mask can be combined */

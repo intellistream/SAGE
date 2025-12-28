@@ -30,7 +30,7 @@
 
 
 /******************************************************
-* Parameters that have been optimized experimentally 
+* Parameters that have been optimized experimentally
 ******************************************************/
 #define THREADS 64 // Number of threads per block
 #define KNN_THREADS 32 // Number of threads per block
@@ -58,4 +58,3 @@
   ((double)std::chrono::duration_cast<std::chrono::seconds>(end-start).count()) + (((double)std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count())/1000)
 
 #endif
-

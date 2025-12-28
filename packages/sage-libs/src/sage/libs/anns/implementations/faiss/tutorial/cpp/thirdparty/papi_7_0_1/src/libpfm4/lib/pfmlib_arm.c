@@ -1,9 +1,9 @@
 /*
  * pfmlib_arm.c : 	support for ARM chips
- * 
+ *
  * Copyright (c) 2010 University of Tennessee
  * Contributed by Vince Weaver <vweaver1@utk.edu>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -20,7 +20,7 @@
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 
 #include <sys/types.h>
@@ -158,8 +158,8 @@ pfm_arm_detect(void *this)
 		return PFM_ERR_NOTSUPP;
 
         pfm_arm_cfg.implementer = strtol(buffer, NULL, 16);
-   
-   
+
+
 	ret = pfmlib_getcpuinfo_attr("CPU part", buffer, sizeof(buffer));
 	if (ret == -1)
 		return PFM_ERR_NOTSUPP;
@@ -171,7 +171,7 @@ pfm_arm_detect(void *this)
 		return PFM_ERR_NOTSUPP;
 
 	pfm_arm_cfg.architecture = strtol(buffer, NULL, 16);
-   
+
 	return PFM_SUCCESS;
 }
 
@@ -186,7 +186,7 @@ pfm_arm_get_encoding(void *this, pfmlib_event_desc_t *e)
 	int i, idx, has_plm = 0;
 
 	reg.val = pe[e->event].code;
-  
+
 
 	for (i = 0; i < e->nattrs; i++) {
 		a = attr(e, i);
@@ -254,7 +254,7 @@ pfm_arm_get_encoding(void *this, pfmlib_event_desc_t *e)
 	}
 
         pfm_arm_display_reg(this, e, reg);
-   
+
 	return PFM_SUCCESS;
 }
 

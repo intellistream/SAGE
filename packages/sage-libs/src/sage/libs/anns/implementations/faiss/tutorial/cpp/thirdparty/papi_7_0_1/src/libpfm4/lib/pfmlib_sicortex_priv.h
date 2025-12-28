@@ -43,7 +43,7 @@ typedef struct {
 	unsigned int		pme_numasks;	/* number of umasks */
 	pme_sicortex_umask_t pme_umasks[PFMLIB_SICORTEX_MAX_UMASK]; /* umask desc */
 } pme_sicortex_entry_t;
- 
+
 /*
  * SiCortex specific
  */
@@ -73,11 +73,11 @@ typedef union {
     unsigned long AddrAssert:1;
     unsigned long MagicEvent:2;
     unsigned long Reserved:19;
-  } sicortex_ScbPerfCtl_reg; 
+  } sicortex_ScbPerfCtl_reg;
   struct {
     unsigned long HistGte:20;
     unsigned long Reserved:12;
-  } sicortex_ScbPerfHist_reg; 
+  } sicortex_ScbPerfHist_reg;
   struct {
   unsigned long Bucket:8;
   unsigned long Reserved:24;
@@ -85,13 +85,13 @@ typedef union {
   struct {
     unsigned long ena:1;
     unsigned long Reserved:31;
-  } sicortex_ScbPerfEna_reg; 
+  } sicortex_ScbPerfEna_reg;
   struct {
   unsigned long event:15;
   unsigned long hist:1;
   unsigned long ifOther:2;
   unsigned long Reserved:15;
-  } sicortex_ScbPerfBucket_reg; 
+  } sicortex_ScbPerfBucket_reg;
 } pmc_sicortex_scb_reg_t;
 
 typedef union {
@@ -100,7 +100,7 @@ typedef union {
     unsigned long Reserved:2;
     uint64_t VPCL:38;
     unsigned long VPCH:2;
-  } sicortex_CpuPerfVPC_reg; 
+  } sicortex_CpuPerfVPC_reg;
   struct {
   unsigned long Reserved:5;
   unsigned long PEA:31;
@@ -109,9 +109,9 @@ typedef union {
   unsigned long L2STOP:4;
   unsigned long L2STATE:3;
   unsigned long L2HIT:1;
-  } sicortex_CpuPerfPEA_reg; 
+  } sicortex_CpuPerfPEA_reg;
 } pmd_sicortex_cpu_reg_t;
-  
+
 #define PFMLIB_SICORTEX_INPUT_SCB_NONE (unsigned long)0x0
 #define PFMLIB_SICORTEX_INPUT_SCB_INTERVAL (unsigned long)0x1
 #define PFMLIB_SICORTEX_INPUT_SCB_NOINC (unsigned long)0x2

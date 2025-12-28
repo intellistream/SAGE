@@ -129,4 +129,3 @@ void setup_PAPI(int *event_set, int threshold){
 
     return;
 }
-

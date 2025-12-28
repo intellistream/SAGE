@@ -3,7 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import absolute_import, division, print_function
 
 import unittest
 
@@ -11,9 +10,8 @@ import faiss
 
 # noqa E741
 # translation of test_knn.lua
-
 import numpy as np
-from common_faiss_tests import Randu10k, get_dataset_2, Randu10kUnbalanced
+from common_faiss_tests import Randu10k, Randu10kUnbalanced, get_dataset_2
 
 ev = Randu10k()
 
@@ -202,8 +200,7 @@ class TestSQFlavors(unittest.TestCase):
             nt = trained.shape[1]
             # 2 lines: vmins and vdiffs
             new_nt = int(nt * d2 / d)
-            trained2 = np.hstack((trained, np.zeros((2, new_nt - nt),
-                                  dtype="float32")))
+            trained2 = np.hstack((trained, np.zeros((2, new_nt - nt), dtype="float32")))
             trained2[1, nt:] = 1.0  # set vdiff to 1 to avoid div by 0
             faiss.copy_array_to_vector(trained2.ravel(), index2.sq.trained)
         else:
@@ -241,8 +238,7 @@ class TestSQFlavors(unittest.TestCase):
         quantizer = faiss.IndexFlat(d, mt)
         for qname in "8bit 4bit 8bit_uniform 4bit_uniform fp16 6bit".split():
             qtype = getattr(faiss.ScalarQuantizer, "QT_" + qname)
-            index = faiss.IndexIVFScalarQuantizer(quantizer, d, nlist, qtype,
-                                                  mt)
+            index = faiss.IndexIVFScalarQuantizer(quantizer, d, nlist, qtype, mt)
             index.train(xt)
             index.add(xb)
             index.nprobe = 4  # hopefully more robust than 1
@@ -287,8 +283,8 @@ class TestSQFlavors(unittest.TestCase):
                 lims4, D4, I4 = index.range_search(xq, radius)
                 # print("sizes", lims4[1:] - lims4[:-1])
                 for qno in range(len(lims) - 1):
-                    Iref = I3[lims[qno]: lims[qno + 1]]
-                    Inew = I4[lims4[qno]: lims4[qno + 1]]
+                    Iref = I3[lims[qno] : lims[qno + 1]]
+                    Inew = I4[lims4[qno] : lims4[qno + 1]]
                     assert set(Iref) == set(Inew), "q %d ref %s new %s" % (
                         qno,
                         Iref,
@@ -340,9 +336,7 @@ class TestSQByte(unittest.TestCase):
         gt_index.add(xb)
         Dref, Iref = gt_index.search(xq, 10)
 
-        index = faiss.IndexScalarQuantizer(
-            d, faiss.ScalarQuantizer.QT_8bit_direct, metric_type
-        )
+        index = faiss.IndexScalarQuantizer(d, faiss.ScalarQuantizer.QT_8bit_direct, metric_type)
         index.add(xb)
         D, I = index.search(xq, 10)
 
@@ -361,8 +355,7 @@ class TestSQByte(unittest.TestCase):
         Dref, Iref = gt_index.search(xq, 10)
 
         index = faiss.IndexIVFScalarQuantizer(
-            quantizer, d, nlist, faiss.ScalarQuantizer.QT_8bit_direct,
-            metric_type
+            quantizer, d, nlist, faiss.ScalarQuantizer.QT_8bit_direct, metric_type
         )
         index.nprobe = 4
         index.by_residual = False
@@ -431,16 +424,11 @@ class TestNNDescent(unittest.TestCase):
                         recalls += 1
                         break
         recall = 1.0 * recalls / (nq * topk)
-        print(
-            "Metric: {}, L: {}, Recall@{}: {}".format(
-                metric_names[metric], search_L, topk, recall
-            )
-        )
-        assert recall > threshold, "{} <= {}".format(recall, threshold)
+        print(f"Metric: {metric_names[metric]}, L: {search_L}, Recall@{topk}: {recall}")
+        assert recall > threshold, f"{recall} <= {threshold}"
 
 
 class TestPQFlavors(unittest.TestCase):
-
     # run on Dec 14, 2018
     ref_results = {
         (1, True): 800,
@@ -467,7 +455,6 @@ class TestPQFlavors(unittest.TestCase):
         gt_D, gt_I = gt_index.search(xq, 10)
         quantizer = faiss.IndexFlat(d, mt)
         for by_residual in True, False:
-
             index = faiss.IndexIVFPQ(quantizer, d, nlist, 4, 8)
             index.metric_type = mt
             index.by_residual = by_residual
@@ -494,21 +481,14 @@ class TestPQFlavors(unittest.TestCase):
             assert np.all(I == I2)
 
             if by_residual:
-
                 index.use_precomputed_table = 1
                 index.polysemous_ht = 20
                 D, I = index.search(xq, 10)
                 ninter = faiss.eval_intersection(I, gt_I)
-                print(
-                    "(%d, %s, %d): %d, "
-                    % (mt, by_residual, index.polysemous_ht, ninter)
-                )
+                print("(%d, %s, %d): %d, " % (mt, by_residual, index.polysemous_ht, ninter))
 
                 # polysemous behaves bizarrely on ARM
-                assert (
-                    ninter >= self.ref_results[mt, by_residual,
-                                               index.polysemous_ht] - 4
-                )
+                assert ninter >= self.ref_results[mt, by_residual, index.polysemous_ht] - 4
 
             # also test range search
 
@@ -584,7 +564,7 @@ class TestFlat1D(unittest.TestCase):
         ndiff = (np.abs(ref_I - new_I) != 0).sum()
 
         assert ndiff < 100
-        new_D = new_D ** 2
+        new_D = new_D**2
         max_diff_D = np.abs(ref_D - new_D).max()
         assert max_diff_D < 1e-5
 
@@ -603,7 +583,6 @@ class OPQRelativeAccuracy(unittest.TestCase):
     # translated from test_opq.lua
 
     def test_OPQ(self):
-
         M = 4
 
         ev = Randu10kUnbalanced()
@@ -679,8 +658,7 @@ class TestRoundoff(unittest.TestCase):
         # this does not work
         assert not np.all(I.ravel() == np.arange(nq))
 
-        index = faiss.IndexPreTransform(faiss.CenteringTransform(d),
-                                        faiss.IndexFlat(d))
+        index = faiss.IndexPreTransform(faiss.CenteringTransform(d), faiss.IndexFlat(d))
 
         index.train(xb)
         index.add(xb)
@@ -692,7 +670,6 @@ class TestRoundoff(unittest.TestCase):
 
 
 class TestSpectralHash(unittest.TestCase):
-
     # run on 2019-04-02
     ref_results = {
         (32, "global", 10): 505,
@@ -741,15 +718,10 @@ class TestSpectralHash(unittest.TestCase):
             print("LSH baseline: %d" % ninter)
 
             for period in 10.0, 1.0:
-
                 for tt in "global centroid centroid_half median".split():
-                    index = faiss.IndexIVFSpectralHash(
-                        quantizer, d, nlist, nbit, period
-                    )
+                    index = faiss.IndexIVFSpectralHash(quantizer, d, nlist, nbit, period)
                     index.nprobe = nprobe
-                    index.threshold_type = getattr(
-                        faiss.IndexIVFSpectralHash, "Thresh_" + tt
-                    )
+                    index.threshold_type = getattr(faiss.IndexIVFSpectralHash, "Thresh_" + tt)
 
                     index.train(xt)
                     index.add(xb)
@@ -758,8 +730,7 @@ class TestSpectralHash(unittest.TestCase):
                     ninter = faiss.eval_intersection(I, gt_I)
                     key = (nbit, tt, period)
 
-                    print("(%d, %s, %g): %d, " % (nbit, repr(tt), period,
-                                                  ninter))
+                    print("(%d, %s, %g): %d, " % (nbit, repr(tt), period, ninter))
                     print(abs(ninter - self.ref_results[key]))
                     assert abs(ninter - self.ref_results[key]) <= 14
 

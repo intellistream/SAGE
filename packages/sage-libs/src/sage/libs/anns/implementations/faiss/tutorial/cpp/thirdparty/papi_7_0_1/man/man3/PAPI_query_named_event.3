@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_query_named_event \- 
+PAPI_query_named_event \-
 .PP
-Query if a named PAPI event exists\&.  
+Query if a named PAPI event exists\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 int \fBPAPI_query_named_event(const char *EventName)\fP;
 .RE
@@ -29,7 +29,7 @@ int \fBPAPI_query_named_event(const char *EventName)\fP;
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&. 
+\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.
 .br
 \fIPAPI_ENOEVNT\fP The PAPI preset is not available on the underlying hardware\&.
 .RE
@@ -44,7 +44,7 @@ int retval;
 retval = PAPI_library_init(PAPI_VER_CURRENT);
 if (retval != PAPI_VER_CURRENT) {
   fprintf(stderr,\"PAPI library init error!\\n\");
-  exit(1); 
+  exit(1);
 }
 if (PAPI_query_named_event("PAPI_TOT_INS") != PAPI_OK) {
   fprintf(stderr,\"No instruction counter? How lame\&.\\n\");
@@ -57,11 +57,11 @@ if (PAPI_query_named_event("PAPI_TOT_INS") != PAPI_OK) {
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_query_event\fP 
+\fBPAPI_query_event\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -27,9 +27,8 @@ do
 if [ -x $i ]; then
 if [ "$i" != "./run_examples.sh" ]; then
 echo  "Running $i: ";
-./$i 
+./$i
 fi;
 fi;
 echo "";
 done
-

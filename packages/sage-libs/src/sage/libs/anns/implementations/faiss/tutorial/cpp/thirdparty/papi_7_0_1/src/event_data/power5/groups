@@ -1,5 +1,5 @@
 { ****************************
-{  THIS IS OPEN SOURCE CODE 
+{  THIS IS OPEN SOURCE CODE
 { ****************************
 { (C) COPYRIGHT International Business Machines Corp. 2005
 { This file is licensed under the University of Tennessee license.
@@ -8,7 +8,7 @@
 { File:    events/power5/groups
 { Author:  Maynard Johnson
 {          maynardj@us.ibm.com
-{ Mods: 
+{ Mods:
 {
 
 { Number of groups
@@ -596,10 +596,10 @@ Marked group events
 00000000,41030002,2A0AC822,00000001
 Marked group events
 
-#116,160,162,129,135,0,0,pm_mrk_dsource1,Marked data from 
+#116,160,162,129,135,0,0,pm_mrk_dsource1,Marked data from
 ##C7087,C70A0,C70A2,C70A2,00009,00005
 00000000,010B0003,0E404444,00000001
-Marked data from 
+Marked data from
 
 #117,161,160,55,44,0,0,pm_mrk_dsource2,Marked data from
 ##C7097,C70A2,00001,01088,00009,00005
@@ -716,20 +716,20 @@ Floating point events
 00000000,00000000,10202010,00000000
 Floating point events
 
-#140,12,58,6,44,0,0,pm_hpmcount1,HPM group for set 1 
+#140,12,58,6,44,0,0,pm_hpmcount1,HPM group for set 1
 ##0000F,00014,0000F,01088,00009,00005
 00000000,00000000,1E281E10,00000000
-HPM group for set 1 
+HPM group for set 1
 
 #141,12,56,56,115,0,0,pm_hpmcount2,HPM group for set 2
 ##0000F,02090,00009,C5090,00009,00005
 00000000,04300004,1E201220,00000000
 HPM group for set 2
 
-#142,12,72,100,171,0,0,pm_hpmcount3,HPM group for set 3 
+#142,12,72,100,171,0,0,pm_hpmcount3,HPM group for set 3
 ##0000F,120E1,C1088,C10C3,00009,00005
 00000000,40300004,1EC21086,00000000
-HPM group for set 3 
+HPM group for set 3
 
 #143,210,15,165,106,0,0,pm_hpmcount4,HPM group for set 7
 ##80088,0000F,C1090,C1090,00009,00005
@@ -740,4 +740,3 @@ HPM group for set 7
 ##00090,00088,0000F,00001,00009,00005
 00000000,00000000,20101E02,00000000
 One flop instructions plus FMA
-

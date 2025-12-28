@@ -192,7 +192,7 @@ main(int argc, char **argv)
 		fatal_error("cannot find inst retired event\n");
 
 	i = 2;
-	
+
 	/*
 	 * set the default privilege mode for all counters:
 	 * 	PFM_PLM3 : user level only

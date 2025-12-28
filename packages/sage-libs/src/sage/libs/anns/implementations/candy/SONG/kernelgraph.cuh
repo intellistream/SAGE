@@ -34,7 +34,7 @@ private:
     std::mt19937_64 rand_gen = std::mt19937_64(114514);//std::random_device{}());
 
     void rank_and_switch_ordered(idx_t v_id,idx_t u_id){
-        //We assume the neighbors of v_ids in edges[offset] are sorted 
+        //We assume the neighbors of v_ids in edges[offset] are sorted
         //by the distance to v_id ascendingly when it is full
         //NOTICE: before it is full, it is unsorted
         auto curr_dist = pair_distance(v_id,u_id);
@@ -57,7 +57,7 @@ private:
             }
         }
     }
-    
+
     void rank_and_switch(idx_t v_id,idx_t u_id){
         rank_and_switch_ordered(v_id,u_id);
         //TODO:
@@ -85,7 +85,7 @@ private:
     void compute_distance(size_t offset,std::vector<dist_t>& dists){
         compute_distance_naive(offset,dists);
     }
-    
+
     template<class T>
     dist_t pair_distance_naive(idx_t a,T& b){
         return distance(a,b);
@@ -95,7 +95,7 @@ private:
     dist_t pair_distance(idx_t a,T& b){
         return pair_distance_naive(a,b);
     }
-   
+
 
     void qsort(size_t l,size_t r){
         auto mid = (l + r) >> 1;
@@ -147,7 +147,7 @@ public:
         edges = std::vector<idx_t>(num_vertices << vertex_offset_shift);
         edge_dist = std::vector<dist_t>(num_vertices << vertex_offset_shift);
     }
-    
+
     void add_vertex(idx_t vertex_id,std::vector<std::pair<int,value_t>>& point){
         std::vector<idx_t> neighbor;
         search_top_k(point,degree*10,neighbor);
@@ -156,10 +156,10 @@ public:
         edges[offset] = num_neighbors;
         // TODO:
         // it is possible to save this space --- edges[offset]
-        // by set the last number in the range as 
+        // by set the last number in the range as
         // a large number - current degree
         for(int i = 0;i < neighbor.size() && i < degree;++i){
-            edges[offset + i + 1] = neighbor[i]; 
+            edges[offset + i + 1] = neighbor[i];
         }
         rank_edges(offset);
         for(int i = 0;i < neighbor.size() && i < degree;++i){
@@ -176,10 +176,10 @@ public:
         edges[offset] = num_neighbors;
         // TODO:
         // it is possible to save this space --- edges[offset]
-        // by set the last number in the range as 
+        // by set the last number in the range as
         // a large number - current degree
         for(int i = 0;i < neighbor[0].size() && i < degree;++i){
-            edges[offset + i + 1] = neighbor[0][i]; 
+            edges[offset + i + 1] = neighbor[0][i];
         }
         rank_edges(offset);
         for(int i = 0;i < neighbor[0].size() && i < degree;++i){
@@ -279,12 +279,12 @@ public:
         }
         fprintf(stderr,"[INFO] #vertices %zu, avg degree %f\n",n,sum * 1.0 / n);
         std::unordered_set<idx_t> visited;
-        fprintf(stderr,"[INFO] degree histogram:\n"); 
+        fprintf(stderr,"[INFO] degree histogram:\n");
         for(int i = 0;i <= 2 * degree + 1;++i)
             fprintf(stderr,"[INFO] %d:\t%zu\n",i,histogram[i]);
 
     }
-    
+
     void print_edges(int x){
         for(int i = 0;i < x;++i){
             size_t offset = i << vertex_offset_shift;
@@ -309,7 +309,7 @@ public:
         auto cnt = fread(&edges[0],sizeof(edges[0]) * (num_vertices << vertex_offset_shift),1,fp);
         fclose(fp);
     }
-    
+
 	void search_top_k_batch(const std::vector<std::vector<std::pair<int,value_t>>>& queries,int k,std::vector<std::vector<idx_t>>& results){
     	WarpAStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),data->get_dim(),dist_type);
         //fprintf(stderr,"finished one batch\n");

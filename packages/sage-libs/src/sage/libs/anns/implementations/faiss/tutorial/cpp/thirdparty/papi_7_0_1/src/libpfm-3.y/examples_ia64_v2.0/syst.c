@@ -97,7 +97,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	pfm_get_num_counters(&num_counters);
-	
+
 	/*
 	 * pass options to library (optional)
 	 */

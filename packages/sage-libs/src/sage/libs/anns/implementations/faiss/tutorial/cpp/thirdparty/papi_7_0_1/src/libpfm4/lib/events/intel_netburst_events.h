@@ -1546,4 +1546,3 @@ static const netburst_entry_t netburst_events[] = {
 #define NETBURST_EVENT_COUNT (sizeof(netburst_events)/sizeof(netburst_entry_t))
 
 #endif
-

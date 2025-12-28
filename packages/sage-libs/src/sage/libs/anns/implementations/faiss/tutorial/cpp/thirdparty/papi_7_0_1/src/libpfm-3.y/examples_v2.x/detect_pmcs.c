@@ -45,7 +45,7 @@
  *
  * Note that there is no guarantee that the registers marked
  * as available will actually be available by the time the perfmon
- * context is loaded. 
+ * context is loaded.
  *
  * arguments:
  * 	fd : a perfmon context file descriptor, or -1

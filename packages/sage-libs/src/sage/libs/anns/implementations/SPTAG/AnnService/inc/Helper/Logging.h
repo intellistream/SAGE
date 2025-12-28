@@ -28,7 +28,7 @@ namespace SPTAG
             LL_Empty
         };
 
-        class Logger 
+        class Logger
         {
         public:
             virtual void Logging(const char* title, LogLevel level, const char* file, int line, const char* func, const char* format, ...) = 0;
@@ -82,7 +82,7 @@ namespace SPTAG
 
                 va_list args;
                 va_start(args, format);
-                
+
                 vprintf(format, args);
                 fflush(stdout);
 

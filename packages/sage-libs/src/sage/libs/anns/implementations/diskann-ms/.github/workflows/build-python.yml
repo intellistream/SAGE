@@ -12,14 +12,14 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
-      - name: Building python wheel ${{matrix.cibw-identifier}}
-        uses: ./.github/actions/python-wheel
-        with:
-          cibw-identifier: ${{matrix.cibw-identifier}}
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+    - name: Building python wheel ${{matrix.cibw-identifier}}
+      uses: ./.github/actions/python-wheel
+      with:
+        cibw-identifier: ${{matrix.cibw-identifier}}
   windows-build:
     name: Python - Windows - ${{matrix.cibw-identifier}}
     strategy:
@@ -31,12 +31,12 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-          fetch-depth: 1
-      - name: Building python wheel ${{matrix.cibw-identifier}}
-        uses: ./.github/actions/python-wheel
-        with:
-          cibw-identifier: ${{matrix.cibw-identifier}}
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+        fetch-depth: 1
+    - name: Building python wheel ${{matrix.cibw-identifier}}
+      uses: ./.github/actions/python-wheel
+      with:
+        cibw-identifier: ${{matrix.cibw-identifier}}

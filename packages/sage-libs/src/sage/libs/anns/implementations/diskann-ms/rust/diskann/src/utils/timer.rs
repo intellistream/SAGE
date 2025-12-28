@@ -98,4 +98,3 @@ mod timer_tests {
         assert!(timer.elapsed_seconds() > 0.1);
     }
 }
-

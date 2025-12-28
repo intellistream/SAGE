@@ -33,13 +33,13 @@ public:
     virtual ~VectorIndex();
 
     virtual ErrorCode BuildIndex(const void* p_data, SizeType p_vectorNum, DimensionType p_dimension, bool p_normalized = false, bool p_shareOwnership = false) = 0;
-    
+
     virtual ErrorCode AddIndex(const void* p_data, SizeType p_vectorNum, DimensionType p_dimension, std::shared_ptr<MetadataSet> p_metadataSet, bool p_withMetaIndex = false, bool p_normalized = false) = 0;
 
     virtual ErrorCode DeleteIndex(const void* p_vectors, SizeType p_vectorNum) = 0;
 
     virtual ErrorCode SearchIndex(QueryResult& p_results, bool p_searchDeleted = false) const = 0;
-    
+
     virtual std::shared_ptr<ResultIterator> GetIterator(const void* p_target, bool p_searchDeleted = false) const = 0;
 
     virtual ErrorCode SearchIndexIterativeNext(QueryResult& p_query, COMMON::WorkSpace* workSpace, int p_batch, int& resultCount, bool p_isFirst, bool p_searchDeleted) const = 0;
@@ -64,7 +64,7 @@ public:
     virtual const void* GetSample(const SizeType idx) const = 0;
     virtual bool ContainSample(const SizeType idx) const = 0;
     virtual bool NeedRefine() const = 0;
-   
+
     virtual DimensionType GetFeatureDim() const = 0;
     virtual SizeType GetNumSamples() const = 0;
     virtual SizeType GetNumDeleted() const = 0;
@@ -89,7 +89,7 @@ public:
     virtual ErrorCode SaveIndexToFile(const std::string& p_file, IAbortOperation* p_abort = nullptr);
 
     virtual ErrorCode BuildIndex(std::shared_ptr<VectorSet> p_vectorSet, std::shared_ptr<MetadataSet> p_metadataSet, bool p_withMetaIndex = false, bool p_normalized = false, bool p_shareOwnership = false);
-    
+
     virtual ErrorCode BuildIndex(bool p_normalized = false) { return ErrorCode::Undefined; }
 
     virtual ErrorCode AddIndex(std::shared_ptr<VectorSet> p_vectorSet, std::shared_ptr<MetadataSet> p_metadataSet, bool p_withMetaIndex = false, bool p_normalized = false);
@@ -97,7 +97,7 @@ public:
     virtual ErrorCode DeleteIndex(ByteArray p_meta);
 
     virtual ErrorCode MergeIndex(VectorIndex* p_addindex, int p_threadnum, IAbortOperation* p_abort);
-    
+
     virtual const void* GetSample(ByteArray p_meta, bool& deleteFlag);
 
     virtual ErrorCode SearchIndex(const void* p_vector, int p_vectorCount, int p_neighborCount, bool p_withMeta, BasicResult* p_results) const;
@@ -113,10 +113,10 @@ public:
     virtual MetadataSet* GetMetadata() const;
     virtual void SetMetadata(MetadataSet* p_new);
 
-    virtual std::string GetIndexName() const 
-    { 
+    virtual std::string GetIndexName() const
+    {
         if (m_sIndexName == "") return Helper::Convert::ConvertToString(GetIndexAlgoType());
-        return m_sIndexName; 
+        return m_sIndexName;
     }
     virtual void SetIndexName(std::string p_name) { m_sIndexName = p_name; }
 
@@ -136,7 +136,7 @@ public:
 
     virtual ErrorCode QuantizeVector(const void* p_data, SizeType p_num, ByteArray p_out) {
         if (m_pQuantizer != nullptr && p_out.Length() >= m_pQuantizer->GetNumSubvectors() * (size_t)p_num) {
-            for (int i = 0; i < p_num; i++) 
+            for (int i = 0; i < p_num; i++)
                 m_pQuantizer->QuantizeVector(((std::uint8_t*)p_data) + i * (size_t)(m_pQuantizer->ReconstructSize()), p_out.Data() + i * (size_t)(m_pQuantizer->GetNumSubvectors()), false);
             return ErrorCode::Success;
         }

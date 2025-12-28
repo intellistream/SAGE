@@ -127,14 +127,14 @@ pfm_mont_detect(void)
  * time. The first set is selected by the event in PMC4 and the second
  * set by the event in PMC6. Once the set is selected for PMC4,
  * the same set is locked for PMC5 and PMC8. Similarly, once the
- * set is selected for PMC6, the same set is locked for PMC7 and 
+ * set is selected for PMC6, the same set is locked for PMC7 and
  * PMC9.
  *
  * This function verifies that only one set of L1D is selected
  * and that no more than 2 sets are selected for L2D
  */
 static int
-check_cross_groups(pfmlib_input_param_t *inp, unsigned int *l1d_event, 
+check_cross_groups(pfmlib_input_param_t *inp, unsigned int *l1d_event,
 		unsigned long *l2d_set1_mask, unsigned long *l2d_set2_mask)
 {
 	int g, s, s1, s2;
@@ -167,7 +167,7 @@ check_cross_groups(pfmlib_input_param_t *inp, unsigned int *l1d_event,
 	}
 
 	/*
-	 * Check that we have only up to two distinct 
+	 * Check that we have only up to two distinct
 	 * sets for L2D
 	 */
 	s1 = s2 = -1;
@@ -176,7 +176,7 @@ check_cross_groups(pfmlib_input_param_t *inp, unsigned int *l1d_event,
 
 		if (g != PFMLIB_MONT_EVT_L2D_CACHE_GRP) continue;
 
-		s = evt_set(e[i].event); 
+		s = evt_set(e[i].event);
 
 		/*
 		 * we have seen this set before, continue
@@ -199,7 +199,7 @@ check_cross_groups(pfmlib_input_param_t *inp, unsigned int *l1d_event,
 			s2 = s;
 			l2d_mask2 |= 1UL << i;
 		} else {
-			/* 
+			/*
 			 * found a third set, that's not possible
 			 */
 			return PFMLIB_ERR_EVTSET;
@@ -565,7 +565,7 @@ pfm_mont_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t 
 			if (i != l1d_set)
 				not_assigned_events |= evt_mask;
 
-			DPRINT("phase 1: i=%u avail_cntrs=0x%lx l2d_set1_p=%d l2d_set2_p=%d not_assigned=0x%lx\n", 
+			DPRINT("phase 1: i=%u avail_cntrs=0x%lx l2d_set1_p=%d l2d_set2_p=%d not_assigned=0x%lx\n",
 				i,
 				avail_cntrs.bits[0],
 				l2d_set1_p,
@@ -589,7 +589,7 @@ pfm_mont_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t 
 			continue;
 
 		for(j=0; cnt_mask; j++, cnt_mask >>=1) {
-			if ((cnt_mask & 0x1) == 0) 
+			if ((cnt_mask & 0x1) == 0)
 				continue;
 
 			DPRINT("phase 2: i=%d j=%d cnt_mask=0x%lx avail_cntrs=0x%lx not_assigned_evnts=0x%lx\n",
@@ -770,10 +770,10 @@ pfm_dispatch_iear(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in, 
 	pos1++;
 
 	pd[pos2].reg_num  = 34;
-	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 34; 
+	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 34;
 	pos2++;
 	pd[pos2].reg_num  = 35;
-	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 35; 
+	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 35;
 	pos2++;
 
 	if (param->pfp_mont_iear.ear_mode == PFMLIB_MONT_EAR_TLB_MODE) {
@@ -866,20 +866,20 @@ pfm_dispatch_dear(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in, 
 	pos1++;
 
 	pd[pos2].reg_num  = 32;
-	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 32; 
+	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 32;
 	pos2++;
 	pd[pos2].reg_num  = 33;
-	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 33; 
+	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 33;
 	pos2++;
 	pd[pos2].reg_num  = 36;
-	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 36; 
+	pd[pos2].reg_addr = pd[pos2].reg_alt_addr = 36;
 	pos2++;
 
 	__pfm_vbprintf("[PMC40(pmc40)=0x%lx mode=%s plm=%d pm=%d ism=0x%x umask=0x%x]\n",
 			reg.pmc_val,
 			reg.pmc40_mont_reg.dear_mode == 0 ? "L1D" :
 			(reg.pmc40_mont_reg.dear_mode == 1 ? "L1DTLB" : "ALAT"),
-			reg.pmc40_mont_reg.dear_plm,	
+			reg.pmc40_mont_reg.dear_plm,
 			reg.pmc40_mont_reg.dear_pm,
 			reg.pmc40_mont_reg.dear_ism,
 			reg.pmc40_mont_reg.dear_umask);
@@ -907,7 +907,7 @@ pfm_dispatch_opcm(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in, 
 #define PMC36_DFL_VAL 0xfffffff0
 
 
-	/* 
+	/*
 	 * mandatory default value for PMC36 as described in the documentation
 	 * all monitoring is opcode constrained. Better make sure the match/mask
 	 * is set to match everything! It looks weird for the default value!
@@ -942,7 +942,7 @@ pfm_dispatch_opcm(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in, 
 			reg1.pmc32_34_mont_reg.opcm_m     = param->pfp_mont_opcm1.opcm_m;
 
 			reg2.pmc33_35_mont_reg.opcm_match = param->pfp_mont_opcm1.opcm_match;
-		} 
+		}
 
 		if (param->pfp_mont_irange.rr_used) {
 			reg1.pmc32_34_mont_reg.opcm_ig_ad = 0;
@@ -1290,7 +1290,7 @@ do_normal_rr(unsigned long start, unsigned long end,
 	}
 	l_size = l_addr - start;
 	r_size = end - l_addr-(1UL<<p2);
-	
+
 	if (PFMLIB_DEBUG()) {
 		printf(">>largest chunk: 2^%d @0x%016lx-0x%016lx\n", p2, l_addr, l_addr+(1UL<<p2));
 		if (l_size && !l_offs) printf(">>before: 0x%016lx-0x%016lx\n", start, l_addr);
@@ -1415,7 +1415,7 @@ compute_fine_rr(pfmlib_mont_input_rr_t *irr, int dfl_plm, int n, int *base_idx, 
 		/*
 		 * setup lower limit pair
 		 *
-		 * because of the PMU can only see addresses on a 2-bundle boundary, we must align 
+		 * because of the PMU can only see addresses on a 2-bundle boundary, we must align
 		 * down to the closest bundle-pair aligned address. 5 => 32-byte aligned address
 		 */
 		addr            = ALIGN_DOWN(in_rr->rr_start, 5);
@@ -1446,7 +1446,7 @@ compute_fine_rr(pfmlib_mont_input_rr_t *irr, int dfl_plm, int n, int *base_idx, 
 		 *
 		 *
 		 */
-		
+
 		addr = in_rr->rr_end - 0x10;
 
 		if ((addr & 0x1f) == 0) addr += 0x10;
@@ -1641,7 +1641,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in
 	if (ret != PFMLIB_SUCCESS) return ret;
 
 	if (n_intervals < 1) return PFMLIB_ERR_IRRINVAL;
-	
+
 
 	retired_count  = check_inst_retired_events(inp, &retired_mask);
 	retired_only   = retired_count == inp->pfp_event_count;
@@ -1663,8 +1663,8 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in
 	 *   the first pair of ibr is available: ibrp0. This imposes some severe restrictions on the
 	 *   size and alignment of the range. It can be bigger than 64KB and must be properly aligned
 	 *   on its size. The library relaxes these constraints by allowing the covered areas to be
-	 *   larger than the expected range. It may start before and end after the requested range. 
-	 *   You can determine the amount of overrun in either direction for each range by looking at 
+	 *   larger than the expected range. It may start before and end after the requested range.
+	 *   You can determine the amount of overrun in either direction for each range by looking at
 	 *   the rr_soff (start offset) and rr_eoff (end offset).
 	 *
 	 * - if the events include certain prefetch events then only IBRP1 can be used.
@@ -1672,7 +1672,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in
 	 *
 	 * - Finally, when the events are ONLY IA64_TAGGED_INST_RETIRED_* then all IBR pairs can be used
 	 *   to cover the range giving us more flexibility to approximate the range when it is not
-	 *   properly aligned on its size (see 10.3.5.2 Exception 2). But the corresponding 
+	 *   properly aligned on its size (see 10.3.5.2 Exception 2). But the corresponding
 	 *   IA64_TAGGED_INST_RETIRED_* must be present.
 	 */
 
@@ -1689,7 +1689,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in
 
 	/*
 	 * CPU_OP_CYCLES.QUAL supports code range restrictions but it returns
-	 * meaningful values (fine/coarse mode) only when IBRP1 is not used. 
+	 * meaningful values (fine/coarse mode) only when IBRP1 is not used.
 	 */
 	if ((base_idx > 0 || dup) && has_cpu_cycles_qual(inp))
 		return PFMLIB_ERR_FEATCOMB;
@@ -1734,7 +1734,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t *mod_in
 			case 2:
 				reg.pmc38_mont_reg.iarc_ig_ibrp1 = 0;
 				break;
-			case 4: 
+			case 4:
 				reg.pmc38_mont_reg.iarc_ig_ibrp2 = 0;
 				break;
 			case 6:
@@ -1954,7 +1954,7 @@ check_qualifier_constraints(pfmlib_input_param_t *inp, pfmlib_mont_input_param_t
 	pfmlib_mont_input_param_t *param = mod_in;
 	pfmlib_event_t *e = inp->pfp_events;
 	unsigned int i, count;
-	
+
 
 	count = inp->pfp_event_count;
 	for(i=0; i < count; i++) {
@@ -2145,7 +2145,7 @@ pfm_mont_is_dear_tlb(unsigned int i)
 {
 	return i < PME_MONT_EVENT_COUNT && is_dear(i) && is_ear_tlb(i);
 }
-	
+
 int
 pfm_mont_is_dear_cache(unsigned int i)
 {
@@ -2157,7 +2157,7 @@ pfm_mont_is_dear_alat(unsigned int i)
 {
 	return i < PME_MONT_EVENT_COUNT && is_ear_alat(i);
 }
-	
+
 int
 pfm_mont_is_iear(unsigned int i)
 {
@@ -2169,13 +2169,13 @@ pfm_mont_is_iear_tlb(unsigned int i)
 {
 	return i < PME_MONT_EVENT_COUNT && is_iear(i) && is_ear_tlb(i);
 }
-	
+
 int
 pfm_mont_is_iear_cache(unsigned int i)
 {
 	return i < PME_MONT_EVENT_COUNT && is_iear(i) && is_ear_cache(i);
 }
-	
+
 int
 pfm_mont_is_etb(unsigned int i)
 {
@@ -2252,7 +2252,7 @@ pfm_mont_get_event_umask(unsigned int i, unsigned long *umask)
 	*umask = evt_umask(i);
 	return PFMLIB_SUCCESS;
 }
-	
+
 int
 pfm_mont_get_event_group(unsigned int i, int *grp)
 {
@@ -2407,7 +2407,7 @@ pfm_mont_get_event_mask_name(unsigned int event, unsigned int mask)
 		case 0: return "I";
 		case 1: return "S";
 		case 2: return "E";
-		case 3: return "M";	
+		case 3: return "M";
 	}
 	return NULL;
 }
@@ -2422,7 +2422,7 @@ pfm_mont_get_event_mask_desc(unsigned int event, unsigned int mask, char **desc)
 			break;
 		case 2: *desc = strdup("exclusive");
 			break;
-		case 3: *desc = strdup("modified");	
+		case 3: *desc = strdup("modified");
 			break;
 		default:
 			return PFMLIB_ERR_INVAL;

@@ -1,8 +1,7 @@
 import re
 
-import pytest
-
 import env  # noqa: F401
+import pytest
 from pybind11_tests import PYBIND11_NUMPY_1_ONLY
 from pybind11_tests import numpy_dtypes as m
 
@@ -53,10 +52,7 @@ def packed_dtype_fmt():
 
 def partial_ld_offset():
     return (
-        12
-        + 4 * (np.dtype("uint64").alignment > 4)
-        + 8
-        + 8 * (np.dtype("longdouble").alignment > 8)
+        12 + 4 * (np.dtype("uint64").alignment > 4) + 8 + 8 * (np.dtype("longdouble").alignment > 8)
     )
 
 
@@ -65,9 +61,7 @@ def partial_dtype_fmt():
     partial_ld_off = partial_ld_offset()
     partial_size = partial_ld_off + ld.itemsize
     partial_end_padding = partial_size % np.dtype("uint64").alignment
-    return dt_fmt().format(
-        ld.itemsize, partial_ld_off, partial_size + partial_end_padding
-    )
+    return dt_fmt().format(ld.itemsize, partial_ld_off, partial_size + partial_end_padding)
 
 
 def partial_nested_fmt():
@@ -87,9 +81,7 @@ def assert_equal(actual, expected_data, expected_dtype):
 def test_format_descriptors():
     with pytest.raises(RuntimeError) as excinfo:
         m.get_format_unbound()
-    assert re.match(
-        "^NumPy type info missing for .*UnboundStruct.*$", str(excinfo.value)
-    )
+    assert re.match("^NumPy type info missing for .*UnboundStruct.*$", str(excinfo.value))
 
     ld = np.dtype("longdouble")
     ldbl_fmt = ("4x" if ld.alignment > 4 else "") + ld.char
@@ -167,9 +159,7 @@ def test_dtype(simple_dtype):
         simple_dtype.itemsize,
     ]
 
-    assert m.trailing_padding_dtype() == m.buffer_to_dtype(
-        np.zeros(1, m.trailing_padding_dtype())
-    )
+    assert m.trailing_padding_dtype() == m.buffer_to_dtype(np.zeros(1, m.trailing_padding_dtype()))
 
     expected_chars = list("bhilqBHILQefdgFDG?MmO")
     # Note that int_ and uint size and mapping is NumPy version dependent:
@@ -182,9 +172,7 @@ def test_dtype(simple_dtype):
     if not PYBIND11_NUMPY_1_ONLY:
         assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
     else:
-        assert m.test_dtype_flags() == [
-            chr(np.dtype(ch).flags) for ch in expected_chars
-        ]
+        assert m.test_dtype_flags() == [chr(np.dtype(ch).flags) for ch in expected_chars]
 
 
 def test_recarray(simple_dtype, packed_dtype):
@@ -298,8 +286,7 @@ def test_array_array():
         "'offsets':[0,12,20,24],'itemsize':56}"
     )
     assert m.print_array_array(arr) == [
-        "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1},"
-        "c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",
+        "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1},c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",
         "a={{W,X,Y,Z},{G,H,I,J},{Q,R,S,T}},b={1000,1001},"
         "c={10,11,12},d={{100,101},{110,111},{120,121},{130,131}}",
         "a={{S,T,U,V},{C,D,E,F},{M,N,O,P}},b={2000,2001},"
@@ -347,10 +334,7 @@ def test_complex_array():
 
 
 def test_signature(doc):
-    assert (
-        doc(m.create_rec_nested)
-        == "create_rec_nested(arg0: int) -> numpy.ndarray[NestedStruct]"
-    )
+    assert doc(m.create_rec_nested) == "create_rec_nested(arg0: int) -> numpy.ndarray[NestedStruct]"
 
 
 def test_scalar_conversion():

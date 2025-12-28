@@ -55,7 +55,7 @@ void MultiIndexSearch(unsigned int n, std::vector<std::vector<T>> &queries, int 
         bool hasResult = scan.Next(result);
         if (!hasResult) break;
         std::cout << "hasResult: " << hasResult << std::endl;
-        std::cout << "result: " << result.VID << std::endl;  
+        std::cout << "result: " << result.VID << std::endl;
     }
     scan.Close();
 }
@@ -111,7 +111,7 @@ void TestMultiIndexScanN(SPTAG::IndexAlgoType algo, std::string distCalcMethod, 
     }
 
     MultiIndexSearch<T>(n, queries, k, false, 10);
-    
+
 }
 
 BOOST_AUTO_TEST_SUITE(MultiIndexScanTest)

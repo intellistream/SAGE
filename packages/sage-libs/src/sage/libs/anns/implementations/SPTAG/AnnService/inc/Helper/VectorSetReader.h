@@ -24,13 +24,13 @@ public:
     ~ReaderOptions();
 
     SPTAG::VectorValueType m_inputValueType;
-    
-    DimensionType m_dimension;   
-  
+
+    DimensionType m_dimension;
+
     SPTAG::VectorFileType m_inputFileType;
 
-    std::string m_vectorDelimiter;    
-    
+    std::string m_vectorDelimiter;
+
     std::uint32_t m_threadNum;
 
     bool m_normalized;

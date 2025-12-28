@@ -82,4 +82,3 @@ private:
     std::mt19937 _rnd;
 };
 }
-

@@ -1,5 +1,5 @@
 /*
- * smpl_core_pebs_sys.c - Intel Core processor PEBS system-wide example 
+ * smpl_core_pebs_sys.c - Intel Core processor PEBS system-wide example
  *
  * Copyright (c) 2008 Google, Inc
  * Contributed by Stephane Eranian <eranian@gmail.com>
@@ -116,7 +116,7 @@ process_smpl_buf(smpl_hdr_t *hdr)
 	if (hdr->overflows == last_overflow && last_count == count) {
 		warning("skipping identical set of samples %"PRIu64" = %"PRIu64"\n",
 			hdr->overflows, last_overflow);
-		return;	
+		return;
 	}
 	last_count = count;
 	last_overflow = hdr->overflows;
@@ -351,7 +351,7 @@ main(int argc, char **argv)
 
 	pd[0].reg_long_reset = -SMPL_PERIOD;
 	pd[0].reg_short_reset = -SMPL_PERIOD;
-	
+
 	/*
 	 * Now program the registers
 	 */

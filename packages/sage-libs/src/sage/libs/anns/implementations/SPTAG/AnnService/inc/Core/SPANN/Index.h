@@ -74,7 +74,7 @@ namespace SPTAG
 
             inline SizeType GetNumSamples() const { return m_options.m_vectorSize; }
             inline DimensionType GetFeatureDim() const { return m_pQuantizer ? m_pQuantizer->ReconstructDim() : m_index->GetFeatureDim(); }
-        
+
             inline int GetCurrMaxCheck() const { return m_options.m_maxCheck; }
             inline int GetNumThreads() const { return m_options.m_iSSDNumberOfThreads; }
             inline DistCalcMethod GetDistCalcMethod() const { return m_options.m_distCalcMethod; }
@@ -82,8 +82,8 @@ namespace SPTAG
             inline VectorValueType GetVectorValueType() const { return GetEnumValueType<T>(); }
 
             void SetQuantizer(std::shared_ptr<SPTAG::COMMON::IQuantizer> quantizer);
-            
-            inline float AccurateDistance(const void* pX, const void* pY) const { 
+
+            inline float AccurateDistance(const void* pX, const void* pY) const {
                 if (m_options.m_distCalcMethod == DistCalcMethod::L2) return m_fComputeDistance((const T*)pX, (const T*)pY, m_options.m_dim);
 
                 float xy = m_iBaseSquare - m_fComputeDistance((const T*)pX, (const T*)pY, m_options.m_dim);
@@ -169,7 +169,7 @@ namespace SPTAG
                 if (!raw_specialized_ptr)
                 {
                     // If it is of type SPTAG::COMMON::WorkSpace, we should pass on to child index
-                    if (!m_index) 
+                    if (!m_index)
                     {
                         delete raw_generic_ptr;
                         return ErrorCode::Fail;
@@ -178,7 +178,7 @@ namespace SPTAG
                     {
                         return m_index->SetWorkSpaceFactory(std::unique_ptr<SPTAG::COMMON::IWorkSpaceFactory<SPTAG::COMMON::IWorkSpace>>(raw_generic_ptr));
                     }
-                    
+
                 }
                 else
                 {

@@ -176,7 +176,7 @@ show_etb_reg(int j, pfm_mont_pmd_reg_t reg, pfm_mont_pmd_reg_t pmd39)
 			    "\t       Taken=%c Prediction:%s\n\n",
 			 addr,
 			 reg.pmd48_63_etb_mont_reg.etb_slot < 3 ? 'Y' : 'N',
-			 reg.pmd48_63_etb_mont_reg.etb_mp ? "FE Failure" : 
+			 reg.pmd48_63_etb_mont_reg.etb_mp ? "FE Failure" :
 			 bruflush ? "BE Failure" : "Success");
 	} else {
 		safe_printf("\t       Target Address:0x%016lx\n\n",
@@ -467,7 +467,7 @@ main(void)
 
 	/*
 	 * When our counter overflows, we want to ETB index to be reset, so that we keep
-	 * in sync. 
+	 * in sync.
 	 */
 	pc[0].reg_reset_pmds[0] = M_PMD(38);
 

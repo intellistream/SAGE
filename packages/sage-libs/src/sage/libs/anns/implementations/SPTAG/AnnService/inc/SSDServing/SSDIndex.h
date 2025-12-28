@@ -117,7 +117,7 @@ namespace SPTAG {
                 for (int i = 0; i < p_numThreads; i++) { threads.emplace_back([&, i]()
                     {
                         NumaStrategy ns = (p_index->GetDiskIndex() != nullptr) ? NumaStrategy::SCATTER : NumaStrategy::LOCAL; // Only for SPANN, we need to avoid IO threads overlap with search threads.
-                        Helper::SetThreadAffinity(i, threads[i], ns, OrderStrategy::ASC); 
+                        Helper::SetThreadAffinity(i, threads[i], ns, OrderStrategy::ASC);
 
                         Utils::StopW threadws;
                         size_t index = 0;

@@ -3855,4 +3855,3 @@ static const pme_power_entry_t power7_pe[] = {
 	},
 };
 #endif
-

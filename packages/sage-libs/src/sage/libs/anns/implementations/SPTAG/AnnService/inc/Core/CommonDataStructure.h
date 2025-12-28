@@ -16,7 +16,7 @@ public:
     Array();
 
     Array(T* p_array, std::size_t p_length, bool p_transferOwnership);
-    
+
     Array(T* p_array, std::size_t p_length, std::shared_ptr<T> p_dataHolder);
 
     Array(Array<T>&& p_right);
@@ -38,7 +38,7 @@ public:
     std::size_t Length() const;
 
     std::shared_ptr<T> DataHolder() const;
-    
+
     void Set(T* p_array, std::size_t p_length, bool p_transferOwnership);
 
     void Clear();

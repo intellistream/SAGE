@@ -120,7 +120,7 @@ static int
 pfm_i386_p6_init_ppro(void)
 {
  	i386_pe = i386_ppro_pe;
-	i386_p6_cycle_event = PME_I386_PPRO_CPU_CLK_UNHALTED; 
+	i386_p6_cycle_event = PME_I386_PPRO_CPU_CLK_UNHALTED;
 	i386_p6_inst_retired_event = PME_I386_PPRO_INST_RETIRED;
 
 	return PFMLIB_SUCCESS;
@@ -160,7 +160,7 @@ pfm_i386_p6_init_pii(void)
 {
 
  	i386_pe = i386_pII_pe;
-	i386_p6_cycle_event = PME_I386_PII_CPU_CLK_UNHALTED; 
+	i386_p6_cycle_event = PME_I386_PII_CPU_CLK_UNHALTED;
 	i386_p6_inst_retired_event = PME_I386_PII_INST_RETIRED;
 	return PFMLIB_SUCCESS;
 }
@@ -200,7 +200,7 @@ static int
 pfm_i386_p6_init_piii(void)
 {
  	i386_pe = i386_pIII_pe;
-	i386_p6_cycle_event = PME_I386_PIII_CPU_CLK_UNHALTED; 
+	i386_p6_cycle_event = PME_I386_PIII_CPU_CLK_UNHALTED;
 	i386_p6_inst_retired_event = PME_I386_PIII_INST_RETIRED;
 
 	return PFMLIB_SUCCESS;
@@ -239,7 +239,7 @@ static int
 pfm_i386_p6_init_pm(void)
 {
 	i386_pe = i386_pm_pe;
-	i386_p6_cycle_event = PME_I386_PM_CPU_CLK_UNHALTED; 
+	i386_p6_cycle_event = PME_I386_PM_CPU_CLK_UNHALTED;
 	i386_p6_inst_retired_event = PME_I386_PM_INST_RETIRED;
 
 	return PFMLIB_SUCCESS;
@@ -326,7 +326,7 @@ pfm_i386_p6_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_i386_p6_input_pa
 	for (j=0, i=0; j < cnt ; j++ ) {
 		if (i386_pe[e[j].event].pme_flags & (PFMLIB_I386_P6_CTR0_ONLY|PFMLIB_I386_P6_CTR1_ONLY))
 			continue;
-		
+
 		while (i < PMU_I386_P6_NUM_COUNTERS && !pfm_regmask_isset(&avail_cntrs, i))
 			i++;
 		if (i == PMU_I386_P6_NUM_COUNTERS)
@@ -361,7 +361,7 @@ pfm_i386_p6_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_i386_p6_input_pa
 		/*
 		 * only perfevtsel0 has an enable bit (allows atomic start/stop)
 		 */
-		if (assign[j] == 0) 
+		if (assign[j] == 0)
 			reg.sel_en = 1; /* force enable bit to 1 */
 
 		if (cntrs) {
@@ -547,7 +547,7 @@ pfm_i386_p6_get_event_mask_code(unsigned int ev, unsigned int midx, unsigned int
 	*code = i386_pe[ev].pme_umasks[midx].pme_ucode;
 	return PFMLIB_SUCCESS;
 }
-	
+
 static int
 pfm_i386_p6_get_cycle_event(pfmlib_event_t *e)
 {

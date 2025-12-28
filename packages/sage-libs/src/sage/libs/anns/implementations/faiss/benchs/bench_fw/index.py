@@ -9,15 +9,13 @@ import os
 from dataclasses import dataclass
 from multiprocessing.pool import ThreadPool
 from time import perf_counter
-from typing import ClassVar, Dict, List, Optional
+from typing import ClassVar, Optional
 
 import faiss  # @manual=//faiss/python:pyfaiss_gpu
-
 import numpy as np
 from faiss.contrib.evaluation import (  # @manual=//faiss/contrib:faiss_contrib_gpu
     OperatingPointsWithRanges,
 )
-
 from faiss.contrib.factory_tools import (  # @manual=//faiss/contrib:faiss_contrib_gpu
     reverse_index_factory,
 )
@@ -40,9 +38,7 @@ def timer(name, func, once=False) -> float:
     repeat = 1
     if not once and t < 1.0:
         repeat = int(2.0 // t)
-        logger.info(
-            f"Time for {name}: {t:.3f} seconds, repeating {repeat} times"
-        )
+        logger.info(f"Time for {name}: {t:.3f} seconds, repeating {repeat} times")
         t1 = perf_counter()
         for _ in range(repeat):
             res = func()
@@ -52,9 +48,7 @@ def timer(name, func, once=False) -> float:
     return res, t, repeat
 
 
-def refine_distances_knn(
-    D: np.ndarray, I: np.ndarray, xq: np.ndarray, xb: np.ndarray, metric
-):
+def refine_distances_knn(D: np.ndarray, I: np.ndarray, xq: np.ndarray, xb: np.ndarray, metric):
     return np.where(
         I >= 0,
         np.square(np.linalg.norm(xq[:, None] - xb[I], axis=2))
@@ -75,11 +69,9 @@ def refine_distances_range(
     with ThreadPool(32) as pool:
         R = pool.map(
             lambda i: (
-                np.sum(np.square(xq[i] - xb[I[lims[i]:lims[i + 1]]]), axis=1)
+                np.sum(np.square(xq[i] - xb[I[lims[i] : lims[i + 1]]]), axis=1)
                 if metric == faiss.METRIC_L2
-                else np.tensordot(
-                    xq[i], xb[I[lims[i]:lims[i + 1]]], axes=(0, 1)
-                )
+                else np.tensordot(xq[i], xb[I[lims[i] : lims[i + 1]]], axes=(0, 1))
             )
             if lims[i + 1] > lims[i]
             else [],
@@ -239,7 +231,7 @@ class IndexBase:
 
     def get_knn_search_name(
         self,
-        search_parameters: Optional[Dict[str, int]],
+        search_parameters: Optional[dict[str, int]],
         query_vectors: DatasetDescriptor,
         k: int,
     ):
@@ -251,15 +243,12 @@ class IndexBase:
 
     def knn_search(
         self,
-        search_parameters: Optional[Dict[str, int]],
+        search_parameters: Optional[dict[str, int]],
         query_vectors: DatasetDescriptor,
         k: int,
     ):
         logger.info("knn_seach: begin")
-        filename = (
-            self.get_knn_search_name(search_parameters, query_vectors, k)
-            + "zip"
-        )
+        filename = self.get_knn_search_name(search_parameters, query_vectors, k) + "zip"
         if self.io.file_exist(filename):
             logger.info(f"Using cached results for {filename}")
             D, I, R, P = self.io.read_file(filename, ["D", "I", "R", "P"])
@@ -304,9 +293,7 @@ class IndexBase:
                     "nlist": int(stats.nlist // repeat),
                     "ndis": int(stats.ndis // repeat),
                     "nheap_updates": int(stats.nheap_updates // repeat),
-                    "quantization_time": int(
-                        stats.quantization_time // repeat
-                    ),
+                    "quantization_time": int(stats.quantization_time // repeat),
                     "search_time": int(stats.search_time // repeat),
                 }
             self.io.write_file(filename, ["D", "I", "R", "P"], [D, I, R, P])
@@ -315,22 +302,15 @@ class IndexBase:
 
     def range_search(
         self,
-        search_parameters: Optional[Dict[str, int]],
+        search_parameters: Optional[dict[str, int]],
         query_vectors: DatasetDescriptor,
         radius: Optional[float] = None,
     ):
         logger.info("range_search: begin")
-        filename = (
-            self.get_range_search_name(
-                search_parameters, query_vectors, radius
-            )
-            + "zip"
-        )
+        filename = self.get_range_search_name(search_parameters, query_vectors, radius) + "zip"
         if self.io.file_exist(filename):
             logger.info(f"Using cached results for {filename}")
-            lims, D, I, R, P = self.io.read_file(
-                filename, ["lims", "D", "I", "R", "P"]
-            )
+            lims, D, I, R, P = self.io.read_file(filename, ["lims", "D", "I", "R", "P"])
         else:
             xq = self.io.get_dataset(query_vectors)
             index = self.get_index()
@@ -347,21 +327,15 @@ class IndexBase:
 
                 (lims, D, I), t, repeat = timer(
                     "range_search_preassigned",
-                    lambda: index_ivf.range_search_preassigned(
-                        xqt, radius, QI, QD
-                    ),
+                    lambda: index_ivf.range_search_preassigned(xqt, radius, QI, QD),
                 )
             else:
-                (lims, D, I), t, _ = timer(
-                    "range_search", lambda: index.range_search(xq, radius)
-                )
+                (lims, D, I), t, _ = timer("range_search", lambda: index.range_search(xq, radius))
             if self.is_flat():
                 R = D
             else:
                 xb = self.io.get_dataset(self.database_vectors)
-                R = refine_distances_range(
-                    lims, D, I, xq, xb, self.metric_type
-                )
+                R = refine_distances_range(lims, D, I, xq, xb, self.metric_type)
             P = {
                 "time": t,
                 "index": self.get_codec_name(),
@@ -378,14 +352,10 @@ class IndexBase:
                     "nlist": int(stats.nlist // repeat),
                     "ndis": int(stats.ndis // repeat),
                     "nheap_updates": int(stats.nheap_updates // repeat),
-                    "quantization_time": int(
-                        stats.quantization_time // repeat
-                    ),
+                    "quantization_time": int(stats.quantization_time // repeat),
                     "search_time": int(stats.search_time // repeat),
                 }
-            self.io.write_file(
-                filename, ["lims", "D", "I", "R", "P"], [lims, D, I, R, P]
-            )
+            self.io.write_file(filename, ["lims", "D", "I", "R", "P"], [lims, D, I, R, P])
         logger.info("range_seach: end")
         return lims, D, I, R, P
 
@@ -399,8 +369,8 @@ class Index(IndexBase):
     d: int
     metric: str
     database_vectors: DatasetDescriptor
-    construction_params: List[Dict[str, int]]
-    search_params: Dict[str, int]
+    construction_params: list[dict[str, int]]
+    search_params: dict[str, int]
 
     cached_codec_name: ClassVar[str] = None
     cached_codec: ClassVar[faiss.Index] = None
@@ -428,7 +398,7 @@ class Index(IndexBase):
 
     def supports_range_search(self):
         codec = self.get_codec()
-        return not type(codec) in [
+        return type(codec) not in [
             faiss.IndexHNSWFlat,
             faiss.IndexIVFFastScan,
             faiss.IndexRefine,
@@ -462,9 +432,7 @@ class Index(IndexBase):
         xb = self.io.get_dataset(self.database_vectors)
 
         if self.is_ivf():
-            xbt, QD, QI, QP = self.knn_search_quantizer(
-                index, self.database_vectors, 1
-            )
+            xbt, QD, QI, QP = self.knn_search_quantizer(index, self.database_vectors, 1)
             index_ivf = faiss.extract_index_ivf(index)
             if index_ivf.parallel_mode != 2:
                 logger.info("Setting IVF parallel mode")
@@ -500,9 +468,9 @@ class Index(IndexBase):
             elif isinstance(index, faiss.IndexHNSWFlat):
                 return index.d * 4  # TODO
             elif type(index) in [faiss.IndexRefine, faiss.IndexRefineFlat]:
-                return get_index_code_size(
-                    index.base_index
-                ) + get_index_code_size(index.refine_index)
+                return get_index_code_size(index.base_index) + get_index_code_size(
+                    index.refine_index
+                )
             else:
                 return index.code_size
 
@@ -526,11 +494,7 @@ class Index(IndexBase):
         if codec_ivf is not None:
             add_range_or_val(
                 "nprobe",
-                [
-                    2**i
-                    for i in range(12)
-                    if 2**i <= codec_ivf.nlist * 0.25
-                ],
+                [2**i for i in range(12) if 2**i <= codec_ivf.nlist * 0.25],
             )
         if isinstance(codec, faiss.IndexRefine):
             add_range_or_val(
@@ -546,7 +510,7 @@ class Index(IndexBase):
 
     def get_range_search_name(
         self,
-        search_parameters: Optional[Dict[str, int]],
+        search_parameters: Optional[dict[str, int]],
         query_vectors: DatasetDescriptor,
         radius: Optional[float] = None,
     ):
@@ -718,9 +682,7 @@ class IndexFromFactory(Index):
         return quantizer
 
     def k_means(self, vectors, k):
-        kmeans_vectors = DatasetDescriptor(
-            tablename=f"{vectors.get_filename()}kmeans_{k}.npy"
-        )
+        kmeans_vectors = DatasetDescriptor(tablename=f"{vectors.get_filename()}kmeans_{k}.npy")
         if not self.io.file_exist(kmeans_vectors.tablename):
             x = self.io.get_dataset(vectors)
             kmeans = faiss.Kmeans(d=x.shape[1], k=k, gpu=True)
@@ -738,12 +700,8 @@ class IndexFromFactory(Index):
                 pretransform = self.get_pretransform()
                 codec = pretransform.fetch_codec()
                 assert codec.is_trained
-                transformed_training_vectors = pretransform.transform(
-                    self.training_vectors
-                )
-                transformed_database_vectors = pretransform.transform(
-                    self.database_vectors
-                )
+                transformed_training_vectors = pretransform.transform(self.training_vectors)
+                transformed_database_vectors = pretransform.transform(self.database_vectors)
                 # replace the Flat index with the required sub-index
                 wrapper = IndexFromFactory(
                     d=sub_index.d,
@@ -763,9 +721,7 @@ class IndexFromFactory(Index):
             replace_ivf_quantizer(codec, quantizer.fetch_index())
             assert codec.quantizer.is_trained
             assert codec.nlist == codec.quantizer.ntotal
-        elif isinstance(model, faiss.IndexRefine) or isinstance(
-            model, faiss.IndexRefineFlat
-        ):
+        elif isinstance(model, faiss.IndexRefine) or isinstance(model, faiss.IndexRefineFlat):
             # replace base_index
             wrapper = IndexFromFactory(
                 d=model.base_index.d,

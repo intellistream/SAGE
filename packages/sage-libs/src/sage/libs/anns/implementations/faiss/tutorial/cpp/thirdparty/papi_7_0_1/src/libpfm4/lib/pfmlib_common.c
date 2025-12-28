@@ -1164,7 +1164,7 @@ pfmlib_init_pmus(void)
 	pfmlib_pmu_t *p;
 	int i, ret;
 	int nsuccess = 0;
-	
+
 	/*
 	 * activate all detected PMUs
 	 * when forced, only the designated PMU
@@ -1288,7 +1288,7 @@ pfm_initialize(void)
 	 * generic sanity checks
 	 */
 	if (PFM_PMU_MAX & (~PFMLIB_PMU_MASK)) {
-		DPRINT("PFM_PMU_MAX exceeds PFMLIB_PMU_MASK\n");	
+		DPRINT("PFM_PMU_MAX exceeds PFMLIB_PMU_MASK\n");
 		ret = PFM_ERR_NOTSUPP;
 	} else {
 
@@ -2322,7 +2322,7 @@ pfm_get_pmu_info(pfm_pmu_t pmuid, pfm_pmu_info_t *uinfo)
 	sz = pfmlib_check_struct(uinfo, uinfo->size, PFM_PMU_INFO_ABI0, sz);
 	if (!sz)
 		return PFM_ERR_INVAL;
- 
+
 	pmu = pfmlib_pmus_map[pmuid];
 	if (!pmu)
 		return PFM_ERR_NOTSUPP;

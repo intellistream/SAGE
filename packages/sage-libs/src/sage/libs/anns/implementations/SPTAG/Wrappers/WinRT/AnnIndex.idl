@@ -21,7 +21,7 @@ namespace SPTAG
   };
 
   [default_interface]
-  runtimeclass AnnIndex 
+  runtimeclass AnnIndex
   {
     AnnIndex();
     [default_overload]

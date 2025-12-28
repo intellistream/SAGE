@@ -53,7 +53,7 @@ namespace SPTAG
             // data points
             COMMON::Dataset<T> m_pSamples;
 
-            // KDT structures. 
+            // KDT structures.
             COMMON::KDTree m_pTrees;
 
             // Graph structure
@@ -69,14 +69,14 @@ namespace SPTAG
             std::mutex m_dataAddLock; // protect data and graph
             std::shared_timed_mutex m_dataDeleteLock;
             COMMON::Labelset m_deletedID;
-            
+
             Helper::ThreadPool m_threadPool;
             int m_iNumberOfThreads;
 
             DistCalcMethod m_iDistCalcMethod;
             std::function<float(const T*, const T*, DimensionType)> m_fComputeDistance;
             int m_iBaseSquare;
- 
+
             int m_iMaxCheck;
             int m_iThresholdOfNumberOfContinuousNoBetterPropagation;
             int m_iNumberOfInitialDynamicPivots;
@@ -104,14 +104,14 @@ namespace SPTAG
             inline SizeType GetNumSamples() const { return m_pSamples.R(); }
             inline SizeType GetNumDeleted() const { return (SizeType)m_deletedID.Count(); }
             inline DimensionType GetFeatureDim() const { return m_pSamples.C(); }
-            
+
             inline int GetCurrMaxCheck() const { return m_iMaxCheck; }
             inline int GetNumThreads() const { return m_iNumberOfThreads; }
             inline DistCalcMethod GetDistCalcMethod() const { return m_iDistCalcMethod; }
             inline IndexAlgoType GetIndexAlgoType() const { return IndexAlgoType::KDT; }
             inline VectorValueType GetVectorValueType() const { return GetEnumValueType<T>(); }
             void SetQuantizer(std::shared_ptr<SPTAG::COMMON::IQuantizer> quantizer);
-            
+
             inline float AccurateDistance(const void* pX, const void* pY) const {
                 if (m_iDistCalcMethod == DistCalcMethod::L2) return m_fComputeDistance((const T*)pX, (const T*)pY, m_pSamples.C());
 

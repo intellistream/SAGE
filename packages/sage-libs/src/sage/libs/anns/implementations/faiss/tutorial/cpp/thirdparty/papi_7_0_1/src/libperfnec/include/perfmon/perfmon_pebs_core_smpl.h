@@ -83,7 +83,7 @@ typedef struct {
 	uint64_t	pebs_abs_max;
 	uint64_t	pebs_intr_thres;
 	uint64_t	pebs_cnt_reset;
-} pfm_ds_area_core_t; 
+} pfm_ds_area_core_t;
 
 /*
  * This header is at the beginning of the sampling buffer returned to the user.

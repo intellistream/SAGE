@@ -58,6 +58,3 @@ void dummy__( void *array );
 void DUMMY( void *array );
 void _DUMMY( void *array );
 void touch_dummy( double *array, int size );
-
-
-

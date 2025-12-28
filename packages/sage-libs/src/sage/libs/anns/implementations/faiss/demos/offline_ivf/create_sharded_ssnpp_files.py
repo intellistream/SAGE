@@ -2,9 +2,10 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
 import argparse
 import os
+
+import numpy as np
 
 
 def xbin_mmap(fname, dtype, maxn=-1):
@@ -23,13 +24,11 @@ def xbin_mmap(fname, dtype, maxn=-1):
 def main(args: argparse.Namespace):
     ssnpp_data = xbin_mmap(fname=args.filepath, dtype="uint8")
     num_batches = ssnpp_data.shape[0] // args.data_batch
-    assert (
-        ssnpp_data.shape[0] % args.data_batch == 0
-    ), "num of embeddings per file should divide total num of embeddings"
+    assert ssnpp_data.shape[0] % args.data_batch == 0, (
+        "num of embeddings per file should divide total num of embeddings"
+    )
     for i in range(num_batches):
-        xb_batch = ssnpp_data[
-            i * args.data_batch : (i + 1) * args.data_batch, :
-        ]
+        xb_batch = ssnpp_data[i * args.data_batch : (i + 1) * args.data_batch, :]
         filename = args.output_dir + f"/ssnpp_{(i):010}.npy"
         np.save(filename, xb_batch)
         print(f"File {filename} is saved!")

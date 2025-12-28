@@ -1,10 +1,9 @@
 import sys
 
-import pytest
-
 import env
 import pybind11_cross_module_tests as cm
 import pybind11_tests
+import pytest
 from pybind11_tests import exceptions as m
 
 
@@ -167,9 +166,7 @@ def test_custom(msg):
     # Can we fall-through to the default handler?
     with pytest.raises(RuntimeError) as excinfo:
         m.throws_logic_error()
-    assert (
-        msg(excinfo.value) == "this error should fall through to the standard handler"
-    )
+    assert msg(excinfo.value) == "this error should fall through to the standard handler"
 
     # OverFlow error translation.
     with pytest.raises(OverflowError) as excinfo:
@@ -322,9 +319,7 @@ class FlakyException(Exception):
         (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
     ],
 )
-def test_error_already_set_what_with_happy_exceptions(
-    exc_type, exc_value, expected_what
-):
+def test_error_already_set_what_with_happy_exceptions(exc_type, exc_value, expected_what):
     what, py_err_set_after_what = m.error_already_set_what(exc_type, exc_value)
     assert not py_err_set_after_what
     assert what == expected_what
@@ -344,16 +339,12 @@ def _test_flaky_exception_failure_point_init_before_py_3_12():
     # Checking the first two lines of the traceback as formatted in error_string():
     assert "test_exceptions.py(" in lines[3]
     assert lines[3].endswith("): __init__")
-    assert lines[4].endswith(
-        "): _test_flaky_exception_failure_point_init_before_py_3_12"
-    )
+    assert lines[4].endswith("): _test_flaky_exception_failure_point_init_before_py_3_12")
 
 
 def _test_flaky_exception_failure_point_init_py_3_12():
     # Behavior change in Python 3.12: https://github.com/python/cpython/issues/102594
-    what, py_err_set_after_what = m.error_already_set_what(
-        FlakyException, ("failure_point_init",)
-    )
+    what, py_err_set_after_what = m.error_already_set_what(FlakyException, ("failure_point_init",))
     assert not py_err_set_after_what
     lines = what.splitlines()
     assert lines[0].endswith("ValueError[WITH __notes__]: triggered_failure_point_init")
@@ -374,9 +365,7 @@ def test_flaky_exception_failure_point_init():
 
 
 def test_flaky_exception_failure_point_str():
-    what, py_err_set_after_what = m.error_already_set_what(
-        FlakyException, ("failure_point_str",)
-    )
+    what, py_err_set_after_what = m.error_already_set_what(FlakyException, ("failure_point_str",))
     assert not py_err_set_after_what
     lines = what.splitlines()
     n = 3 if env.PYPY and len(lines) == 3 else 5

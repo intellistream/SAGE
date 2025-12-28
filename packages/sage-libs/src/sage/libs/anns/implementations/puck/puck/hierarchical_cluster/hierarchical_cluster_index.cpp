@@ -1188,7 +1188,7 @@ void HierarchicalClusterIndex::batch_assign(const uint32_t total_cnt, const std:
             _fine_norms[j] = 0 - std::sqrt(_fine_norms[j]);
         }
     }
-    
+
     //线程个数由gflags参数threads_count指定，默认等于CPU核数
     for (uint32_t threadId = 0; threadId < _conf.threads_count; ++threadId) {
         threads.push_back(std::thread([&, threadId] {
@@ -1274,7 +1274,7 @@ int random_sampling(const std::string& init_file_name, const u_int64_t total_cnt
             uint32_t rnd_int = dis(rnd);
             if (filter[rnd_int]){
                 continue;
-            } 
+            }
             filter[rnd_int] = true;
             filtered_cnt++;
             sampled_points.push_back(rnd_int);

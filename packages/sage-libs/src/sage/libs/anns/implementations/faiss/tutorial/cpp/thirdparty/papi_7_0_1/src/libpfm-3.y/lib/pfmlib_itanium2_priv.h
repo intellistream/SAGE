@@ -39,10 +39,10 @@
  */
 #define PFMLIB_ITA2_EVENT_NORMAL	0x0 /* standard counter */
 #define PFMLIB_ITA2_EVENT_BTB		0x1 /* virtual event used with BTB configuration */
-#define PFMLIB_ITA2_EVENT_IEAR_TLB	0x2 /* virtual event used for I-EAR TLB configuration */	
-#define PFMLIB_ITA2_EVENT_IEAR_CACHE	0x3 /* virtual event used for I-EAR cache configuration */	
-#define PFMLIB_ITA2_EVENT_DEAR_TLB	0x4 /* virtual event used for D-EAR TLB configuration */	
-#define PFMLIB_ITA2_EVENT_DEAR_CACHE	0x5 /* virtual event used for D-EAR cache configuration */	
+#define PFMLIB_ITA2_EVENT_IEAR_TLB	0x2 /* virtual event used for I-EAR TLB configuration */
+#define PFMLIB_ITA2_EVENT_IEAR_CACHE	0x3 /* virtual event used for I-EAR cache configuration */
+#define PFMLIB_ITA2_EVENT_DEAR_TLB	0x4 /* virtual event used for D-EAR TLB configuration */
+#define PFMLIB_ITA2_EVENT_DEAR_CACHE	0x5 /* virtual event used for D-EAR cache configuration */
 #define PFMLIB_ITA2_EVENT_DEAR_ALAT	0x6 /* virtual event used for D-EAR ALAT configuration */
 
 #define event_is_ear(e)	       ((e)->pme_type >= PFMLIB_ITA2_EVENT_IEAR_TLB &&(e)->pme_type <= PFMLIB_ITA2_EVENT_DEAR_ALAT)
@@ -64,7 +64,7 @@ typedef struct {
 	unsigned long pme_ig1:5;	/* ignored */
 	unsigned long pme_umask:16;	/* unit mask*/
 	unsigned long pme_ig:32;	/* ignored */
-} pme_ita2_entry_code_t;		
+} pme_ita2_entry_code_t;
 
 typedef union {
 	unsigned long  	     pme_vcode;

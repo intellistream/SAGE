@@ -9,7 +9,7 @@ pfm_initialize \- initialize performance monitoring library
 .sp
 .SH DESCRIPTION
 This is the first function that a program using the library
-\fBmust\fR call otherwise the library will not function at all. 
+\fBmust\fR call otherwise the library will not function at all.
 This function probes the host PMU and initialize the internal
 state of the library.  In the case of a multi-threaded application,
 this function needs to be called only once, most likely by the initial
@@ -18,12 +18,12 @@ thread.
 .SH RETURN
 The function returns whether or not it was successful, i.e., the
 host PMU has been correctly identified and is supported. A return
-value of \fBPFMLIB_SUCCESS\fR indicates success, otherwise the value is 
+value of \fBPFMLIB_SUCCESS\fR indicates success, otherwise the value is
 an error code.
 .SH ERRORS
 .TP
 .B PFMLIB_ERR_NOTSUPP
-the host 
+the host
 PMU is not supported.
 .SH AUTHOR
 Stephane Eranian <eranian@hpl.hp.com>

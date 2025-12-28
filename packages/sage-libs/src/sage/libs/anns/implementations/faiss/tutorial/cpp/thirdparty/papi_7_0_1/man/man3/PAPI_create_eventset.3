@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_create_eventset \- 
+PAPI_create_eventset \-
 .PP
-Create a new empty PAPI EventSet\&.  
+Create a new empty PAPI EventSet\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 \fBPAPI_create_eventset( int * EventSet )\fP;
 .RE
@@ -49,7 +49,7 @@ if ( PAPI_create_eventset( &EventSet ) != PAPI_OK )
 handle_error( 1 );
 // Add Total Instructions Executed to our EventSet
 if ( PAPI_add_event( EventSet, PAPI_TOT_INS)  != PAPI_OK )
-handle_error( 1 ); 
+handle_error( 1 );
 
 .fi
 .PP
@@ -57,17 +57,17 @@ handle_error( 1 );
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_add_event\fP 
+\fBPAPI_add_event\fP
 .br
-\fBPAPI_assign_eventset_component\fP 
+\fBPAPI_assign_eventset_component\fP
 .br
-\fBPAPI_destroy_eventset\fP 
+\fBPAPI_destroy_eventset\fP
 .br
-\fBPAPI_cleanup_eventset\fP 
+\fBPAPI_cleanup_eventset\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

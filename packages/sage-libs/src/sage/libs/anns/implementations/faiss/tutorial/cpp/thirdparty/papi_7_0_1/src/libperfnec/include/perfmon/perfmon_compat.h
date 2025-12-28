@@ -26,9 +26,9 @@ typedef unsigned char pfm_uuid_t[16];	/* custom sampling buffer identifier type 
 /*
  * obsolete perfmon comamnds supported on all CPU models
  */
-#define PFM_WRITE_PMCS		0x01 
-#define PFM_WRITE_PMDS		0x02 
-#define PFM_READ_PMDS		0x03 
+#define PFM_WRITE_PMCS		0x01
+#define PFM_WRITE_PMDS		0x02
+#define PFM_READ_PMDS		0x03
 #define PFM_STOP		0x04
 #define PFM_START		0x05
 #define PFM_ENABLE		0x06 /* obsolete */

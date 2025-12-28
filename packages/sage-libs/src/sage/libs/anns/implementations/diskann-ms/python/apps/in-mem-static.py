@@ -2,7 +2,6 @@
 # Licensed under the MIT license.
 
 import argparse
-from xml.dom.pulldom import default_bufsize
 
 import diskannpy
 import numpy as np
@@ -22,7 +21,7 @@ def build_and_search(
     num_threads,
     gt_file,
     index_prefix,
-    search_only
+    search_only,
 ):
     if dtype_str == "float":
         dtype = np.single
@@ -57,7 +56,7 @@ def build_and_search(
         index_directory=index_directory,
         num_threads=num_threads,  # this can be different at search time if you would like
         initial_search_complexity=Ls,
-        index_prefix=index_prefix
+        index_prefix=index_prefix,
     )
 
     queries = utils.bin_to_numpy(dtype, querydata_file)
@@ -65,8 +64,8 @@ def build_and_search(
     timer = utils.timer()
     ids, dists = index.batch_search(queries, 10, Ls, num_threads)
     query_time = timer.elapsed()
-    qps = round(queries.shape[0]/query_time, 1)
-    print('Batch searched', queries.shape[0], 'in', query_time, 's @', qps, 'QPS')
+    qps = round(queries.shape[0] / query_time, 1)
+    print("Batch searched", queries.shape[0], "in", query_time, "s @", qps, "QPS")
 
     if gt_file != "":
         recall = utils.calculate_recall_from_gt_file(K, ids, gt_file)
@@ -107,5 +106,5 @@ if __name__ == "__main__":
         args.num_threads,  # search args
         args.gt_file,
         args.index_prefix,
-        args.search_only
+        args.search_only,
     )

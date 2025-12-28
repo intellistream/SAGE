@@ -6,7 +6,7 @@ diff -rupN linux-2.6.14/CREDITS linux-2.6.14.perfctr27/CREDITS
  W: http://www.csd.uu.se/~mikpe/
  D: Miscellaneous fixes
 +D: Performance-monitoring counters driver
- 
+
  N: Reed H. Petty
  E: rhp@draper.net
 diff -rupN linux-2.6.14/MAINTAINERS linux-2.6.14.perfctr27/MAINTAINERS
@@ -15,7 +15,7 @@ diff -rupN linux-2.6.14/MAINTAINERS linux-2.6.14.perfctr27/MAINTAINERS
 @@ -1923,6 +1923,12 @@ M:	tsbogend@alpha.franken.de
  L:	netdev@vger.kernel.org
  S:	Maintained
- 
+
 +PERFORMANCE-MONITORING COUNTERS DRIVER
 +P:	Mikael Pettersson
 +M:	mikpe@csd.uu.se
@@ -36,15 +36,15 @@ diff -rupN linux-2.6.14/arch/i386/Kconfig linux-2.6.14.perfctr27/arch/i386/Kconf
 +source "drivers/perfctr/Kconfig"
 +
  endmenu
- 
- 
+
+
 diff -rupN linux-2.6.14/arch/i386/kernel/entry.S linux-2.6.14.perfctr27/arch/i386/kernel/entry.S
 --- linux-2.6.14/arch/i386/kernel/entry.S	2005-10-28 11:24:06.000000000 +0200
 +++ linux-2.6.14.perfctr27/arch/i386/kernel/entry.S	2005-11-08 01:40:51.000000000 +0100
 @@ -430,6 +430,16 @@ ENTRY(name)				\
  /* The include is where all of the SMP etc. interrupts come from */
  #include "entry_arch.h"
- 
+
 +#if defined(CONFIG_X86_LOCAL_APIC) && defined(CONFIG_PERFCTR)
 +ENTRY(perfctr_interrupt)
 +	pushl $LOCAL_PERFCTR_VECTOR-256
@@ -66,13 +66,13 @@ diff -rupN linux-2.6.14/arch/i386/kernel/i8259.c linux-2.6.14.perfctr27/arch/i38
  #include <asm/arch_hooks.h>
  #include <asm/i8259.h>
 +#include <asm/perfctr.h>
- 
+
  #include <io_ports.h>
- 
+
 @@ -421,6 +422,8 @@ void __init init_IRQ(void)
  	 */
  	intr_init_hook();
- 
+
 +	perfctr_vector_init();
 +
  	/*
@@ -95,25 +95,25 @@ diff -rupN linux-2.6.14/arch/i386/kernel/process.c linux-2.6.14.perfctr27/arch/i
  	}
 +	perfctr_exit_thread(&tsk->thread);
  }
- 
+
  void flush_thread(void)
 @@ -472,6 +474,8 @@ int copy_thread(int nr, unsigned long cl
  	savesegment(fs,p->thread.fs);
  	savesegment(gs,p->thread.gs);
- 
+
 +	perfctr_copy_task(p, regs);
 +
  	tsk = current;
  	if (unlikely(NULL != tsk->thread.io_bitmap_ptr)) {
  		p->thread.io_bitmap_ptr = kmalloc(IO_BITMAP_BYTES, GFP_KERNEL);
 @@ -733,6 +737,7 @@ struct task_struct fastcall * __switch_t
- 
+
  	disable_tsc(prev_p, next_p);
- 
+
 +	perfctr_resume_thread(next);
  	return prev_p;
  }
- 
+
 diff -rupN linux-2.6.14/arch/i386/kernel/syscall_table.S linux-2.6.14.perfctr27/arch/i386/kernel/syscall_table.S
 --- linux-2.6.14/arch/i386/kernel/syscall_table.S	2005-08-29 14:34:27.000000000 +0200
 +++ linux-2.6.14.perfctr27/arch/i386/kernel/syscall_table.S	2005-11-08 01:40:51.000000000 +0100
@@ -133,11 +133,11 @@ diff -rupN linux-2.6.14/arch/ppc/Kconfig linux-2.6.14.perfctr27/arch/ppc/Kconfig
 @@ -288,6 +288,8 @@ config NOT_COHERENT_CACHE
  	depends on 4xx || 8xx || E200
  	default y
- 
+
 +source "drivers/perfctr/Kconfig"
 +
  endmenu
- 
+
  menu "Platform options"
 diff -rupN linux-2.6.14/arch/ppc/kernel/head.S linux-2.6.14.perfctr27/arch/ppc/kernel/head.S
 --- linux-2.6.14/arch/ppc/kernel/head.S	2005-10-28 11:24:06.000000000 +0200
@@ -151,7 +151,7 @@ diff -rupN linux-2.6.14/arch/ppc/kernel/head.S linux-2.6.14.perfctr27/arch/ppc/k
 +#else
  	EXC_XFER_EE(0xf00, UnknownException)
 +#endif
- 
+
  /*
   * Handle TLB miss for instruction on 603/603e.
 diff -rupN linux-2.6.14/arch/ppc/kernel/misc.S linux-2.6.14.perfctr27/arch/ppc/kernel/misc.S
@@ -177,7 +177,7 @@ diff -rupN linux-2.6.14/arch/ppc/kernel/process.c linux-2.6.14.perfctr27/arch/pp
 +#include <linux/perfctr.h>
  #include <linux/mqueue.h>
  #include <linux/hardirq.h>
- 
+
 @@ -301,7 +302,9 @@ struct task_struct *__switch_to(struct t
  #endif /* CONFIG_SPE */
  	new_thread = &new->thread;
@@ -194,28 +194,28 @@ diff -rupN linux-2.6.14/arch/ppc/kernel/process.c linux-2.6.14.perfctr27/arch/pp
  #endif
 +	perfctr_exit_thread(&current->thread);
  }
- 
+
  void flush_thread(void)
 @@ -455,6 +459,8 @@ copy_thread(int nr, unsigned long clone_
- 
+
  	p->thread.last_syscall = -1;
- 
+
 +	perfctr_copy_task(p, regs);
 +
  	return 0;
  }
- 
+
 diff -rupN linux-2.6.14/arch/ppc64/Kconfig linux-2.6.14.perfctr27/arch/ppc64/Kconfig
 --- linux-2.6.14/arch/ppc64/Kconfig	2005-10-28 11:24:06.000000000 +0200
 +++ linux-2.6.14.perfctr27/arch/ppc64/Kconfig	2005-11-08 01:40:51.000000000 +0100
 @@ -377,6 +377,8 @@ config CMDLINE
  	  some command-line options at build time by entering them here.  In
  	  most cases you will need to specify the root device here.
- 
+
 +source "drivers/perfctr/Kconfig"
 +
  endmenu
- 
+
  config ISA_DMA_API
 diff -rupN linux-2.6.14/arch/ppc64/kernel/misc.S linux-2.6.14.perfctr27/arch/ppc64/kernel/misc.S
 --- linux-2.6.14/arch/ppc64/kernel/misc.S	2005-10-28 11:24:06.000000000 +0200
@@ -230,7 +230,7 @@ diff -rupN linux-2.6.14/arch/ppc64/kernel/misc.S linux-2.6.14.perfctr27/arch/ppc
 +	.llong .sys_vperfctr_control
 +	.llong .sys_vperfctr_write
 +	.llong .sys_vperfctr_read
- 
+
  	.balign 8
  _GLOBAL(sys_call_table)
 @@ -1511,3 +1517,9 @@ _GLOBAL(sys_call_table)
@@ -251,47 +251,47 @@ diff -rupN linux-2.6.14/arch/ppc64/kernel/process.c linux-2.6.14.perfctr27/arch/
  #include <linux/utsname.h>
  #include <linux/kprobes.h>
 +#include <linux/perfctr.h>
- 
+
  #include <asm/pgtable.h>
  #include <asm/uaccess.h>
 @@ -245,7 +246,9 @@ struct task_struct *__switch_to(struct t
  	}
- 
+
  	local_irq_save(flags);
 +	perfctr_suspend_thread(&prev->thread);
  	last = _switch(old_thread, new_thread);
 +	perfctr_resume_thread(&current->thread);
- 
+
  	local_irq_restore(flags);
- 
+
 @@ -345,6 +348,7 @@ void exit_thread(void)
  		last_task_used_altivec = NULL;
  #endif /* CONFIG_ALTIVEC */
  #endif /* CONFIG_SMP */
 +	perfctr_exit_thread(&current->thread);
  }
- 
+
  void flush_thread(void)
 @@ -450,6 +454,8 @@ copy_thread(int nr, unsigned long clone_
   	 */
  	kregs->nip = *((unsigned long *)ret_from_fork);
- 
+
 +	perfctr_copy_task(p, regs);
 +
  	return 0;
  }
- 
+
 diff -rupN linux-2.6.14/arch/x86_64/Kconfig linux-2.6.14.perfctr27/arch/x86_64/Kconfig
 --- linux-2.6.14/arch/x86_64/Kconfig	2005-10-28 11:24:06.000000000 +0200
 +++ linux-2.6.14.perfctr27/arch/x86_64/Kconfig	2005-11-08 01:40:55.000000000 +0100
 @@ -421,6 +421,8 @@ config SECCOMP
- 
+
  source kernel/Kconfig.hz
- 
+
 +source "drivers/perfctr/Kconfig"
 +
  endmenu
- 
+
  #
 diff -rupN linux-2.6.14/arch/x86_64/ia32/ia32entry.S linux-2.6.14.perfctr27/arch/x86_64/ia32/ia32entry.S
 --- linux-2.6.14/arch/x86_64/ia32/ia32entry.S	2005-10-28 11:24:06.000000000 +0200
@@ -306,7 +306,7 @@ diff -rupN linux-2.6.14/arch/x86_64/ia32/ia32entry.S linux-2.6.14.perfctr27/arch
 +	.quad sys_vperfctr_control
 +	.quad sys_vperfctr_write
 +	.quad sys_vperfctr_read
- ia32_syscall_end:		
+ ia32_syscall_end:
  	.rept IA32_NR_syscalls-(ia32_syscall_end-ia32_sys_call_table)/8
  		.quad ni_syscall
 diff -rupN linux-2.6.14/arch/x86_64/kernel/entry.S linux-2.6.14.perfctr27/arch/x86_64/kernel/entry.S
@@ -315,7 +315,7 @@ diff -rupN linux-2.6.14/arch/x86_64/kernel/entry.S linux-2.6.14.perfctr27/arch/x
 @@ -645,6 +645,11 @@ ENTRY(spurious_interrupt)
  	apicinterrupt SPURIOUS_APIC_VECTOR,smp_spurious_interrupt
  #endif
- 				
+
 +#if defined(CONFIG_X86_LOCAL_APIC) && defined(CONFIG_PERFCTR)
 +ENTRY(perfctr_interrupt)
 +	apicinterrupt LOCAL_PERFCTR_VECTOR,smp_perfctr_interrupt
@@ -323,7 +323,7 @@ diff -rupN linux-2.6.14/arch/x86_64/kernel/entry.S linux-2.6.14.perfctr27/arch/x
 +
  /*
   * Exception entry points.
-  */ 		
+  */
 diff -rupN linux-2.6.14/arch/x86_64/kernel/i8259.c linux-2.6.14.perfctr27/arch/x86_64/kernel/i8259.c
 --- linux-2.6.14/arch/x86_64/kernel/i8259.c	2005-10-28 11:24:06.000000000 +0200
 +++ linux-2.6.14.perfctr27/arch/x86_64/kernel/i8259.c	2005-11-08 01:40:51.000000000 +0100
@@ -332,13 +332,13 @@ diff -rupN linux-2.6.14/arch/x86_64/kernel/i8259.c linux-2.6.14.perfctr27/arch/x
  #include <asm/desc.h>
  #include <asm/apic.h>
 +#include <asm/perfctr.h>
- 
+
  /*
   * Common place to define all x86 IRQ vectors
 @@ -590,6 +591,8 @@ void __init init_IRQ(void)
  	set_intr_gate(ERROR_APIC_VECTOR, error_interrupt);
  #endif
- 
+
 +	perfctr_vector_init();
 +
  	/*
@@ -354,33 +354,33 @@ diff -rupN linux-2.6.14/arch/x86_64/kernel/process.c linux-2.6.14.perfctr27/arch
 +#include <linux/perfctr.h>
  #include <linux/random.h>
  #include <linux/kprobes.h>
- 
+
 @@ -345,6 +346,7 @@ void exit_thread(void)
  		t->io_bitmap_max = 0;
  		put_cpu();
  	}
 +	perfctr_exit_thread(&me->thread);
  }
- 
+
  void flush_thread(void)
 @@ -454,6 +456,8 @@ int copy_thread(int nr, unsigned long cl
  	asm("mov %%es,%0" : "=m" (p->thread.es));
  	asm("mov %%ds,%0" : "=m" (p->thread.ds));
- 
+
 +	perfctr_copy_task(p, regs);
 +
- 	if (unlikely(me->thread.io_bitmap_ptr != NULL)) { 
+ 	if (unlikely(me->thread.io_bitmap_ptr != NULL)) {
  		p->thread.io_bitmap_ptr = kmalloc(IO_BITMAP_BYTES, GFP_KERNEL);
  		if (!p->thread.io_bitmap_ptr) {
 @@ -603,6 +607,8 @@ struct task_struct *__switch_to(struct t
  		}
  	}
- 
+
 +	perfctr_resume_thread(next);
 +
  	return prev_p;
  }
- 
+
 diff -rupN linux-2.6.14/drivers/Makefile linux-2.6.14.perfctr27/drivers/Makefile
 --- linux-2.6.14/drivers/Makefile	2005-10-28 11:24:07.000000000 +0200
 +++ linux-2.6.14.perfctr27/drivers/Makefile	2005-11-08 01:40:51.000000000 +0100
@@ -400,7 +400,7 @@ diff -rupN linux-2.6.14/include/asm-i386/mach-default/irq_vectors.h linux-2.6.14
   */
  #define LOCAL_TIMER_VECTOR	0xef
 +#define LOCAL_PERFCTR_VECTOR	0xee
- 
+
  /*
 - * First APIC vector available to drivers: (vectors 0x30-0xee)
 + * First APIC vector available to drivers: (vectors 0x30-0xed)
@@ -410,9 +410,9 @@ diff -rupN linux-2.6.14/include/asm-i386/mach-default/irq_vectors.h linux-2.6.14
  #define FIRST_DEVICE_VECTOR	0x31
 -#define FIRST_SYSTEM_VECTOR	0xef
 +#define FIRST_SYSTEM_VECTOR	0xee
- 
+
  #define TIMER_IRQ 0
- 
+
 diff -rupN linux-2.6.14/include/asm-i386/mach-visws/irq_vectors.h linux-2.6.14.perfctr27/include/asm-i386/mach-visws/irq_vectors.h
 --- linux-2.6.14/include/asm-i386/mach-visws/irq_vectors.h	2004-01-09 13:19:11.000000000 +0100
 +++ linux-2.6.14.perfctr27/include/asm-i386/mach-visws/irq_vectors.h	2005-11-08 01:40:51.000000000 +0100
@@ -421,7 +421,7 @@ diff -rupN linux-2.6.14/include/asm-i386/mach-visws/irq_vectors.h linux-2.6.14.p
   */
  #define LOCAL_TIMER_VECTOR	0xef
 +#define LOCAL_PERFCTR_VECTOR	0xee
- 
+
  /*
 - * First APIC vector available to drivers: (vectors 0x30-0xee)
 + * First APIC vector available to drivers: (vectors 0x30-0xed)
@@ -431,9 +431,9 @@ diff -rupN linux-2.6.14/include/asm-i386/mach-visws/irq_vectors.h linux-2.6.14.p
  #define FIRST_DEVICE_VECTOR	0x31
 -#define FIRST_SYSTEM_VECTOR	0xef
 +#define FIRST_SYSTEM_VECTOR	0xee
- 
+
  #define TIMER_IRQ 0
- 
+
 diff -rupN linux-2.6.14/include/asm-i386/processor.h linux-2.6.14.perfctr27/include/asm-i386/processor.h
 --- linux-2.6.14/include/asm-i386/processor.h	2005-10-28 11:24:11.000000000 +0200
 +++ linux-2.6.14.perfctr27/include/asm-i386/processor.h	2005-11-08 01:40:51.000000000 +0100
@@ -444,13 +444,13 @@ diff -rupN linux-2.6.14/include/asm-i386/processor.h linux-2.6.14.perfctr27/incl
 +/* performance counters */
 +	struct vperfctr *perfctr;
  };
- 
+
  #define INIT_THREAD  {							\
 diff -rupN linux-2.6.14/include/asm-i386/system.h linux-2.6.14.perfctr27/include/asm-i386/system.h
 --- linux-2.6.14/include/asm-i386/system.h	2005-10-28 11:24:11.000000000 +0200
 +++ linux-2.6.14.perfctr27/include/asm-i386/system.h	2005-11-08 01:40:51.000000000 +0100
 @@ -14,6 +14,7 @@ extern struct task_struct * FASTCALL(__s
- 
+
  #define switch_to(prev,next,last) do {					\
  	unsigned long esi,edi;						\
 +	perfctr_suspend_thread(&(prev)->thread);			\
@@ -468,10 +468,10 @@ diff -rupN linux-2.6.14/include/asm-i386/unistd.h linux-2.6.14.perfctr27/include
 +#define __NR_vperfctr_control	(__NR_vperfctr_open+1)
 +#define __NR_vperfctr_write	(__NR_vperfctr_open+2)
 +#define __NR_vperfctr_read	(__NR_vperfctr_open+3)
- 
+
 -#define NR_syscalls 294
 +#define NR_syscalls 300
- 
+
  /*
   * user-visible error numbers are in the range -1 - -128: see
 diff -rupN linux-2.6.14/include/asm-ppc/processor.h linux-2.6.14.perfctr27/include/asm-ppc/processor.h
@@ -485,7 +485,7 @@ diff -rupN linux-2.6.14/include/asm-ppc/processor.h linux-2.6.14.perfctr27/inclu
 +	struct vperfctr *perfctr;	/* performance counters */
 +#endif
  };
- 
+
  #define ARCH_MIN_TASKALIGN 16
 diff -rupN linux-2.6.14/include/asm-ppc/reg.h linux-2.6.14.perfctr27/include/asm-ppc/reg.h
 --- linux-2.6.14/include/asm-ppc/reg.h	2005-10-28 11:24:12.000000000 +0200
@@ -526,7 +526,7 @@ diff -rupN linux-2.6.14/include/asm-ppc/reg.h linux-2.6.14.perfctr27/include/asm
 -#define SPRN_USIA	0x3AB	/* User Sampled Instruction Address Register */
  #define SPRN_VRSAVE	0x100	/* Vector Register Save Register */
  #define SPRN_XER	0x001	/* Fixed Point Exception Register */
- 
+
 +/* Performance-monitoring control and counter registers */
 +#define SPRN_MMCR0	0x3B8	/* Monitor Mode Control Register 0 (604 and up) */
 +#define SPRN_MMCR1	0x3BC	/* Monitor Mode Control Register 1 (604e and up) */
@@ -605,9 +605,9 @@ diff -rupN linux-2.6.14/include/asm-ppc/reg.h linux-2.6.14.perfctr27/include/asm
  #define MMCR0_PMC2_ITLB		0x7
  #define MMCR0_PMC2_LOADMISSTIME	0x5
 -#define MMCR0_PMXE	(1 << 26)
- 
+
  /* Processor Version Register */
- 
+
 diff -rupN linux-2.6.14/include/asm-ppc/unistd.h linux-2.6.14.perfctr27/include/asm-ppc/unistd.h
 --- linux-2.6.14/include/asm-ppc/unistd.h	2005-08-29 14:34:33.000000000 +0200
 +++ linux-2.6.14.perfctr27/include/asm-ppc/unistd.h	2005-11-08 01:40:51.000000000 +0100
@@ -619,12 +619,12 @@ diff -rupN linux-2.6.14/include/asm-ppc/unistd.h linux-2.6.14.perfctr27/include/
 +#define __NR_vperfctr_control	(__NR_vperfctr_open+1)
 +#define __NR_vperfctr_write	(__NR_vperfctr_open+2)
 +#define __NR_vperfctr_read	(__NR_vperfctr_open+3)
- 
+
 -#define __NR_syscalls		278
 +#define __NR_syscalls		284
- 
+
  #define __NR(n)	#n
- 
+
 diff -rupN linux-2.6.14/include/asm-ppc64/processor.h linux-2.6.14.perfctr27/include/asm-ppc64/processor.h
 --- linux-2.6.14/include/asm-ppc64/processor.h	2005-10-28 11:24:12.000000000 +0200
 +++ linux-2.6.14.perfctr27/include/asm-ppc64/processor.h	2005-11-08 01:40:51.000000000 +0100
@@ -635,7 +635,7 @@ diff -rupN linux-2.6.14/include/asm-ppc64/processor.h linux-2.6.14.perfctr27/inc
 +	/* performance counters */
 +	struct vperfctr *perfctr;
  };
- 
+
  #define ARCH_MIN_TASKALIGN 16
 diff -rupN linux-2.6.14/include/asm-ppc64/unistd.h linux-2.6.14.perfctr27/include/asm-ppc64/unistd.h
 --- linux-2.6.14/include/asm-ppc64/unistd.h	2005-08-29 14:34:33.000000000 +0200
@@ -648,7 +648,7 @@ diff -rupN linux-2.6.14/include/asm-ppc64/unistd.h linux-2.6.14.perfctr27/includ
 +#define __NR_vperfctr_control	(__NR_vperfctr_open+1)
 +#define __NR_vperfctr_write	(__NR_vperfctr_open+2)
 +#define __NR_vperfctr_read	(__NR_vperfctr_open+3)
- 
+
 -#define __NR_syscalls		278
 +#define __NR_syscalls		284
  #ifdef __KERNEL__
@@ -662,7 +662,7 @@ diff -rupN linux-2.6.14/include/asm-x86_64/hw_irq.h linux-2.6.14.perfctr27/inclu
   */
  #define LOCAL_TIMER_VECTOR	0xef
 +#define LOCAL_PERFCTR_VECTOR	0xee
- 
+
  /*
 - * First APIC vector available to drivers: (vectors 0x30-0xee)
 + * First APIC vector available to drivers: (vectors 0x30-0xed)
@@ -672,8 +672,8 @@ diff -rupN linux-2.6.14/include/asm-x86_64/hw_irq.h linux-2.6.14.perfctr27/inclu
  #define FIRST_DEVICE_VECTOR	0x31
 -#define FIRST_SYSTEM_VECTOR	0xef   /* duplicated in irq.h */
 +#define FIRST_SYSTEM_VECTOR	0xee   /* duplicated in irq.h */
- 
- 
+
+
  #ifndef __ASSEMBLY__
 diff -rupN linux-2.6.14/include/asm-x86_64/ia32_unistd.h linux-2.6.14.perfctr27/include/asm-x86_64/ia32_unistd.h
 --- linux-2.6.14/include/asm-x86_64/ia32_unistd.h	2005-08-29 14:34:33.000000000 +0200
@@ -686,10 +686,10 @@ diff -rupN linux-2.6.14/include/asm-x86_64/ia32_unistd.h linux-2.6.14.perfctr27/
 +#define __NR_ia32_vperfctr_control	(__NR_ia32_vperfctr_open+1)
 +#define __NR_ia32_vperfctr_write	(__NR_ia32_vperfctr_open+2)
 +#define __NR_ia32_vperfctr_read		(__NR_ia32_vperfctr_open+3)
- 
+
 -#define IA32_NR_syscalls 294	/* must be > than biggest syscall! */
 +#define IA32_NR_syscalls 300	/* must be > than biggest syscall! */
- 
+
  #endif /* _ASM_X86_64_IA32_UNISTD_H_ */
 diff -rupN linux-2.6.14/include/asm-x86_64/irq.h linux-2.6.14.perfctr27/include/asm-x86_64/irq.h
 --- linux-2.6.14/include/asm-x86_64/irq.h	2005-10-28 11:24:12.000000000 +0200
@@ -697,10 +697,10 @@ diff -rupN linux-2.6.14/include/asm-x86_64/irq.h linux-2.6.14.perfctr27/include/
 @@ -29,7 +29,7 @@
   */
  #define NR_VECTORS 256
- 
+
 -#define FIRST_SYSTEM_VECTOR	0xef   /* duplicated in hw_irq.h */
 +#define FIRST_SYSTEM_VECTOR	0xee   /* duplicated in hw_irq.h */
- 
+
  #ifdef CONFIG_PCI_MSI
  #define NR_IRQS FIRST_SYSTEM_VECTOR
 diff -rupN linux-2.6.14/include/asm-x86_64/processor.h linux-2.6.14.perfctr27/include/asm-x86_64/processor.h
@@ -713,7 +713,7 @@ diff -rupN linux-2.6.14/include/asm-x86_64/processor.h linux-2.6.14.perfctr27/in
 +/* performance counters */
 +	struct vperfctr *perfctr;
  } __attribute__((aligned(16)));
- 
+
  #define INIT_THREAD  { \
 diff -rupN linux-2.6.14/include/asm-x86_64/system.h linux-2.6.14.perfctr27/include/asm-x86_64/system.h
 --- linux-2.6.14/include/asm-x86_64/system.h	2005-10-28 11:24:12.000000000 +0200
@@ -721,7 +721,7 @@ diff -rupN linux-2.6.14/include/asm-x86_64/system.h linux-2.6.14.perfctr27/inclu
 @@ -26,7 +26,8 @@
  #define __EXTRA_CLOBBER  \
  	,"rcx","rbx","rdx","r8","r9","r10","r11","r12","r13","r14","r15"
- 
+
 -#define switch_to(prev,next,last) \
 +#define switch_to(prev,next,last) do { \
 +	perfctr_suspend_thread(&(prev)->thread); \
@@ -735,9 +735,9 @@ diff -rupN linux-2.6.14/include/asm-x86_64/system.h linux-2.6.14.perfctr27/inclu
 -		     : "memory", "cc" __EXTRA_CLOBBER)
 +		     : "memory", "cc" __EXTRA_CLOBBER); \
 +} while (0)
-     
- extern void load_gs_index(unsigned); 
- 
+
+ extern void load_gs_index(unsigned);
+
 diff -rupN linux-2.6.14/include/asm-x86_64/unistd.h linux-2.6.14.perfctr27/include/asm-x86_64/unistd.h
 --- linux-2.6.14/include/asm-x86_64/unistd.h	2005-08-29 14:34:33.000000000 +0200
 +++ linux-2.6.14.perfctr27/include/asm-x86_64/unistd.h	2005-11-08 01:40:55.000000000 +0100
@@ -755,11 +755,11 @@ diff -rupN linux-2.6.14/include/asm-x86_64/unistd.h linux-2.6.14.perfctr27/inclu
 +__SYSCALL(__NR_vperfctr_write, sys_vperfctr_write)
 +#define __NR_vperfctr_read	(__NR_vperfctr_open+3)
 +__SYSCALL(__NR_vperfctr_read, sys_vperfctr_read)
- 
+
 -#define __NR_syscall_max __NR_inotify_rm_watch
 +#define __NR_syscall_max __NR_vperfctr_read
  #ifndef __NO_STUBS
- 
+
  /* user-visible error numbers are in the range -1 - -4095 */
 diff -rupN linux-2.6.14/include/linux/sched.h linux-2.6.14.perfctr27/include/linux/sched.h
 --- linux-2.6.14/include/linux/sched.h	2005-10-28 11:24:12.000000000 +0200
@@ -784,11 +784,11 @@ diff -rupN linux-2.6.14/kernel/exit.c linux-2.6.14.perfctr27/kernel/exit.c
 +#include <linux/perfctr.h>
  #include <linux/syscalls.h>
  #include <linux/signal.h>
- 
-@@ -100,6 +101,7 @@ repeat: 
+
+@@ -100,6 +101,7 @@ repeat:
  		zap_leader = (leader->exit_signal == -1);
  	}
- 
+
 +	perfctr_release_task(p);
  	sched_exit(p);
  	write_unlock_irq(&tasklist_lock);
@@ -807,7 +807,7 @@ diff -rupN linux-2.6.14/kernel/sched.c linux-2.6.14.perfctr27/kernel/sched.c
 @@ -4361,6 +4362,8 @@ int set_cpus_allowed(task_t *p, cpumask_
  	migration_req_t req;
  	runqueue_t *rq;
- 
+
 +	perfctr_set_cpus_allowed(p, new_mask);
 +
  	rq = task_rq_lock(p, &flags);
@@ -836,7 +836,7 @@ diff -rupN linux-2.6.14/kernel/timer.c linux-2.6.14.perfctr27/kernel/timer.c
  #include <linux/cpu.h>
 +#include <linux/perfctr.h>
  #include <linux/syscalls.h>
- 
+
  #include <asm/uaccess.h>
 @@ -846,6 +847,7 @@ void update_process_times(int user_tick)
  		account_user_time(p, jiffies_to_cputime(1));

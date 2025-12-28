@@ -88,7 +88,7 @@ void Search(const std::string folder, T* vec, SPTAG::SizeType n, int k, std::str
     BOOST_CHECK(SPTAG::ErrorCode::Success == SPTAG::VectorIndex::LoadIndex(folder, vecIndex));
     BOOST_CHECK(nullptr != vecIndex);
 
-    for (SPTAG::SizeType i = 0; i < n; i++) 
+    for (SPTAG::SizeType i = 0; i < n; i++)
     {
         SPTAG::QueryResult res(vec, k, true);
         vecIndex->SearchIndex(res);
@@ -128,7 +128,7 @@ void AddOneByOne(SPTAG::IndexAlgoType algo, std::string distCalcMethod, std::sha
 
     vecIndex->SetParameter("DistCalcMethod", distCalcMethod);
     vecIndex->SetParameter("NumberOfThreads", "16");
-    
+
     auto t1 = std::chrono::high_resolution_clock::now();
     for (SPTAG::SizeType i = 0; i < vec->Count(); i++) {
         SPTAG::ByteArray metaarr = meta->GetMetadata(i);
@@ -139,7 +139,7 @@ void AddOneByOne(SPTAG::IndexAlgoType algo, std::string distCalcMethod, std::sha
     }
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << "AddIndex time: " << (std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / (float)(vec->Count())) << "us" << std::endl;
-    
+
     Sleep(10000);
 
     BOOST_CHECK(SPTAG::ErrorCode::Success == vecIndex->SaveIndex(out));
@@ -169,14 +169,14 @@ void Test(SPTAG::IndexAlgoType algo, std::string distCalcMethod)
             vec.push_back((T)i);
         }
     }
-    
+
     std::vector<T> query;
     for (SPTAG::SizeType i = 0; i < q; i++) {
         for (SPTAG::DimensionType j = 0; j < m; j++) {
             query.push_back((T)i*2);
         }
     }
-    
+
     std::vector<char> meta;
     std::vector<std::uint64_t> metaoffset;
     for (SPTAG::SizeType i = 0; i < n; i++) {
@@ -195,7 +195,7 @@ void Test(SPTAG::IndexAlgoType algo, std::string distCalcMethod)
         SPTAG::ByteArray((std::uint8_t*)meta.data(), meta.size() * sizeof(char), false),
         SPTAG::ByteArray((std::uint8_t*)metaoffset.data(), metaoffset.size() * sizeof(std::uint64_t), false),
         n));
-    
+
     Build<T>(algo, distCalcMethod, vecset, metaset, "testindices");
     std::string truthmeta1[] = { "0", "1", "2", "2", "1", "3", "4", "3", "5" };
     Search<T>("testindices", query.data(), q, k, truthmeta1);

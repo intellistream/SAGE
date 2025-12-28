@@ -3886,4 +3886,3 @@ static intel_x86_entry_t intel_skx_unc_c_pe[]={
     .numasks= LIBPFM_ARRAY_SIZE(skx_unc_c_xsnp_resp),
   },
 };
-

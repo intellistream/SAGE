@@ -84,7 +84,7 @@ typedef struct {
 
 extern pfm_amd64_config_t pfm_amd64_cfg;
 
-/* 
+/*
  * flags values (bottom 8 bits only)
  * bits 00-07: flags
  * bits 08-15: from revision

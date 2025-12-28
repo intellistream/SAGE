@@ -7,7 +7,7 @@ concurrency:
 
 on:
   pull_request:
-    branches: [ dev, release, actionsTest ]
+    branches: [dev, release, actionsTest]
 
 permissions: read-all
 
@@ -189,12 +189,12 @@ jobs:
   clang-msan-fuzz-unoptimized:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: clang + MSan + Fuzz Test
-        run: |
-          sudo apt-get -qqq update
-          sudo apt-get install clang
-          CC=clang MOREFLAGS="-O0" make clean msan-fuzztest
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: clang + MSan + Fuzz Test
+      run: |
+        sudo apt-get -qqq update
+        sudo apt-get install clang
+        CC=clang MOREFLAGS="-O0" make clean msan-fuzztest
 
   clang-msan-fuzz:
     runs-on: ubuntu-20.04
@@ -218,14 +218,14 @@ jobs:
         CC=clang make msan-test-zstd HAVE_ZLIB=0 HAVE_LZ4=0 HAVE_LZMA=0 V=1
 
   armfuzz:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: Qemu ARM emulation + Fuzz Test
-        run: |
-          sudo apt-get -qqq update
-          make arminstall
-          make armfuzz
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: Qemu ARM emulation + Fuzz Test
+      run: |
+        sudo apt-get -qqq update
+        make arminstall
+        make armfuzz
 
   valgrind-fuzz-test:
     runs-on: ubuntu-latest

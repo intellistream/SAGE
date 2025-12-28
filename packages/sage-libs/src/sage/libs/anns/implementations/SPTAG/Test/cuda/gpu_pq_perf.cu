@@ -35,7 +35,7 @@ void GPU_top1_nopq(std::shared_ptr<VectorSet>& real_vecset, DistCalcMethod distM
   int* d_res_idx;
   CUDA_CHECK(cudaMalloc(&d_res_idx, real_vecset->Count()*sizeof(int)));
 
-  // Run kernel that performs 
+  // Run kernel that performs
   // Create options for different dims and metrics
   if(real_vecset->Dimension() == 256) {
     top1_nopq_kernel<R,256,(int)DistMetric::L2><<<TEST_BLOCKS,TEST_THREADS>>>(d_data, d_res_idx, d_res_dist, real_vecset->Count());
@@ -111,7 +111,7 @@ printf("Creating GPU_Quantizer\n");
   int* d_res_idx;
   CUDA_CHECK(cudaMalloc(&d_res_idx, quan_vecset->Count()*sizeof(int)));
 
-  // Run kernel that performs 
+  // Run kernel that performs
   // Create options for different dims and metrics
   if(quan_vecset->Dimension() == 128) {
     top1_pq_kernel<R,128><<<TEST_BLOCKS,TEST_THREADS>>>(d_data, d_res_idx, d_res_dist, quan_vecset->Count(), d_quantizer);
@@ -132,4 +132,3 @@ void GPU_pq_alltype(std::shared_ptr<VectorSet>& real_vecset, std::shared_ptr<Vec
   GPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, res_idx, res_dist);
 
 }
-

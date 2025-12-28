@@ -104,7 +104,7 @@ namespace SPTAG
 
             static inline float ConvertCosineSimilarityToDistance(float cs)
             {
-                // Cosine similarity is in [-1, 1], the higher the value, the closer are the two vectors. 
+                // Cosine similarity is in [-1, 1], the higher the value, the closer are the two vectors.
                 // However, the tree is built and searched based on "distance" between two vectors, that's >=0. The smaller the value, the closer are the two vectors.
                 // So we do a linear conversion from a cosine similarity to a distance value.
                 return 1 - cs; //[1, 3]

@@ -550,7 +550,7 @@ __host__ Point<T, SUMTYPE, Dim>* convertMatrix(T* data, int rows, int exact_dim)
     pointArray[i].loadChunk(&data[i*exact_dim], exact_dim);
   }
   return pointArray;
-} 
+}
 
 template<typename T, typename SUMTYPE, int Dim>
 __host__ Point<T, SUMTYPE, Dim>* convertMatrix(SPTAG::VectorIndex* index, size_t rows, int exact_dim) {

@@ -5,18 +5,15 @@
 
 
 import unittest
-import numpy as np
+
 import faiss
+import numpy as np
 from faiss.contrib.datasets import SyntheticDataset
 
 
-@unittest.skipIf(
-    "RAFT" not in faiss.get_compile_options(),
-    "only if RAFT is compiled in")
+@unittest.skipIf("RAFT" not in faiss.get_compile_options(), "only if RAFT is compiled in")
 class TestBfKnn(unittest.TestCase):
-
     def test_bfKnn(self):
-
         ds = SyntheticDataset(32, 0, 4321, 1234)
 
         Dref, Iref = faiss.knn(ds.get_queries(), ds.get_database(), 12)
@@ -24,14 +21,12 @@ class TestBfKnn(unittest.TestCase):
         res = faiss.StandardGpuResources()
 
         # Faiss internal implementation
-        Dnew, Inew = faiss.knn_gpu(
-            res, ds.get_queries(), ds.get_database(), 12, use_raft=False)
+        Dnew, Inew = faiss.knn_gpu(res, ds.get_queries(), ds.get_database(), 12, use_raft=False)
         np.testing.assert_allclose(Dref, Dnew, atol=1e-5)
         np.testing.assert_array_equal(Iref, Inew)
 
         # RAFT version
-        Dnew, Inew = faiss.knn_gpu(
-            res, ds.get_queries(), ds.get_database(), 12, use_raft=True)
+        Dnew, Inew = faiss.knn_gpu(res, ds.get_queries(), ds.get_database(), 12, use_raft=True)
         np.testing.assert_allclose(Dref, Dnew, atol=1e-5)
         np.testing.assert_array_equal(Iref, Inew)
 

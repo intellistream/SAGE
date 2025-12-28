@@ -6,7 +6,7 @@
 void do_print(FILE *resfile,
 	      const struct perfctr_cpu_control *cpu_control,
 	      const struct perfctr_sum_ctrs *sum,
-	      const struct perfctr_sum_ctrs *children)	      
+	      const struct perfctr_sum_ctrs *children)
 {
     unsigned int nrctrs, i;
 
@@ -25,7 +25,7 @@ void do_print(FILE *resfile,
     if( cpu_control->ppc64.mmcra )
 	fprintf(resfile, "mmcra 0x%08X\n",
 		cpu_control->ppc64.mmcra);
-		
+
 }
 
 void do_arch_usage(void)

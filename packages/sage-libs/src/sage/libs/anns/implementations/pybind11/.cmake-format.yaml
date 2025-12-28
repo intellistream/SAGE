@@ -2,12 +2,12 @@ parse:
   additional_commands:
     pybind11_add_module:
       flags:
-        - THIN_LTO
-        - MODULE
-        - SHARED
-        - NO_EXTRAS
-        - EXCLUDE_FROM_ALL
-        - SYSTEM
+      - THIN_LTO
+      - MODULE
+      - SHARED
+      - NO_EXTRAS
+      - EXCLUDE_FROM_ALL
+      - SYSTEM
 
 format:
   line_width: 99

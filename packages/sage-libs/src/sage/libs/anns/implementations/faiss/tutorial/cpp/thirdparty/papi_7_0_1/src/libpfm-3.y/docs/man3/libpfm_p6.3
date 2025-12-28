@@ -13,7 +13,7 @@ of a set of functions and structures which describe and allow access to the
 P6 processors specific PMU features.
 .sp
 When P6 processor specific features are needed to support a measurement, their descriptions must be passed
-as model-specific input arguments to the \fBpfm_dispatch_events()\fR function. The P6 processors specific 
+as model-specific input arguments to the \fBpfm_dispatch_events()\fR function. The P6 processors specific
 input arguments are described in the \fBpfmlib_i386_p6_input_param_t\fR structure and the output
 parameters in \fBpfmlib_i386_p6_output_param_t\fR. They are defined as follows:
 .sp
@@ -34,8 +34,8 @@ typedef struct {
 .fi
 .sp
 .sp
-The P6 processor provides a few additional per-event features for 
-counters: thresholding, inversion, edge detection. They can be set using the 
+The P6 processor provides a few additional per-event features for
+counters: thresholding, inversion, edge detection. They can be set using the
 \fBpfp_i386_p6_counters\fR data structure for each event.  The \fBflags\fR
 field can be initialized as follows:
 .TP
@@ -43,7 +43,7 @@ field can be initialized as follows:
 Inverse the results of the \fBcnt_mask\fR comparison when set
 .TP
 .B PFMLIB_I386_P6_SEL_EDGE
-Enables edge detection of events. 
+Enables edge detection of events.
 .LP
 The \fBcnt_mask\fR field contains is used to set the event threshold.
 The value of the counter is incremented each time the number of occurrences

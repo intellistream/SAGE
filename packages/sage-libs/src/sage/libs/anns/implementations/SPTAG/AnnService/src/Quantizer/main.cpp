@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
         {
             set->AppendSave(options->m_outputFile);
         }
-        
+
         if (!options->m_outputMetadataFile.empty() && !options->m_outputMetadataIndexFile.empty())
         {
             auto metadataSet = vectorReader->GetMetadataSet();
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
         {
             metadataSet->SaveMetadata(options->m_outputMetadataFile, options->m_outputMetadataIndexFile);
         }
-        
+
         break;
     }
     case QuantizerType::OPQQuantizer:

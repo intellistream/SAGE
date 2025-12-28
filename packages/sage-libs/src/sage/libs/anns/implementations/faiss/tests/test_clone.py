@@ -7,7 +7,6 @@ import unittest
 
 import faiss
 import numpy as np
-
 from faiss.contrib import datasets
 
 faiss.omp_set_num_threads(4)
@@ -27,8 +26,7 @@ class TestClone(unittest.TestCase):
         index1 = faiss.index_factory(d, factory)
         index1.train(ds.get_train())
         if with_ids:
-            index1.add_with_ids(ds.get_database(),
-                                np.arange(ds.nb).astype("int64"))
+            index1.add_with_ids(ds.get_database(), np.arange(ds.nb).astype("int64"))
         else:
             index1.add(ds.get_database())
         k = 5

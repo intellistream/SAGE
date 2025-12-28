@@ -651,7 +651,7 @@ size_t ZSTD_compressBlock_doubleFast_extDict_generic(
         size_t mLength;
         hashSmall[hSmall] = hashLong[hLong] = curr;   /* update hash table */
 
-        if (((ZSTD_index_overlap_check(prefixStartIndex, repIndex)) 
+        if (((ZSTD_index_overlap_check(prefixStartIndex, repIndex))
             & (offset_1 <= curr+1 - dictStartIndex)) /* note: we are searching at curr+1 */
           && (MEM_read32(repMatch) == MEM_read32(ip+1)) ) {
             const BYTE* repMatchEnd = repIndex < prefixStartIndex ? dictEnd : iend;

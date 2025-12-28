@@ -98,4 +98,3 @@ double IntelMeter::getE() {
 
   return eSum / 1000.0;
 }
-

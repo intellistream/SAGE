@@ -1,5 +1,5 @@
 /*
-  Example of using LD_PRELOAD with the CUDA component.  
+  Example of using LD_PRELOAD with the CUDA component.
   Asim YarKhan
 
   This is designed to work with the simpleMultiGPU_no_counters binary
@@ -35,7 +35,7 @@ int (*PAPI_start_ptr)(int EventSet); /**< start counting hardware events in an e
 int (*PAPI_stop_ptr)(int EventSet, long long * values); /**< stop counting hardware events in an event set and return current events */
 
 
-int cudaSetDevice(int devnum, int n1, int n2, int n3, void *ptr1) 
+int cudaSetDevice(int devnum, int n1, int n2, int n3, void *ptr1)
 {
     static int onetime = 0;
     int retval, retval_cudaSetDevice;
@@ -90,7 +90,7 @@ int gettimeofday(void *ptr1, void *ptr2)
     return (*original_function)(ptr1, ptr2);
 }
 
-int cudaFreeHost(void *ptr1, void *ptr2, int n1, int n2, void *ptr3) 
+int cudaFreeHost(void *ptr1, void *ptr2, int n1, int n2, void *ptr3)
 {
     static int onetime = 0;
     long long values[10];
@@ -107,4 +107,3 @@ int cudaFreeHost(void *ptr1, void *ptr2, int n1, int n2, void *ptr3)
     original_function = dlsym(RTLD_NEXT, "cudaFreeHost");
     return (*original_function)(ptr1, ptr2, n1, n2, ptr3);
 }
-

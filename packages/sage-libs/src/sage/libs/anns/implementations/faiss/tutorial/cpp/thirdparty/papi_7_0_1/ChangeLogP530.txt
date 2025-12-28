@@ -1,4 +1,4 @@
-2013-11-25  
+2013-11-25
 
   * a40c96c5 src/components/nvml/linux-nvml.c: nvml component: Add missing }
 
@@ -7,7 +7,7 @@
   supported, we just call the functions and see if nvml thinks its supported by
   the card.
 
-2013-11-21  
+2013-11-21
 
   * 78192de9 delete_before_release.sh: Kill the .gitignore files in
   delete_before_release
@@ -18,29 +18,29 @@
   papi-5.2.0/src/utils/command_line.c:133:4: warning: 'data_type' may be used
   uninitialized in this function [-Wmaybe-uninitialized] switch (data_type) { ^
 
-2013-11-20  
+2013-11-20
 
-  * da2925f6 src/ctests/data_range.c: Make data_range test use prginfo 
-  Coverity complained about prginfo being an unused variable for data_range.c. 
+  * da2925f6 src/ctests/data_range.c: Make data_range test use prginfo
+  Coverity complained about prginfo being an unused variable for data_range.c.
   The code is modified to be stylistically like the code for hw_info in the
   preceding lines which also is not used elsewhere in the test.  This is more
   to reduce the amount of output in the Coverity scan than to fix this minor
-  issue. 
+  issue.
 
   * 3386953d src/ctests/data_range.c: Check the return values of PAPI_start()
   and PAPI_stop() for the data_range test  The ia64 data_range test did not
   check the return values of PAPI_start() or PAPI_stop().  There are propbably
   few people running this test on ia64 machine, but this is more to eliminate a
   couple errors noted by a Coverity scan and reduce the clutter in the Coverity
-  scan. 
+  scan.
 
-2013-11-19  
+2013-11-19
 
   * e704e8f1 src/configure src/configure.in: configure: Build fpapi.h and co
   for mic  When building for mic, set the cross_compiling var in configure to
   use a native c compiler to build genpapif.
 
-2013-11-18  
+2013-11-18
 
   * d32b1dae man/man1/papi_avail.1 man/man1/papi_clockres.1
   man/man1/papi_command_line.1...: Rebuild the man pages for a 5.3 release
@@ -87,17 +87,17 @@
   `pfm_terminate' make[2]: *** [perf_event_offcore_response] Error 1
   ------------------------------------------------------------------
 
-2013-11-17  
+2013-11-17
 
   * a7f642d2 src/Makefile.inc src/configure src/configure.in: Switch LINKLIB to
   not have relative pathing
 
-2013-11-15  
+2013-11-15
 
   * 91a6fa54 src/components/lustre/tests/Makefile: Fix a typo in the lustre
   tests' Makefile
 
-2013-11-13  
+2013-11-13
 
   * 9a5f9ad4 src/papi_preset.c: papi_preset.c: Fix _papi_load_preset_table func
    Patch by Gleb Smirnoff ---------------------- The _papi_load_preset_table()
@@ -111,7 +111,7 @@
   more robust, protected from bad input, and easier to read.
   ----------------------
 
-2013-11-12  
+2013-11-12
 
   * 579139a6 src/utils/hybrid_native_avail.c: more doxygen xml tag cleanup
 
@@ -125,18 +125,18 @@
 
   * b187f065 src/components/host_micpower/README: host_micpower: update docs
 
-2013-11-11  
+2013-11-11
 
-  * 4d379c6f src/ctests/p4_lst_ins.c: ctests/p4_lst_ins: Narrow scope of test 
+  * 4d379c6f src/ctests/p4_lst_ins.c: ctests/p4_lst_ins: Narrow scope of test
   This test attempted to ensure that it was running on a P4, the test missed
   for all non intel systems.
 
-2013-11-10  
+2013-11-10
 
   * ee1c7967 .../host_micpower/utils/host_micpower_plot.c: Added energy
   consumption to host_micpower utility.
 
-2013-11-08  
+2013-11-08
 
   * eee49912 src/ctests/shlib.c: shlib.c: Check for NULL  Thanks to Will Cohen
   for reporting. Coverity picked up an instance of a value that could be NULL
@@ -172,14 +172,14 @@
   test (rapl_wraparound) to estimate maximum measurement time for a naive gemm.
   With a -w option, measurement for this amount of time will be performed. The
   gemm can be replaced with a user kernel for more accurate time estimates.
-  Makefile was modified to support the new test case. 
+  Makefile was modified to support the new test case.
 
-2013-11-07  
+2013-11-07
 
   * 7784de21 src/ctests/data_range.c src/ctests/zero_shmem.c: Modernize some
   ctests  Add tests_quiet check to data_range and zero_shmem
 
-2013-11-06  
+2013-11-06
 
   * 7c953490 src/configure src/configure.in: More MPICC checking  Have
   configure check for mpcc on AIX, in addition to mpicc.
@@ -196,14 +196,14 @@
   at configure time  configure[.in]: look for mpicc Makefile.inc: Pass MPICC to
   ctests' make
 
-2013-11-05  
+2013-11-05
 
   * b2d643df src/papi_events.csv: Add floating point events for IvyBridge  Now
-  that Intel has documented them and libpfm4 supports them, PAPI can use them. 
+  that Intel has documented them and libpfm4 supports them, PAPI can use them.
   We just use the same events as on sandybridge.  Tested on an ivybridge
   system.
 
-2013-11-01  
+2013-11-01
 
   * c5be5e26 src/components/micpower/linux-micpower.c: micpower: check return
   of fopen before use  Issue reported by Will Cohen from results of Coverity
@@ -221,19 +221,19 @@
   * b97c0126 src/components/host_micpower/linux-host_micpower.c: host_micpower:
   Better error reporting  grab output of dlerror on library load failure
 
-2013-10-31  
+2013-10-31
 
   * 84da7fd3 src/components/host_micpower/Rules.host_micpower
   src/components/host_micpower/tests/Makefile: host_micpower: Fix some makefile
   bits  tests/Makefile needed to define a target to work with the
   Make_comp_tests install machinery.  Rules.host_micpower had a typo
 
-2013-10-30  
+2013-10-30
 
   * 14f3e4c4 src/components/host_micpower/linux-host_micpower.c: host_micpower:
   fix function signature  shutdown_thread took wrong arguments.
 
-2013-10-28  
+2013-10-28
 
   * a4cc1113 release_procedure.txt: Update release_procedure.txt  Bug in the
   version of doxygen we were using to produce the documentation led to some of
@@ -242,7 +242,7 @@
   * a1d6ae34 src/components/host_micpower/README: host_micpower: Add a README
   file.
 
-2013-10-25  
+2013-10-25
 
   * 859dbc2c src/Makefile.inc src/components/Makefile_comp_tests
   src/components/Makefile_comp_tests.target.in...: Make the testsuite as a
@@ -253,16 +253,16 @@
   library and include files into the installed makefile for the tests.
 
   * c307ad18 src/ctests/Makefile src/ctests/attach_target.c
-  src/testlib/do_loops.c: Refactor the driver in do_loops.c into its own file. 
+  src/testlib/do_loops.c: Refactor the driver in do_loops.c into its own file.
   (ctests/Makefile, ctests/attach_target.c testlib/do_loops.c)
 
-2013-10-23  
+2013-10-23
 
   * ace71699 src/components/bgpm/CNKunit/linux-CNKunit.c
   src/components/bgpm/IOunit/linux-IOunit.c
   src/components/bgpm/L2unit/linux-L2unit.c...: Passing BGPM errors up to PAPI.
 
-2013-10-22  
+2013-10-22
 
   * 2ee090ec src/components/bgpm/NWunit/linux-NWunit.c
   src/components/bgpm/NWunit/linux-NWunit.h: Fixed the behavior in BGQ's NWunit
@@ -275,7 +275,7 @@
   available. The following change correctly sets the number of native events
   for the component:
 
-2013-10-11  
+2013-10-11
 
   * 071943b6 src/configure src/configure.in src/linux-context.h...: add
   preliminary aarch64 (arm64) support  There has been some work to build fedora
@@ -286,16 +286,16 @@
   libpfm to support aarch64 and papi_events.csv describing mappings to machine
   specific events.
 
-2013-10-01  
+2013-10-01
 
-  * 096eb7fc src/ctests/zero_shmem.c: zero_shmem: cleanup compiler warnings 
+  * 096eb7fc src/ctests/zero_shmem.c: zero_shmem: cleanup compiler warnings
   Remove unused variables.
 
   * d9669053 src/ctests/earprofile.c: ctests/earprofile.c: Fix compiler warning
    Both PAPI_get_hardware_info and PAPI_get_executable_info expect const
   pointers, (get_executable_info is called by prof_init in profile_utils).
 
-2013-09-30  
+2013-09-30
 
   * 87e7e387 src/ctests/p4_lst_ins.c: ctests/p4_lst_ins.c: Fix the P4 load
   test.  This test relied upon a removed symbol to decide if it should run. The
@@ -305,7 +305,7 @@
   add_test_events expects another argument, update the zero_shmem test's
   invocation * Protect[Hide] OpenSHMEM calls with ifdefs
 
-2013-09-27  
+2013-09-27
 
   * 86c11829 src/ctests/zero_shmem.c: zero_shmem: Include pthread.h
 
@@ -314,7 +314,7 @@
   ctests are build. This change allows the test to gracefully skip if it does
   not have 'native SMP' threads.
 
-2013-09-26  
+2013-09-26
 
   * 8d1f2c16 src/ctests/Makefile: ctests/Makefile: Default to building
   everything  Set target all to depend upon ALL
@@ -328,7 +328,7 @@
   logic  The coretemp_basic test was failing if coretemp was disabled, skip
   seems more appropriate. Add this logic to the coretemp_pretty test.
 
-  * af7f7508 src/configure src/configure.in: configure: refactor CTEST_TARGETS 
+  * af7f7508 src/configure src/configure.in: configure: refactor CTEST_TARGETS
   Problem: The set of ctests to build is determined at configure time, in
   CTEST_TARGETS. This is set in each OS detection section and suffers from
   neglect.  Solution: Try to push the decisions about which tests to build out
@@ -341,19 +341,19 @@
   substution, obj is {a.o b.o c.F c.o}, not quite the nut. Change the logic to
   correct that.
 
-2013-09-17  
+2013-09-17
 
   * 05a4e17b .../perf_event_uncore/perf_event_uncore.c: perf_event_uncore:
   cleanup a compiler warning  _peu_read does not use the hwd_context argument.
 
-  * f2056857 src/papi_events.csv: papi_events.csv: Add PAPI_L1_ICM for Haswell 
+  * f2056857 src/papi_events.csv: papi_events.csv: Add PAPI_L1_ICM for Haswell
   Thanks to Maurice Marks of Unisys for the contribution ------------- I've
   continued testing on Haswell. By comparison with Vtune and Emon on Haswell I
   found that we can use the counter L2_RQSTS:ALL_CODE_RD for PAPI_L1_ICM, which
   is a very useful measure.  Attached is my current version of papi_events.csv
   with Haswell fixes. -------------
 
-2013-08-28  
+2013-08-28
 
   * efe3533d src/Makefile.inc src/components/Makefile_comp_tests
   src/ctests/Makefile...: testlib: library-ify testlib  * Move ftests_util to
@@ -361,7 +361,7 @@
   [c|f]tests Switch the tests over to linking libtestlib.a * Component tests
   link libtestlib.a
 
-2013-08-26  
+2013-08-26
 
   * d2a76dde src/configure src/configure.in src/utils/hybrid_native_avail.c:
   Gabrial's mic with icc changes to configure.  Specify --with-mic at configure
@@ -374,11 +374,11 @@
   adding events like this will get some useful feedback from the community so
   that we can improve. -------------------------
 
-2013-08-20  
+2013-08-20
 
   * 1b8ff589 src/utils/command_line.c: command_line util: Fix skipping event
   bug.  The command line utility had an extranious index increment which
-  resulted in skipping the reporting of event counts. Remove the increment. 
+  resulted in skipping the reporting of event counts. Remove the increment.
   Reported by Steve Kaufmann -------------------------- I am getting some funny
   results when I use papi_command_line with the RAPL events. If I request them
   all:  $ papi_command_line THERMAL_SPEC:PACKAGE0 MINIMUM_POWER:PACKAGE0
@@ -391,7 +391,7 @@
   PP0_ENERGY:PACKAGE0  THERMAL_SPEC:PACKAGE0 :	    115.000 W <<<<<
   MINIMUM_POWER:PACKAGE0 ?? MAXIMUM_POWER:PACKAGE0 :    180.000 W
   PACKAGE_ENERGY:PACKAGE0 :   2003784180(u) nJ DRAM_ENERGY:PACKAGE0
-  :	438751220(u) nJ PP0_ENERGY:PACKAGE0 :	1248748779(u) nJ 
+  :	438751220(u) nJ PP0_ENERGY:PACKAGE0 :	1248748779(u) nJ
   ---------------------------------- Verification: Checks for valid event name.
   This utility lets you add events from the command line interface to see if
   they work. command_line.c                       PASSED  Note that a value for
@@ -400,12 +400,12 @@
   event is never displayed. If you specifiy it on its own it is displayed:
   ------------------------------------
 
-2013-08-16  
+2013-08-16
 
   * 0cb63d6e src/components/lustre/linux-lustre.c: lustre component: fix memory
   leak
 
-2013-08-13  
+2013-08-13
 
   * c810cd0d src/components/micpower/linux-micpower.c src/linux-memory.c
   src/papi_preset.c: Close resource leaks  User dcb reported several resource
@@ -417,7 +417,7 @@
   resource leaks to me.  Suggest code rework.
   ----------------------------------
 
-2013-08-07  
+2013-08-07
 
   * 8d479895 doc/Makefile: Doxygen makefile: update dependencies  The manpages
   are generated from comments in papi.h, papi.c, papi_hl.c and

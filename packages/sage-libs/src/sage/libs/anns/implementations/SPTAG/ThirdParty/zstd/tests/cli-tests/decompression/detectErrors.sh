@@ -8,4 +8,3 @@ for file in "$GOLDEN_DIR"/*; do
     zstd -t $file && die "should have detected an error"
 done
 exit 0
-

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, 2007 Advanced Micro Devices, Inc.
- * Contributed by Ray Bryant <raybry@mpdtxmail.amd.com> 
+ * Contributed by Ray Bryant <raybry@mpdtxmail.amd.com>
  * Contributed by Robert Richter <robert.richter@amd.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy

@@ -52,7 +52,7 @@ typedef struct _pfms_thread {
 	sem_t		cmd_sem;
 	int		ret;
 	pthread_t	tid;
-	barrier_t	*barrier; 
+	barrier_t	*barrier;
 } pfms_thread_t;
 
 typedef struct  {
@@ -139,7 +139,7 @@ barrier_wait(barrier_t *b)
  * placeholder for pthread_setaffinity_np(). This stuff is ugly
  * and I could not figure out a way to get it compiled while also preserving
  * the pthread_*cancel(). There are issues with LinuxThreads and NPTL. I
- * decided to quit on this and implement my own affinity call until this 
+ * decided to quit on this and implement my own affinity call until this
  * settles.
  */
 static int
@@ -263,8 +263,8 @@ create_one_wthread(int cpu)
 
 	sem_init(&tds[cpu].cmd_sem, 0, 0);
 
-	ret = pthread_create(&tds[cpu].tid, 
-			     NULL, 
+	ret = pthread_create(&tds[cpu].tid,
+			     NULL,
 			     (void *(*)(void *))pfms_thread_mainloop,
 			     (void *)(long)cpu);
 	return ret;
@@ -889,7 +889,7 @@ main(int argc, char **argv)
 	ret = pfms_stop(desc);
 	if (ret == -1)
 		fatal_error("stop error %d\n", ret);
-	
+
 	/*
 	 * read the PMD registers on all CPUs of interest.
 	 * The pd[] array must be organized such that to

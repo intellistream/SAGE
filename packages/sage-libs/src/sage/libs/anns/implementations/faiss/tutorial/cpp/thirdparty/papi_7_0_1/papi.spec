@@ -95,7 +95,7 @@ rm -rf $RPM_BUILD_ROOT
 - have PAPI_set_multiplex() return proper value
 - properly handle event unit masks
 - correct PAPI_name_to_code() to match events
-- Resolves: rhbz562935 Rebase to papi-4.0.0 
+- Resolves: rhbz562935 Rebase to papi-4.0.0
 
 * Wed Jan 13 2010 William Cohen <wcohen@redhat.com> - 4.0.0-1
 - Generate papi.spec file for papi-4.0.0.

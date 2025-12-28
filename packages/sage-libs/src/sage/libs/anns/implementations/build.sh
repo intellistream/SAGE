@@ -166,7 +166,7 @@ if [ "$NEED_CMAKE_CONFIG" = true ]; then
     echo ""
     echo "Configuring with CMake..."
     echo "----------------------------------------"
-    
+
     # 构建 CMake 参数
     CMAKE_ARGS=(
         -DCMAKE_BUILD_TYPE=Release
@@ -175,18 +175,18 @@ if [ "$NEED_CMAKE_CONFIG" = true ]; then
         -DFAISS_ENABLE_PYTHON=OFF
         -DBUILD_TESTING=OFF
     )
-    
+
     # 添加 torch 路径
     if [ -n "$TORCH_CMAKE_PATH" ]; then
         CMAKE_ARGS+=(-DCMAKE_PREFIX_PATH="$TORCH_CMAKE_PATH")
     fi
-    
+
     # 运行 CMake 配置
     print_info "Running: cmake ${CMAKE_ARGS[*]} .."
     cmake "${CMAKE_ARGS[@]}" .. \
         2>&1 | tee cmake_config.log \
         || { echo ""; print_error "CMake configuration failed"; cat cmake_config.log | tail -50; exit 1; }
-    
+
     print_success "CMake configuration complete"
 else
     print_info "Using existing CMake configuration (use --clean to reconfigure)"
@@ -222,7 +222,7 @@ if [ -n "$SO_FILE" ]; then
     print_success "PyCANDYAlgo module generated:"
     ls -lh "$SO_FILE"
     echo ""
-    
+
     # 测试本地导入
     print_info "Testing local import..."
     if python3 -c "import sys; sys.path.insert(0, '.'); import PyCANDYAlgo; print('  Version:', PyCANDYAlgo.__version__)" 2>&1; then

@@ -1,4 +1,4 @@
-/* 
+/*
  * This example is taken from the NVIDIA documentation (Copyright 1993-2013
  * NVIDIA Corporation) and has been adapted to show the use of CUPTI in
  * collecting event counters for multiple GPU contexts.
@@ -95,10 +95,10 @@ __global__ static void reduceKernel( float *d_Result, float *d_Input, int N )
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     const int threadN = gridDim.x * blockDim.x;
     float sum = 0;
-    
+
     for( int pos = tid; pos < N; pos += threadN )
         sum += d_Input[pos];
-    
+
     d_Result[tid] = sum;
 } // END CUDA KERNEL.
 
@@ -127,18 +127,18 @@ void parseCommandLineArgs(int argc, char *argv[])
         printUsage();
         exit(-1);
     }
-    
-    NameToCollect = argv[1];                                // Record name to collect. 
-    
+
+    NameToCollect = argv[1];                                // Record name to collect.
+
     if (argc < 3) return;                                   // Done if no more args.
 
     int i;
     for (i=2; i<argc; i++) {
-        if (strcmp(argv[i], "-noKernel") == 0) {                // If we found the flag to skip kernel, 
+        if (strcmp(argv[i], "-noKernel") == 0) {                // If we found the flag to skip kernel,
             RunKernel= 0;                                       // .. remember it.
             continue;                                           // .. loop to next.
         }
-        
+
         if (strcmp(argv[i], "-forceInit") == 0) {
             ForceInit = 1;
             continue;
@@ -151,7 +151,7 @@ void parseCommandLineArgs(int argc, char *argv[])
 } // end routine.
 
 //-----------------------------------------------------------------------------
-// Return a text version with B, KB, MB, GB or TB. 
+// Return a text version with B, KB, MB, GB or TB.
 //-----------------------------------------------------------------------------
 #define DIM(x) (sizeof(x)/sizeof(*(x)))
 void calculateSize(char *result, uint64_t size)
@@ -176,11 +176,11 @@ void calculateSize(char *result, uint64_t size)
 
 //-------------------------------------------------------------------------------------------------
 // Returns the values in the event groups. Caller must know the number of events, and eventValues
-// must be large enough to hold that many. eventIDArray must be large enough to hold that many 
+// must be large enough to hold that many. eventIDArray must be large enough to hold that many
 // event IDs.
 //-------------------------------------------------------------------------------------------------
 void readEventGroup(CUpti_EventGroup eventGroup,
-                    CUdevice dev, 
+                    CUdevice dev,
                     uint32_t numEvents,
                     CUpti_EventID *eventIdArray,
                     uint64_t *eventValues) {
@@ -195,17 +195,17 @@ void readEventGroup(CUpti_EventGroup eventGroup,
 
     domainSize = sizeof(CUpti_EventDomainID);
 
-    CUPTI_CALL(cuptiEventGroupGetAttribute(eventGroup, 
-                                           CUPTI_EVENT_GROUP_ATTR_EVENT_DOMAIN_ID, 
-                                           &domainSize, 
+    CUPTI_CALL(cuptiEventGroupGetAttribute(eventGroup,
+                                           CUPTI_EVENT_GROUP_ATTR_EVENT_DOMAIN_ID,
+                                           &domainSize,
                                            (void *)&domainId));
 
     numTotalInstancesSize = sizeof(uint64_t);
 
-    CUPTI_CALL(cuptiDeviceGetEventDomainAttribute(dev, 
-                                              domainId, 
-                                              CUPTI_EVENT_DOMAIN_ATTR_TOTAL_INSTANCE_COUNT, 
-                                              &numTotalInstancesSize, 
+    CUPTI_CALL(cuptiDeviceGetEventDomainAttribute(dev,
+                                              domainId,
+                                              CUPTI_EVENT_DOMAIN_ATTR_TOTAL_INSTANCE_COUNT,
+                                              &numTotalInstancesSize,
                                               (void *)&numTotalInstances));
 
     bufferSizeBytes = sizeof(uint64_t) * numEvents * numTotalInstances;
@@ -213,19 +213,19 @@ void readEventGroup(CUpti_EventGroup eventGroup,
     CHECK_ALLOC_ERROR(eventValueArray);
 
     for (i=0; i<numEvents; i++) eventValues[i]=0;                               // init the values.
-    
-    CUPTI_CALL(cuptiEventGroupReadAllEvents(eventGroup, 
+
+    CUPTI_CALL(cuptiEventGroupReadAllEvents(eventGroup,
                                             CUPTI_EVENT_READ_FLAG_NONE,
-                                            &bufferSizeBytes, 
-                                            eventValueArray, 
-                                            &eventIdArrayBytes, 
-                                            eventIdArray, 
+                                            &bufferSizeBytes,
+                                            eventValueArray,
+                                            &eventIdArrayBytes,
+                                            eventIdArray,
                                             &numCountersRead));
 
     if (numCountersRead != numEvents) {
         if (numCountersRead > numEvents) exit(-1);
     }
-    
+
     // Arrangement of 2-d Array returned in eventValueArray:
     //    domain instance 0: event0 event1 ... eventN
     //    domain instance 1: event0 event1 ... eventN
@@ -240,14 +240,14 @@ void readEventGroup(CUpti_EventGroup eventGroup,
     }
 
     free(eventValueArray);                              // Done with this.
-} // end routine. 
+} // end routine.
 
 
 //-------------------------------------------------------------------------------------------------
-// For reading a metric. This requires a group set; we loop through the groups in the set and 
-// read each one to accumulate a table of events. 
+// For reading a metric. This requires a group set; we loop through the groups in the set and
+// read each one to accumulate a table of events.
 //-------------------------------------------------------------------------------------------------
-void readMetricValue(CUpti_EventGroupSet *pEventGroupSet, 
+void readMetricValue(CUpti_EventGroupSet *pEventGroupSet,
                     CUdevice dev, CUpti_MetricID metricId,
                     uint64_t ns_timeDuration,
                     CUpti_MetricValue *metricValue) {
@@ -263,9 +263,9 @@ void readMetricValue(CUpti_EventGroupSet *pEventGroupSet,
     int totEvents = 0;
 
     // Compute total number of events so we can allocate spaces.
-    for (i=0; i<numEventGroups; i++) {        
+    for (i=0; i<numEventGroups; i++) {
         CUPTI_CALL(cuptiEventGroupGetAttribute(
-            pEventGroupSet->eventGroups[i], 
+            pEventGroupSet->eventGroups[i],
             CUPTI_EVENT_GROUP_ATTR_NUM_EVENTS,
             &sizeInt, &numGroupEvents[i]));                             // read # of events for this group.
         totEvents += numGroupEvents[i];                                 // Add to total.
@@ -285,10 +285,10 @@ void readMetricValue(CUpti_EventGroupSet *pEventGroupSet,
     int idx=0;
     for (i=0; i<numEventGroups; i++) {
         readEventGroup(
-            pEventGroupSet->eventGroups[i],                             // The event group to read. 
+            pEventGroupSet->eventGroups[i],                             // The event group to read.
             dev,                                                        // The device.
             numGroupEvents[i],                                          // Number of events in this group.
-            &eventIDs[idx],                                             // Where to store event IDs. 
+            &eventIDs[idx],                                             // Where to store event IDs.
             &eventValues[idx]);                                         // Where to store event Values.
 
         idx += numGroupEvents[i];                                       // Add to the index.
@@ -310,7 +310,7 @@ void readMetricValue(CUpti_EventGroupSet *pEventGroupSet,
 
 
   // Print metric value, we format based on the value kind
-int printMetricValue(CUpti_MetricID metricId, CUpti_MetricValue metricValue, 
+int printMetricValue(CUpti_MetricID metricId, CUpti_MetricValue metricValue,
         const char *metricName) {
 
     CUpti_MetricValueKind valueKind;
@@ -379,12 +379,12 @@ int main( int argc, char **argv )
     const int ACCUM_N  = BLOCK_N * THREAD_N;
 
     CUcontext ctx[MAX_GPU_COUNT];
-    
+
     printf( "Starting cudaTest_cupti_only.\n" ); fflush(stdout);
 
     // Parse command line arguments
     parseCommandLineArgs(argc, argv);
-    
+
     // Report on the available CUDA devices
     int computeCapabilityMajor = 0, computeCapabilityMinor = 0;
     int runtimeVersion = 0, driverVersion = 0;
@@ -392,15 +392,15 @@ int main( int argc, char **argv )
     CUdevice device[MAX_GPU_COUNT];
 
     if (ForceInit) {                                        // flag to force init.
-        int callersDevice;                            
+        int callersDevice;
         CHECK_CU_ERROR(cuInit(0), "cuInit");                // Do it.
         CHECK_CUDA_ERROR(cudaGetDeviceCount(&GPU_N));       // Get the device count.
         CHECK_CUDA_ERROR(cudaGetDevice(&callersDevice));    // get the caller's current cuda device.
 
-        for (i=0; i<GPU_N; i++) {                           // For each device, 
+        for (i=0; i<GPU_N; i++) {                           // For each device,
             CHECK_CUDA_ERROR(cudaSetDevice(i));             // .. point at device.
             CHECK_CUDA_ERROR(cudaDeviceReset());            // .. Reset it.
-            printf("cudaDeviceReset accomplished on Device %i.\n", i); 
+            printf("cudaDeviceReset accomplished on Device %i.\n", i);
         }
         CHECK_CU_ERROR(cuInit(0), "cuInit");                // Re-init the driver.
         CHECK_CUDA_ERROR(cudaSetDevice(callersDevice));     // Back to caller's device.
@@ -412,14 +412,14 @@ int main( int argc, char **argv )
     for ( i=0; i<GPU_N; i++ ) {
         CHECK_CU_ERROR( cuDeviceGet( &device[i], i ), "cuDeviceGet" );
         CHECK_CU_ERROR( cuDeviceGetName( deviceName, 64, device[i] ), "cuDeviceGetName" );
-        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMajor, 
+        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMajor,
             CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device[i]), "cuDeviceGetAttribute");
-        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMinor, 
+        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMinor,
             CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device[i]), "cuDeviceGetAttribute");
         cudaRuntimeGetVersion( &runtimeVersion );
         cudaDriverGetVersion( &driverVersion );
-        printf( "CUDA Device %d: %s : computeCapability %d.%d runtimeVersion %d.%d driverVersion %d.%d\n", 
-            i, deviceName, computeCapabilityMajor, computeCapabilityMinor, 
+        printf( "CUDA Device %d: %s : computeCapability %d.%d runtimeVersion %d.%d driverVersion %d.%d\n",
+            i, deviceName, computeCapabilityMajor, computeCapabilityMinor,
             runtimeVersion/1000, (runtimeVersion%100)/10, driverVersion/1000, (driverVersion%100)/10 );
         if ( computeCapabilityMajor < 2 ) {
             printf( "CUDA Device %d compute capability is too low... will not add any more GPUs\n", i );
@@ -431,9 +431,9 @@ int main( int argc, char **argv )
     fflush(stdout);
     uint32_t cupti_linked_version;
     cuptiGetVersion( &cupti_linked_version );
-    printf("CUPTI version: Compiled against version %d; Linked against version %d\n", 
+    printf("CUPTI version: Compiled against version %d; Linked against version %d\n",
             CUPTI_API_VERSION, cupti_linked_version );
-    
+
     // create one context per device
     for (i = 0; i < GPU_N; i++) {
         CHECK_CUDA_ERROR( cudaSetDevice( i ) );
@@ -445,7 +445,7 @@ int main( int argc, char **argv )
     CUptiResult     myCURes;
     CUpti_EventID   eventId;
     CUpti_MetricID  metricId;
-    
+
     int isMetric = 0;                                           // Presume this is not a metric.
 
     myCURes = cuptiEventGetIdFromName(0, NameToCollect, &eventId);
@@ -464,7 +464,7 @@ int main( int argc, char **argv )
     }
 
     printf( "Generating input data...\n" );
-    
+
     // Subdividing input data across GPUs
     // Get data sizes for each GPU
     for( i = 0; i < GPU_N; i++ )
@@ -472,7 +472,7 @@ int main( int argc, char **argv )
     // Take into account "odd" data sizes
     for( i = 0; i < DATA_N % GPU_N; i++ )
         plan[i].dataN++;
-    
+
     // Assign data ranges to GPUs
     gpuBase = 0;
     for( i = 0; i < GPU_N; i++ ) {
@@ -480,7 +480,7 @@ int main( int argc, char **argv )
         gpuBase += plan[i].dataN;
     }
 
-  
+
     // Create streams for issuing GPU command asynchronously and allocate memory (GPU and System page-locked)
     for( i = 0; i < GPU_N; i++ ) {
         CHECK_CUDA_ERROR( cudaSetDevice( i ) );
@@ -495,23 +495,23 @@ int main( int argc, char **argv )
         }
         CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])), "cuCtxPopCurrent" );
     }
-    
+
     // Create the group(s) needed to read the metric or event.
     CUpti_EventGroup eg[MAX_GPU_COUNT];                                 // event group only.
     CUpti_EventGroupSets* egs[MAX_GPU_COUNT];                           // need event group sets for metric.
-    
+
     if (isMetric) {                                                     // If it is a metric, need a set.
         printf("Setup CUPTI counters internally for metric '%s'.\n", NameToCollect);
-        for ( i=0; i<GPU_N; i++ ) {                                         // For every device, 
+        for ( i=0; i<GPU_N; i++ ) {                                         // For every device,
             CHECK_CUDA_ERROR( cudaSetDevice( i ) );
             CHECK_CU_ERROR(cuCtxPushCurrent(ctx[i]), "cuCtxPushCurrent");
-            CUPTI_CALL(cuptiSetEventCollectionMode(ctx[i], 
+            CUPTI_CALL(cuptiSetEventCollectionMode(ctx[i],
                 CUPTI_EVENT_COLLECTION_MODE_CONTINUOUS));   // note: CONTINUOUS v. KERNEL made no difference in result.
 
-            CUPTI_CALL(cuptiMetricCreateEventGroupSets(ctx[i], 
+            CUPTI_CALL(cuptiMetricCreateEventGroupSets(ctx[i],
                 sizeof(CUpti_MetricID), &metricId, &egs[i]));               // Get the pointer to sets.
-            
-            printf("%s Metric device %i requires %i sets, the first has %i Groups.\n", 
+
+            printf("%s Metric device %i requires %i sets, the first has %i Groups.\n",
                 NameToCollect, i, egs[i]->numSets, egs[i]->sets[0].numEventGroups);
             if (egs[i]->numSets > 1) {
                 fprintf(stderr, "%s Aborted requires %i sets.\n", NameToCollect, egs[i]->numSets);
@@ -520,29 +520,29 @@ int main( int argc, char **argv )
 
             CUPTI_CALL(cuptiEventGroupSetEnable(&egs[i]->sets[0]));                 // Enable all groups in set.
 
-            CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])), 
+            CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])),
                 "cuCtxPopCurrent" );
         } // end of devices.
-    } else {                                                            // If it is an event, just need one group. 
+    } else {                                                            // If it is an event, just need one group.
         printf("Setup CUPTI counters internally for event '%s' (CUPTI_ONLY)\n", NameToCollect);
 
-        for ( i=0; i<GPU_N; i++ ) {                                     // For every device, 
+        for ( i=0; i<GPU_N; i++ ) {                                     // For every device,
             CHECK_CUDA_ERROR( cudaSetDevice( i ) );
             CHECK_CU_ERROR(cuCtxPushCurrent(ctx[i]), "cuCtxPushCurrent");
-            CUPTI_CALL(cuptiSetEventCollectionMode(ctx[i], 
+            CUPTI_CALL(cuptiSetEventCollectionMode(ctx[i],
                 CUPTI_EVENT_COLLECTION_MODE_CONTINUOUS));
             CUPTI_CALL( cuptiEventGroupCreate( ctx[i], &eg[i], 0 ));
             CUPTI_CALL( cuptiEventGroupAddEvent(eg[i], eventId));
-            CUPTI_CALL( cuptiEventGroupEnable( eg[i] )); 
-            CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])), 
+            CUPTI_CALL( cuptiEventGroupEnable( eg[i] ));
+            CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])),
                 "cuCtxPopCurrent" );
         } // end of devices.
     } // end of if metric else event.
-    
+
     // Start timing and compute on GPU(s)
     printf( "Preparing to compute with %d GPUs...\n", GPU_N ); fflush(stdout);
-   
-    uint64_t ns_timeDuration;                                                   // cuda device time elapsed. 
+
+    uint64_t ns_timeDuration;                                                   // cuda device time elapsed.
     uint64_t startTimestamp, endTimestamp;
     CUPTI_CALL(cuptiGetTimestamp(&startTimestamp));                             // We need time in ns for metrics.
 
@@ -566,7 +566,7 @@ int main( int argc, char **argv )
         CHECK_CUDA_ERROR( cudaMemcpyAsync( plan[i].h_Sum_from_device, plan[i].d_Sum, ACCUM_N * sizeof( float ), cudaMemcpyDeviceToHost, plan[i].stream ) );
         CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])), "cuCtxPopCurrent" );
     }
-    
+
     // Process GPU results
     printf( "Process GPU results on %d GPUs...\n", GPU_N ); fflush(stdout);
     for( i = 0; i < GPU_N; i++ ) {
@@ -592,7 +592,7 @@ int main( int argc, char **argv )
 
     double gpuTime = (ns_timeDuration/((double) 1000000.0));                    // convert to ms.
 
-    // Now, we must read the metric/event. 
+    // Now, we must read the metric/event.
     size_t size = 1024;
     uint64_t buffer[size];
 
@@ -610,11 +610,11 @@ int main( int argc, char **argv )
             printf("Device %i, Metric: ",i);                                    // prefix the printing...
             printMetricValue(metricId, metricValue, NameToCollect);             // Print "name = value\n".
         } else {                                                                // If we have just an event.
-            readEventGroup(eg[i], device[i], 
+            readEventGroup(eg[i], device[i],
                 1, &eventId,                                                    // just 1 event.
                 &buffer[i]);
             printf( "CUPTI %s device %d counterValue %u (on one domain, "
-                    "may need to be multiplied by num of domains)\n", 
+                    "may need to be multiplied by num of domains)\n",
                     NameToCollect, i, buffer[i] );
         } // end if metric else event.
 
@@ -653,7 +653,7 @@ int main( int argc, char **argv )
     for( i = 0; i < GPU_N; i++ ) {
         CHECK_CUDA_ERROR( cudaSetDevice(i) );
         CHECK_CU_ERROR(cuCtxPushCurrent(ctx[i]), "cuCtxPushCurrent");
-        CHECK_CUDA_ERROR( cudaStreamSynchronize(plan[i].stream) ); 
+        CHECK_CUDA_ERROR( cudaStreamSynchronize(plan[i].stream) );
         CHECK_CUDA_ERROR( cudaFreeHost( plan[i].h_Sum_from_device ) );
         CHECK_CUDA_ERROR( cudaFree( plan[i].d_Sum ) );
         CHECK_CUDA_ERROR( cudaFree( plan[i].d_Data ) );
@@ -664,4 +664,3 @@ int main( int argc, char **argv )
 
     exit( ( diff < 1e-5 ) ? EXIT_SUCCESS : EXIT_FAILURE );
 }
-

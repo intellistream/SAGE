@@ -60,7 +60,7 @@ Server::Server(const std::string& p_address,
     }
 
     StartAccept();
- 
+
     m_threadPool.reserve(p_threadNum);
     for (std::size_t i = 0; i < p_threadNum; ++i)
     {

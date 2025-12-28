@@ -117,7 +117,7 @@ int main (int argc, char **argv)
 
 	   retval = PAPI_cleanup_eventset( EventSet );
 	   if (retval != PAPI_OK) {
-	      test_fail(__FILE__, __LINE__, 
+	      test_fail(__FILE__, __LINE__,
                               "PAPI_cleanup_eventset()",retval);
 	   }
 
@@ -139,4 +139,3 @@ int main (int argc, char **argv)
 
 	return 0;
 }
-

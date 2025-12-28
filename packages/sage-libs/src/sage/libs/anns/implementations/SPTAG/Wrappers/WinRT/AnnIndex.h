@@ -48,7 +48,7 @@ namespace winrt::SPTAG::implementation
       sptag::SetLogger(std::make_shared<sptag::Helper::SimpleLogger>(sptag::Helper::LogLevel::LL_Empty));
       m_index = sptag::VectorIndex::CreateInstance(sptag::IndexAlgoType::BKT, sptag::GetEnumValueType<float>());
     }
-    
+
     void AddWithMetadata(array_view<float const> data, array_view<uint8_t const> metadata);
 
     void Save(winrt::Windows::Storage::StorageFile file);

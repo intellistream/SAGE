@@ -38,7 +38,7 @@ struct fastGraph
  	float** dataset = nullptr;
     float** hashval = nullptr;
     hashPair** hashTables = nullptr;
-    divGraph* myhash = nullptr;//for computing q's hash values 
+    divGraph* myhash = nullptr;//for computing q's hash values
  	//size_t max_elements_;
  	const size_t sint = sizeof(int);
  	threadPoollib::VisitedListPool* visited_list_pool_ = nullptr;
@@ -105,7 +105,7 @@ struct fastGraph
  #ifdef USE_SSE
  		_mm_prefetch((char*)(q->queryPoint), _MM_HINT_T0);
  #endif
-		
+
  		int currObj = 0;
  		int ep_id = 0;
  		dist_t curdist = cal_dist(q->queryPoint, dataset[ep_id], dim);
@@ -195,7 +195,7 @@ struct fastGraph
  		}
 
  		q->timeTotal = timer.elapsed();
-		
+
  	}
 
     zint getZ(float* _h)
@@ -241,7 +241,7 @@ struct fastGraph
         q->hashval = myhash->calHash(q->queryPoint);
         //std::vector<bool> flag_(N, false);
         //std::vector<float> visitedDists(N);
-        
+
         //std::priority_queue<Res> candTable;
         //Res res_pair;
 
@@ -367,7 +367,7 @@ struct fastGraph
 
  	void knn(queryN* q) {
         lsh::timer timer;
-        
+
         //entryHeap pqEntries;
         std::priority_queue<Res> candTable;
         std::vector<bool> flag_(N, false);
@@ -466,7 +466,7 @@ struct fastGraph
                         q->prunings++;
                     }
 
-                    
+
                 }
             }
         }
@@ -520,7 +520,7 @@ struct fastGraph
         //std::priority_queue<std::pair<dist_t, tableint>, std::vector<std::pair<dist_t, tableint>>, CompareByFirst> top_candidates;
         //std::priority_queue<std::pair<dist_t, tableint>, std::vector<std::pair<dist_t, tableint>>, CompareByFirst> candidate_set;
 
-        
+
         size_t size_c = 0;
 
         while (!candTable.empty()) {

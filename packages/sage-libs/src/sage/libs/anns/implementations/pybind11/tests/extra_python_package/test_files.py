@@ -142,9 +142,7 @@ def normalize_line_endings(value: bytes) -> bytes:
 def test_build_sdist(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
 
-    subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", f"--outdir={tmpdir}"], check=True
-    )
+    subprocess.run([sys.executable, "-m", "build", "--sdist", f"--outdir={tmpdir}"], check=True)
 
     (sdist,) = tmpdir.visit("*.tar.gz")
 
@@ -156,14 +154,9 @@ def test_build_sdist(monkeypatch, tmpdir):
         setup_py = read_tz_file(tar, "setup.py")
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
         pkgconfig = read_tz_file(tar, "pybind11/share/pkgconfig/pybind11.pc")
-        cmake_cfg = read_tz_file(
-            tar, "pybind11/share/cmake/pybind11/pybind11Config.cmake"
-        )
+        cmake_cfg = read_tz_file(tar, "pybind11/share/cmake/pybind11/pybind11Config.cmake")
 
-    assert (
-        'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")'
-        in cmake_cfg.decode("utf-8")
-    )
+    assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmake_cfg.decode("utf-8")
 
     files = {f"pybind11/{n}" for n in all_files}
     files |= sdist_files
@@ -192,9 +185,7 @@ def test_build_sdist(monkeypatch, tmpdir):
 def test_build_global_dist(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
-    subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmpdir)], check=True
-    )
+    subprocess.run([sys.executable, "-m", "build", "--sdist", "--outdir", str(tmpdir)], check=True)
 
     (sdist,) = tmpdir.visit("*.tar.gz")
 
@@ -206,14 +197,9 @@ def test_build_global_dist(monkeypatch, tmpdir):
         setup_py = read_tz_file(tar, "setup.py")
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
         pkgconfig = read_tz_file(tar, "pybind11/share/pkgconfig/pybind11.pc")
-        cmake_cfg = read_tz_file(
-            tar, "pybind11/share/cmake/pybind11/pybind11Config.cmake"
-        )
+        cmake_cfg = read_tz_file(tar, "pybind11/share/cmake/pybind11/pybind11Config.cmake")
 
-    assert (
-        'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")'
-        in cmake_cfg.decode("utf-8")
-    )
+    assert 'set(pybind11_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")' in cmake_cfg.decode("utf-8")
 
     files = {f"pybind11/{n}" for n in all_files}
     files |= sdist_files
@@ -240,9 +226,7 @@ def test_build_global_dist(monkeypatch, tmpdir):
 def tests_build_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
 
-    subprocess.run(
-        [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)], check=True
-    )
+    subprocess.run([sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)], check=True)
 
     (wheel,) = tmpdir.visit("*.whl")
 
@@ -268,9 +252,7 @@ def tests_build_global_wheel(monkeypatch, tmpdir):
     monkeypatch.chdir(MAIN_DIR)
     monkeypatch.setenv("PYBIND11_GLOBAL_SDIST", "1")
 
-    subprocess.run(
-        [sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)], check=True
-    )
+    subprocess.run([sys.executable, "-m", "pip", "wheel", ".", "-w", str(tmpdir)], check=True)
 
     (wheel,) = tmpdir.visit("*.whl")
 

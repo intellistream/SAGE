@@ -89,4 +89,3 @@ struct IndexConf {
 };
 
 } //namesapce puck
-

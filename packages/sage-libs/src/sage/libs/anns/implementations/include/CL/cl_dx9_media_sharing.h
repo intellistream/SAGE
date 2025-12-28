@@ -253,4 +253,3 @@ typedef cl_int (CL_API_CALL *
 #endif
 
 #endif  /* __OPENCL_CL_DX9_MEDIA_SHARING_H */
-

@@ -3,11 +3,11 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from distutils.version import LooseVersion
-import platform
-import subprocess
 import logging
 import os
+import platform
+import subprocess
+from distutils.version import LooseVersion
 
 
 def supported_instruction_sets():
@@ -25,9 +25,11 @@ def supported_instruction_sets():
     {"NEON", "ASIMD", ...}
     """
     import numpy
+
     if LooseVersion(numpy.__version__) >= "1.19":
         # use private API as next-best thing until numpy/numpy#18058 is solved
         from numpy.core._multiarray_umath import __cpu_features__
+
         # __cpu_features__ is a dictionary with CPU features
         # as keys, and True / False as values
         supported = {k for k, v in __cpu_features__.items() if v}
@@ -37,14 +39,15 @@ def supported_instruction_sets():
 
     # platform-dependent legacy fallback before numpy 1.19, no windows
     if platform.system() == "Darwin":
-        if subprocess.check_output(["/usr/sbin/sysctl", "hw.optional.avx2_0"])[-1] == '1':
+        if subprocess.check_output(["/usr/sbin/sysctl", "hw.optional.avx2_0"])[-1] == "1":
             return {"AVX2"}
     elif platform.system() == "Linux":
         import numpy.distutils.cpuinfo
+
         result = set()
-        if "avx2" in numpy.distutils.cpuinfo.cpu.info[0].get('flags', ""):
+        if "avx2" in numpy.distutils.cpuinfo.cpu.info[0].get("flags", ""):
             result.add("AVX2")
-        if "avx512" in numpy.distutils.cpuinfo.cpu.info[0].get('flags', ""):
+        if "avx512" in numpy.distutils.cpuinfo.cpu.info[0].get("flags", ""):
             result.add("AVX512")
         return result
     return set()
@@ -59,8 +62,10 @@ opt_env_variable_name = "FAISS_OPT_LEVEL"
 opt_level = os.environ.get(opt_env_variable_name, None)
 
 if opt_level is None:
-    logger.debug(f"Environment variable {opt_env_variable_name} is not set, " \
-                "so let's pick the instruction set according to the current CPU")
+    logger.debug(
+        f"Environment variable {opt_env_variable_name} is not set, "
+        "so let's pick the instruction set according to the current CPU"
+    )
     instruction_sets = supported_instruction_sets()
 else:
     logger.debug(f"Using {opt_level} as an instruction set.")
@@ -73,6 +78,7 @@ if has_AVX512:
     try:
         logger.info("Loading faiss with AVX512 support.")
         from .swigfaiss_avx512 import *
+
         logger.info("Successfully loaded faiss with AVX512 support.")
         loaded = True
     except ImportError as e:
@@ -85,6 +91,7 @@ if has_AVX2 and not loaded:
     try:
         logger.info("Loading faiss with AVX2 support.")
         from .swigfaiss_avx2 import *
+
         logger.info("Successfully loaded faiss with AVX2 support.")
         loaded = True
     except ImportError as e:
@@ -96,4 +103,5 @@ if not loaded:
     # we import * so that the symbol X can be accessed as faiss.X
     logger.info("Loading faiss.")
     from .swigfaiss import *
+
     logger.info("Successfully loaded faiss.")

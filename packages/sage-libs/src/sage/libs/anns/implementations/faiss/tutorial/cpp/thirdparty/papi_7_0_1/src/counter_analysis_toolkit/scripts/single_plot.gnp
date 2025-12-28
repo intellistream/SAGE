@@ -89,4 +89,3 @@ plot \
      FILE every :::5::5 using 1:2 w lp ls 1
 
 unset multiplot
-

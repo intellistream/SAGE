@@ -1,4 +1,4 @@
-/* 
+/*
 * File:    perfctr-x86.c
 * Author:  Brian Sheely
 *          bsheely@eecs.utk.edu
@@ -543,7 +543,7 @@ clear_cs_events( hwd_control_state_t * this_state )
 #endif
 }
 
-/* This function clears the current contents of the control structure and 
+/* This function clears the current contents of the control structure and
    updates it with whatever resources are allocated for all the native events
    in the native info structure array. */
 static int
@@ -573,8 +573,8 @@ _x86_update_control_state( hwd_control_state_t * this_state,
 			cpu_control->evntsel_aux[i] |= bits->event;
 
 			/* pebs_enable and pebs_matrix_vert are shared registers used for replay_events.
-			   Replay_events count L1 and L2 cache events. There is only one of each for 
-			   the entire eventset. Therefore, there can be only one unique replay_event 
+			   Replay_events count L1 and L2 cache events. There is only one of each for
+			   the entire eventset. Therefore, there can be only one unique replay_event
 			   per eventset. This means L1 and L2 can't be counted together. Which stinks.
 			   This conflict should be trapped in the allocation scheme, but we'll test for it
 			   here too, just in case. */
@@ -1012,7 +1012,7 @@ _pfm_get_counter_info( unsigned int event, unsigned int *selector, int *code )
 }
 
 int
-_papi_libpfm_ntv_code_to_bits_perfctr( unsigned int EventCode, 
+_papi_libpfm_ntv_code_to_bits_perfctr( unsigned int EventCode,
 				       hwd_register_t *newbits )
 {
     unsigned int event, umask;
@@ -1090,32 +1090,32 @@ _papi_libpfm_ntv_code_to_bits_perfctr( unsigned int EventCode,
        cccr_value.bits.reserved1 = 0;
        cccr_value.bits.enable = 1;
        cccr_value.bits.escr_select = pentium4_events[event].escr_select;
-       cccr_value.bits.active_thread = 3;	
+       cccr_value.bits.active_thread = 3;
        /* FIXME: This is set to count when either logical
 	*        CPU is active. Need a way to distinguish
 	*        between logical CPUs when HT is enabled.
-        *        the docs say these bits should always 
+        *        the docs say these bits should always
 	*        be set.                                  */
-       cccr_value.bits.compare = 0;	
+       cccr_value.bits.compare = 0;
        /* FIXME: What do we do with "threshold" settings? */
-       cccr_value.bits.complement = 0;	
+       cccr_value.bits.complement = 0;
        /* FIXME: What do we do with "threshold" settings? */
-       cccr_value.bits.threshold = 0;	
+       cccr_value.bits.threshold = 0;
        /* FIXME: What do we do with "threshold" settings? */
-       cccr_value.bits.force_ovf = 0;	
+       cccr_value.bits.force_ovf = 0;
        /* FIXME: Do we want to allow "forcing" overflow
        	*        interrupts on all counter increments? */
        cccr_value.bits.ovf_pmi_t0 = 0;
-       cccr_value.bits.ovf_pmi_t1 = 0;	
+       cccr_value.bits.ovf_pmi_t1 = 0;
        /* PMI taken care of by kernel typically */
        cccr_value.bits.reserved2 = 0;
-       cccr_value.bits.cascade = 0;	
+       cccr_value.bits.cascade = 0;
        /* FIXME: How do we handle "cascading" counters? */
        cccr_value.bits.overflow = 0;
 
        /* these flags are always zero, from what I can tell... */
        bits->pebs_enable = 0;	/* flag for PEBS counting */
-       bits->pebs_matrix_vert = 0;	
+       bits->pebs_matrix_vert = 0;
        /* flag for PEBS_MATRIX_VERT, whatever that is */
 
        /* ...unless the event is replay_event */
@@ -1215,5 +1215,3 @@ papi_vector_t _perfctr_vector = {
 	.ntv_code_to_bits  = _papi_libpfm_ntv_code_to_bits_perfctr,
 
 };
-
-

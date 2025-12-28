@@ -171,7 +171,7 @@ main(int argc, char **argv)
 	 */
 	range_start = (unsigned long)test_data;
 	range_end   = range_start + sizeof(test_data_t)*TEST_DATA_COUNT;
-	
+
 	memset(pd, 0, sizeof(pd));
 	memset(pc, 0, sizeof(pc));
 

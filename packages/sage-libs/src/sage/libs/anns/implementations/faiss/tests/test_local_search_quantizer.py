@@ -7,11 +7,10 @@
 Tests for the implementation of Local Search Quantizer
 """
 
-import numpy as np
-
-import faiss
 import unittest
 
+import faiss
+import numpy as np
 from faiss.contrib import datasets
 
 faiss.omp_set_num_threads(4)
@@ -49,8 +48,8 @@ def compute_binary_terms_ref(codebooks):
     M, K, d = codebooks.shape
 
     codebooks_t = np.swapaxes(codebooks, 1, 2)  # [M, d, K]
-    binaries = 2 * codebooks.dot(codebooks_t)   # [M, K, M, K]
-    binaries = np.swapaxes(binaries, 1, 2)      # [M, M, K, K]
+    binaries = 2 * codebooks.dot(codebooks_t)  # [M, K, M, K]
+    binaries = np.swapaxes(binaries, 1, 2)  # [M, M, K, K]
 
     return binaries
 
@@ -117,14 +116,13 @@ def icm_encode_ref(x, codebooks, codes):
 
 
 class TestComponents(unittest.TestCase):
-
     def test_decode(self):
         """Test LSQ decode"""
         d = 16
         n = 500
         M = 4
         nbits = 6
-        K = (1 << nbits)
+        K = 1 << nbits
 
         rs = np.random.RandomState(123)
         x = rs.rand(n, d).astype(np.float32)
@@ -151,7 +149,7 @@ class TestComponents(unittest.TestCase):
         n = 500
         M = 4
         nbits = 6
-        K = (1 << nbits)
+        K = 1 << nbits
 
         # set a larger value to make the updating process more stable
         lambd = 1e-2
@@ -204,7 +202,7 @@ class TestComponents(unittest.TestCase):
         n = 500
         M = 4
         nbits = 6
-        K = (1 << nbits)
+        K = 1 << nbits
 
         rs = np.random.RandomState(123)
         x = rs.rand(n, d).astype(np.float32)
@@ -226,7 +224,7 @@ class TestComponents(unittest.TestCase):
         n = 500
         M = 4
         nbits = 6
-        K = (1 << nbits)
+        K = 1 << nbits
 
         rs = np.random.RandomState(123)
         x = rs.rand(n, d).astype(np.float32)
@@ -248,7 +246,7 @@ class TestComponents(unittest.TestCase):
         n = 500
         M = 4
         nbits = 6
-        K = (1 << nbits)
+        K = 1 << nbits
 
         rs = np.random.RandomState(123)
 
@@ -270,12 +268,7 @@ class TestComponents(unittest.TestCase):
 
         # do icm encoding given binary and unary terms
         lsq = faiss.LocalSearchQuantizer(d, M, nbits)
-        lsq.icm_encode_step(
-            sp(new_codes),
-            sp(unaries),
-            sp(binaries),
-            n,
-            1)
+        lsq.icm_encode_step(sp(new_codes), sp(unaries), sp(binaries), n, 1)
 
         # do icm encoding given binary and unary terms in Python
         ref_codes = icm_encode_step_ref(unaries, binaries, codes)
@@ -286,7 +279,7 @@ class TestComponents(unittest.TestCase):
         n = 500
         M = 4
         nbits = 4
-        K = (1 << nbits)
+        K = 1 << nbits
 
         rs = np.random.RandomState(123)
         x = rs.rand(n, d).astype(np.float32)
@@ -307,12 +300,7 @@ class TestComponents(unittest.TestCase):
         new_codes = codes.copy()
 
         # do icm encoding given binary and unary terms
-        lsq.icm_encode_step(
-            sp(new_codes),
-            sp(unaries),
-            sp(binaries),
-            n,
-            1)
+        lsq.icm_encode_step(sp(new_codes), sp(unaries), sp(binaries), n, 1)
 
         # do icm encoding without pre-computed unary and bianry terms in Python
         codebooks = faiss.vector_float_to_array(lsq.codebooks)
@@ -329,7 +317,6 @@ def eval_codec(q, xb):
 
 
 class TestLocalSearchQuantizer(unittest.TestCase):
-
     def test_training(self):
         """check that the error is in the same ballpark as PQ."""
         ds = datasets.SyntheticDataset(32, 3000, 3000, 0)
@@ -353,7 +340,6 @@ class TestLocalSearchQuantizer(unittest.TestCase):
 
 
 class TestIndexLocalSearchQuantizer(unittest.TestCase):
-
     def test_IndexLocalSearchQuantizer(self):
         ds = datasets.SyntheticDataset(32, 1000, 200, 100)
         gt = ds.get_groundtruth(10)
@@ -368,8 +354,7 @@ class TestIndexLocalSearchQuantizer(unittest.TestCase):
         self.assertGreater(inter_ref, 460)
 
         AQ = faiss.AdditiveQuantizer
-        ir2 = faiss.IndexLocalSearchQuantizer(
-            ds.d, 4, 5, faiss.METRIC_L2, AQ.ST_norm_float)
+        ir2 = faiss.IndexLocalSearchQuantizer(ds.d, 4, 5, faiss.METRIC_L2, AQ.ST_norm_float)
 
         ir2.train(ds.get_train())  # just to set flags properly
         ir2.lsq.codebooks = ir.lsq.codebooks
@@ -412,42 +397,25 @@ class TestIndexLocalSearchQuantizer(unittest.TestCase):
         index = faiss.index_factory(20, "LSQ5x6_Nqint8")
         self.assertEqual(index.lsq.M, 5)
         self.assertEqual(index.lsq.K, 1 << 6)
-        self.assertEqual(
-            index.lsq.search_type,
-            faiss.AdditiveQuantizer.ST_norm_qint8
-        )
+        self.assertEqual(index.lsq.search_type, faiss.AdditiveQuantizer.ST_norm_qint8)
 
         index = faiss.index_factory(20, "LSQ5x6_Ncqint8")
-        self.assertEqual(
-            index.lsq.search_type,
-            faiss.AdditiveQuantizer.ST_norm_cqint8
-        )
+        self.assertEqual(index.lsq.search_type, faiss.AdditiveQuantizer.ST_norm_cqint8)
 
         index = faiss.index_factory(20, "LSQ5x6_Ncqint4")
-        self.assertEqual(
-            index.lsq.search_type,
-            faiss.AdditiveQuantizer.ST_norm_cqint4
-        )
-
+        self.assertEqual(index.lsq.search_type, faiss.AdditiveQuantizer.ST_norm_cqint4)
 
 
 class TestIndexIVFLocalSearchQuantizer(unittest.TestCase):
-
     def test_factory(self):
         index = faiss.index_factory(20, "IVF1024,LSQ5x6_Nqint8")
         self.assertEqual(index.nlist, 1024)
         self.assertEqual(index.lsq.M, 5)
         self.assertEqual(index.lsq.K, 1 << 6)
-        self.assertEqual(
-            index.lsq.search_type,
-            faiss.AdditiveQuantizer.ST_norm_qint8
-        )
+        self.assertEqual(index.lsq.search_type, faiss.AdditiveQuantizer.ST_norm_qint8)
 
         index = faiss.index_factory(20, "IVF1024,LSQ5x6_Ncqint8")
-        self.assertEqual(
-            index.lsq.search_type,
-            faiss.AdditiveQuantizer.ST_norm_cqint8
-        )
+        self.assertEqual(index.lsq.search_type, faiss.AdditiveQuantizer.ST_norm_cqint8)
 
     def eval_index_accuracy(self, factory_key):
         # just do a single test, most search functions are already stress
@@ -508,7 +476,6 @@ class TestIndexIVFLocalSearchQuantizer(unittest.TestCase):
 
 
 class TestProductLocalSearchQuantizer(unittest.TestCase):
-
     def test_codec(self):
         """check that the error is in the same ballpark as PQ."""
         ds = datasets.SyntheticDataset(64, 3000, 3000, 0)
@@ -585,7 +552,6 @@ class TestProductLocalSearchQuantizer(unittest.TestCase):
 
 
 class TestIndexProductLocalSearchQuantizer(unittest.TestCase):
-
     def test_accuracy1(self):
         """check that the error is in the same ballpark as LSQ."""
         recall1 = self.eval_index_accuracy("PLSQ4x3x5_Nqint8")
@@ -631,7 +597,6 @@ class TestIndexProductLocalSearchQuantizer(unittest.TestCase):
 
 
 class TestIndexIVFProductLocalSearchQuantizer(unittest.TestCase):
-
     def eval_index_accuracy(self, factory_key):
         ds = datasets.SyntheticDataset(32, 1000, 1000, 100)
         index = faiss.index_factory(ds.d, factory_key)

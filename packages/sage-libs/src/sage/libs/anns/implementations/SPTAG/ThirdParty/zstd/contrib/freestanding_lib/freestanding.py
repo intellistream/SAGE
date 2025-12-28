@@ -10,13 +10,11 @@
 # ##########################################################################
 
 import argparse
-import contextlib
 import os
 import re
 import shutil
 import sys
 from typing import Optional
-
 
 INCLUDED_SUBDIRS = ["common", "compress", "decompress"]
 
@@ -38,10 +36,10 @@ XXHASH_FILES = [
 ]
 
 
-class FileLines(object):
+class FileLines:
     def __init__(self, filename):
         self.filename = filename
-        with open(self.filename, "r") as f:
+        with open(self.filename) as f:
             self.lines = f.readlines()
 
     def write(self):
@@ -49,7 +47,7 @@ class FileLines(object):
             f.write("".join(self.lines))
 
 
-class PartialPreprocessor(object):
+class PartialPreprocessor:
     """
     Looks for simple ifdefs and ifndefs and replaces them.
     Handles && and ||.
@@ -58,13 +56,14 @@ class PartialPreprocessor(object):
     parens.
     Does not handle multi-line macros (only looks in first line).
     """
+
     def __init__(self, defs: [(str, Optional[str])], replaces: [(str, str)], undefs: [str]):
         MACRO_GROUP = r"(?P<macro>[a-zA-Z_][a-zA-Z_0-9]*)"
         ELIF_GROUP = r"(?P<elif>el)?"
         OP_GROUP = r"(?P<op>&&|\|\|)?"
 
-        self._defs = {macro:value for macro, value in defs}
-        self._replaces = {macro:value for macro, value in replaces}
+        self._defs = {macro: value for macro, value in defs}
+        self._replaces = {macro: value for macro, value in replaces}
         self._defs.update(self._replaces)
         self._undefs = set(undefs)
 
@@ -74,22 +73,20 @@ class PartialPreprocessor(object):
         self._else = re.compile(r"\s*#\s*(?P<else>else)")
         self._endif = re.compile(r"\s*#\s*endif")
 
-        self._ifdef = re.compile(fr"\s*#\s*if(?P<not>n)?def {MACRO_GROUP}\s*")
+        self._ifdef = re.compile(rf"\s*#\s*if(?P<not>n)?def {MACRO_GROUP}\s*")
         self._if_defined = re.compile(
-            fr"\s*#\s*{ELIF_GROUP}if\s+(?P<not>!)?\s*defined\s*\(\s*{MACRO_GROUP}\s*\)\s*{OP_GROUP}"
+            rf"\s*#\s*{ELIF_GROUP}if\s+(?P<not>!)?\s*defined\s*\(\s*{MACRO_GROUP}\s*\)\s*{OP_GROUP}"
         )
         self._if_defined_value = re.compile(
-            fr"\s*#\s*{ELIF_GROUP}if\s+defined\s*\(\s*{MACRO_GROUP}\s*\)\s*"
-            fr"(?P<op>&&)\s*"
-            fr"(?P<openp>\()?\s*"
-            fr"(?P<macro2>[a-zA-Z_][a-zA-Z_0-9]*)\s*"
-            fr"(?P<cmp>[=><!]+)\s*"
-            fr"(?P<value>[0-9]*)\s*"
-            fr"(?P<closep>\))?\s*"
+            rf"\s*#\s*{ELIF_GROUP}if\s+defined\s*\(\s*{MACRO_GROUP}\s*\)\s*"
+            rf"(?P<op>&&)\s*"
+            rf"(?P<openp>\()?\s*"
+            rf"(?P<macro2>[a-zA-Z_][a-zA-Z_0-9]*)\s*"
+            rf"(?P<cmp>[=><!]+)\s*"
+            rf"(?P<value>[0-9]*)\s*"
+            rf"(?P<closep>\))?\s*"
         )
-        self._if_true = re.compile(
-            fr"\s*#\s*{ELIF_GROUP}if\s+{MACRO_GROUP}\s*{OP_GROUP}"
-        )
+        self._if_true = re.compile(rf"\s*#\s*{ELIF_GROUP}if\s+{MACRO_GROUP}\s*{OP_GROUP}")
 
         self._c_comment = re.compile(r"/\*.*?\*/")
         self._cpp_comment = re.compile(r"//")
@@ -103,12 +100,12 @@ class PartialPreprocessor(object):
             m = self._c_comment.search(line)
             if m is None:
                 break
-            line = line[:m.start()] + line[m.end():]
+            line = line[: m.start()] + line[m.end() :]
 
         # Then strip cpp-style comments
         m = self._cpp_comment.search(line)
         if m is not None:
-            line = line[:m.start()]
+            line = line[: m.start()]
 
         return line
 
@@ -119,10 +116,9 @@ class PartialPreprocessor(object):
             # If there is only one line, only replace defines
             return replace
 
-
         all_pound = True
         for line in replace:
-            if not line.startswith('#'):
+            if not line.startswith("#"):
                 all_pound = False
         if all_pound:
             replace = [line[1:] for line in replace]
@@ -131,9 +127,9 @@ class PartialPreprocessor(object):
         for line in replace:
             spaces = 0
             for i, c in enumerate(line):
-                if c != ' ':
+                if c != " ":
                     # Non-preprocessor line ==> skip the fixup
-                    if not all_pound and c != '#':
+                    if not all_pound and c != "#":
                         return replace
                     spaces = i
                     break
@@ -202,12 +198,12 @@ class PartialPreprocessor(object):
             if state == KEEP_ONE:
                 m = self._elif.match(line)
                 if self._endif.match(line):
-                    replace += self._inlines[start_idx + 1:idx]
+                    replace += self._inlines[start_idx + 1 : idx]
                     idx += 1
                     finished = True
                     break
                 if self._elif.match(line) or self._else.match(line):
-                    replace += self._inlines[start_idx + 1:idx]
+                    replace += self._inlines[start_idx + 1 : idx]
                     state = REMOVE_REST
                 idx += 1
                 continue
@@ -217,8 +213,8 @@ class PartialPreprocessor(object):
                 if m is not None:
                     if is_if:
                         idx += 1
-                        b = m.start('elif')
-                        e = m.end('elif')
+                        b = m.start("elif")
+                        e = m.end("elif")
                         assert e - b == 2
                         replace.append(line[:b] + line[e:])
                     finished = True
@@ -273,15 +269,15 @@ class PartialPreprocessor(object):
                 m = self._if_defined.match(sline)
             if m is None:
                 m = self._if_true.match(sline)
-                if_true = (m is not None)
+                if_true = m is not None
             if m is None:
                 outlines.append(line)
                 idx += 1
                 continue
 
             groups = m.groupdict()
-            macro = groups['macro']
-            op = groups.get('op')
+            macro = groups["macro"]
+            op = groups.get("op")
 
             if not (macro in self._defs or macro in self._undefs):
                 outlines.append(line)
@@ -310,36 +306,36 @@ class PartialPreprocessor(object):
                     is_int = False
 
                 resolved = is_int
-                is_true = (defined_value != 0)
+                is_true = defined_value != 0
 
                 if resolved and op is not None:
-                    if op == '&&':
+                    if op == "&&":
                         resolved = not is_true
                     else:
-                        assert op == '||'
+                        assert op == "||"
                         resolved = is_true
 
             else:
-                ifdef = groups.get('not') is None
-                elseif = groups.get('elif') is not None
+                ifdef = groups.get("not") is None
+                elseif = groups.get("elif") is not None
 
-                macro2 = groups.get('macro2')
-                cmp = groups.get('cmp')
-                value = groups.get('value')
-                openp = groups.get('openp')
-                closep = groups.get('closep')
+                macro2 = groups.get("macro2")
+                cmp = groups.get("cmp")
+                value = groups.get("value")
+                openp = groups.get("openp")
+                closep = groups.get("closep")
 
-                is_true = (ifdef == defined)
+                is_true = ifdef == defined
                 resolved = True
                 if op is not None:
-                    if op == '&&':
+                    if op == "&&":
                         resolved = not is_true
                     else:
-                        assert op == '||'
+                        assert op == "||"
                         resolved = is_true
 
                 if macro2 is not None and not resolved:
-                    assert ifdef and defined and op == '&&' and cmp is not None
+                    assert ifdef and defined and op == "&&" and cmp is not None
                     # If the statement is true, but we have a single value check, then
                     # check the value.
                     defined_value = self._defs[macro]
@@ -351,38 +347,34 @@ class PartialPreprocessor(object):
                         are_ints = False
                     except ValueError:
                         are_ints = False
-                    if (
-                            macro == macro2 and
-                            ((openp is None) == (closep is None)) and
-                            are_ints
-                    ):
+                    if macro == macro2 and ((openp is None) == (closep is None)) and are_ints:
                         resolved = True
-                        if cmp == '<':
+                        if cmp == "<":
                             is_true = defined_value < value
-                        elif cmp == '<=':
+                        elif cmp == "<=":
                             is_true = defined_value <= value
-                        elif cmp == '==':
+                        elif cmp == "==":
                             is_true = defined_value == value
-                        elif cmp == '!=':
+                        elif cmp == "!=":
                             is_true = defined_value != value
-                        elif cmp == '>=':
+                        elif cmp == ">=":
                             is_true = defined_value >= value
-                        elif cmp == '>':
+                        elif cmp == ">":
                             is_true = defined_value > value
                         else:
                             resolved = False
 
                 if op is not None and not resolved:
                     # Remove the first op in the line + spaces
-                    if op == '&&':
+                    if op == "&&":
                         opre = op
                     else:
-                        assert op == '||'
-                        opre = r'\|\|'
-                    needle = re.compile(fr"(?P<if>\s*#\s*(el)?if\s+).*?(?P<op>{opre}\s*)")
+                        assert op == "||"
+                        opre = r"\|\|"
+                    needle = re.compile(rf"(?P<if>\s*#\s*(el)?if\s+).*?(?P<op>{opre}\s*)")
                     match = needle.match(line)
                     assert match is not None
-                    newline = line[:match.end('if')] + line[match.end('op'):]
+                    newline = line[: match.end("if")] + line[match.end("op") :]
 
                     self._log(f"\tHardwiring partially resolved {macro}")
                     self._log(f"\t\t- {line[:-1]}")
@@ -412,7 +404,7 @@ class PartialPreprocessor(object):
         return changed, outlines
 
     def preprocess(self, filename):
-        with open(filename, 'r') as f:
+        with open(filename) as f:
             self._inlines = f.readlines()
         changed = True
         iters = 0
@@ -421,17 +413,27 @@ class PartialPreprocessor(object):
             changed, outlines = self._preprocess_once()
             self._inlines = outlines
 
-        with open(filename, 'w') as f:
-            f.write(''.join(self._inlines))
+        with open(filename, "w") as f:
+            f.write("".join(self._inlines))
 
 
-class Freestanding(object):
+class Freestanding:
     def __init__(
-            self, zstd_deps: str, mem: str, source_lib: str, output_lib: str,
-            external_xxhash: bool, xxh64_state: Optional[str],
-            xxh64_prefix: Optional[str], rewritten_includes: [(str, str)],
-            defs: [(str, Optional[str])], replaces: [(str, str)],
-            undefs: [str], excludes: [str], seds: [str], spdx: bool,
+        self,
+        zstd_deps: str,
+        mem: str,
+        source_lib: str,
+        output_lib: str,
+        external_xxhash: bool,
+        xxh64_state: Optional[str],
+        xxh64_prefix: Optional[str],
+        rewritten_includes: [(str, str)],
+        defs: [(str, Optional[str])],
+        replaces: [(str, str)],
+        undefs: [str],
+        excludes: [str],
+        seds: [str],
+        spdx: bool,
     ):
         self._zstd_deps = zstd_deps
         self._mem = mem
@@ -462,7 +464,7 @@ class Freestanding(object):
 
     def _copy_file(self, lib_path):
         suffixes = [".c", ".h", ".S"]
-        if not any((lib_path.endswith(suffix) for suffix in suffixes)):
+        if not any(lib_path.endswith(suffix) for suffix in suffixes):
             return
         if lib_path in SKIPPED_FILES:
             self._log(f"\tSkipping file: {lib_path}")
@@ -560,8 +562,8 @@ class Freestanding(object):
                 match = regex.match(line)
                 if match is None:
                     continue
-                s = match.start('include')
-                e = match.end('include')
+                s = match.start("include")
+                e = match.end("include")
                 file.lines[i] = line[:s] + rewritten + line[e:]
             file.write()
 
@@ -580,9 +582,7 @@ class Freestanding(object):
                 (re.compile(r"([^\w]|^)(?P<orig>XXH64_state_t)([^\w]|$)"), self._xxh64_state)
             )
         if self._xxh64_prefix is not None:
-            replacements.append(
-                (re.compile(r"([^\w]|^)(?P<orig>XXH64)[\(_]"), self._xxh64_prefix)
-            )
+            replacements.append((re.compile(r"([^\w]|^)(?P<orig>XXH64)[\(_]"), self._xxh64_prefix))
         for filepath in self._dst_lib_file_paths():
             file = FileLines(filepath)
             for i, line in enumerate(file.lines):
@@ -591,8 +591,8 @@ class Freestanding(object):
                     match = regex.search(line)
                     while match is not None:
                         modified = True
-                        b = match.start('orig')
-                        e = match.end('orig')
+                        b = match.start("orig")
+                        e = match.end("orig")
                         line = line[:b] + replacement + line[e:]
                         match = regex.search(line)
                 if modified:
@@ -602,13 +602,13 @@ class Freestanding(object):
             file.write()
 
     def _parse_sed(self, sed):
-        assert sed[0] == 's'
+        assert sed[0] == "s"
         delim = sed[1]
-        match = re.fullmatch(f's{delim}(.+){delim}(.*){delim}(.*)', sed)
+        match = re.fullmatch(f"s{delim}(.+){delim}(.*){delim}(.*)", sed)
         assert match is not None
         regex = re.compile(match.group(1))
         format_str = match.group(2)
-        is_global = match.group(3) == 'g'
+        is_global = match.group(3) == "g"
         return regex, format_str, is_global
 
     def _process_sed(self, sed):
@@ -623,7 +623,7 @@ class Freestanding(object):
                     match = regex.search(line)
                     if match is None:
                         break
-                    replacement = format_str.format(match.groups(''), match.groupdict(''))
+                    replacement = format_str.format(match.groups(""), match.groupdict(""))
                     b = match.start()
                     e = match.end()
                     line = line[:b] + replacement + line[e:]
@@ -653,7 +653,9 @@ class Freestanding(object):
                 continue
             for line in file.lines:
                 if "SPDX-License-Identifier" in line:
-                    raise RuntimeError(f"Unexpected SPDX license identifier: {file.filename} {repr(line)}")
+                    raise RuntimeError(
+                        f"Unexpected SPDX license identifier: {file.filename} {repr(line)}"
+                    )
             if file.filename.endswith(".c"):
                 file.lines.insert(0, SPDX_C)
             elif file.filename.endswith(".h") or file.filename.endswith(".S"):
@@ -661,8 +663,6 @@ class Freestanding(object):
             else:
                 raise RuntimeError(f"Unexpected file extension: {file.filename}")
             file.write()
-
-
 
     def go(self):
         self._copy_source_lib()
@@ -679,7 +679,7 @@ class Freestanding(object):
 def parse_optional_pair(defines: [str]) -> [(str, Optional[str])]:
     output = []
     for define in defines:
-        parsed = define.split('=')
+        parsed = define.split("=")
         if len(parsed) == 1:
             output.append((parsed[0], None))
         elif len(parsed) == 2:
@@ -692,7 +692,7 @@ def parse_optional_pair(defines: [str]) -> [(str, Optional[str])]:
 def parse_pair(rewritten_includes: [str]) -> [(str, str)]:
     output = []
     for rewritten_include in rewritten_includes:
-        parsed = rewritten_include.split('=')
+        parsed = rewritten_include.split("=")
         if len(parsed) == 2:
             output.append((parsed[0], parsed[1]))
         else:
@@ -700,23 +700,78 @@ def parse_pair(rewritten_includes: [str]) -> [(str, str)]:
     return output
 
 
-
 def main(name, args):
     parser = argparse.ArgumentParser(prog=name)
     parser.add_argument("--zstd-deps", default="zstd_deps.h", help="Zstd dependencies file")
     parser.add_argument("--mem", default="mem.h", help="Memory module")
     parser.add_argument("--source-lib", default="../../lib", help="Location of the zstd library")
-    parser.add_argument("--output-lib", default="./freestanding_lib", help="Where to output the freestanding zstd library")
-    parser.add_argument("--xxhash", default=None, help="Alternate external xxhash include e.g. --xxhash='<xxhash.h>'. If set xxhash is not included.")
-    parser.add_argument("--xxh64-state", default=None, help="Alternate XXH64 state type (excluding _) e.g. --xxh64-state='struct xxh64_state'")
-    parser.add_argument("--xxh64-prefix", default=None, help="Alternate XXH64 function prefix (excluding _) e.g. --xxh64-prefix=xxh64")
-    parser.add_argument("--rewrite-include", default=[], dest="rewritten_includes", action="append", help="Rewrite an include REGEX=NEW (e.g. '<stddef\\.h>=<linux/types.h>')")
-    parser.add_argument("--sed", default=[], dest="seds", action="append", help="Apply a sed replacement. Format: `s/REGEX/FORMAT/[g]`. REGEX is a Python regex. FORMAT is a Python format string formatted by the regex dict.")
+    parser.add_argument(
+        "--output-lib",
+        default="./freestanding_lib",
+        help="Where to output the freestanding zstd library",
+    )
+    parser.add_argument(
+        "--xxhash",
+        default=None,
+        help="Alternate external xxhash include e.g. --xxhash='<xxhash.h>'. If set xxhash is not included.",
+    )
+    parser.add_argument(
+        "--xxh64-state",
+        default=None,
+        help="Alternate XXH64 state type (excluding _) e.g. --xxh64-state='struct xxh64_state'",
+    )
+    parser.add_argument(
+        "--xxh64-prefix",
+        default=None,
+        help="Alternate XXH64 function prefix (excluding _) e.g. --xxh64-prefix=xxh64",
+    )
+    parser.add_argument(
+        "--rewrite-include",
+        default=[],
+        dest="rewritten_includes",
+        action="append",
+        help="Rewrite an include REGEX=NEW (e.g. '<stddef\\.h>=<linux/types.h>')",
+    )
+    parser.add_argument(
+        "--sed",
+        default=[],
+        dest="seds",
+        action="append",
+        help="Apply a sed replacement. Format: `s/REGEX/FORMAT/[g]`. REGEX is a Python regex. FORMAT is a Python format string formatted by the regex dict.",
+    )
     parser.add_argument("--spdx", action="store_true", help="Add SPDX License Identifiers")
-    parser.add_argument("-D", "--define", default=[], dest="defs", action="append", help="Pre-define this macro (can be passed multiple times)")
-    parser.add_argument("-U", "--undefine", default=[], dest="undefs", action="append", help="Pre-undefine this macro (can be passed multiple times)")
-    parser.add_argument("-R", "--replace", default=[], dest="replaces", action="append", help="Pre-define this macro and replace the first ifndef block with its definition")
-    parser.add_argument("-E", "--exclude", default=[], dest="excludes", action="append", help="Exclude all lines between 'BEGIN <EXCLUDE>' and 'END <EXCLUDE>'")
+    parser.add_argument(
+        "-D",
+        "--define",
+        default=[],
+        dest="defs",
+        action="append",
+        help="Pre-define this macro (can be passed multiple times)",
+    )
+    parser.add_argument(
+        "-U",
+        "--undefine",
+        default=[],
+        dest="undefs",
+        action="append",
+        help="Pre-undefine this macro (can be passed multiple times)",
+    )
+    parser.add_argument(
+        "-R",
+        "--replace",
+        default=[],
+        dest="replaces",
+        action="append",
+        help="Pre-define this macro and replace the first ifndef block with its definition",
+    )
+    parser.add_argument(
+        "-E",
+        "--exclude",
+        default=[],
+        dest="excludes",
+        action="append",
+        help="Exclude all lines between 'BEGIN <EXCLUDE>' and 'END <EXCLUDE>'",
+    )
     args = parser.parse_args(args)
 
     # Always remove threading
@@ -769,6 +824,7 @@ def main(name, args):
         args.seds,
         args.spdx,
     ).go()
+
 
 if __name__ == "__main__":
     main(sys.argv[0], sys.argv[1:])

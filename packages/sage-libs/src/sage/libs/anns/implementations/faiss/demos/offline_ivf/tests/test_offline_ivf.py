@@ -2,38 +2,27 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
-import unittest
-from utils import load_config
-from offline_ivf import OfflineIVF
-import pathlib as pl
-import tempfile
-import shutil
 import os
-from typing import List
-from tests.testing_utils import TestDataCreator
+import pathlib as pl
+import shutil
+import tempfile
+import unittest
+
+import numpy as np
 from run import process_options_and_run_jobs
+from tests.testing_utils import TestDataCreator
+from utils import load_config
 
 INDEX_TEMPLATE_FILE: str = "/tests/test_data/IVF256_PQ4.empty.faissindex"
-OPQ_INDEX_TEMPLATE_FILE: str = (
-    "/tests/test_data/OPQ4_IVF256_PQ4.empty.faissindex"
-)
-KNN_RESULTS_FILE: str = (
-    "/my_test_data_in_my_test_data/knn/I0000000000_IVF256_PQ4_np2.npy"
-)
+OPQ_INDEX_TEMPLATE_FILE: str = "/tests/test_data/OPQ4_IVF256_PQ4.empty.faissindex"
+KNN_RESULTS_FILE: str = "/my_test_data_in_my_test_data/knn/I0000000000_IVF256_PQ4_np2.npy"
 TEST_INDEX_A: str = "/tests/test_data/goku_lang/IVF256_PQ4.faissindex"
-TEST_INDEX_DATA_A: str = (
-    "/tests/test_data/goku_lang/IVF256_PQ4.faissindex.ivfdata"
-)
+TEST_INDEX_DATA_A: str = "/tests/test_data/goku_lang/IVF256_PQ4.faissindex.ivfdata"
 TEST_INDEX_B: str = "/tests/test_data/coco_lang/IVF256_PQ4.faissindex"
-TEST_INDEX_DATA_B: str = (
-    "/tests/test_data/coco_lang/IVF256_PQ4.faissindex.ivfdata"
-)
+TEST_INDEX_DATA_B: str = "/tests/test_data/coco_lang/IVF256_PQ4.faissindex.ivfdata"
 TEST_INDEX_OPQ: str = "/tests/test_data/goku_lang/OPQ4_IVF256_PQ4.faissindex"
-TEST_INDEX_DATA_OPQ: str = (
-    "/tests/test_data/goku_lang/OPQ4_IVF256_PQ4.faissindex.ivfdata"
-)
-A_INDEX_FILES: List[str] = [
+TEST_INDEX_DATA_OPQ: str = "/tests/test_data/goku_lang/OPQ4_IVF256_PQ4.faissindex.ivfdata"
+A_INDEX_FILES: list[str] = [
     "I_a_gt.npy",
     "D_a_gt.npy",
     "vecs_a.npy",
@@ -42,7 +31,7 @@ A_INDEX_FILES: List[str] = [
     "D_a_ann_refined_IVF256_PQ4_np2.npy",
 ]
 
-A_INDEX_OPQ_FILES: List[str] = [
+A_INDEX_OPQ_FILES: list[str] = [
     "I_a_gt.npy",
     "D_a_gt.npy",
     "vecs_a.npy",
@@ -51,7 +40,7 @@ A_INDEX_OPQ_FILES: List[str] = [
     "D_a_ann_refined_OPQ4_IVF256_PQ4_np200.npy",
 ]
 
-B_INDEX_FILES: List[str] = [
+B_INDEX_FILES: list[str] = [
     "I_b_gt.npy",
     "vecs_b_gt.npy",
     "vecs_b_ann_IVF256_PQ4_np2.npy",
@@ -90,9 +79,7 @@ class TestOIVF(unittest.TestCase):
             )
             data_creator.create_test_data()
             test_args = data_creator.setup_cli("consistency_check")
-            self.assertRaises(
-                AssertionError, process_options_and_run_jobs, test_args
-            )
+            self.assertRaises(AssertionError, process_options_and_run_jobs, test_args)
 
     def test_train_index(self) -> None:
         """
@@ -223,10 +210,7 @@ class TestOIVF(unittest.TestCase):
             os.makedirs(tmpdirname + "/my_test_data/", exist_ok=True)
             num_files = 3
             for i in range(num_files):
-                test_index_shard = (
-                    os.getcwd()
-                    + f"/tests/test_data/goku_lang/IVF256_PQ4.shard_{i}"
-                )
+                test_index_shard = os.getcwd() + f"/tests/test_data/goku_lang/IVF256_PQ4.shard_{i}"
                 shutil.copy(test_index_shard, tmpdirname + "/my_test_data/")
             file_size = 10000
             query_batch_size = 10000
@@ -416,9 +400,7 @@ class TestOIVF(unittest.TestCase):
             first_file_gt = I_groundtruth_files.pop(0)
             I_groundtruth = np.load(common_path + first_file_gt)
             for batched_file in I_groundtruth_files:
-                I_groundtruth = np.vstack(
-                    [I_groundtruth, np.load(common_path + batched_file)]
-                )
+                I_groundtruth = np.vstack([I_groundtruth, np.load(common_path + batched_file)])
             split_files = sorted(
                 [
                     "mm5_p5.x2y.002.idx.npy",
@@ -429,8 +411,7 @@ class TestOIVF(unittest.TestCase):
             )
             first_file = split_files.pop(0)
             output_path = (
-                common_path
-                + "dists5_p5.my_test_data-my_queries_data.IVF256_PQ4.k2.np2.fp32-shard/"
+                common_path + "dists5_p5.my_test_data-my_queries_data.IVF256_PQ4.k2.np2.fp32-shard/"
             )
 
             I_all_splits = np.load(output_path + first_file)
@@ -483,15 +464,10 @@ class TestOIVF(unittest.TestCase):
             first_file_gt = I_groundtruth_files.pop(0)
             I_groundtruth = np.load(common_path + first_file_gt)
             for batched_file in I_groundtruth_files:
-                I_groundtruth = np.vstack(
-                    [I_groundtruth, np.load(common_path + batched_file)]
-                )
-            split_files = sorted(
-                ["mm5_p5.x2y.000.dist.npy", "mm5_p5.x2y.001.dist.npy"]
-            )
+                I_groundtruth = np.vstack([I_groundtruth, np.load(common_path + batched_file)])
+            split_files = sorted(["mm5_p5.x2y.000.dist.npy", "mm5_p5.x2y.001.dist.npy"])
             output_path = (
-                common_path
-                + "dists5_p5.my_test_data-my_queries_data.IVF256_PQ4.k2.np2.fp32-shard/"
+                common_path + "dists5_p5.my_test_data-my_queries_data.IVF256_PQ4.k2.np2.fp32-shard/"
             )
             first_file = split_files.pop(0)
             I_all_splits = np.load(output_path + first_file)
@@ -540,6 +516,4 @@ class TestOIVF(unittest.TestCase):
             )
             test_args = data_creator.setup_cli("split_files")
 
-            self.assertRaises(
-                AssertionError, process_options_and_run_jobs, test_args
-            )
+            self.assertRaises(AssertionError, process_options_and_run_jobs, test_args)

@@ -43,7 +43,7 @@ XvecVectorReader::LoadFile(const std::string& p_filePaths)
     SizeType vectorCount = 0;
     IOBINARY(fp, WriteBinary, sizeof(vectorCount), (char*)&vectorCount);
     IOBINARY(fp, WriteBinary, sizeof(m_options->m_dimension), (char*)&(m_options->m_dimension));
-    
+
     size_t vectorDataSize = GetValueTypeSize(m_options->m_inputValueType) * m_options->m_dimension;
     std::unique_ptr<char[]> buffer(new char[vectorDataSize]);
     for (std::string file : files)

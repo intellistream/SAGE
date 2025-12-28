@@ -1,20 +1,13 @@
 import sys
 
-import pytest
-
 import env  # noqa: F401
+import pytest
 from pybind11_tests import ConstructorStats
 from pybind11_tests import methods_and_attributes as m
 
-NO_GETTER_MSG = (
-    "unreadable attribute" if sys.version_info < (3, 11) else "object has no getter"
-)
-NO_SETTER_MSG = (
-    "can't set attribute" if sys.version_info < (3, 11) else "object has no setter"
-)
-NO_DELETER_MSG = (
-    "can't delete attribute" if sys.version_info < (3, 11) else "object has no deleter"
-)
+NO_GETTER_MSG = "unreadable attribute" if sys.version_info < (3, 11) else "object has no getter"
+NO_SETTER_MSG = "can't set attribute" if sys.version_info < (3, 11) else "object has no setter"
+NO_DELETER_MSG = "can't delete attribute" if sys.version_info < (3, 11) else "object has no deleter"
 
 
 def test_methods_and_attributes():
@@ -184,10 +177,7 @@ def test_static_properties():
     # Only static attributes can be deleted
     del m.TestPropertiesOverride.def_readonly_static
     assert hasattr(m.TestPropertiesOverride, "def_readonly_static")
-    assert (
-        m.TestPropertiesOverride.def_readonly_static
-        is m.TestProperties.def_readonly_static
-    )
+    assert m.TestPropertiesOverride.def_readonly_static is m.TestProperties.def_readonly_static
     assert "def_readonly_static" not in m.TestPropertiesOverride.__dict__
     properties_override = m.TestPropertiesOverride()
     with pytest.raises(AttributeError) as excinfo:
@@ -216,10 +206,7 @@ def test_metaclass_override():
     assert type(m.MetaclassOverride).__name__ == "type"
 
     assert m.MetaclassOverride.readonly == 1
-    assert (
-        type(m.MetaclassOverride.__dict__["readonly"]).__name__
-        == "pybind11_static_property"
-    )
+    assert type(m.MetaclassOverride.__dict__["readonly"]).__name__ == "pybind11_static_property"
 
     # Regular `type` replaces the property instead of calling `__set__()`
     m.MetaclassOverride.readonly = 2
@@ -232,29 +219,25 @@ def test_no_mixed_overloads():
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads1()
-    assert (
-        str(excinfo.value)
-        == "overloading a method with both static and instance methods is not supported; "
-        + (
-            "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
-            if not detailed_error_messages_enabled
-            else "error while attempting to bind static method ExampleMandA.overload_mixed1"
-            "(arg0: float) -> str"
-        )
+    assert str(
+        excinfo.value
+    ) == "overloading a method with both static and instance methods is not supported; " + (
+        "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+        if not detailed_error_messages_enabled
+        else "error while attempting to bind static method ExampleMandA.overload_mixed1"
+        "(arg0: float) -> str"
     )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.ExampleMandA.add_mixed_overloads2()
-    assert (
-        str(excinfo.value)
-        == "overloading a method with both static and instance methods is not supported; "
-        + (
-            "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
-            if not detailed_error_messages_enabled
-            else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
-            "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
-            " -> str"
-        )
+    assert str(
+        excinfo.value
+    ) == "overloading a method with both static and instance methods is not supported; " + (
+        "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
+        if not detailed_error_messages_enabled
+        else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
+        "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: int, arg1: int)"
+        " -> str"
     )
 
 

@@ -18,13 +18,13 @@ phases:
 
   steps:
 
-  - script: |  
+  - script: |
        mkdir build
        cd build
        cmake ..
        make
        cd ../Release
-       ./SPTAGTest 
+       ./SPTAGTest
 
     displayName: 'Command Line Script'
 
@@ -44,7 +44,7 @@ phases:
 
     name: Hosted
 
-    demands: 
+    demands:
 
    - msbuild
 
@@ -110,7 +110,7 @@ phases:
 
 
 
-  - script: '.\x64\Debug\Test.exe' 
+  - script: '.\x64\Debug\Test.exe'
 
     displayName: 'Command Line Script'
 
@@ -227,4 +227,3 @@ phases:
   - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
 
     displayName: 'Component Detection'
-

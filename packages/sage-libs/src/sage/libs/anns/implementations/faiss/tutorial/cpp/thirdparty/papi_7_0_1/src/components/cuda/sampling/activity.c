@@ -2,7 +2,7 @@
  * Author : Sangamesh Ragate
  * Date : 18th Nov 2015
  * ICl-UTK
- * Description : This is the shared library that sets up the environent 
+ * Description : This is the shared library that sets up the environent
  * for the cuda application by creating the context and keeping it ready
  * to perform PC sampling of the cuda application as soon as it launces the kernel
  */
@@ -46,7 +46,7 @@ do {                                                                          \
 static char* stall_name[12];
 static int val[12]={0};
 
-	
+
 static const char *
 getStallReasonString(CUpti_ActivityPCSamplingStallReason reason,unsigned int samples)
 {
@@ -132,7 +132,7 @@ printActivity(CUpti_Activity *record)
         {
             CUpti_ActivityPCSamplingRecordInfo *pcsriResult =
                                 (CUpti_ActivityPCSamplingRecordInfo *)(void *)record;
-			
+
 			printf("\n\n************** PC_SAMPLING_RECORD_SUMMARY ************************\n");
             printf("corr %u, totalSamples %llu, droppedSamples %llu, sampling period %llu\n",
                   pcsriResult->correlationId,
@@ -160,7 +160,7 @@ printActivity(CUpti_Activity *record)
 		{
 			CUpti_ActivityKernel3 *kernel = (CUpti_ActivityKernel3 *)record;
 			printf("\n\n************************************** KERNEL_RECORD_SUMMARY **********************************\n");
-			printf("Kernel %s , device %d, context %d, correlation %d, stream %d,[start-end][%ld-%ld]\n\n",kernel->name, 
+			printf("Kernel %s , device %d, context %d, correlation %d, stream %d,[start-end][%ld-%ld]\n\n",kernel->name,
 					kernel->deviceId,kernel->contextId,kernel->correlationId,kernel->streamId,kernel->start,kernel->end);
 			break;
 		}
@@ -225,18 +225,18 @@ void CUPTIAPI dumpCudaModule(CUpti_CallbackId cbid, void *resourceDescriptor)
 	  const char *pCubin;
 	  size_t cubinSize;
 
-		  
+
 	  //dump the cubin at MODULE_LOADED_STARTING
 	  CUpti_ModuleResourceData *moduleResourceData = (CUpti_ModuleResourceData *)resourceDescriptor;
 	  #endif
-		  
+
 	  if (cbid == CUPTI_CBID_RESOURCE_MODULE_LOADED) {
 		  #if DUMP_CUBIN
-		  // You can use nvdisasm to dump the SASS from the cubin. 
+		  // You can use nvdisasm to dump the SASS from the cubin.
 		  // Try nvdisasm -b -fun <function_id> sass_to_source.cubin
 		  pCubin = moduleResourceData->pCubin;
 		  cubinSize = moduleResourceData->cubinSize;
-			  
+
 		  FILE *cubin;
 		  cubin = fopen("sass_source_map.cubin", "wb");
 		  fwrite(pCubin, sizeof(uint8_t), cubinSize, cubin);
@@ -273,7 +273,7 @@ initTrace()
 {
 	//get the arguments from the environment variables
 	int deviceId, sampRate;
-	
+
     CUcontext cuCtx;
 	deviceId = atoi(getenv("GPU_DEVICE_ID"));
     cuInit(0);
@@ -297,4 +297,3 @@ finiTrace()
 //	printf("FLushing CUPTI \n");
 	CUPTI_CALL(cuptiActivityFlushAll(0));
 }
-

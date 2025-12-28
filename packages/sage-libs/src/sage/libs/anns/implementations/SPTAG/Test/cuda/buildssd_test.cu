@@ -10,14 +10,14 @@ int GPUBuildSSDTest_All() {
 
   SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "Starting Cosine BuildSSD tests\n");
   SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "Float datatype...\n");
-  errors += GPUBuildSSDTest<float, float, 10, 8>(10000, (int)DistMetric::Cosine, 10); 
+  errors += GPUBuildSSDTest<float, float, 10, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<float, float, 100, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<float, float, 200, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<float, float, 384, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<float, float, 1024, 8>(10000, (int)DistMetric::Cosine, 10);
 
   SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "Int datatype...\n");
-  errors += GPUBuildSSDTest<int, int, 10, 8>(10000, (int)DistMetric::Cosine, 10); 
+  errors += GPUBuildSSDTest<int, int, 10, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<int, int, 100, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<int, int, 200, 8>(10000, (int)DistMetric::Cosine, 10);
   errors += GPUBuildSSDTest<int, int, 384, 8>(10000, (int)DistMetric::Cosine, 10);
@@ -37,7 +37,7 @@ int GPUBuildSSDTest_All() {
   errors += GPUBuildSSDTest<float, float, 1024, 8>(10000, (int)DistMetric::L2, 10);
 
   SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "Int datatype...\n");
-  errors += GPUBuildSSDTest<int, int, 10, 8>(10000, (int)DistMetric::L2, 10); 
+  errors += GPUBuildSSDTest<int, int, 10, 8>(10000, (int)DistMetric::L2, 10);
   errors += GPUBuildSSDTest<int, int, 100, 8>(10000, (int)DistMetric::L2, 10);
   errors += GPUBuildSSDTest<int, int, 200, 8>(10000, (int)DistMetric::L2, 10);
   errors += GPUBuildSSDTest<int, int, 384, 8>(10000, (int)DistMetric::L2, 10);
@@ -85,7 +85,7 @@ int GPUBuildSSDTest(int rows, int metric, int iters) {
   int TPTlevels = (int)std::log2(num_heads/100);
 
   TPtree* h_tree = new TPtree;
-  h_tree->initialize(num_heads, TPTlevels, dim);  
+  h_tree->initialize(num_heads, TPTlevels, dim);
   TPtree* d_tree;
   CUDA_CHECK(cudaMalloc(&d_tree, sizeof(TPtree)));
 
@@ -112,7 +112,7 @@ int GPUBuildSSDTest(int rows, int metric, int iters) {
     else {
       findTailNeighbors_selector<T,SUMTYPE,(int)DistMetric::L2><<<1024, 32, sizeof(DistPair<SUMTYPE>)*32*K>>>(d_head_ps, d_tail_ps, d_tree, K, d_results, rows, num_heads, d_queryGroups, dim);
     }
-    CUDA_CHECK(cudaDeviceSynchronize()); 
+    CUDA_CHECK(cudaDeviceSynchronize());
   }
 
   CUDA_CHECK(cudaFree(d_head_data));
@@ -125,4 +125,3 @@ int GPUBuildSSDTest(int rows, int metric, int iters) {
 
   return errors;
 }
-

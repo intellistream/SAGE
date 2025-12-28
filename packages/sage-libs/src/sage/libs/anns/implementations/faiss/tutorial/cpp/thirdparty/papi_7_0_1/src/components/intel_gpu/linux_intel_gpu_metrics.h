@@ -87,4 +87,3 @@ typedef struct _metric_context_s {
 
 
 #endif /* _INTEL_GPU_METRICS_H */
-

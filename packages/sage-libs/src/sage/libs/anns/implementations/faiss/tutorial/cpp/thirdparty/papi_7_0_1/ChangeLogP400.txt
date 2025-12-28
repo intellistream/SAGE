@@ -5,7 +5,7 @@
 
 2010-01-13	sbk
 	* src/configure.in 1.166:
-		
+
 		Enable the static perf events static table to be created and compiled in
 		again for Cray XT CLE.
 
@@ -30,8 +30,8 @@
 		*** empty log message ***
 
 	* src/utils/event_info.c 1.11:
-		Change test for version number to differentiate between PAPI-C 
-		and Classic PAPI. We were testing for versions >=3 && >= .9. 
+		Change test for version number to differentiate between PAPI-C
+		and Classic PAPI. We were testing for versions >=3 && >= .9.
 		This was missing versions >= 4.
 
 	* src/libpfm-3.y/include/perfmon/pfmlib_gen_mips64.h 1.1.1.4:
@@ -47,16 +47,16 @@
 
 2010-01-13	jagode
 	* src/Makefile.inc 1.152:
-		Avoid printing conditional 'if' statements while compiling (but 
+		Avoid printing conditional 'if' statements while compiling (but
 		they are performed).
 
 	* src/perf_events.h 1.7:
-		Seg fault on i7 with perf_events. This was fixed a while ago for 
+		Seg fault on i7 with perf_events. This was fixed a while ago for
 		perfmon and perfctr but perf-events was left behind.
 
 2010-01-13	bsheely
 	* src/configure 1.165:
-		Generated configure to correspond to ost recent change (Cray XT) 
+		Generated configure to correspond to ost recent change (Cray XT)
 		to configure.in
 
 2010-01-12	terpstra
@@ -77,7 +77,7 @@
 		These are now defined in configure.
 
 	* src/ctests/test_utils.c 1.77:
-		Minor tweak to print native event codes in hex instead of 
+		Minor tweak to print native event codes in hex instead of
 		decimal -- far more useful that way.
 
 	* src/perfctr-p4.c 1.106:
@@ -94,13 +94,13 @@
 	* src/linux-acpi.c 1.16:
 	* src/linux-mx.c 1.15:
 	* src/linux-net.c 1.4:
-		Renamed identifier 'native_name' for net, mx, and acpi 
-		components because of conflicts on POWER machines. This variable 
+		Renamed identifier 'native_name' for net, mx, and acpi
+		components because of conflicts on POWER machines. This variable
 		has also been defined in powerX_events.h.
 
 2010-01-07	bsheely
 	* src/Rules.perfctr 1.57:
-		Added DEBUGFLAGS to OPTFLAGS since only OPTFLAGS gets used in 
+		Added DEBUGFLAGS to OPTFLAGS since only OPTFLAGS gets used in
 		Makefile.inc
 
 2010-01-05	terpstra
@@ -158,19 +158,19 @@
 2009-12-02	terpstra
 	* src/sys_perf_counter_open.c 1.10:
 	* src/syscalls.h 1.4:
-		Slightly cleaner syntax for redefinition of perf_event_attr in 
+		Slightly cleaner syntax for redefinition of perf_event_attr in
 		KERNEL31.
 
 2009-12-01	terpstra
 	* src/ctests/sdsc4.c 1.14:
-		Fix from Will Cohen to avoid round-off errors in computing small 
-		differences between large numbers, which occasionally resulted 
-		in sqrt of negative numbers. Originally applied to sdsc2; 
+		Fix from Will Cohen to avoid round-off errors in computing small
+		differences between large numbers, which occasionally resulted
+		in sqrt of negative numbers. Originally applied to sdsc2;
 		modified and applied to sdsc2.
 
 2009-11-30	terpstra
 	* src/x86_cache_info.c 1.7:
-		Strip the Windows version of cpuid out to make this version 
+		Strip the Windows version of cpuid out to make this version
 		compatible with the 3.7.x branch.
 
 	* src/ctests/sdsc2.c 1.13:
@@ -179,8 +179,8 @@
 
 2009-11-25	terpstra
 	* src/papi_hl.c 1.77:
-		PAPI_stop_counters was returning PAPI_OK even if PAPI_stop 
-		returned something other than PAPI_OK. Uncovered as part of the 
+		PAPI_stop_counters was returning PAPI_OK even if PAPI_stop
+		returned something other than PAPI_OK. Uncovered as part of the
 		BG/P merge.
 
 2009-11-25	bsheely
@@ -191,7 +191,7 @@
 2009-11-24	terpstra
 	* src/papi_vector.h 1.10:
 		Fix a bug in assigning signals for overflow.
-		
+
 		Also expose a vector_find_dummy routine to allow testing for component functions. If the function pointer is a dummy, it isn't implemented in the component.
 		This is used in extras to test for the implementation of a name_to_code routine.
 
@@ -205,15 +205,15 @@
 
 	* src/run_tests.sh 1.37:
 	* src/run_valgrind_tests.sh 1.2:
-		valgrind code merged into run_tests.sh and commented out by 
+		valgrind code merged into run_tests.sh and commented out by
 		default
 
 2009-11-20	bsheely
 	* src/genpapifdef.c 1.41:
 	* src/papi_events.xml 1.3:
 	* src/papi_fwrappers.c 1.81:
-		Applied patch from Steve Kaufmann at Cray. Removes the remaining 
-		Unicos, Catamount, T3E, X1 and X2 references. Only explicit 
+		Applied patch from Steve Kaufmann at Cray. Removes the remaining
+		Unicos, Catamount, T3E, X1 and X2 references. Only explicit
 		support for XT4+/CLE remains.
 
 2009-11-18	mucci
@@ -228,13 +228,13 @@
 	* src/config.h.in 1.9:
 		Add support for detecting gettid and syscall(gettid) which results in
 		HAVE_GETTID and HAVE_SYSCALL_GETTID being defined in config.h
-		
+
 		This will be useful for Linux where we can remove all the special casing
 		for threads and locking and the errors with getpid. gettid all the time.
 
 	* src/papi_lock.h 1.1:
 		Beginnings of a single function with all PAPI/Linux locking functions.
-		
+
 		Note to PAPI-C developers. The multiple context concept of PAPI-C has failed
 		to include the lock data structure. PAPI currently only has one scope of
 		locks that span the high-level to the low-level. This will need to be revisited
@@ -252,17 +252,17 @@
 	* src/perfmon_events_table.sh 1.6:
 	* src/pmapi-ppc64_events.c 1.8:
 	* src/ppc64_events.h 1.10:
-		renamed perfmon_events.csv perfmon_events_table.h 
-		perfmon_events_table.sh to papi_events.csv papi_events_table.h 
-		papi_events_table.sh and made code changes required by the 
+		renamed perfmon_events.csv perfmon_events_table.h
+		perfmon_events_table.sh to papi_events.csv papi_events_table.h
+		papi_events_table.sh and made code changes required by the
 		renaming
 
 2009-11-11	terpstra
 	* src/ctests/first.c 1.49:
-		Fix overly restrictive verification of results. In verifying 
-		that FP_INS/FP_OPS/TOT_INS was non-zero, we were requiring it to 
-		be near theoretical FP_OPS which caused false verification 
-		failures in some edge cases. Now we just require count >= 
+		Fix overly restrictive verification of results. In verifying
+		that FP_INS/FP_OPS/TOT_INS was non-zero, we were requiring it to
+		be near theoretical FP_OPS which caused false verification
+		failures in some edge cases. Now we just require count >=
 		iterations.
 
 2009-11-11	bsheely
@@ -298,7 +298,7 @@
 2009-11-09	bsheely
 	* src/linux-ia64-memory.c 1.23:
 	* src/linux-ia64.c 1.176:
-		created hwinfo_linux.c to encapsulate code to set _papi_hw_info 
+		created hwinfo_linux.c to encapsulate code to set _papi_hw_info
 		struct on Linux platforms
 
 	* src/unicosmp-memory.c 1.4:
@@ -359,8 +359,8 @@
 2009-11-02	terpstra
 	* src/utils/avail.c 1.49:
 	* src/utils/native_avail.c 1.42:
-		Fixes to eliminate strcpy on overlapping strings The offending 
-		calls were replaced with memmoves and encapsulated in a single 
+		Fixes to eliminate strcpy on overlapping strings The offending
+		calls were replaced with memmoves and encapsulated in a single
 		function for better maintenance.
 
 2009-10-29	bsheely
@@ -371,14 +371,14 @@
 	* src/Rules.pfm_pcl 1.13:
 	* src/pcl.c 1.12:
 	* src/pcl.h 1.5:
-		Naming convention change from PCL to Perf Events: renamed pcl.h 
-		and pcl.c to perf_events.h and perf_events.c, renamed 
-		Rules.pfm_pcl to Rules.pfm_pe, configure option --with-pcl 
+		Naming convention change from PCL to Perf Events: renamed pcl.h
+		and pcl.c to perf_events.h and perf_events.c, renamed
+		Rules.pfm_pcl to Rules.pfm_pe, configure option --with-pcl
 		changed to --with-perf-events
 
 2009-10-20	bsheely
 	* src/ctests/byte_profile.c 1.18:
-		corrected possible logic error in setting end point of profile 
+		corrected possible logic error in setting end point of profile
 		buffer
 
 2009-10-15	bsheely
@@ -399,8 +399,8 @@
 	* src/pmapi-ppc64.c 1.8:
 	* src/pmapi-ppc64.h 1.4:
 	* src/threads.c 1.33:
-		Conversion of AIX to PAPI-C. Most tests pass, except for some 
-		overflow related stuff. Haven't examined things closely yet, but 
+		Conversion of AIX to PAPI-C. Most tests pass, except for some
+		overflow related stuff. Haven't examined things closely yet, but
 		thought I should check this stuff in.
 
 2009-10-12	bsheely

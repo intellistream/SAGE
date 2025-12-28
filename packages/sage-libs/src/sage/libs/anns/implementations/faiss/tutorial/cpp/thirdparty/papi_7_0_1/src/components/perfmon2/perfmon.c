@@ -500,7 +500,7 @@ compute_kernel_args( hwd_control_state_t * ctl0 )
 			SUBDBG( "PD%d (i%d,j%d) is reg num %d, set %d\n", donepd, i, j,
 					pd[donepd].reg_num, pd[donepd].reg_set );
 
-			/* Skip over entries that map to the same PMD, 
+			/* Skip over entries that map to the same PMD,
 			   PIV has 2 PMCS for every PMD */
 
 			for ( ; j < tmpout.pfp_pmc_count; j++ )
@@ -752,7 +752,7 @@ _papi_pfm_init_component( int cidx )
    int retval;
    char buf[PAPI_HUGE_STR_LEN];
 
-   /* The following checks the PFMLIB version 
+   /* The following checks the PFMLIB version
       against the perfmon2 kernel version... */
    strncpy( _perfmon2_vector.cmp_info.support_version, buf,
 	    sizeof ( _perfmon2_vector.cmp_info.support_version ) );
@@ -773,7 +773,7 @@ _papi_pfm_init_component( int cidx )
 			_perfmon2_vector.cmp_info.kernel_version, buf );
    if ( strcmp( _perfmon2_vector.cmp_info.kernel_version, buf ) != 0 ) {
       /* do a little exception processing; 81 is compatible with 80 */
-      if ( !( ( PFM_VERSION_MINOR( PFM_VERSION ) == 81 ) && 
+      if ( !( ( PFM_VERSION_MINOR( PFM_VERSION ) == 81 ) &&
             ( strncmp( _perfmon2_vector.cmp_info.kernel_version, "2.8", 3 ) ==
 					 0 ) ) ) {
 	 PAPIERROR( "Version mismatch of libpfm: compiled %s "
@@ -814,15 +814,15 @@ _papi_pfm_init_component( int cidx )
 					       &min_timeout_ns );
    if ( retval != PAPI_OK ) {
        goto fn_fail;
-   }	
+   }
 
    if ( _papi_hwi_system_info.hw_info.vendor == PAPI_VENDOR_IBM ) {
       /* powerpc */
-      _perfmon2_vector.cmp_info.available_domains |= PAPI_DOM_KERNEL | 
+      _perfmon2_vector.cmp_info.available_domains |= PAPI_DOM_KERNEL |
                                                      PAPI_DOM_SUPERVISOR;
       if (strcmp(_papi_hwi_system_info.hw_info.model_string, "POWER6" ) == 0) {
-	 _perfmon2_vector.cmp_info.default_domain = PAPI_DOM_USER | 
-	                                            PAPI_DOM_KERNEL | 
+	 _perfmon2_vector.cmp_info.default_domain = PAPI_DOM_USER |
+	                                            PAPI_DOM_KERNEL |
 	                                            PAPI_DOM_SUPERVISOR;
       }
    } else {
@@ -840,7 +840,7 @@ _papi_pfm_init_component( int cidx )
 		  break;
 #endif
 	     default:
-		   _perfmon2_vector.cmp_info.available_domains |= 
+		   _perfmon2_vector.cmp_info.available_domains |=
                                                       PAPI_DOM_SUPERVISOR;
 		   break;
       }
@@ -1732,7 +1732,7 @@ process_smpl_buf( int num_smpl_pmds, int entry_size, ThreadInfo_t ** thr )
 }
 
 
-/* This function  used when hardware overflows ARE working 
+/* This function  used when hardware overflows ARE working
     or when software overflows are forced					*/
 
 static void
@@ -2131,7 +2131,7 @@ _papi_pfm_allocate_registers( EventSetInfo_t * ESI )
 	return PAPI_ECNFLCT;
 }
 
-/* This function clears the current contents of the control structure and 
+/* This function clears the current contents of the control structure and
    updates it with whatever resources are allocated for all the native events
    in the native info structure array. */
 
@@ -2247,7 +2247,7 @@ papi_vector_t _perfmon2_vector = {
   .shutdown_thread =      _papi_pfm_shutdown,
   .shutdown_component =   _papi_pfm_shutdown_component,
   .ctl =                  _papi_pfm_ctl,
-  .update_control_state = _papi_pfm_update_control_state,	
+  .update_control_state = _papi_pfm_update_control_state,
   .set_domain =           set_domain,
   .reset =                _papi_pfm_reset,
   .set_overflow =         _papi_pfm_set_overflow,

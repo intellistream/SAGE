@@ -1,5 +1,5 @@
 { ****************************
-{  THIS IS OPEN SOURCE CODE 
+{  THIS IS OPEN SOURCE CODE
 { ****************************
 { (C) COPYRIGHT International Business Machines Corp. 2005
 { This file is licensed under the University of Tennessee license.
@@ -8,7 +8,7 @@
 { File:    events/power5/events
 { Author:  Maynard Johnson
 {          maynardj@us.ibm.com
-{ Mods: 
+{ Mods:
 {
 
 { counter 1 }
@@ -59,7 +59,7 @@ DL1 was reloaded from the local L2 due to a demand load
 DL1 was reloaded with shared (T or SL) data from the L2 of a chip on this MCM due to a demand load
 #15,v,g,n,n,PM_DATA_FROM_L275_MOD,Data loaded from L2.75 modified
 ##C30A3
-DL1 was reloaded with modified (M) data from the L2 of another MCM due to a demand load. 
+DL1 was reloaded with modified (M) data from the L2 of another MCM due to a demand load.
 #16,v,g,n,n,PM_DATA_FROM_L3,Data loaded from L3
 ##C308E
 DL1 was reloaded from the local L3 due to a demand load
@@ -143,7 +143,7 @@ The issue queue for FPU unit 0 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp0 is executing single precision instruction.
 #43,v,g,n,n,PM_FPU0_STALL3,FPU0 stalled in pipe3
 ##020E1
-This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #44,v,g,n,n,PM_FPU0_STF,FPU0 executed store instruction
 ##020E2
 This signal is active for one cycle when fp0 is executing a store instruction.
@@ -170,7 +170,7 @@ The issue queue for FPU unit 1 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp1 is executing single precision instruction.
 #52,v,g,n,n,PM_FPU1_STALL3,FPU1 stalled in pipe3
 ##020E5
-This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #53,v,g,n,n,PM_FPU1_STF,FPU1 executed store instruction
 ##020E6
 This signal is active for one cycle when fp1 is executing a store instruction.
@@ -180,7 +180,7 @@ This signal is active for one cycle when one of the operands is denormalized. Co
 #55,v,g,n,n,PM_FPU_FDIV,FPU executed FDIV instruction
 ##00088
 This signal is active for one cycle at the end of the microcode executed when FPU is executing a divide instruction. This could be fdiv, fdivs, fdiv. fdivs. Combined Unit 0 + Unit 1
-#56,v,g,n,n,PM_FPU_1FLOP,FPU executed one flop instruction 
+#56,v,g,n,n,PM_FPU_1FLOP,FPU executed one flop instruction
 ##00090
 This event counts the number of one flop instructions. These could be fadd*, fmul*, fsub*, fneg+, fabs+, fnabs+, fres+, frsqrte+, fcmp**, or fsel where XYZ* means XYZ, XYZs, XYZ., XYZs., XYZ+ means XYZ, XYZ., and XYZ** means XYZu, XYZo.
 #57,c,g,n,n,PM_FPU_FULL_CYC,Cycles FPU issue queue full
@@ -197,7 +197,7 @@ FXU0 and FXU1 are both idle
 Cycles this thread does not have any slots allocated in the GCT.
 #61,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##100C0
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #62,v,g,n,s,PM_GCT_USAGE_00to59_CYC,Cycles GCT less than 60% full
 ##0001F
 Cycles GCT less than 60% full
@@ -233,13 +233,13 @@ Asserted when a non-canceled prefetch is made to the cache interface unit (CIU).
 This signal will be asserted each time the I-ERAT is written. This indicates that an ERAT miss has been serviced. ERAT misses will initiate a sequence resulting in the ERAT being written. ERAT misses that are later ignored will not be counted unless the ERAT is written before the instruction stream is changed, This should be a fairly accurate count of ERAT missed (best available).
 #73,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00001
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #74,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##120E1
 The ISU sends the number of instructions dispatched.
 #75,v,g,n,n,PM_INST_FETCH_CYC,Cycles at least 1 instruction fetched
 ##220E4
-Asserted each cycle when the IFU sends at least one instruction to the IDU. 
+Asserted each cycle when the IFU sends at least one instruction to the IDU.
 #76,v,g,n,n,PM_INST_FROM_L2,Instructions fetched from L2
 ##22086
 An instruction fetch group was fetched from L2. Fetch Groups can contain up to 8 instructions
@@ -278,7 +278,7 @@ L2 Slice A RC store dispatch attempt failed due to all RC full
 L2 Slice A RC dispatch attempt failed due to RC/CO pair chosen was miss and CO already busy
 #88,v,g,n,s,PM_L2SA_SHR_MOD,L2 slice A transition from shared to modified
 ##700C0
-A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C. 
+A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C.
 #89,v,g,n,n,PM_L2SA_ST_REQ,L2 slice A store requests
 ##723E0
 A store request as seen at the L2 directory has been made from the core. Stores are counted after gathering in the L2 store queues. The event is provided on each of the three slices A,B,and C.
@@ -302,7 +302,7 @@ L2 Slice B RC store dispatch attempt failed due to all RC full
 L2 Slice B RC dispatch attempt failed due to RC/CO pair chosen was miss and CO already busy
 #96,v,g,n,s,PM_L2SB_SHR_MOD,L2 slice B transition from shared to modified
 ##700C1
-A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C. 
+A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C.
 #97,v,g,n,n,PM_L2SB_ST_REQ,L2 slice B store requests
 ##723E1
 A store request as seen at the L2 directory has been made from the core. Stores are counted after gathering in the L2 store queues. The event is provided on each of the three slices A,B,and C.
@@ -326,7 +326,7 @@ L2 Slice C RC store dispatch attempt failed due to all RC full
 L2 Slice C RC dispatch attempt failed due to RC/CO pair chosen was miss and CO already busy
 #104,v,g,n,s,PM_L2SC_SHR_MOD,L2 slice C transition from shared to modified
 ##700C2
-A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C. 
+A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C.
 #105,v,g,n,n,PM_L2SC_ST_REQ,L2 slice C store requests
 ##723E2
 A store request as seen at the L2 directory has been made from the core. Stores are counted after gathering in the L2 store queues. The event is provided on each of the three slices A,B,and C.
@@ -407,7 +407,7 @@ A data request (load or store) from LSU Unit 1 missed the ERAT and resulted in a
 A load was flushed by unit 1 because a younger load executed before an older store executed and they had overlapping data OR two loads executed out of order and they have byte overlap and there was a snoop in between to an overlapped byte.
 #131,u,g,n,n,PM_LSU1_FLUSH_SRQ,LSU1 SRQ flushes
 ##C00C7
-A store was flushed because younger load hits and older store that is already in the SRQ or in the same group. 
+A store was flushed because younger load hits and older store that is already in the SRQ or in the same group.
 #132,v,g,n,n,PM_LSU1_FLUSH_ULD,LSU1 unaligned load flushes
 ##C00C4
 A load was flushed from unit 1 because it was unaligned (crossed a 64byte boundary, or 32 byte if it missed the L1)
@@ -500,7 +500,7 @@ DL1 was reloaded from the local L2 due to a marked demand load
 DL1 was reloaded with shared (T or SL) data from the L2 of a chip on this MCM due to a marked demand load
 #162,v,g,n,n,PM_MRK_DATA_FROM_L275_MOD,Marked data loaded from L2.75 modified
 ##C70A3
-DL1 was reloaded with modified (M) data from the L2 of another MCM due to a marked demand load. 
+DL1 was reloaded with modified (M) data from the L2 of another MCM due to a marked demand load.
 #163,v,g,n,n,PM_MRK_DATA_FROM_L3,Marked data loaded from L3
 ##C708E
 DL1 was reloaded from the local L3 due to a marked demand load
@@ -536,7 +536,7 @@ A sampled instruction was issued
 A DL1 reload occured due to marked load
 #174,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of PPC instructions completed. 
+Number of PPC instructions completed.
 #175,v,g,n,n,PM_MRK_LD_MISS_L1,Marked L1 D cache load misses
 ##82088
 Marked L1 D cache load misses
@@ -617,7 +617,7 @@ A stcx (stwcx or stdcx) instruction was successful
 Suspended
 #201,u,g,n,n,PM_TB_BIT_TRANS,Time Base bit transition
 ##00018
-When the selected time base bit (as specified in MMCR0[TBSEL])transitions from 0 to 1 
+When the selected time base bit (as specified in MMCR0[TBSEL])transitions from 0 to 1
 #202,v,g,n,s,PM_THRD_ONE_RUN_CYC,One of the threads in run cycles
 ##0000B
 One of the threads in run cycles
@@ -783,7 +783,7 @@ The issue queue for FPU unit 0 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp0 is executing single precision instruction.
 #42,v,g,n,n,PM_FPU0_STALL3,FPU0 stalled in pipe3
 ##020E1
-This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #43,v,g,n,n,PM_FPU0_STF,FPU0 executed store instruction
 ##020E2
 This signal is active for one cycle when fp0 is executing a store instruction.
@@ -810,7 +810,7 @@ The issue queue for FPU unit 1 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp1 is executing single precision instruction.
 #51,v,g,n,n,PM_FPU1_STALL3,FPU1 stalled in pipe3
 ##020E5
-This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #52,v,g,n,n,PM_FPU1_STF,FPU1 executed store instruction
 ##020E6
 This signal is active for one cycle when fp1 is executing a store instruction.
@@ -837,7 +837,7 @@ The fixed point unit (Unit 0 + Unit 1) finished a marked instruction. Instructio
 This thread has no slot in the GCT because of an I cache miss
 #60,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##100C0
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #61,v,g,n,s,PM_GCT_USAGE_60to79_CYC,Cycles GCT 60-79% full
 ##0001F
 Cycles GCT 60-79% full
@@ -870,13 +870,13 @@ Asserted when a non-canceled prefetch is made to the cache interface unit (CIU).
 This signal will be asserted each time the I-ERAT is written. This indicates that an ERAT miss has been serviced. ERAT misses will initiate a sequence resulting in the ERAT being written. ERAT misses that are later ignored will not be counted unless the ERAT is written before the instruction stream is changed, This should be a fairly accurate count of ERAT missed (best available).
 #71,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00001
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #72,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##120E1
 The ISU sends the number of instructions dispatched.
 #73,v,g,n,n,PM_INST_FETCH_CYC,Cycles at least 1 instruction fetched
 ##220E4
-Asserted each cycle when the IFU sends at least one instruction to the IDU. 
+Asserted each cycle when the IFU sends at least one instruction to the IDU.
 #74,v,g,n,n,PM_INST_FROM_L1,Instruction fetched from L1
 ##2208D
 An instruction fetch group was fetched from L1. Fetch Groups can contain up to 8 instructions
@@ -915,7 +915,7 @@ L2 Slice A RC store dispatch attempt failed due to all RC full
 L2 Slice A RC dispatch attempt failed due to RC/CO pair chosen was miss and CO already busy
 #86,v,g,n,s,PM_L2SA_SHR_MOD,L2 slice A transition from shared to modified
 ##700C0
-A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C. 
+A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C.
 #87,v,g,n,n,PM_L2SA_ST_REQ,L2 slice A store requests
 ##723E0
 A store request as seen at the L2 directory has been made from the core. Stores are counted after gathering in the L2 store queues. The event is provided on each of the three slices A,B,and C.
@@ -939,7 +939,7 @@ L2 Slice B RC store dispatch attempt failed due to all RC full
 L2 Slice B RC dispatch attempt failed due to RC/CO pair chosen was miss and CO already busy
 #94,v,g,n,s,PM_L2SB_SHR_MOD,L2 slice B transition from shared to modified
 ##700C1
-A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C. 
+A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C.
 #95,v,g,n,n,PM_L2SB_ST_REQ,L2 slice B store requests
 ##723E1
 A store request as seen at the L2 directory has been made from the core. Stores are counted after gathering in the L2 store queues. The event is provided on each of the three slices A,B,and C.
@@ -963,7 +963,7 @@ L2 Slice C RC store dispatch attempt failed due to all RC full
 L2 Slice C RC dispatch attempt failed due to RC/CO pair chosen was miss and CO already busy
 #102,v,g,n,s,PM_L2SC_SHR_MOD,L2 slice C transition from shared to modified
 ##700C2
-A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C. 
+A cache line in the local L2 directory made a state transition from Shared (Shared, Shared L , or Tagged) to the Modified state. This transition was caused by a store from either of the two local CPUs to a cache line in any of the Shared states. The event is provided on each of the three slices A,B,and C.
 #103,v,g,n,n,PM_L2SC_ST_REQ,L2 slice C store requests
 ##723E2
 A store request as seen at the L2 directory has been made from the core. Stores are counted after gathering in the L2 store queues. The event is provided on each of the three slices A,B,and C.
@@ -1044,7 +1044,7 @@ A data request (load or store) from LSU Unit 1 missed the ERAT and resulted in a
 A load was flushed by unit 1 because a younger load executed before an older store executed and they had overlapping data OR two loads executed out of order and they have byte overlap and there was a snoop in between to an overlapped byte.
 #129,u,g,n,n,PM_LSU1_FLUSH_SRQ,LSU1 SRQ flushes
 ##C00C7
-A store was flushed because younger load hits and older store that is already in the SRQ or in the same group. 
+A store was flushed because younger load hits and older store that is already in the SRQ or in the same group.
 #130,v,g,n,n,PM_LSU1_FLUSH_ULD,LSU1 unaligned load flushes
 ##C00C4
 A load was flushed from unit 1 because it was unaligned (crossed a 64byte boundary, or 32 byte if it missed the L1)
@@ -1179,7 +1179,7 @@ Group experienced marked branch redirect
 A DL1 reload occured due to marked load
 #174,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of PPC instructions completed. 
+Number of PPC instructions completed.
 #175,v,g,n,n,PM_MRK_LD_MISS_L1_LSU0,LSU0 L1 D cache load misses
 ##820E0
 A marked load, executing on unit 0, missed the dcache
@@ -1363,10 +1363,10 @@ Flush caused by scoreboard operation
 Flush caused by sync
 #29,v,g,n,n,PM_FPU0_FEST,FPU0 executed FEST instruction
 ##010C2
-This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #30,v,g,n,n,PM_FPU0_FIN,FPU0 produced a result
 ##010C3
-fp0 finished, produced a result This only indicates finish, not completion. 
+fp0 finished, produced a result This only indicates finish, not completion.
 #31,v,g,n,n,PM_FPU0_FMOV_FEST,FPU0 executed FMOV or FEST instructions
 ##010C0
 This signal is active for one cycle when fp0 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1378,10 +1378,10 @@ This signal is active for one cycle when fp0 is executing fpscr move related ins
 This signal is active for one cycle when fp0 is executing frsp or convert kind of instruction. This could be frsp*, fcfid*, fcti* where XYZ* means XYZ, XYZs, XYZ., XYZs.
 #34,v,g,n,n,PM_FPU1_FEST,FPU1 executed FEST instruction
 ##010C6
-This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #35,v,g,n,n,PM_FPU1_FIN,FPU1 produced a result
 ##010C7
-fp1 finished, produced a result. This only indicates finish, not completion. 
+fp1 finished, produced a result. This only indicates finish, not completion.
 #36,v,g,n,n,PM_FPU1_FMOV_FEST,FPU1 executing FMOV or FEST instructions
 ##010C4
 This signal is active for one cycle when fp1 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1441,7 +1441,7 @@ L2 I cache demand request due to branch redirect
 New line coming into the prefetch buffer
 #55,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00001
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #56,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##00009
 The ISU sends the number of instructions dispatched.
@@ -1889,7 +1889,7 @@ The ISU sends a signal indicating that the issue queue that feeds the ifu cr uni
 Processor cycles
 #13,v,g,n,n,PM_DATA_FROM_L275_MOD,Data loaded from L2.75 modified
 ##C3097
-DL1 was reloaded with modified (M) data from the L2 of another MCM due to a demand load. 
+DL1 was reloaded with modified (M) data from the L2 of another MCM due to a demand load.
 #14,v,g,n,n,PM_DATA_FROM_L375_MOD,Data loaded from L3.75 modified
 ##C309E
 Data loaded from L3.75 modified
@@ -1952,10 +1952,10 @@ Flush caused by scoreboard operation
 Flush caused by sync
 #34,v,g,n,n,PM_FPU0_FEST,FPU0 executed FEST instruction
 ##010C2
-This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #35,v,g,n,n,PM_FPU0_FIN,FPU0 produced a result
 ##010C3
-fp0 finished, produced a result This only indicates finish, not completion. 
+fp0 finished, produced a result This only indicates finish, not completion.
 #36,v,g,n,n,PM_FPU0_FMOV_FEST,FPU0 executed FMOV or FEST instructions
 ##010C0
 This signal is active for one cycle when fp0 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1967,10 +1967,10 @@ This signal is active for one cycle when fp0 is executing fpscr move related ins
 This signal is active for one cycle when fp0 is executing frsp or convert kind of instruction. This could be frsp*, fcfid*, fcti* where XYZ* means XYZ, XYZs, XYZ., XYZs.
 #39,v,g,n,n,PM_FPU1_FEST,FPU1 executed FEST instruction
 ##010C6
-This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #40,v,g,n,n,PM_FPU1_FIN,FPU1 produced a result
 ##010C7
-fp1 finished, produced a result. This only indicates finish, not completion. 
+fp1 finished, produced a result. This only indicates finish, not completion.
 #41,v,g,n,n,PM_FPU1_FMOV_FEST,FPU1 executing FMOV or FEST instructions
 ##010C4
 This signal is active for one cycle when fp1 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -2006,7 +2006,7 @@ The Fixed Point unit 1 finished an instruction and produced a result
 This thread has no slot in the GCT because of branch mispredict
 #52,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##0001F
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #53,v,g,n,s,PM_GPR_MAP_FULL_CYC,Cycles GPR mapper full
 ##130E5
 The ISU sends a signal indicating that the gpr mapper cannot accept any more groups. Dispatch is stopped. Note: this condition indicates that a pool of mapper is full but the entire mapper may not be.
@@ -2027,7 +2027,7 @@ L2 I cache demand request due to branch redirect
 New line coming into the prefetch buffer
 #59,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00001
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #60,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##00009
 The ISU sends the number of instructions dispatched.
@@ -2258,7 +2258,7 @@ The Condition Register Unit finished a marked instruction. Instructions that fin
 Marked load latency from L2.5 modified
 #136,v,g,n,n,PM_MRK_DATA_FROM_L275_MOD,Marked data loaded from L2.75 modified
 ##C7097
-DL1 was reloaded with modified (M) data from the L2 of another MCM due to a marked demand load. 
+DL1 was reloaded with modified (M) data from the L2 of another MCM due to a marked demand load.
 #137,v,g,n,n,PM_MRK_DATA_FROM_L275_MOD_CYC,Marked load latency from L2.75 modified
 ##C70A3
 Marked load latency from L2.75 modified
@@ -2433,7 +2433,7 @@ $$$$$$$$
 { counter 5 }
 #0,v,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of PPC instructions completed. 
+Number of PPC instructions completed.
 
 $$$$$$$$
 

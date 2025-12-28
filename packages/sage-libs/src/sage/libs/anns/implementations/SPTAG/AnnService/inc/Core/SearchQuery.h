@@ -37,7 +37,7 @@ public:
         Init(p_target, p_resultNum, p_withMeta);
     }
 
-    
+
     QueryResult(const void* p_target, int p_resultNum, bool p_withMeta, BasicResult* p_results)
         : m_target(p_target),
           m_resultNum(p_resultNum),
@@ -139,7 +139,7 @@ public:
         m_quantizedTarget = (void*)p_target;
         m_quantizedSize = 0;
     }
-    
+
 
     inline bool HasQuantizedTarget()
     {

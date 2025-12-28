@@ -7,4 +7,3 @@ TODO list:
   on Linux/ia64
 
 - add support for cumulative calls to pfm_dispatch_events()
-

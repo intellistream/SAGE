@@ -41,7 +41,7 @@
 
 #define N 30
 
-static unsigned long 
+static unsigned long
 fib(unsigned long n)
 {
 	if (n == 0)
@@ -97,7 +97,7 @@ main(int argc, char **argv)
  	 * if mulithreaded, then getpid() must be replaced by gettid()
  	 */
 	fd = perf_event_open(&attr, getpid(), -1, -1, 0);
-	if (fd < 0) 
+	if (fd < 0)
 		err(1, "cannot create event");
 
 	/*

@@ -37,7 +37,7 @@ where T : Default + Copy + Sync + Send + Into<f32>
 }
 
 /// Create Index<T, N> based on configuration
-pub fn create_inmem_index<'a, T>(config: IndexConfiguration) -> ANNResult<Box<dyn ANNInmemIndex<T> + 'a>> 
+pub fn create_inmem_index<'a, T>(config: IndexConfiguration) -> ANNResult<Box<dyn ANNInmemIndex<T> + 'a>>
 where
     T: Default + Copy + Sync + Send + Into<f32> + 'a,
     [T; DIM_104]: FullPrecisionDistance<T, DIM_104>,
@@ -94,4 +94,3 @@ mod dataset_test {
         index.build("fake_file", 100).unwrap();
     }
 }
-

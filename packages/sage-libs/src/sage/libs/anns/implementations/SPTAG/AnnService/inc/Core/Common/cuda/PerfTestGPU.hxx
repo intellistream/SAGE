@@ -36,7 +36,7 @@
 
 
 /***************************************************************************************
- * Function called by SPTAG to create an initial graph on the GPU.  
+ * Function called by SPTAG to create an initial graph on the GPU.
  ***************************************************************************************/
 template<typename T>
 void benchmarkDist(SPTAG::VectorIndex* index, int m_iGraphSize, int m_iNeighborhoodSize, int trees, int* results, int refines, int refineDepth, int graph, int leafSize, int initSize, int NUM_GPUS, int balanceFactor) {
@@ -74,7 +74,7 @@ void benchmarkDist(SPTAG::VectorIndex* index, int m_iGraphSize, int m_iNeighborh
     CUDA_CHECK(cudaSetDevice(gpuNum));
 
     resPerGPU[gpuNum] = dataSize / NUM_GPUS; // Results per GPU
-    if(dataSize % NUM_GPUS > gpuNum) resPerGPU[gpuNum]++; 
+    if(dataSize % NUM_GPUS > gpuNum) resPerGPU[gpuNum]++;
 
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop, gpuNum)); // Get avil. memory

@@ -210,7 +210,7 @@ inline bool ConvertStringTo<bool>(const char* p_str, bool& p_value)
     if (StrUtils::StrEqualIgnoreCase(p_str, "true"))
     {
         p_value = true;
-        
+
     }
     else if (StrUtils::StrEqualIgnoreCase(p_str, "false"))
     {
@@ -499,7 +499,7 @@ inline std::string ConvertToString<ErrorCode>(const ErrorCode& p_value)
     default:
         break;
     }
-    
+
     return "Undefined";
 }
 

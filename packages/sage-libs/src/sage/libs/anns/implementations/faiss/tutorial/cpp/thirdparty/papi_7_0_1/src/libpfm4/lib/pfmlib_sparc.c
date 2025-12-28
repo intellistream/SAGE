@@ -1,6 +1,6 @@
 /*
  * pfmlib_sparc.c : support for SPARC processors
- * 
+ *
  * Copyright (c) 2011 Google, Inc
  * Contributed by Stephane Eranian <eranian@gmail.com>
  *
@@ -145,7 +145,7 @@ pfm_sparc_detect(void *this)
 		return PFM_ERR_NOTSUPP;
 
 	model = pmu_name_to_pmu_type(buffer);
-	
+
 	return model == pmu->pmu ? PFM_SUCCESS : PFM_ERR_NOTSUPP;
 }
 

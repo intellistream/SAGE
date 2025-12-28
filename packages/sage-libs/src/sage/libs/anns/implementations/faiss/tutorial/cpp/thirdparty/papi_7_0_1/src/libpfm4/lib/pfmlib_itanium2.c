@@ -149,7 +149,7 @@ check_cross_groups_and_umasks(pfmlib_input_param_t *inp)
 		for (j=i+1; j < cnt; j++) {
 			if (evt_grp(e[j].event) != g) continue;
 			if (evt_set(e[j].event) != s) return PFMLIB_ERR_EVTSET;
-			
+
 			/* only care about L2 cache group */
 			if (g != PFMLIB_ITA2_EVT_L2_CACHE_GRP || (s == 1 || s == 2)) continue;
 
@@ -650,10 +650,10 @@ pfm_dispatch_iear(pfmlib_input_param_t *inp, pfmlib_ita2_input_param_t *mod_in, 
 	pc[pos1].reg_value   = reg.pmc_val;
 	pc[pos1].reg_addr  = pc[pos1].reg_alt_addr = 10;
 	pos1++;
-	pd[pos2].reg_num     = 0; 
+	pd[pos2].reg_num     = 0;
 	pd[pos2].reg_addr  = pd[pos2].reg_alt_addr= 0;
 	pos2++;
-	pd[pos2].reg_num     = 1; 
+	pd[pos2].reg_num     = 1;
 	pd[pos2].reg_addr  = pd[pos2].reg_alt_addr = 1;
 	pos2++;
 
@@ -748,13 +748,13 @@ pfm_dispatch_dear(pfmlib_input_param_t *inp, pfmlib_ita2_input_param_t *mod_in, 
 	pc[pos1].reg_value   = reg.pmc_val;
 	pc[pos1].reg_addr  = pc[pos1].reg_alt_addr = 11;
 	pos1++;
-	pd[pos2].reg_num     = 2; 
+	pd[pos2].reg_num     = 2;
 	pd[pos2].reg_addr  = pd[pos2].reg_alt_addr = 2;
 	pos2++;
-	pd[pos2].reg_num     = 3; 
+	pd[pos2].reg_num     = 3;
 	pd[pos2].reg_addr  = pd[pos2].reg_alt_addr = 3;
 	pos2++;
-	pd[pos2].reg_num     = 17; 
+	pd[pos2].reg_num     = 17;
 	pd[pos2].reg_addr  = pd[pos2].reg_alt_addr = 17;
 	pos2++;
 
@@ -762,7 +762,7 @@ pfm_dispatch_dear(pfmlib_input_param_t *inp, pfmlib_ita2_input_param_t *mod_in, 
 			reg.pmc_val,
 			reg.pmc11_ita2_reg.dear_mode == 0 ? "L1D" :
 			(reg.pmc11_ita2_reg.dear_mode == 1 ? "L1DTLB" : "ALAT"),
-			reg.pmc11_ita2_reg.dear_plm,	
+			reg.pmc11_ita2_reg.dear_plm,
 			reg.pmc11_ita2_reg.dear_pm,
 			reg.pmc11_ita2_reg.dear_ism,
 			reg.pmc11_ita2_reg.dear_umask);
@@ -1122,7 +1122,7 @@ do_normal_rr(unsigned long start, unsigned long end,
 	}
 	l_size = l_addr - start;
 	r_size = end - l_addr-(1UL<<p2);
-	
+
 	if (PFMLIB_DEBUG()) {
 		printf(">>largest chunk: 2^%d @0x%016lx-0x%016lx\n", p2, l_addr, l_addr+(1UL<<p2));
 		if (l_size && !l_offs) printf(">>before: 0x%016lx-0x%016lx\n", start, l_addr);
@@ -1279,7 +1279,7 @@ compute_fine_rr(pfmlib_ita2_input_rr_t *irr, int dfl_plm, int n, int *base_idx, 
 		 *
 		 *
 		 */
-		
+
 		addr = in_rr->rr_end - 0x10;
 
 		if (has_fine_mode_bug && (addr & 0x1f) == 0) addr += 0x10;
@@ -1474,7 +1474,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_ita2_input_param_t *mod_in
 	if (ret != PFMLIB_SUCCESS) return ret;
 
 	if (n_intervals < 1) return PFMLIB_ERR_IRRINVAL;
-	
+
 	retired_count  = check_inst_retired_events(inp, &retired_mask);
 	retired_only   = retired_count == inp->pfp_event_count;
 	prefetch_count = check_prefetch_events(inp);
@@ -1551,7 +1551,7 @@ pfm_dispatch_irange(pfmlib_input_param_t *inp, pfmlib_ita2_input_param_t *mod_in
 			case 2:
 				reg.pmc14_ita2_reg.iarc_ibrp1 = 0;
 				break;
-			case 4: 
+			case 4:
 				reg.pmc14_ita2_reg.iarc_ibrp2 = 0;
 				break;
 			case 6:
@@ -1789,7 +1789,7 @@ check_qualifier_constraints(pfmlib_input_param_t *inp, pfmlib_ita2_input_param_t
 	pfmlib_ita2_input_param_t *param = mod_in;
 	pfmlib_event_t *e = inp->pfp_events;
 	unsigned int i, count;
-	
+
 
 	count = inp->pfp_event_count;
 	for(i=0; i < count; i++) {
@@ -1902,7 +1902,7 @@ pfm_ita2_is_dear_tlb(unsigned int i)
 {
 	return i < PME_ITA2_EVENT_COUNT && is_dear(i) && is_ear_tlb(i);
 }
-	
+
 int
 pfm_ita2_is_dear_cache(unsigned int i)
 {
@@ -1914,7 +1914,7 @@ pfm_ita2_is_dear_alat(unsigned int i)
 {
 	return i < PME_ITA2_EVENT_COUNT && is_ear_alat(i);
 }
-	
+
 int
 pfm_ita2_is_iear(unsigned int i)
 {
@@ -1926,13 +1926,13 @@ pfm_ita2_is_iear_tlb(unsigned int i)
 {
 	return i < PME_ITA2_EVENT_COUNT && is_iear(i) && is_ear_tlb(i);
 }
-	
+
 int
 pfm_ita2_is_iear_cache(unsigned int i)
 {
 	return i < PME_ITA2_EVENT_COUNT && is_iear(i) && is_ear_cache(i);
 }
-	
+
 int
 pfm_ita2_is_btb(unsigned int i)
 {
@@ -2002,7 +2002,7 @@ pfm_ita2_get_event_umask(unsigned int i, unsigned long *umask)
 	*umask = evt_umask(i);
 	return PFMLIB_SUCCESS;
 }
-	
+
 int
 pfm_ita2_get_event_group(unsigned int i, int *grp)
 {

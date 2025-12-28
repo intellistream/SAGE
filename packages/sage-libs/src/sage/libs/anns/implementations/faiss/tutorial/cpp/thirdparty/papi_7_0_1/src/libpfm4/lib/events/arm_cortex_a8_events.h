@@ -111,7 +111,7 @@ static const arm_entry_t arm_cortex_a8_pe []={
 	{.name = "WRITE_BUFFER_FULL",
 	 .code = 0x40,
 	 .desc = "Cycles Write buffer full"
-	},  
+	},
 	{.name = "L2_STORE_MERGED",
 	 .code = 0x41,
 	 .desc = "Stores merged in L2"
@@ -179,7 +179,7 @@ static const arm_entry_t arm_cortex_a8_pe []={
 	{.name = "PC_RETURN_MIS_PRED",
 	 .code = 0x51,
 	 .desc = "Return stack mispredictions"
-	},  
+	},
 	{.name = "PC_BRANCH_FAILED",
 	 .code = 0x52,
 	 .desc = "Branch prediction failures"
@@ -191,7 +191,7 @@ static const arm_entry_t arm_cortex_a8_pe []={
 	{.name = "PC_BRANCH_EXECUTED",
 	 .code = 0x54,
 	 .desc = "Taken branches executed"
-	},  
+	},
 	{.name = "OP_EXECUTED",
 	 .code = 0x55,
 	 .desc = "Operations executed (includes sub-ops in multi-cycle instructions)"
@@ -207,7 +207,7 @@ static const arm_entry_t arm_cortex_a8_pe []={
 	{.name = "CYCLES_NEON_DATA_STALL",
 	 .code = 0x58,
 	 .desc = "Cycles stalled waiting on NEON MRC data"
-	},  
+	},
 	{.name = "CYCLES_NEON_INST_STALL",
 	 .code = 0x59,
 	 .desc = "Cycles stalled due to full NEON queues"
@@ -215,19 +215,19 @@ static const arm_entry_t arm_cortex_a8_pe []={
 	{.name = "NEON_CYCLES",
 	 .code = 0x5a,
 	 .desc = "Cycles NEON and integer processors both not idle"
-	},  
+	},
 	{.name = "PMU0_EVENTS",
 	 .code = 0x70,
 	 .desc = "External PMUEXTIN[0] event"
-	},     
+	},
 	{.name = "PMU1_EVENTS",
 	 .code = 0x71,
 	 .desc = "External PMUEXTIN[1] event"
-	},        
+	},
 	{.name = "PMU_EVENTS",
 	 .code = 0x72,
 	 .desc = "External PMUEXTIN[0] or PMUEXTIN[1] event"
-	},              
+	},
 	{.name = "CPU_CYCLES",
 	 .code = 0xff,
 	 .desc = "CPU cycles"

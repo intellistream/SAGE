@@ -29,7 +29,7 @@ struct HashParam
 	float** rndAs = nullptr;
 	// the value of b in S hash functions
 	float* rndBs = nullptr;
-	// 
+	//
 	//float W = 0.0f;
 
 	//float calHash(float* point, )

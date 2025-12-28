@@ -295,6 +295,6 @@ main(int argc, char **argv)
 
 	if (!options.mmap_pages)
 		options.mmap_pages = 4;
-	
+
 	return mainloop(argv+optind);
 }

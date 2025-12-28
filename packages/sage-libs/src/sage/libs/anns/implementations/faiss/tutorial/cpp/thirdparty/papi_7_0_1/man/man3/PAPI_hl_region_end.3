@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_hl_region_end \- 
+PAPI_hl_region_end \-
 .PP
-Read performance events at the end of a region and store the difference to the corresponding beginning of the region\&.  
+Read performance events at the end of a region and store the difference to the corresponding beginning of the region\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 int \fBPAPI_hl_region_end( const char* region )\fP;
 .RE
@@ -27,13 +27,13 @@ int \fBPAPI_hl_region_end( const char* region )\fP;
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_OK\fP 
+\fIPAPI_OK\fP
 .br
-\fIPAPI_ENOTRUN\fP -- EventSet is currently not running or could not determined\&. 
+\fIPAPI_ENOTRUN\fP -- EventSet is currently not running or could not determined\&.
 .br
-\fIPAPI_ESYS\fP -- A system or C library call failed inside PAPI, see the errno variable\&. 
+\fIPAPI_ESYS\fP -- A system or C library call failed inside PAPI, see the errno variable\&.
 .br
-\fIPAPI_EMISC\fP -- PAPI has been deactivated due to previous errors\&. 
+\fIPAPI_EMISC\fP -- PAPI has been deactivated due to previous errors\&.
 .br
 \fIPAPI_ENOMEM\fP -- Insufficient memory\&.
 .RE
@@ -93,15 +93,15 @@ python papi_hl_output_writer\&.py --type=accumulate
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_hl_region_begin\fP 
+\fBPAPI_hl_region_begin\fP
 .PP
-\fBPAPI_hl_read\fP 
+\fBPAPI_hl_read\fP
 .PP
-\fBPAPI_hl_stop\fP 
+\fBPAPI_hl_stop\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

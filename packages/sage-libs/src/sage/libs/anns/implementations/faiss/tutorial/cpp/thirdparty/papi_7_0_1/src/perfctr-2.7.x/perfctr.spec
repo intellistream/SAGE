@@ -97,5 +97,5 @@ rm -rf %{buildroot}
 - Add device file.
 - Add module alias.
 
-* Thu Jun 12 2003 Bryan O'Sullivan <bos@serpentine.com> - 
+* Thu Jun 12 2003 Bryan O'Sullivan <bos@serpentine.com> -
 - Initial build.

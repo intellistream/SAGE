@@ -43,7 +43,7 @@ typedef struct {
 	unsigned int		pme_numasks;	/* number of umasks */
 	pme_sicortex_umask_t pme_umasks[PFMLIB_SICORTEX_MAX_UMASK]; /* umask desc */
 } pme_sicortex_entry_t;
-  
+
 static pme_sicortex_umask_t sicortex_scb_umasks[PFMLIB_SICORTEX_MAX_UMASK] = {
   {
     "IFOTHER_NONE","Both buckets count independently",0x00

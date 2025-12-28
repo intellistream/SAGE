@@ -1,5 +1,5 @@
-# This runs simpleMultiGPU. 
-# It should work on SUMMIT when that becomes available; 
+# This runs simpleMultiGPU.
+# It should work on SUMMIT when that becomes available;
 # you may wish to change the --gpu_per_rs to 4 (or whatever
 # the max per node may be). (rs =resource set).
 # --smpiargs off prevents an error "_PAMI_Invalidate_region undefined symbol",

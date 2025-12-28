@@ -73,7 +73,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         size_t const buffSize = (size_t)FUZZ_dataProducer_uint32Range(producer, dataSize, sizeof(data));
         BYTE* const buff = FUZZ_malloc(buffSize);
         size_t rtDataSize;
-        memcpy(buff, data, dataSize); 
+        memcpy(buff, data, dataSize);
         {
             size_t b;
             for (b = dataSize; b < buffSize; ++b) {

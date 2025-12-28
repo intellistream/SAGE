@@ -110,7 +110,7 @@ char labels[MAX_LABELS][100]={
 };
 
 int main(int argc, char **argv) {
-  
+
   int i,multiplier=1;
 
   FILE *fff;
@@ -133,4 +133,3 @@ int main(int argc, char **argv) {
   }
   return 0;
 }
-

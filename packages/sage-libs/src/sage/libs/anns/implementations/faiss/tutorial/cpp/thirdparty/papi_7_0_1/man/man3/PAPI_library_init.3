@@ -2,15 +2,15 @@
 .ad l
 .nh
 .SH NAME
-PAPI_library_init \- 
+PAPI_library_init \-
 .PP
-initialize the PAPI library\&.  
+initialize the PAPI library\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBParameters:\fP
@@ -20,16 +20,16 @@ initialize the PAPI library\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_EINVAL\fP \fBpapi\&.h\fP is different from the version used to compile the PAPI library\&. 
+\fIPAPI_EINVAL\fP \fBpapi\&.h\fP is different from the version used to compile the PAPI library\&.
 .br
-\fIPAPI_ENOMEM\fP Insufficient memory to complete the operation\&. 
+\fIPAPI_ENOMEM\fP Insufficient memory to complete the operation\&.
 .br
-\fIPAPI_ECMP\fP This component does not support the underlying hardware\&. 
+\fIPAPI_ECMP\fP This component does not support the underlying hardware\&.
 .br
 \fIPAPI_ESYS\fP A system or C library call failed inside PAPI, see the errno variable\&.
 .RE
 .PP
-\fBPAPI_library_init()\fP initializes the PAPI library\&. \fBPAPI_is_initialized()\fP check for initialization\&. It must be called before any low level PAPI functions can be used\&. If your application is making use of threads \fBPAPI_thread_init\fP must also be called prior to making any calls to the library other than \fBPAPI_library_init()\fP \&. 
+\fBPAPI_library_init()\fP initializes the PAPI library\&. \fBPAPI_is_initialized()\fP check for initialization\&. It must be called before any low level PAPI functions can be used\&. If your application is making use of threads \fBPAPI_thread_init\fP must also be called prior to making any calls to the library other than \fBPAPI_library_init()\fP \&.
 .PP
 \fBExamples:\fP
 .RS 4
@@ -45,20 +45,20 @@ if (retval < 0)
     handle_error(retval);
 retval = PAPI_is_initialized();
 if (retval != PAPI_LOW_LEVEL_INITED)
-    handle_error(retval)    
+    handle_error(retval)
 
 .fi
 .PP
- 
+
 .RE
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_thread_init\fP PAPI 
+\fBPAPI_thread_init\fP PAPI
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -34,7 +34,7 @@ int main(int argc,char** argv){
 	extern char* optarg;
 	extern int optind;
 	int c,tmp,index;
-	
+
 	//set default samp and device
 	device="0";
 	samp="5";
@@ -66,11 +66,11 @@ int main(int argc,char** argv){
 		}
 	}
 
-	
+
 	//form the arg list for the cuda app
 	char** var;
 	var=&argv[index];
-	
+
 
 	char* ld_lib;
 	char env1[1024];
@@ -89,7 +89,7 @@ int main(int argc,char** argv){
 
 	strcpy(env2,"GPU_DEVICE_ID=");
 	strcat(env2,device);
-	
+
 	strcpy(env3,"PC_SAMPLING_RATE=");
 	strcat(env3,samp);
 

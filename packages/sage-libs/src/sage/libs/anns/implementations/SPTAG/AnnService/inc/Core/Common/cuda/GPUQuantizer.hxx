@@ -70,7 +70,7 @@ class GPU_Quantizer {
     size_t m_KsPerSubvector;
     size_t m_BlockSize;
     int m_DimPerSubvector;
-    
+
     float* m_DistanceTables; // Don't need L2 and cosine tables, just copy from correct tables on host
 
     RType m_type;
@@ -87,14 +87,14 @@ class GPU_Quantizer {
 
     __host__ GPU_Quantizer(std::shared_ptr<SPTAG::COMMON::IQuantizer> quantizer, DistMetric metric) {
 
-      // Make sure L2 is used, since other 
+      // Make sure L2 is used, since other
       if(metric != DistMetric::L2) {
         SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Only L2 distance currently supported for PQ or OPQ\n");
         exit(1);
       }
 
       VectorValueType rType;
-      
+
       if(quantizer->GetQuantizerType() == QuantizerType::PQQuantizer) {
         SPTAG::COMMON::PQQuantizer<int>* pq_quantizer = (SPTAG::COMMON::PQQuantizer<int>*)quantizer.get();
 
@@ -161,7 +161,7 @@ class GPU_Quantizer {
       for(int i = 0; i < m_NumSubvectors; i+=2) {
         totals[0] += m_DistanceTables[m_DistIndexCalc(i, pX[i], pY[i])];
         totals[1] += m_DistanceTables[m_DistIndexCalc(i+1, pX[i+1], pY[i+1])];
-      } 
+      }
 
       return totals[0]+totals[1];
     }
@@ -171,7 +171,7 @@ class GPU_Quantizer {
       return between <= distance;
     }
 
-// Attempt to improve perf by checking threshold during computation to short-circuit 
+// Attempt to improve perf by checking threshold during computation to short-circuit
 //   distance lookups
 /*
     __forceinline__ __device__ float dist(uint8_t* pX, uint8_t* pY, float target) {
@@ -187,7 +187,7 @@ class GPU_Quantizer {
           return target+1.0;
         }
         totals[0]+=temp;
-      } 
+      }
 
       return totals[0];
     }

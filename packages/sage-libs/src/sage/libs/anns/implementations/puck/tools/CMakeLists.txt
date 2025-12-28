@@ -29,10 +29,10 @@ target_link_libraries(build  OpenMP::OpenMP_CXX)
 target_link_libraries(build  ${MKL_LIBRARIES})
 
 target_link_libraries(build gflags)
-target_link_libraries(build glog) 
+target_link_libraries(build glog)
 
 set(BUILD_TOOLS_PREFIX ${CMAKE_INSTALL_PREFIX}/build_tools)
-install(TARGETS train build 
+install(TARGETS train build
 RUNTIME DESTINATION ${BUILD_TOOLS_PREFIX}/bin
 )
 

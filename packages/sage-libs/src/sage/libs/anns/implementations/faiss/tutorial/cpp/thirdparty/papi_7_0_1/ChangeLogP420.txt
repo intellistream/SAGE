@@ -1137,4 +1137,3 @@
 
 	* src/configure: Rebuild from configure.in with version number bump
 	  to 4.1.4 in advance of pending internal vendor release for Cray.
-

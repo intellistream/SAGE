@@ -4,21 +4,20 @@
 # LICENSE file in the root directory of this source tree.
 
 """make sure that the referenced objects are kept"""
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-import numpy as np
-import unittest
-import faiss
-import sys
 import gc
+import sys
+import unittest
+
+import faiss
+import numpy as np
 
 d = 10
-xt = np.random.rand(100, d).astype('float32')
-xb = np.random.rand(20, d).astype('float32')
+xt = np.random.rand(100, d).astype("float32")
+xb = np.random.rand(20, d).astype("float32")
 
 
 class TestReferenced(unittest.TestCase):
-
     def test_IndexIVF(self):
         quantizer = faiss.IndexFlatL2(d)
         index = faiss.IndexIVFFlat(quantizer, d, 10)
@@ -70,10 +69,10 @@ class TestReferenced(unittest.TestCase):
     def test_IDMap(self):
         sub_index = faiss.IndexFlatL2(d)
         index = faiss.IndexIDMap(sub_index)
-        index.add_with_ids(xb, np.arange(len(xb), dtype='int64'))
+        index.add_with_ids(xb, np.arange(len(xb), dtype="int64"))
         del sub_index
         gc.collect()
-        index.add_with_ids(xb, np.arange(len(xb), dtype='int64'))
+        index.add_with_ids(xb, np.arange(len(xb), dtype="int64"))
 
     def test_shards(self):
         index = faiss.IndexShards(d)
@@ -86,12 +85,11 @@ class TestReferenced(unittest.TestCase):
 
 
 dbin = 32
-xtbin = np.random.randint(256, size=(100, int(dbin / 8))).astype('uint8')
-xbbin = np.random.randint(256, size=(20, int(dbin / 8))).astype('uint8')
+xtbin = np.random.randint(256, size=(100, int(dbin / 8))).astype("uint8")
+xbbin = np.random.randint(256, size=(20, int(dbin / 8))).astype("uint8")
 
 
 class TestReferencedBinary(unittest.TestCase):
-
     def test_binary_ivf(self):
         index = faiss.IndexBinaryIVF(faiss.IndexBinaryFlat(dbin), dbin, 10)
         gc.collect()
@@ -102,5 +100,6 @@ class TestReferencedBinary(unittest.TestCase):
         gc.collect()
         index.add(xbbin)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

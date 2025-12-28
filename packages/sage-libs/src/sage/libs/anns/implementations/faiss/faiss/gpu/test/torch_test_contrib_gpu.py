@@ -3,21 +3,25 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import faiss
-import torch
 import unittest
-import numpy as np
+
+import faiss
 import faiss.contrib.torch_utils
+import numpy as np
+import torch
+
 
 def to_column_major_torch(x):
-    if hasattr(torch, 'contiguous_format'):
+    if hasattr(torch, "contiguous_format"):
         return x.t().clone(memory_format=torch.contiguous_format).t()
     else:
         # was default setting before memory_format was introduced
         return x.t().clone().t()
 
+
 def to_column_major_numpy(x):
     return x.T.copy().T
+
 
 class TestTorchUtilsGPU(unittest.TestCase):
     # tests add, search
@@ -29,7 +33,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         cpu_index.add(xb_torch.numpy())
 
         # Add to CPU index with torch GPU (should fail)
-        xb_torch_gpu = torch.rand(10000, 128, device=torch.device('cuda', 0), dtype=torch.float32)
+        xb_torch_gpu = torch.rand(10000, 128, device=torch.device("cuda", 0), dtype=torch.float32)
         with self.assertRaises(AssertionError):
             cpu_index.add(xb_torch_gpu)
 
@@ -53,8 +57,8 @@ class TestTorchUtilsGPU(unittest.TestCase):
         self.assertTrue(torch.equal(i_torch_cpu.cuda(), i_torch_gpu))
 
         # Search with torch GPU using pre-allocated arrays
-        new_d_torch_gpu = torch.zeros(10, 10, device=torch.device('cuda', 0), dtype=torch.float32)
-        new_i_torch_gpu = torch.zeros(10, 10, device=torch.device('cuda', 0), dtype=torch.int64)
+        new_d_torch_gpu = torch.zeros(10, 10, device=torch.device("cuda", 0), dtype=torch.float32)
+        new_i_torch_gpu = torch.zeros(10, 10, device=torch.device("cuda", 0), dtype=torch.int64)
         gpu_index.search(xq_torch_gpu, 10, new_d_torch_gpu, new_i_torch_gpu)
 
         self.assertTrue(torch.equal(d_torch_cpu.cuda(), new_d_torch_gpu))
@@ -77,10 +81,12 @@ class TestTorchUtilsGPU(unittest.TestCase):
         res.noTempMemory()
 
         index = faiss.GpuIndexIVFFlat(res, d, nlist, faiss.METRIC_L2)
-        xb = torch.rand(1000, d, device=torch.device('cuda', 0), dtype=torch.float32)
+        xb = torch.rand(1000, d, device=torch.device("cuda", 0), dtype=torch.float32)
         index.train(xb)
 
-        ids = torch.arange(1000, 1000 + xb.shape[0], device=torch.device('cuda', 0), dtype=torch.int64)
+        ids = torch.arange(
+            1000, 1000 + xb.shape[0], device=torch.device("cuda", 0), dtype=torch.int64
+        )
 
         # Test add_with_ids with torch gpu
         index.add_with_ids(xb, ids)
@@ -114,7 +120,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         res.noTempMemory()
         index = faiss.GpuIndexFlatL2(res, d)
 
-        xb = torch.rand(100, d, device=torch.device('cuda', 0), dtype=torch.float32)
+        xb = torch.rand(100, d, device=torch.device("cuda", 0), dtype=torch.float32)
         index.add(xb)
 
         # Test reconstruct with torch gpu (native return)
@@ -123,7 +129,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         self.assertTrue(torch.equal(xb[7], y))
 
         # Test reconstruct with numpy output provided
-        y = np.empty(d, dtype='float32')
+        y = np.empty(d, dtype="float32")
         index.reconstruct(11, y)
         self.assertTrue(np.array_equal(xb.cpu().numpy()[11], y))
 
@@ -133,7 +139,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         self.assertTrue(torch.equal(xb[12].cpu(), y))
 
         # Test reconstruct with torch gpu output providesd
-        y = torch.empty(d, device=torch.device('cuda', 0), dtype=torch.float32)
+        y = torch.empty(d, device=torch.device("cuda", 0), dtype=torch.float32)
         index.reconstruct(13, y)
         self.assertTrue(torch.equal(xb[13], y))
 
@@ -143,7 +149,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         self.assertTrue(torch.equal(xb[10:20], y))
 
         # Test reconstruct with numpy output provided
-        y = np.empty((10, d), dtype='float32')
+        y = np.empty((10, d), dtype="float32")
         index.reconstruct_n(20, 10, y)
         self.assertTrue(np.array_equal(xb.cpu().numpy()[20:30], y))
 
@@ -153,7 +159,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         self.assertTrue(torch.equal(xb[40:50].cpu(), y))
 
         # Test reconstruct_n with torch gpu output provided
-        y = torch.empty(10, d, device=torch.device('cuda', 0), dtype=torch.float32)
+        y = torch.empty(10, d, device=torch.device("cuda", 0), dtype=torch.float32)
         index.reconstruct_n(50, 10, y)
         self.assertTrue(torch.equal(xb[50:60], y))
 
@@ -164,7 +170,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         res.noTempMemory()
 
         index = faiss.GpuIndexFlatL2(res, d)
-        xb = torch.rand(10000, d, device=torch.device('cuda', 0), dtype=torch.float32)
+        xb = torch.rand(10000, d, device=torch.device("cuda", 0), dtype=torch.float32)
         index.add(xb)
 
         index_cpu = faiss.IndexFlatL2(d)
@@ -172,7 +178,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
 
         # Test assign with native gpu output
         # both input as gpu torch and input as cpu torch
-        xq = torch.rand(10, d, device=torch.device('cuda', 0), dtype=torch.float32)
+        xq = torch.rand(10, d, device=torch.device("cuda", 0), dtype=torch.float32)
 
         labels = index.assign(xq, 5)
         labels_cpu = index_cpu.assign(xq.cpu(), 5)
@@ -184,7 +190,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
         self.assertTrue(np.array_equal(labels, labels_cpu))
 
         # Test assign with numpy output provided
-        labels = np.empty((xq.shape[0], 5), dtype='int64')
+        labels = np.empty((xq.shape[0], 5), dtype="int64")
         index.assign(xq.cpu().numpy(), 5, labels)
         self.assertTrue(np.array_equal(labels, labels_cpu))
 
@@ -213,6 +219,7 @@ class TestTorchUtilsGPU(unittest.TestCase):
     def test_sa_encode_decode(self):
         # This is not currently implemented on GPU indices
         return
+
 
 class TestTorchUtilsKnnGpu(unittest.TestCase):
     def test_knn_gpu(self):
@@ -261,7 +268,6 @@ class TestTorchUtilsKnnGpu(unittest.TestCase):
             for is_cuda in True, False:
                 for xq_row_major in True, False:
                     for xb_row_major in True, False:
-
                         if is_cuda:
                             xq_c = xq.cuda()
                             xb_c = xb.cuda()
@@ -337,6 +343,7 @@ class TestTorchUtilsKnnGpu(unittest.TestCase):
         self.assertTrue(torch.equal(torch.from_numpy(I).long(), gt_I))
         self.assertLess((torch.from_numpy(D) - gt_D).abs().max(), 1.5e-3)
 
+
 class TestTorchUtilsPairwiseDistanceGpu(unittest.TestCase):
     def test_pairwise_distance_gpu(self):
         torch.manual_seed(10)
@@ -388,7 +395,6 @@ class TestTorchUtilsPairwiseDistanceGpu(unittest.TestCase):
             for is_cuda in True, False:
                 for xq_row_major in True, False:
                     for xb_row_major in True, False:
-
                         if is_cuda:
                             xq_c = xq.cuda()
                             xb_c = xb.cuda()

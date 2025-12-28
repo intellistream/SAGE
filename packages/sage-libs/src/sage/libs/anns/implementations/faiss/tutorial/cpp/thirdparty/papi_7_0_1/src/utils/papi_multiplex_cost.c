@@ -2,16 +2,16 @@
   * @brief papi_multiplex_cost utility.
   *	@page papi_multiplex_cost
   * @section  NAME
-  *		papi_multiplex_cost - computes execution time costs for basic PAPI operations on multiplexed EventSets. 
+  *		papi_multiplex_cost - computes execution time costs for basic PAPI operations on multiplexed EventSets.
   *
   *	@section Synopsis
   *		papi_cost [-m, --min < min >] [-x, --max < max >] [-k,-s]
   *
   *	@section Description
   *		papi_multiplex_cost is a PAPI utility program that computes the
-  *		min / max / mean / std. deviation of execution times for PAPI start/stop 
+  *		min / max / mean / std. deviation of execution times for PAPI start/stop
   *		pairs and for PAPI reads on multiplexed eventsets.
-  *		This information provides the basic operating cost to a user's program 
+  *		This information provides the basic operating cost to a user's program
   *		for collecting hardware counter data.
   *		Command line options control display capabilities.
   *
@@ -32,7 +32,7 @@
 
 /* Open Issues:
  *		Selecting events to add is very primitive right now.
- *		Output format, right now the format targets a gnuplot script I have, 
+ *		Output format, right now the format targets a gnuplot script I have,
  *			We will probably end up generating a csv per test
  */
 

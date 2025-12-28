@@ -44,4 +44,3 @@ struct AggregatorSettings
 
 
 #endif // _SPTAG_AGGREGATOR_AGGREGATORSETTINGS_H_
-

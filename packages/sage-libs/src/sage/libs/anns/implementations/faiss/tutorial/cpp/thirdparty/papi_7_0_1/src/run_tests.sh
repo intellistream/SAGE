@@ -131,7 +131,7 @@ do
       RAN="$i $RAN"
       printf "Running %-50s %s" $i:
       $VALGRIND ./$i $TESTS_QUIET
-      
+
       #delete output folder for high-level tests
       case "$i" in
         *"_hl"*) rm -r papi_hl_output ;;
@@ -229,6 +229,6 @@ do
   MATCH=0
 done
 
-if [ "$RAN" = "" ]; then 
+if [ "$RAN" = "" ]; then
 	echo "FAILED to run any tests. (you can safely ignore this if this was expected behavior)"
 fi;

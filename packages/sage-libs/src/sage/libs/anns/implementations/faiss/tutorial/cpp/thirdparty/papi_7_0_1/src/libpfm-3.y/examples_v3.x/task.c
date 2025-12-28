@@ -203,7 +203,7 @@ parent(char **arg)
 	/*
 	 * the task is stopped at this point
 	 */
-	
+
 	/*
 	 * now we load (i.e., attach) the session
 	 */
@@ -275,7 +275,7 @@ main(int argc, char **argv)
 	if (argc < 2) {
 		fatal_error("You must specify a command to execute\n");
 	}
-	
+
 	/*
 	 * pass options to library (optional)
 	 */

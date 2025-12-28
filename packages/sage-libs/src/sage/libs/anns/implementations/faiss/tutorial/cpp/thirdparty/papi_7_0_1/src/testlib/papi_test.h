@@ -111,4 +111,3 @@ extern int TESTS_QUIET;         /* Declared in test_utils.c */
 #ifdef __cplusplus
 }
 #endif
-

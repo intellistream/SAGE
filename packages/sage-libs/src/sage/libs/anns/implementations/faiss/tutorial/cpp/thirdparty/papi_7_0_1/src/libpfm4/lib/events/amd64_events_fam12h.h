@@ -344,7 +344,7 @@ static const amd64_umask_t amd64_fam12h_l1_dtlb_miss_and_l2_dtlb_hit[]={
    { .uname  = "ALL",
      .udesc  = "All sub-events selected",
      .ucode = 0x7,
-     .uflags= AMD64_FL_NCOMBO | AMD64_FL_DFL, 
+     .uflags= AMD64_FL_NCOMBO | AMD64_FL_DFL,
    },
 };
 

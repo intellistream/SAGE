@@ -38,7 +38,7 @@
 extern "C" {
 #endif
 
-/* 
+/*
  * upper limit, actual number determined dynamically
  */
 #define PMU_GEN_IA32_MAX_COUNTERS PFMLIB_MAX_PMCS

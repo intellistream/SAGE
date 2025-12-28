@@ -1614,4 +1614,3 @@
 	* release_procedure.txt: Corrected directory entry typo.
 	* ChangeLogP570.txt, RELEASENOTES.txt: New ChangeLogP570.txt for new
 	  release, updated RELEASENOTES.txt
-

@@ -10,10 +10,9 @@ git diff to review changes, then commit, push.
 """
 
 import sys
-from typing import List
 
 
-def run(args: List[str]) -> None:
+def run(args: list[str]) -> None:
     assert len(args) == 1, "codespell_errors.txt"
     cache = {}
     done = set()

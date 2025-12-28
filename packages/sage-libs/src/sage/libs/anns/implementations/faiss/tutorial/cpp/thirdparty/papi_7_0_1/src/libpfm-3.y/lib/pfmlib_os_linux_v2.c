@@ -80,7 +80,7 @@ pfm_create_context_2v3(pfarg_ctx_t *ctx, char *name, void *smpl_arg, size_t smpl
 	if (!ctx) {
 		errno = EINVAL;
 		return -1;
-	} 
+	}
 
 	/*
  	 * if sampling format is used, then force SMPL_FMT
@@ -89,7 +89,7 @@ pfm_create_context_2v3(pfarg_ctx_t *ctx, char *name, void *smpl_arg, size_t smpl
 	fl = ctx->ctx_flags;
 	if (name || smpl_arg || smpl_size)
 		fl |= PFM_FL_SMPL_FMT;
-	
+
 	return pfm_create(fl, &cinfo, name, smpl_arg, smpl_size);
 }
 

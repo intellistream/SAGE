@@ -13,14 +13,14 @@ PAPI_CUDA_ROOT ?= /opt/cuda
 # By default, all overrides are empty strings.
 
 # If an override is not an empty string, it must work, or the component will be
-# disabled. 
+# disabled.
 
 # Both at compile time and run time, the software depends on PAPI_CUDA_ROOT.
-# There are four libraries used by the CUDA component, they are 
+# There are four libraries used by the CUDA component, they are
 # libcuda.so
-# libcudart.so 
+# libcudart.so
 # libcupti.so
-# libnvperf_host.so 
+# libnvperf_host.so
 
 # The standard installed locations for these libraries, with overrides:
 # $(PAPI_CUDA_ROOT)/lib64/libcuda.so                        #O.R. PAPI_CUDA_MAIN
@@ -28,31 +28,31 @@ PAPI_CUDA_ROOT ?= /opt/cuda
 # $(PAPI_CUDA_ROOT)/extras/CUPTI/lib64/libcupti.so          #O.R. PAPI_CUDA_CUPTI
 # $(PAPI_CUDA_ROOT)/extras/CUPTI/lib64/libnvperf_host.so    #O.R. PAPI_CUDA_PERFWORKS
 #
-# There are many ways to cause these paths to be known. 
+# There are many ways to cause these paths to be known.
 # Spack is a package manager used on supercomputers, Linux and MacOS. If Spack
 # is aware of CUDA, it encodes the paths to the necessary libraries.
 
 # The environment variable LD_LIBRARY_PATH encodes a list of paths to search for
 # libraries; separated by a colon (:). These paths could be added to
-# LD_LIBRARY_PATH. 
+# LD_LIBRARY_PATH.
 #
 # Warning: LD_LIBRARY_PATH often contains a list of directories that are
 # searched for libraries, some of these may be needed by other packages you are
-# using. Always add to LD_LIBRARY_PATH recursively; for example: 
-# >export LD_LIBRARY_PATH=someNewLibraryDirectory:$LD_LIBRARY_PATH 
+# using. Always add to LD_LIBRARY_PATH recursively; for example:
+# >export LD_LIBRARY_PATH=someNewLibraryDirectory:$LD_LIBRARY_PATH
 # which would append the existing LD_LIBRARY_PATH to the new directory you wish
-# to add.  Alternatively, you can prepend it: 
-# >export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:someNewLibraryDirectory 
+# to add.  Alternatively, you can prepend it:
+# >export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:someNewLibraryDirectory
 # Which will search the existing libraries first, then your new directory.
 
-# You can check on the value of LD_LIBRARY_PATH with 
+# You can check on the value of LD_LIBRARY_PATH with
 # >echo $LD_LIBRARY_PATH
 
 # There may be other package managers or utilities, for example on a system with
 # modules; the command 'module load cuda' may modify LD_LIBRARY_PATH.
 
 # A Linux system will also search for libraries by default in the directories
-# listed by /etc/ld.so.conf, and /usr/lib64, /lib64, /usr/lib, /lib. 
+# listed by /etc/ld.so.conf, and /usr/lib64, /lib64, /usr/lib, /lib.
 
 # OVERRIDES: These are by default empty strings (""), if set they must work.
 PAPI_CUDA_MAIN = \"\"
@@ -70,7 +70,7 @@ PAPI_CUDA_PERFWORKS = \"\"
 #        From papi/src/
 #        make clobber
 #        ./configure --with-components="nvml"
-#        make  
+#        make
 
 # OPERATION, per library:
 # 1) If an override string is not empty, we will use it explicitly and fail if
@@ -84,7 +84,7 @@ PAPI_CUDA_PERFWORKS = \"\"
 # 3) If that fails, we will try to find the library in the standard installed
 # locations listed above. If this fails, we disable the component, the reason
 # for disabling is shown using the papi utility,
-# papi/src/utils/papi_component_avail. 
+# papi/src/utils/papi_component_avail.
 
 # DEFFLAGS is the macro defines for the three overrides. In the code we convert
 # these to string variables with the following lines:
@@ -116,4 +116,3 @@ cuda_sampling:
 
 # native_clean:
 # 	cd components/cuda/sampling; $(MAKE) clean
-

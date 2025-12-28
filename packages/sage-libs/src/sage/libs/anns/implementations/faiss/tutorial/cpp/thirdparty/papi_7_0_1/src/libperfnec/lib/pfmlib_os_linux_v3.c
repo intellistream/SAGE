@@ -67,7 +67,7 @@ pfm_create(int flags, pfarg_sinfo_t *sif, ...)
 
 	if (flags & PFM_FL_SMPL_FMT)
 		va_start(ap, sif);
-	
+
 	if (flags & PFM_FL_SMPL_FMT) {
 		name = va_arg(ap, char *);
 		smpl_arg = va_arg(ap, void *);

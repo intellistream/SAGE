@@ -6,7 +6,7 @@
     printf(msg);                     \
     errs = 0;                     \
     return;                          \
-  }                                  
+  }
 
 
 template<typename T, typename SUMTYPE, int Dim>
@@ -54,7 +54,7 @@ int GPUTestDistancesSimple() {
   CUDA_CHECK(cudaMalloc(&d_ps, sizeof(PointSet<T>)));
   CUDA_CHECK(cudaMemcpy(d_ps, &h_ps, sizeof(PointSet<T>), cudaMemcpyHostToDevice));
 
- 
+
   int errs=0;
   GPUTestDistancesKernelStatic<T,SUMTYPE,dim><<<1, 1>>>(d_ps, errs); // TODO - make sure result is correct returned
   CUDA_CHECK(cudaDeviceSynchronize());
@@ -139,7 +139,7 @@ int GPUTestDistancesComplex(int vecs) {
   CUDA_CHECK(cudaMalloc(&d_l2_dists, vecs*vecs*sizeof(SUMTYPE)));
   CUDA_CHECK(cudaMemcpy(d_l2_dists, cpu_l2_dists, vecs*vecs*sizeof(SUMTYPE), cudaMemcpyHostToDevice));
 
- 
+
   GPUTestDistancesRandomKernel<T,SUMTYPE,dim><<<1024, 32>>>(d_ps, vecs, d_cosine_dists, d_l2_dists, errs); // TODO - make sure result is correct returned
   CUDA_CHECK(cudaDeviceSynchronize());
 

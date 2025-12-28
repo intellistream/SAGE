@@ -17,9 +17,9 @@ const THRESHOLD_FOR_CACHING_IN_GB: f64 = 1.0;
 /// Parameters specific for disk index construction.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct DiskIndexBuildParameters {
-    /// Bound on the memory footprint of the index at search time in bytes. 
+    /// Bound on the memory footprint of the index at search time in bytes.
     /// Once built, the index will use up only the specified RAM limit, the rest will reside on disk.
-    /// This will dictate how aggressively we compress the data vectors to store in memory. 
+    /// This will dictate how aggressively we compress the data vectors to store in memory.
     /// Larger will yield better performance at search time.
     search_ram_limit: f64,
 
@@ -30,8 +30,8 @@ pub struct DiskIndexBuildParameters {
 impl DiskIndexBuildParameters {
     /// Create DiskIndexBuildParameters instance
     pub fn new(search_ram_limit_gb: f64, index_build_ram_limit_gb: f64) -> ANNResult<Self> {
-        let param = Self { 
-            search_ram_limit: Self::get_memory_budget(search_ram_limit_gb), 
+        let param = Self {
+            search_ram_limit: Self::get_memory_budget(search_ram_limit_gb),
             index_build_ram_limit: index_build_ram_limit_gb * 1024_f64 * 1024_f64 * 1024_f64,
         };
 
@@ -82,4 +82,3 @@ mod dataset_test {
         assert_eq!(param.search_ram_limit, 0.03_f64 * 1024_f64 * 1024_f64 * 1024_f64);
     }
 }
-

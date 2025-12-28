@@ -172,7 +172,7 @@ int runBlackScholes(int opt_n) {
     checkCudaErrors(cudaMemcpy(h_CallResultGPU, d_CallResult, OPT_SZ, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(h_PutResultGPU,  d_PutResult,  OPT_SZ, cudaMemcpyDeviceToHost));
 
-#if 0 // Whether to check Results 
+#if 0 // Whether to check Results
     double delta, ref, sum_delta, sum_ref, max_delta;
     REPORT printf("Checking the results...\n");
     REPORT printf("...running CPU calculations.\n\n");
@@ -212,7 +212,7 @@ int runBlackScholes(int opt_n) {
     L1norm = sum_delta / sum_ref;
     REPORT printf("L1 norm: %E\n", L1norm);
     REPORT printf("Max absolute error: %E\n\n", max_delta);
-#endif 
+#endif
 
     REPORT printf("Shutting down...\n");
     REPORT printf("...releasing GPU memory.\n");
@@ -257,9 +257,9 @@ int main(int argc, char **argv)
     long long *values;          // [numEvents] read results.
     long long *testResults;     // [4*numEvents] all results for 4 experiments.
     int       *events;          // [numEvents] papi event ids.
- 
-    // From original, looks for "device=" command line arg, sets device to use. 
-    // findCudaDevice(argc, (const char **)argv); 
+
+    // From original, looks for "device=" command line arg, sets device to use.
+    // findCudaDevice(argc, (const char **)argv);
    checkCudaErrors(cudaSetDevice(0));
 
     REPORT printf("[%s] - Starting...\n", argv[0]);
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    numEvents = argc-1; 
+    numEvents = argc-1;
     values = (long long *) calloc(numEvents, sizeof(long long));
     testResults = (long long *) calloc(5*numEvents, sizeof(long long));
     events = (int *) calloc(numEvents, sizeof(int));
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "PAPI_event_name_to_code failed; name='%s' retval=%d='%s'\n", argv[i+1], retval, PAPI_strerror(retval));
             if (numEvents==1) {printf("PAPI_event_name_to_code failed; name='%s' retval=%d='%s'\n", argv[i+1], retval, PAPI_strerror(retval)); fflush(stdout);}
             exit (-2);
-        }   
+        }
 
         REPORT printf("Name %s --- Code: %#x\n", argv[i+1], events[i]);
     }
@@ -301,9 +301,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "PAPI_create_eventset failed; retval=%d='%s'\n", retval, PAPI_strerror(retval));
         if (numEvents==1) {printf("PAPI_create_eventset failed; retval=%d='%s'\n", retval, PAPI_strerror(retval)); fflush(stdout);}
         exit (-2);
-    }    
+    }
 
-    // If multiple GPUs/contexts were being used, 
+    // If multiple GPUs/contexts were being used,
     // you need to switch to each device before adding its events
     // e.g. cudaSetDevice( 0 );
     retval = PAPI_add_events( EventSet, events, numEvents );
@@ -318,12 +318,12 @@ int main(int argc, char **argv)
         fprintf(stderr, "PAPI_start failed; retval=%d='%s'\n", retval, PAPI_strerror(retval));
         if (numEvents==1) {printf("PAPI_start failed; retval=%d='%s'\n", retval, PAPI_strerror(retval)); fflush(stdout);}
         exit (-2);
-    } 
+    }
 
     // invoke the kernel, run 0: A full run of algorithm.
     int exp=0;
     retval = runBlackScholes(MAX_N);
-    if (retval < 0) { 
+    if (retval < 0) {
         fprintf(stderr, "Kernel execution failed.\n");
         if (numEvents==1) {printf("Run 0 BlackScholes kernel execution failed; retval=%d\n", retval); fflush(stdout);}
         exit (-2);
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
     // Run 1: at 1/4 as many, to ensure we are work dependent, not just run dependent.
     exp++;
     retval = runBlackScholes(MAX_N>>2);
-    if (retval < 0) { 
+    if (retval < 0) {
         fprintf(stderr, "Kernel execution failed.\n");
         if (numEvents==1) {printf("Run 1 BlackScholes kernel execution failed; retval=%d\n", retval); fflush(stdout);}
         exit (-2);
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 
     for (i=0; i<numEvents; i++) testResults[exp*numEvents+i]=values[i];
 
-    // Run 2: No runs, should be static. 
+    // Run 2: No runs, should be static.
     exp++;
     retval = PAPI_read( EventSet, values );
     if( retval != PAPI_OK ) {
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
 
     // Run 3: Sleep 1 second and run, no invocations. See if time related.
     exp++;
-    sleep(1); 
+    sleep(1);
     retval = PAPI_read( EventSet, values );
     if( retval != PAPI_OK ) {
         fprintf(stderr, "PAPI_read failed; retval=%d='%s'\n", retval, PAPI_strerror(retval));
@@ -387,7 +387,7 @@ int main(int argc, char **argv)
     retval += runBlackScholes(MAX_N);
     retval += runBlackScholes(MAX_N);
 
-    if (retval < 0) { 
+    if (retval < 0) {
         fprintf(stderr, "6 Kernel executions failed.\n");
         if (numEvents==1) {printf("Run 3 BlackScholes 5 kernel executions failed; retval=%d\n", retval); fflush(stdout);}
         exit (-2);

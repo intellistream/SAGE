@@ -37,7 +37,7 @@ int num_native_events=0;
     Native event encodings for perfmon2 contain array indices
     encoded as bits in this bitfield. These indices must be converted
     into a umask value before programming the counters. For Perfmon,
-    this is done by converting back to an array of values; for 
+    this is done by converting back to an array of values; for
     perfctr, it must be done by looking up the values.
 */
 
@@ -143,7 +143,7 @@ _pfm_convert_umask( unsigned int event, unsigned int umask )
 	return ( convert_pfm_masks( &gete ) );
 }
 
-/* convert libpfm error codes to PAPI error codes for 
+/* convert libpfm error codes to PAPI error codes for
 	more informative error reporting */
 int
 _papi_libpfm_error( int pfm_error )
@@ -537,7 +537,7 @@ _papi_libpfm_init(papi_vector_t *my_vector, int cidx) {
 long long generate_p4_event(long long escr,
 			    long long cccr,
 			    long long escr_addr) {
-		   
+
 /*
  * RAW events specification
  *
@@ -550,7 +550,7 @@ long long generate_p4_event(long long escr,
  * 57-62       Event key from enum P4_EVENTS
  *    63       Reserved, set to 0
  */
-		   
+
  enum P4_EVENTS {
       P4_EVENT_TC_DELIVER_MODE,
       P4_EVENT_BPU_FETCH_REQUEST,
@@ -599,25 +599,25 @@ long long generate_p4_event(long long escr,
       P4_EVENT_MACHINE_CLEAR,
       P4_EVENT_INSTR_COMPLETED,
    };
-		   
-		  		   
+
+
     int eventsel=(escr>>25)&0x3f;
     int cccrsel=(cccr>>13)&0x7;
     int event_key=-1;
     long long pe_event;
-		   
+
     switch(eventsel) {
        case 0x1: if (cccrsel==1) {
 		    if (escr_addr>0x3c8) {
-		       // tc_escr0,1 0x3c4 
-		       event_key=P4_EVENT_TC_DELIVER_MODE; 
+		       // tc_escr0,1 0x3c4
+		       event_key=P4_EVENT_TC_DELIVER_MODE;
 		    }
 		    else {
-		       // alf_escr0, 0x3ca    
+		       // alf_escr0, 0x3ca
 		       event_key=P4_EVENT_RESOURCE_STALL;
 		    }
 		 }
-		 if (cccrsel==4) {	    
+		 if (cccrsel==4) {
 		    if (escr_addr<0x3af) {
 		       // pmh_escr0,1 0x3ac
 		       event_key=P4_EVENT_PAGE_WALK_TYPE;
@@ -629,9 +629,9 @@ long long generate_p4_event(long long escr,
 		 }
 		 break;
 		    case 0x2: if (cccrsel==5) {
-		                 if (escr_addr<0x3a8) { 
+		                 if (escr_addr<0x3a8) {
 		                    // MSR_DAC_ESCR0 / MSR_DAC_ESCR1
-		                    event_key=P4_EVENT_MEMORY_CANCEL; 
+		                    event_key=P4_EVENT_MEMORY_CANCEL;
 				 } else {
 				   //MSR_CRU_ESCR2, MSR_CRU_ESCR3
 				   event_key=P4_EVENT_MACHINE_CLEAR;
@@ -656,14 +656,14 @@ long long generate_p4_event(long long escr,
 		              if (cccrsel==4) {
 			         event_key=P4_EVENT_MISPRED_BRANCH_RETIRED;
 		              }
-			      if (cccrsel==5) { 
+			      if (cccrsel==5) {
 				 event_key=P4_EVENT_X87_ASSIST;
 		              }
 			      break;
 		    case 0x4: if (cccrsel==2) {
 		                 if (escr_addr<0x3b0) {
-				    // saat, 0x3ae 
-		                    event_key=P4_EVENT_LOAD_PORT_REPLAY; 
+				    // saat, 0x3ae
+		                    event_key=P4_EVENT_LOAD_PORT_REPLAY;
 		                 }
 		                 else {
 				    // tbpu 0x3c2
@@ -679,7 +679,7 @@ long long generate_p4_event(long long escr,
 			      break;
                     case 0x5: if (cccrsel==2) {
 		                 if (escr_addr<0x3b0) {
-		                    // saat, 0x3ae 
+		                    // saat, 0x3ae
 		                    event_key=P4_EVENT_STORE_PORT_REPLAY;
 				 }
 		                 else {
@@ -698,7 +698,7 @@ long long generate_p4_event(long long escr,
 		              }
 			      break;
 		    case 0x6: if (cccrsel==7) {
-		                 event_key=P4_EVENT_BSQ_ACTIVE_ENTRIES; 
+		                 event_key=P4_EVENT_BSQ_ACTIVE_ENTRIES;
 		              }
 		              if (cccrsel==1) {
 		      	         event_key=P4_EVENT_TC_MISC;
@@ -712,7 +712,7 @@ long long generate_p4_event(long long escr,
 			      break;
 		    case 0x7: event_key=P4_EVENT_INSTR_COMPLETED; break;
 		    case 0x8: if (cccrsel==2) {
-		                 event_key=P4_EVENT_MEMORY_COMPLETE; 
+		                 event_key=P4_EVENT_MEMORY_COMPLETE;
 		              }
 		      	      if (cccrsel==1) {
 				 event_key=P4_EVENT_PACKED_SP_UOP;
@@ -725,7 +725,7 @@ long long generate_p4_event(long long escr,
 		              }
 			      break;
                     case 0x9: if (cccrsel==0) {
-		                 event_key=P4_EVENT_UOP_QUEUE_WRITES; 
+		                 event_key=P4_EVENT_UOP_QUEUE_WRITES;
 		              }
 		      	      if (cccrsel==5) {
 				 event_key=P4_EVENT_REPLAY_EVENT;
@@ -733,7 +733,7 @@ long long generate_p4_event(long long escr,
 			      break;
                     case 0xa: event_key=P4_EVENT_SCALAR_SP_UOP; break;
                     case 0xc: if (cccrsel==7) {
-		                 event_key=P4_EVENT_BSQ_CACHE_REFERENCE; 
+		                 event_key=P4_EVENT_BSQ_CACHE_REFERENCE;
 		              }
 		              if (cccrsel==1) {
 		      	         event_key=P4_EVENT_PACKED_DP_UOP;
@@ -748,7 +748,7 @@ long long generate_p4_event(long long escr,
 		    case 0x17: event_key=P4_EVENT_FSB_DATA_ACTIVITY; break;
 		    case 0x18: event_key=P4_EVENT_ITLB_REFERENCE; break;
                     case 0x1a: if (cccrsel==6) {
-		                  event_key=P4_EVENT_IOQ_ACTIVE_ENTRIES; 
+		                  event_key=P4_EVENT_IOQ_ACTIVE_ENTRIES;
 		               }
 		               if (cccrsel==1) {
 			          event_key=P4_EVENT_128BIT_MMX_UOP;
@@ -756,18 +756,18 @@ long long generate_p4_event(long long escr,
 		  break;
        case 0x34: event_key= P4_EVENT_SSE_INPUT_ASSIST; break;
     }
-		   
+
     pe_event=(escr&0x1ffffff)<<32;
-    pe_event|=(cccr&0xfffff000);		    
+    pe_event|=(cccr&0xfffff000);
     pe_event|=(((long long)(event_key))<<57);
-   
+
     return pe_event;
 }
 
 typedef pfmlib_event_t pfm_register_t;
 
 int
-_papi_libpfm_setup_counters( struct perf_event_attr *attr, 
+_papi_libpfm_setup_counters( struct perf_event_attr *attr,
 			   hwd_register_t *ni_bits ) {
 
   int ret,pe_event;
@@ -806,17 +806,17 @@ _papi_libpfm_setup_counters( struct perf_event_attr *attr,
        SUBDBG( "Error: pfm_dispatch_events returned: %d\n", ret);
        return PAPI_ESYS;
     }
-		   	
+
        /* Special case p4 */
-    if (( _papi_hwi_system_info.hw_info.vendor == PAPI_VENDOR_INTEL ) && 
+    if (( _papi_hwi_system_info.hw_info.vendor == PAPI_VENDOR_INTEL ) &&
         ( _papi_hwi_system_info.hw_info.cpuid_family == 15)) {
 
-	pe_event=generate_p4_event( outp.pfp_pmcs[0].reg_value, /* escr */  
+	pe_event=generate_p4_event( outp.pfp_pmcs[0].reg_value, /* escr */
 		                    outp.pfp_pmcs[1].reg_value, /* cccr */
 		                    outp.pfp_pmcs[0].reg_addr); /* escr_addr */
     }
     else {
-        pe_event = outp.pfp_pmcs[0].reg_value;   
+        pe_event = outp.pfp_pmcs[0].reg_value;
     }
     SUBDBG( "pe_event: %#llx\n", outp.pfp_pmcs[0].reg_value );
 #endif
@@ -829,12 +829,10 @@ _papi_libpfm_setup_counters( struct perf_event_attr *attr,
     return PAPI_OK;
 }
 
-int 
+int
 _papi_libpfm_shutdown(void) {
 
   SUBDBG("shutdown\n");
 
   return PAPI_OK;
 }
-
-

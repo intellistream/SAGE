@@ -1164,4 +1164,3 @@ static intel_x86_entry_t intel_bdx_unc_c_pe[]={
     .numasks= LIBPFM_ARRAY_SIZE(bdx_unc_c_txr_inserts),
   },
 };
-

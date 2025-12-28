@@ -364,4 +364,3 @@ typedef std::shared_ptr<class CANDY::PQIndex> PQIndexPtr;
 #define newPQIndex std::make_shared<CANDY::PQIndex>
 }
 #endif //CANDY_PQINDEX_H
-

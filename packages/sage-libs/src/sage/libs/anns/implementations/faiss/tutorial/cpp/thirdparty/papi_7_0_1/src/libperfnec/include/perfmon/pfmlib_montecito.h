@@ -156,7 +156,7 @@ typedef union {
 		unsigned long ipear_delay:8;	/* delay */
 		unsigned long ipear_ig3:45;	/* reserved */
 	} pmc42_mont_reg;
-			
+
 	/* execution trace buffer configuration register (ETB) */
 	struct {
 		unsigned long etbc_plm:4;	/* privilege level */
@@ -265,7 +265,7 @@ typedef union {
 
 		unsigned long etb_pmd56ext_b1:1;	/* pmd56 ext */
 		unsigned long etb_pmd56ext_bruflush:1;	/* pmd56 ext */
-		unsigned long etb_pmd56ext_res:2;	/* reserved  */ 
+		unsigned long etb_pmd56ext_res:2;	/* reserved  */
 
 		unsigned long etb_pmd49ext_b1:1;	/* pmd49 ext  */
 		unsigned long etb_pmd49ext_bruflush:1;	/* pmd49 ext  */
@@ -395,7 +395,7 @@ typedef union {
 		unsigned long ipear_pmd63ext_ef:1;	/* pmd63 early freeze */
 	} pmd39_ipear_mont_reg;
 
-	/* 
+	/*
 	 * execution trace buffer data register (ETB)
 	 *
 	 * when pmc39.ds == 0: pmd48-63 contains branch targets
@@ -408,11 +408,11 @@ typedef union {
 		unsigned long etb_addr:60;	/* bundle address(s=1), target address(s=0) */
 	} pmd48_63_etb_mont_reg;
 
-	/* 
+	/*
 	 * execution trace buffer when used with IP-EAR with PMD48-63.ef=0
 	 *
 	 * The cycles field straddles pmdXX and corresponding extension in
-	 * pmd39 (pmd39_ipear_mont_reg). For instance, cycles for pmd48: 
+	 * pmd39 (pmd39_ipear_mont_reg). For instance, cycles for pmd48:
 	 *
 	 * cycles= pmd39_ipear_mont_reg.etb_pmd48ext_cycles << 4
 	 *       | pmd48_63_etb_ipear_mont_reg.etb_cycles
@@ -422,11 +422,11 @@ typedef union {
 		unsigned long	ipear_cycles:4;	/* lower 4 bit of cycles */
 	} pmd48_63_ipear_mont_reg;
 
-	/* 
+	/*
 	 * execution trace buffer when used with IP-EAR with PMD48-63.ef=1
 	 *
 	 * The cycles field straddles pmdXX and corresponding extension in
-	 * pmd39 (pmd39_ipear_mont_reg). For instance, cycles for pmd48: 
+	 * pmd39 (pmd39_ipear_mont_reg). For instance, cycles for pmd48:
 	 *
 	 * cycles= pmd39_ipear_mont_reg.etb_pmd48ext_cycles << 4
 	 *       | pmd48_63_etb_ipear_ef_mont_reg.etb_cycles
@@ -550,7 +550,7 @@ typedef struct {
  * 	ONLY in conunction with any of the following (dual) events:
  *
  * 	- ISB_BUNPAIRS_IN, L1I_FETCH_RAB_HIT, L1I_FETCH_ISB_HIT, L1I_FILLS
- * 
+ *
  *	PFMLIB_MONT_IRR_DEMAND_FETCH: declared interest in demand fetched cache
  *	line (force use of IBRP0)
  *

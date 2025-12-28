@@ -40,7 +40,7 @@ TEST(IndexConfTest, PuckIndex) {
     google::SetCommandLineOption("whether_pq", "true");
     puck::IndexConf conf;
     conf.index_type = puck::IndexType::PUCK;
-    
+
     conf.adaptive_train_param();
 
     EXPECT_EQ(conf.whether_pq, true);
@@ -92,4 +92,3 @@ TEST(IndexConfTest, Dataset) {
     EXPECT_EQ(conf.topk, puck::FLAGS_topk);
     EXPECT_EQ(conf.filter_nsq, puck::FLAGS_filter_nsq);
 }
-

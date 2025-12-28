@@ -86,7 +86,7 @@ typedef union {
 		unsigned long near_ret:1;	/* filter out near returns */
 		unsigned long near_ind_jmp:1;	/* filter out near unconditional jmp/calls */
 		unsigned long near_rel_jmp:1;	/* filter out near uncoditional relative jmp */
-		unsigned long far_branch:1;	/* filter out far branches */ 
+		unsigned long far_branch:1;	/* filter out far branches */
 		unsigned long reserved1:23;	/* reserved */
 		unsigned long reserved2:32;	/* reserved */
 	} lbr_select;

@@ -3,9 +3,8 @@
 
 import os
 import shutil
-
 from pathlib import Path
-from typing import BinaryIO, Optional, Tuple, Union
+from typing import BinaryIO, Optional, Union
 
 import numpy as np
 
@@ -13,19 +12,19 @@ from . import _diskannpy as _native_dap
 from ._common import (
     DistanceMetric,
     VectorDType,
-    VectorLikeBatch,
     VectorIdentifierBatch,
+    VectorLikeBatch,
     _assert,
     _assert_2d,
     _assert_dtype,
-    _castable_dtype_or_raise,
     _assert_is_nonnegative_uint32,
     _assert_is_positive_uint32,
+    _castable_dtype_or_raise,
     _valid_metric,
-    _write_index_metadata
+    _write_index_metadata,
 )
-from ._files import vector_file_metadata
 from ._diskannpy import defaults
+from ._files import vector_file_metadata
 
 
 def _write_bin(data: np.ndarray, file_handler: BinaryIO):
@@ -48,27 +47,27 @@ def numpy_to_diskann_file(vectors: VectorLikeBatch, dtype: VectorDType, file_han
     :raises ValueError: If output_path is not a str or ``io.BinaryIO``
     """
     _assert_dtype(dtype)
-    _vectors = _castable_dtype_or_raise(vectors, expected=dtype, message=f"Unable to cast vectors to numpy array of type {dtype}")
+    _vectors = _castable_dtype_or_raise(
+        vectors, expected=dtype, message=f"Unable to cast vectors to numpy array of type {dtype}"
+    )
     _assert_2d(vectors, "vectors")
     _write_bin(_vectors, file_handler)
 
 
 def _valid_path_and_dtype(
     data: Union[str, VectorLikeBatch], vector_dtype: VectorDType, index_path: str
-) -> Tuple[str, VectorDType]:
+) -> tuple[str, VectorDType]:
     if isinstance(data, str):
         vector_bin_path = data
         _assert(
             Path(data).exists() and Path(data).is_file(),
             "if data is of type `str`, it must both exist and be a file",
-            )
+        )
         vector_dtype_actual = vector_dtype
     else:
         vector_bin_path = os.path.join(index_path, "vectors.bin")
         if Path(vector_bin_path).exists():
-            raise ValueError(
-                f"The path {vector_bin_path} already exists. Remove it and try again."
-            )
+            raise ValueError(f"The path {vector_bin_path} already exists. Remove it and try again.")
         with open(vector_bin_path, "wb") as temp_vector_bin:
             numpy_to_diskann_file(vectors=data, dtype=data.dtype, file_handler=temp_vector_bin)
         vector_dtype_actual = data.dtype
@@ -136,8 +135,7 @@ def build_disk_index(
     """
 
     _assert(
-        (isinstance(data, str) and vector_dtype is not None)
-        or isinstance(data, np.ndarray),
+        (isinstance(data, str) and vector_dtype is not None) or isinstance(data, np.ndarray),
         "vector_dtype is required if data is a str representing a path to the vector bin file",
     )
     dap_metric = _valid_metric(distance_metric)
@@ -181,7 +179,9 @@ def build_disk_index(
         num_threads=num_threads,
         pq_disk_bytes=pq_disk_bytes,
     )
-    _write_index_metadata(index_prefix_path, vector_dtype_actual, dap_metric, num_points, dimensions)
+    _write_index_metadata(
+        index_prefix_path, vector_dtype_actual, dap_metric, num_points, dimensions
+    )
 
 
 def build_memory_index(
@@ -198,7 +198,7 @@ def build_memory_index(
     vector_dtype: Optional[VectorDType] = None,
     filter_complexity: int = defaults.FILTER_COMPLEXITY,
     tags: Union[str, VectorIdentifierBatch] = "",
-    index_prefix: str = "ann"
+    index_prefix: str = "ann",
 ):
     """
     Builds a memory index and saves it to disk to be loaded into ``StaticMemoryIndex``.
@@ -240,8 +240,7 @@ def build_memory_index(
     :return:
     """
     _assert(
-        (isinstance(data, str) and vector_dtype is not None)
-        or isinstance(data, np.ndarray),
+        (isinstance(data, str) and vector_dtype is not None) or isinstance(data, np.ndarray),
         "vector_dtype is required if data is a str representing a path to the vector bin file",
     )
     dap_metric = _valid_metric(distance_metric)
@@ -280,15 +279,13 @@ def build_memory_index(
     elif not isinstance(tags, str):
         use_tags = True
         tags_as_array = _castable_dtype_or_raise(
-            tags,
-            expected=np.uint32,
-            message="tags must be a numpy array of dtype np.uint32"
+            tags, expected=np.uint32, message="tags must be a numpy array of dtype np.uint32"
         )
         _assert(len(tags_as_array.shape) == 1, "Provided tags must be 1 dimensional")
         _assert(
             tags_as_array.shape[0] == num_points,
             "Provided tags must contain an identical population to the number of points, "
-            f"{tags_as_array.shape[0]=}, {num_points=}"
+            f"{tags_as_array.shape[0]=}, {num_points=}",
         )
         with open(index_prefix_path + ".tags", "wb") as tags_out:
             _write_bin(tags, tags_out)
@@ -307,7 +304,9 @@ def build_memory_index(
         num_pq_bytes=num_pq_bytes,
         use_opq=use_opq,
         filter_complexity=filter_complexity,
-        use_tags=use_tags
+        use_tags=use_tags,
     )
 
-    _write_index_metadata(index_prefix_path, vector_dtype_actual, dap_metric, num_points, dimensions)
+    _write_index_metadata(
+        index_prefix_path, vector_dtype_actual, dap_metric, num_points, dimensions
+    )

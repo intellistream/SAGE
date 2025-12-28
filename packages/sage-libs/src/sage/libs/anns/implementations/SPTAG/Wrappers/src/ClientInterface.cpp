@@ -252,4 +252,3 @@ AnnClient::CreateSearchQuery(const ByteArray& p_data,
 
     return out.str();
 }
-

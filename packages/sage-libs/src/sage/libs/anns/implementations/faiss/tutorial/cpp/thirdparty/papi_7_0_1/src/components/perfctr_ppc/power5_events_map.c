@@ -2,7 +2,7 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/* 
+/*
 * File:    power5_events_map.c
 * Author:  Maynard Johnson
 *          maynardj@us.ibm.com

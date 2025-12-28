@@ -3,7 +3,7 @@ import csv
 
 def paraseValidStageNames(a):
     nameList = []
-    with open(a, 'r') as f:
+    with open(a) as f:
         reader = csv.reader(f)
         # reader = [each for each in csv.DictReader(f, delimiter=',')]
         result = list(reader)
@@ -17,23 +17,23 @@ def paraseValidStageNames(a):
         idxName = 0
         for i in firstRow:
             # print(i)
-            if (i == 'cpu'):
+            if i == "cpu":
                 idxCpu = index
-            if (i == 'name'):
+            if i == "name":
                 idxName = index
             index = index + 1
         # read the valid stages
         vdataEntries = 0
 
         for k in range(1, rows):
-            if (result[k][idxCpu] != 'NA'):
-                R1 = ((result[k][idxName]))
+            if result[k][idxCpu] != "NA":
+                R1 = result[k][idxName]
                 nameList.append(R1)
         return nameList
 
 
 def paraseValidColums(a, nameList, colTitle):
-    with open(a, 'r') as f:
+    with open(a) as f:
         reader = csv.reader(f)
         # reader = [each for each in csv.DictReader(f, delimiter=',')]
         result = list(reader)
@@ -48,21 +48,21 @@ def paraseValidColums(a, nameList, colTitle):
         idxTitle = 0
         for i in firstRow:
             # print(i)
-            if (i == 'cpu'):
+            if i == "cpu":
                 idxCpu = index
-            if (i == 'name'):
+            if i == "name":
                 idxName = index
-            if (i == colTitle):
+            if i == colTitle:
                 idxTitle = index
             index = index + 1
         # read the valid stages
         vdataEntries = 0
         ru = []
         for k in range(1, rows):
-            if (result[k][idxCpu] != 'NA'):
-                R1 = ((result[k][idxName]))
+            if result[k][idxCpu] != "NA":
+                R1 = result[k][idxName]
                 for j in range(len(nameList)):
-                    if (R1 == nameList[j]):
+                    if R1 == nameList[j]:
                         s = int(result[k][idxTitle])
                         ru.append(s)
                         break
@@ -79,7 +79,7 @@ def maxInList(a):
         ts = 0
         ti = 0
         for k in range(len(a)):
-            if (a[k][i] > ts):
+            if a[k][i] > ts:
                 ts = a[k][i]
                 ti = k
         ru.append(ts)

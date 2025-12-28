@@ -38,7 +38,7 @@ int VIRmain(int argc, char const* argv[])
 	if (argc == 1) {
 		const std::string datas[] = { "audio","mnist","cifar","NUS","Trevi","gist","deep1m","skew_10M_8d","gauss_8d","gauss_25w_128" };
 		datasetName = datas[0];
-		//datasetName = "sift1B"; 
+		//datasetName = "sift1B";
 		setW(datasetName, W);
 		std::cout << "Using the default configuration!\n\n";
 	}
@@ -50,7 +50,7 @@ int VIRmain(int argc, char const* argv[])
 	#endif
 
 
-	
+
 	std::cout << "Using LSH-Graph for " << datasetName << " ..." << std::endl;
 	std::cout << "c=        " << c << std::endl;
 	std::cout << "k=        " << k << std::endl;
@@ -71,7 +71,7 @@ int VIRmain(int argc, char const* argv[])
 	divGraph* divG = nullptr;
 	if (isbuilt&&find_file(path + "_divGraph")) {
 		divG = new divGraph(&prep, path + "_divGraph", pQ);
-		
+
 		divG->L = L;
 		if (L == 0) divG->coeffq = 0;
 	}
@@ -165,7 +165,7 @@ int VIRmain(int argc, char const* argv[])
 			std::cout << std::endl;
 		}
 	}
-	
+
 
 	//for (auto& ef : efs) {
 	//	if (divG) divG->ef = ef;
@@ -189,8 +189,8 @@ int VIRmain(int argc, char const* argv[])
 	//std::cout << std::endl;
 
 	time_t now = time(0);
-	
-	
+
+
 	time_t zero_point = 1635153971 - 17 * 3600 - 27 * 60;//Let me set the time at 2021.10.25. 17:27 as the zero point
 	size_t diff = (size_t)(now - zero_point);
 
@@ -221,4 +221,3 @@ int VIRmain(int argc, char const* argv[])
 	std::cout << ss.str();
 	return 0;
 }
-

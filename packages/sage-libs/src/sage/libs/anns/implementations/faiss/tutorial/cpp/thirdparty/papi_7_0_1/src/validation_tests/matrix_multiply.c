@@ -107,4 +107,3 @@ double naive_matrix_multiply(int quiet) {
 
 	return s;
 }
-

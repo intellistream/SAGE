@@ -2,9 +2,9 @@
 # ============================================================================
 # 安装脚本：安装所有已构建的算法 Python 包
 # ============================================================================
-# 
+#
 # 本脚本用于安装 algorithms_impl 文件夹中所有已构建的 Python 包
-# 
+#
 # 前置条件：
 #   - 已经运行过 build_all.sh 构建所有算法
 #
@@ -111,7 +111,7 @@ print_header "Installing PyCANDY"
 SO_FILE=$(ls PyCANDYAlgo*.so 2>/dev/null | head -1)
 if [ -n "$SO_FILE" ] && [ -f "setup.py" ]; then
     print_info "Found PyCANDYAlgo: $SO_FILE"
-    
+
     if [ "$FORCE_REINSTALL" = true ]; then
         print_info "Force reinstalling PyCANDYAlgo..."
         $PIP_CMD install -e . --no-build-isolation --force-reinstall
@@ -119,7 +119,7 @@ if [ -n "$SO_FILE" ] && [ -f "setup.py" ]; then
         print_info "Installing PyCANDYAlgo..."
         $PIP_CMD install -e . --no-build-isolation
     fi
-    
+
     # 验证安装
     if python3 -c "import PyCANDYAlgo" 2>/dev/null; then
         print_success "PyCANDYAlgo installed and verified"
@@ -138,10 +138,10 @@ print_header "Installing VSAG"
 
 if [ -d "vsag/wheelhouse" ]; then
     WHEEL_FILE=$(ls vsag/wheelhouse/pyvsag*.whl 2>/dev/null | head -1)
-    
+
     if [ -n "$WHEEL_FILE" ]; then
         print_info "Found VSAG wheel: $WHEEL_FILE"
-        
+
         if [ "$FORCE_REINSTALL" = true ]; then
             print_info "Force reinstalling pyvsag..."
             $PIP_CMD install "$WHEEL_FILE" --force-reinstall
@@ -149,7 +149,7 @@ if [ -d "vsag/wheelhouse" ]; then
             print_info "Installing pyvsag..."
             $PIP_CMD install "$WHEEL_FILE"
         fi
-        
+
         # 验证安装
         if python3 -c "import pyvsag" 2>/dev/null; then
             print_success "pyvsag installed and verified"

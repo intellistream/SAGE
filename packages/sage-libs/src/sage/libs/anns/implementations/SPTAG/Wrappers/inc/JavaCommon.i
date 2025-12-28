@@ -4,7 +4,7 @@
 %typemap(jtype) ByteArray "byte[]"
 %typemap(jstype) ByteArray "byte[]"
 %typemap(in) ByteArray {
-    $1.Set((std::uint8_t*)JCALL2(GetByteArrayElements, jenv, $input, 0), 
+    $1.Set((std::uint8_t*)JCALL2(GetByteArrayElements, jenv, $input, 0),
            JCALL1(GetArrayLength, jenv, $input), false);
 }
 %typemap(out) ByteArray {

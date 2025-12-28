@@ -2,29 +2,29 @@
 .ad l
 .nh
 .SH NAME
-PAPI_write \- 
+PAPI_write \-
 .PP
-Write counter values into counters\&.  
+Write counter values into counters\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBParameters:\fP
 .RS 4
-\fIEventSet\fP an integer handle for a PAPI event set as created by \fBPAPI_create_eventset\fP 
+\fIEventSet\fP an integer handle for a PAPI event set as created by \fBPAPI_create_eventset\fP
 .br
 \fI*values\fP an array to hold the counter values of the counting events
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_ENOEVST\fP The EventSet specified does not exist\&. 
+\fIPAPI_ENOEVST\fP The EventSet specified does not exist\&.
 .br
-\fIPAPI_ECMP\fP \fBPAPI_write()\fP is not implemented for this architecture\&. 
+\fIPAPI_ECMP\fP \fBPAPI_write()\fP is not implemented for this architecture\&.
 .br
 \fIPAPI_ESYS\fP The EventSet is currently counting events and the component could not change the values of the running counters\&.
 .RE
@@ -33,11 +33,11 @@ Write counter values into counters\&.
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_read\fP 
+\fBPAPI_read\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

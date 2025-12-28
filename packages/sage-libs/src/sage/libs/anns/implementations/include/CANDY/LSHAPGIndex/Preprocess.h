@@ -18,7 +18,7 @@ public:
 	std::string ben_file;
 	bool hasT = false;
 	float beta = 0.1f;
-	
+
 public:
 	Preprocess()=default;
 	Preprocess(uint64_t vecDim);
@@ -54,7 +54,7 @@ public:
 	unsigned dim = 0;
 	// Number of hash functions
 	unsigned S = 0;
-	//#L Tables; 
+	//#L Tables;
 	unsigned L = 0;
 	// Dimension of the hash table
 	unsigned K = 0;
@@ -67,5 +67,3 @@ public:
 	Parameter(Preprocess& prep, unsigned L_, unsigned K_, float rmin_);
 	~Parameter();
 };
-
-

@@ -214,7 +214,7 @@ std::vector<faiss::idx_t> CANDY::FaissIndex::searchIndexParam(torch::Tensor q, i
 std::vector<faiss::idx_t> CANDY::FaissIndex::searchIndex(torch::Tensor q, int64_t k) {
 
   auto queryData = q.contiguous().data_ptr<float>();
-	std::cout<<"tiny wait"<<std::endl; 
+	std::cout<<"tiny wait"<<std::endl;
  int64_t querySize = q.size(0);
 
   if (index_type == "IVFPQ" || index_type == "PQ") {

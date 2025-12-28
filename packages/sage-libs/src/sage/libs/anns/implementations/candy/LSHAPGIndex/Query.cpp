@@ -70,5 +70,3 @@ Performance::~Performance()
 {
 
 }
-
-

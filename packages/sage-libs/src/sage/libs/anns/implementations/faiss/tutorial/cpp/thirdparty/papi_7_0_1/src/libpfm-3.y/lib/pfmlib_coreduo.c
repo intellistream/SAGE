@@ -60,7 +60,7 @@
  * Description of the PMC register mappings:
  *
  * 0  -> PMC0  -> PERFEVTSEL0
- * 1  -> PMC1  -> PERFEVTSEL1 
+ * 1  -> PMC1  -> PERFEVTSEL1
  * 16 -> PMC16 -> FIXED_CTR_CTRL
  * 17 -> PMC17 -> PEBS_ENABLED
  *

@@ -1,10 +1,10 @@
-Programs and scripts for automated testing of Zstandard
-=======================================================
+# Programs and scripts for automated testing of Zstandard
 
 This directory contains the following programs and scripts:
+
 - `datagen` : Synthetic and parametrable data generator, for tests
-- `fullbench`  : Precisely measure speed for each zstd inner functions
-- `fuzzer`  : Test tool, to check zstd integrity on target platform
+- `fullbench` : Precisely measure speed for each zstd inner functions
+- `fuzzer` : Test tool, to check zstd integrity on target platform
 - `paramgrill` : parameter tester for zstd
 - `test-zstd-speed.py` : script for testing zstd speed difference between commits
 - `test-zstd-versions.py` : compatibility test between zstd versions stored on Github (v0.1+)
@@ -12,24 +12,23 @@ This directory contains the following programs and scripts:
 - `legacy` : Test tool to test decoding of legacy zstd frames
 - `decodecorpus` : Tool to generate valid Zstandard frames, for verifying decoder implementations
 
-
 #### `test-zstd-versions.py` - script for testing zstd interoperability between versions
 
-This script creates `versionsTest` directory to which zstd repository is cloned.
-Then all tagged (released) versions of zstd are compiled.
-In the following step interoperability between zstd versions is checked.
+This script creates `versionsTest` directory to which zstd repository is cloned. Then all tagged
+(released) versions of zstd are compiled. In the following step interoperability between zstd
+versions is checked.
 
 #### `automated-benchmarking.py` - script for benchmarking zstd prs to dev
 
-This script benchmarks facebook:dev and changes from pull requests made to zstd and compares
-them against facebook:dev to detect regressions. This script currently runs on a dedicated
-desktop machine for every pull request that is made to the zstd repo but can also
-be run on any machine via the command line interface.
+This script benchmarks facebook:dev and changes from pull requests made to zstd and compares them
+against facebook:dev to detect regressions. This script currently runs on a dedicated desktop
+machine for every pull request that is made to the zstd repo but can also be run on any machine via
+the command line interface.
 
-There are three modes of usage for this script: fastmode will just run a minimal single
-build comparison (between facebook:dev and facebook:release), onetime will pull all the current
-pull requests from the zstd repo and compare facebook:dev to all of them once, continuous
-will continuously get pull requests from the zstd repo and run benchmarks against facebook:dev.
+There are three modes of usage for this script: fastmode will just run a minimal single build
+comparison (between facebook:dev and facebook:release), onetime will pull all the current pull
+requests from the zstd repo and compare facebook:dev to all of them once, continuous will
+continuously get pull requests from the zstd repo and run benchmarks against facebook:dev.
 
 ```
 Example usage: python automated_benchmarking.py
@@ -64,32 +63,39 @@ optional arguments:
 
 DEPRECATED
 
-This script creates `speedTest` directory to which zstd repository is cloned.
-Then it compiles all branches of zstd and performs a speed benchmark for a given list of files (the `testFileNames` parameter).
-After `sleepTime` (an optional parameter, default 300 seconds) seconds the script checks repository for new commits.
-If a new commit is found it is compiled and a speed benchmark for this commit is performed.
-The results of the speed benchmark are compared to the previous results.
-If compression or decompression speed for one of zstd levels is lower than `lowerLimit` (an optional parameter, default 0.98) the speed benchmark is restarted.
-If second results are also lower than `lowerLimit` the warning e-mail is sent to recipients from the list (the `emails` parameter).
+This script creates `speedTest` directory to which zstd repository is cloned. Then it compiles all
+branches of zstd and performs a speed benchmark for a given list of files (the `testFileNames`
+parameter). After `sleepTime` (an optional parameter, default 300 seconds) seconds the script checks
+repository for new commits. If a new commit is found it is compiled and a speed benchmark for this
+commit is performed. The results of the speed benchmark are compared to the previous results. If
+compression or decompression speed for one of zstd levels is lower than `lowerLimit` (an optional
+parameter, default 0.98) the speed benchmark is restarted. If second results are also lower than
+`lowerLimit` the warning e-mail is sent to recipients from the list (the `emails` parameter).
 
 Additional remarks:
-- To be sure that speed results are accurate the script should be run on a "stable" target system with no other jobs running in parallel
-- Using the script with virtual machines can lead to large variations of speed results
-- The speed benchmark is not performed until computers' load average is lower than `maxLoadAvg` (an optional parameter, default 0.75)
-- The script sends e-mails using `mutt`; if `mutt` is not available it sends e-mails without attachments using `mail`; if both are not available it only prints a warning
 
+- To be sure that speed results are accurate the script should be run on a "stable" target system
+  with no other jobs running in parallel
+- Using the script with virtual machines can lead to large variations of speed results
+- The speed benchmark is not performed until computers' load average is lower than `maxLoadAvg` (an
+  optional parameter, default 0.75)
+- The script sends e-mails using `mutt`; if `mutt` is not available it sends e-mails without
+  attachments using `mail`; if both are not available it only prints a warning
 
 The example usage with two test files, one e-mail address, and with an additional message:
+
 ```
 ./test-zstd-speed.py "silesia.tar calgary.tar" "email@gmail.com" --message "tested on my laptop" --sleepTime 60
 ```
 
 To run the script in background please use:
+
 ```
 nohup ./test-zstd-speed.py testFileNames emails &
 ```
 
 The full list of parameters:
+
 ```
 positional arguments:
   testFileNames         file names list for speed benchmark
@@ -109,30 +115,33 @@ optional arguments:
 ```
 
 #### `decodecorpus` - tool to generate Zstandard frames for decoder testing
+
 Command line tool to generate test .zst files.
 
-This tool will generate .zst files with checksums,
-as well as optionally output the corresponding correct uncompressed data for
-extra verification.
+This tool will generate .zst files with checksums, as well as optionally output the corresponding
+correct uncompressed data for extra verification.
 
 Example:
+
 ```
 ./decodecorpus -ptestfiles -otestfiles -n10000 -s5
 ```
-will generate 10,000 sample .zst files using a seed of 5 in the `testfiles` directory,
-with the zstd checksum field set,
-as well as the 10,000 original files for more detailed comparison of decompression results.
+
+will generate 10,000 sample .zst files using a seed of 5 in the `testfiles` directory, with the zstd
+checksum field set, as well as the 10,000 original files for more detailed comparison of
+decompression results.
 
 ```
 ./decodecorpus -t -T1mn
 ```
-will choose a random seed, and for 1 minute,
-generate random test frames and ensure that the
-zstd library correctly decompresses them in both simple and streaming modes.
+
+will choose a random seed, and for 1 minute, generate random test frames and ensure that the zstd
+library correctly decompresses them in both simple and streaming modes.
 
 #### `paramgrill` - tool for generating compression table parameters and optimizing parameters on file given constraints
 
 Full list of arguments
+
 ```
  -T#          : set level 1 speed objective
  -B#          : cut input into blocks of size # (default : single block)
@@ -181,4 +190,5 @@ Full list of arguments
                   -v Prints all candidate parameters and results
 
 ```
- Any inputs afterwards are treated as files to benchmark.
+
+Any inputs afterwards are treated as files to benchmark.

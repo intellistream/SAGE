@@ -14,10 +14,10 @@
     <copyright>Copyright © Microsoft</copyright>
     <dependencies>
       <group targetFramework="uap10.0">
-        <dependency id="Zstandard.dyn.x64" version="1.4.0" />	
+        <dependency id="Zstandard.dyn.x64" version="1.4.0" />
       </group>
       <group targetFramework="native">
-        <dependency id="Zstandard.dyn.x64" version="1.4.0" />	
+        <dependency id="Zstandard.dyn.x64" version="1.4.0" />
       </group>
     </dependencies>
   </metadata>

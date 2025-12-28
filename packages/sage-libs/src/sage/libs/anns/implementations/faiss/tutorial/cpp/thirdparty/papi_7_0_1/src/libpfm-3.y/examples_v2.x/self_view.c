@@ -73,7 +73,7 @@ fatal_error(char *fmt, ...)
 #elif defined(__x86_64__) || defined(__i386__)
 /*
  * IMPORTANT:
- *  there is an implicit assumption here that the perfmon-2 
+ *  there is an implicit assumption here that the perfmon-2
  *  PMD mapping and the rdpmc mapping correspond. As such
  *  pmd0 -> rdpmc(0)
  *  pmd1 -> rdpmc(1)
@@ -145,7 +145,7 @@ retry:
 		val = view0->set_pmds[pmdv[i].reg_num];
 		/*
 		 * is context is attached and set is active then
-		 * we need to complement the software value with 
+		 * we need to complement the software value with
 		 * the current hardware value. For self-monitoring
 		 * with simply need to read the PMD
 		 */
@@ -225,7 +225,7 @@ main(int argc, char **argv)
 	pfm_get_hw_counter_width(&width);
 
 	ovfl_mask = (1ULL << width)-1;
-	printf("width=%u ovfl_mask=0x%"PRIx64"\n", width, ovfl_mask);	
+	printf("width=%u ovfl_mask=0x%"PRIx64"\n", width, ovfl_mask);
 
 	memset(pd, 0, sizeof(pd));
 	memset(pc, 0, sizeof(pc));
@@ -384,7 +384,7 @@ main(int argc, char **argv)
 	 */
 	if (pfm_read_pmds(ctx_fd, pd, outp.pfp_pmd_count))
 		fatal_error( "pfm_read_pmds error errno %d\n",errno);
-	
+
 	printf("results using pfm_read_pmds:\n");
 	for (i=0; i < num_pmdv; i++) {
 		printf("%20"PRIu64" %s\n", pd[i].reg_value, pmdv[i].name);

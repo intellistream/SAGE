@@ -38,7 +38,7 @@
  *	PFM_PLM0 = Kernel
  *	PFM_PLM1 = Kernel
  *	PFM_PLM2 = Exception
- *	PFM_PLM3 = User 
+ *	PFM_PLM3 = User
  */
 
 /*	The performance control (PMC) registers appear as follows:

@@ -150,7 +150,7 @@ static pme_core_entry_t core_pe[]={
 		  .pme_udesc = "on any port",
 		  .pme_ucode = 0x3f
 		},
-	   },	
+	   },
 	   .pme_numasks = 7
 
 	},
@@ -1299,7 +1299,7 @@ static pme_core_entry_t core_pe[]={
 	{ .pme_name = "MEM_LOAD_RETIRED",
 	  .pme_code = 0xcb,
 	  .pme_desc =  "Retired loads that miss the L1 data cache",
-	  .pme_flags = PFMLIB_CORE_PMC0, 
+	  .pme_flags = PFMLIB_CORE_PMC0,
 	  .pme_umasks = {
 		{ .pme_uname = "L1D_MISS",
 		  .pme_udesc = "Retired loads that miss the L1 data cache (precise event)",

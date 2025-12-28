@@ -173,7 +173,7 @@ main(int argc, char **argv)
 	 */
 	range_start = (unsigned long)test_data;
 	range_end   = range_start + sizeof(test_data_t)*TEST_DATA_COUNT;
-	
+
 	memset(pd, 0, sizeof(pd));
 	memset(pc, 0, sizeof(pc));
 
@@ -272,7 +272,7 @@ main(int argc, char **argv)
 
 	/*
 	 * propagate the setup for the debug registers from the library to the arguments
-	 * to the syscall. 
+	 * to the syscall.
 	 */
 	for (i=0; i < ita2_outp.pfp_ita2_drange.rr_nbr_used; i++, num_pmcs++) {
 		pc[num_pmcs].reg_num   = 264+ita2_outp.pfp_ita2_drange.rr_br[i].reg_num;

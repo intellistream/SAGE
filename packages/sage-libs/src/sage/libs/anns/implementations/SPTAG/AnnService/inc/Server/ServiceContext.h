@@ -41,4 +41,3 @@ private:
 } // namespace AnnService
 
 #endif // _SPTAG_SERVER_SERVICECONTEX_H_
-

@@ -1,5 +1,4 @@
 import pytest
-
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
 
@@ -40,10 +39,7 @@ def test_array(doc):
     assert m.load_array(tuple(lst))
 
     assert doc(m.cast_array) == "cast_array() -> Annotated[list[int], FixedSize(2)]"
-    assert (
-        doc(m.load_array)
-        == "load_array(arg0: Annotated[list[int], FixedSize(2)]) -> bool"
-    )
+    assert doc(m.load_array) == "load_array(arg0: Annotated[list[int], FixedSize(2)]) -> bool"
 
 
 def test_valarray(doc):
@@ -144,9 +140,7 @@ def test_optional():
     assert int(props.access_by_copy) == 42
 
 
-@pytest.mark.skipif(
-    not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
-)
+@pytest.mark.skipif(not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>")
 def test_exp_optional():
     assert m.double_or_zero_exp(None) == 0
     assert m.double_or_zero_exp(42) == 84
@@ -266,14 +260,10 @@ def test_variant(doc):
 
     assert m.cast_variant() == (5, "Hello")
 
-    assert (
-        doc(m.load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
-    )
+    assert doc(m.load_variant) == "load_variant(arg0: Union[int, str, float, None]) -> str"
 
 
-@pytest.mark.skipif(
-    not hasattr(m, "load_monostate_variant"), reason="no std::monostate"
-)
+@pytest.mark.skipif(not hasattr(m, "load_monostate_variant"), reason="no std::monostate")
 def test_variant_monostate(doc):
     assert m.load_monostate_variant(None) == "std::monostate"
     assert m.load_monostate_variant(1) == "int"

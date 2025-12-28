@@ -7,7 +7,7 @@
  *     @section Synopsis
  *
  *     @section Description
- *             papi_native_avail is a PAPI utility program that reports information 
+ *             papi_native_avail is a PAPI utility program that reports information
  *             about the events available on the current platform in an XML format.
  *
  *             It will attempt to create an EventSet with each event in it, which

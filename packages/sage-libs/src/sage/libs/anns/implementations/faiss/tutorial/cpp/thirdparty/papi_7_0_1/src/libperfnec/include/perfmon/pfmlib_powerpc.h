@@ -31,6 +31,6 @@
    PFM_PLM1 = Supervisor -> POWER hypervisor state
    PFM_PLM2 = Other -> not supported
    PFM_PLM3 = User -> POWER problem state
-*/ 
+*/
 
 #endif /* __PFMLIB_POWERPC_H__ */

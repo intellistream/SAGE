@@ -140,7 +140,7 @@ typedef struct ppc64_perfctr_control
 	/* Interrupt interval */
 	int timer_ms;
 
-// the members below are from perfctr-p3.h  
+// the members below are from perfctr-p3.h
 	hwd_native_t native[MAX_COUNTERS];
 	int native_idx;
 	unsigned char master_selector;

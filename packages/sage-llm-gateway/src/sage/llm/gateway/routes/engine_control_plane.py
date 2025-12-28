@@ -19,14 +19,11 @@ Key Endpoints:
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from sage.common.config import find_sage_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +110,7 @@ class EngineStartRequest(BaseModel):
     learning_rate: float = Field(5e-5, gt=0, description="Learning rate for training")
     epochs: int = Field(3, ge=1, description="Number of training epochs")
     batch_size: int = Field(4, ge=1, description="Training batch size")
-    gradient_accumulation_steps: int = Field(
-        4, ge=1, description="Gradient accumulation steps"
-    )
+    gradient_accumulation_steps: int = Field(4, ge=1, description="Gradient accumulation steps")
     max_seq_length: int = Field(2048, ge=1, description="Maximum sequence length")
     use_flash_attention: bool = Field(True, description="Use Flash Attention 2")
     quantization_bits: int | None = Field(

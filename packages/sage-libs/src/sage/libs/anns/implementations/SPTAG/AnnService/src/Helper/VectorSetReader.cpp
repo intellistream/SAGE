@@ -52,5 +52,3 @@ VectorSetReader::CreateInstance(std::shared_ptr<ReaderOptions> p_options)
     }
     return nullptr;
 }
-
-

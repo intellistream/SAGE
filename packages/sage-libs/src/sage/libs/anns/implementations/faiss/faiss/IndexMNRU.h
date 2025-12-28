@@ -58,4 +58,3 @@ namespace faiss{
         IndexMNRUFlat(int d, int M, MetricType metric = METRIC_L2);
     };
 }
-

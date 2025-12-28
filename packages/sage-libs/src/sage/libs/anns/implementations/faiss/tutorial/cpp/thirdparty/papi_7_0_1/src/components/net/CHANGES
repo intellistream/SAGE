@@ -15,4 +15,3 @@ Net component changelog:
  * Adds support for PAPI_event_name_to_code()
 
  * Adds a couple of small tests/examples
-

@@ -137,7 +137,7 @@
 	 the PMC/PMD mask correctly
 	* updated pfm_dispatch_*ear() for Itanium2
 	* updated pfm_dispatch_irange() for Itanium2
-	* updated pfm_ita2_print_info() 
+	* updated pfm_ita2_print_info()
 	* updated pfm_ita2_num_pmcs() and pfm_ita2_num_pmds()
 
 2004-02-12 Stephane Eranian <eranian@hpl.hp.com>
@@ -165,7 +165,7 @@
 	* removed freesmpl.c example
 	* added ita2_btb.c, ita2_dear.c, ita_dear.c, multiplex.c
 	* added task_attach.c, task_attach_timeout.c, task_smpl.c
-	* added missing itanium2 events, mostly subevent combinations for 
+	* added missing itanium2 events, mostly subevent combinations for
 	  SYLL_NOT_DISPERSED, EXTERN_DP_PINS_0_TO_3, and EXTERN_DP_PINS_4_TO_5
 	* got rid of pfm_get_first_event(), pfm_get_next_event(). First valid
 	  index  is always 0, use pfm_get_num_events() to find last event index
@@ -173,11 +173,11 @@
 	  to pfm_self_start()
 	* updated all examples to perfmon2 interface
 	* added notify_self2.c, notify_self3.c examples
-	* updated perfmon.h/perfmon_default_smpl.h to reflect latest 
+	* updated perfmon.h/perfmon_default_smpl.h to reflect latest
 	  perfmon-2 changes (2.6.0-test8)
 
 2003-08-25 Stephane Eranian <eranian@hpl.hp.com>
-	* allowed mulitple EAR/BTB events 
+	* allowed mulitple EAR/BTB events
 	* really implemented the 4 different ways
 	  of programming EAR/BTB
 
@@ -197,12 +197,12 @@
 	* unsigned vs. int cleanups
 	* introduced pfm_*_pmc_reg_t and pfm_*_pmd_reg_t
 	* cleaned up calls using bitmasks
-	* renamed PMU_MAX_* to PFMLIB_MAX_* 
+	* renamed PMU_MAX_* to PFMLIB_MAX_*
 	* got rid of PMU_FIRST_COUNTER
 	* introduced pfmlib_counter_t
 	* internal interface changes, renaming: pmu_name vs name
 	* got rid of char **name and replaced with char *name, int maxlen
-	* added pfm_start(), pfm_stop() as real functions 
+	* added pfm_start(), pfm_stop() as real functions
 	* changed interface of pfm_dispatch_events to make input vs. output
 	  parameters more explicit
 	* model-specific input/output to pfm_dispatch_event() now arguments
@@ -222,7 +222,7 @@
 
 2003-06-10 Stephane Eranian <eranian@hpl.hp.com>
 	* fix pfmlib_itanium.c: dispatch_dear(), dispatch_iear()
-	  to setup EAR when there is an EAR event but no 
+	  to setup EAR when there is an EAR event but no
 	  detailed setting in ita_param.
 	* added pfm_ita_ear_mode_t to pfmlib_itanium.h
 	* added pfm_ita_get_ear_mode() to pfmlib_itanium.h
@@ -243,7 +243,7 @@
 	  pfarg_reg_t has been replaced by pfmlib_reg_t.
 
 2002-03-20 Stephane Eranian <eranian@hpl.hp.com>
-	* fix %x vs. %lx for pmc8/9 in pfmlib_itanium.c 
+	* fix %x vs. %lx for pmc8/9 in pfmlib_itanium.c
 	  and pfmlib_itanium2.c
 
 2002-12-20 Stephane Eranian <eranian@hpl.hp.com>
@@ -251,7 +251,7 @@
 
 2002-12-18 Stephane Eranian <eranian@hpl.hp.com>
 	* clear ig_ad, inv fields in PMC8,9 when no code range
-	  restriction is used. 
+	  restriction is used.
 
 2002-12-17 Stephane Eranian <eranian@hpl.hp.com>
 	* update pfm_initialize.3 to clarify when this
@@ -269,7 +269,7 @@
 	* release 2.0 beta for review
 
 2002-12-04 Stephane Eranian <eranian@hpl.hp.com>
-	* the pfmlib_param_t structure now contains 
+	* the pfmlib_param_t structure now contains
 	  the pmc array (pfp_pc[]) as well as a counter representing the
 	  number of valid entries written to pfp_pc[]. cleaned up all
 	  modules and headers to reflect changes.
@@ -280,7 +280,7 @@
 	* removed pfm_ita_ism from pfmlib_ita_param_t
 	* removed pfm_ita2_ism from pfmlib_ita2_param_t
 	* added libpfm.3, libpfm_itanium.3, libpfm_itanium2.3
-	* enabled per-range privilege level mask in pfmlib_itanium.c 
+	* enabled per-range privilege level mask in pfmlib_itanium.c
           and pfmlib_itanium2.c
 
 2002-11-21 Stephane Eranian <eranian@hpl.hp.com>
@@ -298,8 +298,8 @@
 	* changed license of library to MIT-style license
 	* set version number to 2.0
 	* added support to generate a shared version of libpfm
-	* fix pfm_dispatch_opcm() to check for effective use of 
-	  IA64_TAGGED_INST_IBRPX_PMCY before setting the bits in PMC15 
+	* fix pfm_dispatch_opcm() to check for effective use of
+	  IA64_TAGGED_INST_IBRPX_PMCY before setting the bits in PMC15
 	  (spotted by UIUC Impact Team).
 	* cleaned up error messages in the examples
 	* fix bug in pfm_ita2_print_info() which caused extra umask bits to be
@@ -307,7 +307,7 @@
 
 2002-11-19 Stephane Eranian <eranian@hpl.hp.com>
 	* added pfm_get_impl_counters() to library interface and PMU models
-	* added missing support for pfm_get_impl_pmds(), pfm_get_impl_pmcs() 
+	* added missing support for pfm_get_impl_pmds(), pfm_get_impl_pmcs()
 	  to pfmlib_generic.c
 	* created pfmlib_compiler.h to encapsulate inline assembly differences
 	  between compilers.

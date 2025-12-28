@@ -14,11 +14,11 @@ generated on standard error when the library gets
 called. This can be useful to figure out how the PMC
 registers are initialized for instance.
 .sp
-The opt argument to this function is a pointer to a 
-.B pfmlib_options_t 
+The opt argument to this function is a pointer to a
+.B pfmlib_options_t
 structure which is defined as follows:
 .sp
-.nf 
+.nf
 typedef struct {
 	unsigned int	pfm_debug:1;
 	unsigned int	pfm_verbose:1;
@@ -27,7 +27,7 @@ typedef struct {
 .sp
 .sp
 Setting \fBpfm_debug\fR to 1 will enable debug messages whereas setting
-\fBpfm_verbose\fR will enable verbose messages. 
+\fBpfm_verbose\fR will enable verbose messages.
 
 .SH ENVIRONMENT VARIABLES
 Setting library options with this function has lower priority than
@@ -45,14 +45,14 @@ can be controlled with this function.
 .LP
 .SH RETURN
 The function returns whether or not it was successful. A return
-value of \fBPFMLIB_SUCCESS\fR indicates success, otherwise the 
+value of \fBPFMLIB_SUCCESS\fR indicates success, otherwise the
 value is the error code.
 .sp
 When environment variables exist, they take precedence and this
 function returns \fBPFMLIB_SUCCESS\fR.
 .SH ERRORS
 .TP
-.B PFMLIB_ERR_INVAL 
+.B PFMLIB_ERR_INVAL
 the argument is invalid, most likely a NULL pointer.
 .SH AUTHOR
 Stephane Eranian <eranian@hpl.hp.com>

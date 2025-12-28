@@ -34,7 +34,7 @@ configure_file(
 )
 
 # 收集 CANDY 源文件
-file(GLOB_RECURSE CANDY_SOURCES 
+file(GLOB_RECURSE CANDY_SOURCES
     "${CANDY_DIR}/*.cpp"
 )
 
@@ -182,7 +182,7 @@ else()
             message(STATUS "Found glog via pkg-config: ${GLOG_LINK_LIBRARIES}")
         endif()
     endif()
-    
+
     # 如果还是找不到，尝试直接查找库文件
     if(NOT GLOG_FOUND)
         find_library(GLOG_LIB glog PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
@@ -230,10 +230,10 @@ endif()
 if(DEFINED ENV{MKLROOT})
     set(MKLROOT $ENV{MKLROOT})
     message(STATUS "Using MKL from MKLROOT: ${MKLROOT}")
-    
+
     # 添加 MKL 链接目录
     link_directories(${MKLROOT}/lib/intel64)
-    
+
     # 按正确顺序链接 MKL
     list(APPEND PYCANDY_LIBS
         mkl_intel_ilp64
@@ -243,7 +243,7 @@ if(DEFINED ENV{MKLROOT})
     )
 else()
     # 尝试直接查找 MKL 库
-    find_library(MKL_INTEL_ILP64 mkl_intel_ilp64 
+    find_library(MKL_INTEL_ILP64 mkl_intel_ilp64
         PATHS /opt/intel/oneapi/mkl/latest/lib/intel64 /opt/intel/mkl/lib/intel64
         NO_DEFAULT_PATH)
     find_library(MKL_INTEL_THREAD mkl_intel_thread
@@ -256,20 +256,20 @@ else()
         PATHS /opt/intel/oneapi/mkl/latest/lib/intel64 /opt/intel/mkl/lib/intel64
               /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin
         NO_DEFAULT_PATH)
-    
+
     if(MKL_INTEL_ILP64 AND MKL_INTEL_THREAD AND MKL_CORE)
         message(STATUS "Found MKL libraries:")
         message(STATUS "  MKL_INTEL_ILP64: ${MKL_INTEL_ILP64}")
         message(STATUS "  MKL_INTEL_THREAD: ${MKL_INTEL_THREAD}")
         message(STATUS "  MKL_CORE: ${MKL_CORE}")
         message(STATUS "  IOMP5: ${IOMP5}")
-        
+
         list(APPEND PYCANDY_LIBS
             ${MKL_INTEL_ILP64}
             ${MKL_INTEL_THREAD}
             ${MKL_CORE}
         )
-        
+
         if(IOMP5)
             list(APPEND PYCANDY_LIBS ${IOMP5})
         endif()

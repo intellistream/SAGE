@@ -124,4 +124,3 @@ public:
 typedef std::vector<const Object*> ObjectVector;
 
 }   // namespace similarity
-

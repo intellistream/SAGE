@@ -4,13 +4,13 @@
  * The purpose of this file is to standardize the PAPI's source code style.
  * Every new/modified source should be formatted with indent using this
  * profile before it is checked in again.
- * 
+ *
  * @name       .indent.pro
- * 
+ *
  * @version    $Revision$ <br>
  *             $Date$ <br>
  *             $Author$
- * 
+ *
  * @author     Heike Jagode
  */
 
@@ -180,4 +180,3 @@
 
 /* read this profile :-) */
 // --ignore-profile
-

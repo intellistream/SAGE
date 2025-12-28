@@ -1101,4 +1101,3 @@ papi_vector_t _sde_vector = {
     /* .ntv_code_to_bits =  NULL, */
 
 };
-

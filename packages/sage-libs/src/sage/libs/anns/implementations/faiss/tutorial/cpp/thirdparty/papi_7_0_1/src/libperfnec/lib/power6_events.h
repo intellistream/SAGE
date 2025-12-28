@@ -10669,4 +10669,3 @@ static const pmg_power_group_t power6_groups[] = {
 };
 
 #endif
-

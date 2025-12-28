@@ -9,6 +9,5 @@ tuner:
   classArgs:
     optimize_mode: maximize
 
-trainingService: 
+trainingService:
   platform: local
-

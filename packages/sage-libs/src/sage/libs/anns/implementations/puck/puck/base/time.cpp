@@ -1,11 +1,11 @@
 // Copyright (c) 2010 baidu-rpc authors.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -102,7 +102,7 @@ int64_t read_cpu_frequency(bool* invariant_tsc) {
 
         if (invariant_tsc) {
             char* flags_pos = static_cast<char*>(memmem(buf, n, "flags", 5));
-            *invariant_tsc = 
+            *invariant_tsc =
                 (flags_pos &&
                  memmem(flags_pos, buf + n - flags_pos, "constant_tsc", 12) &&
                  memmem(flags_pos, buf + n - flags_pos, "nonstop_tsc", 11));
@@ -128,7 +128,7 @@ static bool read_int64_from_file(const char* filename, int64_t* value) {
     fd = open(filename, O_RDONLY);
     if (fd == -1){
         return false;
-    }  
+    }
 
     char buf[1 << 16];
     size_t len;

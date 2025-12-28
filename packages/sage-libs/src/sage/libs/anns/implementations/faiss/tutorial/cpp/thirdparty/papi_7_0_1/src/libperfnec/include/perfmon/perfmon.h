@@ -94,7 +94,7 @@ typedef struct {
 #define PFM_REGFL_RANDOM	0x2	/* PMD: randomize value after event */
 #define PFM_REGFL_NO_EMUL64	0x4	/* PMC: no 64-bit emulation */
 
-/* 
+/*
  * PMD extended description
  * to be used with pfm_writeand pfm_read
  * must be used with type = PFM_RW_PMD_ATTR

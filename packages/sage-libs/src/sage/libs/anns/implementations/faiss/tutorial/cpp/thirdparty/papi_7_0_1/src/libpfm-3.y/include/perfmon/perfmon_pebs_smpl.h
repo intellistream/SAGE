@@ -83,7 +83,7 @@ typedef struct {
 	uint64_t	r13;	/* 0 in 32-bit mode */
 	uint64_t	r14;	/* 0 in 32-bit mode */
 	uint64_t	r15;	/* 0 in 32-bit mode */
-} pfm_pebs_core_smpl_entry_t; 
+} pfm_pebs_core_smpl_entry_t;
 
 /*
  * Sample format as mandated by Intel documentation.
@@ -112,7 +112,7 @@ typedef struct {
 	uint64_t	daddr;
 	uint64_t	dsrc_enc;
 	uint64_t	latency;
-} pfm_pebs_nhm_smpl_entry_t; 
+} pfm_pebs_nhm_smpl_entry_t;
 
 /*
  * 64-bit PEBS record format is described in

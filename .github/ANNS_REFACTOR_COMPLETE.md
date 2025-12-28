@@ -13,7 +13,7 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
 
 ```
 ❌ packages/sage-libs/src/sage/libs/ann/          # Interface only (5 files)
-❌ packages/sage-libs/src/sage/libs/anns/         # Flat wrappers (23 algorithms)
+❌ packages/sage-libs/src/sage/libs/anns/         # Flat wrappers (19 algorithms)
 ❌ packages/sage-benchmark/.../algorithms_impl/   # C++ code in wrong layer (170MB)
 ```
 
@@ -35,7 +35,7 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
 ### 1. Interface Layer (`anns/interface/`)
 - **Moved from**: `sage-libs/ann/`
 - **Size**: 44KB
-- **Contents**: 
+- **Contents**:
   - `base.py` - AnnIndex, AnnIndexMeta abstractions
   - `factory.py` - create(), register(), registered()
   - `implementations/` - Dummy implementations
@@ -43,21 +43,23 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
 ### 2. Wrappers Layer (`anns/wrappers/`)
 - **Moved from**: `sage-libs/anns/` (flat structure)
 - **Size**: 616KB
+- **Total Algorithms**: 19 (FAISS: 8, CANDY: 3, DiskANN: 2, others: 6)
 - **New Organization**: Grouped by algorithm family
-  - `faiss/` - 8 FAISS variants (HNSW, IVFPQ, NSW, fast_scan, lsh, onlinepq, pq, HNSW_Optimized)
-  - `vsag/` - VSAG HNSW
-  - `diskann/` - DiskANN, IPDiskANN
-  - `candy/` - CANDY family (lshapg, mnru, sptag)
-  - `cufe/`, `gti/`, `puck/`, `plsh/`, `pyanns/` - Individual algorithms
+  - `faiss/` - 8 FAISS variants (HNSW, HNSW_Optimized, IVFPQ, NSW, fast_scan, lsh, onlinepq, pq)
+  - `candy/` - 3 CANDY variants (lshapg, mnru, sptag)
+  - `diskann/` - 2 DiskANN variants (diskann, ipdiskann)
+  - `vsag/` - 1 algorithm (vsag_hnsw)
+  - `cufe/`, `gti/`, `puck/`, `plsh/`, `pyanns/` - 5 individual algorithms (1 each)
 
 ### 3. Implementations Layer (`anns/implementations/`)
-- **Moved from**: `sage-benchmark/.../algorithms_impl/`
+- **Moved from**: `sage-benchmark/.../algorithms_impl/` (deleted after copy)
 - **Size**: 170MB
-- **Contents**: 
+- **Contents**:
   - C++ source code (candy/, faiss/, diskann-ms/, gti/, puck/, vsag/, SPTAG/)
   - Build system (CMakeLists.txt, build.sh, build_all.sh)
   - Bindings (bindings/, pybind11/)
   - Headers (include/)
+- **Cleanup**: Removed all git submodule references (.git files) for clean integration
 
 ### 4. Benchmarks (NOT Moved)
 - **Stays in**: `sage-benchmark/benchmark_db/`
@@ -75,7 +77,8 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
   - `ann/` → `ann_old/` (backup)
   - `anns/` → `anns_old/` (backup)
   - `anns_new/` → `anns/` (final)
-- [ ] **Phase 6**: Run tests to verify no functionality broken
+- [x] **Phase 6**: Run tests to verify no functionality broken
+- [x] **Phase 7**: Cleanup - Deleted `benchmark_db/algorithms_impl/` (170MB freed from wrong location)
 
 ---
 
@@ -134,9 +137,11 @@ sage-dev project test --coverage
 
 ### 2. Cleanup (After Testing Passes)
 ```bash
-# Remove backup directories
-rm -rf packages/sage-libs/src/sage/libs/ann_old
-rm -rf packages/sage-libs/src/sage/libs/anns_old
+# Remove backup directories (keep for now until fully validated)
+# rm -rf packages/sage-libs/src/sage/libs/ann_old
+# rm -rf packages/sage-libs/src/sage/libs/anns_old
+
+# Note: algorithms_impl/ has already been removed from benchmark_db
 ```
 
 ### 3. Documentation Updates

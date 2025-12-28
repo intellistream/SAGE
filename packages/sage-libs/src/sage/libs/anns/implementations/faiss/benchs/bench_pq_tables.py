@@ -5,23 +5,23 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import time
 import os
-import numpy as np
+import time
+
 import faiss
+import numpy as np
 
 os.system("grep -m1 'model name' < /proc/cpuinfo")
+
 
 def format_tab(x):
     return "\n".join("\t".join("%g" % xi for xi in row) for row in x)
 
 
 def run_bench(d, dsub, nbit=8, metric=None):
-
     M = d // dsub
     pq = faiss.ProductQuantizer(d, M, nbit)
     pq.train(faiss.randn((max(1000, pq.ksub * 50), d), 123))
-
 
     sp = faiss.swig_ptr
 
@@ -44,19 +44,18 @@ def run_bench(d, dsub, nbit=8, metric=None):
             else:
                 assert False
             t1 = time.time()
-            if run >= nrun // 5: # the rest is considered warmup
-                times.append((t1 - t0))
+            if run >= nrun // 5:  # the rest is considered warmup
+                times.append(t1 - t0)
         times = np.array(times) * 1000
 
-        print(f"nx={nx}: {np.mean(times):.3f} ms (± {np.std(times):.4f})",
-               end="\t")
+        print(f"nx={nx}: {np.mean(times):.3f} ms (± {np.std(times):.4f})", end="\t")
         res.append(times.mean())
     print()
     return res
 
+
 # for have_threads in True, False:
 for have_threads in False, True:
-
     if have_threads:
         # good config for Intel(R) Xeon(R) CPU E5-2698 v4 @ 2.20GHz
         nthread = 32

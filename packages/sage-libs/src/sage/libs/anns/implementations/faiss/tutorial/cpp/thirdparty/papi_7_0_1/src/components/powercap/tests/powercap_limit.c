@@ -79,7 +79,7 @@ int main ( int argc, char **argv )
   /* find all package power events */
   while ( r == PAPI_OK ) {
     retval = PAPI_event_code_to_name( code, event_names[num_events] );
-    if ( retval != PAPI_OK ) 
+    if ( retval != PAPI_OK )
       test_fail( __FILE__, __LINE__,"PAPI_event_code_to_name()", retval );
 
     retval = PAPI_add_event(EventSet, code);
@@ -169,4 +169,3 @@ int main ( int argc, char **argv )
 
   return 0;
 }
-

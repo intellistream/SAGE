@@ -10,7 +10,7 @@ using namespace SPTAG::COMMON;
 #undef DefineVectorValueType
 
 template <typename T>
-void Utils::BatchNormalize(T* data, SizeType row, DimensionType col, int base, int threads) 
+void Utils::BatchNormalize(T* data, SizeType row, DimensionType col, int base, int threads)
 {
 #pragma omp parallel for num_threads(threads)
 	for (SizeType i = 0; i < row; i++)

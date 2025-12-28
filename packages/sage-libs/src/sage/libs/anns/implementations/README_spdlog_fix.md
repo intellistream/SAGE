@@ -2,7 +2,8 @@
 
 ## 问题描述
 
-n2 库（GTI 的依赖）使用 `spdlog::stdout_color_mt()` API，但其头文件 `include/n2/hnsw_build.h` 中只包含了 `spdlog/spdlog.h`，缺少必要的 `spdlog/sinks/stdout_color_sinks.h`。
+n2 库（GTI 的依赖）使用 `spdlog::stdout_color_mt()` API，但其头文件 `include/n2/hnsw_build.h` 中只包含了
+`spdlog/spdlog.h`，缺少必要的 `spdlog/sinks/stdout_color_sinks.h`。
 
 在 spdlog 1.9.2+ 版本中，`stdout_color_mt` 函数定义在 `spdlog/sinks/stdout_color_sinks.h` 中，因此必须显式包含该头文件。
 
@@ -11,8 +12,8 @@ n2 库（GTI 的依赖）使用 `spdlog::stdout_color_mt()` API，但其头文�
 **采用构建时自动修复的方式**，而不是修改第三方库的源代码：
 
 1. 在 `build_all.sh` 脚本中，构建 n2 库之前自动添加缺失的头文件包含
-2. 使用 `sed` 命令在构建时临时修改 `hnsw_build.h`
-3. 修改只存在于构建过程中，不会提交到 git 仓库
+1. 使用 `sed` 命令在构建时临时修改 `hnsw_build.h`
+1. 修改只存在于构建过程中，不会提交到 git 仓库
 
 ## 实现细节
 
@@ -35,6 +36,6 @@ fi
 ## 优点
 
 1. **不修改第三方源码**：保持 n2 子模块的原始状态
-2. **自动化**：构建脚本自动处理，无需手动干预
-3. **幂等性**：多次构建不会重复添加头文件
-4. **兼容性好**：适用于 spdlog 1.9.x 及以上版本
+1. **自动化**：构建脚本自动处理，无需手动干预
+1. **幂等性**：多次构建不会重复添加头文件
+1. **兼容性好**：适用于 spdlog 1.9.x 及以上版本

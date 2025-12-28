@@ -691,14 +691,14 @@ Hnsw<dist_t>::SaveOptimizedIndex(std::ostream& output) {
     //output.write(data_level0_memory_, data_plus_links0_size);
     char* data_level0_memory_ = (char*)malloc((memoryPerObject_) + EXTRA_MEM_PAD_SIZE);
     CHECK(data_level0_memory_);
-   
+
     for (size_t i = 0; i < ElList_.size(); i++) {
         ElList_[i]->copyDataAndLevel0LinksToOptIndex(
             data_level0_memory_, offsetLevel0_, offsetData_);
         output.write(data_level0_memory_, memoryPerObject_);
     };
-    
-    
+
+
     return;
 
 }

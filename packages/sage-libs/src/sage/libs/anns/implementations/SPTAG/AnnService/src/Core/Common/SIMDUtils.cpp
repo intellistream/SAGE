@@ -193,7 +193,7 @@ void SIMDUtils::ComputeSum_SSE(float* pX, const float* pY, DimensionType length)
 
     while (pX < pEnd1) {
         *pX++ += *pY++;
-    } 
+    }
 }
 
 void SIMDUtils::ComputeSum_AVX(float* pX, const float* pY, DimensionType length)

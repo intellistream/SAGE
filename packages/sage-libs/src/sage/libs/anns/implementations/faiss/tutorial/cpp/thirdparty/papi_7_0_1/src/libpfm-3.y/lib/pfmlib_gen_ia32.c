@@ -283,7 +283,7 @@ pfm_gen_ia32_init(void)
 	num_cnt = eax.eax.num_cnt;
 	pmu_version = eax.eax.version;
 
-	/* 
+	/*
 	 * populate impl_pm* bitmasks for generic counters
 	 */
 	for(i=0; i < num_cnt; i++) {
@@ -606,7 +606,7 @@ pfm_gen_ia32_dispatch_counters_v23(pfmlib_input_param_t *inp, pfmlib_gen_ia32_in
 				reg.val);
 
 		for(i=0; i < num_fixed_cnt; i++) {
-			if (pmu_version != 3) 
+			if (pmu_version != 3)
 				__pfm_vbprintf(" pmi%d=1 en%d=0x%"PRIx64,
 					i, i,
 					(reg.val >> (i*4)) & 0x3ULL);

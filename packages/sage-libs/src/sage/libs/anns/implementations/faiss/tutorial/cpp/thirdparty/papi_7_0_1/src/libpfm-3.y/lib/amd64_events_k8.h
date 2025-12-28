@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, 2007 Advanced Micro Devices, Inc.
- * Contributed by Ray Bryant <raybry@mpdtxmail.amd.com> 
+ * Contributed by Ray Bryant <raybry@mpdtxmail.amd.com>
  * Contributed by Robert Richter <robert.richter@amd.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,13 +31,13 @@
  * Brought event table up-to-date with the 3.85 (October 2005) version of the
  * "BIOS and Kernel Developer's Guide for the AMD Athlon[tm] 64 and
  * AMD Opteron[tm] Processors," AMD Publication # 26094.
- * 
+ *
  * Dec 12 2007 -- Robert Richter, robert.richter@amd.com
  *
  * Updated to: BIOS and Kernel Developer's Guide for AMD NPT Family
  * 0Fh Processors, Publication # 32559, Revision: 3.08, Issue Date:
  * July 2007
- * 
+ *
  * Feb 26 2009 -- Robert Richter, robert.richter@amd.com
  *
  * Updates and fixes of some revision flags and descriptions according

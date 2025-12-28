@@ -1,5 +1,5 @@
 # This runs both types of nvlink_bandwidth_cupti_only on the PEAK machine.
-# It should work on SUMMIT when that becomes available; 
+# It should work on SUMMIT when that becomes available;
 # you may wish to change the --gpu_per_rs to 4 (or whatever
 # the max per node may be). (rs =resource set).
 rm -f errCO1.txt outCO1.txt

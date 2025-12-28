@@ -2,17 +2,17 @@
 
  * Copyright (c) 2008 Google, Inc.
  * Contributed by Arun Sharma <arun.sharma@google.com>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -20,7 +20,7 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  * Python Bindings for perfmon.
  */
 %module perfmon_int
@@ -44,7 +44,7 @@ static PyObject *libpfm_err;
   }
 }
 
-%typemap(out) pfmlib_event_t[ANY] {  
+%typemap(out) pfmlib_event_t[ANY] {
   int len, i;
   len = $1_dim0;
   $result = PyList_New(len);
@@ -63,7 +63,7 @@ static PyObject *libpfm_err;
   }
 }
 
-%typemap(out) pfmlib_reg_t[ANY] {  
+%typemap(out) pfmlib_reg_t[ANY] {
   int len, i;
   len = $1_dim0;
   $result = PyList_New(len);
@@ -75,17 +75,17 @@ static PyObject *libpfm_err;
 }
 
 /* Convert libpfm errors into exceptions */
-%typemap(out) os_err_t {  
+%typemap(out) os_err_t {
   if (result == -1) {
     PyErr_SetFromErrno(PyExc_OSError);
     SWIG_fail;
-  } 
+  }
   resultobj = SWIG_From_int((int)(result));
 };
 
-%typemap(out) pfm_err_t {  
+%typemap(out) pfm_err_t {
   if (result != PFMLIB_SUCCESS) {
-    PyObject *obj = Py_BuildValue("(i,s)", result, 
+    PyObject *obj = Py_BuildValue("(i,s)", result,
                                   pfm_strerror(result));
     PyErr_SetObject(libpfm_err, obj);
     SWIG_fail;
@@ -96,17 +96,17 @@ static PyObject *libpfm_err;
 }
 
 /* Convert libpfm errors into exceptions */
-%typemap(out) os_err_t {  
+%typemap(out) os_err_t {
   if (result == -1) {
     PyErr_SetFromErrno(PyExc_OSError);
     SWIG_fail;
-  } 
+  }
   resultobj = SWIG_From_int((int)(result));
 };
 
-%typemap(out) pfm_err_t {  
+%typemap(out) pfm_err_t {
   if (result != PFMLIB_SUCCESS) {
-    PyObject *obj = Py_BuildValue("(i,s)", result, 
+    PyObject *obj = Py_BuildValue("(i,s)", result,
                                   pfm_strerror(result));
     PyErr_SetObject(libpfm_err, obj);
     SWIG_fail;
@@ -150,7 +150,7 @@ static PyObject *libpfm_err;
 
 %init %{
   libpfm_err = PyErr_NewException("perfmon.libpfmError", NULL, NULL);
-  PyDict_SetItemString(d, "libpfmError", libpfm_err); 
+  PyDict_SetItemString(d, "libpfmError", libpfm_err);
 %}
 
 %inline %{

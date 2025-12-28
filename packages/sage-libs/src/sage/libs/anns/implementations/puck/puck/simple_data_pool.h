@@ -200,4 +200,3 @@ inline SimpleDataPool::Stat SimpleDataPool::stat() const {
 }
 
 }  // namespace puck
-

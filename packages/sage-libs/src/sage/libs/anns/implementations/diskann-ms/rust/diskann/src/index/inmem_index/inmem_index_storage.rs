@@ -40,12 +40,12 @@ where
         if file_frozen_pts != self.configuration.num_frozen_pts {
             if file_frozen_pts == 1 {
                 return Err(ANNError::log_index_config_error(
-                    "num_frozen_pts".to_string(), 
+                    "num_frozen_pts".to_string(),
                     "ERROR: When loading index, detected dynamic index, but constructor asks for static index. Exitting.".to_string())
                 );
             } else {
                 return Err(ANNError::log_index_config_error(
-                    "num_frozen_pts".to_string(), 
+                    "num_frozen_pts".to_string(),
                     "ERROR: When loading index, detected static index, but constructor asks for dynamic index. Exitting.".to_string())
                 );
             }

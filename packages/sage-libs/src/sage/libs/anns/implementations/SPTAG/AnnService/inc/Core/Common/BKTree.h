@@ -178,11 +178,11 @@ namespace SPTAG
                     for (DimensionType j = 0; j < args._RD; j++) {
                         currCenters[j] /= args.counts[k];
                     }
-                    
+
                     if (args._M == DistCalcMethod::Cosine) {
                         COMMON::Utils::Normalize(currCenters, args._RD, COMMON::Utils::GetBase<T>());
                     }
-                    
+
                     if (args.m_pQuantizer) {
                         for (DimensionType j = 0; j < args._RD; j++) reconstructVector[j] = (R)(currCenters[j]);
                         args.m_pQuantizer->QuantizeVector(reconstructVector.data(), (uint8_t*)TCenter);
@@ -210,16 +210,16 @@ namespace SPTAG
 
 // TODO - compile-time options for MAX_DIM and metric
             computeKmeansGPU<T, float, 100>(data, indices, first, last, args._K, args._D,
-                                args._DK, lambda, args.centers, args.label, args.counts, args.newCounts, args.newCenters, 
+                                args._DK, lambda, args.centers, args.label, args.counts, args.newCounts, args.newCenters,
                                 args.clusterIdx, args.clusterDist, args.weightedCounts, args.newWeightedCounts, 0, updateCenters);
-        }                               
+        }
 
 #else
 
         template <typename T, typename R>
         inline float KmeansAssign(const Dataset<T>& data,
             std::vector<SizeType>& indices,
-            const SizeType first, const SizeType last, KmeansArgs<T>& args, 
+            const SizeType first, const SizeType last, KmeansArgs<T>& args,
             const bool updateCenters, float lambda) {
             float currDist = 0;
             SizeType subsize = (last - first - 1) / args._T + 1;
@@ -314,8 +314,8 @@ namespace SPTAG
 
 
         template <typename T, typename R>
-        inline float InitCenters(const Dataset<T>& data, 
-            std::vector<SizeType>& indices, const SizeType first, const SizeType last, 
+        inline float InitCenters(const Dataset<T>& data,
+            std::vector<SizeType>& indices, const SizeType first, const SizeType last,
             KmeansArgs<T>& args, int samples, int tryIters) {
             SizeType batchEnd = min(first + samples, last);
             float lambda = 0, currDist, minClusterDist = MaxDist;
@@ -464,9 +464,9 @@ break;
 
         template <typename T>
         int KmeansClustering(const Dataset<T>& data,
-            std::vector<SizeType>& indices, const SizeType first, const SizeType last, 
+            std::vector<SizeType>& indices, const SizeType first, const SizeType last,
             KmeansArgs<T>& args, int samples = 1000, float lambdaFactor = 100.0f, bool debug = false, IAbortOperation* abort = nullptr) {
-            
+
             if (args.m_pQuantizer)
             {
                 switch (args.m_pQuantizer->GetReconstructType())
@@ -502,9 +502,9 @@ break;
         {
         public:
             BKTree(): m_iTreeNumber(1), m_iBKTKmeansK(32), m_iBKTLeafSize(8), m_iSamples(1000), m_fBalanceFactor(-1.0f), m_bfs(0), m_lock(new std::shared_timed_mutex), m_pQuantizer(nullptr) {}
-            
-            BKTree(const BKTree& other): m_iTreeNumber(other.m_iTreeNumber), 
-                                   m_iBKTKmeansK(other.m_iBKTKmeansK), 
+
+            BKTree(const BKTree& other): m_iTreeNumber(other.m_iTreeNumber),
+                                   m_iBKTKmeansK(other.m_iBKTKmeansK),
                                    m_iBKTLeafSize(other.m_iBKTLeafSize),
                                    m_iSamples(other.m_iSamples),
                                    m_fBalanceFactor(other.m_fBalanceFactor),
@@ -516,10 +516,10 @@ break;
             inline BKTNode& operator[](SizeType index) { return m_pTreeRoots[index]; }
 
             inline SizeType size() const { return (SizeType)m_pTreeRoots.size(); }
-            
+
             inline SizeType sizePerTree() const {
                 std::shared_lock<std::shared_timed_mutex> lock(*m_lock);
-                return (SizeType)m_pTreeRoots.size() - m_pTreeStart.back(); 
+                return (SizeType)m_pTreeRoots.size() - m_pTreeStart.back();
             }
 
             inline const std::unordered_map<SizeType, SizeType>& GetSampleMap() const { return m_pSampleCenterMap; }
@@ -544,8 +544,8 @@ break;
             }
 
             template <typename T>
-            void BuildTrees(const Dataset<T>& data, DistCalcMethod distMethod, int numOfThreads, 
-                std::vector<SizeType>* indices = nullptr, std::vector<SizeType>* reverseIndices = nullptr, 
+            void BuildTrees(const Dataset<T>& data, DistCalcMethod distMethod, int numOfThreads,
+                std::vector<SizeType>* indices = nullptr, std::vector<SizeType>* reverseIndices = nullptr,
                 bool dynamicK = false, IAbortOperation* abort = nullptr)
             {
                 struct  BKTStackItem {
@@ -706,11 +706,11 @@ break;
                         p_space.m_currBSPTQueue.Resize(MaxBFSNodes); p_space.m_nextBSPTQueue.Resize(MaxBFSNodes);
                         Heap<NodeDistPair>* p_curr = &p_space.m_currBSPTQueue, * p_next = &p_space.m_nextBSPTQueue;
                         p_curr->Top().distance = 1e9;
-                       
+
                         for (SizeType begin = node.childStart; begin < node.childEnd; begin++) {
                             _mm_prefetch((const char*)(data[m_pTreeRoots[begin].centerid]), _MM_HINT_T0);
                         }
-                        
+
                         for (SizeType begin = node.childStart; begin < node.childEnd; begin++) {
                             SizeType index = m_pTreeRoots[begin].centerid;
                             float dist = fComputeDistance(p_query.GetQuantizedTarget(), data[index], data.C());
@@ -793,7 +793,7 @@ break;
                         for (SizeType begin = tnode.childStart; begin < tnode.childEnd; begin++) {
                             SizeType index = m_pTreeRoots[begin].centerid;
                             p_space.m_SPTQueue.insert(NodeDistPair(begin, fComputeDistance(p_query.GetQuantizedTarget(), data[index], data.C())));
-                        } 
+                        }
                     }
                 }
             }

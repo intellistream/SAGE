@@ -1,8 +1,8 @@
-/* 
+/*
  * Copyright 2015-2016 NVIDIA Corporation. All rights reserved.
  *
  * Sample to demonstrate use of NVlink CUPTI APIs
- * 
+ *
  * This version is significantly changed to use PAPI and the CUDA component to
  * handle access and reporting. As of 10/05/2018, I have deleted all CUPTI_ONLY
  * references, for clarity. The file nvlink_bandwidth_cupti_only.cu contains
@@ -10,7 +10,7 @@
  * without PAPI.  Also, before my changes, the makefile did not even have a
  * build option that set CUPTI_ONLY for this file.
  *
- * -TonyC. 
+ * -TonyC.
  */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@
                     __FILE__, __LINE__, #call, errstr);                 \
             exit(-1);                                                   \
         }                                                               \
-    } while (0);  
+    } while (0);
 
 #define DRIVER_API_CALL(apiFuncCall)                                    \
     do {                                                                \
@@ -56,7 +56,7 @@
                     __FILE__, __LINE__, #apiFuncCall, errName, errStr); \
             exit(-1);                                                   \
         }                                                               \
-    } while (0);  
+    } while (0);
 
 #define RUNTIME_API_CALL(apiFuncCall)                                   \
     do {                                                                \
@@ -66,7 +66,7 @@
                     __FILE__, __LINE__, #apiFuncCall, cudaGetErrorString(_status)); \
             exit(-1);                                                   \
         }                                                               \
-    } while (0);  
+    } while (0);
 
 #define MEMORY_ALLOCATION_CALL(var)                                     \
     do {                                                                \
@@ -75,7 +75,7 @@
                     __FILE__, __LINE__);                                \
             exit(-1);                                                   \
         }                                                               \
-    } while (0);  
+    } while (0);
 
 
 #define MAX_DEVICES    (32)
@@ -120,7 +120,7 @@ cudaStream_t *cudaStreams = NULL;
 
 //-----------------------------------------------------------------------------
 // This is the GPU routine to move a block from 'source' (on one GPU) to 'dest'
-// on another GPU. 
+// on another GPU.
 //-----------------------------------------------------------------------------
 extern "C" __global__ void test_nvlink_bandwidth(float *source, float *dest)
 {
@@ -134,13 +134,13 @@ extern "C" __global__ void test_nvlink_bandwidth(float *source, float *dest)
 //-----------------------------------------------------------------------------
 // FreeGlobals: Frees globally allocated memories.
 //-----------------------------------------------------------------------------
-void FreeGlobals(void) 
+void FreeGlobals(void)
 {
     int i;
     free(deviceEvents);
-    
+
     for(i=0; i<Streams; i++) {
-        RUNTIME_API_CALL(cudaSetDevice(0));                     // device 0 for pDevBuffer0. 
+        RUNTIME_API_CALL(cudaSetDevice(0));                     // device 0 for pDevBuffer0.
         RUNTIME_API_CALL(cudaFree((void **) &pDevBuffer0[i]));  // Free allocated space.
         free(pHostBuffer[i]);                                   // Just locally allocateed.
     }
@@ -153,13 +153,13 @@ void FreeGlobals(void)
             RUNTIME_API_CALL(cudaStreamDestroy(cudaStreams[i]));
         }
     }
-    
+
     free(cudaStreams);              // Free the memory for pointers.
 } // end routine.
 
 
 //-----------------------------------------------------------------------------
-// Return a text version with B, KB, MB, GB or TB. 
+// Return a text version with B, KB, MB, GB or TB.
 //-----------------------------------------------------------------------------
 void calculateSize(char *result, uint64_t size)
 {
@@ -184,7 +184,7 @@ void calculateSize(char *result, uint64_t size)
 //-----------------------------------------------------------------------------
 // Copy buffers from host to device, vice versa, both simultaneously.
 //-----------------------------------------------------------------------------
-void testCpuToGpu(CUdeviceptr * pDevBuffer, float **pHostBuffer, size_t bufferSize, 
+void testCpuToGpu(CUdeviceptr * pDevBuffer, float **pHostBuffer, size_t bufferSize,
       cudaStream_t * cudaStreams)
 {
     int i;
@@ -213,8 +213,8 @@ void testCpuToGpu(CUdeviceptr * pDevBuffer, float **pHostBuffer, size_t bufferSi
 // Copy buffers from the host to each device, in preperation for a transfer
 // between devices.
 //-----------------------------------------------------------------------------
-void testGpuToGpu_part1(CUdeviceptr * pDevBuffer0, CUdeviceptr * pDevBuffer1, 
-      float **pHostBuffer, size_t bufferSize, cudaStream_t * cudaStreams) 
+void testGpuToGpu_part1(CUdeviceptr * pDevBuffer0, CUdeviceptr * pDevBuffer1,
+      float **pHostBuffer, size_t bufferSize, cudaStream_t * cudaStreams)
 {
     int i;
 
@@ -236,8 +236,8 @@ void testGpuToGpu_part1(CUdeviceptr * pDevBuffer0, CUdeviceptr * pDevBuffer1,
 //-----------------------------------------------------------------------------
 // Copy from device zero to device 1, then from device 1 to device 0.
 //-----------------------------------------------------------------------------
-void testGpuToGpu_part2(CUdeviceptr * pDevBuffer0, CUdeviceptr * pDevBuffer1, 
-      float **pHostBuffer, size_t bufferSize, cudaStream_t * cudaStreams) 
+void testGpuToGpu_part2(CUdeviceptr * pDevBuffer0, CUdeviceptr * pDevBuffer1,
+      float **pHostBuffer, size_t bufferSize, cudaStream_t * cudaStreams)
 {
     int i;
 
@@ -261,14 +261,14 @@ void testGpuToGpu_part2(CUdeviceptr * pDevBuffer0, CUdeviceptr * pDevBuffer1,
 
 
 //-----------------------------------------------------------------------------
-// conducts test CpuToGpu. This is mostly a shortcut for readability, 
+// conducts test CpuToGpu. This is mostly a shortcut for readability,
 // decisions must be made about the device buffers.
 //-----------------------------------------------------------------------------
 void conductCpuToGpu(int EventSet, int device, long long *values) {
     int i;
-    if (device == 0) { 
+    if (device == 0) {
         CALL_PAPI_OK(PAPI_start(EventSet));                         // Start event counters.
-        testCpuToGpu(pDevBuffer0, pHostBuffer, bufferSize, 
+        testCpuToGpu(pDevBuffer0, pHostBuffer, bufferSize,
             cudaStreams);
     } else {
         RUNTIME_API_CALL(cudaSetDevice(device));
@@ -277,7 +277,7 @@ void conductCpuToGpu(int EventSet, int device, long long *values) {
         }
 
         CALL_PAPI_OK(PAPI_start(EventSet));                         // Start event counters.
-        testCpuToGpu(pDevBuffer1, pHostBuffer, bufferSize, 
+        testCpuToGpu(pDevBuffer1, pHostBuffer, bufferSize,
             cudaStreams);
 
         for (i=0; i<Streams; i++) {
@@ -286,12 +286,12 @@ void conductCpuToGpu(int EventSet, int device, long long *values) {
     } // end testing device other than 0.
 
     CALL_PAPI_OK(PAPI_stop(EventSet, values));                      // Stop and read any values.
-} // end routine. 
+} // end routine.
 
 
 
 //-----------------------------------------------------------------------------
-// conducts test GpuToGpu. This is mostly a shortcut for readability, 
+// conducts test GpuToGpu. This is mostly a shortcut for readability,
 // decisions must be made about the device buffers.
 //-----------------------------------------------------------------------------
 void conductGpuToGpu(int EventSet, int device, long long *values) {
@@ -300,9 +300,9 @@ void conductGpuToGpu(int EventSet, int device, long long *values) {
     int partner=device;                                         // Presume event is not on zero.
     if (device == 0) partner=1;                                 // If it is on zero, make partner 1.
 
-    RUNTIME_API_CALL(cudaSetDevice(0));                         // Device 0 must 
-    RUNTIME_API_CALL(cudaDeviceEnablePeerAccess(partner, 0));   // access partner.  
-    
+    RUNTIME_API_CALL(cudaSetDevice(0));                         // Device 0 must
+    RUNTIME_API_CALL(cudaDeviceEnablePeerAccess(partner, 0));   // access partner.
+
     RUNTIME_API_CALL(cudaSetDevice(partner));                   // The partner device must access 0.
     RUNTIME_API_CALL(cudaDeviceEnablePeerAccess(0, 0));         // Let non-zero device access 0.
 
@@ -311,23 +311,23 @@ void conductGpuToGpu(int EventSet, int device, long long *values) {
     }
 
     //  Prepare the copy, load up buffers on each device from the host.
-    testGpuToGpu_part1(pDevBuffer0, pDevBuffer1, pHostBuffer, 
+    testGpuToGpu_part1(pDevBuffer0, pDevBuffer1, pHostBuffer,
         bufferSize, cudaStreams);
 
     // What we want to time: Copy from device 0->1, then device 1->0.
     CALL_PAPI_OK(PAPI_start(EventSet));                         // Start event counters.
-    testGpuToGpu_part2(pDevBuffer0, pDevBuffer1, pHostBuffer, 
+    testGpuToGpu_part2(pDevBuffer0, pDevBuffer1, pHostBuffer,
          bufferSize, cudaStreams);
     CALL_PAPI_OK(PAPI_stop(EventSet, values));                  // Stop and read value.
 
     // Disable peer access.
     RUNTIME_API_CALL(cudaSetDevice(0));
     RUNTIME_API_CALL(cudaDeviceDisablePeerAccess(partner)); // Kill connection to device i.
-    
+
     RUNTIME_API_CALL(cudaSetDevice(partner));
     RUNTIME_API_CALL(cudaDeviceDisablePeerAccess(0));       // Kill access to device 0.
 
-    // Now free the pointers on device 'partner' (never 0). 
+    // Now free the pointers on device 'partner' (never 0).
     for (i=0; i<Streams; i++) {
         RUNTIME_API_CALL(cudaFree((void **) pDevBuffer1[i]));
     }
@@ -364,8 +364,8 @@ void parseCommandLineArgs(int argc, char *argv[])
         cpuToGpu = 1;
     } else if(strcmp(argv[1], "--gpu-to-gpu") == 0) {
         gpuToGpu = 1;
-    } else if((strcmp(argv[1], "--help") == 0) || 
-              (strcmp(argv[1], "-help") == 0)  || 
+    } else if((strcmp(argv[1], "--help") == 0) ||
+              (strcmp(argv[1], "-help") == 0)  ||
               (strcmp(argv[1], "-h") == 0)) {
         printUsage();
         exit(0);
@@ -466,27 +466,27 @@ int main(int argc, char *argv[])
     /* PAPI Initialization */
     retval = PAPI_library_init(PAPI_VER_CURRENT);
     if(retval != PAPI_VER_CURRENT) {
-        fprintf(stderr, "PAPI_library_init failed, ret=%i [%s]\n", 
+        fprintf(stderr, "PAPI_library_init failed, ret=%i [%s]\n",
             retval, PAPI_strerror(retval));
         FreeGlobals();
         exit(-1);
     }
 
-    printf("PAPI version: %d.%d.%d\n", 
-        PAPI_VERSION_MAJOR(PAPI_VERSION), 
-        PAPI_VERSION_MINOR(PAPI_VERSION), 
+    printf("PAPI version: %d.%d.%d\n",
+        PAPI_VERSION_MAJOR(PAPI_VERSION),
+        PAPI_VERSION_MINOR(PAPI_VERSION),
         PAPI_VERSION_REVISION(PAPI_VERSION));
 
     // Find cuda component index.
     k = PAPI_num_components();                                          // get number of components.
     for (i=0; i<k && cid<0; i++) {                                      // while not found,
-        PAPI_component_info_t *aComponent = 
-            (PAPI_component_info_t*) PAPI_get_component_info(i);        // get the component info.     
+        PAPI_component_info_t *aComponent =
+            (PAPI_component_info_t*) PAPI_get_component_info(i);        // get the component info.
         if (aComponent == NULL) {                                       // if we failed,
             fprintf(stderr,  "PAPI_get_component_info(%i) failed, "
                 "returned NULL. %i components reported.\n", i,k);
             FreeGlobals();
-            exit(-1);    
+            exit(-1);
         }
 
        if (strcmp("cuda", aComponent->name) == 0) cid=i;                // If we found our match, record it.
@@ -497,7 +497,7 @@ int main(int argc, char *argv[])
             "reported components.\n", k);
         FreeGlobals();
         PAPI_shutdown();
-        exit(-1); 
+        exit(-1);
     }
 
     printf("Found CUDA Component at id %d\n", cid);
@@ -509,11 +509,11 @@ int main(int argc, char *argv[])
 
     for(i = 0; i < Streams; i++) {
         RUNTIME_API_CALL(cudaMalloc((void **) &pDevBuffer0[i], bufferSize));
-    
+
         pHostBuffer[i] = (float *) malloc(bufferSize);
         MEMORY_ALLOCATION_CALL(pHostBuffer[i]);
     }
-            
+
    // Begin enumeration of all events.
    if (cpuToGpu) printf("Experiment timing memory copy from host to GPU.\n");
    if (gpuToGpu) printf("Experiment timing memory copy between GPU 0 and each other GPU.\n");
@@ -535,18 +535,18 @@ int main(int argc, char *argv[])
         // have any! But we do this to test our enumeration works as
         // expected. First time through is guaranteed, of course.
 
-        do {                                                            // enumerate masked events. 
+        do {                                                            // enumerate masked events.
             CALL_PAPI_OK(PAPI_get_event_info(k,&info));                 // get name of k symbol.
             if (strstr(info.symbol, "nvlink") == NULL) continue;        // skip if not an nvlink event.
             char *devstr = strstr(info.symbol, "device=");              // look for device enumerator.
-            if (devstr == NULL) continue;                               // Skip if no device present. 
+            if (devstr == NULL) continue;                               // Skip if no device present.
             device=atoi(devstr+7);                                      // Get the device id, for info.
             // fprintf(stderr, "Found nvlink symbol '%s', device=%i.\n", info.symbol , device);
             if (device < 0 || device >= deviceCount) continue;          // skip any not in range.
             deviceEvents[device]++;                                     // Add to count of events on this device.
 
-            CALL_PAPI_OK(PAPI_create_eventset(&EventSet)); 
-            CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid)); 
+            CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
+            CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid));
 
             retval = PAPI_add_named_event(EventSet, info.symbol);       // Don't want to fail program if name not found...
             if(retval == PAPI_OK) {
@@ -554,13 +554,13 @@ int main(int argc, char *argv[])
             } else {
                 CALL_PAPI_OK(PAPI_cleanup_eventset(EventSet));          // Delete all events in set.
                 CALL_PAPI_OK(PAPI_destroy_eventset(&EventSet));         // destroy the event set.
-                continue; 
+                continue;
             }
 
             long long value=-1;                                         // The only value we read.
-            
+
             // ===== Allocate Memory =====================================
-            
+
             if(cpuToGpu) {
                 conductCpuToGpu(EventSet, device, &value);              // Just one value for now.
             } else if(gpuToGpu) {
@@ -568,7 +568,7 @@ int main(int argc, char *argv[])
             }
 
             addEventsFound(info.symbol, value);                         // Add to events we were able to read.
-            
+
             CALL_PAPI_OK(PAPI_cleanup_eventset(EventSet));              // Delete all events in set.
             CALL_PAPI_OK(PAPI_destroy_eventset(&EventSet));             // destroy the event set.
 
@@ -594,7 +594,7 @@ int main(int argc, char *argv[])
         PAPI_shutdown();                                                    // Returns no value.
         exit(-1);                                                           // exit no matter what.
     }
-        
+
     if (eventsRead < 1) {                                                   // If failed to read any,
     printf("\nFailed to read any nvlink events.\n");                        // report a failure.
         fprintf(stderr, "Unable to proceed with this test.\n");
@@ -635,7 +635,7 @@ int main(int argc, char *argv[])
         for (mainEvent = 0; mainEvent<eventsFoundCount-1; mainEvent++) {                // Through all but one events.
              char *devstr = strstr(eventsFound[mainEvent].name, "device=");             // look for device enumerator.
              mainDevice=atoi(devstr+7);                                                 // Get the device id.
-            
+
             for (pairEvent = mainEvent+1; pairEvent<eventsFoundCount; pairEvent++) {    // Through all possible pairs,
                 devstr = strstr(eventsFound[pairEvent].name, "device=");                // look for device enumerator.
                 pairDevice=atoi(devstr+7);                                              // Get the device id.
@@ -643,8 +643,8 @@ int main(int argc, char *argv[])
                 if (type == 0 && mainDevice != pairDevice) continue;                    // Skip if we need same device.
                 if (type == 1 && mainDevice == pairDevice) continue;                    // Skip if we need different devices.
 
-                CALL_PAPI_OK(PAPI_create_eventset(&EventSet)); 
-                CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid)); 
+                CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
+                CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid));
                 CALL_PAPI_OK(PAPI_add_named_event(EventSet, eventsFound[mainEvent].name));
                 // Here we must examine the return code.
                 int ret = PAPI_add_named_event(EventSet, eventsFound[pairEvent].name);
@@ -658,7 +658,7 @@ int main(int argc, char *argv[])
                 }
 
                 if (type == 1 && ret == PAPI_ECOMBO) {                                  // A bad  combination when we are looking for that.
-                    printf("%64s + %-64s BAD COMBINATION ACROSS DEVICES.\n", 
+                    printf("%64s + %-64s BAD COMBINATION ACROSS DEVICES.\n",
                         eventsFound[mainEvent].name, eventsFound[pairEvent].name);      // report it.
                     failOnDiff++;                                                       // count the bad combos.
                     CALL_PAPI_OK(PAPI_cleanup_eventset(EventSet));                      // .. don't need to go further.
@@ -669,8 +669,8 @@ int main(int argc, char *argv[])
                 if (ret != PAPI_OK) {                                                   // If it failed for some other reason,
                     fprintf(stderr, "%s:%d Attempt to add event '%s' to set "
                             "with event '%s' produced an unexpected error: "
-                            "[%s]. Ignoring this pair.\n", 
-                        __FILE__, __LINE__, eventsFound[pairEvent], 
+                            "[%s]. Ignoring this pair.\n",
+                        __FILE__, __LINE__, eventsFound[pairEvent],
                         eventsFound[mainEvent], PAPI_strerror(ret));
                     CALL_PAPI_OK(PAPI_cleanup_eventset(EventSet));                      // .. didn't work.
                     CALL_PAPI_OK(PAPI_destroy_eventset(&EventSet));                     // ..
@@ -686,7 +686,7 @@ int main(int argc, char *argv[])
                     continue;                                                           // .. try the next combo.
                 }
 
-                // We were able to add the pair, in type 0, get a measurement. 
+                // We were able to add the pair, in type 0, get a measurement.
                 readValues[0]= -1; readValues[1] = -1;
 
                 if(cpuToGpu) {
@@ -702,8 +702,8 @@ int main(int argc, char *argv[])
                 goodOnSame++;                                                           // Was accepted by cuda as a valid pairing.
 
                 // For the checks, we add 2 (so -1 becomes +1) to avoid any
-                // divide by zeros. It won't make a significant difference 
-                // in the ratios. (none if readings are the same). 
+                // divide by zeros. It won't make a significant difference
+                // in the ratios. (none if readings are the same).
                 double mainSingle = (2.0 + eventsFound[mainEvent].value);               // Get value when read alone.
                 double pairSingle = (2.0 + eventsFound[pairEvent].value);               // ..
                 double mainCheck  = mainSingle/(2.0 + saveValues[0]);                   // Get ratio when paired.
@@ -736,7 +736,7 @@ int main(int argc, char *argv[])
             }
 
             printf("%i unique pairings on SAME device were rejected as bad combinations.\n", badSameCombo);
-            
+
             if (pairProblems > 0) {
                 printf("%i pairings resulted in a change of one or both event values > 10%%.\n", pairProblems);
             } else {

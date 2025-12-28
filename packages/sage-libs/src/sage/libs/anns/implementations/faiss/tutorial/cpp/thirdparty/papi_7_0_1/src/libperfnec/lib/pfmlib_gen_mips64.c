@@ -255,11 +255,11 @@ pfm_gen_mips64_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_gen_mips64_in
 		}
 	}
 
-	/* Do rank based allocation, counters that live on 1 reg 
+	/* Do rank based allocation, counters that live on 1 reg
 	   before counters that live on 2 regs etc. */
 	for (i=1;i<=PMU_GEN_MIPS64_NUM_COUNTERS;i++)
 	  {
-	    for (j=0; j < cnt;j++) 
+	    for (j=0; j < cnt;j++)
 	      {
 		unsigned int cntr, avail;
 		if (pfmlib_popcnt(gen_mips64_pe[e[j].event].pme_counters) == i)
@@ -413,24 +413,24 @@ pfm_gen_mips64_get_inst_retired(pfmlib_event_t *e)
 		case PFMLIB_MIPS_20KC_PMU:
 			return pfm_find_full_event("INSNS_COMPLETED",e);
 		case PFMLIB_MIPS_24K_PMU:
-			return pfm_find_full_event("INSTRUCTIONS",e); 
+			return pfm_find_full_event("INSTRUCTIONS",e);
 		case PFMLIB_MIPS_25KF_PMU:
 			return pfm_find_full_event("INSNS_COMPLETE",e);
 		case PFMLIB_MIPS_34K_PMU:
-			return pfm_find_full_event("INSTRUCTIONS",e); 
+			return pfm_find_full_event("INSTRUCTIONS",e);
 		case PFMLIB_MIPS_5KC_PMU:
-			return pfm_find_full_event("INSNS_EXECD",e); 
+			return pfm_find_full_event("INSNS_EXECD",e);
 		case PFMLIB_MIPS_R10000_PMU:
 		case PFMLIB_MIPS_R12000_PMU:
 			return pfm_find_full_event("INSTRUCTIONS_GRADUATED",e);
 		case PFMLIB_MIPS_RM7000_PMU:
 		case PFMLIB_MIPS_RM9000_PMU:
-			return pfm_find_full_event("INSTRUCTIONS_ISSUED",e); 
+			return pfm_find_full_event("INSTRUCTIONS_ISSUED",e);
 		case PFMLIB_MIPS_VR5432_PMU:
 		case PFMLIB_MIPS_VR5500_PMU:
-			return pfm_find_full_event("INSTRUCTIONS_EXECUTED",e); 
+			return pfm_find_full_event("INSTRUCTIONS_EXECUTED",e);
 		case PFMLIB_MIPS_SB1_PMU:
-			return pfm_find_full_event("INSN_SURVIVED_STAGE7",e); 
+			return pfm_find_full_event("INSN_SURVIVED_STAGE7",e);
 		default:
 			return(PFMLIB_ERR_NOTFOUND);
 	}

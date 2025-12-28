@@ -20,7 +20,7 @@ namespace INTELLI {
  * @brief The top entity to trace current, average and maximum memory foot print
  * @note The default unit is KB, will use Linux timer to keep sampling memory usage
  * @note  usage
- * - create a class 
+ * - create a class
  * - call INTELLI::MemoryTracker::setActiveInstance(&xxx) to register this to linux timer
  * - call @ref start to start the sampling
  * - call @ref end to end the sampling

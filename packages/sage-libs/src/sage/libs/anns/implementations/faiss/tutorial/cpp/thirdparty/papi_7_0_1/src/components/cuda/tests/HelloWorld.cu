@@ -2,14 +2,14 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/** 
+/**
  * @file    HelloWorld.c
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
  *			<your email address>
- * test case for Example component 
- * 
+ * test case for Example component
+ *
  *
  * @brief
  *  This file is a very simple HelloWorld C example which serves (together
@@ -43,9 +43,9 @@ int main(int argc, char** argv)
 	int retval, i;
 	int EventSet = PAPI_NULL;
 	long long values[NUM_EVENTS];
-	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT 
+	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT
 	   FOR THE CUDA DEVICE YOU ARE RUNNING ON.
-	   RUN papi_native_avail to get a list of CUDA events that are 
+	   RUN papi_native_avail to get a list of CUDA events that are
 	   supported on your machine */
         //char *EventName[] = { "PAPI_FP_OPS" };
         char const *EventName[] = { "cuda:::event:elapsed_cycles_sm:device=0" };
@@ -60,14 +60,14 @@ int main(int argc, char** argv)
 
     CUcontext sessionCtx=NULL;
     cuErr = cuInit(0);
-    if (cuErr != CUDA_SUCCESS) {  
+    if (cuErr != CUDA_SUCCESS) {
         const char *errString=NULL;
         cuGetErrorString(cuErr, &errString); // Read the string.
         fprintf(stderr, "%s:%s:%i cuCtxCreate cudaError='%s'.\n", __FILE__, __func__, __LINE__, errString);
     }
 
     cuErr = cuCtxCreate(&sessionCtx, 0, 0); // Create a context, NULL flags, Device 0.
-    if (cuErr != CUDA_SUCCESS) {  
+    if (cuErr != CUDA_SUCCESS) {
         const char *errString=NULL;
         cuGetErrorString(cuErr, &errString); // Read the string.
         fprintf(stderr, "%s:%s:%i cuCtxCreate cudaError='%s'.\n", __FILE__, __func__, __LINE__, errString);
@@ -93,12 +93,12 @@ int main(int argc, char** argv)
     // Find cuda component index.
     int k = PAPI_num_components();                              // get number of components.
     for (i=0; i<k; i++) {                                       // while not found,
-        PAPI_component_info_t *aComponent = 
-            (PAPI_component_info_t*) PAPI_get_component_info(i);// get the component info.     
+        PAPI_component_info_t *aComponent =
+            (PAPI_component_info_t*) PAPI_get_component_info(i);// get the component info.
         if (aComponent == NULL) {                               // if we failed,
             fprintf(stderr,  "PAPI_get_component_info(%i) failed, "
                 "returned NULL. %i components reported.\n", i,k);
-            exit(-1);    
+            exit(-1);
         }
 
        if (strcmp("cuda", aComponent->name) == 0) break;        // If we found our match, record it.
@@ -108,9 +108,9 @@ int main(int argc, char** argv)
         fprintf(stderr, "Failed to find cuda component among %i "
             "reported components.\n", k);
         PAPI_shutdown();
-        exit(-1); 
+        exit(-1);
     }
-    
+
     int cid = i;
     printf("Found CUDA Component at id %d\n", cid);
 #endif // TEST_ASSIGN_COMPONENT == 1
@@ -133,24 +133,24 @@ int main(int argc, char** argv)
 		test_skip(__FILE__,__LINE__,"No events found",0);
 		return 1;
 	}
-	
+
 	retval = PAPI_create_eventset( &EventSet );
 	if( retval != PAPI_OK ) {
 		if (!quiet) printf( "PAPI_create_eventset failed\n" );
 		test_fail(__FILE__,__LINE__,"Cannot create eventset",retval);
-	}	
+	}
 
 #if TEST_ASSIGN_COMPONENT == 1
-    retval = PAPI_assign_eventset_component(EventSet, cid); 
+    retval = PAPI_assign_eventset_component(EventSet, cid);
 	if( retval != PAPI_OK ) {
 		if (!quiet) printf( "PAPI_assign_eventset_component failed\n" );
 		test_fail(__FILE__,__LINE__,"Cannot create eventset",retval);
 	} else {
         fprintf(stderr, "%s:%s:%i PAPI_assign_eventset_component success.\n", __FILE__, __func__, __LINE__);
-    }	
+    }
 #endif // TEST_ASSIGN_COMPONENT == 1
 
-    // If multiple GPUs/contexts were being used, 
+    // If multiple GPUs/contexts were being used,
     // you need to switch to each device before adding its events
     // e.g. cudaSetDevice( 0 );
 	retval = PAPI_add_events( EventSet, events, eventCount );
@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 
 
 	int j;
-	
+
 	// desired output
 	char str[] = "Hello World!";
 
@@ -177,15 +177,15 @@ int main(int argc, char** argv)
 		//printf("str=%s\n", str);
 	}
 
-	
+
 	// allocate memory on the device
 	char *d_str;
 	size_t size = sizeof(str);
 	cudaMalloc((void**)&d_str, size);
-	
+
 	// copy the string to the device
 	cudaMemcpy(d_str, str, size, cudaMemcpyHostToDevice);
-	
+
 	// set the grid and block sizes
 	dim3 dimGrid(2); // one block per word
 	dim3 dimBlock(6); // one thread per character
@@ -195,13 +195,13 @@ int main(int argc, char** argv)
 
 	// retrieve the results from the device
 	cudaMemcpy(str, d_str, size, cudaMemcpyDeviceToHost);
-	
+
 	// free up the allocated memory on the device
 	cudaFree(d_str);
-	
+
 	if (!quiet) printf("END: %s\n", str);
 
-	
+
 #ifdef PAPI
 	retval = PAPI_stop( EventSet, values );
 	if( retval != PAPI_OK )
@@ -236,4 +236,3 @@ helloWorld(char* str)
 	// unmangle output
 	str[idx] += idx;
 }
-

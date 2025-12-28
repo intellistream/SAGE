@@ -2,15 +2,15 @@
 .ad l
 .nh
 .SH NAME
-PAPI_set_granularity \- 
+PAPI_set_granularity \-
 .PP
-Set the default counting granularity for eventsets bound to the cpu component\&.  
+Set the default counting granularity for eventsets bound to the cpu component\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 .nf
@@ -25,19 +25,19 @@ Set the default counting granularity for eventsets bound to the cpu component\&.
 @arg PAPI_GRN_SYS   -- Count the current CPU
 @arg PAPI_GRN_SYS_CPU   -- Count all CPUs individually
 @arg PAPI_GRN_MIN   -- The finest available granularity
-@arg PAPI_GRN_MAX   -- The coarsest available granularity 
+@arg PAPI_GRN_MAX   -- The coarsest available granularity
 
 .fi
 .PP
-  
-    
+
+
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_OK\fP 
+\fIPAPI_OK\fP
 .br
-\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.  
-    
+\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.
+
 .RE
 .PP
 \fBPAPI_set_granularity\fP sets the default counting granularity for all new event sets created by \fBPAPI_create_eventset\fP\&. This call implicitly sets the granularity for the cpu component (component 0) and is included to preserve backward compatibility\&.
@@ -53,7 +53,7 @@ int ret;
 ret = PAPI_library_init(PAPI_VER_CURRENT);
 if (ret > 0 && ret != PAPI_VER_CURRENT) {
   fprintf(stderr,"PAPI library version mismatch!\n");
-  exit(1); 
+  exit(1);
 }
 if (ret < 0) handle_error(ret);
 
@@ -69,11 +69,11 @@ if (ret != PAPI_OK) handle_error(ret);
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_set_cmp_granularity\fP \fBPAPI_set_domain\fP \fBPAPI_set_opt\fP \fBPAPI_get_opt\fP 
+\fBPAPI_set_cmp_granularity\fP \fBPAPI_set_domain\fP \fBPAPI_set_opt\fP \fBPAPI_get_opt\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -141,7 +141,7 @@ static p4_regmap_t p4_pmd_regmap[]={
 
 /* This array provides values for the PEBS_ENABLE and PEBS_MATRIX_VERT
 	registers to support a series of metric for replay_event.
-	The first two entries are dummies; the remaining 9 correspond to 
+	The first two entries are dummies; the remaining 9 correspond to
 	virtual bit masks in the replay_event definition and map onto Intel
 	documentation.
 */
@@ -570,7 +570,7 @@ static int pentium4_pmu_detect(void)
 	if (family != 15)
 		return PFMLIB_ERR_NOTSUPP;
 	/*
-	 * IQ_ESCR0, IQ_ESCR1 only for model 1 and 2 
+	 * IQ_ESCR0, IQ_ESCR1 only for model 1 and 2
 	 */
 	if (p4_model >2)
 		pentium4_support.pmc_count -= 2;
@@ -741,4 +741,3 @@ pfm_pmu_support_t pentium4_support = {
 	.get_cycle_event	= pentium4_get_cycle_event,
 	.get_inst_retired_event = pentium4_get_inst_retired
 };
-

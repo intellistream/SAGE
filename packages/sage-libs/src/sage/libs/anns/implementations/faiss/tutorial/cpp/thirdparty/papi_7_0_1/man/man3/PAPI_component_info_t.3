@@ -2,7 +2,7 @@
 .ad l
 .nh
 .SH NAME
-PAPI_component_info_t \- 
+PAPI_component_info_t \-
 .SH SYNOPSIS
 .br
 .PP
@@ -119,72 +119,72 @@ PAPI_component_info_t \-
 .br
 .in -1c
 .SH "Detailed Description"
-.PP 
+.PP
 
 .SH "Field Documentation"
-.PP 
+.PP
 .SS "unsigned int PAPI_component_info_t::attach"
-Supports attach 
+Supports attach
 .SS "unsigned int PAPI_component_info_t::attach_must_ptrace"
-Attach must first ptrace and stop the thread/process 
+Attach must first ptrace and stop the thread/process
 .SS "int PAPI_component_info_t::available_domains"
-Available domains 
+Available domains
 .SS "int PAPI_component_info_t::available_granularities"
-Available granularities 
+Available granularities
 .SS "int PAPI_component_info_t::CmpIdx"
-Index into the vector array for this component; set at init time 
+Index into the vector array for this component; set at init time
 .SS "unsigned int PAPI_component_info_t::cntr_umasks"
-counters have unit masks 
+counters have unit masks
 .SS "int PAPI_component_info_t::component_type"
-Type of component 
+Type of component
 .SS "unsigned int PAPI_component_info_t::cpu"
-Supports specifying cpu number to use with event set 
+Supports specifying cpu number to use with event set
 .SS "int PAPI_component_info_t::default_domain"
-The default domain when this component is used 
+The default domain when this component is used
 .SS "int PAPI_component_info_t::default_granularity"
-The default granularity when this component is used 
+The default granularity when this component is used
 .SS "char PAPI_component_info_t::description[128]"
-Description of the component 
+Description of the component
 .SS "int PAPI_component_info_t::disabled"
-0 if enabled, otherwise error code from initialization 
+0 if enabled, otherwise error code from initialization
 .SS "char PAPI_component_info_t::disabled_reason[1024]"
-Reason for failure of initialization 
+Reason for failure of initialization
 .SS "unsigned int PAPI_component_info_t::fast_counter_read"
-Supports a user level PMC read instruction 
+Supports a user level PMC read instruction
 .SS "unsigned int PAPI_component_info_t::fast_real_timer"
-Supports a fast real timer 
+Supports a fast real timer
 .SS "unsigned int PAPI_component_info_t::fast_virtual_timer"
-Supports a fast virtual timer 
+Supports a fast virtual timer
 .SS "unsigned int PAPI_component_info_t::hardware_intr"
-hw overflow intr, does not need to be emulated in software 
+hw overflow intr, does not need to be emulated in software
 .SS "int PAPI_component_info_t::hardware_intr_sig"
-Signal used by hardware to deliver PMC events 
+Signal used by hardware to deliver PMC events
 .SS "unsigned int PAPI_component_info_t::inherit"
-Supports child processes inheriting parents counters 
+Supports child processes inheriting parents counters
 .SS "int PAPI_component_info_t::initialized"
-Component is ready to use 
+Component is ready to use
 .SS "unsigned int PAPI_component_info_t::kernel_multiplex"
-In kernel multiplexing 
+In kernel multiplexing
 .SS "unsigned int PAPI_component_info_t::kernel_profile"
-Has kernel profiling support (buffered interrupts or sprofil-like) 
+Has kernel profiling support (buffered interrupts or sprofil-like)
 .SS "char PAPI_component_info_t::kernel_version[64]"
-Version of the kernel PMC support driver 
+Version of the kernel PMC support driver
 .SS "char PAPI_component_info_t::name[128]"
-Name of the component we're using 
+Name of the component we're using
 .SS "int PAPI_component_info_t::num_cntrs"
-Number of hardware counters the component supports 
+Number of hardware counters the component supports
 .SS "int PAPI_component_info_t::num_mpx_cntrs"
-Number of hardware counters the component or PAPI can multiplex supports 
+Number of hardware counters the component or PAPI can multiplex supports
 .SS "int PAPI_component_info_t::num_native_events"
-Number of native events the component supports 
+Number of native events the component supports
 .SS "int PAPI_component_info_t::num_preset_events"
-Number of preset events the component supports 
+Number of preset events the component supports
 .SS "char* PAPI_component_info_t::pmu_names[80]"
-list of pmu names supported by this component 
+list of pmu names supported by this component
 .SS "unsigned int PAPI_component_info_t::posix1b_timers"
-Using POSIX 1b interval timers (timer_create) instead of setitimer 
+Using POSIX 1b interval timers (timer_create) instead of setitimer
 .SS "unsigned int PAPI_component_info_t::precise_intr"
-Performance interrupts happen precisely 
+Performance interrupts happen precisely
 .SS "char PAPI_component_info_t::short_name[64]"
 
 .PP
@@ -193,12 +193,12 @@ Performance interrupts happen precisely
 
 .fi
 .PP
- to be prepended to event names 
+ to be prepended to event names
 .SS "char PAPI_component_info_t::support_version[64]"
-Version of the support library 
+Version of the support library
 .SS "char PAPI_component_info_t::version[64]"
-Version of this component 
+Version of this component
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -17,7 +17,7 @@ use crate::{
 use super::{PQScratch, Scratch, MAX_GRAPH_DEGREE, QUERY_ALIGNMENT_OF_T_SIZE};
 
 // Scratch space for disk index based search.
-pub struct SSDQueryScratch<T: Default + Copy, const N: usize> 
+pub struct SSDQueryScratch<T: Default + Copy, const N: usize>
 {
     // Disk scratch dataset storing fp vectors with aligned dim (N)
     pub scratch_dataset: DiskScratchDataset<T, N>,
@@ -39,7 +39,7 @@ pub struct SSDQueryScratch<T: Default + Copy, const N: usize>
 }
 
 //
-impl<T: Copy + Default, const N: usize> SSDQueryScratch<T, N> 
+impl<T: Copy + Default, const N: usize> SSDQueryScratch<T, N>
 {
     pub fn new(
         visited_reserve: usize,
@@ -75,7 +75,7 @@ impl<T: Copy + Default, const N: usize> SSDQueryScratch<T, N>
     }
 }
 
-impl<T: Default + Copy, const N: usize> Scratch for SSDQueryScratch<T, N> 
+impl<T: Default + Copy, const N: usize> Scratch for SSDQueryScratch<T, N>
 {
     fn clear(&mut self) {
         self.id_scratch.clear();

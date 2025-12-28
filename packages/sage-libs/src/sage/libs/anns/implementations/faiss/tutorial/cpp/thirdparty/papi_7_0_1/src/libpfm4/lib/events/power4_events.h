@@ -1732,4 +1732,3 @@ static const pme_power_entry_t power4_pe[] = {
 	}
 };
 #endif
-

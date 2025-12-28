@@ -10,4 +10,3 @@
     "GraphNeighborhoodScale": {"_type": "choice", "_value": [2, 3, 4]},
     "NumberOfOtherDynamicPivots": {"_type": "quniform", "_value": [1, 10, 2]}
 }
-

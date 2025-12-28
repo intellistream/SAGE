@@ -44,7 +44,7 @@ int GenericTool::RegularizeDirPath(const char *path, char *buffer)
 	if(path==NULL) path="../"; //win32 default
 #else
 	if(path==NULL) path="./"; //linux default
-#endif	
+#endif
 
 	int len=strlen(path);
 
@@ -61,10 +61,10 @@ int GenericTool::RegularizeDirPath(const char *path, char *buffer)
 		if(buffer!=NULL)
 		{
 			memcpy(buffer, path, (len+1)*sizeof(char));
-			
+
 			//since UNIX does not recognize '\\' in path but windows do recognize '/', we replace all '\\' to '/'
 			for(int i=0;i<len;i++) if(buffer[i]=='\\') buffer[i]='/';
-		}			
+		}
 	}
 	else
 	{
@@ -78,7 +78,7 @@ int GenericTool::RegularizeDirPath(const char *path, char *buffer)
 			for(int i=0;i<len;i++) if(buffer[i]=='\\') buffer[i]='/';
 		}
 	}
-	
+
 	return len+1;
 }
 
@@ -92,7 +92,7 @@ void GenericTool::EnsurePathExistence(const char *path)
 		int ret=c99_snprintf(dir_path, len+10, "mkdir \"%s\"", path); // win32
 #else
 		int ret=c99_snprintf(dir_path, len+10, "mkdir %s -p", path); // unix
-#endif		
+#endif
 		system(dir_path); //use mkdir, which is suported by a variety of OS
 		delete[] dir_path;
 	}

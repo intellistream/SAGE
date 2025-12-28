@@ -5,11 +5,11 @@
 
 
 import unittest
+
 import faiss
 
 
 class TestParameterSpace(unittest.TestCase):
-
     def test_nprobe(self):
         index = faiss.index_factory(32, "IVF32,Flat")
         ps = faiss.ParameterSpace()

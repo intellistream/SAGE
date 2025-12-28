@@ -2,14 +2,14 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/** 
+/**
  * @file    HelloWorld.c
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
  *			<your email address>
- * test case for Example component 
- * 
+ * test case for Example component
+ *
  *
  * @brief
  *  This file is a very simple HelloWorld C example which serves (together
@@ -30,9 +30,9 @@
  *  and that context should be active when PAPI_events are added for each
  *  device.  Which means using Seperate PAPI_add_events() for each device. For
  *  an example see simpleMultiGPU.cu.
- * 
+ *
  *  There are three points below where cuCtxCreate() is called, this code works
- *  if any one of them is used alone. 
+ *  if any one of them is used alone.
  */
 
 #include <cuda.h>
@@ -71,20 +71,20 @@ int main(int argc, char** argv)
 			PAPI_VERSION_MINOR( PAPI_VERSION ),
 			PAPI_VERSION_REVISION( PAPI_VERSION ) );
 	}
-    
+
 	/* Set TESTS_QUIET variable */
 	quiet=tests_quiet( argc, argv );
-	
+
 #ifdef PAPI
 	int i;
 	int EventSet = PAPI_NULL;
 	long long values[NUM_EVENTS];
-	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT 
+	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT
 	   FOR THE CUDA DEVICE YOU ARE RUNNING ON.
-	   RUN papi_native_avail to get a list of CUDA events that are 
+	   RUN papi_native_avail to get a list of CUDA events that are
 	   supported on your machine */
         //char *EventName[] = { "PAPI_FP_OPS" };
-        // char const *EventName[] = { "cuda:::fe__cycles_elapsed.sum:device=0"}; // CUPTI_11 event. 
+        // char const *EventName[] = { "cuda:::fe__cycles_elapsed.sum:device=0"}; // CUPTI_11 event.
         char const *EventName[] = { "cuda:::dram__bytes_read.sum:device=0"}; // CUPTI_11 event.
         // 2 pass var. char const *EventName[] = { "cuda:::dram__bytes.avg.pct_of_peak_burst_elapsed:device=0"};
 	int events[NUM_EVENTS];
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 		test_skip(__FILE__,__LINE__,"No events found",0);
 		return 1;
 	}
-	
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i before PAPI_create_eventset() getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
@@ -117,13 +117,13 @@ int main(int argc, char** argv)
 	if( retval != PAPI_OK ) {
 		if (!quiet) printf( "PAPI_create_eventset failed\n" );
 		test_fail(__FILE__,__LINE__,"Cannot create eventset",retval);
-	}	
+	}
 
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
     }
-        
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i before PAPI_add_events(), getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
 #endif
 
 	int j;
-	
+
 	// desired output
 	char str[] = "Hello World!";
 
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
 	char *d_str;
 	size_t size = sizeof(str);
 	cudaMalloc((void**)&d_str, size);
-	
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i after cudaMalloc() getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
@@ -188,7 +188,7 @@ int main(int argc, char** argv)
 
 	// copy the string to the device
 	cudaMemcpy(d_str, str, size, cudaMemcpyHostToDevice);
-	
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i after cudaMemcpy(ToDevice) getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 
 	// retrieve the results from the device
 	cudaMemcpy(str, d_str, size, cudaMemcpyDeviceToHost);
-	
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i after cudaMemcpy(ToHost) getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 
 	// free up the allocated memory on the device
 	cudaFree(d_str);
-	
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i after cudaFree() getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 
 	if (!quiet) printf("END: %s\n", str);
 
-	
+
 #ifdef PAPI
 	retval = PAPI_read( EventSet, values );
 	if( retval != PAPI_OK )
@@ -246,12 +246,12 @@ int main(int argc, char** argv)
     retval = cuCtxPopCurrent(&getCtx);
 	if( retval != CUDA_SUCCESS)
 		fprintf( stderr, "cuCtxPopCurrent failed, retval=%d (%s)\n", retval, PAPI_strerror(retval) );
-    
+
     if (STEP_BY_STEP_DEBUG) {
         cuCtxGetCurrent(&getCtx);
         fprintf(stderr, "%s:%s:%i after cuCtxPopCurrent() getCtx=%p.\n", __FILE__, __func__, __LINE__, getCtx);
     }
-   
+
 	retval = PAPI_stop( EventSet, values );
 	if( retval != PAPI_OK )
 		fprintf( stderr, "PAPI_stop failed, retval=%d (%s)\n", retval, PAPI_strerror(retval) );
@@ -320,4 +320,3 @@ helloWorld(char* str)
 	// unmangle output
 	str[idx] += idx;
 }
-

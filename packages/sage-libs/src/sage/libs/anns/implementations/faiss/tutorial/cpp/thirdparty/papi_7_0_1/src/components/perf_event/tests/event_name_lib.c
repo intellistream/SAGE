@@ -162,4 +162,3 @@ char *get_invalid_event_name(char *event, int size) {
 
 	return NULL;
 }
-

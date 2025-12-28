@@ -166,7 +166,7 @@ void Preprocess::ben_make()
 		benchmark.indice[j] = new int[benchmark.num];
 		benchmark.dist[j] = new float[benchmark.num];
 	}
-	
+
 	lsh::progress_display pd(benchmark.N);
 
 //#pragma omp parallel for num_threads(100)

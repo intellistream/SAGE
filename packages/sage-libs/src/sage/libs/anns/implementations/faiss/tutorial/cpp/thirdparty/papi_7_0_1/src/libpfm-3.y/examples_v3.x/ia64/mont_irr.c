@@ -184,7 +184,7 @@ main(int argc, char **argv)
 
 	fd = (struct fd *)saxpy2;
 	range_end   =  fd->addr;
-	
+
 	/*
 	 * linker may reorder saxpy() and saxpy2()
 	 */
@@ -292,7 +292,7 @@ main(int argc, char **argv)
 	 */
 	for (i=0; i < outp.pfp_pmd_count; i++)
 		pd[i].reg_num   = outp.pfp_pmds[i].reg_num;
-	
+
 	/*
 	 * propagate IBR settings. IBRS are mapped to PMC256-PMC263
 	 */

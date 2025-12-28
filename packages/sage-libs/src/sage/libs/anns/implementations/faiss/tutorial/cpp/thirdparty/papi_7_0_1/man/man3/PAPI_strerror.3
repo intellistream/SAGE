@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_strerror \- 
+PAPI_strerror \-
 .PP
-Returns a string describing the PAPI error code\&.  
+Returns a string describing the PAPI error code\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
  char * \fBPAPI_strerror( int errorCode )\fP;
 .RE
@@ -27,7 +27,7 @@ Returns a string describing the PAPI error code\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fI*error\fP -- a pointer to the error string\&. 
+\fI*error\fP -- a pointer to the error string\&.
 .br
 \fINULL\fP -- the input error code to \fBPAPI_strerror()\fP is invalid\&.
 .RE
@@ -68,11 +68,11 @@ if (ret != PAPI_OK) handle_error(ret);
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_perror\fP \fBPAPI_set_opt\fP \fBPAPI_get_opt\fP \fBPAPI_shutdown\fP \fBPAPI_set_debug\fP 
+\fBPAPI_perror\fP \fBPAPI_set_opt\fP \fBPAPI_get_opt\fP \fBPAPI_shutdown\fP \fBPAPI_set_debug\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

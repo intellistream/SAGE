@@ -37,7 +37,7 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 
 elseif(WIN32)
     if(NOT MSVC14)
-         message(FATAL_ERROR "On Windows, only MSVC version 14 are supported!") 
+         message(FATAL_ERROR "On Windows, only MSVC version 14 are supported!")
     endif()
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++14")
 

@@ -79,7 +79,7 @@ BasicVectorSet::Available() const
 }
 
 
-ErrorCode 
+ErrorCode
 BasicVectorSet::Save(const std::string& p_vectorFile) const
 {
     auto fp = SPTAG::f_createIO();
@@ -94,7 +94,7 @@ BasicVectorSet::Save(const std::string& p_vectorFile) const
 ErrorCode BasicVectorSet::AppendSave(const std::string& p_vectorFile) const
 {
     auto append = fileexists(p_vectorFile.c_str());
-    
+
     SizeType count;
     SizeType dim;
 
@@ -133,14 +133,14 @@ ErrorCode BasicVectorSet::AppendSave(const std::string& p_vectorFile) const
     return ErrorCode::Success;
 }
 
-SizeType BasicVectorSet::PerVectorDataSize() const 
+SizeType BasicVectorSet::PerVectorDataSize() const
 {
     return (SizeType)m_perVectorDataSize;
 }
 
 
 void
-BasicVectorSet::Normalize(int p_threads) 
+BasicVectorSet::Normalize(int p_threads)
 {
     switch (m_valueType)
     {

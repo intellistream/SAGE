@@ -42,7 +42,7 @@ add_compile_definitions(GLOG_USE_GLOG_EXPORT)
 
 #target_link_libraries(puck PUBLIC gflags)
 #target_link_libraries(puck PUBLIC glog)
-    
+
 target_link_libraries(puck PUBLIC OpenMP::OpenMP_CXX)
 target_link_libraries(puck PUBLIC ${MKL_LIBRARIES})
 

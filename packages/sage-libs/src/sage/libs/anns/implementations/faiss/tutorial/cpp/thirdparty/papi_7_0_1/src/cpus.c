@@ -2,7 +2,7 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/* 
+/*
 * File:    cpus.c
 * Author:  Gary Mohr
 *          gary.mohr@bull.com

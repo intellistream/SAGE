@@ -5,7 +5,7 @@
 #define _SPTAG_HELPER_BASE64ENCODE_H_
 
 #include <cstdint>
-#include <cstddef> 
+#include <cstddef>
 #include <ostream>
 
 namespace SPTAG

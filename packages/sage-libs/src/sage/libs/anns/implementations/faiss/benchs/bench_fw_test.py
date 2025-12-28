@@ -12,12 +12,8 @@ from bench_fw.descriptors import DatasetDescriptor, IndexDescriptor
 logging.basicConfig(level=logging.INFO)
 
 benchmark = Benchmark(
-    training_vectors=DatasetDescriptor(
-        tablename="training.npy", num_vectors=200000
-    ),
-    database_vectors=DatasetDescriptor(
-        tablename="database.npy", num_vectors=200000
-    ),
+    training_vectors=DatasetDescriptor(tablename="training.npy", num_vectors=200000),
+    database_vectors=DatasetDescriptor(tablename="database.npy", num_vectors=200000),
     query_vectors=DatasetDescriptor(tablename="query.npy", num_vectors=2000),
     index_descs=[
         IndexDescriptor(

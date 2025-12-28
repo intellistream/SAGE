@@ -12,4 +12,3 @@ extern atomic_p lock[];
 {                                               \
   _clear_lock(lock[lck], 0);                    \
 }
-

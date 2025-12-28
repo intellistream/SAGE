@@ -237,4 +237,3 @@ Base64::CapacityForDecode(std::size_t p_inLen)
 {
     return (p_inLen / 4) * 3 + ((p_inLen % 4) * 2) / 3;
 }
-

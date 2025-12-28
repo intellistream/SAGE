@@ -118,7 +118,7 @@ namespace SPTAG
 
             inline void DoubleSize()
             {
-                int new_poolSize = ((m_poolSize + 1) << 1) - 1; 
+                int new_poolSize = ((m_poolSize + 1) << 1) - 1;
                 SizeType* new_hashTable = new SizeType[(new_poolSize + 1) * 2];
                 memset(new_hashTable, 0, sizeof(SizeType) * (new_poolSize + 1) * 2);
 
@@ -169,14 +169,14 @@ namespace SPTAG
             std::unique_ptr<float[]> m_data;
             int m_length;
             int m_count;
-            
+
         public:
             DistPriorityQueue(): m_size(0), m_length(0), m_count(0) {}
 
             void Resize(int size_) {
                 m_size = size_;
                 m_data.reset(new float[size_ + 1]);
-                
+
                 m_data[1] = MaxDist;
                 m_length = 1;
                 m_count = size_;
@@ -189,7 +189,7 @@ namespace SPTAG
                 m_data[1] = MaxDist;
                 m_length = 1;
                 m_count = count_;
-                
+
             }
             bool insert(float dist) {
                 if (dist > m_data[1]) return false;
@@ -231,7 +231,7 @@ namespace SPTAG
         {
             WorkSpace() {}
 
-            WorkSpace(WorkSpace& other) 
+            WorkSpace(WorkSpace& other)
             {
                 Initialize(other.m_iMaxCheck, other.nodeCheckStatus.HashTableExponent());
             }
@@ -289,9 +289,9 @@ namespace SPTAG
                 return nodeCheckStatus.CheckAndSet(idx);
             }
 
-            inline int HashTableExponent() const 
-            { 
-                return nodeCheckStatus.HashTableExponent(); 
+            inline int HashTableExponent() const
+            {
+                return nodeCheckStatus.HashTableExponent();
             }
 
             static void Reset() {}

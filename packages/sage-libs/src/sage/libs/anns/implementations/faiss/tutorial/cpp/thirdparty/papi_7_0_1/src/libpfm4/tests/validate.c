@@ -300,7 +300,7 @@ validate_structs(void)
 			continue;
 		}
 		printf("Passed\n");
-		
+
 	}
 	return errors;
 }

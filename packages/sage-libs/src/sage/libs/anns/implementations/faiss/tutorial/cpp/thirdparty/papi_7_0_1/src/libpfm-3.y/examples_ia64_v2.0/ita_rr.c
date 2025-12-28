@@ -178,7 +178,7 @@ main(int argc, char **argv)
 	 */
 	range_start = (unsigned long)test_data;
 	range_end   = range_start + sizeof(test_data_t)*TEST_DATA_COUNT;
-	
+
 	memset(pd, 0, sizeof(pd));
 	memset(pc, 0, sizeof(pc));
 	memset(ctx, 0, sizeof(ctx));
@@ -301,7 +301,7 @@ main(int argc, char **argv)
 	for (i=0; i < inp.pfp_event_count; i++) {
 		pd[i].reg_num   = pc[i].reg_num;
 	}
-	
+
 	/*
 	 * propagate the setup for the debug registers from the library to the arguments
 	 * to the perfmonctl() syscall. The library does not know the type of the syscall

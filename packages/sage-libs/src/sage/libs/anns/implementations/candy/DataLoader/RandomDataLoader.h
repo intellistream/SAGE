@@ -23,7 +23,7 @@ namespace CANDY {
  */
 /**
  * @class RandomDataLoader DataLoader/RandomDataLoader.h
- * @brief The class of ranom data loader, 
+ * @brief The class of ranom data loader,
  * @ingroup CANDY_DataLOADER
  * @note:
  * - Must have a global config by @ref setConfig

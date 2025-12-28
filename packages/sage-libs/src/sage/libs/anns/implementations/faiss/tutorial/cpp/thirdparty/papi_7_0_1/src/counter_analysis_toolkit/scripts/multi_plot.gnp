@@ -106,4 +106,3 @@ plot \
      FILE3 every :::5::5 using 1:2 w lp ls 1 title EVENT3
 
 unset multiplot
-

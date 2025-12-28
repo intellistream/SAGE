@@ -340,7 +340,7 @@ void test_large_deflate(Byte *compr, uLong comprLen, Byte *uncompr,
 
 /* ===========================================================================
  * Test inflate() with large buffers
- */ 
+ */
 void test_large_inflate(Byte *compr, uLong comprLen, Byte *uncompr,
                         uLong uncomprLen) {
     int err;

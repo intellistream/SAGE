@@ -78,4 +78,3 @@ add_sources(
 #endif()
 #target_compile_definitions(_diskannpy PRIVATE VERSION_INFO="${VERSION_INFO}")
 #
-

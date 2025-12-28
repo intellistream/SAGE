@@ -67,4 +67,3 @@ void setup_PAPI(int *event_set){
 
     return;
 }
-

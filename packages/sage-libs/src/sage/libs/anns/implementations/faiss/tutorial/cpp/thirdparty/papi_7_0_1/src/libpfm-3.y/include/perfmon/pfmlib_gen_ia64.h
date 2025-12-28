@@ -65,4 +65,3 @@ typedef struct {
 #endif
 
 #endif /* __PFMLIB_GEN_IA64_H__ */
-

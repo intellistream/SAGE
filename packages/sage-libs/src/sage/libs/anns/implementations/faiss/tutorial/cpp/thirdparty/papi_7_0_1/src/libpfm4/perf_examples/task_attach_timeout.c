@@ -191,6 +191,6 @@ main(int argc, char **argv)
 
 	if (!argv[optind])
 		errx(1, "you must specify pid to attach to\n");
-	
+
 	return measure(atoi(argv[optind]));
 }

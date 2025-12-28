@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_get_executable_info \- 
+PAPI_get_executable_info \-
 .PP
-Get the executable's address space info\&.  
+Get the executable's address space info\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 const \fBPAPI_exe_info_t\fP *PAPI_get_executable_info( void );
 .RE
@@ -24,13 +24,13 @@ This function returns a pointer to a structure containing information about the 
 .PP
 \fBParameters:\fP
 .RS 4
-\fIfullname\fP Fully qualified path + filename of the executable\&. 
+\fIfullname\fP Fully qualified path + filename of the executable\&.
 .br
-\fIname\fP Filename of the executable with no path information\&. 
+\fIname\fP Filename of the executable with no path information\&.
 .br
-\fItext_start,text_end\fP Start and End addresses of program text segment\&. 
+\fItext_start,text_end\fP Start and End addresses of program text segment\&.
 .br
-\fIdata_start,data_end\fP Start and End addresses of program data segment\&. 
+\fIdata_start,data_end\fP Start and End addresses of program data segment\&.
 .br
 \fIbss_start,bss_end\fP Start and End addresses of program bss segment\&.
 .RE
@@ -60,15 +60,15 @@ printf( "Bss start: %p, Bss end: %p\n", exeinfo->address_info\&.bss_start, exein
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_get_opt\fP 
+\fBPAPI_get_opt\fP
 .PP
-\fBPAPI_get_hardware_info\fP 
+\fBPAPI_get_hardware_info\fP
 .PP
-\fBPAPI_exe_info_t\fP 
+\fBPAPI_exe_info_t\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

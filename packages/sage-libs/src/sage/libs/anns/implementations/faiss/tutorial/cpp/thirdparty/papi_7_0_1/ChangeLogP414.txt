@@ -878,4 +878,3 @@
 
 	* release_procedure.txt: Add note to update from cvs before
 	  tagging.  Thanks, Will Cohen :)
-

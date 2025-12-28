@@ -749,4 +749,3 @@ static intel_x86_entry_t intel_bdx_unc_r3_pe[]={
     .numasks= LIBPFM_ARRAY_SIZE(bdx_unc_r3_vna_credits_reject),
   },
 };
-

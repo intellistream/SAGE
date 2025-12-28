@@ -194,4 +194,3 @@ do_flops( int n, int quiet )
 
 	return c;
 }
-

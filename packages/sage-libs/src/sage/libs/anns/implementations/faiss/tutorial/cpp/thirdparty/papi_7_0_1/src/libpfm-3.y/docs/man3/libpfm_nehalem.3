@@ -12,11 +12,11 @@ Intel Core i7. The interface is defined in \fBpfmlib_intel_nhm.h\fR. It consists
 of functions and structures describing the Intel Nehalem processor specific PMU features.
 The Intel Nehalem processor is a quad core, dual thread processor. It includes two types
 of PMU: core and uncore. The latter measures events at the socket level and is therefore
-disconnected from any of the four cores. The core PMU implements Intel architectural 
+disconnected from any of the four cores. The core PMU implements Intel architectural
 perfmon version 3 with four generic counters and three fixed counters. The uncore has
 eight generic counters and one fixed counter. Each Intel Nehalem core also implement
 a 16-deep branch trace buffer, called Last Branch Record (LBR), which can be used in
-combination with the core PMU. Intel Nehalem implements a newer version of the 
+combination with the core PMU. Intel Nehalem implements a newer version of the
 Precise Event-Based Sampling (PEBS) mechanism which has the ability to capture
 where cache misses occur.
 
@@ -53,7 +53,7 @@ typedef struct {
 .fi
 .sp
 .sp
-The Intel Nehalem processor provides a few additional per-event features for 
+The Intel Nehalem processor provides a few additional per-event features for
 counters: thresholding, inversion, edge detection, monitoring of both
 threads, occupancy. They can be set using the \fBpfp_nhm_counters\fR data
 structure for each event.  The \fBflags\fR field can be initialized with

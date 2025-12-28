@@ -80,7 +80,7 @@ pthread_barrier_t barrier;
 /*
  *  the following definitions come
  *  from the F_SETOWN_EX patch from Peter Zijlstra
- * Check out: http://lkml.org/lkml/2009/8/4/128 
+ * Check out: http://lkml.org/lkml/2009/8/4/128
  */
 #ifndef F_SETOWN_EX
 #define F_SETOWN_EX	15
@@ -150,7 +150,7 @@ do_cycles(void)
 				pthread_kill(pthread_self(), SIGUSR1);
 			sum += x;
 		}
-/* 
+/*
 		if (sum < 0)
 			printf("==>>  SUM IS NEGATIVE !!  <<==\n");
 *** SUM IS UNSIGNED! ***
@@ -315,7 +315,7 @@ overflow_start(char *name)
 	fown_ex.type = F_OWNER_TID;
 	fown_ex.pid  = gettid();
 	ret = fcntl(fd,
-		    (fown ? F_SETOWN_EX : F_SETOWN), 
+		    (fown ? F_SETOWN_EX : F_SETOWN),
 		    (fown ? (unsigned long)&fown_ex: gettid()));
 	if (ret)
 		err(1, "fcntl SETOWN failed");
@@ -325,7 +325,7 @@ overflow_start(char *name)
 
 	if (pfm_start(fd, NULL))
 		err(1, "pfm_start failed");
-		
+
 	printf("launch %s: fd: %d, tid: %d\n", name, fd, ov->tid);
 }
 
@@ -339,7 +339,7 @@ void *
 my_thread(void *v)
 {
 	int retval = 0;
-	
+
 	myid = (unsigned long)v;
 
 	pthread_barrier_wait(&barrier);

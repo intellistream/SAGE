@@ -1,4 +1,4 @@
-DESCR = "Linux with PerfCtr $(VERSION) patch and library, and perfmon2 libpfm library" 
+DESCR = "Linux with PerfCtr $(VERSION) patch and library, and perfmon2 libpfm library"
 
 ifneq (/usr,$(PERFCTR_PREFIX))
 PWD = $(shell pwd)
@@ -19,10 +19,10 @@ else
 	PERFCTR_KINC_PATH := $(PERFCTR_INC_PATH)
 endif
 ifneq (/usr/include,$(PERFCTR_INC_PATH))
-CFLAGS += -I$(PERFCTR_INC_PATH) 
+CFLAGS += -I$(PERFCTR_INC_PATH)
 endif
 ifneq (/usr/include/linux/include,$(PERFCTR_KINC_PATH))
-CFLAGS += -I$(PERFCTR_KINC_PATH) 
+CFLAGS += -I$(PERFCTR_KINC_PATH)
 endif
 endif
 
@@ -86,14 +86,14 @@ endif
         PFM_INC_PATH := $(PFM_ROOT)/include
 endif
 ifneq (/usr/include,$(PFM_INC_PATH))
-CFLAGS	+= -I$(PFM_INC_PATH) 
+CFLAGS	+= -I$(PFM_INC_PATH)
 endif
 endif
 
 CFLAGS	+= -DPERFCTR_PFM_EVENTS
 PFM_OBJS=$(shell $(AR) t $(PFM_LIB_PATH)/libpfm.a 2>/dev/null)
 PFM_LIBS=-L$(PFM_LIB_PATH) -lpfm
-MISCSRCS += papi_libpfm3_events.c 
+MISCSRCS += papi_libpfm3_events.c
 MISCOBJS += $(PERFCTR_OBJS) $(PFM_OBJS) $(MISCSRCS:.c=.o)
 MISCHDRS += papi_libpfm_events.h
 SHLIBDEPS = -Bdynamic -L$(PERFCTR_LIB_PATH) -lperfctr $(PFM_LIBS)
@@ -131,7 +131,7 @@ ifneq (,${PFM_ROOT})
 	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" clean
 endif
 
-native_install: 
+native_install:
 	-install -d $(DESTDIR)$(DATADIR)
 	-cp -f ./papi_events.csv $(DESTDIR)$(DATADIR)
 ifeq ($(ARCH),ppc64)

@@ -59,7 +59,7 @@
 #define MAX_EVT_NAME_LEN	128
 #define RTOP_NUM_PMCS 		4
 #define RTOP_NUM_PMDS 		4
-/* 
+/*
  * max number of cpus (threads) supported
  */
 #define RTOP_MAX_CPUS		1024 /* MUST BE power of 2 */
@@ -304,7 +304,7 @@ sigint_handler(int n)
 static unsigned long
 find_cpu_speed(void)
 {
-	FILE *fp1;	
+	FILE *fp1;
 	unsigned long f1 = 0, f2 = 0;
 	char buffer[128], *p, *value;
 
@@ -359,7 +359,7 @@ get_term_size(void)
         struct winsize ws;
 
 	ret = ioctl(1, TIOCGWINSZ, &ws);
-	if (ret == -1) 
+	if (ret == -1)
 		fatal_error("cannot determine screen size\n");
 
 	if (ws.ws_row > 10) {
@@ -628,7 +628,7 @@ do_measure_one_cpu(void *data)
 	 */
 	for(j=0; j < RTOP_NUM_SDESC; j++) {
 
-		my_sdesc       = my_sdesc_tab+j; 
+		my_sdesc       = my_sdesc_tab+j;
 
 		setd.set_id    = my_sdesc->set_id;
 		setd.set_flags = my_sdesc->set_flags;
@@ -756,9 +756,9 @@ mainloop(void)
 		sem_init(&thread_info[j].his_sem, 0, 0);
 		sem_init(&thread_info[j].my_sem, 0, 0);
 
-		ret = pthread_create(&thread_info[j].tid, 
-				     NULL, 
-				     (void *(*)(void *))do_measure_one_cpu, 
+		ret = pthread_create(&thread_info[j].tid,
+				     NULL,
+				     (void *(*)(void *))do_measure_one_cpu,
 				     (void *)(thread_info+j));
 		if (ret != 0) goto abort;
 
@@ -935,7 +935,7 @@ populate_cpumask(char *cpu_list)
 	unsigned long i, count = 0;
 
 	options.online_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	if (options.online_cpus == -1) 
+	if (options.online_cpus == -1)
 		fatal_error("cannot figure out the number of online processors\n");
 
 	if (cpu_list == NULL)  {
@@ -952,9 +952,9 @@ populate_cpumask(char *cpu_list)
 		options.selected_cpus = options.online_cpus;
 
 		return;
-	} 
+	}
 
-	while(isdigit(*cpu_list)) { 
+	while(isdigit(*cpu_list)) {
 		p = NULL;
 		start_cpu = strtoul(cpu_list, &p, 0); /* auto-detect base */
 
@@ -965,9 +965,9 @@ populate_cpumask(char *cpu_list)
 			p = NULL;
 
 			end_cpu = strtoul(cpu_list, &p, 0); /* auto-detect base */
-			
+
 			if (end_cpu == ULONG_MAX || (*p != '\0' && *p != ',')) goto invalid;
-			if (end_cpu < start_cpu) goto invalid_range; 
+			if (end_cpu < start_cpu) goto invalid_range;
 		} else {
 			end_cpu = start_cpu;
 		}

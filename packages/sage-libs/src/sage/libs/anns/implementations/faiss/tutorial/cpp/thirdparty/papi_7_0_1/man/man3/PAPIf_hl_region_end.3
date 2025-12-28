@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPIf_hl_region_end \- 
+PAPIf_hl_region_end \-
 .PP
-Reads and stores hardware events at the end of an instrumented code region\&.  
+Reads and stores hardware events at the end of an instrumented code region\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBFortran Prototype:\fP
 .RS 4
-#include 'fpapi\&.h' 
+#include 'fpapi\&.h'
 .br
 \fBPAPIf_hl_region_end( C_STRING region, C_INT check )\fP
 .RE
@@ -27,13 +27,13 @@ Reads and stores hardware events at the end of an instrumented code region\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_OK\fP 
+\fIPAPI_OK\fP
 .br
-\fIPAPI_ENOTRUN\fP -- EventSet is currently not running or could not determined\&. 
+\fIPAPI_ENOTRUN\fP -- EventSet is currently not running or could not determined\&.
 .br
-\fIPAPI_ESYS\fP -- A system or C library call failed inside PAPI, see the errno variable\&. 
+\fIPAPI_ESYS\fP -- A system or C library call failed inside PAPI, see the errno variable\&.
 .br
-\fIPAPI_EMISC\fP -- PAPI has been deactivated due to previous erros\&. 
+\fIPAPI_EMISC\fP -- PAPI has been deactivated due to previous erros\&.
 .br
 \fIPAPI_ENOMEM\fP -- Insufficient memory\&.
 .RE
@@ -65,11 +65,11 @@ end if
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_hl_region_end\fP 
+\fBPAPI_hl_region_end\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

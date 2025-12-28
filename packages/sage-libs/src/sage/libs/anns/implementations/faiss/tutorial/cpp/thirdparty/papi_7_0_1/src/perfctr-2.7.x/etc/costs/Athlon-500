@@ -11,4 +11,4 @@ PERFCTR INIT: loop overhead ticks == 98
 PERFCTR INIT: Athlon test0 == 0 (ok)
 PERFCTR INIT: Athlon test1 == 43 (ok)
 PERFCTR INIT: Athlon test2 == 43 (EvntSel0 does not override)
-PERFCTR INIT: Athlon test3 == 0 (ok) 
+PERFCTR INIT: Athlon test3 == 0 (ok)

@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -14,8 +14,8 @@ class IndexDescriptor:
     # but not both at the same time.
     path: Optional[str] = None
     factory: Optional[str] = None
-    construction_params: Optional[List[Dict[str, int]]] = None
-    search_params: Optional[Dict[str, int]] = None
+    construction_params: Optional[list[dict[str, int]]] = None
+    search_params: Optional[dict[str, int]] = None
     # range metric definitions
     # key: name
     # value: one of the following:
@@ -31,7 +31,7 @@ class IndexDescriptor:
     # [[radius1_from, radius1_to, score1], ...]
     #    [radius1_from, radius1_to) -> score1,
     #    [radius2_from, radius2_to) -> score2
-    range_metrics: Optional[Dict[str, Any]] = None
+    range_metrics: Optional[dict[str, Any]] = None
     radius: Optional[float] = None
 
 
@@ -60,7 +60,7 @@ class DatasetDescriptor:
 
     # partition names and values for hive
     # eg. ["ds=2021-09-01"]
-    partitions: Optional[List[str]] = None
+    partitions: Optional[list[str]] = None
 
     # number of vectors to load from the dataset
     num_vectors: Optional[int] = None

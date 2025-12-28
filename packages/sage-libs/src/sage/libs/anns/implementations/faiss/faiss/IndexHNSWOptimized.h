@@ -175,7 +175,7 @@ struct IndexHNSWSQOptimized : IndexHNSWOptimized {
             MetricType metric = METRIC_L2);
 };
 
-/** 2-level code structure with fast random access. 
+/** 2-level code structure with fast random access.
  * Optimized version with Gorder reordering.
  */
 struct IndexHNSW2LevelOptimized : IndexHNSWOptimized {

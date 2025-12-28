@@ -546,7 +546,7 @@ size_t ZSTD_compressBlock_fast_dictMatchState_generic(
             size_t const dictHashAndTag1 = ZSTD_hashPtr(ip1, dictHBits, mls);
             hashTable[hash0] = curr;   /* update hash table */
 
-            if ((ZSTD_index_overlap_check(prefixStartIndex, repIndex)) 
+            if ((ZSTD_index_overlap_check(prefixStartIndex, repIndex))
                 && (MEM_read32(repMatch) == MEM_read32(ip0 + 1))) {
                 const BYTE* const repMatchEnd = repIndex < prefixStartIndex ? dictEnd : iend;
                 mLength = ZSTD_count_2segments(ip0 + 1 + 4, repMatch + 4, iend, repMatchEnd, prefixStart) + 4;

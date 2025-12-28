@@ -4,11 +4,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
+
 import faiss
 import numpy as np
-from faiss.contrib.datasets import SyntheticDataset
-
 from common_faiss_tests import Randu10k
+from faiss.contrib.datasets import SyntheticDataset
 
 ru = Randu10k()
 xb = ru.xb
@@ -49,7 +49,7 @@ class TestMerge1(unittest.TestCase):
         # trains the quantizer
         ref_index.train(xt)
 
-        print('ref search')
+        print("ref search")
         ref_index.add(xb)
         _Dref, Iref = ref_index.search(xq, k)
         print(Iref[:5, :6])
@@ -67,16 +67,15 @@ class TestMerge1(unittest.TestCase):
         index = indexes[0]
 
         for i in range(1, ni):
-            print('merge ntotal=%d other.ntotal=%d ' % (
-                index.ntotal, indexes[i].ntotal))
+            print("merge ntotal=%d other.ntotal=%d " % (index.ntotal, indexes[i].ntotal))
             index.merge_from(indexes[i], index.ntotal)
 
         _D, I = index.search(xq, k)
         print(I[:5, :6])
 
         ndiff = (I != Iref).sum()
-        print('%d / %d differences' % (ndiff, nq * k))
-        assert (ndiff < nq * k / 1000.)
+        print("%d / %d differences" % (ndiff, nq * k))
+        assert ndiff < nq * k / 1000.0
 
     def test_merge(self):
         self.do_test_merge(1)
@@ -98,13 +97,13 @@ class TestMerge1(unittest.TestCase):
             index.add(xb)
         else:
             gen = np.random.RandomState(1234)
-            id_list = gen.permutation(nb * 7)[:nb].astype('int64')
+            id_list = gen.permutation(nb * 7)[:nb].astype("int64")
             index.add_with_ids(xb, id_list)
 
-        print('ref search ntotal=%d' % index.ntotal)
+        print("ref search ntotal=%d" % index.ntotal)
         Dref, Iref = index.search(xq, k)
 
-        toremove = np.zeros(nq * k, dtype='int64')
+        toremove = np.zeros(nq * k, dtype="int64")
         nr = 0
         for i in range(nq):
             for j in range(k):
@@ -114,17 +113,16 @@ class TestMerge1(unittest.TestCase):
                     nr = nr + 1
                     toremove[nr] = Iref[i, j]
 
-        print('nr=', nr)
+        print("nr=", nr)
 
-        idsel = faiss.IDSelectorBatch(
-            nr, faiss.swig_ptr(toremove))
+        idsel = faiss.IDSelectorBatch(nr, faiss.swig_ptr(toremove))
 
         for i in range(nr):
-            assert (idsel.is_member(int(toremove[i])))
+            assert idsel.is_member(int(toremove[i]))
 
         nremoved = index.remove_ids(idsel)
 
-        print('nremoved=%d ntotal=%d' % (nremoved, index.ntotal))
+        print("nremoved=%d ntotal=%d" % (nremoved, index.ntotal))
 
         D, I = index.search(xq, k)
 
@@ -149,7 +147,6 @@ class TestMerge1(unittest.TestCase):
 
 # Test merge_from method for all IndexFlatCodes Types
 class TestMerge2(unittest.TestCase):
-
     def do_flat_codes_test(self, factory_key):
         ds = SyntheticDataset(32, 300, 300, 100)
         index1 = faiss.index_factory(ds.d, factory_key)
@@ -185,8 +182,7 @@ class TestMerge2(unittest.TestCase):
         index_trained.train(ds.get_train())
         # test both clone and index_read/write
         if True:
-            index1 = faiss.deserialize_index(
-                faiss.serialize_index(index_trained))
+            index1 = faiss.deserialize_index(faiss.serialize_index(index_trained))
         else:
             index1 = faiss.clone_index(index_trained)
         # assert index1.aq.qnorm.ntotal == index_trained.aq.qnorm.ntotal
@@ -222,7 +218,7 @@ class TestMerge2(unittest.TestCase):
     def do_test_with_ids(self, factory_key):
         ds = SyntheticDataset(32, 300, 300, 100)
         rs = np.random.RandomState(123)
-        ids = rs.choice(10000, ds.nb, replace=False).astype('int64')
+        ids = rs.choice(10000, ds.nb, replace=False).astype("int64")
         index1 = faiss.index_factory(ds.d, factory_key)
         index1.train(ds.get_train())
         index1.add_with_ids(ds.get_database(), ids)
@@ -245,7 +241,6 @@ class TestMerge2(unittest.TestCase):
 
 
 class TestRemoveFastScan(unittest.TestCase):
-
     def do_fast_scan_test(self, factory_key, size1):
         ds = SyntheticDataset(110, 1000, 1000, 100)
         index1 = faiss.index_factory(ds.d, factory_key)

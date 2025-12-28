@@ -3,19 +3,18 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import faiss
-import time
-import os
 import multiprocessing as mp
-import numpy as np
+import os
+import time
+
+import faiss
 import matplotlib.pyplot as plt
+import numpy as np
 
 try:
-    from faiss.contrib.datasets_fb import \
-        DatasetSIFT1M, DatasetDeep1B, DatasetBigANN
+    from faiss.contrib.datasets_fb import DatasetBigANN, DatasetDeep1B, DatasetSIFT1M
 except ImportError:
-    from faiss.contrib.datasets import \
-        DatasetSIFT1M, DatasetDeep1B, DatasetBigANN
+    from faiss.contrib.datasets import DatasetSIFT1M
 
 
 # ds = DatasetDeep1B(10**6)
@@ -45,10 +44,7 @@ def eval_recall(index, name):
 
     corrects = (gt == I).sum()
     recall = corrects / nq
-    print(
-        f'\tnprobe {index.nprobe:3d}, Recall@{k}: '
-        f'{recall:.6f}, speed: {speed:.6f} ms/query'
-    )
+    print(f"\tnprobe {index.nprobe:3d}, Recall@{k}: {recall:.6f}, speed: {speed:.6f} ms/query")
 
     return recall, qps
 
@@ -66,7 +62,7 @@ def eval_and_plot(name, rescale_norm=True, plot=True):
         faiss.write_index(index, index_path)
 
     # search params
-    if hasattr(index, 'rescale_norm'):
+    if hasattr(index, "rescale_norm"):
         index.rescale_norm = rescale_norm
         name += f"(rescale_norm={rescale_norm})"
     faiss.omp_set_num_threads(1)
@@ -96,17 +92,17 @@ eval_and_plot(f"IVF{nlist},PQ{M}x4fs")
 eval_and_plot(f"IVF{nlist},PQ{M}x4fsr")
 
 # AQ, by_residual
-eval_and_plot(f"IVF{nlist},LSQ{M-2}x4fsr_Nlsq2x4")
-eval_and_plot(f"IVF{nlist},RQ{M-2}x4fsr_Nrq2x4")
-eval_and_plot(f"IVF{nlist},LSQ{M-2}x4fsr_Nlsq2x4", rescale_norm=False)
-eval_and_plot(f"IVF{nlist},RQ{M-2}x4fsr_Nrq2x4", rescale_norm=False)
+eval_and_plot(f"IVF{nlist},LSQ{M - 2}x4fsr_Nlsq2x4")
+eval_and_plot(f"IVF{nlist},RQ{M - 2}x4fsr_Nrq2x4")
+eval_and_plot(f"IVF{nlist},LSQ{M - 2}x4fsr_Nlsq2x4", rescale_norm=False)
+eval_and_plot(f"IVF{nlist},RQ{M - 2}x4fsr_Nrq2x4", rescale_norm=False)
 
 # AQ, no by_residual
-eval_and_plot(f"IVF{nlist},LSQ{M-2}x4fs_Nlsq2x4")
-eval_and_plot(f"IVF{nlist},RQ{M-2}x4fs_Nrq2x4")
+eval_and_plot(f"IVF{nlist},LSQ{M - 2}x4fs_Nlsq2x4")
+eval_and_plot(f"IVF{nlist},RQ{M - 2}x4fs_Nrq2x4")
 
 plt.title("Indices on SIFT1M")
 plt.xlabel("recall@10")
 plt.ylabel("QPS")
-plt.legend(bbox_to_anchor=(1.02, 0.1), loc='upper left', borderaxespad=0)
-plt.savefig("bench_ivf_fastscan.png", bbox_inches='tight')
+plt.legend(bbox_to_anchor=(1.02, 0.1), loc="upper left", borderaxespad=0)
+plt.savefig("bench_ivf_fastscan.png", bbox_inches="tight")

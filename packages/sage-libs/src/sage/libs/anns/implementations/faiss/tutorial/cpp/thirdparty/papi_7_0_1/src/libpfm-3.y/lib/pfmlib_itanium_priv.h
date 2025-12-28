@@ -38,7 +38,7 @@ typedef struct {
 	unsigned long pme_ig1:4;	/* ignored */
 	unsigned long pme_umask:16;	/* unit mask*/
 	unsigned long pme_ig:32;	/* ignored */
-} pme_ita_entry_code_t;		
+} pme_ita_entry_code_t;
 
 #define PME_UMASK_NONE	0x0
 

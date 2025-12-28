@@ -4,4 +4,3 @@
 extern int _G_COST;
 template<typename MTYPE>
 using DISTFUNC = MTYPE(*)(const void*, const void*, const void*);
-

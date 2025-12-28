@@ -120,11 +120,11 @@ process_smpl_buf(smpl_hdr_t *hdr)
 	size_t pos, count, entry_size;
 	uint64_t entry, *reg;
 	uint64_t tos, i;
-	
+
 	if (hdr->hdr_overflows == last_overflow && hdr->hdr_count == last_count) {
 		warning("skipping identical set of samples %"PRIu64" = %"PRIu64"\n",
 			hdr->hdr_overflows, last_overflow);
-		return;	
+		return;
 	}
 	/*
  	 * 33 = 32 LBR registers + LBR_TOS
@@ -238,7 +238,7 @@ mainloop(char **arg)
 	 * lbr_filter = PFM_NHM_LBR_NEAR_REL_CALL
 	 */
 	mod_inp.pfp_nhm_lbr.lbr_filter = 0;
-	
+
 	/*
 	 * the size of the buffer is indicated in bytes (not entries).
 	 *
@@ -444,7 +444,7 @@ main(int argc, char **argv)
 
 	if (argc == 1)
 		fatal_error("You must specify a command to execute\n");
-	
+
 	/*
 	 * pass options to library (optional)
 	 */

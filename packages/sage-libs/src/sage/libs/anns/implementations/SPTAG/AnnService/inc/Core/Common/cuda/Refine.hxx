@@ -150,7 +150,7 @@ __device__ void removeDuplicatesAndCompact( ListElt<SUMTYPE>* listMem, int* list
     sortKeys[0] = 0;
   }
   else {
-    sortKeys[0] = (sortMem[0].id != listMem[threadIdx.x*(LISTCAP/NUM_THREADS) - 1].id); 
+    sortKeys[0] = (sortMem[0].id != listMem[threadIdx.x*(LISTCAP/NUM_THREADS) - 1].id);
   }
   for(int i=1; i<LISTCAP/NUM_THREADS; i++) {
     sortKeys[i] = (sortMem[i].id != sortMem[i-1].id);
@@ -247,7 +247,7 @@ __device__ void shrinkListRNG_sequential(Point<T,SUMTYPE,MAX_DIM>* d_points, int
             break;
 	  }
         }
-      } 
+      }
       if(good) nodes[count++] = item.id;
     }
     for(int j=count; j<KVAL;j++) nodes[j] = -1;

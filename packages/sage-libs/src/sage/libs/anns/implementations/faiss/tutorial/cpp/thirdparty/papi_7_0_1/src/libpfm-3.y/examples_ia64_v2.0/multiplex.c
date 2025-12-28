@@ -138,7 +138,7 @@ fatal_error(char *fmt, ...)
 static unsigned long
 get_cpu_speed(void)
 {
-	FILE *fp1;	
+	FILE *fp1;
 	unsigned long f = 0;
 	char buffer[128], *p, *value;
 
@@ -157,7 +157,7 @@ get_cpu_speed(void)
 		if (*p == '\n') continue;
 
 		p = strchr(buffer, ':');
-		if (p == NULL) goto end;	
+		if (p == NULL) goto end;
 
 		/*
 		 * p+2: +1 = space, +2= firt character
@@ -226,7 +226,7 @@ update_last_set(pfm_ctxid_t ctxid, int set_idx)
 	if (perfmonctl(ctxid, PFM_READ_PMDS, cset->pmds, cset->n_counters) == -1) {
 		fatal_error("update_last_set reading set %d\n", set_idx);
 	}
-	
+
 	cycles = ~0UL - cset->pmds[cset->n_counters-1].reg_value;
 
 	printf("last period = %4.1f%% of full period\n", (cycles*100.0)/options.smpl_period);
@@ -379,7 +379,7 @@ parent(char **arg)
 	pid_t pid;
 
 	pfm_get_num_counters(&max_counters);
-	if (max_counters < 2) 
+	if (max_counters < 2)
 		fatal_error("not enough counter to do anything meaningful\n");
 
 	allowed_counters = max_counters-1; /* reserve one slot for our sampling period */

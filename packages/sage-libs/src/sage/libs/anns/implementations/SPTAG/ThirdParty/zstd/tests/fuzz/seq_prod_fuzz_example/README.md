@@ -1,7 +1,9 @@
 # Fuzzing a Custom Sequence Producer Plugin
+
 This directory contains example code for using a custom sequence producer in the zstd fuzzers.
 
 You can build and run the code in this directory using these commands:
+
 ```
 $ make corpora
 $ make -C seq_prod_fuzz_example/

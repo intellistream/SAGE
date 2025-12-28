@@ -11,10 +11,10 @@ message Log {
 
 enum LogLevel {
     UNSPECIFIED = 0;
-    Error = 1; 
+    Error = 1;
     Warn = 2;
     Info = 3;
-    Debug = 4; 
+    Debug = 4;
     Trace = 5;
 }
 
@@ -39,7 +39,7 @@ enum DiskIndexConstructionCheckpoint {
     DiskLayout = 3;
 }
 
-message TraceLog {    
+message TraceLog {
     string LogLine = 1;
     LogLevel LogLevel = 2;
 }

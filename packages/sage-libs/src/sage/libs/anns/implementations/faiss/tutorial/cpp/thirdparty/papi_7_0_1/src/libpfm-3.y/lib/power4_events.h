@@ -3778,4 +3778,3 @@ static const pmg_power_group_t power4_groups[] = {
 };
 
 #endif
-

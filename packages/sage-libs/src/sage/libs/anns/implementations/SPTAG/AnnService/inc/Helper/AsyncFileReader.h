@@ -286,7 +286,7 @@ namespace SPTAG
                         th.join();
                     }
                 }
-                
+
                 ResourceType* res = nullptr;
                 while (m_resources.try_pop(res))
                 {
@@ -382,7 +382,7 @@ namespace SPTAG
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Failed with: %s\n", (char*)lpMsgBuf);
 
                 LocalFree(lpMsgBuf);
-                ExitProcess(dw); 
+                ExitProcess(dw);
                 ShutDown();
             }
 
@@ -506,7 +506,7 @@ namespace SPTAG
                 return true;
             }
 
-            void* handle() 
+            void* handle()
             {
                 return nullptr;
             }

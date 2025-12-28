@@ -513,5 +513,3 @@
 
 	* src/: configure, configure.in: Pentium4-perfctr was skipping most
 	  of the CTESTS.  Make sure they are all run.
-
-

@@ -2,17 +2,17 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
 import os
-from typing import Dict
-import yaml
+
 import faiss
+import numpy as np
+import yaml
 from faiss.contrib.datasets import SyntheticDataset
 
 
 def load_config(config):
     assert os.path.exists(config)
-    with open(config, "r") as f:
+    with open(config) as f:
         return yaml.safe_load(f)
 
 
@@ -71,9 +71,7 @@ def add_group_args(group, *args, **kwargs):
     return group.add_argument(*args, **kwargs)
 
 
-def get_intersection_cardinality_frequencies(
-    I: np.ndarray, I_gt: np.ndarray
-) -> Dict[int, int]:
+def get_intersection_cardinality_frequencies(I: np.ndarray, I_gt: np.ndarray) -> dict[int, int]:
     """
     Computes the frequencies for the cardinalities of the intersection of neighbour indices.
     """

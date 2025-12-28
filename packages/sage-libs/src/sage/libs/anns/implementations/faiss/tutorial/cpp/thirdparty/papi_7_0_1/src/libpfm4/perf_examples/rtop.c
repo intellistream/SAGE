@@ -45,7 +45,7 @@
 #include "perf_util.h"
 
 #define RTOP_VERSION "0.2"
-/* 
+/*
  * max number of cpus (threads) supported
  */
 #define RTOP_MAX_CPUS		2048 /* MUST BE power of 2 */
@@ -87,7 +87,7 @@ get_term_size(void)
         struct winsize ws;
 
 	ret = ioctl(1, TIOCGWINSZ, &ws);
-	if (ret) 
+	if (ret)
 		err(1, "cannot determine screen size");
 
 	if (ws.ws_row > 10) {
@@ -155,7 +155,7 @@ sigint_handler(int n)
 static unsigned long
 find_cpu_speed(void)
 {
-	FILE *fp1;	
+	FILE *fp1;
 	unsigned long f1 = 0, f2 = 0;
 	char buffer[128], *p, *value;
 
@@ -322,7 +322,7 @@ mainloop(void)
 	for(i=0; i < ncpus; i++)
 		for(j=0; j < num; j++)
 			ioctl(cpus[i].fd[j], PERF_EVENT_IOC_ENABLE, 0);
-	
+
 	for(;time_to_quit == 0;) {
 
 		sleep(options.opt_delay);
@@ -395,7 +395,7 @@ populate_cpumask(char *cpu_list)
 	int i, count = 0;
 
 	options.online_cpus = (int)sysconf(_SC_NPROCESSORS_ONLN);
-	if (options.online_cpus == -1) 
+	if (options.online_cpus == -1)
 		errx(1, "cannot figure out the number of online processors");
 
 	if (cpu_list == NULL)  {
@@ -408,9 +408,9 @@ populate_cpumask(char *cpu_list)
 		options.selected_cpus = options.online_cpus;
 
 		return;
-	} 
+	}
 
-	while(isdigit(*cpu_list)) { 
+	while(isdigit(*cpu_list)) {
 		p = NULL;
 		start_cpu = strtoul(cpu_list, &p, 0); /* auto-detect base */
 
@@ -422,11 +422,11 @@ populate_cpumask(char *cpu_list)
 			p = NULL;
 
 			end_cpu = strtoul(cpu_list, &p, 0); /* auto-detect base */
-			
+
 			if (end_cpu == INT_MAX || (*p != '\0' && *p != ','))
 				goto invalid;
 			if (end_cpu < start_cpu)
-				goto invalid_range; 
+				goto invalid_range;
 		} else {
 			end_cpu = start_cpu;
 		}

@@ -44,7 +44,7 @@ anns_new/
 
 - [x] Phase 1: Create new directory structure
 - [x] Phase 2: Move interface layer (ann/ -> anns_new/interface/)
-- [x] Phase 3: Reorganize wrappers (anns/* -> anns_new/wrappers/<family>/)
+- [x] Phase 3: Reorganize wrappers (anns/\* -> anns_new/wrappers/<family>/)
 - [x] Phase 4: Move C++ implementations (algorithms_impl/ -> anns_new/implementations/)
 - [ ] Phase 5: Update all import paths (if any exist)
 - [ ] Phase 6: Rename anns_new -> anns, remove old ann/ and anns/
@@ -69,10 +69,10 @@ from sage.libs.anns.wrappers.faiss import FaissHNSWIndex
 ## Design Principles
 
 1. **Single source of truth**: All ANNS core code (interface, wrappers, C++ impl) in one place
-2. **Clear separation**: interface/ → wrappers/ → implementations/
-3. **Family grouping**: Wrappers organized by algorithm family (not flat)
-4. **Benchmarks stay in benchmark_db**: sage-benchmark package owns benchmarking logic
-5. **No cross-layer dependencies**: L3 (libs) should not depend on L5 (benchmark)
+1. **Clear separation**: interface/ → wrappers/ → implementations/
+1. **Family grouping**: Wrappers organized by algorithm family (not flat)
+1. **Benchmarks stay in benchmark_db**: sage-benchmark package owns benchmarking logic
+1. **No cross-layer dependencies**: L3 (libs) should not depend on L5 (benchmark)
 
 ## Old Structure (Deprecated)
 

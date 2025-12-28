@@ -24,7 +24,7 @@ namespace SPTAG
             std::atomic<SizeType> m_inserted;
             Dataset<std::int8_t> m_data;
             InvalidIDBehavior m_invalidIDBehaviorSetting;
-            
+
         public:
             Labelset()
             {
@@ -119,7 +119,7 @@ namespace SPTAG
                 return m_data.AddBatch(num);
             }
 
-            inline std::uint64_t BufferSize() const 
+            inline std::uint64_t BufferSize() const
             {
                 return m_data.BufferSize() + sizeof(SizeType);
             }

@@ -685,7 +685,7 @@ Version 2.6.0-pre3, 2003-08-03
     vperfctr_stub.c, which brackets the vperfctr_stub.exit() call
     with __module_get() and module_put() on vperfctr_stub.owner
   * updated 2.4 and 2.2 compat definitions of __module_get() and
-    module_put() to work for modules != THIS_MODULE  
+    module_put() to work for modules != THIS_MODULE
 - Replaced uses of (void)try_module_get() with __module_get() as the
   latter is more appropriate for 2.6 kernels. Updated compat stuff.
 
@@ -1306,7 +1306,7 @@ Version 2.0-pre6, 2001-07-27
 - To avoid undetected data layout mismatches, the user-space library
   now checks the data layout version field in a virtual perfctr when
   it is being mmap:ed into the user's address space.
-- A few minor cleanups.  
+- A few minor cleanups.
 
 Version 2.0-pre5, 2001-06-11
 - Internally use a single 'cstatus' field instead of the three

@@ -5,11 +5,11 @@ function changeName(){
 # 遍历文件夹
 function travFolder(){
    flist=`ls $1`   # 第一级目录
-   cd $1        
+   cd $1
    for f in $flist  # 进入第一级目录
    do
      if test -d $f  # 判断是否还是目录
-     then 
+     then
        travFolder $f # 是则继续递归
      else
        changeName $f # 否则改名

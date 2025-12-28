@@ -31,7 +31,7 @@ void SearchWithFilter(const std::string folder, T* vec, SPTAG::SizeType n, int k
     BOOST_CHECK(SPTAG::ErrorCode::Success == SPTAG::VectorIndex::LoadIndex(folder, vecIndex));
     BOOST_CHECK(nullptr != vecIndex);
     std::string value = "2";
-    std::function<bool(const SPTAG::ByteArray&)> filterFunction = [value](const SPTAG::ByteArray& meta) -> bool { 
+    std::function<bool(const SPTAG::ByteArray&)> filterFunction = [value](const SPTAG::ByteArray& meta) -> bool {
         std::string metaValue((char*)meta.Data(), meta.Length());
         std::cout <<metaValue << std::endl;
         return metaValue != value;

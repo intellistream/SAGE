@@ -65,4 +65,3 @@ int main()
   idx2.Load(file);
 
 }
-

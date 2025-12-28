@@ -2011,4 +2011,3 @@ pentium4_event_t pentium4_events[] = {
 #define PENTIUM4_INST_RETIRED     38
 
 #endif
-

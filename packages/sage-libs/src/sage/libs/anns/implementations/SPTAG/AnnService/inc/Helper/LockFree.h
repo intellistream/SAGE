@@ -16,7 +16,7 @@ namespace SPTAG
         namespace LockFree
         {
             template <typename T>
-            class LockFreeVector 
+            class LockFreeVector
             {
             private:
                 std::uint64_t m_size = 0;
@@ -30,13 +30,13 @@ namespace SPTAG
             public:
                 LockFreeVector() {}
 
-                ~LockFreeVector() 
+                ~LockFreeVector()
                 {
                     for (T* ptr : m_blocks) delete ptr;
                     m_blocks.clear();
                 }
 
-                void reserve(std::uint64_t blocksize, std::uint64_t maxsize = MaxSize) 
+                void reserve(std::uint64_t blocksize, std::uint64_t maxsize = MaxSize)
                 {
                     m_size = 0;
                     m_maxSize = maxsize;

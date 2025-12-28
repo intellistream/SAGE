@@ -108,7 +108,7 @@ void GenerateData(std::shared_ptr<VectorSet>& vecset, std::shared_ptr<MetadataSe
 
     SizeType n = 2000, q = 2000;
     DimensionType m = 128;
-    
+
     if (fileexists("perftest_vector.bin") && fileexists("perftest_meta.bin") && fileexists("perftest_metaidx.bin") && fileexists("perftest_query.bin")) {
         std::shared_ptr<Helper::ReaderOptions> options(new Helper::ReaderOptions(GetEnumValueType<T>(), m, VectorFileType::DEFAULT));
         auto vectorReader = Helper::VectorSetReader::CreateInstance(options);
@@ -160,7 +160,7 @@ void GenerateData(std::shared_ptr<VectorSet>& vecset, std::shared_ptr<MetadataSe
         queryset.reset(new BasicVectorSet(query, GetEnumValueType<T>(), m, q));
         queryset->Save("perftest_query.bin");
     }
-    
+
     if (fileexists(("perftest_truth." + distCalcMethod).c_str())) {
         std::shared_ptr<Helper::ReaderOptions> options(new Helper::ReaderOptions(GetEnumValueType<float>(), k, VectorFileType::DEFAULT));
         auto vectorReader = Helper::VectorSetReader::CreateInstance(options);

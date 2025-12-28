@@ -7,4 +7,3 @@ echo $elment
 python3 drawTogether.py 2
 cd ../
 done
-

@@ -57,7 +57,7 @@ public:
 
 private:
     std::vector<std::shared_ptr<RemoteMachine>> m_remoteServers;
-	
+
 	std::shared_ptr<VectorSet> m_centers;
 
     std::shared_ptr<AggregatorSettings> m_settings;

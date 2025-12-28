@@ -148,4 +148,3 @@ inline void SearchContext::log_push(const char* key, const char* fmt, ...) {
 */
 } //namesapce puck
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */
-

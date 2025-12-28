@@ -257,14 +257,14 @@ __device__ void findRNG(PointSet<T>* ps, TPtree* tptree, int KVAL, int* results,
     dist_comp = &dist<T,SUMTYPE,size,metric>;  \
     findRNG<T,SUMTYPE,size>(ps, tptree, KVAL, results, min_id, max_id, threadList, dist_comp); \
     return; \
-  } 
+  }
 
 #define RUN_KERNEL_QUANTIZED(size) \
   if(dim <= size) {\
     DistPair<float>* threadList = (&((DistPair<float>*)sharememory)[KVAL*threadIdx.x]); \
     findRNG_PQ<size>((PointSet<uint8_t>*)ps, tptree, KVAL, results, min_id, max_id, threadList, quantizer); \
     return; \
-  } 
+  }
 
 #define MAX_SHAPE 384
 #define MAX_PQ_SHAPE 100
@@ -330,18 +330,18 @@ void run_TPT_batch_multigpu(size_t dataSize, int** d_results, TPtree** tptrees, 
       // Compute the STRICT RNG for each leaf node
       findRNG_selector<DTYPE, SUMTYPE, metric>
                     <<<KNN_blocks,THREADS, sizeof(DistPair<SUMTYPE>)*KVAL*THREADS>>>
-                    (d_pointset[gpuNum], d_tptrees[gpuNum], KVAL, d_results[gpuNum], 
+                    (d_pointset[gpuNum], d_tptrees[gpuNum], KVAL, d_results[gpuNum],
                     batch_min[gpuNum], batch_max[gpuNum], dim, quantizer);
     }
     CUDA_CHECK(cudaDeviceSynchronize());
 
     auto after_work = std::chrono::high_resolution_clock::now();
- 
+
     double loop_tpt_time = GET_CHRONO_TIME(before_tpt, after_tpt);
     double loop_work_time = GET_CHRONO_TIME(after_tpt, after_work);
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Debug, "All GPUs finished tree %d - tree build time:%.2lf, neighbor compute time:%.2lf\n", tree_id, loop_tpt_time, loop_work_time);
 
-  } 
+  }
 }
 
 /****************************************************************************************
@@ -367,7 +367,7 @@ void buildGraphGPU(SPTAG::VectorIndex* index, size_t dataSize, int KVAL, int tre
   double prep_time = 0.0;
   auto start_t = std::chrono::high_resolution_clock::now();
 
-  // Host structures 
+  // Host structures
   TPtree** tptrees = new TPtree*[NUM_GPUS];
   std::vector<cudaStream_t> streams(NUM_GPUS);
 
@@ -380,7 +380,7 @@ void buildGraphGPU(SPTAG::VectorIndex* index, size_t dataSize, int KVAL, int tre
 
 /**** Varibales if PQ is enabled ****/
   GPU_Quantizer* d_quantizer = NULL;  // Only use if quantizer is enabled
-  GPU_Quantizer* h_quantizer = NULL; 
+  GPU_Quantizer* h_quantizer = NULL;
 
   if(use_q) {
     h_quantizer = new GPU_Quantizer(index->m_pQuantizer, (DistMetric)metric);
@@ -423,7 +423,7 @@ void buildGraphGPU(SPTAG::VectorIndex* index, size_t dataSize, int KVAL, int tre
     CUDA_CHECK(cudaMalloc(&d_results[gpuNum], (size_t)batchSize[gpuNum]*KVAL*sizeof(int)));
   }
 
-  // Temp variables for running multi-GPU batches 
+  // Temp variables for running multi-GPU batches
   std::vector<size_t> curr_batch_size(NUM_GPUS);
   std::vector<size_t> batchOffset(NUM_GPUS);
   std::vector<size_t> batch_min(NUM_GPUS);
@@ -437,7 +437,7 @@ void buildGraphGPU(SPTAG::VectorIndex* index, size_t dataSize, int KVAL, int tre
 
   bool done = false;
   while(!done) { // Continue until all GPUs have completed all of their batches
-  
+
     // Prep next batch for each GPU
     for(int gpuNum=0; gpuNum < NUM_GPUS; ++gpuNum) {
       curr_batch_size[gpuNum] = batchSize[gpuNum];
@@ -473,7 +473,7 @@ void buildGraphGPU(SPTAG::VectorIndex* index, size_t dataSize, int KVAL, int tre
       CUDA_CHECK(cudaMemcpy(&results[(GPUOffset[gpuNum]+batchOffset[gpuNum])*KVAL], d_results[gpuNum], curr_batch_size[gpuNum]*KVAL*sizeof(int), cudaMemcpyDeviceToHost));
     }
     auto after_copy = std::chrono::high_resolution_clock::now();
-    
+
     double batch_copy_time = GET_CHRONO_TIME(before_copy, after_copy);
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Debug, "All GPUs finished batch - time to copy result:%.2lf\n", batch_copy_time);
     D2H_time += batch_copy_time;
@@ -486,7 +486,7 @@ void buildGraphGPU(SPTAG::VectorIndex* index, size_t dataSize, int KVAL, int tre
         done=false;
       }
     }
-  } // Batches loop (while !done) 
+  } // Batches loop (while !done)
 
 auto end_t = std::chrono::high_resolution_clock::now();
 
@@ -514,7 +514,7 @@ auto end_t = std::chrono::high_resolution_clock::now();
 }
 
 /***************************************************************************************
- * Function called by SPTAG to create an initial graph on the GPU.  
+ * Function called by SPTAG to create an initial graph on the GPU.
  ***************************************************************************************/
 template<typename T>
 void buildGraph(SPTAG::VectorIndex* index, int m_iGraphSize, int m_iNeighborhoodSize, int trees, int* results, int refines, int refineDepth, int graph, int leafSize, int initSize, int NUM_GPUS, int balanceFactor) {
@@ -552,7 +552,7 @@ void buildGraph(SPTAG::VectorIndex* index, int m_iGraphSize, int m_iNeighborhood
     CUDA_CHECK(cudaSetDevice(gpuNum));
 
     resPerGPU[gpuNum] = dataSize / NUM_GPUS; // Results per GPU
-    if(dataSize % NUM_GPUS > gpuNum) resPerGPU[gpuNum]++; 
+    if(dataSize % NUM_GPUS > gpuNum) resPerGPU[gpuNum]++;
 
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop, gpuNum)); // Get avil. memory
@@ -704,7 +704,7 @@ inline void updateKNNResults(std::vector< std::vector<SPTAG::SizeType> >& batch_
     std::vector< std::vector<SPTAG::SizeType> > result_truth = batch_truth;
     std::vector< std::vector<float> > result_dist = batch_dist;
     for (int i = 0; i < result_size; i++) {
-        //For each result, we need to compare the 2K DistPairs and take top K. 
+        //For each result, we need to compare the 2K DistPairs and take top K.
         int reader1 = 0;
         int reader2 = 0;
         for (int writer_ptr = 0; writer_ptr < K; writer_ptr++) {
@@ -745,7 +745,7 @@ __global__ void query_KNN(Point<DTYPE, SUMTYPE, Dim>* querySet, Point<DTYPE, SUM
     for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < numQueries; i += blockDim.x * gridDim.x) {
         heapMem[threadIdx.x].reset();
         extra.dist = INFTY<SUMTYPE>();
-        query=querySet[i]; 
+        query=querySet[i];
         //query.loadPoint(querySet[i]); // Load into shared memory
         // Compare with all points in the dataset
         for (int j = 0; j < dataSize; j++) {
@@ -823,8 +823,8 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
     std::vector<size_t> batchSize(NUM_GPUS);
 
     cudaError_t resultErr;
-    
-    //KNN 
+
+    //KNN
     Point<DTYPE, SUMTYPE, MAX_DIM>* points = convertMatrix < DTYPE, SUMTYPE, MAX_DIM >((DTYPE*)querySet->GetData(), result_size, dim);
     Point<DTYPE, SUMTYPE, MAX_DIM>** d_points = new Point<DTYPE, SUMTYPE, MAX_DIM>*[NUM_GPUS];
     Point<DTYPE, SUMTYPE, MAX_DIM>** d_check_points = new Point<DTYPE, SUMTYPE, MAX_DIM>*[NUM_GPUS];
@@ -851,7 +851,7 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
         size_t queryPointSize = querySet->Count() * sizeof(Point<DTYPE, SUMTYPE, MAX_DIM>);
         size_t resultSetSize = querySet->Count() * K * 4;//size(int) = 4
         size_t resMemAvail = (freeMem * 0.9) - (queryPointSize + resultSetSize); // Only use 90% of total memory to be safe
-        size_t cpuSaveMem = resMemAvail / NUM_GPUS;//using 90% of multi-GPUs might be to much for CPU. 
+        size_t cpuSaveMem = resMemAvail / NUM_GPUS;//using 90% of multi-GPUs might be to much for CPU.
         int maxEltsPerBatch = cpuSaveMem / (sizeof(Point<DTYPE, SUMTYPE, MAX_DIM>));
         batchSize[gpuNum] = min(maxEltsPerBatch, (int)(vectorsPerGPU[gpuNum]));
         // If GPU memory is insufficient or so limited that we need so many batches it becomes inefficient, return error
@@ -878,20 +878,20 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
         cudaStreamCreate(&streams[i]); // Copy data over on a separate stream for each GPU
         // Device result memory on each GPU
         CUDA_CHECK(cudaMalloc(&d_results[i], per_gpu_result * sizeof(DistPair<SUMTYPE>)));
-        
+
         //Copy Queryvectors
         CUDA_CHECK(cudaMalloc(&d_points[i], querySet->Count() * sizeof(Point<DTYPE, SUMTYPE, MAX_DIM>)));
         CUDA_CHECK(cudaMemcpyAsync(d_points[i], points, querySet->Count() * sizeof(Point<DTYPE, SUMTYPE, MAX_DIM>), cudaMemcpyHostToDevice, streams[i]));
         //Batchvectors
         CUDA_CHECK(cudaMalloc(&d_check_points[i], batchSize[i] * sizeof(Point<DTYPE, SUMTYPE, MAX_DIM>)));
     }
-    
+
     LOG_INFO("Starting KNN Kernel timer\n");
     auto t1 = std::chrono::high_resolution_clock::now();
     bool done = false;
     bool update = false;
-    //RN, The querys are copied, and the space for result are malloced. 
-    // Need to copy the result, and copy back to host to update. 
+    //RN, The querys are copied, and the space for result are malloced.
+    // Need to copy the result, and copy back to host to update.
     // The vectors split, malloc, copy neeed to be done in here.
     while (!done) { // Continue until all GPUs have completed all of their batches
         size_t freeMem, totalMem;
@@ -912,14 +912,14 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
 
         for (int i = 0; i < NUM_GPUS; i++) {
             CUDA_CHECK(cudaSetDevice(i));
-            
+
             size_t start = GPUOffset[i] + batchOffset[i];
             sub_vectors_points[i] = convertMatrix < DTYPE, SUMTYPE, MAX_DIM >(&vectors[start * dim], curr_batch_size[i], dim);
             CUDA_CHECK(cudaMemcpyAsync(d_check_points[i], sub_vectors_points[i], curr_batch_size[i] * sizeof(Point<DTYPE, SUMTYPE, MAX_DIM>), cudaMemcpyHostToDevice, streams[i]));
-            
+
             // Perfrom brute-force KNN from the subsets assigned to the GPU for the querySets
             int KNN_blocks = (KNN_THREADS - 1 + querySet->Count()) / KNN_THREADS;
-            size_t dynamicSharedMem = KNN_THREADS * sizeof(DistPair < SUMTYPE>) * (K - 1); 
+            size_t dynamicSharedMem = KNN_THREADS * sizeof(DistPair < SUMTYPE>) * (K - 1);
             //64*9*8=4608 for K=10 , KNN_Threads = 64
             //64*99*8=50688 for K = 100, KNN_Threads = 64
             if (dynamicSharedMem > (1024 * 48)) {
@@ -931,9 +931,9 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
 
             query_KNN<DTYPE, MAX_DIM, KNN_THREADS, SUMTYPE> << <KNN_blocks, KNN_THREADS, dynamicSharedMem, streams[i]>> > (d_points[i], d_check_points[i], curr_batch_size[i], start, result_size, d_results[i], K, metric);
             cudaError_t c_ret = cudaGetLastError();
-            SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Debug, "Error: %s\n", cudaGetErrorString(c_ret));            
+            SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Debug, "Error: %s\n", cudaGetErrorString(c_ret));
         }
-        
+
         //Copy back to result
         for (int gpuNum = 0; gpuNum < NUM_GPUS; gpuNum++) {
             cudaSetDevice(gpuNum);
@@ -944,7 +944,7 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
             cudaMemcpy(&results[(gpuNum * per_gpu_result)], d_results[gpuNum], per_gpu_result * sizeof(DistPair<SUMTYPE>), cudaMemcpyDeviceToHost);
         }
 
-        // To combine the results, we need to compare value from different GPU 
+        // To combine the results, we need to compare value from different GPU
         //Results [KNN from GPU0][KNN from GPU1][KNN from GPU2][KNN from GPU3]
         // Every block will be [result_size*K] [K|K|K|...|K]
         // The real KNN is selected from 4*KNN
@@ -989,7 +989,7 @@ __host__ void GenerateTruthGPUCore(std::shared_ptr<VectorSet> querySet, std::sha
             free(sub_vectors_points[gpuNum]);
         }
         free(results);
-    } // Batches loop (while !done) 
+    } // Batches loop (while !done)
 
     auto t2 = std::chrono::high_resolution_clock::now();
     double gpuRunTime = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();

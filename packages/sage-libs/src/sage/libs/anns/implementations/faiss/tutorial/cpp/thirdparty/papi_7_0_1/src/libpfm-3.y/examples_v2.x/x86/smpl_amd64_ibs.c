@@ -152,11 +152,11 @@ process_smpl_buf(smpl_hdr_t *hdr, uint64_t *smpl_pmds, unsigned int num_smpl_pmd
 	ibsopdata3_t *opdata3;
 	uint64_t entry, *reg;
 	unsigned int j, n;
-	
+
 	if (hdr->hdr_overflows == last_overflow && hdr->hdr_count == last_count) {
 		warning("skipping identical set of samples %"PRIu64" = %"PRIu64"\n",
 			hdr->hdr_overflows, last_overflow);
-		return;	
+		return;
 	}
 
 	count = hdr->hdr_count;
@@ -186,7 +186,7 @@ process_smpl_buf(smpl_hdr_t *hdr, uint64_t *smpl_pmds, unsigned int num_smpl_pmd
 		reg = (uint64_t *)(ent+1);
 
 		n = num_smpl_pmds;
-		for(j=0; n; j++) {	
+		for(j=0; n; j++) {
 			if (pfm_bv_isset(smpl_pmds, j)) {
 				switch(j) {
 					case 7:
@@ -294,7 +294,7 @@ setup_pmu_ibsop_native(pfarg_pmc_t *pc, pfarg_pmd_t *pd)
 	 *
 	 * Randomization on IBS control register (IBSOPSCTL, IBSFETCHCTL) is
 	 * ignored.
-	 * 
+	 *
 	 * The value, short_reset, long_reset values are ignored. Use the
 	 * corresponding PMC registers to set sampling period.
 	 *
@@ -326,7 +326,7 @@ setup_pmu_ibsop(pfarg_pmc_t *pc, pfarg_pmd_t *pd)
 	pfmlib_output_param_t outp;
 	pfmlib_amd64_output_param_t outp_mod;
 	int ret;
-	
+
 	memset(&inp_mod,0, sizeof(inp_mod));
 	memset(&outp,0, sizeof(outp));
 	memset(&outp_mod,0, sizeof(outp_mod));
@@ -707,7 +707,7 @@ main(int argc, char **argv)
 	if (argv[optind] == NULL) {
 		fatal_error("You must specify a command to execute\n");
 	}
-	
+
 	/*
 	 * pass options to library (optional)
 	 */

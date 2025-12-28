@@ -187,7 +187,7 @@ set_domain( hwd_control_state_t * cntrl, unsigned int domain )
 	int did = 0;
 
 	/* A bit setting of '0' indicates "count this context".
-	 * Start off by turning off counting for all contexts; 
+	 * Start off by turning off counting for all contexts;
 	 * then, selectively re-enable.
 	 */
 	cntrl->control.cpu_control.ppc64.mmcr0 |=
@@ -269,7 +269,7 @@ _papi_hwd_init_control_state( hwd_control_state_t * ptr )
 	return ( PAPI_OK );
 }
 
-/* At init time, the higher level library should always allocate and 
+/* At init time, the higher level library should always allocate and
    reserve EventSet zero. */
 
 
@@ -280,7 +280,7 @@ int _papi_hwd_shutdown_global(void) {
 } */
 
 
-/* this function recusively does Modified Bipartite Graph counter allocation 
+/* this function recusively does Modified Bipartite Graph counter allocation
      success  return 1
 	 fail     return 0
 */
@@ -333,7 +333,7 @@ _papi_hwd_allocate_registers( EventSetInfo_t * ESI )
 
 	/* not yet successfully mapped, but have enough slots for events */
 
-	/* Initialize the local structure needed 
+	/* Initialize the local structure needed
 	   for counter allocation and optimization. */
 	natNum = ESI->NativeCount;
 	for ( i = 0; i < natNum; i++ ) {
@@ -374,7 +374,7 @@ _papi_hwd_allocate_registers( EventSetInfo_t * ESI )
 	}
 }
 
-/* This function clears the current contents of the control structure and 
+/* This function clears the current contents of the control structure and
    updates it with whatever resources are allocated for all the native events
    in the native info structure array. */
 int

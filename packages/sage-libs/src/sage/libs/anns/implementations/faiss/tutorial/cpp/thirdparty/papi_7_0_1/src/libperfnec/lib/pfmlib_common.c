@@ -149,7 +149,7 @@ pfm_initialize(void)
 	pfm_check_debug_env();
 	/*
  	 * syscall mapping, no failure on error
- 	 */	
+ 	 */
 	pfm_init_syscalls();
 
 	while(*p) {
@@ -407,7 +407,7 @@ pfm_find_event(const char *v, unsigned int *ev)
 			int the_int_number = (int)number;
 			ret = pfm_find_event_bycode(the_int_number, ev);
 		}
-	} else 
+	} else
 		ret = pfm_find_event_byname(v, ev);
 	return ret;
 }
@@ -772,7 +772,7 @@ pfm_get_num_counters(unsigned int *num)
 	if (PFMLIB_INITIALIZED() == 0) return PFMLIB_ERR_NOINIT;
 
 	if (num == NULL) return PFMLIB_ERR_INVAL;
-	
+
 	*num = pfm_current->num_cnt;
 
 	return PFMLIB_SUCCESS;
@@ -784,7 +784,7 @@ pfm_get_num_pmcs(unsigned int *num)
 	if (PFMLIB_INITIALIZED() == 0) return PFMLIB_ERR_NOINIT;
 
 	if (num == NULL) return PFMLIB_ERR_INVAL;
-	
+
 	*num = pfm_current->pmc_count;
 
 	return PFMLIB_SUCCESS;
@@ -796,7 +796,7 @@ pfm_get_num_pmds(unsigned int *num)
 	if (PFMLIB_INITIALIZED() == 0) return PFMLIB_ERR_NOINIT;
 
 	if (num == NULL) return PFMLIB_ERR_INVAL;
-	
+
 	*num = pfm_current->pmd_count;
 
 	return PFMLIB_SUCCESS;
@@ -1021,7 +1021,7 @@ pfm_get_event_mask_code(unsigned int event_idx, unsigned int mask_idx, unsigned 
 
 	return pfm_current->get_event_mask_code(event_idx, mask_idx, code);
 }
-	
+
 int
 pfm_get_full_event_name(pfmlib_event_t *e, char *name, size_t maxlen)
 {
@@ -1076,7 +1076,7 @@ pfm_get_full_event_name(pfmlib_event_t *e, char *name, size_t maxlen)
 			name[j] = (char)toupper(name[j]);
 	return PFMLIB_SUCCESS;
 }
-	
+
 int
 pfm_find_full_event(const char *v, pfmlib_event_t *e)
 {
@@ -1122,7 +1122,7 @@ pfm_find_full_event(const char *v, pfmlib_event_t *e)
 		  free(str);
 		  return PFMLIB_SUCCESS;
 	}
-	
+
 	ret = PFMLIB_ERR_UMASK;
 	/*
 	 * error if:

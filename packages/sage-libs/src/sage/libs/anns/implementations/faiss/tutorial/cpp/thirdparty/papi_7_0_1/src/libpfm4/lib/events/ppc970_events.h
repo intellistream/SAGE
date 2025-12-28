@@ -1529,4 +1529,3 @@ static const pme_power_entry_t ppc970_pe[] = {
 	}
 };
 #endif
-

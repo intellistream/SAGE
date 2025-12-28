@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // This program must be compiled using a special makefile:
-// make -f ROCM_SMI_Makefile rocm_smi_writeTests.out 
+// make -f ROCM_SMI_Makefile rocm_smi_writeTests.out
 //-----------------------------------------------------------------------------
 #define __HIP_PLATFORM_HCC__
 
@@ -43,7 +43,7 @@
                     __FILE__, __LINE__);                                \
             exit(-1);                                                   \
         }                                                               \
-    } while (0);  
+    } while (0);
 
 
 #define MAX_DEVICES    (32)
@@ -109,8 +109,8 @@ void parseCommandLineArgs(int argc, char *argv[])
 {
     if(argc < 2) return;
 
-    if((strcmp(argv[1], "--help") == 0) || 
-       (strcmp(argv[1], "-help") == 0)  || 
+    if((strcmp(argv[1], "--help") == 0) ||
+       (strcmp(argv[1], "-help") == 0)  ||
        (strcmp(argv[1], "-h") == 0)) {
         printUsage();
         exit(0);
@@ -136,9 +136,9 @@ void conductTest(int EventSet, int device, long long *values) {
 	    exit( ret );
 	}
 
-    hipDeviceProp_t props;                        
+    hipDeviceProp_t props;
     if (verbose) fprintf(stderr, "args: EventSet=%i, device=%i, values=%p.\n", EventSet, device, values);
- 
+
     CHECK(hipSetDevice(device));                      // Set device requested.
     CHECK(hipGetDevice(&thisDev));                    // Double check.
     CHECK(hipGetDeviceProperties(&props, thisDev));   // Get properties (for name).
@@ -151,9 +151,9 @@ void conductTest(int EventSet, int device, long long *values) {
     CHECK(C_h == NULL ? hipErrorMemoryAllocation : hipSuccess );
 
     // Fill with Phi + i
-    for (size_t i=0; i<N; i++) 
+    for (size_t i=0; i<N; i++)
     {
-        A_h[i] = 1.618f + i; 
+        A_h[i] = 1.618f + i;
     }
 
     if (verbose) fprintf (stderr, "info: allocate device mem (%6.2f MB)\n", 2*Nbytes/1024.0/1024.0);
@@ -167,7 +167,7 @@ void conductTest(int EventSet, int device, long long *values) {
     const unsigned blocks = 512;
     const unsigned threadsPerBlock = 256;
     (void) blocks;
-    (void) threadsPerBlock; 
+    (void) threadsPerBlock;
 
     if (verbose) fprintf (stderr, "info: launch 'vector_square' kernel\n");
 //  hipLaunchKernelGGL((vector_square), dim3(blocks), dim3(threadsPerBlock), 0, 0, C_d, A_d, N);
@@ -190,7 +190,7 @@ void conductTest(int EventSet, int device, long long *values) {
         if (verbose) fprintf(stderr, "PAPI_stop failed.\n");
         exit(ret);
     }
-    
+
     if (verbose) fprintf (stderr, "PAPI_stop succeeded.\n");
 
 } // end conductTest.
@@ -218,26 +218,26 @@ int main(int argc, char *argv[])
     /* PAPI Initialization */
     ret = PAPI_library_init(PAPI_VER_CURRENT);
     if(ret != PAPI_VER_CURRENT) {
-        fprintf(stderr, "PAPI_library_init failed, ret=%i [%s]\n", 
+        fprintf(stderr, "PAPI_library_init failed, ret=%i [%s]\n",
             ret, PAPI_strerror(ret));
         exit(-1);
     }
 
-    printf("PAPI version: %d.%d.%d\n", 
-        PAPI_VERSION_MAJOR(PAPI_VERSION), 
-        PAPI_VERSION_MINOR(PAPI_VERSION), 
+    printf("PAPI version: %d.%d.%d\n",
+        PAPI_VERSION_MAJOR(PAPI_VERSION),
+        PAPI_VERSION_MINOR(PAPI_VERSION),
         PAPI_VERSION_REVISION(PAPI_VERSION));
     fflush(stdout);
 
     // Find rocm_smi component index.
     k = PAPI_num_components();                                          // get number of components.
     for (i=0; i<k && cid<0; i++) {                                      // while not found,
-        PAPI_component_info_t *aComponent = 
-            (PAPI_component_info_t*) PAPI_get_component_info(i);        // get the component info.     
+        PAPI_component_info_t *aComponent =
+            (PAPI_component_info_t*) PAPI_get_component_info(i);        // get the component info.
         if (aComponent == NULL) {                                       // if we failed,
             fprintf(stderr,  "PAPI_get_component_info(%i) failed, "
                 "returned NULL. %i components reported.\n", i,k);
-            exit(-1);    
+            exit(-1);
         }
 
        if (strcmp("rocm_smi", aComponent->name) == 0) cid=i;            // If we found our match, record it.
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failed to find rocm_smi component among %i "
             "reported components.\n", k);
         PAPI_shutdown();
-        exit(-1); 
+        exit(-1);
     }
 
     printf("Found ROCM_SMI Component at id %d\n", cid);
@@ -265,9 +265,9 @@ int main(int argc, char *argv[])
 
     force_rocm_smi_init(cid);
 
-    CALL_PAPI_OK(PAPI_create_eventset(&EventSet)); 
-    CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid)); 
-    ret = PAPI_add_named_event(EventSet, eventName.c_str());  
+    CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
+    CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid));
+    ret = PAPI_add_named_event(EventSet, eventName.c_str());
     if (ret == PAPI_OK) {
         CALL_PAPI_OK(PAPI_start(EventSet));
         CALL_PAPI_OK(PAPI_stop(EventSet, &value));
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
         printf("Call succeeded to set fan_speed to %llu RPM.\n", curmax[0]);
     }
 
-    // Now try to read it. 
+    // Now try to read it.
     CALL_PAPI_OK(PAPI_stop(EventSet, &value));
     printf("After set, read-back of fan value is %lli.\n", value);
 

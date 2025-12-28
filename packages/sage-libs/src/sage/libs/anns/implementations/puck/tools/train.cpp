@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <glog/logging.h>
 #include <fcntl.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/stat.h>
 #include "puck/tinker/tinker_index.h"
 #include "puck/gflags/puck_gflags.h"
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
         index.reset(new puck::TinkerIndex());
     } else if (FLAGS_index_type == int(puck::IndexType::PUCK)) {
         index.reset(new puck::PuckIndex());
-    } else if (FLAGS_index_type == int(puck::IndexType::HIERARCHICAL_CLUSTER)) { 
+    } else if (FLAGS_index_type == int(puck::IndexType::HIERARCHICAL_CLUSTER)) {
         index.reset(new puck::HierarchicalClusterIndex());
     } else {
         LOG(ERROR) << "index type error.\n";
@@ -94,4 +94,3 @@ int main(int argc, char** argv) {
     return 0;
 }
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */
-

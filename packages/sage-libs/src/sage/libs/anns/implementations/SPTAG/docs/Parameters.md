@@ -2,62 +2,69 @@
 
 > Common Parameters
 
-|  ParametersName | type  |  default | definition|
-|---|---|---|---|
-| Samples | int | 1000 | how many points will be sampled to do tree node split |
-|TPTNumber | int | 32 | number of TPT trees to help with graph construction |
-|TPTLeafSize | int | 2000 | TPT tree leaf size |
-NeighborhoodSize | int | 32 | number of neighbors each node has in the neighborhood graph |
-|GraphNeighborhoodScale | int | 2 | number of neighborhood size scale in the build stage |
-|CEF | int | 1000 | number of results used to construct RNG | 
-|MaxCheckForRefineGraph| int | 10000 | how many nodes each node will visit during graph refine in the build stage | 
-|NumberOfThreads | int | 1 | number of threads to uses for speed up the build |
-|DistCalcMethod | string | Cosine | choose from Cosine and L2 |
-|MaxCheck | int | 8192 | how many nodes will be visited for a query in the search stage
+| ParametersName         | type   | default | definition                                                                 |
+| ---------------------- | ------ | ------- | -------------------------------------------------------------------------- |
+| Samples                | int    | 1000    | how many points will be sampled to do tree node split                      |
+| TPTNumber              | int    | 32      | number of TPT trees to help with graph construction                        |
+| TPTLeafSize            | int    | 2000    | TPT tree leaf size                                                         |
+| NeighborhoodSize       | int    | 32      | number of neighbors each node has in the neighborhood graph                |
+| GraphNeighborhoodScale | int    | 2       | number of neighborhood size scale in the build stage                       |
+| CEF                    | int    | 1000    | number of results used to construct RNG                                    |
+| MaxCheckForRefineGraph | int    | 10000   | how many nodes each node will visit during graph refine in the build stage |
+| NumberOfThreads        | int    | 1       | number of threads to uses for speed up the build                           |
+| DistCalcMethod         | string | Cosine  | choose from Cosine and L2                                                  |
+| MaxCheck               | int    | 8192    | how many nodes will be visited for a query in the search stage             |
 
 > BKT
 
-|  ParametersName | type  |  default | definition|
-|---|---|---|---|
-| BKTNumber | int | 1 | number of BKT trees |
-| BKTKMeansK | int | 32 | how many childs each tree node has |
+| ParametersName | type | default | definition                         |
+| -------------- | ---- | ------- | ---------------------------------- |
+| BKTNumber      | int  | 1       | number of BKT trees                |
+| BKTKMeansK     | int  | 32      | how many childs each tree node has |
 
 > KDT
 
-|  ParametersName | type  |  default | definition|
-|---|---|---|---|
-| KDTNumber | int | 1 | number of KDT trees |
+| ParametersName | type | default | definition          |
+| -------------- | ---- | ------- | ------------------- |
+| KDTNumber      | int  | 1       | number of KDT trees |
 
 > Parameters that will affect the index size
-* NeighborhoodSize
-* BKTNumber
-* KDTNumber
+
+- NeighborhoodSize
+- BKTNumber
+- KDTNumber
 
 > Parameters that will affect the index build time
-* NumberOfThreads
-* TPTNumber
-* TPTLeafSize
-* GraphNeighborhoodScale
-* CEF
-* MaxCheckForRefineGraph
+
+- NumberOfThreads
+- TPTNumber
+- TPTLeafSize
+- GraphNeighborhoodScale
+- CEF
+- MaxCheckForRefineGraph
 
 > Parameters that will affect the index quality
-* TPTNumber
-* TPTLeafSize
-* GraphNeighborhoodScale
-* CEF
-* MaxCheckForRefineGraph
-* NeighborhoodSize
-* KDTNumber
+
+- TPTNumber
+- TPTLeafSize
+- GraphNeighborhoodScale
+- CEF
+- MaxCheckForRefineGraph
+- NeighborhoodSize
+- KDTNumber
 
 > Parameters that will affect search latency and recall
-* MaxCheck
+
+- MaxCheck
 
 ## **NNI for parameters tuning**
 
-Prepare vector data file **data.tsv**, query data file **query.tsv**, and truth file **truth.txt** following the format introduced in the [Get Started](GettingStart.md). 
+Prepare vector data file **data.tsv**, query data file **query.tsv**, and truth file **truth.txt**
+following the format introduced in the [Get Started](GettingStart.md).
 
-Install [microsoft nni](https://github.com/microsoft/nni) and write the following python code (nni_sptag.py), parameter search space configuration (search_space.json) and nni environment configuration (config.yml).
+Install [microsoft nni](https://github.com/microsoft/nni) and write the following python code
+(nni_sptag.py), parameter search space configuration (search_space.json) and nni environment
+configuration (config.yml).
 
 > nni_sptag.py
 
@@ -91,6 +98,7 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
 > search_space.json
 
 ```json
@@ -149,11 +157,13 @@ trial:
 ```
 
 Then start the tuning (tunning results can be found in the Web UI urls in the command output):
+
 ```bash
 nnictl create --config config.yml
 ```
 
 stop the tunning:
+
 ```bash
 nnictl stop
 ```

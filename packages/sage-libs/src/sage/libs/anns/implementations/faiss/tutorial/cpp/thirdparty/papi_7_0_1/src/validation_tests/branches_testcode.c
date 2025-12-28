@@ -145,4 +145,3 @@ int random_branches_testcode(int number, int quiet) {
 
    return junk;
 }
-

@@ -50,7 +50,7 @@ void showMemoryInfo(){}
 	}
 #endif
 
-//inline 
+//inline
 //bool Is_Intersect(float*& mbr, float*& data, int& dim)
 //{
 //	return true;

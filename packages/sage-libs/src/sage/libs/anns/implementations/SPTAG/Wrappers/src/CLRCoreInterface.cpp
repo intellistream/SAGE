@@ -69,7 +69,7 @@ namespace Microsoft
             bool AnnIndex::LoadQuantizer(String^ p_quantizerFile)
             {
                 if (m_Instance == nullptr) return false;
-                
+
                 auto ret = ((*m_Instance)->LoadQuantizer(string_to_char_array(p_quantizerFile)) == SPTAG::ErrorCode::Success);
                 if (ret)
                 {
@@ -159,8 +159,8 @@ namespace Microsoft
                 pin_ptr<Byte> metaptr = &p_meta[0];
                 std::uint64_t* offsets = new std::uint64_t[p_num + 1]{ 0 };
                 if (!SPTAG::MetadataSet::GetMetadataOffsets(metaptr, p_meta->LongLength, offsets, p_num + 1, '\n')) return false;
-                std::shared_ptr<SPTAG::MetadataSet> meta(new SPTAG::MemMetadataSet(SPTAG::ByteArray(metaptr, p_meta->LongLength, false), 
-                    SPTAG::ByteArray((std::uint8_t*)offsets, (p_num + 1) * sizeof(std::uint64_t), true), p_num, 
+                std::shared_ptr<SPTAG::MetadataSet> meta(new SPTAG::MemMetadataSet(SPTAG::ByteArray(metaptr, p_meta->LongLength, false),
+                    SPTAG::ByteArray((std::uint8_t*)offsets, (p_num + 1) * sizeof(std::uint64_t), true), p_num,
                     (*m_Instance)->m_iDataBlockSize, (*m_Instance)->m_iDataCapacity, (*m_Instance)->m_iMetaRecordSize));
                 return (SPTAG::ErrorCode::Success == (*m_Instance)->BuildIndex(vectors, meta, p_withMetaIndex, p_normalized));
             }
@@ -234,7 +234,7 @@ namespace Microsoft
                     indexBlobs.push_back(SPTAG::ByteArray((std::uint8_t*)ptr, res[i]->LongLength, false));
                 }
                 std::string config;
-                if (SPTAG::ErrorCode::Success != (*m_Instance)->SaveIndex(config, indexBlobs)) 
+                if (SPTAG::ErrorCode::Success != (*m_Instance)->SaveIndex(config, indexBlobs))
                 {
                     array<array<Byte>^>^ null;
                     return null;
@@ -334,7 +334,7 @@ namespace Microsoft
             {
                 AnnIndex^ res = Load(p_indexFilePath1);
                 AnnIndex^ add = Load(p_indexFilePath2);
-                if (*(res->m_Instance) == nullptr || *(add->m_Instance) == nullptr || 
+                if (*(res->m_Instance) == nullptr || *(add->m_Instance) == nullptr ||
                     SPTAG::ErrorCode::Success != (*(res->m_Instance))->MergeIndex(add->m_Instance->get(), std::atoi((*(res->m_Instance))->GetParameter("NumberOfThreads").c_str()), nullptr))
                 {
                     return gcnew AnnIndex(nullptr);

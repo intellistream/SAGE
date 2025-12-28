@@ -16,15 +16,15 @@
     }
 %}
 
-%pragma(csharp) imclasscode=%{ 
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)] 
-    public struct WrapperArray 
-    { 
-        public System.IntPtr _data; 
+%pragma(csharp) imclasscode=%{
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public struct WrapperArray
+    {
+        public System.IntPtr _data;
         public ulong _size;
-        public WrapperArray(System.IntPtr in_data, ulong in_size) { _data = in_data; _size = in_size; } 
-    } 
-%} 
+        public WrapperArray(System.IntPtr in_data, ulong in_size) { _data = in_data; _size = in_size; }
+    }
+%}
 
 %apply void *VOID_INT_PTR { void * }
 void deleteArrayOfWrapperArray(void* ptr);
@@ -42,9 +42,9 @@ void deleteWrapperArray(void* ptr);
          terminator="} }"
          ) ByteArray %{ temp$csinput %}
 
-%typemap(csvarin) ByteArray %{ 
+%typemap(csvarin) ByteArray %{
     set {
-         unsafe { fixed(byte* ptr$csinput = $csinput) 
+         unsafe { fixed(byte* ptr$csinput = $csinput)
              {
                  $modulePINVOKE.WrapperArray temp$csinput = new $modulePINVOKE.WrapperArray( (System.IntPtr)ptr$csinput, (ulong)$csinput.LongLength );
                  $imcall;
@@ -63,7 +63,7 @@ void deleteWrapperArray(void* ptr);
     byte[] ret = new byte[data._size];
     System.Runtime.InteropServices.Marshal.Copy(data._data, ret, 0, (int)data._size);
     if (data._size > 0) $modulePINVOKE.deleteWrapperArray(data._data);
-    return ret; 
+    return ret;
 %}
 
 %typemap(csvarout) ByteArray %{
@@ -72,7 +72,7 @@ void deleteWrapperArray(void* ptr);
         byte[] ret = new byte[data._size];
         System.Runtime.InteropServices.Marshal.Copy(data._data, ret, 0, (int)data._size);
         if (data._size > 0) $modulePINVOKE.deleteWrapperArray(data._data);
-        return ret; 
+        return ret;
     }
 %}
 

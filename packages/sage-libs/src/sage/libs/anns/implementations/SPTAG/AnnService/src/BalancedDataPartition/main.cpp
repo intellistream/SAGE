@@ -668,7 +668,7 @@ ErrorCode SyncSaveCenter(COMMON::KmeansArgs<T> &args, int rank, int iteration, u
     }
     out->ShutDown();
 
-    if (!options.m_syncscript.empty()) {        
+    if (!options.m_syncscript.empty()) {
         try {
         	int return_value = system((options.m_syncscript + " upload " + folder + " " + std::to_string(options.m_totalparts) + " " + std::to_string(savecenters)).c_str());
         	if (return_value != 0)

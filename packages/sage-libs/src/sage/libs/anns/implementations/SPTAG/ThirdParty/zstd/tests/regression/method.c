@@ -102,7 +102,7 @@ static result_t simple_compress(method_state_t* base, config_t const* config) {
      */
     if (base->data->type != data_type_file)
         return result_error(result_error_skip);
-    
+
     if (config->advanced_api_only)
         return result_error(result_error_skip);
 
@@ -154,7 +154,7 @@ static result_t compress_cctx_compress(
 
     if (base->data->type != data_type_dir)
         return result_error(result_error_skip);
-    
+
     if (config->advanced_api_only)
         return result_error(result_error_skip);
 

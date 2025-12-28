@@ -28,6 +28,6 @@
  * PFM_PLM1 = Hypervisor
  * PFM_PLM2 = unused (ignored)
  * PFM_PLM3 = User level
- */ 
+ */
 
 #endif /* __PFMLIB_SPARC_H__ */

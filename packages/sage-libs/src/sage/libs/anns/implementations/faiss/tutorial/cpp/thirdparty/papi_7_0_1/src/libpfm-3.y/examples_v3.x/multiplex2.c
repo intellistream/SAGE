@@ -146,7 +146,7 @@ fatal_error(char *fmt, ...)
 static unsigned long
 get_cpu_speed(void)
 {
-	FILE *fp1;	
+	FILE *fp1;
 	unsigned long f1 = 0, f2 = 0;
 	char buffer[128], *p, *value;
 
@@ -323,15 +323,15 @@ print_results(int ctxid, uint64_t *eff_timeout)
 	 *
 	 */
 	if (options.opt_no_header == 0) {
-		printf("# %.2fHz period = %"PRIu64"nsecs\n# %"PRIu64" cycles @ %lu MHz\n", 
-			1000000000.0 / options.smpl_freq_ns, 
-			options.smpl_freq_ns, 
+		printf("# %.2fHz period = %"PRIu64"nsecs\n# %"PRIu64" cycles @ %lu MHz\n",
+			1000000000.0 / options.smpl_freq_ns,
+			options.smpl_freq_ns,
 			options.smpl_period,
 			options.cpu_mhz);
 
 		if (options.opt_ovfl_switch == 0)
 			printf("# using time-based multiplexing\n"
-				"# %"PRIu64" nsecs effective switch timeout\n", 
+				"# %"PRIu64" nsecs effective switch timeout\n",
 				*eff_timeout);
 		else
 			printf("# using overflow-based multiplexing\n");
@@ -362,7 +362,7 @@ print_results(int ctxid, uint64_t *eff_timeout)
 			}
 			mtotal = mtotal_str;
 
-			/* 
+			/*
 			 * scaling
 			 * We use duration rather than number of runs to compute a more precise
 			 * scaled value. This avoids overcounting when the last set only partially
@@ -401,7 +401,7 @@ print_results(int ctxid, uint64_t *eff_timeout)
 static void
 sigintr_handler(int sig)
 {
-	if (sig == SIGALRM) 
+	if (sig == SIGALRM)
 		time_to_quit = 1;
 	else
 		time_to_quit = 2;
@@ -579,7 +579,7 @@ finish_line:
 	return 0;
 }
 
-	
+
 static int
 measure_one_cpu(char **argv)
 {
@@ -662,7 +662,7 @@ measure_one_cpu(char **argv)
 	if (*argv) {
 		if ((pid = fork()) == -1) fatal_error("Cannot fork process\n");
 		if (pid == 0) exit(child(argv));
-	} 
+	}
 
 	/*
 	 * wait for the child to exec or be stopped
@@ -702,7 +702,7 @@ measure_one_cpu(char **argv)
 		}
 	} else {
 		ret = waitpid(pid, &status, 0);
-	} 
+	}
 	print_results(ctxid, &my_sets[0].set_timeout);
 
 	if (ctxid) close(ctxid);
@@ -726,7 +726,7 @@ mainloop(char **argv)
 
 	pfm_get_num_counters(&max_counters);
 
-	if (max_counters < 2 && options.opt_ovfl_switch) 
+	if (max_counters < 2 && options.opt_ovfl_switch)
 		fatal_error("not enough counter to get overflow switching to work\n");
 
 	allowed_counters = max_counters;
@@ -833,7 +833,7 @@ mainloop(char **argv)
 
 		inp.pfp_dfl_plm = options.opt_plm;
 
-		if (options.opt_is_system) 
+		if (options.opt_is_system)
 			inp.pfp_flags = PFMLIB_PFP_SYSTEMWIDE;
 
 		vbprintf("PMU programming for set %d\n", i);
@@ -865,7 +865,7 @@ mainloop(char **argv)
 
 			all_sets[i].set_flags       = PFM_SETFL_OVFL_SWITCH;
 
-			/* 
+			/*
 			 * last counter contains our sampling counter
 			 *
 			 * the first overflow of our trigger counter does
@@ -943,7 +943,7 @@ generate_default_sets(void)
 	char *name;
 	unsigned int i;
 	int ret;
-	
+
 	ret = pfm_get_cycle_event(&events[0]);
 	if (ret != PFMLIB_SUCCESS)
 		fatal_error("cannot find cycle event\n");
@@ -1072,10 +1072,10 @@ main(int argc, char **argv)
 				if (options.session_timeout) fatal_error("too many timeouts\n");
 				if (*optarg == '\0') fatal_error("--session-timeout needs an argument\n");
 			  	long_val = strtoul(optarg,&endptr, 10);
-				if (*endptr != '\0') 
+				if (*endptr != '\0')
 					fatal_error("invalid number of seconds for timeout: %s\n", optarg);
 
-				if (long_val >= UINT_MAX) 
+				if (long_val >= UINT_MAX)
 					fatal_error("timeout is too big, must be < %u\n", UINT_MAX);
 
 				options.session_timeout = (unsigned int)long_val;
@@ -1099,7 +1099,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (optind == argc && options.opt_is_system == 0 && options.attach_pid == 0) 
+	if (optind == argc && options.opt_is_system == 0 && options.attach_pid == 0)
 		fatal_error("you need to specify a command to measure\n");
 
 

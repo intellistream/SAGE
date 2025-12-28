@@ -43,7 +43,7 @@ template<class A,class B>
 struct KernelPair{
     A first;
     B second;
-	
+
 	__device__
 	KernelPair(){}
 
@@ -52,7 +52,7 @@ struct KernelPair{
         return first < kp.first;
     }
 
-	
+
 	__device__
     bool operator >(KernelPair& kp) const{
         return first > kp.first;
@@ -182,7 +182,7 @@ static void warp_independent_search_kernel(value_t* d_data,value_t* d_query,idx_
 		}
 	}
 	__syncthreads();
-	
+
 	if(subtid == 0){
     	heap_size[cid] = 1;
 		topk_heap_size = 0;
@@ -256,7 +256,7 @@ static void warp_independent_search_kernel(value_t* d_data,value_t* d_query,idx_
 // #ifdef __ENABLE_MEASURE
 		auto stage1_end = clock64();
 		if(tid == 0)
-			atomicAdd(&measure->stage1,stage1_end - stage1_start);	
+			atomicAdd(&measure->stage1,stage1_end - stage1_start);
 		auto stage2_start = clock64();
 // #endif
 		for(int nq = 0;nq < N_MULTIQUERY;++nq){
@@ -313,7 +313,7 @@ static void warp_independent_search_kernel(value_t* d_data,value_t* d_query,idx_
 // #ifdef __ENABLE_MEASURE
 		auto stage2_end = clock64();
 		if(tid == 0)
-			atomicAdd(&measure->stage2,stage2_end - stage2_start);	
+			atomicAdd(&measure->stage2,stage2_end - stage2_start);
 		auto stage3_start = clock64();
 // #endif
 
@@ -347,7 +347,7 @@ static void warp_independent_search_kernel(value_t* d_data,value_t* d_query,idx_
 // #ifdef __ENABLE_MEASURE
 		auto stage3_end = clock64();
 		if(tid == 0)
-			atomicAdd(&measure->stage3,stage3_end - stage3_start);	
+			atomicAdd(&measure->stage3,stage3_end - stage3_start);
 // #endif
     }
 
@@ -377,7 +377,7 @@ public:
 		value_t* d_query;
 		idx_t* d_result;
 		idx_t* d_graph;
-		
+
 		cudaMalloc(&d_data,sizeof(value_t) * num * dim);
 		cudaMalloc(&d_graph,sizeof(idx_t) * (num << vertex_offset_shift));
 		cudaMemcpy(d_data,h_data,sizeof(value_t) * num * dim,cudaMemcpyHostToDevice);
@@ -406,7 +406,7 @@ public:
 
 		cudaMalloc(&d_query,sizeof(value_t) * queries.size() * dim);
 		cudaMalloc(&d_result,sizeof(idx_t) * queries.size() * annk);
-		
+
 		cudaMemcpy(d_query,h_query.get(),sizeof(value_t) * queries.size() * dim,cudaMemcpyHostToDevice);
 
 // #ifdef __ENABLE_MEASURE

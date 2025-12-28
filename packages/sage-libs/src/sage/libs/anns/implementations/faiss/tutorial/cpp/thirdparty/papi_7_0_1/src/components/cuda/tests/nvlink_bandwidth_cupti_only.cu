@@ -4,7 +4,7 @@
  * Sample to demonstrate use of NVlink CUPTI APIs
  * Note: this is nearly identical to the NVDIA provided version, which can be
  * found in $CUDAPATH/extras/CUPTI/sample/nvlink_bandwidth/nvlink_bandwidth.cu.
- * The differences are white space and the addition of 'timeDuration' to the 
+ * The differences are white space and the addition of 'timeDuration' to the
  * printMetricValue routine; some printf() and output text changes. -TonyC.
  *
  */
@@ -180,17 +180,17 @@ void readMetricValue(CUpti_EventGroup eventGroup, uint32_t numEvents,
 
     domainSize = sizeof(CUpti_EventDomainID);
 
-    CUPTI_CALL(cuptiEventGroupGetAttribute(eventGroup, 
-                                           CUPTI_EVENT_GROUP_ATTR_EVENT_DOMAIN_ID, 
-                                           &domainSize, 
+    CUPTI_CALL(cuptiEventGroupGetAttribute(eventGroup,
+                                           CUPTI_EVENT_GROUP_ATTR_EVENT_DOMAIN_ID,
+                                           &domainSize,
                                            (void *)&domainId));
 
     numTotalInstancesSize = sizeof(uint64_t);
 
-    CUPTI_CALL(cuptiDeviceGetEventDomainAttribute(dev, 
-                                              domainId, 
-                                              CUPTI_EVENT_DOMAIN_ATTR_TOTAL_INSTANCE_COUNT, 
-                                              &numTotalInstancesSize, 
+    CUPTI_CALL(cuptiDeviceGetEventDomainAttribute(dev,
+                                              domainId,
+                                              CUPTI_EVENT_DOMAIN_ATTR_TOTAL_INSTANCE_COUNT,
+                                              &numTotalInstancesSize,
                                               (void *)&numTotalInstances));
 
     printf("LINE %i, DeviceEventDomainAttribute numTotalInstances=%llu.\n", __LINE__, numTotalInstances);
@@ -209,12 +209,12 @@ void readMetricValue(CUpti_EventGroup eventGroup, uint32_t numEvents,
 
     aggrEventValueArraySize = sizeof(uint64_t) * numEvents;
 
-    CUPTI_CALL(cuptiEventGroupReadAllEvents(eventGroup, 
+    CUPTI_CALL(cuptiEventGroupReadAllEvents(eventGroup,
                                                 CUPTI_EVENT_READ_FLAG_NONE,
-                                                &bufferSizeBytes, 
-                                                eventValueArray, 
-                                                &arraySizeBytes, 
-                                                eventIdArray, 
+                                                &bufferSizeBytes,
+                                                eventValueArray,
+                                                &arraySizeBytes,
+                                                eventIdArray,
                                                 &numCountersRead));
 
     printf("LINE %i, numCountersRead=%d.\n", __LINE__, numCountersRead);
@@ -344,16 +344,16 @@ void testGpuToGpu(CUpti_EventGroup *eventGroup, CUdeviceptr *pDevBuffer0, CUdevi
 
     // Note the commented out cudaDeviceEnablePeerAccess() calls fail on peak;
     // the compute mode is set wrong and we don't have SUDO access to change it
-    // or allow these calls. 
-    
-    RUNTIME_API_CALL(cudaDeviceCanAccessPeer(&access, 0, 1)); 
+    // or allow these calls.
+
+    RUNTIME_API_CALL(cudaDeviceCanAccessPeer(&access, 0, 1));
     if (access) {
         printf("Device 0 can access Device 1.\n");
 //      RUNTIME_API_CALL(cudaSetDevice(0));
 //      RUNTIME_API_CALL(cudaDeviceEnablePeerAccess(1, 0));
-    } else { 
-        printf("Device 0 cannot access Device 1. GPU to GPU Test aborted.\n"); 
-        return; 
+    } else {
+        printf("Device 0 cannot access Device 1. GPU to GPU Test aborted.\n");
+        return;
     }
 
     RUNTIME_API_CALL(cudaDeviceCanAccessPeer(&access, 1, 0));
@@ -578,7 +578,7 @@ int main(int argc, char *argv[])
            for(i = 0; i < NUM_STREAMS; i++) {
                RUNTIME_API_CALL(cudaMalloc((void**)&pDevBuffer1[i], bufferSize));
            }
-           
+
            RUNTIME_API_CALL(cudaDeviceSynchronize());
            testGpuToGpu(eventGroup, pDevBuffer0, pDevBuffer1, pHostBuffer, bufferSize, cudaStreams, &timeDuration, numEventGroup);
            printf("Data transferred between Device 0 & Device 1 : %.3f MB\n", ((double) bufferSize) / (1<<20));

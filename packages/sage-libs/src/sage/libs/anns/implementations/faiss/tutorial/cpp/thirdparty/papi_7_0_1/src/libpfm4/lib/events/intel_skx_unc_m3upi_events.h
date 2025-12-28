@@ -3591,4 +3591,3 @@ static intel_x86_entry_t intel_skx_unc_m3_pe[]={
     .numasks= LIBPFM_ARRAY_SIZE(skx_unc_m3_vn1_no_credits),
   },
 };
-

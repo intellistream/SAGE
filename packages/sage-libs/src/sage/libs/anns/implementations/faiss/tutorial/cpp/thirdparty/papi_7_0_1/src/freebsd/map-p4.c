@@ -2,7 +2,7 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/* 
+/*
 * File:    map-p4.c
 * Author:  Harald Servat
 *          redcrash@gmail.com
@@ -14,15 +14,15 @@
 
 
 /****************************************************************************
- P4 SUBSTRATE 
- P4 SUBSTRATE 
+ P4 SUBSTRATE
+ P4 SUBSTRATE
  P4 SUBSTRATE (aka Pentium IV)
  P4 SUBSTRATE
  P4 SUBSTRATE
 ****************************************************************************/
 
 /*
-	NativeEvent_Value_P4Processor must match P4Processor_info 
+	NativeEvent_Value_P4Processor must match P4Processor_info
 */
 
 Native_Event_LabelDescription_t P4Processor_info[] =
@@ -89,4 +89,3 @@ Native_Event_LabelDescription_t P4Processor_info[] =
 	{ "p4-bsq-cache-reference,mask=+rd-3rdl-hits,+rd-3rdl-hite,+rd-3rdl-hitm", "Count 3rd level cache hits." },
 	{ NULL, NULL }
 };
-

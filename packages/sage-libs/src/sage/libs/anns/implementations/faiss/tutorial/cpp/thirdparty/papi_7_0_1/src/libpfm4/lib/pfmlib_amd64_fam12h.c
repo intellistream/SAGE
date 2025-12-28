@@ -58,4 +58,3 @@ pfmlib_pmu_t amd64_fam12h_##n##_support={			\
 }
 
 DEFINE_FAM12H_REV(Llano, llano, AMD64_FAM12H, PFM_PMU_AMD64_FAM12H_LLANO);
-

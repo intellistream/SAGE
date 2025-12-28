@@ -453,7 +453,7 @@ main(int argc, char **argv)
 	ret = pfm_initialize();
 	if (ret != PFM_SUCCESS)
 		errx(1, "libpfm initialization failed: %s\n", pfm_strerror(ret));
-	
+
 	measure();
 
 	/* free libpfm resources cleanly */

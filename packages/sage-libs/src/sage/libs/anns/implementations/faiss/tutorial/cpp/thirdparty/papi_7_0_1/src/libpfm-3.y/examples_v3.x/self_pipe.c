@@ -92,13 +92,13 @@ do_child(int fr, int fw)
 	ssize_t ret;
 
 	for(;;) {
-		ret = read(fr, &c, 1);	
+		ret = read(fr, &c, 1);
 		if (ret < 0)
 			break;
 		ret = write(fw, "c", 1);
 		if (ret < 0)
 			break;
-		
+
 	}
 	printf("child exited\n");
 	exit(0);
@@ -160,7 +160,7 @@ main(int argc, char **argv)
 
 	/*
  	 * Pin to CPU0, inherited by child process. That will enforce
- 	 * the ping-pionging and thus stress the PMU context switch 
+ 	 * the ping-pionging and thus stress the PMU context switch
  	 * which is what we want
  	 */
 	ret = pin_cpu(getpid(), which_cpu);
@@ -312,7 +312,7 @@ main(int argc, char **argv)
 	 */
 	while(!quit) {
 		nbytes = write(pr[1], "c", 1);
-		nbytes = read(pw[0], &c, 1);	
+		nbytes = read(pw[0], &c, 1);
 	}
 	(void)nbytes;
 

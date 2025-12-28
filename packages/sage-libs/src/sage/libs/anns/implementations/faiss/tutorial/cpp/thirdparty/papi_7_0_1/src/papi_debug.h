@@ -1,7 +1,7 @@
 /****************************/
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
-/** 
+/**
 * @file    papi_debug.h
 * @author  Philip Mucci
 *          mucci@cs.utk.edu
@@ -164,7 +164,7 @@ _INTDBG( char *format, ... )
 } while(0); _INTDBG
 #else
 #define INTDBG _INTDBG
-#endif 
+#endif
 
 static void
 _THRDBG( char *format, ... )

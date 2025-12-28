@@ -18,7 +18,7 @@ it is totally independent of that interface and could as well be used on other
 operating systems. It is important to realize that the library does not make the
 actual kernel calls to program the PMU, it simply helps applications figure out
 which PMU registers to use to measure certain events or access certain advanced
-PMU features. 
+PMU features.
 
 The library logically divides PMU registers into two categories. The
 performance monitoring data registers (PMD) are used to collect results, e.g.,
@@ -45,10 +45,10 @@ model-specific layer which gives access to the model-specific features.
 For instance, on Itanium, applications can use the library to setup the
 registers for the Branch Trace Buffer.  Model-specific interfaces have the
 abbreviated PMU model name in their names. For instance,
-\fBpfm_ita2_get_event_umask()\fR is an Itanium2 (ita2) specific function. 
+\fBpfm_ita2_get_event_umask()\fR is an Itanium2 (ita2) specific function.
 
 When the library is initialized, it automatically probes the host CPU and
-enables the right set of interfaces. 
+enables the right set of interfaces.
 
 The common interface is defined in the \fBpfmlib.h\fR header file.
 Model-specific interfaces are defined in model-specific header files.

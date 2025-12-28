@@ -2,27 +2,27 @@
 .ad l
 .nh
 .SH NAME
-PAPI_enum_dev_type \- 
+PAPI_enum_dev_type \-
 .PP
-returns handle of next device type  
+returns handle of next device type
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIENOCMP\fP component does not exist 
+\fIENOCMP\fP component does not exist
 .br
-\fIEINVAL\fP end of device type list 
+\fIEINVAL\fP end of device type list
 .RE
 .PP
 \fBParameters:\fP
 .RS 4
-\fIenum_modifier\fP device type modifier, used to filter out enumerated device types 
+\fIenum_modifier\fP device type modifier, used to filter out enumerated device types
 .RE
 .PP
 \fBExample:\fP
@@ -53,13 +53,13 @@ while (PAPI_OK == PAPI_enum_dev_type(enum_modifier, &handle)) {
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_get_dev_type_attr\fP 
+\fBPAPI_get_dev_type_attr\fP
 .PP
-\fBPAPI_get_dev_attr\fP 
+\fBPAPI_get_dev_attr\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_event_name_to_code \- 
+PAPI_event_name_to_code \-
 .PP
-Convert a name to a numeric hardware event code\&.  
+Convert a name to a numeric hardware event code\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 int \fBPAPI_event_name_to_code( const char * EventName, int * EventCode )\fP;
 .RE
@@ -24,18 +24,18 @@ int \fBPAPI_event_name_to_code( const char * EventName, int * EventCode )\fP;
 .PP
 \fBParameters:\fP
 .RS 4
-\fI*EventCode\fP The numeric code for the event\&. 
+\fI*EventCode\fP The numeric code for the event\&.
 .br
 \fI*EventName\fP A string containing the event name as listed in PAPI_presets or discussed in PAPI_native\&.
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&. 
+\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.
 .br
-\fIPAPI_ENOTPRESET\fP The hardware event specified is not a valid PAPI preset\&. 
+\fIPAPI_ENOTPRESET\fP The hardware event specified is not a valid PAPI preset\&.
 .br
-\fIPAPI_ENOINIT\fP The PAPI library has not been initialized\&. 
+\fIPAPI_ENOINIT\fP The PAPI library has not been initialized\&.
 .br
 \fIPAPI_ENOEVNT\fP The hardware event is not available on the underlying hardware\&.
 .RE
@@ -62,25 +62,25 @@ handle_error( 1 );
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_event_code_to_name\fP 
+\fBPAPI_event_code_to_name\fP
 .PP
-\fBPAPI_remove_event\fP 
+\fBPAPI_remove_event\fP
 .PP
-\fBPAPI_get_event_info\fP 
+\fBPAPI_get_event_info\fP
 .PP
-\fBPAPI_enum_event\fP 
+\fBPAPI_enum_event\fP
 .PP
-\fBPAPI_add_event\fP 
+\fBPAPI_add_event\fP
 .PP
-\fBPAPI_add_named_event\fP 
+\fBPAPI_add_named_event\fP
 .PP
-PAPI_presets 
+PAPI_presets
 .PP
-PAPI_native 
+PAPI_native
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

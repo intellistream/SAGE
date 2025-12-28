@@ -182,12 +182,12 @@ static pme_coreduo_entry_t coreduo_pe[]={
   { .pme_code = 0x13,
 	.pme_name = "DIV",
 	.pme_desc = "Divide operations (a speculative count, including FP and integer multiplies). ",
-	.pme_flags = PFMLIB_COREDUO_PMC1   
+	.pme_flags = PFMLIB_COREDUO_PMC1
   },
   { .pme_code = 0x14,
 	.pme_name = "CYCLES_DIV_BUSY",
 	.pme_desc = "Cycles the divider is busy ",
-	.pme_flags = PFMLIB_COREDUO_PMC0 
+	.pme_flags = PFMLIB_COREDUO_PMC0
   },
   { .pme_code = 0x21,
 	.pme_name = "L2_ADS",
@@ -339,7 +339,7 @@ static pme_coreduo_entry_t coreduo_pe[]={
 		.pme_ucode = 0xC0 | (1<<10) /* Edge detect pin (Figure 18-13) */
 	  }
 	},
-	.pme_numasks = 2 
+	.pme_numasks = 2
   },
   {
 	.pme_name = "CPU_CLK_UNHALTED",
@@ -501,7 +501,7 @@ static pme_coreduo_entry_t coreduo_pe[]={
 	  INTEL_COREDUO_AGENT_UMASKS
 	},
 	.pme_numasks = 4
- 
+
   },
   { .pme_code = 0x69,
 	.pme_flags = PFMLIB_COREDUO_CSPEC,

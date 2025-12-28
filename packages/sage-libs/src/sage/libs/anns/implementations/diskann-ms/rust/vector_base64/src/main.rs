@@ -79,4 +79,3 @@ fn print_usage() {
         "Itemcount is the number of items to convert. Expand to dimension if provided is smaller"
     );
 }
-

@@ -8,7 +8,7 @@ concurrency:
 
 on:
   pull_request:
-    branches: [ dev, release, actionsTest ]
+    branches: [dev, release, actionsTest]
 
 permissions: read-all
 
@@ -174,143 +174,143 @@ jobs:
   gcc-8-make:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: gcc-8 build
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: gcc-8 build
         # See https://askubuntu.com/a/1428822
-        run: |
-          echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list
-          sudo apt-get -qqq update
-          make gcc8install
-          CC=gcc-8 CFLAGS="-Werror" make -j all
+      run: |
+        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list
+        sudo apt-get -qqq update
+        make gcc8install
+        CC=gcc-8 CFLAGS="-Werror" make -j all
 
   make-external-compressors:
     strategy:
       matrix:
         include:
-          - name: "no external compressors"
-            flags: "HAVE_ZLIB=0 HAVE_LZ4=0 HAVE_LZMA=0"
-          - name: "only zlib"
-            flags: "HAVE_ZLIB=1 HAVE_LZ4=0 HAVE_LZMA=0"
-          - name: "only lz4"
-            flags: "HAVE_ZLIB=0 HAVE_LZ4=1 HAVE_LZMA=0"
-          - name: "only lzma"
-            flags: "HAVE_ZLIB=0 HAVE_LZ4=0 HAVE_LZMA=1"
+        - name: "no external compressors"
+          flags: "HAVE_ZLIB=0 HAVE_LZ4=0 HAVE_LZMA=0"
+        - name: "only zlib"
+          flags: "HAVE_ZLIB=1 HAVE_LZ4=0 HAVE_LZMA=0"
+        - name: "only lz4"
+          flags: "HAVE_ZLIB=0 HAVE_LZ4=1 HAVE_LZMA=0"
+        - name: "only lzma"
+          flags: "HAVE_ZLIB=0 HAVE_LZ4=0 HAVE_LZMA=1"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: Build with ${{matrix.name}}
-        run: ${{matrix.flags}} make zstd
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: Build with ${{matrix.name}}
+      run: ${{matrix.flags}} make zstd
 
 
   implicit-fall-through:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: -Wimplicit-fallthrough build
-        run: |
-          make clean
-          CC=gcc MOREFLAGS="-Werror -Wimplicit-fallthrough=2 -O0" make -C lib -j libzstd.a ZSTD_LEGACY_SUPPORT=0
-          make clean
-          CC=clang MOREFLAGS="-Werror -Wimplicit-fallthrough -O0" make -C lib -j libzstd.a ZSTD_LEGACY_SUPPORT=0
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: -Wimplicit-fallthrough build
+      run: |
+        make clean
+        CC=gcc MOREFLAGS="-Werror -Wimplicit-fallthrough=2 -O0" make -C lib -j libzstd.a ZSTD_LEGACY_SUPPORT=0
+        make clean
+        CC=clang MOREFLAGS="-Werror -Wimplicit-fallthrough -O0" make -C lib -j libzstd.a ZSTD_LEGACY_SUPPORT=0
 
   meson-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: Install packages
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install build-essential python3-pip ninja-build liblz4-dev
-          pip install --pre meson
-      - name: Build with Meson
-        run: |
-          meson setup \
-            --buildtype=debugoptimized \
-            -Db_lundef=false \
-            -Dauto_features=enabled \
-            -Dbin_programs=true \
-            -Dbin_tests=true \
-            -Dbin_contrib=true \
-            -Ddefault_library=both \
-            build/meson builddir
-          ninja -C builddir/
-          meson test -C builddir/ --print-errorlogs
-          meson install -C builddir --destdir staging/
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install build-essential python3-pip ninja-build liblz4-dev
+        pip install --pre meson
+    - name: Build with Meson
+      run: |
+        meson setup \
+          --buildtype=debugoptimized \
+          -Db_lundef=false \
+          -Dauto_features=enabled \
+          -Dbin_programs=true \
+          -Dbin_tests=true \
+          -Dbin_contrib=true \
+          -Ddefault_library=both \
+          build/meson builddir
+        ninja -C builddir/
+        meson test -C builddir/ --print-errorlogs
+        meson install -C builddir --destdir staging/
 
   meson-mingw-cross-compilation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: Install packages
-        run: |
-          sudo apt-get -qqq update
-          sudo apt-get -y install build-essential python3-pip ninja-build {gcc,g++}-mingw-w64-x86-64
-          pip install --pre meson
-      - name: Build with Meson
-        run: |
-          cat > cross.ini <<EOF
-          [binaries]
-          ar = 'x86_64-w64-mingw32-ar'
-          c = 'x86_64-w64-mingw32-gcc'
-          cpp = 'x86_64-w64-mingw32-g++'
-          ld = 'x86_64-w64-mingw32-ld'
-          objcopy = 'x86_64-w64-mingw32-objcopy'
-          objdump = 'x86_64-w64-mingw32-objdump'
-          strip = 'x86_64-w64-mingw32-strip'
-          windres = 'x86_64-w64-mingw32-windres'
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: Install packages
+      run: |
+        sudo apt-get -qqq update
+        sudo apt-get -y install build-essential python3-pip ninja-build {gcc,g++}-mingw-w64-x86-64
+        pip install --pre meson
+    - name: Build with Meson
+      run: |
+        cat > cross.ini <<EOF
+        [binaries]
+        ar = 'x86_64-w64-mingw32-ar'
+        c = 'x86_64-w64-mingw32-gcc'
+        cpp = 'x86_64-w64-mingw32-g++'
+        ld = 'x86_64-w64-mingw32-ld'
+        objcopy = 'x86_64-w64-mingw32-objcopy'
+        objdump = 'x86_64-w64-mingw32-objdump'
+        strip = 'x86_64-w64-mingw32-strip'
+        windres = 'x86_64-w64-mingw32-windres'
 
-          [host_machine]
-          system = 'windows'
-          endian = 'little'
-          cpu_family = 'x86_64'
-          cpu = 'x86_64'
-          EOF
+        [host_machine]
+        system = 'windows'
+        endian = 'little'
+        cpu_family = 'x86_64'
+        cpu = 'x86_64'
+        EOF
 
-          # pzstd doesn't build; skip -Dbin_contrib=true
-          meson setup \
-            --buildtype=debugoptimized \
-            --cross-file=cross.ini \
-            -Db_lundef=false \
-            -Dbin_programs=true \
-            -Dbin_tests=true \
-            -Ddefault_library=both \
-            build/meson builddir
-          ninja -C builddir/
-          if grep -- -pthread builddir/meson-private/libzstd.pc; then
-            echo "Error: found stray pthread dependency"
-            exit 1
-          fi
+        # pzstd doesn't build; skip -Dbin_contrib=true
+        meson setup \
+          --buildtype=debugoptimized \
+          --cross-file=cross.ini \
+          -Db_lundef=false \
+          -Dbin_programs=true \
+          -Dbin_tests=true \
+          -Ddefault_library=both \
+          build/meson builddir
+        ninja -C builddir/
+        if grep -- -pthread builddir/meson-private/libzstd.pc; then
+          echo "Error: found stray pthread dependency"
+          exit 1
+        fi
 
   meson-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: Install packages
-        run: pip install --pre meson
-      - name: Configure with Meson
-        run: |
-          meson setup --vsenv build/meson/ builddir -Dbin_tests=true -Dbin_programs=true -Dbin_contrib=true
-      - name: Build with Meson
-        run: |
-          meson compile -C builddir/
-      - name: Test with Meson
-        run: |
-          meson test -C builddir/ --print-errorlogs
-      - name: Install with Meson
-        run: |
-          meson install -C builddir --destdir staging/
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: Install packages
+      run: pip install --pre meson
+    - name: Configure with Meson
+      run: |
+        meson setup --vsenv build/meson/ builddir -Dbin_tests=true -Dbin_programs=true -Dbin_contrib=true
+    - name: Build with Meson
+      run: |
+        meson compile -C builddir/
+    - name: Test with Meson
+      run: |
+        meson test -C builddir/ --print-errorlogs
+    - name: Install with Meson
+      run: |
+        meson install -C builddir --destdir staging/
 
   cmake-visual-2022:
     strategy:
       matrix:
         include:
-          - generator: "Visual Studio 17 2022"
-            flags: "-A x64"
-          - generator: "Visual Studio 17 2022"
-            flags: "-A Win32"
-          - generator: "MinGW Makefiles"
-          - generator: "Visual Studio 17 2022"
-            flags: "-T ClangCL"
+        - generator: "Visual Studio 17 2022"
+          flags: "-A x64"
+        - generator: "Visual Studio 17 2022"
+          flags: "-A Win32"
+        - generator: "MinGW Makefiles"
+        - generator: "Visual Studio 17 2022"
+          flags: "-T ClangCL"
     runs-on: windows-2022
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
@@ -330,15 +330,7 @@ jobs:
     strategy:
       fail-fast: false  # 'false' means Don't stop matrix workflows even if some matrix failed.
       matrix:
-        include: [
-          { name: "VS 2022 x64 Debug", platform: x64, configuration: Debug, toolset: v143, runner: "windows-2022", arch: "" },
-          { name: "VS 2022 Win32 Debug", platform: Win32, configuration: Debug, toolset: v143, runner: "windows-2022", arch: "" },
-          { name: "VS 2022 x64 Release", platform: x64, configuration: Release, toolset: v143, runner: "windows-2022", arch: ""},
-          { name: "VS 2022 Win32 Release", platform: Win32, configuration: Release, toolset: v143, runner: "windows-2022", arch: ""},
-          { name: "VS 2019 x64 Release", platform: Win32, configuration: Release, toolset: v142, runner: "windows-2019", arch: ""},
-          { name: "VS 2019 Win32 Release", platform: x64, configuration: Release, toolset: v142, runner: "windows-2019", arch: ""},
-          { name: "VS 2022 x64 Release AVX2", platform: x64, configuration: Release, toolset: v143, runner: "windows-2022", arch: "AdvancedVectorExtensions2" },
-        ]
+        include: [{name: "VS 2022 x64 Debug", platform: x64, configuration: Debug, toolset: v143, runner: "windows-2022", arch: ""}, {name: "VS 2022 Win32 Debug", platform: Win32, configuration: Debug, toolset: v143, runner: "windows-2022", arch: ""}, {name: "VS 2022 x64 Release", platform: x64, configuration: Release, toolset: v143, runner: "windows-2022", arch: ""}, {name: "VS 2022 Win32 Release", platform: Win32, configuration: Release, toolset: v143, runner: "windows-2022", arch: ""}, {name: "VS 2019 x64 Release", platform: Win32, configuration: Release, toolset: v142, runner: "windows-2019", arch: ""}, {name: "VS 2019 Win32 Release", platform: x64, configuration: Release, toolset: v142, runner: "windows-2019", arch: ""}, {name: "VS 2022 x64 Release AVX2", platform: x64, configuration: Release, toolset: v143, runner: "windows-2022", arch: "AdvancedVectorExtensions2"}]
     runs-on: ${{matrix.runner}}
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
@@ -418,17 +410,7 @@ jobs:
     strategy:
       fail-fast: false  # 'false' means Don't stop matrix workflows even if some matrix failed.
       matrix:
-        include: [
-          { name: ARM,      xcc_pkg: gcc-arm-linux-gnueabi,     xcc: arm-linux-gnueabi-gcc,     xemu_pkg: qemu-system-arm,    xemu: qemu-arm-static     },
-          { name: ARM64,    xcc_pkg: gcc-aarch64-linux-gnu,     xcc: aarch64-linux-gnu-gcc,     xemu_pkg: qemu-system-arm,    xemu: qemu-aarch64-static },
-          { name: PPC,      xcc_pkg: gcc-powerpc-linux-gnu,     xcc: powerpc-linux-gnu-gcc,     xemu_pkg: qemu-system-ppc,    xemu: qemu-ppc-static     },
-          { name: PPC64LE,  xcc_pkg: gcc-powerpc64le-linux-gnu, xcc: powerpc64le-linux-gnu-gcc, xemu_pkg: qemu-system-ppc,    xemu: qemu-ppc64le-static },
-          { name: S390X,    xcc_pkg: gcc-s390x-linux-gnu,       xcc: s390x-linux-gnu-gcc,       xemu_pkg: qemu-system-s390x,  xemu: qemu-s390x-static   },
-          { name: MIPS,     xcc_pkg: gcc-mips-linux-gnu,        xcc: mips-linux-gnu-gcc,        xemu_pkg: qemu-system-mips,   xemu: qemu-mips-static    },
-          { name: RISC-V,   xcc_pkg: gcc-riscv64-linux-gnu,     xcc: riscv64-linux-gnu-gcc,     xemu_pkg: qemu-system-riscv64,xemu: qemu-riscv64-static },
-          { name: M68K,     xcc_pkg: gcc-m68k-linux-gnu,        xcc: m68k-linux-gnu-gcc,        xemu_pkg: qemu-system-m68k,   xemu: qemu-m68k-static    },
-          { name: SPARC,    xcc_pkg: gcc-sparc64-linux-gnu,     xcc: sparc64-linux-gnu-gcc,     xemu_pkg: qemu-system-sparc,  xemu: qemu-sparc64-static },
-        ]
+        include: [{name: ARM, xcc_pkg: gcc-arm-linux-gnueabi, xcc: arm-linux-gnueabi-gcc, xemu_pkg: qemu-system-arm, xemu: qemu-arm-static}, {name: ARM64, xcc_pkg: gcc-aarch64-linux-gnu, xcc: aarch64-linux-gnu-gcc, xemu_pkg: qemu-system-arm, xemu: qemu-aarch64-static}, {name: PPC, xcc_pkg: gcc-powerpc-linux-gnu, xcc: powerpc-linux-gnu-gcc, xemu_pkg: qemu-system-ppc, xemu: qemu-ppc-static}, {name: PPC64LE, xcc_pkg: gcc-powerpc64le-linux-gnu, xcc: powerpc64le-linux-gnu-gcc, xemu_pkg: qemu-system-ppc, xemu: qemu-ppc64le-static}, {name: S390X, xcc_pkg: gcc-s390x-linux-gnu, xcc: s390x-linux-gnu-gcc, xemu_pkg: qemu-system-s390x, xemu: qemu-s390x-static}, {name: MIPS, xcc_pkg: gcc-mips-linux-gnu, xcc: mips-linux-gnu-gcc, xemu_pkg: qemu-system-mips, xemu: qemu-mips-static}, {name: RISC-V, xcc_pkg: gcc-riscv64-linux-gnu, xcc: riscv64-linux-gnu-gcc, xemu_pkg: qemu-system-riscv64, xemu: qemu-riscv64-static}, {name: M68K, xcc_pkg: gcc-m68k-linux-gnu, xcc: m68k-linux-gnu-gcc, xemu_pkg: qemu-system-m68k, xemu: qemu-m68k-static}, {name: SPARC, xcc_pkg: gcc-sparc64-linux-gnu, xcc: sparc64-linux-gnu-gcc, xemu_pkg: qemu-system-sparc, xemu: qemu-sparc64-static}]
     env:                        # Set environment variables
       XCC: ${{ matrix.xcc }}
       XEMU: ${{ matrix.xemu }}
@@ -489,11 +471,7 @@ jobs:
     strategy:
       fail-fast: false  # 'false' means Don't stop matrix workflows even if some matrix failed.
       matrix:
-        include: [
-          { compiler: gcc, msystem: MINGW32, cflags: "-Werror"},
-          { compiler: gcc, msystem: MINGW64, cflags: "-Werror"},
-          { compiler: clang, msystem: MINGW64, cflags: "--target=x86_64-w64-mingw32 -Werror -Wconversion -Wno-sign-conversion -Wno-unused-command-line-argument"},
-        ]
+        include: [{compiler: gcc, msystem: MINGW32, cflags: "-Werror"}, {compiler: gcc, msystem: MINGW64, cflags: "-Werror"}, {compiler: clang, msystem: MINGW64, cflags: "--target=x86_64-w64-mingw32 -Werror -Wconversion -Wno-sign-conversion -Wno-unused-command-line-argument"}]
     defaults:
       run:
         shell: msys2 {0}
@@ -587,17 +565,17 @@ jobs:
     container:
       image: debian:testing
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # tag=v4.1.1
-      - name: Install dependencies
-        run: |
-          apt -y update
-          apt -y install --no-install-recommends gcc libc6-dev make pkg-config
-      - name: Build and install
-        run: make -C lib install
-      - name: Test pkg-config
-        run: |
-          cc -Wall -Wextra -Wpedantic -Werror -o simple examples/simple_compression.c $(pkg-config --cflags --libs libzstd)
-          ./simple LICENSE
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11   # tag=v4.1.1
+    - name: Install dependencies
+      run: |
+        apt -y update
+        apt -y install --no-install-recommends gcc libc6-dev make pkg-config
+    - name: Build and install
+      run: make -C lib install
+    - name: Test pkg-config
+      run: |
+        cc -Wall -Wextra -Wpedantic -Werror -o simple examples/simple_compression.c $(pkg-config --cflags --libs libzstd)
+        ./simple LICENSE
 
   versions-compatibility:
     runs-on: ubuntu-latest

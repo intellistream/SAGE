@@ -71,9 +71,9 @@
  * Description of the PMC registers mappings:
  *
  * 0  -> PMC0  -> PERFEVTSEL0
- * 1  -> PMC1  -> PERFEVTSEL1 
- * 2  -> PMC2  -> PERFEVTSEL2 
- * 3  -> PMC3  -> PERFEVTSEL3 
+ * 1  -> PMC1  -> PERFEVTSEL1
+ * 2  -> PMC2  -> PERFEVTSEL2
+ * 3  -> PMC3  -> PERFEVTSEL3
  * 16 -> PMC16 -> FIXED_CTR_CTRL
  * 17 -> PMC17 -> PEBS_ENABLED
  * 18 -> PMC18 -> PEBS_LD_LATENCY_THRESHOLD
@@ -190,7 +190,7 @@ pfm_nhm_midx2uidx(unsigned int ev, unsigned int midx)
 	for (i=0; i < ne->pme_numasks; i++) {
 		model = ne->pme_umasks[i].pme_umodel;
 		if (!model || model == cpu_model) {
-			if (midx == num) 
+			if (midx == num)
 				return i;
 			num++;
 		}
@@ -312,7 +312,7 @@ fixup_mem_uncore_retired(void)
 	for(i=0; i < PME_COREI7_EVENT_COUNT; i++) {
 		if (corei7_pe[i].pme_code != 0xf)
 			continue;
-		
+
 		/*
  		 * assume model46 umasks are at the end
  		 */
@@ -400,7 +400,7 @@ pfm_nhm_init(void)
 	default:
 		return PFMLIB_ERR_NOTSUPP;
 	}
-	
+
 	supp->pme_count = num_pe + num_unc_pe;
 	supp->num_cnt = NHM_NUM_GEN_COUNTERS
 		      + NHM_NUM_FIXED_COUNTERS
@@ -493,7 +493,7 @@ pfm_nhm_check_cmask(pfmlib_event_t *e, pme_nhm_entry_t *ne, pfmlib_nhm_counter_t
 	}
 	return 0;
 }
- 
+
 /*
  * IMPORTANT: the interface guarantees that pfp_pmds[] elements are returned in the order the events
  *	      were submitted.
@@ -733,7 +733,7 @@ pfm_nhm_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_nhm_input_param_t *p
 	fixed_ctr = pfm_regmask_isset(r_pmcs, 16) ? 0 : 0x7;
 	if (fixed_ctr) {
 		for(i=0; i < n; i++) {
-			/* 
+			/*
 			 * Nehalem fixed counters (as for architected perfmon v3)
 			 * does support anythr filter
 			 */
@@ -1032,7 +1032,7 @@ pfm_nhm_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_nhm_input_param_t *p
 			}
 			if (!reg.usel_edge)
 				reg.usel_edge = cntrs[i].flags & PFM_NHM_SEL_EDGE ? 1 : 0;
-			
+
 			if (!reg.usel_inv)
 				reg.usel_inv = cntrs[i].flags & PFM_NHM_SEL_INV ? 1 : 0;
 
@@ -1610,7 +1610,7 @@ int pfm_nhm_data_src_desc(unsigned int val, char **desc)
 	if (!*desc)
 		return PFMLIB_ERR_NOMEM;
 
-	return PFMLIB_SUCCESS;	
+	return PFMLIB_SUCCESS;
 }
 
 pfm_pmu_support_t intel_nhm_support={

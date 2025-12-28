@@ -197,7 +197,7 @@ SearchService::RunInteractiveMode()
                     {
                         const auto& metadata = result.m_results.GetMetadata(idx);
                         std::cout << " MetaData: " << std::string((char*)metadata.Data(), metadata.Length());
-                    } 
+                    }
                     std::cout << std::endl;
                     ++idx;
                 }
@@ -265,7 +265,7 @@ SearchService::SearchHanlderCallback(std::shared_ptr<SearchExecutionContext> p_e
         remoteResult.m_allIndexResults.swap(p_exeContext->GetResults());
         ret.AllocateBuffer(static_cast<std::uint32_t>(remoteResult.EstimateBufferSize()));
         auto bodyEnd = remoteResult.Write(ret.Body());
-        
+
         ret.Header().m_bodyLength = static_cast<std::uint32_t>(bodyEnd - ret.Body());
         ret.Header().WriteBuffer(ret.HeaderBuffer());
     }

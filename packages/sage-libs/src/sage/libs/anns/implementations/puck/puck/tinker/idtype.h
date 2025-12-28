@@ -46,4 +46,3 @@ const size_t LABEL_SIZE      = 0;
 const size_t DATALENGTH_SIZE = 0;
 
 }   // namespace similarity
-

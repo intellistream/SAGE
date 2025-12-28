@@ -20,7 +20,6 @@ import sys
 import tempfile
 import typing
 
-
 ZSTD_SYMLINKS = [
     "zstd",
     "zstdmt",
@@ -82,6 +81,7 @@ def exclude_file(filename: str) -> bool:
             return True
     return False
 
+
 def read_file(filename: str) -> bytes:
     """Reads the file :filename: and returns the contents as bytes."""
     with open(filename, "rb") as f:
@@ -98,11 +98,13 @@ def diff(a: bytes, b: bytes) -> str:
             fb.write(b)
             fb.flush()
 
-            diff_bytes = subprocess.run(["diff", fa.name, fb.name], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+            diff_bytes = subprocess.run(
+                ["diff", fa.name, fb.name], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            ).stdout
             return diff_bytes.decode("utf8")
 
 
-def pop_line(data: bytes) -> typing.Tuple[typing.Optional[bytes], bytes]:
+def pop_line(data: bytes) -> tuple[typing.Optional[bytes], bytes]:
     """
     Pop the first line from :data: and returns the first line and the remainder
     of the data as a tuple. If :data: is empty, returns :(None, data):. Otherwise
@@ -111,13 +113,13 @@ def pop_line(data: bytes) -> typing.Tuple[typing.Optional[bytes], bytes]:
     """
     NEWLINE = b"\n"
 
-    if data == b'':
+    if data == b"":
         return (None, data)
 
     parts = data.split(NEWLINE, maxsplit=1)
     line = parts[0] + NEWLINE
     if len(parts) == 1:
-        return line, b''
+        return line, b""
 
     return line, parts[1]
 
@@ -134,7 +136,7 @@ def glob_diff(actual: bytes, expect: bytes) -> bytes:
     Returns None if the :actual: content matches the expected glob :expect:,
     otherwise returns the diff bytes.
     """
-    diff = b''
+    diff = b""
     actual_line, actual = pop_line(actual)
     expect_line, expect = pop_line(expect)
     while True:
@@ -145,7 +147,7 @@ def glob_diff(actual: bytes, expect: bytes) -> bytes:
             expect_line, expect = pop_line(expect)
 
         if expect_line is None and actual_line is None:
-            if diff == b'':
+            if diff == b"":
                 return None
             return diff
         elif expect_line is None:
@@ -166,10 +168,10 @@ def glob_diff(actual: bytes, expect: bytes) -> bytes:
         assert expect_line is not None
         assert actual_line is not None
 
-        if expect_line == b'...\n':
+        if expect_line == b"...\n":
             next_expect_line, expect = pop_line(expect)
             if next_expect_line is None:
-                if diff == b'':
+                if diff == b"":
                     return None
                 return diff
             while not glob_line_matches(actual_line, next_expect_line):
@@ -183,9 +185,9 @@ def glob_diff(actual: bytes, expect: bytes) -> bytes:
             continue
 
         if not glob_line_matches(actual_line, expect_line):
-            diff += b'---\n'
-            diff += b'< ' + expect_line
-            diff += b'> ' + actual_line
+            diff += b"---\n"
+            diff += b"< " + expect_line
+            diff += b"> " + actual_line
 
         actual_line, actual = pop_line(actual)
         expect_line, expect = pop_line(expect)
@@ -193,9 +195,10 @@ def glob_diff(actual: bytes, expect: bytes) -> bytes:
 
 class Options:
     """Options configuring how to run a :TestCase:."""
+
     def __init__(
         self,
-        env: typing.Dict[str, str],
+        env: dict[str, str],
         timeout: typing.Optional[int],
         verbose: bool,
         preserve: bool,
@@ -230,6 +233,7 @@ class TestCase:
 
     All other methods, prefixed with _, are private helper functions.
     """
+
     def __init__(self, test_filename: str, options: Options) -> None:
         """
         Initialize the :TestCase: for the test located in :test_filename:
@@ -285,7 +289,7 @@ class TestCase:
         if self._opts.verbose:
             print(file=sys.stdout, *args, **kwargs)
 
-    def _test_environment(self) -> typing.Dict[str, str]:
+    def _test_environment(self) -> dict[str, str]:
         """
         Returns the environment to be used for the
         test subprocess.
@@ -309,12 +313,7 @@ class TestCase:
         cwd = self._scratch_dir
         env = self._test_environment()
         self._test_process = subprocess.Popen(
-            args=args,
-            stdin=stdin,
-            cwd=cwd,
-            env=env,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
+            args=args, stdin=stdin, cwd=cwd, env=env, stderr=subprocess.PIPE, stdout=subprocess.PIPE
         )
 
     def _join_test(self) -> None:
@@ -341,7 +340,9 @@ class TestCase:
             self._message[check_name] = f"{out_name} matches!"
         else:
             self._success[check_name] = False
-            self._message[check_name] = f"{out_name} does not match!\n> diff expected actual\n{diff(expected, actual)}"
+            self._message[check_name] = (
+                f"{out_name} does not match!\n> diff expected actual\n{diff(expected, actual)}"
+            )
 
             if self._opts.set_exact_output:
                 with open(exact_name, "wb") as f:
@@ -359,9 +360,11 @@ class TestCase:
             self._success[check_name] = True
             self._message[check_name] = f"{out_name} matches!"
         else:
-            utf8_diff = diff.decode('utf8')
+            utf8_diff = diff.decode("utf8")
             self._success[check_name] = False
-            self._message[check_name] = f"{out_name} does not match!\n> diff expected actual\n{utf8_diff}"
+            self._message[check_name] = (
+                f"{out_name} does not match!\n> diff expected actual\n{utf8_diff}"
+            )
 
     def _check_output(self, out_name: str) -> None:
         """
@@ -377,7 +380,7 @@ class TestCase:
             # Save the output to the scratch directory
             actual_name = os.path.join(self._scratch_dir, f"{out_name}")
             with open(actual_name, "wb") as f:
-                    f.write(self._output[out_name])
+                f.write(self._output[out_name])
 
         exact_name = f"{self._test_file}.{out_name}.exact"
         glob_name = f"{self._test_file}.{out_name}.glob"
@@ -423,7 +426,9 @@ class TestCase:
             self._message["check_exit"] = "Exit code matches!"
         else:
             self._success["check_exit"] = False
-            self._message["check_exit"] = f"Exit code mismatch! Expected {exit_code} but got {self._exit_code}"
+            self._message["check_exit"] = (
+                f"Exit code mismatch! Expected {exit_code} but got {self._exit_code}"
+            )
 
     def _analyze_results(self) -> None:
         """
@@ -451,6 +456,7 @@ class TestSuite:
 
     TODO: Make setup/teardown failure emit messages, not throw exceptions.
     """
+
     def __init__(self, test_directory: str, options: Options) -> None:
         self._opts = options
         self._test_dir = os.path.abspath(test_directory)
@@ -458,7 +464,7 @@ class TestSuite:
         assert not rel_test_dir.startswith(os.path.sep)
         self._scratch_dir = os.path.normpath(os.path.join(self._opts.scratch_dir, rel_test_dir))
 
-    def __enter__(self) -> 'TestSuite':
+    def __enter__(self) -> "TestSuite":
         self._setup_once()
         return self
 
@@ -539,7 +545,9 @@ class TestSuite:
             print(f"stdout:\n{e.stdout}")
             raise
 
-TestSuites = typing.Dict[str, typing.List[str]]
+
+TestSuites = dict[str, list[str]]
+
 
 def get_all_tests(options: Options) -> TestSuites:
     """
@@ -557,9 +565,7 @@ def get_all_tests(options: Options) -> TestSuites:
     return test_suites
 
 
-def resolve_listed_tests(
-    tests: typing.List[str], options: Options
-) -> TestSuites:
+def resolve_listed_tests(tests: list[str], options: Options) -> TestSuites:
     """
     Resolve the list of tests passed on the command line into their
     respective test suites. Tests can either be paths, or test names
@@ -579,6 +585,7 @@ def resolve_listed_tests(
         test_suites.setdefault(test_suite, []).append(test_case)
 
     return test_suites
+
 
 def run_tests(test_suites: TestSuites, options: Options) -> bool:
     """
@@ -617,6 +624,7 @@ def setup_zstd_symlink_dir(zstd_symlink_dir: str, zstd: str) -> None:
             os.remove(path)
         os.symlink(zstd, path)
 
+
 if __name__ == "__main__":
     CLI_TEST_DIR = os.path.dirname(sys.argv[0])
     REPO_DIR = os.path.join(CLI_TEST_DIR, "..", "..")
@@ -628,43 +636,46 @@ if __name__ == "__main__":
     DATAGEN_PATH = os.path.join(TESTS_DIR, "datagen")
 
     parser = argparse.ArgumentParser(
-        (
-            "Runs the zstd CLI tests. Exits nonzero on failure. Default arguments are\n"
-            "generally correct. Pass --preserve to preserve test output for debugging,\n"
-            "and --verbose to get verbose test output.\n"
-        )
+        "Runs the zstd CLI tests. Exits nonzero on failure. Default arguments are\n"
+        "generally correct. Pass --preserve to preserve test output for debugging,\n"
+        "and --verbose to get verbose test output.\n"
     )
     parser.add_argument(
         "--preserve",
         action="store_true",
-        help="Preserve the scratch directory TEST_DIR/scratch/ for debugging purposes."
+        help="Preserve the scratch directory TEST_DIR/scratch/ for debugging purposes.",
     )
     parser.add_argument("--verbose", action="store_true", help="Verbose test output.")
-    parser.add_argument("--timeout", default=200, type=int, help="Test case timeout in seconds. Set to 0 to disable timeouts.")
+    parser.add_argument(
+        "--timeout",
+        default=200,
+        type=int,
+        help="Test case timeout in seconds. Set to 0 to disable timeouts.",
+    )
     parser.add_argument(
         "--exec-prefix",
         default=None,
-        help="Sets the EXEC_PREFIX environment variable. Prefix to invocations of the zstd CLI."
+        help="Sets the EXEC_PREFIX environment variable. Prefix to invocations of the zstd CLI.",
     )
     parser.add_argument(
         "--zstd",
         default=ZSTD_PATH,
-        help="Sets the ZSTD_BIN environment variable. Path of the zstd CLI."
+        help="Sets the ZSTD_BIN environment variable. Path of the zstd CLI.",
     )
     parser.add_argument(
         "--zstdgrep",
         default=ZSTDGREP_PATH,
-        help="Sets the ZSTDGREP_BIN environment variable. Path of the zstdgrep CLI."
+        help="Sets the ZSTDGREP_BIN environment variable. Path of the zstdgrep CLI.",
     )
     parser.add_argument(
         "--zstdless",
         default=ZSTDLESS_PATH,
-        help="Sets the ZSTDLESS_BIN environment variable. Path of the zstdless CLI."
+        help="Sets the ZSTDLESS_BIN environment variable. Path of the zstdless CLI.",
     )
     parser.add_argument(
         "--datagen",
         default=DATAGEN_PATH,
-        help="Sets the DATAGEN_BIN environment variable. Path to the datagen CLI."
+        help="Sets the DATAGEN_BIN environment variable. Path to the datagen CLI.",
     )
     parser.add_argument(
         "--test-dir",
@@ -673,17 +684,17 @@ if __name__ == "__main__":
             "Runs the tests under this directory. "
             "Adds TEST_DIR/bin/ to path. "
             "Scratch directory located in TEST_DIR/scratch/."
-        )
+        ),
     )
     parser.add_argument(
         "--set-exact-output",
         action="store_true",
-        help="Set stderr.exact and stdout.exact for all failing tests, unless .ignore or .glob already exists"
+        help="Set stderr.exact and stdout.exact for all failing tests, unless .ignore or .glob already exists",
     )
     parser.add_argument(
         "tests",
         nargs="*",
-        help="Run only these test cases. Can either be paths or test names relative to TEST_DIR/"
+        help="Run only these test cases. Can either be paths or test names relative to TEST_DIR/",
     )
     args = parser.parse_args()
 

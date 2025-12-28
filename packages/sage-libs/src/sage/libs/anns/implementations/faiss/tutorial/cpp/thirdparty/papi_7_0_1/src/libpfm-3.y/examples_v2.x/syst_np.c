@@ -268,7 +268,7 @@ main(int argc, char **argv)
 		}
 	}
 	/*
-	 * stop monitoring. 
+	 * stop monitoring.
 	 * changed at the user level.
 	 */
 	if (pfm_stop(ctx_fd))

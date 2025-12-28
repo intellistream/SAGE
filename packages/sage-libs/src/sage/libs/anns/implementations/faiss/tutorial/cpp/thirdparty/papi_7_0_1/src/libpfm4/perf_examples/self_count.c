@@ -109,7 +109,7 @@ static inline int rdpmc(struct perf_event_mmap_page *hdr, uint64_t *value)
 /*
  * our test code (function cannot be made static otherwise it is optimized away)
  */
-unsigned long 
+unsigned long
 fib(unsigned long n)
 {
 	if (n == 0)

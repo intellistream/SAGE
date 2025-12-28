@@ -1,6 +1,5 @@
-import pytest
-
 import env  # noqa: F401
+import pytest
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
 

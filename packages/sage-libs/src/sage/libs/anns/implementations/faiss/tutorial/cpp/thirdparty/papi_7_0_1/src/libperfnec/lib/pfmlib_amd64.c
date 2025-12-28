@@ -458,8 +458,8 @@ pfm_amd64_dispatch_counters(pfmlib_input_param_t *inp, pfmlib_amd64_input_param_
 			ibsopctl.val = 0;
 			ibsopctl.reg.ibsopen = 1;
 
-			if (umask == 2 && amd64_revision < from_revision(PFMLIB_AMD64_FAM10H_REV_C)) {             
-                                DPRINT("IBSOP:UOPS available on Rev C and later processors\n");                    
+			if (umask == 2 && amd64_revision < from_revision(PFMLIB_AMD64_FAM10H_REV_C)) {
+                                DPRINT("IBSOP:UOPS available on Rev C and later processors\n");
                                 return PFMLIB_ERR_BADHOST;
                         }
 
@@ -631,7 +631,7 @@ static int pfm_amd64_dispatch_ibs(pfmlib_input_param_t *inp,
 
 		if (inp_mod->ibsop.options & IBS_OPTIONS_UOPS) {
 			if (amd64_revision < from_revision(PFMLIB_AMD64_FAM10H_REV_C)) {
-                                DPRINT("IBSOP:UOPS available on Rev C and later processors\n");                    
+                                DPRINT("IBSOP:UOPS available on Rev C and later processors\n");
                                 return PFMLIB_ERR_BADHOST;
                         }
 			ibsopctl.reg.ibsopcntl = 1;
@@ -696,7 +696,7 @@ pfm_amd64_get_event_umask(unsigned int i, unsigned long *umask)
 	*umask = 0; //evt_umask(i);
 	return PFMLIB_SUCCESS;
 }
-	
+
 static void
 pfm_amd64_get_event_counters(unsigned int j, pfmlib_regmask_t *counters)
 {

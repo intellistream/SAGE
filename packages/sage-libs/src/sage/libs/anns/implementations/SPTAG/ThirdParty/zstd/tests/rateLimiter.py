@@ -26,16 +26,16 @@ total_read = 0
 # sys.stderr.close()  # remove error message, for Ctrl+C
 
 try:
-  buf = " "
-  while len(buf):
-    now = time.time()
-    to_read = max(int(rate * (now - start)), 1)
-    max_buf_size = 1 * MB
-    to_read = min(to_read, max_buf_size)
-    start = now
+    buf = " "
+    while len(buf):
+        now = time.time()
+        to_read = max(int(rate * (now - start)), 1)
+        max_buf_size = 1 * MB
+        to_read = min(to_read, max_buf_size)
+        start = now
 
-    buf = sys.stdin.buffer.read(to_read)
-    sys.stdout.buffer.write(buf)
+        buf = sys.stdin.buffer.read(to_read)
+        sys.stdout.buffer.write(buf)
 
-except (KeyboardInterrupt, BrokenPipeError) as e:
+except (KeyboardInterrupt, BrokenPipeError):
     pass

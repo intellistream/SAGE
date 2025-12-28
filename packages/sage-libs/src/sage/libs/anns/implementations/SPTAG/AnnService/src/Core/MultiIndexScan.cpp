@@ -88,13 +88,13 @@ namespace SPTAG
 	{
         int numCols = (int)indexIters.size();
         while ( !terminate ) {
-            
+
             for ( int i = 0 ; i < numCols; i++ ) {
                 auto result_iter = indexIters[i];
                // printf("probing index %d, %s\n", i, fwdLUTs[i]->GetIndexName().c_str());
                 auto results = result_iter->Next(1);
                 if (results->GetResultNum() == 0) {
-                    printf("index %d no more result!! Terminating\n", i);                    
+                    printf("index %d no more result!! Terminating\n", i);
                     terminate = true;
                     break;
                 }
@@ -107,10 +107,10 @@ namespace SPTAG
 
                 // insert into heap only if it has NOT been seen
                 if ( seenSet.find(vid) == seenSet.end() ){
-                    
+
                     std::vector<float> dists(numCols, 0);
                     dists[i] = dist;
-                    
+
                     // lookup scores using foward index
                     for ( int j = 0; j < numCols; j++ ){
                         if ( i != j ){
@@ -146,7 +146,7 @@ namespace SPTAG
                     seenSet.insert(vid);
                 }
             }
-            
+
             // checkout terminate condition and check if we need to start stream out output
             // why we check term cond outside for loop? because we don't want to check that often~
             if ( useTimer ) {
@@ -171,9 +171,9 @@ namespace SPTAG
 
         // pop-out outputs
         result.VID = outputStk.top().second;
-        result.Dist = outputStk.top().first;        
+        result.Dist = outputStk.top().first;
         outputStk.pop();
-        
+
         return true;
 	}
 

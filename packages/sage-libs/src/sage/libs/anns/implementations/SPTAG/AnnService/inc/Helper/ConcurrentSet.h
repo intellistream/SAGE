@@ -120,7 +120,7 @@ namespace SPTAG
 
             template <typename K, typename V>
             using ConcurrentMap = Concurrency::concurrent_unordered_map<K, V>;
-            
+
             template <typename T>
             using ConcurrentQueue = Concurrency::concurrent_queue<T>;
 #endif

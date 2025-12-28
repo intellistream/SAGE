@@ -10,22 +10,21 @@
 # ################################################################
 
 import os
-import subprocess
 import sys
 
 if len(sys.argv) != 3:
-	print(f"Usage: {sys.argv[0]} FILE SIZE_LIMIT")
-	sys.exit(1)
+    print(f"Usage: {sys.argv[0]} FILE SIZE_LIMIT")
+    sys.exit(1)
 
 file = sys.argv[1]
 limit = int(sys.argv[2])
 
 if not os.path.exists(file):
-	print(f"{file} does not exist")
-	sys.exit(1)
+    print(f"{file} does not exist")
+    sys.exit(1)
 
 size = os.path.getsize(file)
 
 if size > limit:
-	print(f"file {file} is {size} bytes, which is greater than the limit of {limit} bytes")
-	sys.exit(1)
+    print(f"file {file} is {size} bytes, which is greater than the limit of {limit} bytes")
+    sys.exit(1)

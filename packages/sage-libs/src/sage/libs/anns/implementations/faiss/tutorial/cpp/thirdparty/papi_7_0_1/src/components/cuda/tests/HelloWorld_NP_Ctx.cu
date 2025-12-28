@@ -2,14 +2,14 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/** 
+/**
  * @file    HelloWorld_NP_Ctx.c
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
  *			<your email address>
- * test case for Example component 
- * 
+ * test case for Example component
+ *
  *
  * @brief
  *  This file is a very simple HelloWorld C example which serves (together
@@ -54,17 +54,17 @@ int main(int argc, char** argv)
   CUdevice  device;
   CUcontext context;
   // Create a non-primary context and run with it.
-  DRIVER_API_CALL(cuInit(0));                       
-  DRIVER_API_CALL(cuDeviceGet(&device, 0));         
+  DRIVER_API_CALL(cuInit(0));
+  DRIVER_API_CALL(cuDeviceGet(&device, 0));
   DRIVER_API_CALL(cuCtxCreate(&context, 0, device));
 
 #ifdef PAPI
 	int retval, i;
 	int EventSet = PAPI_NULL;
 	long long values[NUM_EVENTS];
-	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT 
+	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT
 	   FOR THE CUDA DEVICE YOU ARE RUNNING ON.
-	   RUN papi_native_avail to get a list of CUDA events that are 
+	   RUN papi_native_avail to get a list of CUDA events that are
 	   supported on your machine */
         //char *EventName[] = { "PAPI_FP_OPS" };
         char const *EventName[] = { "cuda:::event:elapsed_cycles_sm:device=0" };
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 
 	/* Set TESTS_QUIET variable */
 	quiet=tests_quiet( argc, argv );
-	
+
 	/* PAPI Initialization */
 	retval = PAPI_library_init( PAPI_VER_CURRENT );
 	if( retval != PAPI_VER_CURRENT ) {
@@ -107,14 +107,14 @@ int main(int argc, char** argv)
 		test_skip(__FILE__,__LINE__,"No events found",0);
 		return 1;
 	}
-	
+
 	retval = PAPI_create_eventset( &EventSet );
 	if( retval != PAPI_OK ) {
 		if (!quiet) printf( "PAPI_create_eventset failed\n" );
 		test_fail(__FILE__,__LINE__,"Cannot create eventset",retval);
-	}	
+	}
 
-        // If multiple GPUs/contexts were being used, 
+        // If multiple GPUs/contexts were being used,
         // you need to switch to each device before adding its events
         // e.g. cudaSetDevice( 0 );
 	retval = PAPI_add_events( EventSet, events, eventCount );
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
 
 
 	int j;
-	
+
 	// desired output
 	char str[] = "Hello World!";
 
@@ -141,15 +141,15 @@ int main(int argc, char** argv)
 		//printf("str=%s\n", str);
 	}
 
-	
+
 	// allocate memory on the device
 	char *d_str;
 	size_t size = sizeof(str);
 	cudaMalloc((void**)&d_str, size);
-	
+
 	// copy the string to the device
 	cudaMemcpy(d_str, str, size, cudaMemcpyHostToDevice);
-	
+
 	// set the grid and block sizes
 	dim3 dimGrid(2); // one block per word
 	dim3 dimBlock(6); // one thread per character
@@ -159,13 +159,13 @@ int main(int argc, char** argv)
 
 	// retrieve the results from the device
 	cudaMemcpy(str, d_str, size, cudaMemcpyDeviceToHost);
-	
+
 	// free up the allocated memory on the device
 	cudaFree(d_str);
-	
+
 	if (!quiet) printf("END: %s\n", str);
 
-	
+
 #ifdef PAPI
 	retval = PAPI_stop( EventSet, values );
 	if( retval != PAPI_OK )
@@ -202,4 +202,3 @@ helloWorld(char* str)
 	// unmangle output
 	str[idx] += idx;
 }
-

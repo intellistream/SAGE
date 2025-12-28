@@ -89,4 +89,3 @@ mod tests {
         assert!(thread_data.scratch.full_return_set.is_empty());
     }
 }
-

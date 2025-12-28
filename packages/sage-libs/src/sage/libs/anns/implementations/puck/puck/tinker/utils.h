@@ -172,4 +172,3 @@ inline void ToLower(std::string& s) {
 }
 
 }  // namespace similarity
-

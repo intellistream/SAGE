@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT license.
 
-import os
 import shutil
 import unittest
 
@@ -12,18 +11,19 @@ from sklearn.neighbors import NearestNeighbors
 
 
 def _calculate_recall(
-        result_set_tags: np.ndarray,
-        original_indices_to_tags: np.ndarray,
-        truth_set_indices: np.ndarray,
-        recall_at: int = 5
+    result_set_tags: np.ndarray,
+    original_indices_to_tags: np.ndarray,
+    truth_set_indices: np.ndarray,
+    recall_at: int = 5,
 ) -> float:
-
     found = 0
     for i in range(0, result_set_tags.shape[0]):
         result_set_set = set(result_set_tags[i][0:recall_at])
         truth_set_set = set()
         for knn_index in truth_set_indices[i][0:recall_at]:
-            truth_set_set.add(original_indices_to_tags[knn_index])  # mapped into our tag number instead
+            truth_set_set.add(
+                original_indices_to_tags[knn_index]
+            )  # mapped into our tag number instead
         found += len(result_set_set.intersection(truth_set_set))
     return found / (result_set_tags.shape[0] * recall_at)
 
@@ -58,7 +58,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
             index_vectors,
             ann_dir,
             vector_bin_file,
-            generated_tags
+            generated_tags,
         ) in self._test_matrix:
             with self.subTest():
                 index = dap.DynamicMemoryIndex.from_file(
@@ -77,9 +77,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                     num_threads=16,
                 )
                 if metric == "l2" or metric == "cosine":
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric=metric
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric=metric)
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
                     recall = _calculate_recall(diskann_neighbors, generated_tags, knn_indices, k)
@@ -96,7 +94,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
             index_vectors,
             ann_dir,
             vector_bin_file,
-            generated_tags
+            generated_tags,
         ) in self._test_matrix:
             with self.subTest():
                 index = dap.DynamicMemoryIndex(
@@ -176,7 +174,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
             index_vectors,
             ann_dir,
             vector_bin_file,
-            generated_tags
+            generated_tags,
         ) in self._test_matrix:
             with self.subTest():
                 index = dap.DynamicMemoryIndex(
@@ -204,15 +202,11 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                     )
 
     def test_value_ranges_ctor(self):
-        (
-            metric,
-            dtype,
-            query_vectors,
-            index_vectors,
-            ann_dir,
-            vector_bin_file,
-            generated_tags
-        ) = build_random_vectors_and_memory_index(np.single, "l2", with_tags=True, index_prefix="not_ann")
+        (metric, dtype, query_vectors, index_vectors, ann_dir, vector_bin_file, generated_tags) = (
+            build_random_vectors_and_memory_index(
+                np.single, "l2", with_tags=True, index_prefix="not_ann"
+            )
+        )
         good_ranges = {
             "distance_metric": "l2",
             "vector_dtype": np.single,
@@ -226,7 +220,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
             "filter_complexity": 10,
             "num_frozen_points": 10,
             "initial_search_complexity": 32,
-            "search_threads": 0
+            "search_threads": 0,
         }
 
         bad_ranges = {
@@ -248,7 +242,10 @@ class TestDynamicMemoryIndex(unittest.TestCase):
             kwargs = good_ranges.copy()
             kwargs[bad_value_key] = bad_ranges[bad_value_key]
             with self.subTest():
-                with self.assertRaises(ValueError, msg=f"expected to fail with parameter {bad_value_key}={bad_ranges[bad_value_key]}"):
+                with self.assertRaises(
+                    ValueError,
+                    msg=f"expected to fail with parameter {bad_value_key}={bad_ranges[bad_value_key]}",
+                ):
                     index = dap.DynamicMemoryIndex(saturate_graph=False, **kwargs)
 
     def test_value_ranges_search(self):
@@ -265,7 +262,7 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                         initial_search_complexity=32,
                         max_vectors=10001,
                         complexity=64,
-                        graph_degree=32
+                        graph_degree=32,
                     )
                     index.search(query=np.array([], dtype=np.single), **kwargs)
 
@@ -291,8 +288,6 @@ class TestDynamicMemoryIndex(unittest.TestCase):
                         initial_search_complexity=32,
                         max_vectors=10001,
                         complexity=64,
-                        graph_degree=32
+                        graph_degree=32,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)

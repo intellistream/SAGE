@@ -2,15 +2,15 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/** 
+/**
  * @file    HelloWorld.c
  * CVS:     $Id$
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
  *			<your email address>
- * test case for Example component 
- * 
+ * test case for Example component
+ *
  *
  * @brief
  *  This file is a very simple HelloWorld C example which serves (together
@@ -42,26 +42,26 @@ int main(int argc, char** argv)
 	int retval, i;
 	int EventSet = PAPI_NULL;
 	long long values[NUM_EVENTS];
-	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT 
+	/* REPLACE THE EVENT NAME 'PAPI_FP_OPS' WITH A CUDA EVENT
 	   FOR THE CUDA DEVICE YOU ARE RUNNING ON.
-	   RUN papi_native_avail to get a list of CUDA events that are 
+	   RUN papi_native_avail to get a list of CUDA events that are
 	   supported on your machine */
         // e.g. on a P100 nvml:::Tesla_P100-SXM2-16GB:power
         char anEvent[64] = "PAPI_FP_OPS";
         char *EventName[] = { anEvent };
         int events[NUM_EVENTS];
 	int eventCount = 0;
-	
+
 	/* PAPI Initialization */
 	retval = PAPI_library_init( PAPI_VER_CURRENT );
 	if( retval != PAPI_VER_CURRENT )
 		fprintf( stderr, "PAPI_library_init failed\n" );
-	
+
 	printf( "PAPI_VERSION     : %4d %6d %7d\n",
 			PAPI_VERSION_MAJOR( PAPI_VERSION ),
 			PAPI_VERSION_MINOR( PAPI_VERSION ),
 			PAPI_VERSION_REVISION( PAPI_VERSION ) );
-	
+
 	/* convert PAPI native events to PAPI code */
 	for( i = 0; i < NUM_EVENTS; i++ ){
 		retval = PAPI_event_name_to_code( EventName[i], &events[i] );
@@ -78,11 +78,11 @@ int main(int argc, char** argv)
 		printf( "Test FAILED: no valid events found.\n");
 		return 1;
 	}
-	
+
 	retval = PAPI_create_eventset( &EventSet );
 	if( retval != PAPI_OK )
 		fprintf( stderr, "PAPI_create_eventset failed\n" );
-	
+
 	retval = PAPI_add_events( EventSet, events, eventCount );
 	if( retval != PAPI_OK )
 		fprintf( stderr, "PAPI_add_events failed\n" );
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 	cudaGetDeviceCount( &count );
 	for ( cuda_device = 0; cuda_device < count; cuda_device++ ) {
 			cudaSetDevice( cuda_device );
-#ifdef PAPI	
+#ifdef PAPI
 			retval = PAPI_start( EventSet );
 			if( retval != PAPI_OK )
 					fprintf( stderr, "PAPI_start failed\n" );
@@ -161,4 +161,3 @@ helloWorld(char* str)
 	// unmangle output
 	str[idx] += idx;
 }
-

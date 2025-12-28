@@ -6,7 +6,7 @@
     <Native-Platform Condition="'$(Platform)' != 'Win32'">$(Platform)</Native-Platform>
     <_nugetNativeFolder>$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(Native-Platform)\native\</_nugetNativeFolder>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <Reference Include="$(MSBuildThisFileDirectory)..\..\lib\uap10.0\SPTAG.winmd" Private="false">
       <Implementation>SPTAG.dll</Implementation>

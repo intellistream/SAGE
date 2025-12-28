@@ -270,9 +270,9 @@ impl<T> DiskIndexStorage<T> {
         }
 
         Ok(PQPivotData {
-            dim, 
-            pq_table, 
-            centroids, 
+            dim,
+            pq_table,
+            centroids,
             chunk_offsets
         })
     }
@@ -336,7 +336,7 @@ mod disk_index_storage_test {
         let storage = DiskIndexStorage::<f32>::new(
             get_test_file_path(TEST_DATA_FILE),
             pivot_file_prefix.to_string(),
-        ).unwrap();            
+        ).unwrap();
 
         let pq_pivot_data =
             storage.load_pq_pivots_bin(&num_pq_chunk).unwrap();

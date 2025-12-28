@@ -300,7 +300,7 @@ main(void)
 	 * propagate the event descriptor
 	 */
 	inp.pfp_events[0] = ev;
-	
+
 	/*
 	 * let the library figure out the values for the PMCS
 	 *

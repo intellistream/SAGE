@@ -38,4 +38,3 @@ struct ServiceSettings
 
 
 #endif // _SPTAG_SERVER_SERVICESTTINGS_H_
-

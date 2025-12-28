@@ -5,13 +5,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import print_function
-import time
-import numpy as np
 
 import faiss
-from datasets import load_sift1M, evaluate
-
+from datasets import evaluate, load_sift1M
 
 print("load data")
 xb, xq, xt, gt = load_sift1M()
@@ -34,13 +30,13 @@ nt = 1
 faiss.omp_set_num_threads(1)
 
 
-print("PQ baseline", end=' ')
+print("PQ baseline", end=" ")
 index.search_type = faiss.IndexPQ.ST_PQ
 t, r = evaluate(index, xq, gt, 1)
 print("\t %7.3f ms per query, R@1 %.4f" % (t, r[1]))
 
 for ht in 64, 62, 58, 54, 50, 46, 42, 38, 34, 30:
-    print("Polysemous", ht, end=' ')
+    print("Polysemous", ht, end=" ")
     index.search_type = faiss.IndexPQ.ST_polysemous
     index.polysemous_ht = ht
     t, r = evaluate(index, xq, gt, 1)

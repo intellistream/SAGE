@@ -238,4 +238,3 @@ mod neighbor_priority_queue_test {
         assert_eq!(queue.capacity, 5);
     }
 }
-

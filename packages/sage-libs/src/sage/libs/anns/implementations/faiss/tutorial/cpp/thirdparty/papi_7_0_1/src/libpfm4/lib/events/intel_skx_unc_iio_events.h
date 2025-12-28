@@ -757,4 +757,3 @@ static intel_x86_entry_t intel_skx_unc_iio_pe[]={
     .cntmsk = 0xf,
   },
 };
-

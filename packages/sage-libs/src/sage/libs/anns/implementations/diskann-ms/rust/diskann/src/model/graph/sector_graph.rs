@@ -30,8 +30,8 @@ pub struct SectorGraph {
 impl SectorGraph {
     /// Create SectorGraph instance
     pub fn new(graph_storage: DiskGraphStorage) -> ANNResult<Self> {
-        Ok(Self { 
-            sectors_data: AlignedBoxWithSlice::new(MAX_N_SECTOR_READS * SECTOR_LEN, SECTOR_LEN)?, 
+        Ok(Self {
+            sectors_data: AlignedBoxWithSlice::new(MAX_N_SECTOR_READS * SECTOR_LEN, SECTOR_LEN)?,
             graph_storage,
             cur_sector_idx: 0,
         })
@@ -48,14 +48,14 @@ impl SectorGraph {
         let cur_sector_idx_usize: usize = self.cur_sector_idx.try_into()?;
         if sectors_to_fetch.len() > MAX_N_SECTOR_READS - cur_sector_idx_usize {
             return Err(ANNError::log_index_error(format!(
-                "Trying to read too many sectors. number of sectors to read: {}, max number of sectors can read: {}", 
-                sectors_to_fetch.len(), 
+                "Trying to read too many sectors. number of sectors to read: {}, max number of sectors can read: {}",
+                sectors_to_fetch.len(),
                 MAX_N_SECTOR_READS - cur_sector_idx_usize,
             )));
         }
 
         let mut sector_slices = self.sectors_data.split_into_nonoverlapping_mut_slices(
-            cur_sector_idx_usize * SECTOR_LEN..(cur_sector_idx_usize + sectors_to_fetch.len()) * SECTOR_LEN, 
+            cur_sector_idx_usize * SECTOR_LEN..(cur_sector_idx_usize + sectors_to_fetch.len()) * SECTOR_LEN,
             SECTOR_LEN)?;
 
         let mut read_requests = Vec::with_capacity(sector_slices.len());
@@ -84,4 +84,3 @@ impl Deref for SectorGraph {
         &self.sectors_data
     }
 }
-

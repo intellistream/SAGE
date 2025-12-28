@@ -186,7 +186,7 @@ parent(pid_t pid)
 	/*
 	 * the task is stopped at this point
 	 */
-	
+
 	/*
 	 * now we load (i.e., attach) the context to ourself
 	 */

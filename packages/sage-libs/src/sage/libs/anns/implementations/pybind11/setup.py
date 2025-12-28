@@ -11,19 +11,17 @@ import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Iterator, List, Union
+from typing import Iterator, Union
 
 import setuptools.command.sdist
 
 DIR = Path(__file__).parent.absolute()
-VERSION_REGEX = re.compile(
-    r"^\s*#\s*define\s+PYBIND11_VERSION_([A-Z]+)\s+(.*)$", re.MULTILINE
-)
+VERSION_REGEX = re.compile(r"^\s*#\s*define\s+PYBIND11_VERSION_([A-Z]+)\s+(.*)$", re.MULTILINE)
 VERSION_FILE = Path("pybind11/_version.py")
 COMMON_FILE = Path("include/pybind11/detail/common.h")
 
 
-def build_expected_version_hex(matches: Dict[str, str]) -> str:
+def build_expected_version_hex(matches: dict[str, str]) -> str:
     patch_level_serial = matches["PATCH"]
     serial = None
     major = int(matches["MAJOR"])
@@ -52,9 +50,7 @@ def build_expected_version_hex(matches: Dict[str, str]) -> str:
 
 global_sdist = os.environ.get("PYBIND11_GLOBAL_SDIST", False)
 
-setup_py = Path(
-    "tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in"
-)
+setup_py = Path("tools/setup_global.py.in" if global_sdist else "tools/setup_main.py.in")
 extra_cmd = 'cmdclass["sdist"] = SDist\n'
 
 to_src = (
@@ -64,7 +60,7 @@ to_src = (
 
 
 # Read the listed version
-loc: Dict[str, str] = {}
+loc: dict[str, str] = {}
 code = compile(VERSION_FILE.read_text(encoding="utf-8"), "pybind11/_version.py", "exec")
 exec(code, loc)
 version = loc["__version__"]
@@ -84,9 +80,7 @@ if version_hex != exp_version_hex:
 
 
 # TODO: use literals & overload (typing extensions or Python 3.8)
-def get_and_replace(
-    filename: Path, binary: bool = False, **opts: str
-) -> Union[bytes, str]:
+def get_and_replace(filename: Path, binary: bool = False, **opts: str) -> Union[bytes, str]:
     if binary:
         contents = filename.read_bytes()
         return string.Template(contents.decode()).substitute(opts).encode()
@@ -97,7 +91,7 @@ def get_and_replace(
 # Use our input files instead when making the SDist (and anything that depends
 # on it, like a wheel)
 class SDist(setuptools.command.sdist.sdist):
-    def make_release_tree(self, base_dir: str, files: List[str]) -> None:
+    def make_release_tree(self, base_dir: str, files: list[str]) -> None:
         super().make_release_tree(base_dir, files)
 
         for to, src in to_src:
@@ -131,9 +125,7 @@ with remove_output("pybind11/include", "pybind11/share"):
         ]
         if "CMAKE_ARGS" in os.environ:
             fcommand = [
-                c
-                for c in os.environ["CMAKE_ARGS"].split()
-                if "DCMAKE_INSTALL_PREFIX" not in c
+                c for c in os.environ["CMAKE_ARGS"].split() if "DCMAKE_INSTALL_PREFIX" not in c
             ]
             cmd += fcommand
         subprocess.run(cmd, check=True, cwd=DIR, stdout=sys.stdout, stderr=sys.stderr)

@@ -36,7 +36,7 @@ sys.setdefaultencoding('utf-8')
 def _usage():
     print '''
     py initProcessData.py [-f new feature file] [-h help]
-    
+
     options:
         -f use for input file name
         -h use for help
@@ -49,9 +49,9 @@ class InitProcessData(object):
     def __init__(self, conf_file):
         """
           :param conf_file: 配置文件名
-        
+
           初始化类：
-        
+
           1）读取配置文件
           2）根据配置设置默认的输入路径和文件名称（如果没有指定则使用默认值），并打开相应的文件对象。
               - 如果指定的配置文件中有指定 `all_feature_file_name` 和 `keys_file_name`，将其作为相应的文件名读入；否则使用默认的文件名。
@@ -67,18 +67,18 @@ class InitProcessData(object):
             os.mkdir('puck_index')
 
         # all_feature_file_name
-        all_feature_file_name = "./puck_index/all_data.feat.bin" 
+        all_feature_file_name = "./puck_index/all_data.feat.bin"
         conf_all_feature_file_name = re.findall(r'--feature_file_name=(\S+)', train_conf_info)
         if len(conf_all_feature_file_name) == 1:
-            all_feature_file_name = conf_all_feature_file_name[0] 
+            all_feature_file_name = conf_all_feature_file_name[0]
         self.all_feature_file = open(all_feature_file_name, 'wb')
-        print all_feature_file_name 
-        
+        print all_feature_file_name
+
         # keys_file_name
         keys_file_name = "./puck_index/all_data.url"
         conf_keys_file_name = re.findall(r'--label_file_name=(\S+)', train_conf_info)
         if len(conf_keys_file_name) == 1:
-            keys_file_name = conf_keys_file_name[0] 
+            keys_file_name = conf_keys_file_name[0]
         self.keys_file = open(keys_file_name, 'wb')
         print keys_file_name
 
@@ -97,7 +97,7 @@ class InitProcessData(object):
         if self.ip2cos == 1:
             self.whetherNorm = 0
         print self.ip2cos
-            
+
         # feature_dim
         self.feature_dim = 256
         feature_dim = re.findall(r'--feature_dim=(\d+)', train_conf_info)
@@ -111,7 +111,7 @@ class InitProcessData(object):
             其他情况非必须
         """
         """
-        The vectors are stored in raw little endian. 
+        The vectors are stored in raw little endian.
         Each vector takes sizeof(int)+dim * sizeof(float) bytes for .fvecs
         """
         all_line = 0
@@ -121,10 +121,10 @@ class InitProcessData(object):
             fields = line.strip().split('\t')
             if len(fields) < 2:
                 continue
-            
+
             feat = fields[-1].split(' ')
             if len(feat) != self.feature_dim:
-                print "feature dim error, true dim = %d feature dim in conf = %d" % (len(feat), self.feature_dim) 
+                print "feature dim error, true dim = %d feature dim in conf = %d" % (len(feat), self.feature_dim)
                 return -1
             feat = np.array(map(float, feat))
             if (self.ip2cos > 1):
@@ -142,7 +142,7 @@ class InitProcessData(object):
             valid_line += 1
             self.keys_file.write(fields[0])
             self.keys_file.write('\n')
-            
+
             buf = struct.pack('i', len(feat))
             self.all_feature_file.write(buf)
             buf = struct.pack('f' * len(feat), *feat)
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         sys.exit(1)
     input_file = ''
     conf_file = 'conf/puck_index.conf'
-    ret = 0 
+    ret = 0
 
     for opt, val in opts:
         print opt

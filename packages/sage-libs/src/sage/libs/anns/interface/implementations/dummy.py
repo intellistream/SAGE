@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
 
-from sage.libs.ann.base import AnnIndex, AnnIndexMeta
-from sage.libs.ann.factory import register
+from sage.libs.anns.interface.base import AnnIndex, AnnIndexMeta
+from sage.libs.anns.interface.factory import register
 
 
 class DummyBruteForce(AnnIndex):

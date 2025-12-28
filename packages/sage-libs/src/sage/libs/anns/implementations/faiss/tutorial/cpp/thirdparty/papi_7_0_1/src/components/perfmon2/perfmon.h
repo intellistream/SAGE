@@ -1,6 +1,6 @@
 #ifndef _PAPI_PERFMON_H
 #define _PAPI_PERFMON_H
-/* 
+/*
 * File:    perfmon.h
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu

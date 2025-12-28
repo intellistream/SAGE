@@ -1,7 +1,6 @@
 # ruff: noqa: SIM201 SIM300 SIM202
 
 import pytest
-
 from pybind11_tests import enums as m
 
 

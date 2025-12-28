@@ -7,6 +7,7 @@ import diskannpy
 import numpy as np
 import utils
 
+
 def insert_and_search(
     dtype_str,
     indexdata_file,
@@ -22,21 +23,15 @@ def insert_and_search(
     npts, ndims = utils.get_bin_metadata(indexdata_file)
 
     if dtype_str == "float":
-        index = diskannpy.DynamicMemoryIndex(
-            "l2", np.float32, ndims, npts, Lb, graph_degree
-        )
+        index = diskannpy.DynamicMemoryIndex("l2", np.float32, ndims, npts, Lb, graph_degree)
         queries = utils.bin_to_numpy(np.float32, querydata_file)
         data = utils.bin_to_numpy(np.float32, indexdata_file)
     elif dtype_str == "int8":
-        index = diskannpy.DynamicMemoryIndex(
-            "l2", np.int8, ndims, npts, Lb, graph_degree
-        )
+        index = diskannpy.DynamicMemoryIndex("l2", np.int8, ndims, npts, Lb, graph_degree)
         queries = utils.bin_to_numpy(np.int8, querydata_file)
         data = utils.bin_to_numpy(np.int8, indexdata_file)
     elif dtype_str == "uint8":
-        index = diskannpy.DynamicMemoryIndex(
-            "l2", np.uint8, ndims, npts, Lb, graph_degree
-        )
+        index = diskannpy.DynamicMemoryIndex("l2", np.uint8, ndims, npts, Lb, graph_degree)
         queries = utils.bin_to_numpy(np.uint8, querydata_file)
         data = utils.bin_to_numpy(np.uint8, indexdata_file)
     else:
@@ -47,27 +42,25 @@ def insert_and_search(
     for i in range(npts):
         tags[i] = i + 1
     index.batch_insert(data, tags, num_insert_threads)
-    print('batch_insert complete in', timer.elapsed(), 's')
+    print("batch_insert complete in", timer.elapsed(), "s")
 
     delete_tags = np.random.choice(
-        np.array(range(1, npts + 1, 1), dtype=np.uintc),
-        size=int(0.5 * npts),
-        replace=False
+        np.array(range(1, npts + 1, 1), dtype=np.uintc), size=int(0.5 * npts), replace=False
     )
     for tag in delete_tags:
         index.mark_deleted(tag)
-    print('mark deletion completed in', timer.elapsed(), 's')
+    print("mark deletion completed in", timer.elapsed(), "s")
 
     index.consolidate_delete()
-    print('consolidation completed in', timer.elapsed(), 's')
+    print("consolidation completed in", timer.elapsed(), "s")
 
     deleted_data = data[delete_tags - 1, :]
 
     index.batch_insert(deleted_data, delete_tags, num_insert_threads)
-    print('re-insertion completed in', timer.elapsed(), 's')
+    print("re-insertion completed in", timer.elapsed(), "s")
 
     tags, dists = index.batch_search(queries, K, Ls, num_search_threads)
-    print('Batch searched', queries.shape[0], ' queries in ', timer.elapsed(), 's')
+    print("Batch searched", queries.shape[0], " queries in ", timer.elapsed(), "s")
 
     res_ids = tags - 1
     if gt_file != "":
@@ -113,4 +106,3 @@ python python/apps/in-mem-dynamic.py -d float \
 -i "$HOME/data/sift/sift_base.fbin" -q "$HOME/data/sift/sift_query.fbin" --gt_file "$HOME/data/sift/gt100_base" \
 -Lb 10 -R 30 -Ls 200
 """
-

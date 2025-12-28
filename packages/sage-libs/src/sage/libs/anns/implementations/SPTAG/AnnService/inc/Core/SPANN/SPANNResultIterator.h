@@ -59,10 +59,10 @@ namespace SPTAG
 					 m_queryResult->GetResult(i)->RelaxedMono = m_extraWorkspace->m_relaxedMono;
 				 }
 				 m_queryResult->SetResultNum(resultCount);
-			     return m_queryResult;	
+			     return m_queryResult;
 			}
 
-			virtual bool GetRelaxedMono() 
+			virtual bool GetRelaxedMono()
 			{
 				if (m_extraWorkspace == nullptr) return false;
 

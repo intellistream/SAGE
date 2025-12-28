@@ -50,7 +50,7 @@ class LeafNode {
 
 
 /************************************************************************************
- * Updates the node association for every points from one level to the next 
+ * Updates the node association for every points from one level to the next
  * i.e., point associated with node k will become associated with 2k+1 or 2k+2
  ************************************************************************************/
 template<typename T>
@@ -107,7 +107,7 @@ __global__ void print_level_device(int* node_sizes, float* split_keys, int level
 
 
 /************************************************************************************
- * Definition of the GPU TPtree structure. 
+ * Definition of the GPU TPtree structure.
  * Only contains the nodes and hyperplane definitions that partition the data, as well
  * as indexes into the point array.  Does not contain the data itself.
  **********************************************************************************/
@@ -118,12 +118,12 @@ class TPtree {
     int Dim;
 
 // for each node, defines the value of the partitioning hyperplane.  Laid out in breadth-first order
-    KEYTYPE* split_keys; 
+    KEYTYPE* split_keys;
 
     int* node_ids; // For each point, store which node it belongs to (ends at id of leaf)
     int* node_sizes; // Stores the size (number of points) in each node
 
-    int num_nodes; 
+    int num_nodes;
     int num_leaves;
     int levels;
     int N;
@@ -207,7 +207,7 @@ class TPtree {
     ************************************************************************************/
     __host__ void print_tree() {
       int level_offset;
-      
+
       print_level_device<<<1,1>>>(node_sizes, split_keys, 1, leafs, leaf_points);
 
       for(int i=0; i<levels; ++i) {
@@ -223,7 +223,7 @@ class TPtree {
     }
 };
 
-// Construct TPT on each GPU 
+// Construct TPT on each GPU
 template<typename T>
 __host__ void construct_trees_multigpu(TPtree** d_trees, PointSet<T>** ps, int N, int NUM_GPUS, cudaStream_t* streams, int balanceFactor) {
 
@@ -303,7 +303,7 @@ CUDA_CHECK(cudaDeviceSynchronize());
         h_leafs[0].offset = 0;
         for(int i=1; i<d_trees[gpuNum]->num_leaves; ++i) {
             h_leafs[i].offset = h_leafs[i-1].offset + h_leafs[i-1].size;
-        } 
+        }
         for(int i=0; i<d_trees[gpuNum]->num_leaves; ++i) {
           h_leafs[i].size=0;
         }
@@ -334,10 +334,10 @@ __host__ void find_level_sum_batch_PQ(TPtree** d_trees, PointSet<T>** ps, int N,
 
     R** d_recon_coords = new R*[NUM_GPUS]; // raw reconstructed coordinates on GPU
     PointSet<R>** d_recon_ps = new PointSet<R>*[NUM_GPUS];
-    
+
     for(int gpuNum=0; gpuNum < NUM_GPUS; ++gpuNum) {
         cudaSetDevice(gpuNum);
-        
+
     }
     for(size_t i=0; i<N; i+=recon_batch_size) {
         size_t curr_recon_batch = std::min(recon_batch_size, N-i); // Deal with small final batc, N-i)
@@ -383,7 +383,7 @@ __host__ void construct_trees_PQ(TPtree** d_trees, PointSet<T>** ps, int N, int 
           SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Error, "Insufficient memory for reconstructed vectors to build TPTree.\n");
           exit(1);
         }
-          
+
         CUDA_CHECK(cudaMalloc(&d_recon_raw[gpuNum], N*reconDim*sizeof(R)));
         CUDA_CHECK(cudaMemcpy(d_recon_raw[gpuNum], h_recon_raw, N*reconDim*sizeof(R), cudaMemcpyHostToDevice));
         temp_ps.data = d_recon_raw[gpuNum];
@@ -462,7 +462,7 @@ __host__ void create_tptree_multigpu(TPtree** d_trees, PointSet<T>** ps, int N, 
     CUDA_CHECK(cudaMemcpy(d_trees[gpuNum]->weight_list, h_weights, d_trees[gpuNum]->levels*d_trees[gpuNum]->Dim*sizeof(KEYTYPE), cudaMemcpyHostToDevice));
   }
 
-  // Build TPT on each GPU  
+  // Build TPT on each GPU
 //  construct_trees_multigpu<T>(d_trees, ps, N, NUM_GPUS, streams, balanceFactor);
 
   if(index == NULL || index->m_pQuantizer == NULL) { // Build directly if no quantizer
@@ -564,7 +564,7 @@ __global__ void find_level_sum(PointSet<T>* ps, KEYTYPE* weights, int Dim, int* 
  *****************************************************************************************/
 template<typename T>
 __global__ void update_node_assignments(PointSet<T>* ps, KEYTYPE* weights, int* node_ids, KEYTYPE* split_keys, int* node_sizes, int N, int level, int Dim) {
-  
+
   for(int i=blockIdx.x*blockDim.x+threadIdx.x; i<N; i+=blockDim.x*gridDim.x) {
     node_ids[i] = (2*node_ids[i])+1 + (weighted_val<T>(ps->getVec(i),&weights[level*Dim] , Dim) > split_keys[node_ids[i]]);
   }

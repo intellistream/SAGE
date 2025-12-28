@@ -2,8 +2,9 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
 import os
+
+import numpy as np
 import yaml
 
 # with ssnpp sharded data
@@ -33,9 +34,7 @@ for fn in file_names:
     fp = f"{root}/{fn}"
     assert os.path.exists(fp), f"{fp} is missing"
     ft, xb = read_embeddings(fp)
-    files.append(
-        {"name": fn, "size": xb.shape[0], "dtype": dt.name, "format": ft}
-    )
+    files.append({"name": fn, "size": xb.shape[0], "dtype": dt.name, "format": ft})
     size += xb.shape[0]
 
 cfg["size"] = size

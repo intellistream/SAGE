@@ -88,7 +88,7 @@ break; \
 	}
 }
 
-std::string CreateBaseConfig(SPTAG::VectorValueType p_valueType, SPTAG::DistCalcMethod p_distCalcMethod, 
+std::string CreateBaseConfig(SPTAG::VectorValueType p_valueType, SPTAG::DistCalcMethod p_distCalcMethod,
 	SPTAG::IndexAlgoType p_indexAlgoType, SPTAG::DimensionType p_dim,
 	std::string p_vectorPath, SPTAG::VectorFileType p_vectorType, SPTAG::SizeType p_vectorSize, std::string p_vectorDelimiter,
 	std::string p_queryPath, SPTAG::VectorFileType p_queryType, SPTAG::SizeType p_querySize, std::string p_queryDelimiter,
@@ -338,12 +338,12 @@ void RunFromMap() {
 	std::string dataFilePath = "sddtest/vectors_Int8_DEFAULT.bin";
 	std::string indexFilePath = "zbtest";
 	SPTAG::SSDServing::BootProgram(
-		true, 
-		&myMap, 
-		nullptr, 
-		SPTAG::VectorValueType::Int8, 
-		SPTAG::DistCalcMethod::L2, 
-		dataFilePath.c_str(), 
+		true,
+		&myMap,
+		nullptr,
+		SPTAG::VectorValueType::Int8,
+		SPTAG::DistCalcMethod::L2,
+		dataFilePath.c_str(),
 		indexFilePath.c_str()
 	);
 

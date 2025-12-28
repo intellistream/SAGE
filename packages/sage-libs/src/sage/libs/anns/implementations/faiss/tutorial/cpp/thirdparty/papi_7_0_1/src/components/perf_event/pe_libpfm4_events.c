@@ -6,8 +6,8 @@
 *          Modified the perf_event component to use PFM_OS_PERF_EVENT_EXT mode in libpfm4.
 *          This adds several new event masks, including cpu=, u=, and k= which give the user
 *          the ability to set cpu number to use or control the domain (user, kernel, or both)
-*          in which the counter should be incremented.  These are event masks so it is now 
-*          possible to have multiple events in the same event set that count activity from 
+*          in which the counter should be incremented.  These are event masks so it is now
+*          possible to have multiple events in the same event set that count activity from
 *          differennt cpu's or count activity in different domains.
 *
 * Handle the libpfm4 event interface for the perf_event component
@@ -57,7 +57,7 @@ static int find_existing_event(const char *name,
   for(i=0;i<event_table->num_native_events;i++) {
     // Most names passed in will contain the pmu name, so first we compare to the allocated name (it has pmu name on front)
     if (!strcmp(name,event_table->native_events[i].allocated_name)) {
-      SUBDBG("Found allocated_name: %s, libpfm4_idx: %#x, papi_event_code: %#x\n", 
+      SUBDBG("Found allocated_name: %s, libpfm4_idx: %#x, papi_event_code: %#x\n",
          event_table->native_events[i].allocated_name, event_table->native_events[i].libpfm4_idx, event_table->native_events[i].papi_event_code);
       event=i;
       break;
@@ -488,7 +488,7 @@ static struct native_event_t *allocate_native_event(
  *  @returns returns a libpfm event number
  *  @retval PAPI_ENOEVENT  Could not find an event
  *  Operational note: _pe_libpfm4_init() must be called first to set
- *                    flags for synonymous PMUs. At this writing only 
+ *                    flags for synonymous PMUs. At this writing only
  *                    amd64_fam17h_zen1_present is defined.
  *  Operational note: We indirectly return the pmu_idx within the
  *                    event data; the calling code uses that to set
@@ -527,7 +527,7 @@ get_first_event_next_pmu(int pmu_idx, int pmu_type)
         pmu_idx++;
         continue;
     }
-        
+
     if ((ret==PFM_SUCCESS) && pmu_is_present_and_right_type(&pinfo,pmu_type)) {
 
       pidx=pinfo.first_event;
@@ -551,7 +551,7 @@ get_first_event_next_pmu(int pmu_idx, int pmu_type)
 
   SUBDBG("EXIT: PAPI_ENOEVNT\n");
   return PAPI_ENOEVNT;
-  
+
 }
 
 
@@ -969,7 +969,7 @@ _pe_libpfm4_ntv_enum_events( unsigned int *PapiEventCode,
 	if ( modifier == PAPI_NTV_ENUM_UMASK_COMBOS ) {
 		SUBDBG("EXIT: do not support umask combos yet\n");
 		return PAPI_ENOIMPL;
-	} 
+	}
 
 	/* Enumerate PAPI_NTV_ENUM_UMASKS (umasks on an event) */
 	if ( modifier == PAPI_NTV_ENUM_UMASKS ) {
@@ -1088,7 +1088,7 @@ _pe_libpfm4_ntv_enum_events( unsigned int *PapiEventCode,
  *
  */
 
-int 
+int
 _pe_libpfm4_shutdown(papi_vector_t *my_vector,
 		struct native_event_table_t *event_table) {
   SUBDBG("ENTER: event_table: %p\n", event_table);
@@ -1202,7 +1202,7 @@ _pe_libpfm4_init(papi_vector_t *component, int cidx,
             amd64_fam17h_zen1_present = 1;
         }
         i++;
-    } 
+    }
 
 	SUBDBG("Detected pmus:\n");
 	i=0;
@@ -1382,4 +1382,3 @@ _peu_libpfm4_init(papi_vector_t *my_vector, int cidx,
 
    return PAPI_OK;
 }
-

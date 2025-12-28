@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_read \- 
+PAPI_read \-
 .PP
-Read hardware counters from an event set\&.  
+Read hardware counters from an event set\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
  int \fBPAPI_read(int  EventSet, long_long * values )\fP;
 .RE
@@ -30,16 +30,16 @@ Note the differences between \fBPAPI_read()\fP and \fBPAPI_accum()\fP, specifica
 .PP
 \fBParameters:\fP
 .RS 4
-\fIEventSet\fP -- an integer handle for a PAPI Event Set as created by \fBPAPI_create_eventset()\fP 
+\fIEventSet\fP -- an integer handle for a PAPI Event Set as created by \fBPAPI_create_eventset()\fP
 .br
 \fI*values\fP -- an array to hold the counter values of the counting events
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&. 
+\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.
 .br
-\fIPAPI_ESYS\fP A system or C library call failed inside PAPI, see the errno variable\&. 
+\fIPAPI_ESYS\fP A system or C library call failed inside PAPI, see the errno variable\&.
 .br
 \fIPAPI_ENOEVST\fP The event set specified does not exist\&.
 .RE
@@ -61,7 +61,7 @@ values[0] = -100;
 do_100events();
 if (PAPI_accum(EventSet, values) != PAPI_OK)
     handle_error(1);
-// values[0] now equals 0 
+// values[0] now equals 0
 
 .fi
 .PP
@@ -69,17 +69,17 @@ if (PAPI_accum(EventSet, values) != PAPI_OK)
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_accum\fP 
+\fBPAPI_accum\fP
 .PP
-\fBPAPI_start\fP 
+\fBPAPI_start\fP
 .PP
-\fBPAPI_stop\fP 
+\fBPAPI_stop\fP
 .PP
-\fBPAPI_reset\fP 
+\fBPAPI_reset\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -3,28 +3,25 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import absolute_import, division, print_function
 
-import numpy as np
-
-import faiss
 import unittest
 
+import faiss
+import numpy as np
 
 
 class TestProductQuantizer(unittest.TestCase):
-
     def test_pq(self):
         d = 64
         n = 2000
         cs = 4
         np.random.seed(123)
-        x = np.random.random(size=(n, d)).astype('float32')
+        x = np.random.random(size=(n, d)).astype("float32")
         pq = faiss.ProductQuantizer(d, cs, 8)
         pq.train(x)
         codes = pq.compute_codes(x)
         x2 = pq.decode(codes)
-        diff = ((x - x2)**2).sum()
+        diff = ((x - x2) ** 2).sum()
 
         # print("diff=", diff)
         # diff= 4418.0562
@@ -38,7 +35,7 @@ class TestProductQuantizer(unittest.TestCase):
         codes = pq10.compute_codes(x)
 
         x10 = pq10.decode(codes)
-        diff10 = ((x - x10)**2).sum()
+        diff10 = ((x - x10) ** 2).sum()
         self.assertGreater(diff, diff10)
 
     def do_test_codec(self, nbit):
@@ -46,15 +43,12 @@ class TestProductQuantizer(unittest.TestCase):
 
         # simulate training
         rs = np.random.RandomState(123)
-        centroids = rs.rand(2, 1 << nbit, 8).astype('float32')
+        centroids = rs.rand(2, 1 << nbit, 8).astype("float32")
         faiss.copy_array_to_vector(centroids.ravel(), pq.centroids)
 
         idx = rs.randint(1 << nbit, size=(100, 2))
         # can be encoded exactly
-        x = np.hstack((
-            centroids[0, idx[:, 0]],
-            centroids[1, idx[:, 1]]
-        ))
+        x = np.hstack((centroids[0, idx[:, 0]], centroids[1, idx[:, 1]]))
 
         # encode / decode
         codes = pq.compute_codes(x)
@@ -64,9 +58,8 @@ class TestProductQuantizer(unittest.TestCase):
         # encode w/ external index
         assign_index = faiss.IndexFlatL2(8)
         pq.assign_index = assign_index
-        codes2 = np.empty((100, pq.code_size), dtype='uint8')
-        pq.compute_codes_with_assign_index(
-            faiss.swig_ptr(x), faiss.swig_ptr(codes2), 100)
+        codes2 = np.empty((100, pq.code_size), dtype="uint8")
+        pq.compute_codes_with_assign_index(faiss.swig_ptr(x), faiss.swig_ptr(codes2), 100)
         assert np.all(codes == codes2)
 
     def test_codec(self):
@@ -76,12 +69,11 @@ class TestProductQuantizer(unittest.TestCase):
 
 
 class TestPQTransposedCentroids(unittest.TestCase):
-
     def do_test(self, d, dsub):
         M = d // dsub
         pq = faiss.ProductQuantizer(d, M, 8)
         xt = faiss.randn((max(1000, pq.ksub * 50), d), 123)
-        pq.cp.niter = 4    # to avoid timeouts in tests
+        pq.cp.niter = 4  # to avoid timeouts in tests
         pq.train(xt)
 
         codes = pq.compute_codes(xt)
@@ -114,7 +106,6 @@ class TestPQTransposedCentroids(unittest.TestCase):
 
 
 class TestPQTables(unittest.TestCase):
-
     def do_test(self, d, dsub, nbit=8, metric=None):
         if metric is None:
             self.do_test(d, dsub, nbit, faiss.METRIC_INNER_PRODUCT)
@@ -125,7 +116,7 @@ class TestPQTables(unittest.TestCase):
         M = d // dsub
         pq = faiss.ProductQuantizer(d, M, nbit)
         xt = faiss.randn((max(1000, pq.ksub * 50), d), 123)
-        pq.cp.niter = 4    # to avoid timeouts in tests
+        pq.cp.niter = 4  # to avoid timeouts in tests
         pq.train(xt)
 
         centroids = faiss.vector_to_array(pq.centroids)
@@ -188,7 +179,7 @@ class TestPQTables(unittest.TestCase):
         self.do_test(36, 4)
 
     # too slow
-    #def test_12bit(self):
+    # def test_12bit(self):
     #    self.do_test(32, 4, nbit=12)
 
     def test_4bit(self):

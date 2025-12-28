@@ -424,7 +424,7 @@ main(int argc, char **argv)
 
 	if (!options.mmap_pages)
 		options.mmap_pages = 1;
-	
+
 	if (options.cpu == -1)
 		options.cpu = random() % sysconf(_SC_NPROCESSORS_ONLN);
 

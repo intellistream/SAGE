@@ -43,4 +43,3 @@ float test_sp_scalar_VEC_FMA_48( uint64 iterations );
 double test_dp_scalar_VEC_FMA_12( uint64 iterations );
 double test_dp_scalar_VEC_FMA_24( uint64 iterations );
 double test_dp_scalar_VEC_FMA_48( uint64 iterations );
-

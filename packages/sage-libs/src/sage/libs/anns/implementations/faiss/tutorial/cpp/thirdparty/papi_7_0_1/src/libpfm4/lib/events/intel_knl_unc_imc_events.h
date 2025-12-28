@@ -64,5 +64,3 @@ static const intel_x86_entry_t intel_knl_unc_imc_uclk_pe[]={
     .cntmsk = 0xf,
   },
 };
-
-

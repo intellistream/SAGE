@@ -2,7 +2,7 @@
 .ad l
 .nh
 .SH NAME
-PAPI_event_info_t \- 
+PAPI_event_info_t \-
 .SH SYNOPSIS
 .br
 .PP
@@ -68,77 +68,77 @@ PAPI_event_info_t \-
 .br
 .in -1c
 .SH "Field Documentation"
-.PP 
+.PP
 .SS "unsigned int PAPI_event_info_t::code[12]"
 array of values that further describe the event:
 .IP "\(bu" 2
 presets: native event_code values
 .IP "\(bu" 2
-native:, register values(?) 
+native:, register values(?)
 .PP
 
 .SS "int PAPI_event_info_t::component_index"
-component this event belongs to 
+component this event belongs to
 .SS "unsigned int PAPI_event_info_t::count"
 number of terms (usually 1) in the code and name fields
 .IP "\(bu" 2
 presets: these are native events
 .IP "\(bu" 2
-native: these are unused 
+native: these are unused
 .PP
 
 .SS "int PAPI_event_info_t::data_type"
-data type returned by PAPI 
+data type returned by PAPI
 .SS "char PAPI_event_info_t::derived[64]"
 name of the derived type
 .IP "\(bu" 2
 presets: usually NOT_DERIVED
 .IP "\(bu" 2
-native: empty string 
+native: empty string
 .PP
 
 .SS "unsigned int PAPI_event_info_t::event_code"
-preset (0x8xxxxxxx) or native (0x4xxxxxxx) event code 
+preset (0x8xxxxxxx) or native (0x4xxxxxxx) event code
 .SS "unsigned int PAPI_event_info_t::event_type"
-event type or category for preset events only 
+event type or category for preset events only
 .SS "int PAPI_event_info_t::location"
-location event applies to 
+location event applies to
 .SS "char PAPI_event_info_t::long_descr[1024]"
-a longer description: typically a sentence for presets, possibly a paragraph from vendor docs for native events 
+a longer description: typically a sentence for presets, possibly a paragraph from vendor docs for native events
 .SS "char PAPI_event_info_t::name[12][256]"
 < names of code terms: - presets: native event names,
 .IP "\(bu" 2
-native: descriptive strings for each register value(?) 
+native: descriptive strings for each register value(?)
 .PP
 
 .SS "char PAPI_event_info_t::note[1024]"
 
 .PP
 .nf
-  an optional developer note 
+  an optional developer note
                     supplied with a preset event
-                    to delineate platform specific 
+                    to delineate platform specific
 
 .fi
 .PP
- anomalies or restrictions 
+ anomalies or restrictions
 .SS "char PAPI_event_info_t::postfix[256]"
-string containing postfix operations; only defined for preset events of derived type DERIVED_POSTFIX 
+string containing postfix operations; only defined for preset events of derived type DERIVED_POSTFIX
 .SS "char PAPI_event_info_t::short_descr[64]"
-a short description suitable for use as a label 
+a short description suitable for use as a label
 .SS "char PAPI_event_info_t::symbol[1024]"
-name of the event 
+name of the event
 .SS "int PAPI_event_info_t::timescope"
-from start, etc\&. 
+from start, etc\&.
 .SS "char PAPI_event_info_t::units[64]"
-units event is measured in 
+units event is measured in
 .SS "int PAPI_event_info_t::update_freq"
-how frequently event is updated 
+how frequently event is updated
 .SS "int PAPI_event_info_t::update_type"
-how event is updated 
+how event is updated
 .SS "int PAPI_event_info_t::value_type"
-sum or absolute 
+sum or absolute
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

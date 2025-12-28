@@ -2,36 +2,36 @@
 .ad l
 .nh
 .SH NAME
-PAPI_num_events \- 
+PAPI_num_events \-
 .PP
-Return the number of events in an event set\&.  
+Return the number of events in an event set\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 \fBPAPI_num_events()\fP returns the number of preset and/or native events contained in an event set\&. The event set should be created by \fBPAPI_create_eventset\fP \&.
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 int \fBPAPI_num_events(int  EventSet )\fP;
 .RE
 .PP
 \fBParameters:\fP
 .RS 4
-\fIEventSet\fP -- an integer handle for a PAPI event set created by \fBPAPI_create_eventset\fP\&. 
+\fIEventSet\fP -- an integer handle for a PAPI event set created by \fBPAPI_create_eventset\fP\&.
 .br
 \fI*count\fP -- (Fortran only) On output the variable contains the number of events in the event set
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIOn\fP success, this function returns the positive number of events in the event set\&. 
+\fIOn\fP success, this function returns the positive number of events in the event set\&.
 .br
-\fIPAPI_EINVAL\fP The event count is zero; only if code is compiled with debug enabled\&. 
+\fIPAPI_EINVAL\fP The event count is zero; only if code is compiled with debug enabled\&.
 .br
 \fIPAPI_ENOEVST\fP The EventSet specified does not exist\&.
 .RE
@@ -41,7 +41,7 @@ int \fBPAPI_num_events(int  EventSet )\fP;
 
 .PP
 .nf
-// Count the events in our EventSet 
+// Count the events in our EventSet
 printf(\"%d events found in EventSet\&.\\n\", PAPI_num_events(EventSet));
 
 .fi
@@ -50,13 +50,13 @@ printf(\"%d events found in EventSet\&.\\n\", PAPI_num_events(EventSet));
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_add_event\fP 
+\fBPAPI_add_event\fP
 .PP
-\fBPAPI_create_eventset\fP 
+\fBPAPI_create_eventset\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

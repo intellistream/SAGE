@@ -46,7 +46,7 @@ typedef struct {
 	int		uflags;	/* umask options */
 	int		grpid;	/* group identifier */
 } perf_umask_t;
-	
+
 typedef struct {
 	const char	*name;			/* name */
 	const char	*desc;			/* description */
@@ -279,7 +279,7 @@ retry:
 		return perf_pe_free++;
 
 	perf_pe_count += PERF_ALLOC_EVENT_COUNT;
-	
+
 	/*
 	 * compute number of free events left
 	 * before realloc() to avoid compiler warning (use-after-free)
@@ -290,9 +290,9 @@ retry:
 	num_free = perf_pe_free - perf_pe;
 
 	new_pe = realloc(perf_pe, perf_pe_count * sizeof(perf_event_t));
-	if (!new_pe) 
+	if (!new_pe)
 		return NULL;
-	
+
 	perf_pe_free = new_pe + num_free;
 	perf_pe_end = perf_pe_free + PERF_ALLOC_EVENT_COUNT;
 	perf_pe = new_pe;
@@ -335,9 +335,9 @@ retry:
 	 */
 	num_free = perf_um_free - perf_um;
 	new_um = realloc(perf_um, perf_um_count * sizeof(*new_um));
-	if (!new_um) 
+	if (!new_um)
 		return NULL;
-	
+
 	perf_um_free = new_um + num_free;
 	perf_um_end = perf_um_free + PERF_ALLOC_UMASK_COUNT;
 	perf_um = new_um;

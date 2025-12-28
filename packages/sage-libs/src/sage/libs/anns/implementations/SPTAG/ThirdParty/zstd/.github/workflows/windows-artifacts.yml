@@ -2,10 +2,10 @@ name: windows-artifacts
 
 on:
   push:
-    branches: [ test_artifacts, win_artifacts ]
+    branches: [test_artifacts, win_artifacts]
   release:
     types:
-      - published
+    - published
 
 permissions: read-all
 
@@ -17,8 +17,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { msystem: mingw64, env: x86_64, ziparch: win64 }
-          - { msystem: mingw32, env: i686, ziparch: win32 }
+        - {msystem: mingw64, env: x86_64, ziparch: win64}
+        - {msystem: mingw32, env: i686, ziparch: win32}
     defaults:
       run:
         shell: msys2 {0}

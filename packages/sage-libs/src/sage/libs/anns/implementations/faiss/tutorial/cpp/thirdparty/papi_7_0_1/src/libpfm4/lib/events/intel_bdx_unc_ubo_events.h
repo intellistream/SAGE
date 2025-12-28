@@ -67,4 +67,3 @@ static intel_x86_entry_t intel_bdx_unc_u_pe[]={
     .cntmsk = 0x3,
   },
 };
-

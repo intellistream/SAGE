@@ -26,7 +26,7 @@
 namespace puck{
 
 u_int32_t s_split(const std::string& input_stream, const std::string& pattern, std::vector<std::string>& ret) {
-    
+
     //在字符串末尾也加入分隔符，方便截取最后一段
     std::string strs = input_stream + pattern;
     size_t pos = strs.find(pattern);
@@ -47,4 +47,3 @@ u_int32_t s_split(const std::string& input_stream, const std::string& pattern, s
     return ret.size();
 }
 }
-

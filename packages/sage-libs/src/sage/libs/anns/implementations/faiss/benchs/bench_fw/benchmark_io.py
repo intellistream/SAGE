@@ -10,11 +10,10 @@ import logging
 import os
 import pickle
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, Optional
 from zipfile import ZipFile
 
 import faiss  # @manual=//faiss/python:pyfaiss_gpu
-
 import numpy as np
 from faiss.contrib.datasets import (  # @manual=//faiss/contrib:faiss_contrib_gpu
     dataset_from_name,
@@ -52,9 +51,7 @@ class BenchmarkIO:
     def get_local_filename(self, filename):
         if len(filename) > 184:
             fn, ext = os.path.splitext(filename)
-            filename = (
-                fn[:184] + hashlib.sha256(filename.encode()).hexdigest() + ext
-            )
+            filename = fn[:184] + hashlib.sha256(filename.encode()).hexdigest() + ext
         return os.path.join(self.path, filename)
 
     def download_file_from_blobstore(
@@ -80,7 +77,7 @@ class BenchmarkIO:
         logger.info(f"{filename} {exists=}")
         return exists
 
-    def read_file(self, filename: str, keys: List[str]):
+    def read_file(self, filename: str, keys: list[str]):
         fn = self.download_file_from_blobstore(filename)
         logger.info(f"Loading file {fn}")
         results = []
@@ -99,8 +96,8 @@ class BenchmarkIO:
     def write_file(
         self,
         filename: str,
-        keys: List[str],
-        values: List[Any],
+        keys: list[str],
+        values: list[Any],
         overwrite: bool = False,
     ):
         fn = self.get_local_filename(filename)
@@ -180,7 +177,7 @@ class BenchmarkIO:
     ):
         fn = self.download_file_from_blobstore(filename)
         logger.info(f"Loading json {fn}")
-        with open(fn, "r") as fp:
+        with open(fn) as fp:
             json_dict = json.load(fp)
         logger.info(f"Loaded json {json_dict} from {fn}")
         return json_dict

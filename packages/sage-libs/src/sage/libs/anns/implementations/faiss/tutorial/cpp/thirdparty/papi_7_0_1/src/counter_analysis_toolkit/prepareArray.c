@@ -62,7 +62,7 @@ static void _prepareArray_sections_random(uintptr_t *array, int len, int stride,
 
         for(i=0; i<maxElemCnt; i++)
             availableNumbers[i] = i;
- 
+
         currElemCnt = currSecSize/stride;
 
         taken = 0;
@@ -89,7 +89,7 @@ static void _prepareArray_sections_random(uintptr_t *array, int len, int stride,
     // close the circle by pointing the last element to the start
     next = &array[0];
     *p = next;
-    
+
     return;
 }
 
@@ -104,7 +104,7 @@ static void _prepareArray_sequential(uintptr_t *array, int len, int stride){
 
     p = (uintptr_t **)&array[0];
 
-    // As many times as there are elements that should be filled up in the array 
+    // As many times as there are elements that should be filled up in the array
     for(curr=0; curr<len; curr+=stride){
         next = &array[curr];
         *p = next;
@@ -113,7 +113,6 @@ static void _prepareArray_sequential(uintptr_t *array, int len, int stride){
     // close the circle by pointing the last element to the start
     next = &array[0];
     *p = next;
-    
+
     return;
 }
-

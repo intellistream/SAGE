@@ -1854,7 +1854,7 @@ class ControlPlaneManager:
         except ImportError as e:
             raise ImportError(
                 "FinetuneEngine requires sage-llm-core[finetune]. "
-                f"Install with: pip install sage-llm-core[finetune]"
+                "Install with: pip install sage-llm-core[finetune]"
             ) from e
 
         logger.info(

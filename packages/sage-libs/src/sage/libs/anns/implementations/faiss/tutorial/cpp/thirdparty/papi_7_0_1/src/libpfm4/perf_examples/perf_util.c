@@ -196,7 +196,7 @@ perf_read_buffer(perf_event_desc_t *hw, void *buf, size_t sz)
 	void *data;
 	unsigned long tail;
 	size_t avail_sz, m, c;
-	
+
 	/*
 	 * data points to beginning of buffer payload
 	 */

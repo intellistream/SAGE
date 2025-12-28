@@ -122,7 +122,7 @@ static const arm_entry_t arm_cortex_a9_pe []={
 	{.name = "COHERENT_LINE_MISS",
 	 .code = 0x50,
 	 .desc = "Coherent linefill misses which also miss on other processors"
-	},     
+	},
 	{.name = "COHERENT_LINE_HIT",
 	 .code = 0x51,
 	 .desc = "Coherent linefill requests that hit on another processor"
@@ -138,7 +138,7 @@ static const arm_entry_t arm_cortex_a9_pe []={
 	{.name = "TLB_MISS_DEP_STALL_CYCLES",
 	 .code = 0x62,
 	 .desc = "Cycles processor is stalled waiting for completion of TLB walk (approximate)"
-	},     
+	},
 	{.name = "STREX_EXECUTED_PASSED",
 	 .code = 0x63,
 	 .desc = "Number of STREX instructions executed and passed"
@@ -158,7 +158,7 @@ static const arm_entry_t arm_cortex_a9_pe []={
 	{.name = "ISSUE_STAGE_EMPTY",
 	 .code = 0x67,
 	 .desc = "Cycles where issue stage is empty"
-	},  
+	},
 	{.name = "INST_OUT_OF_RENAME_STAGE",
 	 .code = 0x68,
 	 .desc = "Number of instructions going through register renaming stage (approximate)"
@@ -206,11 +206,11 @@ static const arm_entry_t arm_cortex_a9_pe []={
 	{.name = "MICRO_ITLB_MISS_DEP_STALL_CYCLES",
 	 .code = 0x84,
 	 .desc = "Cycles stalled due to micro instruction TLB miss (approximate)"
-	},  
+	},
 	{.name = "MICRO_DTLB_MISS_DEP_STALL_CYCLES",
 	 .code = 0x85,
 	 .desc = "Cycles stalled due to micro data TLB miss (approximate)"
-	},     
+	},
 	{.name = "DMB_DEP_STALL_CYCLES",
 	 .code = 0x86,
 	 .desc = "Cycles stalled due to DMB memory barrier (approximate)"
@@ -222,7 +222,7 @@ static const arm_entry_t arm_cortex_a9_pe []={
 	{.name = "DATA_ENGINE_CLK_EN_CYCLES",
 	 .code = 0x8b,
 	 .desc = "Cycles during which Data Engine clock is enabled (approximate)"
-	},     
+	},
 	{.name = "ISB_INST",
 	 .code = 0x90,
 	 .desc = "Number of ISB instructions architecturally executed"

@@ -51,7 +51,7 @@ void test(int high) {
 
 template <typename T>
 void test_dist_calc_performance(
-    int high, 
+    int high,
     SPTAG::DimensionType dimension = 256,
     SPTAG::SizeType size = 100,
     SPTAG::DistCalcMethod calc_method = SPTAG::DistCalcMethod::L2)

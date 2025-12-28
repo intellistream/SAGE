@@ -111,7 +111,7 @@ void do_setup(const struct perfctr_info *info,
       default:
 	printf("%s: unsupported cpu type %u\n", __FUNCTION__, info->cpu_type);
 	exit(1);
-    }	
+    }
     cpu_control->tsc_on = 1;
     cpu_control->nractrs = nractrs;
     cpu_control->nrictrs = 2;

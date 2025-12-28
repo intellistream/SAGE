@@ -32,7 +32,7 @@
 pfmlib_pmu_t sparc_ultra12_support={
 	.desc			= "Ultra Sparc I/II",
 	.name			= "ultra12",
-	.pmu			= PFM_PMU_SPARC_ULTRA12, 
+	.pmu			= PFM_PMU_SPARC_ULTRA12,
 	.pme_count		= LIBPFM_ARRAY_SIZE(ultra12_pe),
 	.type			= PFM_PMU_TYPE_CORE,
 	.supported_plm		= SPARC_PLM,

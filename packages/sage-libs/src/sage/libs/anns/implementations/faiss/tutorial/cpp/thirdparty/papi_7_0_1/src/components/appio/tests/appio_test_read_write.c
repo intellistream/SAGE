@@ -1,8 +1,8 @@
-/* 
+/*
  * Test case for appio
  * Author: Tushar Mohan
  *         tusharmohan@gmail.com
- * 
+ *
  * Description: This test case reads from standard linux /etc/group
  *              and writes the output to  stdout.
  *              Statistics are printed at the end of the run.
@@ -18,9 +18,9 @@
 
 #include "papi.h"
 #include "papi_test.h"
- 
+
 #define NUM_EVENTS 12
- 
+
 int main(int argc, char** argv) {
   int EventSet = PAPI_NULL;
   const char* names[NUM_EVENTS] = {"OPEN_CALLS", "OPEN_FDS", "READ_CALLS", "READ_BYTES", "READ_USEC", "READ_ERR", "READ_INTERRUPTED", "READ_WOULD_BLOCK", "WRITE_CALLS","WRITE_BYTES","WRITE_USEC","WRITE_WOULD_BLOCK"};
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
   int bytes = 0;
   char buf[1024];
 
- 
+
 //if (PAPI_read(EventSet, values) != PAPI_OK)
 //   handle_error(1);
 //printf("After reading the counters: %lld\n",values[0]);

@@ -26,4 +26,3 @@
 #define _PFMLIB_POWERPC_PRIV_H_
 
 #endif
-

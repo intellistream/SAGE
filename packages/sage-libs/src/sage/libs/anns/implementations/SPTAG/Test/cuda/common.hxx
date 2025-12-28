@@ -5,7 +5,7 @@
 #define CHECK_ERRS(errs) \
   if(errs > 0) {          \
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "%d errors found\n", errs); \
-  }         
+  }
 
 #define CHECK_VAL(val,exp,errs) \
   if(val != exp) { \
@@ -47,7 +47,7 @@ T* create_dataset(size_t rows, int dim) {
     else if(std::is_same<T,int8_t>::value) {
       h_data[i] = static_cast<T>((rand()%127));
     }
-  } 
+  }
   return h_data;
 }
 /*

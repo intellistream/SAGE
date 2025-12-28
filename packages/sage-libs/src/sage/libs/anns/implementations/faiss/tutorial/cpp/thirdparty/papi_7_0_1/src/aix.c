@@ -1,5 +1,5 @@
 /* This file handles the OS dependent part of the POWER5 and POWER6 architectures.
-  It supports both AIX 4 and AIX 5. The switch between AIX 4 and 5 is driven by the 
+  It supports both AIX 4 and AIX 5. The switch between AIX 4 and 5 is driven by the
   system defined value _AIX_VERSION_510.
   Other routines also include minor conditionally compiled differences.
 */
@@ -24,9 +24,9 @@ papi_vector_t _aix_vector;
 volatile int lock_var[PAPI_MAX_LOCK] = {0};
 atomic_p lock[PAPI_MAX_LOCK];
 
-/* 
+/*
  some heap information, start_of_text, start_of_data .....
- ref: http://publibn.boulder.ibm.com/doc_link/en_US/a_doc_lib/aixprggd/genprogc/sys_mem_alloc.htm#HDRA9E4A4C9921SYLV 
+ ref: http://publibn.boulder.ibm.com/doc_link/en_US/a_doc_lib/aixprggd/genprogc/sys_mem_alloc.htm#HDRA9E4A4C9921SYLV
 */
 #define START_OF_TEXT &_text
 #define END_OF_TEXT   &_etext
@@ -609,8 +609,8 @@ _aix_get_system_info(papi_mdi_t *mdi) {
   _aix_vector.cmp_info.num_mpx_cntrs = MAX_MPX_COUNTERS;   // pminfo.maxpmcs,
 
   _aix_vector.cmp_info.available_granularities = PAPI_GRN_THR;
-/* This field doesn't appear to exist in the PAPI 3.0 structure 
-  _papi_hwi_system_info.cpunum = mycpu(); 
+/* This field doesn't appear to exist in the PAPI 3.0 structure
+  _papi_hwi_system_info.cpunum = mycpu();
 */
   _aix_vector.cmp_info.available_domains = init_domain();
   return PAPI_OK;
@@ -618,7 +618,7 @@ _aix_get_system_info(papi_mdi_t *mdi) {
 
 /* Low level functions, should not handle errors, just return codes. */
 
-/* At init time, the higher level library should always allocate and 
+/* At init time, the higher level library should always allocate and
    reserve EventSet zero. */
 
 long long
@@ -823,14 +823,14 @@ round_requested_ns(int ns) {
 int
 _aix_ctl(hwd_context_t *ctx, int code, _papi_int_option_t *option) {
   switch (code) {
-/* I don't understand what it means to set the default domain 
+/* I don't understand what it means to set the default domain
     case PAPI_DEFDOM:
       return(set_default_domain(zero, option->domain.domain));
 */
     case PAPI_DOMAIN:
       return (_aix_set_domain
           (option->domain.ESI->ctl_state, option->domain.domain));
-/* I don't understand what it means to set the default granularity 
+/* I don't understand what it means to set the default granularity
     case PAPI_DEFGRN:
       return(set_default_granularity(zero, option->granularity.granularity));
 */

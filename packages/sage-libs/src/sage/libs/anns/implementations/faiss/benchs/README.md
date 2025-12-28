@@ -1,8 +1,7 @@
-
 # Benchmarking scripts
 
-This directory contains benchmarking scripts that can reproduce the
-numbers reported in the two papers
+This directory contains benchmarking scripts that can reproduce the numbers reported in the two
+papers
 
 ```
 @inproceedings{DJP16,
@@ -13,6 +12,7 @@ numbers reported in the two papers
   Year = {2016}
 }
 ```
+
 and
 
 ```
@@ -24,9 +24,11 @@ and
 }
 ```
 
-Note that the numbers (especially timings) change slightly due to changes in the implementation, different machines, etc.
+Note that the numbers (especially timings) change slightly due to changes in the implementation,
+different machines, etc.
 
-The scripts are self-contained. They depend only on Faiss and external training data that should be stored in sub-directories.
+The scripts are self-contained. They depend only on Faiss and external training data that should be
+stored in sub-directories.
 
 ## SIFT1M experiments
 
@@ -61,17 +63,14 @@ Polysemous 34      1.334 ms per query, R@1 0.2661
 Polysemous 30      1.272 ms per query, R@1 0.1794
 ```
 
-
 ## Experiments on 1B elements dataset
 
-The script [`bench_polysemous_1bn.py`](bench_polysemous_1bn.py) reproduces a few experiments on
-two datasets of size 1B from the Polysemous codes" paper.
-
+The script [`bench_polysemous_1bn.py`](bench_polysemous_1bn.py) reproduces a few experiments on two
+datasets of size 1B from the Polysemous codes" paper.
 
 ### Getting BIGANN
 
-Download the four files of ANN_SIFT1B from
-http://corpus-texmex.irisa.fr/ to subdirectory bigann/
+Download the four files of ANN_SIFT1B from http://corpus-texmex.irisa.fr/ to subdirectory bigann/
 
 ### Getting Deep1B
 
@@ -83,19 +82,23 @@ For the learning and database vectors, use the script
 
 https://github.com/arbabenko/GNOIMI/blob/master/downloadDeep1B.py
 
-to download the data to subdirectory deep1b/, then concatenate the
-database files to base.fvecs and the training files to learn.fvecs
+to download the data to subdirectory deep1b/, then concatenate the database files to base.fvecs and
+the training files to learn.fvecs
 
 ### Running the experiments
 
-These experiments are quite long. To support resuming, the script
-stores the result of training to a temporary directory, `/tmp/bench_polysemous`.
+These experiments are quite long. To support resuming, the script stores the result of training to a
+temporary directory, `/tmp/bench_polysemous`.
 
 The script `bench_polysemous_1bn.py` takes at least two arguments:
 
-- the dataset name: SIFT1000M (aka SIFT1B, aka BIGANN) or Deep1B. SIFT1M, SIFT2M,... are also supported to make subsets of for small experiments (note that SIFT1M as a subset of SIFT1B is not the same as the SIFT1M above)
+- the dataset name: SIFT1000M (aka SIFT1B, aka BIGANN) or Deep1B. SIFT1M, SIFT2M,... are also
+  supported to make subsets of for small experiments (note that SIFT1M as a subset of SIFT1B is not
+  the same as the SIFT1M above)
 
-- the type of index to build, which should be a valid [index_factory key](https://github.com/facebookresearch/faiss/wiki/High-level-interface-and-auto-tuning#index-factory) (see below for examples)
+- the type of index to build, which should be a valid
+  [index_factory key](https://github.com/facebookresearch/faiss/wiki/High-level-interface-and-auto-tuning#index-factory)
+  (see below for examples)
 
 - the remaining arguments are parsed as search-time parameters.
 
@@ -107,9 +110,10 @@ The `IMI*+PolyD+ADC` results in Table 2 can be reproduced with (for 16 bytes):
 python bench_polysemous_1bn.par SIFT1000M IMI2x12,PQ16 nprobe=16,max_codes={10000,30000},ht={44..54}
 ```
 
-Training takes about 2 minutes and adding vectors to the dataset
-takes 3.1 h. These operations are multithreaded. Note that in the command
-above, we use bash's [brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html) to set a grid of parameters.
+Training takes about 2 minutes and adding vectors to the dataset takes 3.1 h. These operations are
+multithreaded. Note that in the command above, we use bash's
+[brace expansion](https://www.gnu.org/software/bash/manual/html_node/Brace-Expansion.html) to set a
+grid of parameters.
 
 The search is *not* multithreaded, and the output looks like:
 
@@ -139,7 +143,8 @@ nprobe=16,max_codes=30000,ht=53         0.2265 0.4544 0.4965    0.294   35.34
 nprobe=16,max_codes=30000,ht=54         0.2278 0.4601 0.5031    0.303   39.20
 ```
 
-The result reported in table 2 is the one for which the %pass (percentage of code comparisons that pass the Hamming check) is around 20%, which occurs for Hamming threshold `ht=48`.
+The result reported in table 2 is the one for which the %pass (percentage of code comparisons that
+pass the Hamming check) is around 20%, which occurs for Hamming threshold `ht=48`.
 
 The 8-byte results can be reproduced with the factory key `IMI2x12,PQ8`
 
@@ -156,9 +161,13 @@ nprobe=1,ht=20 	0.0351 0.0616 0.0751    0.158   19.01
 nprobe=32,ht=28 	0.1256 0.3563 0.5026    0.561   52.61
 ...
 ```
-Here again the runs are not exactly the same but the original result was obtained from nprobe=32,ht=28.
 
-For Deep1B, we used a simple version of [auto-tuning](https://github.com/facebookresearch/faiss/wiki/High-level-interface-and-auto-tuning/_edit#auto-tuning-the-runtime-parameters) to sweep through the set of operating points:
+Here again the runs are not exactly the same but the original result was obtained from
+nprobe=32,ht=28.
+
+For Deep1B, we used a simple version of
+[auto-tuning](https://github.com/facebookresearch/faiss/wiki/High-level-interface-and-auto-tuning/_edit#auto-tuning-the-runtime-parameters)
+to sweep through the set of operating points:
 
 ```
 python bench_polysemous_1bn.py Deep1B OPQ20_80,IMI2x14,PQ20 autotune
@@ -174,18 +183,22 @@ nprobe=1024,ht=80,max_codes=131072        0.4557   46.363
 nprobe=1024,ht=78,max_codes=262144        0.4616   61.939
 ...
 ```
-The original results were obtained with `nprobe=1024,ht=66,max_codes=262144`.
 
+The original results were obtained with `nprobe=1024,ht=66,max_codes=262144`.
 
 ## GPU experiments
 
-The benchmarks below run 1 or 4 Titan X GPUs and reproduce the results of the "GPU paper". They are also a good starting point on how to use GPU Faiss.
+The benchmarks below run 1 or 4 Titan X GPUs and reproduce the results of the "GPU paper". They are
+also a good starting point on how to use GPU Faiss.
 
 ### Search on SIFT1M
 
-See above on how to get SIFT1M into subdirectory sift1M/. The script [`bench_gpu_sift1m.py`](bench_gpu_sift1m.py) reproduces the "exact k-NN time" plot in the ArXiv paper, and the SIFT1M numbers.
+See above on how to get SIFT1M into subdirectory sift1M/. The script
+[`bench_gpu_sift1m.py`](bench_gpu_sift1m.py) reproduces the "exact k-NN time" plot in the ArXiv
+paper, and the SIFT1M numbers.
 
 The output is:
+
 ```
 ============ Exact search
 add vectors to index
@@ -220,13 +233,19 @@ nprobe= 128 0.395 s recalls= 0.8205 0.9953 0.9954
 nprobe= 256 0.717 s recalls= 0.8227 0.9993 0.9994
 nprobe= 512 1.348 s recalls= 0.8228 0.9999 1.0000
 ```
+
 The run produces two warnings:
 
-- the clustering complains that it does not have enough training data, there is not much we can do about this.
+- the clustering complains that it does not have enough training data, there is not much we can do
+  about this.
 
-- the add() function complains that there is an inefficient memory allocation, but this is a concern only when it happens often, and we are not benchmarking the add time anyways.
+- the add() function complains that there is an inefficient memory allocation, but this is a concern
+  only when it happens often, and we are not benchmarking the add time anyways.
 
-To index small datasets, it is more efficient to use a `GpuIVFFlat`, which just stores the full vectors in the inverted lists. We did not mention this in the the paper because it is not as scalable. To experiment with this setting, change the `index_factory` string from "IVF4096,PQ64" to "IVF16384,Flat". This gives:
+To index small datasets, it is more efficient to use a `GpuIVFFlat`, which just stores the full
+vectors in the inverted lists. We did not mention this in the the paper because it is not as
+scalable. To experiment with this setting, change the `index_factory` string from "IVF4096,PQ64" to
+"IVF16384,Flat". This gives:
 
 ```
 nprobe=   1 0.025 s recalls= 0.4084 0.4105 0.4105
@@ -243,7 +262,9 @@ nprobe= 512 0.527 s recalls= 0.9907 0.9987 0.9987
 
 ### Clustering on MNIST8m
 
-To get the "infinite MNIST dataset", follow the instructions on [Léon Bottou's website](http://leon.bottou.org/projects/infimnist). The script assumes the file `mnist8m-patterns-idx3-ubyte` is in subdirectory `mnist8m`
+To get the "infinite MNIST dataset", follow the instructions on
+[Léon Bottou's website](http://leon.bottou.org/projects/infimnist). The script assumes the file
+`mnist8m-patterns-idx3-ubyte` is in subdirectory `mnist8m`
 
 The script [`kmeans_mnist.py`](kmeans_mnist.py) produces the following output:
 
@@ -259,9 +280,13 @@ total runtime: 140.615 s
 
 ### search on SIFT1B
 
-The script [`bench_gpu_1bn.py`](bench_gpu_1bn.py) runs multi-gpu searches on the two 1-billion vector datasets we considered. It is more complex than the previous scripts, because it supports many search options and decomposes the dataset build process in Python to exploit the best possible CPU/GPU parallelism and GPU distribution.
+The script [`bench_gpu_1bn.py`](bench_gpu_1bn.py) runs multi-gpu searches on the two 1-billion
+vector datasets we considered. It is more complex than the previous scripts, because it supports
+many search options and decomposes the dataset build process in Python to exploit the best possible
+CPU/GPU parallelism and GPU distribution.
 
-Even on multiple GPUs, building the 1B datasets can last several hours. It is often a good idea to validate that everything is working fine on smaller datasets like SIFT1M, SIFT2M, etc.
+Even on multiple GPUs, building the 1B datasets can last several hours. It is often a good idea to
+validate that everything is working fine on smaller datasets like SIFT1M, SIFT2M, etc.
 
 The search results on SIFT1B in the "GPU paper" can be obtained with
 
@@ -281,7 +306,8 @@ python bench_gpu_1bn.py SIFT1000M OPQ8_32,IVF262144,PQ8 -nnn 10 -ngpu 1 -tempmem
 0/10000 (0.006 s)      probe=256: 1.160 s 1-R@1: 0.1342 1-R@10: 0.4511
 ```
 
-We use the `-tempmem` option to reduce the temporary memory allocation to 1.5G, otherwise the dataset does not fit in GPU memory
+We use the `-tempmem` option to reduce the temporary memory allocation to 1.5G, otherwise the
+dataset does not fit in GPU memory
 
 ### search on Deep1B
 
@@ -302,12 +328,15 @@ python bench_gpu_1bn.py  Deep1B OPQ20_80,IVF262144,PQ20 -nnn 10 -R 2 -ngpu 4 -al
 0/10000 (0.005 s)      probe=256: 0.736 s 1-R@1: 0.4933 1-R@10: 0.8912
 ```
 
-Here we are a bit tight on memory so we disable precomputed tables (`-noptables`) and restrict the amount of temporary memory. The `-altadd` option avoids GPU memory overflows during add.
-
+Here we are a bit tight on memory so we disable precomputed tables (`-noptables`) and restrict the
+amount of temporary memory. The `-altadd` option avoids GPU memory overflows during add.
 
 ### knn-graph on Deep1B
 
-The same script generates the KNN-graph on Deep1B. Note that the inverted file from above will not be re-used because the training sets are different. For the knngraph, the script will first do a pass over the whole dataset to compute the ground-truth knn for a subset of 10k nodes, for evaluation.
+The same script generates the KNN-graph on Deep1B. Note that the inverted file from above will not
+be re-used because the training sets are different. For the knngraph, the script will first do a
+pass over the whole dataset to compute the ground-truth knn for a subset of 10k nodes, for
+evaluation.
 
 ```
 python bench_gpu_1bn.py Deep1B OPQ20_80,IVF262144,PQ20 -nnn 10 -altadd -knngraph  -R 2 -noptables -tempmem $[1<<30] -ngpu 4
@@ -339,23 +368,29 @@ search...
 
 # Additional benchmarks
 
-This directory also contains certain additional benchmarks (and serve as an additional source of examples of how to use the FAISS code).
-Certain tests / benchmarks might be outdated.
+This directory also contains certain additional benchmarks (and serve as an additional source of
+examples of how to use the FAISS code). Certain tests / benchmarks might be outdated.
 
-* bench_6bit_codec.cpp - tests vector codecs for SQ6 quantization on a synthetic dataset
-* bench_cppcontrib_sa_decode.cpp - benchmarks specialized kernels for vector codecs for PQ, IVFPQ and Resudial+PQ on a synthetic dataset
-* bench_for_interrupt.py - evaluates the impact of the interrupt callback handler (which can be triggered from Python code)
-* bench_hamming_computer.cpp - specialized implementations for Hamming distance computations
-* bench_heap_replace.cpp - benchmarks different implementations of certain calls for a Heap data structure
-* bench_hnsw.py - benchmarks HNSW in combination with other ones for SIFT1M dataset
-* bench_index_flat.py - benchmarks IndexFlatL2 on a synthetic dataset
-* bench_index_pq.py - benchmarks PQ on SIFT1M dataset
-* bench_ivf_fastscan_single_query.py - benchmarks a single query for different nprobe levels for IVF{nlist},PQ{M}x4fs on BIGANN dataset
-* bench_ivf_fastscan.py - compares IVF{nlist},PQ{M}x4fs against other indices on SIFT1M dataset
-* bench_ivf_selector.cpp - checks the possible overhead when using faiss::IDSelectorAll interface
-* bench_pairwise_distances.py - benchmarks pairwise distance computation between two synthetic datasets
-* bench_partition.py - benchmarks partitioning functions
-* bench_pq_tables.py - benchmarks ProductQuantizer.compute_inner_prod_tables() and ProductQuantizer.compute_distance_tables() calls
-* bench_quantizer.py - benchmarks various quantizers for SIFT1M, Deep1B, BigANN datasets
-* bench_scalar_quantizer.py - benchmarks IVF+SQ on a Sift1M dataset
-* bench_vector_ops.py - benchmarks dot product and distances computations on a synthetic dataset
+- bench_6bit_codec.cpp - tests vector codecs for SQ6 quantization on a synthetic dataset
+- bench_cppcontrib_sa_decode.cpp - benchmarks specialized kernels for vector codecs for PQ, IVFPQ
+  and Resudial+PQ on a synthetic dataset
+- bench_for_interrupt.py - evaluates the impact of the interrupt callback handler (which can be
+  triggered from Python code)
+- bench_hamming_computer.cpp - specialized implementations for Hamming distance computations
+- bench_heap_replace.cpp - benchmarks different implementations of certain calls for a Heap data
+  structure
+- bench_hnsw.py - benchmarks HNSW in combination with other ones for SIFT1M dataset
+- bench_index_flat.py - benchmarks IndexFlatL2 on a synthetic dataset
+- bench_index_pq.py - benchmarks PQ on SIFT1M dataset
+- bench_ivf_fastscan_single_query.py - benchmarks a single query for different nprobe levels for
+  IVF{nlist},PQ{M}x4fs on BIGANN dataset
+- bench_ivf_fastscan.py - compares IVF{nlist},PQ{M}x4fs against other indices on SIFT1M dataset
+- bench_ivf_selector.cpp - checks the possible overhead when using faiss::IDSelectorAll interface
+- bench_pairwise_distances.py - benchmarks pairwise distance computation between two synthetic
+  datasets
+- bench_partition.py - benchmarks partitioning functions
+- bench_pq_tables.py - benchmarks ProductQuantizer.compute_inner_prod_tables() and
+  ProductQuantizer.compute_distance_tables() calls
+- bench_quantizer.py - benchmarks various quantizers for SIFT1M, Deep1B, BigANN datasets
+- bench_scalar_quantizer.py - benchmarks IVF+SQ on a Sift1M dataset
+- bench_vector_ops.py - benchmarks dot product and distances computations on a synthetic dataset

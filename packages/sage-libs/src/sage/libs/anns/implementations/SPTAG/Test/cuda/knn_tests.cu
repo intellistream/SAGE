@@ -94,7 +94,7 @@ int GPUBuildKNNCosineTest(int rows) {
   h_ps.data = d_data;
 
   PointSet<T>* d_ps;
-  
+
   CUDA_CHECK(cudaMalloc(&d_ps, sizeof(PointSet<T>)));
   CUDA_CHECK(cudaMemcpy(d_ps, &h_ps, sizeof(PointSet<T>), cudaMemcpyHostToDevice));
 
@@ -152,7 +152,7 @@ int GPUBuildKNNCosineTest() {
   errors += GPUBuildKNNCosineTest<int8_t, int32_t, 200, 10>(1000);
   errors += GPUBuildKNNCosineTest<int8_t, int32_t, 384, 10>(1000);
   errors += GPUBuildKNNCosineTest<int8_t, int32_t, 1024, 10>(1000);
- 
+
   return errors;
 }
 
@@ -172,7 +172,7 @@ int GPUBuildKNNL2Test(int rows) {
   h_ps.data = d_data;
 
   PointSet<T>* d_ps;
-  
+
   CUDA_CHECK(cudaMalloc(&d_ps, sizeof(PointSet<T>)));
   CUDA_CHECK(cudaMemcpy(d_ps, &h_ps, sizeof(PointSet<T>), cudaMemcpyHostToDevice));
 

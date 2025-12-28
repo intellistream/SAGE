@@ -34,4 +34,3 @@ configure_file (
         "include/papi_config.h.in"
         "include/papi_config.h"
 )
-

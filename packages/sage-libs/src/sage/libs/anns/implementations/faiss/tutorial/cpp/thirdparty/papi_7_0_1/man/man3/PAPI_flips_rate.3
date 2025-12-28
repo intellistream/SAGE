@@ -2,42 +2,42 @@
 .ad l
 .nh
 .SH NAME
-PAPI_flips_rate \- 
+PAPI_flips_rate \-
 .PP
-Simplified call to get Mflips/s (floating point instruction rate), real and processor time\&.  
+Simplified call to get Mflips/s (floating point instruction rate), real and processor time\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface: \fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
 int \fBPAPI_flips_rate( int event, float *rtime, float *ptime, long long *flpins, float *mflips )\fP;
 .RE
 .PP
 \fBParameters:\fP
 .RS 4
-\fIevent\fP one of the three presets PAPI_FP_INS, PAPI_VEC_SP or PAPI_VEC_DP 
+\fIevent\fP one of the three presets PAPI_FP_INS, PAPI_VEC_SP or PAPI_VEC_DP
 .br
-\fI*rtime\fP realtime since the latest call 
+\fI*rtime\fP realtime since the latest call
 .br
-\fI*ptime\fP process time since the latest call 
+\fI*ptime\fP process time since the latest call
 .br
-\fI*flpins\fP floating point instructions since the latest call 
+\fI*flpins\fP floating point instructions since the latest call
 .br
 \fI*mflips\fP incremental (Mega) floating point instructions per seconds since the latest call
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_EINVAL\fP The counters were already started by something other than \fBPAPI_flips_rate()\fP\&. 
+\fIPAPI_EINVAL\fP The counters were already started by something other than \fBPAPI_flips_rate()\fP\&.
 .br
-\fIPAPI_ENOEVNT\fP The floating point instructions event does not exist\&. 
+\fIPAPI_ENOEVNT\fP The floating point instructions event does not exist\&.
 .br
 \fIPAPI_ENOMEM\fP Insufficient memory to complete the operation\&.
 .RE
@@ -50,15 +50,15 @@ Subsequent calls will read the counters and return real time, process time, floa
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_flops_rate()\fP 
+\fBPAPI_flops_rate()\fP
 .PP
-\fBPAPI_ipc()\fP 
+\fBPAPI_ipc()\fP
 .PP
-\fBPAPI_epc()\fP 
+\fBPAPI_epc()\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

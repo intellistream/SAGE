@@ -2,13 +2,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
-import numpy as np
-import faiss
-from typing import List
-import random
 import logging
+import os
+import random
 from functools import lru_cache
+
+import faiss
+import numpy as np
 
 
 def create_dataset_from_oivf_config(cfg, ds_name):
@@ -16,9 +16,7 @@ def create_dataset_from_oivf_config(cfg, ds_name):
     return MultiFileVectorDataset(
         cfg["datasets"][ds_name]["root"],
         [
-            FileDescriptor(
-                f["name"], f["format"], np.dtype(f["dtype"]), f["size"]
-            )
+            FileDescriptor(f["name"], f["format"], np.dtype(f["dtype"]), f["size"])
             for f in cfg["datasets"][ds_name]["files"]
         ],
         cfg["d"],
@@ -28,9 +26,7 @@ def create_dataset_from_oivf_config(cfg, ds_name):
 
 
 @lru_cache(maxsize=100)
-def _memmap_vecs(
-    file_name: str, format: str, dtype: np.dtype, size: int, d: int
-) -> np.array:
+def _memmap_vecs(file_name: str, format: str, dtype: np.dtype, size: int, d: int) -> np.array:
     """
     If the file is in raw format, the file size will
     be divisible by the dimensionality and by the size
@@ -68,7 +64,7 @@ class MultiFileVectorDataset:
     def __init__(
         self,
         root: str,
-        file_descriptors: List[FileDescriptor],
+        file_descriptors: list[FileDescriptor],
         d: int,
         normalize: bool,
         size: int,
@@ -82,14 +78,10 @@ class MultiFileVectorDataset:
         self.file_offsets = [0]
         t = 0
         for f in self.file_descriptors:
-            xb = _memmap_vecs(
-                f"{self.root}/{f.name}", f.format, f.dtype, f.size, self.d
-            )
+            xb = _memmap_vecs(f"{self.root}/{f.name}", f.format, f.dtype, f.size, self.d)
             t += xb.shape[0]
             self.file_offsets.append(t)
-        assert (
-            t == self.size
-        ), "the sum of num of embeddings per file!=total num of embeddings"
+        assert t == self.size, "the sum of num of embeddings per file!=total num of embeddings"
 
     def iterate(self, start: int, batch_size: int, dt: np.dtype):
         buffer = np.empty(shape=(batch_size, self.d), dtype=dt)
@@ -133,7 +125,7 @@ class MultiFileVectorDataset:
                 faiss.normalize_L2(tmp)
             yield tmp
 
-    def get(self, idx: List[int]):
+    def get(self, idx: list[int]):
         n = len(idx)
         fidx = np.searchsorted(self.file_offsets, idx, "right")
         res = np.empty(shape=(len(idx), self.d), dtype=np.float32)
@@ -141,9 +133,7 @@ class MultiFileVectorDataset:
             assert fid > 0 and fid <= len(self.file_descriptors), f"{fid}"
             f = self.file_descriptors[fid - 1]
             # deferring normalization until after reading the vec
-            vecs = _memmap_vecs(
-                f"{self.root}/{f.name}", f.format, f.dtype, f.size, self.d
-            )
+            vecs = _memmap_vecs(f"{self.root}/{f.name}", f.format, f.dtype, f.size, self.d)
             i = id - self.file_offsets[fid - 1]
             assert i >= 0 and i < vecs.shape[0]
             res[r, :] = vecs[i]  # TODO: find a faster way

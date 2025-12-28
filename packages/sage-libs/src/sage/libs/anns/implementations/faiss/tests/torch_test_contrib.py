@@ -3,11 +3,13 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import faiss
-import torch
 import unittest
-import numpy as np
+
+import faiss
 import faiss.contrib.torch_utils
+import numpy as np
+import torch
+
 
 class TestTorchUtilsCPU(unittest.TestCase):
     # tests add, search
@@ -141,7 +143,7 @@ class TestTorchUtilsCPU(unittest.TestCase):
         self.assertTrue(np.array_equal(labels, labels_ref))
 
         # Test assign with numpy output provided
-        labels = np.empty((xq.shape[0], 5), dtype='int64')
+        labels = np.empty((xq.shape[0], 5), dtype="int64")
         index.assign(xq.numpy(), 5, labels)
         self.assertTrue(np.array_equal(labels, labels_ref))
 

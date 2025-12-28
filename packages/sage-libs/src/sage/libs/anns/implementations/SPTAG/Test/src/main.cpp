@@ -38,4 +38,3 @@ struct GlobalFixture
 };
 
 BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
-

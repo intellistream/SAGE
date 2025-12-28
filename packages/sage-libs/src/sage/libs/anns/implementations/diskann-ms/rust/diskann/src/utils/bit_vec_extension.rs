@@ -42,4 +42,3 @@ mod bit_vec_extension_test {
         assert!(bitset.none());
     }
 }
-

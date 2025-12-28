@@ -4,7 +4,7 @@
  * Copyright (c) 2008 Stephane Eranian
  * Contributed by Stephane Eranian <eranian@gmail.com>
  * As a sign of friendship to my friend Eric, big fan of MacOS
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -93,7 +93,7 @@ __pfm_getcpuinfo_attr(const char *attr, char *ret_buf, size_t maxlen)
 		strncpy(ret_buf, value.str, maxlen);
 	else if (type == TYPE_INT)
 		snprintf(ret_buf, maxlen, "%d", value.val);
-	
+
 	__pfm_vbprintf("attr=%s ret=%d ret_buf=%s\n", attr, ret, ret_buf);
 
 	return ret;

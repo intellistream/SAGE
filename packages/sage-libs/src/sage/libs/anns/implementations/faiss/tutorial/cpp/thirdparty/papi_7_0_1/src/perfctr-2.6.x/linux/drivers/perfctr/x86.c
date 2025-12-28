@@ -712,7 +712,7 @@ static void p6_like_write_control(const struct perfctr_cpu_state *state,
 	}
 	for (i = 0; i < 2; ++i) {
 		unsigned int offcore_rsp;
-		
+
 		offcore_rsp = state->control.nhlm.offcore_rsp[i];
 		if (offcore_rsp != cache->nhlm_offcore_rsp[i]) {
 			cache->nhlm_offcore_rsp[i] = offcore_rsp;
@@ -1522,7 +1522,7 @@ static void __init p4_ht_mask_setup_cpu(void *forbidden)
 		max_lp_per_package = (cpuid1_ebx >> 16) & 0xFF;
 	else				/* HT is not supported */
 		max_lp_per_package = 1;
-	
+
 	/* Find the max number of processor cores per physical processor package. */
 	if (cpuid_maxlev >= 4) {
 		/* For CPUID level 4 we need a zero in ecx as input to CPUID, but

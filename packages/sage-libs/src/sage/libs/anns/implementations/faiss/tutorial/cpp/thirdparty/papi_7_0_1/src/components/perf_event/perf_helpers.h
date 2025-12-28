@@ -528,5 +528,3 @@ mmap_read( int cidx, ThreadInfo_t **thr, pe_event_info_t *pe,
 	pe->tail = old;
 	mmap_write_tail( pe, old );
 }
-
-

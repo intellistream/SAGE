@@ -355,6 +355,3 @@ std::vector<torch::Tensor> CANDY::PQIndex::searchTensor(torch::Tensor &q, int64_
   return results;
 
 }
-
-
-

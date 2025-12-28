@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     //com_loadlog("./conf", "puck_log.conf");
     google::ParseCommandLineFlags(&argc, &argv, true);
     std::unique_ptr<puck::Index> index;
-    
+
     if (FLAGS_index_type == int(puck::IndexType::TINKER)) {
         index.reset(new puck::TinkerIndex());
     } else if (FLAGS_index_type == int(puck::IndexType::PUCK)) {
@@ -55,4 +55,3 @@ int main(int argc, char** argv) {
     return 0;
 }
 /* vim: set expandtab ts=4 sw=4 sts=4 tw=100: */
-

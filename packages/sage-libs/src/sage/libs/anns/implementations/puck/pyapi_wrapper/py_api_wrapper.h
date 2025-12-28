@@ -43,4 +43,3 @@ private:
     uint32_t _dim;
 };
 };//namespace py_puck_api
-

@@ -129,7 +129,7 @@ namespace SPTAG
         ErrorCode Index<T>::SaveIndexData(const std::vector<std::shared_ptr<Helper::DiskIO>>& p_indexStreams)
         {
             if (p_indexStreams.size() < 4) return ErrorCode::LackOfInputs;
-            
+
             std::lock_guard<std::mutex> lock(m_dataAddLock);
             std::unique_lock<std::shared_timed_mutex> uniquelock(m_dataDeleteLock);
 
@@ -140,7 +140,7 @@ namespace SPTAG
             if ((ret = m_deletedID.Save(p_indexStreams[3])) != ErrorCode::Success) return ret;
             return ret;
         }
-        
+
 #pragma region K-NN search
 /*
 
@@ -266,8 +266,8 @@ namespace SPTAG
 */
 
         template<typename T>
-        template <bool(*notDeleted)(const COMMON::Labelset&, SizeType), 
-            bool(*isDup)(COMMON::QueryResultSet<T>&, SizeType, float), 
+        template <bool(*notDeleted)(const COMMON::Labelset&, SizeType),
+            bool(*isDup)(COMMON::QueryResultSet<T>&, SizeType, float),
             bool(*checkFilter)(const std::shared_ptr<MetadataSet>&, SizeType, std::function<bool(const ByteArray&)>)>
         void Index<T>::Search(COMMON::QueryResultSet<T>& p_query, COMMON::WorkSpace& p_space, std::function<bool(const ByteArray&)> filterFunc) const
         {
@@ -287,10 +287,10 @@ namespace SPTAG
                     _mm_prefetch((const char*)(m_pSamples)[futureNode], _MM_HINT_T0);
                 }
 
-                if (gnode.distance <= p_query.worstDist()) 
+                if (gnode.distance <= p_query.worstDist())
                 {
                     SizeType checkNode = node[checkPos];
-                    if (checkNode < -1) 
+                    if (checkNode < -1)
                     {
                         const COMMON::BKTNode& tnode = m_pTrees[-2 - checkNode];
                         SizeType i = -tnode.childStart;
@@ -319,18 +319,18 @@ namespace SPTAG
                         }
                     }
                 }
-                else 
+                else
                 {
                     if (notDeleted(m_deletedID, tmpNode))
                     {
-                        if (gnode.distance > p_space.m_Results.worst() || p_space.m_iNumberOfCheckedLeaves > p_space.m_iMaxCheck) 
+                        if (gnode.distance > p_space.m_Results.worst() || p_space.m_iNumberOfCheckedLeaves > p_space.m_iMaxCheck)
                         {
                                 p_query.SortResult();
                                 return;
                         }
                     }
                 }
-                for (DimensionType i = 0; i <= checkPos; i++) 
+                for (DimensionType i = 0; i <= checkPos; i++)
                 {
                     SizeType nn_index = node[i];
                     if (nn_index < 0) break;
@@ -354,15 +354,15 @@ namespace SPTAG
         template<typename T>
         template <bool(*notDeleted)(const COMMON::Labelset&, SizeType),
             bool(*isDup)(COMMON::QueryResultSet<T>&, SizeType, float)>
-            int Index<T>::SearchIterative(COMMON::QueryResultSet<T>& p_query, 
+            int Index<T>::SearchIterative(COMMON::QueryResultSet<T>& p_query,
                 COMMON::WorkSpace& p_space, bool p_isFirst, int batch) const
         {
             std::shared_lock<std::shared_timed_mutex> lock(*(m_pTrees.m_lock));
             if (p_isFirst) {
                 m_pTrees.InitSearchTrees(m_pSamples, m_fComputeDistance, p_query, p_space);
-                m_pTrees.SearchTrees(m_pSamples, m_fComputeDistance, p_query, 
+                m_pTrees.SearchTrees(m_pSamples, m_fComputeDistance, p_query,
                     p_space, m_iNumberOfInitialDynamicPivots);
-            } 
+            }
             int count = 0;
             const DimensionType checkPos = m_pGraph.m_iNeighborhoodSize - 1;
             while (!p_space.m_NGQueue.empty()) {
@@ -379,7 +379,7 @@ namespace SPTAG
                 {
                     p_query.AddPoint(tmpNode, gnode.distance);
                     count++;
-                    if (gnode.distance > p_space.m_Results.worst() || 
+                    if (gnode.distance > p_space.m_Results.worst() ||
                         p_space.m_iNumberOfCheckedLeaves > p_space.m_iMaxCheck) {
                         p_space.m_relaxedMono = true;
                     }
@@ -440,7 +440,7 @@ namespace SPTAG
             }
 
             template <typename T>
-            bool CheckDup(COMMON::QueryResultSet<T>& query, SizeType node, float score) 
+            bool CheckDup(COMMON::QueryResultSet<T>& query, SizeType node, float score)
             {
                 return !query.AddPoint(node, score);
             }
@@ -508,7 +508,7 @@ namespace SPTAG
         }
 
         template <typename T>
-        int Index<T>::SearchIndexIterative(COMMON::QueryResultSet<T>& p_query, COMMON::WorkSpace& p_space, bool p_isFirst, 
+        int Index<T>::SearchIndexIterative(COMMON::QueryResultSet<T>& p_query, COMMON::WorkSpace& p_space, bool p_isFirst,
             int batch, bool p_searchDeleted, bool p_searchDuplicated) const
         {
             int count = 0;
@@ -542,11 +542,11 @@ namespace SPTAG
         template <typename T>
         bool Index<T>::SearchIndexIterativeFromNeareast(QueryResult& p_query, COMMON::WorkSpace* p_space, bool p_isFirst, bool p_searchDeleted) const
         {
-            if (p_isFirst) 
+            if (p_isFirst)
             {
 		        p_space->ResetResult(m_iMaxCheck, p_query.GetResultNum());
                 SearchIndex(*((COMMON::QueryResultSet<T>*) & p_query), *p_space, p_searchDeleted, true);
-                // make sure other node can be traversed after topk found 
+                // make sure other node can be traversed after topk found
 		        p_space->nodeCheckStatus.clear();
                 for (int i = 0; i < p_query.GetResultNum(); ++i)
                 {
@@ -570,9 +570,9 @@ namespace SPTAG
                         p_space->m_NGQueue.insert(NodeDistPair(nn_index, distance2leaf));
                     }
                 }
-		
+
             }
-            else 
+            else
             {
                 p_space->ResetResult(m_iMaxCheck, p_query.GetResultNum());
                 SearchIndexIterative(*((COMMON::QueryResultSet<T>*) & p_query), *p_space, p_isFirst, p_query.GetResultNum(), p_searchDeleted, true);
@@ -761,7 +761,7 @@ namespace SPTAG
             m_pTrees.BuildTrees<T>(m_pSamples, m_iDistCalcMethod, m_iNumberOfThreads);
             auto t2 = std::chrono::high_resolution_clock::now();
             SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Build Tree time (s): %lld\n", std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count());
-            
+
             m_pGraph.BuildGraph<T>(this, &(m_pTrees.GetSampleMap()));
 
             auto t3 = std::chrono::high_resolution_clock::now();
@@ -923,8 +923,8 @@ namespace SPTAG
 
                 if (p_dimension != GetFeatureDim()) return ErrorCode::DimensionSizeMismatch;
 
-                if (m_pSamples.AddBatch((const T*)p_data, p_vectorNum) != ErrorCode::Success || 
-                    m_pGraph.AddBatch(p_vectorNum) != ErrorCode::Success || 
+                if (m_pSamples.AddBatch((const T*)p_data, p_vectorNum) != ErrorCode::Success ||
+                    m_pGraph.AddBatch(p_vectorNum) != ErrorCode::Success ||
                     m_deletedID.AddBatch(p_vectorNum) != ErrorCode::Success) {
                     SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Memory Error: Cannot alloc space for vectors!\n");
                     m_pSamples.SetR(begin);
@@ -1031,5 +1031,3 @@ template class SPTAG::BKT::Index<Type>; \
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
-
-

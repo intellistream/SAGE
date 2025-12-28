@@ -449,5 +449,3 @@ pfmlib_os_t pfmlib_os_perf_ext={
 	.get_os_nattrs = perf_get_os_nattrs,
 	.encode = pfmlib_perf_event_encode,
 };
-
-

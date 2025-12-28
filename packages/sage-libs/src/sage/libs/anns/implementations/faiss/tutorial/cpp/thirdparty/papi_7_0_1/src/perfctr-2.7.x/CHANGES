@@ -695,7 +695,7 @@ Version 2.3.10, 2002-07-19
   now avoids granting RDPMC access on the affected processors.
   The user-space library makes this change transparent.
 - New CPU type code for Model 2 Pentium 4s, due to a few but
-  significant changes between Model 0 and 1 and Model 2 CPUs.  
+  significant changes between Model 0 and 1 and Model 2 CPUs.
 - The driver now supports Replay Tagging on the Pentium 4.
   The perfex program has been updated to allow users to specify
   values to store in PEBS_ENABLE and PEBS_MATRIX_VERT.

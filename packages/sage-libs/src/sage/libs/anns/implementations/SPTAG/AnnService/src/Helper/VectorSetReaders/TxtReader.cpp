@@ -313,7 +313,7 @@ TxtVectorReader::MergeData()
         }
 
         std::uint64_t readSize = input->ReadBinary(bufferSize, bufferHolder.get());
-        while (readSize != 0) {            
+        while (readSize != 0) {
             if (output->WriteBinary(readSize, bufferHolder.get()) != readSize) {
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Unable to write file: %s\n", m_vectorOutput.c_str());
                 return ErrorCode::DiskIOFail;
@@ -432,5 +432,3 @@ TxtVectorReader::GetFileSizes(const std::string& p_filePaths)
 
     return res;
 }
-
-

@@ -20,8 +20,8 @@ pfm_get_event_description, pfm_get_event_mask_description \- get event informati
 .BI "int pfm_get_event_mask_description(unsigned int " ev ", unsigned int "mask ", char **" str ");"
 .sp
 .SH DESCRIPTION
-The \fBpfm_get_event_name()\fR function returns in \fBname\fR the event 
-name given its opaque descriptor in \fBe\fR. The \fBmaxlen\fR argument 
+The \fBpfm_get_event_name()\fR function returns in \fBname\fR the event
+name given its opaque descriptor in \fBe\fR. The \fBmaxlen\fR argument
 indicates the maximum length of the buffer provided for \fBname\fR. Up
 to \fBmaxlen\fR-1 characters are stored in the buffer.
 The buffer size must be large enough to store the event name, otherwise
@@ -31,7 +31,7 @@ by failing other calls. The buffer can be appropriately sized using the
 \fBpfm_get_max_event_name_len()\fR function. The returned name is a
 null terminated string with all upper-case characters and no spaces.
 .sp
-The \fBpfm_get_full_event_name()\fR function returns in \fBname\fR the event 
+The \fBpfm_get_full_event_name()\fR function returns in \fBname\fR the event
 name given the full event description in \fBev\fR. The description contains
 the event code in \fBev->event\fR and optional unit masks descriptors in
 \fBev->unit_masks\fR. The \fBmaxlen\fR argument indicates the maximum length
@@ -51,9 +51,9 @@ function is used to retrieve the event code in \fBcode\fR when the event \fBe\fR
 is programmed into counter \fBcnt\fR. The counter index \fBcnt\fR must correspond
 to of a counting PMD register.
 .sp
-Given an opaque event descriptor \fBe\fR, the \fBpfm_get_event_counters()\fR 
-function returns in \fBcounters\fR a bitmask of type \fBpfmlib_regmask_t\fR where 
-each bit set represents a PMU config register which can be used to program this 
+Given an opaque event descriptor \fBe\fR, the \fBpfm_get_event_counters()\fR
+function returns in \fBcounters\fR a bitmask of type \fBpfmlib_regmask_t\fR where
+each bit set represents a PMU config register which can be used to program this
 event. The bitmask must be accessed using accessor macros defined by the library.
 .so
 The \fBpfm_get_num_events()\fR function returns in \fBcount\fR the
@@ -69,7 +69,7 @@ then using the \fBpfm_get_num_events()\fR function you get the total number of e
 On some PMU models, e.g., AMD64, not all events are necessarily supported by the host
 PMU, therefore the count returned by this calls may not be the actual number of available
 events. Event descriptors are contiguous therefore a simple loop will allow
-complete scanning. The typical scan loop is constructed as 
+complete scanning. The typical scan loop is constructed as
 follows:
 .sp
 .nf
@@ -87,13 +87,13 @@ for(i=0;i < count; i++)
 .fi
 
 .sp
-The \fBpfm_get_max_event_name_len()\fR function returns in \fBlen\fR 
+The \fBpfm_get_max_event_name_len()\fR function returns in \fBlen\fR
 the maximum length in bytes for the name of the events or its unit masks, if any,
 available on one PMU implementation. The value excludes the string termination
 character ('\\0').
 .sp
 The \fBpfm_get_event_description()\fR function returns in \fBstr\fR the
-description string associated with the event specified in \fBev\fR. 
+description string associated with the event specified in \fBev\fR.
 The description is returned into a buffer that is allocated to hold the entire
 description text. It is the responsibility of the caller to free the buffer when
 it becomes useless by calling the \fBfree(3)\fR function.
@@ -115,7 +115,7 @@ the caller to free the buffer when it becomes useless by calling the \fBfree(3)\
 function.
 
 .SH RETURN
-All functions return whether or not the call was successful.  A return value of 
+All functions return whether or not the call was successful.  A return value of
 \fBPFMLIB_SUCCESS\fR indicates success, otherwise the value is the error code.
 .SH ERRORS
 .B PFMLIB_ERR_NOINIT

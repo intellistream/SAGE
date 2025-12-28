@@ -22,14 +22,14 @@ class SpinLock
 public:
     SpinLock() = default;
 
-    void Lock() noexcept 
+    void Lock() noexcept
     {
         while (m_lock.test_and_set(std::memory_order_acquire))
         {
         }
     }
 
-    void Unlock() noexcept 
+    void Unlock() noexcept
     {
         m_lock.clear(std::memory_order_release);
     }
@@ -44,7 +44,7 @@ private:
 template<typename Lock>
 class LockGuard {
 public:
-    LockGuard(Lock& lock) noexcept 
+    LockGuard(Lock& lock) noexcept
         : m_lock(lock) {
         lock.Lock();
     }

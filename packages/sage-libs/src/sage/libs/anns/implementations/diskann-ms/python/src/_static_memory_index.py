@@ -3,10 +3,9 @@
 
 import os
 import warnings
+from typing import Optional
 
 import numpy as np
-
-from typing import Optional
 
 from . import _diskannpy as _native_dap
 from ._common import (
@@ -22,7 +21,7 @@ from ._common import (
     _castable_dtype_or_raise,
     _ensure_index_metadata,
     _valid_index_prefix,
-    _valid_metric
+    _valid_metric,
 )
 
 __ALL__ = ["StaticMemoryIndex"]
@@ -60,14 +59,12 @@ class StaticMemoryIndex:
             vector_dtype,
             distance_metric,
             1,  # it doesn't matter because we don't need it in this context anyway
-            dimensions
+            dimensions,
         )
         dap_metric = _valid_metric(metric)
 
         _assert_is_nonnegative_uint32(num_threads, "num_threads")
-        _assert_is_positive_uint32(
-            initial_search_complexity, "initial_search_complexity"
-        )
+        _assert_is_positive_uint32(initial_search_complexity, "initial_search_complexity")
 
         self._vector_dtype = vector_dtype
         self._dimensions = dims
@@ -114,13 +111,13 @@ class StaticMemoryIndex:
         _query = _castable_dtype_or_raise(
             query,
             expected=self._vector_dtype,
-            message=f"StaticMemoryIndex expected a query vector of dtype of {self._vector_dtype}"
+            message=f"StaticMemoryIndex expected a query vector of dtype of {self._vector_dtype}",
         )
         _assert(len(_query.shape) == 1, "query vector must be 1-d")
         _assert(
             _query.shape[0] == self._dimensions,
             f"query vector must have the same dimensionality as the index; index dimensionality: {self._dimensions}, "
-            f"query dimensionality: {_query.shape[0]}"
+            f"query dimensionality: {_query.shape[0]}",
         )
         _assert_is_positive_uint32(k_neighbors, "k_neighbors")
         _assert_is_nonnegative_uint32(complexity, "complexity")
@@ -159,12 +156,16 @@ class StaticMemoryIndex:
             1..k_neighbors distance. These are aligned arrays.
         """
 
-        _queries = _castable_dtype_or_raise(queries, expected=self._vector_dtype, message=f"StaticMemoryIndex expected a query vector of dtype of {self._vector_dtype}")
+        _queries = _castable_dtype_or_raise(
+            queries,
+            expected=self._vector_dtype,
+            message=f"StaticMemoryIndex expected a query vector of dtype of {self._vector_dtype}",
+        )
         _assert(len(_queries.shape) == 2, "queries must must be 2-d np array")
         _assert(
             _queries.shape[1] == self._dimensions,
             f"query vectors must have the same dimensionality as the index; index dimensionality: {self._dimensions}, "
-            f"query dimensionality: {_queries.shape[1]}"
+            f"query dimensionality: {_queries.shape[1]}",
         )
         _assert_is_positive_uint32(k_neighbors, "k_neighbors")
         _assert_is_positive_uint32(complexity, "complexity")

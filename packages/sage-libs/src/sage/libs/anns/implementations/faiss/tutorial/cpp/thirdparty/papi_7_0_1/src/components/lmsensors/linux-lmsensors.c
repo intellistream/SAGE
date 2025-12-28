@@ -1,4 +1,4 @@
-/** 
+/**
  * @file    linux-lmsensors.c
  * @author  Daniel Lucio
  * @author  Joachim Protze
@@ -8,23 +8,23 @@
  * @ingroup papi_components
  *
  *
- * LM_SENSORS component 
- * 
+ * LM_SENSORS component
+ *
  * Tested version of lm_sensors: 3.1.1
  *
- * @brief 
+ * @brief
  *  This file has the source code for a component that enables PAPI-C to access
  *  hardware monitoring sensors through the libsensors library. This code will
- *  dynamically create a native events table for all the sensors that can be 
+ *  dynamically create a native events table for all the sensors that can be
  *  accesed by the libsensors library.
- *  In order to learn more about libsensors, visit: (http://www.lm-sensors.org) 
+ *  In order to learn more about libsensors, visit: (http://www.lm-sensors.org)
  *
- * Notes: 
+ * Notes:
  *  - I used the ACPI and MX components to write this component. A lot of the
- *    code in this file mimics what other components already do. 
+ *    code in this file mimics what other components already do.
  *  - The return values are scaled by 1000 because PAPI can not return decimals.
  *  - A call of PAPI_read can take up to 2 seconds while using lm_sensors!
- *  - Please remember that libsensors uses the GPL license. 
+ *  - Please remember that libsensors uses the GPL license.
  */
 
 
@@ -231,7 +231,7 @@ createNativeEvents( void )
 		 lm_sensors_native_table[id].resources.subfeat_nr = sub->number;
 
 		 /* increment the table index counter */
-		 id++;		 
+		 id++;
 	      }
 
 	      //   lm_sensors_native_table[id].count = count + 1;
@@ -285,7 +285,7 @@ _lmsensors_init_thread( hwd_context_t *ctx )
 
 
 /* Initialize hardware counters, setup the function vector table
- * and get hardware information, this routine is called when the 
+ * and get hardware information, this routine is called when the
  * PAPI process is initialized (IE PAPI_library_init)
  */
 static int
@@ -376,10 +376,10 @@ link_lmsensors_libraries ()
    }
 
    char path_name[1024];
-   char *lmsensors_root = getenv("PAPI_LMSENSORS_ROOT"); 
-   
+   char *lmsensors_root = getenv("PAPI_LMSENSORS_ROOT");
+
    dl1 = NULL;
-   // Step 1: Process override if given.   
+   // Step 1: Process override if given.
    if (strlen(lmsensors_main) > 0) {                                  // If override given, it has to work.
       dl1 = dlopen(lmsensors_main, RTLD_NOW | RTLD_GLOBAL);           // Try to open that path.
       if (dl1 == NULL) {
@@ -393,7 +393,7 @@ link_lmsensors_libraries ()
       dl1 = dlopen("libsensors.so", RTLD_NOW | RTLD_GLOBAL);        // Try system paths.
    }
 
-   // Step 3: Try the explicit install default. 
+   // Step 3: Try the explicit install default.
    if (dl1 == NULL && lmsensors_root != NULL) {                          // if root given, try it.
       snprintf(path_name, 1024, "%s/lib64/libsensors.so", lmsensors_root);   // PAPI Root check.
       dl1 = dlopen(path_name, RTLD_NOW | RTLD_GLOBAL);             // Try to open that path.
@@ -405,7 +405,7 @@ link_lmsensors_libraries ()
       return(PAPI_ENOSUPP);
    }
 
-   // We have dl1. 
+   // We have dl1.
 
 	sensors_initPtr = dlsym(dl1, "sensors_init");
 	if (dlerror() != NULL)
@@ -522,11 +522,11 @@ _lmsensors_read( hwd_context_t *ctx, hwd_control_state_t *ctl,
     ( void ) flags;
     long long start = PAPI_get_real_usec(  );
     int i;
- 
+
     _lmsensors_control_state_t *control=(_lmsensors_control_state_t *)ctl;
 
     if ( start - control->lastupdate > 200000 ) {	// cache refresh
-       
+
        for ( i = 0; i < num_events; i++ ) {
 	   cached_counts[i] = getEventValue( i );
        }
@@ -583,7 +583,7 @@ _lmsensors_ctl( hwd_context_t *ctx, int code, _papi_int_option_t *option )
 
 static int
 _lmsensors_update_control_state( hwd_control_state_t *ctl,
-				 NativeInfo_t * native, 
+				 NativeInfo_t * native,
 				 int count,
 				 hwd_context_t *ctx )
 {
@@ -734,7 +734,7 @@ papi_vector_t _lmsensors_vector = {
      .update_control_state = _lmsensors_update_control_state,
      .set_domain =           _lmsensors_set_domain,
      .reset =                _lmsensors_reset,
-	
+
      .ntv_enum_events =      _lmsensors_ntv_enum_events,
      .ntv_code_to_name =     _lmsensors_ntv_code_to_name,
      .ntv_code_to_descr =    _lmsensors_ntv_code_to_descr,

@@ -244,7 +244,7 @@ pfm_intel_x86_add_defaults(void *this, pfmlib_event_desc_t *e,
 			if (intel_x86_uflag(this, e->event, idx, INTEL_X86_DFL)) {
 				DPRINT("added default %s for group %d j=%d idx=%d ucode=0x%"PRIx64"\n",
 					ent->umasks[idx].uname,
-					i,	
+					i,
 					j,
 					idx,
 					ent->umasks[idx].ucode);

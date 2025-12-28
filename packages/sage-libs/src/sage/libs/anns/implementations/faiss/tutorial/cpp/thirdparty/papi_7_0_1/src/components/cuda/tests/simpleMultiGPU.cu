@@ -1,4 +1,4 @@
-/* 
+/*
  * PAPI Multiple GPU example.  This example is taken from the NVIDIA
  * documentation (Copyright 1993-2013 NVIDIA Corporation) and has been
  * adapted to show the use of CUPTI and PAPI in collecting event
@@ -7,11 +7,11 @@
  * Update, July/2021, for CUPTI 11. The CUpti API this is based upon is
  * obsolete and doesn't work on Nvidia GPUs with Compute Capability >=
  * 7.5. The file simpleMultiGPU_CUPTI11.cu demonstrates using their new
- * performance API, called CUpti 11 here. It will only work on cuda 
+ * performance API, called CUpti 11 here. It will only work on cuda
  * distributions of 10.0 or better. For older devices, this code is still
- * functional; PAPI is informed of the CUcontexts that will be used to 
+ * functional; PAPI is informed of the CUcontexts that will be used to
  * execute kernels at the time of adding PAPI events for that device; as
- * shown below. 
+ * shown below.
  */
 
 /*
@@ -110,10 +110,10 @@ __global__ static void reduceKernel( float *d_Result, float *d_Input, int N )
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     const int threadN = gridDim.x * blockDim.x;
     float sum = 0;
-    
+
     for( int pos = tid; pos < N; pos += threadN )
         sum += d_Input[pos];
-    
+
     d_Result[tid] = sum;
 }
 
@@ -129,14 +129,14 @@ int main( int argc, char **argv )
     float sumGPU;
     double sumCPU, diff;
     int i, j, gpuBase, GPU_N;
-    
+
     const int BLOCK_N = 32;
     const int THREAD_N = 256;
     const int ACCUM_N = BLOCK_N * THREAD_N;
 
     CUcontext ctx[MAX_GPU_COUNT];
     CUcontext poppedCtx;
-    
+
     printf( "Starting simpleMultiGPU\n" );
 
 #ifdef PAPI
@@ -151,8 +151,8 @@ int main( int argc, char **argv )
 
         printf( "PAPI version: %d.%d.%d\n", PAPI_VERSION_MAJOR( PAPI_VERSION ), PAPI_VERSION_MINOR( PAPI_VERSION ), PAPI_VERSION_REVISION( PAPI_VERSION ) );
     }
-#endif 
-    
+#endif
+
     // Report on the available CUDA devices
     int computeCapabilityMajor = 0, computeCapabilityMinor = 0;
     int runtimeVersion = 0, driverVersion = 0;
@@ -164,9 +164,9 @@ int main( int argc, char **argv )
     for ( i=0; i<GPU_N; i++ ) {
         CHECK_CU_ERROR( cuDeviceGet( &device[i], i ), "cuDeviceGet" );
         CHECK_CU_ERROR( cuDeviceGetName( deviceName, 64, device[i] ), "cuDeviceGetName" );
-        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMajor, 
+        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMajor,
             CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device[i]), "cuDeviceGetAttribute");
-        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMinor, 
+        CHECK_CU_ERROR( cuDeviceGetAttribute( &computeCapabilityMinor,
             CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device[i]), "cuDeviceGetAttribute");
         cudaRuntimeGetVersion( &runtimeVersion );
         cudaDriverGetVersion( &driverVersion );
@@ -180,7 +180,7 @@ int main( int argc, char **argv )
     uint32_t cupti_linked_version;
     cuptiGetVersion( &cupti_linked_version );
     printf("CUPTI version: Compiled against version %d; Linked against version %d\n", CUPTI_API_VERSION, cupti_linked_version );
-    
+
     // create one context per device. This can be delayed
     // to as late as PAPI_start(), but they are needed to
     // create streams, alloc memory, etc.
@@ -190,7 +190,7 @@ int main( int argc, char **argv )
     }
 
     printf( "Generating input data...\n" );
-    
+
     // Subdividing input data across GPUs
     // Get data sizes for each GPU
     for( i = 0; i < GPU_N; i++ )
@@ -198,7 +198,7 @@ int main( int argc, char **argv )
     // Take into account "odd" data sizes
     for( i = 0; i < DATA_N % GPU_N; i++ )
         plan[i].dataN++;
-    
+
     // Assign data ranges to GPUs
     gpuBase = 0;
     for( i = 0; i < GPU_N; i++ ) {
@@ -206,7 +206,7 @@ int main( int argc, char **argv )
         gpuBase += plan[i].dataN;
     }
 
-  
+
     // Create streams for issuing GPU command asynchronously and allocate memory (GPU and System page-locked)
     for( i = 0; i < GPU_N; i++ ) {
         CHECK_CU_ERROR(cuCtxPushCurrent(ctx[i]), "cuCtxPushCurrent");
@@ -220,8 +220,8 @@ int main( int argc, char **argv )
         }
         CHECK_CU_ERROR( cuCtxPopCurrent(&poppedCtx), "cuCtxPopCurrent" );
     }
-    
-    
+
+
 #ifdef CUPTI_ONLY
 //  char const *cuptiEventName = "elapsed_cycles_sm"; // "elapsed_cycles_sm" "inst_executed"; "inst_issued0";
 //  char const *cuptiEventName = "inst_executed";     // "elapsed_cycles_sm" "inst_executed"; "inst_issued0";
@@ -240,7 +240,7 @@ int main( int argc, char **argv )
         CHECK_CU_ERROR( cuCtxPopCurrent(&poppedCtx), "cuCtxPopCurrent" );
     }
 #endif
-    
+
 #ifdef PAPI
     printf("Setup PAPI counters internally (PAPI)\n");
     int EventSet = PAPI_NULL;
@@ -249,16 +249,16 @@ int main( int argc, char **argv )
     int eventCount;
     int cid=-1;
     int retval, ee;
-    
+
     // Find cuda component index.
     int k = PAPI_num_components();                                      // get number of components.
     for (i=0; i<k && cid<0; i++) {                                      // while not found,
-        PAPI_component_info_t *aComponent = 
-            (PAPI_component_info_t*) PAPI_get_component_info(i);        // get the component info.     
+        PAPI_component_info_t *aComponent =
+            (PAPI_component_info_t*) PAPI_get_component_info(i);        // get the component info.
         if (aComponent == NULL) {                                       // if we failed,
             fprintf(stderr,  "PAPI_get_component_info(%i) failed, "
                 "returned NULL. %i components reported.\n", i,k);
-            exit(-1);    
+            exit(-1);
         }
 
        if (strcmp("cuda", aComponent->name) == 0) cid=i;                // If we found our match, record it.
@@ -268,17 +268,17 @@ int main( int argc, char **argv )
         fprintf(stderr, "Failed to find cuda component among %i "
             "reported components.\n", k);
         PAPI_shutdown();
-        exit(-1); 
+        exit(-1);
     }
 
     printf("Found CUDA Component at id %d\n", cid);
 
-    CALL_PAPI_OK(PAPI_create_eventset(&EventSet)); 
-    CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid)); 
-    
+    CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
+    CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, cid));
+
     // In this example measure events from each GPU
     int numEventNames = 2;
-    char const *EventNames[] = { 
+    char const *EventNames[] = {
 //      "cuda:::metric:nvlink_total_data_transmitted",
 //      "cuda:::metric:nvlink_total_data_received",
         // Legacy CUPTI events.
@@ -315,18 +315,18 @@ int main( int argc, char **argv )
     }
 
     // Restore user context.
-    
+
     CHECK_CU_ERROR(cuCtxSetCurrent(userContext), "cuCtxSetCurrent");
 
     // Start PAPI event measurement
     retval = PAPI_start( EventSet );
     if( retval != PAPI_OK )  fprintf( stderr, "PAPI_start failed, retval=%i [%s].\n", retval, PAPI_strerror(retval));
 #endif
-    
+
     // Start timing and compute on GPU(s)
     printf( "Computing with %d GPUs...\n", GPU_N );
     StartTimer();
-    
+
     // Copy data to GPU, launch the kernel and copy data back. All asynchronously
     for (i = 0; i < GPU_N; i++) {
         // Pushing a context implicitly sets the device for which it was created.
@@ -341,7 +341,7 @@ int main( int argc, char **argv )
         // Popping a context can change the device to match the previous context.
         CHECK_CU_ERROR( cuCtxPopCurrent(&(ctx[i])), "cuCtxPopCurrent" );
     }
-    
+
     // Process GPU results
     printf( "Process GPU results on %d GPUs...\n", GPU_N );
     for( i = 0; i < GPU_N; i++ ) {
@@ -438,8 +438,7 @@ int main( int argc, char **argv )
 
 #ifdef CUPTI_ONLY
     free(myevent);
-#endif 
-    
+#endif
+
     exit( ( diff < 1e-5 ) ? EXIT_SUCCESS : EXIT_FAILURE );
 }
-

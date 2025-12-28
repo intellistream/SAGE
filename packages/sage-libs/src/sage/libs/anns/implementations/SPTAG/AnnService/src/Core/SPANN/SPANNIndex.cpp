@@ -48,7 +48,7 @@ namespace SPTAG
             {
                 m_fComputeDistance = COMMON::DistanceCalcSelector<T>(m_options.m_distCalcMethod);
                 m_iBaseSquare = (m_options.m_distCalcMethod == DistCalcMethod::Cosine) ? COMMON::Utils::GetBase<std::uint8_t>() * COMMON::Utils::GetBase<std::uint8_t>() : 1;
-            }  
+            }
             if (m_index)
             {
                 m_index->SetQuantizer(quantizer);
@@ -98,11 +98,11 @@ namespace SPTAG
             {
                 m_extraSearcher.reset(new ExtraFullGraphSearcher<T>());
             }
-            
+
             if (!m_extraSearcher->LoadIndex(m_options)) return ErrorCode::Fail;
 
             m_vectorTranslateMap.reset((std::uint64_t*)(p_indexBlobs.back().Data()), [=](std::uint64_t* ptr) {});
-           
+
             omp_set_num_threads(m_options.m_iSSDNumberOfThreads);
             return ErrorCode::Success;
         }
@@ -179,7 +179,7 @@ namespace SPTAG
         ErrorCode Index<T>::SaveIndexData(const std::vector<std::shared_ptr<Helper::DiskIO>>& p_indexStreams)
         {
             if (m_index == nullptr || m_vectorTranslateMap == nullptr) return ErrorCode::EmptyIndex;
-            
+
             ErrorCode ret;
             if ((ret = m_index->SaveIndexData(p_indexStreams)) != ErrorCode::Success) return ret;
 
@@ -195,13 +195,13 @@ namespace SPTAG
             if (!m_bReady) return ErrorCode::EmptyIndex;
 
             COMMON::QueryResultSet<T>* p_queryResults;
-            if (p_query.GetResultNum() >= m_options.m_searchInternalResultNum) 
+            if (p_query.GetResultNum() >= m_options.m_searchInternalResultNum)
                 p_queryResults = (COMMON::QueryResultSet<T>*) & p_query;
             else
                 p_queryResults = new COMMON::QueryResultSet<T>((const T*)p_query.GetTarget(), m_options.m_searchInternalResultNum);
 
             m_index->SearchIndex(*p_queryResults);
-            
+
             if (m_extraSearcher != nullptr) {
                 auto workSpace = m_workSpaceFactory->GetWorkSpace();
                 if (!workSpace) {
@@ -229,8 +229,8 @@ namespace SPTAG
 
                     // Don't do disk reads for irrelevant pages
                     if (workSpace->m_postingIDs.size() >= m_options.m_searchInternalResultNum ||
-                        (limitDist > 0.1 && res->Dist > limitDist) || 
-                        !m_extraSearcher->CheckValidPosting(postingID)) 
+                        (limitDist > 0.1 && res->Dist > limitDist) ||
+                        !m_extraSearcher->CheckValidPosting(postingID))
                         continue;
                     workSpace->m_postingIDs.emplace_back(postingID);
                 }
@@ -267,7 +267,7 @@ namespace SPTAG
 
             COMMON::QueryResultSet<T>* p_headQueryResults = (COMMON::QueryResultSet<T>*) & p_headQuery;
             COMMON::QueryResultSet<T>* p_queryResults = (COMMON::QueryResultSet<T>*) & p_query;
-           
+
             if (first) {
                 p_headQueryResults->Reset();
                 m_index->SearchIndexIterativeFromNeareast(*p_headQueryResults, p_indexWorkspace, true);
@@ -340,7 +340,7 @@ namespace SPTAG
 
             if(extraWorkspace != nullptr)
                 m_workSpaceFactory->ReturnWorkSpace(std::move(extraWorkspace));
-            
+
             return ErrorCode::Success;
         }
 
@@ -382,12 +382,12 @@ namespace SPTAG
             {
                 auto res = p_queryResults->GetResult(i);
                 if (res->VID == -1 || (limitDist > 0.1 && res->Dist > limitDist)) break;
-                if (m_extraSearcher->CheckValidPosting(res->VID)) 
+                if (m_extraSearcher->CheckValidPosting(res->VID))
                 {
                     workSpace->m_postingIDs.emplace_back(res->VID);
                 }
                 res->VID = static_cast<SizeType>((m_vectorTranslateMap.get())[res->VID]);
-                if (res->VID == MaxSize) 
+                if (res->VID == MaxSize)
                 {
                     res->VID = -1;
                     res->Dist = MaxDist;
@@ -399,7 +399,7 @@ namespace SPTAG
                 auto res = p_queryResults->GetResult(i);
                 if (res->VID == -1) break;
                 res->VID = static_cast<SizeType>((m_vectorTranslateMap.get())[res->VID]);
-                if (res->VID == MaxSize) 
+                if (res->VID == MaxSize)
                 {
                     res->VID = -1;
                     res->Dist = MaxDist;
@@ -577,7 +577,7 @@ namespace SPTAG
         }
 
         template <typename T>
-        int Index<T>::SelectHeadDynamicallyInternal(const std::shared_ptr<COMMON::BKTree> p_tree, int p_nodeID, 
+        int Index<T>::SelectHeadDynamicallyInternal(const std::shared_ptr<COMMON::BKTree> p_tree, int p_nodeID,
             const Options& p_opts, std::vector<int>& p_selected)
         {
             typedef std::pair<int, int> CSPair;
@@ -713,12 +713,12 @@ namespace SPTAG
             SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Begin initial data (%d,%d)...\n", vectorset->Count(), vectorset->Dimension());
 
             COMMON::Dataset<InternalDataType> data(vectorset->Count(), vectorset->Dimension(), vectorset->Count(), vectorset->Count() + 1, (InternalDataType*)vectorset->GetData());
-            
+
             auto t1 = std::chrono::high_resolution_clock::now();
             SelectHeadAdjustOptions(data.R());
             std::vector<int> selected;
             if (data.R() == 1) {
-                selected.push_back(0); 
+                selected.push_back(0);
             }
             else if (Helper::StrUtils::StrEqualIgnoreCase(m_options.m_selectType.c_str(), "Random")) {
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Start generating Random head.\n");
@@ -746,7 +746,7 @@ namespace SPTAG
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "End invoking BuildTrees.\n");
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Invoking BuildTrees used time: %.2lf minutes (about %.2lf hours).\n", elapsedSeconds / 60.0, elapsedSeconds / 3600.0);
 
-                if (m_options.m_saveBKT) {                
+                if (m_options.m_saveBKT) {
                     std::stringstream bktFileNameBuilder;
                     bktFileNameBuilder << m_options.m_vectorPath << ".bkt." << m_options.m_iBKTKmeansK << "_"
                         << m_options.m_iBKTLeafSize << "_" << m_options.m_iTreeNumber << "_" << m_options.m_iSamples << "_"
@@ -777,8 +777,8 @@ namespace SPTAG
                 if (output == nullptr || outputIDs == nullptr ||
                     !output->Initialize((m_options.m_indexDirectory + FolderSep + m_options.m_headVectorFile).c_str(), std::ios::binary | std::ios::out) ||
                     !outputIDs->Initialize((m_options.m_indexDirectory + FolderSep + m_options.m_headIDFile).c_str(), std::ios::binary | std::ios::out)) {
-                    SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Failed to create output file:%s %s\n", 
-                        (m_options.m_indexDirectory + FolderSep + m_options.m_headVectorFile).c_str(), 
+                    SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Failed to create output file:%s %s\n",
+                        (m_options.m_indexDirectory + FolderSep + m_options.m_headVectorFile).c_str(),
                         (m_options.m_indexDirectory + FolderSep + m_options.m_headIDFile).c_str());
                     return false;
                 }
@@ -954,7 +954,7 @@ namespace SPTAG
             SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "select head time: %.2lfs build head time: %.2lfs build ssd time: %.2lfs\n", selectHeadTime, buildHeadTime, buildSSDTime);
 
             if (m_options.m_deleteHeadVectors) {
-                if (fileexists((m_options.m_indexDirectory + FolderSep + m_options.m_headVectorFile).c_str()) && 
+                if (fileexists((m_options.m_indexDirectory + FolderSep + m_options.m_headVectorFile).c_str()) &&
                     remove((m_options.m_indexDirectory + FolderSep + m_options.m_headVectorFile).c_str()) != 0) {
                     SPTAGLIB_LOG(Helper::LogLevel::LL_Warning, "Head vector file can't be removed.\n");
                 }
@@ -964,7 +964,7 @@ namespace SPTAG
             return ErrorCode::Success;
         }
         template <typename T>
-        ErrorCode Index<T>::BuildIndex(bool p_normalized) 
+        ErrorCode Index<T>::BuildIndex(bool p_normalized)
         {
             SPTAG::VectorValueType valueType = m_pQuantizer ? SPTAG::VectorValueType::UInt8 : m_options.m_valueType;
             SizeType dim = m_pQuantizer ? m_pQuantizer->GetNumSubvectors() : m_options.m_dim;
@@ -982,7 +982,7 @@ namespace SPTAG
                 }
                 m_options.m_vectorSize = vectorReader->GetVectorSet()->Count();
             }
-  
+
             return BuildIndexInternal(vectorReader);
         }
 
@@ -1009,7 +1009,7 @@ namespace SPTAG
             SPTAG::VectorValueType valueType = m_pQuantizer ? SPTAG::VectorValueType::UInt8 : m_options.m_valueType;
             std::shared_ptr<Helper::VectorSetReader> vectorReader(new Helper::MemoryVectorReader(std::make_shared<Helper::ReaderOptions>(valueType, p_dimension, VectorFileType::DEFAULT, m_options.m_vectorDelimiter, m_options.m_iSSDNumberOfThreads, true),
                 vectorSet));
-            
+
             m_options.m_valueType = GetEnumValueType<T>();
             m_options.m_dim = p_dimension;
             m_options.m_vectorSize = p_vectorNum;
@@ -1079,5 +1079,3 @@ template class SPTAG::SPANN::Index<Type>; \
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
-
-

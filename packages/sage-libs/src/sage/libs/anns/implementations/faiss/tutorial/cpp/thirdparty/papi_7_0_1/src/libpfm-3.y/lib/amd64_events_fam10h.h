@@ -2296,7 +2296,7 @@ static pme_amd64_entry_t amd64_fam10h_pe[]={
  *    Issue number 437 on page 131.
  *
  */
-	
+
 		{ .pme_uname = "CORE_0_SELECT",
 		  .pme_udesc = "Core 0 Select",
 		  .pme_ucode = 0x00,

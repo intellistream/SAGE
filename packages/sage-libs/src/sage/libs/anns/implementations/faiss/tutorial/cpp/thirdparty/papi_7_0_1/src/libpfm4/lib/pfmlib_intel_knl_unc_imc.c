@@ -156,4 +156,3 @@ pfmlib_pmu_t intel_knm_unc_imc_uclk##n##_support = { \
 
 DEFINE_IMC_UCLK_BOX(0);
 DEFINE_IMC_UCLK_BOX(1);
-

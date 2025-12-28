@@ -4,15 +4,14 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import numpy as np
 import unittest
-import faiss
 
+import faiss
+import numpy as np
 from faiss.contrib import datasets
 
 
 class TestDistanceComputer(unittest.TestCase):
-
     def do_test(self, factory_string, metric_type=faiss.METRIC_L2):
         ds = datasets.SyntheticDataset(32, 1000, 200, 20)
 
@@ -35,8 +34,7 @@ class TestDistanceComputer(unittest.TestCase):
                 for j in range(10):
                     ref_dis = Dref[q, j]
                     new_dis = dc(int(Iref[q, j]))
-                    np.testing.assert_almost_equal(
-                        new_dis, ref_dis, decimal=5)
+                    np.testing.assert_almost_equal(new_dis, ref_dis, decimal=5)
 
     def test_distance_computer_PQ(self):
         self.do_test("PQ8np")
@@ -57,17 +55,16 @@ class TestDistanceComputer(unittest.TestCase):
         self.do_test("PCA20,SQ8")
 
     def test_distance_computer_AQ_decompress(self):
-        self.do_test("RQ3x4")    # test decompress path
+        self.do_test("RQ3x4")  # test decompress path
 
     def test_distance_computer_AQ_LUT(self):
-        self.do_test("RQ3x4_Nqint8")    # test LUT path
+        self.do_test("RQ3x4_Nqint8")  # test LUT path
 
     def test_distance_computer_AQ_LUT_IP(self):
         self.do_test("RQ3x4_Nqint8", faiss.METRIC_INNER_PRODUCT)
 
 
 class TestIndexRefineSearchParams(unittest.TestCase):
-
     def do_test(self, factory_string):
         ds = datasets.SyntheticDataset(32, 256, 100, 40)
 

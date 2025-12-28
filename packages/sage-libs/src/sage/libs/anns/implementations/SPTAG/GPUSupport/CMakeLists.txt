@@ -30,7 +30,7 @@ if (CUDA_FOUND)
     include_directories(${AnnService})
     include_directories(${PROJECT_SOURCE_DIR}/Test/cuda)
 
-    include_directories(${PROJECT_SOURCE_DIR}/ThirdParty/zstd/lib)   
+    include_directories(${PROJECT_SOURCE_DIR}/ThirdParty/zstd/lib)
 
     file(GLOB_RECURSE GPU_HDR_FILES ${AnnService}/inc/Core/*.h  ${AnnService}/inc/Helper/*.h ${AnnService}/inc/Core/Common/cuda/*)
     file(GLOB_RECURSE GPU_SRC_FILES ${AnnService}/src/Core/*.cpp ${AnnService}/src/Helper/*.cpp ${AnnService}/src/Core/Common/Kernel.cu)
@@ -71,7 +71,7 @@ if (CUDA_FOUND)
     file(GLOB_RECURSE SSD_SERVING_HDR_FILES ${AnnService}/inc/SSDServing/*.h)
     file(GLOB_RECURSE SSD_SERVING_FILES ${AnnService}/src/SSDServing/*.cpp)
     if(NOT WIN32)
-        list(REMOVE_ITEM SSD_SERVING_HDR_FILES 
+        list(REMOVE_ITEM SSD_SERVING_HDR_FILES
             ${VECTORSEARCH_INC_DIR}/AsyncFileReader.h
             )
     elseif(WIN32)
@@ -95,7 +95,7 @@ if (CUDA_FOUND)
     CUDA_ADD_EXECUTABLE(gpu_pq_test ${AnnService}/../Test/cuda/pq_perf.cpp)
     target_link_libraries(gpu_pq_test GPUSPTAGTests GPUSPTAGLibStatic ${Boost_LIBRARIES} ${CUDA_LIBRARIES})
     target_compile_definitions(gpu_pq_test PRIVATE ${Definition} _exe)
-    
+
 else()
     message (STATUS "Could not find cuda.")
 endif()

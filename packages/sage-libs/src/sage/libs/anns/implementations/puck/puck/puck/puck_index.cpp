@@ -511,7 +511,7 @@ int PuckIndex::search_nearest_filter_points(SearchContext* context, const float*
     float* result_distance = context->get_search_point_data().result_distance;
     uint32_t* result_tag = context->get_search_point_data().result_tag;
     MaxHeap filter_heap(_conf.filter_topk, result_distance, result_tag);
-    
+
     float query_norm = cblas_sdot(_conf.feature_dim, feature, 1, feature, 1);
     //过滤阈值
     float pivot = (filter_heap.get_top_addr()[0] - query_norm) / _conf.radius_rate / 2.0;
@@ -966,7 +966,7 @@ int PuckIndex::puck_single_assign(BuildInfo* build_info, std::vector<Quantizatio
                     pq_assign = i;
                 }
             }
-            
+
             float* sub_residual = residual.get() + k * param.lsq;
             int distance_type = 2;
             float* cur_pq_centroids = quantization->get_sub_coodbooks(k);

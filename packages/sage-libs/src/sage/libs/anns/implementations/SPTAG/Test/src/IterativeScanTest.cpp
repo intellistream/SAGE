@@ -42,7 +42,7 @@ void SearchIterativeBatch(const std::string folder, T* vec, SPTAG::SizeType n, s
         if (resultCount <= 0) break;
         BOOST_CHECK(resultCount == batch);
         for (int j = 0; j < resultCount; j++) {
-            
+
             BOOST_CHECK(std::string((char*)((results->GetMetadata(j)).Data()), (results->GetMetadata(j)).Length()) == truthmeta[ri]);
             BOOST_CHECK(results->GetResult(j)->RelaxedMono == true);
             std::cout << "Result[" << ri << "] VID:" << results->GetResult(j)->VID << " Dist:" << results->GetResult(j)->Dist << " RelaxedMono:"

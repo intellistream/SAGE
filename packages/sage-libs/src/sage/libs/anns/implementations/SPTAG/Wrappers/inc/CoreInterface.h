@@ -74,11 +74,11 @@ public:
 
 private:
     AnnIndex(const std::shared_ptr<SPTAG::VectorIndex>& p_index);
-    
+
     std::shared_ptr<SPTAG::VectorIndex> m_index;
 
     size_t m_inputVectorSize;
-    
+
     DimensionType m_dimension;
 
     SPTAG::IndexAlgoType m_algoType;

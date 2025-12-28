@@ -89,7 +89,7 @@ pfm_cell_detect(void)
 {
 	int ret;
 	char buffer[128];
-	
+
 	ret = __pfm_getcpuinfo_attr("cpu", buffer, sizeof(buffer));
 	if (ret == -1) {
 		return PFMLIB_ERR_NOTSUPP;
@@ -111,11 +111,11 @@ get_pmx_offset(int pmx_num, unsigned int *pmx_ctrl_bits)
 	 */
 	int i = 0;
 	int offset;
-	
+
 	if ((pmx_num >= PMX_MIN_NUM) && (pmx_num <= PMX_MAX_NUM)) {
 		/* offset is specified */
 		offset = (pmx_num - 1);
-		
+
 		if ((~*pmx_ctrl_bits >> offset) & 0x1) {
 			*pmx_ctrl_bits |= (0x1 << offset);
 			return offset;
@@ -139,7 +139,7 @@ static unsigned long long
 search_enable_word(int word)
 {
 	unsigned long long count = 0;
-	
+
 	while ((~word) & 0x1) {
 		count++;
 		word >>= 1;
@@ -214,15 +214,15 @@ found:
 	return PFMLIB_SUCCESS;
 }
 
-static unsigned int get_signal_type(unsigned long long event_code) 
+static unsigned int get_signal_type(unsigned long long event_code)
 {
 	return (event_code & 0x00000000FFFFFFFFULL) / 100;
-}	
+}
 
-static unsigned int get_signal_bit(unsigned long long event_code) 
+static unsigned int get_signal_bit(unsigned long long event_code)
 {
 	return (event_code & 0x00000000FFFFFFFFULL) % 100;
-}	
+}
 
 static int is_spe_signal_group(unsigned int signal_type)
 {
@@ -274,7 +274,7 @@ check_signal_type(pfmlib_input_param_t *inp,
 				group0->subunit = subunit;
 				signal_cnt++;
 				break;
-				
+
 			case 1:
 				if ((group0->signal_type != signal_type) ||
 				    (is_spe_signal_group(signal_type) && group0->subunit != subunit)) {
@@ -283,10 +283,10 @@ check_signal_type(pfmlib_input_param_t *inp,
 					group1->freq = cell_pe[e[i].event].pme_freq;
 					group1->subunit = subunit;
 					signal_cnt++;
-					
+
 				}
 				break;
-				
+
 			case 2:
 				if ((group0->signal_type != signal_type)
 				  && (group1->signal_type != signal_type)) {
@@ -294,7 +294,7 @@ check_signal_type(pfmlib_input_param_t *inp,
 					return PFMLIB_ERR_INVAL;
 				}
 				break;
-				
+
 			default:
 				DPRINT("signal count is invalid\n");
 				return PFMLIB_ERR_INVAL;
@@ -362,7 +362,7 @@ pfm_cell_dispatch_counters(pfmlib_input_param_t *inp,
 	int shift0, shift1;
 	unsigned int pmx_ctrl_bits;
 	int max_event_cnt = PFM_CELL_32BIT_CNTR_EVENT_MAX;
-	
+
 	count_enable = 1;
 
 	group[0].signal_type = group[1].signal_type = NONE_SIGNAL;
@@ -485,11 +485,11 @@ pfm_cell_dispatch_counters(pfmlib_input_param_t *inp,
 			case COUNT_TYPE_SINGLE_CYCLE:
 				count_cycle = 1;
 				break;
-				
+
 			case COUNT_TYPE_OCCURRENCE:
 				count_cycle = 0;
 				break;
-				
+
 			default:
 				return PFMLIB_ERR_INVAL;
 		}
@@ -501,7 +501,7 @@ pfm_cell_dispatch_counters(pfmlib_input_param_t *inp,
 		if (is_spe_signal_group(signal_type)) {
 			subunit = mod_in->pfp_cell_counters[i].spe_subunit;
 		}
-		
+
 		pc[pmcs_cnt].reg_value	= ( (signal_bit << (31 - 5))
 					  | (input_control << (31 - 6))
 					  | (polarity << (31 - 7))

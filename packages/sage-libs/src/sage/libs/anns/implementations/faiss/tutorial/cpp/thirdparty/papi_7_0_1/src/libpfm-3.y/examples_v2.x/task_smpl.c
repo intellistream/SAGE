@@ -147,19 +147,19 @@ show_task_rusage(const struct timeval *start, const struct timeval *end, const s
 
   	suseconds = end_usec - start->tv_usec;
 
-	printf ("real %ldh%02ldm%02ld.%03lds user %ldh%02ldm%02ld.%03lds sys %ldh%02ldm%02ld.%03lds\n", 
-		secs / 3600, 
-		(secs % 3600) / 60, 
+	printf ("real %ldh%02ldm%02ld.%03lds user %ldh%02ldm%02ld.%03lds sys %ldh%02ldm%02ld.%03lds\n",
+		secs / 3600,
+		(secs % 3600) / 60,
 		secs % 60,
 		suseconds / 1000,
 
-		ru->ru_utime.tv_sec / 3600, 
-		(ru->ru_utime.tv_sec % 3600) / 60, 
+		ru->ru_utime.tv_sec / 3600,
+		(ru->ru_utime.tv_sec % 3600) / 60,
 		ru->ru_utime.tv_sec% 60,
 		(long)(ru->ru_utime.tv_usec / 1000),
 
-		ru->ru_stime.tv_sec / 3600, 
-		(ru->ru_stime.tv_sec % 3600) / 60, 
+		ru->ru_stime.tv_sec / 3600,
+		(ru->ru_stime.tv_sec % 3600) / 60,
 		ru->ru_stime.tv_sec% 60,
 		(long)(ru->ru_stime.tv_usec / 1000)
 		);
@@ -174,11 +174,11 @@ process_smpl_buf(smpl_hdr_t *hdr, uint64_t *smpl_pmds, unsigned int num_smpl_pmd
 	size_t pos, count;
 	uint64_t entry, *reg;
 	unsigned int j, n;
-	
+
 	if (hdr->hdr_overflows == last_overflow && hdr->hdr_count == last_count) {
 		warning("skipping identical set of samples %"PRIu64" = %"PRIu64"\n",
 			hdr->hdr_overflows, last_overflow);
-		return;	
+		return;
 	}
 
 	count = hdr->hdr_count;
@@ -208,7 +208,7 @@ process_smpl_buf(smpl_hdr_t *hdr, uint64_t *smpl_pmds, unsigned int num_smpl_pmd
 		reg = (uint64_t *)(ent+1);
 
 		n = num_smpl_pmds;
-		for(j=0; n; j++) {	
+		for(j=0; n; j++) {
 			if (pfm_bv_isset(smpl_pmds, j)) {
 				printf("PMD%-3d:0x%016"PRIx64"\n", j, *reg);
 				reg++;
@@ -321,7 +321,7 @@ mainloop(char **arg)
 		pd[i].reg_num = outp.pfp_pmds[i].reg_num;
 		/*
 		 * skip first counter (sampling period)
-		 * track highest PMD 
+		 * track highest PMD
 		 */
 		if (i) {
 			pfm_bv_set(pd[0].reg_smpl_pmds, pd[i].reg_num);
@@ -595,7 +595,7 @@ main(int argc, char **argv)
 	if (argv[optind] == NULL) {
 		fatal_error("You must specify a command to execute\n");
 	}
-	
+
 	/*
 	 * pass options to library (optional)
 	 */

@@ -4,12 +4,15 @@
 # LICENSE file in the root directory of this source tree.
 
 import unittest
-import numpy as np
+
 import faiss
+import numpy as np
+
 
 def make_t(num, d):
     rs = np.random.RandomState(123)
-    return rs.rand(num, d).astype('float32')
+    return rs.rand(num, d).astype("float32")
+
 
 class TestGpuSerialize(unittest.TestCase):
     def test_serialize(self):
@@ -34,7 +37,9 @@ class TestGpuSerialize(unittest.TestCase):
         indexes.append(faiss.GpuIndexIVFFlat(res, d, nlist, faiss.METRIC_L2))
 
         # IVFSQ
-        indexes.append(faiss.GpuIndexIVFScalarQuantizer(res, d, nlist, faiss.ScalarQuantizer.QT_fp16))
+        indexes.append(
+            faiss.GpuIndexIVFScalarQuantizer(res, d, nlist, faiss.ScalarQuantizer.QT_fp16)
+        )
 
         # IVFPQ
         indexes.append(faiss.GpuIndexIVFPQ(res, d, nlist, 4, 8, faiss.METRIC_L2))

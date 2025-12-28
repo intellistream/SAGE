@@ -2,11 +2,10 @@
 # Licensed under the MIT license.
 
 import warnings
-
-import numpy as np
-
 from pathlib import Path
 from typing import Optional
+
+import numpy as np
 
 from . import _diskannpy as _native_dap
 from ._common import (
@@ -25,8 +24,8 @@ from ._common import (
     _assert_is_positive_uint32,
     _castable_dtype_or_raise,
     _ensure_index_metadata,
-    _valid_metric,
     _valid_index_prefix,
+    _valid_metric,
 )
 from ._diskannpy import defaults
 
@@ -34,7 +33,6 @@ __ALL__ = ["DynamicMemoryIndex"]
 
 
 class DynamicMemoryIndex:
-
     @classmethod
     def from_file(
         cls,
@@ -60,13 +58,11 @@ class DynamicMemoryIndex:
 
         # do tags exist?
         tags_file = index_prefix_path + ".tags"
-        _assert(Path(tags_file).exists(), f"The file {tags_file} does not exist in {index_directory}")
+        _assert(
+            Path(tags_file).exists(), f"The file {tags_file} does not exist in {index_directory}"
+        )
         vector_dtype, dap_metric, num_vectors, dimensions = _ensure_index_metadata(
-            index_prefix_path,
-            vector_dtype,
-            distance_metric,
-            max_vectors,
-            dimensions
+            index_prefix_path, vector_dtype, distance_metric, max_vectors, dimensions
         )
 
         index = cls(
@@ -84,7 +80,7 @@ class DynamicMemoryIndex:
             num_frozen_points=num_frozen_points,
             initial_search_complexity=initial_search_complexity,
             search_threads=search_threads,
-            concurrent_consolidation=concurrent_consolidation
+            concurrent_consolidation=concurrent_consolidation,
         )
         index._index.load(index_prefix_path)
         return index
@@ -105,7 +101,7 @@ class DynamicMemoryIndex:
         num_frozen_points: int = defaults.NUM_FROZEN_POINTS_DYNAMIC,
         initial_search_complexity: int = 0,
         search_threads: int = 0,
-        concurrent_consolidation: bool = True
+        concurrent_consolidation: bool = True,
     ):
         """
         The diskannpy.DynamicMemoryIndex represents our python API into a dynamic DiskANN InMemory Index library.
@@ -167,14 +163,14 @@ class DynamicMemoryIndex:
         _assert_is_positive_uint32(max_vectors, "max_vectors")
         _assert_is_positive_uint32(complexity, "complexity")
         _assert_is_positive_uint32(graph_degree, "graph_degree")
-        _assert(alpha >= 1, "alpha must be >= 1, and realistically should be kept between [1.0, 2.0)")
+        _assert(
+            alpha >= 1, "alpha must be >= 1, and realistically should be kept between [1.0, 2.0)"
+        )
         _assert_is_nonnegative_uint32(max_occlusion_size, "max_occlusion_size")
         _assert_is_nonnegative_uint32(num_threads, "num_threads")
         _assert_is_nonnegative_uint32(filter_complexity, "filter_complexity")
         _assert_is_nonnegative_uint32(num_frozen_points, "num_frozen_points")
-        _assert_is_nonnegative_uint32(
-            initial_search_complexity, "initial_search_complexity"
-        )
+        _assert_is_nonnegative_uint32(initial_search_complexity, "initial_search_complexity")
         _assert_is_nonnegative_uint32(search_threads, "search_threads")
 
         if vector_dtype == np.single:
@@ -197,12 +193,10 @@ class DynamicMemoryIndex:
             num_frozen_points=num_frozen_points,
             initial_search_complexity=initial_search_complexity,
             search_threads=search_threads,
-            concurrent_consolidation=concurrent_consolidation
+            concurrent_consolidation=concurrent_consolidation,
         )
 
-    def search(
-        self, query: VectorLike, k_neighbors: int, complexity: int
-    ) -> QueryResponse:
+    def search(self, query: VectorLike, k_neighbors: int, complexity: int) -> QueryResponse:
         """
         Searches the disk index by a single query vector in a 1d numpy array.
 
@@ -222,13 +216,13 @@ class DynamicMemoryIndex:
         _query = _castable_dtype_or_raise(
             query,
             expected=self._vector_dtype,
-            message=f"StaticMemoryIndex expected a query vector of dtype of {self._vector_dtype}"
+            message=f"StaticMemoryIndex expected a query vector of dtype of {self._vector_dtype}",
         )
         _assert(len(_query.shape) == 1, "query vector must be 1-d")
         _assert(
             _query.shape[0] == self._dimensions,
             f"query vector must have the same dimensionality as the index; index dimensionality: {self._dimensions}, "
-            f"query dimensionality: {_query.shape[0]}"
+            f"query dimensionality: {_query.shape[0]}",
         )
         _assert_is_positive_uint32(k_neighbors, "k_neighbors")
         _assert_is_nonnegative_uint32(complexity, "complexity")
@@ -266,12 +260,16 @@ class DynamicMemoryIndex:
             contains the distances, of the same form: row index will match query index, column index refers to
             1..k_neighbors distance. These are aligned arrays.
         """
-        _queries = _castable_dtype_or_raise(queries, expected=self._vector_dtype, message=f"DynamicMemoryIndex expected a query vector of dtype of {self._vector_dtype}")
+        _queries = _castable_dtype_or_raise(
+            queries,
+            expected=self._vector_dtype,
+            message=f"DynamicMemoryIndex expected a query vector of dtype of {self._vector_dtype}",
+        )
         _assert_2d(_queries, "queries")
         _assert(
             _queries.shape[1] == self._dimensions,
             f"query vectors must have the same dimensionality as the index; index dimensionality: {self._dimensions}, "
-            f"query dimensionality: {_queries.shape[1]}"
+            f"query dimensionality: {_queries.shape[1]}",
         )
 
         _assert_is_positive_uint32(k_neighbors, "k_neighbors")
@@ -309,9 +307,13 @@ class DynamicMemoryIndex:
         Inserts a single vector into the index with the provided vector_id.
         :param vector: The vector to insert. Note that dtype must match.
         :type vector: VectorLike
-        :param vector_id: The vector_id to use for this vector. 
+        :param vector_id: The vector_id to use for this vector.
         """
-        _vector = _castable_dtype_or_raise(vector, expected=self._vector_dtype, message=f"DynamicMemoryIndex expected a query vector of dtype of {self._vector_dtype}")
+        _vector = _castable_dtype_or_raise(
+            vector,
+            expected=self._vector_dtype,
+            message=f"DynamicMemoryIndex expected a query vector of dtype of {self._vector_dtype}",
+        )
         _assert(len(vector.shape) == 1, "insert vector must be 1-d")
         _assert_is_positive_uint32(vector_id, "vector_id")
         return self._index.insert(_vector, np.uintc(vector_id))
@@ -328,17 +330,20 @@ class DynamicMemoryIndex:
         :param num_threads: Number of threads to use when inserting into this index. (>= 0), 0 = num_threads in system
         :type num_threads: int
         """
-        _query = _castable_dtype_or_raise(vectors, expected=self._vector_dtype, message=f"DynamicMemoryIndex expected a query vector of dtype of {self._vector_dtype}")
+        _query = _castable_dtype_or_raise(
+            vectors,
+            expected=self._vector_dtype,
+            message=f"DynamicMemoryIndex expected a query vector of dtype of {self._vector_dtype}",
+        )
         _assert(len(vectors.shape) == 2, "vectors must be a 2-d array")
         _assert(
-            vectors.shape[0] == vector_ids.shape[0], "Number of vectors must be equal to number of ids"
+            vectors.shape[0] == vector_ids.shape[0],
+            "Number of vectors must be equal to number of ids",
         )
         _vectors = vectors.astype(dtype=self._vector_dtype, casting="safe", copy=False)
         _vector_ids = vector_ids.astype(dtype=np.uintc, casting="safe", copy=False)
 
-        return self._index.batch_insert(
-            _vectors, _vector_ids, _vector_ids.shape[0], num_threads
-        )
+        return self._index.batch_insert(_vectors, _vector_ids, _vector_ids.shape[0], num_threads)
 
     def mark_deleted(self, vector_id: VectorIdentifier):
         """

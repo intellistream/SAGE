@@ -115,14 +115,14 @@ process_smpl_buf(int id, unsigned long smpl_pmd_mask, int need_restart)
 	unsigned long count, entry, *reg, pos, msk;
 	unsigned long entry_size;
 	int j;
-	
+
 
 
 	printf("processing %s buffer at %p\n", need_restart==0 ? "leftover" : "", hdr);
 	if (hdr->hdr_overflows <= last_overflow && last_overflow != ~0UL) {
 		warning("skipping identical set of samples %lu <= %lu\n",
 			hdr->hdr_overflows, last_overflow);
-		return;	
+		return;
 	}
 	last_overflow = hdr->hdr_overflows;
 
@@ -154,7 +154,7 @@ process_smpl_buf(int id, unsigned long smpl_pmd_mask, int need_restart)
 		 */
 		reg = (unsigned long *)(ent+1);
 
-		for(j=0, msk = smpl_pmd_mask; msk; msk >>=1, j++) {	
+		for(j=0, msk = smpl_pmd_mask; msk; msk >>=1, j++) {
 			if ((msk & 0x1) == 0) continue;
 			printf("PMD%-2d = 0x%016lx\n", j, *reg);
 			reg++;
@@ -245,7 +245,7 @@ mainloop(char **arg)
 	if ((ret=pfm_dispatch_events(&inp, NULL, &outp, NULL)) != PFMLIB_SUCCESS) {
 		fatal_error("cannot configure events: %s\n", pfm_strerror(ret));
 	}
-	
+
 	/*
 	 * Now prepare the argument to initialize the PMDs and PMCS.
 	 * We must pfp_pmc_count to determine the number of PMC to intialize.

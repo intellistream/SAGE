@@ -18,7 +18,7 @@ void do_setup(const struct perfctr_info *info,
 /* Set up counter 1 to count PM_INST_CMPL.  Other counters are set up
  * to count some event, but are not used in this test.
  */
-    if ((info->cpu_type == PERFCTR_PPC64_POWER4) || 
+    if ((info->cpu_type == PERFCTR_PPC64_POWER4) ||
 	(info->cpu_type == PERFCTR_PPC64_POWER4p)) {
 	cpu_control->ppc64.mmcr0 = 0x4000090EULL;
 	cpu_control->ppc64.mmcr1 = 0x1003400045F29420ULL;

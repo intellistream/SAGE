@@ -35,28 +35,28 @@ bool CANDY::ConcurrentIndexWorker::loadInitialTensor(torch::Tensor &t) {
   return ru;
 }
 
-std::vector<SearchRecord> CANDY::ConcurrentIndexWorker::ccInsertAndSearchTensor(torch::Tensor &t, 
+std::vector<SearchRecord> CANDY::ConcurrentIndexWorker::ccInsertAndSearchTensor(torch::Tensor &t,
     torch::Tensor &qt, int64_t k) {
   if (!myIndexAlgo) {
     throw std::runtime_error("Index algorithm not initialized.");
   }
 
-  std::atomic<size_t> commitedOps(0); 
+  std::atomic<size_t> commitedOps(0);
   size_t writeTotal = t.size(0);
   size_t searchTotal = qt.size(0);
   std::exception_ptr lastException = nullptr;
   std::mutex lastExceptMutex;
   std::mutex resultMutex;
-  
+
   std::vector<SearchRecord> searchRes;
 
   while (commitedOps < writeTotal) {
     size_t insertCnt = std::min(batchSize, writeTotal - commitedOps.load());
-    size_t searchCnt = insertCnt / writeRatio;  
+    size_t searchCnt = insertCnt / writeRatio;
 
     std::atomic<size_t> currentInsert(0);
     std::vector<std::thread> writeThreads;
-    
+
     for (size_t i = 0; i < numThreads; i++) {
       writeThreads.emplace_back([&, i] {
         while (true) {
@@ -65,7 +65,7 @@ std::vector<SearchRecord> CANDY::ConcurrentIndexWorker::ccInsertAndSearchTensor(
           size_t globalIdx = commitedOps.fetch_add(1);
           if (globalIdx >= writeTotal) break;
           try {
-            myIndexAlgo->insertTensor(t[globalIdx]);  
+            myIndexAlgo->insertTensor(t[globalIdx]);
           } catch (...) {
             std::unique_lock<std::mutex> lock(lastExceptMutex);
             lastException = std::current_exception();
@@ -100,12 +100,12 @@ std::vector<SearchRecord> CANDY::ConcurrentIndexWorker::ccInsertAndSearchTensor(
     for (auto &t : writeThreads) {
       t.join();
     }
-    writeThreads.clear();  
+    writeThreads.clear();
 
     for (auto &t : readThreads) {
       t.join();
     }
-    readThreads.clear();  
+    readThreads.clear();
 
     {
       std::unique_lock<std::mutex> lock(resultMutex);

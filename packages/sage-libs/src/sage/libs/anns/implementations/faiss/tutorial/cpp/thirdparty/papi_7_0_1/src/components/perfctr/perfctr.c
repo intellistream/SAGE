@@ -1,4 +1,4 @@
-/* 
+/*
 * File:    perfctr.c
 * Author:  Philip Mucci
 *          mucci at cs.utk.edu
@@ -50,7 +50,7 @@ extern int setup_ppc64_presets( int cputype, int cidx );
 #define PERFCTR_CPU_NRCTRS      perfctr_cpu_nrctrs
 #endif
 
-#if !defined(PPC64) 
+#if !defined(PPC64)
 static inline int
 xlate_cpu_type_to_vendor( unsigned perfctr_cpu_type )
 {
@@ -227,7 +227,7 @@ _perfctr_init_component( int cidx )
 #if !defined(PPC64)
 //     retval = setup_p3_vector_table(vtable);
 		if ( !retval )
-				retval = _papi_libpfm_init(&_perfctr_vector, cidx ); 
+				retval = _papi_libpfm_init(&_perfctr_vector, cidx );
 #else
 	/* Setup native and preset events */
 //  retval = ppc64_setup_vector_table(vtable);
@@ -359,7 +359,7 @@ _perfctr_dispatch_timer( int signal, siginfo_t * si, void *context )
    vptr_t address;
    int cidx = _perfctr_vector.cmp_info.CmpIdx;
    hwd_context_t *our_context;
-   
+
    ctx.si = si;
    ctx.ucontext = ( ucontext_t * ) context;
 

@@ -65,4 +65,4 @@ namespace SPTAG
     }
 }
 
-#endif // _SPTAG_COMMON_QUANTIZER_H_ 
+#endif // _SPTAG_COMMON_QUANTIZER_H_

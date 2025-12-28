@@ -2456,4 +2456,3 @@ changes back to 'base' before deallocating the array.
 Steals a reference to 'base'.
 
 Returns 0 on success, -1 on failure.
-

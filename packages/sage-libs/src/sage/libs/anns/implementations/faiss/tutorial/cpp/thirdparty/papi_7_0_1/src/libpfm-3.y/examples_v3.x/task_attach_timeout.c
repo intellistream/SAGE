@@ -191,7 +191,7 @@ parent(pid_t pid, unsigned long delay)
 	/*
 	 * the task is stopped at this point
 	 */
-	
+
 	/*
 	 * now we attach (i.e., attach) the session to ourself
 	 */
@@ -304,7 +304,7 @@ read_results:
 			name);
 	}
 	/*
-	 * free the session 
+	 * free the session
 	 */
 	close(ctx_fd);
 

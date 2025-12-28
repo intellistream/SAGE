@@ -91,4 +91,3 @@ enum class IndexType {
 IndexType load_index_type();
 
 }//namespace puck
-

@@ -1,11 +1,11 @@
-/* 
+/*
 * File:    README
 * CVS:     $Id$
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu
 * Mods:    <your name here>
 *          <your email address>
-*/  
+*/
 
 This directory contains:
 
@@ -18,6 +18,6 @@ Makefile Usage:
 	make
 	make install DESTDIR=<destdir>
 
-Beginning with PAPI 4.2.0, man pages are generated from the PAPI sources 
-using doxygen scripts found in the papi/doc directory. 
+Beginning with PAPI 4.2.0, man pages are generated from the PAPI sources
+using doxygen scripts found in the papi/doc directory.
 They are updated prior to each release.

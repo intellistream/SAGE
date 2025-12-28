@@ -1,5 +1,5 @@
 /*
- * Intel Atom : architectural perfmon v3 + PEBS 
+ * Intel Atom : architectural perfmon v3 + PEBS
  *
  * Copyright (c) 2008 Google, Inc
  * Contributed by Stephane Eranian <eranian@gmail.com>

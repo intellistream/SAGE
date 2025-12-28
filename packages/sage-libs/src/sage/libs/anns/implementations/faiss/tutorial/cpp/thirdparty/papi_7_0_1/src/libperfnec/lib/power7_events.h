@@ -10615,4 +10615,3 @@ static pmg_power_group_t power7_groups[] = {
 };
 
 #endif
-

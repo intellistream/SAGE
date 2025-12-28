@@ -2028,4 +2028,3 @@ static pme_gen_mips64_entry_t gen_mips64_vr5500_pe[] = {
 	 .pme_desc = "Execution of store instruction"
 	},
 };
-

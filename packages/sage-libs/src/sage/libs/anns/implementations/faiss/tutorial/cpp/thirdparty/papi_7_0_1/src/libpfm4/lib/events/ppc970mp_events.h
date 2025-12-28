@@ -1634,4 +1634,3 @@ static const pme_power_entry_t ppc970mp_pe[] = {
 	}
 };
 #endif
-

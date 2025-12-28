@@ -1,16 +1,22 @@
 # SPACEV1B: A billion-Scale vector dataset for text descriptors
-This is a dataset released by Microsoft from SpaceV, Bing web vector search scenario, for large scale vector search related research usage. It consists of more than one billion document vectors 
-and 29K+ query vectors encoded by Microsoft SpaceV Superior model. This model is trained to capture generic intent representation for both documents and queries. 
-The goal is to match the query vector to the closest document vectors in order to achieve topk relevant documents for each query.
+
+This is a dataset released by Microsoft from SpaceV, Bing web vector search scenario, for large
+scale vector search related research usage. It consists of more than one billion document vectors
+and 29K+ query vectors encoded by Microsoft SpaceV Superior model. This model is trained to capture
+generic intent representation for both documents and queries. The goal is to match the query vector
+to the closest document vectors in order to achieve topk relevant documents for each query.
 
 ## Introduction
 
 This dataset contains:
 
- * [vectors.bin](vectors.bin): It contains 1,402,020,720 100-dimensional int8-type document descriptors.
- * [query.bin](query.bin):  It contains 29,316 100-dimensional int8-type query descriptors.
- * [truth.bin](truth.bin): It contains 100 nearest ground truth（include vector ids and distances) of 29,316 queries according to L2 distance.
- * [query_log.bin](query_log.bin): It contains 94,162 100-dimensional int8-type history query descriptors.
+- [vectors.bin](vectors.bin): It contains 1,402,020,720 100-dimensional int8-type document
+  descriptors.
+- [query.bin](query.bin): It contains 29,316 100-dimensional int8-type query descriptors.
+- [truth.bin](truth.bin): It contains 100 nearest ground truth（include vector ids and distances) of
+  29,316 queries according to L2 distance.
+- [query_log.bin](query_log.bin): It contains 94,162 100-dimensional int8-type history query
+  descriptors.
 
 ## How to read the vectors, queries, and truth
 

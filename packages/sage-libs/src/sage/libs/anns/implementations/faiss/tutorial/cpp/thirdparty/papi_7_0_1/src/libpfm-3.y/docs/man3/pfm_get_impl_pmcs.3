@@ -2,7 +2,7 @@
 .SH NAME
 pfm_get_impl_pmcs, pfm_get_impl_pmds, pfm_get_impl_counters,
 pfm_get_num_counters, pfm_get_num_pmcs, pfm_get_num_pmds,
-pfm_get_hw_counter_width \- return 
+pfm_get_hw_counter_width \- return
 bitmask of implemented PMU registers or number of PMU registers
 .SH SYNOPSIS
 .nf
@@ -45,19 +45,19 @@ The \fBpfm_get_num_counters()\fR function returns in \fBnum\fR the number of PMD
 used as counters. A counter is a PMD which is used to accumulate the
 number of occurrences of an event.
 
-The \fBpfm_get_num_pmcs()\fR function returns in \fBnum\fR the number of 
+The \fBpfm_get_num_pmcs()\fR function returns in \fBnum\fR the number of
 implemented PMCs by the host PMU.
 
-The \fBpfm_get_num_pmds()\fR function returns in \fBnum\fR the number of 
+The \fBpfm_get_num_pmds()\fR function returns in \fBnum\fR the number of
 implemented PMDs by the host PMU.
 
-The \fBpfm_get_hw_counter_width()\fR function returns the width in bits of the 
-counters in \fBwidth\fR. PMU implementations can have different number of 
-bits implemented. For instance, Itanium has 32-bit counters, while Itanium 
-2 has 47-bits. 
+The \fBpfm_get_hw_counter_width()\fR function returns the width in bits of the
+counters in \fBwidth\fR. PMU implementations can have different number of
+bits implemented. For instance, Itanium has 32-bit counters, while Itanium
+2 has 47-bits.
 .SH RETURN
 The function returns whether or not it was successful.
-A return value of \fBPFMLIB_SUCCESS\fR indicates success, 
+A return value of \fBPFMLIB_SUCCESS\fR indicates success,
 otherwise the value is the error code.
 .SH ERRORS
 .B PFMLIB_ERR_NOINIT

@@ -8976,4 +8976,3 @@ static const pmg_power_group_t power5p_groups[] = {
 };
 
 #endif
-

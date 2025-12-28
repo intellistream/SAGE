@@ -2,7 +2,7 @@
 # ============================================================================
 # 统一构建脚本：构建所有算法并生成 Python 包
 # ============================================================================
-# 
+#
 # 本脚本用于构建 algorithms_impl 文件夹中的所有算法实现：
 # 1. PyCANDY 算法 (通过 CMake + pybind11)
 # 2. 第三方库：GTI, IP-DiskANN, PLSH (标准 CMake 构建)
@@ -137,7 +137,7 @@ print_info "Using -j${MAX_JOBS} for parallel compilation"
 # ============================================================================
 if [ "$BUILD_PYCANDY" = true ]; then
     print_header "Building PyCANDY Algorithms"
-    
+
     if [ -f "build.sh" ]; then
         print_info "Running build.sh..."
         if bash build.sh; then
@@ -145,7 +145,7 @@ if [ "$BUILD_PYCANDY" = true ]; then
             SO_FILE=$(ls PyCANDYAlgo*.so 2>/dev/null | head -1)
             if [ -n "$SO_FILE" ]; then
                 print_success "PyCANDY built: $SO_FILE"
-                
+
                 if [ "$AUTO_INSTALL" = true ]; then
                     print_info "Installing PyCANDYAlgo..."
                     pip install -e . --no-build-isolation
@@ -171,38 +171,38 @@ fi
 # ============================================================================
 if [ "$BUILD_THIRD_PARTY" = true ]; then
     print_header "Building Third-Party Libraries"
-    
+
     # 创建安装目录
     mkdir -p "$SCRIPT_DIR/build/install"
-    
+
     # === GTI ===
     if [ -d "gti" ]; then
         print_info "Building GTI..."
-        
+
         # 构建 n2 依赖
         if [ -d "gti/GTI/extern_libraries/n2" ]; then
             print_info "  Building n2 dependency..."
             cd gti/GTI/extern_libraries/n2
-            
+
             # 修复 spdlog 头文件包含问题（构建时临时修复，不提交到 git）
             if ! grep -q "stdout_color_sinks.h" include/n2/hnsw_build.h 2>/dev/null; then
                 print_info "  Applying spdlog include fix..."
                 sed -i '/#include "spdlog\/spdlog.h"/a #include "spdlog/sinks/stdout_color_sinks.h"' include/n2/hnsw_build.h
             fi
-            
+
             [ -d build ] && rm -rf build
             # 使用旧 ABI 以匹配 GTI (添加 -D_GLIBCXX_USE_CXX11_ABI=0)
             CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" make shared_lib -j${MAX_JOBS}
             print_success "  n2 library built"
             cd "$SCRIPT_DIR"
         fi
-        
+
         # 构建 GTI Python bindings (只构建 gti_wrapper，不构建主可执行文件)
         cd gti/GTI
         [ -d build ] && rm -rf build
         mkdir -p bin build
         cd build
-        
+
         # 查找 pybind11 cmake 路径
         PYBIND11_CMAKE_DIR=$(python3 -c "import pybind11; print(pybind11.get_cmake_dir())" 2>/dev/null || echo "")
         if [ -n "$PYBIND11_CMAKE_DIR" ]; then
@@ -210,29 +210,29 @@ if [ "$BUILD_THIRD_PARTY" = true ]; then
         else
             PYBIND11_ARG=""
         fi
-        
+
         cmake -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_INSTALL_PREFIX="$SCRIPT_DIR/build/install" \
               -DPYTHON_EXECUTABLE=$(which python3) \
               $PYBIND11_ARG ..
-        
+
         # 只构建 Python bindings（gti_wrapper），不构建主可执行文件（需要 tcmalloc）
         make gti_wrapper -j${MAX_JOBS} || print_warning "gti_wrapper build failed"
-        
+
         # 尝试构建主可执行文件（可选，如果 tcmalloc 不可用会跳过）
         make GTI -j${MAX_JOBS} 2>/dev/null || print_warning "GTI executable build skipped (tcmalloc not found)"
-        
+
         # 安装 Python bindings
         if [ -f "bindings/gti_wrapper"*.so ]; then
             make install || print_warning "GTI install failed (not critical)"
         fi
-        
+
         cd "$SCRIPT_DIR"
         print_success "GTI built successfully"
     else
         print_warning "GTI not found (submodule may not be initialized)"
     fi
-    
+
     # === IP-DiskANN ===
     if [ -d "ipdiskann" ]; then
         print_info "Building IP-DiskANN..."
@@ -250,7 +250,7 @@ if [ "$BUILD_THIRD_PARTY" = true ]; then
     else
         print_warning "IP-DiskANN not found (submodule may not be initialized)"
     fi
-    
+
     # === PLSH ===
     if [ -d "plsh" ]; then
         print_info "Building PLSH..."
@@ -277,16 +277,16 @@ fi
 # ============================================================================
 if [ "$BUILD_VSAG" = true ]; then
     print_header "Building VSAG"
-    
+
     if [ -d "vsag" ]; then
         cd vsag
-        
+
         # 检测 Python 版本
         PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
         print_info "Detected Python version: $PYTHON_VERSION"
-        
+
         print_info "Building VSAG Python wheel for Python $PYTHON_VERSION..."
-        
+
         # 先构建 release 版本
         if [ ! -d "build-release" ] || [ ! -f "build-release/CMakeCache.txt" ]; then
             print_info "Building VSAG release version..."
@@ -294,16 +294,16 @@ if [ "$BUILD_VSAG" = true ]; then
         else
             print_info "VSAG release build already exists, skipping..."
         fi
-        
+
         # 构建 Python wheel
         print_info "Building Python wheel..."
         make pyvsag PY_VERSION=${PYTHON_VERSION} COMPILE_JOBS=${MAX_JOBS}
-        
+
         # 检查生成的 wheel 文件
         WHEEL_FILE=$(ls wheelhouse/pyvsag*.whl 2>/dev/null | head -1)
         if [ -n "$WHEEL_FILE" ]; then
             print_success "VSAG wheel built: $WHEEL_FILE"
-            
+
             if [ "$AUTO_INSTALL" = true ]; then
                 print_info "Installing pyvsag..."
                 pip install "$WHEEL_FILE" --force-reinstall
@@ -314,7 +314,7 @@ if [ "$BUILD_VSAG" = true ]; then
             cd "$SCRIPT_DIR"
             exit 1
         fi
-        
+
         cd "$SCRIPT_DIR"
     else
         print_warning "VSAG not found (submodule may not be initialized)"

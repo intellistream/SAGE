@@ -297,7 +297,7 @@ main(int argc, char **argv)
 	for (i=0; i < outp.pfp_pmd_count; i++) {
 		pd[i].reg_num   = outp.pfp_pmds[i].reg_num;
 	}
-	
+
 	/*
 	 * propagate the setup for the debug registers from the library to the arguments
 	 * to the syscall. The library does not know the type of the syscall

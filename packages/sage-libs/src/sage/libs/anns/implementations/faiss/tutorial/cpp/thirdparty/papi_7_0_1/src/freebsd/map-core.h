@@ -2,7 +2,7 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/* 
+/*
 * File:    map-core.h
 * CVS:     $Id$
 * Author:  Harald Servat
@@ -152,4 +152,3 @@ extern Native_Event_LabelDescription_t CoreProcessor_info[];
 extern hwi_search_t CoreProcessor_map[];
 
 #endif
-

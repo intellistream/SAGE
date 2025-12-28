@@ -2,4 +2,3 @@
 #define CLOCKCORE_VIRT_USEC_FAIL -2
 
 int clockcore( int quiet );
-

@@ -69,7 +69,7 @@ typedef union {
 	struct {
 		unsigned long ignored1:3;
 		unsigned long mask:27;		/* mask encoding bits {40:27}{12:0} */
-		unsigned long ignored2:3;	
+		unsigned long ignored2:3;
 		unsigned long match:27;		/* match encoding bits {40:27}{12:0} */
 		unsigned long b:1;		/* B-syllable */
 		unsigned long f:1;		/* F-syllable */

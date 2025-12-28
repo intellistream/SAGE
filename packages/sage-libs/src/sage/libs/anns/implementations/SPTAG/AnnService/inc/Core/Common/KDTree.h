@@ -42,9 +42,9 @@ namespace SPTAG
 
             inline SizeType size() const { return (SizeType)m_pTreeRoots.size(); }
 
-            inline SizeType sizePerTree() const { 
+            inline SizeType sizePerTree() const {
                 std::shared_lock<std::shared_timed_mutex> lock(*m_lock);
-                return (SizeType)m_pTreeRoots.size() - m_pTreeStart.back(); 
+                return (SizeType)m_pTreeRoots.size() - m_pTreeStart.back();
             }
 
             template <typename T>
@@ -114,9 +114,9 @@ break;
                 }
             }
 
-            inline std::uint64_t BufferSize() const 
-            { 
-                return sizeof(int) + sizeof(SizeType) * m_iTreeNumber + 
+            inline std::uint64_t BufferSize() const
+            {
+                return sizeof(int) + sizeof(SizeType) * m_iTreeNumber +
                     sizeof(SizeType) + sizeof(KDTNode) * m_pTreeRoots.size();
             }
 
@@ -323,7 +323,7 @@ break;
                     {
                         m_pQuantizer->ReconstructVector((uint8_t*)data[indices[j]], v_holder);
                         v = v_holder;
-                    } 
+                    }
                     else
                     {
                         v = (R*)data[indices[j]];
@@ -417,7 +417,7 @@ break;
                     {
                         m_pQuantizer->ReconstructVector((uint8_t*)data[ind], v_holder);
                         v = v_holder;
-                    } 
+                    }
                     else
                     {
                         v = (R*)data[ind];

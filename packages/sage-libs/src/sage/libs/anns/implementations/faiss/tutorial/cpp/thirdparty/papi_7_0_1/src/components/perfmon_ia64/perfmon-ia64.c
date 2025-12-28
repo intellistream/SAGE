@@ -73,7 +73,7 @@ extern papi_vector_t _ia64_vector;
       #define PFMW_ARCH_REG_PMCES(reg)  (reg.pmc_ita2_counter_reg.pmc_es)
       typedef pfm_ita2_pmc_reg_t pfmw_arch_pmc_reg_t;
       typedef pfm_ita2_pmd_reg_t pfmw_arch_pmd_reg_t;
-   #else 
+   #else
       #define PFMW_ARCH_REG_PMCPLM(reg) (reg.pmc_ita_count_reg.pmc_plm)
       #define PFMW_ARCH_REG_PMCES(reg)  (reg.pmc_ita_count_reg.pmc_es)
       typedef pfm_ita_pmc_reg_t pfmw_arch_pmc_reg_t;
@@ -761,7 +761,7 @@ install_drange( hwd_context_t * pctx, hwd_control_state_t * current_state )
    These routines must set up or clear the appropriate local static data structures.
    The actual work of loading the hardware registers must be done in update_ctl_state().
    Both drange and irange can be set on the same eventset.
-   If start=end=0, the feature is disabled. 
+   If start=end=0, the feature is disabled.
 */
 static  int
 set_drange( hwd_context_t * ctx, hwd_control_state_t * current_state,
@@ -1101,7 +1101,7 @@ static papi_svector_t _linux_ia64_table[] = {
  {(void (*)())_papi_hwd_get_real_cycles, VEC_PAPI_HWD_GET_REAL_CYCLES},
  {(void (*)())_papi_hwd_get_virt_cycles, VEC_PAPI_HWD_GET_VIRT_CYCLES},
  {(void (*)())_papi_hwd_get_virt_usec, VEC_PAPI_HWD_GET_VIRT_USEC},
- {(void (*)())_papi_hwd_update_control_state,VEC_PAPI_HWD_UPDATE_CONTROL_STATE}, 
+ {(void (*)())_papi_hwd_update_control_state,VEC_PAPI_HWD_UPDATE_CONTROL_STATE},
  {(void (*)())_papi_hwd_start, VEC_PAPI_HWD_START },
  {(void (*)())_papi_hwd_stop, VEC_PAPI_HWD_STOP },
  {(void (*)())_papi_hwd_read, VEC_PAPI_HWD_READ },
@@ -1330,7 +1330,7 @@ static itanium_preset_search_t ia3_preset_search_map[] = {
 	{PAPI_L3_ICA, 0, {"L3_READS_INST_FETCH_ALL:M:E:S:I"}, {0}},
 	{PAPI_L1_TCR, 0, {"L2I_READS_ALL_ALL"}, {0}},
 /* Why are TCA READS+READS_SET0? I used the same as PAPI_L1_TCR, because its an write through cache
- * OLD: {PAPI_L1_TCA, DERIVED_ADD, {"L1D_READS_SET0", "L1I_READS"}, {0}}, 
+ * OLD: {PAPI_L1_TCA, DERIVED_ADD, {"L1D_READS_SET0", "L1I_READS"}, {0}},
  */
 	{PAPI_L1_TCA, DERIVED_ADD,
 	 {"L1I_PREFETCHES", "L1I_READS", "L1D_READS_SET0"}, {0}},
@@ -1612,7 +1612,7 @@ _papi_pfm_ntv_code_to_descr( unsigned int EventCode, char *ntv_descr, int len )
 /*****************************************************************************
  *****************************************************************************/
 
-/* The values defined in this file may be X86-specific (2 general 
+/* The values defined in this file may be X86-specific (2 general
    purpose counters, 1 special purpose counter, etc.*/
 
 /* PAPI stuff */
@@ -1622,8 +1622,8 @@ _papi_pfm_ntv_code_to_descr( unsigned int EventCode, char *ntv_descr, int len )
 /* I want to keep the old way to define the preset search map.
    In Itanium2, there are more than 400 native events, if I use the
    index directly, it will be difficult for people to debug, so I
-   still keep the old way to define preset search table, but 
-   I add this function to generate the preset search map in papi3 
+   still keep the old way to define preset search table, but
+   I add this function to generate the preset search map in papi3
 */
 int
 generate_preset_search_map( hwi_search_t ** maploc,
@@ -1895,8 +1895,8 @@ _ia64_ita_read( hwd_context_t * ctx, hwd_control_state_t * machdep,
 	pfmw_stop( ( ia64_context_t * ) ctx );
 	memset( readem, 0x0, sizeof readem );
 
-/* read the 4 counters, the high level function will process the 
-   mapping for papi event to hardware counter 
+/* read the 4 counters, the high level function will process the
+   mapping for papi event to hardware counter
 */
 	for ( i = 0; i < ( unsigned int ) _ia64_vector.cmp_info.num_cntrs; i++ ) {
 		readem[i].reg_num = PMU_FIRST_COUNTER + i;
@@ -1942,8 +1942,8 @@ _ia64_ita23_read( hwd_context_t * ctx, hwd_control_state_t * machdep,
 	pfmw_stop( ( ia64_context_t * ) ctx );
 	memset( readem, 0x0, sizeof readem );
 
-/* read the 4 counters, the high level function will process the 
-   mapping for papi event to hardware counter 
+/* read the 4 counters, the high level function will process the
+   mapping for papi event to hardware counter
 */
 	for ( i = 0; i < _ia64_vector.cmp_info.num_cntrs; i++ ) {
 		readem[i].reg_num = PMU_FIRST_COUNTER + i;
@@ -2085,9 +2085,9 @@ _ia64_init_component( int cidx )
 	if ( retval != PAPI_OK )
 		return ( retval );
 
-	sprintf( _ia64_vector.cmp_info.support_version, 
+	sprintf( _ia64_vector.cmp_info.support_version,
 		 "%08x", PFMLIB_VERSION );
-	sprintf( _ia64_vector.cmp_info.kernel_version, 
+	sprintf( _ia64_vector.cmp_info.kernel_version,
 		 "%08x", 2 << 16 );	/* 2.0 */
 
 	_ia64_vector.cmp_info.num_native_events = nnev;
@@ -2115,7 +2115,7 @@ _ia64_init_component( int cidx )
 
 	/* get_memory_info has a CPU model argument that is not used,
 	 * faking it here with hw_info.model which is not set by this
-	 * component 
+	 * component
 	 */
 	retval = _linux_get_memory_info( &_papi_hwi_system_info.hw_info,
 				     _papi_hwi_system_info.hw_info.model );
@@ -2689,7 +2689,7 @@ set_notify( EventSetInfo_t * ESI, int index, int value )
          #ifdef PFM30
             if (value)
                pevt->pc[i].reg_reset_pmds[0] = 1UL << pevt->pc[i].reg_num;
-            else 
+            else
                pevt->pc[i].reg_reset_pmds[0] = 0;
          #endif
 */
@@ -3143,7 +3143,7 @@ papi_vector_t _ia64_vector = {
       .attach = 0,
       .attach_must_ptrace = 0,
       .kernel_profile = 1,
-      .cntr_umasks = 1;	
+      .cntr_umasks = 1;
   },
 
 	/* sizes of framework-opaque component-private structures */

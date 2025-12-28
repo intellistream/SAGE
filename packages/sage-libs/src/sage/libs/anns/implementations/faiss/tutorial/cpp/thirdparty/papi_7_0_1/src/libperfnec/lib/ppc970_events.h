@@ -3212,4 +3212,3 @@ static const pmg_power_group_t ppc970_groups[] = {
 };
 
 #endif
-

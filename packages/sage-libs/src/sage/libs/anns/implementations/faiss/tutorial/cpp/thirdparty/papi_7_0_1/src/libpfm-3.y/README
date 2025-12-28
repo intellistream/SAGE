@@ -4,7 +4,7 @@
             ------------------------------------------------------
  	  Copyright (c) 2001-2007 Hewlett-Packard Development Company, L.P.
 	                Contributed by Stephane Eranian <eranian@hpl.hp.com>
-	
+
 
 This package provides a library, called libpfm, which can be used
 to develop monitoring tools which use the Performance Monitoring Unit (PMU)
@@ -17,7 +17,7 @@ This version of libpfm supports:
 		Itanium 2 9000/9100 (Montecito, Montvale) and Generic
 	- For AMD X86:
 		AMD64 (K8, family 10h)
-	- For Intel X86: 
+	- For Intel X86:
 		Intel P6 (Pentium II, Pentium Pro, Pentium III, Pentium M)
 		Intel Yonah (Core Duo/Core Solo),
 		Intel Netburst (Pentium 4, Xeon)

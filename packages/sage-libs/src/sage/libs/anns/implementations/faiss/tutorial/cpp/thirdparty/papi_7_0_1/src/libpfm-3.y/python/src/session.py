@@ -2,17 +2,17 @@
 #
 # Copyright (c) 2008 Google, Inc.
 # Contributed by Arun Sharma <arun.sharma@google.com>
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
 # to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense,
 # and/or sell copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included
 # in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -20,16 +20,16 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-# 
+#
 
 from perfmon import *
 from linux import sched
 import os
 import sys
 from threading import Thread
-# Shouldn't be necessary for python version >= 2.5 
+# Shouldn't be necessary for python version >= 2.5
 from Queue import Queue
- 
+
 # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/425445
 def once(func):
     "A decorator that runs a function only once."
@@ -40,7 +40,7 @@ def once(func):
             decorated._once_result = func(*args, **kwargs)
             return decorated._once_result
     return decorated
- 
+
 @once
 def pfm_initialize_once():
   # Initialize once
@@ -48,7 +48,7 @@ def pfm_initialize_once():
   opts.pfm_verbose = 1
   pfm_set_options(opts)
   pfm_initialize()
- 
+
 # Common base class
 class Session:
   def __init__(self, n):
@@ -135,7 +135,7 @@ class Session:
   def load(self):
     for i in xrange(len(self.fds)):
       self.load_one(i)
-    
+
   def start_one(self, i):
     pfm_start(self.fds[i], None)
 
@@ -228,7 +228,7 @@ class SystemWideSession(Session):
           self.wakeup(t.index)
         t.join()
     self.threads = []
-  
+
   @run_in_other_thread
   def load_one(self, i):
     Session.load_one(self, i)

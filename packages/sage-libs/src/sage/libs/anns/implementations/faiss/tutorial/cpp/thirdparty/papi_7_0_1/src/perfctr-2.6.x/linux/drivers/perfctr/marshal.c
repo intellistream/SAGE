@@ -72,7 +72,7 @@ static void encode_field(const void *address,
 			stream_write(stream, uint64_val.ui[1]);
 		} else {		/* PERFCTR_TYPE_BYTES4 */
 			memcpy(&uint32_val, pointer, sizeof(int));
-			pointer += sizeof(int);	
+			pointer += sizeof(int);
 			if( !uint32_val )
 				continue;
 			stream_write(stream, PERFCTR_HEADER(PERFCTR_HEADER_UINT32, tag, i));

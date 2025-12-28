@@ -9,9 +9,9 @@ import faiss
 
 
 class TestDocumentation(unittest.TestCase):
-
     def test_doxygen_comments(self):
         maxheap_array = faiss.float_maxheap_array_t()
 
-        self.assertTrue("a template structure for a set of [min|max]-heaps"
-                        in maxheap_array.__doc__)
+        self.assertTrue(
+            "a template structure for a set of [min|max]-heaps" in maxheap_array.__doc__
+        )

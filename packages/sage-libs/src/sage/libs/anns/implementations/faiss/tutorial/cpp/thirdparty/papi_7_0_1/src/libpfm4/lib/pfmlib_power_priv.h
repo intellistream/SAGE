@@ -117,4 +117,3 @@ extern int pfm_gen_powerpc_get_perf_encoding(void *this, pfmlib_event_desc_t *e)
 extern int pfm_gen_powerpc_get_nest_perf_encoding(void *this, pfmlib_event_desc_t *e);
 #endif /* _POWER_REG_H */
 #endif
-

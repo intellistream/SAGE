@@ -24,29 +24,21 @@ def insert_and_search(
     npts, ndims = utils.get_bin_metadata(indexdata_file)
 
     if dtype_str == "float":
-        index = diskannpy.DynamicMemoryIndex(
-            "l2", np.float32, ndims, npts, Lb, graph_degree, False
-        )
+        index = diskannpy.DynamicMemoryIndex("l2", np.float32, ndims, npts, Lb, graph_degree, False)
         queries = utils.bin_to_numpy(np.float32, querydata_file)
         data = utils.bin_to_numpy(np.float32, indexdata_file)
     elif dtype_str == "int8":
-        index = diskannpy.DynamicMemoryIndex(
-            "l2", np.int8, ndims, npts, Lb, graph_degree
-        )
+        index = diskannpy.DynamicMemoryIndex("l2", np.int8, ndims, npts, Lb, graph_degree)
         queries = utils.bin_to_numpy(np.int8, querydata_file)
         data = utils.bin_to_numpy(np.int8, indexdata_file)
     elif dtype_str == "uint8":
-        index = diskannpy.DynamicMemoryIndex(
-            "l2", np.uint8, ndims, npts, Lb, graph_degree
-        )
+        index = diskannpy.DynamicMemoryIndex("l2", np.uint8, ndims, npts, Lb, graph_degree)
         queries = utils.bin_to_numpy(np.uint8, querydata_file)
         data = utils.bin_to_numpy(np.uint8, indexdata_file)
     else:
         raise ValueError("data_type must be float, int8 or uint8")
 
-    offsets, permutation = utils.cluster_and_permute(
-        dtype_str, npts, ndims, data, num_clusters
-    )
+    offsets, permutation = utils.cluster_and_permute(dtype_str, npts, ndims, data, num_clusters)
 
     i = 0
     timer = utils.timer()
@@ -55,9 +47,9 @@ def insert_and_search(
         cluster_indices = np.array(permutation[cluster_index_range], dtype=np.uintc)
         cluster_data = data[cluster_indices, :]
         index.batch_insert(cluster_data, cluster_indices + 1, num_insert_threads)
-        print('Inserted cluster', c, 'in', timer.elapsed(), 's')
+        print("Inserted cluster", c, "in", timer.elapsed(), "s")
     tags, dists = index.batch_search(queries, K, Ls, num_search_threads)
-    print('Batch searched', queries.shape[0], 'queries in', timer.elapsed(), 's')
+    print("Batch searched", queries.shape[0], "queries in", timer.elapsed(), "s")
     res_ids = tags - 1
 
     if gt_file != "":

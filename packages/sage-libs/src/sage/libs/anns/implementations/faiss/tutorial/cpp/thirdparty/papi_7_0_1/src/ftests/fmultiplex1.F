@@ -589,4 +589,3 @@ end if
 call PAPIF_shutdown()
 ret = SUCCESS
 end
-

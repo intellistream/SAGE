@@ -35,8 +35,8 @@ typedef struct {
 .fi
 .sp
 .sp
-The Intel Core processor provides a few additional per-event features for 
-counters: thresholding, inversion, edge detection. They can be set using the 
+The Intel Core processor provides a few additional per-event features for
+counters: thresholding, inversion, edge detection. They can be set using the
 \fBpfp_core_counters\fR data structure for each event.  The \fBflags\fR
 field can be initialized with any combinations of the following values:
 .TP
@@ -44,7 +44,7 @@ field can be initialized with any combinations of the following values:
 Inverse the results of the \fBcnt_mask\fR comparison when set
 .TP
 .B PFMLIB_CORE_SEL_EDGE
-Enables edge detection of events. 
+Enables edge detection of events.
 .LP
 The \fBcnt_mask\fR field is used to set the event threshold.
 The value of the counter is incremented each time the number of occurrences

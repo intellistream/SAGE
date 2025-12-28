@@ -3,25 +3,25 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from __future__ import absolute_import, division, print_function
 
-import numpy as np
 import unittest
+
 import faiss
+import numpy as np
 
 
 def make_binary_dataset(d, nb, nt, nq):
     assert d % 8 == 0
     rs = np.random.RandomState(123)
-    x = rs.randint(256, size=(nb + nq + nt, int(d / 8))).astype('uint8')
+    x = rs.randint(256, size=(nb + nq + nt, int(d / 8))).astype("uint8")
     return x[:nt], x[nt:-nq], x[-nq:]
 
 
 def binary_to_float(x):
     n, d = x.shape
     x8 = x.reshape(n * d, -1)
-    c8 = 2 * ((x8 >> np.arange(8)) & 1).astype('int8') - 1
-    return c8.astype('float32').reshape(n, d * 8)
+    c8 = 2 * ((x8 >> np.arange(8)) & 1).astype("int8") - 1
+    return c8.astype("float32").reshape(n, d * 8)
 
 
 class TestIndexBinaryFromFloat(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestIndexBinaryFromFloat(unittest.TestCase):
         D_ref, I_ref = index_ref.search(binary_to_float(xq), 10)
         D, I = index_bin.search(xq, 10)
 
-        np.testing.assert_allclose((D_ref / 4.0).astype('int32'), D)
+        np.testing.assert_allclose((D_ref / 4.0).astype("int32"), D)
 
     def test_wrapped_quantizer(self):
         d = 256
@@ -92,8 +92,7 @@ class TestIndexBinaryFromFloat(unittest.TestCase):
 
         assert nlist == float_quantizer.ntotal
 
-        index = faiss.IndexBinaryIVF(wrapped_quantizer, d,
-                                     float_quantizer.ntotal)
+        index = faiss.IndexBinaryIVF(wrapped_quantizer, d, float_quantizer.ntotal)
         index.nprobe = 2048
         assert index.is_trained
 
@@ -102,13 +101,11 @@ class TestIndexBinaryFromFloat(unittest.TestCase):
         D_ref, I_ref = index_ref.search(xq, 10)
         D, I = index.search(xq, 10)
 
-        recall = sum(gti[0] in Di[:10] for gti, Di in zip(D_ref, D)) \
-                 / float(D_ref.shape[0])
+        recall = sum(gti[0] in Di[:10] for gti, Di in zip(D_ref, D)) / float(D_ref.shape[0])
 
         assert recall > 0.82, "recall = %g" % recall
 
     def test_wrapped_quantizer_HNSW(self):
-
         def bin2float2d(v):
             n, d = v.shape
             vf = ((v.reshape(-1, 1) >> np.arange(8)) & 1).astype("float32")
@@ -143,8 +140,7 @@ class TestIndexBinaryFromFloat(unittest.TestCase):
         assert nlist == wrapped_quantizer.ntotal
         assert wrapped_quantizer.is_trained
 
-        index = faiss.IndexBinaryIVF(wrapped_quantizer, d,
-                                     hnsw_quantizer.ntotal)
+        index = faiss.IndexBinaryIVF(wrapped_quantizer, d, hnsw_quantizer.ntotal)
         index.nprobe = 128
 
         assert index.is_trained
@@ -154,14 +150,12 @@ class TestIndexBinaryFromFloat(unittest.TestCase):
         D_ref, I_ref = index_ref.search(xq, 10)
         D, I = index.search(xq, 10)
 
-        recall = sum(gti[0] in Di[:10] for gti, Di in zip(D_ref, D)) \
-                 / float(D_ref.shape[0])
+        recall = sum(gti[0] in Di[:10] for gti, Di in zip(D_ref, D)) / float(D_ref.shape[0])
 
         assert recall >= 0.77, "recall = %g" % recall
 
 
 class TestOverrideKmeansQuantizer(unittest.TestCase):
-
     def test_override(self):
         d = 256
         nt = 3500

@@ -10,7 +10,7 @@
 __global__ void MatrixMulKernel(float* Md, float* Nd, float* Pd, int width)
 {
 
-	//2D thread ID 
+	//2D thread ID
 	int bx=blockIdx.x;
 	int by=blockIdx.y;
 	int tdx=threadIdx.x;
@@ -18,7 +18,7 @@ __global__ void MatrixMulKernel(float* Md, float* Nd, float* Pd, int width)
 
 	int tx=bx*blockDim.x+tdx;
 	int ty=by*blockDim.y+tdy;
-	
+
 	//Pvalue stores the Pd element that is computed by the thread
 	float Pvalue=0;
 	for(int k=0;k<width;++k){
@@ -46,7 +46,7 @@ int main(int argc, char** argv){
 		width=512;
 		BlockDim=16;
 		GridDim=width/BlockDim;
-		printf("Using Default Parameters: matrix dimension %dx%d ,Block Dim %dx%d threads per block, Grid Dim %dx%d blocks per grid\n",width,width,BlockDim,BlockDim,GridDim,GridDim);		
+		printf("Using Default Parameters: matrix dimension %dx%d ,Block Dim %dx%d threads per block, Grid Dim %dx%d blocks per grid\n",width,width,BlockDim,BlockDim,GridDim,GridDim);
 	}
 	dim3 dimBlock(BlockDim,BlockDim);
 	dim3 dimGrid(GridDim,GridDim);
@@ -108,14 +108,14 @@ int main(int argc, char** argv){
 		printf("Device memory copy for M failed \n");
 		exit(-1);
 	}
-	
+
 	error=cudaMemcpy(Nd,N,size,cudaMemcpyHostToDevice);
 	if(error!=cudaSuccess){
 		printf("Device memory copy for N failed \n");
 		exit(-1);
 	}
 
-	
+
 	cudaEvent_t start;
 	error=cudaEventCreate(&start);
 	if(error!=cudaSuccess){
@@ -135,8 +135,8 @@ int main(int argc, char** argv){
 		printf("cuda event start record failed \n");
 		exit(-1);
 	}
-	
-	
+
+
 	MatrixMulKernel<<<dimGrid,dimBlock>>>(Md,Nd,Pd,width);
 
 //	error=cudaDeviceSynchronize();
@@ -151,7 +151,7 @@ int main(int argc, char** argv){
 		printf("cuda event sync failed :%s\n",cudaGetErrorString(error));
 		exit(-1);
 	}
-	
+
 
 
 	float msecTotal=0.0f;
@@ -191,16 +191,16 @@ int main(int argc, char** argv){
 				exit(-1);
 			}
 		}
-		
+
 	}
-	
-	
+
+
 	free(M);
 	free(N);
 	free(P);
-	cudaFree(Md);	
-	cudaFree(Nd);	
-	cudaFree(Pd);	
+	cudaFree(Md);
+	cudaFree(Nd);
+	cudaFree(Pd);
 	cudaDeviceReset();
 	return 1;
 

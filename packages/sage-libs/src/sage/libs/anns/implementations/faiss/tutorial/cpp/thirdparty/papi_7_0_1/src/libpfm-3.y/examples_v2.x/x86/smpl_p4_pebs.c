@@ -108,7 +108,7 @@ process_smpl_buf(smpl_hdr_t *hdr)
 	if (hdr->overflows == last_overflow && last_count == count) {
 		warning("skipping identical set of samples %"PRIu64" = %"PRIu64"\n",
 			hdr->overflows, last_overflow);
-		return;	
+		return;
 	}
 	last_count = count;
 	last_overflow = hdr->overflows;
@@ -203,7 +203,7 @@ check_valid_cpu(void)
 	ret = get_cpuinfo_attr("siblings", buffer, sizeof(buffer));
 	if (ret == -1)
 		fatal_error("cannot deterimine number of siblings\n");
-	
+
 	siblings = atoi(buffer);
 
 	ret = get_cpuinfo_attr("cpu cores", buffer, sizeof(buffer));

@@ -178,7 +178,7 @@ main(int argc, char **argv)
 	 */
 
 	/*
-	 * now create the system-wide session 
+	 * now create the system-wide session
 	 */
 	ctx_fd = pfm_create(PFM_FL_SYSTEM_WIDE, &sif);
 	if (ctx_fd == -1) {
@@ -247,7 +247,7 @@ main(int argc, char **argv)
 		sleep(2);
 
 		/*
-		 * stop monitoring. 
+		 * stop monitoring.
 		 * changed at the user level.
 		 */
 		if (pfm_set_state(ctx_fd, 0, PFM_ST_STOP) == -1)

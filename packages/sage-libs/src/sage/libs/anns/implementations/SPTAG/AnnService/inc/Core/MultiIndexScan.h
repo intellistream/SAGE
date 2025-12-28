@@ -51,16 +51,16 @@ namespace SPTAG
         unsigned int k;
 
 
-        
+
         bool useTimer;
         unsigned int termCondVal;
         int searchLimit;
         std::chrono::time_point<std::chrono::high_resolution_clock> t_start;
-        
+
         float (*func)(std::vector<float>);
-        
+
         unsigned int consecutive_drops;
-        
+
         bool terminate;
         using pq_item = std::pair<float, SizeType>;
         class pq_item_compare
@@ -74,7 +74,7 @@ namespace SPTAG
         std::priority_queue<pq_item, std::vector<pq_item>, pq_item_compare> pq;
         std::stack<pq_item> outputStk;
         float WeightedRankFunc(std::vector<float>);
-        
+
     };
 } // namespace SPTAG
 #endif

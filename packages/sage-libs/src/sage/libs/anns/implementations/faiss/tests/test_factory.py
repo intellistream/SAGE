@@ -4,18 +4,16 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import numpy as np
-import unittest
 import gc
-import faiss
+import unittest
 
-from faiss.contrib import factory_tools
-from faiss.contrib import datasets
+import faiss
+import numpy as np
+from faiss.contrib import datasets, factory_tools
+
 
 class TestFactory(unittest.TestCase):
-
     def test_factory_1(self):
-
         index = faiss.index_factory(12, "IVF10,PQ4")
         assert index.do_polysemous_training
 
@@ -36,13 +34,10 @@ class TestFactory(unittest.TestCase):
             assert False, "should do a runtime error"
 
     def test_factory_2(self):
-
         index = faiss.index_factory(12, "SQ8")
         assert index.code_size == 12
 
-
     def test_factory_3(self):
-
         index = faiss.index_factory(12, "IVF10,PQ4")
         faiss.ParameterSpace().set_index_parameter(index, "nprobe", 3)
         assert index.nprobe == 3
@@ -152,7 +147,6 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(rf.pq.M, 25)
         self.assertEqual(rf.pq.nbits, 12)
 
-
     def test_parenthesis_refine_2(self):
         # Refine applies on the whole index including pre-transforms
         index = faiss.index_factory(50, "PCA32,IVF32,Flat,Refine(PQ25x12)")
@@ -172,18 +166,16 @@ class TestFactory(unittest.TestCase):
 
 
 class TestCodeSize(unittest.TestCase):
-
     def test_1(self):
         self.assertEqual(
             factory_tools.get_code_size(50, "IVF32,Flat,Refine(PQ25x12)"),
-            50 * 4 + (25 * 12 + 7) // 8
+            50 * 4 + (25 * 12 + 7) // 8,
         )
 
 
 class TestCloneSize(unittest.TestCase):
-
     def test_clone_size(self):
-        index = faiss.index_factory(20, 'PCA10,Flat')
+        index = faiss.index_factory(20, "PCA10,Flat")
         xb = faiss.rand((100, 20))
         index.train(xb)
         index.add(xb)
@@ -192,9 +184,8 @@ class TestCloneSize(unittest.TestCase):
 
 
 class TestCloneIVFPQ(unittest.TestCase):
-
     def test_clone(self):
-        index = faiss.index_factory(16, 'IVF10,PQ4np')
+        index = faiss.index_factory(16, "IVF10,PQ4np")
         xb = faiss.rand((1000, 16))
         index.train(xb)
         index.add(xb)
@@ -203,7 +194,6 @@ class TestCloneIVFPQ(unittest.TestCase):
 
 
 class TestVTDowncast(unittest.TestCase):
-
     def test_itq_transform(self):
         codec = faiss.index_factory(16, "ITQ8,LSHt")
 
@@ -213,7 +203,6 @@ class TestVTDowncast(unittest.TestCase):
 
 # tests after re-factoring
 class TestFactoryV2(unittest.TestCase):
-
     def test_refine(self):
         index = faiss.index_factory(123, "Flat,RFlat")
         index.k_factor
@@ -258,38 +247,31 @@ class TestFactoryV2(unittest.TestCase):
 
 
 class TestAdditive(unittest.TestCase):
-
     def test_rcq(self):
         index = faiss.index_factory(12, "IVF256(RCQ2x4),RQ3x4")
         self.assertEqual(
-            faiss.downcast_index(index.quantizer).__class__,
-            faiss.ResidualCoarseQuantizer
+            faiss.downcast_index(index.quantizer).__class__, faiss.ResidualCoarseQuantizer
         )
 
     def test_rq3(self):
         index = faiss.index_factory(5, "RQ2x16_3x8_6x4")
 
         np.testing.assert_array_equal(
-            faiss.vector_to_array(index.rq.nbits),
-            np.array([16, 16, 8, 8, 8, 4, 4, 4, 4, 4, 4])
+            faiss.vector_to_array(index.rq.nbits), np.array([16, 16, 8, 8, 8, 4, 4, 4, 4, 4, 4])
         )
 
     def test_norm(self):
         index = faiss.index_factory(5, "RQ8x8_Nqint8")
-        self.assertEqual(
-            index.rq.search_type,
-            faiss.AdditiveQuantizer.ST_norm_qint8)
+        self.assertEqual(index.rq.search_type, faiss.AdditiveQuantizer.ST_norm_qint8)
 
 
 class TestSpectralHash(unittest.TestCase):
-
     def test_sh(self):
         index = faiss.index_factory(123, "IVF256,ITQ64,SH1.2")
         self.assertEqual(index.__class__, faiss.IndexIVFSpectralHash)
 
 
 class TestQuantizerClone(unittest.TestCase):
-
     def test_clone(self):
         ds = datasets.SyntheticDataset(32, 200, 10, 0)
 
@@ -309,14 +291,13 @@ class TestQuantizerClone(unittest.TestCase):
 
 
 class TestIVFSpectralHashOwnership(unittest.TestCase):
-
     def test_constructor(self):
         index = faiss.IndexIVFSpectralHash(faiss.IndexFlat(10), 10, 20, 10, 1)
         gc.collect()
-        index.quantizer.ntotal   # this should not crash
+        index.quantizer.ntotal  # this should not crash
 
     def test_replace_vt(self):
         index = faiss.IndexIVFSpectralHash(faiss.IndexFlat(10), 10, 20, 10, 1)
         index.replace_vt(faiss.ITQTransform(10, 10))
         gc.collect()
-        index.vt.d_out # this should not crash
+        index.vt.d_out  # this should not crash

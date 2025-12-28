@@ -7,19 +7,19 @@
  * thus reports as possible race conditions reads/writes by
  * different threads that are actually fine (surrounded by locks).
  *
- * This was written particularly for krentel_pthreads_race.c 
+ * This was written particularly for krentel_pthreads_race.c
  * when processed by the above valgrind. We produce a line per
  * condition, in the form:
  * OP@file:line OP@file:line
  * where OP is R or W. The first file:line code occurred
  * after the second file:line code, and on a different thread.
- * 
+ *
  * We print the results to stdout. It is useful to filter this
- * through the standard utility 'uniq', each occurrence only 
+ * through the standard utility 'uniq', each occurrence only
  * needs to be investigated once. Just insure there are
  * MATCHING locks around each operation within the code.
  *
- * An example run (using uniq): The options -uc will print 
+ * An example run (using uniq): The options -uc will print
  * only unique lines, preceeded by a count of how many times
  * it occurs.
  *
@@ -27,14 +27,14 @@
  *
  * An example output line (piped through uniq as above):
  *       1 R@threads.c:190                    W@threads.c:206
- * An investigation shows threads.c:190 is protected by 
+ * An investigation shows threads.c:190 is protected by
  * _papi_hwi_lock(THREADS_LOCK); and threads.c:206 is
- * protected by the same lock. Thus no data race can 
+ * protected by the same lock. Thus no data race can
  * occur for this instance.
  *
  * Compilation within the papi/src/ctests directory:
  * make filter_helgrind
- * 
+ *
  */
 
 #include <stdio.h>
@@ -167,4 +167,4 @@ int main(int argc, char **args) {
 
   fclose(HELOUT);
   exit(0);
-}  
+}

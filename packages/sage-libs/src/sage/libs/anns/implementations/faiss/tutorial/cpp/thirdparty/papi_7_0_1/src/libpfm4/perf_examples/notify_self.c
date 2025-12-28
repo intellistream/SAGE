@@ -51,7 +51,7 @@ sigio_handler(int n, siginfo_t *info, void *uc)
 {
 	struct perf_event_header ehdr;
 	int ret, id;
-	
+
 	/*
 	 * positive si_code indicate kernel generated signal
 	 * which is normal for SIGIO
@@ -177,7 +177,7 @@ main(int argc, char **argv)
 		if (fds[i].fd == -1)
 			err(1, "cannot attach event %s", fds[i].name);
 	}
-	
+
 	sz = (3+2*num_fds)*sizeof(uint64_t);
 	val = malloc(sz);
 	if (!val)
@@ -207,21 +207,21 @@ main(int argc, char **argv)
 	 *      { u64           nr;
 	 *        { u64         time_enabled; } && PERF_FORMAT_ENABLED
 	 *        { u64         time_running; } && PERF_FORMAT_RUNNING
-	 *        { u64         value;                  
+	 *        { u64         value;
 	 *          { u64       id;           } && PERF_FORMAT_ID
-	 *        }             cntr[nr];               
+	 *        }             cntr[nr];
 	 * We are skipping the first 3 values (nr, time_enabled, time_running)
 	 * and then for each event we get a pair of values.
-	 */ 
+	 */
 	for(i=0; i < num_fds; i++) {
 		fds[i].id = val[2*i+1+3];
 		printf("%"PRIu64"  %s\n", fds[i].id, fds[i].name);
 	}
-	 
+
 	fds[0].buf = mmap(NULL, (buffer_pages+1)*pgsz, PROT_READ|PROT_WRITE, MAP_SHARED, fds[0].fd, 0);
 	if (fds[0].buf == MAP_FAILED)
 		err(1, "cannot mmap buffer");
-	
+
 	fds[0].pgmsk = (buffer_pages * pgsz) - 1;
 
 	/*

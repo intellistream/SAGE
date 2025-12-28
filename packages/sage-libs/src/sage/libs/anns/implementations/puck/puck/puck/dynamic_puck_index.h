@@ -79,7 +79,7 @@ private:
 
     std::unique_ptr<Quantization> _dynamic_filter_quantization;
     std::vector<std::vector<int>> _cell_has_points;
-    
+
     bool _is_init;
     size_t _max_point_count;
 };

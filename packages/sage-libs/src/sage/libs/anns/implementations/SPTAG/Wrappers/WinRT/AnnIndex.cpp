@@ -19,7 +19,7 @@ namespace winrt::SPTAG::implementation
   SPTAG::SearchResult AnnIndex::GetResultFromMetadata(const sptag::BasicResult& r) const {
     return winrt::make<SearchResult>(r.Meta.Data(), r.Meta.Length(), r.Dist);
   }
-  
+
 
   winrt::Windows::Foundation::Collections::IVector<SPTAG::SearchResult> AnnIndex::Search(EmbeddingVector p_data, uint32_t p_resultNum) const {
     auto vec = std::vector<SPTAG::SearchResult>{};

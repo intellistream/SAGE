@@ -40,7 +40,7 @@ class TestStaticMemoryIndex(unittest.TestCase):
             index_vectors,
             ann_dir,
             vector_bin_file,
-            _
+            _,
         ) in self._test_matrix:
             with self.subTest():
                 index = dap.StaticMemoryIndex(
@@ -57,16 +57,14 @@ class TestStaticMemoryIndex(unittest.TestCase):
                     num_threads=16,
                 )
                 if metric in ["l2", "cosine"]:
-                    knn = NearestNeighbors(
-                        n_neighbors=100, algorithm="auto", metric=metric
-                    )
+                    knn = NearestNeighbors(n_neighbors=100, algorithm="auto", metric=metric)
                     knn.fit(index_vectors)
                     knn_distances, knn_indices = knn.kneighbors(query_vectors)
                     recall = calculate_recall(diskann_neighbors, knn_indices, k)
                     self.assertTrue(
                         recall > 0.70,
                         f"Recall [{recall}] was not over 0.7",
-                        )
+                    )
 
     def test_single(self):
         for (
@@ -76,7 +74,7 @@ class TestStaticMemoryIndex(unittest.TestCase):
             index_vectors,
             ann_dir,
             vector_bin_file,
-            _
+            _,
         ) in self._test_matrix:
             with self.subTest():
                 index = dap.StaticMemoryIndex(
@@ -91,15 +89,9 @@ class TestStaticMemoryIndex(unittest.TestCase):
                 self.assertEqual(dists.shape[0], k)
 
     def test_value_ranges_ctor(self):
-        (
-            metric,
-            dtype,
-            query_vectors,
-            index_vectors,
-            ann_dir,
-            vector_bin_file,
-            _
-        ) = build_random_vectors_and_memory_index(np.single, "l2", "not_ann")
+        (metric, dtype, query_vectors, index_vectors, ann_dir, vector_bin_file, _) = (
+            build_random_vectors_and_memory_index(np.single, "l2", "not_ann")
+        )
         good_ranges = {
             "index_directory": ann_dir,
             "num_threads": 16,
@@ -157,6 +149,4 @@ class TestStaticMemoryIndex(unittest.TestCase):
                         num_threads=16,
                         initial_search_complexity=32,
                     )
-                    index.batch_search(
-                        queries=np.array([[]], dtype=np.single), **kwargs
-                    )
+                    index.batch_search(queries=np.array([[]], dtype=np.single), **kwargs)

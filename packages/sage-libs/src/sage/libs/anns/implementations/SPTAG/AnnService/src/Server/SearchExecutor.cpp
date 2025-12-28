@@ -65,7 +65,7 @@ SearchExecutor::ExecuteInternal()
     {
         SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Failed to match vector dimension!\n");
         return;
-    } 
+    }
 
     QueryResult query(m_executionContext->GetVector().Data(),
                       m_executionContext->GetResultNum(),
@@ -120,4 +120,3 @@ SearchExecutor::SelectIndex()
         }
     }
 }
-

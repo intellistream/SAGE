@@ -1263,5 +1263,3 @@ static long long sdei_compute_min(void *param){
 static long long sdei_compute_max(void *param){
     return sdei_compute_edge(param, _SDE_CMP_MAX);
 }
-
-

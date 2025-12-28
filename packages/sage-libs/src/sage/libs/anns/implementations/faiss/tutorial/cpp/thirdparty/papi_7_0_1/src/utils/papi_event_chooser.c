@@ -9,7 +9,7 @@
   *		papi_event_chooser NATIVE | PRESET < event > < event > ...
   *
   *	@section Description
-  *		papi_event_chooser is a PAPI utility program that reports information 
+  *		papi_event_chooser is a PAPI utility program that reports information
   *		about the current PAPI installation and supported preset events.
   *
   *	@section Options

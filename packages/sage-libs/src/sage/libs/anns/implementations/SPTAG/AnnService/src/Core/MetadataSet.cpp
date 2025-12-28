@@ -44,7 +44,7 @@ MetadataSet::RefineMetadata(std::vector<SizeType>& indices, std::shared_ptr<Help
 }
 
 
-ErrorCode 
+ErrorCode
 MetadataSet::RefineMetadata(std::vector<SizeType>& indices, const std::string& p_metaFile, const std::string& p_metaindexFile) const
 {
     {
@@ -185,11 +185,11 @@ FileMetadataSet::Available() const
 }
 
 
-std::pair<std::uint64_t, std::uint64_t> 
+std::pair<std::uint64_t, std::uint64_t>
 FileMetadataSet::BufferSize() const
 {
     std::shared_lock<std::shared_timed_mutex> lock(*static_cast<std::shared_timed_mutex*>(m_lock.get()));
-    return std::make_pair(m_offsets.back(), 
+    return std::make_pair(m_offsets.back(),
         sizeof(SizeType) + sizeof(std::uint64_t) * m_offsets.size());
 }
 
@@ -219,7 +219,7 @@ FileMetadataSet::SaveMetadata(std::shared_ptr<Helper::DiskIO> p_metaOut, std::sh
         readsize = m_fp->ReadBinary(bufsize, buf);
     }
     delete[] buf;
-    
+
     if (m_newdata.size() > 0) {
         IOBINARY(p_metaOut, WriteBinary, m_newdata.size(), (const char*)m_newdata.data());
     }
@@ -453,4 +453,3 @@ MemMetadataSet::SaveMetadata(const std::string& p_metaFile, const std::string& p
     std::rename((p_metaindexFile + "_tmp").c_str(), p_metaindexFile.c_str());
     return ErrorCode::Success;
 }
-

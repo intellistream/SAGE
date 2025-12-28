@@ -52,12 +52,9 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Dict,
     Iterable,
     Iterator,
-    List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -113,10 +110,10 @@ class Pybind11Extension(_Extension):
     # flags are prepended, so that they can be further overridden, e.g. by
     # ``extra_compile_args=["-g"]``.
 
-    def _add_cflags(self, flags: List[str]) -> None:
+    def _add_cflags(self, flags: list[str]) -> None:
         self.extra_compile_args[:0] = flags
 
-    def _add_ldflags(self, flags: List[str]) -> None:
+    def _add_ldflags(self, flags: list[str]) -> None:
         self.extra_link_args[:0] = flags
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -171,9 +168,7 @@ class Pybind11Extension(_Extension):
     @cxx_std.setter
     def cxx_std(self, level: int) -> None:
         if self._cxx_level:
-            warnings.warn(
-                "You cannot safely change the cxx_level after setting it!", stacklevel=2
-            )
+            warnings.warn("You cannot safely change the cxx_level after setting it!", stacklevel=2)
 
         # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
         # force a valid flag here.
@@ -249,7 +244,7 @@ def has_flag(compiler: Any, flag: str) -> bool:
 cpp_flag_cache = None
 
 
-@lru_cache()
+@lru_cache
 def auto_cpp_level(compiler: Any) -> Union[str, int]:
     """
     Return the max supported C++ std level (17, 14, or 11). Returns latest on Windows.
@@ -288,8 +283,8 @@ class build_ext(_build_ext):  # noqa: N801
 
 
 def intree_extensions(
-    paths: Iterable[str], package_dir: Optional[Dict[str, str]] = None
-) -> List[Pybind11Extension]:
+    paths: Iterable[str], package_dir: Optional[dict[str, str]] = None
+) -> list[Pybind11Extension]:
     """
     Generate Pybind11Extensions from source files directly located in a Python
     source tree.
@@ -351,16 +346,16 @@ S = TypeVar("S", bound="ParallelCompile")
 CCompilerMethod = Callable[
     [
         distutils.ccompiler.CCompiler,
-        List[str],
+        list[str],
         Optional[str],
-        Optional[List[Union[Tuple[str], Tuple[str, Optional[str]]]]],
-        Optional[List[str]],
+        Optional[list[Union[tuple[str], tuple[str, Optional[str]]]]],
+        Optional[list[str]],
         bool,
-        Optional[List[str]],
-        Optional[List[str]],
-        Optional[List[str]],
+        Optional[list[str]],
+        Optional[list[str]],
+        Optional[list[str]],
     ],
-    List[str],
+    list[str],
 ]
 
 
@@ -418,7 +413,7 @@ class ParallelCompile:
         self.default = default
         self.max = max
         self.needs_recompile = needs_recompile
-        self._old: List[CCompilerMethod] = []
+        self._old: list[CCompilerMethod] = []
 
     def function(self) -> CCompilerMethod:
         """
@@ -427,14 +422,14 @@ class ParallelCompile:
 
         def compile_function(
             compiler: distutils.ccompiler.CCompiler,
-            sources: List[str],
+            sources: list[str],
             output_dir: Optional[str] = None,
-            macros: Optional[List[Union[Tuple[str], Tuple[str, Optional[str]]]]] = None,
-            include_dirs: Optional[List[str]] = None,
+            macros: Optional[list[Union[tuple[str], tuple[str, Optional[str]]]]] = None,
+            include_dirs: Optional[list[str]] = None,
             debug: bool = False,
-            extra_preargs: Optional[List[str]] = None,
-            extra_postargs: Optional[List[str]] = None,
-            depends: Optional[List[str]] = None,
+            extra_preargs: Optional[list[str]] = None,
+            extra_postargs: Optional[list[str]] = None,
+            depends: Optional[list[str]] = None,
         ) -> Any:
             # These lines are directly from distutils.ccompiler.CCompiler
             macros, objects, extra_postargs, pp_opts, build = compiler._setup_compile(  # type: ignore[attr-defined]

@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 #define MAX_NUM_METRICS    40
-#define MAX_STRLEN         128 
+#define MAX_STRLEN         128
 
 #define COMP_NAME       "intel_gpu"
 
@@ -66,4 +66,3 @@ int initMetricSet(char **metric_names, int num_metrics, int *eventSet);
 #endif
 
 #endif /* _GPU_COMMON_UTILS_H */
-

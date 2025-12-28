@@ -15,22 +15,22 @@ Configuring with CMake...
 -- Check for working CXX compiler: /usr/bin/c++ - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Found Python3: /usr/include/python3.10 (found version "3.10.12") found components: Development Development.Module Development.Embed 
--- Found Torch: /home/mingqi/.local/lib/python3.10/site-packages/torch/lib/libtorch.so  
+-- Found Python3: /usr/include/python3.10 (found version "3.10.12") found components: Development Development.Module Development.Embed
+-- Found Torch: /home/mingqi/.local/lib/python3.10/site-packages/torch/lib/libtorch.so
 -- Building Faiss...
 -- Performing Test HAVE_AVX512
 -- Performing Test HAVE_AVX512 - Success
 -- AVX-512 support detected.
--- Found OpenMP_CXX: -fopenmp (found version "4.5") 
--- Found OpenMP: TRUE (found version "4.5")  
+-- Found OpenMP_CXX: -fopenmp (found version "4.5")
+-- Found OpenMP: TRUE (found version "4.5")
 -- Looking for C++ include pthread.h
 -- Looking for C++ include pthread.h - found
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
--- Found Threads: TRUE  
+-- Found Threads: TRUE
 -- Looking for sgemm_
 -- Looking for sgemm_ - found
--- Found MKL: /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so;/usr/lib/x86_64-linux-gnu/libmkl_sequential.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;-lm;-ldl  
+-- Found MKL: /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so;/usr/lib/x86_64-linux-gnu/libmkl_sequential.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;-lm;-ldl
 -- Building DiskANN...
 -- The C compiler identification is GNU 11.4.0
 -- Detecting C compiler ABI info
@@ -38,17 +38,17 @@ Configuring with CMake...
 -- Check for working C compiler: /usr/bin/cc - skipped
 -- Detecting C compile features
 -- Detecting C compile features - done
--- Found OpenMP_C: -fopenmp (found version "4.5") 
--- Found OpenMP: TRUE (found version "4.5")  
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: program_options 
+-- Found OpenMP_C: -fopenmp (found version "4.5")
+-- Found OpenMP: TRUE (found version "4.5")
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: program_options
 -- Building static library..
 -- Setting up `make format` and `make checkformat`
 -- Not building python bindings
 -- Building Puck...
 -- Looking for sgemm_
 -- Looking for sgemm_ - found
--- Found MKL: /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so;/usr/lib/x86_64-linux-gnu/libmkl_gnu_thread.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;/usr/lib/gcc/x86_64-linux-gnu/11/libgomp.so;-lm;-ldl  
--- Found Python3: /usr/bin/python3.10 (found suitable version "3.10.12", minimum required is "3.10") found components: Interpreter Development Development.Module Development.Embed 
+-- Found MKL: /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so;/usr/lib/x86_64-linux-gnu/libmkl_gnu_thread.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;/usr/lib/gcc/x86_64-linux-gnu/11/libgomp.so;-lm;-ldl
+-- Found Python3: /usr/bin/python3.10 (found suitable version "3.10.12", minimum required is "3.10") found components: Interpreter Development Development.Module Development.Embed
 -- Found Python: 3.10.12
 -- site-packages: /usr/lib/python3/dist-packages
 -- Building SPTAG...
@@ -57,7 +57,7 @@ Configuring with CMake...
 -- Build type: Release
 -- Platform type: x64
 -- Found openmp.
--- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.66") found components: system thread serialization wserialization regex filesystem 
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.66") found components: system thread serialization wserialization regex filesystem
 -- Found Boost.
 -- Include Path: /usr/include
 -- Library Path: /usr/lib/x86_64-linux-gnu
@@ -105,14 +105,14 @@ Configuring with CMake...
 -- CMAKE_INSTALL_LIBDIR: lib
 -- ZSTD_LEGACY_SUPPORT defined!
 -- ZSTD_MULTITHREAD_SUPPORT is enabled
--- Found MPI_C: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so (found version "3.1") 
--- Found MPI_CXX: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so (found version "3.1") 
--- Found MPI: TRUE (found version "3.1")  
+-- Found MPI_C: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so (found version "3.1")
+-- Found MPI_CXX: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so (found version "3.1")
+-- Found MPI: TRUE (found version "3.1")
 -- Found MPI.
 -- MPI Include Path: /usr/lib/x86_64-linux-gnu/openmpi/include;/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi
 -- MPI Libraries: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so;/usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
 -- pybind11 v2.13.0 dev1
--- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6")
 -- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so
 -- Performing Test HAS_FLTO
 -- Performing Test HAS_FLTO - Success

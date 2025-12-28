@@ -7,7 +7,7 @@
 #include "inc/Helper/StringConvert.h"
 
 #include <cstdint>
-#include <cstddef> 
+#include <cstddef>
 #include <memory>
 #include <vector>
 #include <string>

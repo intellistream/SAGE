@@ -16,8 +16,8 @@ namespace SPTAG {
         bool InstructionSet::AVX(void) { return CPU_Rep.HW_AVX; }
         bool InstructionSet::AVX2(void) { return CPU_Rep.HW_AVX2; }
         bool InstructionSet::AVX512(void) { return CPU_Rep.HW_AVX512; }
-        
-        void InstructionSet::PrintInstructionSet(void) 
+
+        void InstructionSet::PrintInstructionSet(void)
         {
             if (CPU_Rep.HW_AVX512)
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Using AVX512 InstructionSet!\n");

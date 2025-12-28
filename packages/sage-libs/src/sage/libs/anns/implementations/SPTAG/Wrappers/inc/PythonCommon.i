@@ -26,8 +26,8 @@
             else PyList_SetItem(dstRelaxMono, i, Py_False);
             i++;
         }
-    
-        if ($1->WithMeta()) 
+
+        if ($1->WithMeta())
         {
             for (i = 0; i < resNum; ++i)
             {
@@ -62,7 +62,7 @@
                 else PyList_Append(dstRelaxMono, Py_False);
             }
 
-            if (indexRes.m_results.WithMeta()) 
+            if (indexRes.m_results.WithMeta())
             {
                 for (int i = 0; i < indexRes.m_results.GetResultNum(); ++i)
                 {

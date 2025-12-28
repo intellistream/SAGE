@@ -70,7 +70,7 @@ main(int argc, char **argv)
 
 	memset(&impl_pmcs, 0, sizeof(impl_pmcs));
 	memset(pc, 0, sizeof(pc));
-	
+
 	pfm_get_impl_pmcs(&impl_pmcs);
 	pfm_get_num_pmcs(&num_pmcs);
 

@@ -69,7 +69,7 @@ public:
 
 	//random number related and data generation
 	static double GetGaussianRandom(double mean, double sigma);
-	
+
 	//some useful templates
 	template <typename T> static T DotProduct(int dim, T *a, T *b);
 	template <typename T> static T GetSign(T val);

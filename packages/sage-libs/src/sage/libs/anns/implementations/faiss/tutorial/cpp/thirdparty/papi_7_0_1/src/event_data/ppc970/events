@@ -1,5 +1,5 @@
 { ****************************
-{  THIS IS OPEN SOURCE CODE 
+{  THIS IS OPEN SOURCE CODE
 { ****************************
 { (C) COPYRIGHT International Business Machines Corp. 2005
 { This file is licensed under the University of Tennessee license.
@@ -8,7 +8,7 @@
 { File:    events/ppc970/events
 { Author:  Maynard Johnson
 {          maynardj@us.ibm.com
-{ Mods: 
+{ Mods:
 {
 
 { counter 1 }
@@ -59,7 +59,7 @@ The issue queue for FPU unit 0 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp0 is executing single precision instruction.
 #15,v,g,n,n,PM_FPU0_STALL3,FPU0 stalled in pipe3
 ##02099
-This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #16,v,g,n,n,PM_FPU0_STF,FPU0 executed store instruction
 ##0209A
 This signal is active for one cycle when fp0 is executing a store instruction.
@@ -86,7 +86,7 @@ The issue queue for FPU unit 1 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp1 is executing single precision instruction.
 #24,v,g,n,n,PM_FPU1_STALL3,FPU1 stalled in pipe3
 ##0209D
-This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #25,v,g,n,n,PM_FPU1_STF,FPU1 executed store instruction
 ##0209E
 This signal is active for one cycle when fp1 is executing a store instruction.
@@ -101,7 +101,7 @@ This signal is active for one cycle at the end of the microcode executed when FP
 The Global Completion Table is completely empty
 #29,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##10090,60090
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #30,v,g,n,n,PM_GRP_BR_MPRED,Group experienced a branch mispredict
 ##1209F,6209F
 Group experienced a branch mispredict
@@ -125,7 +125,7 @@ Asserted when a non-canceled prefetch is made to the cache interface unit (CIU).
 This signal will be asserted each time the I-ERAT is written. This indicates that an ERAT miss has been serviced. ERAT misses will initiate a sequence resulting in the ERAT being written. ERAT misses that are later ignored will not be counted unless the ERAT is written before the instruction stream is changed, This should be a fairly accurate count of ERAT missed (best available).
 #37,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #38,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##12098,12099,1209A,62098,62099,6209A
 The ISU sends the number of instructions dispatched.
@@ -185,7 +185,7 @@ A data request (load or store) from LSU Unit 1 missed the ERAT and resulted in a
 A load was flushed by unit 1 because a younger load executed before an older store executed and they had overlapping data OR two loads executed out of order and they have byte overlap and there was a snoop in between to an overlapped byte.
 #57,u,g,n,n,PM_LSU1_FLUSH_SRQ,LSU1 SRQ flushes
 ##C0097
-A store was flushed because younger load hits and older store that is already in the SRQ or in the same group. 
+A store was flushed because younger load hits and older store that is already in the SRQ or in the same group.
 #58,v,g,n,n,PM_LSU1_FLUSH_ULD,LSU1 unaligned load flushes
 ##C0094
 A load was flushed from unit 1 because it was unaligned (crossed a 64byte boundary, or 32 byte if it missed the L1)
@@ -327,7 +327,7 @@ The issue queue for FPU unit 0 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp0 is executing single precision instruction.
 #14,v,g,n,n,PM_FPU0_STALL3,FPU0 stalled in pipe3
 ##02099
-This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #15,v,g,n,n,PM_FPU0_STF,FPU0 executed store instruction
 ##0209A
 This signal is active for one cycle when fp0 is executing a store instruction.
@@ -354,7 +354,7 @@ The issue queue for FPU unit 1 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp1 is executing single precision instruction.
 #23,v,g,n,n,PM_FPU1_STALL3,FPU1 stalled in pipe3
 ##0209D
-This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #24,v,g,n,n,PM_FPU1_STF,FPU1 executed store instruction
 ##0209E
 This signal is active for one cycle when fp1 is executing a store instruction.
@@ -369,7 +369,7 @@ FPU has generated a stall in pipe3 due to overflow, underflow, massive cancel, c
 GCT empty caused by SRQ full
 #28,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##10090,60090
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #29,v,g,n,n,PM_GRP_BR_MPRED,Group experienced a branch mispredict
 ##1209F,6209F
 Group experienced a branch mispredict
@@ -396,7 +396,7 @@ Asserted when a non-canceled prefetch is made to the cache interface unit (CIU).
 This signal will be asserted each time the I-ERAT is written. This indicates that an ERAT miss has been serviced. ERAT misses will initiate a sequence resulting in the ERAT being written. ERAT misses that are later ignored will not be counted unless the ERAT is written before the instruction stream is changed, This should be a fairly accurate count of ERAT missed (best available).
 #37,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #38,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##12098,12099,1209A,62098,62099,6209A
 The ISU sends the number of instructions dispatched.
@@ -453,7 +453,7 @@ A data request (load or store) from LSU Unit 1 missed the ERAT and resulted in a
 A load was flushed by unit 1 because a younger load executed before an older store executed and they had overlapping data OR two loads executed out of order and they have byte overlap and there was a snoop in between to an overlapped byte.
 #56,u,g,n,n,PM_LSU1_FLUSH_SRQ,LSU1 SRQ flushes
 ##C0097
-A store was flushed because younger load hits and older store that is already in the SRQ or in the same group. 
+A store was flushed because younger load hits and older store that is already in the SRQ or in the same group.
 #57,v,g,n,n,PM_LSU1_FLUSH_ULD,LSU1 unaligned load flushes
 ##C0094
 A load was flushed from unit 1 because it was unaligned (crossed a 64byte boundary, or 32 byte if it missed the L1)
@@ -586,10 +586,10 @@ Flush caused by branch mispredict
 Flush caused by LSU or branch mispredict
 #13,v,g,n,n,PM_FPU0_FEST,FPU0 executed FEST instruction
 ##01092
-This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #14,v,g,n,n,PM_FPU0_FIN,FPU0 produced a result
 ##01093
-fp0 finished, produced a result This only indicates finish, not completion. 
+fp0 finished, produced a result This only indicates finish, not completion.
 #15,v,g,n,n,PM_FPU0_FMOV_FEST,FPU0 executed FMOV or FEST instructions
 ##01090
 This signal is active for one cycle when fp0 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -601,10 +601,10 @@ This signal is active for one cycle when fp0 is executing fpscr move related ins
 This signal is active for one cycle when fp0 is executing frsp or convert kind of instruction. This could be frsp*, fcfid*, fcti* where XYZ* means XYZ, XYZs, XYZ., XYZs.
 #18,v,g,n,n,PM_FPU1_FEST,FPU1 executed FEST instruction
 ##01096
-This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #19,v,g,n,n,PM_FPU1_FIN,FPU1 produced a result
 ##01097
-fp1 finished, produced a result. This only indicates finish, not completion. 
+fp1 finished, produced a result. This only indicates finish, not completion.
 #20,v,g,n,n,PM_FPU1_FMOV_FEST,FPU1 executing FMOV or FEST instructions
 ##01094
 This signal is active for one cycle when fp1 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -640,7 +640,7 @@ The ISU sends a signal indicating that dispatch is blocked by scoreboard.
 Cycles when the processor is executing in Hypervisor (MSR[HV] = 1 and MSR[PR]=0)
 #31,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #32,v,g,n,n,PM_INST_FROM_PREF,Instructions fetched from prefetch
 ##2208D
 An instruction fetch group was fetched from the prefetch buffer. Fetch Groups can contain up to 8 instructions
@@ -806,10 +806,10 @@ Flush caused by branch mispredict
 Flush caused by LSU or branch mispredict
 #13,v,g,n,n,PM_FPU0_FEST,FPU0 executed FEST instruction
 ##01092
-This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #14,v,g,n,n,PM_FPU0_FIN,FPU0 produced a result
 ##01093
-fp0 finished, produced a result This only indicates finish, not completion. 
+fp0 finished, produced a result This only indicates finish, not completion.
 #15,v,g,n,n,PM_FPU0_FMOV_FEST,FPU0 executed FMOV or FEST instructions
 ##01090
 This signal is active for one cycle when fp0 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -821,10 +821,10 @@ This signal is active for one cycle when fp0 is executing fpscr move related ins
 This signal is active for one cycle when fp0 is executing frsp or convert kind of instruction. This could be frsp*, fcfid*, fcti* where XYZ* means XYZ, XYZs, XYZ., XYZs.
 #18,v,g,n,n,PM_FPU1_FEST,FPU1 executed FEST instruction
 ##01096
-This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #19,v,g,n,n,PM_FPU1_FIN,FPU1 produced a result
 ##01097
-fp1 finished, produced a result. This only indicates finish, not completion. 
+fp1 finished, produced a result. This only indicates finish, not completion.
 #20,v,g,n,n,PM_FPU1_FMOV_FEST,FPU1 executing FMOV or FEST instructions
 ##01094
 This signal is active for one cycle when fp1 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -857,7 +857,7 @@ The ISU sends a signal indicating that the gpr mapper cannot accept any more gro
 The ISU sends a signal indicating that dispatch is blocked by scoreboard.
 #30,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #31,v,g,n,n,PM_L1_DCACHE_RELOAD_VALID,L1 reload data source valid
 ##C309C
 The data source information is valid
@@ -1020,7 +1020,7 @@ The issue queue for FPU unit 0 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp0 is executing single precision instruction.
 #16,v,g,n,n,PM_FPU0_STALL3,FPU0 stalled in pipe3
 ##02099
-This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #17,v,g,n,n,PM_FPU0_STF,FPU0 executed store instruction
 ##0209A
 This signal is active for one cycle when fp0 is executing a store instruction.
@@ -1047,7 +1047,7 @@ The issue queue for FPU unit 1 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp1 is executing single precision instruction.
 #25,v,g,n,n,PM_FPU1_STALL3,FPU1 stalled in pipe3
 ##0209D
-This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #26,v,g,n,n,PM_FPU1_STF,FPU1 executed store instruction
 ##0209E
 This signal is active for one cycle when fp1 is executing a store instruction.
@@ -1062,7 +1062,7 @@ FPU is executing single precision instruction. Combined Unit 0 + Unit 1
 FXU0 and FXU1 are both idle
 #30,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##10090,60090
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #31,v,g,n,n,PM_GRP_BR_MPRED,Group experienced a branch mispredict
 ##1209F,6209F
 Group experienced a branch mispredict
@@ -1092,7 +1092,7 @@ Asserted when a non-canceled prefetch is made to the cache interface unit (CIU).
 This signal will be asserted each time the I-ERAT is written. This indicates that an ERAT miss has been serviced. ERAT misses will initiate a sequence resulting in the ERAT being written. ERAT misses that are later ignored will not be counted unless the ERAT is written before the instruction stream is changed, This should be a fairly accurate count of ERAT missed (best available).
 #40,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #41,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##12098,12099,1209A,62098,62099,6209A
 The ISU sends the number of instructions dispatched.
@@ -1149,7 +1149,7 @@ A data request (load or store) from LSU Unit 1 missed the ERAT and resulted in a
 A load was flushed by unit 1 because a younger load executed before an older store executed and they had overlapping data OR two loads executed out of order and they have byte overlap and there was a snoop in between to an overlapped byte.
 #59,u,g,n,n,PM_LSU1_FLUSH_SRQ,LSU1 SRQ flushes
 ##C0097
-A store was flushed because younger load hits and older store that is already in the SRQ or in the same group. 
+A store was flushed because younger load hits and older store that is already in the SRQ or in the same group.
 #60,v,g,n,n,PM_LSU1_FLUSH_ULD,LSU1 unaligned load flushes
 ##C0094
 A load was flushed from unit 1 because it was unaligned (crossed a 64byte boundary, or 32 byte if it missed the L1)
@@ -1282,7 +1282,7 @@ The issue queue for FPU unit 0 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp0 is executing single precision instruction.
 #15,v,g,n,n,PM_FPU0_STALL3,FPU0 stalled in pipe3
 ##02099
-This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp0 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #16,v,g,n,n,PM_FPU0_STF,FPU0 executed store instruction
 ##0209A
 This signal is active for one cycle when fp0 is executing a store instruction.
@@ -1309,7 +1309,7 @@ The issue queue for FPU unit 1 cannot accept any more instructions. Issue is sto
 This signal is active for one cycle when fp1 is executing single precision instruction.
 #24,v,g,n,n,PM_FPU1_STALL3,FPU1 stalled in pipe3
 ##0209D
-This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall. 
+This signal indicates that fp1 has generated a stall in pipe3 due to overflow, underflow, massive cancel, convert to integer (sometimes), or convert from integer (always). This signal is active during the entire duration of the stall.
 #25,v,g,n,n,PM_FPU1_STF,FPU1 executed store instruction
 ##0209E
 This signal is active for one cycle when fp1 is executing a store instruction.
@@ -1324,7 +1324,7 @@ FPU is executing a store instruction. Combined Unit 0 + Unit 1
 FXU0 and FXU1 are both busy
 #29,v,g,n,n,PM_GCT_FULL_CYC,Cycles GCT full
 ##10090,60090
-The ISU sends a signal indicating the gct is full. 
+The ISU sends a signal indicating the gct is full.
 #30,v,g,n,n,PM_GRP_BR_MPRED,Group experienced a branch mispredict
 ##1209F,6209F
 Group experienced a branch mispredict
@@ -1348,7 +1348,7 @@ Asserted when a non-canceled prefetch is made to the cache interface unit (CIU).
 This signal will be asserted each time the I-ERAT is written. This indicates that an ERAT miss has been serviced. ERAT misses will initiate a sequence resulting in the ERAT being written. ERAT misses that are later ignored will not be counted unless the ERAT is written before the instruction stream is changed, This should be a fairly accurate count of ERAT missed (best available).
 #37,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #38,v,g,n,n,PM_INST_DISP,Instructions dispatched
 ##12098,12099,1209A,62098,62099,6209A
 The ISU sends the number of instructions dispatched.
@@ -1405,7 +1405,7 @@ A data request (load or store) from LSU Unit 1 missed the ERAT and resulted in a
 A load was flushed by unit 1 because a younger load executed before an older store executed and they had overlapping data OR two loads executed out of order and they have byte overlap and there was a snoop in between to an overlapped byte.
 #56,u,g,n,n,PM_LSU1_FLUSH_SRQ,LSU1 SRQ flushes
 ##C0097
-A store was flushed because younger load hits and older store that is already in the SRQ or in the same group. 
+A store was flushed because younger load hits and older store that is already in the SRQ or in the same group.
 #57,v,g,n,n,PM_LSU1_FLUSH_ULD,LSU1 unaligned load flushes
 ##C0094
 A load was flushed from unit 1 because it was unaligned (crossed a 64byte boundary, or 32 byte if it missed the L1)
@@ -1538,10 +1538,10 @@ Flush caused by branch mispredict
 Flush caused by LSU or branch mispredict
 #12,v,g,n,n,PM_FPU0_FEST,FPU0 executed FEST instruction
 ##01092
-This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #13,v,g,n,n,PM_FPU0_FIN,FPU0 produced a result
 ##01093
-fp0 finished, produced a result This only indicates finish, not completion. 
+fp0 finished, produced a result This only indicates finish, not completion.
 #14,v,g,n,n,PM_FPU0_FMOV_FEST,FPU0 executed FMOV or FEST instructions
 ##01090
 This signal is active for one cycle when fp0 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1553,10 +1553,10 @@ This signal is active for one cycle when fp0 is executing fpscr move related ins
 This signal is active for one cycle when fp0 is executing frsp or convert kind of instruction. This could be frsp*, fcfid*, fcti* where XYZ* means XYZ, XYZs, XYZ., XYZs.
 #17,v,g,n,n,PM_FPU1_FEST,FPU1 executed FEST instruction
 ##01096
-This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #18,v,g,n,n,PM_FPU1_FIN,FPU1 produced a result
 ##01097
-fp1 finished, produced a result. This only indicates finish, not completion. 
+fp1 finished, produced a result. This only indicates finish, not completion.
 #19,v,g,n,n,PM_FPU1_FMOV_FEST,FPU1 executing FMOV or FEST instructions
 ##01094
 This signal is active for one cycle when fp1 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1592,7 +1592,7 @@ A group completed. Microcoded instructions that span multiple groups will genera
 The ISU sends a signal indicating that dispatch is blocked by scoreboard.
 #30,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #31,v,g,n,n,PM_L1_DCACHE_RELOAD_VALID,L1 reload data source valid
 ##C309C
 The data source information is valid
@@ -1746,10 +1746,10 @@ Flush caused by branch mispredict
 Flush caused by LSU or branch mispredict
 #13,v,g,n,n,PM_FPU0_FEST,FPU0 executed FEST instruction
 ##01092
-This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp0 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #14,v,g,n,n,PM_FPU0_FIN,FPU0 produced a result
 ##01093
-fp0 finished, produced a result This only indicates finish, not completion. 
+fp0 finished, produced a result This only indicates finish, not completion.
 #15,v,g,n,n,PM_FPU0_FMOV_FEST,FPU0 executed FMOV or FEST instructions
 ##01090
 This signal is active for one cycle when fp0 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1761,10 +1761,10 @@ This signal is active for one cycle when fp0 is executing fpscr move related ins
 This signal is active for one cycle when fp0 is executing frsp or convert kind of instruction. This could be frsp*, fcfid*, fcti* where XYZ* means XYZ, XYZs, XYZ., XYZs.
 #18,v,g,n,n,PM_FPU1_FEST,FPU1 executed FEST instruction
 ##01096
-This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ. 
+This signal is active for one cycle when fp1 is executing one of the estimate instructions. This could be fres* or frsqrte* where XYZ* means XYZ or XYZ.
 #19,v,g,n,n,PM_FPU1_FIN,FPU1 produced a result
 ##01097
-fp1 finished, produced a result. This only indicates finish, not completion. 
+fp1 finished, produced a result. This only indicates finish, not completion.
 #20,v,g,n,n,PM_FPU1_FMOV_FEST,FPU1 executing FMOV or FEST instructions
 ##01094
 This signal is active for one cycle when fp1 is executing a move kind of instruction or one of the estimate instructions.. This could be fmr*, fneg*, fabs*, fnabs* , fres* or frsqrte* where XYZ* means XYZ or XYZ
@@ -1797,7 +1797,7 @@ The ISU sends a signal indicating that dispatch is blocked by scoreboard.
 A group that previously attempted dispatch was rejected.
 #30,c,g,n,n,PM_INST_CMPL,Instructions completed
 ##00009
-Number of Eligible Instructions that completed. 
+Number of Eligible Instructions that completed.
 #31,v,g,n,n,PM_L1_DCACHE_RELOAD_VALID,L1 reload data source valid
 ##C309C
 The data source information is valid
@@ -1908,4 +1908,4 @@ A store executed on unit 1
 Suspended
 #67,u,g,n,n,PM_TB_BIT_TRANS,Time Base bit transition
 ##00005
-When the selected time base bit (as specified in MMCR0[TBSEL])transitions from 0 to 1 
+When the selected time base bit (as specified in MMCR0[TBSEL])transitions from 0 to 1

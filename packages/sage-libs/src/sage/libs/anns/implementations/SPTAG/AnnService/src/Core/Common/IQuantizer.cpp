@@ -32,7 +32,7 @@ namespace SPTAG
 
                 default: break;
                 }
-                
+
                 if (ret->LoadQuantizer(p_in) != ErrorCode::Success) ret.reset();
                 return ret;
             case QuantizerType::OPQQuantizer:

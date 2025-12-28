@@ -150,4 +150,3 @@ typedef cl_int (CL_API_CALL *
 #endif
 
 #endif  /* __OPENCL_CL_D3D10_H */
-

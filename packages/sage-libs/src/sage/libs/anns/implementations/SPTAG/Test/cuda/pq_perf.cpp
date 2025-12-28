@@ -281,7 +281,7 @@ printf("After built, pq type:%d\n", (int)quantizer->GetQuantizerType());
 
 void GPU_nopq_alltype(std::shared_ptr<VectorSet>& real_vecset, DistCalcMethod distMethod, int* res_idx, float* res_dist);
 
-void GPU_pq_alltype(std::shared_ptr<VectorSet>& real_vecset, std::shared_ptr<VectorSet>& quan_vecset, DistCalcMethod distMethod, std::shared_ptr<COMMON::IQuantizer>& quantizer, int* res_idx, float* res_dist); 
+void GPU_pq_alltype(std::shared_ptr<VectorSet>& real_vecset, std::shared_ptr<VectorSet>& quan_vecset, DistCalcMethod distMethod, std::shared_ptr<COMMON::IQuantizer>& quantizer, int* res_idx, float* res_dist);
 
 bool DEBUG_REPORT = false;
 
@@ -299,14 +299,14 @@ void CPU_top1_nopq(std::shared_ptr<VectorSet>& real_vecset, DistCalcMethod distM
     for(int i=0; i<real_vecset->Count(); ++i) {
       int idx;
       res_dist[i] = std::numeric_limits<float>::max();
-    
+
       for(int j=0; j<real_vecset->Count(); ++j) {
         idx = rand() % real_vecset->Count();
         if(i==idx) continue;
 
         testDist = COMMON::DistanceUtils::ComputeDistance(reinterpret_cast<R*>(real_vecset->GetVector(i)), reinterpret_cast<R*>(real_vecset->GetVector(idx)), real_vecset->Dimension(), distMethod);
         if(testDist < res_dist[i]) {
-          res_dist[i] = testDist; 
+          res_dist[i] = testDist;
           result[i] = idx;
         }
       }
@@ -316,13 +316,13 @@ void CPU_top1_nopq(std::shared_ptr<VectorSet>& real_vecset, DistCalcMethod distM
 #pragma omp parallel for num_threads(numThreads)
     for(int i=0; i<real_vecset->Count(); ++i) {
       res_dist[i] = std::numeric_limits<float>::max();
-    
+
       for(int j=0; j<real_vecset->Count(); ++j) {
         if(i==j) continue;
 
         testDist = COMMON::DistanceUtils::ComputeDistance(reinterpret_cast<R*>(real_vecset->GetVector(i)), reinterpret_cast<R*>(real_vecset->GetVector(j)), real_vecset->Dimension(), distMethod);
         if(testDist < res_dist[i]) {
-          res_dist[i] = testDist; 
+          res_dist[i] = testDist;
           result[i] = j;
         }
       }
@@ -350,13 +350,13 @@ void CPU_top1_pq(std::shared_ptr<VectorSet>& real_vecset, std::shared_ptr<Vector
   std::shared_ptr<VectorIndex> vecIndex = SPTAG::VectorIndex::CreateInstance(IndexAlgoType::BKT, SPTAG::GetEnumValueType<uint8_t>());
   vecIndex->SetQuantizer(quantizer);
   vecIndex->SetParameter("DistCalcMethod", SPTAG::Helper::Convert::ConvertToString(distMethod));
-  
+
   if(randomized) {
   int idx;
 #pragma omp parallel for num_threads(numThreads)
     for(int i=0; i<quan_vecset->Count(); ++i) {
       res_dist[i] = std::numeric_limits<float>::max();
-    
+
       for(int j=0; j<quan_vecset->Count(); ++j) {
         idx = rand() % (quan_vecset->Count());
         if(i==idx) continue;
@@ -372,7 +372,7 @@ void CPU_top1_pq(std::shared_ptr<VectorSet>& real_vecset, std::shared_ptr<Vector
 #pragma omp parallel for num_threads(numThreads)
     for(int i=0; i<quan_vecset->Count(); ++i) {
       res_dist[i] = std::numeric_limits<float>::max();
-    
+
       for(int j=0; j<quan_vecset->Count(); ++j) {
         if(i==j) continue;
         testDist = vecIndex->ComputeDistance(quan_vecset->GetVector(i), quan_vecset->GetVector(j));
@@ -437,11 +437,11 @@ void DistancePerfSuite(IndexAlgoType algo, DistCalcMethod distMethod)
     // BASELINE non-PQ perf timing:
     // CPU distance comparison timing with non-quantized
     auto start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_nopq<R>(real_vecset, distMethod, 1, gt_idx, gt_dist, false);    
+    CPU_top1_nopq<R>(real_vecset, distMethod, 1, gt_idx, gt_dist, false);
     auto end_t = std::chrono::high_resolution_clock::now();
     double CPU_baseline_t = GET_CHRONO_TIME(start_t, end_t);
     start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_nopq<R>(real_vecset, distMethod, 16, res_idx, res_dist, false);    
+    CPU_top1_nopq<R>(real_vecset, distMethod, 16, res_idx, res_dist, false);
     end_t = std::chrono::high_resolution_clock::now();
     double CPU_parallel_t = GET_CHRONO_TIME(start_t, end_t);
 
@@ -459,14 +459,14 @@ void DistancePerfSuite(IndexAlgoType algo, DistCalcMethod distMethod)
 
     // Time CPU all-to-all distance comparisons between quan_vecset
     start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 1, res_idx, res_dist, false);    
+    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 1, res_idx, res_dist, false);
     end_t = std::chrono::high_resolution_clock::now();
     double CPU_PQ_t = GET_CHRONO_TIME(start_t, end_t);
     printf("CPU PQ single-threaded\n");
     compute_accuracy(gt_idx, gt_dist, res_idx, res_dist, real_vecset->Count());
 
     start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 16, res_idx, res_dist, false);    
+    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 16, res_idx, res_dist, false);
     end_t = std::chrono::high_resolution_clock::now();
     double CPU_PQ_parallel_t = GET_CHRONO_TIME(start_t, end_t);
     printf("CPU PQ 16 threads\n");
@@ -474,7 +474,7 @@ void DistancePerfSuite(IndexAlgoType algo, DistCalcMethod distMethod)
 
     // Time each GPU method of all-to-all distance between quan_vecset
     start_t = std::chrono::high_resolution_clock::now();
-    GPU_pq_alltype(real_vecset, quan_vecset, distMethod, quantizer, res_idx, res_dist); 
+    GPU_pq_alltype(real_vecset, quan_vecset, distMethod, quantizer, res_idx, res_dist);
     end_t = std::chrono::high_resolution_clock::now();
     double GPU_PQ_t = GET_CHRONO_TIME(start_t, end_t);
     printf("GPU PQ threads\n");
@@ -483,10 +483,10 @@ void DistancePerfSuite(IndexAlgoType algo, DistCalcMethod distMethod)
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "CPU 1-thread time - baseline:%0.3lf, PQ:%0.3lf\n", CPU_baseline_t, CPU_PQ_t);
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "CPU 16-thread time - baseline:%0.3lf, PQ:%0.3lf\n", CPU_parallel_t, CPU_PQ_parallel_t);
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "GPU time - baseline:%0.3lf, PQ:%0.3lf\n", GPU_baseline_t, GPU_PQ_t);
-    
+
 
     //LoadReconstructData<R>(real_vecset, rec_vecset, quan_vecset, metaset, queryset, truth, distMethod, 10);
-    
+
 /*
     auto real_idx = PerfBuild<R>(algo, Helper::Convert::ConvertToString<DistCalcMethod>(distMethod), real_vecset, metaset, queryset, 10, truth, "real_idx", nullptr);
     Search<R>(real_idx, queryset, 10, truth);
@@ -496,7 +496,7 @@ void DistancePerfSuite(IndexAlgoType algo, DistCalcMethod distMethod)
 
     SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Test search with SDC");
     Search<R>(quan_idx, queryset, 10, truth);
-    
+
     SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Test search with ADC");
     quan_idx->SetQuantizerADC(true);
     Search<R>(quan_idx, queryset, 10, truth);
@@ -530,11 +530,11 @@ void DistancePerfRandomized(IndexAlgoType algo, DistCalcMethod distMethod)
     // BASELINE non-PQ perf timing:
     // CPU distance comparison timing with non-quantized
     auto start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_nopq<R>(real_vecset, distMethod, 1, gt_idx, gt_dist, true);    
+    CPU_top1_nopq<R>(real_vecset, distMethod, 1, gt_idx, gt_dist, true);
     auto end_t = std::chrono::high_resolution_clock::now();
     double CPU_baseline_t = GET_CHRONO_TIME(start_t, end_t);
     start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_nopq<R>(real_vecset, distMethod, 16, res_idx, res_dist, true);    
+    CPU_top1_nopq<R>(real_vecset, distMethod, 16, res_idx, res_dist, true);
     end_t = std::chrono::high_resolution_clock::now();
     double CPU_parallel_t = GET_CHRONO_TIME(start_t, end_t);
 
@@ -552,13 +552,13 @@ void DistancePerfRandomized(IndexAlgoType algo, DistCalcMethod distMethod)
 
     // Time CPU all-to-all distance comparisons between quan_vecset
     start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 1, res_idx, res_dist, true);    
+    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 1, res_idx, res_dist, true);
     end_t = std::chrono::high_resolution_clock::now();
     double CPU_PQ_t = GET_CHRONO_TIME(start_t, end_t);
     printf("CPU PQ single-threaded\n");
 
     start_t = std::chrono::high_resolution_clock::now();
-    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 16, res_idx, res_dist, true);    
+    CPU_top1_pq<float>(real_vecset, quan_vecset, distMethod, quantizer, 16, res_idx, res_dist, true);
     end_t = std::chrono::high_resolution_clock::now();
     double CPU_PQ_parallel_t = GET_CHRONO_TIME(start_t, end_t);
     printf("CPU PQ 16 threads\n");
@@ -567,7 +567,7 @@ void DistancePerfRandomized(IndexAlgoType algo, DistCalcMethod distMethod)
 
     // Time each GPU method of all-to-all distance between quan_vecset
     start_t = std::chrono::high_resolution_clock::now();
-    GPU_pq_alltype(real_vecset, quan_vecset, distMethod, quantizer, res_idx, res_dist); 
+    GPU_pq_alltype(real_vecset, quan_vecset, distMethod, quantizer, res_idx, res_dist);
     end_t = std::chrono::high_resolution_clock::now();
     double GPU_PQ_t = GET_CHRONO_TIME(start_t, end_t);
     printf("GPU PQ threads\n");
@@ -576,7 +576,7 @@ void DistancePerfRandomized(IndexAlgoType algo, DistCalcMethod distMethod)
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "CPU 1-thread time - baseline:%0.3lf, PQ:%0.3lf\n", CPU_baseline_t, CPU_PQ_t);
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "CPU 16-thread time - baseline:%0.3lf, PQ:%0.3lf\n", CPU_parallel_t, CPU_PQ_parallel_t);
     SPTAGLIB_LOG(SPTAG::Helper::LogLevel::LL_Info, "GPU time - baseline:%0.3lf, PQ:%0.3lf\n", GPU_baseline_t, GPU_PQ_t);
-}    
+}
 
 
 BOOST_AUTO_TEST_SUITE(GPUPQPerfTest)

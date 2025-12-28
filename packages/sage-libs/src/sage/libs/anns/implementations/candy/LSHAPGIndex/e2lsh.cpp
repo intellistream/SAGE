@@ -211,9 +211,9 @@ void e2lsh::knn(queryN* q)
 				//	}
 				//	std::cout << std::endl;
 				//}
-				
+
 			}
-			
+
 			++pr.first; // Increment begin iterator
 		}
 		//test++;
@@ -281,7 +281,7 @@ void e2lsh::getIndexes()
 zlsh::zlsh(Preprocess& prep_, Parameter& param_,
 	const std::string& file, bool notInheritance) :hashBase(prep_, param_, file)
 {
-	
+
 
 	//std::cout << std::endl << "START HASHING..." << std::endl << std::endl;
 	//lsh::timer timer;
@@ -346,7 +346,7 @@ zlsh::zlsh(const std::string& file)
 	hashMaxs.resize(S);
 	hashMins.resize(S);
 	hashPar.rndAs = new float* [S];
-	
+
 	in.read((char*)hashPar.rndBs, sizeof(float) * S);
 	in.read((char*)&hashMins[0], sizeof(float) * S);
 	in.read((char*)&hashMaxs[0], sizeof(float) * S);
@@ -427,10 +427,10 @@ void zlsh::normalizeHash()
 	//		<< "Please increase W at least " << rMax / (float)hMax << "times.\n" << RESET;
 		//exit(-1);
 	}
-	
 
 
-	
+
+
 	//u = _ZINT_LEN / K;
 	for (int i = 0; i < S; ++i) {
 		//float b = (hMax - ranges[i]) / 2 - hashMins[i];
@@ -491,7 +491,7 @@ int zlsh::getLLCP(zint k1, zint k2)
 		exit(-1);
 #endif
 	}
-	
+
 }
 
 void zlsh::save(const std::string& file)
@@ -573,7 +573,7 @@ void zlsh::knn(queryN* q)
 	for (int j = 0; j < L; j++)
 	{
 		zint key = getZ(q->hashval + j * K);
-		//auto pos = myIndexes[j].lower_bound(key); 
+		//auto pos = myIndexes[j].lower_bound(key);
 
 		auto pr = hashTables[j].equal_range(key); // pair of begin & end iterators returned
 		while (pr.first != pr.second)
@@ -584,7 +584,7 @@ void zlsh::knn(queryN* q)
 				res_pair.dist = cal_dist(q->queryPoint, q->myData[res_pair.id], dim);
 				candidate.push_back(res_pair);
 				flag_[pr.first->second] = true;
-				
+
 			}
 			++pr.first; // Increment begin iterator
 		}
@@ -641,7 +641,7 @@ void zlsh::knnBestFirst(queryN* q)
 #else
 			lEntries.push(posInfo(j, getLevel(lpos[j]->first, qpos[j]->first)));
 #endif // USE_LCCP
-			
+
 		}
 		//
 		rpos[j] = qpos[j];
@@ -681,7 +681,7 @@ void zlsh::knnBestFirst(queryN* q)
 				}
 				//--lpos[t.id];
 			}
-			
+
 			if (lpos[t.id] != hashTables[t.id].begin()) {
 #ifdef USE_LCCP
 				t.dist = getLLCP(lpos[t.id]->first, qpos[t.id]->first);

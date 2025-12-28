@@ -93,9 +93,9 @@ impl<T> AlignedBoxWithSlice<T> {
     pub fn split_into_nonoverlapping_mut_slices(&mut self, range: Range<usize>, slice_len: usize) -> ANNResult<Vec<&mut [T]>> {
         if range.len() % slice_len != 0 || range.end > self.len() {
             return Err(ANNError::log_index_error(format!(
-                "Cannot split range ({:?}) of AlignedBoxWithSlice (len: {}) into nonoverlapping mutable slices with length {}", 
+                "Cannot split range ({:?}) of AlignedBoxWithSlice (len: {}) into nonoverlapping mutable slices with length {}",
                 range,
-                self.len(), 
+                self.len(),
                 slice_len,
             )));
         }
@@ -270,12 +270,11 @@ mod tests {
         let mut data = AlignedBoxWithSlice::<f32>::new(size, 32).unwrap();
         let result = data.split_into_nonoverlapping_mut_slices(range.clone(), slice_len);
         let expected_err_str = format!(
-            "IndexError: Cannot split range ({:?}) of AlignedBoxWithSlice (len: {}) into nonoverlapping mutable slices with length {}", 
+            "IndexError: Cannot split range ({:?}) of AlignedBoxWithSlice (len: {}) into nonoverlapping mutable slices with length {}",
             range,
-            size, 
+            size,
             slice_len,
         );
         assert!(result.is_err_and(|e| e.to_string() == expected_err_str));
     }
 }
-

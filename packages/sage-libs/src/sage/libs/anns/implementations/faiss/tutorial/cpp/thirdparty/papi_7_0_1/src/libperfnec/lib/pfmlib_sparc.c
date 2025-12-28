@@ -166,7 +166,7 @@ static void pfm_sparc_get_event_counters(unsigned int event,
 	} else {
 		char ctrl = get_ctrl(event);
 
-		counters->bits[0] = 0;	
+		counters->bits[0] = 0;
 		if (ctrl & PME_CTRL_S0)
 			counters->bits[0] |= (1 << 0);
 		if (ctrl & PME_CTRL_S1)
@@ -229,7 +229,7 @@ static int pfm_sparc_dispatch_events(pfmlib_input_param_t *input,
 	for (i = 1; i < input->pfp_event_count; i++) {
 		if (input->pfp_events[i].plm == 0) {
 			/* it's ok if the default is the same as plm */
-			if (plm != input->pfp_dfl_plm) 
+			if (plm != input->pfp_dfl_plm)
 				return PFMLIB_ERR_NOASSIGN;
 		} else {
 			if (plm != input->pfp_events[i].plm)
@@ -335,7 +335,7 @@ static int pfm_sparc_dispatch_events(pfmlib_input_param_t *input,
 	output->pfp_pmcs[0].reg_num = 0;
 	output->pfp_pmcs[0].reg_reserved1 = 0;
 	output->pfp_pmc_count = 1;
-		
+
 	return PFMLIB_SUCCESS;
 }
 

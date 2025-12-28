@@ -1,6 +1,6 @@
 #ifndef _PAPI_PERFMON_IA64_H
 #define _PAPI_PERFMON_IA64_H
-/* 
+/*
 * File:    perfmon-ia64.h
 * CVS:     $Id$
 * Author:  Philip Mucci

@@ -35,7 +35,7 @@ typedef struct {
 .fi
 .sp
 .sp
-The Intel Atom processor provides several additional per-event features for 
+The Intel Atom processor provides several additional per-event features for
 counters: thresholding, inversion, edge detection, monitoring both threads. They
 can be set using the \fBpfp_intel_atom_counters\fR data structure for each event.
 The \fBflags\fR field can be initialized with any combinations of the following
@@ -45,7 +45,7 @@ values:
 Inverse the results of the \fBcnt_mask\fR comparison when set
 .TP
 .B PFMLIB_INTEL_ATOM_SEL_EDGE
-Enable edge detection of events. 
+Enable edge detection of events.
 .TP
 .B PFMLIB_INTEL_ATOM_SEL_ANYTHR
 Enable measuring the event in any of the two threads. By default only the current thread is measured.

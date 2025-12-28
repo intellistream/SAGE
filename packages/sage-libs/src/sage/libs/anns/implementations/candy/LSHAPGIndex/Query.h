@@ -40,4 +40,3 @@ public:
 	void update(queryN* query, Preprocess& prep);
 	~Performance();
 };
-

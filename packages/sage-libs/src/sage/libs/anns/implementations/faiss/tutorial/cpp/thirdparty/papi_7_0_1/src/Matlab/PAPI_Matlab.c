@@ -3,8 +3,8 @@
 /* THIS IS OPEN SOURCE CODE */
 /****************************/
 
-/**                                                                                                                                
-  * @file:    PAPI_Matlab.c   
+/**
+  * @file:    PAPI_Matlab.c
   * @author   Frank Winkler <frank.winkler@icl.utk.edu>
   *
   *	@brief PAPI Matlab integration.

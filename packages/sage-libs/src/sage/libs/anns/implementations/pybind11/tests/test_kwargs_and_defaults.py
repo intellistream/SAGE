@@ -1,5 +1,4 @@
 import pytest
-
 from pybind11_tests import kwargs_and_defaults as m
 
 
@@ -12,16 +11,13 @@ def test_function_signatures(doc):
     assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int = 300) -> str"
     assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int = 0) -> str"
     assert doc(m.args_function) == "args_function(*args) -> tuple"
-    assert (
-        doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
-    )
+    assert doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
     assert (
         doc(m.KWClass.foo0)
         == "foo0(self: m.kwargs_and_defaults.KWClass, arg0: int, arg1: float) -> None"
     )
     assert (
-        doc(m.KWClass.foo1)
-        == "foo1(self: m.kwargs_and_defaults.KWClass, x: int, y: float) -> None"
+        doc(m.KWClass.foo1) == "foo1(self: m.kwargs_and_defaults.KWClass, x: int, y: float) -> None"
     )
     assert (
         doc(m.kw_lb_func0)
@@ -47,18 +43,11 @@ def test_function_signatures(doc):
         doc(m.kw_lb_func5)
         == "kw_lb_func5(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
     )
+    assert doc(m.kw_lb_func6) == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
     assert (
-        doc(m.kw_lb_func6)
-        == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
+        doc(m.kw_lb_func7) == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
     )
-    assert (
-        doc(m.kw_lb_func7)
-        == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
-    )
-    assert (
-        doc(m.kw_lb_func8)
-        == "kw_lb_func8(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
-    )
+    assert doc(m.kw_lb_func8) == "kw_lb_func8(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
 
 
 def test_named_arguments():
@@ -370,10 +359,7 @@ def test_signatures():
     assert m.kw_only_mixed.__doc__ == "kw_only_mixed(i: int, *, j: int) -> tuple\n"
     assert m.pos_only_all.__doc__ == "pos_only_all(i: int, j: int, /) -> tuple\n"
     assert m.pos_only_mix.__doc__ == "pos_only_mix(i: int, /, j: int) -> tuple\n"
-    assert (
-        m.pos_kw_only_mix.__doc__
-        == "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n"
-    )
+    assert m.pos_kw_only_mix.__doc__ == "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n"
 
 
 def test_args_refcount():

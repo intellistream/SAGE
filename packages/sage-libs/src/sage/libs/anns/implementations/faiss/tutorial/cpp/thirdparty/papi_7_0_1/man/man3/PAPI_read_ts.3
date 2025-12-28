@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_read_ts \- 
+PAPI_read_ts \-
 .PP
-Read hardware counters with a timestamp\&.  
+Read hardware counters with a timestamp\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
  int \fBPAPI_read_ts(int EventSet, long long *values, long long *cycles )\fP;
 .RE
@@ -28,18 +28,18 @@ The counters continue counting after the read\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fIEventSet\fP -- an integer handle for a PAPI Event Set as created by \fBPAPI_create_eventset()\fP 
+\fIEventSet\fP -- an integer handle for a PAPI Event Set as created by \fBPAPI_create_eventset()\fP
 .br
-\fI*values\fP -- an array to hold the counter values of the counting events 
+\fI*values\fP -- an array to hold the counter values of the counting events
 .br
 \fI*cycles\fP -- an array to hold the timestamp values
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&. 
+\fIPAPI_EINVAL\fP One or more of the arguments is invalid\&.
 .br
-\fIPAPI_ESYS\fP A system or C library call failed inside PAPI, see the errno variable\&. 
+\fIPAPI_ESYS\fP A system or C library call failed inside PAPI, see the errno variable\&.
 .br
 \fIPAPI_ENOEVST\fP The event set specified does not exist\&.
 .RE
@@ -56,19 +56,19 @@ The counters continue counting after the read\&.
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_read\fP 
+\fBPAPI_read\fP
 .PP
-\fBPAPI_accum\fP 
+\fBPAPI_accum\fP
 .PP
-\fBPAPI_start\fP 
+\fBPAPI_start\fP
 .PP
-\fBPAPI_stop\fP 
+\fBPAPI_stop\fP
 .PP
-\fBPAPI_reset\fP 
+\fBPAPI_reset\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

@@ -5,10 +5,10 @@
 #ifndef _PAPI_POWER5_EVENTS_H
 #define _PAPI_POWER5_EVENTS_H
 
-/* 
+/*
 * File:    power5_events.h
-* CVS:     
-*          
+* CVS:
+*
 * This file MUST be kept synchronised with the events file.
 *
 */

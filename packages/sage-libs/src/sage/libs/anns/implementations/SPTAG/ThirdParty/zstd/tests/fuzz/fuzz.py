@@ -25,18 +25,18 @@ def abs_join(a, *p):
     return os.path.abspath(os.path.join(a, *p))
 
 
-class InputType(object):
+class InputType:
     RAW_DATA = 1
     COMPRESSED_DATA = 2
     DICTIONARY_DATA = 3
 
 
-class FrameType(object):
+class FrameType:
     ZSTD = 1
     BLOCK = 2
 
 
-class TargetInfo(object):
+class TargetInfo:
     def __init__(self, input_type, frame_type=FrameType.ZSTD):
         self.input_type = input_type
         self.frame_type = frame_type
@@ -44,56 +44,55 @@ class TargetInfo(object):
 
 # Constants
 FUZZ_DIR = os.path.abspath(os.path.dirname(__file__))
-CORPORA_DIR = abs_join(FUZZ_DIR, 'corpora')
+CORPORA_DIR = abs_join(FUZZ_DIR, "corpora")
 TARGET_INFO = {
-    'simple_round_trip': TargetInfo(InputType.RAW_DATA),
-    'stream_round_trip': TargetInfo(InputType.RAW_DATA),
-    'block_round_trip': TargetInfo(InputType.RAW_DATA, FrameType.BLOCK),
-    'simple_decompress': TargetInfo(InputType.COMPRESSED_DATA),
-    'stream_decompress': TargetInfo(InputType.COMPRESSED_DATA),
-    'block_decompress': TargetInfo(InputType.COMPRESSED_DATA, FrameType.BLOCK),
-    'dictionary_round_trip': TargetInfo(InputType.RAW_DATA),
-    'dictionary_decompress': TargetInfo(InputType.COMPRESSED_DATA),
-    'zstd_frame_info': TargetInfo(InputType.COMPRESSED_DATA),
-    'simple_compress': TargetInfo(InputType.RAW_DATA),
-    'dictionary_loader': TargetInfo(InputType.DICTIONARY_DATA),
-    'raw_dictionary_round_trip': TargetInfo(InputType.RAW_DATA),
-    'dictionary_stream_round_trip': TargetInfo(InputType.RAW_DATA),
-    'decompress_dstSize_tooSmall': TargetInfo(InputType.RAW_DATA),
-    'fse_read_ncount': TargetInfo(InputType.RAW_DATA),
-    'sequence_compression_api': TargetInfo(InputType.RAW_DATA),
-    'seekable_roundtrip': TargetInfo(InputType.RAW_DATA),
-    'huf_round_trip': TargetInfo(InputType.RAW_DATA),
-    'huf_decompress': TargetInfo(InputType.RAW_DATA),
-    'decompress_cross_format': TargetInfo(InputType.RAW_DATA),
-    'generate_sequences': TargetInfo(InputType.RAW_DATA),
+    "simple_round_trip": TargetInfo(InputType.RAW_DATA),
+    "stream_round_trip": TargetInfo(InputType.RAW_DATA),
+    "block_round_trip": TargetInfo(InputType.RAW_DATA, FrameType.BLOCK),
+    "simple_decompress": TargetInfo(InputType.COMPRESSED_DATA),
+    "stream_decompress": TargetInfo(InputType.COMPRESSED_DATA),
+    "block_decompress": TargetInfo(InputType.COMPRESSED_DATA, FrameType.BLOCK),
+    "dictionary_round_trip": TargetInfo(InputType.RAW_DATA),
+    "dictionary_decompress": TargetInfo(InputType.COMPRESSED_DATA),
+    "zstd_frame_info": TargetInfo(InputType.COMPRESSED_DATA),
+    "simple_compress": TargetInfo(InputType.RAW_DATA),
+    "dictionary_loader": TargetInfo(InputType.DICTIONARY_DATA),
+    "raw_dictionary_round_trip": TargetInfo(InputType.RAW_DATA),
+    "dictionary_stream_round_trip": TargetInfo(InputType.RAW_DATA),
+    "decompress_dstSize_tooSmall": TargetInfo(InputType.RAW_DATA),
+    "fse_read_ncount": TargetInfo(InputType.RAW_DATA),
+    "sequence_compression_api": TargetInfo(InputType.RAW_DATA),
+    "seekable_roundtrip": TargetInfo(InputType.RAW_DATA),
+    "huf_round_trip": TargetInfo(InputType.RAW_DATA),
+    "huf_decompress": TargetInfo(InputType.RAW_DATA),
+    "decompress_cross_format": TargetInfo(InputType.RAW_DATA),
+    "generate_sequences": TargetInfo(InputType.RAW_DATA),
 }
 TARGETS = list(TARGET_INFO.keys())
-ALL_TARGETS = TARGETS + ['all']
+ALL_TARGETS = TARGETS + ["all"]
 FUZZ_RNG_SEED_SIZE = 4
 
 # Standard environment variables
-CC = os.environ.get('CC', 'cc')
-CXX = os.environ.get('CXX', 'c++')
-CPPFLAGS = os.environ.get('CPPFLAGS', '')
-CFLAGS = os.environ.get('CFLAGS', '-O3')
-CXXFLAGS = os.environ.get('CXXFLAGS', CFLAGS)
-LDFLAGS = os.environ.get('LDFLAGS', '')
-MFLAGS = os.environ.get('MFLAGS', '-j')
-THIRD_PARTY_SEQ_PROD_OBJ = os.environ.get('THIRD_PARTY_SEQ_PROD_OBJ', '')
+CC = os.environ.get("CC", "cc")
+CXX = os.environ.get("CXX", "c++")
+CPPFLAGS = os.environ.get("CPPFLAGS", "")
+CFLAGS = os.environ.get("CFLAGS", "-O3")
+CXXFLAGS = os.environ.get("CXXFLAGS", CFLAGS)
+LDFLAGS = os.environ.get("LDFLAGS", "")
+MFLAGS = os.environ.get("MFLAGS", "-j")
+THIRD_PARTY_SEQ_PROD_OBJ = os.environ.get("THIRD_PARTY_SEQ_PROD_OBJ", "")
 
 # Fuzzing environment variables
-LIB_FUZZING_ENGINE = os.environ.get('LIB_FUZZING_ENGINE', 'libregression.a')
-AFL_FUZZ = os.environ.get('AFL_FUZZ', 'afl-fuzz')
-DECODECORPUS = os.environ.get('DECODECORPUS',
-                              abs_join(FUZZ_DIR, '..', 'decodecorpus'))
-ZSTD = os.environ.get('ZSTD', abs_join(FUZZ_DIR, '..', '..', 'zstd'))
+LIB_FUZZING_ENGINE = os.environ.get("LIB_FUZZING_ENGINE", "libregression.a")
+AFL_FUZZ = os.environ.get("AFL_FUZZ", "afl-fuzz")
+DECODECORPUS = os.environ.get("DECODECORPUS", abs_join(FUZZ_DIR, "..", "decodecorpus"))
+ZSTD = os.environ.get("ZSTD", abs_join(FUZZ_DIR, "..", "..", "zstd"))
 
 # Sanitizer environment variables
-MSAN_EXTRA_CPPFLAGS = os.environ.get('MSAN_EXTRA_CPPFLAGS', '')
-MSAN_EXTRA_CFLAGS = os.environ.get('MSAN_EXTRA_CFLAGS', '')
-MSAN_EXTRA_CXXFLAGS = os.environ.get('MSAN_EXTRA_CXXFLAGS', '')
-MSAN_EXTRA_LDFLAGS = os.environ.get('MSAN_EXTRA_LDFLAGS', '')
+MSAN_EXTRA_CPPFLAGS = os.environ.get("MSAN_EXTRA_CPPFLAGS", "")
+MSAN_EXTRA_CFLAGS = os.environ.get("MSAN_EXTRA_CFLAGS", "")
+MSAN_EXTRA_CXXFLAGS = os.environ.get("MSAN_EXTRA_CXXFLAGS", "")
+MSAN_EXTRA_LDFLAGS = os.environ.get("MSAN_EXTRA_LDFLAGS", "")
 
 
 def create(r):
@@ -124,22 +123,23 @@ def parse_targets(in_targets):
     for target in in_targets:
         if not target:
             continue
-        if target == 'all':
+        if target == "all":
             targets = targets.union(TARGETS)
         elif target in TARGETS:
             targets.add(target)
         else:
-            raise RuntimeError('{} is not a valid target'.format(target))
+            raise RuntimeError(f"{target} is not a valid target")
     return list(targets)
 
 
 def targets_parser(args, description):
     parser = argparse.ArgumentParser(prog=args.pop(0), description=description)
     parser.add_argument(
-        'TARGET',
-        nargs='*',
+        "TARGET",
+        nargs="*",
         type=str,
-        help='Fuzz target(s) to build {{{}}}'.format(', '.join(ALL_TARGETS)))
+        help="Fuzz target(s) to build {{{}}}".format(", ".join(ALL_TARGETS)),
+    )
     args, extra = parser.parse_known_args(args)
     args.extra = extra
 
@@ -152,25 +152,24 @@ def parse_env_flags(args, flags):
     """
     Look for flags set by environment variables.
     """
-    san_flags = ','.join(re.findall('-fsanitize=((?:[a-z]+,?)+)', flags))
-    nosan_flags = ','.join(re.findall('-fno-sanitize=((?:[a-z]+,?)+)', flags))
+    san_flags = ",".join(re.findall("-fsanitize=((?:[a-z]+,?)+)", flags))
+    nosan_flags = ",".join(re.findall("-fno-sanitize=((?:[a-z]+,?)+)", flags))
 
     def set_sanitizer(sanitizer, default, san, nosan):
         if sanitizer in san and sanitizer in nosan:
-            raise RuntimeError('-fno-sanitize={s} and -fsanitize={s} passed'.
-                               format(s=sanitizer))
+            raise RuntimeError(f"-fno-sanitize={sanitizer} and -fsanitize={sanitizer} passed")
         if sanitizer in san:
             return True
         if sanitizer in nosan:
             return False
         return default
 
-    san = set(san_flags.split(','))
-    nosan = set(nosan_flags.split(','))
+    san = set(san_flags.split(","))
+    nosan = set(nosan_flags.split(","))
 
-    args.asan = set_sanitizer('address', args.asan, san, nosan)
-    args.msan = set_sanitizer('memory', args.msan, san, nosan)
-    args.ubsan = set_sanitizer('undefined', args.ubsan, san, nosan)
+    args.asan = set_sanitizer("address", args.asan, san, nosan)
+    args.msan = set_sanitizer("memory", args.msan, san, nosan)
+    args.ubsan = set_sanitizer("undefined", args.ubsan, san, nosan)
 
     args.sanitize = args.asan or args.msan or args.ubsan
 
@@ -186,15 +185,15 @@ def compiler_version(cc, cxx):
     cxx_version_bytes = subprocess.check_output([cxx, "--version"])
     compiler = None
     version = None
-    print("{} --version:\n{}".format(cc, cc_version_bytes.decode('ascii')))
-    if b'clang' in cc_version_bytes:
-        assert(b'clang' in cxx_version_bytes)
-        compiler = 'clang'
-    elif b'gcc' in cc_version_bytes or b'GCC' in cc_version_bytes:
-        assert(b'gcc' in cxx_version_bytes or b'g++' in cxx_version_bytes)
-        compiler = 'gcc'
+    print("{} --version:\n{}".format(cc, cc_version_bytes.decode("ascii")))
+    if b"clang" in cc_version_bytes:
+        assert b"clang" in cxx_version_bytes
+        compiler = "clang"
+    elif b"gcc" in cc_version_bytes or b"GCC" in cc_version_bytes:
+        assert b"gcc" in cxx_version_bytes or b"g++" in cxx_version_bytes
+        compiler = "gcc"
     if compiler is not None:
-        version_regex = b'([0-9]+)\.([0-9]+)\.([0-9]+)'
+        version_regex = rb"([0-9]+)\.([0-9]+)\.([0-9]+)"
         version_match = re.search(version_regex, cc_version_bytes)
         version = tuple(int(version_match.group(i)) for i in range(1, 4))
     return compiler, version
@@ -202,10 +201,10 @@ def compiler_version(cc, cxx):
 
 def overflow_ubsan_flags(cc, cxx):
     compiler, version = compiler_version(cc, cxx)
-    if compiler == 'gcc' and version < (8, 0, 0):
-        return ['-fno-sanitize=signed-integer-overflow']
-    if compiler == 'gcc' or (compiler == 'clang' and version >= (5, 0, 0)):
-        return ['-fno-sanitize=pointer-overflow']
+    if compiler == "gcc" and version < (8, 0, 0):
+        return ["-fno-sanitize=signed-integer-overflow"]
+    if compiler == "gcc" or (compiler == "clang" and version >= (5, 0, 0)):
+        return ["-fno-sanitize=pointer-overflow"]
     return []
 
 
@@ -223,170 +222,174 @@ def build_parser(args):
     """
     parser = argparse.ArgumentParser(prog=args.pop(0), description=description)
     parser.add_argument(
-        '--lib-fuzzing-engine',
-        dest='lib_fuzzing_engine',
+        "--lib-fuzzing-engine",
+        dest="lib_fuzzing_engine",
         type=str,
         default=LIB_FUZZING_ENGINE,
-        help=('The fuzzing engine to use e.g. /path/to/libFuzzer.a '
-              "(default: $LIB_FUZZING_ENGINE='{})".format(LIB_FUZZING_ENGINE)))
+        help=(
+            "The fuzzing engine to use e.g. /path/to/libFuzzer.a "
+            f"(default: $LIB_FUZZING_ENGINE='{LIB_FUZZING_ENGINE})"
+        ),
+    )
 
     fuzz_group = parser.add_mutually_exclusive_group()
     fuzz_group.add_argument(
-        '--enable-coverage',
-        dest='coverage',
-        action='store_true',
-        help='Enable coverage instrumentation (-fsanitize-coverage)')
+        "--enable-coverage",
+        dest="coverage",
+        action="store_true",
+        help="Enable coverage instrumentation (-fsanitize-coverage)",
+    )
     fuzz_group.add_argument(
-        '--enable-fuzzer',
-        dest='fuzzer',
-        action='store_true',
-        help=('Enable clang fuzzer (-fsanitize=fuzzer). When enabled '
-              'LIB_FUZZING_ENGINE is ignored')
+        "--enable-fuzzer",
+        dest="fuzzer",
+        action="store_true",
+        help=(
+            "Enable clang fuzzer (-fsanitize=fuzzer). When enabled LIB_FUZZING_ENGINE is ignored"
+        ),
     )
 
+    parser.add_argument("--enable-asan", dest="asan", action="store_true", help="Enable UBSAN")
+    parser.add_argument("--enable-ubsan", dest="ubsan", action="store_true", help="Enable UBSAN")
     parser.add_argument(
-        '--enable-asan', dest='asan', action='store_true', help='Enable UBSAN')
+        "--disable-ubsan-pointer-overflow",
+        dest="ubsan_pointer_overflow",
+        action="store_false",
+        help="Disable UBSAN pointer overflow check (known failure)",
+    )
+    parser.add_argument("--enable-msan", dest="msan", action="store_true", help="Enable MSAN")
     parser.add_argument(
-        '--enable-ubsan',
-        dest='ubsan',
-        action='store_true',
-        help='Enable UBSAN')
+        "--enable-msan-track-origins",
+        dest="msan_track_origins",
+        action="store_true",
+        help="Enable MSAN origin tracking",
+    )
     parser.add_argument(
-        '--disable-ubsan-pointer-overflow',
-        dest='ubsan_pointer_overflow',
-        action='store_false',
-        help='Disable UBSAN pointer overflow check (known failure)')
-    parser.add_argument(
-        '--enable-msan', dest='msan', action='store_true', help='Enable MSAN')
-    parser.add_argument(
-        '--enable-msan-track-origins', dest='msan_track_origins',
-        action='store_true', help='Enable MSAN origin tracking')
-    parser.add_argument(
-        '--msan-extra-cppflags',
-        dest='msan_extra_cppflags',
+        "--msan-extra-cppflags",
+        dest="msan_extra_cppflags",
         type=str,
         default=MSAN_EXTRA_CPPFLAGS,
-        help="Extra CPPFLAGS for MSAN (default: $MSAN_EXTRA_CPPFLAGS='{}')".
-        format(MSAN_EXTRA_CPPFLAGS))
+        help=f"Extra CPPFLAGS for MSAN (default: $MSAN_EXTRA_CPPFLAGS='{MSAN_EXTRA_CPPFLAGS}')",
+    )
     parser.add_argument(
-        '--msan-extra-cflags',
-        dest='msan_extra_cflags',
+        "--msan-extra-cflags",
+        dest="msan_extra_cflags",
         type=str,
         default=MSAN_EXTRA_CFLAGS,
-        help="Extra CFLAGS for MSAN (default: $MSAN_EXTRA_CFLAGS='{}')".format(
-            MSAN_EXTRA_CFLAGS))
+        help=f"Extra CFLAGS for MSAN (default: $MSAN_EXTRA_CFLAGS='{MSAN_EXTRA_CFLAGS}')",
+    )
     parser.add_argument(
-        '--msan-extra-cxxflags',
-        dest='msan_extra_cxxflags',
+        "--msan-extra-cxxflags",
+        dest="msan_extra_cxxflags",
         type=str,
         default=MSAN_EXTRA_CXXFLAGS,
-        help="Extra CXXFLAGS for MSAN (default: $MSAN_EXTRA_CXXFLAGS='{}')".
-        format(MSAN_EXTRA_CXXFLAGS))
+        help=f"Extra CXXFLAGS for MSAN (default: $MSAN_EXTRA_CXXFLAGS='{MSAN_EXTRA_CXXFLAGS}')",
+    )
     parser.add_argument(
-        '--msan-extra-ldflags',
-        dest='msan_extra_ldflags',
+        "--msan-extra-ldflags",
+        dest="msan_extra_ldflags",
         type=str,
         default=MSAN_EXTRA_LDFLAGS,
-        help="Extra LDFLAGS for MSAN (default: $MSAN_EXTRA_LDFLAGS='{}')".
-        format(MSAN_EXTRA_LDFLAGS))
+        help=f"Extra LDFLAGS for MSAN (default: $MSAN_EXTRA_LDFLAGS='{MSAN_EXTRA_LDFLAGS}')",
+    )
     parser.add_argument(
-        '--enable-sanitize-recover',
-        dest='sanitize_recover',
-        action='store_true',
-        help='Non-fatal sanitizer errors where possible')
+        "--enable-sanitize-recover",
+        dest="sanitize_recover",
+        action="store_true",
+        help="Non-fatal sanitizer errors where possible",
+    )
     parser.add_argument(
-        '--debug',
-        dest='debug',
-        type=int,
-        default=1,
-        help='Set DEBUGLEVEL (default: 1)')
+        "--debug", dest="debug", type=int, default=1, help="Set DEBUGLEVEL (default: 1)"
+    )
     parser.add_argument(
-        '--force-memory-access',
-        dest='memory_access',
+        "--force-memory-access",
+        dest="memory_access",
         type=int,
         default=0,
-        help='Set MEM_FORCE_MEMORY_ACCESS (default: 0)')
+        help="Set MEM_FORCE_MEMORY_ACCESS (default: 0)",
+    )
     parser.add_argument(
-        '--fuzz-rng-seed-size',
-        dest='fuzz_rng_seed_size',
+        "--fuzz-rng-seed-size",
+        dest="fuzz_rng_seed_size",
         type=int,
         default=4,
-        help='Set FUZZ_RNG_SEED_SIZE (default: 4)')
+        help="Set FUZZ_RNG_SEED_SIZE (default: 4)",
+    )
     parser.add_argument(
-        '--disable-fuzzing-mode',
-        dest='fuzzing_mode',
-        action='store_false',
-        help='Do not define FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION')
+        "--disable-fuzzing-mode",
+        dest="fuzzing_mode",
+        action="store_false",
+        help="Do not define FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION",
+    )
     parser.add_argument(
-        '--enable-stateful-fuzzing',
-        dest='stateful_fuzzing',
-        action='store_true',
-        help='Reuse contexts between runs (makes reproduction impossible)')
+        "--enable-stateful-fuzzing",
+        dest="stateful_fuzzing",
+        action="store_true",
+        help="Reuse contexts between runs (makes reproduction impossible)",
+    )
     parser.add_argument(
-        '--custom-seq-prod',
-        dest='third_party_seq_prod_obj',
+        "--custom-seq-prod",
+        dest="third_party_seq_prod_obj",
         type=str,
         default=THIRD_PARTY_SEQ_PROD_OBJ,
-        help='Path to an object file with symbols for fuzzing your sequence producer plugin.')
+        help="Path to an object file with symbols for fuzzing your sequence producer plugin.",
+    )
+    parser.add_argument("--cc", dest="cc", type=str, default=CC, help=f"CC (default: $CC='{CC}')")
     parser.add_argument(
-        '--cc',
-        dest='cc',
-        type=str,
-        default=CC,
-        help="CC (default: $CC='{}')".format(CC))
+        "--cxx", dest="cxx", type=str, default=CXX, help=f"CXX (default: $CXX='{CXX}')"
+    )
     parser.add_argument(
-        '--cxx',
-        dest='cxx',
-        type=str,
-        default=CXX,
-        help="CXX (default: $CXX='{}')".format(CXX))
-    parser.add_argument(
-        '--cppflags',
-        dest='cppflags',
+        "--cppflags",
+        dest="cppflags",
         type=str,
         default=CPPFLAGS,
-        help="CPPFLAGS (default: $CPPFLAGS='{}')".format(CPPFLAGS))
+        help=f"CPPFLAGS (default: $CPPFLAGS='{CPPFLAGS}')",
+    )
     parser.add_argument(
-        '--cflags',
-        dest='cflags',
+        "--cflags",
+        dest="cflags",
         type=str,
         default=CFLAGS,
-        help="CFLAGS (default: $CFLAGS='{}')".format(CFLAGS))
+        help=f"CFLAGS (default: $CFLAGS='{CFLAGS}')",
+    )
     parser.add_argument(
-        '--cxxflags',
-        dest='cxxflags',
+        "--cxxflags",
+        dest="cxxflags",
         type=str,
         default=CXXFLAGS,
-        help="CXXFLAGS (default: $CXXFLAGS='{}')".format(CXXFLAGS))
+        help=f"CXXFLAGS (default: $CXXFLAGS='{CXXFLAGS}')",
+    )
     parser.add_argument(
-        '--ldflags',
-        dest='ldflags',
+        "--ldflags",
+        dest="ldflags",
         type=str,
         default=LDFLAGS,
-        help="LDFLAGS (default: $LDFLAGS='{}')".format(LDFLAGS))
+        help=f"LDFLAGS (default: $LDFLAGS='{LDFLAGS}')",
+    )
     parser.add_argument(
-        '--mflags',
-        dest='mflags',
+        "--mflags",
+        dest="mflags",
         type=str,
         default=MFLAGS,
-        help="Extra Make flags (default: $MFLAGS='{}')".format(MFLAGS))
+        help=f"Extra Make flags (default: $MFLAGS='{MFLAGS}')",
+    )
     parser.add_argument(
-        'TARGET',
-        nargs='*',
+        "TARGET",
+        nargs="*",
         type=str,
-        help='Fuzz target(s) to build {{{}}}'.format(', '.join(ALL_TARGETS))
+        help="Fuzz target(s) to build {{{}}}".format(", ".join(ALL_TARGETS)),
     )
     args = parser.parse_args(args)
-    args = parse_env_flags(args, ' '.join(
-        [args.cppflags, args.cflags, args.cxxflags, args.ldflags]))
+    args = parse_env_flags(
+        args, " ".join([args.cppflags, args.cflags, args.cxxflags, args.ldflags])
+    )
 
     # Check option sanity
     if args.msan and (args.asan or args.ubsan):
-        raise RuntimeError('MSAN may not be used with any other sanitizers')
+        raise RuntimeError("MSAN may not be used with any other sanitizers")
     if args.msan_track_origins and not args.msan:
-        raise RuntimeError('--enable-msan-track-origins requires MSAN')
+        raise RuntimeError("--enable-msan-track-origins requires MSAN")
     if args.sanitize_recover and not args.sanitize:
-        raise RuntimeError('--enable-sanitize-recover but no sanitizers used')
+        raise RuntimeError("--enable-sanitize-recover but no sanitizers used")
 
     return args
 
@@ -408,40 +411,38 @@ def build(args):
     mflags = shlex.split(args.mflags)
     # Flags to be added to both cflags and cxxflags
     common_flags = [
-        '-Wno-error=declaration-after-statement',
-        '-Wno-error=c++-compat',
-        '-Wno-error=deprecated' # C files are sometimes compiled with CXX
+        "-Wno-error=declaration-after-statement",
+        "-Wno-error=c++-compat",
+        "-Wno-error=deprecated",  # C files are sometimes compiled with CXX
     ]
 
     cppflags += [
-        '-DDEBUGLEVEL={}'.format(args.debug),
-        '-DMEM_FORCE_MEMORY_ACCESS={}'.format(args.memory_access),
-        '-DFUZZ_RNG_SEED_SIZE={}'.format(args.fuzz_rng_seed_size),
+        f"-DDEBUGLEVEL={args.debug}",
+        f"-DMEM_FORCE_MEMORY_ACCESS={args.memory_access}",
+        f"-DFUZZ_RNG_SEED_SIZE={args.fuzz_rng_seed_size}",
     ]
 
     # Set flags for options
     assert not (args.fuzzer and args.coverage)
     if args.coverage:
-        common_flags += [
-            '-fsanitize-coverage=trace-pc-guard,indirect-calls,trace-cmp'
-        ]
+        common_flags += ["-fsanitize-coverage=trace-pc-guard,indirect-calls,trace-cmp"]
     if args.fuzzer:
-        common_flags += ['-fsanitize=fuzzer']
-        args.lib_fuzzing_engine = ''
+        common_flags += ["-fsanitize=fuzzer"]
+        args.lib_fuzzing_engine = ""
 
-    mflags += ['LIB_FUZZING_ENGINE={}'.format(args.lib_fuzzing_engine)]
+    mflags += [f"LIB_FUZZING_ENGINE={args.lib_fuzzing_engine}"]
 
     if args.sanitize_recover:
-        recover_flags = ['-fsanitize-recover=all']
+        recover_flags = ["-fsanitize-recover=all"]
     else:
-        recover_flags = ['-fno-sanitize-recover=all']
+        recover_flags = ["-fno-sanitize-recover=all"]
     if args.sanitize:
         common_flags += recover_flags
 
     if args.msan:
-        msan_flags = ['-fsanitize=memory']
+        msan_flags = ["-fsanitize=memory"]
         if args.msan_track_origins:
-            msan_flags += ['-fsanitize-memory-track-origins']
+            msan_flags += ["-fsanitize-memory-track-origins"]
         common_flags += msan_flags
         # Append extra MSAN flags (it might require special setup)
         cppflags += [args.msan_extra_cppflags]
@@ -450,41 +451,41 @@ def build(args):
         ldflags += [args.msan_extra_ldflags]
 
     if args.asan:
-        common_flags += ['-fsanitize=address']
+        common_flags += ["-fsanitize=address"]
 
     if args.ubsan:
-        ubsan_flags = ['-fsanitize=undefined']
+        ubsan_flags = ["-fsanitize=undefined"]
         if not args.ubsan_pointer_overflow:
             ubsan_flags += overflow_ubsan_flags(cc, cxx)
         common_flags += ubsan_flags
 
     if args.stateful_fuzzing:
-        cppflags += ['-DSTATEFUL_FUZZING']
+        cppflags += ["-DSTATEFUL_FUZZING"]
 
     if args.third_party_seq_prod_obj:
-        cppflags += ['-DFUZZ_THIRD_PARTY_SEQ_PROD']
-        mflags += ['THIRD_PARTY_SEQ_PROD_OBJ={}'.format(args.third_party_seq_prod_obj)]
+        cppflags += ["-DFUZZ_THIRD_PARTY_SEQ_PROD"]
+        mflags += [f"THIRD_PARTY_SEQ_PROD_OBJ={args.third_party_seq_prod_obj}"]
 
     if args.fuzzing_mode:
-        cppflags += ['-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION']
+        cppflags += ["-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"]
 
-    if args.lib_fuzzing_engine == 'libregression.a':
-        targets = ['libregression.a'] + targets
+    if args.lib_fuzzing_engine == "libregression.a":
+        targets = ["libregression.a"] + targets
 
     # Append the common flags
     cflags += common_flags
     cxxflags += common_flags
 
     # Prepare the flags for Make
-    cc_str = "CC={}".format(cc)
-    cxx_str = "CXX={}".format(cxx)
-    cppflags_str = "CPPFLAGS={}".format(' '.join(cppflags))
-    cflags_str = "CFLAGS={}".format(' '.join(cflags))
-    cxxflags_str = "CXXFLAGS={}".format(' '.join(cxxflags))
-    ldflags_str = "LDFLAGS={}".format(' '.join(ldflags))
+    cc_str = f"CC={cc}"
+    cxx_str = f"CXX={cxx}"
+    cppflags_str = "CPPFLAGS={}".format(" ".join(cppflags))
+    cflags_str = "CFLAGS={}".format(" ".join(cflags))
+    cxxflags_str = "CXXFLAGS={}".format(" ".join(cxxflags))
+    ldflags_str = "LDFLAGS={}".format(" ".join(ldflags))
 
     # Print the flags
-    print('MFLAGS={}'.format(' '.join(mflags)))
+    print("MFLAGS={}".format(" ".join(mflags)))
     print(cc_str)
     print(cxx_str)
     print(cppflags_str)
@@ -493,20 +494,24 @@ def build(args):
     print(ldflags_str)
 
     # Clean and build
-    clean_cmd = ['make', 'clean'] + mflags
-    print(' '.join(clean_cmd))
+    clean_cmd = ["make", "clean"] + mflags
+    print(" ".join(clean_cmd))
     subprocess.check_call(clean_cmd)
-    build_cmd = [
-        'make',
-        '-j',
-        cc_str,
-        cxx_str,
-        cppflags_str,
-        cflags_str,
-        cxxflags_str,
-        ldflags_str,
-    ] + mflags + targets
-    print(' '.join(build_cmd))
+    build_cmd = (
+        [
+            "make",
+            "-j",
+            cc_str,
+            cxx_str,
+            cppflags_str,
+            cflags_str,
+            cxxflags_str,
+            ldflags_str,
+        ]
+        + mflags
+        + targets
+    )
+    print(" ".join(build_cmd))
     subprocess.check_call(build_cmd)
     return 0
 
@@ -524,29 +529,34 @@ def libfuzzer_parser(args):
     """
     parser = argparse.ArgumentParser(prog=args.pop(0), description=description)
     parser.add_argument(
-        '--corpora',
+        "--corpora",
         type=str,
-        help='Override the default corpora dir (default: {})'.format(
-            abs_join(CORPORA_DIR, 'TARGET')))
+        help="Override the default corpora dir (default: {})".format(
+            abs_join(CORPORA_DIR, "TARGET")
+        ),
+    )
     parser.add_argument(
-        '--artifact',
+        "--artifact",
         type=str,
-        help='Override the default artifact dir (default: {})'.format(
-            abs_join(CORPORA_DIR, 'TARGET-crash')))
+        help="Override the default artifact dir (default: {})".format(
+            abs_join(CORPORA_DIR, "TARGET-crash")
+        ),
+    )
     parser.add_argument(
-        '--seed',
+        "--seed",
         type=str,
-        help='Override the default seed dir (default: {})'.format(
-            abs_join(CORPORA_DIR, 'TARGET-seed')))
+        help="Override the default seed dir (default: {})".format(
+            abs_join(CORPORA_DIR, "TARGET-seed")
+        ),
+    )
     parser.add_argument(
-        'TARGET',
-        type=str,
-        help='Fuzz target(s) to build {{{}}}'.format(', '.join(TARGETS)))
+        "TARGET", type=str, help="Fuzz target(s) to build {{{}}}".format(", ".join(TARGETS))
+    )
     args, extra = parser.parse_known_args(args)
     args.extra = extra
 
     if args.TARGET and args.TARGET not in TARGETS:
-        raise RuntimeError('{} is not a valid target'.format(args.TARGET))
+        raise RuntimeError(f"{args.TARGET} is not a valid target")
 
     return args
 
@@ -555,9 +565,9 @@ def libfuzzer(target, corpora=None, artifact=None, seed=None, extra_args=None):
     if corpora is None:
         corpora = abs_join(CORPORA_DIR, target)
     if artifact is None:
-        artifact = abs_join(CORPORA_DIR, '{}-crash'.format(target))
+        artifact = abs_join(CORPORA_DIR, f"{target}-crash")
     if seed is None:
-        seed = abs_join(CORPORA_DIR, '{}-seed'.format(target))
+        seed = abs_join(CORPORA_DIR, f"{target}-seed")
     if extra_args is None:
         extra_args = []
 
@@ -571,9 +581,9 @@ def libfuzzer(target, corpora=None, artifact=None, seed=None, extra_args=None):
     if seed is not None:
         corpora += [seed]
 
-    cmd = [target, '-artifact_prefix={}/'.format(artifact)]
+    cmd = [target, f"-artifact_prefix={artifact}/"]
     cmd += corpora + extra_args
-    print(' '.join(cmd))
+    print(" ".join(cmd))
     subprocess.check_call(cmd)
 
 
@@ -598,34 +608,35 @@ def afl_parser(args):
     """
     parser = argparse.ArgumentParser(prog=args.pop(0), description=description)
     parser.add_argument(
-        '--corpora',
+        "--corpora",
         type=str,
-        help='Override the default corpora dir (default: {})'.format(
-            abs_join(CORPORA_DIR, 'TARGET')))
+        help="Override the default corpora dir (default: {})".format(
+            abs_join(CORPORA_DIR, "TARGET")
+        ),
+    )
     parser.add_argument(
-        '--output',
+        "--output",
         type=str,
-        help='Override the default AFL output dir (default: {})'.format(
-            abs_join(CORPORA_DIR, 'TARGET-afl')))
+        help="Override the default AFL output dir (default: {})".format(
+            abs_join(CORPORA_DIR, "TARGET-afl")
+        ),
+    )
     parser.add_argument(
-        '--afl-fuzz',
-        type=str,
-        default=AFL_FUZZ,
-        help='AFL_FUZZ (default: $AFL_FUZZ={})'.format(AFL_FUZZ))
+        "--afl-fuzz", type=str, default=AFL_FUZZ, help=f"AFL_FUZZ (default: $AFL_FUZZ={AFL_FUZZ})"
+    )
     parser.add_argument(
-        'TARGET',
-        type=str,
-        help='Fuzz target(s) to build {{{}}}'.format(', '.join(TARGETS)))
+        "TARGET", type=str, help="Fuzz target(s) to build {{{}}}".format(", ".join(TARGETS))
+    )
     args, extra = parser.parse_known_args(args)
     args.extra = extra
 
     if args.TARGET and args.TARGET not in TARGETS:
-        raise RuntimeError('{} is not a valid target'.format(args.TARGET))
+        raise RuntimeError(f"{args.TARGET} is not a valid target")
 
     if not args.corpora:
         args.corpora = abs_join(CORPORA_DIR, args.TARGET)
     if not args.output:
-        args.output = abs_join(CORPORA_DIR, '{}-afl'.format(args.TARGET))
+        args.output = abs_join(CORPORA_DIR, f"{args.TARGET}-afl")
 
     return args
 
@@ -641,9 +652,9 @@ def afl(args):
     corpora = create(args.corpora)
     output = create(args.output)
 
-    cmd = [args.afl_fuzz, '-i', corpora, '-o', output] + args.extra
-    cmd += [target, '@@']
-    print(' '.join(cmd))
+    cmd = [args.afl_fuzz, "-i", corpora, "-o", output] + args.extra
+    cmd += [target, "@@"]
+    print(" ".join(cmd))
     subprocess.call(cmd)
     return 0
 
@@ -664,7 +675,7 @@ def regression(args):
         corpora = create(abs_join(CORPORA_DIR, target))
         target = abs_join(FUZZ_DIR, target)
         cmd = [target, corpora]
-        print(' '.join(cmd))
+        print(" ".join(cmd))
         subprocess.check_call(cmd)
     return 0
 
@@ -681,54 +692,51 @@ def gen_parser(args):
     """
     parser = argparse.ArgumentParser(prog=args.pop(0), description=description)
     parser.add_argument(
-        '--number',
-        '-n',
-        type=int,
-        default=100,
-        help='Number of samples to generate')
-    parser.add_argument(
-        '--max-size-log',
-        type=int,
-        default=18,
-        help='Maximum sample size to generate')
-    parser.add_argument(
-        '--seed',
-        type=str,
-        help='Override the default seed dir (default: {})'.format(
-            abs_join(CORPORA_DIR, 'TARGET-seed')))
-    parser.add_argument(
-        '--decodecorpus',
-        type=str,
-        default=DECODECORPUS,
-        help="decodecorpus binary (default: $DECODECORPUS='{}')".format(
-            DECODECORPUS))
-    parser.add_argument(
-        '--zstd',
-        type=str,
-        default=ZSTD,
-        help="zstd binary (default: $ZSTD='{}')".format(ZSTD))
-    parser.add_argument(
-        '--fuzz-rng-seed-size',
-        type=int,
-        default=4,
-        help="FUZZ_RNG_SEED_SIZE used for generate the samples (must match)"
+        "--number", "-n", type=int, default=100, help="Number of samples to generate"
     )
     parser.add_argument(
-        'TARGET',
+        "--max-size-log", type=int, default=18, help="Maximum sample size to generate"
+    )
+    parser.add_argument(
+        "--seed",
         type=str,
-        help='Fuzz target(s) to build {{{}}}'.format(', '.join(TARGETS)))
+        help="Override the default seed dir (default: {})".format(
+            abs_join(CORPORA_DIR, "TARGET-seed")
+        ),
+    )
+    parser.add_argument(
+        "--decodecorpus",
+        type=str,
+        default=DECODECORPUS,
+        help=f"decodecorpus binary (default: $DECODECORPUS='{DECODECORPUS}')",
+    )
+    parser.add_argument(
+        "--zstd", type=str, default=ZSTD, help=f"zstd binary (default: $ZSTD='{ZSTD}')"
+    )
+    parser.add_argument(
+        "--fuzz-rng-seed-size",
+        type=int,
+        default=4,
+        help="FUZZ_RNG_SEED_SIZE used for generate the samples (must match)",
+    )
+    parser.add_argument(
+        "TARGET", type=str, help="Fuzz target(s) to build {{{}}}".format(", ".join(TARGETS))
+    )
     args, extra = parser.parse_known_args(args)
     args.extra = extra
 
     if args.TARGET and args.TARGET not in TARGETS:
-        raise RuntimeError('{} is not a valid target'.format(args.TARGET))
+        raise RuntimeError(f"{args.TARGET} is not a valid target")
 
     if not args.seed:
-        args.seed = abs_join(CORPORA_DIR, '{}-seed'.format(args.TARGET))
+        args.seed = abs_join(CORPORA_DIR, f"{args.TARGET}-seed")
 
     if not os.path.isfile(args.decodecorpus):
-        raise RuntimeError("{} is not a file run 'make -C {} decodecorpus'".
-                           format(args.decodecorpus, abs_join(FUZZ_DIR, '..')))
+        raise RuntimeError(
+            "{} is not a file run 'make -C {} decodecorpus'".format(
+                args.decodecorpus, abs_join(FUZZ_DIR, "..")
+            )
+        )
 
     return args
 
@@ -750,31 +758,28 @@ def gen(args):
             number = args.number
         cmd = [
             args.decodecorpus,
-            '-n{}'.format(args.number),
-            '-p{}/'.format(compressed),
-            '-o{}'.format(decompressed),
+            f"-n{args.number}",
+            f"-p{compressed}/",
+            f"-o{decompressed}",
         ]
 
         if info.frame_type == FrameType.BLOCK:
-            cmd += [
-                '--gen-blocks',
-                '--max-block-size-log={}'.format(min(args.max_size_log, 17))
-            ]
+            cmd += ["--gen-blocks", f"--max-block-size-log={min(args.max_size_log, 17)}"]
         else:
-            cmd += ['--max-content-size-log={}'.format(args.max_size_log)]
+            cmd += [f"--max-content-size-log={args.max_size_log}"]
 
-        print(' '.join(cmd))
+        print(" ".join(cmd))
         subprocess.check_call(cmd)
 
         if info.input_type == InputType.RAW_DATA:
-            print('using decompressed data in {}'.format(decompressed))
+            print(f"using decompressed data in {decompressed}")
             samples = decompressed
         elif info.input_type == InputType.COMPRESSED_DATA:
-            print('using compressed data in {}'.format(compressed))
+            print(f"using compressed data in {compressed}")
             samples = compressed
         else:
             assert info.input_type == InputType.DICTIONARY_DATA
-            print('making dictionary data from {}'.format(decompressed))
+            print(f"making dictionary data from {decompressed}")
             samples = dict
             min_dict_size_log = 9
             max_dict_size_log = max(min_dict_size_log + 1, args.max_size_log)
@@ -782,20 +787,22 @@ def gen(args):
                 dict_size = 1 << dict_size_log
                 cmd = [
                     args.zstd,
-                    '--train',
-                    '-r', decompressed,
-                    '--maxdict={}'.format(dict_size),
-                    '-o', abs_join(dict, '{}.zstd-dict'.format(dict_size))
+                    "--train",
+                    "-r",
+                    decompressed,
+                    f"--maxdict={dict_size}",
+                    "-o",
+                    abs_join(dict, f"{dict_size}.zstd-dict"),
                 ]
-                print(' '.join(cmd))
+                print(" ".join(cmd))
                 subprocess.check_call(cmd)
 
         # Copy the samples over and prepend the RNG seeds
         for name in os.listdir(samples):
             samplename = abs_join(samples, name)
             outname = abs_join(seed, name)
-            with open(samplename, 'rb') as sample:
-                with open(outname, 'wb') as out:
+            with open(samplename, "rb") as sample:
+                with open(outname, "wb") as out:
                     CHUNK_SIZE = 131072
                     chunk = sample.read(CHUNK_SIZE)
                     while len(chunk) > 0:
@@ -818,12 +825,12 @@ def minimize(args):
     for target in args.TARGET:
         # Merge the corpus + anything else into the seed_corpus
         corpus = abs_join(CORPORA_DIR, target)
-        seed_corpus = abs_join(CORPORA_DIR, "{}_seed_corpus".format(target))
+        seed_corpus = abs_join(CORPORA_DIR, f"{target}_seed_corpus")
         extra_args = [corpus, "-merge=1"] + args.extra
         libfuzzer(target, corpora=seed_corpus, extra_args=extra_args)
         seeds = set(os.listdir(seed_corpus))
         # Copy all crashes directly into the seed_corpus if not already present
-        crashes = abs_join(CORPORA_DIR, '{}-crash'.format(target))
+        crashes = abs_join(CORPORA_DIR, f"{target}-crash")
         for crash in os.listdir(crashes):
             if crash not in seeds:
                 shutil.copy(abs_join(crashes, crash), seed_corpus)
@@ -842,10 +849,10 @@ def zip_cmd(args):
 
     for target in args.TARGET:
         # Zip the seed_corpus
-        seed_corpus = abs_join(CORPORA_DIR, "{}_seed_corpus".format(target))
-        zip_file = "{}.zip".format(seed_corpus)
+        seed_corpus = abs_join(CORPORA_DIR, f"{target}_seed_corpus")
+        zip_file = f"{seed_corpus}.zip"
         cmd = ["zip", "-r", "-q", "-j", "-9", zip_file, "."]
-        print(' '.join(cmd))
+        print(" ".join(cmd))
         subprocess.check_call(cmd, cwd=seed_corpus)
 
 
@@ -855,7 +862,7 @@ def list_cmd(args):
 
 def short_help(args):
     name = args[0]
-    print("Usage: {} [OPTIONS] COMMAND [ARGS]...\n".format(name))
+    print(f"Usage: {name} [OPTIONS] COMMAND [ARGS]...\n")
 
 
 def help(args):
@@ -880,11 +887,11 @@ def main():
     if len(args) < 2:
         help(args)
         return 1
-    if args[1] == '-h' or args[1] == '--help' or args[1] == '-H':
+    if args[1] == "-h" or args[1] == "--help" or args[1] == "-H":
         help(args)
         return 1
     command = args.pop(1)
-    args[0] = "{} {}".format(args[0], command)
+    args[0] = f"{args[0]} {command}"
     if command == "build":
         return build(args)
     if command == "libfuzzer":
@@ -902,7 +909,7 @@ def main():
     if command == "list":
         return list_cmd(args)
     short_help(args)
-    print("Error: No such command {} (pass -h for help)".format(command))
+    print(f"Error: No such command {command} (pass -h for help)")
     return 1
 
 

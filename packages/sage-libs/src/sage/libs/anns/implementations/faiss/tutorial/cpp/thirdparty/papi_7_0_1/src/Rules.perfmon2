@@ -21,7 +21,7 @@ endif
 endif
 
 MISCHDRS += linux-lock.h mb.h papi_libpfm_events.h
-MISCSRCS += papi_libpfm3_events.c 
+MISCSRCS += papi_libpfm3_events.c
 SHLIBDEPS = -Bdynamic -L$(PFM_LIB_PATH) -lpfm
 PFM_OBJS=$(shell $(AR) t $(PFM_LIB_PATH)/libpfm.a 2>/dev/null)
 MISCOBJS = $(PFM_OBJS) $(MISCSRCS:.c=.o)

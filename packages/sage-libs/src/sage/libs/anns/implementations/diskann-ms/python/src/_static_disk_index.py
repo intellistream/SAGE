@@ -71,7 +71,7 @@ class StaticDiskIndex:
             vector_dtype,
             distance_metric,
             1,  # it doesn't matter because we don't need it in this context anyway
-            dimensions
+            dimensions,
         )
         dap_metric = _valid_metric(metric)
 
@@ -122,7 +122,7 @@ class StaticDiskIndex:
         _query = _castable_dtype_or_raise(
             query,
             expected=self._vector_dtype,
-            message=f"DiskIndex expected a query vector of dtype of {self._vector_dtype}"
+            message=f"DiskIndex expected a query vector of dtype of {self._vector_dtype}",
         )
         _assert(len(_query.shape) == 1, "query vector must be 1-d")
         _assert_is_positive_uint32(k_neighbors, "k_neighbors")
@@ -183,7 +183,7 @@ class StaticDiskIndex:
         _queries = _castable_dtype_or_raise(
             queries,
             expected=self._vector_dtype,
-            message=f"DiskIndex expected a query vector of dtype of {self._vector_dtype}"
+            message=f"DiskIndex expected a query vector of dtype of {self._vector_dtype}",
         )
         _assert_2d(_queries, "queries")
         _assert_is_positive_uint32(k_neighbors, "k_neighbors")

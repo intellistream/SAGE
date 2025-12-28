@@ -1,11 +1,11 @@
 // Copyright (c) 2010 baidu-rpc authors.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,7 +52,7 @@ inline void timespec_add(timespec *tm, const timespec& span) {
     timespec_normalize(tm);
 }
 
-// Minus timespec |span| from timespec |*tm|. 
+// Minus timespec |span| from timespec |*tm|.
 // tm->tv_nsec will be inside [0, 1,000,000,000)
 inline void timespec_minus(timespec *tm, const timespec& span) {
     tm->tv_sec -= span.tv_sec;
@@ -150,7 +150,7 @@ inline timespec seconds_to_timespec(int64_t s) {
 }
 
 // ---------------------------------------------------------------------
-// Convert timeval to and from a single integer.                                             
+// Convert timeval to and from a single integer.
 // For conversions between timespec and timeval, use TIMEVAL_TO_TIMESPEC
 // and TIMESPEC_TO_TIMEVAL defined in <sys/time.h>
 // ---------------------------------------------------------------------
@@ -186,12 +186,12 @@ inline timeval seconds_to_timeval(int64_t s) {
 // ---------------------------------------------------------------
 extern int64_t monotonic_time_ns();
 
-inline int64_t monotonic_time_us() { 
-    return monotonic_time_ns() / 1000L; 
+inline int64_t monotonic_time_us() {
+    return monotonic_time_ns() / 1000L;
 }
 
 inline int64_t monotonic_time_ms() {
-    return monotonic_time_ns() / 1000000L; 
+    return monotonic_time_ns() / 1000000L;
 }
 
 inline int64_t monotonic_time_s() {
@@ -251,7 +251,7 @@ inline int64_t cpuwide_time_ns() {
     } else if (!detail::invariant_cpu_freq) {
         // Lack of necessary features, return system-wide monotonic time instead.
         return monotonic_time_ns();
-    } 
+    }
     else {
         // Use a thread-unsafe method(OK to us) to initialize the freq
         // to save a "if" test comparing to using a local static variable
@@ -265,7 +265,7 @@ inline int64_t cpuwide_time_us() {
     return cpuwide_time_ns() / 1000L;
 }
 
-inline int64_t cpuwide_time_ms() { 
+inline int64_t cpuwide_time_ms() {
     return cpuwide_time_ns() / 1000000L;
 }
 
@@ -274,8 +274,8 @@ inline int64_t cpuwide_time_s() {
 }
 
 // --------------------------------------------------------------------
-// Get elapse since the Epoch.                                          
-// No gettimeofday_ns() because resolution of timeval is microseconds.  
+// Get elapse since the Epoch.
+// No gettimeofday_ns() because resolution of timeval is microseconds.
 // Cost ~40ns on 2.6.32_1-12-0-0, Intel(R) Xeon(R) CPU E5620 @ 2.40GHz
 // --------------------------------------------------------------------
 inline int64_t gettimeofday_us() {
@@ -308,7 +308,7 @@ public:
     explicit EveryManyUS(int64_t interval_us)
         : _last_time_us(cpuwide_time_us())
         , _interval_us(interval_us) {}
-    
+
     operator bool() {
         const int64_t now_us = cpuwide_time_us();
         if (now_us < _last_time_us + _interval_us) {
@@ -343,7 +343,7 @@ public:
         _start = cpuwide_time_ns();
         _stop = _start;
     }
-    
+
     // Stop this timer
     void stop() {
         _stop = cpuwide_time_ns();
@@ -359,7 +359,7 @@ public:
     double u_elapsed(double) const { return (double)n_elapsed() / 1000.0; }
     double m_elapsed(double) const { return (double)u_elapsed() / 1000.0; }
     double s_elapsed(double) const { return (double)m_elapsed() / 1000.0; }
-    
+
 private:
     int64_t _stop;
     int64_t _start;

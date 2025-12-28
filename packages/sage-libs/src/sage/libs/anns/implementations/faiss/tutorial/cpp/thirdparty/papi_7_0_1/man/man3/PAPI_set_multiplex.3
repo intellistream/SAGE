@@ -2,20 +2,20 @@
 .ad l
 .nh
 .SH NAME
-PAPI_set_multiplex \- 
+PAPI_set_multiplex \-
 .PP
-Convert a standard event set to a multiplexed event set\&.  
+Convert a standard event set to a multiplexed event set\&.
 
 .SH SYNOPSIS
 .br
 .PP
 .SH "Detailed Description"
-.PP 
+.PP
 
 .PP
 \fBC Interface:\fP
 .RS 4
-#include <\fBpapi\&.h\fP> 
+#include <\fBpapi\&.h\fP>
 .br
  int \fBPAPI_set_multiplex( int  EventSet )\fP;
 .RE
@@ -27,15 +27,15 @@ Convert a standard event set to a multiplexed event set\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIPAPI_OK\fP 
+\fIPAPI_OK\fP
 .br
-\fIPAPI_EINVAL\fP -- One or more of the arguments is invalid, or the EventSet is already multiplexed\&. 
+\fIPAPI_EINVAL\fP -- One or more of the arguments is invalid, or the EventSet is already multiplexed\&.
 .br
-\fIPAPI_ENOCMP\fP -- The EventSet specified is not yet bound to a component\&. 
+\fIPAPI_ENOCMP\fP -- The EventSet specified is not yet bound to a component\&.
 .br
-\fIPAPI_ENOEVST\fP -- The EventSet specified does not exist\&. 
+\fIPAPI_ENOEVST\fP -- The EventSet specified does not exist\&.
 .br
-\fIPAPI_EISRUN\fP -- The EventSet is currently counting events\&. 
+\fIPAPI_EISRUN\fP -- The EventSet is currently counting events\&.
 .br
 \fIPAPI_ENOMEM\fP -- Insufficient memory to complete the operation\&.
 .RE
@@ -56,7 +56,7 @@ Multiplexing can't be enabled until PAPI knows which component is targeted\&. Du
 .nf
 int EventSet = PAPI_NULL;
 int ret;
- 
+
 // Create an empty EventSet
 ret = PAPI_create_eventset(&EventSet);
 if (ret != PAPI_OK) handle_error(ret);
@@ -83,17 +83,17 @@ else if (ret != PAPI_OK) handle_error(ret);
 .PP
 \fBSee Also:\fP
 .RS 4
-\fBPAPI_multiplex_init\fP 
+\fBPAPI_multiplex_init\fP
 .PP
-\fBPAPI_get_multiplex\fP 
+\fBPAPI_get_multiplex\fP
 .PP
-\fBPAPI_set_opt\fP 
+\fBPAPI_set_opt\fP
 .PP
-\fBPAPI_create_eventset\fP 
+\fBPAPI_create_eventset\fP
 .RE
 .PP
 
 
 .SH "Author"
-.PP 
+.PP
 Generated automatically by Doxygen for PAPI from the source code\&.

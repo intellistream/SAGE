@@ -3895,4 +3895,3 @@ static const pme_power_entry_t power6_pe[] = {
 	}
 };
 #endif
-

@@ -15,10 +15,10 @@ from ._common import (
     VectorIdentifierBatch,
     VectorLike,
     VectorLikeBatch,
-    valid_dtype
+    valid_dtype,
 )
 from ._diskannpy import defaults
 from ._dynamic_memory_index import DynamicMemoryIndex
-from ._files import vectors_from_binary, vector_file_metadata
+from ._files import vector_file_metadata, vectors_from_binary
 from ._static_disk_index import StaticDiskIndex
 from ._static_memory_index import StaticMemoryIndex

@@ -39,7 +39,7 @@ namespace SPTAG {
                     std::chrono::steady_clock::time_point time_end = std::chrono::steady_clock::now();
                     return getSecInterval(time_begin, time_end);
                 }
-                    
+
                 double getElapsedMin() {
                     std::chrono::steady_clock::time_point time_end = std::chrono::steady_clock::now();
                     return getMinInterval(time_begin, time_end);

@@ -19,7 +19,7 @@
 #define FAST_RDPMC (1 << 31)
 
 #ifndef CONFIG_SMP
-/* Assert that CONFIG_SMP is set before including asm/atomic.h to 
+/* Assert that CONFIG_SMP is set before including asm/atomic.h to
  * get bus-locking atomic_* operations when building on UP kernels */
 #define CONFIG_SMP
 #endif
@@ -71,22 +71,22 @@
 
 typedef struct X86_register
 {
-	unsigned int selector;			   // mask for which counters in use 
-	int counter_cmd;				   // event code 
+	unsigned int selector;			   // mask for which counters in use
+	int counter_cmd;				   // event code
   /******************   P4 elements   *******************/
 	unsigned counter[2];			   // bitmap of valid counters for each escr
 	unsigned escr[2];				   // bit offset for each of 2 valid escrs
 	unsigned cccr;					   // value to be loaded into cccr register
 	unsigned event;					   // value defining event to be loaded into escr register
 	unsigned pebs_enable;			   // flag for PEBS counting
-	unsigned pebs_matrix_vert;		   // flag for PEBS_MATRIX_VERT 
+	unsigned pebs_matrix_vert;		   // flag for PEBS_MATRIX_VERT
 	unsigned ireset;
 } X86_register_t;
 
 typedef struct X86_reg_alloc
 {
-	X86_register_t ra_bits;			   // info about this native event mapping 
-	unsigned ra_selector;			   // bit mask showing which counters can carry this metric 
+	X86_register_t ra_bits;			   // info about this native event mapping
+	unsigned ra_selector;			   // bit mask showing which counters can carry this metric
 	unsigned ra_rank;				   // how many counters can carry this metric
   /***************  P4 specific element ****************/
 	unsigned ra_escr[2];			   // bit field array showing which esc registers can carry this metric
@@ -94,10 +94,10 @@ typedef struct X86_reg_alloc
 
 typedef struct hwd_native
 {
-	int index;						   // index in the native table, required    
-	unsigned int selector;			   // which counters     
-	unsigned char rank;				   // rank determines how many counters carry each metric 
-	int position;					   // which counter this native event stays 
+	int index;						   // index in the native table, required
+	unsigned int selector;			   // which counters
+	unsigned char rank;				   // rank determines how many counters carry each metric
+	int position;					   // which counter this native event stays
 	int mod;
 	int link;
 } hwd_native_t;
@@ -119,7 +119,7 @@ typedef struct X86_perfctr_context
         int stat_fd;
 } X86_perfctr_context_t;
 
-/* Override void* definitions from PAPI framework layer 
+/* Override void* definitions from PAPI framework layer
    with typedefs to conform to PAPI component layer code. */
 #undef  hwd_reg_alloc_t
 typedef X86_reg_alloc_t hwd_reg_alloc_t;
@@ -133,8 +133,8 @@ typedef X86_perfctr_context_t hwd_context_t;
 typedef struct native_event_entry
 {
 	char name[PAPI_MAX_STR_LEN];	   // name of this event
-	char *description;				   // description of this event     
-	X86_register_t resources;		   // resources required by this native event 
+	char *description;				   // description of this event
+	X86_register_t resources;		   // resources required by this native event
 } native_event_entry_t;
 
 typedef pfmlib_event_t pfm_register_t;

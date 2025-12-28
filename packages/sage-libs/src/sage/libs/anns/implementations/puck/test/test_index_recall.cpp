@@ -93,4 +93,3 @@ TEST(IndexTest, TinkerIndex) {
     float recall_rate = index.cmp_search_recall();
     EXPECT_GT(recall_rate, FLAGS_base_recall_acc);
 }
-

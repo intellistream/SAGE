@@ -1,13 +1,13 @@
 #ifndef PPC64_EVENTS_H_
 #define PPC64_EVENTS_H_
-/* 
+/*
 * File:    ppc64_events.h
-* CVS:     
+* CVS:
 * Author:  Maynard Johnson
 *          maynardj@us.ibm.com
 * Mods:    <your name here>
 *          <your email address>
-*          
+*
 */
 
 #ifdef ARCH_EVTS

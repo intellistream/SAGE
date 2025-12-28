@@ -38,7 +38,7 @@ namespace SPTAG
 
             ThreadPool() {}
 
-            ~ThreadPool() 
+            ~ThreadPool()
             {
                 m_abort.SetAbort(true);
                 m_cond.notify_all();
@@ -55,14 +55,14 @@ namespace SPTAG
                         Job *j;
                         while (get(j))
                         {
-                            try 
+                            try
                             {
                                 j->exec(&m_abort);
                             }
                             catch (std::exception& e) {
                                 SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "ThreadPool: exception in %s %s\n", typeid(*j).name(), e.what());
                             }
-                            
+
                             delete j;
                         }
                     });

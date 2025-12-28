@@ -74,7 +74,7 @@
 		{ .pme_uname = "NON_HW_PREFETCH", \
 		  .pme_udesc = "non hardware prefetched lines", \
 		  .pme_ucode = 0x2 << 4 \
-		}} 
+		}}
 
 
 #define I386_P6_PII_ONLY_PME \

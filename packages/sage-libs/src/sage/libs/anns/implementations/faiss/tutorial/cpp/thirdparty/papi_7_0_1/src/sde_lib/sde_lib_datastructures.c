@@ -560,4 +560,3 @@ int cset_delete(cset_hash_table_t *hash_ptr){
 
     return SDE_OK;
 }
-

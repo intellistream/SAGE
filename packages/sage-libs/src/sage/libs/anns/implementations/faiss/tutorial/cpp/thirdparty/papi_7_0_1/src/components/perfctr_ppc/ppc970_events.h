@@ -5,14 +5,14 @@
 #ifndef _PAPI_PPC970_EVENTS_H
 #define _PAPI_PPC970_EVENTS_H
 
-/* 
+/*
 * File:    ppc970_events.h
-* CVS:     
+* CVS:
 * Author:  Maynard Johnson
 *          maynardj@us.ibm.com
 * Mods:    <your name here>
 *          <your email address>
-*          
+*
 * This file MUST be kept synchronised with the events file.
 *
 */

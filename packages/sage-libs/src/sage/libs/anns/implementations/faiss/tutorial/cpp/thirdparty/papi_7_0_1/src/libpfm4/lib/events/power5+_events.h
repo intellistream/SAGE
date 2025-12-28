@@ -3405,4 +3405,3 @@ static const pme_power_entry_t power5p_pe[] = {
 	}
 };
 #endif
-

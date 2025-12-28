@@ -45,7 +45,7 @@
  * 0 -> PMC0
  * 1 -> PMC1
  * n -> PMCn
- */ 
+ */
 #define PFMLIB_GEN_IA64_PMC_BASE	0
 
 /*
@@ -155,7 +155,7 @@ invalid:
 static int
 pfm_gen_ia64_initialize(void)
 {
-	FILE *fp;	
+	FILE *fp;
 	char *p;
 	char buffer[64];
 	int matches = 0;
@@ -239,7 +239,7 @@ pfm_gen_ia64_forced_initialize(void)
 
 	for(i=4; i < 8; i++)
 		pfm_regmask_set(&pfm_gen_ia64_impl_pmds, i);
-	
+
 	memset(&generic_pe[0].pme_counters, 0, sizeof(pfmlib_regmask_t));
 	memset(&generic_pe[1].pme_counters, 0, sizeof(pfmlib_regmask_t));
 	for(i=4; i < 8; i++) {
