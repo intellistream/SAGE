@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import BinaryIO
 
+from sage.common.config.user_paths import get_user_paths
+
 logger = logging.getLogger(__name__)
 
 # 允许的文件类型
@@ -34,7 +36,7 @@ class FileUploadService:
 
     def __init__(self, upload_dir: str | Path | None = None):
         if upload_dir is None:
-            upload_dir = Path.home() / ".local" / "share" / "sage" / "studio" / "uploads"
+            upload_dir = get_user_paths().data_dir / "studio" / "uploads"
 
         self.upload_dir = Path(upload_dir).expanduser()
         self.upload_dir.mkdir(parents=True, exist_ok=True)

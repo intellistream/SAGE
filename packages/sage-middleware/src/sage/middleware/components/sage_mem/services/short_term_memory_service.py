@@ -98,7 +98,7 @@ class ShortTermMemoryService(BaseService):
         # 尝试从持久化存储恢复队列
         self._restore_queue()
 
-        self.logger.info(f"ShortTermMemoryService initialized with max_dialog={max_dialog}")
+        self.logger.debug(f"ShortTermMemoryService initialized with max_dialog={max_dialog}")
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
@@ -289,12 +289,18 @@ class ShortTermMemoryService(BaseService):
 
     def get_stats(self) -> dict[str, Any]:
         """获取服务统计信息"""
-        return {
+        base_stats = {
             "memory_count": len(self._order_queue),
             "max_capacity": self.max_dialog,
             "utilization": len(self._order_queue) / self.max_dialog if self.max_dialog > 0 else 0,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def clear(self) -> bool:
         """清空所有短期记忆"""

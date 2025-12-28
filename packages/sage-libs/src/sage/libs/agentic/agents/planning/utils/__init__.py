@@ -13,6 +13,10 @@ from .repair import (
     strip_code_fences,
     validate_plan_structure,
 )
+from .template_helpers import (
+    load_template,
+    render_template,
+)
 from .validators import (
     check_plan_constraints,
     suggest_plan_improvements,
@@ -32,6 +36,9 @@ __all__ = [
     "normalize_plan_steps",
     "extract_and_repair_plan",
     "create_fallback_plan",
+    # Template utilities
+    "load_template",
+    "render_template",
     # Validation utilities
     "validate_step_structure",
     "validate_step_dependencies",

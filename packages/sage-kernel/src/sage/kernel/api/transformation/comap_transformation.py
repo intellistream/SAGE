@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
+from sage.kernel.utils.helpers import is_abstract_method, validate_required_methods
 
 if TYPE_CHECKING:
     from sage.common.core.functions import BaseCoMapFunction
@@ -53,23 +54,11 @@ class CoMapTransformation(BaseTransformation):
         Raises:
             ValueError: 如果缺少必需的方法
         """
-        required_methods = ["map0", "map1"]
-        missing_methods = []
-
-        for method_name in required_methods:
-            if not hasattr(function_class, method_name):
-                missing_methods.append(method_name)
-            else:
-                method = getattr(function_class, method_name)
-                # 检查是否为抽象方法（未实现）
-                if getattr(method, "__isabstractmethod__", False):
-                    missing_methods.append(method_name)
-
-        if missing_methods:
-            raise ValueError(
-                f"CoMap function {function_class.__name__} must implement required methods: "
-                f"{', '.join(missing_methods)}"
-            )
+        validate_required_methods(
+            function_class,
+            required_methods=["map0", "map1"],
+            class_name=f"CoMap function {function_class.__name__}",
+        )
 
     @property
     def supported_input_count(self) -> int:
@@ -88,7 +77,7 @@ class CoMapTransformation(BaseTransformation):
             if hasattr(self.function_class, method_name):
                 method = getattr(self.function_class, method_name)
                 # 如果方法存在且不是抽象方法
-                if not getattr(method, "__isabstractmethod__", False):
+                if not is_abstract_method(method):
                     count += 1
                     method_index += 1
                 else:

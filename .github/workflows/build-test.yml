@@ -283,6 +283,18 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/sage-studio/src/sage/studio/frontend/package-lock.json
+
+      - name: Run Frontend Checks
+        run: |
+          echo "🎨 运行前端检查 (Build & Test)..."
+          bash tools/check_frontend.sh
+
       - name: Run installation validation suite
         run: |
           echo "🔍 Running installation verification suite..."

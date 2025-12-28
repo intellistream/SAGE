@@ -144,12 +144,20 @@ class RayQueueProxy:
         self.manager = manager
         self.queue_id = queue_id
 
-    def put(self, item, timeout=None):
-        """向队列添加项目"""
+    def put(self, item, block=True, timeout=None):
+        """向队列添加项
+
+        Args:
+            item: 要添加的项目
+            block: 是否阻塞等待（为了API兼容性，但Ray队列始终是阻塞的）
+            timeout: 超时时间（秒）
+        """
         import time
 
         _start = time.time()
-        logger.debug(f"[PROXY-PUT-START] queue_id={self.queue_id}")
+        logger.debug(
+            f"[PROXY-PUT-START] queue_id={self.queue_id}, block={block}, timeout={timeout}"
+        )
 
         _remote_start = time.time()
         result = ray.get(self.manager.put.remote(self.queue_id, item))
@@ -213,27 +221,43 @@ class RayQueueProxy:
 # 全局队列管理器，用于在不同Actor之间共享队列实例
 @ray.remote
 class RayQueueManager:
-    """Ray队列管理器，管理全局队列实例"""
+    """Ray队列管理器，管理全局队列实例
+
+    注意：为了避免序列化问题，此类不能使用模块级的 logger 变量。
+    所有日志记录都通过 _get_logger() 方法动态创建本地 logger。
+    """
 
     def __init__(self):
         self.queues = {}
+        self._logger = None  # 延迟初始化
+
+    def _get_logger(self):
+        """获取本地 logger 实例（避免序列化问题）"""
+        if self._logger is None:
+            # 在 Actor 内部动态创建 logger，避免序列化问题
+            import logging
+
+            self._logger = logging.getLogger("RayQueueManager")
+        return self._logger
 
     def get_or_create_queue(self, queue_id: str, maxsize: int):
         """获取或创建队列，返回队列ID而不是队列对象"""
+        log = self._get_logger()
         if queue_id not in self.queues:
             # 统一使用数组实现的简单队列，避免Ray对象存储内存问题
             self.queues[queue_id] = SimpleArrayQueue(maxsize=maxsize if maxsize > 0 else 0)
-            logger.debug(f"Created new SimpleArrayQueue {queue_id}")
+            log.debug(f"Created new SimpleArrayQueue {queue_id}")
         else:
-            logger.debug(f"Retrieved existing queue {queue_id}")
+            log.debug(f"Retrieved existing queue {queue_id}")
         return queue_id  # 返回队列ID而不是队列对象
 
     def put(self, queue_id: str, item):
         """向指定队列添加项目"""
         import time
 
+        log = self._get_logger()
         _start = time.time()
-        logger.debug(f"[MANAGER-PUT-START] queue_id={queue_id}")
+        log.debug(f"[MANAGER-PUT-START] queue_id={queue_id}")
 
         if queue_id in self.queues:
             _queue_put_start = time.time()
@@ -242,27 +266,28 @@ class RayQueueManager:
             _total_duration = time.time() - _start
 
             if _queue_put_duration > 0.01:  # >10ms
-                logger.warning(
+                log.warning(
                     f"[MANAGER-PUT-SLOW] queue_id={queue_id}, "
                     f"queue_put_time={_queue_put_duration * 1000:.3f}ms"
                 )
 
-            logger.debug(
+            log.debug(
                 f"[MANAGER-PUT-END] queue_id={queue_id}, "
                 f"queue_put_time={_queue_put_duration * 1000:.3f}ms, "
                 f"total_time={_total_duration * 1000:.3f}ms"
             )
             return result
         else:
-            logger.error(f"[MANAGER-PUT-ERROR] Queue {queue_id} does not exist")
+            log.error(f"[MANAGER-PUT-ERROR] Queue {queue_id} does not exist")
             raise ValueError(f"Queue {queue_id} does not exist")
 
     def get(self, queue_id: str, timeout=None):
         """从指定队列获取项目"""
         import time
 
+        log = self._get_logger()
         _start = time.time()
-        logger.debug(f"[MANAGER-GET-START] queue_id={queue_id}, timeout={timeout}")
+        log.debug(f"[MANAGER-GET-START] queue_id={queue_id}, timeout={timeout}")
 
         if queue_id in self.queues:
             try:
@@ -271,7 +296,7 @@ class RayQueueManager:
                 _queue_get_duration = time.time() - _queue_get_start
                 _total_duration = time.time() - _start
 
-                logger.debug(
+                log.debug(
                     f"[MANAGER-GET-END] queue_id={queue_id}, "
                     f"queue_get_time={_queue_get_duration * 1000:.3f}ms, "
                     f"total_time={_total_duration * 1000:.3f}ms"
@@ -279,14 +304,14 @@ class RayQueueManager:
                 return result
             except Exception as e:
                 _total_duration = time.time() - _start
-                logger.warning(
+                log.warning(
                     f"[MANAGER-GET-ERROR] queue_id={queue_id}, "
                     f"error={type(e).__name__}, "
                     f"total_time={_total_duration * 1000:.3f}ms"
                 )
                 raise
         else:
-            logger.error(f"[MANAGER-GET-ERROR] Queue {queue_id} does not exist")
+            log.error(f"[MANAGER-GET-ERROR] Queue {queue_id} does not exist")
             raise ValueError(f"Queue {queue_id} does not exist")
 
     def size(self, queue_id: str):
@@ -328,20 +353,25 @@ def get_global_queue_manager() -> Any:
     _start = time.time()
     logger.debug("[GET-MANAGER-START] Attempting to get global queue manager")
 
+    # 使用固定的 namespace，确保所有 job 都能访问同一个 Actor
+    QUEUE_MANAGER_NAMESPACE = "sage_global"
+
     # 先尝试获取现有的命名Actor
     try:
         _get_actor_start = time.time()
-        manager = ray.get_actor("global_ray_queue_manager")
+        manager = ray.get_actor("global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE)
         _get_actor_duration = time.time() - _get_actor_start
         _total_duration = time.time() - _start
         logger.debug(
-            f"[GET-MANAGER-FOUND] Found existing manager, "
+            f"[GET-MANAGER-FOUND] Found existing manager in namespace {QUEUE_MANAGER_NAMESPACE}, "
             f"get_actor_time={_get_actor_duration * 1000:.3f}ms, "
             f"total_time={_total_duration * 1000:.3f}ms"
         )
         return manager
     except ValueError:
-        logger.debug("[GET-MANAGER-NOT-FOUND] Manager does not exist, will create")
+        logger.debug(
+            f"[GET-MANAGER-NOT-FOUND] Manager does not exist in namespace {QUEUE_MANAGER_NAMESPACE}, will create"
+        )
         pass
 
     # 多次尝试创建命名Actor，处理并发冲突
@@ -359,19 +389,21 @@ def get_global_queue_manager() -> Any:
 
             # 如果不存在，创建新的命名Actor
             logger.debug(
-                f"[GET-MANAGER-CREATE] Attempt {attempt + 1}/{max_attempts} to create manager"
+                f"[GET-MANAGER-CREATE] Attempt {attempt + 1}/{max_attempts} to create manager in namespace {QUEUE_MANAGER_NAMESPACE}"
             )
             _create_start = time.time()
             global _global_queue_manager
             _global_queue_manager = RayQueueManager.options(
                 name="global_ray_queue_manager",
+                namespace=QUEUE_MANAGER_NAMESPACE,  # 使用固定 namespace
+                lifetime="detached",  # 独立于创建者进程，避免 owner 死亡导致 Actor 失效
                 max_restarts=-1,  # 无限重启
                 max_task_retries=-1,  # 无限重试
             ).remote()
             _create_duration = time.time() - _create_start
             _total_duration = time.time() - _start
             logger.debug(
-                f"[GET-MANAGER-CREATED] Successfully created manager, "
+                f"[GET-MANAGER-CREATED] Successfully created manager in namespace {QUEUE_MANAGER_NAMESPACE}, "
                 f"create_time={_create_duration * 1000:.3f}ms, "
                 f"total_time={_total_duration * 1000:.3f}ms"
             )
@@ -383,10 +415,12 @@ def get_global_queue_manager() -> Any:
                     f"[GET-MANAGER-CONFLICT] Attempt {attempt + 1}: Actor already exists, retrying get"
                 )
                 try:
-                    manager = ray.get_actor("global_ray_queue_manager")
+                    manager = ray.get_actor(
+                        "global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE
+                    )
                     _total_duration = time.time() - _start
                     logger.debug(
-                        f"[GET-MANAGER-FOUND-RETRY] Found manager after conflict, "
+                        f"[GET-MANAGER-FOUND-RETRY] Found manager after conflict in namespace {QUEUE_MANAGER_NAMESPACE}, "
                         f"total_time={_total_duration * 1000:.3f}ms"
                     )
                     return manager
@@ -416,10 +450,10 @@ def get_global_queue_manager() -> Any:
 
     # 如果仍然失败，尝试最后一次获取
     logger.debug("[GET-MANAGER-FINAL-ATTEMPT] Making final attempt to get manager")
-    manager = ray.get_actor("global_ray_queue_manager")
+    manager = ray.get_actor("global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE)
     _total_duration = time.time() - _start
     logger.debug(
-        f"[GET-MANAGER-FINAL-SUCCESS] Got manager on final attempt, "
+        f"[GET-MANAGER-FINAL-SUCCESS] Got manager on final attempt in namespace {QUEUE_MANAGER_NAMESPACE}, "
         f"total_time={_total_duration * 1000:.3f}ms"
     )
     return manager

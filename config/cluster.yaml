@@ -1,91 +1,59 @@
 # SAGE Cluster Configuration
-# ==============================================================================
-#
-# Location: <project_root>/config/cluster.yaml
-# Edit this file to configure your cluster nodes, SSH, and Ray settings.
-#
-# Documentation: https://docs.ray.io/en/latest/cluster/vms/user-guides/launching-clusters/on-premises.html
-# ==============================================================================
+# 配置文件路径: <project_root>/config/cluster.yaml
 
-# ------------------------------------------------------------------------------
-# Cluster Identity
-# ------------------------------------------------------------------------------
-cluster_name: sage-cluster
-max_workers: 10
+# Head 节点配置
+head:
+  host: "10.0.1.2"              # Head 节点 IP (Docker 容器内网 IP)
+  head_port: 26379               # Ray GCS 端口
+  dashboard_port: 28265          # Ray Dashboard 端口
+  dashboard_host: "0.0.0.0"      # Dashboard 监听地址
+  temp_dir: "/var/tmp/ray"
+  log_dir: "/var/tmp/sage_head_logs"
+  conda_env: "sage"              # Conda 环境名称
+  python_path: ""                # 留空自动检测
+  ray_command: ""                # 留空自动检测
 
-# ------------------------------------------------------------------------------
-# Provider Configuration (On-Premise)
-# ------------------------------------------------------------------------------
-provider:
-  type: local
-
-  # Head node IP (where Ray GCS runs)
-  head_ip: 192.168.1.100
-
-  # Worker node IPs
-  worker_ips:
-  - 192.168.1.101
-  - 192.168.1.102
-  - 192.168.1.103
-
-# ------------------------------------------------------------------------------
-# SSH Authentication
-# ------------------------------------------------------------------------------
-# IMPORTANT: Use SSH key authentication, NOT passwords!
-# Setup: ssh-keygen && ssh-copy-id user@host
-auth:
-  ssh_user: sage
-  ssh_private_key: ~/.ssh/id_rsa
-  connect_timeout: 10
-
-# ------------------------------------------------------------------------------
-# Ray Configuration
-# ------------------------------------------------------------------------------
-ray:
-  head_port: 6379
-  dashboard_port: 8265
-  dashboard_host: 0.0.0.0
-  temp_dir: /tmp/ray
-
-  # Optional: Resource overrides
-  # head_resources:
-  #   CPU: 4
-  #   memory: 8589934592  # 8GB
-  # worker_resources:
-  #   CPU: 8
-  #   GPU: 1
-
-# ------------------------------------------------------------------------------
-# Remote Environment
-# ------------------------------------------------------------------------------
-remote:
-  conda_env: sage
-  sage_home: /home/sage/SAGE
-  auto_sync_ray_version: true
-  # python_path: /opt/conda/envs/sage/bin/python  # Auto-detected
-  # ray_command: /opt/conda/envs/sage/bin/ray     # Auto-detected
-
-# ------------------------------------------------------------------------------
-# Worker Configuration
-# ------------------------------------------------------------------------------
+# Worker 节点配置
 worker:
-  log_dir: /tmp/sage_worker_logs
-  bind_host: 0.0.0.0
+  bind_host: "localhost"
+  temp_dir: "/tmp/ray_worker"
+  log_dir: "/tmp/sage_worker_logs"
 
-# ------------------------------------------------------------------------------
-# JobManager
-# ------------------------------------------------------------------------------
-jobmanager:
+# SSH 配置
+ssh:
+  user: "sage"                   # SSH 用户名
+  key_path: "~/.ssh/id_rsa"      # SSH 私钥路径
+  connect_timeout: 10            # 连接超时（秒）
+  workers:
+  - host: "sage2"
+    port: 22
+  - host: "sage3"
+    port: 22
+  - host: "sage4"
+    port: 22
+
+# 远程节点配置
+remote:
+  sage_home: "/home/sage"
+  python_path: ""                # 留空自动检测
+  ray_command: ""                # 留空自动检测
+  conda_env: "sage"              # Worker 节点的 conda 环境名
+
+# Daemon 配置
+daemon:
+  host: "10.0.1.2"
   port: 19001
-  timeout: 30
-  retry_attempts: 3
 
-# ------------------------------------------------------------------------------
-# Output Settings
-# ------------------------------------------------------------------------------
+# 输出配置
 output:
-  format: table  # table, json, yaml
+  format: "table"
   colors: true
 
+# 监控配置
 monitor:
   refresh_interval: 5
+
+# JobManager 配置
+jobmanager:
+  timeout: 30
+  retry_attempts: 3

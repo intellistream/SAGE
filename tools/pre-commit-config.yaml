@@ -91,86 +91,7 @@ repos:
     # Errors are shown but treated as warnings
   - id: markdown-files-location-check
     name: check markdown files are in proper locations
-    entry: bash -c
-    args:
-    - |
-      # Get all markdown files (staged if in commit, or all files if --all-files)
-      if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
-        # Running with --all-files or during push
-        all_md_files=$(git ls-files "*.md")
-      else
-        # Running in normal commit mode
-        all_md_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.md$" || true)
-      fi
-
-      if [ -z "$all_md_files" ]; then
-        exit 0
-      fi
-
-      # Define allowed patterns (whitelist)
-      allowed_patterns=(
-        "^README\.md$"
-        "^CHANGELOG\.md$"
-        "^CONTRIBUTING\.md$"
-        "^LICENSE\.md$"
-        "^DEVELOPER\.md$"
-        "^docs-public/docs_src/dev-notes/README\.md$"
-        "^docs-public/docs_src/dev-notes/TEMPLATE\.md$"
-        "^docs-public/docs_src/dev-notes/.+/"
-        "^docs-public/docs_src/assets/"
-        "^docs-public/docs_src/security/"
-        "^docs-public/"
-        "^docker/.*\.md$"  # Allow any .md in docker directory (deployment docs)
-        "^packages/.*/README\.md$"
-        "^packages/.*README.*\.md$"  # Allow README variants like README_LIBAMM.md
-        "^packages/.*/CHANGELOG\.md$"
-        "^packages/.*/(docs|documentation)/"
-        "^packages/.*\.md$"  # Allow any .md in packages root (installation guides, etc.)
-        "^examples/README\.md$"  # Allow top-level examples README
-        "^examples/.*/README\.md$"
-        "^examples/tutorials/"
-        "^config/README\.md$"  # Allow config directory README
-        "^tools/.*/README\.md$"
-        "^tools/.*\.md$"  # Allow any .md in tools (installation guides, etc.)
-        "^\.sage/.*\.md$"
-        "^\.github/.*\.md$"  # Allow any .md in .github directory
-      )
-
-      # Check each file
-      violations=""
-      for file in $all_md_files; do
-        allowed=false
-        for pattern in "${allowed_patterns[@]}"; do
-          if echo "$file" | grep -qE "$pattern"; then
-            allowed=true
-            break
-          fi
-        done
-
-        if [ "$allowed" = false ]; then
-          violations="$violations$file\n"
-        fi
-      done
-
-      # Report violations
-      if [ -n "$violations" ]; then
-        echo "❌ 错误: 以下 markdown 文件不在允许的位置:"
-        echo -e "$violations" | sed "s/^/  - /"
-        echo ""
-        echo "� 允许的位置:"
-        echo "  - 项目根目录: README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DEVELOPER.md"
-        echo "  - 开发笔记: docs/dev-notes/"
-        echo "  - 用户文档: docs-public/"
-        echo "  - 包文档: packages/<package-name>/README.md, packages/<package-name>/CHANGELOG.md"
-        echo "  - 包文档目录: packages/<package-name>/docs/, packages/<package-name>/documentation/"
-        echo "  - 示例文档: examples/<example-name>/README.md, examples/tutorials/"
-        echo "  - GitHub 模板: .github/ISSUE_TEMPLATE/, .github/PULL_REQUEST_TEMPLATE/"
-        echo ""
-        echo "💡 建议: 请将文档移动到合适的位置或更新允许列表"
-        exit 1
-      else
-        exit 0
-      fi
+    entry: tools/hooks/check_docs_location.sh
     language: system
     pass_filenames: false
     always_run: false
@@ -473,7 +394,7 @@ repos:
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/secrets.baseline]
-    exclude: ^(\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_db/.*)
+    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_db/.*)
 
   # SAGE Data Architecture Validation
 - repo: local
