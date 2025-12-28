@@ -5,6 +5,7 @@ Manages fine-tuning tasks, progress tracking, and model switching.
 """
 
 import json
+import logging
 import os
 import signal
 import subprocess
@@ -15,6 +16,8 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def check_gpu_resources() -> dict[str, Any]:
@@ -214,14 +217,17 @@ class FinetuneManager:
                             self.tasks[task_id] = task
                             loaded_count += 1
                     self.current_model = data.get("current_model", "Qwen/Qwen2.5-7B-Instruct")
-                print(
-                    f"[FinetuneManager] Loaded {loaded_count} new tasks from {task_file} (total: {len(self.tasks)})"
+                logger.debug(
+                    "Loaded %d new tasks from %s (total: %d)",
+                    loaded_count,
+                    task_file,
+                    len(self.tasks),
                 )
             except Exception as e:
                 import traceback
 
-                print(f"[FinetuneManager] Failed to load tasks: {e}")
-                print(traceback.format_exc())
+                logger.warning("Failed to load tasks: %s", e)
+                logger.debug(traceback.format_exc())
 
     def _save_tasks(self):
         """Save tasks to disk"""
