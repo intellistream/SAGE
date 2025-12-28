@@ -96,6 +96,13 @@ repos:
     pass_filenames: false
     always_run: false
     files: \.md$
+  - id: dev-notes-categorization-check
+    name: check dev-notes files are properly categorized
+    entry: tools/hooks/check_dev_notes_location.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^docs-public/docs_src/dev-notes/.*\.md$
   - id: control-plane-only-guard
     name: prevent embedded/local inference paths
     entry: tools/hooks/check_control_plane_only.py
