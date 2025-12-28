@@ -5,6 +5,76 @@
 **SAGE** is a Python 3.10+ framework for building AI/LLM data processing pipelines with declarative
 dataflow. 11 functional packages + 1 meta-package, ~400MB dev install, uses C++ extensions (CMake).
 
+## 🚨 CRITICAL Architectural Constraints
+
+### ❌ NEVER BYPASS CONTROL PLANE - ABSOLUTE RULE
+
+**ALL LLM engine operations MUST go through Control Plane. Direct engine startup is FORBIDDEN.**
+
+This is a **non-negotiable architectural constraint**. Violating this breaks resource management, scheduling, and monitoring.
+
+#### ❌ FORBIDDEN Operations:
+
+**1. Direct LLM service startup:**
+```bash
+sage llm serve -m Qwen/Qwen2.5-7B-Instruct        # ❌ FORBIDDEN
+python -m vllm.entrypoints.openai.api_server      # ❌ FORBIDDEN
+python -m sage.common.components.sage_embedding   # ❌ FORBIDDEN
+```
+
+**2. Direct vLLM/HF imports in user code:**
+```python
+from vllm import LLM  # ❌ FORBIDDEN - use UnifiedInferenceClient
+engine = LLM(model="...")  # ❌ FORBIDDEN
+```
+
+**3. Bypassing Gateway:**
+```python
+# ❌ FORBIDDEN - direct endpoint access
+requests.post("http://localhost:8001/v1/chat/completions", ...)  # allow-control-plane-bypass: example only
+```
+
+#### ✅ CORRECT Operations (Control Plane):
+
+**1. Engine management through Control Plane:**
+```bash
+# ✅ CORRECT - managed by Control Plane
+sage llm engine start Qwen/Qwen2.5-7B-Instruct --engine-kind llm
+sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu
+sage llm engine list
+sage llm engine stop <engine-id>
+```
+
+**2. Unified client (auto-routes through Control Plane):**
+```python
+# ✅ CORRECT - uses Control Plane routing
+from sage.llm import UnifiedInferenceClient
+client = UnifiedInferenceClient.create()
+response = client.chat([{"role": "user", "content": "Hello"}])
+```
+
+**3. Gateway API (Control Plane frontend):**
+```python
+# ✅ CORRECT - goes through Gateway → Control Plane
+import requests
+resp = requests.post("http://localhost:8888/v1/chat/completions", ...)  # allow-control-plane-bypass: Gateway port
+```
+
+#### Why This Matters:
+
+- **Resource Management**: Control Plane tracks GPU memory, prevents OOM
+- **Load Balancing**: Distributes requests across multiple engines
+- **Fault Tolerance**: Automatic failover and retry
+- **Monitoring**: Centralized metrics and logging
+- **Scheduling**: SLO-aware request routing
+
+#### Enforcement:
+
+- **Pre-commit hooks**: Block commits with `sage llm serve`, `sage llm run`, or direct vLLM calls
+- **CI/CD**: All workflows use Control Plane APIs
+- **Code review**: Reject PRs with direct engine startup
+- **Commands removed**: `sage llm serve/run/stop/restart/status/logs` have been completely deleted
+
 ## CRITICAL Coding Principles
 
 ### ❌ NO FALLBACK LOGIC - PROJECT-WIDE RULE
@@ -559,8 +629,6 @@ client = UnifiedInferenceClient.create(
 
 ### 启动服务栈
 
-> ⚠️ `sage llm run` 与 `VLLMService` 依赖 `isage-common[vllm]`（带 vLLM 0.10.x 与 torch 2.4+）。如需本地阻塞式服务，请先运行 `pip install isage-common[vllm]`。
-
 ```bash
 # 推荐：启动 Gateway（包含 Control Plane）
 sage gateway start                                 # 启动 Gateway（端口 8888）
@@ -568,17 +636,8 @@ sage gateway status                                # 查看 Gateway 状态
 sage gateway stop                                  # 停止 Gateway
 sage gateway logs --follow                         # 查看日志
 
-# LLM 服务管理
-sage llm serve                                     # 启动 LLM + Embedding 服务（默认）
-sage llm serve --no-embedding                      # 仅启动 LLM，不启动 Embedding
-sage llm status                                    # 查看状态
-sage llm stop                                      # 停止服务
-sage llm logs --follow                             # 查看日志
-
-# 阻塞式交互模式（开发调试用）
-sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
-
 # 引擎管理（通过 Gateway Control Plane）
+sage llm engine start Qwen/Qwen2.5-7B-Instruct --engine-kind llm    # 启动 LLM 引擎
 sage llm engine start BAAI/bge-m3 --engine-kind embedding           # 默认 CPU
 sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu # 使用 GPU
 sage llm engine list                                                 # 查看引擎列表
@@ -681,11 +740,14 @@ service.teardown()
 ### 环境变量 (.env)
 
 ```bash
-# === 本地服务（推荐）===
+# === 本地服务（推荐，默认）===
 # 无需配置，使用 SagePorts 默认端口
+# UnifiedInferenceClient 会自动探测 localhost:8001, localhost:8901
 
-# === 云端 API（回退）===
-SAGE_CHAT_API_KEY=sk-xxx              # DashScope API Key
+# === 显式远端覆盖（仅当需要强制使用云端API时设置）===
+# 警告：仅用于显式远端覆盖，不是默认行为
+# 本地开发应始终使用本地端点，不要依赖云端 fallback
+SAGE_CHAT_API_KEY=sk-xxx              # 云端 API Key (DashScope/OpenAI compatible)
 SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
 SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 
@@ -694,7 +756,11 @@ HF_TOKEN=hf_xxx
 # HF_ENDPOINT 无需手动设置，SAGE 会自动检测网络并配置镜像
 ```
 
-> 提示：DashScope 变量仅作为显式回退使用，默认期望本地/自部署端点（端口来自 `SagePorts`）。不要依赖隐式云端回落；如需远端，请在配置中明确设置 base_url。
+> **CRITICAL**: DashScope/云端变量**仅用于显式远端覆盖**，不是默认行为。
+> - **本地优先**：默认探测 `localhost:8001` 和 `localhost:8901`
+> - **无隐式 fallback**：如果本地端点不可达，会**快速失败**，不会自动切换到云端
+> - **显式覆盖**：仅当设置了 `SAGE_CHAT_BASE_URL` 时才使用远端
+> - **CI 环境**：GitHub Actions 在无本地服务时使用 DashScope fallback（CI only）
 
 ### 网络检测和 HuggingFace 镜像自动配置
 
@@ -715,7 +781,7 @@ ensure_hf_mirror_configured()  # 只会在首次调用时检测，结果会缓�
 ```
 
 **自动配置的命令**：
-- `sage llm run` - 运行 vLLM 服务
+- `sage llm engine start` - 启动 LLM/Embedding 引擎
 - `sage llm model download` - 下载模型
 - `sage llm fine-tune` - 微调模型
 - Embedding 相关服务

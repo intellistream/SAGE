@@ -49,6 +49,8 @@ jobs:
 
       - name: Detect LLM endpoint (prefer local)
         run: |
+          # CI fallback only: DashScope is explicit fallback for CI environment
+          # Local development should NOT use this; always prefer local endpoints
           DEFAULT_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
           SELECTED_BASE="$DEFAULT_BASE"
           for port in 8888 8901; do
