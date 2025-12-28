@@ -127,6 +127,24 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
         except ImportError:
             logger.warning("Pipeline Builder not available (sage-cli not installed)")
 
+    def _probe_endpoint(self, url: str, timeout: float = 2.0) -> bool:
+        """探测端点是否可用
+
+        Args:
+            url: 要探测的端点 URL
+            timeout: 超时时间（秒）
+
+        Returns:
+            bool: 端点是否可用
+        """
+        try:
+            import requests
+
+            response = requests.get(f"{url.rstrip('/')}/models", timeout=timeout)
+            return response.status_code == 200
+        except Exception:
+            return False
+
     def generate(self, context: GenerationContext) -> GenerationResult:
         """使用 LLM 生成工作流"""
         start_time = time.time()

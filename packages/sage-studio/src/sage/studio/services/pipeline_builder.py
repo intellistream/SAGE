@@ -216,6 +216,24 @@ class PipelineBuilder:
         """从缓存的配置中读取环境变量"""
         return self._env_config
 
+    def _probe_url(self, url: str, timeout: float = 2.0) -> bool:
+        """探测端点是否可用
+
+        Args:
+            url: 要探测的端点 URL
+            timeout: 超时时间（秒）
+
+        Returns:
+            bool: 端点是否可用
+        """
+        try:
+            import requests
+
+            response = requests.get(f"{url.rstrip('/')}/models", timeout=timeout)
+            return response.status_code == 200
+        except Exception:
+            return False
+
     def _enhance_operator_config(self, operator_class, config: dict) -> dict:
         """
         增强 operator 配置
