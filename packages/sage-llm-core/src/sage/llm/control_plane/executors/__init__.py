@@ -7,6 +7,7 @@ to different types of backend services:
 - HttpExecutionCoordinator: LLM execution via vLLM HTTP API
 - LocalAsyncExecutionCoordinator: Local async execution
 - EmbeddingExecutor: Embedding execution via OpenAI-compatible API
+- FinetuneEngine: Fine-tuning task executor
 """
 
 from .base import ExecutionCoordinatorBase
@@ -19,6 +20,7 @@ from .embedding_executor import (
     EmbeddingResult,
     EmbeddingTimeoutError,
 )
+from .finetune_executor import FinetuneConfig, FinetuneEngine
 from .http_client import HttpExecutionCoordinator
 from .local_async import LocalAsyncExecutionCoordinator
 
@@ -37,4 +39,7 @@ __all__ = [
     "EmbeddingInstanceUnavailableError",
     "EmbeddingTimeoutError",
     "EmbeddingRequestError",
+    # Finetune Executor
+    "FinetuneConfig",
+    "FinetuneEngine",
 ]
