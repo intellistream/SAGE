@@ -25,14 +25,10 @@ from ._version import __version__
 from .chat_manager import ChatModeManager
 from .studio_manager import StudioManager
 
-# Backward compatibility: ChatManager is now ChatModeManager
-ChatManager = ChatModeManager
-
 __all__ = [
     "__version__",
     "StudioManager",
     "ChatModeManager",
-    "ChatManager",  # Backward compatibility alias
     "models",
     "services",
 ]

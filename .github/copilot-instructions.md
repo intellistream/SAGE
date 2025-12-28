@@ -5,6 +5,50 @@
 **SAGE** is a Python 3.10+ framework for building AI/LLM data processing pipelines with declarative
 dataflow. 11 functional packages + 1 meta-package, ~400MB dev install, uses C++ extensions (CMake).
 
+## CRITICAL Coding Principles
+
+### ❌ NO FALLBACK LOGIC
+**NEVER use try-except fallback patterns for version imports or configuration loading.**
+
+**BAD - Do NOT do this:**
+```python
+try:
+    from ._version import __version__
+except ImportError:
+    try:
+        from sage.common._version import __version__  # ❌ NO
+    except ImportError:
+        __version__ = "unknown"  # ❌ NO
+```
+
+**GOOD - Do this instead:**
+```python
+# Direct file reading (for namespace packages)
+import os
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_version_file = os.path.join(_current_dir, "_version.py")
+_version_globals = {}
+with open(_version_file) as f:
+    exec(f.read(), _version_globals)
+__version__ = _version_globals["__version__"]  # Will raise KeyError if missing
+```
+
+**Rationale:**
+- Fallbacks hide real problems (missing files, broken imports)
+- "unknown" versions are unacceptable in production
+- Fail fast, fail loud - make problems visible immediately
+- Users should fix the root cause, not paper over issues
+
+### Version Management
+
+Each package manages its own version independently via `_version.py`:
+```python
+"""Version information for <package-name>."""
+__version__ = "0.2.0"
+__author__ = "IntelliStream Team"
+__email__ = "shuhao_zhang@hust.edu.cn"
+```
+
 **Architecture (L1-L6)** - CRITICAL: No upward dependencies
 
 ```

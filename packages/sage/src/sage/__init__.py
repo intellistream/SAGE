@@ -14,18 +14,19 @@ This is a namespace package that includes:
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 # 动态加载版本信息
-# 策略：优先使用本包的版本，而不是依赖 sage.common
-try:
-    from sage._version import __author__, __email__, __version__
-except ImportError:
-    # Fallback 1: 尝试从 sage.common 导入（如果可用）
-    try:
-        from sage.common._version import __author__, __email__, __version__
-    except ImportError:
-        # Fallback 2: 设置默认值
-        __version__ = "unknown"
-        __author__ = "IntelliStream Team"
-        __email__ = "shuhao_zhang@hust.edu.cn"
+# 直接读取 _version.py 文件（命名空间包中最可靠的方式）
+import os
+
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_version_file = os.path.join(_current_dir, "_version.py")
+
+_version_globals = {}
+with open(_version_file) as f:
+    exec(f.read(), _version_globals)
+
+__version__ = _version_globals["__version__"]
+__author__ = _version_globals["__author__"]
+__email__ = _version_globals["__email__"]
 
 __all__ = [
     "__version__",
