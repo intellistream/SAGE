@@ -234,7 +234,8 @@ Canonical namespaces (post-refactor):
 - Vector DB core (C++20, self-developed, pluggable ANNS, multimodal fusion):
   `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/README.md`
   - **SageDB VDB Backend**: Self-developed high-performance C++ vector database
-  - **NOT FAISS-based**: Fully custom implementation with planned migration of ANNS algorithms to sage-libs
+  - **NOT FAISS-based**: Fully custom implementation
+  - **ANNS Algorithms**: Migrated to `sage-libs/anns/` (faiss_HNSW, vsag_hnsw, diskann, etc.)
   - Python API: `sage.middleware.components.sage_db.python.sage_db.SageDB`
   - Supports: similarity search, metadata filtering, hybrid search, batch operations
   - NeuroMem integration: `sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
@@ -260,6 +261,11 @@ Canonical namespaces (post-refactor):
 
 - Dataflow runtime, distributed execution, fault tolerance: `packages/sage-kernel/`
 - Algorithms, RAG tools, agent framework/integrations: `packages/sage-libs/`
+  - **ANN Interface**: `sage.libs.ann` - Unified ANN algorithm interface
+    - Base classes: `AnnIndex`, `AnnIndexMeta` (in `sage.libs.ann.base`)
+    - Factory: `create()`, `register()`, `registered()` (in `sage.libs.ann.factory`)
+    - Implementations: `sage.libs.anns/` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
+    - Reusable by: benchmark_db, SageDB, SageFlow
 
 **Rule of thumb**: if you mention a capability (retrieval, memory, refinement, vector DB, streaming semantic state, scheduling), ensure it maps to a real module/path above.
 
@@ -813,7 +819,7 @@ SageDB is a **self-developed high-performance C++ vector database**, fully custo
 - ✅ Persistent storage (save/load)
 - ✅ Multiple index types (AUTO, FLAT, IVF, HNSW)
 - ✅ Distance metrics (L2, INNER_PRODUCT, COSINE)
-- 🔄 **Roadmap**: ANNS algorithms will be migrated to sage-libs for better modularity
+- ✅ **ANNS Algorithms**: Available in `sage-libs/anns/` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
 
 ### Location
 
@@ -880,7 +886,7 @@ index_config = {
 - ✅ **Insert**: SageDB 10x faster (single), 1.14x faster (batch) - C++ optimized write path
 - ⚠️ **Search**: FAISS 2.8-3x faster across all k values (Python wrapper overhead in current implementation)
 - ➡️ **Memory**: Nearly identical (~945 MB)
-- 🔄 **Note**: Search performance will improve after ANNS algorithm migration to sage-libs
+- ✅ **ANNS Algorithms**: Now available in `sage-libs/anns/` for modularity
 
 **When to use SageDB**:
 - Write-heavy workloads (frequent insertions/updates)
