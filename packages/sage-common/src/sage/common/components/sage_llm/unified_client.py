@@ -949,12 +949,19 @@ class UnifiedInferenceClient:
 
         # Try local servers if preferred
         if prefer_local:
-            for port in ports:
-                base_url = f"http://localhost:{port}/v1"
-                if cls._check_endpoint_health(base_url):
-                    logger.info("Found local LLM server at %s", base_url)
-                    model_name = cls._fetch_model_name(base_url)
-                    return (base_url, model_name, "")
+            # Check LLM_HOST environment variable for Docker/remote scenarios
+            llm_host = os.environ.get("LLM_HOST", "localhost")
+            hosts_to_check = [llm_host] if llm_host != "localhost" else ["localhost"]
+            if llm_host != "localhost":
+                hosts_to_check.append("localhost")  # Also check localhost as fallback
+
+            for host in hosts_to_check:
+                for port in ports:
+                    base_url = f"http://{host}:{port}/v1"
+                    if cls._check_endpoint_health(base_url):
+                        logger.info("Found local LLM server at %s", base_url)
+                        model_name = cls._fetch_model_name(base_url)
+                        return (base_url, model_name, "")
 
         # Fall back to cloud API (DashScope)
         if not ignore_cloud_fallback:
