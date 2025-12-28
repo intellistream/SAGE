@@ -27,7 +27,7 @@ except ImportError:
 # Export submodules
 __layer__ = "L3"
 
-from . import agentic, finetune, foundation, integrations, privacy, rag
+from . import agentic, ann, finetune, foundation, integrations, privacy, rag
 
 __all__ = [
     "__version__",
@@ -35,6 +35,7 @@ __all__ = [
     "__email__",
     "foundation",
     "agentic",
+    "ann",
     "rag",
     "integrations",
     "privacy",
