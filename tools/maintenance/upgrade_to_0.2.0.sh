@@ -30,7 +30,7 @@ packages=(
 # 更新每个包的 _version.py 文件
 for pkg in "${packages[@]}"; do
     version_file=""
-    
+
     # 确定版本文件路径
     case "$pkg" in
         "sage-common")
@@ -76,15 +76,15 @@ for pkg in "${packages[@]}"; do
             version_file="packages/sage/src/sage/_version.py"
             ;;
     esac
-    
+
     if [ -n "$version_file" ] && [ -f "$version_file" ]; then
         echo "  📝 更新 $pkg: $version_file"
-        
+
         # 使用 sed 更新版本号（支持多种版本格式）
         sed -i 's/__version__ = "0\.1\.10\.7"/__version__ = "0.2.0"/' "$version_file"
         sed -i 's/__version__ = "0\.1\.0"/__version__ = "0.2.0"/' "$version_file"
         sed -i 's/__version__ = "0\.1\.[0-9]\+"/__version__ = "0.2.0"/' "$version_file"
-        
+
         # 验证更新
         if grep -q '__version__ = "0.2.0"' "$version_file"; then
             echo "     ✅ $pkg 版本已更新到 0.2.0"
@@ -116,11 +116,11 @@ namespace_init_files=(
 for init_file in "${namespace_init_files[@]}"; do
     if [ -f "$init_file" ]; then
         echo "  🔧 修复 $init_file..."
-        
+
         # 将 sage.common._version 导入改为尝试导入但不强制依赖
         # 这样即使 sage-common 不在，命名空间包也能工作
         sed -i 's/from sage\.common\._version import/__version__ = "unknown"; __author__ = "IntelliStream Team"; __email__ = "shuhao_zhang@hust.edu.cn"  # from sage.common._version import/' "$init_file"
-        
+
         echo "     ✅ 已修复"
     fi
 done
@@ -134,7 +134,7 @@ echo ""
 # 验证所有版本文件
 for pkg in "${packages[@]}"; do
     version_file=""
-    
+
     case "$pkg" in
         "sage-common") version_file="packages/sage-common/src/sage/common/_version.py" ;;
         "sage-llm-core") version_file="packages/sage-llm-core/src/sage/llm/_version.py" ;;
@@ -151,7 +151,7 @@ for pkg in "${packages[@]}"; do
         "sage-edge") version_file="packages/sage-edge/src/sage/edge/_version.py" ;;
         "sage") version_file="packages/sage/src/sage/_version.py" ;;
     esac
-    
+
     if [ -f "$version_file" ]; then
         version=$(grep '__version__' "$version_file" | head -1)
         printf "  %-20s %s\n" "$pkg:" "$version"

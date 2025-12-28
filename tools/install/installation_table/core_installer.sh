@@ -558,7 +558,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     # 第二步：安装基础包（L1-L2）
     echo -e "${DIM}步骤 2/5: 安装基础包 (L1-L2)...${NC}"
     log_info "步骤 2/5: 安装基础包 (L1-L2)" "INSTALL"
-    
+
     # L1: Foundation + LLM Core
     local base_packages=("packages/sage-common" "packages/sage-llm-core" "packages/sage-platform")
 
@@ -656,36 +656,36 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
         # 显示进度指示器
         echo -ne "${DIM}    ⚙️  正在编译 C++ 扩展... "
-        
+
         # 执行安装（使用临时日志文件）
         local temp_install_log=$(mktemp)
         if $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps > "$temp_install_log" 2>&1; then
             echo -e "✓${NC}"
-            
+
             # 将输出追加到主日志
             if [ -f "$temp_install_log" ]; then
                 cat "$temp_install_log" >> "$SAGE_INSTALL_LOG"
             fi
             rm -f "$temp_install_log"
-            
+
             log_info "安装成功: packages/sage-middleware" "INSTALL"
             log_pip_package_info "isage-middleware" "INSTALL"
             echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
         else
             echo -e "✗${NC}"
-            
+
             log_error "安装 sage-middleware 失败！" "INSTALL"
             log_error "这通常是由于 C++ 编译错误，请检查日志: $SAGE_INSTALL_LOG" "INSTALL"
 
             # 将错误输出追加到主日志
             if [ -f "$temp_install_log" ]; then
                 cat "$temp_install_log" >> "$SAGE_INSTALL_LOG"
-                
+
                 # 尝试提取编译错误的关键信息
                 local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
                 log_error "编译错误摘要:\n$error_context" "INSTALL"
             fi
-            
+
             rm -f "$temp_install_log"
 
             echo -e "${CROSS} 安装 sage-middleware 失败！"
@@ -848,8 +848,6 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             log_info "安装成功: packages/sage-tools" "INSTALL"
             log_pip_package_info "isage-tools" "INSTALL"
             echo -e "${CHECK} sage-tools 安装完成"
-        fi
-    fi
         fi
     fi
 
