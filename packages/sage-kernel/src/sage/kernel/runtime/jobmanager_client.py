@@ -1,8 +1,8 @@
 import base64
-import uuid
 from typing import Any
 
 from sage.common.utils.network.base_tcp_client import BaseTcpClient
+from sage.kernel.utils.helpers import build_request, retry_with_backoff
 
 # ==================== 客户端工具类 ====================
 
@@ -23,11 +23,11 @@ class JobManagerClient(BaseTcpClient):
 
     def _build_health_check_request(self) -> dict[str, Any]:
         """构建健康检查请求"""
-        return {"action": "health_check", "request_id": str(uuid.uuid4())}
+        return build_request("health_check")
 
     def _build_server_info_request(self) -> dict[str, Any]:
         """构建服务器信息请求"""
-        return {"action": "get_server_info", "request_id": str(uuid.uuid4())}
+        return build_request("get_server_info")
 
     def submit_job(self, serialized_data: bytes, autostop: bool = False) -> dict[str, Any]:
         """
@@ -43,12 +43,11 @@ class JobManagerClient(BaseTcpClient):
         if isinstance(serialized_data, bytes) and len(serialized_data) == 0:
             raise ValueError("Serialized data cannot be empty")
 
-        request = {
-            "action": "submit_job",
-            "request_id": str(uuid.uuid4()),
-            "serialized_data": base64.b64encode(serialized_data).decode("utf-8"),
-            "autostop": autostop,  # 添加 autostop 参数
-        }
+        request = build_request(
+            "submit_job",
+            serialized_data=base64.b64encode(serialized_data).decode("utf-8"),
+            autostop=autostop,
+        )
 
         return self.send_request(request)
 
@@ -60,22 +59,12 @@ class JobManagerClient(BaseTcpClient):
         if job_uuid == "":
             raise ValueError("Job UUID cannot be empty")
 
-        request = {
-            "action": "pause_job",
-            "request_id": str(uuid.uuid4()),
-            "job_uuid": job_uuid,
-        }
-
+        request = build_request("pause_job", job_uuid=job_uuid)
         return self.send_request(request)
 
     def get_job_status(self, job_uuid: str) -> dict[str, Any]:
         """获取作业状态"""
-        request = {
-            "action": "get_job_status",
-            "request_id": str(uuid.uuid4()),
-            "job_uuid": job_uuid,
-        }
-
+        request = build_request("get_job_status", job_uuid=job_uuid)
         return self.send_request(request)
 
     def health_check(self) -> dict[str, Any]:
@@ -90,66 +79,37 @@ class JobManagerClient(BaseTcpClient):
 
     def list_jobs(self) -> dict[str, Any]:
         """获取作业列表"""
-        request = {"action": "list_jobs", "request_id": str(uuid.uuid4())}
-
+        request = build_request("list_jobs")
         return self.send_request(request)
 
     def continue_job(self, job_uuid: str) -> dict[str, Any]:
         """继续作业"""
-        request = {
-            "action": "continue_job",
-            "request_id": str(uuid.uuid4()),
-            "job_uuid": job_uuid,
-        }
-
+        request = build_request("continue_job", job_uuid=job_uuid)
         return self.send_request(request)
 
     def delete_job(self, job_uuid: str, force: bool = False) -> dict[str, Any]:
         """删除作业"""
-        request = {
-            "action": "delete_job",
-            "request_id": str(uuid.uuid4()),
-            "job_uuid": job_uuid,
-            "force": force,
-        }
-
+        request = build_request("delete_job", job_uuid=job_uuid, force=force)
         return self.send_request(request)
 
     def receive_node_stop_signal(self, job_uuid: str, node_name: str) -> dict[str, Any]:
         """发送节点停止信号"""
-        request = {
-            "action": "receive_node_stop_signal",
-            "request_id": str(uuid.uuid4()),
-            "job_uuid": job_uuid,
-            "node_name": node_name,
-        }
-
+        request = build_request(
+            "receive_node_stop_signal",
+            job_uuid=job_uuid,
+            node_name=node_name,
+        )
         return self.send_request(request)
 
     def cleanup_all_jobs(self) -> dict[str, Any]:
         """清理所有作业"""
-        request = {"action": "cleanup_all_jobs", "request_id": str(uuid.uuid4())}
-
+        request = build_request("cleanup_all_jobs")
         return self.send_request(request)
 
     def _retry_request(self, request: dict[str, Any], max_retries: int = 3) -> dict[str, Any]:
         """重试请求机制"""
-        last_exception = None
-
-        for attempt in range(max_retries):
-            try:
-                return self.send_request(request)
-            except Exception as e:
-                last_exception = e
-                if attempt < max_retries - 1:
-                    # 等待一段时间后重试
-                    import time
-
-                    time.sleep(0.5 * (attempt + 1))
-                    continue
-                else:
-                    # 最后一次尝试失败，抛出异常
-                    raise last_exception
-
-        # 理论上不会到达这里
-        raise last_exception if last_exception else Exception("Retry failed")
+        return retry_with_backoff(
+            func=lambda: self.send_request(request),
+            max_retries=max_retries,
+            base_delay=0.5,
+        )

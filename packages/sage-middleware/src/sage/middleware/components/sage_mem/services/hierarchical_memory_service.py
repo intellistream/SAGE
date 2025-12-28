@@ -10,10 +10,16 @@
 - 使用单一 HybridCollection，通过 tier 元数据区分层级
 - 每层使用独立的 VDB 索引（如 stm_index, mtm_index, ltm_index）
 - 支持跨层迁移（remove_from_index + insert_to_index）
+
+论文算法实现:
+- MemoryBank: Ebbinghaus 遗忘曲线 (R = e^(-t/S))
+- MemoryOS: Heat Score 计算 (基于访问次数、交互深度、时间衰减)
+- MemoryOS: Fscore 计算 (语义相似度 + 关键词 Jaccard + 时间衰减)
 """
 
 from __future__ import annotations
 
+import math
 import time
 import uuid
 from typing import TYPE_CHECKING, Any, Literal
@@ -103,10 +109,44 @@ class HierarchicalMemoryService(BaseService):
         self._tier_counts: dict[str, int] = {}
         self._update_tier_counts()
 
+        # === 被动插入状态管理 ===
+        # 用于存储待处理的溢出/遗忘条目，供 PostInsert 查询
+        self._pending_items: list[dict] = []  # 溢出待处理的条目
+        self._pending_action: str | None = None  # "migrate" | "forget" | None
+        self._pending_source_tier: str | None = None  # 源层级
+        self._pending_target_tier: str | None = None  # 目标层级
+
         self.logger.info(
             f"HierarchicalMemoryService initialized: mode={tier_mode}, "
             f"tiers={self.tier_names}, capacities={self.tier_capacities}"
         )
+
+    def get(self, entry_id: str) -> dict[str, Any] | None:
+        """获取指定 ID 的记忆条目
+
+        Args:
+            entry_id: 条目 ID
+
+        Returns:
+            dict: 条目数据（包含 text, metadata, tier 等），不存在返回 None
+        """
+        if not hasattr(self.collection, "text_storage"):
+            return None
+
+        text = self.collection.text_storage.get(entry_id)
+        if text is None:
+            return None
+
+        metadata = None
+        if hasattr(self.collection, "metadata_storage"):
+            metadata = self.collection.metadata_storage.get(entry_id)
+
+        return {
+            "id": entry_id,
+            "text": text,
+            "metadata": metadata or {},
+            "tier": metadata.get("tier") if metadata else None,
+        }
 
     @classmethod
     def _get_default_data_dir(cls) -> str:
@@ -266,10 +306,12 @@ class HierarchicalMemoryService(BaseService):
             )
             full_metadata["_vector"] = vec_arr.tolist()  # 转为 list 便于序列化
 
-        # 检查容量，必要时触发迁移（force_insert 跳过容量检查）
+        # 检查容量，必要时更新待处理状态（被动插入模式）
+        # force_insert 跳过容量检查
         capacity = self.tier_capacities.get(tier_name, -1)
         if not force_insert and capacity > 0 and self._tier_counts.get(tier_name, 0) >= capacity:
-            self._migrate_overflow(tier_name)
+            # 被动插入模式：不自动执行迁移，只更新状态供 PostInsert 查询
+            self._update_pending_status(tier_name)
 
         # 获取目标层级的索引名
         index_name = self._get_tier_index_name(tier_name)
@@ -288,6 +330,79 @@ class HierarchicalMemoryService(BaseService):
 
         self.logger.debug(f"Inserted entry to {tier_name}: {stable_id[:16]}...")
         return stable_id
+
+    def _update_pending_status(self, tier_name: str) -> None:
+        """更新待处理状态（被动插入模式核心方法）
+
+        在检测到容量溢出时调用，收集溢出条目供 PostInsert 查询。
+
+        Args:
+            tier_name: 溢出的层级名称
+        """
+        tier_idx = self.tier_names.index(tier_name)
+
+        if tier_idx >= len(self.tier_names) - 1:
+            # 已经是最后一层，需要遗忘
+            self._pending_action = "forget"
+            self._pending_source_tier = tier_name
+            self._pending_target_tier = None
+        else:
+            # 需要迁移到下一层
+            self._pending_action = "migrate"
+            self._pending_source_tier = tier_name
+            self._pending_target_tier = self.tier_names[tier_idx + 1]
+
+        # 收集溢出条目（最旧的）
+        oldest_items = self._find_oldest_items(tier_name, count=1)
+        self._pending_items = []
+        for item_id, item_vector in oldest_items:
+            text = self.collection.get_text(item_id)
+            meta = self.collection.get_metadata(item_id) or {}
+            self._pending_items.append(
+                {
+                    "entry_id": item_id,
+                    "text": text,
+                    "vector": item_vector.tolist() if item_vector is not None else None,
+                    "metadata": meta,
+                    "tier": tier_name,
+                }
+            )
+
+        self.logger.debug(
+            f"Pending status updated: action={self._pending_action}, "
+            f"items={len(self._pending_items)}, {tier_name} -> {self._pending_target_tier}"
+        )
+
+    def get_status(self) -> dict:
+        """查询服务状态（被动插入模式唯一对外接口）
+
+        供 PostInsert 算子查询待处理状态，决定是否需要 LLM 决策和执行迁移/遗忘。
+
+        Returns:
+            dict: 服务状态字典
+                - pending_action: "migrate" | "forget" | None
+                - pending_items: 溢出条目列表
+                - source_tier: 源层级
+                - target_tier: 目标层级（遗忘时为 None）
+                - tier_stats: 各层统计信息
+        """
+        return {
+            "pending_action": self._pending_action,
+            "pending_items": self._pending_items.copy(),
+            "source_tier": self._pending_source_tier,
+            "target_tier": self._pending_target_tier,
+            "tier_stats": self.get_tier_stats(),
+        }
+
+    def clear_pending_status(self) -> None:
+        """清除待处理状态
+
+        在 PostInsert 处理完成后调用，或在下一次 insert 时自动清除。
+        """
+        self._pending_items = []
+        self._pending_action = None
+        self._pending_source_tier = None
+        self._pending_target_tier = None
 
     def _migrate_overflow(self, from_tier: str) -> int:
         """处理容量溢出迁移
@@ -542,6 +657,266 @@ class HierarchicalMemoryService(BaseService):
 
         return False
 
+    # ==================== 论文算法实现 ====================
+
+    def _apply_ebbinghaus_decay(
+        self,
+        tier_name: str,
+        config: dict[str, Any] | None = None,
+    ) -> list[str]:
+        """应用艾宾浩斯遗忘曲线，返回需删除的 entry_id 列表
+
+        论文公式 (MemoryBank):
+            R = e^(-t/S)
+            其中:
+            - R: 保留概率
+            - t: 距上次访问的时间（天）
+            - S: 记忆强度（初始=1，被检索时 S += review_boost, t = 0）
+
+        Args:
+            tier_name: 要处理的层级名称
+            config: 配置参数
+                - retention_threshold: 保留阈值（低于此值删除），默认 0.3
+                - retention_min: 最少保留条数，默认 50
+                - review_boost: 被检索时强度增加量，默认 0.5
+                - time_unit: 时间单位（秒），默认 86400（天）
+
+        Returns:
+            需要删除的 entry_id 列表
+        """
+        config = config or {}
+        retention_threshold = float(config.get("retention_threshold", 0.3))
+        retention_min = int(config.get("retention_min", 50))
+        time_unit = float(config.get("time_unit", 86400))  # 默认以天为单位
+
+        now = time.time()
+        to_delete: list[str] = []
+        entries_with_retention: list[tuple[str, float]] = []
+
+        # 获取该层所有条目
+        all_ids = self.collection.get_all_ids()
+        for entry_id in all_ids:
+            meta = self.collection.get_metadata(entry_id)
+            if not meta or meta.get("tier") != tier_name:
+                continue
+
+            # 获取记忆参数
+            last_access = meta.get("last_access_time", meta.get("timestamp", now))
+            strength = meta.get("strength", 1.0)
+
+            # 计算艾宾浩斯保留概率
+            t = (now - last_access) / time_unit  # 转换为时间单位
+            retention = math.exp(-t / max(strength, 0.01))  # 避免除零
+
+            entries_with_retention.append((entry_id, retention))
+
+        # 按保留概率排序（低的在前）
+        entries_with_retention.sort(key=lambda x: x[1])
+
+        # 确定需要删除的条目（但保留最少 retention_min 条）
+        total_count = len(entries_with_retention)
+        max_deletable = max(0, total_count - retention_min)
+
+        for entry_id, retention in entries_with_retention:
+            if retention < retention_threshold and len(to_delete) < max_deletable:
+                to_delete.append(entry_id)
+            else:
+                break  # 已排序，后续的保留概率更高
+
+        self.logger.debug(
+            f"Ebbinghaus decay: {len(to_delete)}/{total_count} entries marked for deletion "
+            f"(threshold={retention_threshold}, min_retain={retention_min})"
+        )
+
+        return to_delete
+
+    def _calculate_heat_score(self, entry: dict[str, Any]) -> float:
+        """计算记忆的 heat score
+
+        论文公式 (MemoryOS):
+            Heat = f(N_visit, L_interaction, R_recency)
+            其中:
+            - N_visit: 访问次数（归一化到 0-1）
+            - L_interaction: 交互深度（归一化到 0-1）
+            - R_recency: 时间衰减（越近越高）
+
+        Args:
+            entry: 记忆条目字典，包含 metadata
+
+        Returns:
+            heat score (0.0 - 1.0)
+        """
+        meta = entry.get("metadata", {})
+
+        # 访问次数（归一化）
+        n_visit = meta.get("visit_count", 0)
+        visit_score = min(n_visit / 10.0, 1.0)  # 10次访问达到满分
+
+        # 交互深度（归一化）
+        l_interaction = meta.get("interaction_depth", 1)
+        interaction_score = min(l_interaction / 5.0, 1.0)  # 5轮交互达到满分
+
+        # 时间衰减（每天衰减 5%）
+        last_access = meta.get("last_access_time", meta.get("timestamp", time.time()))
+        days_since_access = (time.time() - last_access) / 86400
+        r_recency = 0.95**days_since_access
+
+        # 综合评分（可调整权重）
+        heat = 0.4 * visit_score + 0.3 * interaction_score + 0.3 * r_recency
+
+        return float(heat)
+
+    def _calculate_fscore(
+        self,
+        new_page: dict[str, Any],
+        segment: dict[str, Any],
+        config: dict[str, Any] | None = None,
+    ) -> float:
+        """计算新 page 与 segment 的匹配分数 (Fscore)
+
+        论文公式 (MemoryOS):
+            Fscore = α * semantic_sim + β * jaccard_overlap + γ * time_decay
+            其中:
+            - semantic_sim: 语义相似度（embedding cosine）
+            - jaccard_overlap: 关键词 Jaccard 相似度
+            - time_decay: 时间衰减因子
+
+        Args:
+            new_page: 新页面字典，需包含 embedding 和 metadata.keywords
+            segment: 目标段字典，需包含 centroid_embedding 和 keywords
+            config: 配置参数
+                - alpha: 语义相似度权重，默认 0.5
+                - beta: Jaccard 权重，默认 0.3
+                - gamma: 时间衰减权重，默认 0.2
+
+        Returns:
+            Fscore (0.0 - 1.0)
+        """
+        config = config or {}
+        alpha = float(config.get("alpha", 0.5))
+        beta = float(config.get("beta", 0.3))
+        gamma = float(config.get("gamma", 0.2))
+
+        # 语义相似度
+        new_emb = new_page.get("embedding")
+        seg_emb = segment.get("centroid_embedding")
+        semantic_sim = 0.0
+        if new_emb is not None and seg_emb is not None:
+            new_arr = np.array(new_emb, dtype=np.float32)
+            seg_arr = np.array(seg_emb, dtype=np.float32)
+            norm_new = np.linalg.norm(new_arr)
+            norm_seg = np.linalg.norm(seg_arr)
+            if norm_new > 0 and norm_seg > 0:
+                semantic_sim = float(np.dot(new_arr, seg_arr) / (norm_new * norm_seg))
+
+        # 关键词 Jaccard 相似度
+        new_kw = {k.lower() for k in new_page.get("metadata", {}).get("keywords", [])}
+        seg_kw = {k.lower() for k in segment.get("keywords", [])}
+        jaccard = 0.0
+        if new_kw or seg_kw:
+            jaccard = len(new_kw & seg_kw) / len(new_kw | seg_kw)
+
+        # 时间衰减
+        new_time = new_page.get("metadata", {}).get("timestamp", time.time())
+        seg_time = segment.get("last_update_time", time.time())
+        time_diff = abs(new_time - seg_time) / 86400  # 天
+        time_decay = 0.95**time_diff
+
+        # 加权求和
+        fscore = alpha * semantic_sim + beta * jaccard + gamma * time_decay
+
+        return float(fscore)
+
+    def _migrate_by_heat(
+        self,
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, int]:
+        """基于 heat score 进行层间迁移
+
+        论文策略 (MemoryOS):
+        - heat > heat_threshold: 升级到更高层
+        - heat < cold_threshold: 降级到更低层或淘汰
+
+        Args:
+            config: 配置参数
+                - heat_threshold: 升级阈值，默认 0.7
+                - cold_threshold: 降级阈值，默认 0.3
+
+        Returns:
+            迁移统计 {"upgraded": n, "downgraded": m, "deleted": k}
+        """
+        config = config or {}
+        heat_threshold = float(config.get("heat_threshold", 0.7))
+        cold_threshold = float(config.get("cold_threshold", 0.3))
+
+        stats = {"upgraded": 0, "downgraded": 0, "deleted": 0}
+        all_ids = self.collection.get_all_ids()
+
+        for entry_id in all_ids:
+            meta = self.collection.get_metadata(entry_id)
+            if not meta:
+                continue
+
+            current_tier = meta.get("tier")
+            if current_tier not in self.tier_names:
+                continue
+
+            tier_idx = self.tier_names.index(current_tier)
+            entry = {"metadata": meta}
+            heat = self._calculate_heat_score(entry)
+
+            # 升级判断
+            if heat >= heat_threshold and tier_idx > 0:
+                higher_tier = self.tier_names[tier_idx - 1]
+                if self.migrate(entry_id, current_tier, higher_tier):
+                    stats["upgraded"] += 1
+                    self.logger.debug(f"Upgraded {entry_id[:16]}... heat={heat:.3f}")
+
+            # 降级判断
+            elif heat < cold_threshold:
+                if tier_idx < len(self.tier_names) - 1:
+                    lower_tier = self.tier_names[tier_idx + 1]
+                    if self.migrate(entry_id, current_tier, lower_tier):
+                        stats["downgraded"] += 1
+                        self.logger.debug(f"Downgraded {entry_id[:16]}... heat={heat:.3f}")
+                else:
+                    # 已在最低层且太冷，删除
+                    if self.delete(entry_id):
+                        stats["deleted"] += 1
+                        self.logger.debug(f"Deleted cold entry {entry_id[:16]}... heat={heat:.3f}")
+
+        return stats
+
+    def update_access_stats(self, entry_id: str, interaction_depth: int = 1) -> bool:
+        """更新记忆的访问统计（用于 Ebbinghaus 和 Heat Score）
+
+        在检索命中时调用此方法更新记忆状态:
+        - visit_count += 1
+        - last_access_time = now
+        - strength += review_boost (Ebbinghaus)
+        - interaction_depth = max(current, new_depth)
+
+        Args:
+            entry_id: 条目 ID
+            interaction_depth: 本次交互深度
+
+        Returns:
+            是否更新成功
+        """
+        meta = self.collection.get_metadata(entry_id)
+        if not meta:
+            return False
+
+        meta["visit_count"] = meta.get("visit_count", 0) + 1
+        meta["last_access_time"] = time.time()
+        meta["strength"] = meta.get("strength", 1.0) + 0.5  # review_boost
+        meta["interaction_depth"] = max(
+            meta.get("interaction_depth", 1),
+            interaction_depth,
+        )
+
+        return self.collection.update(entry_id, new_metadata=meta)
+
     def optimize(
         self,
         trigger: str = "auto",
@@ -550,42 +925,77 @@ class HierarchicalMemoryService(BaseService):
     ) -> dict[str, Any]:
         """优化记忆结构
 
+        支持的触发类型:
+        - auto: 自动执行迁移和遗忘
+        - migrate: 仅执行迁移
+        - forgetting: 执行遗忘（支持 Ebbinghaus 和普通遗忘）
+
+        支持的配置参数 (通过 config 传入):
+        - decay_type: 遗忘类型 ("ebbinghaus" | "fifo" | "heat")
+        - migrate_policy: 迁移策略 ("overflow" | "heat" | "time")
+        - retention_threshold: Ebbinghaus 保留阈值
+        - retention_min: 最少保留条数
+        - heat_threshold: Heat 升级阈值
+        - cold_threshold: Heat 降级阈值
+
         Args:
-            trigger: 触发类型 ("auto" | "migrate" | "forgetting")
-            config: 来自 PostInsert 的配置参数（预留扩展）
+            trigger: 触发类型
+            config: 来自 PostInsert 的配置参数
             entries: 相关记忆条目（预留扩展）
 
         Returns:
             dict: 优化统计信息
         """
-        # 预留：config 和 entries 可用于更复杂的优化策略
-        _ = config
-        _ = entries
+        config = config or {}
+        _ = entries  # 预留扩展
 
-        stats = {
+        stats: dict[str, Any] = {
             "success": True,
             "trigger": trigger,
             "migrated": 0,
             "forgotten": 0,
+            "upgraded": 0,
+            "downgraded": 0,
         }
 
-        if trigger in ("auto", "migrate"):
-            # 检查各层是否需要迁移
-            for tier_name in self.tier_names[:-1]:
-                capacity = self.tier_capacities.get(tier_name, -1)
-                current_count = self._tier_counts.get(tier_name, 0)
-                if capacity > 0 and current_count > capacity:
-                    migrated = self._migrate_overflow(tier_name)
-                    stats["migrated"] += migrated
+        # 获取配置的策略
+        decay_type = config.get("decay_type", "fifo")
+        migrate_policy = config.get("migrate_policy", self.migration_policy)
 
+        # 迁移处理
+        if trigger in ("auto", "migrate"):
+            if migrate_policy == "heat":
+                # 基于 heat score 迁移
+                heat_stats = self._migrate_by_heat(config)
+                stats["upgraded"] = heat_stats["upgraded"]
+                stats["downgraded"] = heat_stats["downgraded"]
+                stats["forgotten"] += heat_stats["deleted"]
+            else:
+                # 默认溢出迁移
+                for tier_name in self.tier_names[:-1]:
+                    capacity = self.tier_capacities.get(tier_name, -1)
+                    current_count = self._tier_counts.get(tier_name, 0)
+                    if capacity > 0 and current_count > capacity:
+                        migrated = self._migrate_overflow(tier_name)
+                        stats["migrated"] += migrated
+
+        # 遗忘处理
         if trigger in ("auto", "forgetting"):
-            # 检查最后一层是否需要遗忘
             last_tier = self.tier_names[-1]
-            capacity = self.tier_capacities.get(last_tier, -1)
-            current_count = self._tier_counts.get(last_tier, 0)
-            if capacity > 0 and current_count > capacity:
-                forgotten = self._forget_oldest(last_tier)
-                stats["forgotten"] += forgotten
+
+            if decay_type == "ebbinghaus":
+                # 应用艾宾浩斯遗忘曲线
+                to_delete = self._apply_ebbinghaus_decay(last_tier, config)
+                for entry_id in to_delete:
+                    if self.delete(entry_id):
+                        stats["forgotten"] += 1
+            else:
+                # 默认 FIFO 遗忘
+                capacity = self.tier_capacities.get(last_tier, -1)
+                current_count = self._tier_counts.get(last_tier, 0)
+                if capacity > 0 and current_count > capacity:
+                    forgotten = self._forget_oldest(last_tier)
+                    stats["forgotten"] += forgotten
 
         self.logger.info(f"Optimization complete: {stats}")
         return stats
@@ -602,13 +1012,19 @@ class HierarchicalMemoryService(BaseService):
                 "capacity": self.tier_capacities.get(tier_name, -1),
             }
 
-        return {
+        base_stats = {
             "memory_count": sum(self._tier_counts.values()),
             "tier_mode": self.tier_mode,
             "tier_distribution": tier_stats,
             "migration_policy": self.migration_policy,
             "collection_name": self.collection_name,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def get_tier_stats(self) -> dict[str, dict]:
         """获取各层统计信息"""

@@ -53,10 +53,10 @@ ask_conda_environment() {
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
 
-    # 如果是CI环境或远程部署，自动选择选项2（使用当前环境）
-    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        echo -e "${INFO} 检测到CI/远程部署环境，自动选择选项2：使用当前环境"
-        echo "$(date): CI/远程部署环境自动选择选项2" >> "$log_file"
+    # 如果是CI环境、远程部署或使用了 --yes 参数，自动选择选项2（使用当前环境）
+    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ] || [ "$AUTO_CONFIRM" = "true" ]; then
+        echo -e "${INFO} 非交互模式，自动选择选项2：使用当前环境"
+        echo "$(date): 非交互模式自动选择选项2" >> "$log_file"
         conda_choice=2
     else
         # 交互模式，询问用户选择

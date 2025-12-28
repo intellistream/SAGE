@@ -22,11 +22,14 @@ to sage-gateway for unified gateway management.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from sage.common.config import find_sage_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +200,68 @@ async def start_control_plane() -> None:
                     )
             except Exception as e:
                 logger.warning("Failed to discover running engines: %s", e)
+
+        # Register external models from config/models.json
+        try:
+            project_root = find_sage_project_root()
+            if project_root:
+                models_config_file = project_root / "config" / "models.json"
+                if models_config_file.exists():
+                    with open(models_config_file, encoding="utf-8") as f:
+                        custom_models = json.load(f)
+
+                    for model in custom_models:
+                        # Only register models with explicit base_url (external)
+                        if model.get("base_url"):
+                            try:
+                                from urllib.parse import urlparse
+
+                                url = urlparse(model["base_url"])
+                                host = url.hostname or "localhost"
+                                port = url.port or (80 if url.scheme == "http" else 443)
+
+                                engine_id = f"ext-{model['name'].replace('/', '-')}"
+
+                                # Expand API key from environment variable if needed
+                                api_key = model.get("api_key")
+                                if (
+                                    api_key
+                                    and isinstance(api_key, str)
+                                    and api_key.startswith("${")
+                                    and api_key.endswith("}")
+                                ):
+                                    import os
+
+                                    env_var = api_key[2:-1]
+                                    api_key = os.getenv(env_var, "")
+
+                                # Check if already registered
+                                try:
+                                    _control_plane_manager.register_engine(
+                                        engine_id=engine_id,
+                                        model_id=model["name"],
+                                        host=host,
+                                        port=port,
+                                        engine_kind=model.get("engine_kind", "llm"),
+                                        metadata={
+                                            "api_key": api_key,
+                                            "is_external": True,
+                                            "description": model.get("description"),
+                                        },
+                                        _skip_save=True,
+                                    )
+                                    logger.info(
+                                        f"Registered external model from config: {model['name']}"
+                                    )
+                                except ValueError:
+                                    # Already registered, ignore
+                                    pass
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to register external model {model.get('name')}: {e}"
+                                )
+        except Exception as e:
+            logger.warning(f"Failed to load external models from config: {e}")
 
 
 async def stop_control_plane() -> None:

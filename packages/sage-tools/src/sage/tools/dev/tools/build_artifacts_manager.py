@@ -19,6 +19,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from sage.common.utils.formatting import format_size
+
 
 class BuildArtifactsManager:
     """Manages build artifacts and pip install intermediates."""
@@ -167,13 +169,8 @@ class BuildArtifactsManager:
         return summary
 
     def _format_size(self, size_bytes: int) -> str:
-        """格式化文件大小。"""
-        size_float = float(size_bytes)
-        for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if size_float < 1024:
-                return f"{size_float:.1f} {unit}"
-            size_float /= 1024
-        return f"{size_float:.1f} PB"
+        """格式化文件大小（使用统一的格式化函数）。"""
+        return format_size(size_bytes)
 
     def clean_artifacts(
         self,

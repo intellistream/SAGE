@@ -93,6 +93,32 @@ class KeyValueMemoryService(BaseService):
             f"index={index_name}, type={index_type}"
         )
 
+    def get(self, entry_id: str) -> dict[str, Any] | None:
+        """获取指定 ID 的记忆条目
+
+        Args:
+            entry_id: 条目 ID
+
+        Returns:
+            dict: 条目数据（包含 text, metadata 等），不存在返回 None
+        """
+        if not hasattr(self.collection, "text_storage"):
+            return None
+
+        text = self.collection.text_storage.get(entry_id)
+        if text is None:
+            return None
+
+        metadata = None
+        if hasattr(self.collection, "metadata_storage"):
+            metadata = self.collection.metadata_storage.get(entry_id)
+
+        return {
+            "id": entry_id,
+            "text": text,
+            "metadata": metadata or {},
+        }
+
     @classmethod
     def _get_default_data_dir(cls) -> str:
         """获取默认数据目录
@@ -241,13 +267,19 @@ class KeyValueMemoryService(BaseService):
         all_ids = self.collection.get_all_ids()
         index_count = len(self.collection.indexes) if hasattr(self.collection, "indexes") else 0
 
-        return {
+        base_stats = {
             "memory_count": len(all_ids),
             "index_count": index_count,
             "collection_name": self.collection_name,
             "index_name": self.index_name,
             "index_type": self.index_type,
         }
+
+        # 添加存储统计
+        if hasattr(self.collection, "get_storage_stats"):
+            base_stats["storage"] = self.collection.get_storage_stats()
+
+        return base_stats
 
     def clear(self) -> bool:
         """清空所有记忆"""

@@ -47,9 +47,11 @@ try:
     log_manager = get_test_log_manager()
 
     print("✓ 成功导入Ray队列描述符")
+    IMPORTS_AVAILABLE = True
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
-    sys.exit(1)
+    IMPORTS_AVAILABLE = False
+    pytest.skip(f"Required imports not available: {e}", allow_module_level=True)
 
 try:
     import ray
@@ -59,7 +61,7 @@ try:
 except ImportError:
     RAY_AVAILABLE = False
     print("✗ Ray 不可用")
-    sys.exit(1)
+    pytest.skip("Ray is not available", allow_module_level=True)
 
 
 # ============ Ray Actor 定义 ============

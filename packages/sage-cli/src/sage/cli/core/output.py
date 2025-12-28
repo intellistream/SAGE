@@ -10,6 +10,16 @@ import json
 from datetime import datetime
 from typing import Any
 
+from sage.common.utils.formatting import (
+    format_duration as _format_duration,
+)
+from sage.common.utils.formatting import (
+    format_size_compact as _format_size_compact,
+)
+from sage.common.utils.formatting import (
+    format_timestamp as _format_timestamp,
+)
+
 try:
     from colorama import Back, Fore, Style, init  # type: ignore[import-untyped]
     from tabulate import tabulate  # type: ignore[import-untyped]
@@ -232,39 +242,18 @@ def print_status(status: str, message: str, colors: bool = True):
 
 
 def format_duration(seconds: float) -> str:
-    """格式化持续时间"""
-    if seconds < 60:
-        return f"{seconds:.1f}s"
-    elif seconds < 3600:
-        return f"{seconds // 60:.0f}m {seconds % 60:.0f}s"
-    else:
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        return f"{hours:.0f}h {minutes:.0f}m"
+    """格式化持续时间（使用统一的格式化函数）"""
+    return _format_duration(seconds)
 
 
 def format_size(bytes_size: int) -> str:
-    """格式化文件大小"""
-    size: float = float(bytes_size)
-    for unit in ["B", "KB", "MB", "GB", "TB"]:
-        if size < 1024.0:
-            return f"{size:.1f}{unit}"  # pyright: ignore
-        size /= 1024.0
-    return f"{size:.1f}PB"
+    """格式化文件大小（使用统一的格式化函数）"""
+    return _format_size_compact(bytes_size)
 
 
 def format_timestamp(timestamp: float | str | datetime) -> str:
-    """格式化时间戳"""
-    if isinstance(timestamp, str):
-        return timestamp
-    elif isinstance(timestamp, float):
-        dt = datetime.fromtimestamp(timestamp)
-    elif isinstance(timestamp, datetime):
-        dt = timestamp
-    else:
-        return str(timestamp)
-
-    return dt.strftime("%Y-%m-%d %H:%M:%S")
+    """格式化时间戳（使用统一的格式化函数）"""
+    return _format_timestamp(timestamp)
 
 
 # 向后兼容的全局函数

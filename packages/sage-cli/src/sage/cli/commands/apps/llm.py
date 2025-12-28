@@ -1143,7 +1143,6 @@ def restart_llm():
 @app.command("status")
 def status_llm():
     """查看 LLM 服务状态。"""
-    import socket
 
     import psutil
 
@@ -1168,9 +1167,9 @@ def status_llm():
 
     # Check port status
     port = config.get("port", SagePorts.BENCHMARK_LLM) if config else SagePorts.BENCHMARK_LLM
-    port_in_use = False
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        port_in_use = sock.connect_ex(("localhost", port)) == 0
+    from sage.common.utils.system.network import is_port_occupied
+
+    port_in_use = is_port_occupied("localhost", port)
 
     # Try to get actual service info via HTTP if port is in use
     actual_model = None
@@ -1232,15 +1231,14 @@ def status_llm():
 
 def _show_embedding_status():
     """显示 Embedding 服务状态。"""
-    import socket
 
     embedding_port = SagePorts.EMBEDDING_DEFAULT
     embedding_log = LOG_DIR / "embedding.log"
 
     # Check port status
-    embedding_port_in_use = False
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        embedding_port_in_use = sock.connect_ex(("localhost", embedding_port)) == 0
+    from sage.common.utils.system.network import is_port_occupied
+
+    embedding_port_in_use = is_port_occupied("localhost", embedding_port)
 
     # Build table
     embed_table = Table(title="Embedding 服务状态", show_header=True, header_style="bold")

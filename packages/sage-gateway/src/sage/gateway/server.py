@@ -189,6 +189,15 @@ async def list_models():
                 model_id = getattr(engine, "model_id", None)
 
             if model_id and model_id not in seen_models:
+                # Filter out embedding models
+                runtime = (
+                    engine.get("runtime")
+                    if isinstance(engine, dict)
+                    else getattr(engine, "runtime", None)
+                )
+                if runtime == "embedding":
+                    continue
+
                 seen_models.add(model_id)
                 models.append(
                     {

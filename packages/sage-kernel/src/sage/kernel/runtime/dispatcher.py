@@ -9,6 +9,7 @@ from sage.kernel.fault_tolerance.factory import (
 )
 from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
+from sage.kernel.utils.helpers import wait_for_all_stopped
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
@@ -675,23 +676,7 @@ class Dispatcher:
 
     def _wait_for_tasks_stop(self, timeout: float = 10.0):
         """等待所有任务停止"""
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            all_stopped = True
-
-            for _node_name, task in self.tasks.items():
-                if hasattr(task, "is_running") and task.is_running:
-                    all_stopped = False
-                    break
-
-            if all_stopped:
-                self.logger.debug("All tasks stopped")
-                return
-
-            time.sleep(0.1)
-
-        self.logger.warning(f"Timeout waiting for tasks to stop after {timeout}s")
+        wait_for_all_stopped(self.tasks, timeout=timeout, logger=self.logger)
 
     def cleanup(self):
         """清理所有资源"""

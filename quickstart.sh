@@ -113,6 +113,11 @@ main() {
         if [ -f "$TOOLS_DIR/fixes/environment_doctor.sh" ]; then
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
 
+            # 确保如果使用了 --yes 参数，环境医生也会自动确认修复
+            if [ "$(get_auto_confirm)" = "true" ]; then
+                export AUTO_CONFIRM_FIX="true"
+            fi
+
             if [ "$fix_environment" = "true" ]; then
                 run_full_diagnosis || true
                 run_auto_fixes

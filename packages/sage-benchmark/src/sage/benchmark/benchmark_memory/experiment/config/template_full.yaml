@@ -5,6 +5,7 @@
 # - 所有标记为 REQUIRED 的字段必须填写，缺失将导致程序启动失败
 # - 所有 prompt 字段支持 {placeholder} 格式的变量替换
 # - 注释中的 "when ..." 表示该字段在特定条件下必需
+# 更新时间：2025-12-11
 # ============================================================
 
 # ============================================================
@@ -40,16 +41,67 @@ runtime:
 # 服务配置
 # ============================================================
 services:
-  register_memory_service: ""    # REQUIRED: 存储后端名称 (short_term_memory, long_term_memory, etc.)
-  graph_memory_service: ""       # 图存储服务名称 (用于 link_evolution)
-  stm_service: "short_term_memory"   # 短期记忆服务
-  mtm_service: "mid_term_memory"     # 中期记忆服务
-  ltm_service: "long_term_memory"    # 长期记忆服务
+  # REQUIRED: 主存储后端名称
+  # 可选值: short_term_memory | neuromem_vdb | graph_memory | hierarchical_memory | hybrid_memory | vector_hash_memory | kv_memory
+  register_memory_service: ""
 
+  # 图存储服务名称 (用于 link_evolution)
+  graph_memory_service: ""
+
+  # 分层记忆服务名称
+  stm_service: "short_term_memory"
+  mtm_service: "mid_term_memory"
+  ltm_service: "long_term_memory"
+
+  # -------------------- short_term_memory 配置 --------------------
   short_term_memory:
     max_dialog: 3                # 短期记忆窗口大小
+    embedding_dim: 1024          # 向量维度
+    retrieval_top_k: 10          # 检索返回数量
 
-  memory_insert_adapter: "to_dialogs"
+  # -------------------- hierarchical_memory 配置 --------------------
+  # 分层记忆服务 (MemGPT, MemoryOS, MemoryBank, LD-Agent)
+  hierarchical_memory:
+    # tier_mode: two_tier | three_tier | functional
+    # - two_tier: [stm, ltm] 双层模式 (LD-Agent)
+    # - three_tier: [stm, mtm, ltm] 三层模式 (MemoryOS, MemoryBank)
+    # - functional: [core, recall, archival] 功能分层 (MemGPT)
+    tier_mode: "three_tier"
+    tier_capacities:
+      stm: 20                    # 短期记忆容量
+      mtm: 200                   # 中期记忆容量 (three_tier)
+      ltm: -1                    # 长期记忆容量 (-1 表示无限)
+      core: 20                   # 核心上下文容量 (functional)
+      recall: 100                # 召回存储容量 (functional)
+    migration_policy: "fifo"     # 迁移策略: fifo | heat | time
+    embedding_dim: 1024
+
+  # -------------------- hybrid_memory 配置 --------------------
+  # 混合记忆服务 (Mem0, Mem0ᵍ)
+  hybrid_memory:
+    indexes:
+    - name: "semantic"
+      type: "vector"
+      dim: 1024
+    - name: "keyword"
+      type: "bm25"
+    fusion_strategy: "weighted"  # weighted | rrf
+    fusion_weights:
+      semantic: 0.7
+      keyword: 0.3
+    graph_enabled: false         # 是否启用图增强 (Mem0ᵍ)
+
+  # -------------------- graph_memory 配置 --------------------
+  # 图记忆服务 (HippoRAG, A-Mem)
+  graph_memory:
+    graph_type: "knowledge_graph" # knowledge_graph | link_graph
+    triple_store: "igraph"
+    node_embedding_dim: 1024
+    edge_types: ["relation", "synonym", "temporal"]
+    retrieval_top_k: 20
+    num_start_nodes: 10
+    max_depth: 3
+
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -59,16 +111,20 @@ operators:
   pre_insert:
     # REQUIRED: 操作类型
     # - none: 直接透传
-    # - tri_embed: HippoRAG 三元组提取 + embedding
-    # - transform: 内容转换 (chunking, topic_segment, fact_extract, summarize, compress)
-    # - extract: 信息抽取 (keyword, entity, noun, persona, all)
-    # - score: 重要性评分 (importance, emotion)
-    # - multi_embed: 多维向量编码
-    # - validate: 输入验证
+    # - transform.chunking: 文本分块
+    # - transform.segment: 主题分段
+    # - transform.summarize: 摘要提取
+    # - extract.keyword: 关键词提取
+    # - extract.entity: 命名实体识别
+    # - extract.noun: 名词短语提取
+    # - extract.triple: 三元组提取（用于 TiM, HippoRAG, HippoRAG2）
+    # - score.importance: 重要性评分
+    # - score.heat: 热度评分
+    # - tri_embed: [DEPRECATED] 使用 extract.triple 代替
     action: "none"
 
-    # -------------------- tri_embed action --------------------
-    # REQUIRED when action=tri_embed
+    # -------------------- extract.triple action --------------------
+    # REQUIRED when action=extract.triple (或向后兼容的 tri_embed)
     triple_extraction_prompt: |
       Extract knowledge triples from the following conversation.
       Each triple should be in the format (subject, predicate, object).
@@ -223,13 +279,21 @@ operators:
       model: "BAAI/bge-m3"
       weight: 0.4
 
-    # -------------------- validate action --------------------
-    rules:
-    - type: "length"
-      min: 1
-      max: 10000
-    - type: "duplicate"
-      threshold: 0.95
+    # -------------------- scm_embed action [NEW] --------------------
+    # SCM (Self-Controlled Memory) 样式预处理
+    # 参考论文: SCM4LLMs - Enhancing Large Language Model with Self-Controlled Memory
+    # 同时保存原文、摘要、embedding，用于后续三元决策
+    scm_summarize_prompt: |
+      Below is a conversation between a user and an AI assistant. Please write a summary for each of them in one sentence and list them in separate paragraphs, while trying to preserve the key information of the user's question and the assistant's answer as much as possible.
+
+      conversation content:
+
+      {dialogue}
+
+      Summary:
+
+    embed_summary: false          # 是否对摘要做 embedding（SCM 默认对原文）
+    summary_threshold: 300        # 原文 token 数超过此值才生成摘要（SCM 默认 300）
 
   # ============================================================
   # D3: PostInsert 算子配置
@@ -237,7 +301,7 @@ operators:
   post_insert:
     # REQUIRED: 操作类型
     # - none: 无操作
-    # - distillation: 记忆蒸馏 (SCM4LLMs)
+    # - distillation: 记忆蒸馏 (SCM4LLMs, TiM)
     # - log: 日志记录
     # - stats: 统计分析
     # - reflection: 生成高阶反思 (Generative Agents, LoCoMo)
@@ -245,6 +309,7 @@ operators:
     # - forgetting: 遗忘/淘汰机制 (MemoryBank, MemoryOS)
     # - summarize: 摘要压缩 (MemGPT, MemoryBank, SCM4LLMs)
     # - migrate: 层级迁移 (MemoryOS, LD-Agent)
+    # - mem0_crud: [NEW] Mem0 CRUD 决策 (ADD/UPDATE/DELETE/NOOP)
     action: "none"
 
     # -------------------- distillation action --------------------
@@ -470,6 +535,29 @@ operators:
     upgrade_transform: "none"
     downgrade_transform: "summarize"
 
+    # -------------------- mem0_crud action [NEW] --------------------
+    # Mem0 CRUD 决策：对已有记忆执行 ADD/UPDATE/DELETE/NOOP
+    # 参考论文: Mem0 - Building Production-Ready AI Agents with Scalable Long-Term Memory
+    # 工作流程: 检索相似记忆 → LLM 判断冲突 → 执行对应操作
+    mem0_crud_topk: 10            # 检索相似记忆的数量
+    mem0_crud_threshold: 0.7      # 相似度阈值，超过才进行 CRUD 判断
+    mem0_crud_prompt: |
+      You are managing a fact database. Given a new fact and similar existing facts,
+      decide the appropriate action:
+
+      - ADD: The new fact is entirely new information
+      - UPDATE: The new fact updates/extends an existing fact (delete old, keep new)
+      - DELETE: The new fact contradicts an existing fact (delete old, keep new)
+      - NOOP: The new fact is redundant (already covered by existing facts)
+
+      New fact: {new_entry}
+
+      Existing facts:
+      {memory_list}
+
+      Respond with JSON:
+      {"action": "ADD|UPDATE|DELETE|NOOP", "to_delete": ["id1", "id2"], "reason": "brief explanation"}
+
   # ============================================================
   # D4: PreRetrieval 算子配置
   # ============================================================
@@ -481,7 +569,7 @@ operators:
     # - multi_embed: 多维向量生成
     # - decompose: 复杂查询分解
     # - route: 检索路由
-    # - validate: 查询验证
+    # - scm_gate: [NEW] SCM 记忆激活判断 (是否需要检索)
     action: "none"
 
     # -------------------- optimize action --------------------
@@ -596,18 +684,21 @@ operators:
       Return a JSON array of source names to query. Example: ["long_term_memory", "knowledge_base"]
       Sources:
 
-    # -------------------- validate action --------------------
-    rules:
-    - type: "length"
-      min: 1
-      max: 1000
-    on_fail: "default"
-    default_query: "Hello"
+    # -------------------- scm_gate action [NEW] --------------------
+    # SCM 记忆激活判断：决定是否需要检索记忆
+    # 参考论文: SCM4LLMs - Enhancing Large Language Model with Self-Controlled Memory
+    # 某些简单问题不需要记忆检索，直接回答即可
+    scm_gate_prompt: |
+      Given the current question, determine if memory retrieval is needed.
 
-    preprocessing:
-      strip_whitespace: true
-      lowercase: false
-      remove_punctuation: false
+      Question: {query}
+
+      Consider:
+      - Simple greetings or chitchat don't need memory
+      - Questions about past events or personal info need memory
+      - Follow-up questions may need context from memory
+
+      Return JSON: {"need_memory": true/false, "reason": "brief explanation"}
 
   # ============================================================
   # D5: PostRetrieval 算子配置
@@ -621,6 +712,7 @@ operators:
     # - augment: 结果增强
     # - compress: 结果压缩
     # - format: 格式化输出
+    # - scm_three_way: [NEW] SCM 三元决策 (drop/summary/raw)
     action: "none"
 
     # 对话格式化 Prompt
@@ -732,3 +824,42 @@ operators:
       system_prefix: "Memory context:"
       memory_prefix: "- "
       memory_suffix: ""
+
+    # -------------------- scm_three_way action [NEW] --------------------
+    # SCM 三元决策：对每条检索结果判断 drop / summary / raw
+    # 参考论文: SCM4LLMs - Enhancing Large Language Model with Self-Controlled Memory
+    # 工作流程: 超过 token budget 时，对每条记忆 LLM 判断处理方式
+
+    # Token budget 配置
+    max_history_tokens: 2500      # SCM 默认: MAX_HISTORY_TOKENS = 2500
+    max_pre_turn_tokens: 500      # SCM 默认: MAX_PRE_TURN_TOKENS = 500
+    scm_token_counter: "char"     # char | word | tiktoken
+
+    # 三元决策 prompt
+    scm_judge_prompt: |
+      Given the [Conversation Content] and [User Question], please answer the instruction question.
+
+      [Conversation Content]:
+      ```
+      {content}
+      ```
+
+      [User Question]:
+      ```
+      {query}
+      ```
+
+      Instruction Question:
+      ```
+      Based on [Conversation Content], can you answer [User Question]? If yes, please answer `(A) Yes`, otherwise please answer `(B) No`.
+      ```
+
+      Please answer now. The output must strictly follow this format:
+
+      [Answer]: The final answer is: (A) Yes / (B) No
+
+    # 对话格式化 prompt (用于最终输出)
+    scm_format_prompt: |
+      The following is a conversation between a user and an AI assistant. Please answer the current question based on the history of the conversation:
+
+      Related conversation history:

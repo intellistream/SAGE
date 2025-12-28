@@ -36,7 +36,6 @@ services:
   vector_hash_memory:
     dim: 1024  # 向量维度（需要与 embedding 模型输出维度一致）
     nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
-  memory_insert_adapter: "to_refactor"  # 决定插入的数据 to_dialogs(原始对话) / to_refactor(三元组)
   memory_retrieval_adapter: "none"
 
 
@@ -44,7 +43,7 @@ services:
 # Operator 配置
 operators:
   pre_insert:
-    action: "tri_embed"  # tri_embed先通过llm进行三元组提取实体后进行embedding
+    action: "extract.triple"  # 先通过llm进行三元组提取实体后进行embedding
     triple_extraction_prompt: |
       You are a factual knowledge extractor.
       Analyze the dialogue below and extract all subject–predicate–object triples that represent explicitly stated or directly inferable real-world facts about people, organizations, objects, preferences, roles, locations, activities, or states.
@@ -99,6 +98,57 @@ operators:
       {"to_delete": ["exact text 1", "exact text 2"], "to_insert": []}
   post_retrieval:
     action: "none"  # 后检索操作: none（默认会格式化对话历史）
+
+# ============================================================
+# TiM (Think-in-Memory) 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. 归纳性思想（Inductive Thoughts）：以三元组形式存储
+#   2. LSH 哈希索引：快速定位语义相近的记忆
+#   3. 后思考（Post-thinking）：插入后进行记忆优化
+#   4. 两阶段检索：LSH 定位候选桶 + 桶内相似度计算
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 TiM 操作        │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Post-thinking        │ extract.triple│
+# │  - 三元组提取      │ 生成归纳性思想        │ LLM Prompt   │
+# │  - Embedding       │ 向量化以备 LSH        │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Insert (LSH)         │ VectorHash   │
+# │  - LSH 哈希        │ 计算哈希桶            │ nbits=128    │
+# │  - 存入对应桶      │ 追加到 bucket         │ Service      │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Forget + Merge       │ distillation │
+# │  - 检索相似记忆    │ 查询同桶内容          │ topk=10      │
+# │  - LLM 判断操作    │ 去重/合并/删除矛盾    │ LLM Prompt   │
+# │  - 执行删除/插入   │ 一次性更新桶内容      │ Service      │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding      │ embedding    │
+# │  - 查询向量化      │ 用于 LSH 计算         │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Two-stage Retrieve   │ VectorHash   │
+# │  - LSH 定位桶      │ 找到候选 bucket       │ Hamming Dist │
+# │  - 桶内相似度计算  │ top-k 最相关记忆      │ Cosine Sim   │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Context Integration  │ none         │
+# │  - 基础格式化      │ 拼接为 prompt         │ 默认格式     │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - nbits=128: LSH 哈希位数，影响精度和速度的平衡
+#   - distillation_threshold=16: 汉明距离阈值（16/128 = 87.5% 相似度）
+#   - distillation_topk=10: 检索相似记忆的数量
+#
+# 与论文的差异：
+#   1. 论文使用 SimHash，SAGE 使用通用 LSH（功能等价）
+#   2. 论文的 Merge 操作通过 distillation_prompt 实现
+#   3. SAGE 支持配置化的阈值和 top-k，论文为固定值
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_tim_pipeline.yaml --task_id conv-26
     # 阶段一：对话历史格式化Prompt（PostRetrieval）
     conversation_format_prompt: |
       The following is some history information.

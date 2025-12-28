@@ -2,33 +2,54 @@
 
 """实验工具模块
 
-包含各种工具类：
-- args_parser: 命令行参数解析
-- config_loader: 配置文件加载器（含 get_required_config 工具函数）
-- dialogue_parser: 对话解析器（对话格式化，独立可复用）
-- triple_parser: 三元组解析器（三元组解析和重构，独立可复用）
-- embedding_generator: Embedding 生成器
-- llm_generator: LLM 文本生成器
-- path_finder: 路径查找器
-- prompt_builder: Prompt 构建器
-- progress_bar: 进度条
-- calculation_table: 计算表格
-- time_geter: 时间获取器
+模块分组：
+- [A] LLM 调用层 (llm/)
+  - LLMGenerator: LLM 文本生成，内置 JSON/三元组解析
+  - EmbeddingGenerator: Embedding 生成
+
+- [B] 配置与参数 (config/)
+  - RuntimeConfig: 运行时配置管理器
+  - get_required_config: 必需配置校验
+  - parse_args: 命令行参数解析
+
+- [C] 辅助工具 (helpers/)
+  - calculate_test_thresholds: 计算测试阈值
+  - get_project_root: 获取项目根目录
+  - get_time_filename, get_runtime_timestamp: 时间格式化
+
+- [D] UI 组件 (ui/)
+  - ProgressBar: 进度条显示
 """
 
-from .args_parser import parse_args
-from .config_loader import RuntimeConfig, get_required_config
-from .dialogue_parser import DialogueParser
-from .embedding_generator import EmbeddingGenerator
-from .llm_generator import LLMGenerator
-from .triple_parser import TripleParser
+# === [A] LLM 调用层 ===
+# === [B] 配置与参数 ===
+from .config import RuntimeConfig, get_required_config, parse_args
+
+# === [C] 辅助工具 ===
+from .helpers import (
+    calculate_test_thresholds,
+    get_project_root,
+    get_runtime_timestamp,
+    get_time_filename,
+)
+from .llm import EmbeddingGenerator, LLMGenerator
+
+# === [D] UI 组件 ===
+from .ui import ProgressBar
 
 __all__ = [
-    "parse_args",
+    # LLM 调用层
+    "LLMGenerator",
+    "EmbeddingGenerator",
+    # 配置与参数
     "RuntimeConfig",
     "get_required_config",
-    "DialogueParser",
-    "TripleParser",
-    "EmbeddingGenerator",
-    "LLMGenerator",
+    "parse_args",
+    # 辅助工具
+    "calculate_test_thresholds",
+    "get_project_root",
+    "get_runtime_timestamp",
+    "get_time_filename",
+    # UI 组件
+    "ProgressBar",
 ]

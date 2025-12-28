@@ -11,15 +11,14 @@ import time
 
 
 def check_port(port: int) -> bool:
-    """检查端口是否可用"""
-    import socket
+    """检查端口是否可用
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind(("", port))
-            return True
-        except OSError:
-            return False
+    Note:
+        This is a wrapper around sage.common.utils.system.network.is_port_available
+    """
+    from sage.common.utils.system.network import is_port_available
+
+    return is_port_available("", port)
 
 
 def main():

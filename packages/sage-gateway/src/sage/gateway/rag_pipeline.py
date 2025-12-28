@@ -193,7 +193,7 @@ class RAGChatMap(MapFunction):
         from sage.common.components.sage_llm import UnifiedInferenceClient
 
         # 从 Control Plane 获取可用的 LLM 后端
-        llm_base_url, llm_model = self._get_llm_backend_info(model_name)
+        llm_base_url, llm_model, llm_api_key = self._get_llm_backend_info(model_name)
 
         if llm_base_url:
             logger.info(
@@ -206,6 +206,7 @@ class RAGChatMap(MapFunction):
             client = UnifiedInferenceClient.create(
                 control_plane_url=llm_base_url,
                 default_llm_model=llm_model,
+                llm_api_key=llm_api_key or "",
             )
             self._llm_clients[cache_key] = client
             return client
@@ -218,7 +219,7 @@ class RAGChatMap(MapFunction):
 
     def _get_llm_backend_info(
         self, target_model: str | None = None
-    ) -> tuple[str | None, str | None]:
+    ) -> tuple[str | None, str | None, str | None]:
         """从 Control Plane 获取可用的 LLM 后端 URL 和模型名称
 
         仅查询 Control Plane 注册的后端，不做端口扫描。
@@ -233,25 +234,26 @@ class RAGChatMap(MapFunction):
             manager = get_control_plane_manager()
             if manager is None:
                 logger.warning("Control Plane manager not available")
-                return None, None
+                return None, None, None
 
             backends_info = manager.get_registered_backends()
             llm_backends = backends_info.get("llm_backends", [])
 
             if not llm_backends:
                 logger.warning("No LLM backends registered in Control Plane")
-                return None, None
+                return None, None, None
 
-            # Helper to extract URL
-            def get_url(backend):
+            # Helper to extract URL and API Key
+            def get_backend_details(backend):
                 base_url = backend.get("base_url")
+                api_key = backend.get("metadata", {}).get("api_key")
                 if base_url:
-                    return base_url
+                    return base_url, api_key
                 host = backend.get("host", "localhost")
                 port = backend.get("port")
                 if port:
-                    return f"http://{host}:{port}/v1"
-                return None
+                    return f"http://{host}:{port}/v1", api_key
+                return None, None
 
             # 1. Try to find exact model match if requested
             if target_model:
@@ -260,17 +262,17 @@ class RAGChatMap(MapFunction):
                         model_name = backend.get("model_name")
                         # Check exact match or ID match
                         if model_name == target_model:
-                            url = get_url(backend)
+                            url, api_key = get_backend_details(backend)
                             if url:
-                                return url, model_name
+                                return url, model_name, api_key
 
             # 2. Fallback: Select first healthy backend (or if no target model specified)
             for backend in llm_backends:
                 if backend.get("is_healthy", False):
-                    url = get_url(backend)
+                    url, api_key = get_backend_details(backend)
                     model_name = backend.get("model_name")
                     if url:
-                        return url, model_name
+                        return url, model_name, api_key
 
             # 所有后端都不健康
             logger.warning("All %d LLM backends are unhealthy", len(llm_backends))

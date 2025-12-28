@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import signal
@@ -15,7 +16,9 @@ import requests
 from rich.console import Console
 from rich.table import Table
 
+from sage.common.config import find_sage_project_root
 from sage.common.config.ports import SagePorts
+from sage.common.config.user_paths import get_user_paths
 
 from .studio_manager import StudioManager
 from .utils.gpu_check import is_gpu_available
@@ -105,6 +108,22 @@ class ChatModeManager(StudioManager):
     # ------------------------------------------------------------------
     # Service Detection helpers
     # ------------------------------------------------------------------
+    def _normalize_base_url(self, url: str | None) -> str | None:
+        return url.rstrip("/") if url else url
+
+    def _probe_llm_endpoint(self, base_url: str | None) -> bool:
+        """Return True if the provided endpoint responds to /models."""
+        if not base_url:
+            return False
+        normalized = self._normalize_base_url(base_url)
+        if not normalized:
+            return False
+        try:
+            resp = requests.get(f"{normalized}/models", timeout=2)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
     def _detect_existing_llm_service(self) -> tuple[bool, str | None]:
         """Detect if LLM service is already running at known ports.
 
@@ -113,23 +132,53 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
-        # Check environment variables first
-        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
-            "SAGE_UNIFIED_BASE_URL"
-        )
-        if env_base_url:
-            return (True, env_base_url)
+        candidates: list[str] = []
+        seen: set[str] = set()
+
+        def _add_candidate(url: str | None) -> None:
+            normalized = self._normalize_base_url(url)
+            if not normalized or normalized in seen:
+                return
+            seen.add(normalized)
+            candidates.append(normalized)
+
+        launcher_cls = None
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+
+            launcher_cls = LLMLauncher
+            for service in LLMLauncher.discover_running_services():
+                _add_candidate(service.get("base_url"))
+        except ImportError:
+            launcher_cls = None
 
         # Ports to check in order of preference
         llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
 
         for port in llm_ports:
+            if launcher_cls:
+                candidate = launcher_cls.build_base_url(None, port)
+            else:
+                candidate = f"http://127.0.0.1:{port}/v1"
+            _add_candidate(candidate)
+
+        for candidate in candidates:
+            if self._probe_llm_endpoint(candidate):
+                return True, candidate
+
+        # Fallback: honor explicit env only if it is reachable AND loopback, to avoid
+        # blocking auto-start when a cloud endpoint is configured.
+        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url and self._probe_llm_endpoint(env_base_url):
             try:
-                resp = requests.get(f"http://localhost:{port}/v1/models", timeout=2)
-                if resp.status_code == 200:
-                    return (True, f"http://localhost:{port}/v1")
+                parsed = requests.utils.urlparse(env_base_url)
+                host = parsed.hostname
+                if host and host in {"127.0.0.1", "localhost", "::1"}:
+                    return True, env_base_url
             except Exception:
-                continue
+                pass
 
         return (False, None)
 
@@ -157,9 +206,9 @@ class ChatModeManager(StudioManager):
             if p is None:
                 continue
             try:
-                resp = requests.get(f"http://localhost:{p}/v1/models", timeout=2)
+                resp = requests.get(f"http://127.0.0.1:{p}/v1/models", timeout=2)
                 if resp.status_code == 200:
-                    return (True, f"http://localhost:{p}/v1")
+                    return (True, f"http://127.0.0.1:{p}/v1")
             except Exception:
                 continue
 
@@ -172,7 +221,7 @@ class ChatModeManager(StudioManager):
         """Start local LLM service via sageLLM.
 
         Uses sageLLM's unified LLMLauncher to start a local LLM HTTP server.
-        The server provides OpenAI-compatible API at http://localhost:{port}/v1
+        The server provides OpenAI-compatible API at http://127.0.0.1:{port}/v1
 
         If an LLM service is already running at known ports, it will be reused
         instead of starting a new one.
@@ -231,8 +280,12 @@ class ChatModeManager(StudioManager):
             console.print("   示例：pip install vllm  # 安装 vLLM 引擎")
             return False
 
-    def _stop_llm_service(self) -> bool:
-        """Stop local LLM service."""
+    def _stop_llm_service(self, force: bool = False) -> bool:
+        """Stop local LLM service.
+
+        Args:
+            force: If True, aggressively scan and stop services on related ports.
+        """
         try:
             from sage.common.components.sage_llm import LLMLauncher
         except ImportError:
@@ -252,19 +305,100 @@ class ChatModeManager(StudioManager):
                 return False
 
         # Use LLMLauncher to stop any running service
-        return LLMLauncher.stop(verbose=True)
+        stopped = LLMLauncher.stop(verbose=True, force=force)
+
+        # If force is enabled, also scan the benchmark range (8901-8910)
+        if force:
+            for port in range(8901, 8911):
+                # Skip if already checked by LLMLauncher (8901 is in BENCHMARK_LLM)
+                if port == SagePorts.BENCHMARK_LLM:
+                    continue
+
+                try:
+                    for conn in psutil.net_connections(kind="inet"):
+                        if conn.status == "LISTEN" and conn.laddr.port == port:
+                            pid = conn.pid
+                            if pid:
+                                console.print(
+                                    f"[blue]🛑 发现端口 {port} 上的残留服务 (PID: {pid})...[/blue]"
+                                )
+                                try:
+                                    proc = psutil.Process(pid)
+                                    proc.terminate()
+                                    try:
+                                        proc.wait(timeout=5)
+                                    except psutil.TimeoutExpired:
+                                        proc.kill()
+                                    console.print(f"[green]✅ 服务已停止 (端口 {port})[/green]")
+                                    stopped = True
+                                except Exception as e:
+                                    console.print(f"[yellow]⚠️ 停止失败: {e}[/yellow]")
+                                    try:
+                                        os.kill(pid, signal.SIGKILL)
+                                    except Exception:
+                                        pass
+                except Exception:
+                    pass
+
+        return stopped
 
     # ------------------------------------------------------------------
     # Embedding Service helpers
     # ------------------------------------------------------------------
-    def _start_embedding_service(self, model: str = "BAAI/bge-m3", port: int | None = None) -> bool:
+    def _load_models_config(self) -> list[dict[str, object]]:
+        try:
+            project_root = find_sage_project_root()
+        except Exception:
+            project_root = None
+
+        if not project_root:
+            project_root = Path.cwd()
+
+        config_path = project_root / "config" / "models.json"
+        if not config_path.exists():
+            return []
+
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Expand environment variables in api_key
+            if isinstance(data, list):
+                for entry in data:
+                    if isinstance(entry, dict):
+                        api_key = entry.get("api_key")
+                        if (
+                            isinstance(api_key, str)
+                            and api_key.startswith("${")
+                            and api_key.endswith("}")
+                        ):
+                            env_var = api_key[2:-1]
+                            entry["api_key"] = os.getenv(env_var, "")
+
+            return data if isinstance(data, list) else []
+        except Exception as exc:
+            console.print(f"[yellow]⚠️ 读取模型配置失败: {exc}[/yellow]")
+            return []
+
+    def _select_embedding_model_from_config(self) -> str | None:
+        candidates = [
+            entry
+            for entry in self._load_models_config()
+            if entry.get("engine_kind") == "embedding" and not entry.get("base_url")
+        ]
+        if not candidates:
+            return None
+        preferred = next((entry for entry in candidates if entry.get("default")), candidates[0])
+        return preferred.get("name")
+
+    def _start_embedding_service(self, model: str | None = None, port: int | None = None) -> bool:
         """Start Embedding service as a background process.
 
         If an Embedding service is already running at known ports, it will be reused
         instead of starting a new one.
 
         Args:
-            model: Embedding model name (default: BAAI/bge-m3)
+            model: Embedding model name (default: config/models.json embedding or BAAI/bge-m3)
             port: Server port (default: SagePorts.EMBEDDING_DEFAULT = 8090)
 
         Returns:
@@ -273,6 +407,9 @@ class ChatModeManager(StudioManager):
         if port is None:
             port = SagePorts.EMBEDDING_DEFAULT  # 8090
 
+        selected_model = model or self._select_embedding_model_from_config()
+        model_name = selected_model or "BAAI/bge-m3"
+
         # Check if already running (use the new detection method for consistent output)
         is_running, existing_url = self._detect_existing_embedding_service(port)
         if is_running:
@@ -280,10 +417,14 @@ class ChatModeManager(StudioManager):
             console.print("[dim]   跳过启动新服务，将复用现有服务[/dim]")
             return True
 
-        console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model}, 端口: {port})[/blue]")
+        if selected_model:
+            console.print(
+                f"[blue]🎯 根据 config/models.json 启动 Embedding 模型: {model_name}[/blue]"
+            )
+        console.print(f"[blue]🎯 启动 Embedding 服务 (模型: {model_name}, 端口: {port})[/blue]")
 
         # Ensure log directory exists
-        log_dir = Path.home() / ".sage" / "logs"
+        log_dir = get_user_paths().logs_dir
         log_dir.mkdir(parents=True, exist_ok=True)
         embedding_log = log_dir / "embedding.log"
 
@@ -292,7 +433,7 @@ class ChatModeManager(StudioManager):
             "-m",
             "sage.common.components.sage_embedding.embedding_server",
             "--model",
-            model,
+            model_name,
             "--port",
             str(port),
         ]
@@ -319,7 +460,7 @@ class ChatModeManager(StudioManager):
             console.print("   [dim]等待服务就绪 (首次可能需要下载模型)...[/dim]")
             for i in range(180):
                 try:
-                    resp = requests.get(f"http://localhost:{port}/v1/models", timeout=1)
+                    resp = requests.get(f"http://127.0.0.1:{port}/v1/models", timeout=1)
                     if resp.status_code == 200:
                         console.print("   [green]✓[/green] Embedding 服务已就绪")
                         return True
@@ -334,11 +475,15 @@ class ChatModeManager(StudioManager):
             console.print(f"[red]❌ 启动 Embedding 服务失败: {e}[/red]")
             return False
 
-    def _stop_embedding_service(self) -> bool:
+    def _stop_embedding_service(self, force: bool = False) -> bool:
         """Stop Embedding service if running.
 
+        Args:
+            force: If True, kill process on embedding port even if PID file is missing.
+
         NOTE: Only stops the service if it was started by Studio (has PID file).
-        Does NOT kill orphan processes to allow reuse of manually started services.
+        Does NOT kill orphan processes to allow reuse of manually started services,
+        unless force=True is specified.
         """
         log_dir = Path.home() / ".sage" / "logs"
         embedding_pid_file = log_dir / "embedding.pid"
@@ -366,9 +511,36 @@ class ChatModeManager(StudioManager):
             except Exception as e:
                 console.print(f"[yellow]⚠️  清理 Embedding PID 文件失败: {e}[/yellow]")
 
-        # NOTE: We intentionally do NOT kill orphan processes here anymore.
-        # This allows users to manually start an embedding service (e.g. via sage llm serve)
-        # and have it persist across Studio restarts.
+        if force and not stopped:
+            # Check default embedding port
+            port = SagePorts.EMBEDDING_DEFAULT  # 8090
+            try:
+                for conn in psutil.net_connections(kind="inet"):
+                    if conn.status == "LISTEN" and conn.laddr.port == port:
+                        pid = conn.pid
+                        if pid:
+                            console.print(
+                                f"[blue]🛑 发现 Embedding 端口 {port} 上的残留服务 (PID: {pid})...[/blue]"
+                            )
+                            try:
+                                proc = psutil.Process(pid)
+                                proc.terminate()
+                                try:
+                                    proc.wait(timeout=5)
+                                except psutil.TimeoutExpired:
+                                    proc.kill()
+                                console.print(
+                                    f"[green]✅ Embedding 服务已停止 (端口 {port})[/green]"
+                                )
+                                stopped = True
+                            except Exception as e:
+                                console.print(f"[yellow]⚠️ 停止失败: {e}[/yellow]")
+                                try:
+                                    os.kill(pid, signal.SIGKILL)
+                                except Exception:
+                                    pass
+            except Exception:
+                pass
 
         return stopped
 
@@ -423,6 +595,24 @@ class ChatModeManager(StudioManager):
         # Skip slow import check - just try to start directly
         # If gateway is not installed, subprocess will fail anyway
         gateway_port = port or self.gateway_port
+
+        # Check if port is in use
+        if self._is_port_in_use(gateway_port):
+            console.print(f"[yellow]⚠️  端口 {gateway_port} 已被占用[/yellow]")
+            try:
+                for proc in psutil.process_iter(["pid", "name"]):
+                    try:
+                        for conn in proc.connections(kind="inet"):
+                            if conn.laddr.port == gateway_port:
+                                console.print(
+                                    f"[yellow]   占用进程: {proc.pid} ({proc.name()})[/yellow]"
+                                )
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except Exception:
+                pass
+            # Continue anyway, let uvicorn fail and report error
+
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
 
@@ -447,7 +637,7 @@ class ChatModeManager(StudioManager):
             return False
 
         # 等待服务就绪 - Gateway 需要加载 MemoryManager 和 FAISS 索引，需要更长时间
-        url = f"http://localhost:{gateway_port}/health"
+        url = f"http://127.0.0.1:{gateway_port}/health"
         max_attempts = 120  # 最多等待 60 秒 (120 * 0.5)
         console.print("[blue]   等待 Gateway 服务就绪...[/blue]")
         for i in range(max_attempts):
@@ -513,15 +703,68 @@ class ChatModeManager(StudioManager):
             console.print("[yellow]gateway 未运行[/yellow]")
             return True
 
-        console.print("[blue]🛑 停止 sage-gateway...[/blue]")
+        console.print(f"[blue]🛑 停止 sage-gateway (PID: {pid})...[/blue]")
         try:
             if os.name == "nt":
                 subprocess.run(["taskkill", "/F", "/PID", str(pid)], check=True)
             else:
-                os.killpg(os.getpgid(pid), signal.SIGTERM)
-                time.sleep(1)
+                # Try to kill process group first
+                try:
+                    pgid = os.getpgid(pid)
+                    os.killpg(pgid, signal.SIGTERM)
+                except (ProcessLookupError, OSError):
+                    # Fallback to killing PID directly
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+
+                # Wait for process to exit
+                for _ in range(10):
+                    if not psutil.pid_exists(pid):
+                        break
+                    time.sleep(0.5)
+
                 if psutil.pid_exists(pid):
-                    os.killpg(os.getpgid(pid), signal.SIGKILL)
+                    console.print("[yellow]⚠️  Gateway 未响应 SIGTERM，尝试强制停止...[/yellow]")
+                    try:
+                        pgid = os.getpgid(pid)
+                        os.killpg(pgid, signal.SIGKILL)
+                    except (ProcessLookupError, OSError):
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                        except OSError:
+                            pass
+
+            # Double check port release
+            import socket
+
+            port_free = False
+            for _ in range(10):
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    if s.connect_ex(("localhost", self.gateway_port)) != 0:
+                        port_free = True
+                        break
+                time.sleep(0.5)
+
+            # If port is still in use, check if another process took it (or zombie/orphan)
+            if not port_free:
+                console.print(
+                    f"[yellow]⚠️  端口 {self.gateway_port} 仍被占用，检查残留进程...[/yellow]"
+                )
+                try:
+                    for proc in psutil.process_iter(["pid", "name"]):
+                        try:
+                            for conn in proc.connections(kind="inet"):
+                                if conn.laddr.port == self.gateway_port:
+                                    console.print(
+                                        f"[yellow]⚠️  发现残留进程 {proc.pid} ({proc.name()}) 占用端口，强制清理...[/yellow]"
+                                    )
+                                    proc.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+                except Exception:
+                    pass
 
             self.gateway_pid_file.unlink(missing_ok=True)
             console.print("[green]✅ gateway 已停止[/green]")
@@ -572,7 +815,32 @@ class ChatModeManager(StudioManager):
         except Exception:
             return []
 
-    def _auto_start_llms(self) -> bool:
+    def _get_used_llm_ports(self) -> set[int]:
+        ports: set[int] = set()
+        try:
+            from sage.common.components.sage_llm import LLMLauncher
+
+            for service in LLMLauncher.discover_running_services():
+                service_port = service.get("port")
+                if service_port is not None:
+                    ports.add(int(service_port))
+        except ImportError:
+            pass
+        return ports
+
+    def _find_free_llm_port(self, start_port: int, used_ports: set[int]) -> int | None:
+        """Return the next available TCP port for LLM services (clamped to 8901-8910)."""
+        from sage.common.config.ports import SagePorts
+
+        port = max(start_port, SagePorts.BENCHMARK_LLM)
+        max_port = SagePorts.BENCHMARK_LLM + 9  # 8901-8910 inclusive
+        while port <= max_port:
+            if port not in used_ports and not self._is_port_in_use(port):
+                return port
+            port += 1
+        return None
+
+    def _auto_start_llms(self, start_port: int | None = None) -> bool:
         """Automatically start multiple LLMs to fill GPU memory."""
         gpus = self._get_gpu_memory()
         if not gpus:
@@ -602,7 +870,8 @@ class ChatModeManager(StudioManager):
         ]
 
         started_count = 0
-        current_port = self.llm_port  # 8901
+        current_port = start_port or self.llm_port  # 8901 default
+        used_ports = self._get_used_llm_ports()
 
         try:
             from sage.common.components.sage_llm import LLMLauncher
@@ -633,14 +902,19 @@ class ChatModeManager(StudioManager):
                 if utilization < 0.1:
                     utilization = 0.1
 
+                next_port = self._find_free_llm_port(current_port, used_ports)
+                if next_port is None:
+                    console.print("[yellow]⚠️  没有可用端口用于新的 LLM 服务，停止自动调度[/yellow]")
+                    break
+
                 console.print(
-                    f"[blue]   尝试启动 {model_name} (端口 {current_port}, 显存 {utilization:.1%})...[/blue]"
+                    f"[blue]   尝试启动 {model_name} (端口 {next_port}, 显存 {utilization:.1%})...[/blue]"
                 )
 
                 try:
                     result = LLMLauncher.launch(
                         model=model_name,
-                        port=current_port,
+                        port=next_port,
                         gpu_memory=utilization,
                         background=True,
                         verbose=True,
@@ -651,8 +925,9 @@ class ChatModeManager(StudioManager):
                         console.print(f"[green]✅ {model_name} 启动成功[/green]")
                         # Update virtual free memory for the target GPU
                         target_gpu["free"] -= required_mem
+                        used_ports.add(next_port)
                         started_count += 1
-                        current_port += 1  # Increment port for next model
+                        current_port = next_port + 1  # Increment port for next model
 
                         # If this was the first one, set it as self.llm_service
                         if self.llm_service is None:
@@ -732,9 +1007,31 @@ class ChatModeManager(StudioManager):
             # 2. GPU is available
             # 3. No existing service running (to avoid conflicts)
             if not is_specific_request and is_gpu_available():
-                is_running, _ = self._detect_existing_llm_service()
+                is_running, existing_url = self._detect_existing_llm_service()
+                should_auto_scale = False
                 if not is_running:
-                    llm_started = self._auto_start_llms()
+                    should_auto_scale = True
+                else:
+                    prompt_msg = (
+                        f"[cyan]检测到已有 LLM 服务 ({existing_url}). 仍要继续自动扩容更多模型吗？[/cyan]"
+                        if existing_url
+                        else "[cyan]检测到已有 LLM 服务。仍要继续自动扩容更多模型吗？[/cyan]"
+                    )
+                    if skip_confirm:
+                        should_auto_scale = True
+                    else:
+                        try:
+                            from rich.prompt import Confirm
+
+                            should_auto_scale = Confirm.ask(prompt_msg, default=False)
+                        except ImportError:
+                            should_auto_scale = False
+
+                if should_auto_scale:
+                    starting_port = self._find_free_llm_port(
+                        self.llm_port, self._get_used_llm_ports()
+                    )
+                    llm_started = self._auto_start_llms(start_port=starting_port or self.llm_port)
 
             # Fallback / Standard Mode
             # If auto-scaling skipped or failed, use standard start logic
@@ -797,8 +1094,8 @@ class ChatModeManager(StudioManager):
         embedding = True
 
         if stop_infrastructure:
-            llm = self._stop_llm_service()
-            embedding = self._stop_embedding_service()
+            llm = self._stop_llm_service(force=True)
+            embedding = self._stop_embedding_service(force=True)
         else:
             # Inform user that infrastructure is preserved
             console.print("[dim]ℹ️  保留 LLM/Embedding 服务运行 (使用 --all 停止所有)[/dim]")
@@ -818,7 +1115,7 @@ class ChatModeManager(StudioManager):
         found_llms = []
         for port in range(8901, 8911):
             try:
-                resp = requests.get(f"http://localhost:{port}/v1/models", timeout=0.5)
+                resp = requests.get(f"http://127.0.0.1:{port}/v1/models", timeout=0.5)
                 if resp.status_code == 200:
                     models = resp.json().get("data", [])
                     if models:
@@ -839,7 +1136,7 @@ class ChatModeManager(StudioManager):
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
             llm_table.add_row("端口", str(SagePorts.BENCHMARK_LLM))
-            llm_table.add_row("提示", "使用 --llm 启动本地服务")
+            llm_table.add_row("提示", "默认启动本地服务 (除非指定 --no-llm)")
 
         console.print(llm_table)
 
@@ -850,7 +1147,7 @@ class ChatModeManager(StudioManager):
 
         embedding_port = SagePorts.EMBEDDING_DEFAULT
         try:
-            resp = requests.get(f"http://localhost:{embedding_port}/v1/models", timeout=2)
+            resp = requests.get(f"http://127.0.0.1:{embedding_port}/v1/models", timeout=2)
             if resp.status_code == 200:
                 models = resp.json().get("data", [])
                 model_name = models[0].get("id", "unknown") if models else "unknown"
@@ -876,7 +1173,7 @@ class ChatModeManager(StudioManager):
         if pid:
             table.add_row("状态", "[green]运行中[/green]")
             table.add_row("PID", str(pid))
-            url = f"http://localhost:{self.gateway_port}/health"
+            url = f"http://127.0.0.1:{self.gateway_port}/health"
             try:
                 response = requests.get(url, timeout=1)
                 status = response.json().get("status", "unknown")

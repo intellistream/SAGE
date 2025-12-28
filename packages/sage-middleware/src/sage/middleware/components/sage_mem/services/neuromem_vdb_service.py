@@ -241,6 +241,29 @@ class NeuroMemVDBService(BaseService):
         self.logger.warning(f"Failed to delete entry {entry_id[:16]}... from any collection")
         return False
 
+    def get_stats(self) -> dict[str, Any]:
+        """获取统计信息"""
+        total_memory_count = 0
+        collection_stats = {}
+
+        for name, collection in self.online_register_collections.items():
+            all_ids = collection.get_all_ids()
+            total_memory_count += len(all_ids)
+
+            collection_stats[name] = {
+                "memory_count": len(all_ids),
+            }
+
+            # 添加存储统计
+            if hasattr(collection, "get_storage_stats"):
+                collection_stats[name]["storage"] = collection.get_storage_stats()
+
+        return {
+            "total_memory_count": total_memory_count,
+            "collection_count": len(self.online_register_collections),
+            "collections": collection_stats,
+        }
+
     def _create_index(self, collection_name: str, index_name: str, **kwargs):
         """为指定collection创建索引"""
         if collection_name not in self.online_register_collections:

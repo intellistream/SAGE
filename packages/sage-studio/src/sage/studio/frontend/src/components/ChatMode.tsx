@@ -163,19 +163,19 @@ function ModelSelector({
             </div>
         ),
     })) || [
-        {
-            key: 'current',
-            label: (
-                <div className="py-1">
-                    <div className="font-medium">{modelName}</div>
-                    <div className="text-xs text-[--gemini-text-secondary]">
-                        {isLocal ? 'Local Model' : 'Cloud Model'} · {isHealthy ? 'Connected' : 'Disconnected'}
+            {
+                key: 'current',
+                label: (
+                    <div className="py-1">
+                        <div className="font-medium">{modelName}</div>
+                        <div className="text-xs text-[--gemini-text-secondary]">
+                            {isLocal ? 'Local Model' : 'Cloud Model'} · {isHealthy ? 'Connected' : 'Disconnected'}
+                        </div>
                     </div>
-                </div>
-            ),
-            disabled: true,
-        },
-    ]
+                ),
+                disabled: true,
+            },
+        ]
 
     return (
         <Dropdown
@@ -724,6 +724,8 @@ export default function ChatMode({ onModeChange, isMobile = false }: ChatModePro
                         onMenuClick={() => setMobileSidebarOpen(true)}
                         onNewChat={handleNewChat}
                         title={currentSessionTitle}
+                        llmStatus={llmStatus}
+                        onSelectModel={handleModelSelect}
                     />
                     <MobileSidebar
                         isOpen={mobileSidebarOpen}

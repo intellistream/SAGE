@@ -4,10 +4,10 @@ Actor 和 Task 生命周期管理实现
 负责管理 Actor 和 Task 的创建、监控、清理和终止的具体实现。
 """
 
-import time
 from typing import Any, Protocol
 
 from sage.common.core import DEFAULT_CLEANUP_TIMEOUT, TaskID
+from sage.kernel.utils.helpers import wait_for_all_stopped
 
 
 class LoggerProtocol(Protocol):
@@ -202,27 +202,7 @@ class LifecycleManagerImpl:
         Returns:
             True 如果所有任务都已停止
         """
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            all_stopped = True
-
-            for _task_id, task in tasks.items():
-                if hasattr(task, "is_running") and task.is_running:
-                    all_stopped = False
-                    break
-
-            if all_stopped:
-                if self.logger:
-                    self.logger.debug("All tasks stopped")
-                return True
-
-            time.sleep(0.1)
-
-        if self.logger:
-            self.logger.warning(f"Timeout waiting for tasks to stop after {timeout}s")
-
-        return False
+        return wait_for_all_stopped(tasks, timeout=timeout, logger=self.logger)
 
 
 __all__ = ["LifecycleManagerImpl"]

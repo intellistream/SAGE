@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +81,9 @@ class LLMLauncher:
         ```
     """
 
+    # Allow a small, fixed port window to avoid endless config files
+    _ALLOWED_PORTS = tuple(SagePorts.BENCHMARK_LLM + i for i in range(10))  # 8901-8910
+
     @staticmethod
     def _ensure_dirs() -> None:
         """Ensure required directories exist."""
@@ -93,6 +97,92 @@ class LLMLauncher:
     @staticmethod
     def _get_config_file(port: int) -> Path:
         return SAGE_DIR / f"llm_service_config_{port}.json"
+
+    @staticmethod
+    def _resolve_client_host(host: str | None) -> str:
+        """Translate bind-all hosts to a concrete endpoint for clients."""
+        if not host or host in {"0.0.0.0", "::", "", "*"}:
+            return "127.0.0.1"
+        return host
+
+    @classmethod
+    def build_base_url(cls, host: str | None, port: int) -> str:
+        """Format an HTTP base URL, handling IPv6 literals when necessary."""
+        resolved_host = cls._resolve_client_host(host)
+        if ":" in resolved_host and not resolved_host.startswith("["):
+            resolved_host = f"[{resolved_host}]"
+        return f"http://{resolved_host}:{port}/v1"
+
+    @classmethod
+    def _is_port_allowed(cls, port: int | None) -> bool:
+        return port is not None and port in cls._ALLOWED_PORTS
+
+    @classmethod
+    def _is_port_listening(cls, host: str | None, port: int | None) -> bool:
+        if port is None:
+            return False
+        target_host = cls._resolve_client_host(host)
+        try:
+            with socket.create_connection((target_host, port), timeout=1.5):
+                return True
+        except Exception:
+            return False
+
+    @classmethod
+    def discover_running_services(cls) -> list[dict[str, Any]]:
+        """List services recorded in llm_service_config files and prune stale ones."""
+        services: list[dict[str, Any]] = []
+        if not SAGE_DIR.exists():
+            return services
+
+        for config_file in SAGE_DIR.glob("llm_service_config_*.json"):
+            try:
+                config = json.loads(config_file.read_text())
+                port_value = config.get("port")
+                if port_value is None or not cls._is_port_allowed(int(port_value)):
+                    # Skip configs outside the allowed port window
+                    continue
+                port = int(port_value)
+                host = config.get("host")
+                base_url = cls.build_base_url(host, port)
+
+                # Skip stale entries: missing pid or dead process and no listener
+                pid_file = cls._get_pid_file(port)
+                pid_value: int | None = None
+                if pid_file.exists():
+                    try:
+                        pid_value = int(pid_file.read_text().strip())
+                    except Exception:
+                        pid_value = None
+
+                alive = False
+                if pid_value is not None:
+                    try:
+                        import psutil
+
+                        alive = psutil.pid_exists(pid_value)
+                    except Exception:
+                        alive = False
+
+                if not alive and not cls._is_port_listening(host, port):
+                    # Clean up stale records to avoid UI clutter
+                    cls.clear_service_info(port)
+                    continue
+
+                services.append(
+                    {
+                        "base_url": base_url,
+                        "host": host,
+                        "port": port,
+                        "served_model_name": config.get("served_model_name"),
+                        "model": config.get("model"),
+                        "config": config,
+                    }
+                )
+            except Exception:
+                continue
+
+        return services
 
     @staticmethod
     def save_service_info(pid: int, config: dict[str, Any], port: int | None = None) -> None:
@@ -301,6 +391,13 @@ class LLMLauncher:
         if port is None:
             port = SagePorts.BENCHMARK_LLM  # 8901
 
+        # Enforce allowed port window to avoid unbounded configs
+        if not cls._is_port_allowed(port):
+            return LLMLauncherResult(
+                success=False,
+                error=f"Port {port} is not allowed. Use ports in {cls._ALLOWED_PORTS}.",
+            )
+
         # Auto-configure HuggingFace mirror
         ensure_hf_mirror_configured()
         cls._ensure_dirs()
@@ -327,6 +424,8 @@ class LLMLauncher:
             verbose=verbose,
         )
 
+        served_model_name = get_served_model_name(resolved_model)
+
         # Resolve speculative model path if provided
         resolved_speculative_model = None
         if speculative_model:
@@ -334,6 +433,20 @@ class LLMLauncher:
                 speculative_model,
                 verbose=verbose,
             )
+
+        # Avoid launching duplicate instances of the same model
+        if check_existing:
+            for svc in cls.discover_running_services():
+                if svc.get("served_model_name") != served_model_name:
+                    continue
+                if cls._is_port_listening(svc.get("host"), svc.get("port")):
+                    return LLMLauncherResult(
+                        success=False,
+                        error=(
+                            f"Model {served_model_name} already running at "
+                            f"{svc.get('base_url', 'unknown')}"
+                        ),
+                    )
 
         if verbose:
             console.print("[blue]🚀 启动 LLM 服务 (sageLLM)[/blue]")
@@ -374,10 +487,6 @@ class LLMLauncher:
             success = server.start(background=background, log_file=log_file)
 
             if success and background:
-                # Get the friendly model name for API clients
-                # e.g., /home/user/.sage/models/vllm/Qwen__X -> Qwen/X
-                served_model_name = get_served_model_name(resolved_model)
-
                 # Save service info for management
                 cls.save_service_info(
                     server.pid,
@@ -394,13 +503,13 @@ class LLMLauncher:
 
                 # Set environment variables for client auto-detection
                 # Use the friendly model name so clients can call the API correctly
-                os.environ["SAGE_CHAT_BASE_URL"] = f"http://127.0.0.1:{port}/v1"
+                os.environ["SAGE_CHAT_BASE_URL"] = cls.build_base_url(host, port)
                 os.environ["SAGE_CHAT_MODEL"] = served_model_name
 
                 if verbose:
                     console.print("\n[green]✅ LLM 服务已启动[/green]")
                     console.print(f"   PID: {server.pid}")
-                    console.print(f"   API: http://localhost:{port}/v1")
+                    console.print(f"   API: {cls.build_base_url(host, port)}")
                     console.print(f"   模型: {served_model_name}")
                     console.print(f"   日志: {log_file}")
 
@@ -601,7 +710,8 @@ class LLMLauncher:
             if config:
                 console.print(f"   模型: {config.get('model', 'unknown')}")
                 console.print(f"   端口: {config.get('port', 'unknown')}")
-                console.print(f"   API: http://localhost:{config.get('port', 8901)}/v1")
+                api_port = int(config.get("port", SagePorts.BENCHMARK_LLM))
+                console.print(f"   API: {cls.build_base_url(config.get('host'), api_port)}")
                 if config.get("log_file"):
                     console.print(f"   日志: {config['log_file']}")
 

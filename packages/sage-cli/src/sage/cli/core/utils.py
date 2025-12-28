@@ -13,7 +13,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
 from typing import Any
 
@@ -285,16 +284,13 @@ def is_port_available(host: str, port: int) -> bool:
 
     Returns:
         True if port is available, False otherwise
-    """
-    import socket
 
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(1)
-            result = sock.connect_ex((host, port))
-            return result != 0
-    except Exception:
-        return False
+    Note:
+        This is a wrapper around sage.common.utils.system.network.is_port_available
+    """
+    from sage.common.utils.system.network import is_port_available as _is_port_available
+
+    return _is_port_available(host, port)
 
 
 def wait_for_port(host: str, port: int, timeout: int = 30, check_interval: float = 1.0) -> bool:
@@ -309,21 +305,13 @@ def wait_for_port(host: str, port: int, timeout: int = 30, check_interval: float
 
     Returns:
         True if port becomes available, False if timeout
+
+    Note:
+        This is a wrapper around sage.common.utils.system.network.wait_for_port_ready
     """
-    import socket
+    from sage.common.utils.system.network import wait_for_port_ready
 
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(1)
-                if sock.connect_ex((host, port)) == 0:
-                    return True
-        except Exception:
-            pass
-        time.sleep(check_interval)
-
-    return False
+    return wait_for_port_ready(host, port, timeout, check_interval)
 
 
 def create_temp_file(

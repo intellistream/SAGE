@@ -46,7 +46,6 @@ services:
     fusion_weights:
       semantic: 0.7
       keyword: 0.3
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -102,3 +101,60 @@ operators:
     action: "none"
     conversation_format_prompt: |
       The following are relevant facts from memory.
+
+# ============================================================
+# Mem0 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. 事实存储: 提取并存储离散事实
+#   2. ADD/UPDATE/DELETE: LLM 决策记忆操作
+#   3. 混合检索: Vector + BM25 融合
+#   4. 全局摘要: 用户画像和知识库概览
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 Mem0 操作        │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Fact Extraction       │ extract      │
+# │  - 实体提取        │ 识别关键实体          │ spacy        │
+# │  - 名词提取        │ 候选事实              │ entity_types │
+# │  - 元数据标注      │ 实体类型标记          │ metadata     │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Hybrid Insert         │ HybridMemory │
+# │  - 向量索引        │ semantic search       │ FAISS        │
+# │  - BM25 索引       │ keyword search        │ BM25         │
+# │  - 融合权重        │ 0.7 semantic + 0.3 kw │ weighted     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ ADD/UPDATE/DELETE     │ distillation │
+# │  - 检索相似事实    │ 查找已有事实          │ topk=10      │
+# │  - LLM 决策        │ 判断操作类型          │ LLM Prompt   │
+# │  - 执行操作        │ ADD: 新增             │ Service      │
+# │                    │ UPDATE: 删旧加新      │              │
+# │                    │ DELETE: 删除矛盾      │              │
+# │                    │ NOOP: 已存在          │              │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding       │ embedding    │
+# │  - 查询向量化      │ 用于混合检索          │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Hybrid Search         │ HybridMemory │
+# │  - 向量检索        │ semantic top-k        │ FAISS        │
+# │  - BM25 检索       │ keyword top-k         │ BM25         │
+# │  - 加权融合        │ RRF / weighted sum    │ fusion       │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Basic Format          │ none         │
+# │  - 基础格式化      │ 拼接事实列表          │ default      │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - fusion_strategy="weighted": 加权融合策略
+#   - fusion_weights: {semantic: 0.7, keyword: 0.3}
+#   - distillation_prompt: ADD/UPDATE/DELETE 决策 prompt
+#
+# 与论文的差异：
+#   1. 论文使用 Qdrant 作为向量数据库，SAGE 使用 FAISS
+#   2. SAGE 的 distillation_prompt 基于论文逻辑重新设计
+#   3. SAGE 支持配置化的融合权重
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_mem0_pipeline.yaml --task_id conv-26

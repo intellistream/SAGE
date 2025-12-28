@@ -19,7 +19,6 @@ Example:
 from __future__ import annotations
 
 import json
-import socket
 import subprocess
 import sys
 import time
@@ -46,10 +45,14 @@ LOG_FILE = Path.home() / ".sage" / "logs" / "inference_server.log"
 
 
 def _is_port_in_use(port: int) -> bool:
-    """Check if a port is in use."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        result = sock.connect_ex(("localhost", port))
-        return result == 0
+    """Check if a port is in use.
+
+    Note:
+        This is a wrapper around sage.common.utils.system.network.is_port_occupied
+    """
+    from sage.common.utils.system.network import is_port_occupied
+
+    return is_port_occupied("localhost", port)
 
 
 def _get_running_pid() -> int | None:

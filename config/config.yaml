@@ -1,98 +1,42 @@
-# SAGE Configuration
-# ==============================================================================
-#
-# Location: <project_root>/config/config.yaml
-#
-# This is the unified configuration file for SAGE.
-# Edit this file to configure services, cluster, and runtime settings.
-#
-# Quick start:
-#   1. Edit cluster settings (provider.head_ip, provider.worker_ips)
-#   2. Setup SSH keys: sage cluster setup-ssh
-#   3. Start cluster: sage cluster start
-#
-# ==============================================================================
-
-
-# ==============================================================================
-# CLUSTER CONFIGURATION
-# ==============================================================================
-
-cluster_name: sage-cluster
-max_workers: 10
-
-# ------------------------------------------------------------------------------
-# Provider (On-Premise Cluster)
-# ------------------------------------------------------------------------------
-provider:
-  type: local
-  head_ip: 192.168.1.100
-  worker_ips:
-  - 192.168.1.101
-  - 192.168.1.102
-  - 192.168.1.103
-
-# ------------------------------------------------------------------------------
-# SSH Authentication (Key-based only, no passwords)
-# ------------------------------------------------------------------------------
 auth:
-  ssh_user: sage
-  ssh_private_key: ~/.ssh/id_rsa
   connect_timeout: 10
-
-# ------------------------------------------------------------------------------
-# Ray Settings
-# ------------------------------------------------------------------------------
-ray:
-  head_port: 6379
-  dashboard_port: 8265
-  dashboard_host: 0.0.0.0
-  object_store_memory:
-  num_cpus:
-  num_gpus:
-
-# ------------------------------------------------------------------------------
-# Remote Environment
-# ------------------------------------------------------------------------------
-remote:
-  sage_home: ~/SAGE
-  python_path: python
-  ray_command: ray
-  conda_env: sage
-
-
-# ==============================================================================
-# SERVICE CONFIGURATION
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
-# LLM Service
-# ------------------------------------------------------------------------------
-llm:
-  model: Qwen/Qwen2.5-7B-Instruct
-  port: 8001
-  max_model_len: 4096
-  gpu_memory_utilization: 0.9
-  tensor_parallel_size: 1
-
-# ------------------------------------------------------------------------------
-# Embedding Service
-# ------------------------------------------------------------------------------
+  ssh_private_key: ~/.ssh/id_rsa
+  ssh_user: sage
+cluster_name: sage-cluster
 embedding:
   model: BAAI/bge-m3
   port: 8090
   use_gpu: false
-
-# ------------------------------------------------------------------------------
-# Gateway (OpenAI-compatible API)
-# ------------------------------------------------------------------------------
 gateway:
   port: 8000
   session_backend: file
-
-# ------------------------------------------------------------------------------
-# Studio (Web UI)
-# ------------------------------------------------------------------------------
+llm:
+  gpu_memory_utilization: 0.9
+  max_model_len: 4096
+  model: Qwen/Qwen2.5-7B-Instruct
+  port: 8001
+  tensor_parallel_size: 1
+max_workers: 10
+provider:
+  head_ip: base-sage
+  type: local
+  worker_ips:
+  - sage4
+  - sage2
+  - sage5
+ray:
+  dashboard_host: 0.0.0.0
+  dashboard_port: 8265
+  head_port: 6379
+  worker_bind_host: localhost
+  num_cpus:
+  num_gpus:
+  object_store_memory:
+remote:
+  conda_env: sage
+  python_path: python
+  ray_command: ray
+  sage_home: ~/SAGE
 studio:
   backend_port: 8888
   frontend_port: 5173

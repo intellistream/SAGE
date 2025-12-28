@@ -197,37 +197,30 @@ ssh sage@sage2 'ray stop'
 
 ## 📝 配置文件
 
-配置文件位于项目根目录 `config/cluster.yaml`，直接编辑即可：
-
-```bash
-vi config/cluster.yaml
-```
-
-**配置示例：**
+集群配置文件位于 `~/.sage/cluster_config.yaml`
 
 ```yaml
-cluster_name: sage-cluster
-
-provider:
-  type: local
-  head_ip: 192.168.1.100
-  worker_ips:
-    - 192.168.1.101
-    - 192.168.1.102
-    - 192.168.1.103
-
-auth:
-  ssh_user: sage
-  ssh_private_key: ~/.ssh/id_rsa
-  connect_timeout: 10
-
-ray:
+head:
+  host: localhost
   head_port: 6379
   dashboard_port: 8265
 
+workers:
+  - host: sage2
+    port: 22
+  - host: sage3
+    port: 22
+  - host: sage4
+    port: 22
+
+ssh:
+  user: sage
+  key_path: ~/.ssh/id_rsa
+  connect_timeout: 10
+
 remote:
   conda_env: sage
-  auto_sync_ray_version: true
+  ray_command: ray
 ```
 
 ## 🎯 最佳实践

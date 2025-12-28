@@ -9,6 +9,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from sage.common.utils.formatting import format_size_compact
+
 
 @dataclass
 class OrphanedFile:
@@ -205,13 +207,8 @@ class OrphanedFileDetector:
 
 
 def format_file_size(size_bytes: int) -> str:
-    """格式化文件大小"""
-    size_float = float(size_bytes)
-    for unit in ["B", "KB", "MB"]:
-        if size_float < 1024:
-            return f"{size_float:.1f}{unit}"
-        size_float /= 1024
-    return f"{size_float:.1f}GB"
+    """格式化文件大小（使用统一的格式化函数）"""
+    return format_size_compact(size_bytes)
 
 
 def analyze_orphaned_files(

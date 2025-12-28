@@ -6,6 +6,7 @@
 
 from sage.common.core import BatchFunction
 from sage.data.sources.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.longmemeval import LongMemEvalDataLoader
 from sage.data.sources.memagentbench.conflict_resolution_loader import ConflictResolutionDataLoader
 
 
@@ -38,6 +39,8 @@ class MemorySource(BatchFunction):
             self.loader = LocomoDataLoader()
         elif self.dataset == "conflict_resolution":
             self.loader = ConflictResolutionDataLoader()
+        elif self.dataset == "longmemeval":
+            self.loader = LongMemEvalDataLoader()
         else:
             raise ValueError(f"Unsupported dataset: {self.dataset}")
 

@@ -6,6 +6,8 @@ import logging
 import re
 from typing import Any
 
+from .utils.repair import extract_json_array
+
 logger = logging.getLogger(__name__)
 
 PlanStep = dict[
@@ -78,64 +80,6 @@ Rules:
 
 Output: JSON array only.
 """
-
-
-def _strip_code_fences(text: str) -> str:
-    t = text.strip()
-    if t.startswith("```"):
-        # ```json ... ``` or ``` ...
-        t = t[3:]
-        # 去掉语言标记
-        if "\n" in t:
-            t = t.split("\n", 1)[1]
-        if t.endswith("```"):
-            t = t[:-3]
-    return t.strip()
-
-
-def _coerce_json_array(text: str) -> list[Any] | None:
-    """
-    容错解析：优先直接 loads；失败时尝试截取第一个 '[' 到最后一个 ']' 之间的内容。
-    """
-    t = _strip_code_fences(text)
-
-    # 方法1：直接解析
-    try:
-        data = json.loads(t)
-        if isinstance(data, list):
-            return data
-    except Exception:
-        pass
-
-    # 方法2：尝试在文本中捕捉一个 JSON 数组
-    try:
-        start = t.find("[")
-        end = t.rfind("]")
-        if start != -1 and end != -1 and end > start:
-            snippet = t[start : end + 1]
-            data = json.loads(snippet)
-            if isinstance(data, list):
-                return data
-    except Exception:
-        pass
-
-    # 方法3：尝试使用正则表达式提取 JSON
-    try:
-        import re
-
-        json_pattern = r"\[(?:[^[\]]*|\[[^\]]*\])*\]"
-        matches = re.findall(json_pattern, t, re.DOTALL)
-        for match in matches:
-            try:
-                data = json.loads(match)
-                if isinstance(data, list):
-                    return data
-            except Exception:
-                continue
-    except Exception:
-        pass
-
-    return None
 
 
 def _validate_steps(
@@ -227,7 +171,7 @@ class SimpleLLMPlanner:
         yield {"type": "thought", "content": "正在生成执行计划..."}
         prompt = _build_prompt(profile_system_prompt, user_query, tools_subset)
         out = self._ask_llm(prompt, user_query)
-        steps = _coerce_json_array(out)
+        steps = extract_json_array(out)
 
         # 调试信息：记录原始输出
         if steps is None:
@@ -243,7 +187,7 @@ class SimpleLLMPlanner:
             _, out2 = self.generator.execute(
                 [user_query, repair_prompt + "\n\nPrevious output:\n" + out]
             )
-            steps = _coerce_json_array(out2)
+            steps = extract_json_array(out2)
 
             # 调试信息：记录修复后的输出
             if steps is None:

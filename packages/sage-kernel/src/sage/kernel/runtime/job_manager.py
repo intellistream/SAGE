@@ -256,16 +256,15 @@ class JobManager:  # Job Manager
 
     def delete_job(self, env_uuid: str, force: bool = False) -> dict[str, Any]:
         """删除作业"""
-        # 使用锁保护 job 删除操作，避免并发删除
-        if env_uuid not in self.jobs:
-            self.logger.warning(f"Job {env_uuid} already deleted or not found")
+        job_info = self.jobs.get(env_uuid)
+
+        if not job_info:
+            self.logger.error(f"Job with UUID {env_uuid} not found")
             return {
                 "uuid": env_uuid,
                 "status": "not_found",
                 "message": f"Job with UUID {env_uuid} not found",
             }
-
-        job_info = self.jobs[env_uuid]
 
         try:
             current_status = job_info.status
@@ -301,12 +300,8 @@ class JobManager:  # Job Manager
             }
             self.deleted_jobs[env_uuid] = deletion_info
 
-            # 从活动作业列表中移除（再次检查避免并发删除）
-            if env_uuid in self.jobs:
-                del self.jobs[env_uuid]
-                self.logger.info(f"Job {env_uuid} removed from active jobs")
-            else:
-                self.logger.warning(f"Job {env_uuid} was already removed during cleanup")
+            # 从活动作业列表中移除
+            del self.jobs[env_uuid]
 
             self.logger.info(f"Job {env_uuid} deleted successfully")
 
@@ -345,10 +340,7 @@ class JobManager:  # Job Manager
         """接收来自单个节点的停止信号"""
         job_info = self.jobs.get(env_uuid)
         if not job_info:
-            # 降级为 debug：Job 可能已经完成并被删除（正常的竞态条件）
-            self.logger.debug(
-                f"Job with UUID {env_uuid} not found (likely already completed and deleted)"
-            )
+            self.logger.error(f"Job with UUID {env_uuid} not found")
             return
 
         try:

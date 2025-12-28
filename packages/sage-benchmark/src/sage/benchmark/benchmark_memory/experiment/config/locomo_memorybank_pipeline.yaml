@@ -44,7 +44,6 @@ services:
     migration_policy: "heat"          # 基于热度迁移
     migration_threshold: 0.7
     embedding_dim: 1024               # bge-m3 模型输出 1024 维向量
-  memory_insert_adapter: "to_refactor"
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -99,3 +98,59 @@ operators:
     top_k: 10
     conversation_format_prompt: |
       The following is the user's conversation history and profile.
+
+# ============================================================
+# MemoryBank 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. 多层级存储：原始对话 + 事件摘要 + 用户画像
+#   2. Ebbinghaus 遗忘曲线：基于记忆强度的衰减
+#   3. 检索强化：被检索的记忆强度增加
+#   4. 全局画像：每日人格分析 + 全局用户画像
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 MemoryBank 操作 │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Event Summarization  │ transform    │
+# │  - 对话摘要        │ Daily Event Summary  │ summarize    │
+# │  - Embedding       │ 摘要向量化           │ BGE-M3       │
+# │  - 主动插入标记    │ target_tier="ltm"    │ insert_mode  │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Multi-tier Insert    │ Hierarchical │
+# │  - STM: 原始对话   │ 存入短期记忆         │ capacity=50  │
+# │  - LTM: 摘要       │ 摘要主动写入 LTM     │ capacity=-1  │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Forgetting Mechanism │ forgetting   │
+# │  - 计算记忆强度    │ S = 初始强度 + 检索次数 │ ebbinghaus │
+# │  - 应用遗忘曲线    │ R = exp(-t/S)        │ exponential  │
+# │  - 删除低强度记忆  │ R < threshold 时删除 │ retention_min│
+# │  - 检索增强        │ 被检索时 +0.5        │ review_boost │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding      │ embedding    │
+# │  - 查询向量化      │ 用于向量检索         │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Dense Retrieval      │ Hierarchical │
+# │  - 多层检索        │ 同时搜索 STM/MTM/LTM │ FAISS        │
+# │  - 相似度排序      │ Cosine Similarity    │ top_k        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Context Integration  │ rerank       │
+# │  - 时间加权        │ 近期记忆权重更高     │ time_decay   │
+# │  - 重排序          │ 综合相似度+时间      │ top_k=10     │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - tier_mode="three_tier": 三层架构（STM/MTM/LTM）
+#   - decay_type="ebbinghaus": 艾宾浩斯遗忘曲线
+#   - initial_strength=1.0: 初始记忆强度
+#   - review_boost=0.5: 检索时的强度增量
+#   - time_decay_rate=0.1: 时间衰减率
+#
+# 与论文的差异：
+#   1. 论文使用 MiniLM/Text2vec，SAGE 使用 BGE-M3（更强）
+#   2. 论文固定摘要策略，SAGE 支持可配置的摘要 prompt
+#   3. SAGE 增加了热度迁移（migration_policy="heat"）
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_memorybank_pipeline.yaml --task_id conv-26

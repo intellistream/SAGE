@@ -132,3 +132,17 @@ class BaseService(ABC):
         子类可以重写此方法来进行停止逻辑
         """
         pass
+
+    def get_status(self) -> dict:
+        """获取服务状态（被动插入模式）
+
+        用于 PostInsert 算子查询服务内部状态，实现被动插入+状态查询模式。
+        子类应重写此方法以返回具体的待处理状态。
+
+        Returns:
+            dict: 服务状态字典，包含:
+                - pending_action: str | None, 待处理动作类型
+                - pending_items: List[Dict], 待处理条目
+                - ...其他服务特定字段
+        """
+        return {"pending_action": None, "pending_items": []}
