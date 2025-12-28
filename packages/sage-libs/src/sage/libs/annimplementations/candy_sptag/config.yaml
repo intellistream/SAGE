@@ -1,0 +1,23 @@
+random-xs:
+  candy_sptag:
+    module: benchmark_anns.bench.algorithms.candy_sptag.candy_sptag
+    constructor: CandySptag
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "SPTAG", "threads": 1}]
+        query-args: |
+          [{"ef": 30}]
+
+sift:
+  candy_sptag:
+    module: benchmark_anns.bench.algorithms.candy_sptag.candy_sptag
+    constructor: CandySptag
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "SPTAG", "threads": 1}]
+        query-args: |
+          [{"ef": 30}]
