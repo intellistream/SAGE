@@ -325,8 +325,9 @@ except Exception:
     pass
 " 2>/dev/null || true
 
-    # 重新安装
-    if python3 -m pip install --no-cache-dir numpy>=2.0.0 >/dev/null 2>&1; then
+    # 重新安装（使用 SAGE 兼容版本：>=1.26.0,<2.3.0）
+    # 尝试使用官方 PyPI（清华镜像可能有问题）
+    if python3 -m pip install --no-cache-dir "numpy>=1.26.0,<2.3.0" --index-url https://pypi.org/simple >/dev/null 2>&1; then
         echo -e "  ${GREEN}${CHECK_MARK}${NC} numpy 修复成功"
         FIXES_APPLIED=$((FIXES_APPLIED + 1))
         log_message "FIX" "Successfully fixed numpy installation"
@@ -342,17 +343,34 @@ fix_mixed_packages() {
     echo -e "\n${TOOL_MARK} 清理包管理器冲突..."
 
     local packages_to_fix=("numpy" "torch" "transformers")
+    local cleaned_packages=()
 
     for package in "${packages_to_fix[@]}"; do
         # 如果conda和pip都有，优先使用pip
         if conda list "$package" >/dev/null 2>&1 && pip3 show "$package" >/dev/null 2>&1; then
             echo -e "  清理 $package 的 conda 安装..."
             conda uninstall "$package" -y >/dev/null 2>&1 || true
+            cleaned_packages+=("$package")
         fi
     done
 
     echo -e "  ${GREEN}${CHECK_MARK}${NC} 包管理器冲突清理完成"
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
+
+    # 重新安装被清理的包（使用 pip 和 SAGE 兼容版本）
+    if [ ${#cleaned_packages[@]} -gt 0 ]; then
+        echo -e "  重新安装被清理的包..."
+        for package in "${cleaned_packages[@]}"; do
+            if [ "$package" = "numpy" ]; then
+                # numpy 使用 SAGE 兼容版本
+                python3 -m pip install --no-cache-dir "numpy>=1.26.0,<2.3.0" --index-url https://pypi.org/simple >/dev/null 2>&1 || true
+            else
+                # 其他包使用默认版本
+                python3 -m pip install --no-cache-dir "$package" >/dev/null 2>&1 || true
+            fi
+        done
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 包重新安装完成"
+    fi
 }
 
 # CLI 工具冲突修复
