@@ -99,6 +99,30 @@ class EngineStartRequest(BaseModel):
             "True=force GPU, False=force no GPU"
         ),
     )
+    # Finetune-specific parameters
+    dataset_path: str | None = Field(
+        None,
+        description="Path to training dataset (required for engine_kind=finetune)",
+    )
+    output_dir: str | None = Field(
+        None,
+        description="Output directory for checkpoints (required for engine_kind=finetune)",
+    )
+    lora_rank: int = Field(8, ge=1, description="LoRA rank for fine-tuning")
+    lora_alpha: int = Field(16, ge=1, description="LoRA alpha scaling factor")
+    learning_rate: float = Field(5e-5, gt=0, description="Learning rate for training")
+    epochs: int = Field(3, ge=1, description="Number of training epochs")
+    batch_size: int = Field(4, ge=1, description="Training batch size")
+    gradient_accumulation_steps: int = Field(
+        4, ge=1, description="Gradient accumulation steps"
+    )
+    max_seq_length: int = Field(2048, ge=1, description="Maximum sequence length")
+    use_flash_attention: bool = Field(True, description="Use Flash Attention 2")
+    quantization_bits: int | None = Field(
+        4,
+        description="Quantization bits (4, 8, or None for full precision)",
+    )
+    auto_download: bool = Field(True, description="Auto-download base model if not found")
 
 
 class EngineRegisterRequest(BaseModel):
@@ -178,7 +202,7 @@ async def start_control_plane() -> None:
         await _control_plane_manager.start()
         logger.info("Control Plane Manager started")
 
-        # Discover and register existing engines
+        # Discover and register existing engines (actual running vLLM processes)
         if _control_plane_manager.lifecycle_manager:
             try:
                 discovered = _control_plane_manager.lifecycle_manager.discover_running_engines()
@@ -191,67 +215,13 @@ async def start_control_plane() -> None:
             except Exception as e:
                 logger.warning("Failed to discover running engines: %s", e)
 
-        # Register external models from config/models.json
-        try:
-            project_root = find_sage_project_root()
-            if project_root:
-                models_config_file = project_root / "config" / "models.json"
-                if models_config_file.exists():
-                    with open(models_config_file, encoding="utf-8") as f:
-                        custom_models = json.load(f)
-
-                    for model in custom_models:
-                        # Only register models with explicit base_url (external)
-                        if model.get("base_url"):
-                            try:
-                                from urllib.parse import urlparse
-
-                                url = urlparse(model["base_url"])
-                                host = url.hostname or "localhost"
-                                port = url.port or (80 if url.scheme == "http" else 443)
-
-                                engine_id = f"ext-{model['name'].replace('/', '-')}"
-
-                                # Expand API key from environment variable if needed
-                                api_key = model.get("api_key")
-                                if (
-                                    api_key
-                                    and isinstance(api_key, str)
-                                    and api_key.startswith("${")
-                                    and api_key.endswith("}")
-                                ):
-                                    import os
-
-                                    env_var = api_key[2:-1]
-                                    api_key = os.getenv(env_var, "")
-
-                                # Check if already registered
-                                try:
-                                    _control_plane_manager.register_engine(
-                                        engine_id=engine_id,
-                                        model_id=model["name"],
-                                        host=host,
-                                        port=port,
-                                        engine_kind=model.get("engine_kind", "llm"),
-                                        metadata={
-                                            "api_key": api_key,
-                                            "is_external": True,
-                                            "description": model.get("description"),
-                                        },
-                                        _skip_save=True,
-                                    )
-                                    logger.info(
-                                        f"Registered external model from config: {model['name']}"
-                                    )
-                                except ValueError:
-                                    # Already registered, ignore
-                                    pass
-                            except Exception as e:
-                                logger.warning(
-                                    f"Failed to register external model {model.get('name')}: {e}"
-                                )
-        except Exception as e:
-            logger.warning(f"Failed to load external models from config: {e}")
+        # NOTE: We intentionally do NOT auto-register models from config/models.json
+        # The Control Plane should only track actually running engines, not static config.
+        # config/models.json is used by Studio as a "model template" for UI display only.
+        # Engines should be registered via:
+        #   1. sage llm engine start <model> --engine-kind llm
+        #   2. discover_running_engines() for already-running vLLM processes
+        #   3. POST /v1/management/engines/register for external engines
 
 
 async def stop_control_plane() -> None:
@@ -335,14 +305,64 @@ async def control_plane_root() -> dict[str, Any]:
 async def start_engine(request: EngineStartRequest) -> dict[str, Any]:
     """Start a new managed engine via Control Plane.
 
-    This endpoint requests the Control Plane to spawn a new LLM or Embedding
-    engine with the specified configuration. The engine will be automatically
-    registered and monitored.
+    This endpoint requests the Control Plane to spawn a new LLM, Embedding,
+    or Finetune engine with the specified configuration. The engine will be
+    automatically registered and monitored.
+
+    For finetune engines, dataset_path and output_dir are required.
 
     Returns:
         Engine information including ID, port, and initial state.
     """
     manager = _require_control_plane_manager()
+
+    # Handle finetune engines separately
+    if request.engine_kind == "finetune":
+        if not request.dataset_path:
+            raise HTTPException(
+                status_code=400,
+                detail="dataset_path is required for finetune engines",
+            )
+        if not request.output_dir:
+            raise HTTPException(
+                status_code=400,
+                detail="output_dir is required for finetune engines",
+            )
+
+        try:
+            engine_info = manager.start_finetune_engine(
+                model_id=request.model_id,
+                dataset_path=request.dataset_path,
+                output_dir=request.output_dir,
+                lora_rank=request.lora_rank,
+                lora_alpha=request.lora_alpha,
+                learning_rate=request.learning_rate,
+                epochs=request.epochs,
+                batch_size=request.batch_size,
+                gradient_accumulation_steps=request.gradient_accumulation_steps,
+                max_seq_length=request.max_seq_length,
+                use_flash_attention=request.use_flash_attention,
+                quantization_bits=request.quantization_bits,
+                auto_download=request.auto_download,
+                engine_label=request.engine_label,
+                metadata=request.metadata,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=501,
+                detail=str(exc),
+            ) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.error("Finetune engine startup failed: %s", exc)
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+        return _format_engine_start_response(engine_info)
+
+    # Handle LLM/Embedding engines
     instance_type = _parse_instance_type(request.instance_type)
 
     try:

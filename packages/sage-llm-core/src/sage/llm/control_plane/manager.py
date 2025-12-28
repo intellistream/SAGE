@@ -1797,6 +1797,159 @@ class ControlPlaneManager:
         logger.info("Engine %s stopped and resources released", engine_id)
         return {"engine_id": engine_id, "stopped": True, "status": "STOPPED"}
 
+    def start_finetune_engine(
+        self,
+        model_id: str,
+        dataset_path: str,
+        output_dir: str,
+        *,
+        lora_rank: int = 8,
+        lora_alpha: int = 16,
+        learning_rate: float = 5e-5,
+        epochs: int = 3,
+        batch_size: int = 4,
+        gradient_accumulation_steps: int = 4,
+        max_seq_length: int = 2048,
+        use_flash_attention: bool = True,
+        quantization_bits: int | None = 4,
+        auto_download: bool = True,
+        engine_label: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Start a fine-tune engine and register it with Control Plane.
+
+        This method creates a FinetuneEngine, starts the training process,
+        and registers it with the Control Plane for monitoring and management.
+
+        Args:
+            model_id: Base model to fine-tune (e.g., "Qwen/Qwen2.5-0.5B-Instruct")
+            dataset_path: Path to training dataset (JSON/JSONL format)
+            output_dir: Directory to save checkpoints and final model
+            lora_rank: LoRA rank for parameter-efficient fine-tuning
+            lora_alpha: LoRA alpha scaling factor
+            learning_rate: Learning rate for training
+            epochs: Number of training epochs
+            batch_size: Training batch size
+            gradient_accumulation_steps: Steps to accumulate gradients
+            max_seq_length: Maximum sequence length
+            use_flash_attention: Whether to use Flash Attention 2
+            quantization_bits: Quantization bits (4, 8, or None)
+            auto_download: Whether to auto-download base model if not found
+            engine_label: Optional label for the engine
+            metadata: Additional metadata
+
+        Returns:
+            Dictionary containing engine_id, model_id, status, and training config
+
+        Raises:
+            RuntimeError: If GPU resources cannot be allocated
+            ImportError: If FinetuneEngine dependencies are not installed
+        """
+        try:
+            from sage.llm.control_plane.executors.finetune_executor import (
+                FinetuneConfig,
+                FinetuneEngine,
+            )
+            from sage.llm.control_plane.types import EngineInfo
+        except ImportError as e:
+            raise ImportError(
+                "FinetuneEngine requires sage-llm-core[finetune]. "
+                f"Install with: pip install sage-llm-core[finetune]"
+            ) from e
+
+        logger.info(
+            "Requesting finetune engine startup for model=%s dataset=%s",
+            model_id,
+            dataset_path,
+        )
+
+        # Generate engine ID
+        import uuid
+
+        suffix = uuid.uuid4().hex[:8]
+        sanitized = model_id.split("/")[-1].replace(" ", "-").replace(".", "-")
+        engine_id = f"finetune-{sanitized.lower()}-{suffix}"
+
+        # Create finetune config
+        config = FinetuneConfig(
+            base_model=model_id,
+            dataset_path=dataset_path,
+            output_dir=output_dir,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+            learning_rate=learning_rate,
+            epochs=epochs,
+            batch_size=batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            max_seq_length=max_seq_length,
+            use_flash_attention=use_flash_attention,
+            quantization_bits=quantization_bits,
+            auto_download=auto_download,
+            metadata=dict(metadata or {}),
+        )
+
+        # Create engine info (no port for finetune engines)
+        engine_info = EngineInfo(
+            engine_id=engine_id,
+            model_id=model_id,
+            host="localhost",
+            port=0,  # No HTTP endpoint for finetune
+            engine_kind="finetune",
+            state=EngineState.STARTING,
+            metadata=config.metadata,
+        )
+
+        # Create and start finetune engine
+        finetune_engine = FinetuneEngine(engine_info=engine_info, config=config)
+
+        # Start training in background
+        import asyncio
+
+        async def _start_wrapper():
+            try:
+                await finetune_engine.start()
+            except Exception as e:
+                logger.error(f"Failed to start finetune engine: {e}", exc_info=True)
+
+        # Schedule the coroutine
+        asyncio.create_task(_start_wrapper())
+
+        # Register engine metadata
+        instance_metadata = dict(metadata or {})
+        instance_metadata.setdefault("engine_kind", "finetune")
+        instance_metadata["dataset_path"] = dataset_path
+        instance_metadata["output_dir"] = output_dir
+        instance_metadata["config"] = config.to_dict()
+        if engine_label:
+            instance_metadata["label"] = engine_label
+            instance_metadata.setdefault("engine_label", engine_label)
+
+        self._record_engine_metadata(
+            engine_id=engine_id,
+            instance_id=engine_id,  # For finetune, engine_id == instance_id
+            model_id=model_id,
+            port=0,
+            gpu_ids=[],  # GPU allocation handled by FinetuneManager
+            memory_per_gpu_gb=0.0,
+            tensor_parallel_size=1,
+            pipeline_parallel_size=1,
+            engine_label=engine_label,
+            metadata=instance_metadata,
+            engine_kind="finetune",
+        )
+
+        logger.info("Finetune engine %s started for model %s", engine_id, model_id)
+
+        return {
+            "engine_id": engine_id,
+            "model_id": model_id,
+            "engine_kind": "finetune",
+            "status": "STARTING",
+            "dataset_path": dataset_path,
+            "output_dir": output_dir,
+            "config": config.to_dict(),
+        }
+
     def prune_stopped_engines(self) -> int:
         """Remove all STOPPED/FAILED engine records and release their resources.
 

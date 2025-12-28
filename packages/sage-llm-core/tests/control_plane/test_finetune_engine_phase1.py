@@ -112,6 +112,7 @@ async def test_finetune_engine_status():
     print("  ✓ Progress tracking fields present")
 
 
+@pytest.mark.asyncio
 async def test_finetune_engine_health_check():
     """Test FinetuneEngine health check."""
     print("\n✓ Testing FinetuneEngine.health_check()...")
@@ -151,6 +152,7 @@ async def test_finetune_engine_health_check():
     print("  ✓ Health check returns False for STOPPED state")
 
 
+@pytest.mark.asyncio
 async def test_finetune_engine_lifecycle():
     """Test FinetuneEngine lifecycle methods (without actual training)."""
     print("\n✓ Testing FinetuneEngine lifecycle methods...")

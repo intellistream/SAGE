@@ -109,7 +109,7 @@ Phase 2 (pending): Update 21 docs files, 15+ CI/CD workflows, examples
 4. **Integration Test**
    - Start Gateway: `sage gateway start`
    - Start Engine: `sage llm engine start Qwen/Qwen2.5-1.5B-Instruct --engine-kind llm`
-   - Verify: `curl http://localhost:8888/v1/models | jq`
+   - Verify: `curl http://localhost:8888/v1/models | jq`  # allow-control-plane-bypass: Gateway port
    - Check Studio: Models show correct online/offline status
 
 ## 📊 Statistics

@@ -55,7 +55,7 @@ This document outlines changes needed in all CI/CD workflows after the **configu
 ```yaml
 - name: Verify Gateway API
   run: |
-    response=$(curl -s http://localhost:8888/v1/models)
+    response=$(curl -s http://localhost:8888/v1/models)  # allow-control-plane-bypass: Gateway port
     echo "$response" | jq '.data | length'  # Should return > 0
     echo "$response" | jq '.data[0].status'  # Should be "online" or "offline"
 ```
@@ -181,7 +181,7 @@ jobs:
       - name: Verify engine status
         run: |
           sage llm engine list
-          curl -s http://localhost:8888/v1/models | jq '.data | length'
+          curl -s http://localhost:8888/v1/models | jq '.data | length'  # allow-control-plane-bypass: Gateway port
 
       - name: Run tests
         run: pytest

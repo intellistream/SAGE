@@ -51,7 +51,7 @@ sage llm engine list
 sage gateway status
 
 # Query models via API
-curl http://localhost:8888/v1/models | jq
+curl http://localhost:8888/v1/models | jq  # allow-control-plane-bypass: Gateway port
 ```
 
 ### Stopping Services

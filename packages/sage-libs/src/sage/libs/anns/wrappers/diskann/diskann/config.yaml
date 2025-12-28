@@ -1,0 +1,23 @@
+random-xs:
+  diskann:
+    module: benchmark_anns.bench.algorithms.diskann.diskann
+    constructor: Diskann
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"R": 32, "L": 50, "insert_threads": 16, "consolidate_threads": 16}]
+        query-args: |
+          [{"Ls": 50, "T": 8}]
+
+sift:
+  diskann:
+    module: benchmark_anns.bench.algorithms.diskann.diskann
+    constructor: Diskann
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"R": 32, "L": 50, "insert_threads": 16, "consolidate_threads": 16}]
+        query-args: |
+          [{"Ls": 50, "T": 8}]

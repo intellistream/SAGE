@@ -1,0 +1,3 @@
+key,value,type
+dbSize,1000000,I64
+fullReBuild,0,I64

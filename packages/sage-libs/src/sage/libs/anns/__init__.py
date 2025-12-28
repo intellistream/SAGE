@@ -1,55 +1,20 @@
+"""Unified ANNS (Approximate Nearest Neighbor Search) module.
+
+This module consolidates all ANNS core components into a single location:
+- interface/: Abstract base classes and factory (AnnIndex, AnnIndexMeta, create(), register())
+- wrappers/: Python implementations for various algorithms (FAISS, VSAG, DiskANN, CANDY, etc.)
+- implementations/: C++ source code and bindings
+
+Note: Benchmarks remain in sage-benchmark/benchmark_db (L5 package).
+
+Migration from old structure:
+- sage.libs.ann -> sage.libs.anns.interface
+- sage.libs.anns.<algo> -> sage.libs.anns.wrappers.<family>.<algo>
+- benchmark_db.algorithms_impl -> sage.libs.anns.implementations (C++ code moved to L3)
 """
-Algorithms Module for Benchmark ANNS
 
-This module provides algorithm interfaces and implementations.
-All algorithms are automatically discovered from subdirectories.
-"""
+from __future__ import annotations
 
-from .base import BaseANN, BaseStreamingANN, DummyStreamingANN
-from .registry import (
-    ALGORITHMS,
-    auto_register_algorithms,
-    discover_algorithms,
-    get_algorithm,
-    register_algorithm,
-)
+__all__ = []
 
-# 尝试导入各种算法 wrapper（向后兼容 - 已弃用）
-try:
-    from .candy_wrapper import CANDYWrapper, get_candy_algorithm
-
-    __all_wrappers = ["CANDYWrapper", "get_candy_algorithm"]
-except ImportError:
-    __all_wrappers = []
-
-try:
-    from .faiss_wrapper import FaissWrapper
-
-    __all_wrappers.extend(["FaissWrapper"])
-except ImportError:
-    pass
-
-try:
-    from .diskann_wrapper import DiskANNWrapper
-
-    __all_wrappers.extend(["DiskANNWrapper"])
-except ImportError:
-    pass
-
-try:
-    from .puck_wrapper import PuckWrapper
-
-    __all_wrappers.extend(["PuckWrapper"])
-except ImportError:
-    pass
-
-__all__ = [
-    "BaseANN",
-    "BaseStreamingANN",
-    "DummyStreamingANN",
-    "ALGORITHMS",
-    "register_algorithm",
-    "get_algorithm",
-    "discover_algorithms",
-    "auto_register_algorithms",
-] + __all_wrappers
+# Public API will be populated after migration is complete

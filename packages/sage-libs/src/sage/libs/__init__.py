@@ -27,7 +27,10 @@ except ImportError:
 # Export submodules
 __layer__ = "L3"
 
-from . import agentic, ann, finetune, foundation, integrations, privacy, rag
+# NOTE: 'ann' module has been consolidated into 'anns' (unified ANNS structure)
+# Old structure: ann/ (interface) + anns/ (wrappers) + algorithms_impl/ (C++)
+# New structure: anns/{interface, wrappers, implementations}
+from . import agentic, anns, finetune, foundation, integrations, privacy, rag
 
 __all__ = [
     "__version__",

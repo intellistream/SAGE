@@ -141,7 +141,12 @@ class EngineLifecycleManager:
         """
         discovered: list[dict[str, Any]] = []
 
-        current_user = os.getlogin() if hasattr(os, "getlogin") else None
+        # Get current user name for filtering (os.getlogin() can fail in some environments)
+        current_user: str | None = None
+        try:
+            current_user = os.getlogin()
+        except (OSError, FileNotFoundError):
+            pass
         if not current_user:
             try:
                 import pwd
