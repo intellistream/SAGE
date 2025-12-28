@@ -17,20 +17,16 @@ import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection import (
-    BaseMemoryCollection,
-)
-from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
-from sage.middleware.components.sage_mem.services.memory_service_factory import (
-    MemoryServiceFactory,
-)
-
-# Import sage-memory components
-from sage.middleware.components.sage_mem.services.short_term_memory_service import (
-    ShortTermMemoryService,
-)
+# 懒加载 NeuroMem - 只在使用 vdb/kv/graph 后端时才导入
+if TYPE_CHECKING:
+    from sage.middleware.components.sage_mem.neuromem.memory_collection import (
+        BaseMemoryCollection,
+    )
+    from sage.middleware.components.sage_mem.services.short_term_memory_service import (
+        ShortTermMemoryService,
+    )
 
 from .storage import FileSessionStore, SessionStorage
 
@@ -154,16 +150,13 @@ class SessionManager:
         self._sessions: dict[str, ChatSession] = {}
 
         # sage-memory: 为每个session维护独立的记忆服务
-        self._memory_services: dict[str, ShortTermMemoryService | BaseMemoryCollection] = {}
+        self._memory_services: dict[str, Any] = {}  # ShortTermMemoryService | BaseMemoryCollection
         self._max_memory_dialogs = max_memory_dialogs
         self._memory_backend = memory_backend
         self._memory_config = memory_config or {}
 
-        # 如果使用 neuromem collection，初始化 MemoryManager
-        if memory_backend in ("vdb", "kv", "graph"):
-            self._memory_manager = MemoryManager()
-        else:
-            self._memory_manager = None
+        # 懒加载 MemoryManager - 只在真正需要时才创建
+        self._memory_manager: Any = None  # MemoryManager | None
 
         self._load_sessions()
 
@@ -222,9 +215,7 @@ class SessionManager:
         self._persist()
         return session
 
-    def _create_memory_service(
-        self, session_id: str
-    ) -> ShortTermMemoryService | BaseMemoryCollection:
+    def _create_memory_service(self, session_id: str) -> Any:
         """为会话创建记忆服务
 
         根据配置的后端类型创建不同的记忆服务：
@@ -234,12 +225,25 @@ class SessionManager:
         - graph: 图记忆（关系推理）
         """
         if self._memory_backend == "short_term":
+            # 懒加载 MemoryServiceFactory
+            from sage.middleware.components.sage_mem.services.memory_service_factory import (
+                MemoryServiceFactory,
+            )
+
             # 使用 MemoryServiceFactory 创建短期记忆服务
             return MemoryServiceFactory.create_instance(
                 "short_term_memory", max_dialog=self._max_memory_dialogs
             )
 
         elif self._memory_backend == "vdb":
+            # 懒加载 MemoryManager（首次使用时）
+            if self._memory_manager is None:
+                from sage.middleware.components.sage_mem.neuromem.memory_manager import (
+                    MemoryManager,
+                )
+
+                self._memory_manager = MemoryManager()
+
             # 向量数据库记忆
             index_name = f"vdb_index_{session_id}"
             config = {
@@ -254,7 +258,7 @@ class SessionManager:
                 "name": index_name,
                 "embedding_model": self._memory_config.get("embedding_model", "hash"),
                 "dim": self._memory_config.get("embedding_dim", 384),
-                "backend_type": "FAISS",
+                "backend_type": self._memory_config.get("backend_type", "FAISS"),  # 从配置读取
                 "description": "Session vector index",
                 "index_parameter": {},
             }
@@ -265,6 +269,14 @@ class SessionManager:
             return collection
 
         elif self._memory_backend == "kv":
+            # 懒加载 MemoryManager（首次使用时）
+            if self._memory_manager is None:
+                from sage.middleware.components.sage_mem.neuromem.memory_manager import (
+                    MemoryManager,
+                )
+
+                self._memory_manager = MemoryManager()
+
             # 键值存储记忆
             index_name = f"kv_index_{session_id}"
             config = {
@@ -287,6 +299,14 @@ class SessionManager:
             return collection
 
         elif self._memory_backend == "graph":
+            # 懒加载 MemoryManager（首次使用时）
+            if self._memory_manager is None:
+                from sage.middleware.components.sage_mem.neuromem.memory_manager import (
+                    MemoryManager,
+                )
+
+                self._memory_manager = MemoryManager()
+
             # 图记忆
             config = {
                 "name": f"session_{session_id}_graph",
@@ -626,10 +646,63 @@ def _create_storage_backend() -> SessionStorage:
         return FileSessionStore.default()
 
 
+def _load_gateway_config() -> dict[str, Any]:
+    """从 config.yaml 加载 Gateway 配置
+
+    Returns:
+        Gateway 配置字典
+    """
+    from pathlib import Path
+
+    import yaml
+
+    # 查找 config.yaml
+    config_paths = [
+        Path.cwd() / "config" / "config.yaml",  # 从工作目录查找
+        Path(__file__).resolve().parents[6] / "config" / "config.yaml",  # 从 SAGE 根目录查找
+    ]
+
+    for config_path in config_paths:
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    config = yaml.safe_load(f)
+                    return config.get("gateway", {})
+            except Exception as e:
+                logger.warning(f"Failed to load config from {config_path}: {e}")
+                continue
+
+    # 返回空配置
+    return {}
+
+
 def get_session_manager() -> SessionManager:
     """获取全局会话管理器实例"""
     global _session_manager
     if _session_manager is None:
+        # 加载配置
+        gateway_config = _load_gateway_config()
+        memory_config = gateway_config.get("memory", {})
+
+        # 提取配置
+        memory_backend = memory_config.get("backend", "short_term")
+        max_memory_dialogs = memory_config.get("max_memory_dialogs", 10)
+
+        # 根据后端类型提取具体配置
+        backend_specific_config = {}
+        if memory_backend == "vdb":
+            backend_specific_config = memory_config.get("vdb", {})
+        elif memory_backend == "kv":
+            backend_specific_config = memory_config.get("kv", {})
+        elif memory_backend == "graph":
+            backend_specific_config = memory_config.get("graph", {})
+
+        # 创建存储后端和会话管理器
         storage = _create_storage_backend()
-        _session_manager = SessionManager(storage=storage)
+        _session_manager = SessionManager(
+            storage=storage,
+            max_memory_dialogs=max_memory_dialogs,
+            memory_backend=memory_backend,
+            memory_config=backend_specific_config,
+        )
     return _session_manager

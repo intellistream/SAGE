@@ -10,6 +10,23 @@ embedding:
 gateway:
   port: 8000
   session_backend: file
+  # Session memory configuration
+  memory:
+    backend: short_term  # short_term / vdb / kv / graph
+    max_memory_dialogs: 10  # For short_term backend
+    # VDB backend configuration
+    vdb:
+      backend_type: SageDB  # SageDB (C++ optimized) / FAISS (Python)
+      embedding_dim: 384
+      embedding_model: hash
+      max_retrieve: 100
+    # KV backend configuration
+    kv:
+      default_index_type: bm25s
+      max_retrieve: 100
+    # Graph backend configuration
+    graph:
+      max_nodes: 10000
 llm:
   gpu_memory_utilization: 0.9
   max_model_len: 4096

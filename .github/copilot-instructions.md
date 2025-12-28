@@ -231,8 +231,15 @@ Canonical namespaces (post-refactor):
 
 **Middleware inference building blocks (L4, including C++ extensions)**
 
-- Vector DB core (C++20, pluggable ANNS, multimodal fusion):
+- Vector DB core (C++20, self-developed, pluggable ANNS, multimodal fusion):
   `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/README.md`
+  - **SageDB VDB Backend**: Self-developed high-performance C++ vector database
+  - **NOT FAISS-based**: Fully custom implementation with planned migration of ANNS algorithms to sage-libs
+  - Python API: `sage.middleware.components.sage_db.python.sage_db.SageDB`
+  - Supports: similarity search, metadata filtering, hybrid search, batch operations
+  - NeuroMem integration: `sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
+  - Available backends in NeuroMem: FAISS (Python wrapper), SageDB (C++ self-developed)
+  - Configuration: Set `backend_type="SageDB"` in VDB index config to use C++ backend
 - Vector-native stream processing engine for incremental semantic state snapshots (C++):
   `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow/README.md`
 - Memory system (NeuromMem: store/recall; VDB/KV/Graph; services wrapper):
@@ -790,5 +797,154 @@ sage-cp-bench compare --mode llm --policies fifo,priority,slo_aware
 ```
 
 **详细文档**: `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md`
+
+## SageDB Vector Database Backend
+
+### Overview
+
+SageDB is a **self-developed high-performance C++ vector database**, fully custom implementation (NOT based on FAISS), integrated into SAGE's NeuroMem VDB system.
+
+**Features**:
+- ✅ Self-developed C++ core (independent implementation)
+- ✅ High-performance similarity search (C++ optimized)
+- ✅ Metadata filtering (`filtered_search`, `search_by_metadata`)
+- ✅ Hybrid search (vector + text)
+- ✅ Batch operations with numpy optimization
+- ✅ Persistent storage (save/load)
+- ✅ Multiple index types (AUTO, FLAT, IVF, HNSW)
+- ✅ Distance metrics (L2, INNER_PRODUCT, COSINE)
+- 🔄 **Roadmap**: ANNS algorithms will be migrated to sage-libs for better modularity
+
+### Location
+
+**Core Implementation**:
+- C++ Backend: `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/`
+- Python API: `packages/sage-middleware/src/sage/middleware/components/sage_db/python/sage_db.py`
+- NeuroMem Adapter: `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
+
+### Usage in NeuroMem VDB Collections
+
+**Creating a VDB collection with SageDB backend**:
+
+```python
+from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
+
+manager = MemoryManager()
+
+# Create collection
+collection = manager.create_collection({
+    "name": "my_collection",
+    "backend_type": "VDB"
+})
+
+# Create SageDB index
+collection.create_index({
+    "name": "my_index",
+    "dim": 1024,
+    "backend_type": "SageDB",  # Use SageDB instead of FAISS
+    "description": "High-performance SageDB index"
+})
+
+# Insert vectors
+collection.insert("my_index", text="example text", vector=embedding_vector)
+
+# Search
+results = collection.search("my_index", query_vector, top_k=10)
+```
+
+**Gateway Session Storage Configuration**:
+
+```python
+# In packages/sage-llm-gateway/src/sage/llm/gateway/session/manager.py
+
+# Default: FAISS backend
+index_config = {
+    "backend_type": "FAISS",  # Python FAISS
+    ...
+}
+
+# Optimized: SageDB backend (C++ performance)
+index_config = {
+    "backend_type": "SageDB",  # C++ optimized
+    ...
+}
+```
+
+**Current Status** (2025-12-28):
+- ✅ SageDB backend registered in VDB index factory
+- ✅ SageDBIndex adapter implements all BaseVDBIndex methods
+- ✅ Tests pass: insert, batch_insert, search, delete, update
+- ⚠️ Gateway default remains FAISS (change to "SageDB" to use C++ backend)
+
+**Performance Characteristics** (5000 vectors, dim=128):
+- ✅ **Insert**: SageDB 10x faster (single), 1.14x faster (batch) - C++ optimized write path
+- ⚠️ **Search**: FAISS 2.8-3x faster across all k values (Python wrapper overhead in current implementation)
+- ➡️ **Memory**: Nearly identical (~945 MB)
+- 🔄 **Note**: Search performance will improve after ANNS algorithm migration to sage-libs
+
+**When to use SageDB**:
+- Write-heavy workloads (frequent insertions/updates)
+- Session storage with many new messages
+- Real-time chat applications
+- When insert latency is critical
+- Custom C++ extensions and integrations
+
+**When to use FAISS**:
+- Read-heavy workloads (frequent similarity searches)
+- Large-scale retrieval systems
+- When search latency is critical
+- Production RAG pipelines with high QPS
+
+### Direct SageDB API (without NeuroMem)
+
+**Important**: SageDB is a self-developed C++ vector database, not based on FAISS.
+
+```python
+from sage.middleware.components.sage_db.python.sage_db import SageDB, IndexType, DistanceMetric
+
+# Create database (C++ core)
+db = SageDB(dimension=128, index_type=IndexType.AUTO, metric=DistanceMetric.L2)
+
+# Add vectors with metadata
+db.add([0.1, 0.2, ...], metadata={"id": "doc_1", "category": "tech"})
+db.add_batch(vectors, metadata=[{"id": f"doc_{i}"} for i in range(len(vectors))])
+
+# Build index
+db.build_index()
+
+# Search
+results = db.search(query_vector, k=10)
+for result in results:
+    print(f"ID: {result.metadata['id']}, Score: {result.score}")
+
+# Filtered search
+results = db.filtered_search(
+    query_vector,
+    params=SearchParams(k=10),
+    filter_fn=lambda meta: meta.get("category") == "tech"
+)
+
+# Save/Load
+db.save("/path/to/index")
+db.load("/path/to/index")
+```
+
+### API Reference
+
+**SageDB Methods**:
+- `add(vector, metadata)` - Add single vector
+- `add_batch(vectors, metadata)` - Batch add (numpy optimized)
+- `search(query, k)` - Basic similarity search
+- `filtered_search(query, params, filter_fn)` - Search with filtering
+- `search_by_metadata(query, params, key, value)` - Metadata-based search
+- `hybrid_search(query, params, text_query, weights)` - Vector + text hybrid
+- `build_index()` - Build search index
+- `train_index(vectors)` - Train index (for IVF, etc.)
+- `save(filepath)` / `load(filepath)` - Persistence
+- `size`, `dimension`, `index_type` - Properties
+
+**Metadata Requirements**:
+- All metadata must be `dict[str, str]` (string keys and values)
+- Convert non-string values: `{"id": str(internal_id), "text": text}`
 
 **Trust these instructions** - search only if incomplete, errors occur, or deep architecture needed.
