@@ -441,7 +441,7 @@ class TrainingComparisonExperiment:
     def _generate_figures(self):
         """生成图表。"""
         try:
-            from figure_generator import (
+            from .figure_generator import (
                 COLORS,
                 FIGURE_SIZES,
                 setup_matplotlib,

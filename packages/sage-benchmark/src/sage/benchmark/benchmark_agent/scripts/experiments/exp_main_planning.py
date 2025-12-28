@@ -72,7 +72,7 @@ def is_plan_success(
 
 
 def run_planning_experiment(
-    max_samples: int = 100,
+    max_samples: int | None = None,
     skip_llm: bool = False,
     verbose: bool = True,
 ) -> ExperimentSummary:
@@ -80,7 +80,7 @@ def run_planning_experiment(
     运行 Task Planning 实验。
 
     Args:
-        max_samples: 最大测试样本数
+        max_samples: 最大测试样本数 (None 表示使用全部样本)
         skip_llm: 是否跳过 LLM-based 方法
         verbose: 是否打印详细信息
 
@@ -91,7 +91,7 @@ def run_planning_experiment(
 
     print_section_header("Section 5.2.2: Task Planning (RQ2)")
     print("   Target: Plan Success Rate ≥ 90%")
-    print(f"   Max samples: {max_samples}")
+    print(f"   Max samples: {max_samples or 'ALL'}")
 
     # 加载数据
     samples = load_benchmark_data("planning", split="test", max_samples=max_samples)
@@ -149,18 +149,43 @@ def run_planning_experiment(
                 try:
                     task_description = sample.get("task", sample.get("instruction", ""))
                     available_tools = sample.get("available_tools", sample.get("tools", []))
-                    reference_plan = sample.get("ground_truth", sample.get("expected_plan", []))
 
-                    # 标准化 reference
-                    if isinstance(reference_plan, list) and reference_plan:
-                        if isinstance(reference_plan[0], dict):
-                            ref_steps = [
-                                s.get("tool_id", s.get("tool", "")) for s in reference_plan
-                            ]
-                        else:
-                            ref_steps = reference_plan
-                    else:
-                        ref_steps = []
+                    # 支持多种数据格式获取 reference steps
+                    ref_steps = []
+
+                    # 格式1: 直接在根级别有 tool_sequence (prepare_planning_data.py 生成)
+                    if "tool_sequence" in sample and isinstance(sample["tool_sequence"], list):
+                        ref_steps = sample["tool_sequence"]
+
+                    # 格式2: ground_truth 是字典，包含 tool_sequence
+                    elif "ground_truth" in sample:
+                        reference_plan = sample["ground_truth"]
+                        if isinstance(reference_plan, dict):
+                            tool_seq = reference_plan.get("tool_sequence", [])
+                            if tool_seq:
+                                for item in tool_seq:
+                                    if isinstance(item, str):
+                                        ref_steps.append(item)
+                                    elif isinstance(item, list) and item:
+                                        ref_steps.append(item[0])
+                                    elif isinstance(item, dict):
+                                        ref_steps.append(item.get("tool_id", item.get("tool", "")))
+                        elif isinstance(reference_plan, list) and reference_plan:
+                            if isinstance(reference_plan[0], dict):
+                                ref_steps = [
+                                    s.get("tool_id", s.get("tool", "")) for s in reference_plan
+                                ]
+                            else:
+                                ref_steps = reference_plan
+
+                    # 格式3: expected_plan 列表
+                    elif "expected_plan" in sample:
+                        expected = sample["expected_plan"]
+                        if isinstance(expected, list):
+                            if expected and isinstance(expected[0], dict):
+                                ref_steps = [s.get("tool_id", s.get("tool", "")) for s in expected]
+                            else:
+                                ref_steps = expected
 
                     # 调用规划器
                     plan_result = planner.plan(task_description, available_tools=available_tools)
@@ -254,35 +279,38 @@ def run_planning_experiment(
 
     # 生成图表
     if results:
-        from figure_generator import (
-            generate_detailed_table,
-            get_figures_dir,
-            get_tables_dir,
-            plot_challenge_comparison,
-        )
+        try:
+            from .figure_generator import (
+                generate_detailed_table,
+                get_figures_dir,
+                get_tables_dir,
+                plot_challenge_comparison,
+            )
 
-        figures_dir = get_figures_dir()
-        tables_dir = get_tables_dir()
+            figures_dir = get_figures_dir()
+            tables_dir = get_tables_dir()
 
-        # 生成对比图
-        plot_challenge_comparison(
-            [{"strategy": r.strategy.split(".")[-1], "metrics": r.metrics} for r in results],
-            challenge="planning",
-            metrics=["plan_success_rate", "step_accuracy", "tool_coverage"],
-            target=target,
-            output_path=figures_dir / "fig2_main_planning_comparison.pdf",
-            title="Task Planning: Strategy Comparison",
-        )
+            # 生成对比图
+            plot_challenge_comparison(
+                [{"strategy": r.strategy.split(".")[-1], "metrics": r.metrics} for r in results],
+                challenge="planning",
+                metrics=["plan_success_rate", "step_accuracy", "tool_coverage"],
+                target=target,
+                output_path=figures_dir / "fig2_main_planning_comparison.pdf",
+                title="Task Planning: Strategy Comparison",
+            )
 
-        # 生成表格
-        generate_detailed_table(
-            [{"strategy": r.strategy.split(".")[-1], "metrics": r.metrics} for r in results],
-            challenge="planning",
-            metrics=["plan_success_rate", "step_accuracy", "tool_coverage"],
-            output_path=tables_dir / "table_planning_detailed.tex",
-        )
+            # 生成表格
+            generate_detailed_table(
+                [{"strategy": r.strategy.split(".")[-1], "metrics": r.metrics} for r in results],
+                challenge="planning",
+                metrics=["plan_success_rate", "step_accuracy", "tool_coverage"],
+                output_path=tables_dir / "table_planning_detailed.tex",
+            )
 
-        print(f"  Figure saved to: {figures_dir / 'fig2_main_planning_comparison.pdf'}")
+            print(f"  Figure saved to: {figures_dir / 'fig2_main_planning_comparison.pdf'}")
+        except Exception as e:
+            print(f"  ⚠️  Failed to generate figures: {e}")
 
     return summary
 

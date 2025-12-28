@@ -122,7 +122,7 @@ def normalize_ground_truth(ground_truth: object) -> list[str]:
 
 
 def run_selection_experiment(
-    max_samples: int = 100,
+    max_samples: int | None = None,
     top_k: int = 5,
     skip_llm: bool = False,
     verbose: bool = True,
@@ -131,7 +131,7 @@ def run_selection_experiment(
     运行 Tool Selection 实验。
 
     Args:
-        max_samples: 最大测试样本数
+        max_samples: 最大测试样本数 (None 表示使用全部样本)
         top_k: Top-K 参数
         skip_llm: 是否跳过 LLM-based 方法
         verbose: 是否打印详细信息
@@ -143,7 +143,7 @@ def run_selection_experiment(
 
     print_section_header("Section 5.2.3: Tool Selection (RQ3)")
     print(f"   Target: Top-{top_k} Accuracy ≥ 95%")
-    print(f"   Max samples: {max_samples}")
+    print(f"   Max samples: {max_samples or 'ALL'}")
 
     # 加载数据
     samples = load_benchmark_data("selection", split="test", max_samples=max_samples)
@@ -279,7 +279,7 @@ def run_selection_experiment(
 
     # 生成图表
     if results:
-        from figure_generator import (
+        from .figure_generator import (
             generate_detailed_table,
             get_figures_dir,
             get_tables_dir,

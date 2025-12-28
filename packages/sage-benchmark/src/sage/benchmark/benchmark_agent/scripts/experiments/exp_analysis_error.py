@@ -358,7 +358,7 @@ def _load_experiment_results(challenge: str) -> list[dict]:
 def _generate_error_figures(results: dict) -> None:
     """生成错误分析图表。"""
     try:
-        from figure_generator import plot_error_breakdown
+        from .figure_generator import plot_error_breakdown
 
         figures_dir = get_figures_dir()
 

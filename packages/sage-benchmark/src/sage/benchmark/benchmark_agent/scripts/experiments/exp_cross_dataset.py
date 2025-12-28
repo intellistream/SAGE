@@ -314,7 +314,7 @@ def run_cross_dataset_evaluation(
 def _generate_cross_dataset_figures(results: dict, datasets: list[str], top_k: int) -> None:
     """生成跨数据集对比图表。"""
     try:
-        from figure_generator import plot_cross_dataset_comparison
+        from .figure_generator import plot_cross_dataset_comparison
 
         figures_dir = get_figures_dir()
 

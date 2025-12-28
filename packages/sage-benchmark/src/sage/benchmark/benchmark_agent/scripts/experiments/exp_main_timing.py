@@ -42,7 +42,7 @@ from .figure_generator import generate_detailed_table, plot_challenge_comparison
 
 
 def run_timing_experiment(
-    max_samples: int = 150,
+    max_samples: int | None = None,
     skip_llm: bool = False,
     verbose: bool = True,
 ) -> ExperimentSummary:
@@ -50,7 +50,7 @@ def run_timing_experiment(
     运行 Timing Detection 实验。
 
     Args:
-        max_samples: 最大测试样本数
+        max_samples: 最大测试样本数 (None 表示使用全部样本)
         skip_llm: 是否跳过 LLM-based 方法
         verbose: 是否打印详细信息
 
@@ -61,7 +61,7 @@ def run_timing_experiment(
 
     print_section_header("Section 5.2.1: Timing Detection (RQ1)")
     print("   Target: Accuracy ≥ 95%")
-    print(f"   Max samples: {max_samples}")
+    print(f"   Max samples: {max_samples or 'ALL'}")
 
     # 加载数据
     samples = load_benchmark_data("timing", split="test", max_samples=max_samples)
@@ -216,7 +216,7 @@ def run_timing_experiment(
 
     # 生成图表
     if results:
-        from figure_generator import get_figures_dir, get_tables_dir
+        from .figure_generator import get_figures_dir, get_tables_dir
 
         figures_dir = get_figures_dir()
         tables_dir = get_tables_dir()

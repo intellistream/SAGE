@@ -94,18 +94,45 @@ class SourcePaths:
 
     @property
     def tool_selection_file(self) -> Path:
-        """Tool selection benchmark data file."""
+        """Tool selection benchmark data file (legacy)."""
         return self.benchmark_splits_dir / "tool_selection.jsonl"
 
     @property
+    def tool_selection_new_file(self) -> Path:
+        """Tool selection benchmark data file (new version)."""
+        return self.benchmark_splits_dir / "tool_selection_new.jsonl"
+
+    @property
     def task_planning_file(self) -> Path:
-        """Task planning benchmark data file."""
+        """Task planning benchmark data file (legacy)."""
         return self.benchmark_splits_dir / "task_planning.jsonl"
+
+    @property
+    def task_planning_new_file(self) -> Path:
+        """Task planning benchmark data file (new version)."""
+        return self.benchmark_splits_dir / "task_planning_new.jsonl"
 
     @property
     def timing_judgment_file(self) -> Path:
         """Timing judgment benchmark data file."""
         return self.benchmark_splits_dir / "timing_judgment.jsonl"
+
+    def get_source_file(self, task_type: str, use_new: bool = True) -> Path:
+        """
+        Get source file path for a task type.
+
+        Args:
+            task_type: Task type (tool_selection, task_planning, timing_judgment)
+            use_new: Whether to prefer new version datasets (*_new.jsonl)
+
+        Returns:
+            Path to the source file
+        """
+        if use_new:
+            new_file = self.benchmark_splits_dir / f"{task_type}_new.jsonl"
+            if new_file.exists():
+                return new_file
+        return self.benchmark_splits_dir / f"{task_type}.jsonl"
 
     @property
     def tools_catalog(self) -> Path:

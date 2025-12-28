@@ -76,7 +76,8 @@ def run_section_5_2(args) -> dict[str, Any]:
     print("=" * 70)
 
     results = {}
-    max_samples = 50 if args.quick else 150
+    # quick 模式使用 50 样本，正常模式使用全部样本 (None)
+    max_samples = 50 if args.quick else None
 
     # RQ1: Timing Detection
     if not args.exp or args.exp in ["timing", "all"]:

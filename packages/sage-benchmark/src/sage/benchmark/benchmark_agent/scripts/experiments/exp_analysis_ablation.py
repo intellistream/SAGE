@@ -365,7 +365,7 @@ def run_ablation_study(
 def _generate_ablation_figures(results: dict) -> None:
     """生成消融实验图表。"""
     try:
-        from figure_generator import plot_ablation_heatmap
+        from .figure_generator import plot_ablation_heatmap
 
         figures_dir = get_figures_dir()
 

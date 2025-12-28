@@ -1,9 +1,16 @@
 """
-SAGE Tools Loader - Loads 1,200 real tools from tool_catalog.jsonl.
+SAGE Tools Loader - Loads tools from tool_catalog_complete.jsonl.
 
 This module provides the SageToolsLoader class that loads tool definitions
 from the SAGE benchmark's tool catalog and exposes them via a unified interface
 compatible with the selector resources.
+
+The complete catalog includes:
+- 1,200 synthetic tools (original)
+- 468 ToolAlpaca tools (real APIs)
+- 85 BFCL tools (function calling)
+- 10 API-Bank tools
+- ~1,400 derived tools from dataset references
 """
 
 from __future__ import annotations
@@ -16,15 +23,26 @@ from typing import Any, Iterator
 
 logger = logging.getLogger(__name__)
 
-# Default path to tool catalog
+# Default path to tool catalog (use complete catalog with external benchmarks)
 TOOL_CATALOG_PATH = (
     Path(__file__).parent.parent.parent
     / "data"
     / "sources"
     / "agent_tools"
     / "data"
-    / "tool_catalog.jsonl"
+    / "tool_catalog_complete.jsonl"
 )
+
+# Fallback to original catalog if complete doesn't exist
+if not TOOL_CATALOG_PATH.exists():
+    TOOL_CATALOG_PATH = (
+        Path(__file__).parent.parent.parent
+        / "data"
+        / "sources"
+        / "agent_tools"
+        / "data"
+        / "tool_catalog.jsonl"
+    )
 
 
 @dataclass
@@ -55,26 +73,30 @@ class SageTool:
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> SageTool:
         """Create SageTool from JSON data."""
-        # Generate description from available fields
         name = data.get("name", "")
         category = data.get("category", "")
         capabilities = data.get("capabilities", [])
-
-        # Build description
-        desc_parts = [name]
-        if category:
-            desc_parts.append(f"Category: {category}")
-        if capabilities:
-            desc_parts.append(f"Capabilities: {', '.join(capabilities)}")
-
-        # Add input info
         inputs = data.get("inputs", [])
-        if inputs:
-            input_names = [inp.get("name", "") for inp in inputs if inp.get("name")]
-            if input_names:
-                desc_parts.append(f"Inputs: {', '.join(input_names[:5])}")
 
-        description = ". ".join(desc_parts)
+        # Use existing description if available, otherwise generate
+        description = data.get("description", "")
+        if not description:
+            # Check for NL documentation (from ToolAlpaca)
+            nl_doc = data.get("nl_documentation", "")
+            if nl_doc:
+                description = nl_doc[:500]  # Truncate if too long
+            else:
+                # Generate description from available fields
+                desc_parts = [name]
+                if category:
+                    desc_parts.append(f"Category: {category}")
+                if capabilities:
+                    desc_parts.append(f"Capabilities: {', '.join(capabilities)}")
+                if inputs:
+                    input_names = [inp.get("name", "") for inp in inputs if inp.get("name")]
+                    if input_names:
+                        desc_parts.append(f"Inputs: {', '.join(input_names[:5])}")
+                description = ". ".join(desc_parts)
 
         return cls(
             tool_id=data.get("tool_id", ""),
@@ -112,6 +134,7 @@ class SageToolsLoader:
         """
         self.catalog_path = Path(catalog_path) if catalog_path else TOOL_CATALOG_PATH
         self._tools: dict[str, SageTool] = {}
+        self._name_to_id: dict[str, str] = {}
         self._loaded = False
 
     def _ensure_loaded(self) -> None:
@@ -134,6 +157,9 @@ class SageToolsLoader:
                         data = json.loads(line)
                         tool = SageTool.from_json(data)
                         self._tools[tool.tool_id] = tool
+                        # Build name-to-id mapping for lookup by name
+                        self._name_to_id[tool.name.lower()] = tool.tool_id
+                        self._name_to_id[tool.name] = tool.tool_id
                     except json.JSONDecodeError as e:
                         logger.warning(f"Failed to parse tool JSON: {e}")
                         continue
@@ -187,7 +213,28 @@ class SageToolsLoader:
         for tid in tool_ids:
             if tid in self._tools:
                 tools.append(self._tools[tid])
+            elif tid in self._name_to_id:
+                tools.append(self._tools[self._name_to_id[tid]])
         return tools
+
+    def get_tool_by_name(self, name: str) -> SageTool | None:
+        """
+        Get a tool by name (case-insensitive).
+
+        Args:
+            name: Tool name
+
+        Returns:
+            SageTool instance or None if not found
+        """
+        self._ensure_loaded()
+        name_lower = name.lower()
+        if name_lower in self._name_to_id:
+            return self._tools[self._name_to_id[name_lower]]
+        # Try exact match
+        if name in self._name_to_id:
+            return self._tools[self._name_to_id[name]]
+        return None
 
     def __len__(self) -> int:
         """Return number of tools."""
@@ -195,9 +242,9 @@ class SageToolsLoader:
         return len(self._tools)
 
     def __contains__(self, tool_id: str) -> bool:
-        """Check if tool exists."""
+        """Check if tool exists by ID or name."""
         self._ensure_loaded()
-        return tool_id in self._tools
+        return tool_id in self._tools or tool_id.lower() in self._name_to_id
 
 
 # Singleton instance for convenience

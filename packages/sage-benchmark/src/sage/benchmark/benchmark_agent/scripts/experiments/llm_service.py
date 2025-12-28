@@ -27,17 +27,25 @@ except ImportError:
 DEFAULT_LLM_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 LLM_PID_FILE = Path.home() / ".sage" / "benchmark_llm.pid"
 
+# LLM 主机地址，支持 Docker 环境
+# 优先使用环境变量 LLM_HOST，否则默认 localhost
+DEFAULT_LLM_HOST = os.environ.get("LLM_HOST", "localhost")
 
-def check_llm_service(port: int = DEFAULT_LLM_PORT) -> dict:
+
+def check_llm_service(port: int = DEFAULT_LLM_PORT, host: str | None = None) -> dict:
     """
     检查 LLM 服务状态。
 
     Args:
         port: 服务端口
+        host: 服务主机地址，默认使用 LLM_HOST 环境变量或 localhost
 
     Returns:
         状态字典 {"running": bool, "port": int, "model": str, "error": str}
     """
+    if host is None:
+        host = DEFAULT_LLM_HOST
+
     try:
         import httpx
     except ImportError:
@@ -46,7 +54,7 @@ def check_llm_service(port: int = DEFAULT_LLM_PORT) -> dict:
     result = {"running": False, "port": port, "model": None, "error": None}
 
     try:
-        response = httpx.get(f"http://localhost:{port}/v1/models", timeout=5.0)
+        response = httpx.get(f"http://{host}:{port}/v1/models", timeout=5.0)
         if response.status_code == 200:
             data = response.json()
             models = data.get("data", [])
@@ -235,6 +243,13 @@ def ensure_llm_available(
 
     如果服务未运行且 auto_start=True，会尝试启动服务。
 
+    优先级:
+    1. 检查 SAGE_CHAT_BASE_URL 环境变量（用户显式指定）
+    2. 检查指定端口
+    3. 检查其他常用端口
+    4. 检查云端 API 配置
+    5. 尝试自动启动
+
     Args:
         port: 服务端口
         model: 模型 ID
@@ -244,33 +259,56 @@ def ensure_llm_available(
     Returns:
         服务是否可用
     """
-    # 首先检查指定端口
+    # 1. 首先检查用户是否通过环境变量显式指定了 LLM 端点
+    env_base_url = os.environ.get("SAGE_CHAT_BASE_URL")
+    if env_base_url:
+        print(f"  ✅ 使用环境变量 SAGE_CHAT_BASE_URL: {env_base_url}")
+        # 验证端点是否可用
+        try:
+            import httpx
+
+            response = httpx.get(f"{env_base_url}/models", timeout=5.0)
+            if response.status_code == 200:
+                data = response.json()
+                models = data.get("data", [])
+                if models:
+                    print(f"     模型: {models[0].get('id', 'unknown')}")
+                    return True
+            print(f"  ⚠️  环境变量指定的端点返回异常: HTTP {response.status_code}")
+        except Exception as e:
+            print(f"  ⚠️  环境变量指定的端点不可用: {e}")
+        # 继续检查其他端口
+
+    # 2. 检查指定端口
     print(f"  🔍 Checking LLM service on port {port}...")
     status = check_llm_service(port)
     if status["running"]:
         print(f"  ✅ Found running service on port {port}")
         # 设置环境变量供后续使用
+        # 使用 LLM_HOST 环境变量（Docker 环境兼容）
+        llm_host = os.environ.get("LLM_HOST", "localhost")
         os.environ["SAGE_LLM_PORT"] = str(port)
-        os.environ["SAGE_CHAT_BASE_URL"] = f"http://localhost:{port}/v1"
+        os.environ["SAGE_CHAT_BASE_URL"] = f"http://{llm_host}:{port}/v1"
         return True
 
-    # 检查其他端口
+    # 3. 检查其他端口
     print("  🔍 Checking other common ports...")
     all_statuses = check_all_llm_services()
     for p, s in all_statuses.items():
         if s["running"]:
             print(f"  ℹ️  Found running service on port {p}")
             # 设置环境变量供后续使用
+            llm_host = os.environ.get("LLM_HOST", "localhost")
             os.environ["SAGE_LLM_PORT"] = str(p)
-            os.environ["SAGE_CHAT_BASE_URL"] = f"http://localhost:{p}/v1"
+            os.environ["SAGE_CHAT_BASE_URL"] = f"http://{llm_host}:{p}/v1"
             return True
 
-    # 检查云端 API 配置
+    # 4. 检查云端 API 配置
     if allow_cloud and (os.environ.get("SAGE_CHAT_API_KEY") or os.environ.get("OPENAI_API_KEY")):
         print("  ℹ️  检测到云端 API 配置")
         return True
 
-    # 尝试自动启动
+    # 5. 尝试自动启动
     if auto_start:
         print("  ⚠️  未检测到可用的 LLM 服务，尝试自动启动...")
         return start_llm_service(model=model, port=port)
