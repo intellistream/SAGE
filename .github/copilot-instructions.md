@@ -7,23 +7,56 @@ dataflow. 11 functional packages + 1 meta-package, ~400MB dev install, uses C++ 
 
 ## CRITICAL Coding Principles
 
-### ❌ NO FALLBACK LOGIC
-**NEVER use try-except fallback patterns for version imports or configuration loading.**
+### ❌ NO FALLBACK LOGIC - PROJECT-WIDE RULE
+**NEVER use try-except fallback patterns anywhere in the codebase.**
 
-**BAD - Do NOT do this:**
+This is a **project-wide principle**, not just for version management. Fallbacks hide problems and make debugging harder.
+
+#### ❌ BAD Examples (Do NOT do this):
+
+**1. Version imports:**
 ```python
 try:
     from ._version import __version__
 except ImportError:
-    try:
-        from sage.common._version import __version__  # ❌ NO
-    except ImportError:
-        __version__ = "unknown"  # ❌ NO
+    __version__ = "unknown"  # ❌ NO
 ```
 
-**GOOD - Do this instead:**
+**2. Configuration loading:**
 ```python
-# Direct file reading (for namespace packages)
+try:
+    config = load_config("config.yaml")
+except FileNotFoundError:
+    config = {}  # ❌ NO - hides missing config file
+```
+
+**3. Module imports:**
+```python
+try:
+    import optional_module
+except ImportError:
+    optional_module = None  # ❌ NO - use explicit dependency checking instead
+```
+
+**4. Environment variables:**
+```python
+api_key = os.getenv("API_KEY") or "default_key"  # ❌ NO - hides missing env var
+```
+
+**5. File operations:**
+```python
+try:
+    with open("file.txt") as f:
+        data = f.read()
+except FileNotFoundError:
+    data = ""  # ❌ NO - hides missing file
+```
+
+#### ✅ GOOD Examples (Do this instead):
+
+**1. Version imports (namespace packages):**
+```python
+# Direct file reading - will raise FileNotFoundError if missing
 import os
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 _version_file = os.path.join(_current_dir, "_version.py")
@@ -33,11 +66,85 @@ with open(_version_file) as f:
 __version__ = _version_globals["__version__"]  # Will raise KeyError if missing
 ```
 
-**Rationale:**
-- Fallbacks hide real problems (missing files, broken imports)
-- "unknown" versions are unacceptable in production
-- Fail fast, fail loud - make problems visible immediately
-- Users should fix the root cause, not paper over issues
+**2. Configuration loading:**
+```python
+# Fail fast if config missing
+config = load_config("config.yaml")  # Let FileNotFoundError propagate
+# Or provide clear error message
+if not os.path.exists("config.yaml"):
+    raise FileNotFoundError(
+        "config.yaml not found. Please create it from config.yaml.template"
+    )
+```
+
+**3. Optional dependencies:**
+```python
+# Explicitly check and document the requirement
+try:
+    import vllm
+except ImportError as e:
+    raise ImportError(
+        "vLLM is required for this feature. Install with: pip install vllm"
+    ) from e
+```
+
+**4. Environment variables:**
+```python
+# Fail fast if required env var missing
+api_key = os.environ["API_KEY"]  # Will raise KeyError if missing
+# Or provide clear error message
+if "API_KEY" not in os.environ:
+    raise EnvironmentError(
+        "API_KEY environment variable is required. Set it in .env file"
+    )
+```
+
+**5. File operations:**
+```python
+# Let exceptions propagate - makes problems visible
+with open("required_file.txt") as f:
+    data = f.read()  # Will raise FileNotFoundError if missing
+```
+
+#### When Fallbacks ARE Acceptable (Rare Cases):
+
+Only use fallbacks when:
+1. **Feature detection** (check if optional feature is available):
+   ```python
+   HAS_CUDA = torch.cuda.is_available()  # ✓ OK - explicit feature check
+   ```
+
+2. **Explicit optional behavior** (documented and intentional):
+   ```python
+   # ✓ OK - clearly documented as optional
+   use_gpu = config.get("use_gpu", False)  # Default to CPU if not specified
+   ```
+
+3. **Graceful degradation** (with clear logging):
+   ```python
+   # ✓ OK - logs the issue and provides alternative
+   try:
+       fast_impl = import_fast_implementation()
+   except ImportError:
+       logger.warning("Fast implementation not available, using slow fallback")
+       fast_impl = slow_implementation
+   ```
+
+#### Rationale:
+
+- **Fail fast, fail loud**: Problems should be visible immediately during development
+- **No hidden bugs**: Silent fallbacks hide configuration errors, missing files, broken imports
+- **Better error messages**: Explicit checks can provide helpful error messages
+- **Easier debugging**: Stack traces point to the real problem
+- **Production safety**: "unknown" versions, empty configs, or missing dependencies are unacceptable
+
+#### What to do instead:
+
+1. **Let exceptions propagate** - don't catch them unless you have a specific reason
+2. **Validate early** - check requirements at startup, not during runtime
+3. **Provide clear error messages** - tell users exactly what's wrong and how to fix it
+4. **Document dependencies** - make optional dependencies explicit in docs
+5. **Use assertions** - for internal invariants that should never fail
 
 ### Version Management
 
