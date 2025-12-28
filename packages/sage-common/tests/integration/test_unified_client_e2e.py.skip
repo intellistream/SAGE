@@ -1,20 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the SAGE project
 
-"""Control-plane-only integration tests for UnifiedInferenceClient."""
+"""Control-plane-only integration tests for UnifiedInferenceClient.
+
+NOTE: This test file is for the legacy complex UnifiedInferenceClient API.
+After Flag-Day refactor, the client has been simplified. These tests are
+kept for reference but skipped until they are updated for the new API.
+"""
 
 from __future__ import annotations
 
-import os
-from unittest.mock import MagicMock, patch
-
 import pytest
 
-from sage.common.config.ports import SagePorts
-from sage.llm.unified_client import (
-    InferenceResult,
-    UnifiedClientConfig,
-    UnifiedInferenceClient,
+# Skip this entire module - tests legacy API that no longer exists
+pytest.skip(
+    "Legacy tests for old UnifiedInferenceClient API. "
+    "New API is minimal and doesn't include InferenceResult, "
+    "UnifiedClientConfig classes.",
+    allow_module_level=True,
 )
 
 
