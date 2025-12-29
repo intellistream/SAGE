@@ -6,8 +6,8 @@ set -e  # Exit immediately on error
 
 # Get absolute path of script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Get project root directory (from script/ up 7 levels to SAGE/)
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../.." && pwd)"
+# Get project root directory (from script/ up 8 levels to SAGE/)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../../.." && pwd)"
 # Python script relative path
 PYTHON_SCRIPT="$SCRIPT_DIR/../memory_test_pipeline.py"
 # Configuration file path

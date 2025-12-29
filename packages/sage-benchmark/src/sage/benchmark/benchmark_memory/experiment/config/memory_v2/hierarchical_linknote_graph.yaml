@@ -1,0 +1,23 @@
+version: '2.0'
+service:
+  type: hierarchical.linknote_graph
+  collection:
+    name: linknote_graph_collection
+    data_dir:
+  indexes:
+  - name: note_graph
+    type: segment
+    config:
+      strategy: custom
+  - name: fulltext_index
+    type: bm25
+    config:
+      backend: numba
+      language: auto
+  service_config:
+    default_index: note_graph
+    enable_bidirectional_links: true
+    enable_backlinks: true
+    max_link_depth: 5
+  name: hierarchical_linknote_graph
+  description: hierarchical_linknote_graph memory service

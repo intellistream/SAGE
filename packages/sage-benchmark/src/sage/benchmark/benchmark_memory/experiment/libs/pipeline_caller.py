@@ -35,9 +35,9 @@ class PipelineCaller(MapFunction):
         self.task_id = config.get("task_id")
 
         # 获取实际的 memory service 名称（用于统计信息）
-        self.memory_service_name = config.get(
-            "services.register_memory_service", "short_term_memory"
-        )
+        # 从 services_type 提取服务名: "partitional.fifo_queue" -> "fifo_queue"
+        services_type = config.get("services.services_type", "short_term_memory")
+        self.memory_service_name = services_type.split(".")[-1]
 
         # 服务调用超时时间（秒），默认 300 秒
         # 注意：这个超时必须 >= pipeline_service_timeout，否则调用方会先超时

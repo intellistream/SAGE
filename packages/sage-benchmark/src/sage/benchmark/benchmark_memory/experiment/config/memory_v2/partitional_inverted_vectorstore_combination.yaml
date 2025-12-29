@@ -1,0 +1,26 @@
+version: '2.0'
+service:
+  type: partitional.inverted_vectorstore_combination
+  collection:
+    name: inverted_vectorstore_collection
+    data_dir:
+  indexes:
+  - name: inverted_index
+    type: bm25
+    config:
+      backend: numba
+      language: auto
+  - name: vector_index
+    type: faiss
+    config:
+      dim: 768
+      metric: cosine
+      index_type: IVF100,Flat
+      nprobe: 10
+  service_config:
+    default_index: inverted_index
+    enable_hybrid_search: true
+    combination_strategy: rrf
+    rrf_k: 60
+  name: partitional_inverted_vectorstore_combination
+  description: partitional_inverted_vectorstore_combination memory service

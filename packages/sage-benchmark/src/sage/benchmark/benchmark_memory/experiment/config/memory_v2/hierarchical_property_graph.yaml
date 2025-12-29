@@ -1,0 +1,29 @@
+version: '2.0'
+service:
+  type: hierarchical.property_graph
+  collection:
+    name: property_graph_collection
+    data_dir:
+  indexes:
+  - name: node_index
+    type: segment
+    config:
+      strategy: keyword
+      keyword_field: node_type
+  - name: edge_index
+    type: segment
+    config:
+      strategy: keyword
+      keyword_field: edge_type
+  - name: property_index
+    type: bm25
+    config:
+      backend: numba
+      language: auto
+  service_config:
+    default_index: node_index
+    enable_graph_traversal: true
+    enable_property_query: true
+    max_traversal_depth: 10
+  name: hierarchical_property_graph
+  description: hierarchical_property_graph memory service

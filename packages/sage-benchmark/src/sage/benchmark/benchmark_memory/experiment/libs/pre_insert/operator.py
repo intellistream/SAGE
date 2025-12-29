@@ -96,7 +96,9 @@ class PreInsert(MapFunction):
 
         # 简洁输出（一行）
         entries_count = len(output.memory_entries)
-        print(f"  [PreInsert] 生成: {entries_count}条 | 耗时: {elapsed_ms:.2f}ms")
+        print(
+            f"  [PreInsert] 动作: {self.action_name} | 生成: {entries_count}条 | 失败: 0条 | 耗时: {elapsed_ms:.2f}ms"
+        )
 
         # 将批次耗时平均分配到每个对话，返回列表
         if dialog_count > 0:

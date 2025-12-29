@@ -1,0 +1,25 @@
+version: '2.0'
+service:
+  type: hierarchical.temporal_graph
+  collection:
+    name: temporal_graph_collection
+    data_dir:
+  indexes:
+  - name: temporal_index
+    type: segment
+    config:
+      strategy: time
+      segment_size: 1000
+      segment_duration: 86400
+  - name: event_index
+    type: bm25
+    config:
+      backend: numba
+      language: auto
+  service_config:
+    default_index: temporal_index
+    enable_time_travel: true
+    enable_event_replay: true
+    time_window_seconds: 3600
+  name: hierarchical_temporal_graph
+  description: hierarchical_temporal_graph memory service

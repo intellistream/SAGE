@@ -1,0 +1,30 @@
+version: '2.0'
+service:
+  type: hierarchical.episodic_memory
+  collection:
+    name: episodic_memory_collection
+    data_dir:
+  indexes:
+  - name: short_term_memory
+    type: fifo
+    config:
+      max_size: 20
+  - name: long_term_memory
+    type: faiss
+    config:
+      dim: 768
+      metric: cosine
+      index_type: IVF100,Flat
+      nprobe: 10
+  - name: semantic_memory
+    type: bm25
+    config:
+      backend: numba
+      language: auto
+  service_config:
+    default_index: short_term_memory
+    enable_stm_to_ltm_transfer: true
+    transfer_threshold: 5
+    consolidation_strategy: frequency
+  name: hierarchical_episodic_memory
+  description: hierarchical_episodic_memory memory service

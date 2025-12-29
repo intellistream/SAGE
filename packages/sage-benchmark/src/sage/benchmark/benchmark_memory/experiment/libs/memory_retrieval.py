@@ -79,7 +79,9 @@ class MemoryRetrieval(MapFunction):
         """
         super().__init__()
         self.config = config
-        self.service_name = config.get("services.register_memory_service", "short_term_memory")
+        # 从 services_type 提取服务名: "partitional.fifo_queue" -> "fifo_queue"
+        services_type = config.get("services.services_type", "short_term_memory")
+        self.service_name = services_type.split(".")[-1]
         self.verbose = config.get("runtime.memory_test_verbose", True)
 
         # 检索参数（从服务配置读取）

@@ -1,0 +1,16 @@
+version: '2.0'
+service:
+  type: partitional.fifo_queue
+  collection:
+    name: fifo_queue_collection
+    data_dir:
+  indexes:
+  - name: fifo_index
+    type: fifo
+    config:
+      max_size: 100
+  service_config:
+    default_index: fifo_index
+    enable_auto_cleanup: true
+  name: partitional_fifo_queue
+  description: partitional_fifo_queue memory service

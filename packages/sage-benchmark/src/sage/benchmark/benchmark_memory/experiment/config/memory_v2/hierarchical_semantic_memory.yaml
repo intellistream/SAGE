@@ -1,0 +1,30 @@
+version: '2.0'
+service:
+  type: hierarchical.semantic_memory
+  collection:
+    name: semantic_memory_collection
+    data_dir:
+  indexes:
+  - name: concept_index
+    type: faiss
+    config:
+      dim: 768
+      metric: cosine
+      index_type: Flat
+  - name: relation_index
+    type: segment
+    config:
+      strategy: keyword
+      keyword_field: relation_type
+  - name: attribute_index
+    type: bm25
+    config:
+      backend: numba
+      language: auto
+  service_config:
+    default_index: concept_index
+    enable_inheritance: true
+    enable_composition: true
+    abstraction_level: medium
+  name: hierarchical_semantic_memory
+  description: hierarchical_semantic_memory memory service

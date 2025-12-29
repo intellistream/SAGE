@@ -27,7 +27,7 @@ from sage.kernel.api.service import (
     PipelineServiceSink,
     PipelineServiceSource,
 )
-from sage.middleware.components.sage_mem.services import MemoryServiceFactory
+from sage.middleware.components.sage_mem.neuromem.services import NeuromemServiceFactory
 
 
 def main():
@@ -42,9 +42,23 @@ def main():
     env = LocalEnvironment("memory_test_experiment")
 
     # 注册服务 - 使用工厂模式动态创建服务
-    service_name = config.get("services.register_memory_service", "short_term_memory")
-    factory = MemoryServiceFactory.create(service_name, config)
-    env.register_service_factory(service_name, factory)
+    # 配置格式：
+    #   services:
+    #     services_type: "partitional.fifo_queue"  # <类型>.<具体实现>
+    #     fifo_queue:
+    #       max_size: 5
+
+    services_type = config.get("services.services_type")
+    if not services_type:
+        raise ValueError("Missing required config: services.services_type")
+
+    # 创建 neuromem Service 工厂
+    factory = NeuromemServiceFactory.create(services_type, config)
+
+    # 注册名称：从 services_type 中提取具体实现名称
+    # "partitional.fifo_queue" -> "fifo_queue"
+    registered_name = services_type.split(".")[-1]
+    env.register_service_factory(registered_name, factory)
 
     # 获取服务超时配置（默认 300 秒，足够 link_evolution 等耗时操作）
     pipeline_service_timeout = config.get("runtime.pipeline_service_timeout", 300.0)

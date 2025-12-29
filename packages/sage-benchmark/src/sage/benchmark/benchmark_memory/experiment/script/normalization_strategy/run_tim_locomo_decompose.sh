@@ -6,7 +6,7 @@ set -e  # 遇到错误立即退出
 
 # 获取脚本所在目录的绝对路径
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# 获取项目根目录 (从 script/query_formulation_strategy/ 向上 9 层到 SAGE/)
+# 获取项目根目录 (从 script/normalization_strategy/ 向上 9 层到 SAGE/)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../../../../.." && pwd)"
 # Python 脚本的相对路径
 PYTHON_SCRIPT="$SCRIPT_DIR/../../memory_test_pipeline.py"

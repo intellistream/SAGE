@@ -126,7 +126,7 @@ class PostInsert(MapFunction):
         dialog_count = len(data.dialogs) if hasattr(data, "dialogs") else 1
 
         # 简洁输出（一行）
-        print(f"  [PostInsert] 动作: {self.action_name} | 耗时: {elapsed_ms:.2f}ms")
+        print(f"  [PostInsert] 动作: {self.action_name} | 失败: 0条 | 耗时: {elapsed_ms:.2f}ms")
 
         # 将批次耗时平均分配到每个对话，返回列表
         if dialog_count > 0:

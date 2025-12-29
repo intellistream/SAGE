@@ -1,0 +1,30 @@
+version: '2.0'
+service:
+  type: hierarchical.working_memory
+  collection:
+    name: working_memory_collection
+    data_dir:
+  indexes:
+  - name: active_task_index
+    type: fifo
+    config:
+      max_size: 7
+  - name: task_history_index
+    type: segment
+    config:
+      strategy: time
+      segment_size: 50
+      segment_duration: 3600
+  - name: priority_index
+    type: segment
+    config:
+      strategy: keyword
+      keyword_field: priority
+  service_config:
+    default_index: active_task_index
+    enable_priority_queue: true
+    enable_task_switching: true
+    max_concurrent_tasks: 7
+    context_refresh_interval: 300
+  name: hierarchical_working_memory
+  description: hierarchical_working_memory memory service
