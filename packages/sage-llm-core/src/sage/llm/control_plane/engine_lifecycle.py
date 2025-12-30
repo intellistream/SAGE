@@ -810,6 +810,7 @@ class EngineLifecycleManager:
             tensor_parallel_size,
             pipeline_parallel_size,
             extra_args,
+            gpu_ids=gpu_ids,
         )
 
     def _build_llm_command(
@@ -819,6 +820,8 @@ class EngineLifecycleManager:
         tensor_parallel_size: int,
         pipeline_parallel_size: int,
         extra_args: list[str],
+        *,
+        gpu_ids: list[int] | None = None,
     ) -> list[str]:
         command = [
             self.python_executable,
@@ -833,8 +836,70 @@ class EngineLifecycleManager:
         ]
         command.extend(["--tensor-parallel-size", str(tensor_parallel_size)])
         command.extend(["--pipeline-parallel-size", str(pipeline_parallel_size)])
+
+        # Auto-calculate gpu-memory-utilization based on available GPU memory
+        if gpu_ids:
+            gpu_mem_util = self._calculate_gpu_memory_utilization(gpu_ids)
+            if gpu_mem_util is not None:
+                command.extend(["--gpu-memory-utilization", str(gpu_mem_util)])
+
         command.extend(extra_args)
         return command
+
+    def _calculate_gpu_memory_utilization(self, gpu_ids: list[int]) -> float | None:
+        """Calculate safe GPU memory utilization based on available memory.
+
+        vLLM calculates memory as: total_memory * gpu_memory_utilization
+        We need to ensure this doesn't exceed available free memory.
+        """
+        try:
+            import torch
+
+            if not torch.cuda.is_available():
+                return None
+
+            min_free_ratio = 1.0
+            for gpu_id in gpu_ids:
+                if gpu_id >= torch.cuda.device_count():
+                    continue
+                props = torch.cuda.get_device_properties(gpu_id)
+                total_mem = props.total_memory
+                # Get free memory (this requires setting CUDA_VISIBLE_DEVICES first)
+                # Use nvidia-smi instead for accurate free memory
+                free_mem = self._get_gpu_free_memory(gpu_id)
+                if free_mem is not None and total_mem > 0:
+                    free_ratio = free_mem / total_mem
+                    min_free_ratio = min(min_free_ratio, free_ratio)
+
+            # Use 80% of available free memory to leave some headroom
+            safe_utilization = min_free_ratio * 0.8
+            # Clamp to reasonable range
+            return max(0.05, min(0.95, safe_utilization))
+        except Exception:
+            return None
+
+    def _get_gpu_free_memory(self, gpu_id: int) -> int | None:
+        """Get free GPU memory in bytes using nvidia-smi."""
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.free",
+                    "--format=csv,noheader,nounits",
+                    f"--id={gpu_id}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                free_mib = int(result.stdout.strip())
+                return free_mib * 1024 * 1024  # Convert MiB to bytes
+        except Exception:
+            pass
+        return None
 
     def _build_embedding_command(
         self,
@@ -869,6 +934,19 @@ class EngineLifecycleManager:
             env["CUDA_VISIBLE_DEVICES"] = ",".join(str(gpu) for gpu in gpu_ids)
         else:
             env.pop("CUDA_VISIBLE_DEVICES", None)
+
+        # Clear proxy environment variables to avoid SOCKS dependency issues
+        # when loading models from HuggingFace mirror (which doesn't need proxy)
+        for proxy_var in (
+            "all_proxy",
+            "ALL_PROXY",
+            "http_proxy",
+            "HTTP_PROXY",
+            "https_proxy",
+            "HTTPS_PROXY",
+        ):
+            env.pop(proxy_var, None)
+
         return env
 
     def _extract_env_overrides(self, env: dict[str, str]) -> dict[str, str]:
