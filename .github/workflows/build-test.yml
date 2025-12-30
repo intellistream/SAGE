@@ -307,36 +307,6 @@ jobs:
           echo "🔍 Running installation verification suite..."
           bash tools/install/tests/verify_installation.sh
 
-      - name: Test Memory Service Implementations
-        run: |
-          echo "🧪 测试内存服务实现..."
-
-          # 测试三个新实现的服务
-          pytest \
-            packages/sage-middleware/tests/unit/components/sage_mem/neuromem/services/hierarchical/test_semantic_inverted_knowledge_graph.py \
-            packages/sage-middleware/tests/unit/components/sage_mem/neuromem/services/partitional/test_feature_summary_vectorstore_combination.py \
-            packages/sage-middleware/tests/unit/components/sage_mem/neuromem/services/partitional/test_inverted_vectorstore_combination.py \
-            -v --tb=short --maxfail=3 || {
-              echo "❌ 内存服务测试失败"
-              exit 1
-            }
-
-          echo "✅ 内存服务测试通过"
-
-      - name: Test Memory Service Integration
-        run: |
-          echo "🧪 测试内存服务集成..."
-
-          # 运行集成测试
-          pytest \
-            packages/sage-middleware/tests/integration/services/test_services_integration.py \
-            -v --tb=short --maxfail=3 || {
-              echo "❌ 内存服务集成测试失败"
-              exit 1
-            }
-
-          echo "✅ 内存服务集成测试通过"
-
       - name: Run Unit Tests with Coverage
         run: |
           echo "🧪 运行单元测试并收集覆盖率..."

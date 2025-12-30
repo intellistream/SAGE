@@ -113,7 +113,7 @@ class TestServiceInitialization:
 
     def test_service_registered(self):
         """测试服务已注册到Registry"""
-        service_type = "hierarchical.semantic_inverted_knowledge_graph"
+        service_type = "semantic_inverted_knowledge_graph"
         service_cls = MemoryServiceRegistry.get_service_class(service_type)
         assert service_cls is SemanticInvertedKnowledgeGraphService
 
@@ -123,7 +123,7 @@ class TestServiceInitialization:
         col = UnifiedCollection(name="test_create", config={"data_dir": str(data_dir)})
 
         service = MemoryServiceRegistry.create(
-            "hierarchical.semantic_inverted_knowledge_graph",
+            "semantic_inverted_knowledge_graph",
             collection=col,
             config=service_config,
         )
