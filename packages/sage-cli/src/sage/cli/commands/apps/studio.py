@@ -18,6 +18,9 @@ def start(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
+    gateway_port: int | None = typer.Option(
+        None, "--gateway-port", help="指定 Gateway 端口（默认 8889，若被占用将自动切到 8899）"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="自动确认所有提示（用于 CI/CD 或脚本）"),
     no_gateway: bool = typer.Option(False, "--no-gateway", help="不自动启动 Gateway"),
     no_auto_install: bool = typer.Option(
@@ -150,6 +153,7 @@ def start(
             use_finetuned=use_finetuned,
             skip_confirm=yes,
             no_embedding=no_embedding,
+            gateway_port=gateway_port,
         )
 
         if success:

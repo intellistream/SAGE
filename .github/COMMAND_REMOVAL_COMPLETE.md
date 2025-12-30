@@ -51,7 +51,7 @@ sage llm engine list
 sage gateway status
 
 # Query models via API
-curl http://localhost:8888/v1/models | jq  # allow-control-plane-bypass: Gateway port
+curl http://localhost:8889/v1/models | jq  # allow-control-plane-bypass: Gateway port
 ```
 
 ### Stopping Services
@@ -74,7 +74,7 @@ client = UnifiedInferenceClient.create()
 
 # Or specify Control Plane URL
 client = UnifiedInferenceClient.create(
-    control_plane_url="http://127.0.0.1:8888/v1"
+    control_plane_url="http://127.0.0.1:8889/v1"
 )
 
 # Use client

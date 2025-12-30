@@ -86,7 +86,7 @@ MIRROR_SOURCE="auto"
 RESUME_INSTALL=true  # 默认启用断点续传（安装失败时自动恢复）
 RESET_CHECKPOINT=false  # 新增：重置检查点
 CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
-INSTALL_VLLM=true          # 默认安装 vLLM 引擎
+INSTALL_VLLM=true          # 默认安装 vLLM 本地后端（sageLLM 可选）
 INSTALL_VLLM_EXPLICIT=false
 VLLM_FROM_SOURCE=false     # 是否从本地源码安装 vLLM
 
@@ -393,13 +393,13 @@ show_installation_menu() {
 
     echo ""
 
-    # 询问是否安装 vLLM 引擎
-    echo -e "${BOLD}3. vLLM 推理引擎（可选）：${NC}"
-    echo -e "   ${DIM}vLLM 是高性能 LLM 推理引擎，需要 NVIDIA GPU 和较大显存（建议 >= 8GB）${NC}"
-    echo -e "   ${DIM}如果您没有 GPU 或显存不足，可以跳过安装，稍后手动安装${NC}"
+    # 询问是否安装 sageLLM 本地推理后端（默认使用 vLLM）
+    echo -e "${BOLD}3. sageLLM 本地推理后端（vLLM，可选）：${NC}"
+    echo -e "   ${DIM}vLLM 是 sageLLM 控制平面的本地推理后端之一，需要 NVIDIA GPU，建议显存 >= 8GB${NC}"
+    echo -e "   ${DIM}若使用其他后端或仅需远端/云端推理，可跳过此步，后续随时安装${NC}"
     echo ""
-    echo -e "  ${GREEN}1)${NC} 安装 vLLM ${DIM}(推荐，如有 NVIDIA GPU)${NC}"
-    echo -e "  ${PURPLE}2)${NC} 跳过 vLLM ${DIM}(CPU 环境或低显存设备)${NC}"
+    echo -e "  ${GREEN}1)${NC} 安装 vLLM 后端 ${DIM}(本地 GPU 推荐)${NC}"
+    echo -e "  ${PURPLE}2)${NC} 跳过 vLLM 后端 ${DIM}(使用其他后端或云端/CPU 环境)${NC}"
     echo ""
     read -p "请选择 [1-2，默认1]: " vllm_choice
 
@@ -411,7 +411,7 @@ show_installation_menu() {
         2)
             INSTALL_VLLM=false
             INSTALL_VLLM_EXPLICIT=true
-            echo -e "${DIM}提示: 跳过 vLLM 安装。稍后可通过以下命令手动安装:${NC}"
+            echo -e "${DIM}提示: 跳过 vLLM 本地后端。稍后可通过以下命令安装以供 sageLLM 控制平面使用:${NC}"
             echo -e "${DIM}  pip install 'isage-common[vllm]'${NC}"
             ;;
         *)
@@ -476,14 +476,14 @@ show_parameter_help() {
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
 
-    echo -e "${BLUE}🤖 vLLM 引擎选项：${NC}"
+    echo -e "${BLUE}🤖 sageLLM 本地后端 (vLLM) 选项：${NC}"
     echo ""
-    echo -e "  ${BOLD}--vllm, --enable-vllm${NC}                       ${GREEN}安装 vLLM 引擎（默认）${NC}"
-    echo -e "    ${DIM}高性能 LLM 推理引擎，支持本地运行大语言模型${NC}"
+    echo -e "  ${BOLD}--vllm, --enable-vllm${NC}                       ${GREEN}安装 vLLM 本地后端（默认）${NC}"
+    echo -e "    ${DIM}sageLLM 控制平面可调用的高性能本地推理后端${NC}"
     echo -e "    ${DIM}需要 NVIDIA GPU (CUDA) 和约 2GB+ 额外磁盘空间${NC}"
     echo ""
-    echo -e "  ${BOLD}--no-vllm, --skip-vllm${NC}                      ${YELLOW}跳过 vLLM 安装${NC}"
-    echo -e "    ${DIM}适用于 CPU 环境、磁盘空间有限、或仅使用云端 API${NC}"
+    echo -e "  ${BOLD}--no-vllm, --skip-vllm${NC}                      ${YELLOW}跳过 vLLM 本地后端${NC}"
+    echo -e "    ${DIM}适用于 CPU 环境、磁盘空间有限、或计划使用其他/远端后端${NC}"
     echo -e "    ${DIM}稍后可手动安装: pip install 'isage-common[vllm]'${NC}"
     echo ""
     echo -e "  ${BOLD}--vllm-source, --vllm-from-source${NC}           ${PURPLE}从本地源码编译安装 vLLM${NC}"
@@ -1002,7 +1002,7 @@ set_defaults_and_show_tips() {
     # 处理 vLLM 安装默认值
     if [ "$INSTALL_VLLM_EXPLICIT" = false ] && [ "$INSTALL_VLLM" != "false" ]; then
         INSTALL_VLLM=true
-        echo -e "${INFO} vLLM 引擎默认会随 quickstart 安装。使用 --no-vllm 可跳过（CPU/低显存环境）。"
+        echo -e "${INFO} vLLM 作为 sageLLM 控制平面的可选推理引擎会默认安装；如使用其他后端或在 CPU/低显存环境，可通过 --no-vllm 跳过。"
         has_defaults=true
     elif [ "$INSTALL_VLLM" = false ]; then
         echo -e "${DIM}提示: 检测到 --no-vllm，跳过 vLLM 引擎安装${NC}"

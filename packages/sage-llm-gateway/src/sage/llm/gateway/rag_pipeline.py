@@ -278,11 +278,11 @@ class RAGChatMap(MapFunction):
 
             # 所有后端都不健康
             logger.warning("All %d LLM backends are unhealthy", len(llm_backends))
-            return None, None
+            return None, None, None
 
         except Exception as e:
             logger.warning(f"Failed to get LLM backend from Control Plane: {e}")
-            return None, None
+            return None, None, None
 
     def _detect_workflow_intent(self, user_input: str) -> bool:
         """Detect if user wants to create a workflow.

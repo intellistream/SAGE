@@ -59,7 +59,8 @@ class StudioManager:
         # React + Vite 默认端口是 5173
         self.default_port = SagePorts.STUDIO_FRONTEND
         self.backend_port = SagePorts.STUDIO_BACKEND  # Studio backend API
-        self.gateway_port = SagePorts.GATEWAY_DEFAULT  # Gateway 默认端口
+        # Allow env override for gateway port; fallback logic handled in _start_gateway
+        self.gateway_port = int(os.environ.get("SAGE_GATEWAY_PORT", str(SagePorts.GATEWAY_DEFAULT)))
         self.default_host = "0.0.0.0"  # 修改为监听所有网络接口
 
         # 确保所有目录存在

@@ -45,7 +45,7 @@ class MixedRatioExperiment(BaseExperiment):
     Example:
         exp = MixedRatioExperiment(
             name="mixed_ratio_sweep",
-            control_plane_url="http://localhost:8888",
+            control_plane_url="http://localhost:8889",
             llm_ratios=[0.0, 0.25, 0.5, 0.75, 1.0],
         )
         result = await exp.run_full()
@@ -54,7 +54,7 @@ class MixedRatioExperiment(BaseExperiment):
     def __init__(
         self,
         name: str,
-        control_plane_url: str = "http://localhost:8888",
+        control_plane_url: str = "http://localhost:8889",
         llm_ratios: list[float] | None = None,
         request_rate: int = 100,
         num_requests: int = 500,

@@ -255,7 +255,7 @@ class HybridBenchmarkConfig(BaseBenchmarkConfig):
 
         return cls(
             # Base config
-            control_plane_url=data.get("control_plane_url", "http://localhost:8888"),
+            control_plane_url=data.get("control_plane_url", "http://localhost:8889"),
             policies=data.get("policies", ["hybrid", "fifo", "priority"]),
             num_requests=data.get("num_requests", 100),
             request_rate=data.get("request_rate", 10.0),

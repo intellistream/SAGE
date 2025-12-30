@@ -109,7 +109,7 @@ class BaseBenchmarkConfig(ABC):
     """
 
     # Control Plane connection
-    control_plane_url: str = "http://localhost:8888"
+    control_plane_url: str = "http://localhost:8889"
 
     # Policies to benchmark
     policies: list[str] = field(default_factory=lambda: ["fifo", "priority", "slo_aware"])

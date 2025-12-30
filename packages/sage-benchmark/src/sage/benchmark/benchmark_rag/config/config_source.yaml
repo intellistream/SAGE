@@ -13,14 +13,14 @@ generator:
     api_key: ""
     method: "openai"
     model_name: "qwen-turbo-2025-02-11"
-    base_url: "http://127.0.0.1:8888/v1"
+    base_url: "http://127.0.0.1:8889/v1"
     seed: 42
 
   remote:
     api_key: ""
     method: "openai"
     model_name: "qwen-turbo-0919"
-    base_url: "http://127.0.0.1:8888/v1"
+    base_url: "http://127.0.0.1:8889/v1"
     seed: 42
 
 promptor:

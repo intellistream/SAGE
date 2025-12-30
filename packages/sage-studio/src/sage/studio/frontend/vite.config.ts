@@ -17,9 +17,9 @@ export default defineConfig({
         allowedHosts: true,
         proxy: {
             // 所有 Studio API 统一转发到 Gateway
-            // 优先使用环境变量 VITE_GATEWAY_PORT，否则默认为 8888
-            '/api': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
+                // 优先使用环境变量 VITE_GATEWAY_PORT，否则默认为 8889
+                '/api': {
+                    target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8889}`,
                 changeOrigin: true,
                 rewrite: (path) => path,
             },
@@ -36,8 +36,8 @@ export default defineConfig({
         allowedHosts: true,
         proxy: {
             // 所有 Studio API 统一转发到 Gateway
-            '/api': {
-                target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8888}`,
+                '/api': {
+                    target: `http://localhost:${process.env.VITE_GATEWAY_PORT || 8889}`,
                 changeOrigin: true,
                 rewrite: (path) => path,
             },

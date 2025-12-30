@@ -555,7 +555,29 @@ class ChatModeManager(StudioManager):
     # Gateway helpers
     # ------------------------------------------------------------------
     def _is_gateway_running(self) -> int | None:
-        # 1. Check PID file first
+        """Detect a running gateway process and align internal state.
+
+        Looks at the PID file first, then scans candidate ports (current, default,
+        fallback, and env override) for a process whose cmdline includes
+        ``sage.llm.gateway.server``/``sage-llm-gateway``. When found, updates
+        ``self.gateway_port`` and rewrites the PID file so subsequent stop/restart
+        flows can clean it up.
+        """
+
+        candidate_ports: set[int] = {
+            self.gateway_port,
+            SagePorts.GATEWAY_DEFAULT,
+            SagePorts.EDGE_DEFAULT,
+        }
+
+        env_port = os.environ.get("SAGE_GATEWAY_PORT")
+        if env_port:
+            try:
+                candidate_ports.add(int(env_port))
+            except ValueError:
+                pass
+
+        # 1) PID file check
         if self.gateway_pid_file.exists():
             try:
                 pid = int(self.gateway_pid_file.read_text().strip())
@@ -570,23 +592,37 @@ class ChatModeManager(StudioManager):
             except OSError:
                 pass
 
-        # 2. Fallback: Check if port is in use
-        # This handles cases where PID file is lost but process is still running
+        # 2) Scan known ports for our gateway process (handles orphaned starts)
         try:
             for proc in psutil.process_iter(["pid", "name"]):
                 try:
                     for conn in proc.connections(kind="inet"):
+                        if conn.status != psutil.CONN_LISTEN:
+                            continue
+                        if conn.laddr.port not in candidate_ports:
+                            continue
+
+                        try:
+                            cmdline = " ".join(proc.cmdline())
+                        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                            cmdline = ""
+
                         if (
-                            conn.laddr.port == self.gateway_port
-                            and conn.status == psutil.CONN_LISTEN
+                            "sage.llm.gateway.server" not in cmdline
+                            and "sage-llm-gateway" not in cmdline
                         ):
-                            # Found process listening on gateway port
-                            # Re-create PID file for future reference
-                            try:
-                                self.gateway_pid_file.write_text(str(proc.pid))
-                            except Exception:
-                                pass
-                            return proc.pid
+                            continue
+
+                        # Align internal state to the discovered process
+                        try:
+                            self.gateway_port = conn.laddr.port
+                        except Exception:
+                            pass
+                        try:
+                            self.gateway_pid_file.write_text(str(proc.pid))
+                        except Exception:
+                            pass
+                        return proc.pid
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
         except Exception:
@@ -603,6 +639,9 @@ class ChatModeManager(StudioManager):
         # If gateway is not installed, subprocess will fail anyway
         gateway_port = port or self.gateway_port
 
+        # Detect user override; only auto-fallback when using built-in default
+        explicit_port = (port is not None) or ("SAGE_GATEWAY_PORT" in os.environ)
+
         # Check if port is in use
         if self._is_port_in_use(gateway_port):
             console.print(f"[yellow]⚠️  端口 {gateway_port} 已被占用[/yellow]")
@@ -618,7 +657,18 @@ class ChatModeManager(StudioManager):
                         pass
             except Exception:
                 pass
-            # Continue anyway, let uvicorn fail and report error
+
+            if (not explicit_port) and gateway_port == SagePorts.GATEWAY_DEFAULT:
+                fallback_port = SagePorts.EDGE_DEFAULT
+                console.print(
+                    f"[cyan]💡 端口 {gateway_port} 被占用，自动切换 Gateway 到 {fallback_port}[/cyan]"
+                )
+                gateway_port = fallback_port
+                self.gateway_port = fallback_port
+            else:
+                console.print(
+                    "[yellow]继续尝试当前端口，若失败请手动指定 --gateway-port 或设置 SAGE_GATEWAY_PORT[/yellow]"
+                )
 
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))

@@ -86,7 +86,7 @@ class BenchmarkConfig:
     """
 
     # Control Plane connection
-    control_plane_url: str = "http://localhost:8888"
+    control_plane_url: str = "http://localhost:8889"
 
     # Policies to benchmark
     policies: list[str] = field(default_factory=lambda: ["fifo", "priority", "slo_aware"])
@@ -196,7 +196,7 @@ class BenchmarkConfig:
             output_dir = Path(output_dir)
 
         return cls(
-            control_plane_url=data.get("control_plane_url", "http://localhost:8888"),
+            control_plane_url=data.get("control_plane_url", "http://localhost:8889"),
             policies=data.get("policies", ["fifo", "priority", "slo_aware"]),
             num_requests=data.get("num_requests", 100),
             request_rate=data.get("request_rate", 10.0),

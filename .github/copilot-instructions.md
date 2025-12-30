@@ -507,7 +507,7 @@ from sage.common.config.ports import SagePorts
 
 # ✅ 正确用法
 port = SagePorts.LLM_DEFAULT           # 8001
-gateway_port = SagePorts.GATEWAY_DEFAULT  # 8888
+gateway_port = SagePorts.GATEWAY_DEFAULT  # 8889
 
 # ✅ WSL2 环境推荐用法
 port = SagePorts.get_recommended_llm_port()  # 自动检测 WSL2 并选择合适端口
@@ -519,16 +519,16 @@ port = 8001  # 不要这样写
 **端口分配表**:
 | 常量 | 端口 | 用途 |
 |------|------|------|
-| `GATEWAY_DEFAULT` | 8888 | sage-llm-gateway (OpenAI 兼容 API Gateway) |
+| `GATEWAY_DEFAULT` | 8889 | sage-llm-gateway (OpenAI 兼容 API Gateway) |
 | `EDGE_DEFAULT` | 8899 | sage-edge 聚合器（可选，默认挂载 gateway 保持 /v1/*） |
 | `LLM_DEFAULT` | 8001 | vLLM 推理服务 |
 | `LLM_WSL_FALLBACK` | 8901 | WSL2 备用 LLM 端口 |
-| `STUDIO_BACKEND` | 8888 | sage-studio 后端 API |
+| `STUDIO_BACKEND` | 8889| sage-studio 后端 API |
 | `STUDIO_FRONTEND` | 5173 | sage-studio 前端 (Vite) |
 | `EMBEDDING_DEFAULT` | 8090 | Embedding 服务 |
 | `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
 
-**架构**: `User → Edge (8899, 可选) → Gateway (8888) → LLM (8001)`（Edge 默认直通 Gateway，直接访问 Gateway 也有效）
+**架构**: `User → Edge (8899, 可选) → Gateway (8889) → LLM (8001)`（Edge 默认直通 Gateway，直接访问 Gateway 也有效）
 
 **WSL2 已知问题**:
 - 端口 8001 在 WSL2 上可能出现"端口监听但连接被拒绝"的问题
