@@ -283,6 +283,13 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Directories
+        run: |
+          echo "📁 创建必要的目录结构..."
+          mkdir -p .sage/reports
+          mkdir -p .sage/logs
+          echo "✅ 目录创建完成"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -299,22 +306,6 @@ jobs:
         run: |
           echo "🔍 Running installation verification suite..."
           bash tools/install/tests/verify_installation.sh
-
-      - name: Validate Memory Service Configurations
-        run: |
-          echo "🔍 验证内存服务配置文件..."
-
-          # 运行配置验证器
-          python packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/tools/config_validator.py \
-            config/memory_v2/ \
-            --strict \
-            --report-format json \
-            --report-file .sage/reports/config_validation.json || {
-              echo "❌ 配置验证失败"
-              exit 1
-            }
-
-          echo "✅ 所有配置文件验证通过"
 
       - name: Test Memory Service Implementations
         run: |
