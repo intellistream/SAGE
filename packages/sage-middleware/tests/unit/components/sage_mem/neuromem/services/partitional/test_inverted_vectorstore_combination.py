@@ -53,7 +53,7 @@ class TestServiceRegistration:
 
     def test_service_registered(self):
         """测试 Service 已注册到 Registry"""
-        service_cls = MemoryServiceRegistry.get_service_class("partitional.inverted_vectorstore_combination")
+        service_cls = MemoryServiceRegistry.get_service_class("inverted_vectorstore_combination")
         assert service_cls is InvertedVectorStoreCombinationService
 
 

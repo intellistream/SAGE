@@ -150,7 +150,7 @@ class TestCombinationServiceWorkflow:
         embedder = MockEmbedder(dim=768)
 
         service = MemoryServiceRegistry.create(
-            "partitional.feature_summary_vectorstore_combination",
+            "feature_summary_vectorstore_combination",
             collection,
             config={
                 "vector_dim": 768,
@@ -185,7 +185,7 @@ class TestCombinationServiceWorkflow:
         embedder = MockEmbedder(dim=768)
 
         service = MemoryServiceRegistry.create(
-            "partitional.inverted_vectorstore_combination",
+            "inverted_vectorstore_combination",
             collection,
             config={
                 "vector_dim": 768,

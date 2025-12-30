@@ -308,7 +308,7 @@ class TestConfigurationCompatibility:
 
         # 通过Registry创建不同Service
         service1 = MemoryServiceRegistry.create(
-            "partitional.inverted_vectorstore_combination",
+            "inverted_vectorstore_combination",
             collection=col,
             config={"vector_dim": 128, "fusion_strategy": "rrf"},
         )

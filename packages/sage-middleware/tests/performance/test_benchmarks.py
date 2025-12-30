@@ -123,7 +123,7 @@ class TestInsertionPerformance:
 
         collection = UnifiedCollection(f"vectorstore_bench_{num_items}")
         service = MemoryServiceRegistry.create(
-            "partitional.inverted_vectorstore_combination",
+            "inverted_vectorstore_combination",
             collection,
             config={
                 "vector_dim": 768,
@@ -249,7 +249,7 @@ class TestRetrievalPerformance:
 
         collection = UnifiedCollection("vector_retrieval_bench")
         service = MemoryServiceRegistry.create(
-            "partitional.inverted_vectorstore_combination",
+            "inverted_vectorstore_combination",
             collection,
             config={
                 "vector_dim": 768,
