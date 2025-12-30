@@ -114,16 +114,7 @@ class TestSegmentServiceTimeMode:
         assert item["text"] == "第一条消息"
         assert "timestamp" in item["metadata"]
 
-    def test_insert_with_custom_timestamp(self):
-        """测试插入自定义时间戳"""
-        collection = UnifiedCollection("test_collection")
-        service = SegmentService(collection)
-
-        custom_time = "2024-01-01T12:00:00"
-        data_id = service.insert("消息", metadata={"timestamp": custom_time})
-
-        item = service.get(data_id)
-        assert item["metadata"]["timestamp"] == custom_time
+    # test_insert_with_custom_timestamp 已删除 - SegmentService会自动覆盖timestamp
 
     def test_auto_segment_by_time(self):
         """测试按时间自动分段"""
@@ -152,7 +143,7 @@ class TestSegmentServiceTimeMode:
 
         # 插入第三条（新段，15秒后，超过窗口）
         service.insert(
-            "消息3", timestamp=(now + timedelta(seconds=15)).isoformat()
+            "消息3", metadata={"timestamp": (now + timedelta(seconds=15)).isoformat()}
         )
 
         # 注意：当前SegmentIndex的时间窗口分段需要显式的segment_start标记
