@@ -233,9 +233,7 @@ class SessionManager:
         """
         if self._memory_backend == "short_term":
             # 使用 NeuromemServiceFactory 创建短期记忆服务
-            return NeuromemServiceFactory.create_instance(
-                "fifo_queue", max_dialogs=self._max_memory_dialogs
-            )
+            return NeuromemServiceFactory.create("fifo_queue", max_dialogs=self._max_memory_dialogs)
 
         elif self._memory_backend == "vdb":
             # 向量数据库记忆
@@ -295,7 +293,7 @@ class SessionManager:
 
         else:
             # 默认使用短期记忆 (FIFO队列服务)
-            return NeuromemServiceFactory.create_instance(
+            return NeuromemServiceFactory.create(
                 "fifo_queue",
                 max_dialogs=self._max_memory_dialogs,
                 collection_name=f"stm_{session_id}",
