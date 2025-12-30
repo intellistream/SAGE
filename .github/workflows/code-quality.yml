@@ -150,6 +150,18 @@ jobs:
 
           echo "✅ 所有依赖版本兼容"
 
+      - name: Cleanup Temporary Files
+        run: |
+          echo "🧹 清理安装过程中可能产生的临时文件..."
+          # 删除版本约束解析错误产生的文件（例如 =2.0.0）
+          if [ -f "=2.0.0" ]; then
+            rm -f "=2.0.0"
+            echo "✅ 已删除: =2.0.0"
+          fi
+          # 查找并删除其他可能的版本约束文件
+          find . -maxdepth 1 -name "=*" -type f -delete 2>/dev/null || true
+          echo "✅ 临时文件清理完成"
+
       - name: Run Code Quality Checks (Changed Files)
         if: github.event_name == 'pull_request'
         run: |
