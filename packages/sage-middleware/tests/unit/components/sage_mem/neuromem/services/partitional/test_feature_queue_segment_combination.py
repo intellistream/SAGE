@@ -57,7 +57,7 @@ class TestServiceRegistration:
     def test_service_registered(self):
         """测试 Service 已注册到 Registry"""
         service_cls = MemoryServiceRegistry.get_service_class(
-            "partitional.feature_queue_segment_combination"
+            "feature_queue_segment_combination"
         )
         assert service_cls is FeatureQueueSegmentCombinationService
 

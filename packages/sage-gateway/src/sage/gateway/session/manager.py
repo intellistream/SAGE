@@ -21,6 +21,7 @@ from typing import Any
 
 from sage.middleware.components.sage_mem.neuromem.memory_collection import (
     BaseMemoryCollection,
+    UnifiedCollection,
 )
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
@@ -28,8 +29,8 @@ from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryMa
 from sage.middleware.components.sage_mem.neuromem.services.base_service import (
     BaseMemoryService,
 )
-from sage.middleware.components.sage_mem.neuromem.services.neuromem_service_factory import (
-    NeuromemServiceFactory,
+from sage.middleware.components.sage_mem.neuromem.services.partitional.fifo_queue_service import (
+    FIFOQueueService,
 )
 
 from .storage import FileSessionStore, SessionStorage
@@ -232,29 +233,35 @@ class SessionManager:
         - graph: 图记忆（关系推理）
         """
         if self._memory_backend == "short_term":
-            # 使用 NeuromemServiceFactory 创建短期记忆服务
-            return NeuromemServiceFactory.create("fifo_queue", max_dialogs=self._max_memory_dialogs)
+            # 使用 FIFOQueueService 创建短期记忆服务
+            collection = UnifiedCollection(name=f"stm_{session_id}")
+            service = FIFOQueueService(
+                collection=collection, config={"max_size": self._max_memory_dialogs}
+            )
+            return service
 
         elif self._memory_backend == "vdb":
             # 向量数据库记忆
             index_name = f"vdb_index_{session_id}"
+            collection_name = f"session_{session_id}_vdb"
             config = {
-                "name": f"session_{session_id}_vdb",
                 "backend_type": "VDB",
                 "description": f"Vector memory for session {session_id}",
             }
-            collection = self._memory_manager.create_collection(config)
+            collection = self._memory_manager.create_collection(collection_name, config)
 
-            # 创建索引
+            # 创建索引（使用 add_index，索引类型为 'faiss'）
             index_config = {
-                "name": index_name,
                 "embedding_model": self._memory_config.get("embedding_model", "hash"),
                 "dim": self._memory_config.get("embedding_dim", 384),
-                "backend_type": "FAISS",
-                "description": "Session vector index",
+                "backend_type": "faiss",
                 "index_parameter": {},
             }
-            collection.create_index(index_config)
+            collection.add_index(
+                name=index_name,
+                index_type="faiss",  # 使用 'faiss' 而不是 'vector'
+                config=index_config,
+            )
 
             # 保存 index_name 用于后续操作
             collection._gateway_index_name = index_name
@@ -263,20 +270,19 @@ class SessionManager:
         elif self._memory_backend == "kv":
             # 键值存储记忆
             index_name = f"kv_index_{session_id}"
+            collection_name = f"session_{session_id}_kv"
             config = {
-                "name": f"session_{session_id}_kv",
                 "backend_type": "KV",
                 "description": f"KV memory for session {session_id}",
             }
-            collection = self._memory_manager.create_collection(config)
+            collection = self._memory_manager.create_collection(collection_name, config)
 
-            # 创建索引
-            index_config = {
-                "name": index_name,
-                "index_type": self._memory_config.get("default_index_type", "bm25s"),
-                "description": "Session KV index",
-            }
-            collection.create_index(index_config)
+            # 创建索引（使用 add_index，索引类型为 'bm25'）
+            index_type = self._memory_config.get("default_index_type", "bm25")
+            # 移除 's' 后缀，'bm25s' -> 'bm25'
+            if index_type == "bm25s":
+                index_type = "bm25"
+            collection.add_index(name=index_name, index_type=index_type, config={})
 
             # 保存 index_name 用于后续操作
             collection._gateway_index_name = index_name
@@ -284,20 +290,20 @@ class SessionManager:
 
         elif self._memory_backend == "graph":
             # 图记忆
+            collection_name = f"session_{session_id}_graph"
             config = {
-                "name": f"session_{session_id}_graph",
                 "backend_type": "Graph",
                 "description": f"Graph memory for session {session_id}",
             }
-            return self._memory_manager.create_collection(config)
+            return self._memory_manager.create_collection(collection_name, config)
 
         else:
             # 默认使用短期记忆 (FIFO队列服务)
-            return NeuromemServiceFactory.create(
-                "fifo_queue",
-                max_dialogs=self._max_memory_dialogs,
-                collection_name=f"stm_{session_id}",
+            collection = UnifiedCollection(name=f"stm_{session_id}")
+            service = FIFOQueueService(
+                collection=collection, config={"max_size": self._max_memory_dialogs}
             )
+            return service
 
     def get_or_create(self, session_id: str | None = None) -> ChatSession:
         """获取或创建会话"""

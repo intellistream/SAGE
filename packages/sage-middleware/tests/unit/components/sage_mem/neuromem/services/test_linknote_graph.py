@@ -48,7 +48,7 @@ class TestBasicOperations:
 
     def test_insert_note_without_links(self, service):
         """测试插入笔记 (无链接)"""
-        note_id = service.insert("Python is awesome", {"title": "Python"})
+        note_id = service.insert("Python is awesome", None, {"title": "Python"})
 
         assert note_id is not None
         note = service.get(note_id)
@@ -59,7 +59,8 @@ class TestBasicOperations:
         """测试插入笔记 (带元数据)"""
         note_id = service.insert(
             "Machine Learning basics",
-            metadata={"title": "ML", "tags": ["AI", "ML"]},
+            None,
+            {"title": "ML", "tags": ["AI", "ML"]},
         )
 
         note = service.get(note_id)
@@ -73,7 +74,7 @@ class TestBasicOperations:
         note2_id = service.insert("Note 2")
 
         # 插入第三个笔记并链接到前两个
-        note3_id = service.insert("Note 3", links=[note1_id, note2_id])
+        note3_id = service.insert("Note 3", None, {}, insert_params={"links": [note1_id, note2_id]})
 
         assert note3_id is not None
         # 验证链接已建立 (通过查询邻居)
@@ -96,7 +97,7 @@ class TestRetrieval:
         # A → D
         note_a = service.insert("Note A")
         note_b = service.insert("Note B")
-        note_c = service.insert("Note C", links=[note_b])
+        note_c = service.insert("Note C", None, {}, insert_params={"links": [note_b]})
         note_d = service.insert("Note D")
 
         # 添加链接 (A→B, A→D)
@@ -159,7 +160,7 @@ class TestBacklinksAndNeighbors:
         """测试获取反向链接"""
         note1_id = service.insert("Note 1")
         note2_id = service.insert("Note 2")
-        note3_id = service.insert("Note 3", links=[note1_id])
+        note3_id = service.insert("Note 3", None, {}, insert_params={"links": [note1_id]})
 
         # note1 应该有 note3 的反向链接
         backlinks = service.get_backlinks(note1_id)
@@ -168,7 +169,7 @@ class TestBacklinksAndNeighbors:
     def test_get_neighbors_1hop(self, service):
         """测试获取 1 跳邻居"""
         note1_id = service.insert("Note 1")
-        note2_id = service.insert("Note 2", links=[note1_id])
+        note2_id = service.insert("Note 2", None, {}, insert_params={"links": [note1_id]})
 
         neighbors = service.get_neighbors(note2_id, max_hops=1)
         assert note1_id in neighbors
@@ -176,8 +177,8 @@ class TestBacklinksAndNeighbors:
     def test_get_neighbors_2hop(self, service):
         """测试获取 2 跳邻居"""
         note1_id = service.insert("Note 1")
-        note2_id = service.insert("Note 2", links=[note1_id])
-        note3_id = service.insert("Note 3", links=[note2_id])
+        note2_id = service.insert("Note 2", None, {}, insert_params={"links": [note1_id]})
+        note3_id = service.insert("Note 3", None, {}, insert_params={"links": [note2_id]})
 
         # note3 的 2 跳邻居应包含 note1
         neighbors_2hop = service.get_neighbors(note3_id, max_hops=2)
@@ -196,7 +197,7 @@ class TestEdgeCases:
     def test_insert_with_invalid_links(self, service):
         """测试插入时链接到不存在的笔记"""
         # 链接到不存在的笔记应该被忽略 (不抛出异常)
-        note_id = service.insert("Note", links=["nonexistent_id"])
+        note_id = service.insert("Note", None, {}, insert_params={"links": ["nonexistent_id"]})
         assert note_id is not None
 
     def test_get_backlinks_empty(self, service):
@@ -227,7 +228,7 @@ class TestComplexGraph:
         service = LinknoteGraphService(collection)
 
         note1_id = service.insert("Note 1")
-        note2_id = service.insert("Note 2", links=[note1_id])
+        note2_id = service.insert("Note 2", None, {}, insert_params={"links": [note1_id]})
 
         # 在无向图中，A→B 等价于 B→A
         backlinks_1 = service.get_backlinks(note1_id)

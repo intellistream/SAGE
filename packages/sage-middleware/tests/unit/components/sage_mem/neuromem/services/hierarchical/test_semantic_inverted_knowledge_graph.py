@@ -173,8 +173,9 @@ class TestDataInsertion:
         service = SemanticInvertedKnowledgeGraphService(col, service_config)
 
         data_id = service.insert(
-            text="Test document about AI",
-            metadata={"topic": "ai"},
+            "Test document about AI",
+            None,
+            {"topic": "ai"},
         )
 
         assert isinstance(data_id, str)
@@ -187,11 +188,14 @@ class TestDataInsertion:
         service = SemanticInvertedKnowledgeGraphService(col, service_config)
 
         data_id = service.insert(
-            text="Python is a programming language",
-            metadata={},
-            entities=["Python", "programming"],
-            relations=[("Python", "is", "language")],
-            segment_id="tech",
+            "Python is a programming language",
+            None,
+            {},
+            insert_params={
+                "entities": ["Python", "programming"],
+                "relations": [("Python", "is", "language")],
+                "segment_id": "tech",
+            },
         )
 
         # 检查元数据是否正确保存
