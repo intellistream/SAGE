@@ -58,7 +58,7 @@ class TestFIFOQueueWorkflow:
         # 3. 插入对话
         for conv in conversations:
             service.insert(
-                text=f"{conv['speaker']}: {conv['text']}",
+                f"{conv['speaker']}: {conv['text']}",
                 metadata=conv,
             )
 

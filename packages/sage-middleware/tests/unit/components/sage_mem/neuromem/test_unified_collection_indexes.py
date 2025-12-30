@@ -37,7 +37,7 @@ class TestUnifiedCollectionIndexes:
         assert len(collection.indexes) == 2
 
         # 添加重复索引（应该失败）
-        success3 = collection.add_index("fifo", "fifo", {})
+        success3 = collection.add_index("fifo", "fifo", {"max_size": 100})
         assert success3 is False
 
     def test_remove_index(self):
@@ -45,8 +45,8 @@ class TestUnifiedCollectionIndexes:
         collection = UnifiedCollection(name="test", config={})
 
         # 添加索引
-        collection.add_index("idx1", "fifo", {})
-        collection.add_index("idx2", "faiss", {})
+        collection.add_index("idx1", "fifo", {"max_size": 100})
+        collection.add_index("idx2", "faiss", {"dim": 128})
         assert len(collection.indexes) == 2
 
         # 删除存在的索引
@@ -87,7 +87,7 @@ class TestUnifiedCollectionIndexes:
         assert collection.size() == 1
 
         # 添加索引
-        collection.add_index("idx1", "fifo", {})
+        collection.add_index("idx1", "fifo", {"max_size": 100})
 
         # 将数据加入索引
         success = collection.insert_to_index(data_id, "idx1")
@@ -107,7 +107,7 @@ class TestUnifiedCollectionIndexes:
         collection = UnifiedCollection(name="test", config={})
 
         # 添加索引并插入数据
-        collection.add_index("idx1", "fifo", {})
+        collection.add_index("idx1", "fifo", {"max_size": 100})
         data_id = collection.insert("Test text", {})
 
         # 验证数据在索引中
@@ -130,7 +130,7 @@ class TestUnifiedCollectionIndexes:
         collection = UnifiedCollection(name="test", config={})
 
         # 添加索引并插入数据
-        collection.add_index("idx1", "fifo", {})
+        collection.add_index("idx1", "fifo", {"max_size": 100})
         id1 = collection.insert("Text 1", {})
         id2 = collection.insert("Text 2", {})
         id3 = collection.insert("Text 3", {})
@@ -154,7 +154,7 @@ class TestUnifiedCollectionIndexes:
         collection = UnifiedCollection(name="test", config={})
 
         # 添加索引并插入数据
-        collection.add_index("idx1", "fifo", {})
+        collection.add_index("idx1", "fifo", {"max_size": 100})
         id1 = collection.insert("Text 1", {"idx": 0})
         id2 = collection.insert("Text 2", {"idx": 1})
 
@@ -173,8 +173,8 @@ class TestUnifiedCollectionIndexes:
         collection = UnifiedCollection(name="test", config={})
 
         # 添加两个索引
-        collection.add_index("idx1", "fifo", {})
-        collection.add_index("idx2", "faiss", {})
+        collection.add_index("idx1", "fifo", {"max_size": 100})
+        collection.add_index("idx2", "faiss", {"dim": 128})
 
         # 插入数据（默认加入所有索引）
         data_id = collection.insert("Test text", {})

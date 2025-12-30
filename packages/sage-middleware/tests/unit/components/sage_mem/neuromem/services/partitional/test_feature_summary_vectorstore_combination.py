@@ -132,7 +132,7 @@ class TestDataInsertion:
     def test_insert_skip_feature_extraction(self, service):
         """测试跳过特征提取"""
         data_id = service.insert(
-            "Test text", metadata={}, skip_feature_extraction=True
+            "Test text", metadata={}, insert_params={"skip_feature_extraction": True}
         )
 
         data = service.collection.get(data_id)
@@ -141,7 +141,7 @@ class TestDataInsertion:
     def test_insert_skip_summary_generation(self, service):
         """测试跳过摘要生成"""
         data_id = service.insert(
-            "Test text", metadata={}, skip_summary_generation=True
+            "Test text", metadata={}, insert_params={"skip_summary_generation": True}
         )
 
         data = service.collection.get(data_id)

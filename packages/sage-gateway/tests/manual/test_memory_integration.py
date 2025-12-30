@@ -80,12 +80,13 @@ def test_memory_integration():
     print("6️⃣  验证窗口滑动机制")
     memory_service = manager.get_memory_service(session_id)
     current_dialogs = memory_service.retrieve()
-    print(f"   ✅ 当前保留对话数: {len(current_dialogs)} / {memory_service.max_dialog}")
+    max_size = memory_service.config.get("max_size", 100)
+    print(f"   ✅ 当前保留对话数: {len(current_dialogs)} / {max_size}")
 
-    if len(current_dialogs) == memory_service.max_dialog:
+    if len(current_dialogs) == max_size:
         print("   ✅ 窗口滑动正常：已达到最大容量，自动移除旧对话")
     else:
-        print(f"   ℹ️  还未达到最大容量 ({len(current_dialogs)}/{memory_service.max_dialog})")
+        print(f"   ℹ️  还未达到最大容量 ({len(current_dialogs)}/{max_size})")
     print()
 
     # 测试多会话隔离

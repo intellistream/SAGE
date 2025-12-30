@@ -56,8 +56,7 @@ class TestLinknotePropertyGraphIntegration:
         )
         note2_id = linknote_service.insert(
             "面向对象编程",
-            links=[note1_id],
-            metadata={"type": "note", "topic": "programming"},
+            metadata={"type": "note", "topic": "programming", "links": [note1_id]},
         )
 
         # 使用 PropertyGraph 插入实体
@@ -160,8 +159,8 @@ class TestLinknotePropertyGraphIntegration:
         """
         # 创建笔记链
         note1 = linknote_service.insert("Note 1")
-        note2 = linknote_service.insert("Note 2", links=[note1])
-        note3 = linknote_service.insert("Note 3", links=[note2])
+        note2 = linknote_service.insert("Note 2", metadata={"links": [note1]})
+        note3 = linknote_service.insert("Note 3", metadata={"links": [note2]})
 
         # 验证链接关系
         assert note1 in linknote_service.get_backlinks(note2)
@@ -254,7 +253,7 @@ class TestServicePerformance:
         # 创建深度链：Note1 -> Note2 -> ... -> Note10
         previous_id = service.insert("Note 1")
         for i in range(2, 11):
-            current_id = service.insert(f"Note {i}", links=[previous_id])
+            current_id = service.insert(f"Note {i}", metadata={"links": [previous_id]})
             previous_id = current_id
 
         # 测试不同深度的遍历
@@ -283,8 +282,8 @@ class TestEdgeCasesIntegration:
 
         # 创建循环链接：A -> B -> C -> A
         note_a = service.insert("Note A")
-        note_b = service.insert("Note B", links=[note_a])
-        note_c = service.insert("Note C", links=[note_b])
+        note_b = service.insert("Note B", metadata={"links": [note_a]})
+        note_c = service.insert("Note C", metadata={"links": [note_b]})
 
         # 尝试添加 A -> C 链接形成环
         # 当前实现允许环，但遍历应该正确处理
