@@ -23,13 +23,13 @@ from sage.middleware.components.sage_mem.neuromem.memory_collection import (
     BaseMemoryCollection,
 )
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
-from sage.middleware.components.sage_mem.services.memory_service_factory import (
-    MemoryServiceFactory,
-)
 
 # Import sage-memory components
-from sage.middleware.components.sage_mem.services.short_term_memory_service import (
-    ShortTermMemoryService,
+from sage.middleware.components.sage_mem.neuromem.services.base_service import (
+    BaseMemoryService,
+)
+from sage.middleware.components.sage_mem.neuromem.services.neuromem_service_factory import (
+    NeuromemServiceFactory,
 )
 
 from .storage import FileSessionStore, SessionStorage
@@ -154,7 +154,7 @@ class SessionManager:
         self._sessions: dict[str, ChatSession] = {}
 
         # sage-memory: 为每个session维护独立的记忆服务
-        self._memory_services: dict[str, ShortTermMemoryService | BaseMemoryCollection] = {}
+        self._memory_services: dict[str, BaseMemoryService | BaseMemoryCollection] = {}
         self._max_memory_dialogs = max_memory_dialogs
         self._memory_backend = memory_backend
         self._memory_config = memory_config or {}
@@ -222,9 +222,7 @@ class SessionManager:
         self._persist()
         return session
 
-    def _create_memory_service(
-        self, session_id: str
-    ) -> ShortTermMemoryService | BaseMemoryCollection:
+    def _create_memory_service(self, session_id: str) -> BaseMemoryService | BaseMemoryCollection:
         """为会话创建记忆服务
 
         根据配置的后端类型创建不同的记忆服务：
@@ -234,9 +232,9 @@ class SessionManager:
         - graph: 图记忆（关系推理）
         """
         if self._memory_backend == "short_term":
-            # 使用 MemoryServiceFactory 创建短期记忆服务
-            return MemoryServiceFactory.create_instance(
-                "short_term_memory", max_dialog=self._max_memory_dialogs
+            # 使用 NeuromemServiceFactory 创建短期记忆服务
+            return NeuromemServiceFactory.create_instance(
+                "fifo_queue", max_dialogs=self._max_memory_dialogs
             )
 
         elif self._memory_backend == "vdb":
@@ -296,9 +294,10 @@ class SessionManager:
             return self._memory_manager.create_collection(config)
 
         else:
-            # 默认使用短期记忆
-            return ShortTermMemoryService(
-                max_dialog=self._max_memory_dialogs,
+            # 默认使用短期记忆 (FIFO队列服务)
+            return NeuromemServiceFactory.create_instance(
+                "fifo_queue",
+                max_dialogs=self._max_memory_dialogs,
                 collection_name=f"stm_{session_id}",
             )
 
@@ -396,7 +395,7 @@ class SessionManager:
 
     def get_memory_service(
         self, session_id: str
-    ) -> ShortTermMemoryService | BaseMemoryCollection | None:
+    ) -> BaseMemoryService | BaseMemoryCollection | None:
         """获取会话的记忆服务
 
         Args:

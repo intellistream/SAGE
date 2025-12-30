@@ -11,34 +11,34 @@ runtime:
   test_segments: 10
 
   prompt_template: |
-    Based on the above context, answer the following question concisely.
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
 
     Question: {question}
     Answer:
 
   # 第五类问题专用 Prompt（选择题格式，更简洁）
   prompt_template_category5: |
-    Based on the above context, answer the following question.
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
 
     Question: {question}
     Answer:
 
   # LLM 配置
   # 配置1（Llama-3.1-8B，用于对比）：
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 256
-  temperature: 0
-  seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  # api_key: "iloveshuhao"
-  # base_url: "http://172.17.0.1:1040/v1"
-  # model_name: "pangu_embedded_1b"
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 256
   # temperature: 0
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "A-Mem"
 
   # Embedding 配置
@@ -49,12 +49,16 @@ runtime:
 # 服务配置
 # ============================================================
 services:
-  register_memory_service: "graph_memory"
-  graph_memory:
-    graph_type: "link_graph"          # A-Mem 使用链接图
-    link_policy: "bidirectional"
-    max_links_per_node: 50
-    link_weight_init: 1.0
+  services_type: "hierarchical.linknote_graph"  # A-Mem 使用链接笔记图
+  linknote_graph:
+    # === 向量检索配置（A-Mem 核心功能）===
+    # A-Mem 使用纯向量检索（SimpleEmbeddingRetriever）找到相关记忆
+    embedding_dim: 1024  # BGE-M3 输出维度
+    index_type: "flat"   # FAISS 索引类型（flat/ivf/hnsw）
+
+    # === 图结构配置 ===
+    # LinknoteGraphService 使用无向图（双向链接）
+    # directed: false 在 _setup_indexes() 中硬编码
   memory_retrieval_adapter: "none"
 
 # ============================================================
@@ -134,10 +138,11 @@ operators:
       {"links": [1]}
 
   # ----------------------------------------------------------
-  # PreRetrieval: 基础 embedding
+  # PreRetrieval: 向量化查询（A-Mem 核心）
   # ----------------------------------------------------------
   pre_retrieval:
     action: "embedding"
+    # A-Mem 使用 SimpleEmbeddingRetriever 进行纯向量检索
 
   # ----------------------------------------------------------
   # PostRetrieval: 链接扩展（获取关联记忆）

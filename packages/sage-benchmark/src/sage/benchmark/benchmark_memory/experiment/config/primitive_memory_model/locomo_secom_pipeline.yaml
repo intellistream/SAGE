@@ -11,34 +11,34 @@ runtime:
   test_segments: 10
 
   prompt_template: |
-    Based on the above context, answer the following question concisely.
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
 
     Question: {question}
     Answer:
 
   # 第五类问题专用 Prompt（选择题格式，更简洁）
   prompt_template_category5: |
-    Based on the above context, answer the following question.
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
 
     Question: {question}
     Answer:
 
   # LLM 配置
   # 配置1（Llama-3.1-8B，用于对比）：
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 256
-  temperature: 0
-  seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  # api_key: "iloveshuhao"
-  # base_url: "http://172.17.0.1:1040/v1"
-  # model_name: "pangu_embedded_1b"
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 256
   # temperature: 0
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "SeCom"
 
   # Embedding 配置
@@ -50,80 +50,63 @@ runtime:
 # SeCom 使用 segment-level 记忆单元
 # ============================================================
 services:
-  register_memory_service: "hierarchical_memory"
-  hierarchical_memory:
-    tier_mode: "two_tier"             # 双层模式：segments + raw pages
-    tier_names: ["segments", "raw"]
-    tier_capacities:
-      segments: 100                   # Segment 数量限制
-      raw: -1                         # 原始对话无限
-    migration_policy: "semantic"      # 基于语义聚类迁移
-    semantic_threshold: 0.75          # 语义相似度阈值
-    embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
+  services_type: "partitional.segment"
+  segment:
+    segment_strategy: "time"          # 分段策略：time/topic/hybrid（对应原semantic聚类）
+    time_window: 3600                 # 时间窗口：1小时（对应原session gap）
+    max_segment_size: 100             # 单段最大数据量（对应原segments容量）
+    topic_threshold: 0.75             # 话题相似度阈值（对应原semantic_threshold）
+    vector_dim: 1024                  # BAAI/bge-m3 向量维度
   memory_retrieval_adapter: "none"
 
 # ============================================================
 # Operator 配置
+# SeCom 核心特性实现：语义分段 + 压缩去噪 + 段合并
 # ============================================================
 operators:
   # ----------------------------------------------------------
   # PreInsert: Segmentation + Compression-based Denoising
   # SeCom 的核心：将对话分段并去噪
+  #
+  # 实现要点：
+  #   1. 语义分段：将多轮对话按主题切分为 segments
+  #   2. 压缩去噪：去除冗余和噪声，保留关键信息
+  #   3. **数据分离**：压缩摘要存储在 metadata.summary，原始对话保留在 text
+  #              → 检索时返回原始对话（准确），可选使用摘要（高效）
   # ----------------------------------------------------------
   pre_insert:
     action: "transform"
     transform_type: "segment_denoise"
-    # 分段策略
+    # 分段策略（对应 SeCom segmentor）
     segmentation:
-      method: "semantic_clustering"   # 语义聚类分段
+      method: "semantic_clustering"   # 语义聚类分段（使用 LLM）
       min_segment_length: 3           # 最小段落长度（轮次）
       max_segment_length: 10          # 最大段落长度
       similarity_threshold: 0.75      # 段内相似度阈值
-    # 压缩式去噪 prompt
+    # 压缩式去噪 prompt（对应 SeCom compressor）
     denoising_prompt: |
-      You are a conversation compression expert. Remove noise and redundancy from the dialogue segment below while preserving all factual information.
+      Remove noise and redundancy from the dialogue below while preserving all facts.
 
-      Rules:
-      1. Remove conversational fillers (e.g., "um", "uh", "like")
-      2. Consolidate repeated or paraphrased information
-      3. Keep all factual content, preferences, and important details
-      4. Maintain chronological order
-      5. Output a clean, compressed version of the segment
-
-      Original segment:
-      {dialogue}
-
-      Compressed segment:
+      Rules: Remove fillers (um, uh, like), consolidate repeated info, keep facts and preferences, maintain order.
+    # ✅ 已实现：摘要存 metadata，原文存 text
+    store_summary_in_metadata: true
 
   # ----------------------------------------------------------
-  # PostInsert: Segment Merging (Replace)
-  # SeCom 支持将新 segment 与已有相似 segment 合并
+  # PostInsert: 禁用合并
+  # SECOM 设计：保持 segments 独立，不进行合并
+  #
+  # 原因：
+  #   - SECOM 的核心是 segment-level 记忆，每个 segment 是独立的话题单元
+  #   - 合并会导致 segments 越来越大，最终变成一个巨无霸
+  #   - 检索时应该返回多个相关 segments，而不是一个合并后的巨型 segment
   # ----------------------------------------------------------
   post_insert:
-    action: "distillation"
-    distillation_topk: 5              # 检索相似 segment 数量
-    distillation_threshold: 0.8       # 高相似度阈值表示可合并
-    distillation_prompt: |
-      You are managing a segmented memory database. Given a new segment and existing similar segments, decide the action:
-
-      - MERGE: The new segment and an existing segment cover the same topic/event and should be merged
-      - ADD: The new segment is distinct enough to be stored separately
-      - NOOP: The new segment is redundant (already fully covered)
-
-      New segment: {new_entry}
-
-      Existing segments:
-      {memory_list}
-
-      If MERGE, specify which segment to merge with and provide the merged version.
-      Respond with JSON:
-      {
-        "action": "MERGE|ADD|NOOP",
-        "merge_with_index": <index or null>,
-        "merged_content": "<merged text or null>",
-        "to_delete": ["<exact segment text to remove>"],
-        "reason": "<brief explanation>"
-      }
+    action: "none"
+    # 禁用 distillation（会导致所有 segments 被合并成一个）
+    # action: "distillation"
+    # retrieve_count: 5
+    # min_merge_count: 3
+    # merge_summary_only: true
 
   # ----------------------------------------------------------
   # PreRetrieval: 基础 embedding
@@ -132,14 +115,17 @@ operators:
     action: "embedding"
 
   # ----------------------------------------------------------
-  # PostRetrieval: Segment 拼接
-  # SeCom 将检索到的 segments 直接拼接为上下文
+  # PostRetrieval: 返回原始对话（不使用压缩摘要）
+  #
+  # 可选增强：
+  #   - 如果需要更简洁的上下文，可以使用 metadata 中的摘要
+  #   - 当前先返回原始对话以保证答案准确性
   # ----------------------------------------------------------
   post_retrieval:
     action: "none"
-    top_k: 10
-    conversation_format_prompt: |
-      The following are relevant conversation segments from memory.
+    # 可选：使用摘要而不是原文
+    # action: "reformat"
+    # use_summary: true  # TODO: 实现使用 metadata 中摘要的功能
 
 # ============================================================
 # SeCom 复现说明

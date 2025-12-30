@@ -46,14 +46,20 @@ runtime:
 
 # 服务配置
 services:
-  register_memory_service: "vector_memory"  # 统一向量记忆服务（推荐）
-  vector_memory:
-    dim: 1024  # 向量维度（需要与 embedding 模型输出维度一致）
-    index_type: "IndexLSH"  # TiM 使用 LSH 哈希索引
-    index_config:
-      nbits: 128  # LSH 哈希位数（推荐值：64-256，值越大精度越高但速度越慢）
-      rotate_data: true  # 是否旋转数据（提高哈希质量）
-      train_thresholds: false  # 是否训练阈值
+  services_type: "partitional.lsh_hash"
+
+  lsh_hash:
+    # === 基础配置 ===
+    vector_dim: 1024                  # BGE-M3 向量维度
+
+    # === LSH 索引配置（TiM 核心）===
+    lsh_nbits: 128                    # LSH 哈希位数（64-256，越大精度越高）
+    lsh_rotate_data: true             # 旋转数据提高哈希质量
+    lsh_train_thresholds: false       # 是否训练阈值
+
+    # === 检索配置 ===
+    retrieval_top_k: 10               # 默认检索数量
+
   memory_retrieval_adapter: "none"
 
 

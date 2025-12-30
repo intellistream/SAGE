@@ -101,13 +101,13 @@ Answer:""",
         # ============ DEBUG: Prompt和答案打印 ============
         print("\n" + "=" * 80)
         print("📝 [MemoryEvaluation] 生成答案")
-        print("=" * 80)
-        print(f"问题: {question}")
-        print(f"Prompt 长度: {len(prompt)} 字符")
-        # print("\n完整 Prompt:")
-        # print("-" * 80)
-        # print(prompt)
-        # print("-" * 80)
+        # print("=" * 80)
+        # print(f"问题: {question}")
+        # print(f"Prompt 长度: {len(prompt)} 字符")
+        print("\n完整 Prompt:")
+        print("-" * 80)
+        print(prompt)
+        print("-" * 80)
         # ============ DEBUG END ============
 
         # 调用 LLM 生成答案

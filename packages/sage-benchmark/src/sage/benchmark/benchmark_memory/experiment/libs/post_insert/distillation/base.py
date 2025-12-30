@@ -25,6 +25,8 @@ class DistillationAction(BasePostInsertAction):
         similarity_threshold (float): Similarity threshold for merging (default: 0.85)
         max_merge_count (int): Maximum number of memories to merge (default: 5)
         merge_prompt (str): LLM prompt template for merging
+        merge_summary_only (bool): If True, merge summaries from metadata.summary instead of text
+                                   (for SeCom: preserves original conversations)
     """
 
     def _init_action(self) -> None:
@@ -35,6 +37,9 @@ class DistillationAction(BasePostInsertAction):
         self.merge_prompt = self._get_config(
             "merge_prompt", "请将以下多条相似记忆合并为一条简洁的记忆：\n{memories}\n合并后的记忆："
         )
+
+        # SeCom 特性：仅合并摘要，保留原始对话
+        self.merge_summary_only = self._get_config("merge_summary_only", False)
 
     def execute(
         self,
@@ -82,12 +87,34 @@ class DistillationAction(BasePostInsertAction):
                 # TiM 核心：数据量足够才蒸馏，否则跳过（避免小概率重复的过度处理）
                 if len(similar_memories) >= self.min_merge_count:
                     # Use LLM to merge memories
-                    merged_text = self._merge_memories(llm, similar_memories)
+                    merged_summary = self._merge_memories(llm, similar_memories)
 
                     # Delete old memories
                     for mem in similar_memories:
                         service.delete(mem["id"])
                         deleted_count += 1
+
+                    # SeCom 模式：合并原始对话，将摘要存入 metadata
+                    if self.merge_summary_only:
+                        # 合并所有原始对话（text 字段）
+                        merged_original_texts = []
+                        for mem in similar_memories:
+                            text = mem.get("text", "")
+                            if text:
+                                merged_original_texts.append(text)
+
+                        merged_text = "\n\n---\n\n".join(merged_original_texts)
+
+                        # 准备 metadata
+                        merged_metadata = {
+                            "merged_from": [m["id"] for m in similar_memories],
+                            "summary": merged_summary,  # 合并后的摘要
+                            "segment_count": len(similar_memories),
+                        }
+                    else:
+                        # 默认模式：合并后的文本直接作为 entry
+                        merged_text = merged_summary
+                        merged_metadata = {"merged_from": [m["id"] for m in similar_memories]}
 
                     # Insert merged memory (need vector for VectorHashMemoryService)
                     # Use first memory's embedding as the merged embedding
@@ -97,7 +124,7 @@ class DistillationAction(BasePostInsertAction):
                     service.insert(
                         entry=merged_text,
                         vector=merged_embedding,
-                        metadata={"merged_from": [m["id"] for m in similar_memories]},
+                        metadata=merged_metadata,
                     )
                     merged_count += 1
 
@@ -157,9 +184,28 @@ class DistillationAction(BasePostInsertAction):
             memories: List of memory entries to merge
 
         Returns:
-            Merged memory text
+            Merged memory text (or summary if merge_summary_only=True)
         """
-        # Format memories for prompt
+        # SeCom 模式：仅合并摘要，不合并原文
+        if self.merge_summary_only:
+            # 提取所有 metadata.summary（如果有）
+            summaries = []
+            for mem in memories:
+                summary = mem.get("metadata", {}).get("summary")
+                if summary:
+                    summaries.append(summary)
+                # 如果没有 summary，回退到使用 text
+                elif mem.get("text"):
+                    summaries.append(mem.get("text"))
+
+            if summaries:
+                # 合并摘要
+                summaries_text = "\n".join([f"{i + 1}. {s}" for i, s in enumerate(summaries)])
+                prompt = self.merge_prompt.format(memories=summaries_text)
+                response = llm.generate(prompt)
+                return response.strip()
+
+        # 默认模式：合并完整的 text 字段
         memories_text = "\n".join(
             [f"{i + 1}. {mem.get('text', '')}" for i, mem in enumerate(memories)]
         )

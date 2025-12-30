@@ -13,7 +13,7 @@ from .extract import (
 )
 from .none_action import NoneAction
 from .score import HeatScoreAction, ImportanceScoreAction
-from .transform import ChunkingAction, SummarizeAction, TopicSegmentAction
+from .transform import ChunkingAction, SegmentDenoiseAction, SummarizeAction, TopicSegmentAction
 from .transform.continuity_check import ContinuityCheckAction
 
 
@@ -87,6 +87,7 @@ def _register_builtin_actions():
     PreInsertActionRegistry.register("transform.chunking", ChunkingAction)
     PreInsertActionRegistry.register("transform.summarize", SummarizeAction)
     PreInsertActionRegistry.register("transform.segment", TopicSegmentAction)
+    PreInsertActionRegistry.register("transform.segment_denoise", SegmentDenoiseAction)
     PreInsertActionRegistry.register("transform.continuity_check", ContinuityCheckAction)
 
     # Extract 类

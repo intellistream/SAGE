@@ -39,14 +39,20 @@ runtime:
   embedding_base_url: http://localhost:8091/v1
   embedding_model: BAAI/bge-m3
 services:
-  register_memory_service: vector_memory
-  vector_memory:
-    dim: 1024
-    index_type: IndexLSH
-    index_config:
-      nbits: 128
-      rotate_data: true
-      train_thresholds: false
+  services_type: "partitional.lsh_hash"
+
+  lsh_hash:
+    # === 基础配置 ===
+    vector_dim: 1024                  # BGE-M3 向量维度
+
+    # === LSH 索引配置（TiM 核心）===
+    lsh_nbits: 128                    # LSH 哈希位数（64-256，越大精度越高）
+    lsh_rotate_data: true             # 旋转数据提高哈希质量
+    lsh_train_thresholds: false       # 是否训练阈值
+
+    # === 检索配置 ===
+    retrieval_top_k: 10               # 默认检索数量
+
   memory_retrieval_adapter: none
 operators:
   pre_insert:

@@ -12,34 +12,34 @@ runtime:
   test_segments: 10
 
   prompt_template: |
-    Based on the above context, answer the following question concisely.
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
 
     Question: {question}
     Answer:
 
   # 第五类问题专用 Prompt（选择题格式，更简洁）
   prompt_template_category5: |
-    Based on the above context, answer the following question.
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
 
     Question: {question}
     Answer:
 
   # LLM 配置
   # 配置1（Llama-3.1-8B，用于对比）：
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 256
-  temperature: 0
-  seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  # api_key: "iloveshuhao"
-  # base_url: "http://172.17.0.1:1040/v1"
-  # model_name: "pangu_embedded_1b"
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 256
   # temperature: 0
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "HippoRAG2"
 
   # Embedding 配置
@@ -48,23 +48,51 @@ runtime:
 
 # ============================================================
 # 服务配置
-# HippoRAG2 使用增强的图检索参数
+# HippoRAG2 使用 hierarchical.semantic_inverted_knowledge_graph 服务
+# 关键区别：更深的 PPR、更多起始节点、增强的重排序
 # ============================================================
 services:
-  register_memory_service: "graph_memory"
-  graph_memory:
-    graph_type: "knowledge_graph"     # HippoRAG 使用知识图谱
-    triple_store: "igraph"
-    node_embedding_dim: 1024
-    edge_types: ["relation", "synonym", "temporal"]
-    # 关键区别：HippoRAG2 使用更深的 PPR 和更多起始节点
-    ppr_depth: 3                      # 更深的 PPR（HippoRAG 基础版为 2）
-    ppr_damping: 0.9                  # 更高的 damping（HippoRAG 基础版为 0.85）
-    enhanced_rerank: true             # 启用增强的重排序
-    # 检索参数：进一步增加起始节点和遍历深度
-    retrieval_top_k: 30               # 初始向量检索返回数量（基础版为 20）
-    num_start_nodes: 15               # 使用更多种子节点启动图遍历（基础版为 10）
-    max_depth: 4                      # 增加遍历深度（基础版为 3）
+  services_type: "hierarchical.semantic_inverted_knowledge_graph"
+
+  semantic_inverted_knowledge_graph:
+    # === 基础配置 ===
+    vector_dim: 1024                  # BGE-M3 向量维度
+
+    # === 三层架构配置 ===
+    # Layer 1: Semantic Layer (FAISS 向量索引)
+    semantic_top_k: 30                # 语义检索返回数量（基础版为 20）
+    semantic_nprobe: 16
+    semantic_use_gpu: true
+
+    # Layer 2: Inverted Layer (BM25 倒排索引)
+    inverted_top_k: 20                # 倒排检索返回数量
+    inverted_k1: 1.5
+    inverted_b: 0.75
+
+    # Layer 3: KG Segment Layer (知识图谱)
+    kg_segment_type: "knowledge_graph"
+    kg_triple_store: "igraph"
+    kg_node_embedding_dim: 1024
+    kg_edge_types: ["relation", "synonym", "temporal"]
+
+    # === HippoRAG2 增强参数 ===
+    # 更深的 PPR 遍历
+    kg_ppr_depth: 3                   # 更深的 PPR（基础版为 2）
+    kg_ppr_damping: 0.9               # 更高的 damping（基础版为 0.85）
+    kg_enhanced_rerank: true          # 启用增强的重排序
+
+    # 更多种子节点和更深遍历
+    kg_num_start_nodes: 15            # 更多种子节点（基础版为 10）
+    kg_max_depth: 4                   # 更深的遍历（基础版为 3）
+    kg_retrieval_top_k: 30            # 初始向量检索（基础版为 20）
+
+    # === 层融合策略 ===
+    fusion_strategy: "weighted_sum"
+    fusion_weight_semantic: 0.4       # 语义层权重
+    fusion_weight_inverted: 0.2       # 倒排层权重
+    fusion_weight_kg: 0.4             # KG层权重
+    fusion_top_k: 15                  # 最终返回数量（基础版为 10）
+
   memory_retrieval_adapter: "none"
 
 # ============================================================

@@ -27,7 +27,14 @@ class PreInsert(MapFunction):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.service_name = config.get("services.register_memory_service", "short_term_memory")
+
+        # 从 services.services_type 提取服务名称（与 memory_test_pipeline.py 注册逻辑一致）
+        # "partitional.lsh_hash" -> "lsh_hash"
+        services_type = config.get("services.services_type")
+        if not services_type:
+            raise ValueError("Missing required config: services.services_type")
+        self.service_name = services_type.split(".")[-1]
+
         self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
         self._llm_generator: LLMGenerator = LLMGenerator.from_config(self.config)
 

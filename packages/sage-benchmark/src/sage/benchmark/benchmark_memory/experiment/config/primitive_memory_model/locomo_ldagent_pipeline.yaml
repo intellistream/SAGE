@@ -11,34 +11,34 @@ runtime:
   test_segments: 10
 
   prompt_template: |
-    Based on the above context, answer the following question concisely.
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
 
     Question: {question}
     Answer:
 
   # 第五类问题专用 Prompt（选择题格式，更简洁）
   prompt_template_category5: |
-    Based on the above context, answer the following question.
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
 
     Question: {question}
     Answer:
 
   # LLM 配置
   # 配置1（Llama-3.1-8B，用于对比）：
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 256
-  temperature: 0
-  seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  # api_key: "iloveshuhao"
-  # base_url: "http://172.17.0.1:1040/v1"
-  # model_name: "pangu_embedded_1b"
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 256
   # temperature: 0
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "LD-Agent"
 
   # Embedding 配置
@@ -49,14 +49,27 @@ runtime:
 # 服务配置
 # ============================================================
 services:
-  register_memory_service: "hierarchical_memory"
-  hierarchical_memory:
-    tier_mode: "two_tier"             # 双层模式会自动使用 ["stm", "ltm"]
-    tier_capacities:
-      stm: 50                         # 当前会话缓存
-      ltm: -1                         # 事件摘要库
-    migration_policy: "time"          # 按时间迁移
-    embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
+  # LD-Agent 架构（基于原始代码 /home/zrc/develop_item/LD-Agent）:
+  # - short_term_memory: Python list（临时缓存，检索时返回最近30条）
+  # - ChromaDB collection: 长期事件摘要库（会话间隔>1小时时存储批量摘要）
+  # - 话题重叠检索: spaCy 名词提取 + Jaccard 相似度
+  #
+  # SAGE 实现映射:
+  # - fifo_index → short_term_memory (会话缓存)
+  # - summary_index → ChromaDB collection (事件摘要)
+  # - feature_index → 话题重叠检索（BM25 模拟名词匹配）
+  services_type: "partitional.feature_queue_summary_combination"
+  feature_queue_summary_combination:
+    fifo_max_size: 50                 # STM 容量（原代码用 list，无固定上限，这里设50）
+    summary_max_size: 10000           # LTM 摘要库容量（原代码用 ChromaDB，设大值模拟无限）
+    summary_min_length: 10            # 生成摘要的最小长度
+    enable_feature_extraction: true   # 话题重叠检索（模拟 spaCy 名词提取）
+    enable_summary_generation: false  # ❌ 禁用自动摘要（原代码在会话结束时批量生成，由 PreInsert 控制）
+    combination_strategy: "weighted"
+    weights:
+      feature_index: 0.3              # 话题重叠权重
+      fifo_index: 0.4                 # STM 时序权重
+      summary_index: 0.3              # LTM 摘要权重
   memory_retrieval_adapter: "none"
 
 # ============================================================

@@ -11,34 +11,34 @@ runtime:
   test_segments: 10
 
   prompt_template: |
-    Based on the above context, answer the following question concisely.
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
 
     Question: {question}
     Answer:
 
   # 第五类问题专用 Prompt（选择题格式，更简洁）
   prompt_template_category5: |
-    Based on the above context, answer the following question.
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
 
     Question: {question}
     Answer:
 
   # LLM 配置
   # 配置1（Llama-3.1-8B，用于对比）：
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 256
-  temperature: 0
-  seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  # api_key: "iloveshuhao"
-  # base_url: "http://172.17.0.1:1040/v1"
-  # model_name: "pangu_embedded_1b"
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 256
   # temperature: 0
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "HippoRAG"
 
   # Embedding 配置
@@ -46,20 +46,20 @@ runtime:
   embedding_model: "BAAI/bge-m3"
 
 # ============================================================
-# 服务配置
+# 服务配置 - 新架构 (neuromem)
 # ============================================================
 services:
-  register_memory_service: "graph_memory"
-  graph_memory:
-    graph_type: "knowledge_graph"     # HippoRAG 使用知识图谱
-    triple_store: "igraph"
-    node_embedding_dim: 1024
-    edge_types: ["relation", "synonym", "temporal"]
-    # 检索参数：增加起始节点和遍历深度以获取更多上下文
-    retrieval_top_k: 20              # 初始向量检索返回数量
-    num_start_nodes: 10              # 使用更多种子节点启动图遍历
-    max_depth: 3                     # 增加遍历深度
-  memory_retrieval_adapter: "none"
+  # ✅ 迁移到 hierarchical.semantic_inverted_knowledge_graph
+  services_type: "hierarchical.semantic_inverted_knowledge_graph"
+
+  # 三层架构配置（必须嵌套在 semantic_inverted_knowledge_graph 下）
+  semantic_inverted_knowledge_graph:
+    vector_dim: 1024                    # BGE-M3 向量维度
+    hierarchy_levels: 3                 # 固定3层（语义+倒排+知识图谱）
+    routing_strategy: "cascade"         # 级联检索策略
+    enable_cross_layer_query: true      # 启用跨层查询（支持多跳推理）
+    max_hops: 3                         # KG最大跳数（对应 max_depth）
+    default_index: "semantic_index"     # 默认使用语义索引作为起始点
 
 # ============================================================
 # Operator 配置
@@ -146,59 +146,55 @@ operators:
       The following is relevant knowledge from the graph.
 
 # ============================================================
-# HippoRAG 复现说明
+# HippoRAG 架构说明 - 新实现 (neuromem)
 # ============================================================
 # 论文核心特性：
 #   1. 知识图谱存储：(Subject, Predicate, Object) 三元组
 #   2. Synonym Edges: 连接语义相近的节点
 #   3. PPR 检索：Personalized PageRank 图遍历
-#   4. 两阶段检索：向量查找起始节点 + PPR 扩展
+#   4. 两阶段检索：向量查找起始节点 + 图遍历扩展
 #
-# SAGE 实现方式：
-# ┌─────────────────────────────────────────────────────────┐
-# │ Pipeline 阶段      │ 对应 HippoRAG 操作   │ 实现组件     │
-# ├─────────────────────────────────────────────────────────┤
-# │ PreInsert          │ OpenIE Triple Extract│ extract.triple│
-# │  - 三元组提取      │ (S, P, O) 抽取       │ LLM Prompt   │
-# │  - 节点 Embedding    │ 为每个实体生成向量   │ BGE-M3       │
-# │  - 谓词关系标注    │ 边类型标记          │ metadata     │
-# ├─────────────────────────────────────────────────────────┤
-# │ MemoryInsert       │ Graph Insert         │ GraphMemory  │
-# │  - 节点创建        │ 添加 S/O 实体节点    │ igraph       │
-# │  - 边创建          │ 添加 P 关系边       │ edge_types   │
-# │  - 向量存储        │ 节点 embedding       │ FAISS        │
-# ├─────────────────────────────────────────────────────────┤
-# │ PostInsert         │ Synonym Edge Build   │ link_evol    │
-# │  - 语义相似计算    │ 找到相近节点        │ knn_k=10     │
-# │  - 建立 synonym 边  │ 连接语义相近实体    │ threshold    │
-# │  - 批量处理        │ session 结束时执行   │ auto-detect  │
-# ├─────────────────────────────────────────────────────────┤
-# │ PreRetrieval       │ Query Embedding      │ embedding    │
-# │  - 查询向量化      │ 用于找起始节点      │ BGE-M3       │
-# ├─────────────────────────────────────────────────────────┤
-# │ MemoryRetrieval    │ Vector + Graph       │ GraphMemory  │
-# │  - 向量查起始节点  │ top-k 最相关节点    │ top_k=20     │
-# │  - 图遍历          │ 从起始节点扩展      │ max_depth=3  │
-# │  - 收集上下文      │ 返回相关三元组      │ num_start=10 │
-# ├─────────────────────────────────────────────────────────┤
-# │ PostRetrieval      │ PPR Rerank (禁用)   │ none         │
-# │  - PPR 重排序      │ PageRank 权重       │ 超时禁用     │
-# │  - 基础格式化      │ 拼接三元组          │ top_k=10     │
-# └─────────────────────────────────────────────────────────┘
+# 新架构映射 (hierarchical.semantic_inverted_knowledge_graph):
+# ┌──────────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ HippoRAG 操作        │ 新架构实现      │
+# ├──────────────────────────────────────────────────────────────┤
+# │ PreInsert          │ OpenIE Triple Extract│ extract.triple  │
+# │  - 三元组提取      │ (S, P, O) 抽取       │ LLM Prompt      │
+# │  - 节点 Embedding    │ 为每个实体生成向量   │ BGE-M3          │
+# ├──────────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Graph Insert         │ 3层索引自动插入 │
+# │  - Layer 1 (Semantic) │ 向量索引           │ FAISS (1024维)  │
+# │  - Layer 2 (Inverted) │ 关键词倒排         │ BM25            │
+# │  - Layer 3 (KG)       │ 知识图谱          │ Segment (模拟)  │
+# ├──────────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Synonym Edge Build   │ link_evolution  │
+# │  - 语义相似计算    │ 找到相近节点        │ knn_k=10        │
+# │  - 建立 synonym 边  │ 连接语义相近实体    │ threshold=0.7   │
+# ├──────────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding      │ embedding       │
+# │  - 查询向量化      │ 用于找起始节点      │ BGE-M3          │
+# ├──────────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Vector + Graph       │ cascade检索     │
+# │  - 阶段1: 语义层   │ 向量相似度检索      │ semantic_index  │
+# │  - 阶段2: 倒排层   │ BM25关键词匹配      │ inverted_index  │
+# │  - 阶段3: KG层     │ 图遍历（max_hops=3）│ kg_index        │
+# ├──────────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ PPR Rerank (禁用)   │ none            │
+# │  - PPR 重排序      │ PageRank 权重       │ 超时问题暂时禁用│
+# └──────────────────────────────────────────────────────────────┘
 #
 # 关键配置参数：
-#   - graph_type="knowledge_graph": 知识图谱类型
-#   - retrieval_top_k=20: 初始向量检索数量
-#   - num_start_nodes=10: 图遍历起始节点数
-#   - max_depth=3: 图遍历最大深度
-#   - link_policy="synonym_edge": Synonym 边建立策略
+#   - vector_dim=1024: BGE-M3 向量维度
+#   - hierarchy_levels=3: 固定3层架构
+#   - routing_strategy="cascade": 级联检索（语义→倒排→KG）
+#   - max_hops=3: 知识图谱最大跳数（对应论文的 graph traversal depth）
+#   - enable_cross_layer_query=true: 支持跨层查询和多跳推理
 #
 # 与论文的差异：
 #   1. 论文使用 ColBERT，SAGE 使用 BGE-M3（更通用）
 #   2. PPR 重排序暂时禁用（单线程易超时）
-#   3. SAGE 增加了更详细的三元组提取 prompt
-#   4. SAGE 支持自动检测 session 结束才建立 synonym 边
+#   3. SAGE 使用三层架构增强检索能力（语义+倒排+KG）
+#   4. 支持自动检测 session 结束才建立 synonym 边
 #
 # 运行示例：
-#   python packages/sage-benchmark/.../memory_test_pipeline.py \
-#     --config .../locomo_hipporag_pipeline.yaml --task_id conv-26
+#   packages/sage-benchmark/.../run_locomo_hipporag.sh

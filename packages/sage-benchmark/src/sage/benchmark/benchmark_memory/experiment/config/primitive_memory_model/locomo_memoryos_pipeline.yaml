@@ -11,34 +11,34 @@ runtime:
   test_segments: 10
 
   prompt_template: |
-    Based on the above context, answer the following question concisely.
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
 
     Question: {question}
     Answer:
 
-  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  # 第五类问题专用 Prompt（选择题格式，更筒洁）
   prompt_template_category5: |
-    Based on the above context, answer the following question.
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
 
     Question: {question}
     Answer:
 
   # LLM 配置
   # 配置1（Llama-3.1-8B，用于对比）：
-  api_key: "token-abc123"
-  base_url: "http://sage2:8000/v1"
-  model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-  max_tokens: 256
-  temperature: 0
-  seed: 42
-
-  # 新配置（PanGu Embedded 1B）：
-  # api_key: "iloveshuhao"
-  # base_url: "http://172.17.0.1:1040/v1"
-  # model_name: "pangu_embedded_1b"
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
   # max_tokens: 256
   # temperature: 0
   # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
   memory_name: "MemoryOS"
 
   # Embedding 配置
@@ -49,28 +49,18 @@ runtime:
 # 服务配置
 # ============================================================
 services:
-  register_memory_service: "hierarchical_memory"
-  hierarchical_memory:
-    tier_mode: "three_tier"
-    tier_names: ["stm", "mtm", "lpm"]
-    tier_capacities:
-      stm: 20                         # FIFO 队列（论文 Section 3.3）
-      mtm: 200                        # Segment-Page 结构（论文 Section 3.3）
-      lpm: -1                         # Persona/KB/Traits（论文 Section 3.3）
-    migration_policy: "heat"
-    heat_threshold: 5.0               # 论文 τ=5.0 (Algorithm 2)
-    cold_threshold: 0.3
-    embedding_dim: 1024               # BAAI/bge-m3 输出 1024 维向量
-    # MemoryOS 两阶段检索（论文 Algorithm 3 Line 6-13）
-    use_two_stage_search: true        # MTM 层使用两阶段检索
-    segment_similarity_threshold: 0.1
-    page_similarity_threshold: 0.1
-    top_k_segments: 5                 # 第一阶段选择 Top-K Segments
-    top_k_pages_per_segment: 3        # 第二阶段每个 Segment 选 Top-K Pages
-    # Fscore 计算权重（论文 Eq. 3）
-    fscore_alpha: 1.0                 # cos(es, ep) 的权重
-    fscore_beta: 0.5                  # F_Jaccard(Ks, Kp) 的权重
-    fscore_gamma: 0.1                 # 时间衰减因子
+  services_type: "partitional.feature_queue_segment_combination"
+  feature_queue_segment_combination:
+    vector_dim: 1024                  # BAAI/bge-m3 向量维度
+    fifo_max_size: 20                 # FIFO队列大小（对应原STM容量）
+    segment_strategy: "time"          # 分段策略：time/keyword/topic
+    segment_threshold: 3600           # 1小时分段（对应原MTM的Session gap）
+    enable_feature_extraction: true   # 启用特征提取（对应原BM25索引）
+    combination_strategy: "weighted"  # 组合策略
+    weights:
+      feature_index: 0.3              # Feature权重（对应原LPM知识）
+      fifo_index: 0.4                 # FIFO权重（对应原STM最新对话）
+      segment_index: 0.3              # Segment权重（对应原MTM上下文）
   memory_retrieval_adapter: "none"
 
 # ============================================================
