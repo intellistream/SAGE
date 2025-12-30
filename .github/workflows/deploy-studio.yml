@@ -216,8 +216,8 @@ jobs:
           source /tmp/llm_detect.env
           echo "KEEP_PORTS=${KEEP_PORTS}" >> $GITHUB_ENV
           echo "KILL_PORTS=${KILL_PORTS}" >> $GITHUB_ENV
-          echo "保持的 LLM 端口: ${KEEP_PORTS:-<none>}"
-          echo "需要清理的 LLM 端口: ${KILL_PORTS:-<none>}"
+          echo "✅ 保持的 LLM 端口 (健康且唯一): ${KEEP_PORTS:-<none>}"
+          echo "⚠️ 未检测到或不健康的 LLM 端口 (将被忽略): ${KILL_PORTS:-<none>}"
 
       - name: Install SAGE
         run: |
@@ -562,6 +562,21 @@ jobs:
           NODE_BIN_VAL="${{ env.NODE_BIN }}"
           FRONTEND_DIR="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend"
 
+          # 如果探测到现有健康 LLM，则直接复用该端点，禁止再启动本地 LLM/Embedding，避免重复占用 GPU
+          STUDIO_EXTRA_ARGS=""
+          LLM_BASE_URL=""
+          LLM_MODEL=""
+          if [ -n "$KEEP_PORTS" ]; then
+            FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
+            if [ -n "$FIRST_PORT" ]; then
+              LLM_BASE_URL="http://127.0.0.1:${FIRST_PORT}/v1"
+              LLM_MODEL="pangu_embedded_1b"
+              # 仅禁用 LLM 启动，允许 Studio 自动管理 Embedding (如果缺的话会启动)
+              STUDIO_EXTRA_ARGS="--no-llm"
+              echo "🔗 复用已存在的 LLM: $LLM_BASE_URL"
+            fi
+          fi
+
           # 创建 wrapper 脚本目录
           WRAPPER_DIR="$WORKSPACE/.sage/bin"
           mkdir -p "$WRAPPER_DIR"
@@ -634,13 +649,29 @@ jobs:
           Environment=PYTHONPATH=$SAGE_PYTHONPATH
           # 运行在 5174 端口，让 Nginx (5173) 代理到这里
           # --yes: 自动确认所有提示 (包括 auto-scale)
-          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174
+          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS
           Restart=on-failure
           RestartSec=10
+          EOF
+
+          # 按需注入已存在 LLM 的环境变量（用于 Gateway/Studio 直接复用，而不是再次 auto-scale）
+          if [ -n "$LLM_BASE_URL" ]; then
+            echo "Environment=SAGE_CHAT_BASE_URL=$LLM_BASE_URL" >> /tmp/sage-studio.service
+          fi
+          if [ -n "$LLM_MODEL" ]; then
+            echo "Environment=SAGE_CHAT_MODEL=$LLM_MODEL" >> /tmp/sage-studio.service
+          fi
+          if [ -n "$PANGU_API_KEY_VAL" ]; then
+            echo "Environment=SAGE_CHAT_API_KEY=$PANGU_API_KEY_VAL" >> /tmp/sage-studio.service
+          fi
+
+          # 添加 Install 部分
+          cat >> /tmp/sage-studio.service << EOF
 
           [Install]
           WantedBy=multi-user.target
           EOF
+
           sed -i 's/^[[:space:]]*//' /tmp/sage-studio.service
           sudo cp /tmp/sage-studio.service /etc/systemd/system/sage-studio.service
           echo "✅ sage-studio.service 已创建"
@@ -663,7 +694,52 @@ jobs:
 
           # 1. 启动 Studio (All-in-One)
           echo "1/2 启动 Studio 服务 (Manager + Gateway + LLM + Embedding)..."
-          sudo systemctl start sage-studio
+
+          # 强制清理端口 5174 (Studio Frontend) 和 8888 (Gateway)
+          echo "🧹 清理潜在的残留进程..."
+          sudo fuser -k 5174/tcp || true
+          sudo fuser -k 8888/tcp || true
+
+          # 调试信息：检查端口占用情况
+          echo "🔍 检查端口占用情况 (5174, 8888)..."
+          sudo lsof -i :5174 || echo "Port 5174 is free"
+          sudo lsof -i :8888 || echo "Port 8888 is free"
+
+          # 调试信息：检查 PID 文件
+          PID_FILE="/home/$(whoami)/.local/state/sage/studio.pid"
+          if [ -f "$PID_FILE" ]; then
+            echo "⚠️ 发现残留 PID 文件: $PID_FILE"
+            cat "$PID_FILE"
+            rm -f "$PID_FILE"
+            echo "🗑️ 已删除残留 PID 文件"
+          fi
+
+          # 打印生成的服务文件内容以供调试
+          echo "📄 生成的 sage-studio.service 内容:"
+          cat /etc/systemd/system/sage-studio.service
+
+          # 重置失败状态
+          sudo systemctl reset-failed sage-studio || true
+
+          if ! sudo systemctl start sage-studio; then
+            echo "⚠️ systemctl start returned error, checking if service is actually running..."
+            sleep 5
+            if sudo systemctl is-active --quiet sage-studio; then
+                echo "✅ Service is active despite start command exit code."
+            else
+                echo "❌ Studio 服务启动失败"
+                echo "--- Studio 状态 ---"
+                sudo systemctl status sage-studio --no-pager || true
+                echo "--- Studio 日志 (最后 100 行) ---"
+                sudo journalctl -u sage-studio --no-pager -n 100 || true
+
+                # 尝试手动运行一次以获取更多错误信息
+                echo "--- 尝试手动运行以诊断问题 ---"
+                $WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS || true
+
+                exit 1
+            fi
+          fi
           sudo systemctl enable sage-studio
 
           # 立即检查 Studio 状态
@@ -701,24 +777,31 @@ jobs:
           PORT="${{ github.event.inputs.port || '5173' }}"
 
           # 等待 LLM 服务（最长 10 分钟，因为要加载模型）
-          echo "等待 LLM 服务 (最长 600 秒)..."
-          for i in $(seq 1 600); do
-            if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
-               curl -sf http://localhost:8901/health > /dev/null 2>&1; then
-              echo "✅ LLM 服务就绪（第 $i 秒）"
-              break
-            fi
-            if [ $((i % 60)) -eq 0 ]; then
-              echo "⏳ LLM 等待中... ($i/600 秒)"
-              sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
-            fi
-            sleep 1
-          done
+          # 如果 KEEP_PORTS 存在，说明复用了已有 LLM，无需等待
+          if [ -n "$KEEP_PORTS" ]; then
+             echo "✅ 复用已有 LLM (端口 $KEEP_PORTS)，跳过 LLM 等待"
+          else
+              echo "等待 LLM 服务 (最长 600 秒)..."
+              for i in $(seq 1 600); do
+                if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
+                   curl -sf http://localhost:8901/health > /dev/null 2>&1; then
+                  echo "✅ LLM 服务就绪（第 $i 秒）"
+                  break
+                fi
+                if [ $((i % 60)) -eq 0 ]; then
+                  echo "⏳ LLM 等待中... ($i/600 秒)"
+                  sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
+                fi
+                sleep 1
+              done
+          fi
 
           # 等待 Embedding 服务
+          # 无论是否复用 LLM，Embedding 服务都应该可用 (复用或新启动)
+          # 注意：embedding_server.py 使用 /v1/models 作为健康检查 (它没有 /health)
           echo "等待 Embedding 服务..."
           for i in $(seq 1 120); do
-            if curl -sf http://localhost:8090/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8090/v1/models > /dev/null 2>&1; then
               echo "✅ Embedding 服务就绪（第 $i 秒）"
               break
             fi
@@ -770,7 +853,20 @@ jobs:
           echo "| 服务 | 端口 | 状态 |"
           echo "|------|------|------|"
 
-          for svc_port in "Frontend:$PORT" "Gateway:8888" "LLM(Default):8001" "LLM(Benchmark):8901" "Embedding:8090"; do
+          # 构建要检查的服务列表
+          CHECKS="Frontend:$PORT Gateway:8888"
+
+          if [ -n "$KEEP_PORTS" ]; then
+             # 如果复用 LLM，检查复用的端口
+             FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
+             # 复用模式下，Embedding 也会被 Studio 启动在 8090
+             CHECKS="$CHECKS LLM(Reused):$FIRST_PORT Embedding:8090"
+          else
+             # 否则检查默认 LLM 和 Embedding
+             CHECKS="$CHECKS LLM(Default):8001 LLM(Benchmark):8901 Embedding:8090"
+          fi
+
+          for svc_port in $CHECKS; do
             name="${svc_port%%:*}"
             port="${svc_port##*:}"
             # 尝试多个端点：/ 和 /health

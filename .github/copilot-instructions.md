@@ -43,6 +43,56 @@ When answering questions or making code changes in this repo, the assistant **mu
 
 Only after consulting these READMEs should the assistant propose designs, refactors, or architectural explanations. If documentation and code appear inconsistent, Copilot should **call it out explicitly** in the answer and, when in doubt, ask the user which source of truth to follow.
 
+## Inference Components Map (Reality-First)
+
+SAGE is an inference pipeline system, not just an LLM server. When writing docs, abstracts, design notes, or code changes, prefer describing/using these existing modules (and their correct layer placement) instead of inventing new components.
+
+**Gateway (L6, OpenAI/Anthropic-compatible + control plane + sessions)**
+
+- Entry point: `packages/sage-gateway/src/sage/gateway/server.py`
+- Control plane management API: `packages/sage-gateway/src/sage/gateway/routes/control_plane.py`
+- Studio backend routes (merged into gateway): `packages/sage-gateway/src/sage/gateway/routes/studio.py`
+- OpenAI adapter (runs persistent RAG pipeline, can trigger agentic operators):
+  `packages/sage-gateway/src/sage/gateway/adapters/openai.py`
+- Pipeline-as-a-service for RAG: `packages/sage-gateway/src/sage/gateway/rag_pipeline.py`
+- Session + memory backends (short-term + NeuroMem VDB/KV/Graph):
+  `packages/sage-gateway/src/sage/gateway/session/manager.py`
+
+**Control Plane + Unified Client (L1, sageLLM integration)**
+
+- Unified LLM+Embedding client (must use factory):
+  `packages/sage-common/src/sage/common/components/sage_llm/unified_client.py`
+- Control plane implementation lives under:
+  `packages/sage-common/src/sage/common/components/sage_llm/sageLLM/`
+  (tests: `.../sageLLM/tests/control_plane/`)
+
+**Middleware inference building blocks (L4, including C++ extensions)**
+
+- Vector DB core (C++20, pluggable ANNS, multimodal fusion):
+  `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/README.md`
+- Vector-native stream processing engine for incremental semantic state snapshots (C++):
+  `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow/README.md`
+- Memory system (NeuromMem: store/recall; VDB/KV/Graph; services wrapper):
+  `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/README.md`
+- Context compression for RAG (LongRefiner/REFORM/Provence adapters):
+  `packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner/README.md`
+- Time-series DB + window ops/join + out-of-order handling (C++ + pybind11):
+  `packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB/README.md`
+
+**Benchmarks (L5)**
+
+- Control plane scheduling benchmark (throughput/TTFT/TBT/p99/SLO):
+  `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md`
+- Agent benchmarks (tool selection / planning / timing):
+  `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/README.md`
+
+**Kernel + Libs (L3)**
+
+- Dataflow runtime, distributed execution, fault tolerance: `packages/sage-kernel/`
+- Algorithms, RAG tools, agent framework/integrations: `packages/sage-libs/`
+
+**Rule of thumb**: if you mention a capability (retrieval, memory, refinement, vector DB, streaming semantic state, scheduling), ensure it maps to a real module/path above.
+
 ## Installation
 
 **Prerequisites**: Python 3.10+, Git, build-essential, cmake, pkg-config, libopenblas-dev,
@@ -211,7 +261,7 @@ from sage.common.config.ports import SagePorts
 
 # ✅ 正确用法
 port = SagePorts.LLM_DEFAULT           # 8001
-gateway_port = SagePorts.GATEWAY_DEFAULT` | 8888
+gateway_port = SagePorts.GATEWAY_DEFAULT  # 8888
 
 # ✅ WSL2 环境推荐用法
 port = SagePorts.get_recommended_llm_port()  # 自动检测 WSL2 并选择合适端口
@@ -239,6 +289,18 @@ port = 8001  # 不要这样写
 - 或直接使用 `SagePorts.BENCHMARK_LLM` (8901) 作为备用
 
 **配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
+
+## API Client Usage - CRITICAL
+
+**UnifiedInferenceClient must be created via the factory** (direct instantiation is intentionally blocked).
+
+```python
+from sage.common.components.sage_llm import UnifiedInferenceClient
+
+client = UnifiedInferenceClient.create()
+```
+
+If you see code attempting `UnifiedInferenceClient(...)`, treat it as a bug and refactor to `create()`.
 
 ## Features
 

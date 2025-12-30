@@ -132,13 +132,6 @@ class ChatModeManager(StudioManager):
         Returns:
             Tuple of (is_running, base_url) - base_url is set if service found
         """
-        # Check environment variables first
-        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
-            "SAGE_UNIFIED_BASE_URL"
-        )
-        if env_base_url:
-            return (True, env_base_url)
-
         candidates: list[str] = []
         seen: set[str] = set()
 
@@ -172,6 +165,20 @@ class ChatModeManager(StudioManager):
         for candidate in candidates:
             if self._probe_llm_endpoint(candidate):
                 return True, candidate
+
+        # Fallback: honor explicit env only if it is reachable AND loopback, to avoid
+        # blocking auto-start when a cloud endpoint is configured.
+        env_base_url = os.environ.get("SAGE_CHAT_BASE_URL") or os.environ.get(
+            "SAGE_UNIFIED_BASE_URL"
+        )
+        if env_base_url and self._probe_llm_endpoint(env_base_url):
+            try:
+                parsed = requests.utils.urlparse(env_base_url)
+                host = parsed.hostname
+                if host and host in {"127.0.0.1", "localhost", "::1"}:
+                    return True, env_base_url
+            except Exception:
+                pass
 
         return (False, None)
 
@@ -588,6 +595,24 @@ class ChatModeManager(StudioManager):
         # Skip slow import check - just try to start directly
         # If gateway is not installed, subprocess will fail anyway
         gateway_port = port or self.gateway_port
+
+        # Check if port is in use
+        if self._is_port_in_use(gateway_port):
+            console.print(f"[yellow]⚠️  端口 {gateway_port} 已被占用[/yellow]")
+            try:
+                for proc in psutil.process_iter(["pid", "name"]):
+                    try:
+                        for conn in proc.connections(kind="inet"):
+                            if conn.laddr.port == gateway_port:
+                                console.print(
+                                    f"[yellow]   占用进程: {proc.pid} ({proc.name()})[/yellow]"
+                                )
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except Exception:
+                pass
+            # Continue anyway, let uvicorn fail and report error
+
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
 
@@ -1111,7 +1136,7 @@ class ChatModeManager(StudioManager):
         else:
             llm_table.add_row("状态", "[red]未运行[/red]")
             llm_table.add_row("端口", str(SagePorts.BENCHMARK_LLM))
-            llm_table.add_row("提示", "使用 --llm 启动本地服务")
+            llm_table.add_row("提示", "默认启动本地服务 (除非指定 --no-llm)")
 
         console.print(llm_table)
 

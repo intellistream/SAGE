@@ -113,11 +113,30 @@ def start(
         # 先检查是否已经在运行
         running_pid = studio_manager.is_running()
         if running_pid:
-            config = studio_manager.load_config()
-            url = f"http://{config['host']}:{config['port']}"
-            console.print(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
-            console.print(f"[blue]🌐 访问地址: {url}[/blue]")
-            return
+            # Check for orphan process (PID -1)
+            if running_pid == -1:
+                if yes:
+                    console.print("[yellow]⚠️  检测到端口占用 (PID: -1)，尝试强制清理...[/yellow]")
+                    # Use the internal method _kill_process_on_port
+                    # We need to know the port. If port arg is None, use config or default.
+                    target_port = port or studio_manager.load_config().get(
+                        "port", studio_manager.default_port
+                    )
+                    studio_manager._kill_process_on_port(target_port)
+                    # Re-check
+                    if studio_manager.is_running():
+                        console.print("[red]❌ 无法清理端口占用，请手动检查[/red]")
+                        raise typer.Exit(code=1)
+                else:
+                    console.print("[yellow]⚠️  检测到端口占用 (PID: -1)[/yellow]")
+                    console.print("[dim]   请运行 'sage studio stop' 或手动清理端口[/dim]")
+                    raise typer.Exit(code=1)
+            else:
+                config = studio_manager.load_config()
+                url = f"http://{config['host']}:{config['port']}"
+                console.print(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
+                console.print(f"[blue]🌐 访问地址: {url}[/blue]")
+                return
 
         # Start Studio with ChatModeManager (includes Gateway + LLM by default)
         # Pass llm=None to allow auto-detection (if no_llm is False)
@@ -144,8 +163,10 @@ def start(
             console.print("  • 使用 'sage studio stop' 停止服务")
         else:
             console.print("[red]❌ Studio 启动失败[/red]")
+            raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"[red]❌ 启动失败: {e}[/red]")
+        raise typer.Exit(code=1)
 
 
 @app.command()

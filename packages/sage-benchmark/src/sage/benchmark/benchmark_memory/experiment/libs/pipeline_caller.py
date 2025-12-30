@@ -10,6 +10,7 @@ from sage.benchmark.benchmark_memory.experiment.utils import (
 )
 from sage.common.core import MapFunction
 from sage.data.sources.locomo.dataloader import LocomoDataLoader
+from sage.data.sources.longmemeval import LongMemEvalDataLoader
 from sage.data.sources.memagentbench.conflict_resolution_loader import (
     ConflictResolutionDataLoader,
 )
@@ -50,6 +51,8 @@ class PipelineCaller(MapFunction):
             self.loader = LocomoDataLoader()
         elif self.dataset == "conflict_resolution":
             self.loader = ConflictResolutionDataLoader()
+        elif self.dataset == "longmemeval":
+            self.loader = LongMemEvalDataLoader()
         else:
             raise ValueError(f"Unsupported dataset: {self.dataset}")
 
