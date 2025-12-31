@@ -26,13 +26,40 @@ from .base import (
 from .registry import PostRetrievalActionRegistry
 
 
+class _ServiceProxy:
+    """Service proxy to wrap call_service calls into method-like interface
+
+    Note: PostRetrieval stage only allows search operations (multiple times allowed).
+    No insert/update/delete permissions according to pipeline design.
+    """
+
+    def __init__(self, operator: MapFunction, service_name: str):
+        self._operator = operator
+        self._service_name = service_name
+
+    def search(self, **kwargs) -> list[dict[str, Any]]:
+        """Search for similar memories (multiple searches allowed)"""
+        return self._operator.call_service(self._service_name, method="search", **kwargs)
+
+    def retrieve(self, **kwargs) -> list[dict[str, Any]]:
+        """Retrieve memories (GraphMemoryService)"""
+        return self._operator.call_service(self._service_name, method="retrieve", **kwargs)
+
+
 class PostRetrieval(MapFunction):
     """记忆检索后的后处理算子（重构版）"""
 
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.service_name = config.get("services.register_memory_service", "short_term_memory")
+
+        # 从 services.services_type 提取服务名称（与 memory_test_pipeline.py 注册逻辑一致）
+        # "partitional.lsh_hash" -> "lsh_hash"
+        services_type = config.get("services.services_type")
+        if not services_type:
+            raise ValueError("Missing required config: services.services_type")
+        self.service_name = services_type.split(".")[-1]
+
         self._llm_generator = LLMGenerator.from_config(self.config)
         self._embedding_generator = EmbeddingGenerator.from_config(self.config)
         action_config = config.get("operators.post_retrieval", {})
@@ -57,15 +84,29 @@ class PostRetrieval(MapFunction):
         self._conversation_format_prompt = action_config.get(
             "conversation_format_prompt", "The following is some history information.\n"
         )
+        # 解析分层检索限制
+        self._tier_retrieval_limits = action_config.get("tier_retrieval_limits", {})
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         start_time = time.perf_counter()
+        print(f"\n{'=' * 80}")
+        print(f"🎯 [PostRetrieval] 开始执行 action={self.action_name}")
+        print(f"{'=' * 80}")
+
         input_data = PostRetrievalInput(
             data=data,
             config=self.config.get("operators.post_retrieval", {}),
             service_name=self.service_name,
         )
-        output: PostRetrievalOutput = self.action.execute(input_data)
+        # Create service proxy for actions that need multiple searches
+        service_proxy = _ServiceProxy(self, self.service_name)
+        output: PostRetrievalOutput = self.action.execute(
+            input_data,
+            service=service_proxy,
+            llm=self._llm_generator if self._llm_generator else None,
+        )
+        # 应用分层检索限制
+        output.memory_items = self._apply_tier_limits(output.memory_items)
         formatted_memory = self._format_conversation_history(output.memory_items)
         data["history_text"] = formatted_memory
         if output.memory_items:
@@ -77,22 +118,85 @@ class PostRetrieval(MapFunction):
             data.setdefault("metadata", {}).update(output.metadata)
         elapsed_ms = (time.perf_counter() - start_time) * 1000
         data.setdefault("stage_timings", {})["post_retrieval_ms"] = elapsed_ms
+        print(f"⏱️  [PostRetrieval] 总耗时: {elapsed_ms:.2f}ms")
+        print(f"{'=' * 80}\n")
 
         return data
 
+    def _apply_tier_limits(self, items: list[MemoryItem]) -> list[MemoryItem]:
+        """应用分层检索限制
+
+        Args:
+            items: 原始记忆列表
+
+        Returns:
+            限制后的记忆列表
+        """
+        if not self._tier_retrieval_limits:
+            return items
+
+        # 按 tier 分组
+        tier_items = {}
+        for item in items:
+            tier = item.metadata.get("tier", "default")
+            if tier not in tier_items:
+                tier_items[tier] = []
+            tier_items[tier].append(item)
+
+        # 应用每层的限制
+        limited_items = []
+        for tier, tier_limit in self._tier_retrieval_limits.items():
+            if tier in tier_items:
+                limited_items.extend(tier_items[tier][:tier_limit])
+
+        # 保留未配置限制的层级
+        for tier, items_list in tier_items.items():
+            if tier not in self._tier_retrieval_limits:
+                limited_items.extend(items_list)
+
+        return limited_items
+
     def _format_conversation_history(self, items: list[MemoryItem]) -> str:
+        """格式化对话历史，支持 {stm_memories}/{ltm_memories} 占位符
+
+        Args:
+            items: 记忆列表
+
+        Returns:
+            格式化后的文本
+        """
         if not items:
             return ""
-        formatted = self._conversation_format_prompt
-        for item in items:
-            formatted += f"{item.text}\n"
-        result = formatted.rstrip()
+
+        # 检查是否有分层占位符
+        has_tier_placeholders = (
+            "{stm_memories}" in self._conversation_format_prompt
+            or "{ltm_memories}" in self._conversation_format_prompt
+        )
+
+        if has_tier_placeholders:
+            # 按层级分组
+            stm_items = [item for item in items if item.metadata.get("tier") == "stm"]
+            ltm_items = [item for item in items if item.metadata.get("tier") == "ltm"]
+
+            stm_text = "\n".join(item.text for item in stm_items) if stm_items else "None"
+            ltm_text = "\n".join(item.text for item in ltm_items) if ltm_items else "None"
+
+            result = self._conversation_format_prompt.replace("{stm_memories}", stm_text).replace(
+                "{ltm_memories}", ltm_text
+            )
+        else:
+            # 简单格式化（向后兼容）
+            formatted = self._conversation_format_prompt
+            for item in items:
+                formatted += f"{item.text}\n"
+            result = formatted.rstrip()
 
         # [DEBUG] 打印post_retrieval生成的历史对话部分
-        print("\n" + "=" * 80)
-        print("[DEBUG] PostRetrieval - 历史对话部分 (阶段一):")
-        print("=" * 80)
-        print(result)
-        print("=" * 80 + "\n")
+        # print("\n" + "=" * 80)
+        # print("[DEBUG] PostRetrieval - 历史对话部分 (阶段一):")
+        # print("=" * 80)
+        # print(result)
+        # print("=" * 80 + "\n")
 
         return result

@@ -3,7 +3,7 @@
         "name": "Qwen/Qwen2.5-32B-Instruct",
         "base_url": "http://127.0.0.1:8901/v1",
         "is_local": true,
-        "default": false,
+        "default": true,
         "api_key": ""
     },
     {
@@ -53,14 +53,14 @@
         "description": "Huawei Pangu 7B (Container: base-sage)",
         "engine_kind": "llm",
         "api_key": "${PANGU_API_KEY}",
-        "default": true
+        "default": false
     },
     {
         "name": "BAAI/bge-large-zh-v1.5",
         "is_local": true,
         "description": "Large Embedding Model (Recommended)",
         "engine_kind": "embedding",
-        "default": true,
+        "default": false,
         "api_key": ""
     }
 ]

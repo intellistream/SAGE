@@ -13,7 +13,7 @@ from typing import Any
 
 # Import from L3 (Libs) - Allowed dependency direction (L4 -> L3)
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.simple_llm_planner import PlanStep, SimpleLLMPlanner
+from sage.libs.agentic.agents.planning import PlanStep, SimpleLLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
 
 logger = logging.getLogger(__name__)

@@ -1,18 +1,10 @@
-"""PreRetrieval Action 注册表
-
-管理所有PreRetrieval Action的注册和获取。
-
-支持的Actions：
-- none: 透传查询（Mem0, Mem0ᵍ）
-- embedding: 查询向量化（TiM, MemoryBank, A-Mem, MemoryOS, HippoRAG2, SeCom）
-- optimize.keyword_extract: 关键词提取（LD-Agent, HippoRAG）
-- optimize.expand: 查询扩展（MemGPT）
-- optimize.rewrite: 查询改写（MemGPT）
-- validate: 查询验证（SCM）
-"""
+# PreRetrieval Action 注册表
 
 from .base import BasePreRetrievalAction
 from .embedding import EmbeddingAction
+from .enhancement.decompose import DecomposeAction
+from .enhancement.multi_embed import MultiEmbedAction
+from .enhancement.route import RouteAction
 from .none_action import NoneAction
 from .optimize.expand import ExpandAction
 from .optimize.keyword_extract import KeywordExtractAction
@@ -96,44 +88,65 @@ PreRetrievalActionRegistry.register("optimize.keyword_extract", KeywordExtractAc
 PreRetrievalActionRegistry.register("optimize.expand", ExpandAction)
 PreRetrievalActionRegistry.register("optimize.rewrite", RewriteAction)
 
+# Enhancement子类型Actions（查询增强）
+PreRetrievalActionRegistry.register("enhancement.decompose", DecomposeAction)
+PreRetrievalActionRegistry.register("enhancement.route", RouteAction)
+PreRetrievalActionRegistry.register("enhancement.multi_embed", MultiEmbedAction)
 
-# ==================== 12个记忆体使用情况说明 ====================
+
+# ==================== PreRetrieval Actions 用例说明 ====================
 """
-记忆体使用映射：
+9个PreRetrieval Action的用途和典型用例：
 
-1. TiM: embedding
-   - vector_hash_memory，使用embedding进行相似度检索
+1. none - 透传原始查询
+   用途: 不做任何预处理，直接使用原始查询
+   用例: "What is Python?" → "What is Python?"
+   场景: 简单问答、精确匹配
 
-2. MemoryBank: embedding
-   - hierarchical_memory，使用embedding检索各层记忆
+2. embedding - 查询向量化
+   用途: 将查询文本转换为向量表示
+   用例: "What is Python?" → [0.12, -0.34, 0.56, ...]
+   场景: 向量检索、语义相似度匹配
 
-3. MemGPT: optimize.expand / optimize.rewrite
-   - hierarchical_memory，通过查询优化提高检索准确性
+3. validate - 查询验证
+   用途: 验证查询是否需要检索或是否有效
+   用例: "Hello" → skip_retrieval=True (闲聊不需要检索)
+        "What is Python?" → skip_retrieval=False (需要检索)
+   场景: 过滤无效查询、节省检索资源
 
-4. A-Mem: embedding
-   - graph_memory，使用embedding进行图检索
+4. optimize.keyword_extract - 关键词提取
+   用途: 从查询中提取关键词/实体
+   用例: "Tell me about Python programming language" → ["Python", "programming language"]
+   场景: 关键词检索、实体链接、图检索
 
-5. MemoryOS: embedding
-   - hierarchical_memory，使用embedding检索层级记忆
+5. optimize.expand - 查询扩展
+   用途: 扩展查询内容，增加相关信息
+   用例: "Python" → "Python programming language features syntax"
+   场景: 提高召回率、处理简短查询
 
-6. HippoRAG: optimize.keyword_extract
-   - graph_memory，提取实体作为查询
+6. optimize.rewrite - 查询改写
+   用途: 改写查询为更易检索的形式
+   用例: "How to use it?" → "How to use Python?" (消歧义)
+   场景: 消除歧义、规范化查询
 
-7. HippoRAG2: embedding
-   - graph_memory，使用embedding进行图检索
+7. enhancement.decompose - 复杂查询分解
+   用途: 将复杂查询分解为多个子查询
+   用例: "What did I eat for breakfast and what was the weather?"
+        → ["What did I eat for breakfast?", "What was the weather?"]
+   场景: 多步推理、复合问题
 
-8. LD-Agent: optimize.keyword_extract
-   - hierarchical_memory，提取关键词用于检索
+8. enhancement.route - 检索路由
+   用途: 根据查询类型路由到不同的检索目标
+   用例: "What is Python?" → knowledge_base
+        "What did I do yesterday?" → long_term_memory
+   场景: 多源记忆系统、分类检索
 
-9. SCM: validate
-   - short_term_memory，验证查询是否需要激活记忆
-
-10. Mem0: none
-    - hybrid_memory，直接使用原始查询
-
-11. Mem0ᵍ: none
-    - graph_memory，直接使用原始查询
-
-12. SeCom: embedding
-    - neuromem_vdb，使用embedding检索语义记忆
+9. enhancement.multi_embed - 多维向量化
+   用途: 从多个维度生成查询向量
+   用例: "I love Python" → {
+            "semantic": [0.12, -0.34, ...],  # 语义维度
+            "sentiment": [0.89, 0.02, ...],  # 情感维度
+            "entity": [0.45, -0.12, ...]     # 实体维度
+        }
+   场景: 精细化检索、多模态融合
 """

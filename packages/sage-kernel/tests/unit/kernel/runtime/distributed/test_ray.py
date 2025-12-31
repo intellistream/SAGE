@@ -36,13 +36,12 @@ class TestRayIntegration:
         # Call function
         ensure_ray_initialized()
 
-        # Verify Ray initialization attempts
+        # Verify Ray was initialized
         mock_ray.is_initialized.assert_called_once()
         mock_ray.init.assert_called_once()
 
-        # Check that init was called with ignore_reinit_error and expected parameters
+        # Verify initialization parameters
         call_args = mock_ray.init.call_args
-        assert call_args is not None
         assert "ignore_reinit_error" in call_args.kwargs
         assert call_args.kwargs["ignore_reinit_error"] is True
         assert "num_cpus" in call_args.kwargs
@@ -70,20 +69,17 @@ class TestRayIntegration:
     @pytest.mark.unit
     @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
     @patch("sage.kernel.utils.ray.ray_utils.ray")
-    def test_ensure_ray_initialized_auto_connection_success(self, mock_ray):
-        """Test successful Ray initialization"""
+    def test_ensure_ray_initialized_with_custom_runtime_env(self, mock_ray):
+        """Test ensure_ray_initialized with custom runtime_env"""
         mock_ray.is_initialized.return_value = False
         mock_ray.init.return_value = None
 
-        ensure_ray_initialized()
+        custom_env = {"env_vars": {"MY_VAR": "value"}}
+        ensure_ray_initialized(runtime_env=custom_env)
 
-        # Should call init with expected parameters
         mock_ray.init.assert_called_once()
         call_args = mock_ray.init.call_args
-        assert "ignore_reinit_error" in call_args.kwargs
-        assert "num_cpus" in call_args.kwargs
-        assert "log_to_driver" in call_args.kwargs
-        # runtime_env should be included with default sage config
+        assert call_args.kwargs.get("runtime_env") == custom_env
 
     @pytest.mark.unit
     @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
@@ -91,38 +87,19 @@ class TestRayIntegration:
     def test_ensure_ray_initialized_initialization_fails(self, mock_ray):
         """Test behavior when Ray initialization fails"""
         mock_ray.is_initialized.return_value = False
-
-        # Ray init fails
         mock_ray.init.side_effect = RuntimeError("Initialization failed")
 
         with pytest.raises(RuntimeError, match="Initialization failed"):
             ensure_ray_initialized()
 
-        # Should call init once and fail
-        assert mock_ray.init.call_count == 1
-        # The actual implementation calls ray.init with expected parameters
-        calls = mock_ray.init.call_args_list
-        call_kwargs = calls[0][1]
-        assert "ignore_reinit_error" in call_kwargs
-        assert call_kwargs["ignore_reinit_error"] is True
-        assert "num_cpus" in call_kwargs
-        assert "log_to_driver" in call_kwargs
-        # runtime_env should be included with default sage config
+        mock_ray.init.assert_called_once()
 
     @pytest.mark.unit
-    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
-    @patch("sage.kernel.utils.ray.ray_utils.ray")
-    def test_ensure_ray_initialized_all_attempts_fail(self, mock_ray):
-        """Test behavior when Ray initialization fails"""
-        mock_ray.is_initialized.return_value = False
-        mock_ray.init.side_effect = RuntimeError("Local init failed")
-
-        # Should raise the exception
-        with pytest.raises(RuntimeError, match="Local init failed"):
+    @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", False)
+    def test_ensure_ray_initialized_ray_not_available(self):
+        """Test behavior when Ray is not available"""
+        with pytest.raises(ImportError, match="Ray is not available"):
             ensure_ray_initialized()
-
-        # Should only attempt once
-        assert mock_ray.init.call_count == 1
 
     @pytest.mark.unit
     @patch("sage.kernel.utils.ray.ray_utils.RAY_AVAILABLE", True)
@@ -185,9 +162,10 @@ class TestRayIntegration:
         with patch("builtins.print") as mock_print:
             ensure_ray_initialized()
 
-            # Should print success message
+            # Should print initialization message
             mock_print.assert_called()
-            print_calls = [call[0][0] for call in mock_print.call_args_list]
+            print_calls = [str(call[0][0]) if call[0] else "" for call in mock_print.call_args_list]
+            # Should have message about Ray initialized
             assert any("Ray initialized" in msg for msg in print_calls)
 
     @pytest.mark.unit
