@@ -1,0 +1,182 @@
+# ============================================================
+# SeCom Pipeline 配置
+# 论文: On Memory Construction and Retrieval for Personalized Conversational Agents
+# 特点: Segment-level 记忆 + 压缩式去噪 + 语义聚类
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  # 配置1（Llama-3.1-8B，用于对比）：
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  # max_tokens: 256
+  # temperature: 0
+  # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
+  memory_name: "SeCom"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# SeCom 使用 segment-level 记忆单元
+# ============================================================
+services:
+  services_type: "partitional.segment"
+  segment:
+    segment_strategy: "time"          # 分段策略：time/topic/hybrid（对应原semantic聚类）
+    time_window: 3600                 # 时间窗口：1小时（对应原session gap）
+    max_segment_size: 100             # 单段最大数据量（对应原segments容量）
+    topic_threshold: 0.75             # 话题相似度阈值（对应原semantic_threshold）
+    vector_dim: 1024                  # BAAI/bge-m3 向量维度
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# SeCom 核心特性实现：语义分段 + 压缩去噪 + 段合并
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: Segmentation + Compression-based Denoising
+  # SeCom 的核心：将对话分段并去噪
+  #
+  # 实现要点：
+  #   1. 语义分段：将多轮对话按主题切分为 segments
+  #   2. 压缩去噪：去除冗余和噪声，保留关键信息
+  #   3. **数据分离**：压缩摘要存储在 metadata.summary，原始对话保留在 text
+  #              → 检索时返回原始对话（准确），可选使用摘要（高效）
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "transform"
+    transform_type: "segment_denoise"
+    # 分段策略（对应 SeCom segmentor）
+    segmentation:
+      method: "semantic_clustering"   # 语义聚类分段（使用 LLM）
+      min_segment_length: 3           # 最小段落长度（轮次）
+      max_segment_length: 10          # 最大段落长度
+      similarity_threshold: 0.75      # 段内相似度阈值
+    # 压缩式去噪 prompt（对应 SeCom compressor）
+    denoising_prompt: |
+      Remove noise and redundancy from the dialogue below while preserving all facts.
+
+      Rules: Remove fillers (um, uh, like), consolidate repeated info, keep facts and preferences, maintain order.
+    # ✅ 已实现：摘要存 metadata，原文存 text
+    store_summary_in_metadata: true
+
+  # ----------------------------------------------------------
+  # PostInsert: 禁用合并
+  # SECOM 设计：保持 segments 独立，不进行合并
+  #
+  # 原因：
+  #   - SECOM 的核心是 segment-level 记忆，每个 segment 是独立的话题单元
+  #   - 合并会导致 segments 越来越大，最终变成一个巨无霸
+  #   - 检索时应该返回多个相关 segments，而不是一个合并后的巨型 segment
+  # ----------------------------------------------------------
+  post_insert:
+    action: "none"
+    # 禁用 distillation（会导致所有 segments 被合并成一个）
+    # action: "distillation"
+    # retrieve_count: 5
+    # min_merge_count: 3
+    # merge_summary_only: true
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 基础 embedding
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 返回原始对话（不使用压缩摘要）
+  #
+  # 可选增强：
+  #   - 如果需要更简洁的上下文，可以使用 metadata 中的摘要
+  #   - 当前先返回原始对话以保证答案准确性
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "none"
+    # 可选：使用摘要而不是原文
+    # action: "reformat"
+    # use_summary: true  # TODO: 实现使用 metadata 中摘要的功能
+
+# ============================================================
+# SeCom 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. Segment-level 记忆单元：语义连贯的对话片段
+#   2. 压缩式去噪：去除冗余和噪声，保留关键信息
+#   3. 语义聚类：按主题自动分段
+#   4. Segment 合并：相似 segment 可以合并优化
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 SeCom 操作       │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Segmentation          │ transform    │
+# │  - 语义聚类分段    │ 主题一致性分组        │ clustering   │
+# │  - 压缩式去噪      │ 去除冗余保留关键信息  │ LLM Prompt   │
+# │  - 段落边界检测    │ 自动识别话题转换      │ similarity   │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Segment Insert        │ Hierarchical │
+# │  - 存入 segment 层 │ 结构化存储            │ segments     │
+# │  - 保留原始对话    │ raw 层备份            │ raw tier     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Segment Merge         │ distillation │
+# │  - 检索相似 segment│ 查找可合并的段落      │ topk=5       │
+# │  - LLM 决策合并    │ MERGE/ADD/NOOP        │ LLM Prompt   │
+# │  - 执行合并        │ 删除旧段插入新段      │ replace      │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding       │ embedding    │
+# │  - 查询向量化      │ 用于语义检索          │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Semantic Search       │ Hierarchical │
+# │  - Segment 检索    │ 基于嵌入相似度        │ FAISS        │
+# │  - Top-k 排序      │ 最相关段落            │ top_k        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Context Assembly      │ none         │
+# │  - 段落拼接        │ 构建 prompt           │ format       │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - tier_mode="two_tier": Segment 层 + Raw 层
+#   - segmentation.method="semantic_clustering": 语义聚类分段
+#   - similarity_threshold=0.75: 段内相似度阈值
+#   - distillation_threshold=0.8: 段间合并阈值
+#
+# 与论文的差异：
+#   1. 论文使用 MPNet 编码器，SAGE 使用 BGE-M3（性能更好）
+#   2. 论文可选 BM25 检索，SAGE 主要使用向量检索
+#   3. SAGE 增加了分层存储（segment + raw），论文未明确分层
+#   4. 去噪和分段逻辑通过 LLM prompt 实现，论文可能用规则
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_secom_pipeline.yaml --task_id conv-26
