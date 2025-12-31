@@ -9,17 +9,14 @@
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
-
 import pytest
 
-from sage.middleware.components.sage_mem.neuromem.memory_collection.indexes import (
-    LSHIndex,
-)
-
 # Skip all LSH Index tests - LSH Index not yet implemented/registered
-pytestmark = pytest.mark.skip(reason="LSH Index not yet fully implemented")
+# CRITICAL: Must skip collection before importing LSHIndex to avoid import errors
+pytestmark = pytest.mark.skip(reason="LSH Index not yet fully implemented", allow_module_level=True)
+
+# Do not import LSHIndex - causes collection errors
+# from sage.middleware.components.sage_mem.neuromem.memory_collection.indexes import LSHIndex
 
 
 class TestLSHIndexBasic:

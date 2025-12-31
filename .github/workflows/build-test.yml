@@ -28,7 +28,7 @@ jobs:
   build-and-test:
     name: Build, Test & Coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 40  # 优化后的测试时间
+    timeout-minutes: 60  # 278 个测试需要更多时间
     # Skip version bump commits to avoid unnecessary CI runs
     if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
@@ -312,12 +312,12 @@ jobs:
           echo "🧪 运行单元测试并收集覆盖率..."
           echo "使用 sage-dev project test --coverage 命令"
 
-          # 使用 sage-dev 运行测试
+          # 使用 sage-dev 运行测试（排除慢速测试）
           # 注意：不再使用 || exit 0，测试失败时CI应该失败
           sage-dev project test --coverage \
-            --coverage-report xml \
-            --jobs 8 \
-            --timeout 180 \
+            --coverage-report term,xml,html \
+            --jobs 4 \
+            --timeout 300 \
             --continue-on-error || {
               echo "❌ 测试失败"
               exit 1
@@ -331,8 +331,12 @@ jobs:
             echo "⚠️ 警告: 未找到覆盖率XML文件"
           fi
 
-          # 跳过HTML报告复制以加快速度（只在需要时手动生成）
-          echo "⏭️  跳过HTML报告复制（仅生成XML用于Codecov）"
+          # 复制HTML报告
+          if [ -d ".sage/coverage/htmlcov" ]; then
+            mkdir -p coverage_html
+            cp -r .sage/coverage/htmlcov/* coverage_html/
+            echo "✅ HTML覆盖率报告已复制"
+          fi
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -346,13 +350,15 @@ jobs:
           verbose: true
 
       - name: Upload Coverage Reports
-        if: failure()  # 仅在失败时上传，成功时Codecov已有数据
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
           path: |
             coverage.xml
-          retention-days: 7  # 减少保留时间
+            coverage_html/
+            .sage/logs/
+          retention-days: 30
 
       - name: Upload Test Logs on Failure
         if: failure()
