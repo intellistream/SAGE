@@ -312,13 +312,12 @@ jobs:
           echo "🧪 运行单元测试并收集覆盖率..."
           echo "使用 sage-dev project test --coverage 命令"
 
-          # 使用 sage-dev 运行测试（排除慢速测试）
+          # 使用 sage-dev 运行测试
           # 注意：不再使用 || exit 0，测试失败时CI应该失败
           sage-dev project test --coverage \
             --coverage-report xml \
             --jobs 8 \
             --timeout 180 \
-            --skip-slow \
             --continue-on-error || {
               echo "❌ 测试失败"
               exit 1
