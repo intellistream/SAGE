@@ -16,9 +16,8 @@ from .neuromem.memory_collection import (
 # Export core components from neuromem sub-project
 from .neuromem.memory_manager import MemoryManager
 
-# Export services
-from .services.neuromem_vdb import NeuroMemVDB
-from .services.neuromem_vdb_service import NeuroMemVDBService
+# Export services from neuromem sub-project
+from .neuromem.services import BaseMemoryService, MemoryServiceRegistry, NeuromemServiceFactory
 
 __all__ = [
     # Core neuromem components
@@ -29,6 +28,7 @@ __all__ = [
     "GraphMemoryCollection",
     "SimpleGraphIndex",
     # Services
-    "NeuroMemVDB",
-    "NeuroMemVDBService",
+    "BaseMemoryService",
+    "MemoryServiceRegistry",
+    "NeuromemServiceFactory",
 ]
