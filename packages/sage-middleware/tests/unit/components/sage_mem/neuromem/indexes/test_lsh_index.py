@@ -14,12 +14,12 @@ from pathlib import Path
 
 import pytest
 
-# Skip all LSH Index tests - LSH Index not yet implemented/registered
-pytestmark = pytest.mark.skip(reason="LSH Index not yet fully implemented")
-
 from sage.middleware.components.sage_mem.neuromem.memory_collection.indexes import (
     LSHIndex,
 )
+
+# Skip all LSH Index tests - LSH Index not yet implemented/registered
+pytestmark = pytest.mark.skip(reason="LSH Index not yet fully implemented")
 
 
 class TestLSHIndexBasic:
