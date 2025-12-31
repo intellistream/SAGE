@@ -1,0 +1,65 @@
+name: Code Quality Check
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**.py'
+      - '**.pyi'
+      - 'tools/pre-commit-config.yaml'
+      - 'tools/ruff.toml'
+  push:
+    branches: [main, main-dev]
+    paths:
+      - '**.py'
+      - '**.pyi'
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-quality:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache pre-commit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('tools/pre-commit-config.yaml') }}
+
+      - name: Install tools (no SAGE)
+        run: |
+          pip install --upgrade pip
+          pip install pre-commit ruff mypy types-PyYAML types-requests types-setuptools
+
+      - name: Run pre-commit (changed files only)
+        if: github.event_name == 'pull_request'
+        run: |
+          CHANGED=$(git diff --name-only --diff-filter=ACM origin/${{ github.base_ref }}...HEAD | grep -E '\.(py|pyi)$' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No Python files changed, skipping"
+            exit 0
+          fi
+          echo "$CHANGED" | xargs pre-commit run --config tools/pre-commit-config.yaml --files
+
+      - name: Run pre-commit (all files)
+        if: github.event_name != 'pull_request'
+        run: |
+          pre-commit run --all-files --config tools/pre-commit-config.yaml

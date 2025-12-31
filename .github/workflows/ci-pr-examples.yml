@@ -1,0 +1,76 @@
+name: Examples Test (PR)
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'examples/**'
+      - 'packages/**/*.py'
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.11'
+      install-mode:
+        description: 'Install mode'
+        required: false
+        default: 'standard'
+
+concurrency:
+  group: examples-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  HF_ENDPOINT: https://hf-mirror.com
+  SAGE_EXAMPLES_MODE: test
+
+jobs:
+  examples-test:
+    name: Examples (PR Gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup SAGE
+        uses: ./.github/actions/setup-sage
+        with:
+          install-mode: ${{ github.event.inputs.install-mode || 'standard' }}
+          python-version: ${{ github.event.inputs.python-version || '3.11' }}
+          hf-token: ${{ secrets.HF_TOKEN }}
+          create-env-file: false
+
+      - name: Populate .env
+        run: |
+          cat > .env << EOF
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+          SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
+          JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
+          VLLM_BASE_URL=http://localhost:8000/v1
+          WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
+          GIT_TOKEN=${{ secrets.GIT_TOKEN }}
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+          EOF
+
+      - name: Cache pytest
+        uses: actions/cache@v4
+        with:
+          path: .sage/cache/pytest
+          key: pytest-examples-${{ runner.os }}-${{ hashFiles('examples/**') }}
+
+      - name: Run examples (quick for PR)
+        run: |
+          export SAGE_TEST_MODE=true
+          sage-dev examples test --quick --timeout 900

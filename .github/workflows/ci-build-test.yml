@@ -3,9 +3,18 @@ name: Build and Test
 on:
   push:
     branches: [main, main-dev]
+    paths:
+      - 'packages/**'
+      - 'tools/**'
+      - 'pyproject.toml'
+      - '.github/workflows/build-test.yml'
   pull_request:
     branches: [main, main-dev]
     types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/**'
+      - 'tools/**'
+      - 'pyproject.toml'
   workflow_dispatch:
 
 concurrency:
