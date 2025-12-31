@@ -22,22 +22,23 @@ from .registry import PostInsertActionRegistry
 
 
 class _ServiceProxy:
-    """Service proxy to wrap call_service calls into method-like interface"""
+    """Service proxy to wrap call_service calls into method-like interface
+
+    Note: get_entry() removed - Actions should use insert_stats["entries"] from data flow
+    instead of querying the service for data that was just inserted.
+    """
 
     def __init__(self, operator: MapFunction, service_name: str):
         self._operator = operator
         self._service_name = service_name
 
-    def get_entry(self, entry_id: str) -> dict[str, Any] | None:
-        """Get a memory entry by ID"""
-        try:
-            return self._operator.call_service(self._service_name, method="get", entry_id=entry_id)
-        except Exception:
-            return None
-
     def search(self, **kwargs) -> list[dict[str, Any]]:
         """Search for similar memories"""
         return self._operator.call_service(self._service_name, method="search", **kwargs)
+
+    def retrieve(self, **kwargs) -> list[dict[str, Any]]:
+        """Retrieve memories (GraphMemoryService) - supports vector-only and text modes"""
+        return self._operator.call_service(self._service_name, method="retrieve", **kwargs)
 
     def insert(self, **kwargs) -> str:
         """Insert a new memory entry"""
@@ -51,6 +52,19 @@ class _ServiceProxy:
         """Delete a memory entry"""
         return self._operator.call_service(self._service_name, method="delete", entry_id=entry_id)
 
+    def add_edge(
+        self, from_node: str, to_node: str, weight: float = 1.0, edge_type: str = "relation"
+    ) -> bool:
+        """Add an edge between two nodes (GraphMemoryService)"""
+        return self._operator.call_service(
+            self._service_name,
+            method="add_edge",
+            from_node=from_node,
+            to_node=to_node,
+            weight=weight,
+            edge_type=edge_type,
+        )
+
 
 class PostInsert(MapFunction):
     """记忆插入后的后处理算子（重构版）"""
@@ -58,13 +72,30 @@ class PostInsert(MapFunction):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.service_name = config.get("services.register_memory_service", "short_term_memory")
+
+        # 从 services.services_type 提取服务名称（与 memory_test_pipeline.py 注册逻辑一致）
+        # "partitional.lsh_hash" -> "lsh_hash"
+        services_type = config.get("services.services_type")
+        if not services_type:
+            raise ValueError("Missing required config: services.services_type")
+        self.service_name = services_type.split(".")[-1]
+
         self._llm_generator = LLMGenerator.from_config(self.config)
         self._embedding_generator = EmbeddingGenerator.from_config(self.config)
         action_config = config.get("operators.post_insert", {})
         self.action_name = action_config.get("action", "none")
+
+        # 支持子类型 (enhance.profile_extraction, migrate.time_based 等)
+        action_type = None
+        if self.action_name == "enhance":
+            action_type = action_config.get("enhance_type")
+        elif self.action_name == "migrate":
+            action_type = action_config.get("migrate_type")
+
+        action_key = f"{self.action_name}.{action_type}" if action_type else self.action_name
+
         try:
-            action_class = PostInsertActionRegistry.get(self.action_name)
+            action_class = PostInsertActionRegistry.get(action_key)
             self.action: BasePostInsertAction = action_class(action_config)
         except ValueError as e:
             print(f"[WARNING] {e}, using NoneAction as fallback")
@@ -100,6 +131,9 @@ class PostInsert(MapFunction):
 
         # 使用输入的 dialogs 数量（而非 insert_stats）
         dialog_count = len(data.dialogs) if hasattr(data, "dialogs") else 1
+
+        # 简洁输出（一行）
+        print(f"  [PostInsert] 动作: {self.action_name} | 失败: 0条 | 耗时: {elapsed_ms:.2f}ms")
 
         # 将批次耗时平均分配到每个对话，返回列表
         if dialog_count > 0:

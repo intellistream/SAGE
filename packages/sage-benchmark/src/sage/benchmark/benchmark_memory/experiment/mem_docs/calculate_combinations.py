@@ -11,7 +11,7 @@
 # D1: Memory Service（数据结构）
 D1_SERVICES = [
     "short_term_memory",
-    "vector_hash_memory",
+    "vector_memory",
     "neuromem_vdb",
     "graph_memory",
     "hierarchical_memory",
@@ -87,7 +87,7 @@ D3_CONSTRAINTS: dict[str, list[str]] = {
 # D1 Service 允许的 D3 PostInsert Actions
 D1_ALLOWS_D3: dict[str, list[str]] = {
     "short_term_memory": ["none"],
-    "vector_hash_memory": ["none", "distillation"],
+    "vector_memory": ["none", "distillation"],
     "neuromem_vdb": ["none", "distillation"],
     "graph_memory": ["none", "link_evolution", "crud"],
     "hierarchical_memory": [
@@ -188,14 +188,16 @@ def print_statistics(stats: dict):
 
     print("\n【约束说明】")
     print("  • short_term_memory:   只能使用 none（无后处理）")
-    print("  • vector_hash_memory:  支持 none, distillation")
+    print("  • vector_memory:       支持 none, distillation")
     print("  • neuromem_vdb:        支持 none, distillation")
     print("  • graph_memory:        支持 none, link_evolution, crud")
     print("  • hierarchical_memory: 支持 none, distillation, migrate, forgetting(*3)")
     print("  • hybrid_memory:       支持 none, distillation, crud")
 
     print("\n【典型配置示例】")
-    print("  • TiM:        vector_hash_memory + extract.triple + distillation + embedding + rerank")
+    print(
+        "  • TiM:        vector_memory(IndexLSH) + extract.triple + distillation + embedding + rerank"
+    )
     print("  • MemoryBank: hierarchical_memory + none + forgetting + embedding + augment")
     print("  • HippoRAG:   graph_memory + extract.triple + link_evolution + optimize + none")
     print(

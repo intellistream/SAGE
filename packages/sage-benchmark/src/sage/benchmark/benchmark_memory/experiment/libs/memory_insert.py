@@ -96,12 +96,14 @@ class InsertStats:
         inserted: 成功插入的数量
         failed: 插入失败的数量
         entry_ids: 成功插入的条目 ID 列表
+        entries: 成功插入的完整条目信息（包含 id, text, embedding, metadata）
         errors: 失败条目的详细错误信息列表
     """
 
     inserted: int
     failed: int
     entry_ids: list[str]
+    entries: list[dict[str, Any]]  # 保留完整信息，避免 PostInsert 重复查询
     errors: list[dict[str, Any]]
 
 
@@ -137,7 +139,11 @@ class MemoryInsert(MapFunction):
         """
         super().__init__()
         self.config = config
-        self.service_name = config.get("services.register_memory_service", "short_term_memory")
+        # 从 services_type 提取服务名: "partitional.fifo_queue" -> "fifo_queue"
+        services_type = config.get("services.services_type")
+        if not services_type:
+            raise ValueError("Missing required config: services.services_type")
+        self.service_name = services_type.split(".")[-1]
         self.verbose = config.get("runtime.memory_insert_verbose", False)
 
     # --------------------------------------------------------------------------
@@ -159,7 +165,27 @@ class MemoryInsert(MapFunction):
             原始数据 + insert_stats 统计信息
         """
         memory_entries = data.get("memory_entries", [])
-        stats = InsertStats(inserted=0, failed=0, entry_ids=[], errors=[])
+        stats = InsertStats(inserted=0, failed=0, entry_ids=[], entries=[], errors=[])
+
+        # ============ DEBUG: 插入前打印 ============
+        # print("\n" + "=" * 80)
+        # print(f"📥 [MemoryInsert] 准备插入 {len(memory_entries)} 条记忆")
+        # print("=" * 80)
+        # for idx, entry in enumerate(memory_entries, 1):
+        #     text = entry.get("text", "")  # 显示完整文本，不截断
+        #     metadata = entry.get("metadata", {})
+        #     triples = metadata.get("triples", [])
+        #     print(f"\n条目 #{idx}:")
+        #     print(f"  文本: {text}")
+        #     if triples:
+        #         print(f"  三元组: {triples}")
+        #     # 显示其他元数据（如果有）
+        #     if metadata:
+        #         other_meta = {k: v for k, v in metadata.items() if k != "triples"}
+        #         if other_meta:
+        #             print(f"  其他元数据: {other_meta}")
+        # print("\n" + "=" * 80)
+        # ============ DEBUG END ============
 
         # 记录批次总耗时
         batch_start = time.perf_counter()
@@ -169,6 +195,16 @@ class MemoryInsert(MapFunction):
                 entry_id = self._insert_entry(entry)
                 stats.inserted += 1
                 stats.entry_ids.append(entry_id)
+
+                # 保留完整信息供 PostInsert 使用（避免重复查询服务）
+                stats.entries.append(
+                    {
+                        "id": entry_id,
+                        "text": entry.get("text", ""),
+                        "embedding": entry.get("embedding"),
+                        "metadata": entry.get("metadata", {}),
+                    }
+                )
 
                 if self.verbose:
                     self._log_insert(entry, entry_id)
@@ -185,6 +221,11 @@ class MemoryInsert(MapFunction):
 
         # 计算批次总耗时
         batch_elapsed_ms = (time.perf_counter() - batch_start) * 1000
+
+        # 简洁输出插入结果（一行）
+        print(
+            f"  [MemoryInsert] 插入: {stats.inserted}条 | 失败: {stats.failed}条 | 耗时: {batch_elapsed_ms:.2f}ms"
+        )
 
         # 将统计信息转为字典并添加到数据中
         data["insert_stats"] = asdict(stats)
