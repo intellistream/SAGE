@@ -24,9 +24,17 @@ runtime:
 
 # Service configuration
 services:
-  register_memory_service: "short_term_memory"  # Registered memory service name, can switch to other services
-  short_term_memory:
-    max_dialog: 5530  # Short-term memory window size (set to total facts so tests can access all facts)
+  services_type: "partitional.fifo_queue"
+
+  fifo_queue:
+    # === 基础配置 ===
+    max_capacity: 5530                # FIFO 队列最大容量（设置为总 facts 数，以便测试可以访问所有 facts）
+    vector_dim: 1024                  # BGE-M3 向量维度（如果需要向量检索）
+
+    # === 检索配置 ===
+    retrieval_mode: "recent_first"    # 检索模式：recent_first（最新优先）
+    retrieval_top_k: 10               # 默认检索数量
+
   memory_retrieval_adapter: "none"
 
 

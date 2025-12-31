@@ -1,0 +1,250 @@
+# ============================================================
+# LD-Agent Pipeline 配置
+# 论文: LD-Agent for Long-term Dialogue
+# 特点: STM 缓存 + 事件摘要 LTM + 话题重叠检索
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  # 配置1（Llama-3.1-8B，用于对比）：
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  # max_tokens: 256
+  # temperature: 0
+  # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
+  memory_name: "LD-Agent"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# ============================================================
+services:
+  # LD-Agent 架构（基于原始代码 /home/zrc/develop_item/LD-Agent）:
+  # - short_term_memory: Python list（临时缓存，检索时返回最近30条）
+  # - ChromaDB collection: 长期事件摘要库（会话间隔>1小时时存储批量摘要）
+  # - 话题重叠检索: spaCy 名词提取 + Jaccard 相似度
+  #
+  # SAGE 实现映射:
+  # - fifo_index → short_term_memory (会话缓存)
+  # - summary_index → ChromaDB collection (事件摘要)
+  # - feature_index → 话题重叠检索（BM25 模拟名词匹配）
+  services_type: "partitional.feature_queue_summary_combination"
+  feature_queue_summary_combination:
+    fifo_max_size: 50                 # STM 容量（原代码用 list，无固定上限，这里设50）
+    summary_max_size: 10000           # LTM 摘要库容量（原代码用 ChromaDB，设大值模拟无限）
+    summary_min_length: 10            # 生成摘要的最小长度
+    enable_feature_extraction: true   # 话题重叠检索（模拟 spaCy 名词提取）
+    enable_summary_generation: false  # ❌ 禁用自动摘要（原代码在会话结束时批量生成，由 PreInsert 控制）
+    combination_strategy: "weighted"
+    weights:
+      feature_index: 0.3              # 话题重叠权重
+      fifo_index: 0.4                 # STM 时序权重
+      summary_index: 0.3              # LTM 摘要权重
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 会话摘要生成（参考 MemoryBank 做法）
+  # LD-Agent 的逻辑：
+  #   - 在 context_retrieve() 检测到会话间隔>1小时时触发
+  #   - 对整个 STM 生成一个事件摘要
+  #
+  # SAGE 实现：
+  #   - 使用 only_on_session_end=true 控制摘要生成时机
+  #   - 需要数据加载器传入 is_session_end 标记
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "transform"
+    transform_type: "summarize"
+    only_on_session_end: true         # 仅在会话结束时生成摘要（对齐原版）
+    embed_summary: false              # 不对摘要做 embedding，保留原文
+    summarize_prompt: |
+      Summarize the key events from this dialogue session as a brief event description.
+      Focus on: What happened? Who was involved? What was discussed or decided?
+
+      Conversation:
+      {dialogue}
+
+      Event summary (within 20 words):
+
+  # ----------------------------------------------------------
+  # PostInsert: 时间间隔触发的层级迁移
+  # LD-Agent 的逻辑：
+  #   - 当会话间隔>1小时时，将 STM 摘要迁移到 LTM
+  #   - 同时清空 STM
+  #
+  # SAGE 实现：
+  #   - 使用新实现的 TimeBasedMigrateAction
+  #   - 检测时间间隔并触发 STM → LTM 迁移
+  # ----------------------------------------------------------
+  post_insert:
+    action: "migrate"
+    migrate_type: "time_based"        # 基于时间间隔的迁移
+    time_gap_threshold: 3600          # 1小时 = 3600秒
+    source_tier: "stm"                # 源层级
+    target_tier: "ltm"                # 目标层级
+    clear_source: true                # 迁移后清空源层级
+    only_on_session_end: true         # 仅在会话结束时检查并迁移
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 名词/关键词提取（用于话题重叠）
+  # LD-Agent 使用 spaCy 提取名词集合
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "optimize"
+    optimize_type: "keyword_extract"
+    extractor: "spacy"
+    spacy_model: "en_core_web_sm"     # spaCy 模型名称
+    extract_types: ["NOUN", "PROPN"]
+    max_keywords: 15
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 多因子重排序（语义+话题+时间）
+  # LD-Agent 使用综合得分排序
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "rerank"
+    rerank_type: "weighted"
+    factors:
+    - name: "relevance"
+      weight: 0.4
+      source: "embedding_similarity"
+    - name: "recency"
+      weight: 0.3
+      decay_type: "exponential"
+      decay_rate: 1e-7              # 原文值：1E-7（衰减非常缓慢）
+    - name: "topic_overlap"
+      weight: 0.3
+      source: "keyword_jaccard"
+    # 原文：STM检索30条，LTM检索1条最优记忆
+    tier_retrieval_limits:
+      stm: 30                       # context_memory_number
+      ltm: 1                        # relevance_memory_number
+    conversation_format_prompt: |
+      <CONTEXT>
+      Recent conversation:
+      {stm_memories}
+
+      <MEMORY>
+      Related long-term memories:
+      {ltm_memories}
+
+# ============================================================
+# LD-Agent 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. 双层记忆: STM 缓存 + LTM 事件摘要库
+#   2. 事件摘要: 对对话生成事件描述（在会话间隔触发时）
+#   3. 话题重叠检索: 基于名词集合的 Jaccard 相似度
+#   4. 多因子重排序: 语义 + 时间 + 话题
+#
+# SAGE 实现方式（已按原文修正）：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 LD-Agent 操作    │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Session Summary       │ transform    │
+# │  - 会话摘要生成    │ 对整个会话生成摘要    │ summarize    │
+# │  - 触发条件        │ only_on_session_end   │ config       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Dual-tier Insert      │ Hierarchical │
+# │  - STM 插入        │ 当前会话缓存          │ stm=50       │
+# │  - LTM 预留        │ 事件摘要库            │ ltm=-1       │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Time-based Migrate    │ migrate      │
+# │  - 会话结束检测    │ is_session_end 标记   │ time_based   │
+# │  - 触发迁移        │ 实际由服务层处理      │ 自动溢出     │
+# │  【说明】实际的时间间隔检测由 HierarchicalMemoryService │
+# │  在容量溢出时自动触发，此处为声明性配置                 │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Keyword Extraction    │ optimize     │
+# │  - 名词提取        │ spaCy NOUN/PROPN      │ spacy        │
+# │  - 话题集合        │ 用于 Jaccard 计算     │ max_kw=15    │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Multi-tier Search     │ Hierarchical │
+# │  - 同时检索 STM/LTM│ 合并结果              │ FAISS        │
+# │  【修正】STM=30条，LTM=1条最优记忆                        │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Multi-factor Rerank   │ rerank       │
+# │  - 语义相似度      │ embedding similarity  │ weight=0.4   │
+# │  - 时间衰减        │ exponential decay     │ weight=0.3   │
+# │  【修正】decay_rate=1e-7（原文值，衰减非常缓慢）          │
+# │  - 话题重叠        │ keyword Jaccard       │ weight=0.3   │
+# │  - 加权融合        │ 综合排序              │ stm+ltm      │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - tier_mode="two_tier": 双层架构（STM/LTM）
+#   - time_gap_threshold=3600: 会话间隔阈值（秒）
+#   - transform_type="conditional_summarize": 条件触发的摘要生成
+#   - extract_types=["NOUN", "PROPN"]: 名词和专有名词
+#   - rerank factors: relevance(0.4) + recency(0.3, rate=1e-7) + topic(0.3)
+#   - tier_retrieval_limits: stm=30, ltm=1
+#
+# 与原文的主要修正（2025-12-25）：
+#   1. 【关键】PreInsert 改为条件触发的迁移
+#      - 原因：原文在 context_retrieve() 开始时检测时间间隔
+#      - 只有当 (当前时间 - STM最后记忆) > 1小时时才触发
+#      - 触发时执行：摘要生成 → 迁移 → 清空STM
+#      - 不是每次插入都执行，而是条件触发
+#
+#   2. 【关键】PostInsert 改为 none
+#      - 原因：迁移逻辑已在 PreInsert 的条件触发中完成
+#      - 原文没有独立的插入后操作
+#
+#   3. 【关键】摘要是对整个会话批量生成
+#      - 不是对单条记忆生成摘要
+#      - 而是对 STM 中的所有对话生成一个事件摘要
+#      - 一次会话 → 一条 LTM 摘要记录
+#
+#   4. 【关键】修正时间衰减参数：0.995 → 1e-7
+#      - 原因：原文使用 decay_temp=1E-7，衰减非常缓慢
+#      - 原配置衰减过快，不符合长期对话场景
+#
+#   5. 【关键】区分 STM/LTM 检索数量：统一10 → 30/1
+#      - 原因：原文 context_memory_number=30, relevance_memory_number=1
+#      - STM 需要较多上下文，LTM 只返回最优记忆
+#
+#   6. 【改进】完善 prompt 格式
+#      - 添加结构化 CONTEXT + MEMORY 分区
+#      - 便于后续添加 USER_TRAITS（人物画像功能待实现）
+#
+# 论文参考：
+#   Hello Again! LLM-powered Personalized Agent for Long-term Dialogue
+#   NAACL 2025, https://aclanthology.org/2025.naacl-long.272/
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_ldagent_pipeline.yaml --task_id conv-26

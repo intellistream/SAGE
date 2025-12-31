@@ -41,66 +41,133 @@ runtime:
 # 服务配置
 # ============================================================
 services:
-  # REQUIRED: 主存储后端名称
-  # 可选值: short_term_memory | neuromem_vdb | graph_memory | hierarchical_memory | hybrid_memory | vector_hash_memory | kv_memory
-  register_memory_service: ""
+  # REQUIRED: 服务类型
+  # 可选值:
+  #   - partitional.fifo_queue          (STM, SCM)
+  #   - partitional.lsh_hash            (TiM)
+  #   - partitional.segment             (SECOM)
+  #   - partitional.feature_summary_vectorstore_combination  (MemoryBank)
+  #   - partitional.feature_queue_segment_combination        (MemoryOS)
+  #   - partitional.feature_queue_summary_combination        (LD-Agent)
+  #   - partitional.feature_queue_vectorstore_combination    (MemGPT)
+  #   - hierarchical.semantic_inverted_knowledge_graph       (HippoRAG, HippoRAG2)
+  #   - hierarchical.linknote_graph                          (A-Mem)
+  services_type: ""
 
-  # 图存储服务名称 (用于 link_evolution)
-  graph_memory_service: ""
+  # -------------------- partitional.fifo_queue 配置 (STM, SCM) --------------------
+  fifo_queue:
+    max_capacity: 20             # FIFO 队列最大容量
+    vector_dim: 1024             # 向量维度
+    retrieval_mode: "recent_first"  # recent_first | vector_similarity
+    retrieval_top_k: 10
 
-  # 分层记忆服务名称
-  stm_service: "short_term_memory"
-  mtm_service: "mid_term_memory"
-  ltm_service: "long_term_memory"
+  # -------------------- partitional.lsh_hash 配置 (TiM) --------------------
+  lsh_hash:
+    vector_dim: 1024             # 向量维度
+    lsh_nbits: 128               # LSH 哈希位数 (64-256)
+    lsh_rotate_data: true        # 旋转数据提高哈希质量
+    lsh_train_thresholds: false  # 是否训练阈值
+    retrieval_top_k: 10
 
-  # -------------------- short_term_memory 配置 --------------------
-  short_term_memory:
-    max_dialog: 3                # 短期记忆窗口大小
-    embedding_dim: 1024          # 向量维度
-    retrieval_top_k: 10          # 检索返回数量
+  # -------------------- partitional.segment 配置 (SECOM) --------------------
+  segment:
+    segment_strategy: "time"     # time | topic | hybrid
+    time_window: 3600            # 时间窗口（秒）
+    max_segment_size: 100        # 单段最大数据量
+    topic_threshold: 0.75        # 话题相似度阈值
+    vector_dim: 1024
 
-  # -------------------- hierarchical_memory 配置 --------------------
-  # 分层记忆服务 (MemGPT, MemoryOS, MemoryBank, LD-Agent)
-  hierarchical_memory:
-    # tier_mode: two_tier | three_tier | functional
-    # - two_tier: [stm, ltm] 双层模式 (LD-Agent)
-    # - three_tier: [stm, mtm, ltm] 三层模式 (MemoryOS, MemoryBank)
-    # - functional: [core, recall, archival] 功能分层 (MemGPT)
-    tier_mode: "three_tier"
-    tier_capacities:
-      stm: 20                    # 短期记忆容量
-      mtm: 200                   # 中期记忆容量 (three_tier)
-      ltm: -1                    # 长期记忆容量 (-1 表示无限)
-      core: 20                   # 核心上下文容量 (functional)
-      recall: 100                # 召回存储容量 (functional)
-    migration_policy: "fifo"     # 迁移策略: fifo | heat | time
-    embedding_dim: 1024
-
-  # -------------------- hybrid_memory 配置 --------------------
-  # 混合记忆服务 (Mem0, Mem0ᵍ)
-  hybrid_memory:
-    indexes:
-    - name: "semantic"
-      type: "vector"
-      dim: 1024
-    - name: "keyword"
-      type: "bm25"
-    fusion_strategy: "weighted"  # weighted | rrf
+  # -------------------- partitional.feature_summary_vectorstore_combination (MemoryBank) --------------------
+  feature_summary_vectorstore_combination:
+    vector_dim: 1024
+    feature_top_k: 5             # 特征存储检索数
+    summary_top_k: 3             # 摘要存储检索数
+    vectorstore_top_k: 10        # 向量存储检索数
+    fusion_strategy: "weighted"
     fusion_weights:
-      semantic: 0.7
-      keyword: 0.3
-    graph_enabled: false         # 是否启用图增强 (Mem0ᵍ)
+      feature: 0.3
+      summary: 0.2
+      vectorstore: 0.5
 
-  # -------------------- graph_memory 配置 --------------------
-  # 图记忆服务 (HippoRAG, A-Mem)
-  graph_memory:
-    graph_type: "knowledge_graph" # knowledge_graph | link_graph
-    triple_store: "igraph"
-    node_embedding_dim: 1024
-    edge_types: ["relation", "synonym", "temporal"]
-    retrieval_top_k: 20
-    num_start_nodes: 10
-    max_depth: 3
+  # -------------------- partitional.feature_queue_segment_combination (MemoryOS) --------------------
+  feature_queue_segment_combination:
+    vector_dim: 1024
+    feature_top_k: 5
+    queue_capacity: 20
+    segment_top_k: 10
+    fusion_strategy: "weighted"
+    fusion_weights:
+      feature: 0.3
+      queue: 0.2
+      segment: 0.5
+
+  # -------------------- partitional.feature_queue_summary_combination (LD-Agent) --------------------
+  feature_queue_summary_combination:
+    vector_dim: 1024
+    feature_top_k: 5
+    queue_capacity: 20
+    summary_top_k: 10
+    fusion_strategy: "weighted"
+    fusion_weights:
+      feature: 0.3
+      queue: 0.3
+      summary: 0.4
+
+  # -------------------- partitional.feature_queue_vectorstore_combination (MemGPT) --------------------
+  feature_queue_vectorstore_combination:
+    vector_dim: 1024
+    feature_capacity: 20         # Core memory 容量
+    queue_capacity: 100          # Recall memory 容量
+    vectorstore_top_k: 10        # Archival memory 检索数
+    fusion_strategy: "weighted"
+    fusion_weights:
+      feature: 0.4
+      queue: 0.3
+      vectorstore: 0.3
+
+  # -------------------- hierarchical.semantic_inverted_knowledge_graph (HippoRAG, HippoRAG2) --------------------
+  semantic_inverted_knowledge_graph:
+    vector_dim: 1024
+    # Layer 1: Semantic (FAISS)
+    semantic_top_k: 20
+    semantic_nprobe: 16
+    semantic_use_gpu: true
+    # Layer 2: Inverted (BM25)
+    inverted_top_k: 20
+    inverted_k1: 1.5
+    inverted_b: 0.75
+    # Layer 3: KG Segment
+    kg_segment_type: "knowledge_graph"
+    kg_triple_store: "igraph"
+    kg_node_embedding_dim: 1024
+    kg_edge_types: ["relation", "synonym", "temporal"]
+    kg_ppr_depth: 2              # PPR 深度 (HippoRAG2: 3)
+    kg_ppr_damping: 0.85         # PPR 阻尼系数 (HippoRAG2: 0.9)
+    kg_num_start_nodes: 10       # 种子节点数 (HippoRAG2: 15)
+    kg_max_depth: 3              # 图遍历深度 (HippoRAG2: 4)
+    # Fusion
+    fusion_strategy: "weighted_sum"
+    fusion_weight_semantic: 0.4
+    fusion_weight_inverted: 0.2
+    fusion_weight_kg: 0.4
+    fusion_top_k: 10
+
+  # -------------------- hierarchical.linknote_graph 配置 (A-Mem) --------------------
+  linknote_graph:
+    vector_dim: 1024
+    # Semantic Layer
+    semantic_top_k: 20
+    semantic_use_gpu: true
+    # Link Graph Layer
+    link_graph_type: "evolving_graph"
+    link_knn_k: 10
+    link_similarity_threshold: 0.7
+    link_max_depth: 3
+    # Fusion
+    fusion_strategy: "weighted_sum"
+    fusion_weight_semantic: 0.5
+    fusion_weight_link: 0.5
+    fusion_top_k: 10
 
   memory_retrieval_adapter: "none"
 
@@ -863,3 +930,169 @@ operators:
       The following is a conversation between a user and an AI assistant. Please answer the current question based on the history of the conversation:
 
       Related conversation history:
+
+  # ============================================================
+  # Examples: Enhancement Actions
+  # ============================================================
+  # 以下为查询增强（enhancement.*）的典型用法示例，集成到模板中方便参考。
+  # 这些示例为注释，仅用于说明；需要运行时，请复制到独立配置文件或取消注释并调整为实际环境。
+
+  # --- 示例1：enhancement.decompose（LLM分解） ---
+  # test_decompose:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "short_term_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "decompose"
+  #       decompose_strategy: "llm"
+  #       max_sub_queries: 5
+  #       sub_query_action: "parallel"
+  #       embed_sub_queries: false
+  #       decompose_prompt: |
+  #         Break down this complex question into simpler sub-questions that can be answered independently.
+  #         Each sub-question should be self-contained and searchable.
+  #
+  #         Question: {query}
+  #
+  #         Return a JSON array of sub-questions. Example: ["sub-question 1", "sub-question 2"]
+  #         Sub-questions:
+  #       split_keywords:
+  #         - "and"
+  #         - "or"
+  #         - "also"
+  #         - "additionally"
+  #         - "moreover"
+  #         - "furthermore"
+  #         - "besides"
+
+  # --- 示例2：enhancement.route（关键词路由） ---
+  # test_route:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "hierarchical_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "route"
+  #       route_strategy: "keyword"
+  #       allow_multi_route: true
+  #       max_routes: 2
+  #       default_route: "long_term_memory"
+  #       keyword_rules:
+  #         - keywords: ["remember", "recall", "last time", "before", "previously"]
+  #           target: "long_term_memory"
+  #           params:
+  #             time_range: "all"
+  #         - keywords: ["just", "now", "recently", "today", "moment ago"]
+  #           target: "short_term_memory"
+  #           params:
+  #             time_range: "1d"
+  #         - keywords: ["know", "fact", "what is", "who is", "define"]
+  #           target: "knowledge_base"
+  #           params:
+  #             search_type: "exact"
+
+  # --- 示例3：enhancement.multi_embed（多维向量） ---
+  # test_multi_embed:
+  #   runtime:
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #   services:
+  #     retrieve_memory_service: "vector_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "multi_embed"
+  #       embeddings:
+  #         - name: "semantic"
+  #           model: "BAAI/bge-m3"
+  #           weight: 0.6
+  #         - name: "keyword"
+  #           model: "BAAI/bge-m3"
+  #           weight: 0.4
+  #       output_format: "weighted"  # weighted | dict | concat
+  #       match_insert_config: true
+
+  # --- 示例4：enhancement.route（LLM路由） ---
+  # test_route_llm:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "hierarchical_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "route"
+  #       route_strategy: "llm"
+  #       allow_multi_route: true
+  #       max_routes: 3
+  #       default_route: "long_term_memory"
+  #       route_prompt: |
+  #         Determine which memory source(s) should be queried for this question.
+  #         Available sources:
+  #         - short_term_memory: Recent conversations and events (last 24 hours)
+  #         - long_term_memory: Historical memories and past experiences
+  #         - knowledge_base: Factual information and general knowledge
+  #
+  #         Question: {query}
+  #
+  #         Return a JSON array of source names to query. Example: ["long_term_memory", "knowledge_base"]
+  #         Sources:
+
+  # --- 示例4.1：enhancement.route（Classifier路由） ---
+  # test_route_classifier:
+  #   runtime:
+  #     embedding_base_url: "http://localhost:8090/v1"
+  #     embedding_model: "BAAI/bge-m3"
+  #   services:
+  #     retrieve_memory_service: "hierarchical_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "route"
+  #       route_strategy: "classifier"
+  #       allow_multi_route: false
+  #       max_routes: 1
+  #       default_route: "long_term_memory"
+  #       classifier_model: "intent-classifier"
+  #       route_mapping:
+  #         factual: "knowledge_base"
+  #         personal: "long_term_memory"
+  #         recent: "short_term_memory"
+  #         historical: "long_term_memory"
+
+  # --- 示例5：enhancement.decompose（混合分解） ---
+  # test_decompose_hybrid:
+  #   runtime:
+  #     llm_base_url: "http://localhost:8901/v1"
+  #     llm_model: "Qwen/Qwen2.5-7B-Instruct"
+  #   services:
+  #     retrieve_memory_service: "short_term_memory"
+  #   operators:
+  #     pre_retrieval:
+  #       action: "enhancement"
+  #       enhancement_type: "decompose"
+  #       decompose_strategy: "hybrid"
+  #       max_sub_queries: 5
+  #       sub_query_action: "parallel"
+  #       decompose_prompt: |
+  #         Break down the complex question:
+  #         {query}
+  #
+  #         Sub-questions:
+  #       split_keywords:
+  #         - "and"
+  #         - "or"
+  #         - "also"

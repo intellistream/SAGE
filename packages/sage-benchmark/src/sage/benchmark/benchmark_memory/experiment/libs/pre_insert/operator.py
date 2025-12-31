@@ -11,7 +11,10 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from sage.benchmark.benchmark_memory.experiment.utils import EmbeddingGenerator
+from sage.benchmark.benchmark_memory.experiment.utils import (
+    EmbeddingGenerator,
+    LLMGenerator,
+)
 from sage.common.core import MapFunction
 
 from .base import BasePreInsertAction, PreInsertInput, PreInsertOutput
@@ -24,8 +27,36 @@ class PreInsert(MapFunction):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.service_name = config.get("services.register_memory_service", "short_term_memory")
+
+        # 从 services.services_type 提取服务名称（与 memory_test_pipeline.py 注册逻辑一致）
+        # "partitional.lsh_hash" -> "lsh_hash"
+        services_type = config.get("services.services_type")
+        if not services_type:
+            raise ValueError("Missing required config: services.services_type")
+        self.service_name = services_type.split(".")[-1]
+
         self._embedding_generator: EmbeddingGenerator = EmbeddingGenerator.from_config(self.config)
+        self._llm_generator: LLMGenerator = LLMGenerator.from_config(self.config)
+
+        # 输出模型信息
+        print("\n" + "=" * 80)
+        print("📋 [PreInsert Init] 模型配置信息")
+        print("=" * 80)
+        print("🤖 LLM 模型:")
+        print(f"   - Model: {self._llm_generator.model_name}")
+        print(f"   - Base URL: {config.get('runtime.base_url')}")
+        print(f"   - Max Tokens: {self._llm_generator.max_tokens}")
+        print(f"   - Temperature: {self._llm_generator.temperature}")
+        if self._llm_generator.seed is not None:
+            print(f"   - Seed: {self._llm_generator.seed}")
+
+        print("\n🔢 Embedding 模型:")
+        if self._embedding_generator.is_available():
+            print(f"   - Model: {self._embedding_generator.model_name}")
+            print(f"   - Base URL: {self._embedding_generator.base_url}")
+        else:
+            print("   - Status: Disabled (no embedding_base_url configured)")
+        print("=" * 80 + "\n")
 
         action_config = config.get("operators.pre_insert", {})
         self.action_name = action_config.get("action", "none")
@@ -46,6 +77,12 @@ class PreInsert(MapFunction):
 
             self.action = NoneAction(action_config)
 
+        # 传递generators给action
+        if hasattr(self.action, "set_llm_generator"):
+            self.action.set_llm_generator(self._llm_generator)
+        if hasattr(self.action, "set_embedding_generator"):
+            self.action.set_embedding_generator(self._embedding_generator)
+
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         start_time = time.perf_counter()
         input_data = PreInsertInput(
@@ -64,6 +101,12 @@ class PreInsert(MapFunction):
         # 使用输入的 dialogs 数量（而非输出的 memory_entries）
         dialog_count = len(data.dialogs) if hasattr(data, "dialogs") else 1
 
+        # 简洁输出（一行）
+        entries_count = len(output.memory_entries)
+        print(
+            f"  [PreInsert] 动作: {self.action_name} | 生成: {entries_count}条 | 失败: 0条 | 耗时: {elapsed_ms:.2f}ms"
+        )
+
         # 将批次耗时平均分配到每个对话，返回列表
         if dialog_count > 0:
             per_entry_ms = elapsed_ms / dialog_count
@@ -74,11 +117,20 @@ class PreInsert(MapFunction):
         return data
 
     def _generate_embeddings(self, entries: list[dict[str, Any]]) -> None:
+        """批量生成 embeddings（使用批量接口优化性能）"""
         if not self._embedding_generator or not self._embedding_generator.is_available():
             return
-        for entry in entries:
+
+        # 收集需要生成 embedding 的文本和对应的索引
+        texts_to_embed: list[str] = []
+        indices_to_update: list[int] = []
+
+        for i, entry in enumerate(entries):
+            # 跳过已有 embedding 的 entry
             if "embedding" in entry and entry["embedding"] is not None:
                 continue
+
+            # 按优先级获取文本
             text_for_embed = (
                 entry.get("summary", "")
                 or entry.get("compressed_text", "")
@@ -88,10 +140,20 @@ class PreInsert(MapFunction):
                 or entry.get("reconstructed_text", "")
                 or entry.get("text", "")
             )
+
             if text_for_embed:
-                try:
-                    embedding = self._embedding_generator.embed(text_for_embed)
-                    if embedding:
-                        entry["embedding"] = embedding
-                except Exception as e:
-                    print(f"[WARNING] Embedding generation failed: {e}")
+                texts_to_embed.append(text_for_embed)
+                indices_to_update.append(i)
+
+        # 批量生成 embeddings（一次 HTTP 请求）
+        if texts_to_embed:
+            try:
+                embeddings = self._embedding_generator.embed_batch(texts_to_embed)
+                if embeddings:
+                    # 将生成的 embeddings 填充回对应的 entries
+                    for idx, embedding in zip(indices_to_update, embeddings):
+                        if embedding:
+                            entries[idx]["embedding"] = embedding
+            except Exception as e:
+                print(f"[WARNING] Batch embedding generation failed: {e}")
+                print(f"  Failed to generate embeddings for {len(texts_to_embed)} entries")

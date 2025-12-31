@@ -4,12 +4,15 @@
 """
 
 from .augment import AugmentAction
+from .augment.reinforce import ReinforceAction
 from .base import BasePostRetrievalAction
 from .filter.threshold import ThresholdFilterAction
 from .filter.token_budget import TokenBudgetFilterAction
 from .filter.top_k import TopKFilterAction
 from .merge.link_expand import LinkExpandMergeAction
 from .merge.multi_query import MultiQueryMergeAction
+from .merge.multi_tier import MultiTierMergeAction
+from .merge.scm_three_way import SCMThreeWayMergeAction
 from .none_action import NoneAction
 from .rerank.ppr import PPRRerankAction
 from .rerank.semantic import SemanticRerankAction
@@ -33,7 +36,9 @@ class PostRetrievalActionRegistry:
     - filter.top_k: Top-K 过滤
     - merge.link_expand: 链接扩展合并
     - merge.multi_query: 多查询合并
-    - augment: 结果增强
+    - merge.multi_tier: 多层融合（MemGPT）
+    - augment: 结果增强（添加 persona/traits/summary）
+    - augment.reinforce: 记忆强化（更新记忆强度，MemoryBank）
     """
 
     _actions: dict[str, type[BasePostRetrievalAction]] = {}
@@ -107,6 +112,9 @@ PostRetrievalActionRegistry.register("filter.top_k", TopKFilterAction)
 # Merge Actions
 PostRetrievalActionRegistry.register("merge.link_expand", LinkExpandMergeAction)
 PostRetrievalActionRegistry.register("merge.multi_query", MultiQueryMergeAction)
+PostRetrievalActionRegistry.register("merge.multi_tier", MultiTierMergeAction)
+PostRetrievalActionRegistry.register("scm_three_way", SCMThreeWayMergeAction)
 
-# Augment Action
+# Augment Actions
 PostRetrievalActionRegistry.register("augment", AugmentAction)
+PostRetrievalActionRegistry.register("augment.reinforce", ReinforceAction)

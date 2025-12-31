@@ -38,8 +38,18 @@ def get_logger(name: str) -> CustomLogger:
 
 
 try:  # Optional middleware components - sage_mem (migrated from neuromem)
-    from sage.middleware.components.sage_mem.services.neuromem_vdb_service import NeuroMemVDBService
+    # Note: NeuroMemVDBService has been refactored in the new architecture
+    # Using registry-based approach instead
+    from sage.middleware.components.sage_mem.neuromem.services.neuromem_service_factory import (
+        NeuromemServiceFactory,
+    )
+    from sage.middleware.components.sage_mem.neuromem.services.registry import MemoryServiceRegistry
+
+    # Legacy compatibility - may need updating based on new service API
+    NeuroMemVDBService = None  # Deprecated - use registry instead
 except ImportError:  # pragma: no cover - optional dependency
+    MemoryServiceRegistry = None  # type: ignore[assignment]
+    NeuromemServiceFactory = None  # type: ignore[assignment]
     NeuroMemVDBService = None  # type: ignore[assignment]
 
 try:

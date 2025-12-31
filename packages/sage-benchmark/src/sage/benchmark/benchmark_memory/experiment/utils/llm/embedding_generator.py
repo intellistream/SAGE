@@ -97,19 +97,42 @@ class EmbeddingGenerator:
         ) from last_error
 
     def embed_batch(self, texts: list[str]) -> list[list[float]] | None:
-        """对多个文本进行 embedding（带重试机制）
+        """对多个文本进行批量 embedding（带重试机制，严格批量）
+
+        严格使用底层模型的原生批量接口，不回退到逐个调用。
 
         Args:
             texts: 输入文本列表
 
         Returns:
             embedding 向量列表，如果未配置 embedding 服务则返回 None
+
+        Raises:
+            RuntimeError: 批量 embedding 失败
+            NotImplementedError: 底层模型不支持批量接口
         """
         if self.embedding_model is None:
             return None
 
-        # 使用带重试的 embed 方法
-        return [self.embed(text) for text in texts]
+        if not texts:
+            return []
+
+        # 严格使用批量接口（带重试）
+        last_error = None
+        for attempt in range(self.max_retries):
+            try:
+                return self.embedding_model.embed_batch(texts)
+            except Exception as e:
+                last_error = e
+                if attempt < self.max_retries - 1:
+                    print(
+                        f"[EmbeddingGenerator] Batch retry {attempt + 1}/{self.max_retries} after error: {e}"
+                    )
+                    time.sleep(self.retry_delay * (attempt + 1))
+
+        raise RuntimeError(
+            f"Batch embedding failed after {self.max_retries} retries: {last_error}"
+        ) from last_error
 
     def is_available(self) -> bool:
         """检查 embedding 服务是否可用

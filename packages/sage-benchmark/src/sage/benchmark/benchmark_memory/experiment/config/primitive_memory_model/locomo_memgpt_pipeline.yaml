@@ -1,0 +1,111 @@
+# ============================================================
+# MemGPT Pipeline 配置 (Pipeline 自动化版)
+# 论文: MemGPT: Towards LLMs as Operating Systems
+# 变体: MemGPT-Pipeline - 使用 Pipeline 操作模拟 Agent 行为
+# 特点: 通过自动化操作（extract.entity/distillation/...）替代 Agent 工具调用
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+  service_timeout: 180.0
+
+  # ============================================================
+  # MemGPT Memory Management 配置
+  # ============================================================
+  context_window_size: 8192
+  memory_pressure_threshold: 0.7
+  queue_flush_threshold: 1.0
+
+  prompt_template: |
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  # 配置1（Llama-3.1-8B，用于对比）：
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  # max_tokens: 256
+  # temperature: 0
+  # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
+  memory_name: "MemGPT-Agent"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置 - MemGPT 三层内存架构
+# 原始架构: Core Memory + Archival Storage + Recall Storage
+# 当前实现: Feature (BM25) + FIFO Queue + Vectorstore (FAISS)
+# 注: 简化实现，不包含 LLM 驱动的 memory reflection
+# ============================================================
+services:
+  services_type: "partitional.feature_queue_vectorstore_combination"
+  feature_queue_vectorstore_combination:
+    vector_dim: 1024                    # BGE-M3 向量维度
+    fifo_max_size: 2000                 # 对应 Core Memory 容量
+    combination_strategy: "rrf"         # RRF 融合策略
+    fusion_method: "rrf"
+    rrf_k: 60
+    weights:
+      feature_index: 0.3                # BM25 权重 (Recall Storage)
+      fifo_index: 0.2                   # FIFO 权重 (Core Memory)
+      vector_index: 0.5                 # Vector 权重 (Archival Storage)
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # PreInsert: 实体提取(extract.entity)
+  pre_insert:
+    action: "extract.entity"
+    method: "simple"  # 使用简单方法代替 LLM,大幅加速
+
+  # PostInsert: 记忆蒸馏(distillation)
+  post_insert:
+    action: "distillation"
+    min_merge_count: 100  # 提高阈值,减少 LLM 合并调用
+
+  # PreRetrieval: 关键词提取（optimize.keyword_extract）
+  pre_retrieval:
+    action: "optimize"
+    optimize_type: "keyword_extract"
+    extractor: "spacy"
+    spacy_model: "en_core_web_sm"
+    extract_types: ["NOUN", "PROPN", "VERB"]
+    max_keywords: 10
+
+  # PostRetrieval: 多层融合（merge.multi_tier）
+  # MemGPT 核心特性: Memory Pressure Warning + 层级感知 + RRF 融合
+  post_retrieval:
+    action: "merge.multi_tier"
+    top_k: 10
+    rrf_k: 60
+    vector_weight: 0.5
+    fts_weight: 0.5
+    enable_memory_pressure_warning: true
+    tier_mapping:
+      first: "core"
+      second: "archival"
+      third: "recall"

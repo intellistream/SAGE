@@ -25,15 +25,15 @@ class PPRRerankAction(BasePostRetrievalAction):
     def execute(
         self,
         input_data: PostRetrievalInput,
-        service: Optional[Any] = None,
+        service: Any,
         llm: Optional[Any] = None,
-        embedding: Optional[Any] = None,
     ) -> PostRetrievalOutput:
         """使用 PPR 重排序
 
         Args:
             input_data: 输入数据
-            service: 记忆服务（需要提供图结构信息）
+            service: 记忆服务代理（需要提供图结构信息）
+            llm: LLM 生成器（未使用）
 
         Returns:
             PostRetrievalOutput: 重排序后的结果

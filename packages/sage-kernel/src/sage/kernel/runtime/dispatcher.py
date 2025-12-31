@@ -181,6 +181,13 @@ class Dispatcher:
 
         # 停止并清理指定节点
         try:
+            # 再次检查节点是否存在（防止竞态条件：在检查后、执行前节点被其他调用删除）
+            if node_name not in self.tasks:
+                self.logger.warning(
+                    f"Node {node_name} was already removed from tasks (possible duplicate stop signal)"
+                )
+                return False
+
             task = self.tasks[node_name]
             task.stop()
             task.cleanup()
@@ -199,6 +206,12 @@ class Dispatcher:
 
             self.logger.info(f"Node {node_name} stopped and cleaned up")
 
+        except KeyError:
+            # 节点在处理过程中被其他调用删除（竞态条件）
+            self.logger.warning(
+                f"Node {node_name} was removed during stop process (concurrent stop signals)"
+            )
+            return False
         except Exception as e:
             self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
             return False

@@ -157,6 +157,37 @@ class EmbeddingModel:
     def embed(self, text: str) -> list[float]:
         return self._embed(text)
 
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """批量生成 embedding（严格批量接口）
+
+        只支持原生批量接口的方法。不支持的方法将抛出异常。
+
+        Args:
+            texts: 输入文本列表
+
+        Returns:
+            embedding 向量列表
+
+        Raises:
+            NotImplementedError: 如果方法不支持批量接口
+        """
+        if not texts:
+            return []
+
+        # 对于 openai 方法，使用原生批量接口
+        if self.method == "openai":
+            from sage.common.components.sage_embedding import openai_wrapper
+
+            return openai_wrapper.openai_embed_batch_sync(texts, **self.kwargs)
+
+        # 不支持批量的方法直接抛出异常
+        raise NotImplementedError(
+            f"Batch embedding not supported for method '{self.method}'. Supported methods: openai"
+        )
+
+        # 其他方法回退到逐个调用
+        return [self.embed(text) for text in texts]
+
     def encode(self, text: str) -> list[float]:
         return self._embed(text)
 

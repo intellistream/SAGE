@@ -48,10 +48,22 @@ jobs:
           restore-keys: |
             pre-commit-${{ runner.os }}-
 
+      - name: Debug - Check root directory BEFORE installation
+        run: |
+          echo "🔍 DEBUG: 安装前检查项目根目录..."
+          ls -la | head -30
+          echo ""
+          echo "🔍 DEBUG: 查找可疑文件（=开头或版本号相关）..."
+          find . -maxdepth 1 -name "=*" -o -name "*2.0.0*" || echo "未找到"
+
       - name: Install Code Quality Tools
         run: |
           echo "📦 安装代码质量检查工具..."
           pip install --upgrade pip
+
+          echo "🔍 DEBUG: pip install 后检查根目录..."
+          ls -la | grep -E "^(d|-).*=" || echo "未发现 = 开头的文件"
+
           pip install \
             pre-commit \
             black \
@@ -62,10 +74,16 @@ jobs:
             types-requests \
             types-setuptools
 
+          echo "🔍 DEBUG: 安装 pre-commit 等工具后检查根目录..."
+          ls -la | grep -E "^(d|-).*=" || echo "未发现 = 开头的文件"
+
           # 使用 quickstart.sh 安装 SAGE（开发模式，包含 sage-tools 和所有开发工具）
           echo "📦 使用 quickstart.sh 安装 SAGE（开发模式）..."
           chmod +x ./quickstart.sh
           ./quickstart.sh --dev --yes --no-sync-submodules
+
+          echo "🔍 DEBUG: quickstart.sh 执行后检查根目录..."
+          ls -la | grep -E "^(d|-).*=" || echo "未发现 = 开头的文件"
 
           echo "✅ 工具安装完成"
           echo ""
@@ -75,6 +93,23 @@ jobs:
           ruff --version
           mypy --version
           sage-dev --version || echo "sage-dev 命令可用"
+
+      - name: Debug - Check root directory AFTER installation
+        run: |
+          echo "🔍 DEBUG: 安装后检查项目根目录..."
+          echo "完整列表:"
+          ls -la
+          echo ""
+          echo "🔍 DEBUG: 查找可疑文件（=开头或版本号相关）..."
+          find . -maxdepth 1 -name "=*" -o -name "*2.0.0*" || echo "未找到"
+          echo ""
+          if [ -f "=2.0.0" ]; then
+            echo "❗ 发现文件: =2.0.0"
+            echo "文件类型: $(file =2.0.0)"
+            echo "文件大小: $(ls -lh =2.0.0 | awk '{print $5}')"
+            echo "文件内容（前20行）:"
+            head -20 =2.0.0 || cat =2.0.0
+          fi
 
       - name: Check Pre-commit Configuration
         run: |
@@ -114,6 +149,18 @@ jobs:
           }
 
           echo "✅ 所有依赖版本兼容"
+
+      - name: Cleanup Temporary Files
+        run: |
+          echo "🧹 清理安装过程中可能产生的临时文件..."
+          # 删除版本约束解析错误产生的文件（例如 =2.0.0）
+          if [ -f "=2.0.0" ]; then
+            rm -f "=2.0.0"
+            echo "✅ 已删除: =2.0.0"
+          fi
+          # 查找并删除其他可能的版本约束文件
+          find . -maxdepth 1 -name "=*" -type f -delete 2>/dev/null || true
+          echo "✅ 临时文件清理完成"
 
       - name: Run Code Quality Checks (Changed Files)
         if: github.event_name == 'pull_request'

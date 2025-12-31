@@ -1,0 +1,223 @@
+# ============================================================
+# A-Mem Pipeline 配置
+# 论文: A-MEM: Agentic Memory for LLM Agents
+# 特点: Note 结构 + Link Evolution + Memory Evolution
+# ============================================================
+
+runtime:
+  dataset: "locomo"
+  memory_insert_verbose: false
+  memory_test_verbose: true
+  test_segments: 10
+
+  prompt_template: |
+    Based on the context above, provide a brief, direct answer to the question. No explanation, no reasoning, no elaboration - just the answer.
+
+    Question: {question}
+    Answer:
+
+  # 第五类问题专用 Prompt（选择题格式，更简洁）
+  prompt_template_category5: |
+    Answer the multiple choice question based on the context. Provide ONLY the answer in format (a) or (b) without any explanation.
+
+    Question: {question}
+    Answer:
+
+  # LLM 配置
+  # 配置1（Llama-3.1-8B，用于对比）：
+  # api_key: "token-abc123"
+  # base_url: "http://sage2:8000/v1"
+  # model_name: "/home/cyb/Llama-3.1-8B-Instruct"
+  # max_tokens: 256
+  # temperature: 0
+  # seed: 42
+
+  # 新配置（PanGu Embedded 1B）：
+  api_key: "iloveshuhao"
+  base_url: "http://172.17.0.1:1040/v1"
+  model_name: "pangu_embedded_1b"
+  max_tokens: 256
+  temperature: 0
+  seed: 42
+  memory_name: "A-Mem"
+
+  # Embedding 配置
+  embedding_base_url: "http://localhost:8091/v1"
+  embedding_model: "BAAI/bge-m3"
+
+# ============================================================
+# 服务配置
+# ============================================================
+services:
+  services_type: "hierarchical.linknote_graph"  # A-Mem 使用链接笔记图
+  linknote_graph:
+    # === 向量检索配置（A-Mem 核心功能）===
+    # A-Mem 使用纯向量检索（SimpleEmbeddingRetriever）找到相关记忆
+    embedding_dim: 1024  # BGE-M3 输出维度
+    index_type: "flat"   # FAISS 索引类型（flat/ivf/hnsw）
+
+    # === 图结构配置 ===
+    # LinknoteGraphService 使用无向图（双向链接）
+    # directed: false 在 _setup_indexes() 中硬编码
+  memory_retrieval_adapter: "none"
+
+# ============================================================
+# Operator 配置
+# ============================================================
+operators:
+  # ----------------------------------------------------------
+  # PreInsert: 生成 Note 结构（keywords + tags + context）
+  # A-Mem 的 note 包含多个语义属性
+  # ----------------------------------------------------------
+  pre_insert:
+    action: "extract"
+    extract_type: "keyword"           # 使用 KeywordExtractAction（已迁移为 A-Mem Note 抽取）
+    # A-Mem Note 抽取提示词（LLM JSON 输出），可按需修改
+    analysis_prompt: |
+      Generate a structured analysis of the following content by:
+      1. Identifying the most salient keywords (focus on nouns, verbs, and key concepts)
+      2. Extracting core themes and contextual elements
+      3. Creating relevant categorical tags
+
+      Format the response as a JSON object:
+      {
+        "keywords": [
+          // several specific, distinct keywords that capture key concepts and terminology
+          // Order from most to least important
+          // Don't include keywords that are the name of the speaker or time
+          // At least three keywords, but don't be too redundant.
+        ],
+        "context":
+          // one sentence summarizing:
+          // - Main topic/domain
+          // - Key arguments/points
+          // - Intended audience/purpose
+        ,
+        "tags": [
+          // several broad categories/themes for classification
+          // Include domain, format, and type tags
+          // At least three tags, but don't be too redundant.
+        ]
+      }
+
+      Content for analysis:
+      {content}
+    max_keywords: 10
+    add_to_metadata: true
+
+  # ----------------------------------------------------------
+  # PostInsert: Link Generation + Memory Evolution
+  # A-Mem 的核心：建立链接 + 更新相关记忆
+  # ----------------------------------------------------------
+  post_insert:
+    action: "link_evolution"
+    link_policy: "auto_link"          # 自动建立链接
+    knn_k: 10
+    similarity_threshold: 0.7
+    max_auto_links: 5
+    auto_link_prompt: |
+      You are deciding links between a NEW memory and CANDIDATE memories.
+      Task: Select indices (0-based) of candidates that should be linked to the new memory based on relevance.
+
+      STRICT OUTPUT REQUIREMENTS:
+      - Return ONLY a JSON object with a single key "links".
+      - "links" must be an array of integers (0-based indices from existing memories).
+      - Do NOT include any other keys. Do NOT add comments, text, or markdown.
+      - If no link is appropriate, return {"links": []}.
+      - Maximum count: up to {max_auto_links}.
+
+      NEW MEMORY:
+      {new_memory}
+
+      EXISTING MEMORIES (indexed):
+      {existing_memories}
+
+      OUTPUT EXAMPLES (valid):
+      {"links": [0, 2]}
+      {"links": []}
+      {"links": [1]}
+
+  # ----------------------------------------------------------
+  # PreRetrieval: 向量化查询（A-Mem 核心）
+  # ----------------------------------------------------------
+  pre_retrieval:
+    action: "embedding"
+    # A-Mem 使用 SimpleEmbeddingRetriever 进行纯向量检索
+
+  # ----------------------------------------------------------
+  # PostRetrieval: 链接扩展（获取关联记忆）
+  # A-Mem 会通过链接扩展检索结果
+  # ----------------------------------------------------------
+  post_retrieval:
+    action: "merge"
+    merge_type: "link_expand"
+    expand_top_n: 5
+    max_depth: 1
+    edge_types:
+    - "semantic"
+    - "temporal"
+    conversation_format_prompt: |
+      The following is relevant memory with associated context.
+
+# ============================================================
+# A-Mem (Agentic Memory) 复现说明
+# ============================================================
+# 论文核心特性：
+#   1. Note 结构：keywords + tags + context + links
+#   2. Link Evolution: 动态建立/更新记忆链接
+#   3. Memory Evolution: 基于链接的记忆演化
+#   4. 链接扩展检索：从相关记忆获取上下文
+#
+# SAGE 实现方式：
+# ┌─────────────────────────────────────────────────────────┐
+# │ Pipeline 阶段      │ 对应 A-Mem 操作      │ 实现组件     │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreInsert          │ Note Generation      │ extract      │
+# │  - Note 抽取        │ keywords/tags/context│ LLM JSON     │
+# │  - 结构化结果      │ 作为节点属性          │ metadata     │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryInsert       │ Insert as Node       │ GraphMemory  │
+# │  - 节点创建        │ Note 作为图节点      │ link_graph   │
+# │  - 向量存储        │ 向量索引             │ embedding    │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostInsert         │ Link Generation      │ link_evol    │
+# │  - KNN 检索        │ 找到相关记忆        │ knn_k=10     │
+# │  - LLM 决策        │ 判断是否建立链接    │ auto_link    │
+# │  - 建立双向链接    │ bidirectional links  │ max_links=50 │
+# ├─────────────────────────────────────────────────────────┤
+# │ PreRetrieval       │ Query Embedding      │ embedding    │
+# │  - 查询向量化      │ 用于相似度检索      │ BGE-M3       │
+# ├─────────────────────────────────────────────────────────┤
+# │ MemoryRetrieval    │ Vector Search        │ GraphMemory  │
+# │  - 向量检索        │ 找到相关 Notes      │ embedding    │
+# ├─────────────────────────────────────────────────────────┤
+# │ PostRetrieval      │ Link Expansion       │ merge        │
+# │  - 链接扩展        │ 跟随链接获取上下文  │ link_expand  │
+# │  - 多层扩展        │ max_depth=1          │ expand_top_n │
+# └─────────────────────────────────────────────────────────┘
+#
+# 关键配置参数：
+#   - graph_type="link_graph": 链接图类型
+#   - link_policy="bidirectional": 双向链接
+#   - max_links_per_node=50: 每个节点最多链接数
+#   - auto_link_prompt: LLM 决策链接的 prompt
+#   - expand_top_n=5: 链接扩展数量
+#
+# 与论文的差异：
+#   1. SAGE 使用 spaCy + LLM 提取关键词和实体
+#   2. SAGE 的 Link Evolution 通过 auto_link + LLM 判断实现
+#   3. SAGE 支持配置化的链接数量和扩展深度
+
+# 正确实现参考：
+#   - 代码路径：A-mem
+#   - 关键模块：A-mem/agentic_memory/、A-mem/agentic_memory/memory_system.py、A-mem/agentic_memory/llm_controller.py
+#   - 行为基线：Note 结构（关键词/标签/上下文/链接）、Link Evolution、Memory Evolution、链接扩展检索
+
+# 与正确实现的差异：
+#   - Note 结构：A-mem 原仓 Note 更丰富（评分/优先级/多属性）；SAGE 以 keywords/tags/context 为主，便于轻量复现
+#   - 链接策略：A-mem 包含多种演化策略与调度；SAGE 提供 auto_link + KNN + Prompt 的简化管线，权重与阈值可配置
+#   - 扩展深度：A-mem 可进行多层扩展与演化；SAGE 默认 max_depth=1，面向单跳扩展，适合对话类任务快速复现
+#
+# 运行示例：
+#   python packages/sage-benchmark/.../memory_test_pipeline.py \
+#     --config .../locomo_amem_pipeline.yaml --task_id conv-26

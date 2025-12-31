@@ -283,6 +283,13 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Directories
+        run: |
+          echo "📁 创建必要的目录结构..."
+          mkdir -p .sage/reports
+          mkdir -p .sage/logs
+          echo "✅ 目录创建完成"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -324,11 +331,11 @@ jobs:
             echo "⚠️ 警告: 未找到覆盖率XML文件"
           fi
 
+          # 复制HTML报告
           if [ -d ".sage/coverage/htmlcov" ]; then
-            cp -r .sage/coverage/htmlcov ./htmlcov
-            echo "✅ 覆盖率HTML报告已复制到根目录"
-          else
-            echo "⚠️ 警告: 未找到覆盖率HTML目录"
+            mkdir -p coverage_html
+            cp -r .sage/coverage/htmlcov/* coverage_html/
+            echo "✅ HTML覆盖率报告已复制"
           fi
 
       - name: Upload Coverage to Codecov
@@ -349,7 +356,7 @@ jobs:
           name: coverage-reports
           path: |
             coverage.xml
-            htmlcov/
+            coverage_html/
             .sage/logs/
           retention-days: 30
 

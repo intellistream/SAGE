@@ -20,14 +20,15 @@ class NoneAction(BasePostRetrievalAction):
     def execute(
         self,
         input_data: PostRetrievalInput,
-        service: Optional[Any] = None,
+        service: Any,
         llm: Optional[Any] = None,
-        embedding: Optional[Any] = None,
     ) -> PostRetrievalOutput:
         """直接返回原始检索结果
 
         Args:
             input_data: 输入数据
+            service: 记忆服务代理（未使用）
+            llm: LLM 生成器（未使用）
 
         Returns:
             PostRetrievalOutput: 未修改的检索结果

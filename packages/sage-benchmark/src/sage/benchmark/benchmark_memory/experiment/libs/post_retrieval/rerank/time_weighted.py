@@ -26,18 +26,25 @@ class TimeWeightedRerankAction(BasePostRetrievalAction):
         self.time_field = self.config.get("time_field", "timestamp")
         self.time_weight = self.config.get("time_weight", 0.5)  # 时间因子权重
         self.score_weight = self.config.get("score_weight", 0.5)  # 原始分数权重
+        self.top_k = self.config.get("top_k", -1)  # 返回前 k 个结果，-1 表示全部返回
+
+        # MemoryBank: 记忆强化配置
+        self.enable_reinforcement = self.config.get("enable_reinforcement", False)
+        self.reinforcement_increment = self.config.get("reinforcement_increment", 1.0)
+        self.reinforcement_reset_time = self.config.get("reinforcement_reset_time", True)
 
     def execute(
         self,
         input_data: PostRetrievalInput,
-        service: Optional[Any] = None,
+        service: Any,
         llm: Optional[Any] = None,
-        embedding: Optional[Any] = None,
     ) -> PostRetrievalOutput:
         """使用时间衰减重排序
 
         Args:
             input_data: 输入数据
+            service: 记忆服务代理（用于记忆强化）
+            llm: LLM 生成器（未使用）
 
         Returns:
             PostRetrievalOutput: 重排序后的结果
@@ -50,9 +57,25 @@ class TimeWeightedRerankAction(BasePostRetrievalAction):
                 memory_items=items, metadata={"action": "rerank.time_weighted"}
             )
 
-        # 计算时间衰减分数
+        # MemoryBank: 记忆强化 (在重排序之前执行)
+        reinforced_count = 0
+        if self.enable_reinforcement and service and hasattr(service, "update_memory_strength"):
+            for item in items:
+                entry_id = item.metadata.get("entry_id")
+                if entry_id:
+                    try:
+                        success = service.update_memory_strength(
+                            entry_id=entry_id,
+                            increment=self.reinforcement_increment,
+                            reset_time=self.reinforcement_reset_time,
+                        )
+                        if success:
+                            reinforced_count += 1
+                    except Exception as e:
+                        self.logger.debug(f"Failed to reinforce memory {entry_id}: {e}")
+
+        # 计算时间衰减分数并重排序
         now = datetime.now(UTC)
-        scored_items = []
 
         for item in items:
             timestamp = item.get_timestamp(self.time_field)
@@ -62,30 +85,32 @@ class TimeWeightedRerankAction(BasePostRetrievalAction):
                 time_diff = (now - timestamp).total_seconds() / 86400
                 decay_factor = math.exp(-self.decay_rate * time_diff)
             else:
-                # 如果没有时间戳，使用默认衰减因子 0.5
-                decay_factor = 0.5
+                # 没有时间戳，使用默认衰减因子 1.0
+                decay_factor = 1.0
 
-            # 组合原始分数和时间衰减
-            original_score = item.score or 1.0
-            combined_score = self.score_weight * original_score + self.time_weight * decay_factor
+            # 计算加权分数
+            item.score = self.score_weight * item.score + self.time_weight * decay_factor
 
-            scored_items.append((item, combined_score))
+        # 按加权分数排序
+        items.sort(key=lambda x: x.score, reverse=True)
 
-        # 按组合分数降序排序
-        scored_items.sort(key=lambda x: x[1], reverse=True)
+        # 截取 top_k
+        if self.top_k > 0:
+            items = items[: self.top_k]
 
-        # 更新 score
-        reranked_items = []
-        for item, score in scored_items:
-            item.score = score
-            reranked_items.append(item)
+        metadata = {
+            "action": "rerank.time_weighted",
+            "decay_rate": self.decay_rate,
+            "time_weight": self.time_weight,
+            "score_weight": self.score_weight,
+        }
+
+        # 添加记忆强化统计
+        if self.enable_reinforcement:
+            metadata["reinforced_count"] = reinforced_count
+            metadata["reinforcement_enabled"] = True
 
         return PostRetrievalOutput(
-            memory_items=reranked_items,
-            metadata={
-                "action": "rerank.time_weighted",
-                "decay_rate": self.decay_rate,
-                "time_weight": self.time_weight,
-                "score_weight": self.score_weight,
-            },
+            memory_items=items,
+            metadata=metadata,
         )
