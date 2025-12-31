@@ -501,7 +501,7 @@ def run_scaling_analysis(
 def _generate_scaling_figures(results: dict) -> None:
     """生成 Scaling 分析图表。"""
     try:
-        from figure_generator import plot_scaling_curve
+        from .figure_generator import plot_scaling_curve
 
         figures_dir = get_figures_dir()
 
