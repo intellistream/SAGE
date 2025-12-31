@@ -1,0 +1,66 @@
+name: Installation Test (PR)
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/*/pyproject.toml'
+      - 'packages/*/setup.py'
+      - 'packages/*/setup.cfg'
+      - 'tools/install/**'
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.11'
+      install-mode:
+        description: 'Install mode'
+        required: false
+        default: 'standard'
+
+concurrency:
+  group: install-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  HF_ENDPOINT: https://hf-mirror.com
+
+jobs:
+  install-smoke:
+    name: Install & Import Smoke (PR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup SAGE
+        uses: ./.github/actions/setup-sage
+        with:
+          install-mode: ${{ github.event.inputs.install-mode || 'standard' }}
+          python-version: ${{ github.event.inputs.python-version || '3.11' }}
+          hf-token: ${{ secrets.HF_TOKEN }}
+          create-env-file: false
+
+      - name: Smoke import
+        run: |
+          python -c "import sage; import sage.common; import sage.kernel; print('import ok')"
+
+      - name: Wheel build sanity
+        run: |
+          make clean || true
+          python -m pip install build
+          python -m build --wheel --outdir dist .
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-wheels
+          path: dist/*.whl
+          if-no-files-found: warn
