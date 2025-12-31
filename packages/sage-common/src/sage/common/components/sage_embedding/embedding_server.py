@@ -22,6 +22,12 @@
 import os
 import sys
 
+# ========== 清除代理变量，避免 SOCKS 代理问题 ==========
+# 本地 embedding 服务器使用 HuggingFace 镜像，不需要代理
+# 清除代理可以避免 "Missing dependencies for SOCKS support" 错误
+for proxy_var in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"]:
+    os.environ.pop(proxy_var, None)
+
 # 设置环境变量 - 自动检测网络并配置 HuggingFace 镜像
 from sage.common.config import ensure_hf_mirror_configured
 
@@ -128,19 +134,25 @@ class EmbeddingServer:
             cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
             model_cache = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
 
-            if os.path.exists(model_cache):
+            # 如果本地缓存存在，优先使用本地文件（避免限流）
+            local_files_only = os.path.exists(model_cache)
+            if local_files_only:
                 logger.info(f"Found local cache at {model_cache}")
-                logger.info(
-                    "Loading from local cache (will use pytorch format if safetensors not available)"
-                )
+                logger.info("Loading from local cache only (avoiding network requests)")
             else:
                 logger.info("Local cache not found, will download from mirror")
 
             # 直接加载（优先使用本地已有的格式，避免下载 safetensors）
             # use_safetensors=False 会强制使用 pytorch_model.bin
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            # local_files_only=True 时完全离线加载（避免 HuggingFace 限流）
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name, trust_remote_code=True, local_files_only=local_files_only
+            )
             self.model = AutoModel.from_pretrained(
-                model_name, trust_remote_code=True, use_safetensors=False
+                model_name,
+                trust_remote_code=True,
+                use_safetensors=False,
+                local_files_only=local_files_only,
             )
             logger.info("Model loaded successfully")
 
@@ -202,12 +214,18 @@ app = FastAPI(
 
 @app.get("/")
 async def root():
-    """健康检查端点"""
+    """根路径"""
     return {
         "status": "ok",
         "model": embedding_server.model_name if embedding_server else "not loaded",
         "device": embedding_server.device if embedding_server else "unknown",
     }
+
+
+@app.get("/health")
+async def health():
+    """健康检查端点 - Control Plane 使用此路径"""
+    return {"status": "ok"}
 
 
 @app.get("/v1/models")
