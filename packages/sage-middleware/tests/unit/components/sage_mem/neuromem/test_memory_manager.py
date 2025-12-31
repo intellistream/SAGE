@@ -14,12 +14,11 @@ from pathlib import Path
 import pytest
 
 from sage.middleware.components.sage_mem.neuromem.memory_manager import (
+    MemoryManager,
+)
 
 # Skip: Service implementation issues (Vector requirements, float() errors, etc.)
 pytestmark = pytest.mark.skip(reason="Service implementation issues")
-
-    MemoryManager,
-)
 
 
 class TestMemoryManagerBasic:

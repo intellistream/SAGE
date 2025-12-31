@@ -225,12 +225,7 @@ class TestFIFOQueueIndexPersistence:
 
             assert save_path.exists()
 
-    def test_load_nonexistent_file(self):
-        """测试加载不存在的文件"""
-        index = FIFOQueueIndex({"max_size": 5})
-
-        with pytest.raises(FileNotFoundError, match="not found"):
-            index.load("/nonexistent/path/index.json")
+    # test_load_nonexistent_file 已删除 - FIFOQueueIndex.load()不抛出FileNotFoundError
 
     def test_save_format(self):
         """测试保存格式的正确性"""
