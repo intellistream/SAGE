@@ -113,7 +113,7 @@ operators:
     action: "embedding"
 
   # ----------------------------------------------------------
-  # PostRetrieval: 时间加权重排序
+  # PostRetrieval: 时间加权重排序 + 记忆强化
   #
   # 【差异说明】
   # - 原始 MemoryBank: 仅使用日期排序 (按 metadata["source"] 日期升序)
@@ -124,6 +124,13 @@ operators:
   #   公式: score = similarity * exp(-time_decay * elapsed_days)
   #   效果: 近期记忆权重更高,更符合记忆遗忘规律
   #   ⚠️ 这是 SAGE 的工程增强,原论文无此机制
+  #
+  # 【重构说明】2025-12-28
+  # - 原实现: time_weighted 内嵌 reinforce 逻辑 (enable_reinforcement 配置)
+  # - 新架构: reinforce 移至 augment.reinforce (作为独立 action)
+  # - 理想配置 (需 pipeline 支持):
+  #     actions: ["rerank.time_weighted", "augment.reinforce"]
+  # - 当前配置: 暂时保留 enable_reinforcement (因 operator.py 不支持多 action)
   # ----------------------------------------------------------
   post_retrieval:
     action: "rerank"
@@ -131,10 +138,18 @@ operators:
     time_decay_rate: 0.1              # [SAGE 增强] 时间衰减系数
     time_field: "timestamp"
     top_k: 10
-    # 记忆强化配置 (MemoryBank 核心机制)
-    enable_reinforcement: true        # 启用检索后的记忆强化
-    reinforcement_increment: 1.0      # 强度增量 (S += 1)
-    reinforcement_reset_time: true    # 重置 last_recall_date
+
+    # ⚠️ 注意: 以下配置已废弃,但 operator.py 暂不支持 pipeline
+    # TODO: 实现 pipeline 支持后,改为:
+    #   action: ["rerank.time_weighted", "augment.reinforce"]
+    #   augment_reinforce:
+    #     increment: 1.0
+    #     reset_time: true
+    #
+    # 当前保留配置 (为兼容旧代码):
+    enable_reinforcement: false       # 已移除内嵌逻辑,此配置无效
+    reinforcement_increment: 1.0      # 废弃
+    reinforcement_reset_time: true    # 废弃
 
 # ============================================================
 # MemoryBank 复现说明
