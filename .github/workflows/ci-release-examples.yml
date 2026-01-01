@@ -73,5 +73,6 @@ jobs:
 
       - name: Run examples (full for release)
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           export SAGE_TEST_MODE=true
           sage-dev examples test --timeout 1500

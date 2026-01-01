@@ -72,5 +72,6 @@ jobs:
 
       - name: Run examples (quick for PR)
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           export SAGE_TEST_MODE=true
           sage-dev examples test --quick --timeout 900
