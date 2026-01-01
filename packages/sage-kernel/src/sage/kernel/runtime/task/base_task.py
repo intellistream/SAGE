@@ -433,12 +433,6 @@ class BaseTask(ABC):  # noqa: B024
                             )
                             continue
 
-                        # 对于所有操作符，立即向下游转发停止信号
-                        self.router.send_stop_signal(data_packet)
-
-                        # 在task层统一处理停止信号计数
-                        should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
-
                         # 停止当前task的worker loop
                         from sage.kernel.api.operator.filter_operator import (
                             FilterOperator,
@@ -450,25 +444,29 @@ class BaseTask(ABC):  # noqa: B024
 
                         if isinstance(self.operator, (KeyByOperator, MapOperator, FilterOperator)):
                             self.logger.info(
-                                f"Intermediate operator {self.name} received stop signal, processing and forwarding"
+                                f"Intermediate operator {self.name} received stop signal, draining remaining data first"
                             )
-                            # 先让operator处理StopSignal(例如打印统计信息)
+                            drained = self._drain_and_process_remaining(data_packet)
+                            self.logger.info(
+                                f"Intermediate operator {self.name} drained {drained} packets before forwarding stop signal"
+                            )
+                            self.router.send_stop_signal(data_packet)
                             try:
-                                # 将 StopSignal 包装成 Packet
                                 stop_packet = Packet(payload=data_packet)
                                 self.operator.receive_packet(stop_packet)
                             except Exception as e:
                                 self.logger.error(
                                     f"Error processing StopSignal in {self.name}: {e}"
                                 )
-
-                            # 然后停止task
                             self.ctx.send_stop_signal_back(self.name)
                             self.ctx.set_stop_signal()
                             break
-                        elif should_stop_pipeline:
-                            self.ctx.set_stop_signal()
-                            break
+                        else:
+                            self.router.send_stop_signal(data_packet)
+                            should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
+                            if should_stop_pipeline:
+                                self.ctx.set_stop_signal()
+                                break
 
                         continue
 
@@ -642,6 +640,38 @@ class BaseTask(ABC):  # noqa: B024
             self.ctx.handle_stop_signal(stop_signal)
         finally:
             self.ctx.set_stop_signal()
+
+    def _drain_and_process_remaining(self, stop_signal: "StopSignal") -> int:
+        """Drain and process remaining packets before forwarding stop signal."""
+        if not self.input_qd:
+            return 0
+        drained_packets = 0
+        timeout = 5.0
+        quiet_period = 0.5
+        poll_interval = 0.1
+        start_time = time.time()
+        last_packet_time = start_time
+        self.logger.debug(f"Intermediate task {self.name} draining remaining packets")
+        while True:
+            elapsed = time.time() - start_time
+            if elapsed >= timeout:
+                self.logger.warning(f"Intermediate task {self.name} timed out while draining")
+                break
+            try:
+                packet = self.input_qd.get(timeout=poll_interval)
+            except QUEUE_EMPTY_EXCEPTIONS:
+                if time.time() - last_packet_time >= quiet_period:
+                    break
+                continue
+            if isinstance(packet, StopSignal):
+                continue
+            try:
+                self.operator.receive_packet(packet)
+                drained_packets += 1
+                last_packet_time = time.time()
+            except Exception as e:
+                self.logger.error(f"Failed to process drained packet in {self.name}: {e}")
+        return drained_packets
 
     def _drain_inflight_messages(
         self,

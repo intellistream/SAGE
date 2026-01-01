@@ -105,7 +105,7 @@ parse_workers() {
         echo -e "${RED}Error: Cluster config not found: $CLUSTER_CONFIG${NC}"
         exit 1
     fi
-    
+
     # 使用 Python 解析 YAML（更可靠）
     python3 -c "
 import yaml
@@ -194,21 +194,21 @@ sync_package() {
     local package="$2"
     local src_base="$SAGE_ROOT/packages/$package/src/sage"
     local dst_base="~/SAGE/packages/$package/src/sage"
-    
+
     if [[ ! -d "$src_base" ]]; then
         if $VERBOSE; then
             echo -e "  ${YELLOW}⚠ Skipping $package (src dir not found)${NC}"
         fi
         return 0
     fi
-    
+
     # 同步 sage/ 目录下的所有子目录（不包括 __init__.py）
     local synced=false
     for subdir in "$src_base"/*/; do
         if [[ -d "$subdir" ]]; then
             local dirname=$(basename "$subdir")
             local cmd="scp -rq $subdir $node:$dst_base/"
-            
+
             if $DRY_RUN; then
                 echo "  [DRY-RUN] $cmd"
             else
@@ -222,7 +222,7 @@ sync_package() {
             synced=true
         fi
     done
-    
+
     if ! $synced; then
         if $VERBOSE; then
             echo -e "  ${YELLOW}⚠ Skipping $package (no subdirs)${NC}"
@@ -243,10 +243,10 @@ main() {
     echo -e "${BLUE}║       SAGE Cluster Code Sync                   ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
     echo ""
-    
+
     # 确定要同步的包
     local packages_to_sync=()
-    
+
     if [[ -n "$SPECIFIC_PACKAGE" ]]; then
         packages_to_sync=("$SPECIFIC_PACKAGE")
         echo -e "${YELLOW}Mode: Single package ($SPECIFIC_PACKAGE)${NC}"
@@ -257,34 +257,34 @@ main() {
         packages_to_sync=("${ALL_PACKAGES[@]}")
         echo -e "${YELLOW}Mode: Full sync (${#ALL_PACKAGES[@]} packages)${NC}"
     fi
-    
+
     if $DRY_RUN; then
         echo -e "${YELLOW}[DRY-RUN MODE - No changes will be made]${NC}"
     fi
     echo ""
-    
+
     # 获取 worker 节点列表
     echo -e "${BLUE}Parsing cluster configuration...${NC}"
     local workers
     workers=$(parse_workers)
-    
+
     if [[ -z "$workers" ]]; then
         echo -e "${RED}Error: No worker nodes found in $CLUSTER_CONFIG${NC}"
         exit 1
     fi
-    
+
     local worker_count=$(echo "$workers" | wc -l)
     echo -e "Found ${GREEN}$worker_count${NC} worker node(s)"
     echo ""
-    
+
     # 同步到每个节点
     local success_count=0
     local fail_count=0
-    
+
     for node in $workers; do
         local hostname=$(echo "$node" | cut -d@ -f2)
         echo -e "${BLUE}━━━ Syncing to $hostname ━━━${NC}"
-        
+
         local node_success=true
         for package in "${packages_to_sync[@]}"; do
             if ! sync_package "$node" "$package"; then
@@ -296,7 +296,7 @@ main() {
                 fi
             fi
         done
-        
+
         if $node_success; then
             echo -e "  ${GREEN}✓ Done${NC}"
             success_count=$((success_count + 1))
@@ -306,7 +306,7 @@ main() {
         fi
         echo ""
     done
-    
+
     # 总结
     echo -e "${BLUE}════════════════════════════════════════════════${NC}"
     if [[ $fail_count -eq 0 ]]; then
@@ -316,7 +316,7 @@ main() {
         echo -e "${YELLOW}⚠ Sync completed with errors: $success_count/$worker_count nodes succeeded${NC}"
         exit 1
     fi
-    
+
     if ! $DRY_RUN; then
         echo ""
         echo -e "${YELLOW}💡 Tip: Restart Ray cluster to apply changes:${NC}"

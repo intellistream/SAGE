@@ -85,7 +85,7 @@ def execute_remote_command(host: str, port: int, command: str, timeout: int = 60
 
 def get_conda_init_code(conda_env: str = "sage") -> str:
     """获取Conda环境初始化代码
-    
+
     支持 base 环境和自定义环境（如 sage）。
     base 环境的路径是 $CONDA_BASE/bin，其他环境是 $CONDA_BASE/envs/{env}/bin。
     """
@@ -162,6 +162,7 @@ def start_workers():
     worker_num_cpus = worker_config.get("num_cpus")
     worker_num_gpus = worker_config.get("num_gpus")
 
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     typer.echo("📋 配置信息:")
@@ -349,6 +350,7 @@ def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     success_count = 0
@@ -459,6 +461,7 @@ def status_workers():
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     running_count = 0
@@ -640,7 +643,7 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
         worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
         worker_num_cpus = worker_config.get("num_cpus")
         worker_num_gpus = worker_config.get("num_gpus")
-        ray_command = remote_config.get("ray_command") or "ray"
+        remote_config.get("ray_command") or "ray"
         conda_env = remote_config.get("conda_env", "sage")
 
         # 构建 CPU/GPU 资源限制参数（用于容器环境）
@@ -780,6 +783,7 @@ def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     stop_command = f'''set +e

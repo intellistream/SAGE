@@ -32,6 +32,7 @@ class RemoteEnvironment(BaseEnvironment):
         host: str = "127.0.0.1",
         port: int = 19001,
         scheduler=None,
+        extra_python_paths: list[str] | None = None,
     ):
         """
         初始化远程环境
@@ -42,8 +43,12 @@ class RemoteEnvironment(BaseEnvironment):
             host: JobManager服务主机
             port: JobManager服务端口
             scheduler: 调度器，可选。支持字符串 ("fifo", "load_aware") 或 BaseScheduler 实例
+            extra_python_paths: 额外的 Python 模块搜索路径，用于远程节点反序列化时导入自re
         """
         super().__init__(name, config, platform="remote", scheduler=scheduler)
+
+        # 额外的 Python 模块搜索路径（用于远程节点反序列化）
+        self.extra_python_paths: list[str] = extra_python_paths or []
 
         # 远程连接配置
         self.daemon_host = host
@@ -99,7 +104,11 @@ class RemoteEnvironment(BaseEnvironment):
 
             # 第三步：通过JobManager Client发送到JobManager端口
             logger.debug("Submitting serialized environment to JobManager")
-            response = self.client.submit_job(serialized_data, autostop=autostop)
+            response = self.client.submit_job(
+                serialized_data,
+                autostop=autostop,
+                extra_python_paths=self.extra_python_paths,
+            )
 
             if response.get("status") == "success":
                 env_uuid = response.get("job_uuid")

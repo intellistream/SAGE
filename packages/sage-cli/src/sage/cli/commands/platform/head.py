@@ -203,7 +203,7 @@ def start_head(
     dashboard_host = head_config.get("dashboard_host", "0.0.0.0")
     head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
     head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
-    
+
     # 容器资源配置 (覆盖自动检测)
     num_cpus = head_config.get("num_cpus")  # None 表示自动检测
     num_gpus = head_config.get("num_gpus")  # None 表示自动检测
@@ -286,8 +286,8 @@ export RAY_DISABLE_IMPORT_WARNING=1
 RAY_START_CMD="{ray_command} start --head --port={head_port} --ray-client-server-port={ray_client_server_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
 
 # 添加 CPU/GPU 资源限制 (用于容器环境)
-{f'RAY_START_CMD="$RAY_START_CMD --num-cpus={num_cpus}"' if num_cpus is not None else '# num_cpus: 自动检测'}
-{f'RAY_START_CMD="$RAY_START_CMD --num-gpus={num_gpus}"' if num_gpus is not None else '# num_gpus: 自动检测'}
+{f'RAY_START_CMD="$RAY_START_CMD --num-cpus={num_cpus}"' if num_cpus is not None else "# num_cpus: 自动检测"}
+{f'RAY_START_CMD="$RAY_START_CMD --num-gpus={num_gpus}"' if num_gpus is not None else "# num_gpus: 自动检测"}
 
 # 启动ray head
 echo "[INFO] 启动Ray Head进程..." | tee -a "$LOG_DIR/head.log"

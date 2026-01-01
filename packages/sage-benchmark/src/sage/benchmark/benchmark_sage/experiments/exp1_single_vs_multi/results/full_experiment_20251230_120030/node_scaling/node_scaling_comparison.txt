@@ -1,0 +1,28 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2025-12-30T12:02:18.062709
+Number of experiments: 2
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+single_node                     45       0.96/s 13098242.2ms 21262317.4ms    100.0%
+multi_4_nodes                    0       0.00/s      0.0ms      0.0ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[single_node]
+  Config: tasks=50, parallelism=4, nodes=1, scheduler=load_aware
+  Throughput: 0.96 tasks/sec
+  Latency: avg=13098242.2ms, p50=13278534.7ms, p99=21262317.4ms
+  Scheduling: 13098242.2ms, Execution: 0.0ms
+  Nodes: 1, Balance: 100.0%
+
+[multi_4_nodes]
+  Config: tasks=50, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
