@@ -323,7 +323,7 @@ repos:
         "build"
         "config"
         "docker"
-        "docs"
+        # "docs"  # REMOVED: Root docs/ is now forbidden. Use docs-public/ instead.
         "docs-public"
         "examples"
         "htmlcov"

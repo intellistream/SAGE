@@ -1,6 +1,22 @@
 #!/bin/bash
 set -e
 
+# ============================================================================
+# Check Docs Location Hook
+# ============================================================================
+# Purpose: Ensure markdown files are in proper locations.
+#          CRITICAL: Root 'docs/' directory is FORBIDDEN. Use 'docs-public/' instead.
+#
+# This hook prevents:
+# 1. Any files in root docs/ directory (which should not exist)
+# 2. Markdown files in random locations outside allowed patterns
+#
+# Rationale:
+# - Root 'docs/' is gitignored and should not be used for committed documentation
+# - All documentation must go to 'docs-public/' for centralized management
+# - Package-specific docs go in packages/<package>/docs/ or README.md
+# ============================================================================
+
 # Get all markdown files (staged if in commit, or all files if --all-files)
 if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
     # Running with --all-files or during push
@@ -14,7 +30,7 @@ if [ -z "$all_md_files" ]; then
     exit 0
 fi
 
-# Check for files in docs/ (root docs folder)
+# Check for files in docs/ (root docs folder) - STRICTLY FORBIDDEN
 docs_violations=""
 other_violations=""
 
@@ -43,7 +59,7 @@ allowed_patterns=(
 )
 
 for file in $all_md_files; do
-    # Check if file is in docs/
+    # CRITICAL CHECK: Reject any file in root docs/ directory
     if [[ "$file" == docs/* ]]; then
         docs_violations="$docs_violations$file\n"
         continue
@@ -64,15 +80,34 @@ done
 
 failed=false
 
+# Priority 1: Root docs/ violations (most critical)
 if [ -n "$docs_violations" ]; then
-    echo "❌ 错误: 检测到在 'docs/' 目录下提交了文档。"
-    echo "   我们不再推送根目录的 'docs/'，它已被 gitignore。"
-    echo "   请将文档移动到 'docs-public/' 下的合适位置。"
+    echo "================================================================================================"
+    echo "❌ CRITICAL ERROR: Files detected in FORBIDDEN 'docs/' directory"
+    echo "================================================================================================"
+    echo ""
+    echo "The root 'docs/' directory is gitignored and must NOT contain committed documentation."
+    echo "All documentation must be placed in 'docs-public/' or other appropriate locations."
+    echo ""
+    echo "Violating files:"
     echo -e "$docs_violations" | sed "s/^/  - /"
     echo ""
+    echo "📁 Correct locations for documentation:"
+    echo "  ✅ User-facing docs:     docs-public/docs_src/..."
+    echo "  ✅ Developer docs:       docs-public/docs_src/dev-notes/..."
+    echo "  ✅ Package-specific:     packages/<package-name>/README.md or packages/<package-name>/docs/"
+    echo "  ✅ Examples:             examples/<name>/README.md"
+    echo ""
+    echo "💡 Action required:"
+    echo "   1. Move files from 'docs/' to 'docs-public/docs_src/...' (appropriate subdirectory)"
+    echo "   2. Update any internal links/references"
+    echo "   3. Remove the root 'docs/' directory entirely"
+    echo ""
+    echo "================================================================================================"
     failed=true
 fi
 
+# Priority 2: Other location violations
 if [ -n "$other_violations" ]; then
     echo "❌ 错误: 以下 markdown 文件不在允许的位置:"
     echo -e "$other_violations" | sed "s/^/  - /"

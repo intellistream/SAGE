@@ -266,7 +266,48 @@ When answering questions or making code changes in this repo, the assistant **mu
   - `docs-public/docs_src/dev-notes/l5-apps/README.md`, `l5-benchmark/README.md`  
   - `docs-public/docs_src/dev-notes/l6-cli/README.md`, `l6-studio/README.md`, `l6-gateway/README.md`
 
+**🔍 When encountering difficulties or uncertainties:**
+
+- **ALWAYS read relevant documentation in `docs-public/` first** before making assumptions
+- Look for topic-specific guides in `docs-public/docs_src/dev-notes/cross-layer/` (e.g., `documentation-policy.md`, `ci-cd.md`)
+- Check package-specific docs in `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
+- If the issue involves installation, testing, or CI/CD, consult `DEVELOPER.md` or `CONTRIBUTING.md`
+- Use `grep_search` or `semantic_search` to find relevant documentation before implementing solutions
+
+**Rule:** Don't guess architectural decisions or policies. Read the docs. They exist for this reason.
+
 Only after consulting these READMEs should the assistant propose designs, refactors, or architectural explanations. If documentation and code appear inconsistent, Copilot should **call it out explicitly** in the answer and, when in doubt, ask the user which source of truth to follow.
+
+## Documentation Location Policy - CRITICAL
+
+**The root `docs/` directory is STRICTLY FORBIDDEN for committed documentation.**
+
+### ❌ NEVER Create Files in Root `docs/`
+
+- Root `docs/` is gitignored and must not contain committed files
+- Pre-commit hooks will REJECT any commits with files in `docs/`
+- This directory should not exist in the repository
+
+### ✅ CORRECT Documentation Locations
+
+**All documentation must go to these approved locations:**
+
+1. **User-facing docs:** `docs-public/docs_src/` (guides, tutorials, concepts)
+2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
+3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
+4. **Examples:** `examples/<name>/README.md`
+5. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
+
+**Rationale:**
+- Prevents confusion between `docs/` and `docs-public/`
+- Maintains single source of truth
+- Avoids accidental gitignore of important documentation
+
+**Enforcement:**
+- Hook `markdown-files-location-check`: Rejects any `.md` files in root `docs/`
+- Hook `root-directory-cleanup-check`: Flags root `docs/` directory as unauthorized
+
+**See:** `docs-public/docs_src/dev-notes/cross-layer/documentation-policy.md` for full policy.
 
 ## Inference Components Map (Reality-First)
 
@@ -1175,4 +1216,21 @@ db.load("/path/to/index")
 - All metadata must be `dict[str, str]` (string keys and values)
 - Convert non-string values: `{"id": str(internal_id), "text": text}`
 
+## Final Reminder for Copilot
+
 **Trust these instructions** - search only if incomplete, errors occur, or deep architecture needed.
+
+**🔍 When encountering difficulties or uncertainties:**
+
+1. **First**, check if there's relevant documentation in `docs-public/docs_src/dev-notes/`
+2. **Use tools** like `grep_search` or `semantic_search` to find documentation before making assumptions
+3. **Read before acting** - documentation exists to guide you, not as optional reference
+4. **Common documentation locations:**
+   - Installation/Testing: `DEVELOPER.md`, `CONTRIBUTING.md`
+   - CI/CD: `docs-public/docs_src/dev-notes/cross-layer/ci-cd.md`
+   - Documentation policy: `docs-public/docs_src/dev-notes/cross-layer/documentation-policy.md`
+   - Package architecture: `docs-public/docs_src/dev-notes/package-architecture.md`
+   - Layer-specific guides: `docs-public/docs_src/dev-notes/l{1-6}-*/`
+   - Cross-cutting concerns: `docs-public/docs_src/dev-notes/cross-layer/`
+
+**Remember**: Don't guess. Read the docs. They exist for this reason.
