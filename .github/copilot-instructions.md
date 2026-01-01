@@ -297,14 +297,16 @@ Only after consulting these READMEs should the assistant propose designs, refact
 2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
 3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
 4. **Submodule docs:** `packages/.../submodule/docs/` (sageLLM, sageFlow, sageTSDB, etc.)
-5. **Examples:** `examples/<name>/README.md`
-6. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
+5. **Tool docs:** `tools/<tool-name>/README.md` or `tools/<tool-name>/docs/`
+6. **Examples:** `examples/<name>/README.md`
+7. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
 
 **Rationale:**
 - Prevents confusion between root `docs/` and `docs-public/`
 - Maintains single source of truth for project-level documentation
-- Allows packages and submodules to maintain their own documentation
+- Allows packages, submodules, and tools to maintain their own documentation
 - Submodules are independent Git repositories with their own version control
+- Tools are independent components that may have complex documentation needs
 - Avoids accidental gitignore of important documentation
 
 **Enforcement:**

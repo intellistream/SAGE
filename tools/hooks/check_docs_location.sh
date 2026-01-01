@@ -16,6 +16,7 @@ set -e
 # - All documentation must go to 'docs-public/' for centralized management
 # - Package-specific docs go in packages/<package>/docs/ or README.md
 # - Submodules can have their own docs/ directories (e.g., sageLLM/docs/, sageFlow/docs/)
+# - Tools can have their own docs/ directories (e.g., tools/install/docs/)
 # ============================================================================
 
 # Get all markdown files (staged if in commit, or all files if --all-files)
@@ -54,6 +55,7 @@ allowed_patterns=(
     "^examples/tutorials/"
     "^config/README\.md$"
     "^tools/.*/README\.md$"
+    "^tools/.*/(docs|documentation)/"
     "^tools/.*\.md$"
     "^\.sage/.*\.md$"
     "^\.github/.*\.md$"
@@ -94,6 +96,7 @@ if [ -n "$docs_violations" ]; then
     echo "⚠️  Note: Package and submodule docs/ directories ARE ALLOWED:"
     echo "   ✅ packages/<package>/docs/          - Package-specific documentation"
     echo "   ✅ packages/.../submodule/docs/      - Submodule documentation (sageLLM, sageFlow, etc.)"
+    echo "   ✅ tools/<tool>/docs/                - Tool-specific documentation"
     echo ""
     echo "❌ Violating files (in ROOT docs/ directory):"
     echo -e "$docs_violations" | sed "s/^/  - /"
@@ -103,6 +106,7 @@ if [ -n "$docs_violations" ]; then
     echo "  ✅ Developer docs:       docs-public/docs_src/dev-notes/..."
     echo "  ✅ Package-specific:     packages/<package-name>/README.md or packages/<package-name>/docs/"
     echo "  ✅ Submodule docs:       packages/<package>/src/.../submodule/docs/ (e.g., sageLLM/docs/)"
+    echo "  ✅ Tool-specific:        tools/<tool-name>/docs/"
     echo "  ✅ Examples:             examples/<name>/README.md"
     echo ""
     echo "💡 Action required:"
