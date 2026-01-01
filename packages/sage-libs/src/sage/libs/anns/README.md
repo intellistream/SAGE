@@ -23,7 +23,7 @@ anns_new/
 │   ├── puck/           # PUCK
 │   └── plsh/           # PLSH
 │
-├── implementations/    # C++ source code (formerly benchmark_db/algorithms_impl)
+├── implementations/    # C++ source code (formerly benchmark_anns/algorithms_impl)
 │   ├── candy/          # CANDY C++ implementation
 │   ├── diskann-ms/     # DiskANN submodule
 │   ├── faiss/          # FAISS submodule
@@ -34,7 +34,7 @@ anns_new/
 │   ├── include/        # Shared C++ headers
 │   └── bindings/       # pybind11 bindings
 │
-└── benchmarks/         # Benchmark scripts (from benchmark_db)
+└── benchmarks/         # Benchmark scripts (from benchmark_anns)
     ├── run_benchmark.py
     ├── prepare_dataset.py
     └── compute_gt.py
@@ -71,7 +71,7 @@ from sage.libs.anns.wrappers.faiss import FaissHNSWIndex
 1. **Single source of truth**: All ANNS core code (interface, wrappers, C++ impl) in one place
 1. **Clear separation**: interface/ → wrappers/ → implementations/
 1. **Family grouping**: Wrappers organized by algorithm family (not flat)
-1. **Benchmarks stay in benchmark_db**: sage-benchmark package owns benchmarking logic
+1. **Benchmarks stay in benchmark_anns**: sage-benchmark package owns benchmarking logic
 1. **No cross-layer dependencies**: L3 (libs) should not depend on L5 (benchmark)
 
 ## Old Structure (Deprecated)
@@ -81,7 +81,7 @@ from sage.libs.anns.wrappers.faiss import FaissHNSWIndex
 ❌ packages/sage-libs/src/sage/libs/anns/         # Flat wrapper list
 ❌ packages/sage-benchmark/.../algorithms_impl/   # C++ code in wrong layer
 
-✅ packages/sage-benchmark/.../benchmark_db/      # Benchmarks stay here (correct)
+✅ packages/sage-benchmark/.../benchmark_anns/      # Benchmarks stay here (correct)
 ```
 
 ## References

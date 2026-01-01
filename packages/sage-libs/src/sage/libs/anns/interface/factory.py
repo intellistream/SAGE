@@ -1,6 +1,6 @@
 """Registration and creation for ANN implementations.
 
-This registry will back benchmark_db and other modules to resolve algorithms
+This registry will back benchmark_anns and other modules to resolve algorithms
 without direct imports, keeping dependencies flowing downward.
 """
 

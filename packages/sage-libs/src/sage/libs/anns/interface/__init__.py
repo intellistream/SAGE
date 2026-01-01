@@ -1,7 +1,7 @@
 """Approximate Nearest Neighbor (ANN) interfaces for SAGE.
 
 This module defines shared abstractions and registry helpers so algorithms can
-live in ``sage-libs`` and be reused by benchmark_db, sage-db, and sage-flow.
+live in ``sage-libs`` and be reused by benchmark_anns, sage-db, and sage-flow.
 """
 
 from __future__ import annotations

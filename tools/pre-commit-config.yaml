@@ -26,7 +26,7 @@ repos:
     exclude: '\.svg$'
   - id: check-yaml
     args: [--unsafe]      # Allow custom YAML tags
-    exclude: ^(.*/benchmark_db/)
+    exclude: ^(.*/benchmark_anns/)
   - id: check-json
   - id: check-toml
   - id: check-added-large-files
@@ -378,7 +378,7 @@ repos:
   - id: shellcheck
     args: [-x, -e, SC1091, -S, error]      # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
     files: \.(sh|bash)$
-    exclude: ^(tools/conda/|.*/benchmark_db/)
+    exclude: ^(tools/conda/|.*/benchmark_anns/)
 
   # YAML formatting
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
@@ -386,7 +386,7 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent=2, --preserve-quotes]
-    exclude: ^(\.github/|examples/config/|.*/benchmark_db/)
+    exclude: ^(\.github/|examples/config/|.*/benchmark_anns/)
 
   # Markdown formatting
 - repo: https://github.com/executablebooks/mdformat
@@ -409,7 +409,7 @@ repos:
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/secrets.baseline]
-    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_db/.*)
+    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_anns/.*)
 
   # SAGE Data Architecture Validation
 - repo: local

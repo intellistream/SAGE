@@ -25,7 +25,7 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
    ├── wrappers/           # Python wrappers by family (616KB)
    └── implementations/    # C++ source code (170MB)
 
-✅ packages/sage-benchmark/.../benchmark_db/      # Benchmarks stay here
+✅ packages/sage-benchmark/.../benchmark_anns/      # Benchmarks stay here
 ```
 
 ---
@@ -62,7 +62,7 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
 - **Cleanup**: Removed all git submodule references (.git files) for clean integration
 
 ### 4. Benchmarks (NOT Moved)
-- **Stays in**: `sage-benchmark/benchmark_db/`
+- **Stays in**: `sage-benchmark/benchmark_anns/`
 - **Rationale**: Benchmarks belong in L5 package, not L3 libs
 
 ---
@@ -78,7 +78,7 @@ Successfully consolidated ANNS (Approximate Nearest Neighbor Search) code from *
   - `anns/` → `anns_old/` (backup)
   - `anns_new/` → `anns/` (final)
 - [x] **Phase 6**: Run tests to verify no functionality broken
-- [x] **Phase 7**: Cleanup - Deleted `benchmark_db/algorithms_impl/` (170MB freed from wrong location)
+- [x] **Phase 7**: Cleanup - Deleted `benchmark_anns/algorithms_impl/` (170MB freed from wrong location)
 
 ---
 
@@ -141,7 +141,7 @@ sage-dev project test --coverage
 # rm -rf packages/sage-libs/src/sage/libs/ann_old
 # rm -rf packages/sage-libs/src/sage/libs/anns_old
 
-# Note: algorithms_impl/ has already been removed from benchmark_db
+# Note: algorithms_impl/ has already been removed from benchmark_anns
 ```
 
 ### 3. Documentation Updates
@@ -157,8 +157,8 @@ git commit -m "refactor(anns): Consolidate ANNS into unified structure
 
 - Unified 3-layer structure into sage-libs/anns/
 - Organized wrappers by algorithm family
-- Moved C++ implementations from benchmark_db to libs
-- Kept benchmarks in benchmark_db (L5 package)
+- Moved C++ implementations from benchmark_anns to libs
+- Kept benchmarks in benchmark_anns (L5 package)
 
 Old: ann/ (interface) + anns/ (flat wrappers) + algorithms_impl/ (C++)
 New: anns/{interface, wrappers/<family>, implementations}

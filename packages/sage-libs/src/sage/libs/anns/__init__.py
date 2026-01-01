@@ -5,12 +5,12 @@ This module consolidates all ANNS core components into a single location:
 - wrappers/: Python implementations for various algorithms (FAISS, VSAG, DiskANN, CANDY, etc.)
 - implementations/: C++ source code and bindings
 
-Note: Benchmarks remain in sage-benchmark/benchmark_db (L5 package).
+Note: Benchmarks remain in sage-benchmark/benchmark_anns (L5 package).
 
 Migration from old structure:
 - sage.libs.ann -> sage.libs.anns.interface
 - sage.libs.anns.<algo> -> sage.libs.anns.wrappers.<family>.<algo>
-- benchmark_db.algorithms_impl -> sage.libs.anns.implementations (C++ code moved to L3)
+- benchmark_anns.algorithms_impl -> sage.libs.anns.implementations (C++ code moved to L3)
 """
 
 from __future__ import annotations

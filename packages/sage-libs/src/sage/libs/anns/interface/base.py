@@ -1,6 +1,6 @@
 """Core ANN abstractions for shared use across SAGE.
 
-These interfaces will be used by benchmark_db, sage-db, and sage-flow
+These interfaces will be used by benchmark_anns, sage-db, and sage-flow
 once algorithms are migrated into ``sage.libs.ann``.
 """
 
@@ -58,7 +58,7 @@ class AnnIndex(ABC):
         if timestamps is None:
             return indices, distances, None
 
-        # Attach processing timestamps to align with benchmark_db expectations.
+        # Attach processing timestamps to align with benchmark_anns expectations.
         now_us = np.full(len(queries), int(time.time() * 1e6), dtype=np.int64)
         return indices, distances, now_us
 
