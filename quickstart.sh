@@ -402,6 +402,18 @@ main() {
                 }
             fi
 
+            # 安装主仓库的 pre-commit hooks
+            if command -v pre-commit >/dev/null 2>&1; then
+                echo -e "${DIM}   配置主仓库 pre-commit hooks...${NC}"
+                if pre-commit install 2>/dev/null; then
+                    echo -e "${GREEN}   ✅ 主仓库 pre-commit hooks 已安装${NC}"
+                else
+                    echo -e "${YELLOW}   ⚠️  主仓库 pre-commit hooks 安装失败${NC}"
+                fi
+            else
+                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过 Git hooks 安装${NC}"
+            fi
+
             # 安装 neuromem submodule 的 pre-commit hooks
             local neuromem_path="$SAGE_ROOT/packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
             if [ -d "$neuromem_path" ] && [ -f "$neuromem_path/.pre-commit-config.yaml" ]; then

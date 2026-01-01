@@ -367,6 +367,78 @@ C++ extension submodules in `packages/sage-middleware/src/sage/middleware/compon
 
 **Environment**: Copy `.env.template` to `.env`, set `OPENAI_API_KEY`, `HF_TOKEN`
 
+**Pre-commit Hooks**: `./quickstart.sh --dev` automatically installs pre-commit hooks. If missing, run:
+```bash
+pip install pre-commit
+pre-commit install  # Install Git hooks
+```
+
+## Conda ToS Bypass - Unified Utils
+
+**CRITICAL**: All Conda operations MUST use unified utils in `tools/lib/conda_install_utils.sh` to bypass Conda 25.x ToS restrictions.
+
+**Core Functions**:
+```bash
+# Load utils (auto-loaded in most install scripts)
+source "$SAGE_ROOT/tools/lib/conda_install_utils.sh"
+
+# Install packages (auto-uses Tsinghua mirrors + --override-channels)
+conda_install_bypass nodejs python=3.11 numpy
+
+# Create environment
+conda_create_bypass myenv python=3.11
+
+# Install with progress indicator
+conda_install_with_progress "安装 Node.js" nodejs
+
+# Get mirror URL
+mirror=$(get_conda_mirror "main")    # or "forge"
+```
+
+**Never use direct conda commands** without `--override-channels`:
+```bash
+# ❌ WRONG - will trigger ToS error
+conda install -y nodejs
+conda create -n myenv python=3.11 -y
+
+# ✅ CORRECT - use unified utils
+conda_install_bypass nodejs
+conda_create_bypass myenv python=3.11
+```
+
+**Implementation**:
+- Mirror: `https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main`
+- Forge: `https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge`
+- Auto-fallback: main → forge if package not found
+- All install scripts pre-load these utils
+
+## Progress Display - Unified Utils
+
+**All long-running tasks MUST use progress indicators** from `tools/lib/progress_utils.sh`:
+
+```bash
+# Load utils
+source "$SAGE_ROOT/tools/lib/progress_utils.sh"
+
+# 1. Spinner (recommended for unknown duration)
+long_command &
+show_spinner $! "正在执行任务..."
+
+# 2. Progress bar (known steps)
+print_progress 50 100 "下载中..."
+
+# 3. Long task with keepalive (30s intervals)
+long_task_with_keepalive "安装系统依赖" 30 sudo apt-get install -y build-essential
+
+# 4. Simplified wrapper (most common)
+run_with_progress "安装 Node.js" conda install -y nodejs
+
+# 5. Installation steps
+show_installation_progress 2 5 "安装核心依赖"
+```
+
+**Why**: Prevents users thinking installation is frozen during long tasks (apt-get, conda install, C++ builds).
+
 ## Build, Test, Lint
 
 **Build**: Happens during install. C++ extensions in `.sage/build/`, auto-built with `--dev`.
@@ -565,6 +637,90 @@ Tasks can specify `cpu_required`, `memory_required`, `gpu_required=0` for CPU-on
 
 **Critical files** (review before modifying): quickstart.sh, manage.sh, .github/workflows/,
 tools/pytest.ini, tools/pre-commit-config.yaml
+
+## PyPI Publishing - CRITICAL: Use sage-dev
+
+**SAGE 有专用的 PyPI 发布工具，通过 sage-dev CLI 管理。NEVER 手动使用 twine 或 build。**
+
+### Publishing Commands
+
+```bash
+# 1. Build and upload to PyPI (production)
+sage-dev package pypi build <package-name> --upload --no-dry-run
+
+# 2. Build and upload to TestPyPI (testing)
+sage-dev package pypi build <package-name> --upload --no-dry-run --test-pypi
+
+# 3. Dry-run (default, safe mode - check build without uploading)
+sage-dev package pypi build <package-name> --upload  # --dry-run is default
+
+# 4. Build only (no upload)
+sage-dev package pypi build <package-name>
+
+# 5. Upload pre-built wheel
+sage-dev package pypi upload <package-name> --no-dry-run
+```
+
+**CRITICAL**: `--dry-run` 默认为 `True`，必须显式使用 `--no-dry-run` 才会真正上传。
+
+### Package Names
+
+SAGE 的 PyPI 包名与内部包名不同：
+
+| 内部包名 | PyPI 包名 | 用途 |
+|---------|----------|------|
+| `sage-common` | `isage-common` | L1 Foundation |
+| `sage-libs` | `isage-libs` | L3 Algorithms & ANNS |
+| `sage-llm-gateway` | `isage-llm-gateway` | L6 OpenAI-compatible Gateway |
+| `sage-llm-core` | `isage-llm-core` | L1 LLM control plane + client |
+
+### Pre-publish Checklist
+
+1. **Bump version**: 更新 `packages/<package>/src/sage/.../version.py`
+2. **Update CHANGELOG.md**: 记录本次发布的变更
+3. **Run tests**: `sage-dev project test --coverage`
+4. **Run quality checks**: `sage-dev quality --check-only`
+5. **Test build**: `sage-dev package pypi build <package> --dry-run`
+6. **Test on TestPyPI**: `sage-dev package pypi build <package> --upload --no-dry-run --test-pypi`
+7. **Verify installation**: `pip install -i https://test.pypi.org/simple/ isage-<package>`
+8. **Publish to PyPI**: `sage-dev package pypi build <package> --upload --no-dry-run`
+
+### Configuration
+
+PyPI tokens 应配置在 `~/.pypirc`:
+
+```ini
+[distutils]
+index-servers =
+    pypi
+    testpypi
+
+[pypi]
+username = __token__
+password = pypi-xxx
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = __token__
+password = pypi-xxx
+```
+
+### Implementation Details
+
+- **Build System**: `sage-dev` 使用 `BytecodeCompiler` 封装构建流程
+- **Location**: `packages/sage-tools/src/sage/tools/cli/commands/dev/package/pypi.py`
+- **Functions**: `build_package()`, `upload_package()`
+- **Safety**: 默认 dry-run 模式防止误操作
+
+### Common Issues
+
+**问题**: `ruamel.yaml.clib` 编译失败
+- **原因**: 某些依赖（如 vllm）需要 ruamel.yaml，但 C 扩展编译可能失败
+- **解决**: 通常可忽略，使用纯 Python fallback。如必须修复，检查编译器和 Python 头文件
+
+**问题**: 版本号不一致
+- **检查**: `./tools/install/check_tool_versions.sh`
+- **修复**: `./tools/install/check_tool_versions.sh --fix`
 
 ## Resources
 
