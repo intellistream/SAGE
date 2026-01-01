@@ -399,6 +399,9 @@ log_pip_install_with_verbose_progress() {
     local current_stage=""
     local line_count=0
     local download_count=0
+    local total_downloaded_mb=0
+    local download_start_time=0
+    local last_file_size=0
 
     echo -e "${DIM}   开始安装，显示详细进度...${NC}" >&2
     echo "" >&2
@@ -419,11 +422,37 @@ log_pip_install_with_verbose_progress() {
             download_count=0
             printf "\n  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}%-40s${NC}" "$current_pkg" >&2
         elif [[ "$line" =~ ^Downloading[[:space:]].*\.whl ]] || [[ "$line" =~ ^Downloading[[:space:]].*\.tar\.gz ]]; then
-            # 下载：原地更新计数
+            # 下载：原地更新计数，并尝试提取文件大小
             download_count=$((download_count + 1))
+
+            # 初始化下载开始时间
             if [ "$current_stage" != "downloading" ]; then
                 current_stage="downloading"
+                download_start_time=$(date +%s)
                 printf "\n  ${DIM}  ⬇${NC} 下载中..." >&2
+            fi
+
+            # 提取文件大小（格式: "Downloading ... (1.2 MB)"）
+            if [[ "$line" =~ \(([0-9.]+)[[:space:]]*(kB|MB|GB)\) ]]; then
+                local size="${BASH_REMATCH[1]}"
+                local unit="${BASH_REMATCH[2]}"
+                # 转换为 MB
+                case "$unit" in
+                    kB) last_file_size=$(echo "scale=2; $size / 1024" | bc 2>/dev/null || echo "0") ;;
+                    MB) last_file_size="$size" ;;
+                    GB) last_file_size=$(echo "scale=2; $size * 1024" | bc 2>/dev/null || echo "0") ;;
+                esac
+                total_downloaded_mb=$(echo "scale=2; $total_downloaded_mb + $last_file_size" | bc 2>/dev/null || echo "$total_downloaded_mb")
+
+                # 计算下载速度
+                local elapsed=$(($(date +%s) - download_start_time))
+                local speed_mb=0
+                if [ $elapsed -gt 0 ]; then
+                    speed_mb=$(echo "scale=2; $total_downloaded_mb / $elapsed" | bc 2>/dev/null || echo "0")
+                fi
+
+                printf "\r  ${DIM}  ⬇${NC} 下载中... ${CYAN}[%d 个文件, %.1f MB 已下载, %.2f MB/s]${NC}          " \
+                    "$download_count" "$total_downloaded_mb" "$speed_mb" >&2
             else
                 printf "\r  ${DIM}  ⬇${NC} 下载中... ${CYAN}[%d 个文件]${NC}          " "$download_count" >&2
             fi
@@ -447,11 +476,37 @@ log_pip_install_with_verbose_progress() {
             :
         fi
 
-        # 时间戳提示（每60秒）
+        # 时间戳提示（每60秒），包含网络性能分析
         local current_time=$(date +%s)
         local elapsed=$((current_time - start_time))
         if [ $((current_time - last_update)) -ge 60 ]; then
-            printf "\n${DIM}   [已运行 %ds，处理了 %d 行输出]${NC}\n" "$elapsed" "$line_count" >&2
+            local avg_speed=0
+            local network_status=""
+
+            # 计算平均下载速度
+            if [ $elapsed -gt 0 ] && [ "$(echo "$total_downloaded_mb > 0" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                avg_speed=$(echo "scale=2; $total_downloaded_mb / $elapsed" | bc 2>/dev/null || echo "0")
+
+                # 网络性能评估
+                if [ "$(echo "$avg_speed < 0.5" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                    network_status="${YELLOW}慢速网络${NC} (<0.5 MB/s)"
+                elif [ "$(echo "$avg_speed < 2" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                    network_status="${CYAN}正常网络${NC} (0.5-2 MB/s)"
+                else
+                    network_status="${GREEN}快速网络${NC} (>2 MB/s)"
+                fi
+
+                printf "\n${DIM}   [已运行 %ds，处理了 %d 行输出，已下载 %.1f MB @ %.2f MB/s | %b]${NC}\n" \
+                    "$elapsed" "$line_count" "$total_downloaded_mb" "$avg_speed" "$network_status" >&2
+            else
+                printf "\n${DIM}   [已运行 %ds，处理了 %d 行输出]${NC}\n" "$elapsed" "$line_count" >&2
+            fi
+
+            # 给出网络优化建议
+            if [ "$(echo "$avg_speed > 0 && $avg_speed < 0.3" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                printf "${YELLOW}   提示: 下载速度较慢（%.2f MB/s），可能需要检查网络连接或使用镜像源${NC}\n" "$avg_speed" >&2
+            fi
+
             last_update=$current_time
         fi
     done
@@ -463,6 +518,14 @@ log_pip_install_with_verbose_progress() {
     if [ -f "${temp_output}.exit" ]; then
         exit_code=$(cat "${temp_output}.exit")
         rm -f "${temp_output}.exit"
+    fi
+
+    # 显示总体统计信息
+    local total_elapsed=$(($(date +%s) - start_time))
+    if [ "$(echo "$total_downloaded_mb > 0" | bc 2>/dev/null || echo 0)" = "1" ]; then
+        local final_avg_speed=$(echo "scale=2; $total_downloaded_mb / $total_elapsed" | bc 2>/dev/null || echo "0")
+        printf "\n${DIM}📊 安装统计: 共 %d 个文件, %.1f MB, 耗时 %ds, 平均 %.2f MB/s${NC}\n" \
+            "$download_count" "$total_downloaded_mb" "$total_elapsed" "$final_avg_speed" >&2
     fi
 
     echo "" >&2

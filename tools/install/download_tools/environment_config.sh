@@ -43,6 +43,50 @@ NC="${NC:-\033[0m}"
 
 # 尝试通过公网 IP 判断是否位于中国大陆
 detect_mainland_china_ip() {
+    # 方法1: 检查时区（最快，VPN不影响）
+    local tz_cst=false
+    if [[ "${TZ:-}" == "Asia/Shanghai" ]] || [[ "${TZ:-}" == "Asia/Chongqing" ]] || [[ "${TZ:-}" == "Asia/Harbin" ]]; then
+        tz_cst=true
+    elif command -v date >/dev/null 2>&1; then
+        local current_tz=$(date +%Z 2>/dev/null || echo "")
+        if [[ "$current_tz" == "CST" ]] || [[ "$current_tz" == "China Standard Time" ]]; then
+            tz_cst=true
+        fi
+    fi
+
+    # 方法2: 检查语言环境（中文环境）
+    local lang_zh=false
+    if [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
+        lang_zh=true
+    fi
+
+    # CST时区 + 中文环境 = 大概率在中国大陆
+    if [ "$tz_cst" = "true" ] && [ "$lang_zh" = "true" ]; then
+        return 0
+    fi
+
+    # 即使是 C.UTF-8，CST 时区也很可能在中国
+    if [ "$tz_cst" = "true" ]; then
+        # 尝试快速测试清华源（2秒超时）
+        if command -v curl >/dev/null 2>&1; then
+            if curl -s --connect-timeout 2 --max-time 2 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+                return 0
+            fi
+        fi
+        # CST时区但清华源不可达，可能在境外或有网络问题，仍然返回中国
+        return 0
+    fi
+
+    # 方法3: 测试清华源连接速度（可能被VPN干扰）
+    if command -v curl >/dev/null 2>&1; then
+        local tsinghua_test=$(curl -s --connect-timeout 2 --max-time 3 -w "%{http_code}" \
+            -o /dev/null "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null || echo "000")
+        if [[ "$tsinghua_test" =~ ^(200|301|302)$ ]]; then
+            return 0
+        fi
+    fi
+
+    # 方法4: 公网IP检测（VPN可能干扰，作为最后手段）
     local detector=""
     if command -v curl >/dev/null 2>&1; then
         detector="curl -s --max-time 3"
