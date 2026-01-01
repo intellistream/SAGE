@@ -30,7 +30,7 @@ source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/examination_tools/environment_prechecks.sh"
 source "$TOOLS_DIR/examination_tools/install_verification.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
-source "$TOOLS_DIR/download_tools/network_optimizer.sh"  # 网络加速优化
+source "$TOOLS_DIR/examination_tools/mirror_selector.sh"  # 网络加速优化（增强版）
 source "$TOOLS_DIR/installation_table/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
 source "$TOOLS_DIR/fixes/numpy_fix.sh"
@@ -239,14 +239,8 @@ main() {
     echo -e "${BLUE}🚀 网络下载优化${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-    # 应用 pip 加速配置（自动检测网络环境）
-    apply_pip_acceleration "$use_mirror"
-
-    # 显示当前配置
-    show_network_config
-
-    # 估算加速效果
-    estimate_speedup
+    # 智能配置 pip（自动检测网络 + 镜像选择 + 并行优化）
+    smart_configure_pip "true" "true"
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
