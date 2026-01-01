@@ -18,12 +18,12 @@ llm:
   tensor_parallel_size: 1
 max_workers: 10
 provider:
-  head_ip: base-sage
+  head_ip: sage-node-1
   type: local
   worker_ips:
-  - sage4
-  - sage2
-  - sage5
+  - sage-node-4
+  - sage-node-2
+  - sage-node-3
 ray:
   dashboard_host: 0.0.0.0
   dashboard_port: 8265
@@ -33,7 +33,7 @@ ray:
   num_gpus:
   object_store_memory:
 remote:
-  conda_env: sage
+  conda_env: base
   python_path: python
   ray_command: ray
   sage_home: ~/SAGE

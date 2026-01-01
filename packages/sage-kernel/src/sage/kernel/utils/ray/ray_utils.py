@@ -43,9 +43,21 @@ def get_sage_kernel_runtime_env():
         return {}
 
     # 构建runtime_env配置
+    # 添加 experiments 目录以支持分布式调度实验
+    pythonpath_parts = [sage_kernel_src]
+    experiments_dir = os.path.abspath(
+        os.path.join(os.path.dirname(sage_kernel_src), "../../../experiments")
+    )
+    if os.path.exists(experiments_dir):
+        pythonpath_parts.append(experiments_dir)
+
+    pythonpath = ":".join(pythonpath_parts)
+    if os.environ.get("PYTHONPATH"):
+        pythonpath += ":" + os.environ.get("PYTHONPATH")
+
     runtime_env = {
         "py_modules": [sage_kernel_src],
-        "env_vars": {"PYTHONPATH": sage_kernel_src + ":" + os.environ.get("PYTHONPATH", "")},
+        "env_vars": {"PYTHONPATH": pythonpath},
     }
 
     return runtime_env
@@ -54,6 +66,9 @@ def get_sage_kernel_runtime_env():
 def ensure_ray_initialized(runtime_env=None):
     """
     确保Ray已经初始化，如果没有则初始化Ray。
+
+    优先尝试连接到现有的 Ray 集群（address="auto"），
+    如果没有集群则启动本地 Ray 实例。
 
     Args:
         runtime_env: Ray运行环境配置，如果为None则使用默认的sage配置
@@ -69,7 +84,19 @@ def ensure_ray_initialized(runtime_env=None):
             # 检测是否在CI环境中
             is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
 
-            # 准备初始化参数
+            # 首先尝试连接到现有的 Ray 集群
+            try:
+                ray.init(address="auto", ignore_reinit_error=True)  # type: ignore[union-attr]
+                nodes = ray.nodes()
+                alive_nodes = [n for n in nodes if n.get("Alive", False)]
+                print(f"Connected to existing Ray cluster with {len(alive_nodes)} nodes")
+                return
+            except ConnectionError:
+                print("No existing Ray cluster found, starting local Ray instance")
+            except Exception as e:
+                print(f"Failed to connect to Ray cluster: {e}, starting local Ray instance")
+
+            # 准备初始化参数（本地模式）
             init_kwargs = {
                 "ignore_reinit_error": True,
                 "num_cpus": 2 if is_ci else 16,  # CI环境使用更少的CPU
@@ -114,7 +141,13 @@ def ensure_ray_initialized(runtime_env=None):
             print(f"Failed to initialize Ray: {e}")
             raise
     else:
-        print("Ray is already initialized.")
+        # Ray 已经初始化，检查节点数量
+        try:
+            nodes = ray.nodes()
+            alive_nodes = [n for n in nodes if n.get("Alive", False)]
+            print(f"Ray is already initialized with {len(alive_nodes)} nodes")
+        except Exception:
+            print("Ray is already initialized.")
 
 
 def is_distributed_environment() -> bool:

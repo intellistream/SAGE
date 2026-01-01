@@ -32,6 +32,7 @@ class RemoteEnvironment(BaseEnvironment):
         host: str = "127.0.0.1",
         port: int = 19001,
         scheduler=None,
+        extra_python_paths: list[str] | None = None,
     ):
         """
         初始化远程环境
@@ -42,12 +43,21 @@ class RemoteEnvironment(BaseEnvironment):
             host: JobManager服务主机
             port: JobManager服务端口
             scheduler: 调度器，可选。支持字符串 ("fifo", "load_aware") 或 BaseScheduler 实例
+            extra_python_paths: 额外的 Python 模块搜索路径，用于远程节点反序列化时导入自re
         """
         super().__init__(name, config, platform="remote", scheduler=scheduler)
+
+        # 额外的 Python 模块搜索路径（用于远程节点反序列化）
+        self.extra_python_paths: list[str] = extra_python_paths or []
 
         # 远程连接配置
         self.daemon_host = host
         self.daemon_port = port
+
+        # 设置 jobmanager_host/port，让 worker 节点知道如何回连 JobManager
+        # 这会覆盖 BaseEnvironment 的 None 值，避免被 JobManager 用 0.0.0.0 覆盖
+        self.jobmanager_host = host
+        self.jobmanager_port = port
 
         # 客户端连接（延迟初始化）
         self._engine_client: JobManagerClient | None = None
@@ -83,7 +93,7 @@ class RemoteEnvironment(BaseEnvironment):
             logger.info(
                 f"Submitting environment '{self.name}' to remote JobManager (autostop={autostop})"
             )
-
+            logger.info("Daemon host: %s, port: %d", self.daemon_host, self.daemon_port)
             # 第一步：使用 trim_object_for_ray 清理环境，排除不可序列化的内容
             logger.debug("Trimming environment for serialization")
             trimmed_env = trim_object_for_ray(self)
@@ -94,7 +104,11 @@ class RemoteEnvironment(BaseEnvironment):
 
             # 第三步：通过JobManager Client发送到JobManager端口
             logger.debug("Submitting serialized environment to JobManager")
-            response = self.client.submit_job(serialized_data, autostop=autostop)
+            response = self.client.submit_job(
+                serialized_data,
+                autostop=autostop,
+                extra_python_paths=self.extra_python_paths,
+            )
 
             if response.get("status") == "success":
                 env_uuid = response.get("job_uuid")
@@ -240,7 +254,10 @@ class RemoteEnvironment(BaseEnvironment):
 
     def close(self) -> dict[str, Any]:
         """
-        关闭远程环境
+        关闭远程环境并释放所有资源（包括 Ray Actors）
+
+        注意：此方法会删除 job 并清理所有 Ray Actors。
+        如果只想暂停而不释放资源，请使用 stop() 方法。
 
         Returns:
             关闭操作的结果
@@ -251,14 +268,16 @@ class RemoteEnvironment(BaseEnvironment):
 
         try:
             logger.info(f"Closing remote environment {self.env_uuid}")
-            response = self.client.pause_job(self.env_uuid)
+            # 使用 delete_job 而不是 pause_job，以确保 Ray Actors 被 kill
+            # delete_job 会调用 dispatcher.cleanup() → lifecycle_manager.cleanup_all() → ray.kill()
+            response = self.client.delete_job(self.env_uuid, force=True)
 
             # 清理本地资源
             self.is_running = False
             self.env_uuid = None
             self.pipeline.clear()
 
-            logger.info("Remote environment closed and local resources cleaned")
+            logger.info("Remote environment closed and all resources released")
             return response
 
         except Exception as e:

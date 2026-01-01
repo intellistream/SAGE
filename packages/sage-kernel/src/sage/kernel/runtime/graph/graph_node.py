@@ -73,6 +73,10 @@ class TaskNode:
         self._create_queue_descriptors(env)
 
         # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
+        # 保存 extra_python_paths 用于传递给 TaskFactory
+        self._extra_python_paths = getattr(env, "extra_python_paths", []) or []
+
+        # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
         self.task_factory: TaskFactory = self._create_task_factory()
 
         self.stop_signal_num: int = 0  # 预期的源节点数量
@@ -80,24 +84,28 @@ class TaskNode:
 
     def _create_queue_descriptors(self, env: BaseEnvironment):
         """在节点构造时创建队列描述符"""
+        # 使用 env.name 作为队列前缀，确保不同 job 的队列隔离
+        # env.name 在 Environment 创建时就已确定，且对于同一 pipeline 唯一
+        env_prefix = env.name
+
         # 为每个节点创建单一的输入队列描述符（被所有上游复用）
         if not self.is_spout:  # 源节点不需要输入队列
             self.input_qd = _create_queue_descriptor(
-                env=env, name=f"input_{self.name}", maxsize=10000
+                env=env, name=f"{env_prefix}__input_{self.name}", maxsize=10000
             )
         else:
             self.input_qd = None
 
         # 为每个graph node创建service response queue descriptor
         self.service_response_qd = _create_queue_descriptor(
-            env=env, name=f"service_response_{self.name}", maxsize=10000
+            env=env, name=f"{env_prefix}__service_response_{self.name}", maxsize=10000
         )
 
     def _create_task_factory(self) -> TaskFactory:
         """在TaskNode中创建TaskFactory，避免BaseTransformation依赖runtime层"""
         from sage.kernel.runtime.factory.task_factory import TaskFactory
 
-        return TaskFactory(self.transformation)
+        return TaskFactory(self.transformation, extra_python_paths=self._extra_python_paths)
 
     def __repr__(self) -> str:
         return f"TaskNode(name={self.name}, parallel_index={self.parallel_index}, is_spout={self.is_spout}, is_sink={self.is_sink})"
