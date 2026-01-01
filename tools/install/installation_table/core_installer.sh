@@ -546,22 +546,24 @@ for pkg_dir in package_dirs:
 
 # 去重并选择最严格的版本约束
 external_deps = []
+dedup_count = 0
 for pkg_name, versions in sorted(dep_versions.items()):
     if len(versions) == 1:
         external_deps.append(versions[0])
     else:
         # 多个版本约束时，选择最新的（通常是最严格的）
-        # 简单策略：选择包含最高下限版本的那个
         best_dep = max(versions, key=lambda v: ('>=' in v, v))
         external_deps.append(best_dep)
-        if len(versions) > 1:
-            print(f'[DEDUP] {pkg_name}: {len(versions)} 个版本 -> {best_dep}', file=sys.stderr)
+        dedup_count += len(versions) - 1
 
 with open('$external_deps_file', 'w') as f:
     for dep in external_deps:
         f.write(f'{dep}\n')
 
-print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file=sys.stderr)
+if dedup_count > 0:
+    print(f'✓ 提取了 {len(external_deps)} 个外部依赖（去重 {dedup_count} 个重复项）', file=sys.stderr)
+else:
+    print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 " 2>&1; then
         log_info "依赖提取脚本执行成功" "INSTALL"
 

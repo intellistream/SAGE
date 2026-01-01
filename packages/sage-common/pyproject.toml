@@ -42,7 +42,7 @@ dependencies = [
     "psutil>=6.1.0",
     "nvidia-ml-py>=12.535.108",
     "dill>=0.3.8",
-    "numpy>=1.24",
+    "numpy>=1.26.0,<2.3.0",
 ]
 license = {text = "MIT"}
 

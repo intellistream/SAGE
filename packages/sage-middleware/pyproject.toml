@@ -44,8 +44,8 @@ classifiers = [
 dependencies = [
     # Middleware-specific dependencies - 只包含外部依赖
     # Authentication and security
-    "python-jose>=3.5.0,<4.0.0",
-    "passlib>=1.7.4,<2.0.0",
+    "python-jose[cryptography]>=3.5.0,<4.0.0",
+    "passlib[argon2]>=1.7.4,<2.0.0",
 
     # Task queue
     "celery>=5.5.0,<6.0.0",
@@ -150,7 +150,7 @@ docs = [
     "myst-parser>=2.0.0",
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.6.0",
-    "jinja2>=2.11.1",
+    "jinja2>=3.1.0,<4.0.0",
     "markupsafe>=2.0.1",
     "click>=7.0",
     "packaging>=20.5",

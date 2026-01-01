@@ -35,14 +35,14 @@ license = {text = "MIT"}
 # 核心依赖 - 只包含外部依赖
 dependencies = [
     # Tools-specific dependencies
-    "typer>=0.9.0",  # CLI framework for sage-dev command
-    "rich>=13.0.0",  # Rich terminal output for sage-dev
-    "click>=8.0.0",
-    "jinja2>=2.11.1",
-    "markdown>=3.4.4",
+    "typer>=0.15.0,<1.0.0",  # CLI framework for sage-dev command
+    "rich>=13.0.0,<14.0.0",  # Rich terminal output for sage-dev
+    "click>=8.0.0,<9.0.0",
+    "jinja2>=3.1.0,<4.0.0",
+    "markdown>=3.4.4,<4.0.0",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
-    "huggingface-hub>=0.23.0",
+    "huggingface-hub>=0.34.0,<1.0.0",
 
     # Dev tools - 确保 sage-dev 命令可用
     "pytest>=7.0.0",
@@ -60,7 +60,7 @@ dependencies = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "virtualenv>=20.31.2",
-    "filelock>=3.12.2,<4",
+    "filelock>=3.16.0,<4.0.0",
     # 兼容性约束 - 确保与kubernetes等包兼容
     "urllib3>=1.24.2,<2.4.0",  # kubernetes 34.x 要求 <2.4.0
 ]
@@ -77,8 +77,8 @@ all = [
 # CLI 工具依赖
 cli = [
     "typer>=0.15.0",
-    "rich>=13.0.0",
-    "click>=8.0.0",
+    "rich>=13.0.0,<14.0.0",
+    "click>=8.0.0,<9.0.0",
     "questionary>=1.10.0",
     "prompt_toolkit>=3.0.50",
     "tabulate>=0.9.0",
@@ -92,7 +92,7 @@ dev = [
     "memory-profiler>=0.60.0",
     "line-profiler>=4.0.0",
     "httpx>=0.24.0",
-    "requests>=2.31.0",
+    "requests>=2.32.0,<3.0.0",
     "tomli>=2.0.0",
     # 发布工具
     "twine>=4.0.0",
@@ -102,19 +102,19 @@ dev = [
 
 # Frontend 依赖
 frontend = [
-    "pydantic[email]>=2.0.0",
+    "pydantic[email]>=2.10.0,<3.0.0",
     # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
     "fastapi>=0.115,<0.116",
     "starlette>=0.40,<0.47",
     # Uvicorn 需要 h11
-    "uvicorn[standard]>=0.34.0",
-    "h11>=0.8",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    "h11>=0.16.0,<1.0.0",
 
     "websockets>=11.0",
     "python-multipart>=0.0.6",
     "aiofiles>=23.0.0",
     "structlog>=23.0.0",
-    "python-jose[cryptography]>=3.3.0",
+    "python-jose[cryptography]>=3.5.0,<4.0.0",
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",

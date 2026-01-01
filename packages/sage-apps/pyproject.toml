@@ -41,12 +41,12 @@ dependencies = [
     # 外部依赖
     "pyyaml>=6.0",
     "pillow>=10.0.0",
-    "numpy>=1.24.0",
+    "numpy>=1.26.0,<2.3.0",
     # Video 应用依赖
     # 使用 headless 版本避免系统 GUI 依赖 (libGL, libglib 等)
     "opencv-python-headless>=4.5.0",
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
+    "torch>=2.7.0,<3.0.0",
+    "torchvision>=0.22.0,<1.0.0",
     "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
     # Medical 应用依赖
     "scikit-learn>=1.3.0",
@@ -63,8 +63,8 @@ sage-deps = [
 ]
 video = [
     "opencv-python-headless>=4.5.0",
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
+    "torch>=2.7.0,<3.0.0",
+    "torchvision>=0.22.0,<1.0.0",
     "transformers>=4.52.0,<4.56.0",
 ]
 medical = [
