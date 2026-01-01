@@ -1,0 +1,93 @@
+# Configuration for Experiment 5.2: Scheduling Policy Comparison
+# Evaluates HybridSchedulingPolicy vs simpler alternatives
+
+experiment:
+  name: "exp_5_2_scheduling"
+  description: "Scheduling Policy Comparison - FIFO vs Priority vs SLO vs Hybrid"
+  section: "5.2"
+
+hardware:
+  gpus: 2
+  gpu_type: "A100"
+  cpu_cores: 64
+  memory_gb: 256
+
+models:
+  llm:
+    name: "Qwen/Qwen2.5-7B-Instruct"
+    instances: 2
+    device: "cuda"
+    tensor_parallel: 1
+  embedding:
+    name: "BAAI/bge-m3"
+    instances: 1
+    device: "cpu"
+
+# Policy-specific configurations
+policies:
+- fifo
+- priority
+- slo_aware
+- hybrid
+
+# Traffic patterns to test
+traffic_patterns:
+- name: "steady"
+  description: "Constant 50 req/s"
+  request_rate: 50.0
+  duration_s: 60
+
+- name: "bursty"
+  description: "10 req/s baseline with 200 req/s bursts"
+  baseline_rate: 10.0
+  burst_rate: 200.0
+  burst_duration_s: 5
+  burst_interval_s: 30
+  total_duration_s: 120
+
+- name: "mixed_priority"
+  description: "20% high priority, 80% normal"
+  request_rate: 50.0
+  high_priority_ratio: 0.2
+  duration_s: 60
+
+workload:
+  total_requests: 1000
+  warmup_requests: 100
+  llm_ratio: 0.7
+  request_rate: 50.0
+  input_tokens:
+    min: 256
+    max: 512
+  output_tokens:
+    min: 64
+    max: 256
+  seed: 42
+
+metrics:
+  latency_percentiles: [50, 95, 99]
+  slo_targets:
+    chat_p99_ms: 500
+    embedding_p99_ms: 100
+  report_interval_s: 5  # More frequent for policy comparison
+  track_queue_depth: true
+  track_wait_time: true
+
+output:
+  results_dir: "results/exp_5_2"
+  save_raw_data: true
+  generate_plots: true
+  export_latex: true
+
+extra:
+  # SLO-aware policy parameters
+  slo_aware:
+    deadline_buffer_ms: 50
+    preemption_enabled: false
+
+  # Hybrid policy parameters
+  hybrid:
+    batch_size: 8
+    batch_timeout_ms: 10
+    priority_weight: 0.3
+    slo_weight: 0.7

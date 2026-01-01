@@ -1,0 +1,67 @@
+% Experiments section for the SAGE systems paper (content, not prompt)
+
+\section{Experiments}\label{sec:experiments}
+
+We evaluate SAGE along five questions that correspond to the design goals of the system: (1) how efficiently it executes end-to-end LLM/AI pipelines; (2) how much benefit its unified control plane provides over separately managed LLM and embedding services; (3) how well it isolates latency-sensitive tenants from noisy neighbors; (4) how its throughput scales with additional backend engines; and (5) how effectively it exploits heterogeneous CPU/GPU deployments. All experiments are implemented using the \texttt{sage-benchmark} package and run on the same cluster configuration, with vLLM serving as the LLM backend and a separate embedding server for vector encoders. Unless otherwise noted, we use a representative instruction-tuned LLM (e.g., Qwen2.5-7B-Instruct) and a high-quality embedding model (e.g., BGE-M3), with input and output lengths and arrival processes chosen to approximate realistic RAG and agent workloads. Baselines are carefully configured to use the same hardware, software versions, and models as SAGE, and include both single-engine and multi-service deployments.
+
+\subsection{End-to-End Pipeline Performance}
+
+Our first experiment measures the end-to-end performance of a retrieval-augmented generation (RAG) pipeline implemented in SAGE. The pipeline consists of three stages---embedding, retrieval, and LLM generation---and is exercised by multiple concurrent clients issuing queries drawn from a fixed corpus. We compare SAGE's dataflow-based execution against a baseline where each stage is deployed as an independent service and orchestrated by an application-level script that lacks centralized scheduling. Figure~5.1(a) reports the cumulative distribution of end-to-end latencies, while Figure~5.1(b) shows a request timeline that visualizes how embedding and generation tasks are interleaved on the backends.
+The results show that SAGE delivers a tight latency distribution, with p99 end-to-end latency of [X]~ms compared to [X\textsubscript{base}]~ms for the baseline, and reduces tail latency by [X\textsubscript{rel}]\%. By compiling the pipeline into a coordinated execution plan and using the same control plane to drive both embedding and LLM stages, SAGE significantly reduces scheduling gaps and idle periods visible in the baseline timeline. This leads to an overall throughput improvement of [Y]\texttimes{} while maintaining p95 latency below [Z]~ms. These findings support the claim that a dataflow-based execution model, combined with an LLM-aware control plane, can improve both efficiency and predictability for complex LLM/AI pipelines.
+
+\subsection{Control Plane Effectiveness}
+
+The second experiment isolates the effect of SAGE's unified control plane on mixed LLM and embedding workloads. We generate a synthetic workload consisting of a configurable mix of chat/generation requests and embedding requests (e.g., 70\% chat, 30\% embedding), and compare two configurations: (1) SAGE's control plane co-scheduling both workloads across a shared pool of engines, and (2) a baseline with separate LLM and embedding services, each with its own queue and no cross-service coordination. Figure~5.2 plots throughput versus latency for both configurations as we increase the global request rate; an accompanying latency CDF highlights differences in tail behavior.
+Under unified control, SAGE sustains [Y]\% higher throughput before hitting the same latency threshold as the baseline and reduces p99 latency by [X\textsubscript{cp}]\% under mixed workloads. By exploiting idle GPU cycles during LLM decoding to run embedding batches and by smoothing load across engines, the control plane keeps both LLM and embedding services better utilized without violating SLOs. In contrast, the separate-services baseline exhibits earlier saturation and higher tail latencies because load imbalances between the two services cannot be corrected at runtime. These results demonstrate that a unified LLM+embedding control plane can provide tangible latency and throughput benefits beyond what single-engine schedulers achieve in isolation.
+
+\subsection{Isolation and Fairness}
+
+The third experiment studies SAGE's ability to protect latency-sensitive tenants from noisy neighbors. We consider two classes of clients: an \emph{Interactive} group that issues low-rate queries with strict latency SLOs, and a \emph{Batch} group that generates high-rate, throughput-oriented traffic. We compare two configurations: a baseline that uses FIFO queues without explicit tenant priorities, and SAGE with priority-aware scheduling in the control plane. Figure~5.3 reports the latency CDF for the Interactive group under both configurations while the Batch group is active.
+Without isolation, Batch traffic causes severe interference: the Interactive group's p99 latency increases to [A]~ms and SLO misses become frequent. With SAGE's priority-aware policies, the Interactive group's latency curve remains close to its single-tenant baseline, with p99 latency reduced to [A\textsubscript{iso}]~ms and SLO satisfaction improving from [B]\% to [A]\%. At the same time, the Batch group continues to make progress, albeit at slightly lower throughput. These results indicate that SAGE's control plane can enforce practical fairness and isolation properties in multi-tenant LLM deployments without requiring separate clusters or hard partitioning.
+
+\subsection{Scalability}
+
+To evaluate scalability, we vary the number of vLLM backend instances managed by SAGE while driving the system with a high-concurrency mixed workload. We consider configurations with 1, 2, 4, and 8 LLM backends (each running on a GPU or GPU partition), corresponding to scaling from 1 to [G] GPU-backed engines and up to [H] concurrent clients under load, while keeping the embedding capacity proportionally scaled or fixed depending on the scenario. Figure~5.4 summarizes the achieved throughput in requests per second for each configuration and reports the corresponding speedup relative to the single-backend baseline, along with estimates of control-plane overhead.
+Throughput increases nearly linearly up to 8 backends, achieving a [S\textsubscript{8}]\texttimes{} speedup compared to the single-backend case, with control-plane overhead remaining below [O]\% of total CPU time. Latency distributions remain stable across configurations up to the point where the underlying engines saturate, indicating that the control plane does not introduce a scalability bottleneck for the tested model sizes. These results support the claim that SAGE can coordinate multiple LLM engines efficiently and that its additional scheduling logic does not negate the benefits of horizontal scaling.
+
+\subsection{Heterogeneous Hardware Support}
+
+Finally, we investigate how SAGE leverages heterogeneous hardware by offloading embedding workloads to CPU-only nodes while reserving GPU resources for LLM inference. We compare two configurations under the same mixed workload: a GPU-only setup where both LLM and embedding models run on GPUs, and a hybrid setup where embedding servers run on CPU nodes selected by the kernel's node selector, while LLM decoding remains on GPUs. Figure~5.5 reports either a resource-efficiency metric (e.g., tokens-per-second per GPU) or latency CDFs for both configurations.
+The hybrid configuration slightly increases embedding latency, but overall system throughput for LLM tokens improves by [H\textsubscript{tok}]\% because GPU capacity is no longer consumed by embedding computations. From a cost-performance perspective, the hybrid setup delivers [H\textsubscript{eff}]\% better GPU efficiency while meeting nearly the same latency targets as the GPU-only configuration. These findings illustrate how SAGE's awareness of CPU-only nodes and its flexible node-selection policies enable operators to trade modest increases in embedding latency for substantial gains in GPU utilization and cost efficiency.
+
+% ---------------------------------------------------------------------------
+% Author notes: placeholders, baselines, and reproducibility
+% ---------------------------------------------------------------------------
+% Placeholders to be instantiated after experiments:
+%   [X]           : p99 end-to-end latency (SAGE) in RAG pipeline
+%   [X_base]      : p99 end-to-end latency (baseline)
+%   [X_rel]       : relative p99 reduction vs. baseline
+%   [Y]           : throughput improvement factor of SAGE vs. baseline
+%   [Z]           : p95 latency bound under target load
+%   [X_cp]        : p99 latency reduction from unified control plane
+%   [A], [B]      : SLO satisfaction rates with/without isolation
+%   [A_iso]       : p99 latency for Interactive group with isolation
+%   [S_8]         : speedup at 8 backends vs. 1 backend
+%   [O]           : control-plane CPU overhead as percentage of total
+%   [H_tok]       : increase in LLM token throughput in hybrid config
+%   [H_eff]       : GPU efficiency / cost-performance improvement
+%   [G]           : maximum number of GPU-backed engines in scalability tests
+%   [H]           : maximum number of concurrent clients in scalability tests
+%
+% Baseline configurations (must be documented in the paper):
+% - End-to-end and control-plane experiments:
+%   * Baseline: vLLM + separate embedding service, manually load-balanced
+%   * SAGE: unified control plane + declarative dataflow
+% - Isolation: FIFO/no-priority baseline vs. SAGE priority-aware policies
+% - Scalability: single vLLM instance vs. multiple vLLM instances under
+%   identical model and hardware settings
+% - Heterogeneity: all-GPU setup vs. hybrid CPU-embedding + GPU-LLM setup
+%
+% Reproducibility checklist (to include in main text or appendix):
+% - Detailed hardware specification (GPU model/count, CPU cores, memory,
+%   network interconnect)
+% - Software versions (SAGE, vLLM, CUDA, Python, key libraries)
+% - Model details (names, sizes, quantization settings)
+% - Workload specs (token length distributions, arrival process, duration,
+%   warm-up, repetitions, error bars)
+% - Pointers to configuration files and benchmark scripts in `sage-benchmark`.

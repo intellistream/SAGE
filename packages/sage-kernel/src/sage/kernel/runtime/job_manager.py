@@ -121,13 +121,19 @@ class JobManager:  # Job Manager
         self.setup_env_logging(env)
 
         # 向环境注入JobManager的网络地址信息
+        # 注意：如果 env 已经设置了 jobmanager_host（例如在 RemoteEnvironment 中指定了集群可访问的主机名），
+        # 则保留用户设置的值，不要用 server.host（可能是 0.0.0.0）覆盖
         if self.server:
-            env.jobmanager_host = self.server.host
-            env.jobmanager_port = self.server.port
+            if env.jobmanager_host is None:
+                env.jobmanager_host = self.server.host
+            if env.jobmanager_port is None:
+                env.jobmanager_port = self.server.port
         else:
             # 如果没有daemon，使用默认地址
-            env.jobmanager_host = "127.0.0.1"
-            env.jobmanager_port = 19001
+            if env.jobmanager_host is None:
+                env.jobmanager_host = "127.0.0.1"
+            if env.jobmanager_port is None:
+                env.jobmanager_port = 19001
 
         # 创建执行图
         graph = self._create_execution_graph(env)
@@ -169,8 +175,11 @@ class JobManager:  # Job Manager
         autostop: bool = False,
     ) -> JobInfo:
         """创建JobInfo对象"""
+        self.logger.debug("[JM-JI-1] Creating Dispatcher...")
         dispatcher = Dispatcher(graph, env)
+        self.logger.debug("[JM-JI-2] Dispatcher created, creating JobInfo...")
         job_info = JobInfo(env, graph, dispatcher, job_uuid, autostop=autostop)
+        self.logger.debug("[JM-JI-3] JobInfo created, storing in jobs dict...")
         self.jobs[job_uuid] = job_info
         return job_info
 
@@ -321,7 +330,7 @@ class JobManager:  # Job Manager
 
     def receive_stop_signal(self, env_uuid: str):
         """接收停止信号"""
-        self.logger.debug(f"[JM-1] receive_stop_signal called for env_uuid: {env_uuid}")
+        self.logger.debug(f"[JM-1] submit_job called for env: {env_uuid}")
         job_info = self.jobs.get(env_uuid)
         if job_info is None:
             self.logger.warning(f"Job {env_uuid} not found")

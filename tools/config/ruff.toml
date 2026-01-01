@@ -38,6 +38,7 @@ extend-exclude = [
     "**/implementations/candy/**",
     "**/implementations/puck/**",
     "**/implementations/pybind11/**",
+    "**/benchmark_db/**",  # git submodule
     "build",
     "_deps",
     ".venv",

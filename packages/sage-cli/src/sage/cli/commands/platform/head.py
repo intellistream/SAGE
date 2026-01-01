@@ -190,7 +190,7 @@ def start_head(
     ),
 ):
     """启动Ray Head节点"""
-    typer.echo("�� 启动Ray Head节点...")
+    typer.echo("🚀 启动Ray Head节点...")
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
@@ -203,6 +203,10 @@ def start_head(
     dashboard_host = head_config.get("dashboard_host", "0.0.0.0")
     head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
     head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
+
+    # 容器资源配置 (覆盖自动检测)
+    num_cpus = head_config.get("num_cpus")  # None 表示自动检测
+    num_gpus = head_config.get("num_gpus")  # None 表示自动检测
 
     # 优先使用配置中的ray命令，否则尝试使用当前环境的ray
     ray_command = head_config.get("ray_command")
@@ -219,6 +223,10 @@ def start_head(
     typer.echo(f"   Dashboard: {dashboard_host}:{dashboard_port}")
     typer.echo(f"   临时目录: {head_temp_dir}")
     typer.echo(f"   日志目录: {head_log_dir}")
+    if num_cpus is not None:
+        typer.echo(f"   CPU核心数: {num_cpus} (显式配置)")
+    if num_gpus is not None:
+        typer.echo(f"   GPU数量: {num_gpus} (显式配置)")
 
     # 检查是否已有Ray实例在运行
     is_running, pids = check_ray_running(head_port)
@@ -273,9 +281,16 @@ rm -f dump.rdb 2>/dev/null || true
 export RAY_TMPDIR="$HEAD_TEMP_DIR"
 export RAY_DISABLE_IMPORT_WARNING=1
 
+# 构建 Ray 启动命令
+# 基础命令
+RAY_START_CMD="{ray_command} start --head --port={head_port} --ray-client-server-port={ray_client_server_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
+
+# 添加 CPU/GPU 资源限制 (用于容器环境)
+{f'RAY_START_CMD="$RAY_START_CMD --num-cpus={num_cpus}"' if num_cpus is not None else "# num_cpus: 自动检测"}
+{f'RAY_START_CMD="$RAY_START_CMD --num-gpus={num_gpus}"' if num_gpus is not None else "# num_gpus: 自动检测"}
+
 # 启动ray head
 echo "[INFO] 启动Ray Head进程..." | tee -a "$LOG_DIR/head.log"
-RAY_START_CMD="{ray_command} start --head --port={head_port} --ray-client-server-port={ray_client_server_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/head.log"
 
 # 执行启动命令并捕获所有输出

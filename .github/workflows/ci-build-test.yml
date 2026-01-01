@@ -332,6 +332,7 @@ jobs:
 
       - name: Run Unit Tests with Coverage
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           echo "🧪 运行单元测试并收集覆盖率..."
           echo "使用 sage-dev project test --coverage 命令"
 

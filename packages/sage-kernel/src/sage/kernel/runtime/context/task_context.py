@@ -64,9 +64,11 @@ class TaskContext(BaseRuntimeContext):
         self.stop_signal_num = graph_node.stop_signal_num
 
         # 保存JobManager的网络地址信息而不是直接引用
-        self.jobmanager_host = getattr(env, "jobmanager_host", "127.0.0.1")
+        self.jobmanager_host = getattr(env, "jobmanager_host", "sage-node-1")
         self.jobmanager_port = getattr(env, "jobmanager_port", 19001)
-
+        self.logger.debug(
+            f"JobManager address set to {self.jobmanager_host}:{self.jobmanager_port}"
+        )
         # 为本地环境保存JobManager的弱引用
         if hasattr(env, "_jobmanager") and env._jobmanager is not None:
             import weakref
@@ -263,11 +265,22 @@ class TaskContext(BaseRuntimeContext):
         source_node = signal.name
         self.logger.info(f"Task {self.name} received stop signal from {source_node}")
 
-        # Check if this is a JoinOperator that should handle stop signals specially
+        # Check if this is a JoinOperator or CoMapOperator that needs to handle stop signals specially
+        # These operators need to wait for multiple upstream stop signals before propagating
+        # Note: SinkOperator also has handle_stop_signal but it doesn't manage stop signal propagation,
+        #       it only handles function.close() - so we should NOT return early for Sink
         if hasattr(self, "operator") and hasattr(self.operator, "handle_stop_signal"):  # type: ignore[attr-defined]
-            # Let the operator handle the stop signal itself
-            self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
-            return
+            # Check if operator's handle_stop_signal accepts 'signal' parameter
+            # JoinOperator and CoMapOperator accept it, SinkOperator doesn't
+            import inspect
+
+            sig = inspect.signature(self.operator.handle_stop_signal)  # type: ignore[attr-defined]
+            if "signal" in sig.parameters:
+                # This is JoinOperator/CoMapOperator that manages its own stop signal propagation
+                self.operator.handle_stop_signal(signal=signal)  # type: ignore[attr-defined]
+                return
+            # For SinkOperator (no 'signal' param), continue to normal stop signal handling
+            # Note: SinkOperator.handle_stop_signal() is called separately by BaseTask._handle_sink_stop_signal()
 
         # Initialize stop signal tracking attributes if they don't exist
         if not hasattr(self, "num_expected_stop_signals"):

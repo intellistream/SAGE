@@ -84,7 +84,11 @@ def execute_remote_command(host: str, port: int, command: str, timeout: int = 60
 
 
 def get_conda_init_code(conda_env: str = "sage") -> str:
-    """获取Conda环境初始化代码"""
+    """获取Conda环境初始化代码
+
+    支持 base 环境和自定义环境（如 sage）。
+    base 环境的路径是 $CONDA_BASE/bin，其他环境是 $CONDA_BASE/envs/{env}/bin。
+    """
     return f"""
 # 多种conda安装路径尝试
 CONDA_BASE=""
@@ -118,8 +122,14 @@ fi
 
 echo "[SUCCESS] 已激活conda环境: {conda_env}"
 
-# 设置 RAY_CMD 变量（使用 conda 环境中的 ray）
-RAY_CMD="$CONDA_BASE/envs/{conda_env}/bin/ray"
+# 设置 RAY_CMD 变量（根据环境类型选择正确路径）
+# base 环境: $CONDA_BASE/bin/ray
+# 其他环境: $CONDA_BASE/envs/{conda_env}/bin/ray
+if [ "{conda_env}" = "base" ]; then
+    RAY_CMD="$CONDA_BASE/bin/ray"
+else
+    RAY_CMD="$CONDA_BASE/envs/{conda_env}/bin/ray"
+fi
 if [ ! -f "$RAY_CMD" ]; then
     # 如果 conda env 中没有 ray，尝试使用 PATH 中的
     RAY_CMD=$(which ray 2>/dev/null || echo "ray")
@@ -148,18 +158,33 @@ def start_workers():
     worker_bind_host = worker_config.get("bind_host", "localhost")
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    # 读取 CPU/GPU 资源限制配置（用于容器环境）
+    worker_num_cpus = worker_config.get("num_cpus")
+    worker_num_gpus = worker_config.get("num_gpus")
 
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     typer.echo("📋 配置信息:")
     typer.echo(f"   Head节点: {head_host}:{head_port}")
     typer.echo(f"   Worker节点: {len(workers)} 个")
+    if worker_num_cpus is not None:
+        typer.echo(f"   Worker CPUs: {worker_num_cpus}")
+    if worker_num_gpus is not None:
+        typer.echo(f"   Worker GPUs: {worker_num_gpus}")
     typer.echo(f"   Worker绑定主机: {worker_bind_host}")
 
     success_count = 0
     import socket
 
     total_count = len(workers)
+
+    # 构建 CPU/GPU 资源限制参数（用于容器环境）
+    resource_args = ""
+    if worker_num_cpus is not None:
+        resource_args += f" --num-cpus={worker_num_cpus}"
+    if worker_num_gpus is not None:
+        resource_args += f" --num-gpus={worker_num_gpus}"
 
     for i, (host, port) in enumerate(workers, 1):
         # Resolve hostname to IP to ensure worker binds to the correct interface
@@ -251,7 +276,7 @@ fi
 
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
-RAY_START_CMD="$RAY_CMD start --address={head_host}:{head_port} --node-ip-address=$NODE_IP"
+RAY_START_CMD="$RAY_CMD start --address={head_host}:{head_port} --node-ip-address=$NODE_IP{resource_args}"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
 # 执行Ray启动命令并捕获输出和退出码
@@ -325,6 +350,7 @@ def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     success_count = 0
@@ -435,6 +461,7 @@ def status_workers():
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     running_count = 0
@@ -614,7 +641,17 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
         worker_bind_host = worker_config.get("bind_host", "localhost")
         worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
         worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+        worker_num_cpus = worker_config.get("num_cpus")
+        worker_num_gpus = worker_config.get("num_gpus")
+        remote_config.get("ray_command") or "ray"
         conda_env = remote_config.get("conda_env", "sage")
+
+        # 构建 CPU/GPU 资源限制参数（用于容器环境）
+        resource_args = ""
+        if worker_num_cpus is not None:
+            resource_args += f" --num-cpus={worker_num_cpus}"
+        if worker_num_gpus is not None:
+            resource_args += f" --num-gpus={worker_num_gpus}"
 
         # 解析主机名为IP，避免 --node-ip-address 传入不可用的占位值
         import socket
@@ -672,7 +709,7 @@ export RAY_DISABLE_IMPORT_WARNING=1
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
 
-RAY_START_CMD="$RAY_CMD start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
+RAY_START_CMD="$RAY_CMD start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR{resource_args}"
 
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
@@ -746,6 +783,7 @@ def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为
 
     worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
     worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    remote_config.get("ray_command") or "ray"
     conda_env = remote_config.get("conda_env", "sage")
 
     stop_command = f'''set +e
