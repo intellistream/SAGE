@@ -312,6 +312,15 @@ check_specific_issues() {
 fix_pip_missing() {
     echo -e "\n${TOOL_MARK} 修复 pip 缺失问题..."
 
+    # CI 环境检测：如果在 CI 中且 pip 可用，不需要创建 conda 环境
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+        if command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1; then
+            echo -e "  ${INFO_MARK} CI 环境检测到 pip 可用，跳过 conda 环境创建"
+            log_message "INFO" "CI environment detected with pip available, skipping conda setup"
+            return 0
+        fi
+    fi
+
     # 检查是否已有 conda（包括未加入 PATH 的情况）
     local conda_cmd=""
     if command -v conda >/dev/null 2>&1; then
