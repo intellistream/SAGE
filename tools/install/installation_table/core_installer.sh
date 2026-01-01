@@ -51,6 +51,70 @@ fi
 # 设置pip命令
 PIP_CMD="${PIP_CMD:-pip3}"
 
+# ============================================================================
+# vLLM 依赖管理辅助函数
+# ============================================================================
+
+# 版本比较函数（语义版本）
+version_gte() {
+    # 比较 $1 >= $2（语义版本）
+    # 返回 0（true）如果 $1 >= $2，否则返回 1（false）
+    local ver1="$1"
+    local ver2="$2"
+
+    # 移除版本号中的非数字前缀（如 v2.7.0 -> 2.7.0）
+    ver1="${ver1#v}"
+    ver2="${ver2#v}"
+
+    # 使用 Python 进行语义版本比较（更可靠）
+    python3 -c "
+from packaging import version
+import sys
+try:
+    result = version.parse('$ver1') >= version.parse('$ver2')
+    sys.exit(0 if result else 1)
+except Exception:
+    # 如果 packaging 不可用，使用简单字符串比较
+    sys.exit(0 if '$ver1' >= '$ver2' else 1)
+" 2>/dev/null
+    return $?
+}
+
+# 检查 torch 版本兼容性
+check_torch_compatibility_before_vllm() {
+    local required_ver="2.7.0"
+    local existing_torch_ver=""
+
+    # 检查现有 torch 版本
+    if existing_torch_ver=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null); then
+        # 移除版本号中的 +cu121 等后缀
+        existing_torch_ver="${existing_torch_ver%%+*}"
+
+        echo -e "${INFO_MARK} 检测到现有 torch 版本: $existing_torch_ver"
+        log_info "检测到现有 torch 版本: $existing_torch_ver" "INSTALL"
+
+        # 检查是否满足 vLLM 要求 (>= 2.7.0)
+        if version_gte "$existing_torch_ver" "$required_ver"; then
+            echo -e "${CHECK} 现有 torch 版本满足 vLLM 要求（>= $required_ver）"
+            log_info "torch 版本兼容: $existing_torch_ver >= $required_ver" "INSTALL"
+            return 0  # 兼容
+        else
+            echo -e "${WARNING} 现有 torch 版本过低（$existing_torch_ver < $required_ver）"
+            echo -e "${INFO_MARK} 将在安装 vLLM 时升级 torch"
+            log_warn "torch 版本过低，需要升级: $existing_torch_ver -> >= $required_ver" "INSTALL"
+            return 1  # 需要升级
+        fi
+    else
+        echo -e "${INFO_MARK} 未检测到 torch，将随 vLLM 一起安装"
+        log_info "未检测到 torch，将安装 >= $required_ver" "INSTALL"
+        return 1  # 需要安装
+    fi
+}
+
+# ============================================================================
+# vLLM 安装函数
+# ============================================================================
+
 # 从本地源码安装 vLLM
 # vLLM 源码位于 packages/sage-common/src/sage/common/components/sage_llm/sageLLM/engines/vllm
 install_vllm_from_source() {
@@ -116,89 +180,36 @@ install_vllm_from_source() {
 }
 
 # 安装 vLLM 运行时依赖（基于 optional-dependencies[vllm]）
+# 智能选择：如果 torch 已满足要求，使用 vllm-minimal；否则使用 vllm（含 torch）
 install_vllm_optional_dependencies() {
     local pip_args="$1"
-    local pyproject="packages/sage-common/pyproject.toml"
+
+    # 检查 torch 兼容性，决定使用哪个 extra
     local extra_name="vllm"
-    local python_cmd="${PYTHON_CMD:-python3}"
-
-    if [ ! -f "$pyproject" ]; then
-        log_warn "跳过 vLLM 依赖安装：找不到 $pyproject" "INSTALL"
-        return 0
+    if check_torch_compatibility_before_vllm; then
+        extra_name="vllm-minimal"
+        echo -e "${INFO_MARK} 使用 vllm-minimal（不含 torch，复用现有版本）"
+        log_info "使用 vllm-minimal extra（torch 已满足要求）" "INSTALL"
+    else
+        extra_name="vllm"
+        echo -e "${INFO_MARK} 使用 vllm（含 torch >= 2.7.0）"
+        log_info "使用 vllm extra（包含 torch 依赖）" "INSTALL"
     fi
 
-    local deps_output
-    if ! deps_output=$(
-        PYPROJECT_PATH="$pyproject" \
-        EXTRA_NAME="$extra_name" \
-        "$python_cmd" - <<'PY' 2>/dev/null
-import os
-import re
-from pathlib import Path
+    # 使用简化的安装方式
+    echo -e "${DIM}  安装 vLLM 依赖（extra: $extra_name）...${NC}"
+    log_info "开始安装 vLLM 依赖: isage-common[$extra_name]" "INSTALL"
 
-pyproject = Path(os.environ['PYPROJECT_PATH'])
-extra_name = os.environ['EXTRA_NAME']
-if not pyproject.exists():
-    raise SystemExit(0)
+    local install_cmd="$PIP_CMD install 'isage-common[$extra_name]' $pip_args"
 
-text = pyproject.read_text(encoding='utf-8')
-pattern = re.compile(rf"\b{re.escape(extra_name)}\s*=\s*\[(.*?)\]", re.S)
-match = pattern.search(text)
-if not match:
-    raise SystemExit(0)
-
-deps_block = match.group(1)
-deps = []
-for raw_line in deps_block.splitlines():
-    line = raw_line.strip()
-    if not line or line.startswith('#'):
-        continue
-    if line.endswith(','):
-        line = line[:-1].strip()
-    if line.startswith(('"', "'")) and line.endswith(('"', "'")) and len(line) >= 2:
-        line = line[1:-1]
-    if line:
-        deps.append(line)
-
-print("\n".join(deps))
-PY
-    ); then
-        log_warn "解析 vLLM 可选依赖失败" "INSTALL"
-        return 1
-    fi
-
-    if [ -z "$deps_output" ]; then
-        log_warn "未在 pyproject.toml 中找到 vLLM 可选依赖" "INSTALL"
-        return 0
-    fi
-
-    # 转为数组（逐行）
-    local IFS=$'\n'
-    local vllm_deps=($deps_output)
-    IFS=' '
-
-    if [ ${#vllm_deps[@]} -eq 0 ]; then
-        log_warn "vLLM 依赖列表为空" "INSTALL"
-        return 0
-    fi
-
-    echo -e "${DIM}  安装 vLLM 运行时依赖 (${#vllm_deps[@]} 个)...${NC}"
-    log_info "开始安装 vLLM 运行时依赖: ${vllm_deps[*]}" "INSTALL"
-
-    # 构建 pip 安装命令（依赖包名需要用引号包裹，避免 >= 被解释为重定向）
-    local pip_cmd="$PIP_CMD install"
-    for dep in "${vllm_deps[@]}"; do
-        pip_cmd+=" '${dep}'"
-    done
-    pip_cmd+=" $pip_args"
-
-    if log_pip_install_with_progress "INSTALL" "vLLM" "$pip_cmd"; then
+    if log_pip_install_with_progress "INSTALL" "vLLM" "$install_cmd"; then
         log_success "vLLM 运行时依赖安装完成" "INSTALL"
         echo -e "${CHECK} vLLM 运行时依赖安装完成"
         return 0
     else
-        log_warn "vLLM 运行时依赖安装失败，可稍后运行 pip install 'isage-common[vllm]'" "INSTALL"
-        echo -e "${WARNING} vLLM 依赖安装失败，可稍后运行: pip install 'isage-common[vllm]'${NC}"
+        log_warn "vLLM 运行时依赖安装失败" "INSTALL"
+        echo -e "${WARNING} vLLM 依赖安装失败"
+        echo -e "${DIM}   可稍后手动运行: pip install 'isage-common[$extra_name]'${NC}"
         return 1
     fi
 }

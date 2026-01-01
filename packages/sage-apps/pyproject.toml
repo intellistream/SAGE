@@ -65,7 +65,7 @@ video = [
     "opencv-python-headless>=4.5.0",
     "torch>=2.7.0,<3.0.0",
     "torchvision>=0.22.0,<1.0.0",
-    "transformers>=4.52.0,<4.56.0",
+    "transformers>=4.52.0,<4.58.0",  # 统一到 vllm 0.12.0 兼容版本
 ]
 medical = [
     "pillow>=10.0.0",

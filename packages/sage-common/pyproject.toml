@@ -47,10 +47,21 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
+# Minimal vLLM support (without torch, for users who already have torch installed)
+vllm-minimal = [
+    "vllm>=0.10.1,<0.13",
+]
+
+# Full vLLM support (includes torch)
+# vLLM 0.12.x requires torch >= 2.4.0, transformers >= 4.56.0
 vllm = [
     "vllm>=0.10.1,<0.13",
-    # vLLM 0.12.x requires torch >= 2.4.0, transformers >= 4.56.0
-    "torch>=2.4.0",
+    "torch>=2.7.0,<3.0.0",
+]
+
+# Standalone torch (for other components that need it)
+torch = [
+    "torch>=2.7.0,<3.0.0",
 ]
 
 [project.urls]

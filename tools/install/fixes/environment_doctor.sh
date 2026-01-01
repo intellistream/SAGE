@@ -180,16 +180,27 @@ check_package_manager_conflicts() {
     for package in "numpy" "torch" "transformers" "scipy"; do
         local conda_installed=""
         local pip_installed=""
+        local is_pypi_in_conda=false
 
         if [ "$conda_available" = "true" ]; then
-            conda_installed=$(conda list "$package" 2>/dev/null | grep "^$package" | head -1 | awk '{print $2}' || echo "")
+            # 检查 conda list 输出，如果是 pypi_0 则表示这是 conda 记录的 pip 包，不是真正的冲突
+            local conda_info=$(conda list "$package" 2>/dev/null | grep "^$package" | head -1)
+            if [ -n "$conda_info" ]; then
+                conda_installed=$(echo "$conda_info" | awk '{print $2}')
+                # 检查是否是 pypi 源（第4列包含 pypi）
+                if echo "$conda_info" | awk '{print $4}' | grep -q "pypi"; then
+                    is_pypi_in_conda=true
+                fi
+            fi
         fi
 
         if [ "$pip_available" = "true" ]; then
             pip_installed=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
         fi
 
-        if [ -n "$conda_installed" ] && [ -n "$pip_installed" ] && [ "$conda_installed" != "$pip_installed" ]; then
+        # 只有在真正冲突时才报告（conda 管理的包 vs pip 管理的包，且版本不同）
+        # 如果 conda 只是记录了 pip 安装（pypi_0），则不算冲突
+        if [ -n "$conda_installed" ] && [ -n "$pip_installed" ] && [ "$conda_installed" != "$pip_installed" ] && [ "$is_pypi_in_conda" = false ]; then
             mixed_packages+=("$package(conda:$conda_installed,pip:$pip_installed)")
             report_issue "mixed_package_$package" "包 $package 同时被 conda 和 pip 管理，版本不一致" "major"
         fi
@@ -684,13 +695,53 @@ except Exception:
 fix_mixed_packages() {
     echo -e "\n${TOOL_MARK} 清理包管理器冲突..."
 
+    # 检测是否在 conda 环境中
+    local in_conda=false
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ] || [ -n "${CONDA_PREFIX:-}" ]; then
+        in_conda=true
+    fi
+
+    # 关键包列表
     local packages_to_fix=("numpy" "torch" "transformers")
 
     for package in "${packages_to_fix[@]}"; do
-        # 如果conda和pip都有，优先使用pip
-        if conda list "$package" >/dev/null 2>&1 && pip3 show "$package" >/dev/null 2>&1; then
-            echo -e "  清理 $package 的 conda 安装..."
-            conda uninstall "$package" -y >/dev/null 2>&1 || true
+        local conda_ver=""
+        local pip_ver=""
+
+        # 检查 conda 版本
+        if command -v conda >/dev/null 2>&1; then
+            conda_ver=$(conda list "^${package}$" 2>/dev/null | grep "^${package}" | head -1 | awk '{print $2}' || echo "")
+        fi
+
+        # 检查 pip 版本
+        if command -v pip3 >/dev/null 2>&1; then
+            pip_ver=$(pip3 show "$package" 2>/dev/null | grep "^Version:" | awk '{print $2}' || echo "")
+        fi
+
+        # 如果两者都存在且版本不同，需要清理
+        if [ -n "$conda_ver" ] && [ -n "$pip_ver" ] && [ "$conda_ver" != "$pip_ver" ]; then
+            echo -e "  发现冲突: $package (conda:$conda_ver vs pip:$pip_ver)"
+
+            if [ "$in_conda" = true ]; then
+                # 在 conda 环境中，移除 conda 版本，保留 pip 版本
+                echo -e "  → 移除 conda 版本，保留 pip 版本..."
+                conda remove --force -y "$package" >/dev/null 2>&1 || true
+
+                # 确保 pip 版本存在且正确
+                if [ -z "$pip_ver" ]; then
+                    echo -e "  → 重新安装 pip 版本..."
+                    pip3 install --no-cache-dir "$package" >/dev/null 2>&1 || true
+                fi
+            else
+                # 非 conda 环境，直接使用 pip
+                echo -e "  → 统一使用 pip 管理..."
+                if command -v conda >/dev/null 2>&1; then
+                    conda remove --force -y "$package" >/dev/null 2>&1 || true
+                fi
+                pip3 install --upgrade --no-cache-dir "$package" >/dev/null 2>&1 || true
+            fi
+
+            echo -e "  ${GREEN}✓${NC} $package 冲突已清理"
         fi
     done
 

@@ -103,8 +103,8 @@ dev = [
 # Frontend 依赖
 frontend = [
     "pydantic[email]>=2.10.0,<3.0.0",
-    # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
-    "fastapi>=0.115,<0.116",
+    # FastAPI 0.115.x 统一版本
+    "fastapi>=0.115.0,<1.0.0",
     "starlette>=0.40,<0.47",
     # Uvicorn 需要 h11
     "uvicorn[standard]>=0.34.0,<1.0.0",
