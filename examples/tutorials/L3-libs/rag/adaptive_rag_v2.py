@@ -23,7 +23,6 @@ Adaptive RAG v2 - 自适应检索增强生成（保留旧版分流逻辑）
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 import time
@@ -54,6 +53,7 @@ try:
     from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
 
     HAS_MEMORY_MANAGER = True
+    _ = MemoryManager  # 标记为已使用（可选功能）
 except ImportError:
     HAS_MEMORY_MANAGER = False
     print("⚠️ MemoryManager 不可用，使用简单内存向量库")
@@ -206,25 +206,6 @@ class SimpleVectorDB:
         a_arr = np.array(a)
         b_arr = np.array(b)
         return float(np.dot(a_arr, b_arr) / (np.linalg.norm(a_arr) * np.linalg.norm(b_arr)))
-        """向量检索"""
-        # 计算查询的 embedding
-        response = self.client.embeddings.create(input=query, model=self.model)
-        query_embedding = response.data[0].embedding
-
-        # 计算余弦相似度
-        similarities = []
-        for i, emb in enumerate(self.embeddings):
-            sim = self._cosine_similarity(query_embedding, emb)
-            similarities.append((i, sim))
-
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        return [self.documents[i] for i, _ in similarities[:top_k]]
-
-    def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
-        """计算余弦相似度"""
-        a_arr = np.array(a)
-        b_arr = np.array(b)
-        return float(np.dot(a_arr, b_arr) / (np.linalg.norm(a_arr) * np.linalg.norm(b_arr)))
 
 
 # ============================================================
@@ -250,7 +231,7 @@ class QuestionSource(SourceFunction):
             return None
         question = self.questions[self.index]
         self.index += 1
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"📝 问题 {self.index}: {question}")
         return {"question": question}
 
@@ -269,10 +250,7 @@ class RoutePromptFunction(MapFunction):
     def execute(self, data: dict) -> dict:
         question = data["question"]
         prompt = ROUTE_PROMPT_TEMPLATE.format(question=question)
-        return {
-            "question": question,
-            "messages": [{"role": "user", "content": prompt}]
-        }
+        return {"question": question, "messages": [{"role": "user", "content": prompt}]}
 
 
 # ============================================================
@@ -293,7 +271,7 @@ class LLMGenerator(MapFunction):
         client = get_llm_client()
         try:
             response = client.chat(messages, temperature=0, max_tokens=100)
-            llm_output = response.content if hasattr(response, 'content') else str(response)
+            llm_output = response.content if hasattr(response, "content") else str(response)
         except Exception as e:
             print(f"⚠️ LLM 调用失败: {e}")
             llm_output = '{"datasource": "web_search"}'
@@ -419,7 +397,7 @@ class QAGenerator(MapFunction):
         client = get_llm_client()
         try:
             response = client.chat(messages, temperature=0.7, max_tokens=500)
-            answer = response.content if hasattr(response, 'content') else str(response)
+            answer = response.content if hasattr(response, "content") else str(response)
         except Exception as e:
             answer = f"生成回答时出错: {e}"
 
@@ -455,11 +433,11 @@ class WebSearchAgent(MapFunction):
                     temperature=0.7,
                     max_tokens=500,
                 )
-                answer = response.content if hasattr(response, 'content') else str(response)
+                answer = response.content if hasattr(response, "content") else str(response)
             except Exception as e:
                 answer = f"回答生成失败: {e}"
 
-        print(f"🤖 Web 回答完成")
+        print("🤖 Web 回答完成")
         return {"question": question, "answer": answer, "source": "Web搜索/LLM直答"}
 
     def _bocha_search(self, question: str, api_key: str) -> str:
@@ -481,13 +459,18 @@ class WebSearchAgent(MapFunction):
                     # 用 LLM 生成回答
                     client = get_llm_client()
                     response = client.chat(
-                        [{"role": "user", "content": QA_PROMPT_TEMPLATE.format(
-                            context=context, question=question
-                        )}],
+                        [
+                            {
+                                "role": "user",
+                                "content": QA_PROMPT_TEMPLATE.format(
+                                    context=context, question=question
+                                ),
+                            }
+                        ],
                         temperature=0.7,
                         max_tokens=500,
                     )
-                    return response.content if hasattr(response, 'content') else str(response)
+                    return response.content if hasattr(response, "content") else str(response)
             return f"未找到关于'{question}'的搜索结果。"
         except Exception as e:
             return f"Web 搜索失败: {e}"
@@ -509,11 +492,11 @@ class TerminalSink(SinkFunction):
         answer = data.get("answer", "")
         source = data.get("source", "未知")
 
-        print(f"\n{'─'*60}")
+        print(f"\n{'─' * 60}")
         print(f"❓ 问题: {question}")
         print(f"📚 来源: {source}")
         print(f"💬 回答: {answer}")
-        print(f"{'─'*60}\n")
+        print(f"{'─' * 60}\n")
 
 
 # ============================================================
@@ -563,9 +546,9 @@ def run_adaptive_rag_v2():
     # 旧版: env.from_source(FileSource).map(RoutePromptFunction).map(OpenAIGenerator).map(RouteSplitter)
     query_stream = (
         env.from_source(QuestionSource, questions)
-           .map(RoutePromptFunction)  # 构造路由 prompt
-           .map(LLMGenerator)          # LLM 判断路由
-           .flatmap(RouteSplitter)     # 打上路由标签（替代 side_output）
+        .map(RoutePromptFunction)  # 构造路由 prompt
+        .map(LLMGenerator)  # LLM 判断路由
+        .flatmap(RouteSplitter)  # 打上路由标签（替代 side_output）
     )
 
     # ========================================
@@ -577,13 +560,12 @@ def run_adaptive_rag_v2():
     #               .map(QAPromptor)
     #               .map(OpenAIGenerator)
     #               .sink(TerminalSink)
-    vector_stream = (
-        query_stream
-        .filter(VectorRouteFilter)  # 替代 .side_output("vector")
-        .map(DenseRetriever)        # 向量检索
-        .map(QAPromptor)            # 构造 QA prompt
-        .map(QAGenerator)           # 生成回答
-        .sink(TerminalSink)         # 输出
+    _vector_stream = (
+        query_stream.filter(VectorRouteFilter)  # 替代 .side_output("vector")
+        .map(DenseRetriever)  # 向量检索
+        .map(QAPromptor)  # 构造 QA prompt
+        .map(QAGenerator)  # 生成回答
+        .sink(TerminalSink)  # 输出
     )
 
     # ========================================
@@ -593,11 +575,10 @@ def run_adaptive_rag_v2():
     #   query_stream.side_output("web")
     #               .map(BaseAgent)
     #               .map(TerminalSink)
-    web_stream = (
-        query_stream
-        .filter(WebRouteFilter)    # 替代 .side_output("web")
-        .map(WebSearchAgent)       # Web 搜索 + LLM 回答
-        .sink(TerminalSink)        # 输出
+    _web_stream = (
+        query_stream.filter(WebRouteFilter)  # 替代 .side_output("web")
+        .map(WebSearchAgent)  # Web 搜索 + LLM 回答
+        .sink(TerminalSink)  # 输出
     )
 
     # 运行
@@ -608,6 +589,7 @@ def run_adaptive_rag_v2():
     except Exception as e:
         print(f"❌ 处理出错: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         env.close()

@@ -123,7 +123,7 @@ clean_logs_on_node() {
     local node="$1"
     local log_dir="~/SAGE/.sage/logs"
     local cmd="ssh $node 'rm -rf $log_dir/*' 2>/dev/null"
-    
+
     if $DRY_RUN; then
         echo "  [DRY-RUN] $cmd"
         return 0
@@ -142,33 +142,33 @@ clean_all_logs() {
     echo -e "${BLUE}║       SAGE Cluster Log Cleanup                 ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
     echo ""
-    
+
     if $DRY_RUN; then
         echo -e "${YELLOW}[DRY-RUN MODE - No changes will be made]${NC}"
     fi
     echo ""
-    
+
     # 获取 worker 节点列表
     echo -e "${BLUE}Parsing cluster configuration...${NC}"
     local workers
     workers=$(parse_workers)
-    
+
     if [[ -z "$workers" ]]; then
         echo -e "${RED}Error: No worker nodes found in $CLUSTER_CONFIG${NC}"
         exit 1
     fi
-    
+
     local worker_count=$(echo "$workers" | wc -l)
     echo -e "Found ${GREEN}$worker_count${NC} worker node(s)"
     echo ""
-    
+
     local success_count=0
     local fail_count=0
-    
+
     for node in $workers; do
         local hostname=$(echo "$node" | cut -d@ -f2)
         echo -ne "${BLUE}Cleaning logs on $hostname...${NC} "
-        
+
         if clean_logs_on_node "$node"; then
             echo -e "${GREEN}✓${NC}"
             success_count=$((success_count + 1))
@@ -177,7 +177,7 @@ clean_all_logs() {
             fail_count=$((fail_count + 1))
         fi
     done
-    
+
     echo ""
     echo -e "${BLUE}════════════════════════════════════════════════${NC}"
     if [[ $fail_count -eq 0 ]]; then
@@ -238,7 +238,7 @@ main() {
         clean_all_logs
         exit 0
     fi
-    
+
     echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║       SAGE Cluster Code Sync                   ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"

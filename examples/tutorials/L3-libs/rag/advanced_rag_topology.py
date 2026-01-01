@@ -76,7 +76,6 @@ Advanced RAG Topology - 完整 RAG 系统拓扑结构
 - L6 (cli/studio): 用户界面和可视化
 """
 
-import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -314,7 +313,7 @@ class VectorRetriever(MapFunction):
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         query = data["query"]
-        query_vector = data.get("query_vector")
+        _query_vector = data.get("query_vector")  # 保留以备将来使用
 
         # 简单的关键词匹配检索（演示用）
         retrieved_docs = []
@@ -438,7 +437,9 @@ class DocumentReranker(MapFunction):
         data["retrieved_documents"] = [item["doc"] for item in reranked_docs]
         data["rerank_scores"] = [item["rerank_score"] for item in reranked_docs]
 
-        self.logger.info(f"📋 [Reranker] 重排序完成, top doc score: {reranked_docs[0]['rerank_score'] if reranked_docs else 0}")
+        self.logger.info(
+            f"📋 [Reranker] 重排序完成, top doc score: {reranked_docs[0]['rerank_score'] if reranked_docs else 0}"
+        )
 
         return data
 
@@ -501,10 +502,10 @@ class ContextRefiner(MapFunction):
                 refined_context = result.get("compressed_text", full_context)
             except Exception as e:
                 self.logger.warning(f"Refiner 压缩失败: {e}")
-                refined_context = full_context[:self.budget]
+                refined_context = full_context[: self.budget]
         else:
             # 简单截断
-            refined_context = full_context[:self.budget]
+            refined_context = full_context[: self.budget]
 
         data["refined_context"] = refined_context
         data["original_length"] = len(full_context)
@@ -530,7 +531,9 @@ class RAGPromptor(MapFunction):
 
     def __init__(self, template: str | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.template = template or """请根据以下背景信息回答用户问题。
+        self.template = (
+            template
+            or """请根据以下背景信息回答用户问题。
 
 背景信息：
 {context}
@@ -538,6 +541,7 @@ class RAGPromptor(MapFunction):
 用户问题：{query}
 
 请给出准确、简洁的回答："""
+        )
         self.logger = CustomLogger.get_logger(self.__class__.__name__)
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -646,7 +650,8 @@ class ResponseTSDBLogger(MapFunction):
             "query_id": data.get("query_id"),
             "answer_length": len(data.get("answer", "")),
             "generation_latency": data.get("generation_latency", 0),
-            "compression_ratio": data.get("refined_length", 0) / max(data.get("original_length", 1), 1),
+            "compression_ratio": data.get("refined_length", 0)
+            / max(data.get("original_length", 1), 1),
         }
 
         self.logger.info(f"📊 [TSDB] 记录响应指标: latency={log_entry['generation_latency']:.2f}s")
@@ -687,7 +692,9 @@ class RAGResultSink(SinkFunction):
         print("-" * 70)
         print(f"💬 回答: {answer}")
         print("-" * 70)
-        print(f"📊 指标: latency={metrics.get('generation_latency', 0):.2f}s, compression={metrics.get('compression_ratio', 0):.2%}")
+        print(
+            f"📊 指标: latency={metrics.get('generation_latency', 0):.2f}s, compression={metrics.get('compression_ratio', 0):.2%}"
+        )
         print("=" * 70 + "\n")
 
         self.results.append(data)
