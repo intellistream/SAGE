@@ -616,6 +616,12 @@ else:
                 log_info "外部依赖安装成功" "INSTALL"
                 echo -e "${CHECK} 外部依赖安装完成"
 
+                # 保存 hash 标记，避免下次重复安装（提前保存，即使后续步骤失败也能复用缓存）
+                if [ -n "$current_hash" ]; then
+                    echo "$current_hash" > "$external_deps_marker"
+                    log_info "已保存外部依赖安装标记" "INSTALL"
+                fi
+
                 # 强制升级关键包到正确版本（解决依赖解析问题）
                 echo -e "${DIM}     验证并升级关键包版本...${NC}"
                 log_info "强制安装 transformers 和 peft 到兼容版本" "INSTALL"
@@ -626,12 +632,6 @@ else:
                 if log_command "INSTALL" "Deps" "$PIP_CMD install 'transformers==4.52.0' 'tokenizers>=0.21,<0.22' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
                     log_info "关键包版本升级成功" "INSTALL"
                     echo -e "${CHECK} 关键包版本验证完成"
-
-                    # 保存 hash 标记，避免下次重复安装
-                    if [ -n "$current_hash" ]; then
-                        echo "$current_hash" > "$external_deps_marker"
-                        log_info "已保存外部依赖安装标记" "INSTALL"
-                    fi
                 else
                     log_warn "关键包升级失败，继续安装..." "INSTALL"
                     echo -e "${YELLOW}⚠️  关键包升级失败，可能导致运行时错误${NC}"
