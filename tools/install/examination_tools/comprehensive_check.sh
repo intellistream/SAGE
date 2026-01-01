@@ -17,7 +17,7 @@ SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
 SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
 CI="${CI:-}"
 GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
-
+WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-}"
 # ============================================================================
 # 预检查（静默检查，用于决定输出格式）
 # ============================================================================

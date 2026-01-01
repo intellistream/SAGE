@@ -10,7 +10,47 @@ from collections import defaultdict
 from pathlib import Path
 
 
-def extract_deps(package_dirs: list[str]) -> list[str]:
+def extract_optional_deps(pyproject_path: Path, extra_name: str) -> list[str]:
+    """从 pyproject.toml 的 [project.optional-dependencies] 中提取指定 extra 的依赖"""
+    if not pyproject_path.exists():
+        return []
+
+    content = pyproject_path.read_text(encoding="utf-8")
+
+    # 匹配 extra_name = [...] 块
+    pattern = re.compile(rf"\b{re.escape(extra_name)}\s*=\s*\[(.*?)\]", re.DOTALL)
+    match = pattern.search(content)
+
+    if not match:
+        return []
+
+    deps_block = match.group(1)
+    deps = []
+
+    for raw_line in deps_block.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        # 移除行内注释
+        if "#" in line:
+            line = line.split("#")[0].strip()
+
+        # 移除尾部逗号
+        if line.endswith(","):
+            line = line[:-1].strip()
+
+        # 移除引号
+        if line.startswith(('"', "'")) and line.endswith(('"', "'")):
+            line = line[1:-1]
+
+        if line:
+            deps.append(line)
+
+    return deps
+
+
+def extract_deps(package_dirs: list[str], include_vllm: bool = False) -> list[str]:
     """提取并去重依赖"""
     dep_versions = defaultdict(list)
 
@@ -40,6 +80,19 @@ def extract_deps(package_dirs: list[str]) -> list[str]:
                         if pkg_match:
                             pkg_name = pkg_match.group(1)
                             dep_versions[pkg_name].append(dep)
+
+    # 如果需要，从 sage-common 提取 vLLM 可选依赖
+    if include_vllm:
+        sage_common_pyproject = Path("packages/sage-common/pyproject.toml")
+        vllm_deps = extract_optional_deps(sage_common_pyproject, "vllm")
+        if vllm_deps:
+            print(f"  提取了 {len(vllm_deps)} 个 vLLM 可选依赖", file=sys.stderr)
+            for dep in vllm_deps:
+                # 提取包名
+                pkg_match = re.match(r"^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)", dep)
+                if pkg_match:
+                    pkg_name = pkg_match.group(1)
+                    dep_versions[pkg_name].append(dep)
 
     # 去重并选择最严格的版本约束
     external_deps = []
@@ -93,7 +146,10 @@ def main():
 
     for mode, pkg_dirs in modes.items():
         print(f"\n📦 {mode.upper()} 模式:", file=sys.stderr)
-        deps = extract_deps(pkg_dirs)
+
+        # dev/full 模式默认包含 vLLM 可选依赖
+        include_vllm = mode in ("dev", "full")
+        deps = extract_deps(pkg_dirs, include_vllm=include_vllm)
 
         output_file = output_dir / f"external-deps-{mode}.txt"
         with open(output_file, "w") as f:
@@ -104,6 +160,11 @@ def main():
 
     print("\n✅ 完成！依赖文件已生成到 .sage/ 目录", file=sys.stderr)
     print("💡 提示：修改 pyproject.toml 后需要重新运行此脚本", file=sys.stderr)
+    if "dev" in modes or "full" in modes:
+        print(
+            "💡 dev/full 模式已自动包含 vLLM 可选依赖，将在外部依赖安装时一次性安装",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":

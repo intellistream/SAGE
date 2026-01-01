@@ -23,6 +23,8 @@ SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
 LANG="${LANG:-en_US.UTF-8}"
 LC_ALL="${LC_ALL:-${LANG}}"
 LC_CTYPE="${LC_CTYPE:-${LANG}}"
+CUDA_PATH="${CUDA_PATH:-}"
+CUDA_HOME="${CUDA_HOME:-}"
 # ============================================================================
 
 MIN_DISK_SPACE_GB=5

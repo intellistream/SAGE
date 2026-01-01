@@ -1006,8 +1006,8 @@ else:
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从已安装包中提取外部依赖...${NC}"
 
-    # 执行 Python 脚本提取依赖（优化版：去重+合并版本）
-    log_debug "执行 Python 依赖提取脚本（去重优化）..." "INSTALL"
+    # 执行 Python 脚本提取依赖（优化版：去重+合并版本+vLLM可选依赖）
+    log_debug "执行 Python 依赖提取脚本（去重优化+vLLM可选依赖）..." "INSTALL"
     if $PYTHON_CMD -c "
 import sys, re
 from pathlib import Path
@@ -1019,12 +1019,13 @@ dep_versions = defaultdict(list)
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
-    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
+    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark', 'packages/sage-llm-gateway', 'packages/sage-llm-core'])
 if install_mode in ['full', 'dev']:
-    package_dirs.extend(['packages/sage-apps', 'packages/sage-gateway', 'packages/sage-studio'])
+    package_dirs.extend(['packages/sage-apps'])
 if install_mode == 'dev':
-    package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+    package_dirs.extend(['packages/sage-tools', 'packages/sage-studio'])
 
+# 提取常规依赖
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
     if not pyproject.exists(): continue
@@ -1044,6 +1045,38 @@ for pkg_dir in package_dirs:
                     if pkg_match:
                         pkg_name = pkg_match.group(1)
                         dep_versions[pkg_name].append(dep)
+
+# 在 dev/full 模式下，提取 vLLM 可选依赖
+if install_mode in ['dev', 'full']:
+    sage_common_pyproject = Path('packages/sage-common/pyproject.toml')
+    if sage_common_pyproject.exists():
+        content = sage_common_pyproject.read_text(encoding='utf-8')
+        # 匹配 vllm = [...] 块
+        pattern = re.compile(r'\\bvllm\\s*=\\s*\\[(.*?)\\]', re.DOTALL)
+        match = pattern.search(content)
+        if match:
+            vllm_deps_block = match.group(1)
+            vllm_dep_count = 0
+            for raw_line in vllm_deps_block.splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith('#'): continue
+                # 移除行内注释
+                if '#' in line:
+                    line = line.split('#')[0].strip()
+                # 移除尾部逗号
+                if line.endswith(','):
+                    line = line[:-1].strip()
+                # 移除引号
+                if line.startswith(('\"', \"'\")) and line.endswith(('\"', \"'\")):
+                    line = line[1:-1]
+                if line:
+                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', line)
+                    if pkg_match:
+                        pkg_name = pkg_match.group(1)
+                        dep_versions[pkg_name].append(line)
+                        vllm_dep_count += 1
+            if vllm_dep_count > 0:
+                print(f'[INFO] 已包含 {vllm_dep_count} 个 vLLM 可选依赖', file=sys.stderr)
 
 # 去重并选择最严格的版本约束
 external_deps = []
@@ -1116,7 +1149,14 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file
     log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
 
     echo ""
-    if [ "$install_vllm" = "true" ]; then
+    # 优化：检查外部依赖是否已包含 vLLM
+    local vllm_in_external_deps=false
+    if [ -f "$external_deps_file" ] && grep -q "^vllm" "$external_deps_file" 2>/dev/null; then
+        vllm_in_external_deps=true
+        log_info "外部依赖中已包含 vLLM，跳过单独安装" "INSTALL"
+    fi
+
+    if [ "$install_vllm" = "true" ] && [ "$vllm_in_external_deps" = false ]; then
         local vllm_from_source="${SAGE_VLLM_FROM_SOURCE:-false}"
         if [ "$vllm_from_source" = "true" ]; then
             echo -e "${BLUE}🔧 从本地源码编译安装 vLLM...${NC}"
@@ -1125,6 +1165,9 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file
             echo -e "${BLUE}🤖 安装 vLLM 运行时依赖（从 PyPI）...${NC}"
             install_vllm_optional_dependencies "$pip_args"
         fi
+    elif [ "$install_vllm" = "true" ] && [ "$vllm_in_external_deps" = true ]; then
+        echo -e "${CHECK} vLLM 运行时依赖已在外部依赖中安装，跳过单独安装"
+        log_info "vLLM 已在外部依赖阶段安装，跳过重复安装" "INSTALL"
     else
         echo -e "${DIM}跳过 vLLM 运行时依赖安装（使用 --no-vllm）${NC}"
         log_info "用户通过 --no-vllm 跳过 vLLM 依赖安装" "INSTALL"
