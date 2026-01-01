@@ -285,8 +285,9 @@ Only after consulting these READMEs should the assistant propose designs, refact
 ### ❌ NEVER Create Files in Root `docs/`
 
 - Root `docs/` is gitignored and must not contain committed files
-- Pre-commit hooks will REJECT any commits with files in `docs/`
+- Pre-commit hooks will REJECT any commits with files in root `docs/`
 - This directory should not exist in the repository
+- ✅ **Exception:** Package and submodule `docs/` directories ARE ALLOWED
 
 ### ✅ CORRECT Documentation Locations
 
@@ -295,17 +296,21 @@ Only after consulting these READMEs should the assistant propose designs, refact
 1. **User-facing docs:** `docs-public/docs_src/` (guides, tutorials, concepts)
 2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
 3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
-4. **Examples:** `examples/<name>/README.md`
-5. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
+4. **Submodule docs:** `packages/.../submodule/docs/` (sageLLM, sageFlow, sageTSDB, etc.)
+5. **Examples:** `examples/<name>/README.md`
+6. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
 
 **Rationale:**
-- Prevents confusion between `docs/` and `docs-public/`
-- Maintains single source of truth
+- Prevents confusion between root `docs/` and `docs-public/`
+- Maintains single source of truth for project-level documentation
+- Allows packages and submodules to maintain their own documentation
+- Submodules are independent Git repositories with their own version control
 - Avoids accidental gitignore of important documentation
 
 **Enforcement:**
-- Hook `markdown-files-location-check`: Rejects any `.md` files in root `docs/`
+- Hook `markdown-files-location-check`: Rejects any `.md` files in root `docs/` ONLY
 - Hook `root-directory-cleanup-check`: Flags root `docs/` directory as unauthorized
+- Package/submodule `docs/` directories are explicitly allowed and encouraged
 
 **See:** `docs-public/docs_src/dev-notes/cross-layer/documentation-policy.md` for full policy.
 

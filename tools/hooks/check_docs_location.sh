@@ -15,6 +15,7 @@ set -e
 # - Root 'docs/' is gitignored and should not be used for committed documentation
 # - All documentation must go to 'docs-public/' for centralized management
 # - Package-specific docs go in packages/<package>/docs/ or README.md
+# - Submodules can have their own docs/ directories (e.g., sageLLM/docs/, sageFlow/docs/)
 # ============================================================================
 
 # Get all markdown files (staged if in commit, or all files if --all-files)
@@ -59,8 +60,9 @@ allowed_patterns=(
 )
 
 for file in $all_md_files; do
-    # CRITICAL CHECK: Reject any file in root docs/ directory
-    if [[ "$file" == docs/* ]]; then
+    # CRITICAL CHECK: Reject any file in root docs/ directory ONLY
+    # Allow packages/*/docs/ and submodule docs/ directories
+    if [[ "$file" == "docs/"* ]] && [[ "$file" != "packages/"* ]]; then
         docs_violations="$docs_violations$file\n"
         continue
     fi
@@ -83,23 +85,28 @@ failed=false
 # Priority 1: Root docs/ violations (most critical)
 if [ -n "$docs_violations" ]; then
     echo "================================================================================================"
-    echo "❌ CRITICAL ERROR: Files detected in FORBIDDEN 'docs/' directory"
+    echo "❌ CRITICAL ERROR: Files detected in FORBIDDEN root 'docs/' directory"
     echo "================================================================================================"
     echo ""
     echo "The root 'docs/' directory is gitignored and must NOT contain committed documentation."
     echo "All documentation must be placed in 'docs-public/' or other appropriate locations."
     echo ""
-    echo "Violating files:"
+    echo "⚠️  Note: Package and submodule docs/ directories ARE ALLOWED:"
+    echo "   ✅ packages/<package>/docs/          - Package-specific documentation"
+    echo "   ✅ packages/.../submodule/docs/      - Submodule documentation (sageLLM, sageFlow, etc.)"
+    echo ""
+    echo "❌ Violating files (in ROOT docs/ directory):"
     echo -e "$docs_violations" | sed "s/^/  - /"
     echo ""
     echo "📁 Correct locations for documentation:"
     echo "  ✅ User-facing docs:     docs-public/docs_src/..."
     echo "  ✅ Developer docs:       docs-public/docs_src/dev-notes/..."
     echo "  ✅ Package-specific:     packages/<package-name>/README.md or packages/<package-name>/docs/"
+    echo "  ✅ Submodule docs:       packages/<package>/src/.../submodule/docs/ (e.g., sageLLM/docs/)"
     echo "  ✅ Examples:             examples/<name>/README.md"
     echo ""
     echo "💡 Action required:"
-    echo "   1. Move files from 'docs/' to 'docs-public/docs_src/...' (appropriate subdirectory)"
+    echo "   1. Move files from ROOT 'docs/' to 'docs-public/docs_src/...' (appropriate subdirectory)"
     echo "   2. Update any internal links/references"
     echo "   3. Remove the root 'docs/' directory entirely"
     echo ""
