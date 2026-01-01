@@ -53,7 +53,7 @@ configure_pip_mirror() {
 
     # CI环境自动禁用镜像（使用官方PyPI以确保稳定性）
     # 但如果检测到中国大陆 IP，仍然使用镜像加速
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         # 在 CI 中也尝试检测是否在中国
         if detect_mainland_china_ip; then
             export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
@@ -302,10 +302,10 @@ configure_installation_environment() {
     local conda_env_name="${3:-}"  # 可选的conda环境名
 
     # CI环境和远程部署的特殊处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         # CI环境：不设置PYTHONNOUSERSITE以提高测试速度，但仍保持用户选择的安装环境
         echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
-    elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+    elif [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ]; then
         # 远程部署环境：设置PYTHONNOUSERSITE以避免包冲突
         export PYTHONNOUSERSITE=1
         echo -e "${INFO} 远程部署环境已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"

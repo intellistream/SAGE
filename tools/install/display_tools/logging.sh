@@ -276,6 +276,10 @@ log_pip_install_with_progress() {
     local char_idx=0
     local installed_count=0
     local current_pkg=""
+    local last_keepalive=0
+    local start_time=$(date +%s)
+
+    echo -e "${DIM}   开始安装，这可能需要几分钟，请耐心等待...${NC}" >&2
 
     # 使用管道实时读取 pip 输出并更新进度
     {
@@ -301,6 +305,14 @@ log_pip_install_with_progress() {
         # 更新 spinner 动画和当前包名
         local spinner_char="${chars:$char_idx:1}"
         char_idx=$(( (char_idx + 1) % ${#chars} ))
+
+        # 保活提示（每30秒）
+        local current_time=$(date +%s)
+        local elapsed=$((current_time - start_time))
+        if [ $((current_time - last_keepalive)) -ge 30 ]; then
+            printf "\n${DIM}   [%ds] 仍在安装中...${NC}\n" "$elapsed" >&2
+            last_keepalive=$current_time
+        fi
 
         if [ -n "$current_pkg" ]; then
             # 截断过长的包名

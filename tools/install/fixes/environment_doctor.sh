@@ -339,18 +339,18 @@ fix_pip_missing() {
 
     if [ -n "$conda_cmd" ]; then
         echo -e "  ${INFO_MARK} 检测到 conda 已安装"
-        
+
         # 检查 sage 环境是否已存在
         if "$conda_cmd" env list 2>/dev/null | grep -q "^sage "; then
             echo -e "  ${GREEN}${CHECK_MARK}${NC} conda 环境 'sage' 已存在"
-            
+
             # 检查是否已经在 sage 环境中
             if [[ "${CONDA_DEFAULT_ENV:-}" == "sage" ]]; then
                 echo -e "  ${GREEN}${CHECK_MARK}${NC} 当前已在 sage 环境中，无需操作"
                 FIXES_APPLIED=$((FIXES_APPLIED + 1))
                 return 0
             fi
-            
+
             # 检查是否已配置自动激活
             local bashrc="$HOME/.bashrc"
             local sage_activate_marker="# >>> SAGE conda environment auto-activate >>>"
@@ -367,7 +367,7 @@ fi
 EOF
                 echo -e "  ${GREEN}${CHECK_MARK}${NC} 已配置终端自动激活 sage 环境"
             fi
-            
+
             echo -e "\n  ${YELLOW}${BOLD}请运行以下命令继续安装:${NC}"
             echo -e "    ${CYAN}source ~/.bashrc${NC}"
             echo -e "    ${CYAN}./quickstart.sh --dev --yes --pip${NC}"
@@ -375,7 +375,7 @@ EOF
             NEED_RESTART_SHELL=1
             return 0
         fi
-        
+
         echo -e "  ${YELLOW}建议创建新的 conda 环境来安装 SAGE:${NC}"
         echo -e "    ${DIM}conda create -n sage python=3.11 -y${NC}"
         echo -e "    ${DIM}conda activate sage${NC}"
@@ -398,12 +398,12 @@ EOF
             "$conda_cmd" config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main 2>/dev/null || true
             "$conda_cmd" config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free 2>/dev/null || true
             "$conda_cmd" config --set show_channel_urls yes 2>/dev/null || true
-            
+
             echo -e "  ${INFO_MARK} 正在创建 conda 环境..."
             # 使用 --override-channels 确保只使用清华镜像，绕过 ToS
             if "$conda_cmd" create -n sage python=3.11 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main; then
                 echo -e "  ${GREEN}${CHECK_MARK}${NC} conda 环境 'sage' 创建成功"
-                
+
                 # 配置 .bashrc 默认激活 sage 环境
                 local bashrc="$HOME/.bashrc"
                 local sage_activate_marker="# >>> SAGE conda environment auto-activate >>>"
@@ -420,7 +420,7 @@ fi
 EOF
                     echo -e "  ${GREEN}${CHECK_MARK}${NC} 已配置终端自动激活 sage 环境"
                 fi
-                
+
                 echo -e "\n  ${YELLOW}${BOLD}请运行以下命令继续安装:${NC}"
                 echo -e "    ${CYAN}source ~/.bashrc${NC}"
                 echo -e "    ${CYAN}./quickstart.sh --dev --yes --pip${NC}"
@@ -455,7 +455,7 @@ EOF
 
     if [[ ! "$response" =~ ^(n|no)$ ]]; then
         echo -e "  ${INFO_MARK} 正在下载 Miniconda..."
-        
+
         # 检测是否在中国大陆，使用清华镜像
         local miniconda_url=""
         if curl -s --connect-timeout 3 https://www.google.com >/dev/null 2>&1; then
@@ -465,18 +465,18 @@ EOF
             miniconda_url="https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-latest-Linux-x86_64.sh"
             echo -e "  ${DIM}使用清华镜像源（更快）${NC}"
         fi
-        
+
         local miniconda_script="/tmp/miniconda.sh"
 
         if wget -q --show-progress "$miniconda_url" -O "$miniconda_script"; then
             echo -e "  ${INFO_MARK} 正在安装 Miniconda 到 \$HOME/miniconda3..."
             if bash "$miniconda_script" -b -p "$HOME/miniconda3"; then
                 echo -e "  ${GREEN}${CHECK_MARK}${NC} Miniconda 安装成功"
-                
+
                 # 初始化 conda
                 eval "$("$HOME/miniconda3/bin/conda" shell.bash hook)"
                 "$HOME/miniconda3/bin/conda" init bash >/dev/null 2>&1
-                
+
                 # 配置清华镜像源（避免 ToS 问题）
                 echo -e "  ${INFO_MARK} 配置 conda 使用清华镜像源..."
                 "$HOME/miniconda3/bin/conda" config --remove channels defaults 2>/dev/null || true
@@ -484,12 +484,12 @@ EOF
                 "$HOME/miniconda3/bin/conda" config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
                 "$HOME/miniconda3/bin/conda" config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
                 "$HOME/miniconda3/bin/conda" config --set show_channel_urls yes
-                
+
                 echo -e "  ${INFO_MARK} 正在创建 conda 环境 'sage'..."
                 # 使用 --override-channels 确保只使用清华镜像，绕过 ToS
                 if "$HOME/miniconda3/bin/conda" create -n sage python=3.11 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main; then
                     echo -e "  ${GREEN}${CHECK_MARK}${NC} conda 环境 'sage' 创建成功"
-                    
+
                     # 配置 .bashrc 默认激活 sage 环境
                     local bashrc="$HOME/.bashrc"
                     local sage_activate_marker="# >>> SAGE conda environment auto-activate >>>"
@@ -506,11 +506,11 @@ fi
 EOF
                         echo -e "  ${GREEN}${CHECK_MARK}${NC} 已配置终端自动激活 sage 环境"
                     fi
-                    
+
                     FIXES_APPLIED=$((FIXES_APPLIED + 1))
                     NEED_RESTART_SHELL=1
                     log_message "FIX" "Installed Miniconda and created conda environment 'sage'"
-                    
+
                     echo -e "\n  ${YELLOW}${BOLD}请运行以下命令继续安装:${NC}"
                     echo -e "    ${CYAN}source ~/.bashrc${NC}"
                     echo -e "    ${CYAN}./quickstart.sh --dev --yes --pip${NC}"
@@ -533,7 +533,7 @@ EOF
         else
             echo -e "  ${RED}${CROSS_MARK}${NC} Miniconda 下载失败，请检查网络连接"
         fi
-        
+
         rm -f "$miniconda_script"
     fi
 
@@ -714,7 +714,7 @@ run_auto_fixes() {
 
     if [ "$AUTO_CONFIRM_FIX" = "true" ]; then
         response="y"
-    elif [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+    elif [ -n "${CI:-}" ] || [ -n "$GITHUB_ACTIONS" ]; then
         echo -e "${YELLOW}CI 环境检测到问题，跳过交互式修复${NC}"
         return 0
     else
@@ -756,7 +756,7 @@ run_auto_fixes() {
     if [ "$FIXES_APPLIED" -gt 0 ]; then
         echo -e "\n${GREEN}${BOLD}${CHECK_MARK} 修复完成${NC}"
         echo -e "  应用修复: $FIXES_APPLIED 个"
-        
+
         # 如果需要重启 shell（安装了 conda 或创建了环境）
         if [ "$NEED_RESTART_SHELL" -eq 1 ]; then
             echo -e "\n${YELLOW}${BOLD}⚠️  请重新加载终端配置${NC}"
@@ -769,14 +769,14 @@ run_auto_fixes() {
             echo -e "    ${CYAN}./quickstart.sh --dev --yes --pip${NC}"
             return 42  # 特殊退出码，表示需要重启 shell
         fi
-        
+
         echo -e "\n${INFO_MARK} 建议重新运行诊断以验证修复效果："
         echo -e "  ${DIM}./quickstart.sh --doctor${NC}"
     else
         echo -e "\n${YELLOW}${WARNING_MARK} 未能自动修复所有问题${NC}"
         suggest_environment_optimization
     fi
-    
+
     return 0
 }
 

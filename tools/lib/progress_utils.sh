@@ -9,6 +9,12 @@
 # 4. 安装步骤进度显示
 # ============================================================================
 
+# Include guard - 防止重复 source
+if [ -n "${_SAGE_PROGRESS_UTILS_LOADED:-}" ]; then
+    return 0
+fi
+_SAGE_PROGRESS_UTILS_LOADED=1
+
 set -euo pipefail
 
 # 颜色定义（如果未加载 logging.sh）

@@ -132,7 +132,7 @@ main() {
                     local fix_result=0
                 fi
             fi
-            
+
             # 检查是否需要重启 shell（退出码 42）
             if [ "$fix_result" -eq 42 ]; then
                 echo ""
@@ -142,7 +142,7 @@ main() {
             if [ "$doctor_only" = "true" ]; then
                 exit $fix_result
             fi
-            
+
             # 诊断完成，询问是否继续安装（CI 环境自动确认）
             echo ""
             if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$(get_auto_confirm)" != "true" ]; then

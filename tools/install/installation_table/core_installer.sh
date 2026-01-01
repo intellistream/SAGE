@@ -12,12 +12,12 @@ if [ -f "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh" ]; t
 fi
 
 # CI环境检测
-if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
     # 确保在CI环境中禁用可能导致问题的进度条设置
     unset PIP_PROGRESS_BAR
-elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+elif [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
     # 远程部署环境也禁用可能导致问题的进度条设置
@@ -286,7 +286,7 @@ install_core_packages() {
     local pip_args="--disable-pip-version-check --no-input"
 
     # CI环境额外处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
@@ -414,7 +414,7 @@ install_core_packages() {
     fi
 
     # CI环境额外处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
