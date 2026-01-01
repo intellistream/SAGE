@@ -255,8 +255,9 @@ check_core_dependencies() {
                     ;;
             esac
         else
-            echo -e "  ${RED}${CROSS_MARK}${NC} $package: 未安装"
-            report_issue "missing_$package" "缺少必需的包: $package" "critical"
+            echo -e "  ${BLUE}${INFO_MARK}${NC} $package: 未安装（将在安装过程中安装）"
+            # 注意：不将缺少的包报告为 critical 问题，因为这些包会在后续安装步骤中自动安装
+            # report_issue "missing_$package" "缺少必需的包: $package" "minor"
         fi
     done
 }
@@ -342,6 +343,13 @@ fix_pip_missing() {
         # 检查 sage 环境是否已存在
         if "$conda_cmd" env list 2>/dev/null | grep -q "^sage "; then
             echo -e "  ${GREEN}${CHECK_MARK}${NC} conda 环境 'sage' 已存在"
+            
+            # 检查是否已经在 sage 环境中
+            if [[ "${CONDA_DEFAULT_ENV:-}" == "sage" ]]; then
+                echo -e "  ${GREEN}${CHECK_MARK}${NC} 当前已在 sage 环境中，无需操作"
+                FIXES_APPLIED=$((FIXES_APPLIED + 1))
+                return 0
+            fi
             
             # 检查是否已配置自动激活
             local bashrc="$HOME/.bashrc"
