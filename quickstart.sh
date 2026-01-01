@@ -429,19 +429,44 @@ main() {
                 echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过 Git hooks 安装${NC}"
             fi
 
-            # 安装 neuromem submodule 的 pre-commit hooks
-            local neuromem_path="$SAGE_ROOT/packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
-            if [ -d "$neuromem_path" ] && [ -f "$neuromem_path/.pre-commit-config.yaml" ]; then
-                echo -e "${DIM}   配置 neuromem submodule 的 pre-commit hooks...${NC}"
-                if command -v pre-commit >/dev/null 2>&1; then
-                    (cd "$neuromem_path" && pre-commit install 2>/dev/null) && {
-                        echo -e "${GREEN}   ✅ neuromem pre-commit hooks 已安装${NC}"
-                    } || {
-                        echo -e "${DIM}   ℹ️  neuromem pre-commit hooks 安装跳过${NC}"
-                    }
+            # 安装所有子模块的 pre-commit hooks
+            if command -v pre-commit >/dev/null 2>&1; then
+                echo -e "${DIM}   配置子模块 pre-commit hooks...${NC}"
+                local submodules_with_hooks=0
+                local submodules_installed=0
+
+                # 定义所有子模块路径
+                local submodule_paths=(
+                    "packages/sage-llm-core/src/sage/llm/sageLLM"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"
+                )
+
+                for submodule_path in "${submodule_paths[@]}"; do
+                    local full_path="$SAGE_ROOT/$submodule_path"
+                    local submodule_name=$(basename "$submodule_path")
+
+                    if [ -d "$full_path" ] && [ -f "$full_path/.pre-commit-config.yaml" ]; then
+                        ((submodules_with_hooks++))
+                        if (cd "$full_path" && pre-commit install 2>/dev/null); then
+                            echo -e "${GREEN}   ✅ $submodule_name pre-commit hooks 已安装${NC}"
+                            ((submodules_installed++))
+                        else
+                            echo -e "${DIM}   ℹ️  $submodule_name pre-commit hooks 安装跳过${NC}"
+                        fi
+                    fi
+                done
+
+                if [ $submodules_with_hooks -gt 0 ]; then
+                    echo -e "${GREEN}   ✅ 子模块 pre-commit hooks: $submodules_installed/$submodules_with_hooks 安装成功${NC}"
                 else
-                    echo -e "${DIM}   ℹ️  pre-commit 未安装，跳过 neuromem hooks${NC}"
+                    echo -e "${DIM}   ℹ️  未发现子模块 pre-commit 配置${NC}"
                 fi
+            else
+                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过子模块 hooks${NC}"
             fi
         fi
 
