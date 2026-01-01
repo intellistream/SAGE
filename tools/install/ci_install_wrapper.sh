@@ -43,15 +43,15 @@ print_ci_info() {
 
     # 检测 CI 环境
     local ci_platform="Unknown"
-    if [ -n "$GITHUB_ACTIONS" ]; then
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
         ci_platform="GitHub Actions"
-    elif [ -n "$GITLAB_CI" ]; then
+    elif [ -n "${GITLAB_CI:-}" ]; then
         ci_platform="GitLab CI"
-    elif [ -n "$JENKINS_URL" ]; then
+    elif [ -n "${JENKINS_URL:-}" ]; then
         ci_platform="Jenkins"
-    elif [ -n "$BUILDKITE" ]; then
+    elif [ -n "${BUILDKITE:-}" ]; then
         ci_platform="Buildkite"
-    elif [ -n "$CI" ]; then
+    elif [ -n "${CI:-}" ]; then
         ci_platform="Generic CI"
     fi
 

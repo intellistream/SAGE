@@ -24,9 +24,7 @@ try:
     GPU_AVAILABLE = torch.cuda.is_available()
     GPU_COUNT = torch.cuda.device_count() if GPU_AVAILABLE else 0
     GPU_MEMORY = (
-        torch.cuda.get_device_properties(0).total_memory / (1024**3)
-        if GPU_AVAILABLE
-        else 0
+        torch.cuda.get_device_properties(0).total_memory / (1024**3) if GPU_AVAILABLE else 0
     )
 except ImportError:
     GPU_AVAILABLE = False
@@ -74,13 +72,13 @@ async def test_finetune_engine_gpu_smoke():
     """
     from sage.llm.control_plane.manager import ControlPlaneManager
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("🔥 Task J Phase 5: GPU Smoke Test")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"✓ GPU Available: {GPU_AVAILABLE}")
     print(f"✓ GPU Count: {GPU_COUNT}")
     print(f"✓ GPU Memory: {GPU_MEMORY:.2f} GB")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     # Create temporary dataset and output directory
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -92,7 +90,7 @@ async def test_finetune_engine_gpu_smoke():
         print("📝 Creating dummy dataset...")
         create_dummy_dataset(dataset_path, num_samples=10)
         print(f"  ✓ Dataset: {dataset_path}")
-        print(f"  ✓ Samples: 10")
+        print("  ✓ Samples: 10")
 
         # Initialize Control Plane
         print("\n🚀 Starting Control Plane...")
@@ -138,7 +136,7 @@ async def test_finetune_engine_gpu_smoke():
                 info = manager.get_engine_info(engine_id)
                 if info:
                     status = info.status.name if hasattr(info.status, "name") else str(info.status)
-                    print(f"  [{i+1}s] Status: {status}")
+                    print(f"  [{i + 1}s] Status: {status}")
 
                     # Check if training started
                     if "TRAINING" in status or "RUNNING" in status:
@@ -150,7 +148,7 @@ async def test_finetune_engine_gpu_smoke():
                         error_msg = info.metadata.get("error", "Unknown error")
                         pytest.fail(f"Training failed: {error_msg}")
                 else:
-                    print(f"  [{i+1}s] Engine info not available yet")
+                    print(f"  [{i + 1}s] Engine info not available yet")
 
             # Verify checkpoints directory was created
             checkpoint_files = list(Path(output_dir).rglob("*"))
@@ -168,15 +166,15 @@ async def test_finetune_engine_gpu_smoke():
             else:
                 print(f"  ⚠ Engine stop result: {result}")
 
-            print(f"\n{'='*70}")
+            print(f"\n{'=' * 70}")
             print("✅ GPU Smoke Test PASSED")
-            print(f"{'='*70}")
+            print(f"{'=' * 70}")
             print("\nTask J Phase 5 Validation:")
             print("  ✓ Fine-tune engine can start with GPU")
             print("  ✓ Model loading and quantization works")
             print("  ✓ Training process can be initiated")
             print("  ✓ Control Plane integration functional")
-            print(f"{'='*70}\n")
+            print(f"{'=' * 70}\n")
 
         finally:
             await manager.stop()

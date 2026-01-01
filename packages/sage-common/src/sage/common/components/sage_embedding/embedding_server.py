@@ -25,7 +25,14 @@ import sys
 # ========== 清除代理变量，避免 SOCKS 代理问题 ==========
 # 本地 embedding 服务器使用 HuggingFace 镜像，不需要代理
 # 清除代理可以避免 "Missing dependencies for SOCKS support" 错误
-for proxy_var in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"]:
+for proxy_var in [
+    "http_proxy",
+    "https_proxy",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "all_proxy",
+    "ALL_PROXY",
+]:
     os.environ.pop(proxy_var, None)
 
 # 设置环境变量 - 自动检测网络并配置 HuggingFace 镜像

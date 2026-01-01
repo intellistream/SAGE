@@ -448,7 +448,7 @@ PY
         fi
         echo ""
         sage chat --backend vllm --base-url http://localhost:8901/v1 --model "${vllm_model:-Qwen/Qwen2.5-0.5B-Instruct}" --stream
-    elif [ -n "$SAGE_CHAT_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
+    elif [ -n "${SAGE_CHAT_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ]; then
         echo -e "   ${GREEN}✅ 使用云端 API${NC}"
         echo ""
         sage chat --backend openai --stream
@@ -495,7 +495,7 @@ prompt_start_llm_service() {
     local mode="$1"
 
     # 在 CI 环境或 --yes 自动模式下跳过
-    if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$AUTO_YES" = "true" ] || [ "$AUTO_CONFIRM" = "true" ]; then
+    if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "$AUTO_YES" = "true" ] || [ "$AUTO_CONFIRM" = "true" ]; then
         echo -e "${DIM}提示: 自动跳过服务启动提示 (CI=$CI, AUTO_YES=$AUTO_YES, AUTO_CONFIRM=$AUTO_CONFIRM)${NC}"
         return 0
     fi
@@ -513,7 +513,7 @@ prompt_start_llm_service() {
 
     # 检查环境是否激活
     local env_activated=true
-    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
         env_activated=false
     fi
 
@@ -729,7 +729,7 @@ show_usage_tips() {
     echo ""
 
     # 如果使用了 conda 环境且不在该环境中，显示激活提示
-    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BOLD}⚠️  重要：需要激活 Conda 环境${NC}"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -769,7 +769,7 @@ show_usage_tips() {
     echo ""
 
     echo -e "${BLUE}基本使用：${NC}"
-    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
         echo -e "  ${DIM}# 首先激活环境:${NC}"
         echo -e "  conda activate $SAGE_ENV_NAME"
         echo ""
@@ -824,7 +824,7 @@ show_usage_tips() {
     echo ""
 
     # 如果是开发模式且使用了 conda 环境，自动配置 VS Code
-    if [ "$mode" = "dev" ] && [ -n "$SAGE_ENV_NAME" ]; then
+    if [ "$mode" = "dev" ] && [ -n "${SAGE_ENV_NAME:-}" ]; then
         echo -e "${INFO} 配置 VS Code 开发环境..."
 
         local vscode_script="$SCRIPT_DIR/../../config/setup_vscode_conda.sh"

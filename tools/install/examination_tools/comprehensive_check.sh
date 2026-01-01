@@ -17,8 +17,8 @@ pre_check_system_environment() {
     detect_vscode_offset_requirement
 
     # 如果用户设置了自定义偏移
-    if [ -n "${SAGE_CUSTOM_OFFSET}" ]; then
-        set_custom_offset "$SAGE_CUSTOM_OFFSET"
+    if [ -n "${SAGE_CUSTOM_OFFSET:-}" ]; then
+        set_custom_offset "${SAGE_CUSTOM_OFFSET}"
     fi
 }
 
@@ -536,7 +536,7 @@ verify_installation() {
     local python_cmd="${PYTHON_CMD:-python3}"
 
     # 如果使用conda环境且环境变量存在，使用conda run
-    if [ -n "$SAGE_ENV_NAME" ] && command -v conda &> /dev/null; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && command -v conda &> /dev/null; then
         # 检查 conda 环境是否真实存在
         if conda env list | grep -q "^${SAGE_ENV_NAME} "; then
             python_cmd="conda run -n $SAGE_ENV_NAME python"

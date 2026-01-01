@@ -1051,7 +1051,7 @@ show_install_configuration() {
 
     case "$INSTALL_ENVIRONMENT" in
         "conda")
-            if [ -n "$SAGE_ENV_NAME" ]; then
+            if [ -n "${SAGE_ENV_NAME:-}" ]; then
                 echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境 (${SAGE_ENV_NAME})${NC}"
             else
                 echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"

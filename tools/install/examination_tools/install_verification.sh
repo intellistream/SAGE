@@ -38,7 +38,7 @@ conda_env_exists() {
 }
 
 get_sage_cli_env() {
-    if [ -n "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ]; then
         # 验证环境是否存在
         if conda_env_exists "$SAGE_ENV_NAME"; then
             echo "$SAGE_ENV_NAME"
