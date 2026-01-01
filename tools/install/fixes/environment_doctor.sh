@@ -800,7 +800,7 @@ fix_dev_tools_missing() {
             # 先检查是否已安装
             if python3 -c "import ${tool_name//-/_}" >/dev/null 2>&1; then
                 echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool_name: 已安装"
-                ((install_success_count++))
+                install_success_count=$((install_success_count + 1))
                 continue
             fi
 
@@ -814,7 +814,7 @@ fix_dev_tools_missing() {
             # 检查是否成功（退出码为0 或 输出包含成功消息）
             if [ $install_status -eq 0 ] || echo "$install_output" | grep -qE "(Successfully installed|Requirement already satisfied)"; then
                 echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool_name 安装成功"
-                ((install_success_count++))
+                install_success_count=$((install_success_count + 1))
                 log_message "INFO" "Successfully installed $tool_name"
             else
                 echo -e "  ${YELLOW}${WARNING_MARK}${NC} $tool_name 安装失败: $install_output"
@@ -834,11 +834,18 @@ fix_dev_tools_missing() {
             echo -e "  ${RED}${CROSS_MARK}${NC} 开发工具安装失败"
             log_message "ERROR" "Failed to install dev tools"
         fi
+    else
+        echo -e "  ${INFO_MARK} 跳过手动安装（外部依赖文件已处理）"
     fi
 
     # 验证 pytest 是否安装成功
     # 注意：在某些环境（如 CI）中，刚安装的包可能需要刷新环境才能导入
     # 如果开发工具从外部文件安装成功，或至少有一个工具安装成功，就认为修复是有效的
+
+    # Debug logging
+    echo -e "  ${DIM}[DEBUG] dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count${NC}"
+    log_message "DEBUG" "dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count, install_total=$install_total"
+
     if [ "$dev_tools_installed" = true ] || [ $install_success_count -gt 0 ]; then
         if python3 -c "import pytest" >/dev/null 2>&1; then
             local pytest_version=$(python3 -c "import pytest; print(pytest.__version__)" 2>/dev/null)
@@ -850,6 +857,7 @@ fix_dev_tools_missing() {
         return 0
     else
         echo -e "  ${RED}${CROSS_MARK}${NC} 开发工具安装失败"
+        log_message "ERROR" "Dev tools installation failed: dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count"
         return 1
     fi
 }
