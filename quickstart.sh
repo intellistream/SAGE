@@ -132,7 +132,7 @@ main() {
                     local fix_result=0
                 fi
             fi
-            
+
             # 检查是否需要重启 shell（退出码 42）
             if [ "$fix_result" -eq 42 ]; then
                 echo ""
