@@ -119,7 +119,7 @@ fix_middleware_cpp_extensions() {
         log_warn "部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})" "CPPExtFix"
         echo -e "${WARNING} 部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})"
 
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
             log_debug "CI 环境提示：如果子模块已初始化但库文件仍未找到，可能是 CMake 安装配置问题或构建失败" "CPPExtFix"
             echo -e "${DIM}💡 CI 环境提示：${NC}"
             echo -e "${DIM}   如果子模块已初始化但库文件仍未找到，${NC}"

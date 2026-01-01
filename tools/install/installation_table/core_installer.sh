@@ -403,7 +403,7 @@ install_core_packages() {
     local pip_args="--disable-pip-version-check --no-input"
 
     # 添加缓存支持（非CI环境）
-    if [ "$CI" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
+    if [ "${CI:-}" != "true" ] && [ -z "${GITHUB_ACTIONS:-}" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
         # 非CI环境启用缓存以加速重复安装
         pip_args="$pip_args --cache-dir ~/.cache/pip"
         echo -e "${DIM}启用 pip 缓存: ~/.cache/pip${NC}"
@@ -694,7 +694,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
         fi
 
         # 调试：检查 .so 文件位置（仅在 CI 环境）
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
             echo -e "${DIM}    [CI调试] 检查 C++ 扩展文件位置...${NC}"
             for ext in sage_flow sage_db sage_tsdb; do
                 ext_dir="packages/sage-middleware/src/sage/middleware/components/${ext}"

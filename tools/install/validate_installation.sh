@@ -359,7 +359,7 @@ compare_with_ci_config() {
     echo -e "${BOLD}${BLUE}[7/7] CI/CD 配置对比${NC}"
     echo ""
 
-    if [ "$CI_COMPARE" = true ]; then
+    if [ "${CI:-}_COMPARE" = true ]; then
         # 提取 CI/CD 中使用的安装命令
         local ci_workflow="$SAGE_ROOT/.github/workflows/build-test.yml"
 

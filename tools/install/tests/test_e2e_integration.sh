@@ -50,7 +50,7 @@ cleanup() {
     echo -e "${DIM}清理测试环境...${NC}"
 
     # 停用虚拟环境
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
         deactivate 2>/dev/null || true
     fi
 
@@ -138,7 +138,7 @@ step3_test_install_tracking() {
     log_step "测试安装跟踪"
 
     # 确保在虚拟环境中
-    if [ -z "$VIRTUAL_ENV" ]; then
+    if [ -z "${VIRTUAL_ENV:-}" ]; then
         log_info "激活虚拟环境..."
         source "$TEST_DIR/.sage/venv/bin/activate"
     fi

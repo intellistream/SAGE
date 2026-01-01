@@ -125,7 +125,7 @@ check_system_runtime() {
         # 严重不足时提示用户确认
         if [ "$disk_space_gb" -lt 5 ]; then
             output_warning "严重警告: 磁盘空间不足 5GB，安装可能失败！"
-            if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
+            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
                 echo -e "${YELLOW}是否仍要继续？[y/N]${NC}"
                 read -p "请输入选择: " -r disk_continue
                 if [[ ! "$disk_continue" =~ ^[Yy]$ ]]; then
@@ -245,7 +245,7 @@ check_network_connectivity() {
         output_dim "提示: 可尝试使用国内镜像源（将在安装时自动提示）"
 
         # 非 CI 环境提示用户确认
-        if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
+        if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
             echo -e "${YELLOW}网络异常，是否仍要继续安装？[y/N]${NC}"
             read -p "请输入选择: " -r network_continue
             if [[ ! "$network_continue" =~ ^[Yy]$ ]]; then
@@ -430,7 +430,7 @@ check_existing_sage() {
         echo
 
         # 在CI环境中自动卸载重装
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" || -n "${BUILDKITE:-}" ]]; then
             echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
             # 导入卸载函数
             source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
@@ -450,7 +450,7 @@ check_existing_sage() {
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
 
         # 在CI环境中自动卸载重装
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" || -n "${BUILDKITE:-}" ]]; then
             echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
             # 导入卸载函数
             source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"

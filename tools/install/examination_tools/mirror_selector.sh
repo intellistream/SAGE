@@ -126,9 +126,9 @@ configure_pip_mirror() {
 
         # 获取 pip 配置目录
         local pip_config_dir=""
-        if [ -n "$VIRTUAL_ENV" ]; then
+        if [ -n "${VIRTUAL_ENV:-}" ]; then
             # 虚拟环境配置
-            pip_config_dir="$VIRTUAL_ENV/pip.conf"
+            pip_config_dir="${VIRTUAL_ENV:-}/pip.conf"
         elif [ "$(uname)" = "Darwin" ]; then
             # macOS
             pip_config_dir="$HOME/Library/Application Support/pip/pip.conf"

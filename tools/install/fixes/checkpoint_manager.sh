@@ -205,7 +205,7 @@ create_environment_backup() {
     fi
 
     # 备份 conda 环境（如果在 conda 环境中）
-    if [ -n "$CONDA_DEFAULT_ENV" ] && command -v conda &> /dev/null; then
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ] && command -v conda &> /dev/null; then
         conda list --export > "$backup_path/conda_packages.txt" 2>/dev/null
         conda env export > "$backup_path/conda_env.yml" 2>/dev/null
         echo -e "${DIM}   已备份 conda 环境${NC}"

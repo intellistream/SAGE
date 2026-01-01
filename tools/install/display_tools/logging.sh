@@ -207,8 +207,8 @@ log_environment() {
         local conda_version=$(conda --version 2>&1)
         log_info "Conda: $conda_version" "$context" false "$phase"
 
-        if [ -n "$CONDA_DEFAULT_ENV" ]; then
-            log_info "Conda 环境: $CONDA_DEFAULT_ENV" "$context" false "$phase"
+        if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
+            log_info "Conda 环境: ${CONDA_DEFAULT_ENV:-}" "$context" false "$phase"
         fi
     fi
 

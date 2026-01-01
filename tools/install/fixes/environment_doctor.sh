@@ -131,12 +131,12 @@ check_python_environment() {
     fi
 
     # 检查虚拟环境
-    if [[ -n "$VIRTUAL_ENV" ]]; then
-        echo -e "  ${GREEN}${CHECK_MARK}${NC} 虚拟环境: $(basename "$VIRTUAL_ENV")"
-        log_message "INFO" "Using virtual environment: $VIRTUAL_ENV"
-    elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-        echo -e "  ${GREEN}${CHECK_MARK}${NC} Conda 环境: $CONDA_DEFAULT_ENV"
-        log_message "INFO" "Using conda environment: $CONDA_DEFAULT_ENV"
+    if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 虚拟环境: $(basename "${VIRTUAL_ENV:-}")"
+        log_message "INFO" "Using virtual environment: ${VIRTUAL_ENV:-}"
+    elif [[ -n "${CONDA_DEFAULT_ENV:-}" ]]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} Conda 环境: ${CONDA_DEFAULT_ENV:-}"
+        log_message "INFO" "Using conda environment: ${CONDA_DEFAULT_ENV:-}"
     else
         report_issue "no_virtual_env" "建议使用虚拟环境以避免包冲突" "minor"
     fi
@@ -187,7 +187,7 @@ check_cli_conflicts() {
 
     # 仅在非 CI 环境或明确处于虚拟环境中时检查
     # 避免误删 CI 正在使用的工具
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
         return 0
     fi
 
@@ -195,7 +195,7 @@ check_cli_conflicts() {
     for tool in "sage" "sage-dev"; do
         if [ -f "$local_bin/$tool" ]; then
             # 检查是否在虚拟环境中
-            if [[ -n "$VIRTUAL_ENV" || -n "$CONDA_PREFIX" ]]; then
+            if [[ -n "${VIRTUAL_ENV:-}" || -n "${CONDA_PREFIX:-}" ]]; then
                 # 如果在虚拟环境中，且 ~/.local/bin/$tool 存在，这通常是 CI 残留
                 # 进一步检查：如果 which $tool 指向的是 ~/.local/bin/$tool，那么肯定有冲突
                 # 或者如果当前环境应该有自己的 $tool 但被 ~/.local/bin 覆盖了
@@ -628,7 +628,7 @@ fix_cli_conflicts() {
 suggest_environment_optimization() {
     echo -e "\n${BLUE}${BOLD}💡 环境优化建议${NC}"
 
-    if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_DEFAULT_ENV" ]]; then
+    if [[ -z "${VIRTUAL_ENV:-}" && -z "${CONDA_DEFAULT_ENV:-}" ]]; then
         echo -e "  ${YELLOW}${WARNING_MARK}${NC} 建议创建虚拟环境："
         echo -e "    ${DIM}conda create -n sage-env python=3.11 -y${NC}"
         echo -e "    ${DIM}conda activate sage-env${NC}"
@@ -714,7 +714,7 @@ run_auto_fixes() {
 
     if [ "$AUTO_CONFIRM_FIX" = "true" ]; then
         response="y"
-    elif [ -n "${CI:-}" ] || [ -n "$GITHUB_ACTIONS" ]; then
+    elif [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
         echo -e "${YELLOW}CI 环境检测到问题，跳过交互式修复${NC}"
         return 0
     else

@@ -61,7 +61,7 @@ verify_cpp_extensions() {
     echo ""
 
     # 在CI环境中增加短暂延迟，确保文件系统同步
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
         sleep 1
     fi
 
@@ -161,7 +161,7 @@ install_sage() {
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
-    if [[ (-n "$CI" || -n "$GITHUB_ACTIONS") && "$environment" = "conda" ]]; then
+    if [[ (-n "${CI:-}" || -n "${GITHUB_ACTIONS:-}") && "$environment" = "conda" ]]; then
         echo -e "${INFO} CI 环境中检测到 environment='conda'，强制使用 pip（CI 优化）"
         environment="pip"
     fi
@@ -366,7 +366,7 @@ install_sage() {
     log_info "安装结束" "MAIN"
 
     # 🔍 CI/CD 检查：验证没有从 PyPI 下载本地包
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" ]]; then
         echo ""
         echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"
         log_phase_start "依赖完整性检查" "MAIN"

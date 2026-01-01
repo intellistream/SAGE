@@ -99,33 +99,33 @@ detect_current_environment() {
     local in_conda_base=false
 
     # 检测conda环境
-    if [ -n "$CONDA_DEFAULT_ENV" ]; then
-        if [ "$CONDA_DEFAULT_ENV" = "base" ]; then
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
+        if [ "${CONDA_DEFAULT_ENV:-}" = "base" ]; then
             env_type="conda_base"
             env_name="base"
             in_conda_base=true
         else
             env_type="conda"
-            env_name="$CONDA_DEFAULT_ENV"
+            env_name="${CONDA_DEFAULT_ENV:-}"
             in_conda=true
         fi
-    elif [ -n "$CONDA_PREFIX" ]; then
-        if [[ "$CONDA_PREFIX" == *"/base" ]]; then
+    elif [ -n "${CONDA_PREFIX:-}" ]; then
+        if [[ "${CONDA_PREFIX:-}" == *"/base" ]]; then
             env_type="conda_base"
             env_name="base"
             in_conda_base=true
         else
             env_type="conda"
-            env_name=$(basename "$CONDA_PREFIX")
+            env_name=$(basename "${CONDA_PREFIX:-}")
             in_conda=true
         fi
     fi
 
     # 检测虚拟环境
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
         if [ "$in_conda" = false ] && [ "$in_conda_base" = false ]; then
             env_type="venv"
-            env_name=$(basename "$VIRTUAL_ENV")
+            env_name=$(basename "${VIRTUAL_ENV:-}")
             in_venv=true
         fi
     fi
@@ -943,7 +943,7 @@ set_default_sync_submodules() {
         desired="true"
     fi
 
-    if [ -z "$SYNC_SUBMODULES" ] || [ "$SYNC_SUBMODULES" != "$desired" ]; then
+    if [ -z "${SYNC_SUBMODULES:-}" ] || [ "${SYNC_SUBMODULES:-}" != "$desired" ]; then
         SYNC_SUBMODULES="$desired"
 
         if [ "$desired" = "true" ] && [ "$SYNC_SUBMODULES_NOTIFIED" = false ]; then
@@ -961,7 +961,7 @@ set_defaults_and_show_tips() {
     local has_defaults=false
 
     # 检测 CI 环境并自动设置为确认模式
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" || -n "${BUILDKITE:-}" ]]; then
         AUTO_CONFIRM=true
         echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
         has_defaults=true
@@ -1071,7 +1071,7 @@ show_install_configuration() {
             ;;
     esac
 
-    if [ "$SYNC_SUBMODULES" = "true" ]; then
+    if [ "${SYNC_SUBMODULES:-}" = "true" ]; then
         echo -e "  ${BLUE}Submodules:${NC} ${GREEN}自动同步${NC}"
     else
         echo -e "  ${BLUE}Submodules:${NC} ${DIM}跳过自动同步${NC}"

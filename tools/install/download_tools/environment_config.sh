@@ -53,7 +53,7 @@ configure_pip_mirror() {
 
     # CI环境自动禁用镜像（使用官方PyPI以确保稳定性）
     # 但如果检测到中国大陆 IP，仍然使用镜像加速
-    if [ "${CI:-}" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在 CI 中也尝试检测是否在中国
         if detect_mainland_china_ip; then
             export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
@@ -131,21 +131,21 @@ detect_virtual_environment() {
     local venv_name=""
 
     # 检查 conda 环境
-    if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "base" ]; then
         is_venv=true
         venv_type="conda"
-        venv_name="$CONDA_DEFAULT_ENV"
-    elif [ -n "$CONDA_PREFIX" ] && [[ "$CONDA_PREFIX" != *"/base" ]]; then
+        venv_name="${CONDA_DEFAULT_ENV:-}"
+    elif [ -n "${CONDA_PREFIX:-}" ] && [[ "${CONDA_PREFIX:-}" != *"/base" ]]; then
         is_venv=true
         venv_type="conda"
-        venv_name=$(basename "$CONDA_PREFIX")
+        venv_name=$(basename "${CONDA_PREFIX:-}")
     fi
 
     # 检查 Python venv
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
         is_venv=true
         venv_type="venv"
-        venv_name=$(basename "$VIRTUAL_ENV")
+        venv_name=$(basename "${VIRTUAL_ENV:-}")
     fi
 
     echo "$is_venv|$venv_type|$venv_name"
@@ -162,7 +162,7 @@ check_virtual_environment_isolation() {
     fi
 
     # CI 环境跳过检查
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" ]]; then
         return 0
     fi
 
@@ -188,7 +188,7 @@ check_virtual_environment_isolation() {
             fi
 
             source "$venv_path/bin/activate"
-            if [ -n "$VIRTUAL_ENV" ]; then
+            if [ -n "${VIRTUAL_ENV:-}" ]; then
                 echo -e "${CHECK} 虚拟环境已激活: ${GREEN}$venv_path${NC}"
                 export PIP_CMD="python3 -m pip"
                 export PYTHON_CMD="python3"
@@ -302,7 +302,7 @@ configure_installation_environment() {
     local conda_env_name="${3:-}"  # 可选的conda环境名
 
     # CI环境和远程部署的特殊处理
-    if [ "${CI:-}" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # CI环境：不设置PYTHONNOUSERSITE以提高测试速度，但仍保持用户选择的安装环境
         echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
     elif [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ]; then
