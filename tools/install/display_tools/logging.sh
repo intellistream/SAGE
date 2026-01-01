@@ -231,6 +231,13 @@ _pip_spinner_running=false
 
 start_spinner() {
     local msg="${1:-安装中}"
+
+    # CI 环境下不显示 spinner
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        echo "  $msg..." >&2
+        return 0
+    fi
+
     local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local delay=0.1
     _pip_spinner_running=true
@@ -250,6 +257,12 @@ start_spinner() {
 
 stop_spinner() {
     local success="${1:-true}"
+
+    # CI 环境下无需清理 spinner
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        return 0
+    fi
+
     if [ -n "$_pip_spinner_pid" ]; then
         kill "$_pip_spinner_pid" 2>/dev/null || true
         wait "$_pip_spinner_pid" 2>/dev/null || true
@@ -272,10 +285,17 @@ log_pip_install_with_progress() {
     temp_output=$(mktemp)
     local exit_code=0
 
+    # 检测是否在 CI 环境
+    local is_ci=false
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        is_ci=true
+    fi
+
     local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local char_idx=0
     local installed_count=0
     local current_pkg=""
+    local last_logged_pkg=""
 
     # 使用管道实时读取 pip 输出并更新进度
     {
@@ -298,19 +318,27 @@ log_pip_install_with_progress() {
             ((installed_count = installed_count - 2))  # 减去 "Successfully installed"
         fi
 
-        # 更新 spinner 动画和当前包名
-        local spinner_char="${chars:$char_idx:1}"
-        char_idx=$(( (char_idx + 1) % ${#chars} ))
-
-        if [ -n "$current_pkg" ]; then
-            # 截断过长的包名
-            local display_pkg="$current_pkg"
-            if [ ${#display_pkg} -gt 40 ]; then
-                display_pkg="${display_pkg:0:37}..."
+        # CI 环境：简单日志输出，仅在包名变化时打印
+        if [ "$is_ci" = true ]; then
+            if [ -n "$current_pkg" ] && [ "$current_pkg" != "$last_logged_pkg" ]; then
+                echo "  Installing: $current_pkg" >&2
+                last_logged_pkg="$current_pkg"
             fi
-            printf "\r  ${CYAN}%s${NC} 安装依赖包... ${DIM}%s${NC}          " "$spinner_char" "$display_pkg" >&2
         else
-            printf "\r  ${CYAN}%s${NC} 安装依赖包...          " "$spinner_char" >&2
+            # 交互环境：更新 spinner 动画和当前包名
+            local spinner_char="${chars:$char_idx:1}"
+            char_idx=$(( (char_idx + 1) % ${#chars} ))
+
+            if [ -n "$current_pkg" ]; then
+                # 截断过长的包名
+                local display_pkg="$current_pkg"
+                if [ ${#display_pkg} -gt 40 ]; then
+                    display_pkg="${display_pkg:0:37}..."
+                fi
+                printf "\r  ${CYAN}%s${NC} 安装依赖包... ${DIM}%s${NC}          " "$spinner_char" "$display_pkg" >&2
+            else
+                printf "\r  ${CYAN}%s${NC} 安装依赖包...          " "$spinner_char" >&2
+            fi
         fi
     done
 
@@ -320,8 +348,10 @@ log_pip_install_with_progress() {
         rm -f "${temp_output}.exit"
     fi
 
-    # 清除进度行
-    printf "\r                                                              \r" >&2
+    # 清除进度行（仅在交互环境）
+    if [ "$is_ci" != true ]; then
+        printf "\r                                                              \r" >&2
+    fi
 
     if [ "$exit_code" = "0" ]; then
         log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
