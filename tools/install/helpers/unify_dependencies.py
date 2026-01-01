@@ -6,6 +6,7 @@
 """
 
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -205,8 +206,32 @@ def main():
     parser = argparse.ArgumentParser(description="统一 SAGE 依赖版本")
     parser.add_argument("--apply", action="store_true", help="实际修改文件（默认是 dry-run）")
     parser.add_argument("--dry-run", action="store_true", default=True, help="只显示变更（默认）")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="检查是否有冲突（用于 pre-commit，有冲突时退出码非零）",
+    )
 
     args = parser.parse_args()
+
+    # --check 模式：用于 pre-commit hook
+    if args.check:
+        conflicts = analyze_conflicts()
+        if conflicts:
+            print("❌ 发现依赖版本冲突！请运行以下命令修复:", file=sys.stderr)
+            print(
+                "   python3 tools/install/helpers/unify_dependencies.py --apply",
+                file=sys.stderr,
+            )
+            print(f"\n冲突详情（{len(conflicts)} 个）:", file=sys.stderr)
+            for pkg_name, versions in sorted(conflicts.items()):
+                print(f"  • {pkg_name}: {len(versions)} 个不同版本", file=sys.stderr)
+                for ver in sorted(versions.keys()):
+                    print(f"    - {ver}", file=sys.stderr)
+            sys.exit(1)
+        else:
+            print("✅ 依赖版本检查通过，无冲突", file=sys.stderr)
+            sys.exit(0)
 
     # --apply 覆盖 --dry-run
     dry_run = not args.apply

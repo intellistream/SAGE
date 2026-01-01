@@ -80,6 +80,14 @@ repos:
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
   hooks:
+  - id: dependency-version-conflicts
+    name: check dependency version conflicts
+    entry: python3 tools/install/helpers/unify_dependencies.py --check
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^packages/.*/pyproject\.toml$
+    # Block commit if there are version conflicts between packages
   - id: mypy
     name: mypy type checking (warnings only)
     entry: tools/mypy-wrapper.sh

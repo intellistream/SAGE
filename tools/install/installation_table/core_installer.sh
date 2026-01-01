@@ -546,21 +546,17 @@ for pkg_dir in package_dirs:
 
 # 合并多个包的相同依赖声明（版本已统一，无需去重）
 external_deps = []
-duplicate_count = 0
 conflict_count = 0
 for pkg_name, versions in sorted(dep_versions.items()):
     unique_versions = list(set(versions))
     if len(unique_versions) == 1:
         external_deps.append(unique_versions[0])
-        if len(versions) > 1:
-            duplicate_count += len(versions) - 1
     else:
         # 理论上不应该有冲突（版本已通过 unify_dependencies.py 统一）
         # 如果仍有冲突，选择最严格的版本
         best_dep = max(unique_versions, key=lambda v: ('>=' in v, '<' in v, v))
         external_deps.append(best_dep)
         conflict_count += 1
-        duplicate_count += len(versions) - 1
 
 with open('$external_deps_file', 'w') as f:
     for dep in external_deps:
@@ -570,9 +566,8 @@ with open('$external_deps_file', 'w') as f:
 if conflict_count > 0:
     print(f'⚠️  提取了 {len(external_deps)} 个外部依赖（发现 {conflict_count} 个版本冲突）', file=sys.stderr)
     print(f'   建议运行: python3 tools/install/helpers/unify_dependencies.py --apply', file=sys.stderr)
-elif duplicate_count > 0:
-    print(f'✓ 提取了 {len(external_deps)} 个外部依赖（合并 {duplicate_count} 个重复声明）', file=sys.stderr)
 else:
+    # 不显示 duplicate_count，因为多包共享依赖是正常的
     print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 " 2>&1; then
         log_info "依赖提取脚本执行成功" "INSTALL"
