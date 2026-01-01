@@ -30,7 +30,7 @@ SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-.sage/logs/install.log}"
 
 # 确保日志目录存在
 _ensure_log_dir() {
-    local log_dir=$(dirname "$SAGE_INSTALL_LOG")
+    local log_dir=$(dirname "${SAGE_INSTALL_LOG:-}")
     mkdir -p "$log_dir" 2>/dev/null || true
 }
 
@@ -69,7 +69,7 @@ _write_log() {
         "$escaped_phase" \
         "$escaped_message")
 
-    echo "$json_log" >> "$SAGE_INSTALL_LOG"
+    echo "$json_log" >> "${SAGE_INSTALL_LOG:-}"
 }
 
 # DEBUG 级别日志（详细调试信息）

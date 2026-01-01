@@ -61,7 +61,7 @@ print_check() {
 check_sage_root() {
     echo -e "${BOLD}1. 检查项目结构${NC}"
 
-    if [ -f "$SAGE_ROOT/quickstart.sh" ] && [ -d "$SAGE_ROOT/packages/sage" ]; then
+    if [ -f "${SAGE_ROOT:-}/quickstart.sh" ] && [ -d "${SAGE_ROOT:-}/packages/sage" ]; then
         print_check "pass" "SAGE 项目根目录已识别"
     else
         print_check "fail" "未在 SAGE 项目根目录运行"
@@ -75,15 +75,15 @@ check_installation_method() {
     echo -e "${BOLD}2. 检查安装方法${NC}"
 
     # 检查是否存在 .sage 目录（quickstart.sh 创建的）
-    if [ -d "$SAGE_ROOT/.sage" ]; then
+    if [ -d "${SAGE_ROOT:-}/.sage" ]; then
         print_check "pass" "发现 .sage 目录（quickstart.sh 创建）"
 
         # 检查安装日志
-        if [ -f "$SAGE_ROOT/.sage/logs/install.log" ]; then
+        if [ -f "${SAGE_ROOT:-}/.sage/logs/install.log" ]; then
             print_check "pass" "发现安装日志文件"
 
             # 检查日志中是否有 quickstart.sh 的特征
-            if grep -q "quickstart" "$SAGE_ROOT/.sage/logs/install.log" 2>/dev/null; then
+            if grep -q "quickstart" "${SAGE_ROOT:-}/.sage/logs/install.log" 2>/dev/null; then
                 print_check "pass" "确认使用 quickstart.sh 进行安装"
             else
                 print_check "warn" "安装日志中未找到 quickstart.sh 标记"
@@ -173,13 +173,13 @@ check_git_hooks() {
     echo ""
     echo -e "${BOLD}5. 检查 Git Hooks${NC}"
 
-    if [ -d "$SAGE_ROOT/.git/hooks" ]; then
+    if [ -d "${SAGE_ROOT:-}/.git/hooks" ]; then
         # 检查 pre-commit
-        if [ -f "$SAGE_ROOT/.git/hooks/pre-commit" ]; then
+        if [ -f "${SAGE_ROOT:-}/.git/hooks/pre-commit" ]; then
             print_check "pass" "Git pre-commit hook 已安装"
 
             # 检查是否是 pre-commit 框架的 hook
-            if grep -q "pre-commit" "$SAGE_ROOT/.git/hooks/pre-commit" 2>/dev/null; then
+            if grep -q "pre-commit" "${SAGE_ROOT:-}/.git/hooks/pre-commit" 2>/dev/null; then
                 print_check "pass" "使用 pre-commit 框架（推荐）"
             fi
         else
@@ -188,7 +188,7 @@ check_git_hooks() {
         fi
 
         # 检查 pre-commit 配置
-        if [ -f "$SAGE_ROOT/.pre-commit-config.yaml" ]; then
+        if [ -f "${SAGE_ROOT:-}/.pre-commit-config.yaml" ]; then
             print_check "pass" "pre-commit 配置文件存在"
         fi
     else
@@ -201,13 +201,13 @@ check_submodules() {
     echo ""
     echo -e "${BOLD}6. 检查 Git 子模块${NC}"
 
-    if [ -d "$SAGE_ROOT/.git" ]; then
+    if [ -d "${SAGE_ROOT:-}/.git" ]; then
         # 检查子模块配置
-        if [ -f "$SAGE_ROOT/.gitmodules" ]; then
+        if [ -f "${SAGE_ROOT:-}/.gitmodules" ]; then
             print_check "pass" "项目包含 Git 子模块"
 
             # 检查子模块是否已初始化
-            local uninit_submodules=$(git -C "$SAGE_ROOT" submodule status 2>/dev/null | grep "^-" | wc -l || echo "0")
+            local uninit_submodules=$(git -C "${SAGE_ROOT:-}" submodule status 2>/dev/null | grep "^-" | wc -l || echo "0")
 
             if [ "$uninit_submodules" -eq 0 ]; then
                 print_check "pass" "所有子模块已初始化"
@@ -232,7 +232,7 @@ print_recommendations() {
         echo -e "${YELLOW}发现了一些问题，建议采取以下措施：${NC}"
         echo ""
 
-        if [ ! -d "$SAGE_ROOT/.sage" ]; then
+        if [ ! -d "${SAGE_ROOT:-}/.sage" ]; then
             echo -e "${BOLD}推荐安装方法：${NC}"
             echo -e "  ${GREEN}./quickstart.sh --dev --yes${NC}"
             echo -e "  ${DIM}(这与 CI/CD 使用的方法相同)${NC}"

@@ -569,7 +569,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
-            log_error "请检查日志文件: $SAGE_INSTALL_LOG" "INSTALL"
+            log_error "请检查日志文件: ${SAGE_INSTALL_LOG:-}" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
             return 1
         fi
@@ -613,7 +613,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
-            log_error "请检查日志文件: $SAGE_INSTALL_LOG" "INSTALL"
+            log_error "请检查日志文件: ${SAGE_INSTALL_LOG:-}" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
 
             # 清理环境变量
@@ -664,7 +664,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
             # 将输出追加到主日志
             if [ -f "$temp_install_log" ]; then
-                cat "$temp_install_log" >> "$SAGE_INSTALL_LOG"
+                cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
             fi
             rm -f "$temp_install_log"
 
@@ -675,11 +675,11 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             echo -e "✗${NC}"
 
             log_error "安装 sage-middleware 失败！" "INSTALL"
-            log_error "这通常是由于 C++ 编译错误，请检查日志: $SAGE_INSTALL_LOG" "INSTALL"
+            log_error "这通常是由于 C++ 编译错误，请检查日志: ${SAGE_INSTALL_LOG:-}" "INSTALL"
 
             # 将错误输出追加到主日志
             if [ -f "$temp_install_log" ]; then
-                cat "$temp_install_log" >> "$SAGE_INSTALL_LOG"
+                cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
 
                 # 尝试提取编译错误的关键信息
                 local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
@@ -689,7 +689,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             rm -f "$temp_install_log"
 
             echo -e "${CROSS} 安装 sage-middleware 失败！"
-            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $SAGE_INSTALL_LOG${NC}"
+            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: ${SAGE_INSTALL_LOG:-}${NC}"
             return 1
         fi
 
@@ -975,7 +975,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 echo -e "${YELLOW}⚠️  部分外部依赖安装失败，但继续...${NC}"
 
                 # 尝试提取安装失败的包
-                local failed_packages=$(grep -i "error\|failed" "$SAGE_INSTALL_LOG" | tail -5 || echo "无法确定失败包")
+                local failed_packages=$(grep -i "error\|failed" "${SAGE_INSTALL_LOG:-}" | tail -5 || echo "无法确定失败包")
                 log_warn "失败详情:\n$failed_packages" "INSTALL"
             fi
         else

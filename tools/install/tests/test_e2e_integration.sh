@@ -10,7 +10,7 @@ SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TEST_DIR="/tmp/sage_e2e_test_$$"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 
 # 测试结果
 TOTAL_STEPS=0
@@ -77,11 +77,11 @@ step1_setup_test_environment() {
     log_info "测试目录: $TEST_DIR"
 
     # 复制必要的文件
-    cp -r "$SAGE_ROOT/tools" .
-    cp -r "$SAGE_ROOT/docs" . 2>/dev/null || true
-    cp "$SAGE_ROOT/quickstart.sh" . 2>/dev/null || true
-    cp "$SAGE_ROOT/Makefile" . 2>/dev/null || true
-    cp "$SAGE_ROOT/manage.sh" . 2>/dev/null || true
+    cp -r "${SAGE_ROOT:-}/tools" .
+    cp -r "${SAGE_ROOT:-}/docs" . 2>/dev/null || true
+    cp "${SAGE_ROOT:-}/quickstart.sh" . 2>/dev/null || true
+    cp "${SAGE_ROOT:-}/Makefile" . 2>/dev/null || true
+    cp "${SAGE_ROOT:-}/manage.sh" . 2>/dev/null || true
 
     log_success "测试环境设置完成"
 }

@@ -277,8 +277,8 @@ comprehensive_system_check() {
     format_output "${GEAR} 开始系统环境检查..."
 
     # 初始化日志文件（如果不存在）
-    mkdir -p "$(dirname "$SAGE_INSTALL_LOG")"
-    if [ ! -f "$SAGE_INSTALL_LOG" ]; then
+    mkdir -p "$(dirname "${SAGE_INSTALL_LOG:-}")"
+    if [ ! -f "${SAGE_INSTALL_LOG:-}" ]; then
         log_info "SAGE 安装日志 - $(date)" "CHECK"
     fi
 
@@ -539,11 +539,11 @@ verify_installation() {
     if [ -n "${SAGE_ENV_NAME:-}" ] && command -v conda &> /dev/null; then
         # 检查 conda 环境是否真实存在
         if conda env list | grep -q "^${SAGE_ENV_NAME} "; then
-            python_cmd="conda run -n $SAGE_ENV_NAME python"
-            echo -e "${DIM}在conda环境 $SAGE_ENV_NAME 中验证...${NC}"
+            python_cmd="conda run -n ${SAGE_ENV_NAME:-} python"
+            echo -e "${DIM}在conda环境 ${SAGE_ENV_NAME:-} 中验证...${NC}"
         else
             # 环境不存在，使用默认 Python
-            echo -e "${DIM}conda环境 $SAGE_ENV_NAME 不存在，在当前环境中验证...${NC}"
+            echo -e "${DIM}conda环境 ${SAGE_ENV_NAME:-} 不存在，在当前环境中验证...${NC}"
         fi
     elif [ -n "$PIP_CMD" ] && [[ "$PIP_CMD" == *"conda run"* ]]; then
         # 从PIP_CMD中提取环境名

@@ -7,18 +7,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-if [ -f "$SAGE_ROOT/tools/install/display_tools/colors.sh" ]; then
-    source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 fi
 
 # 导入日志工具
-if [ -f "$SAGE_ROOT/tools/install/display_tools/logging.sh" ]; then
-    source "$SAGE_ROOT/tools/install/display_tools/logging.sh"
+if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh"
 fi
 
 # 清理 egg-info 缓存
 clean_egg_info_cache() {
-    local packages_dir="$SAGE_ROOT/packages"
+    local packages_dir="${SAGE_ROOT:-}/packages"
 
     echo -e "${INFO} 检查 egg-info 缓存..."
     log_info "开始检查 egg-info 缓存" "BuildCache"
@@ -85,7 +85,7 @@ clean_egg_info_cache() {
 
 # 清理构建目录
 clean_build_dirs() {
-    local packages_dir="$SAGE_ROOT/packages"
+    local packages_dir="${SAGE_ROOT:-}/packages"
 
     echo -e "${INFO} 检查构建目录..."
     log_info "开始检查构建目录" "BuildCache"
@@ -123,7 +123,7 @@ clean_build_dirs() {
 
 # 清理 dist 目录
 clean_dist_dirs() {
-    local packages_dir="$SAGE_ROOT/packages"
+    local packages_dir="${SAGE_ROOT:-}/packages"
 
     log_info "开始检查 dist 目录" "BuildCache"
 

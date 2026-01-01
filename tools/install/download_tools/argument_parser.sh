@@ -197,7 +197,7 @@ prompt_conda_env_name() {
         SAGE_ENV_NAME="$conda_env_input"
     fi
     export SAGE_ENV_NAME
-    echo -e "${INFO} 将创建 Conda 环境: ${GREEN}$SAGE_ENV_NAME${NC}"
+    echo -e "${INFO} 将创建 Conda 环境: ${GREEN}${SAGE_ENV_NAME:-}${NC}"
 }
 
 # 交互式安装菜单

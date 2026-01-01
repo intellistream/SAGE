@@ -28,8 +28,8 @@ ask_conda_environment() {
         echo ""
         echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
         echo ""
-        echo -e "${INFO} 使用指定的环境名: ${GREEN}$SAGE_ENV_NAME${NC}"
-        create_conda_environment "$SAGE_ENV_NAME"
+        echo -e "${INFO} 使用指定的环境名: ${GREEN}${SAGE_ENV_NAME:-}${NC}"
+        create_conda_environment "${SAGE_ENV_NAME:-}"
         return $?
     fi
 
@@ -81,7 +81,7 @@ ask_conda_environment() {
         1)
             SAGE_ENV_NAME="sage"
             export SAGE_ENV_NAME  # 导出环境变量
-            create_conda_environment "$SAGE_ENV_NAME"
+            create_conda_environment "${SAGE_ENV_NAME:-}"
             ;;
         2)
             echo -e "${INFO} 将在当前环境中安装 SAGE"
@@ -102,12 +102,12 @@ ask_conda_environment() {
                 if [[ -n "$custom_env_name" ]]; then
                     SAGE_ENV_NAME="$custom_env_name"
                     export SAGE_ENV_NAME  # 导出环境变量
-                    create_conda_environment "$SAGE_ENV_NAME"
+                    create_conda_environment "${SAGE_ENV_NAME:-}"
                 else
                     echo -e "${WARNING} 环境名不能为空，使用默认名称: sage"
                     SAGE_ENV_NAME="sage"
                     export SAGE_ENV_NAME
-                    create_conda_environment "$SAGE_ENV_NAME"
+                    create_conda_environment "${SAGE_ENV_NAME:-}"
                 fi
             fi
             ;;

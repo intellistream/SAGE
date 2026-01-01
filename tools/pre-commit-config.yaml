@@ -71,11 +71,11 @@ repos:
   - id: ruff
     name: ruff check
     args: [--fix, --exit-non-zero-on-fix, --config, tools/ruff.toml]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN)/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
   - id: ruff-format
     name: ruff format
     args: [--config, tools/ruff.toml]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN)/)
+    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|sageDB|sageFlow|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local

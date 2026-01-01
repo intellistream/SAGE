@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 
 # 测试计数器
 TOTAL_TESTS=0
@@ -84,7 +84,7 @@ test_track_install_record_info() {
     echo -e "${BLUE}测试组: track_install.sh - 记录安装信息${NC}"
 
     # 保存原始 SAGE_ROOT
-    local orig_sage_root="$SAGE_ROOT"
+    local orig_sage_root="${SAGE_ROOT:-}"
 
     # 设置测试环境
     local test_info_file="$TEST_DIR/.sage/install_info.json"
@@ -114,7 +114,7 @@ test_track_install_show_command() {
     echo -e "${BLUE}测试组: track_install.sh - show 命令${NC}"
 
     # 保存原始 SAGE_ROOT
-    local orig_sage_root="$SAGE_ROOT"
+    local orig_sage_root="${SAGE_ROOT:-}"
 
     # 测试 show 命令（即使文件不存在也不应崩溃）
     cd "$TEST_DIR"
@@ -134,7 +134,7 @@ test_uninstall_help_option() {
     echo -e "${BLUE}测试组: uninstall_sage.sh - 帮助选项${NC}"
 
     # 测试 --help 选项
-    bash "$SAGE_ROOT/tools/cleanup/uninstall_sage.sh" --help >/dev/null 2>&1
+    bash "${SAGE_ROOT:-}/tools/cleanup/uninstall_sage.sh" --help >/dev/null 2>&1
     assert_success "显示帮助信息"
 }
 
@@ -143,7 +143,7 @@ test_uninstall_yes_flag() {
     echo -e "${BLUE}测试组: uninstall_sage.sh - --yes 标志${NC}"
 
     # 保存原始 SAGE_ROOT
-    local orig_sage_root="$SAGE_ROOT"
+    local orig_sage_root="${SAGE_ROOT:-}"
 
     # 创建测试环境
     mkdir -p "$TEST_DIR/.sage"
@@ -171,7 +171,7 @@ test_full_track_and_uninstall_workflow() {
     echo -e "${BLUE}测试组: 完整的记录和卸载流程${NC}"
 
     # 保存原始 SAGE_ROOT
-    local orig_sage_root="$SAGE_ROOT"
+    local orig_sage_root="${SAGE_ROOT:-}"
 
     # 1. 记录安装前
     cd "$TEST_DIR"

@@ -30,10 +30,22 @@ extend-exclude = [
     "**/benchmark_libamm/scripts/**",  # Jupyter notebooks with cell dependencies
     "**/benchmark_anns/DiskANN/**",
     "**/benchmark_anns/algorithms_impl/**",
+    # Exclude all third-party ANN algorithm implementations
+    "**/implementations/SPTAG/**",
+    "**/implementations/faiss/**",
+    "**/implementations/DiskANN/**",
+    "**/implementations/diskann-ms/**",
+    "**/implementations/candy/**",
+    "**/implementations/puck/**",
+    "**/implementations/pybind11/**",
     "build",
     "_deps",
     ".venv",
     "venv",
+    "ThirdParty",
+    "thirdparty",
+    "**/ThirdParty/**",
+    "**/thirdparty/**",
 ]
 
 [lint]

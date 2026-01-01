@@ -6,21 +6,21 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -z "$SAGE_ROOT" ]; then
+if [ -z "${SAGE_ROOT:-}" ]; then
     SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 fi
 
 # 导入 Conda 和进度工具
-if [ -f "$SAGE_ROOT/tools/lib/conda_install_utils.sh" ]; then
-    source "$SAGE_ROOT/tools/lib/conda_install_utils.sh"
+if [ -f "${SAGE_ROOT:-}/tools/lib/conda_install_utils.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/lib/conda_install_utils.sh"
 fi
 
-if [ -f "$SAGE_ROOT/tools/lib/progress_utils.sh" ]; then
-    source "$SAGE_ROOT/tools/lib/progress_utils.sh"
+if [ -f "${SAGE_ROOT:-}/tools/lib/progress_utils.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/lib/progress_utils.sh"
 fi
 
-if [ -f "$SAGE_ROOT/tools/conda/conda_utils.sh" ]; then
-    source "$SAGE_ROOT/tools/conda/conda_utils.sh"
+if [ -f "${SAGE_ROOT:-}/tools/conda/conda_utils.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/conda/conda_utils.sh"
 fi
 
 # 检测操作系统

@@ -55,7 +55,7 @@ clean_pip_cache() {
 # 验证C++扩展函数（扩展已在 sage-middleware 安装时自动构建）
 verify_cpp_extensions() {
     log_info "开始验证C++扩展" "CPPExt"
-    echo -e "${DIM}📝 详细日志: $SAGE_INSTALL_LOG${NC}"
+    echo -e "${DIM}📝 详细日志: ${SAGE_INSTALL_LOG:-}${NC}"
     echo -e "${DIM}   C++扩展已通过 sage-middleware 的 scikit-build-core 自动构建${NC}"
     echo -e "${DIM}   正在检查扩展可用性...${NC}"
     echo ""
@@ -145,7 +145,7 @@ except Exception as e:
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
             echo -e "${DIM}   1. 子模块未初始化：git submodule update --init --recursive${NC}"
             echo -e "${DIM}   2. 缺少构建工具：apt-get install build-essential cmake${NC}"
-            echo -e "${DIM}   3. 查看详细日志：cat $SAGE_INSTALL_LOG${NC}"
+            echo -e "${DIM}   3. 查看详细日志：cat ${SAGE_INSTALL_LOG:-}${NC}"
             return 1
         fi
 }

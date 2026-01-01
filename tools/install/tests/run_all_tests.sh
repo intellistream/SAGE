@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 
 # 测试统计
 TOTAL_SUITES=0

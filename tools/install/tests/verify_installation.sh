@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 
 # 测试结果统计
 TOTAL_TESTS=0
@@ -165,11 +165,11 @@ else:
 
     # 7. 配置文件检查
     print_test_header "⚙️ 7. 配置文件检查"
-    if [ -f "$SAGE_ROOT/.env" ]; then
+    if [ -f "${SAGE_ROOT:-}/.env" ]; then
         echo -e "${GREEN}✅ .env 配置文件存在${NC}"
 
         # 检查关键 API keys
-        if grep -q "OPENAI_API_KEY=" "$SAGE_ROOT/.env" 2>/dev/null; then
+        if grep -q "OPENAI_API_KEY=" "${SAGE_ROOT:-}/.env" 2>/dev/null; then
             echo -e "${DIM}   • OPENAI_API_KEY 已配置${NC}"
         else
             echo -e "${YELLOW}   ⚠️  OPENAI_API_KEY 未配置${NC}"
@@ -181,9 +181,9 @@ else:
 
     # 8. 示例测试（快速验证）
     print_test_header "🎓 8. 快速示例测试"
-    if [ -f "$SAGE_ROOT/examples/tutorials/hello_world.py" ]; then
+    if [ -f "${SAGE_ROOT:-}/examples/tutorials/hello_world.py" ]; then
         echo -e "${DIM}测试运行 hello_world.py（30秒超时）...${NC}"
-        if timeout 30s python3 "$SAGE_ROOT/examples/tutorials/hello_world.py" > /dev/null 2>&1; then
+        if timeout 30s python3 "${SAGE_ROOT:-}/examples/tutorials/hello_world.py" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ hello_world.py 运行成功${NC}"
         else
             echo -e "${YELLOW}⚠️  hello_world.py 运行失败或超时${NC}"

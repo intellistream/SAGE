@@ -9,8 +9,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入被测试模块
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
-source "$SAGE_ROOT/tools/install/download_tools/environment_config.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/download_tools/environment_config.sh"
 
 # 测试计数器
 TOTAL_TESTS=0

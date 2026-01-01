@@ -513,7 +513,7 @@ prompt_start_llm_service() {
 
     # 检查环境是否激活
     local env_activated=true
-    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "${SAGE_ENV_NAME:-}" ]; then
         env_activated=false
     fi
 
@@ -526,7 +526,7 @@ prompt_start_llm_service() {
     # 如果环境未激活，显示提示后返回
     if [ "$env_activated" = false ]; then
         echo -e "${YELLOW}⚠️  请先激活 conda 环境后再启动服务:${NC}"
-        echo -e "  ${CYAN}conda activate $SAGE_ENV_NAME${NC}"
+        echo -e "  ${CYAN}conda activate ${SAGE_ENV_NAME:-}${NC}"
         echo ""
         echo -e "${DIM}激活后可用以下命令启动服务:${NC}"
         echo -e "  ${CYAN}sage llm serve${NC}       # 启动 LLM 推理服务"
@@ -729,32 +729,32 @@ show_usage_tips() {
     echo ""
 
     # 如果使用了 conda 环境且不在该环境中，显示激活提示
-    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "${SAGE_ENV_NAME:-}" ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BOLD}⚠️  重要：需要激活 Conda 环境${NC}"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
-        echo -e "${INFO} SAGE 已安装到 conda 环境: ${GREEN}$SAGE_ENV_NAME${NC}"
+        echo -e "${INFO} SAGE 已安装到 conda 环境: ${GREEN}${SAGE_ENV_NAME:-}${NC}"
         echo -e "${INFO} 但当前终端未激活该环境"
         echo ""
         echo -e "${BOLD}方式 1: 手动激活（每次打开终端需要运行）${NC}"
-        echo -e "  ${CYAN}conda activate $SAGE_ENV_NAME${NC}"
+        echo -e "  ${CYAN}conda activate ${SAGE_ENV_NAME:-}${NC}"
         echo ""
         echo -e "${BOLD}方式 2: 设置自动激活（推荐）${NC}"
         echo ""
         echo -e "  ${DIM}# 添加到 ~/.bashrc 让终端自动激活${NC}"
-        echo -e "  ${CYAN}echo 'conda activate $SAGE_ENV_NAME' >> ~/.bashrc${NC}"
+        echo -e "  ${CYAN}echo 'conda activate ${SAGE_ENV_NAME:-}' >> ~/.bashrc${NC}"
         echo ""
         echo -e "  ${DIM}# VS Code 用户：在工作区设置中添加以下配置${NC}"
         echo -e "  ${DIM}# 文件: .vscode/settings.json${NC}"
         echo -e "  ${CYAN}{${NC}"
-        echo -e "  ${CYAN}  \"python.defaultInterpreterPath\": \"~/miniconda3/envs/$SAGE_ENV_NAME/bin/python\",${NC}"
+        echo -e "  ${CYAN}  \"python.defaultInterpreterPath\": \"~/miniconda3/envs/${SAGE_ENV_NAME:-}/bin/python\",${NC}"
         echo -e "  ${CYAN}  \"terminal.integrated.env.linux\": {${NC}"
-        echo -e "  ${CYAN}    \"CONDA_DEFAULT_ENV\": \"$SAGE_ENV_NAME\"${NC}"
+        echo -e "  ${CYAN}    \"CONDA_DEFAULT_ENV\": \"${SAGE_ENV_NAME:-}\"${NC}"
         echo -e "  ${CYAN}  },${NC}"
         echo -e "  ${CYAN}  \"terminal.integrated.shellArgs.linux\": [${NC}"
         echo -e "  ${CYAN}    \"-c\",${NC}"
-        echo -e "  ${CYAN}    \"conda activate $SAGE_ENV_NAME && exec bash\"${NC}"
+        echo -e "  ${CYAN}    \"conda activate ${SAGE_ENV_NAME:-} && exec bash\"${NC}"
         echo -e "  ${CYAN}  ]${NC}"
         echo -e "  ${CYAN}}${NC}"
         echo ""
@@ -769,9 +769,9 @@ show_usage_tips() {
     echo ""
 
     echo -e "${BLUE}基本使用：${NC}"
-    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "${SAGE_ENV_NAME:-}" ]; then
         echo -e "  ${DIM}# 首先激活环境:${NC}"
-        echo -e "  conda activate $SAGE_ENV_NAME"
+        echo -e "  conda activate ${SAGE_ENV_NAME:-}"
         echo ""
         echo -e "  ${DIM}# 然后使用 SAGE:${NC}"
     fi
@@ -829,16 +829,16 @@ show_usage_tips() {
 
         local vscode_script="$SCRIPT_DIR/../../config/setup_vscode_conda.sh"
         if [ -f "$vscode_script" ]; then
-            if bash "$vscode_script" "$SAGE_ENV_NAME" --auto 2>/dev/null; then
+            if bash "$vscode_script" "${SAGE_ENV_NAME:-}" --auto 2>/dev/null; then
                 echo -e "${GREEN}✅ VS Code 配置完成${NC}"
-                echo -e "${DIM}   终端将自动激活 conda 环境 '$SAGE_ENV_NAME'${NC}"
+                echo -e "${DIM}   终端将自动激活 conda 环境 '${SAGE_ENV_NAME:-}'${NC}"
             else
                 echo -e "${YELLOW}⚠️  自动配置失败，可手动运行:${NC}"
-                echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+                echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
             fi
         else
             echo -e "${DIM}💡 开发者提示: 运行以下命令配置 VS Code:${NC}"
-            echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+            echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
         fi
         echo ""
     fi
