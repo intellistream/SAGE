@@ -345,6 +345,11 @@ install_core_packages() {
     echo -e "${DIM}安装日志: $log_file${NC}"
     echo ""
 
+    # 配置 pip 镜像源（自动检测网络）
+    echo -e "${BLUE}🌐 配置 pip 镜像源...${NC}"
+    configure_pip_mirror "auto"
+    echo ""
+
     # 记录环境信息
     log_phase_start_enhanced "环境信息收集" "INSTALL" 5
     log_environment "INSTALL"
@@ -464,6 +469,11 @@ install_core_packages() {
     log_info "手动控制安装顺序，确保使用本地源码" "INSTALL"
     echo -e "${DIM}安装策略: 先安装外部依赖，再 editable install 本地包${NC}"
     echo -e "${DIM}           确保所有传递依赖可用后再安装本地源码${NC}"
+    echo ""
+
+    # 配置 pip 镜像源（自动检测网络）
+    echo -e "${BLUE}🌐 配置 pip 镜像源...${NC}"
+    configure_pip_mirror "auto"
     echo ""
 
     # 步骤 0: 检测 GPU 并预安装 CUDA 版本的 PyTorch（如果有 GPU）
