@@ -207,6 +207,9 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
+[tool.setuptools.dynamic.version]
+attr = "sage.libs._version.__version__"
+
 [tool.setuptools.package-data]
 "sage.libs" = ["py.typed", "**/*"]
 "sage.apps" = ["py.typed", "**/*"]
@@ -316,6 +319,12 @@ wheel.packages = ["src/sage"]
 wheel.expand-macos-universal-tags = true
 # 确保所有 Python 包都被安装（包括纯 Python 子包）
 wheel.py-api = "py3"
+
+# 排除 libamm 子模块（现在作为独立的 isage-libamm 包发布）
+wheel.exclude = [
+    "sage.libs.libamm",
+    "sage.libs.libamm.*",
+]
 
 # 严格配置验证
 strict-config = false
