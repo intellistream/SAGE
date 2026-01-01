@@ -374,11 +374,11 @@ main() {
                         echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
 
                         # 检查工具版本一致性
-                        if [ -f "$SAGE_ROOT/tools/install/check_tool_versions.sh" ]; then
+                        if [ -f "$SAGE_ROOT/tools/install/diagnostics/check_tool_versions.sh" ]; then
                             echo ""
-                            if ! bash "$SAGE_ROOT/tools/install/check_tool_versions.sh" --quiet 2>/dev/null; then
+                            if ! bash "$SAGE_ROOT/tools/install/diagnostics/check_tool_versions.sh" --quiet 2>/dev/null; then
                                 echo -e "${YELLOW}⚠️  检测到工具版本不一致${NC}"
-                                echo -e "${DIM}   运行 ./tools/install/check_tool_versions.sh --fix 自动修复${NC}"
+                                echo -e "${DIM}   运行 ./tools/install/diagnostics/check_tool_versions.sh --fix 自动修复${NC}"
                             fi
                         fi
                     else
@@ -435,16 +435,16 @@ main() {
         # 检查并修复依赖冲突
         echo ""
         echo -e "${INFO} 检查依赖版本兼容性..."
-        if [ -f "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh" ]; then
+        if [ -f "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh" ]; then
             # 非交互模式检查（在 CI 环境中或自动确认模式）
             if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "$(get_auto_confirm)" = "true" ]; then
-                source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
+                source "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies --non-interactive || {
                     echo -e "${DIM}  ⚠️  依赖检查完成（可能存在警告）${NC}"
                 }
             else
                 # 交互模式检查
-                source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
+                source "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies || {
                     echo -e "${DIM}  ℹ️  依赖检查跳过或失败（非关键）${NC}"
                 }

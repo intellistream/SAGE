@@ -170,7 +170,7 @@ jobs:
             "README.md"
             "CONTRIBUTING.md"
             "LICENSE"
-            "tools/pre-commit-config.yaml"
+            "tools/config/pre-commit-config.yaml"
           )
 
           for file in "${CRITICAL_FILES[@]}"; do

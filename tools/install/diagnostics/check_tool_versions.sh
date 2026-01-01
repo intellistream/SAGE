@@ -35,7 +35,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-PRE_COMMIT_CONFIG="$REPO_ROOT/tools/pre-commit-config.yaml"
+PRE_COMMIT_CONFIG="$REPO_ROOT/tools/config/pre-commit-config.yaml"
 
 # Colors
 RED='\033[0;31m'

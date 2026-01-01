@@ -18,7 +18,7 @@ echo "✅ pre-commit is installed: $(pre-commit --version)"
 # Check if .git/hooks/pre-commit exists
 if [ ! -f .git/hooks/pre-commit ]; then
     echo "❌ pre-commit hook file not found"
-    echo "   Install it with: pre-commit install --config tools/pre-commit-config.yaml"
+    echo "   Install it with: pre-commit install --config tools/config/pre-commit-config.yaml"
     exit 1
 fi
 echo "✅ pre-commit hook file exists"
@@ -44,7 +44,7 @@ fi
 # Test a simple hook run
 echo ""
 echo "🧪 Testing pre-commit (this may take a moment)..."
-if pre-commit run --config tools/pre-commit-config.yaml trailing-whitespace --all-files > /dev/null 2>&1; then
+if pre-commit run --config tools/config/pre-commit-config.yaml trailing-whitespace --all-files > /dev/null 2>&1; then
     echo "✅ pre-commit hooks can run successfully"
 else
     # Even if it fails, as long as it runs, it's OK
@@ -60,4 +60,4 @@ echo "   2. Always stage your changes: git add <files>"
 echo "   3. Before pushing, run: ./tools/fix-code-quality.sh"
 echo ""
 echo "💡 To test hooks manually:"
-echo "   pre-commit run --all-files --config tools/pre-commit-config.yaml"
+echo "   pre-commit run --all-files --config tools/config/pre-commit-config.yaml"

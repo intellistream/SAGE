@@ -18,7 +18,7 @@
 # Critical project files that may require doc updates:
 #   - Installation: quickstart.sh, manage.sh, tools/install/*.sh
 #   - CI/CD: .github/workflows/*.yml
-#   - Config: tools/pre-commit-config.yaml, tools/pytest.ini, tools/ruff.toml
+#   - Config: tools/pre-commit-config.yaml, tools/config/pytest.ini, tools/ruff.toml
 #   - Ports: packages/sage-common/src/sage/common/config/ports.py
 #   - Architecture: packages/*/pyproject.toml (new packages)
 #   - CLI: packages/sage-cli/src/sage/cli/*.py (new commands)

@@ -162,12 +162,12 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
 
           # 使用 CI 安装包装器，确保与本地安装方式一致
-          chmod +x ./tools/install/ci_install_wrapper.sh
+          chmod +x ./tools/install/core/ci_install_wrapper.sh
           chmod +x ./quickstart.sh
 
           echo "开始安装..."
           # 使用开发模式，这样会进行可编辑安装（pip install -e），.so文件会在源码目录中
-          ./tools/install/ci_install_wrapper.sh --dev --yes
+          ./tools/install/core/ci_install_wrapper.sh --dev --yes
 
           echo "✅ 安装完成"
         timeout-minutes: 25

@@ -860,7 +860,7 @@ fix_pre_commit_hooks_missing() {
     fi
 
     echo -e "  ${DIM}正在安装 pre-commit hooks...${NC}"
-    if pre-commit install --config tools/pre-commit-config.yaml >/dev/null 2>&1; then
+    if pre-commit install --config tools/config/pre-commit-config.yaml >/dev/null 2>&1; then
         echo -e "  ${GREEN}${CHECK_MARK}${NC} pre-commit hooks 安装成功"
         FIXES_APPLIED=$((FIXES_APPLIED + 1))
         log_message "FIX" "Successfully installed pre-commit hooks"

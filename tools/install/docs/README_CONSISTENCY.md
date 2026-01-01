@@ -37,16 +37,16 @@ CI/CD 环境使用的安装脚本，确保与本地开发使用完全相同的�
 
 ```bash
 # 基本验证
-./tools/install/validate_installation.sh
+./tools/install/core/validate_installation.sh
 
 # 自动修复问题
-./tools/install/validate_installation.sh --fix
+./tools/install/core/validate_installation.sh --fix
 
 # 严格模式（任何警告都失败）
-./tools/install/validate_installation.sh --strict
+./tools/install/core/validate_installation.sh --strict
 
 # 详细对比 CI/CD 配置
-./tools/install/validate_installation.sh --ci-compare
+./tools/install/core/validate_installation.sh --ci-compare
 ```
 
 **检查项目**:
@@ -88,7 +88,7 @@ cd SAGE
 ./quickstart.sh --dev --yes
 
 # 3. 验证安装
-./tools/install/validate_installation.sh
+./tools/install/core/validate_installation.sh
 
 # 4. 安装 Git hooks（包含安装一致性检查）
 sage-dev maintain hooks install
@@ -98,13 +98,13 @@ sage-dev maintain hooks install
 
 ```bash
 # 更新依赖后验证
-./tools/install/validate_installation.sh
+./tools/install/core/validate_installation.sh
 
 # 修复检测到的问题
-./tools/install/validate_installation.sh --fix
+./tools/install/core/validate_installation.sh --fix
 
 # 严格模式验证（推荐在提交 PR 前运行）
-./tools/install/validate_installation.sh --strict --ci-compare
+./tools/install/core/validate_installation.sh --strict --ci-compare
 ```
 
 ### 对于 CI/CD
@@ -140,7 +140,7 @@ sage-dev maintain hooks install
 在提交 PR 或遇到问题时，请确保：
 
 - [ ] 使用 `quickstart.sh` 安装
-- [ ] 运行 `./tools/install/validate_installation.sh` 通过
+- [ ] 运行 `./tools/install/core/validate_installation.sh` 通过
 - [ ] Git hooks 已安装
 - [ ] 所有子模块已初始化
 - [ ] 在虚拟环境中工作
@@ -154,7 +154,7 @@ sage-dev maintain hooks install
 
 ```bash
 # 1. 运行验证工具
-./tools/install/validate_installation.sh --ci-compare
+./tools/install/core/validate_installation.sh --ci-compare
 
 # 2. 检查是否使用 quickstart.sh 安装
 ls -la .sage/logs/install.log
@@ -164,7 +164,7 @@ ls -la .sage/logs/install.log
 ./quickstart.sh --dev --yes
 
 # 4. 再次验证
-./tools/install/validate_installation.sh
+./tools/install/core/validate_installation.sh
 ```
 
 ### 问题：手动安装了包怎么办
@@ -191,7 +191,7 @@ pip uninstall isage isage-common isage-kernel -y
 git commit -v
 
 # 2. 运行详细验证
-./tools/install/validate_installation.sh --fix
+./tools/install/core/validate_installation.sh --fix
 
 # 3. 重新提交
 git commit

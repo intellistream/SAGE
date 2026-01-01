@@ -88,7 +88,7 @@ check_and_fix_dependencies() {
     fi
 
     if [ "$should_fix" = true ]; then
-        local fix_script="$project_root/tools/install/fix_vllm_torch.sh"
+        local fix_script="$project_root/tools/install/maintenance/fix_vllm_torch.sh"
         if [ ! -f "$fix_script" ]; then
             echo "❌ 错误: 修复脚本不存在: $fix_script"
             return 1
@@ -104,7 +104,7 @@ check_and_fix_dependencies() {
         return $?
     else
         echo "ℹ️  跳过自动修复。你可以稍后手动运行:"
-        echo "   ./tools/install/fix_vllm_torch.sh"
+        echo "   ./tools/install/maintenance/fix_vllm_torch.sh"
         return 0
     fi
 }
