@@ -68,9 +68,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .sage/cache/pytest
-          key: pytest-examples-${{ runner.os }}-${{ hashFiles('examples/**/*.py', 'examples/**/requirements.txt') || 'no-examples' }}
+          key: pytest-examples-${{ runner.os }}-${{ hashFiles('examples/**/*.py', 'examples/**/*.yaml', 'examples/**/*.json') }}
 
       - name: Run examples (quick for PR)
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           export SAGE_TEST_MODE=true
           sage-dev examples test --quick --timeout 900

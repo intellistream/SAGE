@@ -1,26 +1,72 @@
 """
-Scheduler Implementation Module - 调度器实现模块
+Scheduler Implementation Module.
 
-这个模块包含各种调度策略的具体实现，供开发者对比实验使用。
+This module contains various scheduling strategy implementations
+for developer comparison experiments.
 
-调度策略在 Environment 级别配置：
-    env = LocalEnvironment(scheduler="fifo")  # 使用 FIFO 调度器
-    env = LocalEnvironment(scheduler="load_aware")  # 使用负载感知调度器
+Configure scheduler at Environment level:
+    env = LocalEnvironment(scheduler="fifo")
+    env = LocalEnvironment(scheduler="load_aware")
 
-已实现的 Baseline 策略:
-- FIFOScheduler: 先进先出调度（最简单）
-- LoadAwareScheduler: 负载感知调度（考虑系统资源）
+Available strategies:
+- FIFOScheduler: First-in-first-out (simplest baseline)
+- LoadAwareScheduler: Resource-aware scheduling
+- RandomScheduler: Random node selection (baseline)
+- RoundRobinScheduler: Fair round-robin scheduling
+- PriorityScheduler: Priority-based scheduling
 
-待实现的策略:
-- PriorityScheduler: 优先级调度
-- RoundRobinScheduler: 轮询调度
-- CostOptimizedScheduler: 成本优化调度
+Scheduler name mapping:
+    "fifo"       -> FIFOScheduler
+    "load_aware" -> LoadAwareScheduler
+    "random"     -> RandomScheduler
+    "round_robin"-> RoundRobinScheduler
+    "priority"   -> PriorityScheduler
 """
 
+from sage.kernel.scheduler.impl.priority_scheduler import PriorityScheduler
+from sage.kernel.scheduler.impl.random_scheduler import RandomScheduler
 from sage.kernel.scheduler.impl.resource_aware_scheduler import LoadAwareScheduler
+from sage.kernel.scheduler.impl.round_robin_scheduler import RoundRobinScheduler
 from sage.kernel.scheduler.impl.simple_scheduler import FIFOScheduler
+
+# Scheduler registry (string -> class)
+SCHEDULER_REGISTRY: dict[str, type] = {
+    "fifo": FIFOScheduler,
+    "load_aware": LoadAwareScheduler,
+    "random": RandomScheduler,
+    "round_robin": RoundRobinScheduler,
+    "priority": PriorityScheduler,
+}
+
+
+def get_scheduler(name: str, **kwargs):
+    """
+    Get a scheduler instance by name.
+
+    Args:
+        name: Scheduler name (e.g., "fifo", "load_aware", "random")
+        **kwargs: Scheduler initialization parameters
+
+    Returns:
+        Scheduler instance
+
+    Example:
+        scheduler = get_scheduler("load_aware", max_concurrent=20)
+    """
+    name_lower = name.lower()
+    if name_lower not in SCHEDULER_REGISTRY:
+        available = ", ".join(SCHEDULER_REGISTRY.keys())
+        raise ValueError(f"Unknown scheduler: {name}. Available: {available}")
+
+    return SCHEDULER_REGISTRY[name_lower](**kwargs)
+
 
 __all__ = [
     "FIFOScheduler",
     "LoadAwareScheduler",
+    "RandomScheduler",
+    "RoundRobinScheduler",
+    "PriorityScheduler",
+    "SCHEDULER_REGISTRY",
+    "get_scheduler",
 ]

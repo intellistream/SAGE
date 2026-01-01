@@ -47,6 +47,10 @@ class Dispatcher:
             "max_restart_attempts": 3,  # 最大重启次数
         }
 
+        # 对于 remote 环境，先确保 Ray 已初始化，这样 NodeSelector 才能获取节点信息
+        if env.platform == "remote":
+            ensure_ray_initialized()
+
         # 使用调度器和容错管理器（重构后架构）
         # 调度器：纯决策者（返回 PlacementDecision）
         # PlacementExecutor：纯执行者（接收决策，执行放置）
@@ -85,7 +89,6 @@ class Dispatcher:
             self.logger.info(f"Fault tolerance enabled: strategy={strategy}")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
-            ensure_ray_initialized()
 
     def enable_fault_tolerance(
         self,
@@ -191,6 +194,13 @@ class Dispatcher:
             task = self.tasks[node_name]
             task.stop()
             task.cleanup()
+
+            # 对于 Ray Actor，需要显式 kill 以释放资源
+            if self.remote and hasattr(task, "kill_actor"):
+                kill_success = task.kill_actor(no_restart=True)
+                self.logger.debug(
+                    f"Kill actor {node_name}: {'success' if kill_success else 'skipped/failed'}"
+                )
 
             # 从任务列表中移除
             del self.tasks[node_name]
@@ -700,12 +710,22 @@ class Dispatcher:
             if self.is_running:
                 self.stop()
 
+            self.logger.info(
+                f"Cleanup: remote={self.remote}, tasks={len(self.tasks)}, services={len(self.services)}"
+            )
+
             if self.remote:
                 # 使用生命周期管理器清理所有Ray资源
                 # 明确禁止 Ray Actor 重启，确保完全清理
-                self.lifecycle_manager.cleanup_all(
+                self.logger.info("Using lifecycle_manager to cleanup Ray actors...")
+                results = self.lifecycle_manager.cleanup_all(
                     tasks=self.tasks, services=self.services, cleanup_timeout=5.0, no_restart=True
                 )
+                # 记录清理结果
+                for task_id, (cleanup_ok, kill_ok) in results.items():
+                    self.logger.info(
+                        f"  Cleanup result for {task_id}: cleanup={cleanup_ok}, kill={kill_ok}"
+                    )
             else:
                 # 清理本地任务（使用列表副本避免迭代时字典大小改变）
                 for node_name, task in list(self.tasks.items()):

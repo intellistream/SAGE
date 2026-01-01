@@ -148,39 +148,6 @@ class ConfigManager:
             nodes.append((host, port))
         return nodes
 
-    def add_worker_ssh_host(self, host: str, port: int = 22):
-        """添加新的worker SSH主机"""
-        current_hosts = self.get_workers_ssh_hosts()
-        new_host = (host, port)
-
-        # 检查是否已存在
-        if new_host in current_hosts:
-            return False
-
-        current_hosts.append(new_host)
-        hosts_str = ",".join([f"{h}:{p}" for h, p in current_hosts])
-
-        config = self.config.copy()
-        config["workers_ssh_hosts"] = hosts_str
-        self.save_config(config)
-        return True
-
-    def remove_worker_ssh_host(self, host: str, port: int = 22):
-        """移除worker SSH主机"""
-        current_hosts = self.get_workers_ssh_hosts()
-        target_host = (host, port)
-
-        if target_host not in current_hosts:
-            return False
-
-        current_hosts.remove(target_host)
-        hosts_str = ",".join([f"{h}:{p}" for h, p in current_hosts])
-
-        config = self.config.copy()
-        config["workers_ssh_hosts"] = hosts_str
-        self.save_config(config)
-        return True
-
     def create_default_config(self):
         """创建默认配置文件"""
         default_config = {

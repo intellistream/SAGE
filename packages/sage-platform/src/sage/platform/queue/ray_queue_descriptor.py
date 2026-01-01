@@ -356,6 +356,9 @@ def get_global_queue_manager() -> Any:
     # 使用固定的 namespace，确保所有 job 都能访问同一个 Actor
     QUEUE_MANAGER_NAMESPACE = "sage_global"
 
+    # 使用固定的 namespace，确保所有 job 都能访问同一个 Actor
+    QUEUE_MANAGER_NAMESPACE = "sage_global"
+
     # 先尝试获取现有的命名Actor
     try:
         _get_actor_start = time.time()
@@ -369,9 +372,7 @@ def get_global_queue_manager() -> Any:
         )
         return manager
     except ValueError:
-        logger.debug(
-            f"[GET-MANAGER-NOT-FOUND] Manager does not exist in namespace {QUEUE_MANAGER_NAMESPACE}, will create"
-        )
+        logger.debug("[GET-MANAGER-NOT-FOUND] Manager does not exist, will create")
         pass
 
     # 多次尝试创建命名Actor，处理并发冲突
@@ -415,9 +416,7 @@ def get_global_queue_manager() -> Any:
                     f"[GET-MANAGER-CONFLICT] Attempt {attempt + 1}: Actor already exists, retrying get"
                 )
                 try:
-                    manager = ray.get_actor(
-                        "global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE
-                    )
+                    manager = ray.get_actor("global_ray_queue_manager")
                     _total_duration = time.time() - _start
                     logger.debug(
                         f"[GET-MANAGER-FOUND-RETRY] Found manager after conflict in namespace {QUEUE_MANAGER_NAMESPACE}, "
