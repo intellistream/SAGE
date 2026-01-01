@@ -28,8 +28,7 @@ extend-exclude = [
     "sageTSDB",
     "libamm",
     "**/benchmark_libamm/scripts/**",  # Jupyter notebooks with cell dependencies
-    "**/benchmark_db/DiskANN/**",
-    "**/benchmark_db/algorithms_impl/**",
+    "**/benchmark_db/**",  # git submodule
     "build",
     "_deps",
     ".venv",

@@ -73,6 +73,10 @@ class TaskNode:
         self._create_queue_descriptors(env)
 
         # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
+        # 保存 extra_python_paths 用于传递给 TaskFactory
+        self._extra_python_paths = getattr(env, "extra_python_paths", []) or []
+
+        # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
         self.task_factory: TaskFactory = self._create_task_factory()
 
         self.stop_signal_num: int = 0  # 预期的源节点数量
@@ -101,7 +105,7 @@ class TaskNode:
         """在TaskNode中创建TaskFactory，避免BaseTransformation依赖runtime层"""
         from sage.kernel.runtime.factory.task_factory import TaskFactory
 
-        return TaskFactory(self.transformation)
+        return TaskFactory(self.transformation, extra_python_paths=self._extra_python_paths)
 
     def __repr__(self) -> str:
         return f"TaskNode(name={self.name}, parallel_index={self.parallel_index}, is_spout={self.is_spout}, is_sink={self.is_sink})"

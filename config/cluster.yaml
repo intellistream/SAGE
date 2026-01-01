@@ -3,7 +3,7 @@
 
 # Head 节点配置
 head:
-  host: "sage-node-1"           # Head 节点 IP/主机名
+  host: "sage-node-15"           # Head 节点 IP/主机名
   head_port: 26379               # Ray GCS 端口
   dashboard_port: 28265          # Ray Dashboard 端口
   dashboard_host: "0.0.0.0"      # Dashboard 监听地址
@@ -29,12 +29,12 @@ ssh:
   key_path: "~/.ssh/id_rsa"      # SSH 私钥路径
   connect_timeout: 10            # 连接超时（秒）
   workers:
-    - host: "sage-node-2"
-      port: 22
-    - host: "sage-node-3"
-      port: 22
-    - host: "sage-node-4"
-      port: 22
+  - host: "sage-node-16"
+    port: 22
+  - host: "sage-node-17"
+    port: 22
+  - host: "sage-node-18"
+    port: 22
 
 # 远程节点配置
 remote:
@@ -45,7 +45,7 @@ remote:
 
 # Daemon 配置
 daemon:
-  host: "sage-node-1"
+  host: "sage-node-15"
   port: 19001
 
 # 输出配置

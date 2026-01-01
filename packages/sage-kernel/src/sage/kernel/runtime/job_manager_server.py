@@ -128,6 +128,16 @@ class JobManagerServer(BaseTcpServer):
             # 获取 autostop 参数
             autostop = request.get("autostop", False)
 
+            # 在反序列化之前添加额 Python 路径
+            # 这样反序列化时可以正确导入自定义模块
+            extra_python_paths = request.get("extra_python_paths", [])
+            if extra_python_paths:
+                self.logger.debug(f"Adding extra Python paths: {extra_python_paths}")
+                for path in extra_python_paths:
+                    if path not in sys.path:
+                        sys.path.insert(0, path)
+                        self.logger.debug(f"Added to sys.path: {path}")
+
             # 获取序列化的数据（新格式：base64编码的dill序列化数据）
             serialized_data_b64 = request.get("serialized_data")
             if serialized_data_b64:

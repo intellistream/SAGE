@@ -41,6 +41,7 @@ class SimpleProcessor(MapFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         import socket as _socket  # 在类内部导入，确保 Ray Actor 可以访问
+
         self.hostname = _socket.gethostname()
         self.processed_count = 0
 
@@ -72,24 +73,23 @@ class ConsoleSink(SinkFunction):
             if "[processed on " in data:
                 node = data.split("[processed on ")[-1].rstrip("]")
                 self.node_stats[node] = self.node_stats.get(node, 0) + 1
-            
+
             # 测试模式下仅打印前5条
             if not self.test_mode or self.count <= 5:
                 print(f"✅ Result: {data}")
             elif self.count == 6:
                 print("   ... (remaining output suppressed in test mode)")
-            
+
             # 每100条打印一次统计
             if self.count % 100 == 0:
                 print(f"\n📊 节点分布统计 (已处理 {self.count} 条):")
                 for node, cnt in sorted(self.node_stats.items()):
-                    print(f"   {node}: {cnt} ({cnt*100/self.count:.1f}%)")
+                    print(f"   {node}: {cnt} ({cnt * 100 / self.count:.1f}%)")
                 print()
 
 
 def check_jobmanager_available():
     """检查 JobManager 是否可用"""
-    import socket
 
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -128,22 +128,25 @@ def example_default_scheduler():
     # 步骤1: 创建环境 - 使用 load_aware 调度器和 spread 策略
     print("📦 [1/5] 创建 RemoteEnvironment (使用 load_aware 调度器)...")
     step_start = time.time()
-    
+
     # 使用 LoadAwareScheduler 配置分散策略
     from sage.kernel.scheduler.impl import LoadAwareScheduler
+
     scheduler = LoadAwareScheduler(
         platform="remote",
         max_concurrent=20,  # 增加并发数
         strategy="spread",  # 使用 SPREAD 策略分散到不同节点
     )
-    
-    env = RemoteEnvironment(name="distributed_scheduler_demo", scheduler=scheduler,host="sage-node-1")
+
+    env = RemoteEnvironment(
+        name="distributed_scheduler_demo", scheduler=scheduler, host="sage-node-1"
+    )
     # 设置 JobManager 的可访问主机名（worker 节点通过此地址连接回 JobManager）
     # 注意：JobManager 启动时使用 0.0.0.0 监听，但 worker 需要实际可访问的主机名
     # env.jobmanager_host = "sage-node-1"
     step_duration = time.time() - step_start
     print(f"   ✅ 环境创建完成 (耗时: {step_duration:.3f}秒)")
-    print(f"   📋 调度策略: SPREAD (分散放置到多个节点)\n")
+    print("   📋 调度策略: SPREAD (分散放置到多个节点)\n")
 
     # 步骤2: 构建数据流 - 增加并行度以利用多节点
     print("🔧 [2/5] 构建数据流 pipeline...")
@@ -155,7 +158,7 @@ def example_default_scheduler():
     )
     step_duration = time.time() - step_start
     print(f"   ✅ Pipeline 构建完成 (耗时: {step_duration:.3f}秒)")
-    print(f"   📋 SimpleProcessor 并行度: 8 (将分布到多个节点)\n")
+    print("   📋 SimpleProcessor 并行度: 8 (将分布到多个节点)\n")
 
     # 步骤3: 连接JobManager
     print("🔌 [3/5] 连接到 JobManager...")
@@ -202,13 +205,13 @@ def example_default_scheduler():
     try:
         metrics = env.get_scheduler_metrics()
         print(f"   调度器指标: {metrics}")
-        
+
         # 如果使用 LoadAwareScheduler，显示节点使用情况
-        if hasattr(scheduler, 'node_selector'):
+        if hasattr(scheduler, "node_selector"):
             # 使用 node_task_count 获取节点任务统计
             node_task_count = scheduler.node_selector.node_task_count
             if node_task_count:
-                print(f"\n   📍 节点放置统计:")
+                print("\n   📍 节点放置统计:")
                 for node_id, count in node_task_count.items():
                     node_info = scheduler.node_selector.get_node(node_id)
                     if node_info:

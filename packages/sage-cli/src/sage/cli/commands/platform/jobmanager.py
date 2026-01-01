@@ -501,7 +501,9 @@ class JobManagerController:
 
 @app.command()
 def start(
-    host: str = typer.Option("0.0.0.0", help="JobManager host address (use 0.0.0.0 for cluster access)"),
+    host: str = typer.Option(
+        "0.0.0.0", help="JobManager host address (use 0.0.0.0 for cluster access)"
+    ),
     port: int = typer.Option(19001, help="JobManager port"),
     foreground: bool = typer.Option(False, "--foreground", help="Start in the foreground"),
     no_wait: bool = typer.Option(

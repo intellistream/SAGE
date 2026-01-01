@@ -35,7 +35,7 @@ class SinkOperator(BaseOperator):
         """
         处理停止信号，调用function.close()来触发最终处理
         这个方法会被BaseTask在收到StopSignal时调用
-        
+
         注意：此方法只处理 function 层面的关闭逻辑，
         ctx.request_stop() 由 BaseTask._handle_sink_stop_signal() 调用
         """

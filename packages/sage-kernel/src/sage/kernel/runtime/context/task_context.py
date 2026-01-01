@@ -273,6 +273,7 @@ class TaskContext(BaseRuntimeContext):
             # Check if operator's handle_stop_signal accepts 'signal' parameter
             # JoinOperator and CoMapOperator accept it, SinkOperator doesn't
             import inspect
+
             sig = inspect.signature(self.operator.handle_stop_signal)  # type: ignore[attr-defined]
             if "signal" in sig.parameters:
                 # This is JoinOperator/CoMapOperator that manages its own stop signal propagation

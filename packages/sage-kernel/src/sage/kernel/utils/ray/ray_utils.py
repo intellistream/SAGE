@@ -43,9 +43,21 @@ def get_sage_kernel_runtime_env():
         return {}
 
     # 构建runtime_env配置
+    # 添加 experiments 目录以支持分布式调度实验
+    pythonpath_parts = [sage_kernel_src]
+    experiments_dir = os.path.abspath(
+        os.path.join(os.path.dirname(sage_kernel_src), "../../../experiments")
+    )
+    if os.path.exists(experiments_dir):
+        pythonpath_parts.append(experiments_dir)
+
+    pythonpath = ":".join(pythonpath_parts)
+    if os.environ.get("PYTHONPATH"):
+        pythonpath += ":" + os.environ.get("PYTHONPATH")
+
     runtime_env = {
         "py_modules": [sage_kernel_src],
-        "env_vars": {"PYTHONPATH": sage_kernel_src + ":" + os.environ.get("PYTHONPATH", "")},
+        "env_vars": {"PYTHONPATH": pythonpath},
     }
 
     return runtime_env
