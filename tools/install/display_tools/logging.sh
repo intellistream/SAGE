@@ -402,6 +402,7 @@ log_pip_install_with_verbose_progress() {
     local total_downloaded_mb=0
     local download_start_time=0
     local last_file_size=0
+    local collecting_start_time=0
 
     echo -e "${DIM}   开始安装，显示详细进度...${NC}" >&2
     echo "" >&2
@@ -420,7 +421,24 @@ log_pip_install_with_verbose_progress() {
             current_pkg="${BASH_REMATCH[1]}"
             current_stage="collecting"
             download_count=0
+            collecting_start_time=$(date +%s)
             printf "\n  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}%-40s${NC}" "$current_pkg" >&2
+        elif [ "$current_stage" = "collecting" ] && [ -n "$collecting_start_time" ]; then
+            # 收集阶段：定期更新时间（每处理几行更新一次，避免过于频繁）
+            if [ $((line_count % 5)) -eq 0 ]; then
+                local elapsed=$(($(date +%s) - collecting_start_time))
+                if [ $elapsed -gt 5 ]; then  # 超过5秒才显示（避免大多数快速包都显示时间）
+                    # 根据时长选择不同的提示
+                    local hint=""
+                    if [ $elapsed -gt 300 ]; then
+                        hint=" ${YELLOW}[网络慢或依赖树复杂，可尝试 Ctrl+C 重试]${NC}"
+                    elif [ $elapsed -gt 60 ]; then
+                        hint=" ${DIM}[大型包依赖解析中，请耐心等待]${NC}"
+                    fi
+                    printf "\r  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}%-40s${NC} ${DIM}(已运行 %ds)${NC}%s          " \
+                        "$current_pkg" "$elapsed" "$hint" >&2
+                fi
+            fi
         elif [[ "$line" =~ ^Downloading[[:space:]].*\.whl ]] || [[ "$line" =~ ^Downloading[[:space:]].*\.tar\.gz ]]; then
             # 下载：原地更新计数，并尝试提取文件大小
             download_count=$((download_count + 1))
