@@ -687,34 +687,103 @@ prompt_start_llm_service() {
                 echo -e "${INFO} 正在启动 SAGE Studio..."
                 echo -e "${DIM}   这将同时启动前端界面和后端服务${NC}"
                 if [ "$has_gpu" = true ]; then
-                    echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）...${NC}"
+                    echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）${NC}"
                 fi
+                echo -e "${DIM}   ${YELLOW}提示: 启动过程中会显示进度信息...${NC}"
                 echo ""
 
                 if command -v sage &>/dev/null; then
-                    # 不使用 head 截断，避免 SIGPIPE 导致服务启动不完整
-                    # 将日志重定向到临时文件，完成后显示关键信息
+                    # 将日志重定向到临时文件，同时实时显示进度
                     local studio_log="/tmp/sage_studio_start_$$.log"
-                    sage studio start > "$studio_log" 2>&1
+
+                    # 启动服务（后台运行）
+                    sage studio start > "$studio_log" 2>&1 &
+                    local sage_pid=$!
+
+                    # 实时监控日志并显示关键进度
+                    local elapsed=0
+                    local max_wait=300  # 最多等待 5 分钟
+                    local last_status=""
+                    local dots=""
+
+                    echo -e "${CYAN}📦 启动进度:${NC}"
+
+                    while kill -0 $sage_pid 2>/dev/null && [ $elapsed -lt $max_wait ]; do
+                        # 尝试从日志中获取当前状态
+                        if [ -f "$studio_log" ]; then
+                            # 检测关键状态
+                            if grep -q "检查 Node.js 环境" "$studio_log" 2>/dev/null && [ "$last_status" != "checking_node" ]; then
+                                echo -e "   ${GREEN}✓${NC} 检查 Node.js 环境"
+                                last_status="checking_node"
+                            elif grep -q "检查 npm 依赖" "$studio_log" 2>/dev/null && [ "$last_status" != "checking_deps" ]; then
+                                echo -e "   ${GREEN}✓${NC} 检查 npm 依赖"
+                                last_status="checking_deps"
+                            elif grep -q "安装 npm 依赖" "$studio_log" 2>/dev/null && [ "$last_status" != "installing_deps" ]; then
+                                echo -e "   ${CYAN}⏳${NC} 安装 npm 依赖（首次较慢，约 1-3 分钟）..."
+                                last_status="installing_deps"
+                            elif grep -q "启动后端服务" "$studio_log" 2>/dev/null && [ "$last_status" != "starting_backend" ]; then
+                                echo -e "   ${GREEN}✓${NC} npm 依赖已就绪"
+                                echo -e "   ${CYAN}⏳${NC} 启动后端服务..."
+                                last_status="starting_backend"
+                            elif grep -q "下载模型" "$studio_log" 2>/dev/null && [ "$last_status" != "downloading_model" ]; then
+                                echo -e "   ${CYAN}⏳${NC} 下载 LLM 模型（首次约 1-2 分钟）..."
+                                last_status="downloading_model"
+                            elif grep -q "启动前端服务" "$studio_log" 2>/dev/null && [ "$last_status" != "starting_frontend" ]; then
+                                echo -e "   ${GREEN}✓${NC} 后端服务已启动"
+                                echo -e "   ${CYAN}⏳${NC} 启动前端服务..."
+                                last_status="starting_frontend"
+                            elif grep -q "Studio started successfully" "$studio_log" 2>/dev/null && [ "$last_status" != "completed" ]; then
+                                echo -e "   ${GREEN}✓${NC} 前端服务已启动"
+                                last_status="completed"
+                                break
+                            fi
+                        fi
+
+                        # 显示滚动点（避免用户误以为卡住）
+                        if [ -n "$last_status" ] && [ "$last_status" = "installing_deps" ] || [ "$last_status" = "downloading_model" ]; then
+                            dots="${dots}."
+                            if [ ${#dots} -gt 3 ]; then
+                                dots=""
+                            fi
+                            printf "\r   ${DIM}等待中${dots}     ${NC}"
+                        fi
+
+                        sleep 2
+                        elapsed=$((elapsed + 2))
+                    done
+
+                    # 清除进度行
+                    printf "\r\033[K"
+
+                    # 等待命令完成
+                    wait $sage_pid 2>/dev/null
                     local exit_code=$?
 
-                    # 显示关键信息（最后 15 行）
-                    if [ -f "$studio_log" ]; then
-                        tail -15 "$studio_log"
-                        rm -f "$studio_log"
-                    fi
-
+                    # 显示最终状态
                     echo ""
                     if [ $exit_code -eq 0 ]; then
-                        echo -e "${GREEN}✅ Studio 已启动${NC}"
-                        echo -e "${DIM}   访问地址: http://localhost:5173${NC}"
+                        echo -e "${GREEN}✅ Studio 已成功启动${NC}"
+                        echo -e "${DIM}   前端地址: http://localhost:5173${NC}"
+                        echo -e "${DIM}   后端 API: http://localhost:8000${NC}"
                         echo -e "${DIM}   状态查看: sage studio status${NC}"
                         echo -e "${DIM}   停止服务: sage studio stop${NC}"
+                        echo ""
+                        echo -e "${CYAN}💡 提示: 在浏览器中打开 http://localhost:5173 开始使用 Studio${NC}"
                     else
-                        echo -e "${YELLOW}⚠️  Studio 启动可能未完全成功，请检查状态${NC}"
+                        echo -e "${YELLOW}⚠️  Studio 启动可能未完全成功${NC}"
+                        echo ""
+                        echo -e "${DIM}最后 20 行日志:${NC}"
+                        if [ -f "$studio_log" ]; then
+                            tail -20 "$studio_log"
+                        fi
+                        echo ""
                         echo -e "${DIM}   状态查看: sage studio status${NC}"
+                        echo -e "${DIM}   查看日志: sage studio logs${NC}"
                         echo -e "${DIM}   重新启动: sage studio start${NC}"
                     fi
+
+                    # 清理日志
+                    rm -f "$studio_log"
                 else
                     echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
                     echo -e "  ${CYAN}sage studio start${NC}"
