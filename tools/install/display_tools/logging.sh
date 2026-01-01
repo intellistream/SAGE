@@ -396,7 +396,9 @@ log_pip_install_with_verbose_progress() {
     local start_time=$(date +%s)
     local last_update=0
     local current_pkg=""
+    local current_stage=""
     local line_count=0
+    local download_count=0
 
     echo -e "${DIM}   开始安装，显示详细进度...${NC}" >&2
     echo "" >&2
@@ -409,38 +411,53 @@ log_pip_install_with_verbose_progress() {
         echo "$line" >> "$temp_output"
         line_count=$((line_count + 1))
 
-        # 显示关键信息行
-        if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]] ||
-           [[ "$line" =~ ^Downloading[[:space:]] ]] ||
-           [[ "$line" =~ ^Installing[[:space:]] ]] ||
-           [[ "$line" =~ ^Building[[:space:]] ]] ||
-           [[ "$line" =~ ^Running[[:space:]]setup\.py ]] ||
-           [[ "$line" =~ ^Successfully[[:space:]]installed ]] ||
-           [[ "$line" =~ ^Requirement[[:space:]]already[[:space:]]satisfied ]]; then
-            # 提取包名用于高亮显示
-            if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]]; then
-                current_pkg="${BASH_REMATCH[1]}"
-                echo -e "  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}$current_pkg${NC}" >&2
-            elif [[ "$line" =~ ^Downloading[[:space:]].*\.whl ]] || [[ "$line" =~ ^Downloading[[:space:]].*\.tar\.gz ]]; then
-                echo -e "  ${DIM}  ⬇ 下载中...${NC}" >&2
-            elif [[ "$line" =~ ^Building[[:space:]]wheel ]] || [[ "$line" =~ ^Running[[:space:]]setup\.py ]]; then
-                echo -e "  ${YELLOW}  🔨 编译中...${NC} ${DIM}(可能需要几分钟)${NC}" >&2
-            elif [[ "$line" =~ ^Successfully[[:space:]]installed ]]; then
-                echo -e "  ${GREEN}✓${NC} 安装完成: ${line#Successfully installed }" >&2
-            elif [[ "$line" =~ ^Requirement[[:space:]]already[[:space:]]satisfied ]]; then
-                # 跳过已满足的依赖（减少输出噪音）
-                :
+        # 提取包名用于高亮显示
+        if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]]; then
+            # 新包：换行显示
+            current_pkg="${BASH_REMATCH[1]}"
+            current_stage="collecting"
+            download_count=0
+            printf "\n  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}%-40s${NC}" "$current_pkg" >&2
+        elif [[ "$line" =~ ^Downloading[[:space:]].*\.whl ]] || [[ "$line" =~ ^Downloading[[:space:]].*\.tar\.gz ]]; then
+            # 下载：原地更新计数
+            download_count=$((download_count + 1))
+            if [ "$current_stage" != "downloading" ]; then
+                current_stage="downloading"
+                printf "\n  ${DIM}  ⬇${NC} 下载中..." >&2
+            else
+                printf "\r  ${DIM}  ⬇${NC} 下载中... ${CYAN}[%d 个文件]${NC}          " "$download_count" >&2
             fi
+        elif [[ "$line" =~ ^Building[[:space:]]wheel ]] || [[ "$line" =~ ^Running[[:space:]]setup\.py ]]; then
+            # 编译：换行显示（重要阶段）
+            if [ "$current_stage" != "building" ]; then
+                current_stage="building"
+                printf "\n  ${YELLOW}  🔨${NC} 编译中... ${DIM}(可能需要几分钟)${NC}" >&2
+            else
+                # 编译中：原地更新时间
+                local current_time=$(date +%s)
+                local elapsed=$((current_time - start_time))
+                printf "\r  ${YELLOW}  🔨${NC} 编译中... ${DIM}(已用时 %ds)${NC}          " "$elapsed" >&2
+            fi
+        elif [[ "$line" =~ ^Successfully[[:space:]]installed ]]; then
+            # 完成：换行显示
+            printf "\n  ${GREEN}✓${NC} 安装完成: ${line#Successfully installed }\n" >&2
+            current_stage=""
+        elif [[ "$line" =~ ^Requirement[[:space:]]already[[:space:]]satisfied ]]; then
+            # 跳过已满足的依赖（减少输出噪音）
+            :
         fi
 
         # 时间戳提示（每60秒）
         local current_time=$(date +%s)
         local elapsed=$((current_time - start_time))
         if [ $((current_time - last_update)) -ge 60 ]; then
-            echo -e "${DIM}   [已运行 ${elapsed}s，处理了 ${line_count} 行输出]${NC}" >&2
+            printf "\n${DIM}   [已运行 %ds，处理了 %d 行输出]${NC}\n" "$elapsed" "$line_count" >&2
             last_update=$current_time
         fi
     done
+
+    # 清除最后一行（如果有残留）
+    printf "\n" >&2
 
     # 读取退出码
     if [ -f "${temp_output}.exit" ]; then
