@@ -483,7 +483,7 @@ installation-test.yml, publish-pypi.yml, paper1-experiments.yml (GPU, manual)
 
 | 场景 | 推荐安装方式 | 说明 |
 |------|-------------|------|
-| GitHub Actions (ubuntu-latest) | `./tools/install/ci_install_wrapper.sh --dev --yes` | 标准 CI，安装到 `~/.local` |
+| GitHub Actions (ubuntu-latest) | `./tools/install/core/ci_install_wrapper.sh --dev --yes` | 标准 CI，安装到 `~/.local` |
 | GitHub Actions + Conda | `unset CI GITHUB_ACTIONS && ./quickstart.sh --dev --yes --pip` | 需取消 CI 变量，安装到 conda env |
 | Self-hosted GPU runner (中国) | `unset CI GITHUB_ACTIONS && SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip` | 强制使用中国镜像 |
 

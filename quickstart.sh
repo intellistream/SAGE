@@ -119,18 +119,20 @@ main() {
                 export AUTO_CONFIRM_FIX="true"
             fi
 
+            local fix_result=0  # 初始化变量
+
             if [ "$fix_environment" = "true" ]; then
                 run_full_diagnosis || true
                 run_auto_fixes
-                local fix_result=$?
+                fix_result=$?
             else
                 # 如果诊断发现问题，自动提示修复
                 if ! run_full_diagnosis; then
                     echo ""
                     run_auto_fixes
-                    local fix_result=$?
+                    fix_result=$?
                 else
-                    local fix_result=0
+                    fix_result=0
                 fi
             fi
 

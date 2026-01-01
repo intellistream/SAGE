@@ -851,12 +851,12 @@ fix_pre_commit_hooks_missing() {
 
     if ! command -v pre-commit >/dev/null 2>&1; then
         echo -e "  ${YELLOW}${WARNING_MARK}${NC} pre-commit 工具未安装，跳过 hooks 安装"
-        return 1
+        return 0  # 不是错误，只是跳过
     fi
 
     if [ ! -d ".git" ]; then
         echo -e "  ${YELLOW}${WARNING_MARK}${NC} 不是 Git 仓库，无需安装 pre-commit hooks"
-        return 1
+        return 0  # 不是错误，只是跳过
     fi
 
     echo -e "  ${DIM}正在安装 pre-commit hooks...${NC}"

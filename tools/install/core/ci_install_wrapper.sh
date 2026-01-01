@@ -51,7 +51,7 @@ BOLD='\033[1m'
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 打印 CI 环境信息
 print_ci_info() {
