@@ -380,6 +380,96 @@ log_pip_install_with_progress() {
     return $exit_code
 }
 
+# 执行 pip 安装命令，显示详细实时输出（用于大型依赖安装）
+log_pip_install_with_verbose_progress() {
+    local context="$1"
+    local phase="$2"
+    shift 2
+    local cmd="$@"
+
+    log_debug "执行命令（详细输出）: $cmd" "$context" "$phase"
+
+    local temp_output
+    temp_output=$(mktemp)
+    local exit_code=0
+
+    local start_time=$(date +%s)
+    local last_update=0
+    local current_pkg=""
+    local line_count=0
+
+    echo -e "${DIM}   开始安装，显示详细进度...${NC}" >&2
+    echo "" >&2
+
+    # 实时输出 pip 的详细信息
+    {
+        eval "$cmd" 2>&1
+        echo $? > "${temp_output}.exit"
+    } | while IFS= read -r line; do
+        echo "$line" >> "$temp_output"
+        line_count=$((line_count + 1))
+
+        # 显示关键信息行
+        if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]] ||
+           [[ "$line" =~ ^Downloading[[:space:]] ]] ||
+           [[ "$line" =~ ^Installing[[:space:]] ]] ||
+           [[ "$line" =~ ^Building[[:space:]] ]] ||
+           [[ "$line" =~ ^Running[[:space:]]setup\.py ]] ||
+           [[ "$line" =~ ^Successfully[[:space:]]installed ]] ||
+           [[ "$line" =~ ^Requirement[[:space:]]already[[:space:]]satisfied ]]; then
+            # 提取包名用于高亮显示
+            if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]]; then
+                current_pkg="${BASH_REMATCH[1]}"
+                echo -e "  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}$current_pkg${NC}" >&2
+            elif [[ "$line" =~ ^Downloading[[:space:]].*\.whl ]] || [[ "$line" =~ ^Downloading[[:space:]].*\.tar\.gz ]]; then
+                echo -e "  ${DIM}  ⬇ 下载中...${NC}" >&2
+            elif [[ "$line" =~ ^Building[[:space:]]wheel ]] || [[ "$line" =~ ^Running[[:space:]]setup\.py ]]; then
+                echo -e "  ${YELLOW}  🔨 编译中...${NC} ${DIM}(可能需要几分钟)${NC}" >&2
+            elif [[ "$line" =~ ^Successfully[[:space:]]installed ]]; then
+                echo -e "  ${GREEN}✓${NC} 安装完成: ${line#Successfully installed }" >&2
+            elif [[ "$line" =~ ^Requirement[[:space:]]already[[:space:]]satisfied ]]; then
+                # 跳过已满足的依赖（减少输出噪音）
+                :
+            fi
+        fi
+
+        # 时间戳提示（每60秒）
+        local current_time=$(date +%s)
+        local elapsed=$((current_time - start_time))
+        if [ $((current_time - last_update)) -ge 60 ]; then
+            echo -e "${DIM}   [已运行 ${elapsed}s，处理了 ${line_count} 行输出]${NC}" >&2
+            last_update=$current_time
+        fi
+    done
+
+    # 读取退出码
+    if [ -f "${temp_output}.exit" ]; then
+        exit_code=$(cat "${temp_output}.exit")
+        rm -f "${temp_output}.exit"
+    fi
+
+    echo "" >&2
+
+    if [ "$exit_code" = "0" ]; then
+        log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
+    else
+        log_error "命令失败 (exit=$exit_code): $cmd" "$context" "$phase"
+        if [ -s "$temp_output" ]; then
+            echo -e "${RED}错误输出:${NC}" >&2
+            tail -20 "$temp_output" >&2
+        fi
+    fi
+
+    if [ -s "$temp_output" ]; then
+        local full_output
+        full_output=$(cat "$temp_output")
+        _write_log "CMD_OUTPUT" "$full_output" "$context" "$phase"
+    fi
+
+    rm -f "$temp_output"
+    return $exit_code
+}
+
 # 记录 pip 包信息
 log_pip_package_info() {
     local package_name="$1"

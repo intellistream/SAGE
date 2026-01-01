@@ -500,7 +500,35 @@ install_core_packages() {
 
     # 使用 Python 脚本提取已声明的外部依赖
     local external_deps_file=".sage/external-deps-${install_mode}.txt"
+    local external_deps_marker=".sage/external-deps-${install_mode}.installed"
     mkdir -p .sage
+
+    # 检查是否已经安装过外部依赖（基于 pyproject.toml 的 hash）
+    local current_hash=""
+    local cached_hash=""
+
+    # 计算当前所有 pyproject.toml 的 hash
+    if command -v sha256sum &> /dev/null; then
+        current_hash=$(find packages/sage-*/pyproject.toml -type f 2>/dev/null | sort | xargs cat | sha256sum | cut -d' ' -f1)
+    elif command -v shasum &> /dev/null; then
+        current_hash=$(find packages/sage-*/pyproject.toml -type f 2>/dev/null | sort | xargs cat | shasum -a 256 | cut -d' ' -f1)
+    fi
+
+    # 读取缓存的 hash
+    if [ -f "$external_deps_marker" ]; then
+        cached_hash=$(cat "$external_deps_marker" 2>/dev/null || echo "")
+    fi
+
+    # 如果 hash 相同且依赖文件存在，跳过安装
+    if [ -n "$current_hash" ] && [ "$current_hash" = "$cached_hash" ] && [ -f "$external_deps_file" ]; then
+        log_info "检测到外部依赖已安装（pyproject.toml 未变化），跳过" "INSTALL"
+        echo -e "${CHECK} 外部依赖已是最新（跳过安装）"
+        echo ""
+    else
+        if [ -n "$cached_hash" ] && [ "$current_hash" != "$cached_hash" ]; then
+            log_info "检测到 pyproject.toml 变化，重新安装外部依赖" "INSTALL"
+            echo -e "${DIM}     检测到依赖变化，重新安装...${NC}"
+        fi
 
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从 pyproject.toml 中提取外部依赖...${NC}"
@@ -583,7 +611,8 @@ else:
             local deps_pip_args=$(echo "$pip_args" | sed 's/--no-deps//g')
             log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $deps_pip_args" "INSTALL"
 
-            if log_pip_install_with_progress "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
+            # 使用详细输出模式，让用户看到编译进度（避免看起来卡住）
+            if log_pip_install_with_verbose_progress "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
                 log_info "外部依赖安装成功" "INSTALL"
                 echo -e "${CHECK} 外部依赖安装完成"
 
@@ -597,6 +626,12 @@ else:
                 if log_command "INSTALL" "Deps" "$PIP_CMD install 'transformers==4.52.0' 'tokenizers>=0.21,<0.22' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
                     log_info "关键包版本升级成功" "INSTALL"
                     echo -e "${CHECK} 关键包版本验证完成"
+
+                    # 保存 hash 标记，避免下次重复安装
+                    if [ -n "$current_hash" ]; then
+                        echo "$current_hash" > "$external_deps_marker"
+                        log_info "已保存外部依赖安装标记" "INSTALL"
+                    fi
                 else
                     log_warn "关键包升级失败，继续安装..." "INSTALL"
                     echo -e "${YELLOW}⚠️  关键包升级失败，可能导致运行时错误${NC}"
@@ -614,6 +649,7 @@ else:
         log_error "依赖提取脚本失败" "INSTALL"
         echo -e "${YELLOW}⚠️  依赖提取脚本失败，跳过...${NC}"
     fi
+    fi  # 闭合 hash 检查的 if
 
     echo ""
 
