@@ -271,8 +271,8 @@ create_conda_environment() {
         # 检查常见问题
         if echo "$create_output" | grep -q "PackagesNotFoundError"; then
             echo -e "${WARNING} Python 3.11 包未找到，尝试使用 Python 3.10"
-            echo -e "${DIM}执行命令: conda create -n $env_name python=3.10 -y${NC}"
-            local fallback_output=$(conda create -n "$env_name" python=3.10 -y 2>&1)
+            echo -e "${DIM}执行命令: conda create -n $env_name python=3.10 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main${NC}"
+            local fallback_output=$(conda create -n "$env_name" python=3.10 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main 2>&1)
             local fallback_status=$?
             if [ $fallback_status -eq 0 ]; then
                 sleep 2

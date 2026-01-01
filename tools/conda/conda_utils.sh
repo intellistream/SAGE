@@ -12,6 +12,11 @@ if [ -f "$SCRIPT_DIR/../lib/config.sh" ]; then
     source "$SCRIPT_DIR/../lib/config.sh"
 fi
 
+# 加载统一的 Conda 安装工具
+if [ -f "$SCRIPT_DIR/../lib/conda_install_utils.sh" ]; then
+    source "$SCRIPT_DIR/../lib/conda_install_utils.sh"
+fi
+
 # 默认配置值
 SAGE_CONDA_PATH="${SAGE_CONDA_PATH:-$HOME/miniconda3}"
 # 注意：SAGE_ENV_NAME 不在这里设置默认值，应由调用者明确设置
@@ -265,14 +270,27 @@ verify_tos_fix() {
     print_status "测试环境创建功能..."
     local test_env_name="sage_test_$$"
 
-    if conda create -n "$test_env_name" python=3.11 -y &>/dev/null; then
-        print_success "✓ 环境创建测试通过"
-        conda env remove -n "$test_env_name" -y &>/dev/null
-        print_debug "已清理测试环境"
-        return 0
+    # 使用统一的 conda_create_bypass 函数
+    if declare -f conda_create_bypass >/dev/null 2>&1; then
+        if conda_create_bypass "$test_env_name" python=3.11 &>/dev/null; then
+            print_success "✓ 环境创建测试通过"
+            conda env remove -n "$test_env_name" -y &>/dev/null
+            print_debug "已清理测试环境"
+            return 0
+        fi
     else
-        print_warning "环境创建测试失败，可能还有其他问题"
-        return 1
+        # Fallback: 直接使用清华镜像
+        local conda_mirror_main="$TSINGHUA_MIRROR_MAIN"
+        if conda create -n "$test_env_name" python=3.11 -y --override-channels -c "$conda_mirror_main" &>/dev/null; then
+            print_success "✓ 环境创建测试通过"
+            conda env remove -n "$test_env_name" -y &>/dev/null
+            print_debug "已清理测试环境"
+            return 0
+        fi
+    fi
+    
+    print_warning "环境创建测试失败，可能还有其他问题"
+    return 1
     fi
 }
 
@@ -466,12 +484,28 @@ verify_tos_fix() {
         print_status "测试环境创建功能..."
         local test_env_name="sage_test_$$"
 
-        if conda create -n "$test_env_name" python=3.11 -y &>/dev/null; then
-            print_success "✓ 环境创建测试通过"
-            conda env remove -n "$test_env_name" -y &>/dev/null
-            print_debug "已清理测试环境"
-            return 0
+        # 使用统一的 conda_create_bypass 函数
+        if declare -f conda_create_bypass >/dev/null 2>&1; then
+            if conda_create_bypass "$test_env_name" python=3.11 &>/dev/null; then
+                print_success "✓ 环境创建测试通过"
+                conda env remove -n "$test_env_name" -y &>/dev/null
+                print_debug "已清理测试环境"
+                return 0
+            fi
         else
+            # Fallback: 直接使用清华镜像
+            local conda_mirror_main="$TSINGHUA_MIRROR_MAIN"
+            if conda create -n "$test_env_name" python=3.11 -y --override-channels -c "$conda_mirror_main" &>/dev/null; then
+                print_success "✓ 环境创建测试通过"
+                conda env remove -n "$test_env_name" -y &>/dev/null
+                print_debug "已清理测试环境"
+                return 0
+            fi
+        fi
+        
+        print_warning "环境创建测试失败"
+        return 1
+    else
             print_warning "环境创建测试失败，可能还有其他问题"
             return 1
         fi
@@ -490,16 +524,20 @@ create_conda_env() {
 
     print_status "创建新的 Conda 环境 '$env_name' (Python $python_version)..."
 
-    # 首先尝试使用默认频道创建环境
-    if conda create -n "$env_name" python="$python_version" -y 2>/dev/null; then
-        print_success "使用默认频道成功创建环境"
+    # 使用清华镜像源绕过 Conda 25.x ToS 限制
+    local conda_mirror_main="https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main"
+    local conda_mirror_forge="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge"
+    
+    # 首先尝试使用清华主频道创建环境
+    if conda create -n "$env_name" python="$python_version" -y --override-channels -c "$conda_mirror_main" 2>/dev/null; then
+        print_success "使用清华主频道成功创建环境"
         return 0
     fi
 
-    # 如果失败，尝试使用 conda-forge 频道
-    print_warning "使用默认频道失败，尝试使用 conda-forge 频道..."
-    if conda create -n "$env_name" -c conda-forge python="$python_version" -y; then
-        print_success "使用 conda-forge 频道成功创建环境"
+    # 如果失败，尝试使用清华 conda-forge 频道
+    print_warning "使用主频道失败，尝试使用清华 conda-forge 频道..."
+    if conda create -n "$env_name" python="$python_version" -y --override-channels -c "$conda_mirror_forge"; then
+        print_success "使用清华 conda-forge 频道成功创建环境"
         return 0
     else
         print_error "环境创建失败"
@@ -554,16 +592,20 @@ install_conda_packages() {
 
     print_status "在环境 '$env_name' 中安装包: ${packages[*]}"
 
-    # 首先尝试使用默认频道安装
-    if conda install -n "$env_name" "${packages[@]}" -y 2>/dev/null; then
-        print_success "使用默认频道成功安装包"
+    # 使用清华镜像源绕过 Conda 25.x ToS 限制
+    local conda_mirror_main="https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main"
+    local conda_mirror_forge="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge"
+    
+    # 首先尝试使用清华主频道安装
+    if conda install -n "$env_name" -y --override-channels -c "$conda_mirror_main" "${packages[@]}" 2>/dev/null; then
+        print_success "使用清华主频道成功安装包"
         return 0
     fi
 
-    # 如果失败，尝试使用 conda-forge 频道
-    print_warning "使用默认频道安装失败，尝试使用 conda-forge 频道..."
-    if conda install -n "$env_name" -c conda-forge "${packages[@]}" -y; then
-        print_success "使用 conda-forge 频道成功安装包"
+    # 如果失败，尝试使用清华 conda-forge 频道
+    print_warning "使用主频道安装失败，尝试使用 conda-forge 频道..."
+    if conda install -n "$env_name" -y --override-channels -c "$conda_mirror_forge" "${packages[@]}"; then
+        print_success "使用清华 conda-forge 频道成功安装包"
         return 0
     else
         print_error "包安装失败: ${packages[*]}"

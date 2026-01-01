@@ -142,6 +142,24 @@ main() {
             if [ "$doctor_only" = "true" ]; then
                 exit $fix_result
             fi
+            
+            # 诊断完成，询问是否继续安装（CI 环境自动确认）
+            echo ""
+            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$(get_auto_confirm)" != "true" ]; then
+                echo -e "${BLUE}${BOLD}📋 环境诊断完成${NC}"
+                echo -e "${DIM}诊断结果已显示在上方${NC}"
+                echo ""
+                read -p "是否继续进行 SAGE 安装？[Y/n] " -r response
+                response=${response,,}
+                if [[ "$response" =~ ^(n|no)$ ]]; then
+                    echo -e "${YELLOW}安装已取消${NC}"
+                    exit 0
+                fi
+                echo ""
+            else
+                echo -e "${INFO} CI 环境或自动确认模式，继续安装..."
+                echo ""
+            fi
         else
             echo -e "${RED}错误：环境医生模块未找到${NC}"
             exit 1

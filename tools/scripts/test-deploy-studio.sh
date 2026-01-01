@@ -128,7 +128,8 @@ setup_conda() {
     else
         ACTUAL_CONDA_ENV="${CONDA_ENV_NAME}"
         log_info "创建新的 Conda 环境 '${ACTUAL_CONDA_ENV}'..."
-        conda create -n ${ACTUAL_CONDA_ENV} python=3.11 -y
+        # 使用清华镜像源绕过 Conda 25.x ToS 限制
+        conda create -n ${ACTUAL_CONDA_ENV} python=3.11 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
     fi
 
     # 激活环境
@@ -272,7 +273,8 @@ install_frontend_deps() {
 
     if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 18 ]; then
         log_info "安装 Node.js 20（当前版本: ${NODE_VERSION:-未安装}，需要 18+）..."
-        conda install -y nodejs=20 -c conda-forge
+        # 使用清华镜像源绕过 Conda 25.x ToS 限制
+        conda install -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge nodejs=20
 
         # 强制重新激活 conda 环境以更新 PATH
         conda deactivate

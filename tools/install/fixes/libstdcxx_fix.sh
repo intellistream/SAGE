@@ -88,12 +88,14 @@ ensure_libstdcxx_compatibility() {
 
     # 选择安装工具
     local solver_cmd=""
+    local conda_mirror_forge="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge"
+    
     if command -v mamba >/dev/null 2>&1; then
-        # 使用 mamba 并强制重新安装
-        solver_cmd="mamba install -y -c conda-forge libstdcxx-ng libgcc-ng --force-reinstall"
+        # 使用 mamba 并强制重新安装，使用清华镜像源绕过 ToS
+        solver_cmd="mamba install -y --override-channels -c $conda_mirror_forge libstdcxx-ng libgcc-ng --force-reinstall"
     else
-        # 使用 conda 并强制重新安装
-        solver_cmd="conda install -y -c conda-forge libstdcxx-ng libgcc-ng --force-reinstall"
+        # 使用 conda 并强制重新安装，使用清华镜像源绕过 ToS
+        solver_cmd="conda install -y --override-channels -c $conda_mirror_forge libstdcxx-ng libgcc-ng --force-reinstall"
     fi
 
     echo -e "${DIM}执行: $solver_cmd${NC}"
