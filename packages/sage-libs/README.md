@@ -33,25 +33,64 @@ Middleware 仍可通过原 import 路径访问这些类，但新的文档和示�
 ### Basic Installation
 
 ```bash
-# 基础安装（不包含 LibAMM）
-pip install -e packages/sage-libs
+# 从 PyPI 安装（推荐）- 自动包含 LibAMM
+pip install isage-libs
 
-# 或使用 sage-dev 命令
-sage-dev install sage-libs
+# 或在 SAGE 仓库中开发安装
+pip install -e packages/sage-libs
 ```
 
-### With LibAMM (Approximate Matrix Multiplication)
+**包含内容**：
 
-LibAMM 是一个高性能的近似矩阵乘法 C++ 库，提供 NumPy 接口。
+- ✅ **LibAMM**：高性能近似矩阵乘法库（预编译，自动安装）
+- ✅ **ANNS 算法**：faiss_HNSW, vsag_hnsw, diskann, candy\_\*, cufe, gti, puck 等
+- ✅ **RAG 组件**：loaders, chunkers, retrievers, pipelines
+- ✅ **Agent 框架**：LangChain 风格的 Agent + Workflow Optimizer
+- ✅ **隐私算法**：unlearning, privacy preservation
+- ✅ **集成组件**：LLM, Vector DB 适配器
+
+### 架构说明
+
+**sage-libs 的设计理念**：
+
+```
+isage-libs (PyPI)
+  └── 依赖 isage-libamm (自动安装预编译版本)
+```
+
+- 📦 **isage-libs**：课题组算法集合的统一入口
+- 📦 **isage-libamm**：独立维护和发布的 C++ 扩展包
+- 🎯 **一键安装**：用户只需 `pip install isage-libs`，libamm 自动包含
+
+### LibAMM 开发者模式
+
+如果需要修改 LibAMM 源码：
 
 ```bash
-# 一键安装（推荐）- 自动编译 LibAMM
-pip install -e "packages/sage-libs[amm]"
+# 克隆 LibAMM 独立仓库
+git clone https://github.com/intellistream/LibAMM.git
+cd LibAMM
+
+# 编译并安装
+./buildCPUOnly.sh  # CPU 版本
+# 或
+./buildWithCuda.sh  # GPU 版本（需要 CUDA）
+
+pip install -e .
+```
+
+或者在 SAGE 主仓库中（作为子模块）：
+
+```bash
+cd packages/sage-libs/src/sage/libs/libamm
+./buildCPUOnly.sh
+```
 
 # 或手动安装
-cd packages/sage-libs/src/sage/libs/libamm
-pip install .
-```
+
+cd packages/sage-libs/src/sage/libs/libamm pip install .
+
+````
 
 **要求**：
 
@@ -81,7 +120,7 @@ response = llm.generate("Hello, world!")
 embeddings = OpenAIEmbeddings()
 vector_store = FAISSStore(embeddings)
 vector_store.add_texts(["document 1", "document 2"])
-```
+````
 
 ## 📄 License
 

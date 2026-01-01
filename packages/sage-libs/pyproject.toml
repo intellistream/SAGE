@@ -41,6 +41,10 @@ dependencies = [
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
 
+    # ========== 课题组算法库 ==========
+    # LibAMM - Approximate Matrix Multiplication Library
+    "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel (独立维护)
+
     # Libs-specific dependencies
     # Vector databases
     "chromadb>=1.0.20",
@@ -148,13 +152,6 @@ video = [
     "torchvision>=0.22.0,<1.0.0",  # Vision models
     "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
     "Pillow>=9.0.0",  # Image processing
-]
-
-# LibAMM - Approximate Matrix Multiplication Library
-# High-performance C++ library with NumPy interface
-# 现在作为独立的 PyPI 包发布，不再本地编译
-amm = [
-    "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel from PyPI
 ]
 
 # Examples dependencies (aggregate of all example-specific deps)
@@ -319,12 +316,6 @@ wheel.packages = ["src/sage"]
 wheel.expand-macos-universal-tags = true
 # 确保所有 Python 包都被安装（包括纯 Python 子包）
 wheel.py-api = "py3"
-
-# 排除 libamm 子模块（现在作为独立的 isage-libamm 包发布）
-wheel.exclude = [
-    "sage.libs.libamm",
-    "sage.libs.libamm.*",
-]
 
 # 严格配置验证
 strict-config = false
