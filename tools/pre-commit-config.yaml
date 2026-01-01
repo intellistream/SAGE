@@ -385,7 +385,7 @@ repos:
   - id: shellcheck
     args: [-x, -e, SC1091, -S, error]      # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
     files: \.(sh|bash)$
-    exclude: ^(tools/conda/|.*/benchmark_anns/)
+    exclude: ^(tools/conda/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
   # YAML formatting
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
@@ -393,7 +393,7 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent=2, --preserve-quotes]
-    exclude: ^(\.github/|examples/config/|.*/benchmark_anns/)
+    exclude: ^(\.github/|examples/config/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
   # Markdown formatting
 - repo: https://github.com/executablebooks/mdformat
@@ -416,7 +416,7 @@ repos:
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/secrets.baseline]
-    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_anns/.*)
+    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
   # SAGE Data Architecture Validation
 - repo: local

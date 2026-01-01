@@ -11,6 +11,32 @@ if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh" ]; then
     source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 fi
 
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+CONDA_PREFIX="${CONDA_PREFIX:-}"
+WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-}"
+SAGE_AUTO_CONFIRM="${SAGE_AUTO_CONFIRM:-}"
+SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-}"
+SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+PYTHON_CMD="${PYTHON_CMD:-}"
+PIP_CMD="${PIP_CMD:-}"
+LANG="${LANG:-}"
+LC_ALL="${LC_ALL:-}"
+LC_CTYPE="${LC_CTYPE:-}"
+HOME="${HOME:-$(/usr/bin/env | grep ^HOME= | cut -d= -f2 || echo /root)}"
+# ============================================================================
+
 # 导入日志工具
 if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh" ]; then
     source "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh"

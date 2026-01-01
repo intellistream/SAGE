@@ -222,8 +222,8 @@ if [ "$BUILD_THIRD_PARTY" = true ]; then
         # 尝试构建主可执行文件（可选，如果 tcmalloc 不可用会跳过）
         make GTI -j${MAX_JOBS} 2>/dev/null || print_warning "GTI executable build skipped (tcmalloc not found)"
 
-        # 安装 Python bindings
-        if [ -f "bindings/gti_wrapper"*.so ]; then
+        # 安装 Python bindings (检查是否有 .so 文件)
+        if ls bindings/gti_wrapper*.so 1> /dev/null 2>&1; then
             make install || print_warning "GTI install failed (not critical)"
         fi
 

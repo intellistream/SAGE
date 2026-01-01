@@ -2,9 +2,9 @@ name: Android NDK Build
 
 on:
   pull_request:
-    branches: [ dev, release, actionsTest ]
+    branches: [dev, release, actionsTest]
   push:
-    branches: [ actionsTest, '*ndk*' ]
+    branches: [actionsTest, '*ndk*']
 
 jobs:
   build:

@@ -2,6 +2,25 @@
 # 测试 environment_doctor.sh 脚本的所有功能
 # 确保没有 unbound variable 错误
 
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 set -e  # 遇到错误立即退出
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

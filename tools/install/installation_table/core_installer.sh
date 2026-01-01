@@ -7,6 +7,25 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
 
 # 导入友好错误处理
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 if [ -f "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh" ]; then
     source "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh"
 fi
@@ -476,12 +495,16 @@ install_core_packages() {
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从 pyproject.toml 中提取外部依赖...${NC}"
 
-    # 执行 Python 脚本提取依赖
-    log_debug "执行 Python 依赖提取脚本..." "INSTALL"
+    # 执行 Python 脚本提取依赖（优化版：去重+合并版本）
+    log_debug "执行 Python 依赖提取脚本（去重优化）..." "INSTALL"
     if $PYTHON_CMD -c "
 import sys, re
 from pathlib import Path
-external_deps = set()
+from collections import defaultdict
+
+# 存储包名到版本约束的映射
+dep_versions = defaultdict(list)
+
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
@@ -490,6 +513,7 @@ if install_mode in ['full', 'dev']:
     package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
 if install_mode == 'dev':
     package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
     if not pyproject.exists(): continue
@@ -503,10 +527,31 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                if not dep.startswith('isage-'): external_deps.add(dep)
+                if not dep.startswith('isage-'):
+                    # 提取包名和版本约束
+                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
+                    if pkg_match:
+                        pkg_name = pkg_match.group(1)
+                        dep_versions[pkg_name].append(dep)
+
+# 去重并选择最严格的版本约束
+external_deps = []
+for pkg_name, versions in sorted(dep_versions.items()):
+    if len(versions) == 1:
+        external_deps.append(versions[0])
+    else:
+        # 多个版本约束时，选择最新的（通常是最严格的）
+        # 简单策略：选择包含最高下限版本的那个
+        best_dep = max(versions, key=lambda v: ('>=' in v, v))
+        external_deps.append(best_dep)
+        if len(versions) > 1:
+            print(f'[DEDUP] {pkg_name}: {len(versions)} 个版本 -> {best_dep}', file=sys.stderr)
+
 with open('$external_deps_file', 'w') as f:
-    for dep in sorted(external_deps): f.write(f'{dep}\n')
-print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
+    for dep in external_deps:
+        f.write(f'{dep}\n')
+
+print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file=sys.stderr)
 " 2>&1; then
         log_info "依赖提取脚本执行成功" "INSTALL"
 
@@ -907,12 +952,16 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从已安装包中提取外部依赖...${NC}"
 
-    # 执行 Python 脚本提取依赖（内联脚本）
-    log_debug "执行 Python 依赖提取脚本..." "INSTALL"
+    # 执行 Python 脚本提取依赖（优化版：去重+合并版本）
+    log_debug "执行 Python 依赖提取脚本（去重优化）..." "INSTALL"
     if $PYTHON_CMD -c "
 import sys, re
 from pathlib import Path
-external_deps = set()
+from collections import defaultdict
+
+# 存储包名到版本约束的映射
+dep_versions = defaultdict(list)
+
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
@@ -921,6 +970,7 @@ if install_mode in ['full', 'dev']:
     package_dirs.extend(['packages/sage-apps', 'packages/sage-gateway', 'packages/sage-studio'])
 if install_mode == 'dev':
     package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
     if not pyproject.exists(): continue
@@ -934,10 +984,30 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                if not dep.startswith('isage-'): external_deps.add(dep)
+                if not dep.startswith('isage-'):
+                    # 提取包名和版本约束
+                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
+                    if pkg_match:
+                        pkg_name = pkg_match.group(1)
+                        dep_versions[pkg_name].append(dep)
+
+# 去重并选择最严格的版本约束
+external_deps = []
+for pkg_name, versions in sorted(dep_versions.items()):
+    if len(versions) == 1:
+        external_deps.append(versions[0])
+    else:
+        # 多个版本约束时，选择最新的（通常是最严格的）
+        best_dep = max(versions, key=lambda v: ('>=' in v, v))
+        external_deps.append(best_dep)
+        if len(versions) > 1:
+            print(f'[DEDUP] {pkg_name}: {len(versions)} 个版本 -> {best_dep}', file=sys.stderr)
+
 with open('$external_deps_file', 'w') as f:
-    for dep in sorted(external_deps): f.write(f'{dep}\n')
-print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
+    for dep in external_deps:
+        f.write(f'{dep}\n')
+
+print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file=sys.stderr)
 " 2>&1; then
         log_info "依赖提取脚本执行成功" "INSTALL"
 
