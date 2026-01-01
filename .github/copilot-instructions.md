@@ -15,65 +15,34 @@ This is a **non-negotiable architectural constraint**. Violating this breaks res
 
 #### ❌ FORBIDDEN Operations:
 
-**1. Direct LLM service startup:**
 ```bash
-sage llm serve -m Qwen/Qwen2.5-7B-Instruct        # ❌ FORBIDDEN
-python -m vllm.entrypoints.openai.api_server      # ❌ FORBIDDEN
-python -m sage.common.components.sage_embedding   # ❌ FORBIDDEN
+sage llm serve -m <model>              # ❌ Command removed
+python -m vllm.entrypoints.openai      # ❌ Direct vLLM
+requests.post("http://localhost:8001/v1/...")  # ❌ Direct endpoint
 ```
 
-**2. Direct vLLM/HF imports in user code:**
 ```python
-from vllm import LLM  # ❌ FORBIDDEN - use UnifiedInferenceClient
-engine = LLM(model="...")  # ❌ FORBIDDEN
+from vllm import LLM  # ❌ Direct import
+engine = LLM(model="...")  # ❌ Direct instantiation
 ```
 
-**3. Bypassing Gateway:**
-```python
-# ❌ FORBIDDEN - direct endpoint access
-requests.post("http://localhost:8001/v1/chat/completions", ...)  # allow-control-plane-bypass: example only
-```
+#### ✅ CORRECT Operations:
 
-#### ✅ CORRECT Operations (Control Plane):
-
-**1. Engine management through Control Plane:**
 ```bash
-# ✅ CORRECT - managed by Control Plane
-sage llm engine start Qwen/Qwen2.5-7B-Instruct --engine-kind llm
-sage llm engine start BAAI/bge-m3 --engine-kind embedding --use-gpu
-sage llm engine list
-sage llm engine stop <engine-id>
+sage llm engine start <model> --engine-kind llm    # ✅ Control Plane
+sage llm engine list                               # ✅ Managed
+sage llm engine stop <id>                          # ✅ Controlled
 ```
 
-**2. Unified client (auto-routes through Control Plane):**
 ```python
-# ✅ CORRECT - uses Control Plane routing
 from sage.llm import UnifiedInferenceClient
-client = UnifiedInferenceClient.create()
+client = UnifiedInferenceClient.create()  # ✅ Auto-routes through Control Plane
 response = client.chat([{"role": "user", "content": "Hello"}])
 ```
 
-**3. Gateway API (Control Plane frontend):**
-```python
-# ✅ CORRECT - goes through Gateway → Control Plane
-import requests
-resp = requests.post("http://localhost:8888/v1/chat/completions", ...)  # allow-control-plane-bypass: Gateway port
-```
+**Why**: Resource management, load balancing, fault tolerance, monitoring, SLO-aware scheduling.
 
-#### Why This Matters:
-
-- **Resource Management**: Control Plane tracks GPU memory, prevents OOM
-- **Load Balancing**: Distributes requests across multiple engines
-- **Fault Tolerance**: Automatic failover and retry
-- **Monitoring**: Centralized metrics and logging
-- **Scheduling**: SLO-aware request routing
-
-#### Enforcement:
-
-- **Pre-commit hooks**: Block commits with `sage llm serve`, `sage llm run`, or direct vLLM calls
-- **CI/CD**: All workflows use Control Plane APIs
-- **Code review**: Reject PRs with direct engine startup
-- **Commands removed**: `sage llm serve/run/stop/restart/status/logs` have been completely deleted
+**Enforcement**: Pre-commit hooks, CI/CD checks, code review. Commands `sage llm serve/run/stop/restart/status/logs` have been completely deleted.
 
 ## CRITICAL Coding Principles
 
@@ -84,137 +53,44 @@ This is a **project-wide principle**, not just for version management. Fallbacks
 
 #### ❌ BAD Examples (Do NOT do this):
 
-**1. Version imports:**
 ```python
+# Version imports
 try:
     from ._version import __version__
 except ImportError:
-    __version__ = "unknown"  # ❌ NO
-```
+    __version__ = "unknown"  # ❌ NO - hides missing file
 
-**2. Configuration loading:**
-```python
+# Configuration loading
 try:
     config = load_config("config.yaml")
 except FileNotFoundError:
-    config = {}  # ❌ NO - hides missing config file
-```
+    config = {}  # ❌ NO - hides missing config
 
-**3. Module imports:**
-```python
-try:
-    import optional_module
-except ImportError:
-    optional_module = None  # ❌ NO - use explicit dependency checking instead
-```
-
-**4. Environment variables:**
-```python
-api_key = os.getenv("API_KEY") or "default_key"  # ❌ NO - hides missing env var
-```
-
-**5. File operations:**
-```python
-try:
-    with open("file.txt") as f:
-        data = f.read()
-except FileNotFoundError:
-    data = ""  # ❌ NO - hides missing file
+# Environment variables
+api_key = os.getenv("API_KEY") or "default_key"  # ❌ NO - hides missing var
 ```
 
 #### ✅ GOOD Examples (Do this instead):
 
-**1. Version imports (namespace packages):**
 ```python
-# Direct file reading - will raise FileNotFoundError if missing
-import os
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-_version_file = os.path.join(_current_dir, "_version.py")
-_version_globals = {}
-with open(_version_file) as f:
-    exec(f.read(), _version_globals)
-__version__ = _version_globals["__version__"]  # Will raise KeyError if missing
-```
+# Let exceptions propagate with clear error messages
+config = load_config("config.yaml")  # FileNotFoundError if missing
+api_key = os.environ["API_KEY"]  # KeyError if missing
 
-**2. Configuration loading:**
-```python
-# Fail fast if config missing
-config = load_config("config.yaml")  # Let FileNotFoundError propagate
-# Or provide clear error message
+# Or provide helpful error messages
 if not os.path.exists("config.yaml"):
     raise FileNotFoundError(
         "config.yaml not found. Please create it from config.yaml.template"
     )
 ```
 
-**3. Optional dependencies:**
-```python
-# Explicitly check and document the requirement
-try:
-    import vllm
-except ImportError as e:
-    raise ImportError(
-        "vLLM is required for this feature. Install with: pip install vllm"
-    ) from e
-```
+#### When Fallbacks ARE Acceptable (Rare):
 
-**4. Environment variables:**
-```python
-# Fail fast if required env var missing
-api_key = os.environ["API_KEY"]  # Will raise KeyError if missing
-# Or provide clear error message
-if "API_KEY" not in os.environ:
-    raise EnvironmentError(
-        "API_KEY environment variable is required. Set it in .env file"
-    )
-```
+1. **Feature detection**: `HAS_CUDA = torch.cuda.is_available()`
+2. **Explicit optional behavior**: `use_gpu = config.get("use_gpu", False)`  
+3. **Graceful degradation with logging**: Log warning and use alternative
 
-**5. File operations:**
-```python
-# Let exceptions propagate - makes problems visible
-with open("required_file.txt") as f:
-    data = f.read()  # Will raise FileNotFoundError if missing
-```
-
-#### When Fallbacks ARE Acceptable (Rare Cases):
-
-Only use fallbacks when:
-1. **Feature detection** (check if optional feature is available):
-   ```python
-   HAS_CUDA = torch.cuda.is_available()  # ✓ OK - explicit feature check
-   ```
-
-2. **Explicit optional behavior** (documented and intentional):
-   ```python
-   # ✓ OK - clearly documented as optional
-   use_gpu = config.get("use_gpu", False)  # Default to CPU if not specified
-   ```
-
-3. **Graceful degradation** (with clear logging):
-   ```python
-   # ✓ OK - logs the issue and provides alternative
-   try:
-       fast_impl = import_fast_implementation()
-   except ImportError:
-       logger.warning("Fast implementation not available, using slow fallback")
-       fast_impl = slow_implementation
-   ```
-
-#### Rationale:
-
-- **Fail fast, fail loud**: Problems should be visible immediately during development
-- **No hidden bugs**: Silent fallbacks hide configuration errors, missing files, broken imports
-- **Better error messages**: Explicit checks can provide helpful error messages
-- **Easier debugging**: Stack traces point to the real problem
-- **Production safety**: "unknown" versions, empty configs, or missing dependencies are unacceptable
-
-#### What to do instead:
-
-1. **Let exceptions propagate** - don't catch them unless you have a specific reason
-2. **Validate early** - check requirements at startup, not during runtime
-3. **Provide clear error messages** - tell users exactly what's wrong and how to fix it
-4. **Document dependencies** - make optional dependencies explicit in docs
-5. **Use assertions** - for internal invariants that should never fail
+**Rationale**: Fail fast, fail loud. Silent fallbacks hide bugs, make debugging harder, and are unacceptable in production.
 
 ### Version Management
 
@@ -606,7 +482,7 @@ model_dir = paths.models_dir           # ~/.local/share/sage/models/
 
 **DO NOT** use `~/.sage/` for new code. Use `get_user_paths()` for user data.
 
-## Common Issues
+## Common Installation Issues
 
 **Install hangs**: Check network, try `--resume` for checkpoint recovery (10-25min normal)
 **C++ build fails**: Install deps: `build-essential cmake pkg-config libopenblas-dev liblapack-dev`
@@ -668,6 +544,36 @@ client = UnifiedInferenceClient.create()
 ```
 
 If you see code attempting `UnifiedInferenceClient(...)`, treat it as a bug and refactor to `create()`.
+
+## Dependency Management - CRITICAL
+
+**Rule**: All dependency versions MUST be unified across packages to avoid [DEDUP] warnings.
+
+**Single Source of Truth**: `dependencies-spec.yaml` at project root
+- Defines unified versions for torch, transformers, fastapi, uvicorn, etc.
+- Documents historical conflicts and resolution strategies
+- Guides future updates
+
+**Tools**:
+- `tools/scripts/check_dependency_consistency.py` - Auto-check version consistency
+- `tools/scripts/unify_dependencies.sh` - Batch update tool
+
+**vLLM Dependencies** (重量级可选依赖):
+- `vllm-minimal` - vLLM only (for users with existing torch >= 2.7.0)
+- `vllm` - Full install (includes torch >= 2.7.0)
+- `torch` - Standalone torch (for other components)
+
+**Smart Installation**:
+- Detects existing torch version
+- Chooses `vllm-minimal` if torch >= 2.7.0 (reuse existing)
+- Chooses `vllm` if torch missing or < 2.7.0 (install/upgrade)
+
+**Conflict Resolution**:
+- `environment_doctor.sh` detects conda/pip mixed management
+- `fix_mixed_packages()` intelligently resolves version conflicts
+- Preserves higher version, removes lower version
+
+**Docs**: `docs-public/docs_src/dev-notes/cross-layer/vllm-dependency-management.md`
 
 ## Features
 
@@ -760,7 +666,7 @@ password = pypi-xxx
 - **Functions**: `build_package()`, `upload_package()`
 - **Safety**: 默认 dry-run 模式防止误操作
 
-### Common Issues
+### PyPI Publishing Issues
 
 **问题**: `ruamel.yaml.clib` 编译失败
 - **原因**: 某些依赖（如 vllm）需要 ruamel.yaml，但 C 扩展编译可能失败

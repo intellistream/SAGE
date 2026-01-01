@@ -21,6 +21,8 @@ CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
 SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
 SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
 SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+AUTO_YES="${AUTO_YES:-false}"
+AUTO_CONFIRM="${AUTO_CONFIRM:-false}"
 LANG="${LANG:-en_US.UTF-8}"
 LC_ALL="${LC_ALL:-${LANG}}"
 LC_CTYPE="${LC_CTYPE:-${LANG}}"
@@ -514,8 +516,8 @@ prompt_start_llm_service() {
     local mode="$1"
 
     # 在 CI 环境或 --yes 自动模式下跳过
-    if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "$AUTO_YES" = "true" ] || [ "$AUTO_CONFIRM" = "true" ]; then
-        echo -e "${DIM}提示: 自动跳过服务启动提示 (CI=${CI:-}, AUTO_YES=$AUTO_YES, AUTO_CONFIRM=$AUTO_CONFIRM)${NC}"
+    if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "${AUTO_YES:-false}" = "true" ] || [ "${AUTO_CONFIRM:-false}" = "true" ]; then
+        echo -e "${DIM}提示: 自动跳过服务启动提示 (CI=${CI:-}, AUTO_YES=${AUTO_YES:-false}, AUTO_CONFIRM=${AUTO_CONFIRM:-false})${NC}"
         return 0
     fi
 
