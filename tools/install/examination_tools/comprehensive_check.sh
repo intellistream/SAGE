@@ -18,7 +18,7 @@ pre_check_system_environment() {
 
     # 如果用户设置了自定义偏移
     if [ -n "${SAGE_CUSTOM_OFFSET:-}" ]; then
-        set_custom_offset "${SAGE_CUSTOM_OFFSET}"
+        set_custom_offset "$SAGE_CUSTOM_OFFSET"
     fi
 }
 
@@ -125,7 +125,7 @@ check_system_runtime() {
         # 严重不足时提示用户确认
         if [ "$disk_space_gb" -lt 5 ]; then
             output_warning "严重警告: 磁盘空间不足 5GB，安装可能失败！"
-            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
+            if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
                 echo -e "${YELLOW}是否仍要继续？[y/N]${NC}"
                 read -p "请输入选择: " -r disk_continue
                 if [[ ! "$disk_continue" =~ ^[Yy]$ ]]; then
@@ -245,7 +245,7 @@ check_network_connectivity() {
         output_dim "提示: 可尝试使用国内镜像源（将在安装时自动提示）"
 
         # 非 CI 环境提示用户确认
-        if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
+        if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && "${SAGE_AUTO_CONFIRM}" != "true" ]]; then
             echo -e "${YELLOW}网络异常，是否仍要继续安装？[y/N]${NC}"
             read -p "请输入选择: " -r network_continue
             if [[ ! "$network_continue" =~ ^[Yy]$ ]]; then
@@ -277,8 +277,8 @@ comprehensive_system_check() {
     format_output "${GEAR} 开始系统环境检查..."
 
     # 初始化日志文件（如果不存在）
-    mkdir -p "$(dirname "${SAGE_INSTALL_LOG:-}")"
-    if [ ! -f "${SAGE_INSTALL_LOG:-}" ]; then
+    mkdir -p "$(dirname "$SAGE_INSTALL_LOG")"
+    if [ ! -f "$SAGE_INSTALL_LOG" ]; then
         log_info "SAGE 安装日志 - $(date)" "CHECK"
     fi
 
@@ -430,7 +430,7 @@ check_existing_sage() {
         echo
 
         # 在CI环境中自动卸载重装
-        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" || -n "${BUILDKITE:-}" ]]; then
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
             echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
             # 导入卸载函数
             source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
@@ -450,7 +450,7 @@ check_existing_sage() {
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
 
         # 在CI环境中自动卸载重装
-        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" || -n "${BUILDKITE:-}" ]]; then
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
             echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
             # 导入卸载函数
             source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
@@ -536,14 +536,14 @@ verify_installation() {
     local python_cmd="${PYTHON_CMD:-python3}"
 
     # 如果使用conda环境且环境变量存在，使用conda run
-    if [ -n "${SAGE_ENV_NAME:-}" ] && command -v conda &> /dev/null; then
+    if [ -n "$SAGE_ENV_NAME" ] && command -v conda &> /dev/null; then
         # 检查 conda 环境是否真实存在
         if conda env list | grep -q "^${SAGE_ENV_NAME} "; then
-            python_cmd="conda run -n ${SAGE_ENV_NAME:-} python"
-            echo -e "${DIM}在conda环境 ${SAGE_ENV_NAME:-} 中验证...${NC}"
+            python_cmd="conda run -n $SAGE_ENV_NAME python"
+            echo -e "${DIM}在conda环境 $SAGE_ENV_NAME 中验证...${NC}"
         else
             # 环境不存在，使用默认 Python
-            echo -e "${DIM}conda环境 ${SAGE_ENV_NAME:-} 不存在，在当前环境中验证...${NC}"
+            echo -e "${DIM}conda环境 $SAGE_ENV_NAME 不存在，在当前环境中验证...${NC}"
         fi
     elif [ -n "$PIP_CMD" ] && [[ "$PIP_CMD" == *"conda run"* ]]; then
         # 从PIP_CMD中提取环境名

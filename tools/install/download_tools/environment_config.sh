@@ -8,6 +8,20 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 导入 conda 管理工具
 source "$(dirname "${BASH_SOURCE[0]}")/conda_manager.sh"
 
+# 确保颜色和符号变量被正确初始化
+setup_unicode_symbols 2>/dev/null || true
+# 提供安全的默认值（防止 set -u 报错）
+INFO="${INFO:-ℹ️}"
+CHECK="${CHECK:-✓}"
+CROSS="${CROSS:-✗}"
+WARNING="${WARNING:-⚠}"
+GREEN="${GREEN:-\033[0;32m}"
+YELLOW="${YELLOW:-\033[1;33m}"
+RED="${RED:-\033[0;31m}"
+BLUE="${BLUE:-\033[1;34m}"
+DIM="${DIM:-\033[2m}"
+NC="${NC:-\033[0m}"
+
 # 尝试通过公网 IP 判断是否位于中国大陆
 detect_mainland_china_ip() {
     local detector=""
@@ -44,7 +58,7 @@ configure_pip_mirror() {
     local mirror_source="${1:-auto}"
 
     # 如果设置了 SAGE_FORCE_CHINA_MIRROR=true，强制使用中国镜像（适用于中国的 self-hosted runner）
-    if [ "$SAGE_FORCE_CHINA_MIRROR" = "true" ]; then
+    if [ "${SAGE_FORCE_CHINA_MIRROR:-}" = "true" ]; then
         export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
         export PIP_EXTRA_INDEX_URL=""
         echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用清华镜像${NC}"
@@ -76,7 +90,7 @@ configure_pip_mirror() {
                 export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                 export PIP_EXTRA_INDEX_URL=""
                 echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
-            elif [[ "$LANG" == zh_* ]] || [[ "$LC_ALL" == zh_* ]] || [[ "$LC_CTYPE" == zh_* ]]; then
+            elif [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
                 export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                 export PIP_EXTRA_INDEX_URL=""
                 echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"

@@ -34,7 +34,7 @@
 	path = packages/sage-benchmark/src/sage/benchmark/benchmark_anns
 	url = https://github.com/intellistream/SAGE-DB-Bench.git
 	branch = main-dev
-[submodule "packages/sage-common/src/sage/common/components/sage_llm/sageLLM"]
-	path = packages/sage-common/src/sage/common/components/sage_llm/sageLLM
+[submodule "packages/sage-llm-core/src/sage/llm/sageLLM"]
+	path = packages/sage-llm-core/src/sage/llm/sageLLM
 	url = https://github.com/intellistream/sageLLM.git
 	branch = main-dev
