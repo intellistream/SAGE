@@ -27,6 +27,7 @@ SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
 LANG="${LANG:-en_US.UTF-8}"
 LC_ALL="${LC_ALL:-${LANG}}"
 LC_CTYPE="${LC_CTYPE:-${LANG}}"
+BASH_SOURCE="${BASH_SOURCE:-}"
 # ============================================================================
 
 check_and_fix_dependencies() {
