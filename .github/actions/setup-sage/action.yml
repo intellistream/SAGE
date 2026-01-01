@@ -142,7 +142,6 @@ runs:
         ./tools/install/ci_install_wrapper.sh --${{ inputs.install-mode }} --yes
 
         echo "✅ SAGE installation completed"
-      timeout-minutes: 25
 
     # Step 6: Verify Installation
     - name: Verify Installation
