@@ -140,7 +140,7 @@ class SchedulingBenchmarkPipeline:
             "method": "openai",
             "model_name": self.config.llm_model,
             "base_url": self.config.llm_base_url,
-            "api_key": "EMPTY",
+            "api_key": "EMPTY",  # pragma: allowlist secret
             "max_tokens": self.config.max_tokens,
         }
 
