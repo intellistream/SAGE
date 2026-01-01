@@ -65,6 +65,7 @@ from .schemas import (
     TimingMessage,
     ToolMetadata,
 )
+from .simple_llm_planner import SimpleLLMPlanner
 from .timing_decider import (
     HybridTimingDecider,
     LLMBasedTimingDecider,
@@ -111,6 +112,7 @@ __all__ = [
     "BaseTimingDecider",
     # Planners
     "HierarchicalPlanner",
+    "SimpleLLMPlanner",
     "ReActPlanner",
     "ReActConfig",
     "ReActStep",

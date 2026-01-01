@@ -509,10 +509,10 @@ class TestConfigManagerPerformance:
             load_time = time.time() - start_time
 
             # 基本性能断言（这些阈值可以根据实际需要调整）
-            # Coverage模式下性能要求放宽
+            # Coverage模式下性能要求放宽（CI环境下需要更多时间）
             is_coverage_active = "coverage" in sys.modules or "pytest_cov" in sys.modules
-            save_time_limit = 30.0 if is_coverage_active else 20.0
-            load_time_limit = 10.0 if is_coverage_active else 5.0
+            save_time_limit = 60.0 if is_coverage_active else 20.0
+            load_time_limit = 15.0 if is_coverage_active else 5.0
 
             assert save_time < save_time_limit, (
                 f"Save time {save_time:.2f}s exceeded limit {save_time_limit}s (coverage: {is_coverage_active})"

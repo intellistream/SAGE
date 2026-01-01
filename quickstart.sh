@@ -121,16 +121,26 @@ main() {
             if [ "$fix_environment" = "true" ]; then
                 run_full_diagnosis || true
                 run_auto_fixes
+                local fix_result=$?
             else
                 # 如果诊断发现问题，自动提示修复
                 if ! run_full_diagnosis; then
                     echo ""
                     run_auto_fixes
+                    local fix_result=$?
+                else
+                    local fix_result=0
                 fi
+            fi
+            
+            # 检查是否需要重启 shell（退出码 42）
+            if [ "$fix_result" -eq 42 ]; then
+                echo ""
+                exit 0
             fi
 
             if [ "$doctor_only" = "true" ]; then
-                exit $?
+                exit $fix_result
             fi
         else
             echo -e "${RED}错误：环境医生模块未找到${NC}"
