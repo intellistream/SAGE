@@ -544,24 +544,34 @@ for pkg_dir in package_dirs:
                         pkg_name = pkg_match.group(1)
                         dep_versions[pkg_name].append(dep)
 
-# 去重并选择最严格的版本约束
+# 合并多个包的相同依赖声明（版本已统一，无需去重）
 external_deps = []
-dedup_count = 0
+duplicate_count = 0
+conflict_count = 0
 for pkg_name, versions in sorted(dep_versions.items()):
-    if len(versions) == 1:
-        external_deps.append(versions[0])
+    unique_versions = list(set(versions))
+    if len(unique_versions) == 1:
+        external_deps.append(unique_versions[0])
+        if len(versions) > 1:
+            duplicate_count += len(versions) - 1
     else:
-        # 多个版本约束时，选择最新的（通常是最严格的）
-        best_dep = max(versions, key=lambda v: ('>=' in v, v))
+        # 理论上不应该有冲突（版本已通过 unify_dependencies.py 统一）
+        # 如果仍有冲突，选择最严格的版本
+        best_dep = max(unique_versions, key=lambda v: ('>=' in v, '<' in v, v))
         external_deps.append(best_dep)
-        dedup_count += len(versions) - 1
+        conflict_count += 1
+        duplicate_count += len(versions) - 1
 
 with open('$external_deps_file', 'w') as f:
     for dep in external_deps:
         f.write(f'{dep}\n')
 
-if dedup_count > 0:
-    print(f'✓ 提取了 {len(external_deps)} 个外部依赖（去重 {dedup_count} 个重复项）', file=sys.stderr)
+# 根据情况显示不同的消息
+if conflict_count > 0:
+    print(f'⚠️  提取了 {len(external_deps)} 个外部依赖（发现 {conflict_count} 个版本冲突）', file=sys.stderr)
+    print(f'   建议运行: python3 tools/install/helpers/unify_dependencies.py --apply', file=sys.stderr)
+elif duplicate_count > 0:
+    print(f'✓ 提取了 {len(external_deps)} 个外部依赖（合并 {duplicate_count} 个重复声明）', file=sys.stderr)
 else:
     print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 " 2>&1; then
