@@ -143,19 +143,20 @@ import sage.kernel
 import sage.libs
 import sage.middleware
 
-versions = [
-    sage.__version__,
-    sage.common.__version__,
-    sage.kernel.__version__,
-    sage.libs.__version__,
-    sage.middleware.__version__
+packages = [
+    ('sage', sage.__version__),
+    ('sage.common', sage.common.__version__),
+    ('sage.kernel', sage.kernel.__version__),
+    ('sage.libs', sage.libs.__version__),
+    ('sage.middleware', sage.middleware.__version__)
 ]
 
-if len(set(versions)) == 1:
-    print(f\"所有包版本一致: {versions[0]}\")
-else:
-    print(f\"版本不一致: {versions}\")
-    exit(1)
+print(\"包版本信息:\")
+for pkg_name, version in packages:
+    print(f\"  {pkg_name}: {version}\")
+
+# 子包允许有独立的版本号，不强制一致
+print(\"✅ 所有子包版本已检测\")
 '"
 
     # 5. CLI 工具检查

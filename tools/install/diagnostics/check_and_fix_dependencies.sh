@@ -47,9 +47,9 @@ check_and_fix_dependencies() {
     if [ -n "${BASH_SOURCE[0]}" ]; then
         script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     else
-        script_dir="$(pwd)/tools/install"
+        script_dir="$(pwd)/tools/install/diagnostics"
     fi
-    local project_root="$(cd "$script_dir/../.." && pwd)"
+    local project_root="$(cd "$script_dir/../../.." && pwd)"
 
     # 检查 Python 是否可用
     if ! command -v python &> /dev/null; then
