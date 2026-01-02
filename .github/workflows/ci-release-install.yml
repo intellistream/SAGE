@@ -51,11 +51,11 @@ jobs:
           hf-token: ${{ secrets.HF_TOKEN }}
           create-env-file: false
 
-      - name: Build wheels (all)
+      - name: Build wheels (meta-package)
         run: |
           make clean || true
           python -m pip install build
-          python -m build --wheel --outdir dist .
+          python -m build --wheel --outdir dist packages/sage
 
       - name: Install from wheels
         run: |

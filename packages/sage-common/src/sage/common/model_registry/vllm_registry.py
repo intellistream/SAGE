@@ -179,7 +179,20 @@ def ensure_model_available(
 
     If the model directory exists but is incomplete (missing key files),
     it will be re-downloaded automatically.
+
+    Args:
+        model_id: HuggingFace model ID (e.g., "Qwen/Qwen2.5-1.5B-Instruct")
+                  or local path (e.g., "/path/to/model")
     """
+
+    # Check if model_id is a local path (absolute or relative)
+    model_path = Path(model_id)
+    if model_path.exists() and model_path.is_dir():
+        # It's a local path, verify completeness and return directly
+        if _is_model_complete(model_path):
+            return model_path
+        else:
+            raise ModelRegistryError(f"本地模型目录 '{model_id}' 存在但不完整（缺少关键文件）。")
 
     try:
         path = get_model_path(model_id, root=root)

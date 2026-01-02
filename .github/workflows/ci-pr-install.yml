@@ -52,11 +52,11 @@ jobs:
         run: |
           python -c "import sage; import sage.common; import sage.kernel; print('import ok')"
 
-      - name: Wheel build sanity
+      - name: Wheel build sanity (meta-package)
         run: |
           make clean || true
           python -m pip install build
-          python -m build --wheel --outdir dist .
+          python -m build --wheel --outdir dist packages/sage
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
