@@ -1,0 +1,172 @@
+# Pre-commit hooks configuration for sageLLM Control Plane
+# See https://pre-commit.com for more information
+#
+# Installation:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Usage:
+#   pre-commit run --all-files              # Run on all files
+#   pre-commit run --files control_plane/   # Run on specific files
+#   git commit --no-verify                  # Skip hooks temporarily
+
+default_language_version:
+  python: python3.11
+
+repos:
+  # General file checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: trailing-whitespace
+    args: [--markdown-linebreak-ext=md]
+    exclude: ^vendors/
+  - id: end-of-file-fixer
+    exclude: ^vendors/|\.svg$
+  - id: check-yaml
+    args: [--unsafe]
+    exclude: ^vendors/
+  - id: check-json
+    exclude: ^vendors/
+  - id: check-toml
+    exclude: ^vendors/
+  - id: check-added-large-files
+    args: ['--maxkb=1000']
+    exclude: ^vendors/
+  - id: check-merge-conflict
+    exclude: ^vendors/
+  - id: check-case-conflict
+    exclude: ^vendors/
+  - id: mixed-line-ending
+    args: [--fix=lf]
+    exclude: ^vendors/
+  - id: detect-private-key
+    exclude: ^vendors/
+
+  # Python: Ruff linter and formatter (replaces Black, isort, flake8)
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.2
+  hooks:
+  - id: ruff
+    name: ruff check (sageLLM)
+    args: [--fix, --exit-non-zero-on-fix]
+    exclude: ^vendors/|^build/|__pycache__
+    files: ^(control_plane/|tests/).*\.py$
+  - id: ruff-format
+    name: ruff format (sageLLM)
+    exclude: ^vendors/|^build/|__pycache__
+    files: ^(control_plane/|tests/).*\.py$
+
+  # Python: MyPy type checking (warning mode)
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.11.2
+  hooks:
+  - id: mypy
+    name: mypy type checking (warnings only)
+    args:
+    - --ignore-missing-imports
+    - --show-error-codes
+    - --warn-unused-ignores
+    - --no-strict-optional
+    - --explicit-package-bases
+    exclude: ^vendors/|^build/|__pycache__|^tests/
+    files: ^control_plane/.*\.py$
+    additional_dependencies:
+    - types-aiofiles
+    - types-requests
+        # Note: Type errors are shown but don't block commits
+    verbose: true
+
+  # Shell: shellcheck
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.11.0.1
+  hooks:
+  - id: shellcheck
+    args: [-x, -e, SC1091, -S, error]
+    files: \.(sh|bash)$
+    exclude: ^vendors/
+
+  # YAML formatting
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.15.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent=2, --preserve-quotes]
+    exclude: ^vendors/|^\.github/workflows/
+    files: \.ya?ml$
+
+  # Markdown formatting
+- repo: https://github.com/executablebooks/mdformat
+  rev: 1.0.0
+  hooks:
+  - id: mdformat
+    additional_dependencies:
+    - mdformat-gfm        # GitHub Flavored Markdown
+    args: [--wrap=100]
+    exclude: ^vendors/|CHANGELOG\.md
+
+  # Security: Check for secrets
+- repo: https://github.com/Yelp/detect-secrets
+  rev: v1.5.0
+  hooks:
+  - id: detect-secrets
+    args: [--baseline, .secrets.baseline]
+    exclude: ^vendors/|^build/|\.ipynb$|package-lock\.json$
+
+# Additional sageLLM-specific checks
+- repo: local
+  hooks:
+      # Ensure test files follow naming convention
+  - id: test-naming-convention
+    name: check test file naming
+    entry: bash -c
+    language: system
+    files: ^tests/.*\.py$
+    exclude: ^tests/__init__\.py$|^tests/.*/conftest\.py$|^vendors/
+    args:
+    - |
+      for f in "$@"; do
+        [[ "$f" =~ ^tests/.*test_.*\.py$ ]] || {
+          echo "❌ Test file must match pattern: tests/**/test_*.py: $f"
+          exit 1
+        }
+      done
+    - --
+
+      # Ensure no print() statements in control_plane code (use logging instead)
+  - id: no-print-statements
+    name: no print() in control_plane code
+    entry: bash -c
+    language: system
+    files: ^control_plane/.*\.py$
+    exclude: ^control_plane/examples/|^vendors/
+    args:
+    - |
+      if grep -n "print(" "$@"; then
+        echo "❌ Use logging instead of print() in control_plane code"
+        exit 1
+      fi
+    - --
+
+      # Check that all Python files have proper imports
+  - id: check-imports
+    name: verify Python imports
+    entry: python
+    language: system
+    files: ^(control_plane/|tests/).*\.py$
+    exclude: ^vendors/|__pycache__
+    args:
+    - -c
+    - "import sys; compile(open(sys.argv[1]).read(), sys.argv[1], 'exec')"
+
+# Hook execution notes:
+# - Hooks run in order defined above
+# - Ruff format runs after ruff check to ensure formatting
+# - MyPy runs last as it's the slowest check
+# - Vendors directory is excluded from all checks
+# - Use --no-verify to skip all hooks: git commit --no-verify
+
+# Performance tips:
+# - Run specific hooks: pre-commit run ruff --all-files
+# - Skip slow hooks locally: SKIP=mypy git commit
+# - Update hooks: pre-commit autoupdate

@@ -1,4 +1,28 @@
-"""Built-in preset registry for sageLLM multi-engine launcher."""
+"""Built-in preset registry for multi-engine launcher.
+
+Layer: L1 (Foundation - LLM Core)
+
+This module maintains a registry of built-in engine presets that provide
+common multi-engine deployment configurations. Users can select these
+presets by name or create custom presets using the same schema.
+
+Built-in presets are designed for:
+- Quick prototyping and testing
+- Common deployment patterns
+- Reference configurations
+
+For production deployments, consider creating custom preset files
+tailored to your specific requirements.
+
+Current built-in presets:
+- qwen-mini-with-embeddings: Qwen 1.5B chat + BGE-small embedding (lightweight)
+- qwen-lite: Qwen 0.5B chat only (minimal resource usage)
+
+Future presets may include:
+- Large-scale multi-GPU configurations
+- sageLLM engine presets (when available)
+- Specialized embedding configurations
+"""
 
 from __future__ import annotations
 
@@ -61,19 +85,48 @@ _BUILTIN_PRESETS = _build_builtin_presets()
 
 
 def list_builtin_presets() -> list[EnginePreset]:
-    """Return all builtin presets sorted by name."""
+    """Return all builtin presets sorted by name.
+
+    Returns:
+        List of all built-in EnginePreset objects, sorted alphabetically
+
+    Example:
+        >>> presets = list_builtin_presets()
+        >>> for preset in presets:
+        ...     print(f"{preset.name}: {preset.description}")
+    """
 
     return [preset for _, preset in sorted(_BUILTIN_PRESETS.items(), key=lambda item: item[0])]
 
 
 def get_builtin_preset(name: str) -> EnginePreset | None:
-    """Fetch a builtin preset by its name."""
+    """Fetch a builtin preset by its name.
+
+    Args:
+        name: Preset identifier (e.g., "qwen-mini-with-embeddings")
+
+    Returns:
+        EnginePreset if found, None otherwise
+
+    Example:
+        >>> preset = get_builtin_preset("qwen-lite")
+        >>> if preset:
+        ...     print(f"Found preset with {len(preset.engines)} engines")
+    """
 
     return _BUILTIN_PRESETS.get(name)
 
 
 def iter_builtin_presets() -> Iterator[EnginePreset]:
-    """Yield builtin presets for tooling."""
+    """Yield builtin presets for iteration.
+
+    Returns:
+        Iterator over all built-in EnginePreset objects
+
+    Example:
+        >>> for preset in iter_builtin_presets():
+        ...     print(preset.name)
+    """
 
     return iter(_BUILTIN_PRESETS.values())
 

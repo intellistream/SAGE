@@ -31,7 +31,7 @@ os.environ.setdefault("NCCL_SOCKET_IFNAME", "lo")
 from sage.common.model_registry import vllm_registry
 from sage.common.model_registry.vllm_registry import ModelInfo
 from sage.common.service import BaseService
-from sage.llm.speculative import (
+from sage.llm.engines.vllm.speculative import (
     DraftModelStrategy,
     SpeculativeStrategy,
 )

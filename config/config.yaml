@@ -28,9 +28,9 @@ gateway:
     graph:
       max_nodes: 10000
 llm:
-  gpu_memory_utilization: 0.9
+  gpu_memory_utilization: 0.5
   max_model_len: 4096
-  model: Qwen/Qwen2.5-7B-Instruct
+  model: Qwen/Qwen2.5-0.5B-Instruct
   port: 8001
   tensor_parallel_size: 1
 max_workers: 10

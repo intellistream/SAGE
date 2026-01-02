@@ -1,0 +1,40 @@
+#!/bin/bash
+# Post-checkout hook to remind developers to install pre-commit hooks
+# This script runs automatically after git checkout/clone
+
+# Colors
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+echo ""
+echo -e "${YELLOW}🔍 Checking pre-commit hooks installation...${NC}"
+
+# Check if pre-commit is installed
+if ! command -v pre-commit &> /dev/null; then
+    echo -e "${YELLOW}⚠️  pre-commit is not installed${NC}"
+    echo ""
+    echo "To enable code quality checks before commits, run:"
+    echo -e "${GREEN}  pip install -e \".[dev]\"${NC}"
+    echo -e "${GREEN}  pre-commit install${NC}"
+    echo ""
+    exit 0
+fi
+
+# Check if hooks are installed
+if [ ! -f .git/hooks/pre-commit ] || ! grep -q "pre-commit" .git/hooks/pre-commit 2>/dev/null; then
+    echo -e "${YELLOW}⚠️  pre-commit hooks are not installed${NC}"
+    echo ""
+    echo "Installing pre-commit hooks now..."
+    if pre-commit install; then
+        echo -e "${GREEN}✅ Pre-commit hooks installed successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to install pre-commit hooks${NC}"
+        echo "Please run manually: pre-commit install"
+    fi
+else
+    echo -e "${GREEN}✅ Pre-commit hooks are already installed${NC}"
+fi
+
+echo ""

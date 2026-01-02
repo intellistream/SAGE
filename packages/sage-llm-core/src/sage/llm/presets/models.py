@@ -1,4 +1,20 @@
-"""Preset schema definitions for multi-engine launcher."""
+"""Preset schema definitions for multi-engine launcher.
+
+Layer: L1 (Foundation - LLM Core)
+
+This module defines the data models for engine presets, which allow
+configuring multiple LLM/Embedding engines to be launched together
+under the unified Control Plane.
+
+Classes:
+    PresetEngine: Configuration for a single engine instance
+    EnginePreset: Bundle of multiple engine configurations
+
+The preset system is engine-agnostic and supports:
+- vLLM engines (llm and embedding kinds)
+- sageLLM engines (future)
+- Other engines (future)
+"""
 
 from __future__ import annotations
 
@@ -21,7 +37,28 @@ def _ensure_positive(value: int | None, field_name: str, default: int = 1) -> in
 
 @dataclass(slots=True)
 class PresetEngine:
-    """Single engine configuration entry."""
+    """Single engine configuration entry.
+
+    Defines the configuration for one engine instance (LLM or Embedding)
+    to be launched by the Control Plane.
+
+    Attributes:
+        name: Unique identifier for this engine instance
+        model: Model ID (HuggingFace path or local path)
+        kind: Engine type - "llm" for inference, "embedding" for embeddings
+        tensor_parallel: Number of GPUs for tensor parallelism
+        pipeline_parallel: Number of stages for pipeline parallelism
+        port: Optional port number (auto-assigned if None)
+        label: Optional human-readable label
+        max_concurrent_requests: Maximum concurrent requests per engine
+        use_gpu: Force GPU usage (None=auto-detect, True=force, False=CPU-only)
+        metadata: Additional metadata for tracking/routing
+        extra_args: Additional CLI arguments for engine launcher
+
+    Engine kinds:
+        - "llm": LLM inference (currently vLLM, future sageLLM)
+        - "embedding": Text embeddings (currently vLLM/sage-embedding)
+    """
 
     name: str
     model: str
@@ -95,7 +132,29 @@ class PresetEngine:
 
 @dataclass(slots=True)
 class EnginePreset:
-    """Preset representing a bundle of engines."""
+    """Preset representing a bundle of engines.
+
+    A preset defines a complete multi-engine deployment configuration,
+    allowing you to launch multiple LLM and Embedding engines together
+    under the unified Control Plane.
+
+    Attributes:
+        name: Unique preset identifier
+        version: Preset schema version (currently 1)
+        description: Human-readable description
+        engines: List of engine configurations
+
+    Example:
+        >>> preset = EnginePreset.from_dict({
+        ...     "name": "my-setup",
+        ...     "version": 1,
+        ...     "description": "Chat + Embeddings",
+        ...     "engines": [
+        ...         {"name": "chat", "kind": "llm", "model": "Qwen/Qwen2.5-7B-Instruct"},
+        ...         {"name": "embed", "kind": "embedding", "model": "BAAI/bge-m3"}
+        ...     ]
+        ... })
+    """
 
     name: str
     version: int = 1
@@ -141,7 +200,22 @@ class EnginePreset:
 
 
 def load_preset_file(path: str | Path) -> EnginePreset:
-    """Load preset YAML/JSON from disk."""
+    """Load preset configuration from YAML/JSON file.
+
+    Args:
+        path: Path to preset file (.yaml, .yml, or .json)
+
+    Returns:
+        EnginePreset: Parsed preset configuration
+
+    Raises:
+        FileNotFoundError: If preset file doesn't exist
+        ValueError: If preset file format is invalid
+
+    Example:
+        >>> preset = load_preset_file("config/my-preset.yaml")
+        >>> print(f"Loaded preset '{preset.name}' with {len(preset.engines)} engines")
+    """
 
     preset_path = Path(path)
     if not preset_path.exists():

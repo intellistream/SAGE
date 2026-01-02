@@ -23,19 +23,19 @@ from typing import TYPE_CHECKING
 import pytest
 
 pytest.importorskip(
-    "sage.llm.sageLLM.control_plane.request_classifier",
-    reason="sage-llm-core package not available; skip hybrid scheduling integration tests.",
+    "sage.llm.control_plane.request_classifier",
+    reason="sage-llm-core control_plane not available; skip hybrid scheduling integration tests.",
 )
 
-from sage.llm.sageLLM.control_plane.request_classifier import (
+from sage.llm.control_plane.request_classifier import (
     RequestClassifier,
 )
-from sage.llm.sageLLM.control_plane.strategies.hybrid_policy import (
+from sage.llm.control_plane.strategies.hybrid_policy import (
     EmbeddingBatch,
     HybridSchedulingConfig,
     HybridSchedulingPolicy,
 )
-from sage.llm.sageLLM.control_plane.types import (
+from sage.llm.control_plane.types import (
     ExecutionInstance,
     ExecutionInstanceType,
     RequestMetadata,
