@@ -186,14 +186,15 @@ def ensure_model_available(
 
         # Validate model completeness
         if not _is_model_complete(path):
-            # Model exists but is incomplete - trigger re-download
+            # Model exists but is incomplete - continue download (NOT force=True)
             if auto_download:
-                print(f"⚠️  检测到模型 '{model_id}' 下载不完整，正在重新下载...")
-                return download_model(model_id, revision=revision, root=root, force=True).path
+                print(f"⚠️  检测到模型 '{model_id}' 下载不完整，继续下载...")
+                # Do NOT use force=True - let huggingface_hub resume the download
+                return download_model(model_id, revision=revision, root=root, force=False).path
             else:
                 raise ModelRegistryError(
                     f"模型 '{model_id}' 下载不完整（缺少关键文件）。"
-                    f"请使用 'sage llm model download {model_id} --force' 重新下载。"
+                    f"请使用 'sage llm model download {model_id}' 继续下载。"
                 )
 
         touch_model(model_id, root=root)
@@ -211,16 +212,40 @@ def _is_model_complete(model_path: Path) -> bool:
     - *.safetensors files (PyTorch safe tensors format)
     - *.bin files (legacy PyTorch format)
     - config.json (model configuration)
+
+    Note: With huggingface_hub's blob storage, we check both:
+    1. Symlinks in snapshots directory
+    2. Actual blob files (no .incomplete suffix)
     """
     if not model_path.exists() or not model_path.is_dir():
         return False
 
+    # Check for config.json
+    has_config = (model_path / "config.json").exists()
+    if not has_config:
+        return False
+
+    # Check for weight files (safetensors or bin)
+    # These might be symlinks pointing to blobs
     has_safetensors = any(model_path.glob("*.safetensors"))
     has_bin = any(model_path.glob("*.bin"))
-    has_config = (model_path / "config.json").exists()
 
-    # At minimum, we need config.json and at least one weight file
-    return has_config and (has_safetensors or has_bin)
+    if not (has_safetensors or has_bin):
+        # No weight files found - check if there are incomplete downloads
+        # in the parent blobs directory
+        blobs_dir = model_path.parent.parent / "blobs"
+        if blobs_dir.exists():
+            # Check if there are .incomplete files (ongoing downloads)
+            incomplete_files = list(blobs_dir.glob("*.incomplete"))
+            if incomplete_files:
+                # Has incomplete downloads - model is not complete
+                return False
+
+        # No weight files and no incomplete downloads - model is incomplete
+        return False
+
+    # Has config.json and at least one weight file
+    return True
 
 
 def download_model(
@@ -270,15 +295,15 @@ def download_model(
         repo_id=model_id,
         revision=revision,
         local_dir=str(target_dir),
-        local_dir_use_symlinks=False,
-        # Enable resume capability (huggingface_hub supports this natively)
-        resume_download=True,
+        # resume_download is deprecated - huggingface_hub now resumes by default
+        # local_dir_use_symlinks is deprecated - downloads are direct by default
         **snapshot_kwargs,
     )
     if not progress:
         download_kwargs.setdefault("progress", False)
 
-    # Retry download with exponential backoff (huggingface_hub supports resume)
+    # Retry download with exponential backoff
+    # Note: huggingface_hub automatically resumes incomplete downloads
     max_retries = 3
     last_error = None
     for attempt in range(max_retries):

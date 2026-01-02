@@ -269,20 +269,27 @@ class LLMAPIServer:
         # This sets HF_ENDPOINT in os.environ if needed
         ensure_hf_mirror_configured()
 
-        # Pre-download model using SAGE's robust download system
-        # This ensures model is complete and ready before starting vLLM
+        # Pre-download model with progress indication
+        # This will auto-download if missing/incomplete, with clear progress
         try:
-            logger.info(f"Checking model availability: {self.config.model}")
+            logger.info(f"📦 准备模型: {self.config.model}")
+            logger.info("   (首次启动会自动下载，支持断点续传)")
+
             model_path = vllm_registry.ensure_model_available(
                 self.config.model,
-                auto_download=True,  # Auto-download if missing or incomplete
+                auto_download=True,  # Auto-download with progress
             )
-            logger.info(f"✓ Model ready at: {model_path}")
+            logger.info(f"✓ 模型就绪: {model_path}")
+        except KeyboardInterrupt:
+            logger.warning("⚠️  模型下载被用户中断")
+            logger.info("💡 提示: 下次启动会从断点继续下载")
+            return False
         except Exception as exc:
-            logger.error(f"Failed to prepare model '{self.config.model}': {exc}")
-            logger.error(
-                f"提示: 使用 'sage llm model download --model {self.config.model} --force' 手动下载"
-            )
+            logger.error(f"❌ 模型准备失败: {self.config.model}")
+            logger.error(f"   错误: {exc}")
+            logger.error("")
+            logger.error("💡 您可以手动下载模型:")
+            logger.error(f"   sage llm model download --model {self.config.model}")
             return False
 
         # Build command based on backend
