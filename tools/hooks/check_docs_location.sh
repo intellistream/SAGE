@@ -49,12 +49,48 @@ allowed_patterns=(
     "^packages/[^/]+/CHANGELOG\.md$"           # Only top-level CHANGELOG in packages
     "^packages/[^/]+/(docs|documentation)/"    # Package docs directory
     "^packages/[^/]+/src/.*/docs/"             # Submodule docs (sageLLM, sageFlow, etc.)
+
+    # Allow module-level READMEs for apps, benchmarks, libs components
+    "^packages/sage-apps/src/sage/apps/[^/]+/README\.md$"
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/README\.md$"
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/[^/]+/README\.md$"  # evaluation/, scripts/, etc.
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/experiments/[^/]+/README\.md$"
+    "^packages/sage-libs/src/sage/libs/anns/README\.md$"
+    "^packages/sage-libs/src/sage/libs/anns/implementations/README\.md$"
+    "^packages/sage-libs/src/sage/libs/anns/wrappers/.*/README\.md$"
+    "^packages/sage-libs/src/sage/libs/amms/README\.md$"  # Main module README
+    "^packages/sage-libs/src/sage/libs/agentic/[^/]+/[^/]+/README\.md$"
+    "^packages/sage-llm-core/src/sage/llm/control_plane/[^/]+/README\.md$"
+    "^packages/sage-cli/src/sage/cli/templates/README\.md$"
+    "^packages/sage-tools/src/sage/tools/templates/.*\.md$"
+
+    # Allow submodule markers
+    "^packages/.*/SUBMODULE\.md$"
+
+    # Allow experiment config docs (special case for benchmark)
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/experiment/config/.*\.md$"
+
+    # Allow benchmark special docs (DATA_PATHS, VISUALIZATION at benchmark root)
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/DATA_PATHS\.md$"
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/VISUALIZATION\.md$"
+
+    # Allow deep subdirectory READMEs in benchmark evaluation/
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/evaluation/.*/README\.md$"
+
+    # Allow experiment design docs in benchmark experiments/
+    "^packages/sage-benchmark/src/sage/benchmark/benchmark_[^/]+/experiments/.*/DESIGN\.md$"
+
+    # Allow anns implementation technical docs
+    "^packages/sage-libs/src/sage/libs/anns/implementations/README_[^/]+\.md$"
+    "^packages/sage-libs/src/sage/libs/anns/wrappers/.*\.md$"
+
     "^examples/README\.md$"
     "^examples/.*/README\.md$"
     "^examples/tutorials/"
     "^config/README\.md$"
     "^tools/.*/README\.md$"
     "^tools/.*/(docs|documentation)/"
+    "^tools/docs/.*\.md$"  # Allow tools/docs/ directory
     "^\.sage/.*\.md$"
     "^\.github/.*\.md$"
 )
