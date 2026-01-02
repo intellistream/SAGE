@@ -852,6 +852,20 @@ parse_verify_deps_option() {
     esac
 }
 
+# 解析强制重新编译参数
+parse_force_rebuild_option() {
+    local param="$1"
+    case "$param" in
+        "--force-rebuild")
+            FORCE_REBUILD=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -937,6 +951,9 @@ parse_arguments() {
             shift
         elif parse_verify_deps_option "$param"; then
             # 依赖验证参数
+            shift
+        elif parse_force_rebuild_option "$param"; then
+            # 强制重新编译参数
             shift
         else
             # 未知参数
@@ -1201,6 +1218,11 @@ get_sync_submodules() {
 # 获取是否断点续传
 get_resume_install() {
     echo "$RESUME_INSTALL"
+}
+
+# 获取是否强制重新编译
+get_force_rebuild() {
+    echo "$FORCE_REBUILD"
 }
 
 # 获取是否重置检查点
