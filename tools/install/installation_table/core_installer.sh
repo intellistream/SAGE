@@ -757,6 +757,12 @@ else:
         local should_rebuild=true
         local skip_reason=""
 
+        # 初始化哈希相关变量（在所有分支中都可能使用）
+        local cpp_source_hash=""
+        local cache_dir="$SAGE_ROOT/.sage/cache"
+        local hash_cache="$cache_dir/middleware_cpp_source.hash"
+        mkdir -p "$cache_dir"
+
         # 检查是否强制重新编译
         if [ "$(get_force_rebuild)" = "true" ]; then
             should_rebuild=true
@@ -765,13 +771,6 @@ else:
         # 检查是否已安装
         elif $PIP_CMD show isage-middleware &>/dev/null; then
             log_debug "isage-middleware 已安装，检查是否需要重新编译..." "INSTALL"
-
-            # 计算 C++ 源文件哈希（包括 CMakeLists.txt）
-            local cpp_source_hash=""
-            local cache_dir="$SAGE_ROOT/.sage/cache"
-            local hash_cache="$cache_dir/middleware_cpp_source.hash"
-
-            mkdir -p "$cache_dir"
 
             # 计算当前源文件哈希（C++/头文件/CMakeLists.txt）
             if command -v sha256sum &>/dev/null; then
@@ -840,7 +839,20 @@ else:
                 log_pip_package_info "isage-middleware" "INSTALL"
                 echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
 
-                # 保存当前 C++ 源文件哈希到缓存
+                # 计算并保存当前 C++ 源文件哈希到缓存（如果之前未计算）
+                if [ -z "$cpp_source_hash" ]; then
+                    if command -v sha256sum &>/dev/null; then
+                        cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                            -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                            -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+                    elif command -v shasum &>/dev/null; then
+                        cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                            -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                            -exec shasum -a 256 {} + 2>/dev/null | sort | shasum -a 256 | cut -d' ' -f1)
+                    fi
+                fi
+
+                # 保存哈希到缓存
                 if [ -n "$cpp_source_hash" ]; then
                     echo "$cpp_source_hash" > "$hash_cache"
                     log_debug "已保存 C++ 源文件哈希到缓存: $hash_cache" "INSTALL"
