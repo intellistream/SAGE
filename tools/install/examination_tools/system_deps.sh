@@ -84,20 +84,42 @@ check_and_install_build_tools() {
         missing_tools+=("pkg-config")
     fi
 
-    # 检查 Node.js 和 npm (Studio 需要)
+    # 检查 Node.js 和 npm (Studio 需要 v20+)
     local need_node=false
-    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    local node_version_ok=false
+    local MIN_NODE_VERSION=20
+
+    # 检查 Node.js 是否存在且版本是否满足要求
+    if command -v node &> /dev/null; then
+        local node_version=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
+        if [ -n "$node_version" ] && [ "$node_version" -ge $MIN_NODE_VERSION ]; then
+            node_version_ok=true
+            log_info "Node.js v$node_version 满足要求 (>= v$MIN_NODE_VERSION)" "SysDeps"
+        else
+            log_warn "Node.js 版本过低 (v$node_version < v$MIN_NODE_VERSION)，需要升级" "SysDeps"
+            echo -e "${YELLOW}⚠️  Node.js 版本过低: v$node_version (需要 v$MIN_NODE_VERSION+)${NC}"
+            need_node=true
+        fi
+    else
+        log_info "Node.js 未安装" "SysDeps"
         need_node=true
     fi
 
-    # 优先尝试 Conda 安装 (无需 sudo)
-    if [ "$need_node" = "true" ] && command -v conda &> /dev/null; then
-        log_info "尝试使用 Conda 安装 Node.js (无需 sudo)..." "SysDeps"
-        echo -e "${GEAR} 尝试使用 Conda 安装 Node.js..."
+    if ! command -v npm &> /dev/null; then
+        need_node=true
+    fi
 
-        # 使用统一的 conda_install_with_progress 函数
-        if conda_install_with_progress "安装 Node.js" nodejs; then
+    # 优先尝试 Conda 安装 (无需 sudo，且版本较新)
+    if [ "$need_node" = "true" ] && command -v conda &> /dev/null; then
+        log_info "尝试使用 Conda 安装 Node.js v22 (无需 sudo)..." "SysDeps"
+        echo -e "${GEAR} 尝试使用 Conda 安装 Node.js v22..."
+
+        # 使用统一的 conda_install_with_progress 函数，指定版本 22
+        if conda_install_with_progress "安装 Node.js v22" "nodejs=22"; then
             need_node=false
+            node_version_ok=true
+            log_info "Node.js v22 安装成功" "SysDeps"
+            echo -e "${GREEN}✅ Node.js v22 已安装${NC}"
         else
             log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
         fi
@@ -109,8 +131,29 @@ check_and_install_build_tools() {
     fi
 
     if [ ${#missing_tools[@]} -eq 0 ]; then
-        log_info "基础构建工具已安装" "SysDeps"
-        echo -e "${CHECK} 基础构建工具已安装"
+        # 即使工具都安装了，也要检查 Node.js 版本
+        if [ "$node_version_ok" = "false" ] && command -v node &> /dev/null; then
+            local current_version=$(node --version 2>/dev/null)
+            echo ""
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}⚠️  警告: Node.js 版本不满足要求${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${RED}   当前版本: $current_version${NC}"
+            echo -e "${GREEN}   需要版本: v${MIN_NODE_VERSION}+${NC}"
+            echo ""
+            echo -e "${YELLOW}   SAGE Studio 需要 Node.js v20+ (推荐 v22)${NC}"
+            echo -e "${DIM}   系统自带的 Node.js 版本过低，建议升级到 Conda 版本${NC}"
+            echo ""
+            echo -e "${BOLD}修复方法：${NC}"
+            echo -e "  ${CYAN}conda install -y nodejs=22 -c conda-forge${NC}"
+            echo ""
+            echo -e "${DIM}提示：安装后需重新启动终端或运行 'hash -r' 刷新命令缓存${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+        else
+            log_info "基础构建工具已安装" "SysDeps"
+            echo -e "${CHECK} 基础构建工具已安装"
+        fi
         return 0
     fi
 

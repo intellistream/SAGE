@@ -474,10 +474,11 @@ main() {
         show_usage_tips "$mode"
 
         # 显示快速启动服务菜单（交互模式）
-        if [ "$(get_auto_confirm)" != "true" ] && [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ]; then
-            echo ""
-            show_post_install_services_menu "$mode"
-        fi
+        # 注意：已由 show_usage_tips 内部调用 prompt_start_llm_service
+        # if [ "$(get_auto_confirm)" != "true" ] && [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ]; then
+        #     echo ""
+        #     prompt_start_llm_service "$mode"
+        # fi
 
         # 检查并修复依赖冲突
         echo ""

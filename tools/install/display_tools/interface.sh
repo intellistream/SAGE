@@ -688,6 +688,18 @@ prompt_start_llm_service() {
                 echo -e "${DIM}   这将同时启动前端界面和后端服务${NC}"
                 if [ "$has_gpu" = true ]; then
                     echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）${NC}"
+                    echo -e "${DIM}   ${YELLOW}注意: LLM 启动可能需要 5 分钟，如需快速启动可选择跳过${NC}"
+                    echo ""
+                    echo -ne "${BOLD}是否启动本地 LLM？[Y/n]: ${NC}"
+                    read -r start_llm_choice
+                    if [[ "$start_llm_choice" =~ ^[Nn] ]]; then
+                        echo -e "${DIM}   将跳过本地 LLM 启动（可稍后使用 'sage llm serve' 启动）${NC}"
+                        local no_llm_flag="--no-llm"
+                    else
+                        local no_llm_flag=""
+                    fi
+                else
+                    local no_llm_flag="--no-llm"
                 fi
                 echo -e "${DIM}   ${YELLOW}提示: 启动过程中会显示进度信息...${NC}"
                 echo ""
@@ -696,56 +708,99 @@ prompt_start_llm_service() {
                     # 将日志重定向到临时文件，同时实时显示进度
                     local studio_log="/tmp/sage_studio_start_$$.log"
 
-                    # 启动服务（后台运行）
-                    sage studio start > "$studio_log" 2>&1 &
+                    # 启动服务（后台运行，可能带 --no-llm 参数）
+                    sage studio start $no_llm_flag > "$studio_log" 2>&1 &
                     local sage_pid=$!
 
                     # 实时监控日志并显示关键进度
                     local elapsed=0
                     local max_wait=300  # 最多等待 5 分钟
                     local last_status=""
-                    local dots=""
+                    local status_shown=""
 
                     echo -e "${CYAN}📦 启动进度:${NC}"
 
                     while kill -0 $sage_pid 2>/dev/null && [ $elapsed -lt $max_wait ]; do
                         # 尝试从日志中获取当前状态
                         if [ -f "$studio_log" ]; then
-                            # 检测关键状态
-                            if grep -q "检查 Node.js 环境" "$studio_log" 2>/dev/null && [ "$last_status" != "checking_node" ]; then
-                                echo -e "   ${GREEN}✓${NC} 检查 Node.js 环境"
-                                last_status="checking_node"
-                            elif grep -q "检查 npm 依赖" "$studio_log" 2>/dev/null && [ "$last_status" != "checking_deps" ]; then
-                                echo -e "   ${GREEN}✓${NC} 检查 npm 依赖"
-                                last_status="checking_deps"
-                            elif grep -q "安装 npm 依赖" "$studio_log" 2>/dev/null && [ "$last_status" != "installing_deps" ]; then
-                                echo -e "   ${CYAN}⏳${NC} 安装 npm 依赖（首次较慢，约 1-3 分钟）..."
-                                last_status="installing_deps"
-                            elif grep -q "启动后端服务" "$studio_log" 2>/dev/null && [ "$last_status" != "starting_backend" ]; then
-                                echo -e "   ${GREEN}✓${NC} npm 依赖已就绪"
-                                echo -e "   ${CYAN}⏳${NC} 启动后端服务..."
-                                last_status="starting_backend"
-                            elif grep -q "下载模型" "$studio_log" 2>/dev/null && [ "$last_status" != "downloading_model" ]; then
-                                echo -e "   ${CYAN}⏳${NC} 下载 LLM 模型（首次约 1-2 分钟）..."
-                                last_status="downloading_model"
-                            elif grep -q "启动前端服务" "$studio_log" 2>/dev/null && [ "$last_status" != "starting_frontend" ]; then
-                                echo -e "   ${GREEN}✓${NC} 后端服务已启动"
-                                echo -e "   ${CYAN}⏳${NC} 启动前端服务..."
-                                last_status="starting_frontend"
-                            elif grep -q "Studio started successfully" "$studio_log" 2>/dev/null && [ "$last_status" != "completed" ]; then
-                                echo -e "   ${GREEN}✓${NC} 前端服务已启动"
-                                last_status="completed"
-                                break
-                            fi
-                        fi
+                            local new_status=""
 
-                        # 显示滚动点（避免用户误以为卡住）
-                        if [ -n "$last_status" ] && [ "$last_status" = "installing_deps" ] || [ "$last_status" = "downloading_model" ]; then
-                            dots="${dots}."
-                            if [ ${#dots} -gt 3 ]; then
-                                dots=""
+                            # 按顺序检测状态，只匹配最新的状态
+                            if grep -q "依赖检查失败" "$studio_log" 2>/dev/null; then
+                                new_status="failed"
+                            elif grep -qE "(Studio 启动成功|Studio started successfully)" "$studio_log" 2>/dev/null; then
+                                new_status="completed"
+                            elif grep -qE "(检查 npm 依赖|npm install)" "$studio_log" 2>/dev/null; then
+                                new_status="installing_deps"
+                            elif grep -q "启动 Studio 服务" "$studio_log" 2>/dev/null; then
+                                new_status="starting_frontend"
+                            elif grep -qE "(LLM.*started|Gateway.*started)" "$studio_log" 2>/dev/null; then
+                                new_status="llm_ready"
+                            elif grep -qE "(Waiting for LLM.*to be ready|Health check URL)" "$studio_log" 2>/dev/null; then
+                                new_status="waiting_llm"
+                            elif grep -qE "(启动 LLM 服务|Starting LLM)" "$studio_log" 2>/dev/null; then
+                                new_status="starting_llm"
+                            elif grep -qE "(检测到.*GPU|检查.*Node\.js)" "$studio_log" 2>/dev/null; then
+                                new_status="starting"
                             fi
-                            printf "\r   ${DIM}等待中${dots}     ${NC}"
+
+                            # 只在状态改变时输出新消息
+                            if [ -n "$new_status" ] && [ "$new_status" != "$last_status" ]; then
+                                # 清除之前的进度指示器
+                                printf "\r\033[K"
+
+                                case "$new_status" in
+                                    "starting")
+                                        echo -e "   ${GREEN}✓${NC} 检查运行环境"
+                                        ;;
+                                    "starting_llm")
+                                        echo -e "   ${CYAN}⏳${NC} 启动 LLM 服务（首次约 1-2 分钟，加载模型到 GPU）..."
+                                        ;;
+                                    "waiting_llm")
+                                        echo -e "   ${CYAN}⏳${NC} 等待 LLM 服务就绪（最多 5 分钟）..."
+                                        ;;
+                                    "llm_ready")
+                                        echo -e "   ${GREEN}✓${NC} LLM 服务已就绪"
+                                        ;;
+                                    "starting_frontend")
+                                        echo -e "   ${CYAN}⏳${NC} 启动前端界面..."
+                                        ;;
+                                    "installing_deps")
+                                        echo -e "   ${CYAN}⏳${NC} 安装前端依赖（首次约 2-3 分钟）..."
+                                        ;;
+                                    "completed")
+                                        echo -e "   ${GREEN}✓${NC} Studio 启动成功"
+                                        last_status="$new_status"
+                                        break
+                                        ;;
+                                    "failed")
+                                        echo -e "   ${RED}✗${NC} 依赖检查失败"
+                                        last_status="$new_status"
+                                        break
+                                        ;;
+                                esac
+
+                                last_status="$new_status"
+                            fi
+
+                            # 只在长时间等待状态显示进度指示器和实时日志
+                            if [ "$last_status" = "waiting_llm" ]; then
+                                # 显示 LLM 日志的最新进展
+                                if [ -f "$studio_log" ]; then
+                                    local latest_llm_log
+                                    # 提取最后一条有意义的日志（过滤掉空行和进度条）
+                                    latest_llm_log=$(grep -E "(Initializing|Loading|Starting|Model loaded|vLLM)" "$studio_log" 2>/dev/null | tail -1 | cut -c1-80)
+                                    if [ -n "$latest_llm_log" ]; then
+                                        printf "\r   ${DIM}%s (%ds)${NC}" "$latest_llm_log" $elapsed
+                                    else
+                                        printf "\r   ${DIM}等待 LLM 启动... %ds${NC}" $elapsed
+                                    fi
+                                else
+                                    printf "\r   ${DIM}等待 LLM 启动... %ds${NC}" $elapsed
+                                fi
+                            elif [ "$last_status" = "installing_deps" ]; then
+                                printf "\r   ${DIM}安装依赖中 %ds...${NC}" $elapsed
+                            fi
                         fi
 
                         sleep 2
@@ -770,15 +825,34 @@ prompt_start_llm_service() {
                         echo ""
                         echo -e "${CYAN}💡 提示: 在浏览器中打开 http://localhost:5173 开始使用 Studio${NC}"
                     else
-                        echo -e "${YELLOW}⚠️  Studio 启动可能未完全成功${NC}"
+                        echo -e "${RED}❌ Studio 启动失败${NC}"
                         echo ""
-                        echo -e "${DIM}最后 20 行日志:${NC}"
+                        echo -e "${YELLOW}错误详情（最后 50 行）:${NC}"
                         if [ -f "$studio_log" ]; then
-                            tail -20 "$studio_log"
+                            # 过滤出错误和警告信息
+                            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                            grep -E "(❌|⚠️|ERROR|CRITICAL|依赖检查失败|Node\.js|版本)" "$studio_log" | tail -30 || tail -50 "$studio_log"
+                            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
                         fi
                         echo ""
+                        echo -e "${YELLOW}📋 常见问题排查：${NC}"
+                        echo -e "  ${BOLD}1. Node.js 版本问题${NC}"
+                        echo -e "     ${DIM}检查: node --version  # 需要 v20+${NC}"
+                        echo -e "     ${DIM}修复: conda install -y nodejs=22 -c conda-forge${NC}"
+                        echo ""
+                        echo -e "  ${BOLD}2. LLM 服务启动超时${NC}"
+                        echo -e "     ${DIM}使用更小模型: sage studio start --llm-model Qwen/Qwen2.5-0.5B-Instruct${NC}"
+                        echo -e "     ${DIM}或跳过 LLM: sage studio start --no-llm${NC}"
+                        echo ""
+                        echo -e "  ${BOLD}3. 端口被占用${NC}"
+                        echo -e "     ${DIM}检查: sage studio status${NC}"
+                        echo -e "     ${DIM}清理: sage studio stop${NC}"
+                        echo ""
+                        echo -e "${BLUE}🔍 查看完整日志：${NC}"
+                        echo -e "  ${CYAN}tail -100 $studio_log${NC}"
+                        echo -e "  ${CYAN}sage studio logs --follow${NC}"
+                        echo ""
                         echo -e "${DIM}   状态查看: sage studio status${NC}"
-                        echo -e "${DIM}   查看日志: sage studio logs${NC}"
                         echo -e "${DIM}   重新启动: sage studio start${NC}"
                     fi
 

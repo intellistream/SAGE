@@ -994,14 +994,105 @@ else:
                 echo -e "${DIM}  正在安装前端依赖 (npm install)...${NC}"
                 log_info "开始安装前端依赖: $frontend_dir" "INSTALL"
 
+                # 先检查 Node.js 版本
+                local node_version
+                node_version=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
+                if [ -n "$node_version" ] && [ "$node_version" -lt 20 ]; then
+                    log_error "Node.js 版本过低 (当前: v$node_version, 需要: v20+)" "INSTALL"
+                    echo -e "${CROSS} Node.js 版本过低！自动升级中..."
+                    if source "$SCRIPT_DIR/../lib/conda_install_utils.sh" && conda_install_bypass nodejs=22; then
+                        log_info "Node.js 已升级到 v22" "INSTALL"
+                        echo -e "${CHECK} Node.js 升级完成"
+                        # 刷新命令缓存
+                        hash -r
+                    else
+                        log_error "Node.js 升级失败" "INSTALL"
+                        echo -e "${CROSS} 自动升级失败，请手动运行: conda install -y nodejs=22 -c conda-forge"
+                        return 1
+                    fi
+                fi
+
+                # 检查并修复 package-lock.json 兼容性问题
+                local package_lock="$frontend_dir/package-lock.json"
+                if [ -f "$package_lock" ]; then
+                    # 检查 lockfileVersion，npm v7+ 使用 lockfileVersion 2 或 3
+                    local lock_version
+                    lock_version=$(grep -m1 '"lockfileVersion"' "$package_lock" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+
+                    # 如果 lockfileVersion < 2 或文件损坏，删除并重新生成
+                    if [ -z "$lock_version" ] || [ "$lock_version" -lt 2 ]; then
+                        log_warn "检测到旧版本 package-lock.json (v$lock_version)，将自动重新生成" "INSTALL"
+                        echo -e "${DIM}     清理旧的 package-lock.json...${NC}"
+                        rm -f "$package_lock"
+                    fi
+                fi
+
                 # 使用子shell进入目录执行，避免影响当前目录
-                # 使用 --no-audit --no-fund 加速安装
-                if (cd "$frontend_dir" && npm install --no-audit --no-fund --loglevel=error &> /dev/null); then
+                local npm_log
+                npm_log=$(mktemp)
+                echo -e "${DIM}     运行: npm install (首次可能需要 2-3 分钟)...${NC}"
+
+                # 第一次尝试
+                if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
                     log_info "前端依赖安装成功" "INSTALL"
                     echo -e "${CHECK} 前端依赖安装完成"
+                    rm -f "$npm_log"
                 else
-                    log_warn "前端依赖安装失败，但这不影响 Python 包安装" "INSTALL"
-                    echo -e "${WARNING} 前端依赖安装失败 (请稍后运行 'sage studio install' 修复)"
+                    # 检查是否是 "must provide string spec" 错误（package-lock.json 损坏）
+                    if grep -q "must provide string spec" "$npm_log"; then
+                        log_warn "检测到 package-lock.json 损坏，自动修复中..." "INSTALL"
+                        echo -e "${DIM}     删除损坏的 package-lock.json 并重试...${NC}"
+                        rm -f "$package_lock"
+
+                        # 第二次尝试（重新生成 package-lock.json）
+                        if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
+                            log_info "前端依赖安装成功（已修复）" "INSTALL"
+                            echo -e "${CHECK} 前端依赖安装完成（已自动修复 package-lock.json）"
+                            rm -f "$npm_log"
+                        else
+                            # 仍然失败，显示详细错误
+                            log_error "前端依赖安装失败" "INSTALL"
+                            echo -e "${CROSS} 前端依赖安装失败！"
+                            echo ""
+                            echo -e "${YELLOW}错误详情:${NC}"
+                            tail -30 "$npm_log"
+                            echo ""
+                            echo -e "${YELLOW}可能的原因:${NC}"
+                            echo -e "  1. 网络连接问题（无法访问 npm registry）"
+                            echo -e "  2. npm 缓存损坏"
+                            echo -e "  3. 磁盘空间不足"
+                            echo ""
+                            echo -e "${BLUE}自动修复尝试:${NC}"
+                            echo -e "${DIM}  清理 npm 缓存并重试...${NC}"
+                            npm cache clean --force &>/dev/null || true
+
+                            # 第三次尝试（清理缓存后）
+                            if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
+                                log_info "前端依赖安装成功（清理缓存后）" "INSTALL"
+                                echo -e "${CHECK} 前端依赖安装完成（已清理缓存）"
+                                rm -f "$npm_log"
+                            else
+                                echo -e "${CROSS} 自动修复失败"
+                                echo ""
+                                echo -e "${BLUE}手动修复命令:${NC}"
+                                echo -e "  ${CYAN}cd $frontend_dir${NC}"
+                                echo -e "  ${CYAN}rm -f package-lock.json node_modules -rf${NC}"
+                                echo -e "  ${CYAN}npm cache clean --force${NC}"
+                                echo -e "  ${CYAN}npm install${NC}"
+                                rm -f "$npm_log"
+                                return 1
+                            fi
+                        fi
+                    else
+                        # 其他错误，直接显示
+                        log_error "前端依赖安装失败" "INSTALL"
+                        echo -e "${CROSS} 前端依赖安装失败！"
+                        echo ""
+                        echo -e "${YELLOW}错误详情:${NC}"
+                        tail -30 "$npm_log"
+                        rm -f "$npm_log"
+                        return 1
+                    fi
                 fi
             fi
         fi
