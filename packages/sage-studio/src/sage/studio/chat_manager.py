@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import psutil
 import requests
@@ -104,6 +105,94 @@ class ChatModeManager(StudioManager):
             if model["name"] == model_name or model_name in model["path"]:
                 return model["path"]
         return None
+
+    def apply_finetuned_model(self, model_path: str) -> dict[str, Any]:
+        """Apply a finetuned model to the running LLM service (hot-swap).
+
+        This will restart the local LLM service with the new model.
+        Gateway will automatically detect the new model.
+
+        **Architecture Note**: This method belongs in sage-studio (L6) because it
+        directly depends on ChatModeManager and Studio-specific infrastructure.
+        It was moved from sage-libs (L3) to fix architecture layering violations.
+
+        Args:
+            model_path: Path to the finetuned model (local path or HF model name)
+
+        Returns:
+            Dict with status and message
+        """
+        try:
+            # Check if LLM service is running
+            if not self.llm_service or not self.llm_service.is_running():
+                return {
+                    "success": False,
+                    "message": "本地 LLM 服务未运行。请先启动 Studio 的 LLM 服务。",
+                }
+
+            print(f"🔄 正在切换到微调模型: {model_path}")
+
+            # Stop current LLM service
+            print("   停止当前 LLM 服务...")
+            self.llm_service.stop()
+
+            # Update config with new model
+            import time
+
+            time.sleep(2)  # Wait for cleanup
+
+            from sage.common.config.ports import SagePorts
+            from sage.llm import LLMAPIServer, LLMServerConfig
+
+            config = LLMServerConfig(
+                model=model_path,
+                backend="vllm",
+                host="0.0.0.0",
+                port=SagePorts.LLM_DEFAULT,
+                gpu_memory_utilization=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
+                max_model_len=4096,
+                disable_log_stats=True,
+            )
+
+            # Start new service with finetuned model
+            print(f"   启动新模型: {model_path}")
+            self.llm_service = LLMAPIServer(config)
+            success = self.llm_service.start(background=True)
+
+            if success:
+                # Update FinetuneManager's current_model for UI display
+                try:
+                    from sage.libs.finetune import finetune_manager
+
+                    finetune_manager.current_model = model_path
+                    finetune_manager._save_tasks()
+                except Exception as e:
+                    print(f"⚠️  无法更新 FinetuneManager: {e}")
+
+                print("✅ 模型切换成功！")
+                print(f"   当前模型: {model_path}")
+                print("   Gateway 会自动检测到新模型")
+
+                return {
+                    "success": True,
+                    "message": f"成功切换到模型: {model_path}",
+                    "model": model_path,
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "LLM 服务启动失败，请查看日志",
+                }
+
+        except Exception as e:
+            import traceback
+
+            print(f"❌ 模型切换失败: {e}")
+            print(traceback.format_exc())
+            return {
+                "success": False,
+                "message": f"切换失败: {str(e)}",
+            }
 
     # ------------------------------------------------------------------
     # Service Detection helpers

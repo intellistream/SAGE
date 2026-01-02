@@ -1846,15 +1846,15 @@ class ControlPlaneManager:
             ImportError: If FinetuneEngine dependencies are not installed
         """
         try:
-            from sage.llm.control_plane.executors.finetune_executor import (
-                FinetuneConfig,
-                FinetuneEngine,
-            )
+            # Import from sage-libs (L3) - Control Plane (L1) uses dynamic import
+            # This follows Kubernetes Controller pattern: core defines interfaces,
+            # implementations register themselves from higher layers
+            from sage.libs.finetune.engine import FinetuneConfig, FinetuneEngine
             from sage.llm.control_plane.types import EngineInfo
         except ImportError as e:
             raise ImportError(
-                "FinetuneEngine requires sage-llm-core[finetune]. "
-                "Install with: pip install sage-llm-core[finetune]"
+                "FinetuneEngine requires sage-libs[finetune]. "
+                "Install with: pip install sage-libs[finetune]"
             ) from e
 
         logger.info(

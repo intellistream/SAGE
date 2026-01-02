@@ -2495,10 +2495,11 @@ async def list_finetune_models():
 @app.post("/api/finetune/switch-model")
 async def switch_model(model_path: str):
     """切换当前使用的模型并热重启 LLM 服务（无需重启 Studio）"""
-    from sage.libs.finetune import finetune_manager
+    from sage.studio.chat_manager import ChatModeManager
 
-    # Apply the finetuned model (hot-swap)
-    result = finetune_manager.apply_finetuned_model(model_path)
+    # Get ChatModeManager instance and apply the model
+    chat_manager = ChatModeManager()
+    result = chat_manager.apply_finetuned_model(model_path)
 
     if result["success"]:
         return {

@@ -31,6 +31,10 @@ SAGE Finetune - 轻量级大模型微调工具
 from .cli import app  # CLI 应用
 from .config import LoRAConfig, PresetConfigs, TrainingConfig
 from .data import load_training_data, prepare_dataset
+from .engine import (  # Control Plane integration (L3 implementation)
+    FinetuneConfig,
+    FinetuneEngine,
+)
 from .manager import (  # Studio backend components (moved from L6 to L3)
     FinetuneManager,
     FinetuneStatus,
