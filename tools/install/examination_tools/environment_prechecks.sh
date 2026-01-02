@@ -151,12 +151,15 @@ check_cuda_availability() {
     local cuda_available=false
     local driver_version=""
     local cuda_version=""
+    local has_gpu=false
+    local has_nvcc=false
 
     # 检查 NVIDIA 驱动
     if command -v nvidia-smi &> /dev/null; then
         if nvidia-smi &> /dev/null; then
             driver_version=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits 2>/dev/null | head -1)
             cuda_version=$(nvidia-smi | grep "CUDA Version:" | awk '{print $9}' 2>/dev/null)
+            has_gpu=true
             cuda_available=true
             echo -e "${GREEN}   ✅ NVIDIA 驱动已安装 (版本: ${driver_version})${NC}"
             if [ -n "$cuda_version" ]; then
@@ -173,6 +176,7 @@ check_cuda_availability() {
     if command -v nvcc &> /dev/null; then
         local nvcc_version=$(nvcc --version 2>/dev/null | grep "release" | awk '{print $6}' | sed 's/,//')
         echo -e "${GREEN}   ✅ CUDA 编译器已安装 (nvcc ${nvcc_version})${NC}"
+        has_nvcc=true
         cuda_available=true
     else
         echo -e "${YELLOW}   ⚠️  未找到 CUDA 编译器 (nvcc)${NC}"
@@ -185,6 +189,18 @@ check_cuda_availability() {
         echo -e "${DIM}   CUDA_PATH: ${CUDA_PATH}${NC}"
     else
         echo -e "${YELLOW}   ⚠️  CUDA 环境变量未设置${NC}"
+    fi
+
+    # 关键检测：GPU 存在但缺少 nvcc
+    if [ "$has_gpu" = true ] && [ "$has_nvcc" = false ]; then
+        echo -e "${RED}   ❌ 检测到 GPU 但缺少 CUDA Toolkit (nvcc 编译器)${NC}"
+        echo -e "${YELLOW}   这将导致 vLLM 无法启动！${NC}"
+        echo -e "${YELLOW}   建议操作:${NC}"
+        echo -e "${DIM}   • 如果使用 conda: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
+        echo -e "${DIM}   • 如果使用系统包管理: apt install nvidia-cuda-toolkit${NC}"
+        # 导出状态供调用者使用
+        export SAGE_NEEDS_NVCC=true
+        return 1
     fi
 
     if [ "$cuda_available" = true ]; then

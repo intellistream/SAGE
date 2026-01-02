@@ -322,10 +322,20 @@ check_specific_issues() {
         local driver_version=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits 2>/dev/null | head -1)
         echo -e "  ${INFO_MARK} NVIDIA 驱动版本: $driver_version"
 
-        # 检查CUDA工具包
+        # 检查CUDA工具包 - 系统级别
         if [ -d "/usr/local/cuda" ]; then
             local cuda_version=$(cat /usr/local/cuda/version.txt 2>/dev/null | grep -oP 'CUDA Version \K[0-9]+\.[0-9]+' || echo "unknown")
-            echo -e "  ${INFO_MARK} CUDA 工具包版本: $cuda_version"
+            echo -e "  ${INFO_MARK} CUDA 工具包版本 (系统): $cuda_version"
+        fi
+
+        # 检查 nvcc 编译器 (关键：vLLM 需要)
+        if command -v nvcc >/dev/null 2>&1; then
+            local nvcc_version=$(nvcc --version 2>/dev/null | grep -oP 'release \K[0-9]+\.[0-9]+' || echo "unknown")
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} NVCC 编译器: $nvcc_version"
+            log_message "INFO" "NVCC version: $nvcc_version"
+        else
+            report_issue "nvcc_missing" "检测到 GPU 但未找到 nvcc 编译器 - vLLM 需要 CUDA Toolkit" "critical"
+            echo -e "    ${DIM}修复建议: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
         fi
     fi
 
@@ -970,6 +980,7 @@ register_all_issues() {
     register_issue "numpy_v1" "numpy版本过旧" "major" ""
     register_issue "torch_numpy_compat" "PyTorch与numpy版本不匹配" "major" ""
     register_issue "low_disk_space" "磁盘空间不足" "major" ""
+    register_issue "nvcc_missing" "CUDA Toolkit (nvcc编译器) 缺失" "critical" ""
 
     # 开发工具问题
     register_issue "dev_tools_missing" "缺少开发工具（pytest等）" "major" "fix_dev_tools_missing"

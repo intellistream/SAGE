@@ -17,6 +17,39 @@ if [ -z "${HF_ENDPOINT}" ]; then
     if ! curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
         export HF_ENDPOINT="https://hf-mirror.com"
         echo -e "\033[2m自动设置 HuggingFace 镜像: $HF_ENDPOINT\033[0m"
+
+        # 检测到国内网络，提示配置 HF_TOKEN
+        if [ -z "${HF_TOKEN}" ] && [ ! -f ".env" ] || ! grep -q "HF_TOKEN=" .env 2>/dev/null; then
+            echo -e "\033[33m💡 提示: 检测到您在中国大陆网络环境\033[0m"
+            echo -e "\033[2m为避免 HuggingFace API 限流 (429 错误)，建议配置 HF_TOKEN\033[0m"
+            echo -e "\033[2m获取 token: https://huggingface.co/settings/tokens\033[0m"
+            echo ""
+            read -p "是否现在配置 HF_TOKEN? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                read -p "请输入您的 HuggingFace Token: " hf_token
+                if [ -n "$hf_token" ]; then
+                    # 创建或更新 .env 文件
+                    if [ ! -f ".env" ]; then
+                        cp .env.template .env 2>/dev/null || touch .env
+                    fi
+                    # 添加或更新 HF_TOKEN
+                    if grep -q "^HF_TOKEN=" .env 2>/dev/null; then
+                        sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$hf_token/" .env
+                    else
+                        echo "HF_TOKEN=$hf_token" >> .env
+                    fi
+                    # 同时添加 HF_ENDPOINT
+                    if ! grep -q "^HF_ENDPOINT=" .env 2>/dev/null; then
+                        echo "HF_ENDPOINT=https://hf-mirror.com" >> .env
+                    fi
+                    echo -e "\033[32m✅ HF_TOKEN 已保存到 .env 文件\033[0m"
+                    export HF_TOKEN="$hf_token"
+                fi
+            else
+                echo -e "\033[2m跳过 HF_TOKEN 配置（可稍后在 .env 文件中手动添加）\033[0m"
+            fi
+        fi
     fi
 fi
 
@@ -182,12 +215,31 @@ main() {
         # 确保.sage目录存在
         mkdir -p .sage/logs
 
-        # 运行新的环境预检查
-        local skip_cuda="true"
+        # 运行新的环境预检查 - 启用 CUDA 检查
+        local skip_cuda="false"
 
         if ! run_environment_prechecks "$skip_cuda" ".sage/logs/environment_precheck.log"; then
             echo -e "${YELLOW}⚠️  环境预检查发现问题，但将继续尝试安装${NC}"
             echo -e "${DIM}提示: 查看详细报告 .sage/logs/environment_precheck.log${NC}"
+        fi
+
+        # 检查是否需要安装 nvcc (检测到 GPU 但缺少 CUDA Toolkit)
+        if [ "${SAGE_NEEDS_NVCC:-false}" = "true" ]; then
+            echo -e "\n${YELLOW}${BOLD}⚠️  检测到 GPU 但缺少 CUDA Toolkit (nvcc 编译器)${NC}"
+            echo -e "${DIM}vLLM 需要 nvcc 才能正常运行${NC}"
+
+            if [[ -n "${CONDA_DEFAULT_ENV:-}" || -n "${CONDA_PREFIX:-}" ]]; then
+                echo -e "\n${BLUE}正在自动安装 CUDA Toolkit...${NC}"
+                if conda install -c conda-forge cudatoolkit-dev -y --override-channels; then
+                    echo -e "${GREEN}✅ CUDA Toolkit 安装成功${NC}"
+                else
+                    echo -e "${YELLOW}⚠️  CUDA Toolkit 自动安装失败${NC}"
+                    echo -e "${DIM}请手动安装: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
+                fi
+            else
+                echo -e "${YELLOW}未检测到 conda 环境，请手动安装 CUDA Toolkit${NC}"
+                echo -e "${DIM}推荐: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
+            fi
         fi
 
         # 保持原有的 numpy 检查
