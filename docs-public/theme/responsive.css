@@ -1,0 +1,211 @@
+/* Responsive Design */
+
+@media (max-width: 768px) {
+    .floating-nav {
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .floating-nav-links a {
+        width: 38px;
+        height: 38px;
+        font-size: 1.1rem;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .section-title {
+        font-size: 2.2rem;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .why-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .why-card-inner {
+        padding: 2rem 1.5rem;
+    }
+
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        font-size: 1.8rem;
+    }
+
+    .why-content h3 {
+        font-size: 1.2rem;
+    }
+
+    .why-content p {
+        font-size: 0.9rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+
+    /* what-is-sage 部分的移动端优化 */
+    .what-is-sage {
+        padding: 2rem 1rem 3rem;
+    }
+
+    .pipeline-building-content {
+        padding: 2rem 0.5rem;
+        margin: 0 auto;
+        max-width: 100%;
+        overflow: visible; /* 改为可见以确保连接线显示 */
+    }
+
+    /* 确保step-explanation能够更好地利用空间 */
+    .pipeline-top-section,
+    .pipeline-bottom-section {
+        padding: 0 0.3rem;
+    }
+
+    /* 强制设置 step-1 和 step-3 的高度 - 覆盖所有可能的样式 */
+    div.step-explanation#step-1 > div.step-card.compact[style],
+    div.step-explanation#step-3 > div.step-card.compact[style],
+    div#step-1 .step-card.compact.visible,
+    div#step-3 .step-card.compact.visible,
+    div#step-1 .step-card.compact,
+    div#step-3 .step-card.compact {
+        height: 250px !important;
+        min-height: 250px !important;
+        max-height: 250px !important;
+        box-sizing: border-box !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* 强制设置 step-2 和 step-4 的高度 - 覆盖所有可能的样式 */
+    div.step-explanation#step-2 > div.step-card.compact[style],
+    div.step-explanation#step-4 > div.step-card.compact[style],
+    div#step-2 .step-card.compact.visible,
+    div#step-4 .step-card.compact.visible,
+    div#step-2 .step-card.compact,
+    div#step-4 .step-card.compact {
+        height: 260px !important;
+        min-height: 260px !important;
+        max-height: 260px !important;
+        box-sizing: border-box !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-content {
+        padding: 0 1rem;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        font-size: 1rem;
+    }
+
+    .feature-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .features, .quickstart, .stats {
+        padding: 4rem 1rem;
+    }
+
+    /* what-is-sage 在小屏幕下的进一步优化 */
+    .what-is-sage {
+        padding: 2rem 0.5rem 2rem;
+    }
+
+    .pipeline-building-content {
+        padding: 1.5rem 0.3rem;
+    }
+
+    .pipeline-top-section,
+    .pipeline-bottom-section {
+        padding: 0 0.25rem;
+    }
+
+    /* 480px以下屏幕的 step-card 高度调整 - 最高优先级覆盖 */
+    div#step-1 .step-card.compact.visible,
+    div#step-3 .step-card.compact.visible,
+    div#step-1 .step-card.compact,
+    div#step-3 .step-card.compact {
+        height: 170px !important;
+        min-height: 170px !important;
+        max-height: 170px !important;
+        box-sizing: border-box !important;
+    }
+
+    div#step-2 .step-card.compact.visible,
+    div#step-4 .step-card.compact.visible,
+    div#step-2 .step-card.compact,
+    div#step-4 .step-card.compact {
+        height: 190px !important;
+        min-height: 190px !important;
+        max-height: 190px !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* Extra small devices (phones, 480px and down) */
+@media (max-width: 480px) {
+    .why-choose-sage {
+        padding: 3rem 1rem;
+    }
+
+    .why-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+        margin-top: 2rem;
+    }
+
+    .why-card-inner {
+        padding: 1.5rem 1rem;
+    }
+
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+
+    .why-content h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .why-content p {
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+
+    .why-badge {
+        top: 1rem;
+        right: 1rem;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.6rem;
+    }
+}

@@ -1,0 +1,330 @@
+<!-- Auto-Scaling Chat System Animation HTML Structure -->
+<!-- This will replace the third video placeholder in the usage examples section -->
+
+<div class="example-card">
+    <div class="example-video">
+        <!-- Auto-Scaling Animation Container -->
+        <div id="autoScalingAnimation" class="auto-scaling-container">
+            <!-- Animation will be populated by JavaScript -->
+        </div>
+    </div>
+    <div class="example-content">
+        <div class="example-icon">⚡</div>
+        <h3 class="example-title">自动扩缩容聊天系统</h3>
+        <p class="example-description">展示SAGE的高资源利用能力，通过云基础设施扩缩容可视化。随着用户负载增加，系统智能扩容，实现资源优化和负载均衡。</p>
+        <div class="example-features">
+            <span class="feature-tag">智能扩缩容</span>
+            <span class="feature-tag">负载均衡</span>
+            <span class="feature-tag">资源监控</span>
+            <span class="feature-tag">云端部署</span>
+        </div>
+    </div>
+</div>
+
+<!-- Alternative: Standalone Animation Container -->
+<!-- Use this version if you want to embed the animation elsewhere -->
+<div class="auto-scaling-wrapper" style="margin: 2rem 0;">
+    <h3 style="text-align: center; margin-bottom: 1rem; color: #1f2937;">SAGE 自动扩缩容系统演示</h3>
+    <div id="autoScalingAnimationStandalone" class="auto-scaling-container">
+        <!-- Animation will be populated by JavaScript -->
+    </div>
+    <div class="animation-description" style="text-align: center; margin-top: 1rem; color: #6b7280; font-size: 0.9rem;">
+        <p>实时演示：初始负载 → 资源优化 → 扩容触发 → 负载分布</p>
+        <p>35秒循环动画，展示SAGE云基础设施自动扩缩容能力</p>
+        <div class="scaling-legend" style="display: flex; justify-content: center; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+            <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></div>
+                <small>正常负载</small>
+            </span>
+            <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%;"></div>
+                <small>警告状态</small>
+            </span>
+            <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>
+                <small>临界状态</small>
+            </span>
+            <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></div>
+                <small>负载均衡</small>
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Integration Script -->
+<script>
+// Initialize the auto-scaling animation when this HTML is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize main animation
+    if (document.getElementById('autoScalingAnimation')) {
+        initializeAutoScaling('autoScalingAnimation');
+    }
+
+    // Initialize standalone animation if present
+    if (document.getElementById('autoScalingAnimationStandalone')) {
+        initializeAutoScaling('autoScalingAnimationStandalone');
+    }
+});
+</script>
+
+<!-- CSS for additional styling (if needed) -->
+<style>
+.auto-scaling-wrapper {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.animation-description {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.animation-description p {
+    margin: 0.5rem 0;
+}
+
+.animation-description p:first-child {
+    font-weight: 600;
+    color: #374151;
+}
+
+.scaling-legend {
+    font-size: 0.75rem;
+}
+
+.scaling-legend small {
+    color: #6b7280;
+}
+
+/* Enhanced Interactive Elements */
+.auto-scaling-container .user-load-slider {
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container:hover .user-load-slider {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.auto-scaling-container .load-slider {
+    background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.auto-scaling-container .load-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .load-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+}
+
+.auto-scaling-container .load-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .load-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+}
+
+/* Enhanced Server Instance Styling */
+.auto-scaling-container .server-instance {
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auto-scaling-container .server-instance:hover {
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: scale(1.1) translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+}
+
+.auto-scaling-container .server-instance.active {
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+/* Enhanced User Icons */
+.auto-scaling-container .user-icon {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .user-icon.active {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.auto-scaling-container .user-icon.warning {
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+.auto-scaling-container .user-icon.critical {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    animation: userIconPulse 1s infinite;
+}
+
+@keyframes userIconPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* Enhanced Load Balancer */
+.auto-scaling-container .load-balancer {
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .load-balancer:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    transform: translate(-50%, -50%) scale(1.1) !important;
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.5);
+}
+
+/* Enhanced Metrics Dashboard */
+.auto-scaling-container .metrics-dashboard {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .metrics-dashboard.visible {
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced Scaling Trigger */
+.auto-scaling-container .scaling-trigger {
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .scaling-trigger.critical {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+
+/* Performance Optimizations */
+.auto-scaling-container * {
+    will-change: transform, opacity;
+}
+
+.auto-scaling-container .user-icon,
+.auto-scaling-container .server-instance,
+.auto-scaling-container .traffic-flow {
+    transform: translateZ(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .auto-scaling-wrapper {
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .animation-description {
+        font-size: 0.8rem;
+        padding: 0.75rem;
+    }
+
+    .scaling-legend {
+        font-size: 0.7rem;
+        gap: 0.5rem;
+    }
+
+    .auto-scaling-container .user-load-slider {
+        width: 120px;
+        padding: 8px;
+    }
+
+    .auto-scaling-container .metrics-dashboard {
+        width: 160px;
+        height: 60px;
+        padding: 8px;
+        font-size: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .scaling-legend {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .animation-description p {
+        font-size: 0.75rem;
+    }
+
+    .auto-scaling-container .user-load-slider {
+        width: 100px;
+        padding: 6px;
+    }
+
+    .auto-scaling-container .metrics-dashboard {
+        width: 140px;
+        height: 50px;
+        font-size: 7px;
+    }
+}
+
+/* Accessibility Improvements */
+.auto-scaling-container .server-instance,
+.auto-scaling-container .load-balancer {
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.auto-scaling-container .server-instance:focus,
+.auto-scaling-container .load-balancer:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.auto-scaling-container .load-slider:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Animation State Indicators */
+.auto-scaling-container.phase-0 .phase-indicator {
+    background: rgba(16, 185, 129, 0.9);
+}
+
+.auto-scaling-container.phase-1 .phase-indicator {
+    background: rgba(245, 158, 11, 0.9);
+}
+
+.auto-scaling-container.phase-2 .phase-indicator {
+    background: rgba(239, 68, 68, 0.9);
+}
+
+.auto-scaling-container.phase-3 .phase-indicator {
+    background: rgba(59, 130, 246, 0.9);
+}
+</style>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home Animation Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="animations.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .animation-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>SAGE Smart Home Animation Test</h1>
+
+        <div class="animation-info">
+            <h3>Animation Features:</h3>
+            <ul>
+                <li>25-second loop with 4 phases (6.25s each)</li>
+                <li>Interactive IoT devices with tooltips</li>
+                <li>Network connections with data packet flow</li>
+                <li>Device status indicators and animations</li>
+                <li>Responsive design for mobile devices</li>
+            </ul>
+        </div>
+
+        <!-- Smart Home Animation Container -->
+        <div id="smartHomeAnimation" class="smart-home-container">
+            <!-- Animation will be populated by JavaScript -->
+        </div>
+
+        <div class="animation-info" style="margin-top: 2rem;">
+            <h3>How to interact:</h3>
+            <ul>
+                <li>Click devices to see detailed information</li>
+                <li>Hover over the animation for enhanced effects</li>
+                <li>Use play/pause and restart controls</li>
+                <li>Click the info button for animation details</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Initialize the smart home animation
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof SmartHomeAnimation !== 'undefined') {
+                window.smartHomeAnimation = new SmartHomeAnimation('smartHomeAnimation');
+            } else {
+                console.error('SmartHomeAnimation class not found. Make sure script.js is loaded.');
+            }
+        });
+    </script>
+</body>
+</html>

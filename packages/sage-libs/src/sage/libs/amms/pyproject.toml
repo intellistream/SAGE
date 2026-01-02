@@ -75,8 +75,8 @@ Repository = "https://github.com/intellistream/SAGE"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = ["sage.libs.amms"]
-package-dir = {"" = "src"}
+packages = ["sage.libs.amms", "sage.libs.amms.interface", "sage.libs.amms.wrappers"]
+package-dir = {"sage.libs.amms" = "."}
 
 [tool.setuptools.package-data]
 "sage.libs.amms" = ["py.typed", "*.so", "*.pyd"]

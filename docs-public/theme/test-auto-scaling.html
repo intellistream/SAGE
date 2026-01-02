@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Scaling Animation Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="animations.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .test-header h1 {
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .test-header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .test-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .test-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .test-btn.secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .test-btn.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .test-info {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .test-info h3 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .test-info ul {
+            color: #4b5563;
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .test-info li {
+            margin-bottom: 0.5rem;
+        }
+
+        .animation-wrapper {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .test-results {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .test-results h3 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .test-log {
+            background: #1f2937;
+            color: #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 768px) {
+            .test-container {
+                padding: 1rem;
+            }
+
+            .test-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .test-btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🚀 Auto-Scaling Chat System Animation Test</h1>
+            <p>Testing SAGE's cloud infrastructure scaling visualization</p>
+        </div>
+
+        <div class="test-controls">
+            <button class="test-btn" onclick="startTest()">
+                <i class="fas fa-play"></i>
+                Start Animation Test
+            </button>
+            <button class="test-btn secondary" onclick="pauseTest()">
+                <i class="fas fa-pause"></i>
+                Pause Test
+            </button>
+            <button class="test-btn" onclick="restartTest()">
+                <i class="fas fa-redo"></i>
+                Restart Test
+            </button>
+            <button class="test-btn success" onclick="runInteractiveTest()">
+                <i class="fas fa-sliders-h"></i>
+                Interactive Test
+            </button>
+        </div>
+
+        <div class="test-info">
+            <h3>🎯 Animation Features Being Tested</h3>
+            <ul>
+                <li><strong>User Load Growth:</strong> Exponential growth from 10 to 1000+ users with color coding</li>
+                <li><strong>Server Scaling:</strong> Dynamic server instances with utilization indicators</li>
+                <li><strong>Load Balancer:</strong> Central traffic distribution with stress visualization</li>
+                <li><strong>Resource Metrics:</strong> Real-time CPU, memory, and network monitoring</li>
+                <li><strong>Scaling Triggers:</strong> Automatic threshold detection and scaling responses</li>
+                <li><strong>Interactive Controls:</strong> User load slider and clickable elements</li>
+                <li><strong>4 Animation Phases:</strong> 35-second loop (8.75s per phase)</li>
+            </ul>
+        </div>
+
+        <div class="animation-wrapper">
+            <!-- Auto-Scaling Animation Container -->
+            <div id="autoScalingAnimationTest" class="auto-scaling-container">
+                <!-- Animation will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="test-results">
+            <h3>📊 Test Results & Console Output</h3>
+            <div id="testLog" class="test-log">
+Ready to start testing...
+Click "Start Animation Test" to begin.
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let testAnimation = null;
+        let testStartTime = null;
+        let testPhaseCount = 0;
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('testLog');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[Auto-Scaling Test] ${message}`);
+        }
+
+        function startTest() {
+            log('🚀 Starting Auto-Scaling Animation Test...');
+
+            // Initialize the animation
+            if (testAnimation) {
+                testAnimation.destroy();
+            }
+
+            testAnimation = new AutoScalingAnimation('autoScalingAnimationTest');
+            testStartTime = Date.now();
+            testPhaseCount = 0;
+
+            log('✅ Animation initialized successfully');
+            log('📊 Testing 4 phases over 35 seconds (8.75s each)');
+            log('👥 User load: 10 → 1000+ users');
+            log('🖥️ Server scaling: 3 → 12 instances');
+            log('📈 Resource monitoring: CPU, Memory, Network');
+
+            // Monitor phase changes
+            monitorPhases();
+
+            // Test interactive features after 5 seconds
+            setTimeout(() => {
+                testInteractiveFeatures();
+            }, 5000);
+        }
+
+        function pauseTest() {
+            if (testAnimation) {
+                testAnimation.pause();
+                log('⏸️ Animation paused');
+            } else {
+                log('❌ No animation running to pause');
+            }
+        }
+
+        function restartTest() {
+            if (testAnimation) {
+                testAnimation.restart();
+                testStartTime = Date.now();
+                testPhaseCount = 0;
+                log('🔄 Animation restarted');
+                monitorPhases();
+            } else {
+                log('❌ No animation to restart');
+            }
+        }
+
+        function runInteractiveTest() {
+            if (!testAnimation) {
+                log('❌ Please start the animation first');
+                return;
+            }
+
+            log('🎮 Running interactive feature tests...');
+
+            // Test user load slider
+            setTimeout(() => {
+                log('📊 Testing user load slider: Setting to 500 users');
+                const slider = document.querySelector('#autoScalingAnimationTest .load-slider');
+                if (slider) {
+                    slider.value = 500;
+                    slider.dispatchEvent(new Event('input'));
+                    log('✅ User load slider test completed');
+                } else {
+                    log('❌ User load slider not found');
+                }
+            }, 1000);
+
+            // Test server clicks
+            setTimeout(() => {
+                log('🖥️ Testing server instance clicks...');
+                const servers = document.querySelectorAll('#autoScalingAnimationTest .server-instance');
+                if (servers.length > 0) {
+                    servers[0].click();
+                    log('✅ Server click test completed');
+                } else {
+                    log('❌ Server instances not found');
+                }
+            }, 2000);
+
+            // Test load balancer click
+            setTimeout(() => {
+                log('⚖️ Testing load balancer click...');
+                const loadBalancer = document.querySelector('#autoScalingAnimationTest .load-balancer');
+                if (loadBalancer) {
+                    loadBalancer.click();
+                    log('✅ Load balancer click test completed');
+                } else {
+                    log('❌ Load balancer not found');
+                }
+            }, 3000);
+
+            // Test hover effects
+            setTimeout(() => {
+                log('🖱️ Testing hover effects...');
+                const container = document.getElementById('autoScalingAnimationTest');
+                if (container) {
+                    container.dispatchEvent(new Event('mouseenter'));
+                    setTimeout(() => {
+                        container.dispatchEvent(new Event('mouseleave'));
+                        log('✅ Hover effects test completed');
+                    }, 1000);
+                } else {
+                    log('❌ Animation container not found');
+                }
+            }, 4000);
+        }
+
+        function monitorPhases() {
+            const phaseNames = ['Initial Load', 'Resource Optimization', 'Auto-Scaling Triggered', 'Load Distribution'];
+
+            const checkPhase = () => {
+                if (!testAnimation || !testAnimation.isPlaying) return;
+
+                const elapsed = Date.now() - testStartTime;
+                const currentPhase = Math.floor((elapsed % 35000) / 8750);
+
+                if (currentPhase !== testPhaseCount % 4) {
+                    testPhaseCount++;
+                    const phaseName = phaseNames[currentPhase];
+                    const phaseTime = ((elapsed % 35000) / 1000).toFixed(1);
+                    log(`🎬 Phase ${currentPhase + 1}: ${phaseName} (${phaseTime}s)`);
+
+                    // Test phase-specific elements
+                    testPhaseElements(currentPhase);
+                }
+
+                setTimeout(checkPhase, 500);
+            };
+
+            checkPhase();
+        }
+
+        function testPhaseElements(phase) {
+            const container = document.getElementById('autoScalingAnimationTest');
+            if (!container) return;
+
+            switch (phase) {
+                case 0: // Initial Load
+                    log('  📊 Checking user icons and traffic flows...');
+                    const userIcons = container.querySelectorAll('.user-icon.active');
+                    const trafficFlows = container.querySelectorAll('.traffic-flow');
+                    log(`  ✅ Found ${userIcons.length} active user icons`);
+                    log(`  ✅ Found ${trafficFlows.length} traffic flow elements`);
+                    break;
+
+                case 1: // Resource Optimization
+                    log('  ⚡ Checking resource utilization and load balancer stress...');
+                    const utilizationBars = container.querySelectorAll('.utilization-bar');
+                    const scalingTrigger = container.querySelector('.scaling-trigger');
+                    log(`  ✅ Found ${utilizationBars.length} utilization bars`);
+                    log(`  ✅ Scaling trigger ${scalingTrigger ? 'found' : 'not found'}`);
+                    break;
+
+                case 2: // Auto-Scaling Triggered
+                    log('  🚀 Checking server scaling and cloud spawn effects...');
+                    const activeServers = container.querySelectorAll('.server-instance.active');
+                    const cloudEffect = container.querySelector('.cloud-spawn-effect');
+                    log(`  ✅ Found ${activeServers.length} active servers`);
+                    log(`  ✅ Cloud spawn effect ${cloudEffect ? 'found' : 'not found'}`);
+                    break;
+
+                case 3: // Load Distribution
+                    log('  📈 Checking load distribution and metrics dashboard...');
+                    const metricsDashboard = container.querySelector('.metrics-dashboard');
+                    const metricFills = container.querySelectorAll('.metric-fill');
+                    log(`  ✅ Metrics dashboard ${metricsDashboard ? 'found' : 'not found'}`);
+                    log(`  ✅ Found ${metricFills.length} metric indicators`);
+                    break;
+            }
+        }
+
+        // Initialize test when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🎯 Auto-Scaling Animation Test Page Loaded');
+            log('📋 Test Environment Ready');
+            log('🔧 Animation classes and functions available');
+
+            // Check if required elements exist
+            const container = document.getElementById('autoScalingAnimationTest');
+            if (container) {
+                log('✅ Animation container found');
+            } else {
+                log('❌ Animation container not found');
+            }
+
+            // Check if AutoScalingAnimation class is available
+            if (typeof AutoScalingAnimation !== 'undefined') {
+                log('✅ AutoScalingAnimation class loaded');
+            } else {
+                log('❌ AutoScalingAnimation class not found');
+            }
+        });
+
+        // Override console.log to capture animation logs
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+
+            // Capture logs from the animation
+            const message = args.join(' ');
+            if (message.includes('Server Details:') || message.includes('Load Balancer Status:')) {
+                const logElement = document.getElementById('testLog');
+                if (logElement) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    logElement.textContent += `[${timestamp}] ${message}\n`;
+                    logElement.scrollTop = logElement.scrollHeight;
+                }
+            }
+        };
+    </script>
+</body>
+</html>

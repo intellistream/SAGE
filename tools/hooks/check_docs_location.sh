@@ -45,20 +45,32 @@ allowed_patterns=(
     "^DEVELOPER\.md$"
     "^docs-public/"
     "^docker/.*\.md$"
-    "^packages/.*/README\.md$"
-    "^packages/.*README.*\.md$"
-    "^packages/.*/CHANGELOG\.md$"
-    "^packages/.*/(docs|documentation)/"
-    "^packages/.*\.md$"
+    "^packages/[^/]+/README\.md$"              # Only top-level README in packages
+    "^packages/[^/]+/CHANGELOG\.md$"           # Only top-level CHANGELOG in packages
+    "^packages/[^/]+/(docs|documentation)/"    # Package docs directory
+    "^packages/[^/]+/src/.*/docs/"             # Submodule docs (sageLLM, sageFlow, etc.)
     "^examples/README\.md$"
     "^examples/.*/README\.md$"
     "^examples/tutorials/"
     "^config/README\.md$"
     "^tools/.*/README\.md$"
     "^tools/.*/(docs|documentation)/"
-    "^tools/.*\.md$"
     "^\.sage/.*\.md$"
     "^\.github/.*\.md$"
+)
+
+# Define third-party library exclusions (always allowed)
+third_party_patterns=(
+    "^packages/.*/implementations/SPTAG/"      # Microsoft SPTAG
+    "^packages/.*/implementations/faiss/"      # Facebook FAISS
+    "^packages/.*/implementations/diskann-ms/" # Microsoft DiskANN
+    "^packages/.*/implementations/pybind11/"   # pybind11 library
+    "^packages/.*/implementations/puck/"       # Puck library
+    "^packages/.*/implementations/zstd/"       # Zstandard library
+    "^packages/.*/implementations/candy/"      # Candy library family
+    "^packages/.*/third[-_]party/"            # Generic third-party directories
+    "^packages/.*/external/"                   # External dependencies
+    "^packages/.*/vendor/"                     # Vendored libraries
 )
 
 for file in $all_md_files; do
@@ -69,6 +81,20 @@ for file in $all_md_files; do
         continue
     fi
 
+    # Check if file is in third-party library (always allowed)
+    is_third_party=false
+    for pattern in "${third_party_patterns[@]}"; do
+        if echo "$file" | grep -qE "$pattern"; then
+            is_third_party=true
+            break
+        fi
+    done
+
+    if [ "$is_third_party" = true ]; then
+        continue  # Skip third-party library documentation
+    fi
+
+    # Check against allowed patterns
     allowed=false
     for pattern in "${allowed_patterns[@]}"; do
         if echo "$file" | grep -qE "$pattern"; then
@@ -120,18 +146,54 @@ fi
 
 # Priority 2: Other location violations
 if [ -n "$other_violations" ]; then
-    echo "❌ 错误: 以下 markdown 文件不在允许的位置:"
+    echo "================================================================================================"
+    echo "❌ 错误: 以下 markdown 文件不在允许的位置"
+    echo "================================================================================================"
+    echo ""
+    echo "散落的文档文件（需要整理到标准位置）:"
     echo -e "$other_violations" | sed "s/^/  - /"
     echo ""
-    echo "✅ 允许的位置:"
-    echo "  - 项目根目录: README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DEVELOPER.md"
-    echo "  - 用户文档: docs-public/"
-    echo "  - 包文档: packages/<package-name>/README.md, packages/<package-name>/CHANGELOG.md"
-    echo "  - 包文档目录: packages/<package-name>/docs/, packages/<package-name>/documentation/"
-    echo "  - 示例文档: examples/<example-name>/README.md, examples/tutorials/"
-    echo "  - GitHub 模板: .github/ISSUE_TEMPLATE/, .github/PULL_REQUEST_TEMPLATE/"
+    echo "✅ 允许的标准位置:"
+    echo "  📦 项目根目录:"
+    echo "     - README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DEVELOPER.md"
     echo ""
-    echo "💡 建议: 请将文档移动到合适的位置或更新允许列表"
+    echo "  📚 用户和开发者文档:"
+    echo "     - docs-public/docs_src/               (用户指南、教程)"
+    echo "     - docs-public/docs_src/dev-notes/     (开发者文档)"
+    echo ""
+    echo "  📦 包级文档:"
+    echo "     - packages/<package>/README.md        (包的主文档)"
+    echo "     - packages/<package>/CHANGELOG.md     (包的变更日志)"
+    echo "     - packages/<package>/docs/            (包的详细文档目录)"
+    echo ""
+    echo "  🔧 子模块文档 (必须在 docs/ 子目录):"
+    echo "     - packages/<package>/src/.../submodule/docs/  (sageLLM, sageDB, sageFlow, etc.)"
+    echo "     - 子模块内散落的 MD 文件也是违规的，必须放在 submodule/docs/ 下"
+    echo ""
+    echo "  📂 示例和工具:"
+    echo "     - examples/<example>/README.md"
+    echo "     - examples/tutorials/"
+    echo "     - tools/<tool>/README.md"
+    echo "     - tools/<tool>/docs/"
+    echo ""
+    echo "  🚫 第三方库文档 (自动排除):"
+    echo "     - packages/.*/implementations/SPTAG/   (Microsoft SPTAG)"
+    echo "     - packages/.*/implementations/faiss/   (Facebook FAISS)"
+    echo "     - packages/.*/implementations/diskann-ms/ (Microsoft DiskANN)"
+    echo "     - packages/.*/implementations/pybind11/, puck/, zstd/, candy/ (其他第三方库)"
+    echo ""
+    echo "💡 整理建议:"
+    echo "   1. 包内文档 → packages/<package>/docs/"
+    echo "   2. 子模块文档 → 子模块的 docs/ 子目录"
+    echo "   3. 通用开发者笔记 → docs-public/docs_src/dev-notes/"
+    echo "   4. 用户指南 → docs-public/docs_src/guides/"
+    echo ""
+    echo "🔍 常见违规案例:"
+    echo "   ❌ packages/.../src/.../BUILD.md          → 应移至 packages/<pkg>/docs/"
+    echo "   ❌ packages/.../src/.../MIGRATION.md      → 应移至 packages/<pkg>/docs/"
+    echo "   ❌ packages/.../submodule/dev-notes/*.md  → 应移至 submodule/docs/dev-notes/"
+    echo ""
+    echo "================================================================================================"
     failed=true
 fi
 

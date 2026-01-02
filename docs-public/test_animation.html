@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAGE Article Monitoring Animation Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="docs_src/overrides/animations.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #3b82f6;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SAGE 文章监控系统动画测试</h1>
+
+        <!-- Article Monitoring Animation Container -->
+        <div id="articleMonitoringAnimation" class="article-monitoring-container">
+            <!-- Animation will be populated by JavaScript -->
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; color: #94a3b8;">
+            <p>这个动画展示了SAGE如何处理ArXiv文章数据流：</p>
+            <p>1. 从ArXiv实时收集文章数据</p>
+            <p>2. 通过SAGE Pipeline进行多阶段处理</p>
+            <p>3. 经过筛选和分析后存储到相关文章文件夹</p>
+        </div>
+    </div>
+
+    <script src="docs_src/overrides/script.js"></script>
+    <script>
+        // Initialize the animation when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make sure the animation function is available
+            if (typeof initializeArticleMonitoring === 'function') {
+                initializeArticleMonitoring('articleMonitoringAnimation');
+            }
+        });
+    </script>
+</body>
+</html>

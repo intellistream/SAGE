@@ -1,0 +1,90 @@
+<!-- Article Monitoring Animation HTML Structure -->
+<!-- This will replace the first video placeholder in the usage examples section -->
+
+<div class="example-card">
+    <div class="example-video">
+        <!-- Article Monitoring Animation Container -->
+        <div id="articleMonitoringAnimation" class="article-monitoring-container">
+            <!-- Animation will be populated by JavaScript -->
+        </div>
+    </div>
+    <div class="example-content">
+        <div class="example-icon">📰</div>
+        <h3 class="example-title">文章监控系统</h3>
+        <p class="example-description">源源不断地从arxiv拔文章下来，然后提取标题、摘要，通过词袋匹配等方法初级筛选，再通过语义进行筛选，把用户感兴趣/关注领域的文章提供给用户</p>
+        <div class="example-features">
+            <span class="feature-tag">实时数据流处理</span>
+            <span class="feature-tag">多级筛选</span>
+            <span class="feature-tag">语义分析</span>
+        </div>
+    </div>
+</div>
+
+<!-- Alternative: Standalone Animation Container -->
+<!-- Use this version if you want to embed the animation elsewhere -->
+<div class="article-monitoring-wrapper" style="margin: 2rem 0;">
+    <h3 style="text-align: center; margin-bottom: 1rem; color: #1f2937;">SAGE 文章监控系统演示</h3>
+    <div id="articleMonitoringAnimationStandalone" class="article-monitoring-container">
+        <!-- Animation will be populated by JavaScript -->
+    </div>
+    <div class="animation-description" style="text-align: center; margin-top: 1rem; color: #6b7280; font-size: 0.9rem;">
+        <p>实时演示：ArXiv文章 → 文本解析 → 关键词筛选 → 语义分析 → 用户推送</p>
+        <p>30秒循环动画，展示SAGE流式处理能力</p>
+    </div>
+</div>
+
+<!-- Integration Script -->
+<script>
+// Initialize the article monitoring animation when this HTML is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize main animation
+    if (document.getElementById('articleMonitoringAnimation')) {
+        initializeArticleMonitoring('articleMonitoringAnimation');
+    }
+
+    // Initialize standalone animation if present
+    if (document.getElementById('articleMonitoringAnimationStandalone')) {
+        initializeArticleMonitoring('articleMonitoringAnimationStandalone');
+    }
+});
+</script>
+
+<!-- CSS for additional styling (if needed) -->
+<style>
+.article-monitoring-wrapper {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.animation-description {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.animation-description p {
+    margin: 0.5rem 0;
+}
+
+.animation-description p:first-child {
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .article-monitoring-wrapper {
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .animation-description {
+        font-size: 0.8rem;
+        padding: 0.75rem;
+    }
+}
+</style>

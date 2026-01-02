@@ -1,0 +1,379 @@
+/* SAGE Landing Page Styles */
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Floating Navigation */
+.floating-nav {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(255, 255, 255, 0.92) 100%);
+    backdrop-filter: blur(25px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 60px;
+    padding: 0.6rem;
+    z-index: 1000;
+    transform: translateY(-120%);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.12),
+        0 4px 16px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.floating-nav::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(135deg,
+        rgba(59, 130, 246, 0.1) 0%,
+        rgba(139, 92, 246, 0.05) 50%,
+        rgba(16, 185, 129, 0.1) 100%);
+    border-radius: 60px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.floating-nav:hover::before {
+    opacity: 1;
+}
+
+.floating-nav.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.floating-nav-links {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+}
+
+.floating-nav-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+    border-radius: 50%;
+    text-decoration: none;
+    color: #334155;
+    font-size: 1.3rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.floating-nav-links a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.floating-nav-links a:hover::before {
+    transform: translateX(100%);
+}
+
+.floating-nav-links a:hover {
+    transform: translateY(-3px) scale(1.1);
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.15),
+        0 4px 15px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 1);
+}
+
+/* Enhanced glow effect */
+.nav-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    transition: all 0.4s ease;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+.floating-nav-links a:hover .nav-glow {
+    width: 60px;
+    height: 60px;
+    opacity: 0.3;
+}
+
+/* Enhanced colored icons with gradients */
+.nav-icon-play {
+    color: #10b981 !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)) !important;
+}
+
+.nav-icon-play:hover {
+    color: #059669 !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08)) !important;
+}
+
+.nav-icon-play:hover .nav-glow {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.4), transparent);
+}
+
+.nav-icon-docs {
+    color: #3b82f6 !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)) !important;
+}
+
+.nav-icon-docs:hover {
+    color: #2563eb !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08)) !important;
+}
+
+.nav-icon-docs:hover .nav-glow {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.4), transparent);
+}
+
+.nav-icon-code {
+    color: #8b5cf6 !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)) !important;
+}
+
+.nav-icon-code:hover {
+    color: #7c3aed !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08)) !important;
+}
+
+.nav-icon-code:hover .nav-glow {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.4), transparent);
+}
+
+.nav-icon-github {
+    color: #1f2937 !important;
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.1), rgba(31, 41, 55, 0.05)) !important;
+}
+
+.nav-icon-github:hover {
+    color: #111827 !important;
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.15), rgba(31, 41, 55, 0.08)) !important;
+}
+
+.nav-icon-github:hover .nav-glow {
+    background: radial-gradient(circle, rgba(31, 41, 55, 0.4), transparent);
+}
+
+/* Hero Section */
+.hero {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0c1220 0%, #1a2332 50%, #2d3748 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Dynamic streaming background */
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+    opacity: 0.8;
+    z-index: 1;
+}
+
+/* Animated data streams */
+.hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><linearGradient id="stream-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:rgba(59,130,246,0.8);stop-opacity:0"/><stop offset="50%" style="stop-color:rgba(59,130,246,0.8);stop-opacity:1"/><stop offset="100%" style="stop-color:rgba(59,130,246,0.8);stop-opacity:0"/></linearGradient><linearGradient id="stream-gradient-purple" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:rgba(147,51,234,0.8);stop-opacity:0"/><stop offset="50%" style="stop-color:rgba(147,51,234,0.8);stop-opacity:1"/><stop offset="100%" style="stop-color:rgba(147,51,234,0.8);stop-opacity:0"/></linearGradient></defs><g class="stream-layer"><rect width="200" height="2" fill="url(%23stream-gradient)" x="-200" y="200" rx="1"><animateTransform attributeName="transform" type="translate" values="-200,0;1200,0;-200,0" dur="8s" repeatCount="indefinite"/></rect><rect width="150" height="1.5" fill="url(%23stream-gradient-purple)" x="-150" y="400" rx="1"><animateTransform attributeName="transform" type="translate" values="-150,0;1150,0;-150,0" dur="12s" repeatCount="indefinite"/></rect><rect width="180" height="2" fill="url(%23stream-gradient)" x="-180" y="600" rx="1"><animateTransform attributeName="transform" type="translate" values="-180,0;1180,0;-180,0" dur="10s" repeatCount="indefinite"/></rect><rect width="120" height="1" fill="url(%23stream-gradient-purple)" x="-120" y="800" rx="1"><animateTransform attributeName="transform" type="translate" values="-120,0;1120,0;-120,0" dur="15s" repeatCount="indefinite"/></rect></g></svg>');
+    pointer-events: none;
+    z-index: 2;
+    animation: streamFlow 20s linear infinite;
+}
+
+/* Background Elements */
+.data-nodes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.data-node {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(59, 130, 246, 0.8);
+    border-radius: 50%;
+    animation: nodeFloat 8s ease-in-out infinite;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+.starfield {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: twinkle 3s ease-in-out infinite;
+}
+
+.star:nth-child(2n) {
+    animation-delay: -1s;
+    animation-duration: 4s;
+}
+
+.star:nth-child(3n) {
+    animation-delay: -2s;
+    animation-duration: 2s;
+}
+
+.star:nth-child(4n) {
+    width: 1px;
+    height: 1px;
+    animation-delay: -0.5s;
+    animation-duration: 5s;
+}
+
+.data-node:nth-child(2) {
+    background: rgba(147, 51, 234, 0.8);
+    animation-delay: -2s;
+    animation-duration: 10s;
+}
+
+.data-node:nth-child(3) {
+    background: rgba(16, 185, 129, 0.8);
+    animation-delay: -4s;
+    animation-duration: 12s;
+}
+
+.data-node:nth-child(4) {
+    background: rgba(245, 158, 11, 0.8);
+    animation-delay: -6s;
+    animation-duration: 9s;
+}
+
+/* Network connections */
+.network-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+.network-line {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
+    animation: pulse 3s ease-in-out infinite;
+}
+
+.network-line:nth-child(2) {
+    background: linear-gradient(90deg, transparent, rgba(147, 51, 234, 0.6), transparent);
+    animation-delay: -1s;
+}
+
+.network-line:nth-child(3) {
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.6), transparent);
+    animation-delay: -2s;
+}
+
+/* Data Labels */
+.data-label {
+    position: absolute;
+    padding: 6px 16px;
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    pointer-events: none;
+    z-index: 5;
+    animation: labelFlow 15s linear infinite;
+}
+
+.data-label.purple {
+    background: rgba(147, 51, 234, 0.2);
+    border-color: rgba(147, 51, 234, 0.4);
+    box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3);
+}
+
+.data-label.green {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.data-label.orange {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
