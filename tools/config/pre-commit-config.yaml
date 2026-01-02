@@ -80,6 +80,14 @@ repos:
 # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
   hooks:
+  - id: architecture-violation-check
+    name: check architecture violations (directory placement)
+    entry: tools/hooks/pre-commit-architecture.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [commit]
+    # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
   - id: dependency-version-conflicts
     name: check dependency version conflicts
     entry: python3 tools/install/helpers/unify_dependencies.py --check
@@ -387,6 +395,9 @@ repos:
     always_run: true
     stages: [pre-commit, manual]
   # Shell: shellcheck
+  # NOTE: shellcheck-py may fail in CI due to network issues when downloading shellcheck binary
+  # This is a known issue: https://github.com/shellcheck-py/shellcheck-py/issues/15
+  # Workaround: Use fail_fast: false in CI or install shellcheck separately
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
   hooks:
