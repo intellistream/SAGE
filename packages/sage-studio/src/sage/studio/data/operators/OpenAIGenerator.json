@@ -35,7 +35,7 @@
             "required": false,
             "defaultValue": "",
             "placeholder": "留空则从环境变量读取（推荐）",
-            "description": "API 密钥（留空自动从环境变量读取：Qwen 用 DASHSCOPE_API_KEY，GPT 用 OPENAI_API_KEY）"
+            "description": "API 密钥（留空自动从环境变量读取：优先 SAGE_CHAT_API_KEY/OPENAI_API_KEY）"
         },
         {
             "name": "api_base",
@@ -43,7 +43,7 @@
             "type": "text",
             "required": false,
             "defaultValue": "",
-            "placeholder": "留空则自动选择（Qwen 用阿里云，GPT 用 OpenAI）",
+            "placeholder": "留空则自动选择（优先本地 Gateway/vLLM）",
             "description": "API 端点地址（留空自动根据模型选择）"
         },
         {

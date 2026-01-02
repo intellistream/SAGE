@@ -1,0 +1,7 @@
+key,value,type
+dbSize,1000000,I64
+fullReBuild,0,I64
+vectorDim,64,I64
+usePAPI,1,I64
+perfUseExternalList,1,U64
+perfListSrc,perfListEvaluation.csv,String

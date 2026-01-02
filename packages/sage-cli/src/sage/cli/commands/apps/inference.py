@@ -255,7 +255,7 @@ def start_server(
     cmd = [
         sys.executable,
         "-m",
-        "sage.common.components.sage_llm.unified_api_server",
+        "sage.llm.unified_api_server",
         "--host",
         final_config["host"],
         "--port",

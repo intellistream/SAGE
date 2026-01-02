@@ -59,7 +59,8 @@ class StudioManager:
         # React + Vite 默认端口是 5173
         self.default_port = SagePorts.STUDIO_FRONTEND
         self.backend_port = SagePorts.STUDIO_BACKEND  # Studio backend API
-        self.gateway_port = SagePorts.GATEWAY_DEFAULT  # Gateway 默认端口
+        # Allow env override for gateway port; fallback logic handled in _start_gateway
+        self.gateway_port = int(os.environ.get("SAGE_GATEWAY_PORT", str(SagePorts.GATEWAY_DEFAULT)))
         self.default_host = "0.0.0.0"  # 修改为监听所有网络接口
 
         # 确保所有目录存在
@@ -269,15 +270,23 @@ class StudioManager:
         console.print(f"[blue]🚀 启动 Gateway 服务 ({host}:{port})...[/blue]")
 
         try:
-            # 检查 sage-gateway 命令是否可用
-            result = subprocess.run(["which", "sage-gateway"], capture_output=True, text=True)
+            # 检查 sage-llm-gateway 命令是否可用
+            result = subprocess.run(["which", "sage-llm-gateway"], capture_output=True, text=True)
             if result.returncode != 0:
                 console.print(
-                    "[yellow]⚠️  sage-gateway 命令未找到，尝试使用 python -m sage.gateway.server[/yellow]"
+                    "[yellow]⚠️  sage-llm-gateway 命令未找到，尝试使用 python -m sage.llm.gateway.server[/yellow]"
                 )
-                cmd = ["python", "-m", "sage.gateway.server", "--host", host, "--port", str(port)]
+                cmd = [
+                    "python",
+                    "-m",
+                    "sage.llm.gateway.server",
+                    "--host",
+                    host,
+                    "--port",
+                    str(port),
+                ]
             else:
-                cmd = ["sage-gateway", "--host", host, "--port", str(port)]
+                cmd = ["sage-llm-gateway", "--host", host, "--port", str(port)]
 
             # 启动进程
             log_handle = open(self.gateway_log_file, "w")
@@ -392,7 +401,7 @@ class StudioManager:
 
     def check_dependencies(self) -> bool:
         """检查依赖"""
-        MIN_NODE_VERSION = 18  # TypeScript 5.x 需要 Node.js 14+，推荐 18+
+        MIN_NODE_VERSION = 20  # Vite 7.x 需要 Node.js 20.19+，推荐 22+
 
         # 检查 Node.js
         try:
@@ -411,8 +420,8 @@ class StudioManager:
                         f"[red]Node.js 版本过低: {node_version}（需要 v{MIN_NODE_VERSION}+）[/red]"
                     )
                     console.print("[yellow]💡 请升级 Node.js:[/yellow]")
-                    console.print("   conda install -y nodejs=20 -c conda-forge")
-                    console.print("   # 或通过 nvm 安装: nvm install 20 && nvm use 20")
+                    console.print("   conda install -y nodejs=22 -c conda-forge")
+                    console.print("   # 或通过 nvm 安装: nvm install 22 && nvm use 22")
                     return False
                 console.print(f"[green]Node.js: {node_version}[/green]")
             else:
@@ -531,7 +540,7 @@ class StudioManager:
             {
                 "name": "vite",
                 "version": "^5.0.8",
-                "required": ["bin/vite.js"],
+                "required": ["bin/vite.js", "dist/node/cli.js"],
                 "reason": "Vite build tool",
             },
         ]

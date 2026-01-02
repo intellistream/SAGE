@@ -482,7 +482,7 @@ def _print_manual_diagnostics(ext_dir: Path) -> None:
                 pass
 
     typer.echo("\n💡 故障排除建议:")
-    typer.echo("   1. 检查系统依赖: ./tools/install/install_system_deps.sh --verify-only")
+    typer.echo("   1. 检查系统依赖: ./tools/install/core/install_system_deps.sh --verify-only")
     typer.echo(f"   2. 手动构建: cd {ext_dir} && bash build.sh --clean --install-deps")
     typer.echo(f"   3. 查看构建日志: {(ext_dir / 'build' / 'CMakeFiles' / 'CMakeError.log')}")
 

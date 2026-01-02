@@ -131,3 +131,20 @@ knowledge_sources:
         source = manager.sources["env_source"]
 
         assert source.path == tmp_path / "docs"
+
+
+@pytest.mark.asyncio
+async def test_ingest_texts_uses_vector_store(knowledge_manager):
+    vs = AsyncMock()
+    vs.add_documents.return_value = 2
+    knowledge_manager._get_or_create_vector_store = MagicMock(return_value=vs)
+
+    added = await knowledge_manager.ingest_texts(
+        ["a", "b"], source_name="agentic", metadata={"session_id": "s1"}
+    )
+
+    assert added == 2
+    vs.add_documents.assert_called_once()
+    chunks = vs.add_documents.call_args[0][0]
+    assert chunks[0].metadata.get("session_id") == "s1"
+    assert "agentic" in knowledge_manager.get_loaded_sources()

@@ -8,7 +8,7 @@ Strategy Adapter Module
 Provides adapters for Control Plane scheduling strategies.
 
 This module bridges the benchmark framework with the actual strategy
-implementations in sage.common.components.sage_llm.sageLLM.control_plane.strategies
+implementations in sage.llm.sageLLM.control_plane.strategies
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import strategies, provide fallback if not available
 try:
-    from sage.common.components.sage_llm.sageLLM.control_plane.strategies import (
+    from sage.llm.control_plane.strategies import (
         AdaptivePolicy,
         AegaeonPolicy,
         CostOptimizedPolicy,
@@ -36,7 +36,7 @@ try:
     )
 
     STRATEGIES_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     STRATEGIES_AVAILABLE = False
     SchedulingPolicy = None  # type: ignore[assignment, misc]
     FIFOPolicy = None  # type: ignore[assignment, misc]
@@ -46,7 +46,7 @@ except ImportError:
     AdaptivePolicy = None  # type: ignore[assignment, misc]
     AegaeonPolicy = None  # type: ignore[assignment, misc]
     HybridSchedulingPolicy = None  # type: ignore[assignment, misc]
-    logger.warning("Control Plane strategies not available. Install sage-common package.")
+    logger.debug(f"Control Plane strategies not available: {e}")
 
 
 class StrategyInfo:
@@ -252,7 +252,8 @@ class StrategyAdapter:
         """
         if not STRATEGIES_AVAILABLE:
             raise RuntimeError(
-                "Control Plane strategies not available. Install sage-common package."
+                "Control Plane strategies not available. "
+                "Check that sage-llm-core is properly installed and strategies can be imported."
             )
 
         info = cls._STRATEGIES.get(name)
@@ -296,7 +297,7 @@ class StrategyAdapter:
         This sends a policy switch request to the Control Plane API.
 
         Args:
-            control_plane_url: Control Plane URL (e.g., "http://localhost:8888")
+            control_plane_url: Control Plane URL (e.g., "http://localhost:8889")
             policy_name: Name of policy to switch to
             timeout: Request timeout in seconds
 

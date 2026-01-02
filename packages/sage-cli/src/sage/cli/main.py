@@ -151,6 +151,7 @@ except ImportError as e:
 try:
     from .commands.apps import (
         chat_app,
+        edge_app,
         embedding_app,
         gateway_app,
         inference_app,
@@ -198,6 +199,12 @@ try:
             gateway_app,
             name="gateway",
             help="🌐 API Gateway - 统一推理网关服务 (start, stop, status, logs, restart)",
+        )
+    if edge_app:
+        app.add_typer(
+            edge_app,
+            name="edge",
+            help="🪄 Edge - L6 聚合器 (mount LLM gateway at / or custom prefix)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")

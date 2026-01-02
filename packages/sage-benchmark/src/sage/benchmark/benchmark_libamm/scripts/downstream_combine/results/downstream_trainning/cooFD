@@ -1,2 +1,0 @@
-mbsize: 50, hidden size: 2000, layer: 3, dropout: 0.1
-Initial evaluation on dev set:

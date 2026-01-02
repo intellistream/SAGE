@@ -39,6 +39,7 @@ def _show_installation_guide():
 
     print("\n📦 当前已安装 (核心组件):")
     print("  • isage-common - L1 基础工具和公共模块")
+    print("  • isage-llm-core - L1 LLM 控制平面与统一客户端")
     print("  • isage-kernel - L3 核心运行时和任务执行引擎")
     print("  • isage-libs - L3 算法库和 Agent 框架")
     print("  • isage-middleware - L4 RAG/LLM operators")
@@ -50,6 +51,8 @@ def _show_installation_guide():
     print("    pip install isage[full]")
     print("  • 框架开发 (修改 SAGE 源代码) [需要其他包发布]:")
     print("    pip install isage[dev]")
+    print("  • LLM Gateway (新的 `isage-llm-gateway` 包):")
+    print("    pip install isage-llm-gateway")
 
     print("\n⚠️  注意:")
     print("  某些功能包尚未发布到 PyPI，完整功能需要从源码安装：")

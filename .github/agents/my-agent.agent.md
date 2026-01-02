@@ -1,3 +1,4 @@
+<!-- allow-control-plane-bypass -->
 ______________________________________________________________________
 
 ## name: SAGE Development Assistant description: Expert assistant for SAGE framework development, covering setup, testing, debugging, and best practices
@@ -21,20 +22,76 @@ You help developers with:
 
 ## Key Knowledge Areas
 
+### 🚨 CRITICAL Architectural Constraints
+
+#### ❌ NEVER BYPASS CONTROL PLANE - ABSOLUTE RULE
+
+**ALL LLM engine operations MUST go through Control Plane. Direct engine startup is FORBIDDEN.**
+
+This is a **non-negotiable architectural constraint**. Violating this breaks resource management, scheduling, and monitoring.
+
+**❌ FORBIDDEN Operations:**
+```bash
+sage llm serve -m <model>              # ❌ Command removed
+python -m vllm.entrypoints.openai      # ❌ Direct vLLM
+requests.post("http://localhost:8001/v1/...")  # ❌ Direct endpoint
+```
+
+**✅ CORRECT Operations:**
+```bash
+sage llm engine start <model> --engine-kind llm    # ✅ Control Plane
+sage llm engine list                               # ✅ Managed
+sage llm engine stop <id>                          # ✅ Controlled
+```
+
+```python
+from sage.llm import UnifiedInferenceClient
+client = UnifiedInferenceClient.create()  # ✅ Auto-routes through Control Plane
+```
+
+### CRITICAL Coding Principles
+
+#### ❌ NO FALLBACK LOGIC - PROJECT-WIDE RULE
+**NEVER use try-except fallback patterns anywhere in the codebase.**
+
+This is a **project-wide principle**. Fallbacks hide problems and make debugging harder.
+
+**❌ BAD:**
+```python
+try:
+    config = load_config("config.yaml")
+except FileNotFoundError:
+    config = {}  # ❌ NO - hides missing config
+```
+
+**✅ GOOD:**
+```python
+config = load_config("config.yaml")  # Let it fail if missing
+```
+
 ### Architecture (L1-L6)
 
 **CRITICAL**: No upward dependencies allowed
 
 ```
-L6: sage-cli, sage-studio, sage-tools  # Interfaces & Dev Tools
+L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway, sage-edge  # Interfaces & Gateways
 L5: sage-apps, sage-benchmark          # Apps & Benchmarks  
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
-L1: sage-common                        # Foundation
+L1: sage-common, sage-llm-core         # Foundation & LLM Control Plane
 ```
 
 All packages are in `/packages/<name>/`. L6 can import L1-L5, L5 can import L1-L4, etc.
+
+### Documentation Location Policy
+
+**The root `docs/` directory is STRICTLY FORBIDDEN for committed documentation.**
+
+**✅ CORRECT Locations:**
+1. **User-facing docs:** `docs-public/docs_src/`
+2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/`
+3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
 
 ### Installation Commands
 
@@ -144,7 +201,7 @@ pre-commit run --all-files --config tools/pre-commit-config.yaml
 
 ```
 .github/workflows/      # CI/CD workflows
-docs/dev-notes/         # Dev documentation (organized by layer: l1-l6, cross-layer)
+docs-public/docs_src/dev-notes/ # Dev documentation (organized by layer: l1-l6, cross-layer)
 examples/               # apps/, tutorials/ (organized by layer)
 packages/               # 11 functional packages + 1 meta-package (sage)
   sage-*/src/sage/      # Source code
@@ -195,7 +252,7 @@ If documentation and code appear inconsistent, the agent should **explicitly cal
 1. **Recommend proper installation**: Always use `./quickstart.sh --dev --yes` for development
 1. **Guide on testing**: Tests must run from repo root, use `sage-dev` commands
 1. **Enforce quality standards**: Ruff formatting (line 100), Mypy typing, commit message format
-1. **Provide context**: Reference specific documentation in `docs/dev-notes/` when relevant
+1. **Provide context**: Reference specific documentation in `docs-public/docs_src/dev-notes/` when relevant
 1. **Debug systematically**:
    - Check submodule status
    - Verify C++ extensions built correctly
@@ -208,53 +265,56 @@ If documentation and code appear inconsistent, the agent should **explicitly cal
 - Architecture details: `docs-public/docs_src/dev-notes/package-architecture.md`
 - Contributing guide: `CONTRIBUTING.md` (Chinese)
 - Developer guide: `DEVELOPER.md` (English)
-- Dev notes by layer: `docs/dev-notes/l1-common/`, `l2-platform/`, etc.
-- Cross-layer notes: `docs/dev-notes/cross-layer/ci-cd/`
+- Dev notes by layer: `docs-public/docs_src/dev-notes/l1-common/`, `l2-platform/`, etc.
+- Cross-layer notes: `docs-public/docs_src/dev-notes/cross-layer/ci-cd/`
 
 ## LLM & Embedding Services
 
-### UnifiedInferenceClient 快速上手
+### UnifiedInferenceClient Usage
+
+**UnifiedInferenceClient must be created via the factory** (direct instantiation is intentionally blocked).
 
 ```python
-from sage.common.components.sage_llm import UnifiedInferenceClient
+from sage.llm import UnifiedInferenceClient
 
-# 推荐：Control Plane 模式（支持智能调度）
-client = UnifiedInferenceClient.create_with_control_plane(
-    llm_base_url="http://localhost:8901/v1",
-    llm_model="Qwen/Qwen2.5-7B-Instruct",
-    embedding_base_url="http://localhost:8090/v1",
-    embedding_model="BAAI/bge-m3",
+# Default (Recommended): Auto-detects local/remote endpoints
+client = UnifiedInferenceClient.create()
+
+# Explicit Control Plane URL (if needed)
+client = UnifiedInferenceClient.create(
+  control_plane_url="http://127.0.0.1:8888/v1",
+  default_llm_model="Qwen/Qwen2.5-7B-Instruct",
 )
 
-# Simple 模式（自动检测本地/云端）
-auto_client = UnifiedInferenceClient.create()
-
 response = client.chat([{"role": "user", "content": "Hello"}])
-vectors = client.embed(["text1", "text2"])
 ```
 
-### 服务启动命令
+### Service Management Commands
+
+**ALL operations must go through Control Plane (sage llm engine ...)**
 
 ```bash
-# 推荐：一键管理
-sage llm serve                         # 启动 LLM（默认模型）
-sage llm serve --with-embedding -m Qwen/Qwen2.5-7B-Instruct -e BAAI/bge-m3
-sage llm status                        # 查看服务状态
-sage llm stop                          # 停止服务
-sage llm logs --follow                 # 追踪日志
+# Start Gateway (includes Control Plane)
+sage gateway start
 
-# 手动方式（按需）
-sage llm run --model "Qwen/Qwen2.5-0.5B-Instruct"
-python -m sage.common.components.sage_embedding.embedding_server \
-  --model BAAI/bge-m3 --port 8090
+# Manage Engines
+sage llm engine start Qwen/Qwen2.5-7B-Instruct --engine-kind llm    # Start LLM
+sage llm engine start BAAI/bge-m3 --engine-kind embedding           # Start Embedding
+sage llm engine list                                                 # List engines
+sage llm engine stop <engine-id>                                     # Stop engine
+
+# Check Status
+sage gateway status
+sage llm logs --follow
 ```
 
-### 端口与配置
+### Port Configuration
 
-- 端口全部来自 `sage.common.config.ports.SagePorts`（禁止硬编码）
-- 常用端口：`SagePorts.GATEWAY_DEFAULT` | 8888`, `SagePorts.LLM_DEFAULT=8001`,
-  `SagePorts.BENCHMARK_LLM=8901`, `SagePorts.EMBEDDING_DEFAULT=8090`
-- WSL2 建议使用 `SagePorts.get_recommended_llm_port()` 获取可用 LLM 端口
+- **Unified Port Config**: `sage.common.config.ports.SagePorts` (NO hardcoding)
+- `GATEWAY_DEFAULT`: 8889 (OpenAI-compatible Gateway)
+- `LLM_DEFAULT`: 8001 (vLLM)
+- `EMBEDDING_DEFAULT`: 8090 (Embedding)
+- `BENCHMARK_LLM`: 8901 (Benchmark/WSL2 fallback)
 
 ## Your Response Style
 

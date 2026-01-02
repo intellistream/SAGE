@@ -89,6 +89,22 @@ class MemoryIntegrationService:
                 )
             )
 
+    async def add_evidence_batch(
+        self,
+        items: list[MemoryItem] | list[dict[str, Any]],
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """Store retrieved evidence into long-term memory for future recall."""
+
+        meta = metadata or {}
+        for item in items:
+            if isinstance(item, MemoryItem):
+                await self.add_knowledge(item.content, {"evidence": True, **meta})
+            else:
+                content = item.get("content")
+                if content:
+                    await self.add_knowledge(content, {"evidence": True, **meta})
+
     async def retrieve_context(
         self,
         query: str,

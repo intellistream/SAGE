@@ -868,7 +868,7 @@ class LLMReportGenerator(MapFunction):
         """Lazy initialization of LLM client."""
         if self._client is None:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.llm import UnifiedInferenceClient
 
                 self._client = UnifiedInferenceClient.create()
             except Exception as e:
@@ -1040,7 +1040,7 @@ class ReportSink(SinkFunction):
         """Lazy initialization of LLM client."""
         if self._llm_client is None:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.llm import UnifiedInferenceClient
 
                 self._llm_client = UnifiedInferenceClient.create()
             except Exception as e:

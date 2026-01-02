@@ -2,10 +2,6 @@
 	path = docs-public
 	url = https://github.com/intellistream/SAGE-Pub.git
 	branch = main-dev
-[submodule "packages/sage-common/src/sage/common/components/sage_llm/sageLLM"]
-	path = packages/sage-common/src/sage/common/components/sage_llm/sageLLM
-	url = https://github.com/intellistream/sageLLM.git
-	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"]
     path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
     url = https://github.com/intellistream/sageDB.git
@@ -30,11 +26,15 @@
 	path = packages/sage-benchmark/src/sage/data
 	url = https://github.com/intellistream/sageData.git
 	branch = main-dev
-[submodule "packages/sage-libs/src/sage/libs/libamm"]
-	path = packages/sage-libs/src/sage/libs/libamm
-	url = https://github.com/intellistream/LibAMM.git
-	branch = main-dev
-[submodule "packages/sage-benchmark/src/sage/benchmark/benchmark_db"]
-	path = packages/sage-benchmark/src/sage/benchmark/benchmark_db
+[submodule "packages/sage-benchmark/src/sage/benchmark/benchmark_anns"]
+	path = packages/sage-benchmark/src/sage/benchmark/benchmark_anns
 	url = https://github.com/intellistream/SAGE-DB-Bench.git
+	branch = main-dev
+[submodule "packages/sage-llm-core/src/sage/llm/engines/sagellm"]
+	path = packages/sage-llm-core/src/sage/llm/engines/sagellm
+	url = https://github.com/intellistream/sageLLM.git
+	branch = main-dev
+[submodule "packages/sage-benchmark/src/sage/benchmark/benchmark_amm"]
+	path = packages/sage-benchmark/src/sage/benchmark/benchmark_amm
+	url = https://github.com/intellistream/LibAMM.git
 	branch = main-dev

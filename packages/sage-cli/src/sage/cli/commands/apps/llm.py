@@ -19,23 +19,23 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from sage.common.components.sage_llm.presets import (
+from sage.common.config import ensure_hf_mirror_configured
+from sage.common.config.ports import SagePorts
+from sage.common.model_registry import fetch_recommended_models, vllm_registry
+from sage.llm.presets import (
     EnginePreset,
     get_builtin_preset,
     list_builtin_presets,
     load_preset_file,
 )
-from sage.common.config import ensure_hf_mirror_configured
-from sage.common.config.ports import SagePorts
-from sage.common.model_registry import fetch_recommended_models, vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
-    from sage.common.components.sage_llm import VLLMService
+    from sage.llm import VLLMService
 except Exception:  # pragma: no cover - handled gracefully at runtime
     VLLMService = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import (
+    from sage.llm import (
         LLMAPIServer,
         LLMLauncher,
         LLMServerConfig,
@@ -46,7 +46,7 @@ except Exception:  # pragma: no cover
     LLMServerConfig = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import (
+    from sage.llm import (
         BackendInstanceConfig,
         UnifiedAPIServer,
         UnifiedServerConfig,
@@ -653,22 +653,108 @@ def start_engine(
     engine_kind: str = typer.Option(
         "llm",
         "--engine-kind",
-        help="引擎类型 (llm 或 embedding)",
+        help="引擎类型 (llm, embedding, 或 finetune)",
     ),
     use_gpu: bool | None = typer.Option(
         None,
         "--use-gpu/--no-gpu",
         help="显式指定是否使用 GPU (默认: LLM 使用 GPU, Embedding 不使用)",
     ),
+    # Finetune-specific parameters
+    dataset_path: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Fine-tune 数据集路径 (JSON/JSONL) [finetune 必需]",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output",
+        help="Fine-tune 输出目录 (保存 checkpoint) [finetune 必需]",
+    ),
+    lora_rank: int = typer.Option(
+        8,
+        "--lora-rank",
+        help="LoRA rank (1-128) [finetune]",
+    ),
+    lora_alpha: int = typer.Option(
+        16,
+        "--lora-alpha",
+        help="LoRA alpha (1-256) [finetune]",
+    ),
+    learning_rate: float = typer.Option(
+        5e-5,
+        "--learning-rate",
+        help="学习率 [finetune]",
+    ),
+    epochs: int = typer.Option(
+        3,
+        "--epochs",
+        help="训练轮数 [finetune]",
+    ),
+    batch_size: int = typer.Option(
+        4,
+        "--batch-size",
+        help="批次大小 [finetune]",
+    ),
+    gradient_accumulation_steps: int = typer.Option(
+        1,
+        "--gradient-accumulation",
+        help="梯度累积步数 [finetune]",
+    ),
+    max_seq_length: int | None = typer.Option(
+        None,
+        "--max-seq-length",
+        help="最大序列长度 [finetune]",
+    ),
+    use_flash_attention: bool = typer.Option(
+        False,
+        "--flash-attention/--no-flash-attention",
+        help="使用 Flash Attention [finetune]",
+    ),
+    quantization_bits: int | None = typer.Option(
+        None,
+        "--quantization-bits",
+        help="量化位数 (4/8) [finetune]",
+    ),
+    auto_download: bool = typer.Option(
+        True,
+        "--auto-download/--no-auto-download",
+        help="自动下载模型 [finetune]",
+    ),
 ):
-    """请求启动新的 LLM 引擎。"""
+    """请求启动新的 LLM, Embedding, 或 Finetune 引擎。"""
 
     base_url = _resolve_api_base(api_base, api_port)
     payload: dict[str, Any] = {"model_id": model_id}
     engine_kind_value = engine_kind.strip().lower()
-    if engine_kind_value not in {"llm", "embedding"}:
-        console.print("[red]engine-kind 仅支持 'llm' 或 'embedding'.[/red]")
+    if engine_kind_value not in {"llm", "embedding", "finetune"}:
+        console.print("[red]engine-kind 仅支持 'llm', 'embedding', 或 'finetune'.[/red]")
         raise typer.Exit(1)
+
+    # Validate finetune-specific requirements
+    if engine_kind_value == "finetune":
+        if not dataset_path:
+            console.print("[red]❌ --dataset 是 finetune 引擎的必需参数.[/red]")
+            raise typer.Exit(1)
+        if not output_dir:
+            console.print("[red]❌ --output 是 finetune 引擎的必需参数.[/red]")
+            raise typer.Exit(1)
+
+        # Add finetune-specific parameters to payload
+        payload["dataset_path"] = dataset_path
+        payload["output_dir"] = output_dir
+        payload["lora_rank"] = lora_rank
+        payload["lora_alpha"] = lora_alpha
+        payload["learning_rate"] = learning_rate
+        payload["epochs"] = epochs
+        payload["batch_size"] = batch_size
+        payload["gradient_accumulation_steps"] = gradient_accumulation_steps
+        if max_seq_length is not None:
+            payload["max_seq_length"] = max_seq_length
+        payload["use_flash_attention"] = use_flash_attention
+        if quantization_bits is not None:
+            payload["quantization_bits"] = quantization_bits
+        payload["auto_download"] = auto_download
 
     if engine_port is not None:
         payload["port"] = engine_port
@@ -1014,7 +1100,7 @@ def serve_llm(
 
     启动后可通过以下方式使用:
 
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
 
         client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])

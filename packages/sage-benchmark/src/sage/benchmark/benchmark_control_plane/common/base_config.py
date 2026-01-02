@@ -36,7 +36,7 @@ class SchedulingPolicy(str, Enum):
     """Supported scheduling policies.
 
     These map to the strategies defined in:
-    sage.common.components.sage_llm.sageLLM.control_plane.strategies
+    sage.llm.sageLLM.control_plane.strategies
     """
 
     FIFO = "fifo"
@@ -109,7 +109,7 @@ class BaseBenchmarkConfig(ABC):
     """
 
     # Control Plane connection
-    control_plane_url: str = "http://localhost:8888"
+    control_plane_url: str = "http://localhost:8889"
 
     # Policies to benchmark
     policies: list[str] = field(default_factory=lambda: ["fifo", "priority", "slo_aware"])

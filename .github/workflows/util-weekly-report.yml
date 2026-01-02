@@ -91,9 +91,10 @@ env:
   GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
   HF_TOKEN: ${{ secrets.HF_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
-  # LLM Service Configuration
+  # LLM Service Configuration (remote default; will prefer local if available)
+  REMOTE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
   SAGE_CHAT_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
-  SAGE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  SAGE_CHAT_BASE_URL: ${REMOTE_CHAT_BASE_URL}
   SAGE_CHAT_MODEL: qwen-turbo-2025-02-11
 
 jobs:
@@ -129,6 +130,18 @@ jobs:
           python --version
           pip list | grep -E "^sage-"
 
+      - name: Detect LLM endpoint (prefer local)
+        run: |
+          DEFAULT_BASE="${REMOTE_CHAT_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
+          SELECTED_BASE="$DEFAULT_BASE"
+          for port in 8888 8901; do
+            if curl -s "http://localhost:${port}/v1/models" > /dev/null 2>&1; then
+              SELECTED_BASE="http://localhost:${port}/v1"
+              break
+            fi
+          done
+          echo "SAGE_CHAT_BASE_URL=$SELECTED_BASE" >> $GITHUB_ENV
+
       - name: Create Environment File
         run: |
           cat > .env << EOF
@@ -137,8 +150,8 @@ jobs:
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
           SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
-          SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-          SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+          SAGE_CHAT_BASE_URL=${SAGE_CHAT_BASE_URL}
+          SAGE_CHAT_MODEL=${SAGE_CHAT_MODEL}
           EOF
 
       - name: Prepare Report Directory
@@ -432,8 +445,8 @@ jobs:
           echo "- **Direct Link**: [report_${WEEK_START}_${WEEK_END}.md](https://github.com/intellistream/SAGE/blob/main-dev/docs-public/docs_src/community/weekly-reports/report_${WEEK_START}_${WEEK_END}.md)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### LLM Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Model**: qwen-turbo-2025-02-11" >> $GITHUB_STEP_SUMMARY
-          echo "- **Provider**: Alibaba DashScope" >> $GITHUB_STEP_SUMMARY
+          echo "- **Model**: ${SAGE_CHAT_MODEL}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Provider**: ${SAGE_CHAT_BASE_URL}" >> $GITHUB_STEP_SUMMARY
 
   notify-failure:
     name: Notify on Failure

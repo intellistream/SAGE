@@ -809,7 +809,7 @@ class AdapterRegistry:
 
                 if self._llm_client is None:
                     try:
-                        from sage.common.components.sage_llm import UnifiedInferenceClient
+                        from sage.llm import UnifiedInferenceClient
 
                         self._llm_client = UnifiedInferenceClient.create()
                     except Exception:
@@ -954,7 +954,7 @@ Output (JSON array only):"""
                 """Lazy initialization of LLM client."""
                 if self._llm_client is None:
                     try:
-                        from sage.common.components.sage_llm import UnifiedInferenceClient
+                        from sage.llm import UnifiedInferenceClient
 
                         self._llm_client = UnifiedInferenceClient.create()
                     except Exception:
@@ -1087,7 +1087,7 @@ Output only a number:"""
                 if enable_llm_rerank and not hasattr(self, "_llm_client_checked"):
                     self._llm_client_checked = True
                     try:
-                        from sage.common.components.sage_llm import UnifiedInferenceClient
+                        from sage.llm import UnifiedInferenceClient
 
                         # Use singleton to avoid repeated model loading
                         self._llm_client = UnifiedInferenceClient.get_instance(
@@ -1257,7 +1257,7 @@ Output only a number:"""
                 """Get LLM client with local-first strategy."""
                 # Use UnifiedInferenceClient.create() which implements local-first strategy
                 try:
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.llm import UnifiedInferenceClient
 
                     return UnifiedInferenceClient.create()
                 except Exception:
@@ -1566,7 +1566,7 @@ Output only a number:"""
         Uses UnifiedInferenceClient.create() which handles:
         1. Environment variables (SAGE_UNIFIED_BASE_URL)
         2. Local services (ports from SagePorts)
-        3. Cloud API fallback (DashScope)
+        3. Cloud API fallback (OpenAI-compatible)
         """
 
         class LLMTimingDecider:
@@ -1607,7 +1607,7 @@ Only output the JSON, nothing else."""
                 self._initialized = True
 
                 try:
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.llm import UnifiedInferenceClient
 
                     self._client = UnifiedInferenceClient.create()
                     return True
@@ -2674,7 +2674,7 @@ Only output the JSON, nothing else."""
                 if not self._client_initialized:
                     self._client_initialized = True
 
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.llm import UnifiedInferenceClient
 
                     try:
                         self._llm_client = UnifiedInferenceClient.create()
@@ -2812,7 +2812,7 @@ Return ONLY the JSON array, no explanation. Example:
 
                 self._client_initialized = True
                 try:
-                    from sage.common.components.sage_llm import UnifiedInferenceClient
+                    from sage.llm import UnifiedInferenceClient
 
                     # Use singleton to avoid repeated model loading
                     self._llm_client = UnifiedInferenceClient.get_instance(

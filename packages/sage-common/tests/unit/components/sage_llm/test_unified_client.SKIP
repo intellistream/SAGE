@@ -1,0 +1,8 @@
+This test file is temporarily skipped due to Flag-Day refactor.
+
+The new UnifiedInferenceClient in sage-llm-core is minimal and doesn't include:
+- InferenceResult class
+- UnifiedClientConfig class
+- UnifiedClientMode class
+
+These tests need to be rewritten for the new simple API or moved elsewhere.

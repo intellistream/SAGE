@@ -2,8 +2,15 @@
 pytest 配置文件
 """
 
-import os
 import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
+SRC_COMMON = ROOT / "src"
+SRC_LLM_CORE = ROOT.parent / "sage-llm-core" / "src"
 
 # 添加 sage-common 源码路径到 Python 路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
+for p in (SRC_COMMON, SRC_LLM_CORE):
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))

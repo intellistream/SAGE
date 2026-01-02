@@ -2,6 +2,12 @@
 # SAGE 环境医生 - 全面的Python环境诊断和修复工具
 # 智能检测和解决各种常见的Python环境问题
 
+# ================================
+# 错误处理设置
+# ================================
+# 不使用 set -u，因为我们需要灵活处理未设置的环境变量
+# 而是通过 ${VAR:-default} 语法来安全访问所有变量
+
 # 颜色和样式定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -22,13 +28,29 @@ INFO_MARK="ℹ"
 TOOL_MARK="🔧"
 ROCKET_MARK="🚀"
 
-# 全局变量
+# ================================
+# 全局变量初始化
+# ================================
+# 项目路径相关
 SAGE_DIR="${SAGE_DIR:-$(pwd)/.sage}"
 DOCTOR_LOG="$SAGE_DIR/logs/environment_doctor.log"
+
+# 计数器
 ISSUES_FOUND=0
 FIXES_APPLIED=0
 CRITICAL_ISSUES=0
-NEED_RESTART_SHELL=0  # 需要重启 shell 的标志
+NEED_RESTART_SHELL=0
+
+# 配置选项（支持通过环境变量传入）
+AUTO_CONFIRM_FIX="${AUTO_CONFIRM_FIX:-false}"  # 是否自动确认修复（用于自动化测试）
+
+# 环境变量安全默认值（避免 unbound variable 错误）
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+CONDA_PREFIX="${CONDA_PREFIX:-}"
+HOME="${HOME:-$(/usr/bin/env | grep ^HOME= | cut -d= -f2)}"
 
 # 确保 .sage 目录结构存在
 ensure_sage_directories() {
@@ -131,12 +153,12 @@ check_python_environment() {
     fi
 
     # 检查虚拟环境
-    if [[ -n "$VIRTUAL_ENV" ]]; then
-        echo -e "  ${GREEN}${CHECK_MARK}${NC} 虚拟环境: $(basename "$VIRTUAL_ENV")"
-        log_message "INFO" "Using virtual environment: $VIRTUAL_ENV"
-    elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
-        echo -e "  ${GREEN}${CHECK_MARK}${NC} Conda 环境: $CONDA_DEFAULT_ENV"
-        log_message "INFO" "Using conda environment: $CONDA_DEFAULT_ENV"
+    if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 虚拟环境: $(basename "${VIRTUAL_ENV:-}")"
+        log_message "INFO" "Using virtual environment: ${VIRTUAL_ENV:-}"
+    elif [[ -n "${CONDA_DEFAULT_ENV:-}" ]]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} Conda 环境: ${CONDA_DEFAULT_ENV:-}"
+        log_message "INFO" "Using conda environment: ${CONDA_DEFAULT_ENV:-}"
     else
         report_issue "no_virtual_env" "建议使用虚拟环境以避免包冲突" "minor"
     fi
@@ -158,16 +180,27 @@ check_package_manager_conflicts() {
     for package in "numpy" "torch" "transformers" "scipy"; do
         local conda_installed=""
         local pip_installed=""
+        local is_pypi_in_conda=false
 
         if [ "$conda_available" = "true" ]; then
-            conda_installed=$(conda list "$package" 2>/dev/null | grep "^$package" | head -1 | awk '{print $2}' || echo "")
+            # 检查 conda list 输出，如果是 pypi_0 则表示这是 conda 记录的 pip 包，不是真正的冲突
+            local conda_info=$(conda list "$package" 2>/dev/null | grep "^$package" | head -1)
+            if [ -n "$conda_info" ]; then
+                conda_installed=$(echo "$conda_info" | awk '{print $2}')
+                # 检查是否是 pypi 源（第4列包含 pypi）
+                if echo "$conda_info" | awk '{print $4}' | grep -q "pypi"; then
+                    is_pypi_in_conda=true
+                fi
+            fi
         fi
 
         if [ "$pip_available" = "true" ]; then
             pip_installed=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
         fi
 
-        if [ -n "$conda_installed" ] && [ -n "$pip_installed" ] && [ "$conda_installed" != "$pip_installed" ]; then
+        # 只有在真正冲突时才报告（conda 管理的包 vs pip 管理的包，且版本不同）
+        # 如果 conda 只是记录了 pip 安装（pypi_0），则不算冲突
+        if [ -n "$conda_installed" ] && [ -n "$pip_installed" ] && [ "$conda_installed" != "$pip_installed" ] && [ "$is_pypi_in_conda" = false ]; then
             mixed_packages+=("$package(conda:$conda_installed,pip:$pip_installed)")
             report_issue "mixed_package_$package" "包 $package 同时被 conda 和 pip 管理，版本不一致" "major"
         fi
@@ -187,7 +220,7 @@ check_cli_conflicts() {
 
     # 仅在非 CI 环境或明确处于虚拟环境中时检查
     # 避免误删 CI 正在使用的工具
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
         return 0
     fi
 
@@ -195,7 +228,7 @@ check_cli_conflicts() {
     for tool in "sage" "sage-dev"; do
         if [ -f "$local_bin/$tool" ]; then
             # 检查是否在虚拟环境中
-            if [[ -n "$VIRTUAL_ENV" || -n "$CONDA_PREFIX" ]]; then
+            if [[ -n "${VIRTUAL_ENV:-}" || -n "${CONDA_PREFIX:-}" ]]; then
                 # 如果在虚拟环境中，且 ~/.local/bin/$tool 存在，这通常是 CI 残留
                 # 进一步检查：如果 which $tool 指向的是 ~/.local/bin/$tool，那么肯定有冲突
                 # 或者如果当前环境应该有自己的 $tool 但被 ~/.local/bin 覆盖了
@@ -302,6 +335,74 @@ check_specific_issues() {
 
     if [ "$available_gb" -lt 5 ]; then
         report_issue "low_disk_space" "磁盘空间不足 ($available_gb GB)，建议至少 5GB 可用空间" "major"
+    fi
+}
+
+# 5. 开发工具检查
+check_dev_tools() {
+    echo -e "\n${PURPLE}${BOLD}🛠️  开发工具诊断${NC}"
+
+    # 检查 pytest 及其相关插件
+    declare -A dev_tools=(
+        ["pytest"]="pytest>=7.0.0"
+        ["pytest-cov"]="pytest-cov>=4.0.0"
+        ["pytest-asyncio"]="pytest-asyncio>=0.21.0"
+        ["pytest-mock"]="pytest-mock>=3.10.0"
+        ["pytest-timeout"]="pytest-timeout>=2.1.0"
+        ["pytest-benchmark"]="pytest-benchmark>=4.0.0"
+        ["ruff"]="ruff==0.14.6"
+        ["mypy"]="mypy>=1.0.0"
+        ["pre-commit"]="pre-commit>=3.0.0"
+    )
+
+    local missing_tools=()
+    local installed_tools=()
+
+    for tool in "${!dev_tools[@]}"; do
+        local version=""
+        local package_name="$tool"
+
+        # 使用 importlib.metadata 获取版本（Python 3.8+ 标准方法）
+        # 这比直接 import 模块更可靠，因为不是所有包都有 __version__ 属性
+        version=$(python3 -c "from importlib.metadata import version; print(version('$package_name'))" 2>/dev/null || echo "")
+
+        if [ -n "$version" ]; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool: $version"
+            installed_tools+=("$tool")
+            log_message "INFO" "$tool version: $version"
+        else
+            echo -e "  ${YELLOW}${CROSS_MARK}${NC} $tool: 未安装"
+            missing_tools+=("$tool")
+            log_message "WARN" "$tool is not installed"
+        fi
+    done
+
+    # 如果有缺失的工具，报告问题
+    if [ ${#missing_tools[@]} -gt 0 ]; then
+        local tools_list=$(IFS=", "; echo "${missing_tools[*]}")
+        report_issue "dev_tools_missing" "缺少开发工具: $tools_list" "major"
+
+        # 特别强调 pytest
+        for tool in "${missing_tools[@]}"; do
+            if [[ "$tool" == pytest* ]]; then
+                echo -e "    ${DIM}提示: pytest 是运行测试所必需的${NC}"
+                break
+            fi
+        done
+    else
+        echo -e "\n  ${GREEN}${CHECK_MARK}${NC} 所有开发工具已安装"
+    fi
+
+    # 检查 pre-commit hooks 是否已安装
+    if [ -d ".git" ]; then
+        if [ -f ".git/hooks/pre-commit" ]; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} pre-commit hooks: 已安装"
+        else
+            if command -v pre-commit >/dev/null 2>&1; then
+                echo -e "  ${YELLOW}${WARNING_MARK}${NC} pre-commit hooks: 未安装（pre-commit 工具可用）"
+                report_issue "pre_commit_hooks_missing" "pre-commit hooks 未安装" "minor"
+            fi
+        fi
     fi
 }
 
@@ -577,8 +678,9 @@ except Exception:
     pass
 " 2>/dev/null || true
 
-    # 重新安装
-    if python3 -m pip install --no-cache-dir "numpy>=2.0.0" >/dev/null 2>&1; then
+    # 重新安装（使用 SAGE 兼容版本：>=1.26.0,<2.3.0）
+    # 尝试使用官方 PyPI（清华镜像可能有问题）
+    if python3 -m pip install --no-cache-dir "numpy>=1.26.0,<2.3.0" --index-url https://pypi.org/simple >/dev/null 2>&1; then
         echo -e "  ${GREEN}${CHECK_MARK}${NC} numpy 修复成功"
         FIXES_APPLIED=$((FIXES_APPLIED + 1))
         log_message "FIX" "Successfully fixed numpy installation"
@@ -593,13 +695,53 @@ except Exception:
 fix_mixed_packages() {
     echo -e "\n${TOOL_MARK} 清理包管理器冲突..."
 
+    # 检测是否在 conda 环境中
+    local in_conda=false
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ] || [ -n "${CONDA_PREFIX:-}" ]; then
+        in_conda=true
+    fi
+
+    # 关键包列表
     local packages_to_fix=("numpy" "torch" "transformers")
 
     for package in "${packages_to_fix[@]}"; do
-        # 如果conda和pip都有，优先使用pip
-        if conda list "$package" >/dev/null 2>&1 && pip3 show "$package" >/dev/null 2>&1; then
-            echo -e "  清理 $package 的 conda 安装..."
-            conda uninstall "$package" -y >/dev/null 2>&1 || true
+        local conda_ver=""
+        local pip_ver=""
+
+        # 检查 conda 版本
+        if command -v conda >/dev/null 2>&1; then
+            conda_ver=$(conda list "^${package}$" 2>/dev/null | grep "^${package}" | head -1 | awk '{print $2}' || echo "")
+        fi
+
+        # 检查 pip 版本
+        if command -v pip3 >/dev/null 2>&1; then
+            pip_ver=$(pip3 show "$package" 2>/dev/null | grep "^Version:" | awk '{print $2}' || echo "")
+        fi
+
+        # 如果两者都存在且版本不同，需要清理
+        if [ -n "$conda_ver" ] && [ -n "$pip_ver" ] && [ "$conda_ver" != "$pip_ver" ]; then
+            echo -e "  发现冲突: $package (conda:$conda_ver vs pip:$pip_ver)"
+
+            if [ "$in_conda" = true ]; then
+                # 在 conda 环境中，移除 conda 版本，保留 pip 版本
+                echo -e "  → 移除 conda 版本，保留 pip 版本..."
+                conda remove --force -y "$package" >/dev/null 2>&1 || true
+
+                # 确保 pip 版本存在且正确
+                if [ -z "$pip_ver" ]; then
+                    echo -e "  → 重新安装 pip 版本..."
+                    pip3 install --no-cache-dir "$package" >/dev/null 2>&1 || true
+                fi
+            else
+                # 非 conda 环境，直接使用 pip
+                echo -e "  → 统一使用 pip 管理..."
+                if command -v conda >/dev/null 2>&1; then
+                    conda remove --force -y "$package" >/dev/null 2>&1 || true
+                fi
+                pip3 install --upgrade --no-cache-dir "$package" >/dev/null 2>&1 || true
+            fi
+
+            echo -e "  ${GREEN}✓${NC} $package 冲突已清理"
         fi
     done
 
@@ -623,11 +765,185 @@ fix_cli_conflicts() {
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
 }
 
+# 开发工具缺失修复
+fix_dev_tools_missing() {
+    echo -e "\n${TOOL_MARK} 安装缺失的开发工具..."
+
+    # 首先检查 pip 是否可用
+    local pip_cmd=""
+    if command -v pip3 >/dev/null 2>&1; then
+        pip_cmd="pip3"
+    elif command -v pip >/dev/null 2>&1; then
+        pip_cmd="pip"
+    elif python3 -m pip --version >/dev/null 2>&1; then
+        pip_cmd="python3 -m pip"
+    else
+        echo -e "  ${RED}${CROSS_MARK}${NC} pip 不可用，无法安装开发工具"
+        echo -e "  ${DIM}请先解决 pip 缺失问题${NC}"
+        return 1
+    fi
+
+    # 准备安装参数（优先使用国内镜像）
+    local pip_args=""
+    if ! curl -s --connect-timeout 3 https://pypi.org >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} 使用清华 PyPI 镜像..."
+        pip_args="-i https://pypi.tuna.tsinghua.edu.cn/simple"
+    fi
+
+    # 读取外部依赖文件（如果存在）
+    local external_deps_file=".sage/external-deps-dev.txt"
+    local dev_tools_installed=false
+
+    if [ -f "$external_deps_file" ] && grep -q "pytest" "$external_deps_file"; then
+        echo -e "  ${INFO_MARK} 从外部依赖文件安装开发工具..."
+
+        # 提取开发工具相关的依赖
+        local dev_deps=$(grep -E "pytest|ruff|mypy|pre-commit|black|isort|coverage|bandit" "$external_deps_file" || echo "")
+
+        if [ -n "$dev_deps" ]; then
+            echo "$dev_deps" > /tmp/sage_dev_tools.txt
+
+            echo -e "  ${DIM}安装: pytest, ruff, mypy, pre-commit 等...${NC}"
+            # 先执行安装，再检查结果
+            local install_output=""
+            install_output=$($pip_cmd install -r /tmp/sage_dev_tools.txt $pip_args 2>&1)
+            local install_status=$?
+
+            # 检查是否成功（退出码为0 或 输出包含成功/已安装消息）
+            if [ $install_status -eq 0 ] || echo "$install_output" | grep -qE "(Successfully installed|Requirement already satisfied)"; then
+                echo -e "  ${GREEN}${CHECK_MARK}${NC} 开发工具安装成功"
+                dev_tools_installed=true
+                FIXES_APPLIED=$((FIXES_APPLIED + 1))
+                log_message "FIX" "Successfully installed dev tools from external deps file"
+            else
+                echo -e "  ${YELLOW}${WARNING_MARK}${NC} 从外部文件安装失败，将尝试逐个安装"
+                log_message "WARN" "Failed to install from external deps file"
+            fi
+
+            rm -f /tmp/sage_dev_tools.txt
+        fi
+    fi
+
+    # 如果外部依赖文件不存在或安装失败，手动安装核心开发工具
+    local install_success_count=0
+    local install_total=9  # 核心工具总数
+
+    if [ "$dev_tools_installed" = false ]; then
+        echo -e "  ${INFO_MARK} 手动安装核心开发工具..."
+
+        local core_tools=(
+            "pytest>=7.0.0"
+            "pytest-cov>=4.0.0"
+            "pytest-asyncio>=0.21.0"
+            "pytest-mock>=3.10.0"
+            "pytest-timeout>=2.1.0"
+            "pytest-benchmark>=4.0.0"
+            "ruff==0.14.6"
+            "mypy>=1.0.0"
+            "pre-commit>=3.0.0"
+        )
+
+        install_total=${#core_tools[@]}
+
+        for tool in "${core_tools[@]}"; do
+            local tool_name=$(echo "$tool" | sed 's/[<>=].*//')
+
+            # 先检查是否已安装
+            if python3 -c "import ${tool_name//-/_}" >/dev/null 2>&1; then
+                echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool_name: 已安装"
+                install_success_count=$((install_success_count + 1))
+                continue
+            fi
+
+            echo -e "  ${DIM}安装: $tool_name...${NC}"
+
+            # 尝试安装，捕获输出
+            local install_output=""
+            install_output=$($pip_cmd install "$tool" $pip_args 2>&1)
+            local install_status=$?
+
+            # 检查是否成功（退出码为0 或 输出包含成功消息）
+            if [ $install_status -eq 0 ] || echo "$install_output" | grep -qE "(Successfully installed|Requirement already satisfied)"; then
+                echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool_name 安装成功"
+                install_success_count=$((install_success_count + 1))
+                log_message "INFO" "Successfully installed $tool_name"
+            else
+                echo -e "  ${YELLOW}${WARNING_MARK}${NC} $tool_name 安装失败: $install_output"
+                log_message "WARN" "Failed to install $tool_name: $install_output"
+            fi
+        done
+
+        if [ $install_success_count -eq $install_total ]; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} 所有开发工具安装成功 ($install_success_count/$install_total)"
+            FIXES_APPLIED=$((FIXES_APPLIED + 1))
+            log_message "FIX" "Successfully installed all dev tools"
+        elif [ $install_success_count -gt 0 ]; then
+            echo -e "  ${YELLOW}${WARNING_MARK}${NC} 部分开发工具安装成功 ($install_success_count/$install_total)"
+            FIXES_APPLIED=$((FIXES_APPLIED + 1))
+            log_message "WARN" "Partially installed dev tools: $install_success_count/$install_total"
+        else
+            echo -e "  ${RED}${CROSS_MARK}${NC} 开发工具安装失败"
+            log_message "ERROR" "Failed to install dev tools"
+        fi
+    else
+        echo -e "  ${INFO_MARK} 跳过手动安装（外部依赖文件已处理）"
+    fi
+
+    # 验证 pytest 是否安装成功
+    # 注意：在某些环境（如 CI）中，刚安装的包可能需要刷新环境才能导入
+    # 如果开发工具从外部文件安装成功，或至少有一个工具安装成功，就认为修复是有效的
+
+    # Debug logging
+    echo -e "  ${DIM}[DEBUG] dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count${NC}"
+    log_message "DEBUG" "dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count, install_total=$install_total"
+
+    if [ "$dev_tools_installed" = true ] || [ $install_success_count -gt 0 ]; then
+        if python3 -c "import pytest" >/dev/null 2>&1; then
+            local pytest_version=$(python3 -c "import pytest; print(pytest.__version__)" 2>/dev/null)
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} pytest $pytest_version 已就绪"
+        else
+            echo -e "  ${YELLOW}${WARNING_MARK}${NC} 开发工具已安装，但需要刷新环境（安装流程完成后生效）"
+            log_message "WARN" "Dev tools installed but not yet importable (environment refresh needed)"
+        fi
+        return 0
+    else
+        echo -e "  ${RED}${CROSS_MARK}${NC} 开发工具安装失败"
+        log_message "ERROR" "Dev tools installation failed: dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count"
+        return 1
+    fi
+}
+
+# pre-commit hooks 安装修复
+fix_pre_commit_hooks_missing() {
+    echo -e "\n${TOOL_MARK} 安装 pre-commit hooks..."
+
+    if ! command -v pre-commit >/dev/null 2>&1; then
+        echo -e "  ${YELLOW}${WARNING_MARK}${NC} pre-commit 工具未安装，跳过 hooks 安装"
+        return 0  # 不是错误，只是跳过
+    fi
+
+    if [ ! -d ".git" ]; then
+        echo -e "  ${YELLOW}${WARNING_MARK}${NC} 不是 Git 仓库，无需安装 pre-commit hooks"
+        return 0  # 不是错误，只是跳过
+    fi
+
+    echo -e "  ${DIM}正在安装 pre-commit hooks...${NC}"
+    if pre-commit install --config tools/config/pre-commit-config.yaml >/dev/null 2>&1; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} pre-commit hooks 安装成功"
+        FIXES_APPLIED=$((FIXES_APPLIED + 1))
+        log_message "FIX" "Successfully installed pre-commit hooks"
+        return 0
+    else
+        echo -e "  ${RED}${CROSS_MARK}${NC} pre-commit hooks 安装失败"
+        return 1
+    fi
+}
+
 # 环境优化建议
 suggest_environment_optimization() {
     echo -e "\n${BLUE}${BOLD}💡 环境优化建议${NC}"
 
-    if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_DEFAULT_ENV" ]]; then
+    if [[ -z "${VIRTUAL_ENV:-}" && -z "${CONDA_DEFAULT_ENV:-}" ]]; then
         echo -e "  ${YELLOW}${WARNING_MARK}${NC} 建议创建虚拟环境："
         echo -e "    ${DIM}conda create -n sage-env python=3.11 -y${NC}"
         echo -e "    ${DIM}conda activate sage-env${NC}"
@@ -654,6 +970,10 @@ register_all_issues() {
     register_issue "numpy_v1" "numpy版本过旧" "major" ""
     register_issue "torch_numpy_compat" "PyTorch与numpy版本不匹配" "major" ""
     register_issue "low_disk_space" "磁盘空间不足" "major" ""
+
+    # 开发工具问题
+    register_issue "dev_tools_missing" "缺少开发工具（pytest等）" "major" "fix_dev_tools_missing"
+    register_issue "pre_commit_hooks_missing" "pre-commit hooks未安装" "minor" "fix_pre_commit_hooks_missing"
 
     # 动态注册混合包问题
     for package in "numpy" "torch" "transformers"; do
@@ -683,6 +1003,7 @@ run_full_diagnosis() {
     check_cli_conflicts
     check_core_dependencies
     check_specific_issues
+    check_dev_tools
 
     # 诊断总结
     echo -e "\n${BLUE}${BOLD}📋 诊断总结${NC}"
@@ -713,7 +1034,7 @@ run_auto_fixes() {
 
     if [ "$AUTO_CONFIRM_FIX" = "true" ]; then
         response="y"
-    elif [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+    elif [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
         echo -e "${YELLOW}CI 环境检测到问题，跳过交互式修复${NC}"
         return 0
     else

@@ -1,0 +1,18 @@
+add_sources(
+        AbstractMatrixLoader.cpp
+        RandomMatrixLoader.cpp
+        SparseMatrixLoader.cpp
+        GaussianMatrixLoader.cpp
+        ExponentialMatrixLoader.cpp
+        BinomialMatrixLoader.cpp
+        PoissonMatrixLoader.cpp
+        BetaMatrixLoader.cpp
+        SIFTMatrixLoader.cpp
+        MNISTMatrixLoader.cpp
+        MediaMillMatrixLoader.cpp
+        CCAMatrixLoader.cpp
+        MtxMatrixLoader.cpp
+        MatrixLoaderTable.cpp
+        ZeroMaskedMatrixLoader.cpp
+        ZipfMatrixLoader.cpp
+)

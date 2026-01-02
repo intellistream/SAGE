@@ -46,7 +46,9 @@ class ExperimentConfig:
     name: str
     description: str
     experiment_section: str
-    gateway_url: str = "http://localhost:8888"
+    gateway_url: str = (
+        "http://localhost:8888"  # allow-control-plane-bypass: benchmark configuration
+    )
     hardware: HardwareConfig = field(default_factory=HardwareConfig)
     llm_model: ModelConfig = field(
         default_factory=lambda: ModelConfig(name="Qwen/Qwen2.5-7B-Instruct")

@@ -26,7 +26,10 @@ def main():
     run_parser.add_argument("--count", type=int, default=100, help="Total requests")
     run_parser.add_argument("--llm-ratio", type=float, default=0.7, help="LLM ratio")
     run_parser.add_argument(
-        "--gateway", type=str, default="http://localhost:8888", help="Gateway URL"
+        "--gateway",
+        type=str,
+        default="http://localhost:8888",  # allow-control-plane-bypass: CLI default
+        help="Gateway URL",
     )
     run_parser.add_argument("--output", type=str, default="./outputs", help="Output directory")
 

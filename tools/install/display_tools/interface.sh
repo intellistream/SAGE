@@ -7,6 +7,27 @@ source "$(dirname "${BASH_SOURCE[0]}")/basic_display.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/output_formatter.sh"
 
 # 显示 SAGE LOGO
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+AUTO_YES="${AUTO_YES:-false}"
+AUTO_CONFIRM="${AUTO_CONFIRM:-false}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 show_logo() {
     echo ""
 
@@ -448,7 +469,7 @@ PY
         fi
         echo ""
         sage chat --backend vllm --base-url http://localhost:8901/v1 --model "${vllm_model:-Qwen/Qwen2.5-0.5B-Instruct}" --stream
-    elif [ -n "$SAGE_CHAT_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
+    elif [ -n "${SAGE_CHAT_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ]; then
         echo -e "   ${GREEN}✅ 使用云端 API${NC}"
         echo ""
         sage chat --backend openai --stream
@@ -495,8 +516,8 @@ prompt_start_llm_service() {
     local mode="$1"
 
     # 在 CI 环境或 --yes 自动模式下跳过
-    if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$AUTO_YES" = "true" ] || [ "$AUTO_CONFIRM" = "true" ]; then
-        echo -e "${DIM}提示: 自动跳过服务启动提示 (CI=$CI, AUTO_YES=$AUTO_YES, AUTO_CONFIRM=$AUTO_CONFIRM)${NC}"
+    if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "${AUTO_YES:-false}" = "true" ] || [ "${AUTO_CONFIRM:-false}" = "true" ]; then
+        echo -e "${DIM}提示: 自动跳过服务启动提示 (CI=${CI:-}, AUTO_YES=${AUTO_YES:-false}, AUTO_CONFIRM=${AUTO_CONFIRM:-false})${NC}"
         return 0
     fi
 
@@ -513,7 +534,7 @@ prompt_start_llm_service() {
 
     # 检查环境是否激活
     local env_activated=true
-    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "${SAGE_ENV_NAME:-}" ]; then
         env_activated=false
     fi
 
@@ -526,7 +547,7 @@ prompt_start_llm_service() {
     # 如果环境未激活，显示提示后返回
     if [ "$env_activated" = false ]; then
         echo -e "${YELLOW}⚠️  请先激活 conda 环境后再启动服务:${NC}"
-        echo -e "  ${CYAN}conda activate $SAGE_ENV_NAME${NC}"
+        echo -e "  ${CYAN}conda activate ${SAGE_ENV_NAME:-}${NC}"
         echo ""
         echo -e "${DIM}激活后可用以下命令启动服务:${NC}"
         echo -e "  ${CYAN}sage llm serve${NC}       # 启动 LLM 推理服务"
@@ -666,34 +687,177 @@ prompt_start_llm_service() {
                 echo -e "${INFO} 正在启动 SAGE Studio..."
                 echo -e "${DIM}   这将同时启动前端界面和后端服务${NC}"
                 if [ "$has_gpu" = true ]; then
-                    echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）...${NC}"
+                    echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）${NC}"
+                    echo -e "${DIM}   ${YELLOW}注意: LLM 启动可能需要 5 分钟，如需快速启动可选择跳过${NC}"
+                    echo ""
+                    echo -ne "${BOLD}是否启动本地 LLM？[Y/n]: ${NC}"
+                    read -r start_llm_choice
+                    if [[ "$start_llm_choice" =~ ^[Nn] ]]; then
+                        echo -e "${DIM}   将跳过本地 LLM 启动（可稍后使用 'sage llm serve' 启动）${NC}"
+                        local no_llm_flag="--no-llm"
+                    else
+                        local no_llm_flag=""
+                    fi
+                else
+                    local no_llm_flag="--no-llm"
                 fi
+                echo -e "${DIM}   ${YELLOW}提示: 启动过程中会显示进度信息...${NC}"
                 echo ""
 
                 if command -v sage &>/dev/null; then
-                    # 不使用 head 截断，避免 SIGPIPE 导致服务启动不完整
-                    # 将日志重定向到临时文件，完成后显示关键信息
+                    # 将日志重定向到临时文件，同时实时显示进度
                     local studio_log="/tmp/sage_studio_start_$$.log"
-                    sage studio start > "$studio_log" 2>&1
+
+                    # 启动服务（后台运行，可能带 --no-llm 参数）
+                    sage studio start $no_llm_flag > "$studio_log" 2>&1 &
+                    local sage_pid=$!
+
+                    # 实时监控日志并显示关键进度
+                    local elapsed=0
+                    local max_wait=300  # 最多等待 5 分钟
+                    local last_status=""
+                    local status_shown=""
+
+                    echo -e "${CYAN}📦 启动进度:${NC}"
+
+                    while kill -0 $sage_pid 2>/dev/null && [ $elapsed -lt $max_wait ]; do
+                        # 尝试从日志中获取当前状态
+                        if [ -f "$studio_log" ]; then
+                            local new_status=""
+
+                            # 按顺序检测状态，只匹配最新的状态
+                            if grep -q "依赖检查失败" "$studio_log" 2>/dev/null; then
+                                new_status="failed"
+                            elif grep -qE "(Studio 启动成功|Studio started successfully)" "$studio_log" 2>/dev/null; then
+                                new_status="completed"
+                            elif grep -qE "(检查 npm 依赖|npm install)" "$studio_log" 2>/dev/null; then
+                                new_status="installing_deps"
+                            elif grep -q "启动 Studio 服务" "$studio_log" 2>/dev/null; then
+                                new_status="starting_frontend"
+                            elif grep -qE "(LLM.*started|Gateway.*started)" "$studio_log" 2>/dev/null; then
+                                new_status="llm_ready"
+                            elif grep -qE "(Waiting for LLM.*to be ready|Health check URL)" "$studio_log" 2>/dev/null; then
+                                new_status="waiting_llm"
+                            elif grep -qE "(启动 LLM 服务|Starting LLM)" "$studio_log" 2>/dev/null; then
+                                new_status="starting_llm"
+                            elif grep -qE "(检测到.*GPU|检查.*Node\.js)" "$studio_log" 2>/dev/null; then
+                                new_status="starting"
+                            fi
+
+                            # 只在状态改变时输出新消息
+                            if [ -n "$new_status" ] && [ "$new_status" != "$last_status" ]; then
+                                # 清除之前的进度指示器
+                                printf "\r\033[K"
+
+                                case "$new_status" in
+                                    "starting")
+                                        echo -e "   ${GREEN}✓${NC} 检查运行环境"
+                                        ;;
+                                    "starting_llm")
+                                        echo -e "   ${CYAN}⏳${NC} 启动 LLM 服务（首次约 1-2 分钟，加载模型到 GPU）..."
+                                        ;;
+                                    "waiting_llm")
+                                        echo -e "   ${CYAN}⏳${NC} 等待 LLM 服务就绪（最多 5 分钟）..."
+                                        ;;
+                                    "llm_ready")
+                                        echo -e "   ${GREEN}✓${NC} LLM 服务已就绪"
+                                        ;;
+                                    "starting_frontend")
+                                        echo -e "   ${CYAN}⏳${NC} 启动前端界面..."
+                                        ;;
+                                    "installing_deps")
+                                        echo -e "   ${CYAN}⏳${NC} 安装前端依赖（首次约 2-3 分钟）..."
+                                        ;;
+                                    "completed")
+                                        echo -e "   ${GREEN}✓${NC} Studio 启动成功"
+                                        last_status="$new_status"
+                                        break
+                                        ;;
+                                    "failed")
+                                        echo -e "   ${RED}✗${NC} 依赖检查失败"
+                                        last_status="$new_status"
+                                        break
+                                        ;;
+                                esac
+
+                                last_status="$new_status"
+                            fi
+
+                            # 只在长时间等待状态显示进度指示器和实时日志
+                            if [ "$last_status" = "waiting_llm" ]; then
+                                # 显示 LLM 日志的最新进展
+                                if [ -f "$studio_log" ]; then
+                                    local latest_llm_log
+                                    # 提取最后一条有意义的日志（过滤掉空行和进度条）
+                                    latest_llm_log=$(grep -E "(Initializing|Loading|Starting|Model loaded|vLLM)" "$studio_log" 2>/dev/null | tail -1 | cut -c1-80)
+                                    if [ -n "$latest_llm_log" ]; then
+                                        printf "\r   ${DIM}%s (%ds)${NC}" "$latest_llm_log" $elapsed
+                                    else
+                                        printf "\r   ${DIM}等待 LLM 启动... %ds${NC}" $elapsed
+                                    fi
+                                else
+                                    printf "\r   ${DIM}等待 LLM 启动... %ds${NC}" $elapsed
+                                fi
+                            elif [ "$last_status" = "installing_deps" ]; then
+                                printf "\r   ${DIM}安装依赖中 %ds...${NC}" $elapsed
+                            fi
+                        fi
+
+                        sleep 2
+                        elapsed=$((elapsed + 2))
+                    done
+
+                    # 清除进度行
+                    printf "\r\033[K"
+
+                    # 等待命令完成
+                    wait $sage_pid 2>/dev/null
                     local exit_code=$?
 
-                    # 显示关键信息（最后 15 行）
-                    if [ -f "$studio_log" ]; then
-                        tail -15 "$studio_log"
-                        rm -f "$studio_log"
-                    fi
-
+                    # 显示最终状态
                     echo ""
                     if [ $exit_code -eq 0 ]; then
-                        echo -e "${GREEN}✅ Studio 已启动${NC}"
-                        echo -e "${DIM}   访问地址: http://localhost:5173${NC}"
+                        echo -e "${GREEN}✅ Studio 已成功启动${NC}"
+                        echo -e "${DIM}   前端地址: http://localhost:5173${NC}"
+                        echo -e "${DIM}   后端 API: http://localhost:8000${NC}"
                         echo -e "${DIM}   状态查看: sage studio status${NC}"
                         echo -e "${DIM}   停止服务: sage studio stop${NC}"
+                        echo ""
+                        echo -e "${CYAN}💡 提示: 在浏览器中打开 http://localhost:5173 开始使用 Studio${NC}"
                     else
-                        echo -e "${YELLOW}⚠️  Studio 启动可能未完全成功，请检查状态${NC}"
+                        echo -e "${RED}❌ Studio 启动失败${NC}"
+                        echo ""
+                        echo -e "${YELLOW}错误详情（最后 50 行）:${NC}"
+                        if [ -f "$studio_log" ]; then
+                            # 过滤出错误和警告信息
+                            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                            grep -E "(❌|⚠️|ERROR|CRITICAL|依赖检查失败|Node\.js|版本)" "$studio_log" | tail -30 || tail -50 "$studio_log"
+                            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                        fi
+                        echo ""
+                        echo -e "${YELLOW}📋 常见问题排查：${NC}"
+                        echo -e "  ${BOLD}1. Node.js 版本问题${NC}"
+                        echo -e "     ${DIM}检查: node --version  # 需要 v20+${NC}"
+                        echo -e "     ${DIM}修复: conda install -y nodejs=22 -c conda-forge${NC}"
+                        echo ""
+                        echo -e "  ${BOLD}2. LLM 服务启动超时${NC}"
+                        echo -e "     ${DIM}使用更小模型: sage studio start --llm-model Qwen/Qwen2.5-0.5B-Instruct${NC}"
+                        echo -e "     ${DIM}或跳过 LLM: sage studio start --no-llm${NC}"
+                        echo ""
+                        echo -e "  ${BOLD}3. 端口被占用${NC}"
+                        echo -e "     ${DIM}检查: sage studio status${NC}"
+                        echo -e "     ${DIM}清理: sage studio stop${NC}"
+                        echo ""
+                        echo -e "${BLUE}🔍 查看完整日志：${NC}"
+                        echo -e "  ${CYAN}tail -100 $studio_log${NC}"
+                        echo -e "  ${CYAN}sage studio logs --follow${NC}"
+                        echo ""
                         echo -e "${DIM}   状态查看: sage studio status${NC}"
                         echo -e "${DIM}   重新启动: sage studio start${NC}"
                     fi
+
+                    # 清理日志
+                    rm -f "$studio_log"
                 else
                     echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
                     echo -e "  ${CYAN}sage studio start${NC}"
@@ -729,32 +893,32 @@ show_usage_tips() {
     echo ""
 
     # 如果使用了 conda 环境且不在该环境中，显示激活提示
-    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "${SAGE_ENV_NAME:-}" ]; then
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BOLD}⚠️  重要：需要激活 Conda 环境${NC}"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
-        echo -e "${INFO} SAGE 已安装到 conda 环境: ${GREEN}$SAGE_ENV_NAME${NC}"
+        echo -e "${INFO} SAGE 已安装到 conda 环境: ${GREEN}${SAGE_ENV_NAME:-}${NC}"
         echo -e "${INFO} 但当前终端未激活该环境"
         echo ""
         echo -e "${BOLD}方式 1: 手动激活（每次打开终端需要运行）${NC}"
-        echo -e "  ${CYAN}conda activate $SAGE_ENV_NAME${NC}"
+        echo -e "  ${CYAN}conda activate ${SAGE_ENV_NAME:-}${NC}"
         echo ""
         echo -e "${BOLD}方式 2: 设置自动激活（推荐）${NC}"
         echo ""
         echo -e "  ${DIM}# 添加到 ~/.bashrc 让终端自动激活${NC}"
-        echo -e "  ${CYAN}echo 'conda activate $SAGE_ENV_NAME' >> ~/.bashrc${NC}"
+        echo -e "  ${CYAN}echo 'conda activate ${SAGE_ENV_NAME:-}' >> ~/.bashrc${NC}"
         echo ""
         echo -e "  ${DIM}# VS Code 用户：在工作区设置中添加以下配置${NC}"
         echo -e "  ${DIM}# 文件: .vscode/settings.json${NC}"
         echo -e "  ${CYAN}{${NC}"
-        echo -e "  ${CYAN}  \"python.defaultInterpreterPath\": \"~/miniconda3/envs/$SAGE_ENV_NAME/bin/python\",${NC}"
+        echo -e "  ${CYAN}  \"python.defaultInterpreterPath\": \"~/miniconda3/envs/${SAGE_ENV_NAME:-}/bin/python\",${NC}"
         echo -e "  ${CYAN}  \"terminal.integrated.env.linux\": {${NC}"
-        echo -e "  ${CYAN}    \"CONDA_DEFAULT_ENV\": \"$SAGE_ENV_NAME\"${NC}"
+        echo -e "  ${CYAN}    \"CONDA_DEFAULT_ENV\": \"${SAGE_ENV_NAME:-}\"${NC}"
         echo -e "  ${CYAN}  },${NC}"
         echo -e "  ${CYAN}  \"terminal.integrated.shellArgs.linux\": [${NC}"
         echo -e "  ${CYAN}    \"-c\",${NC}"
-        echo -e "  ${CYAN}    \"conda activate $SAGE_ENV_NAME && exec bash\"${NC}"
+        echo -e "  ${CYAN}    \"conda activate ${SAGE_ENV_NAME:-} && exec bash\"${NC}"
         echo -e "  ${CYAN}  ]${NC}"
         echo -e "  ${CYAN}}${NC}"
         echo ""
@@ -769,9 +933,9 @@ show_usage_tips() {
     echo ""
 
     echo -e "${BLUE}基本使用：${NC}"
-    if [ -n "$SAGE_ENV_NAME" ] && [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "${SAGE_ENV_NAME:-}" ]; then
         echo -e "  ${DIM}# 首先激活环境:${NC}"
-        echo -e "  conda activate $SAGE_ENV_NAME"
+        echo -e "  conda activate ${SAGE_ENV_NAME:-}"
         echo ""
         echo -e "  ${DIM}# 然后使用 SAGE:${NC}"
     fi
@@ -824,21 +988,21 @@ show_usage_tips() {
     echo ""
 
     # 如果是开发模式且使用了 conda 环境，自动配置 VS Code
-    if [ "$mode" = "dev" ] && [ -n "$SAGE_ENV_NAME" ]; then
+    if [ "$mode" = "dev" ] && [ -n "${SAGE_ENV_NAME:-}" ]; then
         echo -e "${INFO} 配置 VS Code 开发环境..."
 
         local vscode_script="$SCRIPT_DIR/../../config/setup_vscode_conda.sh"
         if [ -f "$vscode_script" ]; then
-            if bash "$vscode_script" "$SAGE_ENV_NAME" --auto 2>/dev/null; then
+            if bash "$vscode_script" "${SAGE_ENV_NAME:-}" --auto 2>/dev/null; then
                 echo -e "${GREEN}✅ VS Code 配置完成${NC}"
-                echo -e "${DIM}   终端将自动激活 conda 环境 '$SAGE_ENV_NAME'${NC}"
+                echo -e "${DIM}   终端将自动激活 conda 环境 '${SAGE_ENV_NAME:-}'${NC}"
             else
                 echo -e "${YELLOW}⚠️  自动配置失败，可手动运行:${NC}"
-                echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+                echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
             fi
         else
             echo -e "${DIM}💡 开发者提示: 运行以下命令配置 VS Code:${NC}"
-            echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh $SAGE_ENV_NAME${NC}"
+            echo -e "  ${CYAN}bash tools/config/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
         fi
         echo ""
     fi

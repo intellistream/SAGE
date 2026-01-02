@@ -5,6 +5,25 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # 检测当前 (conda) Python 对应的 libstdc++.so.6 是否包含指定符号
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 _detect_libstdcxx_symbol() {
     local symbol="$1"
     local python_cmd="${PYTHON_CMD:-python3}"
@@ -88,12 +107,14 @@ ensure_libstdcxx_compatibility() {
 
     # 选择安装工具
     local solver_cmd=""
+    local conda_mirror_forge="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge"
+
     if command -v mamba >/dev/null 2>&1; then
-        # 使用 mamba 并强制重新安装
-        solver_cmd="mamba install -y -c conda-forge libstdcxx-ng libgcc-ng --force-reinstall"
+        # 使用 mamba 并强制重新安装，使用清华镜像源绕过 ToS
+        solver_cmd="mamba install -y --override-channels -c $conda_mirror_forge libstdcxx-ng libgcc-ng --force-reinstall"
     else
-        # 使用 conda 并强制重新安装
-        solver_cmd="conda install -y -c conda-forge libstdcxx-ng libgcc-ng --force-reinstall"
+        # 使用 conda 并强制重新安装，使用清华镜像源绕过 ToS
+        solver_cmd="conda install -y --override-channels -c $conda_mirror_forge libstdcxx-ng libgcc-ng --force-reinstall"
     fi
 
     echo -e "${DIM}执行: $solver_cmd${NC}"

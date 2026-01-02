@@ -1,0 +1,23 @@
+random-xs:
+  faiss_IVFPQ:
+    module: benchmark_anns.bench.algorithms.faiss_IVFPQ.faiss_IVFPQ
+    constructor: FaissIvfpq
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "IVF1024,SQ8"}]
+        query-args: |
+          [{"nprobe": 1}, {"nprobe": 4}, {"nprobe": 16}, {"nprobe": 64}]
+
+sift:
+  faiss_IVFPQ:
+    module: benchmark_anns.bench.algorithms.faiss_IVFPQ.faiss_IVFPQ
+    constructor: FaissIvfpq
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "IVF1024,SQ8"}]
+        query-args: |
+          [{"nprobe": 16}]

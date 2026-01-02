@@ -88,7 +88,7 @@ class EmbeddingService(BaseService):
         # Using vLLM backend:
         services:
                     vllm:
-                        class: sage.common.components.sage_llm.VLLMService
+                        class: sage.llm.VLLMService
             config:
               model_id: "BAAI/bge-base-en-v1.5"
               embedding_model_id: "BAAI/bge-base-en-v1.5"

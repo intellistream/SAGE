@@ -1,4 +1,0 @@
-mbsize: 50, hidden size: 2000, layer: 3, dropout: 0.1
-Initial evaluation on dev set:
-dev set: Average loss: 3.9091, Accuracy: 773/5000 (15.46%)
-0：

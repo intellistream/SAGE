@@ -166,24 +166,16 @@ class PlaygroundExecutor:
 
             # 自动设置 API Key（如果配置中为空）
             if not converted_config.get("api_key"):
-                if is_qwen:
-                    # Qwen 系列优先使用 DASHSCOPE_API_KEY
-                    api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY")
-                    logger.info(
-                        f"   🔑 Qwen 模型，查找 DASHSCOPE_API_KEY: {'找到' if api_key else '未找到'}"
-                    )
-                else:
-                    # GPT 系列使用 OPENAI_API_KEY
-                    api_key = os.getenv("OPENAI_API_KEY")
-                    logger.info(
-                        f"   🔑 GPT 模型，查找 OPENAI_API_KEY: {'找到' if api_key else '未找到'}"
-                    )
-
+                api_key = (
+                    os.getenv("SAGE_CHAT_API_KEY")
+                    or os.getenv("SAGE_PIPELINE_BUILDER_API_KEY")
+                    or os.getenv("OPENAI_API_KEY")
+                )
                 if api_key:
                     converted_config["api_key"] = api_key
                     logger.info(f"   ✅ API Key 已设置（长度: {len(api_key)}）")
                 else:
-                    logger.warning("   ⚠️ 未找到对应的 API Key 环境变量")
+                    logger.warning("   ⚠️ 未找到 SAGE_CHAT_API_KEY / OPENAI_API_KEY")
             else:
                 logger.info("   📌 使用配置中的 API Key")
 
@@ -191,18 +183,31 @@ class PlaygroundExecutor:
             api_base = converted_config.get("api_base", "")
             logger.info(f"   🌐 原始 api_base: '{api_base}'")
 
-            if not api_base or api_base == "https://api.openai.com/v1":
-                if is_qwen:
-                    # Qwen 系列使用阿里云百炼端点
-                    converted_config["api_base"] = (
-                        "https://dashscope.aliyuncs.com/compatible-mode/v1"
-                    )
-                    logger.info("   ✅ 设置阿里云百炼端点")
+            if not api_base:
+                from sage.common.config.ports import SagePorts
+
+                detected = None
+                for port in [
+                    SagePorts.get_recommended_llm_port(),
+                    SagePorts.LLM_DEFAULT,
+                    SagePorts.BENCHMARK_LLM,
+                ]:
+                    candidate = f"http://127.0.0.1:{port}/v1"
+                    if self._probe_url(candidate, timeout=1.0):
+                        detected = candidate
+                        break
+
+                if detected:
+                    converted_config["api_base"] = detected
+                    logger.info(f"   ✅ 使用本地 LLM 端点: {detected}")
                 else:
-                    # GPT 系列使用 OpenAI 端点
-                    if not api_base:
-                        converted_config["api_base"] = "https://api.openai.com/v1"
-                    logger.info("   ✅ 设置 OpenAI 端点")
+                    # Fallback to explicitly provided OPENAI_BASE_URL if present
+                    explicit_base = os.getenv("OPENAI_BASE_URL")
+                    if explicit_base:
+                        converted_config["api_base"] = explicit_base
+                        logger.info(f"   ✅ 使用 OPENAI_BASE_URL: {explicit_base}")
+                    else:
+                        logger.warning("   ⚠️ 未找到可用的本地 LLM 端点或 OPENAI_BASE_URL")
 
             # api_base -> base_url
             if "api_base" in converted_config:

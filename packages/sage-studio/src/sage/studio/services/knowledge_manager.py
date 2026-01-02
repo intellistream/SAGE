@@ -23,6 +23,8 @@ import yaml
 if TYPE_CHECKING:
     from sage.studio.services.vector_store import VectorStore
 
+from sage.studio.services.vector_store import DocumentChunk
+
 logger = logging.getLogger(__name__)
 
 
@@ -371,6 +373,48 @@ class KnowledgeManager:
         except Exception as e:
             logger.error(f"Failed to add document {file_path}: {e}")
             return False
+
+    async def ingest_texts(
+        self,
+        texts: list[str],
+        *,
+        source_name: str = "agentic_evidence",
+        metadata: dict[str, Any] | None = None,
+    ) -> int:
+        """将内存/检索得到的片段增量写入向量库（用于 agentic/聊天证据）。
+
+        Args:
+            texts: 待索引的纯文本列表
+            source_name: 逻辑来源名称（用于 collection 前缀）
+            metadata: 附带的上下文元数据（如 session_id、route）
+
+        Returns:
+            实际写入的 chunk 数量
+        """
+
+        if not texts:
+            return 0
+
+        vs = self._get_or_create_vector_store(source_name)
+        meta = metadata or {}
+
+        chunks = [
+            DocumentChunk(
+                content=text,
+                source_file=source_name,
+                chunk_index=idx,
+                metadata={**meta},
+            )
+            for idx, text in enumerate(texts)
+            if text
+        ]
+
+        if not chunks:
+            return 0
+
+        added = await vs.add_documents(chunks, batch_size=self.config.embedding.batch_size)
+        self._loaded_sources.add(source_name)
+        return added
 
     async def search(
         self,

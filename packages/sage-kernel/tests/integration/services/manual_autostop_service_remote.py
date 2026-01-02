@@ -25,6 +25,7 @@ from sage.common.core.functions import (
 )
 from sage.common.utils.logging.custom_logger import CustomLogger  # noqa: E402
 from sage.kernel.api.remote_environment import RemoteEnvironment  # noqa: E402
+from sage.kernel.utils.ray.ray_utils import init_ray_with_sage_temp  # noqa: E402
 from sage.platform.service import BaseService  # noqa: E402
 
 # 全局变量用于跟踪服务状态
@@ -83,7 +84,7 @@ def check_ray_initialized():
 
         if not ray.is_initialized():
             print("[Info] Ray not initialized, initializing...")
-            ray.init(ignore_reinit_error=True)
+            init_ray_with_sage_temp(ignore_reinit_error=True)
             print("[Info] ✓ Ray initialized")
         else:
             print("[Info] ✓ Ray already initialized")

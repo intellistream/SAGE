@@ -7,18 +7,44 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-if [ -f "$SAGE_ROOT/tools/install/display_tools/colors.sh" ]; then
-    source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 fi
 
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+CONDA_PREFIX="${CONDA_PREFIX:-}"
+WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-}"
+SAGE_AUTO_CONFIRM="${SAGE_AUTO_CONFIRM:-}"
+SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-}"
+SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+PYTHON_CMD="${PYTHON_CMD:-}"
+PIP_CMD="${PIP_CMD:-}"
+LANG="${LANG:-}"
+LC_ALL="${LC_ALL:-}"
+LC_CTYPE="${LC_CTYPE:-}"
+HOME="${HOME:-$(/usr/bin/env | grep ^HOME= | cut -d= -f2 || echo /root)}"
+# ============================================================================
+
 # 导入日志工具
-if [ -f "$SAGE_ROOT/tools/install/display_tools/logging.sh" ]; then
-    source "$SAGE_ROOT/tools/install/display_tools/logging.sh"
+if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh"
 fi
 
 # 清理 egg-info 缓存
 clean_egg_info_cache() {
-    local packages_dir="$SAGE_ROOT/packages"
+    local packages_dir="${SAGE_ROOT:-}/packages"
 
     echo -e "${INFO} 检查 egg-info 缓存..."
     log_info "开始检查 egg-info 缓存" "BuildCache"
@@ -85,7 +111,7 @@ clean_egg_info_cache() {
 
 # 清理构建目录
 clean_build_dirs() {
-    local packages_dir="$SAGE_ROOT/packages"
+    local packages_dir="${SAGE_ROOT:-}/packages"
 
     echo -e "${INFO} 检查构建目录..."
     log_info "开始检查构建目录" "BuildCache"
@@ -123,7 +149,7 @@ clean_build_dirs() {
 
 # 清理 dist 目录
 clean_dist_dirs() {
-    local packages_dir="$SAGE_ROOT/packages"
+    local packages_dir="${SAGE_ROOT:-}/packages"
 
     log_info "开始检查 dist 目录" "BuildCache"
 

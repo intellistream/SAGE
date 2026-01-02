@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 
 # Try to import control plane types, but gracefully handle if submodule is not available
 try:
-    from sage.common.components.sage_llm.sageLLM.control_plane.types import (
+    from sage.llm.control_plane.types import (
         ExecutionInstance,
         ExecutionInstanceType,
         RequestMetadata,
@@ -41,6 +41,21 @@ try:
     _CONTROL_PLANE_AVAILABLE = True
 except (ImportError, ModuleNotFoundError):
     # Create mock types for when control plane submodule is not available
+    _CONTROL_PLANE_AVAILABLE = False
+
+# Try to import control plane types, but gracefully handle if not available
+try:
+    from sage.llm.control_plane.types import (
+        ExecutionInstance,
+        ExecutionInstanceType,
+        RequestMetadata,
+        RequestPriority,
+        RequestType,
+    )
+
+    _CONTROL_PLANE_AVAILABLE = True
+except (ImportError, ModuleNotFoundError):
+    # Create mock types for when control plane is not available
     _CONTROL_PLANE_AVAILABLE = False
     from dataclasses import dataclass as dc
     from enum import Enum, auto
