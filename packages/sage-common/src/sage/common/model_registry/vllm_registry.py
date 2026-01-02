@@ -286,8 +286,11 @@ def download_model(
                 tags=list(manifest_entry.get("tags", [])),
             )
         else:
-            # Directory exists without manifest entry -> treat as stale cache
-            shutil.rmtree(target_dir, ignore_errors=True)
+            # Directory exists without manifest entry
+            # DO NOT DELETE - huggingface_hub will resume incomplete downloads
+            # Just continue to download, it will handle .incomplete files
+            if progress:
+                print("⚠️  发现未完成的下载，继续从断点恢复...")
 
     target_dir.mkdir(parents=True, exist_ok=True)
 
