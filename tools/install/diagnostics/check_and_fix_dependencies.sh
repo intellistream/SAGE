@@ -58,7 +58,7 @@ check_and_fix_dependencies() {
     fi
 
     # 运行依赖验证脚本
-    local verify_script="$project_root/tools/install/verify_dependencies.py"
+    local verify_script="$project_root/tools/install/diagnostics/verify_dependencies.py"
     if [ ! -f "$verify_script" ]; then
         echo "⚠️  警告: 依赖验证脚本不存在: $verify_script"
         return 0

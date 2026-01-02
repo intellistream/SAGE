@@ -185,9 +185,9 @@ verify_installation() {
     fi
 
     # 运行完整的依赖验证脚本
-    if [ -f "$PROJECT_ROOT/tools/install/verify_dependencies.py" ]; then
+    if [ -f "$PROJECT_ROOT/tools/install/diagnostics/verify_dependencies.py" ]; then
         print_info "运行完整依赖验证..."
-        python "$PROJECT_ROOT/tools/install/verify_dependencies.py"
+        python "$PROJECT_ROOT/tools/install/diagnostics/verify_dependencies.py"
     fi
 
     return 0
@@ -249,7 +249,7 @@ main() {
         print_info "手动修复步骤:"
         echo "  1. pip uninstall -y torch torchaudio torchvision vllm"
         echo "  2. pip install vllm"
-        echo "  3. python tools/install/verify_dependencies.py"
+        echo "  3. python tools/install/diagnostics/verify_dependencies.py"
         echo
         exit 1
     fi

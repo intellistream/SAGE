@@ -7,8 +7,8 @@
 - CUDA 版本（如果需要）
 
 用法:
-    python tools/install/verify_dependencies.py
-    python tools/install/verify_dependencies.py --verbose
+    python tools/install/diagnostics/verify_dependencies.py
+    python tools/install/diagnostics/verify_dependencies.py --verbose
 """
 
 import sys
