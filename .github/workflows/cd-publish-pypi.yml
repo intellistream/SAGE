@@ -104,6 +104,7 @@ jobs:
         if: steps.config.outputs.version_bump != 'none'
         id: bump_version
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           # Get current version from any package's _version.py
           CURRENT_VERSION=$(python -c "import sys; sys.path.insert(0, 'packages/sage/src'); from sage._version import __version__; print(__version__)")
           echo "Current version: $CURRENT_VERSION"
@@ -174,6 +175,7 @@ jobs:
           TWINE_PASSWORD: ${{ steps.config.outputs.repository == 'pypi' && secrets.PYPI_API_TOKEN || secrets.TEST_PYPI_API_TOKEN }}
           TWINE_REPOSITORY: ${{ steps.config.outputs.repository }}
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           # Configure repository URL
           if [ "${{ steps.config.outputs.repository }}" = "testpypi" ]; then
             export TWINE_REPOSITORY_URL="https://test.pypi.org/legacy/"

@@ -18,7 +18,7 @@
 ### ✅ Phase 3: Kernel Integration (Complete)
 
 - Real LLM execution via SAGE DataStream
-- OpenAI-compatible API support (OpenAI, DashScope, vLLM, Ollama)
+- OpenAI-compatible API support (Gateway/vLLM/OpenAI/Ollama)
 - Development mode with echo fallback
 - Multi-turn conversation context
 - Error handling and logging
@@ -121,7 +121,7 @@ sage studio chat start
 
 ```bash
 # gateway
-python -m sage.gateway.server
+python -m sage.llm.gateway.server
 
 # studio backend
 python -m sage.studio

@@ -7,9 +7,10 @@ This module provides high-level agent abstractions and workflow optimization:
 These are coarse-grained systems built on top of foundation utilities.
 """
 
-from . import agents, workflow
+from . import agents, intent, workflow
 
 __all__ = [
     "agents",
+    "intent",
     "workflow",
 ]

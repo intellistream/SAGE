@@ -54,6 +54,7 @@ jobs:
 
       - name: Architecture Compliance Check
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           echo "🏗️ 运行架构合规性检查..."
 
           # 在 PR 中仅检查变更文件
@@ -127,6 +128,7 @@ jobs:
 
       - name: Package README Check
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           echo "📖 检查包 README 文档..."
 
           if sage-dev quality readme; then
@@ -170,7 +172,7 @@ jobs:
             "README.md"
             "CONTRIBUTING.md"
             "LICENSE"
-            "tools/pre-commit-config.yaml"
+            "tools/config/pre-commit-config.yaml"
           )
 
           for file in "${CRITICAL_FILES[@]}"; do

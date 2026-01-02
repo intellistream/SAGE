@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import psutil
 import requests
@@ -54,7 +55,7 @@ class ChatModeManager(StudioManager):
             List of fine-tuned model info dictionaries
         """
         try:
-            from sage.studio.services.finetune_manager import finetune_manager
+            from sage.libs.finetune import finetune_manager
 
             models = []
             for task in finetune_manager.tasks.values():
@@ -105,6 +106,94 @@ class ChatModeManager(StudioManager):
                 return model["path"]
         return None
 
+    def apply_finetuned_model(self, model_path: str) -> dict[str, Any]:
+        """Apply a finetuned model to the running LLM service (hot-swap).
+
+        This will restart the local LLM service with the new model.
+        Gateway will automatically detect the new model.
+
+        **Architecture Note**: This method belongs in sage-studio (L6) because it
+        directly depends on ChatModeManager and Studio-specific infrastructure.
+        It was moved from sage-libs (L3) to fix architecture layering violations.
+
+        Args:
+            model_path: Path to the finetuned model (local path or HF model name)
+
+        Returns:
+            Dict with status and message
+        """
+        try:
+            # Check if LLM service is running
+            if not self.llm_service or not self.llm_service.is_running():
+                return {
+                    "success": False,
+                    "message": "本地 LLM 服务未运行。请先启动 Studio 的 LLM 服务。",
+                }
+
+            print(f"🔄 正在切换到微调模型: {model_path}")
+
+            # Stop current LLM service
+            print("   停止当前 LLM 服务...")
+            self.llm_service.stop()
+
+            # Update config with new model
+            import time
+
+            time.sleep(2)  # Wait for cleanup
+
+            from sage.common.config.ports import SagePorts
+            from sage.llm import LLMAPIServer, LLMServerConfig
+
+            config = LLMServerConfig(
+                model=model_path,
+                backend="vllm",
+                host="0.0.0.0",
+                port=SagePorts.LLM_DEFAULT,
+                gpu_memory_utilization=float(os.getenv("SAGE_STUDIO_LLM_GPU_MEMORY", "0.9")),
+                max_model_len=4096,
+                disable_log_stats=True,
+            )
+
+            # Start new service with finetuned model
+            print(f"   启动新模型: {model_path}")
+            self.llm_service = LLMAPIServer(config)
+            success = self.llm_service.start(background=True)
+
+            if success:
+                # Update FinetuneManager's current_model for UI display
+                try:
+                    from sage.libs.finetune import finetune_manager
+
+                    finetune_manager.current_model = model_path
+                    finetune_manager._save_tasks()
+                except Exception as e:
+                    print(f"⚠️  无法更新 FinetuneManager: {e}")
+
+                print("✅ 模型切换成功！")
+                print(f"   当前模型: {model_path}")
+                print("   Gateway 会自动检测到新模型")
+
+                return {
+                    "success": True,
+                    "message": f"成功切换到模型: {model_path}",
+                    "model": model_path,
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "LLM 服务启动失败，请查看日志",
+                }
+
+        except Exception as e:
+            import traceback
+
+            print(f"❌ 模型切换失败: {e}")
+            print(traceback.format_exc())
+            return {
+                "success": False,
+                "message": f"切换失败: {str(e)}",
+            }
+
     # ------------------------------------------------------------------
     # Service Detection helpers
     # ------------------------------------------------------------------
@@ -144,7 +233,7 @@ class ChatModeManager(StudioManager):
 
         launcher_cls = None
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
 
             launcher_cls = LLMLauncher
             for service in LLMLauncher.discover_running_services():
@@ -153,7 +242,12 @@ class ChatModeManager(StudioManager):
             launcher_cls = None
 
         # Ports to check in order of preference
-        llm_ports = [self.llm_port, SagePorts.LLM_DEFAULT, SagePorts.GATEWAY_DEFAULT]
+        llm_ports = [
+            self.llm_port,
+            SagePorts.get_recommended_llm_port(),
+            SagePorts.LLM_DEFAULT,
+            SagePorts.BENCHMARK_LLM,
+        ]
 
         for port in llm_ports:
             if launcher_cls:
@@ -197,10 +291,12 @@ class ChatModeManager(StudioManager):
         env_base_url = os.environ.get("SAGE_EMBEDDING_BASE_URL") or os.environ.get(
             "SAGE_UNIFIED_BASE_URL"
         )
-        if env_base_url:
+        if env_base_url and self._probe_llm_endpoint(env_base_url):
             return (True, env_base_url)
 
-        ports_to_check = [port] if port else [SagePorts.EMBEDDING_DEFAULT]
+        ports_to_check = (
+            [port] if port else [SagePorts.EMBEDDING_DEFAULT, SagePorts.BENCHMARK_EMBEDDING]
+        )
 
         for p in ports_to_check:
             if p is None:
@@ -241,7 +337,7 @@ class ChatModeManager(StudioManager):
             return True
 
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
         except ImportError:
             console.print(
                 "[yellow]⚠️  sageLLM LLMLauncher 不可用，跳过本地 LLM 启动[/yellow]\n"
@@ -287,7 +383,7 @@ class ChatModeManager(StudioManager):
             force: If True, aggressively scan and stop services on related ports.
         """
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
         except ImportError:
             return True
 
@@ -548,7 +644,29 @@ class ChatModeManager(StudioManager):
     # Gateway helpers
     # ------------------------------------------------------------------
     def _is_gateway_running(self) -> int | None:
-        # 1. Check PID file first
+        """Detect a running gateway process and align internal state.
+
+        Looks at the PID file first, then scans candidate ports (current, default,
+        fallback, and env override) for a process whose cmdline includes
+        ``sage.llm.gateway.server``/``sage-llm-gateway``. When found, updates
+        ``self.gateway_port`` and rewrites the PID file so subsequent stop/restart
+        flows can clean it up.
+        """
+
+        candidate_ports: set[int] = {
+            self.gateway_port,
+            SagePorts.GATEWAY_DEFAULT,
+            SagePorts.EDGE_DEFAULT,
+        }
+
+        env_port = os.environ.get("SAGE_GATEWAY_PORT")
+        if env_port:
+            try:
+                candidate_ports.add(int(env_port))
+            except ValueError:
+                pass
+
+        # 1) PID file check
         if self.gateway_pid_file.exists():
             try:
                 pid = int(self.gateway_pid_file.read_text().strip())
@@ -563,23 +681,37 @@ class ChatModeManager(StudioManager):
             except OSError:
                 pass
 
-        # 2. Fallback: Check if port is in use
-        # This handles cases where PID file is lost but process is still running
+        # 2) Scan known ports for our gateway process (handles orphaned starts)
         try:
             for proc in psutil.process_iter(["pid", "name"]):
                 try:
                     for conn in proc.connections(kind="inet"):
+                        if conn.status != psutil.CONN_LISTEN:
+                            continue
+                        if conn.laddr.port not in candidate_ports:
+                            continue
+
+                        try:
+                            cmdline = " ".join(proc.cmdline())
+                        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                            cmdline = ""
+
                         if (
-                            conn.laddr.port == self.gateway_port
-                            and conn.status == psutil.CONN_LISTEN
+                            "sage.llm.gateway.server" not in cmdline
+                            and "sage-llm-gateway" not in cmdline
                         ):
-                            # Found process listening on gateway port
-                            # Re-create PID file for future reference
-                            try:
-                                self.gateway_pid_file.write_text(str(proc.pid))
-                            except Exception:
-                                pass
-                            return proc.pid
+                            continue
+
+                        # Align internal state to the discovered process
+                        try:
+                            self.gateway_port = conn.laddr.port
+                        except Exception:
+                            pass
+                        try:
+                            self.gateway_pid_file.write_text(str(proc.pid))
+                        except Exception:
+                            pass
+                        return proc.pid
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
         except Exception:
@@ -596,6 +728,9 @@ class ChatModeManager(StudioManager):
         # If gateway is not installed, subprocess will fail anyway
         gateway_port = port or self.gateway_port
 
+        # Detect user override; only auto-fallback when using built-in default
+        explicit_port = (port is not None) or ("SAGE_GATEWAY_PORT" in os.environ)
+
         # Check if port is in use
         if self._is_port_in_use(gateway_port):
             console.print(f"[yellow]⚠️  端口 {gateway_port} 已被占用[/yellow]")
@@ -611,16 +746,27 @@ class ChatModeManager(StudioManager):
                         pass
             except Exception:
                 pass
-            # Continue anyway, let uvicorn fail and report error
+
+            if (not explicit_port) and gateway_port == SagePorts.GATEWAY_DEFAULT:
+                fallback_port = SagePorts.EDGE_DEFAULT
+                console.print(
+                    f"[cyan]💡 端口 {gateway_port} 被占用，自动切换 Gateway 到 {fallback_port}[/cyan]"
+                )
+                gateway_port = fallback_port
+                self.gateway_port = fallback_port
+            else:
+                console.print(
+                    "[yellow]继续尝试当前端口，若失败请手动指定 --gateway-port 或设置 SAGE_GATEWAY_PORT[/yellow]"
+                )
 
         env = os.environ.copy()
         env.setdefault("SAGE_GATEWAY_PORT", str(gateway_port))
 
-        console.print(f"[blue]🚀 启动 sage-gateway (端口: {gateway_port})...[/blue]")
+        console.print(f"[blue]🚀 启动 sage-llm-gateway (端口: {gateway_port})...[/blue]")
         try:
             log_handle = open(self.gateway_log_file, "w")
             process = subprocess.Popen(
-                [sys.executable, "-m", "sage.gateway.server"],
+                [sys.executable, "-m", "sage.llm.gateway.server"],
                 stdin=subprocess.DEVNULL,  # 阻止子进程读取 stdin
                 stdout=log_handle,
                 stderr=subprocess.STDOUT,
@@ -631,8 +777,8 @@ class ChatModeManager(StudioManager):
         except Exception as exc:
             console.print(f"[red]❌ 启动 gateway 失败: {exc}")
             console.print(
-                "[yellow]提示: 请确保已安装 sage-gateway: "
-                "pip install -e packages/sage-gateway[/yellow]"
+                "[yellow]提示: 请确保已安装 sage-llm-gateway: "
+                "pip install -e packages/sage-llm-gateway[/yellow]"
             )
             return False
 
@@ -818,7 +964,7 @@ class ChatModeManager(StudioManager):
     def _get_used_llm_ports(self) -> set[int]:
         ports: set[int] = set()
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
 
             for service in LLMLauncher.discover_running_services():
                 service_port = service.get("port")
@@ -874,7 +1020,7 @@ class ChatModeManager(StudioManager):
         used_ports = self._get_used_llm_ports()
 
         try:
-            from sage.common.components.sage_llm import LLMLauncher
+            from sage.llm import LLMLauncher
         except ImportError:
             console.print("[yellow]⚠️  sageLLM 不可用，跳过自动调度[/yellow]")
             return False

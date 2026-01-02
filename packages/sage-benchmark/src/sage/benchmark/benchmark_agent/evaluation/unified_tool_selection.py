@@ -352,7 +352,7 @@ class LLMDirectSelectorAdapter(BaseSelectorAdapter):
         return SelectionResult(tool_ids=tool_ids[:top_k])
 
     def _init_client(self):
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
 
         # UnifiedInferenceClient.create() handles local/cloud detection
         self._llm_client = UnifiedInferenceClient.create()

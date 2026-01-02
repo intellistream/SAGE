@@ -8,13 +8,6 @@ Studio Services - Business Logic Layer
 from .agent_orchestrator import AgentOrchestrator, get_orchestrator
 from .document_loader import DocumentLoader, load_documents
 from .file_upload_service import FileUploadService, get_file_upload_service
-from .intent_classifier import (
-    IntentResult,
-    KnowledgeDomain,
-    UserIntent,
-    get_domain_display_name,
-    get_intent_display_name,
-)
 from .memory_integration import MemoryIntegrationService, get_memory_service
 from .node_registry import NodeRegistry
 from .pipeline_builder import PipelineBuilder, get_pipeline_builder
@@ -42,12 +35,6 @@ __all__ = [
     # File Upload
     "FileUploadService",
     "get_file_upload_service",
-    # Intent Classification
-    "IntentResult",
-    "KnowledgeDomain",
-    "UserIntent",
-    "get_domain_display_name",
-    "get_intent_display_name",
     # Node & Pipeline
     "NodeRegistry",
     "PipelineBuilder",

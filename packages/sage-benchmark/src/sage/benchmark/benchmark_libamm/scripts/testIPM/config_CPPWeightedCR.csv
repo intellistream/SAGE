@@ -1,9 +1,0 @@
-key,value,type
-aRow,10000,U64
-aCol,1000,U64
-bCol,500,U64
-sketchDimension,25,U64
-threads,1,U64
-ptFile,torchscripts/WeightedCR.pt,String
-useCPP,1,U64
-cppAlgoTag,weighted-cr,String

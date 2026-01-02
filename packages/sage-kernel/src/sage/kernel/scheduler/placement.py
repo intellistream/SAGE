@@ -158,6 +158,12 @@ class PlacementExecutor:
         # 构建 Ray Actor 选项（根据决策）
         ray_options = self._build_ray_options(decision)
 
+        # 添加 runtime_env 支持： TaskFactory 获取 extra_python_paths
+        extra_python_paths = getattr(task_node.task_factory, "extra_python_paths", [])
+        if extra_python_paths:
+            runtime_env = {"env_vars": {"PYTHONPATH": ":".join(extra_python_paths)}}
+            ray_options["runtime_env"] = runtime_env
+
         # 创建 Ray Actor
         from sage.kernel.runtime.task.ray_task import RayTask
         from sage.kernel.utils.ray.actor import ActorWrapper

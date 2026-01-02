@@ -1,0 +1,4 @@
+scanIncrementalStep
+scanDBSize
+scanVecDim
+scanVecDimCycles

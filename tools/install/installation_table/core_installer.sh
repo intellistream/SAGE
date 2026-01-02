@@ -7,17 +7,37 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
 
 # 导入友好错误处理
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+CONDA_ENV_NAME="${CONDA_ENV_NAME:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 if [ -f "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh" ]; then
     source "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh"
 fi
 
 # CI环境检测
-if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
     # 确保在CI环境中禁用可能导致问题的进度条设置
     unset PIP_PROGRESS_BAR
-elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+elif [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
     # 远程部署环境也禁用可能导致问题的进度条设置
@@ -30,6 +50,70 @@ fi
 
 # 设置pip命令
 PIP_CMD="${PIP_CMD:-pip3}"
+
+# ============================================================================
+# vLLM 依赖管理辅助函数
+# ============================================================================
+
+# 版本比较函数（语义版本）
+version_gte() {
+    # 比较 $1 >= $2（语义版本）
+    # 返回 0（true）如果 $1 >= $2，否则返回 1（false）
+    local ver1="$1"
+    local ver2="$2"
+
+    # 移除版本号中的非数字前缀（如 v2.7.0 -> 2.7.0）
+    ver1="${ver1#v}"
+    ver2="${ver2#v}"
+
+    # 使用 Python 进行语义版本比较（更可靠）
+    python3 -c "
+from packaging import version
+import sys
+try:
+    result = version.parse('$ver1') >= version.parse('$ver2')
+    sys.exit(0 if result else 1)
+except Exception:
+    # 如果 packaging 不可用，使用简单字符串比较
+    sys.exit(0 if '$ver1' >= '$ver2' else 1)
+" 2>/dev/null
+    return $?
+}
+
+# 检查 torch 版本兼容性
+check_torch_compatibility_before_vllm() {
+    local required_ver="2.7.0"
+    local existing_torch_ver=""
+
+    # 检查现有 torch 版本
+    if existing_torch_ver=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null); then
+        # 移除版本号中的 +cu121 等后缀
+        existing_torch_ver="${existing_torch_ver%%+*}"
+
+        echo -e "${INFO_MARK} 检测到现有 torch 版本: $existing_torch_ver"
+        log_info "检测到现有 torch 版本: $existing_torch_ver" "INSTALL"
+
+        # 检查是否满足 vLLM 要求 (>= 2.7.0)
+        if version_gte "$existing_torch_ver" "$required_ver"; then
+            echo -e "${CHECK} 现有 torch 版本满足 vLLM 要求（>= $required_ver）"
+            log_info "torch 版本兼容: $existing_torch_ver >= $required_ver" "INSTALL"
+            return 0  # 兼容
+        else
+            echo -e "${WARNING} 现有 torch 版本过低（$existing_torch_ver < $required_ver）"
+            echo -e "${INFO_MARK} 将在安装 vLLM 时升级 torch"
+            log_warn "torch 版本过低，需要升级: $existing_torch_ver -> >= $required_ver" "INSTALL"
+            return 1  # 需要升级
+        fi
+    else
+        echo -e "${INFO_MARK} 未检测到 torch，将随 vLLM 一起安装"
+        log_info "未检测到 torch，将安装 >= $required_ver" "INSTALL"
+        return 1  # 需要安装
+    fi
+}
+
+# ============================================================================
+# vLLM 安装函数
+# ============================================================================
 
 # 从本地源码安装 vLLM
 # vLLM 源码位于 packages/sage-common/src/sage/common/components/sage_llm/sageLLM/engines/vllm
@@ -96,89 +180,36 @@ install_vllm_from_source() {
 }
 
 # 安装 vLLM 运行时依赖（基于 optional-dependencies[vllm]）
+# 智能选择：如果 torch 已满足要求，使用 vllm-minimal；否则使用 vllm（含 torch）
 install_vllm_optional_dependencies() {
     local pip_args="$1"
-    local pyproject="packages/sage-common/pyproject.toml"
+
+    # 检查 torch 兼容性，决定使用哪个 extra
     local extra_name="vllm"
-    local python_cmd="${PYTHON_CMD:-python3}"
-
-    if [ ! -f "$pyproject" ]; then
-        log_warn "跳过 vLLM 依赖安装：找不到 $pyproject" "INSTALL"
-        return 0
+    if check_torch_compatibility_before_vllm; then
+        extra_name="vllm-minimal"
+        echo -e "${INFO_MARK} 使用 vllm-minimal（不含 torch，复用现有版本）"
+        log_info "使用 vllm-minimal extra（torch 已满足要求）" "INSTALL"
+    else
+        extra_name="vllm"
+        echo -e "${INFO_MARK} 使用 vllm（含 torch >= 2.0.0）"
+        log_info "使用 vllm extra（包含 torch 依赖）" "INSTALL"
     fi
 
-    local deps_output
-    if ! deps_output=$(
-        PYPROJECT_PATH="$pyproject" \
-        EXTRA_NAME="$extra_name" \
-        "$python_cmd" - <<'PY' 2>/dev/null
-import os
-import re
-from pathlib import Path
+    # vLLM 依赖现在在 sage-llm-core 中声明
+    echo -e "${DIM}  安装 vLLM 依赖（extra: $extra_name）...${NC}"
+    log_info "开始安装 vLLM 依赖: isage-llm-core[$extra_name]" "INSTALL"
 
-pyproject = Path(os.environ['PYPROJECT_PATH'])
-extra_name = os.environ['EXTRA_NAME']
-if not pyproject.exists():
-    raise SystemExit(0)
+    local install_cmd="$PIP_CMD install 'isage-llm-core[$extra_name]' $pip_args"
 
-text = pyproject.read_text(encoding='utf-8')
-pattern = re.compile(rf"\b{re.escape(extra_name)}\s*=\s*\[(.*?)\]", re.S)
-match = pattern.search(text)
-if not match:
-    raise SystemExit(0)
-
-deps_block = match.group(1)
-deps = []
-for raw_line in deps_block.splitlines():
-    line = raw_line.strip()
-    if not line or line.startswith('#'):
-        continue
-    if line.endswith(','):
-        line = line[:-1].strip()
-    if line.startswith(('"', "'")) and line.endswith(('"', "'")) and len(line) >= 2:
-        line = line[1:-1]
-    if line:
-        deps.append(line)
-
-print("\n".join(deps))
-PY
-    ); then
-        log_warn "解析 vLLM 可选依赖失败" "INSTALL"
-        return 1
-    fi
-
-    if [ -z "$deps_output" ]; then
-        log_warn "未在 pyproject.toml 中找到 vLLM 可选依赖" "INSTALL"
-        return 0
-    fi
-
-    # 转为数组（逐行）
-    local IFS=$'\n'
-    local vllm_deps=($deps_output)
-    IFS=' '
-
-    if [ ${#vllm_deps[@]} -eq 0 ]; then
-        log_warn "vLLM 依赖列表为空" "INSTALL"
-        return 0
-    fi
-
-    echo -e "${DIM}  安装 vLLM 运行时依赖 (${#vllm_deps[@]} 个)...${NC}"
-    log_info "开始安装 vLLM 运行时依赖: ${vllm_deps[*]}" "INSTALL"
-
-    # 构建 pip 安装命令（依赖包名需要用引号包裹，避免 >= 被解释为重定向）
-    local pip_cmd="$PIP_CMD install"
-    for dep in "${vllm_deps[@]}"; do
-        pip_cmd+=" '${dep}'"
-    done
-    pip_cmd+=" $pip_args"
-
-    if log_pip_install_with_progress "INSTALL" "vLLM" "$pip_cmd"; then
+    if log_pip_install_with_progress "INSTALL" "vLLM" "$install_cmd"; then
         log_success "vLLM 运行时依赖安装完成" "INSTALL"
         echo -e "${CHECK} vLLM 运行时依赖安装完成"
         return 0
     else
-        log_warn "vLLM 运行时依赖安装失败，可稍后运行 pip install 'isage-common[vllm]'" "INSTALL"
-        echo -e "${WARNING} vLLM 依赖安装失败，可稍后运行: pip install 'isage-common[vllm]'${NC}"
+        log_warn "vLLM 运行时依赖安装失败" "INSTALL"
+        echo -e "${WARNING} vLLM 依赖安装失败"
+        echo -e "${DIM}   可稍后手动运行: pip install 'isage-llm-core[$extra_name]'${NC}"
         return 1
     fi
 }
@@ -286,7 +317,7 @@ install_core_packages() {
     local pip_args="--disable-pip-version-check --no-input"
 
     # CI环境额外处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
@@ -324,6 +355,11 @@ install_core_packages() {
 
     echo -e "${INFO} 安装 SAGE ($install_mode 模式)..."
     echo -e "${DIM}安装日志: $log_file${NC}"
+    echo ""
+
+    # 配置 pip 镜像源（自动检测网络）
+    echo -e "${BLUE}🌐 配置 pip 镜像源...${NC}"
+    configure_pip_mirror "auto"
     echo ""
 
     # 记录环境信息
@@ -403,7 +439,7 @@ install_core_packages() {
     local pip_args="--disable-pip-version-check --no-input"
 
     # 添加缓存支持（非CI环境）
-    if [ "$CI" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
+    if [ "${CI:-}" != "true" ] && [ -z "${GITHUB_ACTIONS:-}" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
         # 非CI环境启用缓存以加速重复安装
         pip_args="$pip_args --cache-dir ~/.cache/pip"
         echo -e "${DIM}启用 pip 缓存: ~/.cache/pip${NC}"
@@ -414,7 +450,7 @@ install_core_packages() {
     fi
 
     # CI环境额外处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
@@ -447,6 +483,11 @@ install_core_packages() {
     echo -e "${DIM}           确保所有传递依赖可用后再安装本地源码${NC}"
     echo ""
 
+    # 配置 pip 镜像源（自动检测网络）
+    echo -e "${BLUE}🌐 配置 pip 镜像源...${NC}"
+    configure_pip_mirror "auto"
+    echo ""
+
     # 步骤 0: 检测 GPU 并预安装 CUDA 版本的 PyTorch（如果有 GPU）
     echo -e "${DIM}步骤 0/5: 检测 GPU 环境...${NC}"
     log_info "步骤 0/5: 检测 GPU 并安装 CUDA 版本 PyTorch" "INSTALL"
@@ -471,17 +512,49 @@ install_core_packages() {
 
     # 使用 Python 脚本提取已声明的外部依赖
     local external_deps_file=".sage/external-deps-${install_mode}.txt"
+    local external_deps_marker=".sage/external-deps-${install_mode}.installed"
     mkdir -p .sage
+
+    # 检查是否已经安装过外部依赖（基于 pyproject.toml 的 hash）
+    local current_hash=""
+    local cached_hash=""
+
+    # 计算当前所有 pyproject.toml 的 hash
+    if command -v sha256sum &> /dev/null; then
+        current_hash=$(find packages/sage-*/pyproject.toml -type f 2>/dev/null | sort | xargs cat | sha256sum | cut -d' ' -f1)
+    elif command -v shasum &> /dev/null; then
+        current_hash=$(find packages/sage-*/pyproject.toml -type f 2>/dev/null | sort | xargs cat | shasum -a 256 | cut -d' ' -f1)
+    fi
+
+    # 读取缓存的 hash
+    if [ -f "$external_deps_marker" ]; then
+        cached_hash=$(cat "$external_deps_marker" 2>/dev/null || echo "")
+    fi
+
+    # 如果 hash 相同且依赖文件存在，跳过安装
+    if [ -n "$current_hash" ] && [ "$current_hash" = "$cached_hash" ] && [ -f "$external_deps_file" ]; then
+        log_info "检测到外部依赖已安装（pyproject.toml 未变化），跳过" "INSTALL"
+        echo -e "${CHECK} 外部依赖已是最新（跳过安装）"
+        echo ""
+    else
+        if [ -n "$cached_hash" ] && [ "$current_hash" != "$cached_hash" ]; then
+            log_info "检测到 pyproject.toml 变化，重新安装外部依赖" "INSTALL"
+            echo -e "${DIM}     检测到依赖变化，重新安装...${NC}"
+        fi
 
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从 pyproject.toml 中提取外部依赖...${NC}"
 
-    # 执行 Python 脚本提取依赖
-    log_debug "执行 Python 依赖提取脚本..." "INSTALL"
+    # 执行 Python 脚本提取依赖（优化版：去重+合并版本）
+    log_debug "执行 Python 依赖提取脚本（去重优化）..." "INSTALL"
     if $PYTHON_CMD -c "
 import sys, re
 from pathlib import Path
-external_deps = set()
+from collections import defaultdict
+
+# 存储包名到版本约束的映射
+dep_versions = defaultdict(list)
+
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
@@ -490,6 +563,7 @@ if install_mode in ['full', 'dev']:
     package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
 if install_mode == 'dev':
     package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
     if not pyproject.exists(): continue
@@ -503,10 +577,38 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                if not dep.startswith('isage-'): external_deps.add(dep)
+                if not dep.startswith('isage-'):
+                    # 提取包名和版本约束
+                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
+                    if pkg_match:
+                        pkg_name = pkg_match.group(1)
+                        dep_versions[pkg_name].append(dep)
+
+# 合并多个包的相同依赖声明（版本已统一，无需去重）
+external_deps = []
+conflict_count = 0
+for pkg_name, versions in sorted(dep_versions.items()):
+    unique_versions = list(set(versions))
+    if len(unique_versions) == 1:
+        external_deps.append(unique_versions[0])
+    else:
+        # 理论上不应该有冲突（版本已通过 unify_dependencies.py 统一）
+        # 如果仍有冲突，选择最严格的版本
+        best_dep = max(unique_versions, key=lambda v: ('>=' in v, '<' in v, v))
+        external_deps.append(best_dep)
+        conflict_count += 1
+
 with open('$external_deps_file', 'w') as f:
-    for dep in sorted(external_deps): f.write(f'{dep}\n')
-print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
+    for dep in external_deps:
+        f.write(f'{dep}\n')
+
+# 根据情况显示不同的消息
+if conflict_count > 0:
+    print(f'⚠️  提取了 {len(external_deps)} 个外部依赖（发现 {conflict_count} 个版本冲突）', file=sys.stderr)
+    print(f'   建议运行: python3 tools/install/helpers/unify_dependencies.py --apply', file=sys.stderr)
+else:
+    # 不显示 duplicate_count，因为多包共享依赖是正常的
+    print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 " 2>&1; then
         log_info "依赖提取脚本执行成功" "INSTALL"
 
@@ -521,9 +623,16 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             local deps_pip_args=$(echo "$pip_args" | sed 's/--no-deps//g')
             log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $deps_pip_args" "INSTALL"
 
-            if log_pip_install_with_progress "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
+            # 使用详细输出模式，让用户看到编译进度（避免看起来卡住）
+            if log_pip_install_with_verbose_progress "INSTALL" "Deps" "$PIP_CMD install -r \"$external_deps_file\" $deps_pip_args"; then
                 log_info "外部依赖安装成功" "INSTALL"
                 echo -e "${CHECK} 外部依赖安装完成"
+
+                # 保存 hash 标记，避免下次重复安装（提前保存，即使后续步骤失败也能复用缓存）
+                if [ -n "$current_hash" ]; then
+                    echo "$current_hash" > "$external_deps_marker"
+                    log_info "已保存外部依赖安装标记" "INSTALL"
+                fi
 
                 # 强制升级关键包到正确版本（解决依赖解析问题）
                 echo -e "${DIM}     验证并升级关键包版本...${NC}"
@@ -552,13 +661,16 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
         log_error "依赖提取脚本失败" "INSTALL"
         echo -e "${YELLOW}⚠️  依赖提取脚本失败，跳过...${NC}"
     fi
+    fi  # 闭合 hash 检查的 if
 
     echo ""
 
     # 第二步：安装基础包（L1-L2）
     echo -e "${DIM}步骤 2/5: 安装基础包 (L1-L2)...${NC}"
     log_info "步骤 2/5: 安装基础包 (L1-L2)" "INSTALL"
-    local base_packages=("packages/sage-common" "packages/sage-platform")
+
+    # L1: Foundation + LLM Core
+    local base_packages=("packages/sage-common" "packages/sage-llm-core" "packages/sage-platform")
 
     for package_dir in "${base_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
@@ -567,7 +679,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
-            log_error "请检查日志文件: $SAGE_INSTALL_LOG" "INSTALL"
+            log_error "请检查日志文件: ${SAGE_INSTALL_LOG:-}" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
             return 1
         fi
@@ -611,7 +723,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
-            log_error "请检查日志文件: $SAGE_INSTALL_LOG" "INSTALL"
+            log_error "请检查日志文件: ${SAGE_INSTALL_LOG:-}" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
 
             # 清理环境变量
@@ -640,33 +752,136 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
         # C++ 构建依赖（pybind11等）在 build-system.requires 中声明，通过环境已安装
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
-        echo -e "${DIM}    (包含 C++ 扩展构建，可能需要几分钟...)${NC}"
 
-        log_info "开始安装: packages/sage-middleware (包含 C++ 扩展)" "INSTALL"
-        log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
-        log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
+        # 智能跳过检查：如果 C++ 源文件未修改且包已安装，则跳过重新编译
+        local should_rebuild=true
+        local skip_reason=""
 
-        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-middleware\" $pip_args --no-deps"; then
-            log_error "安装 sage-middleware 失败！" "INSTALL"
-            log_error "这通常是由于 C++ 编译错误，请检查日志: $SAGE_INSTALL_LOG" "INSTALL"
+        # 初始化哈希相关变量（在所有分支中都可能使用）
+        local cpp_source_hash=""
+        local cache_dir="$SAGE_ROOT/.sage/cache"
+        local hash_cache="$cache_dir/middleware_cpp_source.hash"
+        mkdir -p "$cache_dir"
 
-            # 尝试提取编译错误的关键信息
-            if [ -f "$SAGE_INSTALL_LOG" ]; then
-                local error_context=$(grep -A 5 -i "error:" "$SAGE_INSTALL_LOG" | tail -20 || echo "未找到具体错误信息")
-                log_error "编译错误摘要:\n$error_context" "INSTALL"
+        # 检查是否强制重新编译
+        if [ "$(get_force_rebuild)" = "true" ]; then
+            should_rebuild=true
+            skip_reason="用户指定 --force-rebuild"
+            log_info "强制重新编译 sage-middleware (--force-rebuild)" "INSTALL"
+        # 检查是否已安装
+        elif $PIP_CMD show isage-middleware &>/dev/null; then
+            log_debug "isage-middleware 已安装，检查是否需要重新编译..." "INSTALL"
+
+            # 计算当前源文件哈希（C++/头文件/CMakeLists.txt）
+            if command -v sha256sum &>/dev/null; then
+                cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                    -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                    -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+            elif command -v shasum &>/dev/null; then
+                cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                    -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                    -exec shasum -a 256 {} + 2>/dev/null | sort | shasum -a 256 | cut -d' ' -f1)
             fi
 
-            echo -e "${CROSS} 安装 sage-middleware 失败！"
-            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: $SAGE_INSTALL_LOG${NC}"
-            return 1
+            # 比较哈希值
+            if [ -n "$cpp_source_hash" ] && [ -f "$hash_cache" ]; then
+                local cached_hash=$(cat "$hash_cache" 2>/dev/null)
+                if [ "$cpp_source_hash" = "$cached_hash" ]; then
+                    should_rebuild=false
+                    skip_reason="C++ 源文件未修改"
+                    log_info "跳过 sage-middleware 重新编译：C++ 源文件未修改（哈希匹配）" "INSTALL"
+                else
+                    log_debug "C++ 源文件已修改，需要重新编译" "INSTALL"
+                    log_debug "缓存哈希: $cached_hash" "INSTALL"
+                    log_debug "当前哈希: $cpp_source_hash" "INSTALL"
+                fi
+            else
+                log_debug "首次安装或缺少哈希缓存，将进行编译" "INSTALL"
+            fi
+        else
+            log_debug "isage-middleware 未安装，需要编译" "INSTALL"
         fi
 
-        log_info "安装成功: packages/sage-middleware" "INSTALL"
-        log_pip_package_info "isage-middleware" "INSTALL"
-        echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
+        # 根据检查结果决定是否编译
+        if [ "$should_rebuild" = false ]; then
+            echo -e "${DIM}    ⏭️  跳过编译（$skip_reason）${NC}"
+            log_info "跳过 sage-middleware 安装：$skip_reason" "INSTALL"
+            echo -e "${CHECK} sage-middleware 已是最新版本（跳过编译）"
+        else
+            # 需要重新编译
+            echo -e "${DIM}    ⏱️  包含 C++ 扩展构建，预计需要:${NC}"
+            echo -e "${DIM}       • 首次安装: 10-15 分钟${NC}"
+            echo -e "${DIM}       • 增量构建: 2-5 分钟${NC}"
+            echo ""
+            echo -e "${DIM}    💡 提示: 可在另一终端查看实时进度:${NC}"
+            echo -e "${DIM}       tail -f ~/.local/state/sage/logs/install_\$(date +%Y%m%d).log${NC}"
+            echo ""
+
+            log_info "开始安装: packages/sage-middleware (包含 C++ 扩展)" "INSTALL"
+            log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
+            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
+
+            # 显示进度指示器
+            echo -ne "${DIM}    ⚙️  正在编译 C++ 扩展... "
+
+            # 执行安装（使用临时日志文件）
+            local temp_install_log=$(mktemp)
+            if $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps > "$temp_install_log" 2>&1; then
+                echo -e "✓${NC}"
+
+                # 将输出追加到主日志
+                if [ -f "$temp_install_log" ]; then
+                    cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
+                fi
+                rm -f "$temp_install_log"
+
+                log_info "安装成功: packages/sage-middleware" "INSTALL"
+                log_pip_package_info "isage-middleware" "INSTALL"
+                echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
+
+                # 计算并保存当前 C++ 源文件哈希到缓存（如果之前未计算）
+                if [ -z "$cpp_source_hash" ]; then
+                    if command -v sha256sum &>/dev/null; then
+                        cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                            -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                            -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+                    elif command -v shasum &>/dev/null; then
+                        cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                            -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                            -exec shasum -a 256 {} + 2>/dev/null | sort | shasum -a 256 | cut -d' ' -f1)
+                    fi
+                fi
+
+                # 保存哈希到缓存
+                if [ -n "$cpp_source_hash" ]; then
+                    echo "$cpp_source_hash" > "$hash_cache"
+                    log_debug "已保存 C++ 源文件哈希到缓存: $hash_cache" "INSTALL"
+                fi
+            else
+                echo -e "✗${NC}"
+
+                log_error "安装 sage-middleware 失败！" "INSTALL"
+                log_error "这通常是由于 C++ 编译错误，请检查日志: ${SAGE_INSTALL_LOG:-}" "INSTALL"
+
+                # 将错误输出追加到主日志
+                if [ -f "$temp_install_log" ]; then
+                    cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
+
+                    # 尝试提取编译错误的关键信息
+                    local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
+                    log_error "编译错误摘要:\n$error_context" "INSTALL"
+                fi
+
+                rm -f "$temp_install_log"
+
+                echo -e "${CROSS} 安装 sage-middleware 失败！"
+                echo -e "${DIM}提示: 检查日志文件获取详细错误信息: ${SAGE_INSTALL_LOG:-}${NC}"
+                return 1
+            fi
+        fi
 
         # 调试：检查 .so 文件位置（仅在 CI 环境）
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
             echo -e "${DIM}    [CI调试] 检查 C++ 扩展文件位置...${NC}"
             for ext in sage_flow sage_db sage_tsdb; do
                 ext_dir="packages/sage-middleware/src/sage/middleware/components/${ext}"
@@ -714,21 +929,38 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 echo -e "${CHECK} sage-apps 安装完成"
             fi
 
-            # L5: gateway (API server)
-            if [ -d "packages/sage-gateway" ]; then
-                echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
-                log_info "开始安装: packages/sage-gateway" "INSTALL"
-                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
+            # L6: llm-gateway (LLM Gateway for OpenAI-compatible API)
+            if [ -d "packages/sage-llm-gateway" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-llm-gateway${NC}"
+                log_info "开始安装: packages/sage-llm-gateway" "INSTALL"
+                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-llm-gateway $pip_args --no-deps" "INSTALL"
 
-                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
-                    log_error "安装 sage-gateway 失败" "INSTALL"
-                    echo -e "${CROSS} 安装 sage-gateway 失败！"
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-llm-gateway\" $pip_args --no-deps"; then
+                    log_error "安装 sage-llm-gateway 失败" "INSTALL"
+                    echo -e "${CROSS} 安装 sage-llm-gateway 失败！"
                     return 1
                 fi
 
-                log_info "安装成功: packages/sage-gateway" "INSTALL"
-                log_pip_package_info "isage-gateway" "INSTALL"
-                echo -e "${CHECK} sage-gateway 安装完成"
+                log_info "安装成功: packages/sage-llm-gateway" "INSTALL"
+                log_pip_package_info "isage-llm-gateway" "INSTALL"
+                echo -e "${CHECK} sage-llm-gateway 安装完成"
+            fi
+
+            # L6: edge (Edge aggregator shell, optional)
+            if [ -d "packages/sage-edge" ]; then
+                echo -e "${DIM}  正在安装: packages/sage-edge${NC}"
+                log_info "开始安装: packages/sage-edge" "INSTALL"
+                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-edge $pip_args --no-deps" "INSTALL"
+
+                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-edge\" $pip_args --no-deps"; then
+                    log_error "安装 sage-edge 失败" "INSTALL"
+                    echo -e "${CROSS} 安装 sage-edge 失败！"
+                    return 1
+                fi
+
+                log_info "安装成功: packages/sage-edge" "INSTALL"
+                log_pip_package_info "isage-edge" "INSTALL"
+                echo -e "${CHECK} sage-edge 安装完成"
             fi
         fi
 
@@ -774,14 +1006,105 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 echo -e "${DIM}  正在安装前端依赖 (npm install)...${NC}"
                 log_info "开始安装前端依赖: $frontend_dir" "INSTALL"
 
+                # 先检查 Node.js 版本
+                local node_version
+                node_version=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
+                if [ -n "$node_version" ] && [ "$node_version" -lt 20 ]; then
+                    log_error "Node.js 版本过低 (当前: v$node_version, 需要: v20+)" "INSTALL"
+                    echo -e "${CROSS} Node.js 版本过低！自动升级中..."
+                    if source "$SCRIPT_DIR/../lib/conda_install_utils.sh" && conda_install_bypass nodejs=22; then
+                        log_info "Node.js 已升级到 v22" "INSTALL"
+                        echo -e "${CHECK} Node.js 升级完成"
+                        # 刷新命令缓存
+                        hash -r
+                    else
+                        log_error "Node.js 升级失败" "INSTALL"
+                        echo -e "${CROSS} 自动升级失败，请手动运行: conda install -y nodejs=22 -c conda-forge"
+                        return 1
+                    fi
+                fi
+
+                # 检查并修复 package-lock.json 兼容性问题
+                local package_lock="$frontend_dir/package-lock.json"
+                if [ -f "$package_lock" ]; then
+                    # 检查 lockfileVersion，npm v7+ 使用 lockfileVersion 2 或 3
+                    local lock_version
+                    lock_version=$(grep -m1 '"lockfileVersion"' "$package_lock" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+
+                    # 如果 lockfileVersion < 2 或文件损坏，删除并重新生成
+                    if [ -z "$lock_version" ] || [ "$lock_version" -lt 2 ]; then
+                        log_warn "检测到旧版本 package-lock.json (v$lock_version)，将自动重新生成" "INSTALL"
+                        echo -e "${DIM}     清理旧的 package-lock.json...${NC}"
+                        rm -f "$package_lock"
+                    fi
+                fi
+
                 # 使用子shell进入目录执行，避免影响当前目录
-                # 使用 --no-audit --no-fund 加速安装
-                if (cd "$frontend_dir" && npm install --no-audit --no-fund --loglevel=error &> /dev/null); then
+                local npm_log
+                npm_log=$(mktemp)
+                echo -e "${DIM}     运行: npm install (首次可能需要 2-3 分钟)...${NC}"
+
+                # 第一次尝试
+                if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
                     log_info "前端依赖安装成功" "INSTALL"
                     echo -e "${CHECK} 前端依赖安装完成"
+                    rm -f "$npm_log"
                 else
-                    log_warn "前端依赖安装失败，但这不影响 Python 包安装" "INSTALL"
-                    echo -e "${WARNING} 前端依赖安装失败 (请稍后运行 'sage studio install' 修复)"
+                    # 检查是否是 "must provide string spec" 错误（package-lock.json 损坏）
+                    if grep -q "must provide string spec" "$npm_log"; then
+                        log_warn "检测到 package-lock.json 损坏，自动修复中..." "INSTALL"
+                        echo -e "${DIM}     删除损坏的 package-lock.json 并重试...${NC}"
+                        rm -f "$package_lock"
+
+                        # 第二次尝试（重新生成 package-lock.json）
+                        if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
+                            log_info "前端依赖安装成功（已修复）" "INSTALL"
+                            echo -e "${CHECK} 前端依赖安装完成（已自动修复 package-lock.json）"
+                            rm -f "$npm_log"
+                        else
+                            # 仍然失败，显示详细错误
+                            log_error "前端依赖安装失败" "INSTALL"
+                            echo -e "${CROSS} 前端依赖安装失败！"
+                            echo ""
+                            echo -e "${YELLOW}错误详情:${NC}"
+                            tail -30 "$npm_log"
+                            echo ""
+                            echo -e "${YELLOW}可能的原因:${NC}"
+                            echo -e "  1. 网络连接问题（无法访问 npm registry）"
+                            echo -e "  2. npm 缓存损坏"
+                            echo -e "  3. 磁盘空间不足"
+                            echo ""
+                            echo -e "${BLUE}自动修复尝试:${NC}"
+                            echo -e "${DIM}  清理 npm 缓存并重试...${NC}"
+                            npm cache clean --force &>/dev/null || true
+
+                            # 第三次尝试（清理缓存后）
+                            if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
+                                log_info "前端依赖安装成功（清理缓存后）" "INSTALL"
+                                echo -e "${CHECK} 前端依赖安装完成（已清理缓存）"
+                                rm -f "$npm_log"
+                            else
+                                echo -e "${CROSS} 自动修复失败"
+                                echo ""
+                                echo -e "${BLUE}手动修复命令:${NC}"
+                                echo -e "  ${CYAN}cd $frontend_dir${NC}"
+                                echo -e "  ${CYAN}rm -f package-lock.json node_modules -rf${NC}"
+                                echo -e "  ${CYAN}npm cache clean --force${NC}"
+                                echo -e "  ${CYAN}npm install${NC}"
+                                rm -f "$npm_log"
+                                return 1
+                            fi
+                        fi
+                    else
+                        # 其他错误，直接显示
+                        log_error "前端依赖安装失败" "INSTALL"
+                        echo -e "${CROSS} 前端依赖安装失败！"
+                        echo ""
+                        echo -e "${YELLOW}错误详情:${NC}"
+                        tail -30 "$npm_log"
+                        rm -f "$npm_log"
+                        return 1
+                    fi
                 fi
             fi
         fi
@@ -806,30 +1129,25 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
         fi
     fi
 
-    # L6: gateway (dev 模式)
-    if [ "$install_mode" = "dev" ]; then
-        if [ -d "packages/sage-gateway" ]; then
-            echo -e "${DIM}  正在安装: packages/sage-gateway${NC}"
-            log_info "开始安装: packages/sage-gateway" "INSTALL"
-            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-gateway $pip_args --no-deps" "INSTALL"
-
-            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-gateway\" $pip_args --no-deps"; then
-                log_error "安装 sage-gateway 失败" "INSTALL"
-                echo -e "${CROSS} 安装 sage-gateway 失败！"
-                return 1
-            fi
-
-            log_info "安装成功: packages/sage-gateway" "INSTALL"
-            log_pip_package_info "isage-gateway" "INSTALL"
-            echo -e "${CHECK} sage-gateway 安装完成"
-        fi
-    fi
-
     if [ "$install_mode" = "core" ]; then
         echo -e "${DIM}步骤 4/5: 跳过上层包（core 模式）${NC}"
     fi
 
     echo -e "${CHECK} 本地依赖包安装完成"
+    echo ""
+
+    # 预安装构建依赖（防止 pip build isolation 从镜像下载失败）
+    echo -e "${DIM}预安装构建依赖（setuptools, wheel, packaging）...${NC}"
+    log_info "开始预安装构建依赖" "INSTALL"
+    log_debug "PIP命令: $PIP_CMD install 'setuptools>=64' 'wheel' 'packaging>=24.2' $pip_args" "INSTALL"
+
+    if ! log_command "INSTALL" "BuildDeps" "$PIP_CMD install 'setuptools>=64' 'wheel' 'packaging>=24.2' $pip_args"; then
+        log_warn "构建依赖预安装失败，但继续尝试安装（可能已有足够版本）" "INSTALL"
+        echo -e "${WARNING} 构建依赖预安装失败（可能已有足够版本，继续...）"
+    else
+        log_info "构建依赖预安装成功" "INSTALL"
+        echo -e "${CHECK} 构建依赖预安装完成"
+    fi
     echo ""
 
     # 第五步：安装主 SAGE meta-package
@@ -867,20 +1185,26 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从已安装包中提取外部依赖...${NC}"
 
-    # 执行 Python 脚本提取依赖（内联脚本）
-    log_debug "执行 Python 依赖提取脚本..." "INSTALL"
+    # 执行 Python 脚本提取依赖（优化版：去重+合并版本+vLLM可选依赖）
+    log_debug "执行 Python 依赖提取脚本（去重优化+vLLM可选依赖）..." "INSTALL"
     if $PYTHON_CMD -c "
 import sys, re
 from pathlib import Path
-external_deps = set()
+from collections import defaultdict
+
+# 存储包名到版本约束的映射
+dep_versions = defaultdict(list)
+
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
-    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
+    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark', 'packages/sage-llm-gateway', 'packages/sage-llm-core'])
 if install_mode in ['full', 'dev']:
-    package_dirs.extend(['packages/sage-apps', 'packages/sage-gateway', 'packages/sage-studio'])
+    package_dirs.extend(['packages/sage-apps'])
 if install_mode == 'dev':
-    package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+    package_dirs.extend(['packages/sage-tools', 'packages/sage-studio'])
+
+# 提取常规依赖
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
     if not pyproject.exists(): continue
@@ -894,10 +1218,62 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                if not dep.startswith('isage-'): external_deps.add(dep)
+                if not dep.startswith('isage-'):
+                    # 提取包名和版本约束
+                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
+                    if pkg_match:
+                        pkg_name = pkg_match.group(1)
+                        dep_versions[pkg_name].append(dep)
+
+# 在 dev/full 模式下，提取 vLLM 可选依赖
+if install_mode in ['dev', 'full']:
+    sage_common_pyproject = Path('packages/sage-common/pyproject.toml')
+    if sage_common_pyproject.exists():
+        content = sage_common_pyproject.read_text(encoding='utf-8')
+        # 匹配 vllm = [...] 块
+        pattern = re.compile(r'\\bvllm\\s*=\\s*\\[(.*?)\\]', re.DOTALL)
+        match = pattern.search(content)
+        if match:
+            vllm_deps_block = match.group(1)
+            vllm_dep_count = 0
+            for raw_line in vllm_deps_block.splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith('#'): continue
+                # 移除行内注释
+                if '#' in line:
+                    line = line.split('#')[0].strip()
+                # 移除尾部逗号
+                if line.endswith(','):
+                    line = line[:-1].strip()
+                # 移除引号
+                if line.startswith(('\"', \"'\")) and line.endswith(('\"', \"'\")):
+                    line = line[1:-1]
+                if line:
+                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', line)
+                    if pkg_match:
+                        pkg_name = pkg_match.group(1)
+                        dep_versions[pkg_name].append(line)
+                        vllm_dep_count += 1
+            if vllm_dep_count > 0:
+                print(f'[INFO] 已包含 {vllm_dep_count} 个 vLLM 可选依赖', file=sys.stderr)
+
+# 去重并选择最严格的版本约束
+external_deps = []
+for pkg_name, versions in sorted(dep_versions.items()):
+    if len(versions) == 1:
+        external_deps.append(versions[0])
+    else:
+        # 多个版本约束时，选择最新的（通常是最严格的）
+        best_dep = max(versions, key=lambda v: ('>=' in v, v))
+        external_deps.append(best_dep)
+        if len(versions) > 1:
+            print(f'[DEDUP] {pkg_name}: {len(versions)} 个版本 -> {best_dep}', file=sys.stderr)
+
 with open('$external_deps_file', 'w') as f:
-    for dep in sorted(external_deps): f.write(f'{dep}\n')
-print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
+    for dep in external_deps:
+        f.write(f'{dep}\n')
+
+print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file=sys.stderr)
 " 2>&1; then
         log_info "依赖提取脚本执行成功" "INSTALL"
 
@@ -935,7 +1311,7 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
                 echo -e "${YELLOW}⚠️  部分外部依赖安装失败，但继续...${NC}"
 
                 # 尝试提取安装失败的包
-                local failed_packages=$(grep -i "error\|failed" "$SAGE_INSTALL_LOG" | tail -5 || echo "无法确定失败包")
+                local failed_packages=$(grep -i "error\|failed" "${SAGE_INSTALL_LOG:-}" | tail -5 || echo "无法确定失败包")
                 log_warn "失败详情:\n$failed_packages" "INSTALL"
             fi
         else
@@ -952,7 +1328,14 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
     log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
 
     echo ""
-    if [ "$install_vllm" = "true" ]; then
+    # 优化：检查外部依赖是否已包含 vLLM
+    local vllm_in_external_deps=false
+    if [ -f "$external_deps_file" ] && grep -q "^vllm" "$external_deps_file" 2>/dev/null; then
+        vllm_in_external_deps=true
+        log_info "外部依赖中已包含 vLLM，跳过单独安装" "INSTALL"
+    fi
+
+    if [ "$install_vllm" = "true" ] && [ "$vllm_in_external_deps" = false ]; then
         local vllm_from_source="${SAGE_VLLM_FROM_SOURCE:-false}"
         if [ "$vllm_from_source" = "true" ]; then
             echo -e "${BLUE}🔧 从本地源码编译安装 vLLM...${NC}"
@@ -961,6 +1344,9 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖', file=sys.stderr)
             echo -e "${BLUE}🤖 安装 vLLM 运行时依赖（从 PyPI）...${NC}"
             install_vllm_optional_dependencies "$pip_args"
         fi
+    elif [ "$install_vllm" = "true" ] && [ "$vllm_in_external_deps" = true ]; then
+        echo -e "${CHECK} vLLM 运行时依赖已在外部依赖中安装，跳过单独安装"
+        log_info "vLLM 已在外部依赖阶段安装，跳过重复安装" "INSTALL"
     else
         echo -e "${DIM}跳过 vLLM 运行时依赖安装（使用 --no-vllm）${NC}"
         log_info "用户通过 --no-vllm 跳过 vLLM 依赖安装" "INSTALL"

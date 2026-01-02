@@ -1,0 +1,16 @@
+random-xs:
+  plsh:
+    module: benchmark_anns.bench.algorithms.plsh.plsh
+    constructor: Plsh
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{
+            "k": 8,
+            "m": 60,
+            "num_threads": 1,
+            "merge_threshold": 50000
+          }]
+        query-args: |
+          [{}]

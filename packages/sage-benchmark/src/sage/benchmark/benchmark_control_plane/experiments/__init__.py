@@ -25,7 +25,7 @@ Example:
     # Run throughput experiment
     exp = ThroughputExperiment(
         name="throughput_test",
-        control_plane_url="http://localhost:8888",
+        control_plane_url="http://localhost:8889",
     )
     result = await exp.run_full()
 

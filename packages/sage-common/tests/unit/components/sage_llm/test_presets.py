@@ -14,7 +14,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sage.common.components.sage_llm.presets import (
+pytest.importorskip(
+    "sage.llm.presets",
+    reason="sage-llm-core package not available; skip preset tests.",
+)
+
+from sage.llm.presets import (
     EnginePreset,
     PresetEngine,
     get_builtin_preset,

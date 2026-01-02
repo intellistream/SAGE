@@ -1,0 +1,8 @@
+//
+// Created by tony on 04/06/22.
+//
+
+#ifndef LibAMM_OPENCL_CONFIG_H_IN_H_
+#define LibAMM_OPENCL_CONFIG_H_IN_H_
+#define LibAMM_CL @LibAMM_CL@
+#endif

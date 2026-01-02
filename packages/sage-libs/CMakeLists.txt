@@ -49,7 +49,7 @@ message(STATUS "")
 set(LIBAMM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/libs/libamm")
 
 # 默认跳过 LibAMM 编译，除非明确要求
-option(BUILD_LIBAMM "Build LibAMM C++ extension (requires PyTorch, high memory)" OFF)
+option(BUILD_LIBAMM "Build LibAMM C++ extension (requires PyTorch, high memory)" ON)
 
 # 允许通过环境变量控制
 if(DEFINED ENV{BUILD_LIBAMM})
@@ -155,6 +155,14 @@ if(BUILD_LIBAMM AND EXISTS "${LIBAMM_DIR}/CMakeLists.txt")
         set(ENV{CUDACXX} "/usr/local/cuda/bin/nvcc")
 
         add_subdirectory(${LIBAMM_DIR} ${SAGE_BUILD_ROOT}/libamm)
+
+        if(TARGET PyAMM)
+            message(STATUS "Found target PyAMM, adding install rule")
+            install(TARGETS PyAMM DESTINATION sage/libs/amms/wrappers COMPONENT python)
+        else()
+            message(STATUS "Target PyAMM NOT found after add_subdirectory")
+        endif()
+
         message(STATUS "  ✓ LibAMM configured (with NumPy interface)")
     else()
         message(STATUS "")

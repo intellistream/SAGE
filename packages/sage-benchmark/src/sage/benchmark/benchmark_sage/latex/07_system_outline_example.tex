@@ -1,0 +1,44 @@
+% Example System / Method outline for the SAGE systems paper (content-style summary)
+%
+% This snippet captures the outline in 07_system_outline_example.md as
+% a concise LaTeX summary that can guide or complement the full System
+% Design section in 04_system_and_method.tex.
+
+\section*{System / Method Outline}
+
+Below we summarize a possible structure for the System / Method section of the SAGE paper, aligned with the actual implementation and package layout.
+
+\subsection*{System Overview and Design Goals}
+
+This section motivates SAGE from a systems-reviewer perspective. It explains which concrete problems SAGE targets that are not fully addressed by existing LLM serving or MLOps systems, including complex multi-step LLM pipelines, mixed LLM+embedding workloads, CPU-only environments, and end-to-end evaluation and reproducibility. It then states the main design goals of SAGE: scalability across multiple engines and nodes, explicit support for heterogeneous CPU/GPU deployments, programmability via declarative dataflow, debuggability and observability, reproducibility of deployments and experiments, and ease of evolution of individual components. Finally, it positions SAGE in the ML systems ecosystem as a unified platform that combines aspects of serving, workflow, control plane, and benchmarking, rather than focusing on a single engine or library.
+
+\subsection*{Layered Architecture}
+
+This section introduces SAGE's six-layer architecture (L1--L6) and clarifies the responsibilities of each layer. It describes how \texttt{sage-common} (L1) provides configuration, XDG-based user paths, \texttt{SagePorts}, and shared components such as the unified inference client and control-plane core; how \texttt{sage-platform} (L2) offers platform services for storage, queuing, and service management tied to \texttt{config/config.yaml} and \texttt{config/cluster.yaml}; how \texttt{sage-kernel} and \texttt{sage-libs} (L3) implement execution kernels, job management, and node selection with awareness of CPU-only and GPU nodes; how \texttt{sage-middleware} (L4) contributes C++ operators and performance-critical components; how \texttt{sage-apps} and \texttt{sage-benchmark} (L5) host concrete applications and benchmark scenarios; and how \texttt{sage-cli}, \texttt{sage-studio}, \texttt{sage-tools}, and \texttt{sage-gateway} (L6) provide CLI, web studio, tools, and an OpenAI-compatible API. It emphasizes the "no upward dependencies" rule and contrasts this disciplined layering with monolithic or ad-hoc orchestration scripts.
+
+\subsection*{Declarative Dataflow and Execution Model}
+
+This section explains how SAGE exposes declarative dataflow abstractions for LLM/AI pipelines and how those abstractions are compiled into executable plans. It illustrates how users describe pipelines that combine data ingestion, embedding, retrieval, LLM generation, tool calls, and post-processing, using examples from \texttt{examples/apps} and \texttt{examples/tutorials}. It then describes how the kernel and platform layers translate these declarations into jobs, place them on nodes using node-selection policies, and handle batching, parallelism, and backpressure across CPU and GPU resources. The role of \texttt{sage-middleware} operators in optimizing performance-critical stages is highlighted, and the benefits over ad-hoc Python scripts are discussed in terms of maintainability, performance, and correctness.
+
+\subsection*{LLM \& Embedding Control Plane (sageLLM)}
+
+This section focuses on the sageLLM control plane as the component that unifies scheduling and resource management for LLM and embedding workloads. It states the goals of the control plane---sharing resources across LLM and embedding services, improving throughput and tail latency, and meeting per-tenant SLOs---and explains how requests are classified (chat/generation versus embedding), queued, and batched according to policies such as \texttt{HybridSchedulingPolicy}. It describes the interaction between the control plane, the \texttt{sage-gateway} FastAPI application, and backend engines such as vLLM and embedding servers, as well as how standardized ports (\texttt{GATEWAY_DEFAULT}, \texttt{LLM_DEFAULT}, \texttt{EMBEDDING_DEFAULT}, and WSL2-aware fallbacks) are managed by \texttt{SagePorts}. The section also clarifies how the control plane fits into the broader SAGE architecture and how it differs from single-instance vLLM deployments or simple load balancers.
+
+\subsection*{Implementation Details and Deployment}
+
+This section provides the implementation details and deployment story that matter to systems reviewers and practitioners. It summarizes the language and build choices (Python 3.10+ with selected C++ components in \texttt{sage-middleware} built via CMake, artifacts in \texttt{.sage/build/}), the installation and management scripts (\texttt{quickstart.sh}, \texttt{manage.sh}, CI install wrappers), and the \texttt{sage-dev} tooling for tests, quality checks, and examples (integrating pytest, Ruff, and Mypy with configuration under \texttt{tools/pytest.ini} and \texttt{tools/ruff.toml}). It explains how SAGE supports both CPU-only and GPU deployments through node selection and configuration files, how XDG-based user paths structure logs, models, and caches, and how these choices enable reproducible experiments and continuous integration.
+
+% ---------------------------------------------------------------------------
+% Author notes: how to use this outline
+% ---------------------------------------------------------------------------
+% - This outline is intentionally high-level and mirrors the structure
+%   implemented in 04_system_and_method.tex. It can be used as a sanity
+%   check to ensure that the written System Design section covers the key
+%   questions systems reviewers care about.
+% - When generating or revising text, you can paste bullets from the
+%   original Markdown outline into prompt templates, then refine the
+%   resulting prose by aligning it with actual package structure and
+%   experimental setup.
+% - If page limits are tight, pairs of subsections can be merged (e.g.,
+%   System Overview + Layered Architecture, or Dataflow + Control Plane),
+%   and detailed implementation notes can be moved to an appendix.

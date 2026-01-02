@@ -33,7 +33,7 @@ docker-compose -f docker/studio/docker-compose.yml down
 | 服务              | 地址                       | 说明            |
 | ----------------- | -------------------------- | --------------- |
 | Studio 前端       | http://localhost:5173      | 可视化编辑器    |
-| Gateway API       | http://localhost:8888      | OpenAI 兼容 API |
+| Gateway API       | http://localhost:8889      | OpenAI 兼容 API |
 | Cloudflare Tunnel | https://studio.sage.org.ai | 公网访问        |
 
 ## 架构
@@ -56,7 +56,7 @@ cloudflared (Host systemd service)
 │  │ - Studio 前端               │   │
 │  └─────────────────────────────┘   │
 │  ┌─────────────────────────────┐   │
-│  │ Gateway (8888)              │   │
+│  │ Gateway (8889)              │   │
 │  │ - OpenAI 兼容 API           │   │
 │  │ - Control Plane 调度        │   │
 │  └─────────────────────────────┘   │
@@ -189,7 +189,7 @@ docker exec sage-studio nvidia-smi
 ```bash
 # 检查端口占用
 lsof -i:5173
-lsof -i:8888
+lsof -i:8889
 
 # 停止占用进程
 fuser -k 5173/tcp

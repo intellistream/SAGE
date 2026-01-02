@@ -10,20 +10,37 @@ embedding:
 gateway:
   port: 8000
   session_backend: file
+  # Session memory configuration
+  memory:
+    backend: short_term  # short_term / vdb / kv / graph
+    max_memory_dialogs: 10  # For short_term backend
+    # VDB backend configuration
+    vdb:
+      backend_type: SageDB  # SageDB (C++ optimized) / FAISS (Python)
+      embedding_dim: 384
+      embedding_model: hash
+      max_retrieve: 100
+    # KV backend configuration
+    kv:
+      default_index_type: bm25s
+      max_retrieve: 100
+    # Graph backend configuration
+    graph:
+      max_nodes: 10000
 llm:
-  gpu_memory_utilization: 0.9
+  gpu_memory_utilization: 0.5
   max_model_len: 4096
-  model: Qwen/Qwen2.5-7B-Instruct
+  model: Qwen/Qwen2.5-0.5B-Instruct
   port: 8001
   tensor_parallel_size: 1
 max_workers: 10
 provider:
-  head_ip: base-sage
+  head_ip: sage-node-1
   type: local
   worker_ips:
-  - sage4
-  - sage2
-  - sage5
+  - sage-node-4
+  - sage-node-2
+  - sage-node-3
 ray:
   dashboard_host: 0.0.0.0
   dashboard_port: 8265
@@ -33,7 +50,7 @@ ray:
   num_gpus:
   object_store_memory:
 remote:
-  conda_env: sage
+  conda_env: base
   python_path: python
   ray_command: ray
   sage_home: ~/SAGE

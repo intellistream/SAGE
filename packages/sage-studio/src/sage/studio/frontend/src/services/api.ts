@@ -8,7 +8,7 @@ import axios from 'axios'
 import type { Node } from 'reactflow'
 
 // API 基础 URL
-// 开发模式: 使用 Vite 代理 /api -> localhost:8888
+// 开发模式: 使用 Vite 代理 /api -> localhost:8889
 // 生产模式: 直接请求 Gateway（同域或通过环境变量配置）
 const getApiBaseUrl = (): string => {
     // 如果有环境变量配置，优先使用

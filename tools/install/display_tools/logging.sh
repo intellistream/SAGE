@@ -5,6 +5,25 @@
 source "$(dirname "${BASH_SOURCE[0]}")/colors.sh"
 
 # 日志级别
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 LOG_LEVEL_DEBUG=0
 LOG_LEVEL_INFO=1
 LOG_LEVEL_WARN=2
@@ -30,7 +49,7 @@ SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-.sage/logs/install.log}"
 
 # 确保日志目录存在
 _ensure_log_dir() {
-    local log_dir=$(dirname "$SAGE_INSTALL_LOG")
+    local log_dir=$(dirname "${SAGE_INSTALL_LOG:-}")
     mkdir -p "$log_dir" 2>/dev/null || true
 }
 
@@ -69,7 +88,7 @@ _write_log() {
         "$escaped_phase" \
         "$escaped_message")
 
-    echo "$json_log" >> "$SAGE_INSTALL_LOG"
+    echo "$json_log" >> "${SAGE_INSTALL_LOG:-}"
 }
 
 # DEBUG 级别日志（详细调试信息）
@@ -207,8 +226,8 @@ log_environment() {
         local conda_version=$(conda --version 2>&1)
         log_info "Conda: $conda_version" "$context" false "$phase"
 
-        if [ -n "$CONDA_DEFAULT_ENV" ]; then
-            log_info "Conda 环境: $CONDA_DEFAULT_ENV" "$context" false "$phase"
+        if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
+            log_info "Conda 环境: ${CONDA_DEFAULT_ENV:-}" "$context" false "$phase"
         fi
     fi
 
@@ -231,6 +250,13 @@ _pip_spinner_running=false
 
 start_spinner() {
     local msg="${1:-安装中}"
+
+    # CI 环境下不显示 spinner
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        echo "  $msg..." >&2
+        return 0
+    fi
+
     local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local delay=0.1
     _pip_spinner_running=true
@@ -250,6 +276,12 @@ start_spinner() {
 
 stop_spinner() {
     local success="${1:-true}"
+
+    # CI 环境下无需清理 spinner
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        return 0
+    fi
+
     if [ -n "$_pip_spinner_pid" ]; then
         kill "$_pip_spinner_pid" 2>/dev/null || true
         wait "$_pip_spinner_pid" 2>/dev/null || true
@@ -272,10 +304,23 @@ log_pip_install_with_progress() {
     temp_output=$(mktemp)
     local exit_code=0
 
+    # 检测是否在 CI 环境
+    local is_ci=false
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        is_ci=true
+    fi
+
     local chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local char_idx=0
     local installed_count=0
     local current_pkg=""
+    local last_logged_pkg=""
+    local last_keepalive=0
+    local start_time=$(date +%s)
+
+    if [ "$is_ci" != true ]; then
+        echo -e "${DIM}   开始安装，这可能需要几分钟，请耐心等待...${NC}" >&2
+    fi
 
     # 使用管道实时读取 pip 输出并更新进度
     {
@@ -298,19 +343,35 @@ log_pip_install_with_progress() {
             ((installed_count = installed_count - 2))  # 减去 "Successfully installed"
         fi
 
-        # 更新 spinner 动画和当前包名
-        local spinner_char="${chars:$char_idx:1}"
-        char_idx=$(( (char_idx + 1) % ${#chars} ))
-
-        if [ -n "$current_pkg" ]; then
-            # 截断过长的包名
-            local display_pkg="$current_pkg"
-            if [ ${#display_pkg} -gt 40 ]; then
-                display_pkg="${display_pkg:0:37}..."
+        # CI 环境：简单日志输出，仅在包名变化时打印
+        if [ "$is_ci" = true ]; then
+            if [ -n "$current_pkg" ] && [ "$current_pkg" != "$last_logged_pkg" ]; then
+                echo "  Installing: $current_pkg" >&2
+                last_logged_pkg="$current_pkg"
             fi
-            printf "\r  ${CYAN}%s${NC} 安装依赖包... ${DIM}%s${NC}          " "$spinner_char" "$display_pkg" >&2
         else
-            printf "\r  ${CYAN}%s${NC} 安装依赖包...          " "$spinner_char" >&2
+            # 交互环境：更新 spinner 动画和当前包名
+            local spinner_char="${chars:$char_idx:1}"
+            char_idx=$(( (char_idx + 1) % ${#chars} ))
+
+            # 保活提示（每30秒）
+            local current_time=$(date +%s)
+            local elapsed=$((current_time - start_time))
+            if [ $((current_time - last_keepalive)) -ge 30 ]; then
+                printf "\n${DIM}   [%ds] 仍在安装中...${NC}\n" "$elapsed" >&2
+                last_keepalive=$current_time
+            fi
+
+            if [ -n "$current_pkg" ]; then
+                # 截断过长的包名
+                local display_pkg="$current_pkg"
+                if [ ${#display_pkg} -gt 40 ]; then
+                    display_pkg="${display_pkg:0:37}..."
+                fi
+                printf "\r  ${CYAN}%s${NC} 安装依赖包... ${DIM}%s${NC}          " "$spinner_char" "$display_pkg" >&2
+            else
+                printf "\r  ${CYAN}%s${NC} 安装依赖包...          " "$spinner_char" >&2
+            fi
         fi
     done
 
@@ -320,8 +381,10 @@ log_pip_install_with_progress() {
         rm -f "${temp_output}.exit"
     fi
 
-    # 清除进度行
-    printf "\r                                                              \r" >&2
+    # 清除进度行（仅在交互环境）
+    if [ "$is_ci" != true ]; then
+        printf "\r                                                              \r" >&2
+    fi
 
     if [ "$exit_code" = "0" ]; then
         log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
@@ -336,6 +399,194 @@ log_pip_install_with_progress() {
             local error_output
             error_output=$(cat "$temp_output")
             log_error "错误输出:\n$error_output" "$context" "$phase"
+        fi
+    fi
+
+    if [ -s "$temp_output" ]; then
+        local full_output
+        full_output=$(cat "$temp_output")
+        _write_log "CMD_OUTPUT" "$full_output" "$context" "$phase"
+    fi
+
+    rm -f "$temp_output"
+    return $exit_code
+}
+
+# 执行 pip 安装命令，显示详细实时输出（用于大型依赖安装）
+log_pip_install_with_verbose_progress() {
+    local context="$1"
+    local phase="$2"
+    shift 2
+    local cmd="$@"
+
+    log_debug "执行命令（详细输出）: $cmd" "$context" "$phase"
+
+    local temp_output
+    temp_output=$(mktemp)
+    local exit_code=0
+
+    local start_time=$(date +%s)
+    local last_update=0
+    local current_pkg=""
+    local current_stage=""
+    local line_count=0
+    local download_count=0
+    local total_downloaded_mb=0
+    local download_start_time=0
+    local last_file_size=0
+    local collecting_start_time=0
+
+    echo -e "${DIM}   开始安装，显示详细进度...${NC}" >&2
+    echo "" >&2
+
+    # 实时输出 pip 的详细信息
+    {
+        eval "$cmd" 2>&1
+        echo $? > "${temp_output}.exit"
+    } | while IFS= read -r line; do
+        echo "$line" >> "$temp_output"
+        line_count=$((line_count + 1))
+
+        # 提取包名用于高亮显示
+        if [[ "$line" =~ ^Collecting[[:space:]]+([^[:space:]<>=!]+) ]]; then
+            # 新包：换行显示
+            current_pkg="${BASH_REMATCH[1]}"
+            current_stage="collecting"
+            download_count=0
+            collecting_start_time=$(date +%s)
+            printf "\n  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}%-40s${NC}" "$current_pkg" >&2
+        elif [ "$current_stage" = "collecting" ] && [ -n "$collecting_start_time" ]; then
+            # 收集阶段：定期更新时间（每处理几行更新一次，避免过于频繁）
+            if [ $((line_count % 5)) -eq 0 ]; then
+                local elapsed=$(($(date +%s) - collecting_start_time))
+                if [ $elapsed -gt 5 ]; then  # 超过5秒才显示（避免大多数快速包都显示时间）
+                    # 根据时长选择不同的提示
+                    local hint=""
+                    if [ $elapsed -gt 300 ]; then
+                        hint=" ${YELLOW}[网络慢或依赖树复杂，可尝试 Ctrl+C 重试]${NC}"
+                    elif [ $elapsed -gt 60 ]; then
+                        hint=" ${DIM}[大型包依赖解析中，请耐心等待]${NC}"
+                    fi
+                    printf "\r  ${CYAN}→${NC} ${GREEN}正在收集:${NC} ${BOLD}%-40s${NC} ${DIM}(已运行 %ds)${NC}%s          " \
+                        "$current_pkg" "$elapsed" "$hint" >&2
+                fi
+            fi
+        elif [[ "$line" =~ ^Downloading[[:space:]].*\.whl ]] || [[ "$line" =~ ^Downloading[[:space:]].*\.tar\.gz ]]; then
+            # 下载：原地更新计数，并尝试提取文件大小
+            download_count=$((download_count + 1))
+
+            # 初始化下载开始时间
+            if [ "$current_stage" != "downloading" ]; then
+                current_stage="downloading"
+                download_start_time=$(date +%s)
+                printf "\n  ${DIM}  ⬇${NC} 下载中..." >&2
+            fi
+
+            # 提取文件大小（格式: "Downloading ... (1.2 MB)"）
+            if [[ "$line" =~ \(([0-9.]+)[[:space:]]*(kB|MB|GB)\) ]]; then
+                local size="${BASH_REMATCH[1]}"
+                local unit="${BASH_REMATCH[2]}"
+                # 转换为 MB
+                case "$unit" in
+                    kB) last_file_size=$(echo "scale=2; $size / 1024" | bc 2>/dev/null || echo "0") ;;
+                    MB) last_file_size="$size" ;;
+                    GB) last_file_size=$(echo "scale=2; $size * 1024" | bc 2>/dev/null || echo "0") ;;
+                esac
+                total_downloaded_mb=$(echo "scale=2; $total_downloaded_mb + $last_file_size" | bc 2>/dev/null || echo "$total_downloaded_mb")
+
+                # 计算下载速度
+                local elapsed=$(($(date +%s) - download_start_time))
+                local speed_mb=0
+                if [ $elapsed -gt 0 ]; then
+                    speed_mb=$(echo "scale=2; $total_downloaded_mb / $elapsed" | bc 2>/dev/null || echo "0")
+                fi
+
+                printf "\r  ${DIM}  ⬇${NC} 下载中... ${CYAN}[%d 个文件, %.1f MB 已下载, %.2f MB/s]${NC}          " \
+                    "$download_count" "$total_downloaded_mb" "$speed_mb" >&2
+            else
+                printf "\r  ${DIM}  ⬇${NC} 下载中... ${CYAN}[%d 个文件]${NC}          " "$download_count" >&2
+            fi
+        elif [[ "$line" =~ ^Building[[:space:]]wheel ]] || [[ "$line" =~ ^Running[[:space:]]setup\.py ]]; then
+            # 编译：换行显示（重要阶段）
+            if [ "$current_stage" != "building" ]; then
+                current_stage="building"
+                printf "\n  ${YELLOW}  🔨${NC} 编译中... ${DIM}(可能需要几分钟)${NC}" >&2
+            else
+                # 编译中：原地更新时间
+                local current_time=$(date +%s)
+                local elapsed=$((current_time - start_time))
+                printf "\r  ${YELLOW}  🔨${NC} 编译中... ${DIM}(已用时 %ds)${NC}          " "$elapsed" >&2
+            fi
+        elif [[ "$line" =~ ^Successfully[[:space:]]installed ]]; then
+            # 完成：换行显示
+            printf "\n  ${GREEN}✓${NC} 安装完成: ${line#Successfully installed }\n" >&2
+            current_stage=""
+        elif [[ "$line" =~ ^Requirement[[:space:]]already[[:space:]]satisfied ]]; then
+            # 跳过已满足的依赖（减少输出噪音）
+            :
+        fi
+
+        # 时间戳提示（每60秒），包含网络性能分析
+        local current_time=$(date +%s)
+        local elapsed=$((current_time - start_time))
+        if [ $((current_time - last_update)) -ge 60 ]; then
+            local avg_speed=0
+            local network_status=""
+
+            # 计算平均下载速度
+            if [ $elapsed -gt 0 ] && [ "$(echo "$total_downloaded_mb > 0" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                avg_speed=$(echo "scale=2; $total_downloaded_mb / $elapsed" | bc 2>/dev/null || echo "0")
+
+                # 网络性能评估
+                if [ "$(echo "$avg_speed < 0.5" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                    network_status="${YELLOW}慢速网络${NC} (<0.5 MB/s)"
+                elif [ "$(echo "$avg_speed < 2" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                    network_status="${CYAN}正常网络${NC} (0.5-2 MB/s)"
+                else
+                    network_status="${GREEN}快速网络${NC} (>2 MB/s)"
+                fi
+
+                printf "\n${DIM}   [已运行 %ds，处理了 %d 行输出，已下载 %.1f MB @ %.2f MB/s | %b]${NC}\n" \
+                    "$elapsed" "$line_count" "$total_downloaded_mb" "$avg_speed" "$network_status" >&2
+            else
+                printf "\n${DIM}   [已运行 %ds，处理了 %d 行输出]${NC}\n" "$elapsed" "$line_count" >&2
+            fi
+
+            # 给出网络优化建议
+            if [ "$(echo "$avg_speed > 0 && $avg_speed < 0.3" | bc 2>/dev/null || echo 0)" = "1" ]; then
+                printf "${YELLOW}   提示: 下载速度较慢（%.2f MB/s），可能需要检查网络连接或使用镜像源${NC}\n" "$avg_speed" >&2
+            fi
+
+            last_update=$current_time
+        fi
+    done
+
+    # 清除最后一行（如果有残留）
+    printf "\n" >&2
+
+    # 读取退出码
+    if [ -f "${temp_output}.exit" ]; then
+        exit_code=$(cat "${temp_output}.exit")
+        rm -f "${temp_output}.exit"
+    fi
+
+    # 显示总体统计信息
+    local total_elapsed=$(($(date +%s) - start_time))
+    if [ "$(echo "$total_downloaded_mb > 0" | bc 2>/dev/null || echo 0)" = "1" ]; then
+        local final_avg_speed=$(echo "scale=2; $total_downloaded_mb / $total_elapsed" | bc 2>/dev/null || echo "0")
+        printf "\n${DIM}📊 安装统计: 共 %d 个文件, %.1f MB, 耗时 %ds, 平均 %.2f MB/s${NC}\n" \
+            "$download_count" "$total_downloaded_mb" "$total_elapsed" "$final_avg_speed" >&2
+    fi
+
+    echo "" >&2
+
+    if [ "$exit_code" = "0" ]; then
+        log_debug "命令成功 (exit=$exit_code): $cmd" "$context" "$phase"
+    else
+        log_error "命令失败 (exit=$exit_code): $cmd" "$context" "$phase"
+        if [ -s "$temp_output" ]; then
+            echo -e "${RED}错误输出:${NC}" >&2
+            tail -20 "$temp_output" >&2
         fi
     fi
 

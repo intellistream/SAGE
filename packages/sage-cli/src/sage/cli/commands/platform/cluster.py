@@ -101,6 +101,12 @@ def start_cluster(
         from .head import start_head
 
         start_head(force=force)
+    except typer.Exit as e:
+        # typer.Exit(0) 表示 Ray Head 已在运行，视为成功
+        if e.exit_code != 0:
+            typer.echo(f"❌ Head节点启动失败 (exit code: {e.exit_code})")
+            raise typer.Exit(1)
+        # exit_code == 0 表示已在运行，继续执行
     except Exception as e:
         typer.echo(f"❌ Head节点启动失败: {e}")
         raise typer.Exit(1)
@@ -121,6 +127,11 @@ def start_cluster(
         else:
             start_workers()
             typer.echo("✅ Worker节点启动完成")
+    except typer.Exit as e:
+        if e.exit_code != 0:
+            typer.echo(f"❌ Worker节点启动失败 (exit code: {e.exit_code})")
+            typer.echo("💡 Head节点已启动，可尝试手动启动Worker节点")
+            raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"❌ Worker节点启动失败: {e}")
         typer.echo("💡 Head节点已启动，可尝试手动启动Worker节点")

@@ -17,6 +17,25 @@ source "$(dirname "${BASH_SOURCE[0]}")/../fixes/cpp_extensions_fix.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../fixes/build_cache_cleaner.sh"
 
 # pip 缓存清理函数
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 clean_pip_cache() {
     log_info "开始清理 pip 缓存" "PIPCache"
     echo -e "${BLUE}🧹 清理 pip 缓存...${NC}"
@@ -55,13 +74,13 @@ clean_pip_cache() {
 # 验证C++扩展函数（扩展已在 sage-middleware 安装时自动构建）
 verify_cpp_extensions() {
     log_info "开始验证C++扩展" "CPPExt"
-    echo -e "${DIM}📝 详细日志: $SAGE_INSTALL_LOG${NC}"
+    echo -e "${DIM}📝 详细日志: ${SAGE_INSTALL_LOG:-}${NC}"
     echo -e "${DIM}   C++扩展已通过 sage-middleware 的 scikit-build-core 自动构建${NC}"
     echo -e "${DIM}   正在检查扩展可用性...${NC}"
     echo ""
 
     # 在CI环境中增加短暂延迟，确保文件系统同步
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
         sleep 1
     fi
 
@@ -145,7 +164,7 @@ except Exception as e:
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
             echo -e "${DIM}   1. 子模块未初始化：git submodule update --init --recursive${NC}"
             echo -e "${DIM}   2. 缺少构建工具：apt-get install build-essential cmake${NC}"
-            echo -e "${DIM}   3. 查看详细日志：cat $SAGE_INSTALL_LOG${NC}"
+            echo -e "${DIM}   3. 查看详细日志：cat ${SAGE_INSTALL_LOG:-}${NC}"
             return 1
         fi
 }
@@ -161,7 +180,7 @@ install_sage() {
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
-    if [[ (-n "$CI" || -n "$GITHUB_ACTIONS") && "$environment" = "conda" ]]; then
+    if [[ (-n "${CI:-}" || -n "${GITHUB_ACTIONS:-}") && "$environment" = "conda" ]]; then
         echo -e "${INFO} CI 环境中检测到 environment='conda'，强制使用 pip（CI 优化）"
         environment="pip"
     fi
@@ -366,7 +385,7 @@ install_sage() {
     log_info "安装结束" "MAIN"
 
     # 🔍 CI/CD 检查：验证没有从 PyPI 下载本地包
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" ]]; then
         echo ""
         echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"
         log_phase_start "依赖完整性检查" "MAIN"

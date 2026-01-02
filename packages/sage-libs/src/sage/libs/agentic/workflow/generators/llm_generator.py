@@ -69,17 +69,15 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
         """
         super().__init__(GenerationStrategy.LLM_DRIVEN)
 
-        # API Key: 优先级顺序
+        # API Key: 优先级顺序（不再隐式使用云端默认）
         # 1. 显式传入的参数
         # 2. SAGE_PIPELINE_BUILDER_API_KEY（专用于 Pipeline Builder）
-        # 3. DASHSCOPE_API_KEY（DashScope 官方变量名）
-        # 4. SAGE_CHAT_API_KEY（Gateway/Studio Chat 使用的密钥）
-        # 5. SAGE_DEBUG_API_KEY（开发调试密钥）
-        # 6. OPENAI_API_KEY（通用后备）
+        # 3. SAGE_CHAT_API_KEY（Gateway/Studio Chat 使用的密钥）
+        # 4. SAGE_DEBUG_API_KEY（开发调试密钥）
+        # 5. OPENAI_API_KEY（通用后备）
         self.api_key = (
             api_key
             or os.getenv("SAGE_PIPELINE_BUILDER_API_KEY")
-            or os.getenv("DASHSCOPE_API_KEY")
             or os.getenv("SAGE_CHAT_API_KEY")
             or os.getenv("SAGE_DEBUG_API_KEY")
             or os.getenv("OPENAI_API_KEY")
@@ -94,14 +92,28 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
             or os.getenv("OPENAI_MODEL_NAME", "qwen-max")
         )
 
-        # Base URL: 类似的优先级
+        # Base URL: 优先级（本地优先，无隐式云端默认）
         self.base_url = (
             base_url
             or os.getenv("SAGE_PIPELINE_BUILDER_BASE_URL")
             or os.getenv("SAGE_CHAT_BASE_URL")
             or os.getenv("SAGE_DEBUG_BASE_URL")
-            or os.getenv("OPENAI_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            or os.getenv("OPENAI_BASE_URL")
         )
+
+        # 如果未提供 base_url，尝试探测本地端点（LLM 8001 → 8901）
+        if not self.base_url:
+            from sage.common.config.ports import SagePorts
+
+            for port in [
+                SagePorts.get_recommended_llm_port(),
+                SagePorts.LLM_DEFAULT,
+                SagePorts.BENCHMARK_LLM,
+            ]:
+                candidate = f"http://localhost:{port}/v1"
+                if self._probe_endpoint(candidate):
+                    self.base_url = candidate
+                    break
 
         self.use_rag = use_rag
 
@@ -114,6 +126,24 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
             logger.info("Pipeline Builder available for LLM generation")
         except ImportError:
             logger.warning("Pipeline Builder not available (sage-cli not installed)")
+
+    def _probe_endpoint(self, url: str, timeout: float = 2.0) -> bool:
+        """探测端点是否可用
+
+        Args:
+            url: 要探测的端点 URL
+            timeout: 超时时间（秒）
+
+        Returns:
+            bool: 端点是否可用
+        """
+        try:
+            import requests
+
+            response = requests.get(f"{url.rstrip('/')}/models", timeout=timeout)
+            return response.status_code == 200
+        except Exception:
+            return False
 
     def generate(self, context: GenerationContext) -> GenerationResult:
         """使用 LLM 生成工作流"""
@@ -131,7 +161,7 @@ class LLMWorkflowGenerator(BaseWorkflowGenerator):
             return GenerationResult(
                 success=False,
                 strategy_used=self.strategy,
-                error="未配置 API 密钥，请设置 DASHSCOPE_API_KEY 或 SAGE_PIPELINE_BUILDER_API_KEY",
+                error="未配置 API 密钥，请设置 SAGE_PIPELINE_BUILDER_API_KEY 或 SAGE_CHAT_API_KEY",
                 generation_time=time.time() - start_time,
             )
 

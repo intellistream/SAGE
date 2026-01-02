@@ -27,7 +27,15 @@ except ImportError:
 # Export submodules
 __layer__ = "L3"
 
-from . import agentic, finetune, foundation, integrations, privacy, rag
+# NOTE: 'ann' module has been consolidated into 'anns' (unified ANNS structure)
+# Old structure: ann/ (interface) + anns/ (wrappers) + algorithms_impl/ (C++)
+# New structure: anns/{interface, wrappers, implementations}
+#
+# NOTE: 'libamm' submodule has been refactored into 'amms' (unified AMM structure)
+# Old structure: libamm/ (monolithic submodule with algorithms + benchmarks)
+# New structure: amms/{interface, wrappers, implementations}
+# Benchmarks moved to: sage-benchmark/benchmark_libamm/
+from . import agentic, amms, anns, finetune, foundation, integrations, privacy, rag
 
 __all__ = [
     "__version__",
@@ -35,6 +43,8 @@ __all__ = [
     "__email__",
     "foundation",
     "agentic",
+    "amms",
+    "anns",
     "rag",
     "integrations",
     "privacy",

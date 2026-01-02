@@ -36,28 +36,28 @@ classifiers = [
 # 核心依赖 - 只包含外部依赖
 dependencies = [
     # Backend API dependencies
-    "pydantic[email]>=2.0.0",
+    "pydantic[email]>=2.10.0,<3.0.0",
     # FastAPI 0.115+ 兼容 vLLM 0.12.0
-    "fastapi>=0.115,<0.125",
+    "fastapi>=0.115.0,<1.0.0",
     "starlette>=0.40,<0.51",
     # Uvicorn 需要 h11
-    "uvicorn[standard]>=0.34.0",
-    "h11>=0.8",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    "h11>=0.16.0,<1.0.0",
     "websockets>=11.0",
     "python-multipart>=0.0.6",
     "aiofiles>=23.0.0",
     "structlog>=23.0.0",
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",
-    "httpx>=0.25.0",  # 用于调用 sage-gateway
+    "httpx>=0.28.0,<1.0.0",  # 用于调用 sage-gateway
 
     # Auth
-    "passlib[argon2]>=1.7.4",
-    "python-jose[cryptography]>=3.3.0",
+    "passlib[argon2]>=1.7.4,<2.0.0",
+    "python-jose[cryptography]>=3.5.0,<4.0.0",
 
     # Utilities
-    "jinja2>=2.11.1",
-    "markdown>=3.4.4",
+    "jinja2>=3.1.0,<4.0.0",
+    "markdown>=3.4.4,<4.0.0",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
 ]
@@ -67,7 +67,7 @@ license = {text = "MIT"}
 [project.optional-dependencies]
 # SAGE 内部依赖
 sage-deps = [
-    "isage-common>=0.1.0",
+    "isage-common>=0.2.0",
     "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
     "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
     "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel

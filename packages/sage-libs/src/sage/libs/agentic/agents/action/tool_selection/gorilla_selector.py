@@ -136,7 +136,7 @@ class GorillaSelector(BaseToolSelector):
     def _create_llm_client(self) -> Any:
         """Create LLM client for selection stage."""
         try:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
+            from sage.llm import UnifiedInferenceClient
 
             # Always use create() for automatic local-first detection
             return UnifiedInferenceClient.create()

@@ -13,7 +13,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class OpenAIEmbedding(BaseEmbedding):
     """OpenAI Embedding API Wrapper
 
-    支持 OpenAI 官方 API 以及兼容的第三方 API（如 vLLM、Alibaba DashScope、DeepSeek 等）。
+    支持 OpenAI 官方 API 以及兼容的第三方 API（如 vLLM、DeepSeek 等）。
 
     特点:
         - ✅ 高质量 embedding
@@ -42,11 +42,11 @@ class OpenAIEmbedding(BaseEmbedding):
         ... )
         >>> vec = emb.embed("hello world")
         >>>
-        >>> # 兼容 API（如阿里云 DashScope）
+        >>> # 兼容 API（自定义端点）
         >>> emb = OpenAIEmbedding(
         ...     model="text-embedding-v1",
-        ...     api_key=os.getenv("DASHSCOPE_API_KEY"),
-        ...     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+        ...     api_key=os.getenv("OPENAI_API_KEY"),
+        ...     base_url=os.getenv("OPENAI_BASE_URL", "http://localhost:8090/v1")
         ... )
         >>> vec = emb.embed("你好世界")
         >>>
@@ -62,7 +62,7 @@ class OpenAIEmbedding(BaseEmbedding):
         "text-embedding-3-small": 1536,
         "text-embedding-3-large": 3072,
         "text-embedding-ada-002": 1536,
-        "text-embedding-v1": 1536,  # Alibaba DashScope
+        "text-embedding-v1": 1536,
     }
 
     def __init__(
@@ -97,8 +97,8 @@ class OpenAIEmbedding(BaseEmbedding):
                 "  1. 设置环境变量: export OPENAI_API_KEY='your-key'\n"  # pragma: allowlist secret
                 "  2. 传递参数: OpenAIEmbedding(api_key='your-key', ...)\n"  # pragma: allowlist secret
                 "\n"
-                "如果使用兼容 API（如阿里云 DashScope）:\n"
-                "  export OPENAI_API_KEY='your-dashscope-key'\n"  # pragma: allowlist secret
+                "如果使用兼容 API:\n"
+                "  export OPENAI_API_KEY='your-api-key'\n"  # pragma: allowlist secret
                 "  并指定 base_url 参数"
             )
 

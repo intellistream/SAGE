@@ -6,9 +6,9 @@ This module provides integration with external services and libraries:
 - LLM clients (HuggingFace)
 
 Note:
-    OpenAIClient has been migrated to sage.common.components.sage_llm.UnifiedInferenceClient (L1).
+    OpenAIClient has been migrated to sage.llm.UnifiedInferenceClient (L1).
     Please update imports:
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
 """
 
 # Vector Database Backends

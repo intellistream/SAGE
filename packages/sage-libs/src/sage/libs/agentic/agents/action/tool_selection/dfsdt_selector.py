@@ -164,7 +164,7 @@ class DFSDTSelector(BaseToolSelector):
         """Lazy initialization of LLM client."""
         if not self._llm_initialized:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
+                from sage.llm import UnifiedInferenceClient
 
                 self._llm_client = UnifiedInferenceClient.create()
                 self._llm_initialized = True

@@ -1,0 +1,21 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+import faiss
+from datasets import evaluate, load_sift1M
+
+xb, xq, xt, gt = load_sift1M()
+nq, d = xq.shape
+
+k = 32
+
+for nbits in 4, 6, 8, 10, 12:
+    index = faiss.IndexPQ(d, 8, nbits)
+    index.train(xt)
+    index.add(xb)
+
+    t, r = evaluate(index, xq, gt, k)
+    print("\t %7.3f ms per query, R@1 %.4f" % (t, r[1]))
+    del index

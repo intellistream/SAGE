@@ -181,6 +181,13 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 ./quickstart.sh --dev --yes    # Interactive mode: ./quickstart.sh
 ```
 
+⚡ **Auto-Acceleration**: Network optimization is now **enabled by default**:
+
+- 🌐 Auto-detects network location (China mainland → mirror sources)
+- 🚀 Parallel downloads (8 threads) + pre-compiled packages
+- ⏱️ **3-5x faster** installation: 12-18 min (vs 35-45 min)
+- 🔧 Disable: `./quickstart.sh --no-mirror --dev --yes`
+
 **PyPI Install**
 
 ```bash
@@ -198,7 +205,8 @@ sage doctor                    # Check installation
 ```
 
 📖 **Detailed guides**: [Installation Guide](docs/INSTALLATION_GUIDE.md) |
-[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md)
+[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md) |
+[Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ## Environment Configuration
 

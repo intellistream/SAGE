@@ -128,6 +128,16 @@ class JobManagerServer(BaseTcpServer):
             # 获取 autostop 参数
             autostop = request.get("autostop", False)
 
+            # 在反序列化之前添加额 Python 路径
+            # 这样反序列化时可以正确导入自定义模块
+            extra_python_paths = request.get("extra_python_paths", [])
+            if extra_python_paths:
+                self.logger.debug(f"Adding extra Python paths: {extra_python_paths}")
+                for path in extra_python_paths:
+                    if path not in sys.path:
+                        sys.path.insert(0, path)
+                        self.logger.debug(f"Added to sys.path: {path}")
+
             # 获取序列化的数据（新格式：base64编码的dill序列化数据）
             serialized_data_b64 = request.get("serialized_data")
             if serialized_data_b64:
@@ -165,6 +175,12 @@ class JobManagerServer(BaseTcpServer):
                     "message": "Failed to deserialize environment object",
                     "request_id": request.get("request_id"),
                 }
+
+            # 调试: 检查反序列化后的 jobmanager_host 值
+            self.logger.debug(
+                f"[SUBMIT-DEBUG] env.jobmanager_host={getattr(env, 'jobmanager_host', 'NOT_SET')}, "
+                f"env.jobmanager_port={getattr(env, 'jobmanager_port', 'NOT_SET')}"
+            )
 
             # 调用JobManager的submit_job方法，传递 autostop 参数
             self.logger.debug(
