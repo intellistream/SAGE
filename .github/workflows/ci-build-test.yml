@@ -323,7 +323,7 @@ jobs:
       - name: Run Frontend Checks
         run: |
           echo "🎨 运行前端检查 (Build & Test)..."
-          bash tools/check_frontend.sh
+          bash tools/dev/check_frontend.sh
 
       - name: Run installation validation suite
         run: |
