@@ -511,7 +511,7 @@ main() {
             echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
             echo -e "${DIM}如需使用 LibAMM 基准数据，请手动执行:${NC}"
             echo -e "  ${DIM}cd packages/sage-benchmark/src/sage/data && git lfs pull${NC}"
-            echo -e "  ${DIM}cd ../../../../sage-libs/src/sage/libs/libamm && bash tools/setup_data.sh${NC}"
+            echo -e "  ${DIM}cd ../benchmark/benchmark_amm && bash tools/setup_data.sh${NC}"
         fi
     else
         echo ""

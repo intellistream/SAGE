@@ -752,55 +752,115 @@ else:
         # C++ 构建依赖（pybind11等）在 build-system.requires 中声明，通过环境已安装
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
-        echo -e "${DIM}    ⏱️  包含 C++ 扩展构建，预计需要:${NC}"
-        echo -e "${DIM}       • 首次安装: 10-15 分钟${NC}"
-        echo -e "${DIM}       • 增量构建: 2-5 分钟${NC}"
-        echo ""
-        echo -e "${DIM}    💡 提示: 可在另一终端查看实时进度:${NC}"
-        echo -e "${DIM}       tail -f ~/.local/state/sage/logs/install_\$(date +%Y%m%d).log${NC}"
-        echo ""
 
-        log_info "开始安装: packages/sage-middleware (包含 C++ 扩展)" "INSTALL"
-        log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
-        log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
+        # 智能跳过检查：如果 C++ 源文件未修改且包已安装，则跳过重新编译
+        local should_rebuild=true
+        local skip_reason=""
 
-        # 显示进度指示器
-        echo -ne "${DIM}    ⚙️  正在编译 C++ 扩展... "
+        # 检查是否已安装
+        if $PIP_CMD show isage-middleware &>/dev/null; then
+            log_debug "isage-middleware 已安装，检查是否需要重新编译..." "INSTALL"
 
-        # 执行安装（使用临时日志文件）
-        local temp_install_log=$(mktemp)
-        if $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps > "$temp_install_log" 2>&1; then
-            echo -e "✓${NC}"
+            # 计算 C++ 源文件哈希（包括 CMakeLists.txt）
+            local cpp_source_hash=""
+            local cache_dir="$SAGE_ROOT/.sage/cache"
+            local hash_cache="$cache_dir/middleware_cpp_source.hash"
 
-            # 将输出追加到主日志
-            if [ -f "$temp_install_log" ]; then
-                cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
+            mkdir -p "$cache_dir"
+
+            # 计算当前源文件哈希（C++/头文件/CMakeLists.txt）
+            if command -v sha256sum &>/dev/null; then
+                cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                    -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                    -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+            elif command -v shasum &>/dev/null; then
+                cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
+                    -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
+                    -exec shasum -a 256 {} + 2>/dev/null | sort | shasum -a 256 | cut -d' ' -f1)
             fi
-            rm -f "$temp_install_log"
 
-            log_info "安装成功: packages/sage-middleware" "INSTALL"
-            log_pip_package_info "isage-middleware" "INSTALL"
-            echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
+            # 比较哈希值
+            if [ -n "$cpp_source_hash" ] && [ -f "$hash_cache" ]; then
+                local cached_hash=$(cat "$hash_cache" 2>/dev/null)
+                if [ "$cpp_source_hash" = "$cached_hash" ]; then
+                    should_rebuild=false
+                    skip_reason="C++ 源文件未修改"
+                    log_info "跳过 sage-middleware 重新编译：C++ 源文件未修改（哈希匹配）" "INSTALL"
+                else
+                    log_debug "C++ 源文件已修改，需要重新编译" "INSTALL"
+                    log_debug "缓存哈希: $cached_hash" "INSTALL"
+                    log_debug "当前哈希: $cpp_source_hash" "INSTALL"
+                fi
+            else
+                log_debug "首次安装或缺少哈希缓存，将进行编译" "INSTALL"
+            fi
         else
-            echo -e "✗${NC}"
+            log_debug "isage-middleware 未安装，需要编译" "INSTALL"
+        fi
 
-            log_error "安装 sage-middleware 失败！" "INSTALL"
-            log_error "这通常是由于 C++ 编译错误，请检查日志: ${SAGE_INSTALL_LOG:-}" "INSTALL"
+        # 根据检查结果决定是否编译
+        if [ "$should_rebuild" = false ]; then
+            echo -e "${DIM}    ⏭️  跳过编译（$skip_reason）${NC}"
+            log_info "跳过 sage-middleware 安装：$skip_reason" "INSTALL"
+            echo -e "${CHECK} sage-middleware 已是最新版本（跳过编译）"
+        else
+            # 需要重新编译
+            echo -e "${DIM}    ⏱️  包含 C++ 扩展构建，预计需要:${NC}"
+            echo -e "${DIM}       • 首次安装: 10-15 分钟${NC}"
+            echo -e "${DIM}       • 增量构建: 2-5 分钟${NC}"
+            echo ""
+            echo -e "${DIM}    💡 提示: 可在另一终端查看实时进度:${NC}"
+            echo -e "${DIM}       tail -f ~/.local/state/sage/logs/install_\$(date +%Y%m%d).log${NC}"
+            echo ""
 
-            # 将错误输出追加到主日志
-            if [ -f "$temp_install_log" ]; then
-                cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
+            log_info "开始安装: packages/sage-middleware (包含 C++ 扩展)" "INSTALL"
+            log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
+            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
 
-                # 尝试提取编译错误的关键信息
-                local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
-                log_error "编译错误摘要:\n$error_context" "INSTALL"
+            # 显示进度指示器
+            echo -ne "${DIM}    ⚙️  正在编译 C++ 扩展... "
+
+            # 执行安装（使用临时日志文件）
+            local temp_install_log=$(mktemp)
+            if $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps > "$temp_install_log" 2>&1; then
+                echo -e "✓${NC}"
+
+                # 将输出追加到主日志
+                if [ -f "$temp_install_log" ]; then
+                    cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
+                fi
+                rm -f "$temp_install_log"
+
+                log_info "安装成功: packages/sage-middleware" "INSTALL"
+                log_pip_package_info "isage-middleware" "INSTALL"
+                echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
+
+                # 保存当前 C++ 源文件哈希到缓存
+                if [ -n "$cpp_source_hash" ]; then
+                    echo "$cpp_source_hash" > "$hash_cache"
+                    log_debug "已保存 C++ 源文件哈希到缓存: $hash_cache" "INSTALL"
+                fi
+            else
+                echo -e "✗${NC}"
+
+                log_error "安装 sage-middleware 失败！" "INSTALL"
+                log_error "这通常是由于 C++ 编译错误，请检查日志: ${SAGE_INSTALL_LOG:-}" "INSTALL"
+
+                # 将错误输出追加到主日志
+                if [ -f "$temp_install_log" ]; then
+                    cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
+
+                    # 尝试提取编译错误的关键信息
+                    local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
+                    log_error "编译错误摘要:\n$error_context" "INSTALL"
+                fi
+
+                rm -f "$temp_install_log"
+
+                echo -e "${CROSS} 安装 sage-middleware 失败！"
+                echo -e "${DIM}提示: 检查日志文件获取详细错误信息: ${SAGE_INSTALL_LOG:-}${NC}"
+                return 1
             fi
-
-            rm -f "$temp_install_log"
-
-            echo -e "${CROSS} 安装 sage-middleware 失败！"
-            echo -e "${DIM}提示: 检查日志文件获取详细错误信息: ${SAGE_INSTALL_LOG:-}${NC}"
-            return 1
         fi
 
         # 调试：检查 .so 文件位置（仅在 CI 环境）

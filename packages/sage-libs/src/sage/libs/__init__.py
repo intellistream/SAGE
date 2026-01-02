@@ -30,7 +30,12 @@ __layer__ = "L3"
 # NOTE: 'ann' module has been consolidated into 'anns' (unified ANNS structure)
 # Old structure: ann/ (interface) + anns/ (wrappers) + algorithms_impl/ (C++)
 # New structure: anns/{interface, wrappers, implementations}
-from . import agentic, anns, finetune, foundation, integrations, privacy, rag
+#
+# NOTE: 'libamm' submodule has been refactored into 'amms' (unified AMM structure)
+# Old structure: libamm/ (monolithic submodule with algorithms + benchmarks)
+# New structure: amms/{interface, wrappers, implementations}
+# Benchmarks moved to: sage-benchmark/benchmark_libamm/
+from . import agentic, amms, anns, finetune, foundation, integrations, privacy, rag
 
 __all__ = [
     "__version__",
@@ -38,7 +43,8 @@ __all__ = [
     "__email__",
     "foundation",
     "agentic",
-    "ann",
+    "amms",
+    "anns",
     "rag",
     "integrations",
     "privacy",

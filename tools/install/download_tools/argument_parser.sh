@@ -110,6 +110,7 @@ CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
 INSTALL_VLLM=true          # 默认安装 vLLM 本地后端（sageLLM 可选）
 INSTALL_VLLM_EXPLICIT=false
 VLLM_FROM_SOURCE=false     # 是否从本地源码安装 vLLM
+FORCE_REBUILD=false        # 强制重新编译 C++ 扩展（跳过智能缓存检查）
 
 # 检测当前Python环境
 detect_current_environment() {
