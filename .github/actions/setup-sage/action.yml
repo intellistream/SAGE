@@ -134,6 +134,9 @@ runs:
         # Ensure ~/.local/bin is in PATH for pip-installed CLI tools
         export PATH="$HOME/.local/bin:$PATH"
 
+        # Make PATH persistent for subsequent steps in workflow
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
         # Make scripts executable
         chmod +x ./tools/install/core/ci_install_wrapper.sh
         chmod +x ./quickstart.sh
