@@ -42,8 +42,8 @@ dependencies = [
     "numpy>=1.26.0,<2.3.0",
 
     # ========== 课题组算法库 ==========
-    # LibAMM - Approximate Matrix Multiplication Library
-    "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel (独立维护)
+    # Note: AMM algorithms are part of sage-libs (amms/ directory), not external dependency
+    # Users can optionally install isage-amms separately for standalone use
 
     # Libs-specific dependencies
     # Vector databases
