@@ -46,6 +46,39 @@ response = client.chat([{"role": "user", "content": "Hello"}])
 
 ## CRITICAL Coding Principles
 
+### ❌ NEVER MANUAL PIP INSTALL - ALWAYS USE pyproject.toml
+**ALL dependencies MUST be declared in pyproject.toml. NEVER use manual `pip install` commands.**
+
+This is a **project-wide principle** to ensure reproducibility and consistency.
+
+#### ❌ FORBIDDEN Operations:
+
+```bash
+pip install transformers              # ❌ Manual install
+pip install torch==2.7.0              # ❌ Manual version
+pip install vllm                      # ❌ Manual dependency
+```
+
+#### ✅ CORRECT Operations:
+
+```toml
+# In packages/*/pyproject.toml
+dependencies = [
+    "transformers>=4.52.0,<4.54.0",  # ✅ Declared in pyproject.toml
+    "torch>=2.7.0,<3.0.0",           # ✅ Version constraints
+    "vllm>=0.9.2,<0.10",             # ✅ Optional dependencies
+]
+```
+
+```bash
+# Then reinstall packages
+pip install -e packages/sage-middleware -e packages/sage-apps -e packages/sage-libs
+```
+
+**Why**: Ensures reproducibility, tracks dependency changes in git, prevents version conflicts, maintains single source of truth.
+
+**Enforcement**: Code review, CI/CD checks. Any manual pip install should trigger immediate refactoring to pyproject.toml.
+
 ### ❌ NO FALLBACK LOGIC - PROJECT-WIDE RULE
 **NEVER use try-except fallback patterns anywhere in the codebase.**
 
