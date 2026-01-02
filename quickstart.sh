@@ -417,6 +417,18 @@ main() {
                 }
             fi
 
+            # 配置 Git 设置
+            echo -e "${DIM}   配置 Git 设置（rename limit, submodules）...${NC}"
+            if [ -x "$SAGE_ROOT/tools/git-tools/configure-git.sh" ]; then
+                if "$SAGE_ROOT/tools/git-tools/configure-git.sh" >/dev/null 2>&1; then
+                    echo -e "${GREEN}   ✅ Git 配置完成${NC}"
+                else
+                    echo -e "${YELLOW}   ⚠️  Git 配置失败，但不影响使用${NC}"
+                fi
+            else
+                echo -e "${DIM}   ℹ️  Git 配置脚本不存在，跳过${NC}"
+            fi
+
             # 安装主仓库的 pre-commit hooks
             if command -v pre-commit >/dev/null 2>&1; then
                 echo -e "${DIM}   配置主仓库 pre-commit hooks...${NC}"
