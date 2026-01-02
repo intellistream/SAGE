@@ -192,15 +192,15 @@ install_vllm_optional_dependencies() {
         log_info "使用 vllm-minimal extra（torch 已满足要求）" "INSTALL"
     else
         extra_name="vllm"
-        echo -e "${INFO_MARK} 使用 vllm（含 torch >= 2.7.0）"
+        echo -e "${INFO_MARK} 使用 vllm（含 torch >= 2.0.0）"
         log_info "使用 vllm extra（包含 torch 依赖）" "INSTALL"
     fi
 
-    # 使用简化的安装方式
+    # vLLM 依赖现在在 sage-llm-core 中声明
     echo -e "${DIM}  安装 vLLM 依赖（extra: $extra_name）...${NC}"
-    log_info "开始安装 vLLM 依赖: isage-common[$extra_name]" "INSTALL"
+    log_info "开始安装 vLLM 依赖: isage-llm-core[$extra_name]" "INSTALL"
 
-    local install_cmd="$PIP_CMD install 'isage-common[$extra_name]' $pip_args"
+    local install_cmd="$PIP_CMD install 'isage-llm-core[$extra_name]' $pip_args"
 
     if log_pip_install_with_progress "INSTALL" "vLLM" "$install_cmd"; then
         log_success "vLLM 运行时依赖安装完成" "INSTALL"
@@ -209,7 +209,7 @@ install_vllm_optional_dependencies() {
     else
         log_warn "vLLM 运行时依赖安装失败" "INSTALL"
         echo -e "${WARNING} vLLM 依赖安装失败"
-        echo -e "${DIM}   可稍后手动运行: pip install 'isage-common[$extra_name]'${NC}"
+        echo -e "${DIM}   可稍后手动运行: pip install 'isage-llm-core[$extra_name]'${NC}"
         return 1
     fi
 }

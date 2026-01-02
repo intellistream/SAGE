@@ -114,8 +114,9 @@ full = [
 ]
 
 # LLM inference (vLLM) - 需要 GPU
+# 依赖 sage-llm-core 的 vllm extra
 llm = [
-    "vllm>=0.10.1,<0.13",
+    "isage-llm-core[vllm]>=0.1.0",
 ]
 
 # GPU 加速微调 - 需要 CUDA 环境

@@ -35,6 +35,19 @@ dependencies = [
 license = { text = "MIT" }
 
 [project.optional-dependencies]
+# vLLM inference backend (requires GPU, WSL2 compatible version)
+# NOTE: vLLM 0.10+ has WSL2 compatibility issues (hangs during model loading)
+# See: https://github.com/vllm-project/vllm/issues/xxx
+vllm-minimal = [
+    "vllm>=0.9.2,<0.10",  # WSL2-compatible version
+]
+
+# Full vLLM support with torch
+vllm = [
+    "vllm>=0.9.2,<0.10",
+    "torch>=2.0.0,<3.0.0",
+]
+
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",

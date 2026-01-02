@@ -434,7 +434,7 @@ show_installation_menu() {
             INSTALL_VLLM=false
             INSTALL_VLLM_EXPLICIT=true
             echo -e "${DIM}提示: 跳过 vLLM 本地后端。稍后可通过以下命令安装以供 sageLLM 控制平面使用:${NC}"
-            echo -e "${DIM}  pip install 'isage-common[vllm]'${NC}"
+            echo -e "${DIM}  pip install 'isage-llm-core[vllm]'${NC}"
             ;;
         *)
             # 默认安装
@@ -506,7 +506,7 @@ show_parameter_help() {
     echo ""
     echo -e "  ${BOLD}--no-vllm, --skip-vllm${NC}                      ${YELLOW}跳过 vLLM 本地后端${NC}"
     echo -e "    ${DIM}适用于 CPU 环境、磁盘空间有限、或计划使用其他/远端后端${NC}"
-    echo -e "    ${DIM}稍后可手动安装: pip install 'isage-common[vllm]'${NC}"
+    echo -e "    ${DIM}稍后可手动安装: pip install 'isage-llm-core[vllm]'${NC}"
     echo ""
     echo -e "  ${BOLD}--vllm-source, --vllm-from-source${NC}           ${PURPLE}从本地源码编译安装 vLLM${NC}"
     echo -e "    ${DIM}使用 sageLLM/engines/vllm 目录下的源码编译安装${NC}"
