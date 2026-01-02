@@ -123,8 +123,26 @@ installation for most users as it:
 - ✅ Smallest package size (~50-100MB)
 - ✅ Compatible with any PyTorch installation
 
-**Note**: If you have `libpapi-dev` installed, PAPI support will be automatically enabled during
-installation. Otherwise, it will be silently disabled without affecting functionality.
+**GPU-accelerated version** (for users with NVIDIA GPUs):
+
+```bash
+# Option 1: Automatic detection (recommended)
+# Step 1: Install PyTorch with CUDA
+pip install torch --index-url https://download.pytorch.org/whl/cu121  # CUDA 12.1
+
+# Step 2: Install isage-amms (CUDA auto-detected from PyTorch)
+pip install isage-amms --no-binary :all:
+
+# Option 2: Force enable CUDA
+ENABLE_CUDA=1 pip install isage-amms --no-binary :all:
+```
+
+**Note**:
+
+- PAPI: If you have `libpapi-dev` installed, PAPI support will be automatically enabled. Otherwise,
+  it will be silently disabled without affecting functionality.
+- CUDA: If your PyTorch installation supports CUDA (`torch.cuda.is_available()`), CUDA will be
+  automatically enabled during build.
 
 ### Build Requirements (Source Installation)
 
@@ -160,33 +178,19 @@ For building from source with optional features, you'll need:
 
 ### Advanced Installation Options
 
-#### GPU Support (Build from Source)
+#### Hardware Performance Counters
 
-For CUDA acceleration:
-
-```bash
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE/packages/sage-libs
-ENABLE_CUDA=1 pip install -e .
-```
-
-**Note**: Requires NVIDIA GPU and CUDA toolkit installed.
-
-#### Hardware Performance Counters (Build from Source)
-
-For PAPI hardware performance analysis:
-
-**Option 1: Automatic (Recommended)**
+For PAPI hardware performance analysis, simply install `libpapi-dev` before installing isage-amms:
 
 ```bash
-# Install system library first
+# Install system library
 sudo apt-get install libpapi-dev
 
-# PAPI will be auto-detected and enabled
+# PAPI will be auto-detected during installation
 pip install isage-amms --no-binary :all:
 ```
 
-**Option 2: Force Enable/Disable**
+**Force enable/disable**:
 
 ```bash
 # Force enable (fails if libpapi-dev not installed)
@@ -196,17 +200,17 @@ ENABLE_AMMS_PAPI=1 pip install isage-amms --no-binary :all:
 ENABLE_AMMS_PAPI=0 pip install isage-amms --no-binary :all:
 ```
 
-**Note**: PAPI is automatically detected. You only need `ENABLE_AMMS_PAPI` to override
-auto-detection.
+#### Development Installation
 
-#### Full Features (CUDA + PAPI)
+For SAGE framework development:
 
 ```bash
-sudo apt-get install libpapi-dev nvidia-cuda-toolkit
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE/packages/sage-libs
-ENABLE_CUDA=1 ENABLE_AMMS_PAPI=1 pip install -e .
+pip install -e .
 ```
+
+This will install in editable mode with automatic CUDA and PAPI detection.
 
 ### Build from Source (High-Memory Machine Required)
 

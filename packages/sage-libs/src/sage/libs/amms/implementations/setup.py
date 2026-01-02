@@ -97,6 +97,35 @@ class CMakeBuild(build_ext):
                 print("ℹ PAPI support auto-disabled (libpapi-dev not found)")
                 print("  Install with: sudo apt-get install libpapi-dev")
 
+        # 决定是否启用 CUDA
+        # 检测方式：
+        # 1. 环境变量 ENABLE_CUDA=1
+        # 2. 检查是否安装了 cuda extra (通过检查 torch+cu 版本)
+        env_cuda = os.environ.get("ENABLE_CUDA", "auto")
+
+        def check_cuda_available():
+            """检查 PyTorch 是否支持 CUDA"""
+            try:
+                import torch
+
+                return torch.cuda.is_available()
+            except Exception:
+                return False
+
+        if env_cuda == "1" or env_cuda.lower() == "on" or env_cuda.lower() == "true":
+            enable_cuda = True
+            print("✓ CUDA support enabled (forced by ENABLE_CUDA)")
+        elif env_cuda == "0" or env_cuda.lower() == "off" or env_cuda.lower() == "false":
+            enable_cuda = False
+            print("ℹ CUDA support disabled (forced by ENABLE_CUDA)")
+        else:
+            # 自动检测 CUDA
+            enable_cuda = check_cuda_available()
+            if enable_cuda:
+                print("✓ CUDA support auto-enabled (PyTorch CUDA detected)")
+            else:
+                print("ℹ CUDA support auto-disabled (CPU-only PyTorch or no GPU)")
+
         cmake_args = [
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
@@ -106,6 +135,16 @@ class CMakeBuild(build_ext):
             "-DCMAKE_INSTALL_PREFIX=/usr/local/lib",  # pragma: allowlist secret
             "-DENABLE_PAPI=ON" if enable_papi else "-DENABLE_PAPI=OFF",
         ]
+
+        # 添加 CUDA 相关配置
+        if enable_cuda:
+            cmake_args.append("-DENABLE_CUDA=ON")
+            # 可选：设置 CUDA 架构
+            cuda_arch = os.environ.get("CUDA_ARCH", "")
+            if cuda_arch:
+                cmake_args.append(f"-DCMAKE_CUDA_ARCHITECTURES={cuda_arch}")
+        else:
+            cmake_args.append("-DENABLE_CUDA=OFF")
 
         cfg = "Debug" if self.debug else "Release"
         cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
@@ -142,6 +181,22 @@ setup(
         "torch>=2.0.0",  # Required by LibAMM internally (DO NOT REMOVE)
         "pybind11>=2.10.0",  # Python bindings
     ],
+    # Optional dependencies (extras)
+    extras_require={
+        # CUDA support: Install PyTorch with CUDA
+        # Usage: pip install isage-amms[cuda]
+        "cuda": [
+            # Note: User should install PyTorch with CUDA manually:
+            # pip install torch --index-url https://download.pytorch.org/whl/cu121
+            # We just document it here, actual CUDA detection is automatic
+        ],
+        # Development dependencies
+        "dev": [
+            "pytest>=7.0.0",
+            "black>=23.0.0",
+            "mypy>=1.0.0",
+        ],
+    },
     python_requires=">=3.8",
     zip_safe=False,
     classifiers=[
