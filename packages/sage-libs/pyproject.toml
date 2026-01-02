@@ -86,8 +86,8 @@ dependencies = [
     # 监控和可视化
     "tensorboard>=2.14.0",
 
-    # TRL for RLHF/DPO (0.22.x compatible with transformers<4.56)
-    "trl>=0.22.0,<0.23.0",
+    # TRL for RLHF/DPO (0.20.x compatible with transformers<4.55)
+    "trl>=0.20.0,<0.21.0",
 ]
 
 [project.optional-dependencies]
