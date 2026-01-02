@@ -1,0 +1,23 @@
+random-xs:
+  faiss_HNSW:
+    module: benchmark_anns.bench.algorithms.faiss_HNSW.faiss_HNSW
+    constructor: FaissHnsw
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"efConstruction": 120, "indexkey": "HNSW16"}]
+        query-args: |
+          [{"ef": 40}]
+
+sift:
+  faiss_HNSW:
+    module: benchmark_anns.bench.algorithms.faiss_HNSW.faiss_HNSW
+    constructor: FaissHnsw
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"efConstruction": 40, "indexkey": "HNSW32"}]
+        query-args: |
+          [{"ef": 40}]

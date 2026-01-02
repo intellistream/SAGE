@@ -1,0 +1,8 @@
+//
+// Created by tony on 04/06/22.
+//
+
+#ifndef LIBAMM_PYBIND_CONFIG_H_IN_H_
+#define LIBAMM_PYBIND_CONFIG_H_IN_H_
+#define LibAMM_PYBIND @LibAMM_PYBIND@
+#endif

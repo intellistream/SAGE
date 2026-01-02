@@ -4,6 +4,7 @@ import socket
 import time
 from pathlib import Path
 
+from sage.common.config.ports import SagePorts
 from sage.common.core import SourceFunction
 
 
@@ -113,7 +114,7 @@ class SocketSource(SourceFunction):
         super().__init__(**kwargs)
         self.config = config or {}
         self.host = self.config.get("host", "127.0.0.1")
-        self.port = self.config.get("port", 8888)
+        self.port = self.config.get("port", SagePorts.GATEWAY_DEFAULT)
         self.protocol = self.config.get("protocol", "tcp").lower()
         self.reconnect = self.config.get("reconnect", True)
         self.reconnect_interval = self.config.get("reconnect_interval", 5)

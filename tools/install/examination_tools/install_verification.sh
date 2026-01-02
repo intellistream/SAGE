@@ -6,6 +6,25 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # 设置 Python 命令（使用安装过程中设置的环境变量）
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 PYTHON_CMD="${PYTHON_CMD:-python3}"
 SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"  # 可能由安装流程设置
 
@@ -38,10 +57,10 @@ conda_env_exists() {
 }
 
 get_sage_cli_env() {
-    if [ -n "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ]; then
         # 验证环境是否存在
-        if conda_env_exists "$SAGE_ENV_NAME"; then
-            echo "$SAGE_ENV_NAME"
+        if conda_env_exists "${SAGE_ENV_NAME:-}"; then
+            echo "${SAGE_ENV_NAME:-}"
             return
         fi
     fi
@@ -268,25 +287,70 @@ except Exception as e:
 verify_sage_imports() {
     echo -e "${BLUE}📚 验证 SAGE 包导入...${NC}"
 
-    local sage_packages=("sage" "sage.common" "sage.kernel" "sage.libs" "sage.middleware")
+    # 核心包列表：按层级顺序验证
+    # L1: sage-common, sage-llm-core
+    # L2: sage-platform
+    # L3: sage-kernel, sage-libs
+    # L4: sage-middleware
+    # L5: sage-apps, sage-benchmark
+    # L6: sage-cli, sage-studio, sage-llm-gateway, sage-edge, sage-tools
+    # Meta: sage
+    local sage_packages=(
+        "sage"                    # Meta package
+        "sage.common"             # L1: Foundation
+        "sage.llm"                # L1: LLM Core
+        "sage.platform"           # L2: Platform
+        "sage.kernel"             # L3: Kernel
+        "sage.libs"               # L3: Libraries
+        "sage.middleware"         # L4: Middleware (C++ extensions)
+        "sage.apps"               # L5: Applications (optional)
+        "sage.benchmark"          # L5: Benchmarks (optional)
+        "sage.cli"                # L6: CLI (optional)
+        "sage.studio"             # L6: Studio (optional)
+        "sage.llm.gateway"        # L6: LLM Gateway (optional)
+        "sage.edge"               # L6: Edge (optional)
+        "sage.tools"              # L6: Dev Tools (optional)
+    )
     local failed_imports=()
+    local optional_failed=()
 
     for pkg in "${sage_packages[@]}"; do
+        # 判断是否为可选包（L5-L6 层）
+        local is_optional=false
+        if [[ "$pkg" =~ ^sage\.(apps|benchmark|cli|studio|llm\.gateway|edge|tools)$ ]]; then
+            is_optional=true
+        fi
+
         # 使用转义避免 shell 变量展开问题
         if $PYTHON_CMD -c "import ${pkg}; print('${pkg}', ${pkg}.__version__)" &> /dev/null; then
             local version=$($PYTHON_CMD -c "import ${pkg}; print(${pkg}.__version__)" 2>/dev/null)
             echo -e "${GREEN}   ✅ $pkg $version 导入成功${NC}"
         else
-            echo -e "${RED}   ❌ $pkg 导入失败${NC}"
-            failed_imports+=("$pkg")
+            if [ "$is_optional" = true ]; then
+                echo -e "${YELLOW}   ⚠️  $pkg 导入失败（可选包）${NC}"
+                optional_failed+=("$pkg")
+            else
+                echo -e "${RED}   ❌ $pkg 导入失败${NC}"
+                failed_imports+=("$pkg")
+            fi
         fi
     done
 
+    echo ""
+    echo -e "${DIM}   说明：${NC}"
+    echo -e "${DIM}   • L1-L4 为核心层，必须能够导入${NC}"
+    echo -e "${DIM}   • L5-L6 为应用层，根据安装模式可能不存在${NC}"
+    echo ""
+
     if [ ${#failed_imports[@]} -eq 0 ]; then
-        log_verification_result "sage_imports" "PASS" "所有 SAGE 包导入成功"
+        if [ ${#optional_failed[@]} -eq 0 ]; then
+            log_verification_result "sage_imports" "PASS" "所有 SAGE 包导入成功"
+        else
+            log_verification_result "sage_imports" "PASS" "核心包导入成功（${#optional_failed[@]} 个可选包未安装）"
+        fi
         return 0
     else
-        log_verification_result "sage_imports" "FAIL" "SAGE 包导入失败: ${failed_imports[*]}"
+        log_verification_result "sage_imports" "FAIL" "核心包导入失败: ${failed_imports[*]}"
         return 1
     fi
 }

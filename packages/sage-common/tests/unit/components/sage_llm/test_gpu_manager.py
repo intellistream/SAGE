@@ -13,9 +13,21 @@ from unittest.mock import patch
 
 import pytest
 
-from sage.common.components.sage_llm.sageLLM.control_plane.gpu_manager import (
+pytest.importorskip(
+    "sage.llm.control_plane.gpu_manager",
+    reason="sage-llm-core package not available; skip GPU manager tests.",
+)
+
+import pytest
+
+from sage.llm.control_plane.gpu_manager import (
     GPUResourceManager,
     GPUStatus,
+)
+
+pytest.importorskip(
+    "sage.llm.control_plane.gpu_manager",
+    reason="sage-llm-core control_plane not available; skip GPU manager tests.",
 )
 
 

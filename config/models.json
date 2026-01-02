@@ -3,7 +3,7 @@
         "name": "Qwen/Qwen2.5-32B-Instruct",
         "base_url": "http://127.0.0.1:8901/v1",
         "is_local": true,
-        "default": true,
+        "default": false,
         "api_key": ""
     },
     {
@@ -43,7 +43,7 @@
         "is_local": false,
         "description": "Huawei Pangu 1B (Container: base-sage)",
         "engine_kind": "llm",
-        "api_key": "${PANGU_API_KEY}",
+        "api_key": "",
         "default": false
     },
     {
@@ -52,7 +52,7 @@
         "is_local": false,
         "description": "Huawei Pangu 7B (Container: base-sage)",
         "engine_kind": "llm",
-        "api_key": "${PANGU_API_KEY}",
+        "api_key": "",
         "default": false
     },
     {
@@ -61,6 +61,13 @@
         "description": "Large Embedding Model (Recommended)",
         "engine_kind": "embedding",
         "default": false,
+        "api_key": ""
+    },
+    {
+        "name": "qwen-turbo-2025-02-11",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "is_local": false,
+        "default": true,
         "api_key": ""
     }
 ]

@@ -96,7 +96,7 @@ class RefinerExperimentConfig:
 
     # === 生成配置 ===
     generator_model: str = "Llama-3.1-8B-Instruct"
-    generator_base_url: str = "http://localhost:8888/v1"
+    generator_base_url: str = "http://localhost:8889/v1"
 
     # === 输出配置 ===
     output_dir: str = "./.benchmarks/refiner"

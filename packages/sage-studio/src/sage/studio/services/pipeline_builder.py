@@ -191,7 +191,6 @@ class PipelineBuilder:
         从 ~/.sage/.env.json 加载环境变量
 
         支持的变量:
-        - DASHSCOPE_API_KEY: 阿里云 DashScope API
         - OPENAI_API_KEY: OpenAI API
         - 其他自定义环境变量
         """
@@ -216,6 +215,24 @@ class PipelineBuilder:
     def _load_env_from_config(self) -> dict:
         """从缓存的配置中读取环境变量"""
         return self._env_config
+
+    def _probe_url(self, url: str, timeout: float = 2.0) -> bool:
+        """探测端点是否可用
+
+        Args:
+            url: 要探测的端点 URL
+            timeout: 超时时间（秒）
+
+        Returns:
+            bool: 端点是否可用
+        """
+        try:
+            import requests
+
+            response = requests.get(f"{url.rstrip('/')}/models", timeout=timeout)
+            return response.status_code == 200
+        except Exception:
+            return False
 
     def _enhance_operator_config(self, operator_class, config: dict) -> dict:
         """
@@ -242,50 +259,40 @@ class PipelineBuilder:
 
             # 确保总是有 api_key 字段（即使为 None）
             if "api_key" not in enhanced:
-                # Qwen 模型 → DashScope
-                if "qwen" in model.lower():
-                    api_key = os.environ.get(
-                        "DASHSCOPE_API_KEY"
-                    ) or self._load_env_from_config().get("DASHSCOPE_API_KEY")
-                    if api_key:
-                        enhanced["api_key"] = api_key
-                        if "base_url" not in enhanced:
-                            enhanced["base_url"] = (
-                                "https://dashscope.aliyuncs.com/compatible-mode/v1"
-                            )
-                        print(f"  ✓ Qwen 模型 '{model}' → DashScope API")
-                    else:
-                        enhanced["api_key"] = None
-                        print("  ⚠️ 缺少 DASHSCOPE_API_KEY")
+                api_key = (
+                    os.environ.get("SAGE_PIPELINE_BUILDER_API_KEY")
+                    or os.environ.get("SAGE_CHAT_API_KEY")
+                    or os.environ.get("OPENAI_API_KEY")
+                    or self._load_env_from_config().get("SAGE_PIPELINE_BUILDER_API_KEY")
+                    or self._load_env_from_config().get("SAGE_CHAT_API_KEY")
+                )
+                enhanced["api_key"] = api_key
 
-                # GPT 模型 → OpenAI
-                elif "gpt" in model.lower():
-                    api_key = os.environ.get("OPENAI_API_KEY")
-                    if api_key:
-                        enhanced["api_key"] = api_key
-                        if "base_url" not in enhanced:
-                            enhanced["base_url"] = "https://api.openai.com/v1"
-                        print(f"  ✓ GPT 模型 '{model}' → OpenAI API")
-                    else:
-                        enhanced["api_key"] = None
-                        print("  ⚠️ 缺少 OPENAI_API_KEY")
-
-                # 其他模型：尝试从环境变量或配置文件获取
-                else:
-                    enhanced["api_key"] = (
-                        os.environ.get("OPENAI_API_KEY")
-                        or os.environ.get("DASHSCOPE_API_KEY")
-                        or self._load_env_from_config().get("DASHSCOPE_API_KEY")
-                        or None
-                    )
-
-            # 确保 base_url 字段存在（如果还没有）
+            # 确保 base_url 字段存在（如果还没有），本地优先
             if "base_url" not in enhanced:
-                # 根据模型推断 base_url
-                if "qwen" in model.lower():
-                    enhanced["base_url"] = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                from sage.common.config.ports import SagePorts
+
+                # 优先探测本地 LLM 端点（8001 → 8901）
+                detected = None
+                for port in [
+                    SagePorts.get_recommended_llm_port(),
+                    SagePorts.LLM_DEFAULT,
+                    SagePorts.BENCHMARK_LLM,
+                ]:
+                    candidate = f"http://127.0.0.1:{port}/v1"
+                    if self._probe_url(candidate):
+                        detected = candidate
+                        break
+
+                if detected:
+                    enhanced["base_url"] = detected
+                    print(f"  ✓ 发现本地 LLM 端点: {detected}")
                 else:
-                    enhanced["base_url"] = "https://api.openai.com/v1"
+                    # 回落到显式配置的 OPENAI_BASE_URL（若存在），否则留空由上游处理
+                    env_base = os.environ.get("OPENAI_BASE_URL")
+                    if env_base:
+                        enhanced["base_url"] = env_base
+                        print(f"  ✓ 使用显式 OPENAI_BASE_URL: {env_base}")
 
         # ChromaRetriever: 默认 ChromaDB 配置
         elif operator_name == "ChromaRetriever":

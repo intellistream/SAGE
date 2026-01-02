@@ -56,6 +56,20 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Detect LLM endpoint (prefer local)
+        run: |
+          # CI fallback only: DashScope is explicit fallback for CI environment
+          # Local development should NOT use this; always prefer local endpoints
+          DEFAULT_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
+          SELECTED_BASE="$DEFAULT_BASE"
+          for port in 8888 8901; do
+            if curl -s "http://localhost:${port}/v1/models" > /dev/null 2>&1; then
+              SELECTED_BASE="http://localhost:${port}/v1"
+              break
+            fi
+          done
+          echo "OPENAI_BASE_URL=$SELECTED_BASE" >> $GITHUB_ENV
+
       - name: Create .env File from Secrets
         run: |
           echo "🔐 从 GitHub Secrets 创建 .env 文件..."
@@ -63,8 +77,8 @@ jobs:
           # CI Environment Configuration (Auto-generated from GitHub Secrets)
 
           # LLM Service API Keys
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_API_KEY=${{ secrets.ALIBABA_API_KEY }}
+          OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
 
           SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
@@ -148,12 +162,12 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
 
           # 使用 CI 安装包装器，确保与本地安装方式一致
-          chmod +x ./tools/install/ci_install_wrapper.sh
+          chmod +x ./tools/install/core/ci_install_wrapper.sh
           chmod +x ./quickstart.sh
 
           echo "开始安装..."
           # 使用开发模式，这样会进行可编辑安装（pip install -e），.so文件会在源码目录中
-          ./tools/install/ci_install_wrapper.sh --dev --yes
+          ./tools/install/core/ci_install_wrapper.sh --dev --yes
 
           echo "✅ 安装完成"
         timeout-minutes: 25
@@ -309,7 +323,7 @@ jobs:
       - name: Run Frontend Checks
         run: |
           echo "🎨 运行前端检查 (Build & Test)..."
-          bash tools/check_frontend.sh
+          bash tools/dev/check_frontend.sh
 
       - name: Run installation validation suite
         run: |

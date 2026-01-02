@@ -1,8 +1,8 @@
 import os
 import time
 
-from sage.common.components.sage_llm import UnifiedInferenceClient
 from sage.libs.foundation.tools.tool import BaseTool
+from sage.llm import UnifiedInferenceClient
 
 
 class ImageCaptioner(BaseTool):

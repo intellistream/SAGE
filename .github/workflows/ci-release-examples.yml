@@ -75,4 +75,14 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           export SAGE_TEST_MODE=true
+
+          # Verify sage-dev is available
+          if ! command -v sage-dev >/dev/null 2>&1; then
+            echo "❌ sage-dev not found in PATH"
+            echo "PATH: $PATH"
+            echo "Checking ~/.local/bin:"
+            ls -la ~/.local/bin/ | grep sage || echo "No sage commands found"
+            exit 1
+          fi
+
           sage-dev examples test --timeout 1500

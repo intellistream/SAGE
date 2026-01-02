@@ -1590,6 +1590,10 @@ class AgentChatRequest(BaseModel):
     message: str
     session_id: str
     history: list[dict[str, str]] | None = None
+    route: str | None = None
+    should_index: bool | None = None
+    metadata: dict[str, Any] | None = None
+    evidence: list[dict[str, Any]] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -1805,8 +1809,8 @@ async def send_chat_message(
         # 2. If not set, try to detect from Gateway
         if not model_to_use:
             try:
-                from sage.common.components.sage_llm import UnifiedInferenceClient
                 from sage.common.config.ports import SagePorts
+                from sage.llm import UnifiedInferenceClient
 
                 client = UnifiedInferenceClient.create(
                     control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
@@ -1883,6 +1887,9 @@ async def agent_chat(request: AgentChatRequest):
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+        should_index=request.should_index or False,
+        metadata=request.metadata or {},
+        evidence=request.evidence or [],
     )
 
     return stream_handler.create_response(source)
@@ -1900,6 +1907,9 @@ async def agent_chat_sync(request: AgentChatRequest):
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+        should_index=request.should_index or False,
+        metadata=request.metadata or {},
+        evidence=request.evidence or [],
     ):
         if hasattr(item, "step_id"):  # AgentStep
             # Handle both dataclass and Pydantic models
@@ -2393,7 +2403,7 @@ async def create_finetune_task(request: FinetuneCreateRequest):
     """创建微调任务（带 OOM 风险检测）"""
     import torch
 
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     # GPU 显存检测
     warnings = []
@@ -2457,7 +2467,7 @@ async def create_finetune_task(request: FinetuneCreateRequest):
 @app.get("/api/finetune/tasks")
 async def list_finetune_tasks():
     """列出所有微调任务"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     tasks = finetune_manager.list_tasks()
     return [task.to_dict() for task in tasks]
@@ -2466,7 +2476,7 @@ async def list_finetune_tasks():
 @app.get("/api/finetune/tasks/{task_id}")
 async def get_finetune_task(task_id: str):
     """获取微调任务详情"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     task = finetune_manager.get_task(task_id)
     if not task:
@@ -2477,7 +2487,7 @@ async def get_finetune_task(task_id: str):
 @app.get("/api/finetune/models")
 async def list_finetune_models():
     """获取可用模型列表（基础模型 + 微调后的模型）"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     return finetune_manager.list_available_models()
 
@@ -2485,10 +2495,11 @@ async def list_finetune_models():
 @app.post("/api/finetune/switch-model")
 async def switch_model(model_path: str):
     """切换当前使用的模型并热重启 LLM 服务（无需重启 Studio）"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.studio.chat_manager import ChatModeManager
 
-    # Apply the finetuned model (hot-swap)
-    result = finetune_manager.apply_finetuned_model(model_path)
+    # Get ChatModeManager instance and apply the model
+    chat_manager = ChatModeManager()
+    result = chat_manager.apply_finetuned_model(model_path)
 
     if result["success"]:
         return {
@@ -2503,7 +2514,7 @@ async def switch_model(model_path: str):
 @app.get("/api/finetune/current-model")
 async def get_current_model():
     """获取当前使用的模型"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     return {"current_model": finetune_manager.get_current_model()}
 
@@ -2540,7 +2551,7 @@ async def download_finetuned_model(task_id: str):
 
     from fastapi.responses import FileResponse
 
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     task = finetune_manager.get_task(task_id)
     if not task:
@@ -2578,7 +2589,7 @@ async def download_finetuned_model(task_id: str):
 @app.delete("/api/finetune/tasks/{task_id}")
 async def delete_finetune_task(task_id: str):
     """删除微调任务（仅允许删除已完成、失败或取消的任务）"""
-    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+    from sage.libs.finetune import FinetuneStatus, finetune_manager
 
     if finetune_manager.delete_task(task_id):
         return {"status": "success", "message": f"任务 {task_id} 已删除"}
@@ -2604,7 +2615,7 @@ async def delete_finetune_task(task_id: str):
 @app.post("/api/finetune/tasks/{task_id}/cancel")
 async def cancel_finetune_task(task_id: str):
     """取消运行中的微调任务"""
-    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+    from sage.libs.finetune import FinetuneStatus, finetune_manager
 
     task = finetune_manager.tasks.get(task_id)
     if not task:
@@ -2705,7 +2716,7 @@ async def prepare_sage_docs(force_refresh: bool = False):
 @app.post("/api/finetune/use-as-backend")
 async def use_finetuned_as_backend(request: UseAsBackendRequest):
     """将微调后的模型设置为 Studio 对话后端"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     try:
         task = finetune_manager.get_task(request.task_id)
@@ -2970,7 +2981,7 @@ def _persist_model_selection(model_name: str, base_url: str) -> str:
 
 def _discover_launcher_models() -> list[dict[str, Any]]:
     try:
-        from sage.common.components.sage_llm import LLMLauncher
+        from sage.llm import LLMLauncher
     except ImportError:
         return []
 
@@ -3177,7 +3188,7 @@ async def select_llm_model(request: SelectModelRequest):
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
     try:
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
     except Exception:
         UnifiedInferenceClient = None  # type: ignore[assignment]
 
@@ -3309,12 +3320,11 @@ async def get_llm_status():
                 _merge_model(entry)
 
         cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
-        if cloud_api_key:
+        cloud_base_url = os.getenv("SAGE_CHAT_BASE_URL")
+        if cloud_api_key and cloud_base_url:
             cloud_entry = {
                 "name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
-                "base_url": os.getenv(
-                    "SAGE_CHAT_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-                ),
+                "base_url": _normalize_base_url(cloud_base_url),
                 "is_local": False,
                 "description": "Cloud API (Configured in .env)",
                 "api_key": cloud_api_key,

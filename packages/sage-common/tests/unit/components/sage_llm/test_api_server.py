@@ -7,6 +7,13 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+pytest.importorskip(
+    "sage.llm.api_server",
+    reason="sage-llm-core package not available; skip api_server tests.",
+)
+
 
 def _mock_nvidia_smi_result(stdout: str, returncode: int = 0):
     """Helper to create mock subprocess result for nvidia-smi."""
@@ -25,7 +32,7 @@ class TestSelectAvailableGpus:
 
     def test_returns_none_when_nvidia_smi_fails(self):
         """Should return None when nvidia-smi command fails."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = _mock_nvidia_smi_result("", returncode=1)
@@ -34,7 +41,7 @@ class TestSelectAvailableGpus:
 
     def test_returns_gpus_when_available(self):
         """Should return list of GPU IDs when sufficient memory is available."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         # nvidia-smi output: GPU 0 has 80GB free, GPU 1 has 70GB free
         nvidia_output = "0, 81920\n1, 71680\n"
@@ -47,7 +54,7 @@ class TestSelectAvailableGpus:
 
     def test_returns_none_when_insufficient_gpus(self):
         """Should still return available GPUs even if fewer than requested."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         # Only 1 GPU available, but requesting 2
         nvidia_output = "0, 81920\n"
@@ -61,7 +68,7 @@ class TestSelectAvailableGpus:
 
     def test_returns_none_when_no_gpus_available(self):
         """Should return None when nvidia-smi returns empty output."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = _mock_nvidia_smi_result("")
@@ -72,7 +79,7 @@ class TestSelectAvailableGpus:
         """Should return None when nvidia-smi times out."""
         from subprocess import TimeoutExpired
 
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = TimeoutExpired("nvidia-smi", 10)
@@ -81,7 +88,7 @@ class TestSelectAvailableGpus:
 
     def test_returns_none_on_exception(self):
         """Should return None when subprocess raises exception."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = OSError("nvidia-smi not found")
@@ -90,7 +97,7 @@ class TestSelectAvailableGpus:
 
     def test_single_gpu_selection(self):
         """Should correctly select single GPU with most free memory."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         # GPU 1 has more free memory than GPU 0
         nvidia_output = "0, 20480\n1, 61440\n"
@@ -104,7 +111,7 @@ class TestSelectAvailableGpus:
 
     def test_default_tensor_parallel_size(self):
         """Should use default tensor_parallel_size of 1."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         nvidia_output = "0, 81920\n"
 
@@ -117,7 +124,7 @@ class TestSelectAvailableGpus:
 
     def test_selects_gpus_with_sufficient_memory(self):
         """Should prefer GPUs that meet memory requirement."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         # GPU 0: 50GB, GPU 1: 30GB, GPU 2: 60GB
         nvidia_output = "0, 51200\n1, 30720\n2, 61440\n"
@@ -132,7 +139,7 @@ class TestSelectAvailableGpus:
 
     def test_falls_back_to_available_gpus_when_insufficient_memory(self):
         """Should fall back to available GPUs when not enough meet memory requirement."""
-        from sage.common.components.sage_llm.api_server import _select_available_gpus
+        from sage.llm.api_server import _select_available_gpus
 
         # Only GPU 0 has enough memory, but we need 2 GPUs
         nvidia_output = "0, 51200\n1, 10240\n"
@@ -150,28 +157,28 @@ class TestGetServedModelName:
 
     def test_local_path_with_double_underscore(self):
         """Should convert local path with __ to HuggingFace format."""
-        from sage.common.components.sage_llm.api_server import get_served_model_name
+        from sage.llm.api_server import get_served_model_name
 
         result = get_served_model_name("/home/user/.sage/models/vllm/Qwen__Qwen2.5-0.5B-Instruct")
         assert result == "Qwen/Qwen2.5-0.5B-Instruct"
 
     def test_huggingface_model_name_unchanged(self):
         """Should return HuggingFace model name unchanged."""
-        from sage.common.components.sage_llm.api_server import get_served_model_name
+        from sage.llm.api_server import get_served_model_name
 
         result = get_served_model_name("Qwen/Qwen2.5-0.5B-Instruct")
         assert result == "Qwen/Qwen2.5-0.5B-Instruct"
 
     def test_local_path_without_double_underscore(self):
         """Should return basename for local path without __."""
-        from sage.common.components.sage_llm.api_server import get_served_model_name
+        from sage.llm.api_server import get_served_model_name
 
         result = get_served_model_name("/home/user/models/my-model")
         assert result == "my-model"
 
     def test_windows_style_path(self):
         """Should handle Windows-style paths."""
-        from sage.common.components.sage_llm.api_server import get_served_model_name
+        from sage.llm.api_server import get_served_model_name
 
         # Windows path with backslashes - basename extraction works differently
         result = get_served_model_name("C:\\Users\\models\\Qwen__Model")

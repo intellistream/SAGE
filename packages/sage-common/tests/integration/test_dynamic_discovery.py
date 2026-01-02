@@ -150,11 +150,13 @@ class TestBackendDiscoveryEndpoint:
 
     def test_backends_endpoint_returns_categorized_list(self, mock_backends_response):
         """Test that backends endpoint returns LLM and Embedding backends separately."""
-        with patch("sage.gateway.routes.control_plane._control_plane_manager") as mock_manager:
+        with patch(
+            "sage.llm.gateway.routes.engine_control_plane._control_plane_manager"
+        ) as mock_manager:
             mock_manager.get_registered_backends.return_value = mock_backends_response
 
             with patch(
-                "sage.gateway.routes.control_plane._require_control_plane_manager",
+                "sage.llm.gateway.routes.engine_control_plane._require_control_plane_manager",
                 return_value=mock_manager,
             ):
                 # Simulate calling the endpoint

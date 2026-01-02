@@ -58,9 +58,10 @@ env:
   HF_ENDPOINT: https://hf-mirror.com
   SAGE_TEST_MODE: false
   SAGE_LOG_LEVEL: INFO
-  # LLM Service Configuration
+  # LLM Service Configuration (remote default; will prefer local if available)
+  REMOTE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
   SAGE_CHAT_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
-  SAGE_CHAT_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  SAGE_CHAT_BASE_URL: ${REMOTE_CHAT_BASE_URL}
   SAGE_CHAT_MODEL: qwen-turbo-2025-02-11
 
 
@@ -194,6 +195,18 @@ jobs:
           echo "✅ SAGE installation completed"
         timeout-minutes: 90  # Extended timeout for CUDA packages (first-time only)
 
+      - name: Detect LLM endpoint (prefer local)
+        run: |
+          DEFAULT_BASE="${REMOTE_CHAT_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
+          SELECTED_BASE="$DEFAULT_BASE"
+          for port in 8888 8901; do
+            if curl -s "http://localhost:${port}/v1/models" > /dev/null 2>&1; then
+              SELECTED_BASE="http://localhost:${port}/v1"
+              break
+            fi
+          done
+          echo "SAGE_CHAT_BASE_URL=$SELECTED_BASE" >> $GITHUB_ENV
+
       - name: Create Experiment Environment File
         run: |
           # Create .env with all required settings
@@ -202,10 +215,10 @@ jobs:
           HF_TOKEN=${{ secrets.HF_TOKEN }}
           HF_ENDPOINT=https://hf-mirror.com
 
-          # LLM Service (DashScope/Qwen)
+          # LLM Service (local-first; remote default provided by REMOTE_CHAT_BASE_URL)
           SAGE_CHAT_API_KEY=${{ secrets.ALIBABA_API_KEY }}
-          SAGE_CHAT_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-          SAGE_CHAT_MODEL=qwen-turbo-2025-02-11
+          SAGE_CHAT_BASE_URL=${SAGE_CHAT_BASE_URL}
+          SAGE_CHAT_MODEL=${SAGE_CHAT_MODEL}
 
           # Embedding Service
           SAGE_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
@@ -280,7 +293,7 @@ jobs:
             if curl -s http://localhost:8901/v1/models > /dev/null 2>&1; then
               echo "✅ Local LLM service is ready"
             else
-              echo "⚠️ Local LLM service not available, will use cloud API (DashScope)"
+              echo "⚠️ Local LLM service not available; no cloud fallback configured"
             fi
           fi
 

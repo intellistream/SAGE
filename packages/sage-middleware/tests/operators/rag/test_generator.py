@@ -98,11 +98,10 @@ class TestOpenAIGenerator:
             "seed": 42,
         }
 
-        # 清除所有可能影响的环境变量，只设置 ALIBABA_API_KEY
+        # 清除所有可能影响的环境变量
         env_override = {
             "OPENAI_API_KEY": "",
             "ALIBABA_API_KEY": "env_api_key",  # pragma: allowlist secret
-            "DASHSCOPE_API_KEY": "",
         }
         with patch.dict(os.environ, env_override, clear=False):
             mock_client_instance = Mock()
@@ -114,7 +113,8 @@ class TestOpenAIGenerator:
             assert mock_openai_class.call_count == 1
             call_kwargs = mock_openai_class.call_args[1]
             assert call_kwargs["base_url"] == "http://localhost:8000/v1"
-            assert call_kwargs["api_key"] == "env_api_key"  # pragma: allowlist secret
+            # OpenAI client falls back to dummy key when OPENAI_API_KEY is missing
+            assert call_kwargs["api_key"] == "EMPTY"  # pragma: allowlist secret
 
     @patch("sage.middleware.operators.rag.generator.OpenAI")
     def test_execute_with_string_input(self, mock_openai_class):

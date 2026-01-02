@@ -31,6 +31,17 @@ SAGE Finetune - 轻量级大模型微调工具
 from .cli import app  # CLI 应用
 from .config import LoRAConfig, PresetConfigs, TrainingConfig
 from .data import load_training_data, prepare_dataset
+from .engine import (  # Control Plane integration (L3 implementation)
+    FinetuneConfig,
+    FinetuneEngine,
+)
+from .manager import (  # Studio backend components (moved from L6 to L3)
+    FinetuneManager,
+    FinetuneStatus,
+    FinetuneTask,
+    check_gpu_resources,
+    finetune_manager,  # Global singleton instance
+)
 
 
 # LoRATrainer 延迟导入，使用 __getattr__
@@ -61,6 +72,12 @@ __all__ = [
     "app",
     # Agent 微调子模块（延迟导入）
     "agent",  # type: ignore[attr-defined]
+    # Studio backend components (moved from L6 to L3)
+    "FinetuneManager",
+    "FinetuneStatus",
+    "FinetuneTask",
+    "finetune_manager",  # Global singleton
+    "check_gpu_resources",
 ]
 
 __version__ = "0.1.0"

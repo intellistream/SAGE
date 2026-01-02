@@ -5,13 +5,41 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -z "$SAGE_ROOT" ]; then
+if [ -z "${SAGE_ROOT:-}" ]; then
     SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 fi
 
-if [ -f "$SAGE_ROOT/tools/conda/conda_utils.sh" ]; then
-    source "$SAGE_ROOT/tools/conda/conda_utils.sh"
+# 导入 Conda 和进度工具
+if [ -f "${SAGE_ROOT:-}/tools/lib/conda_install_utils.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/lib/conda_install_utils.sh"
+fi
+
+if [ -f "${SAGE_ROOT:-}/tools/lib/progress_utils.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/lib/progress_utils.sh"
+fi
+
+if [ -f "${SAGE_ROOT:-}/tools/conda/conda_utils.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/conda/conda_utils.sh"
 fi
 
 # 检测操作系统
@@ -56,37 +84,44 @@ check_and_install_build_tools() {
         missing_tools+=("pkg-config")
     fi
 
-    # 检查 Node.js 和 npm (Studio 需要)
+    # 检查 Node.js 和 npm (Studio 需要 v20+)
     local need_node=false
-    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    local node_version_ok=false
+    local MIN_NODE_VERSION=20
+
+    # 检查 Node.js 是否存在且版本是否满足要求
+    if command -v node &> /dev/null; then
+        local node_version=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
+        if [ -n "$node_version" ] && [ "$node_version" -ge $MIN_NODE_VERSION ]; then
+            node_version_ok=true
+            log_info "Node.js v$node_version 满足要求 (>= v$MIN_NODE_VERSION)" "SysDeps"
+        else
+            log_warn "Node.js 版本过低 (v$node_version < v$MIN_NODE_VERSION)，需要升级" "SysDeps"
+            echo -e "${YELLOW}⚠️  Node.js 版本过低: v$node_version (需要 v$MIN_NODE_VERSION+)${NC}"
+            need_node=true
+        fi
+    else
+        log_info "Node.js 未安装" "SysDeps"
         need_node=true
     fi
 
-    # 优先尝试 Conda 安装 (无需 sudo)
-    if [ "$need_node" = "true" ] && command -v conda &> /dev/null; then
-        log_info "尝试使用 Conda 安装 Node.js (无需 sudo)..." "SysDeps"
-        echo -e "${GEAR} 尝试使用 Conda 安装 Node.js..."
+    if ! command -v npm &> /dev/null; then
+        need_node=true
+    fi
 
-        if declare -f ensure_conda_tos_accepted >/dev/null 2>&1; then
-            if ensure_conda_tos_accepted --auto --quiet; then
-                if conda install -y nodejs; then
-                    log_info "Node.js (Conda) 安装成功" "SysDeps"
-                    echo -e "${CHECK} Node.js (Conda) 安装成功"
-                    need_node=false
-                else
-                    log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
-                fi
-            else
-                log_warn "Conda 尚未准备好执行安装（服务条款未接受或 Conda 信息异常），将跳过此路径" "SysDeps"
-            fi
+    # 优先尝试 Conda 安装 (无需 sudo，且版本较新)
+    if [ "$need_node" = "true" ] && command -v conda &> /dev/null; then
+        log_info "尝试使用 Conda 安装 Node.js v22 (无需 sudo)..." "SysDeps"
+        echo -e "${GEAR} 尝试使用 Conda 安装 Node.js v22..."
+
+        # 使用统一的 conda_install_with_progress 函数，指定版本 22
+        if conda_install_with_progress "安装 Node.js v22" "nodejs=22"; then
+            need_node=false
+            node_version_ok=true
+            log_info "Node.js v22 安装成功" "SysDeps"
+            echo -e "${GREEN}✅ Node.js v22 已安装${NC}"
         else
-            if conda install -y nodejs; then
-                log_info "Node.js (Conda) 安装成功" "SysDeps"
-                echo -e "${CHECK} Node.js (Conda) 安装成功"
-                need_node=false
-            else
-                log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
-            fi
+            log_warn "Conda 安装 Node.js 失败，将尝试系统安装" "SysDeps"
         fi
     fi
 
@@ -96,8 +131,29 @@ check_and_install_build_tools() {
     fi
 
     if [ ${#missing_tools[@]} -eq 0 ]; then
-        log_info "基础构建工具已安装" "SysDeps"
-        echo -e "${CHECK} 基础构建工具已安装"
+        # 即使工具都安装了，也要检查 Node.js 版本
+        if [ "$node_version_ok" = "false" ] && command -v node &> /dev/null; then
+            local current_version=$(node --version 2>/dev/null)
+            echo ""
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}⚠️  警告: Node.js 版本不满足要求${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${RED}   当前版本: $current_version${NC}"
+            echo -e "${GREEN}   需要版本: v${MIN_NODE_VERSION}+${NC}"
+            echo ""
+            echo -e "${YELLOW}   SAGE Studio 需要 Node.js v20+ (推荐 v22)${NC}"
+            echo -e "${DIM}   系统自带的 Node.js 版本过低，建议升级到 Conda 版本${NC}"
+            echo ""
+            echo -e "${BOLD}修复方法：${NC}"
+            echo -e "  ${CYAN}conda install -y nodejs=22 -c conda-forge${NC}"
+            echo ""
+            echo -e "${DIM}提示：安装后需重新启动终端或运行 'hash -r' 刷新命令缓存${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+        else
+            log_info "基础构建工具已安装" "SysDeps"
+            echo -e "${CHECK} 基础构建工具已安装"
+        fi
         return 0
     fi
 
@@ -119,7 +175,7 @@ check_and_install_build_tools() {
     fi
 
     log_info "安装基础构建工具..." "SysDeps"
-    echo -e "${GEAR} 安装基础构建工具...${NC}"
+    echo -e "${GEAR} 安装基础构建工具（这可能需要几分钟，请耐心等待）...${NC}"
 
     case "$OS" in
         ubuntu|debian)
@@ -131,8 +187,9 @@ check_and_install_build_tools() {
                 PKG_LIST="$PKG_LIST nodejs npm"
             fi
 
-            # 安装构建工具和 Node.js
-            if log_command "SysDeps" "Install" "$SUDO apt-get install -y --no-install-recommends $PKG_LIST"; then
+            # 使用带进度显示的安装
+            echo -e "${DIM}正在安装: $PKG_LIST${NC}"
+            if long_task_with_keepalive "安装系统依赖" 30 $SUDO apt-get install -y --no-install-recommends $PKG_LIST; then
                 log_info "系统依赖安装成功" "SysDeps"
                 echo -e "${CHECK} 系统依赖安装成功"
             else
@@ -147,12 +204,13 @@ check_and_install_build_tools() {
                 EXTRA_PKGS="$EXTRA_PKGS nodejs npm"
             fi
 
+            echo -e "${DIM}正在安装开发工具组和额外包...${NC}"
             if command -v dnf &> /dev/null; then
-                log_command "SysDeps" "Install" "$SUDO dnf groupinstall -y 'Development Tools'"
-                log_command "SysDeps" "Install" "$SUDO dnf install -y $EXTRA_PKGS"
+                long_task_with_keepalive "安装开发工具组" 30 $SUDO dnf groupinstall -y 'Development Tools'
+                long_task_with_keepalive "安装额外依赖" 30 $SUDO dnf install -y $EXTRA_PKGS
             else
-                log_command "SysDeps" "Install" "$SUDO yum groupinstall -y 'Development Tools'"
-                log_command "SysDeps" "Install" "$SUDO yum install -y $EXTRA_PKGS"
+                long_task_with_keepalive "安装开发工具组" 30 $SUDO yum groupinstall -y 'Development Tools'
+                long_task_with_keepalive "安装额外依赖" 30 $SUDO yum install -y $EXTRA_PKGS
             fi
             ;;
         fedora)

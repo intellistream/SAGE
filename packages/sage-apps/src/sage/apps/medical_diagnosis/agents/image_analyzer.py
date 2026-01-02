@@ -3,6 +3,7 @@
 负责MRI影像的特征提取和初步分析
 """
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -106,6 +107,10 @@ class ImageAnalyzer:
 
         image_processing_cfg = self.config.get("image_processing", {})
 
+        # Avoid heavy downloads in tests unless explicitly enabled
+        test_mode = os.getenv("SAGE_TEST_MODE", "").lower() in {"1", "true", "yes", "on"}
+        skip_heavy_models = bool(self.config.get("skip_model_download", test_mode))
+
         # 设置特征提取模型
         self.feature_model = None
         self.feature_processor = None
@@ -113,7 +118,9 @@ class ImageAnalyzer:
             "method", "clip"
         )
 
-        if TORCH_AVAILABLE:
+        if skip_heavy_models:
+            print("   Skipping feature extractor setup (test/skip_model_download)")
+        elif TORCH_AVAILABLE:
             try:
                 if self.feature_method == "clip":
                     self._setup_clip_model()
@@ -131,7 +138,9 @@ class ImageAnalyzer:
 
         # 设置分割参数
         self.segmentation_config = image_processing_cfg.get("segmentation", {}) or {}
-        self.segmentation_enabled = bool(self.segmentation_config.get("enabled", False))
+        self.segmentation_enabled = (
+            bool(self.segmentation_config.get("enabled", False)) and not skip_heavy_models
+        )
         disc_levels_cfg = self.segmentation_config.get("disc_levels")
         self.disc_levels = list(disc_levels_cfg) if disc_levels_cfg else DEFAULT_DISC_LEVELS.copy()
         self.pixel_spacing_mm = float(

@@ -1,7 +1,0 @@
-key,value,type
-instructions,INSTRUCTION_RETIRED,String
-memLoad,MEM_INST_RETIRED:ALL_LOADS,String
-memStore,MEM_INST_RETIRED:ALL_STORES,String
-fpVector,FP_ARITH:VECTOR,String
-fpScalar,FP_ARITH:SCALAR,String
-branchIns,BR_INST_RETIRED:ALL_BRANCHES,String

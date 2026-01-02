@@ -1,0 +1,29 @@
+random-xs:
+  vsag_hnsw:
+    module: benchmark_anns.bench.algorithms.vsag_hnsw.vsag_hnsw
+    constructor: VsagHnsw
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"index_name": "hgraph", "index_config": {"dtype": "float32", "index_param": {"base_quantization_type": "fp32", "max_degree": 16, "ef_construction": 120, "use_elp_optimizer": false}}}]
+        query-args: |
+          [{"search_params": {"hgraph": {"ef_search": 40}}}]
+
+sift:
+  vsag_hnsw:
+    module: benchmark_anns.bench.algorithms.vsag_hnsw.vsag_hnsw
+    constructor: VsagHnsw
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        # 三种优化模式的构建参数组合
+        args: |
+          [
+            {"index_name": "hnsw", "index_config": {"dtype": "float32", "hnsw": {"max_degree": 32, "ef_construction": 200, "prefetch_mode": "disabled"}}},
+            {"index_name": "hnsw", "index_config": {"dtype": "float32", "hnsw": {"max_degree": 32, "ef_construction": 200, "prefetch_mode": "hardcoded"}}},
+            {"index_name": "hnsw", "index_config": {"dtype": "float32", "hnsw": {"max_degree": 32, "ef_construction": 200, "prefetch_mode": "custom"}}}
+          ]
+        # 查询参数
+        query-args: |
+          [{"search_params": {"hnsw": {"ef_search": 40}}}]

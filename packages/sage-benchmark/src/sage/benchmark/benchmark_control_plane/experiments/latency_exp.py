@@ -45,7 +45,7 @@ class LatencyExperiment(BaseExperiment):
     Example:
         exp = LatencyExperiment(
             name="latency_analysis",
-            control_plane_url="http://localhost:8888",
+            control_plane_url="http://localhost:8889",
             request_rate=100,
             num_requests=1000,
         )
@@ -55,7 +55,7 @@ class LatencyExperiment(BaseExperiment):
     def __init__(
         self,
         name: str,
-        control_plane_url: str = "http://localhost:8888",
+        control_plane_url: str = "http://localhost:8889",
         request_rate: int = 100,
         num_requests: int = 1000,
         llm_ratio: float = 0.5,

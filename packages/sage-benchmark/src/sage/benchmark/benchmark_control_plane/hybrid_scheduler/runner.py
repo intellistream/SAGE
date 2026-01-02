@@ -132,7 +132,7 @@ class HybridBenchmarkRunner:
 
     Example:
         config = HybridBenchmarkConfig(
-            control_plane_url="http://localhost:8888",
+            control_plane_url="http://localhost:8889",
             num_requests=1000,
             llm_ratio=0.7,
             embedding_ratio=0.3,

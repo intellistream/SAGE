@@ -263,7 +263,7 @@ jobs:
           # 验证安装
           echo "🔍 验证安装..."
           python -c "import sage.studio; print('sage.studio OK')"
-          python -c "import sage.gateway; print('sage.gateway OK')"
+          python -c "import sage.llm.gateway; print('sage.llm.gateway OK')"
           which sage
 
           # 验证 C++ 扩展
@@ -279,9 +279,9 @@ jobs:
 
           # 测试完整的 Gateway 导入链
           echo "测试 Gateway 完整导入链..."
-          python -c "from sage.gateway.server import app; print('sage.gateway.app OK')" || {
+          python -c "from sage.llm.gateway.server import app; print('sage.llm.gateway.app OK')" || {
             echo "⚠️ Gateway 导入失败，查看详细错误..."
-            python -c "from sage.gateway.server import app" 2>&1 | head -50
+            python -c "from sage.llm.gateway.server import app" 2>&1 | head -50
             exit 1
           }
 
@@ -409,7 +409,7 @@ jobs:
             '' \
             '    # /api/chat/v1/* -> /v1/* (OpenAI 兼容 chat completions)' \
             '    location /api/chat/v1/ {' \
-            '        proxy_pass http://127.0.0.1:8888/v1/;' \
+            '        proxy_pass http://127.0.0.1:8889/v1/;' \
             '        proxy_http_version 1.1;' \
             '        proxy_set_header Upgrade $http_upgrade;' \
             '        proxy_set_header Connection "upgrade";' \
@@ -423,7 +423,7 @@ jobs:
             '' \
             '    # /api/chat/memory/* -> /memory/* (Gateway 记忆配置)' \
             '    location /api/chat/memory/ {' \
-            '        proxy_pass http://127.0.0.1:8888/memory/;' \
+            '        proxy_pass http://127.0.0.1:8889/memory/;' \
             '        proxy_http_version 1.1;' \
             '        proxy_set_header Host $host;' \
             '        proxy_set_header X-Real-IP $remote_addr;' \
@@ -431,7 +431,7 @@ jobs:
             '' \
             '    # /api/* -> Gateway /api/* (Studio 后端 API)' \
             '    location /api/ {' \
-            '        proxy_pass http://127.0.0.1:8888/api/;' \
+            '        proxy_pass http://127.0.0.1:8889/api/;' \
             '        proxy_http_version 1.1;' \
             '        proxy_set_header Upgrade $http_upgrade;' \
             '        proxy_set_header Connection "upgrade";' \
@@ -445,14 +445,14 @@ jobs:
             '' \
             '    # Gateway 原生路由' \
             '    location /sessions {' \
-            '        proxy_pass http://127.0.0.1:8888/sessions;' \
+            '        proxy_pass http://127.0.0.1:8889/sessions;' \
             '        proxy_http_version 1.1;' \
             '        proxy_set_header Host $host;' \
             '        proxy_set_header X-Real-IP $remote_addr;' \
             '    }' \
             '' \
             '    location /v1/ {' \
-            '        proxy_pass http://127.0.0.1:8888/v1/;' \
+            '        proxy_pass http://127.0.0.1:8889/v1/;' \
             '        proxy_http_version 1.1;' \
             '        proxy_set_header Host $host;' \
             '        proxy_set_header X-Real-IP $remote_addr;' \
@@ -460,7 +460,7 @@ jobs:
             '    }' \
             '' \
             '    location /health {' \
-            '        proxy_pass http://127.0.0.1:8888/health;' \
+            '        proxy_pass http://127.0.0.1:8889/health;' \
             '    }' \
             '}' \
             | sudo tee "$NGINX_CONF" > /dev/null
@@ -683,7 +683,7 @@ jobs:
           # 验证 wrapper 脚本
           echo "🔍 验证 conda wrapper..."
           "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python --version
-          "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.gateway; print('Gateway import OK')"
+          "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.llm.gateway; print('Gateway import OK')"
 
       - name: Start services
         run: |
@@ -695,15 +695,15 @@ jobs:
           # 1. 启动 Studio (All-in-One)
           echo "1/2 启动 Studio 服务 (Manager + Gateway + LLM + Embedding)..."
 
-          # 强制清理端口 5174 (Studio Frontend) 和 8888 (Gateway)
+          # 强制清理端口 5174 (Studio Frontend) 和 8889 (Gateway)
           echo "🧹 清理潜在的残留进程..."
           sudo fuser -k 5174/tcp || true
-          sudo fuser -k 8888/tcp || true
+          sudo fuser -k 8889/tcp || true
 
           # 调试信息：检查端口占用情况
-          echo "🔍 检查端口占用情况 (5174, 8888)..."
+          echo "🔍 检查端口占用情况 (5174, 8889)..."
           sudo lsof -i :5174 || echo "Port 5174 is free"
-          sudo lsof -i :8888 || echo "Port 8888 is free"
+          sudo lsof -i :8889 || echo "Port 8889 is free"
 
           # 调试信息：检查 PID 文件
           PID_FILE="/home/$(whoami)/.local/state/sage/studio.pid"
@@ -811,8 +811,8 @@ jobs:
           # 等待 Gateway 服务
           echo "等待 Gateway 服务..."
           for i in $(seq 1 120); do
-            if curl -sf http://localhost:8888/ > /dev/null 2>&1 || \
-               curl -sf http://localhost:8888/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:8889/ > /dev/null 2>&1 || \
+               curl -sf http://localhost:8889/health > /dev/null 2>&1; then
               echo "✅ Gateway 服务就绪（第 $i 秒）"
               break
             fi
@@ -854,7 +854,7 @@ jobs:
           echo "|------|------|------|"
 
           # 构建要检查的服务列表
-          CHECKS="Frontend:$PORT Gateway:8888"
+          CHECKS="Frontend:$PORT Gateway:8889"
 
           if [ -n "$KEEP_PORTS" ]; then
              # 如果复用 LLM，检查复用的端口

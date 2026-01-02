@@ -2,6 +2,25 @@
 # 环境配置模块单元测试
 # 测试 environment_config.sh 中的新增函数
 
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 set -e
 
 # 测试框架设置
@@ -9,8 +28,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入被测试模块
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
-source "$SAGE_ROOT/tools/install/download_tools/environment_config.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/download_tools/environment_config.sh"
 
 # 测试计数器
 TOTAL_TESTS=0
