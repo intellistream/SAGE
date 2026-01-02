@@ -450,27 +450,34 @@ main() {
                     local submodule_name=$(basename "$submodule_path")
 
                     if [ -d "$full_path" ] && [ -f "$full_path/.pre-commit-config.yaml" ]; then
-                        ((submodules_with_hooks++))
+                        ((submodules_with_hooks++)) || true
                         if (cd "$full_path" && pre-commit install 2>/dev/null); then
                             echo -e "${GREEN}   ✅ $submodule_name pre-commit hooks 已安装${NC}"
-                            ((submodules_installed++))
+                            ((submodules_installed++)) || true
                         else
                             echo -e "${DIM}   ℹ️  $submodule_name pre-commit hooks 安装跳过${NC}"
                         fi
                     fi
                 done
 
+                # 使用 || true 避免 set -e 导致脚本退出
                 if [ $submodules_with_hooks -gt 0 ]; then
                     echo -e "${GREEN}   ✅ 子模块 pre-commit hooks: $submodules_installed/$submodules_with_hooks 安装成功${NC}"
                 else
                     echo -e "${DIM}   ℹ️  未发现子模块 pre-commit 配置${NC}"
-                fi
+                fi || true
             else
                 echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过子模块 hooks${NC}"
             fi
         fi
 
         show_usage_tips "$mode"
+
+        # 显示快速启动服务菜单（交互模式）
+        if [ "$(get_auto_confirm)" != "true" ] && [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ]; then
+            echo ""
+            show_post_install_services_menu "$mode"
+        fi
 
         # 检查并修复依赖冲突
         echo ""
