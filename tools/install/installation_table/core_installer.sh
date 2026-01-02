@@ -757,8 +757,13 @@ else:
         local should_rebuild=true
         local skip_reason=""
 
+        # 检查是否强制重新编译
+        if [ "$(get_force_rebuild)" = "true" ]; then
+            should_rebuild=true
+            skip_reason="用户指定 --force-rebuild"
+            log_info "强制重新编译 sage-middleware (--force-rebuild)" "INSTALL"
         # 检查是否已安装
-        if $PIP_CMD show isage-middleware &>/dev/null; then
+        elif $PIP_CMD show isage-middleware &>/dev/null; then
             log_debug "isage-middleware 已安装，检查是否需要重新编译..." "INSTALL"
 
             # 计算 C++ 源文件哈希（包括 CMakeLists.txt）
