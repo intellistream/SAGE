@@ -175,16 +175,52 @@ def ensure_model_available(
     auto_download: bool = False,
     root: Path | None = None,
 ) -> Path:
-    """Return the local path for ``model_id`` and optionally download it."""
+    """Return the local path for ``model_id`` and optionally download it.
+
+    If the model directory exists but is incomplete (missing key files),
+    it will be re-downloaded automatically.
+    """
 
     try:
         path = get_model_path(model_id, root=root)
+
+        # Validate model completeness
+        if not _is_model_complete(path):
+            # Model exists but is incomplete - trigger re-download
+            if auto_download:
+                print(f"⚠️  检测到模型 '{model_id}' 下载不完整，正在重新下载...")
+                return download_model(model_id, revision=revision, root=root, force=True).path
+            else:
+                raise ModelRegistryError(
+                    f"模型 '{model_id}' 下载不完整（缺少关键文件）。"
+                    f"请使用 'sage llm model download {model_id} --force' 重新下载。"
+                )
+
         touch_model(model_id, root=root)
         return path
     except ModelNotFoundError:
         if not auto_download:
             raise
     return download_model(model_id, revision=revision, root=root).path
+
+
+def _is_model_complete(model_path: Path) -> bool:
+    """Check if a model directory contains the expected files.
+
+    A complete model should have at least one of:
+    - *.safetensors files (PyTorch safe tensors format)
+    - *.bin files (legacy PyTorch format)
+    - config.json (model configuration)
+    """
+    if not model_path.exists() or not model_path.is_dir():
+        return False
+
+    has_safetensors = any(model_path.glob("*.safetensors"))
+    has_bin = any(model_path.glob("*.bin"))
+    has_config = (model_path / "config.json").exists()
+
+    # At minimum, we need config.json and at least one weight file
+    return has_config and (has_safetensors or has_bin)
 
 
 def download_model(
@@ -235,12 +271,33 @@ def download_model(
         revision=revision,
         local_dir=str(target_dir),
         local_dir_use_symlinks=False,
+        # Enable resume capability (huggingface_hub supports this natively)
+        resume_download=True,
         **snapshot_kwargs,
     )
     if not progress:
         download_kwargs.setdefault("progress", False)
 
-    resolved_path = Path(snapshot_download(**download_kwargs))  # type: ignore[arg-type]
+    # Retry download with exponential backoff (huggingface_hub supports resume)
+    max_retries = 3
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            resolved_path = Path(snapshot_download(**download_kwargs))  # type: ignore[arg-type]
+            break  # Success
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                wait_time = 2**attempt  # 1s, 2s, 4s
+                if progress:
+                    print(f"⚠️  下载中断，{wait_time}秒后重试 (尝试 {attempt + 2}/{max_retries})...")
+                time.sleep(wait_time)
+            else:
+                # Final attempt failed
+                raise ModelRegistryError(
+                    f"下载失败 (已重试 {max_retries} 次): {last_error}\n"
+                    f"提示：使用 --force 清理并重新下载，或检查网络连接"
+                ) from last_error
 
     size_bytes = _compute_size_bytes(resolved_path)
     now = time.time()
