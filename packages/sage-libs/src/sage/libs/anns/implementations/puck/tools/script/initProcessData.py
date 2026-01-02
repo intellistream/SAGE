@@ -29,18 +29,16 @@ import math
 import shutil
 import fileinput
 import numpy as np
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 
 def _usage():
-    print '''
+    print('''
     py initProcessData.py [-f new feature file] [-h help]
 
     options:
         -f use for input file name
         -h use for help
-    '''
+    ''')
 
 
 class InitProcessData(object):
@@ -58,7 +56,8 @@ class InitProcessData(object):
           3）设置是否归一化、IP2Cos计算特征等参数的值，并打印日志信息表示当前的参数设定值。
         """
         train_conf_file = conf_file
-        train_conf_info = open(train_conf_file, 'rb').read()
+        with open(train_conf_file, 'rb') as f:
+            train_conf_info = f.read().decode('utf-8', errors='ignore')
 
         # 默认输入路径: mid-data,puck_index，如果不存在则创建
         if not os.path.exists('mid-data'):
@@ -72,7 +71,7 @@ class InitProcessData(object):
         if len(conf_all_feature_file_name) == 1:
             all_feature_file_name = conf_all_feature_file_name[0]
         self.all_feature_file = open(all_feature_file_name, 'wb')
-        print all_feature_file_name
+        print(all_feature_file_name)
 
         # keys_file_name
         keys_file_name = "./puck_index/all_data.url"
@@ -80,7 +79,7 @@ class InitProcessData(object):
         if len(conf_keys_file_name) == 1:
             keys_file_name = conf_keys_file_name[0]
         self.keys_file = open(keys_file_name, 'wb')
-        print keys_file_name
+        print(keys_file_name)
 
         # whetherNorm
         self.whetherNorm = 1
@@ -88,7 +87,7 @@ class InitProcessData(object):
         if len(whetherNorm) == 1:
             if whetherNorm[0] == '0' or whetherNorm[0] == 'false':
                 self.whetherNorm = 0
-        print self.whetherNorm
+        print(self.whetherNorm)
 
         self.ip2cos = 0
         ip2cos = re.findall(r'--ip2cos=(\d+)', train_conf_info)
@@ -96,14 +95,14 @@ class InitProcessData(object):
             self.ip2cos = int(ip2cos[0])
         if self.ip2cos == 1:
             self.whetherNorm = 0
-        print self.ip2cos
+        print(self.ip2cos)
 
         # feature_dim
         self.feature_dim = 256
         feature_dim = re.findall(r'--feature_dim=(\d+)', train_conf_info)
         if len(feature_dim) == 1:
             self.feature_dim = int(feature_dim[0])
-        print self.feature_dim
+        print(self.feature_dim)
 
     def init_process(self, feature_file):
         """格式化输出特征文件demo
@@ -124,9 +123,9 @@ class InitProcessData(object):
 
             feat = fields[-1].split(' ')
             if len(feat) != self.feature_dim:
-                print "feature dim error, true dim = %d feature dim in conf = %d" % (len(feat), self.feature_dim)
+                print("feature dim error, true dim = %d feature dim in conf = %d" % (len(feat), self.feature_dim))
                 return -1
-            feat = np.array(map(float, feat))
+            feat = np.array(list(map(float, feat)))
             if (self.ip2cos > 1):
                 return -1
             elif (self.ip2cos == 1):
@@ -140,15 +139,15 @@ class InitProcessData(object):
                     continue
                 feat = feat / np.sqrt(np.dot(feat, feat))
             valid_line += 1
-            self.keys_file.write(fields[0])
-            self.keys_file.write('\n')
+            self.keys_file.write(fields[0].encode('utf-8'))
+            self.keys_file.write(b'\n')
 
             buf = struct.pack('i', len(feat))
             self.all_feature_file.write(buf)
             buf = struct.pack('f' * len(feat), *feat)
             self.all_feature_file.write(buf)
 
-        print 'all=%d, valid=%d' % (all_line, valid_line)
+        print('all=%d, valid=%d' % (all_line, valid_line))
         self.all_feature_file.close()
         self.keys_file.close()
         return 0
@@ -160,7 +159,7 @@ if __name__ == '__main__':
             _usage()
             sys.exit(1)
     except getopt.GetoptError as error:
-        print 'params error! Error message: ' + error
+        print('params error! Error message: ' + str(error))
         _usage()
         sys.exit(1)
     input_file = ''
@@ -168,7 +167,7 @@ if __name__ == '__main__':
     ret = 0
 
     for opt, val in opts:
-        print opt
+        print(opt)
         if opt == '-h':
             _usage()
             sys.exit(0)

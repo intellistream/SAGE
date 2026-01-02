@@ -44,6 +44,7 @@ dependencies = [
     # ========== 课题组算法库 ==========
     # Note: AMM algorithms are part of sage-libs (amms/ directory), not external dependency
     # Users can optionally install isage-amms separately for standalone use
+    # "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel (独立维护) - Integrated into sage-libs
 
     # Libs-specific dependencies
     # Vector databases
@@ -72,6 +73,10 @@ dependencies = [
     # OCR tools
     "easyocr>=1.7.0",
 
+    # SAGE 核心依赖
+    "isage-common>=0.2.0",
+    "isage-llm-core>=0.2.0",
+
     # ========== LLM & Finetune 核心依赖 (原可选依赖，现为必选) ==========
     # Transformers 生态
     "transformers>=4.52.0,<4.54.0",  # 兼容 vllm 0.9.2 (避免 aimv2 配置冲突)
@@ -88,12 +93,16 @@ dependencies = [
 
     # TRL for RLHF/DPO (0.20.x compatible with transformers<4.55)
     "trl>=0.20.0,<0.21.0",
+
+    # Missing dependencies
+    "torch>=2.7.0,<3.0.0",
+    "sentence-transformers>=3.1.0,<4.0.0",
 ]
 
 [project.optional-dependencies]
 # SAGE 内部依赖
 sage-deps = [
-    "isage-common>=0.1.0",
+    # "isage-common>=0.2.0", # Moved to core dependencies
 ]
 # 完整依赖（开发和 PyPI 发布时使用）
 all = [

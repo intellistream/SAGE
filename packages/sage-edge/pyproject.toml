@@ -29,9 +29,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "isage-llm-core>=0.1.0",  # ensures control plane client availability when gateway mounts
+    "isage-llm-core>=0.2.0",  # ensures control plane client availability when gateway mounts
     "isage-llm-gateway>=0.1.0",
-    "isage-common>=0.1.0",
+    "isage-common>=0.2.0",
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.34.0,<1.0.0",
 ]

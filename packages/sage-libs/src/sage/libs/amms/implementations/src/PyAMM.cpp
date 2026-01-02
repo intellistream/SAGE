@@ -247,7 +247,7 @@ PYBIND11_MODULE(PyAMM, m) {
    * PyTorch for computation.
    */
   m.attr("__version__") = "0.2.0";  // Incremented for dependency isolation
-  m.doc() = "LibAMM: Approximate Matrix Multiplication Library (NumPy interface)";
+  m.doc() = "SAGE AMM Library: Approximate Matrix Multiplication Library (NumPy interface)";
 
   // ConfigMap class (no changes needed - already pure C++)
   py::class_<INTELLI::ConfigMap, std::shared_ptr<INTELLI::ConfigMap>>(m, "ConfigMap")

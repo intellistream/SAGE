@@ -14,7 +14,9 @@ Example:
     >>> result = amm.multiply(matrix_a, matrix_b)
 """
 
-from sage.libs._version import __author__, __email__, __version__
+__version__ = "0.1.0"
+__author__ = "IntelliStream Team"
+__email__ = "shuhao_zhang@hust.edu.cn"
 
 # Import interface components
 from sage.libs.amms.interface import (

@@ -94,7 +94,7 @@ license = {text = "MIT"}
 [project.optional-dependencies]
 # SAGE 内部依赖
 sage-deps = [
-    "isage-common>=0.1.0",  # L1: 基础工具
+    "isage-common>=0.2.0",  # L1: 基础工具
     "isage-platform>=0.1.0",  # L2: 平台服务（BaseService等）
     "isage-kernel>=0.1.0",  # L3: 核心引擎
     "isage-libs>=0.1.0",  # L3: 算法库（sage_refiner 依赖的压缩算法）
@@ -107,7 +107,7 @@ all = [
 # 注意：移除了 isage-tools 以避免循环依赖
 # 开发时应安装 isage[dev] 或 isage-tools[dev] 来获取完整工具链
 sage = [
-    "isage-common>=0.1.0",
+    "isage-common>=0.2.0",
 ]
 
 # VLLM支持（可选，需要CUDA）

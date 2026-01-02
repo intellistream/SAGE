@@ -1,10 +1,10 @@
 
 cmake_minimum_required(VERSION 3.14)
-project(LibAMM CXX)
+project(isage_amms CXX)
 
 # 显示详细编译信息，避免看起来像卡住
 set(CMAKE_VERBOSE_MAKEFILE ON)
-message(STATUS "=== LibAMM Build Configuration ===")
+message(STATUS "=== isage_amms Build Configuration ===")
 message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 

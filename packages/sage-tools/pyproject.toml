@@ -68,7 +68,7 @@ dependencies = [
 [project.optional-dependencies]
 # SAGE 内部依赖
 sage-deps = [
-    "isage-common>=0.1.0",  # sage-tools 直接使用 sage-common (必需，有10+处导入)
+    "isage-common>=0.2.0",  # sage-tools 直接使用 sage-common (必需，有10+处导入)
 ]
 # 完整依赖（开发和 PyPI 发布时使用）
 all = [

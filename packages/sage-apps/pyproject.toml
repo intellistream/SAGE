@@ -57,7 +57,7 @@ license = {text = "MIT"}
 [project.optional-dependencies]
 # SAGE 内部依赖
 sage-deps = [
-    "isage-common>=0.1.0",
+    "isage-common>=0.2.0",
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
 ]

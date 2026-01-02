@@ -27,7 +27,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "isage-common>=0.1.0",
+    "isage-common>=0.2.0",
     "httpx>=0.28.0,<1.0.0",
     "openai>=1.52.0,<1.91.0",  # Compatible with vLLM 0.9.x (requires <=1.90.0)
     "pydantic[email]>=2.10.0,<3.0.0",
