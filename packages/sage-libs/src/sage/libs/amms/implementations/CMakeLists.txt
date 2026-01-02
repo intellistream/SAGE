@@ -68,8 +68,8 @@ configure_file (
         "${PROJECT_BINARY_DIR}/include/opencl_config.h"
 )
 option (ENABLE_PAPI
-        "Enable papi support, pls first compile papi or set REBUILD_PAPI to ON"
-        OFF
+        "Enable papi support using system-installed libpapi (install with: sudo apt-get install libpapi-dev)"
+        OFF  # 默认禁用，避免用户因缺少系统库而构建失败
         )
 # OPTIONAL PAPI
 if (NOT ENABLE_PAPI)
@@ -78,19 +78,34 @@ if (NOT ENABLE_PAPI)
 else ()
     set(LibAMM_PAPI 1)
     message(STATUS "I will try to use PAPI for HW counters, pls make sure your arch supports it")
-    option (REBUILD_PAPI
-            "Rebuild the papi libs"
-            OFF
-            )
-    if (REBUILD_PAPI)
-        set (PAPISCRIPTPATH ../thirdparty)
-        execute_process(COMMAND bash ${PAPISCRIPTPATH}/makeClean.sh WORKING_DIRECTORY ${PAPISCRIPTPATH})
-        execute_process(COMMAND bash ${PAPISCRIPTPATH}/installPAPI.sh WORKING_DIRECTORY ${PAPISCRIPTPATH})
-        message(STATUS "I have rebuilt PAPI" )
+
+    # 使用系统安装的 PAPI（通过 pkg-config 或直接查找）
+    find_package(PkgConfig QUIET)
+    if (PKG_CONFIG_FOUND)
+        pkg_check_modules(PAPI papi)
     endif()
-    find_library (libPAPI libpapi.so ./thirdparty/papi_build/lib)
-    message(STATUS "papi Libs= " ${libPAPI} )
-    set(LIBRARIES ${LIBRARIES} ${libPAPI})
+
+    if (PAPI_FOUND)
+        message(STATUS "Found system PAPI via pkg-config: ${PAPI_LIBRARIES}")
+        message(STATUS "PAPI include dirs: ${PAPI_INCLUDE_DIRS}")
+        include_directories(${PAPI_INCLUDE_DIRS})
+        link_directories(${PAPI_LIBRARY_DIRS})
+        set(LIBRARIES ${LIBRARIES} ${PAPI_LIBRARIES})
+    else()
+        # Fallback: 直接查找库文件
+        find_library(libPAPI NAMES papi libpapi.so
+                     PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+                     DOC "PAPI library")
+        if (libPAPI)
+            message(STATUS "Found system PAPI library: ${libPAPI}")
+            set(LIBRARIES ${LIBRARIES} ${libPAPI})
+        else()
+            message(WARNING "ENABLE_PAPI is ON but libpapi not found. Please install with:")
+            message(WARNING "  sudo apt-get install libpapi-dev")
+            message(WARNING "Continuing without PAPI support...")
+            set(LibAMM_PAPI 0)
+        endif()
+    endif()
 
 endif ()
 configure_file (

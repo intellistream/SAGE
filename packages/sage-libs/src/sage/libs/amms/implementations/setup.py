@@ -45,8 +45,58 @@ class CMakeBuild(build_ext):
         with open("1.txt") as file:
             threads = file.read().rstrip("\n")
         os.system("rm 1.txt")
-        os.system("cd thirdparty&&./makeClean.sh&&./installPAPI.sh")
+        # PAPI 智能检测：如果系统安装了 libpapi-dev，自动启用；否则禁用
         print(threads)
+
+        # 智能检测 PAPI 是否可用
+        def check_papi_available():
+            """检查系统是否安装了 libpapi-dev"""
+            import subprocess
+
+            try:
+                # 方法1: 使用 pkg-config 检测
+                result = subprocess.run(
+                    ["pkg-config", "--exists", "papi"], capture_output=True, timeout=5
+                )
+                if result.returncode == 0:
+                    return True
+
+                # 方法2: 查找库文件
+                import pathlib
+
+                papi_paths = [
+                    "/usr/lib/libpapi.so",
+                    "/usr/lib/x86_64-linux-gnu/libpapi.so",
+                    "/usr/local/lib/libpapi.so",
+                ]
+                for path in papi_paths:
+                    if pathlib.Path(path).exists():
+                        return True
+
+                return False
+            except Exception:
+                return False
+
+        # 决定是否启用 PAPI
+        env_papi = os.environ.get("ENABLE_AMMS_PAPI", "auto")
+
+        if env_papi == "1" or env_papi.lower() == "on" or env_papi.lower() == "true":
+            # 用户强制启用
+            enable_papi = True
+            print("✓ PAPI support enabled (forced by ENABLE_AMMS_PAPI)")
+        elif env_papi == "0" or env_papi.lower() == "off" or env_papi.lower() == "false":
+            # 用户强制禁用
+            enable_papi = False
+            print("ℹ PAPI support disabled (forced by ENABLE_AMMS_PAPI)")
+        else:
+            # 自动检测（默认）
+            enable_papi = check_papi_available()
+            if enable_papi:
+                print("✓ PAPI support auto-enabled (libpapi-dev detected)")
+            else:
+                print("ℹ PAPI support auto-disabled (libpapi-dev not found)")
+                print("  Install with: sudo apt-get install libpapi-dev")
+
         cmake_args = [
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
             "-DPYTHON_EXECUTABLE=" + sys.executable,
@@ -54,7 +104,7 @@ class CMakeBuild(build_ext):
             "-DENABLE_HDF5=ON",
             "-DENABLE_PYBIND=ON",
             "-DCMAKE_INSTALL_PREFIX=/usr/local/lib",  # pragma: allowlist secret
-            "-DENABLE_PAPI=ON",
+            "-DENABLE_PAPI=ON" if enable_papi else "-DENABLE_PAPI=OFF",
         ]
 
         cfg = "Debug" if self.debug else "Release"
