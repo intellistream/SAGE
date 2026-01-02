@@ -23,6 +23,7 @@ import requests
 
 from sage.common.config.network import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
+from sage.common.model_registry import vllm_registry
 from sage.common.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -264,6 +265,26 @@ class LLMAPIServer:
             log_file = log_dir / f"llm_api_server_{self.config.port}.log"
         self.log_file = log_file
 
+        # Ensure HF mirror is configured for China mainland users
+        # This sets HF_ENDPOINT in os.environ if needed
+        ensure_hf_mirror_configured()
+
+        # Pre-download model using SAGE's robust download system
+        # This ensures model is complete and ready before starting vLLM
+        try:
+            logger.info(f"Checking model availability: {self.config.model}")
+            model_path = vllm_registry.ensure_model_available(
+                self.config.model,
+                auto_download=True,  # Auto-download if missing or incomplete
+            )
+            logger.info(f"✓ Model ready at: {model_path}")
+        except Exception as exc:
+            logger.error(f"Failed to prepare model '{self.config.model}': {exc}")
+            logger.error(
+                f"提示: 使用 'sage llm model download --model {self.config.model} --force' 手动下载"
+            )
+            return False
+
         # Build command based on backend
         cmd = self._build_command()
         if cmd is None:
@@ -279,10 +300,6 @@ class LLMAPIServer:
             required_memory_gb=None,  # Don't require specific amount, just pick best GPU
             tensor_parallel_size=self.config.tensor_parallel_size,
         )
-
-        # Ensure HF mirror is configured for China mainland users
-        # This sets HF_ENDPOINT in os.environ if needed
-        ensure_hf_mirror_configured()
 
         # Prepare environment with GPU selection
         env = os.environ.copy()
