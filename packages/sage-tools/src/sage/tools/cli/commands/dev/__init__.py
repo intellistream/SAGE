@@ -81,7 +81,7 @@ try:
     app.add_typer(
         package_app,
         name="package",
-        help="📦 包管理 - PyPI 发布、版本管理、安装 (pypi, version, install)",
+        help="📦 包管理 - 版本管理、安装 (version, install)",
     )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 package 命令组: {e}[/yellow]")
@@ -189,7 +189,7 @@ def dev_callback(
         console.print("  [cyan]quality[/cyan]   - 质量检查（架构、文档、代码格式）")
         console.print("  [cyan]project[/cyan]   - 项目管理（状态、分析、测试、清理）")
         console.print("  [cyan]maintain[/cyan]  - 维护工具（submodule、hooks、诊断）")
-        console.print("  [cyan]package[/cyan]   - 包管理（PyPI发布、版本、安装）")
+        console.print("  [cyan]package[/cyan]   - 包管理（版本、安装）")
         console.print("  [cyan]resource[/cyan]  - 资源管理（模型缓存）")
         console.print("  [cyan]github[/cyan]    - GitHub管理（Issues、PR）")
         console.print("  [cyan]examples[/cyan]  - Examples测试（需要开发环境）\n")
@@ -213,12 +213,9 @@ COMMAND_SUGGESTIONS = {
     "doctor": ["maintain doctor"],
     "hooks": ["maintain hooks"],
     "issues": ["github issues"],
-    "pypi": ["package pypi"],
     "version": ["package version"],
     "models": ["resource models"],
     "install": ["package install"],
-    "build": ["package pypi build"],
-    "upload": ["package pypi upload"],
 }
 
 
