@@ -152,6 +152,24 @@ Notes:
 - `sage-edge` is an opt-in aggregator shell that can mount the LLM gateway; behavior is unchanged unless it is explicitly started.
 - Legacy `sage-gateway` has been superseded; do not add new code under that namespace.
 
+### 🚨 sageLLM 独立仓库 - CRITICAL
+
+**sageLLM 推理引擎已独立为私有仓库，不再作为 SAGE 子模块存在。**
+
+- **仓库地址**：`git@github.com:intellistream/sageLLM.git`（私有仓库）
+- **文档位置**：`sageLLM/docs/` 目录
+- **人员分工**：`sageLLM/docs/TEAM_ASSIGNMENT.md`
+
+**⚠️ 常见错误**：
+- ❌ 不要引用 `packages/sage-llm-core/src/sage/llm/engines/sagellm`（该路径已不存在）
+- ❌ 不要引用 `docs-public/docs_src/dev-notes/research_work/domestic-llm-engine/`（已迁移至 sageLLM 仓库）
+- ✅ sageLLM 相关文档请引用 `sageLLM/docs/` 或说明需要访问私有仓库
+
+**关系说明**：
+- sageLLM 是 SAGE 生态的推理引擎实现，但代码独立维护
+- sageLLM 仍需遵循 SAGE Control Plane 的调度协议
+- SAGE 通过引擎抽象层（与 vLLM/LMDeploy 对齐）集成 sageLLM
+
 All in `/packages/<name>/`. L6 imports L1-L5, L5 imports L1-L4, etc.
 
 ## How Copilot Should Learn SAGE (Readme-First)
@@ -205,10 +223,11 @@ Only after consulting these READMEs should the assistant propose designs, refact
 1. **User-facing docs:** `docs-public/docs_src/` (guides, tutorials, concepts)
 2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
 3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
-4. **Submodule docs:** `packages/.../submodule/docs/` (sageLLM, sageFlow, sageTSDB, etc.)
+4. **Submodule docs:** `packages/.../submodule/docs/` (sageFlow, sageTSDB, neuromem, etc.)
 5. **Tool docs:** `tools/<tool-name>/README.md` or `tools/<tool-name>/docs/`
 6. **Examples:** `examples/<name>/README.md`
 7. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
+8. **sageLLM docs:** 独立私有仓库 `sageLLM/docs/`（不在 SAGE 仓库内）
 
 **Rationale:**
 - Prevents confusion between root `docs/` and `docs-public/`
