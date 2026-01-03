@@ -31,12 +31,14 @@ tools: ['runCommands', 'runTasks', 'edit', 'runNotebooks', 'search', 'new', 'ext
 
 ```
 L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway, sage-edge
-L5: sage-apps, sage-benchmark
+L5: sage-apps
 L4: sage-middleware (C++ extensions)
 L3: sage-kernel, sage-libs
 L2: sage-platform
 L1: sage-common, sage-llm-core
 ```
+
+**Note**: sage-benchmark is now an independent repository at https://github.com/intellistream/sage-benchmark
 
 **PyPI Packages**:
 - `sage-llm-gateway` → `isage-llm-gateway` (OpenAI/Anthropic-compatible)

@@ -18,7 +18,6 @@
     "**/.pytest_cache",
     "**/dist",
     "**/*.egg-info",
-    "packages/sage-benchmark/**",
     "packages/sage-libs/src/sage/libs/libamm/**",
     "packages/sage-common/src/sage/common/components/sage_llm/**",
     "**/tests/**",
@@ -33,7 +32,6 @@
     "packages/sage-tools/src/sage/tools/dev/issues/**"
   ],
   "ignore": [
-    "packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/pythonTest.py"
   ],
   "typeCheckingMode": "basic",
   "reportMissingTypeStubs": false,

@@ -49,14 +49,16 @@
 
 #### `full`
 
-- **包含包**：standard + sage-apps, sage-benchmark
+- **包含包**：standard + sage-apps, sage-studio
 - **额外功能**：
   - 示例应用（医疗、视频分析等）
-  - 性能基准测试工具
+  - Web UI 界面
 - **适用场景**：
   - 学习 SAGE
   - 运行示例代码
-  - 性能评估和优化
+  - 使用 Web 界面
+
+**Note**: Performance benchmarking is now available via separate package: `pip install isage-benchmark`
 
 #### `dev`
 
