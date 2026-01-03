@@ -131,9 +131,7 @@ jobs:
           echo "🔍 验证关键子模块目录："
           all_ok=true
           for submodule in \
-            "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
-            "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
-            "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB" \
+            "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem" \
             "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"; do
             if [ -d "$submodule" ]; then
               # Check if directory is not empty
@@ -189,7 +187,7 @@ jobs:
             echo "⚠️  未找到.so文件，检查详细目录结构..."
             echo ""
             echo "🔍 检查扩展组件目录结构:"
-            for component in sage_flow sage_db sage_tsdb; do
+            for component in sage_mem sage_refiner; do
               component_dir="packages/sage-middleware/src/sage/middleware/components/$component"
               if [ -d "$component_dir" ]; then
                 echo ""
