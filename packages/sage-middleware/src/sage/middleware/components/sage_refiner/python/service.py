@@ -16,15 +16,12 @@ import time
 from collections import OrderedDict
 from typing import Any
 
+# Import from isage-refiner PyPI package
+from sage_refiner import RefinerAlgorithm, RefinerConfig
+
 from sage.libs.foundation.context.compression.refiner import (
     BaseRefiner,
     RefineResult,
-)
-
-# Import from sage_refiner submodule
-from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.config import (
-    RefinerAlgorithm,
-    RefinerConfig,
 )
 
 

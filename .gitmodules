@@ -7,7 +7,3 @@
 	path = packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem
 	url = https://github.com/intellistream/neuromem.git
 	branch = main-dev
-[submodule "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"]
-	path = packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner
-	url = https://github.com/intellistream/sageRefiner.git
-	branch = main-dev
