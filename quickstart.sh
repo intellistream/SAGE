@@ -499,10 +499,9 @@ main() {
                 local submodules_with_hooks=0
                 local submodules_installed=0
 
-                # 定义所有子模块路径
+                # 定义所有子模块路径 (注意: sageDB 已独立为 isagedb PyPI 包)
                 local submodule_paths=(
                     "packages/sage-llm-core/src/sage/llm/sageLLM"
-                    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
                     "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
                     "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
                     "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"

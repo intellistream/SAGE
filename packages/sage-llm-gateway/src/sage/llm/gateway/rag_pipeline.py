@@ -113,8 +113,9 @@ class RAGChatMap(MapFunction):
             import json
             from pathlib import Path as P
 
+            from sagedb import SageDB
+
             from sage.common.components.sage_embedding import get_embedding_model
-            from sage.middleware.components.sage_db.python.sage_db import SageDB
 
             # Load manifest
             index_root = P.home() / ".sage" / "cache" / "chat"

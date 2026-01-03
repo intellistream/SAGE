@@ -277,12 +277,13 @@ Canonical namespaces (post-refactor):
 
 **Middleware inference building blocks (L4, including C++ extensions)**
 
-- Vector DB core (C++20, self-developed, pluggable ANNS, multimodal fusion):
-  `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/README.md`
+- Vector DB core (SageDB - 即将独立为 `isagedb` PyPI 包):
   - **SageDB VDB Backend**: Self-developed high-performance C++ vector database
-  - **NOT FAISS-based**: Fully custom implementation
+  - **NOT FAISS-based**: Fully custom implementation with FAISS-compatible API
+  - **独立后**: `pip install isagedb` (PyPI 包名)
   - **ANNS Algorithms**: Migrated to `sage-libs/anns/` (faiss_HNSW, vsag_hnsw, diskann, etc.)
-  - Python API: `sage.middleware.components.sage_db.python.sage_db.SageDB`
+  - Python API (迁移后): `from sagedb import SageDB`
+  - SAGE 兼容层: `sage.middleware.components.sage_db.SageDB`
   - Supports: similarity search, metadata filtering, hybrid search, batch operations
   - NeuroMem integration: `sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
   - Available backends in NeuroMem: FAISS (Python wrapper), SageDB (C++ self-developed)
@@ -1034,12 +1035,33 @@ sage-cp-bench compare --mode llm --policies fifo,priority,slo_aware
 
 ## SageDB Vector Database Backend
 
+### 🚨 SageDB 已独立 - CRITICAL
+
+**SageDB 已独立为 `isagedb` PyPI 包，不再作为 SAGE 子模块存在。**
+
+- **PyPI 包名**: `isagedb`
+- **安装方式**: `pip install isagedb`
+- **仓库地址**: `https://github.com/intellistream/sageDB`
+- **迁移文档**: `docs-public/docs_src/dev-notes/cross-layer/sagedb-independence-migration.md`
+
+**⚠️ 无向后兼容**: 迁移后子模块和 python/ 目录将被完全移除。
+
+**导入方式**:
+```python
+# ✅ 推荐：直接从 isagedb 导入
+from sagedb import SageDB, IndexType, DistanceMetric
+
+# ✅ 或通过 SAGE 兼容层
+from sage.middleware.components.sage_db import SageDB
+```
+
 ### Overview
 
-SageDB is a **self-developed high-performance C++ vector database**, fully custom implementation (NOT based on FAISS), integrated into SAGE's NeuroMem VDB system.
+SageDB is a **self-developed high-performance C++ vector database**, fully custom implementation (NOT based on FAISS), with FAISS-compatible API.
 
 **Features**:
 - ✅ Self-developed C++ core (independent implementation)
+- ✅ **FAISS-compatible API** (drop-in replacement)
 - ✅ High-performance similarity search (C++ optimized)
 - ✅ Metadata filtering (`filtered_search`, `search_by_metadata`)
 - ✅ Hybrid search (vector + text)
@@ -1047,14 +1069,17 @@ SageDB is a **self-developed high-performance C++ vector database**, fully custo
 - ✅ Persistent storage (save/load)
 - ✅ Multiple index types (AUTO, FLAT, IVF, HNSW)
 - ✅ Distance metrics (L2, INNER_PRODUCT, COSINE)
-- ✅ **ANNS Algorithms**: Available in `sage-libs/anns/` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
 
 ### Location
 
-**Core Implementation**:
-- C++ Backend: `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB/`
-- Python API: `packages/sage-middleware/src/sage/middleware/components/sage_db/python/sage_db.py`
-- NeuroMem Adapter: `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
+**独立包**:
+- PyPI: `pip install isagedb`
+- 仓库: `https://github.com/intellistream/sageDB`
+
+**SAGE 兼容层** (保留):
+- 重导出: `packages/sage-middleware/src/sage/middleware/components/sage_db/__init__.py`
+- 适配器: `packages/sage-middleware/src/sage/middleware/components/sage_db/backend.py`
+- NeuroMem 集成: `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
 
 ### Usage in NeuroMem VDB Collections
 
@@ -1129,12 +1154,16 @@ index_config = {
 - When search latency is critical
 - Production RAG pipelines with high QPS
 
-### Direct SageDB API (without NeuroMem)
+### Direct SageDB API
 
-**Important**: SageDB is a self-developed C++ vector database, not based on FAISS.
+**Important**: SageDB is a self-developed C++ vector database with FAISS-compatible API.
 
 ```python
-from sage.middleware.components.sage_db.python.sage_db import SageDB, IndexType, DistanceMetric
+# 迁移后（推荐）
+from sagedb import SageDB, IndexType, DistanceMetric
+
+# 或通过 SAGE 兼容层
+from sage.middleware.components.sage_db import SageDB, IndexType, DistanceMetric
 
 # Create database (C++ core)
 db = SageDB(dimension=128, index_type=IndexType.AUTO, metric=DistanceMetric.L2)
