@@ -74,7 +74,8 @@ github-manager stats
 github-manager ai --action analyze
 ```
 
-See the [sage-github-manager documentation](https://github.com/intellistream/sage-github-manager) for details.
+See the [sage-github-manager documentation](https://github.com/intellistream/sage-github-manager)
+for details.
 
 ## 🚀 Installation
 
