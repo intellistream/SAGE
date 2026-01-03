@@ -116,9 +116,6 @@ bash tools/tests/run_examples_tests.sh
 # 运行全部 pytest （如需要更广覆盖）
 pytest -vv
 
-# 只运行与 issues manager 相关测试
-pytest -k issues_manager -vv
-
 # 语法与基础静态检查（建议）
 python -m py_compile path/to/modified.py
 bash -n path/to/script.sh
@@ -296,7 +293,6 @@ Reduce flakiness via timeout + category filtering.
    ```bash
    ./quickstart.sh --core --yes                # 安装/环境相关改动
    bash tools/tests/run_examples_tests.sh      # 示例 + 基础集成
-   pytest -k issues_manager -vv                # Issues 管理相关
    ```
 
 1. **集成测试**
@@ -397,7 +393,6 @@ pre-commit run --all-files
 | 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
 | 示例测试       | `bash tools/tests/run_examples_tests.sh`           | 运行示例/集成集            |
 | 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
-| Issues 测试    | `pytest -k issues_manager -vv`                     | Python 化测试              |
 | 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
 
 > 任何命令失败，请附上一行重现命令与终端输出前 50 行发至 Issue。
