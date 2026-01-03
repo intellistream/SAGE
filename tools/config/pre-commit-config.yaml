@@ -435,25 +435,19 @@ repos:
   hooks:
   - id: detect-secrets
     args: [--baseline, tools/config/secrets.baseline]
-    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/sage-benchmark/.*\.yaml$|packages/.*/src/.*\.md$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
+    exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/.*/src/.*\.md$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-  # SAGE Data Architecture Validation
+  # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
+  # See: https://github.com/intellistream/sage-benchmark
 - repo: local
   hooks:
-  - id: validate-data-architecture
-    name: Validate SAGE Data Architecture
-    entry: python tools/hooks/validate_data_architecture.py
-    language: system
-    pass_filenames: false
-    files: ^packages/sage-benchmark/src/sage/data/(sources|usages)/.*\.(yaml|py)$
-    description: Validate that datasets follow the two-layer architecture
   - id: copilot-instructions-sync-check
     name: check copilot-instructions and my-agent sync
     entry: bash tools/hooks/check_copilot_instructions_sync.sh
     language: system
     pass_filenames: false
     # Trigger on: doc files, installation scripts, CI/CD, config, ports, CLI, LLM/Gateway
-    files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml|packages/sage-benchmark/src/sage/benchmark/)
+    files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
 
