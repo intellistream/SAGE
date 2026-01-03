@@ -16,13 +16,15 @@ For detailed migration information, see:
 # Import from PyPI package (isage-flow)
 try:
     from sage_flow import (
-        DPWrapper,
-        IndexConfig,
-        PartitionType,
-        QueryConfig,
-        QueryResult,
-        SageFlow,
-        SemanticQueryEngine,
+        DataType,
+        SimpleStreamSource,
+        Stream,
+        StreamEnvironment,
+        VectorData,
+        VectorRecord,
+        __author__,
+        __email__,
+        __version__,
     )
 except ImportError as e:
     raise ImportError(
@@ -30,21 +32,19 @@ except ImportError as e:
     ) from e
 
 # SAGE-specific services (kept in SAGE repo)
-from .python.micro_service.sage_flow_service import (
-    SageFlowService,
-    SageFlowServiceConfig,
-)
+from .python.micro_service.sage_flow_service import SageFlowService
 
 __all__ = [
     # Core API from isage-flow
-    "SageFlow",
-    "SemanticQueryEngine",
-    "QueryConfig",
-    "IndexConfig",
-    "QueryResult",
-    "DPWrapper",
-    "PartitionType",
+    "StreamEnvironment",
+    "Stream",
+    "SimpleStreamSource",
+    "VectorData",
+    "VectorRecord",
+    "DataType",
+    "__version__",
+    "__author__",
+    "__email__",
     # SAGE-specific services
     "SageFlowService",
-    "SageFlowServiceConfig",
 ]
