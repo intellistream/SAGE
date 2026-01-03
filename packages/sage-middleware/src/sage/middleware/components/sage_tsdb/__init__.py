@@ -10,7 +10,16 @@ This module provides backward-compatible wrappers and SAGE-specific services.
 
 # Import from PyPI package (isage-tsdb)
 try:
-    from sage_tsdb import QueryConfig, SageTSDB, TimeRange, TimeSeriesData
+    from sage_tsdb import (
+        QueryConfig,
+        TimeRange,
+        TimeSeriesData,
+        TimeSeriesDB,
+        TimeSeriesIndex,
+    )
+
+    # Backward compatibility alias
+    SageTSDB = TimeSeriesDB
 except ImportError as e:
     raise ImportError("SAGE TSDB 需要 isage-tsdb 包。请安装: pip install isage-tsdb") from e
 

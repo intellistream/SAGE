@@ -17,12 +17,21 @@ from sagedb import (
     DatabaseConfig,
     DistanceMetric,
     IndexType,
+    MetadataStore,
+    QueryEngine,
     QueryResult,
     SageDB,
     SageDBException,
     SearchParams,
+    SearchStats,
+    VectorStore,
+    add_numpy,
     create_database,
-    create_database_from_config,
+    distance_metric_to_string,
+    index_type_to_string,
+    search_numpy,
+    string_to_distance_metric,
+    string_to_index_type,
 )
 
 __all__ = [
@@ -32,9 +41,20 @@ __all__ = [
     "DistanceMetric",
     "QueryResult",
     "SearchParams",
+    "SearchStats",
     "DatabaseConfig",
+    "MetadataStore",
+    "QueryEngine",
+    "VectorStore",
     "SageDBException",
     # Factory functions
     "create_database",
-    "create_database_from_config",
+    # Numpy utilities
+    "add_numpy",
+    "search_numpy",
+    # Conversion utilities
+    "distance_metric_to_string",
+    "index_type_to_string",
+    "string_to_distance_metric",
+    "string_to_index_type",
 ]
