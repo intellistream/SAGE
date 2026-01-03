@@ -49,6 +49,11 @@ systems through declarative dataflow abstractions.
 
 ## Why Choose SAGE?
 
+## Project Team & Collaboration
+
+See `docs-public/docs_src/dev-notes/cross-layer/team-management.md` for the current team
+coordination entrypoint (team management + incubation policy).
+
 **Production-Ready**: Built for enterprise-scale applications with distributed processing, fault
 tolerance, and comprehensive monitoring out of the box.
 
