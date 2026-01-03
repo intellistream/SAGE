@@ -2,26 +2,31 @@
 SAGE-Mem: Memory Management Component for SAGE
 
 Provides memory management capabilities for RAG applications,
-wrapping the neuromem sub-project.
+wrapping the neuromem package (isage-neuromem on PyPI).
 """
 
 import warnings
 
-# Try to import from neuromem submodule, but don't fail if it's not available
+# Import from isage-neuromem PyPI package
 try:
-    from .neuromem.memory_collection import (
+    from neuromem.memory_collection import (
         BaseMemoryCollection,
         GraphMemoryCollection,
         KVMemoryCollection,
-        SimpleGraphIndex,
         VDBMemoryCollection,
     )
-    from .neuromem.memory_manager import MemoryManager
-    from .neuromem.services import (
+    from neuromem.memory_manager import MemoryManager
+    from neuromem.services import (
         BaseMemoryService,
         MemoryServiceRegistry,
         NeuromemServiceFactory,
     )
+
+    # SimpleGraphIndex is in search_engine, not memory_collection
+    try:
+        from neuromem.search_engine.graph_index import SimpleGraphIndex
+    except ImportError:
+        SimpleGraphIndex = None
 
     __all__ = [
         # Core neuromem components
@@ -30,20 +35,22 @@ try:
         "VDBMemoryCollection",
         "KVMemoryCollection",
         "GraphMemoryCollection",
-        "SimpleGraphIndex",
         # Services
         "BaseMemoryService",
         "MemoryServiceRegistry",
         "NeuromemServiceFactory",
     ]
 
+    if SimpleGraphIndex is not None:
+        __all__.append("SimpleGraphIndex")
+
     _NEUROMEM_AVAILABLE = True
 
 except (ImportError, ModuleNotFoundError) as e:
     warnings.warn(
-        f"neuromem submodule not available: {e}. "
+        f"isage-neuromem package not available: {e}. "
         "Memory management features will be limited. "
-        "Run './manage.sh' or 'git submodule update --init' to initialize submodules.",
+        "Install with: pip install isage-neuromem",
         UserWarning,
         stacklevel=2,
     )
