@@ -125,7 +125,7 @@ git checkout main-dev
 
 ### Submodule Management
 
-SAGE uses Git submodules for modular components (docs-public, sageDB, sageLLM, sageFlow). Use the
+SAGE uses Git submodules for modular components (docs-public, neuromem, sageRefiner). Use the
 maintenance tool for all submodule operations:
 
 #### Quick Reference
