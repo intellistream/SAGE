@@ -18,15 +18,3 @@
 	path = packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner
 	url = https://github.com/intellistream/sageRefiner.git
 	branch = main-dev
-[submodule "packages/sage-benchmark/src/sage/data"]
-	path = packages/sage-benchmark/src/sage/data
-	url = https://github.com/intellistream/sageData.git
-	branch = main-dev
-[submodule "packages/sage-benchmark/src/sage/benchmark/benchmark_anns"]
-	path = packages/sage-benchmark/src/sage/benchmark/benchmark_anns
-	url = https://github.com/intellistream/SAGE-DB-Bench.git
-	branch = main-dev
-[submodule "packages/sage-benchmark/src/sage/benchmark/benchmark_amm"]
-	path = packages/sage-benchmark/src/sage/benchmark/benchmark_amm
-	url = https://github.com/intellistream/LibAMM.git
-	branch = main-dev

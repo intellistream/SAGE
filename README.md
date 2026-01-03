@@ -137,7 +137,7 @@ layers:
 
 ```
 L6: sage-studio, sage-cli, sage-tools    # User Interfaces & Dev Tools
-L5: sage-apps, sage-benchmark             # Applications & Benchmarks
+L5: sage-apps                             # Applications
 L4: sage-middleware, sage-gateway         # Domain Operators & API Gateway
 L3: sage-kernel, sage-libs                # Core Engine & Algorithm Library
 L2: sage-platform                         # Platform Services (Queue, Storage)
@@ -165,10 +165,12 @@ Detailed package descriptions, dependency rules, and design principles
 - **sage-middleware** (L4): Domain operators and middleware components
 - **sage-gateway** (L4): API gateway and service mesh
 - **sage-apps** (L5): Pre-built applications (video, medical diagnosis)
-- **sage-benchmark** (L5): Performance benchmarks and examples
 - **sage-studio** (L6): Web-based visualization interface
 - **sage-cli** (L6): Unified command-line interface
 - **sage-tools** (L6): Development tools and testing framework
+
+**Note**: sage-benchmark has been separated into an independent repository:
+https://github.com/intellistream/sage-benchmark
 
 ### Production Features
 

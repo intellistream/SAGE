@@ -139,12 +139,14 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 ```
 L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway, sage-edge  # Interfaces & gateways
-L5: sage-apps, sage-benchmark          # Apps & Benchmarks  
+L5: sage-apps                          # Apps
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
 L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 ```
+
+**Note**: sage-benchmark has been separated into an independent repository: https://github.com/intellistream/sage-benchmark
 
 Notes:
 - `sage-llm-gateway` is published to PyPI as `isage-llm-gateway` (OpenAI/Anthropic-compatible API Gateway).
@@ -977,61 +979,25 @@ embedder = EmbeddingFactory.create("hf", model="...")
 embedder.embed(texts=["a", "b"])  # TypeError: embed() got unexpected keyword argument 'texts'
 ```
 
-## sage-benchmark 组件
+## sage-benchmark (独立仓库)
 
-Agent 能力和 Control Plane 评测框架，位于 `packages/sage-benchmark/`：
+**sage-benchmark has been separated into an independent repository**: https://github.com/intellistream/sage-benchmark
 
-### benchmark_agent (Agent 能力评测)
+Comprehensive evaluation framework for AI data processing pipelines, including:
+- **benchmark_agent**: Agent capability evaluation (tool selection, task planning, timing judgment)
+- **benchmark_control_plane**: Control Plane scheduling strategy evaluation
+- **benchmark_memory**: Memory system evaluation
+- **benchmark_rag**: RAG pipeline evaluation
+- **benchmark_refiner**: Context compression evaluation
+- **benchmark_anns**: ANNS algorithm evaluation
+- **benchmark_amm**: Approximate matrix multiplication evaluation
 
-评估 Agent 三个核心能力：工具选择、任务规划、时机判断。
-
-**核心模块**:
-```
-src/sage/benchmark/benchmark_agent/
-  adapter_registry.py      # 策略注册表 (selector.*, planner.*, timing.*)
-  experiments/
-    base_experiment.py     # 实验基类 + 数据模型
-    tool_selection_exp.py  # 工具选择评测
-    planning_exp.py        # 任务规划评测
-    timing_detection_exp.py # 时机决策评测
-  evaluation/
-    metrics.py             # 评测指标 (accuracy, precision, recall, etc.)
-  scripts/                 # 评测脚本
-```
-
-**使用示例**:
-```python
-from sage.benchmark.benchmark_agent import get_adapter_registry
-
-registry = get_adapter_registry()
-
-# 工具选择策略
-selector = registry.get("selector.keyword")  # keyword, embedding, hybrid, gorilla, dfsdt
-
-# 任务规划策略
-planner = registry.get("planner.react")  # simple, hierarchical, llm_based, react, tot
-
-# 时机决策策略
-decider = registry.get("timing.rule_based")  # rule_based, llm_based, hybrid
-```
-
-### benchmark_control_plane (调度策略评测)
-
-评估 sageLLM Control Plane 的调度策略性能（吞吐量、延迟、SLO 合规率）。
-
-**CLI**:
+To use sage-benchmark:
 ```bash
-# LLM 调度评测
-sage-cp-bench run --mode llm --policy fifo --requests 100
-
-# Hybrid (LLM + Embedding) 评测
-sage-cp-bench run --mode hybrid --policy hybrid_slo --llm-ratio 0.7
-
-# 策略对比
-sage-cp-bench compare --mode llm --policies fifo,priority,slo_aware
+pip install isage-benchmark
 ```
 
-**详细文档**: `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md`
+For detailed documentation, see the [sage-benchmark repository](https://github.com/intellistream/sage-benchmark).
 
 ## SageDB Vector Database Backend
 
