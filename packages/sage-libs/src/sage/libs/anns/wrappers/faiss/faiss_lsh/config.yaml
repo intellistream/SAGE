@@ -1,0 +1,23 @@
+random-xs:
+  faiss_lsh:
+    module: benchmark_anns.bench.algorithms.faiss_lsh.faiss_lsh
+    constructor: FaissLsh
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "LSH"}]
+        query-args: |
+          [{"ef": 30}]
+
+sift:
+  faiss_lsh:
+    module: benchmark_anns.bench.algorithms.faiss_lsh.faiss_lsh
+    constructor: FaissLsh
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{"indexkey": "LSH"}]
+        query-args: |
+          [{"ef": 30}]

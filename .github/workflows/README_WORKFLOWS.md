@@ -49,14 +49,16 @@
 
 #### `full`
 
-- **包含包**：standard + sage-apps, sage-benchmark
+- **包含包**：standard + sage-apps, sage-studio
 - **额外功能**：
   - 示例应用（医疗、视频分析等）
-  - 性能基准测试工具
+  - Web UI 界面
 - **适用场景**：
   - 学习 SAGE
   - 运行示例代码
-  - 性能评估和优化
+  - 使用 Web 界面
+
+**Note**: Performance benchmarking is now available via separate package: `pip install isage-benchmark`
 
 #### `dev`
 
@@ -208,6 +210,40 @@ pip install -e ".[standard]"   # 标准模式
 - [SAGE 架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
 - [包依赖关系](../../docs-public/docs_src/dev-notes/package-dependencies.md)
 - [贡献指南](../../CONTRIBUTING.md)
+- [CI/CD 分层与目录结构](../../docs/dev-notes/cross-layer/ci-cd.md)
+
+## ♻️ Workflow 命名规范
+
+**前缀分类**:
+| 前缀 | 含义 | 触发方式 |
+|------|------|----------|
+| `ci-*` | 持续集成检查 | PR/Push 自动触发 |
+| `cd-*` | 部署/发布 | Tag/Release/手动触发 |
+| `util-*` | 辅助工具 | 定时/手动触发 |
+| `exp-*` | 实验/研究 | 手动触发 |
+
+**完整列表**:
+```
+ci-build-test.yml        # 构建 + 单元测试 (packages 变更触发)
+ci-code-quality.yml      # Lint & Format (*.py 变更触发, ~3min)
+ci-pr-examples.yml       # Examples quick 测试 (examples 变更触发)
+ci-pr-install.yml        # 安装冒烟测试 (pyproject 变更触发)
+ci-release-examples.yml  # Examples full 测试 (main push/release)
+ci-release-install.yml   # 全量安装验证 (main push/release)
+ci-deployment-check.yml  # 部署就绪检查
+
+cd-publish-pypi.yml      # PyPI 发布 (tag/release)
+cd-deploy-studio.yml     # Studio 部署 (手动)
+
+util-sync-branches.yml   # main → main-dev 同步
+util-sync-submodules.yml # 子模块同步
+util-cleanup.yml         # 测试环境清理
+util-todo-to-issue.yml   # TODO 转 Issue
+util-weekly-report.yml   # 周报生成
+util-branch-protection.yml # 分支保护检查
+
+exp-paper1.yml           # Paper1 实验 (GPU, 手动)
+```
 
 ______________________________________________________________________
 
@@ -267,6 +303,5 @@ cd /path/to/SAGE
 
 在 GitHub Settings → Secrets 中配置：
 
-- `DASHSCOPE_API_KEY` - 阿里云 API Key (必需)
-- `OPENAI_API_KEY` - OpenAI API Key (可选)
+- `SAGE_CHAT_API_KEY` / `OPENAI_API_KEY` - OpenAI 兼容 API Key（云端或自托管都可，例如阿里云 DashScope 兼容端点）
 - `HF_TOKEN` - Hugging Face Token (可选)

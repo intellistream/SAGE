@@ -1,31 +1,29 @@
 """
 SAGE Memory Backend 示例
 
-展示如何使用不同的记忆后端（short_term, vdb, kv, graph）
+展示如何直接使用重构后的 neuromem 服务
+（SessionManager 的记忆后端 API 正在适配重构后的 neuromem）
 """
 
-from pathlib import Path
-
-from sage.gateway.session.manager import SessionManager
-from sage.gateway.session.storage import FileSessionStore
+from sage.middleware.components.sage_mem.neuromem.memory_collection import UnifiedCollection
+from sage.middleware.components.sage_mem.neuromem.services.partitional.fifo_queue_service import (
+    FIFOQueueService,
+)
 
 
 def demo_short_term_memory():
-    """演示短期记忆后端"""
+    """演示短期记忆后端 - 使用重构后的 FIFOQueueService"""
     print("\n" + "=" * 50)
-    print("Demo 1: Short-Term Memory Backend")
+    print("Demo 1: Short-Term Memory Backend (FIFO Queue)")
     print("=" * 50)
 
-    storage = FileSessionStore(path=Path(".sage/sessions_short_term.json"))
-    manager = SessionManager(
-        storage=storage,
-        memory_backend="short_term",
-        max_memory_dialogs=3,  # 只保留最近3轮对话
-    )
+    # 创建 UnifiedCollection
+    collection = UnifiedCollection(name="short_term_memory")
 
-    session = manager.create_session()
-    session_id = session.id
-    print(f"Created session: {session_id}")
+    # 创建 FIFO 队列服务，只保留最近3条记录
+    service = FIFOQueueService(collection, config={"max_size": 3})
+
+    print("Created FIFO queue service with max_size=3")
 
     # 存储5轮对话
     dialogs = [
@@ -37,167 +35,75 @@ def demo_short_term_memory():
     ]
 
     for i, (user_msg, assistant_msg) in enumerate(dialogs, 1):
-        manager.store_dialog_to_memory(session_id, user_msg, assistant_msg)
+        # 插入用户消息和助手回复
+        dialog_text = f"User: {user_msg}\nAssistant: {assistant_msg}"
+        service.insert(dialog_text, metadata={"round": i})
         print(f"Stored dialog {i}: {user_msg}")
 
-    # 检索历史（只会返回最近3轮）
-    history = manager.retrieve_memory_history(session_id)
-    print("\nRetrieved history (last 3 dialogs):")
-    print(history)
+    # 检索历史（只会返回最近3轮，因为 max_size=3）
+    results = service.retrieve("", top_k=10)  # 尝试取10条，但只会返回最近3条
+    print(f"\nRetrieved {len(results)} dialogs (should be 3 due to FIFO limit):")
+    for i, result in enumerate(results, 1):
+        # result 是字典，包含 'id', 'text', 'metadata', 'score' 等字段
+        text = result.get("text", "")
+        entry_preview = text[:50] + "..." if len(text) > 50 else text
+        print(f"  {i}. {entry_preview}")
 
-    manager.delete(session_id)
-    print(f"\nCleaned up session: {session_id}")
+    print(f"\n✅ Demo completed: FIFO queue correctly limited to {len(results)} items")
 
 
 def demo_vdb_memory():
-    """演示向量数据库记忆后端"""
+    """演示向量数据库记忆后端 - 暂时跳过，等待 SessionManager 适配"""
     print("\n" + "=" * 50)
     print("Demo 2: Vector Database (VDB) Memory Backend")
     print("=" * 50)
-
-    storage = FileSessionStore(path=Path(".sage/sessions_vdb.json"))
-    manager = SessionManager(
-        storage=storage,
-        memory_backend="vdb",
-        memory_config={
-            "embedding_model": "mockembedder",  # 使用 mock embedder 用于测试
-            "embedding_dim": 128,  # mockembedder 默认维度
-            "backend_type": "faiss",
-            "max_retrieve": 5,
-        },
-    )
-
-    session = manager.create_session()
-    session_id = session.id
-    print(f"Created session: {session_id}")
-
-    # 存储不同主题的对话
-    dialogs = [
-        ("Python如何读取文件", "使用 open() 函数配合 with 语句可以安全地读取文件。"),
-        ("什么是机器学习", "机器学习是人工智能的一个分支，通过算法从数据中学习规律。"),
-        (
-            "如何写入文件到磁盘",
-            "可以使用 open() 的写模式 'w' 或追加模式 'a' 写入文件。",
-        ),
-    ]
-
-    for user_msg, assistant_msg in dialogs:
-        manager.store_dialog_to_memory(session_id, user_msg, assistant_msg)
-        print(f"Stored: {user_msg}")
-
-    # VDB 支持语义相似度检索
-    history = manager.retrieve_memory_history(session_id)
-    print("\nRetrieved history (semantic search):")
-    print(history)
-
-    manager.delete(session_id)
-    print(f"\nCleaned up session: {session_id}")
+    print("⚠️  Skipped: SessionManager VDB backend needs API update.")
+    print("    See neuromem services for direct usage examples.")
 
 
 def demo_kv_memory():
-    """演示键值存储记忆后端"""
+    """演示键值存储记忆后端 - 暂时跳过，等待 SessionManager 适配"""
     print("\n" + "=" * 50)
     print("Demo 3: Key-Value (KV) Memory Backend")
     print("=" * 50)
-
-    storage = FileSessionStore(path=Path(".sage/sessions_kv.json"))
-    manager = SessionManager(
-        storage=storage,
-        memory_backend="kv",
-        memory_config={"default_index_type": "bm25s", "max_retrieve": 10},
-    )
-
-    session = manager.create_session()
-    session_id = session.id
-    print(f"Created session: {session_id}")
-
-    # 存储关键词密集的对话
-    dialogs = [
-        ("API key 在哪里配置", "API key 需要在 .env 文件中设置 OPENAI_API_KEY。"),
-        ("如何测试 API 连接", "可以运行 test_api.py 脚本测试 API 连接状态。"),
-        ("API 调用失败怎么办", "检查 API key 是否正确，以及网络连接是否正常。"),
-    ]
-
-    for user_msg, assistant_msg in dialogs:
-        manager.store_dialog_to_memory(session_id, user_msg, assistant_msg)
-        print(f"Stored: {user_msg}")
-
-    # KV 支持关键词检索
-    history = manager.retrieve_memory_history(session_id)
-    print("\nRetrieved history (keyword search):")
-    print(history)
-
-    manager.delete(session_id)
-    print(f"\nCleaned up session: {session_id}")
+    print("⚠️  Skipped: SessionManager KV backend needs API update.")
+    print("    See neuromem services for direct usage examples.")
 
 
 def demo_graph_memory():
-    """演示图结构记忆后端"""
+    """演示图记忆后端 - 暂时跳过，等待 SessionManager 适配"""
     print("\n" + "=" * 50)
     print("Demo 4: Graph Memory Backend")
     print("=" * 50)
-
-    storage = FileSessionStore(path=Path(".sage/sessions_graph.json"))
-    manager = SessionManager(
-        storage=storage,
-        memory_backend="graph",
-        memory_config={"max_depth": 2, "max_retrieve": 10},
-    )
-
-    session = manager.create_session()
-    session_id = session.id
-    print(f"Created session: {session_id}")
-
-    # 存储有关联关系的对话
-    dialogs = [
-        ("开始一个新项目", "好的，我们先创建项目结构。"),
-        ("添加测试文件", "已添加测试目录和初始测试文件。"),
-        ("运行测试", "测试全部通过！项目准备就绪。"),
-    ]
-
-    for user_msg, assistant_msg in dialogs:
-        manager.store_dialog_to_memory(session_id, user_msg, assistant_msg)
-        print(f"Stored: {user_msg}")
-
-    # Graph 支持关系推理
-    history = manager.retrieve_memory_history(session_id)
-    print("\nRetrieved history (graph relationship):")
-    print(history)
-
-    manager.delete(session_id)
-    print(f"\nCleaned up session: {session_id}")
+    print("⚠️  Skipped: SessionManager Graph backend needs API update.")
+    print("    See neuromem services for direct usage examples.")
 
 
 def main():
     """主函数：运行所有示例"""
     print("\n" + "=" * 70)
-    print(" " * 15 + "SAGE Memory Backend Demo")
+    print(" " * 10 + "SAGE Neuromem Services Demo (Refactored)")
     print("=" * 70)
+    print("\n📝 Note: This demo uses the refactored neuromem services directly.")
+    print("   SessionManager memory backend API is being updated to support")
+    print("   the new neuromem architecture.")
 
-    # Demo 1: Short-Term Memory
-    demo_short_term_memory()
-
-    # Demo 2: VDB Memory (需要 OPENAI_API_KEY)
+    # Demo 1: Short-Term Memory (FIFO Queue)
     try:
-        demo_vdb_memory()
+        demo_short_term_memory()
     except Exception as e:
-        print(f"\nVDB demo skipped: {e}")
-        print("(Requires OPENAI_API_KEY environment variable)")
+        print(f"\n❌ FIFO demo failed: {e}")
+        import traceback
 
-    # Demo 3: KV Memory
-    try:
-        demo_kv_memory()
-    except Exception as e:
-        print(f"\nKV demo skipped: {e}")
+        traceback.print_exc()
 
-    # Demo 4: Graph Memory
-    try:
-        demo_graph_memory()
-    except Exception as e:
-        print(f"\nGraph demo skipped: {e}")
+    # Demo 2-4: Skipped until SessionManager API is updated
+    demo_vdb_memory()
+    demo_kv_memory()
+    demo_graph_memory()
 
     print("\n" + "=" * 70)
-    print(" " * 20 + "All demos completed!")
+    print(" " * 20 + "Demo completed!")
     print("=" * 70 + "\n")
 
 

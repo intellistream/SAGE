@@ -59,6 +59,24 @@ See [Examples Testing README](src/sage/tools/dev/examples/README.md) for details
 - Documentation quality checker
 - Code metrics and statistics
 
+### 🐙 GitHub Issues Management (Extracted)
+
+**Note**: GitHub Issues management functionality has been extracted into a separate project:
+[sage-github-manager](https://github.com/intellistream/sage-github-manager)
+
+```bash
+# Install the standalone tool
+pip install sage-github-manager
+
+# Use it independently
+github-manager download
+github-manager stats
+github-manager ai --action analyze
+```
+
+See the [sage-github-manager documentation](https://github.com/intellistream/sage-github-manager)
+for details.
+
 ## 🚀 Installation
 
 ### For End Users (PyPI)

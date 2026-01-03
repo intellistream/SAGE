@@ -54,8 +54,141 @@ fi
 """
 
 
+def check_ray_running(head_port: int) -> tuple[bool, list[int]]:
+    """检查Ray Head是否已经在运行
+
+    返回: (是否运行, 进程ID列表)
+
+    使用 ps + grep 检查进程，避免匹配到自身
+    """
+    pids = []
+
+    # 使用 grep 技巧避免匹配自身: [g]cs_server 不会匹配包含 "gcs_server" 字符串的 grep 命令
+    try:
+        result = subprocess.run(
+            [
+                "bash",
+                "-c",
+                """
+ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep -E '[g]cs_server.*--gcs_server_port|[r]aylet.*--raylet_socket_name' | awk '{print $1}'
+""",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().split("\n"):
+                pid_str = line.strip()
+                if pid_str.isdigit():
+                    pids.append(int(pid_str))
+    except Exception:
+        pass
+
+    # 备选：检查端口是否被占用
+    if not pids:
+        try:
+            result = subprocess.run(
+                [
+                    "bash",
+                    "-c",
+                    f"ss -tlnp 2>/dev/null | grep ':{head_port}' | grep -oP 'pid=\\K[0-9]+'",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                for pid_str in result.stdout.strip().split("\n"):
+                    if pid_str.strip().isdigit():
+                        pids.append(int(pid_str.strip()))
+        except Exception:
+            pass
+
+    return len(pids) > 0, pids
+
+
+def force_cleanup_ray_processes(head_log_dir: str, ray_command: str, verbose: bool = True) -> bool:
+    """强制清理所有Ray相关进程
+
+    返回: 是否成功清理
+    """
+    # 首先使用 ray stop 命令
+    try:
+        result = subprocess.run(
+            ["bash", "-c", f"{ray_command} stop 2>&1"], capture_output=True, text=True, timeout=30
+        )
+        if verbose and result.stdout:
+            typer.echo(result.stdout.strip())
+    except Exception:
+        pass
+
+    time.sleep(2)
+
+    # 然后使用 ps + grep 找到并清理残留进程
+    cleanup_command = f"""
+set +e
+LOG_DIR='{head_log_dir}'
+mkdir -p "$LOG_DIR"
+
+echo "[INFO] 清理Ray残留进程..." | tee -a "$LOG_DIR/head.log"
+
+# 使用 grep 技巧避免匹配自身: [g]cs_server 不会匹配 grep 命令本身
+GCS_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep '[g]cs_server.*--gcs_server_port' | awk '{{print $1}}')
+RAYLET_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep '[r]aylet.*--raylet_socket_name' | awk '{{print $1}}')
+
+if [[ -n "$GCS_PIDS" ]]; then
+    echo "[INFO] 终止 gcs_server 进程: $GCS_PIDS" | tee -a "$LOG_DIR/head.log"
+    echo "$GCS_PIDS" | xargs -r kill -TERM 2>/dev/null || true
+fi
+
+if [[ -n "$RAYLET_PIDS" ]]; then
+    echo "[INFO] 终止 raylet 进程: $RAYLET_PIDS" | tee -a "$LOG_DIR/head.log"
+    echo "$RAYLET_PIDS" | xargs -r kill -TERM 2>/dev/null || true
+fi
+
+sleep 2
+
+# 强制终止
+GCS_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep '[g]cs_server.*--gcs_server_port' | awk '{{print $1}}')
+RAYLET_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep '[r]aylet.*--raylet_socket_name' | awk '{{print $1}}')
+
+if [[ -n "$GCS_PIDS" ]] || [[ -n "$RAYLET_PIDS" ]]; then
+    echo "[WARNING] 强制终止残留进程..." | tee -a "$LOG_DIR/head.log"
+    echo "$GCS_PIDS $RAYLET_PIDS" | xargs -r kill -9 2>/dev/null || true
+    sleep 1
+fi
+
+# 验证
+REMAINING=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep -E '[g]cs_server.*--gcs_server_port|[r]aylet.*--raylet_socket_name' | awk '{{print $1}}')
+if [[ -z "$REMAINING" ]]; then
+    echo "[SUCCESS] Ray进程清理完成" | tee -a "$LOG_DIR/head.log"
+    exit 0
+else
+    echo "[WARNING] 仍有残留进程: $REMAINING" | tee -a "$LOG_DIR/head.log"
+    exit 1
+fi
+"""
+
+    try:
+        result = subprocess.run(
+            ["bash", "-c", cleanup_command], capture_output=True, text=True, timeout=30
+        )
+        if verbose and result.stdout:
+            typer.echo(result.stdout)
+        return result.returncode == 0
+    except Exception as e:
+        if verbose:
+            typer.echo(f"[WARNING] 清理过程出错: {e}")
+        return False
+
+
 @app.command("start")
-def start_head():
+def start_head(
+    force: bool = typer.Option(
+        False, "--force", "-f", help="强制重启：如果Ray已运行，先停止再启动"
+    ),
+):
     """启动Ray Head节点"""
     typer.echo("🚀 启动Ray Head节点...")
 
@@ -70,6 +203,10 @@ def start_head():
     dashboard_host = head_config.get("dashboard_host", "0.0.0.0")
     head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
     head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
+
+    # 容器资源配置 (覆盖自动检测)
+    num_cpus = head_config.get("num_cpus")  # None 表示自动检测
+    num_gpus = head_config.get("num_gpus")  # None 表示自动检测
 
     # 优先使用配置中的ray命令，否则尝试使用当前环境的ray
     ray_command = head_config.get("ray_command")
@@ -86,7 +223,29 @@ def start_head():
     typer.echo(f"   Dashboard: {dashboard_host}:{dashboard_port}")
     typer.echo(f"   临时目录: {head_temp_dir}")
     typer.echo(f"   日志目录: {head_log_dir}")
+    if num_cpus is not None:
+        typer.echo(f"   CPU核心数: {num_cpus} (显式配置)")
+    if num_gpus is not None:
+        typer.echo(f"   GPU数量: {num_gpus} (显式配置)")
 
+    # 检查是否已有Ray实例在运行
+    is_running, pids = check_ray_running(head_port)
+    if is_running:
+        if force:
+            typer.echo(f"⚠️  检测到Ray已在运行 (PIDs: {pids})，正在强制停止...")
+            if not force_cleanup_ray_processes(head_log_dir, ray_command):
+                typer.echo("❌ 无法清理现有Ray进程，请手动执行: sage cluster head stop")
+                raise typer.Exit(1)
+            typer.echo("✅ 现有Ray进程已清理")
+            time.sleep(2)
+        else:
+            typer.echo(f"⚠️  Ray Head已在运行 (PIDs: {pids})")
+            typer.echo("💡 如需重启，请使用: sage cluster head start --force")
+            typer.echo("   或先停止: sage cluster head stop")
+            typer.echo(f"🌐 Dashboard可能已可访问: http://{dashboard_host}:{dashboard_port}")
+            raise typer.Exit(0)
+
+    # 使用 ray stop 先清理，再启动
     start_command = f"""
 export PYTHONUNBUFFERED=1
 
@@ -109,35 +268,29 @@ echo "===============================================" | tee -a "$LOG_DIR/head.l
 # 初始化conda环境
 {get_conda_init_code(conda_env)}
 
-# 停止现有的ray进程 (使用自定义清理代替全局ray stop，避免多用户环境下的权限问题)
-# echo "[INFO] 停止现有Ray进程..." | tee -a "$LOG_DIR/head.log"
-# {ray_command} stop >> "$LOG_DIR/head.log" 2>&1 || true
-# sleep 2
+# 使用 ray stop 清理（最安全的方式）
+echo "[INFO] 使用 ray stop 清理现有进程..." | tee -a "$LOG_DIR/head.log"
+{ray_command} stop >> "$LOG_DIR/head.log" 2>&1 || true
+sleep 2
 
-# 强制清理残留进程和Redis数据
-echo "[INFO] 强制清理残留进程和Redis数据..." | tee -a "$LOG_DIR/head.log"
-# 尝试清理残留进程 (仅当存在时)
-# 使用 -x 精确匹配二进制文件
-pgrep -u $(whoami) -x raylet | xargs -r kill -9 || true
-pgrep -u $(whoami) -x gcs_server | xargs -r kill -9 || true
-# 使用 regex trick 匹配 python 脚本，避免匹配到当前脚本或 pgrep 命令本身
-pgrep -u $(whoami) -f "ray/dashboard/[d]ashboard.py" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray/dashboard/[a]gent.py" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray.util.client.[s]erver" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray/autoscaler/_private/[m]onitor.py" | xargs -r kill -9 || true
-pgrep -u $(whoami) -f "ray/_private/[l]og_monitor.py" | xargs -r kill -9 || true
-
+# 清理临时目录
 rm -rf "$HEAD_TEMP_DIR"/* 2>/dev/null || true
-# 清理可能的Redis持久化文件
 rm -f dump.rdb 2>/dev/null || true
 
 # 设置环境变量
 export RAY_TMPDIR="$HEAD_TEMP_DIR"
 export RAY_DISABLE_IMPORT_WARNING=1
 
+# 构建 Ray 启动命令
+# 基础命令
+RAY_START_CMD="{ray_command} start --head --port={head_port} --ray-client-server-port={ray_client_server_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
+
+# 添加 CPU/GPU 资源限制 (用于容器环境)
+{f'RAY_START_CMD="$RAY_START_CMD --num-cpus={num_cpus}"' if num_cpus is not None else "# num_cpus: 自动检测"}
+{f'RAY_START_CMD="$RAY_START_CMD --num-gpus={num_gpus}"' if num_gpus is not None else "# num_gpus: 自动检测"}
+
 # 启动ray head
 echo "[INFO] 启动Ray Head进程..." | tee -a "$LOG_DIR/head.log"
-RAY_START_CMD="{ray_command} start --head --port={head_port} --ray-client-server-port={ray_client_server_port} --node-ip-address={head_host} --dashboard-host={dashboard_host} --dashboard-port={dashboard_port} --temp-dir=$HEAD_TEMP_DIR --disable-usage-stats"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/head.log"
 
 # 执行启动命令并捕获所有输出
@@ -150,7 +303,8 @@ if [ $RAY_EXIT_CODE -eq 0 ]; then
     echo "[SUCCESS] Ray Head启动成功" | tee -a "$LOG_DIR/head.log"
     sleep 3
 
-    RAY_PIDS=$(pgrep -f 'raylet|gcs_server|dashboard' 2>/dev/null || true)
+    # 使用 grep 技巧避免匹配自身
+    RAY_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep -E '[g]cs_server.*--gcs_server_port|[r]aylet.*--raylet_socket_name' | awk '{{print $1}}' | tr '\\n' ' ')
     if [[ -n "$RAY_PIDS" ]]; then
         echo "[SUCCESS] Ray Head进程正在运行，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/head.log"
         echo "[INFO] Ray集群已启动，监听端口: {head_port}" | tee -a "$LOG_DIR/head.log"
@@ -182,6 +336,10 @@ fi"""
 
     except subprocess.TimeoutExpired:
         typer.echo("❌ Ray Head启动超时")
+        typer.echo("💡 可能的原因：")
+        typer.echo(f"   1. 端口被占用 - 检查: ss -tlnp | grep {head_port}")
+        typer.echo("   2. 残留进程 - 尝试: sage cluster head stop")
+        typer.echo("   3. 资源不足 - 检查系统资源")
         raise typer.Exit(1)
     except Exception as e:
         typer.echo(f"❌ Ray Head启动失败: {e}")
@@ -195,12 +353,18 @@ def stop_head():
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
-    remote_config = config_manager.get_remote_config()
+    config_manager.get_remote_config()
 
     head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
     head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
-    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
-    conda_env = remote_config.get("conda_env", "sage")
+    conda_env = head_config.get("conda_env", "sage")
+
+    # 优先使用配置中的ray命令，否则尝试使用当前环境的ray
+    ray_command = head_config.get("ray_command")
+    if not ray_command:
+        ray_command = os.path.join(os.path.dirname(sys.executable), "ray")
+        if not os.path.exists(ray_command):
+            ray_command = "ray"  # Fallback to PATH
 
     stop_command = f'''set +e
 export PYTHONUNBUFFERED=1
@@ -218,20 +382,27 @@ echo "===============================================" | tee -a "$LOG_DIR/head.l
 
 # 优雅停止
 echo "[INFO] 正在优雅停止Ray进程..." | tee -a "$LOG_DIR/head.log"
-{ray_command} stop >> "$LOG_DIR/head.log" 2>&1 || true
+{ray_command} stop 2>&1 | tee -a "$LOG_DIR/head.log" || true
 sleep 2
 
-# 强制停止残留进程
+# 使用 grep 技巧清理残留进程
 echo "[INFO] 清理残留的Ray进程..." | tee -a "$LOG_DIR/head.log"
-for pattern in 'ray.*start' 'raylet' 'gcs_server' 'dashboard' 'log_monitor' 'ray::'; do
-    PIDS=$(pgrep -f "$pattern" 2>/dev/null || true)
-    if [[ -n "$PIDS" ]]; then
-        echo "[INFO] 终止进程: $pattern (PIDs: $PIDS)" | tee -a "$LOG_DIR/head.log"
-        echo "$PIDS" | xargs -r kill -TERM 2>/dev/null || true
-        sleep 1
-        echo "$PIDS" | xargs -r kill -KILL 2>/dev/null || true
-    fi
-done
+GCS_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep '[g]cs_server.*--gcs_server_port' | awk '{{print $1}}')
+RAYLET_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep '[r]aylet.*--raylet_socket_name' | awk '{{print $1}}')
+
+if [[ -n "$GCS_PIDS" ]]; then
+    echo "[INFO] 终止 gcs_server: $GCS_PIDS" | tee -a "$LOG_DIR/head.log"
+    echo "$GCS_PIDS" | xargs -r kill -TERM 2>/dev/null || true
+    sleep 1
+    echo "$GCS_PIDS" | xargs -r kill -9 2>/dev/null || true
+fi
+
+if [[ -n "$RAYLET_PIDS" ]]; then
+    echo "[INFO] 终止 raylet: $RAYLET_PIDS" | tee -a "$LOG_DIR/head.log"
+    echo "$RAYLET_PIDS" | xargs -r kill -TERM 2>/dev/null || true
+    sleep 1
+    echo "$RAYLET_PIDS" | xargs -r kill -9 2>/dev/null || true
+fi
 
 # 清理临时文件
 HEAD_TEMP_DIR='{head_temp_dir}'
@@ -265,18 +436,24 @@ echo "[SUCCESS] Ray Head已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG
 @app.command("status")
 def status_head():
     """检查Ray Head节点状态"""
-    typer.echo("📊 检查Ray Head节点状态...")
+    typer.echo("�� 检查Ray Head节点状态...")
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
-    remote_config = config_manager.get_remote_config()
+    config_manager.get_remote_config()
 
     head_host = head_config.get("host", "localhost")
     head_port = head_config.get("head_port", 6379)
     dashboard_port = head_config.get("dashboard_port", 8265)
     head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
-    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
-    conda_env = remote_config.get("conda_env", "sage")
+    conda_env = head_config.get("conda_env", "sage")
+
+    # 优先使用配置中的ray命令，否则尝试使用当前环境的ray
+    ray_command = head_config.get("ray_command")
+    if not ray_command:
+        ray_command = os.path.join(os.path.dirname(sys.executable), "ray")
+        if not os.path.exists(ray_command):
+            ray_command = "ray"  # Fallback to PATH
 
     status_command = f'''set +e
 export PYTHONUNBUFFERED=1
@@ -288,9 +465,9 @@ echo "==============================================="
 # 初始化conda环境
 {get_conda_init_code(conda_env)}
 
-# 检查Ray进程
+# 使用 grep 技巧检查Ray进程
 echo "--- Ray Head进程状态 ---"
-RAY_PIDS=$(pgrep -f 'raylet|gcs_server|dashboard' 2>/dev/null || true)
+RAY_PIDS=$(ps -u $(whoami) -o pid,cmd --no-headers 2>/dev/null | grep -E '[g]cs_server.*--gcs_server_port|[r]aylet.*--raylet_socket_name' | awk '{{print $1}}')
 if [[ -n "$RAY_PIDS" ]]; then
     echo "[运行中] 发现Ray Head进程:"
     echo "$RAY_PIDS" | while read pid; do
@@ -306,9 +483,9 @@ if [[ -n "$RAY_PIDS" ]]; then
     echo ""
     echo "--- 端口监听状态 ---"
     echo "Head端口 {head_port}:"
-    netstat -tlnp 2>/dev/null | grep ":{head_port}" || echo "  未监听"
+    ss -tlnp 2>/dev/null | grep ":{head_port}" || netstat -tlnp 2>/dev/null | grep ":{head_port}" || echo "  未监听"
     echo "Dashboard端口 {dashboard_port}:"
-    netstat -tlnp 2>/dev/null | grep ":{dashboard_port}" || echo "  未监听"
+    ss -tlnp 2>/dev/null | grep ":{dashboard_port}" || netstat -tlnp 2>/dev/null | grep ":{dashboard_port}" || echo "  未监听"
 
     exit 0
 else
@@ -363,9 +540,9 @@ def restart_head():
 
     # 再启动
     typer.echo("第2步: 启动Head节点")
-    start_head()
+    start_head(force=False)
 
-    typer.echo("✅ Head节点重启完成！")
+    typer.echo("✅ Head节点重启完成.")
 
 
 @app.command("logs")
@@ -400,7 +577,7 @@ def show_logs(lines: int = typer.Option(20, "--lines", "-n", help="显示日志�
 def version_command():
     """Show version information."""
     typer.echo("🏠 SAGE Head Manager")
-    typer.echo("Version: 1.0.1")
+    typer.echo("Version: 1.0.5")
     typer.echo("Author: IntelliStream Team")
     typer.echo("Repository: https://github.com/intellistream/SAGE")
 

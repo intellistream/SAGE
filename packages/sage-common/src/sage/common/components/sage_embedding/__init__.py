@@ -9,7 +9,7 @@ This module provides a consistent API for different embedding providers:
 - OpenAI and other API-based services
 
 IMPORTANT: For LLM + Embedding combined usage, use UnifiedInferenceClient from
-sage.common.components.sage_llm instead. This module is for embedding-only scenarios.
+sage.llm instead. This module is for embedding-only scenarios.
 
 Quick Start:
     >>> from sage.common.components.sage_embedding import get_embedding_model
@@ -19,7 +19,7 @@ Quick Start:
     >>> vec = emb.embed("hello world")
     >>>
     >>> # For combined LLM + Embedding, use UnifiedInferenceClient:
-    >>> from sage.common.components.sage_llm import UnifiedInferenceClient
+    >>> from sage.llm import UnifiedInferenceClient
     >>> client = UnifiedInferenceClient.create()
     >>> vectors = client.embed(["text1", "text2"])
 

@@ -3,6 +3,27 @@
 # 处理命令行参数的解析和验证
 
 # 获取脚本目录
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+AUTO_YES="${AUTO_YES:-false}"
+AUTO_CONFIRM="${AUTO_CONFIRM:-false}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 set_hooks_mode_value() {
@@ -66,10 +87,10 @@ source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
-AUTO_CONFIRM=${AUTO_CONFIRM:-false}
+# AUTO_CONFIRM 已在上面的环境变量安全默认值部分初始化
 SHOW_HELP=false
 CLEAN_PIP_CACHE=true
-RUN_DOCTOR=false
+RUN_DOCTOR=true
 DOCTOR_ONLY=false
 FIX_ENVIRONMENT=false
 VERIFY_DEPS=false
@@ -86,9 +107,10 @@ MIRROR_SOURCE="auto"
 RESUME_INSTALL=true  # 默认启用断点续传（安装失败时自动恢复）
 RESET_CHECKPOINT=false  # 新增：重置检查点
 CLEAN_BEFORE_INSTALL=true  # 新增：安装前清理（默认启用）
-INSTALL_VLLM=true          # 默认安装 vLLM 引擎
+INSTALL_VLLM=true          # 默认安装 vLLM 本地后端（sageLLM 可选）
 INSTALL_VLLM_EXPLICIT=false
 VLLM_FROM_SOURCE=false     # 是否从本地源码安装 vLLM
+FORCE_REBUILD=false        # 强制重新编译 C++ 扩展（跳过智能缓存检查）
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -99,33 +121,33 @@ detect_current_environment() {
     local in_conda_base=false
 
     # 检测conda环境
-    if [ -n "$CONDA_DEFAULT_ENV" ]; then
-        if [ "$CONDA_DEFAULT_ENV" = "base" ]; then
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
+        if [ "${CONDA_DEFAULT_ENV:-}" = "base" ]; then
             env_type="conda_base"
             env_name="base"
             in_conda_base=true
         else
             env_type="conda"
-            env_name="$CONDA_DEFAULT_ENV"
+            env_name="${CONDA_DEFAULT_ENV:-}"
             in_conda=true
         fi
-    elif [ -n "$CONDA_PREFIX" ]; then
-        if [[ "$CONDA_PREFIX" == *"/base" ]]; then
+    elif [ -n "${CONDA_PREFIX:-}" ]; then
+        if [[ "${CONDA_PREFIX:-}" == *"/base" ]]; then
             env_type="conda_base"
             env_name="base"
             in_conda_base=true
         else
             env_type="conda"
-            env_name=$(basename "$CONDA_PREFIX")
+            env_name=$(basename "${CONDA_PREFIX:-}")
             in_conda=true
         fi
     fi
 
     # 检测虚拟环境
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
         if [ "$in_conda" = false ] && [ "$in_conda_base" = false ]; then
             env_type="venv"
-            env_name=$(basename "$VIRTUAL_ENV")
+            env_name=$(basename "${VIRTUAL_ENV:-}")
             in_venv=true
         fi
     fi
@@ -197,7 +219,7 @@ prompt_conda_env_name() {
         SAGE_ENV_NAME="$conda_env_input"
     fi
     export SAGE_ENV_NAME
-    echo -e "${INFO} 将创建 Conda 环境: ${GREEN}$SAGE_ENV_NAME${NC}"
+    echo -e "${INFO} 将创建 Conda 环境: ${GREEN}${SAGE_ENV_NAME:-}${NC}"
 }
 
 # 交互式安装菜单
@@ -393,13 +415,13 @@ show_installation_menu() {
 
     echo ""
 
-    # 询问是否安装 vLLM 引擎
-    echo -e "${BOLD}3. vLLM 推理引擎（可选）：${NC}"
-    echo -e "   ${DIM}vLLM 是高性能 LLM 推理引擎，需要 NVIDIA GPU 和较大显存（建议 >= 8GB）${NC}"
-    echo -e "   ${DIM}如果您没有 GPU 或显存不足，可以跳过安装，稍后手动安装${NC}"
+    # 询问是否安装 sageLLM 本地推理后端（默认使用 vLLM）
+    echo -e "${BOLD}3. sageLLM 本地推理后端（vLLM，可选）：${NC}"
+    echo -e "   ${DIM}vLLM 是 sageLLM 控制平面的本地推理后端之一，需要 NVIDIA GPU，建议显存 >= 8GB${NC}"
+    echo -e "   ${DIM}若使用其他后端或仅需远端/云端推理，可跳过此步，后续随时安装${NC}"
     echo ""
-    echo -e "  ${GREEN}1)${NC} 安装 vLLM ${DIM}(推荐，如有 NVIDIA GPU)${NC}"
-    echo -e "  ${PURPLE}2)${NC} 跳过 vLLM ${DIM}(CPU 环境或低显存设备)${NC}"
+    echo -e "  ${GREEN}1)${NC} 安装 vLLM 后端 ${DIM}(本地 GPU 推荐)${NC}"
+    echo -e "  ${PURPLE}2)${NC} 跳过 vLLM 后端 ${DIM}(使用其他后端或云端/CPU 环境)${NC}"
     echo ""
     read -p "请选择 [1-2，默认1]: " vllm_choice
 
@@ -411,8 +433,8 @@ show_installation_menu() {
         2)
             INSTALL_VLLM=false
             INSTALL_VLLM_EXPLICIT=true
-            echo -e "${DIM}提示: 跳过 vLLM 安装。稍后可通过以下命令手动安装:${NC}"
-            echo -e "${DIM}  pip install 'isage-common[vllm]'${NC}"
+            echo -e "${DIM}提示: 跳过 vLLM 本地后端。稍后可通过以下命令安装以供 sageLLM 控制平面使用:${NC}"
+            echo -e "${DIM}  pip install 'isage-llm-core[vllm]'${NC}"
             ;;
         *)
             # 默认安装
@@ -476,15 +498,15 @@ show_parameter_help() {
     echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
 
-    echo -e "${BLUE}🤖 vLLM 引擎选项：${NC}"
+    echo -e "${BLUE}🤖 sageLLM 本地后端 (vLLM) 选项：${NC}"
     echo ""
-    echo -e "  ${BOLD}--vllm, --enable-vllm${NC}                       ${GREEN}安装 vLLM 引擎（默认）${NC}"
-    echo -e "    ${DIM}高性能 LLM 推理引擎，支持本地运行大语言模型${NC}"
+    echo -e "  ${BOLD}--vllm, --enable-vllm${NC}                       ${GREEN}安装 vLLM 本地后端（默认）${NC}"
+    echo -e "    ${DIM}sageLLM 控制平面可调用的高性能本地推理后端${NC}"
     echo -e "    ${DIM}需要 NVIDIA GPU (CUDA) 和约 2GB+ 额外磁盘空间${NC}"
     echo ""
-    echo -e "  ${BOLD}--no-vllm, --skip-vllm${NC}                      ${YELLOW}跳过 vLLM 安装${NC}"
-    echo -e "    ${DIM}适用于 CPU 环境、磁盘空间有限、或仅使用云端 API${NC}"
-    echo -e "    ${DIM}稍后可手动安装: pip install 'isage-common[vllm]'${NC}"
+    echo -e "  ${BOLD}--no-vllm, --skip-vllm${NC}                      ${YELLOW}跳过 vLLM 本地后端${NC}"
+    echo -e "    ${DIM}适用于 CPU 环境、磁盘空间有限、或计划使用其他/远端后端${NC}"
+    echo -e "    ${DIM}稍后可手动安装: pip install 'isage-llm-core[vllm]'${NC}"
     echo ""
     echo -e "  ${BOLD}--vllm-source, --vllm-from-source${NC}           ${PURPLE}从本地源码编译安装 vLLM${NC}"
     echo -e "    ${DIM}使用 sageLLM/engines/vllm 目录下的源码编译安装${NC}"
@@ -531,9 +553,12 @@ show_parameter_help() {
     echo -e "    ${DIM}无参数=auto，根据网络位置自动选择最优镜像${NC}"
     echo -e "    ${DIM}支持: auto, aliyun, tencent, pypi, custom:<url>${NC}"
     echo -e "    ${DIM}注意: 默认已启用自动检测，中国用户自动使用清华源${NC}"
+    echo -e "    ${DIM}✨ 新增: 自动启用并行下载(8线程)和预编译包优先${NC}"
+    echo -e "    ${DIM}✨ 预期效果: 安装速度提升 3-5 倍（12-18 分钟 vs 35-45 分钟）${NC}"
     echo ""
-    echo -e "  ${BOLD}--no-mirror${NC}                              ${YELLOW}禁用 pip 镜像${NC}"
-    echo -e "    ${DIM}强制使用官方 PyPI（默认会自动检测网络环境）${NC}"
+    echo -e "  ${BOLD}--no-mirror${NC}                              ${YELLOW}禁用 pip 镜像和网络优化${NC}"
+    echo -e "    ${DIM}强制使用官方 PyPI，禁用所有加速优化${NC}"
+    echo -e "    ${DIM}适用于海外用户或需要验证官方源完整性的场景${NC}"
     echo ""
     echo -e "  ${BOLD}--resume${NC}                                ${BLUE}断点续传安装（默认启用）${NC}"
     echo -e "    ${DIM}从上次失败的地方继续安装${NC}"
@@ -827,6 +852,20 @@ parse_verify_deps_option() {
     esac
 }
 
+# 解析强制重新编译参数
+parse_force_rebuild_option() {
+    local param="$1"
+    case "$param" in
+        "--force-rebuild")
+            FORCE_REBUILD=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -913,6 +952,9 @@ parse_arguments() {
         elif parse_verify_deps_option "$param"; then
             # 依赖验证参数
             shift
+        elif parse_force_rebuild_option "$param"; then
+            # 强制重新编译参数
+            shift
         else
             # 未知参数
             unknown_params+=("$param")
@@ -943,7 +985,7 @@ set_default_sync_submodules() {
         desired="true"
     fi
 
-    if [ -z "$SYNC_SUBMODULES" ] || [ "$SYNC_SUBMODULES" != "$desired" ]; then
+    if [ -z "${SYNC_SUBMODULES:-}" ] || [ "${SYNC_SUBMODULES:-}" != "$desired" ]; then
         SYNC_SUBMODULES="$desired"
 
         if [ "$desired" = "true" ] && [ "$SYNC_SUBMODULES_NOTIFIED" = false ]; then
@@ -961,7 +1003,7 @@ set_defaults_and_show_tips() {
     local has_defaults=false
 
     # 检测 CI 环境并自动设置为确认模式
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" || -n "${BUILDKITE:-}" ]]; then
         AUTO_CONFIRM=true
         echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
         has_defaults=true
@@ -1002,7 +1044,7 @@ set_defaults_and_show_tips() {
     # 处理 vLLM 安装默认值
     if [ "$INSTALL_VLLM_EXPLICIT" = false ] && [ "$INSTALL_VLLM" != "false" ]; then
         INSTALL_VLLM=true
-        echo -e "${INFO} vLLM 引擎默认会随 quickstart 安装。使用 --no-vllm 可跳过（CPU/低显存环境）。"
+        echo -e "${INFO} vLLM 作为 sageLLM 控制平面的可选推理引擎会默认安装；如使用其他后端或在 CPU/低显存环境，可通过 --no-vllm 跳过。"
         has_defaults=true
     elif [ "$INSTALL_VLLM" = false ]; then
         echo -e "${DIM}提示: 检测到 --no-vllm，跳过 vLLM 引擎安装${NC}"
@@ -1051,7 +1093,7 @@ show_install_configuration() {
 
     case "$INSTALL_ENVIRONMENT" in
         "conda")
-            if [ -n "$SAGE_ENV_NAME" ]; then
+            if [ -n "${SAGE_ENV_NAME:-}" ]; then
                 echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境 (${SAGE_ENV_NAME})${NC}"
             else
                 echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
@@ -1071,7 +1113,7 @@ show_install_configuration() {
             ;;
     esac
 
-    if [ "$SYNC_SUBMODULES" = "true" ]; then
+    if [ "${SYNC_SUBMODULES:-}" = "true" ]; then
         echo -e "  ${BLUE}Submodules:${NC} ${GREEN}自动同步${NC}"
     else
         echo -e "  ${BLUE}Submodules:${NC} ${DIM}跳过自动同步${NC}"
@@ -1176,6 +1218,11 @@ get_sync_submodules() {
 # 获取是否断点续传
 get_resume_install() {
     echo "$RESUME_INSTALL"
+}
+
+# 获取是否强制重新编译
+get_force_rebuild() {
+    echo "$FORCE_REBUILD"
 }
 
 # 获取是否重置检查点

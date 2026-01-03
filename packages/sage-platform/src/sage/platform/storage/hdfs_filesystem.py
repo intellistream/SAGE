@@ -6,12 +6,12 @@ HDFS 文件系统操作封装,提供线程安全的连接池、重试机制和�
 """
 
 import logging
-import time
 from collections import deque
-from functools import wraps
 from pathlib import Path
 from threading import Lock
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+
+from sage.platform.utils import retry_with_config
 
 from .hdfs_config import HDFSConfig
 
@@ -173,49 +173,9 @@ class HDFSConnectionPool:
 
 # ========== 重试装饰器 / Retry Decorator ==========
 
-
-def retry_on_failure(
-    max_attempts: Optional[int] = None,
-    delay: Optional[float] = None,
-    backoff: Optional[float] = None,
-):
-    """重试装饰器 - 失败时自动重试,支持指数退避
-
-    Args:
-        max_attempts: 最大重试次数 (None 表示使用配置值)
-        delay: 初始重试延迟秒数 (None 表示使用配置值)
-        backoff: 退避因子 (None 表示使用配置值)
-    """
-
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            # 使用配置或参数指定的值
-            attempts = max_attempts or self.config.retry_attempts
-            retry_delay = delay or self.config.retry_delay
-            retry_backoff = backoff or self.config.retry_backoff
-
-            last_exception = None
-            for attempt in range(attempts + 1):
-                try:
-                    return func(self, *args, **kwargs)
-                except Exception as e:
-                    last_exception = e
-                    if attempt < attempts:
-                        wait_time = retry_delay * (retry_backoff**attempt)
-                        logger.warning(
-                            f"Attempt {attempt + 1}/{attempts + 1} failed: {e}. "
-                            f"Retrying in {wait_time:.2f}s..."
-                        )
-                        time.sleep(wait_time)
-                    else:
-                        logger.error(f"All {attempts + 1} attempts failed for {func.__name__}")
-
-            raise last_exception
-
-        return wrapper
-
-    return decorator
+# 使用统一的重试装饰器
+# retry_with_config 从 self.config 读取 retry_attempts, retry_delay, retry_backoff
+retry_on_failure = retry_with_config
 
 
 # ========== HDFS 文件系统类 / HDFS FileSystem Class ==========

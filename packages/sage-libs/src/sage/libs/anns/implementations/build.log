@@ -1,0 +1,575 @@
+=========================================
+Building PyCANDYAlgo Module
+=========================================
+
+Checking dependencies...
+  ✓ PyTorch found
+  ✓ CMake found
+
+
+Configuring with CMake...
+----------------------------------------
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Python3: /usr/include/python3.10 (found version "3.10.12") found components: Development Development.Module Development.Embed
+-- Found Torch: /home/mingqi/.local/lib/python3.10/site-packages/torch/lib/libtorch.so
+-- Building Faiss...
+-- Performing Test HAVE_AVX512
+-- Performing Test HAVE_AVX512 - Success
+-- AVX-512 support detected.
+-- Found OpenMP_CXX: -fopenmp (found version "4.5")
+-- Found OpenMP: TRUE (found version "4.5")
+-- Looking for C++ include pthread.h
+-- Looking for C++ include pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Looking for sgemm_
+-- Looking for sgemm_ - found
+-- Found MKL: /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so;/usr/lib/x86_64-linux-gnu/libmkl_sequential.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;-lm;-ldl
+-- Building DiskANN...
+-- The C compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found OpenMP_C: -fopenmp (found version "4.5")
+-- Found OpenMP: TRUE (found version "4.5")
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: program_options
+-- Building static library..
+-- Setting up `make format` and `make checkformat`
+-- Not building python bindings
+-- Building Puck...
+-- Looking for sgemm_
+-- Looking for sgemm_ - found
+-- Found MKL: /usr/lib/x86_64-linux-gnu/libmkl_intel_lp64.so;/usr/lib/x86_64-linux-gnu/libmkl_gnu_thread.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;/usr/lib/gcc/x86_64-linux-gnu/11/libgomp.so;-lm;-ldl
+-- Found Python3: /usr/bin/python3.10 (found suitable version "3.10.12", minimum required is "3.10") found components: Interpreter Development Development.Module Development.Embed
+-- Found Python: 3.10.12
+-- site-packages: /usr/lib/python3/dist-packages
+-- Building SPTAG...
+-- WARNING: Numa library not found.
+-- Try: 'sudo yum install numactl numactl-devel' (or sudo apt-get install libnuma libnuma-dev)
+-- Build type: Release
+-- Platform type: x64
+-- Found openmp.
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.66") found components: system thread serialization wserialization regex filesystem
+-- Found Boost.
+-- Include Path: /usr/include
+-- Library Path: /usr/lib/x86_64-linux-gnu
+-- Library: Boost::system;Boost::thread;Boost::serialization;Boost::wserialization;Boost::regex;Boost::filesystem
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/cc
+-- ZSTD VERSION: 1.5.6
+-- Performing Test C_FLAG_WALL
+-- Performing Test C_FLAG_WALL - Success
+-- Performing Test CXX_FLAG_WALL
+-- Performing Test CXX_FLAG_WALL - Success
+-- Performing Test C_FLAG_WEXTRA
+-- Performing Test C_FLAG_WEXTRA - Success
+-- Performing Test CXX_FLAG_WEXTRA
+-- Performing Test CXX_FLAG_WEXTRA - Success
+-- Performing Test C_FLAG_WUNDEF
+-- Performing Test C_FLAG_WUNDEF - Success
+-- Performing Test CXX_FLAG_WUNDEF
+-- Performing Test CXX_FLAG_WUNDEF - Success
+-- Performing Test C_FLAG_WSHADOW
+-- Performing Test C_FLAG_WSHADOW - Success
+-- Performing Test CXX_FLAG_WSHADOW
+-- Performing Test CXX_FLAG_WSHADOW - Success
+-- Performing Test C_FLAG_WCAST_ALIGN
+-- Performing Test C_FLAG_WCAST_ALIGN - Success
+-- Performing Test CXX_FLAG_WCAST_ALIGN
+-- Performing Test CXX_FLAG_WCAST_ALIGN - Success
+-- Performing Test C_FLAG_WCAST_QUAL
+-- Performing Test C_FLAG_WCAST_QUAL - Success
+-- Performing Test CXX_FLAG_WCAST_QUAL
+-- Performing Test CXX_FLAG_WCAST_QUAL - Success
+-- Performing Test C_FLAG_WSTRICT_PROTOTYPES
+-- Performing Test C_FLAG_WSTRICT_PROTOTYPES - Success
+-- Performing Test LD_FLAG_Z_NOEXECSTACK
+-- Performing Test LD_FLAG_Z_NOEXECSTACK - Success
+-- Performing Test C_FLAG_QUNUSED_ARGUMENTS
+-- Performing Test C_FLAG_QUNUSED_ARGUMENTS - Failed
+-- Performing Test CXX_FLAG_QUNUSED_ARGUMENTS
+-- Performing Test CXX_FLAG_QUNUSED_ARGUMENTS - Failed
+-- Performing Test C_FLAG_WA_NOEXECSTACK
+-- Performing Test C_FLAG_WA_NOEXECSTACK - Success
+-- Performing Test CXX_FLAG_WA_NOEXECSTACK
+-- Performing Test CXX_FLAG_WA_NOEXECSTACK - Success
+-- CMAKE_INSTALL_PREFIX: /usr/local
+-- CMAKE_INSTALL_LIBDIR: lib
+-- ZSTD_LEGACY_SUPPORT defined!
+-- ZSTD_MULTITHREAD_SUPPORT is enabled
+-- Found MPI_C: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so (found version "3.1")
+-- Found MPI_CXX: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so (found version "3.1")
+-- Found MPI: TRUE (found version "3.1")
+-- Found MPI.
+-- MPI Include Path: /usr/lib/x86_64-linux-gnu/openmpi/include;/usr/lib/x86_64-linux-gnu/openmpi/include/openmpi
+-- MPI Libraries: /usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi_cxx.so;/usr/lib/x86_64-linux-gnu/openmpi/lib/libmpi.so
+-- pybind11 v2.13.0 dev1
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6")
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+-- Performing Test HAS_FLTO
+-- Performing Test HAS_FLTO - Success
+-- Building PyCANDYAlgo...
+-- PyCANDYAlgo will be installed to: /usr/local
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/mingqi/SAGE-DB-Bench/benchmark_anns/algorithms_impl/build
+
+Compiling...
+----------------------------------------
+Scanning dependencies of target libzstd_static
+Scanning dependencies of target libzstd_shared
+[  0%] Building CXX object diskann_build/apps/utils/CMakeFiles/fvecs_to_bvecs.dir/fvecs_to_bvecs.cpp.o
+[  0%] Building CXX object diskann_build/apps/utils/CMakeFiles/ivecs_to_bin.dir/ivecs_to_bin.cpp.o
+[  1%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/debug.c.o
+[  1%] Building CXX object sptag_build/AnnService/CMakeFiles/DistanceUtils.dir/src/Core/Common/DistanceUtils.cpp.o
+[  1%] Building CXX object diskann_build/apps/utils/CMakeFiles/fvecs_to_bin.dir/fvecs_to_bin.cpp.o
+[  1%] Building CXX object diskann_build/apps/utils/CMakeFiles/float_bin_to_int8.dir/float_bin_to_int8.cpp.o
+[  1%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/__/pyapi_wrapper/py_api_wrapper.cpp.o
+[  1%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/abstract_data_store.cpp.o
+[  1%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/abstract_data_store.cpp.o
+[  1%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/debug.c.o
+[  2%] Building CXX object diskann_build/apps/utils/CMakeFiles/tsv_to_bin.dir/tsv_to_bin.cpp.o
+[  2%] Copying manpage zstd.1
+[  2%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/AutoTune.cpp.o
+[  2%] Building CXX object diskann_build/apps/utils/CMakeFiles/bin_to_tsv.dir/bin_to_tsv.cpp.o
+[  2%] Building CXX object diskann_build/apps/utils/CMakeFiles/simulate_aggregate_recall.dir/simulate_aggregate_recall.cpp.o
+[  2%] Copying manpage zstdgrep.1
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/entropy_common.c.o
+[  2%] Built target zstd.1
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/entropy_common.c.o
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/error_private.c.o
+[  2%] Built target zstdgrep.1
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/error_private.c.o
+[  2%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/ann_exception.cpp.o
+[  2%] Copying manpage zstdless.1
+[  2%] Built target zstdless.1
+[  2%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/disk_utils.cpp.o
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/fse_decompress.c.o
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/fse_decompress.c.o
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/pool.c.o
+[  2%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/pool.c.o
+[  4%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/threading.c.o
+[  4%] Building CXX object sptag_build/AnnService/CMakeFiles/DistanceUtils.dir/src/Core/Common/SIMDUtils.cpp.o
+[  4%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/Clustering.cpp.o
+[  4%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/threading.c.o
+[  5%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/ann_exception.cpp.o
+[  5%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/xxhash.c.o
+[  5%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/xxhash.c.o
+[  5%] Linking CXX executable simulate_aggregate_recall
+[  5%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/common/zstd_common.c.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/common/zstd_common.c.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/fse_compress.c.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/fse_compress.c.o
+[  6%] Built target simulate_aggregate_recall
+[  6%] Creating zstdcat.1 symlink
+[  6%] Built target zstdcat.1
+[  6%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/disk_utils.cpp.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/hist.c.o
+[  6%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/distance.cpp.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/hist.c.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/huf_compress.c.o
+[  6%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/huf_compress.c.o
+[  8%] Linking CXX executable ivecs_to_bin
+[  8%] Linking CXX executable fvecs_to_bin
+[  8%] Linking CXX executable fvecs_to_bvecs
+[  8%] Linking CXX executable tsv_to_bin
+[  8%] Linking CXX executable bin_to_tsv
+[  9%] Linking CXX executable float_bin_to_int8
+[  9%] Built target fvecs_to_bvecs
+[  9%] Built target ivecs_to_bin
+[  9%] Building CXX object sptag_build/AnnService/CMakeFiles/DistanceUtils.dir/src/Core/Common/InstructionUtils.cpp.o
+[  9%] Built target fvecs_to_bin
+[  9%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/distance.cpp.o
+[  9%] Built target bin_to_tsv
+[  9%] Built target tsv_to_bin
+[  9%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_compress.c.o
+[  9%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IVFlib.cpp.o
+[  9%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/index.cpp.o
+[  9%] Built target float_bin_to_int8
+[ 11%] Creating unzstd.1 symlink
+[ 11%] Built target unzstd.1
+[ 11%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/base/md5.cpp.o
+[ 11%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/base/time.cpp.o
+[ 11%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/in_mem_graph_store.cpp.o
+[ 11%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_compress.c.o
+[ 11%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_compress_literals.c.o
+[ 12%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/Index.cpp.o
+[ 12%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/index.cpp.o
+[ 13%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_compress_literals.c.o
+[ 15%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/in_mem_graph_store.cpp.o
+[ 16%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/gflags/puck_gflags.cpp.o
+[ 16%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_compress_sequences.c.o
+[ 16%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/Index2Layer.cpp.o
+[ 16%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_compress_sequences.c.o
+[ 16%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/hierarchical_cluster/hierarchical_cluster_index.cpp.o
+[ 16%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/hierarchical_cluster/imitative_heap.cpp.o
+[ 16%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/in_mem_data_store.cpp.o
+[ 16%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexAdditiveQuantizer.cpp.o
+[ 16%] Linking CXX static library ../../../SPTAG/Release/libDistanceUtils.a
+[ 16%] Built target DistanceUtils
+[ 18%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_compress_superblock.c.o
+[ 18%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_compress_superblock.c.o
+[ 18%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/hierarchical_cluster/kmeans.cpp.o
+[ 18%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/linux_aligned_file_reader.cpp.o
+[ 18%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_double_fast.c.o
+[ 18%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/in_mem_data_store.cpp.o
+[ 18%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexBinary.cpp.o
+[ 18%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_double_fast.c.o
+[ 18%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/hierarchical_cluster/max_heap.cpp.o
+[ 19%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/linux_aligned_file_reader.cpp.o
+[ 19%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_fast.c.o
+[ 19%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/index_conf.cpp.o
+[ 19%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_fast.c.o
+[ 19%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_lazy.c.o
+[ 19%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexBinaryFlat.cpp.o
+[ 19%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/math_utils.cpp.o
+[ 19%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/math_utils.cpp.o
+[ 19%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_ldm.c.o
+[ 19%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexBinaryFromFloat.cpp.o
+[ 19%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/natural_number_map.cpp.o
+[ 19%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/natural_number_set.cpp.o
+[ 19%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstd_opt.c.o
+[ 19%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/puck/distances_simd.cpp.o
+[ 19%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_lazy.c.o
+[ 19%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/natural_number_map.cpp.o
+[ 20%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/puck/dynamic_puck_index.cpp.o
+[ 20%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexBinaryHNSW.cpp.o
+[ 20%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/memory_mapper.cpp.o
+[ 22%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/compress/zstdmt_compress.c.o
+[ 22%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_ldm.c.o
+[ 23%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstd_opt.c.o
+[ 23%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/puck/puck_index.cpp.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexBinaryHash.cpp.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/decompress/huf_decompress.c.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/compress/zstdmt_compress.c.o
+[ 25%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/natural_number_set.cpp.o
+[ 25%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/puck/quantization.cpp.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/decompress/zstd_ddict.c.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/decompress/huf_decompress.c.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/decompress/zstd_ddict.c.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/decompress/zstd_decompress.c.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexBinaryIVF.cpp.o
+[ 25%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/decompress/zstd_decompress.c.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexFlat.cpp.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexFlatCodes.cpp.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexHNSW.cpp.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexNSW.cpp.o
+[ 25%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexMNRU.cpp.o
+[ 25%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/puck/realtime_insert_puck_index.cpp.o
+[ 26%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/partition.cpp.o
+[ 26%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/decompress/zstd_decompress_block.c.o
+[ 27%] Building ASM object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/decompress/huf_decompress_amd64.S.o
+[ 27%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/memory_mapper.cpp.o
+[ 27%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/dictBuilder/cover.c.o
+[ 27%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/decompress/zstd_decompress_block.c.o
+[ 27%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/search_context.cpp.o
+[ 27%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/pq.cpp.o
+[ 27%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/pq_flash_index.cpp.o
+[ 27%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/partition.cpp.o
+[ 27%] Building ASM object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/decompress/huf_decompress_amd64.S.o
+[ 27%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/dictBuilder/divsufsort.c.o
+[ 27%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/tinker/method/hnsw.cc.o
+[ 27%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/dictBuilder/cover.c.o
+[ 27%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/scratch.cpp.o
+[ 29%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIDMap.cpp.o
+[ 30%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/dictBuilder/divsufsort.c.o
+[ 30%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/pq.cpp.o
+[ 30%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/dictBuilder/fastcover.c.o
+[ 31%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/pq_flash_index.cpp.o
+[ 31%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/scratch.cpp.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/dictBuilder/zdict.c.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/dictBuilder/fastcover.c.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v01.c.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/dictBuilder/zdict.c.o
+[ 31%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVF.cpp.o
+[ 31%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFAdditiveQuantizer.cpp.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v01.c.o
+[ 31%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/logger.cpp.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v02.c.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v02.c.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v03.c.o
+[ 31%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/utils.cpp.o
+[ 31%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/logger.cpp.o
+[ 31%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFFlat.cpp.o
+[ 31%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v04.c.o
+[ 33%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/tinker/method/tinker_distfunc_opt.cc.o
+[ 34%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v03.c.o
+[ 34%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v04.c.o
+[ 34%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/filter_utils.cpp.o
+[ 34%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFPQ.cpp.o
+[ 36%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v05.c.o
+[ 36%] Building CXX object puck_build/puck/CMakeFiles/puck.dir/tinker/tinker_index.cpp.o
+[ 36%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/utils.cpp.o
+[ 36%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v05.c.o
+[ 36%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFFastScan.cpp.o
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFAdditiveQuantizerFastScan.cpp.o
+[ 37%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v06.c.o
+[ 37%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_static.dir/__/__/__/lib/legacy/zstd_v07.c.o
+[ 37%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/filter_utils.cpp.o
+[ 37%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v06.c.o
+[ 37%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/index_factory.cpp.o
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFPQFastScan.cpp.o
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFPQR.cpp.o
+[ 37%] Building CXX object diskann_build/src/CMakeFiles/diskann.dir/abstract_index.cpp.o
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFSpectralHash.cpp.o
+[ 37%] Linking C static library ../../../../../../../SPTAG/Release/libzstd.a
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexLSH.cpp.o
+[ 37%] Building C object sptag_build/ThirdParty/zstd/build/cmake/lib/CMakeFiles/libzstd_shared.dir/__/__/__/lib/legacy/zstd_v07.c.o
+[ 37%] Built target libzstd_static
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexNNDescent.cpp.o
+[ 37%] Linking CXX static library libpuck.a
+[ 37%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexLattice.cpp.o
+[ 37%] Built target puck
+[ 38%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexNSG.cpp.o
+[ 40%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/index_factory.cpp.o
+[ 40%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexPQ.cpp.o
+[ 40%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexFastScan.cpp.o
+[ 40%] Building CXX object diskann_build/src/CMakeFiles/diskann_s.dir/abstract_index.cpp.o
+[ 40%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/BKT/BKTIndex.cpp.o
+[ 40%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/Common/CommonUtils.cpp.o
+[ 40%] Linking C shared library ../../../../../../../SPTAG/Release/libzstd.so
+[ 40%] Built target libzstd_shared
+[ 40%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/benchfn.c.o
+[ 40%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/benchzstd.c.o
+[ 40%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexAdditiveQuantizerFastScan.cpp.o
+[ 40%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/datagen.c.o
+[ 40%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexIVFIndependentQuantizer.cpp.o
+[ 40%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/dibio.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/fileio.c.o
+[ 41%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/Common/IQuantizer.cpp.o
+[ 41%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/Common/NeighborhoodGraph.cpp.o
+[ 41%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/BKT/BKTIndex.cpp.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd-frugal.dir/__/__/__/programs/zstdcli.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/fileio_asyncio.c.o
+[ 41%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/Common/CommonUtils.cpp.o
+[ 41%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/Common/IQuantizer.cpp.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/lorem.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd-frugal.dir/__/__/__/programs/util.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/timefn.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/util.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd-frugal.dir/__/__/__/programs/timefn.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd-frugal.dir/__/__/__/programs/fileio.c.o
+[ 41%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/zstdcli.c.o
+[ 43%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd.dir/__/__/__/programs/zstdcli_trace.c.o
+[ 44%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/Common/NeighborhoodGraph.cpp.o
+[ 44%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexPQFastScan.cpp.o
+[ 44%] Linking C executable ../../../../../../../SPTAG/Release/zstd
+[ 44%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/Common/TruthSet.cpp.o
+[ 44%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexPreTransform.cpp.o
+[ 44%] Building C object sptag_build/ThirdParty/zstd/build/cmake/programs/CMakeFiles/zstd-frugal.dir/__/__/__/programs/fileio_asyncio.c.o
+[ 44%] Built target zstd
+[ 45%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/Common/TruthSet.cpp.o
+[ 45%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/KDT/KDTIndex.cpp.o
+[ 47%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexRefine.cpp.o
+[ 48%] Linking C executable ../../../../../../../SPTAG/Release/zstd-frugal
+[ 48%] Built target zstd-frugal
+[ 48%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/KDT/KDTIndex.cpp.o
+[ 48%] Creating zstdcat symlink
+[ 48%] Built target zstdcat
+[ 48%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/MetadataSet.cpp.o
+[ 48%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/MultiIndexScan.cpp.o
+[ 48%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/ResultIterator.cpp.o
+[ 48%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/MultiIndexScan.cpp.o
+[ 48%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/MetadataSet.cpp.o
+[ 50%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/SPANN/SPANNIndex.cpp.o
+[ 48%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexReplicas.cpp.o
+[ 51%] Creating zstdmt symlink
+[ 51%] Creating unzstd symlink
+[ 51%] Built target zstdmt
+[ 51%] Built target unzstd
+[ 51%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexRowwiseMinMax.cpp.o
+[ 51%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexScalarQuantizer.cpp.o
+[ 51%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/SPANNResultIterator.cpp.o
+[ 51%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/ResultIterator.cpp.o
+[ 51%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/SPANN/SPANNIndex.cpp.o
+[ 51%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/SPANNResultIterator.cpp.o
+[ 51%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/VectorIndex.cpp.o
+[ 51%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexShards.cpp.o
+[ 51%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexShardsIVF.cpp.o
+[ 52%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/VectorIndex.cpp.o
+[ 52%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Core/VectorSet.cpp.o
+[ 52%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Core/VectorSet.cpp.o
+[ 54%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/IndexVanama.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/ArgumentsParser.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/ArgumentsParser.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/AsyncFileReader.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/Base64Encode.cpp.o
+[ 54%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/MatrixStats.cpp.o
+[ 54%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/MetaIndexes.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/AsyncFileReader.cpp.o
+[ 54%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/VectorTransform.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/Base64Encode.cpp.o
+[ 54%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/clone_index.cpp.o
+[ 54%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/CommonHelper.cpp.o
+[ 54%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/index_factory.cpp.o
+[ 55%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/CommonHelper.cpp.o
+[ 55%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/Concurrent.cpp.o
+[ 55%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/Concurrent.cpp.o
+[ 55%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/DynamicNeighbors.cpp.o
+[ 55%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/AuxIndexStructures.cpp.o
+[ 56%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/CodePacker.cpp.o
+[ 58%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/DynamicNeighbors.cpp.o
+[ 58%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/IDSelector.cpp.o
+[ 58%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/SimpleIniReader.cpp.o
+[ 58%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/VectorSetReader.cpp.o
+[ 58%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/SimpleIniReader.cpp.o
+[ 58%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/VectorSetReaders/DefaultReader.cpp.o
+[ 58%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/VectorSetReaders/TxtReader.cpp.o
+[ 59%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLib.dir/src/Helper/VectorSetReaders/XvecReader.cpp.o
+[ 59%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/FaissException.cpp.o
+[ 59%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/HNSW.cpp.o
+[ 59%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/NSW.cpp.o
+[ 59%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/VectorSetReader.cpp.o
+[ 59%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/VectorSetReaders/DefaultReader.cpp.o
+[ 59%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/NSG.cpp.o
+[ 59%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/VectorSetReaders/TxtReader.cpp.o
+[ 59%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/PolysemousTraining.cpp.o
+[ 59%] Building CXX object sptag_build/AnnService/CMakeFiles/SPTAGLibStatic.dir/src/Helper/VectorSetReaders/XvecReader.cpp.o
+[ 61%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/ProductQuantizer.cpp.o
+[ 61%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/AdditiveQuantizer.cpp.o
+[ 61%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/ResidualQuantizer.cpp.o
+[ 61%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/LocalSearchQuantizer.cpp.o
+[ 61%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/ProductAdditiveQuantizer.cpp.o
+[ 61%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/ScalarQuantizer.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/index_read.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/index_write.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/io.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/kmeans1d.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/lattice_Zn.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/pq4_fast_scan.cpp.o
+[ 62%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/pq4_fast_scan_search_1.cpp.o
+[ 63%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/pq4_fast_scan_search_qbs.cpp.o
+[ 63%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/residual_quantizer_encode_steps.cpp.o
+[ 63%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/NNDescent.cpp.o
+[ 63%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/impl/Vanama.cpp.o
+[ 63%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/invlists/BlockInvertedLists.cpp.o
+[ 63%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/invlists/DirectMap.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/invlists/InvertedLists.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/invlists/InvertedListsIOHook.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/Heap.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/WorkerThread.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/distances.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/distances_simd.cpp.o
+[ 65%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/extra_distances.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/hamming.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/partitioning.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/quantize_lut.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/random.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/sorting.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/utils.cpp.o
+[ 66%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/distances_fused/avx512.cpp.o
+[ 68%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/distances_fused/distances_fused.cpp.o
+[ 68%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/utils/distances_fused/simdlib_based.cpp.o
+[ 68%] Building CXX object faiss_build/faiss/CMakeFiles/faiss.dir/invlists/OnDiskInvertedLists.cpp.o
+[ 68%] Linking CXX shared library ../../../SPTAG/Release/libSPTAGLib.so
+[ 68%] Built target SPTAGLib
+[ 69%] Linking CXX static library ../../../SPTAG/Release/libSPTAGLibStatic.a
+[ 69%] Built target SPTAGLibStatic
+[ 69%] Building CXX object sptag_build/AnnService/CMakeFiles/indexbuilder.dir/src/IndexBuilder/main.cpp.o
+[ 70%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Client/ClientWrapper.cpp.o
+[ 70%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Client/Options.cpp.o
+[ 70%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Aggregator/AggregatorContext.cpp.o
+[ 69%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Client/main.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/indexsearcher.dir/src/IndexSearcher/main.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Aggregator/AggregatorExecutionContext.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/ssdservingLib.dir/src/SSDServing/main.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/ssdserving.dir/src/SSDServing/main.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/Client.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/quantizer.dir/src/Quantizer/main.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/QueryParser.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/balanceddatapartition.dir/src/BalancedDataPartition/main.cpp.o
+[ 72%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Aggregator/AggregatorService.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/SearchExecutionContext.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/SearchExecutor.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Aggregator/AggregatorSettings.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Aggregator/main.cpp.o
+[ 73%] Linking CXX executable ../../../SPTAG/Release/indexbuilder
+[ 73%] Built target indexbuilder
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/Common.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Server/QueryParser.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/Connection.cpp.o
+[ 73%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/SearchService.cpp.o
+[ 75%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/Client.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/ConnectionManager.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/Packet.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/ServiceContext.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/RemoteSearchQuery.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/client.dir/src/Socket/Server.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/Common.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/Connection.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/ServiceSettings.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/ConnectionManager.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Server/main.cpp.o
+[ 76%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/Packet.cpp.o
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/Client.cpp.o
+[ 77%] Linking CXX executable ../../../SPTAG/Release/indexsearcher
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/Common.cpp.o
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/Connection.cpp.o
+[ 77%] Built target indexsearcher
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/RemoteSearchQuery.cpp.o
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/aggregator.dir/src/Socket/Server.cpp.o
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/ConnectionManager.cpp.o
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/Packet.cpp.o
+[ 77%] Linking CXX executable ../../../SPTAG/Release/ssdserving
+[ 77%] Linking CXX static library ../../../SPTAG/Release/libssdservingLib.a
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/RemoteSearchQuery.cpp.o
+[ 77%] Built target ssdservingLib
+[ 77%] Building CXX object sptag_build/AnnService/CMakeFiles/server.dir/src/Socket/Server.cpp.o
+[ 77%] Built target ssdserving
+[ 77%] Linking CXX executable ../../../SPTAG/Release/client
+[ 77%] Built target client
+[ 77%] Linking CXX executable ../../../SPTAG/Release/quantizer
+[ 77%] Built target quantizer
+[ 79%] Linking CXX executable ../../../SPTAG/Release/aggregator
+[ 79%] Built target aggregator
+[ 79%] Linking CXX static library libfaiss.a
+[ 80%] Linking CXX executable ../../../SPTAG/Release/server
+[ 80%] Built target faiss
+[ 80%] Built target server
+[ 80%] Linking CXX executable ../../../SPTAG/Release/balanceddatapartition
+[ 80%] Built target balanceddatapartition
+[ 80%] Linking CXX static library libdiskann_s.a
+[ 80%] Built target diskann_s
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/AbstractIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/BucketedFlatIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/BufferedCongestionDropIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/CANDYObject.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/ConcurrentIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/CongestionDropIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/bindings/PyCANDY.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/DPGIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FaissIndex.cpp.o
+[ 81%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FlannIndex/KdTree.cpp.o
+[ 83%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FlannIndex.cpp.o
+[ 83%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FlannIndex/Kmeans.cpp.o
+[ 83%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FlatGPUIndex.cpp.o
+[ 83%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FlatGPUIndex/DiskMemBuffer.cpp.o
+[ 83%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/FlatIndex.cpp.o
+[ 84%] Building CXX object CMakeFiles/PyCANDYAlgo.dir/candy/HashingModels/MLPBucketIdxModel.cpp.o
+[ 86%] Linking CXX static library libdiskann.a
+[ 86%] Built target diskann
+[ 86%] Building CXX object diskann_build/apps/CMakeFiles/build_memory_index.dir/build_memory_index.cpp.o
+[ 86%] Linking CXX executable build_memory_index
+[ 86%] Built target build_memory_index
+[ 86%] Building CXX object diskann_build/apps/CMakeFiles/build_stitched_index.dir/build_stitched_index.cpp.o
+[ 86%] Building CXX object diskann_build/apps/CMakeFiles/search_memory_index.dir/search_memory_index.cpp.o
+[ 86%] Building CXX object diskann_build/apps/CMakeFiles/build_disk_index.dir/build_disk_index.cpp.o
+[ 86%] Building CXX object diskann_build/apps/CMakeFiles/search_disk_index.dir/search_disk_index.cpp.o
+[ 87%] Building CXX object diskann_build/apps/CMakeFiles/range_search_disk_index.dir/range_search_disk_index.cpp.o
+[ 87%] Building CXX object diskann_build/apps/CMakeFiles/test_streaming_scenario.dir/test_streaming_scenario.cpp.o
+[ 87%] Building CXX object diskann_build/apps/CMakeFiles/test_insert_deletes_consolidate.dir/test_insert_deletes_consolidate.cpp.o
+[ 87%] Linking CXX executable build_stitched_index
+[ 88%] Linking CXX executable build_disk_index
+[ 88%] Built target build_stitched_index
+[ 88%] Building CXX object diskann_build/apps/utils/CMakeFiles/rand_data_gen.dir/rand_data_gen.cpp.o
+[ 88%] Built target build_disk_index
+[ 88%] Building CXX object diskann_build/apps/utils/CMakeFiles/count_bfs_levels.dir/count_bfs_levels.cpp.o
+[ 88%] Building CXX object diskann_build/apps/utils/CMakeFiles/int8_to_float.dir/int8_to_float.cpp.o

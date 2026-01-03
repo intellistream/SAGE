@@ -6,17 +6,21 @@ A simple FastAPI backend service that provides real SAGE data to the Studio fron
 
 import importlib
 import inspect
+import ipaddress
 import json
 import os
 import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
+from urllib.parse import urlparse, urlunparse
 
+import requests
 import uvicorn
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
@@ -37,7 +41,8 @@ from sage.studio.services.stream_handler import get_stream_handler
 
 # Gateway URL for API calls
 # Use 127.0.0.1 instead of localhost to avoid IPv6 issues and ensure consistent behavior
-GATEWAY_BASE_URL = f"http://127.0.0.1:{SagePorts.GATEWAY_DEFAULT}"
+GATEWAY_HOST = os.getenv("SAGE_GATEWAY_HOST", "127.0.0.1")
+GATEWAY_BASE_URL = f"http://{GATEWAY_HOST}:{SagePorts.GATEWAY_DEFAULT}"
 
 # Load environment variables from .env file
 try:
@@ -299,17 +304,40 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# 动态构建允许的来源列表
+allowed_origins = [
+    "http://localhost:5173",  # Vite 开发服务器默认端口
+    "http://localhost:4173",  # Vite preview 服务器默认端口
+    f"http://localhost:{SagePorts.STUDIO_FRONTEND}",
+    f"http://127.0.0.1:{SagePorts.STUDIO_FRONTEND}",
+    f"http://0.0.0.0:{SagePorts.STUDIO_FRONTEND}",
+]
+
+# 添加常用开发端口
+for port in [5173, 4173, 35180]:
+    if port != SagePorts.STUDIO_FRONTEND:
+        allowed_origins.extend(
+            [
+                f"http://localhost:{port}",
+                f"http://127.0.0.1:{port}",
+                f"http://0.0.0.0:{port}",
+            ]
+        )
+
+# 从环境变量添加额外来源
+extra_origins = os.getenv("SAGE_STUDIO_ALLOWED_ORIGINS", "")
+if extra_origins:
+    allowed_origins.extend(
+        [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+    )
+
+# 去重
+allowed_origins = list(set(allowed_origins))
+
 # 添加 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite 开发服务器默认端口
-        "http://localhost:4173",  # Vite preview 服务器默认端口
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:4173",
-        "http://0.0.0.0:5173",
-        "http://0.0.0.0:4173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1562,6 +1590,10 @@ class AgentChatRequest(BaseModel):
     message: str
     session_id: str
     history: list[dict[str, str]] | None = None
+    route: str | None = None
+    should_index: bool | None = None
+    metadata: dict[str, Any] | None = None
+    evidence: list[dict[str, Any]] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -1616,6 +1648,116 @@ def _save_session(user_id: str, session_id: str, data: dict):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+@app.post("/api/chat/v1/chat/completions")
+async def proxy_chat_completions(
+    request: Request, current_user: Annotated[User, Depends(get_current_user)]
+):
+    """Proxy for OpenAI-compatible chat completions used by Studio frontend"""
+    from datetime import datetime
+
+    import httpx
+
+    try:
+        # Get the raw body
+        body = await request.json()
+        session_id = body.get("session_id")
+        user_id = str(current_user.id)
+
+        # Extract user message from request
+        messages = body.get("messages", [])
+        user_message_content = None
+        if messages:
+            # Get the last user message
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    user_message_content = msg.get("content")
+                    break
+
+        # Load or create session
+        session_data = None
+        if session_id:
+            session_data = _load_session(user_id, session_id)
+
+        if not session_data and session_id:
+            # Create new session
+            now = datetime.now().isoformat()
+            session_data = {
+                "id": session_id,
+                "title": "New Chat",
+                "created_at": now,
+                "last_active": now,
+                "messages": [],
+                "metadata": {},
+            }
+
+        # Save user message to session
+        if session_data and user_message_content:
+            user_msg = {
+                "role": "user",
+                "content": user_message_content,
+                "timestamp": datetime.now().isoformat(),
+            }
+            session_data["messages"].append(user_msg)
+            session_data["last_active"] = datetime.now().isoformat()
+            _save_session(user_id, session_id, session_data)
+
+        # Collect assistant response
+        collected_content = []
+
+        # Forward to Gateway
+        # We use a stream to support SSE
+        async def event_generator():
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    async with client.stream(
+                        "POST",
+                        f"{GATEWAY_BASE_URL}/v1/chat/completions",
+                        json=body,
+                    ) as response:
+                        if response.status_code != 200:
+                            error_msg = await response.aread()
+                            yield f"data: {json.dumps({'error': f'Gateway error: {response.status_code} - {error_msg.decode()}'})}\n\n"
+                            return
+
+                        async for chunk in response.aiter_bytes():
+                            # Parse SSE to collect assistant content
+                            chunk_str = chunk.decode("utf-8", errors="ignore")
+                            for line in chunk_str.split("\n"):
+                                if line.startswith("data: "):
+                                    data = line[6:].strip()
+                                    if data and data != "[DONE]":
+                                        try:
+                                            parsed = json.loads(data)
+                                            content = (
+                                                parsed.get("choices", [{}])[0]
+                                                .get("delta", {})
+                                                .get("content")
+                                            )
+                                            if content:
+                                                collected_content.append(content)
+                                        except Exception:
+                                            pass
+                            yield chunk
+
+                # Save assistant message after streaming completes
+                if session_data and collected_content:
+                    assistant_msg = {
+                        "role": "assistant",
+                        "content": "".join(collected_content),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    session_data["messages"].append(assistant_msg)
+                    session_data["last_active"] = datetime.now().isoformat()
+                    _save_session(user_id, session_id, session_data)
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/chat/message", response_model=ChatResponse)
 async def send_chat_message(
     request: ChatRequest,
@@ -1658,6 +1800,31 @@ async def send_chat_message(
     session_data["last_active"] = datetime.now().isoformat()
     _save_session(user_id, session_id, session_data)
 
+    # Resolve model if "sage-default"
+    model_to_use = request.model
+    if model_to_use == "sage-default":
+        # 1. Try environment variable (set by select_llm_model)
+        model_to_use = os.getenv("SAGE_CHAT_MODEL")
+
+        # 2. If not set, try to detect from Gateway
+        if not model_to_use:
+            try:
+                from sage.common.config.ports import SagePorts
+                from sage.llm import UnifiedInferenceClient
+
+                client = UnifiedInferenceClient.create(
+                    control_plane_url=f"http://localhost:{SagePorts.GATEWAY_DEFAULT}/v1"
+                )
+                detected = client._get_default_llm_model()
+                if detected and detected != "default":
+                    model_to_use = detected
+            except Exception:
+                pass
+
+        # 3. Fallback to original if still failed
+        if not model_to_use:
+            model_to_use = request.model
+
     try:
         # 调用 sage-gateway 的 OpenAI 兼容接口
         # We pass the session_id to gateway as well, so it can maintain its own state if needed,
@@ -1667,7 +1834,7 @@ async def send_chat_message(
             gateway_response = await client.post(
                 f"{GATEWAY_BASE_URL}/v1/chat/completions",
                 json={
-                    "model": request.model,
+                    "model": model_to_use,
                     "messages": [{"role": "user", "content": request.message}],
                     "stream": False,
                     "session_id": session_id,  # Pass session_id to gateway
@@ -1720,6 +1887,9 @@ async def agent_chat(request: AgentChatRequest):
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+        should_index=request.should_index or False,
+        metadata=request.metadata or {},
+        evidence=request.evidence or [],
     )
 
     return stream_handler.create_response(source)
@@ -1737,6 +1907,9 @@ async def agent_chat_sync(request: AgentChatRequest):
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+        should_index=request.should_index or False,
+        metadata=request.metadata or {},
+        evidence=request.evidence or [],
     ):
         if hasattr(item, "step_id"):  # AgentStep
             # Handle both dataclass and Pydantic models
@@ -1796,22 +1969,26 @@ async def create_chat_session(
     import uuid
     from datetime import datetime
 
-    session_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
+    try:
+        session_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
 
-    session_data = {
-        "id": session_id,
-        "title": payload.title or "New Session",
-        "created_at": now,
-        "last_active": now,
-        "message_count": 0,
-        "messages": [],
-        "metadata": {},
-    }
+        session_data = {
+            "id": session_id,
+            "title": payload.title or "New Session",
+            "created_at": now,
+            "last_active": now,
+            "message_count": 0,
+            "messages": [],
+            "metadata": {},
+        }
 
-    _save_session(str(current_user.id), session_id, session_data)
+        _save_session(str(current_user.id), session_id, session_data)
 
-    return ChatSessionDetail(**session_data)
+        return ChatSessionDetail(**session_data)
+    except Exception as e:
+        print(f"Error creating session: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {str(e)}")
 
 
 @app.get("/api/chat/sessions/{session_id}", response_model=ChatSessionDetail)
@@ -2226,7 +2403,7 @@ async def create_finetune_task(request: FinetuneCreateRequest):
     """创建微调任务（带 OOM 风险检测）"""
     import torch
 
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     # GPU 显存检测
     warnings = []
@@ -2290,7 +2467,7 @@ async def create_finetune_task(request: FinetuneCreateRequest):
 @app.get("/api/finetune/tasks")
 async def list_finetune_tasks():
     """列出所有微调任务"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     tasks = finetune_manager.list_tasks()
     return [task.to_dict() for task in tasks]
@@ -2299,7 +2476,7 @@ async def list_finetune_tasks():
 @app.get("/api/finetune/tasks/{task_id}")
 async def get_finetune_task(task_id: str):
     """获取微调任务详情"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     task = finetune_manager.get_task(task_id)
     if not task:
@@ -2310,7 +2487,7 @@ async def get_finetune_task(task_id: str):
 @app.get("/api/finetune/models")
 async def list_finetune_models():
     """获取可用模型列表（基础模型 + 微调后的模型）"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     return finetune_manager.list_available_models()
 
@@ -2318,10 +2495,11 @@ async def list_finetune_models():
 @app.post("/api/finetune/switch-model")
 async def switch_model(model_path: str):
     """切换当前使用的模型并热重启 LLM 服务（无需重启 Studio）"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.studio.chat_manager import ChatModeManager
 
-    # Apply the finetuned model (hot-swap)
-    result = finetune_manager.apply_finetuned_model(model_path)
+    # Get ChatModeManager instance and apply the model
+    chat_manager = ChatModeManager()
+    result = chat_manager.apply_finetuned_model(model_path)
 
     if result["success"]:
         return {
@@ -2336,7 +2514,7 @@ async def switch_model(model_path: str):
 @app.get("/api/finetune/current-model")
 async def get_current_model():
     """获取当前使用的模型"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     return {"current_model": finetune_manager.get_current_model()}
 
@@ -2373,7 +2551,7 @@ async def download_finetuned_model(task_id: str):
 
     from fastapi.responses import FileResponse
 
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     task = finetune_manager.get_task(task_id)
     if not task:
@@ -2411,7 +2589,7 @@ async def download_finetuned_model(task_id: str):
 @app.delete("/api/finetune/tasks/{task_id}")
 async def delete_finetune_task(task_id: str):
     """删除微调任务（仅允许删除已完成、失败或取消的任务）"""
-    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+    from sage.libs.finetune import FinetuneStatus, finetune_manager
 
     if finetune_manager.delete_task(task_id):
         return {"status": "success", "message": f"任务 {task_id} 已删除"}
@@ -2437,7 +2615,7 @@ async def delete_finetune_task(task_id: str):
 @app.post("/api/finetune/tasks/{task_id}/cancel")
 async def cancel_finetune_task(task_id: str):
     """取消运行中的微调任务"""
-    from sage.studio.services.finetune_manager import FinetuneStatus, finetune_manager
+    from sage.libs.finetune import FinetuneStatus, finetune_manager
 
     task = finetune_manager.tasks.get(task_id)
     if not task:
@@ -2538,7 +2716,7 @@ async def prepare_sage_docs(force_refresh: bool = False):
 @app.post("/api/finetune/use-as-backend")
 async def use_finetuned_as_backend(request: UseAsBackendRequest):
     """将微调后的模型设置为 Studio 对话后端"""
-    from sage.studio.services.finetune_manager import finetune_manager
+    from sage.libs.finetune import finetune_manager
 
     try:
         task = finetune_manager.get_task(request.task_id)
@@ -2690,66 +2868,553 @@ async def get_gpu_info():
         }
 
 
+# ==================== LLM 状态 API ====================
+
+
+class SelectModelRequest(BaseModel):
+    model_name: str
+    base_url: str
+
+
+def _get_models_config_path(create_dir: bool = False) -> Path | None:
+    """Locate config/models.json, optionally creating the directory."""
+    try:
+        from sage.common.config import find_sage_project_root
+
+        project_root = find_sage_project_root()
+    except Exception:
+        project_root = None
+
+    base_dir = project_root or Path.cwd()
+    config_dir = base_dir / "config"
+
+    if create_dir:
+        config_dir.mkdir(parents=True, exist_ok=True)
+    elif not config_dir.exists():
+        return None
+
+    return config_dir / "models.json"
+
+
+def _expand_api_key(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    if value.startswith("${") and value.endswith("}"):
+        env_var = value[2:-1]
+        return os.getenv(env_var, "")
+    return value
+
+
+def _load_models_config(filter_missing: bool = False) -> tuple[list[dict[str, Any]], Path | None]:
+    path = _get_models_config_path()
+    if not path or not path.exists():
+        return ([], path)
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            models: list[dict[str, Any]] = []
+            for entry in data:
+                if isinstance(entry, dict):
+                    entry_copy = dict(entry)
+                    raw_key = entry_copy.get("api_key")
+                    expanded_key = _expand_api_key(raw_key)
+
+                    # Skip if API key is required (variable reference) but missing/empty
+                    if (
+                        filter_missing
+                        and isinstance(raw_key, str)
+                        and raw_key.startswith("${")
+                        and not expanded_key
+                    ):
+                        continue
+
+                    entry_copy["api_key"] = expanded_key
+                    models.append(entry_copy)
+            return models, path
+    except Exception:
+        pass
+    return ([], path)
+
+
+def _save_models_config(path: Path | None, models: list[dict[str, Any]]) -> None:
+    if not path:
+        return
+    target_path = path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(json.dumps(models, indent=4, ensure_ascii=False), encoding="utf-8")
+
+
+def _persist_model_selection(model_name: str, base_url: str) -> str:
+    """Update config/models.json default selection and return API key."""
+    models, path = _load_models_config()
+    if path is None:
+        path = _get_models_config_path(create_dir=True)
+    target_entry: dict[str, Any] | None = None
+
+    for entry in models:
+        names_match = entry.get("name") == model_name
+        url_match = (
+            _base_urls_match(entry.get("base_url"), base_url) if entry.get("base_url") else False
+        )
+        if names_match and (url_match or not entry.get("base_url")):
+            entry["base_url"] = base_url
+            target_entry = entry
+            break
+
+    if target_entry is None:
+        target_entry = {
+            "name": model_name,
+            "base_url": base_url,
+            "is_local": _is_loopback_url(base_url),
+        }
+        models.append(target_entry)
+    else:
+        target_entry["is_local"] = _is_loopback_url(base_url)
+
+    for entry in models:
+        entry["default"] = entry is target_entry
+
+    _save_models_config(path, models)
+    return _expand_api_key(target_entry.get("api_key"))
+
+
+def _discover_launcher_models() -> list[dict[str, Any]]:
+    try:
+        from sage.llm import LLMLauncher
+    except ImportError:
+        return []
+
+    models: list[dict[str, Any]] = []
+    for service in LLMLauncher.discover_running_services():
+        # Filter out embedding models
+        if service.get("config", {}).get("engine_kind") == "embedding":
+            continue
+
+        model_name = service.get("served_model_name") or service.get("model") or "local-llm"
+        if "embedding" in model_name.lower():
+            continue
+
+        models.append(
+            {
+                "name": model_name,
+                "base_url": service.get("base_url"),
+                "is_local": True,
+                "description": "Auto-detected Local Model",
+            }
+        )
+    return models
+
+
+def _normalize_base_url(base_url: str | None) -> str | None:
+    return base_url.rstrip("/") if base_url else base_url
+
+
+def _normalize_probe_base_url(base_url: str | None) -> str | None:
+    if not base_url:
+        return None
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    replacement = None
+    if not host or host in {"0.0.0.0", "*"}:
+        replacement = "127.0.0.1"
+    elif host in {"::", "[::]"}:
+        replacement = "::1"
+
+    if replacement:
+        host_token = replacement
+        if ":" in host_token and not host_token.startswith("["):
+            host_token = f"[{host_token}]"
+        if parsed.port:
+            netloc = f"{host_token}:{parsed.port}"
+        else:
+            netloc = host_token
+        parsed = parsed._replace(netloc=netloc)
+        return urlunparse(parsed).rstrip("/")
+
+    return base_url.rstrip("/")
+
+
+def _canon_host(host: str | None) -> str | None:
+    if not host:
+        return None
+    host = host.lower()
+    if host in {"0.0.0.0", "*", "localhost"}:
+        return "127.0.0.1"
+    if host in {"::", "[::]"}:
+        return "::1"
+    return host
+
+
+def _base_url_signature(base_url: str | None) -> tuple[str, str, int, str] | None:
+    if not base_url:
+        return None
+
+    candidate = base_url.strip()
+    if not candidate:
+        return None
+
+    parsed = urlparse(candidate if "://" in candidate else f"http://{candidate}")
+    scheme = parsed.scheme or "http"
+    host = _canon_host(parsed.hostname) or ""
+    port = parsed.port
+    if port is None:
+        port = 443 if scheme == "https" else 80
+
+    path = parsed.path.rstrip("/")
+    if path in ("", "/v1"):
+        path = ""
+
+    return (scheme, host, port, path)
+
+
+def _base_urls_match(a: str | None, b: str | None) -> bool:
+    sig_a = _base_url_signature(a)
+    sig_b = _base_url_signature(b)
+    return bool(sig_a and sig_b and sig_a == sig_b)
+
+
+def _build_health_url(base_url: str) -> str:
+    parsed = urlparse(base_url)
+    path = parsed.path.rstrip("/")
+    if path.endswith("/v1"):
+        health_path = path[:-3] + "/health"
+    else:
+        health_path = path + "/health"
+    return urlunparse(parsed._replace(path=health_path, query="", fragment=""))
+
+
+def _is_loopback_url(base_url: str | None) -> bool:
+    if not base_url:
+        return False
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    if not host:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _probe_llm_endpoint(base_url: str | None, headers: dict[str, str] | None = None) -> bool:
+    normalized = _normalize_probe_base_url(base_url)
+    if not normalized:
+        return False
+    headers = headers or {}
+
+    try:
+        health_url = _build_health_url(normalized)
+        resp = requests.get(health_url, headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    try:
+        resp = requests.get(f"{normalized}/models", headers=headers, timeout=2.0)
+        if resp.status_code == 200:
+            return True
+    except Exception:
+        pass
+
+    try:
+        parsed = urlparse(normalized)
+        host = parsed.hostname
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if host:
+            import socket
+
+            with socket.create_connection((host, port), timeout=2.0):
+                return True
+    except Exception:
+        pass
+
+    return False
+
+
+@app.post("/api/llm/select")
+async def select_llm_model(request: SelectModelRequest):
+    """选择要使用的 LLM 模型"""
+    try:
+        # 更新环境变量，这样后续的 get_llm_status 调用（会创建新的 UnifiedInferenceClient）
+        # 就会使用新的配置
+        os.environ["SAGE_CHAT_MODEL"] = request.model_name
+        os.environ["SAGE_CHAT_BASE_URL"] = request.base_url
+
+        api_key = ""
+        try:
+            api_key = _persist_model_selection(request.model_name, request.base_url)
+        except Exception as exc:
+            print(f"Failed to persist selected model: {exc}")
+
+        if api_key:
+            os.environ["SAGE_CHAT_API_KEY"] = api_key
+            print(f"Set API key for model {request.model_name}")
+        else:
+            # 如果没有找到特定的 API Key，清除环境变量，以免使用旧的
+            if "SAGE_CHAT_API_KEY" in os.environ:
+                del os.environ["SAGE_CHAT_API_KEY"]
+
+        # Register with Control Plane
+        try:
+            parsed = urlparse(request.base_url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            register_url = f"{GATEWAY_BASE_URL}/v1/management/engines/register"
+
+            payload = {
+                "engine_id": f"ext-{request.model_name}",
+                "model_id": request.model_name,
+                "host": host,
+                "port": port,
+                "engine_kind": "llm",
+                "metadata": {"source": "studio_select", "scheme": parsed.scheme or "http"},
+            }
+
+            requests.post(register_url, json=payload, timeout=2)
+            print(f"Registered model {request.model_name} with Control Plane")
+        except Exception as e:
+            print(f"Failed to register model with Control Plane: {e}")
+
+        return {"status": "success", "message": f"已切换到模型: {request.model_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"切换模型失败: {str(e)}")
+
+
 @app.get("/api/llm/status")
 async def get_llm_status():
     """获取当前运行的 LLM 服务状态"""
     try:
-        import requests
+        from sage.llm import UnifiedInferenceClient
+    except Exception:
+        UnifiedInferenceClient = None  # type: ignore[assignment]
 
-        # 读取环境变量
-        base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
-        model_name = os.getenv("SAGE_CHAT_MODEL", "")
+    try:
+        env_base_url = os.getenv("SAGE_CHAT_BASE_URL", "")
+        env_model_name = os.getenv("SAGE_CHAT_MODEL", "")
 
-        # 检测是否是本地服务
-        is_local = "localhost" in base_url or "127.0.0.1" in base_url
+        # Start with explicit environment variables (highest priority)
+        base_url = env_base_url
+        model_name = env_model_name
 
-        # 初始化状态
+        # Next, honor persisted default selection from config/models.json when env is not set
+        # This keeps frontend selections sticky across restarts without being overwritten by
+        # Control Plane discovery.
+        config_models, _ = _load_models_config(filter_missing=False)
+        persisted_default = next((m for m in config_models if m.get("default")), None)
+        persisted_base_url = (
+            _normalize_base_url(persisted_default.get("base_url")) if persisted_default else None
+        )
+        if not base_url and persisted_base_url:
+            base_url = persisted_base_url
+        if not model_name and persisted_default:
+            model_name = persisted_default.get("name", "")
+
+        use_control_plane = not base_url and not model_name and not persisted_default
+
+        if UnifiedInferenceClient:
+            try:
+                # Only fall back to Control Plane when nothing is configured/persisted
+                if use_control_plane:
+                    client = UnifiedInferenceClient.create(
+                        control_plane_url=f"{GATEWAY_BASE_URL}/v1"
+                    )
+                    base_url = client.config.llm_base_url or base_url
+                    model_name = client.config.llm_model or model_name
+
+                # Try to fetch model name if still missing but base_url is known
+                if not model_name and base_url:
+                    model_name = UnifiedInferenceClient._fetch_model_name(base_url) or model_name
+            except Exception:
+                pass
+
+        normalized_base_url = _normalize_base_url(base_url)
+        is_local = _is_loopback_url(normalized_base_url)
+        display_model_name = model_name or ("未配置 LLM 服务" if not base_url else "未命名模型")
+
         status = {
             "running": False,
             "healthy": False,
-            "service_type": "unknown",
-            "model_name": model_name,
-            "base_url": base_url,
+            "service_type": "not_configured" if not base_url else "remote_api",
+            "model_name": display_model_name,
+            "base_url": normalized_base_url or base_url,
             "is_local": is_local,
             "details": {},
         }
 
-        # 如果是本地服务，尝试获取详细信息
+        if base_url:
+            status["running"] = True
+
+        # Local detailed status
         if is_local and base_url:
-            try:
-                # 检查健康状态
-                health_url = base_url.replace("/v1", "/health")
-                health_response = requests.get(health_url, timeout=2)
-                status["healthy"] = health_response.status_code == 200
+            probe_url = _normalize_probe_base_url(base_url)
+            if probe_url:
+                status["base_url"] = probe_url
+                try:
+                    health_resp = requests.get(_build_health_url(probe_url), timeout=2)
+                    status["healthy"] = health_resp.status_code == 200
+                    status["service_type"] = "local_vllm"
+
+                    models_resp = requests.get(f"{probe_url}/models", timeout=2)
+                    if models_resp.status_code == 200:
+                        models_data = models_resp.json()
+                        if models_data.get("data"):
+                            first_model = models_data["data"][0]
+                            status["details"] = {
+                                "model_id": first_model.get("id", ""),
+                                "max_model_len": first_model.get("max_model_len", 0),
+                                "owned_by": first_model.get("owned_by", ""),
+                            }
+                            status["model_name"] = first_model.get("id", status["model_name"])
+                except Exception as exc:
+                    status["error"] = str(exc)
+
+        # Build available model list
+        # 复用前面读取的配置，避免重复加载
+        available_models = []
+        for model in config_models:
+            # Filter out embedding models
+            if model.get("engine_kind") == "embedding":
+                continue
+            # Double check for embedding in name/description if engine_kind is missing
+            if "embedding" in model.get("name", "").lower():
+                continue
+            if "embedding" in model.get("description", "").lower():
+                continue
+            available_models.append(dict(model))
+
+        def _merge_model(entry: dict[str, Any]) -> None:
+            entry_url = entry.get("base_url")
+            for existing in available_models:
+                existing_url = existing.get("base_url")
+                names_match = entry.get("name") and entry.get("name") == existing.get("name")
+                urls_match = _base_urls_match(entry_url, existing_url)
+                if urls_match or (not entry_url and not existing_url and names_match):
+                    existing.update({k: v for k, v in entry.items() if v is not None})
+                    return
+            available_models.append(entry)
+
+        for detected in _discover_launcher_models():
+            _merge_model(detected)
+
+        if not available_models:
+            default_base = f"http://127.0.0.1:{SagePorts.BENCHMARK_LLM}/v1"
+            defaults = [
+                {
+                    "name": "Qwen/Qwen2.5-0.5B-Instruct",
+                    "base_url": default_base,
+                    "is_local": True,
+                    "description": "Local Small Model (Fast, CPU-friendly)",
+                },
+                {
+                    "name": "Qwen/Qwen2.5-7B-Instruct",
+                    "base_url": default_base,
+                    "is_local": True,
+                    "description": "Local Standard Model (Requires GPU)",
+                },
+            ]
+            for entry in defaults:
+                _merge_model(entry)
+
+        cloud_api_key = os.getenv("SAGE_CHAT_API_KEY")
+        cloud_base_url = os.getenv("SAGE_CHAT_BASE_URL")
+        if cloud_api_key and cloud_base_url:
+            cloud_entry = {
+                "name": os.getenv("SAGE_CHAT_MODEL", "qwen-turbo-2025-02-11"),
+                "base_url": _normalize_base_url(cloud_base_url),
+                "is_local": False,
+                "description": "Cloud API (Configured in .env)",
+                "api_key": cloud_api_key,
+                "healthy": True,
+            }
+            _merge_model(cloud_entry)
+
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key:
+            openai_entry = {
+                "name": os.getenv("OPENAI_MODEL_NAME", "gpt-3.5-turbo"),
+                "base_url": os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+                "is_local": False,
+                "description": "OpenAI API (Configured in .env)",
+                "api_key": openai_api_key,
+                "healthy": True,
+            }
+            _merge_model(openai_entry)
+
+        import concurrent.futures
+
+        def evaluate_model(model: dict[str, Any]) -> dict[str, Any]:
+            entry = dict(model)
+            base = entry.get("base_url")
+            headers = {}
+            if entry.get("api_key"):
+                headers["Authorization"] = f"Bearer {entry['api_key']}"
+
+            if not base:
+                entry["healthy"] = False
+                return entry
+
+            if not entry.get("is_local") and entry.get("healthy"):
+                return entry
+
+            entry["healthy"] = _probe_llm_endpoint(base, headers=headers)
+            return entry
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            available_models = list(executor.map(evaluate_model, available_models))
+
+        # Prefer healthy local models even if cloud env vars are present; fall back to any healthy.
+        preferred_model: dict[str, Any] | None = None
+        for model in available_models:
+            if model.get("is_local") and model.get("healthy") and model.get("default"):
+                preferred_model = model
+                break
+        if not preferred_model:
+            for model in available_models:
+                if model.get("is_local") and model.get("healthy"):
+                    preferred_model = model
+                    break
+        if not preferred_model:
+            for model in available_models:
+                if model.get("healthy"):
+                    preferred_model = model
+                    break
+
+        if preferred_model:
+            status["base_url"] = preferred_model.get("base_url") or status.get("base_url")
+            status["model_name"] = preferred_model.get("name") or status.get("model_name")
+            status["is_local"] = preferred_model.get("is_local", status.get("is_local"))
+            status["service_type"] = (
+                "local_vllm" if preferred_model.get("is_local") else "remote_api"
+            )
+            if preferred_model.get("base_url"):
                 status["running"] = True
-                status["service_type"] = "local_vllm"
 
-                # 获取模型列表
-                models_url = f"{base_url}/models"
-                models_response = requests.get(models_url, timeout=2)
-                if models_response.status_code == 200:
-                    models_data = models_response.json()
-                    if models_data.get("data"):
-                        # 获取第一个模型的详细信息
-                        first_model = models_data["data"][0]
-                        status["details"] = {
-                            "model_id": first_model.get("id", ""),
-                            "max_model_len": first_model.get("max_model_len", 0),
-                            "owned_by": first_model.get("owned_by", ""),
-                        }
-                        # 使用实际注册的模型 ID
-                        status["model_name"] = first_model.get("id", model_name)
+        status_base_url = status.get("base_url")
+        match_found = False
+        for model in available_models:
+            if _base_urls_match(status_base_url, model.get("base_url")):
+                status["healthy"] = model.get("healthy", False)
+                status["model_name"] = model.get("name", status["model_name"])
+                match_found = True
+                break
 
-            except Exception as e:
-                status["error"] = str(e)
-        elif base_url:
-            # 远程服务
-            status["service_type"] = "remote_api"
-            status["running"] = True  # 假设配置了就是可用的
-        else:
-            # 没有配置
-            status["service_type"] = "not_configured"
-            status["model_name"] = "未配置 LLM 服务"
+        if not match_found and status["model_name"] and status.get("base_url"):
+            available_models.insert(
+                0,
+                {
+                    "name": status["model_name"],
+                    "base_url": status["base_url"],
+                    "is_local": status["is_local"],
+                    "description": "Current Model",
+                    "healthy": status["healthy"],
+                },
+            )
+
+        status["available_models"] = available_models
 
         return status
 

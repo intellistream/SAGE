@@ -6,6 +6,25 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
 
 # 修复 sage-middleware C++ 扩展库的安装
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 fix_middleware_cpp_extensions() {
     log_info "检查并修复 C++ 扩展库安装..." "CPPExtFix"
     echo -e "${BLUE}🔧 检查并修复 C++ 扩展库安装...${NC}"
@@ -119,7 +138,7 @@ fix_middleware_cpp_extensions() {
         log_warn "部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})" "CPPExtFix"
         echo -e "${WARNING} 部分 C++ 扩展库可能不可用 (${fixed_count}/${total_count})"
 
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
+        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
             log_debug "CI 环境提示：如果子模块已初始化但库文件仍未找到，可能是 CMake 安装配置问题或构建失败" "CPPExtFix"
             echo -e "${DIM}💡 CI 环境提示：${NC}"
             echo -e "${DIM}   如果子模块已初始化但库文件仍未找到，${NC}"

@@ -2,6 +2,25 @@
 # SAGE 安装验证测试脚本
 # 验证安装是否成功，检查核心组件和依赖
 
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 set -e
 
 # 获取脚本所在目录
@@ -9,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 
 # 测试结果统计
 TOTAL_TESTS=0
@@ -105,13 +124,8 @@ main() {
     run_test "导入 sage.kernel" "python3 -c 'import sage.kernel'"
     run_test "导入 sage.libs" "python3 -c 'import sage.libs'"
     run_test "导入 sage.middleware" "python3 -c 'import sage.middleware'"
-
-    # Gateway 包（dev 模式安装）
-    if python3 -c "import sage.gateway" 2>/dev/null; then
-        echo -e "${GREEN}✅ sage.gateway 已安装 (dev 模式)${NC}"
-    else
-        echo -e "${DIM}   sage.gateway 未安装 (仅 dev 模式包含)${NC}"
-    fi
+    run_test "导入 sage.llm" "python3 -c 'import sage.llm'"
+    run_test "导入 sage.llm.gateway" "python3 -c 'import sage.llm.gateway'"
 
     # 3. 关键依赖检查
     print_test_header "📚 3. 关键依赖检查"
@@ -129,19 +143,20 @@ import sage.kernel
 import sage.libs
 import sage.middleware
 
-versions = [
-    sage.__version__,
-    sage.common.__version__,
-    sage.kernel.__version__,
-    sage.libs.__version__,
-    sage.middleware.__version__
+packages = [
+    ('sage', sage.__version__),
+    ('sage.common', sage.common.__version__),
+    ('sage.kernel', sage.kernel.__version__),
+    ('sage.libs', sage.libs.__version__),
+    ('sage.middleware', sage.middleware.__version__)
 ]
 
-if len(set(versions)) == 1:
-    print(f\"所有包版本一致: {versions[0]}\")
-else:
-    print(f\"版本不一致: {versions}\")
-    exit(1)
+print(\"包版本信息:\")
+for pkg_name, version in packages:
+    print(f\"  {pkg_name}: {version}\")
+
+# 子包允许有独立的版本号，不强制一致
+print(\"✅ 所有子包版本已检测\")
 '"
 
     # 5. CLI 工具检查
@@ -170,11 +185,11 @@ else:
 
     # 7. 配置文件检查
     print_test_header "⚙️ 7. 配置文件检查"
-    if [ -f "$SAGE_ROOT/.env" ]; then
+    if [ -f "${SAGE_ROOT:-}/.env" ]; then
         echo -e "${GREEN}✅ .env 配置文件存在${NC}"
 
         # 检查关键 API keys
-        if grep -q "OPENAI_API_KEY=" "$SAGE_ROOT/.env" 2>/dev/null; then
+        if grep -q "OPENAI_API_KEY=" "${SAGE_ROOT:-}/.env" 2>/dev/null; then
             echo -e "${DIM}   • OPENAI_API_KEY 已配置${NC}"
         else
             echo -e "${YELLOW}   ⚠️  OPENAI_API_KEY 未配置${NC}"
@@ -186,9 +201,9 @@ else:
 
     # 8. 示例测试（快速验证）
     print_test_header "🎓 8. 快速示例测试"
-    if [ -f "$SAGE_ROOT/examples/tutorials/hello_world.py" ]; then
+    if [ -f "${SAGE_ROOT:-}/examples/tutorials/hello_world.py" ]; then
         echo -e "${DIM}测试运行 hello_world.py（30秒超时）...${NC}"
-        if timeout 30s python3 "$SAGE_ROOT/examples/tutorials/hello_world.py" > /dev/null 2>&1; then
+        if timeout 30s python3 "${SAGE_ROOT:-}/examples/tutorials/hello_world.py" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ hello_world.py 运行成功${NC}"
         else
             echo -e "${YELLOW}⚠️  hello_world.py 运行失败或超时${NC}"

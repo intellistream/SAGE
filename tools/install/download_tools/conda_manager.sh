@@ -6,10 +6,29 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
 # CI环境或远程部署检测 - 确保非交互模式（静默设置，避免重复输出）
-if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
+if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
     export CONDA_ALWAYS_YES=true  # conda的非交互模式
     # 只在CI环境中注释掉PYTHONNOUSERSITE以提高测试速度，远程部署仍需要设置
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # export PYTHONNOUSERSITE=1  # CI环境中注释掉以提高runner测试速度（静默设置）
         true  # 静默处理，避免重复输出
     else
@@ -24,12 +43,12 @@ ask_conda_environment() {
     fi
 
     # 如果已经指定了环境名，直接使用
-    if [ -n "$SAGE_ENV_NAME" ]; then
+    if [ -n "${SAGE_ENV_NAME:-}" ]; then
         echo ""
         echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
         echo ""
-        echo -e "${INFO} 使用指定的环境名: ${GREEN}$SAGE_ENV_NAME${NC}"
-        create_conda_environment "$SAGE_ENV_NAME"
+        echo -e "${INFO} 使用指定的环境名: ${GREEN}${SAGE_ENV_NAME:-}${NC}"
+        create_conda_environment "${SAGE_ENV_NAME:-}"
         return $?
     fi
 
@@ -53,10 +72,10 @@ ask_conda_environment() {
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
 
-    # 如果是CI环境或远程部署，自动选择选项2（使用当前环境）
-    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        echo -e "${INFO} 检测到CI/远程部署环境，自动选择选项2：使用当前环境"
-        echo "$(date): CI/远程部署环境自动选择选项2" >> "$log_file"
+    # 如果是CI环境、远程部署或使用了 --yes 参数，自动选择选项2（使用当前环境）
+    if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ] || [ "${AUTO_CONFIRM:-}" = "true" ]; then
+        echo -e "${INFO} 非交互模式，自动选择选项2：使用当前环境"
+        echo "$(date): 非交互模式自动选择选项2" >> "$log_file"
         conda_choice=2
     else
         # 交互模式，询问用户选择
@@ -81,7 +100,7 @@ ask_conda_environment() {
         1)
             SAGE_ENV_NAME="sage"
             export SAGE_ENV_NAME  # 导出环境变量
-            create_conda_environment "$SAGE_ENV_NAME"
+            create_conda_environment "${SAGE_ENV_NAME:-}"
             ;;
         2)
             echo -e "${INFO} 将在当前环境中安装 SAGE"
@@ -90,7 +109,7 @@ ask_conda_environment() {
             export SAGE_ENV_NAME
             ;;
         3)
-            if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
                 # CI/远程部署环境不应该到达这里，但万一到了就默认使用当前环境
                 echo -e "${WARNING} CI/远程部署环境中不应选择选项3，回退到选项2"
                 SAGE_ENV_NAME=""
@@ -102,12 +121,12 @@ ask_conda_environment() {
                 if [[ -n "$custom_env_name" ]]; then
                     SAGE_ENV_NAME="$custom_env_name"
                     export SAGE_ENV_NAME  # 导出环境变量
-                    create_conda_environment "$SAGE_ENV_NAME"
+                    create_conda_environment "${SAGE_ENV_NAME:-}"
                 else
                     echo -e "${WARNING} 环境名不能为空，使用默认名称: sage"
                     SAGE_ENV_NAME="sage"
                     export SAGE_ENV_NAME
-                    create_conda_environment "$SAGE_ENV_NAME"
+                    create_conda_environment "${SAGE_ENV_NAME:-}"
                 fi
             fi
             ;;
@@ -137,7 +156,7 @@ create_conda_environment() {
         echo "$(date): 环境 '$env_name' 已存在" >> "$log_file"
 
         # 如果是CI环境或远程部署，自动选择重新创建
-        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
             echo -e "${INFO} CI/远程部署环境检测到，自动删除并重新创建环境"
             echo "$(date): CI/远程部署环境自动选择重新创建环境" >> "$log_file"
             recreate="y"
@@ -218,7 +237,7 @@ create_conda_environment() {
     fi
 
     # 使用 --override-channels 确保只使用 conda-forge，避免 TOS 问题
-    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         if command -v mamba >/dev/null 2>&1; then
             echo -e "${DIM}执行命令: mamba create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y${NC}"
             local create_cmd="mamba create -n $env_name --override-channels -c conda-forge python=3.11 ${extra_runtime_pkgs} -y"
@@ -271,8 +290,8 @@ create_conda_environment() {
         # 检查常见问题
         if echo "$create_output" | grep -q "PackagesNotFoundError"; then
             echo -e "${WARNING} Python 3.11 包未找到，尝试使用 Python 3.10"
-            echo -e "${DIM}执行命令: conda create -n $env_name python=3.10 -y${NC}"
-            local fallback_output=$(conda create -n "$env_name" python=3.10 -y 2>&1)
+            echo -e "${DIM}执行命令: conda create -n $env_name python=3.10 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main${NC}"
+            local fallback_output=$(conda create -n "$env_name" python=3.10 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main 2>&1)
             local fallback_status=$?
             if [ $fallback_status -eq 0 ]; then
                 sleep 2
@@ -333,7 +352,7 @@ activate_conda_environment() {
         export SAGE_ENV_NAME="$env_name"
 
         # 更新 pip 命令 - 在CI环境中使用更快的安装方式
-        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
             # CI环境：使用优化的pip命令和并行安装
             if command -v mamba >/dev/null 2>&1; then
                 # 先用mamba安装pip，然后设置普通的pip命令

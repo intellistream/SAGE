@@ -8,8 +8,85 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 导入 conda 管理工具
 source "$(dirname "${BASH_SOURCE[0]}")/conda_manager.sh"
 
+# 确保颜色和符号变量被正确初始化
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
+setup_unicode_symbols 2>/dev/null || true
+# 提供安全的默认值（防止 set -u 报错）
+INFO="${INFO:-ℹ️}"
+CHECK="${CHECK:-✓}"
+CROSS="${CROSS:-✗}"
+WARNING="${WARNING:-⚠}"
+GREEN="${GREEN:-\033[0;32m}"
+YELLOW="${YELLOW:-\033[1;33m}"
+RED="${RED:-\033[0;31m}"
+BLUE="${BLUE:-\033[1;34m}"
+DIM="${DIM:-\033[2m}"
+NC="${NC:-\033[0m}"
+
 # 尝试通过公网 IP 判断是否位于中国大陆
 detect_mainland_china_ip() {
+    # 方法1: 检查时区（最快，VPN不影响）
+    local tz_cst=false
+    if [[ "${TZ:-}" == "Asia/Shanghai" ]] || [[ "${TZ:-}" == "Asia/Chongqing" ]] || [[ "${TZ:-}" == "Asia/Harbin" ]]; then
+        tz_cst=true
+    elif command -v date >/dev/null 2>&1; then
+        local current_tz=$(date +%Z 2>/dev/null || echo "")
+        if [[ "$current_tz" == "CST" ]] || [[ "$current_tz" == "China Standard Time" ]]; then
+            tz_cst=true
+        fi
+    fi
+
+    # 方法2: 检查语言环境（中文环境）
+    local lang_zh=false
+    if [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
+        lang_zh=true
+    fi
+
+    # CST时区 + 中文环境 = 大概率在中国大陆
+    if [ "$tz_cst" = "true" ] && [ "$lang_zh" = "true" ]; then
+        return 0
+    fi
+
+    # 即使是 C.UTF-8，CST 时区也很可能在中国
+    if [ "$tz_cst" = "true" ]; then
+        # 尝试快速测试清华源（2秒超时）
+        if command -v curl >/dev/null 2>&1; then
+            if curl -s --connect-timeout 2 --max-time 2 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+                return 0
+            fi
+        fi
+        # CST时区但清华源不可达，可能在境外或有网络问题，仍然返回中国
+        return 0
+    fi
+
+    # 方法3: 测试清华源连接速度（可能被VPN干扰）
+    if command -v curl >/dev/null 2>&1; then
+        local tsinghua_test=$(curl -s --connect-timeout 2 --max-time 3 -w "%{http_code}" \
+            -o /dev/null "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null || echo "000")
+        if [[ "$tsinghua_test" =~ ^(200|301|302)$ ]]; then
+            return 0
+        fi
+    fi
+
+    # 方法4: 公网IP检测（VPN可能干扰，作为最后手段）
     local detector=""
     if command -v curl >/dev/null 2>&1; then
         detector="curl -s --max-time 3"
@@ -44,7 +121,7 @@ configure_pip_mirror() {
     local mirror_source="${1:-auto}"
 
     # 如果设置了 SAGE_FORCE_CHINA_MIRROR=true，强制使用中国镜像（适用于中国的 self-hosted runner）
-    if [ "$SAGE_FORCE_CHINA_MIRROR" = "true" ]; then
+    if [ "${SAGE_FORCE_CHINA_MIRROR:-}" = "true" ]; then
         export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
         export PIP_EXTRA_INDEX_URL=""
         echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用清华镜像${NC}"
@@ -53,7 +130,7 @@ configure_pip_mirror() {
 
     # CI环境自动禁用镜像（使用官方PyPI以确保稳定性）
     # 但如果检测到中国大陆 IP，仍然使用镜像加速
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在 CI 中也尝试检测是否在中国
         if detect_mainland_china_ip; then
             export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
@@ -73,13 +150,27 @@ configure_pip_mirror() {
         "auto")
             # 自动检测最优镜像，优先根据公网 IP 判断
             if detect_mainland_china_ip; then
-                export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                export PIP_EXTRA_INDEX_URL=""
-                echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
-            elif [[ "$LANG" == zh_* ]] || [[ "$LC_ALL" == zh_* ]] || [[ "$LC_CTYPE" == zh_* ]]; then
-                export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                export PIP_EXTRA_INDEX_URL=""
-                echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
+                # 检测清华镜像是否可用（快速健康检查）
+                if curl -s --connect-timeout 3 --max-time 3 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+                    export PIP_EXTRA_INDEX_URL=""
+                    echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
+                else
+                    export PIP_INDEX_URL="https://pypi.org/simple/"
+                    export PIP_EXTRA_INDEX_URL=""
+                    echo -e "${YELLOW}  ⚠️  清华镜像不可用，降级到官方 PyPI${NC}"
+                fi
+            elif [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
+                # 中文环境也进行健康检查
+                if curl -s --connect-timeout 3 --max-time 3 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+                    export PIP_EXTRA_INDEX_URL=""
+                    echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
+                else
+                    export PIP_INDEX_URL="https://pypi.org/simple/"
+                    export PIP_EXTRA_INDEX_URL=""
+                    echo -e "${YELLOW}  ⚠️  清华镜像不可用，使用官方 PyPI${NC}"
+                fi
             else
                 export PIP_INDEX_URL="https://pypi.org/simple/"
                 export PIP_EXTRA_INDEX_URL=""
@@ -131,21 +222,21 @@ detect_virtual_environment() {
     local venv_name=""
 
     # 检查 conda 环境
-    if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
+    if [ -n "${CONDA_DEFAULT_ENV:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "base" ]; then
         is_venv=true
         venv_type="conda"
-        venv_name="$CONDA_DEFAULT_ENV"
-    elif [ -n "$CONDA_PREFIX" ] && [[ "$CONDA_PREFIX" != *"/base" ]]; then
+        venv_name="${CONDA_DEFAULT_ENV:-}"
+    elif [ -n "${CONDA_PREFIX:-}" ] && [[ "${CONDA_PREFIX:-}" != *"/base" ]]; then
         is_venv=true
         venv_type="conda"
-        venv_name=$(basename "$CONDA_PREFIX")
+        venv_name=$(basename "${CONDA_PREFIX:-}")
     fi
 
     # 检查 Python venv
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
         is_venv=true
         venv_type="venv"
-        venv_name=$(basename "$VIRTUAL_ENV")
+        venv_name=$(basename "${VIRTUAL_ENV:-}")
     fi
 
     echo "$is_venv|$venv_type|$venv_name"
@@ -162,7 +253,7 @@ check_virtual_environment_isolation() {
     fi
 
     # CI 环境跳过检查
-    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" ]]; then
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${JENKINS_URL:-}" ]]; then
         return 0
     fi
 
@@ -188,7 +279,7 @@ check_virtual_environment_isolation() {
             fi
 
             source "$venv_path/bin/activate"
-            if [ -n "$VIRTUAL_ENV" ]; then
+            if [ -n "${VIRTUAL_ENV:-}" ]; then
                 echo -e "${CHECK} 虚拟环境已激活: ${GREEN}$venv_path${NC}"
                 export PIP_CMD="python3 -m pip"
                 export PYTHON_CMD="python3"
@@ -302,10 +393,10 @@ configure_installation_environment() {
     local conda_env_name="${3:-}"  # 可选的conda环境名
 
     # CI环境和远程部署的特殊处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # CI环境：不设置PYTHONNOUSERSITE以提高测试速度，但仍保持用户选择的安装环境
         echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
-    elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+    elif [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ]; then
         # 远程部署环境：设置PYTHONNOUSERSITE以避免包冲突
         export PYTHONNOUSERSITE=1
         echo -e "${INFO} 远程部署环境已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"

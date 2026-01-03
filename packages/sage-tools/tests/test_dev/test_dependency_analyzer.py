@@ -2,7 +2,14 @@
 依赖分析器单元测试
 """
 
+import os
+
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("SAGE_RUN_SLOW_TESTS") != "1",
+    reason="Dependency analyzer tests are slow; set SAGE_RUN_SLOW_TESTS=1 to enable.",
+)
 
 from sage.common.config import find_sage_project_root
 from sage.tools.dev.tools.dependency_analyzer import DependencyAnalyzer

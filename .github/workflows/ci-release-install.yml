@@ -1,0 +1,70 @@
+name: Installation Test (Release)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/*/pyproject.toml'
+      - 'packages/*/setup.py'
+      - 'packages/*/setup.cfg'
+      - 'tools/install/**'
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.11'
+      install-mode:
+        description: 'Install mode'
+        required: false
+        default: 'full'
+
+concurrency:
+  group: install-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  HF_ENDPOINT: https://hf-mirror.com
+
+jobs:
+  install-and-validate:
+    name: Install, Build, Validate (Release)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup SAGE
+        uses: ./.github/actions/setup-sage
+        with:
+          install-mode: ${{ github.event.inputs.install-mode || 'full' }}
+          python-version: ${{ github.event.inputs.python-version || '3.11' }}
+          hf-token: ${{ secrets.HF_TOKEN }}
+          create-env-file: false
+
+      - name: Build wheels (meta-package)
+        run: |
+          make clean || true
+          python -m pip install build
+          python -m build --wheel --outdir dist packages/sage
+
+      - name: Install from wheels
+        run: |
+          python -m pip install --force-reinstall dist/*.whl
+          python -c "import sage; import sage.cli; import sage.apps; import sage.benchmark; print('full import ok')"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-wheels
+          path: dist/*.whl
+          if-no-files-found: warn

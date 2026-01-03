@@ -19,23 +19,23 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from sage.common.components.sage_llm.presets import (
+from sage.common.config import ensure_hf_mirror_configured
+from sage.common.config.ports import SagePorts
+from sage.common.model_registry import fetch_recommended_models, vllm_registry
+from sage.llm.presets import (
     EnginePreset,
     get_builtin_preset,
     list_builtin_presets,
     load_preset_file,
 )
-from sage.common.config import ensure_hf_mirror_configured
-from sage.common.config.ports import SagePorts
-from sage.common.model_registry import fetch_recommended_models, vllm_registry
 
 try:  # Optional dependency: middleware is not required for every CLI install
-    from sage.common.components.sage_llm import VLLMService
+    from sage.llm import VLLMService
 except Exception:  # pragma: no cover - handled gracefully at runtime
     VLLMService = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import (
+    from sage.llm import (
         LLMAPIServer,
         LLMLauncher,
         LLMServerConfig,
@@ -46,7 +46,7 @@ except Exception:  # pragma: no cover
     LLMServerConfig = None  # type: ignore
 
 try:
-    from sage.common.components.sage_llm import (
+    from sage.llm import (
         BackendInstanceConfig,
         UnifiedAPIServer,
         UnifiedServerConfig,
@@ -585,9 +585,9 @@ def list_engines(
 
         gpu_ids = engine.get("gpu_ids") or engine.get("gpus") or engine.get("devices")
         if isinstance(gpu_ids, list):
-            gpu_text = ",".join(str(item) for item in gpu_ids) or "-"
+            gpu_text = ",".join(str(item) for item in gpu_ids) if gpu_ids else "CPU"
         else:
-            gpu_text = str(gpu_ids) if gpu_ids is not None else "-"
+            gpu_text = str(gpu_ids) if gpu_ids is not None else "CPU"
 
         table.add_row(
             str(engine_id),
@@ -653,22 +653,108 @@ def start_engine(
     engine_kind: str = typer.Option(
         "llm",
         "--engine-kind",
-        help="引擎类型 (llm 或 embedding)",
+        help="引擎类型 (llm, embedding, 或 finetune)",
     ),
     use_gpu: bool | None = typer.Option(
         None,
         "--use-gpu/--no-gpu",
         help="显式指定是否使用 GPU (默认: LLM 使用 GPU, Embedding 不使用)",
     ),
+    # Finetune-specific parameters
+    dataset_path: str | None = typer.Option(
+        None,
+        "--dataset",
+        help="Fine-tune 数据集路径 (JSON/JSONL) [finetune 必需]",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output",
+        help="Fine-tune 输出目录 (保存 checkpoint) [finetune 必需]",
+    ),
+    lora_rank: int = typer.Option(
+        8,
+        "--lora-rank",
+        help="LoRA rank (1-128) [finetune]",
+    ),
+    lora_alpha: int = typer.Option(
+        16,
+        "--lora-alpha",
+        help="LoRA alpha (1-256) [finetune]",
+    ),
+    learning_rate: float = typer.Option(
+        5e-5,
+        "--learning-rate",
+        help="学习率 [finetune]",
+    ),
+    epochs: int = typer.Option(
+        3,
+        "--epochs",
+        help="训练轮数 [finetune]",
+    ),
+    batch_size: int = typer.Option(
+        4,
+        "--batch-size",
+        help="批次大小 [finetune]",
+    ),
+    gradient_accumulation_steps: int = typer.Option(
+        1,
+        "--gradient-accumulation",
+        help="梯度累积步数 [finetune]",
+    ),
+    max_seq_length: int | None = typer.Option(
+        None,
+        "--max-seq-length",
+        help="最大序列长度 [finetune]",
+    ),
+    use_flash_attention: bool = typer.Option(
+        False,
+        "--flash-attention/--no-flash-attention",
+        help="使用 Flash Attention [finetune]",
+    ),
+    quantization_bits: int | None = typer.Option(
+        None,
+        "--quantization-bits",
+        help="量化位数 (4/8) [finetune]",
+    ),
+    auto_download: bool = typer.Option(
+        True,
+        "--auto-download/--no-auto-download",
+        help="自动下载模型 [finetune]",
+    ),
 ):
-    """请求启动新的 LLM 引擎。"""
+    """请求启动新的 LLM, Embedding, 或 Finetune 引擎。"""
 
     base_url = _resolve_api_base(api_base, api_port)
     payload: dict[str, Any] = {"model_id": model_id}
     engine_kind_value = engine_kind.strip().lower()
-    if engine_kind_value not in {"llm", "embedding"}:
-        console.print("[red]engine-kind 仅支持 'llm' 或 'embedding'.[/red]")
+    if engine_kind_value not in {"llm", "embedding", "finetune"}:
+        console.print("[red]engine-kind 仅支持 'llm', 'embedding', 或 'finetune'.[/red]")
         raise typer.Exit(1)
+
+    # Validate finetune-specific requirements
+    if engine_kind_value == "finetune":
+        if not dataset_path:
+            console.print("[red]❌ --dataset 是 finetune 引擎的必需参数.[/red]")
+            raise typer.Exit(1)
+        if not output_dir:
+            console.print("[red]❌ --output 是 finetune 引擎的必需参数.[/red]")
+            raise typer.Exit(1)
+
+        # Add finetune-specific parameters to payload
+        payload["dataset_path"] = dataset_path
+        payload["output_dir"] = output_dir
+        payload["lora_rank"] = lora_rank
+        payload["lora_alpha"] = lora_alpha
+        payload["learning_rate"] = learning_rate
+        payload["epochs"] = epochs
+        payload["batch_size"] = batch_size
+        payload["gradient_accumulation_steps"] = gradient_accumulation_steps
+        if max_seq_length is not None:
+            payload["max_seq_length"] = max_seq_length
+        payload["use_flash_attention"] = use_flash_attention
+        if quantization_bits is not None:
+            payload["quantization_bits"] = quantization_bits
+        payload["auto_download"] = auto_download
 
     if engine_port is not None:
         payload["port"] = engine_port
@@ -733,6 +819,34 @@ def stop_engine(
 
     status_text = response.get("status") or response.get("state") or "STOPPED"
     console.print(f"[green]✅ 已请求停止引擎 {engine_id} (状态: {status_text}).[/green]")
+
+
+@engine_app.command("prune")
+def prune_engines(
+    api_port: int = typer.Option(
+        SagePorts.GATEWAY_DEFAULT,
+        "--api-port",
+        help=f"控制平面端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
+    ),
+    api_base: str | None = typer.Option(
+        None,
+        "--api-base",
+        help="覆盖控制平面 API 基地址",
+    ),
+    timeout: float = typer.Option(5.0, "--timeout", help="HTTP 超时时间 (秒)"),
+):
+    """清理所有已停止或失败的引擎记录。"""
+
+    base_url = _resolve_api_base(api_base, api_port)
+    response = _management_request(
+        "POST",
+        "/management/engines/prune",
+        api_base=base_url,
+        timeout=timeout,
+    )
+
+    pruned_count = response.get("pruned_count", 0)
+    console.print(f"[green]✅ 已清理 {pruned_count} 个已停止/失败的引擎记录。[/green]")
 
 
 @app.command("gpu")
@@ -810,6 +924,9 @@ def gpu_status(
 @app.command("run")
 def run_vllm_service(
     model: str = typer.Option("Qwen/Qwen2.5-1.5B-Instruct", "--model", "-m", help="生成模型"),
+    speculative_model: str | None = typer.Option(
+        None, "--speculative-model", help="投机采样模型 (Draft Model)"
+    ),
     embedding_model: str | None = typer.Option(
         None, "--embedding-model", help="嵌入模型（默认同生成模型）"
     ),
@@ -832,6 +949,7 @@ def run_vllm_service(
 
     config_dict: dict[str, Any] = {
         "model_id": model,
+        "speculative_model_id": speculative_model,
         "embedding_model_id": embedding_model,
         "auto_download": auto_download,
         "sampling": {
@@ -942,6 +1060,11 @@ def serve_llm(
         "-tp",
         help="Tensor 并行 GPU 数量",
     ),
+    speculative_model: str = typer.Option(
+        None,
+        "--speculative-model",
+        help="投机采样（Speculative Decoding）使用的草稿模型 (Draft Model)",
+    ),
     background: bool = typer.Option(
         True,
         "--background/--foreground",
@@ -977,7 +1100,7 @@ def serve_llm(
 
     启动后可通过以下方式使用:
 
-        from sage.common.components.sage_llm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
 
         client = UnifiedInferenceClient.create()
         response = client.chat([{"role": "user", "content": "Hello"}])
@@ -994,6 +1117,7 @@ def serve_llm(
         gpu_memory=gpu_memory,
         max_model_len=max_model_len,
         tensor_parallel=tensor_parallel,
+        speculative_model=speculative_model,
         background=background,
         verbose=True,
     )
@@ -1053,14 +1177,14 @@ def serve_llm(
 
 @app.command("stop")
 def stop_llm(
-    force: bool = typer.Option(False, "--force", "-f", help="强制停止"),
+    force: bool = typer.Option(False, "--force", "-f", help="强制停止 (包括未记录的孤儿服务)"),
 ):
     """停止 LLM 推理服务。"""
     if LLMLauncher is None:
         console.print("[red]❌ LLMLauncher 不可用[/red]")
         raise typer.Exit(1)
 
-    success = LLMLauncher.stop(verbose=True)
+    success = LLMLauncher.stop(verbose=True, force=force)
     if not success:
         raise typer.Exit(1)
 
@@ -1105,7 +1229,6 @@ def restart_llm():
 @app.command("status")
 def status_llm():
     """查看 LLM 服务状态。"""
-    import socket
 
     import psutil
 
@@ -1130,9 +1253,9 @@ def status_llm():
 
     # Check port status
     port = config.get("port", SagePorts.BENCHMARK_LLM) if config else SagePorts.BENCHMARK_LLM
-    port_in_use = False
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        port_in_use = sock.connect_ex(("localhost", port)) == 0
+    from sage.common.utils.system.network import is_port_occupied
+
+    port_in_use = is_port_occupied("localhost", port)
 
     # Try to get actual service info via HTTP if port is in use
     actual_model = None
@@ -1194,15 +1317,14 @@ def status_llm():
 
 def _show_embedding_status():
     """显示 Embedding 服务状态。"""
-    import socket
 
     embedding_port = SagePorts.EMBEDDING_DEFAULT
     embedding_log = LOG_DIR / "embedding.log"
 
     # Check port status
-    embedding_port_in_use = False
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        embedding_port_in_use = sock.connect_ex(("localhost", embedding_port)) == 0
+    from sage.common.utils.system.network import is_port_occupied
+
+    embedding_port_in_use = is_port_occupied("localhost", embedding_port)
 
     # Build table
     embed_table = Table(title="Embedding 服务状态", show_header=True, header_style="bold")

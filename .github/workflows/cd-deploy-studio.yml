@@ -1,0 +1,941 @@
+# SAGE Studio 部署（系统级 Systemd 服务）
+#
+# 使用 sudo 创建系统级 systemd 服务，确保进程在 CI 结束后持续运行
+#
+# 架构:
+#   Self-hosted Runner (A100) → 安装 SAGE → 创建系统级 systemd 服务
+#   cloudflared (Host systemd) → 转发请求到 localhost:5173
+
+name: Deploy SAGE Studio
+
+on:
+  workflow_dispatch:
+    inputs:
+      port:
+        description: 'Studio 端口 (默认: 5173)'
+        required: false
+        default: '5173'
+      force_reinstall:
+        description: '强制重新安装 SAGE'
+        type: boolean
+        default: false
+
+  push:
+    branches:
+      - main
+      - feature/studio_deployment
+    paths:
+      - 'packages/sage-studio/**'
+      - 'packages/sage-gateway/**'
+      - '.github/workflows/deploy-studio.yml'
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, A100]
+    timeout-minutes: 60
+
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      CONDA_ENV_NAME: sage
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+          clean: false
+
+      - name: Setup Conda
+        run: |
+          echo "🐍 设置 Conda 环境..."
+
+          # 初始化 conda
+          for conda_path in "$HOME/miniconda3" "$HOME/anaconda3" "/opt/conda"; do
+            if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+              source "$conda_path/etc/profile.d/conda.sh"
+              echo "CONDA_PATH=$conda_path" >> $GITHUB_ENV
+              break
+            fi
+          done
+
+          # 确保环境存在
+          if ! conda env list | grep -q "^sage "; then
+            echo "📦 创建 Conda 环境..."
+            conda create -n sage python=3.11 -y
+          fi
+
+          conda activate sage
+          echo "✅ Conda 环境: $(conda info --envs | grep '*')"
+          python --version
+
+      # NOTE: 服务会在 "Stop and restart services" 步骤中停止
+      # 这样可以减少停机时间：先完成构建，再停止旧服务并启动新服务
+      - name: Check current service status
+        continue-on-error: true
+        run: |
+          echo "📊 检查当前服务状态..."
+          for svc in sage-frontend sage-gateway sage-embedding sage-llm; do
+            status=$(systemctl is-active $svc 2>/dev/null || echo "not-found")
+            echo "  $svc: $status"
+          done
+          echo ""
+          echo "GPU 状态:"
+          nvidia-smi --query-gpu=index,memory.used,memory.free --format=csv 2>/dev/null || true
+
+      - name: Detect and dedupe existing LLM services
+        run: |
+          echo "🔍 探活并去重本地 LLM 服务 (优先保留健康实例，按模型去重)"
+          set -euo pipefail
+          python3 - <<'PY' | tee /tmp/llm_detect.env
+          import glob
+          import json
+          import os
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          workspace = os.environ.get("GITHUB_WORKSPACE", ".")
+
+
+          def add_candidate(url, dest):
+            if not url:
+              return
+            url = url.rstrip("/")
+            if url.endswith("/v1"):
+              pass
+            elif url.endswith("/v1/"):
+              url = url[:-1]
+
+            try:
+              parsed = urllib.parse.urlparse(url)
+              port = parsed.port or (443 if parsed.scheme == "https" else 80)
+              # Deduplicate by port: overwrite if exists (last one wins)
+              dest[port] = url
+            except Exception:
+              pass
+
+
+          def probe(url):
+            for path in ("/health", "/models", "/v1/models"):
+              try:
+                req = urllib.request.Request(url + path, headers={"Accept": "application/json"})
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                  data = resp.read().decode("utf-8", "ignore")
+                  if resp.status == 200:
+                    model = None
+                    try:
+                      payload = json.loads(data)
+                      if isinstance(payload, dict):
+                        if isinstance(payload.get("data"), list) and payload["data"]:
+                          first = payload["data"][0]
+                          if isinstance(first, dict):
+                            model = first.get("id") or first.get("model")
+                        if not model:
+                          model = payload.get("model") or payload.get("model_id")
+                    except Exception:
+                      model = None
+                    return True, model
+              except urllib.error.HTTPError:
+                return True, None
+              except Exception:
+                continue
+            return False, None
+
+
+          # Use dict for deduplication by port
+          candidate_map = {}
+
+          # 0) Default LLM port 8001
+          add_candidate("http://127.0.0.1:8001/v1", candidate_map)
+
+          # 1) Default benchmark ports 8901-8910
+          for port in range(8901, 8911):
+            add_candidate(f"http://127.0.0.1:{port}/v1", candidate_map)
+
+          # 2) llm_service_config files recorded by LLMLauncher
+          for path in glob.glob(os.path.expanduser("~/.sage/llm_service_config_*.json")):
+            try:
+              cfg = json.loads(open(path, encoding="utf-8").read())
+              base = cfg.get("base_url")
+              if base:
+                add_candidate(base, candidate_map)
+              else:
+                port = cfg.get("port")
+                host = cfg.get("host") or "127.0.0.1"
+                if port:
+                  add_candidate(f"http://{host}:{port}/v1", candidate_map)
+            except Exception:
+              continue
+
+          # 3) config/models.json entries (LLM only)
+          config_path = os.path.join(workspace, "config", "models.json")
+          try:
+            with open(config_path, encoding="utf-8") as f:
+              entries = json.load(f)
+            if isinstance(entries, list):
+              for ent in entries:
+                if not isinstance(ent, dict):
+                  continue
+                kind = ent.get("engine_kind") or "llm"
+                if kind and kind.lower() == "embedding":
+                  continue
+                add_candidate(ent.get("base_url"), candidate_map)
+          except Exception:
+            pass
+
+          keep = []
+          kill = []
+          seen_models = set()
+
+          for port in sorted(candidate_map.keys()):
+            url = candidate_map[port]
+            ok, model = probe(url)
+
+            if not ok:
+              kill.append(str(port))
+              continue
+
+            model_key = (model or "unknown").lower()
+            if model_key in seen_models:
+              # Duplicate model instance (on a different port)
+              kill.append(str(port))
+              continue
+
+            seen_models.add(model_key)
+            keep.append(str(port))
+
+          print(f"KEEP_PORTS={','.join(keep)}")
+          print(f"KILL_PORTS={','.join(kill)}")
+          PY
+
+          source /tmp/llm_detect.env
+          echo "KEEP_PORTS=${KEEP_PORTS}" >> $GITHUB_ENV
+          echo "KILL_PORTS=${KILL_PORTS}" >> $GITHUB_ENV
+          echo "✅ 保持的 LLM 端口 (健康且唯一): ${KEEP_PORTS:-<none>}"
+          echo "⚠️ 未检测到或不健康的 LLM 端口 (将被忽略): ${KILL_PORTS:-<none>}"
+
+      - name: Install SAGE
+        run: |
+          source "$CONDA_PATH/etc/profile.d/conda.sh"
+          conda activate sage
+
+          # 检查是否需要安装
+          NEED_INSTALL=false
+          if [ "${{ github.event.inputs.force_reinstall }}" = "true" ]; then
+            echo "⚠️ 强制重新安装"
+            NEED_INSTALL=true
+
+            # 只在强制重装时清理
+            echo "🧹 清理旧构建..."
+            rm -rf .sage/build/ build/ *.egg-info/
+            find packages -name "*.egg-info" -type d -exec rm -rf {} + 2>/dev/null || true
+            find packages -name "build" -type d -exec rm -rf {} + 2>/dev/null || true
+          elif ! python -c "import sage.studio" 2>/dev/null; then
+            echo "📦 sage.studio 未安装"
+            NEED_INSTALL=true
+          # 检查 C++ 扩展是否存在 (checkout 会清理 gitignored 的 .so 文件，导致 editable install 失效)
+          elif ! python -c "from sage.middleware.components.sage_flow.python import _sage_flow" 2>/dev/null; then
+            echo "⚠️ C++ 扩展丢失 (可能是 checkout 清理了构建产物)"
+            NEED_INSTALL=true
+          fi
+
+          if [ "$NEED_INSTALL" = "true" ]; then
+            echo "🔨 使用 quickstart.sh 安装 SAGE..."
+
+            # 使用 quickstart.sh 安装（--pip 使用当前 conda 环境）
+            # 取消 CI 环境变量，避免安装到 ~/.local
+            chmod +x ./quickstart.sh
+            unset CI GITHUB_ACTIONS
+            export AUTO_CONFIRM=true
+            export AUTO_YES=true
+            SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh --dev --yes --pip
+
+            echo "✅ SAGE 安装完成"
+          else
+            echo "✅ SAGE 已安装，跳过"
+          fi
+
+          # 验证安装
+          echo "🔍 验证安装..."
+          python -c "import sage.studio; print('sage.studio OK')"
+          python -c "import sage.llm.gateway; print('sage.llm.gateway OK')"
+          which sage
+
+          # 验证 C++ 扩展
+          echo "🔍 验证 C++ 扩展..."
+          echo "查找 .so 文件..."
+          find . -name "_sage_flow*.so" -type f 2>/dev/null || echo "未找到 _sage_flow.so"
+          find . -name "_sage_db*.so" -type f 2>/dev/null || echo "未找到 _sage_db.so"
+          find . -name "_sage_tsdb*.so" -type f 2>/dev/null || echo "未找到 _sage_tsdb.so"
+
+          echo "测试 C++ 扩展导入..."
+          python -c "from sage.middleware.components.sage_flow.python import _sage_flow; print('sage_flow OK')" || echo "sage_flow not available (optional)"
+          python -c "from sage.middleware.components.sage_db.python import _sage_db; print('sage_db OK')" || echo "sage_db not available (optional)"
+
+          # 测试完整的 Gateway 导入链
+          echo "测试 Gateway 完整导入链..."
+          python -c "from sage.llm.gateway.server import app; print('sage.llm.gateway.app OK')" || {
+            echo "⚠️ Gateway 导入失败，查看详细错误..."
+            python -c "from sage.llm.gateway.server import app" 2>&1 | head -50
+            exit 1
+          }
+
+      - name: Setup Node.js
+        run: |
+          echo "🔧 设置 Node.js 环境..."
+
+          # 检查当前 Node.js 版本
+          CURRENT_NODE=$(node --version 2>/dev/null || echo "not installed")
+          echo "当前 Node.js 版本: $CURRENT_NODE"
+
+          # Vite 5.x 需要 Node.js 18+
+          REQUIRED_NODE_MAJOR=18
+
+          # 检查是否需要安装/升级
+          if [[ "$CURRENT_NODE" == "not installed" ]] || [[ "${CURRENT_NODE:1:2}" -lt "$REQUIRED_NODE_MAJOR" ]]; then
+            echo "⚠️ Node.js 版本不满足要求 (需要 v$REQUIRED_NODE_MAJOR+)"
+
+            # 尝试使用 nvm
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              source "$NVM_DIR/nvm.sh"
+              nvm install 20
+              nvm use 20
+            else
+              # 使用 conda 安装 nodejs
+              echo "使用 conda 安装 Node.js..."
+              source "$CONDA_PATH/etc/profile.d/conda.sh"
+              conda activate sage
+
+              # 配置 conda-forge 镜像 (针对国内网络环境)
+              conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+              conda config --set show_channel_urls yes
+
+              # 安装 nodejs (不指定 -c conda-forge，使用配置的镜像)
+              conda install -y nodejs=20
+            fi
+          fi
+
+          # 验证版本
+          echo "Node.js: $(node --version)"
+          echo "npm: $(npm --version)"
+
+          # 保存 Node.js 路径供后续使用
+          echo "NODE_BIN=$(dirname $(which node))" >> $GITHUB_ENV
+
+      - name: Build Frontend
+        run: |
+          source "$CONDA_PATH/etc/profile.d/conda.sh"
+          conda activate sage
+
+          # 确保使用正确的 Node.js
+          export PATH="$NODE_BIN:$PATH"
+          echo "Using Node.js: $(node --version)"
+
+          FRONTEND_DIR="packages/sage-studio/src/sage/studio/frontend"
+
+          # 总是重新构建前端（代码可能已经更新）
+          echo "🔨 构建前端..."
+          cd "$FRONTEND_DIR"
+          npm ci --prefer-offline 2>/dev/null || npm install
+
+          # 使用相对路径 /api，由 nginx 反向代理到 Gateway
+          # 不设置 VITE_API_BASE_URL，使用默认的 /api
+          npm run build
+          echo "✅ 前端构建完成"
+
+      - name: Setup nginx reverse proxy
+        run: |
+          echo "🔧 配置 nginx 反向代理..."
+
+          # 检查 nginx 是否已安装
+          if ! command -v nginx &> /dev/null; then
+            echo "安装 nginx..."
+            sudo apt-get update && sudo apt-get install -y nginx
+          fi
+
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          WORKSPACE="${{ github.workspace }}"
+          FRONTEND_DIST="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend/dist"
+
+          # 验证前端构建目录存在
+          if [ ! -d "$FRONTEND_DIST" ]; then
+            echo "❌ 错误: 前端构建目录不存在: $FRONTEND_DIST"
+            ls -la "$WORKSPACE/packages/sage-studio/src/sage/studio/frontend/" || true
+            exit 1
+          fi
+          echo "✅ 前端构建目录: $FRONTEND_DIST"
+          ls -la "$FRONTEND_DIST" | head -10
+
+          # 修复权限：nginx (www-data) 需要能访问 dist 目录
+          # 确保从 /home/action-runner 到 dist 的整个路径都有 execute 权限
+          echo "🔧 修复目录权限，让 nginx 可以访问..."
+          # WORKSPACE = /home/action-runner/actions-runner/_work/SAGE/SAGE
+          # 需要给 /home/action-runner, actions-runner, _work, SAGE, SAGE 都加 o+x
+          sudo chmod o+x /home/action-runner || true
+          sudo chmod o+x /home/action-runner/actions-runner || true
+          sudo chmod o+x /home/action-runner/actions-runner/_work || true
+          sudo chmod o+x /home/action-runner/actions-runner/_work/SAGE || true
+          sudo chmod o+x "$WORKSPACE" || true
+          sudo chmod -R o+rX "$FRONTEND_DIST"
+          echo "✅ 权限修复完成"
+          # 验证权限
+          echo "验证 nginx 用户可访问性..."
+          sudo -u www-data test -r "$FRONTEND_DIST/index.html" && echo "✅ www-data 可以读取 index.html" || echo "❌ www-data 无法读取 index.html"
+
+          # 创建 nginx 配置（使用 printf 避免 YAML heredoc 缩进问题）
+          # 路由说明：
+          # - /api/chat/v1/* -> Gateway /v1/* (OpenAI 兼容 chat completions)
+          # - /api/chat/memory/* -> Gateway /memory/* (记忆配置)
+          # - /api/* -> Gateway /api/* (Studio 后端 API，由 Gateway 的 studio_router 提供)
+          # - /sessions, /v1/, /health -> Gateway 原生路由
+          NGINX_CONF="/etc/nginx/sites-available/sage-studio"
+          printf '%s\n' \
+            'server {' \
+            '    listen 5173;' \
+            '    server_name _;' \
+            "    root $FRONTEND_DIST;" \
+            '    index index.html;' \
+            '' \
+            '    # 静态文件和 SPA fallback' \
+            '    location / {' \
+            '        try_files $uri $uri/ /index.html;' \
+            '    }' \
+            '' \
+            '    # /api/chat/v1/* -> /v1/* (OpenAI 兼容 chat completions)' \
+            '    location /api/chat/v1/ {' \
+            '        proxy_pass http://127.0.0.1:8889/v1/;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Upgrade $http_upgrade;' \
+            '        proxy_set_header Connection "upgrade";' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+            '        proxy_set_header X-Forwarded-Proto $scheme;' \
+            '        proxy_read_timeout 300s;' \
+            '        proxy_connect_timeout 75s;' \
+            '    }' \
+            '' \
+            '    # /api/chat/memory/* -> /memory/* (Gateway 记忆配置)' \
+            '    location /api/chat/memory/ {' \
+            '        proxy_pass http://127.0.0.1:8889/memory/;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '    }' \
+            '' \
+            '    # /api/* -> Gateway /api/* (Studio 后端 API)' \
+            '    location /api/ {' \
+            '        proxy_pass http://127.0.0.1:8889/api/;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Upgrade $http_upgrade;' \
+            '        proxy_set_header Connection "upgrade";' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+            '        proxy_set_header X-Forwarded-Proto $scheme;' \
+            '        proxy_read_timeout 300s;' \
+            '        proxy_connect_timeout 75s;' \
+            '    }' \
+            '' \
+            '    # Gateway 原生路由' \
+            '    location /sessions {' \
+            '        proxy_pass http://127.0.0.1:8889/sessions;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '    }' \
+            '' \
+            '    location /v1/ {' \
+            '        proxy_pass http://127.0.0.1:8889/v1/;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '        proxy_read_timeout 300s;' \
+            '    }' \
+            '' \
+            '    location /health {' \
+            '        proxy_pass http://127.0.0.1:8889/health;' \
+            '    }' \
+            '}' \
+            | sudo tee "$NGINX_CONF" > /dev/null
+          sudo ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/sage-studio
+          sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+          echo "=== nginx 配置内容 ==="
+          cat "$NGINX_CONF"
+          echo "==="
+          sudo nginx -t
+          echo "✅ nginx 配置完成"
+
+          # === 创建 sage-frontend 服务（使用 nginx）===
+          RUNNER_USER=$(whoami)
+          cat > /tmp/sage-frontend.service << EOF
+          [Unit]
+          Description=SAGE Frontend Service (nginx reverse proxy)
+          After=network.target sage-gateway.service
+          Wants=sage-gateway.service
+
+          [Service]
+          Type=forking
+          PIDFile=/run/nginx.pid
+          ExecStartPre=/usr/sbin/nginx -t
+          ExecStart=/usr/sbin/nginx
+          ExecReload=/bin/kill -s HUP \$MAINPID
+          ExecStop=/bin/kill -s QUIT \$MAINPID
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          sed -i 's/^[[:space:]]*//' /tmp/sage-frontend.service
+          sudo cp /tmp/sage-frontend.service /etc/systemd/system/sage-frontend.service
+
+          # 禁用默认的 nginx 服务，使用 sage-frontend 代替
+          sudo systemctl stop nginx 2>/dev/null || true
+          sudo systemctl disable nginx 2>/dev/null || true
+          echo "✅ sage-frontend.service 已创建（基于 nginx）"
+
+      - name: Stop existing services before restart
+        run: |
+          echo "🛑 停止现有服务（准备重启）..."
+
+          # 使用 Detect 步骤的结果 (KEEP_PORTS)
+          KEEP_LLM=false
+          if [ -n "$KEEP_PORTS" ]; then
+            KEEP_LLM=true
+            echo "✅ 检测到健康的 LLM (端口 $KEEP_PORTS)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM"
+          fi
+
+          echo "LLM 探测结果: KEEP_LLM=${KEEP_LLM}, PORTS=${KEEP_PORTS}"
+
+          # 停止 frontend/gateway/embedding/studio（LLM 根据探测决定）
+          for svc in sage-frontend sage-gateway sage-embedding sage-studio; do
+            echo "停止 $svc..."
+            sudo systemctl stop $svc || true
+          done
+
+          # 有健康的 LLM 则跳过杀进程；否则停止 systemd LLM + 杀不健康的 vLLM 进程
+          if [ "$KEEP_LLM" = "true" ]; then
+            echo "✅ 检测到健康的 LLM (端口 $HEALTHY_LLM_PORT)，跳过停止 sage-llm 与 vLLM 进程"
+          else
+            echo "⚠️ 未检测到健康的 LLM，清理可能的残留"
+            sudo systemctl stop sage-llm || true
+            pkill -u $(whoami) -f "vllm" 2>/dev/null || true
+          fi
+
+          # 清理 Studio 相关残留进程
+          pkill -u $(whoami) -f "sage studio" 2>/dev/null || true
+          pkill -u $(whoami) -f "embedding_server" 2>/dev/null || true
+
+          # 清理 PID 文件 (防止误判)
+          rm -f ~/.local/state/sage/studio.pid || true
+          rm -f ~/.local/state/sage/studio_backend.pid || true
+
+          sleep 3
+
+          # 显示 GPU 状态
+          if command -v nvidia-smi &> /dev/null; then
+            echo "📊 GPU 状态："
+            nvidia-smi --query-gpu=index,name,memory.used,memory.free --format=csv || true
+          fi
+
+          echo "✅ 服务已停止（LLM 保持运行：${KEEP_LLM}）"
+
+      - name: Create systemd services
+        run: |
+          echo "🔧 创建系统级 systemd 服务（多服务架构）..."
+
+          PORT="${{ github.event.inputs.port || '5173' }}"
+          CONDA_PATH_VAL="$CONDA_PATH"
+          CONDA_BIN="$CONDA_PATH/envs/sage/bin"
+          WORKSPACE="${{ github.workspace }}"
+          RUNNER_USER=$(whoami)
+          HF_TOKEN_VAL="${{ secrets.HF_TOKEN }}"
+          PANGU_API_KEY_VAL="${{ secrets.PANGU_API_KEY }}"
+          NODE_BIN_VAL="${{ env.NODE_BIN }}"
+          FRONTEND_DIR="$WORKSPACE/packages/sage-studio/src/sage/studio/frontend"
+
+          # 如果探测到现有健康 LLM，则直接复用该端点，禁止再启动本地 LLM/Embedding，避免重复占用 GPU
+          STUDIO_EXTRA_ARGS=""
+          LLM_BASE_URL=""
+          LLM_MODEL=""
+          if [ -n "$KEEP_PORTS" ]; then
+            FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
+            if [ -n "$FIRST_PORT" ]; then
+              LLM_BASE_URL="http://127.0.0.1:${FIRST_PORT}/v1"
+              LLM_MODEL="pangu_embedded_1b"
+              # 仅禁用 LLM 启动，允许 Studio 自动管理 Embedding (如果缺的话会启动)
+              STUDIO_EXTRA_ARGS="--no-llm"
+              echo "🔗 复用已存在的 LLM: $LLM_BASE_URL"
+            fi
+          fi
+
+          # 创建 wrapper 脚本目录
+          WRAPPER_DIR="$WORKSPACE/.sage/bin"
+          mkdir -p "$WRAPPER_DIR"
+
+          # === 创建通用的 conda wrapper 脚本 ===
+          # 这个脚本会正确激活 conda 环境后执行命令
+          # 使用 printf 避免 YAML heredoc 解析问题
+          printf '%s\n' '#!/bin/bash' \
+            '# Conda environment wrapper for systemd services' \
+            '# Usage: conda-run.sh <conda_path> <env_name> <command> [args...]' \
+            '' \
+            'CONDA_PATH="$1"' \
+            'ENV_NAME="$2"' \
+            'shift 2' \
+            '' \
+            '# Initialize conda' \
+            'source "$CONDA_PATH/etc/profile.d/conda.sh"' \
+            'conda activate "$ENV_NAME"' \
+            '' \
+            '# Execute the command' \
+            'exec "$@"' \
+            > "$WRAPPER_DIR/conda-run.sh"
+          chmod +x "$WRAPPER_DIR/conda-run.sh"
+
+          # === 1. SAGE Studio 服务 (All-in-One) ===
+          # 使用 sage studio start --yes 启动所有组件 (Gateway, LLM, Embedding, Frontend)
+          # 利用 Studio 内置的 auto-scale 逻辑自动管理 LLM 资源
+
+          # 获取 Python site-packages 路径
+          SITE_PACKAGES=$($CONDA_BIN/python -c "import site; print(site.getsitepackages()[0])")
+
+          # 构建 PYTHONPATH，包含 editable install 的包路径
+          # C++ 扩展 .so 文件在源码目录中
+          SAGE_PYTHONPATH="$WORKSPACE/packages/sage-middleware/src"
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$WORKSPACE/packages/sage-studio/src"
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$WORKSPACE/packages/sage-gateway/src"
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$WORKSPACE/packages/sage-common/src"
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$WORKSPACE/packages/sage-kernel/src"
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$WORKSPACE/packages/sage-libs/src"
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$WORKSPACE/packages/sage-platform/src"
+
+          # C++ 扩展库路径 - 必须加入 PYTHONPATH 才能被 importlib.import_module 找到
+          SAGE_FLOW_PATH="$WORKSPACE/packages/sage-middleware/src/sage/middleware/components/sage_flow/python"
+          SAGE_DB_PATH="$WORKSPACE/packages/sage-middleware/src/sage/middleware/components/sage_db/python"
+          SAGE_TSDB_PATH="$WORKSPACE/packages/sage-middleware/src/sage/middleware/components/sage_tsdb/python"
+
+          # 将 C++ 扩展路径加入 PYTHONPATH
+          SAGE_PYTHONPATH="$SAGE_PYTHONPATH:$SAGE_FLOW_PATH:$SAGE_DB_PATH:$SAGE_TSDB_PATH"
+
+          # 清理旧服务文件
+          sudo rm -f /etc/systemd/system/sage-llm*.service
+          sudo rm -f /etc/systemd/system/sage-embedding.service
+          sudo rm -f /etc/systemd/system/sage-gateway.service
+
+          cat > /tmp/sage-studio.service << EOF
+          [Unit]
+          Description=SAGE Studio Service (All-in-One)
+          After=network.target
+
+          [Service]
+          Type=forking
+          TimeoutStartSec=600
+          PIDFile=/home/$RUNNER_USER/.local/state/sage/studio.pid
+          User=$RUNNER_USER
+          WorkingDirectory=$WORKSPACE
+          Environment=PATH=$NODE_BIN_VAL:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          Environment=HF_ENDPOINT=https://hf-mirror.com
+          Environment=HF_TOKEN=$HF_TOKEN_VAL
+          Environment=PANGU_API_KEY=$PANGU_API_KEY_VAL
+          Environment=PYTHONPATH=$SAGE_PYTHONPATH
+          # 运行在 5174 端口，让 Nginx (5173) 代理到这里
+          # --yes: 自动确认所有提示 (包括 auto-scale)
+          ExecStart=$WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS
+          Restart=on-failure
+          RestartSec=10
+          EOF
+
+          # 按需注入已存在 LLM 的环境变量（用于 Gateway/Studio 直接复用，而不是再次 auto-scale）
+          if [ -n "$LLM_BASE_URL" ]; then
+            echo "Environment=SAGE_CHAT_BASE_URL=$LLM_BASE_URL" >> /tmp/sage-studio.service
+          fi
+          if [ -n "$LLM_MODEL" ]; then
+            echo "Environment=SAGE_CHAT_MODEL=$LLM_MODEL" >> /tmp/sage-studio.service
+          fi
+          if [ -n "$PANGU_API_KEY_VAL" ]; then
+            echo "Environment=SAGE_CHAT_API_KEY=$PANGU_API_KEY_VAL" >> /tmp/sage-studio.service
+          fi
+
+          # 添加 Install 部分
+          cat >> /tmp/sage-studio.service << EOF
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          sed -i 's/^[[:space:]]*//' /tmp/sage-studio.service
+          sudo cp /tmp/sage-studio.service /etc/systemd/system/sage-studio.service
+          echo "✅ sage-studio.service 已创建"
+
+          # 重新加载 systemd
+          sudo systemctl daemon-reload
+          echo "✅ 所有服务文件已创建并加载"
+
+          # 验证 wrapper 脚本
+          echo "🔍 验证 conda wrapper..."
+          "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python --version
+          "$WRAPPER_DIR/conda-run.sh" "$CONDA_PATH_VAL" sage python -c "import sage.llm.gateway; print('Gateway import OK')"
+
+      - name: Start services
+        run: |
+          echo "🚀 启动 SAGE Studio 服务栈..."
+
+          # 记录启动时间
+          START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+
+          # 1. 启动 Studio (All-in-One)
+          echo "1/2 启动 Studio 服务 (Manager + Gateway + LLM + Embedding)..."
+
+          # 强制清理端口 5174 (Studio Frontend) 和 8889 (Gateway)
+          echo "🧹 清理潜在的残留进程..."
+          sudo fuser -k 5174/tcp || true
+          sudo fuser -k 8889/tcp || true
+
+          # 调试信息：检查端口占用情况
+          echo "🔍 检查端口占用情况 (5174, 8889)..."
+          sudo lsof -i :5174 || echo "Port 5174 is free"
+          sudo lsof -i :8889 || echo "Port 8889 is free"
+
+          # 调试信息：检查 PID 文件
+          PID_FILE="/home/$(whoami)/.local/state/sage/studio.pid"
+          if [ -f "$PID_FILE" ]; then
+            echo "⚠️ 发现残留 PID 文件: $PID_FILE"
+            cat "$PID_FILE"
+            rm -f "$PID_FILE"
+            echo "🗑️ 已删除残留 PID 文件"
+          fi
+
+          # 打印生成的服务文件内容以供调试
+          echo "📄 生成的 sage-studio.service 内容:"
+          cat /etc/systemd/system/sage-studio.service
+
+          # 重置失败状态
+          sudo systemctl reset-failed sage-studio || true
+
+          if ! sudo systemctl start sage-studio; then
+            echo "⚠️ systemctl start returned error, checking if service is actually running..."
+            sleep 5
+            if sudo systemctl is-active --quiet sage-studio; then
+                echo "✅ Service is active despite start command exit code."
+            else
+                echo "❌ Studio 服务启动失败"
+                echo "--- Studio 状态 ---"
+                sudo systemctl status sage-studio --no-pager || true
+                echo "--- Studio 日志 (最后 100 行) ---"
+                sudo journalctl -u sage-studio --no-pager -n 100 || true
+
+                # 尝试手动运行一次以获取更多错误信息
+                echo "--- 尝试手动运行以诊断问题 ---"
+                $WRAPPER_DIR/conda-run.sh $CONDA_PATH_VAL sage sage studio start --yes --host 127.0.0.1 --port 5174 $STUDIO_EXTRA_ARGS || true
+
+                exit 1
+            fi
+          fi
+          sudo systemctl enable sage-studio
+
+          # 立即检查 Studio 状态
+          sleep 5
+          echo "--- Studio 启动状态 ---"
+          sudo systemctl status sage-studio --no-pager || true
+          echo "--- Studio 最近日志 ---"
+          sudo journalctl -u sage-studio --no-pager --since "$START_TIME" -n 50 || true
+          echo "---"
+
+          # 2. 启动 Frontend (Nginx)
+          echo "2/2 启动 Frontend 服务 (nginx)..."
+          sudo systemctl start sage-frontend
+          sudo systemctl enable sage-frontend
+
+          echo "✅ 所有服务已启动"
+
+          echo ""
+          echo "=== 服务状态 ==="
+          for svc in sage-studio sage-frontend; do
+            status=$(systemctl is-active $svc 2>/dev/null || echo "unknown")
+            echo "$svc: $status"
+          done
+
+          echo ""
+          echo "=== 查看日志命令 ==="
+          echo "sudo journalctl -u sage-studio -f     # Studio (含 Gateway/LLM) 日志"
+          echo "sudo journalctl -u sage-frontend -f   # Frontend 日志 (nginx)"
+          echo "sudo tail -f /var/log/nginx/*.log    # nginx 详细日志"
+
+      - name: Wait for services
+        run: |
+          echo "⏳ 等待服务就绪..."
+
+          PORT="${{ github.event.inputs.port || '5173' }}"
+
+          # 等待 LLM 服务（最长 10 分钟，因为要加载模型）
+          # 如果 KEEP_PORTS 存在，说明复用了已有 LLM，无需等待
+          if [ -n "$KEEP_PORTS" ]; then
+             echo "✅ 复用已有 LLM (端口 $KEEP_PORTS)，跳过 LLM 等待"
+          else
+              echo "等待 LLM 服务 (最长 600 秒)..."
+              for i in $(seq 1 600); do
+                if curl -sf http://localhost:8001/health > /dev/null 2>&1 || \
+                   curl -sf http://localhost:8901/health > /dev/null 2>&1; then
+                  echo "✅ LLM 服务就绪（第 $i 秒）"
+                  break
+                fi
+                if [ $((i % 60)) -eq 0 ]; then
+                  echo "⏳ LLM 等待中... ($i/600 秒)"
+                  sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
+                fi
+                sleep 1
+              done
+          fi
+
+          # 等待 Embedding 服务
+          # 无论是否复用 LLM，Embedding 服务都应该可用 (复用或新启动)
+          # 注意：embedding_server.py 使用 /v1/models 作为健康检查 (它没有 /health)
+          echo "等待 Embedding 服务..."
+          for i in $(seq 1 120); do
+            if curl -sf http://localhost:8090/v1/models > /dev/null 2>&1; then
+              echo "✅ Embedding 服务就绪（第 $i 秒）"
+              break
+            fi
+            sleep 1
+          done
+
+          # 等待 Gateway 服务
+          echo "等待 Gateway 服务..."
+          for i in $(seq 1 120); do
+            if curl -sf http://localhost:8889/ > /dev/null 2>&1 || \
+               curl -sf http://localhost:8889/health > /dev/null 2>&1; then
+              echo "✅ Gateway 服务就绪（第 $i 秒）"
+              break
+            fi
+            if [ $((i % 30)) -eq 0 ]; then
+              echo "⏳ Gateway 等待中... ($i/120 秒)"
+              sudo journalctl -u sage-studio --no-pager -n 5 2>/dev/null || true
+            fi
+            sleep 1
+          done
+
+          # 等待 Frontend 服务 (nginx)
+          echo "等待 Frontend 服务 (nginx)..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:$PORT > /dev/null 2>&1; then
+              echo "✅ Frontend 服务就绪（第 $i 秒）"
+              break
+            fi
+            if [ $((i % 20)) -eq 0 ]; then
+              echo "⏳ Frontend 等待中... ($i/60 秒)"
+              sudo nginx -t 2>&1 || true
+            fi
+            sleep 1
+          done
+
+      - name: Health check
+        run: |
+          echo "🔍 健康检查..."
+          PORT="${{ github.event.inputs.port || '5173' }}"
+
+          echo ""
+          echo "=== 服务状态 ==="
+          for svc in sage-studio sage-frontend; do
+            status=$(systemctl is-active $svc 2>/dev/null || echo "unknown")
+            echo "$svc: $status"
+          done
+
+          echo ""
+          echo "| 服务 | 端口 | 状态 |"
+          echo "|------|------|------|"
+
+          # 构建要检查的服务列表
+          CHECKS="Frontend:$PORT Gateway:8889"
+
+          if [ -n "$KEEP_PORTS" ]; then
+             # 如果复用 LLM，检查复用的端口
+             FIRST_PORT=$(echo "$KEEP_PORTS" | cut -d',' -f1)
+             # 复用模式下，Embedding 也会被 Studio 启动在 8090
+             CHECKS="$CHECKS LLM(Reused):$FIRST_PORT Embedding:8090"
+          else
+             # 否则检查默认 LLM 和 Embedding
+             CHECKS="$CHECKS LLM(Default):8001 LLM(Benchmark):8901 Embedding:8090"
+          fi
+
+          for svc_port in $CHECKS; do
+            name="${svc_port%%:*}"
+            port="${svc_port##*:}"
+            # 尝试多个端点：/ 和 /health
+            if curl -sf "http://localhost:$port/" > /dev/null 2>&1 || \
+               curl -sf "http://localhost:$port/health" > /dev/null 2>&1 || \
+               curl -sf "http://localhost:$port/v1/models" > /dev/null 2>&1; then
+              echo "| $name | $port | ✅ |"
+            else
+              echo "| $name | $port | ⚠️ |"
+              # 打印失败服务的最近日志
+              svc_name="sage-studio"
+              if [ "$name" = "Frontend" ]; then
+                svc_name="sage-frontend"
+              fi
+              echo ""
+              echo "--- $svc_name 最近日志 ---"
+              sudo journalctl -u $svc_name --no-pager -n 20 2>/dev/null || true
+              echo "---"
+            fi
+          done
+
+          echo ""
+          echo "=== GPU 状态 ==="
+          nvidia-smi --query-gpu=name,memory.used,memory.free --format=csv 2>/dev/null || true
+
+      - name: Verify Cloudflare Tunnel
+        continue-on-error: true
+        run: |
+          echo "🌐 检查 Cloudflare Tunnel..."
+
+          if systemctl is-active --quiet cloudflared 2>/dev/null; then
+            echo "✅ cloudflared 系统服务运行中"
+          else
+            echo "⚠️ cloudflared 未运行"
+          fi
+
+          # 测试公网访问
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://studio.sage.org.ai 2>/dev/null || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ https://studio.sage.org.ai 可访问"
+          else
+            echo "⚠️ 公网访问返回 HTTP $HTTP_CODE"
+          fi
+
+      - name: Summary
+        run: |
+          PORT="${{ github.event.inputs.port || '5173' }}"
+
+          echo "## 🎉 SAGE Studio 部署完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 访问地址" >> $GITHUB_STEP_SUMMARY
+          echo "| 方式 | 地址 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ☁️ Cloudflare | https://studio.sage.org.ai |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏠 本地 | http://localhost:$PORT |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 管理命令" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# 查看所有服务状态" >> $GITHUB_STEP_SUMMARY
+          echo "for svc in sage-studio sage-frontend; do sudo systemctl status \$svc; done" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# 查看日志" >> $GITHUB_STEP_SUMMARY
+          echo "sudo journalctl -u sage-studio -f     # Studio (含 Gateway/LLM) 日志" >> $GITHUB_STEP_SUMMARY
+          echo "sudo journalctl -u sage-frontend -f   # Frontend 日志 (nginx)" >> $GITHUB_STEP_SUMMARY
+          echo "sudo tail -f /var/log/nginx/*.log    # nginx 详细日志" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# 重启所有服务" >> $GITHUB_STEP_SUMMARY
+          echo "for svc in sage-studio sage-frontend; do sudo systemctl restart \$svc; done" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# 停止所有服务" >> $GITHUB_STEP_SUMMARY
+          echo "for svc in sage-frontend sage-studio; do sudo systemctl stop \$svc; done" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

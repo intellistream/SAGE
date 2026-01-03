@@ -2,6 +2,25 @@
 # SAGE 端到端集成测试
 # 测试完整的安装 -> 使用 -> 清理流程
 
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 set -e
 
 # 测试配置
@@ -10,7 +29,7 @@ SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TEST_DIR="/tmp/sage_e2e_test_$$"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
 
 # 测试结果
 TOTAL_STEPS=0
@@ -50,7 +69,7 @@ cleanup() {
     echo -e "${DIM}清理测试环境...${NC}"
 
     # 停用虚拟环境
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
         deactivate 2>/dev/null || true
     fi
 
@@ -77,11 +96,11 @@ step1_setup_test_environment() {
     log_info "测试目录: $TEST_DIR"
 
     # 复制必要的文件
-    cp -r "$SAGE_ROOT/tools" .
-    cp -r "$SAGE_ROOT/docs" . 2>/dev/null || true
-    cp "$SAGE_ROOT/quickstart.sh" . 2>/dev/null || true
-    cp "$SAGE_ROOT/Makefile" . 2>/dev/null || true
-    cp "$SAGE_ROOT/manage.sh" . 2>/dev/null || true
+    cp -r "${SAGE_ROOT:-}/tools" .
+    cp -r "${SAGE_ROOT:-}/docs" . 2>/dev/null || true
+    cp "${SAGE_ROOT:-}/quickstart.sh" . 2>/dev/null || true
+    cp "${SAGE_ROOT:-}/Makefile" . 2>/dev/null || true
+    cp "${SAGE_ROOT:-}/manage.sh" . 2>/dev/null || true
 
     log_success "测试环境设置完成"
 }
@@ -138,7 +157,7 @@ step3_test_install_tracking() {
     log_step "测试安装跟踪"
 
     # 确保在虚拟环境中
-    if [ -z "$VIRTUAL_ENV" ]; then
+    if [ -z "${VIRTUAL_ENV:-}" ]; then
         log_info "激活虚拟环境..."
         source "$TEST_DIR/.sage/venv/bin/activate"
     fi
@@ -254,7 +273,7 @@ step8_verify_documentation() {
 
     # 检查文档文件
     local docs_to_check=(
-        "docs/dev-notes/l0-infra/cleanup-automation.md"
+        "docs-public/docs_src/dev-notes/l1-common/CLEANUP_AUTOMATION.md"
     )
 
     for doc in "${docs_to_check[@]}"; do

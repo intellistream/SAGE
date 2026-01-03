@@ -1,0 +1,9 @@
+//
+// Created by tony on 04/06/22.
+//
+
+#ifndef CANDY_SIMD_CONFIG_H_IN_H_
+#define CANDY_SIMD_CONFIG_H_IN_H_
+#define CANDY_AVX2 @CANDY_AVX2@
+#define CANDY_AVX512 @CANDY_AVX512@
+#endif

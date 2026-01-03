@@ -20,13 +20,59 @@
 
 # ========== 关键：必须在导入任何 HuggingFace 库之前设置环境变量 ==========
 import os
+import sys
+
+# ========== 清除代理变量，避免 SOCKS 代理问题 ==========
+# 本地 embedding 服务器使用 HuggingFace 镜像，不需要代理
+# 清除代理可以避免 "Missing dependencies for SOCKS support" 错误
+for proxy_var in [
+    "http_proxy",
+    "https_proxy",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "all_proxy",
+    "ALL_PROXY",
+]:
+    os.environ.pop(proxy_var, None)
 
 # 设置环境变量 - 自动检测网络并配置 HuggingFace 镜像
 from sage.common.config import ensure_hf_mirror_configured
 
 ensure_hf_mirror_configured()
 
+# ========== 强制所有 HuggingFace 请求使用镜像站 ==========
+# 方案1: 设置所有可能的离线和镜像相关环境变量
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+os.environ["HF_HUB_DISABLE_EXPERIMENTAL_WARNING"] = "1"
+
+
+# 方案2: Patch requests 库，将 huggingface.co 重定向到镜像站
+def patch_huggingface_requests():
+    """将所有 huggingface.co 的请求重定向到镜像站"""
+    from functools import wraps
+
+    import requests
+
+    original_request = requests.Session.request
+    hf_endpoint = os.environ.get("HF_ENDPOINT", "https://hf-mirror.com")
+
+    @wraps(original_request)
+    def patched_request(self, method, url, *args, **kwargs):
+        # 将 huggingface.co 替换为镜像站
+        if isinstance(url, str):
+            url = url.replace("https://huggingface.co", hf_endpoint)
+            url = url.replace("http://huggingface.co", hf_endpoint)
+        return original_request(self, method, url, *args, **kwargs)
+
+    requests.Session.request = patched_request
+
+
+# 执行 patch（在导入 transformers 之前）
+try:
+    patch_huggingface_requests()
+except Exception as e:
+    print(f"Warning: Failed to patch requests: {e}", file=sys.stderr)
 
 # ========== 现在可以安全导入其他库了 ==========
 import argparse
@@ -88,26 +134,34 @@ class EmbeddingServer:
 
         # 加载模型和 tokenizer
         try:
-            # 尝试本地加载（优先使用本地缓存，避免网络检查）
-            try:
-                logger.info("Attempting to load model from local cache...")
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    model_name, local_files_only=True, trust_remote_code=True
-                )
-                self.model = AutoModel.from_pretrained(
-                    model_name, trust_remote_code=True, local_files_only=True
-                )
-                logger.info("Successfully loaded model from local cache")
-            except Exception as e:
-                # 从网络下载（使用 HF_ENDPOINT 环境变量指向镜像）
-                logger.info(f"Local model not found ({e}), downloading from HuggingFace...")
-                logger.info(f"Using HF_ENDPOINT: {os.environ.get('HF_ENDPOINT', 'default')}")
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    model_name, trust_remote_code=True, resume_download=True
-                )
-                self.model = AutoModel.from_pretrained(
-                    model_name, trust_remote_code=True, resume_download=True
-                )
+            logger.info("Loading model from local cache...")
+            logger.info(f"HF_ENDPOINT: {os.environ.get('HF_ENDPOINT', 'not set')}")
+
+            # 检查本地缓存是否存在
+            cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
+            model_cache = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
+
+            # 如果本地缓存存在，优先使用本地文件（避免限流）
+            local_files_only = os.path.exists(model_cache)
+            if local_files_only:
+                logger.info(f"Found local cache at {model_cache}")
+                logger.info("Loading from local cache only (avoiding network requests)")
+            else:
+                logger.info("Local cache not found, will download from mirror")
+
+            # 直接加载（优先使用本地已有的格式，避免下载 safetensors）
+            # use_safetensors=False 会强制使用 pytorch_model.bin
+            # local_files_only=True 时完全离线加载（避免 HuggingFace 限流）
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name, trust_remote_code=True, local_files_only=local_files_only
+            )
+            self.model = AutoModel.from_pretrained(
+                model_name,
+                trust_remote_code=True,
+                use_safetensors=False,
+                local_files_only=local_files_only,
+            )
+            logger.info("Model loaded successfully")
 
             # 移动模型到指定设备
             self.model = self.model.to(self.device)
@@ -167,7 +221,17 @@ app = FastAPI(
 
 @app.get("/")
 async def root():
-    """健康检查端点"""
+    """根路径"""
+    return {
+        "status": "ok",
+        "model": embedding_server.model_name if embedding_server else "not loaded",
+        "device": embedding_server.device if embedding_server else "unknown",
+    }
+
+
+@app.get("/health")
+async def health():
+    """健康检查端点（标准路径）- Control Plane 使用此路径"""
     return {
         "status": "ok",
         "model": embedding_server.model_name if embedding_server else "not loaded",

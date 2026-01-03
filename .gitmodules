@@ -2,39 +2,12 @@
 	path = docs-public
 	url = https://github.com/intellistream/SAGE-Pub.git
 	branch = main-dev
-[submodule "packages/sage-common/src/sage/common/components/sage_llm/sageLLM"]
-	path = packages/sage-common/src/sage/common/components/sage_llm/sageLLM
-	url = https://github.com/intellistream/sageLLM.git
-	branch = main-dev
-[submodule "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"]
-    path = packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
-    url = https://github.com/intellistream/sageDB.git
-	branch = main-dev
-[submodule "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"]
-	path = packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow
-	url = https://github.com/intellistream/sageFlow.git
-	branch = main-dev
+
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem
 	url = https://github.com/intellistream/neuromem.git
 	branch = main-dev
-[submodule "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"]
-	path = packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB
-	url = https://github.com/intellistream/sageTSDB.git
-	branch = main-dev
 [submodule "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"]
 	path = packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner
 	url = https://github.com/intellistream/sageRefiner.git
-	branch = main-dev
-[submodule "packages/sage-benchmark/src/sage/data"]
-	path = packages/sage-benchmark/src/sage/data
-	url = https://github.com/intellistream/sageData.git
-	branch = main-dev
-[submodule "packages/sage-libs/src/sage/libs/libamm"]
-	path = packages/sage-libs/src/sage/libs/libamm
-	url = https://github.com/intellistream/LibAMM.git
-	branch = main-dev
-[submodule "packages/sage-benchmark/src/sage/benchmark/benchmark_db"]
-	path = packages/sage-benchmark/src/sage/benchmark/benchmark_db
-	url = https://github.com/intellistream/SAGE-DB-Bench.git
 	branch = main-dev

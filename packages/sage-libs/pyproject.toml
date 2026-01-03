@@ -41,6 +41,11 @@ dependencies = [
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
 
+    # ========== 课题组算法库 ==========
+    # Note: AMM algorithms are part of sage-libs (amms/ directory), not external dependency
+    # Users can optionally install isage-amms separately for standalone use
+    # "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel (独立维护) - Integrated into sage-libs
+
     # Libs-specific dependencies
     # Vector databases
     "chromadb>=1.0.20",
@@ -68,28 +73,36 @@ dependencies = [
     # OCR tools
     "easyocr>=1.7.0",
 
+    # SAGE 核心依赖
+    "isage-common>=0.2.0",
+    "isage-llm-core>=0.2.0",
+
     # ========== LLM & Finetune 核心依赖 (原可选依赖，现为必选) ==========
     # Transformers 生态
-    "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
+    "transformers>=4.52.0,<4.54.0",  # 兼容 vllm 0.9.2 (避免 aimv2 配置冲突)
     "tokenizers>=0.21.0,<0.24.0",   # 兼容 transformers 4.52-4.57
 
     # LoRA/PEFT 支持
     "peft>=0.18.0,<1.0.0",
 
     # 训练加速
-    "accelerate>=0.25.0",
+    "accelerate>=1.9.0,<2.0.0",
 
     # 监控和可视化
     "tensorboard>=2.14.0",
 
-    # TRL for RLHF/DPO (0.22.x compatible with transformers<4.56)
-    "trl>=0.22.0,<0.23.0",
+    # TRL for RLHF/DPO (0.20.x compatible with transformers<4.55)
+    "trl>=0.20.0,<0.21.0",
+
+    # Missing dependencies
+    "torch>=2.7.0,<3.0.0",
+    "sentence-transformers>=3.1.0,<4.0.0",
 ]
 
 [project.optional-dependencies]
 # SAGE 内部依赖
 sage-deps = [
-    "isage-common>=0.1.0",
+    # "isage-common>=0.2.0", # Moved to core dependencies
 ]
 # 完整依赖（开发和 PyPI 发布时使用）
 all = [
@@ -110,8 +123,9 @@ full = [
 ]
 
 # LLM inference (vLLM) - 需要 GPU
+# 依赖 sage-llm-core 的 vllm extra
 llm = [
-    "vllm>=0.9.2",
+    "isage-llm-core[vllm]>=0.1.0",
 ]
 
 # GPU 加速微调 - 需要 CUDA 环境
@@ -144,17 +158,10 @@ medical = [
 # Video intelligence examples dependencies
 video = [
     "opencv-python>=4.5.0",  # Video processing
-    "torch>=2.0.0",  # PyTorch for models
-    "torchvision>=0.15.0",  # Vision models
-    "transformers>=4.52.0,<4.58.0",  # 兼容 vllm 0.12.0
+    "torch>=2.7.0,<3.0.0",  # PyTorch for models
+    "torchvision>=0.22.0,<1.0.0",  # Vision models
+    "transformers>=4.52.0,<4.54.0",  # 兼容 vllm 0.9.2 (避免 aimv2 配置冲突)
     "Pillow>=9.0.0",  # Image processing
-]
-
-# LibAMM - Approximate Matrix Multiplication Library
-# High-performance C++ library with NumPy interface
-# 现在作为独立的 PyPI 包发布，不再本地编译
-amm = [
-    "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel from PyPI
 ]
 
 # Examples dependencies (aggregate of all example-specific deps)
@@ -206,6 +213,9 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.dynamic.version]
+attr = "sage.libs._version.__version__"
 
 [tool.setuptools.package-data]
 "sage.libs" = ["py.typed", "**/*"]

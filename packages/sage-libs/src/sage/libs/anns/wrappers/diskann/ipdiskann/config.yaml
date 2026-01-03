@@ -1,0 +1,19 @@
+random-xs:
+  ipdiskann:
+    module: benchmark_anns.bench.algorithms.ipdiskann.ipdiskann
+    constructor: Ipdiskann
+    base-args: ["@metric"]
+    run-groups:
+      base:
+        args: |
+          [{
+            "R": 64,
+            "L": 100,
+            "num_threads": 1,
+            "insert_thread_count": 8,
+            "search_thread_count": 8
+          }]
+        query-args: |
+          [{
+            "L": 128
+          }]

@@ -1,0 +1,34 @@
+# Include documentation
+include README.md
+include MIGRATION.md
+include QUICKREF.md
+include LICENSE
+
+# Include package metadata
+include pyproject.toml
+include setup.py
+
+# Include C++ source and headers
+recursive-include implementations/include *.h *.hpp *.h.in
+recursive-include implementations/src *.cpp *.cc
+recursive-include implementations/src CMakeLists.txt
+recursive-include implementations/cmake *.cmake
+
+# Include CMake configuration
+include implementations/CMakeLists.txt
+
+# Include build scripts
+include implementations/buildCPUOnly.sh
+include implementations/buildWithCuda.sh
+
+# Exclude unnecessary files
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *$py.class
+global-exclude *.so
+global-exclude .DS_Store
+
+# Exclude build artifacts
+prune implementations/build
+prune implementations/dist
+prune implementations/*.egg-info

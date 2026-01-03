@@ -10,7 +10,7 @@ from sage.common.utils.network.base_tcp_client import BaseTcpClient
 class JobManagerClient(BaseTcpClient):
     """JobManager客户端，专门用于发送序列化数据"""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 19001, timeout: float = 30.0):
+    def __init__(self, host: str = "127.0.0.1", port: int = 19001, timeout: float = 60.0):
         # 验证端口范围
         if not (1 <= port <= 65535):
             raise ValueError(f"Port must be between 1 and 65535, got {port}")
@@ -29,7 +29,12 @@ class JobManagerClient(BaseTcpClient):
         """构建服务器信息请求"""
         return {"action": "get_server_info", "request_id": str(uuid.uuid4())}
 
-    def submit_job(self, serialized_data: bytes, autostop: bool = False) -> dict[str, Any]:
+    def submit_job(
+        self,
+        serialized_data: bytes,
+        autostop: bool = False,
+        extra_python_paths: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         提交序列化的作业数据
 
@@ -47,7 +52,8 @@ class JobManagerClient(BaseTcpClient):
             "action": "submit_job",
             "request_id": str(uuid.uuid4()),
             "serialized_data": base64.b64encode(serialized_data).decode("utf-8"),
-            "autostop": autostop,  # 添加 autostop 参数
+            "autostop": autostop,
+            "extra_python_paths": extra_python_paths or [],
         }
 
         return self.send_request(request)

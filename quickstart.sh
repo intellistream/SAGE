@@ -17,6 +17,39 @@ if [ -z "${HF_ENDPOINT}" ]; then
     if ! curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
         export HF_ENDPOINT="https://hf-mirror.com"
         echo -e "\033[2m自动设置 HuggingFace 镜像: $HF_ENDPOINT\033[0m"
+
+        # 检测到国内网络，提示配置 HF_TOKEN
+        if [ -z "${HF_TOKEN}" ] && [ ! -f ".env" ] || ! grep -q "HF_TOKEN=" .env 2>/dev/null; then
+            echo -e "\033[33m💡 提示: 检测到您在中国大陆网络环境\033[0m"
+            echo -e "\033[2m为避免 HuggingFace API 限流 (429 错误)，建议配置 HF_TOKEN\033[0m"
+            echo -e "\033[2m获取 token: https://huggingface.co/settings/tokens\033[0m"
+            echo ""
+            read -p "是否现在配置 HF_TOKEN? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                read -p "请输入您的 HuggingFace Token: " hf_token
+                if [ -n "$hf_token" ]; then
+                    # 创建或更新 .env 文件
+                    if [ ! -f ".env" ]; then
+                        cp .env.template .env 2>/dev/null || touch .env
+                    fi
+                    # 添加或更新 HF_TOKEN
+                    if grep -q "^HF_TOKEN=" .env 2>/dev/null; then
+                        sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$hf_token/" .env
+                    else
+                        echo "HF_TOKEN=$hf_token" >> .env
+                    fi
+                    # 同时添加 HF_ENDPOINT
+                    if ! grep -q "^HF_ENDPOINT=" .env 2>/dev/null; then
+                        echo "HF_ENDPOINT=https://hf-mirror.com" >> .env
+                    fi
+                    echo -e "\033[32m✅ HF_TOKEN 已保存到 .env 文件\033[0m"
+                    export HF_TOKEN="$hf_token"
+                fi
+            else
+                echo -e "\033[2m跳过 HF_TOKEN 配置（可稍后在 .env 文件中手动添加）\033[0m"
+            fi
+        fi
     fi
 fi
 
@@ -30,6 +63,7 @@ source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/examination_tools/environment_prechecks.sh"
 source "$TOOLS_DIR/examination_tools/install_verification.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
+source "$TOOLS_DIR/examination_tools/mirror_selector.sh"  # 网络加速优化（增强版）
 source "$TOOLS_DIR/installation_table/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
 source "$TOOLS_DIR/fixes/numpy_fix.sh"
@@ -113,15 +147,54 @@ main() {
         if [ -f "$TOOLS_DIR/fixes/environment_doctor.sh" ]; then
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
 
+            # 确保如果使用了 --yes 参数，环境医生也会自动确认修复
+            if [ "$(get_auto_confirm)" = "true" ]; then
+                export AUTO_CONFIRM_FIX="true"
+            fi
+
+            local fix_result=0  # 初始化变量
+
             if [ "$fix_environment" = "true" ]; then
-                run_full_diagnosis
+                run_full_diagnosis || true
                 run_auto_fixes
+                fix_result=$?
             else
-                run_full_diagnosis
+                # 如果诊断发现问题，自动提示修复
+                if ! run_full_diagnosis; then
+                    echo ""
+                    run_auto_fixes
+                    fix_result=$?
+                else
+                    fix_result=0
+                fi
+            fi
+
+            # 检查是否需要重启 shell（退出码 42）
+            if [ "$fix_result" -eq 42 ]; then
+                echo ""
+                exit 0
             fi
 
             if [ "$doctor_only" = "true" ]; then
-                exit $?
+                exit $fix_result
+            fi
+
+            # 诊断完成，询问是否继续安装（CI 环境自动确认）
+            echo ""
+            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$(get_auto_confirm)" != "true" ]; then
+                echo -e "${BLUE}${BOLD}📋 环境诊断完成${NC}"
+                echo -e "${DIM}诊断结果已显示在上方${NC}"
+                echo ""
+                read -p "是否继续进行 SAGE 安装？[Y/n] " -r response
+                response=${response,,}
+                if [[ "$response" =~ ^(n|no)$ ]]; then
+                    echo -e "${YELLOW}安装已取消${NC}"
+                    exit 0
+                fi
+                echo ""
+            else
+                echo -e "${INFO} CI 环境或自动确认模式，继续安装..."
+                echo ""
             fi
         else
             echo -e "${RED}错误：环境医生模块未找到${NC}"
@@ -142,12 +215,31 @@ main() {
         # 确保.sage目录存在
         mkdir -p .sage/logs
 
-        # 运行新的环境预检查
-        local skip_cuda="true"
+        # 运行新的环境预检查 - 启用 CUDA 检查
+        local skip_cuda="false"
 
         if ! run_environment_prechecks "$skip_cuda" ".sage/logs/environment_precheck.log"; then
             echo -e "${YELLOW}⚠️  环境预检查发现问题，但将继续尝试安装${NC}"
             echo -e "${DIM}提示: 查看详细报告 .sage/logs/environment_precheck.log${NC}"
+        fi
+
+        # 检查是否需要安装 nvcc (检测到 GPU 但缺少 CUDA Toolkit)
+        if [ "${SAGE_NEEDS_NVCC:-false}" = "true" ]; then
+            echo -e "\n${YELLOW}${BOLD}⚠️  检测到 GPU 但缺少 CUDA Toolkit (nvcc 编译器)${NC}"
+            echo -e "${DIM}vLLM 需要 nvcc 才能正常运行${NC}"
+
+            if [[ -n "${CONDA_DEFAULT_ENV:-}" || -n "${CONDA_PREFIX:-}" ]]; then
+                echo -e "\n${BLUE}正在自动安装 CUDA Toolkit...${NC}"
+                if conda install -c conda-forge cudatoolkit-dev -y --override-channels; then
+                    echo -e "${GREEN}✅ CUDA Toolkit 安装成功${NC}"
+                else
+                    echo -e "${YELLOW}⚠️  CUDA Toolkit 自动安装失败${NC}"
+                    echo -e "${DIM}请手动安装: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
+                fi
+            else
+                echo -e "${YELLOW}未检测到 conda 环境，请手动安装 CUDA Toolkit${NC}"
+                echo -e "${DIM}推荐: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
+            fi
         fi
 
         # 保持原有的 numpy 检查
@@ -157,7 +249,7 @@ main() {
     fi
 
     # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
-    if [ $# -eq 0 ] && [[ -z "$CI" && -z "$GITHUB_ACTIONS" && -z "$GITLAB_CI" && -z "$JENKINS_URL" && -z "$BUILDKITE" ]]; then
+    if [ $# -eq 0 ] && [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && -z "${GITLAB_CI:-}" && -z "${JENKINS_URL:-}" && -z "${BUILDKITE:-}" ]]; then
         show_installation_menu
     fi
 
@@ -194,6 +286,18 @@ main() {
             echo -e "${YELLOW}⚠️  清理脚本未找到，跳过清理${NC}"
         fi
     fi
+
+    # 应用网络加速优化（在安装前配置）
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}🚀 网络下载优化${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    # 智能配置 pip（自动检测网络 + 镜像选择 + 并行优化）
+    smart_configure_pip "true" "true"
+
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
 
     # 如果不是自动确认模式，显示最终确认
     if [ "$auto_confirm" != "true" ]; then
@@ -337,11 +441,11 @@ main() {
                         echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
 
                         # 检查工具版本一致性
-                        if [ -f "$SAGE_ROOT/tools/install/check_tool_versions.sh" ]; then
+                        if [ -f "$SAGE_ROOT/tools/install/diagnostics/check_tool_versions.sh" ]; then
                             echo ""
-                            if ! bash "$SAGE_ROOT/tools/install/check_tool_versions.sh" --quiet 2>/dev/null; then
+                            if ! bash "$SAGE_ROOT/tools/install/diagnostics/check_tool_versions.sh" --quiet 2>/dev/null; then
                                 echo -e "${YELLOW}⚠️  检测到工具版本不一致${NC}"
-                                echo -e "${DIM}   运行 ./tools/install/check_tool_versions.sh --fix 自动修复${NC}"
+                                echo -e "${DIM}   运行 ./tools/install/diagnostics/check_tool_versions.sh --fix 自动修复${NC}"
                             fi
                         fi
                     else
@@ -365,37 +469,93 @@ main() {
                 }
             fi
 
-            # 安装 neuromem submodule 的 pre-commit hooks
-            local neuromem_path="$SAGE_ROOT/packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
-            if [ -d "$neuromem_path" ] && [ -f "$neuromem_path/.pre-commit-config.yaml" ]; then
-                echo -e "${DIM}   配置 neuromem submodule 的 pre-commit hooks...${NC}"
-                if command -v pre-commit >/dev/null 2>&1; then
-                    (cd "$neuromem_path" && pre-commit install 2>/dev/null) && {
-                        echo -e "${GREEN}   ✅ neuromem pre-commit hooks 已安装${NC}"
-                    } || {
-                        echo -e "${DIM}   ℹ️  neuromem pre-commit hooks 安装跳过${NC}"
-                    }
+            # 配置 Git 设置
+            echo -e "${DIM}   配置 Git 设置（rename limit, submodules）...${NC}"
+            if [ -x "$SAGE_ROOT/tools/git-tools/configure-git.sh" ]; then
+                if "$SAGE_ROOT/tools/git-tools/configure-git.sh" >/dev/null 2>&1; then
+                    echo -e "${GREEN}   ✅ Git 配置完成${NC}"
                 else
-                    echo -e "${DIM}   ℹ️  pre-commit 未安装，跳过 neuromem hooks${NC}"
+                    echo -e "${YELLOW}   ⚠️  Git 配置失败，但不影响使用${NC}"
                 fi
+            else
+                echo -e "${DIM}   ℹ️  Git 配置脚本不存在，跳过${NC}"
+            fi
+
+            # 安装主仓库的 pre-commit hooks
+            if command -v pre-commit >/dev/null 2>&1; then
+                echo -e "${DIM}   配置主仓库 pre-commit hooks...${NC}"
+                if pre-commit install 2>/dev/null; then
+                    echo -e "${GREEN}   ✅ 主仓库 pre-commit hooks 已安装${NC}"
+                else
+                    echo -e "${YELLOW}   ⚠️  主仓库 pre-commit hooks 安装失败${NC}"
+                fi
+            else
+                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过 Git hooks 安装${NC}"
+            fi
+
+            # 安装所有子模块的 pre-commit hooks
+            if command -v pre-commit >/dev/null 2>&1; then
+                echo -e "${DIM}   配置子模块 pre-commit hooks...${NC}"
+                local submodules_with_hooks=0
+                local submodules_installed=0
+
+                # 定义所有子模块路径 (注意: sageDB 已独立为 isagedb PyPI 包)
+                local submodule_paths=(
+                    "packages/sage-llm-core/src/sage/llm/sageLLM"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"
+                    "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"
+                )
+
+                for submodule_path in "${submodule_paths[@]}"; do
+                    local full_path="$SAGE_ROOT/$submodule_path"
+                    local submodule_name=$(basename "$submodule_path")
+
+                    if [ -d "$full_path" ] && [ -f "$full_path/.pre-commit-config.yaml" ]; then
+                        ((submodules_with_hooks++)) || true
+                        if (cd "$full_path" && pre-commit install 2>/dev/null); then
+                            echo -e "${GREEN}   ✅ $submodule_name pre-commit hooks 已安装${NC}"
+                            ((submodules_installed++)) || true
+                        else
+                            echo -e "${DIM}   ℹ️  $submodule_name pre-commit hooks 安装跳过${NC}"
+                        fi
+                    fi
+                done
+
+                # 使用 || true 避免 set -e 导致脚本退出
+                if [ $submodules_with_hooks -gt 0 ]; then
+                    echo -e "${GREEN}   ✅ 子模块 pre-commit hooks: $submodules_installed/$submodules_with_hooks 安装成功${NC}"
+                else
+                    echo -e "${DIM}   ℹ️  未发现子模块 pre-commit 配置${NC}"
+                fi || true
+            else
+                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过子模块 hooks${NC}"
             fi
         fi
 
         show_usage_tips "$mode"
 
+        # 显示快速启动服务菜单（交互模式）
+        # 注意：已由 show_usage_tips 内部调用 prompt_start_llm_service
+        # if [ "$(get_auto_confirm)" != "true" ] && [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ]; then
+        #     echo ""
+        #     prompt_start_llm_service "$mode"
+        # fi
+
         # 检查并修复依赖冲突
         echo ""
         echo -e "${INFO} 检查依赖版本兼容性..."
-        if [ -f "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh" ]; then
+        if [ -f "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh" ]; then
             # 非交互模式检查（在 CI 环境中或自动确认模式）
-            if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ "$(get_auto_confirm)" = "true" ]; then
-                source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
+            if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "$(get_auto_confirm)" = "true" ]; then
+                source "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies --non-interactive || {
                     echo -e "${DIM}  ⚠️  依赖检查完成（可能存在警告）${NC}"
                 }
             else
                 # 交互模式检查
-                source "$SAGE_ROOT/tools/install/check_and_fix_dependencies.sh"
+                source "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies || {
                     echo -e "${DIM}  ℹ️  依赖检查跳过或失败（非关键）${NC}"
                 }
@@ -415,7 +575,7 @@ main() {
             echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
             echo -e "${DIM}如需使用 LibAMM 基准数据，请手动执行:${NC}"
             echo -e "  ${DIM}cd packages/sage-benchmark/src/sage/data && git lfs pull${NC}"
-            echo -e "  ${DIM}cd ../../../../sage-libs/src/sage/libs/libamm && bash tools/setup_data.sh${NC}"
+            echo -e "  ${DIM}cd ../benchmark/benchmark_amm && bash tools/setup_data.sh${NC}"
         fi
     else
         echo ""

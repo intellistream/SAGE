@@ -50,7 +50,7 @@ class FakeStudioManager:
         self._running = True
         return True
 
-    def stop(self, stop_gateway=False):
+    def stop(self, stop_infrastructure=False):
         was_running = self._running
         self._running = False
         return was_running

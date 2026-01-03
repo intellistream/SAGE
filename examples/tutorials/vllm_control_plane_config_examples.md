@@ -211,7 +211,7 @@ gpu_count = 1
 ### Python Code
 
 ```python
-from sage.common.components.sage_llm import ControlPlaneVLLMService
+from sage.llm import ControlPlaneVLLMService
 
 # Create service from config
 config = {

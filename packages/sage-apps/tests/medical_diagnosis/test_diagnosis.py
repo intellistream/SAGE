@@ -5,21 +5,26 @@
 """
 
 import json
+import os
 import random
 from pathlib import Path
+
+import pytest
 
 # 获取医疗诊断目录路径（用于访问数据和配置文件）
 medical_diagnosis_dir = (
     Path(__file__).parent.parent.parent / "src" / "sage" / "apps" / "medical_diagnosis"
 )
-
 # 导入医疗诊断模块
 from sage.apps.medical_diagnosis.agents.diagnostic_agent import DiagnosticAgent  # noqa: E402
 
 
+@pytest.mark.skipif(
+    os.getenv("SAGE_ENABLE_MEDICAL_DIAGNOSIS") not in {"1", "true", "True"},
+    reason="Medical diagnosis integration test disabled by default; set SAGE_ENABLE_MEDICAL_DIAGNOSIS=1 to run.",
+)
 def test_single_case():
     """测试单个病例诊断"""
-    import pytest
 
     print("=" * 80)
     print("🧪 医疗诊断系统测试 - 单病例模式")
@@ -117,9 +122,12 @@ def test_single_case():
     print("\n" + "=" * 80)
 
 
+@pytest.mark.skipif(
+    os.getenv("SAGE_ENABLE_MEDICAL_DIAGNOSIS") not in {"1", "true", "True"},
+    reason="Medical diagnosis integration test disabled by default; set SAGE_ENABLE_MEDICAL_DIAGNOSIS=1 to run.",
+)
 def test_batch_mode():
     """测试批量诊断模式"""
-    import pytest
 
     print("=" * 80)
     print("🧪 医疗诊断系统测试 - 批量模式")

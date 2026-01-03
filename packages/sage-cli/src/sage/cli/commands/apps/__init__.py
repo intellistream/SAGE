@@ -57,6 +57,12 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 gateway 命令: {e}[/yellow]")
     gateway_app = None
 
+try:
+    from .edge import app as edge_app
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 edge 命令: {e}[/yellow]")
+    edge_app = None
+
 # 导出所有命令
 __all__ = [
     "llm_app",
@@ -66,4 +72,5 @@ __all__ = [
     "studio_app",
     "inference_app",
     "gateway_app",
+    "edge_app",
 ]

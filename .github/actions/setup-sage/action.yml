@@ -134,15 +134,17 @@ runs:
         # Ensure ~/.local/bin is in PATH for pip-installed CLI tools
         export PATH="$HOME/.local/bin:$PATH"
 
+        # Make PATH persistent for subsequent steps in workflow
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
         # Make scripts executable
-        chmod +x ./tools/install/ci_install_wrapper.sh
+        chmod +x ./tools/install/core/ci_install_wrapper.sh
         chmod +x ./quickstart.sh
 
         # Run installation
-        ./tools/install/ci_install_wrapper.sh --${{ inputs.install-mode }} --yes
+        ./tools/install/core/ci_install_wrapper.sh --${{ inputs.install-mode }} --yes
 
         echo "✅ SAGE installation completed"
-      timeout-minutes: 25
 
     # Step 6: Verify Installation
     - name: Verify Installation

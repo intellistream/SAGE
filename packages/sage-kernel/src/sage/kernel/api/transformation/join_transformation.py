@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from sage.kernel.api.transformation.base_transformation import BaseTransformation
+from sage.kernel.utils.helpers import validate_required_methods
 
 if TYPE_CHECKING:
     from sage.common.core.functions import BaseJoinFunction
@@ -53,23 +54,11 @@ class JoinTransformation(BaseTransformation):
         Raises:
             ValueError: 如果缺少必需的方法
         """
-        required_methods = ["execute"]
-        missing_methods = []
-
-        for method_name in required_methods:
-            if not hasattr(function_class, method_name):
-                missing_methods.append(method_name)
-            else:
-                method = getattr(function_class, method_name)
-                # 检查是否为抽象方法（未实现）
-                if getattr(method, "__isabstractmethod__", False):
-                    missing_methods.append(method_name)
-
-        if missing_methods:
-            raise ValueError(
-                f"Join function {function_class.__name__} must implement required methods: "
-                f"{', '.join(missing_methods)}"
-            )
+        validate_required_methods(
+            function_class,
+            required_methods=["execute"],
+            class_name=f"Join function {function_class.__name__}",
+        )
 
         # 验证execute方法的签名
         self._validate_execute_signature(function_class)

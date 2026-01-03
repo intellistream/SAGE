@@ -6,6 +6,25 @@
 source "$(dirname "${BASH_SOURCE[0]}")/colors.sh"
 
 # 进度条配置
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 PROGRESS_BAR_WIDTH=50
 PROGRESS_BAR_CHAR="█"
 PROGRESS_BAR_EMPTY_CHAR="░"
@@ -23,6 +42,15 @@ show_progress_bar() {
 
     # 计算百分比
     local percent=$((current * 100 / total))
+
+    # CI 环境下使用简单输出
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        # 仅在关键节点输出（每 10% 或最后一个）
+        if [ $((percent % 10)) -eq 0 ] || [ "$current" -eq "$total" ]; then
+            echo "${prefix}: ${percent}% (${current}/${total})"
+        fi
+        return
+    fi
 
     # 计算填充的字符数
     local filled=$((current * PROGRESS_BAR_WIDTH / total))
@@ -111,6 +139,11 @@ SPINNER_INDEX=0
 show_spinner() {
     local message="$1"
 
+    # CI 环境下不显示动画
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        return
+    fi
+
     printf "\r${BLUE}${SPINNER_CHARS[$SPINNER_INDEX]}${NC} ${message}"
 
     SPINNER_INDEX=$(((SPINNER_INDEX + 1) % ${#SPINNER_CHARS[@]}))
@@ -118,6 +151,10 @@ show_spinner() {
 
 # 停止旋转动画
 stop_spinner() {
+    # CI 环境下不需要清理
+    if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]] || [[ "${CONTINUOUS_INTEGRATION:-false}" == "true" ]]; then
+        return
+    fi
     printf "\r${GREEN}✓${NC} "
 }
 

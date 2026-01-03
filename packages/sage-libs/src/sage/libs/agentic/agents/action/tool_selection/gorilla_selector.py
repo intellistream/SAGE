@@ -63,6 +63,10 @@ class RetrievedToolDoc:
     category: str = ""
 
 
+# Sentinel value to indicate auto-creation of LLM client
+_AUTO_LLM = object()
+
+
 class GorillaSelector(BaseToolSelector):
     """
     Gorilla-style retrieval-augmented tool selector.
@@ -86,7 +90,7 @@ class GorillaSelector(BaseToolSelector):
         self,
         config: GorillaSelectorConfig,
         resources: SelectorResources,
-        llm_client: Optional[Any] = None,
+        llm_client: Any = _AUTO_LLM,
     ):
         """
         Initialize Gorilla selector.
@@ -94,7 +98,8 @@ class GorillaSelector(BaseToolSelector):
         Args:
             config: Selector configuration
             resources: Shared resources including embedding_client
-            llm_client: Optional LLM client for selection (auto-created if not provided)
+            llm_client: LLM client for selection. Pass None to disable LLM and use
+                retrieval-only mode. Omit or pass _AUTO_LLM for auto-creation.
 
         Raises:
             ValueError: If embedding_client is not provided
@@ -111,11 +116,16 @@ class GorillaSelector(BaseToolSelector):
 
         self.embedding_client = resources.embedding_client
 
-        # Initialize or use provided LLM client
-        if llm_client is not None:
-            self.llm_client = llm_client
-        else:
+        # Initialize LLM client:
+        # - llm_client=None: explicitly disable LLM, use retrieval-only mode
+        # - llm_client=_AUTO_LLM (default): auto-create LLM client
+        # - llm_client=<client>: use provided client
+        if llm_client is None:
+            self.llm_client = None
+        elif llm_client is _AUTO_LLM:
             self.llm_client = self._create_llm_client()
+        else:
+            self.llm_client = llm_client
 
         # Build tool index and cache tool metadata
         self._tool_docs: dict[str, RetrievedToolDoc] = {}
@@ -126,7 +136,7 @@ class GorillaSelector(BaseToolSelector):
     def _create_llm_client(self) -> Any:
         """Create LLM client for selection stage."""
         try:
-            from sage.common.components.sage_llm import UnifiedInferenceClient
+            from sage.llm import UnifiedInferenceClient
 
             # Always use create() for automatic local-first detection
             return UnifiedInferenceClient.create()

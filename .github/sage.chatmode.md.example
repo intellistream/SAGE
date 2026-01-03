@@ -1,0 +1,168 @@
+---
+description: 'SAGE Framework - Quick Reference for GitHub Copilot Chat'
+tools: ['runCommands', 'runTasks', 'edit', 'runNotebooks', 'search', 'new', 'extensions', 'todos', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo']
+---
+# SAGE Copilot Chat Mode - Quick Reference
+
+> **📖 Complete Documentation**: See [.github/copilot-instructions.md](copilot-instructions.md) for detailed rules, examples, and workflows.
+>
+> **💡 Usage**: Copy this file to `.github/chatmodes/sage.chatmode.md` to enable VS Code Copilot Chat mode.
+
+## 🎯 Core Principles
+
+### ❌ NEVER BYPASS CONTROL PLANE
+- **ALL LLM operations** MUST use Control Plane
+- ❌ FORBIDDEN: `sage llm serve`, direct vLLM imports, direct endpoints
+- ✅ CORRECT: `sage llm engine start`, `UnifiedInferenceClient.create()`
+
+### ❌ NO FALLBACK LOGIC
+- **NEVER** use try-except fallbacks to hide problems
+- Let exceptions propagate with clear error messages
+- Fail fast, fail loud
+
+### 📚 Readme-First Approach
+- **ALWAYS read docs** before making changes
+- Check `docs-public/docs_src/dev-notes/` first
+- Use `grep_search`/`semantic_search` to find documentation
+
+## 🏗️ Architecture (L1-L6)
+
+**CRITICAL**: No upward dependencies
+
+```
+L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway, sage-edge
+L5: sage-apps
+L4: sage-middleware (C++ extensions)
+L3: sage-kernel, sage-libs
+L2: sage-platform
+L1: sage-common, sage-llm-core
+```
+
+**Note**: sage-benchmark is now an independent repository at https://github.com/intellistream/sage-benchmark
+
+**PyPI Packages**:
+- `sage-llm-gateway` → `isage-llm-gateway` (OpenAI/Anthropic-compatible)
+- `sage-llm-core` → `isage-llm-core` (Control Plane + client)
+
+All in `/packages/<name>/`. L6 imports L1-L5, L5 imports L1-L4, etc.
+
+## 📦 Dependency Management - CRITICAL
+
+**Single Source of Truth**: `dependencies-spec.yaml`
+
+**Tools**:
+- `tools/scripts/check_dependency_consistency.py` - Auto-check
+- `tools/scripts/unify_dependencies.sh` - Batch update
+
+**vLLM Dependencies**:
+- `vllm-minimal` - For users with torch >= 2.7.0
+- `vllm` - Full install (includes torch)
+- Smart installation: Auto-detects torch version
+
+**Docs**: `docs-public/docs_src/dev-notes/cross-layer/vllm-dependency-management.md`
+
+## 📁 Documentation Policy - CRITICAL
+
+**✅ ALLOWED**:
+- `docs-public/docs_src/` - User documentation
+- `docs-public/docs_src/dev-notes/<layer>/` - Developer notes
+- `packages/<package>/docs/` - Package documentation
+- `packages/.../submodule/docs/` - Submodule documentation
+- `tools/<tool>/docs/` - Tool documentation
+
+**❌ FORBIDDEN**:
+- `docs/` at project root (gitignored, hooks reject)
+
+## 🚀 Quick Start
+
+### Installation
+```bash
+./quickstart.sh --dev --yes        # Development (REQUIRED)
+./manage.sh                        # Bootstrap submodules + hooks
+```
+
+### Testing
+```bash
+sage-dev project test --coverage   # All tests
+sage-dev quality                   # Auto-fix lint
+```
+
+### LLM Services
+```bash
+sage gateway start                 # Start Gateway (8888)
+sage llm engine start <model> --engine-kind llm
+sage llm engine list               # View engines
+```
+
+## 🔑 Key Locations
+
+```
+.github/workflows/      # CI/CD
+docs-public/            # Documentation
+examples/               # Apps & tutorials
+packages/sage-*/        # Source packages
+tools/                  # Dev tools
+config/                 # Configuration
+.env.template           # API keys template
+```
+
+## 🎨 Common Patterns
+
+### UnifiedInferenceClient (MUST use factory)
+```python
+from sage.llm import UnifiedInferenceClient
+client = UnifiedInferenceClient.create()  # ✅ CORRECT
+response = client.chat([{"role": "user", "content": "Hello"}])
+```
+
+### Port Configuration (Use SagePorts)
+```python
+from sage.common.config.ports import SagePorts
+port = SagePorts.GATEWAY_DEFAULT  # 8888 ✅
+port = 8888  # ❌ NEVER hardcode
+```
+
+### User Paths (Use XDG)
+```python
+from sage.common.config.user_paths import get_user_paths
+paths = get_user_paths()
+log_file = paths.logs_dir / "app.log"  # ~/.local/state/sage/logs/
+```
+
+## 🔧 Common Commands
+
+| Task | Command |
+|------|---------|
+| Install | `./quickstart.sh --dev --yes` |
+| Test | `sage-dev project test --coverage` |
+| Lint | `sage-dev quality` |
+| Gateway | `sage gateway start` |
+| Engine | `sage llm engine start <model>` |
+| Clean | `make clean` |
+
+## 🐛 Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| Install hangs | Check network, `--resume` |
+| C++ build fails | Install: build-essential cmake pkg-config |
+| Detached HEAD | `./tools/maintenance/sage-maintenance.sh submodule switch` |
+| Import errors | Use `--dev` install |
+| Pre-commit fails | `sage-dev quality` |
+
+## 📚 Documentation
+
+- **Full Instructions**: `.github/copilot-instructions.md`
+- **Architecture**: `docs-public/docs_src/dev-notes/package-architecture.md`
+- **Contributing**: `CONTRIBUTING.md` (CN), `DEVELOPER.md` (EN)
+- **Dev Notes**: `docs-public/docs_src/dev-notes/l{1-6}-*/`
+
+## 🎯 Remember
+
+1. **Read docs first** - Don't guess
+2. **Use Control Plane** - No direct LLM ops
+3. **No fallbacks** - Fail fast, fail loud
+4. **Unified deps** - Check dependencies-spec.yaml
+5. **Factory patterns** - UnifiedInferenceClient.create()
+
+**📖 For detailed rules, examples, and workflows, see [.github/copilot-instructions.md](copilot-instructions.md)**

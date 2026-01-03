@@ -18,6 +18,9 @@ def start(
     port: int | None = typer.Option(None, "--port", "-p", help="指定端口"),
     host: str = typer.Option("localhost", "--host", "-h", help="指定主机"),
     dev: bool = typer.Option(True, "--dev/--prod", help="开发模式（默认）或生产模式"),
+    gateway_port: int | None = typer.Option(
+        None, "--gateway-port", help="指定 Gateway 端口（默认 8889，若被占用将自动切到 8899）"
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="自动确认所有提示（用于 CI/CD 或脚本）"),
     no_gateway: bool = typer.Option(False, "--no-gateway", help="不自动启动 Gateway"),
     no_auto_install: bool = typer.Option(
@@ -113,11 +116,30 @@ def start(
         # 先检查是否已经在运行
         running_pid = studio_manager.is_running()
         if running_pid:
-            config = studio_manager.load_config()
-            url = f"http://{config['host']}:{config['port']}"
-            console.print(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
-            console.print(f"[blue]🌐 访问地址: {url}[/blue]")
-            return
+            # Check for orphan process (PID -1)
+            if running_pid == -1:
+                if yes:
+                    console.print("[yellow]⚠️  检测到端口占用 (PID: -1)，尝试强制清理...[/yellow]")
+                    # Use the internal method _kill_process_on_port
+                    # We need to know the port. If port arg is None, use config or default.
+                    target_port = port or studio_manager.load_config().get(
+                        "port", studio_manager.default_port
+                    )
+                    studio_manager._kill_process_on_port(target_port)
+                    # Re-check
+                    if studio_manager.is_running():
+                        console.print("[red]❌ 无法清理端口占用，请手动检查[/red]")
+                        raise typer.Exit(code=1)
+                else:
+                    console.print("[yellow]⚠️  检测到端口占用 (PID: -1)[/yellow]")
+                    console.print("[dim]   请运行 'sage studio stop' 或手动清理端口[/dim]")
+                    raise typer.Exit(code=1)
+            else:
+                config = studio_manager.load_config()
+                url = f"http://{config['host']}:{config['port']}"
+                console.print(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
+                console.print(f"[blue]🌐 访问地址: {url}[/blue]")
+                return
 
         # Start Studio with ChatModeManager (includes Gateway + LLM by default)
         # Pass llm=None to allow auto-detection (if no_llm is False)
@@ -131,6 +153,7 @@ def start(
             use_finetuned=use_finetuned,
             skip_confirm=yes,
             no_embedding=no_embedding,
+            gateway_port=gateway_port,
         )
 
         if success:
@@ -144,20 +167,25 @@ def start(
             console.print("  • 使用 'sage studio stop' 停止服务")
         else:
             console.print("[red]❌ Studio 启动失败[/red]")
+            raise typer.Exit(code=1)
     except Exception as e:
         console.print(f"[red]❌ 启动失败: {e}[/red]")
+        raise typer.Exit(code=1)
 
 
 @app.command()
-def stop():
-    """停止 SAGE Studio（包括 Gateway 和 LLM 服务）
+def stop(
+    all: bool = typer.Option(False, "--all", help="同时停止 LLM 和 Embedding 基础设施服务"),
+):
+    """停止 SAGE Studio（默认保留 LLM/Embedding 服务）
 
-    默认会停止所有服务（前端、Gateway、LLM）。
+    默认只停止 Studio 前端和 Gateway。
+    使用 --all 选项可同时停止 LLM 和 Embedding 服务。
     """
     console.print("[blue]🛑 停止 SAGE Studio...[/blue]")
 
     try:
-        success = studio_manager.stop()
+        success = studio_manager.stop(stop_infrastructure=all)
 
         if success:
             console.print("[green]✅ Studio 已停止[/green]")

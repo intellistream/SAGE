@@ -12,7 +12,7 @@ from sage.libs.integrations.huggingface import HFClient
 
 class OpenAIGenerator(MapOperator):
     """
-    生成节点：调用 OpenAI-Compatible / VLLM / DashScope 等端点。
+    生成节点：调用 OpenAI-Compatible / VLLM 等端点。
 
     调用方式::
         sub_conf = config["generator"]["vllm"]   # <- 单端点子配置
@@ -37,13 +37,8 @@ class OpenAIGenerator(MapOperator):
         self.enable_profile = enable_profile
 
         # 实例化模型
-        # API key 优先级: 配置文件 > OPENAI_API_KEY > ALIBABA_API_KEY > DASHSCOPE_API_KEY
-        api_key = (
-            self.config.get("api_key")
-            or os.getenv("OPENAI_API_KEY")
-            or os.getenv("ALIBABA_API_KEY")
-            or os.getenv("DASHSCOPE_API_KEY")
-        )
+        # API key 优先级: 配置文件 > OPENAI_API_KEY
+        api_key = self.config.get("api_key") or os.getenv("OPENAI_API_KEY")
 
         # 获取必需的配置参数（使用 .get() 提供默认值）
         model_name = self.config.get("model_name") or self.config.get("model", "gpt-3.5-turbo")

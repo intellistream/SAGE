@@ -1,0 +1,105 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.8.0",
+    "pybind11>=2.10.0",
+    "setuptools>=64",
+    "wheel",
+    # Note: torch is NOT in build-system.requires because it's too large
+    # Build this package in an environment where torch is already installed
+    # The wheel will be pre-compiled and platform-specific
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "isage-libamm"
+version = "0.1.1"
+description = "LibAMM: Approximate Matrix Multiplication Library with NumPy interface"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
+]
+keywords = [
+    "approximate matrix multiplication",
+    "amm",
+    "numpy",
+    "pytorch",
+    "high-performance computing",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# Runtime dependencies
+dependencies = [
+    "numpy>=1.20.0",           # NumPy interface for Python users
+    "torch>=2.0.0",            # Required by LibAMM internally (DO NOT REMOVE)
+    "pybind11>=2.10.0",        # Python bindings
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/LibAMM"
+Repository = "https://github.com/intellistream/LibAMM.git"
+"Bug Tracker" = "https://github.com/intellistream/LibAMM/issues"
+
+# ============================================================================
+# scikit-build-core Configuration
+# ============================================================================
+[tool.scikit-build]
+# CMake 配置
+cmake.version = ">=3.10"
+cmake.build-type = "Release"
+cmake.verbose = true
+logging.level = "INFO"
+
+# CMake 参数 - 禁用 PAPI 以避免第三方库的 Python 绑定问题
+cmake.args = [
+    "-DENABLE_PYBIND=ON",
+    "-DENABLE_PAPI=OFF",        # 禁用 PAPI（避免第三方 Python 代码编译问题）
+    "-DENABLE_HDF5=OFF",        # 简化构建
+    "-DUSE_CUDA=OFF",           # 不直接编译 CUDA 代码（通过 PyTorch 使用 GPU）
+]
+
+# Wheel 配置
+wheel.expand-macos-universal-tags = true
+wheel.py-api = "py3"
+
+# 排除第三方库的 Python 文件（避免编译错误）
+wheel.exclude = [
+    "thirdparty/*/python/**",
+    "thirdparty/papi_*/python/**",
+    "thirdparty/papi_*/src/*/python/**",
+]
+
+# 严格配置验证
+strict-config = false
+
+# 安装配置
+install.components = ["python", "headers"]
+
+# 开发模式配置
+[tool.scikit-build.editable]
+mode = "redirect"
+verbose = true
+
+# ============================================================================
+# Code Quality Configuration
+# ============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py", "*_test.py"]

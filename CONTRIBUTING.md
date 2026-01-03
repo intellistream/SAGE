@@ -16,7 +16,7 @@
 - **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
   `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
-- **[docs/dev-notes/](docs/dev-notes/)** - 开发笔记和修复总结
+- **[docs-public/docs_src/dev-notes/](docs-public/docs_src/dev-notes/)** - 开发笔记和修复总结
 
 **快速开始开发**:
 
@@ -116,9 +116,6 @@ bash tools/tests/run_examples_tests.sh
 # 运行全部 pytest （如需要更广覆盖）
 pytest -vv
 
-# 只运行与 issues manager 相关测试
-pytest -k issues_manager -vv
-
 # 语法与基础静态检查（建议）
 python -m py_compile path/to/modified.py
 bash -n path/to/script.sh
@@ -208,9 +205,8 @@ revert/<hash-fragment> 回滚
 
 ### 避免子模块指针冲突
 
-本仓库目前包含多个 Git submodule（如
-`docs-public`、`packages/sage-middleware/src/sage/middleware/components/sage_db`、`packages/sage-middleware/src/sage/middleware/components/sage_flow`、`packages/sage-common/src/sage/common/components/sage_llm/sageLLM`
-等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低 submodule 指针冲突概率：
+本仓库目前包含多个 Git submodule（如 `docs-public`、`neuromem`、`sageRefiner` 等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低
+submodule 指针冲突概率：
 
 1. **先合并子仓库 PR**：针对某个子仓库的变更，务必先让它在对应的子仓库仓库内合并到 upstream，不要在主仓库引用未合并的 commit。
 1. **同步主仓库指针**：在 SAGE 仓库根目录执行 `git submodule update --remote <submodule-path>`（或使用
@@ -296,7 +292,6 @@ Reduce flakiness via timeout + category filtering.
    ```bash
    ./quickstart.sh --core --yes                # 安装/环境相关改动
    bash tools/tests/run_examples_tests.sh      # 示例 + 基础集成
-   pytest -k issues_manager -vv                # Issues 管理相关
    ```
 
 1. **集成测试**
@@ -397,7 +392,6 @@ pre-commit run --all-files
 | 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
 | 示例测试       | `bash tools/tests/run_examples_tests.sh`           | 运行示例/集成集            |
 | 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
-| Issues 测试    | `pytest -k issues_manager -vv`                     | Python 化测试              |
 | 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
 
 > 任何命令失败，请附上一行重现命令与终端输出前 50 行发至 Issue。

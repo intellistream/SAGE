@@ -29,8 +29,8 @@ _IS_TEST_MODE = (
 )
 
 try:
-    from sage.common.components.sage_llm import ControlPlaneVLLMService
     from sage.common.config.ports import SagePorts
+    from sage.llm import ControlPlaneVLLMService
 
     AVAILABLE = True
 except ImportError:

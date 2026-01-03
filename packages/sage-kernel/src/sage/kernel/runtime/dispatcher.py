@@ -9,6 +9,7 @@ from sage.kernel.fault_tolerance.factory import (
 )
 from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
+from sage.kernel.utils.helpers import wait_for_all_stopped
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
@@ -45,6 +46,10 @@ class Dispatcher:
             "heartbeat_timeout": 15.0,  # 超时阈值 (秒)
             "max_restart_attempts": 3,  # 最大重启次数
         }
+
+        # 对于 remote 环境，先确保 Ray 已初始化，这样 NodeSelector 才能获取节点信息
+        if env.platform == "remote":
+            ensure_ray_initialized()
 
         # 使用调度器和容错管理器（重构后架构）
         # 调度器：纯决策者（返回 PlacementDecision）
@@ -84,7 +89,6 @@ class Dispatcher:
             self.logger.info(f"Fault tolerance enabled: strategy={strategy}")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
-            ensure_ray_initialized()
 
     def enable_fault_tolerance(
         self,
@@ -180,9 +184,23 @@ class Dispatcher:
 
         # 停止并清理指定节点
         try:
+            # 再次检查节点是否存在（防止竞态条件：在检查后、执行前节点被其他调用删除）
+            if node_name not in self.tasks:
+                self.logger.warning(
+                    f"Node {node_name} was already removed from tasks (possible duplicate stop signal)"
+                )
+                return False
+
             task = self.tasks[node_name]
             task.stop()
             task.cleanup()
+
+            # 对于 Ray Actor，需要显式 kill 以释放资源
+            if self.remote and hasattr(task, "kill_actor"):
+                kill_success = task.kill_actor(no_restart=True)
+                self.logger.debug(
+                    f"Kill actor {node_name}: {'success' if kill_success else 'skipped/failed'}"
+                )
 
             # 从任务列表中移除
             del self.tasks[node_name]
@@ -198,6 +216,12 @@ class Dispatcher:
 
             self.logger.info(f"Node {node_name} stopped and cleaned up")
 
+        except KeyError:
+            # 节点在处理过程中被其他调用删除（竞态条件）
+            self.logger.warning(
+                f"Node {node_name} was removed during stop process (concurrent stop signals)"
+            )
+            return False
         except Exception as e:
             self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
             return False
@@ -675,23 +699,7 @@ class Dispatcher:
 
     def _wait_for_tasks_stop(self, timeout: float = 10.0):
         """等待所有任务停止"""
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            all_stopped = True
-
-            for _node_name, task in self.tasks.items():
-                if hasattr(task, "is_running") and task.is_running:
-                    all_stopped = False
-                    break
-
-            if all_stopped:
-                self.logger.debug("All tasks stopped")
-                return
-
-            time.sleep(0.1)
-
-        self.logger.warning(f"Timeout waiting for tasks to stop after {timeout}s")
+        wait_for_all_stopped(self.tasks, timeout=timeout, logger=self.logger)
 
     def cleanup(self):
         """清理所有资源"""
@@ -702,12 +710,22 @@ class Dispatcher:
             if self.is_running:
                 self.stop()
 
+            self.logger.info(
+                f"Cleanup: remote={self.remote}, tasks={len(self.tasks)}, services={len(self.services)}"
+            )
+
             if self.remote:
                 # 使用生命周期管理器清理所有Ray资源
                 # 明确禁止 Ray Actor 重启，确保完全清理
-                self.lifecycle_manager.cleanup_all(
+                self.logger.info("Using lifecycle_manager to cleanup Ray actors...")
+                results = self.lifecycle_manager.cleanup_all(
                     tasks=self.tasks, services=self.services, cleanup_timeout=5.0, no_restart=True
                 )
+                # 记录清理结果
+                for task_id, (cleanup_ok, kill_ok) in results.items():
+                    self.logger.info(
+                        f"  Cleanup result for {task_id}: cleanup={cleanup_ok}, kill={kill_ok}"
+                    )
             else:
                 # 清理本地任务（使用列表副本避免迭代时字典大小改变）
                 for node_name, task in list(self.tasks.items()):

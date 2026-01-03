@@ -421,18 +421,12 @@ setup(
     def build_wheel(
         self,
         compiled_path: Path | None = None,
-        upload: bool = False,
-        dry_run: bool = True,
-        repository: str = "pypi",
     ) -> Path:
         """
         构建wheel包
 
         Args:
             compiled_path: 已编译的包路径，如果未提供则使用self.compiled_path
-            upload: 是否上传到PyPI
-            dry_run: 是否为预演模式
-            repository: 上传目标仓库 ('pypi' 或 'testpypi')
 
         Returns:
             wheel文件路径
@@ -483,14 +477,6 @@ setup(
 
                 # 验证wheel内容
                 self._verify_wheel_contents(wheel_file)
-
-                # 如果需要上传
-                if upload and not dry_run:
-                    # 传递 dist 目录的绝对路径
-                    dist_dir = Path("dist").resolve()
-                    self._upload_to_pypi(repository=repository, dist_dir=dist_dir)
-                elif upload and dry_run:
-                    console.print("  🔍 预演模式：跳过上传", style="yellow")
 
                 # 返回绝对路径
                 return wheel_file.resolve()
@@ -566,63 +552,6 @@ setup(
         except Exception as e:
             console.print(f"    ❌ 验证wheel内容失败: {e}", style="red")
 
-    def _upload_to_pypi(self, repository: str = "pypi", dist_dir: Path | None = None) -> bool:
-        """
-        上传到PyPI或TestPyPI
-
-        Args:
-            repository: 上传目标 ('pypi' 或 'testpypi')
-            dist_dir: dist 目录的绝对路径，如果为 None 则使用当前目录的 dist
-        """
-        repo_name = "TestPyPI" if repository == "testpypi" else "PyPI"
-        console.print(f"  🚀 上传到{repo_name}...", style="cyan")
-
-        try:
-            # 找到所有 wheel 文件
-            import glob
-
-            if dist_dir:
-                wheel_pattern = str(dist_dir / "*.whl")
-            else:
-                wheel_pattern = "dist/*.whl"
-
-            wheel_files = glob.glob(wheel_pattern)
-
-            if not wheel_files:
-                console.print(f"  ❌ 未找到 wheel 文件 (搜索路径: {wheel_pattern})", style="red")
-                return False
-
-            cmd = ["twine", "upload", "--skip-existing"]
-
-            # 添加仓库参数
-            if repository == "testpypi":
-                cmd.extend(["--repository", "testpypi"])
-
-            # 添加所有 wheel 文件
-            cmd.extend(wheel_files)
-
-            upload_result = subprocess.run(cmd, capture_output=True, text=True)
-
-            if upload_result.returncode == 0:
-                console.print(f"  ✅ 上传到{repo_name}成功", style="green")
-                # 显示链接
-                if upload_result.stdout:
-                    for line in upload_result.stdout.split("\n"):
-                        if "View at:" in line or ("https://" in line and "pypi.org" in line):
-                            console.print(f"    🔗 {line.strip()}", style="cyan")
-                return True
-            else:
-                error_msg = upload_result.stderr.strip() if upload_result.stderr else "未知错误"
-                console.print(f"  ❌ 上传到{repo_name}失败: {error_msg[:200]}", style="red")
-                return False
-
-        except FileNotFoundError:
-            console.print("  ❌ 未找到twine工具，请先安装: pip install twine", style="red")
-            return False
-        except Exception as e:
-            console.print(f"  💥 上传异常: {e}", style="red")
-            return False
-
     def cleanup_temp_dir(self):
         """清理临时目录"""
         if self.temp_dir and self.temp_dir.exists():
@@ -637,8 +566,6 @@ def compile_multiple_packages(
     package_paths: list[Path],
     output_dir: Path | None = None,
     build_wheels: bool = False,
-    upload: bool = False,
-    dry_run: bool = True,
     use_sage_home: bool = True,
     create_symlink: bool = True,
 ) -> dict[str, bool]:
@@ -648,9 +575,7 @@ def compile_multiple_packages(
     Args:
         package_paths: 包路径列表
         output_dir: 输出目录
-        build_wheels: 是否构建wheel包
-        upload: 是否上传到PyPI
-        dry_run: 是否为预演模式
+    build_wheels: 是否构建wheel包
         use_sage_home: 是否使用SAGE home目录
         create_symlink: 是否创建软链接
 
@@ -677,8 +602,8 @@ def compile_multiple_packages(
 
             # 构建wheel（如果需要）
             if build_wheels:
-                success = compiler.build_wheel(upload=upload, dry_run=dry_run)
-                results[package_path.name] = success
+                compiler.build_wheel()
+                results[package_path.name] = True
             else:
                 results[package_path.name] = True
 

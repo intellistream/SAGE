@@ -8,6 +8,17 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/output_formatter.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/system_deps.sh"
 
 # ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+SAGE_AUTO_CONFIRM="${SAGE_AUTO_CONFIRM:-}"
+SAGE_INSTALL_LOG="${SAGE_INSTALL_LOG:-$(pwd)/.sage/logs/install.log}"
+SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-}"
+# ============================================================================
 # 预检查（静默检查，用于决定输出格式）
 # ============================================================================
 
@@ -17,7 +28,7 @@ pre_check_system_environment() {
     detect_vscode_offset_requirement
 
     # 如果用户设置了自定义偏移
-    if [ -n "${SAGE_CUSTOM_OFFSET}" ]; then
+    if [ -n "${SAGE_CUSTOM_OFFSET:-}" ]; then
         set_custom_offset "$SAGE_CUSTOM_OFFSET"
     fi
 }
@@ -288,7 +299,7 @@ comprehensive_system_check() {
     log_info "检查环境: $environment" "CHECK"
 
     # 如果启用了偏移，显示调试信息
-    if [ "${SAGE_DEBUG_OFFSET}" = "true" ]; then
+    if [ "${SAGE_DEBUG_OFFSET:-}" = "true" ]; then
         show_offset_status
     fi
 

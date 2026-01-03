@@ -6,6 +6,7 @@ agent runtimes without wiring boilerplate.
 """
 
 from .planning_operator import PlanningOperator
+from .refined_searcher import RefinedSearcherOperator
 from .runtime import AgentRuntimeOperator
 from .timing_operator import TimingOperator
 from .tool_selection_operator import ToolSelectionOperator
@@ -15,4 +16,5 @@ __all__ = [
     "ToolSelectionOperator",
     "PlanningOperator",
     "TimingOperator",
+    "RefinedSearcherOperator",
 ]

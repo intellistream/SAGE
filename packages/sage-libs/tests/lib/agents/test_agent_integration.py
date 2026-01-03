@@ -24,9 +24,9 @@ except ImportError:
 
 try:
     from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-    from sage.libs.agentic.agents.planning.llm_planner import LLMPlanner
+    from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
     from sage.libs.agentic.agents.profile.profile import BaseProfile
-    from sage.libs.agentic.agents.runtime.agent import AgentRuntime
+    from sage.middleware.agent.runtime import AgentRuntime
 
     SAGE_COMPONENTS_AVAILABLE = True
 except ImportError:
@@ -182,7 +182,7 @@ class TestAgentWorkflowIntegration:
             )
 
             generator = self.create_mock_generator()
-            planner = LLMPlanner(generator=generator, max_steps=5)
+            planner = SimpleLLMPlanner(generator=generator, max_steps=5)
 
             registry = MCPRegistry()
             arxiv_tool = self.create_mock_arxiv_tool()
@@ -213,11 +213,14 @@ class TestAgentWorkflowIntegration:
                 query = query_obj["query"]
                 response = runtime.execute({"query": query})
                 assert response is not None
-                assert isinstance(response, str)
+                # AgentRuntime.execute() returns a dict with 'reply', 'observations', 'plan'
+                assert isinstance(response, dict)
+                reply = response.get("reply", "")
+                assert isinstance(reply, str)
 
                 if "arxiv" in query.lower():
                     # Should mention finding papers
-                    assert "论文" in response or "paper" in response.lower()
+                    assert "论文" in reply or "paper" in reply.lower()
 
         finally:
             os.unlink(temp_path)
@@ -258,7 +261,7 @@ class TestAgentWorkflowIntegration:
 
         # Set up components
         profile = BaseProfile(language="zh")
-        planner = LLMPlanner(generator=mock_generator)
+        planner = SimpleLLMPlanner(generator=mock_generator)
 
         registry = MCPRegistry()
         registry.register(mock_tool)
@@ -267,7 +270,9 @@ class TestAgentWorkflowIntegration:
 
         # Execute and verify tool was called
         response = runtime.execute({"query": "使用测试工具"})
-        assert "工具调用完成" in response
+        # AgentRuntime.execute() returns a dict with 'reply', 'observations', 'plan'
+        assert isinstance(response, dict)
+        assert "工具调用完成" in response["reply"]
 
     @pytest.mark.skipif(not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available")
     def test_agent_error_handling(self):
@@ -304,7 +309,7 @@ class TestAgentWorkflowIntegration:
         mock_generator.execute = failing_generator
 
         profile = BaseProfile(language="zh")
-        planner = LLMPlanner(generator=mock_generator)
+        planner = SimpleLLMPlanner(generator=mock_generator)
 
         registry = MCPRegistry()
         registry.register(failing_tool)
@@ -314,8 +319,10 @@ class TestAgentWorkflowIntegration:
         # Should handle the error gracefully
         response = runtime.execute({"query": "使用会失败的工具"})
         assert response is not None
+        # AgentRuntime.execute() returns a dict with 'reply', 'observations', 'plan'
         # Should contain some error indication or fallback response
-        assert isinstance(response, str)
+        assert isinstance(response, dict)
+        assert "reply" in response
 
     @pytest.mark.skipif(not SAGE_COMPONENTS_AVAILABLE, reason="SAGE components not available")
     def test_message_format_consistency(self):
@@ -347,7 +354,7 @@ class TestAgentWorkflowIntegration:
         message_validator.execute = validate_and_respond
 
         profile = BaseProfile(language="zh")
-        planner = LLMPlanner(generator=message_validator)
+        planner = SimpleLLMPlanner(generator=message_validator)
         registry = MCPRegistry()
 
         runtime = AgentRuntime(
@@ -359,7 +366,9 @@ class TestAgentWorkflowIntegration:
 
         # Should not raise any assertion errors
         response = runtime.execute({"query": "测试消息格式"})
-        assert "消息格式验证通过" in response
+        # AgentRuntime.execute() returns a dict with 'reply', 'observations', 'plan'
+        assert isinstance(response, dict)
+        assert "消息格式验证通过" in response["reply"]
 
     def test_test_mode_compatibility(self):
         """Test that the agent examples work in test mode."""

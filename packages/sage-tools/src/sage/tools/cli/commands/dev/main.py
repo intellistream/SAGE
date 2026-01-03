@@ -19,16 +19,12 @@ from sage.cli.utils.diagnostics import (
 console = Console()
 app = typer.Typer(help="SAGE 开发工具集")
 
-# 添加Issues管理子命令
-try:
-    from sage.tools.dev.issues.cli import app as issues_app
-
-    app.add_typer(issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理")
-except ImportError as e:
-    console.print(f"[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
+# 注意: Issues管理功能已独立为 sage-github-manager 项目
+# 安装: pip install sage-github-manager
+# 使用: github-manager <command>
 
 # 注意: PyPI 管理已整合到 package 命令组
-# 使用: sage-dev package pypi <command>
+# 说明: pypi 子命令已移除，改用独立工具 sage-pypi-publisher
 
 # 删除：CI 子命令（已由 GitHub Workflows 承担 CI/CD）
 # 过去这里会 add_typer(ci_app, name="ci", ...)
@@ -828,7 +824,6 @@ def test(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式"),
     report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
     diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
-    issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
     # 覆盖率选项
     coverage: bool = typer.Option(False, "--coverage", help="启用测试覆盖率分析"),
     coverage_report: str = typer.Option(
@@ -961,13 +956,6 @@ def test(
             debug_log("运行诊断模式", "DIAGNOSE")
             console.print(Rule("[bold cyan]🔍 运行诊断模式...[/bold cyan]"))
             run_installation_diagnostics(project_path, console=console)
-            return
-
-        # Issues Manager 测试
-        if issues_manager:
-            debug_log("运行 Issues Manager 测试", "ISSUES")
-            console.print(Rule("[bold cyan]🔍 运行 Issues Manager 测试...[/bold cyan]"))
-            _run_issues_manager_test(str(project_path), verbose)
             return
 
         debug_log("创建 EnhancedTestRunner", "RUNNER")
@@ -1500,24 +1488,10 @@ def _run_diagnose_mode(project_root: str):
     run_installation_diagnostics(project_root, console=console)
 
 
-def _run_issues_manager_test(project_root: str, verbose: bool):
-    """运行 Issues Manager 测试"""
-    try:
-        console.print("🔧 运行 Issues Manager 测试...")
-
-        # 导入并运行新的Python测试模块
-        from sage.tools.dev.issues.tests import IssuesTestSuite
-
-        test_suite = IssuesTestSuite()
-        success = test_suite.run_all_tests()
-
-        if success:
-            console.print("✅ Issues Manager 测试通过")
-        else:
-            console.print("❌ Issues Manager 测试失败")
-
-    except Exception as e:
-        console.print(f"[red]Issues Manager 测试失败: {e}[/red]")
+# Note: Issues Manager tests have been removed as the functionality
+# is now in the separate sage-github-manager package
+# Install: pip install sage-github-manager
+# Use: github-manager test
 
 
 def _run_quick_tests(runner, config: dict, quiet: bool):

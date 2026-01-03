@@ -49,6 +49,11 @@ systems through declarative dataflow abstractions.
 
 ## Why Choose SAGE?
 
+## Project Team & Collaboration
+
+See `docs-public/docs_src/dev-notes/cross-layer/team-management.md` for the current team
+coordination entrypoint (team management + incubation policy).
+
 **Production-Ready**: Built for enterprise-scale applications with distributed processing, fault
 tolerance, and comprehensive monitoring out of the box.
 
@@ -132,7 +137,7 @@ layers:
 
 ```
 L6: sage-studio, sage-cli, sage-tools    # User Interfaces & Dev Tools
-L5: sage-apps, sage-benchmark             # Applications & Benchmarks
+L5: sage-apps                             # Applications
 L4: sage-middleware, sage-gateway         # Domain Operators & API Gateway
 L3: sage-kernel, sage-libs                # Core Engine & Algorithm Library
 L2: sage-platform                         # Platform Services (Queue, Storage)
@@ -160,10 +165,12 @@ Detailed package descriptions, dependency rules, and design principles
 - **sage-middleware** (L4): Domain operators and middleware components
 - **sage-gateway** (L4): API gateway and service mesh
 - **sage-apps** (L5): Pre-built applications (video, medical diagnosis)
-- **sage-benchmark** (L5): Performance benchmarks and examples
 - **sage-studio** (L6): Web-based visualization interface
 - **sage-cli** (L6): Unified command-line interface
 - **sage-tools** (L6): Development tools and testing framework
+
+**Note**: sage-benchmark has been separated into an independent repository:
+https://github.com/intellistream/sage-benchmark
 
 ### Production Features
 
@@ -180,6 +187,13 @@ Detailed package descriptions, dependency rules, and design principles
 git clone https://github.com/intellistream/SAGE.git && cd SAGE
 ./quickstart.sh --dev --yes    # Interactive mode: ./quickstart.sh
 ```
+
+⚡ **Auto-Acceleration**: Network optimization is now **enabled by default**:
+
+- 🌐 Auto-detects network location (China mainland → mirror sources)
+- 🚀 Parallel downloads (8 threads) + pre-compiled packages
+- ⏱️ **3-5x faster** installation: 12-18 min (vs 35-45 min)
+- 🔧 Disable: `./quickstart.sh --no-mirror --dev --yes`
 
 **PyPI Install**
 
@@ -198,7 +212,8 @@ sage doctor                    # Check installation
 ```
 
 📖 **Detailed guides**: [Installation Guide](docs/INSTALLATION_GUIDE.md) |
-[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md)
+[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md) |
+[Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ## Environment Configuration
 

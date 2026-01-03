@@ -4,11 +4,15 @@ This module provides a VectorStore adapter for SageDB, enabling it to be used
 with the unified IndexBuilder interface.
 
 Layer: L4 (sage-middleware)
-Dependencies: sage.middleware.operators.rag.index_builder (L4), sage.middleware.components.sage_db (L4)
+Dependencies: isagedb (PyPI package)
+
+SageDB is now an independent PyPI package. Install with: pip install isagedb
 """
 
 from pathlib import Path
 from typing import Any
+
+from sagedb import SageDB
 
 
 class SageDBBackend:
@@ -19,7 +23,7 @@ class SageDBBackend:
 
     Architecture:
         - Implements VectorStore Protocol from L3 (sage-libs)
-        - Uses SageDB from L4 (sage-middleware/components/sage_db)
+        - Uses SageDB from isagedb (PyPI package)
         - Injected into IndexBuilder by L6 (sage-cli)
 
     Example:
@@ -39,8 +43,6 @@ class SageDBBackend:
             persist_path: Path where index will be saved
             dim: Vector dimension
         """
-        from sage.middleware.components.sage_db.python.sage_db import SageDB
-
         self.db = SageDB(dim)
         self.persist_path = persist_path
         self.dim = dim

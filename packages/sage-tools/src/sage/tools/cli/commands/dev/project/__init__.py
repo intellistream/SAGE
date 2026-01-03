@@ -84,7 +84,6 @@ def project_test(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="静默模式"),
     report_file: str = typer.Option("", "--report", help="测试报告输出文件路径"),
     diagnose: bool = typer.Option(False, "--diagnose", help="运行诊断模式"),
-    issues_manager: bool = typer.Option(False, "--issues-manager", help="包含 issues manager 测试"),
     coverage: bool = typer.Option(False, "--coverage", help="启用测试覆盖率分析"),
     coverage_report: str = typer.Option(
         "term,html,xml", "--coverage-report", help="覆盖率报告格式 (逗号分隔)"
@@ -121,7 +120,6 @@ def project_test(
         quiet=quiet,
         report_file=report_file,
         diagnose=diagnose,
-        issues_manager=issues_manager,
         coverage=coverage,
         coverage_report=coverage_report,
         skip_quality_check=skip_quality_check,

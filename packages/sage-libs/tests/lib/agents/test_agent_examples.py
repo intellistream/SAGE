@@ -423,7 +423,9 @@ if __name__ == "__main__":
                             # Mock all components to avoid external dependencies
                             with patch("examples.tutorials.agents.basic_agent.BaseProfile"):
                                 with patch("examples.tutorials.agents.basic_agent.OpenAIGenerator"):
-                                    with patch("examples.tutorials.agents.basic_agent.LLMPlanner"):
+                                    with patch(
+                                        "examples.tutorials.agents.basic_agent.SimplePlanner"
+                                    ):
                                         with patch(
                                             "examples.tutorials.agents.basic_agent.MCPRegistry"
                                         ) as mock_registry:

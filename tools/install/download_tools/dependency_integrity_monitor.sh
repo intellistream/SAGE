@@ -2,6 +2,25 @@
 # 🔍 依赖完整性监控 - CICD 入口脚本
 # 检测 pip 安装过程中是否从 PyPI 下载了本地包
 
+
+# ============================================================================
+# 环境变量安全默认值（防止 set -u 报错）
+# ============================================================================
+CI="${CI:-}"
+GITHUB_ACTIONS="${GITHUB_ACTIONS:-}"
+GITLAB_CI="${GITLAB_CI:-}"
+JENKINS_URL="${JENKINS_URL:-}"
+BUILDKITE="${BUILDKITE:-}"
+VIRTUAL_ENV="${VIRTUAL_ENV:-}"
+CONDA_DEFAULT_ENV="${CONDA_DEFAULT_ENV:-}"
+SAGE_FORCE_CHINA_MIRROR="${SAGE_FORCE_CHINA_MIRROR:-}"
+SAGE_DEBUG_OFFSET="${SAGE_DEBUG_OFFSET:-}"
+SAGE_CUSTOM_OFFSET="${SAGE_CUSTOM_OFFSET:-}"
+LANG="${LANG:-en_US.UTF-8}"
+LC_ALL="${LC_ALL:-${LANG}}"
+LC_CTYPE="${LC_CTYPE:-${LANG}}"
+# ============================================================================
+
 set -euo pipefail
 
 # 获取脚本所在目录
@@ -28,7 +47,7 @@ echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"
 echo ""
 echo -e "${BLUE}🐛 DEBUG - 检查环境信息：${NC}"
 echo "   工作目录: $PWD"
-echo "   SAGE 根目录: $SAGE_ROOT"
+echo "   SAGE 根目录: ${SAGE_ROOT:-}"
 echo "   当前用户: $(whoami)"
 echo "   Python 版本: $(python3 --version 2>&1 || echo 'N/A')"
 echo "   Pip 版本: $(pip3 --version 2>&1 || echo 'N/A')"
@@ -39,20 +58,20 @@ echo "   Git 提交: $(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
 echo ""
 
 # 确定要检查的日志文件
-LOG_FILE="$SAGE_ROOT/.sage/logs/install.log"
+LOG_FILE="${SAGE_ROOT:-}/.sage/logs/install.log"
 
 if [ ! -f "$LOG_FILE" ]; then
     # 尝试使用 CI 安装日志
-    if [ -f "$SAGE_ROOT/.sage/logs/ci_install.log" ]; then
-        LOG_FILE="$SAGE_ROOT/.sage/logs/ci_install.log"
+    if [ -f "${SAGE_ROOT:-}/.sage/logs/ci_install.log" ]; then
+        LOG_FILE="${SAGE_ROOT:-}/.sage/logs/ci_install.log"
         echo -e "${YELLOW}⚠️  使用 CI 安装日志：$LOG_FILE${NC}"
     else
         echo -e "${RED}❌ 找不到安装日志文件${NC}"
-        echo "   预期位置: $SAGE_ROOT/.sage/logs/install.log"
-        echo "   备用位置: $SAGE_ROOT/.sage/logs/ci_install.log"
+        echo "   预期位置: ${SAGE_ROOT:-}/.sage/logs/install.log"
+        echo "   备用位置: ${SAGE_ROOT:-}/.sage/logs/ci_install.log"
         echo ""
         echo -e "${BLUE}🐛 DEBUG - 日志目录内容：${NC}"
-        ls -lah "$SAGE_ROOT/.sage/logs/" 2>&1 || echo "   目录不存在"
+        ls -lah "${SAGE_ROOT:-}/.sage/logs/" 2>&1 || echo "   目录不存在"
         exit 1
     fi
 fi
@@ -65,7 +84,7 @@ echo "   最后修改: $(stat -c '%y' "$LOG_FILE" 2>/dev/null || stat -f '%Sm' "
 echo ""
 
 # 调用 pip 安装监控器
-MONITOR_SCRIPT="$SAGE_ROOT/tools/install/installation_table/pip_install_monitor.sh"
+MONITOR_SCRIPT="${SAGE_ROOT:-}/tools/install/installation_table/pip_install_monitor.sh"
 
 if [ ! -f "$MONITOR_SCRIPT" ]; then
     echo -e "${RED}❌ 监控脚本不存在：$MONITOR_SCRIPT${NC}"

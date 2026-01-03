@@ -1,3 +1,0 @@
-key,value,type
-instruction,PAPI_TOT_INS,String
-cpuCycle,PAPI_TOT_CYC,String
