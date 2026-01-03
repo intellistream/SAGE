@@ -24,7 +24,7 @@ app = typer.Typer(help="SAGE 开发工具集")
 # 使用: github-manager <command>
 
 # 注意: PyPI 管理已整合到 package 命令组
-# 使用: sage-dev package pypi <command>
+# 说明: pypi 子命令已移除，改用独立工具 sage-pypi-publisher
 
 # 删除：CI 子命令（已由 GitHub Workflows 承担 CI/CD）
 # 过去这里会 add_typer(ci_app, name="ci", ...)

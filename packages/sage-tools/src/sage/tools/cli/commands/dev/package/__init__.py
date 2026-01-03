@@ -15,14 +15,7 @@ app = typer.Typer(
 
 console = Console()
 
-# 导入 pypi 和 version 命令组
-try:
-    from .pypi import app as pypi_app
-
-    app.add_typer(pypi_app, name="pypi")
-except ImportError as e:
-    console.print(f"[yellow]警告: 无法导入 pypi 命令: {e}[/yellow]")
-
+# 仅保留 version 命令组；原 pypi 命令已移至独立仓库
 try:
     from ..package_version import app as version_app
 
