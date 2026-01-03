@@ -63,6 +63,7 @@ dependencies = [
     "tokenizers>=0.21.0,<0.24.0",  # 兼容 transformers 4.52-4.57
     "faiss-cpu>=1.7.0,<2.0.0",
     "isagedb>=0.1.0",  # SageDB vector database (independent PyPI package)
+    "isage-tsdb>=0.1.0",  # SageTSDB time series database (independent PyPI package)
     "bm25s>=0.2.13,<1.0.0",
     "rank-bm25>=0.2.0,<1.0.0",
     "PyStemmer>=3.0.0,<4.0.0",
