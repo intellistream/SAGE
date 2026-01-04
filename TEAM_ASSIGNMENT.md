@@ -13,20 +13,26 @@
 
 > **资助信息**：国家自然科学基金优秀青年科学基金项目
 
-| 姓名        | SAGE 归属 package/submodule                            | 备注      |
-| ----------- | ------------------------------------------------------ | --------- |
-| 王子澳      | `sage-middleware` → `sageFlow`（向量流）               | 24 届硕士 |
-| 朱鑫材      | `sage-middleware` → `sageFlow`（向量流）               | 25 届硕士 |
-| 陈德斌      | `sage-middleware` → `sageTSDB`（时序数据库）           | 26 届硕士 |
-| 高鸿儒      | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化）  | 20 届博士 |
-| Xinyi Li    | `sage-benchmark` → 大模型记忆细粒度基准（数据集/评测） |           |
-| Yutong Zhou | `sage-libs` → 时序敏感 RAG                             |           |
-| Yuyue Guo   | `sage-libs` → 智能体工具规划                           |           |
+| 姓名        | SAGE 归属 package/submodule                           | 备注      |
+| ----------- | ----------------------------------------------------- | --------- |
+| 王子澳      | `sage-middleware` → `sageFlow`（向量流）              | 24 届硕士 |
+| 朱鑫材      | `sage-middleware` → `sageFlow`（向量流）              | 25 届硕士 |
+| 陈德斌      | `sage-middleware` → `sageTSDB`（时序数据库）          | 26 届硕士 |
+| 高鸿儒      | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化） | 20 届博士 |
+| Yutong Zhou | `sage-libs` → 时序敏感 RAG                            |           |
+| Yuyue Guo   | `sage-libs` → 智能体工具规划                          |           |
 
 > **说明**：
 >
 > - 上述同学如同时参与 sageLLM/NeuroMem 项目，请在对应表中补充
 > - 其余未列入的成员/贡献者，默认归属 SAGE 主项目，按 issue/PR 协作
+>
+> **重点子项目**：
+>
+> - **sageFlow**（`intellistream/sageFlow`）：向量流处理引擎，已独立为 PyPI 包（`isage-flow`）
+>   - 主要贡献者：王子澳（24 届硕士）、朱鑫材（25 届硕士）
+>   - 项目状态：计划以 sageFlow 为主体申请 2026 年国家自然科学基金面上项目
+>   - 研究方向：向量原生流处理、增量语义状态快照、流式向量操作
 
 ## sageLLM 项目（推理引擎方向）
 
@@ -40,15 +46,15 @@
 | -------- | -------------------------------------- | --------------------- |
 | 程序员 A | Task0 协作 + Task1 通信层（1.1-1.5）   | 全职（Q1 入职，3 年） |
 | 程序员 B | Task0 协作 + Task2/Task3 调度与加速层  | 全职（Q1 入职，3 年） |
+| 杨锦昀   | 1.4 计算通信重叠                       | 24 届硕士             |
 | 王明琪   | 2.1 前缀复用                           | 25 届硕士             |
 | 高西岭   | 2.1 前缀复用（协作）                   | 26 届硕士             |
 | 刘沛林   | 2.2 KV 池化与分层                      | 26 届硕士             |
 | 陈彦博   | 2.2 KV 池化与分层（协作：KV 压缩路径） | 25 届硕士             |
 | 张睿诚   | 2.3 淘汰策略                           | 24 届硕士             |
+| 刘俊     | 2.4 调度 IR                            | 25 届博士             |
 | 徐天翊   | 2.5 生命周期预测                       | 26 届硕士             |
 | 张澹潇   | 3.2 稀疏化                             | 26 届硕士             |
-| 杨锦昀   | 1.4 计算通信重叠                       | 24 届硕士             |
-| 刘俊     | 2.4 调度 IR                            | 25 届博士             |
 | 张森磊   | 3.3 投机解码                           | 25 届硕士             |
 | 李昶吾   | 3.5 CoT 加速                           | 25 届博士             |
 
@@ -64,10 +70,9 @@
 | 姓名   | NeuroMem 任务 | 备注      |
 | ------ | ------------- | --------- |
 | 张睿诚 | 核心架构      | 24 届硕士 |
-| 徐天翊 | 存储优化      | 26 届硕士 |
-| 张澹潇 | 检索算法      | 26 届硕士 |
-
-> **说明**：上述成员同时参与 sageLLM 项目，具体任务分配见 sageLLM 表
+| 徐天翊 | ？            | 26 届硕士 |
+| 张澹潇 | ？            | 26 届硕士 |
+| 李新毅 | ？            |           |
 
 ## 独立项目状态
 
@@ -76,13 +81,17 @@
 - ✅ **sage-benchmark**：`intellistream/sage-benchmark`（评测框架，PyPI: `isage-benchmark`）
 - ✅ **sage-pypi-publisher**：`intellistream/sage-pypi-publisher`（PyPI 发布工具）
 - ✅ **sageDB**：`intellistream/sageDB`（向量数据库，PyPI: `isagedb`）
-- ✅ **sageFlow**：`intellistream/sageFlow`（向量流处理引擎，PyPI: `isage-flow`） - **2026
-  国家面上基金申请项目（主要贡献者：王子澳、朱鑫材）**
+- ✅ **sageFlow**：`intellistream/sageFlow`（向量流处理引擎，PyPI: `isage-flow`）
+  - **资助计划**：计划以 sageFlow 为主体申请 2026 年国家自然科学基金面上项目
+  - **主要贡献者**：王子澳（24 届硕士）、朱鑫材（25 届硕士）
+  - **研究方向**：向量原生流处理引擎、增量语义状态快照、流式向量操作
 - ✅ **sageRefiner**：`intellistream/sageRefiner`（RAG 上下文压缩，PyPI: `isage-refiner`）
-- ✅ **sageTSDB**：`intellistream/sageTSDB`（时序数据库，PyPI: `isage-tsdb`） -
-  **湖北省科技厅重大项目（达梦数据库牵头，主要贡献者：陈德斌）**
-- ✅ **NeuroMem**：`intellistream/NeuroMem`（类脑记忆系统，PyPI: `isage-neuromem`） - **教育部先导项目 +
-  华为盘古横向合作（主要贡献者：张睿诚、徐天翊、张澹潇）**
+- ✅ **sageTSDB**：`intellistream/sageTSDB`（时序数据库，PyPI: `isage-tsdb`）
+  - **资助信息**：湖北省科技厅重大项目（达梦数据库牵头）
+  - **主要贡献者**：陈德斌（26 届硕士）
+- ✅ **NeuroMem**：`intellistream/NeuroMem`（类脑记忆系统，PyPI: `isage-neuromem`）
+  - **资助信息**：教育部先导项目 + 华为盘古横向合作
+  - **主要贡献者**：张睿诚（24 届硕士）、徐天翊（26 届硕士）、张澹潇（26 届硕士）、李新毅
 
 ### 已独立的私有仓库
 
@@ -125,6 +134,7 @@
 
 ## 变更记录
 
+- 2026-01-04：详细说明 sageFlow 作为 2026 国家面上基金申请主体项目
 - 2026-01-04：添加"其他课题组项目"章节（华为 Flink 横向合作）
 - 2026-01-04：修正资助信息表述（项目获得资助 vs 个人申请）
 - 2026-01-04：添加基金信息，调整文档结构（SAGE → sageLLM → NeuroMem）
