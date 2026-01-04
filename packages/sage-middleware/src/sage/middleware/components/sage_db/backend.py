@@ -134,7 +134,3 @@ class SageVDBBackend:
             Total vector count
         """
         return self._count
-
-
-# Backward compatibility alias
-SageDBBackend = SageVDBBackend

@@ -38,10 +38,6 @@ try:
         string_to_index_type,
     )
 
-    # Backward compatibility aliases
-    SageDB = SageVDB
-    SageDBException = SageVDBException
-
     _SAGE_DB_AVAILABLE = True
 except ImportError as e:
     # Don't fail immediately - allow graceful degradation
@@ -54,7 +50,6 @@ except ImportError as e:
     )
     # Provide stub exports to prevent ImportError
     SageVDB = None
-    SageDB = None
     IndexType = None
     DistanceMetric = None
     QueryResult = None
@@ -65,7 +60,6 @@ except ImportError as e:
     QueryEngine = None
     VectorStore = None
     SageVDBException = None
-    SageDBException = None
     create_database = None
     add_numpy = None
     search_numpy = None
@@ -76,15 +70,13 @@ except ImportError as e:
 
 # Import backend adapters
 try:
-    from .backend import SageDBBackend, SageVDBBackend  # noqa: F401
+    from .backend import SageVDBBackend  # noqa: F401
 except ImportError:
     SageVDBBackend = None
-    SageDBBackend = None
 
 __all__ = [
     # Core classes (may be None if not installed)
     "SageVDB",
-    "SageDB",  # Backward compatibility
     "IndexType",
     "DistanceMetric",
     "QueryResult",
@@ -95,7 +87,6 @@ __all__ = [
     "QueryEngine",
     "VectorStore",
     "SageVDBException",
-    "SageDBException",  # Backward compatibility
     # Factory functions
     "create_database",
     # Numpy utilities
@@ -108,7 +99,6 @@ __all__ = [
     "string_to_index_type",
     # Backend adapters
     "SageVDBBackend",
-    "SageDBBackend",  # Backward compatibility
     # Availability flag
     "_SAGE_DB_AVAILABLE",
 ]
