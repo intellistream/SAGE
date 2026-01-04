@@ -18,6 +18,7 @@
 | sageFlow 项目组 | `sage-middleware` → `sageFlow`（向量流）       | 见 sageFlow 项目章节                 |
 | sageDB 项目组   | `sage-middleware` → `sageDB`（向量数据库）     | 见 sageDB 项目章节                   |
 | sageTSDB 项目组 | `sage-middleware` → `sageTSDB`（时序数据库）   | 陈德斌，湖北省科技厅重大项目（达梦） |
+| sageLLM 项目组  | `sage-llm-core`（LLM 控制面，不含推理引擎）    | 见 sageLLM 项目章节                  |
 | NeuroMem 项目组 | `sage-middleware` → `NeuroMem`（类脑记忆系统） | 见 NeuroMem 项目章节                 |
 | 周宇童          | `sage-libs` → 时序敏感 RAG                     |                                      |
 | 郭宇悦          | `sage-libs` → 智能体工具规划                   |                                      |
@@ -160,6 +161,7 @@
 
 ## 变更记录
 
+- 2026-01-04：补充 SAGE 主项目表格中的 sageLLM 项目组条目
 - 2026-01-04：新增 sageFlow 和 sageDB 独立项目章节，添加项目成员（邱瑞杰、杜雨枫）
 - 2026-01-04：添加 ANNS 算法研究成员（万睿朋、雷昕延），更正中文姓名（周宇童、郭宇悦）
 - 2026-01-04：移除无需单独强调的 sage-benchmark 项目组条目
