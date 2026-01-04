@@ -1,5 +1,16 @@
 # LibAMM 迁移 - 快速参考
 
+> **⚠️ DEPRECATED**: The `sage-dev package pypi` command has been removed. Please use the standalone
+> [sage-pypi-publisher](https://github.com/intellistream/sage-pypi-publisher) tool instead.
+>
+> **Migration**:
+>
+> ```bash
+> git clone https://github.com/intellistream/sage-pypi-publisher.git
+> cd sage-pypi-publisher
+> ./publish.sh <package-name> --auto-bump patch
+> ```
+
 ## 🎯 一句话总结
 
 将 libamm 从 SAGE 的 git submodule 迁移到独立的 PyPI 包，通过依赖关系自动安装。

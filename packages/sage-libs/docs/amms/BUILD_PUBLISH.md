@@ -1,5 +1,16 @@
 # Building and Publishing isage-amms to PyPI
 
+> **⚠️ DEPRECATED**: The `sage-dev package pypi` command has been removed. Please use the standalone
+> [sage-pypi-publisher](https://github.com/intellistream/sage-pypi-publisher) tool instead.
+>
+> **Migration**:
+>
+> ```bash
+> git clone https://github.com/intellistream/sage-pypi-publisher.git
+> cd sage-pypi-publisher
+> ./publish.sh <package-name> --auto-bump patch
+> ```
+
 ## Overview
 
 This document provides instructions for building and publishing the `isage-amms` package to PyPI.

@@ -7,7 +7,7 @@ sage-dev 命令模块
 - maintain: 维护工具
 - package: 包管理
 - resource: 资源管理
-- github: GitHub 管理
+- examples: 示例测试
 """
 
 import sys
@@ -27,9 +27,9 @@ app = typer.Typer(
     • quality   - 代码质量、架构合规、文档规范检查
     • project   - 项目状态、分析、测试、清理
     • maintain  - Submodule管理、Git hooks、诊断
-    • package   - PyPI发布、版本管理、安装
+    • package   - 版本管理、安装 (PyPI发布已迁移至 sage-pypi-publisher)
     • resource  - 模型缓存、数据管理
-    • github    - Issues、PR管理
+    • examples  - 示例代码测试和验证
 
     快速示例：
       sage-dev quality check         # 运行所有质量检查
@@ -97,16 +97,16 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 resource 命令组: {e}[/yellow]")
 
-try:
-    from .github import app as github_app
-
-    app.add_typer(
-        github_app,
-        name="github",
-        help="🐙 GitHub 管理 - Issues、PR 等 (issues)",
-    )
-except ImportError as e:
-    console.print(f"[yellow]警告: 无法导入 github 命令组: {e}[/yellow]")
+# GitHub 命令组已移除 - 功能已迁移到其他工具
+# try:
+#     from .github import app as github_app
+#     app.add_typer(
+#         github_app,
+#         name="github",
+#         help="🐙 GitHub 管理 - Issues、PR 等 (issues)",
+#     )
+# except ImportError as e:
+#     console.print(f"[yellow]警告: 无法导入 github 命令组: {e}[/yellow]")
 
 try:
     from .examples import app as examples_app

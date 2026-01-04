@@ -8,7 +8,10 @@ Note: SAGE TSDB core is now an independent PyPI package (isage-tsdb).
 This module provides backward-compatible wrappers and SAGE-specific services.
 """
 
+import warnings
+
 # Import from PyPI package (isage-tsdb)
+_SAGE_TSDB_AVAILABLE = False
 try:
     from sage_tsdb import (
         QueryConfig,
@@ -20,24 +23,48 @@ try:
 
     # Backward compatibility alias
     SageTSDB = TimeSeriesDB
+    _SAGE_TSDB_AVAILABLE = True
 except ImportError as e:
-    raise ImportError("SAGE TSDB 需要 isage-tsdb 包。请安装: pip install isage-tsdb") from e
+    # Don't fail immediately - allow graceful degradation
+    warnings.warn(
+        f"SAGE TSDB not available: {e}\n"
+        "Install with: pip install isage-tsdb\n"
+        "Time series features will be unavailable.",
+        UserWarning,
+        stacklevel=2,
+    )
+    # Provide stub exports
+    SageTSDB = None
+    TimeSeriesDB = None
+    TimeSeriesData = None
+    QueryConfig = None
+    TimeRange = None
+    TimeSeriesIndex = None
 
 # Algorithms (SAGE-specific extensions)
-from .python.algorithms import (
-    OutOfOrderStreamJoin,
-    TimeSeriesAlgorithm,
-    WindowAggregator,
-)
+# Only import if base package is available
+if _SAGE_TSDB_AVAILABLE:
+    from .python.algorithms import (
+        OutOfOrderStreamJoin,
+        TimeSeriesAlgorithm,
+        WindowAggregator,
+    )
 
-# Micro-service wrapper (SAGE-specific)
-from .python.micro_service.sage_tsdb_service import (
-    SageTSDBService,
-    SageTSDBServiceConfig,
-)
+    # Micro-service wrapper (SAGE-specific)
+    from .python.micro_service.sage_tsdb_service import (
+        SageTSDBService,
+        SageTSDBServiceConfig,
+    )
+else:
+    # Stub classes if TSDB not available
+    TimeSeriesAlgorithm = None
+    OutOfOrderStreamJoin = None
+    WindowAggregator = None
+    SageTSDBService = None
+    SageTSDBServiceConfig = None
 
 __all__ = [
-    # Core API
+    # Core API (may be None if not installed)
     "SageTSDB",
     "TimeSeriesData",
     "QueryConfig",
@@ -49,4 +76,6 @@ __all__ = [
     "TimeSeriesAlgorithm",
     "OutOfOrderStreamJoin",
     "WindowAggregator",
+    # Availability flag
+    "_SAGE_TSDB_AVAILABLE",
 ]
