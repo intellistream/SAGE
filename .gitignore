@@ -73,6 +73,10 @@ packages/sage-middleware/src/sage/middleware/components/*/lib/
 packages/sage-middleware/src/sage/middleware/components/*/bin/
 packages/sage-middleware/src/sage/middleware/components/*/install/
 
+# 独立 PyPI 包（通过 pip install 使用，不在 Git 中跟踪）
+packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/
+packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner/
+
 .github/chatmodes/
 id_llm
 auto_env_setup.log
