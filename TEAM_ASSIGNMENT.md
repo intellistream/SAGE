@@ -13,15 +13,14 @@
 
 > **资助信息**：国家自然科学基金优秀青年科学基金项目
 
-| 姓名/项目组           | SAGE 归属 package/submodule                           | 备注                                                |
-| --------------------- | ----------------------------------------------------- | --------------------------------------------------- |
-| sageFlow 项目组       | `sage-middleware` → `sageFlow`（向量流）              | 王子澳、朱鑫材，申请 2026 国家面上基金              |
-| sageTSDB 项目组       | `sage-middleware` → `sageTSDB`（时序数据库）          | 陈德斌，湖北省科技厅重大项目（达梦）                |
-| NeuroMem 项目组       | `sage-middleware` → `NeuroMem`（类脑记忆系统）        | 张睿诚、徐天翊、张澹潇、李新毅，教育部先导+华为盘古 |
-| 高鸿儒                | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化） | 20 届博士                                           |
-| Yutong Zhou           | `sage-libs` → 时序敏感 RAG                            |                                                     |
-| Yuyue Guo             | `sage-libs` → 智能体工具规划                          |                                                     |
-| sage-benchmark 项目组 | `sage-benchmark`（评测框架）                          | 李新毅等                                            |
+| 姓名/项目组     | SAGE 归属 package/submodule                           | 备注                                                |
+| --------------- | ----------------------------------------------------- | --------------------------------------------------- |
+| sageFlow 项目组 | `sage-middleware` → `sageFlow`（向量流）              | 王子澳、朱鑫材，申请 2026 国家面上基金              |
+| sageTSDB 项目组 | `sage-middleware` → `sageTSDB`（时序数据库）          | 陈德斌，湖北省科技厅重大项目（达梦）                |
+| NeuroMem 项目组 | `sage-middleware` → `NeuroMem`（类脑记忆系统）        | 张睿诚、徐天翊、张澹潇、李新毅，教育部先导+华为盘古 |
+| 高鸿儒          | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化） | 20 届博士                                           |
+| Yutong Zhou     | `sage-libs` → 时序敏感 RAG                            |                                                     |
+| Yuyue Guo       | `sage-libs` → 智能体工具规划                          |                                                     |
 
 > **说明**：
 >
@@ -128,6 +127,8 @@
 
 ## 变更记录
 
+- 2026-01-04：移除无需单独强调的 sage-benchmark 项目组条目
+- 2026-01-04：将独立项目成员改为项目组形式，避免重复
 - 2026-01-04：详细说明 sageFlow 作为 2026 国家面上基金申请主体项目
 - 2026-01-04：添加"其他课题组项目"章节（华为 Flink 横向合作）
 - 2026-01-04：修正资助信息表述（项目获得资助 vs 个人申请）
