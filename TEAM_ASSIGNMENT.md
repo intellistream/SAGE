@@ -13,26 +13,20 @@
 
 > **资助信息**：国家自然科学基金优秀青年科学基金项目
 
-| 姓名        | SAGE 归属 package/submodule                           | 备注      |
-| ----------- | ----------------------------------------------------- | --------- |
-| 王子澳      | `sage-middleware` → `sageFlow`（向量流）              | 24 届硕士 |
-| 朱鑫材      | `sage-middleware` → `sageFlow`（向量流）              | 25 届硕士 |
-| 陈德斌      | `sage-middleware` → `sageTSDB`（时序数据库）          | 26 届硕士 |
-| 高鸿儒      | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化） | 20 届博士 |
-| Yutong Zhou | `sage-libs` → 时序敏感 RAG                            |           |
-| Yuyue Guo   | `sage-libs` → 智能体工具规划                          |           |
+| 姓名/项目组           | SAGE 归属 package/submodule                           | 备注                                                |
+| --------------------- | ----------------------------------------------------- | --------------------------------------------------- |
+| sageFlow 项目组       | `sage-middleware` → `sageFlow`（向量流）              | 王子澳、朱鑫材，申请 2026 国家面上基金              |
+| sageTSDB 项目组       | `sage-middleware` → `sageTSDB`（时序数据库）          | 陈德斌，湖北省科技厅重大项目（达梦）                |
+| NeuroMem 项目组       | `sage-middleware` → `NeuroMem`（类脑记忆系统）        | 张睿诚、徐天翊、张澹潇、李新毅，教育部先导+华为盘古 |
+| 高鸿儒                | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化） | 20 届博士                                           |
+| Yutong Zhou           | `sage-libs` → 时序敏感 RAG                            |                                                     |
+| Yuyue Guo             | `sage-libs` → 智能体工具规划                          |                                                     |
+| sage-benchmark 项目组 | `sage-benchmark`（评测框架）                          | 李新毅等                                            |
 
 > **说明**：
 >
-> - 上述同学如同时参与 sageLLM/NeuroMem 项目，请在对应表中补充
+> - 上述同学如同时参与 sageLLM 项目，请在对应表中补充
 > - 其余未列入的成员/贡献者，默认归属 SAGE 主项目，按 issue/PR 协作
->
-> **重点子项目**：
->
-> - **sageFlow**（`intellistream/sageFlow`）：向量流处理引擎，已独立为 PyPI 包（`isage-flow`）
->   - 主要贡献者：王子澳（24 届硕士）、朱鑫材（25 届硕士）
->   - 项目状态：计划以 sageFlow 为主体申请 2026 年国家自然科学基金面上项目
->   - 研究方向：向量原生流处理、增量语义状态快照、流式向量操作
 
 ## sageLLM 项目（推理引擎方向）
 
