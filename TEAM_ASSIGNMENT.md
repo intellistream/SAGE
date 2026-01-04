@@ -19,8 +19,10 @@
 | sageTSDB 项目组 | `sage-middleware` → `sageTSDB`（时序数据库）          | 陈德斌，湖北省科技厅重大项目（达梦）                |
 | NeuroMem 项目组 | `sage-middleware` → `NeuroMem`（类脑记忆系统）        | 张睿诚、徐天翊、张澹潇、李新毅，教育部先导+华为盘古 |
 | 高鸿儒          | `sage-libs` → `anns`（Graph-based ANNS 内存访问优化） | 20 届博士                                           |
-| Yutong Zhou     | `sage-libs` → 时序敏感 RAG                            |                                                     |
-| Yuyue Guo       | `sage-libs` → 智能体工具规划                          |                                                     |
+| 万睿朋          | `sage-libs` → `anns`（ANNS 算法研究）                 |                                                     |
+| 雷昕延          | `sage-libs` → `anns`（ANNS 算法研究）                 |                                                     |
+| 周宇童          | `sage-libs` → 时序敏感 RAG                            |                                                     |
+| 郭宇悦          | `sage-libs` → 智能体工具规划                          |                                                     |
 
 > **说明**：
 >
@@ -127,6 +129,7 @@
 
 ## 变更记录
 
+- 2026-01-04：添加 ANNS 算法研究成员（万睿朋、雷昕延），更正中文姓名（周宇童、郭宇悦）
 - 2026-01-04：移除无需单独强调的 sage-benchmark 项目组条目
 - 2026-01-04：将独立项目成员改为项目组形式，避免重复
 - 2026-01-04：详细说明 sageFlow 作为 2026 国家面上基金申请主体项目
