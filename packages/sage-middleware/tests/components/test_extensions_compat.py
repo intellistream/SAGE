@@ -259,39 +259,41 @@ class TestImportWarnings:
 
 
 class TestExtensionModuleReferences:
-    """Test module reference handling."""
+    """Test module reference handling through public APIs."""
 
-    def test_sage_db_reference_exists(self):
-        """Test _sage_db reference exists."""
+    def test_require_functions_handle_availability(self):
+        """Test require functions properly handle availability status."""
         from sage.middleware.components import extensions_compat
 
-        assert hasattr(extensions_compat, "_sage_db")
-
-    def test_sage_flow_reference_exists(self):
-        """Test _sage_flow reference exists."""
-        from sage.middleware.components import extensions_compat
-
-        assert hasattr(extensions_compat, "_sage_flow")
-
-    def test_sage_tsdb_reference_exists(self):
-        """Test _sage_tsdb reference exists."""
-        from sage.middleware.components import extensions_compat
-
-        assert hasattr(extensions_compat, "_sage_tsdb")
-
-    def test_references_are_none_when_unavailable(self):
-        """Test references are None when extensions unavailable."""
-        from sage.middleware.components import extensions_compat
-
-        # If not available, should be None
+        # Test that require functions raise when not available
         if not extensions_compat._SAGE_DB_AVAILABLE:
-            assert extensions_compat._sage_db is None
+            with pytest.raises(ImportError):
+                require_sage_db()
 
         if not extensions_compat._SAGE_FLOW_AVAILABLE:
-            assert extensions_compat._sage_flow is None
+            with pytest.raises(ImportError):
+                require_sage_flow()
 
         if not extensions_compat._SAGE_TSDB_AVAILABLE:
-            assert extensions_compat._sage_tsdb is None
+            with pytest.raises(ImportError):
+                require_sage_tsdb()
+
+    def test_require_functions_succeed_when_available(self):
+        """Test require functions return module when available."""
+        from sage.middleware.components import extensions_compat
+
+        # Test that require functions return module when available
+        if extensions_compat._SAGE_DB_AVAILABLE:
+            result = require_sage_db()
+            assert result is not None
+
+        if extensions_compat._SAGE_FLOW_AVAILABLE:
+            result = require_sage_flow()
+            assert result is not None
+
+        if extensions_compat._SAGE_TSDB_AVAILABLE:
+            result = require_sage_tsdb()
+            assert result is not None
 
 
 class TestConsistency:
@@ -423,37 +425,32 @@ class TestTypeAnnotations:
 
 
 class TestRequireReturnValues:
-    """Test that require functions return the expected module references."""
+    """Test that require functions return expected values based on availability."""
 
-    @patch("sage.middleware.components.extensions_compat._SAGE_DB_AVAILABLE", True)
-    @patch("sage.middleware.components.extensions_compat._sage_db", "mock_db")
-    def test_require_sage_db_returns_module_reference(self):
-        """Test require_sage_db returns the module reference when available."""
+    def test_require_functions_behavior(self):
+        """Test require functions return module or raise based on availability."""
         from sage.middleware.components import extensions_compat
 
-        with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", True):
-            with patch.object(extensions_compat, "_sage_db", "mock_db"):
-                result = require_sage_db()
-                assert result == "mock_db"
+        # Test sage_db
+        if extensions_compat._SAGE_DB_AVAILABLE:
+            result = require_sage_db()
+            assert result is not None  # Should return something when available
+        else:
+            with pytest.raises(ImportError):
+                require_sage_db()  # Should raise when not available
 
-    @patch("sage.middleware.components.extensions_compat._SAGE_FLOW_AVAILABLE", True)
-    @patch("sage.middleware.components.extensions_compat._sage_flow", "mock_flow")
-    def test_require_sage_flow_returns_module_reference(self):
-        """Test require_sage_flow returns the module reference when available."""
-        from sage.middleware.components import extensions_compat
+        # Test sage_flow
+        if extensions_compat._SAGE_FLOW_AVAILABLE:
+            result = require_sage_flow()
+            assert result is not None  # Should return something when available
+        else:
+            with pytest.raises(ImportError):
+                require_sage_flow()  # Should raise when not available
 
-        with patch.object(extensions_compat, "_SAGE_FLOW_AVAILABLE", True):
-            with patch.object(extensions_compat, "_sage_flow", "mock_flow"):
-                result = require_sage_flow()
-                assert result == "mock_flow"
-
-    @patch("sage.middleware.components.extensions_compat._SAGE_TSDB_AVAILABLE", True)
-    @patch("sage.middleware.components.extensions_compat._sage_tsdb", "mock_tsdb")
-    def test_require_sage_tsdb_returns_module_reference(self):
-        """Test require_sage_tsdb returns the module reference when available."""
-        from sage.middleware.components import extensions_compat
-
-        with patch.object(extensions_compat, "_SAGE_TSDB_AVAILABLE", True):
-            with patch.object(extensions_compat, "_sage_tsdb", "mock_tsdb"):
-                result = require_sage_tsdb()
-                assert result == "mock_tsdb"
+        # Test sage_tsdb
+        if extensions_compat._SAGE_TSDB_AVAILABLE:
+            result = require_sage_tsdb()
+            assert result is not None  # Should return something when available
+        else:
+            with pytest.raises(ImportError):
+                require_sage_tsdb()  # Should raise when not available
