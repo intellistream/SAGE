@@ -26,31 +26,19 @@ LC_CTYPE="${LC_CTYPE:-${LANG}}"
 # ============================================================================
 
 fix_middleware_cpp_extensions() {
-    log_info "检查并修复 C++ 扩展库安装..." "CPPExtFix"
-    echo -e "${BLUE}🔧 检查并修复 C++ 扩展库安装...${NC}"
+    # 注意: C++ 扩展已迁移为独立 PyPI 包，不再需要修复
+    # - isagedb (was sageDB)
+    # - isage-flow (was sageFlow)
+    # - isage-tsdb (was sageTSDB)
+    # sage-middleware 现在只包含 Python 兼容层
 
-    # 检查是否是 editable install
-    local pip_output=$(pip show isage-middleware 2>/dev/null)
-    local is_editable=false
+    log_info "C++ 扩展已迁移为独立 PyPI 包，跳过修复" "CPPExtFix"
+    echo -e "${DIM}ℹ️  C++ 扩展（sageDB/sageFlow/sageTSDB）已迁移为独立 PyPI 包${NC}"
+    echo -e "${DIM}   如需使用，请通过 pip install isagedb isage-flow isage-tsdb 安装${NC}"
+    return 0
 
-    if echo "$pip_output" | grep -q "Editable project location:"; then
-        is_editable=true
-        log_debug "检测到 editable install 模式" "CPPExtFix"
-        echo -e "${DIM}  检测到 editable install 模式${NC}"
-    fi
-
-    if [ "$is_editable" = false ]; then
-        log_info "非 editable install 模式，跳过修复" "CPPExtFix"
-        echo -e "${DIM}  非 editable install 模式，跳过修复${NC}"
-        return 0
-    fi
-
-    # 定义需要检查的扩展和它们的库文件
-    local extensions_libs=(
-        "sage_flow:libsageflow.so"
-        "sage_db:libsage_db.so"
-        "sage_tsdb:libsage_tsdb_core.so,libsage_tsdb_algorithms.so"
-    )
+    # 以下代码已废弃，保留供参考
+    # ----------------------------------------------------------------
     local fixed_count=0
     local total_count=0
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"

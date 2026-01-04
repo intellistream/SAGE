@@ -71,13 +71,22 @@ clean_pip_cache() {
     echo ""
 }
 
-# 验证C++扩展函数（扩展已在 sage-middleware 安装时自动构建）
+# 验证C++扩展函数 - 已迁移为独立 PyPI 包
 verify_cpp_extensions() {
-    log_info "开始验证C++扩展" "CPPExt"
-    echo -e "${DIM}📝 详细日志: ${SAGE_INSTALL_LOG:-}${NC}"
-    echo -e "${DIM}   C++扩展已通过 sage-middleware 的 scikit-build-core 自动构建${NC}"
-    echo -e "${DIM}   正在检查扩展可用性...${NC}"
+    log_info "C++ 扩展已迁移为独立 PyPI 包" "CPPExt"
+    echo -e "${DIM}ℹ️  C++ 扩展（sageDB/sageFlow/sageTSDB）已迁移为独立 PyPI 包${NC}"
+    echo -e "${DIM}   - isagedb (was sageDB)${NC}"
+    echo -e "${DIM}   - isage-flow (was sageFlow)${NC}"
+    echo -e "${DIM}   - isage-tsdb (was sageTSDB)${NC}"
+    echo -e "${DIM}   如需使用，请通过 pip 安装这些独立包${NC}"
     echo ""
+
+    # sage-middleware 现在只包含 Python 兼容层，总是返回成功
+    log_info "sage-middleware 安装完成（仅包含 Python 兼容层）" "CPPExt"
+    return 0
+
+    # 以下代码已废弃，保留供参考
+    # ----------------------------------------------------------------
 
     # 在CI环境中增加短暂延迟，确保文件系统同步
     if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
