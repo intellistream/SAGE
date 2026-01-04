@@ -40,94 +40,33 @@ message(STATUS "==========================================")
 message(STATUS "")
 
 # ============================================================================
-# sage_db - Vector Database C++ Library + Python Bindings
+# NOTE: sage_db, sage_flow, sage_tsdb are now independent PyPI packages
 # ============================================================================
-set(SAGE_DB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_db")
-set(SAGE_DB_SUBMODULE "${SAGE_DB_DIR}/sageDB")
-
-# 设置统一的构建输出目录到 .sage/build/
-set(SAGE_BUILD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.sage/build")
-
+# These components have been migrated from submodules to PyPI packages:
+# - sage_db   → isagedb (pip install isagedb)
+# - sage_flow → isage-flow (pip install isage-flow)
+# - sage_tsdb → isage-tsdb (pip install isage-tsdb)
+#
+# No C++ compilation needed for sage-middleware package.
+# The Python wrappers in sage.middleware.components.* will import from these packages.
 # ============================================================================
-# 统一安装目录配置（解决 editable install 时 .so 位置不一致问题）
-# ============================================================================
-# 在 editable install 模式下，.so 文件应该安装到源码的 python/ 目录
-# 这些变量会传递给子模块的 CMakeLists.txt
-set(SAGE_DB_INSTALL_DIR "${SAGE_DB_DIR}/python" CACHE PATH "sage_db .so install dir")
-set(SAGE_FLOW_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_flow/python" CACHE PATH "sage_flow .so install dir")
-set(SAGE_TSDB_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_tsdb/python" CACHE PATH "sage_tsdb .so install dir")
 
 message(STATUS "")
-message(STATUS "=== Unified Install Directories (for editable mode) ===")
-message(STATUS "  sage_db:   ${SAGE_DB_INSTALL_DIR}")
-message(STATUS "  sage_flow: ${SAGE_FLOW_INSTALL_DIR}")
-message(STATUS "  sage_tsdb: ${SAGE_TSDB_INSTALL_DIR}")
-message(STATUS "========================================================")
+message(STATUS "=== SAGE Middleware Components ===")
+message(STATUS "All C++ extensions are now independent PyPI packages:")
+message(STATUS "  • sage_db   → isagedb (https://pypi.org/project/isagedb/)")
+message(STATUS "  • sage_flow → isage-flow (https://pypi.org/project/isage-flow/)")
+message(STATUS "  • sage_tsdb → isage-tsdb (https://pypi.org/project/isage-tsdb/)")
 message(STATUS "")
-
-if(EXISTS "${SAGE_DB_SUBMODULE}/CMakeLists.txt")
-    message(STATUS "Adding sage_db submodule...")
-    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_db")
-
-    # 让子模块保持独立完整：可以自己编译、测试、构建 Python bindings
-    # Middleware 只是引用子模块已经构建好的 Python bindings
-    # 但在 middleware 构建时跳过测试以加快构建速度
-    set(BUILD_TESTS OFF CACHE BOOL "Skip tests in middleware build" FORCE)
-    set(BUILD_PYTHON_BINDINGS ON CACHE BOOL "Enable Python bindings in submodule" FORCE)
-    add_subdirectory(${SAGE_DB_SUBMODULE} ${SAGE_BUILD_ROOT}/sage_db)
-
-    message(STATUS "  ✓ sage_db configured (with independent Python bindings)")
-else()
-    message(WARNING "sage_db submodule not found at ${SAGE_DB_SUBMODULE}")
-endif()
-
-# ============================================================================
-# sage_flow - Stream Processing C++ Library + Python Bindings
-# ============================================================================
-set(SAGE_FLOW_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_flow")
-set(SAGE_FLOW_SUBMODULE "${SAGE_FLOW_DIR}/sageFlow")
-
-if(EXISTS "${SAGE_FLOW_SUBMODULE}/CMakeLists.txt")
-    message(STATUS "Adding sage_flow submodule...")
-    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_flow")
-
-    # 让子模块保持独立完整：可以自己编译、测试、构建 Python bindings
-    # 但在 middleware 构建时跳过测试以避免循环依赖问题
-    set(BUILD_TESTS OFF CACHE BOOL "Skip tests to avoid circular dependencies" FORCE)
-    set(BUILD_PYTHON_BINDINGS ON CACHE BOOL "Enable Python bindings in submodule" FORCE)
-    add_subdirectory(${SAGE_FLOW_SUBMODULE} ${SAGE_BUILD_ROOT}/sage_flow)
-
-    message(STATUS "  ✓ sage_flow configured (with independent Python bindings)")
-else()
-    message(WARNING "sage_flow submodule not found at ${SAGE_FLOW_SUBMODULE}")
-endif()
-
-# ============================================================================
-# sage_tsdb - Time Series Database C++ Library + Python Bindings
-# ============================================================================
-set(SAGE_TSDB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/sage/middleware/components/sage_tsdb")
-set(SAGE_TSDB_SUBMODULE "${SAGE_TSDB_DIR}/sageTSDB")
-
-if(EXISTS "${SAGE_TSDB_SUBMODULE}/CMakeLists.txt")
-    message(STATUS "Adding sage_tsdb submodule...")
-    message(STATUS "  Build output: ${SAGE_BUILD_ROOT}/sage_tsdb")
-
-    # 让子模块保持独立完整：可以自己编译、测试、构建 Python bindings
-    # 但在 middleware 构建时跳过测试以加快构建速度
-    set(BUILD_TESTS OFF CACHE BOOL "Skip tests in middleware build" FORCE)
-    set(BUILD_PYTHON_BINDINGS ON CACHE BOOL "Enable Python bindings in submodule" FORCE)
-    add_subdirectory(${SAGE_TSDB_SUBMODULE} ${SAGE_BUILD_ROOT}/sage_tsdb)
-
-    message(STATUS "  ✓ sage_tsdb configured (with independent Python bindings)")
-else()
-    message(WARNING "sage_tsdb submodule not found at ${SAGE_TSDB_SUBMODULE}")
-endif()
+message(STATUS "Install with: pip install isagedb isage-flow isage-tsdb")
+message(STATUS "==================================")
+message(STATUS "")
 
 # ============================================================================
 # 配置摘要
 # ============================================================================
 message(STATUS "")
-message(STATUS "SAGE Middleware C++ Extensions - Build Summary")
+message(STATUS "SAGE Middleware - Build Summary")
 message(STATUS "===============================================")
 message(STATUS "Project: ${SKBUILD_PROJECT_NAME} v${SKBUILD_PROJECT_VERSION}")
 message(STATUS "Python: ${Python_VERSION}")
@@ -139,21 +78,11 @@ message(STATUS "🔍 SKBUILD Variables:")
 message(STATUS "  SKBUILD_STATE: ${SKBUILD_STATE}")
 message(STATUS "  SKBUILD_PLATLIB_DIR: ${SKBUILD_PLATLIB_DIR}")
 message(STATUS "")
-message(STATUS "Extensions:")
-if(TARGET _sage_db)
-    message(STATUS "  ✓ sage_db")
-else()
-    message(STATUS "  ✗ sage_db (not configured)")
-endif()
-if(TARGET _sage_flow)
-    message(STATUS "  ✓ sage_flow")
-else()
-    message(STATUS "  ✗ sage_flow (not configured)")
-endif()
-if(TARGET _sage_tsdb)
-    message(STATUS "  ✓ sage_tsdb")
-else()
-    message(STATUS "  ✗ sage_tsdb (not configured)")
-endif()
+message(STATUS "📦 C++ Extensions Status:")
+message(STATUS "  All C++ components are now independent PyPI packages.")
+message(STATUS "  No compilation needed for sage-middleware.")
+message(STATUS "")
+message(STATUS "  Install dependencies with:")
+message(STATUS "    pip install isagedb isage-flow isage-tsdb")
 message(STATUS "===============================================")
 message(STATUS "")

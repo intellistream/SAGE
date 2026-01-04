@@ -215,6 +215,9 @@ sage doctor                    # Check installation
 [Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md) |
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
+⚠️ **Known Issues**: If you encounter transformers version conflicts when installing multiple SAGE
+packages, see [Dependency Fix Guide](docs-public/docs_src/getting-started/DEPENDENCY_FIX.md)
+
 ## Environment Configuration
 
 ```bash

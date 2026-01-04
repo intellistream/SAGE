@@ -1,0 +1,151 @@
+#!/bin/bash
+# SAGE Post-Commit Hook - Auto-publish to PyPI
+#
+# 安装方法:
+#   cp tools/hooks/post-commit.sample .git/hooks/post-commit
+#   chmod +x .git/hooks/post-commit
+#
+# 配置:
+#   编辑下面的变量以适配你的环境
+
+set -e
+
+# ==================== 配置区域 ====================
+
+# sage-pypi-publisher 仓库路径
+PUBLISHER_PATH="${HOME}/sage-pypi-publisher"
+
+# 是否启用自动发布 (true/false)
+AUTO_PUBLISH_ENABLED=false
+
+# 仅在特定分支自动发布 (留空表示所有分支)
+AUTO_PUBLISH_BRANCH="main"
+
+# 交互式确认 (true/false) - 设为 false 表示自动发布无需确认
+REQUIRE_CONFIRMATION=true
+
+# 发布模式: "patch" (0.0.1), "minor" (0.1.0), "major" (1.0.0)
+VERSION_BUMP_TYPE="patch"
+
+# 是否先发布到 TestPyPI (true/false)
+TEST_PYPI_FIRST=false
+
+# ==================== 脚本开始 ====================
+
+# 获取当前分支
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+# 检查是否启用自动发布
+if [ "$AUTO_PUBLISH_ENABLED" != "true" ]; then
+    echo "ℹ️  Auto-publish is disabled. Set AUTO_PUBLISH_ENABLED=true to enable."
+    exit 0
+fi
+
+# 检查分支限制
+if [ -n "$AUTO_PUBLISH_BRANCH" ] && [ "$current_branch" != "$AUTO_PUBLISH_BRANCH" ]; then
+    echo "ℹ️  Auto-publish only enabled for branch '$AUTO_PUBLISH_BRANCH', current branch is '$current_branch'"
+    exit 0
+fi
+
+# 检查 publisher 是否存在
+if [ ! -d "$PUBLISHER_PATH" ]; then
+    echo "⚠️  sage-pypi-publisher not found at $PUBLISHER_PATH"
+    echo "   Clone it: git clone https://github.com/intellistream/sage-pypi-publisher.git ~/sage-pypi-publisher"
+    exit 0
+fi
+
+# 检查 publisher 中的 publish.sh 是否存在
+if [ ! -x "$PUBLISHER_PATH/publish.sh" ]; then
+    echo "❌ publish.sh not found or not executable at $PUBLISHER_PATH/publish.sh"
+    exit 1
+fi
+
+echo ""
+echo "======================================================"
+echo "  📦 SAGE PyPI Auto-Publisher"
+echo "======================================================"
+echo ""
+
+# 检测修改的包
+affected_packages=$(git diff HEAD~1 HEAD --name-only 2>/dev/null | \
+    grep '^packages/' | \
+    cut -d'/' -f2 | \
+    sort -u)
+
+if [ -z "$affected_packages" ]; then
+    echo "✅ No packages affected by this commit"
+    exit 0
+fi
+
+echo "📦 Affected packages:"
+for pkg in $affected_packages; do
+    echo "   - $pkg"
+done
+echo ""
+
+# 交互式确认
+if [ "$REQUIRE_CONFIRMATION" = "true" ]; then
+    echo "🤔 Do you want to publish these packages to PyPI?"
+    echo "   Version bump: $VERSION_BUMP_TYPE"
+    if [ "$TEST_PYPI_FIRST" = "true" ]; then
+        echo "   Mode: TestPyPI first, then PyPI"
+    else
+        echo "   Mode: Direct to PyPI"
+    fi
+    echo ""
+    read -p "Continue? [y/N] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "❌ Publishing cancelled"
+        exit 0
+    fi
+fi
+
+echo ""
+echo "🚀 Publishing packages..."
+echo ""
+
+# 切换到 publisher 目录
+cd "$PUBLISHER_PATH"
+
+# 发布每个包
+for pkg in $affected_packages; do
+    echo ""
+    echo "======================================================"
+    echo "  Publishing: $pkg"
+    echo "======================================================"
+    echo ""
+
+    # 如果启用了 TestPyPI first
+    if [ "$TEST_PYPI_FIRST" = "true" ]; then
+        echo "🧪 Testing on TestPyPI first..."
+        if ./publish.sh "$pkg" --auto-bump "$VERSION_BUMP_TYPE" --test-pypi --no-dry-run; then
+            echo "✅ TestPyPI publish successful"
+            echo ""
+            read -p "Proceed to publish to production PyPI? [y/N] " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "⚠️  Skipping production PyPI for $pkg"
+                continue
+            fi
+        else
+            echo "❌ TestPyPI publish failed for $pkg, skipping production"
+            continue
+        fi
+    fi
+
+    # 发布到 PyPI
+    echo "📤 Publishing to PyPI..."
+    if ./publish.sh "$pkg" --auto-bump "$VERSION_BUMP_TYPE" --no-dry-run; then
+        echo "✅ Successfully published $pkg"
+    else
+        echo "❌ Failed to publish $pkg"
+    fi
+    echo ""
+done
+
+echo ""
+echo "======================================================"
+echo "  ✅ Auto-publish complete!"
+echo "======================================================"
+echo ""

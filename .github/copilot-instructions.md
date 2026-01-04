@@ -647,30 +647,40 @@ Tasks can specify `cpu_required`, `memory_required`, `gpu_required=0` for CPU-on
 **Critical files** (review before modifying): quickstart.sh, manage.sh, .github/workflows/,
 tools/pytest.ini, tools/pre-commit-config.yaml
 
-## PyPI Publishing - CRITICAL: Use sage-dev
+## PyPI Publishing - CRITICAL: Use sage-pypi-publisher
 
-**SAGE 有专用的 PyPI 发布工具，通过 sage-dev CLI 管理。NEVER 手动使用 twine 或 build。**
+**SAGE 有专用的独立 PyPI 发布工具仓库。NEVER 手动使用 twine 或 build。**
+
+**Repository**: [intellistream/sage-pypi-publisher](https://github.com/intellistream/sage-pypi-publisher) (独立仓库)
 
 ### Publishing Commands
 
+PyPI 发布功能已迁移到独立的 `sage-pypi-publisher` 仓库。使用方法：
+
 ```bash
-# 1. Build and upload to PyPI (production)
-sage-dev package pypi build <package-name> --upload --no-dry-run
+# Clone 发布工具仓库
+git clone https://github.com/intellistream/sage-pypi-publisher.git
+cd sage-pypi-publisher
 
-# 2. Build and upload to TestPyPI (testing)
-sage-dev package pypi build <package-name> --upload --no-dry-run --test-pypi
+# 自动版本递增并发布（推荐）
+./publish.sh <package-name> --auto-bump patch  # 递增 0.0.1
+./publish.sh <package-name> --auto-bump minor  # 递增 0.1.0
+./publish.sh <package-name> --auto-bump major  # 递增 1.0.0
 
-# 3. Dry-run (default, safe mode - check build without uploading)
-sage-dev package pypi build <package-name> --upload  # --dry-run is default
+# 指定版本发布
+./publish.sh <package-name> --version 0.2.5
 
-# 4. Build only (no upload)
-sage-dev package pypi build <package-name>
+# 发布到 TestPyPI（测试）
+./publish.sh <package-name> --test-pypi --auto-bump patch
 
-# 5. Upload pre-built wheel
-sage-dev package pypi upload <package-name> --no-dry-run
+# 查看帮助
+./publish.sh --help
 ```
 
-**CRITICAL**: `--dry-run` 默认为 `True`，必须显式使用 `--no-dry-run` 才会真正上传。
+**Note**:
+- 该工具自动处理版本递增、构建、上传全流程
+- 支持批量发布多个包
+- 集成 pre-commit hooks 自动化发布（见下文）
 
 ### Package Names
 
@@ -685,14 +695,19 @@ SAGE 的 PyPI 包名与内部包名不同：
 
 ### Pre-publish Checklist
 
-1. **Bump version**: 更新 `packages/<package>/src/sage/.../version.py`
-2. **Update CHANGELOG.md**: 记录本次发布的变更
-3. **Run tests**: `sage-dev project test --coverage`
-4. **Run quality checks**: `sage-dev quality --check-only`
-5. **Test build**: `sage-dev package pypi build <package> --dry-run`
-6. **Test on TestPyPI**: `sage-dev package pypi build <package> --upload --no-dry-run --test-pypi`
-7. **Verify installation**: `pip install -i https://test.pypi.org/simple/ isage-<package>`
-8. **Publish to PyPI**: `sage-dev package pypi build <package> --upload --no-dry-run`
+1. **Run tests**: `sage-dev project test --coverage` (在 SAGE 仓库)
+2. **Run quality checks**: `sage-dev quality --check-only` (在 SAGE 仓库)
+3. **Update CHANGELOG.md**: 记录本次发布的变更
+4. **Clone publisher**: `git clone https://github.com/intellistream/sage-pypi-publisher.git`
+5. **Test on TestPyPI**: `cd sage-pypi-publisher && ./publish.sh <package> --test-pypi --auto-bump patch`
+6. **Verify installation**: `pip install -i https://test.pypi.org/simple/ isage-<package>`
+7. **Publish to PyPI**: `./publish.sh <package> --auto-bump patch`
+
+**Note**: `sage-pypi-publisher` 会自动：
+- 检测当前版本并递增
+- 更新 `_version.py` 文件
+- 构建 wheel 包
+- 上传到 PyPI/TestPyPI
 
 ### Configuration
 
@@ -714,12 +729,64 @@ username = __token__
 password = pypi-xxx
 ```
 
-### Implementation Details
+### Automated Publishing via Git Hooks
 
-- **Build System**: `sage-dev` 使用 `BytecodeCompiler` 封装构建流程
-- **Location**: `packages/sage-tools/src/sage/tools/cli/commands/dev/package/pypi.py`
-- **Functions**: `build_package()`, `upload_package()`
-- **Safety**: 默认 dry-run 模式防止误操作
+**自动化发布** (推荐): 通过 post-commit hook 自动发布受影响的包
+
+在 `.git/hooks/post-commit` 中添加：
+
+```bash
+#!/bImplementation Details
+
+- **Repository**: [intellistream/sage-pypi-publisher](https://github.com/intellistream/sage-pypi-publisher)
+- **Tool**: `publish.sh` - 统一发布脚本
+- **Features**:
+  - 自动版本递增 (patch/minor/major)
+  - 智能包检测和依赖管理
+  - TestPyPI 测试支持
+  - 批量发布多个包
+- **Safety**: 默认需要确认，可用 `--no-dry-run` 跳过
+
+### PyPI Publishing Issues
+
+**问题**: `ruamel.yaml.clib` 编译失败
+- **原因**: 某些依赖（如 vllm）需要 ruamel.yaml，但 C 扩展编译可能失败
+- **解决**: 通常可忽略，使用纯 Python fallback。如必须修复，检查编译器和 Python 头文件
+
+**问题**: 版本号不一致
+- **检查**: `./tools/install/check_tool_versions.sh` (在 SAGE 仓库)
+- **修复**: `./tools/install/check_tool_versions.sh --fix`
+
+**问题**: 发布工具找不到
+- **原因**: `sage-pypi-publisher` 需要单独克隆
+- **解决**: `git clone https://github.com/intellistream/sage-pypi-publisher.git
+fi
+
+# 检测修改的包
+affected_packages=$(git diff HEAD~1 HEAD --name-only | \
+    grep '^packages/' | \
+    cut -d'/' -f2 | \
+    sort -u)
+
+if [ -z "$affected_packages" ]; then
+    echo "✅ No packages affected"
+    exit 0
+fi
+
+echo "📦 Affected packages: $affected_packages"
+echo "🚀 Auto-publishing to PyPI..."
+
+cd "$PUBLISHER_PATH"
+for pkg in $affected_packages; do
+    echo "Publishing $pkg..."
+    ./publish.sh "$pkg" --auto-bump patch --no-dry-run
+done
+```
+
+**Note**:
+- 可配置为仅在特定分支（如 `main`）触发
+- 可添加交互式确认避免误发布
+- 建议先在 test-pypi 验证
 
 ### PyPI Publishing Issues
 
