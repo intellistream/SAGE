@@ -123,7 +123,7 @@ submodule_switch() {
 submodule_init_steps() {
     # 初始化 submodules（使用优化参数提高速度）
     echo -e "${DIM}正在克隆 submodules (并行+浅克隆)...${NC}"
-    echo -e "${DIM}提示: 首次克隆 8 个仓库可能需要 2-5 分钟，取决于网络状况${NC}"
+    echo -e "${DIM}提示: 当前只有 docs-public 一个子模块需要克隆（其他已迁移为 PyPI 包）${NC}"
 
     # 确保 submodule 配置已同步（将 .gitmodules 同步到 .git/config）
     echo -e "${DIM}同步 submodule 配置...${NC}"

@@ -772,16 +772,10 @@ else:
         elif $PIP_CMD show isage-middleware &>/dev/null; then
             log_debug "isage-middleware 已安装，检查是否需要重新编译..." "INSTALL"
 
-            # 计算当前源文件哈希（C++/头文件/CMakeLists.txt）
-            if command -v sha256sum &>/dev/null; then
-                cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
-                    -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
-                    -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
-            elif command -v shasum &>/dev/null; then
-                cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
-                    -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
-                    -exec shasum -a 256 {} + 2>/dev/null | sort | shasum -a 256 | cut -d' ' -f1)
-            fi
+            # 注意: C++ 扩展（sageDB, sageFlow, sageTSDB 等）已迁移为独立 PyPI 包
+            # sage-middleware 现在只包含 Python 兼容层，无需计算 C++ 源文件哈希
+            # 如需 C++ 扩展，通过 pip install isagedb isage-flow isage-tsdb 等安装
+            cpp_source_hash=""
 
             # 比较哈希值
             if [ -n "$cpp_source_hash" ] && [ -f "$hash_cache" ]; then
@@ -839,18 +833,8 @@ else:
                 log_pip_package_info "isage-middleware" "INSTALL"
                 echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
 
-                # 计算并保存当前 C++ 源文件哈希到缓存（如果之前未计算）
-                if [ -z "$cpp_source_hash" ]; then
-                    if command -v sha256sum &>/dev/null; then
-                        cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
-                            -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
-                            -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
-                    elif command -v shasum &>/dev/null; then
-                        cpp_source_hash=$(find packages/sage-middleware/src/sage/middleware/components/{sage_db/sageDB,sage_flow/sageFlow,sage_tsdb/sageTSDB} \
-                            -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name 'CMakeLists.txt' \) \
-                            -exec shasum -a 256 {} + 2>/dev/null | sort | shasum -a 256 | cut -d' ' -f1)
-                    fi
-                fi
+                # 注意: C++ 扩展已迁移为独立 PyPI 包，无需计算哈希
+                cpp_source_hash=""
 
                 # 保存哈希到缓存
                 if [ -n "$cpp_source_hash" ]; then
@@ -880,17 +864,8 @@ else:
             fi
         fi
 
-        # 调试：检查 .so 文件位置（仅在 CI 环境）
-        if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
-            echo -e "${DIM}    [CI调试] 检查 C++ 扩展文件位置...${NC}"
-            for ext in sage_flow sage_db sage_tsdb; do
-                ext_dir="packages/sage-middleware/src/sage/middleware/components/${ext}"
-                if [ -d "$ext_dir" ]; then
-                    so_count=$(find "$ext_dir" -name "lib*.so" -type f 2>/dev/null | wc -l)
-                    echo -e "${DIM}      ${ext}: 找到 ${so_count} 个 .so 文件${NC}"
-                fi
-            done
-        fi
+        # 注意: C++ 扩展（sage_flow, sage_db, sage_tsdb）已迁移为独立 PyPI 包
+        # 不再检查 .so 文件，这些组件通过 pip install isagedb/isage-flow/isage-tsdb 安装
 
         # L5: apps & benchmark (standard/full/dev 模式)
         if [ "$install_mode" != "core" ]; then
