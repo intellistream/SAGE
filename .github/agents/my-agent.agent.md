@@ -121,7 +121,7 @@ Installation takes 10-25 minutes:
 ./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD for docs-public
 ```
 
-- **Everything else is vendored or pip-installed** (e.g., `isagevdb`, `isage-benchmark`). There are no other git submodules for middleware/engines.
+- **Everything else is vendored or pip-installed** (e.g., `isage-vdb`, `isage-benchmark`). There are no other git submodules for middleware/engines.
 
 ### Testing & Quality
 

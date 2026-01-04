@@ -27,14 +27,14 @@ LC_CTYPE="${LC_CTYPE:-${LANG}}"
 
 fix_middleware_cpp_extensions() {
     # 注意: C++ 扩展已迁移为独立 PyPI 包，不再需要修复
-    # - isagevdb (was sageVDB)
+    # - isage-vdb (was sageVDB)
     # - isage-flow (was sageFlow)
     # - isage-tsdb (was sageTSDB)
     # sage-middleware 现在只包含 Python 兼容层
 
     log_info "C++ 扩展已迁移为独立 PyPI 包，跳过修复" "CPPExtFix"
     echo -e "${DIM}ℹ️  C++ 扩展（sageVDB/sageFlow/sageTSDB）已迁移为独立 PyPI 包${NC}"
-    echo -e "${DIM}   如需使用，请通过 pip install isagevdb isage-flow isage-tsdb 安装${NC}"
+    echo -e "${DIM}   如需使用，请通过 pip install isage-vdb isage-flow isage-tsdb 安装${NC}"
     return 0
 
     # 以下代码已废弃，保留供参考

@@ -158,7 +158,7 @@ jobs:
 
           # 这些组件已独立为 PyPI 包，不再作为 C++ 扩展编译
           packages=(
-            "isagevdb:sagevdb:SageVDB 向量数据库"
+            "isage-vdb:sagevdb:SageVDB 向量数据库"
             "isage-flow:sage_flow:SageFlow 流处理引擎"
             "isage-tsdb:sage_tsdb:SageTSDB 时序数据库"
             "isage-refiner:sage_refiner:SageRefiner 上下文压缩"

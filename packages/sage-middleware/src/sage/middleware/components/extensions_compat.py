@@ -6,7 +6,7 @@ C++扩展模块（_sage_flow）在未编译时可能不存在，
 此模块确保在扩展不可用时也能正常导入和运行。
 
 注意：
-- SageVDB 已独立为 PyPI 包 (isagevdb)，不再作为 SAGE C++ 扩展。
+- SageVDB 已独立为 PyPI 包 (isage-vdb)，不再作为 SAGE C++ 扩展。
 - SageTSDB 已独立为 PyPI 包 (isage-tsdb)，不再作为 SAGE C++ 扩展。
 """
 
@@ -23,7 +23,7 @@ else:
     _sage_flow: Any = None
 
 # 尝试导入C++扩展，失败时使用纯Python实现
-_SAGE_DB_AVAILABLE = False  # 通过 isagevdb 包检测
+_SAGE_DB_AVAILABLE = False  # 通过 isage-vdb 包检测
 _SAGE_FLOW_AVAILABLE = False
 _SAGE_TSDB_AVAILABLE = False  # 通过 isage-tsdb 包检测
 
@@ -35,7 +35,7 @@ if not TYPE_CHECKING:
         _SAGE_DB_AVAILABLE = True
     except ImportError:
         warnings.warn(
-            "SageVDB 不可用。请安装: pip install isagevdb",
+            "SageVDB 不可用。请安装: pip install isage-vdb",
             UserWarning,
             stacklevel=2,
         )
@@ -105,7 +105,7 @@ def check_extensions_availability() -> dict:
 def require_sage_db():
     """要求SageDB可用，否则抛出异常"""
     if not _SAGE_DB_AVAILABLE:
-        raise ImportError("此功能需要 SageVDB。请安装: pip install isagevdb")
+        raise ImportError("此功能需要 SageVDB。请安装: pip install isage-vdb")
     import sagedb
 
     return sagedb
@@ -139,7 +139,7 @@ if __name__ != "__main__":
     if status["total_available"] < status["total_extensions"]:
         print(f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用")
         if not _SAGE_DB_AVAILABLE:
-            print("  ❌ SageVDB: 未安装 (pip install isagevdb)")
+            print("  ❌ SageVDB: 未安装 (pip install isage-vdb)")
         if not _SAGE_FLOW_AVAILABLE:
             print("  ❌ SAGE Flow: C++扩展不可用")
         if not _SAGE_TSDB_AVAILABLE:

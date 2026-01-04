@@ -16,7 +16,7 @@ echo ""
 declare -A SUBMODULES=(
     ["packages/sage-llm-core/src/sage/llm/sageLLM"]="python"
     # 注意: C++ 扩展已迁移为独立 PyPI 包，不再作为子模块
-    # - isagevdb (was sageVDB)
+    # - isage-vdb (was sageVDB)
     # - isage-flow (was sageFlow)
     # - isage-tsdb (was sageTSDB)
     # - neuromem

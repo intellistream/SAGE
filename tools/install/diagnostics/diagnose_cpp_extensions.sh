@@ -41,7 +41,7 @@ echo "2. 检查子模块状态"
 echo "-----------------------------------"
 cd "$PROJECT_ROOT"
 
-# 注意: C++ 扩展已迁移为独立 PyPI 包 (isagevdb, isage-flow, isage-tsdb, neuromem, isage-refiner)
+# 注意: C++ 扩展已迁移为独立 PyPI 包 (isage-vdb, isage-flow, isage-tsdb, neuromem, isage-refiner)
 # 只检查实际的 Git 子模块
 for submodule in "docs-public"; do
 

@@ -75,7 +75,7 @@ clean_pip_cache() {
 verify_cpp_extensions() {
     log_info "C++ 扩展已迁移为独立 PyPI 包" "CPPExt"
     echo -e "${DIM}ℹ️  C++ 扩展（sageVDB/sageFlow/sageTSDB）已迁移为独立 PyPI 包${NC}"
-    echo -e "${DIM}   - isagevdb (was sageVDB)${NC}"
+    echo -e "${DIM}   - isage-vdb (was sageVDB)${NC}"
     echo -e "${DIM}   - isage-flow (was sageFlow)${NC}"
     echo -e "${DIM}   - isage-tsdb (was sageTSDB)${NC}"
     echo -e "${DIM}   如需使用，请通过 pip 安装这些独立包${NC}"

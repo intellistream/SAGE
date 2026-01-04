@@ -724,7 +724,7 @@ else:
         # L4: middleware (Python 兼容层)
         # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
-        # C++ 扩展（isagevdb/isage-flow/isage-tsdb/isage-neuromem/isage-refiner）通过外部依赖安装
+        # C++ 扩展（isage-vdb/isage-flow/isage-tsdb/isage-neuromem/isage-refiner）通过外部依赖安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
         log_info "开始安装: packages/sage-middleware" "INSTALL"
         log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
