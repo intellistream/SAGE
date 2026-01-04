@@ -100,7 +100,7 @@ class GitHubDataSource(BatchFunction):
         "intellistream/sageData",  # benchmark data submodule
         "intellistream/sageLLM",  # sageLLM submodule
         "intellistream/LibAMM",  # libamm submodule
-        "intellistream/sageDB",  # sageDB submodule
+        "intellistream/sageVDB",  # sageVDB submodule
         "intellistream/sageFlow",  # sageFlow submodule
         "intellistream/neuromem",  # neuromem submodule
         "intellistream/sageTSDB",  # sageTSDB submodule

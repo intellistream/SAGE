@@ -90,10 +90,10 @@ class IndexBuilder:
     Example:
         >>> # In sage-cli (L6)
         >>> from sage.middleware.operators.rag.index_builder import IndexBuilder
-        >>> from sage.middleware.components.sage_db import SageDBBackend
+        >>> from sage.middleware.components.sage_db import SageVDBBackend
         >>>
         >>> def factory(path: Path, dim: int):
-        ...     return SageDBBackend(path, dim)
+        ...     return SageVDBBackend(path, dim)
         >>>
         >>> builder = IndexBuilder(backend_factory=factory)
         >>> manifest = builder.build_from_docs(

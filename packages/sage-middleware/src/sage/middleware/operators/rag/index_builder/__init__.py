@@ -22,11 +22,11 @@ Architecture Pattern:
 
 Example Usage:
     >>> from sage.middleware.operators.rag.index_builder import IndexBuilder
-    >>> from sage.middleware.components.sage_db import SageDBBackend
+    >>> from sage.middleware.components.sage_db import SageVDBBackend
     >>>
     >>> # Create backend factory
     >>> def factory(path, dim):
-    ...     return SageDBBackend(path, dim)
+    ...     return SageVDBBackend(path, dim)
     >>>
     >>> # Build index
     >>> builder = IndexBuilder(backend_factory=factory)

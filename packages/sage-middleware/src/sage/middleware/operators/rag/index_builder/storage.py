@@ -20,7 +20,7 @@ class VectorStore(Protocol):
         - L6 (sage-cli, sage-gateway): Uses via factory injection
 
     Example Implementation:
-        >>> class SageDBBackend:
+        >>> class SageVDBBackend:
         ...     def __init__(self, persist_path: Path, dim: int):
         ...         from sage.middleware.components.sage_db import SageDB
         ...         self.db = SageDB(dim)

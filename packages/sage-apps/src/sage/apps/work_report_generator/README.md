@@ -87,7 +87,7 @@ python examples/apps/run_work_report.py --days 7
 | `intellistream/sageData` | Benchmark 数据     |
 | `intellistream/sageLLM`  | LLM 调度模块       |
 | `intellistream/LibAMM`   | 近似矩阵乘法库     |
-| `intellistream/sageDB`   | 数据库中间件       |
+| `intellistream/sageVDB`  | 数据库中间件       |
 | `intellistream/sageFlow` | 流处理引擎         |
 | `intellistream/neuromem` | 内存管理模块       |
 | `intellistream/sageTSDB` | 时序数据库         |
@@ -127,7 +127,7 @@ export GIT_TOKEN=ghp_xxxxxxxxxxxx
 │  (main-dev branch)  │              │                             │
 │  - SAGE             │              ▼                             │
 │  - sageLLM          │     LLMReportGenerator                    │
-│  - sageDB           │              │                             │
+│  - sageVDB           │              │                             │
 │  - sageFlow         │              ▼                             │
 │  - neuromem         │        ReportSink                         │
 │  - sageTSDB         │     (md/json/console)                     │
