@@ -16,7 +16,7 @@ gateway:
     max_memory_dialogs: 10  # For short_term backend
     # VDB backend configuration
     vdb:
-      backend_type: SageDB  # SageDB (C++ optimized) / FAISS (Python)
+      backend_type: SageVDB  # SageVDB (C++ optimized) / FAISS (Python)
       embedding_dim: 384
       embedding_model: hash
       max_retrieve: 100

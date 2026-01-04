@@ -203,7 +203,7 @@ if [ -n "$other_violations" ]; then
     echo "     - packages/<package>/docs/            (包的详细文档目录)"
     echo ""
     echo "  🔧 子模块文档 (必须在 docs/ 子目录):"
-    echo "     - packages/<package>/src/.../submodule/docs/  (sageLLM, sageDB, sageFlow, etc.)"
+    echo "     - packages/<package>/src/.../submodule/docs/  (sageLLM, sageVDB, sageFlow, etc.)"
     echo "     - 子模块内散落的 MD 文件也是违规的，必须放在 submodule/docs/ 下"
     echo ""
     echo "  📂 示例和工具:"

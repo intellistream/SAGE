@@ -273,7 +273,7 @@ TEMPLATE_LIBRARY: tuple[ApplicationTemplate, ...] = (
         notes=_notes(
             "源自 sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion",
             "默认使用 OpenAIGenerator，需要配置 API Key",
-            "可扩展：替换多模态检索器为 SageDB / 向量数据库",
+            "可扩展：替换多模态检索器为 SageVDB / 向量数据库",
         ),
     ),
     ApplicationTemplate(
@@ -501,7 +501,7 @@ TEMPLATE_LIBRARY: tuple[ApplicationTemplate, ...] = (
         notes=_notes(
             "基于 examples/multimodal/cross_modal_search.py",
             "支持多种融合策略配置",
-            "可使用 SageDB 或其他多模态向量库",
+            "可使用 SageVDB 或其他多模态向量库",
             "适合图文混合检索场景",
         ),
     ),

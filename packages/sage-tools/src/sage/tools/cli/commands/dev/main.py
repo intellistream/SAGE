@@ -118,7 +118,7 @@ def quality(
 
     额外集成了架构合规性检查、dev-notes 文档规范检查和 README 质量检查。
 
-    默认情况下会跳过所有 submodules（docs-public, sageLLM, sageDB等），
+    默认情况下会跳过所有 submodules（docs-public, sageLLM, sageVDB等），
     避免修改外部依赖的代码。如需检查 submodules，请使用 --include-submodules。
 
     示例：

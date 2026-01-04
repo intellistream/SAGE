@@ -113,7 +113,7 @@ class RAGChatMap(MapFunction):
             import json
             from pathlib import Path as P
 
-            from sagedb import SageDB
+            from sagevdb import SageVDB
 
             from sage.common.components.sage_embedding import get_embedding_model
 
@@ -159,8 +159,8 @@ class RAGChatMap(MapFunction):
                 # hash 或其他方法
                 self._embedder = get_embedding_model(embedding_method, dim=embedding_dim)
 
-            # Load SageDB
-            self._db = SageDB(self._embedder.get_dim())
+            # Load SageVDB
+            self._db = SageVDB(self._embedder.get_dim())
             self._db.load(str(db_path))
 
             logger.info("RAG components initialized successfully")

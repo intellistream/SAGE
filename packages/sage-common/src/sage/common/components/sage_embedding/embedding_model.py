@@ -1,11 +1,4 @@
 import os
-
-# flake8: noqa: E402
-# Auto-detect network region and configure HuggingFace mirror
-from sage.common.config import ensure_hf_mirror_configured
-
-ensure_hf_mirror_configured()
-
 import sys
 import time
 
@@ -16,6 +9,15 @@ load_dotenv()
 
 # Ensure project root is on sys.path for imports that rely on package layout
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
+
+
+# Lazy HF mirror configuration: only configure when actually downloading models
+# This avoids blocking imports with network checks
+def _ensure_hf_configured():
+    """Lazy initialization of HF mirror configuration"""
+    from sage.common.config import ensure_hf_mirror_configured
+
+    ensure_hf_mirror_configured()
 
 
 class EmbeddingModel:
@@ -48,6 +50,9 @@ class EmbeddingModel:
             model_name = kwargs["model"]
             # Load HF models - fail explicitly if unavailable
             try:
+                # Configure HF mirror before downloading (lazy init)
+                _ensure_hf_configured()
+
                 # 延迟导入 transformers
                 from transformers import AutoModel, AutoTokenizer
 

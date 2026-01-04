@@ -28,7 +28,7 @@ def _patch_default_source_dir():
 
 def _patch_load_manifest():
     fake = SimpleNamespace(
-        db_path=Path("/tmp/fake.sagedb"),
+        db_path=Path("/tmp/fake.sagevdb"),
         created_at="2025-01-01T00:00:00Z",
         source_dir="/tmp/docs",
         num_documents=10,

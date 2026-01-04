@@ -145,7 +145,7 @@ PACKAGE_MODULE_PATHS = {
 # Submodules to exclude from checks (maintained in separate repositories)
 SUBMODULE_PATHS = {
     "sageLLM",
-    "sageDB",
+    "sageVDB",
     "sageFlow",
     "neuromem",
     "sageTSDB",

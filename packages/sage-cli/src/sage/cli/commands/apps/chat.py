@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SAGE Chat CLI - Embedded programming assistant backed by SageDB."""
+"""SAGE Chat CLI - Embedded programming assistant backed by SageVDB."""
 
 from __future__ import annotations
 

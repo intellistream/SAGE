@@ -22,7 +22,7 @@ line-length = 100
 extend-exclude = [
     "vendors",
     "sageLLM",
-    "sageDB",
+    "sageVDB",
     "sageFlow",
     "neuromem",
     "sageTSDB",

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sage.kernel.runtime.task.local_task import LocalTask
 from sage.kernel.runtime.task.ray_task import RayTask
 from sage.kernel.utils.ray.actor import ActorWrapper
+from sage.kernel.utils.ray.ray_utils import normalize_extra_python_paths
 
 if TYPE_CHECKING:
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
@@ -27,7 +28,7 @@ class TaskFactory:
 
         # Extra Python paths for Ray runtime_env
         # Must be passed explicitly since env attribute is excluded during serialization
-        self.extra_python_paths: list[str] = extra_python_paths or []
+        self.extra_python_paths: list[str] = normalize_extra_python_paths(extra_python_paths)
 
     def create_task(
         self,

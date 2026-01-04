@@ -227,7 +227,7 @@ Only after consulting these READMEs should the assistant propose designs, refact
 1. **User-facing docs:** `docs-public/docs_src/` (guides, tutorials, concepts)
 2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
 3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
-4. **Independent repo docs:** See respective repositories (sageDB, sageFlow, sageRefiner, sageTSDB, NeuroMem, etc.)
+4. **Independent repo docs:** See respective repositories (sageVDB, sageFlow, sageRefiner, sageTSDB, NeuroMem, etc.)
 5. **Tool docs:** `tools/<tool-name>/README.md` or `tools/<tool-name>/docs/`
 6. **Examples:** `examples/<name>/README.md`
 7. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
@@ -283,12 +283,12 @@ Canonical namespaces (post-refactor):
 
 sage-middleware depends on the following independent PyPI packages:
 
-- **SageDB** (`isagedb`): Self-developed high-performance C++ vector database
-  - PyPI: `pip install isagedb`
-  - Repository: `intellistream/sageDB`
+- **SageVDB** (`isagevdb`): Self-developed high-performance C++ vector database
+  - PyPI: `pip install isagevdb`
+  - Repository: `intellistream/sageVDB`
   - NOT FAISS-based: Fully custom implementation with FAISS-compatible API
-  - Python API: `from sagedb import SageDB`
-  - SAGE wrapper: `sage.middleware.components.sage_db.SageDB`
+  - Python API: `from sagevdb import SageVDB`
+  - SAGE wrapper: `sage.middleware.components.sage_db.SageVDB`
   - Supports: similarity search, metadata filtering, hybrid search, batch operations
   - Integration: Used by NeuroMem VDB backend
 
@@ -331,7 +331,7 @@ sage-middleware depends on the following independent PyPI packages:
     - Base classes: `AnnIndex`, `AnnIndexMeta` (in `sage.libs.ann.base`)
     - Factory: `create()`, `register()`, `registered()` (in `sage.libs.ann.factory`)
     - Implementations: `sage.libs.anns/` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
-    - Reusable by: benchmark_anns, SageDB, SageFlow
+    - Reusable by: benchmark_anns, SageVDB, SageFlow
 
 **Rule of thumb**: if you mention a capability (retrieval, memory, refinement, vector DB, streaming semantic state, scheduling), ensure it maps to a real module/path above.
 
@@ -351,15 +351,15 @@ liblapack-dev
 
 Options: `--pip` (current env), `--conda` (create env), `--sync-submodules` / `--no-sync-submodules`
 
-**Submodules** - CRITICAL: NEVER use `git submodule update --init`
+**Submodules** - CRITICAL: ONLY `docs-public` (SAGE-Pub) remains a git submodule. NEVER use `git submodule update --init`.
 
 ```bash
-./manage.sh                        # Bootstrap submodules + hooks
-./tools/maintenance/sage-maintenance.sh submodule init    # Initialize
-./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD
+./manage.sh                        # Bootstrap docs-public + hooks
+./tools/maintenance/sage-maintenance.sh submodule init    # Initialize docs-public
+./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD for docs-public
 ```
 
-C++ extension submodules in `packages/sage-middleware/src/sage/middleware/components/`
+All middleware/engine components are vendored or **pip-installed** (e.g., `isagevdb`, `isage-benchmark`); there are no other git submodules.
 
 **Environment**: Copy `.env.template` to `.env`, set `OPENAI_API_KEY`, `HF_TOKEN`
 
@@ -1083,23 +1083,23 @@ pip install isage-benchmark
 
 For detailed documentation, see the [sage-benchmark repository](https://github.com/intellistream/sage-benchmark).
 
-## SageDB Vector Database Backend
+## SageVDB Vector Database Backend
 
-### 🚨 SageDB 已独立 - CRITICAL
+### 🚨 SageVDB 已独立 - CRITICAL
 
-**SageDB 已独立为 `isagedb` PyPI 包，不再作为 SAGE 子模块存在。**
+**SageVDB 已独立为 `isagevdb` PyPI 包，不再作为 SAGE 子模块存在。**
 
-- **PyPI 包名**: `isagedb`
-- **安装方式**: `pip install isagedb`
-- **仓库地址**: `https://github.com/intellistream/sageDB`
+- **PyPI 包名**: `isagevdb`
+- **安装方式**: `pip install isagevdb`
+- **仓库地址**: `https://github.com/intellistream/sageVDB`
 - **迁移文档**: `docs-public/docs_src/dev-notes/cross-layer/sagedb-independence-migration.md`
 
 **⚠️ 无向后兼容**: 迁移后子模块和 python/ 目录将被完全移除。
 
 **导入方式**:
 ```python
-# ✅ 推荐：直接从 isagedb 导入
-from sagedb import SageDB, IndexType, DistanceMetric
+# ✅ 推荐：直接从 isagevdb 导入
+from sagevdb import SageVDB, IndexType, DistanceMetric
 
 # ✅ 或通过 SAGE 兼容层
 from sage.middleware.components.sage_db import SageDB
@@ -1107,7 +1107,7 @@ from sage.middleware.components.sage_db import SageDB
 
 ### Overview
 
-SageDB is a **self-developed high-performance C++ vector database**, fully custom implementation (NOT based on FAISS), with FAISS-compatible API.
+SageVDB is a **self-developed high-performance C++ vector database**, fully custom implementation (NOT based on FAISS), with FAISS-compatible API.
 
 **Features**:
 - ✅ Self-developed C++ core (independent implementation)
@@ -1123,8 +1123,8 @@ SageDB is a **self-developed high-performance C++ vector database**, fully custo
 ### Location
 
 **独立包**:
-- PyPI: `pip install isagedb`
-- 仓库: `https://github.com/intellistream/sageDB`
+- PyPI: `pip install isagevdb`
+- 仓库: `https://github.com/intellistream/sageVDB`
 
 **SAGE 兼容层** (保留):
 - 重导出: `packages/sage-middleware/src/sage/middleware/components/sage_db/__init__.py`
@@ -1133,7 +1133,7 @@ SageDB is a **self-developed high-performance C++ vector database**, fully custo
 
 ### Usage in NeuroMem VDB Collections
 
-**Creating a VDB collection with SageDB backend**:
+**Creating a VDB collection with SageVDB backend**:
 
 ```python
 from sage.middleware.components.sage_mem.neuromem.memory_manager import MemoryManager
@@ -1146,12 +1146,12 @@ collection = manager.create_collection({
     "backend_type": "VDB"
 })
 
-# Create SageDB index
+# Create SageVDB index
 collection.create_index({
     "name": "my_index",
     "dim": 1024,
-    "backend_type": "SageDB",  # Use SageDB instead of FAISS
-    "description": "High-performance SageDB index"
+    "backend_type": "SageVDB",  # Use SageVDB instead of FAISS
+    "description": "High-performance SageVDB index"
 })
 
 # Insert vectors
@@ -1172,26 +1172,26 @@ index_config = {
     ...
 }
 
-# Optimized: SageDB backend (C++ performance)
+# Optimized: SageVDB backend (C++ performance)
 index_config = {
-    "backend_type": "SageDB",  # C++ optimized
+    "backend_type": "SageVDB",  # C++ optimized
     ...
 }
 ```
 
 **Current Status** (2025-12-28):
-- ✅ SageDB backend registered in VDB index factory
-- ✅ SageDBIndex adapter implements all BaseVDBIndex methods
+- ✅ SageVDB backend registered in VDB index factory
+- ✅ SageVDBIndex adapter implements all BaseVDBIndex methods
 - ✅ Tests pass: insert, batch_insert, search, delete, update
-- ⚠️ Gateway default remains FAISS (change to "SageDB" to use C++ backend)
+- ⚠️ Gateway default remains FAISS (change to "SageVDB" to use C++ backend)
 
 **Performance Characteristics** (5000 vectors, dim=128):
-- ✅ **Insert**: SageDB 10x faster (single), 1.14x faster (batch) - C++ optimized write path
+- ✅ **Insert**: SageVDB 10x faster (single), 1.14x faster (batch) - C++ optimized write path
 - ⚠️ **Search**: FAISS 2.8-3x faster across all k values (Python wrapper overhead in current implementation)
 - ➡️ **Memory**: Nearly identical (~945 MB)
 - ✅ **ANNS Algorithms**: Now available in `sage-libs/anns/` for modularity
 
-**When to use SageDB**:
+**When to use SageVDB**:
 - Write-heavy workloads (frequent insertions/updates)
 - Session storage with many new messages
 - Real-time chat applications
@@ -1204,19 +1204,19 @@ index_config = {
 - When search latency is critical
 - Production RAG pipelines with high QPS
 
-### Direct SageDB API
+### Direct SageVDB API
 
-**Important**: SageDB is a self-developed C++ vector database with FAISS-compatible API.
+**Important**: SageVDB is a self-developed C++ vector database with FAISS-compatible API.
 
 ```python
 # 迁移后（推荐）
-from sagedb import SageDB, IndexType, DistanceMetric
+from sagevdb import SageVDB, IndexType, DistanceMetric
 
 # 或通过 SAGE 兼容层
-from sage.middleware.components.sage_db import SageDB, IndexType, DistanceMetric
+from sage.middleware.components.sage_db import SageVDB, IndexType, DistanceMetric
 
 # Create database (C++ core)
-db = SageDB(dimension=128, index_type=IndexType.AUTO, metric=DistanceMetric.L2)
+db = SageVDB(dimension=128, index_type=IndexType.AUTO, metric=DistanceMetric.L2)
 
 # Add vectors with metadata
 db.add([0.1, 0.2, ...], metadata={"id": "doc_1", "category": "tech"})
@@ -1244,7 +1244,7 @@ db.load("/path/to/index")
 
 ### API Reference
 
-**SageDB Methods**:
+**SageVDB Methods**:
 - `add(vector, metadata)` - Add single vector
 - `add_batch(vectors, metadata)` - Batch add (numpy optimized)
 - `search(query, k)` - Basic similarity search

@@ -27,6 +27,9 @@ import pytest
 if TYPE_CHECKING:
     pass
 
+# Skip if gateway package is not available
+pytest.importorskip("sage.llm.gateway")
+
 
 # =============================================================================
 # Test Fixtures

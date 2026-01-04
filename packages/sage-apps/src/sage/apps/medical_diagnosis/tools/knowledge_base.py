@@ -8,9 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from sage.common.components.sage_embedding.service import EmbeddingService
-from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
-    SageDBService,
-)
+
+# SageVDB has been migrated to independent PyPI package
+try:
+    from sagevdb import SageVDB
+
+    SAGEDB_AVAILABLE = True
+except ImportError:
+    SAGEDB_AVAILABLE = False
+    SageVDB = None  # type: ignore
 
 
 class MedicalKnowledgeBase:
@@ -67,9 +73,8 @@ class MedicalKnowledgeBase:
         """设置服务"""
         self._log("   Setting up knowledge base services...")
 
-        # 获取embedding和向量数据库配置
+        # 获取embedding配置
         embedding_config = self.config.get("services", {}).get("embedding", {})
-        vector_db_config = self.config.get("services", {}).get("vector_db", {})
         models_config = self.config.get("models", {})
 
         # 初始化 EmbeddingService
@@ -84,17 +89,19 @@ class MedicalKnowledgeBase:
         self.embedding_service = EmbeddingService(embedding_service_config)
         self.embedding_service.setup()
 
-        # 初始化 SageDBService
+        # 初始化 SageVDB
         # 获取embedding维度
         dimension = self.embedding_service.get_dimension()
-        index_type = vector_db_config.get("index_type", "AUTO")
+        # index_type = vector_db_config.get("index_type", "AUTO")
 
-        self.vector_db = SageDBService(dimension=dimension, index_type=index_type)
+        # TODO: Update to use SageVDB directly after service migration
+        # self.vector_db = SageVDB(dimension=dimension)
+        self.vector_db = None  # Temporarily disabled pending service migration
 
         print(
             f"   ✓ EmbeddingService initialized (dim={dimension}, method={embedding_service_config['method']})"
         )
-        print(f"   ✓ SageDBService initialized (dim={dimension}, index_type={index_type})")
+        # print(f"   ✓ SageVDB initialized (dim={dimension})")
 
     def _load_knowledge(self):
         """加载医学知识"""

@@ -131,7 +131,7 @@ sage-apps/
 
 - `isage-common` - Common utilities
 - `isage-kernel` - Runtime and operators
-- `isage-middleware` - Services (SageDB, SageFlow, NeuroMem)
+- `isage-middleware` - Services (SageVDB, SageFlow, NeuroMem)
 - `isage-libs` - Operator libraries
 
 ### Application-Specific

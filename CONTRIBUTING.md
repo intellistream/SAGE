@@ -205,20 +205,18 @@ revert/<hash-fragment> 回滚
 
 ### 避免子模块指针冲突
 
-本仓库目前包含多个 Git submodule（如 `docs-public`、`neuromem`、`sageRefiner` 等）。当多人并行修改这些子仓库时，请遵循以下通用流程，降低
-submodule 指针冲突概率：
+本仓库当前仅保留 **一个** Git submodule：`docs-public`（SAGE-Pub）。当多人并行修改该子仓库时，请遵循以下流程：
 
-1. **先合并子仓库 PR**：针对某个子仓库的变更，务必先让它在对应的子仓库仓库内合并到 upstream，不要在主仓库引用未合并的 commit。
-1. **同步主仓库指针**：在 SAGE 仓库根目录执行 `git submodule update --remote <submodule-path>`（或使用
-   `./tools/maintenance/manage_submodule_branches.sh switch`）获取最新 commit，随后
-   `git add <submodule-path>` 更新指针。
-1. **提交主仓库 PR**：提交、推送包含最新子模块指针的 PR，并在描述中清楚标注对应子仓库的改动链接。
+1. **先合并子仓库 PR**：先让变更在 `docs-public` 仓库合并到 upstream。
+1. **同步主仓库指针**：在 SAGE 根目录执行 `./tools/maintenance/sage-maintenance.sh submodule update`（或
+   `submodule switch`）获取最新 commit，随后 `git add docs-public` 更新指针。
+1. **提交主仓库 PR**：提交、推送包含最新 `docs-public` 指针的 PR，并在描述中标注对应子仓库的改动链接。
 
 协作注意事项：
 
-- 对同一子模块，尽量只保留一个主仓库分支负责更新指针，其他分支在需要时先 rebase/merge 最新的主仓库分支。
-- 若多个分支已指向不同 commit，合并冲突时选择最新的子仓库 commit，执行 `git add <submodule-path> && git commit` 重新提交即可。
-- Reviewer 审核时推荐顺序：**先合并子仓库 PR** → **再合并主仓库同步指针的 PR**。涉及多个子模块时，可逐个对子仓库执行以上流程。
+- 对 `docs-public`，尽量只保留一个主仓库分支负责更新指针，其他分支在需要时先 rebase/merge 最新的主仓库分支。
+- 若多个分支已指向不同 commit，合并冲突时选择最新的 `docs-public` commit，执行 `git add docs-public && git commit` 重新提交即可。
+- Reviewer 审核顺序：**先合并 docs-public PR** → **再合并主仓库同步指针的 PR**。
 
 ## 提交信息规范
 

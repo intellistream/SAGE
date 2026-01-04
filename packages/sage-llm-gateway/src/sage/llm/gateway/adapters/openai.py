@@ -1534,7 +1534,7 @@ class OpenAIAdapter:
             from sage.common.components.sage_embedding import get_embedding_model
             from sage.common.config.output_paths import find_sage_project_root
             from sage.common.utils.document_processing import parse_markdown_sections
-            from sage.middleware.components.sage_db.backend import SageDBBackend
+            from sage.middleware.components.sage_db.backend import SageVDBBackend
             from sage.middleware.operators.rag.index_builder import IndexBuilder
 
             # 查找文档源
@@ -1550,14 +1550,14 @@ class OpenAIAdapter:
 
             # 创建输出路径
             index_root.mkdir(parents=True, exist_ok=True)
-            db_path = index_root / f"{index_name}.sagedb"
+            db_path = index_root / f"{index_name}.sagevdb"
 
             # 创建 embedder
             embedder = get_embedding_model("hash", dim=384)
 
             # Backend factory
             def backend_factory(persist_path: Path, dim: int):
-                return SageDBBackend(persist_path, dim)
+                return SageVDBBackend(persist_path, dim)
 
             # Document processor
             def document_processor(source_dir: Path):

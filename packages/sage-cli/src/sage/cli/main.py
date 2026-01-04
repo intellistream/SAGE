@@ -168,7 +168,7 @@ try:
         )
     if chat_app:
         app.add_typer(
-            chat_app, name="chat", help="🧭 编程助手 - 基于 SageDB 的文档问答 (interactive mode)"
+            chat_app, name="chat", help="🧭 编程助手 - 基于 SageVDB 的文档问答 (interactive mode)"
         )
     if embedding_app:
         app.add_typer(

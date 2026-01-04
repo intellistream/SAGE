@@ -88,7 +88,7 @@ runs:
         echo "Checking critical submodule directories:"
         all_ok=true
         for submodule in \
-          "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
+          "packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB" \
           "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
           "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"; do
           if [ -d "$submodule" ] && [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then

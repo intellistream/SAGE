@@ -17,6 +17,9 @@ import pytest
 
 from sage.llm.control_plane.manager import ControlPlaneManager
 
+# Skip gateway-dependent parts if gateway package is unavailable
+pytest.importorskip("sage.llm.gateway")
+
 
 @pytest.mark.asyncio
 async def test_control_plane_start_finetune_engine():

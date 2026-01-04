@@ -171,7 +171,7 @@ class PackageREADMEChecker:
             ".pytest_cache",  # pytest generated
             "vendors/",  # third-party libraries
             "build/_deps/",  # build dependencies
-            "/sageDB/",  # Git submodules
+            "/sageVDB/",  # Git submodules
             "/sageTSDB/",
             "/sageFlow/",
             "/neuromem/",
@@ -180,7 +180,7 @@ class PackageREADMEChecker:
 
         # Known Git submodule paths (relative to package root)
         submodule_patterns = [
-            "src/**/sageDB",
+            "src/**/sageVDB",
             "src/**/sageTSDB",
             "src/**/sageFlow",
             "src/**/neuromem",

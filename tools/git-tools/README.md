@@ -245,7 +245,7 @@ git diff
 
 1. `docs-public` - 公共文档
 1. `packages/sage-llm-core/src/sage/llm` - LLM 组件
-1. `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB` - 数据库组件
+1. `packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB` - 数据库组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow` - 流处理组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem` - 内存组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB` - 时序数据库

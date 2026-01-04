@@ -1899,6 +1899,10 @@ class ControlPlaneManager:
             metadata=config.metadata,
         )
 
+        # Register engine in-memory for management APIs/tests (no HTTP port)
+        with self._registered_engines_lock:
+            self._registered_engines[engine_id] = engine_info
+
         # Create and start finetune engine
         finetune_engine = FinetuneEngine(engine_info=engine_info, config=config)
 

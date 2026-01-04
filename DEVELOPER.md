@@ -60,7 +60,7 @@ git checkout main-dev
 
 **`--dev` 模式会自动：**
 
-- ✅ 同步所有 submodules（无需手动运行 `./manage.sh`）
+- ✅ 同步唯一的 Git submodule：`docs-public`（无需手动运行 `./manage.sh`）
 - ✅ 安装所有开发依赖（pytest, pre-commit, 代码检查工具等）
 - ✅ 配置 Git hooks（自动代码质量检查）
 - ✅ 安装 sage-dev 工具（用于维护和测试）
@@ -96,12 +96,10 @@ git checkout main-dev
    a. **Initialize submodules**
 
    ```bash
-   # Use the maintenance tool (recommended)
+   # Use the maintenance tool (recommended) for the only submodule docs-public
    ./tools/maintenance/sage-maintenance.sh submodule init
 
-   # This will:
-   # - Initialize all submodules
-   # - Automatically switch to the correct branch (main-dev)
+   # This will initialize docs-public and switch it to the correct branch (main-dev)
    ```
 
    b. **Initialize the developer CLI**
@@ -125,34 +123,22 @@ git checkout main-dev
 
 ### Submodule Management
 
-SAGE uses Git submodules for modular components (docs-public, neuromem, sageRefiner). Use the
-maintenance tool for all submodule operations:
-
-#### Quick Reference
+SAGE now has a single Git submodule: `docs-public` (SAGE-Pub). Use the maintenance tool for all
+operations:
 
 ```bash
-# Initialize submodules (first time or after clone)
+# Initialize docs-public (first time or after clone)
 ./tools/maintenance/sage-maintenance.sh submodule init
 
-# Check submodule status
+# Check docs-public status
 ./tools/maintenance/sage-maintenance.sh submodule status
 
-# Switch submodule branches (after switching SAGE branch)
+# Fix detached HEAD (after switching SAGE branch)
 ./tools/maintenance/sage-maintenance.sh submodule switch
 
-# Update submodules to latest remote version
+# Update docs-public to latest remote version
 ./tools/maintenance/sage-maintenance.sh submodule update
 ```
-
-#### Branch Matching Rules
-
-| SAGE Branch    | Submodule Branch | Usage               |
-| -------------- | ---------------- | ------------------- |
-| `main`         | `main`           | Stable releases     |
-| `main-dev`     | `main-dev`       | Development         |
-| Other branches | `main-dev`       | Default development |
-
-#### Important Notes
 
 ⚠️ **Always use the maintenance tool instead of raw Git commands:**
 
@@ -162,29 +148,6 @@ git submodule update --init
 
 # ✅ Use this instead
 ./tools/maintenance/sage-maintenance.sh submodule init
-```
-
-#### Troubleshooting Submodules
-
-**Problem: Submodules in detached HEAD state**
-
-```bash
-# Fix: Switch to correct branch
-./tools/maintenance/sage-maintenance.sh submodule switch
-```
-
-**Problem: Submodule conflicts during merge**
-
-```bash
-# Fix: Resolve conflicts automatically
-./tools/maintenance/sage-maintenance.sh submodule fix-conflict
-```
-
-**Problem: Old submodule configuration**
-
-```bash
-# Fix: Clean up old config
-./tools/maintenance/sage-maintenance.sh submodule cleanup
 ```
 
 For more details, see [tools/maintenance/README.md](tools/maintenance/README.md).

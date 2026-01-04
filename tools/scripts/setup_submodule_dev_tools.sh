@@ -16,7 +16,7 @@ echo ""
 declare -A SUBMODULES=(
     ["packages/sage-llm-core/src/sage/llm/sageLLM"]="python"
     # 注意: C++ 扩展已迁移为独立 PyPI 包，不再作为子模块
-    # - isagedb (was sageDB)
+    # - isagevdb (was sageVDB)
     # - isage-flow (was sageFlow)
     # - isage-tsdb (was sageTSDB)
     # - neuromem
@@ -326,7 +326,7 @@ echo "3. 运行: pre-commit run --all-files"
 echo "4. 提交配置文件到子模块仓库"
 echo ""
 echo "示例命令："
-echo "  cd packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
+echo "  cd packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB"
 echo "  pre-commit install"
 echo "  pre-commit run --all-files"
 echo "  git add .pre-commit-config.yaml pytest.ini"

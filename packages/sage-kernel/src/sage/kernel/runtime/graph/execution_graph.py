@@ -19,6 +19,7 @@ from sage.kernel.api.transformation.base_transformation import BaseTransformatio
 from sage.kernel.runtime.context.service_context import ServiceContext
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.execution_utils.name_server import get_name
+from sage.kernel.utils.ray.ray_utils import normalize_extra_python_paths
 
 if TYPE_CHECKING:
     from sage.platform.queue.base_queue_descriptor import (
@@ -163,7 +164,9 @@ class ExecutionGraph:
                 )
 
                 # 获取 extra_python_paths 用于 Ray runtime_env
-                extra_python_paths = getattr(env, "extra_python_paths", []) or []
+                extra_python_paths = normalize_extra_python_paths(
+                    getattr(env, "extra_python_paths", None)
+                )
 
                 service_task_factory = ServiceTaskFactory(
                     service_factory=service_factory,

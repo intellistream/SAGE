@@ -322,7 +322,7 @@ run_llm_demo() {
     echo -e "   │                    ${YELLOW}SAGE Chat Pipeline${NC}                                │"
     echo -e "   │                                                                      │"
     echo -e "   │    ${CYAN}┌─────────────┐     ┌─────────────┐     ┌─────────────┐${NC}       │"
-    echo -e "   │    ${CYAN}│  User Query │${NC} ──▶ ${CYAN}│  SageDB RAG │${NC} ──▶ ${CYAN}│  LLM Gen    │${NC}       │"
+    echo -e "   │    ${CYAN}│  User Query │${NC} ──▶ ${CYAN}│  SageVDB RAG │${NC} ──▶ ${CYAN}│  LLM Gen    │${NC}       │"
     echo -e "   │    ${CYAN}│   (问题)    │${NC}     ${CYAN}│  (向量检索) │${NC}     ${CYAN}│   (生成)    │${NC}       │"
     echo -e "   │    ${CYAN}└─────────────┘     └─────────────┘     └─────────────┘${NC}       │"
     echo -e "   │                              │                     │              │"
@@ -351,7 +351,7 @@ PY
         chat_cache_dir="${repo_root}/.sage/cache/chat"
     fi
     local index_manifest="${chat_cache_dir}/docs-public_manifest.json"
-    local index_db_prefix="${chat_cache_dir}/docs-public.sagedb"
+    local index_db_prefix="${chat_cache_dir}/docs-public.sagevdb"
     if [ ! -f "$index_manifest" ] || [ ! -f "${index_db_prefix}.config" ]; then
         echo -e "${YELLOW}⚠️  首次运行需要构建文档索引...${NC}"
         echo -e "${DIM}   这将使用本地 Embedding 服务创建向量索引${NC}"

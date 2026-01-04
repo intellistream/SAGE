@@ -3,7 +3,7 @@
 # 使用主仓库的版本（保留我们的版本）
 #
 # 注意：重构后的 submodule 路径：
-# - packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
+# - packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB
 # - packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow
 # - packages/sage-common/src/sage/common/components/sage_llm/sageLLM
 
@@ -21,7 +21,7 @@ echo ""
 
 # 当前有效的 submodule 路径
 SUBMODULES=(
-    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
+    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB"
     "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
     "packages/sage-common/src/sage/common/components/sage_llm/sageLLM"
     "docs-public"

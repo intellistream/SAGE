@@ -92,17 +92,17 @@ sync_submodules_if_requested() {
     fi
 
     echo ""
-    echo -e "${BLUE}🔄 同步 SAGE submodules${NC}"
-    echo -e "${DIM}提示: 将并行克隆 8 个子仓库，首次可能需要 2-5 分钟${NC}"
+    echo -e "${BLUE}🔄 同步 docs-public 子模块${NC}"
+    echo -e "${DIM}提示: 仅同步 docs-public（SAGE-Pub）；其他组件已随源码或 pip 依赖提供${NC}"
 
     if [ ! -f "$SAGE_ROOT/manage.sh" ]; then
-        echo -e "${YELLOW}⚠️  未找到 manage.sh，跳过自动同步${NC}"
-        echo -e "${DIM}提示: 手动运行 git submodule update --init --recursive${NC}"
+        echo -e "${YELLOW}⚠️  未找到 manage.sh，跳过 docs-public 同步${NC}"
+        echo -e "${DIM}提示: 手动运行 ./tools/maintenance/sage-maintenance.sh submodule init${NC}"
         return
     fi
 
     if ! bash "$SAGE_ROOT/manage.sh"; then
-        echo -e "${YELLOW}⚠️  自动同步失败，请稍后手动运行 ${DIM}./manage.sh bootstrap${NC}"
+        echo -e "${YELLOW}⚠️  docs-public 同步失败，请稍后手动运行 ${DIM}./manage.sh bootstrap${NC}"
         return
     fi
 }
@@ -500,7 +500,7 @@ main() {
                 local submodules_installed=0
 
                 # 定义所有子模块路径
-                # 注意: C++ 扩展已迁移为独立 PyPI 包 (isagedb, isage-flow, isage-tsdb, neuromem, isage-refiner)
+                # 注意: C++ 扩展已迁移为独立 PyPI 包 (isagevdb, isage-flow, isage-tsdb, neuromem, isage-refiner)
                 # sageLLM 已独立为私有仓库
                 local submodule_paths=(
                     # 所有子模块已迁移或独立，不在此列表中

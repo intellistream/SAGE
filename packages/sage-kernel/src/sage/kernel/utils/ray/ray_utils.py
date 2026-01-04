@@ -16,6 +16,25 @@ except ImportError:
     SAGE_OUTPUT_PATHS_AVAILABLE = False
 
 
+def normalize_extra_python_paths(paths) -> list[str]:
+    """Normalize extra python paths to a string list."""
+    if paths is None:
+        return []
+    if isinstance(paths, str):
+        return [paths]
+    try:
+        iterable = list(paths)
+    except TypeError:
+        return [str(paths)]
+
+    normalized: list[str] = []
+    for item in iterable:
+        if item is None:
+            continue
+        normalized.append(str(item))
+    return normalized
+
+
 def get_sage_kernel_runtime_env():
     """
     获取Sage内核的Ray运行环境配置，确保Actor可以访问sage模块
@@ -126,18 +145,6 @@ def ensure_ray_initialized(runtime_env=None):
 
             # 检测是否在CI环境中
             is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
-
-            # 首先尝试连接到现有的 Ray 集群
-            try:
-                ray.init(address="auto", ignore_reinit_error=True)  # type: ignore[union-attr]
-                nodes = ray.nodes()
-                alive_nodes = [n for n in nodes if n.get("Alive", False)]
-                print(f"Connected to existing Ray cluster with {len(alive_nodes)} nodes")
-                return
-            except ConnectionError:
-                print("No existing Ray cluster found, starting local Ray instance")
-            except Exception as e:
-                print(f"Failed to connect to Ray cluster: {e}, starting local Ray instance")
 
             # 准备初始化参数（本地模式）
             init_kwargs = {

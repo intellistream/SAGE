@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sage.kernel.utils.ray.ray_utils import normalize_extra_python_paths
+
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
@@ -74,7 +76,9 @@ class TaskNode:
 
         # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
         # 保存 extra_python_paths 用于传递给 TaskFactory
-        self._extra_python_paths = getattr(env, "extra_python_paths", []) or []
+        self._extra_python_paths = normalize_extra_python_paths(
+            getattr(env, "extra_python_paths", None)
+        )
 
         # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
         self.task_factory: TaskFactory = self._create_task_factory()

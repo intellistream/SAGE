@@ -70,17 +70,12 @@ python advanced_dag_example.py
 
 ### Prerequisites
 
-Ensure SAGE TSDB is properly installed:
+Ensure SAGE TSDB is installed (via quickstart or editable install):
 
 ```bash
 # From SAGE root directory
-cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb
-
-# Check if sageTSDB submodule is initialized
-git submodule status
-
-# If not initialized
-git submodule update --init --recursive
+./quickstart.sh --dev --yes   # or install middleware in editable mode
+# pip install -e packages/sage-middleware
 ```
 
 ### Run Individual Examples

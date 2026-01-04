@@ -2,14 +2,15 @@
 
 ## 概述
 
-SAGE 项目中的子模块（sageLLM, sageDB, sageFlow, neuromem, sageTSDB, sageRefiner）都是独立的 Git 仓库，有自己的开发工具链和测试框架。
+SAGE 项目中的子模块（sageLLM, sageVDB, sageFlow, neuromem, sageTSDB, sageRefiner）都是独立的 Git
+仓库，有自己的开发工具链和测试框架。
 
 ## 子模块列表
 
 | 子模块          | 类型   | 路径                                                                               | 描述              |
 | --------------- | ------ | ---------------------------------------------------------------------------------- | ----------------- |
 | **sageLLM**     | Python | `packages/sage-llm-core/src/sage/llm/sageLLM`                                      | LLM Control Plane |
-| **sageDB**      | C++    | `packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB`           | 向量数据库        |
+| **sageVDB**     | C++    | `packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB`          | 向量数据库        |
 | **sageFlow**    | C++    | `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow`       | 流处理引擎        |
 | **neuromem**    | Python | `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem`        | 记忆系统          |
 | **sageTSDB**    | C++    | `packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB`       | 时序数据库        |
@@ -21,7 +22,7 @@ SAGE 项目中的子模块（sageLLM, sageDB, sageFlow, neuromem, sageTSDB, sage
 
 ### Pre-commit Hooks
 
-**C++ 子模块** (sageDB, sageFlow, sageTSDB):
+**C++ 子模块** (sageVDB, sageFlow, sageTSDB):
 
 - `clang-format` - C++ 代码格式化
 - `cmake-format` - CMake 格式化
@@ -67,7 +68,7 @@ git submodule update --init --recursive
 
 ```bash
 # 进入子模块目录
-cd packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
+cd packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB
 
 # 安装 pre-commit hooks
 pre-commit install
@@ -95,10 +96,10 @@ git push
 cd /path/to/SAGE
 
 # 更新子模块引用
-git add packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB
+git add packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB
 
 # 提交主项目
-git commit -m "chore: update sageDB submodule"
+git commit -m "chore: update sageVDB submodule"
 ```
 
 ## 常见任务

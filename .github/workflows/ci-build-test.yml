@@ -131,7 +131,7 @@ jobs:
           echo "ℹ️  子模块状态说明："
           echo "   - docs-public: 唯一的 Git 子模块（文档仓库）"
           echo "   - neuromem, sageRefiner: 已迁移为独立 PyPI 包，不在 Git 子模块中"
-          echo "   - sageDB, sageFlow, sageTSDB: 已迁移为独立 PyPI 包，不在 Git 子模块中"
+          echo "   - sageVDB, sageFlow, sageTSDB: 已迁移为独立 PyPI 包，不在 Git 子模块中"
           echo ""
           echo "✅ 子模块验证完成"
 
@@ -158,7 +158,7 @@ jobs:
 
           # 这些组件已独立为 PyPI 包，不再作为 C++ 扩展编译
           packages=(
-            "isagedb:sagedb:SageDB 向量数据库"
+            "isagevdb:sagevdb:SageVDB 向量数据库"
             "isage-flow:sage_flow:SageFlow 流处理引擎"
             "isage-tsdb:sage_tsdb:SageTSDB 时序数据库"
             "isage-refiner:sage_refiner:SageRefiner 上下文压缩"

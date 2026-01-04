@@ -74,8 +74,8 @@ clean_pip_cache() {
 # 验证C++扩展函数 - 已迁移为独立 PyPI 包
 verify_cpp_extensions() {
     log_info "C++ 扩展已迁移为独立 PyPI 包" "CPPExt"
-    echo -e "${DIM}ℹ️  C++ 扩展（sageDB/sageFlow/sageTSDB）已迁移为独立 PyPI 包${NC}"
-    echo -e "${DIM}   - isagedb (was sageDB)${NC}"
+    echo -e "${DIM}ℹ️  C++ 扩展（sageVDB/sageFlow/sageTSDB）已迁移为独立 PyPI 包${NC}"
+    echo -e "${DIM}   - isagevdb (was sageVDB)${NC}"
     echo -e "${DIM}   - isage-flow (was sageFlow)${NC}"
     echo -e "${DIM}   - isage-tsdb (was sageTSDB)${NC}"
     echo -e "${DIM}   如需使用，请通过 pip 安装这些独立包${NC}"
@@ -136,17 +136,17 @@ try:
         if total == total_expected:
             print('')
             print('✅ 所有 C++ 扩展验证成功')
-        else:
+        else
             print('')
             print(f'⚠️  部分扩展不可用 ({total}/{total_expected})，功能将受限')
-            print('💡 提示: 确保子模块已初始化并安装了所需的构建依赖')
+            print('💡 提示: 确保已安装构建依赖 (cmake, build-essential) 并重新安装 isage-middleware')
         sys.exit(0)  # 部分成功也返回 0
     else:
         print('')
         print('❌ 没有任何 C++ 扩展可用')
         print('💡 这可能是因为：')
-        print('   1. 子模块未初始化：git submodule update --init --recursive')
-        print('   2. 缺少构建工具：apt-get install build-essential cmake')
+        print('   1. 缺少构建工具：apt-get install build-essential cmake')
+        print('   2. 未按 --dev 安装或 isage-middleware 构建失败')
         print('   3. 查看详细日志了解更多信息')
         sys.exit(1)
 except Exception as e:
@@ -171,8 +171,8 @@ except Exception as e:
             log_warn "扩展验证失败" "CPPExt"
             echo -e "${DIM}💡 提示: C++扩展在 sage-middleware 安装时自动构建${NC}"
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
-            echo -e "${DIM}   1. 子模块未初始化：git submodule update --init --recursive${NC}"
-            echo -e "${DIM}   2. 缺少构建工具：apt-get install build-essential cmake${NC}"
+            echo -e "${DIM}   1. 缺少构建工具：apt-get install build-essential cmake${NC}"
+            echo -e "${DIM}   2. 未按 --dev 模式或 isage-middleware 安装失败${NC}"
             echo -e "${DIM}   3. 查看详细日志：cat ${SAGE_INSTALL_LOG:-}${NC}"
             return 1
         fi
@@ -289,26 +289,8 @@ install_sage() {
                 return 1
             fi
 
-            # 修复 C++ 扩展库安装（editable install 模式）
-            echo ""
-            echo -e "${BLUE}🔧 修复 C++ 扩展库安装...${NC}"
-            log_info "开始修复 C++ 扩展库安装" "MAIN"
-            fix_middleware_cpp_extensions "$log_file"
-
-            # 验证C++扩展（已在 sage-middleware 安装时自动构建）
-            echo ""
-            echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
-            log_info "验证 C++ 扩展状态" "MAIN"
-
-            if verify_cpp_extensions "$log_file"; then
-                log_info "C++ 扩展验证成功" "MAIN"
-                echo -e "${CHECK} 标准安装模式完成（C++扩展已自动构建）"
-                log_phase_end "标准安装模式" "success" "MAIN"
-            else
-                log_warn "C++ 扩展验证失败，但继续" "MAIN"
-                echo -e "${WARNING} 标准安装完成，但C++扩展不可用"
-                log_phase_end "标准安装模式" "partial_success" "MAIN"
-            fi
+            echo -e "${CHECK} 标准安装模式完成"
+            log_phase_end "标准安装模式" "success" "MAIN"
             ;;
         "dev")
             echo -e "${BLUE}开发者安装模式：标准安装 + 开发工具${NC}"
@@ -324,25 +306,6 @@ install_sage() {
             if ! install_scientific_packages; then
                 log_phase_end "开发者安装模式" "failure" "MAIN"
                 return 1
-            fi
-
-            # 修复 C++ 扩展库安装（editable install 模式）
-            echo ""
-            echo -e "${BLUE}🔧 修复 C++ 扩展库安装...${NC}"
-            log_info "开始修复 C++ 扩展库安装" "MAIN"
-            fix_middleware_cpp_extensions "$log_file"
-
-            # 验证C++扩展（已在 sage-middleware 安装时自动构建）
-            echo ""
-            echo -e "${BLUE}🧩 验证 C++ 扩展状态...${NC}"
-            log_info "验证 C++ 扩展状态" "MAIN"
-
-            if verify_cpp_extensions "$log_file"; then
-                log_info "C++ 扩展验证成功" "MAIN"
-                echo -e "${CHECK} C++扩展可用"
-            else
-                log_warn "C++ 扩展验证失败，但继续安装开发工具" "MAIN"
-                echo -e "${WARNING} C++扩展不可用，但继续安装开发工具"
             fi
 
             # 安装开发工具

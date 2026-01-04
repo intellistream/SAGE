@@ -64,11 +64,7 @@ cd SAGE/packages/sage-middleware
 pip install -e .
 ```
 
-> 提示：如果使用了子模块（例如 `sage_flow`），请先在仓库根目录执行：
->
-> ```bash
-> git submodule update --init --recursive
-> ```
+> 说明：中间件组件（sage_db/sage_flow/sage_tsdb 等）现已随源码直接提供或通过 pip 依赖分发，无需初始化任何子模块。
 
 ## 新增中间件组件的规范（重要）
 
@@ -148,8 +144,7 @@ pip install -e .
 ### 6. CI 与子模块提示
 
 - CI 会递归检出子模块并按 `setup.py` 的逻辑尝试构建。
-- 如果组件以子模块形式提供源码，请确保子模块在 CI 和本地都能被初始化：
-  - `git submodule update --init --recursive`
+- 中间件组件不再通过 Git submodule 分发；请不要在 CI 或本地执行子模块初始化命令。
 
 ## 贡献
 

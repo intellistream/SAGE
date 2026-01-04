@@ -72,8 +72,8 @@ def test_vdb_backend_selection():
 
     print(f"✅ VDB backend from config.yaml: {backend_type}")
 
-    if backend_type == "SageDB":
-        print("  ✅ SageDB is selected (C++ optimized)")
+    if backend_type == "SageVDB":
+        print("  ✅ SageVDB is selected (C++ optimized)")
     else:
         print("  ✅ FAISS is selected (Python)")
 
@@ -94,11 +94,11 @@ if __name__ == "__main__":
         print("✅ All tests passed!")
         print("=" * 60)
 
-        if backend_type == "SageDB":
-            print("\n🚀 Current configuration uses SageDB (C++ optimized)")
+        if backend_type == "SageVDB":
+            print("\n🚀 Current configuration uses SageVDB (C++ optimized)")
         else:
             print("\n📝 Current configuration uses FAISS")
-            print("💡 To use SageDB, set gateway.memory.vdb.backend_type: SageDB in config.yaml")
+            print("💡 To use SageVDB, set gateway.memory.vdb.backend_type: SageVDB in config.yaml")
 
     except Exception as e:
         print(f"\n❌ Test failed: {e}")

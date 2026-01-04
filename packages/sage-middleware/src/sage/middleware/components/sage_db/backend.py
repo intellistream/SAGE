@@ -1,55 +1,55 @@
-"""SageDB Backend Adapter - VectorStore implementation using SageDB
+"""SageVDB Backend Adapter - VectorStore implementation using SageVDB
 
-This module provides a VectorStore adapter for SageDB, enabling it to be used
+This module provides a VectorStore adapter for SageVDB, enabling it to be used
 with the unified IndexBuilder interface.
 
 Layer: L4 (sage-middleware)
-Dependencies: isagedb (PyPI package)
+Dependencies: isagevdb (PyPI package)
 
-SageDB is now an independent PyPI package. Install with: pip install isagedb
+SageVDB is now an independent PyPI package. Install with: pip install isagevdb
 """
 
 from pathlib import Path
 from typing import Any
 
-from sagedb import SageDB
+from sagevdb import SageVDB
 
 
-class SageDBBackend:
-    """VectorStore adapter for SageDB (C++ vector database).
+class SageVDBBackend:
+    """VectorStore adapter for SageVDB (C++ vector database).
 
-    This class wraps SageDB to conform to the VectorStore Protocol,
+    This class wraps SageVDB to conform to the VectorStore Protocol,
     enabling it to be used with IndexBuilder via dependency injection.
 
     Architecture:
         - Implements VectorStore Protocol from L3 (sage-libs)
-        - Uses SageDB from isagedb (PyPI package)
+        - Uses SageVDB from isagevdb (PyPI package)
         - Injected into IndexBuilder by L6 (sage-cli)
 
     Example:
         >>> from sage.libs.rag.index_builder import IndexBuilder
-        >>> from sage.middleware.components.sage_db import SageDBBackend
+        >>> from sage.middleware.components.sage_db import SageVDBBackend
         >>>
         >>> def factory(path: Path, dim: int):
-        ...     return SageDBBackend(path, dim)
+        ...     return SageVDBBackend(path, dim)
         >>>
         >>> builder = IndexBuilder(backend_factory=factory)
     """
 
     def __init__(self, persist_path: Path, dim: int):
-        """Initialize SageDB backend.
+        """Initialize SageVDB backend.
 
         Args:
             persist_path: Path where index will be saved
             dim: Vector dimension
         """
-        self.db = SageDB(dim)
+        self.db = SageVDB(dim)
         self.persist_path = persist_path
         self.dim = dim
         self._count = 0
 
     def add(self, vector: list[float], metadata: dict[str, Any]) -> None:
-        """Add vector with metadata to SageDB.
+        """Add vector with metadata to SageVDB.
 
         Args:
             vector: Dense vector embedding
@@ -59,11 +59,11 @@ class SageDBBackend:
         self._count += 1
 
     def build_index(self) -> None:
-        """Build SageDB index for efficient search."""
+        """Build SageVDB index for efficient search."""
         self.db.build_index()
 
     def save(self, path: str) -> None:
-        """Persist SageDB index to disk.
+        """Persist SageVDB index to disk.
 
         Args:
             path: Absolute path to save location
@@ -71,7 +71,7 @@ class SageDBBackend:
         self.db.save(path)
 
     def load(self, path: str) -> None:
-        """Load SageDB index from disk.
+        """Load SageVDB index from disk.
 
         Args:
             path: Absolute path to load from
@@ -84,7 +84,7 @@ class SageDBBackend:
         top_k: int = 5,
         filter_metadata: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
-        """Search for nearest neighbors in SageDB.
+        """Search for nearest neighbors in SageVDB.
 
         Args:
             query_vector: Query embedding
@@ -94,7 +94,7 @@ class SageDBBackend:
         Returns:
             List of search results with metadata and scores
         """
-        # SageDB search returns QueryResult objects
+        # SageVDB search returns QueryResult objects
         results = self.db.search(query_vector, top_k=top_k)
 
         # Convert to standard format
@@ -134,3 +134,7 @@ class SageDBBackend:
             Total vector count
         """
         return self._count
+
+
+# Backward compatibility alias
+SageDBBackend = SageVDBBackend

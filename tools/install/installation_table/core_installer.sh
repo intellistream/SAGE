@@ -703,39 +703,13 @@ else:
         echo -e "${DIM}  正在安装: $package_dir${NC}"
         log_info "开始安装: $package_dir" "INSTALL"
 
-        # 特殊处理 sage-libs: LibAMM C++ 扩展默认跳过本地编译
-        # LibAMM 编译需要大量内存（单文件 500MB+），不适合本地构建
-        # 默认从 PyPI 获取预编译版本（由 CI/CD self-hosted server 构建）
-        # 如需本地编译 LibAMM，设置环境变量: BUILD_LIBAMM=1
-        if [[ "$package_dir" == *"sage-libs"* ]]; then
-            if [ "${BUILD_LIBAMM:-0}" = "1" ]; then
-                log_info "sage-libs: BUILD_LIBAMM=1，将编译 LibAMM C++ 扩展（需要大量内存）" "INSTALL"
-                echo -e "${YELLOW}  ⚠️  sage-libs: 将本地编译 LibAMM（可能导致内存不足）${NC}"
-            else
-                log_info "sage-libs: LibAMM C++ 扩展已跳过（默认行为），将从 PyPI 安装预编译版本" "INSTALL"
-                echo -e "${DIM}  sage-libs: 跳过 LibAMM 本地编译（从 PyPI 获取预编译版本）${NC}"
-                # 确保 BUILD_LIBAMM 为 0（CMakeLists.txt 默认就是 OFF，这里显式设置）
-                export BUILD_LIBAMM=0
-            fi
-        fi
-
         log_debug "PIP命令: $PIP_CMD install $install_flags $package_dir $pip_args --no-deps" "INSTALL"
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$package_dir\" $pip_args --no-deps"; then
             log_error "安装失败: $package_dir" "INSTALL"
             log_error "请检查日志文件: ${SAGE_INSTALL_LOG:-}" "INSTALL"
             echo -e "${CROSS} 安装 $package_dir 失败！"
-
-            # 清理环境变量
-            if [[ "$package_dir" == *"sage-libs"* ]]; then
-                unset BUILD_LIBAMM
-            fi
             return 1
-        fi
-
-        # 清理环境变量
-        if [[ "$package_dir" == *"sage-libs"* ]]; then
-            unset BUILD_LIBAMM
         fi
 
         log_info "安装成功: $package_dir" "INSTALL"
@@ -747,125 +721,23 @@ else:
     if [ "$install_mode" != "core" ]; then
         echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L6)...${NC}"
 
-        # L4: middleware (包含C++扩展构建)
+        # L4: middleware (Python 兼容层)
         # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
-        # C++ 构建依赖（pybind11等）在 build-system.requires 中声明，通过环境已安装
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
+        # C++ 扩展（isagevdb/isage-flow/isage-tsdb/isage-neuromem/isage-refiner）通过外部依赖安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
+        log_info "开始安装: packages/sage-middleware" "INSTALL"
+        log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
 
-        # 智能跳过检查：如果 C++ 源文件未修改且包已安装，则跳过重新编译
-        local should_rebuild=true
-        local skip_reason=""
-
-        # 初始化哈希相关变量（在所有分支中都可能使用）
-        local cpp_source_hash=""
-        local cache_dir="$SAGE_ROOT/.sage/cache"
-        local hash_cache="$cache_dir/middleware_cpp_source.hash"
-        mkdir -p "$cache_dir"
-
-        # 检查是否强制重新编译
-        if [ "$(get_force_rebuild)" = "true" ]; then
-            should_rebuild=true
-            skip_reason="用户指定 --force-rebuild"
-            log_info "强制重新编译 sage-middleware (--force-rebuild)" "INSTALL"
-        # 检查是否已安装
-        elif $PIP_CMD show isage-middleware &>/dev/null; then
-            log_debug "isage-middleware 已安装，检查是否需要重新编译..." "INSTALL"
-
-            # 注意: C++ 扩展（sageDB, sageFlow, sageTSDB 等）已迁移为独立 PyPI 包
-            # sage-middleware 现在只包含 Python 兼容层，无需计算 C++ 源文件哈希
-            # 如需 C++ 扩展，通过 pip install isagedb isage-flow isage-tsdb 等安装
-            cpp_source_hash=""
-
-            # 比较哈希值
-            if [ -n "$cpp_source_hash" ] && [ -f "$hash_cache" ]; then
-                local cached_hash=$(cat "$hash_cache" 2>/dev/null)
-                if [ "$cpp_source_hash" = "$cached_hash" ]; then
-                    should_rebuild=false
-                    skip_reason="C++ 源文件未修改"
-                    log_info "跳过 sage-middleware 重新编译：C++ 源文件未修改（哈希匹配）" "INSTALL"
-                else
-                    log_debug "C++ 源文件已修改，需要重新编译" "INSTALL"
-                    log_debug "缓存哈希: $cached_hash" "INSTALL"
-                    log_debug "当前哈希: $cpp_source_hash" "INSTALL"
-                fi
-            else
-                log_debug "首次安装或缺少哈希缓存，将进行编译" "INSTALL"
-            fi
-        else
-            log_debug "isage-middleware 未安装，需要编译" "INSTALL"
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-middleware\" $pip_args --no-deps"; then
+            log_error "安装 sage-middleware 失败" "INSTALL"
+            echo -e "${CROSS} 安装 sage-middleware 失败！"
+            return 1
         fi
 
-        # 根据检查结果决定是否编译
-        if [ "$should_rebuild" = false ]; then
-            echo -e "${DIM}    ⏭️  跳过编译（$skip_reason）${NC}"
-            log_info "跳过 sage-middleware 安装：$skip_reason" "INSTALL"
-            echo -e "${CHECK} sage-middleware 已是最新版本（跳过编译）"
-        else
-            # 需要重新编译
-            echo -e "${DIM}    ⏱️  包含 C++ 扩展构建，预计需要:${NC}"
-            echo -e "${DIM}       • 首次安装: 10-15 分钟${NC}"
-            echo -e "${DIM}       • 增量构建: 2-5 分钟${NC}"
-            echo ""
-            echo -e "${DIM}    💡 提示: 可在另一终端查看实时进度:${NC}"
-            echo -e "${DIM}       tail -f ~/.local/state/sage/logs/install_\$(date +%Y%m%d).log${NC}"
-            echo ""
-
-            log_info "开始安装: packages/sage-middleware (包含 C++ 扩展)" "INSTALL"
-            log_debug "这一步会编译 C++ 扩展，可能较慢" "INSTALL"
-            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
-
-            # 显示进度指示器
-            echo -ne "${DIM}    ⚙️  正在编译 C++ 扩展... "
-
-            # 执行安装（使用临时日志文件）
-            local temp_install_log=$(mktemp)
-            if $PIP_CMD install $install_flags "packages/sage-middleware" $pip_args --no-deps > "$temp_install_log" 2>&1; then
-                echo -e "✓${NC}"
-
-                # 将输出追加到主日志
-                if [ -f "$temp_install_log" ]; then
-                    cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
-                fi
-                rm -f "$temp_install_log"
-
-                log_info "安装成功: packages/sage-middleware" "INSTALL"
-                log_pip_package_info "isage-middleware" "INSTALL"
-                echo -e "${CHECK} sage-middleware 安装完成（包括 C++ 扩展）"
-
-                # 注意: C++ 扩展已迁移为独立 PyPI 包，无需计算哈希
-                cpp_source_hash=""
-
-                # 保存哈希到缓存
-                if [ -n "$cpp_source_hash" ]; then
-                    echo "$cpp_source_hash" > "$hash_cache"
-                    log_debug "已保存 C++ 源文件哈希到缓存: $hash_cache" "INSTALL"
-                fi
-            else
-                echo -e "✗${NC}"
-
-                log_error "安装 sage-middleware 失败！" "INSTALL"
-                log_error "这通常是由于 C++ 编译错误，请检查日志: ${SAGE_INSTALL_LOG:-}" "INSTALL"
-
-                # 将错误输出追加到主日志
-                if [ -f "$temp_install_log" ]; then
-                    cat "$temp_install_log" >> "${SAGE_INSTALL_LOG:-}"
-
-                    # 尝试提取编译错误的关键信息
-                    local error_context=$(grep -A 5 -i "error:" "$temp_install_log" | tail -20 || echo "未找到具体错误信息")
-                    log_error "编译错误摘要:\n$error_context" "INSTALL"
-                fi
-
-                rm -f "$temp_install_log"
-
-                echo -e "${CROSS} 安装 sage-middleware 失败！"
-                echo -e "${DIM}提示: 检查日志文件获取详细错误信息: ${SAGE_INSTALL_LOG:-}${NC}"
-                return 1
-            fi
-        fi
-
-        # 注意: C++ 扩展（sage_flow, sage_db, sage_tsdb）已迁移为独立 PyPI 包
-        # 不再检查 .so 文件，这些组件通过 pip install isagedb/isage-flow/isage-tsdb 安装
+        log_info "安装成功: packages/sage-middleware" "INSTALL"
+        log_pip_package_info "isage-middleware" "INSTALL"
+        echo -e "${CHECK} sage-middleware 安装完成"
 
         # L5: apps & benchmark (standard/full/dev 模式)
         if [ "$install_mode" != "core" ]; then
@@ -1170,6 +1042,14 @@ from collections import defaultdict
 # 存储包名到版本约束的映射
 dep_versions = defaultdict(list)
 
+# 独立发布但仍需安装的 isage-* 扩展包（已从源码仓库移除）
+allowed_isage_packages = {
+    'isage-tsdb',      # 时间序列数据库
+    'isage-flow',      # 流式语义状态引擎
+    'isage-refiner',   # 长上下文压缩
+    'isage-neuromem',  # 记忆系统
+}
+
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
@@ -1193,12 +1073,21 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                if not dep.startswith('isage-'):
-                    # 提取包名和版本约束
-                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
-                    if pkg_match:
-                        pkg_name = pkg_match.group(1)
-                        dep_versions[pkg_name].append(dep)
+                # 提取包名（移除版本约束和extras）
+                pkg_match = re.match(r'^([a-zA-Z0-9_-]+)', dep)
+                if not pkg_match:
+                    continue
+                pkg_base = pkg_match.group(1)
+
+                # 允许外部 isage-* 独立包，否则跳过内部 isage- 依赖
+                if pkg_base.startswith('isage-') and pkg_base not in allowed_isage_packages:
+                    continue
+
+                # 提取包名和版本约束（包含 extras）
+                full_pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
+                if full_pkg_match:
+                    pkg_name = full_pkg_match.group(1)
+                    dep_versions[pkg_name].append(dep)
 
 # 在 dev/full 模式下，提取 vLLM 可选依赖
 if install_mode in ['dev', 'full']:

@@ -381,7 +381,7 @@ BLUEPRINT_LIBRARY: tuple[PipelineBlueprint, ...] = (
         notes=(
             "基于 sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion 模块",
             "需要可用的 OpenAI 兼容推理服务或替换生成算子",
-            "多模态融合可扩展至 SageDB 或外部向量库",
+            "多模态融合可扩展至 SageVDB 或外部向量库",
         ),
         graph_channels=(
             {

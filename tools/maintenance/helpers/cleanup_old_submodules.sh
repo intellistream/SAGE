@@ -27,7 +27,7 @@ OLD_SUBMODULES=(
 
 # 新的 submodule 路径（需要清理重建）
 NEW_SUBMODULES=(
-    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
+    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB"
     "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
     "packages/sage-common/src/sage/common/components/sage_llm/sageLLM"
 )

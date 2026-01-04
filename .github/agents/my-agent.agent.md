@@ -110,19 +110,18 @@ Installation takes 10-25 minutes:
 **Options**: `--pip` (current env), `--conda` (create env), `--vllm` (vLLM support),
 `--no-sync-submodules`
 
-### Submodule Management
+### Submodule & External Packages
 
-**CRITICAL**: NEVER use `git submodule update --init` directly
-
-Correct commands:
+- **Only submodule:** `docs-public` (SAGE-Pub). Use the helpers below to re-pin; do **not** run `git submodule update --init` directly.
+- **Commands:**
 
 ```bash
-./manage.sh                        # Bootstrap submodules + hooks
-./tools/maintenance/sage-maintenance.sh submodule init    # Initialize
-./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD
+./manage.sh                        # Bootstrap docs-public + hooks
+./tools/maintenance/sage-maintenance.sh submodule init    # Initialize docs-public
+./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD for docs-public
 ```
 
-C++ extension submodules are in `packages/sage-middleware/src/sage/middleware/components/`
+- **Everything else is vendored or pip-installed** (e.g., `isagevdb`, `isage-benchmark`). There are no other git submodules for middleware/engines.
 
 ### Testing & Quality
 

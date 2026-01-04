@@ -107,7 +107,7 @@ git checkout main # → submodules 切到 main git checkout main-dev # → submo
 ### 当前 Submodules
 
 - `docs-public/` - 文档
-- `packages/.../sage_db/sageDB/` - 数据库
+- `packages/.../sage_db/sageVDB/` - 数据库
 - `packages/.../sage_flow/sageFlow/` - 工作流
 - `packages/sage-llm-core/src/sage/llm/` - LLM 服务
 
@@ -145,7 +145,7 @@ Submodule                                          配置分支    当前分支
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 docs-public                                        main-dev    main-dev    (绿色 ✅)
 sageLLM                                            main-dev    main-dev    (绿色 ✅)
-sageDB                                             main-dev    main-dev    (绿色 ✅)
+sageVDB                                             main-dev    main-dev    (绿色 ✅)
 sageFlow                                           main-dev    main-dev    (绿色 ✅)
 ```
 
