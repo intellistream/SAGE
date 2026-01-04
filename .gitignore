@@ -253,3 +253,14 @@ packages/sage-middleware/.cmake*
 coverage.json
 packages/sage-common/src/sage/common/components/sage_vllm/
 docs/*
+
+# ============================================
+# 敏感信息 - 已迁移到私有仓库
+# ============================================
+# 人员分配和敏感信息已迁移到 https://github.com/intellistream/sage-team-info (私有)
+TEAM_ASSIGNMENT.md
+CONTACT_INFO.md
+SALARY_POLICY.md
+FUNDING_INFO.md
+**/team_info/**
+**/sensitive/**
