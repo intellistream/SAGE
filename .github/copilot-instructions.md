@@ -225,7 +225,7 @@ Only after consulting these READMEs should the assistant propose designs, refact
 1. **User-facing docs:** `docs-public/docs_src/` (guides, tutorials, concepts)
 2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
 3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
-4. **Submodule docs:** `packages/.../submodule/docs/` (sageFlow, sageTSDB, neuromem, etc.)
+4. **Independent repo docs:** See respective repositories (sageDB, sageFlow, sageRefiner, sageTSDB, NeuroMem, etc.)
 5. **Tool docs:** `tools/<tool-name>/README.md` or `tools/<tool-name>/docs/`
 6. **Examples:** `examples/<name>/README.md`
 7. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
@@ -234,8 +234,8 @@ Only after consulting these READMEs should the assistant propose designs, refact
 **Rationale:**
 - Prevents confusion between root `docs/` and `docs-public/`
 - Maintains single source of truth for project-level documentation
-- Allows packages, submodules, and tools to maintain their own documentation
-- Submodules are independent Git repositories with their own version control
+- Allows packages and tools to maintain their own documentation
+- Independent repositories (PyPI packages) have their own documentation
 - Tools are independent components that may have complex documentation needs
 - Avoids accidental gitignore of important documentation
 
@@ -277,27 +277,42 @@ Canonical namespaces (post-refactor):
   `packages/sage-llm-core/src/sage/llm/control_plane/`
   (tests: `.../control_plane/tests/`)
 
-**Middleware inference building blocks (L4, including C++ extensions)**
+**Middleware inference building blocks (L4, PyPI packages with C++ extensions)**
 
-- Vector DB core (SageDB - 即将独立为 `isagedb` PyPI 包):
-  - **SageDB VDB Backend**: Self-developed high-performance C++ vector database
-  - **NOT FAISS-based**: Fully custom implementation with FAISS-compatible API
-  - **独立后**: `pip install isagedb` (PyPI 包名)
-  - **ANNS Algorithms**: Migrated to `sage-libs/anns/` (faiss_HNSW, vsag_hnsw, diskann, etc.)
-  - Python API (迁移后): `from sagedb import SageDB`
-  - SAGE 兼容层: `sage.middleware.components.sage_db.SageDB`
+sage-middleware depends on the following independent PyPI packages:
+
+- **SageDB** (`isagedb`): Self-developed high-performance C++ vector database
+  - PyPI: `pip install isagedb`
+  - Repository: `intellistream/sageDB`
+  - NOT FAISS-based: Fully custom implementation with FAISS-compatible API
+  - Python API: `from sagedb import SageDB`
+  - SAGE wrapper: `sage.middleware.components.sage_db.SageDB`
   - Supports: similarity search, metadata filtering, hybrid search, batch operations
-  - NeuroMem integration: `sage_mem/neuromem/search_engine/vdb_index/sagedb_index.py`
-  - Available backends in NeuroMem: FAISS (Python wrapper), SageDB (C++ self-developed)
-  - Configuration: Set `backend_type="SageDB"` in VDB index config to use C++ backend
-- Vector-native stream processing engine for incremental semantic state snapshots (C++):
-  `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow/README.md`
-- Memory system (NeuromMem: store/recall; VDB/KV/Graph; services wrapper):
-  `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/README.md`
-- Context compression for RAG (LongRefiner/REFORM/Provence adapters):
-  `packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner/README.md`
-- Time-series DB + window ops/join + out-of-order handling (C++ + pybind11):
-  `packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB/README.md`
+  - Integration: Used by NeuroMem VDB backend
+
+- **SageFlow** (`isage-flow`): Vector-native stream processing engine (C++)
+  - PyPI: `pip install isage-flow`
+  - Repository: `intellistream/sageFlow`
+  - Features: Incremental semantic state snapshots, streaming vector operations
+  - SAGE wrapper: `sage.middleware.components.sage_flow`
+
+- **NeuroMem** (`isage-neuromem`): Brain-inspired memory system
+  - PyPI: `pip install isage-neuromem`
+  - Repository: `intellistream/NeuroMem`
+  - Features: Store/recall; VDB/KV/Graph backends; memory services
+  - SAGE wrapper: `sage.middleware.components.sage_mem`
+
+- **SageRefiner** (`isage-refiner`): Context compression for RAG
+  - PyPI: `pip install isage-refiner`
+  - Repository: `intellistream/sageRefiner`
+  - Features: LongRefiner/REFORM/Provence adapters
+  - SAGE wrapper: `sage.middleware.components.sage_refiner`
+
+- **SageTSDB** (`isage-tsdb`): Time-series database (C++ + pybind11)
+  - PyPI: `pip install isage-tsdb`
+  - Repository: `intellistream/sageTSDB`
+  - Features: Window ops/join, out-of-order handling
+  - SAGE wrapper: `sage.middleware.components.sage_tsdb`
 
 **Benchmarks (L5)**
 

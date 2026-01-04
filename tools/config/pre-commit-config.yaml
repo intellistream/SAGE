@@ -316,6 +316,7 @@ repos:
         "README.md"
         "CHANGELOG.md"
         "tasks.md"
+        "TEAM_ASSIGNMENT.md"
       )
 
       # Allowed directories in project root (whitelist)
