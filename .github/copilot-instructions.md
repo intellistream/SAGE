@@ -160,12 +160,14 @@ Notes:
 
 - **仓库地址**：`git@github.com:intellistream/sageLLM.git`（私有仓库）
 - **文档位置**：`sageLLM/docs/` 目录
-- **人员分工**：`sageLLM/docs/TEAM_ASSIGNMENT.md`
+- **人员分工**：`sageLLM/docs/TEAM_ASSIGNMENT.md`（私有仓库内）
 
 **⚠️ 常见错误**：
 - ❌ 不要引用 `packages/sage-llm-core/src/sage/llm/engines/sagellm`（该路径已不存在）
 - ❌ 不要引用 `docs-public/docs_src/dev-notes/research_work/domestic-llm-engine/`（已迁移至 sageLLM 仓库）
 - ✅ sageLLM 相关文档请引用 `sageLLM/docs/` 或说明需要访问私有仓库
+
+**SAGE 主项目人员信息**：已迁移到私有仓库 `intellistream/sage-team-info`，不再在主仓库中维护。
 
 **关系说明**：
 - sageLLM 是 SAGE 生态的推理引擎实现，但代码独立维护

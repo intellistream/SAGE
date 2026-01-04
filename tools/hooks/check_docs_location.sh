@@ -43,7 +43,6 @@ allowed_patterns=(
     "^CONTRIBUTING\.md$"
     "^LICENSE\.md$"
     "^DEVELOPER\.md$"
-    "^TEAM_ASSIGNMENT\.md$"
     "^docs-public/"
     "^docker/.*\.md$"
     "^packages/[^/]+/README\.md$"              # Only top-level README in packages
