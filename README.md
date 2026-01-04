@@ -271,6 +271,16 @@ git push -u origin feature/my-feature
 [GitHub Issues](https://github.com/intellistream/SAGE/issues) |
 [Discussions](https://github.com/intellistream/SAGE/discussions)
 
+## Team Information
+
+**🔒 Team assignments and sensitive information** are maintained in a private repository to protect
+member privacy.
+
+- **Public**: Project-level information is available in this repository
+- **Private**: Team member assignments, funding details, and contact information are accessible to
+  authorized members only
+- **Access**: Contact project management for access to the private repository
+
 ## Developer Tools
 
 ```bash
