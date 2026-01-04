@@ -7,7 +7,7 @@ on:
       - 'packages/**'
       - 'tools/**'
       - 'pyproject.toml'
-      - '.github/workflows/build-test.yml'
+      - '.github/workflows/ci-build-test.yml'
   pull_request:
     branches: [main, main-dev]
     types: [opened, synchronize, reopened]
