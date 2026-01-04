@@ -40,11 +40,10 @@ echo ""
 echo "2. 检查子模块状态"
 echo "-----------------------------------"
 cd "$PROJECT_ROOT"
-for submodule in \
-    "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB" \
-    "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
-    "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB" \
-    "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"; do
+
+# 注意: C++ 扩展已迁移为独立 PyPI 包 (isagedb, isage-flow, isage-tsdb, neuromem, isage-refiner)
+# 只检查实际的 Git 子模块
+for submodule in "docs-public"; do
 
     if [ -d "$submodule" ]; then
         if [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then

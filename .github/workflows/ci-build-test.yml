@@ -128,30 +128,12 @@ jobs:
           git submodule status
 
           echo ""
-          echo "🔍 验证关键子模块目录："
-          all_ok=true
-          for submodule in \
-            "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem" \
-            "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"; do
-            if [ -d "$submodule" ]; then
-              # Check if directory is not empty
-              if [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then
-                echo "✅ $submodule 存在且已初始化"
-              else
-                echo "⚠️  $submodule 存在但为空（未初始化）"
-                all_ok=false
-              fi
-            else
-              echo "❌ $submodule 缺失"
-              all_ok=false
-            fi
-          done
-
-          if [ "$all_ok" = "false" ]; then
-            echo ""
-            echo "⚠️  某些子模块未正确初始化"
-            echo "💡 C++扩展构建可能会跳过相关组件"
-          fi
+          echo "ℹ️  子模块状态说明："
+          echo "   - docs-public: 唯一的 Git 子模块（文档仓库）"
+          echo "   - neuromem, sageRefiner: 已迁移为独立 PyPI 包，不在 Git 子模块中"
+          echo "   - sageDB, sageFlow, sageTSDB: 已迁移为独立 PyPI 包，不在 Git 子模块中"
+          echo ""
+          echo "✅ 子模块验证完成"
 
       - name: Install SAGE
         run: |

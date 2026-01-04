@@ -15,11 +15,13 @@ echo ""
 # Define submodules with their types
 declare -A SUBMODULES=(
     ["packages/sage-llm-core/src/sage/llm/sageLLM"]="python"
-    ["packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"]="cpp"
-    ["packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"]="cpp"
-    ["packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"]="python"
-    ["packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"]="cpp"
-    ["packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"]="python"
+    # 注意: C++ 扩展已迁移为独立 PyPI 包，不再作为子模块
+    # - isagedb (was sageDB)
+    # - isage-flow (was sageFlow)
+    # - isage-tsdb (was sageTSDB)
+    # - neuromem
+    # - isage-refiner (was sageRefiner)
+    # 只保留实际的 Git 子模块
 )
 
 # Function to create pre-commit config for C++ projects
