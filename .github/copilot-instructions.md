@@ -283,8 +283,8 @@ Canonical namespaces (post-refactor):
 
 sage-middleware depends on the following independent PyPI packages:
 
-- **SageVDB** (`isagevdb`): Self-developed high-performance C++ vector database
-  - PyPI: `pip install isagevdb`
+- **SageVDB** (`isage-vdb`): Self-developed high-performance C++ vector database
+  - PyPI: `pip install isage-vdb`
   - Repository: `intellistream/sageVDB`
   - NOT FAISS-based: Fully custom implementation with FAISS-compatible API
   - Python API: `from sagevdb import SageVDB`
@@ -359,7 +359,7 @@ Options: `--pip` (current env), `--conda` (create env), `--sync-submodules` / `-
 ./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD for docs-public
 ```
 
-All middleware/engine components are vendored or **pip-installed** (e.g., `isagevdb`, `isage-benchmark`); there are no other git submodules.
+All middleware/engine components are vendored or **pip-installed** (e.g., `isage-vdb`, `isage-benchmark`); there are no other git submodules.
 
 **Environment**: Copy `.env.template` to `.env`, set `OPENAI_API_KEY`, `HF_TOKEN`
 
@@ -1087,10 +1087,11 @@ For detailed documentation, see the [sage-benchmark repository](https://github.c
 
 ### 🚨 SageVDB 已独立 - CRITICAL
 
-**SageVDB 已独立为 `isagevdb` PyPI 包，不再作为 SAGE 子模块存在。**
+**SageVDB 已独立为 `isage-vdb` PyPI 包，不再作为 SAGE 子模块存在。**
 
-- **PyPI 包名**: `isagevdb`
-- **安装方式**: `pip install isagevdb`
+- **PyPI 包名**: `isage-vdb` (带连字符和 'i' 前缀，因为 'sage' 在 PyPI 已被占用)
+- **Python 导入名**: `sagevdb` (不带 'i'，不带连字符)
+- **安装方式**: `pip install isage-vdb`
 - **仓库地址**: `https://github.com/intellistream/sageVDB`
 - **迁移文档**: `docs-public/docs_src/dev-notes/cross-layer/sagedb-independence-migration.md`
 
@@ -1098,7 +1099,7 @@ For detailed documentation, see the [sage-benchmark repository](https://github.c
 
 **导入方式**:
 ```python
-# ✅ 推荐：直接从 isagevdb 导入
+# ✅ 推荐：直接从 isage-vdb 导入
 from sagevdb import SageVDB, IndexType, DistanceMetric
 
 # ✅ 或通过 SAGE 兼容层
@@ -1123,7 +1124,7 @@ SageVDB is a **self-developed high-performance C++ vector database**, fully cust
 ### Location
 
 **独立包**:
-- PyPI: `pip install isagevdb`
+- PyPI: `pip install isage-vdb`
 - 仓库: `https://github.com/intellistream/sageVDB`
 
 **SAGE 兼容层** (保留):

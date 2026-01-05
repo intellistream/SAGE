@@ -57,6 +57,7 @@ sage-edge = "sage.edge.server:main"
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["src"]
 include = ["sage*"]
 

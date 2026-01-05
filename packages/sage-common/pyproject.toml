@@ -129,6 +129,7 @@ attr = "sage.common._version.__version__"  # 从源码读取版本号
 
 [tool.setuptools.packages.find]
 where = ["src"]                            # 源码目录
+namespaces = true                          # PEP 420 namespace packages
 
 [tool.setuptools.package-dir]
 "" = "src"                                 # 包根目录映射

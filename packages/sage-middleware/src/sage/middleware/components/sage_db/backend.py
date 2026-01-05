@@ -4,9 +4,9 @@ This module provides a VectorStore adapter for SageVDB, enabling it to be used
 with the unified IndexBuilder interface.
 
 Layer: L4 (sage-middleware)
-Dependencies: isagevdb (PyPI package)
+Dependencies: isage-vdb (PyPI package, Python import: sagevdb)
 
-SageVDB is now an independent PyPI package. Install with: pip install isagevdb
+SageVDB is now an independent PyPI package. Install with: pip install isage-vdb
 """
 
 from pathlib import Path
@@ -23,7 +23,7 @@ class SageVDBBackend:
 
     Architecture:
         - Implements VectorStore Protocol from L3 (sage-libs)
-        - Uses SageVDB from isagevdb (PyPI package)
+        - Uses SageVDB from isage-vdb (PyPI package, Python: sagevdb)
         - Injected into IndexBuilder by L6 (sage-cli)
 
     Example:

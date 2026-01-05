@@ -3,10 +3,14 @@
 SageVDB has been migrated to an independent PyPI package.
 
 Installation:
-    pip install isagevdb
+    pip install isage-vdb
 
-This module re-exports SageVDB classes from the isagevdb package
+This module re-exports SageVDB classes from the sagevdb package
 for backward-compatible import paths within SAGE.
+
+Important:
+    - PyPI package name: isage-vdb (with hyphen and 'i' prefix)
+    - Python import name: sagevdb (no 'i', no hyphen)
 
 For detailed migration information, see:
     docs-public/docs_src/dev-notes/cross-layer/sagedb-independence-migration.md
@@ -14,7 +18,7 @@ For detailed migration information, see:
 
 import warnings
 
-# Re-export everything from isagevdb
+# Re-export everything from sagevdb (Python import name, PyPI: isage-vdb)
 _SAGE_DB_AVAILABLE = False
 try:
     from sagevdb import (
@@ -98,3 +102,15 @@ __all__ = [
     # Availability flag
     "_SAGE_DB_AVAILABLE",
 ]
+
+
+def __getattr__(name):
+    """Provide friendly error message when SageVDB is not installed"""
+    if name in __all__ and not _SAGE_DB_AVAILABLE:
+        raise ImportError(
+            f"Cannot import '{name}' from sage.middleware.components.sage_db. "
+            "SageVDB is not installed. Please install it using:\n"
+            "  pip install isage-vdb\n"
+            "Note: PyPI package name is 'isage-vdb', Python import name is 'sagevdb'"
+        )
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

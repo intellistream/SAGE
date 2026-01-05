@@ -276,6 +276,11 @@ overrides = [
 [tool.ruff]
 extend = "../../tools/ruff.toml"
 
+# Package discovery (PEP 420 namespace)
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
 # Version from _version.py (setuptools-scm alternative for manual versioning)
 [tool.setuptools.dynamic]
 version = {attr = "sage.middleware._version.__version__"}

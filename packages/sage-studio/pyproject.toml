@@ -105,6 +105,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 # No standalone scripts needed here
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["src"]
 
 [tool.setuptools.package-dir]

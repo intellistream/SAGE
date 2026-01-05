@@ -203,6 +203,7 @@ sage-dev = "sage.tools.cli.commands.dev:run_with_suggestions"
 # example-tool = "sage.tools.dev.tools.example:main"
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["src"]
 
 [tool.setuptools.package-dir]

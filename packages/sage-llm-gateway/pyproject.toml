@@ -67,6 +67,7 @@ sage-llm-gateway = "sage.llm.gateway.server:main"
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["src"]
 include = ["sage*"]
 

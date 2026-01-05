@@ -209,6 +209,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 # This command entry point is commented out to avoid import errors
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["src"]
 
 [tool.setuptools.package-dir]

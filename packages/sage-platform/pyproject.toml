@@ -68,6 +68,7 @@ Issues = "https://github.com/sage-ai/sage/issues"
 attr = "sage.platform._version.__version__"
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = [
     "src",
 ]
