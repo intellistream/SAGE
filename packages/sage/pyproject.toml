@@ -92,6 +92,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = [
     "src",
 ]
