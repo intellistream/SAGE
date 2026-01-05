@@ -96,6 +96,14 @@ repos:
     always_run: false
     files: ^packages/.*/pyproject\.toml$
     # Block commit if there are version conflicts between packages
+  - id: pep420-namespace-compliance
+    name: PEP 420 namespace package compliance check
+    entry: bash -c 'tools/scripts/validate_pep420_compliance.sh'
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^packages/.*/src/sage/__init__\.py$
+    # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
   - id: mypy
     name: mypy type checking (warnings only)
     entry: tools/quality/mypy-wrapper.sh

@@ -368,6 +368,42 @@ pre-commit run --all-files
 - 遵循PEP 8规范
 - 添加类型注解
 - 编写单元测试
+
+### ⚠️ PEP 420 Namespace Packages - CRITICAL
+
+**SAGE 使用 PEP 420 原生命名空间包（Python 3.3+）**
+
+**禁止操作**：
+- ❌ **NEVER** 创建或提交 `packages/*/src/sage/__init__.py`
+- ❌ **NEVER** 在 `sage/` 命名空间层添加任何代码
+- ❌ **NEVER** 使用 `pkgutil.extend_path()` 或 `pkg_resources.declare_namespace()`
+
+**正确做法**：
+- ✅ 只在子包层添加 `__init__.py`：`src/sage/<package>/__init__.py`
+- ✅ 在 `pyproject.toml` 中添加 `namespaces = true`
+- ✅ 让 Python 自动组装隐式命名空间
+
+**为什么？**
+- 允许多个独立 PyPI 包共享 `sage.*` 命名空间
+- 防止命名空间劫持（首个安装包独占 `sage/`）
+- 支持安装顺序无关的包组合
+- 为多仓库拆分和独立发布做准备
+
+**验证**：
+```bash
+# 自动检查（pre-commit hook）
+tools/scripts/validate_pep420_compliance.sh
+
+# 集成测试
+python3 tools/scripts/test_pep420_integration.py
+
+# 手动验证
+python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
+```
+
+**详细文档**：`docs-public/docs_src/dev-notes/cross-layer/pep420-namespace-migration.md`
+
+**CI 检查**：所有 PR 会自动运行 PEP 420 合规性检查（`.github/workflows/ci-pep420-compliance.yml`）
 - 添加适当的文档字符串
 - 避免循环内重复 I/O；优先使用批量操作
 - 日志使用 `logging` 而非 print（测试内部除外）

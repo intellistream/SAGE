@@ -1,0 +1,125 @@
+name: PEP 420 Namespace Compliance
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/*/src/sage/__init__.py'
+      - 'packages/*/pyproject.toml'
+      - 'tools/scripts/validate_pep420_compliance.sh'
+      - 'tools/scripts/test_pep420_integration.py'
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/*/src/sage/__init__.py'
+      - 'packages/*/pyproject.toml'
+  workflow_dispatch:
+
+jobs:
+  validate-pep420:
+    name: Validate PEP 420 Namespace Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check for namespace __init__.py violations
+        run: |
+          echo "🔍 Checking for src/sage/__init__.py files (PEP 420 violation)..."
+          violations=$(find packages -type f -path "*/src/sage/__init__.py" 2>/dev/null || true)
+          
+          if [ -n "$violations" ]; then
+            echo "❌ PEP 420 violation detected!"
+            echo "The following files should not exist (namespace packages must be implicit):"
+            echo "$violations"
+            echo ""
+            echo "To fix:"
+            echo "  rm packages/*/src/sage/__init__.py"
+            echo ""
+            echo "See: docs-public/docs_src/dev-notes/cross-layer/pep420-namespace-migration.md"
+            exit 1
+          fi
+          
+          echo "✅ No namespace __init__.py files found"
+
+      - name: Check pyproject.toml configuration
+        run: |
+          echo "🔍 Checking pyproject.toml for 'namespaces = true'..."
+          missing=()
+          
+          for toml in packages/*/pyproject.toml; do
+            if ! grep -q "namespaces = true" "$toml"; then
+              missing+=("$toml")
+            fi
+          done
+          
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "❌ Missing 'namespaces = true' in:"
+            printf '  %s\n' "${missing[@]}"
+            echo ""
+            echo "Add to [tool.setuptools.packages.find] section:"
+            echo "  namespaces = true"
+            exit 1
+          fi
+          
+          echo "✅ All pyproject.toml files have 'namespaces = true'"
+
+      - name: Run PEP 420 compliance validation
+        run: |
+          chmod +x tools/scripts/validate_pep420_compliance.sh
+          tools/scripts/validate_pep420_compliance.sh
+
+  integration-test:
+    name: PEP 420 Integration Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate-pep420
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SAGE packages (dev mode)
+        run: |
+          # Install minimal set for testing
+          pip install -e packages/sage-common --no-deps
+          pip install -e packages/sage-llm-core --no-deps
+          pip install -e packages/sage-platform --no-deps
+          pip install -e packages/sage-kernel --no-deps
+          pip install -e packages/sage-libs --no-deps
+
+      - name: Run PEP 420 integration tests
+        run: |
+          python3 tools/scripts/test_pep420_integration.py
+
+      - name: Test namespace coexistence
+        run: |
+          python3 -c "
+          import sage
+          import sage.common
+          import sage.kernel
+          import sage.libs
+          
+          # Verify implicit namespace
+          assert sage.__file__ is None, 'sage should be implicit namespace'
+          
+          # Verify versions
+          print(f'✅ sage.common v{sage.common.__version__}')
+          print(f'✅ sage.kernel v{sage.kernel.__version__}')
+          print(f'✅ sage.libs v{sage.libs.__version__}')
+          print('✅ All packages coexist correctly')
+          "
