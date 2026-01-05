@@ -10,7 +10,6 @@ C++扩展模块（_sage_flow）在未编译时可能不存在，
 - SageTSDB 已独立为 PyPI 包 (isage-tsdb)，不再作为 SAGE C++ 扩展。
 """
 
-import warnings
 from typing import TYPE_CHECKING, Any
 
 # 类型检查时导入，运行时通过try/except处理

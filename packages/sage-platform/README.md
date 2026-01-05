@@ -260,9 +260,9 @@ L6: sage-studio         ← 用户界面
 ## 设计原则
 
 1. **通用基础设施**：平台服务不是 SAGE 特定的
-2. **后端无关**：支持多种实现（Python、Ray、Redis 等）
-3. **最小依赖**：仅依赖 `sage-common`
-4. **可扩展性**：易于添加新后端
+1. **后端无关**：支持多种实现（Python、Ray、Redis 等）
+1. **最小依赖**：仅依赖 `sage-common`
+1. **可扩展性**：易于添加新后端
 
 ## 为什么需要 L2 层？
 
@@ -301,7 +301,8 @@ pytest --cov=sage.platform --cov-report=html
 
 - **用户指南**：查看 [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
 - **API 参考**：查看包的文档字符串和类型提示
-- **架构**：查看 [平台层设计](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
+- **架构**：查看
+  [平台层设计](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
 
 ## 🤝 贡献
 

@@ -67,7 +67,7 @@ try:
 
     _NEUROMEM_AVAILABLE = True
 
-except ImportError:
+except (ImportError, FileNotFoundError, ModuleNotFoundError):
     # Neuromem not installed - provide helpful error message via __getattr__
     def __getattr__(name):
         """Provide friendly error message when neuromem is not installed"""
