@@ -51,13 +51,6 @@ requires-python = ">=3.11"
 # 许可证
 license = {text = "MIT"}
 
-# 项目链接
-[project.urls]
-Homepage = "https://github.com/intellistream/SAGE"
-Documentation = "https://intellistream.github.io/SAGE-Pub/"
-Repository = "https://github.com/intellistream/SAGE"
-Issues = "https://github.com/intellistream/SAGE/issues"
-
 # ----------------------------------------------------------------------------
 # 核心依赖 - 基础功能必需的最小依赖集
 # 原则：只包含核心模块运行绝对必需的依赖，可选功能放在 optional-dependencies
@@ -65,22 +58,29 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 dependencies = [
     # 配置管理系统 (config/)
     "pyyaml>=6.0",                   # YAML 配置文件加载和解析
-    
+
     # 系统工具集 (utils/system/)
     "psutil>=6.1.0",                 # 进程管理、网络监控、系统信息
-    
+
     # 序列化工具 (utils/serialization/)
     "dill>=0.3.8",                   # 高级 Python 对象序列化（支持 lambda 等）
-    
+
     # 数值计算基础 (components/sage_embedding/)
     "numpy>=1.26.0,<2.3.0",          # 数组操作，embedding 组件必需
-    
+
     # 数据验证和配置 (utils/config/manager.py)
     "pydantic>=2.10.0,<3.0.0",       # 数据验证、配置模型、API 数据结构
-    
+
     # 配置文件路径管理 (utils/config/loader.py)
     "platformdirs>=4.0.0",           # 跨平台用户配置目录路径
 ]
+
+# 项目链接
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
 
 # ----------------------------------------------------------------------------
 # 可选依赖组 - 按功能模块分组的可选依赖
@@ -92,25 +92,25 @@ dependencies = [
 embedding = [
     # 环境变量管理（embedding_model.py）
     "python-dotenv>=1.0.0",                 # 加载 .env 文件中的环境变量
-    
+
     # GPU 支持（模型推理加速和监控）
     "nvidia-ml-py>=12.535.108",             # NVIDIA GPU 信息查询和监控
-    
+
     # 深度学习框架（embedding推理核心）
     "torch>=2.7.0,<3.0.0",                  # PyTorch 核心库，用于本地模型推理
-    
+
     # 本地嵌入模型
     "sentence-transformers>=3.1.0,<4.0.0",  # 本地 transformer 嵌入模型
     "transformers>=4.52.0,<4.54.0",         # Hugging Face transformers（嵌入模型）
-    
+
     # HTTP 客户端
     "requests>=2.32.0,<3.0.0",              # HTTP 客户端（API 嵌入服务）
     "aiohttp>=3.12.0,<4.0.0",               # 异步 HTTP 客户端
-    
+
     # 嵌入服务器
     "fastapi>=0.115.0,<1.0.0",              # Web API 框架
     "uvicorn>=0.34.0,<1.0.0",               # ASGI 服务器
-    
+
     # 外部 API 客户端
     "openai>=1.52.0,<1.91.0",               # OpenAI API 客户端
     "cohere>=5.16.0,<6.0.0",                # Cohere API 客户端
@@ -132,14 +132,6 @@ where = ["src"]                            # 源码目录
 
 [tool.setuptools.package-dir]
 "" = "src"                                 # 包根目录映射
-
-# 构建配置（从 setup.cfg 迁移）
-[tool.bdist_wheel]
-universal = false                          # 非通用 wheel（包含平台特定代码）
-
-[tool.setuptools.build_py]
-compile = true                             # 编译 .py 为 .pyc
-optimize = 2                               # 优化级别 2（移除断言和 __debug__）
 
 # ----------------------------------------------------------------------------
 # 开发工具配置
@@ -190,7 +182,7 @@ addopts = [
 markers = [
     "slow: 标记为慢速测试 (使用 '-m \"not slow\"' 跳过)",
     "integration: 标记为集成测试",
-    "unit: 标记为单元测试", 
+    "unit: 标记为单元测试",
     "core: 标记为核心功能测试",
     "smoke: 标记为冒烟测试（快速验证）",
 ]

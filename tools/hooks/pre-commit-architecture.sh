@@ -2,7 +2,7 @@
 # Pre-commit hook: 检测并阻止提交错误位置的目录
 #
 # 这个 hook 在 commit 前运行，检测是否有违反架构的目录结构
-# 例如：sageLLM 在错误的位置（sage-common 而不是 sage-llm-core）
+# 例如：防止提交已独立为 PyPI 包的组件的源码
 
 set -euo pipefail
 
@@ -18,9 +18,11 @@ NC='\033[0m' # No Color
 
 # 定义架构违规的路径模式
 # 格式：错误路径|正确路径|描述
+# 注意：sageLLM 已独立为 PyPI 包（pip install isage-sagellm），不应再有源码
 ARCHITECTURE_VIOLATIONS=(
-  "packages/sage-common/src/sage/common/components/sage_llm|packages/sage-llm-core/src/sage/llm/engines/sagellm|sageLLM 应该在 sage-llm-core/engines 下"
-  "packages/sage-common/src/sage/common/components/sageLLM|packages/sage-llm-core/src/sage/llm/engines/sagellm|sageLLM 应该在 sage-llm-core/engines 下"
+  "packages/sage-common/src/sage/common/components/sage_llm|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
+  "packages/sage-common/src/sage/common/components/sageLLM|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
+  "packages/sage-llm-core/src/sage/llm/sageLLM|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
   # 可以添加更多架构规则
 )
 

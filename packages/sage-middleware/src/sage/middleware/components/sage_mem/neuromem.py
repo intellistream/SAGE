@@ -8,10 +8,10 @@ The actual NeuroMem package provides the real implementation via namespace packa
 import sys
 
 # ANSI color codes
-RED = '\033[91m'
-GREEN = '\033[92m'
-BOLD = '\033[1m'
-RESET = '\033[0m'
+RED = "\033[91m"
+GREEN = "\033[92m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
 error_message = (
     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -30,5 +30,3 @@ error_message = (
 sys.stderr.write(error_message)
 sys.stderr.flush()
 sys.exit(1)
-
-

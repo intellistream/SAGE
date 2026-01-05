@@ -69,9 +69,10 @@ CRITICAL_PATTERNS=(
     "^packages/sage-cli/src/sage/cli/commands/.*\.py$|CLI|CLI 命令 (可能涉及新命令)"
     "^packages/sage-cli/src/sage/cli/main\.py$|CLI|CLI 入口"
 
-    # LLM & Gateway (sageLLM architecture)
+    # LLM & Gateway (sageLLM 已独立为 PyPI 包)
     "^packages/sage-gateway/src/sage/gateway/.*\.py$|LLM/Gateway|Gateway 服务"
-    "^packages/sage-common/src/sage/common/components/sage_llm/.*\.py$|LLM/Gateway|LLM 客户端"
+    "^packages/sage-llm-gateway/src/sage/llm/gateway/.*\.py$|LLM/Gateway|Gateway 服务"
+    "^packages/sage-llm-core/src/sage/llm/.*\.py$|LLM/Gateway|LLM Control Plane"
     "^packages/sage-common/src/sage/common/components/sage_embedding/.*\.py$|LLM/Gateway|Embedding 服务"
 
     # User Paths & Config

@@ -28,9 +28,12 @@ cd "$repo_root" || exit 0
 
 # 配置：需要自动清理的 untracked 目录模式
 # 使用数组存储需要检查的路径模式
+# 注意：sageLLM 已独立为 PyPI 包，任何残留的源码目录都应清理
 CLEANUP_PATTERNS=(
   "packages/sage-common/src/sage/common/components/sage_llm"
-  "packages/sage-llm-core/src/sage/llm/engines/sagellm"
+  "packages/sage-common/src/sage/common/components/sageLLM"
+  "packages/sage-llm-core/src/sage/llm/sageLLM"
+  "packages/sage-benchmark/src/sage/data"  # 旧的子模块残留
   # 可以添加更多需要自动清理的路径
 )
 
