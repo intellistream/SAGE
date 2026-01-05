@@ -66,7 +66,7 @@ dependencies = [
     "isage-tsdb>=0.1.5",  # SageTSDB time series database (independent PyPI package, manylinux compatible)
     "isage-flow>=0.1.1",  # SageFlow stream processing engine (independent PyPI package)
     "isage-refiner>=0.1.0",  # SageRefiner context compression algorithms (independent PyPI package)
-    "isage-neuromem>=0.1.0",  # NeuroMem brain-inspired memory system (independent PyPI package)
+    # Note: isage-neuromem moved to optional-dependencies to avoid conflicts
     "bm25s>=0.2.13,<1.0.0",
     "rank-bm25>=0.2.0,<1.0.0",
     "PyStemmer>=3.0.0,<4.0.0",
@@ -97,6 +97,11 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
+# Memory system support (optional, namespace package compatible)
+neuromem = [
+    "isage-neuromem>=0.1.0",  # NeuroMem brain-inspired memory system
+]
+
 # SAGE 内部依赖
 sage-deps = [
     "isage-common>=0.2.0",  # L1: 基础工具
@@ -106,7 +111,7 @@ sage-deps = [
 ]
 # 完整依赖（开发和 PyPI 发布时使用）
 all = [
-    "isage-middleware[sage-deps]",
+    "isage-middleware[sage-deps,neuromem]",
 ]
 # SAGE framework dependencies (for local development)
 # 注意：移除了 isage-tools 以避免循环依赖
