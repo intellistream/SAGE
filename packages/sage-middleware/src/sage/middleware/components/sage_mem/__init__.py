@@ -9,7 +9,7 @@ This is a namespace package that can contain multiple memory implementations:
 Usage:
     # Method 1: Import from neuromem subpackage (recommended)
     from sage.middleware.components.sage_mem.neuromem import MemoryManager
-    
+
     # Method 2: Convenience imports from sage_mem root (if neuromem is installed)
     from sage.middleware.components.sage_mem import MemoryManager
 """
@@ -30,7 +30,7 @@ try:
         MemoryManager,
         VDBMemoryCollection,
     )
-    
+
     try:
         from sage.middleware.components.sage_mem.neuromem.services import (
             BaseMemoryService,
@@ -68,6 +68,16 @@ try:
     _NEUROMEM_AVAILABLE = True
 
 except ImportError:
-    # Neuromem not installed - the neuromem.py placeholder will handle error message
+    # Neuromem not installed - provide helpful error message via __getattr__
+    def __getattr__(name):
+        """Provide friendly error message when neuromem is not installed"""
+        raise ImportError(
+            f"Cannot import '{name}' from sage.middleware.components.sage_mem. "
+            "NeuroMem is not installed. Please install it using:\n"
+            "  pip install isage-neuromem\n"
+            "or install sage-middleware with neuromem support:\n"
+            "  pip install isage-middleware[neuromem]"
+        )
+
     __all__ = []
     _NEUROMEM_AVAILABLE = False
