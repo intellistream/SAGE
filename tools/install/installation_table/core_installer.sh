@@ -771,6 +771,7 @@ else:
                 "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"
                 "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
                 "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"
+                "packages/sage-common/src/sage/common/components/sage_llm"
             )
 
             for path in "${residual_paths[@]}"; do
