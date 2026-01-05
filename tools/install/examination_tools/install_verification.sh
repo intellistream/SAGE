@@ -294,14 +294,13 @@ verify_sage_imports() {
     # NOTE: External packages (e.g., sage-benchmark from PyPI) may still use
     #       old-style pkgutil namespace, which can hijack the namespace
 
-    # Check if sage namespace is hijacked by external packages
-    if $PYTHON_CMD -c "import sage; print(sage.__file__)" &> /dev/null; then
-        local hijacker=$($PYTHON_CMD -c "import sage; print(sage.__file__)" 2>/dev/null)
-        if [[ "$hijacker" != *"/SAGE/"* ]]; then
-            echo -e "${YELLOW}   ⚠️  sage namespace hijacked by external package: $hijacker${NC}"
-            echo -e "${DIM}      Consider updating external package to PEP 420 or uninstalling${NC}"
-            echo ""
-        fi
+    # Check if sage namespace is hijacked by external packages (should not have __file__ in PEP 420)
+    if $PYTHON_CMD -c "import sage; hasattr(sage, '__file__')" 2>/dev/null | grep -q "True"; then
+        local hijacker=$($PYTHON_CMD -c "import sage; print(getattr(sage, '__file__', 'unknown'))" 2>/dev/null)
+        echo -e "${YELLOW}   ⚠️  sage namespace has __file__ (PEP 420 violation): $hijacker${NC}"
+        echo -e "${DIM}      This indicates an external package is hijacking the namespace${NC}"
+        echo -e "${DIM}      Consider updating or uninstalling the conflicting package${NC}"
+        echo ""
     fi
 
     # 核心包列表：按层级顺序验证

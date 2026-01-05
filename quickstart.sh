@@ -577,10 +577,10 @@ main() {
         fi
     else
         echo ""
-        echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
-        # 使用正确的 Python 命令
+        echo -e "${YELLOW}安装可能成功，请手动验证（PEP 420 namespace）：${NC}"
+        # 使用正确的 Python 命令和 PEP 420 导入
         local python_cmd="${PYTHON_CMD:-python3}"
-        echo -e "  $python_cmd -c \"import sage; print(sage.__version__)\""
+        echo -e "  $python_cmd -c \"import sage.common; print(sage.common.__version__)\""
     fi
 }
 

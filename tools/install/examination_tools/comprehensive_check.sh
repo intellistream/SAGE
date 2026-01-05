@@ -574,13 +574,13 @@ verify_installation() {
 
     local verify_output
     verify_output=$($python_cmd -c "
-import sage
+# PEP 420 namespace - import actual packages, not the namespace
 import sage.common
 import sage.kernel
 import sage.libs
 import sage.middleware
-print(f'${CHECK} SAGE v{sage.__version__} 安装成功！')
-print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
+print(f'${CHECK} SAGE v{sage.common.__version__} 安装成功！')
+print(f'${CHECK} 核心包已安装: common, kernel, libs, middleware')
 " 2>&1)
     local verify_status=$?
 
