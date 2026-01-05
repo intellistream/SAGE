@@ -135,7 +135,8 @@ init_verification_log() {
 安装环境: $(uname -s) $(uname -r)
 Python 命令: $PYTHON_CMD
 Python 版本: $($PYTHON_CMD --version 2>&1 || echo "未安装")
-Sage 版本: $($PYTHON_CMD -c "import sage; print(sage.__version__)" 2>/dev/null || echo "未安装")
+SAGE 包版本: $($PYTHON_CMD -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "未安装")
+注意: SAGE 使用 PEP 420 namespace，各包版本独立（sage.common, sage.kernel 等）
 
 ================================================================================
 EOF
@@ -287,6 +288,22 @@ except Exception as e:
 verify_sage_imports() {
     echo -e "${BLUE}📚 验证 SAGE 包导入...${NC}"
 
+    # PEP 420 Namespace Package Note:
+    # SAGE uses PEP 420 native namespace packages (no src/sage/__init__.py)
+    # This allows multiple independent packages to share the 'sage.*' namespace
+    # NOTE: External packages (e.g., sage-benchmark from PyPI) may still use
+    #       old-style pkgutil namespace, which can hijack the namespace
+
+    # Check if sage namespace is hijacked by external packages
+    if $PYTHON_CMD -c "import sage; print(sage.__file__)" &> /dev/null; then
+        local hijacker=$($PYTHON_CMD -c "import sage; print(sage.__file__)" 2>/dev/null)
+        if [[ "$hijacker" != *"/SAGE/"* ]]; then
+            echo -e "${YELLOW}   ⚠️  sage namespace hijacked by external package: $hijacker${NC}"
+            echo -e "${DIM}      Consider updating external package to PEP 420 or uninstalling${NC}"
+            echo ""
+        fi
+    fi
+
     # 核心包列表：按层级顺序验证
     # L1: sage-common, sage-llm-core
     # L2: sage-platform
@@ -294,9 +311,9 @@ verify_sage_imports() {
     # L4: sage-middleware
     # L5: sage-apps, sage-benchmark
     # L6: sage-cli, sage-studio, sage-llm-gateway, sage-edge, sage-tools
-    # Meta: sage
+    # NOTE: PEP 420 namespace packages - 'sage' namespace is implicit, cannot be imported directly
+    # We only verify actual packages under the namespace
     local sage_packages=(
-        "sage"                    # Meta package
         "sage.common"             # L1: Foundation
         "sage.llm"                # L1: LLM Core
         "sage.platform"           # L2: Platform

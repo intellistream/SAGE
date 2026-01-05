@@ -2,6 +2,30 @@
 
 SAGE (Streaming-Augmented Generative Execution) 是一个强大的分布式流数据处理平台的 Meta 包。
 
+## ⚠️ PEP 420 Namespace Package
+
+**CRITICAL**: SAGE 使用 PEP 420 namespace packages 架构。
+
+```python
+# ❌ 错误：不能直接导入 sage 命名空间
+import sage
+
+# ✅ 正确：导入具体的子包
+import sage.common
+import sage.llm
+import sage.kernel
+from sage.common.config import get_user_paths
+```
+
+**为什么不能直接 `import sage`?**
+
+- SAGE 采用 PEP 420 原生命名空间（无 `__init__.py`）
+- 允许多个独立 PyPI 包共享 `sage.*` 命名空间
+- 防止"命名空间劫持"（首个安装包独占 `sage/`）
+- 符合现代 Python 标准（Python 3.3+）
+
+**相关**: #1388 多仓库拆分准备
+
 ## 简介
 
 这是 SAGE 的主要元包，提供分层的安装选项以适应不同使用场景。

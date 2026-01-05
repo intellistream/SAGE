@@ -117,10 +117,9 @@ main() {
     run_test_with_output "Python 版本检查" "python3 --version"
     run_test "pip 可用性" "python3 -m pip --version"
 
-    # 2. SAGE 核心包导入测试
+    # 2. SAGE 核心包导入测试（PEP 420 namespace - 只测试实际包）
     print_test_header "🔧 2. SAGE 核心包导入测试"
-    run_test_with_output "导入 sage" "python3 -c 'import sage; print(sage.__version__)'"
-    run_test "导入 sage.common" "python3 -c 'import sage.common'"
+    run_test_with_output "导入 sage.common" "python3 -c 'import sage.common; print(sage.common.__version__)'"
     run_test "导入 sage.kernel" "python3 -c 'import sage.kernel'"
     run_test "导入 sage.libs" "python3 -c 'import sage.libs'"
     run_test "导入 sage.middleware" "python3 -c 'import sage.middleware'"

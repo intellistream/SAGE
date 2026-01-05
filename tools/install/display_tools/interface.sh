@@ -213,8 +213,8 @@ show_install_success() {
 
     echo ""
     echo -e "${BOLD}快速开始:${NC}"
-    echo -e "  ${DIM}# 验证安装${NC}"
-    echo -e "  python3 -c 'import sage; print(f\"SAGE v{sage.__version__} 安装成功！\")'"
+    echo -e "  ${DIM}# 验证安装（PEP 420 namespace）${NC}"
+    echo -e "  python3 -c 'import sage.common; print(f\"SAGE v{sage.common.__version__} 安装成功！\")'"
     echo ""
     echo -e "  ${DIM}# 运行示例${NC}"
     echo -e "  cd examples && python3 rag/basic_rag.py"
@@ -232,10 +232,10 @@ run_hello_world_demo() {
     echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
-    # 验证 SAGE 安装
+    # 验证 SAGE 安装（PEP 420 namespace - 检查实际包）
     echo -e "${INFO} 验证 SAGE 安装..."
     local sage_version
-    sage_version=$(VLLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "import sage; print(sage.__version__)" 2>/dev/null | tail -1)
+    sage_version=$(VLLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "import sage.common; print(sage.common.__version__)" 2>/dev/null | tail -1)
     if [ -n "$sage_version" ]; then
         echo -e "   ${GREEN}✅ SAGE v${sage_version} 已就绪${NC}"
     else

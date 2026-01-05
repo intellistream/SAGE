@@ -455,9 +455,9 @@ check_existing_sage() {
         return 0
     fi
 
-    # 检查是否能导入sage（作为备用检查）
-    if python3 -c "import sage" 2>/dev/null; then
-        local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+    # 检查是否能导入sage.common（PEP 420 namespace，检查实际包）
+    if python3 -c "import sage.common" 2>/dev/null; then
+        local sage_version=$(python3 -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
 
         # 在CI环境中自动卸载重装
@@ -592,7 +592,7 @@ print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
     else
         echo -e "${WARNING} 验证出现问题，但安装可能成功了"
         echo -e "${DIM}尝试使用以下命令手动验证：${NC}"
-        echo -e "${DIM}  $python_cmd -c \"import sage; print(sage.__version__)\"${NC}"
+        echo -e "${DIM}  $python_cmd -c \"import sage.common; print(sage.common.__version__)\"${NC}"
         return 1
     fi
 }

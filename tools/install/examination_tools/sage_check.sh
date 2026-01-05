@@ -43,9 +43,9 @@ check_existing_sage() {
         return 0
     fi
 
-    # 检查是否能导入sage（作为备用检查）
-    if python3 -c "import sage" 2>/dev/null; then
-        local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+    # 检查是否能导入sage.common（PEP 420 namespace，检查实际包）
+    if python3 -c "import sage.common" 2>/dev/null; then
+        local sage_version=$(python3 -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
         return 0
     fi
