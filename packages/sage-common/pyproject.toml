@@ -40,15 +40,23 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 # 最低 Python 版本要求
-requires-python = ">=3.8"
+requires-python = ">=3.11"
+
+# 许可证
+license = {text = "MIT"}
+
+# 项目链接
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
 
 # ----------------------------------------------------------------------------
 # 核心依赖 - 基础功能必需的最小依赖集
@@ -70,25 +78,27 @@ dependencies = [
     # 数据验证和配置 (utils/config/manager.py)
     "pydantic>=2.10.0,<3.0.0",       # 数据验证、配置模型、API 数据结构
     
-    # 彩色日志输出 (logging.py)
-    "colorama>=0.4.6",               # 跨平台彩色终端输出，日志系统核心功能
+    # 配置文件路径管理 (utils/config/loader.py)
+    "platformdirs>=4.0.0",           # 跨平台用户配置目录路径
 ]
-
-license = {text = "MIT"}
 
 # ----------------------------------------------------------------------------
 # 可选依赖组 - 按功能模块分组的可选依赖
-# 用户可根据需要安装：pip install isage-common[gpu,logging]
+# 用户可根据需要安装：pip install isage-common[embedding]
 # ----------------------------------------------------------------------------
 [project.optional-dependencies]
 
-# GPU 环境支持
-gpu = [
-    "nvidia-ml-py>=12.535.108",      # NVIDIA GPU 信息查询和监控
-]
-
 # 嵌入服务完整组件 (components/sage_embedding/)
 embedding = [
+    # 环境变量管理（embedding_model.py）
+    "python-dotenv>=1.0.0",                 # 加载 .env 文件中的环境变量
+    
+    # GPU 支持（模型推理加速和监控）
+    "nvidia-ml-py>=12.535.108",             # NVIDIA GPU 信息查询和监控
+    
+    # 深度学习框架（embedding推理核心）
+    "torch>=2.7.0,<3.0.0",                  # PyTorch 核心库，用于本地模型推理
+    
     # 本地嵌入模型
     "sentence-transformers>=3.1.0,<4.0.0",  # 本地 transformer 嵌入模型
     "transformers>=4.52.0,<4.54.0",         # Hugging Face transformers（嵌入模型）
@@ -106,25 +116,10 @@ embedding = [
     "cohere>=5.16.0,<6.0.0",                # Cohere API 客户端
 ]
 
-# PyTorch 深度学习框架支持
-# 注意：vLLM 相关依赖已迁移到 sage-llm-core 包
-torch = [
-    "torch>=2.7.0,<3.0.0",          # PyTorch 核心库
-]
-
 # 完整功能安装（包含所有可选功能）
 all = [
-    "isage-common[gpu,embedding,torch]",
+    "isage-common[embedding]",
 ]
-
-# ----------------------------------------------------------------------------
-# 项目链接
-# ----------------------------------------------------------------------------
-[project.urls]
-Homepage = "https://github.com/intellistream/SAGE"
-Documentation = "https://intellistream.github.io/SAGE-Pub/"
-Repository = "https://github.com/intellistream/SAGE"
-Issues = "https://github.com/intellistream/SAGE/issues"
 
 # ----------------------------------------------------------------------------
 # 包构建配置
