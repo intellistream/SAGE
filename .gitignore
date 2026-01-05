@@ -264,3 +264,15 @@ SALARY_POLICY.md
 FUNDING_INFO.md
 **/team_info/**
 **/sensitive/**
+
+# ============================================
+# PyPI 发布产物 (sage-pypi-publisher)
+# ============================================
+# Wheel 文件和构建目录
+*.whl
+**/wheelhouse/
+**/*.tar.gz
+**/sdist/
+
+# sage-pypi-publisher 临时文件
+/tmp/pypi_publisher_*/
