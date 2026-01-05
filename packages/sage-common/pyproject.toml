@@ -1,29 +1,40 @@
+# ============================================================================
+# SAGE Common Package Configuration
+# ============================================================================
+# 这是 SAGE 框架的基础层（L1）包配置文件
+# 提供核心工具和共享组件，被所有其他 SAGE 包依赖
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 构建系统配置
+# ----------------------------------------------------------------------------
 [build-system]
 requires = [
-    "setuptools>=64",
-    "wheel",
-    "packaging>=24.2",
+    "setuptools>=64",      # 现代 setuptools
+    "wheel",               # wheel 构建支持
+    "packaging>=24.2",     # 包版本管理
 ]
 build-backend = "setuptools.build_meta"
 
+# ----------------------------------------------------------------------------
+# 项目元数据
+# ----------------------------------------------------------------------------
 [project]
 name = "isage-common"
-dynamic = [
-    "version",
-]
-description = "SAGE Core Common Utilities"
+dynamic = ["version"]  # 版本号从 _version.py 动态读取
+description = "SAGE 框架核心公共工具包"
 readme = "README.md"
 authors = [
     { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
+
+# PyPI 搜索关键词
 keywords = [
-    "ai",
-    "sage",
-    "machine learning",
-    "artificial intelligence",
-    "core",
-    "utilities",
+    "ai", "sage", "machine learning", "artificial intelligence",
+    "core", "utilities", "framework", "infrastructure"
 ]
+
+# PyPI 分类器
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -35,95 +46,179 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+
+# 最低 Python 版本要求
 requires-python = ">=3.8"
+
+# ----------------------------------------------------------------------------
+# 核心依赖 - 基础功能必需的最小依赖集
+# 原则：只包含核心模块运行绝对必需的依赖，可选功能放在 optional-dependencies
+# ----------------------------------------------------------------------------
 dependencies = [
-    "pyyaml>=6.0",
-    "colorama>=0.4.6",
-    "psutil>=6.1.0",
-    "nvidia-ml-py>=12.535.108",
-    "dill>=0.3.8",
-    "numpy>=1.26.0,<2.3.0",
+    # 配置管理系统 (config/)
+    "pyyaml>=6.0",                   # YAML 配置文件加载和解析
+    
+    # 系统工具集 (utils/system/)
+    "psutil>=6.1.0",                 # 进程管理、网络监控、系统信息
+    
+    # 序列化工具 (utils/serialization/)
+    "dill>=0.3.8",                   # 高级 Python 对象序列化（支持 lambda 等）
+    
+    # 数值计算基础 (components/sage_embedding/)
+    "numpy>=1.26.0,<2.3.0",          # 数组操作，embedding 组件必需
+    
+    # 数据验证和配置 (utils/config/manager.py)
+    "pydantic>=2.10.0,<3.0.0",       # 数据验证、配置模型、API 数据结构
+    
+    # 彩色日志输出 (logging.py)
+    "colorama>=0.4.6",               # 跨平台彩色终端输出，日志系统核心功能
 ]
+
 license = {text = "MIT"}
 
+# ----------------------------------------------------------------------------
+# 可选依赖组 - 按功能模块分组的可选依赖
+# 用户可根据需要安装：pip install isage-common[gpu,logging]
+# ----------------------------------------------------------------------------
 [project.optional-dependencies]
-# Standalone torch (for other components that need it)
-# vLLM dependencies have been moved to sage-llm-core
-torch = [
-    "torch>=2.7.0,<3.0.0",
+
+# GPU 环境支持
+gpu = [
+    "nvidia-ml-py>=12.535.108",      # NVIDIA GPU 信息查询和监控
 ]
 
-[project.urls]
-Homepage = "https://github.com/sage-ai/sage"
-Documentation = "https://sage-ai.org/docs"
-Repository = "https://github.com/sage-ai/sage"
-Issues = "https://github.com/sage-ai/sage/issues"
+# 嵌入服务完整组件 (components/sage_embedding/)
+embedding = [
+    # 本地嵌入模型
+    "sentence-transformers>=3.1.0,<4.0.0",  # 本地 transformer 嵌入模型
+    "transformers>=4.52.0,<4.54.0",         # Hugging Face transformers（嵌入模型）
+    
+    # HTTP 客户端
+    "requests>=2.32.0,<3.0.0",              # HTTP 客户端（API 嵌入服务）
+    "aiohttp>=3.12.0,<4.0.0",               # 异步 HTTP 客户端
+    
+    # 嵌入服务器
+    "fastapi>=0.115.0,<1.0.0",              # Web API 框架
+    "uvicorn>=0.34.0,<1.0.0",               # ASGI 服务器
+    
+    # 外部 API 客户端
+    "openai>=1.52.0,<1.91.0",               # OpenAI API 客户端
+    "cohere>=5.16.0,<6.0.0",                # Cohere API 客户端
+]
 
+# PyTorch 深度学习框架支持
+# 注意：vLLM 相关依赖已迁移到 sage-llm-core 包
+torch = [
+    "torch>=2.7.0,<3.0.0",          # PyTorch 核心库
+]
+
+# 完整功能安装（包含所有可选功能）
+all = [
+    "isage-common[gpu,embedding,torch]",
+]
+
+# ----------------------------------------------------------------------------
+# 项目链接
+# ----------------------------------------------------------------------------
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+# ----------------------------------------------------------------------------
+# 包构建配置
+# ----------------------------------------------------------------------------
 [tool.setuptools.dynamic.version]
-attr = "sage.common._version.__version__"
+attr = "sage.common._version.__version__"  # 从源码读取版本号
 
 [tool.setuptools.packages.find]
-where = [
-    "src",
-]
+where = ["src"]                            # 源码目录
 
 [tool.setuptools.package-dir]
-"" = "src"
+"" = "src"                                 # 包根目录映射
 
+# 构建配置（从 setup.cfg 迁移）
+[tool.bdist_wheel]
+universal = false                          # 非通用 wheel（包含平台特定代码）
+
+[tool.setuptools.build_py]
+compile = true                             # 编译 .py 为 .pyc
+optimize = 2                               # 优化级别 2（移除断言和 __debug__）
+
+# ----------------------------------------------------------------------------
+# 开发工具配置
+# ----------------------------------------------------------------------------
+
+# 代码格式化和质量检查 (Ruff)
 [tool.ruff]
-extend = "../../tools/ruff.toml"
+extend = "../../tools/ruff.toml"           # 继承项目级 ruff 配置
 
+# 静态类型检查 (MyPy)
 [tool.mypy]
-cache_dir = "../../.sage/cache/mypy"
-ignore_missing_imports = true
+cache_dir = "../../.sage/cache/mypy"       # MyPy 缓存目录
+ignore_missing_imports = true             # 忽略缺失的类型注解
 
+# ----------------------------------------------------------------------------
+# 测试配置 (Pytest)
+# ----------------------------------------------------------------------------
 [tool.pytest.ini_options]
+# 测试文件搜索路径
 testpaths = [
-    "tests",
-    "src",
-]
-python_files = [
-    "test_*.py",
-    "*_test.py",
-]
-python_classes = [
-    "Test*",
-]
-python_functions = [
-    "test_*",
-]
-addopts = [
-    "--benchmark-storage=../../.sage/benchmarks",
-    "-o",
-    "cache_dir=../../.sage/cache/pytest",
-    "--strict-markers",
-    "--strict-config",
-    "--verbose",
-    "-ra",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-    "core: marks tests as core functionality tests",
-    "smoke: marks tests as smoke tests (quick validation)",
+    "tests",                               # 测试目录
+    "src",                                 # 源码目录（doctest）
 ]
 
-[tool.coverage.run]
-source = [
-    "src/sage",
+# 测试文件匹配模式
+python_files = [
+    "test_*.py",                           # 标准测试文件
+    "*_test.py",                           # 另一种测试文件命名
 ]
+
+# 测试类匹配模式
+python_classes = ["Test*"]
+
+# 测试函数匹配模式
+python_functions = ["test_*"]
+
+# 测试运行参数
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",  # 基准测试存储位置
+    "-o", "cache_dir=../../.sage/cache/pytest",   # Pytest 缓存目录
+    "--strict-markers",                            # 严格标记模式
+    "--strict-config",                             # 严格配置模式
+    "--verbose",                                   # 详细输出
+    "-ra",                                         # 显示所有测试结果摘要
+]
+
+# 测试标记定义
+markers = [
+    "slow: 标记为慢速测试 (使用 '-m \"not slow\"' 跳过)",
+    "integration: 标记为集成测试",
+    "unit: 标记为单元测试", 
+    "core: 标记为核心功能测试",
+    "smoke: 标记为冒烟测试（快速验证）",
+]
+
+# ----------------------------------------------------------------------------
+# 测试覆盖率配置 (Coverage.py)
+# ----------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/sage"]                      # 覆盖率统计源码目录
+
+# 排除文件模式
 omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/_test_*.py",
+    "*/tests/*",                           # 测试文件
+    "*/test_*.py",                         # 测试文件
+    "*/_test_*.py",                        # 测试文件
 ]
 
 [tool.coverage.report]
+# 报告中排除的代码行
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
+    "pragma: no cover",                    # 手动排除标记
+    "def __repr__",                        # __repr__ 方法
+    "raise AssertionError",                # 断言错误
+    "raise NotImplementedError",           # 未实现错误
+    "if __name__ == .__main__.:",          # 主程序入口
 ]

@@ -34,25 +34,18 @@ if not TYPE_CHECKING:
 
         _SAGE_DB_AVAILABLE = True
     except ImportError:
-        warnings.warn(
-            "SageVDB 不可用。请安装: pip install isage-vdb",
-            UserWarning,
-            stacklevel=2,
-        )
+        # Don't warn on import - only when trying to use the feature
+        pass
 
     try:
         # 只导入 Python wrapper 模块，避免重复加载 C++ 扩展
         from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow
 
         _SAGE_FLOW_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         _sage_flow = None
-        warnings.warn(
-            f"SAGE Flow C++扩展不可用，流处理功能将受限。错误: {e}\n"
-            "安装完整版本：pip install --force-reinstall isage-middleware",
-            UserWarning,
-            stacklevel=2,
-        )
+        # Don't warn on import - only when trying to use the feature
+        pass
 
     # SageTSDB 现在是独立的 PyPI 包
     try:
@@ -60,11 +53,8 @@ if not TYPE_CHECKING:
 
         _SAGE_TSDB_AVAILABLE = True
     except ImportError:
-        warnings.warn(
-            "SAGE TSDB 不可用。请安装: pip install isage-tsdb",
-            UserWarning,
-            stacklevel=2,
-        )
+        # Don't warn on import - only when trying to use the feature
+        pass
 
 
 def is_sage_db_available() -> bool:
@@ -133,8 +123,9 @@ def require_sage_tsdb():
     return sage_tsdb
 
 
-# 在模块导入时显示状态
-if __name__ != "__main__":
+# 在模块导入时显示状态（仅在明确导入时）
+# 避免在用户导入其他模块时显示无关警告
+if __name__ == "__main__":
     status = get_extension_status()
     if status["total_available"] < status["total_extensions"]:
         print(f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用")

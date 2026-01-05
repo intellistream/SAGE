@@ -1,5 +1,5 @@
 from sage.common.core import FilterFunction
-from sage.middleware.context.model_context import ModelContext, QualityLabel
+from sage.middleware.operators.context.model_context import ModelContext, QualityLabel
 
 
 class EvaluateFilter(FilterFunction):

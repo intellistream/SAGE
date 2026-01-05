@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from sage.common.core import SinkFunction
-from sage.middleware.context.model_context import ModelContext
+from sage.middleware.operators.context.model_context import ModelContext
 
 
 class ContextFileSink(SinkFunction):

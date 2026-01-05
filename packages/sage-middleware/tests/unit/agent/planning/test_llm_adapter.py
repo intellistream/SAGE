@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sage.middleware.agent.planning.llm_adapter import GeneratorToClientAdapter
+from sage.middleware.operators.agent.planning.llm_adapter import GeneratorToClientAdapter
 
 
 @pytest.fixture

@@ -48,7 +48,7 @@ except ImportError:
 # 导出子模块
 __layer__ = "L4"
 
-from . import components, context, operators
+from . import components, operators
 
 __all__ = [
     "__version__",
@@ -56,5 +56,4 @@ __all__ = [
     "__email__",
     "operators",
     "components",
-    "context",
 ]

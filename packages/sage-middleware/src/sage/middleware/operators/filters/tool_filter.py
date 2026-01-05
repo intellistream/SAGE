@@ -1,7 +1,7 @@
 import json
 
 from sage.common.core import FilterFunction
-from sage.middleware.context.model_context import ModelContext
+from sage.middleware.operators.context.model_context import ModelContext
 
 
 class ToolFilter(FilterFunction):

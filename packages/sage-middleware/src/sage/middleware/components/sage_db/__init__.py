@@ -40,14 +40,10 @@ try:
 
     _SAGE_DB_AVAILABLE = True
 except ImportError as e:
-    # Don't fail immediately - allow graceful degradation
-    warnings.warn(
-        f"SageVDB not available: {e}\n"
-        "Install with: pip install isagevdb\n"
-        "Vector database features will be unavailable.",
-        UserWarning,
-        stacklevel=2,
-    )
+    # Don't warn on import - only when actually trying to use SageVDB
+    # Store error message for later use
+    _SAGE_DB_IMPORT_ERROR = str(e)
+    pass
     # Provide stub exports to prevent ImportError
     SageVDB = None
     IndexType = None

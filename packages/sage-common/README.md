@@ -1,43 +1,43 @@
 # SAGE Common
 
-> Core utilities and shared components for the SAGE framework
+> SAGE 框架的核心工具和共享组件
 
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
-## 📋 Overview
+## 📋 概述
 
-**SAGE Common** provides essential shared utilities and components used across all SAGE packages.
-This is the foundation layer that provides:
+**SAGE Common** 提供所有 SAGE 包共用的基础工具和组件。
+这是基础层（L1），提供：
 
-- **Configuration management** for YAML/TOML files
-- **Logging framework** with custom formatters and handlers
-- **Network utilities** for TCP/UDP communication
-- **Serialization tools** with dill and pickle support
-- **System utilities** for environment and process management
-- **Embedding services** (sage_embedding, sage_llm)
+- **配置管理** - YAML/TOML 文件支持
+- **日志框架** - 自定义格式化器和处理程序
+- **网络工具** - TCP/UDP 通信支持
+- **序列化工具** - dill 和 pickle 支持
+- **系统工具** - 环境和进程管理
+- **嵌入服务** - sage_embedding、sage_llm
 
-This package ensures consistency and reduces code duplication across the SAGE ecosystem.
+该包确保 SAGE 生态系统的一致性并减少代码重复。
 
-## ✨ Key Features
+## ✨ 核心特性
 
-- **Unified Configuration**: YAML/TOML configuration loading and validation
-- **Advanced Logging**: Colored output, structured logging, and custom formatters
-- **Network Utilities**: TCP client/server, network helpers
-- **Flexible Serialization**: Multiple backends (dill, pickle, JSON)
-- **System Management**: Environment detection, process control
-- **LLM Integration**: Embedding and VLLM services
+- **统一配置** - YAML/TOML 配置加载和验证
+- **高级日志** - 彩色输出、结构化日志、自定义格式器
+- **网络工具** - TCP 客户端/服务器、网络助手
+- **灵活序列化** - 多种后端（dill、pickle、JSON）
+- **系统管理** - 环境检测、进程控制
+- **LLM 集成** - 嵌入和 vLLM 服务
 
-## Core Modules
+## 核心模块
 
-- **utils.config**: Configuration management utilities
-- **utils.logging**: Logging framework and formatters
-- **utils.network**: Network utilities and TCP clients/servers
-- **utils.serialization**: Serialization utilities including dill support
-- **utils.system**: System utilities for environment and process management
-- **\_version**: Version management
+- **utils.config** - 配置管理工具
+- **utils.logging** - 日志框架和格式化器
+- **utils.network** - 网络工具和 TCP 客户端/服务器
+- **utils.serialization** - 序列化工具（包含 dill 支持）
+- **utils.system** - 环境和进程管理的系统工具
+- **_version** - 版本管理
 
-## 📦 Package Structure
+## 📦 包结构
 
 ```
 sage-common/
@@ -46,107 +46,107 @@ sage-common/
 │       └── common/
 │           ├── __init__.py
 │           ├── _version.py
-│           ├── utils/                  # Core utilities
-│           │   ├── config/            # Configuration management
-│           │   ├── logging/           # Logging framework
-│           │   ├── network/           # Network utilities
-│           │   ├── serialization/     # Serialization tools
-│           │   └── system/            # System utilities
-│           └── components/            # Shared components
-│               ├── sage_embedding/    # Embedding service
-│               └── sage_llm/         # VLLM service
+│           ├── utils/                  # 核心工具
+│           │   ├── config/            # 配置管理
+│           │   ├── logging/           # 日志框架
+│           │   ├── network/           # 网络工具
+│           │   ├── serialization/     # 序列化工具
+│           │   └── system/            # 系统工具
+│           └── components/            # 共享组件
+│               ├── sage_embedding/    # 嵌入服务
+│               └── sage_llm/         # vLLM 服务
 ├── tests/
 ├── pyproject.toml
 └── README.md
 ```
 
-## 🚀 Installation
+## 🚀 安装
 
-### Basic Installation
+### 基础安装
 
 ```bash
-pip install sage-common
+pip install isage-common
 ```
 
-### Development Installation
+### 开发安装
 
 ```bash
 cd packages/sage-common
 pip install -e .
 ```
 
-### With Optional Dependencies
+### 可选依赖安装
 
 ```bash
-# With embedding support
-pip install sage-common[embedding]
+# 嵌入支持
+pip install isage-common[embedding]
 
-# With VLLM support
-pip install sage-common[vllm]
+# vLLM 支持
+pip install isage-common[vllm]
 
-# Full installation
-pip install sage-common[all]
+# 完整安装
+pip install isage-common[all]
 ```
 
-## 📖 Quick Start
+## 📖 快速开始
 
-### Configuration Management
+### 配置管理
 
 ```python
 from sage.common.utils.config.loader import ConfigLoader
 
-# Load configuration
+# 加载配置
 config = ConfigLoader("config.yaml")
 
-# Access configuration
+# 访问配置
 model_name = config.get("model.name", default="default-model")
 ```
 
-### Logging
+### 日志
 
 ```python
 from sage.common.utils.logging.custom_logger import get_logger
 
-# Get logger
+# 获取日志器
 logger = get_logger(__name__)
 
-# Use logger
-logger.info("Application started")
-logger.debug("Debug information")
-logger.error("Error occurred", exc_info=True)
+# 使用日志器
+logger.info("应用程序已启动")
+logger.debug("调试信息")
+logger.error("发生错误", exc_info=True)
 ```
 
-### Network Utilities
+### 网络工具
 
 ```python
 from sage.common.utils.network import TCPClient, TCPServer
 
-# Create TCP server
+# 创建 TCP 服务器
 server = TCPServer(host="localhost", port=8080)
 server.start()
 
-# Create TCP client
+# 创建 TCP 客户端
 client = TCPClient(host="localhost", port=8080)
 client.connect()
-client.send(b"Hello, Server!")
+client.send(b"你好，服务器！")
 ```
 
-### Serialization
+### 序列化
 
 ```python
 from sage.common.utils.serialization import serialize, deserialize
 
-# Serialize data
+# 序列化数据
 data = {"key": "value", "numbers": [1, 2, 3]}
 serialized = serialize(data, format="dill")
 
-# Deserialize data
+# 反序列化数据
 restored = deserialize(serialized, format="dill")
 ```
 
-## 🔧 Configuration
+## 🔧 配置
 
-Configuration files are typically in YAML or TOML format:
+配置文件通常使用 YAML 或 TOML 格式：
 
 ```yaml
 # config.yaml
@@ -164,47 +164,47 @@ embedding:
   device: cuda
 ```
 
-## 🧪 Testing
+## 🧪 测试
 
 ```bash
-# Run unit tests
+# 运行单元测试
 pytest tests/unit
 
-# Run integration tests
+# 运行集成测试
 pytest tests/integration
 
-# Run with coverage
+# 运行覆盖率测试
 pytest --cov=sage.common --cov-report=html
 ```
 
-## 📚 Documentation
+## 📚 文档
 
-- **User Guide**: See
+- **用户指南** - 查看
   [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-common/)
-- **API Reference**: See package docstrings and type hints
-- **Examples**: See `examples/` directory in each module
+- **API 参考** - 查看包文档字符串和类型提示
+- **示例** - 查看各模块中的 `examples/` 目录
 
-## 🤝 Contributing
+## 🤝 贡献
 
-Contributions are welcome! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
+欢迎贡献！请查看 [CONTRIBUTING.md](../../CONTRIBUTING.md) 了解指导原则。
 
-## 📄 License
+## 📄 许可证
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+该项目采用 MIT 许可证 - 详情请查看 [LICENSE](../../LICENSE) 文件。
 
-## 🔗 Related Packages
+## 🔗 相关包
 
-- **sage-kernel**: Uses common utilities for runtime management
-- **sage-libs**: Builds on common components for libraries
-- **sage-middleware**: Uses network and serialization utilities
-- **sage-tools**: Uses configuration and logging utilities
+- **sage-kernel** - 使用通用工具进行运行时管理
+- **sage-libs** - 基于通用组件构建库
+- **sage-middleware** - 使用网络和序列化工具
+- **sage-tools** - 使用配置和日志工具
 
-## 📮 Support
+## 📮 支持
 
-- **Documentation**: https://intellistream.github.io/SAGE-Pub/
-- **Issues**: https://github.com/intellistream/SAGE/issues
-- **Discussions**: https://github.com/intellistream/SAGE/discussions
+- **文档** - https://intellistream.github.io/SAGE-Pub/
+- **问题** - https://github.com/intellistream/SAGE/issues
+- **讨论** - https://github.com/intellistream/SAGE/discussions
 
 ______________________________________________________________________
 
-**Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)
+**SAGE 框架的一部分** | [主仓库](https://github.com/intellistream/SAGE)

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sage.libs.agentic.agents.planning.schemas import PlanResult, PlanStep
-from sage.middleware.agent.planning.planner_adapter import SageLibsPlannerAdapter
+from sage.middleware.operators.agent.planning.planner_adapter import SageLibsPlannerAdapter
 
 
 @pytest.fixture

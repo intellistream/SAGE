@@ -68,16 +68,6 @@ try:
     _NEUROMEM_AVAILABLE = True
 
 except ImportError:
-    # Neuromem not installed - provide helpful error message via __getattr__
-    def __getattr__(name):
-        """Provide friendly error message when neuromem is not installed"""
-        raise ImportError(
-            f"Cannot import '{name}' from sage.middleware.components.sage_mem. "
-            "NeuroMem is not installed. Please install it using:\n"
-            "  pip install isage-neuromem\n"
-            "or install sage-middleware with neuromem support:\n"
-            "  pip install isage-middleware[neuromem]"
-        )
-    
+    # Neuromem not installed - the neuromem.py placeholder will handle error message
     __all__ = []
     _NEUROMEM_AVAILABLE = False

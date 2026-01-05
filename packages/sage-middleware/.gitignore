@@ -19,7 +19,7 @@ CMakeUserPresets.json
 /.idea/deployment.xml
 /.idea/misc.xml
 /build/
-/build/
+/wheelhouse/
 /installation/sageflow.egg-info/
 /installation/build/
 /installation/dist/

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sage.middleware.agent.planning.router import PlannerRouter
+from sage.middleware.operators.agent.planning.router import PlannerRouter
 
 
 @pytest.fixture
@@ -14,9 +14,9 @@ def mock_generator():
 def router(mock_generator):
     # We mock the internal planners to avoid instantiating real ones
     with (
-        patch("sage.middleware.agent.planning.router.SimpleLLMPlanner"),
-        patch("sage.middleware.agent.planning.router.SageLibsPlannerAdapter"),
-        patch("sage.middleware.agent.planning.router.GeneratorToClientAdapter"),
+        patch("sage.middleware.operators.agent.planning.router.SimpleLLMPlanner"),
+        patch("sage.middleware.operators.agent.planning.router.SageLibsPlannerAdapter"),
+        patch("sage.middleware.operators.agent.planning.router.GeneratorToClientAdapter"),
     ):
         # Setup mocks
         # mock_simple_instance = MockSimple.return_value

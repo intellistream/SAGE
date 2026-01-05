@@ -6,7 +6,7 @@ from typing import Any
 from sage.common.core.functions import MapFunction as MapOperator
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
 from sage.libs.agentic.agents.profile.profile import BaseProfile
-from sage.middleware.agent.runtime import AgentRuntime
+from sage.middleware.operators.agent.runtime import AgentRuntime
 from sage.middleware.operators.rag.generator import HFGenerator, OpenAIGenerator
 
 
@@ -32,7 +32,7 @@ def _build_generator(config: Any):
     return OpenAIGenerator(config)
 
 
-from sage.middleware.agent.planning.router import PlannerRouter
+from sage.middleware.operators.agent.planning.router import PlannerRouter
 
 
 def _build_planner(config: Any, generator):

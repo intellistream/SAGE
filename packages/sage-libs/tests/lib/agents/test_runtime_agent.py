@@ -4,7 +4,7 @@ import json
 from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
 from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 from sage.libs.agentic.agents.profile.profile import BaseProfile
-from sage.middleware.agent.runtime import AgentRuntime
+from sage.middleware.operators.agent.runtime import AgentRuntime
 
 
 # ---- Dummy 生成器：返回固定 JSON 计划 ----

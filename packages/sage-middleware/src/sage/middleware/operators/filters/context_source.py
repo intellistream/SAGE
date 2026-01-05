@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sage.common.core import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.context.model_context import ModelContext
+from sage.middleware.operators.context.model_context import ModelContext
 
 
 class ContextFileSource(SourceFunction):
