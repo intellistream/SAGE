@@ -721,6 +721,27 @@ else:
     if [ "$install_mode" != "core" ]; then
         echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L6)...${NC}"
 
+        # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
+        # 这些包是 sage-middleware 的依赖，但因为 --no-deps 选项会被跳过
+        echo -e "${DIM}  正在安装独立 PyPI 包依赖 (isage-vdb, isage-flow, etc.)...${NC}"
+        log_info "开始安装独立 PyPI 包依赖" "INSTALL"
+
+        # 使用与 pyproject.toml 一致的版本约束
+        # 使用单引号包裹每个包名，防止 shell 将 > 解析为重定向
+        local independent_packages="'isage-vdb>=0.1.5' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.1.0'"
+
+        # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
+        log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"
+
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $independent_packages $pip_args"; then
+            log_warn "独立 PyPI 包安装失败，可能导致部分功能不可用" "INSTALL"
+            echo -e "${WARNING} 独立 PyPI 包安装失败，可能导致部分功能不可用"
+            # 不中断安装，因为这些可能是可选的或者网络问题
+        else
+            log_info "独立 PyPI 包安装成功" "INSTALL"
+            echo -e "${CHECK} 独立 PyPI 包安装成功"
+        fi
+
         # L4: middleware (Python 兼容层)
         # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
         # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
@@ -741,20 +762,35 @@ else:
 
         # L5: apps & benchmark (standard/full/dev 模式)
         if [ "$install_mode" != "core" ]; then
-            if [ -d "packages/sage-benchmark" ]; then
-                echo -e "${DIM}  正在安装: packages/sage-benchmark${NC}"
-                log_info "开始安装: packages/sage-benchmark" "INSTALL"
-                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-benchmark $pip_args --no-deps" "INSTALL"
+            # 清理已独立为 PyPI 包的组件残留目录
+            local residual_paths=(
+                "packages/sage-benchmark"
+                "packages/sage-gateway"
+                "packages/sage-middleware/src/sage/middleware/components/sage_db/sageDB"
+                "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"
+                "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"
+                "packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem"
+                "packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner"
+            )
 
-                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-benchmark\" $pip_args --no-deps"; then
-                    log_error "安装 sage-benchmark 失败" "INSTALL"
-                    echo -e "${CROSS} 安装 sage-benchmark 失败！"
-                    return 1
+            for path in "${residual_paths[@]}"; do
+                if [ -d "$path" ]; then
+                    echo -e "${DIM}  清理本地残留目录: $path...${NC}"
+                    rm -rf "$path"
                 fi
+            done
 
-                log_info "安装成功: packages/sage-benchmark" "INSTALL"
-                log_pip_package_info "isage-benchmark" "INSTALL"
-                echo -e "${CHECK} sage-benchmark 安装完成"
+            # sage-benchmark 已独立为 PyPI 包 (isage-benchmark)
+            echo -e "${DIM}  正在安装: isage-benchmark (PyPI)...${NC}"
+            log_info "开始安装: isage-benchmark" "INSTALL"
+
+            if log_command "INSTALL" "Deps" "$PIP_CMD install isage-benchmark $pip_args"; then
+                log_info "安装成功: isage-benchmark" "INSTALL"
+                echo -e "${CHECK} isage-benchmark 安装完成"
+            else
+                log_warn "isage-benchmark 安装失败" "INSTALL"
+                echo -e "${WARNING} isage-benchmark 安装失败 (可选组件)"
+                # 不中断安装，因为是可选组件
             fi
         fi
 
