@@ -2,11 +2,8 @@
 requires = [
     "setuptools>=64",
     "wheel",
-    "packaging>=24.2",
-    "scikit-build-core>=0.8.0",
-    "pybind11>=2.13.0",
 ]
-build-backend = "scikit_build_core.build"
+build-backend = "setuptools.build_meta"
 
 
 [project]
@@ -272,37 +269,6 @@ overrides = [
     { module = "fastapi.*", ignore_missing_imports = true },
 ]
 
-[tool.scikit-build]
-# CMake 配置
-cmake.minimum-version = "3.20"
-cmake.build-type = "Release"
-cmake.verbose = true
-
-# 构建目录配置说明:
-# - 开发模式 (pip install -e): 使用 editable.build-dir 配置，指向项目的 .sage/build/
-# - PyPI 安装: 使用默认的 build-dir，scikit-build 会自动使用临时目录
-# 注意: build-dir 使用相对路径时，在 PyPI 安装场景下会解析到错误位置
-# 因此这里使用默认配置，让 scikit-build 自动处理
-
-# 日志级别
-logging.level = "INFO"
-
-# Wheel 配置
-wheel.packages = ["src/sage"]
-wheel.expand-macos-universal-tags = true
-
-# 严格配置验证
-strict-config = false  # 允许灵活配置
-
-# 开发模式配置 - 使用统一的 .sage/build/middleware
-[tool.scikit-build.editable]
-mode = "redirect"
-verbose = true
-# 仅在开发模式下使用项目的 .sage/build/ 目录
-build-dir = "../../.sage/build/middleware/{wheel_tag}"
-
-# 版本号来自 _version.py
-
 # ============================================================================
 # Code Quality Configuration
 # Extends from root ruff.toml for unified standards across all packages
@@ -310,7 +276,6 @@ build-dir = "../../.sage/build/middleware/{wheel_tag}"
 [tool.ruff]
 extend = "../../tools/ruff.toml"
 
-[tool.scikit-build.metadata.version]
-provider = "scikit_build_core.metadata.regex"
-input = "src/sage/middleware/_version.py"
-regex = '''__version__\s*=\s*["'](?P<value>[^"']+)["']'''
+# Version from _version.py (setuptools-scm alternative for manual versioning)
+[tool.setuptools.dynamic]
+version = {attr = "sage.middleware._version.__version__"}
