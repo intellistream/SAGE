@@ -1,36 +1,34 @@
 # SAGE Platform
 
-> Platform Services Layer (L2) - Infrastructure abstractions for SAGE
+> 平台服务层 (L2) - SAGE 基础设施抽象
 
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
-## 📋 Overview
+## 📋 概述
 
-**SAGE Platform** provides core infrastructure abstractions that sit between the foundation layer
-(`sage-common`) and the execution engine (`sage-kernel`). This Layer-2 platform service offers:
+**SAGE Platform** 提供核心基础设施抽象，位于基础层（`sage-common`）和执行引擎（`sage-kernel`）之间。这个第二层平台服务提供：
 
-- **Queue Abstractions**: Unified interface for Python, Ray, and RPC queues
-- **Storage Abstractions**: Pluggable key-value storage backends
-- **Service Base Classes**: Foundation for building SAGE services
-- **Platform Interfaces**: Common patterns for distributed systems
+- **队列抽象**：Python、Ray 和 RPC 队列的统一接口
+- **存储抽象**：可插拔的键值存储后端
+- **服务基类**：构建 SAGE 服务的基础
+- **平台接口**：分布式系统的通用模式
 
-This package enables seamless switching between local and distributed execution modes without
-changing application code.
+该包使应用程序代码能够在本地和分布式执行模式之间无缝切换。
 
-## ✨ Key Features
+## ✨ 核心特性
 
-- **Polymorphic Queues**: Single API for Python Queue, Ray Queue, and RPC Queue
-- **Pluggable Storage**: In-memory, Redis, and custom storage backends
-- **Service Framework**: Base classes for building platform services
-- **Type-Safe**: Full type hints and runtime validation
-- **Zero-Overhead**: Minimal abstraction cost for local execution
+- **多态队列**：Python Queue、Ray Queue 和 RPC Queue 的单一 API
+- **可插拔存储**：内存、Redis 和自定义存储后端
+- **服务框架**：构建平台服务的基类
+- **类型安全**：完整的类型提示和运行时验证
+- **零开销**：本地执行的最小抽象成本
 
-## Components
+## 组件
 
-### 🔄 Queue (`sage.platform.queue`)
+### 🔄 队列 (`sage.platform.queue`)
 
-Polymorphic queue descriptors supporting multiple backends:
+支持多种后端的多态队列描述符：
 
 ```python
 from sage.platform.queue import (
@@ -40,50 +38,50 @@ from sage.platform.queue import (
     RPCQueueDescriptor,
 )
 
-# Create a Ray queue
+# 创建 Ray 队列
 queue_desc = RayQueueDescriptor(maxsize=1000, queue_id="my_queue")
 queue = queue_desc.queue_instance
 
-# Use queue operations
+# 使用队列操作
 queue_desc.put(item)
 item = queue_desc.get()
 ```
 
-**Features**:
+**特性**：
 
-- Lazy initialization
-- Serialization support
-- Cross-process communication
-- Backend-agnostic API
+- 延迟初始化
+- 序列化支持
+- 跨进程通信
+- 后端无关的 API
 
-### 💾 Storage (`sage.platform.storage`)
+### 💾 存储 (`sage.platform.storage`)
 
-Key-Value storage abstractions:
+键值存储抽象：
 
 ```python
 from sage.platform.storage.kv_backend import BaseKVBackend, DictKVBackend
 
-# Use in-memory backend
+# 使用内存后端
 backend = DictKVBackend()
 backend.set("key", "value")
 value = backend.get("key")
 
 
-# Extend with custom backends
+# 使用自定义后端扩展
 class RedisKVBackend(BaseKVBackend):
-    # Implement abstract methods
+    # 实现抽象方法
     ...
 ```
 
-**Supported Operations**:
+**支持的操作**：
 
 - `get(key)`, `set(key, value)`, `delete(key)`
 - `has(key)`, `clear()`, `get_all_keys()`
-- Disk persistence: `store_data_to_disk()`, `load_data_to_memory()`
+- 磁盘持久化：`store_data_to_disk()`, `load_data_to_memory()`
 
-### 🔌 Service (`sage.platform.service`)
+### 🔌 服务 (`sage.platform.service`)
 
-Base class for SAGE services:
+SAGE 服务的基类：
 
 ```python
 from sage.platform.service import BaseService
@@ -95,11 +93,11 @@ class MyService(BaseService):
         self.config = config
 
     def process(self, request):
-        # Service logic
+        # 服务逻辑
         return response
 ```
 
-## 📦 Package Structure
+## 📦 包结构
 
 ```
 sage-platform/
@@ -107,95 +105,95 @@ sage-platform/
 │   └── sage/
 │       └── platform/
 │           ├── __init__.py
-│           ├── queue/              # Queue abstractions
+│           ├── queue/              # 队列抽象
 │           │   ├── base.py
 │           │   ├── python_queue.py
 │           │   ├── ray_queue.py
 │           │   └── rpc_queue.py
-│           ├── storage/            # Storage backends
+│           ├── storage/            # 存储后端
 │           │   └── kv_backend.py
-│           └── service/            # Service base classes
+│           └── service/            # 服务基类
 │               └── base.py
 ├── tests/
 ├── pyproject.toml
 └── README.md
 ```
 
-## 🚀 Installation
+## 🚀 安装
 
-### Basic Installation
+### 基础安装
 
 ```bash
-pip install sage-platform
+pip install isage-platform
 ```
 
-### Development Installation
+### 开发安装
 
 ```bash
 cd packages/sage-platform
 pip install -e .
 ```
 
-### With Optional Dependencies
+### 安装可选依赖
 
 ```bash
-# With Ray support (distributed queues)
-pip install sage-platform[ray]
+# 安装 Ray 支持（分布式队列）
+pip install isage-platform[ray]
 
-# With Redis support (distributed storage)
-pip install sage-platform[redis]
+# 安装 Redis 支持（分布式存储）
+pip install isage-platform[redis]
 
-# Full installation
-pip install sage-platform[all]
+# 完整安装
+pip install isage-platform[all]
 ```
 
-## 📖 Quick Start
+## 📖 快速开始
 
-### Using Queues
+### 使用队列
 
 ```python
 from sage.platform.queue import RayQueueDescriptor
 
-# Create a distributed queue
+# 创建分布式队列
 queue_desc = RayQueueDescriptor(maxsize=1000, queue_id="my_distributed_queue")
 
-# Producer
+# 生产者
 queue_desc.put({"task": "process_data", "data": [1, 2, 3]})
 
-# Consumer
+# 消费者
 task = queue_desc.get()
-print(f"Processing: {task}")
+print(f"处理中: {task}")
 
-# Check queue status
-print(f"Queue size: {queue_desc.qsize()}")
-print(f"Empty: {queue_desc.empty()}")
+# 检查队列状态
+print(f"队列大小: {queue_desc.qsize()}")
+print(f"是否为空: {queue_desc.empty()}")
 ```
 
-### Using Storage
+### 使用存储
 
 ```python
 from sage.platform.storage.kv_backend import DictKVBackend
 
-# Create storage backend
+# 创建存储后端
 storage = DictKVBackend()
 
-# Store data
+# 存储数据
 storage.set("user:1", {"name": "Alice", "age": 30})
 storage.set("user:2", {"name": "Bob", "age": 25})
 
-# Retrieve data
+# 检索数据
 user = storage.get("user:1")
-print(f"User: {user}")
+print(f"用户: {user}")
 
-# List all keys
+# 列出所有键
 keys = storage.get_all_keys()
-print(f"All keys: {keys}")
+print(f"所有键: {keys}")
 
-# Persist to disk
+# 持久化到磁盘
 storage.store_data_to_disk("storage.pkl")
 ```
 
-### Creating a Service
+### 创建服务
 
 ```python
 from sage.platform.service import BaseService
@@ -208,126 +206,124 @@ class DataProcessingService(BaseService):
         self.initialize()
 
     def initialize(self):
-        """Initialize service resources"""
-        self.logger.info(f"Initializing {self.name}")
+        """初始化服务资源"""
+        self.logger.info(f"初始化 {self.name}")
 
     def process(self, request):
-        """Process incoming requests"""
-        self.logger.debug(f"Processing request: {request}")
+        """处理传入请求"""
+        self.logger.debug(f"处理请求: {request}")
         result = self._transform_data(request["data"])
         return {"status": "success", "result": result}
 
     def _transform_data(self, data):
-        # Service logic
+        # 服务逻辑
         return [x * 2 for x in data]
 
 
-# Use service
+# 使用服务
 service = DataProcessingService({"param": "value"})
 result = service.process({"data": [1, 2, 3]})
 print(result)  # {"status": "success", "result": [2, 4, 6]}
 ```
 
-## 🔧 Configuration
+## 🔧 配置
 
-Services can be configured through environment variables or configuration files:
+服务可以通过环境变量或配置文件进行配置：
 
 ```yaml
 # platform_config.yaml
 platform:
   queue:
-    backend: ray  # or python, rpc
+    backend: ray  # 或 python, rpc
     maxsize: 1000
 
   storage:
-    backend: dict  # or redis
+    backend: dict  # 或 redis
     persist: true
     save_path: ./storage
 ```
 
-## Architecture Position
+## 架构位置
 
 ```
-L1: sage-common         ← Foundation
-L2: sage-platform       ← YOU ARE HERE
-L3: sage-kernel         ← Execution Engine
+L1: sage-common         ← 基础层
+L2: sage-platform       ← 当前层
+L3: sage-kernel         ← 执行引擎
     sage-libs
-L4: sage-middleware     ← Domain Components
-L5: sage-apps           ← Applications
+L4: sage-middleware     ← 领域组件
+L5: sage-apps           ← 应用程序
     sage-tools
     sage-benchmark
-L6: sage-studio         ← User Interface
+L6: sage-studio         ← 用户界面
 ```
 
-## Design Principles
+## 设计原则
 
-1. **Generic Infrastructure**: Platform services are not SAGE-specific
-1. **Backend Agnostic**: Support multiple implementations (Python, Ray, Redis, etc.)
-1. **Minimal Dependencies**: Only depends on `sage-common`
-1. **Extensible**: Easy to add new backends
+1. **通用基础设施**：平台服务不是 SAGE 特定的
+2. **后端无关**：支持多种实现（Python、Ray、Redis 等）
+3. **最小依赖**：仅依赖 `sage-common`
+4. **可扩展性**：易于添加新后端
 
-## Why L2 Layer?
+## 为什么需要 L2 层？
 
-Originally, these abstractions were scattered:
+原本这些抽象被分散在：
 
-- Queue Descriptor in `sage-kernel` (L3) ❌
-- KV Backend in `sage-middleware` (L4) ❌
-- BaseService in `sage-kernel` (L3) ❌
+- Queue Descriptor 在 `sage-kernel` (L3) ✖️
+- KV Backend 在 `sage-middleware` (L4) ✖️
+- BaseService 在 `sage-kernel` (L3) ✖️
 
-This caused:
+这造成了：
 
-- Architecture confusion (infrastructure mixed with business logic)
-- Dependency violations (L1 → L3)
-- Limited reusability
+- 架构混乱（基础设施与业务逻辑混合）
+- 依赖违规（L1 → L3）
+- 有限的可重用性
 
-By creating L2:
+通过创建 L2：
 
-- ✅ Clear separation of concerns
-- ✅ Proper dependency direction
-- ✅ Better reusability across components
+- ✅ 清晰的关注点分离
+- ✅ 正确的依赖方向
+- ✅ 更好的组件间可重用性
 
-## 🧪 Testing
+## 🧪 测试
 
 ```bash
-# Run unit tests
+# 运行单元测试
 pytest tests/unit
 
-# Run integration tests
+# 运行集成测试
 pytest tests/integration
 
-# Run with coverage
+# 运行覆盖率测试
 pytest --cov=sage.platform --cov-report=html
 ```
 
-## 📚 Documentation
+## 📚 文档
 
-- **User Guide**: See
-  [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
-- **API Reference**: See package docstrings and type hints
-- **Architecture**: See
-  [Platform Layer Design](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
+- **用户指南**：查看 [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
+- **API 参考**：查看包的文档字符串和类型提示
+- **架构**：查看 [平台层设计](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
 
-## 🤝 Contributing
+## 🤝 贡献
 
-Contributions are welcome! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
+欢迎贡献！请查看 [CONTRIBUTING.md](../../CONTRIBUTING.md) 了解指南。
 
-## 📄 License
+## 📄 许可证
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+该项目采用 MIT 许可证 - 详情请查看 [LICENSE](../../LICENSE) 文件。
 
-## 🔗 Related Packages
+## 🔗 相关包
 
-- **sage-common**: Foundation layer (L1) - provides basic utilities
-- **sage-kernel**: Execution engine (L3) - uses platform abstractions
-- **sage-middleware**: Service layer (L4) - uses storage and queues
-- **sage-libs**: Library layer (L5) - uses all platform services
+- **sage-common**：基础层 (L1) - 提供基本工具
+- **sage-kernel**：执行引擎 (L3) - 使用平台抽象
+- **sage-middleware**：服务层 (L4) - 使用存储和队列
+- **sage-libs**：库层 (L5) - 使用所有平台服务
 
-## 📮 Support
+## 📮 支持
 
-- **Documentation**: https://intellistream.github.io/SAGE-Pub/
-- **Issues**: https://github.com/intellistream/SAGE/issues
-- **Discussions**: https://github.com/intellistream/SAGE/discussions
+- **文档**：https://intellistream.github.io/SAGE-Pub/
+- **问题反馈**：https://github.com/intellistream/SAGE/issues
+- **讨论**：https://github.com/intellistream/SAGE/discussions
 
 ______________________________________________________________________
 
-**Part of the SAGE Framework** | [Main Repository](https://github.com/intellistream/SAGE)
+**SAGE 框架的一部分** | [主仓库](https://github.com/intellistream/SAGE)
