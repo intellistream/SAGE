@@ -52,7 +52,7 @@ EXPERIMENT_CONFIGS = {
         "description": "多节点 (4 nodes)",
         "use_remote": True,
         "num_nodes": 4,
-        "parallelism": 16,
+        "parallelism": 4,
         "scheduler_type": "load_aware",
         "scheduler_strategy": "spread",
     },
@@ -168,7 +168,7 @@ def run_node_scaling_experiment(
             config_override = {
                 "use_remote": True,
                 "num_nodes": num_nodes,
-                "parallelism": num_nodes * 4,
+                "parallelism": num_nodes,  # 每节点 1 个并行度
                 "scheduler_type": "load_aware",
                 "scheduler_strategy": "spread",
             }

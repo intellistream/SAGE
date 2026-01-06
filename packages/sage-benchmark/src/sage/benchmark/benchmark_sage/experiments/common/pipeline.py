@@ -508,15 +508,38 @@ class SchedulingBenchmarkPipeline:
 
         return self.metrics
 
+    def _gather_remote_metrics(self) -> None:
+        """Gather metrics files from remote worker nodes."""
+        import subprocess
+        from pathlib import Path
+
+        metrics_dir = Path("/tmp/sage_metrics")
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+
+        # Use hardcoded worker node hostnames directly
+        # (Ray returns IPs like 172.20.0.x instead of hostnames)
+        worker_nodes = ["sage-node-2", "sage-node-3", "sage-node-4"]
+
+        print(f"[Metrics] Gathering metrics from remote nodes: {worker_nodes}")
+        for node in worker_nodes:
+            try:
+                cmd = f"scp -o StrictHostKeyChecking=no {node}:/tmp/sage_metrics/*.jsonl /tmp/sage_metrics/ 2>/dev/null"
+                subprocess.run(cmd, shell=True, timeout=10)
+            except Exception as e:
+                print(f"[Metrics] Warning: Could not gather from {node}: {e}")
+
     def _collect_metrics_from_files(self, run_start_timestamp: int) -> None:
         """
         Collect metrics from MetricsSink output files in Remote mode.
 
         In Remote mode, MetricsSink writes results to /tmp/sage_metrics/ on the worker nodes.
-        This method reads those files and aggregates the results into self.metrics.
+        This method first gathers files from remote nodes, then aggregates the results.
         """
         import json
         from pathlib import Path
+
+        # First gather metrics from remote nodes
+        self._gather_remote_metrics()
 
         metrics_dir = Path("/tmp/sage_metrics")
         if not metrics_dir.exists():

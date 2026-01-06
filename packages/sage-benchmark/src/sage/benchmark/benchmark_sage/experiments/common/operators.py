@@ -110,7 +110,7 @@ class TaskSource(SourceFunction):
     def execute(self, data=None) -> TaskState | StopSignal:
         """生成下一个任务"""
         if self.current_index >= self.num_tasks:
-            time.sleep(10.0)  # 10 秒等待 LLM 响应
+            time.sleep(60.0)  # 60 秒等待所有 actor 启动和 LLM 响应
             return StopSignal("All tasks generated")
 
         query = self.query_pool[self.current_index % len(self.query_pool)]
