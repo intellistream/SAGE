@@ -92,7 +92,11 @@ allowed_patterns=(
     "^tools/.*/(docs|documentation)/"
     "^tools/docs/.*\.md$"  # Allow tools/docs/ directory
     "^\.sage/.*\.md$"
-    "^\.github/.*\.md$"
+
+    # .github: Allow allowed config files in root + anything in subdirectories
+    "^\.github/copilot-instructions\.md$"
+    "^\.github/COPILOT_SETUP\.md$"
+    "^\.github/[^/]+/"
 )
 
 # Define third-party library exclusions (always allowed)
