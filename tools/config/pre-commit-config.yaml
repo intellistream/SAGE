@@ -328,7 +328,7 @@ repos:
 
       # Allowed directories in project root (whitelist)
       allowed_dirs=(
-        # ".benchmarks"  # Deprecated - now uses .sage/benchmarks
+        ".benchmarks"  # Deprecated; keep for legacy benchmark artifacts
         ".git"
         ".github"
         ".mypy_cache"
@@ -336,6 +336,7 @@ repos:
         ".ruff_cache"
         ".sage"
         ".vscode"
+        "benchmark"    # Dedicated benchmark workspace in repo root
         "build"
         "config"
         "docker"
