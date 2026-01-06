@@ -3,15 +3,16 @@ import os
 
 import boto3
 
-# Dependencies should be installed via requirements.txt
-# aioboto3 and tenacity are required for this module
+# Dependencies are managed via pyproject.toml [project.optional-dependencies.embedding]
+# Install with: pip install isage-common[embedding]
+# Required: aioboto3, boto3, tenacity
 
 try:
     import aioboto3
 except ImportError:
     raise ImportError(
         "aioboto3 package is required for AWS Bedrock embedding functionality. "
-        "Please install it via: pip install aioboto3"
+        "Please install it via: pip install isage-common[embedding]"
     )
 
 try:
@@ -24,7 +25,7 @@ try:
 except ImportError:
     raise ImportError(
         "tenacity package is required for AWS Bedrock embedding functionality. "
-        "Please install it via: pip install tenacity"
+        "Please install it via: pip install isage-common[embedding]"
     )
 
 

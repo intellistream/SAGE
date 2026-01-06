@@ -4,6 +4,10 @@ Embedding CLI 命令
 提供命令行工具来管理和测试 embedding 方法。
 """
 
+import os
+import subprocess
+import sys
+
 import typer
 from rich import box
 from rich.console import Console
@@ -209,6 +213,137 @@ def test_method(
         console.print(f"[red]❌ 错误:[/red] {e}")
         if "API Key" in str(e):
             console.print("\n[yellow]💡 提示:[/yellow] 使用 --api-key 参数提供 API 密钥")
+
+
+@app.command(name="start")
+def start_server(
+    model: str = typer.Option(
+        "BAAI/bge-m3",
+        "--model",
+        "-m",
+        help="HuggingFace 模型名称",
+    ),
+    port: int = typer.Option(
+        8090,
+        "--port",
+        "-p",
+        help="服务器端口",
+    ),
+    host: str = typer.Option(
+        "0.0.0.0",
+        "--host",
+        help="服务器地址",
+    ),
+    device: str = typer.Option(
+        "auto",
+        "--device",
+        "-d",
+        help="设备类型 (cuda/cpu/auto)",
+    ),
+    gpu: int | None = typer.Option(
+        None,
+        "--gpu",
+        "-g",
+        help="指定 GPU ID (例如: 0, 1, 2)",
+    ),
+    workers: int = typer.Option(
+        1,
+        "--workers",
+        "-w",
+        help="Worker 数量",
+    ),
+):
+    """启动 Embedding 服务器 (OpenAI 兼容 API)
+
+    启动一个 OpenAI 兼容的 Embedding 服务器，提供以下端点：
+
+    - GET  /health              - 健康检查
+    - GET  /v1/models           - 列出模型
+    - POST /v1/embeddings       - 生成 embeddings
+
+    示例：
+
+        # 启动默认服务器 (BGE-M3, 端口 8090)
+        sage embedding start
+
+        # 使用自定义模型和端口
+        sage embedding start --model BAAI/bge-small-zh-v1.5 --port 8080
+
+        # 使用 CPU
+        sage embedding start --device cpu
+
+        # 使用特定 GPU
+        sage embedding start --gpu 0
+
+    测试命令：
+
+        curl -X POST http://localhost:8090/v1/embeddings \\
+          -H "Content-Type: application/json" \\
+          -d '{"input": "Hello world", "model": "BAAI/bge-m3"}'
+    """
+    # 构建启动命令
+    server_script = os.path.join(
+        os.path.dirname(sys.modules["sage.common"].__file__),
+        "components",
+        "sage_embedding",
+        "embedding_server.py",
+    )
+
+    if not os.path.exists(server_script):
+        console.print(f"[red]❌ 错误: 找不到服务器脚本: {server_script}[/red]")
+        raise typer.Exit(1)
+
+    # 构建命令参数
+    cmd = [
+        sys.executable,
+        server_script,
+        "--model",
+        model,
+        "--port",
+        str(port),
+        "--host",
+        host,
+        "--device",
+        device,
+        "--workers",
+        str(workers),
+    ]
+
+    if gpu is not None:
+        cmd.extend(["--gpu", str(gpu)])
+
+    # 显示启动信息
+    panel = Panel(
+        f"""[bold cyan]Embedding 服务器配置[/bold cyan]
+
+📦 [cyan]模型:[/cyan] {model}
+🌐 [cyan]地址:[/cyan] http://{host}:{port}
+🖥️  [cyan]设备:[/cyan] {device}{f" (GPU {gpu})" if gpu is not None else ""}
+👷 [cyan]Workers:[/cyan] {workers}
+
+[dim]API 端点:[/dim]
+  • [green]GET[/green]  http://localhost:{port}/health
+  • [green]GET[/green]  http://localhost:{port}/v1/models
+  • [green]POST[/green] http://localhost:{port}/v1/embeddings
+
+[yellow]按 Ctrl+C 停止服务器[/yellow]
+""",
+        title="🚀 启动 Embedding 服务器",
+        border_style="green",
+        padding=(1, 2),
+    )
+
+    console.print(panel)
+    console.print()
+
+    try:
+        # 启动服务器（阻塞模式）
+        subprocess.run(cmd, check=True)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠️  服务器已停止[/yellow]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"\n[red]❌ 服务器启动失败: {e}[/red]")
+        raise typer.Exit(1)
 
 
 @app.command(name="benchmark")
