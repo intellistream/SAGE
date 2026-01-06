@@ -74,6 +74,7 @@ log_message() {
 declare -A ISSUE_REGISTRY
 declare -A FIX_REGISTRY
 declare -A ISSUE_SEVERITY
+declare -a REPORTED_ISSUES=()  # 追踪实际被报告的问题ID
 
 # 注册问题和修复方案
 register_issue() {
@@ -93,6 +94,7 @@ report_issue() {
     local details="$2"
 
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
+    REPORTED_ISSUES+=("$issue_id")  # 记录被报告的问题ID
 
     case "${ISSUE_SEVERITY[$issue_id]}" in
         "critical")
@@ -372,9 +374,22 @@ check_dev_tools() {
         local version=""
         local package_name="$tool"
 
+        # 确保 ~/.local/bin 在 PATH 中（pip install --user 安装的工具在这里）
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+
         # 使用 importlib.metadata 获取版本（Python 3.8+ 标准方法）
         # 这比直接 import 模块更可靠，因为不是所有包都有 __version__ 属性
         version=$(python3 -c "from importlib.metadata import version; print(version('$package_name'))" 2>/dev/null || echo "")
+
+        # 对于命令行工具（如 pre-commit, ruff），如果 importlib 找不到，也检查 command -v
+        if [ -z "$version" ]; then
+            if command -v "$tool" >/dev/null 2>&1; then
+                # 尝试从工具自身获取版本
+                version=$("$tool" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || echo "available")
+            fi
+        fi
 
         if [ -n "$version" ]; then
             echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool: $version"
@@ -433,6 +448,13 @@ fix_pip_missing() {
         fi
     fi
 
+    # 检查是否已在一个有效的 conda 环境中且 pip 可用
+    if [[ -n "${CONDA_DEFAULT_ENV:-}" ]] && command -v pip >/dev/null 2>&1; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 当前已在 conda 环境 '${CONDA_DEFAULT_ENV}' 中，pip 可用"
+        FIXES_APPLIED=$((FIXES_APPLIED + 1))
+        return 0
+    fi
+
     # 检查是否已有 conda（包括未加入 PATH 的情况）
     local conda_cmd=""
     if command -v conda >/dev/null 2>&1; then
@@ -451,7 +473,14 @@ fix_pip_missing() {
     if [ -n "$conda_cmd" ]; then
         echo -e "  ${INFO_MARK} 检测到 conda 已安装"
 
-        # 检查 sage 环境是否已存在
+        # 检查是否已经在任意 conda 环境中且 pip 可用
+        if [[ -n "${CONDA_DEFAULT_ENV:-}" ]] && command -v pip >/dev/null 2>&1; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} 当前已在 conda 环境 '${CONDA_DEFAULT_ENV}' 中，无需操作"
+            FIXES_APPLIED=$((FIXES_APPLIED + 1))
+            return 0
+        fi
+
+        # 检查 sage 环境是否已存在（作为默认选项）
         if "$conda_cmd" env list 2>/dev/null | grep -q "^sage "; then
             echo -e "  ${GREEN}${CHECK_MARK}${NC} conda 环境 'sage' 已存在"
 
@@ -927,6 +956,11 @@ fix_dev_tools_missing() {
 fix_pre_commit_hooks_missing() {
     echo -e "\n${TOOL_MARK} 安装 pre-commit hooks..."
 
+    # 确保 ~/.local/bin 在 PATH 中（pip install --user 安装的工具在这里）
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
+
     if ! command -v pre-commit >/dev/null 2>&1; then
         echo -e "  ${YELLOW}${WARNING_MARK}${NC} pre-commit 工具未安装，跳过 hooks 安装"
         return 0  # 不是错误，只是跳过
@@ -938,13 +972,18 @@ fix_pre_commit_hooks_missing() {
     fi
 
     echo -e "  ${DIM}正在安装 pre-commit hooks...${NC}"
-    if pre-commit install --config tools/config/pre-commit-config.yaml >/dev/null 2>&1; then
+    echo -e "  ${DIM}执行命令: pre-commit install --config tools/config/pre-commit-config.yaml${NC}"
+
+    # 显示详细输出以便调试
+    if pre-commit install --config tools/config/pre-commit-config.yaml 2>&1; then
         echo -e "  ${GREEN}${CHECK_MARK}${NC} pre-commit hooks 安装成功"
         FIXES_APPLIED=$((FIXES_APPLIED + 1))
         log_message "FIX" "Successfully installed pre-commit hooks"
         return 0
     else
-        echo -e "  ${RED}${CROSS_MARK}${NC} pre-commit hooks 安装失败"
+        local install_exit_code=$?
+        echo -e "  ${RED}${CROSS_MARK}${NC} pre-commit hooks 安装失败 (退出码: $install_exit_code)"
+        log_message "ERROR" "pre-commit install failed with exit code: $install_exit_code"
         return 1
     fi
 }
@@ -1063,9 +1102,9 @@ run_auto_fixes() {
     # 使用集合来避免重复执行相同的修复函数
     local executed_fixes=()
 
-    # 执行修复
-    for issue_id in "${!FIX_REGISTRY[@]}"; do
-        local fix_function="${FIX_REGISTRY[$issue_id]}"
+    # 执行修复 - 只处理实际被报告的问题
+    for issue_id in "${REPORTED_ISSUES[@]}"; do
+        local fix_function="${FIX_REGISTRY[$issue_id]:-}"
         if [ -n "$fix_function" ] && declare -f "$fix_function" >/dev/null; then
             # 检查是否已经执行过这个修复函数
             local already_executed=false

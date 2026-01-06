@@ -86,7 +86,7 @@ repos:
     language: system
     pass_filenames: false
     always_run: false
-    stages: [commit]
+    stages: [pre-commit]
     # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
   - id: dependency-version-conflicts
     name: check dependency version conflicts
