@@ -788,6 +788,71 @@ fix_mixed_packages() {
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
 }
 
+# CUDA Toolkit 缺失修复
+fix_cuda_toolkit() {
+    echo -e "\n${TOOL_MARK} 安装 CUDA Toolkit (nvcc 编译器)..."
+
+    # 检查是否已安装
+    if command -v nvcc >/dev/null 2>&1; then
+        local nvcc_version=$(nvcc --version 2>/dev/null | grep -oP 'release \K[0-9]+\.[0-9]+' || echo "unknown")
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} NVCC 编译器已安装: $nvcc_version"
+        FIXES_APPLIED=$((FIXES_APPLIED + 1))
+        return 0
+    fi
+
+    # 检查是否在 conda 环境中
+    if ! command -v conda >/dev/null 2>&1; then
+        echo -e "  ${RED}${CROSS_MARK}${NC} 未检测到 conda，无法自动安装 CUDA Toolkit"
+        echo -e "  ${DIM}请手动安装: sudo apt-get install nvidia-cuda-toolkit${NC}"
+        return 1
+    fi
+
+    # 检查是否有 NVIDIA GPU
+    if ! command -v nvidia-smi >/dev/null 2>&1; then
+        echo -e "  ${YELLOW}⚠${NC} 未检测到 NVIDIA GPU，跳过 CUDA Toolkit 安装"
+        return 0
+    fi
+
+    echo -e "  ${INFO_MARK} 通过 conda 安装 CUDA Toolkit 开发包..."
+    echo -e "  ${DIM}这可能需要几分钟时间...${NC}"
+
+    # 使用统一的 conda 安装工具（自动使用镜像）
+    local conda_utils="${SAGE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/tools/lib/conda_install_utils.sh"
+    if [ -f "$conda_utils" ]; then
+        source "$conda_utils"
+        if conda_install_bypass cudatoolkit-dev; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} CUDA Toolkit 安装成功"
+
+            # 验证安装
+            if command -v nvcc >/dev/null 2>&1; then
+                local nvcc_version=$(nvcc --version 2>/dev/null | grep -oP 'release \K[0-9]+\.[0-9]+' || echo "unknown")
+                echo -e "  ${GREEN}${CHECK_MARK}${NC} NVCC 编译器可用: $nvcc_version"
+                FIXES_APPLIED=$((FIXES_APPLIED + 1))
+                return 0
+            else
+                echo -e "  ${YELLOW}⚠${NC} CUDA Toolkit 已安装，但 nvcc 不在 PATH 中"
+                echo -e "  ${DIM}请重新激活 conda 环境: conda deactivate && conda activate ${CONDA_DEFAULT_ENV}${NC}"
+                FIXES_APPLIED=$((FIXES_APPLIED + 1))
+                return 0
+            fi
+        else
+            echo -e "  ${RED}${CROSS_MARK}${NC} CUDA Toolkit 安装失败"
+            echo -e "  ${DIM}请手动安装: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
+            return 1
+        fi
+    else
+        # Fallback: 直接使用 conda 命令
+        if conda install -c conda-forge cudatoolkit-dev -y --override-channels >/dev/null 2>&1; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} CUDA Toolkit 安装成功"
+            FIXES_APPLIED=$((FIXES_APPLIED + 1))
+            return 0
+        else
+            echo -e "  ${RED}${CROSS_MARK}${NC} CUDA Toolkit 安装失败"
+            return 1
+        fi
+    fi
+}
+
 # CLI 工具冲突修复
 fix_cli_conflicts() {
     echo -e "\n${TOOL_MARK} 清理 CLI 工具冲突..."
@@ -1019,7 +1084,7 @@ register_all_issues() {
     register_issue "numpy_v1" "numpy版本过旧" "major" ""
     register_issue "torch_numpy_compat" "PyTorch与numpy版本不匹配" "major" ""
     register_issue "low_disk_space" "磁盘空间不足" "major" ""
-    register_issue "nvcc_missing" "CUDA Toolkit (nvcc编译器) 缺失" "critical" ""
+    register_issue "nvcc_missing" "CUDA Toolkit (nvcc编译器) 缺失" "critical" "fix_cuda_toolkit"
 
     # 开发工具问题
     register_issue "dev_tools_missing" "缺少开发工具（pytest等）" "major" "fix_dev_tools_missing"

@@ -32,6 +32,54 @@ fi
 # ============================================================================
 readonly TSINGHUA_MIRROR_MAIN="https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main"
 readonly TSINGHUA_MIRROR_FORGE="https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge"
+readonly ALIYUN_MIRROR_MAIN="https://mirrors.aliyun.com/anaconda/pkgs/main"
+readonly ALIYUN_MIRROR_FORGE="https://mirrors.aliyun.com/anaconda/cloud/conda-forge"
+
+# ============================================================================
+# 网络诊断和自动修复
+# ============================================================================
+
+# 检测代理是否真实可用
+check_and_fix_proxy() {
+    # 只检测一次（使用全局变量缓存结果）
+    if [ "${_PROXY_CHECKED:-0}" -eq 1 ]; then
+        return "${_PROXY_AVAILABLE:-0}"
+    fi
+    export _PROXY_CHECKED=1
+
+    # 检查是否配置了代理
+    local proxy_vars=("http_proxy" "https_proxy" "HTTP_PROXY" "HTTPS_PROXY")
+
+    for var in "${proxy_vars[@]}"; do
+        if [ -n "${!var:-}" ]; then
+            local proxy_url="${!var}"
+
+            # 提取主机和端口
+            local host=$(echo "$proxy_url" | sed -E 's|.*://||; s|:.*||')
+            local port=$(echo "$proxy_url" | sed -E 's|.*:||; s|/.*||')
+
+            # 快速测试代理是否可达（2秒超时）
+            if timeout 2 bash -c "exec 3<>/dev/tcp/$host/$port 2>/dev/null" 2>/dev/null; then
+                export _PROXY_AVAILABLE=0
+                return 0
+            else
+                echo -e "${YELLOW}⚠${NC} 检测到代理配置 ($proxy_url) 但代理服务不可达" >&2
+                echo -e "${DIM}  → 临时禁用代理，避免阻塞镜像源直连（国内镜像无需代理）${NC}" >&2
+
+                # 临时禁用代理（仅对当前进程）
+                unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+                export http_proxy= https_proxy= HTTP_PROXY= HTTPS_PROXY=
+                export _PROXY_AVAILABLE=1
+                return 1
+            fi
+        fi
+    done
+
+    # 没有配置代理
+    export _PROXY_AVAILABLE=0
+    return 0
+}
+
 
 # ============================================================================
 # 1. Conda 包安装（绕过 ToS）
@@ -43,6 +91,9 @@ conda_install_bypass() {
         echo -e "${RED}错误：未指定要安装的包${NC}" >&2
         return 1
     fi
+
+    # 智能代理检测和修复
+    check_and_fix_proxy || true
 
     local packages=("$@")
     local env_flag=""
@@ -61,7 +112,7 @@ conda_install_bypass() {
         ((i++))
     done
 
-    echo -e "${DIM}使用清华镜像源安装包（绕过 ToS）: ${packages[*]}${NC}" >&2
+    echo -e "${DIM}使用国内镜像源安装包（绕过 ToS，加速下载）: ${packages[*]}${NC}" >&2
 
     # 首先尝试主频道
     if conda install $env_flag -y --override-channels -c "$TSINGHUA_MIRROR_MAIN" "${packages[@]}" 2>/dev/null; then
@@ -71,11 +122,32 @@ conda_install_bypass() {
 
     # 回退到 conda-forge 频道
     echo -e "${YELLOW}主频道失败，尝试 conda-forge...${NC}" >&2
-    if conda install $env_flag -y --override-channels -c "$TSINGHUA_MIRROR_FORGE" "${packages[@]}"; then
+    if conda install $env_flag -y --override-channels -c "$TSINGHUA_MIRROR_FORGE" "${packages[@]}" 2>/dev/null; then
         echo -e "${GREEN}${CHECK}${NC} 使用 conda-forge 成功安装${NC}" >&2
+        return 0
+    fi
+
+    # 回退到阿里云主频道
+    echo -e "${YELLOW}清华镜像失败，尝试阿里云...${NC}" >&2
+    if conda install $env_flag -y --override-channels -c "$ALIYUN_MIRROR_MAIN" "${packages[@]}" 2>/dev/null; then
+        echo -e "${GREEN}${CHECK}${NC} 使用阿里云主频道成功安装${NC}" >&2
+        return 0
+    fi
+
+    # 回退到阿里云 conda-forge
+    if conda install $env_flag -y --override-channels -c "$ALIYUN_MIRROR_FORGE" "${packages[@]}" 2>/dev/null; then
+        echo -e "${GREEN}${CHECK}${NC} 使用阿里云 conda-forge 成功安装${NC}" >&2
+        return 0
+    fi
+
+    # 最后尝试官方源（不使用 --override-channels）
+    echo -e "${YELLOW}镜像源均失败，尝试官方源...${NC}" >&2
+    if conda install $env_flag -y -c conda-forge "${packages[@]}"; then
+        echo -e "${GREEN}${CHECK}${NC} 使用官方源成功安装${NC}" >&2
         return 0
     else
         echo -e "${RED}${CROSS}${NC} 包安装失败: ${packages[*]}${NC}" >&2
+        echo -e "${DIM}  已尝试所有镜像源（清华、阿里云、官方），均失败${NC}" >&2
         return 1
     fi
 }

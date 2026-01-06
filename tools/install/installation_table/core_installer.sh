@@ -619,6 +619,13 @@ else:
             echo -e "${DIM}     安装 $dep_count 个外部依赖包...${NC}"
             log_info "开始安装外部依赖包..." "INSTALL"
 
+            # 智能代理检测和自动规避
+            local pip_utils="${SAGE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/tools/lib/pip_install_utils.sh"
+            if [ -f "$pip_utils" ]; then
+                source "$pip_utils"
+                check_and_fix_pip_proxy || true
+            fi
+
             # 移除 --no-deps，让 pip 正常解析传递依赖
             local deps_pip_args=$(echo "$pip_args" | sed 's/--no-deps//g')
             log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $deps_pip_args" "INSTALL"
@@ -1193,6 +1200,13 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file
 
             echo -e "${DIM}     安装 $dep_count 个外部依赖包...${NC}"
             log_info "开始安装外部依赖包..." "INSTALL"
+
+            # 智能代理检测和自动规避
+            local pip_utils="${SAGE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/tools/lib/pip_install_utils.sh"
+            if [ -f "$pip_utils" ]; then
+                source "$pip_utils"
+                check_and_fix_pip_proxy || true
+            fi
             log_debug "PIP命令: $PIP_CMD install -r $external_deps_file $pip_args" "INSTALL"
 
             # 从文件读取并安装
