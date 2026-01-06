@@ -277,3 +277,4 @@ FUNDING_INFO.md
 # sage-pypi-publisher 临时文件
 /tmp/pypi_publisher_*/
 benchmark/experiments/exp1_single_vs_multi/results/*
+packages/sage-llm-core/src/sage/llm/engines/sagellm/
