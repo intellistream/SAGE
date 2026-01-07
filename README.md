@@ -115,7 +115,10 @@ env.submit()
 git clone https://github.com/intellistream/SAGE.git && cd SAGE
 git checkout main-dev
 ./quickstart.sh --dev --yes
-python examples/tutorials/hello_world.py
+
+# Examples are now in a separate repository
+git clone https://github.com/intellistream/sage-examples.git
+python sage-examples/tutorials/hello_world.py
 ```
 
 **For CPU-only deployment:**
@@ -125,7 +128,8 @@ python examples/tutorials/hello_world.py
 sage jobmanager start
 
 # Run CPU node demo (no GPU required)
-python examples/tutorials/L3-kernel/cpu_node_demo.py
+git clone https://github.com/intellistream/sage-examples.git
+python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
 ```
 
 ## Architecture Excellence
@@ -137,7 +141,7 @@ layers:
 
 ```
 L6: sage-studio, sage-cli, sage-tools    # User Interfaces & Dev Tools
-L5: sage-apps                             # Applications
+L5: (Applications moved to independent repos)
 L4: sage-middleware, sage-gateway         # Domain Operators & API Gateway
 L3: sage-kernel, sage-libs                # Core Engine & Algorithm Library
 L2: sage-platform                         # Platform Services (Queue, Storage)
@@ -156,7 +160,7 @@ Detailed package descriptions, dependency rules, and design principles
 
 ### Modular Design
 
-**11 Independent Packages**, each with clear responsibilities:
+**10 Core Packages**, each with clear responsibilities:
 
 - **sage-common** (L1): Foundation utilities, configuration, logging
 - **sage-platform** (L2): Platform services - queue, storage abstractions
@@ -164,10 +168,17 @@ Detailed package descriptions, dependency rules, and design principles
 - **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
 - **sage-middleware** (L4): Domain operators and middleware components
 - **sage-gateway** (L4): API gateway and service mesh
-- **sage-apps** (L5): Pre-built applications (video, medical diagnosis)
 - **sage-studio** (L6): Web-based visualization interface
 - **sage-cli** (L6): Unified command-line interface
 - **sage-tools** (L6): Development tools and testing framework
+
+**Independent Repository:**
+
+- **sage-examples**: Tutorials, examples, and production applications (will be published to PyPI as
+  `isage-examples`)
+  - Repository: [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
+  - Includes: tutorials, RAG examples, application demos (video intelligence, medical diagnosis,
+    etc.)
 
 **Note**: sage-benchmark has been separated into an independent repository:
 https://github.com/intellistream/sage-benchmark
@@ -249,8 +260,10 @@ balancing and fault tolerance.
 
 - **Documentation**:
   [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
-- **Examples**: [examples/](./examples/) - Tutorials, RAG, services, benchmarks
-- **Quick Reference**: [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)
+- **Examples & Applications**:
+  [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
+  - Tutorials, RAG examples, and production applications
+  - Will be published as `isage-examples` on PyPI
 - **Architecture**:
   [docs-public/docs_src/dev-notes/package-architecture.md](./docs-public/docs_src/dev-notes/package-architecture.md)
 

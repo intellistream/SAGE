@@ -1,1 +1,0 @@
-"""Medical diagnosis application tests."""

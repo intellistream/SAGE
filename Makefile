@@ -55,8 +55,12 @@ install-dev:
 	@echo "  3️⃣ 安装 middleware（C++ 扩展）..."
 	@pip install -e packages/sage-middleware --no-deps
 	@echo "  4️⃣ 安装应用层..."
-	@pip install -e packages/sage-apps -e packages/sage-cli -e packages/sage-studio -e packages/sage-benchmark -e packages/sage-tools --no-deps
+	@pip install -e packages/sage-cli -e packages/sage-studio -e packages/sage-tools --no-deps
 	@echo "✅ 所有包已安装！"
+	@echo ""
+	@echo "ℹ️  Note: sage-apps and examples moved to independent repos:"
+	@echo "  - https://github.com/intellistream/sage-examples"
+	@echo "  - Install sage-apps via: pip install isage-apps"
 	@echo ""
 	@echo "📊 验证版本一致性..."
 	@pip list | grep -E "^isage"

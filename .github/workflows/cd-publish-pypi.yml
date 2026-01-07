@@ -208,7 +208,6 @@ jobs:
             - isage-middleware
             - isage-platform
             - isage-cli
-            - isage-apps
             - isage-studio
             - isage-tools
             - isage-llm-core
@@ -216,7 +215,9 @@ jobs:
             - isage-edge
             - isage (meta-package)
 
-            **Note**: `isage-benchmark` is now published independently from https://github.com/intellistream/sage-benchmark
+            **Note**: The following are published independently:
+            - `isage-benchmark`: https://github.com/intellistream/sage-benchmark
+            - `isage-apps`: Independent repository (TBD)
 
             ### Installation
             \`\`\`bash
