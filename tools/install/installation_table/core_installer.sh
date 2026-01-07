@@ -735,7 +735,7 @@ else:
 
         # 使用与 pyproject.toml 一致的版本约束
         # 使用单引号包裹每个包名，防止 shell 将 > 解析为重定向
-        local independent_packages="'isage-vdb>=0.1.5' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.1.0'"
+        local independent_packages="'isage-vdb>=0.1.6' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.2.0.1'"
 
         # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
         log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"

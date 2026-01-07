@@ -59,10 +59,10 @@ dependencies = [
     "transformers>=4.52.0,<4.54.0",  # 兼容 vllm 0.9.2 (避免 aimv2 配置冲突)
     "tokenizers>=0.21.0,<0.24.0",  # 兼容 transformers 4.52-4.57
     "faiss-cpu>=1.7.0,<2.0.0",
-    "isage-vdb>=0.1.5",  # SageVDB vector database (independent PyPI package, renamed from sagedb)
-    "isage-tsdb",  # SageTSDB time series database (independent PyPI package, manylinux compatible)
-    "isage-flow",  # SageFlow stream processing engine (independent PyPI package)
-    "isage-refiner",  # SageRefiner context compression algorithms (independent PyPI package)
+    "isage-vdb>=0.1.6",  # SageVDB vector database (independent PyPI package, renamed from sagedb)
+    "isage-tsdb>=0.1.5",  # SageTSDB time series database (independent PyPI package, manylinux compatible)
+    "isage-flow>=0.1.1",  # SageFlow stream processing engine (independent PyPI package)
+    "isage-refiner>=0.1.0",  # SageRefiner context compression algorithms (independent PyPI package)
     "isage-libs",  # SAGE算法库（sage_refiner依赖）
     # Note: isage-neuromem moved to optional-dependencies to avoid conflicts
     "bm25s>=0.2.13,<1.0.0",
@@ -97,7 +97,7 @@ license = {text = "MIT"}
 [project.optional-dependencies]
 # Memory system support (optional, namespace package compatible)
 neuromem = [
-    "isage-neuromem",  # NeuroMem brain-inspired memory system
+    "isage-neuromem>=0.2.0.1",  # NeuroMem brain-inspired memory system
 ]
 
 # SAGE 内部依赖
