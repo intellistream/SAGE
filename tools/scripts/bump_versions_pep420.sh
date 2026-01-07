@@ -25,7 +25,7 @@ declare -A VERSION_UPDATES=(
     ["packages/sage-cli/src/sage/cli/_version.py"]="0.2.3.0→0.2.0.0"
     ["packages/sage-studio/src/sage/studio/_version.py"]="0.2.3.0→0.2.0.0"
     ["packages/sage-llm-gateway/src/sage/llm/gateway/_version.py"]="0.2.4.0→0.2.3.1"
-    ["packages/sage-edge/src/sage/edge/_version.py"]="0.2.3.0→0.2.0.0"
+    # ["packages/sage-edge/src/sage/edge/_version.py"]="0.2.3.0→0.2.0.0"  # 已独立
     ["packages/sage-tools/src/sage/tools/_version.py"]="0.2.3.0→0.2.0.0"
 )
 

@@ -43,10 +43,13 @@ pip install -e packages/sage-libs
 **包含内容**：
 
 - ✅ **LibAMM**：高性能近似矩阵乘法库（预编译，自动安装）
-- ✅ **ANNS 算法**：faiss_HNSW, vsag_hnsw, diskann, candy\_\*, cufe, gti, puck 等
+
 - ✅ **RAG 组件**：loaders, chunkers, retrievers, pipelines
+
 - ✅ **Agent 框架**：LangChain 风格的 Agent + Workflow Optimizer
+
 - ✅ **隐私算法**：unlearning, privacy preservation
+
 - ✅ **集成组件**：LLM, Vector DB 适配器
 
 ### 架构说明
@@ -56,11 +59,28 @@ pip install -e packages/sage-libs
 ```
 isage-libs (PyPI)
   └── 依赖 isage-libamm (自动安装预编译版本)
+  └── 可选 isage-anns (独立安装 ANNS 算法)
 ```
 
 - 📦 **isage-libs**：课题组算法集合的统一入口
-- 📦 **isage-libamm**：独立维护和发布的 C++ 扩展包
+- 📦 **isage-libamm**：独立维护和发布的 C++ 扩展包（自动安装）
+- 📦 **isage-anns**：独立维护的 ANNS 算法包（可选安装）
 - 🎯 **一键安装**：用户只需 `pip install isage-libs`，libamm 自动包含
+- 🔧 **按需安装 ANNS**：如需 ANNS 算法，额外执行 `pip install isage-anns`
+
+### Optional: ANNS Algorithms
+
+ANNS (Approximate Nearest Neighbor Search) algorithms have been moved to an independent repository:
+
+```bash
+# 安装 ANNS 算法包（可选）
+pip install isage-anns
+```
+
+- 📦 **Repository**: https://github.com/intellistream/sage-anns
+- 📦 **PyPI**: https://pypi.org/project/isage-anns/
+- 🔍 **Algorithms**: FAISS, DiskANN, CANDY, PUCK, SPTAG, etc.
+- 📖 **Documentation**: See `docs/anns/MIGRATION.md` for migration details
 
 ### LibAMM 开发者模式
 

@@ -323,8 +323,8 @@ We use **Black** and **isort** for consistent code formatting:
 sage-dev quality fix --all-files
 
 # Or manually:
-black packages/ examples/ scripts/ --line-length 100
-isort packages/ examples/ scripts/ --profile black --line-length 100
+black packages/ scripts/ --line-length 100
+isort packages/ scripts/ --profile black --line-length 100
 ```
 
 **Configuration**:
@@ -341,7 +341,7 @@ We use **Ruff** for fast linting and **mypy** for type checking:
 sage-dev quality check --check-only --all-files
 
 # Or run individually:
-ruff check packages/ examples/ scripts/
+ruff check packages/ scripts/
 mypy packages/ --ignore-missing-imports
 ```
 
@@ -577,8 +577,8 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Getting Help
 
-- **Documentation**: Check `docs/` and `docs-public/`
-- **Examples**: Look at `examples/` directory
+- **Documentation**: Check `docs-public/`
+- **Examples**: See [sage-examples](https://github.com/intellistream/sage-examples) repository
 - **Issues**: Search existing issues or create new one
 - **Community**: Join our
   [Slack](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)

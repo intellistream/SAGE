@@ -46,6 +46,13 @@ dependencies = [
     # Users can optionally install isage-amms separately for standalone use
     # "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel (独立维护) - Integrated into sage-libs
 
+    # ANNS algorithms (独立仓库，可选依赖)
+    # Note: ANNS implementations have been moved to independent repository
+    # Install separately if needed: pip install isage-anns
+    # Repository: https://github.com/intellistream/sage-anns
+    # PyPI: https://pypi.org/project/isage-anns/
+    # "isage-anns>=0.1.1",  # ✅ Published to PyPI (optional, install separately if needed)
+
     # Libs-specific dependencies
     # Vector databases
     "chromadb>=1.0.20",

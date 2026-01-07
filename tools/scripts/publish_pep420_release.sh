@@ -73,7 +73,7 @@ declare -a L6_PACKAGES=(
     "packages/sage-studio"
     "packages/sage-tools"
     "packages/sage-llm-gateway"
-    "packages/sage-edge"
+    "    # "packages/sage-edge"  # 已独立: https://github.com/intellistream/sage-edge"
 )
 
 # Meta-package

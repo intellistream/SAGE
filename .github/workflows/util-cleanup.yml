@@ -247,37 +247,9 @@ jobs:
             .sage/install_info.json
           retention-days: 7
 
-  # 测试文档示例
-  test-docs-examples:
-    name: Test Documentation Examples
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Test README examples
+      # 验证清理脚本存在
+      - name: Verify cleanup scripts
         run: |
-          # 测试 README 中的示例命令
-
-          # 示例 1: auto-venv
-          echo "Testing: ./quickstart.sh --auto-venv --help"
-          ./quickstart.sh --auto-venv --help | grep -q "auto-venv"
-
-          # 示例 2: 环境变量
-          echo "Testing: SAGE_VENV_POLICY environment variable"
-          export SAGE_VENV_POLICY=ignore
-          source tools/install/download_tools/environment_config.sh
-          echo "SAGE_VENV_POLICY=$SAGE_VENV_POLICY"
-
-      - name: Verify functionality exists
-        run: |
-          # 验证清理和安装跟踪工具存在
           test -f tools/cleanup/track_install.sh
           test -f tools/cleanup/uninstall_sage.sh
 

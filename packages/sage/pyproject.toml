@@ -58,7 +58,6 @@ all = [
     "isage-cli>=0.1.0",
     "isage-studio>=0.1.0",
     "isage-llm-gateway>=0.1.0",
-    "isage-edge>=0.1.0",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

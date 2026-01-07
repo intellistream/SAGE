@@ -103,7 +103,6 @@ jobs:
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
-          SAGE_EXAMPLES_MODE=test
           EOF
 
           echo "✅ .env 文件创建完成"

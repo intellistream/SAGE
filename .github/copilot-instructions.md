@@ -138,7 +138,7 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 **Architecture (L1-L6)** - CRITICAL: No upward dependencies
 
 ```
-L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway, sage-edge  # Interfaces & gateways
+L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway  # Interfaces & gateways
 L5: sage-apps                          # Apps
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
@@ -151,7 +151,7 @@ L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 Notes:
 - `sage-llm-gateway` is published to PyPI as `isage-llm-gateway` (OpenAI/Anthropic-compatible API Gateway).
 - `sage-llm-core` is published to PyPI as `isage-llm-core` (Unified client + control plane).
-- `sage-edge` is an opt-in aggregator shell that can mount the LLM gateway; behavior is unchanged unless it is explicitly started.
+- `sage-edge` (optional) is now an independent PyPI package `isage-edge>=0.2.4.0`. Install separately if needed.
 - Legacy `sage-gateway` has been superseded; do not add new code under that namespace.
 
 ### 🚨 sageLLM 独立仓库 - CRITICAL
@@ -255,7 +255,7 @@ SAGE is an inference pipeline system, not just an LLM server. When writing docs,
 Canonical namespaces (post-refactor):
 - Gateway: `sage.llm.gateway.*` (package: `sage-llm-gateway`)
 - Control plane + unified client: `sage.llm.*` (package: `sage-llm-core`)
-- Optional edge aggregator: `sage.edge.*` (package: `sage-edge`)
+- Optional edge aggregator: `sage.edge.*` (independent package: `isage-edge`) - Mounts entire Gateway application
 - Avoid legacy `sage.gateway.*` imports; they have been superseded.
 
 **Gateway (L6, OpenAI/Anthropic-compatible + control plane + sessions)**
@@ -268,8 +268,9 @@ Canonical namespaces (post-refactor):
 - Pipeline-as-a-service for RAG: `packages/sage-llm-gateway/src/sage/llm/gateway/rag_pipeline.py`
 - Session + memory backends (short-term + NeuroMem VDB/KV/Graph):
   `packages/sage-llm-gateway/src/sage/llm/gateway/session/manager.py`
-- Edge aggregator (optional shell mounting the gateway, keeps /v1/* intact by default):
-  `packages/sage-edge/src/sage/edge/app.py`
+- Edge aggregator (optional, independent package `isage-edge`):
+  Repository: https://github.com/intellistream/sage-edge
+  Note: Edge mounts the complete Gateway FastAPI application, not just LLM endpoints
 
 **Control Plane + Unified Client (L1, sageLLM integration)**
 
@@ -588,7 +589,7 @@ port = 8001  # 不要这样写
 | 常量 | 端口 | 用途 |
 |------|------|------|
 | `GATEWAY_DEFAULT` | 8889 | sage-llm-gateway (OpenAI 兼容 API Gateway) |
-| `EDGE_DEFAULT` | 8899 | sage-edge 聚合器（可选，默认挂载 gateway 保持 /v1/*） |
+| `EDGE_DEFAULT` | 8899 | sage-edge 聚合器（可选，挂载整个 Gateway 应用） |
 | `LLM_DEFAULT` | 8001 | vLLM 推理服务 |
 | `LLM_WSL_FALLBACK` | 8901 | WSL2 备用 LLM 端口 |
 | `STUDIO_BACKEND` | 8889| sage-studio 后端 API |
@@ -596,7 +597,7 @@ port = 8001  # 不要这样写
 | `EMBEDDING_DEFAULT` | 8090 | Embedding 服务 |
 | `BENCHMARK_LLM` | 8901 | Benchmark 专用 LLM 端口 |
 
-**架构**: `User → Edge (8899, 可选) → Gateway (8889) → LLM (8001)`（Edge 默认直通 Gateway，直接访问 Gateway 也有效）
+**架构**: `User → [Edge (8899, 可选) →] Gateway (8889) → Control Plane → LLM (8001)`（Edge 挂载整个 Gateway 应用，保持 /v1/* 路径；未启动 Edge 时直接访问 Gateway）
 
 **WSL2 已知问题**:
 - 端口 8001 在 WSL2 上可能出现"端口监听但连接被拒绝"的问题
@@ -856,7 +857,7 @@ done
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-*可选 Edge 层*: `sage-edge` (8899) 可以将 `sage.llm.gateway` 挂载在 `/`（保持 `/v1/*` 兼容），或在自定义前缀下提供多域聚合。未启动 edge 时，直接访问 Gateway 即可。
+*可选 Edge 层*: `isage-edge` (8899, 独立包) 挂载整个 `sage.llm.gateway` 应用（包含 Control Plane、RAG Pipeline、Session Management）。默认挂载在 `/`（保持 `/v1/*` 兼容），或使用 `--llm-prefix` 挂载在自定义前缀。未启动 edge 时，直接访问 Gateway 即可。安装: `pip install isage-edge`
 
 ### 推荐用法：Control Plane 模式
 
@@ -951,9 +952,10 @@ packages/sage-llm-gateway/src/sage/llm/gateway/
   rag_pipeline.py           # Pipeline-as-a-service
   session/manager.py        # Session + memory backends
 
-packages/sage-edge/src/sage/edge/
-  app.py                    # FastAPI aggregator shell (mounts gateway, keeps /v1/* by default)
-  server.py                 # uvicorn entrypoint / CLI target
+# sage-edge (独立包 isage-edge>=0.2.4.0)
+  Repository: https://github.com/intellistream/sage-edge
+  PyPI: https://pypi.org/project/isage-edge/
+  Install: pip install isage-edge
 
 packages/sage-common/src/sage/common/components/
   sage_embedding/

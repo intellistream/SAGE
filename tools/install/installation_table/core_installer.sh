@@ -837,22 +837,8 @@ else:
                 echo -e "${CHECK} sage-llm-gateway 安装完成"
             fi
 
-            # L6: edge (Edge aggregator shell, optional)
-            if [ -d "packages/sage-edge" ]; then
-                echo -e "${DIM}  正在安装: packages/sage-edge${NC}"
-                log_info "开始安装: packages/sage-edge" "INSTALL"
-                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-edge $pip_args --no-deps" "INSTALL"
-
-                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-edge\" $pip_args --no-deps"; then
-                    log_error "安装 sage-edge 失败" "INSTALL"
-                    echo -e "${CROSS} 安装 sage-edge 失败！"
-                    return 1
-                fi
-
-                log_info "安装成功: packages/sage-edge" "INSTALL"
-                log_pip_package_info "isage-edge" "INSTALL"
-                echo -e "${CHECK} sage-edge 安装完成"
-            fi
+            # L6: edge (已独立，从 PyPI 安装: pip install isage-edge)
+            # sage-edge 已迁移到独立仓库: https://github.com/intellistream/sage-edge
         fi
 
         # L6: CLI (standard/full/dev 模式)

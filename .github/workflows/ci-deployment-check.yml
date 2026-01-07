@@ -1,7 +1,8 @@
 name: Pre-Deployment Readiness Check
 
-# 部署前检查：架构合规性、Examples验证、README完整性
+# 部署前检查：架构合规性、README完整性
 # Dev-notes 检查已由 code-quality.yml 负责
+# Examples 已迁移到独立仓库，不再在此检查
 
 on:
   pull_request:
@@ -97,35 +98,6 @@ jobs:
           echo ""
           echo "✅ 架构检查完成"
 
-      - name: Examples Validation
-        run: |
-          echo "🌟 验证 Examples 可执行性..."
-
-          # 安装必要的依赖
-          pip install pytest pytest-timeout pytest-benchmark
-
-          # 运行 Examples 导入测试
-          if [ -f "packages/sage-tools/tests/test_examples_imports.py" ]; then
-            echo "📝 运行 Examples 导入测试..."
-            timeout 180s pytest packages/sage-tools/tests/test_examples_imports.py -v || {
-              echo ""
-              echo "⚠️ Examples 导入测试超时或失败"
-
-              if [ "${{ github.event_name }}" = "pull_request" ]; then
-                echo "❌ PR 必须通过 Examples 验证"
-                exit 1
-              else
-                echo "⚠️ 不阻塞主分支，但建议修复"
-                exit 0
-              fi
-            }
-          else
-            echo "ℹ️  Examples 测试文件不存在，跳过验证"
-          fi
-
-          echo ""
-          echo "✅ Examples 验证完成"
-
       - name: Package README Check
         run: |
           export PATH="$HOME/.local/bin:$PATH"
@@ -157,11 +129,9 @@ jobs:
 
           # 统计信息
           TOTAL_PACKAGES=$(find packages -name "setup.py" -o -name "pyproject.toml" | wc -l)
-          TOTAL_EXAMPLES=$(find examples -name "*.py" -type f | wc -l)
-          TOTAL_DOCS=$(find docs/dev-notes -name "*.md" -type f | wc -l)
+          TOTAL_DOCS=$(find docs-public/docs_src/dev-notes -name "*.md" -type f 2>/dev/null | wc -l)
 
           echo "📦 包数量: $TOTAL_PACKAGES"
-          echo "🌟 示例数量: $TOTAL_EXAMPLES"
           echo "📚 文档数量: $TOTAL_DOCS"
 
           # 检查关键文件
@@ -197,7 +167,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "检查项目:" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ 架构合规性" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Examples 可执行性" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Package README 完整性" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "> 📝 Dev-notes 文档检查由 code-quality.yml 负责" >> $GITHUB_STEP_SUMMARY

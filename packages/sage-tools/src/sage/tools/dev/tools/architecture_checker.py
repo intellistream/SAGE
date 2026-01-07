@@ -35,7 +35,7 @@ LAYER_DEFINITION = {
     "L3": ["sage-kernel", "sage-libs"],
     "L4": ["sage-middleware"],
     "L5": ["sage-apps", "sage-benchmark"],
-    "L6": ["sage-studio", "sage-tools", "sage-llm-gateway", "sage-edge"],
+    "L6": ["sage-studio", "sage-tools", "sage-llm-gateway"],
 }
 
 # 反向映射：包名 -> 层级
@@ -100,12 +100,6 @@ ALLOWED_DEPENDENCIES = {
         "sage-middleware",
         "sage-studio",  # Gateway 集成 Studio Backend 路由
     },  # L6 -> L6(studio), L4, L3, L2, L1
-    "sage-edge": {
-        "sage-common",
-        "sage-llm-core",
-        "sage-llm-gateway",  # Edge can mount gateway
-        "sage-platform",
-    },  # L6 -> L6(gateway), L2, L1
 }
 
 # 包的根目录映射
@@ -121,7 +115,6 @@ PACKAGE_PATHS = {
     "sage-studio": "packages/sage-studio/src",
     "sage-tools": "packages/sage-tools/src",
     "sage-llm-gateway": "packages/sage-llm-gateway/src",
-    "sage-edge": "packages/sage-edge/src",
 }
 
 # 包名到 Python 模块路径的映射（处理共享命名空间的情况）
@@ -139,7 +132,6 @@ PACKAGE_MODULE_PATHS = {
     "sage-benchmark": "sage/benchmark",
     "sage-studio": "sage/studio",
     "sage-tools": "sage/tools",
-    "sage-edge": "sage/edge",
 }
 
 # Submodules to exclude from checks (maintained in separate repositories)

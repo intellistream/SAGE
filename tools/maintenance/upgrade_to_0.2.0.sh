@@ -70,7 +70,7 @@ for pkg in "${packages[@]}"; do
             version_file="packages/sage-llm-gateway/src/sage/llm/gateway/_version.py"
             ;;
         "sage-edge")
-            version_file="packages/sage-edge/src/sage/edge/_version.py"
+            # sage-edge 已独立: https://github.com/intellistream/sage-edge
             ;;
         "sage")
             version_file="packages/sage/src/sage/_version.py"
@@ -148,7 +148,7 @@ for pkg in "${packages[@]}"; do
         "sage-tools") version_file="packages/sage-tools/src/sage/tools/_version.py" ;;
         "sage-studio") version_file="packages/sage-studio/src/sage/studio/_version.py" ;;
         "sage-llm-gateway") version_file="packages/sage-llm-gateway/src/sage/llm/gateway/_version.py" ;;
-        "sage-edge") version_file="packages/sage-edge/src/sage/edge/_version.py" ;;
+        "sage-edge") echo "sage-edge 已独立，请访问 https://github.com/intellistream/sage-edge"; continue ;;
         "sage") version_file="packages/sage/src/sage/_version.py" ;;
     esac
 

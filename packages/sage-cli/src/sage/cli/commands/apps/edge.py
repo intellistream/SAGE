@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""SAGE Edge CLI - Aggregator shell commands."""
+"""SAGE Edge CLI - Aggregator shell commands.
+
+Note: sage-edge is now an independent package. Install with: pip install isage-edge
+This CLI provides compatibility wrappers that delegate to the independent package.
+"""
 
 from __future__ import annotations
 
@@ -18,7 +22,7 @@ from sage.common.config.ports import SagePorts
 from sage.common.config.user_paths import get_user_paths
 
 console = Console()
-app = typer.Typer(help="🪄 Edge - Aggregator shell (mounts LLM gateway)")
+app = typer.Typer(help="🪄 Edge - Aggregator shell (requires: pip install isage-edge)")
 
 _paths = get_user_paths()
 EDGE_STATE_DIR = _paths.state_dir / "edge"
@@ -107,6 +111,17 @@ def start(
         raise typer.Exit(1)
 
     console.print(f"[blue]🚀 启动 SAGE Edge (端口 {port})...[/blue]")
+
+    # Check if isage-edge is installed
+    try:
+        import sage.edge.server  # noqa: F401
+    except ImportError:
+        console.print(
+            "[red]❌ isage-edge 未安装[/red]\\n"
+            "[yellow]sage-edge 现已独立为独立包，请安装:[/yellow]\\n"
+            "[cyan]pip install isage-edge[/cyan]"
+        )
+        raise typer.Exit(1)
 
     cmd = [
         sys.executable,
