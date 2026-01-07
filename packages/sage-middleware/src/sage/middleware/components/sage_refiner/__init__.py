@@ -1,103 +1,165 @@
 """
-SAGE Refiner - Context compression and refinement component
-===========================================================
+SAGE Refiner - 上下文压缩和精炼组件
+===================================
 
-SageRefiner has been migrated to an independent PyPI package.
+提供统一的上下文压缩接口，支持多种SOTA压缩算法。
+可作为全局context service的基础组件。
 
-Installation:
-    pip install isage-refiner
-
-This module re-exports SageRefiner classes from the isage-refiner package
-for backward-compatible import paths within SAGE, and provides
-SAGE-specific services and wrappers.
-
-For detailed migration information, see:
-    docs-public/docs_src/dev-notes/cross-layer/sagerefiner-independence-migration.md
+使用示例:
+    >>> from sage.middleware.components.sage_refiner import RefinerService, RefinerConfig
+    >>>
+    >>> # 创建配置
+    >>> config = RefinerConfig(
+    ...     algorithm="long_refiner",
+    ...     budget=2048,
+    ...     enable_cache=True
+    ... )
+    >>>
+    >>> # 创建服务
+    >>> service = RefinerService(config)
+    >>>
+    >>> # 压缩上下文
+    >>> result = service.refine(
+    ...     query="用户问题",
+    ...     documents=["文档1", "文档2", "文档3"]
+    ... )
 """
 
-import warnings
+# SAGE framework dependencies
+from sage.libs.foundation.context.compression.algorithms import (
+    LongRefinerAlgorithm,
+    SimpleRefiner,
+)
+from sage.libs.foundation.context.compression.refiner import (
+    BaseRefiner,
+    RefineResult,
+    RefinerMetrics,
+)
 
-# Import from PyPI package (isage-refiner)
-_SAGE_REFINER_AVAILABLE = False
+# SAGE adapter layer (depends on SAGE core)
+from sage.middleware.components.sage_refiner.python.adapter import RefinerAdapter
+from sage.middleware.components.sage_refiner.python.context_service import (
+    ContextService,
+)
+from sage.middleware.components.sage_refiner.python.service import RefinerService
+
+# sage_refiner submodule (standalone library)
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner import (
+    LongRefiner,
+    LongRefinerCompressor,
+    ProvenceCompressor,
+    RefinerAlgorithm,
+    RefinerConfig,
+    REFORMCompressor,
+    ReformCompressor,
+)
+
+# Operators (require SAGE framework)
 try:
-    from sage_refiner import (
-        LongRefinerCompressor,
-        ProvenceCompressor,
-        RefinerAlgorithm,
-        RefinerConfig,
-        REFORMCompressor,
-        __author__,
-        __email__,
-        __version__,
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.LongRefiner import (
+        LongRefinerOperator,
     )
-
-    _SAGE_REFINER_AVAILABLE = True
-except ImportError as e:
-    # Don't fail immediately - allow graceful degradation
-    warnings.warn(
-        f"SAGE Refiner not available: {e}\n"
-        "Install with: pip install isage-refiner\n"
-        "Context compression features will be unavailable.",
-        UserWarning,
-        stacklevel=2,
-    )
-    # Provide stub exports
-    LongRefinerCompressor = None
-    ProvenceCompressor = None
-    RefinerAlgorithm = None
-    RefinerConfig = None
-    REFORMCompressor = None
-    __version__ = "unavailable"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
-
-# SAGE-specific services (kept in SAGE repo)
-# Only import if base package is available
-if _SAGE_REFINER_AVAILABLE:
-    from .python.service import RefinerService
-else:
-    RefinerService = None
-
-# SAGE framework dependencies (optional, for integration)
-try:
-    from sage.libs.foundation.context.compression.algorithms import (
-        LongRefinerAlgorithm,
-        SimpleRefiner,
-    )
-    from sage.libs.foundation.context.compression.refiner import (
-        BaseRefiner,
-        RefineResult,
-        RefinerMetrics,
-    )
-
-    _SAGE_LIBS_AVAILABLE = True
 except ImportError:
-    _SAGE_LIBS_AVAILABLE = False
-    LongRefinerAlgorithm = None
-    SimpleRefiner = None
-    BaseRefiner = None
-    RefineResult = None
-    RefinerMetrics = None
+    LongRefinerOperator = None
+
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.provence import (
+        ProvenceRefinerOperator,
+    )
+except ImportError:
+    ProvenceRefinerOperator = None
+
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_abst import (
+    RECOMPAbstractiveCompressor,
+)
+from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_extr import (
+    RECOMPExtractiveCompressor,
+)
+
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.reform import (
+        AttentionHookExtractor,
+        REFORMRefinerOperator,
+    )
+except ImportError:
+    AttentionHookExtractor = None
+    REFORMRefinerOperator = None
+
+# LLMLingua2 算法 (基于 BERT token 分类的快速压缩)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.llmlingua2 import (
+        LLMLingua2Compressor,
+        LLMLingua2Operator,
+    )
+except ImportError:
+    LLMLingua2Compressor = None
+    LLMLingua2Operator = None
+
+# LongLLMLingua 算法 (问题感知的长文档压缩)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.longllmlingua import (
+        DEFAULT_LONG_LLMLINGUA_CONFIG,
+        LongLLMLinguaCompressor,
+        LongLLMLinguaOperator,
+    )
+except ImportError:
+    LongLLMLinguaCompressor = None
+    LongLLMLinguaOperator = None
+    DEFAULT_LONG_LLMLINGUA_CONFIG = None
 
 __all__ = [
-    # Core API from isage-refiner (may be None if not installed)
-    "LongRefinerCompressor",
-    "REFORMCompressor",
-    "ProvenceCompressor",
-    "RefinerConfig",
-    "RefinerAlgorithm",
-    "__version__",
-    "__author__",
-    "__email__",
-    # SAGE-specific services
-    "RefinerService",
-    # SAGE framework integration (optional)
-    "LongRefinerAlgorithm",
-    "SimpleRefiner",
+    # 基础类
     "BaseRefiner",
     "RefineResult",
     "RefinerMetrics",
-    # Availability flags
-    "_SAGE_REFINER_AVAILABLE",
-    "_SAGE_LIBS_AVAILABLE",
+    # 配置
+    "RefinerConfig",
+    "RefinerAlgorithm",
+    # 服务
+    "RefinerService",
+    "ContextService",
+    # 适配器
+    "RefinerAdapter",
+    # 算法
+    "LongRefinerAlgorithm",
+    "SimpleRefiner",
+    # Compressors
+    "LongRefiner",
+    "LongRefinerCompressor",
+    "ProvenceCompressor",
+    "REFORMCompressor",
+    "ReformCompressor",
+    "RECOMPExtractiveCompressor",
+    "RECOMPAbstractiveCompressor",
+    "LLMLingua2Compressor",
+    "LongLLMLinguaCompressor",
+    # Operators (SAGE framework)
+    "LongRefinerOperator",
+    "ProvenceRefinerOperator",
+    "REFORMRefinerOperator",
+    "AttentionHookExtractor",
+    "RECOMPExtractiveOperator",
+    "RECOMPAbstractiveOperator",
+    "LLMLingua2Operator",
+    "LongLLMLinguaOperator",
+    # Config
+    "DEFAULT_LONG_LLMLINGUA_CONFIG",
 ]
+
+# Optional: RECOMP Extractive Operator (requires SAGE framework)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_extr import (
+        RECOMPExtractiveOperator,
+    )
+except ImportError:
+    RECOMPExtractiveOperator = None
+
+# Optional: RECOMP Abstractive Operator (requires SAGE framework)
+try:
+    from sage.middleware.components.sage_refiner.sageRefiner.sage_refiner.algorithms.recomp_abst import (
+        RECOMPAbstractiveOperator,
+    )
+except ImportError:
+    RECOMPAbstractiveOperator = None
+
+__version__ = "0.1.0"
