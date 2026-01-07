@@ -110,8 +110,9 @@ git rebase origin/main-dev   # 有冲突时解决后: git add <files> && git reb
 # 运行核心安装验证（若修改安装逻辑）
 ./quickstart.sh --core --yes
 
-# 运行示例/集成测试集合（当前推荐方式）
-bash tools/tests/run_examples_tests.sh
+# 运行测试（当前推荐方式）
+# 注意：示例已迁移到独立仓库 https://github.com/intellistream/sage-examples
+sage-dev project test --coverage
 
 # 运行全部 pytest （如需要更广覆盖）
 pytest -vv
@@ -164,8 +165,8 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 
 ### 测试与验证
 - [ ] quickstart 最小安装通过
-- [ ] examples 测试脚本通过
 - [ ] pytest 核心用例通过
+- [ ] (可选) sage-examples 仓库测试通过
 
 ### 影响范围
 （受影响的包 / 模块 / 部署方式）
@@ -289,7 +290,8 @@ Reduce flakiness via timeout + category filtering.
 
    ```bash
    ./quickstart.sh --core --yes                # 安装/环境相关改动
-   bash tools/tests/run_examples_tests.sh      # 示例 + 基础集成
+   sage-dev project test --coverage            # 核心功能测试
+   # 注意：示例已迁移到 https://github.com/intellistream/sage-examples
    ```
 
 1. **集成测试**
@@ -302,7 +304,7 @@ Reduce flakiness via timeout + category filtering.
 1. **可选强化**
 
    ```bash
-   pytest -m quick_examples        # 标记的快速示例
+   # 注意：quick_examples 标记可能在 sage-examples 仓库中
    pytest --maxfail=1 --durations=10
    black --check . && isort --check-only . || true
    mypy packages/sage-kernel || true
@@ -429,9 +431,11 @@ python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
 | 核心安装       | `./quickstart.sh --core --yes`                     | 仅核心包                   |
 | 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
 | 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
-| 示例测试       | `bash tools/tests/run_examples_tests.sh`           | 运行示例/集成集            |
+| 核心测试       | `sage-dev project test --coverage`                 | 运行核心测试集             |
 | 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
 | 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
+
+**注意**: 示例和应用已迁移到独立仓库: <https://github.com/intellistream/sage-examples>
 
 > 任何命令失败，请附上一行重现命令与终端输出前 50 行发至 Issue。
 
@@ -484,13 +488,13 @@ bash -x quickstart.sh --core --yes  # 安装相关问题
 - 验证依赖是否正确安装
 - 确认未使用过期脚本引用
 
-### 6. 示例测试脚本退出码 1
+### 6. 测试失败
 
 查看失败案例：
 
-```
-bash tools/tests/run_examples_tests.sh | tee /tmp/examples.log
-grep -i FAIL /tmp/examples.log || true
+```bash
+sage-dev project test --coverage | tee /tmp/test.log
+grep -i FAIL /tmp/test.log || true
 ```
 
 ### 7. 安装脚本卡住或没有输出
@@ -606,11 +610,11 @@ HF_TOKEN=***
 
 ## English Quick Guide
 
-```
+```bash
 1. Clone & install: ./quickstart.sh --dev --yes
 2. Create branch: git checkout -b feat/<topic>
 3. Keep updated: git fetch && git rebase origin/main-dev
-4. Test: bash tools/tests/run_examples_tests.sh && pytest -vv
+4. Test: sage-dev project test --coverage && sage-dev quality
 5. Commit: feat(sage-kernel): add xyz
 6. Push & PR: include background / solution / tests / impact
 ```
