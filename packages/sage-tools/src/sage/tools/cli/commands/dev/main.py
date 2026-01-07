@@ -649,6 +649,27 @@ def clean(
                 except Exception as e:
                     console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
 
+        # 清理空目录（自底向上）
+        empty_dirs = []
+        # 从深到浅遍历所有目录
+        for dirpath in sorted(project_path.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+            if dirpath.is_dir() and not any(dirpath.iterdir()):
+                # 跳过 .git 和 .sage 目录
+                if ".git" in dirpath.parts or ".sage" in dirpath.parts:
+                    continue
+                try:
+                    rel = str(dirpath.relative_to(project_path))
+                    if not dry_run:
+                        dirpath.rmdir()
+                    empty_dirs.append(rel + "/")
+                except Exception:
+                    pass  # 忽略删除失败的情况
+
+        if empty_dirs:
+            cleaned_items.extend(empty_dirs)
+            if not dry_run:
+                console.print(f"[green]清理了 {len(empty_dirs)} 个空目录[/green]")
+
         # 报告结果
         if cleaned_items:
             console.print(

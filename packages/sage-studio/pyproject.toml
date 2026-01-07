@@ -65,35 +65,13 @@ dependencies = [
 license = {text = "MIT"}
 
 [project.optional-dependencies]
-# SAGE 内部依赖
-sage-deps = [
-    "isage-common>=0.2.0",
-    "isage-kernel>=0.1.0",      # 需要：构建 Pipeline (Environment, DataStream API)
-    "isage-middleware>=0.1.0",  # 需要：领域算子 (RAG, LLM operators)
-    "isage-libs>=0.1.0",        # 需要：io_utils (Source/Sink) - TODO: 应该移到 kernel
-]
-# 完整依赖（开发和 PyPI 发布时使用）
-all = [
-    "isage-studio[sage-deps]",
-]
-# 开发工具依赖
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.10.0",
-    "pytest-timeout>=2.1.0",
-    "black>=23.0.0",
-    "isort>=5.10.0",
-    "mypy>=1.0.0",
-    "ruff==0.14.6",  # Pinned to match tools/pre-commit-config.yaml
+    "ruff==0.14.6",
+    "mypy>=1.7.0",
 ]
-
-# 完整安装（包括所有可选依赖）
-full = [
-    "isage-studio[dev]",
-]
-
+all = []
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"

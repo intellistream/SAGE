@@ -348,6 +348,35 @@ install_sage() {
     echo -e "${CHECK} SAGE 基础安装完成！"
     log_info "SAGE 基础安装完成" "MAIN"
 
+    # 自动清理空目录和临时构建文件
+    echo ""
+    echo -e "${BLUE}🧹 清理临时文件和空目录...${NC}"
+    log_info "开始清理临时文件" "MAIN"
+
+    # 确定正确的 sage-dev 命令
+    local sage_dev_cmd="sage-dev"
+    if [ "$environment" = "conda" ] && [ -n "$SAGE_ENV_NAME" ]; then
+        sage_dev_cmd="conda run -n $SAGE_ENV_NAME sage-dev"
+    elif [ "$environment" = "pip" ] && [ -x "$HOME/.local/bin/sage-dev" ]; then
+        sage_dev_cmd="$HOME/.local/bin/sage-dev"
+    fi
+
+    # 执行清理
+    if { [ "$environment" = "conda" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || \
+       { [ "$environment" = "pip" ] && command -v sage-dev >/dev/null 2>&1; } || \
+       { [ "$environment" = "pip" ] && [ -x "$HOME/.local/bin/sage-dev" ]; }; then
+        if $sage_dev_cmd project clean --quiet 2>&1 | tee -a "$log_file"; then
+            echo -e "${CHECK} 清理完成"
+            log_info "项目清理成功" "MAIN"
+        else
+            echo -e "${DIM}   清理跳过（非关键操作）${NC}"
+            log_warn "项目清理失败，但不影响安装" "MAIN"
+        fi
+    else
+        echo -e "${DIM}   sage-dev 命令不可用，跳过清理${NC}"
+        log_warn "sage-dev 不可用，跳过清理" "MAIN"
+    fi
+
     # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
     # 上面的验证步骤已检查扩展状态
 

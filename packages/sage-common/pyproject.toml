@@ -80,49 +80,23 @@ dependencies = [
 # 用户可根据需要安装：pip install isage-common[embedding]
 # ----------------------------------------------------------------------------
 [project.optional-dependencies]
-
-# 嵌入服务完整组件 (components/sage_embedding/)
-embedding = [
-    # 环境变量管理（embedding_model.py）
-    "python-dotenv>=1.1.0,<2.0.0",          # 加载 .env 文件中的环境变量（与 sage-kernel 保持一致）
-
-    # GPU 支持（模型推理加速和监控）
-    "nvidia-ml-py>=12.535.108",             # NVIDIA GPU 信息查询和监控
-
-    # 深度学习框架（embedding推理核心）
-    "torch>=2.7.0,<3.0.0",                  # PyTorch 核心库，用于本地模型推理
-
-    # 本地嵌入模型
-    "sentence-transformers>=3.1.0,<4.0.0",  # 本地 transformer 嵌入模型
-    "transformers>=4.52.0,<4.54.0",         # Hugging Face transformers（嵌入模型）
-
-    # HTTP 客户端
-    "requests>=2.32.0,<3.0.0",              # HTTP 客户端（API 嵌入服务）
-    "aiohttp>=3.12.0,<4.0.0",               # 异步 HTTP 客户端
-
-    # 嵌入服务器
-    "fastapi>=0.115.0,<1.0.0",              # Web API 框架
-    "uvicorn>=0.34.0,<1.0.0",               # ASGI 服务器
-
-    # 外部 API 客户端
-    "openai>=1.52.0,<1.91.0",               # OpenAI API 客户端
-    "cohere>=5.16.0,<6.0.0",                # Cohere API 客户端
-    "ollama>=0.4.6,<1.0.0",                 # Ollama API 客户端（ollama.py）
-    "zhipuai>=2.0.0,<3.0.0",                # ZhipuAI API 客户端（zhipu.py）
-    "PyJWT>=2.9.0,<3.0.0",                  # JWT 支持（redis 7.x 需要 >=2.9.0）
-
-    # AWS Bedrock 支持 (bedrock.py)
-    "boto3>=1.34.0,<2.0.0",                 # AWS SDK 核心客户端
-    "aioboto3>=14.1.0,<15.0.0",             # AWS Bedrock 异步客户端（与 sage-kernel 保持一致）
-    "tenacity>=8.2.0,<9.0.0",               # 重试机制（Bedrock + Ollama + Jina + Lollms API 调用）
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
+    "ruff==0.14.6",
+    "mypy>=1.7.0",
 ]
-
-# 完整功能安装（包含所有可选功能）
+embedding = [
+    "python-dotenv>=1.1.0,<2.0.0",
+    "nvidia-ml-py>=12.535.108",
+    "torch>=2.7.0,<3.0.0",
+    "sentence-transformers>=3.1.0,<4.0.0",
+    "transformers>=4.52.0,<4.54.0",
+    "requests>=2.32.0,<3.0.0",
+]
 all = [
     "isage-common[embedding]",
 ]
-
-# 项目链接
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"

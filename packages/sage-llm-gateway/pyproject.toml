@@ -46,14 +46,12 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "httpx>=0.28.0,<1.0.0",
     "ruff==0.14.6",
+    "mypy>=1.7.0",
 ]
-redis = [
+all = [
     "redis>=5.0.0",
-]
-monitoring = [
     "prometheus-client>=0.19.0",
 ]
-
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"

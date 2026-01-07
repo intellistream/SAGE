@@ -39,52 +39,27 @@ dependencies = [
 license = "MIT"
 
 [project.optional-dependencies]
-# 各个安装模式的依赖
-# 注意：这些 extras 仅在 PyPI 安装时有效
-# 开发模式下，quickstart.sh 会手动安装相应的包
-minimal = [
-    "isage-common>=0.1.0",
-    "isage-platform>=0.1.0",
-    "isage-kernel>=0.1.0",
+dev = [
+    "isage[all]",
+    "isage-tools>=0.1.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff==0.14.6",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
 ]
-core = [
+all = [
     "isage-common>=0.1.0",
     "isage-platform>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
-]
-standard = [
-    "isage[core]",
-    # CLI 工具（需要 sage-deps）
     "isage-cli>=0.1.0",
-    # 科学计算包
-    "numpy>=1.26.0,<2.3.0",
-    "pandas>=1.3.0",
-    "matplotlib>=3.4.0",
-    "scipy>=1.15.0,<2.0.0",
-    "jupyter>=1.0.0",
-    "ipykernel>=6.0.0",
-    # Note: Applications and examples moved to sage-examples repository
-    # Install separately: pip install isage-examples (when published)
-]
-full = [
-    "isage[standard]",
-    # Web UI（需要 sage-deps）
-    "isage-studio[sage-deps]>=0.1.0",
-]
-dev = [
-    "isage[full]",
-    # 开发工具包（需要 sage-deps）
-    "isage-tools[sage-deps]>=0.1.0",
-    # API Gateway（需要 sage-deps）
+    "isage-studio>=0.1.0",
     "isage-llm-gateway>=0.1.0",
-    # Edge aggregator shell (optional L6 mount wrapper)
     "isage-edge>=0.1.0",
-    # 开发依赖
-    "pre-commit>=3.0.0",
 ]
-
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"
