@@ -82,11 +82,18 @@ class SchedulingBenchmarkPipeline:
 
             # Get the experiments directory path for Ray runtime_env
             experiments_dir = Path(__file__).resolve().parent.parent
+            
+            # Get sage-benchmark/src for proper module resolution
+            # Path: common/pipeline.py -> experiments -> benchmark_sage -> benchmark -> sage -> src
+            # This ensures workers can import sage.benchmark.benchmark_sage.experiments.common.operators
+            sage_benchmark_src = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
 
             # Create config with runtime_env for Ray to find our modules
             config = {
                 "runtime_env": {
-                    "env_vars": {"PYTHONPATH": str(experiments_dir)},
+                    "env_vars": {
+                        "PYTHONPATH": f"{sage_benchmark_src}:{experiments_dir}"
+                    },
                     "working_dir": str(experiments_dir),
                 }
             }
@@ -97,7 +104,7 @@ class SchedulingBenchmarkPipeline:
                 scheduler=self.scheduler,
                 host=self.config.head_node,
                 config=config,
-                extra_python_paths=[str(experiments_dir)],
+                extra_python_paths=[str(sage_benchmark_src), str(experiments_dir)],
             )
         else:
             from sage.kernel.api.local_environment import LocalEnvironment
@@ -672,6 +679,118 @@ class SchedulingBenchmarkPipeline:
                 metrics_collector=self.metrics,
                 verbose=not self.config.test_mode,
             )
+        )
+
+        return self
+
+    def build_adaptive_rag_pipeline(
+        self,
+        name: str = "adaptive_rag_benchmark",
+        queries: list[str] | None = None,
+        max_iterations: int = 3,
+    ) -> SchedulingBenchmarkPipeline:
+        """
+        Build Adaptive-RAG pipeline with multi-branch routing.
+
+        Pipeline Architecture:
+        ```
+                              ┌─ filter(ZERO) ─> NoRetrieval ─> Sink
+        Source ─> Classifier ─┼─ filter(SINGLE) ─> SingleRetrieval ─> Sink
+                              └─ filter(MULTI) ─> [Retrieve -> Reason] x N ─> Synthesize ─> Sink
+        ```
+
+        Each query is routed to the appropriate strategy based on complexity.
+        """
+        from .operators import (
+            AdaptiveRAGQuerySource,
+            AdaptiveRAGResultSink,
+            FinalSynthesizer,
+            IterativeReasoner,
+            IterativeRetrievalInit,
+            IterativeRetriever,
+            MultiComplexityFilter,
+            NoRetrievalStrategy,
+            QueryClassifier,
+            SingleComplexityFilter,
+            SingleRetrievalStrategy,
+            ZeroComplexityFilter,
+        )
+
+        # Default queries if not provided
+        if queries is None:
+            queries = [
+                "What is machine learning?",
+                "How does BERT work for NLP tasks?",
+                "Compare Japan and Germany economic policies",
+            ]
+
+        env = self._create_environment(name)
+        AdaptiveRAGResultSink.clear_results()
+
+        # Source -> Classifier (use LLM for classification)
+        classified_stream = (
+            env.from_source(AdaptiveRAGQuerySource, queries=queries, delay=0.1)
+            .map(
+                QueryClassifier,
+                classifier_type="llm",
+                llm_base_url=self.config.llm_base_url,
+                llm_model=self.config.llm_model,
+            )
+        )
+
+        # Branch A: ZERO complexity - direct generation
+        (
+            classified_stream
+            .filter(ZeroComplexityFilter)
+            .map(
+                NoRetrievalStrategy,
+                llm_base_url=self.config.llm_base_url,
+                llm_model=self.config.llm_model,
+            )
+            .sink(AdaptiveRAGResultSink, branch_name="ZERO", parallelism=1)
+        )
+
+        # Branch B: SINGLE complexity - single retrieval
+        (
+            classified_stream
+            .filter(SingleComplexityFilter)
+            .map(
+                SingleRetrievalStrategy,
+                llm_base_url=self.config.llm_base_url,
+                llm_model=self.config.llm_model,
+            )
+            .sink(AdaptiveRAGResultSink, branch_name="SINGLE", parallelism=1)
+        )
+
+        # Branch C: MULTI complexity - iterative retrieval (loop unrolling)
+        multi_stream = (
+            classified_stream
+            .filter(MultiComplexityFilter)
+            .map(IterativeRetrievalInit)
+        )
+
+        # Unroll the loop: [Retrieve -> Reason] x max_iterations
+        for _ in range(max_iterations):
+            multi_stream = (
+                multi_stream
+                .map(IterativeRetriever, top_k=3)
+                .map(
+                    IterativeReasoner,
+                    llm_base_url=self.config.llm_base_url,
+                    llm_model=self.config.llm_model,
+                    max_iterations=max_iterations,
+                )
+            )
+
+        # Final synthesis
+        (
+            multi_stream
+            .map(
+                FinalSynthesizer,
+                llm_base_url=self.config.llm_base_url,
+                llm_model=self.config.llm_model,
+            )
+            .sink(AdaptiveRAGResultSink, branch_name="MULTI", parallelism=1)
         )
 
         return self

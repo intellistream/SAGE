@@ -121,6 +121,13 @@ def run_single_experiment(
         pipeline.build_llm_pipeline(name)
     elif pipeline_type == "compute":
         pipeline.build_compute_pipeline(name)
+    elif pipeline_type == "adaptive_rag":
+        # Adaptive-RAG: 根据 num_tasks 从 SAMPLE_QUERIES 生成 queries
+        from common.operators import SAMPLE_QUERIES
+        queries = []
+        for i in range(num_tasks):
+            queries.append(SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)])
+        pipeline.build_adaptive_rag_pipeline(name, queries=queries, max_iterations=3)
     else:
         pipeline.build_mixed_pipeline(name)
 
@@ -320,7 +327,7 @@ def main():
     parser.add_argument("--tasks", type=int, default=500, help="Number of tasks")
     parser.add_argument(
         "--pipeline",
-        choices=["compute", "llm", "rag", "simple_rag", "mixed"],
+        choices=["compute", "llm", "rag", "simple_rag", "adaptive_rag", "mixed"],
         default="compute",
         help="Pipeline type",
     )

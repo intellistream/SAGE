@@ -11,16 +11,35 @@ Distributed Scheduling Benchmark - Common Components
 """
 
 from .models import (
+    AdaptiveRAGQueryData,
+    AdaptiveRAGResultData,
     BenchmarkConfig,
     BenchmarkMetrics,
+    ClassificationResult,
+    IterativeState,
+    QueryComplexityLevel,
     TaskState,
 )
 from .operators import (
+    # General operators
     ComputeOperator,
     LLMOperator,
     MetricsSink,
     RAGOperator,
     TaskSource,
+    # Adaptive-RAG operators
+    AdaptiveRAGQuerySource,
+    AdaptiveRAGResultSink,
+    FinalSynthesizer,
+    IterativeReasoner,
+    IterativeRetrievalInit,
+    IterativeRetriever,
+    MultiComplexityFilter,
+    NoRetrievalStrategy,
+    QueryClassifier,
+    SingleComplexityFilter,
+    SingleRetrievalStrategy,
+    ZeroComplexityFilter,
 )
 from .pipeline import SchedulingBenchmarkPipeline
 from .request_utils import (
@@ -30,16 +49,35 @@ from .request_utils import (
 )
 
 __all__ = [
-    # models
+    # models - general
     "BenchmarkConfig",
     "BenchmarkMetrics",
     "TaskState",
-    # operators
+    # models - adaptive-rag
+    "QueryComplexityLevel",
+    "ClassificationResult",
+    "AdaptiveRAGQueryData",
+    "AdaptiveRAGResultData",
+    "IterativeState",
+    # operators - general
     "TaskSource",
     "ComputeOperator",
     "LLMOperator",
     "RAGOperator",
     "MetricsSink",
+    # operators - adaptive-rag
+    "AdaptiveRAGQuerySource",
+    "QueryClassifier",
+    "ZeroComplexityFilter",
+    "SingleComplexityFilter",
+    "MultiComplexityFilter",
+    "NoRetrievalStrategy",
+    "SingleRetrievalStrategy",
+    "IterativeRetrievalInit",
+    "IterativeRetriever",
+    "IterativeReasoner",
+    "FinalSynthesizer",
+    "AdaptiveRAGResultSink",
     # pipeline
     "SchedulingBenchmarkPipeline",
     # request_utils

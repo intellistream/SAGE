@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from sage.common.core.functions.filter_function import FilterFunction
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
@@ -33,28 +34,35 @@ except ImportError:
     from models import TaskState
 
 
-# 示例查询池
+# 示例查询池 - 包含 ZERO/SINGLE/MULTI 三种复杂度
 SAMPLE_QUERIES = [
-    "What is SAGE framework and what are its main features?",
-    "How do I install SAGE on Ubuntu?",
-    "Explain the pipeline architecture in SAGE",
-    "What are the different scheduler strategies available?",
-    "How does the memory service work in SAGE?",
-    "What is the role of middleware components?",
+    # 交替排列以确保每种类型都能覆盖
+    # --- Group 1 ---
+    "SAGE version",  # ZERO
+    "What is SAGE framework and what are its main features?",  # SINGLE
+    "Compare LocalEnvironment and RemoteEnvironment in terms of performance and use cases",  # MULTI
+    # --- Group 2 ---
+    "Python requirements",  # ZERO
+    "How do I install SAGE on Ubuntu?",  # SINGLE
+    "Analyze the pros and cons of different scheduler strategies in SAGE",  # MULTI
+    # --- Group 3 ---
+    "License type",  # ZERO
+    "What are the different scheduler strategies available?",  # SINGLE
+    "What is the relationship between sage-kernel and sage-middleware components?",  # MULTI
+    # --- Group 4 ---
+    "Default port",  # ZERO
+    "How does the memory service work in SAGE?",  # SINGLE
+    "Compare FIFO and LoadAware schedulers and their impact on throughput",  # MULTI
+    # --- Group 5 ---
+    "Ray cluster",  # ZERO
+    "What is the role of middleware components?",  # SINGLE
+    "Analyze the effects of parallelism settings on pipeline performance",  # MULTI
+    # --- Extra SINGLE queries ---
     "How to configure LLM services in SAGE?",
-    "Explain the difference between LocalEnvironment and RemoteEnvironment",
-    "What are the best practices for building RAG pipelines?",
-    "How does distributed scheduling work in SAGE?",
     "What embedding models are supported?",
-    "How to optimize pipeline performance?",
-    "Explain the six-layer architecture of SAGE",
     "What is the purpose of sage-kernel package?",
-    "How to monitor pipeline execution?",
     "What vector databases are supported?",
-    "How to implement custom operators?",
-    "Explain the ReAct reasoning pattern",
     "What are the CPU node requirements?",
-    "How to configure multi-node clusters?",
 ]
 
 # 知识库
@@ -1023,3 +1031,516 @@ class SimpleGenerator(MapFunction):
 
         state.mark_completed()
         return state
+
+
+# ============================================================================
+# Adaptive-RAG Operators
+# ============================================================================
+
+try:
+    from .models import (
+        AdaptiveRAGQueryData,
+        AdaptiveRAGResultData,
+        ClassificationResult,
+        IterativeState,
+        QueryComplexityLevel,
+    )
+except ImportError:
+    from models import (
+        AdaptiveRAGQueryData,
+        AdaptiveRAGResultData,
+        ClassificationResult,
+        IterativeState,
+        QueryComplexityLevel,
+    )
+
+
+class AdaptiveRAGQuerySource(SourceFunction):
+    """Adaptive-RAG 查询数据源"""
+
+    def __init__(self, queries: list[str], delay: float = 0.0, **kwargs):
+        super().__init__(**kwargs)
+        self.queries = queries
+        self.delay = delay
+        self.counter = 0
+
+    def execute(self, data=None) -> AdaptiveRAGQueryData | StopSignal:
+        if self.counter >= len(self.queries):
+            # 等待所有下游任务完成
+            time.sleep(30.0)
+            return StopSignal("All queries generated")
+        query = self.queries[self.counter]
+        self.counter += 1
+        if self.delay > 0:
+            time.sleep(self.delay)
+        import sys
+        print(f"[Source] [{self.counter}/{len(self.queries)}]: {query}", file=sys.stderr, flush=True)
+        return AdaptiveRAGQueryData(query=query, metadata={"index": self.counter - 1})
+
+
+class QueryClassifier(MapFunction):
+    """
+    查询复杂度分类器
+
+    支持三种分类方式:
+    - rule: 基于关键词的规则分类
+    - llm: 使用 LLM 进行分类
+    - hybrid: 先规则，不确定时用 LLM
+
+    复杂度定义 (参考 Adaptive-RAG 论文):
+    - ZERO (A): 简单事实查询，LLM 可直接回答，无需检索
+    - SINGLE (B): 需要单次检索的查询
+    - MULTI (C): 需要多跳推理或迭代检索的复杂查询
+    """
+
+    # MULTI: 多跳推理、比较分析、因果关系
+    MULTI_KEYWORDS = [
+        "compare", "contrast", "analyze", "relationship", "between",
+        "pros and cons", "advantages and disadvantages", "impact", "effects",
+        "differences", "similarities", "how does .* affect", "why does",
+        "what factors", "explain the relationship", "connection between",
+    ]
+
+    # SINGLE: 需要检索但单步可完成
+    SINGLE_KEYWORDS = [
+        "what is", "who is", "when was", "where is", "how to",
+        "define", "describe", "explain", "how does .* work",
+        "what are the", "list the", "name the",
+    ]
+
+    # ZERO: 常识性问题，LLM 可直接回答
+    ZERO_INDICATORS = [
+        # 短查询 (≤3 words)
+        # 常见知识问题
+        "capital of", "meaning of", "synonym", "antonym",
+        "what year", "how many", "true or false",
+    ]
+
+    def __init__(
+        self,
+        classifier_type: str = "rule",
+        llm_base_url: str = "http://11.11.11.7:8903/v1",
+        llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.classifier_type = classifier_type
+        self.llm_base_url = llm_base_url
+        self.llm_model = llm_model
+
+    def _classify_by_rule(self, query: str) -> ClassificationResult:
+        import re
+        query_lower = query.lower()
+        word_count = len(query.split())
+
+        # 1. 检查 ZERO 指示词或短查询
+        if word_count <= 3:
+            return ClassificationResult(
+                complexity=QueryComplexityLevel.ZERO,
+                confidence=0.8,
+                reasoning=f"Very short query ({word_count} words)"
+            )
+
+        for indicator in self.ZERO_INDICATORS:
+            if indicator in query_lower:
+                return ClassificationResult(
+                    complexity=QueryComplexityLevel.ZERO,
+                    confidence=0.7,
+                    reasoning=f"ZERO indicator: '{indicator}'"
+                )
+
+        # 2. 检查 MULTI 关键词 (优先级高于 SINGLE)
+        for keyword in self.MULTI_KEYWORDS:
+            if re.search(keyword, query_lower):
+                return ClassificationResult(
+                    complexity=QueryComplexityLevel.MULTI,
+                    confidence=0.8,
+                    reasoning=f"MULTI keyword: '{keyword}'"
+                )
+
+        # 3. 检查 SINGLE 关键词
+        for keyword in self.SINGLE_KEYWORDS:
+            if re.search(keyword, query_lower):
+                return ClassificationResult(
+                    complexity=QueryComplexityLevel.SINGLE,
+                    confidence=0.8,
+                    reasoning=f"SINGLE keyword: '{keyword}'"
+                )
+
+        # 4. 基于长度的默认分类
+        if word_count <= 8:
+            return ClassificationResult(
+                complexity=QueryComplexityLevel.ZERO,
+                confidence=0.5,
+                reasoning=f"Short query without special keywords ({word_count} words)"
+            )
+        elif word_count <= 20:
+            return ClassificationResult(
+                complexity=QueryComplexityLevel.SINGLE,
+                confidence=0.5,
+                reasoning=f"Medium query ({word_count} words)"
+            )
+        else:
+            return ClassificationResult(
+                complexity=QueryComplexityLevel.MULTI,
+                confidence=0.5,
+                reasoning=f"Long query ({word_count} words)"
+            )
+
+    def _classify_by_llm(self, query: str) -> ClassificationResult:
+        """使用 LLM 进行复杂度分类"""
+        import requests
+
+        prompt = f'''Classify the following query into one of three complexity levels:
+
+A (ZERO): Simple factual questions that can be answered directly from common knowledge, no retrieval needed.
+B (SINGLE): Questions requiring a single retrieval step to find relevant information.
+C (MULTI): Complex questions requiring multi-hop reasoning, comparison, or iterative retrieval.
+
+Query: "{query}"
+
+Respond with only the letter (A, B, or C) and a brief reason.
+Format: [LETTER]: [reason]'''
+
+        try:
+            response = requests.post(
+                f"{self.llm_base_url}/chat/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": self.llm_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 50,
+                    "temperature": 0.1,
+                },
+                timeout=30,
+            )
+            if response.status_code == 200:
+                content = response.json()["choices"][0]["message"]["content"].strip()
+                # Parse response: "A: reason" or "B: reason" or "C: reason"
+                if content.startswith("A"):
+                    return ClassificationResult(
+                        complexity=QueryComplexityLevel.ZERO,
+                        confidence=0.9,
+                        reasoning=f"LLM: {content}"
+                    )
+                elif content.startswith("B"):
+                    return ClassificationResult(
+                        complexity=QueryComplexityLevel.SINGLE,
+                        confidence=0.9,
+                        reasoning=f"LLM: {content}"
+                    )
+                elif content.startswith("C"):
+                    return ClassificationResult(
+                        complexity=QueryComplexityLevel.MULTI,
+                        confidence=0.9,
+                        reasoning=f"LLM: {content}"
+                    )
+        except Exception as e:
+            print(f"[Classifier] LLM error: {e}, falling back to rule-based")
+
+        # Fallback to rule-based
+        return self._classify_by_rule(query)
+
+    def execute(self, data: AdaptiveRAGQueryData) -> AdaptiveRAGQueryData:
+        if self.classifier_type == "llm":
+            classification = self._classify_by_llm(data.query)
+        elif self.classifier_type == "hybrid":
+            classification = self._classify_by_rule(data.query)
+            if classification.confidence < 0.7:
+                classification = self._classify_by_llm(data.query)
+        else:
+            classification = self._classify_by_rule(data.query)
+
+        data.classification = classification
+        import sys
+        print(f"[Classify] {data.query[:50]}... -> {classification.complexity.name} ({classification.reasoning})", file=sys.stderr, flush=True)
+        return data
+
+
+class ZeroComplexityFilter(FilterFunction):
+    """过滤: 只保留 ZERO 复杂度的查询"""
+    def execute(self, data: AdaptiveRAGQueryData) -> bool:
+        if not isinstance(data, AdaptiveRAGQueryData) or data.classification is None:
+            return False
+        is_match = data.classification.complexity == QueryComplexityLevel.ZERO
+        if is_match:
+            print(f"  ZERO branch: {data.query[:50]}...")
+        return is_match
+
+
+class SingleComplexityFilter(FilterFunction):
+    """过滤: 只保留 SINGLE 复杂度的查询"""
+    def execute(self, data: AdaptiveRAGQueryData) -> bool:
+        if not isinstance(data, AdaptiveRAGQueryData) or data.classification is None:
+            return False
+        is_match = data.classification.complexity == QueryComplexityLevel.SINGLE
+        if is_match:
+            print(f"  SINGLE branch: {data.query[:50]}...")
+        return is_match
+
+
+class MultiComplexityFilter(FilterFunction):
+    """过滤: 只保留 MULTI 复杂度的查询"""
+    def execute(self, data: AdaptiveRAGQueryData) -> bool:
+        if not isinstance(data, AdaptiveRAGQueryData) or data.classification is None:
+            return False
+        is_match = data.classification.complexity == QueryComplexityLevel.MULTI
+        if is_match:
+            print(f"  MULTI branch: {data.query[:50]}...")
+        return is_match
+
+
+class NoRetrievalStrategy(MapFunction):
+    """策略 A: 无检索 - 直接 LLM 生成"""
+
+    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_tokens: int = 512, **kwargs):
+        super().__init__(**kwargs)
+        self.llm_base_url = llm_base_url
+        self.llm_model = llm_model
+        self.max_tokens = max_tokens
+
+    def _generate(self, query: str) -> str:
+        import requests
+        try:
+            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": [{"role": "user", "content": query}], "max_tokens": self.max_tokens, "temperature": 0.7}, timeout=60)
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"[Generation Error] {str(e)}"
+
+    def execute(self, data: AdaptiveRAGQueryData) -> AdaptiveRAGResultData:
+        start_time = time.time()
+        print(f"  🔵 NoRetrieval: {data.query[:50]}...")
+        answer = self._generate(data.query)
+        return AdaptiveRAGResultData(query=data.query, answer=answer, strategy_used="no_retrieval", complexity="ZERO", retrieval_steps=0, processing_time_ms=(time.time() - start_time) * 1000)
+
+
+class SingleRetrievalStrategy(MapFunction):
+    """策略 B: 单次检索 + 生成"""
+
+    KNOWLEDGE_BASE = [
+        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
+        {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
+        {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
+        {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
+        {"content": "RAG combines retrieval with generation for better answers.", "id": "5"},
+    ]
+
+    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_tokens: int = 512, top_k: int = 3, **kwargs):
+        super().__init__(**kwargs)
+        self.llm_base_url = llm_base_url
+        self.llm_model = llm_model
+        self.max_tokens = max_tokens
+        self.top_k = top_k
+
+    def _retrieve(self, query: str) -> list[dict]:
+        query_words = set(query.lower().split())
+        scored_docs = []
+        for doc in self.KNOWLEDGE_BASE:
+            content_words = set(doc["content"].lower().split())
+            overlap = len(query_words & content_words)
+            if overlap > 0:
+                scored_docs.append({**doc, "score": overlap / len(query_words)})
+        scored_docs.sort(key=lambda x: x["score"], reverse=True)
+        return scored_docs[:self.top_k]
+
+    def _generate(self, query: str, context: str) -> str:
+        import requests
+        try:
+            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": [{"role": "system", "content": "Answer based on the provided context."}, {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}], "max_tokens": self.max_tokens, "temperature": 0.7}, timeout=60)
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"[Generation Error] {str(e)}"
+
+    def execute(self, data: AdaptiveRAGQueryData) -> AdaptiveRAGResultData:
+        start_time = time.time()
+        print(f"  🟡 SingleRetrieval: {data.query[:50]}...")
+        docs = self._retrieve(data.query)
+        context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(docs)]) or "No relevant documents found."
+        answer = self._generate(data.query, context)
+        return AdaptiveRAGResultData(query=data.query, answer=answer, strategy_used="single_retrieval", complexity="SINGLE", retrieval_steps=len(docs), processing_time_ms=(time.time() - start_time) * 1000)
+
+
+class IterativeRetrievalInit(MapFunction):
+    """策略 C: 迭代检索初始化"""
+    def execute(self, data: AdaptiveRAGQueryData) -> IterativeState:
+        print(f"  🔴 IterativeRetrieval Init: {data.query[:50]}...")
+        return IterativeState(original_query=data.query, current_query=data.query, accumulated_docs=[], reasoning_chain=[], iteration=0, is_complete=False, start_time=time.time(), classification=data.classification)
+
+
+class IterativeRetriever(MapFunction):
+    """迭代检索算子"""
+
+    KNOWLEDGE_BASE = [
+        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
+        {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
+        {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
+        {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
+        {"content": "RAG combines retrieval with generation for better answers.", "id": "5"},
+        {"content": "Transformers use attention mechanisms for sequence modeling.", "id": "6"},
+        {"content": "GPT models are autoregressive language models.", "id": "7"},
+    ]
+
+    def __init__(self, top_k: int = 3, **kwargs):
+        super().__init__(**kwargs)
+        self.top_k = top_k
+
+    def execute(self, state: IterativeState) -> IterativeState:
+        if state.is_complete:
+            return state
+        query_words = set(state.current_query.lower().split())
+        scored_docs = []
+        for doc in self.KNOWLEDGE_BASE:
+            content_words = set(doc["content"].lower().split())
+            overlap = len(query_words & content_words)
+            if overlap > 0:
+                scored_docs.append({**doc, "score": overlap / len(query_words)})
+        scored_docs.sort(key=lambda x: x["score"], reverse=True)
+        new_docs = scored_docs[:self.top_k]
+        state.accumulated_docs.extend(new_docs)
+        state.reasoning_chain.append(f"[Retrieve] Query: '{state.current_query[:30]}' -> {len(new_docs)} docs")
+        print(f"    📚 Retrieve[{state.iteration}]: {len(new_docs)} docs")
+        return state
+
+
+class IterativeReasoner(MapFunction):
+    """迭代推理算子"""
+
+    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_iterations: int = 3, min_docs: int = 5, **kwargs):
+        super().__init__(**kwargs)
+        self.llm_base_url = llm_base_url
+        self.llm_model = llm_model
+        self.max_iterations = max_iterations
+        self.min_docs = min_docs
+
+    def _llm_call(self, messages: list[dict]) -> str:
+        import requests
+        try:
+            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 256, "temperature": 0.7}, timeout=60)
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"[LLM Error] {str(e)}"
+
+    def execute(self, state: IterativeState) -> IterativeState:
+        if state.is_complete:
+            return state
+        state.iteration += 1
+        if state.iteration >= self.max_iterations or len(state.accumulated_docs) >= self.min_docs:
+            state.is_complete = True
+            state.reasoning_chain.append(f"[Reason] Complete (docs={len(state.accumulated_docs)})")
+            print(f"    🧠 Reason[{state.iteration}]: COMPLETE")
+            return state
+        context_so_far = "\n".join([f"- {d['content']}" for d in state.accumulated_docs[-3:]])
+        messages = [{"role": "system", "content": "Generate a follow-up search query. Reply with ONLY the query."}, {"role": "user", "content": f"Original: {state.original_query}\n\nContext:\n{context_so_far}\n\nFollow-up query:"}]
+        new_query = self._llm_call(messages).strip()
+        state.current_query = new_query
+        state.reasoning_chain.append(f"[Reason] Next query = '{new_query[:40]}'")
+        print(f"    🧠 Reason[{state.iteration}]: Next -> '{new_query[:30]}...'")
+        return state
+
+
+class FinalSynthesizer(MapFunction):
+    """综合生成算子"""
+
+    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", **kwargs):
+        super().__init__(**kwargs)
+        self.llm_base_url = llm_base_url
+        self.llm_model = llm_model
+
+    def _llm_call(self, messages: list[dict]) -> str:
+        import requests
+        try:
+            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 512, "temperature": 0.7}, timeout=60)
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"[LLM Error] {str(e)}"
+
+    def execute(self, state: IterativeState) -> AdaptiveRAGResultData:
+        context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(state.accumulated_docs)])
+        chain_text = "\n".join(state.reasoning_chain)
+        messages = [{"role": "system", "content": "Synthesize all information to answer comprehensively."}, {"role": "user", "content": f"Question: {state.original_query}\n\nReasoning:\n{chain_text}\n\nContext:\n{context}\n\nAnswer:"}]
+        answer = self._llm_call(messages)
+        print(f"    ✨ Synthesize: Generated answer ({len(answer)} chars)")
+        return AdaptiveRAGResultData(query=state.original_query, answer=answer, strategy_used="iterative_retrieval", complexity="MULTI", retrieval_steps=state.iteration, processing_time_ms=(time.time() - state.start_time) * 1000)
+
+
+class AdaptiveRAGResultSink(SinkFunction):
+    """Adaptive-RAG 结果收集器 (兼容 MetricsSink 格式)"""
+
+    METRICS_OUTPUT_DIR = "/tmp/sage_metrics"  # 与 MetricsSink 使用相同目录
+    _all_results: list[AdaptiveRAGResultData] = []
+
+    def __init__(self, branch_name: str = "", **kwargs):
+        super().__init__(**kwargs)
+        self.branch_name = branch_name
+        self.count = 0
+        self.instance_id = f"{socket.gethostname()}_{os.getpid()}_{int(time.time() * 1000)}"
+        os.makedirs(self.METRICS_OUTPUT_DIR, exist_ok=True)
+        # 使用 metrics_ 前缀以便 run() 的 _collect_metrics_from_files() 能找到
+        self.metrics_output_file = f"{self.METRICS_OUTPUT_DIR}/metrics_{self.instance_id}.jsonl"
+
+    def _write_to_file(self, data: AdaptiveRAGResultData) -> None:
+        import json
+        try:
+            # 写入 MetricsSink 兼容格式（包含 type, success, total_latency_ms 等字段）
+            record = {
+                "type": "task",
+                "success": True,
+                "total_latency_ms": data.processing_time_ms,
+                "node_id": socket.gethostname(),
+                # Adaptive-RAG 特有字段
+                "query": data.query,
+                "answer": data.answer,
+                "strategy_used": data.strategy_used,
+                "complexity": data.complexity,
+                "retrieval_steps": data.retrieval_steps,
+                "branch_name": self.branch_name,
+                "timestamp": time.time(),
+            }
+            with open(self.metrics_output_file, "a") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as e:
+            import sys
+            print(f"[ResultSink] Write error: {e}", file=sys.stderr, flush=True)
+
+    def execute(self, data: AdaptiveRAGResultData):
+        self.count += 1
+        AdaptiveRAGResultSink._all_results.append(data)
+        self._write_to_file(data)
+        import sys
+        print(f"\n  [{self.branch_name}] Result #{self.count}: {data.query[:40]}... -> {data.strategy_used}", file=sys.stderr, flush=True)
+        return data
+
+    @classmethod
+    def get_all_results(cls) -> list[AdaptiveRAGResultData]:
+        return cls._all_results.copy()
+
+    @classmethod
+    def clear_results(cls):
+        cls._all_results.clear()
+
+
+# =============================================================================
+# 为 Adaptive-RAG 类设置固定的 __module__，确保 Ray 序列化/反序列化一致性
+# Worker 节点通过 common.operators 导入，所以需要设置 __module__ 为 common.operators
+# =============================================================================
+_ADAPTIVE_RAG_CLASSES = [
+    AdaptiveRAGQuerySource,
+    QueryClassifier,
+    ZeroComplexityFilter,
+    SingleComplexityFilter,
+    MultiComplexityFilter,
+    NoRetrievalStrategy,
+    SingleRetrievalStrategy,
+    IterativeRetrievalInit,
+    IterativeRetriever,
+    IterativeReasoner,
+    FinalSynthesizer,
+    AdaptiveRAGResultSink,
+]
+
+for _cls in _ADAPTIVE_RAG_CLASSES:
+    _cls.__module__ = "common.operators"

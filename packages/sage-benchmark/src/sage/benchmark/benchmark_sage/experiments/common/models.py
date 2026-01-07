@@ -7,7 +7,65 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
+
+
+# ============================================================================
+# Query Complexity Classification (for Adaptive-RAG)
+# ============================================================================
+
+
+class QueryComplexityLevel(Enum):
+    """查询复杂度级别"""
+    ZERO = "zero"      # 简单问题，无需检索
+    SINGLE = "single"  # 中等问题，单次检索
+    MULTI = "multi"    # 复杂问题，多步推理
+
+
+@dataclass
+class ClassificationResult:
+    """分类结果"""
+    complexity: QueryComplexityLevel
+    confidence: float = 1.0
+    reasoning: str = ""
+
+
+@dataclass
+class AdaptiveRAGQueryData:
+    """Adaptive-RAG 查询数据"""
+    query: str
+    classification: ClassificationResult | None = None
+    metadata: dict = field(default_factory=dict)
+
+
+@dataclass
+class AdaptiveRAGResultData:
+    """Adaptive-RAG 结果数据"""
+    query: str
+    answer: str
+    strategy_used: str
+    complexity: str
+    retrieval_steps: int = 0
+    processing_time_ms: float = 0.0
+
+
+@dataclass
+class IterativeState:
+    """迭代检索的中间状态 - 在流中传递"""
+    original_query: str                          # 原始问题
+    current_query: str                           # 当前检索 query
+    accumulated_docs: list[dict] = field(default_factory=list)
+    reasoning_chain: list[str] = field(default_factory=list)
+    iteration: int = 0
+    is_complete: bool = False
+    start_time: float = 0.0
+    classification: ClassificationResult | None = None
+
+
+# ============================================================================
+# Task State (for general benchmarks)
+# ============================================================================
 
 
 @dataclass
