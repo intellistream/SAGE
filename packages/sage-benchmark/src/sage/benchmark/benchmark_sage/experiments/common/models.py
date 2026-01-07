@@ -84,7 +84,7 @@ class BenchmarkConfig:
     scheduler_strategy: str = "spread"
 
     use_remote: bool = True
-    head_node: str = "sage-node-15"
+    head_node: str = "sage-node-1"
     worker_nodes: list[str] = field(default_factory=list)
 
     llm_base_url: str = "http://11.11.11.7:8903/v1"

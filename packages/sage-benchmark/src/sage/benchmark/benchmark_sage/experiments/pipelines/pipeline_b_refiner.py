@@ -17,18 +17,27 @@ Pipeline B: Long Context Refiner (长文本精炼)
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+# 禁用代理，确保内网服务可访问
+os.environ.pop("http_proxy", None)
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("https_proxy", None)
+os.environ.pop("HTTPS_PROXY", None)
+
 import httpx
 
-from sage.common.core.functions.flatmap_function import FlatMapFunction
-from sage.common.core.functions.map_function import MapFunction
-from sage.common.core.functions.filter_function import FilterFunction
-from sage.common.core.functions.sink_function import SinkFunction
-from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.common.core import (
+    FilterFunction,
+    FlatMapFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+)
+from sage.kernel.api import RemoteEnvironment
 
 from .scheduler import HeadNodeScheduler
 
@@ -177,24 +186,33 @@ class ChunkingFlatMapFunction(FlatMapFunction):
 # ============================================================================
 
 
-class RelevanceFilterFunction(FilterFunction):
-    """Filter (Relevance): 过滤低相关性的块"""
+class RelevanceScoreMapFunction(MapFunction):
+    """Map (RelevanceScore): 计算块的相关性分数"""
 
-    def __init__(self, relevance_threshold: float = 0.3, **kwargs):
-        super().__init__(**kwargs)
-        self.relevance_threshold = relevance_threshold
-
-    def execute(self, chunk: Chunk) -> Optional[Chunk]:
-        """执行相关性过滤"""
+    def execute(self, chunk: Chunk) -> Chunk:
+        """计算相关性分数"""
         query_terms = set(chunk.query.lower().split())
         chunk_terms = set(chunk.text.lower().split())
 
         overlap = len(query_terms & chunk_terms)
         chunk.relevance_score = overlap / (len(query_terms) + 1)
+        return chunk
 
-        if chunk.relevance_score >= self.relevance_threshold:
-            return chunk
-        return None
+
+class RelevanceFilterFunction(FilterFunction):
+    """Filter (Relevance): 过滤低相关性的块
+
+    注意: FilterFunction.execute() 应该返回 bool，表示数据是否通过过滤。
+    数据本身不会被修改。如果需要在过滤前计算分数，应该先使用 MapFunction。
+    """
+
+    def __init__(self, relevance_threshold: float = 0.3, **kwargs):
+        super().__init__(**kwargs)
+        self.relevance_threshold = relevance_threshold
+
+    def execute(self, chunk: Chunk) -> bool:
+        """执行相关性过滤: 返回 True 表示通过, False 表示过滤掉"""
+        return chunk.relevance_score >= self.relevance_threshold
 
 
 # ============================================================================
@@ -340,18 +358,19 @@ class RefinerPipeline:
             scheduler=scheduler,
         )
 
-        # 构建 Pipeline: Source → FlatMap → Filter → Map → Map → Sink
+        # 构建 Pipeline: Source → FlatMap → Map(Score) → Filter → Map → Map → Sink
         (
             self.env.from_source(
                 RefinerSourceFunction,
                 num_samples=self.config.num_samples,
                 min_context_length=self.config.min_context_length,
             )
-            .flat_map(
+            .flatmap(
                 ChunkingFlatMapFunction,
                 chunk_size=self.config.chunk_size,
                 chunk_overlap=self.config.chunk_overlap,
             )
+            .map(RelevanceScoreMapFunction)
             .filter(
                 RelevanceFilterFunction,
                 relevance_threshold=self.config.relevance_threshold,

@@ -205,6 +205,7 @@ class LocalSinkScheduler(BaseScheduler):
     def make_decision(self, task_node):
         """根据任务类型决定放置策略"""
         # 导入放在方法内部，确保远程反序列化时可用
+        from sage.kernel.scheduler.decision import PlacementDecision
 
         task_name = getattr(task_node, "name", str(task_node))
 

@@ -23,18 +23,27 @@ Pipeline C: Cross-Source Vector Stream Join (跨源向量流相似度 Join)
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
+# 禁用代理，确保内网服务可访问
+os.environ.pop("http_proxy", None)
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("https_proxy", None)
+os.environ.pop("HTTPS_PROXY", None)
+
 import httpx
 
-from sage.common.core.functions.map_function import MapFunction
-from sage.common.core.functions.filter_function import FilterFunction
-from sage.common.core.functions.sink_function import SinkFunction
-from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.common.core import (
+    FilterFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+)
+from sage.kernel.api import RemoteEnvironment
 
 from .scheduler import HeadNodeScheduler
 
@@ -307,15 +316,18 @@ class VectorJoinMapFunction(MapFunction):
 # ============================================================================
 
 
-class ConflictDetectFilterFunction(FilterFunction):
-    """Filter (ConflictDetect): 检测跨源信息冲突"""
+class ConflictDetectMapFunction(MapFunction):
+    """Map (ConflictDetect): 检测跨源信息冲突并标记
+
+    此 MapFunction 检测匹配对中的冲突并设置 conflict_detected 标志。
+    """
 
     def __init__(self, conflict_threshold: float = 0.3, **kwargs):
         super().__init__(**kwargs)
         self.conflict_threshold = conflict_threshold
 
     def execute(self, pairs: Optional[list[MatchedPair]]) -> Optional[list[MatchedPair]]:
-        """执行冲突检测"""
+        """检测冲突并标记"""
         if not pairs:
             return None
 
@@ -334,6 +346,17 @@ class ConflictDetectFilterFunction(FilterFunction):
                 pair.conflict_detected = True
 
         return pairs
+
+
+class HasMatchedPairsFilterFunction(FilterFunction):
+    """过滤掉 None 或空的匹配结果
+
+    FilterFunction.execute() 返回 bool，表示数据是否应该通过。
+    """
+
+    def execute(self, pairs: Optional[list[MatchedPair]]) -> bool:
+        """过滤空结果"""
+        return pairs is not None and len(pairs) > 0
 
 
 # ============================================================================
@@ -404,7 +427,7 @@ class VectorJoinPipeline:
             scheduler=scheduler,
         )
 
-        # 构建 Pipeline: Source → Map(Embed) → Map(Join) → Filter → Sink
+        # 构建 Pipeline: Source → Map(Embed) → Map(Join) → Map(Conflict) → Filter → Sink
         (
             self.env.from_source(
                 MultiSourceFunction,
@@ -424,7 +447,8 @@ class VectorJoinPipeline:
                 topk=self.config.topk,
                 window_size_ms=self.config.window_size_ms,
             )
-            .filter(ConflictDetectFilterFunction)
+            .map(ConflictDetectMapFunction)
+            .filter(HasMatchedPairsFilterFunction)
             .sink(VectorJoinSinkFunction)
         )
 

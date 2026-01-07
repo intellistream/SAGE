@@ -14,7 +14,7 @@ Adaptive-RAG SAGE 数据流 Pipeline 实现
 
 用法示例:
     from sage.kernel.api import LocalEnvironment
-    from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag import (
+    from examples.tutorials.L5-apps.adaptive_rag.sage_dataflow_pipeline import (
         QuerySource, ClassifierMapFunction, AdaptiveRouterMapFunction, ResultSink
     )
 
@@ -46,7 +46,7 @@ from typing import Any
 # SAGE 核心导入
 # ============================================================================
 
-from sage.common.core import (
+from sage.common.core.functions import (
     FilterFunction,
     FlatMapFunction,
     MapFunction,
@@ -214,6 +214,8 @@ class ClassifierMapFunction(MapFunction):
         complexity_name = classification.complexity.name if classification else "UNKNOWN"
         self.logger.info(f"ClassifierMapFunction: classified -> {complexity_name}")
         print(f"🏷️ Classified: {data.query[:30]}... -> {complexity_name}")
+
+        return data
 
         return data
 

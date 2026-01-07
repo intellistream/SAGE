@@ -1,0 +1,76 @@
+\section{System Overview}
+\label{sec:system_overview}
+The rise of LLM applications has turned ``inference'' into a distributed systems problem. A single user
+request now routinely triggers a multi-stage pipeline: retrieval over continuously changing corpora,
+embedding and vector search, stateful session memory, context refinement under token budgets, and
+agentic tool execution---all while streaming tokens under strict tail-latency and SLO constraints. In
+today's stacks, these stages are typically stitched together as a patchwork of services and frameworks.
+The result is an execution path that is hard to optimize end-to-end, hard to reproduce, and fragile under
+mixed contention from heterogeneous CPU/GPU resources.
+
+SAGE (Streaming-Augmented Generative Execution) is a full-stack inference system that makes the
+end-to-end pipeline the unit of abstraction. SAGE provides two simple, composable primitives: (i)
+pipelines as declarative dataflows, and (ii) operators with explicit resource and state semantics.
+From these inputs, SAGE compiles an execution plan that spans CPU/GPU resources, manages backpressure, and
+enforces scheduling policies under mixed workloads. This design collapses a fragmented stack into a single
+optimizable system boundary, so that placement, batching, streaming state maintenance, and SLO-aware
+execution become first-class concerns rather than application glue.
+
+\begin{figure}[t]
+      \centering
+      % TODO: Replace with an actual architecture diagram (PDF/SVG/PNG).
+      \fbox{\parbox{0.95\linewidth}{
+            \vspace{0.35cm}
+            \centering
+            	extbf{Placeholder: SAGE end-to-end architecture (L1--L6).}\\
+            Show the six layers, downward-only dependencies, and the main data/control paths\\
+            (Gateway $\rightarrow$ Runtime $\rightarrow$ Middleware/Engines; Control Plane/Benchmarks).
+            \vspace{0.35cm}
+      }}
+      \caption{SAGE is organized as a strict six-layer system (L1--L6) with downward-only dependencies.
+      The gateway and developer tooling sit at the top, while the runtime and performance-critical inference
+      components are isolated below to enable reproducible evolution and cross-stage optimization.}
+      \label{fig:sage_architecture}
+\end{figure}
+
+\subsection{Architectural Philosophy}
+SAGE is built as a modular monolith with a strict six-layer architecture (L1--L6) and downward-only
+dependencies. This design ensures that high-level interfaces (L6) and applications (L5) can evolve
+independently from the performance-critical middleware (L4) and core runtime (L3), while platform services
+(L2) and foundational utilities (L1) provide a stable base.
+
+\begin{itemize}
+  \item \textbf{L6 Interfaces \& L5 Applications}: User-facing gateways, CLI tools, and end-to-end
+        applications.
+  \item \textbf{L4 Middleware}: The "heavy lifting" layer containing specialized inference components for
+        vector search, streaming semantic state, memory, and refinement.
+  \item \textbf{L3 Core Runtime}: The distributed dataflow engine responsible for scheduling, operator
+        execution, and fault tolerance.
+  \item \textbf{L2 Platform \& L1 Foundation}: Shared infrastructure for storage, queues, configuration,
+        and unified client interfaces.
+\end{itemize}
+
+\subsection{Pipeline-First Abstraction}
+At the heart of SAGE is the concept of the \emph{inference pipeline} as a declarative dataflow. Rather than
+writing ad-hoc glue code to connect a vector database, an LLM endpoint, and a memory store, developers define
+a graph of operators. This abstraction allows the system to reason about the entire lifecycle of a request---
+from retrieval and refinement to generation and tool use---enabling global optimizations such as
+resource-aware placement, batching across stages, and end-to-end SLO tracking.
+
+\begin{figure}[t]
+      \centering
+      % TODO: Replace with an actual pipeline/dataflow diagram.
+      \fbox{\parbox{0.95\linewidth}{
+            \vspace{0.35cm}
+            \centering
+            	extbf{Placeholder: Pipeline-first execution view.}\\
+            Depict a single request flowing through operators: ingest/session\\
+            $\rightarrow$ retrieval (SageDB) $\rightarrow$ refinement (sageRefiner)\\
+            $\rightarrow$ generation (LLM) with streaming output; show backpressure and batching points.
+            \vspace{0.35cm}
+      }}
+      \caption{Pipeline-first execution: SAGE represents an LLM application as a dataflow graph whose operators
+      have explicit state/resource semantics. The runtime can therefore optimize across stages (e.g., batching
+      retrieval/embedding while maintaining token-level streaming for generation) under end-to-end SLOs.}
+      \label{fig:sage_pipeline}
+\end{figure}

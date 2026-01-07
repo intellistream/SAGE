@@ -14,7 +14,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
-from sage.common.core import MapFunction
+from sage.common.core.functions import MapFunction
 
 from .classifier import (
     ClassificationResult,

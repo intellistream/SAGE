@@ -11,16 +11,15 @@ This demonstrates SAGE's Multi-Branch Pipeline pattern:
 
 import sys
 import time
+sys.path.insert(0, ".")
 import os
 os.environ["SAGE_LOG_LEVEL"] = "ERROR"
 
 from sage.kernel.api import LocalEnvironment
-from sage.common.core import MapFunction, SinkFunction, SourceFunction, FilterFunction
+from sage.common.core.functions import MapFunction, SinkFunction, SourceFunction, FilterFunction
 
 # Import classifier
-from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag.classifier import (
-    QueryComplexityLevel, create_classifier
-)
+from classifier import QueryComplexityLevel, create_classifier
 
 # ============================================================================
 # Define Operators

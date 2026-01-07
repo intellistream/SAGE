@@ -24,13 +24,21 @@ from typing import Any, Optional
 
 import httpx
 
-from sage.common.core.functions.map_function import MapFunction
-from sage.common.core.functions.filter_function import FilterFunction
-from sage.common.core.functions.sink_function import SinkFunction
-from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.common.core import (
+    FilterFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+)
+from sage.kernel.api import RemoteEnvironment
 
-from .scheduler import HeadNodeScheduler
+try:
+    from .scheduler import HeadNodeScheduler
+except ImportError:
+    # 直接运行脚本时使用绝对导入
+    from sage.benchmark.benchmark_sage.experiments.pipelines.scheduler import (
+        HeadNodeScheduler,
+    )
 
 
 class RetrievalMode(str, Enum):
@@ -53,7 +61,7 @@ class RAGConfig:
     rerank_top_k: int = 3
 
     # 模型
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "BAAI/bge-large-zh-v1.5"
     llm_model: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # 服务端点
@@ -64,6 +72,9 @@ class RAGConfig:
     job_manager_host: str = "localhost"
     job_manager_port: int = 19001
     request_timeout: float = 60.0
+
+    # 输出
+    output_path: Optional[str] = None
 
 
 @dataclass
@@ -110,16 +121,18 @@ class RAGSourceFunction(SourceFunction):
         if self.dataset_name == "qa_base":
             from sage.data.sources.qa_base.dataloader import QADataLoader
             loader = QADataLoader()
+            raw_data = loader.load_queries()  # 使用 load_queries() 方法
         elif self.dataset_name == "mmlu":
             from sage.data.sources.mmlu.dataloader import MMLUDataLoader
             loader = MMLUDataLoader()
+            raw_data = loader.load()
         elif self.dataset_name == "bbh":
             from sage.data.sources.bbh.dataloader import BBHDataLoader
             loader = BBHDataLoader()
+            raw_data = loader.load()
         else:
             raise ValueError(f"Unknown dataset: {self.dataset_name}")
 
-        raw_data = loader.load()
         self._data = raw_data[: self.num_samples]
         self._loaded = True
         print(f"📂 Loaded {len(self._data)} samples from {self.dataset_name}")
@@ -167,7 +180,7 @@ class EmbeddingMapFunction(MapFunction):
         """执行 embedding"""
         query = data["query"]
 
-        with httpx.Client(timeout=self.timeout) as client:
+        with httpx.Client(timeout=self.timeout, proxy=None) as client:
             response = client.post(
                 f"{self.embedding_base_url}/embeddings",
                 json={"input": query, "model": self.embedding_model},
@@ -232,7 +245,7 @@ class RetrievalMapFunction(MapFunction):
         if not query_vector:
             return [Document(text=c, score=0.0) for c in chunks]
 
-        with httpx.Client(timeout=self.timeout) as client:
+        with httpx.Client(timeout=self.timeout, proxy=None) as client:
             response = client.post(
                 f"{self.embedding_base_url}/embeddings",
                 json={"input": chunks[:20], "model": self.embedding_model},
@@ -289,24 +302,28 @@ class RetrievalMapFunction(MapFunction):
 
 
 # ============================================================================
-# Filter (Rerank): 重排序
+# Map (Rerank): 重排序
 # ============================================================================
 
 
-class RerankFilterFunction(FilterFunction):
-    """Filter (Rerank): 重排序并过滤 top-k"""
+class RerankMapFunction(MapFunction):
+    """Map (Rerank): 对检索结果重排序并选取 top-k
+
+    这是一个 MapFunction 因为它转换数据（添加 reranked_docs 字段）。
+    """
 
     def __init__(self, rerank_top_k: int = 3, **kwargs):
         super().__init__(**kwargs)
         self.rerank_top_k = rerank_top_k
 
-    def execute(self, data: dict) -> Optional[dict]:
+    def execute(self, data: dict) -> dict:
         """执行重排序"""
         query = data["query"]
         docs = data.get("retrieved_docs", [])
 
         if not docs:
-            return None
+            data["reranked_docs"] = []
+            return data
 
         query_terms = set(query.lower().split())
 
@@ -318,6 +335,18 @@ class RerankFilterFunction(FilterFunction):
         docs.sort(key=lambda d: d.score, reverse=True)
         data["reranked_docs"] = docs[: self.rerank_top_k]
         return data
+
+
+class HasDocsFilterFunction(FilterFunction):
+    """Filter: 过滤掉没有检索到文档的查询
+
+    FilterFunction.execute() 返回 bool，表示数据是否应该通过。
+    """
+
+    def execute(self, data: dict) -> bool:
+        """过滤空结果"""
+        docs = data.get("reranked_docs", [])
+        return len(docs) > 0
 
 
 # ============================================================================
@@ -356,7 +385,7 @@ Question: {query}
 
 Answer:"""
 
-        with httpx.Client(timeout=self.timeout) as client:
+        with httpx.Client(timeout=self.timeout, proxy=None) as client:
             response = client.post(
                 f"{self.llm_base_url}/chat/completions",
                 json={
@@ -432,7 +461,7 @@ class RAGPipeline:
             scheduler=scheduler,
         )
 
-        # 构建 Pipeline: Source → Map → Map → Filter → Map → Sink
+        # 构建 Pipeline: Source → Map → Map → Map(Rerank) → Filter → Map → Sink
         (
             self.env.from_source(
                 RAGSourceFunction,
@@ -453,14 +482,15 @@ class RAGPipeline:
                 embedding_model=self.config.embedding_model,
                 timeout=self.config.request_timeout,
             )
-            .filter(RerankFilterFunction, rerank_top_k=self.config.rerank_top_k)
+            .map(RerankMapFunction, rerank_top_k=self.config.rerank_top_k)
+            .filter(HasDocsFilterFunction)
             .map(
                 LLMGenerateMapFunction,
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
                 timeout=self.config.request_timeout,
             )
-            .sink(RAGSinkFunction)
+            .sink(RAGSinkFunction, output_path=self.config.output_path)
         )
 
         return self.env
@@ -472,9 +502,8 @@ class RAGPipeline:
 
         start_time = time.time()
         try:
-            self.env.submit()
-            # 等待完成
-            time.sleep(5)
+            # autostop=True 会等待 Pipeline 执行完成
+            self.env.submit(autostop=True)
         finally:
             self.env.close()
 
@@ -488,3 +517,29 @@ class RAGPipeline:
                 "retrieval_mode": self.config.retrieval_mode.value,
             },
         }
+
+
+if __name__ == "__main__":
+    # 直接运行时的入口
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
+    print("=" * 60)
+    print("Pipeline A: RAG Pipeline")
+    print("=" * 60)
+
+    config = RAGConfig(
+        num_samples=10,  # 测试用少量样本
+        embedding_base_url="http://11.11.11.7:8090/v1",
+        llm_base_url="http://11.11.11.7:8903/v1",
+        output_path="/tmp/rag_pipeline_output.jsonl",
+    )
+
+    pipeline = RAGPipeline(config=config)
+    result = pipeline.run()
+
+    print(f"\nResult: {result}")

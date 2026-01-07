@@ -16,16 +16,25 @@ Pipeline D: Batch Processing (批处理)
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+# 禁用代理，确保内网服务可访问
+os.environ.pop("http_proxy", None)
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("https_proxy", None)
+os.environ.pop("HTTPS_PROXY", None)
+
 import httpx
 
-from sage.common.core.functions.map_function import MapFunction
-from sage.common.core.functions.sink_function import SinkFunction
-from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.common.core import (
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+)
+from sage.kernel.api import RemoteEnvironment
 
 from .scheduler import HeadNodeScheduler
 

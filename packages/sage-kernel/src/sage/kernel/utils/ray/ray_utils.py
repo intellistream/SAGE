@@ -57,7 +57,18 @@ def get_sage_kernel_runtime_env():
 
     runtime_env = {
         "py_modules": [sage_kernel_src],
-        "env_vars": {"PYTHONPATH": pythonpath},
+        "env_vars": {
+            "PYTHONPATH": pythonpath,
+            # 禁用代理，避免 Ray Actor 中 HTTP 请求受影响
+            "http_proxy": "",
+            "https_proxy": "",
+            "HTTP_PROXY": "",
+            "HTTPS_PROXY": "",
+            "all_proxy": "",
+            "ALL_PROXY": "",
+            "no_proxy": "*",
+            "NO_PROXY": "*",
+        },
     }
 
     return runtime_env

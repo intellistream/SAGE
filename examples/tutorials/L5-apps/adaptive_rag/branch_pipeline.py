@@ -14,7 +14,7 @@ Adaptive-RAG 流分支 Pipeline 实现
 
 用法:
     from sage.kernel.api import LocalEnvironment
-    from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag import (
+    from examples.tutorials.L5_apps.adaptive_rag.branch_pipeline import (
         build_branching_adaptive_rag_pipeline
     )
 
@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from sage.common.core import (
+from sage.common.core.functions import (
     FilterFunction,
     MapFunction,
     SinkFunction,
