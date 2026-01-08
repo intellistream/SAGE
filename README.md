@@ -256,6 +256,33 @@ data modalities for enhanced AI understanding and generation.
 **Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load
 balancing and fault tolerance.
 
+## 📚 Tutorials
+
+Complete tutorials covering all layers of SAGE (L1-L6):
+
+```bash
+# Clone repository
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+
+# Start learning (30 seconds)
+python tutorials/hello_world.py
+
+# Follow the quick start guide
+cat tutorials/QUICK_START.md
+```
+
+**Tutorial Structure**:
+- `tutorials/L1-common/` - Foundation layer (config, logging, unified client)
+- `tutorials/L2-platform/` - Platform services (scheduler, storage)
+- `tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
+- `tutorials/L3-libs/` - RAG, Agents, Algorithms
+- `tutorials/L4-middleware/` - Domain operators (vector DB, time-series)
+- `tutorials/L5-apps/` - Application patterns
+- `tutorials/L6-interface/` - CLI and UI
+
+See `tutorials/README.md` for complete learning paths.
+
 ## Documentation & Resources
 
 - **Documentation**:
