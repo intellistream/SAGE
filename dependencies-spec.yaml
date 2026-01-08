@@ -1,0 +1,31 @@
+# Unified dependency version spec for SAGE
+# Source of truth for pinned/ranged versions referenced by package pyproject.toml files.
+# Keep this file minimal and focused on externally published dependencies.
+
+# Core ML stack
+torch: ">=2.7.0,<3.0.0"
+transformers: ">=4.52.0,<4.54.0"
+tokenizers: ">=0.21.0,<0.24.0"
+sentence-transformers: ">=3.1.0,<4.0.0"
+vllm: ">=0.9.2,<0.10"
+openai: ">=1.52.0,<1.91.0"
+
+# API stack
+fastapi: ">=0.115.0,<1.0.0"
+uvicorn: ">=0.34.0,<1.0.0"
+pydantic: ">=2.10.0,<3.0.0"
+
+# Numerics
+numpy: ">=1.26.0,<2.3.0"
+
+# Independent SAGE ecosystem packages (PyPI)
+isage-vdb: ">=0.1.5"
+isage-tsdb: ">=0.1.5"
+isage-flow: ">=0.1.1"
+isage-refiner: ">=0.1.0"
+isage-neuromem: ">=0.2.0.1"
+
+# Notes:
+# - Packages should import versions from this file via tooling (to be wired) instead of hardcoding.
+# - When bumping any version here, ensure alignment across all pyproject.toml files.
+# - For heavyweight optional deps (e.g., vLLM), prefer extras in sage-common to propagate constraints.

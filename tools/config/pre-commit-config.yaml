@@ -324,6 +324,7 @@ repos:
         "quickstart.sh"
         "README.md"
         "CHANGELOG.md"
+        "dependencies-spec.yaml"
         "tasks.md"
       )
 

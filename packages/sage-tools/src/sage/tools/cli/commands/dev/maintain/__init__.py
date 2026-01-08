@@ -10,6 +10,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from sage.tools.dev.tools.dependency_spec_checker import assert_dependencies_match
+
 app = typer.Typer(
     name="maintain",
     help="🔧 维护工具 - Submodule、Hooks、诊断",
@@ -369,6 +371,36 @@ def hooks_reinstall(
 
 
 app.add_typer(hooks_app, name="hooks")
+
+
+@app.command(name="depspec")
+def depspec(
+    project_root: str = typer.Option(
+        ".",
+        help="项目根目录（包含 dependencies-spec.yaml 和 packages/）",
+    ),
+    warn_only: bool = typer.Option(
+        False,
+        "--warn-only",
+        help="只输出警告，不返回非零退出码",
+    ),
+):
+    """检查依赖版本是否符合 dependencies-spec.yaml。
+
+    示例：
+        sage-dev maintain depspec
+        sage-dev maintain depspec --warn-only
+    """
+
+    root_path = Path(project_root).resolve()
+    console.print("\n[bold blue]🔍 检查依赖版本与 dependencies-spec.yaml 一致性[/bold blue]\n")
+    try:
+        assert_dependencies_match(root_path)
+        console.print("[green]✅ 所有 pyproject.toml 与 dependencies-spec.yaml 一致[/green]")
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[red]❌ 发现依赖不一致: {exc}[/red]")
+        if not warn_only:
+            raise typer.Exit(1)
 
 
 @app.command(name="security")
