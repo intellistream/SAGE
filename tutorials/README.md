@@ -9,11 +9,13 @@
 **Tutorials 不包含在 PyPI 包中**，需要从源码获取。详见 [INSTALLATION_GUIDE.md](./INSTALLATION_GUIDE.md)。
 
 **如何获取**:
+
 - 🔧 **开发者**: `git clone https://github.com/intellistream/SAGE.git`
 - 📖 **在线浏览**: https://intellistream.github.io/SAGE-Pub/tutorials/
 - 📦 **轻量示例**: PyPI 包中的 `packages/*/examples/`
 
-**为什么不打包？** 见 [设计决策](../docs-public/docs_src/dev-notes/cross-layer/architecture/EXAMPLES_TESTING_PYPI_STRATEGY.md)
+**为什么不打包？** 见
+[设计决策](../docs-public/docs_src/dev-notes/cross-layer/architecture/EXAMPLES_TESTING_PYPI_STRATEGY.md)
 
 ## ⚡ 5 分钟快速开始
 
