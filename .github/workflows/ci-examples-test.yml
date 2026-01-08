@@ -55,6 +55,8 @@ jobs:
       - name: Create .env File (Test Mode)
         run: |
           echo "🔐 创建测试模式 .env 文件..."
+          # Use dummy API key for test mode - not a real secret  # pragma: allowlist secret
+          DUMMY_KEY="sk-test-dummy-key-for-validation-only"
           cat > .env << EOF
           # CI Examples Test Environment (Test Mode - No Real API Calls)
 
@@ -63,7 +65,7 @@ jobs:
           SAGE_EXAMPLES_MODE=test
 
           # API Keys (not required in test mode, but set for validation)
-          OPENAI_API_KEY=sk-test-dummy-key-for-validation-only  # pragma: allowlist secret
+          OPENAI_API_KEY=$DUMMY_KEY
           OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
           OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
 
