@@ -156,7 +156,7 @@ jobs:
           echo "📦 验证独立 PyPI 包安装状态..."
 
           # 这些组件已独立为 PyPI 包，不再作为 C++ 扩展编译
-          packages=(
+          declare -a packages=(
             "isage-vdb:sagevdb:SageVDB 向量数据库"
             "isage-flow:sage_flow:SageFlow 流处理引擎"
             "isage-tsdb:sage_tsdb:SageTSDB 时序数据库"
@@ -171,10 +171,11 @@ jobs:
           for pkg_info in "${packages[@]}"; do
             IFS=':' read -r pip_name module_name display_name <<< "$pkg_info"
 
+            # 使用临时文件捕获输出，避免管道导致的子shell问题
             if python -c "import ${module_name}" 2>/dev/null; then
-              version=$(python -c "import ${module_name}; print(getattr(${module_name}, '__version__', 'unknown'))" 2>/dev/null)
+              version=$(python -c "import ${module_name}; print(getattr(${module_name}, '__version__', 'unknown'))" 2>/dev/null || echo "unknown")
               echo "  ✅ ${display_name} (${pip_name}): ${version}"
-              ((available++))
+              available=$((available + 1))
             else
               echo "  ⚠️  ${display_name} (${pip_name}): 不可用"
               echo "     安装命令: pip install ${pip_name}"
