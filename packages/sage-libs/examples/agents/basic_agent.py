@@ -160,7 +160,8 @@ def main():
         if module_name.startswith("examples.tutorials.agents."):
             # 使用绝对路径导入
             tool_name = module_name.split(".")[-1]
-            tool_path = os.path.join(current_dir, f"{tool_name}.py")
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            tool_path = os.path.join(script_dir, f"{tool_name}.py")
             spec = importlib.util.spec_from_file_location(tool_name, tool_path)
             if spec is not None and spec.loader is not None:
                 mod = importlib.util.module_from_spec(spec)

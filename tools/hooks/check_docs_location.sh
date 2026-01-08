@@ -48,6 +48,7 @@ allowed_patterns=(
     "^packages/[^/]+/README\.md$"              # Only top-level README in packages
     "^packages/[^/]+/CHANGELOG\.md$"           # Only top-level CHANGELOG in packages
     "^packages/[^/]+/(docs|documentation)/"    # Package docs directory
+    "^packages/[^/]+/examples/.*\.md$"         # Package examples documentation
     "^packages/[^/]+/src/.*/docs/"             # Submodule docs (sageLLM, sageFlow, etc.)
 
     # Allow module-level READMEs for apps, benchmarks, libs components
