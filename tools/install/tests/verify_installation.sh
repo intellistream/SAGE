@@ -136,14 +136,12 @@ main() {
     # 4. SAGE 子包版本一致性检查
     print_test_header "🔍 4. 版本一致性检查"
     run_test_with_output "子包版本一致性" "python3 -c '
-import sage
 import sage.common
 import sage.kernel
 import sage.libs
 import sage.middleware
 
 packages = [
-    ('sage', sage.__version__),
     ('sage.common', sage.common.__version__),
     ('sage.kernel', sage.kernel.__version__),
     ('sage.libs', sage.libs.__version__),
@@ -154,8 +152,9 @@ print(\"包版本信息:\")
 for pkg_name, version in packages:
     print(f\"  {pkg_name}: {version}\")
 
-# 子包允许有独立的版本号，不强制一致
-print(\"✅ 所有子包版本已检测\")
+# Note: sage is a PEP 420 namespace package and does not have __version__
+# Each sub-package manages its own version independently
+print(\"✅ 所有子包版本已检测 (sage 是命名空间包，无独立版本)\")
 '"
 
     # 5. CLI 工具检查

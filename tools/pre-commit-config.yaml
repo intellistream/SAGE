@@ -201,6 +201,13 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs-public/docs_src/dev-notes/.*\.md$
+  - id: depspec-consistency
+    name: check dependencies match dependencies-spec.yaml
+    entry: bash -c 'sage-dev maintain depspec'
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^(packages/.*/pyproject\.toml$|dependencies-spec\.yaml$)
   - id: devnotes-structure-check
     name: dev-notes directory structure validation
     entry: bash -c
