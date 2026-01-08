@@ -222,17 +222,9 @@ jobs:
           mkdir -p .sage/logs
           echo "✅ 目录创建完成"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: packages/sage-studio/src/sage/studio/frontend/package-lock.json
-
-      - name: Run Frontend Checks
-        run: |
-          echo "🎨 运行前端检查 (Build & Test)..."
-          bash tools/dev/check_frontend.sh
+      # Note: sage-studio has been moved to an independent repository
+      # (https://github.com/intellistream/sage-studio)
+      # Frontend checks are no longer part of the main SAGE CI pipeline
 
       - name: Run installation validation suite
         run: |
