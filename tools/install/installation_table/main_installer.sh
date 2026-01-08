@@ -41,31 +41,42 @@ clean_pip_cache() {
     echo -e "${BLUE}🧹 清理 pip 缓存...${NC}"
 
     # 检查是否支持 pip cache 命令
-    if $PIP_CMD cache --help &>/dev/null; then
-        log_debug "使用 pip cache purge 清理缓存" "PIPCache"
-        echo -e "${DIM}使用 pip cache purge 清理缓存${NC}"
-
-        # 显示缓存大小（如果支持）
-        if $PIP_CMD cache info &>/dev/null; then
-            local cache_info=$($PIP_CMD cache info 2>/dev/null | grep -E "(Location|Size)" || true)
-            if [ -n "$cache_info" ]; then
-                log_debug "缓存信息: $cache_info" "PIPCache"
-                echo -e "${DIM}缓存信息:${NC}"
-                echo "$cache_info" | sed 's/^/  /'
-            fi
-        fi
-
-        # 执行缓存清理
-        if log_command "PIPCache" "MAIN" "$PIP_CMD cache purge"; then
-            log_info "pip 缓存清理完成" "PIPCache"
-            echo -e "${CHECK} pip 缓存清理完成"
-        else
-            log_warn "pip 缓存清理失败，但继续安装" "PIPCache"
-            echo -e "${WARNING} pip 缓存清理失败，但继续安装"
-        fi
-    else
+    if ! $PIP_CMD cache --help &>/dev/null; then
         log_info "当前 pip 版本不支持 cache 命令，跳过缓存清理" "PIPCache"
         echo -e "${DIM}当前 pip 版本不支持 cache 命令，跳过缓存清理${NC}"
+        echo ""
+        return 0
+    fi
+
+    # 检查缓存是否被禁用 (CI 环境常见)
+    local cache_info_output
+    cache_info_output=$($PIP_CMD cache info 2>&1) || true
+    if echo "$cache_info_output" | grep -q "cache is disabled"; then
+        log_info "pip 缓存已禁用 (CI 环境)，跳过清理" "PIPCache"
+        echo -e "${DIM}pip 缓存已禁用 (CI 环境)，跳过清理${NC}"
+        echo ""
+        return 0
+    fi
+
+    log_debug "使用 pip cache purge 清理缓存" "PIPCache"
+    echo -e "${DIM}使用 pip cache purge 清理缓存${NC}"
+
+    # 显示缓存大小
+    local cache_info
+    cache_info=$(echo "$cache_info_output" | grep -E "(Location|Size)" || true)
+    if [ -n "$cache_info" ]; then
+        log_debug "缓存信息: $cache_info" "PIPCache"
+        echo -e "${DIM}缓存信息:${NC}"
+        echo "$cache_info" | sed 's/^/  /'
+    fi
+
+    # 执行缓存清理
+    if log_command "PIPCache" "MAIN" "$PIP_CMD cache purge"; then
+        log_info "pip 缓存清理完成" "PIPCache"
+        echo -e "${CHECK} pip 缓存清理完成"
+    else
+        log_warn "pip 缓存清理失败，但继续安装" "PIPCache"
+        echo -e "${WARNING} pip 缓存清理失败，但继续安装"
     fi
 
     echo ""
