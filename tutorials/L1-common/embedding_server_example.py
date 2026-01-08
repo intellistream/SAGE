@@ -1,4 +1,4 @@
-"""  
+"""
 Embedding Server 使用示例
 
 这个示例展示如何使用本地 embedding 服务器，
@@ -15,8 +15,6 @@ Test Configuration:
 """
 
 import os
-import sys
-from pathlib import Path
 
 from sage.common.components.sage_embedding.embedding_api import apply_embedding_model
 from sage.common.config.ports import SagePorts

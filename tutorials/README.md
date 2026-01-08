@@ -4,14 +4,32 @@
 
 > **从基础到应用：循序渐进地掌握 SAGE 框架**
 
+## ⚠️ 重要提示
+
+**Tutorials 不包含在 PyPI 包中**，需要从源码获取。详见 [INSTALLATION_GUIDE.md](./INSTALLATION_GUIDE.md)。
+
+**如何获取**:
+- 🔧 **开发者**: `git clone https://github.com/intellistream/SAGE.git`
+- 📖 **在线浏览**: https://intellistream.github.io/SAGE-Pub/tutorials/
+- 📦 **轻量示例**: PyPI 包中的 `packages/*/examples/`
+
+**为什么不打包？** 见 [设计决策](../docs-public/docs_src/dev-notes/cross-layer/architecture/EXAMPLES_TESTING_PYPI_STRATEGY.md)
+
 ## ⚡ 5 分钟快速开始
 
 ```bash
-# 1. 运行第一个示例
-python hello_world.py
+# 1. 克隆仓库（如果还没有）
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
 
-# 2. 查看快速入门指南
-cat QUICK_START.md
+# 2. 安装 SAGE
+./quickstart.sh --dev --yes
+
+# 3. 运行第一个示例
+python tutorials/hello_world.py
+
+# 4. 查看快速入门指南
+cat tutorials/QUICK_START.md
 ```
 
 ## 📐 SAGE 6 层架构概览

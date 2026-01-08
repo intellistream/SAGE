@@ -7,9 +7,6 @@ Requirements:
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import numpy as np
 
 from sage.middleware.components.sage_db.python.multimodal_sage_db import (

@@ -273,6 +273,7 @@ cat tutorials/QUICK_START.md
 ```
 
 **Tutorial Structure**:
+
 - `tutorials/L1-common/` - Foundation layer (config, logging, unified client)
 - `tutorials/L2-platform/` - Platform services (scheduler, storage)
 - `tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
