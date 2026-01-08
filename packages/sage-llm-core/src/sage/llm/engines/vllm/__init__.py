@@ -15,7 +15,12 @@ Website: https://github.com/vllm-project/vllm
 from .api_server import LLMAPIServer, LLMServerConfig, get_served_model_name
 from .launcher import LLMLauncher, LLMLauncherResult
 from .service import VLLMService, VLLMServiceConfig
-from .speculative import DraftModelStrategy, SpeculativeStrategy
+from .speculative import (
+    DraftModelStrategy,
+    DynamicLookaheadStrategy,
+    NgramStrategy,
+    SpeculativeStrategy,
+)
 
 __all__ = [
     # Service
@@ -31,4 +36,6 @@ __all__ = [
     # Speculative Decoding
     "SpeculativeStrategy",
     "DraftModelStrategy",
+    "NgramStrategy",
+    "DynamicLookaheadStrategy",
 ]

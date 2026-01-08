@@ -49,10 +49,12 @@ from .control_plane_service import (
 # vLLM engine integration (now in sage-llm-core/engines/vllm/)
 from .engines.vllm import (
     DraftModelStrategy,
+    DynamicLookaheadStrategy,
     LLMAPIServer,
     LLMLauncher,
     LLMLauncherResult,
     LLMServerConfig,
+    NgramStrategy,
     SpeculativeStrategy,
     VLLMService,
     VLLMServiceConfig,
@@ -76,6 +78,8 @@ __all__ = [
     "get_served_model_name",
     "SpeculativeStrategy",
     "DraftModelStrategy",
+    "NgramStrategy",
+    "DynamicLookaheadStrategy",
     # Advanced services
     "ControlPlaneVLLMService",
     "ControlPlaneVLLMServiceConfig",

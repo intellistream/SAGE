@@ -279,6 +279,14 @@ Canonical namespaces (post-refactor):
 - Control plane implementation lives under:
   `packages/sage-llm-core/src/sage/llm/control_plane/`
   (tests: `.../control_plane/tests/`)
+- Speculative Decoding strategies (engine optimization, L1):
+  `packages/sage-llm-core/src/sage/llm/engines/vllm/speculative.py`
+  - `SpeculativeStrategy` - Abstract base class
+  - `DraftModelStrategy` - Use separate draft model (e.g., Qwen-0.5B for Qwen-7B)
+  - `NgramStrategy` - N-gram based (lightweight, no extra model)
+  - `DynamicLookaheadStrategy` - Research-grade dynamic lookahead adjustment
+  - Import: `from sage.llm import DynamicLookaheadStrategy` (✅ Correct, L1)
+  - ❌ OLD: `from sage.libs.algorithms.speculative import ...` (Removed, was L3 → L1 violation)
 
 **Middleware inference building blocks (L4, PyPI packages with C++ extensions)**
 

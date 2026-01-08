@@ -88,14 +88,14 @@ repos:
     always_run: false
     stages: [pre-commit]
     # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
-  - id: dependency-version-conflicts
-    name: check dependency version conflicts
-    entry: python3 tools/install/helpers/unify_dependencies.py --check
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^packages/.*/pyproject\.toml$
-    # Block commit if there are version conflicts between packages
+  # - id: dependency-version-conflicts
+  #   name: check dependency version conflicts
+  #   entry: python3 tools/install/helpers/unify_dependencies.py --check
+  #   language: system
+  #   pass_filenames: false
+  #   always_run: false
+  #   files: ^packages/.*/pyproject\.toml$
+  #   # DEPRECATED: Script removed, dependency management moved to sage-tools
   - id: pep420-namespace-compliance
     name: PEP 420 namespace package compliance check
     entry: bash -c 'tools/scripts/validate_pep420_compliance.sh'
@@ -134,13 +134,14 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs-public/docs_src/dev-notes/.*\.md$
-  - id: control-plane-only-guard
-    name: prevent embedded/local inference paths
-    entry: tools/hooks/check_control_plane_only.py
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: \.py$
+  # - id: control-plane-only-guard
+  #   name: prevent embedded/local inference paths
+  #   entry: tools/hooks/check_control_plane_only.py
+  #   language: system
+  #   pass_filenames: false
+  #   always_run: false
+  #   files: \.py$
+  #   # DEPRECATED: Script removed, control plane checks moved to sage-tools
   - id: python-test-files-location-check
     name: check Python test files are in proper locations
     entry: bash -c

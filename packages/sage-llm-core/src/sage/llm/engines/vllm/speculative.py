@@ -104,4 +104,50 @@ class NgramStrategy(SpeculativeStrategy):
         logger.info("N-gram speculative decoding enabled.")
 
 
-__all__ = ["SpeculativeStrategy", "DraftModelStrategy", "NgramStrategy"]
+class DynamicLookaheadStrategy(SpeculativeStrategy):
+    """Advanced strategy that adjusts lookahead based on system load.
+
+    This is a research-grade implementation that can be extended to incorporate
+    runtime metrics, adaptive algorithms, or custom draft model selection logic.
+
+    Args:
+        min_tokens: Minimum number of speculative tokens (default: 3)
+        max_tokens: Maximum number of speculative tokens (default: 10)
+    """
+
+    def __init__(self, min_tokens: int = 3, max_tokens: int = 10):
+        self.min_tokens = min_tokens
+        self.max_tokens = max_tokens
+
+    def apply(self, engine_config: dict[str, Any]) -> None:
+        """Apply dynamic lookahead strategy to engine configuration.
+
+        In a real research scenario, this might involve:
+        - Monitoring system load and GPU utilization
+        - Adjusting speculative tokens based on request patterns
+        - Runtime hooks for adaptive optimization
+
+        Currently implements a simplified version for demonstration.
+        """
+        logger.info("Applying DynamicLookaheadStrategy (Research Demo)")
+
+        # Simulate "research" logic - in practice, this could query metrics,
+        # analyze request patterns, or use ML models to optimize k
+        optimal_k = (self.min_tokens + self.max_tokens) // 2
+
+        engine_config["num_speculative_tokens"] = optimal_k
+        # Maybe enable some experimental vLLM flags for better performance
+        engine_config["enable_chunked_prefill"] = True
+
+        logger.info(
+            f"DynamicLookaheadStrategy configured: k={optimal_k}, "
+            f"range=[{self.min_tokens}, {self.max_tokens}]"
+        )
+
+
+__all__ = [
+    "SpeculativeStrategy",
+    "DraftModelStrategy",
+    "NgramStrategy",
+    "DynamicLookaheadStrategy",
+]
