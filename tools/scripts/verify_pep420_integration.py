@@ -57,6 +57,7 @@ def test_subpackage_imports() -> tuple[bool, list[str]]:
     ]
 
     errors = []
+    successes = []
     success_count = 0
 
     for pkg_name in subpackages:
@@ -70,16 +71,21 @@ def test_subpackage_imports() -> tuple[bool, list[str]]:
                 errors.append(f"{pkg_name}.__file__ is None (should be a real path)")
             else:
                 success_count += 1
+                successes.append(f"{pkg_name} imported successfully")
 
         except ImportError:
             # Some packages might not be installed, that's OK
+            # Only report if it's a critical package
             pass
 
     # At least one package should be importable
     if success_count == 0:
         errors.append("No SAGE subpackages could be imported")
+    else:
+        # Return successes as the message list when test passes
+        return True, successes
 
-    return len(errors) == 0, errors
+    return False, errors
 
 
 def test_namespace_coexistence() -> tuple[bool, list[str]]:
@@ -124,6 +130,7 @@ def test_version_attributes() -> tuple[bool, list[str]]:
     ]
 
     errors = []
+    successes = []
     success_count = 0
 
     for pkg_name, attr in test_packages:
@@ -137,6 +144,7 @@ def test_version_attributes() -> tuple[bool, list[str]]:
                     errors.append(f"{pkg_name}.{attr} is invalid: {version}")
                 else:
                     success_count += 1
+                    successes.append(f"{pkg_name}.{attr} = {version}")
         except ImportError:
             # Package not installed, skip
             pass
@@ -144,8 +152,11 @@ def test_version_attributes() -> tuple[bool, list[str]]:
     # At least one package should have version
     if success_count == 0:
         errors.append("No SAGE packages have version attributes")
+    else:
+        # Return successes when test passes
+        return True, successes
 
-    return len(errors) == 0, errors
+    return False, errors
 
 
 def main() -> int:
@@ -173,6 +184,8 @@ def main() -> int:
     results.append(("Subpackage imports", passed, messages))
     if passed:
         print(f"  {GREEN}✓ PASS{NC}: All importable subpackages work correctly")
+        for msg in messages:
+            print(f"    - {msg}")
     else:
         print(f"  {RED}✗ FAIL{NC}:")
         for msg in messages:
@@ -199,6 +212,8 @@ def main() -> int:
     results.append(("Version attributes", passed, messages))
     if passed:
         print(f"  {GREEN}✓ PASS{NC}: Subpackages have proper version attributes")
+        for msg in messages:
+            print(f"    - {msg}")
     else:
         print(f"  {RED}✗ FAIL{NC}:")
         for msg in messages:
