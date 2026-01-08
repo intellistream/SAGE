@@ -1,0 +1,255 @@
+name: Examples Test
+
+on:
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/*/examples/**'
+      - '.github/workflows/ci-examples-test.yml'
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/*/examples/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  SAGE_TEST_MODE: true
+  SAGE_EXAMPLES_MODE: test
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  HF_ENDPOINT: https://hf-mirror.com
+
+jobs:
+  test-examples:
+    name: Test Examples (Test Mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Skip version bump commits
+    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          clean: true
+          submodules: 'recursive'
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Create .env File (Test Mode)
+        run: |
+          echo "🔐 创建测试模式 .env 文件..."
+          cat > .env << EOF
+          # CI Examples Test Environment (Test Mode - No Real API Calls)
+
+          # Test Mode Flags
+          SAGE_TEST_MODE=true
+          SAGE_EXAMPLES_MODE=test
+
+          # API Keys (not required in test mode, but set for validation)
+          OPENAI_API_KEY=sk-test-dummy-key-for-validation-only  # pragma: allowlist secret
+          OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+          OPENAI_MODEL_NAME=qwen-turbo-2025-02-11
+
+          # Hugging Face
+          HF_TOKEN=${{ secrets.HF_TOKEN }}
+          HF_ENDPOINT=https://hf-mirror.com
+
+          # CI/CD Settings
+          SAGE_DEBUG=false
+          SAGE_LOG_LEVEL=INFO
+          EOF
+
+          echo "✅ 测试模式 .env 文件创建完成"
+
+      - name: Install System Dependencies
+        run: |
+          echo "🔧 安装必要的系统依赖..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev
+          echo "✅ 系统依赖安装完成"
+
+      - name: Install SAGE (Dev Mode)
+        run: |
+          echo "🚀 安装 SAGE（开发模式）..."
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 使用 CI 安装包装器
+          chmod +x ./tools/install/core/ci_install_wrapper.sh
+          chmod +x ./quickstart.sh
+
+          # 安装核心包（examples 需要）
+          ./tools/install/core/ci_install_wrapper.sh --dev --yes
+
+          echo "✅ SAGE 安装完成"
+        timeout-minutes: 20
+
+      - name: Verify Installation
+        run: |
+          echo "✅ 验证 SAGE 安装..."
+          python -c "import sage; print('✅ SAGE imported')"
+          python -c "import sage.common; print('✅ sage.common imported')"
+          python -c "import sage.kernel; print('✅ sage.kernel imported')"
+          python -c "import sage.libs; print('✅ sage.libs imported')"
+
+      - name: Discover Testable Examples
+        id: discover
+        run: |
+          echo "🔍 发现支持测试模式的 examples..."
+
+          # 查找所有支持 SAGE_TEST_MODE 或 SAGE_EXAMPLES_MODE 的文件
+          examples=$(grep -r "SAGE_TEST_MODE\|SAGE_EXAMPLES_MODE" packages/*/examples --include="*.py" -l | sort)
+
+          echo "发现的 examples:"
+          echo "$examples" | while read -r file; do
+            echo "  • $file"
+          done
+
+          # 统计数量
+          count=$(echo "$examples" | wc -l)
+          echo ""
+          echo "📊 总计: $count 个支持测试模式的 examples"
+
+          # 保存到输出
+          echo "count=$count" >> $GITHUB_OUTPUT
+
+          # 保存文件列表到临时文件
+          echo "$examples" > /tmp/testable_examples.txt
+
+      - name: Test Examples
+        run: |
+          echo "🧪 运行 examples 测试（测试模式）..."
+          echo ""
+
+          # 设置测试环境变量
+          export SAGE_TEST_MODE=true
+          export SAGE_EXAMPLES_MODE=test
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 读取 examples 列表
+          examples=$(cat /tmp/testable_examples.txt)
+
+          # 计数器
+          passed=0
+          failed=0
+          skipped=0
+
+          # 创建结果目录
+          mkdir -p .sage/examples-test-results
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "开始测试 examples"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+
+          # 遍历每个 example
+          for example in $examples; do
+            echo "📝 测试: $example"
+
+            # 运行 example（测试模式）
+            if timeout 30 python "$example" > ".sage/examples-test-results/$(basename $example).log" 2>&1; then
+              echo "  ✅ PASS"
+              ((passed++))
+            else
+              exit_code=$?
+              if [ $exit_code -eq 124 ]; then
+                echo "  ⏱️  TIMEOUT (30s)"
+                ((failed++))
+              else
+                echo "  ❌ FAIL (exit code: $exit_code)"
+                ((failed++))
+
+                # 显示错误日志
+                echo "  错误日志:"
+                tail -n 10 ".sage/examples-test-results/$(basename $example).log" | sed 's/^/    /'
+              fi
+            fi
+            echo ""
+          done
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "测试结果汇总"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "✅ 通过: $passed"
+          echo "❌ 失败: $failed"
+          echo "⏭️  跳过: $skipped"
+          echo ""
+
+          total=$((passed + failed + skipped))
+          echo "📊 总计: $total 个 examples"
+          echo ""
+
+          # 如果有失败，退出码非零
+          if [ $failed -gt 0 ]; then
+            echo "❌ 部分 examples 测试失败"
+            exit 1
+          else
+            echo "✅ 所有 examples 测试通过！"
+            exit 0
+          fi
+
+      - name: Upload Test Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: examples-test-logs-py${{ matrix.python-version }}
+          path: .sage/examples-test-results/
+          retention-days: 7
+
+      - name: Generate Test Report
+        if: always()
+        run: |
+          echo "📊 生成测试报告..."
+
+          cat > .sage/examples-test-results/REPORT.md << 'EOF'
+          # Examples Test Report
+
+          ## Test Environment
+          - Python Version: ${{ matrix.python-version }}
+          - Test Mode: SAGE_TEST_MODE=true
+          - Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## Test Results
+
+          See individual log files for details.
+
+          ## Notes
+          - Examples run in test mode (no real API calls)
+          - Tests validate configuration loading and module imports
+          - Timeout: 30 seconds per example
+          EOF
+
+          echo "✅ 测试报告生成完成"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Examples Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python Version**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Mode**: SAGE_TEST_MODE=true (no real API calls)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Examples Tested**: ${{ steps.discover.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See job logs for detailed results." >> $GITHUB_STEP_SUMMARY
