@@ -278,5 +278,3 @@ FUNDING_INFO.md
 /tmp/pypi_publisher_*/
 benchmark/experiments/exp1_single_vs_multi/results/*
 packages/sage-llm-core/src/sage/llm/engines/sagellm/
-sage-anns/
-sage-edge/
