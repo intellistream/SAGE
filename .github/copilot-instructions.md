@@ -138,7 +138,7 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 **Architecture (L1-L6)** - CRITICAL: No upward dependencies
 
 ```
-L6: sage-cli, sage-studio, sage-tools, sage-llm-gateway  # Interfaces & gateways
+L6: sage-cli, sage-tools, sage-llm-gateway  # Interfaces & gateways
 L5: sage-apps                          # Apps
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
@@ -146,7 +146,9 @@ L2: sage-platform                      # Platform Services
 L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 ```
 
-**Note**: sage-benchmark has been separated into an independent repository: https://github.com/intellistream/sage-benchmark
+**Independent Repositories**:
+- **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder, depends on SAGE core)
+- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework)
 
 Notes:
 - `sage-llm-gateway` is published to PyPI as `isage-llm-gateway` (OpenAI/Anthropic-compatible API Gateway).

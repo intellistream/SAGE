@@ -305,6 +305,17 @@ make docs           # Build documentation
 
 📖 **Complete reference**: [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md)
 
+## SAGE Ecosystem
+
+SAGE has a growing ecosystem of independent projects:
+
+- **[SAGE Studio](https://github.com/intellistream/sage-studio)** - Visual workflow builder and LLM
+  playground for creating AI pipelines with drag-and-drop interface
+- **[SAGE Benchmark](https://github.com/intellistream/sage-benchmark)** - Comprehensive evaluation
+  framework for RAG, agents, control plane, and memory systems
+
+These projects depend on SAGE core packages and can be installed separately via PyPI.
+
 ## Community
 
 **💬 [Join SAGE Community](./docs/COMMUNITY.md)** - WeChat, QQ, Slack, GitHub Discussions
