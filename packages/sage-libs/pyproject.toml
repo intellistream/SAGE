@@ -41,17 +41,23 @@ dependencies = [
     # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
     "numpy>=1.26.0,<2.3.0",
 
-    # ========== 课题组算法库 ==========
-    # Note: AMM algorithms are part of sage-libs (amms/ directory), not external dependency
-    # Users can optionally install isage-amms separately for standalone use
-    # "isage-libamm>=0.1.0",  # 预编译的 LibAMM wheel (独立维护) - Integrated into sage-libs
+    # ========== 课题组算法库（独立可选依赖）==========
+    # Note: Both AMM and ANNS are independent optional dependencies
+    # sage-libs provides interface layer, C++ implementations must be installed separately
+
+    # AMM algorithms (独立仓库，可选依赖)
+    # Note: AMM algorithms are optional, not auto-installed
+    # Install separately if needed: pip install isage-amms
+    # Source: packages/sage-libs/src/sage/libs/amms/ (to be migrated to independent repo)
+    # PyPI: https://pypi.org/project/isage-amms/
+    # "isage-amms>=0.1.0",  # ✅ Optional dependency (install separately if needed)
 
     # ANNS algorithms (独立仓库，可选依赖)
     # Note: ANNS implementations have been moved to independent repository
     # Install separately if needed: pip install isage-anns
     # Repository: https://github.com/intellistream/sage-anns
     # PyPI: https://pypi.org/project/isage-anns/
-    # "isage-anns>=0.1.1",  # ✅ Published to PyPI (optional, install separately if needed)
+    # "isage-anns>=0.1.1",  # ✅ Optional dependency (install separately if needed)
 
     # Libs-specific dependencies
     # Vector databases

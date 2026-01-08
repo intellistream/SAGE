@@ -42,38 +42,63 @@ pip install -e packages/sage-libs
 
 **包含内容**：
 
-- ✅ **LibAMM**：高性能近似矩阵乘法库（预编译，自动安装）
-
 - ✅ **RAG 组件**：loaders, chunkers, retrievers, pipelines
-
 - ✅ **Agent 框架**：LangChain 风格的 Agent + Workflow Optimizer
-
 - ✅ **隐私算法**：unlearning, privacy preservation
-
 - ✅ **集成组件**：LLM, Vector DB 适配器
+
+**可选扩展（独立仓库，需单独安装）**：
+
+- 🔧 **AMM 算法**：`pip install isage-amms`
+- 🔧 **ANNS 算法**：`pip install isage-anns`
 
 ### 架构说明
 
 **sage-libs 的设计理念**：
 
 ```
-isage-libs (PyPI)
-  └── 依赖 isage-libamm (自动安装预编译版本)
-  └── 可选 isage-anns (独立安装 ANNS 算法)
+isage-libs (PyPI) - 纯 Python 算法库
+  ├── 可选依赖: isage-amms（独立仓库，C++ 扩展）
+  └── 可选依赖: isage-anns（独立仓库，C++ 扩展）
 ```
 
-- 📦 **isage-libs**：课题组算法集合的统一入口
-- 📦 **isage-libamm**：独立维护和发布的 C++ 扩展包（自动安装）
-- 📦 **isage-anns**：独立维护的 ANNS 算法包（可选安装）
-- 🎯 **一键安装**：用户只需 `pip install isage-libs`，libamm 自动包含
-- 🔧 **按需安装 ANNS**：如需 ANNS 算法，额外执行 `pip install isage-anns`
+- 📦 **isage-libs**：SAGE 算法库的统一接口和纯 Python 实现
+- 📦 **isage-amms**：AMM 算法独立包（可选）
+  - 仓库：`packages/sage-libs/src/sage/libs/amms/`（待迁移独立仓库）
+  - 状态：独立可选依赖，不自动安装
+  - PyPI: https://pypi.org/project/isage-amms/
+- 📦 **isage-anns**：ANNS 算法独立包（可选）
+  - 仓库：https://github.com/intellistream/sage-anns
+  - 状态：已完全迁移到独立仓库
+  - PyPI: https://pypi.org/project/isage-anns/
+- 🎯 **安装方式**：
+  - 基础安装：`pip install isage-libs`（不含 C++ 扩展）
+  - AMM 扩展：`pip install isage-amms`（可选，高性能矩阵运算）
+  - ANNS 扩展：`pip install isage-anns`（可选，向量检索算法）
 
-### Optional: ANNS Algorithms
+### Optional Extensions (C++ 扩展包)
 
-ANNS (Approximate Nearest Neighbor Search) algorithms have been moved to an independent repository:
+#### 1. AMM Algorithms (Independent, Optional)
+
+AMM (Approximate Matrix Multiplication) algorithms are **independent optional packages**:
 
 ```bash
-# 安装 ANNS 算法包（可选）
+# 安装 AMM 算法包（可选，高性能矩阵运算）
+pip install isage-amms
+```
+
+- 📂 **Source Location**: `packages/sage-libs/src/sage/libs/amms/`（待迁移独立仓库）
+- 📦 **PyPI**: https://pypi.org/project/isage-amms/
+- 🎯 **Status**: Optional dependency, not auto-installed
+- 📖 **Documentation**: See `docs/amms/MIGRATION.md`
+- ⚠️ **Note**: sage-libs 提供接口层，C++ 实现需单独安装
+
+#### 2. ANNS Algorithms (Independent, Optional)
+
+ANNS (Approximate Nearest Neighbor Search) algorithms are **independent optional packages**:
+
+```bash
+# 安装 ANNS 算法包（可选，向量检索算法）
 pip install isage-anns
 ```
 
@@ -81,8 +106,11 @@ pip install isage-anns
 - 📦 **PyPI**: https://pypi.org/project/isage-anns/
 - 🔍 **Algorithms**: FAISS, DiskANN, CANDY, PUCK, SPTAG, etc.
 - 📖 **Documentation**: See `docs/anns/MIGRATION.md` for migration details
+- ⚠️ **Status**: Fully migrated to independent repository
 
-### LibAMM 开发者模式
+### Development Mode
+
+#### LibAMM 开发者模式
 
 如果需要修改 LibAMM 源码：
 
