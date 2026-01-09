@@ -134,24 +134,22 @@ class TestExtensionStatusReporting:
 class TestRequirementChecking:
     """Test requirement checking functions that raise on unavailability."""
 
-    @patch("sage.middleware.components.extensions_compat._SAGE_DB_AVAILABLE", True)
-    @patch("sage.middleware.components.extensions_compat._sage_db", MagicMock())
     def test_require_sage_db_available(self):
         """Test require_sage_db returns module when available."""
         from sage.middleware.components import extensions_compat
 
+        # Mock sagevdb import by patching availability and the import
         with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", True):
-            with patch.object(extensions_compat, "_sage_db", MagicMock()):
+            with patch.dict("sys.modules", {"sagevdb": MagicMock()}):
                 result = require_sage_db()
                 assert result is not None
 
-    @patch("sage.middleware.components.extensions_compat._SAGE_DB_AVAILABLE", False)
     def test_require_sage_db_unavailable_raises(self):
         """Test require_sage_db raises when unavailable."""
         from sage.middleware.components import extensions_compat
 
         with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", False):
-            with pytest.raises(ImportError, match="SAGE DB"):
+            with pytest.raises(ImportError, match="SageVDB|isage-vdb"):
                 require_sage_db()
 
     @patch("sage.middleware.components.extensions_compat._SAGE_FLOW_AVAILABLE", True)
@@ -174,14 +172,13 @@ class TestRequirementChecking:
             with pytest.raises(ImportError, match="SAGE Flow"):
                 require_sage_flow()
 
-    @patch("sage.middleware.components.extensions_compat._SAGE_TSDB_AVAILABLE", True)
-    @patch("sage.middleware.components.extensions_compat._sage_tsdb", MagicMock())
     def test_require_sage_tsdb_available(self):
         """Test require_sage_tsdb returns module when available."""
         from sage.middleware.components import extensions_compat
 
+        # Mock sage_tsdb import by patching availability and the import
         with patch.object(extensions_compat, "_SAGE_TSDB_AVAILABLE", True):
-            with patch.object(extensions_compat, "_sage_tsdb", MagicMock()):
+            with patch.dict("sys.modules", {"sage_tsdb": MagicMock()}):
                 result = require_sage_tsdb()
                 assert result is not None
 
@@ -191,7 +188,7 @@ class TestRequirementChecking:
         from sage.middleware.components import extensions_compat
 
         with patch.object(extensions_compat, "_SAGE_TSDB_AVAILABLE", False):
-            with pytest.raises(ImportError, match="SAGE TSDB"):
+            with pytest.raises(ImportError, match="SAGE TSDB|isage-tsdb"):
                 require_sage_tsdb()
 
 
@@ -207,7 +204,8 @@ class TestErrorMessages:
                 require_sage_db()
             except ImportError as e:
                 error_msg = str(e)
-                assert "SAGE DB" in error_msg
+                # SageVDB is independent PyPI package (isage-vdb)
+                assert "SageVDB" in error_msg or "isage-vdb" in error_msg
 
     def test_require_sage_flow_error_message_helpful(self):
         """Test require_sage_flow error message is helpful."""
@@ -229,14 +227,14 @@ class TestErrorMessages:
                 require_sage_tsdb()
             except ImportError as e:
                 error_msg = str(e)
-                assert "SAGE TSDB" in error_msg
+                # SageTSDB is independent PyPI package (isage-tsdb)
+                assert "SAGE TSDB" in error_msg or "isage-tsdb" in error_msg
 
 
 class TestImportWarnings:
     """Test that appropriate warnings are issued during import."""
 
-    @patch("sage.middleware.components.extensions_compat.warnings.warn")
-    def test_import_handles_missing_extensions_gracefully(self, mock_warn):
+    def test_import_handles_missing_extensions_gracefully(self):
         """Test that missing extensions don't crash import."""
         # This test verifies the module imports successfully
         # regardless of extension availability
@@ -244,6 +242,10 @@ class TestImportWarnings:
 
         # Module should be importable
         assert extensions_compat is not None
+        # Module should have the availability flags
+        assert hasattr(extensions_compat, "_SAGE_DB_AVAILABLE")
+        assert hasattr(extensions_compat, "_SAGE_FLOW_AVAILABLE")
+        assert hasattr(extensions_compat, "_SAGE_TSDB_AVAILABLE")
 
     def test_module_constants_initialized(self):
         """Test that all module constants are initialized."""

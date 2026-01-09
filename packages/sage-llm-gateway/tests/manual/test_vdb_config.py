@@ -1,14 +1,31 @@
 #!/usr/bin/env python
-"""Test VDB backend configuration from config.yaml"""
+"""Test VDB backend configuration from config.yaml
+
+NOTE: This test requires NeuroMem (isage-neuromem) to be installed.
+Skip if not available.
+"""
 
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add SAGE to path
 sage_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(sage_root / "packages/sage-llm-gateway/src"))
 
+# Check if NeuroMem is available
+try:
+    from sage.middleware.components.sage_mem.neuromem import MemoryManager  # noqa: F401
 
+    HAS_NEUROMEM = True
+except ImportError:
+    HAS_NEUROMEM = False
+
+NEUROMEM_SKIP_REASON = "NeuroMem (isage-neuromem) not installed"
+
+
+@pytest.mark.skipif(not HAS_NEUROMEM, reason=NEUROMEM_SKIP_REASON)
 def test_config_loading():
     """测试配置加载"""
     from sage.llm.gateway.session.manager import _load_gateway_config
@@ -34,6 +51,7 @@ def test_config_loading():
         print("\n⚠️  No memory config found, using defaults")
 
 
+@pytest.mark.skipif(not HAS_NEUROMEM, reason=NEUROMEM_SKIP_REASON)
 def test_session_manager_creation():
     """测试 SessionManager 创建"""
     from sage.llm.gateway.session.manager import get_session_manager

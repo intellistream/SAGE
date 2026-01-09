@@ -6,6 +6,8 @@ Tests for all speculative decoding strategies to ensure they correctly
 modify engine configurations.
 """
 
+from unittest.mock import patch
+
 import pytest
 
 from sage.llm.engines.vllm.speculative import (
@@ -168,8 +170,9 @@ class TestStrategyComparison:
 
     def test_all_strategies_implement_interface(self):
         """Test that all strategies implement the required interface."""
+        # Use auto_download=False to avoid network calls
         strategies = [
-            DraftModelStrategy("model-id"),
+            DraftModelStrategy("test-model", auto_download=False),
             NgramStrategy(),
             DynamicLookaheadStrategy(),
         ]
@@ -179,10 +182,16 @@ class TestStrategyComparison:
             assert hasattr(strategy, "apply")
             assert callable(strategy.apply)
 
-    def test_strategies_modify_different_config_keys(self):
+    @patch("sage.llm.engines.vllm.speculative.vllm_registry")
+    def test_strategies_modify_different_config_keys(self, mock_registry):
         """Test that different strategies modify appropriate config keys."""
+        # Mock the model registry to avoid network calls
+        mock_registry.ensure_model_available.return_value = "/fake/path/to/model"
+
+        # Note: DraftModelStrategy requires vLLM >= 0.14.0 to apply changes
+        # In CI without vLLM or with older versions, draft_config will be empty
         draft_config = {}
-        DraftModelStrategy("model-id").apply(draft_config)
+        DraftModelStrategy("test-model", auto_download=False).apply(draft_config)
 
         ngram_config = {}
         NgramStrategy().apply(ngram_config)
