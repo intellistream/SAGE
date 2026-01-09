@@ -107,7 +107,7 @@ vdb = [
     "isage-vdb>=0.1.5",
 ]
 neuromem = [
-    "isage-neuromem>=0.2.0.1",
+    "isage-neuromem>=0.2.1.1",
 ]
 all = [
     "isage-middleware[vdb,neuromem]",
