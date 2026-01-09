@@ -4,9 +4,12 @@ SAGE CLI 主入口
 
 统一的命令行接口，包括：
 - Platform: 集群管理、作业调度
-- Apps: LLM、Chat、Embedding、Pipeline、Studio
+- Apps: LLM、Chat、Embedding、Pipeline、Gateway
 
-注意：Dev 开发工具命令由 sage-tools 包提供，不在此包中
+注意：
+- Dev 开发工具命令由 sage-tools 包提供 (sage-dev)
+- Studio 已独立: https://github.com/intellistream/sage-studio
+- Edge 已独立: pip install isage-edge
 """
 
 import logging
@@ -151,13 +154,11 @@ except ImportError as e:
 try:
     from .commands.apps import (
         chat_app,
-        edge_app,
         embedding_app,
         gateway_app,
         inference_app,
         llm_app,
         pipeline_app,
-        studio_app,
     )
 
     if llm_app:
@@ -182,12 +183,6 @@ try:
             name="pipeline",
             help="🧱 Pipeline Builder - 大模型辅助的配置生成 (build, validate, template)",
         )
-    if studio_app:
-        app.add_typer(
-            studio_app,
-            name="studio",
-            help="🎨 Studio - 低代码可视化管道编辑器 (start, stop, status)",
-        )
     if inference_app:
         app.add_typer(
             inference_app,
@@ -199,12 +194,6 @@ try:
             gateway_app,
             name="gateway",
             help="🌐 API Gateway - 统一推理网关服务 (start, stop, status, logs, restart)",
-        )
-    if edge_app:
-        app.add_typer(
-            edge_app,
-            name="edge",
-            help="🪄 Edge - L6 聚合器 (mount LLM gateway at / or custom prefix)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")
@@ -242,15 +231,15 @@ def main(
       sage config show               # 显示配置
       sage doctor                    # 系统诊断
 
-        Application Commands:
-            sage llm run                   # 启动阻塞式 LLM 服务
+    Application Commands:
+      sage llm run                   # 启动阻塞式 LLM 服务
+      sage gateway start             # 启动API网关
       sage chat                      # 启动聊天助手
       sage pipeline build            # 构建 pipeline
-      sage studio start              # 启动可视化编辑器
 
     🏗️  架构说明:
       - Platform Commands: 平台管理 (cluster, config, doctor, etc.)
-      - Application Commands: 应用功能 (llm, chat, pipeline, studio)
+      - Application Commands: 应用功能 (llm, gateway, chat, pipeline)
 
     📝 开发工具:
       开发命令请使用独立的 sage-dev 命令（由 sage-tools 包提供）

@@ -376,7 +376,7 @@ install_sage() {
     if { [ "$environment" = "conda" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || \
        { [ "$environment" = "pip" ] && command -v sage-dev >/dev/null 2>&1; } || \
        { [ "$environment" = "pip" ] && [ -x "$HOME/.local/bin/sage-dev" ]; }; then
-        if $sage_dev_cmd project clean --quiet 2>&1 | tee -a "$log_file"; then
+        if $sage_dev_cmd project clean 2>&1 | tee -a "$log_file"; then
             echo -e "${CHECK} 清理完成"
             log_info "项目清理成功" "MAIN"
         else

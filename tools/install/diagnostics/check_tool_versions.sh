@@ -142,7 +142,8 @@ check_tool_versions() {
             local pkg_name
             pkg_name=$(basename "$(dirname "$pyproject")")
             local pkg_ruff_version
-            pkg_ruff_version=$(grep -oP '"ruff==\K[0-9.]+' "$pyproject" 2>/dev/null || echo "")
+            # Only get the first match (in case ruff appears in both dependencies and optional-dependencies)
+            pkg_ruff_version=$(grep -oP '"ruff==\K[0-9.]+' "$pyproject" 2>/dev/null | head -1 || echo "")
 
             if [[ -z "$pkg_ruff_version" ]]; then
                 # Check if it uses >= instead of ==

@@ -308,10 +308,15 @@ verify_sage_imports() {
     # L2: sage-platform
     # L3: sage-kernel, sage-libs
     # L4: sage-middleware
-    # L5: sage-apps, sage-benchmark
-    # L6: sage-cli, sage-studio, sage-llm-gateway, sage-edge, sage-tools
+    # L5: sage-benchmark
+    # L6: sage-cli, sage-llm-gateway, sage-tools
     # NOTE: PEP 420 namespace packages - 'sage' namespace is implicit, cannot be imported directly
     # We only verify actual packages under the namespace
+    #
+    # 已独立的包（不再验证）:
+    # - sage.apps: 已迁移到 sage-examples 仓库
+    # - sage.studio: 独立仓库 https://github.com/intellistream/sage-studio
+    # - sage.edge: 独立 PyPI 包 isage-edge (pip install isage-edge)
     local sage_packages=(
         "sage.common"             # L1: Foundation
         "sage.llm"                # L1: LLM Core
@@ -319,21 +324,18 @@ verify_sage_imports() {
         "sage.kernel"             # L3: Kernel
         "sage.libs"               # L3: Libraries
         "sage.middleware"         # L4: Middleware (C++ extensions)
-        "sage.apps"               # L5: Applications (optional)
-        "sage.benchmark"          # L5: Benchmarks (optional)
+        "sage.benchmark"          # L5: Benchmarks (可通过 pip install isage-benchmark 安装)
         "sage.cli"                # L6: CLI (optional)
-        "sage.studio"             # L6: Studio (optional)
         "sage.llm.gateway"        # L6: LLM Gateway (optional)
-        "sage.edge"               # L6: Edge (optional)
         "sage.tools"              # L6: Dev Tools (optional)
     )
     local failed_imports=()
     local optional_failed=()
 
     for pkg in "${sage_packages[@]}"; do
-        # 判断是否为可选包（L5-L6 层）
+        # 判断是否为可选包（L5-L6 层，除了核心 L1-L4）
         local is_optional=false
-        if [[ "$pkg" =~ ^sage\.(apps|benchmark|cli|studio|llm\.gateway|edge|tools)$ ]]; then
+        if [[ "$pkg" =~ ^sage\.(benchmark|cli|llm\.gateway|tools)$ ]]; then
             is_optional=true
         fi
 
@@ -356,6 +358,7 @@ verify_sage_imports() {
     echo -e "${DIM}   说明：${NC}"
     echo -e "${DIM}   • L1-L4 为核心层，必须能够导入${NC}"
     echo -e "${DIM}   • L5-L6 为应用层，根据安装模式可能不存在${NC}"
+    echo -e "${DIM}   • sage.apps/studio/edge 已独立为单独仓库/包，不在此验证${NC}"
     echo ""
 
     if [ ${#failed_imports[@]} -eq 0 ]; then

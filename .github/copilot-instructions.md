@@ -139,7 +139,7 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 ```
 L6: sage-cli, sage-tools, sage-llm-gateway  # Interfaces & gateways
-L5: sage-apps                          # Apps
+L5: sage-benchmark                     # Benchmarks (独立 PyPI: isage-benchmark)
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
@@ -148,12 +148,14 @@ L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 
 **Independent Repositories**:
 - **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder, depends on SAGE core)
-- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework)
+- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI 包)
+- **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
 
 Notes:
 - `sage-llm-gateway` is published to PyPI as `isage-llm-gateway` (OpenAI/Anthropic-compatible API Gateway).
 - `sage-llm-core` is published to PyPI as `isage-llm-core` (Unified client + control plane).
 - `sage-edge` (optional) is now an independent PyPI package `isage-edge>=0.2.4.0`. Install separately if needed.
+- `sage-apps` 已迁移到 sage-examples 仓库，不再是可安装的包。
 - Legacy `sage-gateway` has been superseded; do not add new code under that namespace.
 
 ### 🚨 sageLLM 独立仓库 - CRITICAL

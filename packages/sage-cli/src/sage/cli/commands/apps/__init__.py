@@ -6,8 +6,10 @@ SAGE Application Commands
 - chat: 编程助手
 - embedding: Embedding管理
 - pipeline: Pipeline构建器
-- studio: 可视化编辑器
 - inference: 统一推理服务管理
+- gateway: API网关服务
+
+Note: studio和edge已独立为单独的仓库/包，不再包含在CLI中
 """
 
 from rich.console import Console
@@ -40,12 +42,6 @@ except ImportError as e:
     pipeline_app = None
 
 try:
-    from .studio import app as studio_app
-except ImportError as e:
-    console.print(f"[yellow]警告: 无法导入 studio 命令: {e}[/yellow]")
-    studio_app = None
-
-try:
     from .inference import app as inference_app
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 inference 命令: {e}[/yellow]")
@@ -57,11 +53,9 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 gateway 命令: {e}[/yellow]")
     gateway_app = None
 
-try:
-    from .edge import app as edge_app
-except ImportError as e:
-    console.print(f"[yellow]警告: 无法导入 edge 命令: {e}[/yellow]")
-    edge_app = None
+# Note: studio and edge are now independent packages/repositories
+# - sage-studio: https://github.com/intellistream/sage-studio
+# - sage-edge: Install with: pip install isage-edge
 
 # 导出所有命令
 __all__ = [
@@ -69,8 +63,6 @@ __all__ = [
     "chat_app",
     "embedding_app",
     "pipeline_app",
-    "studio_app",
     "inference_app",
     "gateway_app",
-    "edge_app",
 ]

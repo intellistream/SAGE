@@ -116,7 +116,7 @@ SAGE CLI is part of the L6 (Interface Layer) in the SAGE architecture:
 ```
 L1: sage-common          (Foundation)
 L2: sage-platform        (Platform Core)
-L3: sage-kernel, sage-libs
+L3: sage-kernel, sage-libs --< \llm>
 L4: sage-middleware
 L5: sage-apps, sage-benchmark
 L6: sage-cli, sage-tools, sage-studio
