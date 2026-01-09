@@ -237,6 +237,45 @@ bash tools/install/fixes/build_cache_cleaner.sh detect
 **Note:** The `quickstart.sh` script handles this automatically, so manual cleaning is rarely
 needed.
 
+### Development Tools Cache Configuration
+
+SAGE centralizes all development tool caches in the `.sage/cache/` directory to keep the project
+root clean. The following environment variables are configured in `.env`:
+
+```bash
+# Ruff cache directory (for linting)
+RUFF_CACHE_DIR=.sage/cache/ruff
+
+# Mypy cache directory (for type checking)
+MYPY_CACHE_DIR=.sage/cache/mypy
+```
+
+**Pytest cache** is configured in `tools/config/pytest.ini`:
+
+```ini
+cache_dir = .sage/cache/pytest
+```
+
+**Why centralize caches?**
+
+- ✅ Keeps project root directory clean
+- ✅ Easy to clean all caches with `sage-dev project clean`
+- ✅ Consistent location across all tools
+- ✅ Follows SAGE architectural design (`.sage/` for project-level artifacts)
+
+**To clean all caches:**
+
+```bash
+# Clean all temporary files and caches
+sage-dev project clean --target all
+
+# Clean only cache files
+sage-dev project clean --target cache
+
+# Preview what will be cleaned
+sage-dev project clean --dry-run
+```
+
 ### Pre-commit Hooks
 
 Pre-commit hooks run automatically on `git commit`. They include:
