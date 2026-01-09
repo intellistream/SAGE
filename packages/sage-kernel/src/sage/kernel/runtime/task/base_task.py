@@ -409,9 +409,16 @@ class BaseTask(ABC):  # noqa: B024
                             time.sleep(self.delay)
                         continue
 
-                    # Check if received packet is a StopSignal
+                    # Check if received packet is a StopSignal (direct or wrapped in Packet)
+                    stop_signal_to_handle = None
                     if isinstance(data_packet, StopSignal):
-                        self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
+                        stop_signal_to_handle = data_packet
+                    elif isinstance(data_packet, Packet) and isinstance(data_packet.payload, StopSignal):
+                        # 解包 Packet 封装的 StopSignal，统一走 drain 逻辑
+                        stop_signal_to_handle = data_packet.payload
+
+                    if stop_signal_to_handle is not None:
+                        self.logger.info(f"Node '{self.name}' received stop signal: {stop_signal_to_handle}")
 
                         from sage.kernel.api.operator.join_operator import JoinOperator
                         from sage.kernel.api.operator.sink_operator import SinkOperator
@@ -420,15 +427,15 @@ class BaseTask(ABC):  # noqa: B024
                             self.logger.info(
                                 f"SinkOperator {self.name} starting graceful shutdown after stop signal"
                             )
-                            self._handle_sink_stop_signal(data_packet)
+                            self._handle_sink_stop_signal(stop_signal_to_handle)
                             break
                         elif isinstance(self.operator, (JoinOperator)):
                             self.logger.info(
                                 f"Calling handle_stop_signal for {type(self.operator).__name__} {self.name}"
                             )
-                            input_index = getattr(data_packet, "input_index", None)
+                            input_index = getattr(stop_signal_to_handle, "input_index", None)
                             self.operator.handle_stop_signal(
-                                stop_signal_name=data_packet.source,
+                                stop_signal_name=stop_signal_to_handle.source,
                                 input_index=input_index,
                             )
                             continue
@@ -446,13 +453,13 @@ class BaseTask(ABC):  # noqa: B024
                             self.logger.info(
                                 f"Intermediate operator {self.name} received stop signal, draining remaining data first"
                             )
-                            drained = self._drain_and_process_remaining(data_packet)
+                            drained = self._drain_and_process_remaining(stop_signal_to_handle)
                             self.logger.info(
                                 f"Intermediate operator {self.name} drained {drained} packets before forwarding stop signal"
                             )
-                            self.router.send_stop_signal(data_packet)
+                            self.router.send_stop_signal(stop_signal_to_handle)
                             try:
-                                stop_packet = Packet(payload=data_packet)
+                                stop_packet = Packet(payload=stop_signal_to_handle)
                                 self.operator.receive_packet(stop_packet)
                             except Exception as e:
                                 self.logger.error(
@@ -462,8 +469,8 @@ class BaseTask(ABC):  # noqa: B024
                             self.ctx.set_stop_signal()
                             break
                         else:
-                            self.router.send_stop_signal(data_packet)
-                            should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
+                            self.router.send_stop_signal(stop_signal_to_handle)
+                            should_stop_pipeline = self.ctx.handle_stop_signal(stop_signal_to_handle)
                             if should_stop_pipeline:
                                 self.ctx.set_stop_signal()
                                 break

@@ -1316,15 +1316,11 @@ class NoRetrievalStrategy(MapFunction):
 
 
 class SingleRetrievalStrategy(MapFunction):
-    """策略 B: 单次检索 + 生成"""
+    """策略 B: 单次检索 + 生成（服务化向量检索版本）
 
-    KNOWLEDGE_BASE = [
-        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
-        {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
-        {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
-        {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
-        {"content": "RAG combines retrieval with generation for better answers.", "id": "5"},
-    ]
+    使用 self.call_service("embedding") 和 self.call_service("vector_db") 进行真正的向量检索。
+    使用 self.call_service("llm") 进行生成。
+    """
 
     def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_tokens: int = 512, top_k: int = 3, **kwargs):
         super().__init__(**kwargs)
@@ -1332,33 +1328,65 @@ class SingleRetrievalStrategy(MapFunction):
         self.llm_model = llm_model
         self.max_tokens = max_tokens
         self.top_k = top_k
+        self._hostname = socket.gethostname()
 
-    def _retrieve(self, query: str) -> list[dict]:
-        query_words = set(query.lower().split())
-        scored_docs = []
-        for doc in self.KNOWLEDGE_BASE:
-            content_words = set(doc["content"].lower().split())
-            overlap = len(query_words & content_words)
-            if overlap > 0:
-                scored_docs.append({**doc, "score": overlap / len(query_words)})
-        scored_docs.sort(key=lambda x: x["score"], reverse=True)
-        return scored_docs[:self.top_k]
-
-    def _generate(self, query: str, context: str) -> str:
-        import requests
+    def _retrieve_via_service(self, query: str) -> list[dict]:
+        """使用服务进行向量检索"""
+        import numpy as np
         try:
-            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": [{"role": "system", "content": "Answer based on the provided context."}, {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}], "max_tokens": self.max_tokens, "temperature": 0.7}, timeout=60)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            # RPC: call_service(name, *args, **kwargs) calls service.process(*args, **kwargs)
+            query_embeddings = self.call_service("embedding", texts=[query])
+            if not query_embeddings:
+                print(f"    ⚠️ Failed to get query embedding")
+                return []
+
+            query_vec = np.array(query_embeddings[0], dtype=np.float32)
+
+            # RPC: call vector_db.process(query_vec, k=self.top_k)
+            results = self.call_service("vector_db", query_vec=query_vec, k=self.top_k)
+
+            # Convert to document format
+            docs = []
+            for score, metadata in results:
+                docs.append({
+                    "id": metadata.get("id", ""),
+                    "content": metadata.get("content", metadata.get("text", "")),
+                    "score": float(score),
+                })
+            return docs
+
         except Exception as e:
-            return f"[Generation Error] {str(e)}"
+            print(f"    ⚠️ Service retrieval error: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def _generate_via_service(self, query: str, context: str) -> str:
+        """使用 LLM 服务进行生成"""
+        try:
+            messages = [
+                {"role": "system", "content": "Answer based on the provided context."},
+                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"},
+            ]
+            # RPC: call llm.process(messages, max_tokens, temperature)
+            # timeout=120 to avoid service call timeout for LLM inference
+            return self.call_service("llm", messages=messages, max_tokens=self.max_tokens, temperature=0.7, timeout=120)
+        except Exception as e:
+            # Fallback to direct request
+            import requests
+            try:
+                response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": [{"role": "system", "content": "Answer based on the provided context."}, {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}], "max_tokens": self.max_tokens, "temperature": 0.7}, timeout=60)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            except Exception as e2:
+                return f"[Generation Error] {str(e2)}"
 
     def execute(self, data: AdaptiveRAGQueryData) -> AdaptiveRAGResultData:
         start_time = time.time()
-        print(f"  🟡 SingleRetrieval: {data.query[:50]}...")
-        docs = self._retrieve(data.query)
+        print(f"  🟡 SingleRetrieval[{self._hostname}]: {data.query[:50]}...")
+        docs = self._retrieve_via_service(data.query)
         context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(docs)]) or "No relevant documents found."
-        answer = self._generate(data.query, context)
+        answer = self._generate_via_service(data.query, context)
         return AdaptiveRAGResultData(query=data.query, answer=answer, strategy_used="single_retrieval", complexity="SINGLE", retrieval_steps=len(docs), processing_time_ms=(time.time() - start_time) * 1000)
 
 
@@ -1370,42 +1398,60 @@ class IterativeRetrievalInit(MapFunction):
 
 
 class IterativeRetriever(MapFunction):
-    """迭代检索算子"""
+    """迭代检索算子（服务化向量检索版本）
 
-    KNOWLEDGE_BASE = [
-        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
-        {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
-        {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
-        {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
-        {"content": "RAG combines retrieval with generation for better answers.", "id": "5"},
-        {"content": "Transformers use attention mechanisms for sequence modeling.", "id": "6"},
-        {"content": "GPT models are autoregressive language models.", "id": "7"},
-    ]
+    使用 self.call_service("embedding") 和 self.call_service("vector_db") 进行真正的向量检索。
+    """
 
     def __init__(self, top_k: int = 3, **kwargs):
         super().__init__(**kwargs)
         self.top_k = top_k
+        self._hostname = socket.gethostname()
+
+    def _retrieve_via_service(self, query: str) -> list[dict]:
+        """使用服务进行向量检索"""
+        import numpy as np
+        try:
+            # RPC: call embedding.process(texts=[query])
+            query_embeddings = self.call_service("embedding", texts=[query])
+            if not query_embeddings:
+                print(f"      ⚠️ Failed to get query embedding")
+                return []
+
+            query_vec = np.array(query_embeddings[0], dtype=np.float32)
+
+            # RPC: call vector_db.process(query_vec, k=self.top_k)
+            results = self.call_service("vector_db", query_vec=query_vec, k=self.top_k)
+
+            # Convert to document format
+            docs = []
+            for score, metadata in results:
+                docs.append({
+                    "id": metadata.get("id", ""),
+                    "content": metadata.get("content", metadata.get("text", "")),
+                    "score": float(score),
+                })
+            return docs
+
+        except Exception as e:
+            print(f"      ⚠️ Service retrieval error: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
 
     def execute(self, state: IterativeState) -> IterativeState:
         if state.is_complete:
             return state
-        query_words = set(state.current_query.lower().split())
-        scored_docs = []
-        for doc in self.KNOWLEDGE_BASE:
-            content_words = set(doc["content"].lower().split())
-            overlap = len(query_words & content_words)
-            if overlap > 0:
-                scored_docs.append({**doc, "score": overlap / len(query_words)})
-        scored_docs.sort(key=lambda x: x["score"], reverse=True)
-        new_docs = scored_docs[:self.top_k]
+
+        new_docs = self._retrieve_via_service(state.current_query)
         state.accumulated_docs.extend(new_docs)
         state.reasoning_chain.append(f"[Retrieve] Query: '{state.current_query[:30]}' -> {len(new_docs)} docs")
-        print(f"    📚 Retrieve[{state.iteration}]: {len(new_docs)} docs")
+        print(f"    📚 Retrieve[{self._hostname}][{state.iteration}]: {len(new_docs)} docs")
         return state
 
 
 class IterativeReasoner(MapFunction):
-    """迭代推理算子"""
+    """迭代推理算子（服务化 LLM 版本）"""
 
     def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_iterations: int = 3, min_docs: int = 5, **kwargs):
         super().__init__(**kwargs)
@@ -1413,15 +1459,23 @@ class IterativeReasoner(MapFunction):
         self.llm_model = llm_model
         self.max_iterations = max_iterations
         self.min_docs = min_docs
+        self._hostname = socket.gethostname()
 
-    def _llm_call(self, messages: list[dict]) -> str:
-        import requests
+    def _llm_call_via_service(self, messages: list[dict]) -> str:
+        """使用 LLM 服务进行调用"""
         try:
-            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 256, "temperature": 0.7}, timeout=60)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
-        except Exception as e:
-            return f"[LLM Error] {str(e)}"
+            # RPC: call llm.process(messages, max_tokens, temperature)
+            # timeout=120 to avoid service call timeout for LLM inference
+            return self.call_service("llm", messages=messages, max_tokens=256, temperature=0.7, timeout=120)
+        except Exception:
+            # Fallback to direct request
+            import requests
+            try:
+                response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 256, "temperature": 0.7}, timeout=60)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                return f"[LLM Error] {str(e)}"
 
     def execute(self, state: IterativeState) -> IterativeState:
         if state.is_complete:
@@ -1430,40 +1484,48 @@ class IterativeReasoner(MapFunction):
         if state.iteration >= self.max_iterations or len(state.accumulated_docs) >= self.min_docs:
             state.is_complete = True
             state.reasoning_chain.append(f"[Reason] Complete (docs={len(state.accumulated_docs)})")
-            print(f"    🧠 Reason[{state.iteration}]: COMPLETE")
+            print(f"    🧠 Reason[{self._hostname}][{state.iteration}]: COMPLETE")
             return state
         context_so_far = "\n".join([f"- {d['content']}" for d in state.accumulated_docs[-3:]])
         messages = [{"role": "system", "content": "Generate a follow-up search query. Reply with ONLY the query."}, {"role": "user", "content": f"Original: {state.original_query}\n\nContext:\n{context_so_far}\n\nFollow-up query:"}]
-        new_query = self._llm_call(messages).strip()
+        new_query = self._llm_call_via_service(messages).strip()
         state.current_query = new_query
         state.reasoning_chain.append(f"[Reason] Next query = '{new_query[:40]}'")
-        print(f"    🧠 Reason[{state.iteration}]: Next -> '{new_query[:30]}...'")
+        print(f"    🧠 Reason[{self._hostname}][{state.iteration}]: Next -> '{new_query[:30]}...'")
         return state
 
 
 class FinalSynthesizer(MapFunction):
-    """综合生成算子"""
+    """综合生成算子（服务化 LLM 版本）"""
 
     def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", **kwargs):
         super().__init__(**kwargs)
         self.llm_base_url = llm_base_url
         self.llm_model = llm_model
+        self._hostname = socket.gethostname()
 
-    def _llm_call(self, messages: list[dict]) -> str:
-        import requests
+    def _llm_call_via_service(self, messages: list[dict]) -> str:
+        """使用 LLM 服务进行调用"""
         try:
-            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 512, "temperature": 0.7}, timeout=60)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
-        except Exception as e:
-            return f"[LLM Error] {str(e)}"
+            # RPC: call llm.process(messages, max_tokens, temperature)
+            # timeout=120 to avoid service call timeout for LLM inference
+            return self.call_service("llm", messages=messages, max_tokens=512, temperature=0.7, timeout=120)
+        except Exception:
+            # Fallback to direct request
+            import requests
+            try:
+                response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 512, "temperature": 0.7}, timeout=60)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                return f"[LLM Error] {str(e)}"
 
     def execute(self, state: IterativeState) -> AdaptiveRAGResultData:
         context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(state.accumulated_docs)])
         chain_text = "\n".join(state.reasoning_chain)
         messages = [{"role": "system", "content": "Synthesize all information to answer comprehensively."}, {"role": "user", "content": f"Question: {state.original_query}\n\nReasoning:\n{chain_text}\n\nContext:\n{context}\n\nAnswer:"}]
-        answer = self._llm_call(messages)
-        print(f"    ✨ Synthesize: Generated answer ({len(answer)} chars)")
+        answer = self._llm_call_via_service(messages)
+        print(f"    ✨ Synthesize[{self._hostname}]: Generated answer ({len(answer)} chars)")
         return AdaptiveRAGResultData(query=state.original_query, answer=answer, strategy_used="iterative_retrieval", complexity="MULTI", retrieval_steps=state.iteration, processing_time_ms=(time.time() - state.start_time) * 1000)
 
 
@@ -1543,4 +1605,348 @@ _ADAPTIVE_RAG_CLASSES = [
 ]
 
 for _cls in _ADAPTIVE_RAG_CLASSES:
+    _cls.__module__ = "common.operators"
+
+
+# =============================================================================
+# Service-Based RAG Operators
+# =============================================================================
+# These operators use registered services via self.call_service()
+# to avoid distributed access issues (each worker loading its own model/index).
+#
+# Services are registered in pipeline.py:
+#   - embedding: EmbeddingService for vectorization
+#   - vector_db: SageDBService for knowledge base retrieval
+#   - llm: LLMService for generation
+#
+# Usage:
+#   from .pipeline import register_all_services
+#   register_all_services(env, config)
+#   env.from_source(...).map(ServiceRetriever, ...).map(ServiceGenerator, ...)
+
+
+class ServiceRetriever(MapFunction):
+    """
+    Service-based retriever using registered vector_db service.
+
+    Uses self.call_service("vector_db") for retrieval.
+    Avoids each worker loading its own embedding model and knowledge base.
+    """
+
+    def __init__(
+        self,
+        top_k: int = 5,
+        stage: int = 1,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.top_k = top_k
+        self.stage = stage
+        self._hostname = socket.gethostname()
+
+    def execute(self, data: TaskState) -> TaskState:
+        """Execute retrieval using vector_db service"""
+        if not isinstance(data, TaskState):
+            return data
+
+        state = data
+        state.node_id = self._hostname
+        state.stage = self.stage
+        state.operator_name = f"ServiceRetriever_{self.stage}"
+        state.mark_started()
+
+        try:
+            retrieval_start = time.time()
+
+            # Get embedding service and vector_db service
+            embedding_service = self.call_service("embedding")
+            vector_db = self.call_service("vector_db")
+
+            # Embed query
+            query_embeddings = embedding_service.embed([state.query])
+            if not query_embeddings:
+                raise ValueError("Failed to get query embedding")
+
+            import numpy as np
+            query_vec = np.array(query_embeddings[0], dtype=np.float32)
+
+            # Search vector_db
+            results = vector_db.search(query_vec, top_k=self.top_k)
+
+            # Convert results to document format
+            state.retrieved_docs = []
+            for score, metadata in results:
+                state.retrieved_docs.append({
+                    "id": metadata.get("id", ""),
+                    "title": metadata.get("title", ""),
+                    "content": metadata.get("content", metadata.get("text", "")),
+                    "score": float(score),
+                })
+
+            retrieval_time = time.time() - retrieval_start
+            state.metadata["retrieval_time_ms"] = retrieval_time * 1000
+            state.metadata["num_retrieved"] = len(state.retrieved_docs)
+            state.success = True
+
+        except Exception as e:
+            state.success = False
+            state.error = str(e)
+            state.retrieved_docs = []
+            import traceback
+            traceback.print_exc()
+
+        state.mark_completed()
+        return state
+
+
+class ServiceReranker(MapFunction):
+    """
+    Service-based reranker using registered embedding service.
+
+    Uses self.call_service("embedding") for reranking.
+    Computes more refined relevance scores using query-document similarity.
+    """
+
+    def __init__(
+        self,
+        top_k: int = 3,
+        stage: int = 2,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.top_k = top_k
+        self.stage = stage
+        self._hostname = socket.gethostname()
+
+    def execute(self, data: TaskState) -> TaskState:
+        """Execute reranking using embedding service"""
+        if not isinstance(data, TaskState):
+            return data
+
+        state = data
+        state.node_id = self._hostname
+        state.stage = self.stage
+        state.operator_name = f"ServiceReranker_{self.stage}"
+        state.mark_started()
+
+        try:
+            rerank_start = time.time()
+
+            if not state.retrieved_docs:
+                state.success = True
+                state.mark_completed()
+                return state
+
+            # Get embedding service
+            embedding_service = self.call_service("embedding")
+
+            # Get query embedding
+            query_embeddings = embedding_service.embed([state.query])
+            if not query_embeddings:
+                # Fallback: keep original order
+                state.retrieved_docs = state.retrieved_docs[:self.top_k]
+                state.success = True
+                state.mark_completed()
+                return state
+
+            # Get document embeddings
+            doc_texts = [
+                doc.get("content", "")[:500]
+                for doc in state.retrieved_docs
+            ]
+            doc_embeddings = embedding_service.embed(doc_texts)
+
+            if not doc_embeddings:
+                state.retrieved_docs = state.retrieved_docs[:self.top_k]
+                state.success = True
+                state.mark_completed()
+                return state
+
+            # Compute cosine similarity and rerank
+            import math
+            query_vec = query_embeddings[0]
+
+            reranked = []
+            for doc, doc_vec in zip(state.retrieved_docs, doc_embeddings):
+                # Cosine similarity
+                dot = sum(a * b for a, b in zip(query_vec, doc_vec))
+                norm1 = math.sqrt(sum(a * a for a in query_vec))
+                norm2 = math.sqrt(sum(b * b for b in doc_vec))
+                score = dot / (norm1 * norm2) if norm1 > 0 and norm2 > 0 else 0.0
+                reranked.append({**doc, "rerank_score": score})
+
+            reranked.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
+            state.retrieved_docs = reranked[:self.top_k]
+
+            rerank_time = time.time() - rerank_start
+            state.metadata["rerank_time_ms"] = rerank_time * 1000
+            state.metadata["num_reranked"] = len(state.retrieved_docs)
+            state.success = True
+
+        except Exception as e:
+            state.success = False
+            state.error = str(e)
+
+        state.mark_completed()
+        return state
+
+
+class ServicePromptor(MapFunction):
+    """
+    Promptor that builds prompts from retrieved documents.
+
+    Combines query and context into LLM-ready format.
+    No service needed - just formatting.
+    """
+
+    def __init__(
+        self,
+        stage: int = 3,
+        max_context_length: int = 2000,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.stage = stage
+        self.max_context_length = max_context_length
+        self._hostname = socket.gethostname()
+
+    def execute(self, data: TaskState) -> TaskState:
+        """Build prompt from retrieved docs"""
+        if not isinstance(data, TaskState):
+            return data
+
+        state = data
+        state.node_id = self._hostname
+        state.stage = self.stage
+        state.operator_name = f"ServicePromptor_{self.stage}"
+        state.mark_started()
+
+        try:
+            context_parts = []
+            total_length = 0
+
+            for i, doc in enumerate(state.retrieved_docs):
+                title = doc.get("title", f"Document {i + 1}")
+                content = doc.get("content", "")
+                doc_text = f"[{title}]\n{content}"
+
+                if total_length + len(doc_text) > self.max_context_length:
+                    break
+
+                context_parts.append(doc_text)
+                total_length += len(doc_text)
+
+            state.context = "\n\n".join(context_parts)
+            state.metadata["context_length"] = len(state.context)
+            state.success = True
+
+        except Exception as e:
+            state.success = False
+            state.error = str(e)
+            state.context = ""
+
+        state.mark_completed()
+        return state
+
+
+class ServiceGenerator(MapFunction):
+    """
+    Service-based generator using registered LLM service.
+
+    Uses self.call_service("llm") for generation.
+    Avoids each worker initializing its own LLM client.
+    """
+
+    def __init__(
+        self,
+        stage: int = 4,
+        output_file: str | None = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.stage = stage
+        self.output_file = output_file
+        self._hostname = socket.gethostname()
+
+        if self.output_file:
+            output_path = Path(self.output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def execute(self, data: TaskState) -> TaskState:
+        """Execute generation using LLM service"""
+        if not isinstance(data, TaskState):
+            return data
+
+        state = data
+        state.node_id = self._hostname
+        state.stage = self.stage
+        state.operator_name = f"ServiceGenerator_{self.stage}"
+        state.mark_started()
+
+        try:
+            gen_start = time.time()
+
+            # Build messages
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant. Answer based on the provided context. If no relevant information, say so.",
+                },
+                {
+                    "role": "user",
+                    "content": f"Context:\n{state.context}\n\nQuestion: {state.query}",
+                },
+            ]
+
+            # Generate response via RPC (timeout=120 for LLM inference)
+            state.response = self.call_service("llm", messages=messages, max_tokens=512, temperature=0.7, timeout=120)
+
+            gen_time = time.time() - gen_start
+            state.metadata["generation_time_ms"] = gen_time * 1000
+            state.success = True
+
+            # Save to file if configured
+            if self.output_file:
+                self._save_response(state, gen_time)
+
+        except Exception as e:
+            state.success = False
+            state.error = str(e)
+            state.response = f"[Error] {str(e)}"
+
+        state.mark_completed()
+        return state
+
+    def _save_response(self, state: TaskState, gen_time: float) -> None:
+        """Save response to file"""
+        if not self.output_file:
+            return
+        try:
+            import json
+            from datetime import datetime
+
+            record = {
+                "timestamp": datetime.now().isoformat(),
+                "task_id": state.task_id,
+                "node_id": state.node_id,
+                "query": state.query,
+                "context": state.context,
+                "response": state.response,
+                "generation_time_ms": gen_time * 1000,
+            }
+            with open(self.output_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"[Warning] Failed to save response: {e}")
+
+
+# Set __module__ for Service-based operators for Ray serialization
+_SERVICE_OPERATOR_CLASSES = [
+    ServiceRetriever,
+    ServiceReranker,
+    ServicePromptor,
+    ServiceGenerator,
+]
+
+for _cls in _SERVICE_OPERATOR_CLASSES:
     _cls.__module__ = "common.operators"

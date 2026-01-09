@@ -34,10 +34,10 @@ retriever:
 
 generator:
   vllm:
-    api_key: "token-abc123"
+    api_key: ""
     method: "openai"
-    model_name: "/home/cyb/Llama-3.1-8B-Instruct"
-    base_url: "http://sage2:8000/v1"
+    model_name: "Qwen/Qwen2.5-7B-Instruct"
+    base_url: "http://11.11.11.7:8903/v1"
     seed: 42
 
 promptor:

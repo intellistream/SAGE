@@ -162,13 +162,9 @@ class ExecutionGraph:
                     ServiceTaskFactory,
                 )
 
-                # 获取 extra_python_paths 用于 Ray runtime_env
-                extra_python_paths = getattr(env, "extra_python_paths", []) or []
-
                 service_task_factory = ServiceTaskFactory(
                     service_factory=service_factory,
                     remote=(env.platform == "remote"),
-                    extra_python_paths=extra_python_paths,
                 )
 
                 # 创建服务节点，同时传入ServiceFactory和ServiceTaskFactory

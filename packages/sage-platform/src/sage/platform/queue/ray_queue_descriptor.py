@@ -140,9 +140,38 @@ def _is_ray_local_mode():
 class RayQueueProxy:
     """Ray队列代理，提供类似队列的接口但通过manager访问实际队列"""
 
-    def __init__(self, manager, queue_id: str):
+    def __init__(self, manager, queue_id: str, maxsize: int = 10000):
         self.manager = manager
         self.queue_id = queue_id
+        self.maxsize = maxsize
+        self._queue_ensured = False
+
+    def __getstate__(self):
+        """序列化时不保存 manager（Ray ActorHandle），只保存 queue_id 和 maxsize"""
+        return {
+            "queue_id": self.queue_id,
+            "maxsize": self.maxsize,
+            "_queue_ensured": False,  # 重置，反序列化后需要重新确保队列存在
+        }
+
+    def __setstate__(self, state):
+        """反序列化时重新获取 global manager"""
+        self.queue_id = state["queue_id"]
+        self.maxsize = state["maxsize"]
+        self._queue_ensured = False
+        # 重新获取全局 manager
+        self.manager = get_global_queue_manager()
+        logger.debug(f"[PROXY] Restored from pickle: queue_id={self.queue_id}, maxsize={self.maxsize}")
+
+    def _ensure_queue_exists(self):
+        """确保队列在 RayQueueManager 中存在"""
+        if not self._queue_ensured:
+            try:
+                ray.get(self.manager.get_or_create_queue.remote(self.queue_id, self.maxsize))
+                self._queue_ensured = True
+                logger.debug(f"[PROXY] Ensured queue exists: {self.queue_id}")
+            except Exception as e:
+                logger.warning(f"[PROXY] Failed to ensure queue {self.queue_id}: {e}")
 
     def put(self, item, block=True, timeout=None):
         """向队列添加项
@@ -153,6 +182,9 @@ class RayQueueProxy:
             timeout: 超时时间（秒）
         """
         import time
+
+        # 确保队列存在
+        self._ensure_queue_exists()
 
         _start = time.time()
         logger.debug(
@@ -173,6 +205,7 @@ class RayQueueProxy:
 
     def put_nowait(self, item):
         """非阻塞添加项目到队列（实际上Ray队列始终是阻塞的）"""
+        self._ensure_queue_exists()
         return ray.get(self.manager.put.remote(self.queue_id, item))
 
     def get(self, block=True, timeout=None):
@@ -183,6 +216,9 @@ class RayQueueProxy:
             timeout: 超时时间（秒）
         """
         import time
+
+        # 确保队列存在
+        self._ensure_queue_exists()
 
         _start = time.time()
         logger.debug(f"[PROXY-GET-START] queue_id={self.queue_id}, timeout={timeout}")
@@ -216,6 +252,15 @@ class RayQueueProxy:
         """检查队列是否已满（简化实现）"""
         # 对于Ray队列，这个很难确定，返回False
         return False
+
+    def close(self):
+        """关闭队列代理（空操作，队列由 RayQueueManager 管理）
+
+        RayQueueProxy 只是一个轻量级代理，不持有实际资源。
+        队列的生命周期由 RayQueueManager Actor 管理。
+        此方法提供接口兼容性，允许调用者统一调用 close()。
+        """
+        pass
 
 
 # 全局队列管理器，用于在不同Actor之间共享队列实例
@@ -394,12 +439,23 @@ def get_global_queue_manager() -> Any:
             )
             _create_start = time.time()
             global _global_queue_manager
+            
+            # Build runtime_env with PYTHONPATH for custom module resolution
+            # This ensures RayQueueManager can deserialize objects from common module
+            import os
+            runtime_env = {}
+            pythonpath = os.environ.get("PYTHONPATH", "")
+            if pythonpath:
+                runtime_env["env_vars"] = {"PYTHONPATH": pythonpath}
+                logger.debug(f"[GET-MANAGER-CREATE] Using PYTHONPATH: {pythonpath}")
+            
             _global_queue_manager = RayQueueManager.options(
                 name="global_ray_queue_manager",
                 namespace=QUEUE_MANAGER_NAMESPACE,  # 使用固定 namespace
                 lifetime="detached",  # 独立于创建者进程，避免 owner 死亡导致 Actor 失效
                 max_restarts=-1,  # 无限重启
                 max_task_retries=-1,  # 无限重试
+                runtime_env=runtime_env if runtime_env else None,
             ).remote()
             _create_duration = time.time() - _create_start
             _total_duration = time.time() - _start
@@ -411,12 +467,14 @@ def get_global_queue_manager() -> Any:
             return _global_queue_manager
         except ValueError as e:
             # 如果Actor已存在，再次尝试获取
-            if "already exists" in str(e):
+            # 检查多种可能的错误信息格式
+            err_str = str(e).lower()
+            if "already exists" in err_str or "already taken" in err_str:
                 logger.debug(
                     f"[GET-MANAGER-CONFLICT] Attempt {attempt + 1}: Actor already exists, retrying get"
                 )
                 try:
-                    manager = ray.get_actor("global_ray_queue_manager")
+                    manager = ray.get_actor("global_ray_queue_manager", namespace=QUEUE_MANAGER_NAMESPACE)
                     _total_duration = time.time() - _start
                     logger.debug(
                         f"[GET-MANAGER-FOUND-RETRY] Found manager after conflict in namespace {QUEUE_MANAGER_NAMESPACE}, "
@@ -503,8 +561,8 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             # 确保队列被创建，但不获取队列对象本身
             ray.get(manager.get_or_create_queue.remote(self.queue_id, self.maxsize))
             logger.debug(f"Ensured queue exists in manager for queue_id={self.queue_id}")
-            # 返回一个队列代理对象
-            self._queue = RayQueueProxy(manager, self.queue_id)
+            # 返回一个队列代理对象，传入 maxsize 以便在序列化后恢复时可以重新创建队列
+            self._queue = RayQueueProxy(manager, self.queue_id, maxsize=self.maxsize)
         return self._queue
 
     def to_dict(self) -> dict[str, Any]:

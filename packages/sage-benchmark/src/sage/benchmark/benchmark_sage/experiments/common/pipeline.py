@@ -7,6 +7,11 @@ Provides pipeline factories for distributed scheduling benchmarks:
 - LLM pipeline (LLM inference)
 - RAG pipeline (fine-grained: Retriever -> Reranker -> Promptor -> Generator)
 - Mixed pipeline (Compute + RAG stages)
+
+Service Registration:
+- embedding_service: Remote embedding service for vectorization
+- vector_db: SageDBService for knowledge base retrieval
+- llm_service: LLM service for generation
 """
 
 from __future__ import annotations
@@ -25,6 +30,7 @@ try:
         LLMOperator,
         MetricsSink,
         TaskSource,
+        SAMPLE_KNOWLEDGE_BASE,
     )
 except ImportError:
     from models import BenchmarkConfig, BenchmarkMetrics
@@ -33,7 +39,365 @@ except ImportError:
         LLMOperator,
         MetricsSink,
         TaskSource,
+        SAMPLE_KNOWLEDGE_BASE,
     )
+
+
+# =============================================================================
+# Service Registration Helpers
+# =============================================================================
+
+
+def register_embedding_service(
+    env: LocalEnvironment | RemoteEnvironment,
+    base_url: str,
+    model: str,
+) -> bool:
+    """
+    Register embedding service for vectorization.
+
+    Uses remote embedding API (OpenAI-compatible).
+    All operators access via self.call_service("embedding").
+
+    Args:
+        env: Environment to register service
+        base_url: Embedding service URL (e.g., http://host:8090/v1)
+        model: Embedding model name
+
+    Returns:
+        True if registered successfully
+    """
+    try:
+        class EmbeddingService:
+            """Remote embedding service wrapper (lazy init to avoid SSLContext serialization)"""
+
+            def __init__(self, base_url: str, model: str):
+                self.base_url = base_url.rstrip("/")
+                self.model = model
+                self._client = None  # Lazy init
+
+            def _get_client(self):
+                """Lazy create httpx client (avoids SSLContext pickle issues)"""
+                if self._client is None:
+                    import httpx
+                    self._client = httpx.Client(timeout=60.0)
+                return self._client
+
+            def embed(self, texts: list[str]) -> list[list[float]]:
+                """Get embeddings for texts"""
+                try:
+                    response = self._get_client().post(
+                        f"{self.base_url}/embeddings",
+                        json={"input": texts, "model": self.model},
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+                    return [item["embedding"] for item in result["data"]]
+                except Exception as e:
+                    print(f"[EmbeddingService] Error: {e}")
+                    return []
+
+            def process(self, texts: list[str]) -> list[list[float]]:
+                """Default RPC method - alias for embed"""
+                return self.embed(texts)
+
+            def close(self):
+                if self._client is not None:
+                    self._client.close()
+                    self._client = None
+
+        # Register service class with kwargs (NOT a lambda)
+        # ServiceFactory will instantiate the class with context injection
+        env.register_service("embedding", EmbeddingService, base_url=base_url, model=model)
+        print(f"[Pipeline] Registered embedding service: {model} @ {base_url}")
+        return True
+
+    except Exception as e:
+        print(f"[Pipeline] Failed to register embedding service: {e}")
+        return False
+
+
+def register_vector_db_service(
+    env: LocalEnvironment | RemoteEnvironment,
+    embedding_base_url: str,
+    embedding_model: str,
+    knowledge_base: list[dict[str, Any]] | None = None,
+    dimension: int | None = None,
+) -> bool:
+    """
+    Register SageDBService for vector search (RAG).
+
+    Uses lazy initialization to avoid serialization issues with C++ extensions.
+    All operators access via self.call_service("vector_db").
+
+    Args:
+        env: Environment to register service
+        embedding_base_url: Embedding service URL
+        embedding_model: Embedding model name
+        knowledge_base: Documents to pre-load (uses SAMPLE_KNOWLEDGE_BASE if None)
+        dimension: Vector dimension (auto-detected if None)
+
+    Returns:
+        True if registered successfully
+    """
+    try:
+        kb = knowledge_base or SAMPLE_KNOWLEDGE_BASE
+
+        # Lazy-init wrapper that creates SageDB on first use
+        class LazyVectorDBService:
+            """Lazy-initialized vector DB service (avoids C++ pickle issues)"""
+
+            def __init__(
+                self,
+                embedding_url: str,
+                embedding_model_name: str,
+                initial_data: list[dict],
+                dim: int | None,
+            ):
+                self._embedding_url = embedding_url
+                self._embedding_model = embedding_model_name
+                self._initial_data = initial_data
+                self._dim = dim
+                self._db = None  # Lazy init
+
+            def _get_embeddings(self, texts: list[str]) -> list[list[float]] | None:
+                """Get embeddings from remote service"""
+                try:
+                    import httpx
+                    with httpx.Client(timeout=60.0) as client:
+                        response = client.post(
+                            f"{self._embedding_url.rstrip('/')}/embeddings",
+                            json={"input": texts, "model": self._embedding_model},
+                        )
+                        response.raise_for_status()
+                        result = response.json()
+                        return [item["embedding"] for item in result["data"]]
+                except Exception as e:
+                    print(f"[VectorDB] Embedding error: {e}")
+                return None
+
+            def _ensure_initialized(self):
+                """Initialize SageDB on first use"""
+                if self._db is not None:
+                    return
+
+                import numpy as np
+                from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+                    SageDBService,
+                )
+
+                # Get dimension
+                dim = self._dim
+                if dim is None:
+                    sample_text = self._initial_data[0].get("content", "test")
+                    embeddings = self._get_embeddings([sample_text])
+                    if embeddings:
+                        dim = len(embeddings[0])
+                        print(f"[VectorDB] Auto-detected dimension: {dim}")
+                    else:
+                        dim = 1024
+                        print(f"[VectorDB] Using default dimension: {dim}")
+
+                # Create SageDB
+                self._db = SageDBService(dimension=dim, index_type="AUTO")
+
+                # Get embeddings for all documents
+                texts = [
+                    item.get("content", item.get("text", ""))
+                    for item in self._initial_data
+                ]
+                embeddings = self._get_embeddings(texts)
+
+                if embeddings is not None:
+                    vectors = np.array(embeddings, dtype=np.float32)
+                    print(f"[VectorDB] Using real embeddings (dim={dim})")
+                else:
+                    # Fallback: hash-based mock embeddings
+                    print(f"[VectorDB] Using mock embeddings (dim={dim})")
+                    vectors = []
+                    for text in texts:
+                        vec = np.zeros(dim, dtype=np.float32)
+                        for i, char in enumerate(text[:dim]):
+                            vec[i % dim] += ord(char) / 1000.0
+                        vec = vec / (np.linalg.norm(vec) + 1e-8)
+                        vectors.append(vec)
+                    vectors = np.array(vectors, dtype=np.float32)
+
+                # Build metadata
+                metadata_list = [
+                    {
+                        "id": item.get("id", str(i)),
+                        "title": item.get("title", ""),
+                        "content": item.get("content", item.get("text", "")),
+                    }
+                    for i, item in enumerate(self._initial_data)
+                ]
+
+                # Add to database
+                self._db.add_batch(vectors, metadata_list)
+                self._db._db.build_index()
+                print(f"[VectorDB] Loaded {len(vectors)} documents")
+
+            def search(self, query_vec, k: int = 5) -> list[tuple[float, dict]]:
+                """Search for similar documents"""
+                self._ensure_initialized()
+                return self._db.search(query_vec, k=k)
+
+            def process(self, query_vec, k: int = 5) -> list[tuple[float, dict]]:
+                """Default RPC method - alias for search"""
+                return self.search(query_vec, k=k)
+
+            def add_batch(self, vectors, metadata_list):
+                """Add documents to the database"""
+                self._ensure_initialized()
+                return self._db.add_batch(vectors, metadata_list)
+
+        # Register service class with kwargs (NOT a lambda)
+        # ServiceFactory will instantiate the class with context injection
+        env.register_service(
+            "vector_db",
+            LazyVectorDBService,
+            embedding_url=embedding_base_url,
+            embedding_model_name=embedding_model,
+            initial_data=kb,
+            dim=dimension,
+        )
+        print("[Pipeline] Registered vector_db (LazyVectorDBService)")
+        return True
+
+    except Exception as e:
+        print(f"[Pipeline] Failed to register vector_db: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def register_llm_service(
+    env: LocalEnvironment | RemoteEnvironment,
+    base_url: str,
+    model: str,
+    max_tokens: int = 256,
+) -> bool:
+    """
+    Register LLM service for generation.
+
+    Uses remote LLM API (OpenAI-compatible).
+    All operators access via self.call_service("llm").
+
+    Args:
+        env: Environment to register service
+        base_url: LLM service URL (e.g., http://host:8903/v1)
+        model: LLM model name
+        max_tokens: Default max tokens for generation
+
+    Returns:
+        True if registered successfully
+    """
+    try:
+        import httpx
+
+        class LLMService:
+            """Remote LLM service wrapper"""
+
+            def __init__(self, base_url: str, model: str, max_tokens: int):
+                self.base_url = base_url.rstrip("/")
+                self.model = model
+                self.max_tokens = max_tokens
+                self._client = None  # Lazy init
+
+            def _get_client(self):
+                """Lazy create httpx client (avoids SSLContext pickle issues)"""
+                if self._client is None:
+                    import httpx
+                    self._client = httpx.Client(timeout=120.0)
+                return self._client
+
+            def chat(
+                self,
+                messages: list[dict[str, str]],
+                max_tokens: int | None = None,
+                temperature: float = 0.7,
+            ) -> str:
+                """Chat completion"""
+                try:
+                    response = self._get_client().post(
+                        f"{self.base_url}/chat/completions",
+                        json={
+                            "model": self.model,
+                            "messages": messages,
+                            "max_tokens": max_tokens or self.max_tokens,
+                            "temperature": temperature,
+                        },
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+                    return result["choices"][0]["message"]["content"]
+                except Exception as e:
+                    return f"[LLM Error] {e}"
+
+            def process(
+                self,
+                messages: list[dict[str, str]],
+                max_tokens: int | None = None,
+                temperature: float = 0.7,
+            ) -> str:
+                """Default RPC method - alias for chat"""
+                return self.chat(messages, max_tokens=max_tokens, temperature=temperature)
+
+            def close(self):
+                if self._client is not None:
+                    self._client.close()
+                    self._client = None
+
+        # Register service class with kwargs (NOT a lambda)
+        # ServiceFactory will instantiate the class with context injection
+        env.register_service("llm", LLMService, base_url=base_url, model=model, max_tokens=max_tokens)
+        print(f"[Pipeline] Registered llm service: {model} @ {base_url}")
+        return True
+
+    except Exception as e:
+        print(f"[Pipeline] Failed to register llm service: {e}")
+        return False
+
+
+def register_all_services(
+    env: LocalEnvironment | RemoteEnvironment,
+    config: BenchmarkConfig,
+    knowledge_base: list[dict[str, Any]] | None = None,
+) -> dict[str, bool]:
+    """
+    Register all RAG services for the pipeline.
+
+    Args:
+        env: Environment to register services
+        config: Benchmark configuration
+        knowledge_base: Optional custom knowledge base
+
+    Returns:
+        Dict mapping service name to registration success
+    """
+    results = {}
+
+    results["embedding"] = register_embedding_service(
+        env,
+        base_url=config.embedding_base_url,
+        model=config.embedding_model,
+    )
+
+    results["vector_db"] = register_vector_db_service(
+        env,
+        embedding_base_url=config.embedding_base_url,
+        embedding_model=config.embedding_model,
+        knowledge_base=knowledge_base,
+    )
+
+    results["llm"] = register_llm_service(
+        env,
+        base_url=config.llm_base_url,
+        model=config.llm_model,
+        max_tokens=config.max_tokens,
+    )
+
+    return results
 
 
 class SchedulingBenchmarkPipeline:
@@ -76,6 +440,7 @@ class SchedulingBenchmarkPipeline:
     def _create_environment(self, name: str) -> LocalEnvironment | RemoteEnvironment:
         """Create execution environment (local or remote)."""
         if self.config.use_remote:
+            import os
             from pathlib import Path
 
             from sage.kernel.api.remote_environment import RemoteEnvironment
@@ -88,11 +453,20 @@ class SchedulingBenchmarkPipeline:
             # This ensures workers can import sage.benchmark.benchmark_sage.experiments.common.operators
             sage_benchmark_src = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
 
+            # CRITICAL: Set PYTHONPATH environment variable BEFORE creating RemoteEnvironment
+            # This ensures RayQueueManager (created during environment setup) can find common module
+            pythonpath_value = f"{sage_benchmark_src}:{experiments_dir}"
+            existing_pythonpath = os.environ.get("PYTHONPATH", "")
+            if existing_pythonpath:
+                pythonpath_value = f"{pythonpath_value}:{existing_pythonpath}"
+            os.environ["PYTHONPATH"] = pythonpath_value
+            print(f"[Pipeline] Set PYTHONPATH: {pythonpath_value}")
+
             # Create config with runtime_env for Ray to find our modules
             config = {
                 "runtime_env": {
                     "env_vars": {
-                        "PYTHONPATH": f"{sage_benchmark_src}:{experiments_dir}"
+                        "PYTHONPATH": pythonpath_value
                     },
                     "working_dir": str(experiments_dir),
                 }
@@ -276,6 +650,78 @@ class SchedulingBenchmarkPipeline:
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
                 max_tokens=self.config.max_tokens,
+                output_file=self.config.llm_output_file,
+                stage=4,
+            )
+            .sink(
+                MetricsSink,
+                metrics_collector=self.metrics,
+                verbose=not self.config.test_mode,
+            )
+        )
+
+        return self
+
+    def build_rag_service_pipeline(
+        self, name: str = "rag_service_benchmark"
+    ) -> SchedulingBenchmarkPipeline:
+        """
+        Build RAG pipeline using service-based operators.
+
+        Uses register_service() pattern to avoid distributed access issues.
+        Services are registered once on Head node, accessed via self.call_service().
+
+        Pipeline: TaskSource -> ServiceRetriever -> ServiceReranker
+                  -> ServicePromptor -> ServiceGenerator -> MetricsSink
+
+        Advantages over SimpleXxx operators:
+        - No duplicate embedding/index loading across workers
+        - Shared vector_db service for all retrieval operations
+        - Better resource utilization in distributed mode
+        """
+        from .operators import (
+            ServiceGenerator,
+            ServicePromptor,
+            ServiceReranker,
+            ServiceRetriever,
+        )
+
+        env = self._create_environment(name)
+
+        # Register all services (embedding, vector_db, llm)
+        print("\n[Pipeline] Registering services for RAG pipeline...")
+        service_results = register_all_services(env, self.config)
+        for svc_name, success in service_results.items():
+            status = "✓" if success else "✗"
+            print(f"  {status} {svc_name}")
+        print()
+
+        (
+            env.from_source(
+                TaskSource,
+                num_tasks=self.config.num_tasks,
+                task_complexity=self.config.task_complexity,
+            )
+            .map(
+                ServiceRetriever,
+                parallelism=self.config.parallelism,
+                top_k=10,
+                stage=1,
+            )
+            .map(
+                ServiceReranker,
+                parallelism=self.config.parallelism,
+                top_k=5,
+                stage=2,
+            )
+            .map(
+                ServicePromptor,
+                parallelism=self.config.parallelism,
+                stage=3,
+            )
+            .map(
+                ServiceGenerator,
+                parallelism=self.config.parallelism,
                 output_file=self.config.llm_output_file,
                 stage=4,
             )
@@ -727,11 +1173,20 @@ class SchedulingBenchmarkPipeline:
         env = self._create_environment(name)
         AdaptiveRAGResultSink.clear_results()
 
+        # Register services for vector retrieval (embedding + vector_db + llm)
+        print("\n[Pipeline] Registering services for Adaptive-RAG...")
+        service_results = register_all_services(env, self.config)
+        for svc_name, success in service_results.items():
+            status = "✓" if success else "✗"
+            print(f"  {status} {svc_name}")
+        print()
+
         # Source -> Classifier (use LLM for classification)
         classified_stream = (
             env.from_source(AdaptiveRAGQuerySource, queries=queries, delay=0.1)
             .map(
                 QueryClassifier,
+                parallelism=self.config.parallelism,
                 classifier_type="llm",
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
@@ -744,6 +1199,7 @@ class SchedulingBenchmarkPipeline:
             .filter(ZeroComplexityFilter)
             .map(
                 NoRetrievalStrategy,
+                parallelism=self.config.parallelism,
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
             )
@@ -756,6 +1212,7 @@ class SchedulingBenchmarkPipeline:
             .filter(SingleComplexityFilter)
             .map(
                 SingleRetrievalStrategy,
+                parallelism=self.config.parallelism,
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
             )
@@ -766,16 +1223,17 @@ class SchedulingBenchmarkPipeline:
         multi_stream = (
             classified_stream
             .filter(MultiComplexityFilter)
-            .map(IterativeRetrievalInit)
+            .map(IterativeRetrievalInit, parallelism=self.config.parallelism)
         )
 
         # Unroll the loop: [Retrieve -> Reason] x max_iterations
         for _ in range(max_iterations):
             multi_stream = (
                 multi_stream
-                .map(IterativeRetriever, top_k=3)
+                .map(IterativeRetriever, parallelism=self.config.parallelism, top_k=3)
                 .map(
                     IterativeReasoner,
+                    parallelism=self.config.parallelism,
                     llm_base_url=self.config.llm_base_url,
                     llm_model=self.config.llm_model,
                     max_iterations=max_iterations,
@@ -787,6 +1245,7 @@ class SchedulingBenchmarkPipeline:
             multi_stream
             .map(
                 FinalSynthesizer,
+                parallelism=self.config.parallelism,
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
             )
