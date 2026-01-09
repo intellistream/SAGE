@@ -21,25 +21,40 @@ from sage.libs._version import __author__, __email__, __version__
 # Export submodules
 __layer__ = "L3"
 
-# NOTE: 'ann' module has been consolidated into 'anns' (unified ANNS structure)
-# Old structure: ann/ (interface) + anns/ (wrappers) + algorithms_impl/ (C++)
-# New structure: anns/{interface, wrappers, implementations}
+# NOTE: ANNS and AMMS have been externalized to independent PyPI packages:
+# - isage-anns: ANNS algorithms (interface/registry remain here)
+# - isage-amms: AMM algorithms (interface/registry remain here)
+# Install via extras: pip install -e packages/sage-libs[anns,amms]
 #
-# NOTE: 'libamm' submodule has been refactored into 'amms' (unified AMM structure)
-# Old structure: libamm/ (monolithic submodule with algorithms + benchmarks)
-# New structure: amms/{interface, wrappers, implementations}
-# Benchmarks moved to: sage-benchmark/benchmark_libamm/
-from . import agentic, amms, anns, finetune, foundation, integrations, privacy, rag
+# Module reorganization (2026-01):
+# - sias, reasoning, eval → moved into agentic/ for consolidation
+from . import (
+    agentic,
+    amms,
+    anns,
+    dataops,
+    finetune,
+    foundation,
+    integrations,
+    privacy,
+    rag,
+    safety,
+)
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
+    # Core domains
     "foundation",
-    "agentic",
-    "amms",
-    "anns",
+    "agentic",  # Includes: agents, planning, sias, reasoning, eval
     "rag",
+    "dataops",
+    "safety",
+    # Interface layers (external implementations)
+    "anns",  # ANNS interface
+    "amms",  # AMM interface
+    # Specialized
     "integrations",
     "privacy",
     "finetune",

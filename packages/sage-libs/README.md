@@ -6,21 +6,76 @@ SAGE Libraries 是基于 SAGE Framework 构建的可复用组件库，提供了�
 
 ## 📚 Package Contents（接口层定位）
 
-`sage-libs` 现在定位为 **接口/注册表层**，重型实现迁出为独立 PyPI 包：
+`sage-libs` 现在定位为 **接口/注册表层**，重型实现迁出为独立 PyPI 包。
 
-| Domain       | In this repo (stable surface)                  | External package (impl)          | Status    |
-| ------------ | ---------------------------------------------- | -------------------------------- | --------- |
-| Agentic      | Protocols, planners/tool-selection registries  | `isage-agentic` (planned)        | 🚧        |
-| RAG toolkit  | Protocols, light pipelines                     | `isage-rag` (planned)            | 🚧        |
-| ANNS         | Registry, type hints *(to be slimmed further)* | `isage-anns`                     | ✅ 已独立 |
-| AMMS         | Registry, type hints                           | `isage-amms`                     | 🚧 迁移中 |
-| Integrations | Thin adapters only                             | heavy clients as optional extras | 🚧        |
-| Privacy      | Protocols and shared utils                     | `isage-privacy` (planned)        | 🚧        |
-| Foundation   | Low-dependency helpers (pure Python)           | n/a                              | ✅        |
+### 🎯 Top-Level Domains (L3 Algorithm Libraries)
 
-### RAG Building Blocks
+The library is organized into clear functional domains:
 
-`sage.libs.rag` 仍保留接口与轻量实现，重型检索/重排组件将外迁至 `isage-rag`。
+#### 1. **Agentic & Orchestration** (`agentic/`)
+
+- **Planning**: ToT, ReAct, hierarchical, dependency graph, timing deciders
+- **Tool Selection**: keyword/embedding/hybrid/DFS-DT, Gorilla adapters, registry
+- **Multi-bot Roles**: answer/critic/question/searcher
+- **Runtime Glue**: orchestrator, adapters, telemetry contracts
+- **Intent**: intent classifiers/recognizers and catalogs
+
+#### 2. **Retrieval & RAG Toolkit** (`rag/`)
+
+- **Loaders**: Document loaders for various formats (PDF, DOCX, Markdown, etc.)
+- **Chunking**: Text segmentation and chunking strategies
+- **Future**: Retriever interfaces, rerankers, context builders, post-processing
+
+#### 3. **ANN / Vector Index Algorithms** (`ann/`)
+
+- **Registry & Factory**: Unified interface for ANN algorithms
+- **Base Classes**: `AnnIndex`, `AnnIndexMeta`
+- **External Implementations**: `isage-anns` package (HNSW, IVF, DiskANN, etc.)
+- **Used By**: SageVDB backend, benchmark_anns, RAG pipelines
+
+#### 4. **Reasoning & Optimization Primitives** (`reasoning/`)
+
+- **Search Algorithms**: Beam search, DFS, BFS, UCT, Monte Carlo
+- **Scoring & Aggregation**: Utility functions, voting, self-consistency
+- **Future**: SMT/ILP hooks for constraint satisfaction
+
+#### 5. **Dataflow Helpers** (`dataops/`)
+
+- **Text Operations**: Normalization, truncation, keyword extraction
+- **Table Operations**: Filtering, aggregation, sorting, pivoting
+- **JSON Operations**: Schema validation, field extraction, flattening
+- **Sampling**: Random, stratified, reservoir sampling; outlier filtering
+
+#### 6. **Evaluation & Profiling** (`eval/`)
+
+- **Metrics**: Accuracy, precision/recall, F1, BLEU, MRR
+- **Telemetry**: Span and trace helpers for profiling
+- **Determinism**: Seed control and reproducibility utilities
+
+#### 7. **Safety & Guardrails** (`safety/`)
+
+- **Content Filtering**: Regex/pattern-based content filters
+- **PII Scrubbing**: Simple PII detection and scrubbing
+- **Policy Checks**: Tool call policy validation
+
+#### 8. **SIAS (Internal Reasoning / Tool Selection)** (`sias/`)
+
+- **CoresetSelector**: Importance-aware sample selection for agent tool/trajectory curation
+- **OnlineContinualLearner**: Replay buffer with importance weighting
+- **Future**: StreamingImportanceScorer for streaming traces
+
+### 📦 External Packages
+
+| Domain       | In this repo (stable surface)                 | External package (impl)          | Status    |
+| ------------ | --------------------------------------------- | -------------------------------- | --------- |
+| Agentic      | Protocols, planners/tool-selection registries | `isage-agentic` (planned)        | 🚧        |
+| RAG toolkit  | Protocols, light pipelines                    | `isage-rag` (planned)            | 🚧        |
+| ANN          | Registry, type hints                          | `isage-anns`                     | ✅ 已独立 |
+| AMM          | Registry, type hints                          | `isage-amms`                     | 🚧 迁移中 |
+| Integrations | Thin adapters only                            | heavy clients as optional extras | 🚧        |
+| Privacy      | Protocols and shared utils                    | `isage-privacy` (planned)        | 🚧        |
+| Foundation   | Low-dependency helpers (pure Python)          | n/a                              | ✅        |
+| SIAS         | Streaming importance-aware agent system       | `isage-sias` (planned)           | 🚧        |
 
 ## 🚀 Installation
 
@@ -204,14 +259,14 @@ trainer.train()
 | Component                | Description                   | Import Path                                  |
 | ------------------------ | ----------------------------- | -------------------------------------------- |
 | `AgentSFTTrainer`        | Main trainer class            | `sage.libs.finetune.agent`                   |
-| `CoresetSelector`        | Sample selection (SIAS)       | `sage.libs.sias`                             |
-| `OnlineContinualLearner` | Experience replay (SIAS)      | `sage.libs.sias`                             |
+| `CoresetSelector`        | Sample selection (SIAS)       | `sage.libs.agentic.sias`                     |
+| `OnlineContinualLearner` | Experience replay (SIAS)      | `sage.libs.agentic.sias`                     |
 | `TrajectoryCollector`    | FireAct trajectory collection | `sage.libs.finetune.agent`                   |
 | `MultiTaskMixer`         | AgentTuning data mixing       | `sage.libs.finetune.agent`                   |
 | `MethodRegistry`         | Predefined methods            | `sage.benchmark.benchmark_agent.experiments` |
 
-> **Note**: `CoresetSelector` and `OnlineContinualLearner` have been moved to the SIAS module
-> (`sage.libs.sias`). They are re-exported from `sage.libs.finetune.agent` for backward
+> **Note**: `CoresetSelector` and `OnlineContinualLearner` are part of the SIAS module
+> (`sage.libs.agentic.sias`). They are re-exported from `sage.libs.finetune.agent` for backward
 > compatibility.
 
 For detailed API documentation, see

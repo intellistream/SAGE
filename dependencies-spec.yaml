@@ -24,6 +24,8 @@ isage-tsdb: ">=0.1.5"
 isage-flow: ">=0.1.1"
 isage-refiner: ">=0.1.0"
 isage-neuromem: ">=0.2.1.1"
+isage-anns: ">=0.1.0"
+isage-amms: ">=0.1.0"
 
 # Notes:
 # - Packages should import versions from this file via tooling (to be wired) instead of hardcoding.

@@ -1,12 +1,16 @@
 """
 Tests for LibAMM (Approximate Matrix Multiplication library) bindings.
 
-This module tests the Python bindings to LibAMM C++ library.
-
-Note: LibAMM is an optional component. These tests will be skipped if:
+Note: LibAMM implementations have been externalized to the independent package 'isage-amms'.
+These tests will be skipped if:
 - PyTorch is not installed
-- LibAMM was not compiled (BUILD_LIBAMM=0, the default)
+- isage-amms is not installed (pip install isage-amms)
 - LibAMM shared library is not found
+
+To enable these tests:
+    pip install isage-amms
+    # or
+    pip install -e packages/sage-libs[amms]
 """
 
 import pytest
@@ -20,17 +24,15 @@ except ImportError:
     TORCH_AVAILABLE = False
     torch = None  # type: ignore
 
-# Try to import LibAMM
+# Try to import LibAMM from external package
 LIBAMM_AVAILABLE = False
 libamm = None
-LIBAMM_SKIP_REASON = "LibAMM not available"
+LIBAMM_SKIP_REASON = "isage-amms package not installed"
 
 if TORCH_AVAILABLE:
     try:
-        # Try to load LibAMM shared library
-        import torch.utils.cpp_extension
-
-        # Try multiple import methods
+        # Import from external isage-amms package
+        # Try multiple import methods for backward compatibility
         try:
             # Method 1: PyTorch C++ extension (TORCH_LIBRARY)
             import torch.ops.LibAMM as libamm
@@ -44,9 +46,7 @@ if TORCH_AVAILABLE:
                 LIBAMM_AVAILABLE = True
             except ImportError:
                 LIBAMM_SKIP_REASON = (
-                    "LibAMM not compiled. "
-                    "To enable LibAMM: set BUILD_LIBAMM=1 environment variable "
-                    "or install pre-built wheel from GitHub Releases"
+                    "isage-amms not installed. Install with: pip install isage-amms"
                 )
     except Exception as e:
         LIBAMM_SKIP_REASON = f"LibAMM import failed: {e}"

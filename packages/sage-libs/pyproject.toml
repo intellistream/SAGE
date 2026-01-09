@@ -120,8 +120,24 @@ dev = [
     "ruff==0.14.6",
     "mypy>=1.7.0",
 ]
+anns = [
+    "isage-anns>=0.1.0",
+]
+amms = [
+    "isage-amms>=0.1.0",
+]
+finetune = [
+    "isage-finetune>=0.1.0",
+]
 all = [
-    "isage-libs[dev]",
+    "isage-anns>=0.1.0",
+    "isage-amms>=0.1.0",
+    "isage-finetune>=0.1.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff==0.14.6",
+    "mypy>=1.7.0",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
@@ -148,15 +164,11 @@ attr = "sage.libs._version.__version__"
 "sage.libs" = ["py.typed", "**/*"]
 "sage.apps" = ["py.typed", "**/*"]
 
-# Exclude migrated C++ implementations (moved to independent repos)
-[tool.setuptools.exclude-package-data]
-"sage.libs.amms" = [
-    "implementations/**",
-    "wrappers/PyAMM.*",
-]
-"sage.libs.anns" = [
-    "implementations/**",
-]
+# Note: C++ implementations and wrappers have been fully migrated to independent packages:
+# - isage-anns (ANNS algorithms)
+# - isage-amms (AMM algorithms)
+# - isage-finetune (LLM fine-tuning toolkit)
+# This package now only ships interface/registry layers.
 
 # Development tools configuration
 [tool.black]

@@ -15,14 +15,13 @@ from __future__ import annotations
 
 import pytest
 
-from sage.libs.finetune.agent.dialog_processor import ProcessedDialog
-
 # Import from new SIAS location
-from sage.libs.sias import (
+from sage.libs.agentic.sias import (
     CoresetSelector,
     OnlineContinualLearner,
     SelectionSummary,
 )
+from sage.libs.finetune.agent.dialog_processor import ProcessedDialog
 
 
 def _make_dialog(dialog_id: str, loss: float, text: str = "") -> ProcessedDialog:
