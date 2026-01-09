@@ -1,4 +1,0 @@
-[submodule "ThirdParty/zstd"]
-	path = ThirdParty/zstd
-	url = https://github.com/facebook/zstd
-	branch = release

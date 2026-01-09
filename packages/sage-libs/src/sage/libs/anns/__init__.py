@@ -1,20 +1,38 @@
-"""Unified ANNS (Approximate Nearest Neighbor Search) module.
+"""Unified ANNS (Approximate Nearest Neighbor Search) interfaces.
 
-This module consolidates all ANNS core components into a single location:
-- interface/: Abstract base classes and factory (AnnIndex, AnnIndexMeta, create(), register())
-- wrappers/: Python implementations for various algorithms (FAISS, VSAG, DiskANN, CANDY, etc.)
-- implementations/: C++ source code and bindings
-
-Note: Benchmarks remain in sage-benchmark/benchmark_anns (L5 package).
-
-Migration from old structure:
-- sage.libs.ann -> sage.libs.anns.interface
-- sage.libs.anns.<algo> -> sage.libs.anns.wrappers.<family>.<algo>
-- benchmark_anns.algorithms_impl -> sage.libs.anns.implementations (C++ code moved to L3)
+Status: implementations have been externalized to the `isage-anns` package. This module now
+exposes only the registry/interfaces. Consumers should install the external package (e.g.
+`pip install -e packages/sage-libs[anns]` or `pip install isage-anns`) to obtain concrete
+algorithms. Benchmarks remain in `sage-benchmark/benchmark_anns` (L5).
 """
 
 from __future__ import annotations
 
-__all__ = []
+import warnings
 
-# Public API will be populated after migration is complete
+from sage.libs.anns.interface import (
+    AnnIndex,
+    AnnIndexMeta,
+    AnnRegistryError,
+    as_mapping,
+    create,
+    register,
+    registered,
+)
+
+warnings.warn(
+    "ANNS implementations have moved to the external package 'isage-anns'. "
+    "Install the optional extra [anns] or add 'isage-anns' to your environment.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+__all__ = [
+    "AnnIndex",
+    "AnnIndexMeta",
+    "AnnRegistryError",
+    "create",
+    "register",
+    "registered",
+    "as_mapping",
+]

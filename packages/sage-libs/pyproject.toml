@@ -48,7 +48,7 @@ dependencies = [
     # AMM algorithms (独立仓库，可选依赖)
     # Note: AMM algorithms are optional, not auto-installed
     # Install separately if needed: pip install isage-amms
-    # Source: packages/sage-libs/src/sage/libs/amms/ (to be migrated to independent repo)
+    # Repository: https://github.com/intellistream/sage-amms
     # PyPI: https://pypi.org/project/isage-amms/
     # "isage-amms>=0.1.0",  # ✅ Optional dependency (install separately if needed)
 
@@ -147,6 +147,16 @@ attr = "sage.libs._version.__version__"
 [tool.setuptools.package-data]
 "sage.libs" = ["py.typed", "**/*"]
 "sage.apps" = ["py.typed", "**/*"]
+
+# Exclude migrated C++ implementations (moved to independent repos)
+[tool.setuptools.exclude-package-data]
+"sage.libs.amms" = [
+    "implementations/**",
+    "wrappers/PyAMM.*",
+]
+"sage.libs.anns" = [
+    "implementations/**",
+]
 
 # Development tools configuration
 [tool.black]

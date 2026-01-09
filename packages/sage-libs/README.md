@@ -4,29 +4,23 @@
 
 SAGE Libraries 是基于 SAGE Framework 构建的可复用组件库，提供了丰富的预构建功能模块来帮助开发者快速构建 AI 应用。
 
-## 📚 Package Contents
+## 📚 Package Contents（接口层定位）
 
-### Layered Module Map
+`sage-libs` 现在定位为 **接口/注册表层**，重型实现迁出为独立 PyPI 包：
 
-| Layer          | Description                                                                   | Modules                                                                                      |
-| -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `foundation`   | 低依赖度工具箱：工具基类、IO Source/Sink、上下文压缩、filters                 | `foundation.tools`, `foundation.io`, `foundation.context`, `foundation.filters` *(即将迁入)* |
-| `agentic`      | LangChain 风格的 Agent 框架 + Workflow Optimizer                              | `agentic.agents`, `agentic.workflow`                                                         |
-| `rag`          | RAG 组件（loaders/chunkers/retrievers/pipelines）。目前正在从 middleware 回迁 | `rag.loaders`, `rag.chunkers`, ... *(占位包，近期填充)*                                      |
-| `integrations` | 第三方服务适配器（LLM、向量库、Observability 等）                             | `integrations.llm.openai`, `integrations.vector.milvus`, ...                                 |
-| `privacy`      | 隐私/遗忘算法（原 `unlearning` 包）                                           | `privacy.unlearning`                                                                         |
+| Domain       | In this repo (stable surface)                  | External package (impl)          | Status    |
+| ------------ | ---------------------------------------------- | -------------------------------- | --------- |
+| Agentic      | Protocols, planners/tool-selection registries  | `isage-agentic` (planned)        | 🚧        |
+| RAG toolkit  | Protocols, light pipelines                     | `isage-rag` (planned)            | 🚧        |
+| ANNS         | Registry, type hints *(to be slimmed further)* | `isage-anns`                     | ✅ 已独立 |
+| AMMS         | Registry, type hints                           | `isage-amms`                     | 🚧 迁移中 |
+| Integrations | Thin adapters only                             | heavy clients as optional extras | 🚧        |
+| Privacy      | Protocols and shared utils                     | `isage-privacy` (planned)        | 🚧        |
+| Foundation   | Low-dependency helpers (pure Python)           | n/a                              | ✅        |
 
 ### RAG Building Blocks
 
-`sage.libs.rag` 现已提供可直接复用的核心组件：
-
-- `chunk`：`CharacterSplitter`, `SentenceTransformersTokenTextSplitter`
-- `document_loaders`：`TextLoader`, `PDFLoader`, `DocxLoader`, `DocLoader`, `MarkdownLoader`,
-  `LoaderFactory`
-- `pipeline`：轻量版 `RAGPipeline`
-- `types`：`RAGDocument`, `RAGQuery`, `RAGResponse` 及辅助函数
-
-Middleware 仍可通过原 import 路径访问这些类，但新的文档和示例将逐步切换到 `sage.libs.rag.*`。
+`sage.libs.rag` 仍保留接口与轻量实现，重型检索/重排组件将外迁至 `isage-rag`。
 
 ## 🚀 Installation
 
@@ -76,37 +70,31 @@ isage-libs (PyPI) - 纯 Python 算法库
   - AMM 扩展：`pip install isage-amms`（可选，高性能矩阵运算）
   - ANNS 扩展：`pip install isage-anns`（可选，向量检索算法）
 
-### Optional Extensions (C++ 扩展包)
+### Optional Extensions（独立包）
 
-#### 1. AMM Algorithms (Independent, Optional)
+> **重要**：所有可选扩展都通过 `pyproject.toml` 的 extras 声明安装；不要手动 `pip install`。
 
-AMM (Approximate Matrix Multiplication) algorithms are **independent optional packages**:
+#### ANNS
+
+- 外部包：`isage-anns`（已独立）
+- 本仓库仅保留注册表/类型；即将移除本地实现代码
+
+#### AMMS
+
+- 外部包：`isage-amms`（迁移中）
+- 本仓库仅保留注册表/类型；实现位于外部包
+
+#### Agentic / RAG / Privacy
+
+- 规划中：拆分为对应独立包（`isage-agentic`, `isage-rag`, `isage-privacy`），本仓库保留接口
+
+**安装示例（使用 extras）**
 
 ```bash
-# 安装 AMM 算法包（可选，高性能矩阵运算）
-pip install isage-amms
+pip install -e packages/sage-libs[anns,amms]
 ```
 
-- 📂 **Source Location**: `packages/sage-libs/src/sage/libs/amms/`（待迁移独立仓库）
-- 📦 **PyPI**: https://pypi.org/project/isage-amms/
-- 🎯 **Status**: Optional dependency, not auto-installed
-- 📖 **Documentation**: See `docs/amms/MIGRATION.md`
-- ⚠️ **Note**: sage-libs 提供接口层，C++ 实现需单独安装
-
-#### 2. ANNS Algorithms (Independent, Optional)
-
-ANNS (Approximate Nearest Neighbor Search) algorithms are **independent optional packages**:
-
-```bash
-# 安装 ANNS 算法包（可选，向量检索算法）
-pip install isage-anns
-```
-
-- 📦 **Repository**: https://github.com/intellistream/sage-anns
-- 📦 **PyPI**: https://pypi.org/project/isage-anns/
-- 🔍 **Algorithms**: FAISS, DiskANN, CANDY, PUCK, SPTAG, etc.
-- 📖 **Documentation**: See `docs/anns/MIGRATION.md` for migration details
-- ⚠️ **Status**: Fully migrated to independent repository
+在 CI/开发脚本中使用 extras，避免裸命令 `pip install <pkg>`。
 
 ### Development Mode
 

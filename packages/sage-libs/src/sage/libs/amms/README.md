@@ -1,6 +1,11 @@
 # AMMS - Unified Approximate Matrix Multiplication
 
-**Status**: 🚀 Active Development (Refactored from libamm)\
+> **Important**: AMM C++ implementations and PyAMM bindings are being moved to an **independent
+> repository/package** (`isage-amms`, planned repo `intellistream/sage-amms`). The SAGE repo now
+> only ships the Python interface/registry to keep APIs stable. Install the external package to
+> actually use AMM algorithms.
+
+**Status**: 🚀 Active Development (externalized)\
 **PyPI Package**: `isage-amms`
 
 This directory consolidates all AMM (Approximate Matrix Multiplication) algorithm code into a single

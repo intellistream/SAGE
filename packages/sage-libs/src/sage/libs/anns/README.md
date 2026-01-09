@@ -1,90 +1,35 @@
-# ANNS - Unified Approximate Nearest Neighbor Search
+# ANNS - Unified Approximate Nearest Neighbor Search (Externalized)
 
-**Status**: 🚧 Under Construction (Migration from 3-layer structure)
+**Status**: ✅ Implementations moved to external package `isage-anns`; this tree will be pruned to
+registries/interfaces only.
 
-This directory consolidates all ANNS-related code into a single unified location.
+`sage-libs` now serves as the **interface/registry layer**. Heavy wrappers/C++ implementations live
+in the independent repository
+[`intellistream/sage-anns`](https://github.com/intellistream/sage-anns) and PyPI package
+[`isage-anns`](https://pypi.org/project/isage-anns/).
 
-## Structure
+Install via extras (recommended):
 
-```
-anns_new/
-├── interface/          # Abstract interfaces (formerly sage-libs/ann)
-│   ├── base.py         # AnnIndex, AnnIndexMeta
-│   ├── factory.py      # create(), register(), registered()
-│   └── registry.py     # Algorithm registry
-│
-├── wrappers/           # Python wrappers (formerly sage-libs/anns/*)
-│   ├── faiss/          # FAISS family (HNSW, IVFPQ, NSW, etc.)
-│   ├── vsag/           # VSAG HNSW
-│   ├── diskann/        # DiskANN, IPDiskANN
-│   ├── candy/          # CANDY family (LSHAPG, MNRU, SPTAG)
-│   ├── cufe/           # CUFE
-│   ├── gti/            # GTI
-│   ├── puck/           # PUCK
-│   └── plsh/           # PLSH
-│
-├── implementations/    # C++ source code (formerly benchmark_anns/algorithms_impl)
-│   ├── candy/          # CANDY C++ implementation
-│   ├── diskann-ms/     # DiskANN submodule
-│   ├── faiss/          # FAISS submodule
-│   ├── vsag/           # VSAG submodule
-│   ├── gti/            # GTI implementation
-│   ├── puck/           # PUCK implementation
-│   ├── SPTAG/          # SPTAG submodule
-│   ├── include/        # Shared C++ headers
-│   └── bindings/       # pybind11 bindings
-│
-└── benchmarks/         # Benchmark scripts (from benchmark_anns)
-    ├── run_benchmark.py
-    ├── prepare_dataset.py
-    └── compute_gt.py
+```bash
+pip install -e packages/sage-libs[anns]
 ```
 
-## Migration Status
+If `isage-anns` is missing, attempts to create/use ANNS implementations should **fail fast** with an
+actionable error—no silent fallbacks.
 
-- [x] Phase 1: Create new directory structure
-- [x] Phase 2: Move interface layer (ann/ -> anns_new/interface/)
-- [x] Phase 3: Reorganize wrappers (anns/\* -> anns_new/wrappers/<family>/)
-- [x] Phase 4: Move C++ implementations (algorithms_impl/ -> anns_new/implementations/)
-- [ ] Phase 5: Update all import paths (if any exist)
-- [ ] Phase 6: Rename anns_new -> anns, remove old ann/ and anns/
-- [ ] Phase 7: Testing and validation
+## What remains here
 
-## Usage (After Migration)
+- Interface/registry contracts: `AnnIndex`, `AnnIndexMeta`, `create`, `register`, `registered`.
+- Backward-compat shims until all imports are pointed to the external package.
 
-```python
-# Factory pattern
-from sage.libs.anns import create, register, registered
+## Migration guidance
 
-# Create an index
-index = create("faiss_HNSW", dimension=128)
-
-# Check available algorithms
-algos = registered()
-
-# Direct import (if needed)
-from sage.libs.anns.wrappers.faiss import FaissHNSWIndex
-```
-
-## Design Principles
-
-1. **Single source of truth**: All ANNS core code (interface, wrappers, C++ impl) in one place
-1. **Clear separation**: interface/ → wrappers/ → implementations/
-1. **Family grouping**: Wrappers organized by algorithm family (not flat)
-1. **Benchmarks stay in benchmark_anns**: sage-benchmark package owns benchmarking logic
-1. **No cross-layer dependencies**: L3 (libs) should not depend on L5 (benchmark)
-
-## Old Structure (Deprecated)
-
-```
-❌ packages/sage-libs/src/sage/libs/ann/          # Interfaces only
-❌ packages/sage-libs/src/sage/libs/anns/         # Flat wrapper list
-❌ packages/sage-benchmark/.../algorithms_impl/   # C++ code in wrong layer
-
-✅ packages/sage-benchmark/.../benchmark_anns/      # Benchmarks stay here (correct)
-```
+1. Add `isage-anns` as an optional extra in `pyproject.toml` and install via extras.
+1. Remove local implementations/wrappers after downstreams confirm the external package works.
+1. Treat missing optional dependencies as errors—surface actionable messages.
 
 ## References
 
-- **Refactor Plan**: `docs-public/docs_src/dev-notes/cross-layer/ANNS_REFACTOR_PLAN.md`
-- **Package Architecture**: `docs-public/docs_src/dev-notes/package-architecture.md`
+- External repo: https://github.com/intellistream/sage-anns
+- Package architecture: `docs-public/docs_src/dev-notes/package-architecture.md`
+- Migration tracker: `packages/sage-libs/docs/MIGRATION_EXTERNAL_LIBS.md`

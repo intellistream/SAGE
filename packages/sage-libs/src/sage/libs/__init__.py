@@ -15,14 +15,8 @@ This structure makes coarse-grained systems (agents, RAG) live beside
 infrastructure concerns while keeping fine-grained utilities in ``foundation``.
 """
 
-# Load version information
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # Fallback to hardcoded version
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+# Load version information (fail fast if missing to avoid silent fallbacks)
+from sage.libs._version import __author__, __email__, __version__
 
 # Export submodules
 __layer__ = "L3"

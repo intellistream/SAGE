@@ -180,9 +180,11 @@ The SAGE interface will automatically detect and use `isage-anns` if installed.
 - [ ] Publish to PyPI
 - [ ] Update sage-libs to depend on isage-anns
 
-### Phase 4: Cleanup (TODO)
+### Phase 4: Cleanup (in progress)
 
-- [ ] Remove `implementations/` from sage-libs
+- [x] Exclude `packages/sage-libs/src/sage/libs/anns/implementations/` from packaging (pyproject)
+- [ ] Remove `implementations/` directory from sage-libs repo once downstream repos confirm the
+  independent `sage-anns` build is the single source of truth
 - [ ] Update sage-libs CMakeLists.txt
 - [ ] Remove C++ build dependencies from sage-libs
 - [ ] Update documentation
