@@ -33,7 +33,6 @@ warnings.warn(
 # Try to import from external package for backward compatibility
 try:
     from isage_agentic import *  # noqa: F401, F403
-    from isage_agentic import __version__ as _external_version
 
     _EXTERNAL_AVAILABLE = True
     __all__ = [
