@@ -31,12 +31,13 @@ Example:
 
 from typing import Any
 
-from .base import DocumentLoader, RAGPipeline, Reranker, Retriever, TextChunker
+from .base import DocumentLoader, QueryRewriter, RAGPipeline, Reranker, Retriever, TextChunker
 
 _LOADER_REGISTRY: dict[str, type[DocumentLoader]] = {}
 _CHUNKER_REGISTRY: dict[str, type[TextChunker]] = {}
 _RETRIEVER_REGISTRY: dict[str, type[Retriever]] = {}
 _RERANKER_REGISTRY: dict[str, type[Reranker]] = {}
+_QUERY_REWRITER_REGISTRY: dict[str, type[QueryRewriter]] = {}
 _PIPELINE_REGISTRY: dict[str, type[RAGPipeline]] = {}
 
 
@@ -255,6 +256,58 @@ def registered_rerankers() -> list[str]:
 
 
 # ========================================
+# Query Rewriter Registry
+# ========================================
+
+
+def register_query_rewriter(name: str, cls: type[QueryRewriter]) -> None:
+    """Register a query rewriter implementation.
+
+    Args:
+        name: Unique identifier (e.g., "llm", "hyde", "multi_query")
+        cls: QueryRewriter class (should inherit from QueryRewriter)
+
+    Raises:
+        RAGRegistryError: If name already registered
+    """
+    if name in _QUERY_REWRITER_REGISTRY:
+        raise RAGRegistryError(f"QueryRewriter '{name}' already registered")
+
+    if not issubclass(cls, QueryRewriter):
+        raise TypeError(f"Class must inherit from QueryRewriter, got {cls}")
+
+    _QUERY_REWRITER_REGISTRY[name] = cls
+
+
+def create_query_rewriter(name: str, **kwargs: Any) -> QueryRewriter:
+    """Create a query rewriter instance by name.
+
+    Args:
+        name: Name of the registered query rewriter
+        **kwargs: Arguments to pass to the query rewriter constructor
+
+    Returns:
+        Instance of the query rewriter
+
+    Raises:
+        RAGRegistryError: If query rewriter not found
+    """
+    if name not in _QUERY_REWRITER_REGISTRY:
+        available = ", ".join(_QUERY_REWRITER_REGISTRY.keys()) if _QUERY_REWRITER_REGISTRY else "none"
+        raise RAGRegistryError(
+            f"QueryRewriter '{name}' not found. Available: {available}. Did you install 'isage-rag'?"
+        )
+
+    cls = _QUERY_REWRITER_REGISTRY[name]
+    return cls(**kwargs)
+
+
+def registered_query_rewriters() -> list[str]:
+    """Get list of registered query rewriter names."""
+    return list(_QUERY_REWRITER_REGISTRY.keys())
+
+
+# ========================================
 # RAG Pipeline Registry
 # ========================================
 
@@ -331,6 +384,11 @@ def unregister_reranker(name: str) -> None:
     _RERANKER_REGISTRY.pop(name, None)
 
 
+def unregister_query_rewriter(name: str) -> None:
+    """Unregister a query rewriter (for testing)."""
+    _QUERY_REWRITER_REGISTRY.pop(name, None)
+
+
 def unregister_pipeline(name: str) -> None:
     """Unregister a pipeline (for testing)."""
     _PIPELINE_REGISTRY.pop(name, None)
@@ -358,6 +416,11 @@ __all__ = [
     "create_reranker",
     "registered_rerankers",
     "unregister_reranker",
+    # QueryRewriter
+    "register_query_rewriter",
+    "create_query_rewriter",
+    "registered_query_rewriters",
+    "unregister_query_rewriter",
     # Pipeline
     "register_pipeline",
     "create_pipeline",

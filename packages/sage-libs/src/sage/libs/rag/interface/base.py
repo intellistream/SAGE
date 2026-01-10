@@ -252,6 +252,63 @@ class Reranker(ABC):
 
 
 # ========================================
+# Query Rewriter Interface
+# ========================================
+
+
+class QueryRewriter(ABC):
+    """Abstract base class for query rewriting.
+
+    Query rewriting improves retrieval by transforming user queries:
+    - Query expansion: Add synonyms and related terms
+    - Query decomposition: Break complex queries into sub-queries
+    - Hypothetical Document Embeddings (HyDE): Generate hypothetical answers
+    - Step-back prompting: Abstract to more general queries
+    - Multi-query generation: Create query variants for fusion
+    """
+
+    @abstractmethod
+    def rewrite(self, query: str, **kwargs: Any) -> str:
+        """Rewrite a single query.
+
+        Args:
+            query: Original user query
+            **kwargs: Rewriter-specific options (context, history, etc.)
+
+        Returns:
+            Rewritten query optimized for retrieval
+        """
+        pass
+
+    @abstractmethod
+    def rewrite_multi(self, query: str, num_variants: int = 3, **kwargs: Any) -> list[str]:
+        """Generate multiple query variants.
+
+        Args:
+            query: Original user query
+            num_variants: Number of variants to generate
+            **kwargs: Rewriter-specific options
+
+        Returns:
+            List of query variants for multi-query retrieval
+        """
+        pass
+
+    @abstractmethod
+    def decompose(self, query: str, **kwargs: Any) -> list[str]:
+        """Decompose a complex query into sub-queries.
+
+        Args:
+            query: Complex user query
+            **kwargs: Decomposition options
+
+        Returns:
+            List of simpler sub-queries
+        """
+        pass
+
+
+# ========================================
 # RAG Pipeline Interface
 # ========================================
 
@@ -321,5 +378,6 @@ __all__ = [
     "TextChunker",
     "Retriever",
     "Reranker",
+    "QueryRewriter",
     "RAGPipeline",
 ]
