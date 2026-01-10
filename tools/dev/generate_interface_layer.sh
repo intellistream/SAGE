@@ -35,7 +35,7 @@ Architecture:
 Usage:
     # In SAGE code, use the interface
     from sage.libs.{MODULE_NAME}.interface import create
-    
+
     # In isage-{MODULE_NAME}, register implementations
     from sage.libs.{MODULE_NAME}.interface import register
     register("my_impl", MyImplementation)
@@ -65,17 +65,17 @@ Define your abstract base classes here. These should be:
 
 Example:
     from abc import ABC, abstractmethod
-    
+
     class MyComponent(ABC):
         """Base class for {MODULE_NAME} components."""
-        
+
         @abstractmethod
         def process(self, data: str) -> str:
             """Process input data.
-            
+
             Args:
                 data: Input data
-                
+
             Returns:
                 Processed result
             """
@@ -110,7 +110,7 @@ Example:
     # Register an implementation
     from sage.libs.{MODULE_NAME}.interface import register
     register("my_impl", MyImplementation)
-    
+
     # Create an instance
     from sage.libs.{MODULE_NAME}.interface import create
     instance = create("my_impl", param1="value1")
@@ -126,34 +126,34 @@ _REGISTRY: dict[str, type] = {}
 
 def register(name: str, cls: type) -> None:
     """Register a {MODULE_NAME} implementation.
-    
+
     Args:
         name: Unique identifier for this implementation
         cls: Implementation class (should inherit from base class)
-    
+
     Raises:
         ValueError: If name already registered
     """
     if name in _REGISTRY:
         raise ValueError(f"{MODULE_NAME} implementation '{name}' already registered")
-    
+
     # TODO: Validate that cls inherits from your base class
     # if not issubclass(cls, {MODULE_NAME_UPPER}Component):
     #     raise TypeError(f"Class must inherit from {MODULE_NAME_UPPER}Component")
-    
+
     _REGISTRY[name] = cls
 
 
 def create(name: str, **kwargs: Any) -> Any:
     """Create an instance of a registered implementation.
-    
+
     Args:
         name: Name of the registered implementation
         **kwargs: Arguments to pass to the constructor
-        
+
     Returns:
         Instance of the implementation
-        
+
     Raises:
         KeyError: If implementation not found
     """
@@ -164,14 +164,14 @@ def create(name: str, **kwargs: Any) -> Any:
             f"Available: {available}. "
             f"Did you install 'isage-{MODULE_NAME}'?"
         )
-    
+
     cls = _REGISTRY[name]
     return cls(**kwargs)
 
 
 def registered() -> list[str]:
     """Get list of registered implementation names.
-    
+
     Returns:
         List of registered names
     """
@@ -180,7 +180,7 @@ def registered() -> list[str]:
 
 def unregister(name: str) -> None:
     """Unregister an implementation (for testing).
-    
+
     Args:
         name: Name of the implementation to unregister
     """
@@ -215,7 +215,7 @@ Installation:
 Usage:
     # Use the interface layer
     from sage.libs.{MODULE_NAME}.interface import create, register
-    
+
     # Or import from external package
     from isage_{MODULE_NAME} import *
 
