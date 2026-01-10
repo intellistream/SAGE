@@ -17,10 +17,12 @@ Example:
 
 from typing import Any
 
-from .base import DatasetLoader, FineTuner
+from .base import DatasetLoader, FineTuner, TrainingCallback, TrainingStrategy
 
 _TRAINER_REGISTRY: dict[str, type[FineTuner]] = {}
 _LOADER_REGISTRY: dict[str, type[DatasetLoader]] = {}
+_CALLBACK_REGISTRY: dict[str, type[TrainingCallback]] = {}
+_STRATEGY_REGISTRY: dict[str, type[TrainingStrategy]] = {}
 
 
 class FineTuneRegistryError(Exception):
@@ -157,14 +159,140 @@ def unregister_loader(name: str) -> None:
     _LOADER_REGISTRY.pop(name, None)
 
 
+# ========================================
+# Callback Registry
+# ========================================
+
+
+def register_callback(name: str, cls: type[TrainingCallback]) -> None:
+    """Register a training callback implementation.
+
+    Args:
+        name: Unique identifier for this callback (e.g., "wandb", "tensorboard", "early_stop")
+        cls: Callback class (should inherit from TrainingCallback)
+
+    Raises:
+        FineTuneRegistryError: If name already registered
+    """
+    if name in _CALLBACK_REGISTRY:
+        raise FineTuneRegistryError(f"Callback '{name}' already registered")
+
+    if not issubclass(cls, TrainingCallback):
+        raise TypeError(f"Class must inherit from TrainingCallback, got {cls}")
+
+    _CALLBACK_REGISTRY[name] = cls
+
+
+def create_callback(name: str, **kwargs: Any) -> TrainingCallback:
+    """Create a callback instance by name.
+
+    Args:
+        name: Name of the registered callback
+        **kwargs: Arguments to pass to the callback constructor
+
+    Returns:
+        Instance of the callback
+
+    Raises:
+        FineTuneRegistryError: If callback not found
+    """
+    if name not in _CALLBACK_REGISTRY:
+        available = ", ".join(_CALLBACK_REGISTRY.keys()) if _CALLBACK_REGISTRY else "none"
+        raise FineTuneRegistryError(
+            f"Callback '{name}' not found. Available: {available}. Did you install 'isage-finetune'?"
+        )
+
+    cls = _CALLBACK_REGISTRY[name]
+    return cls(**kwargs)
+
+
+def registered_callbacks() -> list[str]:
+    """Get list of registered callback names."""
+    return list(_CALLBACK_REGISTRY.keys())
+
+
+def unregister_callback(name: str) -> None:
+    """Unregister a callback (for testing)."""
+    _CALLBACK_REGISTRY.pop(name, None)
+
+
+# ========================================
+# Strategy Registry
+# ========================================
+
+
+def register_strategy(name: str, cls: type[TrainingStrategy]) -> None:
+    """Register a training strategy implementation.
+
+    Args:
+        name: Unique identifier for this strategy (e.g., "lora", "qlora", "full", "prefix")
+        cls: Strategy class (should inherit from TrainingStrategy)
+
+    Raises:
+        FineTuneRegistryError: If name already registered
+    """
+    if name in _STRATEGY_REGISTRY:
+        raise FineTuneRegistryError(f"Strategy '{name}' already registered")
+
+    if not issubclass(cls, TrainingStrategy):
+        raise TypeError(f"Class must inherit from TrainingStrategy, got {cls}")
+
+    _STRATEGY_REGISTRY[name] = cls
+
+
+def create_strategy(name: str, **kwargs: Any) -> TrainingStrategy:
+    """Create a strategy instance by name.
+
+    Args:
+        name: Name of the registered strategy
+        **kwargs: Arguments to pass to the strategy constructor
+
+    Returns:
+        Instance of the strategy
+
+    Raises:
+        FineTuneRegistryError: If strategy not found
+    """
+    if name not in _STRATEGY_REGISTRY:
+        available = ", ".join(_STRATEGY_REGISTRY.keys()) if _STRATEGY_REGISTRY else "none"
+        raise FineTuneRegistryError(
+            f"Strategy '{name}' not found. Available: {available}. Did you install 'isage-finetune'?"
+        )
+
+    cls = _STRATEGY_REGISTRY[name]
+    return cls(**kwargs)
+
+
+def registered_strategies() -> list[str]:
+    """Get list of registered strategy names."""
+    return list(_STRATEGY_REGISTRY.keys())
+
+
+def unregister_strategy(name: str) -> None:
+    """Unregister a strategy (for testing)."""
+    _STRATEGY_REGISTRY.pop(name, None)
+
+
 __all__ = [
     "FineTuneRegistryError",
+    # Trainer
     "register_trainer",
-    "register_loader",
     "create_trainer",
-    "create_loader",
     "registered_trainers",
-    "registered_loaders",
     "unregister_trainer",
+    # Loader
+    "register_loader",
+    "create_loader",
+    "registered_loaders",
     "unregister_loader",
+    # Callback
+    "register_callback",
+    "create_callback",
+    "registered_callbacks",
+    "unregister_callback",
+    # Strategy
+    "register_strategy",
+    "create_strategy",
+    "registered_strategies",
+    "unregister_strategy",
 ]

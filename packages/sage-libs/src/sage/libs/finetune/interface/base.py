@@ -192,9 +192,194 @@ class DatasetLoader(ABC):
         yield from dataset
 
 
+class TrainingCallback(ABC):
+    """Abstract base class for training callbacks.
+
+    Callbacks provide hooks into the training loop for:
+    - Logging metrics
+    - Early stopping
+    - Learning rate scheduling
+    - Custom checkpoint logic
+
+    Examples of implementations:
+    - WandBCallback: Log metrics to Weights & Biases
+    - TensorBoardCallback: Log to TensorBoard
+    - EarlyStoppingCallback: Stop training based on metrics
+    """
+
+    def on_train_begin(self, trainer: "FineTuner", **kwargs: Any) -> None:
+        """Called at the start of training.
+
+        Args:
+            trainer: The trainer instance
+            **kwargs: Additional training state
+        """
+        pass
+
+    def on_train_end(self, trainer: "FineTuner", **kwargs: Any) -> None:
+        """Called at the end of training.
+
+        Args:
+            trainer: The trainer instance
+            **kwargs: Final training state and metrics
+        """
+        pass
+
+    def on_epoch_begin(self, trainer: "FineTuner", epoch: int, **kwargs: Any) -> None:
+        """Called at the start of each epoch.
+
+        Args:
+            trainer: The trainer instance
+            epoch: Current epoch number (0-indexed)
+            **kwargs: Additional state
+        """
+        pass
+
+    def on_epoch_end(
+        self, trainer: "FineTuner", epoch: int, metrics: dict[str, float], **kwargs: Any
+    ) -> None:
+        """Called at the end of each epoch.
+
+        Args:
+            trainer: The trainer instance
+            epoch: Current epoch number
+            metrics: Epoch metrics (loss, accuracy, etc.)
+            **kwargs: Additional state
+        """
+        pass
+
+    def on_step_begin(self, trainer: "FineTuner", step: int, **kwargs: Any) -> None:
+        """Called at the start of each training step.
+
+        Args:
+            trainer: The trainer instance
+            step: Global step number
+            **kwargs: Batch data and state
+        """
+        pass
+
+    def on_step_end(
+        self, trainer: "FineTuner", step: int, loss: float, **kwargs: Any
+    ) -> Optional[bool]:
+        """Called at the end of each training step.
+
+        Args:
+            trainer: The trainer instance
+            step: Global step number
+            loss: Step loss value
+            **kwargs: Gradients and additional state
+
+        Returns:
+            If True, stop training early. None or False to continue.
+        """
+        pass
+
+    def on_evaluate(
+        self, trainer: "FineTuner", metrics: dict[str, float], **kwargs: Any
+    ) -> None:
+        """Called after evaluation.
+
+        Args:
+            trainer: The trainer instance
+            metrics: Evaluation metrics
+            **kwargs: Additional state
+        """
+        pass
+
+    def on_save(self, trainer: "FineTuner", output_dir: str, **kwargs: Any) -> None:
+        """Called when model is saved.
+
+        Args:
+            trainer: The trainer instance
+            output_dir: Directory where model is saved
+            **kwargs: Additional state
+        """
+        pass
+
+
+class TrainingStrategy(ABC):
+    """Abstract base class for training strategies.
+
+    Strategies define HOW the model is fine-tuned:
+    - Parameter-efficient methods (LoRA, QLoRA, Prefix Tuning)
+    - Full fine-tuning
+    - Distillation
+    - Quantization-aware training
+
+    Examples of implementations:
+    - LoRAStrategy: Low-Rank Adaptation
+    - QLoRAStrategy: 4-bit quantized LoRA
+    - FullFTStrategy: Standard full fine-tuning
+    - PrefixTuningStrategy: Prefix-tuning approach
+    """
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the strategy name (e.g., 'lora', 'qlora', 'full')."""
+        pass
+
+    @abstractmethod
+    def prepare_model(self, model: Any, config: Optional["LoRAConfig"] = None) -> Any:
+        """Prepare the model for this training strategy.
+
+        Args:
+            model: Base model to prepare
+            config: Strategy-specific configuration (e.g., LoRAConfig)
+
+        Returns:
+            Model prepared for training with this strategy
+        """
+        pass
+
+    @abstractmethod
+    def get_trainable_parameters(self, model: Any) -> Iterator[Any]:
+        """Get parameters that should be trained.
+
+        Args:
+            model: The prepared model
+
+        Yields:
+            Trainable parameters
+        """
+        pass
+
+    def get_optimizer_grouped_parameters(
+        self, model: Any, weight_decay: float = 0.01
+    ) -> list[dict[str, Any]]:
+        """Get parameter groups for optimizer (optional).
+
+        By default, applies weight decay to all trainable parameters.
+        Override for custom parameter grouping.
+
+        Args:
+            model: The prepared model
+            weight_decay: Weight decay value
+
+        Returns:
+            List of parameter group dictionaries
+        """
+        trainable_params = list(self.get_trainable_parameters(model))
+        return [{"params": trainable_params, "weight_decay": weight_decay}]
+
+    def merge_and_unload(self, model: Any) -> Any:
+        """Merge adapter weights into base model (for PEFT methods).
+
+        Args:
+            model: Model with adapter weights
+
+        Returns:
+            Model with merged weights (no adapter overhead)
+        """
+        # Default: return as-is (for non-PEFT strategies)
+        return model
+
+
 __all__ = [
     "TrainingConfig",
     "LoRAConfig",
     "FineTuner",
     "DatasetLoader",
+    "TrainingCallback",
+    "TrainingStrategy",
 ]
