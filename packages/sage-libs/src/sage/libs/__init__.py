@@ -5,14 +5,21 @@ Dependencies: sage.common (L1), sage.platform (L2), sage.kernel (L3)
 
 High-level layout:
 - ``foundation``: Lowest-level utilities (tools, io, context, filters)
-- ``agentic``: LangChain-style agent framework + workflow optimizer
-- ``rag``: Retrieval-Augmented Generation building blocks (migrating from middleware)
-- ``integrations``: Third-party service adapters (LLMs, vector DBs, observability)
+- ``dataops``: Data operations and transformations
+- ``safety``: Safety checks and content filtering
 - ``privacy``: Machine unlearning and privacy-preserving algorithms
-- ``finetune``: Model fine-tuning utilities (moved from sage-tools for broader access)
+- ``integrations``: Third-party service adapters (LLMs, vector DBs, observability)
+- ``intent``: Intent recognition and classification
+- ``finetune``: Model fine-tuning utilities (interface layer, impl in isage-finetune)
+- ``ann``: ANN algorithms interface (impl in isage-anns)
+- ``amms``: AMM algorithms interface (impl in isage-amms)
 
-This structure makes coarse-grained systems (agents, RAG) live beside
-infrastructure concerns while keeping fine-grained utilities in ``foundation``.
+Externalized modules (install via extras):
+- ``agentic``: Agent framework → isage-agentic (pip install isage-libs[agentic])
+- ``rag``: RAG tools → isage-rag (pip install isage-libs[rag])
+
+This structure keeps core utilities in sage-libs while allowing optional
+installation of heavier application-layer modules.
 """
 
 # Load version information (fail fast if missing to avoid silent fallbacks)
@@ -21,53 +28,54 @@ from sage.libs._version import __author__, __email__, __version__
 # Export submodules
 __layer__ = "L3"
 
-# NOTE: ANNS, AMMS, and Agentic have been externalized to independent PyPI packages:
+# NOTE: Agentic and RAG have been externalized to independent PyPI packages:
+# - isage-agentic: Agent framework (agents, planning, tool selection, workflows)
+# - isage-rag: RAG tools (document loaders, chunkers, retrievers, rerankers)
 # - isage-anns: ANNS algorithms (interface/registry remain here as ann/)
 # - isage-amms: AMM algorithms (interface/registry remain here)
-# - isage-agentic: Agent framework (interface/registry remain here)
-# Install via extras: pip install -e packages/sage-libs[ann,amms,agentic]
+# - isage-finetune: Fine-tuning toolkit (interface/registry remain here)
 #
-# Module organization (2026-01-10):
-# - Seven top-level domains: agentic, rag, ann, reasoning, dataops, eval, safety
-# - anns → ann (unified singular naming)
-# - New domains: reasoning (search algorithms), eval (metrics & telemetry)
-from . import (
-    agentic,  # Agent interfaces (impl in isage-agentic)
-    amms,  # AMM interfaces (impl in isage-amms)
-    ann,  # ANN interfaces (impl in isage-anns) - renamed from anns
-    dataops,  # Data operations
-    finetune,  # Fine-tuning interfaces (impl in isage-finetune)
-    foundation,  # Foundation utilities
-    integrations,  # Third-party integrations
-    privacy,  # Privacy protection
-    rag,  # RAG tools
-    reasoning,  # Search & scoring algorithms
-    safety,  # Safety checks
-    sias,  # SIAS framework (pending migration to isage-agentic)
-)
+# Install via extras: pip install isage-libs[agentic,rag,ann,amms,finetune]
+# Or install all: pip install isage-libs[all]
 
-# New domains (2026-01-10)
-from . import (
-    eval as evaluation,  # Evaluation metrics & telemetry (renamed to avoid built-in)
-)
+# Use lazy imports to avoid circular import issues during module initialization
+_submodules = {
+    "amms",  # AMM interfaces (impl in isage-amms)
+    "ann",  # ANN interfaces (impl in isage-anns) - renamed from anns
+    "dataops",  # Data operations
+    "finetune",  # Fine-tuning interfaces (impl in isage-finetune)
+    "foundation",  # Foundation utilities
+    "integrations",  # Third-party integrations
+    "intent",  # Intent recognition
+    "privacy",  # Privacy protection
+    "safety",  # Safety checks
+}
+
+
+def __getattr__(name: str):
+    """Lazy import submodules to avoid circular import issues."""
+    if name in _submodules:
+        # Standard submodule import
+        import importlib
+
+        mod = importlib.import_module(f".{name}", __name__)
+        globals()[name] = mod
+        return mod
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    # Seven top-level domains
-    "agentic",  # Agent framework (interface layer)
-    "rag",  # RAG tools
+    # Core modules
     "ann",  # ANN interface (renamed from anns)
-    "reasoning",  # Search & scoring algorithms (NEW)
     "dataops",  # Data operations
-    "evaluation",  # Metrics & telemetry (NEW, renamed from eval)
-    "safety",  # Safety checks
-    # Supporting modules
     "foundation",  # Foundation utilities
     "integrations",  # Third-party integrations
+    "intent",  # Intent recognition
     "privacy",  # Privacy protection
-    "sias",  # SIAS framework (pending migration)
+    "safety",  # Safety checks
     # Interface layers (external implementations)
     "amms",  # AMM interface
     "finetune",  # Fine-tuning interface

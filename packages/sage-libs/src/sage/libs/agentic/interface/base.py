@@ -1,209 +1,154 @@
-"""Base interfaces for Agentic components.
+"""Base classes for agentic components.
 
-This module defines the abstract interfaces for agent systems.
-Implementations are provided by the external package 'isage-agentic'.
-
-Key Interfaces:
-- Agent: Core agent execution
-- Planner: Task planning and decomposition
-- ToolSelector: Tool selection for subtasks
-- WorkflowOrchestrator: Multi-agent coordination
+This module defines the core abstractions for:
+- Agents: Autonomous task executors
+- Planners: Task planning and decomposition
+- Tool Selectors: Dynamic tool selection
+- Orchestrators: Multi-agent coordination
+- Intent Recognizers: User intent understanding (merged from intent module)
+- Reasoning Strategies: Search and optimization (merged from reasoning module)
 """
-
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Iterator
+from typing import Any, Optional
+
+# ==================== Data Classes ====================
 
 
 @dataclass
-class AgentResponse:
-    """Response from agent execution."""
+class AgentAction:
+    """Represents an action taken by an agent."""
 
-    result: Any
-    reasoning: str = ""
-    tool_calls: list[dict[str, Any]] = None
-    metadata: dict[str, Any] = None
-
-    def __post_init__(self):
-        if self.tool_calls is None:
-            self.tool_calls = []
-        if self.metadata is None:
-            self.metadata = {}
+    tool_name: str
+    tool_input: dict[str, Any]
+    thought: Optional[str] = None
+    confidence: float = 1.0
 
 
-class Agent(ABC):
-    """Abstract base class for all agents.
+@dataclass
+class AgentResult:
+    """Result of agent execution."""
 
-    Examples of implementations:
-    - ReAct: Reasoning + Acting loop
-    - ReWOO: Reasoning Without Observation
-    - Reflexion: Self-reflection agent
-    """
+    output: Any
+    intermediate_steps: list[tuple[AgentAction, str]]
+    metadata: dict[str, Any]
+
+
+@dataclass
+class Intent:
+    """Recognized user intent."""
+
+    name: str
+    confidence: float
+    slots: dict[str, Any]
+    metadata: dict[str, Any]
+
+
+# ==================== Agent Base Classes ====================
+
+
+class BaseAgent(ABC):
+    """Abstract base class for all agents."""
 
     @abstractmethod
-    def run(self, task: str, **kwargs: Any) -> AgentResponse:
-        """Execute the agent with the given task.
+    def plan(self, task: str, context: dict[str, Any]) -> list[AgentAction]:
+        """Plan actions for a given task."""
+        pass
 
-        Args:
-            task: Task description or user query
-            **kwargs: Additional task-specific parameters
-
-        Returns:
-            AgentResponse containing result and metadata
-        """
+    @abstractmethod
+    def execute(self, task: str, **kwargs) -> AgentResult:
+        """Execute the agent on a task."""
         pass
 
     @abstractmethod
     def reset(self) -> None:
-        """Reset agent state (e.g., clear conversation history)."""
+        """Reset agent state."""
         pass
 
-    def stream(self, task: str, **kwargs: Any) -> Iterator[AgentResponse]:
-        """Stream execution results (optional).
 
-        Default implementation yields final result.
-        Streaming agents should override this.
-        """
-        yield self.run(task, **kwargs)
-
-
-class Planner(ABC):
-    """Abstract base class for planning components.
-
-    Examples of implementations:
-    - Sequential Planner: Linear step-by-step plans
-    - Hierarchical Planner: Tree-structured plans
-    - Dynamic Planner: Adaptive replanning
-    """
+class BasePlanner(ABC):
+    """Abstract base class for planning strategies."""
 
     @abstractmethod
-    def plan(self, goal: str, context: dict[str, Any]) -> list[dict[str, Any]]:
-        """Generate a plan for achieving the goal.
-
-        Args:
-            goal: High-level goal description
-            context: Planning context (constraints, resources, etc.)
-
-        Returns:
-            List of plan steps, each step is a dict with:
-              - action: Action to take
-              - params: Action parameters
-              - dependencies: List of step indices this depends on
-        """
+    def plan(self, goal: str, available_tools: list[str], context: dict[str, Any]) -> list[str]:
+        """Generate a plan as a sequence of tool calls."""
         pass
 
-    def replan(
-        self,
-        original_plan: list[dict[str, Any]],
-        feedback: str,
-        context: dict[str, Any],
-    ) -> list[dict[str, Any]]:
-        """Revise a plan based on execution feedback.
 
-        Args:
-            original_plan: Previously generated plan
-            feedback: Feedback from execution (errors, partial results)
-            context: Updated context
-
-        Returns:
-            Revised plan
-
-        Note:
-            Default implementation regenerates from scratch.
-            Implementations can override for smarter replanning.
-        """
-        return self.plan(goal=feedback, context=context)
-
-
-class ToolSelector(ABC):
-    """Abstract base class for tool selection components.
-
-    Tool selectors choose appropriate tools for subtasks.
-
-    Examples of implementations:
-    - Embedding-based: Use semantic similarity
-    - LLM-based: Use LLM for selection
-    - Rule-based: Use predefined rules
-    """
+class BaseToolSelector(ABC):
+    """Abstract base class for tool selection."""
 
     @abstractmethod
-    def select(self, task: str, available_tools: list[dict[str, Any]], top_k: int = 5) -> list[str]:
-        """Select appropriate tools for the task.
-
-        Args:
-            task: Task description
-            available_tools: List of tool definitions, each dict contains:
-              - name: Tool name
-              - description: Tool description
-              - parameters: Tool parameters schema (optional)
-            top_k: Maximum number of tools to select
-
-        Returns:
-            Selected tool names in priority order
-        """
+    def select_tools(
+        self, query: str, available_tools: list[dict[str, Any]], top_k: int = 3
+    ) -> list[str]:
+        """Select top-k relevant tools for a query."""
         pass
-
-    def rank(self, task: str, tool_names: list[str]) -> list[tuple[str, float]]:
-        """Rank tools by relevance (optional).
-
-        Args:
-            task: Task description
-            tool_names: List of tool names
-
-        Returns:
-            List of (tool_name, score) tuples, sorted by score descending
-        """
-        # Default: return unscored list
-        return [(name, 0.0) for name in tool_names]
-
-
-class WorkflowEngine(ABC):
-    """Abstract base class for workflow execution engines.
-
-    Workflow engines execute multi-step workflows with agents.
-
-    Examples of implementations:
-    - Sequential: Execute steps in order
-    - DAG: Execute steps based on dependency graph
-    - Dynamic: Adaptive workflow execution
-    """
 
     @abstractmethod
-    def execute(self, workflow: dict[str, Any], context: dict[str, Any] = None) -> dict[str, Any]:
-        """Execute a workflow definition.
-
-        Args:
-            workflow: Workflow definition containing:
-              - steps: List of workflow steps
-              - graph: Dependency graph (optional)
-              - entry_point: Starting step (optional)
-            context: Initial execution context
-
-        Returns:
-            Workflow execution results containing:
-              - output: Final workflow output
-              - trace: Execution trace (optional)
-              - metrics: Performance metrics (optional)
-        """
+    def add_tool(self, tool_spec: dict[str, Any]) -> None:
+        """Add a tool to the selector's knowledge."""
         pass
 
-    def add_step(self, name: str, agent: Agent, dependencies: list[str] = None) -> None:
-        """Add a step to the workflow (optional).
 
-        Args:
-            name: Step identifier
-            agent: Agent to execute for this step
-            dependencies: List of step names this step depends on
-        """
+class BaseOrchestrator(ABC):
+    """Abstract base class for multi-agent orchestration."""
+
+    @abstractmethod
+    def coordinate(self, task: str, agents: list[BaseAgent], **kwargs) -> AgentResult:
+        """Coordinate multiple agents to complete a task."""
+        pass
+
+
+# ==================== Intent Base Classes (merged from intent/) ====================
+
+
+class IntentRecognizer(ABC):
+    """Abstract base class for intent recognition."""
+
+    @abstractmethod
+    def recognize(self, text: str, context: Optional[dict[str, Any]] = None) -> Intent:
+        """Recognize intent from text."""
+        pass
+
+
+class IntentClassifier(ABC):
+    """Abstract base class for intent classification."""
+
+    @abstractmethod
+    def classify(self, text: str) -> list[Intent]:
+        """Classify text into multiple intents."""
+        pass
+
+
+# ==================== Reasoning Base Classes (merged from reasoning/) ====================
+
+
+class BaseReasoningStrategy(ABC):
+    """Abstract base class for reasoning strategies."""
+
+    @abstractmethod
+    def search(
+        self, initial_state: Any, goal_check: callable, expand: callable, **kwargs
+    ) -> list[Any]:
+        """Perform search/reasoning to reach goal."""
         pass
 
 
 __all__ = [
-    "AgentResponse",
-    "Agent",
-    "Planner",
-    "ToolSelector",
-    "WorkflowEngine",
+    # Data classes
+    "AgentAction",
+    "AgentResult",
+    "Intent",
+    # Agent classes
+    "BaseAgent",
+    "BasePlanner",
+    "BaseToolSelector",
+    "BaseOrchestrator",
+    # Intent classes (merged)
+    "IntentRecognizer",
+    "IntentClassifier",
+    # Reasoning classes (merged)
+    "BaseReasoningStrategy",
 ]

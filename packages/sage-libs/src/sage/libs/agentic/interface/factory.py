@@ -1,143 +1,235 @@
-"""Factory and registry for agentic components.
+"""Factory and registry for agentic implementations.
 
-This module provides dynamic registration and creation of agent implementations.
+Provides separate registries for:
+- Agents
+- Planners
+- Tool Selectors
+- Orchestrators
+- Intent Recognizers (merged from intent/)
+- Intent Classifiers (merged from intent/)
+- Reasoning Strategies (merged from reasoning/)
 """
 
-from __future__ import annotations
+from typing import Any, Type
 
-from typing import Any, Callable
+from .base import (
+    BaseAgent,
+    BasePlanner,
+    BaseToolSelector,
+    BaseOrchestrator,
+    IntentRecognizer,
+    IntentClassifier,
+    BaseReasoningStrategy,
+)
 
-from sage.libs.agentic.interface.base import Agent, Planner, ToolSelector, WorkflowEngine
+# ==================== Registries ====================
 
-# Registry for agent implementations
-_AGENT_REGISTRY: dict[str, Callable[..., Agent]] = {}
-_PLANNER_REGISTRY: dict[str, Callable[..., Planner]] = {}
-_TOOL_SELECTOR_REGISTRY: dict[str, Callable[..., ToolSelector]] = {}
-_WORKFLOW_REGISTRY: dict[str, Callable[..., WorkflowEngine]] = {}
+_AGENT_REGISTRY: dict[str, Type[BaseAgent]] = {}
+_PLANNER_REGISTRY: dict[str, Type[BasePlanner]] = {}
+_TOOL_SELECTOR_REGISTRY: dict[str, Type[BaseToolSelector]] = {}
+_ORCHESTRATOR_REGISTRY: dict[str, Type[BaseOrchestrator]] = {}
+_INTENT_RECOGNIZER_REGISTRY: dict[str, Type[IntentRecognizer]] = {}
+_INTENT_CLASSIFIER_REGISTRY: dict[str, Type[IntentClassifier]] = {}
+_REASONING_REGISTRY: dict[str, Type[BaseReasoningStrategy]] = {}
 
+# ==================== Agent Registry ====================
 
-class AgenticRegistryError(Exception):
-    """Error raised when registry operations fail."""
-
-    pass
-
-
-def register_agent(name: str, factory: Callable[..., Agent]) -> None:
-    """Register an agent implementation.
-
-    Args:
-        name: Agent name (e.g., "react", "reflexion")
-        factory: Factory function that creates agent instances
-    """
-    _AGENT_REGISTRY[name] = factory
-
-
-def register_planner(name: str, factory: Callable[..., Planner]) -> None:
-    """Register a planner implementation."""
-    _PLANNER_REGISTRY[name] = factory
-
-
-def register_tool_selector(name: str, factory: Callable[..., ToolSelector]) -> None:
-    """Register a tool selector implementation."""
-    _TOOL_SELECTOR_REGISTRY[name] = factory
+def register_agent(name: str, cls: Type[BaseAgent]) -> None:
+    """Register an agent implementation."""
+    if name in _AGENT_REGISTRY:
+        raise ValueError(f"Agent '{name}' already registered")
+    if not issubclass(cls, BaseAgent):
+        raise TypeError("Class must inherit from BaseAgent")
+    _AGENT_REGISTRY[name] = cls
 
 
-def register_workflow_engine(name: str, factory: Callable[..., WorkflowEngine]) -> None:
-    """Register a workflow engine implementation."""
-    _WORKFLOW_REGISTRY[name] = factory
-
-
-def create_agent(name: str, **kwargs: Any) -> Agent:
-    """Create an agent instance by name.
-
-    Args:
-        name: Registered agent name
-        **kwargs: Agent-specific configuration
-
-    Returns:
-        Agent instance
-
-    Raises:
-        AgenticRegistryError: If agent name not registered
-
-    Example:
-        >>> agent = create_agent("react", llm="gpt-4")
-        >>> result = agent.run("What is the weather today?")
-    """
+def create_agent(name: str, **kwargs: Any) -> BaseAgent:
+    """Create an agent instance."""
     if name not in _AGENT_REGISTRY:
-        available = list(_AGENT_REGISTRY.keys())
-        raise AgenticRegistryError(
-            f"Agent '{name}' not registered. Available: {available}. "
-            f"Install 'isage-agentic' package for implementations."
+        available = ", ".join(_AGENT_REGISTRY.keys()) or "none"
+        raise KeyError(
+            f"Agent '{name}' not found. Available: {available}. "
+            "Did you install 'isage-agentic'?"
         )
     return _AGENT_REGISTRY[name](**kwargs)
 
 
-def create_planner(name: str, **kwargs: Any) -> Planner:
-    """Create a planner instance by name."""
-    if name not in _PLANNER_REGISTRY:
-        available = list(_PLANNER_REGISTRY.keys())
-        raise AgenticRegistryError(
-            f"Planner '{name}' not registered. Available: {available}. "
-            f"Install 'isage-agentic' package for implementations."
-        )
-    return _PLANNER_REGISTRY[name](**kwargs)
-
-
-def create_tool_selector(name: str, **kwargs: Any) -> ToolSelector:
-    """Create a tool selector instance by name."""
-    if name not in _TOOL_SELECTOR_REGISTRY:
-        available = list(_TOOL_SELECTOR_REGISTRY.keys())
-        raise AgenticRegistryError(
-            f"ToolSelector '{name}' not registered. Available: {available}. "
-            f"Install 'isage-agentic' package for implementations."
-        )
-    return _TOOL_SELECTOR_REGISTRY[name](**kwargs)
-
-
-def create_workflow_engine(name: str, **kwargs: Any) -> WorkflowEngine:
-    """Create a workflow engine instance by name."""
-    if name not in _WORKFLOW_REGISTRY:
-        available = list(_WORKFLOW_REGISTRY.keys())
-        raise AgenticRegistryError(
-            f"WorkflowEngine '{name}' not registered. Available: {available}. "
-            f"Install 'isage-agentic' package for implementations."
-        )
-    return _WORKFLOW_REGISTRY[name](**kwargs)
-
-
 def list_agents() -> list[str]:
-    """List all registered agent names."""
+    """List registered agents."""
     return list(_AGENT_REGISTRY.keys())
 
 
+# ==================== Planner Registry ====================
+
+def register_planner(name: str, cls: Type[BasePlanner]) -> None:
+    """Register a planner implementation."""
+    if name in _PLANNER_REGISTRY:
+        raise ValueError(f"Planner '{name}' already registered")
+    if not issubclass(cls, BasePlanner):
+        raise TypeError("Class must inherit from BasePlanner")
+    _PLANNER_REGISTRY[name] = cls
+
+
+def create_planner(name: str, **kwargs: Any) -> BasePlanner:
+    """Create a planner instance."""
+    if name not in _PLANNER_REGISTRY:
+        available = ", ".join(_PLANNER_REGISTRY.keys()) or "none"
+        raise KeyError(f"Planner '{name}' not found. Available: {available}")
+    return _PLANNER_REGISTRY[name](**kwargs)
+
+
 def list_planners() -> list[str]:
-    """List all registered planner names."""
+    """List registered planners."""
     return list(_PLANNER_REGISTRY.keys())
 
 
+# ==================== Tool Selector Registry ====================
+
+def register_tool_selector(name: str, cls: Type[BaseToolSelector]) -> None:
+    """Register a tool selector implementation."""
+    if name in _TOOL_SELECTOR_REGISTRY:
+        raise ValueError(f"Tool selector '{name}' already registered")
+    if not issubclass(cls, BaseToolSelector):
+        raise TypeError("Class must inherit from BaseToolSelector")
+    _TOOL_SELECTOR_REGISTRY[name] = cls
+
+
+def create_tool_selector(name: str, **kwargs: Any) -> BaseToolSelector:
+    """Create a tool selector instance."""
+    if name not in _TOOL_SELECTOR_REGISTRY:
+        available = ", ".join(_TOOL_SELECTOR_REGISTRY.keys()) or "none"
+        raise KeyError(f"Tool selector '{name}' not found. Available: {available}")
+    return _TOOL_SELECTOR_REGISTRY[name](**kwargs)
+
+
 def list_tool_selectors() -> list[str]:
-    """List all registered tool selector names."""
+    """List registered tool selectors."""
     return list(_TOOL_SELECTOR_REGISTRY.keys())
 
 
-def list_workflow_engines() -> list[str]:
-    """List all registered workflow engine names."""
-    return list(_WORKFLOW_REGISTRY.keys())
+# ==================== Orchestrator Registry ====================
+
+def register_orchestrator(name: str, cls: Type[BaseOrchestrator]) -> None:
+    """Register an orchestrator implementation."""
+    if name in _ORCHESTRATOR_REGISTRY:
+        raise ValueError(f"Orchestrator '{name}' already registered")
+    if not issubclass(cls, BaseOrchestrator):
+        raise TypeError("Class must inherit from BaseOrchestrator")
+    _ORCHESTRATOR_REGISTRY[name] = cls
+
+
+def create_orchestrator(name: str, **kwargs: Any) -> BaseOrchestrator:
+    """Create an orchestrator instance."""
+    if name not in _ORCHESTRATOR_REGISTRY:
+        available = ", ".join(_ORCHESTRATOR_REGISTRY.keys()) or "none"
+        raise KeyError(f"Orchestrator '{name}' not found. Available: {available}")
+    return _ORCHESTRATOR_REGISTRY[name](**kwargs)
+
+
+def list_orchestrators() -> list[str]:
+    """List registered orchestrators."""
+    return list(_ORCHESTRATOR_REGISTRY.keys())
+
+
+# ==================== Intent Recognizer Registry (merged from intent/) ====================
+
+def register_intent_recognizer(name: str, cls: Type[IntentRecognizer]) -> None:
+    """Register an intent recognizer implementation."""
+    if name in _INTENT_RECOGNIZER_REGISTRY:
+        raise ValueError(f"Intent recognizer '{name}' already registered")
+    if not issubclass(cls, IntentRecognizer):
+        raise TypeError("Class must inherit from IntentRecognizer")
+    _INTENT_RECOGNIZER_REGISTRY[name] = cls
+
+
+def create_intent_recognizer(name: str, **kwargs: Any) -> IntentRecognizer:
+    """Create an intent recognizer instance."""
+    if name not in _INTENT_RECOGNIZER_REGISTRY:
+        available = ", ".join(_INTENT_RECOGNIZER_REGISTRY.keys()) or "none"
+        raise KeyError(f"Intent recognizer '{name}' not found. Available: {available}")
+    return _INTENT_RECOGNIZER_REGISTRY[name](**kwargs)
+
+
+def list_intent_recognizers() -> list[str]:
+    """List registered intent recognizers."""
+    return list(_INTENT_RECOGNIZER_REGISTRY.keys())
+
+
+# ==================== Intent Classifier Registry (merged from intent/) ====================
+
+def register_intent_classifier(name: str, cls: Type[IntentClassifier]) -> None:
+    """Register an intent classifier implementation."""
+    if name in _INTENT_CLASSIFIER_REGISTRY:
+        raise ValueError(f"Intent classifier '{name}' already registered")
+    if not issubclass(cls, IntentClassifier):
+        raise TypeError("Class must inherit from IntentClassifier")
+    _INTENT_CLASSIFIER_REGISTRY[name] = cls
+
+
+def create_intent_classifier(name: str, **kwargs: Any) -> IntentClassifier:
+    """Create an intent classifier instance."""
+    if name not in _INTENT_CLASSIFIER_REGISTRY:
+        available = ", ".join(_INTENT_CLASSIFIER_REGISTRY.keys()) or "none"
+        raise KeyError(f"Intent classifier '{name}' not found. Available: {available}")
+    return _INTENT_CLASSIFIER_REGISTRY[name](**kwargs)
+
+
+def list_intent_classifiers() -> list[str]:
+    """List registered intent classifiers."""
+    return list(_INTENT_CLASSIFIER_REGISTRY.keys())
+
+
+# ==================== Reasoning Strategy Registry (merged from reasoning/) ====================
+
+def register_reasoning_strategy(name: str, cls: Type[BaseReasoningStrategy]) -> None:
+    """Register a reasoning strategy implementation."""
+    if name in _REASONING_REGISTRY:
+        raise ValueError(f"Reasoning strategy '{name}' already registered")
+    if not issubclass(cls, BaseReasoningStrategy):
+        raise TypeError("Class must inherit from BaseReasoningStrategy")
+    _REASONING_REGISTRY[name] = cls
+
+
+def create_reasoning_strategy(name: str, **kwargs: Any) -> BaseReasoningStrategy:
+    """Create a reasoning strategy instance."""
+    if name not in _REASONING_REGISTRY:
+        available = ", ".join(_REASONING_REGISTRY.keys()) or "none"
+        raise KeyError(f"Reasoning strategy '{name}' not found. Available: {available}")
+    return _REASONING_REGISTRY[name](**kwargs)
+
+
+def list_reasoning_strategies() -> list[str]:
+    """List registered reasoning strategies."""
+    return list(_REASONING_REGISTRY.keys())
 
 
 __all__ = [
-    "AgenticRegistryError",
+    # Agent
     "register_agent",
-    "register_planner",
-    "register_tool_selector",
-    "register_workflow_engine",
     "create_agent",
-    "create_planner",
-    "create_tool_selector",
-    "create_workflow_engine",
     "list_agents",
+    # Planner
+    "register_planner",
+    "create_planner",
     "list_planners",
+    # Tool Selector
+    "register_tool_selector",
+    "create_tool_selector",
     "list_tool_selectors",
-    "list_workflow_engines",
+    # Orchestrator
+    "register_orchestrator",
+    "create_orchestrator",
+    "list_orchestrators",
+    # Intent (merged)
+    "register_intent_recognizer",
+    "create_intent_recognizer",
+    "list_intent_recognizers",
+    "register_intent_classifier",
+    "create_intent_classifier",
+    "list_intent_classifiers",
+    # Reasoning (merged)
+    "register_reasoning_strategy",
+    "create_reasoning_strategy",
+    "list_reasoning_strategies",
 ]
+
