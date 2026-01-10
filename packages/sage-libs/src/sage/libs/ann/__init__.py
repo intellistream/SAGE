@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import warnings
 
-from sage.libs.anns.interface import (
+from sage.libs.ann.interface import (
     AnnIndex,
     AnnIndexMeta,
     AnnRegistryError,

@@ -22,48 +22,53 @@ from sage.libs._version import __author__, __email__, __version__
 __layer__ = "L3"
 
 # NOTE: ANNS, AMMS, and Agentic have been externalized to independent PyPI packages:
-# - isage-anns: ANNS algorithms (interface/registry remain here)
+# - isage-anns: ANNS algorithms (interface/registry remain here as ann/)
 # - isage-amms: AMM algorithms (interface/registry remain here)
-# - isage-agentic: Agent framework (compatibility layer at agentic.py)
-# Install via extras: pip install -e packages/sage-libs[anns,amms,agentic]
+# - isage-agentic: Agent framework (interface/registry remain here)
+# Install via extras: pip install -e packages/sage-libs[ann,amms,agentic]
 #
-# Module reorganization (2026-01):
-# - sias, reasoning, eval → moved into agentic/ (now external)
-# - agentic → externalized to isage-agentic package
+# Module organization (2026-01-10):
+# - Seven top-level domains: agentic, rag, ann, reasoning, dataops, eval, safety
+# - anns → ann (unified singular naming)
+# - New domains: reasoning (search algorithms), eval (metrics & telemetry)
 from . import (
-    amms,
-    anns,
-    dataops,
-    finetune,
-    foundation,
-    integrations,
-    privacy,
-    rag,
-    safety,
+    agentic,  # Agent interfaces (impl in isage-agentic)
+    amms,  # AMM interfaces (impl in isage-amms)
+    ann,  # ANN interfaces (impl in isage-anns) - renamed from anns
+    dataops,  # Data operations
+    finetune,  # Fine-tuning interfaces (impl in isage-finetune)
+    foundation,  # Foundation utilities
+    integrations,  # Third-party integrations
+    privacy,  # Privacy protection
+    rag,  # RAG tools
+    reasoning,  # Search & scoring algorithms
+    safety,  # Safety checks
+    sias,  # SIAS framework (pending migration to isage-agentic)
 )
 
-# Agentic compatibility layer (lazy import to show deprecation warning)
-try:
-    from . import agentic
-except ImportError:
-    # If agentic.py doesn't exist, create a placeholder
-    agentic = None
+# New domains (2026-01-10)
+from . import (
+    eval as evaluation,  # Evaluation metrics & telemetry (renamed to avoid built-in)
+)
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    # Core domains
-    "foundation",
-    "agentic",  # Includes: agents, planning, sias, reasoning, eval
-    "rag",
-    "dataops",
-    "safety",
+    # Seven top-level domains
+    "agentic",  # Agent framework (interface layer)
+    "rag",  # RAG tools
+    "ann",  # ANN interface (renamed from anns)
+    "reasoning",  # Search & scoring algorithms (NEW)
+    "dataops",  # Data operations
+    "evaluation",  # Metrics & telemetry (NEW, renamed from eval)
+    "safety",  # Safety checks
+    # Supporting modules
+    "foundation",  # Foundation utilities
+    "integrations",  # Third-party integrations
+    "privacy",  # Privacy protection
+    "sias",  # SIAS framework (pending migration)
     # Interface layers (external implementations)
-    "anns",  # ANNS interface
     "amms",  # AMM interface
-    # Specialized
-    "integrations",
-    "privacy",
-    "finetune",
+    "finetune",  # Fine-tuning interface
 ]

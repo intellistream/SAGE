@@ -1,58 +1,28 @@
-"""Unified SIAS (Stream-based Intent-Aware Selection) interfaces.
+"""SIAS: Self-Improving Agentic Systems
 
-Status: implementations have been externalized to the `isage-sias` package. This module now
-exposes only the registry/interfaces. Install the external package to obtain concrete implementations:
+**Status**: 🚧 Pending migration to isage-agentic
 
-    pip install isage-sias
-    # or
-    pip install -e packages/sage-libs[sias]
+SIAS is a complete self-improving Agent framework with 4 major components:
+1. ✅ Streaming Trainer (CoresetSelector, OnlineContinualLearner) - Implemented
+2. 🚧 Reflective Memory - To be implemented
+3. 🚧 Adaptive Executor - To be implemented
+4. 🚧 Collaborative Specialists - To be implemented
 
-The external package will automatically register its implementations with the factory.
+This module will be migrated to `isage-agentic/sias/` as a high-level feature module.
+
+Current implementation is minimal - only provides a placeholder for migration planning.
+For now, SIAS components are accessed through their original locations.
 """
 
 from __future__ import annotations
 
 import warnings
 
-from sage.libs.sias.interface import (
-    ContinualLearner,
-    CoresetSelector,
-    SiasRegistryError,
-    create_learner,
-    create_selector,
-    list_learners,
-    list_selectors,
-    register_learner,
-    register_selector,
+warnings.warn(
+    "SIAS module is pending migration to isage-agentic. "
+    "This is a placeholder module. Full SIAS framework will be available in isage-agentic[sias].",
+    PendingDeprecationWarning,
+    stacklevel=2,
 )
 
-# Try to auto-import external package if available
-try:
-    import isage_sias  # noqa: F401
-
-    _EXTERNAL_AVAILABLE = True
-except ImportError:
-    _EXTERNAL_AVAILABLE = False
-    warnings.warn(
-        "SIAS implementations not available. Install 'isage-sias' package:\n"
-        "  pip install isage-sias\n"
-        "or: pip install isage-libs[sias]",
-        ImportWarning,
-        stacklevel=2,
-    )
-
-__all__ = [
-    # Base classes
-    "ContinualLearner",
-    "CoresetSelector",
-    # Registry
-    "SiasRegistryError",
-    "register_learner",
-    "register_selector",
-    # Factory
-    "create_learner",
-    "create_selector",
-    # Discovery
-    "list_learners",
-    "list_selectors",
-]
+__all__ = []
