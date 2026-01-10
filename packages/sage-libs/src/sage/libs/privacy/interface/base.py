@@ -12,7 +12,7 @@ Implementations are provided by the external 'isage-privacy' package.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 # Re-export existing implementation
 from ..unlearning.dp_unlearning.base_mechanism import (

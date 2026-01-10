@@ -5,6 +5,7 @@
 **sage-libs** 是 SAGE 框架的算法库层，定位为 **接口/注册表层 (Interface Layer)**。
 
 核心设计原则：
+
 - 📦 **轻量级接口**：定义抽象基类和工厂函数
 - 🔌 **可插拔实现**：重型实现迁出为独立 PyPI 包 (`isage-*`)
 - 🏗️ **注册表模式**：通过 `register_*` / `create_*` 动态加载实现
@@ -30,15 +31,15 @@ sage-libs (Interface Layer)
 
 **接口**：`sage.libs.agentic.interface`
 
-| Base Class | Description |
-|------------|-------------|
-| `BaseAgent` | Agent execution interface |
-| `BasePlanner` | Task planning (ToT, ReAct, Hierarchical) |
-| `BaseToolSelector` | Tool selection (Keyword, Embedding, Hybrid) |
-| `BaseOrchestrator` | Multi-agent orchestration |
-| `IntentRecognizer` | Intent recognition |
-| `IntentClassifier` | Intent classification |
-| `BaseReasoningStrategy` | Reasoning strategies (CoT, ToT, ReAct) |
+| Base Class              | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| `BaseAgent`             | Agent execution interface                   |
+| `BasePlanner`           | Task planning (ToT, ReAct, Hierarchical)    |
+| `BaseToolSelector`      | Tool selection (Keyword, Embedding, Hybrid) |
+| `BaseOrchestrator`      | Multi-agent orchestration                   |
+| `IntentRecognizer`      | Intent recognition                          |
+| `IntentClassifier`      | Intent classification                       |
+| `BaseReasoningStrategy` | Reasoning strategies (CoT, ToT, ReAct)      |
 
 ```python
 from sage.libs.agentic.interface import (
@@ -57,14 +58,14 @@ agent = create_agent("react", tools=[...])
 
 **接口**：`sage.libs.rag.interface`
 
-| Base Class | Description |
-|------------|-------------|
+| Base Class       | Description                            |
+| ---------------- | -------------------------------------- |
 | `DocumentLoader` | Document loading (PDF, DOCX, MD, etc.) |
-| `TextChunker` | Text segmentation |
-| `Retriever` | Vector/BM25 retrieval |
-| `Reranker` | Reranking (Cross-Encoder, LLM) |
-| `QueryRewriter` | Query rewriting (HyDE, Multi-Query) |
-| `RAGPipeline` | End-to-end RAG pipeline |
+| `TextChunker`    | Text segmentation                      |
+| `Retriever`      | Vector/BM25 retrieval                  |
+| `Reranker`       | Reranking (Cross-Encoder, LLM)         |
+| `QueryRewriter`  | Query rewriting (HyDE, Multi-Query)    |
+| `RAGPipeline`    | End-to-end RAG pipeline                |
 
 ```python
 from sage.libs.rag.interface import (
@@ -80,12 +81,12 @@ retriever = create_retriever("faiss", dimension=768)
 
 **接口**：`sage.libs.finetune.interface`
 
-| Base Class | Description |
-|------------|-------------|
-| `FineTuner` | Fine-tuning trainer |
-| `DatasetLoader` | Training data loading |
+| Base Class         | Description                             |
+| ------------------ | --------------------------------------- |
+| `FineTuner`        | Fine-tuning trainer                     |
+| `DatasetLoader`    | Training data loading                   |
 | `TrainingCallback` | Training callbacks (WandB, TensorBoard) |
-| `TrainingStrategy` | PEFT strategies (LoRA, QLoRA, Prefix) |
+| `TrainingStrategy` | PEFT strategies (LoRA, QLoRA, Prefix)   |
 
 ```python
 from sage.libs.finetune.interface import (
@@ -101,12 +102,12 @@ trainer = create_trainer("lora", model_name="gpt2")
 
 **接口**：`sage.libs.eval.interface`
 
-| Base Class | Description |
-|------------|-------------|
-| `BaseMetric` | Evaluation metrics (Accuracy, BLEU, ROUGE) |
-| `BaseLLMJudge` | LLM-as-a-Judge (Faithfulness, Relevance) |
-| `BaseProfiler` | Performance profiling |
-| `BaseBenchmark` | Benchmark suites |
+| Base Class      | Description                                |
+| --------------- | ------------------------------------------ |
+| `BaseMetric`    | Evaluation metrics (Accuracy, BLEU, ROUGE) |
+| `BaseLLMJudge`  | LLM-as-a-Judge (Faithfulness, Relevance)   |
+| `BaseProfiler`  | Performance profiling                      |
+| `BaseBenchmark` | Benchmark suites                           |
 
 ```python
 from sage.libs.eval.interface import (
@@ -122,21 +123,21 @@ judge = create_judge("faithfulness", model="gpt-4")
 
 **Privacy 接口**：`sage.libs.privacy.interface`
 
-| Base Class | Description |
-|------------|-------------|
-| `BaseUnlearner` | Machine unlearning (SISA, Gradient Ascent) |
-| `BasePrivacyMechanism` | DP mechanisms (Laplace, Gaussian) |
-| `BaseDPOptimizer` | DP optimizers (DP-SGD, DP-Adam) |
-| `BaseFederatedClient/Server` | Federated learning |
+| Base Class                   | Description                                |
+| ---------------------------- | ------------------------------------------ |
+| `BaseUnlearner`              | Machine unlearning (SISA, Gradient Ascent) |
+| `BasePrivacyMechanism`       | DP mechanisms (Laplace, Gaussian)          |
+| `BaseDPOptimizer`            | DP optimizers (DP-SGD, DP-Adam)            |
+| `BaseFederatedClient/Server` | Federated learning                         |
 
 **Safety 接口**：`sage.libs.safety.interface`
 
-| Base Class | Description |
-|------------|-------------|
-| `BaseGuardrail` | Content safety guardrails |
-| `BaseJailbreakDetector` | Jailbreak/prompt injection detection |
-| `BaseToxicityDetector` | Toxicity detection |
-| `BaseAdversarialDefense` | Adversarial input defense |
+| Base Class               | Description                          |
+| ------------------------ | ------------------------------------ |
+| `BaseGuardrail`          | Content safety guardrails            |
+| `BaseJailbreakDetector`  | Jailbreak/prompt injection detection |
+| `BaseToxicityDetector`   | Toxicity detection                   |
+| `BaseAdversarialDefense` | Adversarial input defense            |
 
 ```python
 from sage.libs.privacy import create_unlearner, create_mechanism
@@ -146,18 +147,18 @@ unlearner = create_unlearner("sisa", num_shards=5)
 guardrail = create_guardrail("llm", model="gpt-4")
 ```
 
-## 📦 External Packages (isage-*)
+## 📦 External Packages (isage-\*)
 
-| Domain | Interface (sage-libs) | Implementation (PyPI) | Status |
-|--------|----------------------|----------------------|--------|
-| Agentic | `agentic/interface/` | `isage-agentic` | 🚧 Planned |
-| RAG | `rag/interface/` | `isage-rag` | 🚧 Planned |
-| Fine-tuning | `finetune/interface/` | `isage-finetune` | 🚧 Planned |
-| Evaluation | `eval/interface/` | `isage-eval` | 🚧 Planned |
-| Privacy | `privacy/interface/` | `isage-privacy` | 🚧 Planned |
-| Safety | `safety/interface/` | `isage-safety` | 🚧 Planned |
-| ANNS | `ann/interface/` | `isage-anns` | ✅ Available |
-| AMM | `amms/interface/` | `isage-amms` | 🚧 Migration |
+| Domain      | Interface (sage-libs) | Implementation (PyPI) | Status       |
+| ----------- | --------------------- | --------------------- | ------------ |
+| Agentic     | `agentic/interface/`  | `isage-agentic`       | 🚧 Planned   |
+| RAG         | `rag/interface/`      | `isage-rag`           | 🚧 Planned   |
+| Fine-tuning | `finetune/interface/` | `isage-finetune`      | 🚧 Planned   |
+| Evaluation  | `eval/interface/`     | `isage-eval`          | 🚧 Planned   |
+| Privacy     | `privacy/interface/`  | `isage-privacy`       | 🚧 Planned   |
+| Safety      | `safety/interface/`   | `isage-safety`        | 🚧 Planned   |
+| ANNS        | `ann/interface/`      | `isage-anns`          | ✅ Available |
+| AMM         | `amms/interface/`     | `isage-amms`          | 🚧 Migration |
 
 ## 🚀 Installation
 

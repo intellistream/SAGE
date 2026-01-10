@@ -13,17 +13,17 @@ from . import content_filter, interface, pii_scrubber, policy_check
 
 # Re-export key interfaces for convenience
 from .interface import (
-    # Enums
-    SafetyAction,
-    SafetyCategory,
-    # Data types
-    JailbreakResult,
-    SafetyResult,
     # Base classes
     BaseAdversarialDefense,
     BaseGuardrail,
     BaseJailbreakDetector,
     BaseToxicityDetector,
+    # Data types
+    JailbreakResult,
+    # Enums
+    SafetyAction,
+    SafetyCategory,
+    SafetyResult,
     # Factories
     create_guardrail,
     create_jailbreak_detector,

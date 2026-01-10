@@ -274,9 +274,7 @@ class TrainingCallback(ABC):
         """
         pass
 
-    def on_evaluate(
-        self, trainer: "FineTuner", metrics: dict[str, float], **kwargs: Any
-    ) -> None:
+    def on_evaluate(self, trainer: "FineTuner", metrics: dict[str, float], **kwargs: Any) -> None:
         """Called after evaluation.
 
         Args:

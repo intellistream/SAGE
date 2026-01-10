@@ -18,34 +18,34 @@ Usage:
 """
 
 from .interface import (
-    # Enums
-    MetricType,
-    # Data types
-    MetricResult,
-    ProfileResult,
     # Base classes
     BaseBenchmark,
     BaseLLMJudge,
     BaseMetric,
     BaseProfiler,
-    # Metric registry
-    create_metric,
-    register_metric,
-    registered_metrics,
-    # Judge registry
-    create_judge,
-    register_judge,
-    registered_judges,
-    # Profiler registry
-    create_profiler,
-    register_profiler,
-    registered_profilers,
-    # Benchmark registry
-    create_benchmark,
-    register_benchmark,
-    registered_benchmarks,
     # Exception
     EvalRegistryError,
+    # Data types
+    MetricResult,
+    # Enums
+    MetricType,
+    ProfileResult,
+    # Benchmark registry
+    create_benchmark,
+    # Judge registry
+    create_judge,
+    # Metric registry
+    create_metric,
+    # Profiler registry
+    create_profiler,
+    register_benchmark,
+    register_judge,
+    register_metric,
+    register_profiler,
+    registered_benchmarks,
+    registered_judges,
+    registered_metrics,
+    registered_profilers,
 )
 
 __all__ = [

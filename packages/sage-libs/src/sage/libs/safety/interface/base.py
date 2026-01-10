@@ -153,8 +153,7 @@ class BaseGuardrail(ABC):
         """
         contexts = contexts or [None] * len(contents)
         return [
-            self.check(content, context, **kwargs)
-            for content, context in zip(contents, contexts)
+            self.check(content, context, **kwargs) for content, context in zip(contents, contexts)
         ]
 
     def filter(

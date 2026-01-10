@@ -39,31 +39,31 @@ from .base import (
 # Factory functions
 from .factory import (
     PrivacyRegistryError,
-    # Unlearner
-    create_unlearner,
-    register_unlearner,
-    registered_unlearners,
-    unregister_unlearner,
-    # Mechanism
-    create_mechanism,
-    register_mechanism,
-    registered_mechanisms,
-    unregister_mechanism,
-    # Optimizer
-    create_optimizer,
-    register_optimizer,
-    registered_optimizers,
-    unregister_optimizer,
     # Federated Client
     create_fed_client,
-    register_fed_client,
-    registered_fed_clients,
-    unregister_fed_client,
     # Federated Server
     create_fed_server,
+    # Mechanism
+    create_mechanism,
+    # Optimizer
+    create_optimizer,
+    # Unlearner
+    create_unlearner,
+    register_fed_client,
     register_fed_server,
+    register_mechanism,
+    register_optimizer,
+    register_unlearner,
+    registered_fed_clients,
     registered_fed_servers,
+    registered_mechanisms,
+    registered_optimizers,
+    registered_unlearners,
+    unregister_fed_client,
     unregister_fed_server,
+    unregister_mechanism,
+    unregister_optimizer,
+    unregister_unlearner,
 )
 
 __all__ = [

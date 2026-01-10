@@ -10,31 +10,32 @@ Provides separate registries for:
 - Reasoning Strategies (merged from reasoning/)
 """
 
-from typing import Any, Type
+from typing import Any
 
 from .base import (
     BaseAgent,
-    BasePlanner,
-    BaseToolSelector,
     BaseOrchestrator,
-    IntentRecognizer,
-    IntentClassifier,
+    BasePlanner,
     BaseReasoningStrategy,
+    BaseToolSelector,
+    IntentClassifier,
+    IntentRecognizer,
 )
 
 # ==================== Registries ====================
 
-_AGENT_REGISTRY: dict[str, Type[BaseAgent]] = {}
-_PLANNER_REGISTRY: dict[str, Type[BasePlanner]] = {}
-_TOOL_SELECTOR_REGISTRY: dict[str, Type[BaseToolSelector]] = {}
-_ORCHESTRATOR_REGISTRY: dict[str, Type[BaseOrchestrator]] = {}
-_INTENT_RECOGNIZER_REGISTRY: dict[str, Type[IntentRecognizer]] = {}
-_INTENT_CLASSIFIER_REGISTRY: dict[str, Type[IntentClassifier]] = {}
-_REASONING_REGISTRY: dict[str, Type[BaseReasoningStrategy]] = {}
+_AGENT_REGISTRY: dict[str, type[BaseAgent]] = {}
+_PLANNER_REGISTRY: dict[str, type[BasePlanner]] = {}
+_TOOL_SELECTOR_REGISTRY: dict[str, type[BaseToolSelector]] = {}
+_ORCHESTRATOR_REGISTRY: dict[str, type[BaseOrchestrator]] = {}
+_INTENT_RECOGNIZER_REGISTRY: dict[str, type[IntentRecognizer]] = {}
+_INTENT_CLASSIFIER_REGISTRY: dict[str, type[IntentClassifier]] = {}
+_REASONING_REGISTRY: dict[str, type[BaseReasoningStrategy]] = {}
 
 # ==================== Agent Registry ====================
 
-def register_agent(name: str, cls: Type[BaseAgent]) -> None:
+
+def register_agent(name: str, cls: type[BaseAgent]) -> None:
     """Register an agent implementation."""
     if name in _AGENT_REGISTRY:
         raise ValueError(f"Agent '{name}' already registered")
@@ -48,8 +49,7 @@ def create_agent(name: str, **kwargs: Any) -> BaseAgent:
     if name not in _AGENT_REGISTRY:
         available = ", ".join(_AGENT_REGISTRY.keys()) or "none"
         raise KeyError(
-            f"Agent '{name}' not found. Available: {available}. "
-            "Did you install 'isage-agentic'?"
+            f"Agent '{name}' not found. Available: {available}. Did you install 'isage-agentic'?"
         )
     return _AGENT_REGISTRY[name](**kwargs)
 
@@ -61,7 +61,8 @@ def list_agents() -> list[str]:
 
 # ==================== Planner Registry ====================
 
-def register_planner(name: str, cls: Type[BasePlanner]) -> None:
+
+def register_planner(name: str, cls: type[BasePlanner]) -> None:
     """Register a planner implementation."""
     if name in _PLANNER_REGISTRY:
         raise ValueError(f"Planner '{name}' already registered")
@@ -85,7 +86,8 @@ def list_planners() -> list[str]:
 
 # ==================== Tool Selector Registry ====================
 
-def register_tool_selector(name: str, cls: Type[BaseToolSelector]) -> None:
+
+def register_tool_selector(name: str, cls: type[BaseToolSelector]) -> None:
     """Register a tool selector implementation."""
     if name in _TOOL_SELECTOR_REGISTRY:
         raise ValueError(f"Tool selector '{name}' already registered")
@@ -109,7 +111,8 @@ def list_tool_selectors() -> list[str]:
 
 # ==================== Orchestrator Registry ====================
 
-def register_orchestrator(name: str, cls: Type[BaseOrchestrator]) -> None:
+
+def register_orchestrator(name: str, cls: type[BaseOrchestrator]) -> None:
     """Register an orchestrator implementation."""
     if name in _ORCHESTRATOR_REGISTRY:
         raise ValueError(f"Orchestrator '{name}' already registered")
@@ -133,7 +136,8 @@ def list_orchestrators() -> list[str]:
 
 # ==================== Intent Recognizer Registry (merged from intent/) ====================
 
-def register_intent_recognizer(name: str, cls: Type[IntentRecognizer]) -> None:
+
+def register_intent_recognizer(name: str, cls: type[IntentRecognizer]) -> None:
     """Register an intent recognizer implementation."""
     if name in _INTENT_RECOGNIZER_REGISTRY:
         raise ValueError(f"Intent recognizer '{name}' already registered")
@@ -157,7 +161,8 @@ def list_intent_recognizers() -> list[str]:
 
 # ==================== Intent Classifier Registry (merged from intent/) ====================
 
-def register_intent_classifier(name: str, cls: Type[IntentClassifier]) -> None:
+
+def register_intent_classifier(name: str, cls: type[IntentClassifier]) -> None:
     """Register an intent classifier implementation."""
     if name in _INTENT_CLASSIFIER_REGISTRY:
         raise ValueError(f"Intent classifier '{name}' already registered")
@@ -181,7 +186,8 @@ def list_intent_classifiers() -> list[str]:
 
 # ==================== Reasoning Strategy Registry (merged from reasoning/) ====================
 
-def register_reasoning_strategy(name: str, cls: Type[BaseReasoningStrategy]) -> None:
+
+def register_reasoning_strategy(name: str, cls: type[BaseReasoningStrategy]) -> None:
     """Register a reasoning strategy implementation."""
     if name in _REASONING_REGISTRY:
         raise ValueError(f"Reasoning strategy '{name}' already registered")
@@ -232,4 +238,3 @@ __all__ = [
     "create_reasoning_strategy",
     "list_reasoning_strategies",
 ]
-

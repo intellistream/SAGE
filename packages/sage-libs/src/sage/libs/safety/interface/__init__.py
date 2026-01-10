@@ -40,26 +40,26 @@ from .base import (
 # Factory functions
 from .factory import (
     SafetyRegistryError,
-    # Guardrail
-    create_guardrail,
-    register_guardrail,
-    registered_guardrails,
-    unregister_guardrail,
-    # Jailbreak
-    create_jailbreak_detector,
-    register_jailbreak_detector,
-    registered_jailbreak_detectors,
-    unregister_jailbreak_detector,
-    # Toxicity
-    create_toxicity_detector,
-    register_toxicity_detector,
-    registered_toxicity_detectors,
-    unregister_toxicity_detector,
     # Adversarial
     create_adversarial_defense,
+    # Guardrail
+    create_guardrail,
+    # Jailbreak
+    create_jailbreak_detector,
+    # Toxicity
+    create_toxicity_detector,
     register_adversarial_defense,
+    register_guardrail,
+    register_jailbreak_detector,
+    register_toxicity_detector,
     registered_adversarial_defenses,
+    registered_guardrails,
+    registered_jailbreak_detectors,
+    registered_toxicity_detectors,
     unregister_adversarial_defense,
+    unregister_guardrail,
+    unregister_jailbreak_detector,
+    unregister_toxicity_detector,
 )
 
 __all__ = [

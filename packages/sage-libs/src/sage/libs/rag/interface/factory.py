@@ -293,7 +293,9 @@ def create_query_rewriter(name: str, **kwargs: Any) -> QueryRewriter:
         RAGRegistryError: If query rewriter not found
     """
     if name not in _QUERY_REWRITER_REGISTRY:
-        available = ", ".join(_QUERY_REWRITER_REGISTRY.keys()) if _QUERY_REWRITER_REGISTRY else "none"
+        available = (
+            ", ".join(_QUERY_REWRITER_REGISTRY.keys()) if _QUERY_REWRITER_REGISTRY else "none"
+        )
         raise RAGRegistryError(
             f"QueryRewriter '{name}' not found. Available: {available}. Did you install 'isage-rag'?"
         )

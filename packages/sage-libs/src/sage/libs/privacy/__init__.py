@@ -11,18 +11,18 @@ from . import interface, unlearning
 
 # Re-export key interfaces for convenience
 from .interface import (
-    # Enums
-    PrivacyLevel,
-    UnlearningMethod,
-    # Data types
-    PrivacyBudget,
-    UnlearningResult,
     # Base classes
     BaseDPOptimizer,
     BaseFederatedClient,
     BaseFederatedServer,
     BasePrivacyMechanism,
     BaseUnlearner,
+    # Data types
+    PrivacyBudget,
+    # Enums
+    PrivacyLevel,
+    UnlearningMethod,
+    UnlearningResult,
     # Factories
     create_mechanism,
     create_unlearner,
