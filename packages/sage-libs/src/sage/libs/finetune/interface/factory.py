@@ -1,118 +1,170 @@
-"""Factory and registry for fine-tuning components.
+"""Factory and registry for finetune implementations.
 
-This module provides dynamic registration and creation of trainer implementations.
+This module provides a registry pattern for fine-tuning implementations.
+External packages (like isage-finetune) can register their implementations here.
+
+Example:
+    # Register an implementation
+    from sage.libs.finetune.interface import register_trainer, register_loader
+    register_trainer("lora", LoRATrainer)
+    register_loader("hf_dataset", HuggingFaceLoader)
+
+    # Create instances
+    from sage.libs.finetune.interface import create_trainer, create_loader
+    trainer = create_trainer("lora", model_name="gpt2")
+    loader = create_loader("hf_dataset")
 """
 
-from __future__ import annotations
+from typing import Any
 
-from typing import Any, Callable
+from .base import DatasetLoader, FineTuner
 
-from sage.libs.finetune.interface.base import DataFormatter, FinetuneConfig, Trainer
-
-# Registry for trainer implementations
-_TRAINER_REGISTRY: dict[str, Callable[..., Trainer]] = {}
-_CONFIG_REGISTRY: dict[str, Callable[..., FinetuneConfig]] = {}
-_FORMATTER_REGISTRY: dict[str, Callable[..., DataFormatter]] = {}
+_TRAINER_REGISTRY: dict[str, type[FineTuner]] = {}
+_LOADER_REGISTRY: dict[str, type[DatasetLoader]] = {}
 
 
-class FinetuneRegistryError(Exception):
+class FineTuneRegistryError(Exception):
     """Error raised when registry operations fail."""
 
     pass
 
 
-def register_trainer(name: str, factory: Callable[..., Trainer]) -> None:
-    """Register a trainer implementation.
+def register_trainer(name: str, cls: type[FineTuner]) -> None:
+    """Register a fine-tuning trainer implementation.
 
     Args:
-        name: Trainer name (e.g., "lora", "qlora", "dpo")
-        factory: Factory function that creates trainer instances
+        name: Unique identifier for this trainer (e.g., "lora", "qlora", "full")
+        cls: Trainer class (should inherit from FineTuner)
+
+    Raises:
+        FineTuneRegistryError: If name already registered
     """
-    _TRAINER_REGISTRY[name] = factory
+    if name in _TRAINER_REGISTRY:
+        raise FineTuneRegistryError(f"Trainer '{name}' already registered")
+
+    if not issubclass(cls, FineTuner):
+        raise TypeError(f"Class must inherit from FineTuner, got {cls}")
+
+    _TRAINER_REGISTRY[name] = cls
 
 
-def register_config(name: str, factory: Callable[..., FinetuneConfig]) -> None:
-    """Register a config implementation."""
-    _CONFIG_REGISTRY[name] = factory
+def register_loader(name: str, cls: type[DatasetLoader]) -> None:
+    """Register a dataset loader implementation.
+
+    Args:
+        name: Unique identifier for this loader (e.g., "hf_dataset", "jsonl")
+        cls: Loader class (should inherit from DatasetLoader)
+
+    Raises:
+        FineTuneRegistryError: If name already registered
+    """
+    if name in _LOADER_REGISTRY:
+        raise FineTuneRegistryError(f"Loader '{name}' already registered")
+
+    if not issubclass(cls, DatasetLoader):
+        raise TypeError(f"Class must inherit from DatasetLoader, got {cls}")
+
+    _LOADER_REGISTRY[name] = cls
 
 
-def register_formatter(name: str, factory: Callable[..., DataFormatter]) -> None:
-    """Register a data formatter implementation."""
-    _FORMATTER_REGISTRY[name] = factory
-
-
-def create_trainer(name: str, **kwargs: Any) -> Trainer:
+def create_trainer(name: str, **kwargs: Any) -> FineTuner:
     """Create a trainer instance by name.
 
     Args:
-        name: Registered trainer name
-        **kwargs: Trainer-specific configuration
+        name: Name of the registered trainer
+        **kwargs: Arguments to pass to the trainer constructor
 
     Returns:
-        Trainer instance
+        Instance of the trainer
 
     Raises:
-        FinetuneRegistryError: If trainer name not registered
+        FineTuneRegistryError: If trainer not found
 
     Example:
-        >>> trainer = create_trainer("lora", rank=8, alpha=16)
-        >>> results = trainer.train(model, train_data)
+        >>> trainer = create_trainer("lora", model_name="gpt2", lora_r=8)
+        >>> trainer.train(train_dataset)
     """
     if name not in _TRAINER_REGISTRY:
-        available = list(_TRAINER_REGISTRY.keys())
-        raise FinetuneRegistryError(
-            f"Trainer '{name}' not registered. Available: {available}. "
-            f"Install 'isage-finetune' package for implementations."
+        available = ", ".join(_TRAINER_REGISTRY.keys()) if _TRAINER_REGISTRY else "none"
+        raise FineTuneRegistryError(
+            f"Trainer '{name}' not found. Available: {available}. Did you install 'isage-finetune'?"
         )
-    return _TRAINER_REGISTRY[name](**kwargs)
+
+    cls = _TRAINER_REGISTRY[name]
+    return cls(**kwargs)
 
 
-def create_config(name: str, **kwargs: Any) -> FinetuneConfig:
-    """Create a config instance by name."""
-    if name not in _CONFIG_REGISTRY:
-        available = list(_CONFIG_REGISTRY.keys())
-        raise FinetuneRegistryError(
-            f"Config '{name}' not registered. Available: {available}. "
-            f"Install 'isage-finetune' package for implementations."
+def create_loader(name: str, **kwargs: Any) -> DatasetLoader:
+    """Create a dataset loader instance by name.
+
+    Args:
+        name: Name of the registered loader
+        **kwargs: Arguments to pass to the loader constructor
+
+    Returns:
+        Instance of the loader
+
+    Raises:
+        FineTuneRegistryError: If loader not found
+
+    Example:
+        >>> loader = create_loader("hf_dataset", dataset_name="alpaca")
+        >>> dataset = loader.load("train")
+    """
+    if name not in _LOADER_REGISTRY:
+        available = ", ".join(_LOADER_REGISTRY.keys()) if _LOADER_REGISTRY else "none"
+        raise FineTuneRegistryError(
+            f"Loader '{name}' not found. Available: {available}. Did you install 'isage-finetune'?"
         )
-    return _CONFIG_REGISTRY[name](**kwargs)
+
+    cls = _LOADER_REGISTRY[name]
+    return cls(**kwargs)
 
 
-def create_formatter(name: str, **kwargs: Any) -> DataFormatter:
-    """Create a formatter instance by name."""
-    if name not in _FORMATTER_REGISTRY:
-        available = list(_FORMATTER_REGISTRY.keys())
-        raise FinetuneRegistryError(
-            f"Formatter '{name}' not registered. Available: {available}. "
-            f"Install 'isage-finetune' package for implementations."
-        )
-    return _FORMATTER_REGISTRY[name](**kwargs)
+def registered_trainers() -> list[str]:
+    """Get list of registered trainer names.
 
-
-def list_trainers() -> list[str]:
-    """List all registered trainer names."""
+    Returns:
+        List of registered trainer names
+    """
     return list(_TRAINER_REGISTRY.keys())
 
 
-def list_configs() -> list[str]:
-    """List all registered config names."""
-    return list(_CONFIG_REGISTRY.keys())
+def registered_loaders() -> list[str]:
+    """Get list of registered loader names.
+
+    Returns:
+        List of registered loader names
+    """
+    return list(_LOADER_REGISTRY.keys())
 
 
-def list_formatters() -> list[str]:
-    """List all registered formatter names."""
-    return list(_FORMATTER_REGISTRY.keys())
+def unregister_trainer(name: str) -> None:
+    """Unregister a trainer (for testing).
+
+    Args:
+        name: Name of the trainer to unregister
+    """
+    _TRAINER_REGISTRY.pop(name, None)
+
+
+def unregister_loader(name: str) -> None:
+    """Unregister a loader (for testing).
+
+    Args:
+        name: Name of the loader to unregister
+    """
+    _LOADER_REGISTRY.pop(name, None)
 
 
 __all__ = [
-    "FinetuneRegistryError",
+    "FineTuneRegistryError",
     "register_trainer",
-    "register_config",
-    "register_formatter",
+    "register_loader",
     "create_trainer",
-    "create_config",
-    "create_formatter",
-    "list_trainers",
-    "list_configs",
-    "list_formatters",
+    "create_loader",
+    "registered_trainers",
+    "registered_loaders",
+    "unregister_trainer",
+    "unregister_loader",
 ]

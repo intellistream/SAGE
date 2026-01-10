@@ -15,19 +15,17 @@ from __future__ import annotations
 import warnings
 
 from sage.libs.finetune.interface import (
-    DataFormatter,
-    FinetuneConfig,
-    FinetuneRegistryError,
-    Trainer,
-    create_config,
-    create_formatter,
+    DatasetLoader,
+    FineTuner,
+    FineTuneRegistryError,
+    LoRAConfig,
+    TrainingConfig,
+    create_loader,
     create_trainer,
-    list_configs,
-    list_formatters,
-    list_trainers,
-    register_config,
-    register_formatter,
+    register_loader,
     register_trainer,
+    registered_loaders,
+    registered_trainers,
 )
 
 # Try to auto-import external package if available
@@ -47,20 +45,18 @@ except ImportError:
 
 __all__ = [
     # Base classes
-    "Trainer",
-    "FinetuneConfig",
-    "DataFormatter",
+    "FineTuner",
+    "DatasetLoader",
+    "TrainingConfig",
+    "LoRAConfig",
     # Registry
-    "FinetuneRegistryError",
+    "FineTuneRegistryError",
     "register_trainer",
-    "register_config",
-    "register_formatter",
+    "register_loader",
     # Factory
     "create_trainer",
-    "create_config",
-    "create_formatter",
+    "create_loader",
     # Discovery
-    "list_trainers",
-    "list_configs",
-    "list_formatters",
+    "registered_trainers",
+    "registered_loaders",
 ]

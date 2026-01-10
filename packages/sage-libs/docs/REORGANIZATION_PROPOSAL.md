@@ -3,9 +3,32 @@
 **最后更新**: 2026-01-10\
 **状态**: 🔄 进行中 - 部分模块已外迁，核心模块保留
 
-## 文档说明
+## 文档## 三、建议的包划分（最终目标）
 
-本文档描述 `sage-libs` 的模块重组方案，确定哪些子模块保留在 `sage-libs` 中、哪些外迁为独立 PyPI 包，以及如何通过可选依赖实现按需安装。
+**🚨 重要发现：当前划分存在逻辑不一致！**
+
+- Agent 工具（agentic/）状态待确认 → 可能外迁至 `isage-agentic`
+- RAG 工具（rag/）计划保留 → 留在 `sage-libs`
+
+**问题**：两者在应用层级、LLM 依赖、SAGE 耦合度、复用性等维度完全相同，应该使用相同的划分策略。
+
+说明：优先保守拆分，推荐按"核心 + 可选子包"策略（混合方案）。
+
+### 1. isage-agentic (建议外迁)
+
+- **状态**: 待确认（目录仍存在于 sage-libs）
+- 包含：`agentic/` 中的核心模块
+  - `interface/`, `interfaces/`, `registry/`（协议与注册）
+  - `agents/`（runtime, planning, action/tool-selection, bots）
+  - `workflow/`（工作流 orchestrator + generators + optimizers）
+  - `eval/`（agent evaluation & telemetry）
+  - `reasoning/`（用于 planning 的推理工具）
+- extras:
+  - `[planning]` (如果需要可拆为 extras，包含 heavier dependencies)
+  - `[tool-selection]` (embedding/ann clients)
+  - `[llm]` (openai/anthropic client helpers)
+
+### 2. **isage-rag** (新建议，与 agentic 对称)bs`的模块重组方案，确定哪些子模块保留在`sage-libs\` 中、哪些外迁为独立 PyPI 包，以及如何通过可选依赖实现按需安装。
 
 **🎯 核心原则：sage-libs 不会被清空！它将保留与 SAGE 框架紧密耦合的核心工具模块。**
 
@@ -28,7 +51,7 @@ ______________________________________________________________________
 - `foundation/` - 基础工具
 - `anns/` - ANN 接口抽象层（**注：算法实现在 isage-anns**）
 - `intent/` - 意图识别
-- `sias/` - Sample-Importance-Aware Selection
+- ~~`sias/`~~ - **待迁移**（SIAS 是完整的自我改进型 Agent 框架，应整体迁移至 isage-agentic）
 
 **🔄 已外迁为独立包** (可独立复用):
 
@@ -39,8 +62,13 @@ ______________________________________________________________________
 
 **📦 未来可选外迁** (按需):
 
-- `sias/` → `isage-sias`
-- `intent/` → `isage-intent`
+- `intent/` → `isage-intent` (意图识别可作为独立 NLU 组件)
+
+**🚧 需要重构** (代码结构错误):
+
+- `sias/` - **定位错误** - SIAS 实际上是 **tool selection 的一个具体算法实现**（CoresetSelector 用于重要性采样），应该在
+  `agentic/agents/action/tool_selection/sias_selector.py` 而非顶层独立目录。需要重构为
+  `SiasToolSelector(BaseToolSelector)` 并注册到 selector registry。
 
 **❌ 已清理**:
 
@@ -72,7 +100,7 @@ ______________________________________________________________________
 - `privacy/` - 隐私保护
 - `rag/` - RAG 相关工具
 - `safety/` - 安全检查
-- `sias/` - Sample-Importance-Aware Selection
+- `sias/` - **代码结构错误** - 应该在 `agentic/agents/action/tool_selection/` 作为 tool selector 实现
 
 **已删除**:
 
@@ -84,16 +112,16 @@ ______________________________________________________________________
 
 说明：优先保守拆分，推荐按“核心 + 可选子包”策略（混合方案）。
 
-1. isage-agentic (已创建: `sage-agentic`)
+1. **isage-agentic** (建议外迁，已创建仓库: `sage-agentic`)
 
-   - 包含：`agentic/` 中的核心模块
+   - **包含**：`agentic/` 中的核心模块（不包含 SIAS，SIAS 应留在原处重构）
      - `interface/`, `interfaces/`, `registry/`（协议与注册）
      - `agents/`（runtime, planning, action/tool-selection, bots）
      - `workflow/`（工作流 orchestrator + generators + optimizers）
      - `eval/`（agent evaluation & telemetry）
      - `reasoning/`（用于 planning 的推理工具）
-   - extras:
-     - `[planning]` (如果需要可拆为 extras，包含 heavier dependencies)
+   - **extras**:
+     - `[planning]` (heavier planning dependencies)
      - `[tool-selection]` (embedding/ann clients)
      - `[llm]` (openai/anthropic client helpers)
 
@@ -114,45 +142,73 @@ ______________________________________________________________________
      - `[generation]` (LLM clients: OpenAI, HuggingFace)
      - `[evaluation]` (RAG metrics: F1, RougeL, BRS)
 
-1. isage-sias (可选独立包)
+### 3. ~~isage-sias~~ (已取消 - 代码结构错误)
 
-   - 包含：`sias/`（continual learner, coreset selection, types）
-   - 理由：通用采样/重要性选择算法，可被非 agentic 场景复用
+- **状态**: ❌ 不作为独立包，也不是独立框架
+- **真实定位**: SIAS (Sample-Importance-Aware Selection) 实际上是 **tool selection 的一个具体算法实现**
+- **核心组件**: `CoresetSelector` - 用于从候选中选择最重要的样本/工具（基于 loss, diversity, hybrid 策略）
+- **当前问题**:
+  - ❌ 错误地放在顶层目录 `sias/` 作为独立模块
+  - ❌ 与其他 tool selectors (keyword, embedding, gorilla, dfsdt) 分离
+  - ❌ 没有实现 `BaseToolSelector` 接口
+- **正确位置**: 应该在 `agentic/agents/action/tool_selection/sias_selector.py`
+- **重构方案**:
+  1. 创建 `agentic/agents/action/tool_selection/sias_selector.py`
+  1. 实现 `SiasToolSelector(BaseToolSelector)` 使用 `CoresetSelector` 算法
+  1. 删除顶层 `sias/` 目录（或保留为兼容层指向 agentic）
+  1. 在 registry 中注册：`register_selector("sias", SiasToolSelector)`
+- **架构对齐**:
+  ```
+  agentic/agents/action/tool_selection/
+  ├── keyword_selector.py   # 关键词匹配算法
+  ├── embedding_selector.py # 向量相似度算法
+  ├── gorilla_selector.py   # Gorilla 检索增强算法
+  ├── dfsdt_selector.py     # DFSDT 搜索树算法
+  └── sias_selector.py      # SIAS 重要性采样算法 ← 应该在这里
+  ```
 
-1. isage-intent (可选独立包)
+### 4. isage-intent (可选独立包)
 
-   - 包含：`intent/`（keyword recognizer, llm recognizer, classifier）
-   - 理由：对话系统与检索系统也会使用意图识别，独立包提高可复用性
+- 包含：`intent/`（keyword recognizer, llm recognizer, classifier）
+- 理由：对话系统与检索系统也会使用意图识别，独立包提高可复用性
 
-1. isage-workflow (可选)
+### 5. ~~isage-workflow~~ (已取消)
 
-   - 包含：`workflow/`、`workflows/`（如果需要独立部署工作流引擎）
-   - 理由：工作流引擎可作为独立编排层被其他项目使用
+- **状态**: ❌ 已取消，workflow 实际不存在独立目录
+- ~~包含：`workflow/`、`workflows/`（如果需要独立部署工作流引擎）~~
+- ~~理由：工作流引擎可作为独立编排层被其他项目使用~~
 
-1. sage-libs 保留 (核心工具集合包)
+### 6. sage-libs 保留 (核心工具集合包)
 
-   - **保留在 sage-libs 中** (与 SAGE 框架紧密耦合，不易独立):
+- **保留在 sage-libs 中** (与 SAGE 框架紧密耦合，不易独立):
 
-     - `dataops/` - 数据操作工具 (DataFrame/Dataset 处理)
-     - `rag/` - RAG 相关工具 (文档加载、分块、索引)
-     - `safety/` - 安全检查 (输入验证、内容过滤)
-     - `privacy/` - 隐私保护 (数据脱敏、匿名化)
-     - `integrations/` - 第三方集成 (LangChain, OpenAI, etc.)
-     - `foundation/` - 基础工具 (配置、日志、工具类)
-     - `ann/` - ANN 接口抽象层 (统一接口，实现在 isage-anns)
+  - `dataops/` - 数据操作工具 (DataFrame/Dataset 处理)
+  - `rag/` - RAG 相关工具 (文档加载、分块、索引)
+  - `safety/` - 安全检查 (输入验证、内容过滤)
+  - `privacy/` - 隐私保护 (数据脱敏、匿名化)
+  - `integrations/` - 第三方集成 (LangChain, OpenAI, etc.)
+  - `foundation/` - 基础工具 (配置、日志、工具类)
+  - `anns/` - ANN 接口抽象层 (统一接口，算法实现在 isage-anns)
 
-   - **已外迁为独立包**:
+- **已外迁为独立包**:
 
-     - `agentic/` → `isage-agentic` (Agent 框架)
-     - `anns/` → `isage-anns` (ANN 算法实现)
-     - `amms/` → `isage-amms` (近似矩阵乘)
-     - `finetune/` → `isage-finetune` (模型微调)
+  - ~~`agentic/`~~ → `isage-agentic` (待确认 - 目录仍存在)
+  - `anns/` 算法实现 → `isage-anns` (接口层保留在 sage-libs)
+  - `amms/` → `isage-amms` (目录仍存在，可能为兼容层)
+  - `finetune/` → `isage-finetune` (目录仍存在，可能为兼容层)
 
-   - **未来可选外迁** (如有需求):
+- **未来可选外迁** (如有需求):
 
-     - `sias/` → `isage-sias` (Sample-Importance-Aware Selection)
-     - `intent/` → `isage-intent` (意图识别)
-     - `workflow/` → `isage-workflow` (工作流编排)
+  - `intent/` → `isage-intent` (意图识别)
+
+- **需要重构** (代码结构错误):
+
+  - `sias/` - 应该是 tool selection 的一个算法实现，应该在 `agentic/agents/action/tool_selection/sias_selector.py`
+
+- **已清理**:
+
+  - ~~`ann/`~~ - 已删除 (2026-01-10，重复目录，统一使用 `anns/`)
+  - ~~`workflow/`~~ - 不存在独立目录（功能可能在 agentic 中）
 
 ______________________________________________________________________
 
@@ -162,19 +218,34 @@ ______________________________________________________________________
 
 ```toml
 [project.optional-dependencies]
-agentic = ["isage-agentic>=0.1.0"]
-sias = ["isage-sias>=0.1.0"]
-intent = ["isage-intent>=0.1.0"]n
-workflow = ["isage-workflow>=0.1.0"]
+# 已外迁的包（作为可选依赖）
+agentic = ["isage-agentic>=0.1.0"]  # Agent 框架 (包含 SIAS tool selector)
+anns = ["isage-anns>=0.1.0"]  # ANN 算法实现
+amms = ["isage-amms>=0.1.0"]  # 近似矩阵乘
+finetune = ["isage-finetune>=0.1.0"]  # 模型微调
+rag = ["isage-rag>=0.1.0"]  # RAG 组件 (可选外迁)
+
+# 未来可能外迁的包
+intent = ["isage-intent>=0.1.0"]  # 意图识别
+
+# 全量安装（开发/CI 用）
 all = [
     "isage-agentic>=0.1.0",
-    "isage-sias>=0.1.0",
-    "isage-intent>=0.1.0",
-    "isage-workflow>=0.1.0",
+    "isage-anns>=0.1.0",
+    "isage-amms>=0.1.0",
+    "isage-finetune>=0.1.0",
 ]
 ```
 
-说明：`all` 用于开发与 CI 跑全套测试；用户安装时可按需选择。
+**说明**：
+
+- **SAGE 完整安装**：`pip install sage-libs[all]` 会自动安装所有外迁的包
+- **按需安装**：`pip install sage-libs[anns]` 只安装 ANN 算法实现
+- **开发者安装**：`pip install -e packages/sage-libs[all]` 用于开发和 CI
+- **接口层**：`anns/` 接口保留在 sage-libs，算法实现在 isage-anns
+- **透明使用**：代码中 `from sage.libs.anns import create` 仍然有效
+
+**用户体验不变**：无论包是内置还是外迁，用户的使用方式完全一致！
 
 ______________________________________________________________________
 
@@ -196,11 +267,17 @@ ______________________________________________________________________
 - 添加 CI (pytest matrix), ruff, mypy (可选)
 - Commit + push -> GitHub repo creation (使用 `gh repo create ... --source`)
 
-阶段 3: SAGE 仓库调整
+阶段 3: SAGE 仓库调整 **（关键：SAGE 仍使用外迁的包！）**
 
 - 删除原目录（或保留空的兼容层，视是否需要后向兼容）
-- 在 `sage-libs` 中添加 `pyproject.toml` extras（指向新包名）
+- **在 `sage-libs` 的 `pyproject.toml` 中添加 extras**（指向新包名）
+  ```toml
+  [project.optional-dependencies]
+  anns = ["isage-anns>=0.1.0"]  # SAGE 通过这里依赖外迁的包
+  ```
+- **SAGE 的 CI/CD 也要安装 extras**：`pip install -e packages/sage-libs[all]`
 - 更新 `packages/sage-libs/README.md` 文档和 `docs-public/` 的引用
+- **验证 SAGE 功能完整**：确保所有测试通过，功能无损失
 
 阶段 4: 发布与验证
 
@@ -233,10 +310,66 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## 八、下一步建议（请选一项）
+## 八、当前状态与下一步建议
 
-- A. 按照本草案，把 `isage-agentic` 保持为完整包，另外将 `sias` 和 `intent` 作为可选独立仓库（推荐）
-- B. 全部保留在 `isage-agentic`（简单），以后再拆分
-- C. 按模块细分（复杂，需更多维护）
+### 当前状态 (2026-01-10)
 
-请回复你选择 A/B/C，或对上面的包边界和 extras 进行具体调整。我收到确认后会执行对应的迁移步骤（创建仓库、复制代码、更新 SAGE）。
+**✅ 已完成**:
+
+- 删除了重复的 `ann/` 目录，统一使用 `anns/`
+- `anns/` 接口层保留在 sage-libs，算法实现在 isage-anns
+- 为 `agentic/`, `finetune/`, `rag/` 创建了接口层 (`interface/`)
+
+**⚠️ 待确认**:
+
+- `agentic/` 目录仍存在 - 需确认是兼容层还是待迁移代码
+- `amms/` 目录仍存在 - 需确认与 isage-amms 的关系
+- `finetune/` 目录仍存在 - 需确认与 isage-finetune 的关系
+
+**🚧 需要迁移**:
+
+- `sias/` - SIAS (Self-Improving Agentic Systems) 是完整的 Agent 自我改进框架，包含 4
+  大组件。当前只实现了流式训练器（CoresetSelector/OnlineContinualLearner），应整体迁移至 `isage-agentic` 并补齐其他组件。
+
+**📋 待决策**:
+
+- RAG 工具（rag/）是否外迁为 isage-rag？（与 agentic 保持一致性）
+- Intent（intent/）是否外迁为 isage-intent？
+
+### 下一步建议（请选一项）
+
+**选项 A: 完整外迁（保持一致性）** ⭐ 推荐
+
+- 外迁 `agentic/` → `isage-agentic`
+- 外迁 `rag/` → `isage-rag`（与 agentic 对称）
+- 可选外迁 `intent/` → `isage-intent`
+- 重构 `sias/` → `agentic/agents/action/tool_selection/sias_selector.py` (然后随 agentic 一起外迁)
+- sage-libs 只保留核心工具：dataops, safety, privacy, integrations, foundation, anns 接口
+
+**选项 B: 保守策略（渐进式）**
+
+- 保留 `agentic/`, `rag/`, `intent/` 在 sage-libs
+- 重构 `sias/` 为 `agentic/agents/action/tool_selection/sias_selector.py`
+- 只外迁算法实现包（anns, amms, finetune）
+- 以后根据需要再拆分
+
+**选项 C: 混合策略**
+
+- 外迁 `agentic/` → `isage-agentic`（重构 sias 为 tool selector 后一起迁移）
+- 保留 `rag/`, `intent/` 在 sage-libs（与框架耦合度高）
+- 通过 extras 提供可选依赖
+
+**🚨 关键发现**：
+
+- **SIAS 定位错误** - 它不是独立框架，而是 tool selection 的一个算法实现
+- **CoresetSelector** 的作用是从候选中选择最重要的子集（与其他 tool selectors 完全对齐）
+- **应该重构** - 实现 `SiasToolSelector(BaseToolSelector)` 并放在 `agentic/agents/action/tool_selection/`
+- **重构后** - sias 就是 agentic 的一部分，外迁时自然一起迁移
+
+请回复你选择 A/B/C，或对上面的包边界和 extras 进行具体调整。收到确认后可执行对应的迁移步骤。
+
+### 相关文档
+
+- `REORGANIZATION_ANALYSIS.md` - 详细分析（如存在）
+- `ANN_CLEANUP_2026-01-10.md` - ann/anns 清理记录
+- `QUICK_REFERENCE.md` - 快速参考指南
