@@ -21,15 +21,16 @@ from sage.libs._version import __author__, __email__, __version__
 # Export submodules
 __layer__ = "L3"
 
-# NOTE: ANNS and AMMS have been externalized to independent PyPI packages:
+# NOTE: ANNS, AMMS, and Agentic have been externalized to independent PyPI packages:
 # - isage-anns: ANNS algorithms (interface/registry remain here)
 # - isage-amms: AMM algorithms (interface/registry remain here)
-# Install via extras: pip install -e packages/sage-libs[anns,amms]
+# - isage-agentic: Agent framework (compatibility layer at agentic.py)
+# Install via extras: pip install -e packages/sage-libs[anns,amms,agentic]
 #
 # Module reorganization (2026-01):
-# - sias, reasoning, eval → moved into agentic/ for consolidation
+# - sias, reasoning, eval → moved into agentic/ (now external)
+# - agentic → externalized to isage-agentic package
 from . import (
-    agentic,
     amms,
     anns,
     dataops,
@@ -40,6 +41,13 @@ from . import (
     rag,
     safety,
 )
+
+# Agentic compatibility layer (lazy import to show deprecation warning)
+try:
+    from . import agentic
+except ImportError:
+    # If agentic.py doesn't exist, create a placeholder
+    agentic = None
 
 __all__ = [
     "__version__",

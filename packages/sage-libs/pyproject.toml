@@ -129,10 +129,22 @@ amms = [
 finetune = [
     "isage-finetune>=0.1.0",
 ]
+agentic = [
+    "isage-agentic>=0.1.0",
+]
+sias = [
+    "isage-sias>=0.1.0",
+]
+intent = [
+    "isage-intent>=0.1.0",
+]
 all = [
     "isage-anns>=0.1.0",
     "isage-amms>=0.1.0",
     "isage-finetune>=0.1.0",
+    "isage-agentic>=0.1.0",
+    "isage-sias>=0.1.0",
+    "isage-intent>=0.1.0",
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
@@ -168,7 +180,10 @@ attr = "sage.libs._version.__version__"
 # - isage-anns (ANNS algorithms)
 # - isage-amms (AMM algorithms)
 # - isage-finetune (LLM fine-tuning toolkit)
-# This package now only ships interface/registry layers.
+# - isage-agentic (Agent framework, planning, tool selection, workflows)
+# - isage-sias (Sample-Importance-Aware Selection)
+# - isage-intent (Intent recognition)
+# This package now only ships interface/registry layers and core utilities.
 
 # Development tools configuration
 [tool.black]

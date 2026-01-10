@@ -30,11 +30,21 @@ Usage:
 See: packages/sage-libs/docs/agentic/EXTERNALIZATION_PLAN.md
 """
 
-# Public interface layer (will remain)
-# Current implementations (will move to external package)
-from . import agents, intent, interfaces, registry, workflow, workflows
+# Core submodules (implementations that will move to external package)
+# Legacy/backward compatibility exports
+from . import (
+    agents,  # Agent framework, planning, tool selection
+    intent,  # Intent classification
+    interfaces,
+    reasoning,  # Search algorithms (beam, DFS, BFS, scoring)
+    registry,
+    sias,  # Streaming Importance-Aware System (tool selection reasoning)
+    workflow,  # Workflow optimization
+    workflows,
+)
+from . import eval as evaluation  # Rename to avoid shadowing built-in eval()
 
-# Legacy interface exports (deprecated, use interfaces.* instead)
+# New interface layer (stable API for external packages)
 try:
     from .interface import (
         PlannerProtocol,
@@ -58,6 +68,9 @@ __all__ = [
     "intent",
     "workflow",
     "workflows",
+    "reasoning",  # Search algorithms
+    "sias",  # Tool selection reasoning
+    "evaluation",  # Eval metrics (renamed from 'eval' to avoid built-in shadow)
 ]
 
 # Add legacy exports if available
