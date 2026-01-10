@@ -340,10 +340,10 @@ sage-middleware depends on the following independent PyPI packages:
 
 - Dataflow runtime, distributed execution, fault tolerance: `packages/sage-kernel/`
 - Algorithms, RAG tools, agent framework/integrations: `packages/sage-libs/`
-  - **ANN Interface**: `sage.libs.ann` - Unified ANN algorithm interface
-    - Base classes: `AnnIndex`, `AnnIndexMeta` (in `sage.libs.ann.base`)
-    - Factory: `create()`, `register()`, `registered()` (in `sage.libs.ann.factory`)
-    - Implementations: `sage.libs.anns/` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
+  - **ANN Interface**: `sage.libs.anns` - Unified ANN algorithm interface
+    - Base classes: `AnnIndex`, `AnnIndexMeta` (in `sage.libs.anns.interface.base`)
+    - Factory: `create()`, `register()`, `registered()` (in `sage.libs.anns.interface.factory`)
+    - Implementations: External package `isage-anns` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
     - Reusable by: benchmark_anns, SageVDB, SageFlow
 
 **Rule of thumb**: if you mention a capability (retrieval, memory, refinement, vector DB, streaming semantic state, scheduling), ensure it maps to a real module/path above.
