@@ -1,7 +1,7 @@
 """Core ANN abstractions for shared use across SAGE.
 
-These interfaces will be used by benchmark_anns, sage-db, and sage-flow
-once algorithms are migrated into ``sage.libs.ann``.
+These interfaces are used by benchmark_anns, SageVDB, and SageFlow.
+Implementations are provided by the external ``isage-anns`` package.
 """
 
 from __future__ import annotations
