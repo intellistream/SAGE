@@ -183,18 +183,12 @@ L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 
 | 内部包名 | PyPI 包名 | Import 名 | 版本格式 | 描述 |
 |---------|----------|-----------|---------|------|
-| sage-agentic | `isage-agentic` | `sage_agentic` | 0.0.0.x | Agent 实现 (ReAct, PlanExecute, Reflex)，含 SIAS submodule |
+| sage-agentic | `isage-agentic` | `sage_agentic` | 0.0.0.x | Agent 实现 (ReAct, PlanExecute, Reflex) |
 | sage-rag | `isage-rag` | `sage_rag` | 0.0.0.x | RAG 实现 (Naive, HyDE, StepBack) |
 | sage-privacy | `isage-privacy` | `sage_privacy` | 0.0.0.x | 隐私保护 (DP, 联邦学习, 机器遗忘, PII) |
 | sage-eval | `isage-eval` | `sage_eval` | 0.0.0.x | 评估指标/Profiler/Judge |
 | sage-finetune | `isage-finetune` | `sage_finetune` | 0.0.0.x | 微调训练器和数据加载器 |
 | sage-safety | `isage-safety` | `sage_safety` | 0.0.0.x | 安全护栏和检测器 |
-
-**SIAS Submodule**（sage-agentic 的子模块）:
-- **sage-sias**: https://github.com/intellistream/sage-sias
-- 提供 `CoresetSelector`, `OnlineContinualLearner` 等 Agent 工具调用算法
-- 用于持续学习和样本重要性选择
-- 使用：`from sage_agentic.sias import CoresetSelector`
 
 **命名规范**：
 - PyPI 名称：`isage-xxx`（带 'i' 前缀，因为 'sage' 在 PyPI 已被占用）
@@ -381,6 +375,14 @@ sage-middleware depends on the following independent PyPI packages:
   - Repository: `intellistream/sageTSDB`
   - Features: Window ops/join, out-of-order handling
   - SAGE wrapper: `sage.middleware.components.sage_tsdb`
+
+- **SageSIAS** (内置组件): Streaming Importance-Aware Agent System
+  - 位置: `sage.middleware.components.sage_sias`
+  - 功能: 样本重要性选择、持续学习、经验回放
+  - 组件: `CoresetSelector`, `OnlineContinualLearner`, `SelectionSummary`
+  - 依赖: NeuroMem (内存系统)
+  - 使用: `from sage.middleware.components.sage_sias import CoresetSelector`
+  - 注意: 放在 L4 middleware 而非 L3 libs，因为依赖 NeuroMem
 
 **Benchmarks (L5)**
 
