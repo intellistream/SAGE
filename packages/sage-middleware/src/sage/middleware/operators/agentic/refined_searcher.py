@@ -1,16 +1,26 @@
+"""
+RefinedSearcherOperator - Search with optional context compression.
+
+Uses isage-refiner for context compression if enabled.
+
+Installation:
+    pip install isage-refiner  # Optional, only if refiner is used
+"""
+
 import logging
 from typing import Any, AsyncGenerator, Optional
 
 from sage.libs.agentic.agents.bots.searcher_bot import SearcherBot
 from sage.libs.foundation.tools.tool import BaseTool
-from sage.middleware.components.sage_refiner import RefinerConfig, RefinerService
 
 logger = logging.getLogger(__name__)
 
 
 class RefinedSearcherOperator:
     """
-    L4 Operator that wraps L3 SearcherBot and adds L4 RefinerService capabilities.
+    L4 Operator that wraps L3 SearcherBot and adds optional refiner capabilities.
+
+    Uses isage-refiner for context compression when refiner_config is provided.
     """
 
     name = "search_internet"
@@ -28,14 +38,43 @@ class RefinedSearcherOperator:
     ):
         self.bot = SearcherBot(tools=tools, **kwargs)
 
-        self.refiner = None
+        self.compressor = None
         if refiner_config:
             try:
-                cfg = RefinerConfig(**refiner_config)
-                self.refiner = RefinerService(cfg)
-                logger.info("RefinedSearcherOperator: Initialized RefinerService")
+                algorithm = refiner_config.get("algorithm", "long_refiner").lower()
+                self._init_compressor(algorithm, refiner_config)
+                logger.info(f"RefinedSearcherOperator: Initialized {algorithm} compressor")
+            except ImportError as e:
+                logger.warning(
+                    f"RefinedSearcherOperator: isage-refiner not installed: {e}\n"
+                    f"Install with: pip install isage-refiner"
+                )
             except Exception as e:
-                logger.warning(f"RefinedSearcherOperator: Failed to init Refiner: {e}")
+                logger.warning(f"RefinedSearcherOperator: Failed to init compressor: {e}")
+
+    def _init_compressor(self, algorithm: str, config: dict[str, Any]):
+        """Initialize compressor from isage-refiner."""
+        if algorithm == "long_refiner":
+            from sage_refiner import LongRefinerCompressor
+
+            self.compressor = LongRefinerCompressor(
+                base_model_path=config.get("base_model_path", "Qwen/Qwen2.5-3B-Instruct"),
+                score_model_path=config.get("score_model_path", "BAAI/bge-reranker-v2-m3"),
+                max_model_len=config.get("max_model_len", 25000),
+                gpu_memory_utilization=config.get("gpu_memory_utilization", 0.5),
+            )
+        elif algorithm == "reform":
+            from sage_refiner import REFORMCompressor
+
+            self.compressor = REFORMCompressor(**config.get("reform_config", {}))
+        elif algorithm == "provence":
+            from sage_refiner import ProvenceCompressor
+
+            self.compressor = ProvenceCompressor(**config.get("provence_config", {}))
+        else:
+            raise ValueError(f"Unsupported algorithm: {algorithm}")
+
+        self.budget = config.get("budget", 2048)
 
     def call(self, arguments: dict) -> Any:
         """MCP compatible call method"""
@@ -43,60 +82,50 @@ class RefinedSearcherOperator:
 
         query = arguments.get("query")
         try:
-            # Try to get running loop
             loop = asyncio.get_running_loop()
             if loop.is_running():
-                # We are in a loop, but call is sync.
-                # This is tricky. AgentRuntime calls tools synchronously?
-                # AgentRuntime.step calls tools.call().
-                # If AgentRuntime is run in a thread (run_in_executor), then we can use asyncio.run?
-                # No, if we are in a thread, we can use asyncio.run.
                 return asyncio.run(self.execute(query))
         except RuntimeError:
-            # No running loop
             return asyncio.run(self.execute(query))
 
-        # If we are here, we are in a loop. We can't use asyncio.run.
-        # But AgentRuntime expects a sync result.
-        # We need to block until future is done.
-        # This is only possible if we are in a separate thread.
-        # Gateway runs AgentRuntime in a thread executor. So we should be fine.
         return asyncio.run(self.execute(query))
 
     async def execute(self, query: str) -> dict[str, Any]:
-        """
-        Execute search and optionally refine results.
-        """
+        """Execute search and optionally compress results."""
         data = query
         # 1. Execute L3 Bot
         raw_result = await self.bot.execute(data)
         results = raw_result.get("results", [])
 
-        # 2. Refine if enabled
-        if self.refiner and results:
-            query = data if isinstance(data, str) else data.get("query", "")
+        # 2. Compress if enabled
+        if self.compressor and results:
+            query_str = data if isinstance(data, str) else data.get("query", "")
             try:
-                logger.info(f"Refining {len(results)} results for query: {query}")
-                refine_result = self.refiner.refine(query=query, documents=results)
+                logger.info(f"Compressing {len(results)} results for query: {query_str}")
+
+                # Normalize documents to isage-refiner format
+                documents = [
+                    {"contents": r.get("contents") or r.get("text") or str(r)} for r in results
+                ]
+
+                compress_result = self.compressor.compress(
+                    question=query_str,
+                    document_list=documents,
+                    budget=self.budget,
+                )
 
                 return {
-                    "results": refine_result.refined_content,
-                    "metrics": refine_result.metrics.to_dict(),
+                    "results": compress_result.get("compressed_context", ""),
                     "original_count": len(results),
-                    "refined": True,
+                    "compressed": True,
                 }
             except Exception as e:
-                logger.error(f"Refinement failed: {e}")
-                # Fallback
+                logger.error(f"Compression failed: {e}")
                 return raw_result
 
         return raw_result
 
     async def execute_stream(self, data: Any) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Stream execution. Note: Refinement is usually a batch process,
-        so we stream the search events, then maybe a refinement event?
-        For now, just delegate to bot stream.
-        """
+        """Stream execution. Compression is batch, so just stream search events."""
         async for event in self.bot.execute_stream(data):
             yield event

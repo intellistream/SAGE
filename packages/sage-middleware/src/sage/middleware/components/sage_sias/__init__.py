@@ -44,8 +44,8 @@ from sage.middleware.components.sage_sias.coreset_selector import (
     SelectionSummary,
 )
 from sage.middleware.components.sage_sias.types import (
-    ImportanceScore,
-    SampleWithImportance,
+    SampleProtocol,
+    SIASSample,
 )
 
 __all__ = [
@@ -54,6 +54,6 @@ __all__ = [
     "OnlineContinualLearner",
     "SelectionSummary",
     # Types
-    "ImportanceScore",
-    "SampleWithImportance",
+    "SIASSample",
+    "SampleProtocol",
 ]

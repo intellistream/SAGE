@@ -4,8 +4,6 @@ Unit tests for LLM Planner and other components
 
 from unittest.mock import MagicMock
 
-import pytest
-
 # Check if vllm is available
 try:
     import vllm  # noqa: F401
@@ -82,44 +80,6 @@ class TestSimpleLLMPlannerErrorHandling:
         # Should have called execute twice (initial + repair)
         assert mock_generator.execute.call_count == 2
         assert plan is not None
-
-
-class TestLongRefinerPromptTemplate:
-    """Test PromptTemplate class"""
-
-    @pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm not available")
-    def test_prompt_template_init(self):
-        """Test PromptTemplate initialization"""
-        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.prompt_template import (
-            PromptTemplate,
-        )
-
-        mock_tokenizer = MagicMock()
-        template = PromptTemplate(
-            mock_tokenizer, system_prompt="System", user_prompt="User {query}"
-        )
-        assert template is not None
-        assert template.system_prompt == "System"
-        assert template.user_prompt == "User {query}"
-
-    @pytest.mark.skipif(not VLLM_AVAILABLE, reason="vllm not available")
-    def test_prompt_template_get_prompt(self):
-        """Test PromptTemplate get_prompt method"""
-        from sage.libs.foundation.context.compression.algorithms.long_refiner_impl.prompt_template import (
-            PromptTemplate,
-        )
-
-        mock_tokenizer = MagicMock()
-        mock_tokenizer.apply_chat_template.return_value = "Formatted prompt"
-        mock_tokenizer.return_value = MagicMock(input_ids=[[1, 2, 3]])
-
-        template = PromptTemplate(
-            mock_tokenizer, system_prompt="System", user_prompt="User {question}"
-        )
-
-        # Test get_prompt method which is the actual method
-        result = template.get_prompt(question="test query")
-        assert result is not None
 
 
 class TestBaseTool:

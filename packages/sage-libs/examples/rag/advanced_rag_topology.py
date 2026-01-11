@@ -470,19 +470,27 @@ class ContextRefiner(MapFunction):
         self._init_refiner()
 
     def _init_refiner(self):
-        """初始化 refiner"""
+        """初始化 refiner (使用 isage-refiner 包)"""
         try:
-            from sage.middleware.components.sage_refiner import RefinerService
+            if self.algorithm == "long_refiner":
+                from sage_refiner import LongRefinerCompressor
 
-            self._refiner = RefinerService(
-                config={
-                    "algorithm": self.algorithm,
-                    "budget": self.budget,
-                }
-            )
-            self.logger.info(f"✓ 已初始化 sage_refiner (algorithm={self.algorithm})")
+                self._refiner = LongRefinerCompressor()
+                self.logger.info("✓ 已初始化 LongRefinerCompressor")
+            elif self.algorithm == "reform":
+                from sage_refiner import REFORMCompressor
+
+                self._refiner = REFORMCompressor()
+                self.logger.info("✓ 已初始化 REFORMCompressor")
+            else:
+                # simple/none - no compressor needed
+                self._refiner = None
+                self.logger.info(f"使用简单截断模式 (algorithm={self.algorithm})")
+        except ImportError as e:
+            self.logger.warning(f"isage-refiner 未安装，使用简单截断: {e}")
+            self._refiner = None
         except Exception as e:
-            self.logger.warning(f"无法初始化 sage_refiner，使用简单截断: {e}")
+            self.logger.warning(f"无法初始化 refiner，使用简单截断: {e}")
             self._refiner = None
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -498,8 +506,14 @@ class ContextRefiner(MapFunction):
 
         if self._refiner:
             try:
-                result = self._refiner.refine(query=query, documents=[full_context])
-                refined_context = result.get("compressed_text", full_context)
+                # isage-refiner uses 'contents' key and returns dict
+                documents_for_refiner = [{"contents": full_context}]
+                result = self._refiner.compress(
+                    question=query,
+                    document_list=documents_for_refiner,
+                    budget=self.budget,
+                )
+                refined_context = result.get("compressed_context", full_context)
             except Exception as e:
                 self.logger.warning(f"Refiner 压缩失败: {e}")
                 refined_context = full_context[: self.budget]
