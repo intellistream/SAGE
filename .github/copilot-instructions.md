@@ -189,6 +189,7 @@ L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 | sage-eval | `isage-eval` | `sage_eval` | 0.0.0.x | 评估指标/Profiler/Judge | L3 |
 | sage-finetune | `isage-finetune` | `sage_finetune` | 0.0.0.x | 微调训练器和数据加载器 | L3 |
 | sage-safety | `isage-safety` | `sage_safety` | 0.0.0.x | 安全护栏和检测器 | L3 |
+| sage-refiner | `isage-refiner` | `sage_refiner` | 0.x.y | 上下文压缩 (LongRefiner, REFORM, Provence) | L3 |
 
 **命名规范**：
 - PyPI 名称：`isage-xxx`（带 'i' 前缀，因为 'sage' 在 PyPI 已被占用）

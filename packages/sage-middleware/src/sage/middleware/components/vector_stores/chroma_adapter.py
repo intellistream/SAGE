@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from sage.libs.integrations.chroma import ChromaBackend
+from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
 
 class ChromaVectorStoreAdapter:

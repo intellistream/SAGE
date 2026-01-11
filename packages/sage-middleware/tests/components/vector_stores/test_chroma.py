@@ -22,7 +22,7 @@ class TestChromaBackendInitialization:
     @patch("chromadb.PersistentClient")
     def test_init_persistent_client_localhost(self, mock_persistent_client):
         """测试本地持久化客户端初始化"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         # Mock PersistentClient
         mock_client = Mock()
@@ -47,7 +47,7 @@ class TestChromaBackendInitialization:
     @patch("chromadb.HttpClient")
     def test_init_http_client_remote(self, mock_http_client):
         """测试远程HTTP客户端初始化"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         # Mock HttpClient
         mock_client = Mock()
@@ -70,7 +70,7 @@ class TestChromaBackendInitialization:
     @patch("chromadb.HttpClient")
     def test_init_force_http_mode(self, mock_http_client):
         """测试强制HTTP模式"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -93,7 +93,7 @@ class TestChromaBackendInitialization:
         """测试缺少ChromaDB依赖时的错误处理"""
         import sys
 
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         # Temporarily remove chromadb from sys.modules
         chromadb_backup = sys.modules.get("chromadb")
@@ -119,7 +119,7 @@ class TestChromaBackendCollection:
     @patch("chromadb.PersistentClient")
     def test_get_existing_collection(self, mock_persistent_client):
         """测试获取已存在的集合"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -137,7 +137,7 @@ class TestChromaBackendCollection:
     @patch("chromadb.PersistentClient")
     def test_create_new_collection(self, mock_persistent_client):
         """测试创建新集合"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -169,7 +169,7 @@ class TestChromaBackendDocuments:
     @patch("chromadb.PersistentClient")
     def test_add_documents_with_embeddings(self, mock_persistent_client):
         """测试添加带有embeddings的文档"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -203,7 +203,7 @@ class TestChromaBackendSearch:
     @patch("chromadb.PersistentClient")
     def test_search_with_embedding(self, mock_persistent_client):
         """测试使用embedding进行搜索"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -238,7 +238,7 @@ class TestChromaBackendSearch:
     @patch("chromadb.PersistentClient")
     def test_search_with_filter(self, mock_persistent_client):
         """测试带过滤条件的搜索"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -273,7 +273,7 @@ class TestChromaBackendUtilities:
     @patch("chromadb.PersistentClient")
     def test_delete_collection(self, mock_persistent_client):
         """测试删除集合"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -291,7 +291,7 @@ class TestChromaBackendUtilities:
     @patch("chromadb.PersistentClient")
     def test_get_collection_info(self, mock_persistent_client):
         """测试获取集合信息"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         mock_client = Mock()
         mock_collection = Mock()
@@ -322,7 +322,7 @@ class TestChromaBackendIntegration:
     @patch("chromadb.PersistentClient")
     def test_full_workflow(self, mock_persistent_client):
         """测试完整的工作流程：创建、添加、搜索、删除"""
-        from sage.libs.integrations.chroma import ChromaBackend
+        from sage.middleware.components.vector_stores.chroma import ChromaBackend
 
         # Setup mocks
         mock_client = Mock()

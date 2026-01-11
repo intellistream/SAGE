@@ -10,8 +10,7 @@ Usage:
     compressor = LongRefinerCompressor()
     result = compressor.compress(question, documents, budget=2048)
 
-For SAGE pipeline integration:
-    from sage.middleware.operators.rag import RefinerOperator
+For SAGE middleware integration, see sage-middleware documentation.
 
 This module is kept as a placeholder for backwards compatibility documentation.
 No functionality remains here - use isage-refiner directly.

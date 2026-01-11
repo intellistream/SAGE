@@ -17,7 +17,7 @@ class TestMilvusBackendBasic:
     @patch("pymilvus.MilvusClient")
     def test_init_and_add_dense_documents(self, mock_milvus_client):
         """测试初始化和添加稠密向量文档"""
-        from sage.libs.integrations.milvus import MilvusBackend
+        from sage.middleware.components.vector_stores.milvus import MilvusBackend
 
         mock_client = Mock()
         mock_milvus_client.return_value = mock_client
@@ -44,7 +44,7 @@ class TestMilvusBackendBasic:
     @patch("pymilvus.MilvusClient")
     def test_dense_search(self, mock_milvus_client):
         """测试稠密向量搜索"""
-        from sage.libs.integrations.milvus import MilvusBackend
+        from sage.middleware.components.vector_stores.milvus import MilvusBackend
 
         mock_client = Mock()
         mock_milvus_client.return_value = mock_client
@@ -73,7 +73,7 @@ class TestMilvusBackendBasic:
     @patch("pymilvus.MilvusClient")
     def test_sparse_operations(self, mock_milvus_client):
         """测试稀疏向量操作"""
-        from sage.libs.integrations.milvus import MilvusBackend
+        from sage.middleware.components.vector_stores.milvus import MilvusBackend
 
         mock_client = Mock()
         mock_milvus_client.return_value = mock_client
@@ -98,7 +98,7 @@ class TestMilvusBackendBasic:
     @patch("pymilvus.MilvusClient")
     def test_collection_management(self, mock_milvus_client):
         """测试集合管理操作"""
-        from sage.libs.integrations.milvus import MilvusBackend
+        from sage.middleware.components.vector_stores.milvus import MilvusBackend
 
         mock_client = Mock()
         mock_milvus_client.return_value = mock_client
