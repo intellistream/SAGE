@@ -35,6 +35,12 @@ When we move code from `sage-libs` to `sage-middleware`, **do NOT keep re-export
 
 Rationale: keep the codebase clean; avoid长期兼容层造成的隐式依赖和维护成本。
 
+#### 🛡️ Enforcement
+
+- **Pre-commit hook**: `libs-middleware-import-check` - Blocks commits if `sage-libs` imports `sage.middleware`
+- **Script**: `tools/hooks/check_libs_middleware_import.sh --all-files`
+- **Policy doc**: `docs-public/docs_src/dev-notes/cross-layer/MIDDLEWARE_COMPONENT_PROMOTION_POLICY.md`
+
 ### ❌ NEVER BYPASS CONTROL PLANE - ABSOLUTE RULE
 
 **ALL LLM engine operations MUST go through Control Plane. Direct engine startup is FORBIDDEN.**
