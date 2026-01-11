@@ -1,21 +1,17 @@
-"""Context compression algorithms for managing long contexts in LLMs.
+"""Context compression - MIGRATED to isage-refiner.
 
-This module provides simple compression algorithms. For advanced context compression
-(Long-Refiner, REFORM, Provence), use the independent isage-refiner package:
+All context compression algorithms have been migrated to the independent package:
 
     pip install isage-refiner
 
-Note: ContextService has been moved to sage.middleware.components.sage_refiner
-because it depends on RefinerService (L4 component).
+Usage:
+    from sage_refiner import LongRefiner, REFORMCompressor, ProvenceCompressor
 
-Migration note (2026-01-10):
-- Long-Refiner and related implementations have been moved to isage-refiner
-- Use sage.middleware.components.sage_refiner for integration with SAGE
-- Direct usage: from sage_refiner import LongRefiner  (after pip install isage-refiner)
+For SAGE middleware integration:
+    from sage.middleware.components.sage_refiner import RefinerService
+
+This module is kept as a placeholder for backwards compatibility documentation.
+No functionality remains here - use isage-refiner directly.
 """
 
-from sage.libs.foundation.context.compression.algorithms.simple import SimpleRefiner
-
-__all__ = [
-    "SimpleRefiner",
-]
+__all__: list[str] = []
