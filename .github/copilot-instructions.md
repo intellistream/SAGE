@@ -181,19 +181,24 @@ L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 
 **Independent Algorithm Libraries** (从 sage-libs 拆分，独立 PyPI 包):
 
-| 内部包名 | PyPI 包名 | Import 名 | 版本格式 | 描述 |
-|---------|----------|-----------|---------|------|
-| sage-agentic | `isage-agentic` | `sage_agentic` | 0.0.0.x | Agent 实现 (ReAct, PlanExecute, Reflex) |
-| sage-rag | `isage-rag` | `sage_rag` | 0.0.0.x | RAG 实现 (Naive, HyDE, StepBack) |
-| sage-privacy | `isage-privacy` | `sage_privacy` | 0.0.0.x | 隐私保护 (DP, 联邦学习, 机器遗忘, PII) |
-| sage-eval | `isage-eval` | `sage_eval` | 0.0.0.x | 评估指标/Profiler/Judge |
-| sage-finetune | `isage-finetune` | `sage_finetune` | 0.0.0.x | 微调训练器和数据加载器 |
-| sage-safety | `isage-safety` | `sage_safety` | 0.0.0.x | 安全护栏和检测器 |
+| 内部包名 | PyPI 包名 | Import 名 | 版本格式 | 描述 | 层级 |
+|---------|----------|-----------|---------|------|------|
+| sage-agentic | `isage-agentic` | `sage_agentic` | 0.0.0.x | Agent 实现 (ReAct, PlanExecute, Reflex) | L3 |
+| sage-rag | `isage-rag` | `sage_rag` | 0.0.0.x | RAG 实现 (Loaders, Chunkers, Retrievers) | L3 |
+| sage-privacy | `isage-privacy` | `sage_privacy` | 0.0.0.x | 隐私保护 (DP, 联邦学习, 机器遗忘, PII) | L3 |
+| sage-eval | `isage-eval` | `sage_eval` | 0.0.0.x | 评估指标/Profiler/Judge | L3 |
+| sage-finetune | `isage-finetune` | `sage_finetune` | 0.0.0.x | 微调训练器和数据加载器 | L3 |
+| sage-safety | `isage-safety` | `sage_safety` | 0.0.0.x | 安全护栏和检测器 | L3 |
 
 **命名规范**：
 - PyPI 名称：`isage-xxx`（带 'i' 前缀，因为 'sage' 在 PyPI 已被占用）
 - Import 名称：`sage_xxx`（不带 'i'，下划线分隔）
 - 版本格式：四段式 `0.0.0.1`，递增 `+0.0.0.1`
+
+**独立库与 SAGE 的关系**：
+- **SAGE 侧** (`sage.libs.xxx`): 提供**接口层**（抽象基类、工厂函数、类型定义）
+- **独立库** (`sage_xxx`): 提供**具体实现**，通过 `_register.py` 自动注册到 SAGE 工厂
+- 每个独立库有 `COPILOT_INSTRUCTIONS.md` 详细说明其架构和使用方式
 
 **SAGE 集成**：这些库在 import 时自动注册到 SAGE interface（通过 `_register.py`）。
 如果 SAGE 未安装，则作为独立库使用。
