@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sage.libs.agentic.agents.planning.schemas import PlannerConfig, PlanRequest, ToolMetadata
+from sage_agentic.agents.planning.schemas import PlannerConfig, PlanRequest, ToolMetadata
 
 logger = logging.getLogger(__name__)
 

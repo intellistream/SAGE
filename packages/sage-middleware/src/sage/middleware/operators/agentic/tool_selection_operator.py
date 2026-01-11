@@ -6,9 +6,10 @@ Middleware operator for tool selection using runtime components.
 
 from typing import Any, Optional
 
+from sage_agentic.agents.runtime import BenchmarkAdapter, Orchestrator, RuntimeConfig
+from sage_agentic.agents.runtime.config import SelectorConfig
+
 from sage.common.core.functions import MapFunction
-from sage.libs.agentic.agents.runtime import BenchmarkAdapter, Orchestrator, RuntimeConfig
-from sage.libs.agentic.agents.runtime.config import SelectorConfig
 
 
 class ToolSelectionOperator(MapFunction):

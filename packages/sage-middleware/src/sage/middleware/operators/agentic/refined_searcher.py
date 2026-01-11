@@ -10,7 +10,8 @@ Installation:
 import logging
 from typing import Any, AsyncGenerator, Optional
 
-from sage.libs.agentic.agents.bots.searcher_bot import SearcherBot
+from sage_agentic.agents.bots.searcher_bot import SearcherBot
+
 from sage.libs.foundation.tools.tool import BaseTool
 
 logger = logging.getLogger(__name__)
