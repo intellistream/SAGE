@@ -617,9 +617,27 @@ class BaseTask(ABC):  # noqa: B024
             self.logger.error(f"Error during cleanup of task {self.name}: {e}")
 
     def _handle_sink_stop_signal(self, stop_signal: "StopSignal"):
-        """Gracefully drain in-flight data before finalizing a sink task."""
-        drain_timeout = getattr(self.operator, "drain_timeout", 10.0)
-        quiet_period = getattr(self.operator, "drain_quiet_period", 0.3)
+        """Gracefully drain in-flight data before finalizing a sink task.
+
+        默认 drain 配置说明：
+        - drain_timeout: 最长等待时间（默认 60s），足够处理分布式 LLM 场景
+        - drain_quiet_period: 无数据静默期（默认 2s），超过此时间无新数据则认为完成
+
+        用户可在 SinkFunction 上设置 drain_timeout 和 drain_quiet_period 属性来覆盖默认值。
+        """
+        # 优先从用户定义的 function（如 MetricsSink）读取配置
+        # 其次从 operator（SinkOperator）读取，最后使用默认值
+        func = getattr(self.operator, "function", None)
+        drain_timeout = getattr(func, "drain_timeout", None)
+        if drain_timeout is None:
+            drain_timeout = getattr(self.operator, "drain_timeout", 60.0)
+        quiet_period = getattr(func, "drain_quiet_period", None)
+        if quiet_period is None:
+            quiet_period = getattr(self.operator, "drain_quiet_period", 2.0)
+
+        self.logger.debug(
+            f"Sink task {self.name} draining with timeout={drain_timeout}s, quiet_period={quiet_period}s"
+        )
         drained = self._drain_inflight_messages(
             timeout=drain_timeout,
             quiet_period=quiet_period,
@@ -649,16 +667,35 @@ class BaseTask(ABC):  # noqa: B024
             self.ctx.set_stop_signal()
 
     def _drain_and_process_remaining(self, stop_signal: "StopSignal") -> int:
-        """Drain and process remaining packets before forwarding stop signal."""
+        """Drain and process remaining packets before forwarding stop signal.
+
+        中间节点（MapOperator 等）在收到停止信号后，需要先处理完所有在途数据，
+        然后才能转发停止信号给下游。
+
+        配置说明：
+        - timeout: 最长等待时间（默认 30s），足够处理分布式 LLM 场景的长尾任务
+        - quiet_period: 无数据静默期（默认 2s），超过此时间无新数据则认为完成
+
+        用户可在 MapFunction 上设置 intermediate_drain_timeout 和 intermediate_drain_quiet_period
+        属性来覆盖默认值。
+        """
         if not self.input_qd:
             return 0
         drained_packets = 0
-        timeout = 5.0
-        quiet_period = 0.5
+        # 优先从用户定义的 function 读取配置，其次从 operator，最后使用默认值
+        func = getattr(self.operator, "function", None)
+        timeout = getattr(func, "intermediate_drain_timeout", None)
+        if timeout is None:
+            timeout = getattr(self.operator, "intermediate_drain_timeout", 30.0)
+        quiet_period = getattr(func, "intermediate_drain_quiet_period", None)
+        if quiet_period is None:
+            quiet_period = getattr(self.operator, "intermediate_drain_quiet_period", 2.0)
         poll_interval = 0.1
         start_time = time.time()
         last_packet_time = start_time
-        self.logger.debug(f"Intermediate task {self.name} draining remaining packets")
+        self.logger.debug(
+            f"Intermediate task {self.name} draining with timeout={timeout}s, quiet_period={quiet_period}s"
+        )
         while True:
             elapsed = time.time() - start_time
             if elapsed >= timeout:

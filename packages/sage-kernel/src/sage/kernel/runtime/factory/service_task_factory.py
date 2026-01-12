@@ -35,8 +35,46 @@ class ServiceTaskFactory:
             from sage.kernel.runtime.service.ray_service_task import RayServiceTask
             from sage.kernel.utils.ray.actor import ActorWrapper
 
-            # 直接创建Ray Actor，传入ServiceFactory和ctx
-            ray_service_task = RayServiceTask.options(lifetime="detached").remote(  # type: ignore[attr-defined]
+            # 构建 Ray Actor options
+            actor_options = {"lifetime": "detached"}
+
+            # 从 ServiceFactory 获取调度选项
+            scheduling_opts = getattr(self.service_factory, "scheduling_options", {}) or {}
+
+            # 节点调度选项
+            if "node_id" in scheduling_opts:
+                # 指定节点 ID（Ray 内部格式）
+                actor_options["scheduling_strategy"] = (
+                    f"node:{scheduling_opts['node_id']}"
+                )
+            elif "node_ip" in scheduling_opts:
+                # 通过 IP 地址指定节点
+                import ray
+                from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
+                node_ip = scheduling_opts["node_ip"]
+                # 查找对应节点 ID
+                nodes = ray.nodes()
+                target_node_id = None
+                for node in nodes:
+                    if node.get("NodeManagerAddress") == node_ip and node.get("Alive"):
+                        target_node_id = node.get("NodeID")
+                        break
+                if target_node_id:
+                    actor_options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
+                        node_id=target_node_id, soft=False
+                    )
+                    print(f"[ServiceTaskFactory] Scheduling service '{self.service_name}' to node {node_ip}")
+
+            # 资源需求选项
+            if "num_cpus" in scheduling_opts:
+                actor_options["num_cpus"] = scheduling_opts["num_cpus"]
+            if "num_gpus" in scheduling_opts:
+                actor_options["num_gpus"] = scheduling_opts["num_gpus"]
+            if "resources" in scheduling_opts:
+                actor_options["resources"] = scheduling_opts["resources"]
+
+            # 创建 Ray Actor，传入 ServiceFactory 和 ctx
+            ray_service_task = RayServiceTask.options(**actor_options).remote(  # type: ignore[attr-defined]
                 self.service_factory, ctx
             )
 

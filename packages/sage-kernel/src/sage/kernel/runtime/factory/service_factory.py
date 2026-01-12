@@ -15,6 +15,7 @@ class ServiceFactory:
         service_class: type,
         service_args: tuple[Any, ...] = (),
         service_kwargs: dict | None = None,
+        scheduling_options: dict | None = None,
     ):
         """
         初始化服务工厂
@@ -24,6 +25,12 @@ class ServiceFactory:
             service_class: 服务类
             service_args: 服务构造参数
             service_kwargs: 服务构造关键字参数
+            scheduling_options: Ray Actor 调度选项，支持:
+                - node_id: 指定运行节点 ID (如 ray.get_runtime_context().node_id.hex())
+                - node_ip: 指定运行节点 IP 地址
+                - num_cpus: 需要的 CPU 数量
+                - num_gpus: 需要的 GPU 数量
+                - resources: 自定义资源需求 (如 {"head": 1})
         """
         if not service_name:
             raise ValueError("service_name cannot be empty")
@@ -35,6 +42,7 @@ class ServiceFactory:
         print(f"ServiceFactory initialized for {self.service_name} with class {self.service_class}")
         self.service_args = service_args
         self.service_kwargs = service_kwargs or {}
+        self.scheduling_options = scheduling_options or {}
 
     def create_service(self, ctx: "ServiceContext | None" = None) -> Any:
         """

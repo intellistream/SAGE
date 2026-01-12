@@ -19,6 +19,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
+from sage.kernel.api.service import BaseService
+
 if TYPE_CHECKING:
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.remote_environment import RemoteEnvironment
@@ -68,10 +70,11 @@ def register_embedding_service(
         True if registered successfully
     """
     try:
-        class EmbeddingService:
+        class EmbeddingService(BaseService):
             """Remote embedding service wrapper (lazy init to avoid SSLContext serialization)"""
 
-            def __init__(self, base_url: str, model: str):
+            def __init__(self, base_url: str, model: str, **kwargs):
+                super().__init__(**kwargs)
                 self.base_url = base_url.rstrip("/")
                 self.model = model
                 self._client = None  # Lazy init
@@ -123,6 +126,7 @@ def register_vector_db_service(
     embedding_model: str,
     knowledge_base: list[dict[str, Any]] | None = None,
     dimension: int | None = None,
+    node_ip: str | None = None,
 ) -> bool:
     """
     Register SageDBService for vector search (RAG).
@@ -136,6 +140,7 @@ def register_vector_db_service(
         embedding_model: Embedding model name
         knowledge_base: Documents to pre-load (uses SAMPLE_KNOWLEDGE_BASE if None)
         dimension: Vector dimension (auto-detected if None)
+        node_ip: IP address of node to run service on (e.g., head node)
 
     Returns:
         True if registered successfully
@@ -144,7 +149,7 @@ def register_vector_db_service(
         kb = knowledge_base or SAMPLE_KNOWLEDGE_BASE
 
         # Lazy-init wrapper that creates SageDB on first use
-        class LazyVectorDBService:
+        class LazyVectorDBService(BaseService):
             """Lazy-initialized vector DB service (avoids C++ pickle issues)"""
 
             def __init__(
@@ -153,7 +158,9 @@ def register_vector_db_service(
                 embedding_model_name: str,
                 initial_data: list[dict],
                 dim: int | None,
+                **kwargs,
             ):
+                super().__init__(**kwargs)
                 self._embedding_url = embedding_url
                 self._embedding_model = embedding_model_name
                 self._initial_data = initial_data
@@ -261,8 +268,10 @@ def register_vector_db_service(
             embedding_model_name=embedding_model,
             initial_data=kb,
             dim=dimension,
+            node_ip=node_ip,  # Bind to specific node (e.g., head node)
         )
-        print("[Pipeline] Registered vector_db (LazyVectorDBService)")
+        node_info = f" on {node_ip}" if node_ip else ""
+        print(f"[Pipeline] Registered vector_db (LazyVectorDBService){node_info}")
         return True
 
     except Exception as e:
@@ -295,10 +304,11 @@ def register_llm_service(
     try:
         import httpx
 
-        class LLMService:
+        class LLMService(BaseService):
             """Remote LLM service wrapper"""
 
-            def __init__(self, base_url: str, model: str, max_tokens: int):
+            def __init__(self, base_url: str, model: str, max_tokens: int, **kwargs):
+                super().__init__(**kwargs)
                 self.base_url = base_url.rstrip("/")
                 self.model = model
                 self.max_tokens = max_tokens
@@ -363,6 +373,7 @@ def register_all_services(
     env: LocalEnvironment | RemoteEnvironment,
     config: BenchmarkConfig,
     knowledge_base: list[dict[str, Any]] | None = None,
+    vdb_node_ip: str | None = None,
 ) -> dict[str, bool]:
     """
     Register all RAG services for the pipeline.
@@ -371,6 +382,7 @@ def register_all_services(
         env: Environment to register services
         config: Benchmark configuration
         knowledge_base: Optional custom knowledge base
+        vdb_node_ip: IP address to bind vector_db service (None = no binding)
 
     Returns:
         Dict mapping service name to registration success
@@ -388,6 +400,7 @@ def register_all_services(
         embedding_base_url=config.embedding_base_url,
         embedding_model=config.embedding_model,
         knowledge_base=knowledge_base,
+        node_ip=vdb_node_ip,
     )
 
     results["llm"] = register_llm_service(
@@ -1174,8 +1187,9 @@ class SchedulingBenchmarkPipeline:
         AdaptiveRAGResultSink.clear_results()
 
         # Register services for vector retrieval (embedding + vector_db + llm)
+        # Bind VDB to head node for Adaptive-RAG to avoid distributed access issues
         print("\n[Pipeline] Registering services for Adaptive-RAG...")
-        service_results = register_all_services(env, self.config)
+        service_results = register_all_services(env, self.config, vdb_node_ip=self.config.head_node)
         for svc_name, success in service_results.items():
             status = "✓" if success else "✗"
             print(f"  {status} {svc_name}")

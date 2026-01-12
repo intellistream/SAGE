@@ -391,16 +391,31 @@ class MetricsSink(SinkFunction):
     # Metrics 输出目录
     METRICS_OUTPUT_DIR = "/tmp/sage_metrics"
 
+    # Drain 配置：等待远程节点上 Generator 完成处理
+    # 问题：StopSignal 可能比数据先到达，而 Generator 还在等待 LLM 响应
+    # Adaptive-RAG 等复杂场景可能需要多轮 LLM 调用，P99 可达 150+ 秒
+    # 设置 drain_timeout=300s（总等待时间）和 quiet_period=90s（无数据静默期）
+    drain_timeout: float = 300.0
+    drain_quiet_period: float = 90.0
+
     def __init__(
         self,
         metrics_collector: Any = None,
         verbose: bool = False,
+        drain_timeout: float | None = None,
+        drain_quiet_period: float | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.metrics_collector = metrics_collector
         self.verbose = verbose
         self.test_mode = os.getenv("SAGE_TEST_MODE") == "true"
+
+        # 允许通过参数覆盖默认 drain 配置
+        if drain_timeout is not None:
+            self.drain_timeout = drain_timeout
+        if drain_quiet_period is not None:
+            self.drain_quiet_period = drain_quiet_period
 
         # 本地统计
         self.count = 0
@@ -1534,6 +1549,13 @@ class AdaptiveRAGResultSink(SinkFunction):
 
     METRICS_OUTPUT_DIR = "/tmp/sage_metrics"  # 与 MetricsSink 使用相同目录
     _all_results: list[AdaptiveRAGResultData] = []
+
+    # Drain 配置：等待远程节点上 Generator 完成处理
+    # 问题：StopSignal 可能比数据先到达，而 Generator 还在等待 LLM 响应
+    # Adaptive-RAG 等复杂场景可能需要多轮 LLM 调用，P99 可达 150+ 秒
+    # 设置 drain_timeout=300s（总等待时间）和 quiet_period=90s（无数据静默期）
+    drain_timeout: float = 300.0
+    drain_quiet_period: float = 90.0
 
     def __init__(self, branch_name: str = "", **kwargs):
         super().__init__(**kwargs)

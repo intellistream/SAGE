@@ -160,7 +160,18 @@ class BaseEnvironment(ABC):
         if hasattr(self, "_logger") and self._logger is not None:
             self._logger.update_output_level("console", self.console_log_level)
 
-    def register_service(self, service_name: str, service_class: type, *args, **kwargs):
+    def register_service(
+        self,
+        service_name: str,
+        service_class: type,
+        *args,
+        node_id: str | None = None,
+        node_ip: str | None = None,
+        num_cpus: float | None = None,
+        num_gpus: float | None = None,
+        resources: dict | None = None,
+        **kwargs,
+    ):
         """
         注册服务到环境中
 
@@ -168,22 +179,46 @@ class BaseEnvironment(ABC):
             service_name: 服务名称，用于标识服务
             service_class: 服务类，将在任务提交时实例化
             *args: 传递给服务构造函数的位置参数
+            node_id: 指定服务运行的 Ray 节点 ID（远程模式）
+            node_ip: 指定服务运行的节点 IP 地址（远程模式，会自动转换为 node_id）
+            num_cpus: 服务需要的 CPU 数量
+            num_gpus: 服务需要的 GPU 数量
+            resources: 自定义资源需求，如 {"head": 1} 固定到 head 节点
             **kwargs: 传递给服务构造函数的关键字参数
 
         Example:
             # 注册一个自定义服务
             env.register_service("my_cache", MyCacheService, cache_size=1000)
 
-            # 注册数据库连接服务
+            # 注册数据库连接服务，指定到特定节点
             env.register_service("db_conn", DatabaseConnection,
-                               host="localhost", port=5432, db="mydb")
+                               host="localhost", port=5432, db="mydb",
+                               node_ip="192.168.1.100")
+
+            # 注册到 head 节点（需要预先定义 head 资源）
+            env.register_service("vector_db", VectorDBService,
+                               resources={"head": 0.01})
         """
+        # 构建调度选项
+        scheduling_options = {}
+        if node_id:
+            scheduling_options["node_id"] = node_id
+        if node_ip:
+            scheduling_options["node_ip"] = node_ip
+        if num_cpus is not None:
+            scheduling_options["num_cpus"] = num_cpus
+        if num_gpus is not None:
+            scheduling_options["num_gpus"] = num_gpus
+        if resources:
+            scheduling_options["resources"] = resources
+
         # 创建服务工厂
         service_factory = ServiceFactory(
             service_name=service_name,
             service_class=service_class,
             service_args=args,
             service_kwargs=kwargs,
+            scheduling_options=scheduling_options if scheduling_options else None,
         )
 
         self.service_factories[service_name] = service_factory
