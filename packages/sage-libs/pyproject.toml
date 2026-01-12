@@ -86,9 +86,9 @@ dependencies = [
     # OCR tools
     "easyocr>=1.7.0",
 
-    # SAGE 核心依赖
+    # SAGE 核心依赖 (LLM via isagellm)
     "isage-common>=0.2.0",
-    "isage-llm-core>=0.2.0",
+    "isagellm>=0.1.0",
 
     # ========== LLM & Finetune 核心依赖 (原可选依赖，现为必选) ==========
     # Transformers 生态

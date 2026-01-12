@@ -16,6 +16,9 @@ SAGE Architecture Compliance Checker
 4. 公共 API 导出
 5. 架构标记完整性
 6. 根目录文件规范（避免临时/测试文件污染根目录）
+
+NOTE: sage-llm-core and sage-llm-gateway have been migrated to isagellm.
+      LLM functionality is now via: pip install isagellm
 """
 
 import ast
@@ -30,12 +33,12 @@ from pathlib import Path
 
 # 包的层级定义（根据 PACKAGE_ARCHITECTURE.md）
 LAYER_DEFINITION = {
-    "L1": ["sage-common", "sage-llm-core"],
+    "L1": ["sage-common"],
     "L2": ["sage-platform"],
     "L3": ["sage-kernel", "sage-libs"],
     "L4": ["sage-middleware"],
     "L5": ["sage-apps", "sage-benchmark"],
-    "L6": ["sage-studio", "sage-tools", "sage-llm-gateway"],
+    "L6": ["sage-studio", "sage-tools"],
 }
 
 # 反向映射：包名 -> 层级
@@ -47,20 +50,17 @@ for layer, packages in LAYER_DEFINITION.items():
 # 允许的依赖关系（高层 -> 低层）
 ALLOWED_DEPENDENCIES = {
     "sage-common": set(),  # L1 不依赖任何包
-    "sage-llm-core": {"sage-common"},  # L1 LLM core，依赖 common foundation
-    "sage-platform": {"sage-common", "sage-llm-core"},  # L2 -> L1
-    "sage-kernel": {"sage-common", "sage-llm-core", "sage-platform"},  # L3 kernel 独立，不依赖 libs
-    "sage-libs": {"sage-common", "sage-llm-core", "sage-platform"},  # L3 libs 独立，不依赖 kernel
+    "sage-platform": {"sage-common"},  # L2 -> L1
+    "sage-kernel": {"sage-common", "sage-platform"},  # L3 kernel 独立，不依赖 libs
+    "sage-libs": {"sage-common", "sage-platform"},  # L3 libs 独立，不依赖 kernel
     "sage-middleware": {
         "sage-common",
-        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
     },  # L4 -> L3, L2, L1
     "sage-apps": {
         "sage-common",
-        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -68,7 +68,6 @@ ALLOWED_DEPENDENCIES = {
     },  # L5 -> L4, L3, L2, L1
     "sage-benchmark": {
         "sage-common",
-        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -76,7 +75,6 @@ ALLOWED_DEPENDENCIES = {
     },  # L5 -> L4, L3, L2, L1
     "sage-studio": {
         "sage-common",
-        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -84,7 +82,6 @@ ALLOWED_DEPENDENCIES = {
     },  # L6 -> L4, L3, L2, L1
     "sage-tools": {
         "sage-common",
-        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -93,7 +90,6 @@ ALLOWED_DEPENDENCIES = {
     },  # L6 -> L5(studio), L4, L3, L2, L1
     "sage-llm-gateway": {
         "sage-common",
-        "sage-llm-core",
         "sage-platform",
         "sage-kernel",
         "sage-libs",
@@ -105,7 +101,6 @@ ALLOWED_DEPENDENCIES = {
 # 包的根目录映射
 PACKAGE_PATHS = {
     "sage-common": "packages/sage-common/src",
-    "sage-llm-core": "packages/sage-llm-core/src",
     "sage-platform": "packages/sage-platform/src",
     "sage-kernel": "packages/sage-kernel/src",
     "sage-libs": "packages/sage-libs/src",
@@ -114,16 +109,12 @@ PACKAGE_PATHS = {
     "sage-benchmark": "packages/sage-benchmark/src",
     "sage-studio": "packages/sage-studio/src",
     "sage-tools": "packages/sage-tools/src",
-    "sage-llm-gateway": "packages/sage-llm-gateway/src",
 }
 
 # 包名到 Python 模块路径的映射（处理共享命名空间的情况）
 # 大多数包: sage-xxx -> sage/xxx
-# 特殊情况: sage-llm-core 和 sage-llm-gateway 共享 sage.llm 命名空间
 PACKAGE_MODULE_PATHS = {
     "sage-common": "sage/common",
-    "sage-llm-core": "sage/llm",  # 共享命名空间
-    "sage-llm-gateway": "sage/llm",  # 共享命名空间
     "sage-platform": "sage/platform",
     "sage-kernel": "sage/kernel",
     "sage-libs": "sage/libs",

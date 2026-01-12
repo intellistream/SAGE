@@ -24,12 +24,9 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 requires-python = ">=3.10"
-# Meta-package 核心依赖
-# 注意：开发时这些依赖通过 --no-deps 安装，由 quickstart.sh 手动控制顺序
-# PyPI 发布后用户安装时会自动解析这些依赖
 dependencies = [
     "isage-common>=0.1.0",
-    "isage-llm-core>=0.1.0",
+    "isagellm>=0.1.0",
     "isage-platform>=0.1.0",
     "isage-kernel>=0.1.0",
     "isage-libs>=0.1.0",
@@ -57,8 +54,9 @@ all = [
     "isage-middleware>=0.1.0",
     "isage-cli>=0.1.0",
     "isage-studio>=0.1.0",
-    "isage-llm-gateway>=0.1.0",
+    "isagellm[gateway]>=0.1.0",
 ]
+
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"
