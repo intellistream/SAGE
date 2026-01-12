@@ -398,7 +398,6 @@ def register_all_services(
     results["vector_db"] = register_vector_db_service(
         env,
         embedding_base_url=config.embedding_base_url,
-        embedding_model=config.embedding_model,
         knowledge_base=knowledge_base,
         node_ip=vdb_node_ip,
     )
@@ -430,6 +429,54 @@ class SchedulingBenchmarkPipeline:
         self.env = None
         self.scheduler = None
         self.metrics = BenchmarkMetrics(config=config)
+
+    def _get_worker_nodes(self) -> list[str]:
+        """
+        Get worker node hostnames from config or cluster.yaml.
+
+        Priority:
+        1. self.config.worker_nodes (if explicitly set)
+        2. cluster.yaml ssh.workers section
+        3. Generate based on num_nodes (fallback)
+        """
+        # Priority 1: Explicit config
+        if self.config.worker_nodes:
+            return self.config.worker_nodes
+
+        # Priority 2: Read from cluster.yaml
+        try:
+            from pathlib import Path
+            import yaml
+
+            # Find cluster.yaml relative to repo root
+            # pipeline.py is at: packages/sage-benchmark/.../common/pipeline.py
+            # cluster.yaml is at: config/cluster.yaml
+            current_file = Path(__file__).resolve()
+            # Navigate up to find repo root (contains 'config' directory)
+            repo_root = current_file
+            for _ in range(10):  # Max 10 levels up
+                repo_root = repo_root.parent
+                if (repo_root / "config" / "cluster.yaml").exists():
+                    break
+            else:
+                repo_root = None
+
+            if repo_root:
+                cluster_yaml = repo_root / "config" / "cluster.yaml"
+                with open(cluster_yaml) as f:
+                    cluster_config = yaml.safe_load(f)
+
+                ssh_workers = cluster_config.get("ssh", {}).get("workers", [])
+                if ssh_workers:
+                    return [w["host"] for w in ssh_workers if "host" in w]
+        except Exception as e:
+            print(f"[Pipeline] Warning: Could not read cluster.yaml: {e}")
+
+        # Priority 3: Generate based on num_nodes (exclude head node)
+        if self.config.num_nodes > 1:
+            return [f"sage-node-{i}" for i in range(2, self.config.num_nodes + 1)]
+
+        return []
 
     def _create_scheduler(self):
         """Create scheduler based on config."""
@@ -982,9 +1029,11 @@ class SchedulingBenchmarkPipeline:
         metrics_dir = Path("/tmp/sage_metrics")
         metrics_dir.mkdir(parents=True, exist_ok=True)
 
-        # Use hardcoded worker node hostnames directly
-        # (Ray returns IPs like 172.20.0.x instead of hostnames)
-        worker_nodes = ["sage-node-2", "sage-node-3", "sage-node-4"]
+        # Get worker nodes from config or cluster.yaml
+        worker_nodes = self._get_worker_nodes()
+        if not worker_nodes:
+            print("[Metrics] Warning: No worker nodes configured, skipping remote gather")
+            return
 
         print(f"[Metrics] Gathering metrics from remote nodes: {worker_nodes}")
         for node in worker_nodes:
