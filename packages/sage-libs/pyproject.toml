@@ -48,7 +48,7 @@ dependencies = [
     # AMM algorithms (独立仓库，可选依赖)
     # Note: AMM algorithms are optional, not auto-installed
     # Install separately if needed: pip install isage-amms
-    # Source: packages/sage-libs/src/sage/libs/amms/ (to be migrated to independent repo)
+    # Repository: https://github.com/intellistream/sage-amms
     # PyPI: https://pypi.org/project/isage-amms/
     # "isage-amms>=0.1.0",  # ✅ Optional dependency (install separately if needed)
 
@@ -120,8 +120,36 @@ dev = [
     "ruff==0.14.6",
     "mypy>=1.7.0",
 ]
+anns = [
+    "isage-anns>=0.1.0",
+]
+amms = [
+    "isage-amms>=0.1.0",
+]
+finetune = [
+    "isage-finetune>=0.1.0",
+]
+agentic = [
+    "isage-agentic>=0.1.0",
+]
+rag = [
+    "isage-rag>=0.1.0",
+]
+intent = [
+    "isage-intent>=0.1.0",
+]
 all = [
-    "isage-libs[dev]",
+    "isage-anns>=0.1.0",
+    "isage-amms>=0.1.0",
+    "isage-finetune>=0.1.0",
+    "isage-agentic>=0.1.0",
+    "isage-rag>=0.1.0",
+    "isage-intent>=0.1.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff==0.14.6",
+    "mypy>=1.7.0",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
@@ -147,6 +175,15 @@ attr = "sage.libs._version.__version__"
 [tool.setuptools.package-data]
 "sage.libs" = ["py.typed", "**/*"]
 "sage.apps" = ["py.typed", "**/*"]
+
+# Note: C++ implementations and wrappers have been fully migrated to independent packages:
+# - isage-anns (ANNS algorithms)
+# - isage-amms (AMM algorithms)
+# - isage-finetune (LLM fine-tuning toolkit)
+# - isage-agentic (Agent framework, planning, tool selection, workflows)
+# - isage-sias (Sample-Importance-Aware Selection)
+# - isage-intent (Intent recognition)
+# This package now only ships interface/registry layers and core utilities.
 
 # Development tools configuration
 [tool.black]

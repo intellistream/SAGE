@@ -1,6 +1,10 @@
 """
-document_loaders.py
-SAGE RAG 示例：文本加载工具
+Document loaders for RAG pipelines.
+
+SAGE RAG - Document loading utilities for various file formats.
+
+This is a pure algorithm module (L3) - no dependencies on middleware or
+external services. These are simple utilities for loading documents.
 """
 
 import os
@@ -9,6 +13,8 @@ from typing import Any
 
 
 class TextLoader:
+    """Load plain text files."""
+
     def __init__(self, filepath: str, encoding: str = "utf-8", chunk_separator: str | None = None):
         self.filepath = filepath
         self.encoding = encoding
@@ -23,6 +29,8 @@ class TextLoader:
 
 
 class PDFLoader:
+    """Load PDF documents using PyPDF2."""
+
     def __init__(self, filepath: str):
         self.filepath = filepath
 
@@ -47,6 +55,8 @@ class PDFLoader:
 
 
 class DocxLoader:
+    """Load Word documents (.docx)."""
+
     def __init__(self, filepath: str):
         self.filepath = filepath
 
@@ -54,7 +64,7 @@ class DocxLoader:
         try:
             import docx
         except ImportError:
-            raise ImportError("请先安装 python-docx: pip install python-docx")
+            raise ImportError("Please install python-docx: pip install python-docx")
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
         doc = docx.Document(self.filepath)
@@ -64,7 +74,9 @@ class DocxLoader:
 
 class DocLoader:
     """
-    仅 Windows 下可用；Linux/Mac 建议用其他工具转成 docx。
+    Load legacy Word documents (.doc).
+
+    Note: Only available on Windows; Linux/Mac users should convert to .docx first.
     """
 
     def __init__(self, filepath: str):
@@ -74,7 +86,7 @@ class DocLoader:
         try:
             import win32com.client  # type: ignore[import-untyped]
         except ImportError:
-            raise ImportError("请先安装 pywin32 (仅 Windows 支持): pip install pywin32")
+            raise ImportError("Please install pywin32 (Windows only): pip install pywin32")
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(f"File not found: {self.filepath}")
         word = win32com.client.Dispatch("Word.Application")
@@ -88,8 +100,9 @@ class DocLoader:
 
 class MarkdownLoader:
     """
-    加载 Markdown 文件，保留原始文本。
-    （可选：后续可以集成 markdown2 / mistune 转换成纯文本）
+    Load Markdown files, preserving original text.
+
+    Optional: Can be extended to integrate markdown2/mistune for plain text conversion.
     """
 
     def __init__(self, filepath: str, encoding: str = "utf-8"):
@@ -106,7 +119,11 @@ class MarkdownLoader:
 
 class LoaderFactory:
     """
-    工厂类，根据文件扩展名选择对应的 Loader。
+    Factory class that selects the appropriate loader based on file extension.
+
+    Usage:
+        doc = LoaderFactory.load("examples/data/qa_knowledge_base.txt")
+        print(doc["content"])
     """
 
     _loader_map: dict[
@@ -130,18 +147,11 @@ class LoaderFactory:
         return loader.load()
 
 
-"""
-# 自动识别并加载
-doc =LoaderFactory.load("examples/data/qa_knowledge_base.txt")
-print(doc["content"])
-
-doc = LoaderFactory.load("examples/data/qa_knowledge_base.pdf")
-print(doc["metadata"])
-
-doc = LoaderFactory.load("examples/data/qa_knowledge_base.docx")
-print(doc["content"])
-
-
-doc = LoaderFactory.load("examples/data/qa_knowledge_base.md")
-print(doc["content"])
-"""
+__all__ = [
+    "TextLoader",
+    "PDFLoader",
+    "DocxLoader",
+    "DocLoader",
+    "MarkdownLoader",
+    "LoaderFactory",
+]

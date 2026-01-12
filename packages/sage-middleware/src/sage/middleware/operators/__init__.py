@@ -7,7 +7,7 @@ SAGE Middleware Operators - 领域算子
 - Tool算子: 工具调用 + 领域特定工具 (arxiv, image_captioner等)
 - Filters: 业务过滤器 (tool_filter, evaluate_filter, context source/sink)
 
-第三方集成(向量数据库、LLM客户端)位于: sage.libs.integrations
+向量数据库集成位于: sage.middleware.components.vector_stores
 
 这些算子继承 sage.kernel.operators 的基础算子，实现具体业务逻辑。
 
@@ -17,7 +17,7 @@ SAGE Middleware Operators - 领域算子
     # 或直接导入
     from sage.middleware.operators.rag import ChromaRetriever
     from sage.middleware.operators.llm import VLLMGenerator
-    from sage.libs.integrations import MilvusBackend, OpenAIClient
+    from sage.middleware.components.vector_stores import MilvusBackend, ChromaBackend
 """
 
 # 导出子模块

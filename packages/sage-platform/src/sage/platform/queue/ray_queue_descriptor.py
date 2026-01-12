@@ -6,6 +6,7 @@ Ray Queue Descriptor - Ray分布式队列描述符
 
 import os
 import queue
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 import ray
@@ -27,20 +28,23 @@ def _get_logger() -> "CustomLogger":
 
         # 获取日志目录：
         # 1. 优先使用环境变量 SAGE_LOG_DIR（运行时设置，通常由 TaskContext 设置）
-        # 2. 否则使用当前工作目录下的 .sage/logs/ 目录
-        log_base_dir = os.environ.get("SAGE_LOG_DIR")
-        if not log_base_dir:
-            # 转换为绝对路径（CustomLogger 要求）
-            log_base_dir = os.path.abspath(".sage/logs")
+        # 2. 否则使用统一的 .sage/logs（自动区分 pip 安装与开发环境）
+        log_env = os.environ.get("SAGE_LOG_DIR")
+        if log_env:
+            log_base_dir = Path(log_env)
+        else:
+            from sage.common.config import get_sage_paths
 
-        os.makedirs(log_base_dir, exist_ok=True)
+            log_base_dir = get_sage_paths().logs_dir
+
+        log_base_dir.mkdir(parents=True, exist_ok=True)
 
         _logger = CustomLogger(
             [
                 ("console", "DEBUG"),  # 控制台显示 DEBUG 及以上（与其他组件一致）
-                (os.path.join(log_base_dir, "ray_queue_debug.log"), "DEBUG"),  # 详细调试日志
-                (os.path.join(log_base_dir, "ray_queue_info.log"), "INFO"),  # 信息日志
-                (os.path.join(log_base_dir, "Error.log"), "ERROR"),  # 错误日志（统一文件名）
+                (str(log_base_dir / "ray_queue_debug.log"), "DEBUG"),  # 详细调试日志
+                (str(log_base_dir / "ray_queue_info.log"), "INFO"),  # 信息日志
+                (str(log_base_dir / "Error.log"), "ERROR"),  # 错误日志（统一文件名）
             ],
             name="RayQueue",
         )

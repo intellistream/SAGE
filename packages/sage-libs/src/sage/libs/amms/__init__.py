@@ -1,17 +1,21 @@
-"""AMMS - Approximate Matrix Multiplication Algorithms.
+"""AMMS - Approximate Matrix Multiplication (interface only in SAGE).
 
-This package provides a unified interface for various AMM algorithms,
-similar to how ANNS provides interfaces for approximate nearest neighbor search.
+The **implementations have been migrated to an independent package**
+(`isage-amms`, planned repo: ``intellistream/sage-amms``). SAGE now only ships the
+lightweight interface/registry so downstream code can keep `from sage.libs.amms
+import create` while the compiled extensions live in the external package.
 
-Architecture:
-    - interface/: Abstract base classes and factory
-    - wrappers/: Python wrappers for algorithm implementations
-    - implementations/: C++ source code for algorithms
+Usage (after installing the external package):
 
-Example:
-    >>> from sage.libs.amms import create
-    >>> amm = create("countsketch", sketch_size=1000)
-    >>> result = amm.multiply(matrix_a, matrix_b)
+    pip install isage-amms
+
+    from sage.libs.amms import create
+    amm = create("countsketch", sketch_size=1000)
+    result = amm.multiply(matrix_a, matrix_b)
+
+If the optional dependency is missing, attempting to instantiate algorithms will
+raise a KeyError because no implementations are registered. This is intentional
+to avoid silent fallbacks.
 """
 
 __version__ = "0.1.0"
@@ -19,6 +23,8 @@ __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
 
 # Import interface components
+import warnings
+
 from sage.libs.amms.interface import (
     AmmIndex,
     AmmIndexMeta,
@@ -28,6 +34,13 @@ from sage.libs.amms.interface import (
     register,
     registered,
     unregister,
+)
+
+warnings.warn(
+    "AMM implementations are being externalized to 'isage-amms'. Install the optional extra "
+    "[amms] or add 'isage-amms' to your environment to access concrete algorithms.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
 __all__ = [

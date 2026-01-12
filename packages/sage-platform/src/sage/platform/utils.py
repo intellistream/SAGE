@@ -10,6 +10,7 @@ import logging
 import os
 import time
 from functools import wraps
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
 
 if TYPE_CHECKING:
@@ -179,20 +180,25 @@ def get_component_logger(
 
     from sage.common.utils.logging.custom_logger import CustomLogger
 
-    # 获取日志目录
-    log_base_dir = os.environ.get("SAGE_LOG_DIR")
-    if not log_base_dir:
-        log_base_dir = os.path.abspath(".sage/logs")
+    # 获取日志目录（优先环境变量，其次统一的 SAGE 输出目录）
+    log_env = os.environ.get("SAGE_LOG_DIR")
+    if log_env:
+        log_base_dir = Path(log_env)
+    else:
+        # 使用 L1 的统一路径配置，兼容 pip 安装与开发环境
+        from sage.common.config import get_sage_paths
 
-    os.makedirs(log_base_dir, exist_ok=True)
+        log_base_dir = get_sage_paths().logs_dir
+
+    log_base_dir.mkdir(parents=True, exist_ok=True)
 
     # 默认日志配置
     if log_levels is None:
         log_levels = [
             ("console", "DEBUG"),
-            (os.path.join(log_base_dir, f"{component_name.lower()}_debug.log"), "DEBUG"),
-            (os.path.join(log_base_dir, f"{component_name.lower()}_info.log"), "INFO"),
-            (os.path.join(log_base_dir, "Error.log"), "ERROR"),
+            (str(log_base_dir / f"{component_name.lower()}_debug.log"), "DEBUG"),
+            (str(log_base_dir / f"{component_name.lower()}_info.log"), "INFO"),
+            (str(log_base_dir / "Error.log"), "ERROR"),
         ]
 
     custom_logger = CustomLogger(log_levels, name=component_name)

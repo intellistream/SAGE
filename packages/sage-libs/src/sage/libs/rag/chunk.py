@@ -1,3 +1,12 @@
+"""Text chunking utilities for RAG pipelines.
+
+This module provides text splitter implementations that can be used
+to split documents into smaller chunks for embedding and retrieval.
+
+This is a pure algorithm module (L3) - no dependencies on middleware or
+external services.
+"""
+
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
 
@@ -84,8 +93,7 @@ class SentenceTransformersTokenTextSplitter:
                 "Please install them with `pip install sentence-transformers transformers`."
             )
         except Exception as e:
-            self.logger.error(f"Error while loading model or tokenizer: {e}")
-            raise e
+            raise RuntimeError(f"Error while loading model or tokenizer: {e}") from e
 
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("Chunk overlap must be less than chunk size.")
@@ -115,3 +123,6 @@ class SentenceTransformersTokenTextSplitter:
                 break
 
         return splits
+
+
+__all__ = ["CharacterSplitter", "SentenceTransformersTokenTextSplitter"]

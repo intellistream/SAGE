@@ -1,230 +1,264 @@
-# SAGE Libraries Package
+# SAGE Libraries Package (sage-libs)
 
 ## 📋 Overview
 
-SAGE Libraries 是基于 SAGE Framework 构建的可复用组件库，提供了丰富的预构建功能模块来帮助开发者快速构建 AI 应用。
+**sage-libs** 是 SAGE 框架的算法库层，定位为 **接口/注册表层 (Interface Layer)**。
 
-## 📚 Package Contents
+核心设计原则：
 
-### Layered Module Map
+- 📦 **轻量级接口**：定义抽象基类和工厂函数
+- 🔌 **可插拔实现**：重型实现迁出为独立 PyPI 包 (`isage-*`)
+- 🏗️ **注册表模式**：通过 `register_*` / `create_*` 动态加载实现
 
-| Layer          | Description                                                                   | Modules                                                                                      |
-| -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `foundation`   | 低依赖度工具箱：工具基类、IO Source/Sink、上下文压缩、filters                 | `foundation.tools`, `foundation.io`, `foundation.context`, `foundation.filters` *(即将迁入)* |
-| `agentic`      | LangChain 风格的 Agent 框架 + Workflow Optimizer                              | `agentic.agents`, `agentic.workflow`                                                         |
-| `rag`          | RAG 组件（loaders/chunkers/retrievers/pipelines）。目前正在从 middleware 回迁 | `rag.loaders`, `rag.chunkers`, ... *(占位包，近期填充)*                                      |
-| `integrations` | 第三方服务适配器（LLM、向量库、Observability 等）                             | `integrations.llm.openai`, `integrations.vector.milvus`, ...                                 |
-| `privacy`      | 隐私/遗忘算法（原 `unlearning` 包）                                           | `privacy.unlearning`                                                                         |
+## 🏗️ Architecture
 
-### RAG Building Blocks
+```
+sage-libs (Interface Layer)
+    ├── agentic/interface/     → isage-agentic (Agent framework)
+    ├── rag/interface/         → isage-rag (RAG toolkit)
+    ├── finetune/interface/    → isage-finetune (Fine-tuning)
+    ├── eval/interface/        → isage-eval (Evaluation)
+    ├── privacy/interface/     → isage-privacy (Privacy/Unlearning)
+    ├── safety/interface/      → isage-safety (Guardrails)
+    ├── ann/interface/         → isage-anns (ANNS algorithms)
+    ├── amms/interface/        → isage-amms (AMM algorithms)
+    └── foundation/            → Built-in utilities (no external deps)
+```
 
-`sage.libs.rag` 现已提供可直接复用的核心组件：
+## 📚 Five Core Domains
 
-- `chunk`：`CharacterSplitter`, `SentenceTransformersTokenTextSplitter`
-- `document_loaders`：`TextLoader`, `PDFLoader`, `DocxLoader`, `DocLoader`, `MarkdownLoader`,
-  `LoaderFactory`
-- `pipeline`：轻量版 `RAGPipeline`
-- `types`：`RAGDocument`, `RAGQuery`, `RAGResponse` 及辅助函数
+### 1. 🤖 Agentic (Agent Framework)
 
-Middleware 仍可通过原 import 路径访问这些类，但新的文档和示例将逐步切换到 `sage.libs.rag.*`。
+**接口**：`sage.libs.agentic.interface`
+
+| Base Class              | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| `BaseAgent`             | Agent execution interface                   |
+| `BasePlanner`           | Task planning (ToT, ReAct, Hierarchical)    |
+| `BaseToolSelector`      | Tool selection (Keyword, Embedding, Hybrid) |
+| `BaseOrchestrator`      | Multi-agent orchestration                   |
+| `IntentRecognizer`      | Intent recognition                          |
+| `IntentClassifier`      | Intent classification                       |
+| `BaseReasoningStrategy` | Reasoning strategies (CoT, ToT, ReAct)      |
+
+```python
+from sage.libs.agentic.interface import (
+    BaseAgent, BasePlanner, BaseToolSelector,
+    create_agent, create_planner, register_agent
+)
+
+# Register implementation (from isage-agentic)
+register_agent("react", ReactAgent)
+
+# Create via factory
+agent = create_agent("react", tools=[...])
+```
+
+### 2. 📖 RAG (Retrieval-Augmented Generation)
+
+**接口**：`sage.libs.rag.interface`
+
+| Base Class       | Description                            |
+| ---------------- | -------------------------------------- |
+| `DocumentLoader` | Document loading (PDF, DOCX, MD, etc.) |
+| `TextChunker`    | Text segmentation                      |
+| `Retriever`      | Vector/BM25 retrieval                  |
+| `Reranker`       | Reranking (Cross-Encoder, LLM)         |
+| `QueryRewriter`  | Query rewriting (HyDE, Multi-Query)    |
+| `RAGPipeline`    | End-to-end RAG pipeline                |
+
+```python
+from sage.libs.rag.interface import (
+    DocumentLoader, Retriever, RAGPipeline,
+    create_loader, create_retriever, create_pipeline
+)
+
+loader = create_loader("pdf")
+retriever = create_retriever("faiss", dimension=768)
+```
+
+### 3. 🔧 Fine-tuning
+
+**接口**：`sage.libs.finetune.interface`
+
+| Base Class         | Description                             |
+| ------------------ | --------------------------------------- |
+| `FineTuner`        | Fine-tuning trainer                     |
+| `DatasetLoader`    | Training data loading                   |
+| `TrainingCallback` | Training callbacks (WandB, TensorBoard) |
+| `TrainingStrategy` | PEFT strategies (LoRA, QLoRA, Prefix)   |
+
+```python
+from sage.libs.finetune.interface import (
+    FineTuner, TrainingStrategy, TrainingConfig, LoRAConfig,
+    create_trainer, create_strategy
+)
+
+strategy = create_strategy("lora")
+trainer = create_trainer("lora", model_name="gpt2")
+```
+
+### 4. 📊 Evaluation
+
+**接口**：`sage.libs.eval.interface`
+
+| Base Class      | Description                                |
+| --------------- | ------------------------------------------ |
+| `BaseMetric`    | Evaluation metrics (Accuracy, BLEU, ROUGE) |
+| `BaseLLMJudge`  | LLM-as-a-Judge (Faithfulness, Relevance)   |
+| `BaseProfiler`  | Performance profiling                      |
+| `BaseBenchmark` | Benchmark suites                           |
+
+```python
+from sage.libs.eval.interface import (
+    BaseMetric, BaseLLMJudge, MetricResult,
+    create_metric, create_judge
+)
+
+metric = create_metric("accuracy")
+judge = create_judge("faithfulness", model="gpt-4")
+```
+
+### 5. 🔒 Privacy & Safety
+
+**Privacy 接口**：`sage.libs.privacy.interface`
+
+| Base Class                   | Description                                |
+| ---------------------------- | ------------------------------------------ |
+| `BaseUnlearner`              | Machine unlearning (SISA, Gradient Ascent) |
+| `BasePrivacyMechanism`       | DP mechanisms (Laplace, Gaussian)          |
+| `BaseDPOptimizer`            | DP optimizers (DP-SGD, DP-Adam)            |
+| `BaseFederatedClient/Server` | Federated learning                         |
+
+**Safety 接口**：`sage.libs.safety.interface`
+
+| Base Class               | Description                          |
+| ------------------------ | ------------------------------------ |
+| `BaseGuardrail`          | Content safety guardrails            |
+| `BaseJailbreakDetector`  | Jailbreak/prompt injection detection |
+| `BaseToxicityDetector`   | Toxicity detection                   |
+| `BaseAdversarialDefense` | Adversarial input defense            |
+
+```python
+from sage.libs.privacy import create_unlearner, create_mechanism
+from sage.libs.safety import create_guardrail, create_jailbreak_detector
+
+unlearner = create_unlearner("sisa", num_shards=5)
+guardrail = create_guardrail("llm", model="gpt-4")
+```
+
+## 📦 External Packages (isage-\*)
+
+| Domain      | Interface (sage-libs) | Implementation (PyPI) | Status       |
+| ----------- | --------------------- | --------------------- | ------------ |
+| Agentic     | `agentic/interface/`  | `isage-agentic`       | 🚧 Planned   |
+| RAG         | `rag/interface/`      | `isage-rag`           | 🚧 Planned   |
+| Fine-tuning | `finetune/interface/` | `isage-finetune`      | 🚧 Planned   |
+| Evaluation  | `eval/interface/`     | `isage-eval`          | 🚧 Planned   |
+| Privacy     | `privacy/interface/`  | `isage-privacy`       | 🚧 Planned   |
+| Safety      | `safety/interface/`   | `isage-safety`        | 🚧 Planned   |
+| ANNS        | `ann/interface/`      | `isage-anns`          | ✅ Available |
+| AMM         | `amms/interface/`     | `isage-amms`          | 🚧 Migration |
 
 ## 🚀 Installation
 
 ### Basic Installation
 
 ```bash
-# 从 PyPI 安装（推荐）- 自动包含 LibAMM
+# From PyPI
 pip install isage-libs
 
-# 或在 SAGE 仓库中开发安装
+# Development install (in SAGE repo)
 pip install -e packages/sage-libs
 ```
 
-**包含内容**：
-
-- ✅ **RAG 组件**：loaders, chunkers, retrievers, pipelines
-- ✅ **Agent 框架**：LangChain 风格的 Agent + Workflow Optimizer
-- ✅ **隐私算法**：unlearning, privacy preservation
-- ✅ **集成组件**：LLM, Vector DB 适配器
-
-**可选扩展（独立仓库，需单独安装）**：
-
-- 🔧 **AMM 算法**：`pip install isage-amms`
-- 🔧 **ANNS 算法**：`pip install isage-anns`
-
-### 架构说明
-
-**sage-libs 的设计理念**：
-
-```
-isage-libs (PyPI) - 纯 Python 算法库
-  ├── 可选依赖: isage-amms（独立仓库，C++ 扩展）
-  └── 可选依赖: isage-anns（独立仓库，C++ 扩展）
-```
-
-- 📦 **isage-libs**：SAGE 算法库的统一接口和纯 Python 实现
-- 📦 **isage-amms**：AMM 算法独立包（可选）
-  - 仓库：`packages/sage-libs/src/sage/libs/amms/`（待迁移独立仓库）
-  - 状态：独立可选依赖，不自动安装
-  - PyPI: https://pypi.org/project/isage-amms/
-- 📦 **isage-anns**：ANNS 算法独立包（可选）
-  - 仓库：https://github.com/intellistream/sage-anns
-  - 状态：已完全迁移到独立仓库
-  - PyPI: https://pypi.org/project/isage-anns/
-- 🎯 **安装方式**：
-  - 基础安装：`pip install isage-libs`（不含 C++ 扩展）
-  - AMM 扩展：`pip install isage-amms`（可选，高性能矩阵运算）
-  - ANNS 扩展：`pip install isage-anns`（可选，向量检索算法）
-
-### Optional Extensions (C++ 扩展包)
-
-#### 1. AMM Algorithms (Independent, Optional)
-
-AMM (Approximate Matrix Multiplication) algorithms are **independent optional packages**:
+### With Optional Extras
 
 ```bash
-# 安装 AMM 算法包（可选，高性能矩阵运算）
-pip install isage-amms
+# All interfaces
+pip install isage-libs[all]
+
+# Specific domains
+pip install isage-libs[agentic]    # Agent framework
+pip install isage-libs[rag]         # RAG toolkit
+pip install isage-libs[finetune]    # Fine-tuning
+pip install isage-libs[eval]        # Evaluation
+pip install isage-libs[privacy]     # Privacy/Unlearning
+pip install isage-libs[safety]      # Safety/Guardrails
 ```
 
-- 📂 **Source Location**: `packages/sage-libs/src/sage/libs/amms/`（待迁移独立仓库）
-- 📦 **PyPI**: https://pypi.org/project/isage-amms/
-- 🎯 **Status**: Optional dependency, not auto-installed
-- 📖 **Documentation**: See `docs/amms/MIGRATION.md`
-- ⚠️ **Note**: sage-libs 提供接口层，C++ 实现需单独安装
+## 🏛️ Built-in Utilities
 
-#### 2. ANNS Algorithms (Independent, Optional)
+These modules are included directly (no external deps):
 
-ANNS (Approximate Nearest Neighbor Search) algorithms are **independent optional packages**:
-
-```bash
-# 安装 ANNS 算法包（可选，向量检索算法）
-pip install isage-anns
-```
-
-- 📦 **Repository**: https://github.com/intellistream/sage-anns
-- 📦 **PyPI**: https://pypi.org/project/isage-anns/
-- 🔍 **Algorithms**: FAISS, DiskANN, CANDY, PUCK, SPTAG, etc.
-- 📖 **Documentation**: See `docs/anns/MIGRATION.md` for migration details
-- ⚠️ **Status**: Fully migrated to independent repository
-
-### Development Mode
-
-#### LibAMM 开发者模式
-
-如果需要修改 LibAMM 源码：
-
-```bash
-# 克隆 LibAMM 独立仓库
-git clone https://github.com/intellistream/LibAMM.git
-cd LibAMM
-
-# 编译并安装
-./buildCPUOnly.sh  # CPU 版本
-# 或
-./buildWithCuda.sh  # GPU 版本（需要 CUDA）
-
-pip install -e .
-```
-
-或者在 SAGE 主仓库中（作为子模块）：
-
-```bash
-cd packages/sage-libs/src/sage/libs/libamm
-./buildCPUOnly.sh
-```
-
-# 或手动安装
-
-cd packages/sage-libs/src/sage/libs/libamm pip install .
-
-````
-
-**要求**：
-
-- CMake >= 3.10
-- C++ 编译器 (g++ 或 clang++)
-- PyTorch >= 2.0（会自动安装）
-
-**特性**：
-
-- ✅ 高性能 C++ 实现
-- ✅ NumPy 接口（无需直接使用 PyTorch）
-- ✅ 支持 18+ 种近似矩阵乘法算法
-- 📖 详见 `src/sage/libs/libamm/DEPENDENCY_ISOLATION.md`
-
-## 📖 Quick Start
+### Foundation (`foundation/`)
 
 ```python
-from sage_libs.llm import OpenAIAdapter
-from sage_libs.vector_stores import FAISSStore
-from sage_libs.embeddings import OpenAIEmbeddings
+from sage.libs.foundation import (
+    text_utils,    # Text processing
+    io_utils,      # File I/O helpers
+    async_utils,   # Async utilities
+)
+```
 
-# 使用 LLM 适配器
-llm = OpenAIAdapter(model="gpt-4")
-response = llm.generate("Hello, world!")
+### DataOps (`dataops/`)
 
-# 使用向量存储
-embeddings = OpenAIEmbeddings()
-vector_store = FAISSStore(embeddings)
-vector_store.add_texts(["document 1", "document 2"])
-````
+```python
+from sage.libs.dataops import (
+    text_ops,      # Normalization, truncation
+    table_ops,     # DataFrame operations
+    json_ops,      # JSON processing
+    sampling,      # Sampling strategies
+)
+```
+
+### Lightweight Safety (`safety/`)
+
+```python
+from sage.libs.safety import (
+    content_filter,  # Pattern-based filtering
+    pii_scrubber,    # PII detection
+    policy_check,    # Policy validation
+)
+```
+
+## 📖 Usage Example
+
+```python
+# 1. Define custom implementation
+from sage.libs.agentic.interface import BaseAgent, AgentResult, register_agent
+
+class MyAgent(BaseAgent):
+    @property
+    def name(self) -> str:
+        return "my_agent"
+
+    def run(self, task, context=None):
+        # Implementation
+        return AgentResult(success=True, output="Done")
+
+# 2. Register implementation
+register_agent("my_agent", MyAgent)
+
+# 3. Use via factory
+from sage.libs.agentic.interface import create_agent
+agent = create_agent("my_agent")
+result = agent.run("Hello")
+```
+
+## 📚 Documentation
+
+- **Architecture**: `docs-public/docs_src/dev-notes/l3-libs/`
+- **API Reference**: `docs-public/docs_src/api-reference/sage-libs/`
+- **Tutorials**: `examples/tutorials/L3-libs/`
+
+## 🔗 Related Packages
+
+- [SAGE](https://github.com/intellistream/SAGE) - Main framework
+- [sage-benchmark](https://github.com/intellistream/sage-benchmark) - Evaluation benchmarks
+- [SageVDB](https://github.com/intellistream/sageVDB) - Vector database
+- [NeuroMem](https://github.com/intellistream/NeuroMem) - Memory system
 
 ## 📄 License
 
-MIT License - see [LICENSE](../../LICENSE) for details.
-
-______________________________________________________________________
-
-## 🤖 Agent Fine-tuning Module
-
-The `sage.libs.finetune.agent` module provides specialized tools for fine-tuning language models on
-agent tasks, including tool calling, planning, and timing judgment.
-
-### Quick Start
-
-```python
-from sage.libs.finetune.agent import AgentSFTConfig, AgentSFTTrainer
-
-# Basic configuration
-config = AgentSFTConfig(
-    base_model="Qwen/Qwen2.5-1.5B-Instruct",
-    train_data="agent_sft:train",
-    num_epochs=1,
-)
-
-# Create and run trainer
-trainer = AgentSFTTrainer(config)
-trainer.train()
-```
-
-### Available Training Methods
-
-| Method ID           | Name                | Description              | Key Features                     |
-| ------------------- | ------------------- | ------------------------ | -------------------------------- |
-| `A_baseline`        | Baseline            | Standard SFT             | No enhancements                  |
-| `B3_coreset_hybrid` | Coreset (Hybrid)    | 60% loss + 40% diversity | `coreset_strategy="hybrid"`      |
-| `C_continual`       | Continual Learning  | Experience replay buffer | `use_continual=True`             |
-| `D_combined`        | Coreset + Continual | Best of both approaches  | Combined                         |
-| `E_fireact`         | FireAct             | Trajectory fine-tuning   | `use_trajectory_collection=True` |
-| `F_agenttuning`     | AgentTuning         | Multi-task training      | `use_multi_task=True`            |
-| `G_dora`            | DoRA                | Weight-decomposed LoRA   | `use_dora=True`                  |
-| `H_lora_plus`       | LoRA+               | Differentiated LR        | `use_lora_plus=True`             |
-
-### Key Components
-
-| Component                | Description                   | Import Path                                  |
-| ------------------------ | ----------------------------- | -------------------------------------------- |
-| `AgentSFTTrainer`        | Main trainer class            | `sage.libs.finetune.agent`                   |
-| `CoresetSelector`        | Sample selection (SIAS)       | `sage.libs.sias`                             |
-| `OnlineContinualLearner` | Experience replay (SIAS)      | `sage.libs.sias`                             |
-| `TrajectoryCollector`    | FireAct trajectory collection | `sage.libs.finetune.agent`                   |
-| `MultiTaskMixer`         | AgentTuning data mixing       | `sage.libs.finetune.agent`                   |
-| `MethodRegistry`         | Predefined methods            | `sage.benchmark.benchmark_agent.experiments` |
-
-> **Note**: `CoresetSelector` and `OnlineContinualLearner` have been moved to the SIAS module
-> (`sage.libs.sias`). They are re-exported from `sage.libs.finetune.agent` for backward
-> compatibility.
-
-For detailed API documentation, see
-[Agent Fine-tuning API Reference](../../docs/dev-notes/l3-libs/AGENT_FINETUNE_API_REFERENCE.md).
+Apache 2.0 License

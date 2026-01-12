@@ -88,6 +88,16 @@ repos:
     always_run: false
     stages: [pre-commit]
     # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
+  - id: libs-middleware-import-check
+    name: check sage-libs does not import sage.middleware (L3→L4 violation)
+    entry: tools/hooks/check_libs_middleware_import.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^packages/sage-libs/src/.*\.py$
+    stages: [pre-commit]
+    # Enforces architecture rule: L3 (sage-libs) must NOT import L4 (sage.middleware)
+    # See: docs-public/docs_src/dev-notes/cross-layer/MIDDLEWARE_COMPONENT_PROMOTION_POLICY.md
   # - id: dependency-version-conflicts
   #   name: check dependency version conflicts
   #   entry: python3 tools/install/helpers/unify_dependencies.py --check

@@ -66,14 +66,14 @@ class TestAgentRuntimeOperatorInit:
 
     def test_build_profile_creates_default(self):
         """测试构建默认profile"""
-        from sage.libs.agentic.agents.profile.profile import BaseProfile
+        from sage_agentic.agents.profile.profile import BaseProfile
 
         profile = _build_profile(None)
         assert isinstance(profile, BaseProfile)
 
     def test_build_tools_creates_registry(self):
         """测试构建工具注册表"""
-        from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
+        from sage_agentic.agents.action.mcp_registry import MCPRegistry
 
         registry = _build_tools([])
         assert isinstance(registry, MCPRegistry)

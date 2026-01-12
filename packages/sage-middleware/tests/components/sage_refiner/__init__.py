@@ -1,1 +1,0 @@
-"""SAGE Refiner component tests."""

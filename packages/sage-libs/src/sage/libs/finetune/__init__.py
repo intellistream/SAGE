@@ -1,83 +1,62 @@
+"""Unified Fine-tuning interfaces.
+
+Status: implementations have been externalized to the `isage-finetune` package. This module now
+exposes only the registry/interfaces. Install the external package to obtain concrete trainers:
+
+    pip install isage-finetune
+    # or
+    pip install -e packages/sage-libs[finetune]
+
+The external package will automatically register its implementations with the factory.
 """
-SAGE Finetune - 轻量级大模型微调工具
 
-这是一个独立的微调模块，可以作为 SAGE 生态的一部分使用，
-也可以被其他项目引用。
+from __future__ import annotations
 
-主要特性:
-- LoRA 微调
-- 量化训练 (8-bit/4-bit)
-- 混合精度训练
-- 梯度检查点
-- TensorBoard/Wandb 集成
-- 支持多种数据格式
+import warnings
 
-使用示例:
-    from sage.libs.finetune import LoRATrainer, TrainingConfig
+from sage.libs.finetune.interface import (
+    DatasetLoader,
+    FineTuner,
+    FineTuneRegistryError,
+    LoRAConfig,
+    TrainingConfig,
+    create_loader,
+    create_trainer,
+    register_loader,
+    register_trainer,
+    registered_loaders,
+    registered_trainers,
+)
 
-    config = TrainingConfig(
-        model_name="Qwen/Qwen2.5-Coder-1.5B-Instruct",
-        output_dir="./output",
-        num_epochs=3,
+# Try to auto-import external package if available
+try:
+    import isage_finetune  # noqa: F401
+
+    _EXTERNAL_AVAILABLE = True
+except ImportError:
+    _EXTERNAL_AVAILABLE = False
+    warnings.warn(
+        "Fine-tuning implementations not available. Install 'isage-finetune' package:\n"
+        "  pip install isage-finetune\n"
+        "or: pip install isage-libs[finetune]",
+        ImportWarning,
+        stacklevel=2,
     )
 
-    trainer = LoRATrainer(config)
-    trainer.train(dataset)
-"""
-
-# 延迟导入：只在实际使用时才加载 transformers 等重量级依赖
-# 这对于 CLI --help 等轻量级操作很重要
-
-from .cli import app  # CLI 应用
-from .config import LoRAConfig, PresetConfigs, TrainingConfig
-from .data import load_training_data, prepare_dataset
-from .engine import (  # Control Plane integration (L3 implementation)
-    FinetuneConfig,
-    FinetuneEngine,
-)
-from .manager import (  # Studio backend components (moved from L6 to L3)
-    FinetuneManager,
-    FinetuneStatus,
-    FinetuneTask,
-    check_gpu_resources,
-    finetune_manager,  # Global singleton instance
-)
-
-
-# LoRATrainer 延迟导入，使用 __getattr__
-def __getattr__(name):
-    """延迟导入 LoRATrainer，避免在模块加载时就导入 transformers"""
-    if name == "LoRATrainer":
-        from .trainer import LoRATrainer
-
-        return LoRATrainer
-    if name == "agent":
-        from . import agent
-
-        return agent
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
 __all__ = [
-    # 核心训练类（延迟导入）
-    "LoRATrainer",  # type: ignore[attr-defined]
-    # 配置类（轻量级，直接导入）
+    # Base classes
+    "FineTuner",
+    "DatasetLoader",
     "TrainingConfig",
     "LoRAConfig",
-    "PresetConfigs",
-    # 数据处理（轻量级，直接导入）
-    "prepare_dataset",
-    "load_training_data",
-    # CLI 应用
-    "app",
-    # Agent 微调子模块（延迟导入）
-    "agent",  # type: ignore[attr-defined]
-    # Studio backend components (moved from L6 to L3)
-    "FinetuneManager",
-    "FinetuneStatus",
-    "FinetuneTask",
-    "finetune_manager",  # Global singleton
-    "check_gpu_resources",
+    # Registry
+    "FineTuneRegistryError",
+    "register_trainer",
+    "register_loader",
+    # Factory
+    "create_trainer",
+    "create_loader",
+    # Discovery
+    "registered_trainers",
+    "registered_loaders",
 ]
-
-__version__ = "0.1.0"

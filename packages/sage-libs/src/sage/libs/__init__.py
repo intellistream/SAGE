@@ -1,52 +1,96 @@
-"""SAGE Libs - Layered algorithm library for SAGE Framework.
+"""SAGE Libs - Interface Layer for SAGE Framework.
 
 Layer: L3 (Core Libraries)
 Dependencies: sage.common (L1), sage.platform (L2), sage.kernel (L3)
 
-High-level layout:
-- ``foundation``: Lowest-level utilities (tools, io, context, filters)
-- ``agentic``: LangChain-style agent framework + workflow optimizer
-- ``rag``: Retrieval-Augmented Generation building blocks (migrating from middleware)
-- ``integrations``: Third-party service adapters (LLMs, vector DBs, observability)
-- ``privacy``: Machine unlearning and privacy-preserving algorithms
-- ``finetune``: Model fine-tuning utilities (moved from sage-tools for broader access)
+Architecture:
+sage-libs provides abstract interfaces and registries. Implementations
+are in external PyPI packages (isage-*).
 
-This structure makes coarse-grained systems (agents, RAG) live beside
-infrastructure concerns while keeping fine-grained utilities in ``foundation``.
+Five Core Domains:
+- ``agentic``: Agent framework (isage-agentic)
+- ``rag``: RAG toolkit (isage-rag)
+- ``finetune``: Fine-tuning (isage-finetune)
+- ``eval``: Evaluation (isage-eval)
+- ``privacy``: Privacy/Unlearning (isage-privacy)
+- ``safety``: Safety/Guardrails (isage-safety)
+
+Built-in Modules (no external deps):
+- ``foundation``: Low-level utilities
+- ``dataops``: Data operations
+- ``integrations``: Third-party adapters
+
+Algorithm Interfaces:
+- ``anns``: ANNS algorithms (isage-anns)
+- ``amms``: AMM algorithms (isage-amms)
 """
 
-# Load version information
-try:
-    from sage.libs._version import __author__, __email__, __version__
-except ImportError:
-    # Fallback to hardcoded version
-    __version__ = "0.1.4"
-    __author__ = "IntelliStream Team"
-    __email__ = "shuhao_zhang@hust.edu.cn"
+# Load version information (fail fast if missing to avoid silent fallbacks)
+from sage.libs._version import __author__, __email__, __version__
 
 # Export submodules
 __layer__ = "L3"
 
-# NOTE: 'ann' module has been consolidated into 'anns' (unified ANNS structure)
-# Old structure: ann/ (interface) + anns/ (wrappers) + algorithms_impl/ (C++)
-# New structure: anns/{interface, wrappers, implementations}
-#
-# NOTE: 'libamm' submodule has been refactored into 'amms' (unified AMM structure)
-# Old structure: libamm/ (monolithic submodule with algorithms + benchmarks)
-# New structure: amms/{interface, wrappers, implementations}
-# Benchmarks moved to: sage-benchmark/benchmark_libamm/
-from . import agentic, amms, anns, finetune, foundation, integrations, privacy, rag
+# Use lazy imports to avoid circular import issues during module initialization
+_submodules = {
+    # Five core domains (interface layers)
+    "agentic",  # Agent framework interface
+    "rag",  # RAG interface
+    "finetune",  # Fine-tuning interface
+    "eval",  # Evaluation interface
+    "privacy",  # Privacy interface
+    "safety",  # Safety interface
+    # Algorithm interfaces
+    "ann",  # ANNS interface (isage-anns)
+    "amms",  # AMM interface (isage-amms)
+    # Built-in modules
+    "foundation",  # Foundation utilities
+    "dataops",  # Data operations
+    "integrations",  # Third-party integrations
+}
+
+
+def __getattr__(name: str):
+    """Lazy import submodules to avoid circular import issues."""
+    if name in _submodules:
+        import importlib
+
+        mod = importlib.import_module(f".{name}", __name__)
+        globals()[name] = mod
+        return mod
+    # Provide helpful alias for anns -> ann
+    if name == "anns":
+        import warnings
+
+        warnings.warn(
+            "'sage.libs.anns' is deprecated, use 'sage.libs.ann' instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        import importlib
+
+        mod = importlib.import_module(".ann", __name__)
+        globals()[name] = mod
+        return mod
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    "foundation",
-    "agentic",
-    "amms",
-    "anns",
-    "rag",
-    "integrations",
-    "privacy",
-    "finetune",
+    # Five core domains
+    "agentic",  # Agent framework
+    "rag",  # RAG toolkit
+    "finetune",  # Fine-tuning
+    "eval",  # Evaluation
+    "privacy",  # Privacy/Unlearning
+    "safety",  # Safety/Guardrails
+    # Algorithm interfaces
+    "ann",  # ANNS algorithms (isage-anns)
+    "amms",  # AMM algorithms (isage-amms)
+    # Built-in modules
+    "foundation",  # Utilities
+    "dataops",  # Data operations
+    "integrations",  # Integrations
 ]

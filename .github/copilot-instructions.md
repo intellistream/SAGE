@@ -7,6 +7,40 @@ dataflow. 11 functional packages + 1 meta-package, ~400MB dev install, uses C++ 
 
 ## 🚨 CRITICAL Architectural Constraints
 
+### ✅ Libs vs Middleware Rule (NEW, ENFORCED)
+
+**If code needs to call “upward” capabilities (Vector DB, Memory system, Refiner, external services, heavy runtime backends), it is NOT a library. It MUST live in `sage-middleware` (components/operators).**
+
+This rule exists to prevent长期反复出现的“L3 libs → L4 middleware”依赖倒挂问题。
+
+#### ✅ What stays in `sage-libs`
+
+- Pure algorithms / policies / utilities
+- Data types and interfaces (ABC/Protocol)
+- Code that depends only on `sage-common` / `sage-platform` / Python stdlib / lightweight deps
+- Must be runnable and testable without external services
+
+#### ✅ What MUST be in `sage-middleware`
+
+- Anything that touches or depends on:
+  - Vector stores / indices: SageVDB (`isage-vdb`), FAISS, Milvus, etc.
+  - Memory backends: Neuromem (`isage-neuromem`), Redis, RocksDB, etc.
+  - Refiners / compressors (LLMLingua, LongRefiner adapters)
+  - Network services (HTTP APIs), persistent storage, connection pools, background workers
+- Any end-to-end orchestration that is strongly runtime-bound (operators, pipelines-as-a-service)
+
+#### 🚫 No backwards compatibility during refactors
+
+When we move code from `sage-libs` to `sage-middleware`, **do NOT keep re-export shims** (no legacy imports). Update all call sites in the repo and let broken imports fail fast.
+
+Rationale: keep the codebase clean; avoid长期兼容层造成的隐式依赖和维护成本。
+
+#### 🛡️ Enforcement
+
+- **Pre-commit hook**: `libs-middleware-import-check` - Blocks commits if `sage-libs` imports `sage.middleware`
+- **Script**: `tools/hooks/check_libs_middleware_import.sh --all-files`
+- **Policy doc**: `docs-public/docs_src/dev-notes/cross-layer/MIDDLEWARE_COMPONENT_PROMOTION_POLICY.md`
+
 ### ❌ NEVER BYPASS CONTROL PLANE - ABSOLUTE RULE
 
 **ALL LLM engine operations MUST go through Control Plane. Direct engine startup is FORBIDDEN.**
@@ -150,6 +184,31 @@ L1: sage-common, sage-llm-core         # Foundation & LLM control plane/client
 - **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder, depends on SAGE core)
 - **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI 包)
 - **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
+
+**Independent Algorithm Libraries** (从 sage-libs 拆分，独立 PyPI 包):
+
+| 内部包名 | PyPI 包名 | Import 名 | 版本格式 | 描述 | 层级 |
+|---------|----------|-----------|---------|------|------|
+| sage-agentic | `isage-agentic` | `sage_agentic` | 0.0.0.x | Agent 实现 (ReAct, PlanExecute, Reflex) | L3 |
+| sage-rag | `isage-rag` | `sage_rag` | 0.0.0.x | RAG 实现 (Loaders, Chunkers, Retrievers) | L3 |
+| sage-privacy | `isage-privacy` | `sage_privacy` | 0.0.0.x | 隐私保护 (DP, 联邦学习, 机器遗忘, PII) | L3 |
+| sage-eval | `isage-eval` | `sage_eval` | 0.0.0.x | 评估指标/Profiler/Judge | L3 |
+| sage-finetune | `isage-finetune` | `sage_finetune` | 0.0.0.x | 微调训练器和数据加载器 | L3 |
+| sage-safety | `isage-safety` | `sage_safety` | 0.0.0.x | 安全护栏和检测器 | L3 |
+| sage-refiner | `isage-refiner` | `sage_refiner` | 0.x.y | 上下文压缩 (LongRefiner, REFORM, Provence) | L3 |
+
+**命名规范**：
+- PyPI 名称：`isage-xxx`（带 'i' 前缀，因为 'sage' 在 PyPI 已被占用）
+- Import 名称：`sage_xxx`（不带 'i'，下划线分隔）
+- 版本格式：四段式 `0.0.0.1`，递增 `+0.0.0.1`
+
+**独立库与 SAGE 的关系**：
+- **SAGE 侧** (`sage.libs.xxx`): 提供**接口层**（抽象基类、工厂函数、类型定义）
+- **独立库** (`sage_xxx`): 提供**具体实现**，通过 `_register.py` 自动注册到 SAGE 工厂
+- 每个独立库有 `COPILOT_INSTRUCTIONS.md` 详细说明其架构和使用方式
+
+**SAGE 集成**：这些库在 import 时自动注册到 SAGE interface（通过 `_register.py`）。
+如果 SAGE 未安装，则作为独立库使用。
 
 Notes:
 - `sage-llm-gateway` is published to PyPI as `isage-llm-gateway` (OpenAI/Anthropic-compatible API Gateway).
@@ -329,6 +388,14 @@ sage-middleware depends on the following independent PyPI packages:
   - Features: Window ops/join, out-of-order handling
   - SAGE wrapper: `sage.middleware.components.sage_tsdb`
 
+- **SageSIAS** (内置组件): Streaming Importance-Aware Agent System
+  - 位置: `sage.middleware.components.sage_sias`
+  - 功能: 样本重要性选择、持续学习、经验回放
+  - 组件: `CoresetSelector`, `OnlineContinualLearner`, `SelectionSummary`
+  - 依赖: NeuroMem (内存系统)
+  - 使用: `from sage.middleware.components.sage_sias import CoresetSelector`
+  - 注意: 放在 L4 middleware 而非 L3 libs，因为依赖 NeuroMem
+
 **Benchmarks (L5)**
 
 - Control plane scheduling benchmark (throughput/TTFT/TBT/p99/SLO):
@@ -340,10 +407,10 @@ sage-middleware depends on the following independent PyPI packages:
 
 - Dataflow runtime, distributed execution, fault tolerance: `packages/sage-kernel/`
 - Algorithms, RAG tools, agent framework/integrations: `packages/sage-libs/`
-  - **ANN Interface**: `sage.libs.ann` - Unified ANN algorithm interface
-    - Base classes: `AnnIndex`, `AnnIndexMeta` (in `sage.libs.ann.base`)
-    - Factory: `create()`, `register()`, `registered()` (in `sage.libs.ann.factory`)
-    - Implementations: `sage.libs.anns/` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
+  - **ANN Interface**: `sage.libs.anns` - Unified ANN algorithm interface
+    - Base classes: `AnnIndex`, `AnnIndexMeta` (in `sage.libs.anns.interface.base`)
+    - Factory: `create()`, `register()`, `registered()` (in `sage.libs.anns.interface.factory`)
+    - Implementations: External package `isage-anns` (faiss_HNSW, vsag_hnsw, diskann, candy_*, cufe, gti, puck, etc.)
     - Reusable by: benchmark_anns, SageVDB, SageFlow
 
 **Rule of thumb**: if you mention a capability (retrieval, memory, refinement, vector DB, streaming semantic state, scheduling), ensure it maps to a real module/path above.

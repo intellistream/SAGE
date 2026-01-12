@@ -1,16 +1,31 @@
-"""Agentic layer - Agent framework and workflow optimization.
+"""agentic compatibility layer.
 
-This module provides high-level agent abstractions and workflow optimization:
-- agents: LangChain-style agent framework with pre-built bots
-- workflow: Workflow optimization framework for agentic systems
+⚠️ DEPRECATION NOTICE:
+agentic implementations have been externalized to isage-agentic.
 
-These are coarse-grained systems built on top of foundation utilities.
+Installation:
+    pip install isage-agentic
+
+Usage:
+    # Use the interface layer
+    from sage.libs.agentic.interface import create, register
+
+    # Or import from external package
+    from isage_agentic import *
+
+Repository: https://github.com/intellistream/sage-agentic
+PyPI: https://pypi.org/project/isage-agentic/
 """
 
-from . import agents, intent, workflow
+import warnings
 
-__all__ = [
-    "agents",
-    "intent",
-    "workflow",
-]
+# Re-export interface
+from .interface import *  # noqa: F401, F403
+
+warnings.warn(
+    "sage.libs.agentic implementations have been externalized. "
+    "Install 'isage-agentic' for concrete implementations: "
+    "pip install isage-agentic",
+    DeprecationWarning,
+    stacklevel=2,
+)

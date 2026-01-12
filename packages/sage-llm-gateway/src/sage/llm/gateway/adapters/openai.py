@@ -216,7 +216,6 @@ class OpenAIAdapter:
             source_dir: Path to docs_src directory
             index_dir: Path to store the built index
         """
-        import sys
         from pathlib import Path as P
 
         from sage.common.components.sage_embedding import get_embedding_model
@@ -229,19 +228,8 @@ class OpenAIAdapter:
 
         logger = logging.getLogger(__name__)
 
-        # Import ChromaVectorStoreAdapter from source (dev mode)
-        # This is needed because package isn't reinstalled yet
-        chroma_adapter_path = P(__file__).parents[4] / "sage-libs" / "src"
-        if chroma_adapter_path.exists():
-            sys.path.insert(0, str(chroma_adapter_path))
-
-        try:
-            from sage.libs.integrations.chroma_adapter import ChromaVectorStoreAdapter
-        except ImportError:
-            logger.error("Failed to import ChromaVectorStoreAdapter. Using mock for now.")
-            # Fallback: skip index building for now
-            logger.warning("Skipping index build - ChromaVectorStoreAdapter not available")
-            return
+        # Import ChromaVectorStoreAdapter from middleware components
+        from sage.middleware.components.vector_stores.chroma_adapter import ChromaVectorStoreAdapter
 
         # Create embedder
         embedder = get_embedding_model("hash", dim=384)  # Use hash for fast startup
