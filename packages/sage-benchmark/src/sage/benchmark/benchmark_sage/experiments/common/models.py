@@ -150,7 +150,15 @@ class BenchmarkConfig:
     max_tokens: int = 256
 
     embedding_base_url: str = "http://11.11.11.7:8090/v1"
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
+
+    # Retriever 配置
+    retriever_type: str = "simple"  # "simple" (内置) 或 "wiki18_faiss" (Wiki18)
+    retriever_top_k: int = 10
+    # Wiki18 FAISS 专用配置
+    wiki18_index_path: str | None = None  # 如: "/home/cyb/wiki18_maxp.index"
+    wiki18_documents_path: str | None = None  # 如: "/home/cyb/wiki18_fulldoc.jsonl"
+    wiki18_mapping_path: str | None = None  # 如: "/home/cyb/wiki18_maxp_maxp_mapping.json"
 
     pipeline_stages: int = 3
     enable_rag: bool = True

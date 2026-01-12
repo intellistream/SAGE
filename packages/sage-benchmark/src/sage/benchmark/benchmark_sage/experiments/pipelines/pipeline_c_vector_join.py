@@ -69,7 +69,7 @@ class VectorJoinConfig:
     num_sources: int = 3
 
     # Embedding
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_dim: int = 1024
 
     # 时间窗口
@@ -199,7 +199,7 @@ class StreamEmbeddingMapFunction(MapFunction):
     def __init__(
         self,
         embedding_base_url: str = "http://localhost:8090/v1",
-        embedding_model: str = "BAAI/bge-m3",
+        embedding_model: str = "BAAI/bge-large-en-v1.5",
         timeout: float = 60.0,
         **kwargs,
     ):

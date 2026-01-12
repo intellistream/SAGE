@@ -131,7 +131,7 @@ class MultiEmbedAction(BasePreRetrievalAction):
 
         for emb_config in self.embeddings_config:
             name = emb_config.get("name", "default")
-            model = emb_config.get("model", "BAAI/bge-m3")
+            model = emb_config.get("model", "BAAI/bge-large-en-v1.5")
             weight = emb_config.get("weight", 1.0)
 
             try:

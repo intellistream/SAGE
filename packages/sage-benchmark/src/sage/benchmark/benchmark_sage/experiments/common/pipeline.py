@@ -548,19 +548,46 @@ class SchedulingBenchmarkPipeline:
         return self.env
 
     def _get_retriever_config(self) -> dict[str, Any]:
-        """Get retriever configuration."""
-        return {
+        """Get retriever configuration.
+        
+        支持两种 retriever 类型:
+        - simple: 使用内置 SAMPLE_KNOWLEDGE_BASE + 远程 embedding 服务
+        - wiki18_faiss: 使用 Wiki18FAISSRetriever (需要预构建 FAISS 索引)
+        
+        配置示例 (在 BenchmarkConfig 中):
+            retriever_type="wiki18_faiss"
+            wiki18_index_path="/path/to/wiki18_maxp.index"
+            wiki18_documents_path="/path/to/wiki18_fulldoc.jsonl"
+            wiki18_mapping_path="/path/to/wiki18_maxp_mapping.json"
+        """
+        retriever_type = getattr(self.config, "retriever_type", "simple")
+        
+        base_config = {
+            "type": retriever_type,
             "dimension": 1024,
             "top_k": getattr(self.config, "retriever_top_k", 10),
             "embedding": {
-                "method": "default",
+                "method": "hf",
                 "model": self.config.embedding_model,
-            },
-            "chroma": {
-                "collection_name": "benchmark_knowledge",
-                "persist_directory": None,
+                "gpu_device": 0,
             },
         }
+        
+        if retriever_type == "wiki18_faiss":
+            # Wiki18 FAISS 配置
+            base_config["faiss"] = {
+                "index_path": getattr(self.config, "wiki18_index_path", None),
+                "documents_path": getattr(self.config, "wiki18_documents_path", None),
+                "mapping_path": getattr(self.config, "wiki18_mapping_path", None),
+            }
+        else:
+            # 简单检索器配置 (使用 ChromaDB 或远程 embedding)
+            base_config["chroma"] = {
+                "collection_name": "benchmark_knowledge",
+                "persist_directory": None,
+            }
+        
+        return base_config
 
     def _get_reranker_config(self) -> dict[str, Any]:
         """Get reranker configuration."""

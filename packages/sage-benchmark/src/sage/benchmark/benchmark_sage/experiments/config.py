@@ -51,7 +51,7 @@ class ExperimentConfig:
     llm_model: ModelConfig = field(
         default_factory=lambda: ModelConfig(name="Qwen/Qwen2.5-7B-Instruct")
     )
-    embedding_model: ModelConfig = field(default_factory=lambda: ModelConfig(name="BAAI/bge-m3"))
+    embedding_model: ModelConfig = field(default_factory=lambda: ModelConfig(name="BAAI/bge-large-en-v1.5"))
     workload: WorkloadConfig = field(default_factory=WorkloadConfig)
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
     output: OutputConfig = field(default_factory=OutputConfig)

@@ -61,7 +61,7 @@ class RAGConfig:
     rerank_top_k: int = 3
 
     # 模型
-    embedding_model: str = "BAAI/bge-large-zh-v1.5"
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
     llm_model: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # 服务端点
@@ -167,7 +167,7 @@ class EmbeddingMapFunction(MapFunction):
     def __init__(
         self,
         embedding_base_url: str = "http://localhost:8090/v1",
-        embedding_model: str = "BAAI/bge-m3",
+        embedding_model: str = "BAAI/bge-large-en-v1.5",
         timeout: float = 60.0,
         **kwargs,
     ):
@@ -205,7 +205,7 @@ class RetrievalMapFunction(MapFunction):
         retrieval_mode: str = "hybrid",
         top_k: int = 5,
         embedding_base_url: str = "http://localhost:8090/v1",
-        embedding_model: str = "BAAI/bge-m3",
+        embedding_model: str = "BAAI/bge-large-en-v1.5",
         timeout: float = 60.0,
         **kwargs,
     ):

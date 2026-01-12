@@ -139,7 +139,7 @@ class HybridBenchmarkConfig(BaseBenchmarkConfig):
     enable_streaming: bool = True
 
     # Embedding configuration
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_batch_sizes: list[int] = field(default_factory=lambda: [1, 4, 8, 16, 32])
     embedding_text_len_range: tuple[int, int] = (50, 500)
 
@@ -280,7 +280,7 @@ class HybridBenchmarkConfig(BaseBenchmarkConfig):
             prompt_len_range=prompt_len_range,
             output_len_range=output_len_range,
             enable_streaming=data.get("enable_streaming", True),
-            embedding_model=data.get("embedding_model", "BAAI/bge-m3"),
+            embedding_model=data.get("embedding_model", "BAAI/bge-large-en-v1.5"),
             embedding_batch_sizes=data.get("embedding_batch_sizes", [1, 4, 8, 16, 32]),
             embedding_text_len_range=embedding_text_len_range,
             hybrid_slo_config=hybrid_slo_config,

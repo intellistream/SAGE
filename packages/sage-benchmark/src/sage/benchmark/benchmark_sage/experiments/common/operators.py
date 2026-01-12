@@ -273,7 +273,7 @@ class RAGOperator(MapFunction):
         llm_base_url: str = "http://11.11.11.7:8903/v1",
         llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
         embedding_base_url: str = "http://11.11.11.7:8090/v1",
-        embedding_model: str = "BAAI/bge-m3",
+        embedding_model: str = "BAAI/bge-large-en-v1.5",
         max_tokens: int = 256,
         top_k: int = 3,
         knowledge_base: list[dict] | None = None,
@@ -567,12 +567,12 @@ class MetricsSink(SinkFunction):
 # =============================================================================
 # 这些算子使用远程 embedding 服务，不需要本地下载模型
 # Embedding 服务: http://{LLM_HOST}:8090/v1
-# Embedding 模: BAAI/bge-large-zh-v1.5
+# Embedding 模型: BAAI/bge-large-en-v1.5
 
 # 默认服务配置
 LLM_HOST = os.getenv("LLM_HOST", "11.11.11.7")
 EMBEDDING_BASE_URL = f"http://{LLM_HOST}:8090/v1"
-EMBEDDING_MODEL = "BAAI/bge-large-zh-v1.5"
+EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
 LLM_BASE_URL = f"http://{LLM_HOST}:8903/v1"
 LLM_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 

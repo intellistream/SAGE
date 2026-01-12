@@ -14,7 +14,7 @@ class EmbeddingGenerator:
     def __init__(
         self,
         base_url: str | None = None,
-        model_name: str = "BAAI/bge-m3",
+        model_name: str = "BAAI/bge-large-en-v1.5",
         api_key: str = "dummy",
         max_retries: int = 3,
         retry_delay: float = 1.0,
@@ -56,7 +56,7 @@ class EmbeddingGenerator:
             EmbeddingGenerator 实例
         """
         base_url = config.get("runtime.embedding_base_url")
-        model_name = config.get("runtime.embedding_model", "BAAI/bge-m3")
+        model_name = config.get("runtime.embedding_model", "BAAI/bge-large-en-v1.5")
         max_retries = config.get("runtime.embedding_max_retries", 3)
         retry_delay = config.get("runtime.embedding_retry_delay", 1.0)
 
