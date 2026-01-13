@@ -1,0 +1,175 @@
+{
+	"folders": [
+		{
+			"name": "SAGE",
+			"path": "."
+		},
+		{
+			"name": "SAGE-Docs",
+			"path": "../SAGE-Pub"
+		}
+	],
+	"settings": {
+		"python.defaultInterpreterPath": "${workspaceFolder:SAGE}/.venv/bin/python",
+		"python.analysis.extraPaths": [
+			"${workspaceFolder:SAGE}/packages/sage-common/src",
+			"${workspaceFolder:SAGE}/packages/sage-platform/src",
+			"${workspaceFolder:SAGE}/packages/sage-kernel/src",
+			"${workspaceFolder:SAGE}/packages/sage-libs/src",
+			"${workspaceFolder:SAGE}/packages/sage-middleware/src",
+			"${workspaceFolder:SAGE}/packages/sage-cli/src",
+			"${workspaceFolder:SAGE}/packages/sage-tools/src"
+		],
+		"python.testing.pytestArgs": [
+			"packages",
+			"-v",
+			"--tb=short"
+		],
+		"python.testing.unittestEnabled": false,
+		"python.testing.pytestEnabled": true,
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/*.pyc": true,
+			"**/*.pyo": true,
+			"**/.pytest_cache": true,
+			"**/.mypy_cache": true,
+			"**/*.egg-info": true,
+			".sage/build": true,
+			".sage/cache": true
+		},
+		"search.exclude": {
+			"**/node_modules": true,
+			"**/.git": true,
+			".sage/build": true,
+			".sage/cache": true,
+			"**/dist": true,
+			"**/*.egg-info": true
+		},
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": "explicit"
+		},
+		"[python]": {
+			"editor.defaultFormatter": "charliermarsh.ruff",
+			"editor.formatOnSave": true
+		},
+		"ruff.configurationPreference": "filesystemFirst",
+		"ruff.configuration": "${workspaceFolder:SAGE}/tools/ruff.toml",
+		"git.enableSmartCommit": true,
+		"git.confirmSync": false
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"ms-python.vscode-pylance",
+			"charliermarsh.ruff",
+			"ms-toolsai.jupyter",
+			"github.copilot",
+			"github.copilot-chat",
+			"redhat.vscode-yaml",
+			"tamasfe.even-better-toml",
+			"yzhang.markdown-all-in-one",
+			"DavidAnson.vscode-markdownlint"
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Python: Current File",
+				"type": "debugpy",
+				"request": "launch",
+				"program": "${file}",
+				"console": "integratedTerminal",
+				"cwd": "${workspaceFolder:SAGE}",
+				"env": {
+					"PYTHONPATH": "${workspaceFolder:SAGE}/packages/sage-common/src:${workspaceFolder:SAGE}/packages/sage-platform/src:${workspaceFolder:SAGE}/packages/sage-kernel/src:${workspaceFolder:SAGE}/packages/sage-libs/src:${workspaceFolder:SAGE}/packages/sage-middleware/src:${workspaceFolder:SAGE}/packages/sage-cli/src:${workspaceFolder:SAGE}/packages/sage-tools/src"
+				}
+			},
+			{
+				"name": "Python: sage-dev CLI",
+				"type": "debugpy",
+				"request": "launch",
+				"module": "sage.tools.cli",
+				"args": ["--help"],
+				"console": "integratedTerminal",
+				"cwd": "${workspaceFolder:SAGE}"
+			},
+			{
+				"name": "Pytest: Current File",
+				"type": "debugpy",
+				"request": "launch",
+				"module": "pytest",
+				"args": ["${file}", "-v", "--tb=short"],
+				"console": "integratedTerminal",
+				"cwd": "${workspaceFolder:SAGE}"
+			}
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Install SAGE (dev)",
+				"type": "shell",
+				"command": "./quickstart.sh --dev --yes",
+				"group": "build",
+				"problemMatcher": [],
+				"options": {
+					"cwd": "${workspaceFolder:SAGE}"
+				}
+			},
+			{
+				"label": "Run Tests",
+				"type": "shell",
+				"command": "sage-dev project test --coverage",
+				"group": "test",
+				"problemMatcher": [],
+				"options": {
+					"cwd": "${workspaceFolder:SAGE}"
+				}
+			},
+			{
+				"label": "Code Quality Check",
+				"type": "shell",
+				"command": "sage-dev quality check --all-files",
+				"group": "test",
+				"problemMatcher": [],
+				"options": {
+					"cwd": "${workspaceFolder:SAGE}"
+				}
+			},
+			{
+				"label": "Code Quality Fix",
+				"type": "shell",
+				"command": "sage-dev quality fix --all-files",
+				"group": "build",
+				"problemMatcher": [],
+				"options": {
+					"cwd": "${workspaceFolder:SAGE}"
+				}
+			},
+			{
+				"label": "Build Docs",
+				"type": "shell",
+				"command": "mkdocs build",
+				"group": "build",
+				"problemMatcher": [],
+				"options": {
+					"cwd": "${workspaceFolder:SAGE-Docs}"
+				}
+			},
+			{
+				"label": "Serve Docs",
+				"type": "shell",
+				"command": "mkdocs serve",
+				"group": "build",
+				"problemMatcher": [],
+				"isBackground": true,
+				"options": {
+					"cwd": "${workspaceFolder:SAGE-Docs}"
+				}
+			}
+		]
+	}
+}

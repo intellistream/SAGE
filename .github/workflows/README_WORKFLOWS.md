@@ -292,7 +292,6 @@ cd-publish-pypi.yml      # PyPI 发布 (tag/release)
 cd-deploy-studio.yml     # Studio 部署 (手动)
 
 util-sync-branches.yml   # main → main-dev 同步
-util-sync-submodules.yml # 子模块同步
 util-cleanup.yml         # 测试环境清理
 util-todo-to-issue.yml   # TODO 转 Issue
 util-weekly-report.yml   # 周报生成

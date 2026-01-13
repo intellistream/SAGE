@@ -45,19 +45,6 @@ show_help() {
     echo -e "${BOLD}用法:${NC}"
     echo -e "  $(basename "$0") <命令> [选项]"
     echo ""
-    echo -e "${BOLD}${ROCKET} 快速开始:${NC}"
-    echo -e "  ${GREEN}submodule bootstrap${NC}      一键初始化并切换所有 submodule"
-    echo -e "  ${GREEN}bootstrap${NC}               与上面命令等效的简写"
-    echo ""
-    echo -e "${BOLD}${PACKAGE} Submodule 管理:${NC}"
-    echo -e "  ${GREEN}submodule status${NC}          显示 submodule 状态"
-    echo -e "  ${GREEN}submodule switch${NC}          切换 submodule 分支（根据当前 SAGE 分支）"
-    echo -e "  ${GREEN}submodule init${NC}            初始化所有 submodules"
-    echo -e "  ${GREEN}submodule update${NC}          更新所有 submodules"
-    echo -e "  ${GREEN}submodule bootstrap${NC}      初始化 + 切换分支，首选入口"
-    echo -e "  ${GREEN}submodule fix-conflict${NC}    解决 submodule 冲突"
-    echo -e "  ${GREEN}submodule cleanup${NC}         清理旧的 submodule 配置"
-    echo ""
     echo -e "${BOLD}🔧 项目维护:${NC}"
     echo -e "  ${GREEN}clean${NC}                     清理构建产物和缓存"
     echo -e "  ${GREEN}clean-deep${NC}                深度清理（包括 Python 缓存、日志等）"
@@ -76,17 +63,11 @@ show_help() {
     echo -e "  ${GREEN}typecheck reset${NC}           撤销自动格式化"
     echo ""
     echo -e "${BOLD}示例:${NC}"
-    echo -e "  # 显示 submodule 状态"
-    echo -e "  $(basename "$0") submodule status"
-    echo ""
     echo -e "  # 清理项目"
     echo -e "  $(basename "$0") clean"
     echo ""
     echo -e "  # 运行完整健康检查"
     echo -e "  $(basename "$0") doctor"
-    echo ""
-    echo -e "  # 解决 submodule 冲突"
-    echo -e "  $(basename "$0") submodule fix-conflict"
     echo ""
     echo -e "${BOLD}选项:${NC}"
     echo -e "  -h, --help               显示此帮助信息"
@@ -100,117 +81,6 @@ show_help() {
     echo -e "${BOLD}更多信息:${NC}"
     echo -e "  查看文档: ${DIM}tools/maintenance/README.md${NC}"
     echo -e "  快捷入口: ${DIM}仓库根目录执行 ./manage.sh${NC}"
-}
-
-# ============================================================================
-# Submodule 管理功能
-# ============================================================================
-
-submodule_status() {
-    echo -e "${BLUE}${PACKAGE} Submodule 状态${NC}"
-    echo ""
-
-    bash "${HELPERS_DIR}/manage_submodule_branches.sh" status
-}
-
-submodule_switch() {
-    echo -e "${BLUE}${PACKAGE} 切换 Submodule 分支${NC}"
-    echo ""
-
-    bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
-}
-
-submodule_init_steps() {
-    # 初始化 submodules（使用优化参数提高速度）
-    echo -e "${DIM}正在克隆 submodules (并行+浅克隆)...${NC}"
-    echo -e "${DIM}提示: 当前只有 docs-public 一个子模块需要克隆（其他已迁移为 PyPI 包）${NC}"
-
-    # 确保 submodule 配置已同步（将 .gitmodules 同步到 .git/config）
-    echo -e "${DIM}同步 submodule 配置...${NC}"
-    git submodule sync --recursive >/dev/null 2>&1 || true
-
-    # 使用 --jobs 并行克隆，--depth 1 浅克隆，提升下载速度
-    # --jobs 4: 并行克隆 4 个仓库
-    # --depth 1: 只克隆最新提交，大幅减少下载量（节省 ~80% 时间）
-    echo -e "${DIM}开始克隆 submodules（浅克隆）...${NC}"
-
-    local init_output
-    local init_failed=false
-
-    # 捕获初始化输出以检测残留目录问题
-    if ! init_output=$(git submodule update --init --recursive --jobs 4 --depth 1 2>&1); then
-        # 检查是否是残留目录导致的失败
-        if echo "$init_output" | grep -q "already exists and is not an empty directory"; then
-            echo ""
-            echo -e "${YELLOW}${WARNING} 检测到 submodule 目录存在残留文件${NC}"
-            echo -e "${DIM}将使用智能初始化处理残留目录...${NC}"
-            init_failed=true
-        else
-            # 其他原因失败，尝试完整克隆
-            echo ""
-            echo -e "${YELLOW}${WARNING} 浅克隆失败，尝试完整克隆...${NC}"
-            if ! git submodule update --init --recursive --jobs 4 2>&1; then
-                init_failed=true
-            fi
-        fi
-    else
-        # 显示输出
-        echo "$init_output" | while IFS= read -r line; do
-            echo -e "${DIM}  $line${NC}"
-        done
-    fi
-
-    if [ "$init_failed" = true ]; then
-        echo -e "${YELLOW}${WARNING} 部分 submodules 初始化失败，尝试智能修复...${NC}"
-    fi
-
-    echo -e "${GREEN}${CHECK} Submodules 初始化完成${NC}"
-    echo ""
-
-    # 自动切换到正确的分支（作为额外保障）
-    # 这一步会调用 check_submodules_initialized()，处理任何残留目录问题
-    # 即使使用了 --remote，也再次确认所有 submodule 都在正确的分支上
-    echo -e "${BLUE}${INFO} 验证并切换 submodules 到正确的分支...${NC}"
-    bash "${HELPERS_DIR}/manage_submodule_branches.sh" switch
-}
-
-submodule_init() {
-    echo -e "${BLUE}${PACKAGE} 初始化 Submodules${NC}"
-    echo ""
-
-    submodule_init_steps
-}
-
-submodule_update() {
-    echo -e "${BLUE}${PACKAGE} 更新 Submodules${NC}"
-    echo ""
-
-    echo -e "${DIM}正在并行更新所有 submodules...${NC}"
-    git submodule update --remote --recursive --jobs 4
-    echo -e "${GREEN}${CHECK} Submodules 更新完成${NC}"
-}
-
-submodule_fix_conflict() {
-    echo -e "${BLUE}${WRENCH} 解决 Submodule 冲突${NC}"
-    echo ""
-
-    bash "${HELPERS_DIR}/resolve_submodule_conflict.sh"
-}
-
-submodule_cleanup() {
-    echo -e "${BLUE}${BROOM} 清理旧 Submodule 配置${NC}"
-    echo ""
-
-    bash "${HELPERS_DIR}/cleanup_old_submodules.sh"
-}
-
-submodule_bootstrap() {
-    echo -e "${BLUE}${ROCKET} 引导 Submodules${NC}"
-    echo ""
-
-    submodule_init_steps
-
-    echo -e "${GREEN}${CHECK} Submodule 引导完成，可继续运行 quickstart${NC}"
 }
 
 # ============================================================================
@@ -323,56 +193,8 @@ run_doctor() {
     fi
     echo ""
 
-    # 3. 检查 Submodules
-    echo -e "${BLUE}3. 检查 Submodules...${NC}"
-    if [ -f ".gitmodules" ]; then
-        local total_submodules=$(git config --file .gitmodules --get-regexp path | wc -l)
-        local initialized_submodules=0
-
-        # 使用 git submodule status 来检查，添加超时保护
-        local submodule_output
-        if command -v timeout &> /dev/null; then
-            submodule_output=$(timeout 5 git submodule status 2>/dev/null || echo "")
-        else
-            submodule_output=$(git submodule status 2>/dev/null || echo "")
-        fi
-
-        # 计算已初始化的 submodules（不以 '-' 开头的行）
-        initialized_submodules=$(echo "$submodule_output" | grep -v '^-' | grep -c '^' || echo "0")
-
-        if [ "$initialized_submodules" -eq "$total_submodules" ] && [ "$total_submodules" -gt 0 ]; then
-            echo -e "${GREEN}   ${CHECK} 所有 submodules 已初始化 (${initialized_submodules}/${total_submodules})${NC}"
-        else
-            echo -e "${YELLOW}   ⚠️  部分 submodules 未初始化 (${initialized_submodules}/${total_submodules})${NC}"
-            echo -e "${DIM}   运行: ./tools/maintenance/sage-maintenance.sh submodule init${NC}"
-            ((issues++)) || true
-        fi
-    else
-        echo -e "${YELLOW}   ⚠️  未找到 .gitmodules${NC}"
-    fi
-    echo ""
-
-    # 4. 检查旧的 submodule 配置
-    echo -e "${BLUE}4. 检查旧的 submodule 配置...${NC}"
-    local old_configs=0
-    if git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_db.url" &>/dev/null; then
-        ((old_configs++)) || true
-    fi
-    if git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_flow.url" &>/dev/null; then
-        ((old_configs++)) || true
-    fi
-
-    if [ "$old_configs" -eq 0 ]; then
-        echo -e "${GREEN}   ${CHECK} 无旧配置${NC}"
-    else
-        echo -e "${YELLOW}   ⚠️  发现 ${old_configs} 个旧 submodule 配置${NC}"
-        echo -e "${DIM}   运行: ./tools/maintenance/sage-maintenance.sh submodule cleanup${NC}"
-        ((issues++)) || true
-    fi
-    echo ""
-
-    # 5. 检查 Python 环境
-    echo -e "${BLUE}5. 检查 Python 环境...${NC}"
+    # 3. 检查 Python 环境
+    echo -e "${BLUE}3. 检查 Python 环境...${NC}"
     if command -v python &> /dev/null; then
         local python_version=$(python --version 2>&1 | awk '{print $2}')
         echo -e "${GREEN}   ${CHECK} Python 可用: ${python_version}${NC}"
@@ -382,8 +204,8 @@ run_doctor() {
     fi
     echo ""
 
-    # 6. 检查构建产物
-    echo -e "${BLUE}6. 检查构建产物...${NC}"
+    # 4. 检查构建产物
+    echo -e "${BLUE}4. 检查构建产物...${NC}"
     # 使用 timeout 防止 find 命令卡住，限制搜索范围以提高速度
     local build_dirs=0
     if command -v timeout &> /dev/null; then
@@ -429,14 +251,6 @@ show_status() {
         echo -e "  提交: ${DIM}${commit}${NC}"
         echo ""
     fi
-
-    # Submodule 简要状态
-    echo -e "${BLUE}Submodules:${NC}"
-    git submodule status | head -5
-    if [ "$(git submodule status | wc -l)" -gt 5 ]; then
-        echo -e "${DIM}  ... 还有更多，运行 'submodule status' 查看完整列表${NC}"
-    fi
-    echo ""
 
     # 工作区状态
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
@@ -489,39 +303,6 @@ main() {
 
     # 执行命令
     case "$command" in
-        # Submodule 命令
-        submodule)
-            local subcommand="${1:-status}"
-            case "$subcommand" in
-                status)
-                    submodule_status
-                    ;;
-                switch)
-                    submodule_switch
-                    ;;
-                init)
-                    submodule_init
-                    ;;
-                update)
-                    submodule_update
-                    ;;
-                bootstrap)
-                    submodule_bootstrap
-                    ;;
-                fix-conflict|conflict)
-                    submodule_fix_conflict
-                    ;;
-                cleanup)
-                    submodule_cleanup
-                    ;;
-                *)
-                    echo -e "${RED}${CROSS} 未知的 submodule 命令: $subcommand${NC}"
-                    echo -e "运行 '$(basename "$0") --help' 查看可用命令"
-                    exit 1
-                    ;;
-            esac
-            ;;
-
         # 清理命令
         clean)
             clean_project
@@ -548,9 +329,6 @@ main() {
         # 状态
         status)
             show_status
-            ;;
-        bootstrap)
-            submodule_bootstrap
             ;;
 
         # 类型检查

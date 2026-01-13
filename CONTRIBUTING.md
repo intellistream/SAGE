@@ -58,9 +58,6 @@ git fetch origin
 git checkout main-dev
 git pull --ff-only origin main-dev
 
-# 初始化 submodules（会自动切换到正确的分支）
-./tools/maintenance/sage-maintenance.sh submodule init
-
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
 
@@ -70,11 +67,6 @@ git pull --ff-only origin main-dev
 # 标准模式 + 安装 VLLM 支持
 ./quickstart.sh --standard --vllm --yes
 ```
-
-**重要提示：**
-
-- ✅ 使用 `./tools/maintenance/sage-maintenance.sh submodule init` 初始化 submodules
-- ❌ 不要使用 `git submodule update --init`（会导致 detached HEAD）
 
 ### 第二步：创建功能分支（勿在 main-dev 直接开发）
 
@@ -203,21 +195,6 @@ revert/<hash-fragment> 回滚
 ```
 
 > 不建议使用过长分支名；保持 3-5 个词以内。
-
-### 避免子模块指针冲突
-
-本仓库当前仅保留 **一个** Git submodule：`docs-public`（SAGE-Pub）。当多人并行修改该子仓库时，请遵循以下流程：
-
-1. **先合并子仓库 PR**：先让变更在 `docs-public` 仓库合并到 upstream。
-1. **同步主仓库指针**：在 SAGE 根目录执行 `./tools/maintenance/sage-maintenance.sh submodule update`（或
-   `submodule switch`）获取最新 commit，随后 `git add docs-public` 更新指针。
-1. **提交主仓库 PR**：提交、推送包含最新 `docs-public` 指针的 PR，并在描述中标注对应子仓库的改动链接。
-
-协作注意事项：
-
-- 对 `docs-public`，尽量只保留一个主仓库分支负责更新指针，其他分支在需要时先 rebase/merge 最新的主仓库分支。
-- 若多个分支已指向不同 commit，合并冲突时选择最新的 `docs-public` commit，执行 `git add docs-public && git commit` 重新提交即可。
-- Reviewer 审核顺序：**先合并 docs-public PR** → **再合并主仓库同步指针的 PR**。
 
 ## 提交信息规范
 

@@ -95,9 +95,6 @@ DOCTOR_ONLY=false
 FIX_ENVIRONMENT=false
 VERIFY_DEPS=false
 VERIFY_DEPS_STRICT=false
-SYNC_SUBMODULES=""
-SYNC_SUBMODULES_EXPLICIT=false
-SYNC_SUBMODULES_NOTIFIED=false
 AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
@@ -470,9 +467,6 @@ show_parameter_help() {
     echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
     echo -e "    ${DIM}自动确认所有安装选项，适合自动化脚本${NC}"
     echo ""
-    echo -e "  ${BOLD}--sync-submodules${NC}                          ${GREEN}安装前自动同步 submodules${NC}"
-    echo -e "    ${DIM}开发者模式默认启用，可用 --no-sync-submodules 跳过${NC}"
-    echo ""
     echo -e "  ${BOLD}--doctor, --diagnose, --check-env${NC}           ${GREEN}环境诊断${NC}"
     echo -e "    ${DIM}全面检查 Python 环境、包管理器、依赖等问题${NC}"
     echo -e "    ${DIM}识别并报告常见的环境配置问题${NC}"
@@ -627,25 +621,6 @@ parse_auto_confirm() {
     case "$param" in
         "--yes"|"--y"|"-yes"|"-y")
             AUTO_CONFIRM=true
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-parse_sync_submodules_option() {
-    local param="$1"
-    case "$param" in
-        "--sync-submodules")
-            SYNC_SUBMODULES="true"
-            SYNC_SUBMODULES_EXPLICIT=true
-            return 0
-            ;;
-        "--no-sync-submodules"|"--skip-submodules")
-            SYNC_SUBMODULES="false"
-            SYNC_SUBMODULES_EXPLICIT=true
             return 0
             ;;
         *)
@@ -1102,11 +1077,6 @@ get_doctor_only() {
 # 获取是否修复环境
 get_fix_environment() {
     echo "$FIX_ENVIRONMENT"
-}
-
-# 获取是否自动同步 submodules
-get_sync_submodules() {
-    echo "${SYNC_SUBMODULES:-false}"
 }
 
 # 获取是否断点续传

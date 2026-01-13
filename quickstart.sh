@@ -70,42 +70,11 @@ source "$TOOLS_DIR/fixes/numpy_fix.sh"
 source "$TOOLS_DIR/fixes/friendly_error_handler.sh"
 source "$TOOLS_DIR/fixes/checkpoint_manager.sh"
 
-# 避免 submodule 初始化时自动拉取 Git LFS 大文件（可通过预先设置变量覆盖）
-SAGE_SET_SKIP_SMUDGE=0
-if [ -z "${GIT_LFS_SKIP_SMUDGE+x}" ]; then
-    export GIT_LFS_SKIP_SMUDGE=1
-    SAGE_SET_SKIP_SMUDGE=1
-fi
-
 # 在脚本开始时立即进行偏移探测
 pre_check_system_environment
 
 # 根据偏移探测结果设置Unicode符号
 setup_unicode_symbols
-
-# 主函数
-sync_submodules_if_requested() {
-    local should_sync="$1"
-
-    if [ "$should_sync" != "true" ]; then
-        return
-    fi
-
-    echo ""
-    echo -e "${BLUE}🔄 同步 docs-public 子模块${NC}"
-    echo -e "${DIM}提示: 仅同步 docs-public（SAGE-Pub）；其他组件已随源码或 pip 依赖提供${NC}"
-
-    if [ ! -f "$SAGE_ROOT/manage.sh" ]; then
-        echo -e "${YELLOW}⚠️  未找到 manage.sh，跳过 docs-public 同步${NC}"
-        echo -e "${DIM}提示: 手动运行 ./tools/maintenance/sage-maintenance.sh submodule init${NC}"
-        return
-    fi
-
-    if ! bash "$SAGE_ROOT/manage.sh"; then
-        echo -e "${YELLOW}⚠️  docs-public 同步失败，请稍后手动运行 ${DIM}./manage.sh bootstrap${NC}"
-        return
-    fi
-}
 
 # 主函数
 main() {
@@ -238,7 +207,6 @@ main() {
     local environment=$(get_install_environment)
     local auto_confirm=$(get_auto_confirm)
     local clean_cache=$(get_clean_pip_cache)
-    local sync_submodules=$(get_sync_submodules)
     local verify_deps=$(get_verify_deps)
     local verify_deps_strict=$(get_verify_deps_strict)
     local skip_hooks=$(should_skip_hooks)
@@ -299,21 +267,6 @@ main() {
 
     # 切换到项目根目录
     cd "$SAGE_ROOT"
-
-    sync_submodules_if_requested "$sync_submodules"
-
-    # 生成子模块标记文件（首次安装或更新时）
-    # 注意：已禁用以避免在安装后产生未提交的更改（见 issue #1097）
-    # 用户可以手动运行 tools/git-tools/generate-submodule-markers.sh 来生成这些文件
-    # if [ "$sync_submodules" = "true" ] && [ -f "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" ]; then
-    #     echo ""
-    #     echo -e "${INFO} 生成子模块标记文件..."
-    #     if bash "$SAGE_ROOT/tools/git-tools/generate-submodule-markers.sh" >/dev/null 2>&1; then
-    #         echo -e "${GREEN}   ✅ 子模块标记文件已生成${NC}"
-    #     else
-    #         echo -e "${DIM}   ℹ️  子模块标记文件生成跳过${NC}"
-    #     fi
-    # fi
 
     # 执行深度依赖验证（如果指定了 --verify-deps）
     if [ "$verify_deps" = "true" ]; then

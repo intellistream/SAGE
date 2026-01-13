@@ -109,7 +109,6 @@ jobs:
         with:
           token: ${{ secrets.GIT_TOKEN }}
           fetch-depth: 0
-          submodules: 'recursive'
 
       - name: Setup Python Environment
         run: |

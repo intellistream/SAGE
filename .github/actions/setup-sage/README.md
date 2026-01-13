@@ -18,8 +18,6 @@ This action centralizes the installation logic to ensure consistency.
 ```yaml
 steps:
   - uses: actions/checkout@v4
-    with:
-      submodules: 'recursive'
 
   - name: Setup SAGE
     uses: ./.github/actions/setup-sage
@@ -32,8 +30,6 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@v4
-    with:
-      submodules: 'recursive'
 
   - name: Setup SAGE
     uses: ./.github/actions/setup-sage

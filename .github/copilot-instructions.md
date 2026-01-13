@@ -439,17 +439,13 @@ liblapack-dev
 ./quickstart.sh --full --yes       # Full with examples
 ```
 
-Options: `--pip` (current env), `--conda` (create env), `--sync-submodules` / `--no-sync-submodules`
-
-**Submodules** - CRITICAL: ONLY `docs-public` (SAGE-Pub) remains a git submodule. NEVER use `git submodule update --init`.
+Options: `--pip` (current env), `--conda` (create env)
 
 ```bash
-./manage.sh                        # Bootstrap docs-public + hooks
-./tools/maintenance/sage-maintenance.sh submodule init    # Initialize docs-public
-./tools/maintenance/sage-maintenance.sh submodule switch  # Fix detached HEAD for docs-public
+./manage.sh                        # Setup Git hooks
 ```
 
-All middleware/engine components are vendored or **pip-installed** (e.g., `isage-vdb`, `isage-benchmark`); there are no other git submodules.
+All middleware/engine components are **pip-installed** (e.g., `isage-vdb`, `isage-benchmark`); no git submodules.
 
 **Environment**: Copy `.env.template` to `.env`, set `OPENAI_API_KEY`, `HF_TOKEN`
 
@@ -592,27 +588,26 @@ sage-dev project test --coverage --jobs 4 --timeout 300
 pre-commit run --all-files --config tools/pre-commit-config.yaml
 ```
 
-**CI debug**: Check job logs → Look for submodule/C++ build issues → Verify API keys → Run locally
+**CI debug**: Check job logs → Look for C++ build issues → Verify API keys → Run locally
 
 ## Key Locations
 
 ```
 .github/workflows/      # CI/CD
-docs-public/docs_src/dev-notes/ # Dev docs (by layer: l1-l5, cross-layer)
 examples/               # apps/, tutorials/ (by layer)
 packages/               # 11 packages + meta
   sage-*/src/sage/      # Source
   sage-*/tests/         # Tests (unit/, integration/)
 tools/
   dev.sh                # Helper (→ sage-dev)
-  maintenance/          # Submodule mgmt
+  maintenance/          # Project maintenance
   pytest.ini            # Test config
   pre-commit-config.yaml # Hooks
   ruff.toml             # Linter
 .env.template           # API keys template
 .pre-commit-config.yaml # → tools/pre-commit-config.yaml
 .sage/                  # Build artifacts, cache, logs (gitignored, project-level)
-manage.sh               # Submodule wrapper
+manage.sh               # Git hooks setup
 quickstart.sh           # Installer
 Makefile                # Shortcuts
 ```
@@ -648,7 +643,6 @@ model_dir = paths.models_dir           # ~/.local/share/sage/models/
 
 **Install hangs**: Check network, try `--resume` for checkpoint recovery (10-25min normal)
 **C++ build fails**: Install deps: `build-essential cmake pkg-config libopenblas-dev liblapack-dev`
-**Detached HEAD**: Use `./tools/maintenance/sage-maintenance.sh submodule switch`
 **Tests fail CI not local**: Run `sage-dev project test --coverage` from repo root
 **Import errors**: Must use `--dev` install, run from repo root
 **Pre-commit fails**: Run `sage-dev quality` to auto-fix

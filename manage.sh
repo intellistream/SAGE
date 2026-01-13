@@ -1,5 +1,6 @@
 #!/bin/bash
-# Thin wrapper around maintenance utilities for discoverability.
+# 🛠️ SAGE 管理脚本入口
+# 简化后的入口，主要用于 Git hooks 设置和项目维护
 
 set -e
 
@@ -15,47 +16,16 @@ if [[ "$1" = "-h" || "$1" = "--help" ]]; then
     echo "Usage: ./manage.sh [maintenance-command]"
     echo ""
     echo "Examples:"
-    echo "  ./manage.sh              # Bootstrap all submodules"
-    echo "  ./manage.sh submodule status"
-    echo "  ./manage.sh clean"
+    echo "  ./manage.sh              # Setup Git hooks"
+    echo "  ./manage.sh clean        # Clean build artifacts"
+    echo "  ./manage.sh doctor       # Run health check"
     echo ""
     echo "This script forwards all arguments to tools/maintenance/sage-maintenance.sh."
     exit 0
 fi
 
+# 无参数时默认设置 Git hooks
 if [ $# -eq 0 ]; then
-    cleanup_needed=false
-
-    if git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_db.url" &>/dev/null; then
-        cleanup_needed=true
-    elif git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_flow.url" &>/dev/null; then
-        cleanup_needed=true
-    elif git config --local --get "submodule.packages/sage-middleware/src/sage/middleware/components/sage_llm.url" &>/dev/null; then
-        cleanup_needed=true
-    fi
-
-    # 优化 Git 配置以提升 submodule 克隆速度
-    echo "Optimizing Git configuration for faster submodule cloning..."
-    git config --local submodule.fetchJobs 4 2>/dev/null || true
-    git config --local http.postBuffer 524288000 2>/dev/null || true
-
-    if [ "$cleanup_needed" = true ]; then
-        echo "Detected legacy submodule config; running cleanup + bootstrap..."
-        if ! bash "$MAINTENANCE_SCRIPT" submodule cleanup; then
-            echo "Submodule cleanup failed" >&2
-            exit 1
-        fi
-        if ! bash "$MAINTENANCE_SCRIPT" submodule bootstrap; then
-            echo "Submodule bootstrap failed" >&2
-            exit 1
-        fi
-    else
-        if ! bash "$MAINTENANCE_SCRIPT" submodule bootstrap; then
-            echo "Submodule bootstrap failed" >&2
-            exit 1
-        fi
-    fi
-
     echo "Configuring Git hooks..."
     if ! bash "$MAINTENANCE_SCRIPT" --force setup-hooks; then
         echo "Git hooks setup failed" >&2

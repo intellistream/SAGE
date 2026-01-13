@@ -44,7 +44,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
           clean: true
-          submodules: 'recursive'
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5

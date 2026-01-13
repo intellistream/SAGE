@@ -48,7 +48,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
           clean: true
-          submodules: 'recursive'
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -120,19 +119,6 @@ jobs:
             git
 
           echo "✅ 系统依赖安装完成"
-
-      - name: Verify Submodules
-        run: |
-          echo "🔍 验证Git子模块..."
-          git submodule status
-
-          echo ""
-          echo "ℹ️  子模块状态说明："
-          echo "   - docs-public: 唯一的 Git 子模块（文档仓库）"
-          echo "   - neuromem, sageRefiner: 已迁移为独立 PyPI 包，不在 Git 子模块中"
-          echo "   - sageVDB, sageFlow, sageTSDB: 已迁移为独立 PyPI 包，不在 Git 子模块中"
-          echo ""
-          echo "✅ 子模块验证完成"
 
       - name: Install SAGE
         run: |

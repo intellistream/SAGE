@@ -1,4 +1,0 @@
-[submodule "docs-public"]
-	path = docs-public
-	url = https://github.com/intellistream/SAGE-Pub.git
-	branch = main-dev
