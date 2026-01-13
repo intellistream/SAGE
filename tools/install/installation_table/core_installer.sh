@@ -148,16 +148,16 @@ install_core_packages() {
             echo -e "${DIM}包含: common, platform, kernel, libs, middleware (~100MB)${NC}"
             ;;
         "standard")
-            echo -e "${GREEN}标准模式：Core + CLI + Benchmark + 科学计算${NC}"
-            echo -e "${DIM}包含: L1-L4 + sage-cli + sage-benchmark + numpy, pandas, matplotlib (~220MB)${NC}"
+            echo -e "${GREEN}标准模式：Core + CLI + 科学计算${NC}"
+            echo -e "${DIM}包含: L1-L4 + sage-cli + numpy, pandas, matplotlib (~200MB)${NC}"
             ;;
         "full")
-            echo -e "${PURPLE}完整功能：Standard + Apps + Studio${NC}"
-            echo -e "${DIM}包含: 标准 + sage-apps, sage-studio (~300MB)${NC}"
+            echo -e "${PURPLE}完整功能：Standard + 开发工具${NC}"
+            echo -e "${DIM}包含: 标准 + sage-tools (~250MB)${NC}"
             ;;
         "dev")
             echo -e "${YELLOW}开发模式：Full + 开发工具${NC}"
-            echo -e "${DIM}包含: 完整 + sage-tools, pytest, black, mypy, pre-commit (~400MB)${NC}"
+            echo -e "${DIM}包含: 完整 + sage-tools, pytest, black, mypy, pre-commit (~350MB)${NC}"
             ;;
         *)
             echo -e "${YELLOW}未知模式，使用开发者模式${NC}"
@@ -175,22 +175,12 @@ install_core_packages() {
         required_packages+=("packages/sage-middleware" "packages/sage-libs")
         # standard/full/dev 模式需要 CLI
         required_packages+=("packages/sage-cli")
-        # standard/full/dev 模式需要 benchmark
-        [ -d "packages/sage-benchmark" ] && required_packages+=("packages/sage-benchmark")
+        # Note: sage-benchmark moved to independent repo (pip install isage-benchmark)
     fi
 
-    # full 和 dev 模式需要 studio
+    # dev 模式需要 sage-tools
     if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
-        [ -d "packages/sage-studio" ] && required_packages+=("packages/sage-studio")
-        # full/dev 模式添加 L5 apps（如果存在）
-        [ -d "packages/sage-apps" ] && required_packages+=("packages/sage-apps")
-        [ -d "packages/sage-gateway" ] && required_packages+=("packages/sage-gateway")
-    fi
-
-    # dev 模式需要 sage-tools 和 sage-gateway
-    if [ "$install_mode" = "dev" ]; then
         [ -d "packages/sage-tools" ] && required_packages+=("packages/sage-tools")
-        [ -d "packages/sage-gateway" ] && required_packages+=("packages/sage-gateway")
     fi
 
     required_packages+=("packages/sage")
@@ -333,11 +323,9 @@ dep_versions = defaultdict(list)
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
-    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark'])
+    package_dirs.extend(['packages/sage-cli'])
 if install_mode in ['full', 'dev']:
-    package_dirs.extend(['packages/sage-apps', 'packages/sage-studio'])
-if install_mode == 'dev':
-    package_dirs.extend(['packages/sage-tools', 'packages/sage-gateway'])
+    package_dirs.extend(['packages/sage-tools'])
 
 for pkg_dir in package_dirs:
     pyproject = Path(pkg_dir) / 'pyproject.toml'
@@ -451,8 +439,9 @@ else:
     echo -e "${DIM}步骤 2/5: 安装基础包 (L1-L2)...${NC}"
     log_info "步骤 2/5: 安装基础包 (L1-L2)" "INSTALL"
 
-    # L1: Foundation + LLM Core
-    local base_packages=("packages/sage-common" "packages/sage-llm-core" "packages/sage-platform")
+    # L1: Foundation, L2: Platform
+    # Note: sage-llm-core moved to independent repo (pip install isagellm)
+    local base_packages=("packages/sage-common" "packages/sage-platform")
 
     for package_dir in "${base_packages[@]}"; do
         echo -e "${DIM}  正在安装: $package_dir${NC}"
@@ -563,57 +552,8 @@ else:
                 fi
             done
 
-            # sage-benchmark 已独立为 PyPI 包 (isage-benchmark)
-            echo -e "${DIM}  正在安装: isage-benchmark (PyPI)...${NC}"
-            log_info "开始安装: isage-benchmark" "INSTALL"
-
-            if log_command "INSTALL" "Deps" "$PIP_CMD install isage-benchmark $pip_args"; then
-                log_info "安装成功: isage-benchmark" "INSTALL"
-                echo -e "${CHECK} isage-benchmark 安装完成"
-            else
-                log_warn "isage-benchmark 安装失败" "INSTALL"
-                echo -e "${WARNING} isage-benchmark 安装失败 (可选组件)"
-                # 不中断安装，因为是可选组件
-            fi
-        fi
-
-        # L5: apps (仅 full 和 dev 模式)
-        if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
-            if [ -d "packages/sage-apps" ]; then
-                echo -e "${DIM}  正在安装: packages/sage-apps${NC}"
-                log_info "开始安装: packages/sage-apps" "INSTALL"
-                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-apps $pip_args --no-deps" "INSTALL"
-
-                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-apps\" $pip_args --no-deps"; then
-                    log_error "安装 sage-apps 失败" "INSTALL"
-                    echo -e "${CROSS} 安装 sage-apps 失败！"
-                    return 1
-                fi
-
-                log_info "安装成功: packages/sage-apps" "INSTALL"
-                log_pip_package_info "isage-apps" "INSTALL"
-                echo -e "${CHECK} sage-apps 安装完成"
-            fi
-
-            # L6: llm-gateway (LLM Gateway for OpenAI-compatible API)
-            if [ -d "packages/sage-llm-gateway" ]; then
-                echo -e "${DIM}  正在安装: packages/sage-llm-gateway${NC}"
-                log_info "开始安装: packages/sage-llm-gateway" "INSTALL"
-                log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-llm-gateway $pip_args --no-deps" "INSTALL"
-
-                if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-llm-gateway\" $pip_args --no-deps"; then
-                    log_error "安装 sage-llm-gateway 失败" "INSTALL"
-                    echo -e "${CROSS} 安装 sage-llm-gateway 失败！"
-                    return 1
-                fi
-
-                log_info "安装成功: packages/sage-llm-gateway" "INSTALL"
-                log_pip_package_info "isage-llm-gateway" "INSTALL"
-                echo -e "${CHECK} sage-llm-gateway 安装完成"
-            fi
-
-            # L6: edge (已独立，从 PyPI 安装: pip install isage-edge)
-            # sage-edge 已迁移到独立仓库: https://github.com/intellistream/sage-edge
+            # Note: sage-benchmark 已独立为 PyPI 包 (pip install isage-benchmark)
+            # 如需使用 benchmark，请单独安装: pip install isage-benchmark
         fi
 
         # L6: CLI (standard/full/dev 模式)
@@ -634,136 +574,9 @@ else:
         fi
     fi
 
-    # L6: studio (full/dev 模式)
+    # L6: tools (full/dev 模式)
+    # Note: sage-studio 已独立为独立仓库: https://github.com/intellistream/sage-studio
     if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
-        if [ -d "packages/sage-studio" ]; then
-            echo -e "${DIM}  正在安装: packages/sage-studio${NC}"
-            log_info "开始安装: packages/sage-studio" "INSTALL"
-            log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-studio $pip_args --no-deps" "INSTALL"
-
-            if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-studio\" $pip_args --no-deps"; then
-                log_error "安装 sage-studio 失败" "INSTALL"
-                echo -e "${CROSS} 安装 sage-studio 失败！"
-                return 1
-            fi
-
-            log_info "安装成功: packages/sage-studio" "INSTALL"
-            log_pip_package_info "isage-studio" "INSTALL"
-            echo -e "${CHECK} sage-studio 安装完成"
-
-            # 自动安装前端依赖 (npm install)
-            # 用户期望 quickstart.sh 能一站式搞定所有依赖
-            local frontend_dir="packages/sage-studio/src/sage/studio/frontend"
-            if [ -d "$frontend_dir" ] && command -v npm &> /dev/null; then
-                echo -e "${DIM}  正在安装前端依赖 (npm install)...${NC}"
-                log_info "开始安装前端依赖: $frontend_dir" "INSTALL"
-
-                # 先检查 Node.js 版本
-                local node_version
-                node_version=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)
-                if [ -n "$node_version" ] && [ "$node_version" -lt 20 ]; then
-                    log_error "Node.js 版本过低 (当前: v$node_version, 需要: v20+)" "INSTALL"
-                    echo -e "${CROSS} Node.js 版本过低！自动升级中..."
-                    if source "$SCRIPT_DIR/../lib/conda_install_utils.sh" && conda_install_bypass nodejs=22; then
-                        log_info "Node.js 已升级到 v22" "INSTALL"
-                        echo -e "${CHECK} Node.js 升级完成"
-                        # 刷新命令缓存
-                        hash -r
-                    else
-                        log_error "Node.js 升级失败" "INSTALL"
-                        echo -e "${CROSS} 自动升级失败，请手动运行: conda install -y nodejs=22 -c conda-forge"
-                        return 1
-                    fi
-                fi
-
-                # 检查并修复 package-lock.json 兼容性问题
-                local package_lock="$frontend_dir/package-lock.json"
-                if [ -f "$package_lock" ]; then
-                    # 检查 lockfileVersion，npm v7+ 使用 lockfileVersion 2 或 3
-                    local lock_version
-                    lock_version=$(grep -m1 '"lockfileVersion"' "$package_lock" 2>/dev/null | grep -oE '[0-9]+' | head -1)
-
-                    # 如果 lockfileVersion < 2 或文件损坏，删除并重新生成
-                    if [ -z "$lock_version" ] || [ "$lock_version" -lt 2 ]; then
-                        log_warn "检测到旧版本 package-lock.json (v$lock_version)，将自动重新生成" "INSTALL"
-                        echo -e "${DIM}     清理旧的 package-lock.json...${NC}"
-                        rm -f "$package_lock"
-                    fi
-                fi
-
-                # 使用子shell进入目录执行，避免影响当前目录
-                local npm_log
-                npm_log=$(mktemp)
-                echo -e "${DIM}     运行: npm install (首次可能需要 2-3 分钟)...${NC}"
-
-                # 第一次尝试
-                if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
-                    log_info "前端依赖安装成功" "INSTALL"
-                    echo -e "${CHECK} 前端依赖安装完成"
-                    rm -f "$npm_log"
-                else
-                    # 检查是否是 "must provide string spec" 错误（package-lock.json 损坏）
-                    if grep -q "must provide string spec" "$npm_log"; then
-                        log_warn "检测到 package-lock.json 损坏，自动修复中..." "INSTALL"
-                        echo -e "${DIM}     删除损坏的 package-lock.json 并重试...${NC}"
-                        rm -f "$package_lock"
-
-                        # 第二次尝试（重新生成 package-lock.json）
-                        if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
-                            log_info "前端依赖安装成功（已修复）" "INSTALL"
-                            echo -e "${CHECK} 前端依赖安装完成（已自动修复 package-lock.json）"
-                            rm -f "$npm_log"
-                        else
-                            # 仍然失败，显示详细错误
-                            log_error "前端依赖安装失败" "INSTALL"
-                            echo -e "${CROSS} 前端依赖安装失败！"
-                            echo ""
-                            echo -e "${YELLOW}错误详情:${NC}"
-                            tail -30 "$npm_log"
-                            echo ""
-                            echo -e "${YELLOW}可能的原因:${NC}"
-                            echo -e "  1. 网络连接问题（无法访问 npm registry）"
-                            echo -e "  2. npm 缓存损坏"
-                            echo -e "  3. 磁盘空间不足"
-                            echo ""
-                            echo -e "${BLUE}自动修复尝试:${NC}"
-                            echo -e "${DIM}  清理 npm 缓存并重试...${NC}"
-                            npm cache clean --force &>/dev/null || true
-
-                            # 第三次尝试（清理缓存后）
-                            if (cd "$frontend_dir" && npm install --no-audit --no-fund > "$npm_log" 2>&1); then
-                                log_info "前端依赖安装成功（清理缓存后）" "INSTALL"
-                                echo -e "${CHECK} 前端依赖安装完成（已清理缓存）"
-                                rm -f "$npm_log"
-                            else
-                                echo -e "${CROSS} 自动修复失败"
-                                echo ""
-                                echo -e "${BLUE}手动修复命令:${NC}"
-                                echo -e "  ${CYAN}cd $frontend_dir${NC}"
-                                echo -e "  ${CYAN}rm -f package-lock.json node_modules -rf${NC}"
-                                echo -e "  ${CYAN}npm cache clean --force${NC}"
-                                echo -e "  ${CYAN}npm install${NC}"
-                                rm -f "$npm_log"
-                                return 1
-                            fi
-                        fi
-                    else
-                        # 其他错误，直接显示
-                        log_error "前端依赖安装失败" "INSTALL"
-                        echo -e "${CROSS} 前端依赖安装失败！"
-                        echo ""
-                        echo -e "${YELLOW}错误详情:${NC}"
-                        tail -30 "$npm_log"
-                        rm -f "$npm_log"
-                        return 1
-                    fi
-                fi
-            fi
-        fi
-    fi
-
-    # L6: tools (仅 dev 模式)
-    if [ "$install_mode" = "dev" ]; then
         if [ -d "packages/sage-tools" ]; then
             echo -e "${DIM}  正在安装: packages/sage-tools${NC}"
             log_info "开始安装: packages/sage-tools" "INSTALL"
@@ -780,6 +593,8 @@ else:
             echo -e "${CHECK} sage-tools 安装完成"
         fi
     fi
+
+    # Note: L6 tools (sage-tools) 已在上面的代码块中安装
 
     if [ "$install_mode" = "core" ]; then
         echo -e "${DIM}步骤 4/5: 跳过上层包（core 模式）${NC}"
@@ -858,11 +673,10 @@ allowed_isage_packages = {
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
 if install_mode != 'core':
-    package_dirs.extend(['packages/sage-cli', 'packages/sage-benchmark', 'packages/sage-llm-gateway', 'packages/sage-llm-core'])
-if install_mode in ['full', 'dev']:
-    package_dirs.extend(['packages/sage-apps'])
+    # Note: sage-benchmark, sage-llm-gateway, sage-llm-core moved to independent repos
+    package_dirs.extend(['packages/sage-cli'])
 if install_mode == 'dev':
-    package_dirs.extend(['packages/sage-tools', 'packages/sage-studio'])
+    package_dirs.extend(['packages/sage-tools'])
 
 # 提取常规依赖
 for pkg_dir in package_dirs:

@@ -304,38 +304,37 @@ verify_sage_imports() {
     fi
 
     # 核心包列表：按层级顺序验证
-    # L1: sage-common, sage-llm-core
+    # L1: sage-common
     # L2: sage-platform
     # L3: sage-kernel, sage-libs
     # L4: sage-middleware
-    # L5: sage-benchmark
-    # L6: sage-cli, sage-llm-gateway, sage-tools
+    # L6: sage-cli, sage-tools
     # NOTE: PEP 420 namespace packages - 'sage' namespace is implicit, cannot be imported directly
     # We only verify actual packages under the namespace
     #
     # 已独立的包（不再验证）:
+    # - sage.llm: 独立 PyPI 包 isagellm (pip install isagellm)
+    # - sage.llm.gateway: 独立 PyPI 包 isagellm-gateway (pip install isagellm-gateway)
     # - sage.apps: 已迁移到 sage-examples 仓库
+    # - sage.benchmark: 独立 PyPI 包 isage-benchmark (pip install isage-benchmark)
     # - sage.studio: 独立仓库 https://github.com/intellistream/sage-studio
     # - sage.edge: 独立 PyPI 包 isage-edge (pip install isage-edge)
     local sage_packages=(
         "sage.common"             # L1: Foundation
-        "sage.llm"                # L1: LLM Core
         "sage.platform"           # L2: Platform
         "sage.kernel"             # L3: Kernel
         "sage.libs"               # L3: Libraries
         "sage.middleware"         # L4: Middleware (C++ extensions)
-        "sage.benchmark"          # L5: Benchmarks (可通过 pip install isage-benchmark 安装)
         "sage.cli"                # L6: CLI (optional)
-        "sage.llm.gateway"        # L6: LLM Gateway (optional)
         "sage.tools"              # L6: Dev Tools (optional)
     )
     local failed_imports=()
     local optional_failed=()
 
     for pkg in "${sage_packages[@]}"; do
-        # 判断是否为可选包（L5-L6 层，除了核心 L1-L4）
+        # 判断是否为可选包（L6 层）
         local is_optional=false
-        if [[ "$pkg" =~ ^sage\.(benchmark|cli|llm\.gateway|tools)$ ]]; then
+        if [[ "$pkg" =~ ^sage\.(cli|tools)$ ]]; then
             is_optional=true
         fi
 
