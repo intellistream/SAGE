@@ -62,9 +62,16 @@ dependencies = [
     "isage-vdb>=0.1.5",  # SageVDB vector database (independent PyPI package, renamed from sagedb)
     "isage-tsdb>=0.1.5",  # SageTSDB time series database (independent PyPI package, manylinux compatible)
     "isage-flow>=0.1.1",  # SageFlow stream processing engine (independent PyPI package)
-    "isage-refiner>=0.1.0",  # SageRefiner context compression algorithms (independent PyPI package)
-    "isage-libs",  # SAGE算法库（sage_refiner依赖）
-    "isage-agentic>=0.0.0.3",  # SAGE Agentic agents (PyPI: isage-agentic)
+
+    # L3 Independent Algorithm Libraries (sage_libs namespace, PyPI: isage-xxx)
+    "isage-libs",  # SAGE core algorithms library
+    "isage-agentic>=0.1.0.0",  # Agent implementations (sage_libs.sage_agentic)
+    "isage-eval>=0.1.0.0",  # Evaluation metrics/profiler/judge (sage_libs.sage_eval)
+    "isage-finetune>=0.1.0.0",  # Fine-tuning trainers and data loaders (sage_libs.sage_finetune)
+    "isage-privacy>=0.1.0.0",  # Privacy protection (DP, FL, MU, PII) (sage_libs.sage_privacy)
+    "isage-rag>=0.1.0.0",  # RAG implementations (Loaders, Chunkers, Retrievers) (sage_libs.sage_rag)
+    "isage-safety>=0.1.0.0",  # Safety guardrails and detectors (sage_libs.sage_safety)
+    "isage-refiner>=0.1.0.0",  # Context compression (LongRefiner, REFORM, Provence) (sage_libs.sage_refiner)
     # Note: isage-neuromem moved to optional-dependencies to avoid conflicts
     "bm25s>=0.2.13,<1.0.0",
     "rank-bm25>=0.2.0,<1.0.0",
