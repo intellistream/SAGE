@@ -2,7 +2,11 @@ import os
 import time
 
 from sage.libs.foundation.tools.tool import BaseTool
-from sage.llm import UnifiedInferenceClient
+
+try:
+    from isagellm import UnifiedInferenceClient
+except ImportError:
+    UnifiedInferenceClient = None  # Optional: isagellm not installed
 
 
 class ImageCaptioner(BaseTool):

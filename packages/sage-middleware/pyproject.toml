@@ -63,6 +63,7 @@ dependencies = [
     "isage-tsdb>=0.1.5",  # SageTSDB time series database (independent PyPI package, manylinux compatible)
     "isage-flow>=0.1.1",  # SageFlow stream processing engine (independent PyPI package)
     "isage-refiner>=0.1.0",  # SageRefiner context compression algorithms (independent PyPI package)
+    "isage-agentic>=0.0.0.3",  # SAGE Agentic agents (independent PyPI package)
     "isage-libs",  # SAGE算法库（sage_refiner依赖）
     # Note: isage-neuromem moved to optional-dependencies to avoid conflicts
     "bm25s>=0.2.13,<1.0.0",
