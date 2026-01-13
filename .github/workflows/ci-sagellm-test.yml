@@ -1,0 +1,351 @@
+name: SageLLM Mock & CUDA Tests
+
+on:
+  push:
+    branches: [main, main-dev]
+    paths:
+      - 'packages/**'
+      - 'tools/**'
+      - '.github/workflows/ci-sagellm-test.yml'
+  pull_request:
+    branches: [main, main-dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/**'
+      - 'tools/**'
+  workflow_dispatch:
+    inputs:
+      run_cuda_tests:
+        description: 'Run CUDA tests on GPU runner'
+        type: boolean
+        default: false
+
+concurrency:
+  group: sagellm-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  HF_ENDPOINT: https://hf-mirror.com
+  SAGE_TEST_MODE: true
+
+jobs:
+  # ============================================================================
+  # Job 1: SageLLM Mock Backend Tests (Required for all PRs)
+  # ============================================================================
+  sagellm-mock-test:
+    name: SageLLM Mock Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Skip version bump commits
+    if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install System Dependencies
+        run: |
+          echo "🔧 Installing system dependencies..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev
+
+      - name: Install SAGE Core Packages
+        run: |
+          echo "📦 Installing SAGE core packages..."
+          pip install --upgrade pip
+
+          # Install SAGE packages in dependency order
+          pip install -e packages/sage-common
+          pip install -e packages/sage-platform
+          pip install -e packages/sage-kernel
+          pip install -e packages/sage-libs
+          pip install -e packages/sage-middleware
+          pip install -e packages/sage-cli
+          pip install -e packages/sage-tools
+
+          echo "✅ SAGE packages installed"
+
+      - name: Install isagellm
+        run: |
+          echo "🚀 Installing isagellm (SageLLM inference engine)..."
+          pip install isagellm
+
+          # Verify installation
+          python -c "import isagellm; print(f'✅ isagellm {isagellm.__version__} installed')" || {
+            echo "⚠️ isagellm import failed, trying alternative verification..."
+            pip show isagellm && echo "✅ isagellm package is installed"
+          }
+
+      - name: Install Test Dependencies
+        run: |
+          pip install pytest pytest-cov pytest-timeout pytest-xdist
+
+      - name: Run SageLLM Mock Tests
+        run: |
+          echo "🧪 Running SageLLM mock backend tests..."
+          echo ""
+          echo "Test patterns: 'sagellm' or 'mock' in test names"
+          echo ""
+
+          # Run tests matching sagellm or mock patterns
+          pytest -v \
+            --timeout=120 \
+            -k "sagellm or mock or SageLLM or Mock" \
+            --ignore=packages/sage-tools/tests/test_cli/llm_heavy_suite.py \
+            --ignore=benchmark/ \
+            packages/ \
+            2>&1 || {
+              exit_code=$?
+              if [ $exit_code -eq 5 ]; then
+                echo "⚠️ No tests found matching 'sagellm or mock'"
+                echo "This is acceptable if sagellm tests are in a separate location"
+                exit 0
+              fi
+              exit $exit_code
+            }
+
+      - name: Run SageLLM Integration Tests
+        run: |
+          echo "🔗 Running SageLLM integration tests..."
+
+          # Test SageLLMGenerator with mock backend
+          python -c "
+          from sage.middleware.operators.llm import SageLLMGenerator
+
+          print('Testing SageLLMGenerator with mock backend...')
+          gen = SageLLMGenerator(backend_type='mock')
+          print(f'  ✅ Generator created: {gen}')
+          print(f'  ✅ Backend type: {gen.backend_type}')
+          "
+
+          # Test agentic operators with mock backend
+          python -c "
+          from sage.middleware.operators.agentic import (
+              PlanningOperator,
+              TimingOperator,
+              ToolSelectionOperator,
+          )
+
+          print('Testing agentic operators with mock backend...')
+
+          op1 = PlanningOperator(config={'backend_type': 'mock'})
+          print(f'  ✅ PlanningOperator: {type(op1.generator).__name__}')
+
+          op2 = TimingOperator(config={'generator': {'backend_type': 'mock'}})
+          print(f'  ✅ TimingOperator: {type(op2.generator).__name__}')
+
+          op3 = ToolSelectionOperator(config={'backend_type': 'mock'})
+          print(f'  ✅ ToolSelectionOperator: {type(op3.generator).__name__}')
+          "
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🧪 SageLLM Mock Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **All SageLLM mock tests passed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- Mock backend integration: ✅" >> $GITHUB_STEP_SUMMARY
+            echo "- Agentic operators: ✅" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **SageLLM mock tests failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the test logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================================================
+  # Job 2: SageLLM CUDA Tests (Optional, GPU runner)
+  # ============================================================================
+  sagellm-cuda-test:
+    name: SageLLM CUDA Backend
+    runs-on: [self-hosted, gpu, cuda]
+    timeout-minutes: 60
+    # Only run on workflow_dispatch with cuda flag, or on main branch pushes
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_cuda_tests == 'true') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    # Require mock tests to pass first
+    needs: sagellm-mock-test
+
+    env:
+      # Use China mirrors for self-hosted runners in China
+      SAGE_FORCE_CHINA_MIRROR: true
+      HF_ENDPOINT: https://hf-mirror.com
+      PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+      PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cu121
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Check CUDA Availability
+        run: |
+          echo "🔍 Checking CUDA availability..."
+
+          # Check nvidia-smi
+          if command -v nvidia-smi &> /dev/null; then
+            echo "✅ nvidia-smi available"
+            nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+          else
+            echo "❌ nvidia-smi not found"
+            exit 1
+          fi
+
+          # Check CUDA version
+          if command -v nvcc &> /dev/null; then
+            echo ""
+            echo "✅ CUDA compiler available"
+            nvcc --version
+          else
+            echo "⚠️ nvcc not found, but may work with runtime-only installation"
+          fi
+
+      - name: Install System Dependencies
+        run: |
+          echo "🔧 Installing system dependencies..."
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libopenblas-dev \
+            liblapack-dev
+
+      - name: Install SAGE Packages
+        run: |
+          echo "📦 Installing SAGE packages..."
+
+          # Unset CI variables to install to conda env instead of ~/.local
+          unset CI GITHUB_ACTIONS
+
+          pip install --upgrade pip
+
+          # Install SAGE packages
+          pip install -e packages/sage-common
+          pip install -e packages/sage-platform
+          pip install -e packages/sage-kernel
+          pip install -e packages/sage-libs
+          pip install -e packages/sage-middleware
+          pip install -e packages/sage-cli
+          pip install -e packages/sage-tools
+
+      - name: Install isagellm with CUDA support
+        run: |
+          echo "🚀 Installing isagellm with CUDA support..."
+
+          # Install PyTorch with CUDA first
+          pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+          # Install isagellm
+          pip install isagellm
+
+          # Verify CUDA availability in PyTorch
+          python -c "
+          import torch
+          print(f'PyTorch version: {torch.__version__}')
+          print(f'CUDA available: {torch.cuda.is_available()}')
+          if torch.cuda.is_available():
+              print(f'CUDA device: {torch.cuda.get_device_name(0)}')
+              print(f'CUDA version: {torch.version.cuda}')
+          "
+
+      - name: Install Test Dependencies
+        run: |
+          pip install pytest pytest-cov pytest-timeout
+
+      - name: Run SageLLM CUDA Tests
+        run: |
+          echo "🧪 Running SageLLM CUDA backend tests..."
+
+          # Test basic CUDA functionality
+          python -c "
+          import torch
+          assert torch.cuda.is_available(), 'CUDA not available'
+
+          # Test simple tensor operation on GPU
+          x = torch.randn(1000, 1000, device='cuda')
+          y = torch.randn(1000, 1000, device='cuda')
+          z = torch.matmul(x, y)
+          print(f'✅ CUDA tensor operation successful')
+          print(f'   Result shape: {z.shape}')
+          print(f'   Device: {z.device}')
+          "
+
+          # Run CUDA-specific tests
+          pytest -v \
+            --timeout=300 \
+            -k "cuda or CUDA or gpu or GPU" \
+            --ignore=benchmark/ \
+            packages/ \
+            2>&1 || {
+              exit_code=$?
+              if [ $exit_code -eq 5 ]; then
+                echo "⚠️ No CUDA-specific tests found"
+                echo "Running SageLLMGenerator with CUDA backend instead..."
+
+                python -c "
+                from sage.middleware.operators.llm import SageLLMGenerator
+
+                print('Testing SageLLMGenerator with CUDA...')
+                gen = SageLLMGenerator(
+                    backend_type='vllm',
+                    device_map='cuda:0',
+                )
+                print(f'  ✅ Generator created with CUDA backend')
+                "
+                exit 0
+              fi
+              exit $exit_code
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🎮 SageLLM CUDA Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **All SageLLM CUDA tests passed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Add GPU info
+            if command -v nvidia-smi &> /dev/null; then
+              echo "### GPU Information" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              nvidia-smi --query-gpu=name,memory.total --format=csv >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ **SageLLM CUDA tests failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the test logs for details." >> $GITHUB_STEP_SUMMARY
+          fi

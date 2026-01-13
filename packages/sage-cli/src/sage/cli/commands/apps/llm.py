@@ -5,16 +5,19 @@ All LLM services should be managed through sageLLM (isagellm),
 NOT by directly calling vLLM entrypoints.
 
 MIGRATION NOTE (2026-01): This file now uses isagellm instead of sage.llm.
+Recommended engine: sagellm (default). vllm engine is deprecated.
 """
 
 from __future__ import annotations
+
+import warnings
 
 import httpx
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from sage.common.model_registry import fetch_recommended_models, vllm_registry
+from sage.common.model_registry import fetch_recommended_models
 
 # Import from isagellm (sageLLM inference engine)
 try:
@@ -53,6 +56,28 @@ def _check_sagellm_available() -> bool:
     return True
 
 
+def _get_registry(engine: str):
+    """Get the appropriate model registry based on engine selection.
+
+    Args:
+        engine: Engine type ('sagellm' is the only supported option)
+
+    Returns:
+        The appropriate registry module
+
+    Raises:
+        ValueError: If engine is 'vllm' (removed in v0.3.0)
+    """
+    if engine == "vllm":
+        raise ValueError(
+            "vllm engine has been removed in SAGE v0.3.0. "
+            "Please use engine='sagellm' instead. "
+            "See migration guide: docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md"
+        )
+    from sage.common.model_registry import sagellm_registry as registry
+    return registry
+
+
 @app.command("status")
 def status(
     host: str = typer.Option("localhost", "--host", "-h", help="Server host"),
@@ -78,8 +103,17 @@ def status(
 @app.command("list-models")
 def list_models(
     recommended: bool = typer.Option(False, "--recommended", "-r", help="Show recommended models"),
+    engine: str = typer.Option(
+        "sagellm",
+        "--engine",
+        "-e",
+        help="推理引擎 (仅支持 sagellm)",
+    ),
 ):
-    """List available models."""
+    """List available models.
+
+    Uses sagellm registry for model management.
+    """
     if recommended:
         models = fetch_recommended_models()
         table = Table(title="Recommended Models")
@@ -90,13 +124,17 @@ def list_models(
             table.add_row(model.get("name", ""), model.get("size", ""), model.get("desc", ""))
         console.print(table)
     else:
-        # List from vllm registry
-        models = vllm_registry.list_models()
-        table = Table(title="Available Models")
+        # List from selected registry
+        registry = _get_registry(engine)
+        models = registry.list_models()
+        table = Table(title=f"Available Models ({engine})")
         table.add_column("Model ID", style="cyan")
-        table.add_column("Type", style="green")
+        table.add_column("Size (MB)", style="green")
+        table.add_column("Last Used", style="yellow")
         for model in models:
-            table.add_row(model.model_id, model.model_type)
+            size_mb = f"{model.size_mb:.1f}" if hasattr(model, "size_mb") else "N/A"
+            last_used = model.last_used_iso if hasattr(model, "last_used_iso") else "N/A"
+            table.add_row(model.model_id, size_mb, last_used)
         console.print(table)
 
 

@@ -14,16 +14,16 @@ class EmbeddingPipelineTemplates:
     def rag_with_embedding_service(
         embedding_method: str = "hf",
         embedding_model: str | None = None,
-        use_vllm: bool = False,
+        engine: str = "sagellm",
         llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
         **kwargs: Any,
     ) -> dict[str, Any]:
         """RAG Pipeline with dedicated EmbeddingService.
 
         Args:
-            embedding_method: Embedding method (hf, openai, jina, vllm, etc.)
+            embedding_method: Embedding method (hf, openai, jina, sagellm, vllm, etc.)
             embedding_model: Specific embedding model name
-            use_vllm: Whether to use vLLM backend for embedding
+            engine: Inference engine (sagellm)
             llm_model: LLM model for generation
             **kwargs: Additional config options
 
@@ -36,17 +36,19 @@ class EmbeddingPipelineTemplates:
             "openai": "text-embedding-3-small",
             "jina": "jina-embeddings-v3",
             "zhipu": "embedding-3",
-            "vllm": "BAAI/bge-base-en-v1.5",
+            "sagellm": "BAAI/bge-base-en-v1.5",
         }
 
         embedding_model = embedding_model or default_models.get(
             embedding_method, "BAAI/bge-small-zh-v1.5"
         )
 
+        use_inference_engine = engine == "sagellm" or embedding_method == "sagellm"
+
         config = {
             "pipeline": {
                 "name": "rag_with_embedding_service",
-                "description": f"RAG pipeline with {embedding_method} embedding service",
+                "description": f"RAG pipeline with {embedding_method} embedding service (engine: {engine})",
                 "version": "2.0.0",
                 "type": "local",
             },
@@ -54,10 +56,10 @@ class EmbeddingPipelineTemplates:
         }
 
         # Configure embedding service
-        if use_vllm or embedding_method == "vllm":
-            # Use vLLM backend
-            config["services"]["vllm"] = {  # type: ignore[index]
-                "class": "sage.llm.VLLMService",
+        if use_inference_engine:
+            # Use sagellm backend
+            config["services"]["sagellm"] = {  # type: ignore[index]
+                "class": "sage.llm.SageLLMService",
                 "config": {
                     "model_id": llm_model,
                     "embedding_model_id": embedding_model,
@@ -73,8 +75,8 @@ class EmbeddingPipelineTemplates:
             config["services"]["embedding"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_embedding.EmbeddingService",
                 "config": {
-                    "method": "vllm",
-                    "vllm_service_name": "vllm",
+                    "method": "sagellm",
+                    f"{engine}_service_name": engine,
                     "batch_size": 128,
                     "normalize": True,
                     "cache_enabled": True,
@@ -139,7 +141,7 @@ class EmbeddingPipelineTemplates:
                 "name": "generate_answer",
                 "type": "llm_generate_operator",
                 "config": {
-                    "llm_service": "vllm" if use_vllm else "llm",
+                    "llm_service": engine if use_inference_engine else "llm",
                     "prompt_template": """Based on the following context, answer the question.
 
 Context:
@@ -159,7 +161,7 @@ Answer:""",
     def knowledge_base_builder(
         embedding_method: str = "hf",
         embedding_model: str | None = None,
-        use_vllm: bool = False,
+        engine: str = "sagellm",
         chunk_size: int = 512,
         chunk_overlap: int = 50,
         **kwargs,
@@ -169,17 +171,19 @@ Answer:""",
         Args:
             embedding_method: Embedding method
             embedding_model: Model name
-            use_vllm: Use vLLM for high-throughput processing
+            engine: Inference engine (sagellm) for high-throughput processing
             chunk_size: Text chunk size
             chunk_overlap: Overlap between chunks
         """
         default_models = {
             "hf": "BAAI/bge-base-zh-v1.5",
             "openai": "text-embedding-3-large",
-            "vllm": "BAAI/bge-large-en-v1.5",
+            "sagellm": "BAAI/bge-large-en-v1.5",
         }
 
         embedding_model = embedding_model or default_models.get(embedding_method)
+
+        use_inference_engine = engine == "sagellm" or embedding_method == "sagellm"
 
         config = {
             "pipeline": {
@@ -192,9 +196,9 @@ Answer:""",
         }
 
         # Configure services based on method
-        if use_vllm or embedding_method == "vllm":
-            config["services"]["vllm"] = {  # type: ignore[index]
-                "class": "sage.llm.VLLMService",
+        if use_inference_engine:
+            config["services"]["sagellm"] = {  # type: ignore[index]
+                "class": "sage.llm.SageLLMService",
                 "config": {
                     "model_id": embedding_model,
                     "embedding_model_id": embedding_model,
@@ -205,8 +209,8 @@ Answer:""",
             config["services"]["embedding"] = {  # type: ignore[index]
                 "class": "sage.common.components.sage_embedding.EmbeddingService",
                 "config": {
-                    "method": "vllm",
-                    "vllm_service_name": "vllm",
+                    "method": "sagellm",
+                    "sagellm_service_name": "sagellm",
                     "batch_size": 256,  # Large batch for indexing
                     "normalize": True,
                     "cache_enabled": False,  # No cache needed for one-time indexing

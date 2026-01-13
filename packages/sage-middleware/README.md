@@ -6,9 +6,11 @@
 
 ## ✨ Key Features
 
-- 🤖 AI 接入：OpenAI / Anthropic / Cohere / Ollama / 智谱 等
+- 🤖 **LLM 推理**：
+  - **sageLLM** ✅ 推荐：统一 LLM 推理引擎，支持 CUDA/Ascend/Mock 后端
+  - vLLM ⚠️ 已弃用：将在 v0.4.0 移除，请迁移至 sageLLM
 - 🔎 检索与向量：RAG、BM25、FAISS 等
-- � 任务调度：Celery 异步任务
+- 📋 任务调度：Celery 异步任务
 - 🔐 安全鉴权：JWT、密码学工具
 - ⚙️ 核心组件：
   - `sage_db`：数据库/向量存储相关组件（含 C/C++ 扩展）
@@ -28,6 +30,25 @@ pip install isage-middleware[sage]
 
 ## 📖 Quick Start
 
+### LLM 推理（推荐：sageLLM）
+
+```python
+from sage.middleware.operators.llm import SageLLMGenerator
+
+# 自动选择最佳后端
+generator = SageLLMGenerator(
+    model_path="Qwen/Qwen2.5-7B-Instruct",
+    backend_type="auto",  # auto/cuda/ascend/mock
+    temperature=0.7,
+    max_tokens=2048,
+)
+
+result = generator.execute("你好，世界！")
+print(result)
+```
+
+### API 客户端
+
 ```python
 from sage.middleware.api.client import APIClient
 from sage.middleware.auth.jwt import JWTManager
@@ -41,6 +62,9 @@ resp = client.chat_completion(
 )
 print(resp)
 ```
+
+> 📖 **迁移指南**：如果您正在使用 `VLLMGenerator`，请参阅
+> [vLLM to sageLLM Migration Guide](../../docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md)
 
 ## 配置示例
 

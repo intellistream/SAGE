@@ -1,0 +1,57 @@
+# Operator Configuration Example - Agent Runtime Operator
+# This file shows the complete configuration schema for AgentRuntimeOperator
+
+# Engine type: sagellm (default) | openai | hf
+engine_type: "sagellm"
+
+# Generator configuration
+generator:
+  # Engine type can also be specified here (overrides top-level)
+  engine_type: "sagellm"
+
+  # SageLLM-specific options (when engine_type=sagellm)
+  # Backend types:
+  #   - auto (default): Automatically select best available backend
+  #   - mock: Mock backend for testing without GPU
+  #   - cuda: NVIDIA CUDA backend
+  #   - ascend: Huawei Ascend NPU backend
+  backend_type: "auto"
+  model_path: "Qwen/Qwen2.5-7B-Instruct"
+  device_map: "auto"
+  dtype: "auto"
+  max_tokens: 2048
+  temperature: 0.7
+  top_p: 0.95
+  top_k: 50
+  timeout: 120.0
+  default_options: {}
+
+  # OpenAI-specific options (when engine_type=openai)
+  # model_name: "gpt-4o-mini"
+  # base_url: "https://api.openai.com/v1"
+  # api_key: "${OPENAI_API_KEY}"
+
+# Agent profile configuration
+profile:
+  name: "DefaultAgent"
+  description: "A general-purpose AI assistant"
+  role: "assistant"
+  system_prompt: "You are a helpful assistant."
+
+# Tools configuration (list of tool specs)
+tools: []
+  # Example tool spec:
+  # - module: "sage.libs.agentic.tools.calculator"
+  #   class: "CalculatorTool"
+  #   init_kwargs: {}
+
+# Planner configuration
+planner:
+  # Planner type is auto-selected by PlannerRouter based on query intent
+  default_planner: "llm"
+
+# Runtime configuration
+runtime:
+  max_steps: 6
+  # Summarizer: null | "reuse_generator" | generator config dict
+  summarizer: "reuse_generator"

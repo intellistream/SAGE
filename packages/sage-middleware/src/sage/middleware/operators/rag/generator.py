@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from openai import OpenAI
@@ -12,10 +13,10 @@ from sage.libs.integrations.huggingface import HFClient
 
 class OpenAIGenerator(MapOperator):
     """
-    生成节点：调用 OpenAI-Compatible / VLLM 等端点。
+    生成节点：调用 OpenAI-Compatible / SageLLM 等端点。
 
     调用方式::
-        sub_conf = config["generator"]["vllm"]   # <- 单端点子配置
+        sub_conf = config["generator"]["sagellm"]   # <- 单端点子配置
         gen = OpenAIGenerator(sub_conf)
 
     其中 `sub_conf` 结构示例::
@@ -46,10 +47,10 @@ class OpenAIGenerator(MapOperator):
         model_name = os.path.expandvars(model_name)
         base_url = self.config.get("base_url", "https://api.openai.com/v1")
 
-        # 直接使用 OpenAI 客户端（支持 vLLM 等 OpenAI 兼容 API）
+        # 直接使用 OpenAI 客户端（支持 sagellm 等 OpenAI 兼容 API）
         self.model = OpenAI(
             base_url=base_url,
-            api_key=api_key or "EMPTY",  # vLLM 本地服务可用任意 key
+            api_key=api_key or "EMPTY",  # 本地服务可用任意 key
         )
         self.model_name = model_name
         self.num = 1
@@ -235,3 +236,106 @@ class HFGenerator(MapOperator):
             user_query if user_query is not None else "",
             response if isinstance(response, str) else str(response),
         )
+
+
+@dataclass
+class SageLLMRAGGenerator(MapOperator):
+    """
+    RAG 生成器 - 使用 SageLLM 引擎
+
+    通过 engine_type 参数选择底层 LLM 引擎：
+    - sagellm (默认): 使用 SageLLMGenerator，支持 auto/mock/cuda/ascend 后端
+
+    Example:
+        ```python
+        # 使用 sagellm 引擎（推荐）
+        generator = SageLLMRAGGenerator(
+            engine_type="sagellm",
+            backend_type="auto",
+            model_path="Qwen/Qwen2.5-7B-Instruct",
+            max_tokens=2048,
+        )
+        ```
+
+    Attributes:
+        engine_type: 引擎类型，支持 "sagellm"（默认）
+        backend_type: 后端类型，支持 "auto"/"mock"/"cuda"/"ascend"
+        model_path: 模型路径或 HuggingFace 模型 ID
+        max_tokens: 最大生成 token 数
+        temperature: 采样温度
+        top_p: nucleus 采样参数
+        timeout: 请求超时时间
+    """
+
+    # 引擎选择
+    engine_type: str = "sagellm"  # sagellm only
+    backend_type: str = "auto"  # auto/mock/cuda/ascend
+
+    # SageLLM 配置
+    model_path: str = ""
+    device_map: str = "auto"
+    dtype: str = "auto"
+
+    # 生成参数
+    max_tokens: int = 2048
+    temperature: float = 0.7
+    top_p: float = 0.95
+    top_k: int = 50
+
+    # 配置
+    timeout: float = 120.0
+    default_options: dict[str, Any] = field(default_factory=dict)
+
+    # 内部状态
+    _generator: Any = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        super().__init__()
+        self._init_generator()
+
+    def _init_generator(self) -> None:
+        """根据 engine_type 初始化底层生成器"""
+        if self.engine_type != "sagellm":
+            # 只支持 sagellm
+            raise ValueError(
+                f"Unsupported engine_type='{self.engine_type}'. "
+                f"Only 'sagellm' is supported. vLLM support has been removed in v0.3.0."
+            )
+
+        # 默认使用 sagellm
+        from sage.middleware.operators.llm import SageLLMGenerator
+
+        self._generator = SageLLMGenerator(
+            backend_type=self.backend_type,
+            model_path=self.model_path,
+            device_map=self.device_map,
+            dtype=self.dtype,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            top_k=self.top_k,
+            timeout=self.timeout,
+            default_options=self.default_options,
+            )
+
+    def execute(self, data: list[Any]) -> dict[str, Any]:
+        """
+        执行生成，委托给底层生成器
+
+        输入 : [original_data, prompt] 或 [prompt]
+        输出 : 包含 generated 字段的数据字典
+        """
+        result = self._generator.execute(data)
+
+        # 统一输出格式
+        if isinstance(result, dict):
+            return result
+        elif isinstance(result, tuple) and len(result) >= 2:
+            # Generator returns (original, text)
+            return {
+                "query": result[0] if result[0] else "",
+                "generated": result[1],
+            }
+        else:
+            return {"generated": str(result)}
+

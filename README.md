@@ -90,24 +90,32 @@ SAGE transforms this into a **declarative, composable workflow**:
 ```python
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.libs.io.source import FileSource
-from sage.middleware.operators.rag import DenseRetriever, QAPromptor, OpenAIGenerator
+from sage.middleware.operators.rag import DenseRetriever, QAPromptor
+from sage.middleware.operators.llm import SageLLMGenerator  # ✅ Recommended
 from sage.libs.io.sink import TerminalSink
 
 # Create execution environment
 env = LocalEnvironment("rag_pipeline")
 
-# Build declarative pipeline
+# Build declarative pipeline with sageLLM (recommended)
 (
     env.from_source(FileSource, {"file_path": "questions.txt"})
     .map(DenseRetriever, {"model": "sentence-transformers/all-MiniLM-L6-v2"})
     .map(QAPromptor, {"template": "Answer based on context: {context}\nQ: {query}\nA:"})
-    .map(OpenAIGenerator, {"model": "gpt-3.5-turbo"})
+    .map(SageLLMGenerator, {
+        "model_path": "Qwen/Qwen2.5-7B-Instruct",
+        "backend_type": "auto",  # auto/cuda/ascend/mock
+    })
     .sink(TerminalSink)
 )
 
 # Execute pipeline
 env.submit()
 ```
+
+> 💡 **LLM Engine**: SAGE uses `sageLLM` as the default inference engine. For OpenAI-compatible APIs,
+> use `OpenAIGenerator`. See [Migration Guide](./docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md)
+> if migrating from vLLM.
 
 **Try it yourself:**
 

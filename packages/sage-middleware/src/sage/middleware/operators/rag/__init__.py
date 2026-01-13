@@ -49,6 +49,7 @@ _IMPORTS = {
     # Generators
     "OpenAIGenerator": ("sage.middleware.operators.rag.generator", "OpenAIGenerator"),
     "HFGenerator": ("sage.middleware.operators.rag.generator", "HFGenerator"),
+    "SageLLMRAGGenerator": ("sage.middleware.operators.rag.generator", "SageLLMRAGGenerator"),
     # Retrievers
     "ChromaRetriever": ("sage.middleware.operators.rag.retriever", "ChromaRetriever"),
     "MilvusDenseRetriever": (

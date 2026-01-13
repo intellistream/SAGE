@@ -1,15 +1,15 @@
 """
 LLM Integration Test for Agent Tasks
 
-Tests real LLM backends (DeepSeek, Qwen, OpenAI, etc.) with agent planning
+Tests real LLM backends (sagellm, DeepSeek, Qwen, OpenAI, etc.) with agent planning
 and tool selection tasks.
 
 Usage:
+    # Run with sagellm (default, mock backend for testing)
+    pytest tests/integration/test_llm_agent_integration.py -v -k sagellm
+
     # Run with DeepSeek API
     pytest tests/integration/test_llm_agent_integration.py -v -k deepseek
-
-    # Run with local vLLM
-    pytest tests/integration/test_llm_agent_integration.py -v -k vllm
 
     # Run all available backends
     pytest tests/integration/test_llm_agent_integration.py -v
@@ -17,7 +17,7 @@ Usage:
 Environment Variables:
     DEEPSEEK_API_KEY: DeepSeek API key
     OPENAI_API_KEY: OpenAI API key
-    SAGE_VLLM_ENDPOINT: Local vLLM endpoint (default: http://localhost:8000)
+    SAGELLM_MODEL_PATH: Local sagellm model path (optional)
 """
 
 import json
@@ -43,6 +43,10 @@ pytestmark = [
 # Configuration
 # =============================================================================
 
+# Default engine for SAGE agent tests
+DEFAULT_ENGINE = "sagellm"
+DEFAULT_BACKEND = "mock"  # Use mock backend for testing without GPU
+
 
 @dataclass
 class LLMBackendConfig:
@@ -60,6 +64,14 @@ class LLMBackendConfig:
 
 # 支持的 LLM 后端
 LLM_BACKENDS = {
+    "sagellm": LLMBackendConfig(
+        name="SageLLM",
+        api_base="http://127.0.0.1:8001/v1",  # Default Control Plane port
+        api_key_env="",  # 本地不需要 key
+        model_id="",  # 由 sagellm 服务决定
+        supports_function_calling=True,
+        supports_json_mode=True,
+    ),
     "deepseek": LLMBackendConfig(
         name="DeepSeek",
         api_base="https://api.deepseek.com/v1",
@@ -92,14 +104,6 @@ LLM_BACKENDS = {
         supports_function_calling=True,
         supports_json_mode=True,
     ),
-    "vllm-local": LLMBackendConfig(
-        name="vLLM Local",
-        api_base=os.getenv("SAGE_VLLM_ENDPOINT", "http://localhost:8000/v1"),
-        api_key_env="",  # 本地不需要 key
-        model_id="",  # 由 vLLM 服务决定
-        supports_function_calling=False,  # 取决于部署的模型
-        supports_json_mode=True,
-    ),
     "siliconflow": LLMBackendConfig(
         name="SiliconFlow",
         api_base="https://api.siliconflow.cn/v1",
@@ -120,7 +124,7 @@ class LLMClient:
     """
     统一的 LLM 客户端接口
 
-    支持 OpenAI-compatible APIs (DeepSeek, Qwen, vLLM 等)
+    支持 OpenAI-compatible APIs (DeepSeek, Qwen, sageLLM 等)
     """
 
     def __init__(self, config: LLMBackendConfig):
@@ -564,6 +568,104 @@ class TestDeepSeekSpecific:
             assert result["tool_calls"][0]["function"]["name"] == "weather_query"
 
 
+class TestSageLLMEngine:
+    """SageLLM 引擎特定测试"""
+
+    @pytest.fixture
+    def sagellm_client(self):
+        """SageLLM client fixture"""
+        config = LLM_BACKENDS["sagellm"]
+        client = LLMClient(config)
+        if not client.is_available:
+            pytest.skip("SageLLM not available (start with: sage llm engine start)")
+        return client
+
+    @pytest.mark.integration
+    @pytest.mark.parametrize("engine", ["sagellm"])
+    def test_agent_with_engine(self, engine: str):
+        """Test agent operators with sagellm engine"""
+        try:
+            from sage.middleware.operators.agentic import PlanningOperator
+        except ImportError:
+            pytest.skip("sage.middleware.operators.agentic not available")
+
+        # Create operator with sagellm engine and mock backend for testing
+        operator = PlanningOperator(
+            config={
+                "engine_type": engine,
+                "backend_type": "mock",  # Use mock backend for testing
+            }
+        )
+
+        assert operator.generator is not None
+        assert operator.generator.backend_type == "mock"
+        logger.info(f"Created PlanningOperator with engine={engine}, backend=mock")
+
+    @pytest.mark.integration
+    @pytest.mark.parametrize("engine", ["sagellm"])
+    def test_tool_selection_with_engine(self, engine: str):
+        """Test tool selection operator with sagellm engine"""
+        try:
+            from sage.middleware.operators.agentic import ToolSelectionOperator
+        except ImportError:
+            pytest.skip("sage.middleware.operators.agentic not available")
+
+        operator = ToolSelectionOperator(
+            config={
+                "engine_type": engine,
+                "backend_type": "mock",
+            }
+        )
+
+        assert operator.generator is not None
+        logger.info(f"Created ToolSelectionOperator with engine={engine}")
+
+    @pytest.mark.integration
+    @pytest.mark.parametrize("engine", ["sagellm"])
+    def test_timing_with_engine(self, engine: str):
+        """Test timing operator with sagellm engine"""
+        try:
+            from sage.middleware.operators.agentic import TimingOperator
+        except ImportError:
+            pytest.skip("sage.middleware.operators.agentic not available")
+
+        operator = TimingOperator(
+            config={
+                "generator": {
+                    "engine_type": engine,
+                    "backend_type": "mock",
+                }
+            }
+        )
+
+        assert operator.generator is not None
+        logger.info(f"Created TimingOperator with engine={engine}")
+
+    @pytest.mark.integration
+    def test_sagellm_basic_generation(self, sagellm_client: LLMClient):
+        """Test basic generation with SageLLM via Control Plane"""
+        response = sagellm_client.generate(
+            prompt="Say 'Hello from SageLLM' and nothing else.",
+            temperature=0.0,
+        )
+
+        assert response is not None
+        assert len(response) > 0
+        logger.info(f"[SageLLM] Basic generation: {response[:100]}")
+
+    @pytest.mark.integration
+    def test_sagellm_json_generation(self, sagellm_client: LLMClient):
+        """Test JSON generation with SageLLM"""
+        response = sagellm_client.generate(
+            prompt='Generate a JSON object with keys "status" and "engine" for SageLLM.',
+            json_mode=True,
+            temperature=0.0,
+        )
+
+        assert response is not None
+        logger.info(f"[SageLLM] JSON generation: {response[:200]}")
+
+
 class TestModelComparison:
     """多模型对比测试"""
 
@@ -627,10 +729,13 @@ class TestModelComparison:
 if __name__ == "__main__":
     # 列出可用后端
     print("Checking available LLM backends...")
+    print(f"Default engine: {DEFAULT_ENGINE} (backend: {DEFAULT_BACKEND})")
+    print()
     for name, config in LLM_BACKENDS.items():
         client = LLMClient(config)
         status = "✅ Available" if client.is_available else "❌ Not available"
-        print(f"  {name}: {status}")
+        default_marker = " [DEFAULT]" if name == DEFAULT_ENGINE else ""
+        print(f"  {name}: {status}{default_marker}")
 
     # 运行测试
     pytest.main([__file__, "-v", "-x", "--tb=short"])

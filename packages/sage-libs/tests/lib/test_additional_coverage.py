@@ -4,14 +4,6 @@ Unit tests for LLM Planner and other components
 
 from unittest.mock import MagicMock
 
-# Check if vllm is available
-try:
-    import vllm  # noqa: F401
-
-    VLLM_AVAILABLE = True
-except ImportError:
-    VLLM_AVAILABLE = False
-
 
 class TestSimpleLLMPlanner:
     """Test SimpleLLMPlanner class"""

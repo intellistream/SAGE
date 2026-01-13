@@ -4,13 +4,70 @@
 
 ## 📋 Workflow 职责划分
 
-| Workflow                      | 触发条件                 | 职责         | 安装方式                   | 运行时间 |
-| ----------------------------- | ------------------------ | ------------ | -------------------------- | -------- |
-| **code-quality.yml**          | PR/Push (\*.py)          | 代码质量检查 | `quickstart.sh --dev`      | ~10分钟  |
-| **deployment-check.yml**      | PR/Push                  | 部署就绪检查 | `quickstart.sh --dev`      | ~15分钟  |
-| **examples-test.yml**         | PR/Push (examples/)      | 示例功能测试 | `quickstart.sh --standard` | ~30分钟  |
-| **pip-installation-test.yml** | PR/Push (pyproject.toml) | 用户安装测试 | 构建 wheel + pip install   | ~20分钟  |
-| **build-test.yml**            | PR/Push (C++ 代码)       | C++ 扩展构建 | cmake + 编译               | ~15分钟  |
+| Workflow                      | 触发条件                 | 职责              | 安装方式                   | 运行时间 | 必须通过 |
+| ----------------------------- | ------------------------ | ----------------- | -------------------------- | -------- | -------- |
+| **ci-build-test.yml**         | PR/Push (packages/)      | 构建测试覆盖率    | `quickstart.sh --dev`      | ~45分钟  | ✅       |
+| **ci-sagellm-test.yml**       | PR/Push (packages/)      | SageLLM mock/CUDA | pip install packages       | ~30分钟  | ✅ (mock)|
+| **ci-code-quality.yml**       | PR/Push (\*.py)          | 代码质量检查      | pip install tools only     | ~10分钟  | ✅       |
+| **ci-deployment-check.yml**   | PR/Push                  | 部署就绪检查      | `quickstart.sh --dev`      | ~15分钟  | -        |
+| **ci-examples-test.yml**      | PR/Push (examples/)      | 示例功能测试      | `quickstart.sh --standard` | ~30分钟  | -        |
+| **ci-pr-install.yml**         | PR/Push (pyproject.toml) | 用户安装测试      | 构建 wheel + pip install   | ~20分钟  | -        |
+
+## 🚀 SageLLM 测试 (ci-sagellm-test.yml) - 新增
+
+专门测试 SageLLM 推理引擎集成。
+
+### Job 1: SageLLM Mock Backend (必须通过)
+
+**所有 PR 必须通过此测试**，验证：
+
+- ✅ `isagellm` 包安装正常
+- ✅ `SageLLMGenerator` 与 mock backend 集成
+- ✅ Agentic operators 与 mock backend 兼容
+  - `PlanningOperator`
+  - `TimingOperator`
+  - `ToolSelectionOperator`
+
+```bash
+# 测试命令
+pytest -v -k "sagellm or mock or SageLLM or Mock" packages/
+```
+
+### Job 2: SageLLM CUDA Backend (可选)
+
+需要 GPU runner，仅在以下情况运行：
+
+- 手动触发 workflow 并选择 `run_cuda_tests: true`
+- Push 到 `main` 分支
+
+**Runner 要求**: `[self-hosted, gpu, cuda]` labels
+
+**环境变量** (适用于中国 self-hosted runner):
+
+```yaml
+env:
+  SAGE_FORCE_CHINA_MIRROR: true
+  HF_ENDPOINT: https://hf-mirror.com
+  PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+### 手动触发 CUDA 测试
+
+```bash
+# GitHub CLI
+gh workflow run ci-sagellm-test.yml -f run_cuda_tests=true
+
+# 或 GitHub UI:
+# Actions → SageLLM Mock & CUDA Tests → Run workflow → ✅ Run CUDA tests
+```
+
+### Branch Protection 配置
+
+在 Repository Settings → Branches → Branch protection rules 中，添加 required status check:
+
+- `SageLLM Mock Backend`
+
+这确保所有 PR 必须通过 sagellm mock 测试。
 
 ## 🎯 安装模式对照表
 

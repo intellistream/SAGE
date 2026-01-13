@@ -4,6 +4,15 @@
 
 这个脚本展示了从 Template 匹配到传递给 LLM 的完整过程
 
+LLM 引擎选项:
+    - SageLLMGenerator (推荐): SAGE 统一推理引擎
+      - backend_type="vllm": 使用 vLLM 后端 (需要 GPU)
+      - backend_type="mock": 模拟模式 (无需 GPU, 用于测试)
+    - VLLMGenerator (deprecated): 将重定向到 SageLLMGenerator
+
+运行:
+    python templates_to_llm_demo.py
+
 @test:allow-demo
 """
 
@@ -193,11 +202,23 @@ response = self._client.generate(
 [green]生产环境使用真实 LLM[/green]
 
 在实际使用时 (backend != "mock"):
-  • 使用 OpenAIClient 调用真实 API
-  • 需要配置 TEMP_GENERATOR_API_KEY
-  • 支持 OpenAI / 兼容接口 (vLLM, Ollama 等)
+  • 使用 SageLLMGenerator 调用真实 LLM
+  • 需要配置相应的后端
+  • 支持多种后端: vllm, openai, dashscope 等
 
 示例:
+  # 使用 SageLLMGenerator (推荐)
+  from sage.middleware.operators import SageLLMGenerator
+
+  # Mock 模式 (无需 GPU)
+  generator = SageLLMGenerator(backend_type="mock")
+
+  # vLLM 后端 (需要 GPU)
+  generator = SageLLMGenerator(backend_type="vllm")
+
+  # OpenAI 后端
+  generator = SageLLMGenerator(backend_type="openai")
+
   export TEMP_GENERATOR_API_KEY="sk-xxx"  # pragma: allowlist secret
   sage chat --backend openai --model qwen-max
     """

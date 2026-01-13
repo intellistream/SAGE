@@ -8,7 +8,21 @@ Advanced RAG Topology - 完整 RAG 系统拓扑结构
 - sage_db: 向量数据库（文档检索）
 - sage_tsdb: 时序数据库（对话历史、日志、指标）
 - sage_refiner: 上下文压缩/精炼器
-- LLM: 推理引擎
+- LLM: 推理引擎 (SageLLMGenerator)
+
+LLM 引擎选项:
+    - engine_type="sagellm" (推荐): SAGE 统一推理引擎
+    - engine_type="vllm" (deprecated): 将重定向到 sagellm
+
+    后端类型 (backend_type):
+    - "vllm": 使用 vLLM 后端 (需要 GPU)
+    - "mock": 模拟模式 (无需 GPU, 用于测试)
+    - "openai": 使用 OpenAI API
+    - "dashscope": 使用 DashScope API
+
+运行:
+    python advanced_rag_topology.py           # 正常运行 (需要模型/GPU)
+    python advanced_rag_topology.py --mock    # Mock 模式 (无需 GPU)
 
 拓扑结构图：
 ============
@@ -582,22 +596,46 @@ class LLMGenerator(MapFunction):
     """
     LLM 生成算子 - 使用 SAGE 的统一推理客户端
 
-    支持多种后端：
-    - vLLM (本地部署)
-    - OpenAI API
-    - DashScope
+    支持多种后端 (engine_type/backend_type):
+    - sagellm + vllm: 本地 vLLM 后端 (推荐, 需要 GPU)
+    - sagellm + mock: 模拟模式 (无需 GPU, 用于测试)
+    - sagellm + openai: OpenAI API
+    - sagellm + dashscope: DashScope API
     """
 
-    def __init__(self, config: dict[str, Any] | None = None, **kwargs):
+    def __init__(self, config: dict[str, Any] | None = None, use_mock: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.config = config or {}
+        self.use_mock = use_mock
         self.logger = CustomLogger.get_logger(self.__class__.__name__)
 
         self._client = None
+        self._generator = None
         self._init_client()
 
     def _init_client(self):
         """初始化 LLM 客户端"""
+        # 优先使用 SageLLMGenerator (推荐)
+        try:
+            from sage.middleware.operators import SageLLMGenerator
+
+            # 确定 backend_type
+            if self.use_mock:
+                backend_type = "mock"
+            else:
+                backend_type = self.config.get("backend_type", "vllm")
+
+            self._generator = SageLLMGenerator(
+                model_id=self.config.get("model", "Qwen/Qwen2.5-7B-Instruct"),
+                backend_type=backend_type,
+                # engine_type="sagellm" is default
+            )
+            self.logger.info(f"✓ 已初始化 SageLLMGenerator (backend={backend_type})")
+            return
+        except Exception as e:
+            self.logger.warning(f"SageLLMGenerator 初始化失败: {e}")
+
+        # Fallback: 尝试 UnifiedInferenceClient
         try:
             from sage.common.components.sage_llm import UnifiedInferenceClient
 
@@ -613,7 +651,16 @@ class LLMGenerator(MapFunction):
 
         start_time = time.time()
 
-        if self._client:
+        # 优先使用 SageLLMGenerator
+        if self._generator:
+            try:
+                # SageLLMGenerator 使用 execute 方法
+                result = self._generator.execute({"prompt": prompt})
+                answer = result.get("response", "") if isinstance(result, dict) else str(result)
+            except Exception as e:
+                self.logger.warning(f"SageLLMGenerator 调用失败: {e}")
+                answer = self._mock_answer(query, data.get("refined_context", ""))
+        elif self._client:
             try:
                 response = self._client.chat(
                     messages=[{"role": "user", "content": prompt}],
@@ -723,13 +770,17 @@ class RAGResultSink(SinkFunction):
 # ================================================================================
 
 
-def build_rag_topology(config: RAGTopologyConfig | None = None):
+def build_rag_topology(config: RAGTopologyConfig | None = None, use_mock: bool = False):
     """
     构建 RAG 拓扑
 
     拓扑结构：
     Source → Embedder → Retriever → TSDBLogger → Reranker
            → Refiner → Promptor → Generator → ResponseLogger → Sink
+
+    Args:
+        config: RAG 拓扑配置
+        use_mock: 是否使用 mock 模式 (无需 GPU)
     """
     from sage.kernel.api.local_environment import LocalEnvironment
 
@@ -747,7 +798,7 @@ def build_rag_topology(config: RAGTopologyConfig | None = None):
         .map(DocumentReranker)
         .map(ContextRefiner, config=config.refiner_config)
         .map(RAGPromptor)
-        .map(LLMGenerator, config=config.llm_config)
+        .map(LLMGenerator, config=config.llm_config, use_mock=use_mock)
         .map(ResponseTSDBLogger)
         .sink(RAGResultSink)
     )
@@ -757,10 +808,23 @@ def build_rag_topology(config: RAGTopologyConfig | None = None):
 
 def main():
     """运行 RAG 拓扑演示"""
+    import argparse
+
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="SAGE Advanced RAG Topology Demo")
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="使用 mock 模式运行 (无需 GPU/模型)",
+    )
+    args = parser.parse_args()
+
     load_dotenv()
 
     print("\n" + "=" * 70)
     print("🚀 SAGE Advanced RAG Topology Demo")
+    if args.mock:
+        print("🧪 Mock 模式: 使用模拟 LLM (无需 GPU)")
     print("=" * 70 + "\n")
 
     # 配置
@@ -778,11 +842,12 @@ def main():
             "model": "Qwen/Qwen2.5-7B-Instruct",
             "temperature": 0.7,
             "max_tokens": 256,
+            "backend_type": "mock" if args.mock else "vllm",
         },
     )
 
     # 构建拓扑
-    env = build_rag_topology(config)
+    env = build_rag_topology(config, use_mock=args.mock)
 
     # 执行
     print("📦 开始执行 RAG Pipeline...\n")

@@ -1,6 +1,16 @@
 """
 终端交互式QA无界流处理
 支持终端输入问题，使用大模型生成回答的无界流处理示例
+
+LLM 引擎选项:
+    - SageLLMGenerator (推荐): SAGE 统一推理引擎
+      - backend_type="vllm": 使用 vLLM 后端 (需要 GPU)
+      - backend_type="mock": 模拟模式 (无需 GPU, 用于测试)
+    - OpenAIGenerator (legacy): 兼容模式
+
+运行:
+    python qa_no_retrieval.py           # 正常运行 (需要模型/GPU)
+    python qa_no_retrieval.py --mock    # Mock 模式 (无需 GPU)
 """
 
 import time
@@ -14,6 +24,9 @@ from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.middleware.operators.rag import OpenAIGenerator, QAPromptor
+
+# 全局 mock 模式标志
+_USE_MOCK = False
 
 
 class TerminalInputSource(SourceFunction):
@@ -93,14 +106,31 @@ def create_qa_pipeline():
 
     # 启动欢迎提示
     print("💬 QA助手已启动！输入问题后按回车")
+    if _USE_MOCK:
+        print("🧪 Mock 模式: 使用模拟 LLM (无需 GPU)")
 
     try:
+        # 选择 Generator
+        if _USE_MOCK:
+            # 使用 SageLLMGenerator 的 mock 后端
+            from sage.middleware.operators import SageLLMGenerator
+
+            generator_class = SageLLMGenerator
+            generator_config = {
+                "backend_type": "mock",
+                "model_id": config.get("generator", {}).get("vllm", {}).get("model_id", "mock-model"),
+            }
+        else:
+            # 使用配置中的 OpenAIGenerator
+            generator_class = OpenAIGenerator
+            generator_config = config["generator"]["vllm"]
+
         # 构建无界流处理管道
         (
             env.from_source(TerminalInputSource)
             .map(QuestionProcessor)
             .map(QAPromptor, config["promptor"])
-            .map(OpenAIGenerator, config["generator"]["vllm"])
+            .map(generator_class, generator_config)
             .map(AnswerFormatter)
             .sink(ConsoleSink)
         )
@@ -122,8 +152,21 @@ def create_qa_pipeline():
 
 
 if __name__ == "__main__":
+    import argparse
     import os
     import sys
+
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="QA Pipeline Demo")
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="使用 mock 模式运行 (无需 GPU/模型)",
+    )
+    args, remaining = parser.parse_known_args()
+
+    # 设置全局 mock 标志
+    _USE_MOCK = args.mock
 
     # 检查是否在测试模式下运行
     if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":

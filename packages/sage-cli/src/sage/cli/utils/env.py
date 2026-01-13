@@ -105,7 +105,8 @@ def get_api_key(service: str, *, required: bool = True) -> str | None:
         "siliconcloud": "SILICONCLOUD_API_KEY",
         "jina": "JINA_API_KEY",
         "alibaba": "ALIBABA_API_KEY",
-        "vllm": "VLLM_API_KEY",
+        "vllm": "VLLM_API_KEY",  # Kept for compatibility
+        "sagellm": "SAGELLM_MODEL_PATH",
     }
 
     env_var = mapping.get(service.lower())
@@ -137,7 +138,14 @@ def check_environment_status() -> dict[str, object]:
         "SILICONCLOUD_API_KEY",
         "JINA_API_KEY",
         "ALIBABA_API_KEY",
-        "VLLM_API_KEY",
+        "VLLM_API_KEY",  # Kept for compatibility
+    ]
+
+    # sagellm environment variables
+    sagellm_env_vars = [
+        "SAGELLM_MODEL_PATH",   # Default model path
+        "SAGELLM_BACKEND",      # Backend type: auto/mock/cuda/ascend
+        "SAGELLM_MODEL_ROOT",   # Model cache directory (~/.sage/models/sagellm)
     ]
 
     return {
@@ -153,6 +161,13 @@ def check_environment_status() -> dict[str, object]:
                 "length": len(os.getenv(key) or ""),
             }
             for key in api_keys
+        },
+        "sagellm": {
+            var: {
+                "set": os.getenv(var) is not None,
+                "value": os.getenv(var, ""),
+            }
+            for var in sagellm_env_vars
         },
     }
 

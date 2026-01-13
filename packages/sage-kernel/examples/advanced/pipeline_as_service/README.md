@@ -34,32 +34,50 @@ pattern so you can see how pipelines and services compose in more realistic setu
 From the repository root you can run any scenario. For example:
 
 ```bash
-python examples/service/pipeline_as_service/hello_pipeline_as_service.py
-python examples/service/pipeline_as_service/async_client_pipeline_as_service.py
-python examples/service/pipeline_as_service/multi_client_pipeline_as_service.py
-python examples/service/pipeline_as_service/qa_pipeline_as_service.py
+python packages/sage-kernel/examples/advanced/pipeline_as_service/hello_pipeline_as_service.py
+python packages/sage-kernel/examples/advanced/pipeline_as_service/async_client_pipeline_as_service.py
+python packages/sage-kernel/examples/advanced/pipeline_as_service/multi_client_pipeline_as_service.py
+python packages/sage-kernel/examples/advanced/pipeline_as_service/qa_pipeline_as_service.py
 ```
 
 You should see log output from both the service-backed pipeline and the client pipelines, including
 enrichment, scoring, service replies, and a shutdown acknowledgement once all work completes.
 
-### Offline/mock QA runs
+### Offline/mock QA runs (default)
 
-If you don't have an OpenAI-compatible endpoint handy, switch the QA pipeline to a mock generator
-that fabricates answers while exercising the same pipeline/service wiring:
+The QA pipeline now uses **SageLLMGenerator** with mock backend by default, allowing it to run
+completely offline without any external services:
 
 ```bash
-SAGE_QA_GENERATOR=mock python examples/service/pipeline_as_service/qa_pipeline_as_service.py
+# Default: uses mock backend (no external services required)
+python packages/sage-kernel/examples/advanced/pipeline_as_service/qa_pipeline_as_service.py
+
+# Explicitly use mock backend
+SAGE_QA_GENERATOR=mock python packages/sage-kernel/examples/advanced/pipeline_as_service/qa_pipeline_as_service.py
 ```
 
 The mock generator emits friendly placeholder replies so you can experience the request/response
-flow without external dependencies. By default the example selects the mock generator unless you
-explicitly export `SAGE_QA_GENERATOR` or point it to a concrete profile. You can also pick a
-different generator profile via `SAGE_QA_GENERATOR_PROFILE` (e.g. `local`, `remote`, `vllm`) to
-match entries from `examples/config/config_source.yaml`.
+flow without external dependencies.
 
-> **Heads up**: When the script detects that the selected OpenAI/HF profile is missing required
-> fields (like `api_key` or `base_url`), it automatically falls back to the mock generator and
-> prints a warning describing how to point it at a real endpoint. Update
-> `examples/config/config_source.yaml` or export `SAGE_QA_GENERATOR=mock` to control the behaviour
-> explicitly.
+### Using a real LLM
+
+To use a real LLM backend, configure the following environment variables:
+
+```bash
+# Use SageLLM with auto-detected backend (cuda/ascend)
+SAGE_QA_GENERATOR=sagellm \
+SAGE_QA_BACKEND=auto \
+SAGE_QA_MODEL_PATH=Qwen/Qwen2.5-7B-Instruct \
+python packages/sage-kernel/examples/advanced/pipeline_as_service/qa_pipeline_as_service.py
+
+# Additional configuration options
+SAGE_QA_MAX_TOKENS=1024        # Maximum tokens to generate
+SAGE_QA_TEMPERATURE=0.7        # Sampling temperature
+SAGE_QA_TOP_P=0.95             # Nucleus sampling parameter
+```
+
+Supported `SAGE_QA_BACKEND` values:
+- `mock` (default): No external services, returns placeholder responses
+- `auto`: Auto-detect available hardware (cuda/ascend)
+- `cuda`: Use CUDA GPU acceleration
+- `ascend`: Use Huawei Ascend NPU

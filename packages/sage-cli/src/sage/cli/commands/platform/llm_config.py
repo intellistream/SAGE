@@ -75,7 +75,7 @@ def auto_update_generator(
     prefer: str | None = typer.Option(
         None,
         "--prefer",
-        help="优先检测的服务类型（ollama / vllm）",
+        help="优先检测的服务类型（ollama / sagellm）",
     ),
     model_name: str | None = typer.Option(
         None,
@@ -87,13 +87,13 @@ def auto_update_generator(
         None,
         "--section",
         "-s",
-        help="目标 generator 子配置（remote / vllm 等），默认依据服务类型",
+        help="目标 generator 子配置（remote / sagellm 等），默认依据服务类型",
     ),
     auth_token: str | None = typer.Option(
         None,
         "--auth-token",
         "-t",
-        help="用于vLLM服务的认证token（如果需要）",
+        help="用于LLM服务的认证token（如果需要）",
     ),
     assume_yes: bool = typer.Option(
         False,
@@ -120,8 +120,8 @@ def auto_update_generator(
         raise typer.Exit(1)
 
     prefer_normalized = prefer.lower() if prefer else None
-    if prefer_normalized and prefer_normalized not in {"ollama", "vllm"}:
-        typer.echo("❌ --prefer 仅支持 ollama 或 vllm。")
+    if prefer_normalized and prefer_normalized not in {"ollama", "sagellm"}:
+        typer.echo("❌ --prefer 仅支持 ollama 或 sagellm。")
         raise typer.Exit(1)
 
     detections = detect_all_services(prefer_normalized, auth_token=auth_token)

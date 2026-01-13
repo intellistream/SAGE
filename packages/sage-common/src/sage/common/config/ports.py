@@ -73,9 +73,14 @@ class SagePorts:
     EDGE_DEFAULT: ClassVar[int] = 8899  # Edge aggregator (mounts LLM gateway by default)
 
     # =========================================================================
-    # LLM Services (vLLM, etc.)
+    # sageLLM (Unified LLM inference engine)
     # =========================================================================
-    LLM_DEFAULT: ClassVar[int] = 8001  # SAGE recommended vLLM port
+    SAGELLM_DEFAULT: ClassVar[int] = 8001  # sageLLM default port (same as LLM_DEFAULT)
+
+    # =========================================================================
+    # LLM Services (vLLM, etc.) - Legacy compatibility
+    # =========================================================================
+    LLM_DEFAULT: ClassVar[int] = 8001  # vLLM port (deprecated, use SAGELLM_DEFAULT)
     LLM_SECONDARY: ClassVar[int] = 8002  # Secondary LLM instance (if needed)
     LLM_WSL_FALLBACK: ClassVar[int] = 8901  # Fallback for WSL2 (same as BENCHMARK_LLM)
 
@@ -234,7 +239,7 @@ class SagePorts:
         services = [
             ("Gateway", cls.GATEWAY_DEFAULT),
             ("Edge", cls.EDGE_DEFAULT),
-            ("LLM (Default)", cls.LLM_DEFAULT),
+            ("sageLLM", cls.SAGELLM_DEFAULT),
             ("LLM (WSL/Bench)", cls.LLM_WSL_FALLBACK),
             ("Embedding", cls.EMBEDDING_DEFAULT),
             ("Studio Frontend", cls.STUDIO_FRONTEND),
@@ -258,7 +263,8 @@ class SagePorts:
 
 
 # Convenience aliases
-DEFAULT_LLM_PORT = SagePorts.LLM_DEFAULT
+DEFAULT_SAGELLM_PORT = SagePorts.SAGELLM_DEFAULT
+DEFAULT_LLM_PORT = SagePorts.LLM_DEFAULT  # Legacy alias
 DEFAULT_EMBEDDING_PORT = SagePorts.EMBEDDING_DEFAULT
 DEFAULT_BENCHMARK_LLM_PORT = SagePorts.BENCHMARK_LLM
 

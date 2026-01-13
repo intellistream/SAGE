@@ -20,7 +20,8 @@ Directory Structure:
 
     $XDG_DATA_HOME/sage/       (~/.local/share/sage/)
     ├── models/                # Downloaded models
-    │   └── vllm/
+    │   ├── sagellm/           # sageLLM models (preferred)
+    │   └── vllm/              # vLLM models (legacy)
     ├── sessions/              # Gateway sessions
     ├── vector_db/             # Vector database indices
     └── finetune/              # Fine-tuning outputs
@@ -33,6 +34,7 @@ Directory Structure:
 
     $XDG_CACHE_HOME/sage/      (~/.cache/sage/)
     ├── huggingface/           # HuggingFace cache
+    ├── sagellm/               # sageLLM cache
     ├── pip/                   # Pip cache
     └── chat/                  # Chat index cache
 
@@ -162,7 +164,14 @@ class SageUserPaths:
         # Config subdirectories (none needed, flat structure)
 
         # Data subdirectories
-        for subdir in ["models", "models/vllm", "sessions", "vector_db", "finetune"]:
+        for subdir in [
+            "models",
+            "models/sagellm",  # sageLLM models (preferred)
+            "models/vllm",     # vLLM models (legacy)
+            "sessions",
+            "vector_db",
+            "finetune",
+        ]:
             (self.data_dir / subdir).mkdir(parents=True, exist_ok=True)
 
         # State subdirectories
@@ -170,7 +179,7 @@ class SageUserPaths:
             (self.state_dir / subdir).mkdir(parents=True, exist_ok=True)
 
         # Cache subdirectories
-        for subdir in ["huggingface", "chat"]:
+        for subdir in ["huggingface", "sagellm", "chat"]:
             (self.cache_dir / subdir).mkdir(parents=True, exist_ok=True)
 
     # === Base directories ===
@@ -221,8 +230,19 @@ class SageUserPaths:
 
     @property
     def vllm_models_dir(self) -> Path:
-        """vLLM models directory (~/.local/share/sage/models/vllm/)"""
+        """vLLM models directory (~/.local/share/sage/models/vllm/)
+
+        DEPRECATED: Use sagellm_models_dir instead.
+        """
         return self.data_dir / "models" / "vllm"
+
+    @property
+    def sagellm_models_dir(self) -> Path:
+        """sageLLM models directory (~/.local/share/sage/models/sagellm/)
+
+        Preferred location for sageLLM engine models.
+        """
+        return self.data_dir / "models" / "sagellm"
 
     @property
     def sessions_dir(self) -> Path:
@@ -270,6 +290,14 @@ class SageUserPaths:
     def chat_cache_dir(self) -> Path:
         """Chat index cache directory (~/.cache/sage/chat/)"""
         return self.cache_dir / "chat"
+
+    @property
+    def sagellm_cache_dir(self) -> Path:
+        """sageLLM cache directory (~/.cache/sage/sagellm/)
+
+        Cache for sageLLM engine (tokenizers, compiled kernels, etc.).
+        """
+        return self.cache_dir / "sagellm"
 
 
 # Singleton instance for convenience

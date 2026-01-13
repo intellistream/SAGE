@@ -6,6 +6,11 @@ invokes the promptor and generator, and then streams the answer back to
 interactive driver pipelines. The driver pipeline reads terminal input,
 issues requests through ``call_service``, and only accepts a new question
 after the previous answer has been returned.
+
+**Key updates (2025-01)**:
+- Replaced vLLM/OpenAI service calls with SageLLMGenerator
+- Added mock mode support (default, no external services required)
+- Example can run offline without any LLM endpoint
 """
 
 from __future__ import annotations
@@ -24,12 +29,12 @@ try:  # pragma: no cover - allow running directly from source tree
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
     from sage.common.core.functions.source_function import SourceFunction
-    from sage.common.utils.config.loader import load_config
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.communication.packet import StopSignal
-    from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator, QAPromptor
+    from sage.middleware.operators.llm import SageLLMGenerator
+    from sage.middleware.operators.rag import QAPromptor
 except ModuleNotFoundError:  # pragma: no cover - local convenience path
     here = Path(__file__).resolve()
     repo_root: Path | None = None
@@ -53,16 +58,27 @@ except ModuleNotFoundError:  # pragma: no cover - local convenience path
     from sage.common.core.functions.map_function import MapFunction
     from sage.common.core.functions.sink_function import SinkFunction
     from sage.common.core.functions.source_function import SourceFunction
-    from sage.common.utils.config.loader import load_config
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
     from sage.kernel.api.service.base_service import BaseService
     from sage.kernel.runtime.communication.packet import StopSignal
-    from sage.middleware.operators.rag import HFGenerator, OpenAIGenerator, QAPromptor
+    from sage.middleware.operators.llm import SageLLMGenerator
+    from sage.middleware.operators.rag import QAPromptor
 
 from pipeline_bridge import PipelineBridge
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "config_source.yaml"
+# Default SageLLM configuration for mock mode
+DEFAULT_GENERATOR_CONFIG = {
+    "backend_type": "mock",
+    "model_path": "mock-model",
+    "max_tokens": 512,
+    "temperature": 0.7,
+}
+
+# Default promptor configuration
+DEFAULT_PROMPTOR_CONFIG = {
+    "template": "Answer the following question:\n\nQuestion: {query}\n\nAnswer:",
+}
 
 
 def _extract_answer_text(generated: Any) -> str:
@@ -98,8 +114,8 @@ def _extract_answer_text(generated: Any) -> str:
                     if "text" in choice and choice.get("text"):
                         return str(choice.get("text"))
 
-        # vLLM and other adapters sometimes return plain fields
-        for key in ("output_text", "content", "answer", "generated_text"):
+        # SageLLM and other adapters sometimes return plain fields
+        for key in ("output_text", "content", "answer", "generated_text", "text"):
             if key in generated and generated[key]:
                 return str(generated[key])
 
@@ -108,8 +124,94 @@ def _extract_answer_text(generated: Any) -> str:
     return str(generated)
 
 
+class SageLLMGeneratorWrapper(MapFunction):
+    """Wrapper for SageLLMGenerator that integrates with the QA pipeline.
+
+    This wrapper adapts SageLLMGenerator to work with the pipeline's data format.
+    When backend_type='mock', it uses the mock backend which requires no external services.
+    """
+
+    def __init__(self, config: dict[str, Any] | None = None, **kwargs):
+        super().__init__(**kwargs)
+        config = config or {}
+
+        # Default to mock backend for offline runs
+        backend_type = config.get("backend_type", "mock")
+        model_path = config.get("model_path", "mock-model")
+        max_tokens = config.get("max_tokens", 512)
+        temperature = config.get("temperature", 0.7)
+        top_p = config.get("top_p", 0.95)
+
+        # Create SageLLMGenerator with the configured backend
+        self._generator = SageLLMGenerator(
+            backend_type=backend_type,
+            model_path=model_path,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+        )
+        self._backend_type = backend_type
+
+    @property
+    def backend_type(self) -> str:
+        return self._backend_type
+
+    def execute(self, data: Any):
+        if data is None:
+            return None
+
+        # Extract original data and prompt from pipeline format
+        if isinstance(data, (list, tuple)) and len(data) >= 2:
+            original_data = data[0]
+            prompt = data[1]
+        else:
+            original_data = {}
+            prompt = data
+
+        # Extract query for context
+        if isinstance(original_data, dict):
+            query = original_data.get("query") or original_data.get("question") or ""
+        else:
+            query = str(original_data)
+
+        # Call SageLLMGenerator
+        try:
+            result = self._generator.execute(prompt)
+        except Exception as e:
+            # Return error in a structured format
+            self.logger.exception("Generator execution failed", exc_info=e)
+            if isinstance(original_data, dict):
+                error_result = dict(original_data)
+            else:
+                error_result = {"query": query}
+            error_result["error"] = str(e)
+            return error_result
+
+        # Format output to match pipeline expectations
+        if isinstance(result, dict):
+            generated = result.get("text", result.get("generated", ""))
+        elif isinstance(result, str):
+            generated = result
+        else:
+            generated = str(result)
+
+        if isinstance(original_data, dict):
+            output = dict(original_data)
+        else:
+            output = {"query": query, "prompt": prompt}
+
+        output["generated"] = generated
+        output.setdefault("answer", generated)
+        output.setdefault("query", query)
+        return output
+
+
 class MockGenerator(MapFunction):
-    """Lightweight generator that returns canned answers for offline demos."""
+    """Lightweight generator that returns canned answers for offline demos.
+
+    Note: For production use, prefer SageLLMGeneratorWrapper with backend_type='mock'.
+    This class is kept for backward compatibility.
+    """
 
     def __init__(self, config: dict[str, Any] | None = None, **kwargs):
         super().__init__(**kwargs)
@@ -482,103 +584,71 @@ class TerminalAnswerSink(SinkFunction):
         return payload
 
 
-def _load_runtime_config() -> dict[str, Any]:
-    load_dotenv(override=False)
-    if not CONFIG_PATH.exists():
-        raise FileNotFoundError(
-            f"Unable to locate QA config at {CONFIG_PATH}. Did you sync the examples directory?"
-        )
-    return load_config(CONFIG_PATH)
+def _resolve_generator() -> tuple[type, dict[str, Any], str]:
+    """Determine which generator operator to use based on environment.
 
-
-def _resolve_generator(generator_section: dict[str, Any]):
-    """Determine which generator operator to use based on config/environment.
+    Uses SageLLMGeneratorWrapper with configurable backend:
+    - mock (default): No external services required, uses mock backend
+    - auto: Auto-detect available backend (cuda/ascend/mock)
+    - cuda: Use CUDA GPU acceleration
+    - sagellm: Use SageLLM unified engine
 
     Returns (generator_cls, generator_config, notice_message).
     """
+    load_dotenv(override=False)
 
-    profile_override = os.getenv("SAGE_QA_GENERATOR_PROFILE")
-    selected_config: dict[str, Any] = {}
+    # Check environment variables for generator configuration
+    generator_type = os.getenv("SAGE_QA_GENERATOR", "mock").lower()
+    backend_type = os.getenv("SAGE_QA_BACKEND", "mock").lower()
+    model_path = os.getenv("SAGE_QA_MODEL_PATH", "mock-model")
 
-    selected_profile = None
-    if profile_override and profile_override in generator_section:
-        selected_config = dict(generator_section[profile_override])
-        selected_profile = profile_override
-    else:
-        for candidate in ("vllm", "remote", "local"):
-            if candidate in generator_section:
-                selected_config = dict(generator_section[candidate])
-                selected_profile = candidate
-                break
-
-    method_override = os.getenv("SAGE_QA_GENERATOR")
-    if method_override:
-        method = method_override.lower()
-    elif profile_override:
-        method = (selected_config.get("method") or "openai").lower()
-    else:
-        method = "mock"
-
-    def _mock_fallback(reason: str):
+    # Map legacy generator types to new backend types
+    if generator_type in {"mock", "stub"}:
+        backend_type = "mock"
         notice = (
-            f"⚠️  Falling back to MockGenerator: {reason}. "
-            "Set SAGE_QA_GENERATOR=mock or update examples/config/config_source.yaml to use a real endpoint."
+            "ℹ️  Using SageLLMGenerator with mock backend (offline mode).\n"
+            "    To use a real LLM, set SAGE_QA_GENERATOR=sagellm and SAGE_QA_BACKEND=auto"
         )
-        return MockGenerator, {"responses": selected_config.get("responses")}, notice
+    elif generator_type in {"sagellm", "auto"}:
+        if backend_type == "mock":
+            backend_type = "auto"  # Upgrade to auto if sagellm requested
+        notice = f"ℹ️  Using SageLLMGenerator with backend={backend_type}, model={model_path}"
+    else:
+        # Unknown type, fall back to mock
+        backend_type = "mock"
+        notice = (
+            f"⚠️  Unknown generator type '{generator_type}', falling back to mock.\n"
+            "    Supported types: mock, sagellm, auto"
+        )
 
-    if method in {"mock", "stub"}:
-        origin = method_override or selected_profile
-        if origin:
-            notice = (
-                "ℹ️  Using MockGenerator. Configure SAGE_QA_GENERATOR or the generator section "
-                "in examples/config/config_source.yaml to call a real model."
-            )
-        else:
-            notice = (
-                "ℹ️  Defaulting to MockGenerator. To reach a real LLM, set SAGE_QA_GENERATOR="
-                "openai|hf and ensure the matching profile in examples/config/config_source.yaml is valid."
-            )
-        return MockGenerator, {"responses": selected_config.get("responses")}, notice
+    config = {
+        "backend_type": backend_type,
+        "model_path": model_path,
+        "max_tokens": int(os.getenv("SAGE_QA_MAX_TOKENS", "512")),
+        "temperature": float(os.getenv("SAGE_QA_TEMPERATURE", "0.7")),
+        "top_p": float(os.getenv("SAGE_QA_TOP_P", "0.95")),
+    }
 
-    if method == "openai":
-        if not selected_config:
-            return _mock_fallback("no OpenAI-compatible configuration block found")
-        # 允许 api_key 为空字符串，Generator 会从环境变量读取
-        # Allow empty api_key, Generator will read from environment variables
-        api_key = selected_config.get("api_key")
-        if api_key is None:
-            return _mock_fallback("api_key field missing for OpenAI-compatible generator")
-        if not selected_config.get("base_url"):
-            return _mock_fallback("missing base_url for OpenAI-compatible generator")
-        return OpenAIGenerator, selected_config, ""
-
-    if method == "hf":
-        if not selected_config:
-            return _mock_fallback("no HuggingFace configuration block found")
-        if not selected_config.get("model_name"):
-            return _mock_fallback("missing model_name for HuggingFace generator")
-        return HFGenerator, selected_config, ""
-
-    return _mock_fallback(f"unsupported generator method '{method}'")
+    return SageLLMGeneratorWrapper, config, notice
 
 
 def main():
     CustomLogger.disable_global_console_debug()
 
-    config = _load_runtime_config()
     bridge = PipelineBridge()
     env = LocalEnvironment("qa_pipeline_service")
 
     env.register_service("qa_pipeline", QAPipelineService, bridge)
 
-    generator_cls, generator_conf, generator_notice = _resolve_generator(
-        config.get("generator", {})
-    )
+    generator_cls, generator_conf, generator_notice = _resolve_generator()
+
+    # Use default promptor configuration
+    promptor_config = DEFAULT_PROMPTOR_CONFIG.copy()
 
     (
         env.from_source(ServiceDrivenQuestionSource, bridge)
         .map(QuestionSanitizer)
-        .map(PromptStage, config["promptor"])
+        .map(PromptStage, promptor_config)
         .map(GeneratorStage, generator_cls, generator_conf)
         .map(PackageAnswer)
         .sink(PublishAnswerSink)

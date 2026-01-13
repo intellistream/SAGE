@@ -1,5 +1,63 @@
 # GitHub Actions Workflows
 
+## Workflow Overview
+
+| Workflow | 用途 | 触发条件 | 必须通过 |
+|----------|------|----------|---------|
+| `ci-build-test.yml` | 构建、测试、覆盖率 | PR, push | ✅ |
+| `ci-sagellm-test.yml` | SageLLM mock/CUDA 测试 | PR, push | ✅ (mock) |
+| `ci-code-quality.yml` | 代码质量检查 | PR, push | ✅ |
+| `cd-publish-pypi.yml` | 发布到 PyPI | main/main-dev push | - |
+| `util-branch-protection.yml` | PR 分支保护 | PR to main | ✅ |
+
+---
+
+## SageLLM Test Workflow
+
+**文件**: `ci-sagellm-test.yml`
+
+专门测试 SageLLM 推理引擎的 mock 和 CUDA 后端。
+
+### Job 1: SageLLM Mock Backend (必须通过)
+
+所有 PR 必须通过此测试，验证：
+- SageLLM mock backend 正常工作
+- `SageLLMGenerator` 与 mock backend 集成
+- Agentic operators (Planning, Timing, ToolSelection) 与 mock backend 兼容
+
+```yaml
+# 测试命令
+pytest -v -k "sagellm or mock or SageLLM or Mock" packages/
+```
+
+### Job 2: SageLLM CUDA Backend (可选)
+
+GPU 测试，仅在以下情况运行：
+- 手动触发 workflow 并选择 `run_cuda_tests: true`
+- Push 到 `main` 分支
+
+**要求**: Self-hosted runner with `[self-hosted, gpu, cuda]` labels
+
+### 手动触发 CUDA 测试
+
+```bash
+# 使用 GitHub CLI
+gh workflow run ci-sagellm-test.yml \
+  -f run_cuda_tests=true
+
+# 或在 GitHub UI:
+# Actions → SageLLM Mock & CUDA Tests → Run workflow → ✅ Run CUDA tests
+```
+
+### Branch Protection 要求
+
+在 Repository Settings → Branches → Branch protection rules 中，添加：
+
+- **Required status checks**: `SageLLM Mock Backend`
+- 这确保所有 PR 必须通过 sagellm mock 测试
+
+---
+
 ## Publish to PyPI Workflow
 
 自动构建和发布 SAGE 包到 PyPI 或 TestPyPI。

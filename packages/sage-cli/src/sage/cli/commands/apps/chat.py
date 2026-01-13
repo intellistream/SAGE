@@ -76,7 +76,9 @@ DEFAULT_INDEX_NAME = "docs-public"
 DEFAULT_CHUNK_SIZE = 800
 DEFAULT_CHUNK_OVERLAP = 160
 DEFAULT_TOP_K = 4
-DEFAULT_BACKEND = "auto"  # 自动检测本地 LLM 服务，若无则回退 mock
+DEFAULT_ENGINE = "sagellm"  # 默认使用 sagellm 引擎
+DEFAULT_BACKEND = "auto"  # 自动检测后端: auto/mock/cuda/ascend/...
+DEFAULT_MODEL = ""  # 默认模型路径（空字符串表示使用引擎默认值）
 # 默认使用本地 embedding server（与 sage-gateway 统一）
 DEFAULT_EMBEDDING_METHOD = "openai"  # 使用 OpenAI 兼容接口连接本地 embedding server
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-m3"  # 默认 embedding 模型
@@ -688,7 +690,10 @@ class ResponseGenerator:
         temperature: float = 0.2,
         finetune_model: str | None = None,
         finetune_port: int = DEFAULT_FINETUNE_PORT,
+        engine: str = "sagellm",
+        stream: bool = False,
     ) -> None:
+        self.engine = engine.lower()
         self.backend = backend.lower()
         self.model = model
         self.base_url = base_url
@@ -697,11 +702,16 @@ class ResponseGenerator:
         self.finetune_model = finetune_model
         self.finetune_port = finetune_port
         self._llm_server = None  # 用于追踪 sageLLM 服务
+        self._sagellm_generator = None  # 用于追踪 SageLLMGenerator
+        self._stream = stream
 
-        if self.backend == "mock":
+        # 根据 engine 选择初始化方式
+        if self.engine == "sagellm":
+            self._setup_sagellm_engine()
+        elif self.backend == "mock":
             self.client = None
         elif self.backend == "auto":
-            # 自动检测本地 LLM 服务
+            # 自动检测本地 LLM 服务 (vllm 引擎的 auto 模式)
             self._setup_auto_backend()
         elif self.backend == "finetune":
             # 使用微调模型
@@ -736,11 +746,57 @@ class ResponseGenerator:
             except Exception as exc:  # pragma: no cover - runtime check
                 raise RuntimeError(f"无法初始化 UnifiedInferenceClient: {exc}") from exc
 
+    def _setup_sagellm_engine(self) -> None:
+        """使用 SageLLMGenerator 初始化 sagellm 引擎。
+
+        SageLLMGenerator 是 SAGE 原生的 LLM 推理算子，支持:
+        - auto: 自动检测后端 (mock/cuda/ascend)
+        - mock: 模拟后端（测试用）
+        - cuda: CUDA GPU 后端
+        - ascend: 华为 Ascend NPU 后端
+        """
+        try:
+            from sage.middleware.operators.llm import SageLLMGenerator
+
+            # 构建 SageLLMGenerator
+            generator_kwargs = {
+                "backend_type": self.backend,
+                "temperature": self.temperature,
+            }
+            if self.model:
+                generator_kwargs["model_path"] = self.model
+
+            self._sagellm_generator = SageLLMGenerator(**generator_kwargs)
+            self.client = None  # sagellm 引擎不使用 UnifiedInferenceClient
+
+            # 显示配置信息
+            backend_display = self._sagellm_generator.backend_type
+            model_display = self._sagellm_generator.model_path or "(默认)"
+            console.print(
+                f"[green]✅ SageLLM 引擎已初始化[/green]\n"
+                f"   后端: {backend_display}\n"
+                f"   模型: {model_display}"
+            )
+        except ImportError as e:
+            console.print(
+                f"[red]❌ 无法导入 SageLLMGenerator: {e}[/red]\n"
+                "[dim]请确保已安装 sage-middleware: pip install -e packages/sage-middleware[/dim]"
+            )
+            raise RuntimeError(f"SageLLMGenerator 不可用: {e}") from e
+        except Exception as e:
+            console.print(f"[red]❌ SageLLM 引擎初始化失败: {e}[/red]")
+            raise RuntimeError(f"SageLLM 引擎初始化失败: {e}") from e
+
     def _setup_auto_backend(self) -> None:
-        """自动检测并配置最佳可用的 LLM 后端。
+        """[DEPRECATED] 已废弃的自动检测后端方法。
 
         优先级: 本地 LLM 服务 → 云端 API → mock 回退
+
+        请使用 --engine=sagellm 替代。
         """
+        console.print(
+            "[yellow]⚠️  vllm 引擎已废弃，推荐使用 --engine=sagellm[/yellow]"
+        )
         import os
 
         import requests
@@ -932,7 +988,16 @@ class ResponseGenerator:
             raise RuntimeError(f"无法连接到 LLM 服务: {exc}") from exc
 
     def cleanup(self) -> None:
-        """清理资源（如果启动了 LLM 服务）"""
+        """清理资源（如果启动了 LLM 服务或 SageLLMGenerator）"""
+        # 清理 SageLLMGenerator
+        if hasattr(self, "_sagellm_generator") and self._sagellm_generator:
+            try:
+                self._sagellm_generator.shutdown()
+            except Exception:  # noqa: S110
+                pass
+            self._sagellm_generator = None
+
+        # 清理 LLM 服务
         if hasattr(self, "_llm_server") and self._llm_server:
             try:
                 console.print("\n[yellow]⏳ 正在关闭 LLM 服务...[/yellow]")
@@ -949,9 +1014,15 @@ class ResponseGenerator:
         references: Sequence[dict[str, str]],
         stream: bool = False,
     ) -> str:
+        # sagellm 引擎使用 SageLLMGenerator
+        if self.engine == "sagellm" and self._sagellm_generator:
+            return self._sagellm_answer(question, contexts, references, stream)
+
+        # vllm 引擎的 mock 模式
         if self.backend == "mock":
             return self._mock_answer(question, contexts, references)
 
+        # vllm 引擎使用 UnifiedInferenceClient
         if not self.client:
             raise RuntimeError("Client not initialized")
         messages = build_prompt(question, contexts)
@@ -968,6 +1039,49 @@ class ResponseGenerator:
             return str(response)
         except Exception as exc:
             raise RuntimeError(f"调用语言模型失败: {exc}") from exc
+
+    def _sagellm_answer(
+        self,
+        question: str,
+        contexts: Sequence[str],
+        references: Sequence[dict[str, str]],
+        stream: bool = False,
+    ) -> str:
+        """使用 SageLLMGenerator 生成回答。"""
+        if not self._sagellm_generator:
+            raise RuntimeError("SageLLMGenerator not initialized")
+
+        # 构建 prompt
+        messages = build_prompt(question, contexts)
+        # 将 messages 转换为单一 prompt 字符串
+        prompt_parts = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "system":
+                prompt_parts.append(f"系统指令: {content}")
+            elif role == "user":
+                prompt_parts.append(f"用户: {content}")
+            elif role == "assistant":
+                prompt_parts.append(f"助手: {content}")
+        prompt = "\n\n".join(prompt_parts) + "\n\n助手:"
+
+        try:
+            # SageLLMGenerator.execute() 接受多种格式输入，返回 dict
+            # 使用 dict 格式以传递额外参数
+            result = self._sagellm_generator.execute({
+                "prompt": prompt,
+                "options": {
+                    "max_tokens": 768,
+                    "temperature": self.temperature,
+                },
+            })
+            # 结果是 dict，包含 text 字段
+            if isinstance(result, dict):
+                return result.get("text", "")
+            return str(result)
+        except Exception as exc:
+            raise RuntimeError(f"SageLLM 生成失败: {exc}") from exc
 
     @staticmethod
     def _mock_answer(
@@ -1625,6 +1739,7 @@ def interactive_chat(
     stream: bool,
     finetune_model: str | None = None,
     finetune_port: int = DEFAULT_FINETUNE_PORT,
+    engine: str = DEFAULT_ENGINE,
 ) -> None:
     embedder: Any | None = None
     db: Any | None = None
@@ -1635,6 +1750,8 @@ def interactive_chat(
         api_key,
         finetune_model=finetune_model,
         finetune_port=finetune_port,
+        engine=engine,
+        stream=stream,
     )
     pipeline_coordinator = PipelineChatCoordinator(backend, model, base_url, api_key)
 
@@ -1819,15 +1936,23 @@ def main(
         max=20,
         help="检索时返回的参考文档数量",
     ),
+    engine: str = typer.Option(
+        DEFAULT_ENGINE,
+        "--engine",
+        "-e",
+        help="LLM 推理引擎: sagellm (默认) / vllm (已废弃)",
+    ),
     backend: str = typer.Option(
         DEFAULT_BACKEND,
         "--backend",
-        help="回答生成后端: mock / openai / compatible / finetune / vllm / ollama",
+        "-b",
+        help="后端类型: auto (自动检测) / mock / cuda / ascend / ... (sagellm 引擎); mock/openai/finetune/... (vllm 引擎)",
     ),
     model: str = typer.Option(
-        "qwen-max",
+        DEFAULT_MODEL,
         "--model",
-        help="回答生成模型名称（finetune backend 会自动从配置读取）",
+        "-m",
+        help="HuggingFace 模型路径（空字符串表示使用引擎默认值）",
     ),
     base_url: str | None = typer.Option(
         None,
@@ -1875,6 +2000,7 @@ def main(
         stream=stream,
         finetune_model=finetune_model,
         finetune_port=finetune_port,
+        engine=engine,
     )
 
 

@@ -38,7 +38,7 @@ license = {text = "MIT"}
 
 # 核心依赖 - 包含所有基础功能所需的外部依赖
 dependencies = [
-    # 明确指定numpy版本以避免冲突（与vllm/numba兼容）
+    # 明确指定numpy版本以避免冲突（与numba等兼容）
     "numpy>=1.26.0,<2.3.0",
 
     # ========== 课题组算法库（独立可选依赖）==========
@@ -92,7 +92,7 @@ dependencies = [
 
     # ========== LLM & Finetune 核心依赖 (原可选依赖，现为必选) ==========
     # Transformers 生态
-    "transformers>=4.52.0,<4.54.0",  # 兼容 vllm 0.9.2 (避免 aimv2 配置冲突)
+    "transformers>=4.52.0,<4.54.0",  # 兼容 sagellm-backend CUDA engine
     "tokenizers>=0.21.0,<0.24.0",   # 兼容 transformers 4.52-4.57
 
     # LoRA/PEFT 支持

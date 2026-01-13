@@ -1390,7 +1390,7 @@ def create_embedding_pipeline(
         "hf",
         "--embedding-method",
         "-e",
-        help="Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/vllm)",
+        help="Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/sagellm)",
     ),
     embedding_model: str | None = typer.Option(
         None,
@@ -1398,10 +1398,15 @@ def create_embedding_pipeline(
         "-m",
         help="Embedding 模型名称（未指定则使用默认）",
     ),
+    engine: str = typer.Option(
+        "sagellm",
+        "--engine",
+        help="推理引擎 (仅支持 sagellm)",
+    ),
     use_vllm: bool = typer.Option(
         False,
         "--vllm",
-        help="使用 vLLM 服务进行高性能 embedding",
+        help="[已移除] vllm 已在 v0.3.0 移除",
     ),
     llm_model: str | None = typer.Option(
         None,
@@ -1464,8 +1469,8 @@ def create_embedding_pipeline(
         # 创建 HuggingFace RAG pipeline
         sage pipeline create-embedding -t rag -e hf -m BAAI/bge-small-zh-v1.5
 
-        # 创建 vLLM 高性能知识库构建
-        sage pipeline create-embedding -t knowledge-base --vllm
+        # 创建 sageLLM 高性能知识库构建（默认引擎）
+        sage pipeline create-embedding -t knowledge-base
 
         # 创建混合检索 pipeline
         sage pipeline create-embedding -t hybrid-search --dense-method openai --sparse-method bm25s
@@ -1497,19 +1502,23 @@ def create_embedding_pipeline(
             raise typer.Exit(1)
 
         embedding_method = typer.prompt(
-            "Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/vllm)",
+            "Embedding 方法 (hf/openai/jina/zhipu/cohere/bedrock/ollama/siliconcloud/nvidia_openai/sagellm)",
             type=str,
             default=embedding_method,
         )
 
-        if embedding_method not in ["vllm", "hash", "mockembedder"]:
+        if embedding_method not in ["sagellm", "hash", "mockembedder"]:
             embedding_model = typer.prompt(
                 "Embedding 模型名称",
                 type=str,
                 default=embedding_model or "",
             )
 
-        use_vllm = typer.confirm("使用 vLLM 服务?", default=use_vllm)
+        engine = typer.prompt(
+            "推理引擎 (仅支持 sagellm)",
+            type=str,
+            default=engine,
+        )
 
         if template == "rag":
             llm_model = typer.prompt(
@@ -1542,7 +1551,7 @@ def create_embedding_pipeline(
             batch_method = typer.prompt(
                 "批量处理用 embedding 方法",
                 type=str,
-                default=batch_method or "vllm" if use_vllm else embedding_method,
+                default=batch_method or engine if engine == "sagellm" else embedding_method,
             )
 
     # 构建参数
@@ -1575,17 +1584,22 @@ def create_embedding_pipeline(
         if not doc_method:
             doc_method = embedding_method
         if not batch_method:
-            batch_method = "vllm" if use_vllm else embedding_method
+            batch_method = engine if engine == "sagellm" else embedding_method
         kwargs["query_method"] = query_method
         kwargs["doc_method"] = doc_method
         kwargs["batch_method"] = batch_method
 
     # 生成配置
+    # Handle removed --vllm flag
+    if use_vllm:
+        console.print("[red]Error:[/red] --vllm has been removed in SAGE v0.3.0. Use --engine sagellm instead.")
+        raise typer.Exit(1)
+
     console.print(
         Panel(
             f"📋 模板: [cyan]{template}[/cyan]\n"
             f"🔧 Embedding: [cyan]{embedding_method}[/cyan]\n"
-            f"🚀 vLLM: [cyan]{use_vllm}[/cyan]",
+            f"🚀 引擎: [cyan]{engine}[/cyan]",
             title="生成 Pipeline 配置",
             style="blue",
         )
@@ -1596,7 +1610,7 @@ def create_embedding_pipeline(
             use_case=template,
             embedding_method=embedding_method,
             embedding_model=embedding_model,
-            use_vllm=use_vllm,
+            engine=engine,
             **kwargs,
         )
     except ValueError as exc:

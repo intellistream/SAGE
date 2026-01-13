@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from sage.cli.main import app as sage_app
+from sage.middleware.operators import SageLLMGenerator
 
 from .helpers import CLITestCase
 
@@ -32,7 +33,7 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.llm.vllm_registry.list_models",
+                    "sage.common.model_registry.sagellm_registry.list_models",
                     return_value=[fake_info],
                 )
             ],
@@ -43,10 +44,10 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.llm.VLLMService",
+                    "sage.middleware.operators.llm.sagellm_generator.SageLLMGenerator",
                     return_value=SimpleNamespace(
                         setup=lambda: None,
-                        generate=lambda *_a, **_k: [{"generations": [{"text": "hi"}]}],
+                        execute=lambda *_a, **_k: "hi",
                         cleanup=lambda: None,
                     ),
                 ),
@@ -62,7 +63,7 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.llm.vllm_registry.download_model",
+                    "sage.common.model_registry.sagellm_registry.download_model",
                     return_value=fake_info,
                 )
             ],
@@ -73,7 +74,7 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.llm.vllm_registry.delete_model",
+                    "sage.common.model_registry.sagellm_registry.delete_model",
                     return_value=None,
                 )
             ],
@@ -93,7 +94,7 @@ def collect_cases() -> list[CLITestCase]:
             app=sage_app,
             patch_factories=[
                 lambda: patch(
-                    "sage.tools.cli.commands.llm.VLLMService",
+                    "sage.middleware.operators.llm.sagellm_generator.SageLLMGenerator",
                     return_value=SimpleNamespace(
                         fine_tune=_raise_not_implemented,
                         setup=lambda: None,
@@ -103,3 +104,41 @@ def collect_cases() -> list[CLITestCase]:
             ],
         ),
     ]
+
+
+# ---------------------------------------------------------------------------
+# SageLLMGenerator unit tests (GPU-free, CI-compatible)
+# ---------------------------------------------------------------------------
+
+
+class TestSageLLMGeneratorMockMode:
+    """Test SageLLMGenerator with mock backend (no GPU required)."""
+
+    def test_sagellm_generator_mock_mode(self):
+        """SageLLMGenerator should work in mock mode without GPU."""
+        generator = SageLLMGenerator(backend_type="mock")
+        result = generator.execute("test prompt")
+        # Mock backend returns dict with 'text' and 'usage' keys
+        assert result is not None
+        assert isinstance(result, dict)
+        assert "text" in result
+        assert "usage" in result
+        # Check that output contains generated text
+        assert isinstance(result["text"], str)
+        assert len(result["text"]) > 0
+
+    def test_sagellm_generator_mock_dict_input(self):
+        """SageLLMGenerator mock mode should handle dict inputs."""
+        generator = SageLLMGenerator(backend_type="mock")
+        result = generator.execute({"prompt": "test prompt", "options": {"max_tokens": 100}})
+        assert result is not None
+        assert isinstance(result, dict)
+        assert "text" in result
+        assert len(result["text"]) > 0
+
+    def test_sagellm_generator_default_config(self):
+        """SageLLMGenerator should have sensible defaults."""
+        generator = SageLLMGenerator(backend_type="mock")
+        assert generator.backend_type == "mock"
+        # device_map should default to "auto"
+        assert generator.device_map == "auto"

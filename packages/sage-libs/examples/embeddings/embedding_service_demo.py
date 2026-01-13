@@ -2,16 +2,28 @@
 Embedding Service Demo - 展示如何使用统一的 EmbeddingService
 
 这个示例展示了:
-1. 如何配置 EmbeddingService (本地模型, API, vLLM)
+1. 如何配置 EmbeddingService (本地模型, API, sageLLM/vLLM)
 2. 如何在 Pipeline 中使用 embedding service
 3. 如何实现高性能批处理
 4. 如何使用缓存优化性能
+
+Engine 选项:
+    - sagellm (推荐): SAGE 统一推理引擎
+    - vllm: vLLM 后端 (deprecated, 将重定向到 sagellm)
+
+运行:
+    python embedding_service_demo.py           # 正常运行 (需要模型)
+    python embedding_service_demo.py --mock    # Mock 模式 (无需 GPU)
 
 Requirements:
     pip install isage-middleware>=0.2.0
 """
 
+import argparse
 import os
+
+# 全局 mock 模式标志
+_USE_MOCK = False
 
 
 def demo_basic_embedding_service():
@@ -22,10 +34,14 @@ def demo_basic_embedding_service():
 
     from sage.common.components.sage_embedding import EmbeddingService
 
-    # 检查是否在测试模式
-    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+    # 检查是否在测试模式或 mock 模式
+    is_test_mode = (
+        _USE_MOCK
+        or os.getenv("SAGE_TEST_MODE") == "true"
+        or os.getenv("CI") == "true"
+    )
 
-    # 配置: 在测试模式使用 mock，否则使用 HuggingFace 模型
+    # 配置: 在测试/mock 模式使用 mock，否则使用 HuggingFace 模型
     if is_test_mode:
         config = {
             "method": "mockembedder",
@@ -98,20 +114,23 @@ def demo_basic_embedding_service():
 
 
 def demo_vllm_embedding_service():
-    """Demo 2: 使用 vLLM 作为 Embedding 后端 (需要 GPU)"""
+    """Demo 2: 使用 sageLLM/vLLM 作为 Embedding 后端 (需要 GPU)"""
     print("\n" + "=" * 60)
-    print("Demo 2: vLLM Embedding Service (高性能)")
+    print("Demo 2: sageLLM Embedding Service (高性能, 推荐)")
     print("=" * 60)
 
-    # 注意: 这个示例需要实际的 vLLM service 运行
-    print("\n配置示例:")
+    # 注意: 这个示例需要实际的 embedding service 运行
+    # 使用 sagellm (推荐) 或 vllm (deprecated)
+    print("\n配置示例 (sagellm - 推荐):")
     config_example = """
 services:
-  vllm:
-    class: sage.llm.VLLMService
+  # 推荐: 使用 sagellm 统一推理引擎
+  sagellm:
+    class: sage.middleware.operators.llm.SageLLMGenerator
     config:
       model_id: "BAAI/bge-base-en-v1.5"
       embedding_model_id: "BAAI/bge-base-en-v1.5"
+      backend_type: "vllm"  # 或 "mock" (无需 GPU)
       auto_download: true
       engine:
         tensor_parallel_size: 1
@@ -120,9 +139,10 @@ services:
   embedding:
     class: sage.common.components.sage_embedding.EmbeddingService
     config:
-      method: "vllm"
-      vllm_service_name: "vllm"
-      batch_size: 256  # vLLM 可以处理大批量
+      method: "sagellm"  # 推荐使用 sagellm
+      # method: "vllm"   # deprecated, 将重定向到 sagellm
+      sagellm_service_name: "sagellm"
+      batch_size: 256  # sageLLM 可以处理大批量
       normalize: true
       cache_enabled: true
 
@@ -149,7 +169,7 @@ def demo_multi_embedding_pipeline():
 # 使用场景: RAG 系统
 # - 查询使用快速本地模型 (低延迟)
 # - 文档索引使用高质量云端模型 (高精度)
-# - 批量处理使用 vLLM (高吞吐)
+# - 批量处理使用 sageLLM (高吞吐)
 
 services:
   # 1. 快速本地 embedding (用于实时查询)
@@ -170,17 +190,18 @@ services:
       api_key: "${OPENAI_API_KEY}"
       batch_size: 100
 
-  # 3. vLLM 高吞吐 embedding (用于大规模批处理)
-  vllm:
-    class: sage.llm.VLLMService
+  # 3. sageLLM 高吞吐 embedding (用于大规模批处理) - 推荐
+  sagellm:
+    class: sage.middleware.operators.llm.SageLLMGenerator
     config:
       model_id: "BAAI/bge-large-en-v1.5"
+      backend_type: "vllm"  # 或 "mock" (无需 GPU)
 
   embedding_batch:
     class: sage.common.components.sage_embedding.EmbeddingService
     config:
-      method: "vllm"
-      vllm_service_name: "vllm"
+      method: "sagellm"  # 推荐使用 sagellm
+      sagellm_service_name: "sagellm"
       batch_size: 512
 
 operators:
@@ -355,8 +376,9 @@ openai (large)    500/s       20ms      $$$$      最高质量要求
 jina              800/s       15ms      $$        中等规模, 多语言
 zhipu             600/s       20ms      $$        中文优化
 
-vLLM (GPU)        2000/s      5ms       硬件      大规模生产环境
-vLLM (多GPU)      5000/s      3ms       硬件      超大规模部署
+sagellm (GPU)     2000/s      5ms       硬件      大规模生产环境 (推荐)
+sagellm (多GPU)   5000/s      3ms       硬件      超大规模部署
+vLLM (GPU)        2000/s      5ms       硬件      已废弃, 使用 sagellm
 
 推荐配置:
 
@@ -371,7 +393,8 @@ vLLM (多GPU)      5000/s      3ms       硬件      超大规模部署
      索引: method: "openai" 或 "jina"
 
   4. 大规模生产 (> 10M 文档):
-     method: "vllm", vllm_service_name: "vllm"
+     method: "sagellm", sagellm_service_name: "sagellm"  # 推荐
+     # method: "vllm" (deprecated, 将重定向到 sagellm)
      配置多 GPU 以提高吞吐量
 
   5. 成本敏感:
@@ -385,20 +408,40 @@ vLLM (多GPU)      5000/s      3ms       硬件      超大规模部署
 
 def main():
     """运行所有示例"""
+    global _USE_MOCK
+
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="Embedding Service Demo")
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="使用 mock 模式运行 (无需 GPU/模型)",
+    )
+    args = parser.parse_args()
+
+    # 设置全局 mock 标志
+    _USE_MOCK = args.mock
+    if _USE_MOCK:
+        print("\n🧪 Mock 模式: 使用模拟 embedding (无需 GPU)\n")
+
     print("\n" + "=" * 60)
     print("Embedding Service 示例集")
     print("=" * 60)
 
     demos = [
         ("基本使用", demo_basic_embedding_service),
-        ("vLLM 后端", demo_vllm_embedding_service),
+        ("sageLLM 后端", demo_vllm_embedding_service),
         ("多 Embedding 策略", demo_multi_embedding_pipeline),
         ("自定义 Operator", demo_embedding_operator),
         ("性能对比", demo_performance_comparison),
     ]
 
     # 检查是否在测试模式
-    is_test_mode = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+    is_test_mode = (
+        _USE_MOCK
+        or os.getenv("SAGE_TEST_MODE") == "true"
+        or os.getenv("CI") == "true"
+    )
 
     if is_test_mode:
         # 测试模式：运行所有示例

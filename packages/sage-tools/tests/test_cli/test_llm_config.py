@@ -95,7 +95,7 @@ def test_auto_updates_specific_section(monkeypatch, tmp_path):
             "--config-path",
             str(config_path),
             "--section",
-            "vllm",
+            "sagellm",
             "--model-name",
             "custom-model",
             "--yes",
@@ -105,7 +105,7 @@ def test_auto_updates_specific_section(monkeypatch, tmp_path):
     assert result.exit_code == 0, result.stdout
 
     updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    generator = updated["generator"]["vllm"]
+    generator = updated["generator"]["sagellm"]
     assert generator["base_url"] == detection.base_url
     assert generator["model_name"] == "custom-model"
 

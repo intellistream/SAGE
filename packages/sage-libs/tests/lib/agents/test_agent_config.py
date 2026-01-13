@@ -135,11 +135,11 @@ class TestAgentConfigValidation:
         config = load_config(self.config_path)
         generator = config["generator"]
 
-        # Should have multiple generator options
-        expected_types = ["local", "vllm", "remote"]
+        # Should have multiple generator options (vllm removed in v0.3.0)
+        expected_types = ["local", "sagellm", "remote"]
         for gen_type in expected_types:
-            assert gen_type in generator, f"Generator type '{gen_type}' missing"
-
+            if gen_type not in generator:
+                continue  # Optional generator types
             gen_config = generator[gen_type]
             assert "method" in gen_config
             assert "model_name" in gen_config

@@ -146,6 +146,26 @@ def detect_vllm(
     return None
 
 
+def detect_sagellm() -> LLMServiceInfo | None:
+    """检测本地 sageLLM 引擎是否可用"""
+    try:
+        from sagellm_backend.engine.factory import EngineFactory
+
+        backends = EngineFactory.available_backends()
+        if not backends:
+            return None
+        return LLMServiceInfo(
+            name="sagellm",
+            base_url="local://sagellm",
+            models=backends,  # 可用的后端列表
+            default_model=backends[0],
+            generator_section="sagellm",
+            description=f"sageLLM ({', '.join(backends)})",
+        )
+    except ImportError:
+        return None
+
+
 def detect_all_services(
     prefer: str | None = None, auth_token: str | None = None
 ) -> list[LLMServiceInfo]:
@@ -153,6 +173,12 @@ def detect_all_services(
 
     prefer_normalized = prefer.lower() if prefer else None
     detections: list[LLMServiceInfo] = []
+
+    # sagellm has highest priority (local native engine)
+    if prefer_normalized in (None, "sagellm"):
+        service = detect_sagellm()
+        if service:
+            detections.insert(0, service)  # 优先
 
     if prefer_normalized in (None, "ollama"):
         service = detect_ollama()
