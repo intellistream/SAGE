@@ -423,15 +423,17 @@ class Dispatcher:
         self.logger.info(
             f"Preparing to start {len(task_list)} tasks: {[name for name, _ in task_list]}"
         )
+        self.logger.info(f"self.tasks before loop: {len(self.tasks)}")
 
         for node_name, task in task_list:
             try:
                 self.logger.debug(f"Starting node: {node_name} (type: {type(task).__name__})")
                 task.start_running()
-                self.logger.debug(f"Started node: {node_name}")
+                self.logger.debug(f"Started node: {node_name}, self.tasks now has {len(self.tasks)} items")
             except Exception as e:
                 self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
 
+        self.logger.info(f"self.tasks after loop: {len(self.tasks)}")
         self.logger.info(
             f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks"
         )

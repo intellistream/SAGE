@@ -226,9 +226,10 @@ class LoadAwareScheduler(BaseScheduler):
         负载感知的服务调度决策
 
         服务通常需要长期运行，因此需要更谨慎的资源分配：
-        1. 提取服务的资源需求
-        2. 选择资源充足且负载低的节点
-        3. 优先使用 spread 策略避免单点故障
+        1. 检查 scheduling_options 中是否指定了节点
+        2. 提取服务的资源需求
+        3. 选择资源充足且负载低的节点
+        4. 优先使用 spread 策略避免单点故障
 
         Args:
             service_node: 服务节点
@@ -237,6 +238,39 @@ class LoadAwareScheduler(BaseScheduler):
             PlacementDecision: 服务调度决策
         """
         start_time = time.time()
+
+        # === 步骤 0: 检查是否有指定节点的调度选项 ===
+        scheduling_opts = {}
+        if hasattr(service_node, "factory") and service_node.factory:
+            scheduling_opts = getattr(service_node.factory, "scheduling_options", {}) or {}
+
+        # 如果指定了 node_ip，直接使用该节点
+        if scheduling_opts.get("node_ip"):
+            target_node_ip = scheduling_opts["node_ip"]
+            # 查找对应的 node_id
+            target_node = None
+            target_hostname = None
+            for node_id, node_res in self.node_selector.nodes.items():
+                if node_res.ip_address == target_node_ip or node_res.hostname == target_node_ip:
+                    target_node = node_id
+                    target_hostname = node_res.hostname
+                    break
+
+            if target_node:
+                self.scheduled_count += 1
+                elapsed = time.time() - start_time
+                self.total_latency += elapsed
+
+                decision = PlacementDecision(
+                    target_node=target_node,
+                    resource_requirements={"cpu": 1.0},
+                    delay=0.0,
+                    immediate=True,
+                    placement_strategy="node_affinity",
+                    reason=f"NodeAffinity: {service_node.service_name} bound to {target_hostname}",
+                )
+                self.decision_history.append(decision)
+                return decision
 
         # === 步骤 1: 提取服务资源需求 ===
         cpu_required = 1.0

@@ -28,8 +28,6 @@ from pathlib import Path
 # 添加项目路径
 SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT_ROOT = SCRIPT_DIR.parent
-# REPO_ROOT removed
-# removed
 sys.path.insert(0, str(EXPERIMENT_ROOT))
 
 from common.models import BenchmarkConfig, BenchmarkMetrics
@@ -115,6 +113,8 @@ def run_single_experiment(
 
     if pipeline_type == "rag":
         pipeline.build_rag_pipeline(name)
+    elif pipeline_type == "rag_service":
+        pipeline.build_rag_service_pipeline(name)
     elif pipeline_type == "simple_rag":
         pipeline.build_simple_rag_pipeline(name)
     elif pipeline_type == "llm":
@@ -327,7 +327,7 @@ def main():
     parser.add_argument("--tasks", type=int, default=500, help="Number of tasks")
     parser.add_argument(
         "--pipeline",
-        choices=["compute", "llm", "rag", "simple_rag", "adaptive_rag", "mixed"],
+        choices=["compute", "llm", "rag", "rag_service", "simple_rag", "adaptive_rag", "mixed"],
         default="compute",
         help="Pipeline type",
     )

@@ -118,7 +118,7 @@ class TaskSource(SourceFunction):
     def execute(self, data=None) -> TaskState | StopSignal:
         """生成下一个任务"""
         if self.current_index >= self.num_tasks:
-            time.sleep(60.0)  # 60 秒等待所有 actor 启动和 LLM 响应
+            # 不需要额外等待，StopSignal 会在下游 drain 完成后才传播
             return StopSignal("All tasks generated")
 
         query = self.query_pool[self.current_index % len(self.query_pool)]
@@ -628,6 +628,355 @@ def cosine_similarity(vec1: list[float], vec2: list[float]) -> float:
     return dot / (norm1 * norm2)
 
 
+# =============================================================================
+# FiQA Dataset Components - FAISS + Remote Embedding Service
+# =============================================================================
+# 使用 FiQA-PL 数据集作为查询源和 VDB 数据源
+# 支持 FAISS 索引持久化到 /home/sage/data
+# Embedding 服务: http://11.11.11.7:8090/v1
+# Embedding 模型: BAAI/bge-large-en-v1.5
+
+# FiQA 数据集配置
+FIQA_DATA_DIR = "/home/sage/data/FiQA-PL"
+FIQA_INDEX_DIR = "/home/sage/data"
+
+
+class FiQADataLoader:
+    """FiQA 数据集加载器 (单例模式，避免重复加载)"""
+
+    _queries: list[dict] | None = None
+    _corpus: list[dict] | None = None
+
+    @classmethod
+    def load_queries(cls, data_dir: str = FIQA_DATA_DIR) -> list[dict]:
+        """加载 FiQA 查询数据"""
+        if cls._queries is not None:
+            return cls._queries
+
+        import pandas as pd
+
+        queries_path = Path(data_dir) / "queries" / "test-00000-of-00001.parquet"
+        if not queries_path.exists():
+            raise FileNotFoundError(f"FiQA queries not found: {queries_path}")
+
+        df = pd.read_parquet(queries_path)
+        cls._queries = [{"id": row["_id"], "text": row["text"]} for _, row in df.iterrows()]
+        print(f"[FiQA] Loaded {len(cls._queries)} queries from {queries_path}")
+        return cls._queries
+
+    @classmethod
+    def load_corpus(cls, data_dir: str = FIQA_DATA_DIR) -> list[dict]:
+        """加载 FiQA 语料库"""
+        if cls._corpus is not None:
+            return cls._corpus
+
+        import pandas as pd
+
+        corpus_path = Path(data_dir) / "corpus" / "test-00000-of-00001.parquet"
+        if not corpus_path.exists():
+            raise FileNotFoundError(f"FiQA corpus not found: {corpus_path}")
+
+        df = pd.read_parquet(corpus_path)
+        cls._corpus = [
+            {"id": row["_id"], "text": row["text"], "title": row.get("title", "")}
+            for _, row in df.iterrows()
+        ]
+        print(f"[FiQA] Loaded {len(cls._corpus)} documents from {corpus_path}")
+        return cls._corpus
+
+    @classmethod
+    def clear_cache(cls):
+        """清除缓存"""
+        cls._queries = None
+        cls._corpus = None
+
+
+class FiQATaskSource(SourceFunction):
+    """
+    FiQA 数据集任务生成源。
+
+    从 FiQA 数据集循环读取查询，当 task 数量超过 query 数量时循环读取。
+    """
+
+    def __init__(
+        self,
+        num_tasks: int = 100,
+        data_dir: str = FIQA_DATA_DIR,
+        task_complexity: str = "medium",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.num_tasks = num_tasks
+        self.data_dir = data_dir
+        self.task_complexity = task_complexity
+        self.current_index = 0
+        self._queries: list[dict] | None = None
+
+    def _load_queries(self):
+        """延迟加载查询"""
+        if self._queries is None:
+            self._queries = FiQADataLoader.load_queries(self.data_dir)
+
+    def execute(self, data=None) -> TaskState | StopSignal:
+        """生成下一个任务 (循环读取)"""
+        if self.current_index >= self.num_tasks:
+            # 不需要额外等待，StopSignal 会在下游 drain 完成后才传播
+            return StopSignal("All tasks generated")
+
+        self._load_queries()
+        assert self._queries is not None
+
+        # 循环读取 query
+        query_idx = self.current_index % len(self._queries)
+        query_data = self._queries[query_idx]
+        self.current_index += 1
+
+        state = TaskState(
+            task_id=f"fiqa_{self.current_index:05d}",
+            query=query_data["text"],
+            created_time=time.time(),
+            metadata={
+                "complexity": self.task_complexity,
+                "query_id": query_data["id"],
+                "query_idx": query_idx,
+            },
+        )
+
+        return state
+
+
+class FiQAFAISSRetriever(MapFunction):
+    """
+    FiQA FAISS 检索器 - 使用远程 Embedding 服务 + FAISS 持久化索引。
+
+    特性:
+    - 使用远程 embedding 服务 (http://11.11.11.7:8090/v1)
+    - FAISS FlatIndex (IndexFlatIP) 用于精确检索
+    - 索引持久化到 /home/sage/data
+    - 使用 call_service 调用服务化的 VDB
+    """
+
+    def __init__(
+        self,
+        embedding_base_url: str = EMBEDDING_BASE_URL,
+        embedding_model: str = EMBEDDING_MODEL,
+        data_dir: str = FIQA_DATA_DIR,
+        index_dir: str = FIQA_INDEX_DIR,
+        top_k: int = 5,
+        stage: int = 1,
+        use_service: bool = False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.embedding_base_url = embedding_base_url
+        self.embedding_model = embedding_model
+        self.data_dir = data_dir
+        self.index_dir = index_dir
+        self.top_k = top_k
+        self.stage = stage
+        self.use_service = use_service
+        self._hostname = socket.gethostname()
+
+        # 延迟初始化
+        self._initialized = False
+        self._faiss_index = None
+        self._documents: list[dict] = []
+        self._dimension: int | None = None
+
+    def _get_embeddings(self, texts: list[str]) -> list[list[float]] | None:
+        """使用远程 embedding 服务获取向量"""
+        return get_remote_embeddings(texts, self.embedding_base_url, self.embedding_model)
+
+    def _get_index_paths(self) -> tuple[Path, Path]:
+        """获取索引和文档文件路径"""
+        index_path = Path(self.index_dir) / "fiqa_faiss.index"
+        docs_path = Path(self.index_dir) / "fiqa_documents.jsonl"
+        return index_path, docs_path
+
+    def _initialize(self):
+        """初始化 FAISS 索引"""
+        if self._initialized:
+            return
+
+        import json
+
+        import faiss
+        import numpy as np
+
+        index_path, docs_path = self._get_index_paths()
+
+        # 尝试加载已有索引
+        if index_path.exists() and docs_path.exists():
+            print(f"[FiQARetriever] Loading existing FAISS index from {index_path}")
+            self._faiss_index = faiss.read_index(str(index_path))
+
+            # 加载文档
+            self._documents = []
+            with open(docs_path, encoding="utf-8") as f:
+                for line in f:
+                    if line.strip():
+                        self._documents.append(json.loads(line))
+
+            print(f"[FiQARetriever] Loaded {self._faiss_index.ntotal} vectors, {len(self._documents)} docs")
+            self._initialized = True
+            return
+
+        # 构建新索引
+        print(f"[FiQARetriever] Building new FAISS index...")
+        corpus = FiQADataLoader.load_corpus(self.data_dir)
+        self._documents = corpus
+
+        # 分批获取 embeddings (避免超时)
+        batch_size = 100
+        all_embeddings = []
+
+        for i in range(0, len(corpus), batch_size):
+            batch = corpus[i : i + batch_size]
+            texts = [doc["text"][:512] for doc in batch]  # 截断过长文本
+            embeddings = self._get_embeddings(texts)
+            if embeddings is None:
+                raise RuntimeError(f"Failed to get embeddings for batch {i // batch_size}")
+            all_embeddings.extend(embeddings)
+            print(f"[FiQARetriever] Embedded {min(i + batch_size, len(corpus))}/{len(corpus)} docs")
+
+        # 创建 FAISS 索引 (FlatIP for cosine similarity with normalized vectors)
+        vectors = np.array(all_embeddings, dtype=np.float32)
+
+        # 归一化向量 (用于余弦相似度)
+        norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+        vectors = vectors / (norms + 1e-8)
+
+        self._dimension = vectors.shape[1]
+        self._faiss_index = faiss.IndexFlatIP(self._dimension)
+        self._faiss_index.add(vectors)
+
+        # 保存索引和文档
+        Path(self.index_dir).mkdir(parents=True, exist_ok=True)
+        faiss.write_index(self._faiss_index, str(index_path))
+
+        with open(docs_path, "w", encoding="utf-8") as f:
+            for doc in self._documents:
+                f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+
+        print(f"[FiQARetriever] Built and saved index: {self._faiss_index.ntotal} vectors")
+        self._initialized = True
+
+    def _search(self, query: str) -> list[dict]:
+        """使用 FAISS 检索"""
+        import numpy as np
+
+        # 获取查询向量
+        query_embeddings = self._get_embeddings([query])
+        if not query_embeddings:
+            return []
+
+        query_vec = np.array(query_embeddings[0], dtype=np.float32)
+
+        # 归一化
+        query_vec = query_vec / (np.linalg.norm(query_vec) + 1e-8)
+        query_vec = query_vec.reshape(1, -1)
+
+        # FAISS 检索
+        scores, indices = self._faiss_index.search(query_vec, self.top_k)
+
+        # 构建结果
+        results = []
+        for score, idx in zip(scores[0], indices[0]):
+            if idx >= 0 and idx < len(self._documents):
+                doc = self._documents[idx]
+                results.append({
+                    "id": doc.get("id", str(idx)),
+                    "title": doc.get("title", ""),
+                    "content": doc.get("text", ""),
+                    "score": float(score),
+                })
+
+        return results
+
+    def execute(self, data: TaskState) -> TaskState:
+        """执行检索"""
+        if not isinstance(data, TaskState):
+            return data
+
+        state = data
+        state.node_id = self._hostname
+        state.stage = self.stage
+        state.operator_name = f"FiQARetriever_{self.stage}"
+        state.mark_started()
+
+        try:
+            if self.use_service:
+                # 使用服务化的 VDB
+                retrieval_start = time.time()
+                results = self.call_service(
+                    "fiqa_vdb",
+                    method="search",
+                    query=state.query,
+                    top_k=self.top_k,
+                    timeout=120.0,  # 首次调用需要加载索引，设置较长超时
+                )
+                state.retrieved_docs = results if results else []
+                retrieval_time = time.time() - retrieval_start
+            else:
+                # 本地 FAISS 检索
+                self._initialize()
+                retrieval_start = time.time()
+                state.retrieved_docs = self._search(state.query)
+                retrieval_time = time.time() - retrieval_start
+
+            state.metadata["retrieval_time_ms"] = retrieval_time * 1000
+            state.metadata["num_retrieved"] = len(state.retrieved_docs)
+            state.success = True
+
+            # 打印检索结果
+            print(f"\n{'='*60}")
+            print(f"[Retriever] Task: {state.task_id} | Query: {state.query[:50]}...")
+            print(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
+            for i, doc in enumerate(state.retrieved_docs[:3]):
+                score = doc.get('score', 0)
+                text = doc.get('content', doc.get('text', ''))[:100]
+                print(f"  [{i+1}] (score={score:.3f}) {text}...")
+            print(f"{'='*60}\n")
+
+            # 保存检索结果到文件
+            self._save_retrieval_result(state, retrieval_time)
+
+        except Exception as e:
+            state.success = False
+            state.error = str(e)
+            state.retrieved_docs = []
+            import traceback
+            traceback.print_exc()
+
+        state.mark_completed()
+        return state
+
+    def _save_retrieval_result(self, state: TaskState, retrieval_time: float) -> None:
+        """保存检索结果到文件"""
+        try:
+            import json
+            from datetime import datetime
+            from pathlib import Path
+
+            output_dir = Path("/home/sage/data/rag_outputs")
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_file = output_dir / "retrieval_results.jsonl"
+
+            record = {
+                "timestamp": datetime.now().isoformat(),
+                "task_id": state.task_id,
+                "node_id": state.node_id,
+                "query": state.query,
+                "num_docs": len(state.retrieved_docs),
+                "retrieval_time_ms": retrieval_time * 1000,
+                "docs": state.retrieved_docs[:5],  # 只保存 top 5
+            }
+            with open(output_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"[Warning] Failed to save retrieval result: {e}")
+
+
 class SimpleRetriever(MapFunction):
     """
     简单检索器 - 使用远程 Embedding 服务。
@@ -1081,8 +1430,7 @@ class AdaptiveRAGQuerySource(SourceFunction):
 
     def execute(self, data=None) -> AdaptiveRAGQueryData | StopSignal:
         if self.counter >= len(self.queries):
-            # 等待所有下游任务完成
-            time.sleep(30.0)
+            # 不需要额外等待，StopSignal 会在下游 drain 完成后才传播
             return StopSignal("All queries generated")
         query = self.queries[self.counter]
         self.counter += 1
@@ -1710,6 +2058,19 @@ class ServiceRetriever(MapFunction):
             state.metadata["num_retrieved"] = len(state.retrieved_docs)
             state.success = True
 
+            # 打印检索结果
+            print(f"\n{'='*60}")
+            print(f"[Retriever] Task: {state.task_id} | Query: {state.query[:50]}...")
+            print(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
+            for i, doc in enumerate(state.retrieved_docs[:3]):
+                score = doc.get('score', 0)
+                text = doc.get('content', doc.get('text', ''))[:100]
+                print(f"  [{i+1}] (score={score:.3f}) {text}...")
+            print(f"{'='*60}\n")
+
+            # 保存检索结果到文件
+            self._save_retrieval_result(state, retrieval_time)
+
         except Exception as e:
             state.success = False
             state.error = str(e)
@@ -1927,7 +2288,19 @@ class ServiceGenerator(MapFunction):
             state.metadata["generation_time_ms"] = gen_time * 1000
             state.success = True
 
-            # Save to file if configured
+            # 打印生成结果
+            print(f"\n{'='*60}")
+            print(f"[Generator] Task: {state.task_id}")
+            print(f"[Generator] Query: {state.query[:80]}...")
+            print(f"[Generator] Context length: {len(state.context)} chars")
+            print(f"[Generator] Response ({gen_time*1000:.1f}ms):")
+            print(f"  {state.response[:300]}...")
+            print(f"{'='*60}\n")
+
+            # 保存生成结果到文件（始终保存）
+            self._save_generation_result(state, gen_time)
+
+            # Save to file if configured (legacy)
             if self.output_file:
                 self._save_response(state, gen_time)
 
@@ -1961,6 +2334,32 @@ class ServiceGenerator(MapFunction):
         except Exception as e:
             print(f"[Warning] Failed to save response: {e}")
 
+    def _save_generation_result(self, state: TaskState, gen_time: float) -> None:
+        """保存生成结果到统一文件"""
+        try:
+            import json
+            from datetime import datetime
+            from pathlib import Path
+
+            output_dir = Path("/home/sage/data/rag_outputs")
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_file = output_dir / "generation_results.jsonl"
+
+            record = {
+                "timestamp": datetime.now().isoformat(),
+                "task_id": state.task_id,
+                "node_id": state.node_id,
+                "query": state.query,
+                "context_length": len(state.context),
+                "response": state.response,
+                "generation_time_ms": gen_time * 1000,
+                "num_docs": len(state.retrieved_docs) if state.retrieved_docs else 0,
+            }
+            with open(output_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"[Warning] Failed to save generation result: {e}")
+
 
 # Set __module__ for Service-based operators for Ray serialization
 _SERVICE_OPERATOR_CLASSES = [
@@ -1971,4 +2370,13 @@ _SERVICE_OPERATOR_CLASSES = [
 ]
 
 for _cls in _SERVICE_OPERATOR_CLASSES:
+    _cls.__module__ = "common.operators"
+
+# Set __module__ for FiQA operators for Ray serialization
+_FIQA_OPERATOR_CLASSES = [
+    FiQATaskSource,
+    FiQAFAISSRetriever,
+]
+
+for _cls in _FIQA_OPERATOR_CLASSES:
     _cls.__module__ = "common.operators"

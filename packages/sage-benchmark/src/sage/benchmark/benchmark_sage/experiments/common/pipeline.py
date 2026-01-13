@@ -33,6 +33,11 @@ try:
         MetricsSink,
         TaskSource,
         SAMPLE_KNOWLEDGE_BASE,
+        FiQADataLoader,
+        FiQATaskSource,
+        FiQAFAISSRetriever,
+        FIQA_DATA_DIR,
+        FIQA_INDEX_DIR,
     )
 except ImportError:
     from models import BenchmarkConfig, BenchmarkMetrics
@@ -42,6 +47,11 @@ except ImportError:
         MetricsSink,
         TaskSource,
         SAMPLE_KNOWLEDGE_BASE,
+        FiQADataLoader,
+        FiQATaskSource,
+        FiQAFAISSRetriever,
+        FIQA_DATA_DIR,
+        FIQA_INDEX_DIR,
     )
 
 
@@ -366,6 +376,194 @@ def register_llm_service(
 
     except Exception as e:
         print(f"[Pipeline] Failed to register llm service: {e}")
+        return False
+
+
+def register_fiqa_vdb_service(
+    env: LocalEnvironment | RemoteEnvironment,
+    embedding_base_url: str,
+    embedding_model: str,
+    data_dir: str = FIQA_DATA_DIR,
+    index_dir: str = FIQA_INDEX_DIR,
+    node_ip: str | None = None,
+) -> bool:
+    """
+    Register FiQA FAISS VDB service for vector search.
+
+    Uses FAISS FlatIP index with persistent storage.
+    All operators access via self.call_service("fiqa_vdb").
+
+    Args:
+        env: Environment to register service
+        embedding_base_url: Embedding service URL
+        embedding_model: Embedding model name
+        data_dir: FiQA dataset directory
+        index_dir: Index persistence directory
+        node_ip: IP address of node to run service on
+
+    Returns:
+        True if registered successfully
+    """
+    try:
+        from pathlib import Path
+
+        class FiQAVDBService(BaseService):
+            """FiQA FAISS VDB Service with persistent index."""
+
+            def __init__(
+                self,
+                embedding_url: str,
+                embedding_model_name: str,
+                data_directory: str,
+                index_directory: str,
+                **kwargs,
+            ):
+                super().__init__(**kwargs)
+                self._embedding_url = embedding_url
+                self._embedding_model = embedding_model_name
+                self._data_dir = data_directory
+                self._index_dir = index_directory
+                self._faiss_index = None
+                self._documents: list[dict] = []
+                self._initialized = False
+
+            def _get_embeddings(self, texts: list[str]) -> list[list[float]] | None:
+                """Get embeddings from remote service"""
+                try:
+                    import httpx
+
+                    with httpx.Client(timeout=60.0) as client:
+                        response = client.post(
+                            f"{self._embedding_url.rstrip('/')}/embeddings",
+                            json={"input": texts, "model": self._embedding_model},
+                        )
+                        response.raise_for_status()
+                        result = response.json()
+                        return [item["embedding"] for item in result["data"]]
+                except Exception as e:
+                    print(f"[FiQAVDB] Embedding error: {e}")
+                return None
+
+            def _ensure_initialized(self):
+                """Initialize FAISS index on first use"""
+                if self._initialized:
+                    return
+
+                import json
+
+                import faiss
+                import numpy as np
+
+                index_path = Path(self._index_dir) / "fiqa_faiss.index"
+                docs_path = Path(self._index_dir) / "fiqa_documents.jsonl"
+
+                # Try loading existing index
+                if index_path.exists() and docs_path.exists():
+                    print(f"[FiQAVDB] Loading existing index from {index_path}")
+                    self._faiss_index = faiss.read_index(str(index_path))
+                    self._documents = []
+                    with open(docs_path, encoding="utf-8") as f:
+                        for line in f:
+                            if line.strip():
+                                self._documents.append(json.loads(line))
+                    print(f"[FiQAVDB] Loaded {self._faiss_index.ntotal} vectors")
+                    self._initialized = True
+                    return
+
+                # Build new index (inline corpus loading to avoid common module dependency)
+                print("[FiQAVDB] Building new FAISS index...")
+                import pandas as pd
+                corpus_path = Path(self._data_dir) / "corpus" / "test-00000-of-00001.parquet"
+                if not corpus_path.exists():
+                    raise FileNotFoundError(f"FiQA corpus not found: {corpus_path}")
+                df = pd.read_parquet(corpus_path)
+                corpus = [
+                    {"id": row["_id"], "text": row["text"], "title": row.get("title", "")}
+                    for _, row in df.iterrows()
+                ]
+                print(f"[FiQAVDB] Loaded {len(corpus)} documents from corpus")
+                self._documents = corpus
+
+                # Batch embedding
+                batch_size = 100
+                all_embeddings = []
+                for i in range(0, len(corpus), batch_size):
+                    batch = corpus[i : i + batch_size]
+                    texts = [doc["text"][:512] for doc in batch]
+                    embeddings = self._get_embeddings(texts)
+                    if embeddings is None:
+                        raise RuntimeError(f"Failed to get embeddings for batch {i // batch_size}")
+                    all_embeddings.extend(embeddings)
+                    print(f"[FiQAVDB] Embedded {min(i + batch_size, len(corpus))}/{len(corpus)}")
+
+                # Create FAISS index
+                vectors = np.array(all_embeddings, dtype=np.float32)
+                norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+                vectors = vectors / (norms + 1e-8)
+
+                dimension = vectors.shape[1]
+                self._faiss_index = faiss.IndexFlatIP(dimension)
+                self._faiss_index.add(vectors)
+
+                # Persist
+                Path(self._index_dir).mkdir(parents=True, exist_ok=True)
+                faiss.write_index(self._faiss_index, str(index_path))
+                with open(docs_path, "w", encoding="utf-8") as f:
+                    for doc in self._documents:
+                        f.write(json.dumps(doc, ensure_ascii=False) + "\n")
+
+                print(f"[FiQAVDB] Built and saved index: {self._faiss_index.ntotal} vectors")
+                self._initialized = True
+
+            def search(self, query: str, top_k: int = 5) -> list[dict]:
+                """Search for similar documents"""
+                self._ensure_initialized()
+
+                import numpy as np
+
+                query_embeddings = self._get_embeddings([query])
+                if not query_embeddings:
+                    return []
+
+                query_vec = np.array(query_embeddings[0], dtype=np.float32)
+                query_vec = query_vec / (np.linalg.norm(query_vec) + 1e-8)
+                query_vec = query_vec.reshape(1, -1)
+
+                scores, indices = self._faiss_index.search(query_vec, top_k)
+
+                results = []
+                for score, idx in zip(scores[0], indices[0]):
+                    if 0 <= idx < len(self._documents):
+                        doc = self._documents[idx]
+                        results.append({
+                            "id": doc.get("id", str(idx)),
+                            "title": doc.get("title", ""),
+                            "content": doc.get("text", ""),
+                            "score": float(score),
+                        })
+                return results
+
+            def process(self, query: str, top_k: int = 5) -> list[dict]:
+                """Default RPC method"""
+                return self.search(query, top_k)
+
+        env.register_service(
+            "fiqa_vdb",
+            FiQAVDBService,
+            embedding_url=embedding_base_url,
+            embedding_model_name=embedding_model,
+            data_directory=data_dir,
+            index_directory=index_dir,
+            node_ip=node_ip,
+        )
+        node_info = f" on {node_ip}" if node_ip else ""
+        print(f"[Pipeline] Registered fiqa_vdb service{node_info}")
+        return True
+
+    except Exception as e:
+        print(f"[Pipeline] Failed to register fiqa_vdb service: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -753,62 +951,101 @@ class SchedulingBenchmarkPipeline:
         self, name: str = "rag_service_benchmark"
     ) -> SchedulingBenchmarkPipeline:
         """
-        Build RAG pipeline using service-based operators.
+        Build RAG pipeline using FiQA dataset and service-based operators.
 
-        Uses register_service() pattern to avoid distributed access issues.
-        Services are registered once on Head node, accessed via self.call_service().
+        Uses FiQA-PL dataset (648 queries, 57638 documents) for retrieval benchmark.
+        - FiQATaskSource: Cyclic query reading (loops when tasks > queries)
+        - FiQAFAISSRetriever: FAISS FlatIP index with persistent storage
+        - Services registered via register_fiqa_vdb_service()
 
-        Pipeline: TaskSource -> ServiceRetriever -> ServiceReranker
+        Pipeline: FiQATaskSource -> FiQAFAISSRetriever -> ServiceReranker
                   -> ServicePromptor -> ServiceGenerator -> MetricsSink
 
-        Advantages over SimpleXxx operators:
-        - No duplicate embedding/index loading across workers
-        - Shared vector_db service for all retrieval operations
-        - Better resource utilization in distributed mode
+        Index persistence: /home/sage/data/fiqa_faiss.index
         """
         from .operators import (
-            ServiceGenerator,
-            ServicePromptor,
-            ServiceReranker,
-            ServiceRetriever,
+            FiQAFAISSRetriever,
+            FiQATaskSource,
+            SimpleGenerator,
+            SimplePromptor,
+            SimpleReranker,
         )
 
         env = self._create_environment(name)
 
-        # Register all services (embedding, vector_db, llm)
-        print("\n[Pipeline] Registering services for RAG pipeline...")
-        service_results = register_all_services(env, self.config)
-        for svc_name, success in service_results.items():
-            status = "✓" if success else "✗"
-            print(f"  {status} {svc_name}")
+        # Register services (embedding, llm, fiqa_vdb)
+        print("\n[Pipeline] Registering services for FiQA RAG pipeline...")
+
+        # Register embedding and LLM services
+        embedding_ok = register_embedding_service(
+            env,
+            base_url=self.config.embedding_base_url,
+            model=self.config.embedding_model,
+        )
+        print(f"  {'✓' if embedding_ok else '✗'} embedding")
+
+        llm_ok = register_llm_service(
+            env,
+            base_url=self.config.llm_base_url,
+            model=self.config.llm_model,
+            max_tokens=self.config.max_tokens,
+        )
+        print(f"  {'✓' if llm_ok else '✗'} llm")
+
+        # Register FiQA VDB service on HEAD NODE ONLY (index files are only on head)
+        fiqa_ok = register_fiqa_vdb_service(
+            env,
+            embedding_base_url=self.config.embedding_base_url,
+            embedding_model=self.config.embedding_model,
+            node_ip=self.config.head_node,  # Bind to head node where index files exist
+        )
+        print(f"  {'✓' if fiqa_ok else '✗'} fiqa_vdb (on {self.config.head_node})")
+
+        # Warmup: trigger index loading before pipeline starts
+        print("\n[Pipeline] Warming up fiqa_vdb service (loading FAISS index)...")
+        try:
+            # Import and trigger index loading on head node
+            loader = FiQADataLoader()
+            _ = loader.load_corpus()  # Pre-load corpus metadata
+            print("[Pipeline] FiQA corpus metadata loaded")
+        except Exception as e:
+            print(f"[Pipeline] Warning: warmup failed: {e}")
         print()
 
         (
             env.from_source(
-                TaskSource,
+                FiQATaskSource,
                 num_tasks=self.config.num_tasks,
                 task_complexity=self.config.task_complexity,
             )
             .map(
-                ServiceRetriever,
-                parallelism=self.config.parallelism,
+                FiQAFAISSRetriever,
+                parallelism=1,
+                embedding_base_url=self.config.embedding_base_url,
+                embedding_model=self.config.embedding_model,
                 top_k=10,
+                use_service=True,  # Use RPC to call fiqa_vdb on head node
                 stage=1,
             )
             .map(
-                ServiceReranker,
+                SimpleReranker,
                 parallelism=self.config.parallelism,
+                embedding_base_url=self.config.embedding_base_url,
+                embedding_model=self.config.embedding_model,
                 top_k=5,
                 stage=2,
             )
             .map(
-                ServicePromptor,
+                SimplePromptor,
                 parallelism=self.config.parallelism,
                 stage=3,
             )
             .map(
-                ServiceGenerator,
+                SimpleGenerator,
                 parallelism=self.config.parallelism,
+                llm_base_url=self.config.llm_base_url,
+                llm_model=self.config.llm_model,
+                max_tokens=self.config.max_tokens,
                 output_file=self.config.llm_output_file,
                 stage=4,
             )
@@ -1047,6 +1284,31 @@ class SchedulingBenchmarkPipeline:
                 pass
 
         return self.metrics
+
+    def _cleanup_metrics_files(self) -> None:
+        """Clean up old metrics files on all nodes before running."""
+        import subprocess
+        from pathlib import Path
+
+        # Clean local metrics
+        metrics_dir = Path("/tmp/sage_metrics")
+        if metrics_dir.exists():
+            for f in metrics_dir.glob("metrics_*.jsonl"):
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+
+        # Clean remote nodes
+        worker_nodes = self._get_worker_nodes()
+        for node in worker_nodes:
+            try:
+                cmd = f"ssh -o StrictHostKeyChecking=no {node} 'rm -f /tmp/sage_metrics/*.jsonl' 2>/dev/null"
+                subprocess.run(cmd, shell=True, timeout=5)
+            except Exception:
+                pass
+
+        print("[Metrics] Cleaned up old metrics files on all nodes")
 
     def _gather_remote_metrics(self) -> None:
         """Gather metrics files from remote worker nodes."""

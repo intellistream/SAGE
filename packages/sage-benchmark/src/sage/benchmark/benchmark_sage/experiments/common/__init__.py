@@ -27,6 +27,10 @@ from .operators import (
     MetricsSink,
     RAGOperator,
     TaskSource,
+    # FiQA operators
+    FiQADataLoader,
+    FiQAFAISSRetriever,
+    FiQATaskSource,
     # Adaptive-RAG operators
     AdaptiveRAGQuerySource,
     AdaptiveRAGResultSink,
@@ -41,7 +45,7 @@ from .operators import (
     SingleRetrievalStrategy,
     ZeroComplexityFilter,
 )
-from .pipeline import SchedulingBenchmarkPipeline
+from .pipeline import SchedulingBenchmarkPipeline, register_fiqa_vdb_service
 from .request_utils import (
     BenchmarkClient,
     RequestResult,
@@ -65,6 +69,10 @@ __all__ = [
     "LLMOperator",
     "RAGOperator",
     "MetricsSink",
+    # operators - FiQA
+    "FiQADataLoader",
+    "FiQATaskSource",
+    "FiQAFAISSRetriever",
     # operators - adaptive-rag
     "AdaptiveRAGQuerySource",
     "QueryClassifier",
@@ -80,6 +88,7 @@ __all__ = [
     "AdaptiveRAGResultSink",
     # pipeline
     "SchedulingBenchmarkPipeline",
+    "register_fiqa_vdb_service",
     # request_utils
     "BenchmarkClient",
     "RequestResult",

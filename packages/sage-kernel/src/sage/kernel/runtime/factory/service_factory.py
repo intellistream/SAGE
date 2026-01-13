@@ -84,6 +84,7 @@ class ServiceFactory:
             "service_class": getattr(self, "service_class", None),
             "service_args": getattr(self, "service_args", ()),
             "service_kwargs": getattr(self, "service_kwargs", {}),
+            "scheduling_options": getattr(self, "scheduling_options", {}),
         }
 
     def __setstate__(self, state):
@@ -92,6 +93,7 @@ class ServiceFactory:
         self.service_class = state.get("service_class")
         self.service_args = state.get("service_args", ())
         self.service_kwargs = state.get("service_kwargs", {})
+        self.scheduling_options = state.get("scheduling_options", {})
 
         # 验证必需的属性
         if self.service_name is None:
