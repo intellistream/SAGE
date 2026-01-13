@@ -3,18 +3,34 @@
 This package exposes ready-to-use operator wrappers (MapOperators) built on
 sage.libs.agentic components so Studio and pipeline builders can drag-and-drop
 agent runtimes without wiring boilerplate.
+
+Note: This module requires `isage-agentic` package. Install with:
+    pip install isage-agentic
+
+If the package is not installed, agentic operators will not be available.
 """
 
-from .planning_operator import PlanningOperator
-from .refined_searcher import RefinedSearcherOperator
-from .runtime import AgentRuntimeOperator
-from .timing_operator import TimingOperator
-from .tool_selection_operator import ToolSelectionOperator
+# Check if sage_agentic is available
+try:
+    import sage_agentic  # noqa: F401
 
-__all__ = [
-    "AgentRuntimeOperator",
-    "ToolSelectionOperator",
-    "PlanningOperator",
-    "TimingOperator",
-    "RefinedSearcherOperator",
-]
+    _HAS_SAGE_AGENTIC = True
+except ImportError:
+    _HAS_SAGE_AGENTIC = False
+
+__all__: list[str] = []
+
+if _HAS_SAGE_AGENTIC:
+    from .planning_operator import PlanningOperator
+    from .refined_searcher import RefinedSearcherOperator
+    from .runtime import AgentRuntimeOperator
+    from .timing_operator import TimingOperator
+    from .tool_selection_operator import ToolSelectionOperator
+
+    __all__ = [
+        "AgentRuntimeOperator",
+        "ToolSelectionOperator",
+        "PlanningOperator",
+        "TimingOperator",
+        "RefinedSearcherOperator",
+    ]

@@ -6,6 +6,7 @@ SAGE Middleware Operators - 领域算子
 - RAG算子: 检索增强生成算子 (Retriever, Refiner, Reranker, Generator等)
 - Tool算子: 工具调用 + 领域特定工具 (arxiv, image_captioner等)
 - Filters: 业务过滤器 (tool_filter, evaluate_filter, context source/sink)
+- Agentic: Agent runtime operators (requires isage-agentic)
 
 向量数据库集成位于: sage.middleware.components.vector_stores
 
@@ -18,15 +19,27 @@ SAGE Middleware Operators - 领域算子
     from sage.middleware.operators.rag import ChromaRetriever
     from sage.middleware.operators.llm import VLLMGenerator
     from sage.middleware.components.vector_stores import MilvusBackend, ChromaBackend
+
+    # Agentic operators (requires isage-agentic)
+    from sage.middleware.operators.agentic import PlanningOperator
 """
 
-# 导出子模块
-from . import agentic, filters, llm, rag, tools
+# 导出子模块（不包含依赖可选包的模块）
+from . import filters, llm, rag, tools
 
 __all__ = [
-    "agentic",
     "rag",
     "llm",
     "tools",
     "filters",
 ]
+
+# Conditionally import agentic if sage_agentic is available
+try:
+    import sage_agentic  # noqa: F401
+
+    from . import agentic
+
+    __all__.append("agentic")
+except ImportError:
+    pass
