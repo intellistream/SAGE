@@ -931,6 +931,8 @@ class FiQAFAISSRetriever(MapFunction):
             # 打印检索结果
             print(f"\n{'='*60}")
             print(f"[Retriever] Task: {state.task_id} | Query: {state.query[:50]}...")
+            self.logger.info(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
+            self.logger.info(f"docs are {state.retrieved_docs}")
             print(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
             for i, doc in enumerate(state.retrieved_docs[:3]):
                 score = doc.get('score', 0)
@@ -1384,6 +1386,14 @@ class SimpleGenerator(MapFunction):
             gen_time = time.time() - gen_start
             state.metadata["generation_time_ms"] = gen_time * 1000
             state.success = True
+
+            # 记录到日志
+            self.logger.info(
+                f"[Generator] task_id={state.task_id}, query={state.query[:50]}..., "
+                f"response_len={len(state.response)}, gen_time={gen_time*1000:.1f}ms"
+            )
+            self.logger.debug(f"[Generator] Full response: {state.response[:500]}")
+
             # 输出到指定文件
             if self.output_file:
                 self._save_response_to_file(state, gen_time)
